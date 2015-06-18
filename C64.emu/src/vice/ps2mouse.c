@@ -449,13 +449,14 @@ int _mouse_enabled = 0;
 
 static int set_ps2mouse_enable(int val, void *param)
 {
-    ps2mouse_enabled = (unsigned int)val;
+    ps2mouse_enabled = (unsigned int)(val ? 1 : 0);
+
     return 0;
 }
 
 static int set_mouse_enabled(int val, void *param)
 {
-    _mouse_enabled = val;
+    _mouse_enabled = val ? 1 : 0;
     mousedrv_mouse_changed();
     return 0;
 }

@@ -2,7 +2,7 @@
  * c64tpi.c - IEEE488 interface for the C64.
  *
  * Written by
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -41,7 +41,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
-#include "drivecpu.h"
+#include "drive.h"
 #include "lib.h"
 #include "log.h"
 #include "parallel.h"
@@ -307,7 +307,7 @@ static BYTE read_pa(tpi_context_t *tpi_context)
 {
     BYTE byte;
 
-    drivecpu_execute_all(maincpu_clk);
+    drive_cpu_execute_all(maincpu_clk);
 
     byte = 0xff;
     if (ieee_is_out) {
@@ -340,7 +340,7 @@ static BYTE read_pb(tpi_context_t *tpi_context)
 {
     BYTE byte;
 
-    drivecpu_execute_all(maincpu_clk);
+    drive_cpu_execute_all(maincpu_clk);
 
     byte = ieee_is_out ? 0xff : parallel_bus;
     byte = (byte & ~(tpi_context->c_tpi)[TPI_DDPB]) | (tpi_context->c_tpi[TPI_PB] & tpi_context->c_tpi[TPI_DDPB]);
@@ -424,8 +424,10 @@ void tpi_passthrough_changed(struct export_s *export)
 
 static char *ieee488_filename = NULL;
 
-static int set_ieee488_enabled(int val, void *param)
+static int set_ieee488_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     DBG(("IEEE: set_enabled: (%p) '%s' %d to %d\n", param, ieee488_filename, ieee488_enabled, val));
     if (ieee488_enabled && !val) {
         cart_power_off();

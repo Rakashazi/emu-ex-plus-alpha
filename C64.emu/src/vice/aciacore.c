@@ -1,9 +1,9 @@
 /*! \file aciacore.c \n
- *  \author André Fachat, Spiro Trikaliotis\n
+ *  \author Andre Fachat, Spiro Trikaliotis\n
  *  \brief  Template file for ACIA 6551 emulation.
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -235,6 +235,10 @@ static const double t232_bps_table[4] = {
 */
 static int acia_set_device(int val, void *param)
 {
+    if (val < 0 || val > 3) {
+        return -1;
+    }
+
     if (acia.fd >= 0) {
         log_error(acia.log,
                   "acia_set_device(): "
@@ -299,6 +303,7 @@ static void acia_set_int(int aciairq, unsigned int int_num, int value)
    This function is called whenever the resource
    MYACIA "Irq" is changed.
 */
+#if (ACIA_MODE_HIGHEST == ACIA_MODE_TURBO232)
 static int acia_set_irq(int new_irq_res, void *param)
 {
     enum cpu_int new_irq;
@@ -308,8 +313,13 @@ static int acia_set_irq(int new_irq_res, void *param)
      * if an invalid interrupt type has been given, return
      * with an error.
      */
-    if (new_irq_res < 0 || new_irq_res > 2) {
-        return -1;
+    switch (new_irq_res) {
+        case IK_NONE:
+        case IK_NMI:
+        case IK_IRQ:
+            break;
+        default:
+            return -1;
     }
 
     new_irq = irq_tab[new_irq_res];
@@ -325,6 +335,7 @@ static int acia_set_irq(int new_irq_res, void *param)
 
     return 0;
 }
+#endif
 
 /*! \internal \brief get the bps rate ("baud rate") of the ACIA
 
@@ -441,6 +452,7 @@ static void set_acia_ticks(void)
    This function is called whenever the resource
    MYACIA "Mode" is changed.
 */
+#if (ACIA_MODE_HIGHEST == ACIA_MODE_TURBO232)
 static int acia_set_mode(int new_mode, void *param)
 {
     if (new_mode < ACIA_MODE_LOWEST || new_mode > ACIA_MODE_HIGHEST) {
@@ -455,15 +467,12 @@ static int acia_set_mode(int new_mode, void *param)
     set_acia_ticks();
     return 0;
 }
+#endif
 
 /*! \brief integer resources used by the ACIA module */
 static const resource_int_t resources_int[] = {
     { MYACIA "Dev", MyDevice, RES_EVENT_NO, NULL,
       &acia.device, acia_set_device, NULL },
-    { MYACIA "Irq", MyIrq, RES_EVENT_NO, NULL,
-      &acia.irq_res, acia_set_irq, NULL },
-    { MYACIA "Mode", ACIA_MODE_NORMAL, RES_EVENT_NO, NULL,
-      &acia.mode, acia_set_mode, NULL },
     { NULL }
 };
 
@@ -478,6 +487,9 @@ static const resource_int_t resources_int[] = {
 int myacia_init_resources(void)
 {
     acia_preinit();
+
+    acia.irq_res = MyIrq;
+    acia.mode = ACIA_MODE_NORMAL;
 
     return resources_register_int(resources_int);
 }

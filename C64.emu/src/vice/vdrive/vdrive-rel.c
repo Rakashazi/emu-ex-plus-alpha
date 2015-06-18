@@ -815,7 +815,9 @@ int vdrive_rel_open(vdrive_t *vdrive, unsigned int secondary,
             "Open existing REL file '%s' with record length %i on channel %d.",
             name, cmd_parse->recordlength, secondary);
         /* Follow through to function. */
-        vdrive_rel_open_existing(vdrive, secondary);
+        if (vdrive_rel_open_existing(vdrive, secondary)) {
+            return SERIAL_ERROR;
+        }
     } else {
         log_debug(
             "Open new REL file '%s' with record length %i on channel %d.",

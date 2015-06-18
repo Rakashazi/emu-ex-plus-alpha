@@ -40,8 +40,8 @@
 #define TAPE_ENCODING_CBM       1
 #define TAPE_ENCODING_TURBOTAPE 2
 
-#define TAPE_CAS_TYPE_PRG  1 /* Binary Program */
-#define TAPE_CAS_TYPE_BAS  3 /* Relocatable Program */
+#define TAPE_CAS_TYPE_BAS  1 /* Relocatable Program */
+#define TAPE_CAS_TYPE_PRG  3 /* Binary Program */
 #define TAPE_CAS_TYPE_DATA 4 /* Data Record */
 #define TAPE_CAS_TYPE_EOF  5 /* End of Tape marker */
 

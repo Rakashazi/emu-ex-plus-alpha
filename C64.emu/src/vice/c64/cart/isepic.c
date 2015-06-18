@@ -239,8 +239,10 @@ static int isepic_deactivate(void)
     return 0;
 }
 
-static int set_isepic_enabled(int val, void *param)
+static int set_isepic_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     DBG(("set enabled: %d\n", val));
     if (isepic_enabled && !val) {
         cart_power_off();
@@ -290,8 +292,10 @@ int isepic_enable(void)
     return 0;
 }
 
-static int set_isepic_switch(int val, void *param)
+static int set_isepic_switch(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     DBG(("set switch: %d\n", val));
     if (isepic_switch && !val) {
         isepic_switch = 0;
@@ -310,12 +314,8 @@ static int set_isepic_switch(int val, void *param)
 
 static int set_isepic_rw(int val, void *param)
 {
-    DBG(("set image write: %d\n", val));
-    if (isepic_write_image && !val) {
-        isepic_write_image = 0;
-    } else if (!isepic_write_image && val) {
-        isepic_write_image = 1;
-    }
+    isepic_write_image = val ? 1 : 0;
+
     return 0;
 }
 
@@ -404,6 +404,16 @@ static const cmdline_option_t cmdline_options[] =
       NULL, NULL, "IsepicImageWrite", (resource_value_t)0,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_ISEPIC_IMAGE,
+      NULL, NULL },
+    { "-isepicswitch", SET_RESOURCE, 0,
+      NULL, NULL, "IsepicSwitch", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_ISEPIC_SWITCH,
+      NULL, NULL },
+    { "+isepicswitch", SET_RESOURCE, 0,
+      NULL, NULL, "IsepicSwitch", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_ISEPIC_SWITCH,
       NULL, NULL },
     { NULL }
 };

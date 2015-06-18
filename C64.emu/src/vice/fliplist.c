@@ -35,6 +35,7 @@
 #include "attach.h"
 #include "cmdline.h"
 #include "fliplist.h"
+#include "ioutil.h"
 #include "lib.h"
 #include "log.h"
 #include "resources.h"
@@ -73,7 +74,7 @@ static int set_fliplist_file_name(const char *val, void *param)
         return 0;
     }
 
-    fliplist_load_list((unsigned int)-1, fliplist_file_name, 0);
+    fliplist_load_list(FLIPLIST_ALL_UNITS, fliplist_file_name, 0);
 
     return 0;
 }
@@ -325,8 +326,14 @@ int fliplist_save_list(unsigned int unit, const char *filename)
     int all_units = 0;
     fliplist_t flip;
     FILE *fp = NULL;
+    char *savedir;
 
-    if (unit == (unsigned int)-1) {
+    /* create the directory where the fliplist should be written first */
+    util_fname_split(filename, &savedir, NULL);
+    ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+    lib_free(savedir);
+
+    if (unit == FLIPLIST_ALL_UNITS) {
         all_units = 1;
         unit = 8;
     }
@@ -380,7 +387,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
         fclose(fp);
         return -1;
     }
-    if (unit == (unsigned int)-1) {
+    if (unit == FLIPLIST_ALL_UNITS) {
         all_units = 1;
         for (i = 0; i < NUM_DRIVES; i++) {
             fliplist_clear_list(i + 8);
@@ -419,7 +426,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
 
             *b = '\0';
 
-            if (unit == (unsigned int)-1) {
+            if (unit == FLIPLIST_ALL_UNITS) {
                 log_message(LOG_DEFAULT, "Fliplist has inconsistent view for unit, assuming 8.\n");
                 unit = 8;
             }

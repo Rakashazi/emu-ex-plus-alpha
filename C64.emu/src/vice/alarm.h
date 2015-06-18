@@ -162,6 +162,7 @@ inline static void alarm_set(alarm_t *alarm, CLOCK cpu_clk)
         new_idx = context->num_pending_alarms;
         if (unlikely(new_idx >= ALARM_CONTEXT_MAX_PENDING_ALARMS)) {
             alarm_log_too_many_alarms();
+            return;
         }
 
         context->pending_alarms[new_idx].alarm = alarm;

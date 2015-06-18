@@ -64,7 +64,7 @@ typedef struct gfxoutputdrv_s {
 /* Functions called by external emulator code.  */
 extern int gfxoutput_resources_init(void);
 extern int gfxoutput_cmdline_options_init(void);
-extern int gfxoutput_early_init(int drivers);
+extern int gfxoutput_early_init(int help);
 extern int gfxoutput_init(void);
 extern void gfxoutput_shutdown(void);
 extern int gfxoutput_num_drivers(void);
@@ -74,9 +74,6 @@ extern gfxoutputdrv_t *gfxoutput_get_driver(const char *drvname);
 
 /* Functions called by graphic output driver modules.  */
 extern int gfxoutput_register(gfxoutputdrv_t *drv);
-
-/* GIF driver functions. */
-extern void gfxoutput_init_gif(void);
 
 /* FFMPEG bitrate constants. */
 #define VICE_FFMPEG_VIDEO_RATE_MIN      100000

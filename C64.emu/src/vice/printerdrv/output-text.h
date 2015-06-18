@@ -30,8 +30,5 @@
 extern int output_text_init_resources(void);
 extern void output_text_shutdown_resources(void);
 extern int output_text_init_cmdline_options(void);
-extern void output_text_init(void);
-
-extern void output_text_reset(void);
 
 #endif

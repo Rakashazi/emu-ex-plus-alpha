@@ -9,7 +9,7 @@
  *  Jarkko Sonninen <sonninen@lut.fi>
  *  Jouko Valta <jopi@stekt.oulu.fi>
  *  Olaf Seibert <rhialto@mbfys.kun.nl>
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  pottendo <pottendo@gmx.net>
  *
@@ -93,7 +93,7 @@ static int fsdevice_flush_mkdir(char *arg)
     int er;
 
     er = CBMDOS_IPE_OK;
-    if (ioutil_mkdir(arg, 0770)) {
+    if (ioutil_mkdir(arg, IOUTIL_MKDIR_RWXUG)) {
         er = CBMDOS_IPE_INVAL;
         if (ioutil_errno(IOUTIL_ERRNO_EEXIST)) {
             er = CBMDOS_IPE_FILE_EXISTS;

@@ -204,7 +204,13 @@ void WaveformGenerator::writeCONTROL_REG(reg8 control)
   else if (waveform_prev) {
     // Change to floating DAC input.
     // Reset fading time for floating DAC input.
-    floating_output_ttl = 0x4000;
+    //
+    // We have two SOAS/C samplings showing that floating DAC
+    // keeps its state for at least 0x14000 cycles.
+    //
+    // This can't be found via sampling OSC3, it seems that
+    // the actual analog output must be sampled and timed.
+    floating_output_ttl = 0x14000;
   }
 
   // The gate bit is handled by the EnvelopeGenerator.

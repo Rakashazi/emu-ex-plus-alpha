@@ -681,6 +681,10 @@ void roml_store(WORD addr, BYTE value)
     /* DBG(("ultimax w 8000: %04x %02x\n", addr, value)); */
 
     /* "Slot 0" */
+    if (mmc64_cart_active()) {
+        mmc64_roml_store(addr, value);
+        return;
+    }
     if (magicvoice_cart_enabled()) {
         /* fake ultimax hack */
         mem_store_without_ultimax(addr, value);
@@ -1033,10 +1037,12 @@ void roml_no_ultimax_store(WORD addr, BYTE value)
 {
     /* DBG(("game rom    w 8000: %04x %02x\n", addr, value)); */
     /* "Slot 0" */
+#if 0
     if (mmc64_cart_active()) {
         mmc64_roml_store(addr, value);
         return; /* ? */
     }
+#endif
     /* "Slot 1" */
     if (expert_cart_enabled()) {
         expert_roml_store(addr, value);
@@ -1085,11 +1091,12 @@ void raml_no_ultimax_store(WORD addr, BYTE value)
 {
     /* DBG(("game ram    w 8000: %04x %02x\n", addr, value)); */
     /* "Slot 0" */
+#if 0
     if (mmc64_cart_active()) {
         mmc64_roml_store(addr, value);
         /* return; */
     }
-
+#endif
     /* "Slot 1" */
     if (expert_cart_enabled()) {
         expert_roml_store(addr, value);

@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "c64_256k.h"
 #include "c64cart.h"
 #include "c64export.h"
 #include "c64mem.h"
@@ -43,7 +42,6 @@
 #include "mem.h"
 #include "monitor.h"
 #include "plus256k.h"
-#include "plus60k.h"
 #include "resources.h"
 #include "reu.h"
 #include "snapshot.h"
@@ -145,8 +143,10 @@ static io_source_t vicii_d100_device = {
 static io_source_list_t *vicii_d000_list_item = NULL;
 static io_source_list_t *vicii_d100_list_item = NULL;
 
-static int set_plus256k_enabled(int val, void *param)
+int set_plus256k_enabled(int value)
 {
+    int val = value ? 1 : 0;
+
     if (val == plus256k_enabled) {
         return 0;
     }
@@ -159,13 +159,8 @@ static int set_plus256k_enabled(int val, void *param)
         plus256k_enabled = 0;
         return 0;
     } else {
-        if (get_cpu_lines_lock() != 0) {
-            ui_error(translate_text(IDGS_RESOURCE_S_BLOCKED_BY_S), "CPU-LINES", get_cpu_lines_lock_name());
+        if (plus256k_activate() < 0) {
             return -1;
-        } else {
-            if (plus256k_activate() < 0) {
-                return -1;
-            }
         }
         machine_trigger_reset(MACHINE_RESET_MODE_HARD);
         plus256k_enabled = 1;
@@ -202,19 +197,9 @@ static const resource_string_t resources_string[] = {
     { NULL }
 };
 
-static const resource_int_t resources_int[] = {
-    { "PLUS256K", 0, RES_EVENT_SAME, NULL,
-      &plus256k_enabled, set_plus256k_enabled, NULL },
-    { NULL }
-};
-
 int plus256k_resources_init(void)
 {
-    if (resources_register_string(resources_string) < 0) {
-        return -1;
-    }
-
-    return resources_register_int(resources_int);
+    return resources_register_string(resources_string);
 }
 
 void plus256k_resources_shutdown(void)
@@ -226,16 +211,6 @@ void plus256k_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-plus256k", SET_RESOURCE, 0,
-      NULL, NULL, "PLUS256K", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_PLUS256K_EXPANSION,
-      NULL, NULL },
-    { "+plus256k", SET_RESOURCE, 0,
-      NULL, NULL, "PLUS256K", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_PLUS256K_EXPANSION,
-      NULL, NULL },
     { "-plus256kimage", SET_RESOURCE, 1,
       NULL, NULL, "PLUS256Kfilename", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -287,7 +262,6 @@ static int plus256k_activate(void)
         log_message(plus256k_log, "Reading PLUS256K image %s.", plus256k_filename);
     }
     plus256k_reset();
-    set_cpu_lines_lock(CPU_LINES_PLUS256K, "PLUS256K");
     c64io_vicii_deinit();
     vicii_d000_list_item = io_source_register(&vicii_d000_device);
     vicii_d100_list_item = io_source_register(&vicii_d100_device);
@@ -306,7 +280,6 @@ static int plus256k_deactivate(void)
     vicii_set_ram_base(mem_ram);
     lib_free(plus256k_ram);
     plus256k_ram = NULL;
-    remove_cpu_lines_lock();
 
     if (vicii_d000_list_item != NULL) {
         io_source_unregister(vicii_d000_list_item);

@@ -27,6 +27,7 @@
 
 #include "vice.h"
 
+#include "archdep.h"
 #include "charset.h"
 #include "driver-select.h"
 #include "drv-ascii.h"
@@ -45,9 +46,27 @@ struct ascii_s {
 };
 typedef struct ascii_s ascii_t;
 
-static ascii_t drv_ascii[3];
+static ascii_t drv_ascii[NUM_OUTPUT_SELECT];
 
 static log_t drv_ascii_log = LOG_ERR;
+
+/*
+* a unix line ending is "LF", ie: 0x0a / "\n"
+* a win/dos line ending is "CRLF", ie: 0x0d, 0x0a / "\r\n"
+*/
+static int print_lineend(ascii_t *ascii, unsigned int prnr)
+{
+    ascii->pos = 0;
+#ifdef ARCHDEP_PRINTER_RETURN_BEFORE_NEWLINE
+    if (output_select_putc(prnr, '\r') < 0) {
+        return -1;
+    }
+#endif
+    if (output_select_putc(prnr, '\n') < 0) {
+        return -1;
+    }
+    return 0;
+}
 
 static int print_char(ascii_t *ascii, unsigned int prnr, BYTE c)
 {
@@ -96,30 +115,21 @@ static int print_char(ascii_t *ascii, unsigned int prnr, BYTE c)
 
     asc = charset_p_toascii(c, 0);
 
-    if (output_select_putc(prnr, asc) < 0) {
-        return -1;
-    }
-    ascii->pos++;
-
     if (asc == '\n') {
-        ascii->pos = 0;
-#if defined(__MSDOS__) || defined(WIN32) || defined(__OS2__) || defined(__BEOS__)
-        if (output_select_putc(prnr, '\r') < 0) {
+        if (print_lineend(ascii, prnr) < 0) {
             return -1;
         }
-#endif
+    } else {
+        if (output_select_putc(prnr, asc) < 0) {
+            return -1;
+        }
+        ascii->pos++;
     }
 
     if (ascii->pos == CHARSPERLINE) {
-        ascii->pos = 0;
-        if (output_select_putc(prnr, '\n') < 0) {
+        if (print_lineend(ascii, prnr) < 0) {
             return -1;
         }
-#if defined(__MSDOS__) || defined(WIN32) || defined(__OS2__) || defined(__BEOS__)
-        if (output_select_putc(prnr, '\r') < 0) {
-            return -1;
-        }
-#endif
     }
 
     return 0;
@@ -127,24 +137,28 @@ static int print_char(ascii_t *ascii, unsigned int prnr, BYTE c)
 
 static int drv_ascii_open(unsigned int prnr, unsigned int secondary)
 {
-    output_parameter_t output_parameter;
-
-    /* these are unused for non gfx output */
-    output_parameter.maxcol = 480;
-    output_parameter.maxrow = 66 * 9;
-    output_parameter.dpi_x = 100;
-    output_parameter.dpi_y = 100;
-
     if (secondary == 7) {
         print_char(&drv_ascii[prnr], prnr, 17);
+    } else if (secondary == DRIVER_FIRST_OPEN) {
+        output_parameter_t output_parameter;
+
+        /* these are unused for non gfx output */
+        output_parameter.maxcol = 480;
+        output_parameter.maxrow = 66 * 9;
+        output_parameter.dpi_x = 100;
+        output_parameter.dpi_y = 100;
+
+        return output_select_open(prnr, &output_parameter);
     }
 
-    return output_select_open(prnr, &output_parameter);
+    return 0;
 }
 
 static void drv_ascii_close(unsigned int prnr, unsigned int secondary)
 {
-    output_select_close(prnr);
+    if (secondary == DRIVER_LAST_CLOSE) {
+        output_select_close(prnr);
+    }
 }
 
 static int drv_ascii_putc(unsigned int prnr, unsigned int secondary, BYTE b)

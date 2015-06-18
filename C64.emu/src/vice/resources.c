@@ -25,6 +25,8 @@
  *
  */
 
+/* #define DBGRESOURCES */
+
 /* This implements simple facilities to handle the resources and command-line
    options.  All the resources for the emulators can be stored in a single
    file, and they are separated by an `emulator identifier', i.e. the machine
@@ -53,6 +55,12 @@
 #include "resources.h"
 #include "util.h"
 #include "vice-event.h"
+
+#ifdef DBGRESOURCES
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
 
 typedef struct resource_ram_s {
     /* Resource name.  */
@@ -116,6 +124,8 @@ static resource_callback_desc_t *resource_modified_callback = NULL;
 static unsigned int resources_calc_hash_key(const char *name)
 {
     unsigned int key, i, shift;
+
+    DBG(("resources_calc_hash_key: '%s'\n", name ? name : "<empty/null>"));
 
     key = 0; shift = 0;
     for (i = 0; name[i] != '\0'; i++) {
@@ -231,6 +241,8 @@ int resources_register_int(const resource_int_t *r)
 {
     const resource_int_t *sp;
     resource_ram_t *dp;
+
+    DBG(("resources_register_int name:'%s'\n", r->name ? r->name : "<empty/null>"));
 
     sp = r;
     dp = resources + num_resources;
@@ -769,6 +781,37 @@ int resources_get_string_sprintf(const char *name, const char **value_return,
     return result;
 }
 
+int resources_set_default_int(const char *name, int value)
+{
+    resource_ram_t *r = lookup(name);
+
+    if (r == NULL) {
+        log_warning(LOG_DEFAULT,
+                    "Trying to assign default to unknown "
+                    "resource `%s'.", name);
+        return -1;
+    }
+
+    r->factory_value = uint_to_void_ptr(value);
+    return 0;
+}
+
+int resources_set_default_string(const char *name, const char *value)
+{
+    resource_ram_t *r = lookup(name);
+
+    if (r == NULL) {
+        log_warning(LOG_DEFAULT,
+                    "Trying to assign default to unknown "
+                    "resource `%s'.", name);
+        return -1;
+    }
+    /* since these pointers are usually static/not allocated, we just
+       assign it here and don't free() as one might expect */
+    r->factory_value = value;
+    return 0;
+}
+
 int resources_get_default_value(const char *name, void *value_return)
 {
     resource_ram_t *r = lookup(name);
@@ -805,14 +848,14 @@ int resources_set_defaults(void)
             case RES_INTEGER:
                 if ((*resources[i].set_func_int)(vice_ptr_to_int(resources[i].factory_value),
                                                  resources[i].param) < 0) {
-                    /*printf("Cannot set resource %s", resources[i].name);*/
+                    log_verbose("Cannot set resource %s", resources[i].name);
                     return -1;
                 }
                 break;
             case RES_STRING:
                 if ((*resources[i].set_func_string)((const char *)(resources[i].factory_value),
                                                     resources[i].param) < 0) {
-                    /*printf("Cannot set resource %s", resources[i].name);*/
+                    log_verbose("Cannot set resource %s", resources[i].name);
                     return -1;
                 }
                 break;
@@ -1156,6 +1199,7 @@ int resources_save(const char *fname)
     /* get name for config file */
     if (fname == NULL) {
         if (vice_config_file == NULL) {
+            /* get default filename. this also creates the .vice directory if not present */
             default_name = archdep_default_save_resource_file_name();
         } else {
             default_name = lib_stralloc(vice_config_file);

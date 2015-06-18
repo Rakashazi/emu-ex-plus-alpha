@@ -2708,7 +2708,7 @@ static int set_mmcr_eeprom_filename(const char *name, void *param)
 
 static int set_mmcr_card_rw(int val, void* param)
 {
-    mmcr_card_rw = val;
+    mmcr_card_rw = val ? 1 : 0;
 
     if (mmcr_enabled) {
         return mmc_open_card_image(mmcr_card_filename, mmcr_card_rw);
@@ -2719,18 +2719,27 @@ static int set_mmcr_card_rw(int val, void* param)
 
 static int set_mmcr_eeprom_rw(int val, void* param)
 {
-    mmcr_eeprom_rw = val;
+    mmcr_eeprom_rw = val ? 1 : 0;
     return 0;
 }
 
 static int set_mmcr_rescue_mode(int val, void* param)
 {
-    enable_rescue_mode = val;
+    enable_rescue_mode = val ? 1 : 0;
     return 0;
 }
 
 static int set_mmcr_sd_type(int val, void* param)
 {
+    switch (val) {
+        case MMCR_TYPE_AUTO:
+        case MMCR_TYPE_MMC:
+        case MMCR_TYPE_SD:
+        case MMCR_TYPE_SDHC:
+            break;
+        default:
+            return -1;
+    }
     mmcr_sd_type = val;
     mmc_set_card_type((BYTE)val);
     return 0;
@@ -2738,11 +2747,8 @@ static int set_mmcr_sd_type(int val, void* param)
 
 static int set_mmcr_image_write(int val, void *param)
 {
-    if (mmcr_write_image && !val) {
-        mmcr_write_image = 0;
-    } else if (!mmcr_write_image && val) {
-        mmcr_write_image = 1;
-    }
+    mmcr_write_image = val ? 1 : 0;
+
     return 0;
 }
 
@@ -2761,7 +2767,7 @@ static const resource_int_t resources_int[] = {
       &mmcr_write_image, set_mmcr_image_write, NULL },
     { "MMCRCardRW", 1, RES_EVENT_NO, NULL,
       &mmcr_card_rw, set_mmcr_card_rw, NULL },
-    { "MMCRSDType", 0, RES_EVENT_NO, NULL,
+    { "MMCRSDType", MMCR_TYPE_AUTO, RES_EVENT_NO, NULL,
       &mmcr_sd_type, set_mmcr_sd_type, NULL },
     { "MMCREEPROMRW", 1, RES_EVENT_NO, NULL,
       &mmcr_eeprom_rw, set_mmcr_eeprom_rw, NULL },
@@ -2832,6 +2838,11 @@ static const cmdline_option_t cmdline_options[] = {
       NULL, NULL, "MMCREEPROMRW", (resource_value_t)0,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_MMC_REPLAY_EEPROM_WRITE_DISABLE,
+      NULL, NULL },
+    { "-mmcrsdtype", SET_RESOURCE, 1,
+      NULL, NULL, "MMCRSDType", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_TYPE, IDCLS_SELECT_MMC_REPLAY_SD_TYPE,
       NULL, NULL },
     { NULL }
 };

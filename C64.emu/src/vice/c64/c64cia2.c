@@ -3,7 +3,7 @@
  * ($DD00).
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
  *
@@ -41,7 +41,6 @@
 #include "c64parallel.h"
 #include "cia.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "iecbus.h"
 #include "interrupt.h"
 #include "keyboard.h"
@@ -56,7 +55,7 @@
 #include "userport_rtc.h"
 #include "vicii.h"
 
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
 #include "rsuser.h"
 #endif
 
@@ -115,7 +114,7 @@ static void do_reset_cia(cia_context_t *cia_context)
 {
     printer_userport_write_strobe(1);
     printer_userport_write_data((BYTE)0xff);
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     rsuser_write_ctrl((BYTE)0xff);
     rsuser_set_tx_bit(1);
 #endif
@@ -145,7 +144,7 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
         BYTE tmp;
         int new_vbank;
 
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         if (rsuser_enabled && ((cia_context->old_pa ^ byte) & 0x04)) {
             rsuser_set_tx_bit(byte & 4);
         }
@@ -163,7 +162,7 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 
 static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
         rsuser_set_tx_bit((int)(byte & 4));
     }
@@ -178,7 +177,7 @@ static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
     parallel_cable_cpu_write(DRIVE_PC_STANDARD, (BYTE)byte);
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     rsuser_write_ctrl((BYTE)byte);
 #endif
     /* FIXME: in the upcoming userport system these calls needs to be conditional */
@@ -197,7 +196,7 @@ static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byt
 {
     parallel_cable_cpu_undump(DRIVE_PC_STANDARD, (BYTE)byte);
     printer_userport_write_data((BYTE)byte);
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     rsuser_write_ctrl((BYTE)byte);
 #endif
     /* FIXME: in the upcoming userport system these calls needs to be conditional */
@@ -221,7 +220,7 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 static BYTE read_ciapb(cia_context_t *cia_context)
 {
     BYTE byte;
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
         byte = rsuser_read_ctrl();
     } else
@@ -239,7 +238,7 @@ static BYTE read_ciapb(cia_context_t *cia_context)
 static void read_ciaicr(cia_context_t *cia_context)
 {
     if (burst_mod == BURST_MOD_CIA2) {
-        drivecpu_execute_all(maincpu_clk);
+        drive_cpu_execute_all(maincpu_clk);
     }
     parallel_cable_cpu_execute(DRIVE_PC_STANDARD);
 }
@@ -247,7 +246,7 @@ static void read_ciaicr(cia_context_t *cia_context)
 static void read_sdr(cia_context_t *cia_context)
 {
     if (burst_mod == BURST_MOD_CIA2) {
-        drivecpu_execute_all(maincpu_clk);
+        drive_cpu_execute_all(maincpu_clk);
     }
     /* FIXME: in the upcomming userport system this call needs to be conditional */
     cia_context->c_cia[CIA_SDR] = userport_joystick_read_sdr(cia_context->c_cia[CIA_SDR]);
@@ -289,7 +288,7 @@ void cia2_setup_context(machine_context_t *machine_context)
     cia->rmw_flag = &maincpu_rmw_flag;
     cia->clk_ptr = &maincpu_clk;
 
-    cia->todticks = C64_PAL_CYCLES_PER_RFSH;
+    cia2_set_timing(cia, C64_PAL_CYCLES_PER_SEC, 50);
 
     ciacore_setup_context(cia);
 
@@ -322,7 +321,11 @@ void cia2_setup_context(machine_context_t *machine_context)
     cia->pre_peek = pre_peek;
 }
 
-void cia2_set_timing(cia_context_t *cia_context, int todticks)
+void cia2_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
 {
-    cia_context->todticks = todticks;
+    cia_context->power_freq = powerfreq;
+    cia_context->ticks_per_sec = tickspersec;
+    cia_context->todticks = tickspersec / powerfreq;
+    cia_context->power_tickcounter = 0;
+    cia_context->power_ticks = 0;
 }

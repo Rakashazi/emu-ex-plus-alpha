@@ -101,6 +101,8 @@ unsigned int machine_jam(const char *format, ...)
         } else {
             ret = ui_jam_dialog(str);
         }
+    } else if (jam_action == MACHINE_JAM_ACTION_QUIT) {
+        exit(EXIT_SUCCESS);
     } else {
         int actions[4] = {
             -1, UI_JAM_MONITOR, UI_JAM_RESET, UI_JAM_HARD_RESET
@@ -291,8 +293,8 @@ void machine_shutdown(void)
     network_shutdown();
 
     autostart_resources_shutdown();
-    fsdevice_resources_shutdown();
-    disk_image_resources_shutdown();
+    sound_resources_shutdown();
+    video_resources_shutdown();
     machine_resources_shutdown();
     sysfile_resources_shutdown();
     zfile_shutdown();
@@ -313,16 +315,26 @@ void machine_shutdown(void)
 
 static int set_jam_action(int val, void *param)
 {
-    if (!((val >= 0) && (val < MACHINE_NUM_JAM_ACTIONS))) {
-        return -1;
+    switch (val) {
+        case MACHINE_JAM_ACTION_DIALOG:
+        case MACHINE_JAM_ACTION_CONTINUE:
+        case MACHINE_JAM_ACTION_MONITOR:
+        case MACHINE_JAM_ACTION_RESET:
+        case MACHINE_JAM_ACTION_HARD_RESET:
+        case MACHINE_JAM_ACTION_QUIT:
+            break;
+        default:
+            return -1;
     }
 
     jam_action = val;
+
     return 0;
 }
 
 static const resource_int_t resources_int[] = {
-    { "JAMAction", 0, RES_EVENT_SAME, NULL, &jam_action, set_jam_action, NULL },
+    { "JAMAction", MACHINE_JAM_ACTION_DIALOG, RES_EVENT_SAME, NULL,
+      &jam_action, set_jam_action, NULL },
     { NULL }
 };
 

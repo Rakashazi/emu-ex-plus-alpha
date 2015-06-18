@@ -41,6 +41,36 @@
 /* (All have 8, except CBM-II that has 6) */
 #define KBD_COLS    8
 
+/* index to select the current keymap ("KeymapIndex") */
+#define KBD_INDEX_SYM     0
+#define KBD_INDEX_POS     1
+#define KBD_INDEX_USERSYM 2
+#define KBD_INDEX_USERPOS 3
+#define KBD_INDEX_LAST    3
+#define KBD_INDEX_NUM     4
+
+/* the mapping of the host ("KeyboardMapping")
+   (keep in sync with table in keyboard.c) */
+#define KBD_MAPPING_US    0     /* "" (us mapping) */
+#define KBD_MAPPING_UK    1     /* "uk" */
+#define KBD_MAPPING_DE    2     /* "de" */
+#define KBD_MAPPING_DA    3     /* "da" */
+#define KBD_MAPPING_NO    4     /* "no" */
+#define KBD_MAPPING_FI    5     /* "fi" */
+#define KBD_MAPPING_IT    6     /* "it" */
+#define KBD_MAPPING_LAST  6
+#define KBD_MAPPING_NUM   7
+extern int keyboard_get_num_mappings(void);
+
+/* mapping info for GUIs */
+typedef struct {
+    char *name;
+    int mapping;
+    char *mapping_name;
+} mapping_info_t;
+
+extern mapping_info_t *keyboard_get_info_list(void);
+
 struct snapshot_s;
 
 extern void keyboard_init(void);
@@ -91,9 +121,14 @@ extern int pet_kbd_init(void);
 extern int plus4_kbd_init(void);
 extern int cbm2_kbd_init(void);
 
+#ifdef COMMON_KBD
+extern int keyboard_resources_init(void);
+extern int keyboard_cmdline_options_init(void);
+#endif
+
+/* FIXME: these two are apparently only used in OS/2 and BEOS ports -> move to archdep? */
 extern int kbd_cmdline_options_init(void);
 extern int kbd_resources_init(void);
-
 extern int pet_kbd_cmdline_options_init(void);
 extern int pet_kbd_resources_init(void);
 

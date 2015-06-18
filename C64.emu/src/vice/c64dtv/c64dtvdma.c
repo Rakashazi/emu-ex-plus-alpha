@@ -35,6 +35,7 @@
 #include "c64dtvflash.h"
 #include "c64dtvdma.h"
 #include "cmdline.h"
+#include "debug.h"
 #include "lib.h"
 #include "log.h"
 #include "util.h"
@@ -44,7 +45,10 @@
 #include "snapshot.h"
 #include "translate.h"
 
+#ifdef DEBUG
 static log_t c64dtvdma_log = LOG_ERR;
+#endif
+
 static unsigned int c64dtv_dma_int_num;
 
 /* I/O of the DMA engine ($D3XX) */
@@ -58,7 +62,10 @@ static int dma_busy;
 static int dma_source_off;
 static int dma_dest_off;
 static int dma_irq;
+
+#ifdef DEBUG
 static int dma_log_enabled = 0;
+#endif
 
 static BYTE dma_data;
 static BYTE dma_data_swap;
@@ -77,9 +84,11 @@ static BYTE dest_memtype = 0x00;
 
 void c64dtvdma_init(void)
 {
+#ifdef DEBUG
     if (c64dtvdma_log == LOG_ERR) {
         c64dtvdma_log = log_open("C64DTVDMA");
     }
+#endif
 
     /* init DMA IRQ */
     c64dtv_dma_int_num = interrupt_cpu_status_int_new(maincpu_int_status, "C64DTVDMA");
@@ -93,9 +102,11 @@ void c64dtvdma_reset(void)
 {
     int i;
 
+#ifdef DEBUG
     if (dma_log_enabled) {
         log_message(c64dtvdma_log, "reset");
     }
+#endif
 
     /* TODO move register file initialization somewhere else? */
     for (i = 0; i < 0x20; ++i) {
@@ -154,7 +165,9 @@ static inline void do_dma_read(int swap)
             data = 0;
             break;
         default:
+#ifdef DEBUG
             log_message(c64dtvdma_log, "invalid memtype in do_dma_read()");
+#endif
             data = 0;
             break;
     }
@@ -200,7 +213,9 @@ static inline void do_dma_write(int swap)
         case 0xc0: /* unknown */
             break;
         default:
+#ifdef DEBUG
             log_message(c64dtvdma_log, "invalid memtype in do_dma_write()");
+#endif
             break;
     }
 }
@@ -275,7 +290,9 @@ static inline void perform_dma_cycle(void)
             }
             break;
         default:
+#ifdef DEBUG
             log_message(c64dtvdma_log, "invalid state in perform_dma_cycle()");
+#endif
             dma_state = DMA_IDLE;
             break;
     }
@@ -307,9 +324,11 @@ void c64dtvdma_trigger_dma(void)
             dma_count = 0x10000;
         }
 
+#ifdef DEBUG
         if (dma_log_enabled && (source_continue || dest_continue)) {
             log_message(c64dtvdma_log, "Source continue %s, dest continue %s", source_continue ? "on" : "off", dest_continue ? "on" : "off");
         }
+#endif
 
         /* initialize state variables */
         source_line_off = 0;
@@ -358,9 +377,11 @@ void c64dtv_dma_store(WORD addr, BYTE value)
 
     /* Clear DMA IRQ */
     if ((GET_REG8(0x1d) & 0x01) && (dma_busy == 2)) {
+#ifdef DEBUG
         if (dma_log_enabled) {
             log_message(c64dtvdma_log, "Clear IRQ");
         }
+#endif
         dma_busy &= 0xfd;
         c64dtvmem_dma[0x1f] = 0;
         maincpu_set_irq(c64dtv_dma_int_num, 0);
@@ -371,9 +392,11 @@ void c64dtv_dma_store(WORD addr, BYTE value)
 
     if (dma_on_irq && (dma_busy == 0)) {
         dma_busy = 1;
+#ifdef DEBUG
         if (dma_log_enabled) {
             log_message(c64dtvdma_log, "Scheduled DMA (%02x).", dma_on_irq);
         }
+#endif
         return;
     }
 
@@ -394,9 +417,11 @@ void c64dtvdma_perform_dma(void)
     perform_dma_cycle();
     maincpu_rmw_flag = dma_maincpu_rmw;
 
+#ifdef DEBUG
     if (dma_log_enabled && (dma_state == DMA_WRITE)) {
         log_message(c64dtvdma_log, "%s from %x (%s) to %x (%s), %d to go", GET_REG8(0x1f) & 0x02 ? "Swapped" : "Copied", dma_source_off, source_memtype == 0 ? "Flash" : "RAM", dma_dest_off, dest_memtype == 0 ? "Flash" : "RAM", dma_count - 1);
     }
+#endif
 
     if (dma_state == DMA_IDLE) {
         c64dtv_dma_done();
@@ -405,15 +430,21 @@ void c64dtvdma_perform_dma(void)
 
 
 /* ------------------------------------------------------------------------- */
+
+#ifdef DEBUG
 static int set_dma_log(int val, void *param)
 {
-    dma_log_enabled = val;
+    dma_log_enabled = val ? 1 : 0;
+
     return 0;
 }
+#endif
 
 static const resource_int_t resources_int[] = {
+#ifdef DEBUG
     { "DtvDMALog", 0, RES_EVENT_NO, (resource_value_t)0,
       &dma_log_enabled, set_dma_log, NULL },
+#endif
     { NULL }
 };
 
@@ -428,6 +459,7 @@ void c64dtvdma_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
+#ifdef DEBUG
     { "-dtvdmalog", SET_RESOURCE, 0,
       NULL, NULL, "DtvDMALog", (resource_value_t)1,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
@@ -438,6 +470,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DTV_DMA_LOG,
       NULL, NULL },
+#endif
     { NULL }
 };
 

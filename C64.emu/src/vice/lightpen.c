@@ -125,14 +125,23 @@ static inline void lightpen_update_buttons(int buttons)
 
 static int set_lightpen_enabled(int val, void *param)
 {
-    lightpen_enabled = val;
+    lightpen_enabled = val ? 1 : 0;
+
     return 0;
 }
 
 static int set_lightpen_type(int val, void *param)
 {
-    if (!((val >= 0) && (val < LIGHTPEN_TYPE_NUM))) {
-        return -1;
+    switch (val) {
+        case LIGHTPEN_TYPE_PEN_U:
+        case LIGHTPEN_TYPE_PEN_L:
+        case LIGHTPEN_TYPE_PEN_DATEL:
+        case LIGHTPEN_TYPE_GUN_Y:
+        case LIGHTPEN_TYPE_GUN_L:
+        case LIGHTPEN_TYPE_INKWELL:
+            break;
+        default:
+            return -1;
     }
 
     lightpen_type = val;

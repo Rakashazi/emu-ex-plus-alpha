@@ -41,15 +41,14 @@
 #include "c64-snapshot.h"
 #include "c64.h"
 #include "c64cia.h"
-#include "c64export.h"
 #include "c64gluelogic.h"
 #include "c64mem.h"
 #include "cia.h"
 #include "clkguard.h"
 #include "debug.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "imagecontents.h"
+#include "init.h"
 #include "kbdbuf.h"
 #include "log.h"
 #include "machine-drive.h"
@@ -64,26 +63,13 @@
 #include "sid-cmdline-options.h"
 #include "sid-resources.h"
 #include "sid.h"
-#include "traps.h"
-#include "vicii.h"
+#include "viciivsid.h"
 #include "vicii-mem.h"
 #include "video.h"
 #include "vsidui.h"
 #include "vsync.h"
 
 machine_context_t machine_context;
-
-#define NUM_KEYBOARD_MAPPINGS 3
-
-const char *machine_keymap_res_name_list[NUM_KEYBOARD_MAPPINGS] = {
-    "KeymapSymFile",
-    "KeymapPosFile",
-    "KeymapSymDeFile"
-};
-
-char *machine_keymap_file_list[NUM_KEYBOARD_MAPPINGS] = {
-    NULL, NULL, NULL
-};
 
 const char machine_name[] = "C64"; /* FIXME: this must be c64 currently, else the roms can not be loaded */
 /* Moved to c64mem.c/c64memsc.c/vsidmem.c
@@ -96,197 +82,10 @@ static machine_timing_t machine_timing;
 
 /* ------------------------------------------------------------------------ */
 
-static io_source_t vicii_d000_device = {
-    "VIC-II",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd000, 0xd0ff, 0x3f,
-    1, /* read is always valid */
-    vicii_store,
-    vicii_read,
-    vicii_peek,
-    vicii_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t vicii_d100_device = {
-    "VIC-II $D100-$D1FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd100, 0xd1ff, 0x3f,
-    1, /* read is always valid */
-    vicii_store,
-    vicii_read,
-    vicii_peek,
-    vicii_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t vicii_d200_device = {
-    "VIC-II $D200-$D2FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd200, 0xd2ff, 0x3f,
-    1, /* read is always valid */
-    vicii_store,
-    vicii_read,
-    vicii_peek,
-    vicii_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t vicii_d300_device = {
-    "VIC-II $D300-$D3FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd300, 0xd3ff, 0x3f,
-    1, /* read is always valid */
-    vicii_store,
-    vicii_read,
-    vicii_peek,
-    vicii_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t sid_d400_device = {
-    "SID",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd400, 0xd41f, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    sid_peek,
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t sid_d420_device = {
-    "SID $D420-$D4FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd420, 0xd4ff, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    sid_peek,
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t sid_d500_device = {
-    "SID $D500-$D5FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd500, 0xd5ff, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    sid_peek,
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t sid_d600_device = {
-    "SID $D600-$D6FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd600, 0xd6ff, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    sid_peek,
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_t sid_d700_device = {
-    "SID $D700-$D7FF mirrors",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd700, 0xd7ff, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    sid_peek,
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
-    0
-};
-
-static io_source_list_t *vicii_d000_list_item = NULL;
-static io_source_list_t *vicii_d100_list_item = NULL;
-static io_source_list_t *vicii_d200_list_item = NULL;
-static io_source_list_t *vicii_d300_list_item = NULL;
-static io_source_list_t *sid_d400_list_item = NULL;
-static io_source_list_t *sid_d420_list_item = NULL;
-static io_source_list_t *sid_d500_list_item = NULL;
-static io_source_list_t *sid_d600_list_item = NULL;
-static io_source_list_t *sid_d700_list_item = NULL;
-
 static int vsid_autostart_delay = 0;
 static WORD vsid_autostart_load_addr = 0;
 static BYTE *vsid_autostart_data = NULL;
 static WORD vsid_autostart_length = 0;
-
-void c64io_vicii_init(void)
-{
-    vicii_d000_list_item = io_source_register(&vicii_d000_device);
-    vicii_d100_list_item = io_source_register(&vicii_d100_device);
-    vicii_d200_list_item = io_source_register(&vicii_d200_device);
-    vicii_d300_list_item = io_source_register(&vicii_d300_device);
-}
-
-void c64io_vicii_deinit(void)
-{
-    if (vicii_d000_list_item != NULL) {
-        io_source_unregister(vicii_d000_list_item);
-        vicii_d000_list_item = NULL;
-    }
-
-    if (vicii_d100_list_item != NULL) {
-        io_source_unregister(vicii_d100_list_item);
-        vicii_d100_list_item = NULL;
-    }
-
-    if (vicii_d200_list_item != NULL) {
-        io_source_unregister(vicii_d200_list_item);
-        vicii_d200_list_item = NULL;
-    }
-
-    if (vicii_d300_list_item != NULL) {
-        io_source_unregister(vicii_d300_list_item);
-        vicii_d300_list_item = NULL;
-    }
-}
-
-/* C64-specific I/O initialization. */
-static void c64io_init(void)
-{
-    c64io_vicii_init();
-    sid_d400_list_item = io_source_register(&sid_d400_device);
-    sid_d420_list_item = io_source_register(&sid_d420_device);
-    sid_d500_list_item = io_source_register(&sid_d500_device);
-    sid_d600_list_item = io_source_register(&sid_d600_device);
-    sid_d700_list_item = io_source_register(&sid_d700_device);
-}
 
 /* ------------------------------------------------------------------------ */
 
@@ -294,17 +93,20 @@ static void c64io_init(void)
    the machine itself with `machine_init()'.  */
 int machine_resources_init(void)
 {
-    if (traps_resources_init() < 0
-        || vsync_resources_init() < 0
-        || machine_video_resources_init() < 0
-        || c64_resources_init() < 0
-        || c64export_resources_init() < 0
-        || vicii_resources_init() < 0
-        || sound_resources_init() < 0
-        || sid_resources_init() < 0
-        || serial_resources_init() < 0
-        || c64_glue_resources_init() < 0
-        || psid_init_resources() < 0) {
+    if (c64_resources_init() < 0) {
+        init_resource_fail("c64");
+        return -1;
+    }
+    if (vicii_resources_init() < 0) {
+        init_resource_fail("vicii");
+        return -1;
+    }
+    if (sid_resources_init() < 0) {
+        init_resource_fail("sid");
+        return -1;
+    }
+    if (psid_resources_init() < 0) {
+        init_resource_fail("psid");
         return -1;
     }
     return 0;
@@ -312,20 +114,24 @@ int machine_resources_init(void)
 
 void machine_resources_shutdown(void)
 {
-    serial_shutdown();
-    video_resources_shutdown();
     c64_resources_shutdown();
-    sound_resources_shutdown();
-    cartio_shutdown();
 }
 
 /* C64-specific command-line option initialization.  */
 int machine_cmdline_options_init(void)
 {
-    if (sound_cmdline_options_init() < 0
-        || sid_cmdline_options_init() < 0
-        || psid_init_cmdline_options() < 0
-        || vsync_cmdline_options_init() < 0) {
+#ifdef USE_SDLUI
+    if (vicii_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("vicii");
+        return -1;
+    }
+#endif
+    if (sid_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("sid");
+        return -1;
+    }
+    if (psid_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("psid");
         return -1;
     }
     return 0;
@@ -400,9 +206,6 @@ int machine_specific_init(void)
     /* Initialize keyboard buffer.  */
     kbdbuf_init(631, 198, 10, (CLOCK)(machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh));
 
-    /* Initialize the C64-specific I/O */
-    c64io_init();
-
     /* Initialize the C64-specific part of the UI.  */
     if (!console_mode) {
         vsid_ui_init();
@@ -412,16 +215,6 @@ int machine_specific_init(void)
     c64_glue_init();
 
     machine_drive_stub();
-#if defined (USE_XF86_EXTENSIONS) && (defined(USE_XF86_VIDMODE_EXT) || defined (HAVE_XRANDR))
-    {
-        /* set fullscreen if user used `-fullscreen' on cmdline */
-        int fs;
-        resources_get_int("UseFullscreen", &fs);
-        if (fs) {
-            resources_set_int("VICIIFullscreen", 1);
-        }
-    }
-#endif
 
     return 0;
 }
@@ -429,8 +222,6 @@ int machine_specific_init(void)
 /* C64-specific reset sequence.  */
 void machine_specific_reset(void)
 {
-    serial_traps_reset();
-
     ciacore_reset(machine_context.cia1);
     ciacore_reset(machine_context.cia2);
     sid_reset();
@@ -439,7 +230,7 @@ void machine_specific_reset(void)
     vicii_reset();
 
     if (psid_basic_rsid_to_autostart(&vsid_autostart_load_addr, &vsid_autostart_data, &vsid_autostart_length)) {
-        vsid_autostart_delay = machine_timing.rfsh_per_sec * 23/10;
+        vsid_autostart_delay = (int)(machine_timing.rfsh_per_sec * 23 / 10);
     } else {
         vsid_autostart_delay = 0; /* disables it */
         psid_init_driver();
@@ -463,6 +254,9 @@ void machine_specific_shutdown(void)
     if (!console_mode) {
         vsid_ui_close();
     }
+
+    sid_cmdline_options_shutdown();
+
     psid_shutdown();
 }
 
@@ -487,7 +281,7 @@ static void machine_vsync_hook(void)
             for (i = 0; i < vsid_autostart_length; i += 1) {
                 mem_inject((WORD)(vsid_autostart_load_addr + i), vsid_autostart_data[i]);
             }
-            mem_set_basic_text(vsid_autostart_load_addr, vsid_autostart_load_addr + vsid_autostart_length);
+            mem_set_basic_text(vsid_autostart_load_addr, (WORD)(vsid_autostart_load_addr + vsid_autostart_length));
             kbdbuf_feed("RUN\r");
         }
     }
@@ -530,39 +324,7 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
 
 void machine_change_timing(int timeval)
 {
-    int border_mode;
-
-    switch (timeval) {
-        default:
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NORMAL_BORDERS);
-            border_mode = VICII_NORMAL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_FULL_BORDERS);
-            border_mode = VICII_FULL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_DEBUG_BORDERS);
-            border_mode = VICII_DEBUG_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NO_BORDERS);
-            border_mode = VICII_NO_BORDERS;
-            break;
-    }
+    timeval ^= VICII_BORDER_MODE(VICII_NORMAL_BORDERS);
 
     switch (timeval) {
         case MACHINE_SYNC_PAL:
@@ -571,6 +333,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_PAL_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_PAL_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_PAL_SCREEN_LINES;
+            machine_timing.power_freq = 50;
             break;
         case MACHINE_SYNC_NTSC:
             machine_timing.cycles_per_sec = C64_NTSC_CYCLES_PER_SEC;
@@ -578,6 +341,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_NTSC_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_NTSC_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_NTSC_SCREEN_LINES;
+            machine_timing.power_freq = 60;
             break;
         case MACHINE_SYNC_NTSCOLD:
             machine_timing.cycles_per_sec = C64_NTSCOLD_CYCLES_PER_SEC;
@@ -585,6 +349,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_NTSCOLD_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_NTSCOLD_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_NTSCOLD_SCREEN_LINES;
+            machine_timing.power_freq = 60;
             break;
         case MACHINE_SYNC_PALN:
             machine_timing.cycles_per_sec = C64_PALN_CYCLES_PER_SEC;
@@ -592,6 +357,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_PALN_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_PALN_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_PALN_SCREEN_LINES;
+            machine_timing.power_freq = 50;
             break;
         default:
             log_error(c64_log, "Unknown machine timing.");
@@ -603,10 +369,10 @@ void machine_change_timing(int timeval)
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
     clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
 
-    vicii_change_timing(&machine_timing, border_mode);
+    vicii_change_timing(&machine_timing);
 
-    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_rfsh);
-    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_rfsh);
+    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_sec, machine_timing.power_freq);
+    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_sec, machine_timing.power_freq);
 
     machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -631,7 +397,11 @@ int machine_autodetect_psid(const char *name)
         return -1;
     }
 
-    return psid_load_file(name);
+    if (psid_load_file(name) < 0) {
+        /* FIXME: show error message box */
+        return -1;
+    }
+    return 0;
 }
 
 void machine_play_psid(int tune)
@@ -658,11 +428,6 @@ void machine_update_memory_ptrs(void)
     vicii_update_memory_ptrs_external();
 }
 
-int machine_num_keyboard_mappings(void)
-{
-    return NUM_KEYBOARD_MAPPINGS;
-}
-
 struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
 {
     return NULL;
@@ -681,4 +446,9 @@ int machine_addr_in_ram(unsigned int addr)
 const char *machine_get_name(void)
 {
     return "VSID";
+}
+
+char *machine_get_keyboard_type_name(int type)
+{
+    return NULL; /* return 0 if no different types exist */
 }

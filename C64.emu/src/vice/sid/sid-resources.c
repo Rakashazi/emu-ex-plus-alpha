@@ -92,23 +92,25 @@ static int set_sid_engine(int set_engine, void *param)
 #endif
     }
 
-    if (engine != SID_ENGINE_FASTSID
+    switch (engine) {
+        case SID_ENGINE_FASTSID:
 #ifdef HAVE_RESID
-        && engine != SID_ENGINE_RESID
+        case SID_ENGINE_RESID:
 #endif
 #ifdef HAVE_CATWEASELMKIII
-        && engine != SID_ENGINE_CATWEASELMKIII
+        case SID_ENGINE_CATWEASELMKIII:
 #endif
 #ifdef HAVE_HARDSID
-        && engine != SID_ENGINE_HARDSID
+        case SID_ENGINE_HARDSID:
 #endif
 #ifdef HAVE_PARSID
-        && engine != SID_ENGINE_PARSID_PORT1
-        && engine != SID_ENGINE_PARSID_PORT2
-        && engine != SID_ENGINE_PARSID_PORT3
+        case SID_ENGINE_PARSID_PORT1:
+        case SID_ENGINE_PARSID_PORT2:
+        case SID_ENGINE_PARSID_PORT3:
 #endif
-        ) {
-        return -1;
+            break;
+        default:
+            return -1;
     }
 
     if (sid_engine_set(engine) < 0) {
@@ -139,8 +141,10 @@ static int set_sid_engine(int set_engine, void *param)
 
 static int set_sid_filters_enabled(int val, void *param)
 {
-    sid_filters_enabled = val;
+    sid_filters_enabled = val ? 1 : 0;
+
     sid_state_changed = 1;
+
     return 0;
 }
 
@@ -155,7 +159,7 @@ static int set_sid_stereo(int val, void *param)
         sid_stereo = 0;
     } else {
         if (val != sid_stereo) {
-            if (val < 0 || val > 2) {
+            if (val < 0 || val > (SOUND_SIDS_MAX - 1)) {
                 return -1;
             }
             sid_stereo = val;
@@ -212,6 +216,19 @@ static int set_sid_model(int val, void *param)
         }
     }
 
+    switch (sid_model) {
+        case SID_MODEL_6581:
+        case SID_MODEL_8580:
+        case SID_MODEL_8580D:
+        case SID_MODEL_6581R4:
+#ifdef HAVE_RESID
+        case SID_MODEL_DTVSID:
+#endif
+            break;
+        default:
+            return -1;
+    }
+
 #ifdef SID_ENGINE_MODEL_DEBUG
     log_debug("SID model set to %d", sid_model);
 #endif
@@ -222,6 +239,16 @@ static int set_sid_model(int val, void *param)
 #if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static int set_sid_resid_sampling(int val, void *param)
 {
+    switch (val) {
+        case SID_RESID_SAMPLING_FAST:
+        case SID_RESID_SAMPLING_INTERPOLATION:
+        case SID_RESID_SAMPLING_RESAMPLING:
+        case SID_RESID_SAMPLING_FAST_RESAMPLING:
+            break;
+        default:
+            return -1;
+    }
+
     sid_resid_sampling = val;
     sid_state_changed = 1;
     return 0;
@@ -256,7 +283,7 @@ static int set_sid_resid_gain(int i, void *param)
 static int set_sid_resid_filter_bias(int i, void *param)
 {
     if (i < -5000) {
-        i = 5000;
+        i = -5000;
     } else if (i > 5000) {
         i = 5000;
     }
@@ -288,13 +315,13 @@ static int set_sid_hardsid_right(int val, void *param)
 
 #if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static const resource_int_t resid_resources_int[] = {
-    { "SidResidSampling", 0, RES_EVENT_NO, NULL,
+    { "SidResidSampling", SID_RESID_SAMPLING_FAST, RES_EVENT_NO, NULL,
       &sid_resid_sampling, set_sid_resid_sampling, NULL },
     { "SidResidPassband", 90, RES_EVENT_NO, NULL,
       &sid_resid_passband, set_sid_resid_passband, NULL },
     { "SidResidGain", 97, RES_EVENT_NO, NULL,
       &sid_resid_gain, set_sid_resid_gain, NULL },
-    { "SidResidFilterBias", 0, RES_EVENT_NO, NULL,
+    { "SidResidFilterBias", 500, RES_EVENT_NO, NULL,
       &sid_resid_filter_bias, set_sid_resid_filter_bias, NULL },
     { NULL }
 };

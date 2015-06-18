@@ -76,6 +76,7 @@ static int set_dtv_model(const char *param, void *extra_param)
 
     return 0;
 }
+
 static const cmdline_option_t cmdline_options[] =
 {
     { "-pal", SET_RESOURCE, 0,
@@ -103,33 +104,6 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
       NULL, NULL },
-    { "-kernalrev", SET_RESOURCE, 1,
-      NULL, NULL, "KernalRev", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_REVISION, IDCLS_PATCH_KERNAL_TO_REVISION,
-      NULL, NULL },
-#ifdef COMMON_KBD
-    { "-keymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapIndex", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUMBER, IDCLS_SPECIFY_INDEX_KEYMAP_FILE_0_2,
-      NULL, NULL },
-    { "-symkeymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapSymFile", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_SYM_KEYMAP_FILE_NAME,
-      NULL, NULL },
-    { "-symdekeymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapSymDeFile", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_NAME_SYM_DE_KEYMAP,
-      NULL, NULL },
-    { "-poskeymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapPosFile", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_POS_KEYMAP_FILE_NAME,
-      NULL, NULL },
-#endif
     { "-model", CALL_FUNCTION, 1,
       set_dtv_model, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,

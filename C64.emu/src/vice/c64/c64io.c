@@ -324,6 +324,10 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
                         }
                         io_source_valid = 1;
                     } else {
+                        /* ignore low prio reads when a real value is present already */
+                        if (current->device->io_source_prio == IO_PRIO_LOW) {
+                            retval = realval;
+                        }
                         if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_LAST) {
                             if (current->device->order < lowest_order) {
                                 lowest_order = current->device->order;
@@ -346,15 +350,15 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
         current = current->next;
     }
 
-    /* no valid i/o source was read, return phi1 */
+    /* no valid I/O source was read, return phi1 */
     if (io_source_valid == 0) {
         return vicii_read_phi1();
     }
-    /* no more than one valid i/o source was read, return value */
+    /* only one valid I/O source was read, return value */
     if (!(io_source_counter > 1)) {
         return retval;
     }
-    /* more than one i/o source was read, handle collision */
+    /* more than one I/O source was read, handle collision */
     if (io_source_collision_handling == IO_COLLISION_METHOD_DETACH_ALL) {
         io_source_msg_detach_all(addr, io_source_counter, list);
         return vicii_read_phi1();
@@ -368,7 +372,7 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
     return vicii_read_phi1();
 }
 
-/* peek from i/o area with no side-effects */
+/* peek from I/O area with no side-effects */
 static inline BYTE io_peek(io_source_list_t *list, WORD addr)
 {
     io_source_list_t *current = list->next;
@@ -764,7 +768,7 @@ static void io_source_ioreg_add_onelist(struct mem_ioreg_list_s **mem_ioreg_list
     }
 }
 
-/* add all registered i/o devices to the list for the monitor */
+/* add all registered I/O devices to the list for the monitor */
 void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list)
 {
     io_source_ioreg_add_onelist(mem_ioreg_list, c64io_d000_head.next);
@@ -781,37 +785,15 @@ void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list)
 
 /* ---------------------------------------------------------------------------------------------------------- */
 
-static int cpu_lines;
-static char *cpu_lines_lock_name;
-
-int get_cpu_lines_lock(void)
-{
-    return cpu_lines;
-}
-
-void set_cpu_lines_lock(int device, char *name)
-{
-    cpu_lines = device;
-    cpu_lines_lock_name = name;
-}
-
-void remove_cpu_lines_lock(void)
-{
-    cpu_lines = 0;
-    cpu_lines_lock_name = NULL;
-}
-
-char *get_cpu_lines_lock_name(void)
-{
-    return cpu_lines_lock_name;
-}
-
-/* ---------------------------------------------------------------------------------------------------------- */
-
 static int set_io_source_collision_handling(int val, void *param)
 {
-    if (val < 0 || val > 2) {
-        return -1;
+    switch (val) {
+        case IO_COLLISION_METHOD_DETACH_ALL:
+        case IO_COLLISION_METHOD_DETACH_LAST:
+        case IO_COLLISION_METHOD_AND_WIRES:
+            break;
+        default:
+            return -1;
     }
     io_source_collision_handling = val;
 
@@ -819,7 +801,7 @@ static int set_io_source_collision_handling(int val, void *param)
 }
 
 static const resource_int_t resources_int[] = {
-    { "IOCollisionHandling", 0, RES_EVENT_STRICT, (resource_value_t)0,
+    { "IOCollisionHandling", IO_COLLISION_METHOD_DETACH_ALL, RES_EVENT_STRICT, (resource_value_t)0,
       &io_source_collision_handling, set_io_source_collision_handling, NULL },
     { NULL }
 };

@@ -103,9 +103,9 @@ static void pagefox_io1_store(WORD addr, BYTE value)
     DBG(("PAGEFOX: bankselect: %d chipselect:%d enabled: %d bank: %d\n", bankselect, chipselect, pagefox_enabled, currbank));
 
     if (pagefox_enabled) {
-        cart_config_changed_slotmain(1, 1, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     } else {
-        cart_config_changed_slotmain(2, 2, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_READ);
     }
 
     cart_romhbank_set_slotmain(currbank & 3);

@@ -73,6 +73,118 @@ static log_t sound_log = LOG_ERR;
 
 /* ------------------------------------------------------------------------- */
 
+typedef struct sound_register_devices_s {
+    char *name;
+    int (*init)(void);
+    int is_playback_device;
+} sound_register_devices_t;
+
+/* This table is used to specify the order of inits of the playback and recording devices */
+static sound_register_devices_t sound_register_devices[] = {
+
+    /* the "native" platform specific drivers should come first, sorted by
+       priority (most wanted first) */
+
+#ifdef USE_PULSE
+    { "pulse", sound_init_pulse_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#ifdef USE_ARTS
+    { "arts", sound_init_arts_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#ifdef USE_ALSA
+    { "alsa", sound_init_alsa_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#ifdef USE_COREAUDIO
+    { "coreaudio", sound_init_coreaudio_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#ifdef USE_OSS
+
+/* don't use oss for FreeBSD or BSDI */
+
+#if !defined(__FreeBSD__) && !defined(__bsdi__)
+    { "uss", sound_init_uss_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#endif
+#ifdef USE_DMEDIA
+    { "sgi", sound_init_sgi_device, SOUND_PLAYBACK_DEVICE },
+#endif
+
+/* Don't use the NetBSD/SUN sound driver for OpenBSD */
+#if defined(HAVE_SYS_AUDIOIO_H) && !defined(__OpenBSD__)
+#if defined(__NetBSD__)
+    { "netbsd", sound_init_sun_device, SOUND_PLAYBACK_DEVICE },
+#else
+    { "sun", sound_init_sun_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#endif
+#if defined(HAVE_SYS_AUDIO_H)
+    { "hpux", sound_init_hpux_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#ifdef USE_AIX_AUDIO
+    { "aix", sound_init_aix_device, SOUND_PLAYBACK_DEVICE },
+#endif
+
+#ifdef __MSDOS__
+#ifdef USE_MIDAS_SOUND
+    { "midas", sound_init_midas_device, SOUND_PLAYBACK_DEVICE },
+#else
+    { "allegro", sound_init_allegro_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#endif
+
+#ifdef WIN32_COMPILE
+#ifdef USE_DXSOUND
+    { "dx", sound_init_dx_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#ifndef __XBOX__
+    { "wmm", sound_init_wmm_device, SOUND_PLAYBACK_DEVICE },
+#endif
+#endif
+
+#ifdef __OS2__
+    { "dart", sound_init_dart_device, SOUND_PLAYBACK_DEVICE },
+#endif
+
+#ifdef BEOS_COMPILE
+    { "beos", sound_init_beos_device, SOUND_PLAYBACK_DEVICE },
+    { "bsp", sound_init_bsp_device, SOUND_PLAYBACK_DEVICE },
+#endif
+
+#if defined(AMIGA_SUPPORT) && defined(HAVE_DEVICES_AHI_H)
+    { "ahi", sound_init_ahi_device, SOUND_PLAYBACK_DEVICE },
+#endif
+
+    /* SDL driver last, after all platform specific ones */
+#ifdef USE_SDL_AUDIO
+    { "sdl", sound_init_sdl_device, SOUND_PLAYBACK_DEVICE },
+#endif
+
+    /* the dummy device acts as a "guard" against the drivers that create files,
+       since the list will be searched top-down, and the dummy driver always
+       works, no files will be created accidently */
+    { "dummy", sound_init_dummy_device, SOUND_PLAYBACK_DEVICE },
+
+#ifndef EMUFRAMEWORK_BUILD
+    { "fs", sound_init_fs_device, SOUND_RECORD_DEVICE },
+    { "dump", sound_init_dump_device, SOUND_RECORD_DEVICE },
+    { "wav", sound_init_wav_device, SOUND_RECORD_DEVICE },
+    { "voc", sound_init_voc_device, SOUND_RECORD_DEVICE },
+    { "iff", sound_init_iff_device, SOUND_RECORD_DEVICE },
+    { "aiff", sound_init_aiff_device, SOUND_RECORD_DEVICE },
+#endif
+
+#ifdef USE_LAMEMP3
+    { "mp3", sound_init_mp3_device, SOUND_RECORD_DEVICE },
+#endif
+
+#ifndef EMUFRAMEWORK_BUILD
+    { "soundmovie", sound_init_movie_device, SOUND_RECORD_DEVICE },
+#endif
+    { NULL, NULL, 0 }
+};
+
+/* ------------------------------------------------------------------------- */
+
 static WORD offset = 0;
 
 static sound_chip_t *sound_calls[20];
@@ -234,6 +346,9 @@ static int fragment_divisor[] = {
      1  /* 100ms / 1 = 20 ms, actually unused (since it is not practical) */
 };
 
+static char *playback_devices_cmdline = NULL;
+static char *record_devices_cmdline = NULL;
+
 /* I need this to serialize close_sound and enablesound/sound_open in
    the OS/2 Multithreaded environment                              */
 static int sdev_open = FALSE;
@@ -248,15 +363,26 @@ static int cycle_based = 0;
 
 static int set_output_option(int val, void *param)
 {
-    if (val >= 0 && val < 3 && output_option != val) {
+    switch (val) {
+        case SOUND_OUTPUT_SYSTEM:
+        case SOUND_OUTPUT_MONO:
+        case SOUND_OUTPUT_STEREO:
+            break;
+        default:
+            return -1;
+    }
+
+    if (output_option != val) {
         output_option = val;
         sound_state_changed = TRUE;
     }
     return 0;
 }
 
-static int set_playback_enabled(int val, void *param)
+static int set_playback_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (val) {
         vsync_disable_timer();
     }
@@ -268,6 +394,10 @@ static int set_playback_enabled(int val, void *param)
 
 static int set_sample_rate(int val, void *param)
 {
+    if (val <= 0) {
+        return -1;
+    }
+
     sample_rate = val;
     sound_state_changed = TRUE;
     return 0;
@@ -275,7 +405,19 @@ static int set_sample_rate(int val, void *param)
 
 static int set_device_name(const char *val, void *param)
 {
-    util_string_set(&device_name, val);
+    if (!val || val[0] == '\0') {
+        /* Use the default sound device */
+#ifdef BEOS_COMPILE
+        if (CheckForHaiku()) {
+            util_string_set(&device_name, "bsp");
+        } else
+#endif
+        {
+            util_string_set(&device_name, sound_register_devices[0].name);
+        }
+    } else {
+        util_string_set(&device_name, val);
+    }
     sound_state_changed = TRUE;
     return 0;
 }
@@ -307,7 +449,7 @@ static int set_buffer_size(int val, void *param)
         buffer_size = val;
     } else {
         if (machine_class == VICE_MACHINE_VSID) {
-            buffer_size = 1000;
+            buffer_size = SOUND_SAMPLE_MAX_BUFFER_SIZE;
         } else {
             buffer_size = SOUND_SAMPLE_BUFFER_SIZE;
         }
@@ -319,8 +461,8 @@ static int set_buffer_size(int val, void *param)
 
 static int set_fragment_size(int val, void *param)
 {
-    if (val < 0) {
-        val = 0;
+    if (val < SOUND_FRAGMENT_VERY_SMALL) {
+        val = SOUND_FRAGMENT_VERY_SMALL;
     } else if (val > SOUND_FRAGMENT_VERY_LARGE) {
         val = SOUND_FRAGMENT_VERY_LARGE;
     }
@@ -350,6 +492,14 @@ static int set_speed_adjustment_setting(int val, void *param)
             speed_adjustment_setting = SOUND_ADJUST_FLEXIBLE;
         }
     } else {
+        switch (val) {
+            case SOUND_ADJUST_FLEXIBLE:
+            case SOUND_ADJUST_ADJUSTING:
+            case SOUND_ADJUST_EXACT:
+                break;
+            default:
+                return -1;
+        }
         speed_adjustment_setting = val;
     }
 
@@ -402,14 +552,8 @@ static const resource_int_t resources_int[] = {
       (void *)&speed_adjustment_setting, set_speed_adjustment_setting, NULL },
     { "SoundVolume", 100, RES_EVENT_NO, NULL,
       (void *)&volume, set_volume, NULL },
-#ifdef __MSDOS__
-    /* Force default to SOUND_OUTPUT_MONO, that way stereo/triple sid will work */
-    { "SoundOutput", SOUND_OUTPUT_MONO, RES_EVENT_NO, NULL,
+    { "SoundOutput", ARCHDEP_SOUND_OUTPUT_MODE, RES_EVENT_NO, NULL,
       (void *)&output_option, set_output_option, NULL },
-#else
-    { "SoundOutput", SOUND_OUTPUT_SYSTEM, RES_EVENT_NO, NULL,
-      (void *)&output_option, set_output_option, NULL },
-#endif
     { NULL }
 };
 
@@ -428,6 +572,8 @@ void sound_resources_shutdown(void)
     lib_free(device_arg);
     lib_free(recorddevice_name);
     lib_free(recorddevice_arg);
+    lib_free(playback_devices_cmdline);
+    lib_free(record_devices_cmdline);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -458,26 +604,6 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_SOUND_FRAGMENT_SIZE,
       NULL, NULL },
-    { "-sounddev", SET_RESOURCE, 1,
-      NULL, NULL, "SoundDeviceName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_SOUND_DRIVER,
-      NULL, NULL },
-    { "-soundarg", SET_RESOURCE, 1,
-      NULL, NULL, "SoundDeviceArg", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_ARGS, IDCLS_SPECIFY_SOUND_DRIVER_PARAM,
-      NULL, NULL },
-    { "-soundrecdev", SET_RESOURCE, 1,
-      NULL, NULL, "SoundRecordDeviceName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_RECORDING_SOUND_DRIVER,
-      NULL, NULL },
-    { "-soundrecarg", SET_RESOURCE, 1,
-      NULL, NULL, "SoundRecordDeviceArg", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_ARGS, IDCLS_SPECIFY_REC_SOUND_DRIVER_PARAM,
-      NULL, NULL },
     { "-soundsync", SET_RESOURCE, 1,
       NULL, NULL, "SoundSpeedAdjustment", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -488,12 +614,90 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_OUTPUT_MODE, IDCLS_SOUND_OUTPUT_MODE,
       NULL, NULL },
+    { "-soundsuspend", SET_RESOURCE, 1,
+      NULL, NULL, "SoundSuspendTime", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_SECONDS, IDCLS_SOUND_SUSPEND_TIME,
+      NULL, NULL },
+    { "-soundvolume", SET_RESOURCE, 1,
+      NULL, NULL, "SoundVolume", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_VOLUME, IDCLS_SOUND_VOLUME,
+      NULL, NULL },
+    { NULL }
+};
+
+static cmdline_option_t devs_cmdline_options[] = {
+    { "-sounddev", SET_RESOURCE, 1,
+      NULL, NULL, "SoundDeviceName", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
+      IDCLS_P_NAME, IDCLS_SPECIFY_SOUND_DRIVER,
+      NULL, NULL },
+    { "-soundarg", SET_RESOURCE, 1,
+      NULL, NULL, "SoundDeviceArg", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_ARGS, IDCLS_SPECIFY_SOUND_DRIVER_PARAM,
+      NULL, NULL },
+    { "-soundrecdev", SET_RESOURCE, 1,
+      NULL, NULL, "SoundRecordDeviceName", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
+      IDCLS_P_NAME, IDCLS_SPECIFY_RECORDING_SOUND_DRIVER,
+      NULL, NULL },
+    { "-soundrecarg", SET_RESOURCE, 1,
+      NULL, NULL, "SoundRecordDeviceArg", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_ARGS, IDCLS_SPECIFY_REC_SOUND_DRIVER_PARAM,
+      NULL, NULL },
     { NULL }
 };
 
 int sound_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    int i;
+    int started_playback = 0;
+    int started_record = 0;
+    char *temp = NULL;
+
+    if (cmdline_register_options(cmdline_options) < 0) {
+        return -1;
+    }
+
+    playback_devices_cmdline = lib_stralloc(". (");
+    record_devices_cmdline = lib_stralloc(". (");
+
+    for (i = 0; sound_register_devices[i].name; i++) {
+        if (sound_register_devices[i].is_playback_device) {
+            if (started_playback) {
+                temp = util_concat(playback_devices_cmdline, "/", sound_register_devices[i].name, NULL);
+            } else {
+                temp = util_concat(playback_devices_cmdline, sound_register_devices[i].name, NULL);
+                started_playback = 1;
+            }
+            lib_free(playback_devices_cmdline);
+            playback_devices_cmdline = temp;
+        } else {
+            if (started_record) {
+                temp = util_concat(record_devices_cmdline, "/", sound_register_devices[i].name, NULL);
+            } else {
+                temp = util_concat(record_devices_cmdline, sound_register_devices[i].name, NULL);
+                started_record = 1;
+            }
+            lib_free(record_devices_cmdline);
+            record_devices_cmdline = temp;
+        }
+    }
+    temp = util_concat(playback_devices_cmdline, ")", NULL);
+    lib_free(playback_devices_cmdline);
+    playback_devices_cmdline = temp;
+
+    temp = util_concat(record_devices_cmdline, ")", NULL);
+    lib_free(record_devices_cmdline);
+    record_devices_cmdline = temp;
+
+    devs_cmdline_options[0].description = playback_devices_cmdline;
+    devs_cmdline_options[2].description = record_devices_cmdline;
+
+    return cmdline_register_options(devs_cmdline_options);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -570,24 +774,17 @@ typedef struct {
 static snddata_t snddata;
 
 /* device registration code */
-static sound_device_t *sound_devices[32];
+#define MAX_SOUND_DEVICES 24
 
-static char *devlist;
+static sound_device_t *sound_devices[MAX_SOUND_DEVICES];
+
+static int sound_device_count = 0;
 
 int sound_register_device(sound_device_t *pdevice)
 {
-    const int max = sizeof(sound_devices) / sizeof(sound_devices[0]);
-    int i;
-    char *tmplist;
-
-    for (i = 0; sound_devices[i] && i < max; i++) {
-    }
-
-    if (i < max) {
-        sound_devices[i] = pdevice;
-        tmplist = lib_msprintf("%s %s", devlist, pdevice->name);
-        lib_free(devlist);
-        devlist = tmplist;
+    if (sound_device_count < MAX_SOUND_DEVICES) {
+        sound_devices[sound_device_count] = pdevice;
+        sound_device_count++;
     } else {
         log_error(sound_log, "available sound devices exceed VICEs storage");
     }
@@ -597,13 +794,7 @@ int sound_register_device(sound_device_t *pdevice)
 
 unsigned int sound_device_num(void)
 {
-    const unsigned int max = sizeof(sound_devices) / sizeof(sound_devices[0]);
-    unsigned int i;
-
-    for (i = 0; sound_devices[i] && i < max; i++) {
-    }
-
-    return i;
+    return sound_device_count;
 }
 
 const char *sound_device_name(unsigned int num)
@@ -657,6 +848,23 @@ static int sound_error(const char *msg)
     return 1;
 }
 
+static SWORD *temp_buffer = NULL;
+static int temp_buffer_size = 0;
+
+static SWORD *realloc_buffer(int size)
+{
+    if (temp_buffer_size < size) {
+        temp_buffer = lib_realloc(temp_buffer, size);
+        if (temp_buffer) {
+            temp_buffer_size = size;
+            memset(temp_buffer, 0, size);
+        } else {
+            temp_buffer_size = 0;
+        }
+    }
+    return temp_buffer;
+}
+
 /* Fill buffer with last sample.
  rise  < 0 : attenuation
  rise == 0 : constant value
@@ -668,8 +876,7 @@ static void fill_buffer(int size, int rise)
     SWORD *p;
     double factor;
 
-    p = lib_malloc(size * sizeof(SWORD) * snddata.sound_output_channels);
-
+    p = realloc_buffer(size * sizeof(SWORD) * snddata.sound_output_channels);
     if (!p) {
         return;
     }
@@ -691,9 +898,6 @@ static void fill_buffer(int size, int rise)
     }
 
     i = snddata.playdev->write(p, size * snddata.sound_output_channels);
-
-    lib_free(p);
-
     if (i) {
         sound_error(translate_text(IDGS_WRITE_TO_SOUND_DEVICE_FAILED));
     }
@@ -844,12 +1048,12 @@ int sound_open(void)
     /* note: in practise it is actually better to use fragments that are as
      *       small as possible, as that will allow the whole system to catch up
      *       faster and compensate errors better. */
-#ifdef EMUFRAMEWORK_BUILD
+    #ifdef EMUFRAMEWORK_BUILD
     fragsize = 1;
-#else
+		#else
     fragsize = speed / ((rfsh_per_sec < 1.0) ? 1 : ((int)rfsh_per_sec))
                / fragment_divisor[fragment_size];
-#endif
+		#endif
     if (pdev) {
         if (channels <= pdev->max_channels) {
             fragsize *= channels;
@@ -1000,6 +1204,11 @@ void sound_close(void)
 
     sdev_open = FALSE;
     sound_state_changed = FALSE;
+
+    if (temp_buffer) {
+        lib_free(temp_buffer);
+        temp_buffer = NULL;
+    }
 
     /* Closing the sound device might take some time, and displaying
        UI dialogs certainly does. */
@@ -1392,6 +1601,9 @@ void sound_set_machine_parameter(long clock_rate, long ticks_per_frame)
 /* initialize sid at program start -time */
 void sound_init(unsigned int clock_rate, unsigned int ticks_per_frame)
 {
+    char *devlist, *tmplist;
+    int i;
+
     sound_log = log_open("Sound");
 
     sound_state_changed = FALSE;
@@ -1406,112 +1618,16 @@ void sound_init(unsigned int clock_rate, unsigned int ticks_per_frame)
 
     devlist = lib_stralloc("");
 
-#ifdef USE_SDL_AUDIO
-    sound_init_sdl_device();
-#endif
-#ifdef USE_PULSE
-    sound_init_pulse_device();
-#endif
-#ifdef USE_ARTS
-    sound_init_arts_device();
-#endif
-#ifdef USE_ALSA
-    sound_init_alsa_device();
-#endif
-#ifdef USE_COREAUDIO
-    sound_init_coreaudio_device();
-#endif
-#ifdef USE_OSS
-
-/* don't use oss for FreeBSD or BSDI */
-
-#if !defined(__FreeBSD__) && !defined(__bsdi__)
-    sound_init_uss_device();
-#endif
-#endif
-#ifdef USE_DMEDIA
-    sound_init_sgi_device();
-#endif
-
-/* Don't use the NetBSD/SUN sound driver for OpenBSD */
-#if defined(HAVE_SYS_AUDIOIO_H) && !defined(__OpenBSD__)
-    sound_init_sun_device();
-#endif
-#if defined(HAVE_SYS_AUDIO_H)
-    sound_init_hpux_device();
-#endif
-#ifdef USE_AIX_AUDIO
-    sound_init_aix_device();
-#endif
-
-#ifdef __MSDOS__
-#ifdef USE_MIDAS_SOUND
-    sound_init_midas_device();
-#else
-    sound_init_allegro_device();
-#endif
-#endif
-
-#ifdef WIN32
-#ifdef USE_DXSOUND
-    sound_init_dx_device();
-#endif
-#ifndef __XBOX__
-    sound_init_wmm_device();
-#endif
-#endif
-
-#ifdef WINCE
-    sound_init_ce_device();
-#endif
-
-#ifdef __OS2__
-    // sound_init_mmos2_device();
-    sound_init_dart_device();
-    // sound_init_dart2_device();
-#endif
-
-#ifdef BEOS_COMPILE
-    sound_init_beos_device();
-    sound_init_bsp_device();
-#endif
-
-#if defined(AMIGA_SUPPORT) && defined(HAVE_DEVICES_AHI_H)
-    sound_init_ahi_device();
-#endif
-
-    sound_init_dummy_device();
-    sound_init_fs_device();
-    sound_init_dump_device();
-    sound_init_wav_device();
-    sound_init_voc_device();
-    sound_init_iff_device();
-    sound_init_aiff_device();
-
-#ifdef USE_LAMEMP3
-    sound_init_mp3_device();
-#endif
-
-    sound_init_movie_device();
-
-#if 0
-    sound_init_test_device();   /* XXX: missing */
-#endif
+    for (i = 0; sound_register_devices[i].name; i++) {
+        sound_register_devices[i].init();
+        tmplist = lib_msprintf("%s %s", devlist, sound_devices[i]->name);
+        lib_free(devlist);
+        devlist = tmplist;
+    }
 
     log_message(sound_log, "Available sound devices:%s", devlist);
-    lib_free(devlist);
 
-    if (!device_name || device_name[0] == '\0') {
-#if defined(BEOS_COMPILE) && !defined(USE_SDL_AUDIO)
-        /* Don't use beos sound device as default for Haiku */
-        if (CheckForHaiku()) {
-            util_string_set(&device_name, "bsp");
-        } else
-#endif
-        {
-            util_string_set(&device_name, sound_devices[0]->name);
-        }
-    }
+    lib_free(devlist);
 }
 
 long sound_sample_position(void)

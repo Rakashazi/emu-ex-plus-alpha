@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUG_MON_REGS */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -36,6 +38,41 @@
 #include "montypes.h"
 #include "uimon.h"
 #include "h6809regs.h"
+
+#ifdef DEBUG_MON_REGS
+#define DBG(_x_) printf _x_
+#else
+#define DBG(_x_)
+#endif
+
+/* TODO: make the other functions here use this table. when done also do the
+ *       same with the other CPUs and finally move common code to mon_register.c
+ */
+
+#define REG_LIST_6809_SIZE (11 + 1)
+static mon_reg_list_t mon_reg_list_6809[REG_LIST_6809_SIZE] = {
+    {       "X",     e_X, 16,                     0, 0, 0 },
+    {       "Y",     e_Y, 16,                     0, 0, 0 },
+    {       "U",     e_U, 16,                     0, 0, 0 },
+    {       "S",    e_SP, 16,                     0, 0, 0 },
+    {      "PC",    e_PC, 16,                     0, 0, 0 },
+    {      "DP",    e_DP,  8,                     0, 0, 0 },
+    {      "CC", e_FLAGS,  8,                     0, 0, 0 },
+    {"EFHINZVC", e_FLAGS,  8, MON_REGISTER_IS_FLAGS, 0, 0 },
+    {       "A",     e_A,  8,                     0, 0, 0 },
+    {       "B",     e_B,  8,                     0, 0, 0 },
+    {       "D",     e_D, 16,                     0, 0, 0 },
+#if 0
+    /* 6309 specific registers, for future support */
+    {       "E",     e_E,  8,                     0, 0, 0 },
+    {       "F",     e_F,  8,                     0, 0, 0 },
+    {       "W",     e_W, 16,                     0, 0, 0 },
+    {       "Q",     e_W, 32,                     0, 0, 0 },
+    {       "V",     e_V, 16,                     0, 0, 0 },
+    {       "MD",   e_MD,  8, MON_REGISTER_IS_FLAGS, 0, 0 },
+#endif
+    { NULL, -1,  0,  0, 0, 0 }
+};
 
 static unsigned int mon_register_get_val(int mem, int reg_id)
 {
@@ -70,6 +107,21 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
             return H6809_REGS_GET_B(reg_ptr);
         case e_D:
             return H6809_REGS_GET_D(reg_ptr);
+#if 0
+        /* 6309 specific registers, for future support */
+        case e_E:
+            return H6809_REGS_GET_E(reg_ptr);
+        case e_F:
+            return H6809_REGS_GET_F(reg_ptr);
+        case e_W:
+            return H6809_REGS_GET_W(reg_ptr);
+        case e_Q:
+            return H6809_REGS_GET_Q(reg_ptr);
+        case e_V:
+            return H6809_REGS_GET_V(reg_ptr);
+        case e_MD:
+            return H6809_REGS_GET_MD(reg_ptr);
+#endif
         default:
             log_error(LOG_ERR, "Unknown register!");
     }
@@ -119,6 +171,27 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
         case e_D:
             H6809_REGS_SET_D(reg_ptr, val);
             break;
+#if 0
+        /* 6309 specific registers, for future support */
+        case e_E:
+            H6809_REGS_SET_E(reg_ptr, (BYTE)val);
+            break;
+        case e_F:
+            H6809_REGS_SET_F(reg_ptr, (BYTE)val);
+            break;
+        case e_W:
+            H6809_REGS_SET_W(reg_ptr, (WORD)val);
+            break;
+        case e_Q:
+            H6809_REGS_SET_Q(reg_ptr, (DWORD)val);
+            break;
+        case e_V:
+            H6809_REGS_SET_V(reg_ptr, (WORD)val);
+            break;
+        case e_MD:
+            H6809_REGS_SET_MD(reg_ptr, (BYTE)val);
+            break;
+#endif
         default:
             log_error(LOG_ERR, "Unknown register!");
             return;
@@ -126,6 +199,7 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
     force_array[mem] = 1;
 }
 
+/* TODO: should use mon_register_list_get */
 static void mon_register_print(int mem)
 {
     h6809_regs_t *regs;
@@ -161,6 +235,7 @@ static void mon_register_print(int mem)
             );
 }
 
+/* TODO: should use mon_register_list_get */
 static const char* mon_register_print_ex(int mem)
 {
     static char buff[80];
@@ -198,117 +273,21 @@ static const char* mon_register_print_ex(int mem)
     return buff;
 }
 
+/* TODO: try to make this a generic function, move it into mon_register.c and
+         remove mon_register_list_get from the monitor_cpu_type_t struct */
 static mon_reg_list_t *mon_register_list_get6809(int mem)
 {
-    mon_reg_list_t *mon_reg_list;
+    mon_reg_list_t *mon_reg_list, *regs;
 
-    mon_reg_list = lib_malloc(sizeof(mon_reg_list_t) * 11);
+    mon_reg_list = regs = lib_malloc(sizeof(mon_reg_list_t) * REG_LIST_6809_SIZE);
+    memcpy(mon_reg_list, mon_reg_list_6809, sizeof(mon_reg_list_t) * REG_LIST_6809_SIZE);
 
-    mon_reg_list[0].name = "X";
-    mon_reg_list[0].val = (unsigned int)mon_register_get_val(mem, e_X);
-    mon_reg_list[0].size = 16;
-    mon_reg_list[0].flags = 0;
-    mon_reg_list[0].next = &mon_reg_list[1];
-
-    mon_reg_list[1].name = "Y";
-    mon_reg_list[1].val = (unsigned int)mon_register_get_val(mem, e_Y);
-    mon_reg_list[1].size = 16;
-    mon_reg_list[1].flags = 0;
-    mon_reg_list[1].next = &mon_reg_list[2];
-
-    mon_reg_list[2].name = "U";
-    mon_reg_list[2].val = (unsigned int)mon_register_get_val(mem, e_U);
-    mon_reg_list[2].size = 16;
-    mon_reg_list[2].flags = 0;
-    mon_reg_list[2].next = &mon_reg_list[3];
-
-    mon_reg_list[3].name = "S";
-    mon_reg_list[3].val = (unsigned int)mon_register_get_val(mem, e_SP);
-    mon_reg_list[3].size = 16;
-    mon_reg_list[3].flags = 0;
-    mon_reg_list[3].next = &mon_reg_list[4];
-
-    mon_reg_list[4].name = "PC";
-    mon_reg_list[4].val = (unsigned int)mon_register_get_val(mem, e_PC);
-    mon_reg_list[4].size = 16;
-    mon_reg_list[4].flags = 0;
-    mon_reg_list[4].next = &mon_reg_list[5];
-
-    mon_reg_list[5].name = "DP";
-    mon_reg_list[5].val = (unsigned int)mon_register_get_val(mem, e_DP);
-    mon_reg_list[5].size = 8;
-    mon_reg_list[5].flags = 0;
-    mon_reg_list[5].next = &mon_reg_list[6];
-
-    mon_reg_list[6].name = "CC";
-    mon_reg_list[6].val = (unsigned int)mon_register_get_val(mem, e_FLAGS);
-    mon_reg_list[6].size = 8;
-    mon_reg_list[6].flags = 0;
-    mon_reg_list[6].next = &mon_reg_list[7];
-
-    mon_reg_list[7].name = "EFHINZVC";
-    mon_reg_list[7].val = (unsigned int)mon_register_get_val(mem, e_FLAGS);
-    mon_reg_list[7].size = 8;
-    mon_reg_list[7].flags = 1;
-    mon_reg_list[7].next = &mon_reg_list[8];
-
-    mon_reg_list[8].name = "A";
-    mon_reg_list[8].val = (unsigned int)mon_register_get_val(mem, e_A);
-    mon_reg_list[8].size = 8;
-    mon_reg_list[8].flags = 0;
-    mon_reg_list[8].next = &mon_reg_list[9];
-
-    mon_reg_list[9].name = "B";
-    mon_reg_list[9].val = (unsigned int)mon_register_get_val(mem, e_B);
-    mon_reg_list[9].size = 8;
-    mon_reg_list[9].flags = 0;
-    mon_reg_list[9].next = &mon_reg_list[10];
-
-    mon_reg_list[10].name = "D";
-    mon_reg_list[10].val = (unsigned int)mon_register_get_val(mem, e_D);
-    mon_reg_list[10].size = 16;
-    mon_reg_list[10].flags = 0;
-    mon_reg_list[10].next = NULL;
+    do {
+        regs->val = (unsigned int)mon_register_get_val(mem, regs->id);
+        ++regs;
+    } while (regs->name != NULL);
 
     return mon_reg_list;
-}
-
-static void mon_register_list_set6809(mon_reg_list_t *reg_list, int mem)
-{
-    do {
-        if (!strcmp(reg_list->name, "X")) {
-            mon_register_set_val(mem, e_X, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "Y")) {
-            mon_register_set_val(mem, e_Y, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "U")) {
-            mon_register_set_val(mem, e_U, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "S")) {
-            mon_register_set_val(mem, e_SP, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "PC")) {
-            mon_register_set_val(mem, e_PC, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "DP")) {
-            mon_register_set_val(mem, e_DP, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "CC")) {
-            mon_register_set_val(mem, e_FLAGS, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "A")) {
-            mon_register_set_val(mem, e_A, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "B")) {
-            mon_register_set_val(mem, e_B, (WORD)(reg_list->val));
-        }
-        if (!strcmp(reg_list->name, "D")) {
-            mon_register_set_val(mem, e_D, (WORD)(reg_list->val));
-        }
-
-        reg_list = reg_list->next;
-    } while (reg_list != NULL);
 }
 
 void mon_register6809_init(monitor_cpu_type_t *monitor_cpu_type)
@@ -318,5 +297,4 @@ void mon_register6809_init(monitor_cpu_type_t *monitor_cpu_type)
     monitor_cpu_type->mon_register_print = mon_register_print;
     monitor_cpu_type->mon_register_print_ex = mon_register_print_ex;
     monitor_cpu_type->mon_register_list_get = mon_register_list_get6809;
-    monitor_cpu_type->mon_register_list_set = mon_register_list_set6809;
 }

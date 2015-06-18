@@ -52,6 +52,7 @@ static unsigned int drive_check_ieee(unsigned int type)
 static unsigned int drive_check_iec(unsigned int type)
 {
     switch (type) {
+        case DRIVE_TYPE_1540:
         case DRIVE_TYPE_1541:
         case DRIVE_TYPE_1541II:
         case DRIVE_TYPE_1570:
@@ -161,11 +162,13 @@ int drive_check_type(unsigned int drive_type, unsigned int dnr)
 
 int drive_check_expansion(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
         return 1;
     }
     return 0;
@@ -173,8 +176,10 @@ int drive_check_expansion(int drive_type)
 
 int drive_check_expansion2000(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
         return 1;
     }
     return 0;
@@ -182,11 +187,13 @@ int drive_check_expansion2000(int drive_type)
 
 int drive_check_expansion4000(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
         return 1;
     }
     return 0;
@@ -194,11 +201,13 @@ int drive_check_expansion4000(int drive_type)
 
 int drive_check_expansion6000(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
         return 1;
     }
     return 0;
@@ -206,8 +215,10 @@ int drive_check_expansion6000(int drive_type)
 
 int drive_check_expansion8000(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
         return 1;
     }
     return 0;
@@ -215,8 +226,10 @@ int drive_check_expansion8000(int drive_type)
 
 int drive_check_expansionA000(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
         return 1;
     }
     return 0;
@@ -224,11 +237,13 @@ int drive_check_expansionA000(int drive_type)
 
 int drive_check_parallel_cable(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
         return 1;
     }
     return 0;
@@ -236,13 +251,15 @@ int drive_check_parallel_cable(int drive_type)
 
 int drive_check_extend_policy(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1551
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR
-        || drive_type == DRIVE_TYPE_2031) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1551:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
+    case DRIVE_TYPE_2031:
         return 1;
     }
     return 0;
@@ -250,16 +267,21 @@ int drive_check_extend_policy(int drive_type)
 
 int drive_check_idle_method(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR
-        || drive_type == DRIVE_TYPE_1551
-        || drive_type == DRIVE_TYPE_1581
-        || drive_type == DRIVE_TYPE_2000
-        || drive_type == DRIVE_TYPE_4000
-        || drive_type == DRIVE_TYPE_2031) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
+    case DRIVE_TYPE_1551:
+    case DRIVE_TYPE_1581:
+    case DRIVE_TYPE_2000:
+    case DRIVE_TYPE_4000:
+    case DRIVE_TYPE_2031:
+    case DRIVE_TYPE_2040:
+    case DRIVE_TYPE_3040:
+    case DRIVE_TYPE_4040:
         return 1;
     }
     return 0;
@@ -267,9 +289,10 @@ int drive_check_idle_method(int drive_type)
 
 int drive_check_profdos(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
         return 1;
     }
     return 0;
@@ -277,11 +300,13 @@ int drive_check_profdos(int drive_type)
 
 int drive_check_supercard(int drive_type)
 {
-    if (drive_type == DRIVE_TYPE_1541
-        || drive_type == DRIVE_TYPE_1541II
-        || drive_type == DRIVE_TYPE_1570
-        || drive_type == DRIVE_TYPE_1571
-        || drive_type == DRIVE_TYPE_1571CR) {
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
         return 1;
     }
     return 0;

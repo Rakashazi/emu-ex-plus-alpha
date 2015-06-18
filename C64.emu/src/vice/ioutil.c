@@ -188,7 +188,7 @@ int ioutil_remove(const char *name)
 
 int ioutil_rename(const char *oldpath, const char *newpath)
 {
-    return rename(oldpath, newpath);
+    return archdep_rename(oldpath, newpath);
 }
 
 int ioutil_stat(const char *file_name, unsigned int *len, unsigned int *isdir)
@@ -256,6 +256,22 @@ static int ioutil_count_dir_items(const char *path)
         if (dp->d_type != DT_UNKNOWN) {
             if (dp->d_type == DT_DIR) {
                 dirs_amount++;
+#ifdef DT_LNK
+            } else if (dp->d_type == DT_LNK) {
+                filename = util_concat(path, FSDEV_DIR_SEP_STR, dp->d_name, NULL);
+                retval = ioutil_stat(filename, &len, &isdir);
+                if (retval == 0) {
+                    if (isdir) {
+                        dirs_amount++;
+                    } else {
+                        files_amount++;
+                    }
+                }
+                if (filename) {
+                    lib_free(filename);
+                    filename = NULL;
+                }
+#endif /* DT_LNK */
             } else {
                 files_amount++;
             }
@@ -303,6 +319,24 @@ static void ioutil_filldir(const char *path, ioutil_name_table_t *dirs, ioutil_n
             if (dp->d_type == DT_DIR) {
                 dirs[dir_count].name = lib_stralloc(dp->d_name);
                 dir_count++;
+#ifdef DT_LNK
+            } else if (dp->d_type == DT_LNK) {
+                filename = util_concat(path, FSDEV_DIR_SEP_STR, dp->d_name, NULL);
+                retval = ioutil_stat(filename, &len, &isdir);
+                if (retval == 0) {
+                    if (isdir) {
+                        dirs[dir_count].name = lib_stralloc(dp->d_name);
+                        dir_count++;
+                    } else {
+                        files[file_count].name = lib_stralloc(dp->d_name);
+                        file_count++;
+                    }
+                }
+                if (filename) {
+                    lib_free(filename);
+                    filename = NULL;
+                }
+#endif // DT_LNK
             } else {
                 files[file_count].name = lib_stralloc(dp->d_name);
                 file_count++;

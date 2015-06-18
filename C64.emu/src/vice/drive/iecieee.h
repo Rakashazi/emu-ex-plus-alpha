@@ -42,3 +42,4 @@ extern int iecieee_drive_snapshot_read(struct drive_context_s *ctxptr,
 extern int iecieee_drive_snapshot_write(struct drive_context_s *ctxptr,
                                         struct snapshot_s *s);
 #endif
+

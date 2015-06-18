@@ -26,9 +26,24 @@
 
 /* Tested and confirmed working on:
    - BeOS R5 PE x86
+   - BeOS Max V4b1 x86
+   - Zeta 1.21
    - Haiku R1 Alpha3 x86
    - Haiku R1 Alpha4 x86
+   - Haiku R1 Alpha4 amd64/x86_64
 */
+
+/* Binary compatibility table:
+   compiled for | |running on ->
+                v | BeoS 5.x | Zeta | Haiku r1 | haiku 64bit | PPC BeOS
+   --------------------------------------------------------------------
+   BeOS gcc 2.9   | yes      | yes  | yes      | NO          | NO
+   BeOS gcc 2.95* | yes      | yes  | yes      | NO          | NO
+   Zeta           | NO       | yes  | NO       | NO          | NO
+   Haiku r1       | NO       | NO   | yes      | NO          | NO
+   Haiku 64bit    | NO       | NO   | NO       | yes         | NO
+   PPC BeOS       | NO       | NO   | NO       | NO          | yes
+ */
 
 #include "vice.h"
 
@@ -60,15 +75,20 @@ int CheckForZeta(void)
     return util_file_exists("/boot/beos/system/lib/libzeta.so");
 }
 
-char platform_name[128];
+static char platform_name[128];
+static int got_platform_name = 0;
+
+static char *platform_cpu = NULL;
 
 char *platform_get_haiku_runtime_os(void)
 {
     struct utsname name;
 
-    uname(&name);
-    sprintf(platform_name, "Haiku (rev %s)", name.version);
-
+    if (!got_platform_name) {
+        uname(&name);
+        sprintf(platform_name, "Haiku (rev %s)", name.version);
+        got_platform_name = 1;
+    }
     return platform_name;
 }
 
@@ -76,12 +96,14 @@ char *platform_get_zeta_runtime_os(void)
 {
     struct utsname name;
 
-    uname(&name);
-    if (name.release[0] == '6') {
-        name.release[0] = '1';
+    if (!got_platform_name) {
+        uname(&name);
+        if (name.release[0] == '6') {
+            name.release[0] = '1';
+        }
+        sprintf(platform_name, "Zeta %s", name.release);
+        got_platform_name = 1;
     }
-    sprintf(platform_name, "Zeta %s", name.release);
-
     return platform_name;
 }
 
@@ -89,8 +111,11 @@ char *platform_get_beos_runtime_os(void)
 {
     struct utsname name;
 
-    uname(&name);
-    sprintf(platform_name, "BeOS %s", name.release);
+    if (!got_platform_name) {
+        uname(&name);
+        sprintf(platform_name, "BeOS %s", name.release);
+        got_platform_name = 1;
+    }
 
     return platform_name;
 }
@@ -101,25 +126,33 @@ char *platform_get_beosppc_runtime_cpu(void)
 {
     system_info si;
 
-    get_system_info(&si);
-
-    switch (si.cpu_type) {
-        case B_CPU_PPC_601:
-            return "PPC601";
-        case B_CPU_PPC_603:
-            return "PPC603";
-        case B_CPU_PPC_603e:
-            return "PPC603e";
-        case B_CPU_PPC_604:
-            return "PPC604";
-        case B_CPU_PPC_604e:
-            return "PPC604e";
-        case B_CPU_PPC_750:
-            return "PPC750";
-        case B_CPU_PPC_686:
-            return "PPC686";
-        default:
-            return "Unknown PPC";
+    if (!platform_cpu) {
+        get_system_info(&si);
+        switch (si.cpu_type) {
+            case B_CPU_PPC_601:
+                platform_cpu = "PPC601";
+                break;
+            case B_CPU_PPC_603:
+                platform_cpu = "PPC603";
+                break;
+            case B_CPU_PPC_603e:
+                platform_cpu = "PPC603e";
+                break;
+            case B_CPU_PPC_604:
+                platform_cpu = "PPC604";
+                break;
+            case B_CPU_PPC_604e:
+                platform_cpu = "PPC604e";
+                break;
+            case B_CPU_PPC_750:
+                platform_cpu = "PPC750";
+                break;
+            case B_CPU_PPC_686:
+                platform_cpu = "PPC686";
+            default:
+                platform_cpu = "Unknown PPC";
+        }
     }
+    return platform_cpu;
 }
 #endif

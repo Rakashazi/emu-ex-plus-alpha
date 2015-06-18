@@ -7,7 +7,7 @@
  *  Vesa-Matti Puro <vmp@lut.fi>
  *  Jarkko Sonninen <sonninen@lut.fi>
  *  Jouko Valta <jopi@stekt.oulu.fi>
- *  Andr� Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -48,6 +48,7 @@
 #include "drive.h"
 #include "fullscreen.h"
 #include "gfxoutput.h"
+#include "info.h"
 #include "init.h"
 #include "initcmdline.h"
 #ifdef HAS_TRANSLATION
@@ -91,9 +92,12 @@ static int init_done;
 /* This is the main program entry point.  Call this from `main()'.  */
 int main_program(int argc, char **argv)
 {
-    int i;
+    int i, n;
     char *program_name;
+    char *tmp;
     int ishelp = 0;
+
+    lib_init_rand();
 
     /* Check for -config and -console before initializing the user interface.
        -config  => use specified configuration file
@@ -128,10 +132,13 @@ int main_program(int argc, char **argv)
 #endif
 
     DBG(("main:archdep_init(argc:%d)\n", argc));
-    archdep_init(&argc, argv);
+    if (archdep_init(&argc, argv) != 0) {
+        archdep_startup_log_error("archdep_init failed.\n");
+        return -1;
+    }
 
     if (atexit(main_exit) < 0) {
-        archdep_startup_log_error("atexit");
+        archdep_startup_log_error("atexit failed.\n");
         return -1;
     }
 
@@ -143,8 +150,8 @@ int main_program(int argc, char **argv)
     /* Initialize system file locator.  */
     sysfile_init(machine_name);
 
-    gfxoutput_early_init(!ishelp);
-    if (init_resources() < 0 || init_cmdline_options() < 0) {
+    gfxoutput_early_init(ishelp);
+    if ((init_resources() < 0) || (init_cmdline_options() < 0)) {
         return -1;
     }
 
@@ -213,11 +220,25 @@ int main_program(int argc, char **argv)
                     program_name, machine_name);
     }
     log_message(LOG_DEFAULT, " ");
+
     log_message(LOG_DEFAULT, "Current VICE team members:");
-    log_message(LOG_DEFAULT, "D. Lem, A. Matthies, M. Pottendorfer, S. Trikaliotis, M. van den Heuvel,");
-    log_message(LOG_DEFAULT, "C. Vogelgsang, F. Gennari, D. Kahlin, A. Lankila, Groepaz, I. Korb,");
-    log_message(LOG_DEFAULT, "E. Smith, O. Seibert, M. Sutton, U. Schulz, S. Haubenthal, T. Giesel,");
-    log_message(LOG_DEFAULT, "K. Zsolt.");
+    tmp = lib_malloc(80);
+    n = 0; *tmp = 0;
+    for (i = 0; core_team[i].name; i++) {
+        n += strlen(core_team[i].name);
+        if (n > 74) {
+            log_message(LOG_DEFAULT, tmp);
+            n = 0; *tmp = 0;
+        }
+        strcat(tmp, core_team[i].name);
+        if (core_team[i + 1].name) {
+            strcat(tmp, ", ");
+        } else {
+            strcat(tmp, ".");
+            log_message(LOG_DEFAULT, tmp);
+        }
+    }
+    lib_free(tmp);
 
     log_message(LOG_DEFAULT, " ");
     log_message(LOG_DEFAULT, "This is free software with ABSOLUTELY NO WARRANTY.");

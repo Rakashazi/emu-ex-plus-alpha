@@ -49,6 +49,10 @@ extern const char *fliplist_get_prev(unsigned int unit);
 extern const char *fliplist_get_image(fliplist_t fl);
 extern unsigned int fliplist_get_unit(fliplist_t fl);
 
+/* FIXME: once all UIs are updated to use FLIPLIST_ALL_UNITS this should be
+          changed to a positive value and the cast removed */
+#define FLIPLIST_ALL_UNITS       ((unsigned int)-1)
+
 extern void fliplist_clear_list(unsigned int unit);
 extern int fliplist_save_list(unsigned int unit, const char *filename);
 extern int fliplist_load_list(unsigned int unit, const char *filename, int autoattach);

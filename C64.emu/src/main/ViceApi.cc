@@ -1,5 +1,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/builtins.h>
+#include <imagine/base/Base.hh>
+#include <imagine/fs/sys.hh>
 #include <assert.h>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -400,6 +402,31 @@ CLINK int archdep_stat(const char *file_name, unsigned int *len, unsigned int *i
 	return 0;
 }
 
+char *archdep_default_rtc_file_name(void)
+{
+	FsSys::PathString path{};
+	if(Base::documentsPathIsShared())
+		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath());
+	else
+		string_printf(path, "%s/vice.rtc", Base::documentsPath());
+	return lib_stralloc(path.data());
+}
+
+CLINK int archdep_rename(const char *oldpath, const char *newpath)
+{
+	return FsSys::rename(oldpath, newpath) == OK ? 0 : -1;
+}
+
+CLINK signed long kbd_arch_keyname_to_keynum(char *keyname)
+{
+	return (signed long)atoi(keyname);
+}
+
+CLINK int kbd_arch_get_host_mapping(void)
+{
+	return KBD_MAPPING_US;
+}
+
 CLINK void archdep_shutdown(void) { }
 CLINK void uimon_set_interface(monitor_interface_t **monitor_interface_init, int count) { }
 CLINK void uimon_window_suspend(void) { }
@@ -444,13 +471,6 @@ CLINK int console_init() { return 0; }
 CLINK int ui_init_finalize() { return 0; }
 CLINK int gfxoutput_cmdline_options_init() { return 0; }
 CLINK int ui_cmdline_options_init() { return 0; }
-CLINK int sound_init_fs_device() { return 0; }
-CLINK int sound_init_dump_device() { return 0; }
-CLINK int sound_init_wav_device() { return 0; }
-CLINK int sound_init_voc_device() { return 0; }
-CLINK int sound_init_iff_device() { return 0; }
-CLINK int sound_init_aiff_device() { return 0; }
-CLINK int sound_init_movie_device() { return 0; }
 CLINK int screenshot_init() { return 0; }
 CLINK int screenshot_record() { return 0; }
 CLINK int screenshot_save(const char *drvname, const char *filename, struct video_canvas_s *canvas) { return 0; }

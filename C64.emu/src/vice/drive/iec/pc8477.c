@@ -31,7 +31,6 @@
 #include "clkguard.h"
 #include "diskimage.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "log.h"
 #include "lib.h"
@@ -117,7 +116,7 @@ enum pc8477_flags_e {
     PC8477_FLAGS_MOT = 0x04,
 };
 
-const static struct {
+static const struct {
     BYTE mask;
     pc8477_cmd_t command;
     BYTE len, rlen, flags;

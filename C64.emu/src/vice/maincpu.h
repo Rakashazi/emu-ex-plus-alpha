@@ -54,6 +54,7 @@ extern struct mos6510_regs_s maincpu_regs;
 
 extern int maincpu_rmw_flag;
 extern CLOCK maincpu_clk;
+extern CLOCK maincpu_clk_limit;
 
 /* 8502 cycle stretch indicator */
 extern int maincpu_stretch;
@@ -79,10 +80,7 @@ extern struct clk_guard_s *maincpu_clk_guard;
 extern struct monitor_interface_s *maincpu_monitor_interface;
 
 /* Return the number of write accesses in the last opcode emulated. */
-inline static CLOCK maincpu_num_write_cycles(void)
-{
-    return maincpu_opcode_write_cycles[OPINFO_NUMBER(last_opcode_info)];
-}
+#define maincpu_num_write_cycles() maincpu_opcode_write_cycles[OPINFO_NUMBER(last_opcode_info)]
 
 extern void maincpu_resync_limits(void);
 extern void maincpu_init(void);
@@ -93,5 +91,19 @@ extern void maincpu_mainloop(void);
 extern struct monitor_interface_s *maincpu_monitor_interface_get(void);
 extern int maincpu_snapshot_read_module(struct snapshot_s *s);
 extern int maincpu_snapshot_write_module(struct snapshot_s *s);
+
+extern void maincpu_set_pc(int);
+extern void maincpu_set_a(int);
+extern void maincpu_set_x(int);
+extern void maincpu_set_y(int);
+extern void maincpu_set_sign(int);
+extern void maincpu_set_zero(int);
+extern void maincpu_set_carry(int);
+extern void maincpu_set_interrupt(int);
+extern unsigned int maincpu_get_pc(void);
+extern unsigned int maincpu_get_a(void);
+extern unsigned int maincpu_get_x(void);
+extern unsigned int maincpu_get_y(void);
+extern unsigned int maincpu_get_sp(void);
 
 #endif

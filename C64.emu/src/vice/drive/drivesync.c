@@ -86,6 +86,7 @@ void drivesync_set_4000(struct drive_context_s *drv, int new_sync)
 void drivesync_clock_frequency(unsigned int type, drive_t *drive)
 {
     switch (type) {
+        case DRIVE_TYPE_1540:
         case DRIVE_TYPE_1541:
         case DRIVE_TYPE_1541II:
         case DRIVE_TYPE_1570:

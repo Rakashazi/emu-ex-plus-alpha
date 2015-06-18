@@ -43,7 +43,7 @@
 
 static const char snap_module_name_simple[] = "SID";
 #define SNAP_MAJOR_SIMPLE 1
-#define SNAP_MINOR_SIMPLE 0
+#define SNAP_MINOR_SIMPLE 1
 
 static int sid_snapshot_write_module_simple(snapshot_t *s)
 {
@@ -199,7 +199,8 @@ static int sid_snapshot_write_module_extended(snapshot_t *s)
         || SMW_DWA(m, sid_state.floating_output_ttl, 3) < 0
         || SMW_WA(m, sid_state.pulse_output, 3) < 0
         || SMW_B(m, sid_state.write_pipeline) < 0
-        || SMW_B(m, sid_state.write_address) < 0) {
+        || SMW_B(m, sid_state.write_address) < 0
+        || SMW_B(m, sid_state.voice_mask) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -272,6 +273,7 @@ static int sid_snapshot_read_module_extended(snapshot_t *s)
     SMR_WA(m, sid_state.pulse_output, 3);
     SMR_B(m, &(sid_state.write_pipeline));
     SMR_B(m, &(sid_state.write_address));
+    SMR_B(m, &(sid_state.voice_mask));
 
     sid_state_write(0, &sid_state);
 

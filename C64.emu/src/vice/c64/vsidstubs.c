@@ -28,6 +28,7 @@
 #include "vice.h"
 
 #include "c64.h"
+#include "c64-midi.h"
 #include "c64cart.h"
 #include "c64fastiec.h"
 #include "c64iec.h"
@@ -66,80 +67,6 @@ void c64_256k_cia_set_vbank(int ciabank)
     Drive related
 *******************************************************************************/
 
-int machine_drive_resources_init(void)
-{
-    return 0;
-}
-
-void machine_drive_resources_shutdown(void)
-{
-}
-
-int machine_drive_cmdline_options_init(void)
-{
-    return 0;
-}
-
-void machine_drive_init(struct drive_context_s *drv)
-{
-}
-
-void machine_drive_shutdown(struct drive_context_s *drv)
-{
-}
-
-void machine_drive_reset(struct drive_context_s *drv)
-{
-}
-
-void machine_drive_mem_init(struct drive_context_s *drv, unsigned int type)
-{
-}
-
-void machine_drive_setup_context(struct drive_context_s *drv)
-{
-}
-
-void machine_drive_idling_method(unsigned int dnr)
-{
-}
-
-void machine_drive_vsync_hook(void)
-{
-}
-
-void machine_drive_rom_load(void)
-{
-}
-
-void machine_drive_rom_setup_image(unsigned int dnr)
-{
-}
-
-int machine_drive_rom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    return -1;
-}
-
-int machine_drive_rom_check_loaded(unsigned int type)
-{
-    return -1;
-}
-
-void machine_drive_rom_do_checksum(unsigned int dnr)
-{
-}
-
-int machine_drive_snapshot_read(struct drive_context_s *ctxptr, struct snapshot_s *s)
-{
-    return 0;
-}
-
-int machine_drive_snapshot_write(struct drive_context_s *ctxptr, struct snapshot_s *s)
-{
-    return 0;
-}
-
 int machine_drive_image_attach(struct disk_image_s *image, unsigned int unit)
 {
     return -1;
@@ -150,22 +77,10 @@ int machine_drive_image_detach(struct disk_image_s *image, unsigned int unit)
     return -1;
 }
 
-void machine_drive_port_default(struct drive_context_s *drv)
-{
-}
-
-void machine_drive_flush(void)
-{
-}
-
 void machine_drive_stub(void)
 {
 }
 
-int drive_get_disk_drive_type(int dnr)
-{
-    return DRIVE_TYPE_NONE;
-}
 /*******************************************************************************
     Cartridge system
 *******************************************************************************/
@@ -173,218 +88,13 @@ int drive_get_disk_drive_type(int dnr)
 /* Expansion port signals.  */
 export_t export = { 0, 0, 0, 0 }; /* c64 export */
 
-/* Type of the cartridge attached. ("Main Slot") */
-int mem_cartridge_type = CARTRIDGE_NONE;
+/* the following two are used by the old non cycle exact vic-ii emulation */
+static BYTE mem_phi[0x1000];
 
-int cartridge_resources_init(void)
-{
-    return 0;
-}
-
-void cartridge_resources_shutdown(void)
-{
-}
-
-int cartridge_cmdline_options_init(void)
-{
-    return 0;
-}
-
-/*
-    get filename of cart with given type
-*/
-const char *cartridge_get_file_name(int type)
-{
-    return "";
-}
-
-/*
-    returns 1 if the cartridge of the given type is enabled
-
-    - used by c64iec.c:iec_available_busses
-*/
-int cartridge_type_enabled(int type)
-{
-    return -1;
-}
-
-/*
-    attach cartridge image
-
-    type == -1  NONE
-    type ==  0  CRT format
-
-    returns -1 on error, 0 on success
-*/
 int cartridge_attach_image(int type, const char *filename)
 {
     return -1;
-}
-
-void cartridge_detach_image(int type)
-{
-}
-
-void cartridge_set_default(void)
-{
-}
-
-int cartridge_save_image(int type, const char *filename)
-{
-    return -1;
-}
-
-/* trigger a freeze, but don't trigger the cartridge logic (which might release it). used by monitor */
-void cartridge_trigger_freeze_nmi_only(void)
-{
-}
-
-/* called by individual carts */
-void cartridge_release_freeze(void)
-{
-}
-
-/*
-   called by the UI when the freeze button is pressed
-*/
-void cartridge_trigger_freeze(void)
-{
-}
-
-/* called by c64.c:machine_specific_init */
-void cartridge_init(void)
-{
-}
-
-/* ROML read - mapped to 8000 in 8k,16k,ultimax */
-BYTE roml_read(WORD addr)
-{
-    return vicii_read_phi1();
-}
-
-/* ROML store - mapped to 8000 in ultimax mode */
-void roml_store(WORD addr, BYTE value)
-{
-}
-
-/* ROMH read - mapped to A000 in 16k, to E000 in ultimax */
-BYTE romh_read(WORD addr)
-{
-    return vicii_read_phi1();
-}
-
-/* ROMH read if hirom is selected - mapped to E000 in ultimax */
-BYTE ultimax_romh_read_hirom(WORD addr)
-{
-    return vicii_read_phi1();
-}
-
-/* ROMH store - mapped to E000 in ultimax mode */
-void romh_store(WORD addr, BYTE value)
-{
-}
-
-/* ROMH store - A000-BFFF in 16kGame
-
-   normally writes to ROM area would go to RAM an not generate
-   a write select. some carts however map RAM here and also
-   accept writes in this mode.
-*/
-void romh_no_ultimax_store(WORD addr, BYTE value)
-{
-    /* store to c64 ram */
-    mem_store_without_romlh(addr, value);
-}
-
-/* ROML store - mapped to 8000-9fff in 8kGame, 16kGame
-
-   normally writes to ROM area would go to RAM and not generate
-   a write select. some carts however map ram here and also
-   accept writes in this mode.
-*/
-void roml_no_ultimax_store(WORD addr, BYTE value)
-{
-    /* store to c64 ram */
-    ram_store(addr, value);
-}
-
-/* RAML store (ROML _NOT_ selected) - mapped to 8000-9fff in 8kGame, 16kGame */
-void raml_no_ultimax_store(WORD addr, BYTE value)
-{
-    /* store to c64 ram */
-    ram_store(addr, value);
-}
-
-/* ultimax read - 1000 to 7fff */
-BYTE ultimax_1000_7fff_read(WORD addr)
-{
-    /* default; no cart, open bus */
-    return vicii_read_phi1();
-}
-
-/* ultimax store - 1000 to 7fff */
-void ultimax_1000_7fff_store(WORD addr, BYTE value)
-{
-    /* default; no cart, open bus */
-}
-
-/* ultimax read - a000 to bfff */
-BYTE ultimax_a000_bfff_read(WORD addr)
-{
-    /* default; no cart, open bus */
-    return vicii_read_phi1();
-}
-
-/* ultimax store - a000 to bfff */
-void ultimax_a000_bfff_store(WORD addr, BYTE value)
-{
-    /* default; no cart, open bus */
-}
-
-/* ultimax read - c000 to cfff */
-BYTE ultimax_c000_cfff_read(WORD addr)
-{
-    /* default; no cart, open bus */
-    return vicii_read_phi1();
-}
-
-/* ultimax store - c000 to cfff */
-void ultimax_c000_cfff_store(WORD addr, BYTE value)
-{
-    /* default; no cart, open bus */
-}
-
-/* ultimax read - d000 to dfff */
-BYTE ultimax_d000_dfff_read(WORD addr)
-{
-    /* default; no cart, c64 i/o */
-    return read_bank_io(addr);
-}
-
-/* ultimax store - d000 to dfff */
-void ultimax_d000_dfff_store(WORD addr, BYTE value)
-{
-    /* default;no cart, c64 i/o */
-    store_bank_io(addr, value);
-}
-
-/* VIC-II reads from cart memory */
-int ultimax_romh_phi1_read(WORD addr, BYTE *value)
-{
-    /* default; no cart, open bus */
-    *value = vicii_read_phi1();
-    return 1;
-}
-
-int ultimax_romh_phi2_read(WORD addr, BYTE *value)
-{
-    /* default; no cart, open bus */
-    *value = vicii_read_phi1();
-    return 1;
-}
-
-/* the following two are used by the old non cycle exact vic-ii emulation */
-static BYTE mem_phi[0x1000];
+} 
 
 BYTE *ultimax_romh_phi1_ptr(WORD addr)
 {
@@ -396,125 +106,15 @@ BYTE *ultimax_romh_phi2_ptr(WORD addr)
     return mem_phi;
 }
 
-BYTE cartridge_peek_mem(WORD addr)
-{
-    return 0;
-}
-
-/*
-    returns 1 if the cartridge of the given type is enabled
-
-    -  used by c64iec.c:iec_available_busses (checks for CARTRIDGE_IEEE488)
-*/
-int cart_type_enabled(int type)
-{
-    return 0;
-}
-
-/* called once by machine_setup_context */
-void cartridge_setup_context(machine_context_t *machine_context)
-{
-}
-
-int cartridge_enable(int type)
-{
-    return -1;
-}
-
-/* Initialize RAM for power-up.  */
-void cartridge_ram_init(void)
-{
-}
-
-/* called once by c64.c:machine_specific_shutdown at machine shutdown */
-void cartridge_shutdown(void)
-{
-}
-
-/*
-    called from c64mem.c:mem_initialize_memory (calls XYZ_config_init)
-*/
-void cartridge_init_config(void)
-{
-}
-
-void cartridge_reset(void)
-{
-}
-
-int cartridge_flush_image(int type)
-{
-    return -1;
-}
-
-int cartridge_bin_save(int type, const char *filename)
-{
-    return -1;
-}
-
-int cartridge_crt_save(int type, const char *filename)
-{
-    return -1;
-}
-
-void cartridge_sound_chip_init(void)
-{
-}
-
-int cartridge_snapshot_write_modules(struct snapshot_s *s)
-{
-    return 0;
-}
-
-int cartridge_snapshot_read_modules(struct snapshot_s *s)
-{
-    return 0;
-}
-
-int cart_is_slotmain(int type)
-{
-    return 0;
-}
-
-/*******************************************************************************
-    individual carts
-*******************************************************************************/
-
-int digimax_cart_enabled = 0;
-int digimax_is_userport = 0;
-
-void digimax_sound_store(WORD addr, BYTE value)
-{
-}
-
 midi_interface_t midi_interface[] = {
     { NULL }
 };
-
-void digimax_userport_store(WORD addr, BYTE value)
-{
-}
 
 /*******************************************************************************
     gfxoutput drivers
 *******************************************************************************/
 
-int gfxoutput_early_init(int drivers)
-{
-    return 0;
-}
-
-int gfxoutput_resources_init(void)
-{
-    return 0;
-}
-
-int gfxoutput_cmdline_options_init(void)
-{
-    return 0;
-}
-
-int gfxoutput_init(void)
+int gfxoutput_early_init(int help)
 {
     return 0;
 }
@@ -581,13 +181,13 @@ void printer_formfeed(unsigned int prnr)
 *******************************************************************************/
 
 /* FIXME: this stub can be removed once the drive code has been stubbed */
-rtc_ds1216e_t *ds1216e_init(time_t *offset)
+rtc_ds1216e_t *ds1216e_init(char *device)
 {
     return NULL;
 }
 
 /* FIXME: this stub can be removed once the drive code has been stubbed */
-void ds1216e_destroy(rtc_ds1216e_t *context)
+void ds1216e_destroy(rtc_ds1216e_t *context, int save)
 {
 }
 
@@ -596,7 +196,7 @@ BYTE ds1216e_read(rtc_ds1216e_t *context, WORD address, BYTE origbyte)
     return 0;
 }
 
-rtc_ds1202_1302_t *ds1202_1302_init(BYTE *data, time_t *offset, int rtc_type)
+rtc_ds1202_1302_t *ds1202_1302_init(char *device, int rtc_type)
 {
     return NULL;
 }
@@ -610,7 +210,7 @@ BYTE ds1202_1302_read_data_line(rtc_ds1202_1302_t *context)
     return 1;
 }
 
-void ds1202_1302_destroy(rtc_ds1202_1302_t *context)
+void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save)
 {
 }
 
@@ -685,7 +285,7 @@ tape_file_record_t *tape_get_current_file_record(tape_image_t *tape_image)
 
 int tape_image_open(tape_image_t *tape_image)
 {
-    return 0;
+    return -1;
 }
 
 int tape_image_close(tape_image_t *tape_image)
@@ -828,16 +428,6 @@ unsigned int fileio_scratch(const char *file_name, const char *path, unsigned in
     fileio
 *******************************************************************************/
 
-int fsdevice_resources_init(void)
-{
-    return 0;
-}
-
-int fsdevice_cmdline_options_init(void)
-{
-    return 0;
-}
-
 void fsdevice_init(void)
 {
 }
@@ -855,30 +445,12 @@ void fsdevice_set_directory(char *filename, unsigned int unit)
 {
 }
 
-void fsdevice_resources_shutdown(void)
-{
-}
-
 
 /*******************************************************************************
     diskimage
 *******************************************************************************/
 
-int disk_image_resources_init(void)
-{
-    return 0;
-}
-
-int disk_image_cmdline_options_init(void)
-{
-    return 0;
-}
-
 void disk_image_init(void)
-{
-}
-
-void disk_image_resources_shutdown(void)
 {
 }
 
@@ -1057,11 +629,11 @@ void drive_setup_context(void)
 {
 }
 
-void drivecpu_early_init_all(void)
+void drive_cpu_early_init_all(void)
 {
 }
 
-void drivecpu_trigger_reset(unsigned int dnr)
+void drive_cpu_trigger_reset(unsigned int dnr)
 {
 }
 
@@ -1087,11 +659,11 @@ void drive_set_disk_memory(BYTE *id, unsigned int track, unsigned int sector, st
 {
 }
 
-void drivecpu_execute(drive_context_t *drv, CLOCK clk_value)
+void drive_cpu_execute_one(drive_context_t *drv, CLOCK clk_value)
 {
 }
 
-void drivecpu_execute_all(CLOCK clk_value)
+void drive_cpu_execute_all(CLOCK clk_value)
 {
 }
 
@@ -1116,6 +688,11 @@ int drive_check_idle_method(int drive_type)
 }
 
 int drive_check_parallel_cable(int drive_type)
+{
+    return 0;
+}
+
+int drive_get_disk_drive_type(int dnr)
 {
     return 0;
 }

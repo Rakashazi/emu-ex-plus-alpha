@@ -69,9 +69,12 @@ static log_t mouse_log = LOG_ERR;
 /* extern variables */
 
 int _mouse_enabled = 0;
+
+/* Use xvic defaults, if resources get registered the factory
+   default will overwrite these */
 int mouse_port = 1;
-int mouse_type = MOUSE_TYPE_1351;
-int mouse_kind = MOUSE_KIND_OTHER;
+int mouse_type = MOUSE_TYPE_PADDLE;
+
 /* --------------------------------------------------------- */
 /* POT input selection */
 
@@ -110,8 +113,7 @@ static int update_limit = 512;
 static int last_mouse_x = 0;
 static int last_mouse_y = 0;
 static rtc_ds1202_1302_t *ds1202; /* smartmouse */
-static time_t rtc_offset;
-static char smart_ram[65];
+static int ds1202_rtc_save; /* smartmouse rtc data save */
 
 /*
     note: for the expected behaviour look at testprogs/SID/paddles/readme.txt
@@ -277,6 +279,7 @@ static CLOCK update_x_emu_iv = 0;      /* in cpu cycle units */
 static CLOCK update_y_emu_iv = 0;      /* in cpu cycle units */
 static CLOCK next_update_x_emu_ts = 0; /* in cpu cycle units */
 static CLOCK next_update_y_emu_ts = 0; /* in cpu cycle units */
+static CLOCK up_down_pulse_end = 0;    /* in cpu cycle units */
 static int sx, sy;
 
 /* the ratio between emulated cpu cycles and vsynchapi time units */
@@ -300,6 +303,9 @@ static void clk_overflow_callback(CLOCK sub, void *data)
     }
     if (next_update_y_emu_ts > (CLOCK) 0) {
         next_update_y_emu_ts -= sub;
+    }
+    if (up_down_pulse_end > (CLOCK) 0) {
+        up_down_pulse_end -= sub;
     }
 }
 
@@ -436,7 +442,7 @@ BYTE mouse_poll(void)
                 polled_joyval = ((amiga_mouse_table[quadrature_x] << 1) | amiga_mouse_table[quadrature_y] | 0xf0);
                 break;
             case MOUSE_TYPE_CX22:
-                polled_joyval = (((quadrature_y & 2) << 2) | ((sy + 1) << 1) | (quadrature_x & 2) | ((sx + 1) >> 1) | 0xf0);
+                polled_joyval = (((quadrature_y & 1) << 3) | ((sy > 0) << 2) | ((quadrature_x & 1) << 1) | (sx > 0) | 0xf0);
                 break;
             case MOUSE_TYPE_ST:
                 polled_joyval = (st_mouse_table[quadrature_x] | (st_mouse_table[quadrature_y] << 2) | 0xf0);
@@ -448,6 +454,20 @@ BYTE mouse_poll(void)
     return polled_joyval;
 }
 
+static int up_down_counter = 0;
+
+BYTE micromys_mouse_read(void)
+{
+    /* update wheel until we're ahead */
+    while (up_down_counter && up_down_pulse_end <= maincpu_clk) {
+        up_down_counter += (up_down_counter < 0) * 2 - 1;
+        up_down_pulse_end += 512 * 98; /* 50 ms counted from POT input (98 A/D cycles) */
+    }
+    if (up_down_counter & 1) {
+        return ~(4 << (up_down_counter < 0));
+    }
+    return 0xff;
+}
 /* --------------------------------------------------------- */
 /* Paddle support */
 
@@ -522,20 +542,35 @@ static BYTE mouse_get_paddle_y(void)
 
 static int set_mouse_enabled(int val, void *param)
 {
-    _mouse_enabled = val;
+    if (_mouse_enabled == val) {
+        return 0;
+    }
+
+    _mouse_enabled = val ? 1 : 0;
     mousedrv_mouse_changed();
-    last_mouse_x = mousedrv_get_x();
-    last_mouse_y = mousedrv_get_y();
+    latest_x = last_mouse_x = mousedrv_get_x();
+    latest_y = last_mouse_y = mousedrv_get_y();
     neos_lastx = (BYTE)(mousedrv_get_x() >> 1);
     neos_lasty = (BYTE)(mousedrv_get_y() >> 1);
     latest_os_ts = 0;
     return 0;
 }
 
+static int set_smart_mouse_rtc_save(int val, void *param)
+{
+    ds1202_rtc_save = val ? 1 : 0;
+
+    return 0;
+}
+
 static int set_mouse_port(int val, void *param)
 {
-    if (val < 1 || val > 2) {
-        return -1;
+    switch (val) {
+        case 1:
+        case 2:
+            break;
+        default:
+            return -1;
     }
 
     mouse_port = val;
@@ -545,30 +580,45 @@ static int set_mouse_port(int val, void *param)
 
 static int set_mouse_type(int val, void *param)
 {
-    if (!((val >= 0) && (val < MOUSE_TYPE_NUM))) {
-        return -1;
+    if (val == mouse_type) {
+        return 0;
+    }
+
+    switch (val) {
+        case MOUSE_TYPE_1351:
+        case MOUSE_TYPE_NEOS:
+        case MOUSE_TYPE_AMIGA:
+        case MOUSE_TYPE_PADDLE:
+        case MOUSE_TYPE_CX22:
+        case MOUSE_TYPE_ST:
+        case MOUSE_TYPE_MICROMYS:
+        case MOUSE_TYPE_KOALAPAD:
+            if (mouse_type == MOUSE_TYPE_SMART && ds1202) {
+                ds1202_1302_destroy(ds1202, ds1202_rtc_save);
+                ds1202 = NULL;
+            }
+            break;
+        case MOUSE_TYPE_SMART:
+            ds1202 = ds1202_1302_init("SM", 1202);
+            break;
+        default:
+            return -1;
     }
 
     mouse_type = val;
-    if (mouse_type == MOUSE_TYPE_ST ||
-        mouse_type == MOUSE_TYPE_AMIGA ||
-        mouse_type == MOUSE_TYPE_CX22) {
-        mouse_kind = MOUSE_KIND_POLLED;
-    } else {
-        mouse_kind = MOUSE_KIND_OTHER;
-    }
 
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
 #ifdef ANDROID_COMPILE
-    { "Mouse", 1, RES_EVENT_SAME, NULL,
-      &_mouse_enabled, set_mouse_enabled, NULL },
+#define MOUSE_ENABLE_DEFAULT  1
 #else
-    { "Mouse", 0, RES_EVENT_SAME, NULL,
-      &_mouse_enabled, set_mouse_enabled, NULL },
+#define MOUSE_ENABLE_DEFAULT  0
 #endif
+
+static const resource_int_t resources_int[] = {
+    { "Mouse", MOUSE_ENABLE_DEFAULT, RES_EVENT_SAME, NULL,
+      &_mouse_enabled, set_mouse_enabled, NULL },
     { NULL }
 };
 
@@ -577,6 +627,8 @@ static const resource_int_t resources_extra_int[] = {
       &mouse_type, set_mouse_type, NULL },
     { "Mouseport", 1, RES_EVENT_SAME, NULL,
       &mouse_port, set_mouse_port, NULL },
+    { "SmartMouseRTCSave", 0, RES_EVENT_SAME, NULL,
+      &ds1202_rtc_save, set_smart_mouse_rtc_save, NULL },
     { NULL }
 };
 
@@ -621,6 +673,16 @@ static const cmdline_option_t cmdline_extra_option[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SELECT_MOUSE_JOY_PORT,
       NULL, NULL },
+    { "-smartmousertcsave", SET_RESOURCE, 0,
+      NULL, NULL, "SmartMouseRTCSave", (void *)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_SMART_MOUSE_RTC_SAVE,
+      NULL, NULL },
+    { "+smartmousertcsave", SET_RESOURCE, 0,
+      NULL, NULL, "SmartMouseRTCSave", (void *)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_SMART_MOUSE_RTC_SAVE,
+      NULL, NULL },
     { NULL }
 };
 
@@ -642,12 +704,6 @@ int mouse_cmdline_options_init(void)
 
 void mouse_init(void)
 {
-    /* FIXME ugly kludge to set the correct port and type setting for xvic */
-    if (machine_class == VICE_MACHINE_VIC20) {
-        set_mouse_port(1, NULL);
-        set_mouse_type(MOUSE_TYPE_PADDLE, NULL);
-    }
-
     emu_units_per_os_units = (float)machine_get_cycles_per_second() / vsyncarch_frequency();
     update_limit = machine_get_cycles_per_frame() / 31 / 2;
 #ifdef DEBUG_MOUSE
@@ -661,14 +717,14 @@ void mouse_init(void)
     neosmouse_alarm = alarm_new(maincpu_alarm_context, "NEOSMOUSEAlarm", neosmouse_alarm_handler, NULL);
     mousedrv_init();
     clk_guard_add_callback(maincpu_clk_guard, clk_overflow_callback, NULL);
-    rtc_offset = (time_t)0; /* TODO: offset */
-    memset(smart_ram, 0, sizeof(smart_ram));
-    ds1202 = ds1202_1302_init((BYTE *)smart_ram, &rtc_offset, 1202);
 }
 
 void mouse_shutdown(void)
 {
-    ds1202_1302_destroy(ds1202);
+    if (ds1202) {
+        ds1202_1302_destroy(ds1202, ds1202_rtc_save);
+        ds1202 = NULL;
+    }
 }
 
 /* --------------------------------------------------------- */
@@ -731,6 +787,14 @@ void mouse_button_middle(int pressed)
                 joystick_set_value_and(mouse_port, ~2);
             }
             break;
+        case MOUSE_TYPE_AMIGA:
+        case MOUSE_TYPE_ST:
+            if (pressed) {
+                neos_and_amiga_buttons |= 2;
+            } else {
+                neos_and_amiga_buttons &= ~2;
+            }
+            break;
         default:
             break;
     }
@@ -740,10 +804,11 @@ void mouse_button_up(int pressed)
 {
     switch (mouse_type) {
         case MOUSE_TYPE_MICROMYS:
-            if (pressed) {    /* TODO: 50 ms low pulse, 50ms high for each */
-                joystick_set_value_or(mouse_port, 4);
-            } else {
-                joystick_set_value_and(mouse_port, ~4);
+            if (pressed) {
+                if (!up_down_counter) {
+                    up_down_pulse_end = maincpu_clk;
+                }
+                up_down_counter += 2;
             }
             break;
         default:
@@ -755,10 +820,11 @@ void mouse_button_down(int pressed)
 {
     switch (mouse_type) {
         case MOUSE_TYPE_MICROMYS:
-            if (pressed) {    /* TODO: 50 ms low pulse, 50ms high for each */
-                joystick_set_value_or(mouse_port, 8);
-            } else {
-                joystick_set_value_and(mouse_port, ~8);
+            if (pressed) {
+                if (!up_down_counter) {
+                    up_down_pulse_end = maincpu_clk;
+                }
+                up_down_counter -= 2;
             }
             break;
         default:
@@ -805,11 +871,16 @@ BYTE mouse_get_y(void)
         case MOUSE_TYPE_KOALAPAD:
         case MOUSE_TYPE_PADDLE:
             return mouse_get_paddle_y();
-        case MOUSE_TYPE_NEOS:
-        case MOUSE_TYPE_AMIGA:
-        case MOUSE_TYPE_CX22:
         case MOUSE_TYPE_ST:
-            /* FIXME: is this correct ?! */
+        case MOUSE_TYPE_AMIGA:
+            /* Real Amiga and Atari ST mice probably needs this mod
+             * http://www.mssiah-forum.com/viewtopic.php?pid=15208
+             * for their middle buttons to be read using pot_y. */
+            return (neos_and_amiga_buttons & 2) ? 0xff : 0;
+        case MOUSE_TYPE_CX22:
+        case MOUSE_TYPE_NEOS:
+            /* CX22 has no middle button */
+            /* NEOS has no middle button */
             break;
         default:
             DBG(("mouse_get_y: invalid mouse_type"));

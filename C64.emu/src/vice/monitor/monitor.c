@@ -50,7 +50,6 @@
 #include "console.h"
 #include "datasette.h"
 #include "drive.h"
-#include "drivecpu.h"
 
 #ifdef HAVE_FULLSCREEN
 #include "fullscreenarch.h"
@@ -77,7 +76,6 @@
 #include "montypes.h"
 #include "resources.h"
 #include "screenshot.h"
-#include "signals.h"
 #include "sysfile.h"
 #include "translate.h"
 #include "traps.h"
@@ -230,11 +228,53 @@ static const char *cond_op_string[] = {
 const char *mon_memspace_string[] = { "default", "C", "8", "9", "0", "1" };
 
 static const char *register_string[] = {
+/* 6502/65c02 */
     "A",
     "X",
     "Y",
     "PC",
-    "SP"
+    "SP",
+    "FL",
+/* z80 */
+    "AF",
+    "BC",
+    "DE",
+    "HL",
+    "IX",
+    "IY",
+    "I",
+    "R",
+    "AF2",
+    "BC2",
+    "DE2",
+    "HL2",
+/* C64DTV */
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R14",
+    "R15",
+    "ACM",
+    "YXM",
+/* 65816 */
+    "B",
+    "C",
+    "DPR",
+    "PBR",
+    "DBR",
+    "EMUL",
+/* 6809 */
+    "D",
+    "U",
+    "DP"
 };
 
 /* Some local helper functions */
@@ -607,6 +647,7 @@ void mon_set_mem_val(MEMSPACE mem, WORD mem_addr, BYTE val)
                                         mon_interfaces[mem]->context);
 }
 
+/* exit monitor  */
 void mon_jump(MON_ADDR addr)
 {
     mon_evaluate_default_addr(&addr);
@@ -614,11 +655,13 @@ void mon_jump(MON_ADDR addr)
     exit_mon = 1;
 }
 
+/* exit monitor  */
 void mon_go(void)
 {
     exit_mon = 1;
 }
 
+/* exit monitor, close monitor window  */
 void mon_exit(void)
 {
     exit_mon = 1;
@@ -810,7 +853,7 @@ void mon_cpuhistory(int count)
                                                 &opc_size);
 
         /* Print the disassembled instruction */
-        mon_out("%04x  %-30s - A:%02X Y:%02X Y:%02X SP:%02x %c%c-%c%c%c%c%c\n",
+        mon_out("%04x  %-30s - A:%02X X:%02X Y:%02X SP:%02x %c%c-%c%c%c%c%c\n",
                 loc, dis_inst,
                 cpuhistory[pos].reg_a, cpuhistory[pos].reg_x, cpuhistory[pos].reg_y, cpuhistory[pos].reg_sp,
                 ((cpuhistory[pos].reg_st & (1 << 7)) != 0) ? 'N' : ' ',
@@ -1095,7 +1138,7 @@ void mon_reset_machine(int type)
         case 9:
         case 10:
         case 11:
-            drivecpu_trigger_reset(type - 8);
+            drive_cpu_trigger_reset(type - 8);
             break;
         default:
             machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
@@ -1134,18 +1177,18 @@ void mon_export(void)
 void mon_stopwatch_show(const char* prefix, const char* suffix)
 {
     unsigned long t;
-    monitor_interface_t* interface;
-    interface = mon_interfaces[default_memspace];
+    monitor_interface_t* vice_interface;
+    vice_interface = mon_interfaces[default_memspace];
     t = (unsigned long)
-        (*interface->clk - stopwatch_start_time[default_memspace]);
+        (*vice_interface->clk - stopwatch_start_time[default_memspace]);
     mon_out("%s%10lu%s", prefix, t, suffix);
 }
 
 void mon_stopwatch_reset(void)
 {
-    monitor_interface_t* interface;
-    interface = mon_interfaces[default_memspace];
-    stopwatch_start_time[default_memspace] = *interface->clk;
+    monitor_interface_t* vice_interface;
+    vice_interface = mon_interfaces[default_memspace];
+    stopwatch_start_time[default_memspace] = *vice_interface->clk;
     mon_out("Stopwatch reset to 0.\n");
 }
 
@@ -1347,17 +1390,22 @@ static int monitor_set_initial_breakpoint(const char *param, void *extra_param)
     return 0;
 }
 
-static int keep_monitor_open = 1;
+static int keep_monitor_open = 0;
 
+#ifdef ARCHDEP_SEPERATE_MONITOR_WINDOW
 static int set_keep_monitor_open(int val, void *param)
 {
-    keep_monitor_open = val;
+    keep_monitor_open = val ? 1 : 0;
+
     return 0;
 }
+#endif
 
 static const resource_int_t resources_int[] = {
+#ifdef ARCHDEP_SEPERATE_MONITOR_WINDOW
     { "KeepMonitorOpen", 1, RES_EVENT_NO, NULL,
       &keep_monitor_open, set_keep_monitor_open, NULL },
+#endif
     { NULL }
 };
 
@@ -1387,6 +1435,18 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_INITIAL_BREAKPOINT,
       NULL, NULL },
+#ifdef ARCHDEP_SEPERATE_MONITOR_WINDOW
+    { "-keepmonopen", SET_RESOURCE, 0,
+      NULL, NULL, "KeepMonitorOpen", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_KEEP_MONITOR_OPEN,
+      NULL, NULL },
+    { "+keepmonopen", SET_RESOURCE, 0,
+      NULL, NULL, "KeepMonitorOpen", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_KEEP_MONITOR_OPEN,
+      NULL, NULL },
+#endif
     { NULL }
 };
 
@@ -1736,6 +1796,7 @@ char *mon_symbol_table_lookup_name(MEMSPACE mem, WORD addr)
     return NULL;
 }
 
+/* look up a symbol in the given memspace, returns address or -1 on error */
 int mon_symbol_table_lookup_addr(MEMSPACE mem, char *name)
 {
     symbol_entry_t *sym_ptr;
@@ -1744,8 +1805,10 @@ int mon_symbol_table_lookup_addr(MEMSPACE mem, char *name)
         mem = default_memspace;
     }
 
-    if (strcmp(name, ".PC") == 0) {
-        return (monitor_cpu_for_memspace[mem]->mon_register_get_val)(mem, e_PC);
+    /* this allows for .REGISTER to be used in all commands to refer to the
+       current value of a register */
+    if ((name[0] == '.') && mon_register_name_valid(mem, &name[1])) {
+        return mon_register_name_to_value(mem, &name[1]);
     }
 
     sym_ptr = monitor_labels[mem].name_list;
@@ -1776,13 +1839,15 @@ void mon_add_name_to_symbol_table(MON_ADDR addr, char *name)
     MEMSPACE mem = addr_memspace(addr);
     WORD loc = addr_location(addr);
 
-    if (strcmp(name, ".PC") == 0) {
-        mon_out("Error: .PC is a reserved label.\n");
-        return;
-    }
-
     if (mem == e_default_space) {
         mem = default_memspace;
+    }
+
+    /* .REGISTER can be used in all commands to refer to the current value of a
+       register, meaning it can not be used as a regular label */
+    if ((name[0] == '.') && mon_register_name_valid(mem, &name[1])) {
+        mon_out("Error: %s is a reserved label.\n", name);
+        return;
     }
 
     old_name = mon_symbol_table_lookup_name(mem, loc);
@@ -1843,7 +1908,7 @@ void mon_remove_name_from_symbol_table(MEMSPACE mem, char *name)
             if (prev_ptr) {
                 prev_ptr->next = sym_ptr->next;
             } else {
-                monitor_labels[mem].name_list = NULL;
+                monitor_labels[mem].name_list = sym_ptr->next;
             }
             lib_free(sym_ptr);
             break;
@@ -1861,7 +1926,7 @@ void mon_remove_name_from_symbol_table(MEMSPACE mem, char *name)
             if (prev_ptr) {
                 prev_ptr->next = sym_ptr->next;
             } else {
-                monitor_labels[mem].addr_hash_table[HASH_ADDR(addr)] = NULL;
+                monitor_labels[mem].addr_hash_table[HASH_ADDR(addr)] = sym_ptr->next;
             }
             lib_free(sym_ptr);
             return;
@@ -1974,9 +2039,9 @@ void mon_print_conditional(cond_node_t *cnode)
         mon_print_conditional(cnode->child2);
     } else {
         if (cnode->is_reg) {
-            mon_out(".%s", register_string[reg_regid(cnode->reg_num)]);
+            mon_out("%s", register_string[reg_regid(cnode->reg_num)]);
         } else {
-            mon_out("%d", cnode->value);
+            mon_out("$%02x", cnode->value);
         }
     }
 
@@ -2325,10 +2390,6 @@ static void monitor_open(void)
         return;
     }
 
-    if (monitor_is_remote()) {
-        signals_pipe_set();
-    }
-
     inside_monitor = TRUE;
     monitor_trap_triggered = FALSE;
     vsync_suspend_speed_eval();
@@ -2382,6 +2443,7 @@ static void monitor_open(void)
 static int monitor_process(char *cmd)
 {
     mon_stop_output = 0;
+
     if (cmd == NULL) {
         mon_out("\n");
     } else {
@@ -2389,7 +2451,6 @@ static int monitor_process(char *cmd)
             if (!asm_mode) {
                 /* Repeat previous command */
                 lib_free(cmd);
-
                 cmd = last_cmd ? lib_stralloc(last_cmd) : NULL;
             } else {
                 /* Leave asm mode */
@@ -2415,7 +2476,12 @@ static int monitor_process(char *cmd)
     }
     lib_free(last_cmd);
 
-    last_cmd = cmd;
+    /* remember last command, except when leaving the monitor */
+    if (exit_mon && mon_console_suspend_on_leaving) {
+        last_cmd = NULL;
+    } else {
+        last_cmd = cmd;
+    }
 
     uimon_notify_change(); /* @SRT */
 
@@ -2427,7 +2493,9 @@ static void monitor_close(int check)
     inside_monitor = FALSE;
     vsync_suspend_speed_eval();
 
-    exit_mon--;
+    if (exit_mon) {
+        exit_mon--;
+    }
 
     if (check && exit_mon) {
         if (!monitor_is_remote()) {
@@ -2438,9 +2506,7 @@ static void monitor_close(int check)
 
     exit_mon = 0;
 
-    if (monitor_is_remote()) {
-        signals_pipe_unset();
-    }
+    /* last_cmd = NULL; */
 
     if (!monitor_is_remote()) {
         if (mon_console_suspend_on_leaving) {
@@ -2467,6 +2533,12 @@ static void monitor_close(int check)
 void monitor_startup(MEMSPACE mem)
 {
     char prompt[40];
+    char *p;
+
+    if (console_mode) {
+        log_message(LOG_DEFAULT, "FIXME: monitor in console mode is not supported right now.");
+        return;
+    }
 
     if (mem != e_default_space) {
         default_memspace = mem;
@@ -2475,7 +2547,17 @@ void monitor_startup(MEMSPACE mem)
     monitor_open();
     while (!exit_mon) {
         make_prompt(prompt);
-        monitor_process(uimon_in(prompt));
+        p = uimon_in(prompt);
+        if (p) {
+            exit_mon = monitor_process(p);
+        } else {
+            exit_mon = 1;
+        }
+
+        if (exit_mon) {
+            /* mon_out("exit\n"); */
+            break;
+        }
     }
     monitor_close(1);
 }

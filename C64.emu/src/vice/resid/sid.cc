@@ -19,6 +19,11 @@
 
 #define RESID_SID_CC
 
+#ifdef _M_ARM
+#undef _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE
+#define _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE 1
+#endif
+
 #include "sid.h"
 #include <math.h>
 

@@ -29,6 +29,8 @@
 
 #include "types.h"
 
+#include <time.h>
+
 #define RTC_MONTH_JAN   0
 #define RTC_MONTH_FEB   1
 #define RTC_MONTH_MAR   2
@@ -41,6 +43,9 @@
 #define RTC_MONTH_OCT   9
 #define RTC_MONTH_NOV   10
 #define RTC_MONTH_DEC   11
+
+/* max amount of RTC's in use at the same time */
+#define RTC_MAX 20
 
 extern BYTE rtc_get_centisecond(int bcd);
 
@@ -81,5 +86,11 @@ extern time_t rtc_set_latched_year(int year, time_t latch, int bcd);          /*
 extern time_t rtc_set_latched_century(int year, time_t latch, int bcd);       /* 19 - 20 */
 extern time_t rtc_set_latched_weekday(int day, time_t latch);                 /* 0 - 6 (sunday 0, monday 1 ...etc) */
 extern time_t rtc_set_latched_day_of_year(int day, time_t latch);             /* 0 - 365 */
+
+extern void rtc_save_context(BYTE *ram, int ram_size, BYTE *regs, int reg_size, char *device, time_t offset);
+extern int rtc_load_context(char *device, int ram_size, int reg_size);
+extern BYTE *rtc_get_loaded_ram(void);
+extern time_t rtc_get_loaded_offset(void);
+extern BYTE *rtc_get_loaded_clockregs(void);
 
 #endif

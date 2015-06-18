@@ -34,16 +34,19 @@
 #include "types.h"
 
 
-static BYTE drive_read_ram(drive_context_t *drv, WORD address)
+static BYTE drive_read_rom(drive_context_t *drv, WORD address)
 {
-    /* FIXME: This breaks the 1541 RAM mirror!  */
-    return drv->cpud->drive_ram[address & 0x1fff];
+    return drv->drive->rom[address & 0x7fff];
 }
 
-static void drive_store_ram(drive_context_t *drv, WORD address, BYTE value)
+static BYTE drive_read_1551ram(drive_context_t *drv, WORD address)
 {
-    /* FIXME: This breaks the 1541 RAM mirror!  */
-    drv->cpud->drive_ram[address & 0x1fff] = value;
+    return drv->drive->drive_ram[address & 0x7ff];
+}
+
+static void drive_store_1551ram(drive_context_t *drv, WORD address, BYTE value)
+{
+    drv->drive->drive_ram[address & 0x7ff] = value;
 }
 
 static BYTE drive_read_zero(drive_context_t *drv, WORD address)
@@ -55,7 +58,7 @@ static BYTE drive_read_zero(drive_context_t *drv, WORD address)
             return glue1551_port1_read(drv);
     }
 
-    return drv->cpud->drive_ram[address & 0xff];
+    return drv->drive->drive_ram[address & 0xff];
 }
 
 static void drive_store_zero(drive_context_t *drv, WORD address, BYTE value)
@@ -69,32 +72,22 @@ static void drive_store_zero(drive_context_t *drv, WORD address, BYTE value)
             return;
     }
 
-    drv->cpud->drive_ram[address & 0xff] = value;
+    drv->drive->drive_ram[address & 0xff] = value;
 }
 
 void mem1551_init(struct drive_context_s *drv, unsigned int type)
 {
-    unsigned int i;
+    drivecpud_context_t *cpud = drv->cpud;
 
-    if (type == DRIVE_TYPE_1551) {
-        drv->cpu->pageone = drv->cpud->drive_ram + 0x100;
-
-        /* Setup drive RAM.  */
-        for (i = 0x01; i < 0x08; i++) {
-            drv->cpud->read_func_nowatch[i] = drive_read_ram;
-            drv->cpud->store_func_nowatch[i] = drive_store_ram;
-        }
-        for (i = 0xc0; i < 0x100; i++) {
-            drv->cpud->read_func_nowatch[i] = drive_read_rom;
-        }
-
-        drv->cpud->read_func_nowatch[0] = drive_read_zero;
-        drv->cpud->store_func_nowatch[0] = drive_store_zero;
-
-        /* Setup 1551 TPI.  */
-        for (i = 0x40; i < 0x7f; i++) {
-            drv->cpud->read_func_nowatch[i] = tpid_read;
-            drv->cpud->store_func_nowatch[i] = tpid_store;
-        }
+    switch (type) {
+    case DRIVE_TYPE_1551:
+        drv->cpu->pageone = drv->drive->drive_ram + 0x100;
+        drivemem_set_func(cpud, 0x00, 0x01, drive_read_zero, drive_store_zero, drv->drive->drive_ram, 0x000207fd);
+        drivemem_set_func(cpud, 0x01, 0x08, drive_read_1551ram, drive_store_1551ram, &drv->drive->drive_ram[0x0100], 0x000207fd);
+        drivemem_set_func(cpud, 0x40, 0x80, tpid_read, tpid_store, NULL, 0);
+        drivemem_set_func(cpud, 0xc0, 0x100, drive_read_rom, NULL, &drv->drive->trap_rom[0x4000], 0xc000fffd);
+        break;
+    default:
+        break;
     }
 }

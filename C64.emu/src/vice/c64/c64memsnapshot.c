@@ -47,7 +47,7 @@
 #include "types.h"
 #include "uiapi.h"
 
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
 #include "c64acia.h"
 #endif
 
@@ -61,7 +61,6 @@ static const char snap_rom_module_name[] = "C64ROM";
 static int c64_snapshot_write_rom_module(snapshot_t *s)
 {
     snapshot_module_t *m;
-    int trapfl;
 
     /* Main memory module.  */
 
@@ -69,10 +68,6 @@ static int c64_snapshot_write_rom_module(snapshot_t *s)
     if (m == NULL) {
         return -1;
     }
-
-    /* disable traps before saving the ROM */
-    resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 0);
 
     if (SMW_BA(m, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE) < 0
         || SMW_BA(m, c64memrom_basic64_rom, C64_BASIC_ROM_SIZE) < 0
@@ -82,20 +77,12 @@ static int c64_snapshot_write_rom_module(snapshot_t *s)
 
     ui_update_menus();
 
-    if (snapshot_module_close(m) < 0) {
-        goto fail;
-    }
-
-    resources_set_int("VirtualDevices", trapfl);
-
-    return 0;
+    return snapshot_module_close(m);
 
 fail:
     if (m != NULL) {
         snapshot_module_close(m);
     }
-
-    resources_set_int("VirtualDevices", trapfl);
 
     return -1;
 }

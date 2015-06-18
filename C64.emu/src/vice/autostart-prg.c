@@ -40,6 +40,7 @@
 #include "vdrive.h"
 #include "vdrive-iec.h"
 #include "vdrive-internal.h"
+#include "drive.h"
 
 /* ----- Globals ----- */
 
@@ -128,6 +129,7 @@ int autostart_prg_with_virtual_fs(const char *file_name,
 {
     char *directory;
     char *file;
+    int val;
 
     /* Extract the directory path to allow FS-based drive emulation to
        work.  */
@@ -145,7 +147,10 @@ int autostart_prg_with_virtual_fs(const char *file_name,
 
     /* Setup FS-based drive emulation.  */
     fsdevice_set_directory(directory ? directory : ".", 8);
-    resources_set_int("DriveTrueEmulation", 0);
+    resources_get_int("AutostartHandleTrueDriveEmulation", &val);
+    if (val == 0) {
+        resources_set_int("DriveTrueEmulation", 0);
+    }
     resources_set_int("VirtualDevices", 1);
     resources_set_int("FSDevice8ConvertP00", 1);
     file_system_detach_disk(8);
@@ -180,10 +185,48 @@ int autostart_prg_with_disk_image(const char *file_name,
     const int secondary = 1;
     autostart_prg_t *prg;
     vdrive_t *vdrive;
-    unsigned int i;
+    int i;
     int old_tde_state;
     int file_name_size;
-    BYTE lo, hi;
+    BYTE data;
+    unsigned int disk_image_type;
+    int result, result2;
+
+    /* identify disk image type */
+    switch (drive_get_disk_drive_type(drive - 8)) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1551:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_2031:
+        disk_image_type = DISK_IMAGE_TYPE_D64; 
+        break;
+    case DRIVE_TYPE_2040:
+    case DRIVE_TYPE_3040:
+    case DRIVE_TYPE_4040:
+        disk_image_type = DISK_IMAGE_TYPE_D67; 
+        break;
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
+        disk_image_type = DISK_IMAGE_TYPE_D71;
+        break;
+    case DRIVE_TYPE_1581:
+    case DRIVE_TYPE_2000:
+    case DRIVE_TYPE_4000:
+        disk_image_type = DISK_IMAGE_TYPE_D81; 
+        break;
+    case DRIVE_TYPE_8050:
+        disk_image_type = DISK_IMAGE_TYPE_D80;
+        break;
+    case DRIVE_TYPE_8250:
+    case DRIVE_TYPE_1001:
+        disk_image_type = DISK_IMAGE_TYPE_D82;
+        break;
+    default: 
+        log_error(log, "No idea what disk image format to use.");
+        return -1;
+    }
 
     /* read prg file */
     prg = load_prg(file_name, fh, log);
@@ -194,78 +237,83 @@ int autostart_prg_with_disk_image(const char *file_name,
     /* disable TDE */
     resources_get_int("DriveTrueEmulation", &old_tde_state);
     if (old_tde_state != 0) {
+        log_message(log, "Turning true drive emulation off.");
         resources_set_int("DriveTrueEmulation", 0);
     }
 
-    /* create empty image */
-    if (vdrive_internal_create_format_disk_image(image_name, (char *)"AUTOSTART", DISK_IMAGE_TYPE_D64) < 0) {
-        log_error(log, "Error creating autostart disk image: %s", image_name);
-        free_prg(prg);
-        return -1;
-    }
+    do {
+        result = -1;
 
-    /* attach disk image */
-    if (file_system_attach_disk(drive, image_name) < 0) {
-        log_error(log, "Could not attach disk image: %s", image_name);
-        free_prg(prg);
-        return -1;
-    }
-
-    /* copy file to disk */
-    vdrive = file_system_get_vdrive((unsigned int)drive);
-    if (vdrive == NULL) {
-        free_prg(prg);
-        return -1;
-    }
-
-    /* get file name size */
-    file_name_size = strlen((const char *)fh->name);
-    if (file_name_size > 16) {
-        file_name_size = 16;
-    }
-
-    /* open file on disk */
-    if (vdrive_iec_open(vdrive, (const BYTE *)fh->name, file_name_size, secondary, NULL) != SERIAL_OK) {
-        log_error(log, "Could not open file");
-        free_prg(prg);
-        return -1;
-    }
-
-    /* write start address to file */
-    lo = (BYTE)(prg->start_addr & 0xff);
-    hi = (BYTE)((prg->start_addr >> 8) & 0xff);
-    if ((vdrive_iec_write(vdrive, lo, secondary) != SERIAL_OK) || (vdrive_iec_write(vdrive, hi, secondary) != SERIAL_OK)) {
-        log_error(log, "Could not write file");
-        free_prg(prg);
-        return -1;
-    }
-
-    /* write PRG data to file */
-    for (i = 0; i < prg->size; i++) {
-        if (vdrive_iec_write(vdrive, prg->data[i], secondary) != SERIAL_OK) {
-            log_error(log, "Could not write file");
-            free_prg(prg);
-            return -1;
+        /* create empty image */
+        if (vdrive_internal_create_format_disk_image(image_name, (char *)"AUTOSTART", disk_image_type) < 0) {
+            log_error(log, "Error creating autostart disk image: %s", image_name);
+            break;
         }
-    }
 
-    /* close file */
-    if (vdrive_iec_close(vdrive, secondary) != SERIAL_OK) {
-        log_error(log, "Could not close file");
-        free_prg(prg);
-        return -1;
-    }
+        /* attach disk image */
+        if (file_system_attach_disk(drive, image_name) < 0) {
+            log_error(log, "Could not attach disk image: %s", image_name);
+            break;
+        }
+
+        /* get vdrive */
+        vdrive = file_system_get_vdrive((unsigned int)drive);
+        if (vdrive == NULL) {
+            break;
+        }
+
+        /* get file name size */
+        file_name_size = strlen((const char *)fh->name);
+        if (file_name_size > 16) {
+            file_name_size = 16;
+        }
+
+        /* open file on disk */
+        if (vdrive_iec_open(vdrive, (const BYTE *)fh->name, file_name_size, secondary, NULL) != SERIAL_OK) {
+            log_error(log, "Could not open file");
+            break;
+        }
+
+        result2 = 0;
+        /* write PRG data to file */
+        for (i = -2; i < (int)prg->size; i++) {
+            switch (i) {
+            case -2: 
+                data = (BYTE)prg->start_addr; 
+                break;
+            case -1: 
+                data = (BYTE)(prg->start_addr >> 8); 
+                break;
+            default: 
+                data = prg->data[i]; 
+                break;
+            }
+            if (vdrive_iec_write(vdrive, data, secondary) != SERIAL_OK) {
+                log_error(log, "Could not write file");
+                result2 = -1;
+                break;
+            }
+        }
+
+        /* close file */
+        if (vdrive_iec_close(vdrive, secondary) != SERIAL_OK) {
+            log_error(log, "Could not close file");
+            break;
+        }
+        result = result2;
+    } while (0);
 
     /* free prg file */
     free_prg(prg);
 
     /* re-enable TDE */
     if (old_tde_state != 0) {
+        log_message(log, "Turning true drive emulation on.");
         resources_set_int("DriveTrueEmulation", old_tde_state);
     }
 
     /* ready */
-    return 0;
+    return result;
 }
 
 int autostart_prg_perform_injection(log_t log)

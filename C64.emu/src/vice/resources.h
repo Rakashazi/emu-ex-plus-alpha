@@ -146,6 +146,9 @@ extern int resources_read_item_from_file(FILE *fp);
 extern char *resources_write_item_to_string(const char *name, const char *delim);
 
 extern int resources_set_defaults(void);
+extern int resources_set_default_int(const char *name, int value);
+extern int resources_set_default_string(const char *name, const char *value);
+
 extern int resources_set_event_safe(void);
 extern void resources_get_event_safe_list(struct event_list_state_s *list);
 

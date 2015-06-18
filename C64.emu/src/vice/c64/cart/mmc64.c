@@ -138,7 +138,6 @@ static BYTE mmc64_biossel;
 #define MMC_SPISTAT   0x01 /* bit 0: 0 = SPI ready, 1 = SPI busy                     */
 
 /* Variables of the various status bits */
-static BYTE mmc64_flashjumper; /* status of the flash jumper FIXME: remove, duplicated flag */
 static BYTE mmc64_extexrom = 0;
 static BYTE mmc64_extgame = 0;
 
@@ -269,7 +268,7 @@ void mmc64_reset(void)
     mmc64_cport = 0;
     mmc64_speed = 0;
     mmc64_cardsel = 0;
-    mmc64_biossel = 0;
+    mmc64_biossel = mmc64_hw_flashjumper; /* disable bios at reset when flash jumper is set */
 
 #if 0
     mmc64_extexrom = 0x04;
@@ -321,8 +320,10 @@ static int mmc64_deactivate(void)
 }
 
 /* FIXME: resetting the c64 should be handled in the upper layer */
-static int set_mmc64_enabled(int val, void *param)
+static int set_mmc64_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     LOG(("MMC64: set_enabled: '%s' %d to %d", mmc64_bios_filename, mmc64_enabled, val));
     if (!mmc64_enabled && val) {
         /* activate mmc64 */
@@ -382,8 +383,10 @@ static int set_mmc64_enabled(int val, void *param)
     return 0;
 }
 
-static int set_mmc64_readonly(int val, void *param)
+static int set_mmc64_readonly(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (!mmc64_image_file_readonly) {
         mmc64_hw_writeprotect = val;
         if (!((*mmc64_image_filename) == 0)) {
@@ -403,20 +406,38 @@ static int set_mmc64_readonly(int val, void *param)
 
 static int set_mmc64_flashjumper(int val, void *param)
 {
-    mmc64_hw_flashjumper = val;
-    mmc64_flashjumper = val * MMC_FLASHJMP;
-    LOG(("MMC64 Flashjumper: %02x %d", mmc64_flashjumper, mmc64_hw_flashjumper));
+    mmc64_hw_flashjumper = val ? 1 : 0;
+    LOG(("MMC64 Flashjumper: %d", mmc64_hw_flashjumper));
     return 0;
 }
 
 static int set_mmc64_revision(int val, void *param)
 {
+    switch (val) {
+        case MMC64_REV_A:
+        case MMC64_REV_B:
+            break;
+        default:
+            return -1;
+    }
+
     mmc64_revision = val;
+
     return 0;
 }
 
 static int set_mmc64_sd_type(int val, void *param)
 {
+    switch (val) {
+        case MMC64_TYPE_AUTO:
+        case MMC64_TYPE_MMC:
+        case MMC64_TYPE_SD:
+        case MMC64_TYPE_SDHC:
+            break;
+        default:
+            return -1;
+    }
+
     mmc64_sd_type = val;
     mmc_set_card_type((BYTE)val);
     return 0;
@@ -424,7 +445,7 @@ static int set_mmc64_sd_type(int val, void *param)
 
 static int set_mmc64_bios_write(int val, void *param)
 {
-    mmc64_bios_write = val;
+    mmc64_bios_write = val ? 1 : 0;
     return 0;
 }
 
@@ -506,7 +527,7 @@ void mmc64_config_init(struct export_s *export)
     mmc64_cport = 0;
     mmc64_speed = 0;
     mmc64_cardsel = 0;
-    mmc64_biossel = 0;
+    mmc64_biossel = mmc64_hw_flashjumper; /* disable bios at reset when flash jumper is set */
 #if 0
     /* for now external exrom and game are constantly   *
     * high until the pass-through port support is made */
@@ -605,7 +626,7 @@ static void mmc64_reg_store(WORD addr, BYTE value, int active)
                 spi_mmc_enable_8mhz_write((BYTE)(((value >> 2)) & 1)); /* bit 2 */
                 mmc64_cport = (((value >> 3)) & 1); /* bit 3 */
 
-                if (mmc64_flashjumper) {    /* this bit can only be changed if the flashjumper is on */
+                if (mmc64_hw_flashjumper) {    /* this bit can only be changed if the flashjumper is on */
                     mmc64_flashmode = (((value >> 4)) & 1); /* bit 4 */
                 }
                 spi_mmc_trigger_mode_write((BYTE)(((value >> 6)) & 1));        /* bit 6 */
@@ -616,27 +637,40 @@ static void mmc64_reg_store(WORD addr, BYTE value, int active)
                 if (mmc64_active) {
                     /* cart_set_port_exrom_slot0(0); */
                     log_message(mmc64_log, "disabling MMC64 (exrom:%d game:%d) mmc64_active: %d", mmc64_extexrom, mmc64_extgame, mmc64_active);
-                    cart_config_changed_slot0((BYTE)(((mmc64_extexrom ^ 1) << 1) | mmc64_extgame), (BYTE)(((mmc64_extexrom ^ 1) << 1) | mmc64_extgame), CMODE_READ);
+                    cart_config_changed_slot0((BYTE)(((mmc64_extexrom ^ 1) << 1) | mmc64_extgame), 
+                                              (BYTE)(((mmc64_extexrom ^ 1) << 1) | mmc64_extgame), CMODE_READ);
                     mmc64_io2_device.io_source_prio = 0;
                 } else {
                     /* this controls the mapping of the MMC64 bios */
                     if (mmc64_biossel) {
-                        cart_set_port_exrom_slot0(0);
+                        /* cart_set_port_exrom_slot0(0);
+                        cart_set_port_game_slot0(0); */
+                        cart_config_changed_slot0(CMODE_RAM, CMODE_RAM, CMODE_READ);
                     } else {
-                        cart_set_port_exrom_slot0(1);
+                        /* MMC64 ROM enabled */
+                        if (mmc64_flashmode) {
+                            /* cart_set_port_exrom_slot0(0);
+                            cart_set_port_game_slot0(1); */
+                            cart_config_changed_slot0(CMODE_RAM, CMODE_ULTIMAX, CMODE_READ);
+                        } else {
+                            /* cart_set_port_exrom_slot0(1);
+                            cart_set_port_game_slot0(0); */
+                            cart_config_changed_slot0(CMODE_RAM, CMODE_8KGAME, CMODE_READ);
+                        }
                     }
-                    cart_port_config_changed_slot0();
+                    /* cart_port_config_changed_slot0(); */
                     mmc64_io2_device.io_source_prio = 1;
                 }
 #else
                 if (mmc64_active) {
                     log_message(mmc64_log, "disabling MMC64");
-                    cart_config_changed_slot0(2, 2, CMODE_READ);
+                    cart_config_changed_slot0(CMODE_RAM, CMODE_RAM, CMODE_READ);
                 } else {
                     if (mmc64_biossel) {
-                        cart_config_changed_slot0(2, 2, CMODE_READ);
+                        cart_config_changed_slot0(CMODE_RAM, CMODE_RAM, CMODE_READ);
                     } else {
-                        cart_config_changed_slot0(2, 0, CMODE_READ);
+                        /* MMC64 ROM enabled */
+                        cart_config_changed_slot0(CMODE_RAM, CMODE_8KGAME, CMODE_READ);
                     }
                 }
 #endif
@@ -777,7 +811,7 @@ static BYTE mmc64_io2_read(WORD addr)
              *        bit 6:  0
              *        bit 7:  0
              */
-            value = mmc64_flashjumper << 5;    /* bit 5 */
+            value = mmc64_hw_flashjumper << 5;    /* bit 5 */
             value |= (spi_mmc_busy());     /* bit 0 */
             value |= ((mmc64_extexrom ^ 1) << 1);    /* bit 1 */
             value |= ((mmc64_extgame ^ 1)) << 2;       /* bit 2 */
@@ -844,7 +878,7 @@ static BYTE mmc64_io2_peek(WORD addr)
 
         case 2:
             /* $DF12: MMC status register */
-            value = mmc64_flashjumper << 5;    /* bit 5 */
+            value = mmc64_hw_flashjumper << 5;    /* bit 5 */
             value |= (spi_mmc_busy());     /* bit 0 */
             value |= ((mmc64_extexrom ^ 1) << 1);    /* bit 1 */
             value |= ((mmc64_extgame) ^ 1) << 2;       /* bit 2 */
@@ -906,8 +940,8 @@ int mmc64_peek_mem(WORD addr, BYTE *value)
 
 void mmc64_roml_store(WORD addr, BYTE byte)
 {
-    /* if (addr == 0x8000) LOG(("roml w %04x %02x active: %d == 0 bios: %d == 0 flashjumper: %d == 1 flashmode: %d == 1\n", addr, byte, mmc64_active, mmc64_biossel, mmc64_flashjumper, mmc64_flashmode)); */
-    if (!mmc64_active && !mmc64_biossel && mmc64_flashjumper && mmc64_flashmode) {
+    /* if (addr == 0x8000) LOG(("roml w %04x %02x active: %d == 0 bios: %d == 0 flashjumper: %d == 1 flashmode: %d == 1\n", addr, byte, mmc64_active, mmc64_biossel, mmc64_hw_flashjumper, mmc64_flashmode)); */
+    if (!mmc64_active && !mmc64_biossel && mmc64_hw_flashjumper && mmc64_flashmode) {
         LOG(("MMC64 Flash w %04x %02x", addr, byte));
         if (mmc64_bios[(addr & 0x1fff) + mmc64_bios_offset] != byte) {
             mmc64_bios[(addr & 0x1fff) + mmc64_bios_offset] = byte;
@@ -915,7 +949,7 @@ void mmc64_roml_store(WORD addr, BYTE byte)
             return;
         }
     }
-    mem_ram[addr] = byte;
+    /* mem_ram[addr] = byte; */
 }
 
 /* ---------------------------------------------------------------------*/
@@ -935,11 +969,11 @@ static const resource_int_t resources_int[] = {
       &mmc64_hw_writeprotect, set_mmc64_readonly, NULL },
     { "MMC64_flashjumper", 0, RES_EVENT_NO, NULL,
       &mmc64_hw_flashjumper, set_mmc64_flashjumper, NULL },
-    { "MMC64_revision", 0, RES_EVENT_NO, NULL,
+    { "MMC64_revision", MMC64_REV_A, RES_EVENT_NO, NULL,
       &mmc64_revision, set_mmc64_revision, NULL },
     { "MMC64_bios_write", 0, RES_EVENT_NO, NULL,
       &mmc64_bios_write, set_mmc64_bios_write, NULL },
-    { "MMC64_sd_type", 0, RES_EVENT_NO, NULL,
+    { "MMC64_sd_type", MMC64_TYPE_AUTO, RES_EVENT_NO, NULL,
       &mmc64_sd_type, set_mmc64_sd_type, NULL },
     { NULL }
 };
@@ -1000,7 +1034,32 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_MMC64_BIOS_WRITE,
       NULL, NULL },
-    { NULL }
+    { "-mmc64biosreadonly", SET_RESOURCE, 0,
+      NULL, NULL, "MMC64_bios_write", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_MMC64_BIOS_READ_ONLY,
+      NULL, NULL },
+    { "-mmc64flash", SET_RESOURCE, 0,
+      NULL, NULL, "MMC64_flashjumper", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_MMC64_SET_FLASH_JUMPER,
+      NULL, NULL },
+    { "+mmc64flash", SET_RESOURCE, 0,
+      NULL, NULL, "MMC64_flashjumper", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_MMC64_UNSET_FLASH_JUMPER,
+      NULL, NULL },
+    { "-mmc64rev", SET_RESOURCE, 1,
+      NULL, NULL, "MMC64_revision", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_REVISION, IDCLS_SPECIFY_MMC64_REVISION,
+      NULL, NULL },
+    { "-mmc64sdtype", SET_RESOURCE, 1,
+      NULL, NULL, "MMC64_sd_type", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_TYPE, IDCLS_SPECIFY_MMC64_SD_TYPE,
+      NULL, NULL },
+  { NULL }
 };
 
 int mmc64_cmdline_options_init(void)

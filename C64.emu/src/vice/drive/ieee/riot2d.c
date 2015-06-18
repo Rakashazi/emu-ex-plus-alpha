@@ -2,7 +2,7 @@
  * riot2d.c - RIOT2 emulation in the SFD1001, 8050 and 8250 disk drive.
  *
  * Written by
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -31,7 +31,6 @@
 
 #include "drive-check.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "interrupt.h"
 #include "lib.h"

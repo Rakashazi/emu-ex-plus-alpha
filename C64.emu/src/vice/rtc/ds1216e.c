@@ -89,17 +89,36 @@
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-rtc_ds1216e_t *ds1216e_init(time_t *offset)
+rtc_ds1216e_t *ds1216e_init(char *device)
 {
-    rtc_ds1216e_t *retval = lib_malloc(sizeof(rtc_ds1216e_t));
-    memset(retval, 0, sizeof(rtc_ds1216e_t));
-    retval->offset = offset;
+    rtc_ds1216e_t *retval = lib_calloc(1, sizeof(rtc_ds1216e_t));
+    int loaded = rtc_load_context(device, 0, DS1216E_REG_SIZE);
+
+    if (loaded) {
+        retval->offset = rtc_get_loaded_offset();
+        retval->clock_regs = rtc_get_loaded_clockregs();
+    } else {
+        retval->offset = 0;
+        retval->clock_regs = lib_calloc(1, DS1216E_REG_SIZE);
+    }
+    retval->old_offset = retval->offset;
+    memcpy(retval->old_clock_regs, retval->clock_regs, DS1216E_REG_SIZE);
+
+    retval->device = lib_stralloc(device);
 
     return retval;
 }
 
-void ds1216e_destroy(rtc_ds1216e_t *context)
+void ds1216e_destroy(rtc_ds1216e_t *context, int save)
 {
+    if (save) {
+        if (memcmp(context->clock_regs, context->old_clock_regs, DS1216E_REG_SIZE) ||
+            context->offset != context->old_offset) {
+            rtc_save_context(NULL, 0, context->clock_regs, DS1216E_REG_SIZE, context->device, context->offset);
+        }
+    }
+    lib_free(context->clock_regs);
+    lib_free(context->device);
     lib_free(context);
 }
 
@@ -118,7 +137,7 @@ static BYTE pattern[64] = {
 
 static void ds1216e_latch_regs(rtc_ds1216e_t *context)
 {
-    time_t latch = (context->inactive) ? context->latch : rtc_get_latch(context->offset[0]);
+    time_t latch = (context->inactive) ? context->latch : rtc_get_latch(context->offset);
 
     context->clock_regs[DS1216E_REGISTER_CENTISECONDS] = rtc_get_centisecond(1);
     context->clock_regs[DS1216E_REGISTER_SECONDS] = rtc_get_second(latch, 1);
@@ -221,37 +240,37 @@ static void ds1216e_update_clock(rtc_ds1216e_t *context)
             context->latch = rtc_set_latched_second(context->clock_regs[DS1216E_REGISTER_SECONDS], context->latch, 1);
         }
         if (!new_osc) {
-            context->offset[0] = context->offset[0] - (rtc_get_latch(0) - (context->latch - context->offset[0]));
+            context->offset = context->offset - (rtc_get_latch(0) - (context->latch - context->offset));
             context->inactive = 0;
         }
     } else {
         if (context->clock_regs_changed[DS1216E_REGISTER_YEARS]) {
-            context->offset[0] = rtc_set_year(context->clock_regs[DS1216E_REGISTER_YEARS], context->offset[0], 1);
+            context->offset = rtc_set_year(context->clock_regs[DS1216E_REGISTER_YEARS], context->offset, 1);
         }
         if (context->clock_regs_changed[DS1216E_REGISTER_MONTHS]) {
-            context->offset[0] = rtc_set_month(context->clock_regs[DS1216E_REGISTER_MONTHS], context->offset[0], 1);
+            context->offset = rtc_set_month(context->clock_regs[DS1216E_REGISTER_MONTHS], context->offset, 1);
         }
         if (context->clock_regs_changed[DS1216E_REGISTER_MONTHDAYS]) {
-            context->offset[0] = rtc_set_day_of_month(context->clock_regs[DS1216E_REGISTER_MONTHDAYS], context->offset[0], 1);
+            context->offset = rtc_set_day_of_month(context->clock_regs[DS1216E_REGISTER_MONTHDAYS], context->offset, 1);
         }
         if (context->clock_regs_changed[DS1216E_REGISTER_WEEKDAYS]) {
-            context->offset[0] = rtc_set_weekday(context->clock_regs[DS1216E_REGISTER_WEEKDAYS] % 7, context->offset[0]);
+            context->offset = rtc_set_weekday(context->clock_regs[DS1216E_REGISTER_WEEKDAYS] % 7, context->offset);
         }
         if (context->clock_regs_changed[DS1216E_REGISTER_HOURS]) {
             if (new_12) {
-                context->offset[0] = rtc_set_hour_am_pm(context->clock_regs[DS1216E_REGISTER_HOURS], context->offset[0], 1);
+                context->offset = rtc_set_hour_am_pm(context->clock_regs[DS1216E_REGISTER_HOURS], context->offset, 1);
             } else {
-                context->offset[0] = rtc_set_hour(context->clock_regs[DS1216E_REGISTER_HOURS], context->offset[0], 1);
+                context->offset = rtc_set_hour(context->clock_regs[DS1216E_REGISTER_HOURS], context->offset, 1);
             }
         }
         if (context->clock_regs_changed[DS1216E_REGISTER_MINUTES]) {
-            context->offset[0] = rtc_set_minute(context->clock_regs[DS1216E_REGISTER_MINUTES], context->offset[0], 1);
+            context->offset = rtc_set_minute(context->clock_regs[DS1216E_REGISTER_MINUTES], context->offset, 1);
         }
         if (context->clock_regs_changed[DS1216E_REGISTER_SECONDS]) {
-            context->offset[0] = rtc_set_second(context->clock_regs[DS1216E_REGISTER_SECONDS], context->offset[0], 1);
+            context->offset = rtc_set_second(context->clock_regs[DS1216E_REGISTER_SECONDS], context->offset, 1);
         }
         if (new_osc) {
-            context->latch = rtc_get_latch(context->offset[0]);
+            context->latch = rtc_get_latch(context->offset);
             context->inactive = new_osc;
         }
     }

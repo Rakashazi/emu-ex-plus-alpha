@@ -79,9 +79,9 @@ static void setmode(int m)
     mode = m;
     DBG(("KINGSOFT: mode: %s\n", mode ? "ultimax" : "16k"));
     if (mode) {
-        cart_config_changed_slotmain(3, 3, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_ULTIMAX, CMODE_ULTIMAX, CMODE_READ);
     } else {
-        cart_config_changed_slotmain(1, 1, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ);
     }
 }
 

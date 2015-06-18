@@ -37,6 +37,7 @@ extern int iecrom_read(unsigned int type, WORD addr, BYTE *data);
 extern int iecrom_check_loaded(unsigned int type);
 extern void iecrom_do_checksum(struct drive_s *drive);
 
+extern int iecrom_load_1540(void);
 extern int iecrom_load_1541(void);
 extern int iecrom_load_1541ii(void);
 extern int iecrom_load_1570(void);

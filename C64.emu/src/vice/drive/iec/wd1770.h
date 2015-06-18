@@ -31,6 +31,7 @@
 
 struct disk_image_s;
 struct drive_context_s;
+struct snapshot_s;
 typedef struct wd1770_s wd1770_t;
 
 /* FIXME: whats the deal with the different prefixes? */
@@ -47,4 +48,6 @@ extern void wd1770_reset(wd1770_t *drv);
 extern inline void wd1770_set_side(wd1770_t *drv, int side);
 extern inline void wd1770_set_motor(wd1770_t *drv, int on);
 
+extern int wd1770_snapshot_write_module(wd1770_t *drv, struct snapshot_s *s);
+extern int wd1770_snapshot_read_module(wd1770_t *drv, struct snapshot_s *s);
 #endif

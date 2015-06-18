@@ -82,7 +82,7 @@ static BYTE dsm_io1_read(WORD addr)
 {
     DBG(("io1 r %04x\n", addr));
     if (addr == 0) {
-        cart_config_changed_slotmain(2, 2, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_READ);
         DBG(("Diashow Maker disabled\n"));
     }
     return 0; /* invalid */
@@ -97,7 +97,7 @@ static void dsm_io1_store(WORD addr, BYTE value)
 {
     DBG(("io1 w %04x %02x\n", addr, value));
     if (addr == 0) {
-        cart_config_changed_slotmain(2, 2, CMODE_READ);
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_READ);
         DBG(("Diashow Maker disabled\n"));
     }
 }
@@ -128,19 +128,19 @@ static const c64export_resource_t export_res = {
 void dsm_freeze(void)
 {
     DBG(("Diashow Maker: freeze\n"));
-    cart_config_changed_slotmain(0, 0, CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ | CMODE_RELEASE_FREEZE);
 }
 
 
 void dsm_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 void dsm_config_setup(BYTE *rawcart)
 {
     memcpy(roml_banks, rawcart, DSM_CART_SIZE);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/

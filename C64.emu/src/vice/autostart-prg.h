@@ -42,6 +42,7 @@ typedef struct autostart_prg_s autostart_prg_t;
 #define AUTOSTART_PRG_MODE_INJECT   1
 #define AUTOSTART_PRG_MODE_DISK     2
 #define AUTOSTART_PRG_MODE_LAST     2
+#define AUTOSTART_PRG_MODE_DEFAULT  AUTOSTART_PRG_MODE_DISK
 
 extern void autostart_prg_init(void);
 extern void autostart_prg_shutdown(void);

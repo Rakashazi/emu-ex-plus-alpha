@@ -259,7 +259,7 @@ int freezemachine_crt_attach(FILE *fd, BYTE *rawcart)
             break;
         }
 
-        if (chip.bank > 1 || chip.size != 0x2000 || (chip.start != 0x8000 && chip.start != 0xa000)) {
+        if (chip.bank > 3 || chip.size != 0x2000 || (chip.start != 0x8000 && chip.start != 0xa000)) {
             return -1;
         }
 

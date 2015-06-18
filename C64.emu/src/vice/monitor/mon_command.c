@@ -349,7 +349,7 @@ static const mon_cmds_t mon_cmd_array[] = {
       IDGS_CHECKPOINT_COMMANDS,
       "", NULL },
 
-    { "break", "",
+    { "break", "bk",
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       "[load|store|exec] [%s [%s] [if <%s>]]", 3,
       { IDGS_ADDRESS, IDGS_ADDRESS, IDGS_COND_EXPR, IDGS_UNUSED },
@@ -377,14 +377,14 @@ static const mon_cmds_t mon_cmd_array[] = {
       IDGS_MON_DELETE_DESCRIPTION,
       NULL, NULL },
 
-    { "disable", "",
+    { "disable", "dis",
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       "<%s>", 1,
       { IDGS_CHECKNUM, IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED },
       IDGS_MON_DISABLE_DESCRIPTION,
       NULL, NULL },
 
-    { "enable", "",
+    { "enable", "en",
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       "<%s>", 1,
       { IDGS_CHECKNUM, IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED },

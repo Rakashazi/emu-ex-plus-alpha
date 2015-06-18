@@ -490,7 +490,7 @@ void util_fname_split(const char *path, char **directory_return,
 
     p = strrchr(path, FSDEV_DIR_SEP_CHR);
 
-#if defined __MSDOS__ || defined WIN32 || defined __OS2__
+#if (FSDEV_DIR_SEP_CHR == '\\')
     /* Both `/' and `\' are valid.  */
     {
         const char *p1;
@@ -716,7 +716,6 @@ char *util_find_prev_line(const char *text, const char *pos)
 /* The following are replacements for libc functions that could be missing.  */
 
 #if !defined HAVE_MEMMOVE
-
 void *memmove(void *target, const void *source, unsigned int length)
 {
     char *tptr = (char *) target;
@@ -736,11 +735,9 @@ void *memmove(void *target, const void *source, unsigned int length)
 
     return target;
 }
-
 #endif /* !defined HAVE_MEMMOVE */
 
 #if !defined HAVE_ATEXIT
-
 static void atexit_support_func(int status, void *arg)
 {
     void (*f)(void) = (void (*)(void))arg;
@@ -752,11 +749,9 @@ int atexit(void (*function)(void))
 {
     return on_exit(atexit_support_func, (void *)function);
 }
-
 #endif /* !defined HAVE_ATEXIT */
 
 #if !defined HAVE_STRERROR
-
 char *strerror(int errnum)
 {
     static char buffer[100];
@@ -764,7 +759,6 @@ char *strerror(int errnum)
     sprintf(buffer, "Error %d", errnum);
     return buffer;
 }
-
 #endif /* !defined HAVE_STRERROR */
 
 /* The following `strcasecmp()' and `strncasecmp()' implementations are
@@ -775,7 +769,6 @@ char *strerror(int errnum)
    The source is available from http://www.gtk.org/.  */
 
 #if !defined HAVE_STRCASECMP
-
 int strcasecmp(const char *s1, const char *s2)
 {
     int c1, c2;
@@ -797,12 +790,10 @@ int strcasecmp(const char *s1, const char *s2)
 
     return (((int)(unsigned char)*s1) - ((int)(unsigned char)*s2));
 }
-
 #endif
 
 #if !defined HAVE_STRNCASECMP
-
-int strncasecmp(const char *s1, const char *s2, unsigned int n)
+int strncasecmp(const char *s1, const char *s2, size_t n)
 {
     int c1, c2;
 
@@ -828,10 +819,387 @@ int strncasecmp(const char *s1, const char *s2, unsigned int n)
         return 0;
     }
 }
-
 #endif
 
-/* ------------------------------------------------------------------------- */
+#ifndef HAVE_STRTOK_R
+char *strtok_r(char *s, const char *delim, char **last)
+{
+    char *spanp;
+    int c, sc;
+    char *tok;
+
+    if (s == NULL && (s = *last) == NULL) {
+        return (NULL);
+    }
+
+cont:
+    c = *s++;
+    for (spanp = (char *)delim; (sc = *spanp++) != 0;) {
+        if (c == sc) {
+            goto cont;
+        }
+    }
+
+    if (c == 0) {
+        *last = NULL;
+        return (NULL);
+    }
+    tok = s - 1;
+
+    for (;;) {
+        c = *s++;
+        spanp = (char *)delim;
+        do {
+            if ((sc = *spanp++) == c) {
+                if (c == 0) {
+                    s = NULL;
+                } else {
+                    s[-1] = 0;
+                }
+                *last = s;
+                return (tok);
+            }
+        } while (sc != 0);
+    }
+}
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_STRREV
+char *strrev(char *string)
+{
+    size_t len = strlen(string);
+    char *a = &string[0];
+    char *b = &string[len - 1];
+    char c;
+
+    len /= 2;
+
+    while (len--) {
+        c = *a;
+        *a++ = *b;
+        *b-- = c;
+    }
+    return string;
+}
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_STRLWR
+char *strlwr(char *string)
+{
+    char *bufp = string;
+
+    while (*bufp) {
+        *bufp = tolower((unsigned char)*bufp);
+	++bufp;
+    }
+    return string;
+}
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_STRLCPY
+
+#define VICE_MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define VICE_MAX(x, y) (((x) > (y)) ? (x) : (y))
+
+size_t strlcpy(char *dst, const char *src, size_t maxlen)
+{
+    size_t srclen = strlen(src);
+    size_t len;
+
+    if (maxlen > 0) {
+        len = VICE_MIN(srclen, maxlen - 1);
+        memcpy(dst, src, len);
+        dst[len] = 0;
+    }
+    return srclen;
+}
+#endif
+
+#if !defined(HAVE_LTOA) || !defined(HAVE_ULTOA)
+static const char ntoa_table[] = {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+    'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+    'U', 'V', 'W', 'X', 'Y', 'Z'
+};
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_LTOA
+char *ltoa(long value, char *string, int radix)
+{
+    char *bufp = string;
+
+    if (value < 0) {
+        *bufp++ = '-';
+        value = -value;
+    }
+    if (value) {
+        while (value > 0) {
+            *bufp++ = ntoa_table[value % radix];
+            value /= radix;
+        }
+    } else {
+        *bufp++ = '0';
+    }
+    *bufp = '\0';
+
+    if (*string == '-') {
+        strrev(string + 1);
+    } else {
+        strrev(string);
+    }
+
+    return string;
+}
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_ULTOA
+char *ultoa(unsigned long value, char *string, int radix)
+{
+    char *bufp = string;
+
+    if (value) {
+        while (value > 0) {
+            *bufp++ = ntoa_table[value % radix];
+            value /= radix;
+        }
+    } else {
+        *bufp++ = '0';
+    }
+    *bufp = 0;
+
+    strrev(string);
+
+    return string;
+}
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_VSNPRINTF
+static size_t PrintLong(char *text, long value, int radix, size_t maxlen)
+{
+    char num[130];
+    size_t size;
+
+    ltoa(value, num, radix);
+    size = strlen(num);
+    if (size >= maxlen) {
+        size = maxlen - 1;
+    }
+    strlcpy(text, num, size + 1);
+
+    return size;
+}
+
+static size_t PrintUnsignedLong(char *text, unsigned long value, int radix, size_t maxlen)
+{
+    char num[130];
+    size_t size;
+
+    ultoa(value, num, radix);
+    size = strlen(num);
+    if (size >= maxlen) {
+        size = maxlen - 1;
+    }
+    strlcpy(text, num, size + 1);
+
+    return size;
+}
+
+static size_t PrintFloat(char *text, double arg, size_t maxlen)
+{
+    char *textstart = text;
+    const double precision = 0.00000001;
+    size_t len;
+    unsigned long value;
+    int mult;
+
+    if (arg) {
+        if (arg < 0) {
+            *text++ = '-';
+            --maxlen;
+            arg = -arg;
+        }
+        value = (unsigned long)arg;
+        len = PrintUnsignedLong(text, value, 10, maxlen);
+        text += len;
+        maxlen -= len;
+        arg -= value;
+        if (arg > precision && maxlen) {
+            mult = 10;
+            *text++ = '.';
+            while ((arg > precision) && maxlen) {
+                value = (unsigned long)(arg * mult);
+                len = PrintUnsignedLong(text, value, 10, maxlen);
+                text += len;
+                maxlen -= len;
+                arg -= (double)value / mult;
+                mult *= 10;
+            }
+        }
+    } else {
+        *text++ = '0';
+    }
+    return (text - textstart);
+}
+
+static size_t PrintString(char *text, const char *string, size_t maxlen)
+{
+    char *textstart = text;
+
+    while (*string && maxlen--) {
+        *text++ = *string++;
+    }
+    return (text - textstart);
+}
+
+int vsnprintf(char *text, size_t maxlen, const char *fmt, va_list ap)
+{
+    char *textstart = text;
+    int done;
+    size_t len;
+    int do_lowercase;
+    int radix;
+
+    enum {
+        DO_INT,
+        DO_LONG,
+        DO_LONGLONG
+    } inttype;
+
+
+    if (maxlen <= 0) {
+        return 0;
+    }
+    --maxlen;
+    while (*fmt && maxlen) {
+        if (*fmt == '%') {
+            done = 0;
+            len = 0;
+            do_lowercase = 0;
+            radix = 10;
+            inttype = DO_INT;
+
+            ++fmt;
+            while (*fmt == '.' || (*fmt >= '0' && *fmt <= '9')) {
+                ++fmt;
+            }
+            while (!done) {
+                switch (*fmt) {
+                    case '%':
+                        *text = '%';
+                        len = 1;
+                        done = 1;
+                        break;
+                    case 'c':
+                        *text = (char)va_arg(ap, int);
+                        len = 1;
+                        done = 1;
+                        break;
+                    case 'h':
+                        break;
+                    case 'l':
+                        if (inttype < DO_LONGLONG) {
+                            ++inttype;
+                        }
+                        break;
+                    case 'I':
+                        if (strncmp(fmt, "I64", 3) == 0) {
+                            fmt += 2;
+                            inttype = DO_LONGLONG;
+                        }
+                        break;
+                    case 'i':
+                    case 'd':
+                        switch (inttype) {
+                            case DO_INT:
+                                len = PrintLong(text, (long)va_arg(ap, int), radix, maxlen);
+                                break;
+                            case DO_LONG:
+                            case DO_LONGLONG:
+                                len = PrintLong(text, va_arg(ap, long), radix, maxlen);
+                                break;
+                        }
+                        done = 1;
+                        break;
+                    case 'p':
+                    case 'x':
+                        do_lowercase = 1;
+                    case 'X':
+                        if (radix == 10) {
+                            radix = 16;
+                        }
+                        if (*fmt == 'p') {
+                            inttype = DO_LONG;
+                        }
+                    case 'o':
+                        if (radix == 10) {
+                            radix = 8;
+                        }
+                    case 'u':
+                        switch (inttype) {
+                            case DO_INT:
+                                len = PrintUnsignedLong(text, (unsigned long)va_arg(ap, unsigned int), radix, maxlen);
+                                break;
+                            case DO_LONG:
+                            case DO_LONGLONG:
+                                len = PrintUnsignedLong(text, va_arg(ap, unsigned long), radix, maxlen);
+                                break;
+                        }
+                        if (do_lowercase) {
+                            strlwr(text);
+                        }
+                        done = 1;
+                        break;
+                    case 'f':
+                        len = PrintFloat(text, va_arg(ap, double), maxlen);
+                        done = 1;
+                        break;
+                    case 's':
+                        len = PrintString(text, va_arg(ap, char*), maxlen);
+                        done = 1;
+                        break;
+                    default:
+                        done = 1;
+                        break;
+                }
+                ++fmt;
+            }
+            text += len;
+            maxlen -= len;
+        } else {
+            *text++ = *fmt++;
+            --maxlen;
+        }
+    }
+    *text = 0;
+
+    return (text - textstart);
+}
+#endif
+
+/* Taken from SDL */
+#ifndef HAVE_SNPRINTF
+int snprintf(char *text, size_t maxlen, const char *fmt, ...)
+{
+    va_list ap;
+    int retval;
+
+    va_start(ap, fmt);
+    retval = vsnprintf(text, maxlen, fmt, ap);
+    va_end(ap);
+
+    return retval;
+}
+#endif
+
+/* 
+------------------------------------------------------------------------- */
 
 /* util_add_extension() add the extension if not already there.
    If the extension is added `name' is realloced. */
@@ -933,4 +1301,28 @@ char util_tolower(char c)
 char util_toupper(char c)
 {
     return (char)toupper((int)c);
+}
+
+/* generate a list in the form "%X/%X/.../%X" */
+char *util_gen_hex_address_list(int start, int stop, int step)
+{
+    char *temp1, *temp2;
+    char *temp3 = NULL;
+    int i = start;
+
+    temp1 = lib_stralloc("");
+    while (i < stop) {
+        temp2 = lib_msprintf("0x%X", i);
+        temp3 = util_concat(temp1, temp2, NULL);
+        lib_free(temp1);
+        lib_free(temp2);
+        temp1 = temp3;
+        if (i + step < stop) {
+            temp3 = util_concat(temp1, "/", NULL);
+            lib_free(temp1);
+            temp1 = temp3;
+        }
+        i += step;
+    }
+    return temp3;
 }

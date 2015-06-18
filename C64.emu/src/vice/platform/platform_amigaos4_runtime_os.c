@@ -24,6 +24,9 @@
  *
  */
 
+/* Tested and confirmed working on:
+*/
+
 #include "vice.h"
 
 #ifdef AMIGA_OS4
@@ -33,39 +36,39 @@
 #include <proto/exec.h>
 #include <exec/exectags.h>
 
-struct Library *WorkbenchBase;
+static struct Library *WorkbenchBase;
+static char *osretval = NULL;
+static CONST_STRPTR runtime_cpu = NULL;
 
 char *platform_get_amigaos4_runtime_os(void)
 {
-    char *retval = NULL;
-
-    if (WorkbenchBase = OpenLibrary("workbench.library", 53)) {
-        retval = "AmigaOS-4.1";
+    if (!osretval) {
+        if (WorkbenchBase = OpenLibrary("workbench.library", 53)) {
+            osretval = "AmigaOS-4.1";
+        }
+        if (!osretval && (WorkbenchBase = OpenLibrary("workbench.library", 52))) {
+            osretval = "AmigaOS-4.0";
+        }
+        if (!osretval && (WorkbenchBase = OpenLibrary("workbench.library", 51))) {
+            osretval = "AmigaOS-4.0";
+        }
+        if (!osretval && (WorkbenchBase = OpenLibrary("workbench.library", 50))) {
+            osretval = "AmigaOS-4.0";
+        }
+        if (osretval) {
+            CloseLibrary(WorkbenchBase);
+        } else {
+            osretval = "Unknown AmigaOS";
+        }
     }
-    if (!retval && (WorkbenchBase = OpenLibrary("workbench.library", 52))) {
-        retval = "AmigaOS-4.0";
-    }
-    if (!retval && (WorkbenchBase = OpenLibrary("workbench.library", 51))) {
-        retval = "AmigaOS-4.0";
-    }
-    if (!retval && (WorkbenchBase = OpenLibrary("workbench.library", 50))) {
-        retval = "AmigaOS-4.0";
-    }
-    if (retval) {
-        CloseLibrary(WorkbenchBase);
-    } else {
-        retval = "Unknown AmigaOS";
-    }
-
-    return retval;
+    return osretval;
 }
 
 char *platform_get_amigaos4_runtime_cpu(void)
 {
-    CONST_STRPTR runtime_cpu = NULL;
-
-    GetCPUInfoTags(GCIT_ModelString, &runtime_cpu, TAG_DONE);
-
-    return runtime_cpu;
+    if (!runtime_cpu) {
+        GetCPUInfoTags(GCIT_ModelString, &runtime_cpu, TAG_DONE);
+    }
+    return (char *)runtime_cpu;
 }
 #endif

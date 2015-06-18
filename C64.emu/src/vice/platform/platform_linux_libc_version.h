@@ -33,6 +33,11 @@
 #define QUOTE(x) XQUOTE(x)
 #define XQUOTE(x) #x
 
+/* Linux OW version discovery */
+#if !defined(PLATFORM_OS) && defined(WATCOM_COMPILE)
+#  define PLATFORM_OS "Linux (openwatcom)"
+#endif
+
 /* Linux newlib version discovery */
 #if !defined(PLATFORM_OS) && defined(_NEWLIB_VERSION)
 #  define PLATFORM_OS "Linux newlib " _NEWLIB_VERSION

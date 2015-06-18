@@ -314,10 +314,10 @@ void render_generic_2x4_crt(video_render_color_tables_t *color_tab,
         /* when we are dealing with the last line, the rules change:
          * we no longer write the main output to screen, we just put it into
          * the scanline. */
-        if ((y + 1) == yys + height) {
+        if ((y + 1) >= (yys + height)) {
             /* no place to put scanline in: we are outside viewport or still
              * doing the first iteration (y == yys), height == 0 */
-            if ((y + 1) == yys || (y + 1) <= viewport->first_line * 4 || (y + 1) > viewport->last_line * 4) {
+            if ((y + 1) == yys || (y + 1) <= (viewport->first_line * 4) || (y + 1) > (viewport->last_line * 4)) {
                 break;
             }
             tmptrg2 = &color_tab->rgbscratchbuffer[0];

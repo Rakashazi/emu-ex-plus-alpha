@@ -76,7 +76,7 @@ static void epyxfastload_trigger_access(void)
     alarm_unset(epyxrom_alarm);
     epyxrom_alarm_time = maincpu_clk + EPYX_ROM_CYCLES;
     alarm_set(epyxrom_alarm, epyxrom_alarm_time);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 static void epyxfastload_alarm_handler(CLOCK offset, void *data)
@@ -166,13 +166,13 @@ void epyxfastload_reset(void)
 
 void epyxfastload_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 void epyxfastload_config_setup(BYTE *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/

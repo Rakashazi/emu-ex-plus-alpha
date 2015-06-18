@@ -36,6 +36,10 @@ const bool true = 1;
 const bool false = 0;
 #endif
 
+#if HAVE_LOG1P
+#define HAS_LOG1P
+#endif
+
 // Branch prediction macros, lifted off the Linux kernel.
 #if RESID_BRANCH_HINTS && HAVE_BUILTIN_EXPECT
 #define likely(x)      __builtin_expect(!!(x), 1)

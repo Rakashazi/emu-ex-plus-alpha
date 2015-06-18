@@ -27,51 +27,13 @@
 #ifndef VICE_DS1202_1302_H
 #define VICE_DS1202_1302_H
 
-#include <time.h>
-
 #include "types.h"
 
-typedef struct rtc_ds1202_1302_s {
-    int rtc_type;
-    int clock_halt;
-    time_t clock_halt_latch;
-    int am_pm;
-    int write_protect;
-    time_t latch;
-    time_t *offset;
-    BYTE clock_regs[8];
-    BYTE trickle_charge;
-    BYTE *ram;
-    BYTE state;
-    BYTE reg;
-    BYTE bit;
-    BYTE output_bit;
-    BYTE io_byte;
-    BYTE sclk_line;
-    BYTE clock_register;
-} rtc_ds1202_1302_t;
-
-#define DS1202_1302_REG_SECONDS_CH       0
-#define DS1202_1302_REG_MINUTES          1
-#define DS1202_1302_REG_HOURS            2
-#define DS1202_1302_REG_DAYS_OF_MONTH    3
-#define DS1202_1302_REG_MONTHS           4
-#define DS1202_1302_REG_DAYS_OF_WEEK     5
-#define DS1202_1302_REG_YEARS            6
-#define DS1202_1302_REG_WRITE_PROTECT    7
-#define DS1302_REG_TRICKLE_CHARGE        8
-
-#define DS1202_1302_BURST   31
-
-#define DS1202_1302_INPUT_COMMAND_BITS        0
-#define DS1202_1302_INPUT_SINGLE_DATA_BITS    1
-#define DS1202_1302_INPUT_BURST_DATA_BITS     2
-#define DS1202_1302_OUTPUT_SINGLE_DATA_BITS   3
-#define DS1202_1302_OUTPUT_BURST_DATA_BITS    4
+typedef struct rtc_ds1202_1302_s rtc_ds1202_1302_t;
 
 extern void ds1202_1302_reset(rtc_ds1202_1302_t *context);
-extern rtc_ds1202_1302_t *ds1202_1302_init(BYTE *data, time_t *offset, int rtc_type);
-extern void ds1202_1302_destroy(rtc_ds1202_1302_t *context);
+extern rtc_ds1202_1302_t *ds1202_1302_init(char *device, int rtc_type);
+extern void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save);
 
 extern void ds1202_1302_set_lines(rtc_ds1202_1302_t *context, unsigned int ce_line, unsigned int sclk_line, unsigned int input_bit);
 extern BYTE ds1202_1302_read_data_line(rtc_ds1202_1302_t *context);

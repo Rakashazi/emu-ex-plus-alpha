@@ -67,7 +67,9 @@ int monitor_network_transmit(const char * buffer, size_t buffer_length)
         size_t len = vice_network_send(connected_socket, buffer, buffer_length, 0);
 
         if (len != buffer_length) {
-            error = 1;
+            error = -1;
+        } else {
+            error = len;
         }
     }
 
@@ -266,11 +268,11 @@ static void monitor_network_process_binary_command(unsigned char * pbuffer, int 
                 monitor_network_binary_error(MON_ERR_CMD_TOO_SHORT);
             } else {
                 unsigned int startaddress = pbuffer[3] | (pbuffer[4] << 8);
-                unsigned int endaddress = pbuffer[4] | (pbuffer[5] << 8);
+                unsigned int endaddress = pbuffer[5] | (pbuffer[6] << 8);
 
                 MEMSPACE memspace = e_default_space;
 
-                switch (pbuffer[5]) {
+                switch (pbuffer[7]) {
                     case 0: memspace = e_comp_space; break;
                     case 1: memspace = e_disk8_space; break;
                     case 2: memspace = e_disk9_space; break;
@@ -278,7 +280,7 @@ static void monitor_network_process_binary_command(unsigned char * pbuffer, int 
                     case 4: memspace = e_disk11_space; break;
                     default:
                         monitor_network_binary_error(MON_ERR_INVALID_PARAMETER);
-                        log_message(LOG_DEFAULT, "monitor_network binary memdump: Unknown memspace %u", pbuffer[5]);
+                        log_message(LOG_DEFAULT, "monitor_network binary memdump: Unknown memspace %u", pbuffer[7]);
                         ok = 0;
                 }
 
@@ -324,19 +326,22 @@ char * monitor_network_get_command_line(void)
     char * p = NULL;
 
     do {
-        int n = monitor_network_receive(buffer + bufferpos, sizeof buffer - bufferpos - 1);
+        /* Do not read more from network until all commands in current buffer is fully processed */
+        if (bufferpos == 0) {
+            int n = monitor_network_receive(buffer + bufferpos, sizeof buffer - bufferpos - 1);
 
-        if (n > 0) {
-            bufferpos += n;
-        } else if (n <= 0) {
-            monitor_network_quit();
-            break;
-        }
+            if (n > 0) {
+                bufferpos += n;
+            } else if (n <= 0) {
+                monitor_network_quit();
+                break;
+            }
 
-        /* check if we got a binary command */
-        if (bufferpos == n) {
-            if (buffer[0] == ASC_STX) {
-                monitor_binary_input = 1;
+            /* check if we got a binary command */
+            if (bufferpos == n) {
+                if (buffer[0] == ASC_STX) {
+                    monitor_binary_input = 1;
+                }
             }
         }
 
@@ -349,11 +354,17 @@ char * monitor_network_get_command_line(void)
                     monitor_network_process_binary_command((unsigned char*)buffer, sizeof buffer, &bufferpos, command_length);
                     monitor_binary_input = 0;
                 }
+            } else {
+                bufferpos = 0;
             }
+            monitor_binary_input = 0;
         } else {
             p = monitor_network_extract_text_command_line(buffer, sizeof buffer, &bufferpos);
             if (p) {
                 break;
+            } else {
+                /* if no cmd was returned - reset buffer to start and fetch new cmd. */
+                bufferpos = 0;
             }
         }
 
@@ -416,8 +427,10 @@ static int monitor_network_deactivate(void)
  \return
    0 on success. else -1.
 */
-static int set_monitor_enabled(int val, void *param)
+static int set_monitor_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (!val) {
         if (monitor_enabled) {
             if (monitor_network_deactivate() < 0) {
@@ -564,7 +577,7 @@ ui_jam_action_t monitor_network_ui_jam_dialog(const char *format, ...)
 
     lib_free(txt);
 
-    return UI_JAM_HARD_RESET;
+    return UI_JAM_MONITOR;
 }
 
 #else

@@ -39,6 +39,9 @@
 #define NT_SERVER_KEY L"\\Registry\\Machine\\System\\CurrentControlSet\\Control\\ProductOptions"
 #define NT_SERVER_VALUE L"ProductType"
 
+#define POSREADY_KEY L"\\Registry\\Machine\\Software\\Microsoft\\POSReady"
+#define POSREADY_VALUE L"Version"
+
 #define NT_PRODUCT_SUITE_PATH "\\Registry\\Machine\\System\\CurrentControlSet\\Control\\ProductOptions\\ProductSuite"
 
 #define NT_FLP_PATH "\\Registry\\Machine\\System\\WPA\\Fundamentals\\Installed"
@@ -70,6 +73,7 @@ static winver_t windows_versions[] = {
     { "Windows XP Tablet PC", "Microsoft Windows XP", 0, 1 },
     { "Windows XP Media Center", "Microsoft Windows XP", 0, 2 },
     { "Windows Fundamentals for Legacy PCs", "Microsoft Windows XP", 0, 3 },
+    { "Windows POSReady 2009", "Microsoft Windows XP", 0, 5 },
     { "Windows 2003 Web Server", "Microsoft Windows Server 2003", 2, 0 },
     { "Windows 2003 Standard Server", "Microsoft Windows Server 2003", 1, 0 },
     { "Windows 2003 Small Business Server", "Microsoft Windows Server 2003", 3, 0 },
@@ -104,6 +108,12 @@ static winver_t windows_versions[] = {
     { "Windows 2008 R2 Enterprise Storage Server", "Windows Storage Server 2008 R2 Enterprise", 1, 0 },
     { "Windows 2008 R2 Enterprise Storage Server", "Windows Storage Server 2008 R2 Enterprise", 5, 0 },
     { "Windows 2008 R2 Enterprise Storage Server", "Windows Storage Server 2008 R2 Enterprise", 6, 0 },
+    { "Windows 2008 R2 Foundation Server", "Windows Server 2008 R2 Foundation", 1, 0 },
+    { "Windows 2008 R2 Foundation Server", "Windows Server 2008 R2 Foundation", 5, 0 },
+    { "Windows 2008 R2 Foundation Server", "Windows Server 2008 R2 Foundation", 6, 0 },
+    { "Windows 2011 Premium Multipoint Server", "Windows MultiPoint Server 2011", 1, 0 },
+    { "Windows 2011 Premium Multipoint Server", "Windows MultiPoint Server 2011", 5, 0 },
+    { "Windows 2011 Premium Multipoint Server", "Windows MultiPoint Server 2011", 6, 0 },
     { NULL, NULL, 0, 0 }
 };
 
@@ -156,7 +166,7 @@ static char *get_windows_version(void)
         }
     }
 
-    /* 0 = professional, 1 = tablet pc, 2 = media center, 3 = flp */
+    /* 0 = professional, 1 = tablet pc, 2 = media center, 3 = flp, 4 = POSReady 7, 5 = POSReady 2009 */
     if (!strcmp(windows_name, "Microsoft Windows XP")) {
         rcode = getreg(NT_FLP_PATH, &type, &wpa, &wpa_size);
         if (!rcode) {
@@ -180,6 +190,14 @@ static char *get_windows_version(void)
         if (!rcode) {
             if (wpa) {
                 windows_flags = 3;
+            }
+        }
+        rcode = getreg_strvalue((PCWSTR)POSREADY_KEY, (PCWSTR)POSREADY_VALUE, nt_version, 10);
+        if (!rcode) {
+            if (!strcmp("2.0", nt_version)) {
+                windows_flags = 5;
+            } else {
+                windows_flags = 4;
             }
         }
     }
@@ -251,35 +269,36 @@ static char *get_windows_version(void)
     for (i = 0; windows_versions[i].name; i++) {
         if (!strcmp(windows_versions[i].windows_name, windows_name)) {
             if (windows_versions[i].server == windows_server) {
-                if (windows_versions[i].flags == windows_flags) {
+                 if (windows_versions[i].flags == windows_flags) {
                     return windows_versions[i].name;
                 }
             }
         }
     }
+
     return "Unknown Windows version";
 }
 
-static char interix_platform_version[100] = "";
+static char interix_platform_version[100];
+static int got_version = 0;
 
 char *platform_get_interix_runtime_os(void)
 {
-    char interix_version[10];
     char service_pack[100];
     int rcode;
     struct utsname name;
 
-    uname(&name);
-
-    sprintf(interix_platform_version, "Interix %s", name.release);
-
-    rcode = getreg_strvalue((PCWSTR)NT_SERVICEPACK_KEY, (PCWSTR)NT_SERVICEPACK_VALUE, service_pack, 100);
-    if (!rcode) {
-        sprintf(interix_platform_version, "%s (%s %s)", interix_platform_version, get_windows_version(), service_pack);
-    } else {
-        sprintf(interix_platform_version, "%s (%s)", interix_platform_version, get_windows_version());
+    if (!got_version) {
+        uname(&name);
+        sprintf(interix_platform_version, "Interix %s", name.release);
+        rcode = getreg_strvalue((PCWSTR)NT_SERVICEPACK_KEY, (PCWSTR)NT_SERVICEPACK_VALUE, service_pack, 100);
+        if (!rcode) {
+            sprintf(interix_platform_version, "%s (%s %s)", interix_platform_version, get_windows_version(), service_pack);
+        } else {
+            sprintf(interix_platform_version, "%s (%s)", interix_platform_version, get_windows_version());
+        }
+        got_version = 1;
     }
-
     return interix_platform_version;
 }
 #endif

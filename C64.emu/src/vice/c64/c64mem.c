@@ -415,6 +415,7 @@ void ram_hi_store(WORD addr, BYTE value)
     }
 }
 
+/* unconnected memory space */
 static BYTE void_read(WORD addr)
 {
     return vicii_read_phi1();
@@ -680,14 +681,20 @@ void mem_initialize_memory(void)
                 }
             }
         }
-        mem_read_tab[i][0xff] = ram_read;
-        mem_read_base_tab[i][0xff] = mem_ram;
+        if (board == 1) {
+            mem_read_tab[i][0xff] = void_read;
+            mem_read_base_tab[i][0xff] = NULL;
+            mem_set_write_hook(0, 0xff, void_store);
+        } else {
+            mem_read_tab[i][0xff] = ram_read;
+            mem_read_base_tab[i][0xff] = mem_ram;
 
-        /* vbank access is handled within `ram_hi_store()'.  */
-        mem_set_write_hook(i, 0xff, ram_hi_store);
+            /* vbank access is handled within `ram_hi_store()'.  */
+            mem_set_write_hook(i, 0xff, ram_hi_store);
+        }
     }
 
-    /* Setup character generator ROM at $D000-$DFFF (memory configs 1, 2, 3, 9, 10, 11, 25, 26, 27).  */
+    /* Setup character generator ROM at $D000-$DFFF (memory configs 1, 2, 3, 9, 10, 11, 26, 27).  */
     for (i = 0xd0; i <= 0xdf; i++) {
         mem_read_tab[1][i] = chargen_read;
         mem_read_tab[2][i] = chargen_read;

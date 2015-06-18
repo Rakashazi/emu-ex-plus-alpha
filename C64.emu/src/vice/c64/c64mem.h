@@ -40,11 +40,21 @@
 #define C64_CHARGEN_ROM_SIZE 0x1000
 
 #define C64_BASIC_CHECKSUM         15702
-#define C64_KERNAL_CHECKSUM_R00    50955
+
+#define C64_KERNAL_CHECKSUM_R01    54525
+#define C64_KERNAL_CHECKSUM_R02    50955
 #define C64_KERNAL_CHECKSUM_R03    50954
 #define C64_KERNAL_CHECKSUM_R03swe 50633
 #define C64_KERNAL_CHECKSUM_R43    50955
 #define C64_KERNAL_CHECKSUM_R64    49680
+
+/* the value located at 0xff80 */
+#define C64_KERNAL_ID_R01    0xaa
+#define C64_KERNAL_ID_R02    0x00
+#define C64_KERNAL_ID_R03    0x03
+#define C64_KERNAL_ID_R03swe 0x03
+#define C64_KERNAL_ID_R43    0x43
+#define C64_KERNAL_ID_R64    0x64
 
 extern int c64_mem_init_resources(void);
 extern int c64_mem_init_cmdline_options(void);
@@ -78,5 +88,8 @@ extern void store_bank_io(WORD addr, BYTE byte);
 extern BYTE read_bank_io(WORD addr);
 
 extern void c64_mem_init(void);
+
+extern BYTE vsid_io_read(WORD addr);
+extern void vsid_io_store(WORD addr, BYTE val);
 
 #endif

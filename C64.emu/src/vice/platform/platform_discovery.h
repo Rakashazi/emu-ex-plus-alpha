@@ -31,7 +31,7 @@
 
 #include "uiapi.h"
 
-#if !defined(WIN32_COMPILE) && defined(__CYGWIN32__)
+#if !defined(WIN32_COMPILE) && (defined(__CYGWIN32__) || defined(__CYGWIN__))
 #include <cygwin/version.h>
 #endif
 
@@ -40,42 +40,6 @@
 #define QUOTE(x) XQUOTE(x)
 #define XQUOTE(x) #x
 
-/* Set compiler version */
-#if (_MSC_VER == 1100)
-#define PLATFORM_COMPILER "msvc5/vs97"
-#endif
-
-#if (_MSC_VER == 1200)
-#define PLATFORM_COMPILER "msvc6/vs98"
-#endif
-
-#if (_MSC_VER == 1300)
-#define PLATFORM_COMPILER "msvc7.0/vs2002"
-#endif
-
-#if (_MSC_VER == 1310)
-#define PLATFORM_COMPILER "msvc7.1/vs2003"
-#endif
-
-#if (_MSC_VER == 1400)
-#define PLATFORM_COMPILER "msvc8/vs2005"
-#endif
-
-#if (_MSC_VER == 1500)
-#define PLATFORM_COMPILER "msvc9/vs2008"
-#endif
-
-#if (_MSC_VER == 1600)
-#define PLATFORM_COMPILER "msvc10/vs2010"
-#endif
-
-#if (_MSC_VER == 1700)
-#define PLATFORM_COMPILER "msvc11/vs2012"
-#endif
-
-#if !defined(PLATFORM_COMPILER) && defined(_MSC_VER)
-#define PLATFORM_COMPILER "msvc"
-#endif
 
 /* win32/64 discovery */
 #ifdef WIN32_COMPILE
@@ -85,15 +49,19 @@
 #        define PLATFORM_CPU "IA64"
 #      endif
 #    else
-#      ifndef PLATFORM_CPU
-#        define PLATFORM_CPU "X64"
+#      ifdef _M_ARM
+#        ifndef PLATFORM_CPU
+#          define PLATFORM_CPU "ARM"
+#          define PLATFORM_OS "WINRT"
+#        endif
+#      else
+#        ifndef PLATFORM_CPU
+#          define PLATFORM_CPU "X64"
+#        endif
 #      endif
 #    endif
 #    ifndef PLATFORM_OS
 #      define PLATFORM_OS "WIN64"
-#    endif
-#    ifndef PLATFORM_COMPILER
-#      define PLATFORM_COMPILER "MSVC"
 #    endif
 #  else
 #    ifdef WINMIPS
@@ -124,8 +92,9 @@
 #  endif
 #endif
 
+
 /* Cygwin discovery */
-#if !defined(WIN32_COMPILE) && defined(__CYGWIN32__)
+#if !defined(WIN32_COMPILE) && (defined(__CYGWIN32__) || defined(__CYGWIN__))
 #  define PLATFORM_OS "Cygwin API " QUOTE(CYGWIN_VERSION_API_MAJOR) "." QUOTE(CYGWIN_VERSION_API_MINOR)
 #  define FIND_X86_CPU
 #endif
@@ -151,9 +120,44 @@
 #  define FIND_X86_CPU
 #endif
 
+
+/* Syllable discovery */
+#ifdef __SYLLABLE__
+#  ifdef __GLIBC__
+#    define PLATFORM_OS "Syllable glibc " QUOTE(__GLIBC__) "." QUOTE(__GLIBC_MINOR__)
+#  else
+#    define PLATFORM_OS "Syllable"
+#  endif
+#endif
+
+
 /* MacOS X discovery */
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(RHAPSODY_COMPILE) && !defined(DARWIN_COMPILE)
 #  include "platform_macosx.h"
+#endif
+
+
+/* Darwin discovery */
+#ifdef DARWIN_COMPILE
+#  define PLATFORM_OS "Darwin"
+#endif
+
+
+/* NextStep discovery */
+#ifdef NEXTSTEP_COMPILE
+#  define PLATFORM_OS "NextStep"
+#endif
+
+
+/* OpenStep discovery */
+#ifdef OPENSTEP_COMPILE
+#  define PLATFORM_OS "OpenStep"
+#endif
+
+
+/* Rhapsody discovery */
+#ifdef RHAPSODY_COMPILE
+#  define PLATFORM_OS "Rhapsody"
 #endif
 
 
@@ -196,14 +200,19 @@
 
 /* BeOS discovery */
 #ifdef __BEOS__
-#  ifdef WORDS_BIGENDIAN
+#  ifdef __MWERKS__
 #    define PLATFORM_CPU "PPC"
 #    define PLATFORM_COMPILER "MetroWerks"
 #  else
 #    define FIND_X86_CPU
 #  endif
-#  define PLATFORM_OS "BeOS"
+#  ifdef __ZETA__
+#    define PLATFORM_OS "Zeta"
+#  else
+#    define PLATFORM_OS "BeOS"
+#  endif
 #endif /* __BEOS__ */
+
 
 /* Haiku discovery */
 #ifdef __HAIKU__
@@ -285,6 +294,17 @@
 #endif
 
 
+/* SCO Unix 4.x discovery */
+#ifdef SCO4UNIX_COMPILE
+#  ifdef __GNU_LIBRARY__
+#    define PLATFORM_OS "SCO Unix 4.x (glibc 1.x)"
+#  else 
+#    define PLATFORM_OS "SCO Unix 4.x"
+#  endif
+#  define FIND_X86_CPU
+#endif
+
+
 /* OpenServer 5.x discovery */
 #ifdef OPENSERVER5_COMPILE
 #  define PLATFORM_OS "OpenServer 5.x"
@@ -300,7 +320,7 @@
 
 
 /* UnixWare 7.x discovery */
-#ifdef _UNIXWARE7
+#ifdef UNIXWARE_COMPILE
 #  define PLATFORM_OS "UnixWare 7.x"
 #  define FIND_X86_CPU
 #endif
@@ -316,15 +336,8 @@
 #endif
 
 
-/* UWIN discovery */
-#ifdef _UWIN
-#  define PLATFORM_OS "UWIN"
-#  define FIND_X86_CPU
-#endif
-
-
 /* Linux discovery */
-#ifdef __linux
+#if defined(__linux) && !defined(__ANDROID__) && !defined(AMIGA_AROS)
 #  include "platform_linux_libc_version.h"
 #endif
 
@@ -336,7 +349,7 @@
 
 
 /* GNU Hurd discovery */
-#ifdef __GNU__
+#if defined(__GNU__) && !defined(NEXTSTEP_COMPILE) && !defined(OPENSTEP_COMPILE)
 #  define PLATFORM_OS "GNU Hurd"
 #endif
 
@@ -347,14 +360,29 @@
 #endif
 
 
+/* SkyOS discovery */
+#ifdef __SKYOS__
+#  define PLATFORM_OS "SkyOS"
+#endif
+
+
 /* Minix discovery */
 #ifdef __minix
-#  define PLATFORM_OS "Minix"
+#  ifdef __minix_vmd
+#    define PLATFORM_OS "Minix-vmd"
+#  else
+#    include <minix/config.h>
+#    if defined(OS_RELEASE) && defined(OS_VERSION)
+#      define PLATFORM_OS "Minix " OS_RELEASE "." OS_VERSION
+#    else
+#      define PLATFORM_OS "Minix"
+#    endif
+#  endif
 #endif
 
 
 /* DOS discovery */
-#ifdef __DOS__
+#ifdef __MSDOS__
 #  define PLATFORM_OS "DOS"
 #endif
 
@@ -413,6 +441,12 @@
 #endif
 
 
+/* System V Release 4 discovery */
+#if !defined(PLATFORM_OS) && defined(__svr4__)
+#define PLATFORM_OS "Unix System V Release 4"
+#endif
+
+
 /* Generic cpu discovery */
 #include "platform_cpu_type.h"
 
@@ -430,6 +464,10 @@
 
 #ifndef PLATFORM_COMPILER
 #  define PLATFORM_COMPILER "unknown compiler"
+#endif
+
+#ifndef PLATFORM
+#  define PLATFORM PLATFORM_OS " " PLATFORM_CPU " " PLATFORM_COMPILER
 #endif
 
 #endif

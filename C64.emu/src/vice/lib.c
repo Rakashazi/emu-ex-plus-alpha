@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef AMIGA_SUPPORT
 #ifndef __USE_INLINE__
@@ -68,11 +69,11 @@
 static unsigned int lib_debug_initialized = 0;
 
 #ifdef LIB_DEBUG_PINPOINT
-static char *lib_debug_filename[LIB_DEBUG_SIZE];
+static const char *lib_debug_filename[LIB_DEBUG_SIZE];
 static unsigned int lib_debug_line[LIB_DEBUG_SIZE];
-static char *lib_debug_top_filename[LIB_DEBUG_TOPMAX];
+static const char *lib_debug_top_filename[LIB_DEBUG_TOPMAX];
 static unsigned int lib_debug_top_line[LIB_DEBUG_TOPMAX];
-static char *lib_debug_pinpoint_filename;
+static const char *lib_debug_pinpoint_filename;
 static unsigned int lib_debug_pinpoint_line = 0;
 #endif
 
@@ -125,7 +126,7 @@ static void lib_debug_init(void)
     lib_debug_initialized = 1;
 }
 
-static void lib_debug_add_top(char *filename, unsigned int line, unsigned int size)
+static void lib_debug_add_top(const char *filename, unsigned int line, unsigned int size)
 {
     unsigned int index, i;
     for (index = 0; index < LIB_DEBUG_TOPMAX; index++) {
@@ -464,7 +465,7 @@ static void printsize(unsigned int size)
 #define LIB_DEBUG_LEAKLIST_MAX 0x80
 
 unsigned int lib_debug_leaklist_num = 0;
-char *lib_debug_leaklist_filename[LIB_DEBUG_LEAKLIST_MAX];
+const char *lib_debug_leaklist_filename[LIB_DEBUG_LEAKLIST_MAX];
 unsigned int lib_debug_leaklist_line[LIB_DEBUG_LEAKLIST_MAX];
 unsigned int lib_debug_leaklist_size[LIB_DEBUG_LEAKLIST_MAX];
 void *lib_debug_leaklist_address[LIB_DEBUG_LEAKLIST_MAX];
@@ -574,6 +575,7 @@ void *lib_malloc(size_t size)
 
 #ifndef __OS2__
     if (ptr == NULL && size > 0) {
+        fprintf(stderr, "error: lib_malloc failed\n");
         exit(-1);
     }
 #endif
@@ -607,6 +609,7 @@ void *lib_AllocVec(unsigned long size, unsigned long attributes)
 
 #ifndef __OS2__
     if (ptr == NULL && size > 0) {
+        fprintf(stderr, "error: lib_AllocVec failed\n");
         exit(-1);
     }
 #endif
@@ -633,6 +636,7 @@ void *lib_AllocMem(unsigned long size, unsigned long attributes)
 
 #ifndef __OS2__
     if (ptr == NULL && size > 0) {
+        fprintf(stderr, "error: lib_AllocMem failed\n");
         exit(-1);
     }
 #endif
@@ -655,6 +659,7 @@ void *lib_calloc(size_t nmemb, size_t size)
 
 #ifndef __OS2__
     if (ptr == NULL && (size * nmemb) > 0) {
+        fprintf(stderr, "error: lib_calloc failed\n");
         exit(-1);
     }
 #endif
@@ -676,6 +681,7 @@ void *lib_realloc(void *ptr, size_t size)
 
 #ifndef __OS2__
     if (new_ptr == NULL) {
+        fprintf(stderr, "error: lib_realloc failed\n");
         exit(-1);
     }
 #endif
@@ -733,6 +739,7 @@ char *lib_stralloc(const char *str)
     char *ptr;
 
     if (str == NULL) {
+        fprintf(stderr, "error: lib_stralloc failed\n");
         exit(-1);
     }
 
@@ -1120,35 +1127,35 @@ char *lib_msprintf(const char *fmt, ...)
 /*----------------------------------------------------------------------------*/
 
 #ifdef LIB_DEBUG_PINPOINT
-void *lib_malloc_pinpoint(size_t size, char *name, unsigned int line)
+void *lib_malloc_pinpoint(size_t size, const char *name, unsigned int line)
 {
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
     return lib_malloc(size);
 }
 
-void lib_free_pinpoint(void *p, char *name, unsigned int line)
+void lib_free_pinpoint(const void *p, const char *name, unsigned int line)
 {
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
     lib_free(p);
 }
 
-void *lib_calloc_pinpoint(size_t nmemb, size_t size, char *name, unsigned int line)
+void *lib_calloc_pinpoint(size_t nmemb, size_t size, const char *name, unsigned int line)
 {
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
     return lib_calloc(nmemb, size);
 }
 
-void *lib_realloc_pinpoint(void *p, size_t size, char *name, unsigned int line)
+void *lib_realloc_pinpoint(void *p, size_t size, const char *name, unsigned int line)
 {
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
     return lib_realloc(p, size);
 }
 
-char *lib_stralloc_pinpoint(const char *str, char *name, unsigned int line)
+char *lib_stralloc_pinpoint(const char *str, const char *name, unsigned int line)
 {
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
@@ -1185,4 +1192,29 @@ void lib_FreeMem_pinpoint(void *ptr, unsigned long size, char *name, unsigned in
 }
 #endif
 
+/*----------------------------------------------------------------------------*/
+
 #endif
+
+/*
+    encapsulated random routines to generate random numbers within a given range.
+
+    see http://c-faq.com/lib/randrange.html
+*/
+
+/* set random seed for rand() from current time, so things like random startup
+   delay are actually random, ie different on each startup, at all. */
+void lib_init_rand(void)
+{
+    srand((unsigned int)time(NULL));
+}
+
+unsigned int lib_unsigned_rand(unsigned int min, unsigned int max)
+{
+    return min + (rand() / ((RAND_MAX / (max - min + 1)) + 1));
+}
+
+float lib_float_rand(float min, float max)
+{
+    return min + ((float)rand() / (((float)RAND_MAX / (max - min + 1.0f)) + 1.0f));
+}

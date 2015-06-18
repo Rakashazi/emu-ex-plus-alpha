@@ -311,8 +311,10 @@ int reu_cart_enabled(void)
  \return
    0 on success. else -1.
 */
-static int set_reu_enabled(int val, void *param)
+static int set_reu_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if ((!val) && (reu_enabled)) {
         if (reu_deactivate() < 0) {
             return -1;
@@ -468,11 +470,8 @@ static int set_reu_filename(const char *name, void *param)
 
 static int set_reu_image_write(int val, void *param)
 {
-    if (reu_write_image && !val) {
-        reu_write_image = 0;
-    } else if (!reu_write_image && val) {
-        reu_write_image = 1;
-    }
+    reu_write_image = val ? 1 : 0;
+
     return 0;
 }
 

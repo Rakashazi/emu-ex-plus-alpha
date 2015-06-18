@@ -3,7 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Daniel Sladic <sladic@eecg.toronto.edu>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *
@@ -32,7 +32,6 @@
 #include <stdio.h>
 
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivesync.h"
 #include "drivetypes.h"
 #include "interrupt.h"

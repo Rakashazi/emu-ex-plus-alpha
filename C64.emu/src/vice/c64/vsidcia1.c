@@ -34,7 +34,7 @@
 #include "c64cia.h"
 #include "cia.h"
 #include "interrupt.h"
-#include "drivecpu.h"
+#include "drive.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "lib.h"
@@ -236,7 +236,7 @@ void cia1_setup_context(machine_context_t *machine_context)
     cia->rmw_flag = &maincpu_rmw_flag;
     cia->clk_ptr = &maincpu_clk;
 
-    cia->todticks = C64_PAL_CYCLES_PER_RFSH;
+    cia1_set_timing(cia, C64_PAL_CYCLES_PER_SEC, 50);
 
     ciacore_setup_context(cia);
 
@@ -264,7 +264,11 @@ void cia1_setup_context(machine_context_t *machine_context)
     cia->pre_peek = pre_peek;
 }
 
-void cia1_set_timing(cia_context_t *cia_context, int todticks)
+void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
 {
-    cia_context->todticks = todticks;
+    cia_context->power_freq = powerfreq;
+    cia_context->ticks_per_sec = tickspersec;
+    cia_context->todticks = tickspersec / powerfreq;
+    cia_context->power_tickcounter = 0;
+    cia_context->power_ticks = 0;
 }

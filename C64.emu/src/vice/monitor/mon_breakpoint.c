@@ -190,15 +190,26 @@ static void remove_checkpoint(checkpoint_t *cp)
 
 void mon_breakpoint_switch_checkpoint(int op, int cp_num)
 {
-    checkpoint_t *cp;
+    int i;
+    checkpoint_t *cp = NULL;
+    
     cp = find_checkpoint(cp_num);
 
-    if (!cp) {
+    if (cp_num == -1) {
+        mon_out("Set all checkpoints to state: %s\n",
+                (op == e_ON) ? "enabled" : "disabled");
+        for (i = 1; i < breakpoint_count; i++) {
+            if ((cp = find_checkpoint(i))) {
+                cp = find_checkpoint(i);
+	        cp->enabled = op;
+            }
+        }
+    } else if (!(cp = find_checkpoint(cp_num))) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
+        return;
     } else {
-        cp->enabled = op;
-        mon_out("Set checkpoint #%d to state: %s\n",
-                cp_num, (op == e_ON) ? "enabled" : "disabled");
+                cp = find_checkpoint(cp_num);
+	        cp->enabled = op;
     }
 }
 

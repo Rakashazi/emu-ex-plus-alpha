@@ -51,41 +51,11 @@ static BYTE drive_rom1551[DRIVE_ROM1551_SIZE];
 static unsigned int rom1551_loaded = 0;
 
 
-static void tcbmrom_new_image_loaded(unsigned int dtype)
-{
-    unsigned int dnr;
-    drive_t *drive;
-
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
-
-        if (drive->type == dtype) {
-            tcbmrom_setup_image(drive);
-        }
-    }
-}
-
 int tcbmrom_load_1551(void)
 {
-    const char *rom_name = NULL;
-
-    if (!drive_rom_load_ok) {
-        return 0;
-    }
-
-    resources_get_string("DosName1551", &rom_name);
-
-    if (sysfile_load(rom_name, drive_rom1551, DRIVE_ROM1551_SIZE,
-                     DRIVE_ROM1551_SIZE) < 0) {
-        log_error(tcbmrom_log,
-                  "1551 ROM image not found.  "
-                  "Hardware-level 1551 emulation is not available.");
-    } else {
-        rom1551_loaded = 1;
-        tcbmrom_new_image_loaded(DRIVE_TYPE_1551);
-        return 0;
-    }
-    return -1;
+    return driverom_load("DosName1551", drive_rom1551, &rom1551_loaded,
+            DRIVE_ROM1551_SIZE, DRIVE_ROM1551_SIZE, "1551",
+            DRIVE_TYPE_1551, NULL);
 }
 
 void tcbmrom_setup_image(drive_t *drive)

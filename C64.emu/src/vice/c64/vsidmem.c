@@ -570,7 +570,6 @@ void mem_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
 void mem_powerup(void)
 {
     ram_init(mem_ram, 0x10000);
-    cartridge_ram_init();  /* Clean cartridge ram too */
 }
 
 /* ------------------------------------------------------------------------- */
@@ -659,28 +658,16 @@ void store_bank_io(WORD addr, BYTE byte)
 {
     switch (addr & 0xff00) {
         case 0xd000:
-            c64io_d000_store(addr, byte);
-            break;
         case 0xd100:
-            c64io_d100_store(addr, byte);
-            break;
         case 0xd200:
-            c64io_d200_store(addr, byte);
-            break;
         case 0xd300:
-            c64io_d300_store(addr, byte);
+            vicii_store(addr, byte);
             break;
         case 0xd400:
-            c64io_d400_store(addr, byte);
-            break;
         case 0xd500:
-            c64io_d500_store(addr, byte);
-            break;
         case 0xd600:
-            c64io_d600_store(addr, byte);
-            break;
         case 0xd700:
-            c64io_d700_store(addr, byte);
+            sid_store(addr, byte);
             break;
         case 0xd800:
         case 0xd900:
@@ -695,10 +682,8 @@ void store_bank_io(WORD addr, BYTE byte)
             cia2_store(addr, byte);
             break;
         case 0xde00:
-            c64io_de00_store(addr, byte);
-            break;
         case 0xdf00:
-            c64io_df00_store(addr, byte);
+            vsid_io_store(addr, byte);
             break;
     }
     return;
@@ -708,21 +693,15 @@ BYTE read_bank_io(WORD addr)
 {
     switch (addr & 0xff00) {
         case 0xd000:
-            return c64io_d000_read(addr);
         case 0xd100:
-            return c64io_d100_read(addr);
         case 0xd200:
-            return c64io_d200_read(addr);
         case 0xd300:
-            return c64io_d300_read(addr);
+            return vicii_read(addr);
         case 0xd400:
-            return c64io_d400_read(addr);
         case 0xd500:
-            return c64io_d500_read(addr);
         case 0xd600:
-            return c64io_d600_read(addr);
         case 0xd700:
-            return c64io_d700_read(addr);
+            return sid_read(addr);
         case 0xd800:
         case 0xd900:
         case 0xda00:
@@ -733,9 +712,8 @@ BYTE read_bank_io(WORD addr)
         case 0xdd00:
             return cia2_read(addr);
         case 0xde00:
-            return c64io_de00_read(addr);
         case 0xdf00:
-            return c64io_df00_read(addr);
+            return vsid_io_read(addr);
     }
     return 0xff;
 }
@@ -744,21 +722,15 @@ static BYTE peek_bank_io(WORD addr)
 {
     switch (addr & 0xff00) {
         case 0xd000:
-            return c64io_d000_peek(addr);
         case 0xd100:
-            return c64io_d100_peek(addr);
         case 0xd200:
-            return c64io_d200_peek(addr);
         case 0xd300:
-            return c64io_d300_peek(addr);
+            return vicii_peek(addr);
         case 0xd400:
-            return c64io_d400_peek(addr);
         case 0xd500:
-            return c64io_d500_peek(addr);
         case 0xd600:
-            return c64io_d600_peek(addr);
         case 0xd700:
-            return c64io_d700_peek(addr);
+            return sid_peek(addr);
         case 0xd800:
         case 0xd900:
         case 0xda00:
@@ -900,8 +872,6 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 
     mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io);
     mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io);
-
-    io_source_ioreg_add_list(&mem_ioreg_list);
 
     return mem_ioreg_list;
 }

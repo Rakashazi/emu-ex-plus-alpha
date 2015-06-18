@@ -35,6 +35,8 @@
 
 /* Global clock counter.  */
 CLOCK maincpu_clk = 0L;
+/* if != 0, exit when this many cycles have been executed */
+CLOCK maincpu_clk_limit = 0L;
 
 #define REWIND_FETCH_OPCODE(clock) /*clock-=2*/
 

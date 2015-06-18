@@ -45,8 +45,8 @@ extern int archdep_path_is_relative(const char *path);
 extern int archdep_expand_path(char **return_path, const char *filename);
 extern char *archdep_make_backup_filename(const char *fname);
 extern int archdep_mkdir(const char *pathname, int mode);
-extern int archdep_stat(const char *file_name, unsigned int *len,
-                        unsigned int *isdir);
+extern int archdep_stat(const char *file_name, unsigned int *len, unsigned int *isdir);
+extern int archdep_rename(const char *oldpath, const char *newpath);
 
 /* set permissions of given file to rw, respecting current umask */
 extern int archdep_fix_permissions(const char *file_name);
@@ -57,6 +57,9 @@ extern char *archdep_default_save_resource_file_name(void);
 
 /* Fliplist.  */
 extern char *archdep_default_fliplist_file_name(void);
+
+/* RTC. */
+extern char *archdep_default_rtc_file_name(void);
 
 /* Autostart-PRG */
 extern char *archdep_default_autostart_disk_image_file_name(void);
@@ -75,9 +78,6 @@ extern int archdep_spawn(const char *name, char **argv,
 /* Spawn need quoting the params or expanding the filename in some archs.  */
 extern char *archdep_filename_parameter(const char *name);
 extern char *archdep_quote_parameter(const char *name);
-
-extern int archdep_num_text_lines(void);
-extern int archdep_num_text_columns(void);
 
 /* Allocates a filename for a tempfile.  */
 extern char *archdep_tmpnam(void);

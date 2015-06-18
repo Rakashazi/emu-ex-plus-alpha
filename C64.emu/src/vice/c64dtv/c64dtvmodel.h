@@ -39,6 +39,12 @@
 
 #define DTVMODEL_UNKNOWN 99
 
+#define REV_2  2
+#define REV_3  3
+
+#define IS_DTV     0
+#define IS_HUMMER  1
+
 extern int dtvmodel_get(void);
 extern void dtvmodel_set(int model);
 

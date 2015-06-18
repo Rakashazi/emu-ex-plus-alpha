@@ -46,7 +46,9 @@ struct monitor_interface_s;
 
 /* This defines the memory access for the drive CPU.  */
 typedef BYTE drive_read_func_t (struct drive_context_s *, WORD);
+typedef drive_read_func_t *drive_read_func_ptr_t;
 typedef void drive_store_func_t (struct drive_context_s *, WORD, BYTE);
+typedef drive_store_func_t *drive_store_func_ptr_t;
 
 /*
  *  The private CPU data.
@@ -109,16 +111,17 @@ typedef struct drivecpu_context_s {
  */
 
 typedef struct drivecpud_context_s {
-    /* Drive RAM */
-    BYTE drive_ram[DRIVE_RAM_SIZE];
+    /* Pointers to the currently used memory read and write tables. */
+    drive_read_func_ptr_t *read_func_ptr;
+    drive_store_func_ptr_t *store_func_ptr;
+    BYTE **read_base_tab_ptr;
+    DWORD *read_limit_tab_ptr;
 
-    /* functions */
-    drive_read_func_t  *read_func[0x101];
-    drive_store_func_t *store_func[0x101];
-    drive_read_func_t  *read_func_watch[0x101];
-    drive_store_func_t *store_func_watch[0x101];
-    drive_read_func_t  *read_func_nowatch[0x101];
-    drive_store_func_t *store_func_nowatch[0x101];
+    /* Memory read and write tables.  */
+    drive_read_func_t *read_tab[1][0x101];
+    drive_store_func_t *store_tab[1][0x101];
+    BYTE *read_base_tab[1][0x101];
+    DWORD read_limit_tab[1][0x101];
 
     int sync_factor;
 } drivecpud_context_t;

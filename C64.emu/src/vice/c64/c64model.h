@@ -56,6 +56,36 @@
 
 #define C64MODEL_UNKNOWN 99
 
+#define OLD_LUMA 0
+#define NEW_LUMA 1
+
+#define OLD_CIA 0
+#define NEW_CIA 1
+
+#define OLD_SID 0
+#define NEW_SID 1
+
+#define GLUE_DISCRETE  0
+#define GLUE_CUSTOM_IC 1
+
+#define BOARD_C64 0
+#define BOARD_MAX 1
+
+#define IEC_HARD_RESET 0
+#define IEC_SOFT_RESET 1
+
+#define NO_DATASETTE 0
+#define HAS_DATASETTE 1
+
+#define NO_IEC  0
+#define HAS_IEC 1
+
+#define NO_USERPORT  0
+#define HAS_USERPORT 1
+
+#define NO_KEYBOARD  0
+#define HAS_KEYBOARD 1
+
 typedef struct {
     int vicii_model;
     int new_luma;
@@ -67,6 +97,7 @@ typedef struct {
     int iecreset; /* 1: reset goes to IEC bus (old) 0: only reset IEC on hard reset (new) */
     const char *kernal;
     const char *chargen;
+    int kernalrev;
 } c64model_details_t;
 
 extern int c64model_get(void);

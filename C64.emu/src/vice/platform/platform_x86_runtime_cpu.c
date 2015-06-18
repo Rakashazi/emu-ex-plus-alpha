@@ -26,154 +26,39 @@
 
 #include "vice.h"
 
-#if !defined(_M_IA64) && !defined(__SYLLABLE__) && !defined(ANDROID_COMPILE) && (defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__) || defined(__amd64__) || defined(__x86_64__) || defined(_M_IX86))
+#include "platform_x86_runtime_cpu.h"
+
+#ifndef PLATFORM_NO_X86_ASM
 #include "types.h"
 #include <string.h>
 
-/* cpuid function */
+/* cpuid code for ow */
 #ifdef WATCOM_COMPILE
-#include <stdint.h>
-
-#define EFL_CPUID           (1L << 21)      /* The CPUID bit in EFLAGS. */
-
-static uint32_t cpu_info_stuff[4];
-
-static void cpu_id( uint32_t cpuinfo[4], uint32_t infotype );
-#pragma aux cpu_id =      \
-    ".586"                \
-    "cpuid"               \
-    "mov  [esi+0],eax"    \
-    "mov  [esi+4],ebx"    \
-    "mov  [esi+8],ecx"    \
-    "mov  [esi+12],edx"   \
-    parm [esi] [eax] modify [ebx ecx edx];
-
-#define cpuid(func, a, b, c, d)   \
-    cpu_id(cpu_info_stuff, func); \
-    a = cpu_info_stuff[0];        \
-    b = cpu_info_stuff[1];        \
-    c = cpu_info_stuff[2];        \
-    d = cpu_info_stuff[3];
-#else
-#ifdef _MSC_VER
-#ifdef _WIN64
-#include <intrin.h>
-
-static int cpu_info_stuff[4];
-
-void __cpuid(
-   int CPUInfo[4],
-   int InfoType
-);
-
-#define cpuid(func, a, b, c, d)    \
-    __cpuid(cpu_info_stuff, func); \
-    a = cpu_info_stuff[0];         \
-    b = cpu_info_stuff[1];         \
-    c = cpu_info_stuff[2];         \
-    d = cpu_info_stuff[3];
-#else
-#define cpuid(func, a, b, c, d) \
-    __asm mov eax, func \
-    __asm cpuid \
-    __asm mov a, eax \
-    __asm mov b, ebx \
-    __asm mov c, ecx \
-    __asm mov d, edx
-#endif
-#else
-#ifdef BEOS_COMPILE
-#include <OS.h>
-
-static cpuid_info cpuid_info_ret;
-
-#define cpuid(func, ax, bx, cx, dx)      \
-    get_cpuid(&cpuid_info_ret, func, 0); \
-    ax = cpuid_info_ret.regs.eax;        \
-    bx = cpuid_info_ret.regs.ebx;        \
-    cx = cpuid_info_ret.regs.ecx;        \
-    dx = cpuid_info_ret.regs.edx;
-#else
-#define cpuid(func, ax, bx, cx, dx) \
-    __asm__ __volatile__ ("cpuid":  \
-    "=a" (ax), "=b" (bx), "=c" (cx), "=d" (dx) : "a" (func))
-#endif
-#endif
+#  define CPUID_DEFINED
+#  include "platform_x86_watcom_cpuid.h"
 #endif
 
-#ifdef WATCOM_COMPILE
-/* Read the EFLAGS register. */
-static uint32_t eflags_read(void);
-#pragma aux eflags_read = \
-    "pushfd"              \
-    "pop  eax"            \
-    value [eax] modify [eax];
-
-/* Write the EFLAGS register. */
-static uint32_t eflags_write(uint32_t eflg);
-#pragma aux eflags_write = \
-    "push eax"             \
-    "popfd"                \
-    parm [eax] modify [];
+/* cpuid code for amd64 msvc */
+#if !defined(CPUID_DEFINED) && defined(_MSC_VER) && defined(_WIN64)
+#  define CPUID_DEFINED
+#  include "platform_amd64_msvc_cpuid.h"
 #endif
 
-inline static int has_cpuid(void)
-{
-#ifdef WATCOM_COMPILE
-    uint32_t    old_eflg;
-    uint32_t    new_eflg;
+/* cpuid code for x86 msvc */
+#if !defined(CPUID_DEFINED) && defined(_MSC_VER)
+#  define CPUID_DEFINED
+#  include "platform_x86_msvc_cpuid.h"
+#endif
 
-    old_eflg = eflags_read();
-    new_eflg = old_eflg ^ EFL_CPUID;
-    eflags_write( new_eflg );
-    new_eflg = eflags_read();
-    return (new_eflg != old_eflg);
-#else
-#ifdef _MSC_VER
-#ifdef _WIN64
-        return 1;
-#else
-        int result;
+/* cpuid code for BeOS */
+#if !defined(CPUID_DEFINED) && defined(BEOS_COMPILE)
+#  define CPUID_DEFINED
+#  include "platform_x86_beos_cpuid.h"
+#endif
 
-        __asm {
-                pushfd
-                pop     eax
-                mov     ecx,    eax
-                xor     eax,    0x200000
-                push    eax
-                popfd
-                pushfd
-                pop     eax
-                xor     eax,    ecx
-                mov     result, eax
-                push    ecx
-                popfd
-        };
-        return (result != 0);
+#ifndef CPUID_DEFINED
+#  include "platform_x86_gcc_cpuid.h"
 #endif
-#else
-#if defined(__amd64__) || defined(__x86_64__)
-    return 1;
-#else
-    int a = 0;
-    int c = 0;
-
-    __asm__ __volatile__ ("pushf;"
-                          "popl %0;"
-                          "movl %0, %1;"
-                          "xorl $0x200000, %0;"
-                          "push %0;"
-                          "popf;"
-                          "pushf;"
-                          "popl %0;"
-                          : "=a" (a), "=c" (c)
-                          :
-                          : "cc" );
-    return (a!=c);
-#endif
-#endif
-#endif
-}
 
 #define CPU_VENDOR_UNKNOWN     0
 #define CPU_VENDOR_INTEL       1
@@ -295,7 +180,7 @@ static x86_cpu_name_t x86_cpu_names[] = {
 };
 
 /* runtime cpu detection */
-char* platform_get_x86_runtime_cpu(void)
+char *platform_get_x86_runtime_cpu(void)
 {
     DWORD regax, regbx, regcx, regdx;
     char type_buf[13];

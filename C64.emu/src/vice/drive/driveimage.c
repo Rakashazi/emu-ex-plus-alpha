@@ -53,7 +53,8 @@ static int drive_check_image_format(unsigned int format, unsigned int dnr)
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_P64:
         case DISK_IMAGE_TYPE_X64:
-            if (drive->type != DRIVE_TYPE_1541
+            if (drive->type != DRIVE_TYPE_1540
+                && drive->type != DRIVE_TYPE_1541
                 && drive->type != DRIVE_TYPE_1541II
                 && drive->type != DRIVE_TYPE_1551
                 && drive->type != DRIVE_TYPE_1570
@@ -68,7 +69,8 @@ static int drive_check_image_format(unsigned int format, unsigned int dnr)
             break;
         case DISK_IMAGE_TYPE_D67:
             /* New drives and 2031, 3040 and 4040 are only read compatible.  */
-            if (drive->type != DRIVE_TYPE_1541
+            if (drive->type != DRIVE_TYPE_1540
+                && drive->type != DRIVE_TYPE_1541
                 && drive->type != DRIVE_TYPE_1541II
                 && drive->type != DRIVE_TYPE_1551
                 && drive->type != DRIVE_TYPE_1570

@@ -2,7 +2,7 @@
 /*
     xa65 - 6502 cross assembler and utility suite
     reloc65 - relocates 'o65' files
-    Copyright (C) 1997 André Fachat (a.fachat@physik.tu-chemnitz.de)
+    Copyright (C) 1997 Andre Fachat (a.fachat@physik.tu-chemnitz.de)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

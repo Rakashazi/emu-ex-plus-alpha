@@ -39,8 +39,6 @@
 #include "machine-bus.h"
 #include "maincpu.h"
 #include "mem.h"
-#include "mos6510.h"
-#include "mos6510dtv.h"
 #include "resources.h"
 #include "translate.h"
 #include "traps.h"
@@ -66,8 +64,10 @@ static log_t traps_log = LOG_ERR;
 /* Flag: Should we avoid installing traps at all?  */
 static int traps_enabled;
 
-static int set_traps_enabled(int new_value, void *param)
+static int set_traps_enabled(int val, void *param)
 {
+    int new_value = val ? 1 : 0;
+
     if ((!traps_enabled && new_value) || (traps_enabled && !new_value)) {
         if (!new_value) {
             /* Traps have been disabled.  */
@@ -94,7 +94,7 @@ static int set_traps_enabled(int new_value, void *param)
 }
 
 static const resource_int_t resources_int[] = {
-    { "VirtualDevices", 1, RES_EVENT_SAME, NULL,
+    { "VirtualDevices", 0, RES_EVENT_SAME, NULL,
       &traps_enabled, set_traps_enabled, NULL },
     { NULL }
 };
@@ -224,20 +224,26 @@ int traps_remove(const trap_t *trap)
     return 0;
 }
 
+void traps_refresh(void)
+{
+    if (traps_enabled) {
+        traplist_t *p;
+
+        for (p = traplist; p != NULL; p = p->next) {
+            remove_trap(p->trap);
+            install_trap(p->trap);
+        }
+    }
+    return;
+}
+
 DWORD traps_handler(void)
 {
     traplist_t *p = traplist;
     unsigned int pc;
     int result;
 
-    if (machine_class == VICE_MACHINE_C64DTV) {
-        pc = MOS6510DTV_REGS_GET_PC(&maincpu_regs);
-    } else if (machine_class == VICE_MACHINE_SCPU64) {
-        /* FIXME: PBR also needed ?? */
-        pc = WDC65816_REGS_GET_PC(&maincpu_regs);
-    } else {
-        pc = MOS6510_REGS_GET_PC(&maincpu_regs);
-    }
+    pc = maincpu_get_pc();
 
     while (p) {
         if (p->trap->address == pc) {
@@ -250,11 +256,7 @@ DWORD traps_handler(void)
             }
             /* XXX ALERT!  `p' might not be valid anymore here, because
                `p->trap->func()' might have removed all the traps.  */
-            if (machine_class == VICE_MACHINE_C64DTV) {
-                MOS6510DTV_REGS_SET_PC(&maincpu_regs, resume_address);
-            } else {
-                MOS6510_REGS_SET_PC(&maincpu_regs, resume_address);
-            }
+            maincpu_set_pc(resume_address);
             return 0;
         }
         p = p->next;

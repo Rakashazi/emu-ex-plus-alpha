@@ -417,9 +417,16 @@
 #define GET_TEMP(dest) dest = new_value;
 
 #define GET_IMM(dest) dest = (BYTE)(p1);
+/* same as above, for NOOP */
+#define GET_IMM_DUMMY()
 
 #define GET_ABS(dest)        \
     dest = (BYTE)(LOAD(p2)); \
+    CLK_INC();
+
+/* same as above, for NOOP */
+#define GET_ABS_DUMMY()      \
+    LOAD(p2);                \
     CLK_INC();
 
 #define SET_ABS(value) \
@@ -449,6 +456,11 @@
 #define GET_ABS_X(dest)        \
     INT_ABS_I_R(reg_x)         \
     dest = LOAD((p2) + reg_x); \
+    CLK_INC();
+/* same as above, for NOOP */
+#define GET_ABS_X_DUMMY()      \
+    INT_ABS_I_R(reg_x)         \
+    LOAD((p2) + reg_x);        \
     CLK_INC();
 
 #define GET_ABS_Y(dest)        \
@@ -492,6 +504,11 @@
     dest = LOAD_ZERO(p1); \
     CLK_INC();
 
+/* same as above, for NOOP */
+#define GET_ZERO_DUMMY()    \
+    LOAD_ZERO(p1); \
+    CLK_INC();
+
 #define SET_ZERO(value)    \
     STORE_ZERO(p1, value); \
     CLK_INC();
@@ -513,6 +530,11 @@
 #define GET_ZERO_X(dest)          \
     INT_ZERO_I                    \
     dest = LOAD_ZERO(p1 + reg_x); \
+    CLK_INC();
+/* same as above, for NOOP */
+#define GET_ZERO_X_DUMMY()        \
+    INT_ZERO_I                    \
+    LOAD_ZERO(p1 + reg_x);        \
     CLK_INC();
 
 #define GET_ZERO_Y(dest)          \
@@ -588,6 +610,17 @@
         CLK_INC();                                       \
     }                                                    \
     addr = (tmpa + reg_y) & 0xffff;
+/* like above, for SHA_IND_Y */
+#define INT_IND_Y_W_NOADDR()                             \
+    unsigned int tmpa;                                   \
+    tmpa = LOAD_ZERO(p1);                                \
+    CLK_INC();                                           \
+    tmpa |= (LOAD_ZERO(p1 + 1) << 8);                    \
+    CLK_INC();                                           \
+    if (!SKIP_CYCLE) {                                   \
+        LOAD((tmpa & 0xff00) | ((tmpa + reg_y) & 0xff)); \
+        CLK_INC();                                       \
+    }
 
 #define GET_IND_Y(dest) \
     INT_IND_Y_R()       \
@@ -1111,8 +1144,7 @@
 
 #define NOOP(get_func, pc_inc) \
     do {                       \
-        unsigned int dummy;    \
-        get_func(dummy)        \
+        get_func()             \
         INC_PC(pc_inc);        \
     } while (0)
 
@@ -1343,7 +1375,7 @@
 
 #define SHA_IND_Y()                                    \
     do {                                               \
-        INT_IND_Y_W();                                 \
+        INT_IND_Y_W_NOADDR();                          \
         SET_ABS_SH_I(tmpa, reg_a_read & reg_x, reg_y); \
         INC_PC(2);                                     \
     } while (0)
@@ -1594,7 +1626,7 @@ trap_skipped:
             case 0x04:          /* NOOP $nn */
             case 0x44:          /* NOOP $nn */
             case 0x64:          /* NOOP $nn */
-                NOOP(GET_ZERO, 2);
+                NOOP(GET_ZERO_DUMMY, 2);
                 break;
 
             case 0x05:          /* ORA $nn */
@@ -1627,7 +1659,7 @@ trap_skipped:
                 break;
 
             case 0x0c:          /* NOOP $nnnn */
-                NOOP(GET_ABS, 3);
+                NOOP(GET_ABS_DUMMY, 3);
                 break;
 
             case 0x0d:          /* ORA $nnnn */
@@ -1660,7 +1692,7 @@ trap_skipped:
             case 0x74:          /* NOOP $nn,X */
             case 0xd4:          /* NOOP $nn,X */
             case 0xf4:          /* NOOP $nn,X */
-                NOOP(GET_ZERO_X, 2);
+                NOOP(GET_ZERO_X_DUMMY, 2);
                 break;
 
             case 0x15:          /* ORA $nn,X */
@@ -1690,7 +1722,7 @@ trap_skipped:
             case 0xda:          /* NOOP */
             case 0xfa:          /* NOOP */
             case 0xea:          /* NOP */
-                NOOP(GET_IMM, 1);
+                NOOP(GET_IMM_DUMMY, 1);
                 break;
 
             case 0x1b:          /* SLO $nnnn,Y */
@@ -1703,7 +1735,7 @@ trap_skipped:
             case 0x7c:          /* NOOP $nnnn,X */
             case 0xdc:          /* NOOP $nnnn,X */
             case 0xfc:          /* NOOP $nnnn,X */
-                NOOP(GET_ABS_X, 3);
+                NOOP(GET_ABS_X_DUMMY, 3);
                 break;
 
             case 0x1d:          /* ORA $nnnn,X */
@@ -2035,7 +2067,7 @@ trap_skipped:
             case 0x89:          /* NOOP #$nn */
             case 0xc2:          /* NOOP #$nn */
             case 0xe2:          /* NOOP #$nn */
-                NOOP(GET_IMM, 2);
+                NOOP(GET_IMM_DUMMY, 2);
                 break;
 
             case 0x81:          /* STA ($nn,X) */
@@ -2132,7 +2164,7 @@ trap_skipped:
 
             case 0x9b:          /* NOP (SHS) $nnnn,Y */
 #ifdef C64DTV
-                NOOP(GET_ABS_Y, 3);
+                NOOP(GET_ABS_Y_DUMMY, 3);
 #else
                 SHS_ABS_Y();
 #endif

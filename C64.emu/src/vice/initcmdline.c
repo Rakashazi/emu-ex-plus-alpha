@@ -43,10 +43,12 @@
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
+#include "maincpu.h"
 #include "resources.h"
 #include "tape.h"
 #include "translate.h"
 #include "util.h"
+#include "vicefeatures.h"
 
 #ifdef DEBUG_CMDLINE
 #define DBG(x)  printf x
@@ -90,6 +92,20 @@ static int cmdline_help(const char *param, void *extra_param)
     return 0;   /* OSF1 cc complains */
 }
 
+static int cmdline_features(const char *param, void *extra_param)
+{
+    feature_list_t *list = vice_get_feature_list();
+
+    printf("Compile time options:\n");
+    while (list->symbol) {
+        printf("%-25s %4s %s\n", list->symbol, list->isdefined ? "yes " : "no  ", list->descr);
+        ++list;
+    }
+
+    exit(0);
+    return 0;   /* OSF1 cc complains */
+}
+
 static int cmdline_config(const char *param, void *extra_param)
 {
     /* "-config" needs to be handled before this gets called
@@ -106,6 +122,12 @@ static int cmdline_default(const char *param, void *extra_param)
 static int cmdline_chdir(const char *param, void *extra_param)
 {
     return ioutil_chdir(param);
+}
+
+static int cmdline_limitcycles(const char *param, void *extra_param)
+{
+    maincpu_clk_limit = strtoul(param, NULL, 0);
+    return 0;
 }
 
 static int cmdline_autostart(const char *param, void *extra_param)
@@ -128,6 +150,7 @@ static int cmdline_autoload(const char *param, void *extra_param)
 static int cmdline_console(const char *param, void *extra_param)
 {
     console_mode = 1;
+    video_disabled_mode = 1;
     return 0;
 }
 #endif
@@ -172,6 +195,16 @@ static const cmdline_option_t common_cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_SHOW_COMMAND_LINE_OPTIONS,
       NULL, NULL },
+    { "-features", CALL_FUNCTION, 0,
+      cmdline_features, NULL, NULL, NULL,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_SHOW_COMPILETIME_FEATURES,
+      NULL, NULL },
+    { "-default", CALL_FUNCTION, 0,
+      cmdline_default, NULL, NULL, NULL,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_RESTORE_DEFAULT_SETTINGS,
+      NULL, NULL },
     { "-config", CALL_FUNCTION, 1,
       cmdline_config, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -181,6 +214,11 @@ static const cmdline_option_t common_cmdline_options[] = {
       cmdline_chdir, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDGS_P_DIRECTORY, IDGS_MON_CD_DESCRIPTION,
+      NULL, NULL },
+    { "-limitcycles", CALL_FUNCTION, 1,
+      cmdline_limitcycles, NULL, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_VALUE, IDCLS_LIMIT_CYCLES,
       NULL, NULL },
 #if (!defined  __OS2__ && !defined __BEOS__)
     { "-console", CALL_FUNCTION, 0,
@@ -216,11 +254,6 @@ static const cmdline_option_t common_cmdline_options[] = {
 /* These are the command-line options for the initialization sequence.  */
 
 static const cmdline_option_t cmdline_options[] = {
-    { "-default", CALL_FUNCTION, 0,
-      cmdline_default, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RESTORE_DEFAULT_SETTINGS,
-      NULL, NULL },
     { "-autostart", CALL_FUNCTION, 1,
       cmdline_autostart, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,

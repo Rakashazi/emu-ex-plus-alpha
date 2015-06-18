@@ -30,14 +30,15 @@
 #include <string.h>
 
 #include "cmdline.h"
+#include "machine.h"
 #include "ram.h"
 #include "resources.h"
 #include "translate.h"
 #include "types.h"
 
-static int start_value;
-static int value_invert;
-static int pattern_invert;
+static int start_value = 0;
+static int value_invert = 64;
+static int pattern_invert = 0;
 
 static int set_start_value(int val, void *param)
 {
@@ -77,7 +78,10 @@ static const resource_int_t resources_int[] = {
 
 int ram_resources_init(void)
 {
-    return resources_register_int(resources_int);
+    if (machine_class != VICE_MACHINE_VSID) {
+        return resources_register_int(resources_int);
+    }
+    return 0;
 }
 
 static const cmdline_option_t cmdline_options[] = {
@@ -101,7 +105,10 @@ static const cmdline_option_t cmdline_options[] = {
 
 int ram_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    if (machine_class != VICE_MACHINE_VSID) {
+        return cmdline_register_options(cmdline_options);
+    }
+    return 0;
 }
 
 

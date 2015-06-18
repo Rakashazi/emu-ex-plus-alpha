@@ -67,6 +67,8 @@ void c64export_dump(void)
     if (current == NULL) {
         mon_out("No expansion port devices.\n");
     } else {
+               /*- -----    -     - --------- --------- ------------------------ */
+        mon_out("  CRTID GAME EXROM IO1-usage IO2-usage Name\n");
         while (current != NULL) {
             if (cart_is_slotmain(current->device->cartid)) {
                 mon_out("* ");
@@ -74,19 +76,28 @@ void c64export_dump(void)
                 mon_out("  ");
             }
             mon_out("%5d ", current->device->cartid);
-            mon_out("%4s ", current->device->game ? "GAME" : "-");
-            mon_out("%5s ", current->device->exrom ? "EXROM" : "-");
+            mon_out("%4s ", current->device->game ? "*" : "-");
+            mon_out("%5s ", current->device->exrom ? "*" : "-");
             io = current->device->io1;
             if (io) {
-                mon_out("IO1:%04x-%04x ", io->start_address, io->end_address);
+                mon_out("%04x-%04x ", io->start_address, io->end_address);
             } else {
-                mon_out("              ");
+                mon_out("     none ");
             }
             io = current->device->io2;
             if (io) {
-                mon_out("IO2:%04x-%04x ", io->start_address, io->end_address);
+                mon_out("%04x-%04x ", io->start_address, io->end_address);
             } else {
-                mon_out("              ");
+                mon_out("     none ");
+            }
+            /* show (inactive) in front of the name when no PLA lines nor
+               I/O resources are used, this should not happen in normal
+               operation and usually indicates a bug */
+            if ((!current->device->game) &&
+                (!current->device->exrom) &&
+                (!current->device->io1) &&
+                (!current->device->io2)) {
+                mon_out("(inactive) ");
             }
             mon_out("%s\n", current->device->name);
             current = current->next;

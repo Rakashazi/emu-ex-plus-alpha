@@ -220,8 +220,10 @@ static int dqbb_deactivate(void)
     return 0;
 }
 
-static int set_dqbb_enabled(int val, void *param)
+static int set_dqbb_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if ((!val) && (dqbb_enabled)) {
         cart_power_off();
         if (dqbb_deactivate() < 0) {
@@ -273,11 +275,8 @@ static int set_dqbb_filename(const char *name, void *param)
 
 static int set_dqbb_image_write(int val, void *param)
 {
-    if (dqbb_write_image && !val) {
-        dqbb_write_image = 0;
-    } else if (!dqbb_write_image && val) {
-        dqbb_write_image = 1;
-    }
+    dqbb_write_image = val ? 1 : 0;
+
     return 0;
 }
 

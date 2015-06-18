@@ -66,12 +66,14 @@ static unsigned char headerbuffer[0x40];
 static unsigned char extra_buffer_32kb[0x8000];
 static unsigned char chipbuffer[16];
 static int repair_mode = 0;
+static int input_padding = 0;
+static int quiet_mode = 0;
 
 static int load_input_file(char *filename);
 
 typedef struct cart_s {
-    unsigned char game;
     unsigned char exrom;
+    unsigned char game;
     unsigned int sizes;
     unsigned int bank_size;
     unsigned int load_address;
@@ -107,21 +109,24 @@ static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3,
 
 /* this table must be in correct order so it can be indexed by CRT ID */
 /*
-    game, exrom, sizes, bank size, load addr, num banks, data type, name, option, saver
+    exrom, game, sizes, bank size, load addr, num banks, data type, name, option, saver
 
     num banks == 0 - take number of banks from input file size
 */
 static const cart_t cart_info[] = {
-/*  {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, "Generic 8kb", NULL, NULL}, */
-/*  {0, 0, CARTRIDGE_SIZE_12KB, 0x3000, 0x8000, 1, 0, "Generic 12kb", NULL, NULL}, */
-/*  {0, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, "Generic 16kb", NULL, NULL}, */
-/*  {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_16KB, 0, 0, 1, 0, "Ultimax", NULL, NULL}, */
+/*  {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, "Generic 8kb", NULL, NULL}, */ /* 8k game config */
+/*  {0, 0, CARTRIDGE_SIZE_12KB, 0x3000, 0x8000, 1, 0, "Generic 12kb", NULL, NULL}, */ /* 16k game config */
+/*  {0, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, "Generic 16kb", NULL, NULL}, */ /* 16k game config */
+/*  {1, 0, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_16KB, 0, 0, 1, 0, "Ultimax", NULL, NULL}, */ /* ultimax config */
 
-    {1, 0, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB | CARTRIDGE_SIZE_12KB | CARTRIDGE_SIZE_16KB, 0, 0, 0, 0, "Generic Cartridge", NULL, save_generic_crt},
+/* FIXME: initial exrom/game values are often wrong in this table
+ *        don't forget to also update vice.texi accordingly */
+
+    {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB | CARTRIDGE_SIZE_12KB | CARTRIDGE_SIZE_16KB, 0, 0, 0, 0, "Generic Cartridge", NULL, save_generic_crt},
     {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY, "ar5", save_regular_crt}, /* this is NOT AR1, but 4.2,5,6 etc */
     {0, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_KCS_POWER, "kcs", save_2_blocks_crt},
     {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_FINAL_III, "fc3", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_SIMONS_BASIC, "simon", save_2_blocks_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_SIMONS_BASIC, "simon", save_2_blocks_crt},
     {0, 0, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_128KB | CARTRIDGE_SIZE_256KB | CARTRIDGE_SIZE_512KB, 0x2000, 0, 0, 0, CARTRIDGE_NAME_OCEAN, "ocean", save_ocean_crt},
     {1, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 2, CARTRIDGE_NAME_EXPERT, "expert", NULL},
     {0, 0, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_FUNPLAY, "fp", save_funplay_crt},
@@ -129,51 +134,52 @@ static const cart_t cart_info[] = {
     {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ATOMIC_POWER, "ap", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_EPYX_FASTLOAD, "epyx", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_WESTERMANN, "wl", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_REX, "ru", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_REX, "ru", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_FINAL_I, "fc1", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_96KB | CARTRIDGE_SIZE_128KB, 0x2000, 0xe000, 0, 0, CARTRIDGE_NAME_MAGIC_FORMEL, "mf", save_regular_crt}, /* FIXME: 64k (v1), 96k (v2) and 128k (full) bins exist */
-    {0, 1, CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 64, 0, CARTRIDGE_NAME_GS, "gs", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_WARPSPEED, "ws", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_DINAMIC, "din", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 64, 0, CARTRIDGE_NAME_GS, "gs", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_WARPSPEED, "ws", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_DINAMIC, "din", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_20KB, 0, 0, 3, 0, CARTRIDGE_NAME_ZAXXON, "zaxxon", save_zaxxon_crt},
     {0, 1, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MAGIC_DESK, "md", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT_V5, "ss5", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_COMAL80, "comal", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_STRUCTURED_BASIC, "sb", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_STRUCTURED_BASIC, "sb", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_ROSS, "ross", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP64, "dep64", save_delaep64_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP7x8, "dep7x8", save_delaep7x8_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP256, "dep256", save_delaep256_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0, 0x8000, 0, 0, CARTRIDGE_NAME_REX_EP256, "rep256", save_rexep256_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MIKRO_ASSEMBLER, "mikro", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP64, "dep64", save_delaep64_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP7x8, "dep7x8", save_delaep7x8_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP256, "dep256", save_delaep256_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0, 0x8000, 0, 0, CARTRIDGE_NAME_REX_EP256, "rep256", save_rexep256_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MIKRO_ASSEMBLER, "mikro", save_regular_crt},
     {1, 1, CARTRIDGE_SIZE_24KB | CARTRIDGE_SIZE_32KB, 0x8000, 0x0000, 1, 0, CARTRIDGE_NAME_FINAL_PLUS, "fcp", save_fcplus_crt},
-    {1, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY4, "ar4", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0, 4, 0, CARTRIDGE_NAME_STARDOS, "star", save_stardos_crt},
-    {0, 1, CARTRIDGE_SIZE_1024KB, 0x2000, 0, 128, 0, CARTRIDGE_NAME_EASYFLASH, "easy", save_easyflash_crt},
+    {0, 1, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY4, "ar4", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 4, 0, CARTRIDGE_NAME_STARDOS, "star", save_stardos_crt},
+    {1, 0, CARTRIDGE_SIZE_1024KB, 0x2000, 0, 128, 0, CARTRIDGE_NAME_EASYFLASH, "easy", save_easyflash_crt},
     {0, 0, 0, 0, 0, 0, 0, CARTRIDGE_NAME_EASYFLASH_XBANK, NULL, NULL}, /* TODO ?? */
     {0, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_CAPTURE, "cap", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY3, "ar3", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY3, "ar3", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_RETRO_REPLAY, "rr", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MMC64, "mmc64", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MMC64, "mmc64", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MMC_REPLAY, "mmcr", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x4000, 0x8000, 0, 2, CARTRIDGE_NAME_IDE64, "ide64", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT, "ss4", save_8000_a000_crt},
-    {1, 0, CARTRIDGE_SIZE_4KB, 0x1000, 0x8000, 1, 0, CARTRIDGE_NAME_IEEE488, "ieee", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x4000, 0x8000, 0, 2, CARTRIDGE_NAME_IDE64, "ide64", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT, "ss4", save_8000_a000_crt},
+    {0, 1, CARTRIDGE_SIZE_4KB, 0x1000, 0x8000, 1, 0, CARTRIDGE_NAME_IEEE488, "ieee", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_GAME_KILLER, "gk", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_256KB, 0x2000, 0x8000, 32, 0, CARTRIDGE_NAME_P64, "p64", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_EXOS, "exos", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_FREEZE_FRAME, "ff", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_FREEZE_MACHINE, "fm", save_8000_a000_crt},
+    {0, 1, CARTRIDGE_SIZE_256KB, 0x2000, 0x8000, 32, 0, CARTRIDGE_NAME_P64, "p64", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_EXOS, "exos", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_FREEZE_FRAME, "ff", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_FREEZE_MACHINE, "fm", save_8000_a000_crt},
     {0, 0, CARTRIDGE_SIZE_4KB, 0x1000, 0xe000, 1, 0, CARTRIDGE_NAME_SNAPSHOT64, "s64", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_EXPLODE_V5, "se5", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_MAGIC_VOICE, "mv", save_8000_a000_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY2, "ar2", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MACH5, "mach5", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_DIASHOW_MAKER, "dsm", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_PAGEFOX, "pf", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_24KB, 0x2000, 0x8000, 3, 0, CARTRIDGE_NAME_KINGSOFT, "ks", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_SILVERROCK_128, "silver", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_EXPLODE_V5, "se5", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_MAGIC_VOICE, "mv", save_8000_a000_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY2, "ar2", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MACH5, "mach5", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_DIASHOW_MAKER, "dsm", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_PAGEFOX, "pf", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_24KB, 0x2000, 0x8000, 3, 0, CARTRIDGE_NAME_KINGSOFT, "ks", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_SILVERROCK_128, "silver", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0xe000, 4, 0, CARTRIDGE_NAME_FORMEL64, "f64", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_64KB, 0x2000, 0x8000, 8, 0, CARTRIDGE_NAME_RGCD, "rgcd", save_regular_crt},
     {0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL}
 };
 
@@ -230,7 +236,7 @@ static const unsigned char charmap[] = {
     '\370', '\371', '\372', '\373', '\374', '\375', '\376', '\377',
 };
 
-int strncasecmp(const char *s1, const char *s2, int n)
+int strncasecmp(const char *s1, const char *s2, size_t n)
 {
     unsigned char u1, u2;
 
@@ -295,15 +301,17 @@ static void usage(void)
     sorted_cart_t *sorted_option_elements;
 
     cleanup();
-    printf("convert:    cartconv [-r] [-t cart type] -i \"input name\" -o \"output name\" [-n \"cart name\"] [-l load address]\n");
+    printf("convert:    cartconv [-r] [-q] [-t cart type] -i \"input name\" -o \"output name\" [-n \"cart name\"] [-l load address]\n");
     printf("print info: cartconv [-r] -f \"input name\"\n\n");
     printf("-f <name>    print info on file\n");
     printf("-r           repair mode (accept broken input files)\n");
+    printf("-p           accept non padded binaries as input\n");
     printf("-t <type>    output cart type\n");
     printf("-i <name>    input filename\n");
     printf("-o <name>    output filename\n");
     printf("-n <name>    crt cart name\n");
     printf("-l <addr>    load address\n");
+    printf("-q           quiet\n");
     printf("\ncart types:\n");
 
     printf("bin      Binary .bin file (Default crt->bin)\n");
@@ -446,6 +454,12 @@ static int checkflag(char *flg, char *arg)
             return 2;
         case 'r':
             repair_mode = 1;
+            return 1;
+        case 'q':
+            quiet_mode = 1;
+            return 1;
+        case 'p':
+            input_padding = 1;
             return 1;
         case 'o':
             checkarg(arg);
@@ -635,9 +649,11 @@ static int save_binary_output_file(void)
         return -1;
     }
     fclose(outfile);
-    printf("Input file : %s\n", input_filename[0]);
-    printf("Output file : %s\n", output_filename);
-    printf("Conversion from %s .crt to binary format successful.\n", cart_info[loadfile_cart_type].name);
+    if (!quiet_mode) {
+        printf("Input file : %s\n", input_filename[0]);
+        printf("Output file : %s\n", output_filename);
+        printf("Conversion from %s .crt to binary format successful.\n", cart_info[loadfile_cart_type].name);
+    }
     return 0;
 }
 
@@ -740,9 +756,11 @@ static int write_chip_package(unsigned int length, unsigned int bankint, unsigne
 
 static void bin2crt_ok(void)
 {
-    printf("Input file : %s\n", input_filename[0]);
-    printf("Output file : %s\n", output_filename);
-    printf("Conversion from binary format to %s .crt successful.\n", cart_info[(unsigned char)cart_type].name);
+    if (!quiet_mode) {
+        printf("Input file : %s\n", input_filename[0]);
+        printf("Output file : %s\n", output_filename);
+        printf("Conversion from binary format to %s .crt successful.\n", cart_info[(unsigned char)cart_type].name);
+    }
 }
 
 static void save_regular_crt(unsigned int length, unsigned int banks, unsigned int address, unsigned int type, unsigned char game, unsigned char exrom)
@@ -1123,9 +1141,13 @@ static int load_input_file(char *filename)
                 return 0;
                 break;
             default:
-                fprintf(stderr, "Error: Illegal file size of %s\n", filename);
                 fclose(infile);
+                if (input_padding) {
+                    return 0;
+                }
+                fprintf(stderr, "Error: Illegal file size of %s\n", filename);
                 return -1;
+                break;
         }
     }
 }
@@ -1247,12 +1269,16 @@ static void save_delaep256_crt(unsigned int p1, unsigned int p2, unsigned int p3
                     close_output_cleanup();
                 }
             }
-            printf("inserted %s in banks %d-%d of the Dela EP256 .crt\n", input_filename[i + 1], (i * 4) + 1, (i * 4) + 4);
+            if (!quiet_mode) {
+                printf("inserted %s in banks %d-%d of the Dela EP256 .crt\n", input_filename[i + 1], (i * 4) + 1, (i * 4) + 4);
+            }
         } else {
             if (write_chip_package(0x2000, i + 1, 0x8000, 0) < 0) {
                 close_output_cleanup();
             }
-            printf("inserted %s in bank %d of the Dela EP256 .crt\n", input_filename[i + 1], i + 1);
+            if (!quiet_mode) {
+                printf("inserted %s in bank %d of the Dela EP256 .crt\n", input_filename[i + 1], i + 1);
+            }
         }
     }
 
@@ -1318,8 +1344,10 @@ static void save_delaep7x8_crt(unsigned int p1, unsigned int p2, unsigned int p3
                     if (write_chip_package(0x2000, chip_counter + 3, 0x8000, 0) < 0) {
                         close_output_cleanup();
                     }
-                    printf("inserted %s in banks %d-%d of the Dela EP7x8 .crt\n",
-                           input_filename[name_counter], chip_counter, chip_counter + 3);
+                    if (!quiet_mode) {
+                        printf("inserted %s in banks %d-%d of the Dela EP7x8 .crt\n",
+                               input_filename[name_counter], chip_counter, chip_counter + 3);
+                    }
                     chip_counter += 4;
                     inserted_size += 0x8000;
                 }
@@ -1343,8 +1371,10 @@ static void save_delaep7x8_crt(unsigned int p1, unsigned int p2, unsigned int p3
                     if (write_chip_package(0x2000, chip_counter + 1, 0x8000, 0) < 0) {
                         close_output_cleanup();
                     }
-                    printf("inserted %s in banks %d and %d of the Dela EP7x8 .crt\n",
-                           input_filename[name_counter], chip_counter, chip_counter + 1);
+                    if (!quiet_mode) {
+                        printf("inserted %s in banks %d and %d of the Dela EP7x8 .crt\n",
+                               input_filename[name_counter], chip_counter, chip_counter + 1);
+                    }
                     chip_counter += 2;
                     inserted_size += 0x4000;
                 }
@@ -1365,7 +1395,9 @@ static void save_delaep7x8_crt(unsigned int p1, unsigned int p2, unsigned int p3
                     if (write_chip_package(0x2000, chip_counter, 0x8000, 0) < 0) {
                         close_output_cleanup();
                     }
-                    printf("inserted %s in bank %d of the Dela EP7x8 .crt\n", input_filename[name_counter], chip_counter);
+                    if (!quiet_mode) {
+                        printf("inserted %s in bank %d of the Dela EP7x8 .crt\n", input_filename[name_counter], chip_counter);
+                    }
                     chip_counter++;
                     inserted_size += 0x2000;
                 }
@@ -1434,8 +1466,10 @@ static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3,
                     if (write_chip_package(0x8000, chip_counter, 0x8000, 0) < 0) {
                         close_output_cleanup();
                     }
-                    printf("inserted %s in bank %d as a 32KB eprom of the Rex EP256 .crt\n",
-                           input_filename[name_counter], chip_counter);
+                    if (!quiet_mode) {
+                        printf("inserted %s in bank %d as a 32KB eprom of the Rex EP256 .crt\n",
+                               input_filename[name_counter], chip_counter);
+                    }
                     chip_counter++;
                 }
             }
@@ -1465,8 +1499,10 @@ static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3,
                 if (eprom_size_for_8kb == 1) {
                     if (write_chip_package(0x2000, chip_counter, 0x8000, 0) < 0) {
                         close_output_cleanup();
-                        printf("inserted %s as an 8KB eprom in bank %d of the Rex EP256 .crt\n",
-                               input_filename[name_counter], chip_counter);
+                        if (!quiet_mode) {
+                            printf("inserted %s as an 8KB eprom in bank %d of the Rex EP256 .crt\n",
+                                   input_filename[name_counter], chip_counter);
+                        }
                         chip_counter++;
                     }
 
@@ -1477,12 +1513,14 @@ static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3,
                         if (write_chip_package(0x8000, chip_counter, 0x8000, 0) < 0) {
                             close_output_cleanup();
                         }
-                        if (subchip_counter == 1) {
-                            printf("inserted %s as a 32KB eprom in bank %d of the Rex EP256 .crt\n",
-                                   input_filename[name_counter], chip_counter);
-                        } else {
-                            printf(" and %s as a 32KB eprom in bank %d of the Rex EP256 .crt\n",
-                                   input_filename[name_counter], chip_counter);
+                        if (!quiet_mode) {
+                            if (subchip_counter == 1) {
+                                printf("inserted %s as a 32KB eprom in bank %d of the Rex EP256 .crt\n",
+                                       input_filename[name_counter], chip_counter);
+                            } else {
+                                printf(" and %s as a 32KB eprom in bank %d of the Rex EP256 .crt\n",
+                                       input_filename[name_counter], chip_counter);
+                            }
                         }
                         chip_counter++;
                         subchip_counter = 1;
@@ -1491,7 +1529,9 @@ static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3,
                     if (eprom_size_for_8kb == 4 && (subchip_counter == 3 || subchip_counter == 2) &&
                         name_counter != input_filenames) {
                         memcpy(extra_buffer_32kb + ((subchip_counter - 1) * 0x2000), filebuffer + loadfile_offset, 0x2000);
-                        printf(", %s", input_filename[name_counter]);
+                        if (!quiet_mode) {
+                            printf(", %s", input_filename[name_counter]);
+                        }
                         subchip_counter++;
                     }
 
@@ -1504,25 +1544,31 @@ static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3,
                             if (write_chip_package(0x4000, chip_counter, 0x8000, 0) < 0) {
                                 close_output_cleanup();
                             }
-                            if (subchip_counter == 1) {
-                                printf("inserted %s as a 16KB eprom in bank %d of the Rex EP256 .crt\n",
-                                       input_filename[name_counter], chip_counter);
-                            } else {
-                                printf(" and %s as a 16KB eprom in bank %d of the Rex EP256 .crt\n",
-                                       input_filename[name_counter], chip_counter);
+                            if (!quiet_mode) {
+                                if (subchip_counter == 1) {
+                                    printf("inserted %s as a 16KB eprom in bank %d of the Rex EP256 .crt\n",
+                                           input_filename[name_counter], chip_counter);
+                                } else {
+                                    printf(" and %s as a 16KB eprom in bank %d of the Rex EP256 .crt\n",
+                                           input_filename[name_counter], chip_counter);
+                                }
                             }
                             chip_counter++;
                             subchip_counter = 1;
                         } else {
                             memcpy(extra_buffer_32kb, filebuffer + loadfile_offset, 0x2000);
-                            printf("inserted %s", input_filename[name_counter]);
+                            if (!quiet_mode) {
+                                printf("inserted %s", input_filename[name_counter]);
+                            }
                             subchip_counter++;
                         }
                     }
 
                     if (eprom_size_for_8kb == 4 && subchip_counter == 1 && name_counter != input_filenames) {
                         memcpy(extra_buffer_32kb, filebuffer + loadfile_offset, 0x2000);
-                        printf("inserted %s", input_filename[name_counter]);
+                        if (!quiet_mode) {
+                            printf("inserted %s", input_filename[name_counter]);
+                        }
                         subchip_counter++;
                     }
                 }
@@ -1650,11 +1696,17 @@ int main(int argc, char *argv[])
         /* FIXME: the sizes are used in a bitfield, and also by their absolute values. this
                   check is doomed to fail because of that :)
         */
-        if ((loadfile_size & cart_info[(unsigned char)cart_type].sizes) != loadfile_size) {
-            fprintf(stderr, "Error: Input file size (%d) doesn't match %s requirements\n",
-                    loadfile_size, cart_info[(unsigned char)cart_type].name);
-            cleanup();
-            exit(1);
+        if (input_padding) {
+            while ((loadfile_size & cart_info[(unsigned char)cart_type].sizes) != loadfile_size) {
+                loadfile_size++;
+            }
+        } else {
+            if ((loadfile_size & cart_info[(unsigned char)cart_type].sizes) != loadfile_size) {
+                fprintf(stderr, "Error: Input file size (%d) doesn't match %s requirements\n",
+                        loadfile_size, cart_info[(unsigned char)cart_type].name);
+                cleanup();
+                exit(1);
+            }
         }
         if (cart_info[(unsigned char)cart_type].save != NULL) {
             cart_info[(unsigned char)cart_type].save(cart_info[(unsigned char)cart_type].bank_size,

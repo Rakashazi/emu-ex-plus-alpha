@@ -28,6 +28,7 @@
 #include "vice.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "6510core.h"
 #include "alarm.h"
@@ -580,12 +581,71 @@ void maincpu_mainloop(void)
 #include "6510dtvcore.c"
 
         maincpu_int_status->num_dma_per_opcode = 0;
+
+        if (maincpu_clk_limit && (maincpu_clk > maincpu_clk_limit)) {
+            log_error(LOG_DEFAULT, "cycle limit reached.");
+            exit(EXIT_FAILURE);
+        }
 #if 0
         if (CLK > 246171754) {
             debug.maincpu_traceflg = 1;
         }
 #endif
     }
+}
+
+/* ------------------------------------------------------------------------- */
+
+void maincpu_set_pc(int pc) {
+    MOS6510_REGS_SET_PC(&maincpu_regs, pc);
+}
+
+void maincpu_set_a(int a) {
+    MOS6510_REGS_SET_A(&maincpu_regs, a);
+}
+
+void maincpu_set_x(int x) {
+    MOS6510_REGS_SET_X(&maincpu_regs, x);
+}
+
+void maincpu_set_y(int y) {
+    MOS6510_REGS_SET_Y(&maincpu_regs, y);
+}
+
+void maincpu_set_sign(int n) {
+    MOS6510_REGS_SET_SIGN(&maincpu_regs, n);
+}
+
+void maincpu_set_zero(int z) {
+    MOS6510_REGS_SET_ZERO(&maincpu_regs, z);
+}
+
+void maincpu_set_carry(int c) {
+    MOS6510_REGS_SET_CARRY(&maincpu_regs, c);
+}
+
+void maincpu_set_interrupt(int i) {
+    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, i);
+}
+
+unsigned int maincpu_get_pc(void) {
+    return MOS6510_REGS_GET_PC(&maincpu_regs);
+}
+
+unsigned int maincpu_get_a(void) {
+    return MOS6510_REGS_GET_A(&maincpu_regs);
+}
+
+unsigned int maincpu_get_x(void) {
+    return MOS6510_REGS_GET_X(&maincpu_regs);
+}
+
+unsigned int maincpu_get_y(void) {
+    return MOS6510_REGS_GET_Y(&maincpu_regs);
+}
+
+unsigned int maincpu_get_sp(void) {
+    return MOS6510_REGS_GET_SP(&maincpu_regs);
 }
 
 /* ------------------------------------------------------------------------- */

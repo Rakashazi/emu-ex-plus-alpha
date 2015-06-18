@@ -39,6 +39,7 @@
 #endif
 
 #include "archdep.h"
+#include "cmdline.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
@@ -92,6 +93,10 @@ static int set_server_bind_address(const char *val, void *param)
 
 static int set_server_port(int val, void *param)
 {
+    if (val < 0 || val > 65535) {
+        return -1;
+    }
+
     res_server_port = val;
 
     server_port = (unsigned short)res_server_port;
@@ -102,6 +107,7 @@ static int set_server_port(int val, void *param)
 static int set_network_control(int val, void *param)
 {
     network_control = val;
+
     /* don't let the server loose control */
     network_control |= NETWORK_CONTROL_RSRC;
 
@@ -137,6 +143,94 @@ int network_resources_init(void)
 
 /*---------------------------------------------------------------------*/
 
+static void network_set_mask(int offset, int val)
+{
+    switch (val) {
+        case 1:
+            network_control |= 1 << offset;
+            break;
+        case 2:
+            network_control |= 1 << (offset + NETWORK_CONTROL_CLIENTOFFSET);
+            break;
+        case 3:
+            network_control |= 1 << offset;
+            network_control |= 1 << (offset + NETWORK_CONTROL_CLIENTOFFSET);
+            break;
+        default:
+        case 0:
+            break;
+    }
+}
+
+static int network_control_cmd(const char *param, void *extra_param)
+{
+    int keyb;
+    int joy1;
+    int joy2;
+    int dev;
+    int rsrc;
+
+    if (strlen(param) != 9) {
+        return -1;
+    }
+
+    if (param[1] != ',' || param[3] != ',' || param[5] != ',' || param[7] != ',') {
+        return -1;
+    }
+
+    keyb = param[0] - '0';
+    joy1 = param[2] - '0';
+    joy2 = param[4] - '0';
+    dev = param[6] - '0';
+    rsrc = param[8] - '0';
+
+    if (keyb < 0 || keyb > 3 || joy1 < 0 || joy1 > 3 || joy2 < 0 || joy2 > 3 || dev < 0 || dev > 3 || rsrc < 0 || rsrc > 2) {
+        return -1;
+    }
+
+    network_control = 0;
+
+    network_set_mask(0, keyb);
+    network_set_mask(1, joy1);
+    network_set_mask(2, joy2);
+    network_set_mask(3, dev);
+    network_set_mask(4, rsrc);
+
+    return 0;
+}
+
+static const cmdline_option_t cmdline_options[] = {
+    { "-netplayserver", SET_RESOURCE, 1,
+      NULL, NULL, "NetworkServerName", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_HOSTNAME, IDCLS_SET_NETPLAY_SERVER,
+      NULL, NULL },
+    { "-netplaybind", SET_RESOURCE, 1,
+      NULL, NULL, "NetworkServerBindAddress", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_HOSTNAME, IDCLS_SET_NETPLAY_BIND_ADDRESS,
+      NULL, NULL },
+    { "-netplayport", SET_RESOURCE, 1,
+      NULL, NULL, "NetworkServerPort", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_PORT, IDCLS_SET_NETPLAY_PORT,
+      NULL, NULL },
+    { "-netplayctrl", CALL_FUNCTION, 1,
+      network_control_cmd, NULL, NULL, NULL,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_SET_NETPLAY_CONTROL,
+      "<key,joy1,joy2,dev,rsrc>", NULL },
+    { NULL }
+};
+
+int network_cmdline_options_init(void)
+{
+    return cmdline_register_options(cmdline_options);
+}
+
+
+/*---------------------------------------------------------------------*/
+
 static void network_free_frame_event_list(void)
 {
     int i;
@@ -155,11 +249,11 @@ static void network_event_record_sync_test(WORD addr, void *data)
 {
     BYTE regbuf[5 * 4];
 
-    util_dword_to_le_buf(&regbuf[0 * 4], (DWORD)(maincpu_regs.pc));
-    util_dword_to_le_buf(&regbuf[1 * 4], (DWORD)(maincpu_regs.a));
-    util_dword_to_le_buf(&regbuf[2 * 4], (DWORD)(maincpu_regs.x));
-    util_dword_to_le_buf(&regbuf[3 * 4], (DWORD)(maincpu_regs.y));
-    util_dword_to_le_buf(&regbuf[4 * 4], (DWORD)(maincpu_regs.sp));
+    util_dword_to_le_buf(&regbuf[0 * 4], (DWORD)(maincpu_get_pc()));
+    util_dword_to_le_buf(&regbuf[1 * 4], (DWORD)(maincpu_get_a()));
+    util_dword_to_le_buf(&regbuf[2 * 4], (DWORD)(maincpu_get_x()));
+    util_dword_to_le_buf(&regbuf[3 * 4], (DWORD)(maincpu_get_y()));
+    util_dword_to_le_buf(&regbuf[4 * 4], (DWORD)(maincpu_get_sp()));
 
     network_event_record(EVENT_SYNC_TEST, (void *)regbuf, sizeof(regbuf));
 }

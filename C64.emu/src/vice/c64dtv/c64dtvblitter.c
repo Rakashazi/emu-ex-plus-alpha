@@ -39,6 +39,7 @@
 #include "c64dtvdma.h"
 #include "vicii-mem.h"
 #include "cmdline.h"
+#include "debug.h"
 #include "lib.h"
 #include "log.h"
 #include "util.h"
@@ -48,7 +49,10 @@
 #include "snapshot.h"
 #include "translate.h"
 
+#ifdef DEBUG
 static log_t c64dtvblitter_log = LOG_ERR;
+#endif
+
 static unsigned int c64dtv_blitter_int_num;
 
 /* I/O of the blitter engine ($D3XX) */
@@ -62,7 +66,10 @@ static int blit_sourceB_off;
 static int blit_dest_off;
 static int blitter_busy;
 static int blitter_irq;
+
+#ifdef DEBUG
 static int blitter_log_enabled = 0;
+#endif
 
 static BYTE srca_data[4];
 static int srca_data_offs;
@@ -112,9 +119,11 @@ static int reg1e_mintermALU;
 
 void c64dtvblitter_init(void)
 {
+#ifdef DEBUG
     if (c64dtvblitter_log == LOG_ERR) {
         c64dtvblitter_log = log_open("C64DTVBLITTER");
     }
+#endif
 
     /* init Blitter IRQ */
     c64dtv_blitter_int_num = interrupt_cpu_status_int_new(maincpu_int_status, "C64DTVBLITTER");
@@ -128,9 +137,11 @@ void c64dtvblitter_shutdown(void)
 void c64dtvblitter_reset(void)
 {
     int i;
+#ifdef DEBUG
     if (blitter_log_enabled) {
         log_message(c64dtvblitter_log, "reset");
     }
+#endif
 
     /* TODO move register file initialization somewhere else? */
     for (i = 0; i < 0x20; ++i) {
@@ -234,9 +245,11 @@ static inline int do_blitter_write(void)
         mem_ram[offs] = dest;
         was_write = 1;
     }
+#ifdef DEBUG
     if (blitter_log_enabled) {
         log_message(c64dtvblitter_log, "Blitter: %s %x.%x/%x.%x to %x.%x, %d to go, minterm %d", was_write ? "transferred" : "skipped", blit_sourceA_off >> 4, blit_sourceA_off & 15, blit_sourceB_off >> 4, blit_sourceB_off & 15, blit_dest_off >> 4, blit_dest_off & 15, blitter_count - 1, reg1e_mintermALU);
     }
+#endif
     return was_write;
 }
 
@@ -310,7 +323,9 @@ static inline void perform_blitter_cycle(void)
                 }
                 break;
             default:
+#ifdef DEBUG
                 log_message(c64dtvblitter_log, "invalid state in perform_blitter_cycle()");
+#endif
                 blitter_state = BLITTER_IDLE;
                 break;
         }
@@ -343,9 +358,11 @@ void c64dtvblitter_trigger_blitter(void)
             blit_dest_off <<= 4;
         }
 
+#ifdef DEBUG
         if (blitter_log_enabled && (sourceA_continue || sourceB_continue || dest_continue)) {
             log_message(c64dtvblitter_log, "sourceA cont %s, sourceB cont %s, dest cont %s", sourceA_continue ? "on" : "off", sourceB_continue ? "on" : "off", dest_continue ? "on" : "off");
         }
+#endif
 
         /* total number of bytes to transfer */
         blitter_count = GET_REG16(0x18);
@@ -373,9 +390,11 @@ void c64dtvblitter_trigger_blitter(void)
 
 static inline void c64dtv_blitter_done(void)
 {
+#ifdef DEBUG
     if (blitter_log_enabled) {
         log_message(c64dtvblitter_log, "IRQ/Done");
     }
+#endif
     if (blitter_irq) {
         maincpu_set_irq(c64dtv_blitter_int_num, 1);
         blitter_busy = 2;
@@ -468,9 +487,11 @@ void c64dtv_blitter_store(WORD addr, BYTE value)
 
     /* Clear Blitter IRQ */
     if ((GET_REG8(0x1f) & 0x01) && (blitter_busy == 2)) {
+#ifdef DEBUG
         if (blitter_log_enabled) {
             log_message(c64dtvblitter_log, "Clear IRQ (%i)", blitter_busy);
         }
+#endif
         blitter_busy &= 0xfd;
         maincpu_set_irq(c64dtv_blitter_int_num, 0);
         blitter_irq = 0;
@@ -480,9 +501,11 @@ void c64dtv_blitter_store(WORD addr, BYTE value)
 
     if (blitter_on_irq && (blitter_busy == 0)) {
         blitter_busy = 1;
+#ifdef DEBUG
         if (blitter_log_enabled) {
             log_message(c64dtvblitter_log, "Scheduled Blitter (%02x)", blitter_on_irq);
         }
+#endif
         return;
     }
 
@@ -520,17 +543,21 @@ static int set_dtvrevision(int val, void *param)
     return 1;
 }
 
+#ifdef DEBUG
 static int set_blitter_log(int val, void *param)
 {
-    blitter_log_enabled = val;
+    blitter_log_enabled = val ? 1 : 0;
     return 0;
 }
+#endif
 
 static const resource_int_t resources_int[] = {
     { "DtvRevision", 3, RES_EVENT_SAME, NULL,
       &dtvrevision, set_dtvrevision, NULL },
+#ifdef DEBUG
     { "DtvBlitterLog", 0, RES_EVENT_NO, (resource_value_t)0,
       &blitter_log_enabled, set_blitter_log, NULL },
+#endif
     { NULL }
 };
 
@@ -550,6 +577,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_REVISION, IDCLS_SPECIFY_DTV_REVISION,
       NULL, NULL },
+#ifdef DEBUG
     { "-dtvblitterlog", SET_RESOURCE, 0,
       NULL, NULL, "DtvBlitterLog", (resource_value_t)1,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
@@ -560,6 +588,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DTV_BLITTER_LOG,
       NULL, NULL },
+#endif
     { NULL }
 };
 

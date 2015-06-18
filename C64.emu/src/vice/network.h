@@ -51,6 +51,7 @@ typedef enum {
         << NETWORK_CONTROL_CLIENTOFFSET)
 
 extern int network_resources_init(void);
+extern int network_cmdline_options_init(void);
 extern int network_start_server(void);
 extern int network_connect_client(void);
 extern void network_disconnect(void);

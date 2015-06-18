@@ -112,6 +112,7 @@
 #include "reu.h"
 #include "rexep256.h"
 #include "rexutility.h"
+#include "rgcd.h"
 #include "ross.h"
 #include "silverrock128.h"
 #include "simonsbasic.h"
@@ -425,6 +426,11 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_ATTACH_RAW_REX_EP256_CART,
       NULL, NULL },
+    { "-cartrgcd", CALL_FUNCTION, 1,
+      cart_attach_cmdline, (void *)CARTRIDGE_RGCD, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_ATTACH_RAW_RGCD_CART,
+      NULL, NULL },
     { "-cartross", CALL_FUNCTION, 1,
       cart_attach_cmdline, (void *)CARTRIDGE_ROSS, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -507,6 +513,7 @@ int cart_cmdline_options_init(void)
 {
     /* "Slot 0" */
     if (mmc64_cmdline_options_init() < 0
+        || magicvoice_cmdline_options_init() < 0
         || tpi_cmdline_options_init() < 0
         /* "Slot 1" */
         || dqbb_cmdline_options_init() < 0
@@ -517,7 +524,7 @@ int cart_cmdline_options_init(void)
 #ifdef HAVE_MIDI
         || c64_midi_cmdline_options_init() < 0
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         || aciacart_cmdline_options_init() < 0
 #endif
         || digimax_cmdline_options_init() < 0
@@ -569,7 +576,7 @@ int cart_resources_init(void)
 #ifdef HAVE_TFE
         || tfe_resources_init() < 0
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         || aciacart_resources_init() < 0
 #endif
         /* "Main Slot" */
@@ -598,7 +605,7 @@ void cart_resources_shutdown(void)
 #ifdef HAVE_TFE
     tfe_resources_shutdown();
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     aciacart_resources_shutdown();
 #endif
 
@@ -743,7 +750,7 @@ int cart_type_enabled(int type)
         case CARTRIDGE_TFE:
             return tfe_cart_enabled();
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         case CARTRIDGE_TURBO232:
             return aciacart_cart_enabled();
 #endif
@@ -794,7 +801,7 @@ const char *cart_get_file_name(int type)
 #ifdef HAVE_TFE
         case CARTRIDGE_TFE:
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         case CARTRIDGE_TURBO232:
 #endif
             break;
@@ -930,6 +937,8 @@ int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
             return rex_bin_attach(filename, rawcart);
         case CARTRIDGE_REX_EP256:
             return rexep256_bin_attach(filename, rawcart);
+        case CARTRIDGE_RGCD:
+            return rgcd_bin_attach(filename, rawcart);
         case CARTRIDGE_ROSS:
             return ross_bin_attach(filename, rawcart);
         case CARTRIDGE_SILVERROCK_128:
@@ -1122,6 +1131,9 @@ void cart_attach(int type, BYTE *rawcart)
         case CARTRIDGE_REX_EP256:
             rexep256_config_setup(rawcart);
             break;
+        case CARTRIDGE_RGCD:
+            rgcd_config_setup(rawcart);
+            break;
         case CARTRIDGE_ROSS:
             ross_config_setup(rawcart);
             break;
@@ -1281,7 +1293,7 @@ int cartridge_enable(int type)
             tfe_enable();
             break;
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         case CARTRIDGE_TURBO232:
             aciacart_enable();
             break;
@@ -1330,7 +1342,7 @@ void cart_detach_all(void)
 #ifdef HAVE_TFE
     tfe_detach();
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     aciacart_detach();
 #endif
     /* "Main Slot" */
@@ -1406,7 +1418,7 @@ void cart_detach(int type)
             tfe_detach();
             break;
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
         case CARTRIDGE_TURBO232:
             aciacart_detach();
             break;
@@ -1526,6 +1538,9 @@ void cart_detach(int type)
         case CARTRIDGE_REX_EP256:
             rexep256_detach();
             break;
+        case CARTRIDGE_RGCD:
+            rgcd_detach();
+            break;
         case CARTRIDGE_ROSS:
             ross_detach();
             break;
@@ -1605,7 +1620,7 @@ void cart_init(void)
 #ifdef HAVE_TFE
     tfe_init();
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     aciacart_init();
 #endif
 }
@@ -1759,6 +1774,9 @@ void cartridge_init_config(void)
         case CARTRIDGE_REX_EP256:
             rexep256_config_init();
             break;
+        case CARTRIDGE_RGCD:
+            rgcd_config_init();
+            break;
         case CARTRIDGE_ROSS:
             ross_config_init();
             break;
@@ -1875,7 +1893,7 @@ void cartridge_reset(void)
         tfe_reset();
     }
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (aciacart_cart_enabled()) {
         aciacart_reset();
     }
@@ -1914,6 +1932,9 @@ void cartridge_reset(void)
             break;
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_reset();
+            break;
+        case CARTRIDGE_RGCD:
+            rgcd_reset();
             break;
         case CARTRIDGE_RETRO_REPLAY:
             retroreplay_reset();
@@ -2661,6 +2682,11 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                     return -1;
                 }
                 break;
+            case CARTRIDGE_RGCD:
+                if (rgcd_snapshot_write_module(s) < 0) {
+                    return -1;
+                }
+                break;
             case CARTRIDGE_ROSS:
                 if (ross_snapshot_write_module(s) < 0) {
                     return -1;
@@ -2776,7 +2802,7 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                 }
                 break;
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
             case CARTRIDGE_TURBO232:
                 if (aciacart_snapshot_write_module(s) < 0) {
                     return -1;
@@ -3125,6 +3151,11 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                     goto fail2;
                 }
                 break;
+            case CARTRIDGE_RGCD:
+                if (rgcd_snapshot_read_module(s) < 0) {
+                    goto fail2;
+                }
+                break;
             case CARTRIDGE_ROSS:
                 if (ross_snapshot_read_module(s) < 0) {
                     goto fail2;
@@ -3240,7 +3271,7 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                 }
                 break;
 #endif
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
             case CARTRIDGE_TURBO232:
                 if (aciacart_snapshot_read_module(s) < 0) {
                     goto fail2;

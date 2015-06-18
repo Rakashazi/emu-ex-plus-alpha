@@ -2,7 +2,7 @@
  * parallel.c - IEEE488 emulation.
  *
  * Written by
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -41,9 +41,9 @@
 
 #include <stdio.h>
 
+#include "archdep.h"
 #include "cmdline.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "ieee.h"
 #include "log.h"
@@ -153,11 +153,7 @@ static const char *Trans[NTRANS] = {
     "NDAC low", "NDAC high", "NRFD low", "NRFD high"
 };
 
-#if defined(__BEOS__) && defined(WORDS_BIGENDIAN)
-extern State_t State[];
-#else
-static State_t State[NSTATE];
-#endif
+STATIC_PROTOTYPE State_t State[NSTATE];
 
 static int state = WaitATN;
 
@@ -708,7 +704,7 @@ drivefunc_context_t drive_funcs[DRIVE_NUM] = {
 #define PARALLEL_CPU_SET_LINE(line, dev, mask)     \
     void parallel_##dev##_set_##line(char val)     \
     {                                              \
-        drivecpu_execute_all(maincpu_clk);         \
+        drive_cpu_execute_all(maincpu_clk);         \
         if (val) {                                 \
             parallel_set_##line(PARALLEL_##mask);  \
         } else {                                   \

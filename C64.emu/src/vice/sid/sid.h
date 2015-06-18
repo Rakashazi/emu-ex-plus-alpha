@@ -92,7 +92,7 @@ extern void sid_state_write(unsigned int channel,
 
 struct sid_engine_s {
     struct sound_s *(*open)(BYTE *sidstate);
-    int (*init)(struct sound_s *psid, int speed, int cycles_per_sec);
+    int (*init)(struct sound_s *psid, int speed, int cycles_per_sec, int factor);
     void (*close)(struct sound_s *psid);
     BYTE (*read)(struct sound_s *psid, WORD addr);
     void (*store)(struct sound_s *psid, WORD addr, BYTE val);
@@ -115,6 +115,7 @@ struct sid_engine_model_s {
 typedef struct sid_engine_model_s sid_engine_model_t;
 
 extern sound_t *sid_sound_machine_open(int chipno);
+extern int sid_sound_machine_init_vbr(sound_t *psid, int speed, int cycles_per_sec, int factor);
 extern int sid_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
 extern void sid_sound_machine_close(sound_t *psid);
 extern BYTE sid_sound_machine_read(sound_t *psid, WORD addr);

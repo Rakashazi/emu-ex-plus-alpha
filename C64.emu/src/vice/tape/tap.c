@@ -329,13 +329,11 @@ static int tap_cbm_read_byte(tap_t *tap)
     BYTE read;
     int pos_advance;
 
-    /* wait for L pulse (start-of-byte) */
-    do {
-        data = tap_get_pulse(tap, &pos_advance);
-        if (data < 0) {
-            return -1;
-        }
-    } while (!TAP_PULSE_LONG(data));
+    /* check for L pulse (start-of-byte) */
+    data = tap_get_pulse(tap, &pos_advance);
+    if (data < 0 || !TAP_PULSE_LONG(data)) {
+        return -1;
+    }
 
     /* expect either M (L-M: start-of-byte) or S (L-S: end-of-data-block) */
     data = tap_get_pulse(tap, &pos_advance);
@@ -414,11 +412,14 @@ static int tap_cbm_skip_pilot(tap_t *tap)
                 current_filepos = fpos;
                 return 0;
             }
-        } else if (++counter > 100000) {
-            return 0; /* Give up if no L pulse for a long time */
         } else if (data < 0) {
             return -1; /* end-of-tape */
-        }
+        } else {
+            ++counter;
+            if (!TAP_PULSE_SHORT(data)) {
+                return 0;
+            }
+        } 
     }
 
     return 0;

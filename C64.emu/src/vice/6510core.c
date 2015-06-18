@@ -128,12 +128,11 @@
 #if defined DRIVE_CPU
 #define LOCAL_SET_OVERFLOW(val)               \
     do {                                      \
-        if (!(val)) {                         \
-            drivecpu_byte_ready_egde_clear(); \
-        }                                     \
         if (val) {                            \
             reg_p |= P_OVERFLOW;              \
         } else {                              \
+            drivecpu_rotate();                \
+            drivecpu_byte_ready_egde_clear(); \
             reg_p &= ~P_OVERFLOW;             \
         }                                     \
     } while (0)
@@ -667,6 +666,7 @@ CONST value, it probably has to be made configureable somehow if no value can
 be found that works for both.
 */
 
+#ifndef ANE
 #define ANE(value, pc_inc)                                               \
     do {                                                                 \
         BYTE tmp = ((reg_a_read | 0xff) & reg_x_read & ((BYTE)(value))); \
@@ -674,6 +674,7 @@ be found that works for both.
         LOCAL_SET_NZ(tmp);                                               \
         INC_PC(pc_inc);                                                  \
     } while (0)
+#endif
 
 /* The fanciest opcode ever... ARR! */
 #define ARR(value, pc_inc)                                          \
@@ -1130,6 +1131,7 @@ be found that works for both.
 
 /* Note: this is not always exact, as this opcode can be quite unstable!
    Moreover, the behavior is different from the one described in 64doc. */
+#ifndef LXA
 #define LXA(value, pc_inc)                                  \
     do {                                                    \
         BYTE tmp = ((reg_a_read | 0xee) & ((BYTE)(value))); \
@@ -1138,6 +1140,7 @@ be found that works for both.
         LOCAL_SET_NZ(tmp);                                  \
         INC_PC(pc_inc);                                     \
     } while (0)
+#endif
 
 #define ORA(value, clk_inc, pc_inc)              \
     do {                                         \
@@ -2140,7 +2143,9 @@ trap_skipped:
 
             case 0x08:          /* PHP */
 #ifdef DRIVE_CPU
+                drivecpu_rotate();
                 if (drivecpu_byte_ready()) {
+                    drivecpu_byte_ready_egde_clear();
                     LOCAL_SET_OVERFLOW(1);
                 }
 #endif
@@ -2417,7 +2422,9 @@ trap_skipped:
             case 0x50:          /* BVC $nnnn */
 #ifdef DRIVE_CPU
                 CLK_ADD(CLK, -1);
+                drivecpu_rotate();
                 if (drivecpu_byte_ready()) {
+                    drivecpu_byte_ready_egde_clear();
                     LOCAL_SET_OVERFLOW(1);
                 }
                 CLK_ADD(CLK, 1);
@@ -2528,7 +2535,9 @@ trap_skipped:
             case 0x70:          /* BVS $nnnn */
 #ifdef DRIVE_CPU
                 CLK_ADD(CLK, -1);
+                drivecpu_rotate();
                 if (drivecpu_byte_ready()) {
+                    drivecpu_byte_ready_egde_clear();
                     LOCAL_SET_OVERFLOW(1);
                 }
                 CLK_ADD(CLK, 1);

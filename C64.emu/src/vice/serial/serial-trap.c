@@ -30,7 +30,6 @@
 
 #include "maincpu.h"
 #include "mem.h"
-#include "mos6510.h"
 #include "serial-iec-bus.h"
 /* Will be removed once serial.c is clean */
 #include "serial-iec-device.h"
@@ -43,6 +42,15 @@
    the PET.  (FIXME?)  */
 #define BSOUR 0x95 /* Buffered Character for IEEE Bus */
 
+/* FIXME: code here assumes 4 bits for device number; should be 5? */
+#define LISTEN_MASK     0xF0    /* should be 0xE0 */
+#define DEVNR_MASK      0x0F    /* should be 0x1F */
+#define SA_MASK         0x0F
+#define LISTEN          0x20
+#define TALK            0x40
+#define SECONDARY       0x60
+#define CLOSE           0xE0
+#define OPEN            0xF0
 
 /* Address of serial TMP register.  */
 static WORD tmp_in;
@@ -59,6 +67,7 @@ static void (*attention_callback_func)(void);
 
 static unsigned int serial_truedrive;
 
+#define IS_PRINTER(d)   (((d) & DEVNR_MASK) >= 4 && ((d) & DEVNR_MASK) <= 7)
 
 static void serial_set_st(BYTE st)
 {
@@ -70,6 +79,21 @@ static BYTE serial_get_st(void)
     return mem_read((WORD)0x90);
 }
 
+/*
+ * Send LISTEN/TALK and the secondary address.
+ */
+static void send_listen_talk_secondary(BYTE b)
+{
+    TrapSecondary = b;
+    switch (TrapDevice & 0xf0) {
+        case LISTEN:
+            serial_iec_bus_listen(TrapDevice, TrapSecondary, serial_set_st);
+            break;
+        case TALK:
+            serial_iec_bus_talk(TrapDevice, TrapSecondary, serial_set_st);
+            break;
+    }
+}
 
 /* Command Serial Bus to TALK, LISTEN, UNTALK, or UNLISTEN, and send the
    Secondary Address to Serial Bus under Attention.  */
@@ -83,60 +107,48 @@ int serial_trap_attention(void)
      */
     b = mem_read(((BYTE)(BSOUR))); /* BSOUR - character for serial bus */
 
-    if (((b & 0xf0) == 0x20) || ((b & 0xf0) == 0x40)) {
-        if (serial_truedrive && ((b & 0x0f) != 4 ) && ((b & 0x0f) != 5)) {
+    if (serial_truedrive && !IS_PRINTER(b)) {
+        if (((b & 0xf0) == LISTEN) || ((b & 0xf0) == TALK)) {
             /* Set TrapDevice even if the trap is not taken; needed
                for other traps.  */
             TrapDevice = b;
-            return 0;
         }
-    } else {
-        if (serial_truedrive && ((TrapDevice & 0x0f) != 4)
-            && ((TrapDevice & 0x0f) != 5)) {
-            return 0;
-        }
+        return 0;
     }
 
     /* do a flush if unlisten for close and command channel */
-    if (b == 0x3f) {
+    if (b == (LISTEN + 0x1f)) {
         serial_iec_bus_unlisten(TrapDevice, TrapSecondary, serial_set_st);
-    } else if (b == 0x5f) {
+    } else if (b == (TALK + 0x1f)) {
         serial_iec_bus_untalk(TrapDevice, TrapSecondary, serial_set_st);
     } else {
         switch (b & 0xf0) {
-            case 0x20:
-            case 0x40:
+            case LISTEN:
+            case TALK:
                 TrapDevice = b;
+                TrapSecondary = 0;
                 break;
-            case 0x60:
-                TrapSecondary = b;
-                switch (TrapDevice & 0xf0) {
-                    case 0x20:
-                        serial_iec_bus_listen(TrapDevice, TrapSecondary, serial_set_st);
-                        break;
-                    case 0x40:
-                        serial_iec_bus_talk(TrapDevice, TrapSecondary, serial_set_st);
-                        break;
-                }
+            case SECONDARY:
+                send_listen_talk_secondary(b);
                 break;
-            case 0xe0:
+            case CLOSE:
                 TrapSecondary = b;
                 serial_iec_bus_close(TrapDevice, TrapSecondary, serial_set_st);
                 break;
-            case 0xf0:
+            case OPEN:
                 TrapSecondary = b;
                 serial_iec_bus_open(TrapDevice, TrapSecondary, serial_set_st);
                 break;
         }
     }
 
-    p = serial_device_get(TrapDevice & 0x0f);
+    p = serial_device_get(TrapDevice & DEVNR_MASK);
     if (!(p->inuse)) {
         serial_set_st(0x80);
     }
 
-    MOS6510_REGS_SET_CARRY(&maincpu_regs, 0);
-    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, 0);
+    maincpu_set_carry(0);
+    maincpu_set_interrupt(0);
 
     if (attention_callback_func) {
         attention_callback_func();
@@ -150,16 +162,24 @@ int serial_trap_send(void)
 {
     BYTE data;
 
-    if (serial_truedrive && ((TrapDevice & 0x0f) != 4) && ((TrapDevice & 0x0f) != 5)) {
+    if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
         return 0;
+    }
+
+    /*
+     * If no secondary address was sent, it means that no LISTEN was
+     * sent either. Do both now with SA = 0.
+     */
+    if (TrapSecondary == 0) {
+        send_listen_talk_secondary(SECONDARY + 0);
     }
 
     data = mem_read(BSOUR); /* BSOUR - character for serial bus */
 
     serial_iec_bus_write(TrapDevice, TrapSecondary, data, serial_set_st);
 
-    MOS6510_REGS_SET_CARRY(&maincpu_regs, 0);
-    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, 0);
+    maincpu_set_carry(0);
+    maincpu_set_interrupt(0);
 
     return 1;
 }
@@ -169,10 +189,17 @@ int serial_trap_receive(void)
 {
     BYTE data;
 
-    if (serial_truedrive && ((TrapDevice & 0x0f) != 4) && ((TrapDevice & 0x0f) != 5)) {
+    if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
         return 0;
     }
 
+    /*
+     * If no secondary address was sent, it means that no TALK was
+     * sent either. Do both now with SA = 0.
+     */
+    if (TrapSecondary == 0) {
+        send_listen_talk_secondary(SECONDARY + 0);
+    }
     data = serial_iec_bus_read(TrapDevice, TrapSecondary, serial_set_st);
 
     mem_store(tmp_in, data);
@@ -183,11 +210,11 @@ int serial_trap_receive(void)
     }
 
     /* Set registers like the Kernal routine does.  */
-    MOS6510_REGS_SET_A(&maincpu_regs, data);
-    MOS6510_REGS_SET_SIGN(&maincpu_regs, (data & 0x80) ? 1 : 0);
-    MOS6510_REGS_SET_ZERO(&maincpu_regs, data ? 0 : 1);
-    MOS6510_REGS_SET_CARRY(&maincpu_regs, 0);
-    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, 0);
+    maincpu_set_a(data);
+    maincpu_set_sign((data & 0x80) ? 1 : 0);
+    maincpu_set_zero(data ? 0 : 1);
+    maincpu_set_carry(0);
+    maincpu_set_interrupt(0);
 
     return 1;
 }
@@ -198,15 +225,14 @@ int serial_trap_receive(void)
 
 int serial_trap_ready(void)
 {
-    if (serial_truedrive && ((TrapDevice & 0x0f) != 4) && ((TrapDevice & 0x0f) != 5)) {
+    if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
         return 0;
     }
 
-    MOS6510_REGS_SET_A(&maincpu_regs, 1);
-    MOS6510_REGS_SET_SIGN(&maincpu_regs, 0);
-    MOS6510_REGS_SET_ZERO(&maincpu_regs, 0);
-    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, 0);
-
+    maincpu_set_a(1);
+    maincpu_set_sign(0);
+    maincpu_set_zero(0);
+    maincpu_set_interrupt(0);
     return 1;
 }
 

@@ -5,7 +5,7 @@
  *  Hannu Nuotio <hannu.nuotio@tut.fi>
  *
  * Based on code by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -56,6 +56,10 @@
 /* - Control register */
 /* Receive Interrupt Enable */
 #define MIDI_CTRL_RIE   0x80
+/* Transmit Control Bits */
+#define MIDI_CTRL_CR5   0x20
+#define MIDI_CTRL_CR6   0x40
+#define MIDI_CTRL_IS_TX_IRQ(ctrl) ((ctrl & MIDI_CTRL_CR5) && !(ctrl & MIDI_CTRL_CR6))
 /* Transmit Control */
 #define MIDI_CTRL_TC2   0x40
 #define MIDI_CTRL_TC1   0x20
@@ -105,7 +109,8 @@ static unsigned int midi_int_num;
 
 static int midi_ticks = 0; /* number of clock ticks per char */
 static int intx = 0;    /* indicates that a transmit is currently ongoing */
-static int irq = 0;
+static int rx_irq = 0;  /* indicates that a read IRQ is active, cleared by reading RX */
+static int tx_irq = 0;  /* indicates that a write IRQ is active, cleared by writing TX */
 static BYTE ctrl;       /* control register */
 static BYTE status;     /* status register */
 static BYTE rxdata;     /* data that has been received last */
@@ -128,42 +133,55 @@ int midi_mode = 0;
 
 /******************************************************************/
 
-static void midi_set_int(int midiirq, unsigned int int_num, int value)
+static void midi_update_int(void)
 {
-    if (midiirq == IK_IRQ) {
-        maincpu_set_irq(int_num, value);
+    /* set IRQ */
+    if (midi_irq == IK_IRQ) {
+        maincpu_set_irq(midi_int_num, rx_irq || tx_irq);
     }
-    if (midiirq == IK_NMI) {
-        maincpu_set_nmi(int_num, value);
+    if (midi_irq == IK_NMI) {
+        maincpu_set_nmi(midi_int_num, rx_irq || tx_irq);
     }
+
+    /* update status register */
+    if (rx_irq || tx_irq) {
+        status |= MIDI_STATUS_IRQ;
+    } else {
+        status &= ~MIDI_STATUS_IRQ;
+    }
+
 }
 
 static int midi_set_irq(int new_irq_res, void *param)
 {
-    int new_irq;
     static const int irq_tab[] = { IK_NONE, IK_IRQ, IK_NMI };
 
     if (new_irq_res < 0 || new_irq_res > 2) {
         return -1;
     }
 
-    new_irq = irq_tab[new_irq_res];
-
-    if (midi_irq != new_irq) {
-        midi_set_int(midi_irq, midi_int_num, IK_NONE);
-        if (irq) {
-            midi_set_int(new_irq, midi_int_num, new_irq);
-        }
-    }
-    midi_irq = new_irq;
+    midi_irq = irq_tab[new_irq_res];
     midi_irq_res = new_irq_res;
-
+    
+    midi_update_int();
+    
     return 0;
 }
 
+/*
+get amount of ticks (cycles) between MIDI interrupts. Every received byte
+triggers an interrupt.
+
+The MIDI serial communication format is 31250baud, 8N1: 8 bits, one start bit 
+and one stop bit, no parity. 
+
+This would mean *10 below, but 9 is better if the frequency of external devices 
+is a bit off, that avoids buffer overflows for very large and fast transfers 
+(e.g. SysEx file transfers).
+*/
 static int get_midi_ticks(void)
 {
-    return (int)(machine_get_cycles_per_second() / 31250);
+    return (int)((machine_get_cycles_per_second() * 9) / 31250);
 }
 
 int midi_set_mode(int new_mode, void *param)
@@ -263,8 +281,9 @@ static void midi_suspend(void)
     alarm_active = 0;
     intx = 0;
 
-    midi_set_int(midi_irq, midi_int_num, 0);
-    irq = 0;
+    rx_irq = 0;
+    tx_irq = 0;
+    midi_update_int();
 }
 
 void midi_reset(void)
@@ -277,14 +296,21 @@ void midi_reset(void)
     midi_suspend();
 }
 
-static void midi_activate(void)
+static void midi_activate(int alarm)
 {
 #ifdef DEBUG
     log_message(midi_log, "activate");
 #endif
-    fd_in = mididrv_in_open();
-    fd_out = mididrv_out_open();
-    if (!intx) {
+    /* open streams only once */
+    if (fd_in < 0) {
+        fd_in = mididrv_in_open();
+    }
+    if (fd_out < 0) {
+        fd_out = mididrv_out_open();
+    }
+
+    /* set alarm, if requested */
+    if (alarm) {
         midi_alarm_clk = maincpu_clk + 1;
         alarm_set(midi_alarm, midi_alarm_clk);
         alarm_active = 1;
@@ -314,20 +340,27 @@ void midi_store(WORD a, BYTE b)
 
         if (MIDI_CTRL_CD(ctrl) == midi_interface[midi_mode].midi_cd) {
             /* TODO check WS */
-            midi_activate();
+            midi_activate(!intx);
         } else if (MIDI_CTRL_CD(ctrl) == MIDI_CTRL_RESET) {
             midi_reset();
         } else {
             midi_suspend();
         }
+
+        /* always activate and schedule alarm, if the transfer interrupt is enabled */
+        if (MIDI_CTRL_IS_TX_IRQ(ctrl)) {
+            midi_activate(1);
+        } else {
+                tx_irq = 0;
+        }
     } else if (a == midi_interface[midi_mode].tx_addr) {
-        status &= ~MIDI_STATUS_IRQ;
 #ifdef DEBUG
         log_message(midi_log, "store tx: %02x", b);
 #endif
         if ((status & MIDI_STATUS_TDRE) && !(MIDI_CTRL_CD(ctrl) == MIDI_CTRL_RESET)) {
             status &= ~MIDI_STATUS_TDRE;
             txdata = b;
+            tx_irq = 0;
             if (!intx) {
                 midi_alarm_clk = maincpu_clk + 1;
                 alarm_set(midi_alarm, midi_alarm_clk);
@@ -340,6 +373,9 @@ void midi_store(WORD a, BYTE b)
             }
         }
     }
+
+    /* update IRQ setting and status flag, depending on rx_irq and tx_irq */
+    midi_update_int();
 }
 
 BYTE midi_read(WORD a)
@@ -360,10 +396,10 @@ BYTE midi_read(WORD a)
         log_message(midi_log, "read rx: %02x (%02x)", rxdata, status);
 #endif
         status &= ~MIDI_STATUS_OVRN;
-        if (irq) {
+        if (rx_irq) {
             status &= ~MIDI_STATUS_IRQ;
-            midi_set_int(midi_irq, midi_int_num, 0);
-            irq = 0;
+            rx_irq = 0;
+            midi_update_int();
         }
         if (status & MIDI_STATUS_RDRF) {
             status &= ~MIDI_STATUS_RDRF;
@@ -433,19 +469,25 @@ static void int_midi(CLOCK offset, void *data)
     }
 
     if (rxirq && (ctrl & MIDI_CTRL_RIE)) {
-        midi_set_int(midi_irq, midi_int_num, 1);
-        status |= MIDI_STATUS_IRQ;
-        irq = 1;
+        rx_irq = 1;
 #ifdef DEBUG
-        log_message(midi_log, "int_midi IRQ offset=%ld, clk=%d", (long int)offset, (int)maincpu_clk);
+        log_message(midi_log, "int_midi rx IRQ offset=%ld, clk=%d", (long int)offset, (int)maincpu_clk);
 #endif
     }
 
-    if (!(status & MIDI_STATUS_TDRE)) {
-        status |= MIDI_STATUS_TDRE;
-        /* TODO: TX IRQ */
+    /* set "transmit data register empty" to 1, to signal that the byte was sent */
+    status |= MIDI_STATUS_TDRE;
+
+    /* if tx interrupt is enabled, set interrupt */
+    if (MIDI_CTRL_IS_TX_IRQ(ctrl)) {
+        tx_irq = 1;
+#ifdef DEBUG
+        log_message(midi_log, "int_midi tx IRQ offset=%ld, clk=%d", (long int)offset, (int)maincpu_clk);
+#endif
     }
 
+    midi_update_int();
+    
     midi_alarm_clk = maincpu_clk + midi_ticks;
     alarm_set(midi_alarm, midi_alarm_clk);
     alarm_active = 1;

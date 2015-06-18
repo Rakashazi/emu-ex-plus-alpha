@@ -45,9 +45,11 @@
 #include "crt.h"
 
 /*
-    "Super Games"
+    "Super Games" ("Commodore Arcade 3 in 1")
 
-    This cart uses 4 16Kb banks mapped in at $8000-$BFFF.
+    - This cart uses 4 16Kb banks mapped in at $8000-$BFFF.
+    - assuming the i/o register is reset to 0, the cartridge starts up in bank 0
+      and in 16k configuration.
 
     The control registers is at $DF00, and has the following meaning:
 
@@ -55,34 +57,34 @@
     ---   -------
      0    bank bit 0
      1    bank bit 1
-     2    inverted GAME line
-     3    inverted EXROM line
+     2    mode (0 = EXROM/GAME (bridged on the same wire - 16k config) 1 = cartridge disabled)
+     3    write-protect-latch  (1 = no more changes are possible until the next hardware-reset )
     4-7   unused
+
 */
 
 static int currbank = 0;
-
+static int currmode = 0;
+static int reglatched = 0;
 static BYTE regval = 0;
 
 static void supergames_io2_store(WORD addr, BYTE value)
 {
-    regval = value;
-    cart_romhbank_set_slotmain(value & 3);
-    cart_romlbank_set_slotmain(value & 3);
-    currbank = value & 3;
+    if (reglatched == 0) {
+        regval = value;
+        currbank = value & 3;
+        currmode = ((value >> 2) & 1) ^ 1;
+        reglatched = ((value >> 3) & 1);
 
-    if (value & 0x4) {
-        cart_set_port_exrom_slotmain(1);
-        cart_set_port_game_slotmain(0);
-    } else {
-        cart_set_port_exrom_slotmain(1);
-        cart_set_port_game_slotmain(1);
+        cart_romhbank_set_slotmain(currbank);
+        cart_romlbank_set_slotmain(currbank);
+
+        /* printf("value: %02x bank: %d mode: %d\n", value, currbank, currmode); */
+        cart_set_port_exrom_slotmain(currmode);
+        cart_set_port_game_slotmain(currmode);
+
+        cart_port_config_changed_slotmain();
     }
-    if (value == 0xc) {
-        cart_set_port_exrom_slotmain(0);
-        cart_set_port_game_slotmain(0);
-    }
-    cart_port_config_changed_slotmain();
 }
 
 static BYTE supergames_io2_peek(WORD addr)
@@ -92,7 +94,8 @@ static BYTE supergames_io2_peek(WORD addr)
 
 static int supergames_dump(void)
 {
-    mon_out("Bank: %d\n", currbank);
+    mon_out("Bank: %d (%s, %s)\n", currbank, currmode ? "enabled" : "disabled",
+            reglatched ? "latched" : "not latched");
     return 0;
 }
 
@@ -123,7 +126,9 @@ static const c64export_resource_t export_res = {
 
 void supergames_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    /* cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ); */
+    reglatched = 0;
+    supergames_io2_store(0xdf00, 0);
 }
 
 void supergames_config_setup(BYTE *rawcart)
@@ -136,7 +141,9 @@ void supergames_config_setup(BYTE *rawcart)
     memcpy(&romh_banks[0x4000], &rawcart[0xa000], 0x2000);
     memcpy(&roml_banks[0x6000], &rawcart[0xc000], 0x2000);
     memcpy(&romh_banks[0x6000], &rawcart[0xe000], 0x2000);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    /* cart_config_changed_slotmain(CMODE_16KGAME, CMODE_16KGAME, CMODE_READ); */
+    reglatched = 0;
+    supergames_io2_store(0xdf00, 0);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -187,7 +194,7 @@ void supergames_detach(void)
 /* ---------------------------------------------------------------------*/
 
 #define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
+#define CART_DUMP_VER_MINOR   1
 #define SNAP_MODULE_NAME  "CARTSUPERGAMES"
 
 int supergames_snapshot_write_module(snapshot_t *s)
@@ -202,6 +209,7 @@ int supergames_snapshot_write_module(snapshot_t *s)
 
     if (0
         || (SMW_B(m, (BYTE)currbank) < 0)
+        || (SMW_B(m, (BYTE)reglatched) < 0)
         || (SMW_BA(m, roml_banks, 0x8000) < 0)
         || (SMW_BA(m, romh_banks, 0x8000) < 0)) {
         snapshot_module_close(m);
@@ -229,6 +237,7 @@ int supergames_snapshot_read_module(snapshot_t *s)
 
     if (0
         || (SMR_B_INT(m, &currbank) < 0)
+        || (SMR_B_INT(m, &reglatched) < 0)
         || (SMR_BA(m, roml_banks, 0x8000) < 0)
         || (SMR_BA(m, romh_banks, 0x8000) < 0)) {
         snapshot_module_close(m);

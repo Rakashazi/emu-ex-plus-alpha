@@ -32,13 +32,13 @@
 #include "clkguard.h"
 #include "diskimage.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "log.h"
 #include "types.h"
 #include "wd1770.h"
 #include "fdd.h"
 #include "lib.h"
+#include "snapshot.h"
 
 /* FIXME: msvc sux at var arg defines */
 #ifdef WD1770_DEBUG
@@ -51,7 +51,7 @@
 #define debug3(x, y, z)
 #endif
 
-const static int wd1770_step_rate[2][4] = {
+static const int wd1770_step_rate[2][4] = {
     {6000, 12000, 20000, 30000}, /* WD1770 */
     {6000, 12000, 2000, 3000},   /* WD1772 */
 };
@@ -120,7 +120,7 @@ typedef enum wd_cmd_e {
 } wd_cmd_t;
 
 /* WD1770/1772 commands, masks, types */
-const static struct {
+static const struct {
     BYTE mask;
     wd_cmd_t command;
     BYTE type;
@@ -139,6 +139,8 @@ const static struct {
 };
 
 struct wd1770_s {
+    char *myname;
+
     /* WD1770/1772 registers.  */
     BYTE data, track, sector, status, cmd;
     WORD crc;
@@ -186,7 +188,8 @@ void wd1770d_init(drive_context_t *drv)
     }
 
     drv->wd1770 = lib_calloc(1, sizeof(wd1770_t));
-    drv->wd1770->fdd = fdd_init(0, drv->drive);
+    drv->wd1770->myname = lib_msprintf("WD1770%d", drv->mynumber);
+    drv->wd1770->fdd = fdd_init(4 * drv->mynumber, drv->drive);
     drv->wd1770->cpu_clk_ptr = drv->clk_ptr;
     drv->wd1770->is1772 = 0;
     drv->wd1770->clock_frequency = 2;
@@ -197,6 +200,7 @@ void wd1770d_init(drive_context_t *drv)
 
 void wd1770_shutdown(wd1770_t *drv)
 {
+    lib_free(drv->myname);
     fdd_shutdown(drv->fdd);
     lib_free(drv);
 }
@@ -950,4 +954,84 @@ inline void wd1770d_store(drive_context_t *drv, WORD addr, BYTE byte)
 inline BYTE wd1770d_read(drive_context_t *drv, WORD addr)
 {
     return wd1770_read(drv->wd1770, (WORD)(addr & 3));
+}
+
+#define WD1770_SNAP_MAJOR 1
+#define WD1770_SNAP_MINOR 0
+
+int wd1770_snapshot_write_module(wd1770_t *drv, struct snapshot_s *s)
+{
+    snapshot_module_t *m;
+
+    m = snapshot_module_create(s, drv->myname,
+                               WD1770_SNAP_MAJOR, WD1770_SNAP_MINOR);
+    if (m == NULL) {
+        return -1;
+    }
+
+    SMW_B(m, drv->data);
+    SMW_B(m, drv->track);
+    SMW_B(m, drv->sector);
+    SMW_B(m, drv->status);
+    SMW_B(m, drv->cmd);
+    SMW_W(m, drv->crc);
+    SMW_B(m, (BYTE)drv->command);
+    SMW_DW(m, drv->type);
+    SMW_DW(m, drv->step);
+    SMW_DW(m, drv->byte_count);
+    SMW_DW(m, drv->tmp);
+    SMW_DW(m, drv->direction);
+    SMW_DW(m, drv->clk);
+    SMW_B(m, (BYTE)drv->irq);
+    SMW_B(m, (BYTE)drv->dden);
+    SMW_B(m, (BYTE)drv->sync);
+    SMW_B(m, (BYTE)drv->is1772);
+
+    if (snapshot_module_close(m) < 0) {
+        return -1;
+    }
+
+    return fdd_snapshot_write_module(drv->fdd, s);
+}
+
+int wd1770_snapshot_read_module(wd1770_t *drv, struct snapshot_s *s)
+{
+    BYTE vmajor, vminor;
+    snapshot_module_t *m;
+    int command;
+
+    m = snapshot_module_open(s, drv->myname, &vmajor, &vminor);
+    if (m == NULL) {
+        return -1;
+    }
+
+    if ((vmajor != WD1770_SNAP_MAJOR) || (vminor != WD1770_SNAP_MINOR)) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
+    SMR_B(m, &drv->data);
+    SMR_B(m, &drv->track);
+    SMR_B(m, &drv->sector);
+    SMR_B(m, &drv->status);
+    SMR_B(m, &drv->cmd);
+    SMR_W(m, &drv->crc);
+    SMR_B_INT(m, &command);
+    drv->command = command;
+    SMR_DW_INT(m, &drv->type);
+    SMR_DW_INT(m, &drv->step);
+    SMR_DW_INT(m, &drv->byte_count);
+    SMR_DW_INT(m, &drv->tmp);
+    SMR_DW_INT(m, &drv->direction);
+    SMR_DW(m, &drv->clk);
+    SMR_B_INT(m, &drv->irq);
+    SMR_B_INT(m, &drv->dden);
+    SMR_B_INT(m, &drv->sync);
+    SMR_B_INT(m, &drv->is1772);
+
+    if (snapshot_module_close(m) < 0) {
+        return -1;
+    }
+
+    return fdd_snapshot_read_module(drv->fdd, s);
 }

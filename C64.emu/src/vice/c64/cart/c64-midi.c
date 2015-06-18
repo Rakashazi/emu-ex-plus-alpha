@@ -129,8 +129,10 @@ int c64_midi_maplin_cart_enabled(void)
     return midi_enabled && (export_res.cartid == CARTRIDGE_MIDI_MAPLIN);
 }
 
-static int set_midi_enabled(int val, void *param)
+static int set_midi_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (!midi_enabled && val) {
         if (c64export_add(&export_res) < 0) {
             return -1;
@@ -150,6 +152,17 @@ static int set_midi_enabled(int val, void *param)
 static int midi_set_c64mode(int new_mode, void *param)
 {
     int old = midi_enabled;
+
+    switch (new_mode) {
+        case MIDI_MODE_SEQUENTIAL:
+        case MIDI_MODE_PASSPORT:
+        case MIDI_MODE_DATEL:
+        case MIDI_MODE_NAMESOFT:
+        case MIDI_MODE_MAPLIN:
+            break;
+        default:
+            return -1;
+    }
 
     if (midi_mode != new_mode) {
         set_midi_enabled(0, NULL);

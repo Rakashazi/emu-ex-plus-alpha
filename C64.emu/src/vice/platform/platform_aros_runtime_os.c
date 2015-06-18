@@ -49,6 +49,9 @@ struct Library *ArosBase;
 APTR ProcessorBase;
 
 static char runtime_os[256];
+static int got_runtime_os = 0;
+
+static CONST_STRPTR modelstring = NULL;
 
 char *platform_get_aros_runtime_os(void)
 {
@@ -56,26 +59,29 @@ char *platform_get_aros_runtime_os(void)
     ULONG relMajor, relMinor;
     STRPTR arch;
 
-    if (!(ArosBase = OpenLibrary(AROSLIBNAME, AROSLIBVERSION))) {
-        return "Unknown AROS version";
+    if (!got_runtime_os) {
+        if (!(ArosBase = OpenLibrary(AROSLIBNAME, AROSLIBVERSION))) {
+            sprintf(runtime_os, "Unknown AROS version");
+            got_runtime_os = 1;
+        }
     }
 
-    ArosInquire(AI_ArosReleaseMajor, (IPTR)&relMajor, AI_ArosReleaseMinor, (IPTR)&relMinor, AI_ArosArchitecture, (IPTR)&arch, TAG_DONE);
-
-    sprintf(runtime_os, "AROS-%ld.%ld (%s)", relMajor, relMinor, arch);
-
-    CloseLibrary(ArosBase);
+    if (!got_runtime_os) {
+        ArosInquire(AI_ArosReleaseMajor, (IPTR)&relMajor, AI_ArosReleaseMinor, (IPTR)&relMinor, AI_ArosArchitecture, (IPTR)&arch, TAG_DONE);
+        sprintf(runtime_os, "AROS-%ld.%ld (%s)", relMajor, relMinor, arch);
+        got_runtime_os = 1;
+        CloseLibrary(ArosBase);
+    }
 
     return runtime_os;
 }
 
-static CONST_STRPTR modelstring;
-
 char *platform_get_aros_runtime_cpu(void)
 {
-    ProcessorBase = OpenResource(PROCESSORNAME);
-    GetCPUInfoTags(GCIT_ModelString, (IPTR)&modelstring, TAG_DONE);
-
-    return modelstring;
+    if (!modelstring) {
+        ProcessorBase = OpenResource(PROCESSORNAME);
+        GetCPUInfoTags(GCIT_ModelString, (IPTR)&modelstring, TAG_DONE);
+    }
+    return (char *)modelstring;
 }
 #endif

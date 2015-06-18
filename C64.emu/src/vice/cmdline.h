@@ -119,6 +119,9 @@ typedef struct cmdline_option_ram_s {
 
     /* Description string. */
     const char *description;
+
+    /* Place holder for translated combined string */
+    char *combined_string;
 } cmdline_option_ram_t;
 
 extern int cmdline_init(void);

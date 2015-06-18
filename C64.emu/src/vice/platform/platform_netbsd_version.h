@@ -38,6 +38,7 @@
 #define PLATFORM_OS "NetBSD 0.9"
 #endif
 
+
 #ifdef NetBSD1_0
 
 #if (NetBSD1_0==1)
@@ -128,16 +129,8 @@
 #define PLATFORM_OS "NetBSD 2.0"
 #endif
 
-#if (__NetBSD_Version__==200010000)
-#define PLATFORM_OS "NetBSD 2.0.1"
-#endif
-
 #if (__NetBSD_Version__==200020000)
 #define PLATFORM_OS "NetBSD 2.0.2"
-#endif
-
-#if (__NetBSD_Version__==200030000)
-#define PLATFORM_OS "NetBSD 2.0.3"
 #endif
 
 #if (__NetBSD_Version__==201000000)
@@ -200,8 +193,32 @@
 #define PLATFORM_OS "NetBSD 5.1.2"
 #endif
 
+#if (__NetBSD_Version__==501030000)
+#define PLATFORM_OS "NetBSD 5.1.3"
+#endif
+
+#if (__NetBSD_Version__==501040000)
+#define PLATFORM_OS "NetBSD 5.1.4"
+#endif
+
+#if (__NetBSD_Version__==501040000)
+#define PLATFORM_OS "NetBSD 5.1.5"
+#endif
+
 #if (__NetBSD_Version__==502000000)
 #define PLATFORM_OS "NetBSD 5.2"
+#endif
+
+#if (__NetBSD_Version__==502010000)
+#define PLATFORM_OS "NetBSD 5.2.1"
+#endif
+
+#if (__NetBSD_Version__==502020000)
+#define PLATFORM_OS "NetBSD 5.2.2"
+#endif
+
+#if (__NetBSD_Version__==502030000)
+#define PLATFORM_OS "NetBSD 5.2.3"
 #endif
 
 #if (__NetBSD_Version__==600000000)
@@ -212,11 +229,54 @@
 #define PLATFORM_OS "NetBSD 6.0.1"
 #endif
 
+#if (__NetBSD_Version__==60020000)
+#define PLATFORM_OS "NetBSD 6.0.2"
+#endif
+
+#if (__NetBSD_Version__==60030000)
+#define PLATFORM_OS "NetBSD 6.0.3"
+#endif
+
+#if (__NetBSD_Version__==60040000)
+#define PLATFORM_OS "NetBSD 6.0.4"
+#endif
+
+#if (__NetBSD_Version__==60050000)
+#define PLATFORM_OS "NetBSD 6.0.5"
+#endif
+
+#if (__NetBSD_Version__==60060000)
+#define PLATFORM_OS "NetBSD 6.0.6"
+#endif
+
+#if (__NetBSD_Version__==601000000)
+#define PLATFORM_OS "NetBSD 6.1"
+#endif
+
+#if (__NetBSD_Version__==601000100)
+#define PLATFORM_OS "NetBSD 6.1.1"
+#endif
+
+#if (__NetBSD_Version__==601000200)
+#define PLATFORM_OS "NetBSD 6.1.2"
+#endif
+
+#if (__NetBSD_Version__==601000300)
+#define PLATFORM_OS "NetBSD 6.1.3"
+#endif
+
+#if (__NetBSD_Version__==601000400)
+#define PLATFORM_OS "NetBSD 6.1.4"
+#endif
+
+#if (__NetBSD_Version__==601000500)
+#define PLATFORM_OS "NetBSD 6.1.5"
+#endif
+
 #endif /* !PLATFORM_OS */
 
 #ifndef PLATFORM_OS
 #define PLATFORM_OS "NetBSD"
 #endif
-
 
 #endif // VICE_PLATFORM_NETBSD_VERSION_H

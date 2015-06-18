@@ -59,6 +59,7 @@ struct machine_timing_s {
     unsigned int cycles_per_line;
     long cycles_per_rfsh;
     long cycles_per_sec;
+    unsigned int power_freq;   /* mains power frequency in hz */
     double rfsh_per_sec;
     unsigned int screen_lines;
 };
@@ -77,7 +78,8 @@ extern int video_disabled_mode;
 #define MACHINE_JAM_ACTION_MONITOR      2
 #define MACHINE_JAM_ACTION_RESET        3
 #define MACHINE_JAM_ACTION_HARD_RESET   4
-#define MACHINE_NUM_JAM_ACTIONS         5
+#define MACHINE_JAM_ACTION_QUIT         5
+#define MACHINE_NUM_JAM_ACTIONS         6
 
 /* Initialize the machine's resources.  */
 extern int machine_common_resources_init(void);
@@ -172,7 +174,6 @@ unsigned int machine_jam(const char *format, ...);
 extern void machine_update_memory_ptrs(void);
 
 extern int machine_keymap_index;
-extern const char *machine_keymap_res_name_list[];
 extern char *machine_keymap_file_list[];
 extern int machine_num_keyboard_mappings(void);
 
@@ -193,5 +194,21 @@ extern int machine_addr_in_ram(unsigned int addr);
 
 /* Get "real" name for machine. May differ from machine_name.  */
 extern const char *machine_get_name(void);
+
+/* Get keymap res name with range checking */
+extern char *machine_get_keymap_res_name(int val);
+
+/* mapping info for GUIs */
+typedef struct {
+    char *name;
+    int type;
+    unsigned int flags;
+} kbdtype_info_t;
+
+extern int machine_get_num_keyboard_types(void);
+extern kbdtype_info_t *machine_get_keyboard_info_list(void);
+
+extern int machine_get_keyboard_type(void);
+extern char *machine_get_keyboard_type_name(int type);
 
 #endif

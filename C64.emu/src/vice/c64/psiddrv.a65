@@ -28,12 +28,16 @@
 
 	.align 256
 
+        ; space for CBM80 signature, required when player is relocated to $8000
+        .byte 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+        ; start vector (offset + 9)
 start	jmp cold
 
-	; CBM80 backup
+	; backup of original content of $8000-$8008 (offset + 12)
 cbm80	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-	; Parameters
+	; Parameters (offset + 21)
 playnum	.byte 0
 playmax	.byte 0
 loadvec .word 0
@@ -41,8 +45,9 @@ initvec	.word 0
 playvec	.word 0
 speed	.word 0, 0
 palflag .byte 0
+loadend .word 0
 
-iomap	.byte 0
+iomap	.byte 0       ; $01 value for PLAY
 
 	; User interrupt vectors
 irqusr	.word irqjob
@@ -116,8 +121,9 @@ songset	tya
 	; No PLAY => tune must set up interrupts itself (CIA 1 running)
 	lda playvec+1
 	beq ciainit
+	ldx playvec+1
 	jsr getmap
-	sta iomap
+	sta iomap       ; $01 value for PLAY
 
 	; Get shift number for speed bit
 	cpy #32
@@ -152,10 +158,14 @@ ciainit	lda #$81
 doinit	lda #$2f
 	sta $00
 	lda initvec+1
+        ldx loadend+1
 	jsr getmap
 	sta $01
 	pla
+	tax
+	tay
 	jsr init
+
 	lda playvec+1
 	beq run
 	lda #$36
@@ -168,22 +178,59 @@ idle	jmp idle
 init	jmp (initvec)
 play	jmp (playvec)
 
-	; Get required I/O map to reach address
-getmap	cmp #$e0
-	bcc kern_on
-	lda #$35
-	rts
-kern_on	cmp #$d0
-	bcc io_on
-	lda #$34
-	rts
-io_on	lda #$36
-	rts
+	; Get required I/O map to reach address in RAM
+
+;        ; $37 for $0000 - $9fff
+;        ; $36 for $a000 - $bfff
+;        ; $37 for $c000 - $cfff
+;        ; $34 for $d000 - $dfff
+;	; $35 for $e000 - $ffff
+;getmap	cmp #$e0
+;	bcc kern_on
+;	lda #$35
+;	rts
+;kern_on	cmp #$d0
+;	bcc io_on
+;	lda #$34
+;	rts
+;io_on   cmp #$c0
+;        bcc bas_on
+;lomem
+;        lda #$37
+;        rts
+;bas_on
+;        cmp #$a0
+;        bcc lomem
+;        lda #$36
+;        rts
+
+        ; alternative rule(s) according to wilfried bos
+
+        ; $34 for init/play in $d000 - $dfff
+        ; $35 for init/play in $e000 - $ffff
+        ; $36 for load end/play in $a000 - $ffff
+        ; $37 for the rest
+
+getmap      cmp #$e0
+            bcc kern_on
+            lda #$35
+            rts
+kern_on     cmp #$d0
+            bcc io_on
+            lda #$34
+            rts
+io_on       cpx #$a0
+            bcc bas_on
+            lda #$36
+            rts
+bas_on      lda #$37
+            rts
+
 
 	; IRQ handler
 irqjob	lda playvec+1
 	beq noplay
-	lda iomap
+	lda iomap       ; $01 value for PLAY
 	sta $01
 	jsr play
 	lda #$36

@@ -43,18 +43,4 @@ extern void uimon_notify_change(void);
 extern void uimon_set_interface(struct monitor_interface_s **, int);
 extern char *uimon_get_in(char **, const char *);
 
-#ifdef WIN32
-
-#include "types.h"
-
-/*
- For the time being, this internal interface remains here...
-*/
-extern struct console_s *uimon_console_open_mdi(const char *id, void *,
-                                                void *, void *,
-                                                DWORD dwStyle,
-                                                int x, int y, int dx, int dy );
-#endif /* #ifdef WIN32 */
-
-
 #endif

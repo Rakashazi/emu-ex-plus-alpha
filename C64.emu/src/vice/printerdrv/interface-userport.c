@@ -2,7 +2,7 @@
  * interface-userport.c - Userport printer interface.
  *
  * Written by
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -32,6 +32,7 @@
 #include "cmdline.h"
 #include "driver-select.h"
 #include "interface-userport.h"
+#include "output-select.h"
 #include "printer.h"
 #include "resources.h"
 #include "translate.h"
@@ -41,21 +42,20 @@ static int userport_printer_enabled = 0;
 
 static void (*set_busy_func)(unsigned int b) = NULL;
 
+#define USERPORT_OUTPUT         (NUM_OUTPUT_SELECT - 1)
 
 static int set_up_enabled(int val, void *param)
 {
-    int newval;
-
-    newval = val ? 1 : 0;
+    int newval = val ? 1 : 0;
 
     if (newval && !userport_printer_enabled) {
         /* Switch printer on.  */
-        if (driver_select_open(2, 4) >= 0) {
+        if (driver_select_open(USERPORT_OUTPUT, 4) >= 0) {
             userport_printer_enabled = 1;
         }
     }
     if (userport_printer_enabled && !newval) {
-        driver_select_close(2, 4);
+        driver_select_close(USERPORT_OUTPUT, 4);
         userport_printer_enabled = 0;
     }
 
@@ -105,7 +105,7 @@ void interface_userport_write_data(BYTE b)
 void interface_userport_write_strobe(int s)
 {
     if (userport_printer_enabled && strobe && !s) {     /* hi->lo on strobe */
-        driver_select_putc(2, 4, (BYTE)value);
+        driver_select_putc(USERPORT_OUTPUT, 4, (BYTE)value);
 
         if (set_busy_func != NULL) {
             (*set_busy_func)(1); /* signal lo->hi */

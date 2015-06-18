@@ -2,7 +2,7 @@
  * ciatimer.c - MOS6526 (CIA) timer emulation.
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *
  * Patches and improvements by
  *

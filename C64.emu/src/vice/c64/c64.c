@@ -31,8 +31,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "attach.h"
 #include "autostart.h"
 #include "c64-cmdline-options.h"
+#include "c64-memory-hacks.h"
 #include "c64-resources.h"
 #include "c64-snapshot.h"
 #include "c64.h"
@@ -57,12 +59,16 @@
 #include "clkguard.h"
 #include "datasette.h"
 #include "debug.h"
+#include "diskimage.h"
 #include "drive-cmdline-options.h"
 #include "drive-resources.h"
 #include "drive-sound.h"
 #include "drive.h"
-#include "drivecpu.h"
+#include "fliplist.h"
+#include "fsdevice.h"
+#include "gfxoutput.h"
 #include "imagecontents.h"
+#include "init.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
 #include "lightpen.h"
@@ -95,6 +101,7 @@
 #include "types.h"
 #include "userport_joystick.h"
 #include "userport_rtc.h"
+#include "vice-event.h"
 #include "vicii.h"
 #include "vicii-mem.h"
 #include "video.h"
@@ -107,23 +114,39 @@
 
 machine_context_t machine_context;
 
-#define NUM_KEYBOARD_MAPPINGS 3
-
-const char *machine_keymap_res_name_list[NUM_KEYBOARD_MAPPINGS] = {
-    "KeymapSymFile",
-    "KeymapPosFile",
-    "KeymapSymDeFile"
-};
-
-char *machine_keymap_file_list[NUM_KEYBOARD_MAPPINGS] = {
-    NULL, NULL, NULL
-};
-
 const char machine_name[] = "C64";
 /* Moved to c64mem.c/c64memsc.c
 int machine_class = VICE_MACHINE_C64;
 */
 static void machine_vsync_hook(void);
+
+int machine_get_keyboard_type(void)
+{
+#if 0
+    int type;
+    if (resources_get_int("KeyboardType", &type) < 0) {
+        return 0;
+    }
+    return type;
+#endif
+    return 0;
+}
+
+char *machine_get_keyboard_type_name(int type)
+{
+    return NULL; /* return 0 if no different types exist */
+}
+
+/* return number of available keyboard types for this machine */
+int machine_get_num_keyboard_types(void)
+{
+    return 1;
+}
+
+kbdtype_info_t *machine_get_keyboard_info_list(void)
+{
+    return NULL; /* return 0 if no different types exist */
+}
 
 /* ------------------------------------------------------------------------- */
 
@@ -360,36 +383,157 @@ static void c64io_init(void)
    the machine itself with `machine_init()'.  */
 int machine_resources_init(void)
 {
-    if (traps_resources_init() < 0
-        || rombanks_resources_init() < 0
-        || vsync_resources_init() < 0
-        || machine_video_resources_init() < 0
-        || c64_resources_init() < 0
-        || c64export_resources_init() < 0
-        || plus60k_resources_init() < 0
-        || plus256k_resources_init() < 0
-        || c64_256k_resources_init() < 0
-        || vicii_resources_init() < 0
-        || sound_resources_init() < 0
-        || sid_resources_init() < 0
-        || rs232drv_resources_init() < 0
-        || rsuser_resources_init() < 0
-        || serial_resources_init() < 0
-        || printer_resources_init() < 0
+    if (traps_resources_init() < 0) {
+        init_resource_fail("traps");
+        return -1;
+    }
+    if (rombanks_resources_init() < 0) {
+        init_resource_fail("rombanks");
+        return -1;
+    }
+    if (c64_resources_init() < 0) {
+        init_resource_fail("c64");
+        return -1;
+    }
+    if (c64export_resources_init() < 0) {
+        init_resource_fail("c64export");
+        return -1;
+    }
+    if (memory_hacks_resources_init() < 0) {
+        init_resource_fail("memory hacks");
+        return -1;
+    }
+    if (plus60k_resources_init() < 0) {
+        init_resource_fail("plus60k");
+        return -1;
+    }
+    if (plus256k_resources_init() < 0) {
+        init_resource_fail("plus256k");
+        return -1;
+    }
+    if (c64_256k_resources_init() < 0) {
+        init_resource_fail("c64 256k");
+        return -1;
+    }
+    if (vicii_resources_init() < 0) {
+        init_resource_fail("vicii");
+        return -1;
+    }
+    if (sid_resources_init() < 0) {
+        init_resource_fail("sid");
+        return -1;
+    }
+    if (rs232drv_resources_init() < 0) {
+        init_resource_fail("rs232drv");
+        return -1;
+    }
+    if (rsuser_resources_init() < 0) {
+        init_resource_fail("rsuser");
+        return -1;
+    }
+    if (serial_resources_init() < 0) {
+        init_resource_fail("serial");
+        return -1;
+    }
+    if (printer_resources_init() < 0) {
+        init_resource_fail("printer");
+        return -1;
+    }
+    if (printer_userport_resources_init() < 0) {
+        init_resource_fail("userport printer");
+        return -1;
+    }
+    if (joystick_resources_init() < 0) {
+        init_resource_fail("joystick");
+        return -1;
+    }
+    if (gfxoutput_resources_init() < 0) {
+        init_resource_fail("gfxoutput");
+        return -1;
+    }
+    if (fliplist_resources_init() < 0) {
+        init_resource_fail("flip list");
+        return -1;
+    }
+    if (file_system_resources_init() < 0) {
+        init_resource_fail("file system");
+        return -1;
+    }
+    /* Initialize file system device-specific resources.  */
+    if (fsdevice_resources_init() < 0) {
+        init_resource_fail("file system device");
+        return -1;
+    }
+    if (disk_image_resources_init() < 0) {
+        init_resource_fail("disk image");
+        return -1;
+    }
+    if (event_resources_init() < 0) {
+        init_resource_fail("event");
+        return -1;
+    }
+    if (kbdbuf_resources_init() < 0) {
+        init_resource_fail("Keyboard");
+        return -1;
+    }
+    if (autostart_resources_init() < 0) {
+        init_resource_fail("autostart");
+        return -1;
+    }
+#ifdef HAVE_NETWORK
+    if (network_resources_init() < 0) {
+        init_resource_fail("network");
+        return -1;
+    }
+#endif
+#ifdef DEBUG
+    if (debug_resources_init() < 0) {
+        init_resource_fail("debug");
+        return -1;
+    }
+#endif
 #ifdef HAVE_MOUSE
-        || mouse_resources_init() < 0
-        || lightpen_resources_init() < 0
+    if (mouse_resources_init() < 0) {
+        init_resource_fail("mouse");
+        return -1;
+    }
+    if (lightpen_resources_init() < 0) {
+        init_resource_fail("lightpen");
+        return -1;
+    }
 #endif
 #ifndef COMMON_KBD
-        || kbd_resources_init() < 0
+    if (kbd_resources_init() < 0) {
+        init_resource_fail("kbd");
+        return -1;
+    }
 #endif
-        || drive_resources_init() < 0
-        || datasette_resources_init() < 0
-        || c64_glue_resources_init() < 0
-        || userport_joystick_resources_init() < 0
-        || userport_rtc_resources_init() < 0
-        || cartio_resources_init() < 0
-        || cartridge_resources_init() < 0) {
+    if (drive_resources_init() < 0) {
+        init_resource_fail("drive");
+        return -1;
+    }
+    if (datasette_resources_init() < 0) {
+        init_resource_fail("datasette");
+        return -1;
+    }
+    if (c64_glue_resources_init() < 0) {
+        init_resource_fail("c64 glue");
+        return -1;
+    }
+    if (userport_joystick_resources_init() < 0) {
+        init_resource_fail("userport joystick");
+        return -1;
+    }
+    if (userport_rtc_resources_init() < 0) {
+        init_resource_fail("userport rtc");
+        return -1;
+    }
+    if (cartio_resources_init() < 0) {
+        init_resource_fail("cartio");
+        return -1;
+    }
+    if (cartridge_resources_init() < 0) {
+        init_resource_fail("cartridge");
         return -1;
     }
     return 0;
@@ -398,12 +542,10 @@ int machine_resources_init(void)
 void machine_resources_shutdown(void)
 {
     serial_shutdown();
-    video_resources_shutdown();
     c64_resources_shutdown();
     plus60k_resources_shutdown();
     plus256k_resources_shutdown();
     c64_256k_resources_shutdown();
-    sound_resources_shutdown();
     rs232drv_resources_shutdown();
     printer_resources_shutdown();
     drive_resources_shutdown();
@@ -411,39 +553,155 @@ void machine_resources_shutdown(void)
     rombanks_resources_shutdown();
     userport_rtc_resources_shutdown();
     cartio_shutdown();
+    fsdevice_resources_shutdown();
+    disk_image_resources_shutdown();
 }
 
 /* C64-specific command-line option initialization.  */
 int machine_cmdline_options_init(void)
 {
-    if (traps_cmdline_options_init() < 0
-        || vsync_cmdline_options_init() < 0
-        || video_init_cmdline_options() < 0
-        || c64_cmdline_options_init() < 0
-        || plus60k_cmdline_options_init() < 0
-        || plus256k_cmdline_options_init() < 0
-        || c64_256k_cmdline_options_init() < 0
-        || vicii_cmdline_options_init() < 0
-        || sound_cmdline_options_init() < 0
-        || sid_cmdline_options_init() < 0
-        || rs232drv_cmdline_options_init() < 0
-        || rsuser_cmdline_options_init() < 0
-        || serial_cmdline_options_init() < 0
-        || printer_cmdline_options_init() < 0
+    if (traps_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("traps");
+        return -1;
+    }
+    if (c64_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("c64");
+        return -1;
+    }
+    if (memory_hacks_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("memory hacks");
+        return -1;
+    }
+    if (plus60k_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("plus60k");
+        return -1;
+    }
+    if (plus256k_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("plus256k");
+        return -1;
+    }
+    if (c64_256k_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("c64 256k");
+        return -1;
+    }
+    if (vicii_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("vicii");
+        return -1;
+    }
+    if (sid_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("sid");
+        return -1;
+    }
+    if (rs232drv_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("rs232drv");
+        return -1;
+    }
+    if (rsuser_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("rsuser");
+        return -1;
+    }
+    if (serial_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("serial");
+        return -1;
+    }
+    if (printer_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("printer");
+        return -1;
+    }
+    if (printer_userport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport printer");
+        return -1;
+    }
+    if (joystick_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("joystick");
+        return -1;
+    }
+    if (gfxoutput_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("gfxoutput");
+        return -1;
+    }
+    if (fliplist_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("flip list");
+        return -1;
+    }
+    if (file_system_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("attach");
+        return -1;
+    }
+    if (fsdevice_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("file system");
+        return -1;
+    }
+    if (disk_image_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("disk image");
+        return -1;
+    }
+    if (event_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("event");
+        return -1;
+    }
+    if (kbdbuf_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("keyboard");
+        return -1;
+    }
+    if (autostart_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("autostart");
+        return -1;
+    }
+#ifdef HAVE_NETWORK
+    if (network_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("network");
+        return -1;
+    }
+#endif
+#ifdef DEBUG
+    if (debug_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("debug");
+        return -1;
+    }
+#endif
 #ifdef HAVE_MOUSE
-        || mouse_cmdline_options_init() < 0
-        || lightpen_cmdline_options_init() < 0
+    if (mouse_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("mouse");
+        return -1;
+    }
+    if (lightpen_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("lightpen");
+        return -1;
+    }
 #endif
 #ifndef COMMON_KBD
-        || kbd_cmdline_options_init() < 0
+    if (kbd_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("kbd");
+        return -1;
+    }
 #endif
-        || drive_cmdline_options_init() < 0
-        || datasette_cmdline_options_init() < 0
-        || c64_glue_cmdline_options_init() < 0
-        || userport_joystick_cmdline_options_init() < 0
-        || userport_rtc_cmdline_options_init() < 0
-        || cartio_cmdline_options_init() < 0
-        || cartridge_cmdline_options_init() < 0) {
+    if (drive_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("drive");
+        return -1;
+    }
+    if (datasette_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("datasette");
+        return -1;
+    }
+    if (c64_glue_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("c64 glue");
+        return -1;
+    }
+    if (userport_joystick_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport joystick");
+        return -1;
+    }
+    if (userport_rtc_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport rtc");
+        return -1;
+    }
+    if (cartio_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("cartio");
+        return -1;
+    }
+    if (cartridge_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("cartridge");
         return -1;
     }
     return 0;
@@ -464,7 +722,7 @@ static void c64_monitor_init(void)
     asmR65C02_init(&asmR65C02);
 
     for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive_interface_init[dnr] = drivecpu_monitor_interface_get(dnr);
+        drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
     }
 
     /* Initialize the monitor.  */
@@ -489,6 +747,8 @@ int machine_specific_init(void)
     if (mem_load() < 0) {
         return -1;
     }
+
+    event_init();
 
     /* Setup trap handling.  */
     traps_init();
@@ -516,6 +776,8 @@ int machine_specific_init(void)
 
     /* Fire up the hardware-level drive emulation.  */
     drive_init();
+
+    disk_image_init();
 
     resources_get_int("AutostartDelay", &delay);
     if (delay == 0) {
@@ -566,6 +828,12 @@ int machine_specific_init(void)
 
     /* Initialize the C64-specific I/O */
     c64io_init();
+
+    if (!video_disabled_mode) {
+        joystick_init();
+    }
+
+    gfxoutput_init();
 
     /* Initialize the C64-specific part of the UI.  */
     if (!console_mode) {
@@ -684,6 +952,8 @@ void machine_specific_shutdown(void)
     mouse_shutdown();
 #endif
 
+    sid_cmdline_options_shutdown();
+
     c64ui_shutdown();
 }
 
@@ -711,7 +981,7 @@ static void machine_vsync_hook(void)
 
     /* The drive has to deal both with our overflowing and its own one, so
        it is called even when there is no overflowing in the main CPU.  */
-    drivecpu_prevent_clk_overflow_all(sub);
+    drive_cpu_prevent_clk_overflow_all(sub);
 }
 
 void machine_set_restore_key(int v)
@@ -786,6 +1056,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_PAL_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_PAL_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_PAL_SCREEN_LINES;
+            machine_timing.power_freq = 50;
             break;
         case MACHINE_SYNC_NTSC:
             machine_timing.cycles_per_sec = C64_NTSC_CYCLES_PER_SEC;
@@ -793,6 +1064,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_NTSC_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_NTSC_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_NTSC_SCREEN_LINES;
+            machine_timing.power_freq = 60;
             break;
         case MACHINE_SYNC_NTSCOLD:
             machine_timing.cycles_per_sec = C64_NTSCOLD_CYCLES_PER_SEC;
@@ -800,6 +1072,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_NTSCOLD_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_NTSCOLD_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_NTSCOLD_SCREEN_LINES;
+            machine_timing.power_freq = 60;
             break;
         case MACHINE_SYNC_PALN:
             machine_timing.cycles_per_sec = C64_PALN_CYCLES_PER_SEC;
@@ -807,6 +1080,7 @@ void machine_change_timing(int timeval)
             machine_timing.rfsh_per_sec = C64_PALN_RFSH_PER_SEC;
             machine_timing.cycles_per_line = C64_PALN_CYCLES_PER_LINE;
             machine_timing.screen_lines = C64_PALN_SCREEN_LINES;
+            machine_timing.power_freq = 50;
             break;
         default:
             log_error(c64_log, "Unknown machine timing.");
@@ -822,8 +1096,8 @@ void machine_change_timing(int timeval)
 
     vicii_change_timing(&machine_timing, border_mode);
 
-    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_rfsh);
-    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_rfsh);
+    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_sec, machine_timing.power_freq);
+    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_sec, machine_timing.power_freq);
 
     machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -841,20 +1115,24 @@ int machine_read_snapshot(const char *name, int event_mode)
 }
 
 /* ------------------------------------------------------------------------- */
-
+/* FIXME: those two shouldnt be here anymore */
 int machine_autodetect_psid(const char *name)
 {
+/*
     if (name == NULL) {
         return -1;
     }
 
     return psid_load_file(name);
+*/
+    return -1;
 }
 
 void machine_play_psid(int tune)
 {
-    psid_set_tune(tune);
+    /* psid_set_tune(tune); */
 }
+/* ------------------------------------------------------------------------- */
 
 int machine_screenshot(screenshot_t *screenshot, struct video_canvas_s *canvas)
 {
@@ -881,11 +1159,6 @@ void machine_update_memory_ptrs(void)
     vicii_update_memory_ptrs_external();
 }
 
-int machine_num_keyboard_mappings(void)
-{
-    return NUM_KEYBOARD_MAPPINGS;
-}
-
 struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
 {
     return diskcontents_iec_read(unit);
@@ -893,7 +1166,7 @@ struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
 
 BYTE machine_tape_type_default(void)
 {
-    return TAPE_CAS_TYPE_BAS;
+    return TAPE_CAS_TYPE_PRG;
 }
 
 static int get_cart_emulation_state(void)

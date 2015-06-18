@@ -3,7 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Daniel Sladic <sladic@eecg.toronto.edu>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *
@@ -75,6 +75,11 @@ static void set_ca2(via_context_t *via_context, int state)
         rotation_rotate_disk(drv);
         drv->byte_ready_active &= ~(1 << 1);
         drv->byte_ready_active |= state << 1;
+        if (drv->byte_ready_edge) {
+           drive_context_t *drive_context = (drive_context_t *)(via_context->context);
+           drive_cpu_set_overflow(drive_context);
+           drv->byte_ready_edge = 0;
+        }
     }
 #endif
 }
@@ -165,21 +170,21 @@ static void undump_pra(via_context_t *via_context, BYTE byte)
 static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
                       WORD addr)
 {
-    drivevia2_context_t *via2p;
+    drivevia2_context_t *via2p = (drivevia2_context_t *)(via_context->prv);
+    drive_t *drv = via2p->drive;
     int bra;
 
-    via2p = (drivevia2_context_t *)(via_context->prv);
 
-    DBG(("VIA2: store_prb (%02x to %02x)", poldpb, byte));
+    DBG(("VIA2: store_prb (%02x to %02x) clock:%d", poldpb, byte, *(via_context->clk_ptr)));
 
-    rotation_rotate_disk(via2p->drive);
+    rotation_rotate_disk(drv);
 
-    if (via2p->drive->led_status) {
-        via2p->drive->led_active_ticks += *(via_context->clk_ptr)
-                                          - via2p->drive->led_last_change_clk;
+    if (drv->led_status) {
+        drv->led_active_ticks += *(via_context->clk_ptr)
+                                          - drv->led_last_change_clk;
     }
-    via2p->drive->led_last_change_clk = *(via_context->clk_ptr);
-    via2p->drive->led_status = (byte & 8) ? 1 : 0;
+    drv->led_last_change_clk = *(via_context->clk_ptr);
+    drv->led_status = (byte & 8) ? 1 : 0;
 
     /* IF: based on 1540008-01, the original 'Long Board' schematics
        Stepper motor control is the 2 bit value set here demuxed to 4 lines.
@@ -191,50 +196,107 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
     */
     /* Process stepper motor if the drive motor is on */
     if (byte & 0x4) {
+
         /* vice track numbering starts with 2... we need the real, physical track number */
-        int track_number = via2p->drive->current_half_track - 2;
+        int track_number = drv->current_half_track - 2;
 
         /* the new coil line activated */
         int new_stepper_position = byte & 3;
 
-        /* the previous coil line currently active 
-           track 0: position 0
-           track 1: position 1
-           track 2: position 2
-           track 3: position 3
-           track 4: position 0
-           ... */
+        /*
+          track halftrack stepper
+          log.  log.phys. position
+          1     2   0     0
+          1.5   3   1     1
+          2     4   2     2
+          2.5   5   3     3
+          3     6   4     0
+          3.5   7   5     1
+          ... */
+
         int old_stepper_position = track_number & 3;
 
+        /* FIXME: emulating the mechanical delay with such naive approach does
+                  not work, as the actual step is delayed to the next write to pb.
+                  regardless how long that will take. for one example that does
+                  not work like this, see bug #508
+
+           FIXME: we should implement the intended behaviour using an alarm
+                  instead.
+         */
+
         /* the steps travelled and the direction */
+        /* int step_count = (drv->stepper_new_position - old_stepper_position) & 3; */
         int step_count = (new_stepper_position - old_stepper_position) & 3;
         if (step_count == 3) {
             step_count = -1;
         }
+        /*
+            minimal simulation of mechanical delay.
 
-        /* FIXME: mechanical delays are not emulated, which has some unwanted
-                  side effects, for example the drive will do one step at
-                  power-up and/or reset (bug #3606259) */
+            in reality, there are 3 kinds of delays:
+            - startup time, the time it takes from changing the coils to when
+              the head starts moving.
+            - seek time, the time it takes the head to move from track to track
+            - settle time, the time it takes from stopping the head to being 
+              able to read reliably.
 
-        /* presumably only single steps work */
-        if (step_count == 1 || step_count == -1) {
-            DBG(("VIA2: store_prb drive_move_head(%d) (%02x to %02x)", step_count, poldpb, byte));
-            drive_move_head(step_count, via2p->drive);
+            the simplified emulation here only simulates startup time, and then
+            steps immediatly. while still not being quite accurate, this avoids
+            unwanted stepping at power-up and/or reset (bug #401)
+
+            NOTE: this unwanted step to 18.5 at poweron/reset can infact be
+                  observed at real 1541-II drives as well
+         */
+        /*
+            Action Replay 6:                                     8333 = 8.3ms
+            Cauldron/The Dreams:                                 7734 = 7.7ms
+            fastest usable stepping speed seems to be around     4096 = 4.1ms 
+            min delay so we dont get a step at reset              700 = 0.7ms
+         */
+        /* if ((*(via_context->clk_ptr) - drv->stepper_last_change_clk) >= 2000) */ {
+            /* presumably only single steps work */
+            /* TODO: the general assumption for the case when opposite coils are active is
+                    that the stepper will _not_ move at all. however, that doesnt seem to
+                    be true in all cases. when the stepper is already moving (up or down),
+                    and such "double step" takes place with the right timing, then it would
+                    actually result in two steps (in the "current" direction!). this seems
+                    unreliable on real hw as well, and only very few original titles need it.
+                    allowing it always does more harm than good, so we should simply ignore
+                    this condition for the time being. */
+            if ((step_count == 1) || (step_count == -1)) {
+                DBG(("VIA2: store_prb drive_move_head(%d) (%02x to %02x) clk:%d delay:%d", 
+                     step_count, poldpb, byte, *(via_context->clk_ptr), 
+                     (*(via_context->clk_ptr) - drv->stepper_last_change_clk)));
+                drive_move_head(step_count, drv);
+            }
         }
+
+        /* if (new_stepper_position != drv->stepper_new_position) {
+            drv->stepper_new_position = new_stepper_position;
+            drv->stepper_last_change_clk = *(via_context->clk_ptr);
+        } */
     }
+
     if ((poldpb ^ byte) & 0x60) {   /* Zone bits */
         rotation_speed_zone_set((byte >> 5) & 0x3, via2p->number);
     }
     if ((poldpb ^ byte) & 0x04) {   /* Motor on/off */
         drive_sound_update((byte & 4) ? DRIVE_SOUND_MOTOR_ON : DRIVE_SOUND_MOTOR_OFF, via2p->number);
-        bra = via2p->drive->byte_ready_active;
-        via2p->drive->byte_ready_active = (bra & ~0x04) | (byte & 0x04);
+        bra = drv->byte_ready_active;
+        drv->byte_ready_active = (bra & ~0x04) | (byte & 0x04);
         if ((byte & 0x04) != 0) {
-            rotation_begins(via2p->drive);
+            rotation_begins(drv);
+        } else {
+            if (drv->byte_ready_edge) {
+               drive_context_t *drive_context = (drive_context_t *)(via_context->context);
+               drive_cpu_set_overflow(drive_context);
+               drv->byte_ready_edge = 0;
+            }
         }
     }
 
-    via2p->drive->byte_ready_level = 0;
+    drv->byte_ready_level = 0;
 }
 
 static void undump_prb(via_context_t *via_context, BYTE byte)
@@ -350,7 +412,7 @@ static BYTE read_prb(via_context_t *via_context)
            & ~(via_context->via[VIA_DDRB]))
            | (via_context->via[VIA_PRB] & via_context->via[VIA_DDRB]);
 
-    DBG(("read_prb %02x pb:%02x ddr:%02x\n",byte,via_context->via[VIA_PRB],via_context->via[VIA_DDRB]));
+    DBG(("read_prb %02x pb:%02x ddr:%02x",byte,via_context->via[VIA_PRB],via_context->via[VIA_DDRB]));
 
     via2p->drive->byte_ready_level = 0;
 

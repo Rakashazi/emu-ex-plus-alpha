@@ -32,7 +32,10 @@ extern int c64rom_load_basic(const char *rom_name);
 extern int c64rom_load_chargen(const char *rom_name);
 
 extern int c64rom_get_kernal_checksum(void);
+extern int c64rom_get_kernal_chksum_id(WORD *sumout, int *idout);
 extern int c64rom_get_basic_checksum(void);
+
+extern int c64rom_isloaded(void);
 
 extern int c64rom_cartkernal_active;
 

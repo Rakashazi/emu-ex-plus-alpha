@@ -2,7 +2,7 @@
  * viacore.c - Core functions for VIA emulation.
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -66,7 +66,7 @@
    Otherwise PB7 state is computed only
    when port B is read -
    not yet implemented */
-/*#define MYVIA_NEED_PB7 */
+#define MYVIA_NEED_PB7
 /* When you really need latching, define this.
    It implies additional READ_PR* when
    writing the snapshot. When latching is
@@ -74,8 +74,8 @@
    and when an active C*1 transition occurs.
    It does not read the port when reading the
    port register. Side-effects beware! */
-/*#define MYVIA_NEED_LATCHING */
-
+/* FIXME: this doesnt even work anymore */
+/* #define MYVIA_NEED_LATCHING */
 
 /*
  * local functions
@@ -250,7 +250,7 @@ void viacore_reset(via_context_t *via_context)
         via_context->via[i] = 0;
     }
     for (i = 4; i < 10; i++) {
-        via_context->via[i] = 0xff;        /* AB 98.08.23 */
+        via_context->via[i] = 0xff;
     }
     for (i = 11; i < 16; i++) {
         via_context->via[i] = 0;
@@ -553,8 +553,8 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
                     /* Pulse counting mode: set t2 to the current T2 value; 
                     PB6 should always update t2 and update irq on underflow */
                     CLOCK stop = myviatb(via_context);
-                    via_context->t2cl = stop & 0xff;
-                    via_context->t2ch = (stop >> 8) & 0xff;
+                    via_context->t2cl = (BYTE)(stop & 0xff);
+                    via_context->t2ch = (BYTE)((stop >> 8) & 0xff);
 
                     /* stop alarm to prevent t2 and T2 updates */
                     alarm_unset(via_context->t2_alarm);

@@ -31,22 +31,29 @@
 
 #include "types.h"
 
+#define DS12C887_RAM_SIZE   128
+#define DS12C887_REG_SIZE   11
+
 typedef struct rtc_ds12c887_s {
     int clock_halt;
     time_t clock_halt_latch;
     int am_pm;
     int set;
     time_t set_latch;
-    time_t *offset;
+    time_t offset;
+    time_t old_offset;
     int bcd;
     int alarm_flag;
     int end_of_update_flag;
-    BYTE clock_regs[11];
-    BYTE clock_regs_changed[11];
+    BYTE *clock_regs;
+    BYTE old_clock_regs[DS12C887_REG_SIZE];
+    BYTE clock_regs_changed[DS12C887_REG_SIZE];
     BYTE ctrl_regs[2];
     BYTE *ram;
+    BYTE old_ram[DS12C887_RAM_SIZE];
     BYTE reg;
     BYTE prev_second;
+    char *device;
 } rtc_ds12c887_t;
 
 #define DS12C887_REG_SECONDS         0
@@ -66,8 +73,8 @@ typedef struct rtc_ds12c887_s {
 #define DS12C887_REG_CENTURIES       50
 
 extern void ds12c887_reset(rtc_ds12c887_t *context);
-extern rtc_ds12c887_t *ds12c887_init(BYTE *data, time_t *offset);
-extern void ds12c887_destroy(rtc_ds12c887_t *context);
+extern rtc_ds12c887_t *ds12c887_init(char *device);
+extern void ds12c887_destroy(rtc_ds12c887_t *context, int save);
 
 /* This function needs to be called at least every 1/10th of a second
  * it returns a 1 if an IRQ was generated */

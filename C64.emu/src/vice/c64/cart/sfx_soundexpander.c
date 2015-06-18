@@ -150,8 +150,10 @@ int sfx_soundexpander_cart_enabled(void)
     return sfx_soundexpander_sound_chip.chip_enabled;
 }
 
-static int set_sfx_soundexpander_enabled(int val, void *param)
+static int set_sfx_soundexpander_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (sfx_soundexpander_sound_chip.chip_enabled != val) {
         if (val) {
             if (c64export_add(&export_res_sound) < 0) {
@@ -191,23 +193,25 @@ static int set_sfx_soundexpander_enabled(int val, void *param)
 
 static int set_sfx_soundexpander_chip(int val, void *param)
 {
-    int newval;
-
-    if (val != 3526 && val != 3812) {
-        newval = 3526;
-    } else {
-        newval = val;
+    switch (val) {
+        case 3526:
+        case 3812:
+            break;
+        default:
+            return -1;
     }
 
-    if (newval != sfx_soundexpander_chip) {
+    if (val != sfx_soundexpander_chip) {
         sid_state_changed = 1;
-        sfx_soundexpander_chip = newval;
+        sfx_soundexpander_chip = val;
     }
     return 0;
 }
 
-static int set_sfx_soundexpander_io_swap(int val, void *param)
+static int set_sfx_soundexpander_io_swap(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (val == sfx_soundexpander_io_swap) {
         return 0;
     }
@@ -242,7 +246,7 @@ void sfx_soundexpander_detach(void)
 static const resource_int_t resources_int[] = {
     { "SFXSoundExpander", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &sfx_soundexpander_sound_chip.chip_enabled, set_sfx_soundexpander_enabled, NULL },
-    { "SFXSoundExpanderChip", 0, RES_EVENT_STRICT, (resource_value_t)3526,
+    { "SFXSoundExpanderChip", 3526, RES_EVENT_STRICT, (resource_value_t)3526,
       &sfx_soundexpander_chip, set_sfx_soundexpander_chip, NULL },
     { NULL }
 };
@@ -661,7 +665,7 @@ int sfx_soundexpander_snapshot_read_module(snapshot_t *s)
                 snapshot_module_close(m);
                 return -1;
             }
-            set_connect1(chip->P_CH[x].SLOT[y].connect1, temp_connect1);
+            set_connect1(chip, x, y, temp_connect1);
         }
         if (0
             || (SMR_DW_UINT(m, &chip->P_CH[x].block_fnum) < 0)

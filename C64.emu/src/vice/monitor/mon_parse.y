@@ -30,7 +30,7 @@
 
 #include "vice.h"
 
-#ifndef MINIXVMD
+#if !defined(__minix_vmd) && !defined(MACOS_COMPILE)
 #ifdef __GNUC__
 #undef alloca
 #ifndef ANDROID_COMPILE
@@ -75,6 +75,7 @@ extern char *alloca();
 #include "mon_drive.h"
 #include "mon_file.h"
 #include "mon_memory.h"
+#include "mon_register.h"
 #include "mon_util.h"
 #include "montypes.h"
 #include "resources.h"
@@ -118,6 +119,7 @@ extern int cur_len, last_len;
 #define ERR_UNDEFINED_LABEL 13
 #define ERR_EXPECT_DEVICE_NUM 14
 #define ERR_EXPECT_ADDRESS 15
+#define ERR_INVALID_REGISTER 16
 
 #define BAD_ADDR (new_addr(e_invalid_space, 0))
 #define CHECK_ADDR(x) ((x) == addr_mask(x))
@@ -149,7 +151,7 @@ extern int cur_len, last_len;
 %token CMD_MEM_DISPLAY CMD_BREAK CMD_TRACE CMD_IO CMD_BRMON CMD_COMPARE
 %token CMD_DUMP CMD_UNDUMP CMD_EXIT CMD_DELETE CMD_CONDITION CMD_COMMAND
 %token CMD_ASSEMBLE CMD_DISASSEMBLE CMD_NEXT CMD_STEP CMD_PRINT CMD_DEVICE
-%token CMD_HELP CMD_WATCH CMD_DISK CMD_SYSTEM CMD_QUIT CMD_CHDIR CMD_BANK
+%token CMD_HELP CMD_WATCH CMD_DISK CMD_QUIT CMD_CHDIR CMD_BANK
 %token CMD_LOAD_LABELS CMD_SAVE_LABELS CMD_ADD_LABEL CMD_DEL_LABEL CMD_SHOW_LABELS
 %token CMD_RECORD CMD_MON_STOP CMD_PLAYBACK CMD_CHAR_DISPLAY CMD_SPRITE_DISPLAY
 %token CMD_TEXT_DISPLAY CMD_SCREENCODE_DISPLAY CMD_ENTER_DATA CMD_ENTER_BIN_DATA CMD_KEYBUF
@@ -411,8 +413,12 @@ checkpoint_rules: CMD_BREAK opt_mem_op address_opt_range opt_if_cond_expr end_cm
 
 checkpoint_control_rules: CMD_CHECKPT_ON checkpt_num end_cmd
                           { mon_breakpoint_switch_checkpoint(e_ON, $2); }
+                        | CMD_CHECKPT_ON end_cmd
+                          { mon_breakpoint_switch_checkpoint(e_ON, -1); }
                         | CMD_CHECKPT_OFF checkpt_num end_cmd
                           { mon_breakpoint_switch_checkpoint(e_OFF, $2); }
+                        | CMD_CHECKPT_OFF end_cmd
+                          { mon_breakpoint_switch_checkpoint(e_OFF, -1); }
                         | CMD_IGNORE checkpt_num end_cmd
                           { mon_breakpoint_set_ignore_count($2, -1); }
                         | CMD_IGNORE checkpt_num opt_sep expression end_cmd
@@ -474,8 +480,6 @@ monitor_misc_rules: CMD_DISK rest_of_line end_cmd
                     { mon_command_print_help(NULL); }
                   | CMD_HELP rest_of_line end_cmd
                     { mon_command_print_help($2); }
-                  | CMD_SYSTEM rest_of_line end_cmd
-                    { printf("SYSTEM COMMAND: %s\n",$2); }
                   | CONVERT_OP expression end_cmd
                     { mon_print_convert($2); }
                   | CMD_CHDIR rest_of_line end_cmd
@@ -597,8 +601,18 @@ opt_mem_op: mem_op { $$ = $1; }
           | { $$ = 0; }
           ;
 
-register: MON_REGISTER          { $$ = new_reg(default_memspace, $1); }
-        | memspace MON_REGISTER { $$ = new_reg($1, $2); }
+register: MON_REGISTER          {
+                                    if (!mon_register_valid(default_memspace, $1)) {
+                                        return ERR_INVALID_REGISTER;
+                                    }
+                                    $$ = new_reg(default_memspace, $1);
+                                }
+        | memspace MON_REGISTER {
+                                    if (!mon_register_valid($1, $2)) {
+                                        return ERR_INVALID_REGISTER;
+                                    }
+                                    $$ = new_reg($1, $2);
+                                }
         ;
 
 reg_list: reg_list COMMA reg_asgn
@@ -1080,6 +1094,9 @@ void parse_and_execute_line(char *input)
            break;
          case ERR_EXPECT_ADDRESS:
            mon_out("Expecting an address.\n");
+           break;
+         case ERR_INVALID_REGISTER:
+           mon_out("Invalid register.\n");
            break;
          case ERR_ILLEGAL_INPUT:
          default:

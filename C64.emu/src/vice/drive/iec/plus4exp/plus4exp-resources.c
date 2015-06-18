@@ -53,8 +53,12 @@ static int set_drive_parallel_cable(int val, void *param)
 {
     drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
 
-    if (val != DRIVE_PC_NONE && val != DRIVE_PC_STANDARD) {
-        return -1;
+    switch (val) {
+        case DRIVE_PC_NONE:
+        case DRIVE_PC_STANDARD:
+            break;
+        default:
+            return -1;
     }
 
     drive->parallel_cable = val;
@@ -65,7 +69,7 @@ static int set_drive_parallel_cable(int val, void *param)
 
 
 static resource_int_t res_drive[] = {
-    { NULL, 0, RES_EVENT_SAME, NULL,
+    { NULL, DRIVE_PC_NONE, RES_EVENT_SAME, NULL,
       NULL, set_drive_parallel_cable, NULL },
     { NULL }
 };

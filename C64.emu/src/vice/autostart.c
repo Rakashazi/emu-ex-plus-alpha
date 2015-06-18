@@ -4,7 +4,7 @@
  * Written by
  *  Teemu Rantanen <tvr@cs.hut.fi>
  *  Ettore Perazzoli <ettore@comm2000.it>
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *  Thomas Bretz <tbretz@ph.tum.de>
  *
@@ -41,6 +41,7 @@
 #include "autostart.h"
 #include "autostart-prg.h"
 #include "attach.h"
+#include "cartridge.h"
 #include "charset.h"
 #include "cmdline.h"
 #include "datasette.h"
@@ -51,6 +52,7 @@
 #include "tapecontents.h"
 #include "diskcontents.h"
 #include "interrupt.h"
+#include "ioutil.h"
 #include "kbdbuf.h"
 #include "lib.h"
 #include "log.h"
@@ -150,9 +152,6 @@ static int entered_rom = 0;
 static int trigger_monitor = 0;
 
 int autostart_ignore_reset = 0; /* FIXME: only used by datasette.c, does it really have to be global? */
-
-/* additional random delay of up to 10 frames */
-#define AUTOSTART_RAND() (1 + (int)(((float)machine_get_cycles_per_frame()) * 10.0f * rand() / (RAND_MAX + 1.0)))
 
 /* flag for special case handling of C128 80 columns mode */
 static int c128_column4080_key;
@@ -265,10 +264,10 @@ static int set_autostart_delayrandom(int val, void *param)
 /*! \internal \brief set autostart prg mode */
 static int set_autostart_prg_mode(int val, void *param)
 {
-    AutostartPrgMode = val;
     if ((val < 0) || (val > AUTOSTART_PRG_MODE_LAST)) {
-        val = 0;
+        val = AUTOSTART_PRG_MODE_DEFAULT;
     }
+    AutostartPrgMode = val;
 
     return 0;
 }
@@ -301,7 +300,7 @@ static const resource_int_t resources_int[] = {
       &AutostartHandleTrueDriveEmulation, set_autostart_handle_tde, NULL },
     { "AutostartWarp", 1, RES_EVENT_NO, (resource_value_t)0,
       &AutostartWarp, set_autostart_warp, NULL },
-    { "AutostartPrgMode", 0, RES_EVENT_NO, (resource_value_t)0,
+    { "AutostartPrgMode", AUTOSTART_PRG_MODE_DEFAULT, RES_EVENT_NO, (resource_value_t)0,
       &AutostartPrgMode, set_autostart_prg_mode, NULL },
     { "AutostartDelay", 0, RES_EVENT_NO, (resource_value_t)0,
       &AutostartDelay, set_autostart_delay, NULL },
@@ -381,17 +380,17 @@ static const cmdline_option_t cmdline_options[] =
     { "-autostartprgmode", SET_RESOURCE, 1,
       NULL, NULL, "AutostartPrgMode", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_AUTOSTART_MODE_FOR_PRG,
+      IDCLS_P_MODE, IDCLS_SET_AUTOSTART_MODE_FOR_PRG,
       NULL, NULL },
     { "-autostartprgdiskimage", SET_RESOURCE, 1,
       NULL, NULL, "AutostartPrgDiskImage", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_DISK_IMAGE_FOR_AUTOSTART_PRG,
+      IDCLS_P_NAME, IDCLS_SET_DISK_IMAGE_FOR_AUTOSTART_PRG,
       NULL, NULL },
     { "-autostart-delay", SET_RESOURCE, 1,
       NULL, NULL, "AutostartDelay", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_AUTOSTART_DELAY,
+      IDCLS_P_FRAMES, IDCLS_SET_AUTOSTART_DELAY,
       NULL, NULL },
     { "-autostart-delay-random", SET_RESOURCE, 0,
       NULL, NULL, "AutostartDelayRandom", (resource_value_t)1,
@@ -771,17 +770,26 @@ static void advance_loadingtape(void)
 
 static void advance_hasdisk(void)
 {
-    char *tmp;
+    char *tmp, *temp_name;
     int traps;
 
     switch (check("READY.", AUTOSTART_WAIT_BLINK)) {
         case YES:
+
+            /* autostart_program_name may be petscii or ascii at this point,
+               ANDing the charcodes with 0x7f here is a cheap way to prevent
+               illegal characters in the printed message */
             if (autostart_program_name) {
-                log_message(autostart_log, "Loading program '%s'",
-                            autostart_program_name);
+                temp_name = tmp = lib_stralloc(autostart_program_name);
+                while (*tmp) {
+                    *tmp++ &= 0x7f;
+                }
+                log_message(autostart_log, "Loading program '%s'", temp_name);
+                lib_free(temp_name);
             } else {
                 log_message(autostart_log, "Loading program '*'");
             }
+
             orig_drive_true_emulation_state = get_true_drive_emulation_state();
             if (handle_drive_true_emulation_overridden) {
                 resources_get_int("VirtualDevices", &traps);
@@ -995,13 +1003,26 @@ static void reboot_for_autostart(const char *program_name, unsigned int mode,
                                  unsigned int runmode)
 {
     int rnd;
+    char *temp_name, *temp;
 
     if (!autostart_enabled) {
         return;
     }
 
+    /* program_name may be petscii or ascii at this point, ANDing the charcodes
+       with 0x7f here is a cheap way to prevent illegal characters in the
+       printed message */
+    if (program_name) {
+        temp_name = temp = lib_stralloc(program_name);
+        while (*temp) {
+            *temp++ &= 0x7f;
+        }
+    }
     log_message(autostart_log, "Resetting the machine to autostart '%s'",
-                program_name ? program_name : "*");
+                program_name ? temp_name : "*");
+    if (program_name) {
+        lib_free(temp_name);
+    }
 
     /* on x128 autostart will only work in 40 columns mode (and can not be fixed
        easily for VDC mode). We work around that by switching to 40 columns and
@@ -1022,7 +1043,8 @@ static void reboot_for_autostart(const char *program_name, unsigned int mode,
     autostart_initial_delay_cycles = min_cycles;
     resources_get_int("AutostartDelayRandom", &rnd);
     if (rnd) {
-        autostart_initial_delay_cycles += AUTOSTART_RAND();
+        /* additional random delay of up to 10 frames */
+        autostart_initial_delay_cycles += lib_unsigned_rand(1, machine_get_cycles_per_frame() * 10);
     }
     DBG(("autostart_initial_delay_cycles: %d", autostart_initial_delay_cycles));
 
@@ -1099,7 +1121,7 @@ int autostart_tape(const char *file_name, const char *program_name,
                 tape_seek_start(tape_image_dev1);
             }
         }
-        resources_set_int("VirtualDevices", 1); /* Kludge: iAN CooG - for t64 images we need devtraps ON */
+        resources_set_int("VirtualDevices", 1); /* Kludge: for t64 images we need devtraps ON */
         reboot_for_autostart(program_name, AUTOSTART_HASTAPE, runmode);
 
         return 0;
@@ -1210,10 +1232,17 @@ int autostart_prg(const char *file_name, unsigned int runmode)
             boot_file_name = NULL;
             break;
         case AUTOSTART_PRG_MODE_DISK:
+            {
+            char *savedir;
             log_message(autostart_log, "Loading PRG file `%s' with autostart disk image.", file_name);
+            /* create the directory where the image should be written first */
+            util_fname_split(AutostartPrgDiskImage, &savedir, NULL);
+            ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+            lib_free(savedir);
             result = autostart_prg_with_disk_image(file_name, finfo, autostart_log, AutostartPrgDiskImage);
             mode = AUTOSTART_HASDISK;
             boot_file_name = "*";
+            }
             break;
         default:
             log_error(autostart_log, "Invalid PRG autostart mode: %d", AutostartPrgMode);
@@ -1306,6 +1335,16 @@ int autostart_autodetect(const char *file_name, const char *program_name,
                     file_name);
         return 0;
     }
+
+    if ((machine_class == VICE_MACHINE_C64) || (machine_class == VICE_MACHINE_C64SC) ||
+       (machine_class == VICE_MACHINE_SCPU64) ||(machine_class == VICE_MACHINE_C128)) {
+        if (cartridge_attach_image(CARTRIDGE_CRT, file_name) == 0) {
+            log_message(autostart_log, "`%s' recognized as cartridge image.",
+                        file_name);
+            return 0;
+        }
+    }
+
     if (autostart_prg(file_name, runmode) == 0) {
         log_message(autostart_log, "`%s' recognized as program/p00 file.",
                     file_name);

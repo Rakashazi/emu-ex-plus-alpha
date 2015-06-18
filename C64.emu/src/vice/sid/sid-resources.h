@@ -27,6 +27,11 @@
 #ifndef VICE_SID_RESOURCES_H
 #define VICE_SID_RESOURCES_H
 
+#define SID_RESID_SAMPLING_FAST                 0
+#define SID_RESID_SAMPLING_INTERPOLATION        1
+#define SID_RESID_SAMPLING_RESAMPLING           2
+#define SID_RESID_SAMPLING_FAST_RESAMPLING      3
+
 extern int sid_resources_init(void);
 extern int sid_common_resources_init(void);
 

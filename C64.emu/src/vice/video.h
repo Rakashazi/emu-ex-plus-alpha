@@ -213,7 +213,8 @@ extern void video_render_initraw(struct video_render_config_s *videoconfig);
 
 /**************************************************************/
 
-extern int video_init_cmdline_options(void);
+extern int video_arch_cmdline_options_init(void);
+extern int video_cmdline_options_init(void);
 extern int video_init(void);
 extern void video_shutdown(void);
 

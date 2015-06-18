@@ -149,7 +149,11 @@ static const char *mon_disassemble_to_string_internal(MEMSPACE memspace,
             break;
 
         case ASM_ADDR_MODE_ZERO_PAGE:
-            sprintf(buffp, (hex_mode ? " $%02X" : " %3d"), ival);
+            if (!(addr_name = mon_symbol_table_lookup_name(e_comp_space, ival))) {
+                sprintf(buffp, (hex_mode ? " $%02X" : " %3d"), ival);
+            } else {
+                sprintf(buffp, " %s", addr_name);
+            }
             break;
 
         case ASM_ADDR_MODE_ZERO_PAGE_X:
@@ -316,9 +320,12 @@ static const char *mon_disassemble_to_string_internal(MEMSPACE memspace,
 
         case ASM_ADDR_MODE_RELATIVE_LONG:
             ival |= (p2 & 0xff) << 8;
+#if 0
+            /* useless subtraction since ival is 16bit */
             if (0x8000 & ival) {
                 ival -= 65536;
             }
+#endif
             ival += addr;
             ival += 3;
             if (!(addr_name = mon_symbol_table_lookup_name(e_comp_space, ival))) {

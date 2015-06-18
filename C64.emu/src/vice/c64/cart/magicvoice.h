@@ -62,6 +62,8 @@ extern void magicvoice_setup_context(struct machine_context_s *machine_context);
 extern int magicvoice_resources_init(void);
 extern void magicvoice_resources_shutdown(void);
 
+extern int magicvoice_cmdline_options_init(void);
+
 extern int magicvoice_bin_attach(const char *filename, BYTE *rawcart);
 extern int magicvoice_crt_attach(FILE *fd, BYTE *rawcart);
 extern int magicvoice_enable(void);

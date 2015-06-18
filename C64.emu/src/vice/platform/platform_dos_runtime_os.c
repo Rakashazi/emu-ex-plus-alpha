@@ -35,13 +35,17 @@
 #include <dos.h>
 
 static char archdep_os_version[128];
+static int got_os = 0;
 
 char *platform_get_dos_runtime_os(void)
 {
-    unsigned short real_version = _get_dos_version(1);
+    unsigned short real_version;
 
-    sprintf(archdep_os_version, "%s v%d.%d", _os_flavor, real_version >> 8, real_version & 0xff);
-
+    if (!got_os) {
+        real_version = _get_dos_version(1);
+        sprintf(archdep_os_version, "%s v%d.%d", _os_flavor, real_version >> 8, real_version & 0xff);
+        got_os = 1;
+    }
     return archdep_os_version;
 }
 #endif

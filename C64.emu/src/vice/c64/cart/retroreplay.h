@@ -40,6 +40,9 @@
 struct snapshot_s;
 struct export_s;
 
+#define RR_REV_RETRO_REPLAY  0
+#define RR_REV_NORDIC_REPLAY 1
+
 extern BYTE retroreplay_roml_read(WORD addr);
 extern void retroreplay_roml_store(WORD addr, BYTE value);
 extern int retroreplay_roml_no_ultimax_store(WORD addr, BYTE value);

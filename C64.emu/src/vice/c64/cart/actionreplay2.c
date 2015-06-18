@@ -344,7 +344,7 @@ static void cap_charge(void)
     if (ar_cap_disable == CAPDISABLE) {
         ar_enabled = 0;
         ar_cap_enable = 0;
-        cart_config_changed_slotmain((BYTE)(2 | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(2 | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+        cart_config_changed_slotmain((BYTE)(CMODE_RAM | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(CMODE_RAM | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
         DBG(("disabled\n"));
     }
 }
@@ -356,7 +356,7 @@ static void cap_discharge(void)
     if (ar_cap_enable == CAPENABLE) {
         roml_bank = 1;
         ar_enabled = 1;
-        cart_config_changed_slotmain((BYTE)(0 | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(0 | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+        cart_config_changed_slotmain((BYTE)(CMODE_8KGAME | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(CMODE_8KGAME | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
         DBG(("enabled\n"));
     }
     ar_cap_disable = 0;
@@ -421,7 +421,7 @@ void actionreplay2_freeze(void)
     ar_cap_enable = 0;
     ar_cap_disable = 0;
     DBG(("freeze\n"));
-    cart_config_changed_slotmain((BYTE)(3 | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(3 | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain((BYTE)(CMODE_ULTIMAX | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(CMODE_ULTIMAX | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
     cartridge_release_freeze();
 }
 
@@ -432,7 +432,7 @@ void actionreplay2_config_init(void)
     ar_cap_enable = 0;
     ar_cap_disable = 0;
     DBG(("config init\n"));
-    cart_config_changed_slotmain((BYTE)(0 | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(0 | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain((BYTE)(CMODE_8KGAME | (roml_bank << CMODE_BANK_SHIFT)), (BYTE)(CMODE_8KGAME | (roml_bank << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
 void actionreplay2_reset(void)

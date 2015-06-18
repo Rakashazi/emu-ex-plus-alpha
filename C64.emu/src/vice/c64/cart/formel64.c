@@ -297,7 +297,7 @@ void formel64_config_init(void)
     my6821.get_pb = f64_get_pb;
 
     romh_bank = 2;
-    cart_config_changed_slotmain(2, (BYTE)(3 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_ULTIMAX | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
 void formel64_reset(void)

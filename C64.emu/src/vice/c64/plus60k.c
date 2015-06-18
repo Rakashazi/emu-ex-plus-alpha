@@ -78,7 +78,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "c64_256k.h"
 #include "c64cart.h"
 #include "c64export.h"
 #include "c64mem.h"
@@ -91,7 +90,6 @@
 #include "mem.h"
 #include "monitor.h"
 #include "resources.h"
-#include "plus256k.h"
 #include "plus60k.h"
 #include "snapshot.h"
 #include "translate.h"
@@ -204,8 +202,10 @@ static io_source_list_t *vicii_d000_full_list_item = NULL;
 static io_source_list_t *vicii_d040_list_item = NULL;
 static io_source_list_t *vicii_d100_list_item = NULL;
 
-static int set_plus60k_enabled(int val, void *param)
+int set_plus60k_enabled(int value)
 {
+    int val = value ? 1 : 0;
+
     if (val == plus60k_enabled) {
         return 0;
     }
@@ -219,13 +219,8 @@ static int set_plus60k_enabled(int val, void *param)
         plus60k_enabled = 0;
         return 0;
     } else {
-        if (get_cpu_lines_lock() != 0) {
-            ui_error(translate_text(IDGS_RESOURCE_S_BLOCKED_BY_S), "CPU-LINES", get_cpu_lines_lock_name());
+        if (plus60k_activate() < 0) {
             return -1;
-        } else {
-            if (plus60k_activate() < 0) {
-                return -1;
-            }
         }
         plus60k_enabled = 1;
         machine_trigger_reset(MACHINE_RESET_MODE_HARD);
@@ -289,8 +284,6 @@ static const resource_string_t resources_string[] = {
 };
 
 static const resource_int_t resources_int[] = {
-    { "PLUS60K", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &plus60k_enabled, set_plus60k_enabled, NULL },
     { "PLUS60Kbase", 0xd100, RES_EVENT_NO, NULL,
       &plus60k_base, set_plus60k_base, NULL },
     { NULL }
@@ -314,16 +307,6 @@ void plus60k_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-plus60k", SET_RESOURCE, 0,
-      NULL, NULL, "PLUS60K", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_PLUS60K_EXPANSION,
-      NULL, NULL },
-    { "+plus60k", SET_RESOURCE, 0,
-      NULL, NULL, "PLUS60K", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_PLUS60K_EXPANSION,
-      NULL, NULL },
     { "-plus60kimage", SET_RESOURCE, 1,
       NULL, NULL, "PLUS60Kfilename", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -374,7 +357,6 @@ static int plus60k_activate(void)
     }
 
     plus60k_reset();
-    set_cpu_lines_lock(CPU_LINES_PLUS60K, "PLUS60K");
 
     c64io_vicii_deinit();
     if (plus60k_base == 0xd100) {
@@ -398,7 +380,6 @@ static int plus60k_deactivate(void)
     }
     lib_free(plus60k_ram);
     plus60k_ram = NULL;
-    remove_cpu_lines_lock();
 
     if (vicii_d000_list_item != NULL) {
         io_source_unregister(vicii_d000_list_item);

@@ -35,6 +35,7 @@
 #include "fdd.h"
 #include "diskimage.h"
 #include "drive.h"
+#include "snapshot.h"
 
 const int fdd_data_rates[4] = { 500, 300, 250, 1000 }; /* kbit/s */
 #define INDEXLEN (16)
@@ -42,6 +43,7 @@ static void fdd_flush_raw(fd_drive_t *drv);
 static WORD *crc1021 = NULL;
 
 struct fd_drive_s {
+    char *myname;
     int number;
     int disk_change; /* out signal */
     int write_protect; /* out signal */
@@ -74,8 +76,9 @@ struct fd_drive_s {
 fd_drive_t *fdd_init(int num, drive_t *drive)
 {
     fd_drive_t *drv = lib_malloc(sizeof(fd_drive_t));
+    drv->myname = lib_msprintf("FDD%d", num);
     drv->image = NULL;
-    drv->number = num;
+    drv->number = num & 3;
     drv->motor = 0;
     drv->track = 0;
     drv->tracks = 80;
@@ -115,6 +118,7 @@ void fdd_shutdown(fd_drive_t *drv)
     if (!drv) {
         return;
     }
+    lib_free(drv->myname);
     lib_free(drv);
 }
 
@@ -190,7 +194,9 @@ void fdd_image_detach(fd_drive_t *drv)
     fdd_flush_raw(drv);
     drv->image = NULL;
     lib_free(drv->raw.data);
+    drv->raw.data = NULL;
     lib_free(drv->raw.sync);
+    drv->raw.sync = NULL;
     drv->disk_change = 1;
 }
 
@@ -638,4 +644,113 @@ void fdd_set_rate(fd_drive_t *drv, int rate)
         return;
     }
     drv->rate = rate & 3;
+}
+
+#define FDD_SNAP_MAJOR 1
+#define FDD_SNAP_MINOR 0
+
+int fdd_snapshot_write_module(fd_drive_t *drv, struct snapshot_s *s)
+{
+    snapshot_module_t *m;
+
+    m = snapshot_module_create(s, drv->myname,
+                               FDD_SNAP_MAJOR, FDD_SNAP_MINOR);
+    if (m == NULL) {
+        return -1;
+    }
+
+    SMW_B(m, (BYTE)drv->number);
+    SMW_B(m, (BYTE)drv->disk_change);
+    SMW_B(m, (BYTE)drv->write_protect);
+    SMW_B(m, (BYTE)drv->track);
+    SMW_B(m, (BYTE)drv->tracks);
+    SMW_B(m, (BYTE)drv->head);
+    SMW_B(m, (BYTE)drv->sectors);
+    SMW_B(m, (BYTE)drv->motor);
+    SMW_B(m, (BYTE)drv->rate);
+    SMW_B(m, (BYTE)drv->sector_size);
+    SMW_B(m, (BYTE)drv->iso);
+    SMW_B(m, (BYTE)drv->gap2);
+    SMW_B(m, (BYTE)drv->gap3);
+    SMW_B(m, (BYTE)drv->head_invert);
+    SMW_B(m, (BYTE)drv->disk_rate);
+    SMW_DW(m, drv->image_sectors);
+    SMW_DW(m, drv->index_count);
+
+    SMW_DW(m, (BYTE)drv->raw.head);
+    SMW_B(m, (BYTE)drv->raw.track_head);
+    SMW_B(m, (BYTE)drv->raw.dirty);
+    SMW_BA(m, drv->raw.data, drv->raw.size);
+    SMW_BA(m, drv->raw.sync, (drv->raw.size + 7) >> 3);
+
+    /* TODO: Disk image save */
+
+    return snapshot_module_close(m);
+}
+
+int fdd_snapshot_read_module(fd_drive_t *drv, struct snapshot_s *s)
+{
+    BYTE vmajor, vminor;
+    snapshot_module_t *m;
+
+    m = snapshot_module_open(s, drv->myname, &vmajor, &vminor);
+    if (m == NULL) {
+        return -1;
+    }
+
+    if ((vmajor != FDD_SNAP_MAJOR) || (vminor != FDD_SNAP_MINOR)) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
+    SMR_B_INT(m, &drv->number);
+    SMR_B_INT(m, &drv->disk_change);
+    SMR_B_INT(m, &drv->write_protect);
+    SMR_B_INT(m, &drv->track);
+    if (drv->track < 0) {
+        drv->track = 0;
+    }
+    if (drv->track > 82) {
+        drv->track = 82;
+    }
+    SMR_B_INT(m, &drv->tracks);
+    if (drv->tracks < 0) {
+        drv->tracks = 0;
+    }
+    if (drv->tracks > 82) {
+        drv->tracks = 82;
+    }
+    SMR_B_INT(m, &drv->head);
+    drv->head &= 1;
+    SMR_B_INT(m, &drv->sectors);
+    SMR_B_INT(m, &drv->motor);
+    drv->motor &= 1;
+    SMR_B_INT(m, &drv->rate);
+    drv->rate &= 3;
+    SMR_B_INT(m, &drv->sector_size);
+    drv->sector_size &= 3;
+    SMR_B_INT(m, &drv->iso);
+    SMR_B_INT(m, &drv->gap2);
+    SMR_B_INT(m, &drv->gap3);
+    SMR_B_INT(m, &drv->head_invert);
+    SMR_B_INT(m, &drv->disk_rate);
+    drv->disk_rate &= 3;
+    SMR_DW_INT(m, &drv->image_sectors);
+    SMR_DW_INT(m, &drv->index_count);
+
+    drv->raw.size = 25 * fdd_data_rates[drv->disk_rate];
+    SMR_DW_INT(m, &drv->raw.head);
+    drv->raw.head %= drv->raw.size;
+    SMR_B_INT(m, &drv->raw.track_head);
+    SMR_B_INT(m, &drv->raw.dirty);
+
+    lib_free(drv->raw.data);
+    drv->raw.data = lib_malloc(drv->raw.size);
+    lib_free(drv->raw.sync);
+    drv->raw.sync = lib_malloc((drv->raw.size + 7) >> 3);
+
+    SMR_BA(m, drv->raw.data, drv->raw.size);
+    SMR_BA(m, drv->raw.sync, (drv->raw.size + 7) >> 3);
+
+    return snapshot_module_close(m);
 }

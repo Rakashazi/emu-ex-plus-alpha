@@ -125,7 +125,7 @@ typedef int ssize_t;
 
 /* ------------------------------------------------------------------------- */
 /* Which OS is using the common keyboard routines?  */
-#if (!defined(__OS2__) || defined(USE_SDLUI)) && !defined EMUFRAMEWORK_BUILD
+#if !defined(__OS2__) || defined(USE_SDLUI)
 #define COMMON_KBD
 #endif
 
@@ -179,6 +179,11 @@ static int noop;
 #ifdef USE_GCC
 #define int64_t_C(c) (c ## ll)
 #define uint64_t_C(c) (c ## ull)
+#endif
+
+/* sortix does not have rs232 support */
+#ifdef __sortix__
+#undef HAVE_RS232DEV
 #endif
 
 #endif

@@ -2,7 +2,7 @@
  * cia.h - Definitions for MOS6526 (CIA) chip emulation.
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -54,7 +54,7 @@ extern void cia1_check_lightpen(void);
 extern void cia1_update_model(void);
 extern void cia2_update_model(void);
 
-extern void cia1_set_timing(struct cia_context_s *cia_context, int todticks);
-extern void cia2_set_timing(struct cia_context_s *cia_context, int todticks);
+extern void cia1_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
+extern void cia2_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
 
 #endif

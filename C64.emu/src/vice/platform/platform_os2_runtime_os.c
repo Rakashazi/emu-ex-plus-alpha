@@ -58,99 +58,88 @@ static int read_file_into_buffer(char *file, char *buffer)
     return 1;
 }
 
+static char *os = NULL;
+
 char *platform_get_os2_runtime_os(void)
 {
     char buffer[8192];
     int i = 0;
     int found = 0;
 
-    if (read_file_into_buffer("c:\\os2\\install\\syslevel.os2", buffer) == 0) {
-        return "Unknown OS/2 version";
-    }
-
-    while (i < (8191 - 15) && found == 0) {
-        if (buffer[i] == 'X' && buffer[i + 1] == 'R') {
-            found = 1;
+    if (!os) {
+        if (read_file_into_buffer("c:\\os2\\install\\syslevel.os2", buffer) == 0) {
+            os = "Unknown OS/2 version";
         } else {
-            i++;
-        }
-    }
 
-    if (!strncmp(buffer + i, "XRUM010_XRU4000", 15)) {
-        return "OS/2 4.0 fixpack 10";
-    }
-    if (!strncmp(buffer + i, "XRUM011_XRU4000", 15)) {
-        return "OS/2 4.0 fixpack 11";
-    }
-    if (!strncmp(buffer + i, "XRUM012_XRU4000", 15)) {
-        return "OS/2 4.0 fixpack 12";
-    }
-    if (!strncmp(buffer + i, "XRUM013_XRU4000", 15)) {
-        return "OS/2 4.0 fixpack 13";
-    }
-    if (!strncmp(buffer + i, "XRUM014_XRU4000", 15)) {
-        return "OS/2 4.0 fixpack 14";
-    }
-    if (!strncmp(buffer + i, "XRUM015_XRU4000", 15)) {
-        return "OS/2 4.0 fixpack 15";
-    }
-    if (!strncmp(buffer + i, "XR04500_XR04500", 15)) {
-        return "OS/2 4.5";
-    }
-    if (!strncmp(buffer + i, "XR04501_XR04501", 15)) {
-        return "OS/2 4.51";
-    }
-    if (!strncmp(buffer + i, "XR04502_XR04502", 15)) {
-        return "OS/2 4.52";
-    }
-    if (!strncmp(buffer + i, "XR04503_XR04503", 15)) {
-        return "OS/2 Server 4.52";
-    }
-    if (!strncmp(buffer + i, "XR0C004_XR04503", 15)) {
-        return "EComStation";
-    }
-    if (!strncmp(buffer + i, "XRU4000_XRU4000", 15)) {
-        /* OS/2 4.0 with either no fixpack or fixpack 9 and below */
-        if (read_file_into_buffer("c:\\os2\\install\\syslevel.fpk", buffer) == 0) {
-            return "OS/2 4.0";
-        }
+            while (i < (8191 - 15) && found == 0) {
+                if (buffer[i] == 'X' && buffer[i + 1] == 'R') {
+                    found = 1;
+                } else {
+                    i++;
+                }
+            }
 
-        while (i < (8191 - 15) && found == 0) {
-            if (buffer[i] == 'X' && buffer[i + 1] == 'R') {
-                found = 1;
-            } else {
-                i++;
+            if (!strncmp(buffer + i, "XRUM010_XRU4000", 15)) {
+                os = "OS/2 4.0 fixpack 10";
+            } else if (!strncmp(buffer + i, "XRUM011_XRU4000", 15)) {
+                os = "OS/2 4.0 fixpack 11";
+            } else if (!strncmp(buffer + i, "XRUM012_XRU4000", 15)) {
+                os = "OS/2 4.0 fixpack 12";
+            } else if (!strncmp(buffer + i, "XRUM013_XRU4000", 15)) {
+                os = "OS/2 4.0 fixpack 13";
+            } else if (!strncmp(buffer + i, "XRUM014_XRU4000", 15)) {
+                os = "OS/2 4.0 fixpack 14";
+            } else if (!strncmp(buffer + i, "XRUM015_XRU4000", 15)) {
+                os = "OS/2 4.0 fixpack 15";
+            } else if (!strncmp(buffer + i, "XR04500_XR04500", 15)) {
+                os = "OS/2 4.5";
+            } else if (!strncmp(buffer + i, "XR04501_XR04501", 15)) {
+                os = "OS/2 4.51";
+            } else if (!strncmp(buffer + i, "XR04502_XR04502", 15)) {
+                os = "OS/2 4.52";
+            } else if (!strncmp(buffer + i, "XR04503_XR04503", 15)) {
+                os = "OS/2 Server 4.52";
+            } else if (!strncmp(buffer + i, "XR0C004_XR04503", 15)) {
+                os = "EComStation";
+            } else if (!strncmp(buffer + i, "XRU4000_XRU4000", 15)) {
+                /* OS/2 4.0 with either no fixpack or fixpack 9 and below */
+                if (read_file_into_buffer("c:\\os2\\install\\syslevel.fpk", buffer) == 0) {
+                    os = "OS/2 4.0";
+                } else {
+
+                    while (i < (8191 - 15) && found == 0) {
+                        if (buffer[i] == 'X' && buffer[i + 1] == 'R') {
+                            found = 1;
+                        } else {
+                            i++;
+                        }
+                    }
+
+                    if (!strncmp(buffer + i, "XR0M001_XR0M001", 15)) {
+                        os = "OS/2 4.0 fixpack 1";
+                    } else if (!strncmp(buffer + i, "XR0M002_XR0M002", 15)) {
+                        os = "OS/2 4.0 fixpack 2";
+                    } else if (!strncmp(buffer + i, "XR0M003_XR0M003", 15)) {
+                        os = "OS/2 4.0 fixpack 3";
+                    } else if (!strncmp(buffer + i, "XR0M004_XR0M004", 15)) {
+                        os = "OS/2 4.0 fixpack 4";
+                    } else if (!strncmp(buffer + i, "XR0M005_XR0M005", 15)) {
+                        os = "OS/2 4.0 fixpack 5";
+                    } else if (!strncmp(buffer + i, "XR0M006_XR0M006", 15)) {
+                        os = "OS/2 4.0 fixpack 6";
+                    } else if (!strncmp(buffer + i, "XR0M007_XR0M007", 15)) {
+                        os = "OS/2 4.0 fixpack 7";
+                    } else if (!strncmp(buffer + i, "XR0M008_XR0M008", 15)) {
+                        os = "OS/2 4.0 fixpack 8";
+                    } else if (!strncmp(buffer + i, "XR0M009_XR0M009", 15)) {
+                        os = "OS/2 4.0 fixpack 9";
+                    } else {
+                        os = "Unknown OS/2 version";
+                    }
+                }
             }
         }
-
-        if (!strncmp(buffer + i, "XR0M001_XR0M001", 15)) {
-            return "OS/2 4.0 fixpack 1";
-        }
-        if (!strncmp(buffer + i, "XR0M002_XR0M002", 15)) {
-            return "OS/2 4.0 fixpack 2";
-        }
-        if (!strncmp(buffer + i, "XR0M003_XR0M003", 15)) {
-            return "OS/2 4.0 fixpack 3";
-        }
-        if (!strncmp(buffer + i, "XR0M004_XR0M004", 15)) {
-            return "OS/2 4.0 fixpack 4";
-        }
-        if (!strncmp(buffer + i, "XR0M005_XR0M005", 15)) {
-            return "OS/2 4.0 fixpack 5";
-        }
-        if (!strncmp(buffer + i, "XR0M006_XR0M006", 15)) {
-            return "OS/2 4.0 fixpack 6";
-        }
-        if (!strncmp(buffer + i, "XR0M007_XR0M007", 15)) {
-            return "OS/2 4.0 fixpack 7";
-        }
-        if (!strncmp(buffer + i, "XR0M008_XR0M008", 15)) {
-            return "OS/2 4.0 fixpack 8";
-        }
-        if (!strncmp(buffer + i, "XR0M009_XR0M009", 15)) {
-            return "OS/2 4.0 fixpack 9";
-        }
     }
-    return "Unknown OS/2 version";
+    return os;
 }
 #endif

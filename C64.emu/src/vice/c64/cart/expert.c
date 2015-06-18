@@ -262,6 +262,15 @@ int expert_cart_enabled(void)
 
 static int expert_mode_changed(int mode, void *param)
 {
+    switch (mode) {
+        case EXPERT_MODE_OFF:
+        case EXPERT_MODE_PRG:
+        case EXPERT_MODE_ON:
+            break;
+        default:
+            return -1;
+    }
+
     cartmode = mode;
     DBG(("EXPERT: expert_mode_changed cartmode: %d (%s)\n", cartmode, expert_mode[cartmode]));
     if (expert_enabled) {
@@ -334,8 +343,10 @@ static int expert_deactivate(void)
     return 0;
 }
 
-static int set_expert_enabled(int val, void *param)
+static int set_expert_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     DBG(("EXPERT: set enabled: %d:%d\n", expert_enabled, val));
 
     if (expert_enabled && !val) {
@@ -371,12 +382,8 @@ static int set_expert_enabled(int val, void *param)
 
 static int set_expert_rw(int val, void *param)
 {
-    DBG(("set image write: %d\n", val));
-    if (expert_write_image && !val) {
-        expert_write_image = 0;
-    } else if (!expert_write_image && val) {
-        expert_write_image = 1;
-    }
+    expert_write_image = val ? 1 : 0;
+
     return 0;
 }
 
@@ -900,6 +907,12 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_EXPERT_IMAGE,
       NULL, NULL },
+    { "-expertmode", SET_RESOURCE, 1,
+      NULL, NULL, "ExpertCartridgeMode", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_MODE, IDCLS_SET_EXPERT_MODE,
+      NULL, NULL },
+
     { NULL }
 };
 

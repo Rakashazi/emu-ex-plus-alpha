@@ -3,7 +3,7 @@
  *  \brief Definitions for MOS6526 (CIA) chip emulation.
  *
  *  \author Jouko Valta <jopi@stekt.oulu.fi>
- *  \author André Fachat <fachat@physik.tu-chemnitz.de>
+ *  \author Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  \author Andreas Boose <viceteam@t-online.de>
  *
  *  \page cia CIA timer emulation
@@ -95,12 +95,19 @@ typedef struct cia_context_s {
     BYTE shifter;
     BYTE old_pa;
     BYTE old_pb;
+
     char todstopped;
     char todlatched;
     BYTE todalarm[4];
     BYTE todlatch[4];
     int todticks;                 /* init to 100000 */
     BYTE todtickcounter;
+
+    int power_freq;
+    int power_tickcounter;
+    CLOCK power_ticks;
+    CLOCK ticks_per_sec;
+
     signed int log;               /* init to LOG_ERR */
 
     struct ciat_s *ta;

@@ -23,11 +23,17 @@
 /* Should we enable Amigaos support. */
 /* #undef AMIGA_SUPPORT */
 
+/* Are we compiling for either BeOS or Haiku? */
+/* #undef BEOS_COMPILE */
+
 /* Enable support for BSD style joysticks. */
 /* #undef BSD_JOYSTICK */
 
 /* Enable cegcc support. */
 /* #undef CEGCC_COMPILE */
+
+/* Enable plain darwin compilation */
+/* #undef DARWIN_COMPILE */
 
 /* NLS datadirname. */
 #define DATADIRNAME "share"
@@ -67,12 +73,6 @@
 
 /* Use the memmap feature. */
 /* #undef FEATURE_CPUMEMHISTORY */
-
-/* Enable GP2X compilation */
-/* #undef GP2X */
-
-/* Enable SDL GP2X compilation */
-/* #undef GP2X_SDL */
 
 /* Enable emulation for digital joysticks. */
 /* #undef HAS_DIGITAL_JOYSTICK */
@@ -128,7 +128,7 @@
 /* Define to 1 if you have the `bind' function. */
 #define HAVE_BIND 1
 
-/* Define to 1 if you have the <byteorder.h> header file. */
+/* Define to 1 if you have the <ByteOrder.h> header file. */
 /* #undef HAVE_BYTEORDER_H */
 
 /* Enable Cairo rendering support */
@@ -142,6 +142,12 @@
 
 /* Define to 1 if you have the `connect' function. */
 #define HAVE_CONNECT 1
+
+/* Define to 1 if you have the <CoreServices/CoreServices.h> header file. */
+/* #undef HAVE_CORESERVICES_CORESERVICES_H */
+
+/* Define to 1 if you have the <CoreVideo/CVHostTime.h> header file. */
+/* #undef HAVE_COREVIDEO_CVHOSTTIME_H */
 
 /* Define to 1 if you have the <cwsid.h> header file. */
 /* #undef HAVE_CWSID_H */
@@ -202,14 +208,23 @@
 /* Have FFMPEG av* libs available */
 /* #undef HAVE_FFMPEG */
 
+/* Have FFMPEG avresample lib available */
+/* #undef HAVE_FFMPEG_AVRESAMPLE */
+
 /* FFMPEG uses subdirs for headers */
 /* #undef HAVE_FFMPEG_HEADER_SUBDIRS */
+
+/* Have FFMPEG swresample lib available */
+/* #undef HAVE_FFMPEG_SWRESAMPLE */
 
 /* Have FFMPEG swscale lib available */
 /* #undef HAVE_FFMPEG_SWSCALE */
 
 /* Define to 1 if you have the `fork' function. */
-#define HAVE_FORK 1
+//#define HAVE_FORK 1
+
+/* Define to 1 if you have the `fseeko' function. */
+#define HAVE_FSEEKO 1
 
 /* Enable Fullscreen support. */
 //#define HAVE_FULLSCREEN /**/
@@ -298,8 +313,17 @@
 /* Define to 1 if you have the `bsd' library (-lbsd). */
 /* #undef HAVE_LIBBSD */
 
+/* Define to 1 if you have the `bz2' library (-lbz2). */
+/* #undef HAVE_LIBBZ2 */
+
+/* Define to 1 if you have the <libc.h> header file. */
+/* #undef HAVE_LIBC_H */
+
 /* Define to 1 if you have the <libgen.h> header file. */
 #define HAVE_LIBGEN_H 1
+
+/* Define to 1 if you have the `iconv' library (-liconv). */
+/* #undef HAVE_LIBICONV */
 
 /* Define to 1 if you have the `ieee1284' library (-lieee1284). */
 /* #undef HAVE_LIBIEEE1284 */
@@ -307,17 +331,32 @@
 /* use libintl for NLS. */
 #define HAVE_LIBINTL_H /**/
 
+/* Define to 1 if you have the `lzma' library (-llzma). */
+/* #undef HAVE_LIBLZMA */
+
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
 
 /* Define to 1 if you have the `ossaudio' library (-lossaudio). */
 /* #undef HAVE_LIBOSSAUDIO */
 
+/* Define to 1 if you have the `posix' library (-lposix). */
+/* #undef HAVE_LIBPOSIX */
+
+/* Define to 1 if you have the `pthread' library (-lpthread). */
+/* #undef HAVE_LIBPTHREAD */
+
+/* Define to 1 if you have the `rt' library (-lrt). */
+/* #undef HAVE_LIBRT */
+
 /* Define to 1 if you have the <libusbhid.h> header file. */
 /* #undef HAVE_LIBUSBHID_H */
 
 /* Define to 1 if you have the <libusb.h> header file. */
 /* #undef HAVE_LIBUSB_H */
+
+/* Define to 1 if you have the `va' library (-lva). */
+/* #undef HAVE_LIBVA */
 
 /* Is libXpm available? */
 #define HAVE_LIBXPM /**/
@@ -330,6 +369,9 @@
 
 /* Define to 1 if you have the `listen' function. */
 #define HAVE_LISTEN 1
+
+/* Define to 1 if you have the `ltoa' function. */
+/* #undef HAVE_LTOA */
 
 /* Define to 1 if you have the <machine/cpufunc.h> header file. */
 /* #undef HAVE_MACHINE_CPUFUNC_H */
@@ -382,6 +424,9 @@
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H 1
 
+/* Define to 1 if you have the <netinet/tcp.h> header file. */
+#define HAVE_NETINET_TCP_H 1
+
 /* Enable netplay support */
 //#define HAVE_NETWORK /**/
 
@@ -433,11 +478,17 @@
 /* Enable QuickTime support. */
 /* #undef HAVE_QUICKTIME */
 
+/* Define to 1 if you have the `random' function. */
+#define HAVE_RANDOM 1
+
 /* Support for block device disk image access. */
 //#define HAVE_RAWDRIVE /**/
 
 /* Are we using the readline library replacement? */
 #define HAVE_READLINE /**/
+
+/* Define to 1 if you have the <readline/readline.h> header file. */
+#define HAVE_READLINE_READLINE_H 1
 
 /* Define to 1 if you have the `recv' function. */
 #define HAVE_RECV 1
@@ -457,8 +508,11 @@
 /* Does the `readline' library support `rl_readline_name'? */
 #define HAVE_RLNAME /**/
 
-/* Enable RS232 emulation. */
-//#define HAVE_RS232 /**/
+/* Enable RS232 device emulation. */
+//#define HAVE_RS232DEV /**/
+
+/* Enable RS232 network support */
+//#define HAVE_RS232NET /**/
 
 /* Enable SDLmain replacement */
 /* #undef HAVE_SDLMAIN */
@@ -496,11 +550,11 @@
 /* Use more accurate buffer fill reporting */
 //#define HAVE_SND_PCM_AVAIL /**/
 
+/* Define to 1 if you have the `snprintf' function. */
+#define HAVE_SNPRINTF 1
+
 /* Define to 1 if you have the `socket' function. */
 #define HAVE_SOCKET 1
-
-/* Define to 1 if you have the <socket.h> header file. */
-/* #undef HAVE_SOCKET_H */
 
 /* Define to 1 if the system has the type `socklen_t'. */
 #define HAVE_SOCKLEN_T 1
@@ -524,7 +578,7 @@
 #define HAVE_STRCASECMP 1
 
 /* Define to 1 if you have the `strdup' function. */
-#define HAVE_STRDUP /**/
+#define HAVE_STRDUP 1
 
 /* Define to 1 if you have the `strerror' function. */
 #define HAVE_STRERROR 1
@@ -535,8 +589,23 @@
 /* Define to 1 if you have the <string.h> header file. */
 /* #undef HAVE_STRING_H */
 
+/* Define to 1 if you have the `strlcpy' function. */
+/* #undef HAVE_STRLCPY */
+
+/* Define to 1 if you have the `strlwr' function. */
+/* #undef HAVE_STRLWR */
+
 /* Define to 1 if you have the `strncasecmp' function. */
 #define HAVE_STRNCASECMP 1
+
+/* Define to 1 if you have the `strrev' function. */
+/* #undef HAVE_STRREV */
+
+/* Define to 1 if you have the `strtok' function. */
+#define HAVE_STRTOK 1
+
+/* Define to 1 if you have the `strtok_r' function. */
+#define HAVE_STRTOK_R 1
 
 /* Define to 1 if you have the `swab' function. */
 #define HAVE_SWAB 1
@@ -591,6 +660,9 @@
 /* Support for The Final Ethernet */
 /* #undef HAVE_TFE */
 
+/* Define to 1 if you have the `ultoa' function. */
+/* #undef HAVE_ULTOA */
+
 /* Define to 1 if you have the <UMS/UMSAudioDevice.h> header file. */
 /* #undef HAVE_UMS_UMSAUDIODEVICE_H */
 
@@ -615,11 +687,14 @@
 /* Define to 1 if you have the `vfork' function. */
 #define HAVE_VFORK 1
 
-/* Enable VTE support */
-/* #undef HAVE_VTE */
-
 /* Define to 1 if you have the <vfork.h> header file. */
 /* #undef HAVE_VFORK_H */
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#define HAVE_VSNPRINTF 1
+
+/* Enable VTE support */
+/* #undef HAVE_VTE */
 
 /* Define to 1 if you have the <wchar.h> header file. */
 #define HAVE_WCHAR_H 1
@@ -744,8 +819,14 @@
 /* Enable Rhapsody 5.x support */
 /* #undef RHAPSODY_COMPILE */
 
+/* Enable SCO Unix 4.x support */
+/* #undef SCO4UNIX_COMPILE */
+
 /* Enable amiga shared SDL library support. */
 /* #undef SDL_AMIGA_INLINE */
+
+/* FFMPEG libraries are shared */
+/* #undef SHARED_FFMPEG */
 
 /* The size of `unsigned int', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_INT do not use this
@@ -755,6 +836,9 @@
 
 /* The size of `unsigned short', as computed by sizeof. */
 #define SIZEOF_UNSIGNED_SHORT do not use this
+
+/* FFMPEG libraries are static */
+/* #undef STATIC_FFMPEG */
 
 /* Define to 1 if you have the ANSI C header files. */
 /* #undef STDC_HEADERS */
@@ -776,6 +860,9 @@
 
 /* Enable aRts support. */
 /* #undef USE_ARTS */
+
+/* Are we using the BeOS native UI? */
+/* #undef USE_BEOS_UI */
 
 /* Enable new color management code. */
 //#define USE_COLOR_MANAGEMENT /**/
@@ -822,6 +909,9 @@
 /* Enable SDL prefix for header inclusion. */
 /* #undef USE_SDL_PREFIX */
 
+/* define when using the svn revision in addition to the version */
+/* #undef USE_SVN_REVISION */
+
 /* Enable multithreaded UI. */
 /* #undef USE_UI_THREADS */
 
@@ -835,7 +925,7 @@
 //#define USE_XF86_VIDMODE_EXT /**/
 
 /* Version number of package */
-#define VERSION "2.4.3"
+#define VERSION "2.4.20"
 
 /* Win32 Version string. */
 #define VERSION_RC "$VERSION_RC"
@@ -851,12 +941,6 @@
 
 /* Have windres ignore code page pragmas */
 /* #undef WINDRES_CP_IGNORE */
-
-/* Enable WIZ compilation */
-/* #undef WIZ */
-
-/* Enable SDL WIZ compilation */
-/* #undef WIZ_SDL */
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
@@ -883,6 +967,12 @@
    `char[]'. */
 #define YYTEXT_POINTER 1
 
+/* Number of bits in a file offset, on hosts where this is settable. */
+/* #undef _FILE_OFFSET_BITS */
+
+/* Define for large files, on AIX-style hosts. */
+/* #undef _LARGE_FILES */
+
 /* define when using the alpha compaq compiler */
 /* #undef __DECALPHA__ */
 
@@ -903,6 +993,9 @@
 
 /* ss_family is not defined here, use __ss_family instead */
 /* #undef ss_family */
+
+/* Define to `int' if <sys/types.h> does not define. */
+/* #undef ssize_t */
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */

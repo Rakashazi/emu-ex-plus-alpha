@@ -31,6 +31,7 @@
 #ifndef VICE_PATCHROM_H
 #define VICE_PATCHROM_H
 
-extern int patch_rom(const char *s);
+/* this function takes the constants defined in c64-resources.h */
+extern int patch_rom_idx(int idx);
 
 #endif

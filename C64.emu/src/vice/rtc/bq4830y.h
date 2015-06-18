@@ -31,16 +31,23 @@
 
 #include "types.h"
 
+#define BQ4830Y_RAM_SIZE   0x8000
+#define BQ4830Y_REG_SIZE   8
+
 typedef struct rtc_bq4830y_s {
     int clock_halt;
     time_t clock_halt_latch;
     int read_latch;
     int write_latch;
     time_t latch;
-    time_t *offset;
-    BYTE clock_regs[8];
-    BYTE clock_regs_changed[8];
+    time_t offset;
+    time_t old_offset;
+    BYTE *clock_regs;
+    BYTE old_clock_regs[BQ4830Y_REG_SIZE];
+    BYTE clock_regs_changed[BQ4830Y_REG_SIZE];
     BYTE *ram;
+    BYTE old_ram[BQ4830Y_RAM_SIZE];
+    char *device;
 } rtc_bq4830y_t;
 
 #define BQ4830Y_REG_CONTROL         0x7FF8
@@ -61,8 +68,8 @@ typedef struct rtc_bq4830y_s {
 #define CLOCK_WRITE_LATCH        6
 #define CLOCK_READ_WRITE_LATCH   7
 
-extern rtc_bq4830y_t *bq4830y_init(BYTE *ram, time_t *offset);
-extern void bq4830y_destroy(rtc_bq4830y_t *context);
+extern rtc_bq4830y_t *bq4830y_init(char *device);
+extern void bq4830y_destroy(rtc_bq4830y_t *context, int save);
 
 extern void bq4830y_store(rtc_bq4830y_t *context, WORD address, BYTE val);
 extern BYTE bq4830y_read(rtc_bq4830y_t *context, WORD address);

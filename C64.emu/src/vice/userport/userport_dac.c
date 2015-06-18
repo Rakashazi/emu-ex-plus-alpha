@@ -86,7 +86,8 @@ void userport_dac_sound_chip_init(void)
 
 static int set_userport_dac_enabled(int val, void *param)
 {
-    userport_dac_sound_chip.chip_enabled = val;
+    userport_dac_sound_chip.chip_enabled = val ? 1 : 0;
+
     return 0;
 }
 

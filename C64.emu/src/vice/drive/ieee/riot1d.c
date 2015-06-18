@@ -2,7 +2,7 @@
  * riot1d.c - RIOT1 emulation in the SFD1001, 8050 and 8250 disk drive.
  *
  * Written by
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.

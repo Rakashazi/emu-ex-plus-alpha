@@ -98,28 +98,30 @@ int raster_resources_chip_init(const char *chipname, raster_t *raster,
     raster->raster_resource_chip = raster_resource_chip;
     raster_resource_chip->raster = raster;
 
-    for (i = 0; rname_chip[i] != NULL; i++) {
-        resources_chip[i].name = util_concat(chipname, rname_chip[i], NULL);
-        resources_chip[i].value_ptr
-            = &(raster_resource_chip->video_cache_enabled);
-        resources_chip[i].param = (void *)raster_resource_chip;
+    if (machine_class != VICE_MACHINE_VSID) {
+        for (i = 0; rname_chip[i] != NULL; i++) {
+            resources_chip[i].name = util_concat(chipname, rname_chip[i], NULL);
+            resources_chip[i].value_ptr
+                = &(raster_resource_chip->video_cache_enabled);
+            resources_chip[i].param = (void *)raster_resource_chip;
+        }
     }
 
     raster->canvas = video_canvas_init();
 
-    if (resources_register_int(resources_chip) < 0) {
-        return -1;
+    if (machine_class != VICE_MACHINE_VSID) {
+        if (resources_register_int(resources_chip) < 0) {
+            return -1;
+        }
+
+        for (i = 0; rname_chip[i] != NULL; i++) {
+            lib_free((char *)(resources_chip[i].name));
+        }
+    } else {
+        set_video_cache_enabled(0, (void *)raster_resource_chip);
     }
 
-    for (i = 0; rname_chip[i] != NULL; i++) {
-        lib_free((char *)(resources_chip[i].name));
-    }
-
-    if (video_resources_chip_init(chipname, &raster->canvas, video_chip_cap) < 0) {
-        return -1;
-    }
-
-    return 0;
+    return video_resources_chip_init(chipname, &raster->canvas, video_chip_cap);
 }
 
 void raster_resources_chip_shutdown(raster_t *raster)

@@ -31,6 +31,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "lib.h"
 #include "maincpu.h"
 #include "monitor.h"
 #include "snapshot.h"
@@ -438,7 +439,9 @@ static int render_subframe(t6721_state *t6721, int sub_i, int voiced)
             }
             sample = cos(M_PI * phase * phase);
         } else {
-            sample = ((rand() & 0xff) - 128) / 128.0;
+            /* FIXME: implement the actual pseudo random number generator used
+                      on the chip */
+            sample = lib_float_rand(-1.0, 1.0);
         }
         sample *= energy;
 

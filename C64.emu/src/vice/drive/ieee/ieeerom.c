@@ -63,133 +63,39 @@ static unsigned int rom4040_loaded = 0;
 static unsigned int rom1001_loaded = 0;
 
 
-static void ieeerom_new_image_loaded(unsigned int dtype)
-{
-    unsigned int dnr;
-    drive_t *drive;
-
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
-
-        if (drive->type == dtype) {
-            ieeerom_setup_image(drive);
-        }
-    }
-}
-
 int ieeerom_load_2031(void)
 {
-    const char *rom_name = NULL;
-
-    if (!drive_rom_load_ok) {
-        return 0;
-    }
-
-    resources_get_string("DosName2031", &rom_name);
-
-    if (sysfile_load(rom_name, drive_rom2031, DRIVE_ROM2031_SIZE,
-                     DRIVE_ROM2031_SIZE) < 0) {
-        log_error(ieeerom_log,
-                  "2031 ROM image not found.  "
-                  "Hardware-level 2031 emulation is not available.");
-    } else {
-        rom2031_loaded = 1;
-        ieeerom_new_image_loaded(DRIVE_TYPE_2031);
-        return 0;
-    }
-    return -1;
+    return driverom_load("DosName2031", drive_rom2031, &rom2031_loaded,
+            DRIVE_ROM2031_SIZE, DRIVE_ROM2031_SIZE, "2031",
+            DRIVE_TYPE_2031, NULL);
 }
 
 int ieeerom_load_2040(void)
 {
-    const char *rom_name = NULL;
-
-    if (!drive_rom_load_ok) {
-        return 0;
-    }
-
-    resources_get_string("DosName2040", &rom_name);
-
-    if (sysfile_load(rom_name, drive_rom2040, DRIVE_ROM2040_SIZE,
-                     DRIVE_ROM2040_SIZE) < 0) {
-        log_error(ieeerom_log,
-                  "2040 ROM image not found.  "
-                  "Hardware-level 2040 emulation is not available.");
-    } else {
-        rom2040_loaded = 1;
-        ieeerom_new_image_loaded(DRIVE_TYPE_2040);
-        return 0;
-    }
-    return -1;
+    return driverom_load("DosName2040", drive_rom2040, &rom2040_loaded,
+            DRIVE_ROM2040_SIZE, DRIVE_ROM2040_SIZE, "2040",
+            DRIVE_TYPE_2040, NULL);
 }
 
 int ieeerom_load_3040(void)
 {
-    const char *rom_name = NULL;
-
-    if (!drive_rom_load_ok) {
-        return 0;
-    }
-
-    resources_get_string("DosName3040", &rom_name);
-
-    if (sysfile_load(rom_name, drive_rom3040, DRIVE_ROM3040_SIZE,
-                     DRIVE_ROM3040_SIZE) < 0) {
-        log_error(ieeerom_log,
-                  "3040 ROM image not found.  "
-                  "Hardware-level 3040 emulation is not available.");
-    } else {
-        rom3040_loaded = 1;
-        ieeerom_new_image_loaded(DRIVE_TYPE_3040);
-        return 0;
-    }
-    return -1;
+    return driverom_load("DosName3040", drive_rom3040, &rom3040_loaded,
+            DRIVE_ROM3040_SIZE, DRIVE_ROM3040_SIZE, "3040",
+            DRIVE_TYPE_3040, NULL);
 }
 
 int ieeerom_load_4040(void)
 {
-    const char *rom_name = NULL;
-
-    if (!drive_rom_load_ok) {
-        return 0;
-    }
-
-    resources_get_string("DosName4040", &rom_name);
-
-    if (sysfile_load(rom_name, drive_rom4040, DRIVE_ROM4040_SIZE,
-                     DRIVE_ROM4040_SIZE) < 0) {
-        log_error(ieeerom_log,
-                  "4040 ROM image not found.  "
-                  "Hardware-level 4040 emulation is not available.");
-    } else {
-        rom4040_loaded = 1;
-        ieeerom_new_image_loaded(DRIVE_TYPE_4040);
-        return 0;
-    }
-    return -1;
+    return driverom_load("DosName4040", drive_rom4040, &rom4040_loaded,
+            DRIVE_ROM4040_SIZE, DRIVE_ROM4040_SIZE, "4040",
+            DRIVE_TYPE_4040, NULL);
 }
 
 int ieeerom_load_1001(void)
 {
-    const char *rom_name = NULL;
-
-    if (!drive_rom_load_ok) {
-        return 0;
-    }
-
-    resources_get_string("DosName1001", &rom_name);
-
-    if (sysfile_load(rom_name, drive_rom1001, DRIVE_ROM1001_SIZE,
-                     DRIVE_ROM1001_SIZE) < 0) {
-        log_error(ieeerom_log,
-                  "1001 ROM image not found.  "
-                  "Hardware-level 1001/8050/8250 emulation is not available.");
-    } else {
-        rom1001_loaded = 1;
-        ieeerom_new_image_loaded(DRIVE_TYPE_1001);
-        return 0;
-    }
-    return -1;
+    return driverom_load("DosName1001", drive_rom1001, &rom1001_loaded,
+            DRIVE_ROM1001_SIZE, DRIVE_ROM1001_SIZE, "1001/8050/8250",
+            DRIVE_TYPE_1001, NULL);
 }
 
 void ieeerom_setup_image(drive_t *drive)

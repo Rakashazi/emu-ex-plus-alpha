@@ -38,6 +38,14 @@
 
 struct export_s;
 
+#define MMC64_REV_A  0
+#define MMC64_REV_B  1
+
+#define MMC64_TYPE_AUTO  0
+#define MMC64_TYPE_MMC   1
+#define MMC64_TYPE_SD    2
+#define MMC64_TYPE_SDHC  3
+
 /* FIXME: remove global clockport related variables */
 extern int mmc64_clockport_enabled;
 extern int mmc64_hw_clockport;

@@ -35,6 +35,11 @@
 
 #include "types.h"
 
+#define MMCR_TYPE_AUTO  0
+#define MMCR_TYPE_MMC   1
+#define MMCR_TYPE_SD    2
+#define MMCR_TYPE_SDHC  3
+
 /* FIXME get rid of this */
 #define MMCREPLAY_EEPROM_SIZE (1024)
 

@@ -53,7 +53,8 @@ inline static void debug_history_step(const char *st);
 
 static int set_do_core_dumps(int val, void *param)
 {
-    debug.do_core_dumps = val;
+    debug.do_core_dumps = val ? 1 : 0;
+
     return 0;
 }
 
@@ -62,25 +63,41 @@ static int debug_autoplay_frames;
 
 static int set_maincpu_traceflg(int val, void *param)
 {
-    debug.maincpu_traceflg = val;
+    debug.maincpu_traceflg = val ? 1 : 0;
+
     return 0;
 }
 
 static int set_drive_traceflg(int val, void *param)
 {
-    debug.drivecpu_traceflg[vice_ptr_to_uint(param)] = val;
+    debug.drivecpu_traceflg[vice_ptr_to_uint(param)] = val ? 1 : 0;
+
     return 0;
 }
 
 static int set_trace_mode(int val, void *param)
 {
+    switch (val) {
+        case DEBUG_NORMAL:
+        case DEBUG_SMALL:
+        case DEBUG_HISTORY:
+        case DEBUG_AUTOPLAY:
+            break;
+        default:
+            return -1;
+    }
+
     debug.trace_mode = val;
     return 0;
 }
 
 static int set_autoplay_frames(int val, void *param)
 {
+    if (val < 0) {
+        return -1;
+    }
     debug_autoplay_frames = val;
+
     return 0;
 }
 
@@ -101,7 +118,7 @@ static const resource_int_t resources_int[] = {
       &debug.drivecpu_traceflg[2], set_drive_traceflg, (void *)2 },
     { "Drive3CPU_TRACE", 0, RES_EVENT_NO, NULL,
       &debug.drivecpu_traceflg[3], set_drive_traceflg, (void *)3 },
-    { "TraceMode", 0, RES_EVENT_NO, NULL,
+    { "TraceMode", DEBUG_NORMAL, RES_EVENT_NO, NULL,
       &debug.trace_mode, set_trace_mode, NULL },
     { "AutoPlaybackFrames", 200, RES_EVENT_NO, NULL,
       &debug_autoplay_frames, set_autoplay_frames, NULL },
@@ -170,6 +187,11 @@ static const cmdline_option_t cmdline_options[] = {
       NULL, NULL, "TraceMode", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_TRACE_MODE,
+      NULL, NULL },
+    { "-autoplaybackframes", SET_RESOURCE, 1,
+      NULL, NULL, "AutoPlaybackFrames", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_FRAMES, IDCLS_SET_AUTO_PLAYBACK_FRAMES,
       NULL, NULL },
 #endif
     { NULL }

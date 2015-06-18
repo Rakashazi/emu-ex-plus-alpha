@@ -3,7 +3,7 @@
  *
  * Written by
  *  Jouko Valta <jopi@stekt.oulu.fi>
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.

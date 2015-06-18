@@ -120,8 +120,10 @@ int sfx_soundsampler_cart_enabled(void)
     return sfx_soundsampler_sound_chip.chip_enabled;
 }
 
-static int set_sfx_soundsampler_enabled(int val, void *param)
+static int set_sfx_soundsampler_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (sfx_soundsampler_sound_chip.chip_enabled != val) {
         if (val) {
             if (c64export_add(&export_res) < 0) {
@@ -148,8 +150,10 @@ static int set_sfx_soundsampler_enabled(int val, void *param)
     return 0;
 }
 
-static int set_sfx_soundsampler_io_swap(int val, void *param)
+static int set_sfx_soundsampler_io_swap(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (val == sfx_soundsampler_io_swap) {
         return 0;
     }

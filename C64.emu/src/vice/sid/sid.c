@@ -196,13 +196,13 @@ static void sid_store_chip(WORD addr, BYTE byte, int chipno)
 
 BYTE sid_read(WORD addr)
 {
-    if (sid_stereo == 1
+    if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
         && addr < sid_stereo_address_end) {
         return sid_read_chip(addr, 1);
     }
 
-    if (sid_stereo == 2
+    if (sid_stereo >= 2
         && addr >= sid_triple_address_start
         && addr < sid_triple_address_end) {
         return sid_read_chip(addr, 2);
@@ -213,13 +213,13 @@ BYTE sid_read(WORD addr)
 
 BYTE sid_peek(WORD addr)
 {
-    if (sid_stereo == 1
+    if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
         && addr < sid_stereo_address_end) {
         return sid_peek_chip(addr, 1);
     }
 
-    if (sid_stereo == 2
+    if (sid_stereo >= 2
         && addr >= sid_triple_address_start
         && addr < sid_triple_address_end) {
         return sid_peek_chip(addr, 2);
@@ -240,13 +240,13 @@ BYTE sid3_read(WORD addr)
 
 void sid_store(WORD addr, BYTE byte)
 {
-    if (sid_stereo == 1
+    if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
         && addr < sid_stereo_address_end) {
         sid_store_chip(addr, byte, 1);
         return;
     }
-    if (sid_stereo == 2
+    if (sid_stereo >= 2
         && addr >= sid_triple_address_start
         && addr < sid_triple_address_end) {
         sid_store_chip(addr, byte, 2);
@@ -300,6 +300,7 @@ static SWORD *buf1 = NULL;
 static SWORD *buf2 = NULL;
 static int blen1 = 0;
 static int blen2 = 0;
+
 static SWORD *getbuf1(int len)
 {
     if ((buf1 == NULL) || (blen1 < len)) {
@@ -307,10 +308,11 @@ static SWORD *getbuf1(int len)
             lib_free(buf1);
         }
         blen1 = len;
-        buf1 = lib_malloc(len);
+        buf1 = lib_calloc(len, 1);
     }
     return buf1;
 }
+
 static SWORD *getbuf2(int len)
 {
     if ((buf2 == NULL) || (blen2 < len)) {
@@ -318,14 +320,19 @@ static SWORD *getbuf2(int len)
             lib_free(buf2);
         }
         blen2 = len;
-        buf2 = lib_malloc(len);
+        buf2 = lib_calloc(len, 1);
     }
     return buf2;
 }
 
+int sid_sound_machine_init_vbr(sound_t *psid, int speed, int cycles_per_sec, int factor)
+{
+    return sid_engine.init(psid, speed * factor / 1000, cycles_per_sec, factor);
+}
+
 int sid_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {
-    return sid_engine.init(psid, speed, cycles_per_sec);
+    return sid_engine.init(psid, speed, cycles_per_sec, 1000);
 }
 
 void sid_sound_machine_close(sound_t *psid)

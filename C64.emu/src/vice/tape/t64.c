@@ -323,12 +323,12 @@ int t64_read(t64_t *t64, BYTE *buf, size_t size)
         return -1;
     }
 
+    /* limit size of the block that is read to not exceed the end of the file */
     if (recsize < (int)(t64->current_file_seek_position + size)) {
+        if (t64->current_file_seek_position > recsize) {
+            return -1;
+        }
         size = recsize - t64->current_file_seek_position;
-    }
-
-    if (0 > size) {
-        return -1;
     }
 
     amount = (int)fread(buf, 1, size, t64->fd);

@@ -31,6 +31,8 @@
 
 #include "types.h"
 
+#define DS1216E_REG_SIZE   8
+
 typedef struct rtc_ds1216e_s {
     int reset;
     int inactive;
@@ -40,9 +42,12 @@ typedef struct rtc_ds1216e_s {
     int output;
     int output_pos;
     time_t latch;
-    time_t *offset;
-    BYTE clock_regs[8];
-    BYTE clock_regs_changed[8];
+    time_t offset;
+    time_t old_offset;
+    BYTE *clock_regs;
+    BYTE old_clock_regs[DS1216E_REG_SIZE];
+    BYTE clock_regs_changed[DS1216E_REG_SIZE];
+    char *device;
 } rtc_ds1216e_t;
 
 #define DS1216E_REGISTER_CENTISECONDS   0
@@ -54,8 +59,8 @@ typedef struct rtc_ds1216e_s {
 #define DS1216E_REGISTER_MONTHS         6
 #define DS1216E_REGISTER_YEARS          7
 
-extern rtc_ds1216e_t *ds1216e_init(time_t *offset);
-extern void ds1216e_destroy(rtc_ds1216e_t *context);
+extern rtc_ds1216e_t *ds1216e_init(char *device);
+extern void ds1216e_destroy(rtc_ds1216e_t *context, int save);
 
 extern BYTE ds1216e_read(rtc_ds1216e_t *context, WORD address, BYTE original_read);
 

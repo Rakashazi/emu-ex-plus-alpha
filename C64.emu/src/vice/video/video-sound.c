@@ -34,6 +34,7 @@
 
 #include <string.h>
 
+#include "archdep.h"
 #include "log.h"
 #include "machine.h"
 #include "sound.h"
@@ -51,15 +52,11 @@
 #define MAX_LUMALINES   512 /* maximum height of picture */
 
 /* noise floor vaguely resembling random spikes at line frequency (~15khz) */
-const static signed char noise_sample[] = {
+static const signed char noise_sample[] = {
     7, 0, 0, 8, 0, 7, 0, 0, 7, 0, 6, 0, 0, 8, 0, 0
 };
 
-#if defined(__BEOS__) && defined(WORDS_BIGENDIAN)
-extern sound_chip_t video_sound;
-#else
-static sound_chip_t video_sound;
-#endif
+STATIC_PROTOTYPE sound_chip_t video_sound;
 
 static WORD video_sound_offset;
 static int cycles_per_sec = 1000000;

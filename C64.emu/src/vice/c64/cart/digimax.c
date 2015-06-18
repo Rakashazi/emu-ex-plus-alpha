@@ -43,12 +43,13 @@
 #include "snapshot.h"
 #include "sound.h"
 #include "uiapi.h"
+#include "util.h"
 #include "translate.h"
 
 /*
     Digimax Cartridge
 
-    This cartridge is a 8bit 4-channel digital sound output
+    This cartridge is an 8bit 4-channel digital sound output
     interface.
 
     When inserted into the cart port the cart uses 4 registers,
@@ -61,6 +62,8 @@
 /* DIGIMAX address */
 int digimax_address;
 sound_dac_t digimax_dac[4];
+
+static char *digimax_address_list = NULL;
 
 /* ---------------------------------------------------------------------*/
 
@@ -153,8 +156,10 @@ BYTE digimax_sound_read(WORD addr)
 
 /* ---------------------------------------------------------------------*/
 
-static int set_digimax_enabled(int val, void *param)
+static int set_digimax_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (!digimax_sound_chip.chip_enabled && val) {
         if (!digimax_is_userport()) {
             if (c64export_add(&export_res) < 0) {
@@ -298,6 +303,9 @@ int digimax_resources_init(void)
 
 void digimax_resources_shutdown(void)
 {
+    if (digimax_address_list) {
+        lib_free(digimax_address_list);
+    }
 }
 
 /* ---------------------------------------------------------------------*/
@@ -314,9 +322,14 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DIGIMAX,
       NULL, NULL },
+    { NULL }
+};
+
+static cmdline_option_t base_cmdline_options[] =
+{
     { "-digimaxbase", SET_RESOURCE, 1,
       NULL, NULL, "DIGIMAXbase", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_BASE_ADDRESS, IDCLS_DIGIMAX_BASE,
       NULL, NULL },
     { NULL }
@@ -324,7 +337,26 @@ static const cmdline_option_t cmdline_options[] =
 
 int digimax_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    char *temp1, *temp2;
+
+    if (cmdline_register_options(cmdline_options) < 0) {
+        return -1;
+    }
+
+    if (machine_class == VICE_MACHINE_VIC20) {
+        temp1 = util_gen_hex_address_list(0x9800, 0x9900, 0x20);
+        temp2 = util_gen_hex_address_list(0x9c00, 0x9d00, 0x20);
+        digimax_address_list = util_concat(". (", temp1, "/", temp2, ")", NULL);        
+        lib_free(temp2);
+    } else {
+        temp1 = util_gen_hex_address_list(0xde00, 0xe000, 0x20);
+        digimax_address_list = util_concat(". (0xDD00: Userport/", temp1, ")", NULL);
+    }
+    lib_free(temp1);
+
+    base_cmdline_options[0].description = digimax_address_list;
+
+    return cmdline_register_options(base_cmdline_options);
 }
 
 /* ---------------------------------------------------------------------*/

@@ -48,9 +48,14 @@
 #include "log.h"
 #include "socketimpl.h"
 #include "vicesocket.h"
+#include "signals.h"
 
 #ifndef HAVE_SOCKLEN_T
 typedef size_t socklen_t;
+#endif
+
+#ifndef SOL_TCP
+#define SOL_TCP IPPROTO_TCP
 #endif
 
 /*! \brief determine the number of elements of an array
@@ -399,14 +404,22 @@ vice_network_socket_t * vice_network_server(const vice_network_socket_address_t 
 
             Ignore setsockopt() failures - just continue - the socket is still valid.
         */
+#ifdef HAVE_IPV6
         if ((server_address->domain == PF_INET) || (server_address->domain == PF_INET6)) {
+#else
+        if ((server_address->domain == PF_INET)) {
+#endif
+#ifndef WATCOM_COMPILE
 #if defined(SO_REUSEPORT)
-          setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &socket_reuse_address, sizeof(socket_reuse_address));
+          setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, (const void*)&socket_reuse_address, sizeof(socket_reuse_address));
 #elif defined(SO_REUSEADDR)
-          setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &socket_reuse_address, sizeof(socket_reuse_address));
+          setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&socket_reuse_address, sizeof(socket_reuse_address));
+#endif
+#if defined(TCP_NODELAY)
+          setsockopt(sockfd, SOL_TCP, TCP_NODELAY, (const void*)&error, sizeof(error)); /* just an integer with 1, not really an error */
+#endif
 #endif
         }
-
         if (bind(sockfd, &server_address->address.generic, server_address->len) < 0) {
             break;
         }
@@ -457,6 +470,12 @@ vice_network_socket_t * vice_network_client(const vice_network_socket_address_t 
             sockfd = INVALID_SOCKET;
             break;
         }
+
+#ifndef WATCOM_COMPILE
+#if defined(TCP_NODELAY)
+        setsockopt(sockfd, SOL_TCP, TCP_NODELAY, (const void*)&error, sizeof(error)); /* just an integer with 1, not really an error */
+#endif
+#endif
 
         if (connect(sockfd, &server_address->address.generic, server_address->len) < 0) {
             break;
@@ -659,8 +678,7 @@ static int vice_network_address_generate_ipv6(vice_network_socket_address_t * so
 
     do {
         struct hostent * host_entry = NULL;
-#ifdef HAVE_GETHOSTBYNAME2
-#else
+#ifndef HAVE_GETHOSTBYNAME2
         int err6;
 #endif
 
@@ -690,8 +708,7 @@ static int vice_network_address_generate_ipv6(vice_network_socket_address_t * so
 
         memcpy(&socket_address->address.ipv6.sin6_addr, host_entry->h_addr, host_entry->h_length);
 
-#ifdef HAVE_GETHOSTBYNAME2
-#else
+#ifndef HAVE_GETHOSTBYNAME2
         freehostent(host_entry);
 #endif
         error = 0;
@@ -941,7 +958,11 @@ int vice_network_socket_close(vice_network_socket_t * sockfd)
 */
 int vice_network_send(vice_network_socket_t * sockfd, const void * buffer, size_t buffer_length, int flags)
 {
-    return send(sockfd->sockfd, buffer, buffer_length, flags);
+    int ret;
+    signals_pipe_set();
+    ret = send(sockfd->sockfd, buffer, buffer_length, flags);
+    signals_pipe_unset();
+    return ret;
 }
 
 /*! \brief Receive data from a connected socket
@@ -976,7 +997,11 @@ int vice_network_send(vice_network_socket_t * sockfd, const void * buffer, size_
 */
 int vice_network_receive(vice_network_socket_t * sockfd, void * buffer, size_t buffer_length, int flags)
 {
-    return recv(sockfd->sockfd, buffer, buffer_length, flags);
+    int ret;
+    signals_pipe_set();
+    ret = recv(sockfd->sockfd, buffer, buffer_length, flags);
+    signals_pipe_unset();
+    return ret;
 }
 
 /*! \brief Check if a socket has incoming data to receive
@@ -1012,7 +1037,7 @@ int vice_network_select_poll_one(vice_network_socket_t * readsockfd)
   \return
      the error code
 
-´ \remark
+  \remark
       It does not distinguish between
       different sockets, thus, make sure to call it directly
       after an erroneous socket operation. Furthermore,
@@ -1026,10 +1051,6 @@ int vice_network_select_poll_one(vice_network_socket_t * readsockfd)
 */
 int vice_network_get_errorcode(void)
 {
-#ifdef WIN32
-    return WSAGetLastError();
-#else
-    return errno;
-#endif
+    return ARCHDEP_SOCKET_ERROR;
 }
 #endif

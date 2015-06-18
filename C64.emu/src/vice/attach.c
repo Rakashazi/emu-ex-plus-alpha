@@ -303,16 +303,15 @@ int file_system_bam_set_disk_id(unsigned int unit, BYTE *id)
 
 /* ------------------------------------------------------------------------- */
 
-static int set_attach_device_readonly(int val, void *param)
+static int set_attach_device_readonly(int value, void *param)
 {
-    unsigned int unit;
+    unsigned int unit = vice_ptr_to_uint(param);
     const char *old_filename;
     char *new_filename;
     int rc;
+    int val = value ? 1 : 0;
 
-    unit = vice_ptr_to_uint(param);
-
-    /* Do nothing if resource is unchanged.  */
+    /* Do nothing if resource is unchanged. */
     if (attach_device_readonly_enabled[unit - 8] == val) {
         return 0;
     }
@@ -343,10 +342,10 @@ static int set_attach_device_readonly(int val, void *param)
 static int set_file_system_device(int val, void *param)
 {
     vdrive_t *vdrive;
-    unsigned int unit, idx;
+    unsigned int unit = vice_ptr_to_uint(param);
+    unsigned int idx;
     int old_device_enabled;
 
-    unit = vice_ptr_to_uint(param);
     if ((unit < 8) || (unit > 11)) {
         DBG(("set_file_system_device invalid dev #%d\n", unit));
         return -1;

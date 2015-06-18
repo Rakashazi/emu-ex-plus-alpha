@@ -37,6 +37,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "funplay.h"
+#include "log.h"
 #include "monitor.h"
 #include "snapshot.h"
 #include "types.h"
@@ -47,7 +48,7 @@
 /*
     "Fun Play" and "Power Play" game cartridges
 
-    the funplay/powerplay carts have 16 banks of ROM at $8000-9FFF,
+    the funplay/powerplay carts have 16 banks of ROM at $8000-9FFF, (16*8K=128K)
     $DE00 is used for bank switching according to the following scheme:
 
     $DE00 bit 76543210
@@ -71,6 +72,22 @@
     $29 -> Bank 13
     $31 -> Bank 14
     $39 -> Bank 15
+
+    NOTE: as a special case, the "bank" numbers in a CRT file will be like the
+          above register values, and NOT the linear bank number (0..15).
+
+    bits 7,2,1 = 1, bit 6 = 0 (actual value used is $86) switches off the ROM
+
+    Note: its unknown if the ROM can be turned on again by writing a different
+          value, or if perhaps game/exrom can be controlled separately.
+
+          Since both available ROM files work correctly with a standard 8k game
+          config, it is assumed that this config is actually used by the 
+          hardware.
+
+    FIXME: much of the above described behaviour is guesswork, it should get
+           confirmed (and fixed) by someone who owns the cart (and then this 
+           message can be removed)
 */
 
 static int currbank = 0;
@@ -78,14 +95,25 @@ static BYTE regval = 0;
 
 static void funplay_io1_store(WORD addr, BYTE value)
 {
+    addr &= 0xff;
+    regval = value;
     currbank = ((value >> 3) & 7) | ((value & 1) << 3);
-    cart_romhbank_set_slotmain(currbank);
     cart_romlbank_set_slotmain(currbank);
-    cart_set_port_exrom_slotmain(1);
-    cart_set_port_game_slotmain(1);
+    if ((value & 0xc6) == 0x00) {
+        /* 8k config */
+        cart_set_port_exrom_slotmain(1);
+        cart_set_port_game_slotmain(0);
+    } else if ((value & 0xc6) == 0x86) {
+        /* ROMs off */
+        cart_set_port_exrom_slotmain(0);
+        cart_set_port_game_slotmain(0);
+    } else {
+        log_warning(LOG_DEFAULT, "FUNPLAY: unknown register value\n");
+    }
     cart_set_port_phi1_slotmain(0);
     cart_set_port_phi2_slotmain(0);
     cart_port_config_changed_slotmain();
+    /* printf("FUNPLAY: addr: $de%02x value: $%02x bank: $%02x\n", addr, value, currbank); */
 }
 
 static BYTE funplay_io1_peek(WORD addr)
@@ -126,17 +154,16 @@ static const c64export_resource_t export_res = {
 
 void funplay_config_init(void)
 {
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    /* 8k configuration */
+    cart_config_changed_slotmain(0, 0, CMODE_READ);
     funplay_io1_store((WORD)0xde00, 0);
 }
 
 void funplay_config_setup(BYTE *rawcart)
 {
-    memcpy(roml_banks, rawcart, 0x2000 * 64);
-    memcpy(romh_banks, &rawcart[0x2000 * 16], 0x2000 * 16);
-
-    /* Hack: using 16kB configuration, but some carts are 8kB only */
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    memcpy(roml_banks, rawcart, 0x2000 * 16);
+    /* 8k configuration */
+    cart_config_changed_slotmain(0, 0, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -151,6 +178,7 @@ static int funplay_common_attach(void)
 
 int funplay_bin_attach(const char *filename, BYTE *rawcart)
 {
+    /* in a binary the banks are linear as usual */
     if (util_file_load(filename, rawcart, 0x20000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
     }
@@ -160,15 +188,21 @@ int funplay_bin_attach(const char *filename, BYTE *rawcart)
 int funplay_crt_attach(FILE *fd, BYTE *rawcart)
 {
     crt_chip_header_t chip;
+    unsigned int bank;
 
     while (1) {
         if (crt_read_chip_header(&chip, fd)) {
             break;
         }
-        if ((chip.start != 0x8000 && chip.start != 0xa000) || chip.size != 0x2000) {
+        bank = (((chip.bank >> 3) & 7) | ((chip.bank & 1) << 3));
+        if ((bank > 15) || (chip.start != 0x8000) || (chip.size != 0x2000)) {
             return -1;
         }
-        if (crt_read_chip(rawcart, (((chip.bank >> 3) & 7) | ((chip.bank & 1) << 3)) << 13, &chip, fd)) {
+        /*
+         * CAUTION: the bank values in the CRT file are not the actual bank, but the
+         *          value written to the i/o register as described above.
+         */
+        if (crt_read_chip(rawcart, bank << 13, &chip, fd)) {
             return -1;
         }
     }
@@ -184,7 +218,7 @@ void funplay_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
+#define CART_DUMP_VER_MAJOR   1
 #define CART_DUMP_VER_MINOR   0
 #define SNAP_MODULE_NAME  "CARTFUNPLAY"
 
@@ -200,8 +234,7 @@ int funplay_snapshot_write_module(snapshot_t *s)
 
     if (0
         || (SMW_B(m, (BYTE)currbank) < 0)
-        || (SMW_BA(m, roml_banks, 0x2000 * 64) < 0)
-        || (SMW_BA(m, romh_banks, 0x2000 * 16) < 0)) {
+        || (SMW_BA(m, roml_banks, 0x2000 * 16) < 0)) {
         snapshot_module_close(m);
         return -1;
     }
@@ -227,8 +260,7 @@ int funplay_snapshot_read_module(snapshot_t *s)
 
     if (0
         || (SMR_B_INT(m, &currbank) < 0)
-        || (SMR_BA(m, roml_banks, 0x2000 * 64) < 0)
-        || (SMR_BA(m, romh_banks, 0x2000 * 16) < 0)) {
+        || (SMR_BA(m, roml_banks, 0x2000 * 16) < 0)) {
         snapshot_module_close(m);
         return -1;
     }

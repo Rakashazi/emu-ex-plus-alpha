@@ -141,7 +141,13 @@ void gcr_convert_sector_to_GCR(const BYTE *buffer, BYTE *data, const gcr_header_
     data += sync;
 
     chksum = (error_code == CBMDOS_FDC_ERR_DCHECK) ? 0xff : 0x00;
-    buf[0] = (error_code == CBMDOS_FDC_ERR_NOBLOCK) ? 0xff : 0x07;
+    /* note: error 4 (CBMDOS_FDC_ERR_NOBLOCK) is considered a "soft error",
+             meaning the data is still available. because of that, we must use
+             a value (incase of error) here that in GCR will have its leftmost
+             bit 0, or else it will be taken as part of the SYNC and the framing
+             will break (and the data mess up).
+     */
+    buf[0] = (error_code == CBMDOS_FDC_ERR_NOBLOCK) ? 0x00 : 0x07;
     memcpy(buf + 1, buffer, 3);
     chksum ^= buffer[0] ^ buffer[1] ^ buffer[2];
     gcr_convert_4bytes_to_GCR(buf, data);

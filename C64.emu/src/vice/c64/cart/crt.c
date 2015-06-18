@@ -81,6 +81,7 @@
 #include "retroreplay.h"
 #include "rexep256.h"
 #include "rexutility.h"
+#include "rgcd.h"
 #include "ross.h"
 #include "silverrock128.h"
 #include "simonsbasic.h"
@@ -109,7 +110,7 @@
  * CRT image "strings".
  */
 const char CRT_HEADER[] = "C64 CARTRIDGE   ";
-const static char CHIP_HEADER[] = "CHIP";
+static const char CHIP_HEADER[] = "CHIP";
 
 /*
     Open a crt file and read header, return NULL on fault, fd otherwise
@@ -459,6 +460,9 @@ int crt_attach(const char *filename, BYTE *rawcart)
             break;
         case CARTRIDGE_REX:
             rc = rex_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_RGCD:
+            rc = rgcd_crt_attach(fd, rawcart);
             break;
         case CARTRIDGE_ROSS:
             rc = ross_crt_attach(fd, rawcart);

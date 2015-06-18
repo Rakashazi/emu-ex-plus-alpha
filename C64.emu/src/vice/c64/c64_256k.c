@@ -41,8 +41,6 @@
 #include "machine.h"
 #include "mem.h"
 #include "monitor.h"
-#include "plus256k.h"
-#include "plus60k.h"
 #include "resources.h"
 #include "reu.h"
 #include "snapshot.h"
@@ -183,8 +181,10 @@ static io_source_list_t *c64_256k_list_item = NULL;
 
 /* ---------------------------------------------------------------------*/
 
-static int set_c64_256k_enabled(int val, void *param)
+int set_c64_256k_enabled(int value)
 {
+    int val = value ? 1 : 0;
+
     if (val == c64_256k_enabled) {
         return 0;
     }
@@ -199,13 +199,8 @@ static int set_c64_256k_enabled(int val, void *param)
         c64_256k_enabled = 0;
         return 0;
     } else {
-        if (get_cpu_lines_lock() != 0) {
-            ui_error(translate_text(IDGS_RESOURCE_S_BLOCKED_BY_S), "CPU-LINES", get_cpu_lines_lock_name());
+        if (c64_256k_activate() < 0) {
             return -1;
-        } else {
-            if (c64_256k_activate() < 0) {
-                return -1;
-            }
         }
         machine_trigger_reset(MACHINE_RESET_MODE_HARD);
         c64_256k_list_item = io_source_register(&c64_256k_device);
@@ -274,8 +269,6 @@ static const resource_string_t resources_string[] = {
 };
 
 static const resource_int_t resources_int[] = {
-    { "C64_256K", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &c64_256k_enabled, set_c64_256k_enabled, NULL },
     { "C64_256Kbase", 0xdf80, RES_EVENT_NO, NULL,
       &c64_256k_start, set_c64_256k_base, NULL },
     { NULL }
@@ -299,21 +292,16 @@ void c64_256k_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-256k", SET_RESOURCE, 0,
-      NULL, NULL, "C64_256K", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_C64_256K_EXPANSION,
-      NULL, NULL },
-    { "+256k", SET_RESOURCE, 0,
-      NULL, NULL, "C64_256K", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_C64_256K_EXPANSION,
-      NULL, NULL },
     { "-256kimage", SET_RESOURCE, 1,
       NULL, NULL, "C64_256Kfilename", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_C64_256K_NAME,
       NULL, NULL },
+    { NULL }
+};
+
+static cmdline_option_t base_cmdline_options[] =
+{
     { "-256kbase", SET_RESOURCE, 1,
       NULL, NULL, "C64_256Kbase", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -324,7 +312,11 @@ static const cmdline_option_t cmdline_options[] =
 
 int c64_256k_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    if (cmdline_register_options(cmdline_options) < 0) {
+        return -1;
+    }
+
+    return cmdline_register_options(base_cmdline_options);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -381,7 +373,6 @@ static int c64_256k_activate(void)
         log_message(c64_256k_log, "Reading 256K image %s.", c64_256k_filename);
     }
     c64_256k_reset();
-    set_cpu_lines_lock(CPU_LINES_C64_256K, "C64 256K");
     return 0;
 }
 
@@ -397,7 +388,6 @@ static int c64_256k_deactivate(void)
     vicii_set_ram_base(mem_ram);
     lib_free(c64_256k_ram);
     c64_256k_ram = NULL;
-    remove_cpu_lines_lock();
     return 0;
 }
 

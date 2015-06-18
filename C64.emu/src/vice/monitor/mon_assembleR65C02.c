@@ -38,7 +38,7 @@
 #include "mon_util.h"
 #include "types.h"
 #include "uimon.h"
-
+#include "util.h"
 
 static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t operand)
 {

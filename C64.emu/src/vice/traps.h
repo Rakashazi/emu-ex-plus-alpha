@@ -57,6 +57,7 @@ extern int traps_resources_init(void);
 extern int traps_cmdline_options_init(void);
 extern int traps_add(const trap_t *trap);
 extern int traps_remove(const trap_t *trap);
+extern void traps_refresh(void);
 extern DWORD traps_handler(void);
 extern int traps_checkaddr(unsigned int addr);
 

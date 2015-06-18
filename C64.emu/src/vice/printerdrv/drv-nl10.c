@@ -117,19 +117,14 @@ static BYTE *drv_nl10_charset = drv_nl10_rom;
 static BYTE drv_nl10_charset_nlq[CHARSET_SIZE * 47];
 static BYTE drv_nl10_charset_nlq_italic[CHARSET_SIZE * 47];
 
-#if defined(__BEOS__) && defined(WORDS_BIGENDIAN)
-extern const BYTE drv_nl10_charset_mapping_intl[3][8][14];
-extern const BYTE drv_nl10_charset_mapping[3][256];
-#else
-static const BYTE drv_nl10_charset_mapping_intl[3][8][14];
-static const BYTE drv_nl10_charset_mapping[3][256];
-#endif
+STATIC_PROTOTYPE const BYTE drv_nl10_charset_mapping_intl[3][8][14];
+STATIC_PROTOTYPE const BYTE drv_nl10_charset_mapping[3][256];
 
 static int drv_nl10_init_charset(void);
 static int handle_control_sequence(nl10_t *nl10, unsigned int prnr, const BYTE c);
 static int handle_esc_control_sequence(nl10_t *nl10, unsigned int prnr, const BYTE c);
 
-static nl10_t drv_nl10[2];
+static nl10_t drv_nl10[NUM_OUTPUT_SELECT];
 
 
 /* ------------------------------------------------------------------------- */
@@ -1906,10 +1901,9 @@ static int handle_esc_control_sequence(nl10_t *nl10, unsigned int prnr, const BY
 
 static int drv_nl10_open(unsigned int prnr, unsigned int secondary)
 {
-    int ret;
     nl10_t *nl10 = &(drv_nl10[prnr]);
 
-    if (!nl10->isopen) {
+    if (secondary == DRIVER_FIRST_OPEN) {
         output_parameter_t output_parameter;
 
         output_parameter.maxcol = MAX_COL;
@@ -1922,9 +1916,7 @@ static int drv_nl10_open(unsigned int prnr, unsigned int secondary)
         drv_nl10[prnr].pos_y_pix = 0;
         drv_nl10[prnr].isopen = 1;
 
-        ret = output_select_open(prnr, &output_parameter);
-    } else {
-        ret = 0;
+        return output_select_open(prnr, &output_parameter);
     }
 
     if (secondary == 7) {
@@ -1935,7 +1927,7 @@ static int drv_nl10_open(unsigned int prnr, unsigned int secondary)
 
     init_mapping(nl10, drv_nl10[prnr].mapping_intl_id);
 
-    return ret;
+    return 0;
 }
 
 static void drv_nl10_close(unsigned int prnr, unsigned int secondary)
@@ -1943,6 +1935,11 @@ static void drv_nl10_close(unsigned int prnr, unsigned int secondary)
     /* cannot call output_select_close() here since it would eject the
        current page, which is not what "close"ing a channel to a real
        printer does */
+    /*
+    if (secondary == DRIVER_LAST_CLOSE) {
+        output_select_close(prnr);
+    }
+    */
 }
 
 static int drv_nl10_putc(unsigned int prnr, unsigned int secondary, BYTE b)
@@ -1997,7 +1994,7 @@ int drv_nl10_init(void)
 
     drvnl10_log = log_open("NL10");
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < NUM_OUTPUT_SELECT; i++) {
         drv_nl10[i].char_ram = lib_malloc(96 * 12);
         drv_nl10[i].char_ram_nlq = lib_malloc(96 * 47);
         reset_hard(&(drv_nl10[i]));
@@ -2030,7 +2027,7 @@ void drv_nl10_shutdown(void)
     int i;
     palette_free(palette);
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < NUM_OUTPUT_SELECT; i++) {
         if (drv_nl10[i].isopen) {
             output_select_close(i);
         }
@@ -2044,7 +2041,7 @@ void drv_nl10_shutdown(void)
 void drv_nl10_reset(void)
 {
     int i;
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < NUM_OUTPUT_SELECT; i++) {
         reset_hard(&(drv_nl10[i]));
     }
 }

@@ -254,7 +254,7 @@ static int disk_image_check_for_d81(disk_image_t *image)
     /* .d1m images share the same sizes with .d81, so we reject based on the
        file extension what is likely a .d1m image */
     ext = util_get_extension(fsimage->name);
-    if ((ext[0]) && (ext[1] == '1') && (ext[2])) {
+    if (ext && ext[0] && (ext[1] == '1') && ext[2]) {
         return 0;
     }
 
@@ -437,7 +437,13 @@ static int disk_image_check_for_x64(disk_image_t *image)
 
 static int disk_image_check_for_gcr(disk_image_t *image)
 {
+#if 0
+    /* if 0'ed because of:
+       'if (max_track_length > NUM_MAX_MEM_BYTES_TRACK) {'
+       further down below
+    */    
     WORD max_track_length;
+#endif
     BYTE header[32];
     fsimage_t *fsimage;
 
@@ -459,18 +465,27 @@ static int disk_image_check_for_gcr(disk_image_t *image)
         return 0;
     }
 
-    if (header[9] < 1 || header[9] > MAX_GCR_TRACKS * 2) {
+/* used to be 
+   if (header[9] < 1 || header[9] > MAX_GCR_TRACKS * 2) {
+   however, header[] is of type BYTE and MAX_GCR_TRACKS is 140
+*/
+    if (header[9] < 1) {
         log_error(disk_image_probe_log,
                   "Import GCR: Invalid number of tracks (%i).",
                   (int)header[9]);
         return 0;
     }
 
+#if 0
+    /* if 0'ed because:
+       max_track_length is of type WORD and NUM_MAX_MEM_BYTES_TRACK is 65536
+     */
     max_track_length = util_le_buf_to_word(&header[10]);
     if (max_track_length > NUM_MAX_MEM_BYTES_TRACK) {
         log_error(disk_image_probe_log, "Too large max track length.");
         return 0;
     }
+#endif
 
     image->type = DISK_IMAGE_TYPE_G64;
     image->tracks = header[9] / 2;
@@ -528,7 +543,7 @@ static int disk_image_check_for_d1m(disk_image_t *image)
     /* .d81 images share the same sizes with .d1m, so we reject based on the
        file extension what is likely a .d81 image */
     ext = util_get_extension(fsimage->name);
-    if ((ext[0]) && (ext[1] == '8') && (ext[2] == '1')) {
+    if (ext && ext[0] && (ext[1] == '8') && ext[2] == '1') {
         return 0;
     }
 

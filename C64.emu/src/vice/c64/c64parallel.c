@@ -35,7 +35,6 @@
 #include "cia.h"
 #include "dolphindos3.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "iecdrive.h"
 #include "log.h"
@@ -133,13 +132,15 @@ void parallel_cable_cpu_execute(int type)
 {
     unsigned int dnr;
     int port;
+    drive_t *drive;
 
     port = portmap[type];
 
     for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        if (drive_context[dnr]->drive->enable && drive_context[dnr]->drive->parallel_cable) {
-            if (portmap[drive_context[dnr]->drive->parallel_cable] == port) {
-                drivecpu_execute(drive_context[dnr], maincpu_clk);
+        drive = drive_context[dnr]->drive;
+        if (drive->enable && drive->parallel_cable) {
+            if (portmap[drive->parallel_cable] == port) {
+                drive_cpu_execute_one(drive_context[dnr], maincpu_clk);
             }
         }
     }

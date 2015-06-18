@@ -1,22 +1,21 @@
-/*  This file is part of GBA.emu.
+/*  This file is part of C64.emu.
 
-	PCE.emu is free software: you can redistribute it and/or modify
+	C64.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	PCE.emu is distributed in the hope that it will be useful,
+	C64.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
-#include <imagine/io/api/stdio.hh>
 #include <sys/time.h>
 #ifdef __APPLE__
 	#include <mach/semaphore.h>
@@ -62,26 +61,25 @@ extern "C"
 	#include "sid/sid.h"
 	#include "c64/cart/c64cartsystem.h"
 
-	CLINK void (*vsync_hook)(void);
 	CLINK int warp_mode_enabled;
 }
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 #ifdef __APPLE__
-static semaphore_t execSem, execDoneSem;
+semaphore_t execSem, execDoneSem;
 #else
-static sem_t execSem, execDoneSem;
+sem_t execSem, execDoneSem;
 #endif
 static ThreadPThread c64Thread;
-static uint16 pix[520*312]  __attribute__ ((aligned (8))) {0};
+alignas(8) uint16 pix[520*312]{};
+bool runningFrame = false, doAudio = false;
 static bool c64IsInit = false, c64FailedInit = false, isPal = false,
-		runningFrame = false, doAudio = false,
 		shiftLock = false, ctrlLock = false;
-static uint c64VidX = 320, c64VidY = 200,
-		c64VidActiveX = 0, c64VidActiveY = 0;
-
+uint c64VidX = 320, c64VidY = 200;
+static uint c64VidActiveX = 0, c64VidActiveY = 0;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static FsSys::PathString firmwareBasePath{};
-static FsSys::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3]{};
+FsSys::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3]{};
 
 void setupSysFilePaths(FsSys::PathString outPath[3], const FsSys::PathString &firmwareBasePath);
 
@@ -139,6 +137,10 @@ static void setC64Model(int model)
 		case C64MODEL_C64_NTSC:
 		case C64MODEL_C64C_NTSC:
 		case C64MODEL_C64_OLD_NTSC:
+		case C64MODEL_C64SX_NTSC:
+		case C64MODEL_C64_JAP:
+		case C64MODEL_PET64_NTSC:
+		case C64MODEL_ULTIMAX:
 			isPal = 0;
 		bdefault:
 			isPal = 1;
@@ -265,8 +267,6 @@ const char *EmuSystem::systemName()
 	return "Commodore 64";
 }
 
-using namespace IG;
-
 // controls
 
 enum
@@ -389,7 +389,7 @@ static const uint JOYPAD_FIRE = 0x10,
 
 static const uint JS_SHIFT = 16;
 
-static const uint SHIFT_BIT = bit(8);
+static const uint SHIFT_BIT = IG::bit(8);
 
 static constexpr uint mkKeyCode(int row, int col, int shift = 0)
 {
@@ -517,7 +517,7 @@ void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	const uint p2Bit = player ? bit(5) : 0;
+	const uint p2Bit = player ? IG::bit(5) : 0;
 	map[SysVController::F_ELEM] = (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
 	map[SysVController::F_ELEM+1] = ((JOYPAD_FIRE | p2Bit) << JS_SHIFT) | SysVController::TURBO_BIT;
 
@@ -537,7 +537,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
-	const uint p2Bit = bit(5);
+	const uint p2Bit = IG::bit(5);
 	const uint shiftBit = shiftLock ? SHIFT_BIT : 0;
 	switch(input)
 	{
@@ -683,7 +683,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	{
 
 		uint key = emuKey >> 16;
-		uint player = (key & bit(5)) ? 2 : 1;
+		uint player = (key & IG::bit(5)) ? 2 : 1;
 		if(optionSwapJoystickPorts)
 		{
 			player = (player == 1) ? 2 : 1;
@@ -802,8 +802,6 @@ static int c64FsFilter(const char *name, int type)
 FsDirFilterFunc EmuFilePicker::defaultFsFilter = c64FsFilter;
 FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = c64FsFilter;
 
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
@@ -901,6 +899,7 @@ bool EmuSystem::vidSysIsPAL() { return isPal; }
 uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
+
 void EmuSystem::clearInputBuffers()
 {
 	shiftLock = 0;
@@ -918,6 +917,9 @@ void EmuSystem::closeSystem()
 	resources_set_int("WarpMode", 0);
 	tape_image_detach(1);
 	file_system_detach_disk(8);
+	file_system_detach_disk(9);
+	file_system_detach_disk(10);
+	file_system_detach_disk(11);
 	cartridge_detach_image(-1);
 	machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -947,6 +949,9 @@ static bool initC64()
 	}
 
   resources_set_int("Drive8Type", DRIVE_TYPE_1541II);
+  resources_set_int("Drive9Type", DRIVE_TYPE_NONE);
+  resources_set_int("Drive10Type", DRIVE_TYPE_NONE);
+  resources_set_int("Drive11Type", DRIVE_TYPE_NONE);
   if(!optionDriveTrueEmulation) // on by default
   	resources_set_int("DriveTrueEmulation", 0);
   c64IsInit = true;
@@ -976,23 +981,11 @@ int EmuSystem::loadGame(const char *path)
 	closeGame();
 	setupGamePaths(path);
 
-	if(string_hasDotExtension(path, "crt")) // ROM
+	logMsg("loading %s", path);
+	if(autostart_autodetect(path, nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 	{
-		logMsg("loading ROM %s", path);
-		if(cartridge_attach_image(CARTRIDGE_CRT, path) < 0)
-		{
-			popup.postError("Error loading ROM");
-			return 0;
-		}
-	}
-	else
-	{
-		logMsg("loading disk/tape/prg %s", path);
-		if(autostart_autodetect(path, nullptr, 0, AUTOSTART_MODE_RUN) != 0)
-		{
-			popup.postError("Error loading disk/tape");
-			return 0;
-		}
+		popup.postError("Error loading file");
+		return 0;
 	}
 
 	return 1;
@@ -1183,269 +1176,4 @@ CallResult onInit(int argc, char** argv)
 	return OK;
 }
 
-}
-
-CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const char *open_mode)
-{
-	for(const auto &pathGroup : sysFilePath)
-	{
-		for(const auto &p : pathGroup)
-		{
-			if(!strlen(p.data()))
-				continue;
-			auto fullPath = makeFSPathStringPrintf("%s/%s", p.data(), name);
-			auto file = fopen(fullPath.data(), open_mode);
-			if(file)
-			{
-				if(complete_path_return)
-				{
-					*complete_path_return = strdup(fullPath.data());
-					if(!*complete_path_return)
-					{
-						logErr("out of memory trying to allocate string in sysfile_open");
-						fclose(file);
-						return nullptr;
-					}
-				}
-				return file;
-			}
-		}
-	}
-	logErr("can't open %s in system paths", name);
-	return nullptr;
-}
-
-CLINK int sysfile_locate(const char *name, char **complete_path_return)
-{
-	for(const auto &pathGroup : sysFilePath)
-	{
-		for(const auto &p : pathGroup)
-		{
-			if(!strlen(p.data()))
-				continue;
-			auto fullPath = makeFSPathStringPrintf("%s/%s", p.data(), name);
-			if(FsSys::fileExists(fullPath.data()))
-			{
-				if(complete_path_return)
-				{
-					*complete_path_return = strdup(fullPath.data());
-					if(!*complete_path_return)
-					{
-						logErr("out of memory trying to allocate string in sysfile_locate");
-						return -1;
-					}
-				}
-				return 0;
-			}
-		}
-	}
-	logErr("%s not found in system paths", name);
-	return -1;
-}
-
-CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
-{
-	for(const auto &pathGroup : sysFilePath)
-	{
-		for(const auto &p : pathGroup)
-		{
-			if(!strlen(p.data()))
-				continue;
-			auto complete_path = makeFSPathStringPrintf("%s/%s", p.data(), name);
-			FileIO file;
-			file.open(complete_path.data());
-			if(file)
-			{
-				//logMsg("loading system file: %s", complete_path);
-				ssize_t rsize = file.size();
-				bool load_at_end;
-				if(minsize < 0)
-				{
-					minsize = -minsize;
-					load_at_end = 0;
-				}
-				else
-				{
-					load_at_end = 1;
-				}
-				if(rsize < (minsize))
-				{
-					logErr("ROM %s: short file", complete_path.data());
-					goto fail;
-				}
-				if(rsize == (maxsize + 2))
-				{
-					logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path.data());
-					if(file.read((char*)dest, 2) < 2)
-					{
-						goto fail;
-					}
-					rsize -= 2;
-				}
-				if(load_at_end && rsize < (maxsize))
-				{
-					dest += maxsize - rsize;
-				}
-				else if(rsize > (maxsize))
-				{
-					logWarn("ROM `%s': long file, discarding end.", complete_path.data());
-					rsize = maxsize;
-				}
-				if((rsize = file.read((char *)dest, rsize)) < minsize)
-					goto fail;
-
-				return (int)rsize;
-
-				fail:
-					logErr("failed loading system file: %s", name);
-					return -1;
-			}
-		}
-	}
-	logErr("can't load %s in system paths", name);
-	return -1;
-}
-
-// Number of timer units per second, unused
-CLINK signed long vsyncarch_frequency(void)
-{
-  // Microseconds resolution
-  return 1000000;
-}
-
-CLINK unsigned long vsyncarch_gettime(void)
-{
-//  struct timeval now;
-//  gettimeofday(&now, NULL);
-//  return 1000000UL * now.tv_sec + now.tv_usec;
-	bug_exit("shouldn't be called");
-	return 0;
-}
-
-CLINK void vsyncarch_init(void) { }
-
-CLINK void vsyncarch_display_speed(double speed, double frame_rate, int warp_enabled) { }
-
-CLINK void vsyncarch_sleep(signed long delay)
-{
-	logMsg("called vsyncarch_sleep() with %ld", delay);
-	bug_exit("shouldn't be called");
-}
-
-CLINK void vsyncarch_presync(void) { }
-
-CLINK void vsyncarch_postsync(void) { }
-
-CLINK int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
-{
-	sound_flush();
-	kbdbuf_flush();
-	vsync_hook();
-	assert(EmuSystem::gameIsRunning());
-	if(likely(runningFrame))
-	{
-		//logMsg("vsync_do_vsync signaling main thread");
-		#ifdef __APPLE__
-		semaphore_signal(execDoneSem);
-		semaphore_wait(execSem);
-		#else
-		sem_post(&execDoneSem);
-		sem_wait(&execSem);
-		#endif
-	}
-	else
-	{
-		logMsg("spurious vsync_do_vsync()");
-	}
-	return 0;
-}
-
-CLINK void video_arch_canvas_init(struct video_canvas_s *canvas)
-{
-	logMsg("created canvas with size %d,%d", canvas->draw_buffer->canvas_width, canvas->draw_buffer->canvas_height);
-	canvas->video_draw_buffer_callback = nullptr;
-}
-
-CLINK int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
-{
-	if(!palette)
-	{
-		return 0; // no palette, nothing to do
-	}
-
-	c->palette = palette;
-
-	iterateTimes(palette->num_entries, i)
-	{
-		auto col = pixFmt.desc().build(palette->entries[i].red/255., palette->entries[i].green/255., palette->entries[i].blue/255., 0.);
-		logMsg("set color %d to %X", i, col);
-		video_render_setphysicalcolor(c->videoconfig, i, col, pixFmt.bitsPerPixel());
-	}
-
-	iterateTimes(256, i)
-	{
-		video_render_setrawrgb(i, pixFmt.desc().build(i/255., 0., 0., 0.), pixFmt.desc().build(0., i/255., 0., 0.), pixFmt.desc().build(0., 0., i/255., 0.));
-	}
-	video_render_initraw(c->videoconfig);
-
-	return 0;
-}
-
-CLINK void video_canvas_refresh(struct video_canvas_s *canvas, unsigned int xs, unsigned int ys, unsigned int xi, unsigned int yi, unsigned int w, unsigned int h)
-{
-	video_canvas_render(canvas, (BYTE*)pix, w, h, xs, ys, xi, yi, emuVideo.vidPix.pitchBytes(), pixFmt.bitsPerPixel());
-}
-
-CLINK void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas)
-{
-	c64VidX = canvas->draw_buffer->canvas_width;
-	c64VidY = canvas->draw_buffer->canvas_height;
-	logMsg("resized canvas to %d,%d", c64VidX, c64VidY);
-	if(unlikely(!emuVideo.vidImg))
-	{
-		emuVideo.initImage(0, c64VidX, c64VidY);
-	}
-}
-
-CLINK video_canvas_t *video_canvas_create(video_canvas_t *canvas, unsigned int *width, unsigned int *height, int mapped)
-{
-	logMsg("renderer %d", canvas->videoconfig->rendermode);
-	canvas->videoconfig->filter = VIDEO_FILTER_NONE;
-	return canvas;
-}
-
-static int soundInit(const char *param, int *speed,
-		   int *fragsize, int *fragnr, int *channels)
-{
-	logMsg("sound init %dHz, %d fragsize, %d fragnr, %d channels", *speed, *fragsize, *fragnr, *channels);
-	assert(*channels == 1);
-	return 0;
-}
-
-static int soundWrite(SWORD *pbuf, size_t nr)
-{
-	//logMsg("sound write %zd", nr);
-	if(likely(doAudio))
-		EmuSystem::writeSound(pbuf, nr);
-	return 0;
-}
-
-static sound_device_t soundDevice =
-{
-    "sound",
-    soundInit,
-    soundWrite,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    0,
-    2
-};
-
-CLINK int sound_init_dummy_device()
-{
-	return sound_register_device(&soundDevice);
 }

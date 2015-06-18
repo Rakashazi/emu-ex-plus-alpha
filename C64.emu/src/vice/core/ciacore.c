@@ -2,11 +2,12 @@
  * ciacore.c - Template file for MOS6526 (CIA) emulation.
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *
  * Patches and improvements by
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Alexander Bluhm <mam96ehy@studserv.uni-leipzig.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -98,8 +99,7 @@ static inline void my_set_int(cia_context_t *cia_context, int value,
 
 inline static void check_ciatodalarm(cia_context_t *cia_context, CLOCK rclk)
 {
-    if (!(cia_context->todstopped)
-        && !memcmp(cia_context->todalarm, cia_context->c_cia + CIA_TOD_TEN,
+    if (!memcmp(cia_context->todalarm, cia_context->c_cia + CIA_TOD_TEN,
                    sizeof(cia_context->todalarm))) {
         cia_context->irqflags |= CIA_IM_TOD;
         if (cia_context->c_cia[CIA_ICR] & CIA_IM_TOD) {
@@ -280,6 +280,9 @@ static void ciacore_clk_overflow_callback(CLOCK sub, void *data)
 /* -------------------------------------------------------------------------- */
 void ciacore_disable(cia_context_t *cia_context)
 {
+#ifdef USE_IDLE_CALLBACK
+    alarm_unset(cia_context->idle_alarm);
+#endif
     alarm_unset(cia_context->ta_alarm);
     alarm_unset(cia_context->tb_alarm);
     alarm_unset(cia_context->tod_alarm);
@@ -305,10 +308,10 @@ void ciacore_reset(cia_context_t *cia_context)
     cia_context->sdr_valid = 0;
 
     memset(cia_context->todalarm, 0, sizeof(cia_context->todalarm));
-    memset(cia_context->todlatch, 0, sizeof(cia_context->todlatch));
     cia_context->todlatched = 0;
     cia_context->todstopped = 1;
-    cia_context->c_cia[0x0b] = 1;          /* the most common value */
+    cia_context->c_cia[CIA_TOD_HR] = 1;          /* the most common value */
+    memcpy(cia_context->todlatch, cia_context->c_cia + CIA_TOD_TEN, sizeof(cia_context->todlatch));
     cia_context->todclk = *(cia_context->clk_ptr) + cia_context->todticks;
     alarm_set(cia_context->tod_alarm, cia_context->todclk);
     cia_context->todtickcounter = 0;
@@ -412,31 +415,52 @@ static void ciacore_store_internal(cia_context_t *cia_context, WORD addr, BYTE b
          * VIRT:  TOD register + (cycles - begin)/cycles_per_sec
          */
         case CIA_TOD_TEN: /* Time Of Day clock 1/10 s */
-        case CIA_TOD_HR:        /* Time Of Day clock hour */
+        case CIA_TOD_HR:  /* Time Of Day clock hour */
         case CIA_TOD_SEC: /* Time Of Day clock sec */
         case CIA_TOD_MIN: /* Time Of Day clock min */
-            /* Flip AM/PM on hour 12
-              (Andreas Boose <viceteam@t-online.de> 1997/10/11). */
-            /* Flip AM/PM only when writing time, not when writing alarm
-              (Alexander Bluhm <mam96ehy@studserv.uni-leipzig.de> 2000/09/17). */
             if (addr == CIA_TOD_HR) {
+                /* force bits 6-5 = 0 */
                 byte &= 0x9f;
+                /* Flip AM/PM on hour 12  */
+                /* Flip AM/PM only when writing time, not when writing alarm */
                 if ((byte & 0x1f) == 0x12 && !(cia_context->c_cia[CIA_CRB] & 0x80)) {
                     byte ^= 0x80;
                 }
+            } else if (addr == CIA_TOD_MIN) {
+                byte &= 0x7f;
+            } else if (addr == CIA_TOD_SEC) {
+                byte &= 0x7f;
+            } else if (addr == CIA_TOD_TEN) {
+                byte &= 0x0f;
             }
-            if (cia_context->c_cia[CIA_CRB] & 0x80) {
-                cia_context->todalarm[addr - CIA_TOD_TEN] = byte;
-            } else {
-                if (addr == CIA_TOD_TEN) {
-                    cia_context->todstopped = 0;
+
+            {
+                char changed;
+                if (cia_context->c_cia[CIA_CRB] & 0x80) {
+                    /* set alarm */
+                    changed = cia_context->todalarm[addr - CIA_TOD_TEN] != byte;
+                    cia_context->todalarm[addr - CIA_TOD_TEN] = byte;
+                } else {
+                    /* set time */
+                    if (addr == CIA_TOD_TEN) {
+                        /* apparently the tickcounter is reset to 0 when the clock
+                           is not running and then restarted by writing to the 10th
+                           seconds register */
+                        if (cia_context->todstopped) {
+                            cia_context->todtickcounter = 0;
+                        }
+                        cia_context->todstopped = 0;
+                    }
+                    if (addr == CIA_TOD_HR) {
+                        cia_context->todstopped = 1;
+                    }
+                    changed = cia_context->c_cia[addr] != byte;
+                    cia_context->c_cia[addr] = byte;
                 }
-                if (addr == CIA_TOD_HR) {
-                    cia_context->todstopped = 1;
+                if (changed) {
+                    check_ciatodalarm(cia_context, rclk);
                 }
-                cia_context->c_cia[addr] = byte;
             }
-            check_ciatodalarm(cia_context, rclk);
             break;
 
         case CIA_SDR:           /* Serial Port output buffer */
@@ -723,7 +747,7 @@ BYTE cia_read_(cia_context_t *cia_context, WORD addr)
         case CIA_TOD_TEN: /* Time Of Day clock 1/10 s */
         case CIA_TOD_SEC: /* Time Of Day clock sec */
         case CIA_TOD_MIN: /* Time Of Day clock min */
-        case CIA_TOD_HR:        /* Time Of Day clock hour */
+        case CIA_TOD_HR:  /* Time Of Day clock hour */
             if (!(cia_context->todlatched)) {
                 memcpy(cia_context->todlatch, cia_context->c_cia + CIA_TOD_TEN,
                        sizeof(cia_context->todlatch));
@@ -1071,15 +1095,61 @@ void ciacore_set_sdr(cia_context_t *cia_context, BYTE data)
 
 /* ------------------------------------------------------------------------- */
 
+/* when defined, randomize the power frequency a bit instead of linearly
+   meandering around the correct value */
+#define TODRANDOM
+
 static void ciacore_inttod(CLOCK offset, void *data)
 {
     int t0, t1, t2, t3, t4, t5, t6, pm, update = 0;
-    CLOCK rclk;
+    CLOCK rclk, tclk;
     cia_context_t *cia_context = (cia_context_t *)data;
 
     rclk = *(cia_context->clk_ptr) - offset;
 
-    /* set up new int */
+    if (cia_context->power_freq == 0) {
+        /* if power frequency is not initialized, or not present, return immediatly.
+           check again in about 1/10th second */
+        cia_context->todclk = *(cia_context->clk_ptr) + 100000;
+        alarm_set(cia_context->tod_alarm, cia_context->todclk);
+        return;
+    }
+
+    /* set up new int 
+       the time between power ticks should be ticks_per_sec / power_freq
+       in reality the deviation can be quite large in small time frames, but is
+       very accurate in longer time frames. we try to maintain a stable tick
+       frequency that is as close as possible to the wanted 50/60 Hz. we should
+       also introduce some kind of randomness to mimic realistic behaviour.
+
+       for some details (german) http://www.netzfrequenzmessung.de/
+     */
+    cia_context->todticks = cia_context->ticks_per_sec / cia_context->power_freq;
+    tclk = ((cia_context->power_tickcounter * cia_context->ticks_per_sec) / cia_context->power_freq);
+    if (cia_context->power_ticks < tclk) {
+#ifdef TODRANDOM
+          cia_context->todticks += lib_unsigned_rand(0, 3);
+#else
+          /* cia_context->todticks += (((tclk - cia_context->power_ticks) * 3) / 2); */
+          cia_context->todticks++;
+#endif
+    } else if (cia_context->power_ticks > tclk) {
+#ifdef TODRANDOM
+          cia_context->todticks -= lib_unsigned_rand(0, 3);
+#else
+          /* cia_context->todticks -= (((cia_context->power_ticks - tclk) * 3) / 2); */
+          cia_context->todticks--;
+#endif
+    }
+    cia_context->power_tickcounter++;
+    if (cia_context->power_tickcounter >= cia_context->power_freq) {
+        cia_context->todticks = cia_context->ticks_per_sec - cia_context->power_ticks;
+        cia_context->power_tickcounter = 0;
+        cia_context->power_ticks = 0;
+    } else {
+        cia_context->power_ticks += cia_context->todticks;
+    }
+
     cia_context->todclk = *(cia_context->clk_ptr) + cia_context->todticks;
     alarm_set(cia_context->tod_alarm, cia_context->todclk);
 
@@ -1087,6 +1157,8 @@ static void ciacore_inttod(CLOCK offset, void *data)
         /* count 50/60 hz ticks */
         cia_context->todtickcounter++;
         /* wild assumption: counter is 3 bits and is not reset elsewhere */
+        /* FIXME: this doesnt seem to be 100% correct - apparently it is reset
+                  in some cases */
         cia_context->todtickcounter &= 7;
 
         /* if the counter matches the TOD frequency ... */
@@ -1113,29 +1185,33 @@ static void ciacore_inttod(CLOCK offset, void *data)
 
         /* tenth seconds (0-9) */
         t0 = (t0 + 1) & 0x0f;
-        if ((t0 == 0) || (t0 == 10)) {
+        if (t0 == 10) {
             t0 = 0;
             /* seconds (0-59) */
-            t1 = (t1 + 1) & 0x0f;
-            if ((t1 == 0) || (t1 == 10)) {
+            t1 = (t1 + 1) & 0x0f; /* x0...x9 */
+            if (t1 == 10) {
                 t1 = 0;
-                t2 = (t2 + 1) & 0x0f;
-                if ((t2 == 0) || (t2 == 6)) {
+                t2 = (t2 + 1) & 0x07; /* 0x...5x */
+                if (t2 == 6) {
                     t2 = 0;
                     /* minutes (0-59) */
-                    t3 = (t3 + 1) & 0x0f;
-                    if ((t3 == 0) || (t3 == 10)) {
+                    t3 = (t3 + 1) & 0x0f; /* x0...x9 */
+                    if (t3 == 10) {
                         t3 = 0;
-                        t4 = (t4 + 1) & 0x0f;
-                        if ((t4 == 0) || (t4 == 6)) {
+                        t4 = (t4 + 1) & 0x07; /* 0x...5x */
+                        if (t4 == 6) {
                             t4 = 0;
                             /* hours (1-12) */
                             t5 = (t5 + 1) & 0x0f;
                             if (t6) {
+                                /* toggle the am/pm flag when going from 11 to 12 (!) */
+                                if (t5 == 2) {
+                                    pm ^= 0x80;
+                                }
+                                /* wrap 12h -> 1h (FIXME: when hour became x3 ?) */
                                 if (t5 == 3) {
                                     t5 = 1;
                                     t6 = 0;
-                                    pm ^= 0x80;     /* toggle am/pm on 0:59->1:00 hr */
                                 }
                             } else {
                                 if (t5 == 10) {
@@ -1166,6 +1242,7 @@ static void ciacore_inttod(CLOCK offset, void *data)
         check_ciatodalarm(cia_context, rclk);
     }
 }
+#undef TODRANDOM
 
 void ciacore_setup_context(cia_context_t *cia_context)
 {
@@ -1607,7 +1684,8 @@ int ciacore_dump(cia_context_t *cia_context)
     mon_out("Port B:  %02x DDR: %02x\n", ciacore_peek(cia_context, 0x01), ciacore_peek(cia_context, 0x03));
     mon_out("Timer A: %04x\n", ciacore_peek(cia_context, 0x04) + (ciacore_peek(cia_context, 0x05) << 8));
     mon_out("Timer B: %04x\n", ciacore_peek(cia_context, 0x06) + (ciacore_peek(cia_context, 0x07) << 8));
-    mon_out("TOD:     %d:%d:%d:%d\n", ciacore_peek(cia_context, 0x0b), ciacore_peek(cia_context, 0x0a), ciacore_peek(cia_context, 0x09), ciacore_peek(cia_context, 0x08));
+    mon_out("TOD Time:  %02x:%02x:%02x.%x (%s)\n", ciacore_peek(cia_context, 0x0b) & 0x7f, ciacore_peek(cia_context, 0x0a), ciacore_peek(cia_context, 0x09), ciacore_peek(cia_context, 0x08), ciacore_peek(cia_context, 0x0b) & 0x80 ? "pm" : "am");
+    mon_out("TOD Alarm: %02x:%02x:%02x.%x (%s)\n", cia_context->todalarm[0x0b - CIA_TOD_TEN] & 0x7f, cia_context->todalarm[0x0a - CIA_TOD_TEN], cia_context->todalarm[0x09 - CIA_TOD_TEN], cia_context->todalarm[0x08 - CIA_TOD_TEN], cia_context->todalarm[0x0b - CIA_TOD_TEN] & 0x80 ? "pm" : "am");
     mon_out("\nSynchronous Serial I/O Data Buffer: %02x\n", ciacore_peek(cia_context, 0x0c));
     return 0;
 }

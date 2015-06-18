@@ -25,11 +25,13 @@
  */
 
 #include "vice.h"
+
+#include "archdep.h"
+#include "drive.h"
 #include "drive-sound.h"
 #include "sound.h"
-#include "drive.h"
 
-const static signed char hum[] = {
+static const signed char hum[] = {
     0, -1, -2, -3, -2, 0, 3, 5, 6, 5, 3, 0, -3, -5, -6, -4, -2, 1, 2, 3, 3, 3,
     3, 2, 0, -3, -4, -4, -1, 2, 5, 5, 3, -1, -5, -6, -6, -4, -2, -1, 0, 0, 0,
     0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 0, 0, -1, -1, -2, -2, -1, 2, 2, 1, -1,
@@ -456,7 +458,7 @@ const static signed char hum[] = {
     -14, -14, -10, -3, 5, 12, 17, 19, 18, 12, 2, -8, -15, -16, -10, 0, 9, 11
 };
 
-const static signed char spinup[] = {
+static const signed char spinup[] = {
     -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1,
@@ -848,7 +850,7 @@ const static signed char spinup[] = {
     -3, 4, 9, 8, 3, -3, -6, -5
 };
 
-const static signed char spindown[] = {
+static const signed char spindown[] = {
     8, 8, 6, 3, -1, -4, -8, -9, -7, 0, 7, 10, 9, 5, 0, -6, -11, -16, -17, -14,
     -6, 3, 7, 8, 5, 0, -3, -7, -12, -15, -15, -11, -5, 0, 4, 5, 4, 2, -2, -6,
     -9, -11, -10, -8, -4, 1, 5, 7, 6, 1, -4, -7, -5, 1, 9, 14, 12, 5, -3, -9,
@@ -1202,7 +1204,7 @@ const static signed char spindown[] = {
     -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-const static signed char stepping[] = {
+static const signed char stepping[] = {
     -2, 0, 2, 2, 0, -2, -3, -2, -2, -4, -5, -2, 5, 11, 7, -7, -22, -28, -18, 1,
     16, 17, 8, -2, -6, -4, -1, -3, -8, -11, -9, -4, 2, 7, 11, 13, 10, 3, -4,
     -6, 1, 12, 18, 11, -3, -16, -19, -12, -1, 6, 7, 5, 3, 0, -4, -10, -13, -9,
@@ -1239,7 +1241,7 @@ const static signed char stepping[] = {
     1, 1, 1, 1, 0, -1, -1, -1, -1, -1, 0, 0, 0, 1, 2, 3, 4
 };
 
-const static signed char stepping2[] = {
+static const signed char stepping2[] = {
     -1, 1, 3, 3, 3, 1, -1, -2, -2, -2, -1, 0, 1, 1, -1, -3, -6, -7, -5, -1, 2,
     5, 4, 2, -1, -4, -6, -7, -6, -4, -2, -1, -1, -1, -2, -3, -4, -4, -3, 1, 6,
     9, 9, 5, 0, -4, -6, -6, -4, -3, -2, -1, -1, -3, -7, -11, -13, -12, -8, -1,
@@ -1275,7 +1277,7 @@ const static signed char stepping2[] = {
     -7
 };
 
-const static signed char bump[] = {
+static const signed char bump[] = {
     3, -1, -4, -3, 2, 4, 0, -5, -3, 7, 13, 5, -12, -20, -4, 29, 49, 35, -9,
     -49, -58, -37, -8, 10, 14, 17, 23, 23, 12, -4, -6, 12, 35, 36, 9, -27, -44,
     -37, -26, -34, -54, -56, -18, 44, 85, 71, 12, -43, -54, -27, 0, -4, -28,
@@ -1416,17 +1418,13 @@ const static signed char bump[] = {
     -2, -3, -3
 };
 
-const static signed char nosound[1] = { 0 };
+static const signed char nosound[1] = { 0 };
 
-#if defined(__BEOS__) && defined(WORDS_BIGENDIAN)
-extern sound_chip_t drive_sound;
-#else
-static sound_chip_t drive_sound;
-#endif
+STATIC_PROTOTYPE sound_chip_t drive_sound;
 
 static WORD drive_sound_offset;
-const static signed char *step[DRIVE_NUM];
-const static signed char *motor[DRIVE_NUM];
+static const signed char *step[DRIVE_NUM];
+static const signed char *motor[DRIVE_NUM];
 static int stepvol[DRIVE_NUM];
 static int motorvol[DRIVE_NUM];
 

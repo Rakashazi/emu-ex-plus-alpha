@@ -5,7 +5,7 @@
  *  Kajtar Zsolt <soci@c64.rulez.org>
  *
  * Based on old code by
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.

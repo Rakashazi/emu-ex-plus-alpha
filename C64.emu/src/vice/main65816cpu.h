@@ -60,4 +60,18 @@ extern struct monitor_interface_s *maincpu_monitor_interface_get(void);
 extern int maincpu_snapshot_read_module(struct snapshot_s *s);
 extern int maincpu_snapshot_write_module(struct snapshot_s *s);
 
+extern void maincpu_set_pc(int);
+extern void maincpu_set_a(int);
+extern void maincpu_set_x(int);
+extern void maincpu_set_y(int);
+extern void maincpu_set_sign(int);
+extern void maincpu_set_zero(int);
+extern void maincpu_set_carry(int);
+extern void maincpu_set_interrupt(int);
+extern unsigned int maincpu_get_pc(void);
+extern unsigned int maincpu_get_a(void);
+extern unsigned int maincpu_get_x(void);
+extern unsigned int maincpu_get_y(void);
+extern unsigned int maincpu_get_sp(void);
+
 #endif

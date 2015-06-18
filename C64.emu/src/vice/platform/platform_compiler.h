@@ -37,7 +37,7 @@
  * green hill     | yes (untested)
  * hp uc          | yes (untested)
  * intel cc       | yes (untested)
- * llvm           | yes (untested)
+ * llvm           | yes
  * metrowerks     | yes (untested)
  * MIPSpro        | yes (untested)
  * MSVC           | yes
@@ -66,8 +66,17 @@
 #  if (__GNUC__>2)
 #    define PLATFORM_COMPILER "GCC-" QUOTE(__GNUC__) "." QUOTE(__GNUC_MINOR__) "." QUOTE(__GNUC_PATCHLEVEL__)
 #  else
-#    define PLATFORM_COMPILER "GCC-" QUOTE(__GNUC__) "." QUOTE(__GNUC_MINOR__)
+#    ifdef __GNUC_MINOR__
+#      define PLATFORM_COMPILER "GCC-" QUOTE(__GNUC__) "." QUOTE(__GNUC_MINOR__)
+#    else
+#      define PLATFORM_COMPILER "GCC-" QUOTE(__GNUC__) ".x"
+#    endif
 #  endif
+#endif
+
+/* ACK discovery */
+#if !defined(PLATFORM_COMPILE) && defined(__ACK__)
+#  define PLATFORM_COMPILER "ACK"
 #endif
 
 /* llvm discovery */
@@ -204,9 +213,61 @@
 #  define PLATFORM_COMPILER "Tiny C"
 #endif
 
+/* OW compiler discovery */
+#if !defined(PLATFORM_COMPILER) && defined(WATCOM_COMPILE)
+#  define PLATFORM_COMPILER "OpenWatcom"
+#endif
+
 /* MSVC compiler discovery */
-#if !defined(PLATFORM_COMPILE) && defined(_MSC_VER)
-#  define PLATFORM_COMPILER "MSVC"
+#if !defined(PLATFORM_COMPILER) && defined(_MSC_VER)
+#  if (_MSC_VER == 1100)
+#    define PLATFORM_COMPILER "msvc5/vs97"
+#  endif
+#  if (_MSC_VER == 1200)
+#    define PLATFORM_COMPILER "msvc6/vs98"
+#  endif
+#  if (_MSC_VER == 1300)
+#    define PLATFORM_COMPILER "msvc7.0/vs2002"
+#  endif
+#  if (_MSC_VER == 1310)
+#    define PLATFORM_COMPILER "msvc7.1/vs2003"
+#  endif
+#  if (_MSC_VER == 1400)
+#    define PLATFORM_COMPILER "msvc8/vs2005"
+#  endif
+#  if (_MSC_VER == 1500)
+#    define PLATFORM_COMPILER "msvc9/vs2008"
+#  endif
+#  if (_MSC_VER == 1600)
+#    define PLATFORM_COMPILER "msvc10/vs2010"
+#  endif
+#  if (_MSC_VER == 1700)
+#    define PLATFORM_COMPILER "msvc11/vs2012"
+#  endif
+#  if (_MSC_VER == 1800)
+#    define PLATFORM_COMPILER "msvc12/vs2013"
+#  endif
+#  ifndef PLATFORM_COMPILER
+#    define PLATFORM_COMPILER "msvc"
+#  endif
+#endif
+
+/* SCO native compiler discovery */
+#ifndef PLATFORM_COMPILER
+#  if defined(SCO4UNIX_COMPILE) || defined(OPENSERVER5_COMPILE) || defined(OPENSERVER6_COMPILE) || defined(UNIXWARE_COMPILE)
+#    define PLATFORM_COMPILER "SCO C"
+# endif
+#endif
+
+/* SunOS/Solaris native compiler discovery */
+#ifndef PLATFORM_COMPILER
+#  if defined(sun) || defined(__sun)
+#    if defined(__SVR4) || defined(__svr4__)
+#      define PLATFORM_COMPILER "Solaris C"
+#    else
+#      define PLATFORM_COMPILER "SunOS C"
+#    endif
+#  endif
 #endif
 
 #endif

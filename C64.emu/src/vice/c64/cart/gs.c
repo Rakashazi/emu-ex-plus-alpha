@@ -43,14 +43,14 @@
 #include "crt.h"
 
 /*
-    GS Cartridge
+    C64GS (C64 Game System/System 3) Cartridge
 
-    - 512kb ROM
+    - 512kb ROM (64*8k), mapped to $8000 in 8k game config
 
-    - reading from io1 switches to 8k game config
+    - reading from io1 switches to bank 0
 
-    - writing to io1 switches to 16k game config. the lower 6 bits
-      of the address are the bank number
+    - writing to io1 switches banks. the lower 6 bits of the address are the 
+      bank number
 */
 
 static int currbank = 0;
@@ -58,17 +58,23 @@ static BYTE regval = 0;
 
 static void gs_io1_store(WORD addr, BYTE value)
 {
+    addr &= 0xff;
     regval = value;
-    cart_romlbank_set_slotmain(addr & 0x3f);
+    currbank = addr & 0x3f;
+    cart_romlbank_set_slotmain(currbank);
+    /* 8k config */
     cart_set_port_exrom_slotmain(1);
     cart_set_port_game_slotmain(0);
     cart_port_config_changed_slotmain();
-    currbank = addr & 0x3f;
+    /* printf("C64GS: w addr: $de%02x value: $%02x bank: $%02x\n", addr, value, currbank); */
 }
 
 static BYTE gs_io1_read(WORD addr)
 {
+    currbank = 0;
+    /* 8k configuration */
     cart_config_changed_slotmain(0, 0, CMODE_READ);
+    /* printf("C64GS: r addr: $de%02x\n", addr); */
     return 0;
 }
 
@@ -110,6 +116,7 @@ static const c64export_resource_t export_res = {
 
 void gs_config_init(void)
 {
+    /* 8k configuration */
     cart_config_changed_slotmain(0, 0, CMODE_READ);
     gs_io1_store((WORD)0xde00, 0);
 }
@@ -117,10 +124,8 @@ void gs_config_init(void)
 void gs_config_setup(BYTE *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000 * 64);
-    memcpy(romh_banks, &rawcart[0x2000 * 16], 0x2000 * 16);
-
-    /* Hack: using 16kB configuration, but some carts are 8kB only */
-    cart_config_changed_slotmain(1, 1, CMODE_READ);
+    /* 8k configuration */
+    cart_config_changed_slotmain(0, 0, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -149,7 +154,7 @@ int gs_crt_attach(FILE *fd, BYTE *rawcart)
         if (crt_read_chip_header(&chip, fd)) {
             break;
         }
-        if (chip.bank > 63 || (chip.start != 0x8000 && chip.start != 0xa000) || chip.size != 0x2000) {
+        if (chip.bank > 63 || (chip.start != 0x8000) || chip.size != 0x2000) {
             return -1;
         }
         if (crt_read_chip(rawcart, chip.bank << 13, &chip, fd)) {
@@ -168,7 +173,7 @@ void gs_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
+#define CART_DUMP_VER_MAJOR   1
 #define CART_DUMP_VER_MINOR   0
 #define SNAP_MODULE_NAME  "CARTGS"
 
@@ -184,8 +189,7 @@ int gs_snapshot_write_module(snapshot_t *s)
 
     if (0
         || (SMW_B(m, (BYTE)currbank) < 0)
-        || (SMW_BA(m, roml_banks, 0x2000 * 64) < 0)
-        || (SMW_BA(m, romh_banks, 0x2000 * 16) < 0)) {
+        || (SMW_BA(m, roml_banks, 0x2000 * 64) < 0)) {
         snapshot_module_close(m);
         return -1;
     }
@@ -211,8 +215,7 @@ int gs_snapshot_read_module(snapshot_t *s)
 
     if (0
         || (SMR_B_INT(m, &currbank) < 0)
-        || (SMR_BA(m, roml_banks, 0x2000 * 64) < 0)
-        || (SMR_BA(m, romh_banks, 0x2000 * 16) < 0)) {
+        || (SMR_BA(m, roml_banks, 0x2000 * 64) < 0)) {
         snapshot_module_close(m);
         return -1;
     }

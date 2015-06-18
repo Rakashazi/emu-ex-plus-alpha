@@ -92,10 +92,15 @@ static long fsimage_gcr_seek_half_track(fsimage_t *fsimage, unsigned int half_tr
     }
 
     *max_track_length = util_le_buf_to_word(&buf[10]);
+#if 0
+    /* if 0'ed because:
+       *max_track_length is of type WORD and NUM_MAX_MEM_BYTES_TRACK is 65536
+     */
     if (*max_track_length > NUM_MAX_MEM_BYTES_TRACK) {
         log_error(fsimage_gcr_log, "Too large max track length.");
         return -1;
     }
+#endif
 
     if (util_fpread(fsimage->fd, buf, 4, 12 + (half_track - 2) * 4) < 0) {
         log_error(fsimage_gcr_log, "Could not read GCR disk image.");

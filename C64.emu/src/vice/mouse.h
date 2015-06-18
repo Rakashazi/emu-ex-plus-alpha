@@ -52,13 +52,12 @@ extern int _mouse_enabled;
 extern int mouse_type;
 extern int mouse_port;
 
-extern int mouse_kind;
-
 extern void neos_mouse_store(BYTE val);
 extern BYTE neos_mouse_read(void);
 extern BYTE mouse_poll(void);
 extern void smart_mouse_store(BYTE val);
 extern BYTE smart_mouse_read(void);
+extern BYTE micromys_mouse_read(void);
 
 #define MOUSE_TYPE_1351     0
 #define MOUSE_TYPE_NEOS     1
@@ -70,8 +69,5 @@ extern BYTE smart_mouse_read(void);
 #define MOUSE_TYPE_MICROMYS 7
 #define MOUSE_TYPE_KOALAPAD 8
 #define MOUSE_TYPE_NUM      9
-
-#define MOUSE_KIND_POLLED 0
-#define MOUSE_KIND_OTHER  1
 
 #endif

@@ -2,7 +2,7 @@
  * fdc.c - 1001/8x50 FDC emulation
  *
  * Written by
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -35,7 +35,6 @@
 #include "diskimage.h"
 #include "drive-check.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "fdc.h"
 #include "lib.h"
@@ -737,7 +736,7 @@ static void clk_overflow_callback(CLOCK sub, void *data)
 void fdc_init(drive_context_t *drv)
 {
     unsigned int fnum = drv->mynumber;
-    BYTE *buffermem = drv->cpud->drive_ram + 0x100;
+    BYTE *buffermem = drv->drive->drive_ram + 0x100;
     BYTE *ipromp = &(drv->drive->rom[0x4000]);
     char *buffer;
 

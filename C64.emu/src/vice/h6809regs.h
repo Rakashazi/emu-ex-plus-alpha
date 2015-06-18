@@ -39,6 +39,13 @@ typedef struct h6809_regs_s {
     BYTE reg_cc;
     BYTE reg_a;
     BYTE reg_b;
+#if 0
+    /* 6309 specific registers for future support */
+    BYTE reg_e;
+    BYTE reg_f;
+    WORD reg_v;
+    BYTE reg_md;
+#endif
 } h6809_regs_t;
 
 extern h6809_regs_t h6809_regs;
@@ -53,6 +60,13 @@ extern h6809_regs_t h6809_regs;
 #define H6809_REGS_GET_A(reg_ptr)  ((reg_ptr)->reg_a)
 #define H6809_REGS_GET_B(reg_ptr)  ((reg_ptr)->reg_b)
 #define H6809_REGS_GET_D(reg_ptr)  (((reg_ptr)->reg_a << 8) | (reg_ptr)->reg_b)
+
+#define H6809_REGS_GET_E(reg_ptr)  ((reg_ptr)->reg_e)
+#define H6809_REGS_GET_F(reg_ptr)  ((reg_ptr)->reg_f)
+#define H6809_REGS_GET_W(reg_ptr)  (((reg_ptr)->reg_e << 8) | (reg_ptr)->reg_f)
+#define H6809_REGS_GET_Q(reg_ptr)  (((((reg_ptr)->reg_a << 24) | (reg_ptr)->reg_b << 16) | (reg_ptr)->reg_e << 8) | (reg_ptr)->reg_f)
+#define H6809_REGS_GET_V(reg_ptr)  ((reg_ptr)->reg_v)
+#define H6809_REGS_GET_MD(reg_ptr) ((reg_ptr)->reg_md)
 
 #define H6809_REGS_TEST_E(reg_ptr) ((reg_ptr)->reg_cc & 0x80)
 #define H6809_REGS_TEST_F(reg_ptr) ((reg_ptr)->reg_cc & 0x40)
@@ -72,10 +86,31 @@ extern h6809_regs_t h6809_regs;
 #define H6809_REGS_SET_CC(reg_ptr, val) ((reg_ptr)->reg_cc = (val))
 #define H6809_REGS_SET_A(reg_ptr, val)  ((reg_ptr)->reg_a = (val))
 #define H6809_REGS_SET_B(reg_ptr, val)  ((reg_ptr)->reg_b = (val))
-#define H6809_REGS_SET_D(reg_ptr, val) \
-    do { \
+
+#define H6809_REGS_SET_D(reg_ptr, val)   \
+    do {                                 \
         (reg_ptr)->reg_a = ((val) >> 8); \
-        (reg_ptr)->reg_b = (val) & 0xFF;  \
+        (reg_ptr)->reg_b = (val) & 0xFF; \
 } while (0);
+
+#define H6809_REGS_SET_E(reg_ptr, val)  ((reg_ptr)->reg_e = (val))
+#define H6809_REGS_SET_F(reg_ptr, val)  ((reg_ptr)->reg_f = (val))
+
+#define H6809_REGS_SET_W(reg_ptr, val)   \
+    do {                                 \
+        (reg_ptr)->reg_e = ((val) >> 8); \
+        (reg_ptr)->reg_f = (val) & 0xFF; \
+} while (0);
+
+#define H6809_REGS_SET_Q(reg_ptr, val)           \
+    do {                                         \
+        (reg_ptr)->reg_a = ((val) >> 24);        \
+        (reg_ptr)->reg_b = ((val) >> 16) & 0xFF; \
+        (reg_ptr)->reg_e = ((val) >> 8) & 0xFF;  \
+        (reg_ptr)->reg_f = (val) & 0xFF;         \
+} while (0);
+
+#define H6809_REGS_SET_V(reg_ptr, val)  ((reg_ptr)->reg_v = (val))
+#define H6809_REGS_SET_MD(reg_ptr, val) ((reg_ptr)->reg_md = (val))
 
 #endif

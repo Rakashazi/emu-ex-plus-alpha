@@ -43,6 +43,7 @@
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "cmdline.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
@@ -54,6 +55,7 @@
 #include "sound.h"
 #include "t6721.h"
 #include "tpi.h"
+#include "translate.h"
 #include "types.h"
 #include "util.h"
 #include "crt.h"
@@ -377,8 +379,8 @@ void ga_reset(void)
 
 static void ga_memconfig_changed(int mode)
 {
-    int n = 1;
 #ifdef CFGDEBUG
+    int n = 1;
     int this;
     static int last;
 #endif
@@ -406,7 +408,9 @@ static void ga_memconfig_changed(int mode)
         mv_gameE000_enabled = 0; /* ! */
 #if 1
     } else if (((mv_exrom == 0) && (ga_pc6 == 0) && (ga_pb5 == 1) && (ga_pb6 == 1))) { /* 3 */
+#if 0
         n = 0;
+#endif
         /* used once in init in a loop ? */
         mv_romE000_enabled = 0;
         mv_romA000_enabled = 0;
@@ -425,7 +429,9 @@ static void ga_memconfig_changed(int mode)
         mv_gameA000_enabled = 1; /* ? */
         mv_gameE000_enabled = 1; /* ? */
     } else if (((mv_exrom == 0) && (ga_pc6 == 1) && (ga_pb5 == 1) && (ga_pb6 == 1))) { /* 7 */
+#if 0
         n = 0;
+#endif
         /* used once in init in a loop ? */
         mv_romA000_enabled = 1; /* ! */
         mv_romE000_enabled = 1; /* ! */
@@ -486,7 +492,9 @@ static void ga_memconfig_changed(int mode)
         mv_gameA000_enabled = 0; /* ? */
         mv_gameE000_enabled = 0; /* ? */
     } else {
+#if 0
         n = 2;
+#endif
         mv_romA000_enabled = 0;
         mv_romE000_enabled = 0;
         mv_game = 0;
@@ -1064,8 +1072,10 @@ void magicvoice_passthrough_changed(struct export_s *export)
 
 char *magicvoice_filename = NULL;
 
-static int set_magicvoice_enabled(int val, void *param)
+static int set_magicvoice_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     DBG(("MV: set_enabled: '%s' %d to %d\n", magicvoice_filename, magicvoice_sound_chip.chip_enabled, val));
     if (magicvoice_sound_chip.chip_enabled && !val) {
         cart_power_off();
@@ -1158,6 +1168,33 @@ void magicvoice_resources_shutdown(void)
 {
     lib_free(magicvoice_filename);
     magicvoice_filename = NULL;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-magicvoiceimage", SET_RESOURCE, 1,
+      NULL, NULL, "MagicVoiceImage", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_SPECIFY_MAGICVOICE_IMAGE_NAME,
+      NULL, NULL },
+    { "-magicvoice", SET_RESOURCE, 0,
+      NULL, NULL, "MagicVoiceCartridgeEnabled", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_MAGICVOICE,
+      NULL, NULL },
+    { "+magicvoice", SET_RESOURCE, 0,
+      NULL, NULL, "MagicVoiceCartridgeEnabled", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_MAGICVOICE,
+      NULL, NULL },
+  { NULL }
+};
+
+int magicvoice_cmdline_options_init(void)
+{
+    return cmdline_register_options(cmdline_options);
 }
 
 /* ---------------------------------------------------------------------*/

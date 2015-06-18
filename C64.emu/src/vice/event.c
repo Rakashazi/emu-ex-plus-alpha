@@ -95,7 +95,6 @@ static char *event_snapshot_path_str = NULL;
 static int event_start_mode;
 static int event_image_include;
 
-
 static char *event_snapshot_path(const char *snapshot_file)
 {
     lib_free(event_snapshot_path_str);
@@ -1168,11 +1167,14 @@ static int set_event_end_snapshot(const char *val, void *param)
 
 static int set_event_start_mode(int mode, void *param)
 {
-    if (mode != EVENT_START_MODE_FILE_SAVE
-        && mode != EVENT_START_MODE_FILE_LOAD
-        && mode != EVENT_START_MODE_RESET
-        && mode != EVENT_START_MODE_PLAYBACK) {
-        return -1;
+    switch (mode) {
+        case EVENT_START_MODE_FILE_SAVE:
+        case EVENT_START_MODE_FILE_LOAD:
+        case EVENT_START_MODE_RESET:
+        case EVENT_START_MODE_PLAYBACK:
+            break;
+        default:
+            return -1;
     }
 
     event_start_mode = mode;
@@ -1182,7 +1184,8 @@ static int set_event_start_mode(int mode, void *param)
 
 static int set_event_image_include(int enable, void *param)
 {
-    event_image_include = enable;
+    event_image_include = enable ? 1 : 0;
+
     return 0;
 }
 
@@ -1236,6 +1239,36 @@ static const cmdline_option_t cmdline_options[] = {
       cmdline_help, NULL, NULL, NULL,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_PLAYBACK_RECORDED_EVENTS,
+      NULL, NULL },
+    { "-eventsnapshotdir", SET_RESOURCE, 1,
+      NULL, NULL, "EventSnapshotDir", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_SET_EVENT_SNAPSHOT_DIR,
+      NULL, NULL },
+    { "-eventstartsnapshot", SET_RESOURCE, 1,
+      NULL, NULL, "EventStartSnapshot", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_SET_EVENT_START_SNAPSHOT,
+      NULL, NULL },
+    { "-eventendsnapshot", SET_RESOURCE, 1,
+      NULL, NULL, "EventEndSnapshot", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_SET_EVENT_END_SNAPSHOT,
+      NULL, NULL },
+    { "-eventstartmode", SET_RESOURCE, 1,
+      NULL, NULL, "EventStartMode", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_MODE, IDCLS_SET_EVENT_START_MODE,
+      NULL, NULL },
+    { "-eventimageinc", SET_RESOURCE, 0,
+      NULL, NULL, "EventImageInclude", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_EVENT_IMAGE_INCLUDE,
+      NULL, NULL },
+    { "+eventimageinc", SET_RESOURCE, 0,
+      NULL, NULL, "EventImageInclude", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_EVENT_IMAGE_INCLUDE,
       NULL, NULL },
     { NULL }
 };

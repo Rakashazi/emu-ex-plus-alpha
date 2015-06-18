@@ -3,7 +3,7 @@
  * ($DC00).
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
  *
@@ -44,7 +44,7 @@
 #include "types.h"
 #include "vicii.h"
 
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
 #include "rsuser.h"
 #endif
 
@@ -197,7 +197,7 @@ static void read_sdr(cia_context_t *cia_context)
 
 static void store_sdr(cia_context_t *cia_context, BYTE byte)
 {
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
         rsuser_tx_byte(byte);
     }
@@ -215,6 +215,15 @@ void cia1_init(cia_context_t *cia_context)
                  maincpu_int_status, maincpu_clk_guard);
 }
 
+void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
+{
+    cia_context->power_freq = powerfreq;
+    cia_context->ticks_per_sec = tickspersec;
+    cia_context->todticks = 0;
+    cia_context->power_tickcounter = 0;
+    cia_context->power_ticks = 0;
+}
+
 void cia1_setup_context(machine_context_t *machine_context)
 {
     cia_context_t *cia;
@@ -228,7 +237,7 @@ void cia1_setup_context(machine_context_t *machine_context)
     cia->rmw_flag = &maincpu_rmw_flag;
     cia->clk_ptr = &maincpu_clk;
 
-    cia->todticks = 100000;
+    cia1_set_timing(cia, C64_PAL_CYCLES_PER_SEC, 0);
 
     ciacore_setup_context(cia);
 

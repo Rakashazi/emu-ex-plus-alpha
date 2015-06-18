@@ -32,12 +32,16 @@
 #include <string.h>
 
 #include "c64model.h"
+#include "c64rom.h"
 #include "c64-cmdline-options.h"
 #include "c64-resources.h"
 #include "cmdline.h"
+#include "log.h"
 #include "machine.h"
+#include "patchrom.h"
 #include "resources.h"
 #include "translate.h"
+#include "vicii.h"
 
 int set_cia_model(const char *value, void *extra_param)
 {
@@ -115,26 +119,89 @@ static int set_c64_model(const char *param, void *extra_param)
 static int set_video_standard(const char *param, void *extra_param)
 {
     int value = vice_ptr_to_int(extra_param);
+    int vicii_model;
 
     switch (machine_class) {
         case VICE_MACHINE_C64SC:
+            resources_get_int("VICIIModel", &vicii_model);
             switch (value) {
                 case MACHINE_SYNC_PAL:
                 default:
-                    return set_c64_model("pal", NULL);
-
+                    if (vicii_model == VICII_MODEL_8562 || vicii_model == VICII_MODEL_8565) {
+                        return resources_set_int("VICIIModel", VICII_MODEL_8565);
+                    } else if (vicii_model == VICII_MODEL_6567R56A) {
+                        return resources_set_int("VICIIModel", VICII_MODEL_6569R1);
+                    } else {
+                        return resources_set_int("VICIIModel", VICII_MODEL_6569);
+                    }
+                    break;
                 case MACHINE_SYNC_NTSC:
-                    return set_c64_model("ntsc", NULL);
-
+                    if (vicii_model == VICII_MODEL_8562 || vicii_model == VICII_MODEL_8565) {
+                        return resources_set_int("VICIIModel", VICII_MODEL_8562);
+                    } else {
+                        return resources_set_int("VICIIModel", VICII_MODEL_6567);
+                    }
+                    break;
                 case MACHINE_SYNC_NTSCOLD:
-                    return set_c64_model("oldntsc", NULL);
-
+                        return resources_set_int("VICIIModel", VICII_MODEL_6567R56A);
                 case MACHINE_SYNC_PALN:
-                    return set_c64_model("paln", NULL);
+                        return resources_set_int("VICIIModel", VICII_MODEL_6572);
             }
         default:
             return resources_set_int("MachineVideoStandard", value);
     }
+}
+
+struct kernal_s {
+    const char *name;
+    int rev;
+};
+
+static struct kernal_s kernal_match[] = {
+    { "1", C64_KERNAL_REV1 },
+    { "2", C64_KERNAL_REV2 },
+    { "3", C64_KERNAL_REV3 },
+    { "67", C64_KERNAL_SX64 },
+    { "sx", C64_KERNAL_SX64 },
+    { "100", C64_KERNAL_4064 },
+    { "4064", C64_KERNAL_4064 },
+    { NULL, C64_KERNAL_UNKNOWN }
+};
+
+static int set_kernal_revision(const char *param, void *extra_param)
+{
+    WORD sum;                   /* ROM checksum */
+    int id;                     /* ROM identification number */
+    int rev = C64_KERNAL_UNKNOWN;
+    int i = 0;
+
+    if (!param) {
+        return -1;
+    }
+
+    do {
+        if (strcmp(kernal_match[i].name, param) == 0) {
+            rev = kernal_match[i].rev;
+        }
+        i++;
+    } while ((rev == C64_KERNAL_UNKNOWN) && (kernal_match[i].name != NULL));
+
+    if(!c64rom_isloaded()) {
+        kernal_revision = rev;
+        return 0;
+    }
+
+    if (c64rom_get_kernal_chksum_id(&sum, &id) < 0) {
+        id = C64_KERNAL_UNKNOWN;
+        kernal_revision = id;
+    } else {
+        if (patch_rom_idx(rev) >= 0) {
+            kernal_revision = rev;
+        } else {
+            kernal_revision = id;
+        }
+    }
+    return 0;
 }
 
 static const cmdline_option_t cmdline_options[] = {
@@ -173,12 +240,12 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
       NULL, NULL },
-    { "-kernalrev", SET_RESOURCE, 1,
-      NULL, NULL, "KernalRev", NULL,
+    { "-kernalrev", CALL_FUNCTION, 1,
+      set_kernal_revision, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_REVISION, IDCLS_PATCH_KERNAL_TO_REVISION,
       NULL, NULL },
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     { "-acia1", SET_RESOURCE, 0,
       NULL, NULL, "Acia1Enable", (void *)1,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
@@ -188,28 +255,6 @@ static const cmdline_option_t cmdline_options[] = {
       NULL, NULL, "Acia1Enable", (void *)0,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DEXX_ACIA_RS232_EMU,
-      NULL, NULL },
-#endif
-#ifdef COMMON_KBD
-    { "-keymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapIndex", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUMBER, IDCLS_SPECIFY_INDEX_KEYMAP_FILE_0_2,
-      NULL, NULL },
-    { "-symkeymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapSymFile", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_SYM_KEYMAP_FILE_NAME,
-      NULL, NULL },
-    { "-symdekeymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapSymDeFile", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_NAME_SYM_DE_KEYMAP,
-      NULL, NULL },
-    { "-poskeymap", SET_RESOURCE, 1,
-      NULL, NULL, "KeymapPosFile", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_POS_KEYMAP_FILE_NAME,
       NULL, NULL },
 #endif
     { "-ciamodel", CALL_FUNCTION, 1,

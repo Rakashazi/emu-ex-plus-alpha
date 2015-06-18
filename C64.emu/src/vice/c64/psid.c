@@ -32,6 +32,7 @@
 
 #include "archdep.h"
 #include "c64mem.h"
+#include "charset.h"
 #include "cmdline.h"
 #include "lib.h"
 #include "log.h"
@@ -44,6 +45,8 @@
 #include "vsidui.h"
 #include "vsync.h"
 #include "zfile.h"
+
+static int mus_load_file(const char* filename, int ispsid);
 
 static log_t vlog = LOG_ERR;
 
@@ -71,34 +74,8 @@ typedef struct psid_s {
 
     /* Non-PSID data */
     DWORD frames_played;
+    WORD load_last_addr;
 } psid_t;
-
-const char * csidmodel[] = {
-    "6581",
-    "8580",
-    "8580D",
-    "6581R4",
-    "DTVSID",
-    "?",
-    "?",
-    "?",
-    "6581R3_4885",
-    "6581R3_0486S",   /* this is the default one if an invalid model has been specified */
-    "6581R3_3984",
-    "6581R4AR_3789",
-    "6581R3_4485",
-    "6581R4_1986S",
-    "?",
-    "?",
-    "8580R5_3691",
-    "8580R5_3691D",
-    "8580R5_1489",
-    "8580R5_1489D"
-};
-
-#define NO_OF_SIDMODELS  (sizeof csidmodel / sizeof csidmodel[0])
-#define MAX_SIDMODEL     (NO_OF_SIDMODELS - 1)
-#define DEFAULT_SIDMODEL 9   /* defines the default as "6581R3_0486S" */
 
 #define PSID_V1_DATA_OFFSET 0x76
 #define PSID_V2_DATA_OFFSET 0x7c
@@ -106,13 +83,15 @@ const char * csidmodel[] = {
 int psid_ui_set_tune(int tune, void *param);
 
 static psid_t* psid = NULL;
-static int psid_tune = 0;
+static int psid_tune = 0;       /* currently selected tune, 0: default 1: first, 2: second, etc */
 static int keepenv = 0;
+
+static int firstfile = 0;
+static int psid_tune_cmdline = 0;
 
 static int set_keepenv(int val, void *param)
 {
-    keepenv = val;
-
+    keepenv = val ? 1 : 0;
     return 0;
 }
 
@@ -124,7 +103,7 @@ static const resource_int_t resources_int[] = {
     { NULL }
 };
 
-int psid_init_resources(void)
+int psid_resources_init(void)
 {
     return resources_register_int(resources_int);
 }
@@ -137,7 +116,10 @@ static int cmdline_keepenv(const char *param, void *extra_param)
 
 static int cmdline_psid_tune(const char *param, void *extra_param)
 {
-    psid_tune = atoi(param);
+    psid_tune_cmdline = atoi(param);
+    if (psid_tune_cmdline < 0) {
+        psid_tune_cmdline = 0;
+    }
     return 0;
 }
 
@@ -177,7 +159,7 @@ static const cmdline_option_t cmdline_options[] =
     { NULL }
 };
 
-int psid_init_cmdline_options(void)
+int psid_cmdline_options_init(void)
 {
     return cmdline_register_options(cmdline_options);
 }
@@ -196,6 +178,21 @@ int psid_load_file(const char* filename)
     BYTE* ptr = buf;
     unsigned int length;
 
+    /* HACK: the selected tune number is handled by the "PSIDtune" resource, which
+     *       is actually saved in the ini file, and thus loaded and restored at
+     *       startup. however, we do not want that. instead we want the default
+     *       tune of the respective .sid file to be used, or the explicit tune
+     *       number given on commandline (if any).
+     */
+    if (!firstfile) {
+        if (psid_tune_cmdline) {
+            psid_tune = psid_tune_cmdline;
+        } else {
+            psid_tune = 0;
+        }
+        firstfile = 1;
+    }
+
     if (vlog == LOG_ERR) {
         vlog = log_open("Vsid");
     }
@@ -205,20 +202,21 @@ int psid_load_file(const char* filename)
     }
 
     lib_free(psid);
-    psid = lib_malloc(sizeof(psid_t));
+    psid = lib_calloc(sizeof(psid_t), 1);
 
     if (fread(ptr, 1, 6, f) != 6 || (memcmp(ptr, "PSID", 4) != 0 && memcmp(ptr, "RSID", 4) != 0)) {
         goto fail;
     }
-    psid->is_rsid = ptr[0] == 'R';
+    psid->is_rsid = (ptr[0] == 'R');
 
     ptr += 4;
     psid->version = psid_extract_word(&ptr);
 
-    if (psid->version < 1 || psid->version > 3) {
+    if (psid->version < 1 || psid->version > 4) {
         log_error(vlog, "Unknown PSID version number: %d.", (int)psid->version);
         goto fail;
     }
+    log_message(vlog, "PSID version number: %d.", (int)psid->version);
 
     length = (unsigned int)((psid->version == 1 ? PSID_V1_DATA_OFFSET : PSID_V2_DATA_OFFSET) - 6);
 
@@ -257,10 +255,15 @@ int psid_load_file(const char* filename)
         psid->reserved = 0;
     }
 
+    if ((psid->start_song < 1) || (psid->start_song > psid->songs)) {
+        log_error(vlog, "Default tune out of range (%d of %d ?), using 1 instead.", psid->start_song, psid->songs);
+        psid->start_song = 1;
+    }
+
     /* Check for SIDPLAYER MUS files. */
     if (psid->flags & 0x01) {
-        log_error(vlog, "SIDPLAYER MUS files not supported.");
-        goto fail;
+        zfile_fclose(f);
+        return mus_load_file(filename, 1);
     }
 
     /* Zero load address => the load address is stored in the
@@ -280,6 +283,7 @@ int psid_load_file(const char* filename)
 
     /* Read binary C64 data. */
     psid->data_size = (WORD)fread(psid->data, 1, sizeof(psid->data), f);
+    psid->load_last_addr = (psid->load_addr + psid->data_size - 1);
 
     if (ferror(f)) {
         log_error(vlog, "Reading PSID data.");
@@ -295,7 +299,7 @@ int psid_load_file(const char* filename)
     if (psid->start_page == 0x00) {
         /* Start and end pages. */
         int startp = psid->load_addr >> 8;
-        int endp = (psid->load_addr + psid->data_size - 1) >> 8;
+        int endp = psid->load_last_addr >> 8;
 
         /* Used memory ranges. */
         unsigned int used[] = {
@@ -312,6 +316,8 @@ int psid_load_file(const char* filename)
         unsigned int pages[256];
         unsigned int last_page = 0;
         unsigned int i, page, tmp;
+
+        log_message(vlog, "No PSID freepages set, recalculating...");
 
         /* finish initialization */
         used[6] = startp; used[7] = endp;
@@ -356,6 +362,12 @@ fail:
     zfile_fclose(f);
     lib_free(psid);
     psid = NULL;
+
+    /* if the file wasnt in PSID format, try MUS/STR */
+    if (memcmp(ptr, "PSID", 4) != 0 && memcmp(ptr, "RSID", 4) != 0) {
+        return mus_load_file(filename, 0);
+    }
+
     return -1;
 }
 
@@ -377,7 +389,9 @@ static int psid_set_cbm80(WORD vec, WORD addr)
     cbm80[1] = vec >> 8;
 
     for (i = 0; i < sizeof(cbm80); i++) {
+        /* make backup of original content at 0x8000 */
         ram_store((WORD)(addr + i), ram_read((WORD)(0x8000 + i)));
+        /* copy header */
         ram_store((WORD)(0x8000 + i), cbm80[i]);
     }
 
@@ -413,6 +427,8 @@ void psid_init_tune(int install_driver_hook)
     resources_get_int("SidModel", &sid_model);
 
     /* Check tune number. */
+    /* printf("start_song: %d psid->start_song %d\n", start_song, psid->start_song); */
+
     if (start_song == 0) {
         start_song = psid->start_song;
     } else if (start_song < 1 || start_song > psid->songs) {
@@ -444,7 +460,7 @@ void psid_init_tune(int install_driver_hook)
         log_message(vlog, "  Author: %s", (char *) psid->author);
         log_message(vlog, "Released: %s", (char *) psid->copyright);
         log_message(vlog, "Using %s sync", sync == MACHINE_SYNC_PAL ? "PAL" : "NTSC");
-        log_message(vlog, "SID model: %s  (Using %s)", csidflag[(psid->flags >> 4) & 3], csidmodel[sid_model > (int)MAX_SIDMODEL ? DEFAULT_SIDMODEL : sid_model]);
+        log_message(vlog, "SID model: %s", csidflag[(psid->flags >> 4) & 3]);
         log_message(vlog, "Using %s interrupt", irq_str);
         log_message(vlog, "Playing tune %d out of %d (default=%d)", start_song, psid->songs, psid->start_song);
     } else {
@@ -471,14 +487,18 @@ void psid_init_tune(int install_driver_hook)
     /* Store parameters for PSID player. */
     if (install_driver_hook) {
         /* Skip JMP. */
-        addr = reloc_addr + 3;
+        addr = reloc_addr + 3 + 9;
 
         /* CBM80 reset vector. */
-        addr += psid_set_cbm80(reloc_addr, addr);
+        addr += psid_set_cbm80((WORD)(reloc_addr + 9), addr);
 
         ram_store(addr, (BYTE)(start_song));
     }
 
+    /* put song number into address 780/1/2 (A/X/Y) for use by BASIC tunes */
+    ram_store(780, (BYTE)(start_song - 1));
+    ram_store(781, (BYTE)(start_song - 1));
+    ram_store(782, (BYTE)(start_song - 1));
     /* force flag in c64 memory, many sids reads it and must be set AFTER the sid flag is read */
     ram_store((WORD)(0x02a6), (BYTE)(sync == MACHINE_SYNC_NTSC ? 0 : 1));
 }
@@ -493,6 +513,7 @@ int psid_basic_rsid_to_autostart(WORD *address, BYTE **data, WORD *length) {
     return 0;
 }
 
+/* called from machine_play_psid */
 void psid_set_tune(int tune)
 {
     if (tune == -1) {
@@ -504,9 +525,10 @@ void psid_set_tune(int tune)
     }
 }
 
+/* used for setting the PSIDtune resource */
 int psid_ui_set_tune(int tune, void *param)
 {
-    psid_tune = (int)tune == -1 ? 0 : (int)tune;
+    psid_tune = (int)(tune == -1) ? 0 : (int)tune;
 
     psid_set_tune(psid_tune);
     vsync_suspend_speed_eval();
@@ -534,7 +556,7 @@ void psid_init_driver(void)
     WORD addr;
     int i;
     int sync;
-    int sid2loc;
+    int sid2loc, sid3loc;
 
     if (!psid) {
         return;
@@ -570,6 +592,15 @@ void psid_init_driver(void)
             resources_set_int("SidStereo", 1);
             resources_set_int("SidStereoAddressStart", sid2loc);
         }
+        sid3loc = 0xd000 | ((psid->reserved << 4) & 0x0ff0);
+        if (sid3loc != 0xd000) {
+            log_message(vlog, "3rd SID at $%04x", sid3loc);
+            if (((sid3loc >= 0xd420 && sid3loc < 0xd800) || sid3loc >= 0xde00)
+                && (sid3loc & 0x10) == 0) {
+                resources_set_int("SidStereo", 2);
+                resources_set_int("SidTripleAddressStart", sid3loc);
+            }
+        }
     }
 
     /* MOS6581/MOS8580 flag. */
@@ -597,6 +628,7 @@ void psid_init_driver(void)
     /* Relocation of C64 PSID driver code. */
     reloc_addr = psid->start_page << 8;
     psid_size = sizeof(psid_driver);
+    log_message(vlog, "PSID free pages: $%04x-$%04x", reloc_addr, (reloc_addr + (psid->max_pages << 8)) -1);
 
     if (!reloc65((char **)&psid_reloc, &psid_size, reloc_addr)) {
         log_error(vlog, "Relocation.");
@@ -614,7 +646,7 @@ void psid_init_driver(void)
     }
 
     /* Skip JMP and CBM80 reset vector. */
-    addr = reloc_addr + 3 + 9;
+    addr = reloc_addr + 3 + 9 + 9;
 
     /* Store parameters for PSID player. */
     ram_store(addr++, (BYTE)(0));
@@ -630,6 +662,8 @@ void psid_init_driver(void)
     ram_store(addr++, (BYTE)((psid->speed >> 16) & 0xff));
     ram_store(addr++, (BYTE)(psid->speed >> 24));
     ram_store(addr++, (BYTE)((int)sync == MACHINE_SYNC_PAL ? 1 : 0));
+    ram_store(addr++, (BYTE)(psid->load_last_addr & 0xff));
+    ram_store(addr++, (BYTE)(psid->load_last_addr >> 8));
 }
 
 unsigned int psid_increment_frames(void)
@@ -641,4 +675,209 @@ unsigned int psid_increment_frames(void)
     (psid->frames_played)++;
 
     return (unsigned int)(psid->frames_played);
+}
+
+/******************************************************************************
+ * compute sidplayer (.mus/.str) support
+ *
+ * to minimize code duplication and to simplify the integration with the rest
+ * of the code, the sidplayer data is simply converted into PSID like format 
+ * at load time. heavily inspired by the respective code in libsidplay2.
+ ******************************************************************************/
+
+#define MUS_HLT_CMD      0x014F
+
+#define MUS_IMAGE_START  0x0900
+#define MUS_DATA_ADDR    0x0900
+#define MUS_DATA2_ADDR   0x6900
+#define MUS_DATA_MAXLEN  0x6000
+
+#define MUS_DRIVER_ADDR  0xe000
+#define MUS_DRIVER2_ADDR 0xf000
+
+#define MUS_SID1_BASE_ADDR   0xd400
+#define MUS_SID2_BASE_ADDR   0xd500
+
+#include "musdrv.h"
+
+static void mus_install(void)
+{
+    WORD dest;
+    /* Install MUS player #1. */
+    dest = ((mus_driver[1] << 8) | mus_driver[0]) - MUS_IMAGE_START;
+    memcpy(psid->data + dest, mus_driver + 2, sizeof(mus_driver) - 2);
+    /* Point player #1 to data #1. */
+    psid->data[dest + 0xc6e] = MUS_DATA_ADDR & 0xFF;
+    psid->data[dest + 0xc70] = MUS_DATA_ADDR >> 8;
+
+    /* Install MUS player #2. It doesnt hurt to do it also for mono tunes. */
+    dest = ((mus_stereo_driver[1] << 8) | mus_stereo_driver[0]) - MUS_IMAGE_START;
+    memcpy(psid->data + dest, mus_stereo_driver + 2, sizeof(mus_stereo_driver) - 2);
+    /* Point player #2 to data #2. */
+    psid->data[dest + 0xc6e] = MUS_DATA2_ADDR & 0xFF;
+    psid->data[dest + 0xc70] = MUS_DATA2_ADDR >> 8;
+}
+
+static int mus_check(const unsigned char *buf)
+{
+    unsigned int voice1Index, voice2Index, voice3Index;
+
+    /* Skip 3x length entry. */
+    voice1Index = ((buf[1] << 8) | buf[0]) + (3 * 2);
+    voice2Index = voice1Index + ((buf[3] << 8) | buf[2]);
+    voice3Index = voice2Index + ((buf[5] << 8) | buf[4]);
+    return (((buf[voice1Index - 2] << 8) | buf[voice1Index - 1]) == MUS_HLT_CMD)
+        && (((buf[voice2Index - 2] << 8) | buf[voice2Index - 1]) == MUS_HLT_CMD)
+        && (((buf[voice3Index - 2] << 8) | buf[voice3Index - 1]) == MUS_HLT_CMD);
+}
+
+/* check for graphic characters */
+static int ispetchar(unsigned char c)
+{
+    if ((c >= 32) && (c <= 93)) {
+        return 1;
+    }
+    return 0;
+}
+
+static const unsigned char *copystring(unsigned char *d, const unsigned char *s)
+{
+    unsigned char *end = d + 32;
+    int n = 0;
+    /* skip leading spaces and special characters */
+    while (((*s == 0x20) || !ispetchar(*s)) && (*s != 0x00)) {
+        ++s;
+    }
+    /* copy until end of line, omit special characters */
+    while ((*s != 0x0d) && (*s != 0x00)) {
+        if (ispetchar(*s)) {
+            *d++ = *s;
+            n = (*s == 0x20);
+        } else {
+            /* for special chars, insert one space */
+            if (!n) {
+                *d++ = 0x20;
+                n = 1;
+            }
+        }
+        /* if max len of destination is reached, skip until end of source */
+        if (d == end) {
+            while ((*s != 0x0d) && (*s != 0x00)) {
+                ++s;
+            }
+            break;
+        }
+        ++s;
+    }
+    *d = 0;
+    charset_petconvstring(d, 1);
+    return s + 1;
+}
+
+static void mus_extract_credits(const unsigned char *buf, int datalen)
+{
+    const unsigned char *end;
+    int n;
+
+    /* get offset behind note data */
+    n = ((buf[1] << 8) | buf[0]) + (3 * 2);
+    n += ((buf[3] << 8) | buf[2]);
+    n += ((buf[5] << 8) | buf[4]);
+
+    end = buf + datalen;
+    buf += n;
+
+    psid->name[0] = psid->author[0] = psid->copyright[0] = 0;
+
+    if (buf < end) {
+        buf = copystring(psid->name, buf);
+    }
+    if (buf < end) {
+        buf = copystring(psid->author, buf);
+    }
+    if (buf < end) {
+        buf = copystring(psid->copyright, buf);
+    }
+}
+
+static int mus_load_file(const char* filename, int ispsid)
+{
+    char *strname;
+    FILE *f;
+    int n, stereo = 0;
+    int mus_datalen;
+
+    if (!(f = zfile_fopen(filename, MODE_READ))) {
+        return -1;
+    }
+
+    if (!ispsid) {
+        lib_free(psid);
+        psid = lib_calloc(sizeof(psid_t), 1);
+    }
+
+    /* skip header & original load address */
+    fseek(f, psid->data_offset + (psid->load_addr ? 0 : 2), SEEK_SET);
+    /* read .mus data */
+    mus_datalen = fread(psid->data, 1, 0xffff - MUS_DATA_MAXLEN, f);
+
+    if (!mus_check(psid->data)) {
+        log_error(vlog, "not a valid .mus file.");
+        goto fail;
+    }
+    zfile_fclose(f);
+
+    /* read additional stereo (.str) data if available */
+    /* FIXME: the psid file format specification does not tell how to handle
+              stereo sidplayer tunes when they are in psid format */
+    if (!ispsid) {
+        strname = lib_stralloc(filename);
+        n = strlen(strname) - 4;
+        strcpy(strname + n, ".str");
+
+        if ((f = zfile_fopen(strname, MODE_READ))) {
+            fseek(f, 2, SEEK_SET); /* skip original load address */
+            if (fread(psid->data + (MUS_DATA2_ADDR - MUS_IMAGE_START), 1, 0xffff - MUS_DATA_MAXLEN, f) < (3 * 2)) {
+                goto fail;
+            }
+            zfile_fclose(f);
+            stereo = 1;
+        }
+        lib_free(strname);
+        /* only extract credits if this is NOT a psid file */
+        mus_extract_credits(psid->data, mus_datalen);
+    }
+
+    mus_install();
+
+    psid->version = 3;  /* v3 so we get stereo support */
+    psid->flags = 2 << 2; /* NTSC */
+    psid->start_page = 0x04;
+    psid->max_pages = (MUS_DATA_ADDR - 0x0400) >> 8;
+
+    psid->load_addr = MUS_IMAGE_START;
+    psid->data_size = 0x10000 - MUS_IMAGE_START;
+
+    psid->songs = 1;
+    psid->start_song = 1;
+    psid->speed = 1;    /* play at 60Hz */
+
+    if (stereo) {
+        /* Player #1 + #2. */
+        psid->reserved = (MUS_SID2_BASE_ADDR << 4) & 0xff00; /* second SID at 0xd500 */
+        psid->init_addr = 0xfc90;
+        psid->play_addr = 0xfc96;
+    } else {
+        /* Player #1. */
+        psid->init_addr = 0xec60;
+        psid->play_addr = 0xec80;
+    }
+
+    return 0;
+
+fail:
+    zfile_fclose(f);
+    lib_free(psid);
+    psid = NULL;
+    return -1;
 }

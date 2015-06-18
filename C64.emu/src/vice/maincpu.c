@@ -28,12 +28,14 @@
 #include "vice.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "6510core.h"
 #include "alarm.h"
 #include "clkguard.h"
 #include "debug.h"
 #include "interrupt.h"
+#include "log.h"
 #include "machine.h"
 #include "maincpu.h"
 #include "mem.h"
@@ -182,6 +184,8 @@ monitor_interface_t *maincpu_monitor_interface = NULL;
 
 /* Global clock counter.  */
 CLOCK maincpu_clk = 0L;
+/* if != 0, exit when this many cycles have been executed */
+CLOCK maincpu_clk_limit = 0L;
 
 /* This is flag is set to 1 each time a Read-Modify-Write instructions that
    accesses memory is executed.  We can emulate the RMW behaviour of the 6510
@@ -501,12 +505,123 @@ void maincpu_mainloop(void)
 #include "6510core.c"
 
         maincpu_int_status->num_dma_per_opcode = 0;
+
+        if (maincpu_clk_limit && (maincpu_clk > maincpu_clk_limit)) {
+            log_error(LOG_DEFAULT, "cycle limit reached.");
+            exit(EXIT_FAILURE);
+        }
 #if 0
         if (CLK > 246171754) {
             debug.maincpu_traceflg = 1;
         }
 #endif
     }
+}
+
+/* ------------------------------------------------------------------------- */
+
+void maincpu_set_pc(int pc) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_PC(&maincpu_regs, pc);
+#else
+    MOS6510_REGS_SET_PC(&maincpu_regs, pc);
+#endif
+}
+
+void maincpu_set_a(int a) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_A(&maincpu_regs, a);
+#else
+    MOS6510_REGS_SET_A(&maincpu_regs, a);
+#endif
+}
+
+void maincpu_set_x(int x) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_X(&maincpu_regs, x);
+#else
+    MOS6510_REGS_SET_X(&maincpu_regs, x);
+#endif
+}
+
+void maincpu_set_y(int y) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_Y(&maincpu_regs, y);
+#else
+    MOS6510_REGS_SET_Y(&maincpu_regs, y);
+#endif
+}
+
+void maincpu_set_sign(int n) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_SIGN(&maincpu_regs, n);
+#else
+    MOS6510_REGS_SET_SIGN(&maincpu_regs, n);
+#endif
+}
+
+void maincpu_set_zero(int z) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_ZERO(&maincpu_regs, z);
+#else
+    MOS6510_REGS_SET_ZERO(&maincpu_regs, z);
+#endif
+}
+
+void maincpu_set_carry(int c) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_CARRY(&maincpu_regs, c);
+#else
+    MOS6510_REGS_SET_CARRY(&maincpu_regs, c);
+#endif
+}
+
+void maincpu_set_interrupt(int i) {
+#ifdef C64DTV
+    MOS6510DTV_REGS_SET_INTERRUPT(&maincpu_regs, i);
+#else
+    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, i);
+#endif
+}
+
+unsigned int maincpu_get_pc(void) {
+#ifdef C64DTV
+    return MOS6510DTV_REGS_GET_PC(&maincpu_regs);
+#else
+    return MOS6510_REGS_GET_PC(&maincpu_regs);
+#endif
+}
+
+unsigned int maincpu_get_a(void) {
+#ifdef C64DTV
+    return MOS6510DTV_REGS_GET_A(&maincpu_regs);
+#else
+    return MOS6510_REGS_GET_A(&maincpu_regs);
+#endif
+}
+
+unsigned int maincpu_get_x(void) {
+#ifdef C64DTV
+    return MOS6510DTV_REGS_GET_X(&maincpu_regs);
+#else
+    return MOS6510_REGS_GET_X(&maincpu_regs);
+#endif
+}
+
+unsigned int maincpu_get_y(void) {
+#ifdef C64DTV
+    return MOS6510DTV_REGS_GET_Y(&maincpu_regs);
+#else
+    return MOS6510_REGS_GET_Y(&maincpu_regs);
+#endif
+}
+
+unsigned int maincpu_get_sp(void) {
+#ifdef C64DTV
+    return MOS6510DTV_REGS_GET_SP(&maincpu_regs);
+#else
+    return MOS6510_REGS_GET_SP(&maincpu_regs);
+#endif
 }
 
 /* ------------------------------------------------------------------------- */

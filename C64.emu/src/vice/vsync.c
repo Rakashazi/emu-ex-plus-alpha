@@ -112,7 +112,8 @@ static int set_refresh_rate(int val, void *param)
 
 static int set_warp_mode(int val, void *param)
 {
-    warp_mode_enabled = val;
+    warp_mode_enabled = val ? 1 : 0;
+
     sound_set_warp_mode(warp_mode_enabled);
     set_timer_speed(relative_speed);
 
@@ -123,8 +124,10 @@ static int set_warp_mode(int val, void *param)
 #ifdef DINGOO_NATIVE
 static int set_overclock_mode(int val, void *param)
 {
-    overclock_mode_enabled = val;
+    overclock_mode_enabled = val ? 1 : 0;
+
     set_overclock(val);
+
     return 0;
 }
 #endif
@@ -511,11 +514,6 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
      * Allow up to 0,25 second error before forcing a correction.
      */
     if ((signed long)(now - next_frame_start) >= vsyncarch_freq / 8) {
-#if !defined(__OS2__) && !defined(DEBUG)
-        if (!warp_mode_enabled && relative_speed) {
-            log_warning(LOG_DEFAULT, "Your machine is too slow for current settings!");
-        }
-#endif
         vsync_sync_reset();
         next_frame_start = now;
     }
@@ -553,11 +551,10 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
     next_frame_start += frame_ticks;
 
     vsyncarch_postsync();
-#if 0
-    FILE *fd = fopen("latencylog.txt", "a");
-    fprintf(fd, "%d %ld %ld %lf\n",
-            vsync_frame_counter, frame_ticks, delay, sound_delay * 1000000);
-    fclose(fd);
+
+#ifdef VSYNC_DEBUG
+    log_debug("vsync: start:%lu  delay:%ld  sound-delay:%lf  end:%lu  next-frame:%lu  frame-ticks:%lu", 
+                now, delay, sound_delay * 1000000, vsyncarch_gettime(), next_frame_start, frame_ticks);
 #endif
     return skip_next_frame;
 }

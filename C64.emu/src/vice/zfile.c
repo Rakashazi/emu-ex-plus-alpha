@@ -338,13 +338,17 @@ static int is_zipcode_name(char *name)
 /* Extensions we know about */
 static const char *extensions[] = {
     FSDEV_EXT_SEP_STR "d64",
+    FSDEV_EXT_SEP_STR "d67",
     FSDEV_EXT_SEP_STR "d71",
     FSDEV_EXT_SEP_STR "d80",
     FSDEV_EXT_SEP_STR "d81",
     FSDEV_EXT_SEP_STR "d82",
+    FSDEV_EXT_SEP_STR "d1m",
+    FSDEV_EXT_SEP_STR "d2m",
+    FSDEV_EXT_SEP_STR "d4m",
     FSDEV_EXT_SEP_STR "g64",
+    FSDEV_EXT_SEP_STR "p64",
     FSDEV_EXT_SEP_STR "g41",
-    FSDEV_EXT_SEP_STR "p41",
     FSDEV_EXT_SEP_STR "x64",
     FSDEV_EXT_SEP_STR "dsk",
     FSDEV_EXT_SEP_STR "t64",
@@ -376,6 +380,11 @@ static int is_valid_extension(char *end, size_t l, int nameoffset)
     }
     return 0;
 }
+
+/* define SIZE_MAX if it does not exist (only in C99) */
+#ifndef SIZE_MAX
+#define SIZE_MAX ((size_t)-1)
+#endif
 
 /* If `name' has a correct extension, try to list its contents and search for
    the first file with a proper extension; if found, extract it.  If this
@@ -440,7 +449,7 @@ static char *try_uncompress_archive(const char *name, int write_mode,
 
     /* Search for `search' first (if any) to see the offset where
        filename begins, then search for first recognizeable file.  */
-    nameoffset = search ? -1 : 0;
+    nameoffset = search ? SIZE_MAX : 0;
     len = search ? strlen(search) : 0;
     while (!feof(fd) && !found) {
         if (fgets(tmp, 1024, fd) == NULL) {
@@ -449,11 +458,11 @@ static char *try_uncompress_archive(const char *name, int write_mode,
         l = strlen(tmp);
         while (l > 0) {
             tmp[--l] = 0;
-            if (((nameoffset < 0) || (nameoffset > 1024)) && l >= len &&
+            if ((/* (nameoffset == SIZE_MAX) || */ (nameoffset > 1024)) && l >= len &&
                 !strcasecmp(tmp + l - len, search) != 0) {
                 nameoffset = l - 4;
             }
-            if (nameoffset >= 0 && nameoffset <= 1024 && is_valid_extension(tmp, l, nameoffset)) {
+            if (/* nameoffset >= 0 && */ nameoffset <= 1024 && is_valid_extension(tmp, l, nameoffset)) {
                 ZDEBUG(("try_uncompress_archive: found `%s'.",
                         tmp + nameoffset));
                 found = 1;
@@ -931,11 +940,6 @@ static int zfile_compress(const char *src, const char *dest,
         if (dest_backup_name != NULL) {
             ZDEBUG(("compress: making backup %s... ", dest_backup_name));
         }
-#ifdef WIN32
-        if (dest_backup_name != NULL) {
-            ioutil_remove(dest_backup_name);
-        }
-#endif
         if (dest_backup_name != NULL
             && ioutil_rename(dest, dest_backup_name) < 0) {
             ZDEBUG(("failed."));
@@ -959,11 +963,6 @@ static int zfile_compress(const char *src, const char *dest,
 
     if (retval == -1) {
         /* Compression failed: restore original file.  */
-#ifdef WIN32
-        if (dest_backup_name != NULL) {
-            ioutil_remove(dest);
-        }
-#endif
         if (dest_backup_name != NULL
             && ioutil_rename(dest_backup_name, dest) < 0) {
             log_error(zlog,

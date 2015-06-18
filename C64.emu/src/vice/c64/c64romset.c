@@ -34,6 +34,7 @@ const char *machine_romset_resources_list[] = {
     "ChargenName",
     "KernalName",
     "BasicName",
+    "DosName1540",
     "DosName1541",
     "DosName1541ii",
     "DosName1570",

@@ -19,6 +19,11 @@
 
 #define RESID_FILTER_CC
 
+#ifdef _M_ARM
+#undef _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE
+#define _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE 1
+#endif
+
 #include "filter.h"
 #include "dac.h"
 #include "spline.h"
@@ -172,6 +177,13 @@ static model_filter_init_t model_filter_init[2] = {
 
 unsigned short Filter::vcr_kVg[1 << 16];
 unsigned short Filter::vcr_n_Ids_term[1 << 16];
+
+#ifndef HAS_LOG1P
+static double log1p(double x)
+{
+    return log(1 + x) - (((1 + x) - 1) - x) / (1 + x);
+}
+#endif
 
 Filter::model_filter_t Filter::model_filter[2];
 
@@ -398,7 +410,7 @@ Filter::Filter()
     // kVg_Vx = k*Vg - Vx
     // I.e. if k != 1.0, Vg must be scaled accordingly.
     for (int kVg_Vx = 0; kVg_Vx < (1 << 16); kVg_Vx++) {
-      double log_term = log(1 + exp((kVg_Vx/N16 - kVt)/(2*Ut)));
+      double log_term = log1p(exp((kVg_Vx/N16 - kVt)/(2*Ut)));
       // Scaled by m*2^15
       vcr_n_Ids_term[kVg_Vx] = (unsigned short)(n_Is*log_term*log_term);
     }

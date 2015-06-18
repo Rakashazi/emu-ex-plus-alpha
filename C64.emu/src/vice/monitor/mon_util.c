@@ -246,8 +246,7 @@ void mon_set_command(console_t *console_log, char *command,
 {
     pchCommandLine = command;
 
-    uimon_out(command);
-    uimon_out("\n");
+    mon_out("%s\n", command);
 
     if (pAfter) {
         (*pAfter)();
@@ -263,11 +262,14 @@ char *uimon_in(const char *prompt)
 
 #ifdef HAVE_NETWORK
         if (monitor_is_remote()) {
-            monitor_network_transmit(prompt, strlen(prompt));
+            if (monitor_network_transmit(prompt, strlen(prompt)) < 0) {
+              return NULL;
+            }
 
             p = monitor_network_get_command_line();
             if (p == NULL) {
                 mon_set_command(NULL, "x", NULL);
+                return NULL;
             }
         } else {
 #endif

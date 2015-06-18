@@ -72,7 +72,14 @@ class SystemOptionView : public OptionView
 			"C64 NTSC",
 			"C64C NTSC",
 			"C64 old NTSC",
-			"Drean"
+			"Drean",
+			"C64 SX PAL",
+			"C64 SX NTSC",
+			"Japanese",
+			"C64 GS",
+			"PET64 PAL",
+			"PET64 NTSC",
+			"MAX Machine",
 		};
 		auto model = c64model_get();
 		if(model >= (int)sizeofArray(str))

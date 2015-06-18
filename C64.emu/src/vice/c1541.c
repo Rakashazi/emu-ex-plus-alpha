@@ -143,7 +143,9 @@ static int fix_ts(int unit, unsigned int trk, unsigned int sec,
                   unsigned int blk_offset);
 static int internal_write_geos_file(int unit, FILE* f);
 static int write_geos_cmd(int nargs, char **args);
+static int extract_geos_cmd(int nargs, char **args);
 
+int rom1540_loaded = 0;
 int rom1541_loaded = 0;
 int rom1541ii_loaded = 0;
 int rom1571_loaded = 0;
@@ -154,6 +156,7 @@ int rom2031_loaded = 0;
 int rom1001_loaded = 0;
 int rom2040_loaded = 0;
 
+BYTE *drive_rom1540;
 BYTE *drive_rom1541;
 BYTE *drive_rom1541ii;
 BYTE *drive_rom1571;
@@ -269,6 +272,10 @@ const command_t command_list[] = {
       "geoswrite <source>",
       "Write GOES Convert file <source> from the file system on a disk image.",
       1, 1, write_geos_cmd },
+    { "geosextract",
+      "geosextract <source>",
+      "Extract all the files to the file system and GEOS Convert them.",
+      0, 1, extract_geos_cmd },
     { "help",
       "help [<command>]",
       "Explain specified command.  If no command is specified, list available\n"      "ones.",
@@ -365,7 +372,7 @@ static char *read_line(const char *prompt)
 {
     static char *line;
 
-    lib_free(line);
+    free(line);
     line = readline(prompt);
     if (line != 0 && *line != 0) {
         add_history(line);
@@ -602,66 +609,6 @@ static int is_valid_cbm_file_name(const char *name)
 {
     /* Notice that ':' is the same on PETSCII and ASCII.  */
     return strchr(name, ':') == NULL;
-}
-
-/* ------------------------------------------------------------------------- */
-
-/* A simple pager.  */
-/* It would be cool to have it in the monitor too.  */
-
-static int pager_x, pager_y, pager_num_cols, pager_num_lines;
-
-static void pager_init(void)
-{
-    if (ioutil_isatty(fileno(stdout))) {
-        pager_x = pager_y = 0;
-        pager_num_lines = archdep_num_text_lines();
-        pager_num_cols = archdep_num_text_columns();
-    } else {
-        pager_num_lines = pager_num_cols = -1;
-    }
-}
-
-static void pager_print(const char *text)
-{
-    const char *p;
-
-    if (pager_num_lines < 0 || pager_num_cols < 0) {
-        fputs(text, stdout);
-    } else {
-        for (p = text; *p != 0; p++) {
-            if (*p != '\n') {
-                pager_x++;
-                if (pager_x > pager_num_cols) {
-                    pager_y++;
-                    pager_x = 0;
-                }
-            } else {
-                pager_x = 0;
-                pager_y++;
-            }
-
-            if (interactive_mode && (pager_y == pager_num_lines - 1)) {
-                char *s;
-
-                if (*p == '\n') {
-                    putchar(*p);
-                }
-
-                s = read_line("---Type <return> to continue, or q <return> to quit---");
-                if (s != NULL && toupper((int) *s) == 'Q') {
-                    break;
-                }
-
-                pager_x = pager_y = 0;
-                if (*p != '\n') {
-                    putchar(*p);
-                }
-            } else {
-                putchar(*p);
-            }
-        }
-    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1057,7 +1004,7 @@ static void unix_filename(char *p)
 /* Extract all files <gwesp@cosy.sbg.ac.at>.  */
 /* FIXME: This does not work with non-standard file names.  */
 
-static int extract_cmd(int nargs, char **args)
+static int extract_cmd_common(int nargs, char **args, int geos)
 {
     int dnr = 0, track, sector;
     vdrive_t *floppy;
@@ -1145,10 +1092,14 @@ static int extract_cmd(int nargs, char **args)
                     vdrive_iec_close(floppy, 0);
                     continue;
                 }
-                do {
-                    status = vdrive_iec_read(floppy, &c, 0);
-                    fputc(c, fd);
-                } while (status == SERIAL_OK);
+                if (geos) {
+                    status = internal_read_geos_file(dnr, fd, (char *)name);
+                } else {
+                    do {
+                        status = vdrive_iec_read(floppy, &c, 0);
+                        fputc(c, fd);
+                    } while (status == SERIAL_OK);
+                }
 
                 vdrive_iec_close(floppy, 0);
 
@@ -1166,6 +1117,15 @@ static int extract_cmd(int nargs, char **args)
     }
     vdrive_iec_close(floppy, channel);
     return FD_OK;
+}
+
+static int extract_cmd(int nargs, char **args)
+{
+    return extract_cmd_common(nargs, args, 0);
+}
+static int extract_geos_cmd(int nargs, char **args)
+{
+    return extract_cmd_common(nargs, args, 1);
 }
 
 static int format_cmd(int nargs, char **args)
@@ -1260,13 +1220,10 @@ static int help_cmd(int nargs, char **args)
     if (nargs == 1) {
         int i;
 
-        pager_init();
-        pager_print("Available commands are:");
+        printf("Available commands are:\n");
         for (i = 0; command_list[i].name != NULL; i++) {
-            pager_print("\n  ");
-            pager_print(command_list[i].syntax);
+            printf("  %s\n", command_list[i].syntax);
         }
-        pager_print("\n");
     } else {
         int match;
 
@@ -1430,28 +1387,23 @@ static int list_cmd(int nargs, char **args)
         char *string = image_contents_to_string(listing, 1);
         image_contents_file_list_t *element = listing->file_list;
 
-        pager_init();
-        pager_print(string);
-        pager_print("\n");
+        printf("%s\n", string);
         lib_free(string);
         if (element == NULL) {
-            pager_print("Empty image\n");
+            printf("Empty image\n");
         } else {
             do {
                 string = image_contents_filename_to_string(element, 1);
                 if ((pattern == NULL) || list_match_pattern(pattern, string)) {
                     lib_free(string);
                     string = image_contents_file_to_string(element, 1);
-                    pager_print(string);
-                    pager_print("\n");
+                    printf("%s\n", string);
                 }
                 lib_free(string);
             } while ((element = element->next) != NULL);
         }
         if (listing->blocks_free >= 0) {
-            string = lib_msprintf("%d blocks free.\n", listing->blocks_free);
-            pager_print(string);
-            lib_free(string);
+            printf("%d blocks free.\n", listing->blocks_free);
         }
     }
 
@@ -2286,6 +2238,7 @@ static int write_geos_cmd(int nargs, char **args)
                         (int)strlen(dest_name_petscii), 1, NULL)) {
         fprintf(stderr, "Cannot open `%s' for writing on image.\n",
                 dest_name_ascii);
+        fclose(f);
         return FD_WRTERR;
     }
 
@@ -2403,19 +2356,14 @@ static int rename_cmd(int nargs, char **args)
 
 static int show_cmd(int nargs, char **args)
 {
-    const char *text;
-
     if (strcasecmp(args[1], "copying") == 0) {
-        text = info_license_text;
+        printf("%s", info_license_text);
     } else if (strcasecmp(args[1], "warranty") == 0) {
-        text = info_warranty_text;
+        printf("%s", info_warranty_text);
     } else {
         fprintf(stderr, "Use either `show copying' or `show warranty'.\n");
         return FD_OK;           /* FIXME? */
     }
-
-    pager_init();
-    pager_print(text);
 
     return FD_OK;
 }
@@ -3150,7 +3098,7 @@ int main(int argc, char **argv)
         interactive_mode = 1;
         printf("C1541 Version %d.%02d.\n",
                C1541_VERSION_MAJOR, C1541_VERSION_MINOR);
-        printf("Copyright 1995-2013 The VICE Development Team.\n"
+        printf("Copyright 1995-2015 The VICE Development Team.\n"
                "C1541 is free software, covered by the GNU General Public License,"
                " and you are\n"
                "welcome to change it and/or distribute copies of it under certain"

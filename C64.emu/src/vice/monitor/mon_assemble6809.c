@@ -39,6 +39,7 @@
 #include "mon_util.h"
 #include "types.h"
 #include "uimon.h"
+#include "util.h"
 
 #define DBG(x)
 

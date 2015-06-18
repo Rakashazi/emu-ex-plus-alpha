@@ -3,7 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
- *  Andre' Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Daniel Sladic <sladic@eecg.toronto.edu>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *
@@ -33,7 +33,6 @@
 
 #include "debug.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivesync.h"
 #include "drivetypes.h"
 #include "glue1571.h"
@@ -119,7 +118,8 @@ static void undump_pra(via_context_t *via_context, BYTE byte)
         switch (via1p->drive->parallel_cable) {
             case DRIVE_PC_STANDARD:
             case DRIVE_PC_FORMEL64:
-                if (via1p->drive->type == DRIVE_TYPE_1541
+                if (via1p->drive->type == DRIVE_TYPE_1540
+                    || via1p->drive->type == DRIVE_TYPE_1541
                     || via1p->drive->type == DRIVE_TYPE_1541II) {
                     parallel_cable_drive_write(via1p->drive->parallel_cable, byte,
                                                PARALLEL_WRITE, via1p->number);
@@ -154,7 +154,8 @@ static void store_pra(via_context_t *via_context, BYTE byte, BYTE oldpa_value,
         switch (via1p->drive->parallel_cable) {
             case DRIVE_PC_STANDARD:
             case DRIVE_PC_FORMEL64:
-                if (via1p->drive->type == DRIVE_TYPE_1541
+                if (via1p->drive->type == DRIVE_TYPE_1540
+                    || via1p->drive->type == DRIVE_TYPE_1541
                     || via1p->drive->type == DRIVE_TYPE_1541II) {
                     parallel_cable_drive_write(via1p->drive->parallel_cable, byte,
                                                (((addr == VIA_PRA) && ((via_context->via[VIA_PCR]

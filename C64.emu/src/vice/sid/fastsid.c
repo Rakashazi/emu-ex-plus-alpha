@@ -188,6 +188,9 @@ typedef struct voice_s {
 
 /* needed data for SID */
 struct sound_s {
+    /* speed factor */
+    int factor;
+
     /* number of voices */
     voice_t v[3];
     /* SID registers */
@@ -248,6 +251,23 @@ static vreal_t bandPassParam[0x800];
 static vreal_t filterResTable[16];
 static const float filterRefFreq = 44100.0;
 static signed char ampMod1x8[256];
+
+/* manage temporary buffers. if the requested size is smaller or equal to the
+ * size of the already allocated buffer, reuse it.  */
+static SWORD *buf = NULL;
+static int blen = 0;
+
+static SWORD *getbuf(int len)
+{
+    if ((buf == NULL) || (blen < len)) {
+        if (buf) {
+            lib_free(buf);
+        }
+        blen = len;
+        buf = lib_calloc(len, 1);
+    }
+    return buf;
+}
 
 inline static void dofilter(voice_t *pVoice)
 {
@@ -747,23 +767,19 @@ static int fastsid_calculate_samples(sound_t *psid, SWORD *pbuf, int nr,
                                      int interleave, int *delta_t)
 {
     int i;
+    SWORD *tmp_buf;
 
-    for (i = 0; i < nr; i++) {
-        pbuf[i * interleave] = fastsid_calculate_single_sample(psid, i);
+    if (psid->factor == 1000) {
+        for (i = 0; i < nr; i++) {
+            pbuf[i * interleave] = fastsid_calculate_single_sample(psid, i);
+        }
+        return nr;
     }
-
-    return nr;
-}
-
-int fastsid_calculate_samples_mix(sound_t *psid, SWORD *pbuf, int nr,
-                                  int interleave, int *delta_t)
-{
-    int i;
-
-    for (i = 0; i < nr; i++) {
-        pbuf[i * interleave] = sound_audio_mix(pbuf[i * interleave], fastsid_calculate_single_sample(psid, i));
+    tmp_buf = getbuf(2 * nr * psid->factor / 1000);
+    for (i = 0; i < (nr * psid->factor / 1000); i++) {
+        tmp_buf[i * interleave] = fastsid_calculate_single_sample(psid, i);
     }
-
+    memcpy(pbuf, tmp_buf, 2 * nr);
     return nr;
 }
 
@@ -848,10 +864,12 @@ static sound_t *fastsid_open(BYTE *sidstate)
     return psid;
 }
 
-static int fastsid_init(sound_t *psid, int speed, int cycles_per_sec)
+static int fastsid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
 {
     DWORD i;
     int sid_model;
+
+    psid->factor = factor;
 
     psid->speed1 = (cycles_per_sec << 8) / speed;
     for (i = 0; i < 16; i++) {
@@ -933,6 +951,11 @@ static int fastsid_init(sound_t *psid, int speed, int cycles_per_sec)
 static void fastsid_close(sound_t *psid)
 {
     lib_free(psid);
+
+    if (buf) {
+        lib_free(buf);
+        buf = NULL;
+    }
 }
 
 

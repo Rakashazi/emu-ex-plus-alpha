@@ -34,6 +34,7 @@
 #include "c64memrom.h"
 #include "c64rom.h"
 #include "log.h"
+#include "machine.h"
 #include "mem.h"
 #include "patchrom.h"
 #include "resources.h"
@@ -45,9 +46,12 @@ static log_t c64rom_log = LOG_ERR;
 /* Flag: nonzero if the Kernal and BASIC ROMs have been loaded.  */
 static int rom_loaded = 0;
 
-/* FIXME: this function should perhaps not patch the kernal, but return -1 on
-          unknown kernals, like the respective vic-20 functions */
-int c64rom_get_kernal_checksum(void)
+int c64rom_isloaded(void)
+{
+    return rom_loaded;
+}
+
+int c64rom_get_kernal_chksum_id(WORD *sumout, int *idout)
 {
     int i;
     WORD sum;                   /* ROM checksum */
@@ -57,21 +61,42 @@ int c64rom_get_kernal_checksum(void)
     for (i = 0, sum = 0; i < C64_KERNAL_ROM_SIZE; i++) {
         sum += c64memrom_kernal64_rom[i];
     }
-
+    /* get ID from Kernal ROM */
     id = c64memrom_rom64_read(0xff80);
-
-    log_message(c64rom_log, "Kernal rev #%d.", id);
-
-    if ((id == 0 && sum != C64_KERNAL_CHECKSUM_R00)
-        || (id == 3 && sum != C64_KERNAL_CHECKSUM_R03 && sum != C64_KERNAL_CHECKSUM_R03swe)
-        || (id == 0x43 && sum != C64_KERNAL_CHECKSUM_R43)
-        || (id == 0x64 && sum != C64_KERNAL_CHECKSUM_R64)) {
-        log_warning(c64rom_log, "Unknown Kernal image.  ID: %d ($%02X) Sum: %d ($%04X).", id, id, sum, sum);
-    } else if (kernal_revision != NULL) {
-        if (patch_rom(kernal_revision) < 0) {
-            return -1;
-        }
+    if (sumout) {
+        *sumout = sum;
     }
+    if (idout) {
+        *idout = id;
+    }
+    /* check against known kernal versions */
+    if (((id == C64_KERNAL_ID_R01) && (sum == C64_KERNAL_CHECKSUM_R01)) ||
+        ((id == C64_KERNAL_ID_R02) && (sum == C64_KERNAL_CHECKSUM_R02)) ||
+        ((id == C64_KERNAL_ID_R03) && (sum == C64_KERNAL_CHECKSUM_R03)) ||
+        /* ((id == C64_KERNAL_ID_R03swe) && (sum == C64_KERNAL_CHECKSUM_R03swe)) || */
+        ((id == C64_KERNAL_ID_R43) && (sum == C64_KERNAL_CHECKSUM_R43)) ||
+        ((id == C64_KERNAL_ID_R64) && (sum == C64_KERNAL_CHECKSUM_R64))
+       ) {
+        /* known */
+        return 0;
+    }
+    return -1; /* unknown */
+}
+
+/* FIXME: this function should perhaps not patch the kernal, but return -1 on
+          unknown kernals, like the respective vic-20 functions */
+int c64rom_get_kernal_checksum(void)
+{
+    WORD sum;                   /* ROM checksum */
+    int id;                     /* ROM identification number */
+
+    if (c64rom_get_kernal_chksum_id(&sum, &id) < 0) {
+        log_warning(c64rom_log, "Unknown Kernal image.  ID: %d ($%02X) Sum: %d ($%04X).", id, id, sum, sum);
+        return -1;
+    } else {
+        log_message(c64rom_log, "Kernal rev #%d ($%02X) Sum: %d ($%04X).", id, id, sum, sum);
+    }
+
     return 0;
 }
 
@@ -82,7 +107,9 @@ int c64rom_cartkernal_active = 0;
    is used */
 int c64rom_load_kernal(const char *rom_name, BYTE *cartkernal)
 {
-    int trapfl;
+    int trapfl, rev;
+    WORD sum;                   /* ROM checksum */
+    int id;                     /* ROM identification number */
 
     if (!rom_loaded) {
         return 0;
@@ -92,8 +119,10 @@ int c64rom_load_kernal(const char *rom_name, BYTE *cartkernal)
     /* serial_remove_traps(); */
     /* we also need the TAPE traps!!! therefore -> */
     /* disable traps before saving the ROM */
-    resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 1);
+    if (machine_class != VICE_MACHINE_VSID) {
+        resources_get_int("VirtualDevices", &trapfl);
+        resources_set_int("VirtualDevices", 1);
+    }
 
     /* Load Kernal ROM.  */
     if (cartkernal == NULL) {
@@ -103,17 +132,32 @@ int c64rom_load_kernal(const char *rom_name, BYTE *cartkernal)
 
         if (sysfile_load(rom_name, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE, C64_KERNAL_ROM_SIZE) < 0) {
             log_error(c64rom_log, "Couldn't load kernal ROM `%s'.", rom_name);
-            resources_set_int("VirtualDevices", trapfl);
+            if (machine_class != VICE_MACHINE_VSID) {
+                resources_set_int("VirtualDevices", trapfl);
+            }
             return -1;
         }
     } else {
         memcpy(c64memrom_kernal64_rom, cartkernal, 0x2000);
         c64rom_cartkernal_active = 1;
     }
-    c64rom_get_kernal_checksum(); /* also patch kernal */
+
+    resources_get_int("KernalRev", &rev);
+    if (c64rom_get_kernal_chksum_id(&sum, &id) < 0) {
+        log_verbose("loaded unknown kernal revision:%d chksum: %d", id, sum);
+        rev =  C64_KERNAL_UNKNOWN;
+    } else {
+        log_verbose("loaded known kernal revision:%d chksum: %d", id, sum);
+        if (rev == C64_KERNAL_UNKNOWN) {
+            rev = id;
+        }
+    }
+    resources_set_int("KernalRev", rev);
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
 
-    resources_set_int("VirtualDevices", trapfl);
+    if (machine_class != VICE_MACHINE_VSID) {
+        resources_set_int("VirtualDevices", trapfl);
+    }
 
     return 0;
 }

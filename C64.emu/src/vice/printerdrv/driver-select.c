@@ -24,6 +24,8 @@
  *
  */
 
+/* #define DEBUG_PRINTER */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -39,9 +41,6 @@
 #include "types.h"
 #include "util.h"
 
-
-/* #define DEBUG_PRINTER */
-
 static log_t driver_select_log = LOG_ERR;
 
 struct driver_select_list_s {
@@ -50,20 +49,75 @@ struct driver_select_list_s {
 };
 typedef struct driver_select_list_s driver_select_list_t;
 
-
-/* Names of currently used printer driver.  To be removed.  */
-static char *printer_driver[] = { NULL, NULL, NULL };
-
 /* Currently used printer driver.  */
-static driver_select_t driver_select[3];
+static driver_select_t driver_select[NUM_DRIVER_SELECT];
 
 /* Pointer to registered printer driver.  */
 static driver_select_list_t *driver_select_list = NULL;
 
+static char *userprinter_names[] = { "ascii", "nl10", "raw", NULL };
+
+static char *printer_names[] = { "ascii", "mps803", "nl10", "raw", NULL };
+
+static char *plotter_names[] = { "1520", "raw", NULL };
+
+static int userprinter_name_is_valid(const char *name)
+{
+    int i = 0;
+
+    while (userprinter_names[i]) {
+        if (!strcmp(userprinter_names[i], name)) {
+            return 1;
+        }
+        i++;
+    }
+    return 0;
+}
+
+static int printer_name_is_valid(const char *name)
+{
+    int i = 0;
+
+    while (printer_names[i]) {
+        if (!strcmp(printer_names[i], name)) {
+            return 1;
+        }
+        i++;
+    }
+    return 0;
+}
+
+static int plotter_name_is_valid(const char *name)
+{
+    int i = 0;
+
+    while (plotter_names[i]) {
+        if (!strcmp(plotter_names[i], name)) {
+            return 1;
+        }
+        i++;
+    }
+    return 0;
+}
 
 static int set_printer_driver(const char *name, void *param)
 {
     driver_select_list_t *list;
+    int prnr = vice_ptr_to_int(param);
+
+    if (prnr == 2) {
+        if (!plotter_name_is_valid(name)) {
+            return -1;
+        }
+    } else if (prnr == 3) {
+        if (!userprinter_name_is_valid(name)) {
+            return -1;
+        }
+    } else {
+        if (!printer_name_is_valid(name)) {
+            return -1;
+        }
+    }
 
     list = driver_select_list;
 
@@ -73,9 +127,7 @@ static int set_printer_driver(const char *name, void *param)
 
     do {
         if (!strcmp(list->driver_select.drv_name, name)) {
-            util_string_set(&printer_driver[vice_ptr_to_int(param)], name);
-            memcpy(&driver_select[vice_ptr_to_int(param)], &(list->driver_select),
-                   sizeof(driver_select_t));
+            driver_select[prnr] = list->driver_select;
             return 0;
         }
         list = list->next;
@@ -85,12 +137,18 @@ static int set_printer_driver(const char *name, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    {"Printer4Driver", "ascii", RES_EVENT_NO, NULL,
-     &printer_driver[0], set_printer_driver, (void *)0 },
-    {"Printer5Driver", "ascii", RES_EVENT_NO, NULL,
-     &printer_driver[1], set_printer_driver, (void *)1 },
-    {"PrinterUserportDriver", "ascii", RES_EVENT_NO, NULL,
-     &printer_driver[2], set_printer_driver, (void *)2 },
+    { "Printer4Driver", "ascii", RES_EVENT_NO, NULL,
+      (char **)&driver_select[0].drv_name, set_printer_driver, (void *)0 },
+    { "Printer5Driver", "ascii", RES_EVENT_NO, NULL,
+      (char **)&driver_select[1].drv_name, set_printer_driver, (void *)1 },
+    { "Printer6Driver", "1520", RES_EVENT_NO, NULL,
+      (char **)&driver_select[2].drv_name, set_printer_driver, (void *)2 },
+    { NULL }
+};
+
+static const resource_string_t resources_string_userport[] = {
+    { "PrinterUserportDriver", "ascii", RES_EVENT_NO, NULL,
+      (char **)&driver_select[3].drv_name, set_printer_driver, (void *)3 },
     { NULL }
 };
 
@@ -99,11 +157,9 @@ int driver_select_init_resources(void)
     return resources_register_string(resources_string);
 }
 
-void driver_select_shutdown_resources(void)
+int driver_select_userport_init_resources(void)
 {
-    lib_free(printer_driver[0]);
-    lib_free(printer_driver[1]);
-    lib_free(printer_driver[2]);
+    return resources_register_string(resources_string_userport);
 }
 
 static const cmdline_option_t cmdline_options[] =
@@ -118,6 +174,16 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_PRT_DRIVER_5_NAME,
       NULL, NULL },
+    { "-pr6drv", SET_RESOURCE, 1,
+      NULL, NULL, "Printer6Driver", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_SPECIFY_PRT_DRIVER_6_NAME,
+      NULL, NULL },
+    { NULL }
+};
+
+static const cmdline_option_t cmdline_options_userport[] =
+{
     { "-pruserdrv", SET_RESOURCE, 1,
       NULL, NULL, "PrinterUserportDriver", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -131,6 +197,10 @@ int driver_select_init_cmdline_options(void)
     return cmdline_register_options(cmdline_options);
 }
 
+int driver_select_userport_init_cmdline_options(void)
+{
+    return cmdline_register_options(cmdline_options_userport);
+}
 
 void driver_select_init(void)
 {
@@ -177,19 +247,16 @@ void driver_select_shutdown(void)
 int driver_select_open(unsigned int prnr, unsigned int secondary)
 {
 #ifdef DEBUG_PRINTER
-    log_message(driver_select_log, "Open device #%i secondary %i.",
-                prnr + 4, secondary);
+    log_message(driver_select_log, "Open device #%i secondary %i.", prnr + 4, secondary);
 #endif
-
     return driver_select[prnr].drv_open(prnr, secondary);
 }
 
 void driver_select_close(unsigned int prnr, unsigned int secondary)
 {
 #ifdef DEBUG_PRINTER
-    log_message(driver_select_log, "Close device #%i.", prnr + 4);
+    log_message(driver_select_log, "Close device #%i secondary %i.", prnr + 4, secondary);
 #endif
-
     driver_select[prnr].drv_close(prnr, secondary);
 }
 
@@ -205,10 +272,17 @@ int driver_select_getc(unsigned int prnr, unsigned int secondary, BYTE *b)
 
 int driver_select_flush(unsigned int prnr, unsigned int secondary)
 {
+#ifdef DEBUG_PRINTER
+    log_message(driver_select_log, "Flush device #%i secondary %i.", prnr + 4, secondary);
+#endif
     return driver_select[prnr].drv_flush(prnr, secondary);
 }
 
+/* called by printer.c:printer_formfeed() */
 int driver_select_formfeed(unsigned int prnr)
 {
+#ifdef DEBUG_PRINTER
+    log_message(driver_select_log, "Formfeed device #%i", prnr + 4);
+#endif
     return driver_select[prnr].drv_formfeed(prnr);
 }

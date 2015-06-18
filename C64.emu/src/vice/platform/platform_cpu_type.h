@@ -2,6 +2,7 @@
  *
  * CPU        | compiletime-support | runtime-support
  * -------------------------------------------------------
+ * aarch64    | yes                 | not yet
  * alpha      | yes, +sub           | not yet
  * amd64      | yes                 | not yet
  * arc        | yes, +endian        | not yet
@@ -22,12 +23,13 @@
  * m68hc1x    | no                  | not yet
  * mcore      | no                  | not yet
  * mep        | no                  | not yet
- * microblaze | no                  | not yet
+ * microblaze | yes                 | not yet
  * mips       | yes, +endian -sub   | not yet
  * mips64     | yes, +endian -sub   | not yet
  * mmix       | no                  | not yet
  * mn10300    | no                  | not yet
  * ns32k      | yes                 | not yet
+ * openrisc   | yes                 | not yet
  * pdp-11     | no                  | not yet
  * picochip   | no                  | not yet
  * powerpc    | yes, -sub           | not yet
@@ -89,9 +91,15 @@
 #endif
 
 
+/* generic aarch64 cpu discovery */
+#if !defined(PLATFORM_CPU) && defined(__aarch64__)
+#  define PLATFORM_CPU "AARCH64"
+#endif
+
+
 /* Generic arm cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__arm__)
-#  ifdef WORDS_BIGENDIAN
+#  ifdef __ARMEB__
 #    define PLATFORM_ENDIAN " (big endian)"
 #  else
 #    define PLATFORM_ENDIAN " (little endian)"
@@ -346,7 +354,7 @@
 
 /* Generic hppa cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__hppa__)
-#  defined PLATFORM_CPU "HPPA"
+#  define PLATFORM_CPU "HPPA"
 #endif
 
 /* Generic ia64 cpu discovery */
@@ -354,6 +362,26 @@
 #  define PLATFORM_CPU "IA64"
 #endif
 
+
+/* Convert mc680?0 to __mc680?0__ if needed */
+#if defined(mc68000) && !defined(__mc68000__)
+#  define __mc68000__
+#endif
+#if defined(mc68010) && !defined(__mc68010__)
+#  define __mc68010__
+#endif
+#if defined(mc68020) && !defined(__mc68020__)
+#  define __mc68020__
+#endif
+#if defined(mc68030) && !defined(__mc68030__)
+#  define __mc68030__
+#endif
+#if defined(mc68040) && !defined(__mc68040__)
+#  define __mc68040__
+#endif
+#if defined(mc68060) && !defined(__mc68060__)
+#  define __mc68060__
+#endif
 
 /* Generic m68k cpu discovery */
 #if (defined(__mc68060__) || defined(__mc68040__) || defined(__mc68030__) || defined(__mc68020__) || defined(__mc68010__) || defined(__mc68000__)) && !defined(__m68k__)
@@ -389,9 +417,19 @@
 #endif
 
 
+/* Generic microblaze cpu discovery */
+#if !defined(PLATFORM_CPU) && defined(__MICROBLAZE__)
+#  if defined(WORDS_BIGENDIAN) || defined(_BIG_ENDIAN)
+#    define PLATFORM_CPU "MicroBlaze (big endian)"
+#  else
+#    define PLATFORM_CPU "MicroBlaze (little endian)"
+#  endif
+#endif
+
+
 /* Generic mips cpu discovery */
-#if !defined(PLATFORM_CPU) && defined(__mips__) && !defined(__mips64__)
-#  ifdef WORDS_BIGENDIAN
+#if !defined(PLATFORM_CPU) && defined(__mips__) && !(defined(__mips64__) || defined(__mips64))
+#  if defined(WORDS_BIGENDIAN) || defined(__MIPSEB__)
 #    define PLATFORM_CPU "MIPS (big endian)"
 #  else
 #    define PLATFORM_CPU "MIPS (little endian)"
@@ -400,8 +438,8 @@
 
 
 /* Generic mips64 cpu discovery */
-#if !defined(PLATFORM_CPU) && defined(__mips64__)
-#  ifdef WORDS_BIGENDIAN
+#if !defined(PLATFORM_CPU) && (defined(__mips64__) || defined(__mips64))
+#  if defined(WORDS_BIGENDIAN) || defined(__MIPSEB__)
 #    define PLATFORM_CPU "MIPS64 (big endian)"
 #  else
 #    define PLATFORM_CPU "MIPS64 (little endian)"
@@ -411,7 +449,13 @@
 
 /* Generic ns32k cpu discovery */
 #if !defined(PLATFORM_CPU) && defined(__ns32000__)
-#  define PLATFORM_CPU_"NS32K"
+#  define PLATFORM_CPU "NS32K"
+#endif
+
+
+/* generic openrisc cpu discovery */
+#if !defined(PLATFORM_CPU) && defined(__OR32__)
+#  define PLATFORM_CPU "OpenRisc"
 #endif
 
 
@@ -452,13 +496,13 @@
 
 
 /* Generic sparc64 cpu discovery */
-#if !defined(PLATFORM_CPU) && defined(__sparc64__)
+#if !defined(PLATFORM_CPU) && (defined(__sparc64__) || (defined(__sparc__) && defined(__arch64__)))
 #  define PLATFORM_CPU "SPARC64"
 #endif
 
 
 /* Generic sparc cpu discovery */
-#if !defined(PLATFORM_CPU) && defined(__sparc__)
+#if !defined(PLATFORM_CPU) && (defined(__sparc__) || defined(sparc))
 #  define PLATFORM_CPU "SPARC"
 #endif
 
@@ -468,13 +512,36 @@
 #  define PLATFORM_CPU "VAX"
 #endif
 
+/* Minix ACK cpu discovery */
+#if !defined(PLATFORM_CPU) && defined(__minix) && defined(__ACK__)
+#  include <minix/config.h>
+#  ifdef CHIP
+#    define PLATFORM_CHIP CHIP
+#  else
+#    ifdef _MINIX_CHIP
+#      define PLATFORM_CHIP _MINIX_CHIP
+#    endif
+#  endif
+#  ifdef PLATFORM_CHIP
+#    if (PLATFORM_CHIP==1)
+#      define PLATFORM_CPU "80386"
+#    endif
+#    if (PLATFORM_CHIP==2)
+#      define PLATFORM_CPU "68000"
+#    endif
+#    if (PLATFORM_CHIP==3)
+#      define PLATFORM_CPU "Sparc"
+#    endif
+#  endif
+#endif
+
 /* Generic x86 cpu discovery */
 #if !defined(PLATFORM_CPU) && !defined(FIND_X86_CPU) && (defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)) && !defined(__amd64__) && !defined(__x86_64__)
 #  define FIND_X86_CPU
 #endif
 
 /* MSVC cpu discovery */
-#if !defined(PLATFORM_CPU) && defined(FIND_X86_CPU) && defined(_M_IX86)
+#if !defined(PLATFORM_CPU) && defined(FIND_X86_CPU) && defined(_M_IX86) && (defined(_MSC_VER) || defined(WATCOM_COMPILE))
 #  if (_M_IX86 == 600)
 #    define __i686__
 #  endif
@@ -489,8 +556,28 @@
 #  endif
 #endif
 
+#if !defined(__i386__) && (defined(i386) || defined(__i386))
+#  define __i386__
+#endif
+
+#if !defined(__i486__) && (defined(i486) || defined(__i486))
+#  define __i486__
+#endif
+
+#if !defined(__i586__) && (defined(i586) || defined(__i586))
+#  define __i586__
+#endif
+
+#if !defined(__i686__) && (defined(i686) || defined(__i686))
+#  define __i686__
+#endif
+
+
 #if !defined(PLATFORM_CPU) && defined(FIND_X86_CPU)
-#  ifdef __i686__
+#  ifdef _M_AMD64
+#    define PLATFORM_CPU "AMD64"
+#  endif
+#  if !defined(PLATFORM_CPU) && defined(__i686__)
 #    define PLATFORM_CPU "Pentium Pro"
 #  endif
 #  if !defined(PLATFORM_CPU) && defined(__i586__)
@@ -507,4 +594,4 @@
 #  endif
 #endif
 
-#endif // VICE_PLATFORM_CPU_TYPE_H
+#endif

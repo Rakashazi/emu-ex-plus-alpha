@@ -31,15 +31,20 @@
  * amigaos3         |       yes       |       n/a       |       yes
  * aros             |       yes       |       n/a       |       yes
  * beos             |       yes       |       n/a       |       yes
- * cygwin           |       yes       |       n/a       |       yes
+ * cygwin           |       yes       |       yes       |       yes
+ * darwin           |       yes       |       yes       |       yes
+ * interix          |       yes       |       yes       |       yes
  * linux            |       yes       |       yes       |       yes
  * macosx           |       yes       |       yes       |       yes
+ * minix 3.x        |       yes       |       yes       |       yes
  * msdos            |       yes       |       n/a       |       yes
+ * openserver       |       yes       |       yes       |       yes
  * os/2             |       yes       |       n/a       |       yes
  * solaris          |       yes       |       n/a       |       yes
  * syllable         |       yes       |       n/a       |       yes
- * win32            |       yes       |       n/a       |       yes
- * win64            |       yes       |       n/a       |       yes
+ * unixware         |       yes       |       yes       |       yes
+ * win32            |       yes       |       yes       |       yes
+ * win64            |       yes       |       yes       |       yes
  */
 
 /* Operating systems fully supported and partially tested:
@@ -62,13 +67,10 @@
  * freebsd          | yes (untested)  | yes (untested)  |     not yet
  * hpux             | yes (untested)  |     not yet     |     not yet
  * hurd             | yes (untested)  |     not yet     |     not yet
- * interix          |       yes       |     not yet     |     not yet
  * irix             | yes (untested)  |     not yet     |     not yet
  * lynxos           | yes (untested)  |     not yet     |     not yet
- * minix 3.x        | yes (untested)  |     not yet     |     not yet
  * netbsd           | yes (untested)  | yes (untested)  |     not yet
  * openbsd          | yes (untested)  | yes (untested)  |     not yet
- * openserver       | yes (untested)  |     not yet     |     not yet
  * openvms          | yes (untested)  |     not yet     |     not yet
  * qnx              | yes (untested)  | yes (untested)  |     not yet
  * sinux            | yes (untested)  |     not yet     |     not yet
@@ -76,7 +78,6 @@
  * symbian os       | yes (untested)  |     not yet     |     not yet
  * tru64            | yes (untested)  |     not yet     |     not yet
  * ultrix           | yes (untested)  |     not yet     |     not yet
- * unixware         | yes (untested)  |     not yet     |     not yet
  * uwin             | yes (untested)  |     not yet     |     not yet
  * vxworks          | yes (untested)  |     not yet     |     not yet
  * xbox             | yes (untested)  |       n/a       |     not yet
@@ -96,7 +97,6 @@
  * blackberry       |     not yet     |     not yet     |     not yet
  * caanoo           |     not yet     |     not yet     |     not yet
  * convex-os        |     not yet     |     not yet     |     not yet
- * darwin           |     not yet     |     not yet     |     not yet
  * dell unix        |     not yet     |     not yet     |     not yet
  * desqview-x       |     not yet     |     not yet     |     not yet
  * dgux             |     not yet     |     not yet     |     not yet

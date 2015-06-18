@@ -202,7 +202,7 @@ char *image_contents_filename_to_string(image_contents_file_list_t * p, char con
     char *string;
 
     print_name = image_contents_get_filename(p);
-    string = strdup(print_name);
+    string = lib_stralloc(print_name);
 
     if (convert_to_ascii) {
         charset_petconvstring((unsigned char *)string, 1);

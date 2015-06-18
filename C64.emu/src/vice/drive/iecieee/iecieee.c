@@ -46,16 +46,20 @@ void iecieee_drive_shutdown(struct drive_context_s *drv)
 
 void iecieee_drive_reset(struct drive_context_s *drv)
 {
-    if (drv->drive->type == DRIVE_TYPE_1541
-        || drv->drive->type == DRIVE_TYPE_1541II
-        || drv->drive->type == DRIVE_TYPE_1570
-        || drv->drive->type == DRIVE_TYPE_1571
-        || drv->drive->type == DRIVE_TYPE_1571CR
-        || drv->drive->type == DRIVE_TYPE_2031) {
+    switch (drv->drive->type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
+    case DRIVE_TYPE_2031:
         viacore_reset(drv->via2);
         drive_sound_update(DRIVE_SOUND_MOTOR_ON, drv->mynumber);
-    } else {
+        break;
+    default:
         viacore_disable(drv->via2);
+        break;
     }
 }
 
@@ -67,15 +71,20 @@ void iecieee_drive_setup_context(struct drive_context_s *drv)
 int iecieee_drive_snapshot_read(struct drive_context_s *ctxptr,
                                 struct snapshot_s *s)
 {
-    if (ctxptr->drive->type == DRIVE_TYPE_1541
-        || ctxptr->drive->type == DRIVE_TYPE_1541II
-        || ctxptr->drive->type == DRIVE_TYPE_1570
-        || ctxptr->drive->type == DRIVE_TYPE_1571
-        || ctxptr->drive->type == DRIVE_TYPE_1571CR
-        || ctxptr->drive->type == DRIVE_TYPE_2031) {
+    switch (ctxptr->drive->type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
+    case DRIVE_TYPE_2031:
         if (viacore_snapshot_read_module(ctxptr->via2, s) < 0) {
             return -1;
         }
+        break;
+    default:
+        break;
     }
 
     return 0;
@@ -84,15 +93,20 @@ int iecieee_drive_snapshot_read(struct drive_context_s *ctxptr,
 int iecieee_drive_snapshot_write(struct drive_context_s *ctxptr,
                                  struct snapshot_s *s)
 {
-    if (ctxptr->drive->type == DRIVE_TYPE_1541
-        || ctxptr->drive->type == DRIVE_TYPE_1541II
-        || ctxptr->drive->type == DRIVE_TYPE_1570
-        || ctxptr->drive->type == DRIVE_TYPE_1571
-        || ctxptr->drive->type == DRIVE_TYPE_1571CR
-        || ctxptr->drive->type == DRIVE_TYPE_2031) {
+    switch (ctxptr->drive->type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+    case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR:
+    case DRIVE_TYPE_2031:
         if (viacore_snapshot_write_module(ctxptr->via2, s) < 0) {
             return -1;
         }
+        break;
+    default:
+        break;
     }
 
     return 0;

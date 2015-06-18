@@ -161,6 +161,6 @@ extern void ym3526_update_one(FM_OPL *chip, OPLSAMPLE *buffer, int length);
 
 
 extern int connect1_is_output0(int *connect);
-extern void set_connect1(int *connect, int output0);
+extern void set_connect1(FM_OPL *chip, int x, int y, int output0);
 
 #endif /* VICE_FMOPL_H */

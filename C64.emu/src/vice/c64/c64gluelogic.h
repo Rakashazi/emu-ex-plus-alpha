@@ -29,6 +29,9 @@
 
 #include "types.h"
 
+#define GLUE_LOGIC_DISCRETE  0
+#define GLUE_LOGIC_CUSTOM_IC 1
+
 extern void c64_glue_set_vbank(int vbank, int ddr_flag);
 extern void c64_glue_undump(int vbank);
 extern void c64_glue_reset(void);

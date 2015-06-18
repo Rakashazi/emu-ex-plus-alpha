@@ -3,7 +3,7 @@
  * ($DC00).
  *
  * Written by
- *  André Fachat <fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
  *
@@ -36,7 +36,7 @@
 #include "c64cia.h"
 #include "cia.h"
 #include "interrupt.h"
-#include "drivecpu.h"
+#include "drive.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "lib.h"
@@ -47,7 +47,7 @@
 #include "userport_joystick.h"
 #include "vicii.h"
 
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
 #include "rsuser.h"
 #endif
 
@@ -339,12 +339,23 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 
 #ifdef HAVE_MOUSE
     if (_mouse_enabled && (mouse_port == 2)) {
-        if (mouse_type == MOUSE_TYPE_NEOS) {
+        switch (mouse_type) {
+        case MOUSE_TYPE_NEOS:
             byte &= neos_mouse_read();
-        } else if (mouse_type == MOUSE_TYPE_SMART) {
+            break;
+        case MOUSE_TYPE_SMART:
             byte &= smart_mouse_read();
-        } else if (mouse_kind == MOUSE_KIND_POLLED) {
+            break;
+        case MOUSE_TYPE_ST:
+        case MOUSE_TYPE_AMIGA:
+        case MOUSE_TYPE_CX22:
             byte &= mouse_poll();
+            break;
+        case MOUSE_TYPE_MICROMYS:
+            byte &= micromys_mouse_read();
+            break;
+        default:
+            break;
         }
     }
 #endif
@@ -437,12 +448,23 @@ static BYTE read_ciapb(cia_context_t *cia_context)
 
 #ifdef HAVE_MOUSE
     if (_mouse_enabled && (mouse_port == 1)) {
-        if (mouse_type == MOUSE_TYPE_NEOS) {
+        switch (mouse_type) {
+        case MOUSE_TYPE_NEOS:
             byte &= neos_mouse_read();
-        } else if (mouse_type == MOUSE_TYPE_SMART) {
+            break;
+        case MOUSE_TYPE_SMART:
             byte &= smart_mouse_read();
-        } else if (mouse_kind == MOUSE_KIND_POLLED) {
+            break;
+        case MOUSE_TYPE_ST:
+        case MOUSE_TYPE_AMIGA:
+        case MOUSE_TYPE_CX22:
             byte &= mouse_poll();
+            break;
+        case MOUSE_TYPE_MICROMYS:
+            byte &= micromys_mouse_read();
+            break;
+        default:
+            break;
         }
     }
 #endif
@@ -453,14 +475,14 @@ static BYTE read_ciapb(cia_context_t *cia_context)
 static void read_ciaicr(cia_context_t *cia_context)
 {
     if (burst_mod == BURST_MOD_CIA1) {
-        drivecpu_execute_all(maincpu_clk);
+        drive_cpu_execute_all(maincpu_clk);
     }
 }
 
 static void read_sdr(cia_context_t *cia_context)
 {
     if (burst_mod == BURST_MOD_CIA1) {
-        drivecpu_execute_all(maincpu_clk);
+        drive_cpu_execute_all(maincpu_clk);
     }
 }
 
@@ -469,7 +491,7 @@ static void store_sdr(cia_context_t *cia_context, BYTE byte)
     if (burst_mod == BURST_MOD_CIA1) {
         c64fastiec_fast_cpu_write((BYTE)byte);
     }
-#ifdef HAVE_RS232
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
         rsuser_tx_byte(byte);
     }
@@ -496,7 +518,7 @@ void cia1_setup_context(machine_context_t *machine_context)
     cia->rmw_flag = &maincpu_rmw_flag;
     cia->clk_ptr = &maincpu_clk;
 
-    cia->todticks = C64_PAL_CYCLES_PER_RFSH;
+    cia1_set_timing(cia, C64_PAL_CYCLES_PER_SEC, 50);
 
     ciacore_setup_context(cia);
 
@@ -529,7 +551,12 @@ void cia1_setup_context(machine_context_t *machine_context)
     cia->pre_peek = pre_peek;
 }
 
-void cia1_set_timing(cia_context_t *cia_context, int todticks)
+void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
 {
-    cia_context->todticks = todticks;
+    cia_context->power_freq = powerfreq;
+    cia_context->ticks_per_sec = tickspersec;
+    cia_context->todticks = tickspersec / powerfreq;
+    cia_context->power_tickcounter = 0;
+    cia_context->power_ticks = 0;
 }
+

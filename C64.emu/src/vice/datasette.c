@@ -37,6 +37,7 @@
 #include "clkguard.h"
 #include "cmdline.h"
 #include "datasette.h"
+#include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
@@ -112,6 +113,9 @@ static int notape_mode = DATASETTE_CONTROL_STOP;
 static unsigned int fullwave = 0;
 static CLOCK fullwave_gap;
 
+/* random wobble to be added to tape pulses */
+static int datasette_tape_wobble = 0;
+
 static log_t datasette_log = LOG_ERR;
 
 static void datasette_internal_reset(void);
@@ -124,19 +128,40 @@ static void datasette_control_internal(int command);
 
 static int set_reset_datasette_with_maincpu(int val, void *param)
 {
-    reset_datasette_with_maincpu = val;
+    reset_datasette_with_maincpu = val ? 1 : 0;
+
     return 0;
 }
 
 static int set_datasette_zero_gap_delay(int val, void *param)
 {
+    if (val < 0) {
+        return -1;
+    }
     datasette_zero_gap_delay = val;
+
     return 0;
 }
 
 static int set_datasette_speed_tuning(int val, void *param)
 {
+    if (val < 0) {
+        return -1;
+    }
+
     datasette_speed_tuning = val;
+
+    return 0;
+}
+
+static int set_datasette_tape_wobble(int val, void *param)
+{
+    if (val < 0) {
+        return -1;
+    }
+
+    datasette_tape_wobble = val;
+
     return 0;
 }
 
@@ -150,9 +175,11 @@ static const resource_int_t resources_int[] = {
     { "DatasetteSpeedTuning", 1, RES_EVENT_SAME, NULL,
       &datasette_speed_tuning,
       set_datasette_speed_tuning, NULL },
+    { "DatasetteTapeWobble", 10, RES_EVENT_SAME, NULL,
+      &datasette_tape_wobble,
+      set_datasette_tape_wobble, NULL },
     { NULL }
 };
-
 
 int datasette_resources_init(void)
 {
@@ -183,6 +210,11 @@ static const cmdline_option_t cmdline_options[] = {
       NULL, NULL, "DatasetteSpeedTuning", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_CYCLES_ADDED_GAP_TAP,
+      NULL, NULL },
+    { "-dstapewobble", SET_RESOURCE, 1,
+      NULL, NULL, "DatasetteTapeWobble", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_VALUE, IDCLS_SET_TAPE_WOBBLE,
       NULL, NULL },
     { NULL }
 };
@@ -277,6 +309,8 @@ inline static int datasette_move_buffer_back(int offset)
 
 inline static int fetch_gap(CLOCK *gap, int *direction, long read_tap)
 {
+    int wobble;
+
     if ((read_tap >= last_tap) || (read_tap < 0)) {
         return -1;
     }
@@ -298,7 +332,15 @@ inline static int fetch_gap(CLOCK *gap, int *direction, long read_tap)
             *gap = (CLOCK)datasette_zero_gap_delay;
         }
     }
-
+    /* add some random wobble */
+    if (datasette_tape_wobble) {
+        wobble = lib_unsigned_rand(-datasette_tape_wobble, datasette_tape_wobble);
+        if ((wobble >= 0) || (*gap > (CLOCK)-wobble)) {
+            *gap += wobble;
+        } else {
+            *gap = 0;
+        }
+    }
     return 0;
 }
 
@@ -683,7 +725,7 @@ static void datasette_internal_reset(void)
         alarm_unset(datasette_alarm);
         datasette_alarm_pending = 0;
     }
-    datasette_control(DATASETTE_CONTROL_STOP);
+    datasette_control(current_image ? DATASETTE_CONTROL_STOP : notape_mode);
     if (current_image != NULL) {
         if (!autostart_ignore_reset) {
             tap_seek_start(current_image);
@@ -982,7 +1024,7 @@ void datasette_event_playback(CLOCK offset, void *data)
  ******************************************************************************/
 
 #define DATASETTE_SNAP_MAJOR 1
-#define DATASETTE_SNAP_MINOR 1
+#define DATASETTE_SNAP_MINOR 2
 
 int datasette_write_snapshot(snapshot_t *s)
 {
@@ -1013,6 +1055,7 @@ int datasette_write_snapshot(snapshot_t *s)
         || SMW_B(m, (BYTE)reset_datasette_with_maincpu) < 0
         || SMW_DW(m, datasette_zero_gap_delay) < 0
         || SMW_DW(m, datasette_speed_tuning) < 0
+        || SMW_DW(m, datasette_tape_wobble) < 0
         || SMW_B(m, (BYTE)fullwave) < 0
         || SMW_DW(m, fullwave_gap) < 0) {
         snapshot_module_close(m);
@@ -1052,6 +1095,7 @@ int datasette_read_snapshot(snapshot_t *s)
         || SMR_B_INT(m, &reset_datasette_with_maincpu) < 0
         || SMR_DW_INT(m, &datasette_zero_gap_delay) < 0
         || SMR_DW_INT(m, &datasette_speed_tuning) < 0
+        || SMR_DW_INT(m, &datasette_tape_wobble) < 0
         || SMR_B_INT(m, (int *)&fullwave) < 0
         || SMR_DW(m, &fullwave_gap) < 0) {
         snapshot_module_close(m);

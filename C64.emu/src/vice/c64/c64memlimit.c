@@ -28,9 +28,7 @@
 
 #include "c64memlimit.h"
 
-
 #define NUM_SEGMENTS 7
-#define NUM_CONFIGS 32
 
 static const int mstart[NUM_SEGMENTS] = {
     0x00, 0x10, 0x80,

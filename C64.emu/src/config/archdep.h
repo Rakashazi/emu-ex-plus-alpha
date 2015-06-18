@@ -95,3 +95,12 @@
 
 /* Default sound fragment size */
 #define ARCHDEP_SOUND_FRAGMENT_SIZE 1
+
+/* No key symcode.  */
+#define ARCHDEP_KEYBOARD_SYM_NONE 0
+
+/* Default sound output mode */
+#define ARCHDEP_SOUND_OUTPUT_MODE SOUND_OUTPUT_SYSTEM
+
+/* Keyword to use for a static prototype */
+#define STATIC_PROTOTYPE static

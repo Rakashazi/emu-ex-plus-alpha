@@ -58,3 +58,4 @@ extern int ieee_drive_image_detach(struct disk_image_s *image,
 extern void ieee_drive_parallel_set_atn(int state, struct drive_context_s *drv);
 
 #endif
+

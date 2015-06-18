@@ -325,14 +325,13 @@ static void video_calc_ycbcrtable(video_resources_t *video_resources,
     float sat, tin, bri, con, gam;
     float yf, uf, vf;
     int y, u, v;
-    double factor;
+    double factor, len;
 
     lf = 64 * video_resources->pal_blur / 1000;
     hf = 255 - (lf << 1);
     sat = ((float)(video_resources->color_saturation)) * (256.0f / 1000.0f);
     tin = (((float)(video_resources->color_tint)) * (50.0f / 2000.0f)) - 25.0f;
-    bri = ((float)(video_resources->color_brightness - 1000))
-          * (112.0f / 1000.0f);
+    bri = ((float)(video_resources->color_brightness - 1000)) * (112.0f / 1000.0f);
     con = ((float)(video_resources->color_contrast   )) / 1000.0f;
     gam = video_get_gamma(video_resources);
 
@@ -346,11 +345,11 @@ static void video_calc_ycbcrtable(video_resources_t *video_resources,
         color_tab->ytablel[i] = val * lf;
         color_tab->ytableh[i] = val * hf;
         color_tab->cbtable[i] = (SDWORD)((primary->cb) * sat);
-        color_tab->cutable[i] = (SDWORD)(0.493111 * primary->cb * 256);
+        color_tab->cutable[i] = (SDWORD)(0.493111 * primary->cb * 256.0);
         /* tint, add to cr in odd lines */
         val = (SDWORD)(tin);
         color_tab->crtable[i] = (SDWORD)((primary->cr + val) * sat);
-        color_tab->cvtable[i] = (SDWORD)(0.877283 * (primary->cr + val) * 256);
+        color_tab->cvtable[i] = (SDWORD)(0.877283 * (primary->cr + val) * 256.0);
 
         yf = (float)(video_gamma(primary->y, factor, gam, bri, con) * 224.0 / 256.0 + 16.5);
         uf = (float)(0.493111 * primary->cb * sat * con * 224.0 / 256.0 / 256.0 + 128.5);
@@ -358,6 +357,16 @@ static void video_calc_ycbcrtable(video_resources_t *video_resources,
         y = (int)yf;
         u = (int)uf;
         v = (int)vf;
+
+        /* sanity check: cbtable and crtable must be kept in 16 bit range or we 
+                         might get overflows in eg the CRT renderer */
+        len = sqrt(((double)color_tab->cbtable[i] * (double)color_tab->cbtable[i]) +
+                   ((double)color_tab->crtable[i] * (double)color_tab->crtable[i]));
+        if (len >= (double)0x10000) {
+            log_error(LOG_DEFAULT, 
+                "video_calc_ycbcrtable: color %d cbcr vector too long, use lower base saturation.", i);
+        }
+
         if (y < 16) {
             y = 16;
         } else if (y > 240) {

@@ -38,5 +38,6 @@ extern int kbdbuf_feed(const char *s);
 extern int kbdbuf_feed_string(const char *string);
 extern void kbdbuf_flush(void);
 extern int kbdbuf_cmdline_options_init(void);
+extern int kbdbuf_resources_init(void);
 
 #endif

@@ -1542,12 +1542,12 @@ int connect1_is_output0(int *connect)
     return 0;
 }
 
-void set_connect1(int *connect, int output0)
+void set_connect1(FM_OPL *chip, int x, int y, int output0)
 {
     if (output0) {
-        connect = &output[0];
+        chip->P_CH[x].SLOT[y].connect1 = &output[0];
     } else {
-        connect = &phase_modulation;
+        chip->P_CH[x].SLOT[y].connect1 = &phase_modulation;
     }
 }
 

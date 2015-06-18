@@ -79,7 +79,7 @@ static char *sid_return = NULL;
 /* special case translation, this command-line option normally
    produces alot of lines (which only differ slightly) for the
    translators to translate, this function builds up the total
-   command-line option from smaller translation pieces.
+   command-line options from smaller translation pieces.
  */
 static char *translate_and_build_sid_cmdline_option(int en_resource)
 {
@@ -259,6 +259,8 @@ int translate_resources_init(void)
     return resources_register_string(resources_string);
 }
 
+static char *lang_list = NULL;
+
 void translate_resources_shutdown(void)
 {
     unsigned int i, j;
@@ -275,13 +277,15 @@ void translate_resources_shutdown(void)
     if (sid_return != NULL) {
         lib_free(sid_return);
     }
+
+    lib_free(lang_list);
 }
 
-static const cmdline_option_t cmdline_options[] =
+static cmdline_option_t cmdline_options[] =
 {
     { "-lang", SET_RESOURCE, 1,
       NULL, NULL, "Language", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_ISO_LANGUAGE_CODE, IDCLS_SPECIFY_ISO_LANG_CODE,
       NULL, NULL },
     { NULL }
@@ -289,6 +293,22 @@ static const cmdline_option_t cmdline_options[] =
 
 int translate_cmdline_options_init(void)
 {
+    char *temp_list = NULL;
+    int i;
+
+    lang_list = util_concat(". (", language_table[0], NULL);
+    for (i = 1; i < countof(language_table); i++) {
+        if (countof(language_table) == i + 1) {
+            temp_list = util_concat(lang_list, "/", language_table[i], ")", NULL);
+        } else {
+            temp_list = util_concat(lang_list, "/", language_table[i], NULL);
+        }
+        lib_free(lang_list);
+        lang_list = temp_list;
+    }
+    
+    cmdline_options[0].description = lang_list;
+
     return cmdline_register_options(cmdline_options);
 }
 

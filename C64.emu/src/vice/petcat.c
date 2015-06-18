@@ -44,10 +44,14 @@
  *   Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
  *
  * Support for Final Cartridge III extensions to c64 2.0 basic
- *   Matti 'ccr' Hämäläinen <ccr@tnsp.org>
+ *   Matti 'ccr' Hamalainen <ccr@tnsp.org>
  *
  * Support for many of the other extensions by
  *   Marco van den Heuvel <blackystardust68@yahoo.com>
+ *
+ * Various fixes and enhancements by
+ *   groepaz <groepaz@gmx.net>
+ *   Ian Coog
  *
  */
 
@@ -71,11 +75,13 @@
 #include "util.h"
 #include "vice-event.h"
 
-/* dummy functions */
+#ifdef DEBUG
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
 
-void ui_error(const char *format, ...)
-{
-}
+/* ------------------------------------------------------------------------- */
 
 #define PETCATVERSION   2.20
 #define PETCATLEVEL     1
@@ -222,14 +228,6 @@ void ui_error(const char *format, ...)
 
 /* ------------------------------------------------------------------------- */
 
-const char machine_name[] = "PETCAT";
-
-static const unsigned char MagicHeaderP00[8] = "C64File\0";
-
-/*
- * Printer's control code symbols
- */
-
 /* all numeric codes */
 static const char *hexcodes[0x100] = {
     "$00", "$01", "$02", "$03", "$04", "$05", "$06", "$07", "$08", "$09", "$0a", "$0b", "$0c", "$0d", "$0e", "$0f",
@@ -250,62 +248,21 @@ static const char *hexcodes[0x100] = {
     "$f0", "$f1", "$f2", "$f3", "$f4", "$f5", "$f6", "$f7", "$f8", "$f9", "$fa", "$fb", "$fc", "$fd", "$fe", "$ff",
 };
 
-/* 0x00 - 0x1f */
-static const char *ctrl1[0x20] = {
-    "",       "CTRL-A", "CTRL-B", "stop",   "CTRL-D", "wht",    "CTRL-F", "CTRL-G",
-    "dish",   "ensh",   "\n",     "CTRL-K", "CTRL-L", "\n",     "swlc",   "CTRL-O",
-    "CTRL-P", "down",   "rvon",   "home",   "del",    "CTRL-U", "CTRL-V", "CTRL-W",
-    "CTRL-X", "CTRL-Y", "CTRL-Z", "esc",    "red",    "rght",   "grn",    "blu"
-};
+/* ------------------------------------------------------------------------- */
 
-/* 0x80 - 0x9f */
-static const char *ctrl2[0x20] = {
-    "",     "orng", "",     "",     "",     "F1",   "F3",   "F5",
-    "F7",   "F2",   "F4",   "F6",   "F8",   "sret", "swuc", "",
-    "blk",  "up",   "rvof", "clr",  "inst", "brn",  "lred", "gry1",
-    "gry2", "lgrn", "lblu", "gry3", "pur",  "left", "yel",  "cyn"
+#if 0
+/* keys for charcodes 0x00 - 0x1f */
+static const char *ctrlkeys[0x20] = {
+    "",       "CTRL-A", "CTRL-B", "CTRL-C", "CTRL-D", "CTRL-E", "CTRL-F", "CTRL-G",
+    "CTRL-H", "CTRL-I", "CTRL-J", "CTRL-K", "CTRL-L", "CTRL-M", "CTRL-N", "CTRL-O",
+    "CTRL-P", "CTRL-Q", "CTRL-R", "CTRL-S", "CTRL-T", "CTRL-U", "CTRL-V", "CTRL-W",
+    "CTRL-X", "CTRL-Y", "CTRL-Z", "",       "CTRL-3", "",       "CTRL-6", "CTRL-7"
 };
-
-/*
- * Alternate mnemonics for control codes
- * These are used by MikroBITTI for clarification
- */
-
-/* 0x00 - 0x1f */
-const char *a_ctrl1[0x20] = {
-    "",              "",               "",       "",     "",       "wht",    "",           "",
-    "up/lo lock on", "up/lo lock off", "",       "",     "",       "return", "lower case", "",
-    "",              "down",           "rvs on", "home", "delete", "",       "",           "",
-    "",              "",               "",       "esc",  "red",    "right",  "grn",        "blu"
-};
-
-/* 0x00 - 0x1f */
-const char *b_ctrl1[0x20] = {
-    "", "", "",           "", "", "", "", "",
-    "", "", "",           "", "", "", "", "",
-    "", "", "REVERSE ON", "", "", "", "", "",
-    "", "", "",           "", "", "", "", ""
-};
-
-/* 0x20 - 0x3f */
-const char *cbmchars[0x20] = {
-    "space", "", "", "", "", "", "", "",
-    "",      "", "", "", "", "", "", "",
-    "",      "", "", "", "", "", "", "",
-    "",      "", "", "", "", "", "", ""
-};
-
-/* 0x80 - 0x9f */
-const char *a_ctrl2[0x20] = {
-    "",      "orange",   "",        "",      "",       "f1",           "f3",         "f5",
-    "f7",    "f2",       "f4",      "f6",    "f8",     "shift return", "upper case", "",
-    "blk",   "up",       "rvs off", "clear", "insert", "brown",        "lt red",     "grey1",
-    "grey2", "lt green", "lt blue", "grey3", "pur",    "left",         "yel",        "cyn"
-};
+#endif
 
 /* keys for charcodes 0xa0-0xe0 */
 static const char *cbmkeys[0x40] = {
-    "SHIFT-SPACE", "CBM-K",       "CBM-I",   "CBM-T",   "CBM-@",   "CBM-G",   "CBM-+",   "CBM-M", 
+    "SHIFT-SPACE", "CBM-K",       "CBM-I",   "CBM-T",   "CBM-@",   "CBM-G",   "CBM-+",   "CBM-M",
     "CBM-POUND",   "SHIFT-POUND", "CBM-N",   "CBM-Q",   "CBM-D",   "CBM-Z",   "CBM-S",   "CBM-P",
     "CBM-A",       "CBM-E",       "CBM-R",   "CBM-W",   "CBM-H",   "CBM-J",   "CBM-L",   "CBM-Y",
     "CBM-U",       "CBM-O",       "SHIFT-@", "CBM-F",   "CBM-C",   "CBM-X",   "CBM-V",   "CBM-B",
@@ -326,6 +283,127 @@ static const char *a_cbmkeys[0x40] = {
     "", "", "", "", "", "", "",      "",
     "", "", "", "", "", "", "CBM-^", ""
 };
+
+/* ------------------------------------------------------------------------- */
+/*
+    the following are various tables containing control codes as printed in
+    magazines and used by other programs.
+
+    note that the codes should get reproduced *exactly* as they appear in the
+    other application. if needed, new tables should be added.
+
+FIXME: These are used by MikroBITTI:
+
+These are the valid special substitions for TOK64:
+
+{clear}             {home}              {right}         {left}              {up}                {down}
+{reverse on}        {reverse off}       {black}         {white}             {red}               {cyan}
+{purple}            {green}             {blue}          {yellow}            {orange}            {brown}
+{pink}              {dark gray}         {gray}          {light green}       {light blue}        {light gray}
+{f1}                {f2}                {f3}            {f4}                {f5}                {f6}
+{f7}                {f8}                {space}         {pi}
+
+codes originally used by 64er/Checksummer v3:
+
+{DOWN}{UP}{CLR}{INST}{HOME}{DEL}{RIGHT}{LEFT}{SPACE}
+{BLACK}{WHITE}{RED}{CYAN}{PURPLE}{GREEN}{BLUE}{YELLOW}{RVSON}{RVSOFF}
+{ORANGE}{BROWN}{LIG.RED}{GREY 1}{GREY 2}{LIG.GREEN}{LIG.BLUE}{GREY 3}
+{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{RETURN}
+
+*/
+
+/* 0x00 - 0x1f (petcat) */
+static const char *ctrl1[0x20] = {
+    "",              "CTRL-A",         "CTRL-B",     "stop",   "CTRL-D", "wht",    "CTRL-F",     "CTRL-G",
+    "dish",          "ensh",           "\n",         "CTRL-K", "CTRL-L", "\n",     "swlc",       "CTRL-O",
+    "CTRL-P",        "down",           "rvon",       "home",   "del",    "CTRL-U", "CTRL-V",     "CTRL-W",
+    "CTRL-X",        "CTRL-Y",         "CTRL-Z",     "esc",    "red",    "rght",   "grn",        "blu"
+};
+
+/* 0x00 - 0x1f (FIXME: MikroBITTI) */
+const char *a_ctrl1[0x20] = {
+    "",              "",               "",           "",       "",       "WHT",    "",           "",
+    "up/lo lock on", "up/lo lock off", "",           "",       "",       "return", "lower case", "",
+    "",              "DOWN",           "RVS ON",     "HOME",   "delete", "",       "",           "",
+    "",              "",               "",           "esc",    "RED",    "RIGHT",  "GRN",        "BLU"
+};
+
+/* 0x00 - 0x1f */
+const char *b_ctrl1[0x20] = {
+    "",              "",               "",           "",       "",       "",       "",           "",
+    "",              "",               "",           "",       "",       "",       "",           "",
+    "",              "",               "REVERSE ON", "",       "",       "",       "",           "",
+    "",              "",               "",           "",       "",       "",       "",           ""
+};
+
+/* 0x00 - 0x1f (tok64) */
+const char *c_ctrl1[0x20] = {
+    "",              "",               "",           "",       "",       "white",  "",           "",
+    "",              "",               "",           "",       "",       "",       "",           "",
+    "",              "down",           "reverse on", "home",   "",       "",       "",           "",
+    "",              "",               "",           "",       "red",    "right",  "green",      "blue"
+};
+
+/* 0x00 - 0x1f (64er/checksummer v3) */
+const char *d_ctrl1[0x20] = {
+    "",              "",               "",           "",       "",       "WHITE",  "",           "",
+    "",              "",               "",           "",       "",       "RETURN", "",           "",
+    "",              "DOWN",           "RVSON",      "HOME",   "DEL",    "",       "",           "",
+    "",              "",               "",           "",       "RED",    "RIGHT",  "GREEN",      "BLUE"
+};
+
+/* ------------------------------------------------------------------------- */
+
+/* 0x20 - 0x3f (petcat, tok64) */
+const char *cbmchars[0x20] = {
+    "space", "", "", "", "", "", "", "",
+    "",      "", "", "", "", "", "", "",
+    "",      "", "", "", "", "", "", "",
+    "",      "", "", "", "", "", "", ""
+};
+
+/* 0x20 - 0x3f (64er/Checksummer v3) */
+const char *a_cbmchars[0x20] = {
+    "SPACE", "", "", "", "", "", "", "",
+    "",      "", "", "", "", "", "", "",
+    "",      "", "", "", "", "", "", "",
+    "",      "", "", "", "", "", "", ""
+};
+
+/* ------------------------------------------------------------------------- */
+
+/* 0x80 - 0x9f (petcat) */
+static const char *ctrl2[0x20] = {
+    "",     "orng",         "",            "",           "",       "f1",           "f3",         "f5",
+    "f7",   "f2",           "f4",          "f6",         "f8",     "sret",         "swuc",       "",
+    "blk",  "up",           "rvof",        "clr",        "inst",   "brn",          "lred",       "gry1",
+    "gry2", "lgrn",         "lblu",        "gry3",       "pur",    "left",         "yel",        "cyn"
+};
+
+/* 0x80 - 0x9f (FIXME: MikroBITTI) */
+const char *a_ctrl2[0x20] = {
+    "",      "orange",      "",            "",           "",       "F1",           "F3",         "F5",
+    "F7",    "F2",          "F4",          "F6",         "F8",     "shift return", "upper case", "",
+    "BLK",   "UP",          "RVS OFF",     "CLR",        "insert", "BROWN",        "LT.RED",     "GREY1",
+    "GREY2", "lt green",    "LT.BLUE",     "GREY3",      "PUR",    "LEFT",         "YEL",        "cyn"
+};
+
+/* 0x80 - 0x9f (tok64) */
+const char *b_ctrl2[0x20] = {
+    "",      "orange",      "",            "",           "",        "f1",          "f3",         "r5",
+    "f7",    "f2",          "f4",          "f6",         "f8",      "",            "",           "",
+    "black", "up",          "reverse off", "clear",      "",        "brown",       "pink",       "dark gray",
+    "gray",  "light green", "light blue",  "light gray", "purple",  "left",        "yellow",     "cyan",
+};
+/* 0x80 - 0x9f (64er/Checksummer v3) */
+const char *c_ctrl2[0x20] = {
+    "",      "ORANGE",      "",            "",           "",        "F1",          "F3",         "F5",
+    "F7",    "F2",          "F4",          "F6",         "F8",      "",            "",           "",
+    "BLACK", "UP",          "RVSOFF",      "CLR",        "INST",    "BROWN",       "LIG.RED",    "GREY 1",
+    "GREY 2","LIG.GREEN",   "LIG.BLUE",    "GREY 3",     "PURPLE",  "LEFT",        "YELLOW",     "CYAN",
+};
+
+/* ------------------------------------------------------------------------- */
 
 #define NUM_VERSIONS  35
 
@@ -375,13 +453,11 @@ const char *VersNames[] = {
     ""
 };
 
-
 /*
  * Two BASIC tokens which need some special care
  */
 #define TOKEN_REM  (0x8F - 0x80)
 #define TOKEN_DATA (0x83 - 0x80)
-
 
 /*
  * CBM Basic Keywords
@@ -581,7 +657,7 @@ const char *warsawkwdb[] = {
 };
 
 
-/* @Basic (Atbasic) Keywords (Tokens CC - F6) -- André Fachat */
+/* @Basic (Atbasic) Keywords (Tokens CC - F6) -- Andre Fachat */
 
 const char *atbasickwcc[] = {
     "trace",  "delete",  "auto",      "old",     "dump",    "find",    "renumber", "dload",
@@ -769,7 +845,7 @@ const char *simonskw[] = {
 };
 
 
-/* Final Cartridge III Keywords -- Matti 'ccr' Hämäläinen */
+/* Final Cartridge III Keywords -- Matti 'ccr' Hamalainen */
 
 const char *fc3kw[] = {
     "off",     "auto",  "del",     "renum",   "?ERROR?", "find", "old",   "dload",
@@ -804,6 +880,7 @@ const char *supergrakw[] = {
 
 /* ------------------------------------------------------------------------- */
 
+static void usage(char *progname);
 static int parse_version(char *str);
 static void list_keywords(int version);
 static void pet_2_asc (int ctrls);
@@ -817,39 +894,15 @@ static int sstrcmp_codes(unsigned char *line, const char **wordlist, int token, 
 /* ------------------------------------------------------------------------- */
 
 static FILE *source, *dest;
-static int kwlen = 0;
+static unsigned int kwlen = 0;
 static int codesnocase = 0; /* flag, =1 if controlcodes should be interpreted case insensitive */
+static int dec = 0;         /* flag, =1 if output control codes in decimal */
+static int verbose = 0;     /* flag, =1 for verbose output */
 
-/* dummy functions */
-int cmdline_register_options(const cmdline_option_t *c)
-{
-    return 0;
-}
-
-int network_connected(void)
-{
-    return 0;
-}
-
-int network_get_mode(void)
-{
-    return NETWORK_IDLE;
-}
-
-void network_event_record(unsigned int type, void *data, unsigned int size)
-{
-}
-
-void event_record_in_list(event_list_state_t *list, unsigned int type, void *data, unsigned int size)
-{
-}
+static const unsigned char MagicHeaderP00[8] = "C64File\0";
 
 /* ------------------------------------------------------------------------- */
 
-/*
-29/01/2009 gpz
-- added -ic option
-*/
 int main(int argc, char **argv)
 {
     char *progname, *outfilename = NULL;
@@ -870,6 +923,10 @@ int main(int argc, char **argv)
             --argc;
             ++argv;
             break;
+        }
+        if (!strcmp(argv[0], "-v")) {
+            verbose = 1;
+            continue;
         }
 
         if (!strcmp(argv[0], "-l")) {           /* load address */
@@ -893,6 +950,11 @@ int main(int argc, char **argv)
                 ctrls = 0;
                 continue;
             }
+        }
+
+        if (!strcmp(argv[0], "-d")) {
+            dec = 1;
+            continue;
         }
 
         if (!strcmp(argv[0], "-h")) {
@@ -925,11 +987,7 @@ int main(int argc, char **argv)
         } else if (!strcmp(argv[0], "-text")) {   /* force text mode */
             ++textmode;
             continue;
-        } else if (!strcmp(argv[0], "-help") || !strncmp(argv[0], "-v", 2)) {  /* version ID */
-            fprintf(stdout,
-                    "\n\t%s V%4.2f PL %d -- Basic list/crunch utility.\n\tPart of "PACKAGE " "VERSION "\n",
-                    progname, (float)PETCATVERSION, PETCATLEVEL );
-
+        } else if (!strcmp(argv[0], "-help") || !strncmp(argv[0], "-?", 2)) {  /* version ID */
             /* Fall to error for Usage */
 
             /* Basic version */
@@ -945,86 +1003,11 @@ int main(int argc, char **argv)
             continue;
         }
 
-        fprintf(stdout,
-                "\nUsage: %7s  [-c | -nc]  [-h | -nh]  [-text | -<version> | -w<version>]"
-                "\n\t\t[-skip <bytes>] [-l <hex>]  [--] [file list]\n\t\t[-k[<version>]]\n",
-                progname);
-
-        fprintf(stdout, "\n"
-                "   -help\tOutput this help screen here\n"
-                "   -v\t\tSame as above\n"
-                "   -c\t\tcontrols (interpret also control codes) <default if textmode>\n"
-                "   -nc\t\tno controls (suppress control codes in printout)\n"
-                "   \t\t<default if non-textmode>\n"
-                "   -ic\t\tinterpret control codes case-insensitive\n"
-                "   -h\t\twrite header <default if output is stdout>\n"
-                "   -nh\t\tno header <default if output is a file>\n"
-                "   -skip <n>\tSkip <n> bytes in the beginning of input file. Ignored on P00.\n"
-                "   -text\tForce text mode\n"
-                "   -<version>\tuse keywords for <version> instead of the v7.0 ones\n"
-                "   -w<version>\ttokenize using keywords on specified Basic version.\n"
-                "   -k<version>\tlist all keywords for the specified Basic version\n"
-                "   -k\t\tlist all Basic versions available.\n"
-                "   -l\t\tSpecify load address for program (in hex, no leading chars!).\n"
-                "   -o <name>\tSpecify the output file name\n"
-                "   -f\t\tForce overwritten the output file\n"
-                "   \t\tThe default depends on the BASIC version.\n");
-
-        fprintf(stdout, "\n\tVersions:\n"
-                "\t1\tPET Basic V1.0\n"
-                "\t2\tBasic v2.0\n"
-                "\tsuperexp\tBasic v2.0 with Super Expander (VIC20)\n"
-                "\tturtle\tBasic v2.0 with Turtle Basic by Craig Bruce (VIC20)\n"
-                "\tmighty\tBasic v2.0 with Mighty Basic by Craig Bruce (VIC20)\n"
-                "\ta\tBasic v2.0 with AtBasic (C64)\n"
-                "\tsimon\tBasic v2.0 with Simon's Basic extension (C64)\n"
-                "\tspeech\tBasic v2.0 with Speech Basic v2.7 (C64)\n"
-                "\tF\tBasic v2.0 with Final Cartridge III (C64)\n"
-                "\tultra\tBasic v2.0 with Ultrabasic-64 (C64)\n"
-                "\tgraph\tBasic v2.0 with Graphics basic (C64)\n"
-                "\tWSB\tBasic v2.0 with WS basic (C64)\n"
-                "\tWSBF\tBasic v2.0 with WS basic final (C64)\n"
-                "\tPegasus\tBasic v2.0 with Pegasus basic 4.0 (C64)\n"
-                "\tXbasic\tBasic v2.0 with Xbasic (C64)\n"
-                "\tDrago\tBasic v2.0 with Drago basic 2.2 (C64)\n"
-                "\tREU\tBasic v2.0 with REU-basic (C64)\n"
-                "\tLightning\tBasic v2.0 with Basic Lightning (C64)\n"
-                "\tmagic\tBasic v2.0 with Magic Basic (C64)\n"
-                "\teasy\tBasic v2.0 with Easy Basic (VIC20)\n"
-                "\tblarg\tBasic v2.0 with Blarg (C64)\n"
-                "\tGame\tBasic v2.0 with Game Basic (C64)\n"
-                "\tBSX\tBasic v2.0 with Basex (C64)\n"
-                "\tsuperbas\tBasic v2.0 with Super Basic (C64)\n"
-                "\texp20\tBasic 2.0 with Expanded Basic (VIC20)\n"
-                "\texp64\tBasic 2.0 with Expanded Basic (C64)\n"
-                "\tsxc\tBasic 2.0 with Super Expander Chip (C64)\n"
-                "\twarsaw\tBasic 2.0 with Warsaw Basic (C64)\n"
-                "\t4v\tBasic 2.0 with Basic 4.0 extensions (VIC20)\n"
-                "\t4 -w4e\tPET Basic v4.0 program (PET/C64)\n"
-                "\t5\tBasic 2.0 with Basic 5.0 extensions (VIC20)\n"
-                "\t3\tBasic v3.5 program (C16)\n"
-                "\t70\tBasic v7.0 program (C128)\n"
-                "\t71\tBasic v7.1 program (C128)\n"
-                "\t10\tBasic v10.0 program (C64DX)\n"
-                "\tsupergra\tBasic v2.0 with Supergrafik 64 (C64)\n\n");
-
-        fprintf(stdout, "\tUsage examples:\n"
-                "\tpetcat -2 -o outputfile.txt -- inputfile.prg\n"
-                "\t\tDe-tokenize, convert inputfile.prg to a text file\n"
-                "\t\tin outputfile.txt, using BASIC V2 only\n"
-                "\tpetcat -wsimon -o outputfile.prg -- inputfile.txt\n"
-                "\t\tTokenize, convert inputfile.txt to a PRG file\n"
-                "\t\tin outputfile.prg, using Simon's BASIC\n"
-                "\tpetcat -text -o outputfile.txt -- inputfile.seq\n"
-                "\t\tConvert inputfile.seq to a Ascii text file\n"
-                "\t\tin outputfile.txt.\n"
-                "\tpetcat -text -w2 -o outputfile.seq -- inputfile.txt\n"
-                "\t\tConvert inputfile.txt to a Petscii text SEQ file\n"
-                "\t\tin outputfile.seq.\n");
+        usage(progname);
         exit(1);
     }
 
-/*
+/******************************************************************************
  * Check parameters
  */
 
@@ -1091,14 +1074,16 @@ int main(int argc, char **argv)
         }
     }
 
-    if (wr_mode) {
-        if (!textmode) {
-            fprintf(stderr, "\nLoad address %04x\n", load_addr);
-            if ((load_addr & 255) != 1) {
-                fprintf (stderr, "Warning: odd load address (are you sure?)\n");
+    if (verbose) {
+        if (wr_mode) {
+            if (!textmode) {
+                fprintf(stderr, "\nLoad address %04x\n", load_addr);
+                if ((load_addr & 255) != 1) {
+                    fprintf (stderr, "Warning: odd load address (are you sure?)\n");
+                }
             }
+            fprintf(stderr, "Control code set: %s\n\n", (ctrls ? "enabled" : "disabled"));
         }
-        fprintf(stderr, "Control code set: %s\n\n", (ctrls ? "enabled" : "disabled"));
     }
 
     /*
@@ -1158,7 +1143,7 @@ int main(int argc, char **argv)
                 p_tokenize(version, load_addr, ctrls);
             }
         } else {
-            if (hdr) { /* iAN: name as comment when using petcat name.prg > name.txt */
+            if (hdr) { /* name as comment when using petcat name.prg > name.txt */
                 fprintf(dest, "\n\n;%s ", (fil ? argv[0] : "<stdin>"));
             }
 
@@ -1178,8 +1163,6 @@ int main(int argc, char **argv)
 
                 pet_2_asc(ctrls);
             } else {
-                /* get load address */
-                /* iAN: load_addr split into 2 lines, when compiled with VC7.1 I got ==0108== instead of ==0801== !! */
                 load_addr = (getc(source) & 0xff);
                 load_addr |= (getc(source) & 0xff) << 8;
                 if (hdr) {
@@ -1212,10 +1195,93 @@ int main(int argc, char **argv)
     return(0);
 }
 
+/* ------------------------------------------------------------------------- */
+void usage(char *progname)
+{
+    fprintf(stdout,
+            "\n\t%s V%4.2f PL %d -- Basic list/crunch utility.\n\tPart of "PACKAGE " "VERSION "\n",
+            progname, (float)PETCATVERSION, PETCATLEVEL );
+
+    fprintf(stdout,
+            "\nUsage: %7s  [-c | -nc]  [-h | -nh]  [-text | -<version> | -w<version>]"
+            "\n\t\t[-skip <bytes>] [-l <hex>]  [--] [file list]\n\t\t[-k[<version>]]\n",
+            progname);
+
+    fprintf(stdout, "\n"
+            "   -help -?\tOutput this help screen here\n"
+            "   -v\t\tverbose output\n"
+            "   -c\t\tcontrols (interpret also control codes) <default if textmode>\n"
+            "   -nc\t\tno controls (suppress control codes in printout)\n"
+            "   \t\t<default if non-textmode>\n"
+            "   -ic\t\tinterpret control codes case-insensitive\n"
+            "   -d\t\toutput raw codes in decimal\n"
+            "   -h\t\twrite header <default if output is stdout>\n"
+            "   -nh\t\tno header <default if output is a file>\n"
+            "   -skip <n>\tSkip <n> bytes in the beginning of input file. Ignored on P00.\n"
+            "   -text\tForce text mode\n"
+            "   -<version>\tuse keywords for <version> instead of the v7.0 ones\n"
+            "   -w<version>\ttokenize using keywords on specified Basic version.\n"
+            "   -k<version>\tlist all keywords for the specified Basic version\n"
+            "   -k\t\tlist all Basic versions available.\n"
+            "   -l\t\tSpecify load address for program (in hex, no leading chars!).\n"
+            "   -o <name>\tSpecify the output file name\n"
+            "   -f\t\tForce overwritten the output file\n"
+            "   \t\tThe default depends on the BASIC version.\n");
+
+    fprintf(stdout, "\n\tVersions:\n"
+            "\t1\tPET Basic V1.0\n"
+            "\t2\tBasic v2.0\n"
+            "\tsuperexp\tBasic v2.0 with Super Expander (VIC20)\n"
+            "\tturtle\tBasic v2.0 with Turtle Basic by Craig Bruce (VIC20)\n"
+            "\tmighty\tBasic v2.0 with Mighty Basic by Craig Bruce (VIC20)\n"
+            "\ta\tBasic v2.0 with AtBasic (C64)\n"
+            "\tsimon\tBasic v2.0 with Simon's Basic extension (C64)\n"
+            "\tspeech\tBasic v2.0 with Speech Basic v2.7 (C64)\n"
+            "\tF\tBasic v2.0 with Final Cartridge III (C64)\n"
+            "\tultra\tBasic v2.0 with Ultrabasic-64 (C64)\n"
+            "\tgraph\tBasic v2.0 with Graphics basic (C64)\n"
+            "\tWSB\tBasic v2.0 with WS basic (C64)\n"
+            "\tWSBF\tBasic v2.0 with WS basic final (C64)\n"
+            "\tPegasus\tBasic v2.0 with Pegasus basic 4.0 (C64)\n"
+            "\tXbasic\tBasic v2.0 with Xbasic (C64)\n"
+            "\tDrago\tBasic v2.0 with Drago basic 2.2 (C64)\n"
+            "\tREU\tBasic v2.0 with REU-basic (C64)\n"
+            "\tLightning\tBasic v2.0 with Basic Lightning (C64)\n"
+            "\tmagic\tBasic v2.0 with Magic Basic (C64)\n"
+            "\teasy\tBasic v2.0 with Easy Basic (VIC20)\n"
+            "\tblarg\tBasic v2.0 with Blarg (C64)\n"
+            "\tGame\tBasic v2.0 with Game Basic (C64)\n"
+            "\tBSX\tBasic v2.0 with Basex (C64)\n"
+            "\tsuperbas\tBasic v2.0 with Super Basic (C64)\n"
+            "\texp20\tBasic 2.0 with Expanded Basic (VIC20)\n"
+            "\texp64\tBasic 2.0 with Expanded Basic (C64)\n"
+            "\tsxc\tBasic 2.0 with Super Expander Chip (C64)\n"
+            "\twarsaw\tBasic 2.0 with Warsaw Basic (C64)\n"
+            "\t4v\tBasic 2.0 with Basic 4.0 extensions (VIC20)\n"
+            "\t4 -w4e\tPET Basic v4.0 program (PET/C64)\n"
+            "\t5\tBasic 2.0 with Basic 5.0 extensions (VIC20)\n"
+            "\t3\tBasic v3.5 program (C16)\n"
+            "\t70\tBasic v7.0 program (C128)\n"
+            "\t71\tBasic v7.1 program (C128)\n"
+            "\t10\tBasic v10.0 program (C64DX)\n"
+            "\tsupergra\tBasic v2.0 with Supergrafik 64 (C64)\n\n");
+
+    fprintf(stdout, "\tUsage examples:\n"
+            "\tpetcat -2 -o outputfile.txt -- inputfile.prg\n"
+            "\t\tDe-tokenize, convert inputfile.prg to a text file\n"
+            "\t\tin outputfile.txt, using BASIC V2 only\n"
+            "\tpetcat -wsimon -o outputfile.prg -- inputfile.txt\n"
+            "\t\tTokenize, convert inputfile.txt to a PRG file\n"
+            "\t\tin outputfile.prg, using Simon's BASIC\n"
+            "\tpetcat -text -o outputfile.txt -- inputfile.seq\n"
+            "\t\tConvert inputfile.seq to a Ascii text file\n"
+            "\t\tin outputfile.txt.\n"
+            "\tpetcat -text -w2 -o outputfile.seq -- inputfile.txt\n"
+            "\t\tConvert inputfile.txt to a Petscii text SEQ file\n"
+            "\t\tin outputfile.seq.\n");
+}
 
 /* ------------------------------------------------------------------------- */
-
-
 /* Parse given version name and return its code, or -1 if not recognized. */
 
 static int parse_version(char *str)
@@ -1702,6 +1768,15 @@ static void pet_2_asc(int ctrls)
     - petscii codes (*) 0xff, 0x7e and 0xde (PI) produces the same screencode
     
  ******************************************************************************/
+static void out_ctrl(unsigned char c)
+{
+    if (dec) {
+        fprintf(dest, CLARIF_LP_ST "%03d" CLARIF_RP_ST, c);
+    } else {
+        fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c);
+    }
+}
+
 static void _p_toascii(int c, int ctrls)
 {
     /* fprintf(stderr, "<%02x:%d>", c, ctrls); */
@@ -1711,7 +1786,7 @@ static void _p_toascii(int c, int ctrls)
             if (!ctrls) {
                 fputc('\n', dest);
             } else {
-                fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+                out_ctrl((unsigned char)(c & 0xff));
             }
             break;
         case 0x0d: /* CBM carriage return */
@@ -1736,7 +1811,7 @@ static void _p_toascii(int c, int ctrls)
             fputc('_', dest);
             break;
         case 0x60: /* produces the same screencode as $c0! */
-            fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+            out_ctrl((unsigned char)(c & 0xff));
             break;
 
         case 0x7b: /* produces the same screencode as $db! */
@@ -1744,7 +1819,7 @@ static void _p_toascii(int c, int ctrls)
         case 0x7d: /* produces the same screencode as $dd! */
         case 0x7e: /* PI produces the same screencode as $de! */
         case 0x7f: /* produces the same screencode as $df! */
-            fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff); /* shift+arrow up */
+            out_ctrl((unsigned char)(c & 0xff)); /* shift+arrow up */
             break;
 
         case 0xc0:
@@ -1760,7 +1835,7 @@ static void _p_toascii(int c, int ctrls)
             fprintf(dest, CLARIF_LP_ST "SHIFT--" CLARIF_RP_ST);
             break;
         case 0xde: /* PI produces the same screencode as $7e and $ff! */
-            fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+            out_ctrl((unsigned char)(c & 0xff));
             break;
         case 0xdf: /* (*) produces the same screencode as $7f! */
             fprintf(dest, CLARIF_LP_ST "CBM-*" CLARIF_RP_ST);
@@ -1771,7 +1846,7 @@ static void _p_toascii(int c, int ctrls)
             if (!ctrls) {
                 fputc(' ', dest);
             } else {
-                fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+                out_ctrl((unsigned char)(c & 0xff));
             }
             break;
         case 0xff: /* (*) PI produces the same screencode as $7e and $de! */
@@ -1785,7 +1860,7 @@ static void _p_toascii(int c, int ctrls)
                     break;
                 case 0x60:                /* 61 - 7F (produces same screencodes as C1...) */
                     if (ctrls) {
-                        fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+                        out_ctrl((unsigned char)(c & 0xff));
                     } else {
                         fputc(c ^ 0x20, dest);
                     }
@@ -1794,7 +1869,7 @@ static void _p_toascii(int c, int ctrls)
                     fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, cbmkeys[c & 0x1f]);
                     break;
                 case 0xe0:                /* E1 - FE (produces same screencodes as A1...) */
-                    fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+                    out_ctrl((unsigned char)(c & 0xff));
                     break;
                 case 0xc0:                /* (*) C0 - DF (produces same screencodes as 61...) */
                     fputc(c ^ 0x80, dest);
@@ -1809,7 +1884,7 @@ static void _p_toascii(int c, int ctrls)
                         } else if ((c > 0x7f) && (c < 0xa0) && *ctrl2[c & 0x1f]) {
                             fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, ctrl2[c & 0x1f]);
                         } else {
-                            fprintf(dest, CLARIF_LP_ST "$%02x" CLARIF_RP_ST, c & 0xff);
+                            out_ctrl((unsigned char)(c & 0xff));
                         }
                     }  /* ctrls */
             }  /* switch */
@@ -1832,7 +1907,31 @@ static int _a_topetscii(int c, int ctrls)
     return c;
 }
 
+/* read a decimal integer from string. we do it in a seperate function because
+ * of the ugly GEMDOS hack */
+static int scan_integer(const char *line, unsigned int *num, unsigned int *digits)
+{
+#ifdef GEMDOS
+    *digits = 0;
+    if (sscanf(line, "%d", num) == 1) {
+        while (isspace(*line) || isdigit(*line)) {
+            line++;
+            (*digits)++;
+        }
+        return *digits;
+    }
+#else
+    if (sscanf(line, "%d%n", num, digits) == 1) {
+        return *digits;
+    }
+#endif
+    return 0;
+}
+
+/* ------------------------------------------------------------------------- */
 /*
+ * convert basic (and petscii) to ascii (text)
+ *
  * This routine starts from the beginning of Basic, and not from the
  * load address included on program files. That way it can list from
  * RAM dump.
@@ -2119,34 +2218,14 @@ static int p_expand(int version, int addr, int ctrls)
         fprintf(dest, "\n");
     }      /* line */
 
-#ifdef DEBUG
-    fprintf(stderr, "\n c %02x  EOF %d  *line %d  sysflg %d\n", c, feof(source), *line, sysflg);
-#endif
+    DBG(("\n c %02x  EOF %d  *line %d  sysflg %d\n", c, feof(source), *line, sysflg));
 
     return (!feof(source) && (*line | line[1]) && sysflg);
 }
 
-/*
-03/09/2006 gpz:
-- changed to output tokenized line into a second buffer instead of
-  putting the tokens back in the input buffer. i wonder how this ever
-  worked, control codes with a reasonable high repeatcount made
-  previous versions of petcat segfault (or with luck, output trash)
-- added error message when there is an unknown controlcode inside braces
-*/
+/* ------------------------------------------------------------------------- */
+/* convert ascii (basic) to tokenized basic (and petscii) */
 
-/*
-29/01/2009 gpz:
-- raised length of input buffer from 256 to 256*8
-
-   the line may contain 256 _basic tokens_, some of which may either be
-   represented as literal basic commands or as petsciicodes in braces -
-   either of these representations is a few characters long so the input
-   buffer must consider this
-
-   note: this is still ugly =P
-- added recognition of control codes in the form {123} (decimal number)
-*/
 #define MAX_INLINE_LEN  (256 * 8)
 #define MAX_OUTLINE_LEN 256
 
@@ -2157,17 +2236,16 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
     unsigned char *p1, *p2, quote;
     int c;
     unsigned char rem_data_mode, rem_data_endchar = '\0';
-    int len = 0, match;
+    unsigned int len = 0, match;
     unsigned int linum = 10;
 
+    /* put start address to output file */
     fprintf(dest, "%c%c", (addr & 255), ((addr >> 8) & 255));
 
     /* Copies from p2 to p1 */
 
     while ((p2 = (unsigned char *)fgets(line, MAX_INLINE_LEN, source)) != NULL) {
-        /*
-        iAN: skip comment line when starting with ";"
-        */
+        /* skip comment line when starting with ";" */
         if (*line == ';') {
             continue;
         }
@@ -2175,21 +2253,10 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
         memset(tokenizedline, 0, MAX_OUTLINE_LEN);
         p1 = (unsigned char *)tokenizedline;
 
-#ifndef GEMDOS
-        if (sscanf(line, "%d%n", &linum, &len) == 1) {
-            p2 += len;
-        }
-#else
-        if (sscanf(line, "%d", &linum) == 1) {
-            while (isspace(*p2) || isdigit(*p2)) {
-                p2++;
-            }
-        }
-#endif
+        p2 += scan_integer(line, &linum, &len); /* read decimal from "line" into "linum" */
 
-#ifdef DEBUG
-        fprintf(stderr, "line: %d [%s]\n", linum, line);
-#endif
+        DBG(("line: %d [%s]\n", linum, line));
+
         quote = 0;
         rem_data_mode = 0;
         while (isspace(*p2)) {
@@ -2216,42 +2283,30 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                     unsigned char *p;
                     p = p2;
 
-#ifdef DEBUG
-                    fprintf(stderr, "controlcode start: %c\n", *p2);
-#endif
+                    DBG(("controlcode start: %c\n", *p2));
 
                     /* repetition count */
                     len = 1;
-#ifndef GEMDOS
-                    if (sscanf((char *)++p, "%d%n", &len, &kwlen) == 1) {
+                    if (scan_integer((char *)++p, &len, &kwlen) > 0) {
                         p += kwlen;
-#else
-                    if (sscanf(++p, "%d", &len) == 1) {
-                        while (isspace(*p) || isdigit(*p)) {
-                            p++;
-                        }
-#endif
 
-#ifdef DEBUG
-                        fprintf(stderr, "controlcode repeat count: len:%d kwlen:%d\n", len, kwlen);
-#endif
                         /* if we are already at the closing brace, then the previous
                            value wasnt the repeat count but an actual decimal charactercode */
                         if (*p == CLARIF_RP) {
-                            *p1++ = len;
-                            p2 = p + (++kwlen);
+                            *p1++ = len; /* put charcode into output */
+                            p2 = p + 1; /* skip the closing brace in input */
+                            DBG(("controlcode was a decimal character code: {%d}\n", len));
                             continue;
                         }
 
+                        DBG(("controlcode repeat count: len:%d kwlen:%d\n", len, kwlen));
 
                         if (*p == ' ') {
                             ++p;
                         }
                     }
 
-#ifdef DEBUG
-                    fprintf(stderr, "controlcode test: %s\n", p);
-#endif
+                    DBG(("controlcode test: %s\n", p));
 
                     if (
                         (
@@ -2260,13 +2315,18 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                             ((c = sstrcmp_codes(p, ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
                             ((c = sstrcmp_codes(p, a_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
                             ((c = sstrcmp_codes(p, b_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+                            ((c = sstrcmp_codes(p, c_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+                            ((c = sstrcmp_codes(p, d_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
 
-                            ((((c = sstrcmp_codes(p, cbmchars, 0, 0x20)) != CODE_NONE) /* 0x20-0x3f */
+                            ((((c = sstrcmp_codes(p, cbmchars, 0, 0x20)) != CODE_NONE) || /* 0x20-0x3f */
+                              ((c = sstrcmp_codes(p, a_cbmchars, 0, 0x20)) != CODE_NONE) /* 0x20-0x3f */
                               ) && (c += 0x20)) ||
 
                             ((((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
-                              ((c = sstrcmp_codes(p, a_ctrl2, 0, 0x20)) != CODE_NONE)
-                              ) && (c += 0x80)) ||
+                              ((c = sstrcmp_codes(p, a_ctrl2, 0, 0x20)) != CODE_NONE) ||
+                              ((c = sstrcmp_codes(p, b_ctrl2, 0, 0x20)) != CODE_NONE) ||
+                              ((c = sstrcmp_codes(p, c_ctrl2, 0, 0x20)) != CODE_NONE)
+                             ) && (c += 0x80)) ||
 
                             ((((c = sstrcmp_codes(p, cbmkeys, 0, 0x40)) != CODE_NONE) ||
                               ((c = sstrcmp_codes(p, a_cbmkeys, 0, 0x40)) != CODE_NONE)
@@ -2275,37 +2335,25 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
                         )
                         ) {
-#ifdef DEBUG
-                        fprintf(stderr, "controlcode test 2: %c %s %d\n", p[kwlen], p, kwlen);
-#endif
+
+                        DBG(("controlcode test 2: '%c' '%s' '%d'\n", p[kwlen], p, kwlen));
+
                         if (p[kwlen] == '*') {
                             /* repetition count */
                             p += (kwlen);
 
-#ifdef DEBUG
-                            fprintf(stderr, "controlcode test rpt: %s\n", p);
-#endif
-                            len = 1;
-#ifndef GEMDOS
-                            if (sscanf((char *)++p, "%d%n", &len, &kwlen) == 1) {
-                                p += kwlen;
-#else
-                            if (sscanf(++p, "%d", &len) == 1) {
-                                while (isspace(*p) || isdigit(*p)) {
-                                    p++;
-                                }
-#endif
+                            DBG(("controlcode test rpt: %s\n", p));
 
-#ifdef DEBUG
-                                fprintf(stderr, "controlcode repeat count: len:%d kwlen:%d\n", len, kwlen);
-#endif
+                            len = 1;
+
+                            if (scan_integer((char *)++p, &len, &kwlen) > 0) {
+                                p += kwlen;
+                                DBG(("controlcode repeat count: len:%d kwlen:%d\n", len, kwlen));
                                 kwlen = 0;
                             }
                         }
 
-#ifdef DEBUG
-                        fprintf(stderr, "controlcode test 3: %c %s %d\n", p[0], p, kwlen);
-#endif
+                        DBG(("controlcode test 3: '%c' '%s' '%d'\n", p[0], p, kwlen));
 
                         if (p[kwlen] == CLARIF_RP) {
                             for (; len-- > 0; ) {
@@ -2313,10 +2361,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                             }
                             p2 = p + (++kwlen);
 
-#ifdef DEBUG
-                            fprintf(stderr, "controlcode continue\n");
-#endif
-
+                            DBG(("controlcode continue\n"));
                             continue;
                         }
                     }
@@ -2324,9 +2369,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                     fprintf(stderr, "error: line %d - unknown control code: %s\n", linum, p);
                     exit(-1);
                 }
-#ifdef DEBUG
-/*	fprintf(stderr,"controlcode end\n"); */
-#endif
+/*	    DBG(("controlcode end\n")); */
             } else if (rem_data_mode) {
                 /* if we have already encountered a REM or a DATA,
                    simply copy the char */
@@ -2390,20 +2433,20 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                 /* Common Keywords
                  * Note:  ~ (pi) is tested later */
 
-
                 if (!match) {
                     int max;
 
                     if (version == B_1) {
                         max = NUM_B_1;
-                    } else if (version == B_35 || version == B_7 || version == B_71 || version == B_10 || version == B_SXC) {
+                    } else if ((version == B_35) || (version == B_7) || (version == B_71) ||
+                               (version == B_10) || (version == B_SXC)) {
                         max = 0x7E;
                     } else {
                         max = NUM_COMM;
                     }
 
                     if ((c = sstrcmp(p2, keyword, 0, max)) != KW_NONE) {
-                        if (version == B_35 || c != 0x4e) {  /* Skip prefix */
+                        if ((version == B_35) || (c != 0x4e)) {  /* Skip prefix */
                             *p1++ = c | 0x80;
                             p2 += kwlen;
                             match++;
@@ -2524,9 +2567,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
                         case B_4:
                         case B_4E:
-                            if ((c = sstrcmp(p2, petkwcc, 0,
-                                             ((version == B_4) ? NUM_V4CC : NUM_4ECC)))
-                                != KW_NONE) {
+                            if ((c = sstrcmp(p2, petkwcc, 0, ((version == B_4) ? NUM_V4CC : NUM_4ECC))) != KW_NONE) {
                                 *p1++ = c + 0xcc;
                                 p2 += kwlen;
                                 match++;
@@ -2678,160 +2719,130 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
             } /* match */
         } /* while */
 
-#ifdef DEBUG
-        fprintf(stderr, "output line start: %s\n", line);
-        /*  fprintf(stderr,"output line petscii: %s\n", tokenizedline); */
-#endif
+        DBG(("output line start: %s\n", line));
+        /*  DBG(("output line petscii: %s\n", tokenizedline)); */
 
         *p1 = 0;
         if ((len = (int)strlen(tokenizedline)) > 0) {
-            addr += len + 5;
+            addr += (len + 5);
             fprintf(dest, "%c%c%c%c%s%c", addr & 255, (addr >> 8) & 255,
                     linum & 255, (linum >> 8) & 255, tokenizedline, '\0');
 
             linum += 2; /* auto line numbering by default */
         }
 
-#ifdef DEBUG
-        fprintf(stderr, "output line end\n");
-#endif
+        DBG(("output line end\n"));
     } /* while */
 
     fprintf(dest, "%c%c", 0, 0);        /* program end marker */
 }
 
-
+/* ------------------------------------------------------------------------- */
+/* convert ascii (text) to petscii */
 static void asc_2_pet(int ctrls)
 {
     static unsigned char line[MAX_INLINE_LEN + 1];
     int c, d;
-    int len = 0;
+    unsigned int len = 0;
 
     /* Copies from p2 to p1 */
     while ((c = fgetc(source)) != EOF) {
+        /* control code evaluation */
+        if (ctrls && (c == CLARIF_LP)) {
+            unsigned char *p;
+            int pos;
+            pos = ftell(source);
+            if (fread(line, 1, 0x20, source) < 1) {
+                break;
+            }
+            p = line;
 
-            {
-                /* control code evaluation */
+            DBG(("asc_2_pet controlcode start: %c\n", c));
 
-                if (ctrls && (c == CLARIF_LP)) {
-                    unsigned char *p;
-                    int pos;
-                    pos = ftell(source);
-                    if (fread(line, 1, 0x20, source) < 1) {
-                        break;
-                    }
-                    p = line;
-#ifdef DEBUG
-                    fprintf(stderr, "controlcode start: %c\n", c);
-#endif
+            /* repetition count */
+            len = 1;
+            if (scan_integer((char *)p, &len, &kwlen) > 0) {
+                p += kwlen;
+                /* if we are already at the closing brace, then the previous
+                    value wasnt the repeat count but an actual decimal charactercode */
+                if (*p == CLARIF_RP) {
+                    fputc(len, dest); /* output character */
+                    fseek(source, pos + kwlen + 1, SEEK_SET);
+                    continue;
+                }
 
-                    /* repetition count */
-                    len = 1;
-#ifndef GEMDOS
-                    if (sscanf((char *)p, "%d%n", &len, &kwlen) == 1) {
-                        p += kwlen;
-#else
-                    if (sscanf(p, "%d", &len) == 1) {
-                        while (isspace(*p) || isdigit(*p)) {
-                            p++;
-                        }
-#endif
+                DBG(("asc_2_pet controlcode repeat count: len:%d kwlen:%d\n", len, kwlen));
 
-#ifdef DEBUG
-                        fprintf(stderr, "controlcode repeat count: len:%d kwlen:%d\n", len, kwlen);
-#endif
-                        /* if we are already at the closing brace, then the previous
-                           value wasnt the repeat count but an actual decimal charactercode */
-                        if (*p == CLARIF_RP) {
-                            fputc(len, dest);
-                            fseek(source, pos + ((int)(&p[0] - &line[0])), SEEK_SET);
-                            continue;
-                        }
-
-                        if (*p == ' ') {
-                            ++p;
-                        }
-                    }
-
-#ifdef DEBUG
-                    fprintf(stderr, "controlcode test: %s\n", p);
-#endif
-
-                    if (
-                        (
-                            ((c = sstrcmp_codes(p, hexcodes, 0, 0x100)) != CODE_NONE) || /* 0x00-0xff */
-
-                            ((c = sstrcmp_codes(p, ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
-                            ((c = sstrcmp_codes(p, a_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
-                            ((c = sstrcmp_codes(p, b_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
-
-                            ((((c = sstrcmp_codes(p, cbmchars, 0, 0x20)) != CODE_NONE) /* 0x20-0x3f */
-                              ) && (c += 0x20)) ||
-
-                            ((((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
-                              ((c = sstrcmp_codes(p, a_ctrl2, 0, 0x20)) != CODE_NONE)
-                              ) && (c += 0x80)) ||
-
-                            ((((c = sstrcmp_codes(p, cbmkeys, 0, 0x40)) != CODE_NONE) ||
-                              ((c = sstrcmp_codes(p, a_cbmkeys, 0, 0x40)) != CODE_NONE)
-                              ) && (c += 0xA0))
-
-
-                        )
-                        ) {
-#ifdef DEBUG
-                        fprintf(stderr, "controlcode test 2: %c %s %d\n", p[kwlen], p, kwlen);
-#endif
-                        if (p[kwlen] == '*') {
-                            /* repetition count */
-                            p += (kwlen);
-
-#ifdef DEBUG
-                            fprintf(stderr, "controlcode test rpt: %s\n", p);
-#endif
-                            len = 1;
-#ifndef GEMDOS
-                            if (sscanf((char *)++p, "%d%n", &len, &kwlen) == 1) {
-                                p += kwlen;
-#else
-                            if (sscanf(++p, "%d", &len) == 1) {
-                                while (isspace(*p) || isdigit(*p)) {
-                                    p++;
-                                }
-#endif
-
-#ifdef DEBUG
-                                fprintf(stderr, "controlcode repeat count: len:%d kwlen:%d\n", len, kwlen);
-#endif
-                                kwlen = 0;
-                            }
-                        }
-
-#ifdef DEBUG
-                        fprintf(stderr, "controlcode test 3: %c %s %d\n", p[0], p, kwlen);
-#endif
-
-                        if (p[kwlen] == CLARIF_RP) {
-                            for (; len-- > 0; ) {
-                                fputc(c, dest);
-                            }
-#ifdef DEBUG
-                            fprintf(stderr, "controlcode continue\n");
-#endif
-
-                            fseek(source, pos + kwlen + 1, SEEK_SET);
-                            continue;
-                        }
-                    }
-
-                    fprintf(stderr, "error: unknown control code: %s\n", p);
-                    exit(-1);
+                if (*p == ' ') {
+                    ++p;
                 }
             }
 
-#ifdef DEBUG
-        fprintf(stderr,"convert character (%02x)\n", c);
-#endif
+            DBG(("asc_2_pet controlcode test: \"%s\"\n", p));
+
+            if (
+                (
+                    ((c = sstrcmp_codes(p, hexcodes, 0, 0x100)) != CODE_NONE) || /* 0x00-0xff */
+
+                    ((c = sstrcmp_codes(p, ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+                    ((c = sstrcmp_codes(p, a_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+                    ((c = sstrcmp_codes(p, b_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+                    ((c = sstrcmp_codes(p, c_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+                    ((c = sstrcmp_codes(p, d_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
+
+                    ((((c = sstrcmp_codes(p, cbmchars, 0, 0x20)) != CODE_NONE) || /* 0x20-0x3f */
+                      ((c = sstrcmp_codes(p, a_cbmchars, 0, 0x20)) != CODE_NONE) /* 0x20-0x3f */
+                        ) && (c += 0x20)) ||
+
+                    ((((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
+                      ((c = sstrcmp_codes(p, a_ctrl2, 0, 0x20)) != CODE_NONE) ||
+                      ((c = sstrcmp_codes(p, b_ctrl2, 0, 0x20)) != CODE_NONE) ||
+                      ((c = sstrcmp_codes(p, c_ctrl2, 0, 0x20)) != CODE_NONE)
+                     ) && (c += 0x80)) ||
+
+                    ((((c = sstrcmp_codes(p, cbmkeys, 0, 0x40)) != CODE_NONE) ||
+                        ((c = sstrcmp_codes(p, a_cbmkeys, 0, 0x40)) != CODE_NONE)
+                        ) && (c += 0xA0))
+
+
+                )
+                ) {
+
+                DBG(("asc_2_pet controlcode test 2: '%c' '%s' '%d'\n", p[kwlen], p, kwlen));
+
+                if (p[kwlen] == '*') {
+                    /* repetition count */
+                    p += (kwlen);
+
+                    DBG(("asc_2_pet controlcode test rpt: %s\n", p));
+
+                    len = 1;
+                    if (scan_integer((char *)++p, &len, &kwlen) > 0) {
+                        p += kwlen;
+                        DBG(("asc_2_pet controlcode repeat count: len:%d kwlen:%d\n", len, kwlen));
+                        kwlen = 0;
+                    }
+                }
+
+                DBG(("asc_2_pet controlcode test 3: '%c' '%s' '%d'\n", p[0], p, kwlen));
+
+                if (p[kwlen] == CLARIF_RP) {
+                    for (; len-- > 0; ) {
+                        fputc(c, dest);
+                    }
+                    DBG(("asc_2_pet controlcode continue\n"));
+
+                    fseek(source, pos + kwlen + 1, SEEK_SET);
+                    continue;
+                }
+            }
+
+            fprintf(stderr, "error: unknown control code: %s\n", p);
+            exit(-1);
+        }
+
+        DBG(("asc_2_pet convert character (%02x)\n", c));
+
         /* convert character */
         d = _a_topetscii(c, ctrls);
         fputc(d, dest);
@@ -2845,29 +2856,28 @@ static void asc_2_pet(int ctrls)
 */
 static int sstrcmp_codes(unsigned char *line, const char **wordlist, int token, int maxitems)
 {
-    int j;
+    int j = 0;
     const char *p, *q;
 
     kwlen = 1;
     /* search for keyword */
-    for (; token < maxitems; token++)
-    {
+    for (; token < maxitems; token++) {
+        DBG(("compare '%s' vs  '%s' - %d %d\n", wordlist[token], line, j, kwlen));
+
         if (codesnocase) {
             for (p = wordlist[token], q = (char *)line, j = 0;
-                 *p && *q && util_tolower(*p) == util_tolower(*q); p++, q++, j++) {}
+                 *p && *q && (util_tolower(*p) == util_tolower(*q));
+                 p++, q++, j++) {}
         } else {
             for (p = wordlist[token], q = (char *)line, j = 0;
-                 *p && *q && *p == *q; p++, q++, j++) {}
+                 *p && *q && (*p == *q);
+                 p++, q++, j++) {}
         }
 
-        /* fprintf (stderr,
-                 "compare %s %s - %d %d\n", wordlist[token], line, j, kwlen); */
-
-        /* found an exact or abbreviated keyword
-         */
-        if (j && (!*p)) {
+        /* found a control code */
+        if (j && (!*p) && ((*q == '}') || (*q == '*'))) {
             kwlen = j;
-            /* fprintf (stderr, "found %s %2x\n", wordlist[token], token); */
+            DBG(("found '%s' %2x\n", wordlist[token], token));
             return token;
         }
     } /* for */ 
@@ -2887,19 +2897,16 @@ static unsigned char sstrcmp(unsigned char *line, const char **wordlist, int tok
 
     kwlen = 1;
     /* search for keyword */
-    for (; token < maxitems; token++)
-    {
+    for (; token < maxitems; token++) {
         for (p = wordlist[token], q = (char *)line, j = 0;
              *p && *q && *p == *q; p++, q++, j++) {}
 
-        /*fprintf (stderr,
-                 "compare %s %s - %d %d\n", wordlist[token], line, j, kwlen);*/
+        /* DBG(("compare %s %s - %d %d\n", wordlist[token], line, j, kwlen));*/
 
-        /* found an exact or abbreviated keyword
-         */
+        /* found an exact or abbreviated keyword */
         if (j && (!*p || (*p && (*p ^ *q) == 0x20 && j++))) {
             kwlen = j;
-            /*fprintf (stderr, "found %s %2x\n", wordlist[token], token);*/
+            /* DBG(("found %s %2x\n", wordlist[token], token));*/
             return token;
         }
     } /* for */
@@ -2907,15 +2914,38 @@ static unsigned char sstrcmp(unsigned char *line, const char **wordlist, int tok
     return (KW_NONE);
 }
 
-void enable_text(void)
+/* ------------------------------------------------------------------------- */
+/* dummy functions
+
+   FIXME: these really shouldnt be needed here and are a sign of bad modular
+          design elsewhere
+ */
+const char machine_name[] = "PETCAT";
+const char *machine_get_name(void)
+{
+    return machine_name;
+}
+
+int cmdline_register_options(const cmdline_option_t *c)
+{
+    return 0;
+}
+
+int network_connected(void)
+{
+    return 0;
+}
+
+int network_get_mode(void)
+{
+    return NETWORK_IDLE;
+}
+
+void network_event_record(unsigned int type, void *data, unsigned int size)
 {
 }
 
-void disable_text(void)
-{
-}
-
-void ui_error_string(const char *text)
+void event_record_in_list(event_list_state_t *list, unsigned int type, void *data, unsigned int size)
 {
 }
 
@@ -2923,7 +2953,10 @@ void archdep_ui_init(int argc, char *argv[])
 {
 }
 
-const char *machine_get_name(void)
+void ui_error_string(const char *text) /* win32 needs this */
 {
-    return machine_name;
+}
+
+void ui_error(const char *format, ...) /* SDL on mingw32 needs this */
+{
 }

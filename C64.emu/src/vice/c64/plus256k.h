@@ -43,4 +43,6 @@ extern void plus256k_ram_high_store(WORD addr, BYTE value);
 extern BYTE plus256k_ram_low_read(WORD addr);
 extern BYTE plus256k_ram_high_read(WORD addr);
 
+extern int set_plus256k_enabled(int value);
+
 #endif

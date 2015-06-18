@@ -62,13 +62,13 @@ static void sdl_callback(void *userdata, Uint8 *stream, int len)
 	}
 #endif
 
-    while (total < len / sizeof(SWORD)) {
+    while (total < (int)(len / sizeof(SWORD))) {
         amount = sdl_inptr - sdl_outptr;
         if (amount <= 0) {
             amount = sdl_len - sdl_outptr;
         }
 
-        if (amount + total > len / sizeof(SWORD)) {
+        if (amount + total > (int)(len / sizeof(SWORD))) {
             amount = len / sizeof(SWORD) - total;
         }
 
@@ -109,7 +109,7 @@ static int sdl_init(const char *param, int *speed,
     spec.freq = *speed;
     spec.format = AUDIO_S16;
     spec.channels = *channels;
-    spec.samples = *fragsize;
+    spec.samples = *fragsize * 2;
     spec.callback = sdl_callback;
 
     /* NOTE: on some backends the first (input/desired) spec passed to SDL_OpenAudio
@@ -139,7 +139,7 @@ static int sdl_init(const char *param, int *speed,
 
     sdl_len = sdl_spec.samples * nr;
     sdl_inptr = sdl_outptr = sdl_full = 0;
-    sdl_buf = lib_malloc(sizeof(SWORD) * sdl_len);
+    sdl_buf = lib_calloc(sdl_len, sizeof(SWORD));
 
     if (!sdl_buf) {
         SDL_CloseAudio();
@@ -229,14 +229,14 @@ static int sdl_write(SWORD *pbuf, size_t nr)
     }
 #endif
 
-    while (total < nr) {
+    while (total < (int)nr) {
         amount = sdl_outptr - sdl_inptr;
 
         if (amount <= 0) {
             amount = sdl_len - sdl_inptr;
         }
 
-        if (total + amount > nr) {
+        if (total + amount > (int)nr) {
             amount = nr - total;
         }
 

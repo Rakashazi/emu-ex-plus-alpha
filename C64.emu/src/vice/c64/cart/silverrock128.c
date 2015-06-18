@@ -275,14 +275,14 @@ static const c64export_resource_t export_res = {
 
 void silverrock128_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     cart_romlbank_set_slotmain(0);
 }
 
 void silverrock128_config_setup(BYTE *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000 * 33);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
     cart_romlbank_set_slotmain(0);
 }
 

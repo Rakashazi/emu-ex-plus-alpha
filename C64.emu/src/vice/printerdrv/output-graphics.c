@@ -54,42 +54,32 @@ struct output_gfx_s {
 };
 typedef struct output_gfx_s output_gfx_t;
 
-static output_gfx_t output_gfx[3];
+static output_gfx_t output_gfx[NUM_OUTPUT_SELECT];
 
 static unsigned int current_prnr;
 
-/* CURRENTLY NOT USED. ANDREAS B. PROMISED TO IMPLEMENT THIS FEATURE AGAIN
-static int ppb;
-
-static int set_ppb(int val, void *param)
-{
-    ppb = val;
-
-    if (ppb<0) ppb=0;
-    if (ppb>3) ppb=3;
-
-    return 0;
-}
-
-static const resource_int_t resources_int[] = {
-    { "PixelsPerBit", 3, RES_EVENT_NO, NULL,
-      &ppb, set_ppb, (void *)0 },
-    { NULL }
-};
-
-static const cmdline_option_t cmdline_options[] =
-{
-    { "-ppb", SET_RESOURCE, 1, NULL, NULL, "PixelsPerBit", NULL,
-      "<0-3>", "Number of pixel size in graphic [3]" },
-    { NULL }
-};
-*/
-int output_graphics_init_cmdline_options(void)
-{
-    return 1; /* cmdline_register_options(cmdline_options); */
-}
-
 /* ------------------------------------------------------------------------- */
+
+/*
+ * The palette colour order is black, white, blue, green, red.
+ * The black and white printers only have the former two.
+ */
+static BYTE output_pixel_to_palette_index(BYTE pix)
+{
+    switch (pix) {
+        case OUTPUT_PIXEL_BLACK:
+            return 0;
+        case OUTPUT_PIXEL_WHITE:
+        default:
+            return 1;
+        case OUTPUT_PIXEL_BLUE:
+            return 2;
+        case OUTPUT_PIXEL_GREEN:
+            return 3;
+        case OUTPUT_PIXEL_RED:
+            return 4;
+    }
+}
 
 static void output_graphics_line_data(screenshot_t *screenshot, BYTE *data,
                                       unsigned int line, unsigned int mode)
@@ -103,22 +93,12 @@ static void output_graphics_line_data(screenshot_t *screenshot, BYTE *data,
     switch (mode) {
         case SCREENSHOT_MODE_PALETTE:
             for (i = 0; i < screenshot->width; i++) {
-                /* FIXME: Use a table here if color printers are introduced.  */
-                if (line_base[i] == OUTPUT_PIXEL_BLACK) {
-                    data[i] = 0;
-                } else {
-                    data[i] = 1;
-                }
+                data[i] = output_pixel_to_palette_index(line_base[i]);
             }
             break;
         case SCREENSHOT_MODE_RGB32:
             for (i = 0; i < screenshot->width; i++) {
-                /* FIXME: Use a table here if color printers are introduced.  */
-                if (line_base[i] == OUTPUT_PIXEL_BLACK) {
-                    color = 0;
-                } else {
-                    color = 1;
-                }
+                color = output_pixel_to_palette_index(line_base[i]);
                 data[i * 4] = screenshot->palette->entries[color].red;
                 data[i * 4 + 1] = screenshot->palette->entries[color].green;
                 data[i * 4 + 2] = screenshot->palette->entries[color].blue;
@@ -285,10 +265,6 @@ void output_graphics_init(void)
     }
 }
 
-void output_graphics_reset(void)
-{
-}
-
 int output_graphics_init_resources(void)
 {
     output_select_t output_select;
@@ -302,5 +278,5 @@ int output_graphics_init_resources(void)
 
     output_select_register(&output_select);
 
-    return 1; /* resources_register_int(resources_int); */
+    return 1;
 }

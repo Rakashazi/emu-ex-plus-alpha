@@ -31,6 +31,7 @@
 #include "rtc.h"
 #include "snapshot.h"
 
+#include <time.h>
 #include <string.h>
 
 /* The DS1202 and DS1302 are serial line based RTCs, they have the following features:
@@ -83,7 +84,7 @@
  * DS1202 : registers 8-30: There are no registers at these locations (emulated as returning
  *                          0 upon read)
  *
- * DS1302 : register 8 : bits 7-0 Trickle Charge register (emulated as a dummy ram byte)
+ * DS1302 : register 8 : bits 7-0 Trickle Charge register (emulated as a dummy RAM byte)
  * DS1202 : registers 9-30: There are no registers at these locations (emulated as returning
  *                          0 upon read)
  *
@@ -101,6 +102,53 @@
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+#define DS1202_1302_RAM_SIZE   32
+#define DS1202_1302_REG_SIZE   8
+
+struct rtc_ds1202_1302_s {
+    int rtc_type;
+    int clock_halt;
+    time_t clock_halt_latch;
+    int am_pm;
+    int write_protect;
+    time_t latch;
+    time_t offset;
+    time_t old_offset;
+    BYTE *clock_regs;
+    BYTE old_clock_regs[DS1202_1302_REG_SIZE];
+    BYTE trickle_charge;
+    BYTE *ram;
+    BYTE old_ram[DS1202_1302_RAM_SIZE];
+    BYTE state;
+    BYTE reg;
+    BYTE bit;
+    BYTE output_bit;
+    BYTE io_byte;
+    BYTE sclk_line;
+    BYTE clock_register;
+    char *device;
+};
+
+#define DS1202_1302_REG_SECONDS_CH       0
+#define DS1202_1302_REG_MINUTES          1
+#define DS1202_1302_REG_HOURS            2
+#define DS1202_1302_REG_DAYS_OF_MONTH    3
+#define DS1202_1302_REG_MONTHS           4
+#define DS1202_1302_REG_DAYS_OF_WEEK     5
+#define DS1202_1302_REG_YEARS            6
+#define DS1202_1302_REG_WRITE_PROTECT    7
+#define DS1302_REG_TRICKLE_CHARGE        8
+
+#define DS1202_1302_BURST   31
+
+#define DS1202_1302_INPUT_COMMAND_BITS        0
+#define DS1202_1302_INPUT_SINGLE_DATA_BITS    1
+#define DS1202_1302_INPUT_BURST_DATA_BITS     2
+#define DS1202_1302_OUTPUT_SINGLE_DATA_BITS   3
+#define DS1202_1302_OUTPUT_BURST_DATA_BITS    4
+
+/* ---------------------------------------------------------------------------------------------------- */
+
 void ds1202_1302_reset(rtc_ds1202_1302_t *context)
 {
     context->state = DS1202_1302_INPUT_COMMAND_BITS;
@@ -108,19 +156,42 @@ void ds1202_1302_reset(rtc_ds1202_1302_t *context)
     context->io_byte = 0;
 }
 
-rtc_ds1202_1302_t *ds1202_1302_init(BYTE *data, time_t *offset, int rtc_type)
+rtc_ds1202_1302_t *ds1202_1302_init(char *device, int rtc_type)
 {
-    rtc_ds1202_1302_t *retval = lib_malloc(sizeof(rtc_ds1202_1302_t));
+    rtc_ds1202_1302_t *retval = lib_calloc(1, sizeof(rtc_ds1202_1302_t));
+    int loaded = rtc_load_context(device, DS1202_1302_RAM_SIZE, DS1202_1302_REG_SIZE);
 
-    memset(retval, 0, sizeof(rtc_ds1202_1302_t));
-    retval->ram = data;
-    retval->offset = offset;
+    if (loaded) {
+        retval->ram = rtc_get_loaded_ram();
+        retval->offset = rtc_get_loaded_offset();
+        retval->clock_regs = rtc_get_loaded_clockregs();
+    } else {
+        retval->ram = lib_calloc(1, DS1202_1302_RAM_SIZE);
+        retval->offset = 0;
+        retval->clock_regs = lib_calloc(1, DS1202_1302_REG_SIZE);
+    }
+    memcpy(retval->old_ram, retval->ram, DS1202_1302_RAM_SIZE);
+    retval->old_offset = retval->offset;
+    memcpy(retval->old_clock_regs, retval->clock_regs, DS1202_1302_REG_SIZE);
+
     retval->rtc_type = rtc_type;
+    retval->device = lib_stralloc(device);
+
     return retval;
 }
 
-void ds1202_1302_destroy(rtc_ds1202_1302_t *context)
+void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save)
 {
+    if (save) {
+        if (memcmp(context->ram, context->old_ram, DS1202_1302_RAM_SIZE) ||
+            memcmp(context->clock_regs, context->old_clock_regs, DS1202_1302_REG_SIZE) ||
+            context->offset != context->old_offset) {
+            rtc_save_context(context->ram, DS1202_1302_RAM_SIZE, context->clock_regs, DS1202_1302_REG_SIZE, context->device, context->offset);
+        }
+    }
+    lib_free(context->ram);
+    lib_free(context->clock_regs);
+    lib_free(context->device);
     lib_free(context);
 }
 
@@ -231,15 +302,15 @@ static void ds1202_1302_decode_command(rtc_ds1202_1302_t *context)
         context->state = DS1202_1302_OUTPUT_SINGLE_DATA_BITS;
         context->bit = 0;
         latched = context->clock_halt;
-        offset = (latched) ? context->clock_halt_latch : context->offset[0];
+        offset = (latched) ? context->clock_halt_latch : context->offset;
         context->io_byte = ds1202_1302_get_clock_register(context, context->reg, offset, latched);
     }
 
-    /* check for DS1202_1302_OUTPUT_SINGLE_DATA_BITS and ram */
+    /* check for DS1202_1302_OUTPUT_SINGLE_DATA_BITS and RAM */
     if (read && !burst && !clock_reg) {
         context->state = DS1202_1302_OUTPUT_SINGLE_DATA_BITS;
         context->bit = 0;
-        context->io_byte = (context->ram[context->reg * 2] << 4) | (context->ram[(context->reg * 2) + 1] & 0xf);
+        context->io_byte = context->ram[context->reg];
     }
 
     /* check for DS1202_1302_OUTPUT_BURST_DATA_BITS and clock */
@@ -250,17 +321,17 @@ static void ds1202_1302_decode_command(rtc_ds1202_1302_t *context)
         if (context->clock_halt) {
             context->latch = context->clock_halt_latch;
         } else {
-            context->latch = rtc_get_latch(context->offset[0]);
+            context->latch = rtc_get_latch(context->offset);
         }
         context->io_byte = ds1202_1302_get_clock_register(context, 0, context->latch, 1);
     }
 
-    /* check for DS1202_1302_OUTPUT_BURST_DATA_BITS and ram */
+    /* check for DS1202_1302_OUTPUT_BURST_DATA_BITS and RAM */
     if (read && burst && !clock_reg) {
         context->state = DS1202_1302_OUTPUT_BURST_DATA_BITS;
         context->reg = 0;
         context->bit = 0;
-        context->io_byte = (context->ram[0] << 4) | (context->ram[1] & 0xf);
+        context->io_byte = context->ram[0];
     }
 }
 
@@ -297,7 +368,7 @@ static BYTE ds1202_1302_read_burst_data_bit(rtc_ds1202_1302_t *context)
                 context->io_byte = 0;
             } else {
                 context->bit = 0;
-                context->io_byte = (context->ram[context->reg * 2] << 4) | (context->ram[(context->reg * 2) + 1] & 0xf);
+                context->io_byte = context->ram[context->reg];
             }
         }
     }
@@ -351,38 +422,37 @@ static void ds1202_1302_write_burst_data_bit(rtc_ds1202_1302_t *context, unsigne
                         val = context->clock_regs[DS1202_1302_REG_SECONDS_CH];
                         context->clock_halt_latch = rtc_set_latched_second(val & 0x7f, context->clock_halt_latch, 1);
                         if (!(val & 0x80)) {
-                            context->offset[0] = context->offset[0] - (rtc_get_latch(0) - (context->clock_halt_latch - context->offset[0]));
+                            context->offset = context->offset - (rtc_get_latch(0) - (context->clock_halt_latch - context->offset));
                             context->clock_halt = 0;
                         }
                     } else {
                         val = context->clock_regs[DS1202_1302_REG_YEARS];
-                        context->offset[0] = rtc_set_year(val, context->offset[0], 1);
+                        context->offset = rtc_set_year(val, context->offset, 1);
                         val = context->clock_regs[DS1202_1302_REG_MONTHS];
-                        context->offset[0] = rtc_set_month(val, context->offset[0], 1);
+                        context->offset = rtc_set_month(val, context->offset, 1);
                         val = context->clock_regs[DS1202_1302_REG_DAYS_OF_MONTH];
-                        context->offset[0] = rtc_set_day_of_month(val, context->offset[0], 1);
+                        context->offset = rtc_set_day_of_month(val, context->offset, 1);
                         val = context->clock_regs[DS1202_1302_REG_DAYS_OF_WEEK];
-                        context->offset[0] = rtc_set_weekday(val - 1, context->offset[0]);
+                        context->offset = rtc_set_weekday(val - 1, context->offset);
                         val = context->clock_regs[DS1202_1302_REG_HOURS];
                         if (val & 0x80) {
-                            context->offset[0] = rtc_set_hour_am_pm(val & 0x7f, context->offset[0], 1);
+                            context->offset = rtc_set_hour_am_pm(val & 0x7f, context->offset, 1);
                         } else {
-                            context->offset[0] = rtc_set_hour(val & 0x7f, context->offset[0], 1);
+                            context->offset = rtc_set_hour(val & 0x7f, context->offset, 1);
                         }
                         val = context->clock_regs[DS1202_1302_REG_MINUTES];
-                        context->offset[0] = rtc_set_minute(val, context->offset[0], 1);
+                        context->offset = rtc_set_minute(val, context->offset, 1);
                         val = context->clock_regs[DS1202_1302_REG_SECONDS_CH];
-                        context->offset[0] = rtc_set_second(val & 0x7f, context->offset[0], 1);
+                        context->offset = rtc_set_second(val & 0x7f, context->offset, 1);
                         if (val & 0x80) {
                             context->clock_halt = 1;
-                            context->clock_halt_latch = rtc_get_latch(context->offset[0]);
+                            context->clock_halt_latch = rtc_get_latch(context->offset);
                         }
                     }
                 }
             }
         } else {
-            context->ram[context->reg * 2] = (context->io_byte >> 4) | 0x40;
-            context->ram[(context->reg * 2) + 1] = (context->io_byte & 0xf) | 0x40;
+            context->ram[context->reg] = context->io_byte;
             context->reg++;
             if (context->reg == 32) {
                 context->state = DS1202_1302_INPUT_COMMAND_BITS;
@@ -408,7 +478,7 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                         if (context->clock_halt) {
                             context->clock_halt_latch = rtc_set_latched_minute(val, context->clock_halt_latch, 1);
                         } else {
-                            context->offset[0] = rtc_set_minute(val, context->offset[0], 1);
+                            context->offset = rtc_set_minute(val, context->offset, 1);
                         }
                     }
                     break;
@@ -417,7 +487,7 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                         if (context->clock_halt) {
                             context->clock_halt_latch = rtc_set_latched_day_of_month(val, context->clock_halt_latch, 1);
                         } else {
-                            context->offset[0] = rtc_set_day_of_month(val, context->offset[0], 1);
+                            context->offset = rtc_set_day_of_month(val, context->offset, 1);
                         }
                     }
                     break;
@@ -426,7 +496,7 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                         if (context->clock_halt) {
                             context->clock_halt_latch = rtc_set_latched_month(val, context->clock_halt_latch, 1);
                         } else {
-                            context->offset[0] = rtc_set_month(val, context->offset[0], 1);
+                            context->offset = rtc_set_month(val, context->offset, 1);
                         }
                     }
                     break;
@@ -435,7 +505,7 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                         if (context->clock_halt) {
                             context->clock_halt_latch = rtc_set_latched_weekday(val - 1, context->clock_halt_latch);
                         } else {
-                            context->offset[0] = rtc_set_weekday(val - 1, context->offset[0]);
+                            context->offset = rtc_set_weekday(val - 1, context->offset);
                         }
                     }
                     break;
@@ -444,7 +514,7 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                         if (context->clock_halt) {
                             context->clock_halt_latch = rtc_set_latched_year(val, context->clock_halt_latch, 1);
                         } else {
-                            context->offset[0] = rtc_set_year(val, context->offset[0], 1);
+                            context->offset = rtc_set_year(val, context->offset, 1);
                         }
                     }
                     break;
@@ -462,14 +532,14 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                             if (context->clock_halt) {
                                 context->clock_halt_latch = rtc_set_latched_hour_am_pm(val & 0x7f, context->clock_halt_latch, 1);
                             } else {
-                                context->offset[0] = rtc_set_hour_am_pm(val & 0x7f, context->offset[0], 1);
+                                context->offset = rtc_set_hour_am_pm(val & 0x7f, context->offset, 1);
                             }
                             context->am_pm = 1;
                         } else {
                             if (context->clock_halt) {
                                 context->clock_halt_latch = rtc_set_latched_hour(val & 0x7f, context->clock_halt_latch, 1);
                             } else {
-                                context->offset[0] = rtc_set_hour(val & 0x7f, context->offset[0], 1);
+                                context->offset = rtc_set_hour(val & 0x7f, context->offset, 1);
                             }
                             context->am_pm = 0;
                         }
@@ -480,22 +550,21 @@ static void ds1202_1302_write_single_data_bit(rtc_ds1202_1302_t *context, unsign
                         if (context->clock_halt) {
                             context->clock_halt_latch = rtc_set_latched_second(val & 0x7f, context->clock_halt_latch, 1);
                             if (!(val & 0x80)) {
-                                context->offset[0] = context->offset[0] - (rtc_get_latch(0) - (context->clock_halt_latch - context->offset[0]));
+                                context->offset = context->offset - (rtc_get_latch(0) - (context->clock_halt_latch - context->offset));
                                 context->clock_halt = 0;
                             }
                         } else {
-                            context->offset[0] = rtc_set_second(val & 0x7f, context->offset[0], 1);
+                            context->offset = rtc_set_second(val & 0x7f, context->offset, 1);
                             if (val & 0x80) {
                                 context->clock_halt = 1;
-                                context->clock_halt_latch = rtc_get_latch(context->offset[0]);
+                                context->clock_halt_latch = rtc_get_latch(context->offset);
                             }
                         }
                     }
                     break;
             }
         } else {
-            context->ram[context->reg * 2] = (context->io_byte >> 4) | 0x40;
-            context->ram[(context->reg * 2) + 1] = (context->io_byte & 0xf) | 0x40;
+            context->ram[context->reg] = context->io_byte;
         }
         context->state = DS1202_1302_INPUT_COMMAND_BITS;
         context->bit = 0;

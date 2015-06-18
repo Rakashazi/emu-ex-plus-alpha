@@ -29,30 +29,20 @@
 
 #include "archdep.h"
 #include "attach.h"
-#include "autostart.h"
 #include "cmdline.h"
 #include "console.h"
-#include "debug.h"
-#include "diskimage.h"
 #include "drive.h"
-#include "drivecpu.h"
-#include "fliplist.h"
-#include "fsdevice.h"
-#include "gfxoutput.h"
 #include "initcmdline.h"
-#include "joy.h"
-#include "joystick.h"
-#include "kbdbuf.h"
 #include "keyboard.h"
 #include "log.h"
 #include "machine-bus.h"
+#include "machine-video.h"
 #include "machine.h"
 #include "maincpu.h"
 #include "monitor.h"
 #ifdef HAVE_NETWORK
 #include "monitor_network.h"
 #endif
-#include "network.h"
 #include "palette.h"
 #include "ram.h"
 #include "resources.h"
@@ -62,10 +52,18 @@
 #include "sysfile.h"
 #include "uiapi.h"
 #include "vdrive.h"
-#include "vice-event.h"
+#include "video.h"
+#include "vsync.h"
 
+/* #define DBGINIT */
 
-static void init_resource_fail(const char *module)
+#ifdef DBGINIT
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
+
+void init_resource_fail(const char *module)
 {
     archdep_startup_log_error("Cannot initialize %s resources.\n",
                               module);
@@ -73,6 +71,7 @@ static void init_resource_fail(const char *module)
 
 int init_resources(void)
 {
+    DBG(("init_resources\n"));
     if (resources_init(machine_get_name())) {
         archdep_startup_log_error("Cannot initialize resource handling.\n");
         return -1;
@@ -85,10 +84,6 @@ int init_resources(void)
         init_resource_fail("system file locator");
         return -1;
     }
-    if (autostart_resources_init() < 0) {
-        init_resource_fail("autostart");
-        return -1;
-    }
     if (romset_resources_init() < 0) {
         init_resource_fail("romset");
         return -1;
@@ -97,53 +92,32 @@ int init_resources(void)
         init_resource_fail("UI");
         return -1;
     }
-    if (fliplist_resources_init() < 0) {
-        init_resource_fail("flip list");
-        return -1;
-    }
-    if (file_system_resources_init() < 0) {
-        init_resource_fail("file system");
-        return -1;
-    }
-    /* Initialize file system device-specific resources.  */
-    if (fsdevice_resources_init() < 0) {
-        init_resource_fail("file system device");
-        return -1;
-    }
-    if (disk_image_resources_init() < 0) {
-        init_resource_fail("disk image");
-        return -1;
-    }
-    if (event_resources_init() < 0) {
-        init_resource_fail("event");
-        return -1;
-    }
-    if (debug_resources_init() < 0) {
-        init_resource_fail("debug");
-        return -1;
-    }
     if (machine_common_resources_init() < 0) {
         init_resource_fail("machine common");
+        return -1;
+    }
+    if (vsync_resources_init() < 0) {
+        init_resource_fail("vsync");
+        return -1;
+    }
+    if (sound_resources_init() < 0) {
+        init_resource_fail("sound");
+        return -1;
+    }
+    if (keyboard_resources_init() < 0) {
+        init_resource_fail("keyboard");
+        return -1;
+    }
+    if (machine_video_resources_init() < 0) {
+        init_resource_fail("machine video");
         return -1;
     }
     if (machine_resources_init() < 0) {
         init_resource_fail("machine");
         return -1;
     }
-    if (joystick_init_resources() < 0) {
-        init_resource_fail("joystick");
-        return -1;
-    }
     if (ram_resources_init() < 0) {
         init_resource_fail("RAM");
-        return -1;
-    }
-    if (gfxoutput_resources_init() < 0) {
-        init_resource_fail("GFXOUTPUT");
-        return -1;
-    }
-    if (network_resources_init() < 0) {
-        init_resource_fail("network");
         return -1;
     }
     if (monitor_resources_init() < 0) {
@@ -159,7 +133,7 @@ int init_resources(void)
     return 0;
 }
 
-static void init_cmdline_options_fail(const char *module)
+void init_cmdline_options_fail(const char *module)
 {
     archdep_startup_log_error("Cannot initialize %s command-line options.\n",
                               module);
@@ -188,28 +162,8 @@ int init_cmdline_options(void)
         return -1;
     }
     if (machine_class != VICE_MACHINE_VSID) {
-        if (autostart_cmdline_options_init() < 0) {
-            init_resource_fail("autostart");
-            return -1;
-        }
         if (romset_cmdline_options_init() < 0) {
             init_cmdline_options_fail("romset");
-            return -1;
-        }
-        if (fliplist_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("flip list");
-            return -1;
-        }
-        if (file_system_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("attach");
-            return -1;
-        }
-        if (disk_image_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("disk image");
-            return -1;
-        }
-        if (event_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("event");
             return -1;
         }
     }
@@ -217,14 +171,26 @@ int init_cmdline_options(void)
         init_cmdline_options_fail("monitor");
         return -1;
     }
-#ifdef DEBUG
-    if (debug_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("debug");
+    if (machine_common_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("machine common");
+        return -1;
+    }
+    if (vsync_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("vsync");
+        return -1;
+    }
+    if (sound_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("sound");
+        return -1;
+    }
+#ifdef COMMON_KBD
+    if (keyboard_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("keyboard");
         return -1;
     }
 #endif
-    if (machine_common_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("machine common");
+    if (video_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("video");
         return -1;
     }
     if (machine_cmdline_options_init() < 0) {
@@ -233,26 +199,8 @@ int init_cmdline_options(void)
     }
 
     if (machine_class != VICE_MACHINE_VSID) {
-        if (fsdevice_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("file system");
-            return -1;
-        }
-    }
-    if (!video_disabled_mode && joystick_init_cmdline_options() < 0) {
-        init_cmdline_options_fail("joystick");
-        return -1;
-    }
-    if (machine_class != VICE_MACHINE_VSID) {
-        if (kbdbuf_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("keyboard");
-            return -1;
-        }
         if (ram_cmdline_options_init() < 0) {
             init_cmdline_options_fail("RAM");
-            return -1;
-        }
-        if (gfxoutput_cmdline_options_init() < 0) {
-            init_cmdline_options_fail("GFXOUTPUT");
             return -1;
         }
     }
@@ -276,16 +224,13 @@ int init_main(void)
     }
 
     if (machine_class != VICE_MACHINE_VSID) {
-        gfxoutput_init();
         screenshot_init();
 
-        drivecpu_early_init_all();
+        drive_cpu_early_init_all();
     }
 
     machine_bus_init();
     machine_maincpu_init();
-
-    event_init();
 
     /* Machine-specific initialization.  */
     if (machine_init() < 0) {
@@ -304,12 +249,7 @@ int init_main(void)
 
     keyboard_init();
 
-    if (!video_disabled_mode) {
-        joystick_init();
-    }
-
     if (machine_class != VICE_MACHINE_VSID) {
-        disk_image_init();
         vdrive_init();
     }
 

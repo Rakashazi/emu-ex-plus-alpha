@@ -1,5 +1,5 @@
 /*
- * main65816cpu.c - Emulation of the main (drop in replacement) 65802 processor.
+ * main65816cpu.c - Emulation of the main 65816 processor.
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>
@@ -28,12 +28,14 @@
 #include "vice.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "6510core.h"
 #include "alarm.h"
 #include "clkguard.h"
 #include "debug.h"
 #include "interrupt.h"
+#include "log.h"
 #include "machine.h"
 #include "main65816cpu.h"
 #include "mem.h"
@@ -117,6 +119,8 @@ int maincpu_rmw_flag = 0;
 
 /* Global clock counter.  */
 CLOCK maincpu_clk = 0L;
+/* if != 0, exit when this many cycles have been executed */
+CLOCK maincpu_clk_limit = 0L;
 
 /* Information about the last executed opcode.  This is used to know the
    number of write cycles in the last executed opcode and to delay interrupts
@@ -333,11 +337,70 @@ void maincpu_mainloop(void)
 #include "65816core.c"
 
         maincpu_int_status->num_dma_per_opcode = 0;
+
+        if (maincpu_clk_limit && (maincpu_clk > maincpu_clk_limit)) {
+            log_error(LOG_DEFAULT, "cycle limit reached.");
+            exit(EXIT_FAILURE);
+        }
 #if 0
         if (CLK > 246171754)
             debug.maincpu_traceflg = 1;
 #endif
     }
+}
+
+/* ------------------------------------------------------------------------- */
+
+void maincpu_set_pc(int pc) {
+    WDC65816_REGS_SET_PC(&maincpu_regs, pc);
+}
+
+void maincpu_set_a(int a) {
+    WDC65816_REGS_SET_A(&maincpu_regs, a);
+}
+
+void maincpu_set_x(int x) {
+    WDC65816_REGS_SET_X(&maincpu_regs, x);
+}
+
+void maincpu_set_y(int y) {
+    WDC65816_REGS_SET_Y(&maincpu_regs, y);
+}
+
+void maincpu_set_sign(int n) {
+    WDC65816_REGS_SET_SIGN(&maincpu_regs, n);
+}
+
+void maincpu_set_zero(int z) {
+    WDC65816_REGS_SET_ZERO(&maincpu_regs, z);
+}
+
+void maincpu_set_carry(int c) {
+    WDC65816_REGS_SET_CARRY(&maincpu_regs, c);
+}
+
+void maincpu_set_interrupt(int i) {
+    WDC65816_REGS_SET_INTERRUPT(&maincpu_regs, i);
+}
+
+unsigned int maincpu_get_pc(void) {
+    return WDC65816_REGS_GET_PC(&maincpu_regs);
+}
+
+unsigned int maincpu_get_a(void) {
+    return WDC65816_REGS_GET_A(&maincpu_regs);
+}
+
+unsigned int maincpu_get_x(void) {
+    return WDC65816_REGS_GET_X(&maincpu_regs);
+}
+
+unsigned int maincpu_get_y(void) {
+    return WDC65816_REGS_GET_Y(&maincpu_regs);
+}
+
+unsigned int maincpu_get_sp(void) {
+    return WDC65816_REGS_GET_SP(&maincpu_regs);
 }
 
 /* ------------------------------------------------------------------------- */

@@ -81,6 +81,12 @@
 # define SOUND_SAMPLE_BUFFER_SIZE       100
 #endif
 
+/* largest value in the UIs. also used by VSID as default */
+#define SOUND_SAMPLE_MAX_BUFFER_SIZE    350
+
+#define SOUND_RECORD_DEVICE     0
+#define SOUND_PLAYBACK_DEVICE   1
+
 /* I need this to serialize close_sound and enablesound/sound_open in
    the OS/2 Multithreaded environment                              */
 extern int sound_state_changed;

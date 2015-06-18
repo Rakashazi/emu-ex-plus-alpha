@@ -288,8 +288,10 @@ static int georam_deactivate(void)
     return 0;
 }
 
-static int set_georam_enabled(int val, void *param)
+static int set_georam_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (georam_enabled && !val) {
         if (georam_deactivate() < 0) {
             return -1;
@@ -362,8 +364,10 @@ static int set_georam_size(int val, void *param)
     return 0;
 }
 
-static int set_georam_io_swap(int val, void *param)
+static int set_georam_io_swap(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
     if (val == georam_io_swap) {
         return 0;
     }
@@ -403,11 +407,8 @@ static int set_georam_filename(const char *name, void *param)
 
 static int set_georam_image_write(int val, void *param)
 {
-    if (georam_write_image && !val) {
-        georam_write_image = 0;
-    } else if (!georam_write_image && val) {
-        georam_write_image = 1;
-    }
+    georam_write_image = val ? 1 : 0;
+
     return 0;
 }
 

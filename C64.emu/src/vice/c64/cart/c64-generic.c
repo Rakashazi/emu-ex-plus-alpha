@@ -57,7 +57,7 @@
      4k    ulti   n/a           $F000-$FFFF(*)  FIXME
      8k    8k     $8000-$9FFF   n/a
      8k    ulti   n/a           $E000-$FFFF
-    12k    16k    $8000-$9FFF   $e000-$eFFF(*)  FIXME
+    12k    16k    $8000-$9FFF   $E000-$EFFF(*)  FIXME
     12k    ulti   $8000-$9FFF   $F000-$FFFF(*)  FIXME
     16k    16k    $8000-$9FFF   $A000-$BFFF
     16k    ulti   $8000-$9FFF   $E000-$FFFF

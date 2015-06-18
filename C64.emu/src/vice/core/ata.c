@@ -50,6 +50,11 @@
 #include "maincpu.h"
 #include "monitor.h"
 
+#ifndef HAVE_FSEEKO
+#define fseeko(a, b, c) fseek(a, b, c)
+#define ftello(a) ftell(a)
+#endif
+
 #define ATA_UNC  0x40
 #define ATA_IDNF 0x10
 #define ATA_ABRT 0x04
@@ -58,8 +63,8 @@
 #define ATA_DRQ 0x08
 #define ATA_ERR 0x01
 #define ATA_COPYRIGHT "KAJTAR ZSOLT (SOCI/SINGULAR)"
-#define ATA_SERIAL_NUMBER &"$Date:: 2012-12-05 19:25:09 #$"[8]
-#define ATA_REVISION &"$Revision:: 26609    $"[12]
+#define ATA_SERIAL_NUMBER &"$Date:: 2015-02-17 16:41:45 #$"[8]
+#define ATA_REVISION &"$Revision:: 29352    $"[12]
 
 #ifdef ATA_DEBUG
 #define debug(_x_) log_message _x_
@@ -247,7 +252,7 @@ static int seek_sector(ata_drive_t *drv)
     drv->busy |= 2;
     alarm_set(drv->head_alarm, maincpu_clk + (CLOCK)(abs(drv->pos - lba) * drv->seek_time / drv->geometry.size));
     ata_change_power_mode(drv, 0xff);
-    if (fseek(drv->file, (off_t)lba * drv->sector_size, SEEK_SET)) {
+    if (fseeko(drv->file, (off_t)lba * drv->sector_size, SEEK_SET)) {
         drv->error = drv->atapi ? 0x54 : ATA_IDNF;
     }
     drv->pos = lba;
@@ -400,6 +405,8 @@ static void ata_poweron(ata_drive_t *drv, ata_drive_type_t type)
     drv->cmd = 0x00;
     drv->standby_max = 0;
     drv->pos = 0;
+    drv->busy = 0;
+    drv->control = 0;
 
     drv->lbamode = 1;
     drv->flush = 1;
@@ -1385,7 +1392,7 @@ int ata_snapshot_write_module(ata_drive_t *drv, snapshot_t *s)
         standby_clk = drv->standby_alarm->context->pending_alarms[drv->standby_alarm->pending_idx].clk;
     }
     if (drv->file) {
-        pos = ftell(drv->file);
+        pos = ftello(drv->file);
         if (pos < 0) {
             pos = 0;
         }
@@ -1548,7 +1555,7 @@ int ata_snapshot_read_module(ata_drive_t *drv, snapshot_t *s)
     }
 
     if (drv->file) {
-        fseek(drv->file, (off_t)pos * drv->sector_size, SEEK_SET);
+        fseeko(drv->file, (off_t)pos * drv->sector_size, SEEK_SET);
     }
     if (!drv->atapi) { /* atapi supports disc change events */
         drv->readonly = 1; /* make sure for ata that there's no filesystem corruption */

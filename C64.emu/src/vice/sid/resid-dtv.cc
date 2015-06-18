@@ -26,6 +26,11 @@
  *
  */
 
+#ifdef _M_ARM
+#undef _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE
+#define _ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE 1
+#endif
+
 #include "vice.h"
 
 #ifdef WATCOM_COMPILE
@@ -62,6 +67,9 @@ extern "C" {
 
 struct sound_s
 {
+    /* speed factor */
+    int factor;
+
     /* resid sid implementation */
     reSID::SID *sid;
 };
@@ -83,7 +91,7 @@ static sound_t *resid_open(BYTE *sidstate)
     return psid;
 }
 
-static int resid_init(sound_t *psid, int speed, int cycles_per_sec)
+static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
 {
     sampling_method method;
     char model_text[100];
@@ -117,6 +125,8 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec)
 
     passband = speed * passband_percentage / 200.0;
     gain = gain_percentage / 100.0;
+
+    psid->factor = factor;
 
     switch (model) {
       default:

@@ -45,4 +45,6 @@ extern void plus60k_ram_hi_store(WORD addr, BYTE value);
 extern BYTE plus60k_ram_read(WORD addr);
 extern void plus60k_ram_store(WORD addr, BYTE value);
 
+extern int set_plus60k_enabled(int value);
+
 #endif

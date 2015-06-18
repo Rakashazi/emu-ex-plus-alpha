@@ -32,10 +32,6 @@
 #define IO_DETACH_CART     0
 #define IO_DETACH_RESOURCE 1
 
-#define CPU_LINES_C64_256K 1
-#define CPU_LINES_PLUS60K  2
-#define CPU_LINES_PLUS256K 3
-
 #define IO_COLLISION_METHOD_DETACH_ALL    0
 #define IO_COLLISION_METHOD_DETACH_LAST   1
 #define IO_COLLISION_METHOD_AND_WIRES     2
@@ -85,13 +81,8 @@ extern void vic20io3_store(WORD addr, BYTE value);
 struct mem_ioreg_list_s;
 extern void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list);
 
-extern int get_cpu_lines_lock(void);
-extern void set_cpu_lines_lock(int device, char *name);
-extern void remove_cpu_lines_lock(void);
-extern char *get_cpu_lines_lock_name(void);
-
 typedef struct io_source_s {
-    char *name; /*!< literal name of this i/o device */
+    char *name; /*!< literal name of this I/O device */
     int detach_id;
     char *resource_name;
     WORD start_address;

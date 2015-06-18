@@ -2,7 +2,7 @@
  * rsuser.c - Daniel Dallmann's 9600 baud RS232 userport interface.
  *
  * Written by
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -123,8 +123,10 @@ static void calculate_baudrate(void)
                char_clk_ticks, cycles_per_sec));
 }
 
-static int set_enable(int newval, void *param)
+static int set_enable(int value, void *param)
 {
+    int newval = value ? 1 : 0;
+
     if (newval && !rsuser_enabled) {
         dtr = DTR_OUT;  /* inactive */
         rts = RTS_OUT;  /* inactive */
@@ -150,6 +152,10 @@ static int set_enable(int newval, void *param)
 
 static int set_baudrate(int val, void *param)
 {
+    if (val < 1) {
+        return -1;
+    }
+
     rsuser_baudrate = val;
 
     calculate_baudrate();
@@ -159,7 +165,12 @@ static int set_baudrate(int val, void *param)
 
 static int set_up_device(int val, void *param)
 {
+    if (val < 0 || val > 3) {
+        return -1;
+    }
+
     rsuser_device = val;
+
     if (fd != -1) {
         rs232drv_close(fd);
         fd = rs232drv_open(rsuser_device);
@@ -194,12 +205,12 @@ static const cmdline_option_t cmdline_options[] = {
       IDCLS_UNUSED, IDCLS_DISABLE_RS232_USERPORT,
       NULL, NULL },
     { "-rsuserbaud", SET_RESOURCE, 1,
-      NULL, NULL, "RsUserBaud", (resource_value_t)300,
+      NULL, NULL, "RsUserBaud", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_BAUD, IDCLS_SET_BAUD_RS232_USERPORT,
       NULL, NULL },
     { "-rsuserdev", SET_RESOURCE, 1,
-      NULL, NULL, "RsUserDev", (resource_value_t)0,
+      NULL, NULL, "RsUserDev", NULL,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_SPECIFY_RS232_DEVICE_USERPORT,
       "<0-3>", NULL },

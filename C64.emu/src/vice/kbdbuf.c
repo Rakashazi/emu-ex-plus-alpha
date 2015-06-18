@@ -3,7 +3,7 @@
  *
  * Written by
  *  Ettore Perazzoli <ettore@comm2000.it>
- *  André Fachat <a.fachat@physik.tu-chemnitz.de>
+ *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
@@ -33,11 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "charset.h"
 #include "cmdline.h"
 #include "kbdbuf.h"
 #include "lib.h"
 #include "maincpu.h"
 #include "mem.h"
+#include "resources.h"
 #include "translate.h"
 #include "types.h"
 
@@ -62,16 +64,49 @@ static CLOCK kernal_init_cycles;
 static BYTE queue[QUEUE_SIZE];
 
 /* Next element in `queue' we must push into the kernal's queue.  */
-static int head_idx;
+static int head_idx = 0;
 
 /* Number of pending characters.  */
-static int num_pending;
+static int num_pending = 0;
 
 /* Flag if we are initialized already.  */
 static int kbd_buf_enabled = 0;
 
 /* String to feed into the keyboard buffer.  */
 static char *kbd_buf_string = NULL;
+
+static int KbdbufDelay = 0;
+
+/* ------------------------------------------------------------------------- */
+
+/*! \internal \brief set additional keybuf delay. 0 means default. (none) */
+static int set_kbdbuf_delay(int val, void *param)
+{
+    if (val < 0) {
+        val = 0;
+    }
+    KbdbufDelay = val;
+    return 0;
+}
+
+/*! \brief integer resources used by keybuf */
+static const resource_int_t resources_int[] = {
+    { "KbdbufDelay", 0, RES_EVENT_NO, (resource_value_t)0,
+      &KbdbufDelay, set_kbdbuf_delay, NULL },
+    { NULL }
+};
+
+/*! \brief initialize the resources
+ \return
+   0 on success, else -1.
+
+ \remark
+   Registers the integer resources
+*/
+int kbdbuf_resources_init(void)
+{
+    return resources_register_int(resources_int);
+}
 
 /* ------------------------------------------------------------------------- */
 
@@ -90,18 +125,34 @@ static void kbd_buf_parse_string(const char *string)
     memset(kbd_buf_string, 0, len + 1);
 
     for (i = 0, j = 0; i < len; i++) {
-        if (string[i] == '\\' && i < (len - 2) && isxdigit((int)string[i + 1])
-            && isxdigit((int)string[i + 2])) {
-            char hexvalue[3];
+        if (string[i] == '\\') {
+            /* printf("esc:%s\n", &string[i]); */
+            if((i < (len - 1)) && (string[i + 1] == '\\')) {
+                /* escaped backslash "\\" */
+                kbd_buf_string[j] = charset_p_topetcii('\\');
+                i += 1;
+                j++;
+            } else if((i < (len - 1)) && (string[i + 1] == 'n')) {
+                /* escaped line ending "\n" */
+                kbd_buf_string[j] = charset_p_topetcii('\n');
+                i += 1;
+                j++;
+            } else if((i < (len - 3)) && (string[i + 1] == 'x') && isxdigit((int)string[i + 2]) && isxdigit((int)string[i + 3])) {
+                /* escaped hex value in c-style format "\x00" */
+                char hexvalue[3];
 
-            hexvalue[0] = string[i + 1];
-            hexvalue[1] = string[i + 2];
-            hexvalue[2] = '\0';
-            kbd_buf_string[j] = (char)strtol(hexvalue, NULL, 16);
-            j++;
-            i += 2;
+                hexvalue[0] = string[i + 2];
+                hexvalue[1] = string[i + 3];
+                hexvalue[2] = '\0';
+
+                kbd_buf_string[j] = (char)strtol(hexvalue, NULL, 16);
+                i += 3;
+                j++;
+            }
         } else {
-            kbd_buf_string[j] = string[i];
+            /* printf("chr:%s\n", &string[i]); */
+            /* regular character, translate to petscii */
+            kbd_buf_string[j] = charset_p_topetcii(string[i]);
             j++;
         }
     }
@@ -127,6 +178,11 @@ static const cmdline_option_t cmdline_options[] =
       kdb_buf_feed_cmdline, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_STRING, IDCLS_PUT_STRING_INTO_KEYBUF,
+      NULL, NULL },
+    { "-keybuf-delay", SET_RESOURCE, 1,
+      NULL, NULL, "KbdbufDelay", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_VALUE, IDCLS_SET_KEYBUF_DELAY,
       NULL, NULL },
     { NULL }
 };
@@ -155,7 +211,7 @@ void kbdbuf_reset(int location, int plocation, int size, CLOCK mincycles)
 /* Initialization.  */
 void kbdbuf_init(int location, int plocation, int size, CLOCK mincycles)
 {
-    kbdbuf_reset(location, plocation, size, mincycles);
+    kbdbuf_reset(location, plocation, size, mincycles + KbdbufDelay);
 
     if (kbd_buf_string != NULL) {
         kbdbuf_feed(kbd_buf_string);
@@ -173,13 +229,13 @@ int kbdbuf_is_empty(void)
     return (int)(mem_read((WORD)(num_pending_location)) == 0);
 }
 
-/* Feed `s' into the queue.  */
+/* Feed `string' into the queue.  */
 int kbdbuf_feed(const char *string)
 {
     const int num = (int)strlen(string);
     int i, p;
 
-    if (num_pending + num > QUEUE_SIZE || !kbd_buf_enabled) {
+    if ((num_pending + num) > QUEUE_SIZE || !kbd_buf_enabled) {
         return -1;
     }
 
@@ -190,8 +246,6 @@ int kbdbuf_feed(const char *string)
 
     num_pending += num;
 
-    /* XXX: We waste time this way, as we copy into the queue and then into
-       memory.  */
     kbdbuf_flush();
 
     return 0;
@@ -203,17 +257,17 @@ void kbdbuf_flush(void)
     unsigned int i, n;
 
     if ((!kbd_buf_enabled)
-        || num_pending == 0
-        || maincpu_clk < kernal_init_cycles
+        || (num_pending == 0)
+        || (maincpu_clk < kernal_init_cycles)
         || !kbdbuf_is_empty()) {
         return;
     }
 
     n = num_pending > buffer_size ? buffer_size : num_pending;
     for (i = 0; i < n; head_idx = (head_idx + 1) % QUEUE_SIZE, i++) {
-        mem_store((WORD)(buffer_location + i), queue[head_idx]);
+        mem_inject((WORD)(buffer_location + i), queue[head_idx]);
     }
 
-    mem_store((WORD)(num_pending_location), (BYTE)(n));
+    mem_inject((WORD)(num_pending_location), (BYTE)(n));
     num_pending -= n;
 }

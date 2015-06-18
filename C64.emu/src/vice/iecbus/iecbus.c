@@ -31,7 +31,6 @@
 
 #include "cia.h"
 #include "drive.h"
-#include "drivecpu.h"
 #include "drivetypes.h"
 #include "iecbus.h"
 #include "iecdrive.h"
@@ -218,7 +217,7 @@ static void iecbus_cpu_write_conf0(BYTE data, CLOCK clock)
 /* Only the first drive is enabled.  */
 static BYTE iecbus_cpu_read_conf1(CLOCK clock)
 {
-    drivecpu_execute_all(clock);
+    drive_cpu_execute_all(clock);
 
     DEBUG_IEC_CPU_READ(iecbus.cpu_port);
 
@@ -230,7 +229,7 @@ static void iecbus_cpu_write_conf1(BYTE data, CLOCK clock)
     drive_t *drive;
 
     drive = drive_context[0]->drive;
-    drivecpu_execute(drive_context[0], clock);
+    drive_cpu_execute_one(drive_context[0], clock);
 
     DEBUG_IEC_CPU_WRITE(data);
 
@@ -276,7 +275,7 @@ static void iecbus_cpu_write_conf1(BYTE data, CLOCK clock)
 /* Only the second drive is enabled.  */
 static BYTE iecbus_cpu_read_conf2(CLOCK clock)
 {
-    drivecpu_execute_all(clock);
+    drive_cpu_execute_all(clock);
 
     DEBUG_IEC_CPU_READ(iecbus.cpu_port);
 
@@ -288,7 +287,7 @@ static void iecbus_cpu_write_conf2(BYTE data, CLOCK clock)
     drive_t *drive;
 
     drive = drive_context[1]->drive;
-    drivecpu_execute(drive_context[1], clock);
+    drive_cpu_execute_one(drive_context[1], clock);
 
     DEBUG_IEC_CPU_WRITE(data);
 
@@ -334,7 +333,7 @@ static void iecbus_cpu_write_conf2(BYTE data, CLOCK clock)
 
 static BYTE iecbus_cpu_read_conf3(CLOCK clock)
 {
-    drivecpu_execute_all(clock);
+    drive_cpu_execute_all(clock);
     serial_iec_device_exec(clock);
 
     DEBUG_IEC_CPU_READ(iecbus.cpu_port);
@@ -346,7 +345,7 @@ static void iecbus_cpu_write_conf3(BYTE data, CLOCK clock)
 {
     unsigned int dnr;
 
-    drivecpu_execute_all(clock);
+    drive_cpu_execute_all(clock);
     serial_iec_device_exec(clock);
 
     DEBUG_IEC_CPU_WRITE(data);

@@ -34,13 +34,15 @@
 #include "c64cart.h"
 #include "c64cia.h"
 #include "c64rom.h"
+#include "c64memrom.h"
+#include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cia.h"
-#include "kbd.h"
-#include "keyboard.h"
 #include "lib.h"
+#include "log.h"
 #include "machine.h"
+#include "patchrom.h"
 #include "resources.h"
 #include "reu.h"
 #include "georam.h"
@@ -49,10 +51,6 @@
 #include "vicii-resources.h"
 #include "vicii.h"
 #include "c64fastiec.h"
-
-#define KBD_INDEX_C64_SYM   0
-#define KBD_INDEX_C64_POS   1
-#define KBD_INDEX_C64_SYMDE 2
 
 /* What sync factor between the CPU and the drive?  If equal to
    `MACHINE_SYNC_PAL', the same as PAL machines.  If equal to
@@ -70,7 +68,7 @@ static char *basic_rom_name = NULL;
 static char *kernal_rom_name = NULL;
 
 /* Kernal revision for ROM patcher.  */
-char *kernal_revision = NULL;
+int kernal_revision = C64_KERNAL_REV3;
 
 int cia1_model;
 int cia2_model;
@@ -89,26 +87,35 @@ static int set_chargen_rom_name(const char *val, void *param)
 
 static int set_kernal_rom_name(const char *val, void *param)
 {
-    int ret;
+    int ret, changed = 1;
+    log_verbose("set_kernal_rom_name val:%s.", val);
+    if ((val != NULL) && (kernal_rom_name != NULL)) {
+        changed = (strcmp(val, kernal_rom_name) != 0);
+    }
     if (util_string_set(&kernal_rom_name, val)) {
         return 0;
     }
-
     /* load kernal without a kernal overriding buffer */
     ret = c64rom_load_kernal(kernal_rom_name, NULL);
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    if (changed) {
+        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    }
     return ret;
 }
 
 static int set_basic_rom_name(const char *val, void *param)
 {
-    int ret;
+    int ret, changed = 1;
+    if ((val != NULL) && (basic_rom_name != NULL)) {
+        changed = (strcmp(val, basic_rom_name) != 0);
+    }
     if (util_string_set(&basic_rom_name, val)) {
         return 0;
     }
-
     ret = c64rom_load_basic(basic_rom_name);
-    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    if (changed) {
+        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    }
     return ret;
 }
 
@@ -127,10 +134,7 @@ static int set_board_type(int val, void *param)
 
 static int set_iec_reset(int val, void *param)
 {
-    if ((val < 0) || (val > 1)) {
-        return -1;
-    }
-    iec_reset = val;
+    iec_reset = val ? 1 : 0;
     return 0;
 }
 
@@ -174,10 +178,21 @@ static int set_cia2_model(int val, void *param)
     return 0;
 }
 
-/* FIXME: Should patch the ROM on-the-fly.  */
-static int set_kernal_revision(const char *val, void *param)
+static int set_kernal_revision(int val, void *param)
 {
-    util_string_set(&kernal_revision, val);
+    log_verbose("set_kernal_revision val:%d kernal_revision: %d", val, kernal_revision);
+    if(!c64rom_isloaded()) {
+        return 0;
+    }
+    if ((val != -1) && (patch_rom_idx(val) < 0)) {
+        val = -1;
+    }
+    memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
+    if (kernal_revision != val) {
+        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    }
+    kernal_revision = val;
+    log_verbose("set_kernal_revision new kernal_revision: %d", kernal_revision);
     return 0;
 }
 
@@ -232,19 +247,6 @@ static const resource_string_t resources_string[] = {
     { "BasicName", "basic", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &basic_rom_name, set_basic_rom_name, NULL },
-    { "KernalRev", "", RES_EVENT_SAME, NULL,
-      &kernal_revision, set_kernal_revision, NULL },
-#ifdef COMMON_KBD
-    { "KeymapSymFile", KBD_C64_SYM_US, RES_EVENT_NO, NULL,
-      &machine_keymap_file_list[0],
-      keyboard_set_keymap_file, (void *)0 },
-    { "KeymapPosFile", KBD_C64_POS, RES_EVENT_NO, NULL,
-      &machine_keymap_file_list[1],
-      keyboard_set_keymap_file, (void *)1 },
-    { "KeymapSymDeFile", KBD_C64_SYM_DE, RES_EVENT_NO, NULL,
-      &machine_keymap_file_list[2],
-      keyboard_set_keymap_file, (void *)2 },
-#endif
     { NULL }
 };
 
@@ -259,10 +261,8 @@ static const resource_int_t resources_int[] = {
       &cia1_model, set_cia1_model, NULL },
     { "CIA2Model", CIA_MODEL_6526, RES_EVENT_SAME, NULL,
       &cia2_model, set_cia2_model, NULL },
-#ifdef COMMON_KBD
-    { "KeymapIndex", KBD_INDEX_C64_DEFAULT, RES_EVENT_NO, NULL,
-      &machine_keymap_index, keyboard_set_keymap_index, NULL },
-#endif
+    { "KernalRev", C64_KERNAL_REV3, RES_EVENT_SAME, NULL,
+      &kernal_revision, set_kernal_revision, NULL },
     { "SidStereoAddressStart", 0xde00, RES_EVENT_SAME, NULL,
       (int *)&sid_stereo_address_start, sid_set_sid_stereo_address, NULL },
     { "SidTripleAddressStart", 0xdf00, RES_EVENT_SAME, NULL,
@@ -292,8 +292,4 @@ void c64_resources_shutdown(void)
     lib_free(chargen_rom_name);
     lib_free(basic_rom_name);
     lib_free(kernal_rom_name);
-    lib_free(kernal_revision);
-    lib_free(machine_keymap_file_list[0]);
-    lib_free(machine_keymap_file_list[1]);
-    lib_free(machine_keymap_file_list[2]);
 }

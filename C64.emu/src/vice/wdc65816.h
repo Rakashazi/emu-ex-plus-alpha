@@ -41,7 +41,7 @@ typedef struct WDC65816_regs_s {
     WORD y;
     BYTE pbr;
     BYTE dbr;
-    BYTE dpr;
+    WORD dpr;
     WORD sp;
     BYTE emul;
     BYTE p;

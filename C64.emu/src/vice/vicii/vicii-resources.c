@@ -49,6 +49,16 @@ static int set_border_mode(int val, void *param)
 {
     int sync;
 
+    switch (val) {
+        case VICII_NORMAL_BORDERS:
+        case VICII_FULL_BORDERS:
+        case VICII_DEBUG_BORDERS:
+        case VICII_NO_BORDERS:
+            break;
+        default:
+            return -1;
+    }
+
     if (resources_get_int("MachineVideoStandard", &sync) < 0) {
         sync = MACHINE_SYNC_PAL;
     }
@@ -62,19 +72,22 @@ static int set_border_mode(int val, void *param)
 
 static int set_sprite_sprite_collisions_enabled(int val, void *param)
 {
-    vicii_resources.sprite_sprite_collisions_enabled = val;
+    vicii_resources.sprite_sprite_collisions_enabled = val ? 1 : 0;
+
     return 0;
 }
 
 static int set_sprite_background_collisions_enabled(int val, void *param)
 {
-    vicii_resources.sprite_background_collisions_enabled = val;
+    vicii_resources.sprite_background_collisions_enabled = val ? 1 : 0;
+
     return 0;
 }
 
 static int set_new_luminances(int val, void *param)
 {
-    vicii_resources.new_luminances = val;
+    vicii_resources.new_luminances = val ? 1 : 0;
+
     return vicii_color_update_palette(vicii.raster.canvas);
 }
 

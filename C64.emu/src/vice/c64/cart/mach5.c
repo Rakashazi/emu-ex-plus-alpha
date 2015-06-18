@@ -66,7 +66,7 @@ static BYTE mach5_io1_read(WORD addr)
 static void mach5_io1_store(WORD addr, BYTE value)
 {
     DBG(("io1 st %04x %02x\n", addr, value));
-    cart_config_changed_slotmain(0, 0, CMODE_WRITE);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_WRITE);
 }
 
 static BYTE mach5_io2_read(WORD addr)
@@ -78,7 +78,7 @@ static BYTE mach5_io2_read(WORD addr)
 static void mach5_io2_store(WORD addr, BYTE value)
 {
     DBG(("%04x io2 st %04x %02x\n", reg_pc, addr, value));
-    cart_config_changed_slotmain(2, 2, CMODE_WRITE);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_WRITE);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -124,13 +124,13 @@ static const c64export_resource_t export_res = {
 
 void mach5_config_init(void)
 {
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 void mach5_config_setup(BYTE *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
-    cart_config_changed_slotmain(0, 0, CMODE_READ);
+    cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/

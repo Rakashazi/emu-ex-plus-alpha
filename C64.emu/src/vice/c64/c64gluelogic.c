@@ -34,6 +34,7 @@
 #include "c64mem.h"
 #include "cmdline.h"
 #include "log.h"
+#include "machine.h"
 #include "maincpu.h"
 #include "resources.h"
 #include "snapshot.h"
@@ -41,7 +42,7 @@
 #include "types.h"
 #include "vicii.h"
 
-static int glue_logic_type = 0;
+static int glue_logic_type = GLUE_LOGIC_DISCRETE;
 static int old_vbank = 0;
 static int glue_alarm_active = 0;
 static alarm_t *glue_alarm = NULL;
@@ -120,12 +121,20 @@ void c64_glue_reset(void)
 
 static int set_glue_type(int val, void *param)
 {
+    switch (val) {
+        case GLUE_LOGIC_DISCRETE:
+        case GLUE_LOGIC_CUSTOM_IC:
+            break;
+        default:
+            return -1;
+    }
+
     glue_logic_type = val;
     return 0;
 }
 
 static const resource_int_t resources_int[] = {
-    { "GlueLogic", 0, RES_EVENT_NO, NULL,
+    { "GlueLogic", GLUE_LOGIC_DISCRETE, RES_EVENT_NO, NULL,
       &glue_logic_type, set_glue_type, NULL },
     { NULL }
 };

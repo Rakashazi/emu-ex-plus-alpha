@@ -40,7 +40,6 @@
 #include "machine.h"
 #include "maincpu.h"
 #include "mem.h"
-#include "mos6510.h"
 #include "network.h"
 #include "t64.h"
 #include "tap.h"
@@ -257,16 +256,16 @@ int tape_find_header_trap(void)
     {
         int i, n = mem_read(kbd_buf_pending_addr);
 
-        MOS6510_REGS_SET_CARRY(&maincpu_regs, 0);
+        maincpu_set_carry(0);
         for (i = 0; i < n; i++) {
             if (mem_read((WORD)(kbd_buf_addr + i)) == 0x3) {
-                MOS6510_REGS_SET_CARRY(&maincpu_regs, 1);
+                maincpu_set_carry(1);
                 break;
             }
         }
     }
 
-    MOS6510_REGS_SET_ZERO(&maincpu_regs, 1);
+    maincpu_set_zero(1);
     return 1;
 }
 
@@ -322,16 +321,16 @@ int tape_find_header_trap_plus4(void)
     {
         int i, n = mem_read(kbd_buf_pending_addr);
 
-        MOS6510_REGS_SET_CARRY(&maincpu_regs, 0);
+        maincpu_set_carry(0);
         for (i = 0; i < n; i++) {
             if (mem_read((WORD)(kbd_buf_addr + i)) == 0x3) {
-                MOS6510_REGS_SET_CARRY(&maincpu_regs, 1);
+                maincpu_set_carry(1);
                 break;
             }
         }
     }
 
-    MOS6510_REGS_SET_ZERO(&maincpu_regs, 1);
+    maincpu_set_zero(1);
     return 1;
 }
 
@@ -354,7 +353,7 @@ int tape_receive_trap(void)
     start = (mem_read(stal_addr) | (mem_read((WORD)(stal_addr + 1)) << 8));
     end = (mem_read(eal_addr) | (mem_read((WORD)(eal_addr + 1)) << 8));
 
-    switch (MOS6510_REGS_GET_X(&maincpu_regs)) {
+    switch (maincpu_get_x()) {
         case 0x0e:
             {
                 int amount;
@@ -373,7 +372,7 @@ int tape_receive_trap(void)
             break;
         default:
             log_error(tape_log, "Kernal command %x not supported.",
-                      MOS6510_REGS_GET_X(&maincpu_regs));
+                      maincpu_get_x());
             st = 0x40;
             break;
     }
@@ -387,8 +386,8 @@ int tape_receive_trap(void)
 
     set_st(st);                 /* EOF and possible errors */
 
-    MOS6510_REGS_SET_CARRY(&maincpu_regs, 0);
-    MOS6510_REGS_SET_INTERRUPT(&maincpu_regs, 0);
+    maincpu_set_carry(0);
+    maincpu_set_interrupt(0);
     return 1;
 }
 

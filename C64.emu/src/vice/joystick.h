@@ -32,8 +32,11 @@
 struct snapshot_s;
 
 extern int joystick_init(void);
-extern int joystick_init_resources(void);
+extern int joystick_resources_init(void);
 extern int joystick_extra_init_resources(void);
+
+extern int joystick_cmdline_options_init(void);
+extern int joystick_arch_cmdline_options_init(void);
 
 extern int joystick_check_set(signed long key, int keysetnum, unsigned int joyport);
 extern int joystick_check_clr(signed long key, int keysetnum, unsigned int joyport);
@@ -62,5 +65,29 @@ extern int joystick_snapshot_read_module(struct snapshot_s *s);
 
 /* virtual joystick mapping */
 extern int joystick_port_map[JOYSTICK_NUM];
+
+#ifdef COMMON_KBD
+#define JOYSTICK_KEYSET_NUM 3
+#define JOYSTICK_KEYSET_NUM_KEYS 9
+#define JOYSTICK_KEYSET_IDX_NUMBLOCK 0
+#define JOYSTICK_KEYSET_IDX_A 1
+#define JOYSTICK_KEYSET_IDX_B 2
+extern int joykeys[JOYSTICK_KEYSET_NUM][JOYSTICK_KEYSET_NUM_KEYS];
+
+/* several things depend on the order/exact values of the members in this enum,
+ * DO NOT CHANGE!
+ */
+typedef enum {
+    JOYSTICK_KEYSET_FIRE,
+    JOYSTICK_KEYSET_SW,
+    JOYSTICK_KEYSET_S,
+    JOYSTICK_KEYSET_SE,
+    JOYSTICK_KEYSET_W,
+    JOYSTICK_KEYSET_E,
+    JOYSTICK_KEYSET_NW,
+    JOYSTICK_KEYSET_N,
+    JOYSTICK_KEYSET_NE
+} joystick_direction_t;
+#endif
 
 #endif

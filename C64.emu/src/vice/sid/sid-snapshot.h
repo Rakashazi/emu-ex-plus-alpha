@@ -51,6 +51,7 @@ struct sid_snapshot_state_s {
     WORD pulse_output[3];
     BYTE write_pipeline;
     BYTE write_address;
+    BYTE voice_mask;
 };
 typedef struct sid_snapshot_state_s sid_snapshot_state_t;
 

@@ -337,7 +337,12 @@ static int wmm_bufferspace(void)
     }
 
     if (wavehdr.dwFlags & WHDR_DONE) {
-        return 0; /* Buffer stopped playing */
+        value = buffer_size;
+        if (is16bit) {
+            value >>= 1;
+        }
+        return value / num_of_channels;
+
     }
     if (waveOutGetPosition(hwaveout, &mmtime, sizeof(mmtime))
         != MMSYSERR_NOERROR) {

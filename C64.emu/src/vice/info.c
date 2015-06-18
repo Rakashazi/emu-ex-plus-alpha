@@ -29,6 +29,7 @@
 
 #include <stdlib.h>
 
+#include "info.h"
 #include "infocontrib.h"
 
 #ifdef WINMIPS

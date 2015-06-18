@@ -35,10 +35,12 @@
 #include "drivecpu65c02.h"
 #include "driverom.h"
 #include "drivetypes.h"
+#include "ds1216e.h"
 #include "iecbus.h"
 #include "iecdrive.h"
 #include "lib.h"
 #include "log.h"
+#include "machine.h"
 #include "machine-bus.h"
 #include "machine-drive.h"
 #include "resources.h"
@@ -58,7 +60,7 @@ static int set_drive_true_emulation(int val, void *param)
     unsigned int dnr;
     drive_t *drive;
 
-    drive_true_emulation = val;
+    drive_true_emulation = val ? 1 : 0;
 
     machine_bus_status_truedrive_set((unsigned int)drive_true_emulation);
 
@@ -91,7 +93,8 @@ static int set_drive_true_emulation(int val, void *param)
 
 static int set_drive_sound_emulation(int val, void *param)
 {
-    drive_sound_emulation = val;
+    drive_sound_emulation = val ? 1 : 0;
+
     return 0;
 }
 
@@ -122,6 +125,7 @@ static int drive_resources_type(int val, void *param)
     unsigned int type, dnr;
     int busses;
     drive_t *drive, *drive0;
+    char *rtc_device = NULL;
 
     dnr = vice_ptr_to_uint(param);
     drive = drive_context[dnr]->drive;
@@ -162,7 +166,24 @@ static int drive_resources_type(int val, void *param)
         }
     }
 
+    if (type == DRIVE_TYPE_2000 || type == DRIVE_TYPE_4000) {
+        if (drive->type != DRIVE_TYPE_2000 && drive->type != DRIVE_TYPE_4000) {
+            rtc_device = lib_msprintf("FD%d", dnr + 8);
+            drive->ds1216 = ds1216e_init(rtc_device);
+            drive->ds1216->hours12 = 1;
+            lib_free(rtc_device);
+        }
+    } else {
+        if (drive->type == DRIVE_TYPE_2000 || drive->type == DRIVE_TYPE_4000) {
+            if (drive->ds1216) {
+                ds1216e_destroy(drive->ds1216, drive->rtc_save);
+                drive->ds1216 = NULL;
+            }
+        }
+    }
+
     switch (type) {
+        case DRIVE_TYPE_1540:
         case DRIVE_TYPE_1541:
         case DRIVE_TYPE_1541II:
         case DRIVE_TYPE_1551:
@@ -255,10 +276,13 @@ static int set_drive_idling_method(int val, void *param)
     drive = drive_context[dnr]->drive;
 
     /* FIXME: Maybe we should call `drive_cpu_execute()' here?  */
-    if (val != DRIVE_IDLE_SKIP_CYCLES
-        && val != DRIVE_IDLE_TRAP_IDLE
-        && val != DRIVE_IDLE_NO_IDLE) {
-        return -1;
+    switch (val) {
+        case DRIVE_IDLE_SKIP_CYCLES:
+        case DRIVE_IDLE_TRAP_IDLE:
+        case DRIVE_IDLE_NO_IDLE:
+            break;
+        default:
+            return -1;
     }
 
     drive->idling_method = val;
@@ -268,6 +292,19 @@ static int set_drive_idling_method(int val, void *param)
     }
 
     driverom_initialize_traps(drive);
+    return 0;
+}
+
+static int set_drive_rtc_save(int val, void *param)
+{
+    unsigned int dnr;
+    drive_t *drive;
+
+    dnr = vice_ptr_to_uint(param);
+    drive = drive_context[dnr]->drive;
+
+    drive->rtc_save = val ? 1 : 0;
+
     return 0;
 }
 
@@ -289,10 +326,29 @@ static resource_int_t res_drive[] = {
     { NULL }
 };
 
+static resource_int_t res_drive_rtc[] = {
+    { NULL, 0, RES_EVENT_NO, NULL,
+      NULL, set_drive_rtc_save, NULL },
+    { NULL }
+};
+
 int drive_resources_init(void)
 {
     unsigned int dnr;
     drive_t *drive;
+    int has_iec;
+
+    switch (machine_class) {
+        case VICE_MACHINE_NONE:
+        case VICE_MACHINE_PET:
+        case VICE_MACHINE_CBM5x0:
+        case VICE_MACHINE_CBM6x0:
+        case VICE_MACHINE_VSID:
+            has_iec = 0;
+            break;
+        default:
+            has_iec = 1;
+    }
 
     for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
         drive = drive_context[dnr]->drive;
@@ -304,12 +360,24 @@ int drive_resources_init(void)
         res_drive[1].value_ptr = &(drive->idling_method);
         res_drive[1].param = uint_to_void_ptr(dnr);
 
+        if (has_iec) {
+            res_drive_rtc[0].name = lib_msprintf("Drive%iRTCSave", dnr + 8);
+            res_drive_rtc[0].value_ptr = &(drive->rtc_save);
+            res_drive_rtc[0].param = uint_to_void_ptr(dnr);
+            if (resources_register_int(res_drive_rtc) < 0) {
+                return -1;
+            }
+        }
+
         if (resources_register_int(res_drive) < 0) {
             return -1;
         }
 
         lib_free((char *)(res_drive[0].name));
         lib_free((char *)(res_drive[1].name));
+        if (has_iec) {
+            lib_free((char *)(res_drive_rtc[0].name));
+        }
     }
 
     return machine_drive_resources_init()
