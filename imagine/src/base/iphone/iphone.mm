@@ -22,6 +22,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <OpenGLES/ES2/gl.h> // for glFinish()
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
+#include <imagine/logger/logger.h>
 #include "private.hh"
 #include <imagine/fs/sys.hh>
 #include <imagine/time/Time.hh>

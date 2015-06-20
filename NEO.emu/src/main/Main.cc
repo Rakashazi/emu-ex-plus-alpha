@@ -1,6 +1,8 @@
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
 #include <imagine/io/ZipIO.hh>
+#include <imagine/thread/Thread.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
@@ -69,6 +71,20 @@ static ROM_DEF *activeDrv{};
 
 static Base::Pipe guiPipe;
 static FsSys::PathString datafilePath{};
+
+static constexpr bool backgroundRomLoading = true;
+static bool loadThreadIsRunning = false;
+
+enum { MSG_LOAD_FAILED, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
+
+struct GUIMessage
+{
+	constexpr GUIMessage() {}
+	constexpr GUIMessage(uint8 type, uint8 shortArg, int intArg): intArg(intArg), shortArg(shortArg), type(type) {}
+	int intArg = 0;
+	uint8 shortArg = 0;
+	uint8 type = 0;
+};
 
 // controls
 
@@ -489,25 +505,11 @@ static void loadGamePhase2()
 	logMsg("finished loading game");
 }
 
-static const bool backgroundRomLoading = 1;
-static ThreadPThread backgroundThread;
-
-enum { MSG_LOAD_FAILED, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
-
-struct GUIMessage
-{
-	constexpr GUIMessage() {}
-	constexpr GUIMessage(uint8 type, uint8 shortArg, int intArg): intArg(intArg), shortArg(shortArg), type(type) {}
-	int intArg = 0;
-	uint8 shortArg = 0;
-	uint8 type = 0;
-};
-
 void gn_init_pbar(uint action,int size)
 {
 	using namespace Base;
 	logMsg("init pbar %d, %d", action, size);
-	if(backgroundThread.running)
+	if(loadThreadIsRunning)
 	{
 		GUIMessage msg {MSG_START_PROGRESS, (uint8)action, size};
 		guiPipe.write(&msg, sizeof(msg));
@@ -517,7 +519,7 @@ void gn_update_pbar(int pos)
 {
 	using namespace Base;
 	logMsg("update pbar %d", pos);
-	if(backgroundThread.running)
+	if(loadThreadIsRunning)
 	{
 		GUIMessage msg {MSG_UPDATE_PROGRESS, 0, pos};
 		guiPipe.write(&msg, sizeof(msg));
@@ -739,23 +741,22 @@ int EmuSystem::loadGame(const char *path)
 				{
 					return onGUIMessageHandler(pipe, *loadGameInBackgroundView);
 				});
-			backgroundThread.create(1,
-				[](ThreadPThread &thread)
+			IG::runOnThread(
+				[]()
 				{
 					using namespace Base;
-
 					char gnoFilename[8+4+1];
 					snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
-
+					loadThreadIsRunning = true;
+					auto loadThreadDone = IG::scopeGuard([](){ loadThreadIsRunning = false; });
 					if(!init_game(activeDrv->name))
 					{
 						GUIMessage msg {MSG_LOAD_FAILED, 0, 0};
 						guiPipe.write(&msg, sizeof(msg));
 						EmuSystem::clearGamePaths();
 						free(activeDrv); activeDrv = 0;
-						return 0;
+						return;
 					}
-
 					if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
 					{
 						logMsg("%s doesn't exist, creating", gnoFilename);
@@ -769,9 +770,7 @@ int EmuSystem::loadGame(const char *path)
 					}
 					GUIMessage msg {MSG_LOAD_OK, 0, 0};
 					guiPipe.write(&msg, sizeof(msg));
-					return 0;
-				}
-			);
+				});
 			return -1;
 		}
 		else

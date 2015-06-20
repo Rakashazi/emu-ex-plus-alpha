@@ -16,6 +16,7 @@
 #define LOGTAG "FSPicker"
 
 #include <imagine/gui/FSPicker.hh>
+#include <imagine/logger/logger.h>
 
 static const Gfx::LGradientStopDesc fsNavViewGrad[] =
 {

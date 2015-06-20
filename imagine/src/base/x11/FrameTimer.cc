@@ -19,7 +19,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/thread/sys.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
@@ -43,7 +43,6 @@ class FBDevFrameTimer
 private:
 	Base::EventLoopFileSource fdSrc;
 	int fd = -1;
-	ThreadPThread thread;
 	sem_t sem{};
 	bool requested = false;
 	bool cancelled = false;
@@ -66,7 +65,6 @@ class SGIFrameTimer
 private:
 	Base::EventLoopFileSource fdSrc;
 	int fd = -1;
-	ThreadPThread thread;
 	sem_t sem{};
 	bool requested = false;
 	bool cancelled = false;
@@ -178,8 +176,8 @@ bool FBDevFrameTimer::init()
 			}
 			return 1;
 		});
-	thread.create(1,
-		[this, fbdev](ThreadPThread &thread)
+	IG::runOnThread(
+		[this, fbdev]()
 		{
 			//logMsg("ready to wait for vsync");
 			for(;;)
@@ -193,7 +191,6 @@ bool FBDevFrameTimer::init()
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));
 			}
-			return 0;
 		}
 	);
 	return true;
@@ -260,8 +257,8 @@ bool SGIFrameTimer::init()
 			inFrameHandlers = false;
 			return 1;
 		});
-	thread.create(1,
-		[this, &initSem](ThreadPThread &thread)
+	IG::runOnThread(
+		[this, &initSem]()
 		{
 			GLContext context;
 			GLBufferConfig bufferConfig;
@@ -309,7 +306,6 @@ bool SGIFrameTimer::init()
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));
 			}
-			return 0;
 		}
 	);
 	sem_wait(&initSem);

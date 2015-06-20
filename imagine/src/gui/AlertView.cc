@@ -16,6 +16,7 @@
 #define LOGTAG "AlertView"
 
 #include <imagine/gui/AlertView.hh>
+#include <imagine/logger/logger.h>
 
 void AlertView::init(const char *label, MenuItem **menuItem, bool highlightFirst)
 {

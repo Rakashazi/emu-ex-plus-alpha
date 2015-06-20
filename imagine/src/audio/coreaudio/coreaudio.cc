@@ -17,7 +17,6 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/number.h>
-#include <imagine/util/thread/pthread.hh>
 #include <imagine/util/ringbuffer/MachRingBuffer.hh>
 #include <AudioUnit/AudioUnit.h>
 #include <TargetConditionals.h>

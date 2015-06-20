@@ -15,6 +15,7 @@
 
 #define LOGTAG "ResFontFreetype"
 #include <imagine/resource/font/ResourceFontFreetype.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/strings.h>
 #include <imagine/io/FileIO.hh>

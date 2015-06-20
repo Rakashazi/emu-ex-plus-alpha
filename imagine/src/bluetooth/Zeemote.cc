@@ -15,6 +15,7 @@
 
 #define LOGTAG "Zeemote"
 #include <imagine/bluetooth/Zeemote.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <algorithm>

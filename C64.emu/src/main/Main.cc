@@ -16,14 +16,9 @@
 #define LOGTAG "main"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
+#include <imagine/thread/Thread.hh>
+#include <imagine/thread/Semaphore.hh>
 #include <sys/time.h>
-#ifdef __APPLE__
-	#include <mach/semaphore.h>
-	#include <mach/task.h>
-	#include <mach/mach.h>
-#else
-	#include <semaphore.h>
-#endif
 
 extern "C"
 {
@@ -65,12 +60,7 @@ extern "C"
 }
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
-#ifdef __APPLE__
-semaphore_t execSem, execDoneSem;
-#else
-sem_t execSem, execDoneSem;
-#endif
-static ThreadPThread c64Thread;
+IG::Semaphore execSem{0}, execDoneSem{0};
 alignas(8) uint16 pix[520*312]{};
 bool runningFrame = false, doAudio = false;
 static bool c64IsInit = false, c64FailedInit = false, isPal = false,
@@ -999,13 +989,8 @@ int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 static void execC64Frame()
 {
 	// signal C64 thread to execute one frame and wait for it to finish
-	#ifdef __APPLE__
-	semaphore_signal(execSem);
-	semaphore_wait(execDoneSem);
-	#else
-	sem_post(&execSem);
-	sem_wait(&execDoneSem);
-	#endif
+	execSem.notify();
+	execDoneSem.wait();
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -1097,30 +1082,13 @@ namespace Base
 CallResult onInit(int argc, char** argv)
 {
 	emuVideo.initPixmap((char*)pix, pixFmt, 320, 200);
-	#ifdef __APPLE__
-	{
-		auto ret = semaphore_create(mach_task_self(), &execSem, SYNC_POLICY_FIFO, 0);
-		assert(ret == KERN_SUCCESS);
-		ret = semaphore_create(mach_task_self(), &execDoneSem, SYNC_POLICY_FIFO, 0);
-		assert(ret == KERN_SUCCESS);
-	}
-	#else
-	sem_init(&execSem, 0, 0);
-	sem_init(&execDoneSem, 0, 0);
-	#endif
-	c64Thread.create(1,
-		[](ThreadPThread &thread)
+	IG::runOnThread(
+		[]()
 		{
-		#ifdef __APPLE__
-		semaphore_wait(execSem);
-		#else
-		sem_wait(&execSem);
-		#endif
-		logMsg("running C64");
-		maincpu_mainloop();
-		return 0;
-		}
-	);
+			execSem.wait();
+			logMsg("running C64");
+			maincpu_mainloop();
+		});
 
 	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
 	setupSysFilePaths(sysFilePath[1], Base::assetPath());

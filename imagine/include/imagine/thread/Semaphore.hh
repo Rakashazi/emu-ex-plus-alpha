@@ -15,10 +15,24 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#ifdef _WIN32
-#include "win32.hh"
-#define ThreadSys ThreadWin32
+#include <imagine/engine-globals.h>
+
+#ifdef __APPLE__
+#include <imagine/thread/MachSemaphore.hh>
 #else
-#include "pthread.hh"
-#define ThreadSys ThreadPThread
+#include <imagine/thread/PosixSemaphore.hh>
 #endif
+
+namespace IG
+{
+
+class Semaphore : public SemaphoreImpl
+{
+public:
+	Semaphore(unsigned int startValue);
+	~Semaphore();
+	void wait();
+	void notify();
+};
+
+}

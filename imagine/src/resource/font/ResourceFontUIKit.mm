@@ -16,6 +16,7 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "ResFontUIKit"
 #include <imagine/resource/font/ResourceFontUIKit.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/strings.h>
 #include "../../base/iphone/private.hh"

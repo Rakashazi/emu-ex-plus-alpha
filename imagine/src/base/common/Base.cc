@@ -26,6 +26,7 @@
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
+#include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 
 namespace Base

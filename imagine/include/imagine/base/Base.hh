@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/engine-globals.h>
-#include <imagine/util/thread/sys.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>

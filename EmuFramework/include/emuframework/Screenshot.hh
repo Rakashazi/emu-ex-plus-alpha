@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <array>
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/logger/logger.h>
 #include <emuframework/EmuSystem.hh>
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);

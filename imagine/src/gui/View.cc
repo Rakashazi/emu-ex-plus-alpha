@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
+#include <imagine/logger/logger.h>
 
 ResourceFace *View::defaultFace{};
 ResourceFace *View::defaultSmallFace{};

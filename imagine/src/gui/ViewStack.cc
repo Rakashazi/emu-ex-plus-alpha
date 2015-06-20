@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/ViewStack.hh>
+#include <imagine/logger/logger.h>
 #include <utility>
 
 void BasicViewController::push(View &v)

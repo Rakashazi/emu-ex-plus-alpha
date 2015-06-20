@@ -17,7 +17,6 @@
 
 #include <imagine/engine-globals.h>
 #include "BluetoothAdapter.hh"
-#include <imagine/util/thread/pthread.hh>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/l2cap.h>
 #include <imagine/base/Base.hh>
@@ -59,7 +58,6 @@ public:
 
 private:
 	int devId = -1, socket = -1;
-	ThreadPThread runThread;
 	Base::Pipe statusPipe;
 	bool scanCancelled = false;
 	#ifdef CONFIG_BLUETOOTH_SERVER

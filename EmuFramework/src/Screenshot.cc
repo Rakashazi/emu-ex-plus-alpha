@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Screenshot.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/io/FileIO.hh>

@@ -15,6 +15,7 @@
 
 #define LOGTAG "Window"
 #include <imagine/base/Base.hh>
+#include <imagine/logger/logger.h>
 #include "windowPrivate.hh"
 #include <imagine/input/Input.hh>
 

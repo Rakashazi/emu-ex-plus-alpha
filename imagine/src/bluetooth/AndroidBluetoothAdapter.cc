@@ -15,6 +15,7 @@
 
 #define LOGTAG "AndroidBT"
 #include <imagine/bluetooth/AndroidBluetoothAdapter.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/jni.hh>
 #include <errno.h>
@@ -409,8 +410,8 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 		else
 		{
 			logMsg("starting read thread");
-			readThread.create(1,
-				[this](ThreadPThread &thread)
+			IG::runOnThread(
+				[this]()
 				{
 					if(Config::DEBUG_BUILD)
 						logMsg("in read thread %d", gettid());
@@ -419,7 +420,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 					{
 						logErr("error attaching env to thread");
 						// TODO: cleanup
-						return 0;
+						return;
 					}
 
 					auto looper = Base::activityLooper();
@@ -500,7 +501,6 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 					::close(dataPipe[1]);
 
 					Base::jVM->DetachCurrentThread();
-					return 0;
 				}
 			);
 		}
@@ -552,15 +552,16 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 	ba2str(&bdaddr, addrStr);
 	var_selfs(channel);
 	isL2cap = l2cap;
-	connectThread.create(0,
-		[this](ThreadPThread &thread)
+	sem_init(&connectSem, 0, 0);
+	isConnecting = true;
+	IG::runOnThread(
+		[this]()
 		{
 			logMsg("in connect thread %d", gettid());
 			JNIEnv *env;
 			if(Base::jVM->AttachCurrentThread(&env, 0) != 0)
 			{
-				logErr("error attaching env to thread");
-				return 0;
+				bug_exit("error attaching env to thread");
 			}
 			socket = AndroidBluetoothAdapter::defaultAdapter()->openSocket(env, addrStr, this->channel, isL2cap);
 			if(socket)
@@ -584,9 +585,9 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 			}
 			else
 				defaultAndroidAdapter.sendSocketStatusMessage({*this, STATUS_CONNECT_ERROR});
-
+			sem_post(&connectSem);
 			Base::jVM->DetachCurrentThread();
-			return 0;
+			isConnecting = false;
 		}
 	);
 	return OK;
@@ -606,10 +607,10 @@ CallResult AndroidBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
 
 void AndroidBluetoothSocket::close()
 {
-	if(connectThread.running)
+	if(isConnecting)
 	{
 		logMsg("waiting for connect thread to complete before closing socket");
-		connectThread.join();
+		sem_wait(&connectSem);
 	}
 	if(socket)
 	{
@@ -626,6 +627,7 @@ void AndroidBluetoothSocket::close()
 		jBtSocketClose(env, socket);
 		env->DeleteGlobalRef(socket);
 		socket = nullptr;
+		sem_destroy(&connectSem);
 	}
 }
 

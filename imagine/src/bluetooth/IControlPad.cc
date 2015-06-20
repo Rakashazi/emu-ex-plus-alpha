@@ -15,6 +15,7 @@
 
 #define LOGTAG "ICP"
 #include <imagine/bluetooth/IControlPad.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include "../input/private.hh"

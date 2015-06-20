@@ -15,6 +15,7 @@
 
 #define LOGTAG "Bluez"
 #include <imagine/bluetooth/BluezBluetoothAdapter.hh>
+#include <imagine/thread/Thread.hh>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
@@ -229,12 +230,11 @@ bool BluezBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceCla
 		onScanStatusD = onResult;
 		onScanDeviceClassD = onDeviceClass;
 		onScanDeviceNameD = onDeviceName;
-		runThread.create(1,
-			[this](ThreadPThread &thread)
+		IG::runOnThread(
+			[this]()
 			{
 				doScan(onScanDeviceClassD, onScanDeviceNameD);
 				inDetect = 0;
-				return 0;
 			});
 		return 1;
 	}

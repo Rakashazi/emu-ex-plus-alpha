@@ -16,6 +16,7 @@
 #define LOGTAG "ScrollView1D"
 
 #include <imagine/gui/ScrollView.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/input/DragPointer.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Base.hh>

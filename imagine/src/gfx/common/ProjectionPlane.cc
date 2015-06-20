@@ -1,6 +1,7 @@
 #define LOGTAG "GfxProjectionPlane"
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
+#include <imagine/logger/logger.h>
 
 namespace Gfx
 {

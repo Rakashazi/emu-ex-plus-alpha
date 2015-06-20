@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <imagine/logger/logger.h>
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/util/strings.h>

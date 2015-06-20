@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/TextEntry.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/gui/TableView.hh>
 
 void TextEntry::setAcceptingInput(bool on)

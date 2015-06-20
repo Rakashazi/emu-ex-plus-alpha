@@ -20,6 +20,7 @@
 #include "dbus.hh"
 #include "../common/basePrivate.hh"
 #include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/logger/logger.h>
 #ifdef CONFIG_BASE_GLIB
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>

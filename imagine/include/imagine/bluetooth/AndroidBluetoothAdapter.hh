@@ -16,9 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <jni.h>
+#include <semaphore.h>
 #include <imagine/engine-globals.h>
 #include "BluetoothAdapter.hh"
-#include <imagine/util/thread/pthread.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 
@@ -68,13 +68,13 @@ public:
 
 private:
 	jobject socket{}, outStream{};
-	ThreadPThread readThread;
-	ThreadPThread connectThread;
+	sem_t connectSem;
 	Base::EventLoopFileSource fdSrc;
 	int nativeFd = -1;
 	uint channel = 0;
 	bool isClosing = false;
 	bool isL2cap = false;
+	bool isConnecting = false;
 	char addrStr[18]{};
 
 	CallResult openSocket(BluetoothAddr addr, uint channel, bool l2cap);

@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Recent.hh>
+#include <imagine/logger/logger.h>
 
 StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 

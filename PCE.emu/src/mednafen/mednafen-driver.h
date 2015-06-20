@@ -62,7 +62,6 @@ void MDFND_MidSync(const EmulateSpecStruct *espec);
 //
 struct MDFN_Thread;
 struct MDFN_Mutex;
-struct MDFN_Semaphore;
 struct MDFN_Cond;	// mmm condiments
 struct MDFN_Sem;
 
@@ -85,11 +84,6 @@ int MDFND_WaitCond(MDFN_Cond* cond, MDFN_Mutex* mutex);
 
 #define MDFND_COND_TIMEDOUT	1
 int MDFND_WaitCondTimeout(MDFN_Cond* cond, MDFN_Mutex* mutex, unsigned ms);
-
-MDFN_Semaphore *MDFND_CreateSemaphore(void);
-void MDFND_DestroySemaphore(MDFN_Semaphore *mutex);
-int MDFND_SignalSemaphore(MDFN_Semaphore *mutex);
-int MDFND_WaitSemaphore(MDFN_Semaphore *mutex);
 
 //
 // End threading support.

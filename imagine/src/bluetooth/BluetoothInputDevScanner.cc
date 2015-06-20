@@ -18,6 +18,7 @@
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/bluetooth/IControlPad.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/util/container/ArrayList.hh>

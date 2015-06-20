@@ -19,6 +19,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <OpenGLES/EAGLDrawable.h>
 #import <QuartzCore/CAEAGLLayer.h>
 #include <imagine/base/Base.hh>
+#include <imagine/logger/logger.h>
 #include "../common/windowPrivate.hh"
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragPointer.hh>

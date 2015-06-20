@@ -26,6 +26,7 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/util/strings.h>
 #include <imagine/util/Rational.hh>
+#include <imagine/logger/logger.h>
 
 struct OptionBase
 {

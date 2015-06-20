@@ -17,6 +17,7 @@
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/base/Base.hh>

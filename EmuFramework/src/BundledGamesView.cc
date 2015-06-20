@@ -15,6 +15,7 @@
 
 #include <emuframework/BundledGamesView.hh>
 #include <emuframework/EmuSystem.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/BufferMapIO.hh>
 #include <unzip.h>
