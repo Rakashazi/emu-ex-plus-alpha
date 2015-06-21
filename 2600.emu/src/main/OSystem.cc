@@ -14,6 +14,7 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/time/Time.hh>
+#include <imagine/logger/logger.h>
 #include <emuframework/EmuSystem.hh>
 #include <OSystem.hxx>
 #include <FrameBuffer.hxx>

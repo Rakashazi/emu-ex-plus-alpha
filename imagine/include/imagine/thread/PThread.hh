@@ -71,7 +71,7 @@ protected:
 	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 public:
-	pthread_mutex_t nativeObject()
+	pthread_mutex_t &nativeObject()
 	{
 		return mutex;
 	}

@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <cstdio>
 #include "tests.hh"
+#include <imagine/logger/logger.h>
 
 struct CPUTime
 {

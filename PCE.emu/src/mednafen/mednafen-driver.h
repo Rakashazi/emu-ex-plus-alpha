@@ -63,7 +63,6 @@ void MDFND_MidSync(const EmulateSpecStruct *espec);
 struct MDFN_Thread;
 struct MDFN_Mutex;
 struct MDFN_Cond;	// mmm condiments
-struct MDFN_Sem;
 
 MDFN_Thread *MDFND_CreateThread(void* (*fn)(void *), void *data);
 void MDFND_WaitThread(MDFN_Thread *thread, int *status);

@@ -53,8 +53,7 @@ ConditionVar::~ConditionVar()
 
 void ConditionVar::wait(Mutex &mutex)
 {
-	auto pthreadMutex = mutex.nativeObject();
-	pthread_cond_wait(&cond, &pthreadMutex);
+	pthread_cond_wait(&cond, &mutex.nativeObject());
 }
 
 void ConditionVar::notify_one()

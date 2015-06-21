@@ -15,6 +15,7 @@
 
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/logger/logger.h>
 #include <sys/epoll.h>
 
 namespace Base

@@ -16,6 +16,7 @@
 #include "SoundGeneric.hh"
 #include <stella/emucore/Settings.hxx>
 #include <emuframework/EmuSystem.hh>
+#include <imagine/logger/logger.h>
 
 void SoundGeneric::open()
 {
