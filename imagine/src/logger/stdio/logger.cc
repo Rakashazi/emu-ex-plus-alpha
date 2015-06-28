@@ -15,7 +15,7 @@
 
 #define LOGTAG "LoggerStdio"
 #include <imagine/base/Base.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <cstdio>
 
@@ -35,8 +35,9 @@ static const bool useExternalLogFile = false;
 static FILE *logExternalFile{};
 static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release builds
 
-static void printExternalLogPath(FsSys::PathString &path)
+static FS::PathString externalLogPath()
 {
+	FS::PathString path{};
 	const char *prefix = ".";
 	if(Config::envIsIOS)
 		prefix = "/var/mobile";
@@ -45,6 +46,7 @@ static void printExternalLogPath(FsSys::PathString &path)
 	else if(Config::envIsWebOS)
 		prefix = "/media/internal";
 	string_printf(path, "%s/imagine.log", prefix);
+	return path;
 }
 
 CallResult logger_init()
@@ -56,8 +58,7 @@ CallResult logger_init()
 	#endif
 	if(useExternalLogFile && !logExternalFile)
 	{
-		FsSys::PathString path;
-		printExternalLogPath(path);
+		auto path = externalLogPath();
 		logMsg("external log file: %s", path.data());
 		logExternalFile = fopen(path.data(), "wb");
 		if(!logExternalFile)

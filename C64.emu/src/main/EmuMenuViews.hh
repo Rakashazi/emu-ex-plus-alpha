@@ -129,8 +129,7 @@ class SystemOptionView : public OptionView
 	template <size_t S>
 	static void printSysPathMenuEntryStr(char (&str)[S])
 	{
-		FsSys::PathString basenameTemp;
-		string_printf(str, "System File Path: %s", strlen(firmwareBasePath.data()) ? string_basename(firmwareBasePath, basenameTemp) : "Default");
+		string_printf(str, "System File Path: %s", strlen(firmwareBasePath.data()) ? FS::basename(firmwareBasePath).data() : "Default");
 	}
 
 	FirmwarePathSelector systemFileSelector;
@@ -225,9 +224,9 @@ public:
 constexpr int SystemOptionView::sidEngineChoiceMap[];
 
 static const char *insertEjectMenuStr[] { "Insert File", "Eject" };
-static int c64DiskExtensionFsFilter(const char *name, int type);
-static int c64TapeExtensionFsFilter(const char *name, int type);
-static int c64CartExtensionFsFilter(const char *name, int type);
+static bool isC64DiskExtension(const char *name);
+static bool isC64TapeExtension(const char *name);
+static bool isC64CartExtension(const char *name);
 
 class C64IOControlView : public TableView
 {
@@ -237,8 +236,7 @@ private:
 	void updateTapeText()
 	{
 		auto name = tape_get_file_name();
-		FsSys::PathString basenameTemp;
-		string_printf(tapeSlotStr, "Tape: %s", name ? string_basename(name, basenameTemp) : "");
+		string_printf(tapeSlotStr, "Tape: %s", name ? FS::basename(name).data() : "");
 	}
 
 public:
@@ -251,7 +249,7 @@ public:
 	void addTapeFilePickerView(const Input::Event &e)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
-		fPicker.init(!e.isPointer(), false, c64TapeExtensionFsFilter, 1);
+		fPicker.init(!e.isPointer(), false, isC64TapeExtension, true);
 		fPicker.onSelectFile() =
 			[this](FSPicker &picker, const char* name, const Input::Event &e)
 			{
@@ -303,8 +301,8 @@ private:
 	void updateROMText()
 	{
 		auto name = cartridge_get_file_name(cart_getid_slotmain());
-		FsSys::PathString basenameTemp;
-		string_printf(romSlotStr, "ROM: %s", name ? string_basename(name, basenameTemp) : "");
+		FS::PathString basenameTemp;
+		string_printf(romSlotStr, "ROM: %s", name ? FS::basename(name).data() : "");
 	}
 
 public:
@@ -317,7 +315,7 @@ public:
 	void addCartFilePickerView(const Input::Event &e)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
-		fPicker.init(!e.isPointer(), false, c64CartExtensionFsFilter, 1);
+		fPicker.init(!e.isPointer(), false, isC64CartExtension, true);
 		fPicker.onSelectFile() =
 			[this](FSPicker &picker, const char* name, const Input::Event &e)
 			{
@@ -370,8 +368,7 @@ private:
 	void updateDiskText(int slot)
 	{
 		auto name = file_system_get_disk_name(slot+8);
-		FsSys::PathString basenameTemp;
-		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], name ? string_basename(name, basenameTemp) : "");
+		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], name ? FS::basename(name).data() : "");
 	}
 
 	void onDiskMediaChange(const char *name, int slot)
@@ -383,7 +380,7 @@ private:
 	void addDiskFilePickerView(const Input::Event &e, uint8 slot)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
-		fPicker.init(!e.isPointer(), false, c64DiskExtensionFsFilter, 1);
+		fPicker.init(!e.isPointer(), false, isC64DiskExtension, true);
 		fPicker.onSelectFile() =
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
@@ -478,7 +475,7 @@ class SystemMenuView : public MenuView
 		{
 			if(item.active)
 			{
-				FsSys::chdir(EmuSystem::gamePath());// Stay in active media's directory
+				FS::current_path(EmuSystem::gamePath());// Stay in active media's directory
 				auto &c64IoMenu = *new C64IOControlView{window()};
 				c64IoMenu.init(!e.isPointer());
 				viewStack.pushAndShow(c64IoMenu);
@@ -496,7 +493,7 @@ class SystemMenuView : public MenuView
 				{
 					if(EmuSystem::gameIsRunning())
 					{
-						FsSys::PathString gamePath;
+						FS::PathString gamePath;
 						string_copy(gamePath, EmuSystem::fullGamePath());
 						EmuSystem::loadGame(gamePath.data());
 						startGameFromMenu();

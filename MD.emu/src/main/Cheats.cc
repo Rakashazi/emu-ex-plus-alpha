@@ -387,12 +387,12 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = makeFSPathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatList.size())
 	{
 		logMsg("deleting cheats file %s", filename.data());
-		FsSys::remove(filename.data());
+		FS::remove(filename);
 		cheatsModified = false;
 		return;
 	}
@@ -427,7 +427,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = makeFSPathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName());
 	FileIO file;
 	file.open(filename.data());
 	if(!file)

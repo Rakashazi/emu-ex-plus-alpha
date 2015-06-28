@@ -80,9 +80,15 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 	}
 }
 
+void FSPicker::FSNavView::setTitle(const char *str)
+{
+	string_copy(titleStr, str);
+	NavView::setTitle(titleStr.data());
+}
+
 // FSPicker
 
-void FSPicker::init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FsDirFilterFunc filter,  bool singleDir, ResourceFace *face)
+void FSPicker::init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FilterFunc filter,  bool singleDir, ResourceFace *face)
 {
 	deinit();
 	faceRes = face;
@@ -94,7 +100,7 @@ void FSPicker::init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTe
 
 void FSPicker::deinit()
 {
-	dir.closeDir();
+	dir.clear();
 	navV.deinit();
 	tbl.deinit();
 	if(text)
@@ -173,46 +179,70 @@ void FSPicker::draw()
 void FSPicker::loadDir(const char *path)
 {
 	assert(path);
-	FsSys::chdir(path);
-	dir.openDir(".", 0, filter);
-	logMsg("%d entries", dir.numEntries());
-	if(dir.numEntries())
+	{
+		CallResult dirResult = OK;
+		auto dirIt = FS::directory_iterator{path, dirResult};
+		if(dirResult != OK)
+		{
+			logErr("can't open %s", path);
+			return;
+		}
+		FS::current_path(path);
+		dir.clear();
+		for(auto &entry : dirIt)
+		{
+			if(filter && !filter(entry))
+			{
+				continue;
+			}
+			dir.emplace_back(FS::makeFileString(entry.name()));
+		}
+	}
+	std::sort(dir.begin(), dir.end(), FS::fileStringNoCaseLexCompare());
+	if(dir.size())
 	{
 		// TODO free old pointer on failure
-		text = mem_newRealloc(text, dir.numEntries());
+		text = mem_newRealloc(text, dir.size());
 		if(!text)
 		{
 			logMsg("out of memory loading directory");
 			Base::abort(); // TODO: handle without exiting
 		}
-		textPtr = mem_newRealloc(textPtr, dir.numEntries());
+		textPtr = mem_newRealloc(textPtr, dir.size());
 		if(!textPtr)
 		{
 			logMsg("out of memory loading directory");
 			Base::abort(); // TODO: handle without exiting
 		}
-		iterateTimes(dir.numEntries(), i)
+		iterateTimes(dir.size(), i)
 		{
-			text[i].init(dir.entryFilename(i), 1, faceRes);
+			text[i].init(dir[i].data(), 1, faceRes);
 			textPtr[i] = &text[i];
-			if(FsSys::fileType(dir.entryFilename(i)) == Fs::TYPE_DIR)
+			if(FS::status(dir[i].data()).type() == FS::file_type::directory)
 			{
 				text[i].onSelect() = [this, i](TextMenuItem &, View &, const Input::Event &e)
 					{
 						assert(!singleDir);
-						logMsg("going to dir %s", dir.entryFilename(i));
-						changeDirByInput(dir.entryFilename(i), e);
+						logMsg("going to dir %s", dir[i].data());
+						changeDirByInput(dir[i].data(), e);
 					};
 			}
 			else
 			{
 				text[i].onSelect() = [this, i](TextMenuItem &, View &, const Input::Event &e)
 					{
-						onSelectFileD(*this, dir.entryFilename(i), e);
+						onSelectFileD(*this, dir[i].data(), e);
 					};
 			}
 		}
 	}
-	tbl.init(textPtr, dir.numEntries(), false); // TODO: highlight first cell
-	navV.setTitle(FsSys::workDir());
+	else
+	{
+		mem_free(text);
+		text = nullptr;
+		mem_free(textPtr);
+		textPtr = nullptr;
+	}
+	tbl.init(textPtr, dir.size(), false); // TODO: highlight first cell
+	navV.setTitle(FS::current_path().data());
 }

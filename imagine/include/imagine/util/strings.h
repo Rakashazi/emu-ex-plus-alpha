@@ -17,212 +17,26 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/util/basicString.h>
-#include <assert.h>
 #include <imagine/util/string/generic.h>
-#include <limits.h>
-#include <libgen.h>
+#include <imagine/util/builtins.h>
 
-#if !defined __APPLE__ && !defined __ANDROID__ && !defined __PPU__ && defined _GNU_SOURCE
-#define CONFIG_USE_GNU_BASENAME
-#endif
+static const char firstDrawableAsciiChar = '!';
+static const char lastDrawableAsciiChar = '~';
+static const uint numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
 
-#ifdef CONFIG_USE_GNU_BASENAME
-#include <imagine/util/string/glibc.h>
-#endif
+BEGIN_C_DECLS
 
-static int hexToInt(char c)
-{
-	switch(c)
-	{
-		case '0': return 0;
-		case '1': return 1;
-		case '2': return 2;
-		case '3': return 3;
-		case '4': return 4;
-		case '5': return 5;
-		case '6': return 6;
-		case '7': return 7;
-		case '8': return 8;
-		case '9': return 9;
-		case 'a':
-		case 'A':
-			return 0xa;
-		case 'b':
-		case 'B':
-			return 0xb;
-		case 'c':
-		case 'C':
-			return 0xc;
-		case 'd':
-		case 'D':
-			return 0xd;
-		case 'e':
-		case 'E':
-			return 0xe;
-		case 'f':
-		case 'F':
-			return 0xf;
-		default : bug_branch("%d", c); return 0;
-	}
-}
+int hexToInt(char c);
+int numCharInString(const char *s, int search);
+uchar string_hasDotExtension(const char *s, const char *extension);
+int charIsDrawableAscii(int c);
+int charIsDrawableUnicode(int c);
+void string_copyUpToLastCharInstance(char *dest, const char *src, char c);
+int string_numCharsInLine(const char *s);
+void string_copyNCharsInLine(char *dest, const char *src, uint destSize);
 
-static int numCharInString(const char *s, int search)
-{
-	int count = 0;
-	for(char c = *s; c != 0; c = *(++s))
-	{
-		if(c == search) count++;
-	}
-	return count;
-}
-
-static uchar string_hasDotExtension(const char *s, const char *extension)
-{
-	const char *suffixPos = strrchr(s, '.');
-	if(suffixPos == 0)
-	{
-		//logMsg("name has no dot to specify extension");
-		return 0;
-	}
-	suffixPos++; //skip past dot
-
-	return string_equalNoCase(suffixPos, extension);
-}
-
-#define firstDrawableAsciiChar '!'
-#define lastDrawableAsciiChar '~'
-#define numDrawableAsciiChars ( (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1 )
-static int charIsDrawableAscii(int c)
-{
-	if(c >= firstDrawableAsciiChar && c <= lastDrawableAsciiChar)
-		return 1;
-	else return 0;
-}
-
-static int charIsDrawableUnicode(int c)
-{
-	return !(
-			(c >= 0x0 && c < '!')
-			|| (c > '~' && c < 0xA1)
-			|| (c >= 0x2000 && c <= 0x200F)
-			|| (c == 0x3000)
-			);
-}
-
-static void string_copyUpToLastCharInstance(char *dest, const char *src, char c)
-{
-	const char *limit = strrchr(src, c);
-	if(!limit)
-		limit = &src[strlen(src)];
-	memcpy(dest, src, limit-src);
-	dest[limit-src] = 0;
-}
-
-static int string_numCharsInLine(const char *s)
-{
-	int count = 0;
-	for(const char *c = s; *c != '\n' && *c != '\0'; c++)
-	{
-		count++;
-	}
-	return count;
-}
-
-static void string_copyNCharsInLine(char *dest, const char *src, uint destSize)
-{
-	iterateTimes(destSize, i)
-	{
-		if(src[i] == '\n' || src[i] == '\0' || i == destSize - 1)
-		{
-			dest[i] = '\0';
-			break;
-		}
-		dest[i] = src[i];
-	}
-}
+END_C_DECLS
 
 #ifdef __cplusplus
-
-template <size_t S>
-static char *string_basename(const char *filename, std::array<char, S> &storage)
-{
-	#ifdef CONFIG_USE_GNU_BASENAME
-	return gnu_basename(filename);
-	#elif defined __ANDROID__
-	return basename(filename);
-	#elif defined _WIN32
-	char name[_MAX_FNAME], ext[_MAX_EXT];
-	//_splitpath_s(filename, nullptr, 0, nullptr, 0, name, _MAX_FNAME, ext, _MAX_EXT);
-	_splitpath(filename, nullptr, nullptr, name, ext);
-	string_printf(storage, "%s%s", name, ext);
-	return storage;
-	#elif defined __PPU__
-	char str[1024] {0};
-	baseName(filename, str);
-	return str;
-	#else
-	// standard version can modify input, and returns a pointer within it
-	// BSD version can modify input, but always returns its own allocated storage
-	string_copy(storage, filename);
-	return basename(storage.data());
-	#endif
-}
-
-template <size_t S1, size_t S2>
-static char *string_basename(std::array<char, S1> &filename, std::array<char, S2> &storage)
-{
-	return string_basename(filename.data(), storage);
-}
-
-template <size_t S>
-static char *string_dirname(const char *filename, std::array<char, S> &storage)
-{
-	#if defined __ANDROID__
-	return dirname(filename);
-	#elif defined _WIN32
-	char drive[_MAX_DRIVE], dir[_MAX_DIR];
-	//_splitpath_s(filename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
-	_splitpath(filename, drive, dir, nullptr, nullptr);
-	string_printf(storage, "%s%s", drive, dir);
-	return storage;
-	#elif defined __PPU__
-	char str[1024] {0};
-	dirName(filename, str);
-	return str;
-	#else
-	// standard version can modify input, and returns a pointer within it
-	// BSD version can modify input, but always returns its own allocated storage
-	string_copy(storage, filename);
-	return dirname(storage.data());
-	#endif
-}
-
-template <size_t S1, size_t S2>
-static char *string_dirname(std::array<char, S1> &filename, std::array<char, S2> &storage)
-{
-	return string_dirname(filename.data(), storage);
-}
-
-#ifdef CONFIG_UNICODE_CHARS
-#include <imagine/util/utf.hh>
-#endif
-
-static CallResult string_convertCharCode(const char** sourceStart, uint &c)
-{
-#ifdef CONFIG_UNICODE_CHARS
-	switch(UTF::ConvertUTF8toUTF32((const uint8**)sourceStart, UTF::strictConversion, c))
-	{
-		case UTF::conversionOK: return OK;
-		case UTF::reachedNullChar: return OUT_OF_BOUNDS;
-		default: return INVALID_PARAMETER;
-	}
-#else
-	c = **sourceStart;
-	if(c == '\0')
-		return OUT_OF_BOUNDS;
-	*sourceStart += 1;
-	return OK;
-#endif
-}
-
+CallResult string_convertCharCode(const char** sourceStart, uint &c);
 #endif

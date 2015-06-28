@@ -19,6 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/basicString.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <assert.h>
 
 template<typename R>
 R callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args);

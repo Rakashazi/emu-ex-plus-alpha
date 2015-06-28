@@ -106,3 +106,5 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navVie
 {
 	mainInitCommon(argc, argv, navViewGrad, NAV_GRAD_SIZE, {});
 }
+
+static constexpr const char *strftimeFormat = "%x  %r";

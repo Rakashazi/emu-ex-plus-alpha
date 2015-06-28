@@ -202,7 +202,9 @@ static bool readConfig2(IO &io)
 				{
 					lastDir[bytesRead] = 0;
 					logMsg("switching to last dir %s", lastDir);
-					if(FsSys::chdir(lastDir) == 0)
+					CallResult chdirRes = OK;
+					FS::current_path(lastDir, chdirRes);
+					if(chdirRes == OK)
 						dirChange = 1;
 				}
 			}
@@ -663,17 +665,18 @@ static void writeConfig2(IO &io)
 		}
 	}
 
-	uint len = strlen(FsSys::workDir());
+	auto workDir = FS::current_path();
+	uint len = strlen(workDir.data());
 	if(len > 32000)
 	{
 		logErr("option string too long to write");
 	}
-	else if(!string_equal(FsSys::workDir(), Base::storagePath()))
+	else if(!string_equal(workDir.data(), Base::storagePath()))
 	{
-		logMsg("saving current directory: %s", FsSys::workDir());
+		logMsg("saving current directory: %s", workDir.data());
 		io.writeVal((uint16)(2 + len), &r);
 		io.writeVal((uint16)CFGKEY_LAST_DIR, &r);
-		io.write(FsSys::workDir(), len, &r);
+		io.write(workDir.data(), len, &r);
 	}
 
 	optionSavePath.writeToIO(io);
@@ -683,7 +686,7 @@ static void writeConfig2(IO &io)
 
 void loadConfigFile()
 {
-	FsSys::PathString configFilePath;
+	FS::PathString configFilePath;
 	if(Base::documentsPathIsShared())
 		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
 	else
@@ -695,17 +698,17 @@ void loadConfigFile()
 	}
 	if(!configFile || !readConfig2(configFile))
 	{
-		FsSys::chdir(Base::storagePath());
+		FS::current_path(Base::storagePath());
 	}
 }
 
 void saveConfigFile()
 {
-	FsSys::PathString configFilePath;
+	FS::PathString configFilePath;
 	if(Base::documentsPathIsShared())
 	{
 		string_printf(configFilePath, "%s/explusalpha.com", Base::documentsPath());
-		FsSys::mkdir(configFilePath.data());
+		FS::create_directory(configFilePath);
 		fixFilePermissions(configFilePath);
 		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
 	}

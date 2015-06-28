@@ -30,14 +30,9 @@ static bool isCDExtension(const char *name)
 			string_hasDotExtension(name, "bin");
 }
 
-static int ssFsFilter(const char *name, int type)
+static bool isBIOSExtension(const char *name)
 {
-	return type == Fs::TYPE_DIR || isCDExtension(name);
-}
-
-static int ssBiosFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || string_hasDotExtension(name, "bin");
+	return string_hasDotExtension(name, "bin");
 }
 
 CLINK void DisplayMessage(const char* str) {}
@@ -107,7 +102,7 @@ static SoundInterface_struct SNDImagine =
 	SNDImagineSetVolume
 };
 
-static FsSys::PathString bupPath{};
+static FS::PathString bupPath{};
 static char mpegPath[] = "";
 static char cartPath[] = "";
 
@@ -219,7 +214,7 @@ static bool OptionSH2CoreIsValid(uint8 val)
 	return false;
 }
 
-FsSys::PathString biosPath{};
+FS::PathString biosPath{};
 static PathOption optionBiosPath(CFGKEY_BIOS_PATH, biosPath, "");
 static Byte1Option optionSH2Core(CFGKEY_SH2_CORE, defaultSH2CoreID, false, OptionSH2CoreIsValid);
 
@@ -309,8 +304,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionSH2Core.writeWithKeyIfNotDefault(io);
 }
 
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = ssFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ssFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 
@@ -467,9 +462,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.yss", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.yss", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -485,7 +480,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(YabLoadState(saveStr.data()) == 0)

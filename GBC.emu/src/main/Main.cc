@@ -222,13 +222,8 @@ static bool isGBCExtension(const char *name)
 	return isROMExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int gbcFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isGBCExtension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = gbcFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbcFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isGBCExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isGBCExtension;
 
 static const int gbResX = 160, gbResY = 144;
 
@@ -308,9 +303,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.gqs", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.gqs", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -327,7 +322,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr.data()))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(!gbEmu.loadState(saveStr.data()))

@@ -113,7 +113,7 @@ static void handledFailedBTAdapterInit(const Input::Event &e)
 {
 	popup.postError("Unable to initialize Bluetooth adapter");
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
-	if(!FsSys::fileExists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
+	if(!FS::exists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 	{
 		auto &ynAlertView = *new YesNoAlertView{mainWin.win};
 		ynAlertView.init("BTstack not found, open Cydia and install?", !e.isPointer());
@@ -560,8 +560,7 @@ void loadGameCompleteFromRecentItem(uint result, const Input::Event &e)
 
 void RecentGameInfo::handleMenuSelection(TextMenuItem &, const Input::Event &e)
 {
-	FsSys::PathString dirnameTemp;
-	FsSys::chdir(string_dirname(path, dirnameTemp));
+	FS::current_path(FS::dirname(path));
 	EmuSystem::onLoadGameComplete() =
 		[](uint result, const Input::Event &e)
 		{
@@ -585,7 +584,7 @@ void RecentGameView::init(bool highlightFirst)
 	int rIdx = 0;
 	for(auto &e : recentGameList)
 	{
-		recentGame[rIdx].init(e.name, FsSys::fileExists(e.path.data())); item[i++] = &recentGame[rIdx];
+		recentGame[rIdx].init(e.name, FS::exists(e.path.data())); item[i++] = &recentGame[rIdx];
 		recentGame[rIdx].onSelect() = [&e](TextMenuItem &t, View &, const Input::Event &ev) {e.handleMenuSelection(t,ev);};
 		rIdx++;
 	}

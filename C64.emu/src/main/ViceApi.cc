@@ -1,7 +1,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/builtins.h>
 #include <imagine/base/Base.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <assert.h>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -404,7 +404,7 @@ CLINK int archdep_stat(const char *file_name, unsigned int *len, unsigned int *i
 
 char *archdep_default_rtc_file_name(void)
 {
-	FsSys::PathString path{};
+	FS::PathString path{};
 	if(Base::documentsPathIsShared())
 		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath());
 	else
@@ -414,7 +414,9 @@ char *archdep_default_rtc_file_name(void)
 
 CLINK int archdep_rename(const char *oldpath, const char *newpath)
 {
-	return FsSys::rename(oldpath, newpath) == OK ? 0 : -1;
+	CallResult res = OK;
+	FS::rename(oldpath, newpath, res);
+	return res == OK ? 0 : -1;
 }
 
 CLINK signed long kbd_arch_keyname_to_keynum(char *keyname)

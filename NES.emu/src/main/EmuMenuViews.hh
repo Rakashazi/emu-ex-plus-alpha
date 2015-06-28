@@ -17,7 +17,7 @@ public:
 		"",
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, biosFsFilter, window()};
+			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, isFDSBIOSExtension, window()};
 			biosSelectMenu.init(!e.isPointer());
 			biosSelectMenu.onBiosChange() =
 				[this]()
@@ -33,8 +33,7 @@ public:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		FsSys::PathString basenameTemp;
-		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath.data()) ? string_basename(::fdsBiosPath, basenameTemp) : "None set");
+		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath.data()) ? FS::basename(::fdsBiosPath).data() : "None set");
 	}
 
 	BoolMenuItem fourScore

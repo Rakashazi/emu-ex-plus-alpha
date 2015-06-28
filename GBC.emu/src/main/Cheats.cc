@@ -50,12 +50,12 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = makeFSPathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
 
 	if(!cheatList.size())
 	{
 		logMsg("deleting cheats file %s", filename.data());
-		FsSys::remove(filename.data());
+		FS::remove(filename.data());
 		cheatsModified = 0;
 		return;
 	}
@@ -86,7 +86,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = makeFSPathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
 	FileIO file;
 	file.open(filename.data());
 	if(!file)

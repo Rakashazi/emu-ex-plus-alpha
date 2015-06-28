@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/basicString.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/input/Input.hh>
@@ -24,7 +24,7 @@
 
 struct RecentGameInfo
 {
-	FsSys::PathString path{};
+	FS::PathString path{};
 	char name[256]{};
 	static constexpr uint MAX_RECENT = 10;
 

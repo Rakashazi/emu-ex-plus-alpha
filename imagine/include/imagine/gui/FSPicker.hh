@@ -15,13 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <vector>
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GfxLGradient.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -32,7 +33,8 @@
 class FSPicker : public View
 {
 public:
-	FsDirFilterFunc filter{};
+	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
+	FilterFunc filter{};
 	TableView tbl;
 	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, const Input::Event &e)>;
 	OnSelectFileDelegate onSelectFileD{};
@@ -48,7 +50,7 @@ public:
 
 	FSPicker(Base::Window &win): View{win}, tbl{win} {}
 	void init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
-			FsDirFilterFunc filter = 0, bool singleDir = 0, ResourceFace *face = View::defaultFace);
+			FilterFunc filter = {}, bool singleDir = false, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
@@ -68,6 +70,7 @@ private:
 	{
 	public:
 		FSPicker &inst;
+		FS::PathString titleStr{};
 
 		constexpr FSNavView(FSPicker &inst): inst(inst) {}
 		void onLeftNavBtn(const Input::Event &e) override
@@ -80,11 +83,12 @@ private:
 		};
 		void init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, bool singleDir);
 		void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
+		void setTitle(const char *str);
 	};
 
 	MenuItem **textPtr{};
 	TextMenuItem *text{};
-	FsSys dir{};
+	std::vector<FS::FileString> dir{};
 	IG::WindowRect viewFrame{};
 	ResourceFace *faceRes{};
 	FSNavView navV{*this};

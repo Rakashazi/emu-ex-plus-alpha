@@ -15,14 +15,12 @@
 
 #include <emuframework/FileUtils.hh>
 #include <imagine/util/strings.h>
-#include <imagine/fs/sys.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 
 void chdirFromFilePath(const char *path)
 {
-	FsSys::PathString dirnameTemp;
-	FsSys::chdir(string_dirname(path, dirnameTemp));
+	FS::current_path(FS::dirname(path));
 }
 
 void fixFilePermissions(const char *path)
@@ -31,14 +29,14 @@ void fixFilePermissions(const char *path)
 	if(!Base::isSystemApp())
 		return;
 	// try to fix permissions if using jailbreak environment
-	if(FsSys::hasWriteAccess(path) == 0)
+	if(FS::access(path, FS::acc::w) == 0)
 	{
 		logMsg("%s lacks write permission, setting user as owner", path);
 	}
 	else
 		return;
 
-	auto execPath = makeFSPathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath(), path);
+	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath(), path);
 	//logMsg("executing %s", execPath);
 	int err = system(execPath.data());
 	if(err)

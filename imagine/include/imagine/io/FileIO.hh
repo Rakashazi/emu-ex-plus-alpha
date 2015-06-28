@@ -17,7 +17,7 @@
 
 #include <type_traits>
 #include <imagine/io/IO.hh>
-#include <imagine/fs/sys.hh> // for FsSys::PathString
+#include <imagine/fs/FS.hh> // for FsSys::PathString
 #include <imagine/base/Base.hh>
 
 #if defined CONFIG_IO_WIN32

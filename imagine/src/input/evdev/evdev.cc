@@ -21,7 +21,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/fd-utils.h>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/input/Input.hh>
@@ -36,11 +36,6 @@ static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
 static constexpr uint64_t NSEC_PER_USEC = 1000;
 static constexpr uint64_t USEC_PER_MSEC = 1000;
 static constexpr uint64_t USEC_PER_SEC = 1000000;
-
-static int dirFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_FILE && strstr(name, "event");
-}
 
 namespace Input
 {
@@ -402,7 +397,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	return true;
 }
 
-static bool processDevNodeName(const char *name, FsSys::PathString &path, uint &id)
+static bool processDevNodeName(const char *name, FS::PathString &path, uint &id)
 {
 	// extract id number from "event*" name and get the full path
 	if(sscanf(name, "event%u", &id) != 1)
@@ -440,7 +435,7 @@ void initEvdev()
 							if(inotifyEv->len > 1)
 							{
 								uint id;
-								FsSys::PathString path;
+								FS::PathString path;
 								if(processDevNodeName(inotifyEv->name, path, id))
 								{
 									processDevNode(path.data(), id, true);
@@ -465,28 +460,28 @@ void initEvdev()
 	}
 
 	logMsg("checking device nodes");
-	FsSys f;
-	if(f.openDir(DEV_NODE_PATH, 0, dirFsFilter) != OK)
-	{
-		logErr("can't open " DEV_NODE_PATH);
-		return;
-	}
-
-	iterateTimes(f.numEntries(), i)
+	CallResult dirResult = OK;
+	for(auto &entry : FS::directory_iterator{DEV_NODE_PATH, dirResult})
 	{
 		if(evDevice.isFull())
 		{
 			logMsg("device list is full");
 			break;
 		}
-		auto filename = f.entryFilename(i);
+		auto filename = entry.name();
+		if(entry.type() != FS::file_type::character || !strstr(filename, "event"))
+			continue;
 		uint id;
-		FsSys::PathString path;
+		FS::PathString path;
 		if(!processDevNodeName(filename, path, id))
 			continue;
 		processDevNode(path.data(), id, false);
 	}
-	f.closeDir();
+	if(dirResult != OK)
+	{
+		logErr("can't open " DEV_NODE_PATH);
+		return;
+	}
 }
 
 Time Time::makeWithNSecs(uint64_t nsecs)

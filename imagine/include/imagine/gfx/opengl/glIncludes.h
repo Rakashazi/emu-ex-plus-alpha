@@ -111,6 +111,14 @@
 	#endif
 #endif
 
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+
+#ifndef GL_APIENTRY
+#define GL_APIENTRY APIENTRY
+#endif
+
 #ifndef GL_UNPACK_ROW_LENGTH
 #define GL_UNPACK_ROW_LENGTH 0x0CF2
 #endif
@@ -145,6 +153,14 @@
 
 #ifndef GL_LUMINANCE8_ALPHA8
 #define GL_LUMINANCE8_ALPHA8 0x8045
+#endif
+
+#ifndef GL_LUMINANCE
+#define GL_LUMINANCE 0x1909
+#endif
+
+#ifndef GL_LUMINANCE_ALPHA
+#define GL_LUMINANCE_ALPHA 0x190A
 #endif
 
 #ifndef GL_BGR

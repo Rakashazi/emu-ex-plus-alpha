@@ -15,13 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 
 template <uint SIZE>
 class WorkDirStack
 {
-	std::array<FsSys::PathString, SIZE> dir{{{{0}}}};
+	std::array<FS::PathString, SIZE> dir{};
 public:
 	uint size = 0;
 	constexpr WorkDirStack() {}
@@ -29,7 +29,7 @@ public:
 	void push()
 	{
 		assert(size < SIZE);
-		string_copy(dir[size], FsSys::workDir());
+		dir[size] = FS::current_path();
 		logMsg("pushed work dir %s", dir[size].data());
 		size++;
 	}
@@ -43,6 +43,6 @@ public:
 		}
 		size--;
 		logMsg("popped work dir %s", dir[size].data());
-		FsSys::chdir(dir[size].data());
+		FS::current_path(dir[size]);
 	}
 };

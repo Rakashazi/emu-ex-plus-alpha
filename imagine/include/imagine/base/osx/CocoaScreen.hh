@@ -26,9 +26,8 @@ namespace Base
 class CocoaScreen : public NotEquals<CocoaScreen>
 {
 public:
-	CVDisplayLinkRef displayLink = nullptr; // CADisplayLink in ObjC
+	CVDisplayLinkRef displayLink{}; // CADisplayLink in ObjC
 	uint64_t hostFrameTime = 0;
-	bool displayLinkActive = false;
 
 	constexpr CocoaScreen() {}
 

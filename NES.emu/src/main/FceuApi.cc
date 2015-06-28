@@ -1,7 +1,7 @@
 #define LOGTAG "main"
 
 #include <imagine/logger/logger.h>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/io/api/stdio.hh>
 #include <stdio.h>
 #include <fceu/driver.h>
@@ -167,7 +167,7 @@ void FCEUI_MakeBackupMovie(bool dispMessage) { }
 // from fceu.cpp
 bool CheckFileExists(const char* filename)
 {
-	return FsSys::fileExists(filename);
+	return FS::exists(filename);
 }
 
 //The code in this function is a modified version

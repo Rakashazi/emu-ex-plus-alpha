@@ -148,15 +148,15 @@ public:
 	MenuItem *choiceEntryItem[2]{};
 	typedef DelegateFunc<void ()> BiosChangeDelegate;
 	BiosChangeDelegate onBiosChangeD;
-	FsSys::PathString *biosPathStr{};
-	int (*fsFilter)(const char *name, int type){};
+	FS::PathString *biosPathStr{};
+	EmuNameFilterFunc fsFilter{};
 
 	BiosSelectMenu(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
-	BiosSelectMenu(const char *name, FsSys::PathString *biosPathStr, int (*fsFilter)(const char *name, int type), Base::Window &win):
+	BiosSelectMenu(const char *name, FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, Base::Window &win):
 		BaseMultiChoiceView(name, win), biosPathStr(biosPathStr), fsFilter(fsFilter) {}
 	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
 	void onSelectFile(const char* name, const Input::Event &e);
-	void init(FsSys::PathString *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst);
+	void init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, bool highlightFirst);
 	void init(bool highlightFirst);
 };
 

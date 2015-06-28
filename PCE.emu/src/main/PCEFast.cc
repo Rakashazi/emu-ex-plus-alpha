@@ -1,13 +1,13 @@
 #include "MDFN.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/strings.h>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
-extern FsSys::PathString sysCardPath;
+extern FS::PathString sysCardPath;
 extern Byte1Option optionArcadeCard;
 
 namespace PCE_Fast
@@ -120,7 +120,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		}
 		case MDFNMKF_AUX:
 		{
-			std::string path(FsSys::workDir());
+			std::string path(FS::current_path().data());
 			path += PSS;
 			path += cd1;
 			logMsg("created aux path %s", path.c_str());

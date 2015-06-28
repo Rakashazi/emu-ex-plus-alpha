@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/fs/FS.hh>
 #include "../../base/iphone/private.hh"
 #include <imagine/util/strings.h>
 #include <CoreGraphics/CGBitmapContext.h>
@@ -117,7 +118,7 @@ CallResult PngFile::load(const char *name)
 
 CallResult PngFile::loadAsset(const char *name)
 {
-	return load(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());
+	return load(FS::makePathStringPrintf("%s/%s", Base::assetPath(), name).data());
 }
 
 void PngFile::deinit()

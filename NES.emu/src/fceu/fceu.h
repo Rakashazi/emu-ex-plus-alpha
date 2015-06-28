@@ -1,7 +1,7 @@
 #ifndef _FCEUH
 #define _FCEUH
 
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 
 extern int fceuindbg;
 extern int newppu;
@@ -131,7 +131,7 @@ static void FCEU_DispMessage(const char *format, int disppos, ...) { }
 static void FCEU_DispMessageOnMovie(const char *format, ...) { }
 #endif
 extern const char *fceuReturnedError;
-extern FsSys::PathString fdsBiosPath;
+extern FS::PathString fdsBiosPath;
 void FCEU_TogglePPU();
 
 void SetNESDeemph(uint8 d, int force);

@@ -161,13 +161,8 @@ static bool isVCSExtension(const char *name)
 	return isVCSRomExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int vcsFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isVCSExtension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = vcsFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = vcsFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isVCSExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isVCSExtension;
 
 static char saveSlotChar(int slot)
 {
@@ -179,9 +174,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *savePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *savePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.sta", savePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.sta", savePath, gameName, saveSlotChar(slot));
 }
 
 void EmuSystem::saveAutoState()
@@ -242,7 +237,7 @@ static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
 		bool foundRom = 0;
 		do
 		{
-			FsSys::PathString name;
+			FS::PathString name;
 			if(unzGetCurrentFileInfo(zipFile, &info, name.data(), 128, NULL, 0, NULL, 0) != UNZ_OK)
 			{
 				unzClose(zipFile);

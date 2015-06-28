@@ -121,7 +121,7 @@ AssetIO openAppAssetIO(const char *name)
 	#ifdef __ANDROID__
 	io.open(name);
 	#else
-	io.open(makeFSPathStringPrintf("%s/%s", Base::assetPath(), name).data());
+	io.open(FS::makePathStringPrintf("%s/%s", Base::assetPath(), name).data());
 	#endif
 	return io;
 }

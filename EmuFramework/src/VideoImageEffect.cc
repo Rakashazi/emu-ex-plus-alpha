@@ -177,7 +177,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, bool useFallback, ErrorMessage *msg)
 {
 	{
-		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename));
+		auto file = openAppAssetIO(FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename));
 		if(!file)
 		{
 			deinitProgram();
@@ -203,7 +203,7 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 		}
 	}
 	{
-		auto file = openAppAssetIO(makeFSPathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename));
+		auto file = openAppAssetIO(FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename));
 		if(!file)
 		{
 			deinitProgram();

@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/IO.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/audio/Audio.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/Screen.hh>
@@ -46,15 +46,15 @@ class EmuSystem
 {
 private:
 	using GameNameArr = char[256];
-	static FsSys::PathString gamePath_, fullGamePath_;
+	static FS::PathString gamePath_, fullGamePath_;
 	static GameNameArr gameName_, fullGameName_;
-	static FsSys::PathString defaultSavePath_;
-	static FsSys::PathString gameSavePath_;
+	static FS::PathString defaultSavePath_;
+	static FS::PathString gameSavePath_;
 
 public:
 	enum class State { OFF, STARTING, PAUSED, ACTIVE };
 	static State state;
-	static FsSys::PathString savePath_;
+	static FS::PathString savePath_;
 	static Base::Timer autoSaveStateTimer;
 	static int saveStateSlot;
 	static Base::FrameTimeBase startFrameTime;
@@ -101,7 +101,7 @@ public:
 	static void makeDefaultSavePath();
 	static const char *defaultSavePath();
 	static const char *savePath();
-	static FsSys::PathString sprintStateFilename(int slot,
+	static FS::PathString sprintStateFilename(int slot,
 		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_);
 	static bool loadAutoState();
 	static void saveAutoState();
@@ -148,7 +148,7 @@ public:
 	static void setupGameSavePath();
 	static void setupGameName(const char *name);
 	static void clearGamePaths();
-	static FsSys::PathString baseDefaultGameSavePath();
+	static FS::PathString baseDefaultGameSavePath();
 	static IG::Time benchmark();
 	static bool gameIsRunning()
 	{

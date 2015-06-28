@@ -24,7 +24,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/coreFoundation.h>
 #include "../common/basePrivate.hh"
@@ -65,7 +65,7 @@ static bool isRunningAsSystemApp = false;
 CGColorSpaceRef grayColorSpace{}, rgbColorSpace{};
 UIApplication *sharedApp{};
 static const char *docPath{};
-static FsSys::PathString appPath{};
+static FS::PathString appPath{};
 static id onOrientationChangedObserver = nil;
 
 #ifdef IPHONE_IMG_PICKER
@@ -636,7 +636,7 @@ int main(int argc, char *argv[])
 	#endif
 	engineInit();
 	doOrAbort(logger_init());
-	appPath = makeAppPathFromLaunchCommand(argv[0]);
+	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
 	
 	#ifdef CONFIG_BASE_IOS_SETUID
 	logMsg("real UID %d, effective UID %d", realUID, effectiveUID);

@@ -225,13 +225,8 @@ static bool isGBAExtension(const char *name)
 			|| string_hasDotExtension(name, "7z");
 }
 
-static int gbaFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isGBAExtension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = gbaFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = gbaFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isGBAExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isGBAExtension;
 
 #define USE_PIX_RGB565
 #ifdef USE_PIX_RGB565
@@ -268,9 +263,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -307,7 +302,7 @@ void EmuSystem::saveBackupMem()
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory");
-		auto saveStr = makeFSPathStringPrintf("%s/%s.sav", savePath(), gameName());
+		auto saveStr = FS::makePathStringPrintf("%s/%s.sav", savePath(), gameName());
 		fixFilePermissions(saveStr);
 		CPUWriteBatteryFile(gGba, saveStr.data());
 		writeCheatFile();
@@ -332,8 +327,8 @@ void EmuSystem::closeSystem()
 
 static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
 {
-	auto patchStr = makeFSPathStringPrintf("%s/%s.ips", patchDir, romName);
-	if(FsSys::fileExists(patchStr.data()))
+	auto patchStr = FS::makePathStringPrintf("%s/%s.ips", patchDir, romName);
+	if(FS::exists(patchStr.data()))
 	{
 		logMsg("applying IPS patch: %s", patchStr.data());
 		if(!patchApplyIPS(patchStr.data(), &rom, &romSize))
@@ -344,7 +339,7 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		return true;
 	}
 	string_printf(patchStr, "%s/%s.ups", patchDir, romName);
-	if(FsSys::fileExists(patchStr.data()))
+	if(FS::exists(patchStr.data()))
 	{
 		logMsg("applying UPS patch: %s", patchStr.data());
 		if(!patchApplyUPS(patchStr.data(), &rom, &romSize))
@@ -355,7 +350,7 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		return true;
 	}
 	string_printf(patchStr, "%s/%s.ppf", patchDir, romName);
-	if(FsSys::fileExists(patchStr.data()))
+	if(FS::exists(patchStr.data()))
 	{
 		logMsg("applying UPS patch: %s", patchStr.data());
 		if(!patchApplyPPF(patchStr.data(), &rom, &romSize))
@@ -383,7 +378,7 @@ static int loadGameCommon(int size)
 	}
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
-	auto saveStr = makeFSPathStringPrintf("%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName());
+	auto saveStr = FS::makePathStringPrintf("%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName());
 	CPUReadBatteryFile(gGba, saveStr.data());
 	readCheatFile();
 	logMsg("started emu");

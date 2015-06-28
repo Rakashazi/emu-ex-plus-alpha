@@ -50,16 +50,6 @@ static bool isNESExtension(const char *name)
 	return isROMExtension(name) || isFDSExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int biosFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isFDSBIOSExtension(name);
-}
-
-static int nesFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isNESExtension(name);
-}
-
 // controls
 
 enum
@@ -88,7 +78,7 @@ enum {
 	CFGKEY_VIDEO_SYSTEM = 272,
 };
 
-FsSys::PathString fdsBiosPath{};
+FS::PathString fdsBiosPath{};
 static PathOption optionFdsBiosPath(CFGKEY_FDS_BIOS_PATH, fdsBiosPath, "");
 static Byte1Option optionFourScore(CFGKEY_FOUR_SCORE, 0);
 static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
@@ -172,8 +162,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionFdsBiosPath.writeToIO(io);
 }
 
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = nesFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = nesFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isNESExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isNESExtension;
 
 #ifdef USE_PIX_RGB565
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
@@ -277,9 +267,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.fc%c", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.fc%c", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -295,7 +285,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(!FCEUI_LoadState(saveStr.data()))

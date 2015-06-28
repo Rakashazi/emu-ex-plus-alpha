@@ -60,11 +60,12 @@ Machine *machine = 0;
 Mixer *mixer = 0;
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-static FsSys::PathString machineCustomPath{};
-static FsSys::PathString machineBasePath{};
+static FS::PathString machineCustomPath{};
+static FS::PathString machineBasePath{};
 
-static void setMachineBasePath(FsSys::PathString &outPath, const FsSys::PathString &customPath)
+static FS::PathString makeMachineBasePath(FS::PathString customPath)
 {
+	FS::PathString outPath;
 	if(!strlen(customPath.data()))
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
@@ -78,6 +79,7 @@ static void setMachineBasePath(FsSys::PathString &outPath, const FsSys::PathStri
 		string_printf(outPath, "%s", customPath.data());
 	}
 	logMsg("set machine file path: %s", outPath.data());
+	return outPath;
 }
 
 const char *machineBasePathStr()
@@ -87,14 +89,14 @@ const char *machineBasePathStr()
 
 void chdirToMachineBaseDir(char *prevWDir, size_t prevWDirSize)
 {
-	string_copy(prevWDir, FsPosix::workDir(), prevWDirSize);
-	FsSys::chdir(machineBasePathStr());
+	string_copy(prevWDir, FS::current_path().data(), prevWDirSize);
+	FS::current_path(machineBasePathStr());
 	logMsg("changed to machine base path: %s", machineBasePathStr());
 }
 
 void chdirToPrevWorkingDir(char *prevWDir)
 {
-	FsSys::chdir(prevWDir);
+	FS::current_path(prevWDir);
 	logMsg("changed back to: %s", prevWDir);
 }
 
@@ -128,22 +130,17 @@ static bool isMSXExtension(const char *name)
 	return isROMExtension(name) || isDiskExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int msxFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isMSXExtension(name);
-}
-
-static int isMSXROMExtension(const char *name, int type)
+static bool isMSXROMExtension(const char *name)
 {
 	return isROMExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int isMSXDiskExtension(const char *name, int type)
+static bool isMSXDiskExtension(const char *name)
 {
 	return isDiskExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int isMSXTapeExtension(const char *name, int type)
+static bool isMSXTapeExtension(const char *name)
 {
 	return isTapeExtension(name) || string_hasDotExtension(name, "zip");
 }
@@ -281,12 +278,12 @@ void EmuSystem::initOptions()
 
 void EmuSystem::onOptionsLoaded()
 {
-	setMachineBasePath(machineBasePath, machineCustomPath);
+	machineBasePath = makeMachineBasePath(machineCustomPath);
 	fixFilePermissions(machineBasePath);
 }
 
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = msxFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = msxFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isMSXExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isMSXExtension;
 
 static const uint msxMaxResX = (256) * 2, msxResY = 224,
 		msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
@@ -611,11 +608,11 @@ static bool initMachine(const char *machineName)
 	logMsg("loading machine %s", machineName);
 	if(machine)
 		machineDestroy(machine);
-	FsSys::PathString wDir;
-	strcpy(wDir.data(), FsSys::workDir());
-	FsSys::chdir(machineBasePath.data());
+	FS::PathString wDir{};
+	string_copy(wDir, FS::current_path().data());
+	FS::current_path(machineBasePath);
 	machine = machineCreate(machineName);
-	FsSys::chdir(wDir.data());
+	FS::current_path(wDir);
 	if(!machine)
 	{
 		popup.printf(5, 1, "Error loading machine files for\n\"%s\",\nmake sure they are in:\n%s", machineName, machineBasePath.data());
@@ -737,7 +734,7 @@ void EmuSystem::resetGame()
 	assert(gameIsRunning());
 	fdcActive = 0;
 	//boardInfo.softReset();
-	FsSys::chdir(EmuSystem::gamePath());
+	FS::current_path(EmuSystem::gamePath());
 	boardInfo.destroy();
 	if(!createBoard())
 	{
@@ -758,9 +755,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
 static char saveStateVersion[] = "blueMSX - state  v 8";
@@ -893,7 +890,7 @@ static int loadBlueMSXState(const char *filename)
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr.data()))
 	{
 		return loadBlueMSXState(saveStr.data());
 	}
@@ -1034,7 +1031,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else if(isDiskExtension(path))
 	{
-		bool loadAsHD = FsSys::fileSize(path) >= 1024 * 1024;
+		bool loadAsHD = FS::file_size(path) >= 1024 * 1024;
 		if(loadAsHD)
 		{
 			logMsg("load disk as HD");
@@ -1252,7 +1249,7 @@ CallResult onInit(int argc, char** argv)
 		[](Base::Window &win)
 		{
 			if(canInstallCBIOS && checkForMachineFolderOnStart &&
-				!strlen(machineCustomPath.data()) && !FsSys::fileExists(machineBasePath.data())) // prompt to install if using default machine path & it doesn't exist
+				!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 			{
 				auto &ynAlertView = *new YesNoAlertView{win};
 				ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());

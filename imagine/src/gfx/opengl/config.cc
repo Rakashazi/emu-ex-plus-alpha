@@ -23,11 +23,9 @@
 
 #ifndef GL_KHR_debug
 typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void *);
+using GLDEBUGPROC = GLDEBUGPROCKHR;
 #define GL_DEBUG_OUTPUT_KHR 0x92E0
-#endif
-
-#ifndef CONFIG_GFX_OPENGL_ES
-#define GL_APIENTRY APIENTRY
+#define GL_DEBUG_OUTPUT 0x92E0
 #endif
 
 namespace Gfx
@@ -73,10 +71,10 @@ bool useUnpackRowLength = !Config::Gfx::OPENGL_ES;
 
 bool useSamplerObjects = !Config::Gfx::OPENGL_ES;
 #ifdef CONFIG_GFX_OPENGL_ES
-GL_APICALL void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
-GL_APICALL void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
-GL_APICALL void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler){};
-GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param){};
+void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
+void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
+void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler){};
+void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param){};
 #endif
 
 GLenum luminanceFormat = GL_LUMINANCE;
@@ -88,23 +86,23 @@ GLenum alphaInternalFormat = GL_ALPHA8;
 
 bool useImmutableTexStorage = false;
 #ifdef CONFIG_GFX_OPENGL_ES
-GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
+void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
 #endif
 
 bool usePBO = false;
 #ifdef CONFIG_GFX_OPENGL_ES
-GL_APICALL GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
-GL_APICALL GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target){};
+GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
+GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target){};
 #endif
 
 bool useEGLImages = false;
 bool useExternalEGLImages = false;
 
 #ifdef CONFIG_GFX_OPENGL_ES
-GL_APICALL void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
+void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
 static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
 #else
-GLAPI void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
+void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
 static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
 #endif
 static bool useDebugOutput = false;
@@ -381,11 +379,13 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if(string_equal(extStr, "GL_EXT_framebuffer_object"))
 	{
+		#ifndef __APPLE__
 		if(!useFBOFuncs)
 		{
 			setupFBOFuncs();
 			generateMipmaps = glGenerateMipmapEXT;
 		}
+		#endif
 	}
 	else if(string_equal(extStr, "GL_ARB_framebuffer_object"))
 	{
@@ -521,7 +521,9 @@ CallResult init(IG::PixelFormat pixelFormat)
 	}
 	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
 	{
+		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		useFixedFunctionPipeline = false;
+		#endif
 		glAttr.setMajorVersion(3);
 		glAttr.setMinorVersion(3);
 		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
@@ -532,7 +534,9 @@ CallResult init(IG::PixelFormat pixelFormat)
 	}
 	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !gfxContext)
 	{
+		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		useFixedFunctionPipeline = true;
+		#endif
 		glAttr.setMajorVersion(1);
 		glAttr.setMinorVersion(3);
 		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);

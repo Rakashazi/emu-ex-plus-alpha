@@ -1,15 +1,13 @@
 ifeq ($(ENV), linux)
- include $(imagineSrcDir)/fs/FsPosix.mk
+ include $(imagineSrcDir)/fs/PosixFS.mk
 else ifeq ($(ENV), android)
- include $(imagineSrcDir)/fs/FsPosix.mk
+ include $(imagineSrcDir)/fs/PosixFS.mk
 else ifeq ($(ENV), ios)
- include $(imagineSrcDir)/fs/FsPosix.mk
+ include $(imagineSrcDir)/fs/PosixFS.mk
 else ifeq ($(ENV), macosx)
- include $(imagineSrcDir)/fs/FsPosix.mk
+ include $(imagineSrcDir)/fs/PosixFS.mk
 else ifeq ($(ENV), win32)
- include $(imagineSrcDir)/fs/FsWin32.mk
+ include $(imagineSrcDir)/fs/Win32FS.mk
 else ifeq ($(ENV), webos)
- include $(imagineSrcDir)/fs/FsPosix.mk
-else ifeq ($(ENV), ps3)
- include $(imagineSrcDir)/fs/ps3/build.mk
+ include $(imagineSrcDir)/fs/PosixFS.mk
 endif

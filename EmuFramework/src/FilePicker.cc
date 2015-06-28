@@ -22,10 +22,20 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
 
-void EmuFilePicker::init(bool highlightFirst, bool pickingDir, FsDirFilterFunc filter, bool singleDir)
+void EmuFilePicker::init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc filter, bool singleDir)
 {
 	FSPicker::init(".", needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
-		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr, filter, singleDir);
+		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr,
+				[filter, singleDir](FS::directory_entry &entry)
+				{
+					logMsg("%s %d", entry.name(), (int)entry.type());
+					if(!singleDir && entry.type() == FS::file_type::directory)
+						return true;
+					else if(filter)
+						return filter(entry.name());
+					else
+						return false;
+				}, singleDir);
 	onSelectFile() = [this](FSPicker &picker, const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
 	if(highlightFirst)
 	{
@@ -49,12 +59,13 @@ bool showAutoStateConfirm(const Input::Event &e, bool addToRecent)
 		return 0;
 	}
 	auto saveStr = EmuSystem::sprintStateFilename(-1);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr))
 	{
-		FsSys::timeStr date = "";
-		FsSys::mTimeAsStr(saveStr.data(), date);
+		auto mTime = FS::status(saveStr).last_write_time_local();
+		char dateStr[64]{};
+		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
 		static char msg[96] = "";
-		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", date);
+		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", dateStr);
 		auto &ynAlertView = *new YesNoAlertView{mainWin.win};
 		ynAlertView.init(msg, !e.isPointer(), "Continue", "Restart Game");
 		ynAlertView.onYes() =

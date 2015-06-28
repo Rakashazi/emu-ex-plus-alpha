@@ -6,7 +6,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/audio/Audio.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/util/strings.h>

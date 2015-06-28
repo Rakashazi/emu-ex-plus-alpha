@@ -24,7 +24,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/fs/sys.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/assume.h>

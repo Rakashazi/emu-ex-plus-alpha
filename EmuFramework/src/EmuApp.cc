@@ -845,34 +845,32 @@ void handleInputEvent(Base::Window &win, const Input::Event &e)
 
 void handleOpenFileCommand(const char *filename)
 {
-	auto type = FsSys::fileType(filename);
-	logMsg("%d %s", type, filename);
-	if(type == Fs::TYPE_DIR)
+	auto type = FS::status(filename).type();
+	if(type == FS::file_type::directory)
 	{
 		logMsg("changing to dir %s from external command", filename);
 		restoreMenuFromGame();
-		FsSys::chdir(filename);
+		FS::current_path(filename);
 		viewStack.popToRoot();
 		auto &fPicker = *new EmuFilePicker{mainWin.win};
 		fPicker.init(Input::keyInputIsPresent(), false);
 		viewStack.pushAndShow(fPicker, false);
 		return;
 	}
-	if(type != Fs::TYPE_FILE || !EmuFilePicker::defaultFsFilter(filename, type))
+	if(type != FS::file_type::regular || !EmuFilePicker::defaultFsFilter(filename))
 	{
 		logMsg("unrecognized file type");
 		return;
 	}
-	FsSys::PathString dirnameTemp, basenameTemp;
-	auto dir = string_dirname(filename, dirnameTemp);
-	auto file = string_basename(filename, basenameTemp);
-	FsSys::chdir(dir);
-	logMsg("opening file %s in dir %s from external command", file, dir);
+	auto dir = FS::dirname(filename);
+	auto file = FS::basename(filename);
+	FS::current_path(dir);
+	logMsg("opening file %s in dir %s from external command", file.data(), dir.data());
 	restoreMenuFromGame();
 	viewStack.popToRoot();
 	if(modalViewController.hasView())
 		modalViewController.pop();
-	GameFilePicker::onSelectFile(file, Input::Event{});
+	GameFilePicker::onSelectFile(file.data(), Input::Event{});
 }
 
 void placeEmuViews()

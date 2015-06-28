@@ -12,7 +12,7 @@ public:
 		"",
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath, ssBiosFsFilter, window()};
+			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath, isBIOSExtension, window()};
 			biosSelectMenu.init(!e.isPointer());
 			biosSelectMenu.onBiosChange() =
 				[this]()
@@ -28,8 +28,7 @@ public:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		FsSys::PathString basenameTemp;
-		string_printf(str, "BIOS: %s", strlen(::biosPath.data()) ? string_basename(::biosPath, basenameTemp) : "None set");
+		string_printf(str, "BIOS: %s", strlen(::biosPath.data()) ? FS::basename(::biosPath).data() : "None set");
 	}
 
 	MultiChoiceSelectMenuItem sh2Core

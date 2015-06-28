@@ -44,18 +44,13 @@ static bool isCDExtension(const char *name)
 	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
 }
 
-static int pceHuCDFsFilter(const char *name, int type)
+static bool isPCEWithCDExtension(const char *name)
 {
-	return type == Fs::TYPE_DIR || isHuCardExtension(name) || isCDExtension(name);
-}
-
-static int pceHuFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isHuCardExtension(name);
+	return isHuCardExtension(name) || isCDExtension(name);
 }
 
 Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
-FsSys::PathString sysCardPath{};
+FS::PathString sysCardPath{};
 static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, "");
 
 #include <emuframework/CommonGui.hh>
@@ -139,8 +134,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionSysCardPath.writeToIO(io);
 }
 
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = pceHuCDFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = pceHuFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isPCEWithCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isHuCardExtension;
 
 static std::vector<CDIF *> CDInterfaces;
 
@@ -202,9 +197,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -274,7 +269,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else if(isCDExtension(path))
 	{
-		if(!strlen(sysCardPath.data()) || !FsSys::fileExists(sysCardPath.data()))
+		if(!strlen(sysCardPath.data()) || !FS::exists(sysCardPath))
 		{
 			popup.printf(3, 1, "No System Card Set");
 			goto FAIL;
@@ -598,7 +593,7 @@ int EmuSystem::loadState(int saveStateSlot)
 	char ext[] = { "nc0" };
 	ext[2] = saveSlotChar(saveStateSlot);
 	std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, ext);
-	if(FsSys::fileExists(statePath.c_str()))
+	if(FS::exists(statePath.c_str()))
 	{
 		logMsg("loading state %s", statePath.c_str());
 		if(!MDFNI_LoadState(statePath.c_str(), 0))

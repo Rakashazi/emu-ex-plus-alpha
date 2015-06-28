@@ -90,13 +90,8 @@ static bool isNGPExtension(const char *name)
 	return isROMExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int ngpFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isNGPExtension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = ngpFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = ngpFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isNGPExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isNGPExtension;
 
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 
@@ -172,9 +167,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.ngs", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.ngs", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -190,7 +185,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(!state_restore(saveStr.data()))
@@ -208,9 +203,9 @@ bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLeng
 	return readFromFile(filename, buffer, bufferLength) > 0;
 }
 
-static FsSys::PathString sprintSaveFilename()
+static FS::PathString sprintSaveFilename()
 {
-	return makeFSPathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 bool system_io_flash_read(uchar* buffer, uint32 len)

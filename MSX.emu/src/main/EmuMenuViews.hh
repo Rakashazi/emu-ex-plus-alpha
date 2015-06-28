@@ -17,13 +17,14 @@ static char installFirmwareFilesStr[512] = "";
 template <size_t S>
 static void printInstallFirmwareFilesStr(char (&str)[S])
 {
-	FsSys::PathString basenameTemp;
+	FS::PathString basenameTemp;
 	string_printf(str, "Install the C-BIOS BlueMSX machine files to: %s", machineBasePath.data());
 }
 
 static void installFirmwareFiles()
 {
-	CallResult ret = FsSys::mkdir(machineBasePath.data());
+	CallResult ret;
+	FS::create_directory(machineBasePath, ret);
 	if(ret != OK && ret != ALREADY_EXISTS)
 	{
 		popup.printf(4, 1, "Can't create directory:\n%s", machineBasePath.data());
@@ -38,8 +39,9 @@ static void installFirmwareFiles()
 
 	forEachDInArray(dirsToCreate, e)
 	{
-		auto pathTemp = makeFSPathStringPrintf("%s/%s", machineBasePath.data(), e);
-		CallResult ret = FsSys::mkdir(pathTemp.data());
+		auto pathTemp = FS::makePathStringPrintf("%s/%s", machineBasePath.data(), e);
+		CallResult ret;
+		FS::create_directory(pathTemp, ret);
 		if(ret != OK && ret != ALREADY_EXISTS)
 		{
 			popup.printf(4, 1, "Can't create directory:\n%s", pathTemp.data());
@@ -70,7 +72,7 @@ static void installFirmwareFiles()
 			popup.printf(4, 1, "Can't open source file:\n %s", e);
 			return;
 		}
-		auto pathTemp = makeFSPathStringPrintf("%s/Machines/%s/%s",
+		auto pathTemp = FS::makePathStringPrintf("%s/Machines/%s/%s",
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
 		CallResult ret = writeIOToNewFile(src, pathTemp.data());
 		if(ret != OK)
@@ -90,71 +92,63 @@ private:
 
 	struct MsxMachineItem : public MultiChoiceSelectMenuItem
 	{
-		constexpr MsxMachineItem() {}
+		std::vector<FS::FileString> machineName{};
+		std::vector<const char *> machineNamePtr{};
 
-		static int dirFsFilter(const char *name, int type)
-		{
-			return type == Fs::TYPE_DIR;
-		}
-
-		uint machines = 0;
-		char *machineName[256]{};
+		MsxMachineItem() {}
 
 		void init()
 		{
-			if(machines)
+			if(machineName.size())
 				deinit();
-			FsSys f;
 			static const char *title = "Machine Type";
-			static const char *noneStr[] = { "None" };
-			auto machinePath = makeFSPathStringPrintf("%s/Machines", machineBasePath.data());
-			if(f.openDir(machinePath.data(), 0, dirFsFilter) != OK)
+			static const char *noneStr[]{"None"};
 			{
-				logMsg("couldn't open %s", machinePath.data());
-				MultiChoiceSelectMenuItem::init(title, noneStr, 0, 1);
-				return;
+				auto machinePath = FS::makePathStringPrintf("%s/Machines", machineBasePath.data());
+				for(auto &entry : FS::directory_iterator{machinePath})
+				{
+					auto configPath = FS::makePathStringPrintf("%s/%s/config.ini", machinePath.data(), entry.name());
+					if(!FS::exists(configPath))
+					{
+						logMsg("%s doesn't exist", configPath.data());
+						continue;
+					}
+					machineName.emplace_back(FS::makeFileString(entry.name()));
+					logMsg("added machine %s", entry.name());
+				}
 			}
-
-			int currentMachineIdx = -1;
-			machines = 0;
-			iterateTimes(std::min(f.numEntries(), 256U), i)
+			std::sort(machineName.begin(), machineName.end(), FS::fileStringNoCaseLexCompare());
+			int currentMachineIdx =
+				std::find(machineName.begin(), machineName.end(), FS::makeFileString(optionMachineName)) - machineName.begin();
+			if(currentMachineIdx != (int)machineName.size())
 			{
-				auto configPath = makeFSPathStringPrintf("%s/%s/config.ini", machinePath.data(), f.entryFilename(i));
-				if(!FsSys::fileExists(configPath.data()))
-				{
-					logMsg("%s doesn't exist", configPath.data());
-					continue;
-				}
-				machineName[machines] = string_dup(f.entryFilename(i));
-				logMsg("added machine %s", f.entryFilename(i));
-				if(string_equal(machineName[machines], optionMachineName))
-				{
-					logMsg("current machine is idx %d", i);
-					currentMachineIdx = machines;
-				}
-				machines++;
+				logMsg("current machine is idx %d", currentMachineIdx);
 			}
-
-			if(!machines)
+			else
+				currentMachineIdx = -1;
+			if(!machineName.size())
 			{
 				MultiChoiceSelectMenuItem::init(title, noneStr, 0, 1);
 				return;
 			}
-
-			MultiChoiceSelectMenuItem::init(title, (const char **)machineName,
-				currentMachineIdx, machines, 0, true, currentMachineIdx == -1 ? "None" : nullptr);
+			for(const auto &name : machineName)
+			{
+				machineNamePtr.emplace_back(name.data());
+			}
+			MultiChoiceSelectMenuItem::init(title, machineNamePtr.data(),
+				currentMachineIdx, machineNamePtr.size(), 0, true, currentMachineIdx == -1 ? "None" : nullptr);
 		}
 
 		void select(View &view, const Input::Event &e) override
 		{
-			if(!machines)
+			if(!machineName.size())
 			{
 				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
 				return;
 			}
 			auto &multiChoiceView = *new MultiChoiceView{"Machine Type", view.window()};
 			multiChoiceView.init(*this, !e.isPointer());
-			iterateTimes(machines, i)
+			iterateTimes(machineName.size(), i)
 			{
 				multiChoiceView.setItem(i,
 					[this, i](TextMenuItem &, View &view, const Input::Event &e)
@@ -170,17 +164,14 @@ private:
 		{
 			logMsg("deinit MsxMachineItem");
 			DualTextMenuItem::deinit();
-			iterateTimes(machines, i)
-			{
-				mem_free(machineName[i]);
-			}
-			machines = 0;
+			machineName.clear();
+			machineNamePtr.clear();
 		}
 
 		void doSet(int val, View &view) override
 		{
-			assert((uint)val < machines);
-			string_copy(optionMachineName, machineName[val], sizeof(optionMachineName));
+			assert((uint)val < machineName.size());
+			string_copy(optionMachineName, machineName[val].data(), sizeof(optionMachineName));
 			logMsg("set machine type: %s", (char*)optionMachineName);
 		}
 	} msxMachine;
@@ -215,8 +206,7 @@ private:
 	template <size_t S>
 	static void printMachinePathMenuEntryStr(char (&str)[S])
 	{
-		FsSys::PathString basenameTemp;
-		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath.data()) ? string_basename(machineCustomPath, basenameTemp) : "Default");
+		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
 	}
 
 	FirmwarePathSelector machineFileSelector;
@@ -232,7 +222,7 @@ private:
 				{
 					printMachinePathMenuEntryStr(machineFilePathStr);
 					machineFilePath.compile(projP);
-					setMachineBasePath(machineBasePath, machineCustomPath);
+					machineBasePath = makeMachineBasePath(machineCustomPath);
 					msxMachine.init();
 					msxMachine.compile(projP);
 					if(!strlen(newPath))
@@ -266,9 +256,9 @@ class MsxMediaFilePicker
 public:
 	enum { ROM, DISK, TAPE };
 
-	static FsDirFilterFunc fsFilter(uint type)
+	static EmuNameFilterFunc fsFilter(uint type)
 	{
-		FsDirFilterFunc filter = isMSXROMExtension;
+		EmuNameFilterFunc filter = isMSXROMExtension;
 		if(type == DISK)
 			filter = isMSXDiskExtension;
 		else if(type == TAPE)
@@ -288,9 +278,8 @@ public:
 
 	void updateHDText(int slot)
 	{
-		FsSys::PathString basenameTemp;
 		string_printf(hdSlotStr[slot], "%s %s", hdSlotPrefix[slot],
-			strlen(hdName[slot]) ? string_basename(hdName[slot], basenameTemp) : "");
+			strlen(hdName[slot]) ? FS::basename(hdName[slot]).data() : "");
 	}
 
 	void updateHDStatusFromCartSlot(int cartSlot)
@@ -369,9 +358,8 @@ public:
 
 	void updateROMText(int slot)
 	{
-		FsSys::PathString basenameTemp;
 		string_printf(romSlotStr[slot], "%s %s", romSlotPrefix[slot],
-			strlen(cartName[slot]) ? string_basename(cartName[slot], basenameTemp) : "");
+			strlen(cartName[slot]) ? FS::basename(cartName[slot]).data() : "");
 	}
 
 	void onROMMediaChange(const char *name, int slot)
@@ -455,9 +443,8 @@ public:
 
 	void updateDiskText(int slot)
 	{
-		FsSys::PathString basenameTemp;
 		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot],
-				strlen(diskName[slot]) ? string_basename(diskName[slot], basenameTemp) : "");
+			strlen(diskName[slot]) ? FS::basename(diskName[slot]).data() : "");
 	}
 
 	void onDiskMediaChange(const char *name, int slot)
@@ -560,7 +547,7 @@ private:
 		{
 			if(item.active)
 			{
-				FsSys::chdir(EmuSystem::gamePath());// Stay in active media's directory
+				FS::current_path(EmuSystem::gamePath());// Stay in active media's directory
 				auto &msxIoMenu = *new MsxIOControlView{window()};
 				msxIoMenu.init(!e.isPointer());
 				viewStack.pushAndShow(msxIoMenu);

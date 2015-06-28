@@ -68,10 +68,10 @@ static bool c64IsInit = false, c64FailedInit = false, isPal = false,
 uint c64VidX = 320, c64VidY = 200;
 static uint c64VidActiveX = 0, c64VidActiveY = 0;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static FsSys::PathString firmwareBasePath{};
-FsSys::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3]{};
+static FS::PathString firmwareBasePath{};
+FS::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3]{};
 
-void setupSysFilePaths(FsSys::PathString outPath[3], const FsSys::PathString &firmwareBasePath);
+void setupSysFilePaths(FS::PathString outPath[3], const FS::PathString &firmwareBasePath);
 
 enum
 {
@@ -761,21 +761,6 @@ static bool isC64CartExtension(const char *name)
 			string_hasDotExtension(name, "crt");
 }
 
-static int c64DiskExtensionFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isC64DiskExtension(name);
-}
-
-static int c64TapeExtensionFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isC64TapeExtension(name);
-}
-
-static int c64CartExtensionFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isC64CartExtension(name);
-}
-
 static bool isC64Extension(const char *name)
 {
 	return isC64DiskExtension(name) ||
@@ -784,13 +769,8 @@ static bool isC64Extension(const char *name)
 			string_hasDotExtension(name, "prg");
 }
 
-static int c64FsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isC64Extension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = c64FsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = c64FsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isC64Extension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isC64Extension;
 
 void EmuSystem::resetGame()
 {
@@ -808,16 +788,16 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.%c.vsf", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.%c.vsf", statePath, gameName, saveSlotChar(slot));
 }
 
 struct SnapshotTrapData
 {
 	constexpr SnapshotTrapData() { }
 	uint result = STATE_RESULT_IO_ERROR;
-	FsSys::PathString pathStr{};
+	FS::PathString pathStr{};
 };
 
 static void loadSnapshotTrap(WORD, void *data)
@@ -1063,7 +1043,7 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return false; }
 
-void setupSysFilePaths(FsSys::PathString outPath[3], const FsSys::PathString &firmwareBasePath)
+void setupSysFilePaths(FS::PathString outPath[3], const FS::PathString &firmwareBasePath)
 {
 	if(!strlen(firmwareBasePath.data()))
 	{
@@ -1096,7 +1076,7 @@ CallResult onInit(int argc, char** argv)
 	setupSysFilePaths(sysFilePath[3], "/usr/share/games/vice");
 	#else
 	{
-		auto path = makeFSPathStringPrintf("%s/C64.emu", Base::storagePath());
+		auto path = FS::makePathStringPrintf("%s/C64.emu", Base::storagePath());
 		setupSysFilePaths(sysFilePath[1], path);
 	}
 	#endif

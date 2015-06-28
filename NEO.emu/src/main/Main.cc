@@ -70,7 +70,7 @@ CLINK void main_frame();
 static ROM_DEF *activeDrv{};
 
 static Base::Pipe guiPipe;
-static FsSys::PathString datafilePath{};
+static FS::PathString datafilePath{};
 
 static constexpr bool backgroundRomLoading = true;
 static bool loadThreadIsRunning = false;
@@ -242,13 +242,8 @@ static bool isNeoGeoExtension(const char *name)
 	return string_hasDotExtension(name, "zip");
 }
 
-static int neogeoFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isNeoGeoExtension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = neogeoFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = neogeoFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isNeoGeoExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isNeoGeoExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[352*256] __attribute__ ((aligned (8))) {0};
@@ -403,9 +398,9 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
 int EmuSystem::saveState()
@@ -421,7 +416,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr.data()))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(load_stateWithName(saveStr.data()))
@@ -717,7 +712,7 @@ int EmuSystem::loadGame(const char *path)
 	char gnoFilename[8+4+1];
 	snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
 
-	if(optionCreateAndUseCache && FsSys::fileExists(gnoFilename))
+	if(optionCreateAndUseCache && FS::exists(gnoFilename))
 	{
 		logMsg("loading .gno file");
 		if(!init_game(gnoFilename))
@@ -757,7 +752,7 @@ int EmuSystem::loadGame(const char *path)
 						free(activeDrv); activeDrv = 0;
 						return;
 					}
-					if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
+					if(optionCreateAndUseCache && !FS::exists(gnoFilename))
 					{
 						logMsg("%s doesn't exist, creating", gnoFilename);
 						#ifdef USE_GENERATOR68K
@@ -782,7 +777,7 @@ int EmuSystem::loadGame(const char *path)
 				return 0;
 			}
 
-			if(optionCreateAndUseCache && !FsSys::fileExists(gnoFilename))
+			if(optionCreateAndUseCache && !FS::exists(gnoFilename))
 			{
 				logMsg("%s doesn't exist, creating", gnoFilename);
 				#ifdef USE_GENERATOR68K

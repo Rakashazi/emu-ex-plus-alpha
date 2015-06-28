@@ -1,99 +1,32 @@
 #pragma once
 
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
 #ifdef __cplusplus
 #include <array>
-#include <algorithm>
+#include <cstring>
+#include <cctype>
+#else
+#include <string.h>
+#include <ctype.h>
 #endif
-#include <imagine/mem/mem.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/builtins.h>
 
-static void string_toUpper(char *s)
-{
-	while(*s != '\0')
-	{
-		*s = toupper(*s);
-		s++;
-	}
-}
+BEGIN_C_DECLS
 
-static int string_containsChar(const char *s, int c)
-{
-	auto pos = strchr(s, c);
-	int found = 0;
-	while(pos)
-	{
-		found++;
-		pos = strchr(pos+1, c);
-	}
-	return found;
-}
-
-static bool string_isHexValue(const char *s, uint maxChars)
-{
-	if(!maxChars || *s == '\0')
-		return 0; // empty string
-	iterateTimes(maxChars, i)
-	{
-		char c = s[i];
-		if(c == '\0')
-			break;
-		bool isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-		if (!isHex)
-			return 0;
-	}
-	return 1;
-}
-
-static int string_equalNoCase(const char *s1, const char *s2) ATTRS(nonnull);
-static int string_equalNoCase(const char *s1, const char *s2)
-{
-	return strcasecmp(s1, s2) == 0;
-}
-
-static int string_equal(const char *s1, const char *s2) ATTRS(nonnull);
-static int string_equal(const char *s1, const char *s2)
-{
-	return strcmp(s1, s2) == 0;
-}
-
-static char *string_dup(const char *s) ATTRS(nonnull);
-static char *string_dup(const char *s)
-{
-	auto bytes = strlen(s)+1;
-	char *dup = (char*)mem_alloc(bytes);
-	if(dup)
-		memcpy(dup, s, bytes);
-	return dup;
-}
-
-#ifdef __cplusplus
+void string_toUpper(char *s);
+int string_containsChar(const char *s, int c);
+bool string_isHexValue(const char *s, uint maxChars);
+int string_equalNoCase(const char *s1, const char *s2) ATTRS(nonnull);
+int string_equal(const char *s1, const char *s2) ATTRS(nonnull);
+char *string_dup(const char *s) ATTRS(nonnull);
+char *string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
 
 // copies at most destSize-1 chars from src until null byte or dest size is reached
 // dest is always null terminated
-[[gnu::nonnull]] static char *string_copy(char *dest, const char *src, size_t destSize)
-{
-	/*iterateTimes(destSize, i)
-	{
-		if(i == destSize-1) // write a NULL at the last index and stop
-		{
-			dest[i] = '\0';
-			break;
-		}
-		else
-			dest[i] = src[i];
-		if(src[i] == '\0') // stop writing after null char
-			break;
-	}*/
+char *string_copy(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
 
-	uint charsToCopy = std::min(destSize-1, strlen(src));
-	memcpy(dest, src, charsToCopy);
-	dest[charsToCopy] = '\0';
+END_C_DECLS
 
-	return dest;
-}
+#ifdef __cplusplus
 
 template <size_t S>
 static char *string_copy(char (&dest)[S], const char *src)
@@ -119,17 +52,6 @@ static char *string_copy(std::array<char, S> &dest, const char *src)
 }
 #endif
 
-#endif
-
-static char *string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
-static char *string_cat(char *dest, const char *src, size_t destSize)
-{
-	string_copy(dest + strlen(dest), src, destSize - strlen(dest));
-	return dest;
-}
-
-#ifdef __cplusplus
-
 template <size_t S>
 static char *string_cat(char (&dest)[S], const char *src)
 {
@@ -141,10 +63,6 @@ static char *string_cat(std::array<char, S> &dest, const char *src)
 {
 	return string_cat(dest.data(), src, S);
 }
-
-#endif
-
-#ifdef __cplusplus
 
 template <size_t S, typename... ARGS>
 static int string_printf(char (&buffer)[S], ARGS&&... args)

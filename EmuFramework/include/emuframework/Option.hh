@@ -382,8 +382,7 @@ struct OptionRecentGames : public OptionBase
 			}
 			info.path[bytesRead] = 0;
 			readSize -= len;
-			FsSys::PathString basenameTemp;
-			string_copyUpToLastCharInstance(info.name, string_basename(info.path.data(), basenameTemp), '.');
+			string_copyUpToLastCharInstance(info.name, FS::basename(info.path).data(), '.');
 			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
 			recentGameList.push_back(info);
 		}

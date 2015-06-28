@@ -59,14 +59,9 @@ static bool isMDCDExtension(const char *name)
 	return string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "iso");
 }
 
-static int mdROMFsFilter(const char *name, int type)
+static bool isMDWithCDExtension(const char *name)
 {
-	return type == Fs::TYPE_DIR || isMDExtension(name);
-}
-
-static int mdFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isMDExtension(name)
+	return isMDExtension(name)
 	#ifndef NO_SCD
 		|| isMDCDExtension(name)
 	#endif
@@ -114,7 +109,7 @@ static Byte1Option optionSmsFM(CFGKEY_SMS_FM, 1);
 static Byte1Option option6BtnPad(CFGKEY_6_BTN_PAD, 0);
 static Byte1Option optionRegion(CFGKEY_MD_REGION, 0);
 #ifndef NO_SCD
-FsSys::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
+FS::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
 static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, "");
 static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, "");
 static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, "");
@@ -208,8 +203,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionRegion.writeWithKeyIfNotDefault(io);
 }
 
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = mdFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = mdROMFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isMDWithCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isMDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
@@ -345,19 +340,19 @@ static char saveSlotChar(int slot)
 	}
 }
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
 }
 
-static FsSys::PathString sprintSaveFilename()
+static FS::PathString sprintSaveFilename()
 {
-	return makeFSPathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
-static FsSys::PathString sprintBRAMSaveFilename()
+static FS::PathString sprintBRAMSaveFilename()
 {
-	return makeFSPathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
@@ -618,12 +613,12 @@ int EmuSystem::loadGame(const char *path)
 	// check if loading a .bin with matching .cue
 	if(string_hasDotExtension(path, "bin"))
 	{
-		FsSys::PathString possibleCuePath{};
+		FS::PathString possibleCuePath{};
 		auto len = strlen(path);
-		strcpy(possibleCuePath.data(), path);
+		string_copy(possibleCuePath, path);
 		possibleCuePath[len-3] = 0; // delete extension
-		strcat(possibleCuePath.data(), "cue");
-		if(FsSys::fileExists(possibleCuePath.data()))
+		string_cat(possibleCuePath, "cue");
+		if(FS::exists(possibleCuePath))
 		{
 			logMsg("loading %s instead of .bin file", possibleCuePath.data());
 			setupGamePaths(possibleCuePath.data());
@@ -637,7 +632,7 @@ int EmuSystem::loadGame(const char *path)
 	#ifndef NO_SCD
 	CDAccess *cd = nullptr;
 	if(isMDCDExtension(fullGamePath()) ||
-		(string_hasDotExtension(path, "bin") && FsSys::fileSize(fullGamePath()) > 1024*1024*10)) // CD
+		(string_hasDotExtension(path, "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
 	{
 		try
 		{
@@ -675,8 +670,8 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 
-		FsSys::PathString loadFullGamePath;
-		strcpy(loadFullGamePath.data(), biosPath);
+		FS::PathString loadFullGamePath;
+		string_copy(loadFullGamePath, biosPath);
 		if(!load_rom(loadFullGamePath.data())) // load_rom can modify the string
 		{
 			popup.printf(4, 1, "Error loading BIOS: %s", biosPath);
@@ -695,8 +690,8 @@ int EmuSystem::loadGame(const char *path)
 	if(isMDExtension(fullGamePath())) // ROM
 	{
 		logMsg("loading ROM %s", fullGamePath());
-		FsSys::PathString loadFullGamePath;
-		strcpy(loadFullGamePath.data(), fullGamePath());
+		FS::PathString loadFullGamePath;
+		string_copy(loadFullGamePath, fullGamePath());
 		if(!load_rom(loadFullGamePath.data())) // load_rom can modify the string
 		{
 			popup.post("Error loading game", 1);

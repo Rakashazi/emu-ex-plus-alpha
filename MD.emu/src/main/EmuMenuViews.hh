@@ -96,7 +96,7 @@ public:
 		}
 	}
 
-	static FsSys::PathString &regionCodeToStrBuffer(int region)
+	static FS::PathString &regionCodeToStrBuffer(int region)
 	{
 		switch(region)
 		{
@@ -125,13 +125,12 @@ public:
 			bcase REGION_EUROPE: path = cdBiosEurPath.data();
 		}
 		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		FsSys::PathString basenameTemp;
-		string_printf(str, "%s: %s", regionStr, strlen(path) ? string_basename(path, basenameTemp) : "None set");
+		string_printf(str, "%s: %s", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
 	}
 
 	void cdBiosPathHandler(const Input::Event &e, int region)
 	{
-		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), mdROMFsFilter, window()};
+		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), isMDExtension, window()};
 		biosSelectMenu.init(!e.isPointer());
 		biosSelectMenu.onBiosChange() =
 			[this, region]()

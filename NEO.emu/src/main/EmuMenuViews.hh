@@ -447,7 +447,7 @@ public:
 			ROM_DEF *drv = dr_check_zip(entry.filename);
 			if(drv)
 			{
-				bool fileExists = FsSys::fileExists(entry.filename);
+				bool fileExists = FS::exists(entry.filename);
 				if(!optionListAllGames && !fileExists)
 				{
 					// TODO: free via scope exit wrapper

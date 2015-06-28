@@ -382,7 +382,7 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
 
     logMsg("HD Type %d", (int)hdType[cartNo]);
     bool changeToMachineDir = currentRomType[cartNo] == ROM_SUNRISEIDE ? 1 : 0;
-    FsSys::PathString wDir;
+    FS::PathString wDir;
     if(changeToMachineDir)
     {
     	logMsg("loading ROM from Machine path");

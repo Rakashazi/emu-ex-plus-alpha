@@ -23,7 +23,7 @@ extern "C"
 	#include "sysfile.h"
 }
 
-extern FsSys::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3];
+extern FS::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3];
 
 CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const char *open_mode)
 {
@@ -33,7 +33,7 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 		{
 			if(!strlen(p.data()))
 				continue;
-			auto fullPath = makeFSPathStringPrintf("%s/%s", p.data(), name);
+			auto fullPath = FS::makePathStringPrintf("%s/%s", p.data(), name);
 			auto file = fopen(fullPath.data(), open_mode);
 			if(file)
 			{
@@ -63,8 +63,8 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 		{
 			if(!strlen(p.data()))
 				continue;
-			auto fullPath = makeFSPathStringPrintf("%s/%s", p.data(), name);
-			if(FsSys::fileExists(fullPath.data()))
+			auto fullPath = FS::makePathStringPrintf("%s/%s", p.data(), name);
+			if(FS::exists(fullPath))
 			{
 				if(complete_path_return)
 				{
@@ -91,7 +91,7 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 		{
 			if(!strlen(p.data()))
 				continue;
-			auto complete_path = makeFSPathStringPrintf("%s/%s", p.data(), name);
+			auto complete_path = FS::makePathStringPrintf("%s/%s", p.data(), name);
 			FileIO file;
 			file.open(complete_path.data());
 			if(file)

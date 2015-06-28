@@ -19,7 +19,6 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/io/FileIO.hh>
-#include <imagine/fs/sys.hh>
 
 #define PNG_SKIP_SETJMP_CHECK
 #include <png.h>

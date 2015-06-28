@@ -1,7 +1,7 @@
 #define LOGTAG "blueMSXApi"
 
 #include <imagine/logger/logger.h>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/time/Time.hh>
 #include <assert.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@ extern "C"
 
 int archCreateDirectory(const char* pathname)
 {
-    if(FsSys::mkdir(pathname) != OK)
+    if(!FS::create_directory(pathname))
     	return -1;
     return 0;
 }

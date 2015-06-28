@@ -169,13 +169,8 @@ static bool isSNESExtension(const char *name)
 	return isROMExtension(name) || string_hasDotExtension(name, "zip");
 }
 
-static int snesFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR || isSNESExtension(name);
-}
-
-FsDirFilterFunc EmuFilePicker::defaultFsFilter = snesFsFilter;
-FsDirFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = snesFsFilter;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isSNESExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isSNESExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
@@ -375,21 +370,21 @@ static char saveSlotChar(int slot)
 	#define FREEZE_EXT "s96"
 #endif
 
-FsSys::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return makeFSPathStringPrintf("%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotChar(slot));
 }
 
 #undef FREEZE_EXT
 
-static FsSys::PathString sprintSRAMFilename()
+static FS::PathString sprintSRAMFilename()
 {
-	return makeFSPathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
-static FsSys::PathString sprintCheatsFilename()
+static FS::PathString sprintCheatsFilename()
 {
-	return makeFSPathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName());
 }
 
 int EmuSystem::saveState()
@@ -405,7 +400,7 @@ int EmuSystem::saveState()
 int EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FsSys::fileExists(saveStr.data()))
+	if(FS::exists(saveStr.data()))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(S9xUnfreezeGame(saveStr.data()))

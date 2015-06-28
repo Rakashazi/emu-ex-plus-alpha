@@ -2,19 +2,19 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
 
-static int pceHuFsFilter(const char *name, int type);
+static bool isHuCardExtension(const char *name);
 
 class SystemOptionView : public OptionView
 {
 public:
 
-	char sysCardPathStr[256] {0};
+	char sysCardPathStr[256]{};
 	TextMenuItem sysCardPath
 	{
 		"",
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath, pceHuFsFilter, window()};
+			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath, isHuCardExtension, window()};
 			biosSelectMenu.init(!e.isPointer());
 			biosSelectMenu.onBiosChange() =
 				[this]()
@@ -30,8 +30,7 @@ public:
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		FsSys::PathString basenameTemp;
-		string_printf(str, "System Card: %s", strlen(::sysCardPath.data()) ? string_basename(::sysCardPath, basenameTemp) : "None set");
+		string_printf(str, "System Card: %s", strlen(::sysCardPath.data()) ? FS::basename(::sysCardPath).data() : "None set");
 	}
 
 	BoolMenuItem arcadeCard

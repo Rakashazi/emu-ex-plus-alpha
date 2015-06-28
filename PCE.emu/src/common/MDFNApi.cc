@@ -5,7 +5,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/thread/Thread.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/strings.h>
 

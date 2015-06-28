@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Carbon/Carbon.h>
 #ifdef __OBJC__
 #import <AppKit/NSEvent.h>
 #else
@@ -86,23 +87,139 @@ enum {
 namespace Input
 {
 
-using Time = double; // NSTimeInterval
+class Time;
 
-static Time msToTime(int ms)
+class TimeOSX
 {
-	return ms / 1000.;
-}
+protected:
+	double t = 0; // time in seconds
+public:
+	constexpr TimeOSX() {}
+	double &primitiveVal() { return t; }
+	const double &primitiveVal() const { return t; }
+	static Time makeWithSecsD(double secs);
+};
+
+using TimeImpl = TimeOSX;
+
+using Key = uint16;
 
 // TODO: remove dummy defs
 namespace OSX
 {
-	static const uint ESCAPE = 27,
-	ENTER = 13,
-	LALT = 2003, // TODO
-	RALT = 2004, // TODO
+	static const Key
+	A = 3000, // TODO kVK_ANSI_A,
+	B = kVK_ANSI_B,
+	C = kVK_ANSI_C,
+	D = kVK_ANSI_D,
+	E = kVK_ANSI_E,
+	F = kVK_ANSI_F,
+	G = kVK_ANSI_G,
+	H = kVK_ANSI_H,
+	I = kVK_ANSI_I,
+	J = kVK_ANSI_J,
+	K = kVK_ANSI_K,
+	L = kVK_ANSI_L,
+	M = kVK_ANSI_M,
+	N = kVK_ANSI_N,
+	O = kVK_ANSI_O,
+	P = kVK_ANSI_P,
+	Q = kVK_ANSI_Q,
+	R = kVK_ANSI_R,
+	S = kVK_ANSI_S,
+	T = kVK_ANSI_T,
+	U = kVK_ANSI_U,
+	V = kVK_ANSI_V,
+	W = kVK_ANSI_W,
+	X = kVK_ANSI_X,
+	Y = kVK_ANSI_Y,
+	Z = kVK_ANSI_Z,
+	_1 = kVK_ANSI_1,
+	_2 = kVK_ANSI_2,
+	_3 = kVK_ANSI_3,
+	_4 = kVK_ANSI_4,
+	_5 = kVK_ANSI_5,
+	_6 = kVK_ANSI_6,
+	_7 = kVK_ANSI_7,
+	_8 = kVK_ANSI_8,
+	_9 = kVK_ANSI_9,
+	_0 = kVK_ANSI_0,
+	ENTER = kVK_Return,
+	ESCAPE = kVK_Escape,
+	BACK_SPACE = kVK_Delete,
+	TAB = kVK_Tab,
+	SPACE = kVK_Space,
+	MINUS = kVK_ANSI_Minus,
+	EQUALS = kVK_ANSI_Equal,
+	LEFT_BRACKET = kVK_ANSI_LeftBracket,
+	RIGHT_BRACKET = kVK_ANSI_RightBracket,
+	BACKSLASH = kVK_ANSI_Backslash,
+
+	SEMICOLON = kVK_ANSI_Semicolon,
+	APOSTROPHE = kVK_ANSI_Quote,
+	GRAVE = kVK_ANSI_Grave,
+	COMMA = kVK_ANSI_Comma,
+	PERIOD = kVK_ANSI_Period,
+	SLASH = kVK_ANSI_Slash,
+	CAPS = kVK_CapsLock,
+	F1 = kVK_F1,
+	F2 = kVK_F2,
+	F3 = kVK_F3,
+	F4 = kVK_F4,
+	F5 = kVK_F5,
+	F6 = kVK_F6,
+	F7 = kVK_F7,
+	F8 = kVK_F8,
+	F9 = kVK_F9,
+	F10 = kVK_F10,
+	F11 = kVK_F11,
+	F12 = kVK_F12,
+	PRINT_SCREEN = NSPrintScreenFunctionKey, // TODO
+	SCROLL_LOCK = NSScrollLockFunctionKey, // TODO
+	PAUSE = NSPauseFunctionKey, // TODO
+	INSERT = NSInsertFunctionKey, // TODO
+	HOME = kVK_Home,
+	PGUP = kVK_PageUp,
+	DELETE = kVK_ForwardDelete,
+	END = kVK_End,
+	PGDOWN = kVK_PageDown,
+	RIGHT = kVK_RightArrow,
+	LEFT = kVK_LeftArrow,
+	DOWN = kVK_DownArrow,
+	UP = kVK_UpArrow,
+	NUM_LOCK = 2010, // TODO
+	NUMPAD_DIV = kVK_ANSI_KeypadDivide,
+	NUMPAD_MULT = kVK_ANSI_KeypadMultiply,
+	NUMPAD_SUB = kVK_ANSI_KeypadMinus,
+	NUMPAD_ADD = kVK_ANSI_KeypadPlus,
+	NUMPAD_ENTER = kVK_ANSI_KeypadEnter,
+	NUMPAD_1 = kVK_ANSI_Keypad1,
+	NUMPAD_2 = kVK_ANSI_Keypad2,
+	NUMPAD_3 = kVK_ANSI_Keypad3,
+	NUMPAD_4 = kVK_ANSI_Keypad4,
+	NUMPAD_5 = kVK_ANSI_Keypad5,
+	NUMPAD_6 = kVK_ANSI_Keypad6,
+	NUMPAD_7 = kVK_ANSI_Keypad7,
+	NUMPAD_8 = kVK_ANSI_Keypad8,
+	NUMPAD_9 = kVK_ANSI_Keypad9,
+	NUMPAD_0 = kVK_ANSI_Keypad0,
+	NUMPAD_DOT = kVK_ANSI_KeypadDecimal,
+	NUMPAD_COMMA = 2026, // TODO
+
+	NUMPAD_EQUALS = kVK_ANSI_KeypadEquals,
+
+	MENU = NSMenuFunctionKey, // TODO
+
+	LCTRL = 2006, // TODO
 	LSHIFT = 2005, // TODO
-	RCTRL = 2006, // TODO
-	LEFT = NSLeftArrowFunctionKey,
+	LALT = 2003, // TODO
+	LSUPER = 2007, // TODO
+	RCTRL = kVK_RightControl,
+	RSHIFT = kVK_RightShift,
+	RALT = kVK_RightOption,
+	RSUPER = kVK_Command,
+
+	/*LEFT = NSLeftArrowFunctionKey,
 	RIGHT = NSRightArrowFunctionKey,
 	UP = NSUpArrowFunctionKey,
 	DOWN = NSDownArrowFunctionKey,
@@ -156,19 +273,67 @@ namespace OSX
 	F10 = NSF10FunctionKey,
 	F11 = NSF11FunctionKey,
 	F12 = NSF12FunctionKey,
-	PRINT_SCREEN = NSPrintScreenFunctionKey
+	PRINT_SCREEN = NSPrintScreenFunctionKey,*/
+
+	// private key-codes for misc keys, gamepads, & analog -> digital joystick axis emulation
+	miscKeyBase = 30000,
+	BACK = miscKeyBase,
+
+	gpKeyBase = BACK + 1,
+	GAME_A = gpKeyBase,
+	GAME_B = gpKeyBase+1,
+	GAME_C = gpKeyBase+2,
+	GAME_X = gpKeyBase+3,
+	GAME_Y = gpKeyBase+4,
+	GAME_Z = gpKeyBase+5,
+	GAME_L1 = gpKeyBase+6,
+	GAME_R1 = gpKeyBase+7,
+	GAME_L2 = gpKeyBase+8,
+	GAME_R2 = gpKeyBase+9,
+	GAME_LEFT_THUMB = gpKeyBase+10,
+	GAME_RIGHT_THUMB = gpKeyBase+11,
+	GAME_START = gpKeyBase+12,
+	GAME_SELECT = gpKeyBase+13,
+	GAME_MODE = gpKeyBase+14,
+	GAME_1 = gpKeyBase+15, GAME_2 = gpKeyBase+16, GAME_3 = gpKeyBase+17, GAME_4 = gpKeyBase+18,
+	GAME_5 = gpKeyBase+19, GAME_6 = gpKeyBase+20, GAME_7 = gpKeyBase+21, GAME_8 = gpKeyBase+22,
+	GAME_9 = gpKeyBase+23, GAME_10 = gpKeyBase+24, GAME_11 = gpKeyBase+25, GAME_12 = gpKeyBase+26,
+	GAME_13 = gpKeyBase+27, GAME_14 = gpKeyBase+28, GAME_15 = gpKeyBase+29, GAME_16 = gpKeyBase+30,
+
+	axisKeyBase = GAME_16 + 1,
+	JS_RUDDER_AXIS_POS = axisKeyBase, JS_RUDDER_AXIS_NEG = axisKeyBase+1,
+	JS_WHEEL_AXIS_POS = axisKeyBase+2, JS_WHEEL_AXIS_NEG = axisKeyBase+3,
+	JS_POV_XAXIS_POS = axisKeyBase+4, JS_POV_XAXIS_NEG = axisKeyBase+5,
+	JS_POV_YAXIS_POS = axisKeyBase+6, JS_POV_YAXIS_NEG = axisKeyBase+7,
+	JS1_XAXIS_POS = axisKeyBase+8, JS1_XAXIS_NEG = axisKeyBase+9,
+	JS1_YAXIS_POS = axisKeyBase+10, JS1_YAXIS_NEG = axisKeyBase+11,
+
+	JS2_XAXIS_POS = axisKeyBase+12, JS2_XAXIS_NEG = axisKeyBase+13,
+	JS2_YAXIS_POS = axisKeyBase+14, JS2_YAXIS_NEG = axisKeyBase+15,
+
+	JS3_XAXIS_POS = axisKeyBase+16, JS3_XAXIS_NEG = axisKeyBase+17,
+	JS3_YAXIS_POS = axisKeyBase+18, JS3_YAXIS_NEG = axisKeyBase+19,
+
+	JS_LTRIGGER_AXIS = axisKeyBase+20, JS_RTRIGGER_AXIS = axisKeyBase+21,
+	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23
 	;
 
 	static const uint COUNT = 0xffff;
 };
 
-typedef uint16 Key;
-
 namespace Keycode = OSX;
 
 namespace Pointer
 {
-	static const uint LBUTTON = 1;
+	// TODO
+	static constexpr Key
+	LBUTTON = 1,
+	MBUTTON = 2,
+	RBUTTON = 3,
+	WHEEL_UP = 4,
+	WHEEL_DOWN = 5,
+	DOWN_BUTTON = 6,
+	UP_BUTTON = 7;
 }
 
 }

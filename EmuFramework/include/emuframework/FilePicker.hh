@@ -19,14 +19,16 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 
+using EmuNameFilterFunc = bool(*)(const char *name);
+
 class EmuFilePicker : public FSPicker
 {
 public:
-	static FsDirFilterFunc defaultFsFilter;
-	static FsDirFilterFunc defaultBenchmarkFsFilter;
+	static EmuNameFilterFunc defaultFsFilter;
+	static EmuNameFilterFunc defaultBenchmarkFsFilter;
 
 	EmuFilePicker(Base::Window &win): FSPicker(win) {}
-	void init(bool highlightFirst, bool pickingDir, FsDirFilterFunc filter = defaultFsFilter, bool singleDir = 0);
+	void init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc filter = defaultFsFilter, bool singleDir = false);
 	void initForBenchmark(bool highlightFirst, bool singleDir = 0);
 
 	void inputEvent(const Input::Event &e)

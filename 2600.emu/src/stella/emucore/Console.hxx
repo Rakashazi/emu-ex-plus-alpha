@@ -166,7 +166,7 @@ class Console : public Serializable
     /**
       Set up the console to use the debugger.
     */
-    void attachDebugger(Debugger& dbg);
+    void attachDebugger(class Debugger& dbg);
 
     /**
       Informs the Console of a change in EventHandler state.

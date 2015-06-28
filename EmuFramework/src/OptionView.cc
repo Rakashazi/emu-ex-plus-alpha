@@ -21,17 +21,16 @@
 
 using namespace IG;
 
-static FsSys::PathString savePathStrToDescStr(char *savePathStr)
+static FS::PathString savePathStrToDescStr(char *savePathStr)
 {
-	FsSys::PathString desc{};
+	FS::PathString desc{};
 	if(strlen(savePathStr))
 	{
 		if(string_equal(savePathStr, optionSavePathDefaultToken))
 			string_copy(desc, "Default");
 		else
 		{
-			FsSys::PathString basenameTemp;
-			string_copy(desc, string_basename(optionSavePath, basenameTemp));
+			string_copy(desc, FS::basename(optionSavePath).data());
 		}
 	}
 	else
@@ -44,13 +43,13 @@ static FsSys::PathString savePathStrToDescStr(char *savePathStr)
 void BiosSelectMenu::onSelectFile(const char* name, const Input::Event &e)
 {
 	logMsg("size %d", (int)sizeof(*biosPathStr));
-	string_printf(*biosPathStr, "%s/%s", FsSys::workDir(), name);
+	string_printf(*biosPathStr, "%s/%s", FS::current_path().data(), name);
 	if(onBiosChangeD) onBiosChangeD();
 	workDirStack.pop();
 	viewStack.popAndShow();
 }
 
-void BiosSelectMenu::init(FsSys::PathString *biosPathStr, int (*fsFilter)(const char *name, int type), bool highlightFirst)
+void BiosSelectMenu::init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, bool highlightFirst)
 {
 	var_selfs(biosPathStr);
 	var_selfs(fsFilter);
@@ -86,9 +85,10 @@ void BiosSelectMenu::init(bool highlightFirst)
 	choiceEntry[1].onSelect() =
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			popAndShow();
 			strcpy(biosPathStr->data(), "");
-			if(onBiosChangeD) onBiosChangeD();
+			auto onBiosChange = onBiosChangeD;
+			popAndShow();
+			onBiosChange.callSafe();
 		};
 	TableView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst);
 }
@@ -437,11 +437,6 @@ void OptionView::processPriorityInit()
 }
 #endif
 
-static int dirFsFilter(const char *name, int type)
-{
-	return type == Fs::TYPE_DIR;
-}
-
 template <size_t S>
 static void printPathMenuEntryStr(char (&str)[S])
 {
@@ -457,7 +452,7 @@ public:
 
 	void onClose(const Input::Event &e)
 	{
-		snprintf(optionSavePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
+		snprintf(optionSavePath, sizeof(FS::PathString), "%s", FS::current_path().data());
 		logMsg("set save path %s", (char*)optionSavePath);
 		if(onPathChange) onPathChange(optionSavePath);
 		workDirStack.pop();
@@ -471,9 +466,9 @@ public:
 			[this](TextMenuItem &, View &, const Input::Event &e)
 			{
 				workDirStack.push();
-				FsSys::chdir(optionSavePath);
+				FS::current_path(optionSavePath);
 				auto &fPicker = *new EmuFilePicker{mainWin.win};
-				fPicker.init(!e.isPointer(), true, dirFsFilter);
+				fPicker.init(!e.isPointer(), true, {});
 				fPicker.onClose() =
 					[this](FSPicker &picker, const Input::Event &e)
 					{
@@ -729,7 +724,7 @@ public:
 
 void FirmwarePathSelector::onClose(const Input::Event &e)
 {
-	snprintf(optionFirmwarePath, sizeof(FsSys::PathString), "%s", FsSys::workDir());
+	snprintf(optionFirmwarePath, sizeof(FS::PathString), "%s", FS::current_path().data());
 	logMsg("set firmware path %s", (char*)optionFirmwarePath);
 	if(onPathChange) onPathChange(optionFirmwarePath);
 	workDirStack.pop();
@@ -744,9 +739,9 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 		{
 			viewStack.popAndShow();
 			workDirStack.push();
-			FsSys::chdir(optionFirmwarePath);
+			FS::current_path(optionFirmwarePath);
 			auto &fPicker = *new EmuFilePicker{mainWin.win};
-			fPicker.init(!e.isPointer(), true, dirFsFilter);
+			fPicker.init(!e.isPointer(), true, {});
 			fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
 				{
 					onClose(e);

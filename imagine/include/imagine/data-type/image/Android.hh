@@ -19,7 +19,6 @@
 #include <imagine/engine-globals.h>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
-#include <imagine/fs/sys.hh>
 #include <android/bitmap.h>
 
 class PixelFormatDesc;

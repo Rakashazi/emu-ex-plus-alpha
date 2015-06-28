@@ -16,7 +16,7 @@
 #define LOGTAG "Base"
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/fs/sys.hh>
+#include <imagine/fs/FS.hh>
 #include "dbus.hh"
 #include "../common/basePrivate.hh"
 #include "../x11/x11.hh"
@@ -27,7 +27,7 @@
 namespace Base
 {
 
-static FsSys::PathString appPath{};
+static FS::PathString appPath{};
 extern void runMainEventLoop();
 extern void initMainEventLoop();
 
@@ -55,7 +55,7 @@ void abort() { ::abort(); }
 void openURL(const char *url)
 {
 	logMsg("opening url:%s", url);
-	auto ret = system(makeFSPathStringPrintf("xdg-open %s", url).data());
+	auto ret = system(FS::makePathStringPrintf("xdg-open %s", url).data());
 }
 
 const char *assetPath()
@@ -72,26 +72,20 @@ const char *storagePath()
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
-		static FsSys::PathString sdPath{};
-		FsSys dir;
+		static FS::PathString sdPath{};
 		// look for the first mounted SD card
-		if(dir.openDir("/media", 0,
-			[](const char *name, int type) -> int
-			{
-				return type == Fs::TYPE_DIR && strstr(name, "mmcblk");
-			}
-		) == OK)
+		for(auto &entry : FS::directory_iterator{"/media"})
 		{
-			if(dir.numEntries())
+			if(entry.type() == FS::file_type::directory && strstr(entry.name(), "mmcblk"))
 			{
 				//logMsg("storage dir: %s", dir.entryFilename(0));
-				string_printf(sdPath, "/media/%s", dir.entryFilename(0));
+				string_copy(sdPath, entry.path().data());
+				break;
 			}
-			dir.closeDir();
-			if(strlen(sdPath.data()))
-			{
-				return sdPath.data();
-			}
+		}
+		if(strlen(sdPath.data()))
+		{
+			return sdPath.data();
 		}
 		// fall back to appPath
 	}
@@ -124,7 +118,7 @@ int main(int argc, char** argv)
 	using namespace Base;
 	doOrAbort(logger_init());
 	engineInit();
-	appPath = makeAppPathFromLaunchCommand(argv[0]);
+	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
 	initMainEventLoop();
 	#ifdef CONFIG_BASE_X11
 	EventLoopFileSource x11Src;

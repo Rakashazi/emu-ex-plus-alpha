@@ -39,6 +39,7 @@ include $(imagineSrcDir)/mem/malloc.mk
 include $(imagineSrcDir)/util/system/pagesize.mk
 include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk
+SRC += util/string/generic.cc
 
 libName := imagine$(libNameExt)
 ifndef RELEASE

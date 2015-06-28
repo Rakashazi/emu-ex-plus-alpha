@@ -14,11 +14,11 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Screenshot.hh>
+#include <emuframework/EmuSystem.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/io/FileIO.hh>
-#include <imagine/fs/sys.hh>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
 
@@ -128,21 +128,21 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!pngPtr)
 	{
-		FsSys::remove(fname);
+		FS::remove(fname);
 		return false;
 	}
 	png_infop infoPtr = png_create_info_struct(pngPtr);
 	if(!infoPtr)
 	{
 		png_destroy_write_struct(&pngPtr, (png_infopp)NULL);
-		FsSys::remove(fname);
+		FS::remove(fname);
 		return false;
 	}
 
 	if(setjmp(png_jmpbuf(pngPtr)))
 	{
 		png_destroy_write_struct(&pngPtr, &infoPtr);
-		FsSys::remove(fname);
+		FS::remove(fname);
 		return false;
 	}
 
@@ -195,3 +195,25 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 }
 
 #endif
+
+int sprintScreenshotFilename(FS::PathString str)
+{
+	const uint maxNum = 999;
+	int num = -1;
+	iterateTimes(maxNum, i)
+	{
+		string_printf(str, "%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName(), i);
+		if(!FS::exists(str))
+		{
+			num = i;
+			break;
+		}
+	}
+	if(num == -1)
+	{
+		logMsg("no screenshot filenames left");
+		return -1;
+	}
+	logMsg("screenshot %d", num);
+	return num;
+}

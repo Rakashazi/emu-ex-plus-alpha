@@ -97,7 +97,7 @@ void EmuVideo::initImage(bool force, uint xO, uint yO, uint x, uint y, uint tota
 
 void EmuVideo::takeGameScreenshot()
 {
-	FsSys::PathString path;
+	FS::PathString path;
 	int screenshotNum = sprintScreenshotFilename(path);
 	if(screenshotNum == -1)
 	{
