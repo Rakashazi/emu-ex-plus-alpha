@@ -37,7 +37,7 @@ public:
 
 	void setPos(const QuadGeneric &quad)
 	{
-		memcpy(v, quad.v, sizeof(v));
+		memcpy(v.data(), quad.v.data(), sizeof(v));
 	}
 
 	void setPos(const IG::WindowRect &b, const ProjectionPlane &proj)
@@ -69,7 +69,7 @@ public:
 	}
 
 protected:
-	Vtx v[4];
+	std::array<Vtx, 4> v;
 };
 
 using Quad = QuadGeneric<Vertex>;
@@ -99,5 +99,18 @@ public:
 	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges = EDGE_AI);
 	void setColorAlpha(ColorComp a, uint edges = EDGE_AI);
 };
+
+std::array<Vertex, 4> makeVertArray(GCRect pos);
+std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);
+std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx);
+
+template<class Vtx>
+static void drawQuads(std::array<Vtx, 4> *quad, uint quads, std::array<VertexIndex, 6> *quadIdx, uint quadIdxs)
+{
+	bindTempVertexBuffer();
+	vertexBufferData(quad[0].data(), sizeof(quad[0]) * quads);
+	Vtx::bindAttribs(quad[0].data());
+	drawPrimitiveElements(Primitive::TRIANGLE, quadIdx[0].data(), quadIdxs * 6);
+}
 
 }

@@ -35,20 +35,6 @@ static_assertIsPod(ColTexVertex);
 static const GLenum GL_VERT_ARRAY_TYPE = GL_FLOAT;
 static const GLenum GL_TEX_ARRAY_TYPE = GL_FLOAT;
 
-static int convGeomTypeToOGL(uint type)
-{
-	int glType = type == TRIANGLE ? GL_TRIANGLES :
-			type == TRIANGLE_STRIP ? GL_TRIANGLE_STRIP :
-			#ifndef CONFIG_GFX_OPENGL_ES
-			type == QUAD ? GL_QUADS :
-			#else
-			type == QUAD ? GL_TRIANGLE_FAN : // Warning: this will only work if drawing one quad
-			#endif
-			GL_INVALID_ENUM;
-	assert(glType != GL_INVALID_ENUM);
-	return glType;
-}
-
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 template<class Vtx>
 static void setupVertexArrayPointers(const Vtx *v, int numV)
@@ -119,11 +105,11 @@ static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
 #endif
 
 template<class Vtx>
-void VertexInfo::draw(const Vtx *v, uint type, uint count)
+void VertexInfo::bindAttribs(const Vtx *v)
 {
+	if(useVBOFuncs)
+		v = nullptr;
 	int numV = 2; // number of position elements
-	int glType = Gfx::convGeomTypeToOGL(type);
-
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(useFixedFunctionPipeline)
 		Gfx::setupVertexArrayPointers(v, numV);
@@ -132,31 +118,53 @@ void VertexInfo::draw(const Vtx *v, uint type, uint count)
 	if(!useFixedFunctionPipeline)
 		Gfx::setupShaderVertexArrayPointers(v, numV);
 	#endif
-	glDrawArrays(glType, 0, count);
+}
+
+void bindTempVertexBuffer()
+{
+	if(useVBOFuncs)
+	{
+		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());
+	}
+}
+
+void vertexBufferData(const void *v, uint size)
+{
+	if(useVBOFuncs)
+	{
+		glBufferData(GL_ARRAY_BUFFER, size, v, GL_STREAM_DRAW);
+	}
+}
+
+void drawPrimitives(Primitive mode, uint start, uint count)
+{
+	glDrawArrays((GLenum)mode, start, count);
 	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawArrays", err); });
 }
 
-template<class Vtx>
-void VertexInfo::draw(const Vtx *v, const VertexIndex *idx, uint type, uint count)
+void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count)
 {
-	//logMsg("drawing with idx");
-	int numV = 2; // number of position elements
-	int glType = Gfx::convGeomTypeToOGL(type);
-
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
-		Gfx::setupVertexArrayPointers(v, numV);
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!useFixedFunctionPipeline)
-		Gfx::setupShaderVertexArrayPointers(v, numV);
-	#endif
-	glDrawElements(glType, count, GL_UNSIGNED_SHORT, idx);
+	glDrawElements((GLenum)mode, count, GL_UNSIGNED_SHORT, idx);
 	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawElements", err); });
 }
 
 template<class Vtx>
-static void mapImg(Vtx v[4], GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
+static void setPos(std::array<Vtx, 4> &v, GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4)
+{
+	v[0].x = x; v[0].y = y; //BL
+	v[1].x = x2; v[1].y = y2; //TL
+	v[2].x = x4; v[2].y = y4; //BR
+	v[3].x = x3; v[3].y = y3; //TR
+}
+
+template<class Vtx>
+static void setPos(std::array<Vtx, 4> &v, GC x, GC y, GC x2, GC y2)
+{
+	setPos(v, x, y,  x, y2,  x2, y2,  x2, y);
+}
+
+template<class Vtx>
+static void mapImg(std::array<Vtx, 4> &v, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
 {
 	v[0].u = leftTexU; v[0].v = bottomTexV; //BL
 	v[1].u = leftTexU; v[1].v = topTexV; //TL
@@ -165,7 +173,16 @@ static void mapImg(Vtx v[4], GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTe
 }
 
 template<class Vtx>
-static void setColor(Vtx v[4], ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges)
+static void setColor(std::array<Vtx, 4> &v, VertexColor col, uint edges)
+{
+	if(edges & EDGE_BL) v[0].color = col;
+	if(edges & EDGE_TL) v[1].color = col;
+	if(edges & EDGE_TR) v[3].color = col;
+	if(edges & EDGE_BR) v[2].color = col;
+}
+
+template<class Vtx>
+static void setColor(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges)
 {
 	if(edges & EDGE_BL) v[0].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
 	if(edges & EDGE_TL) v[1].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
@@ -174,7 +191,7 @@ static void setColor(Vtx v[4], ColorComp r, ColorComp g, ColorComp b, ColorComp 
 }
 
 template<class Vtx>
-static void setColorRGB(Vtx v[4], ColorComp r, ColorComp g, ColorComp b, uint edges)
+static void setColorRGB(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, uint edges)
 {
 	if(edges & EDGE_BL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[0].color), EDGE_BL);
 	if(edges & EDGE_TL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[1].color), EDGE_TL);
@@ -183,7 +200,7 @@ static void setColorRGB(Vtx v[4], ColorComp r, ColorComp g, ColorComp b, uint ed
 }
 
 template<class Vtx>
-static void setColorAlpha(Vtx v[4], ColorComp a, uint edges)
+static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint edges)
 {
 	if(edges & EDGE_BL) setColor(v, VertexColorPixelFormat.r(v[0].color), VertexColorPixelFormat.g(v[0].color), VertexColorPixelFormat.b(v[0].color), a, EDGE_BL);
 	if(edges & EDGE_TL) setColor(v, VertexColorPixelFormat.r(v[1].color), VertexColorPixelFormat.g(v[1].color), VertexColorPixelFormat.b(v[1].color), a, EDGE_TL);
@@ -191,14 +208,10 @@ static void setColorAlpha(Vtx v[4], ColorComp a, uint edges)
 	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
 }
 
-template void VertexInfo::draw<Vertex>(const Vertex *v, uint type, uint count);
-template void VertexInfo::draw<Vertex>(const Vertex *v, const VertexIndex *idx, uint type, uint count);
-template void VertexInfo::draw<ColVertex>(const ColVertex *v, uint type, uint count);
-template void VertexInfo::draw<ColVertex>(const ColVertex *v, const VertexIndex *idx, uint type, uint count);
-template void VertexInfo::draw<TexVertex>(const TexVertex *v, uint type, uint count);
-template void VertexInfo::draw<TexVertex>(const TexVertex *v, const VertexIndex *idx, uint type, uint count);
-template void VertexInfo::draw<ColTexVertex>(const ColTexVertex *v, uint type, uint count);
-template void VertexInfo::draw<ColTexVertex>(const ColTexVertex *v, const VertexIndex *idx, uint type, uint count);
+template void VertexInfo::bindAttribs<Vertex>(const Vertex *v);
+template void VertexInfo::bindAttribs<ColVertex>(const ColVertex *v);
+template void VertexInfo::bindAttribs<TexVertex>(const TexVertex *v);
+template void VertexInfo::bindAttribs<ColTexVertex>(const ColTexVertex *v);
 
 }
 

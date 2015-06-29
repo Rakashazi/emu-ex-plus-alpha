@@ -71,16 +71,10 @@ void GeomQuadMesh::deinit()
 
 void GeomQuadMesh::draw()
 {
-	if(useVBOFuncs)
-	{
-		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());
-		glBufferData(GL_ARRAY_BUFFER, sizeof(ColVertex) * verts, v, GL_STREAM_DRAW);
-		v.arr->draw((ColVertex*)nullptr, i, Gfx::TRIANGLE, idxs);
-	}
-	else
-	{
-		v.arr->draw(v.arr, i, Gfx::TRIANGLE, idxs);
-	}
+	bindTempVertexBuffer();
+	vertexBufferData(v.arr, sizeof(ColVertex) * verts);
+	ColVertex::bindAttribs(v.arr);
+	drawPrimitiveElements(Primitive::TRIANGLE, i, idxs);
 }
 
 void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)

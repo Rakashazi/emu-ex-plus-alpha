@@ -51,6 +51,15 @@ void SpriteBase<BaseRect>::draw() const
 	}
 }
 
+std::array<TexVertex, 4> makeTexVertArray(GCRect pos, PixmapTexture &img)
+{
+	std::array<TexVertex, 4> arr{};
+	setPos(arr, pos.x, pos.y, pos.x2, pos.y2);
+	auto uvBounds = img.uvBounds();
+	mapImg(arr, uvBounds.x, uvBounds.y, uvBounds.x2, uvBounds.y2);
+	return arr;
+}
+
 template class SpriteBase<TexRect>;
 template class SpriteBase<ColTexQuad>;
 

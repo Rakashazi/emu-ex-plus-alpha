@@ -83,4 +83,6 @@ private:
 using Sprite = SpriteBase<TexRect>;
 using ShadedSprite = SpriteBase<ColTexQuad>;
 
+std::array<TexVertex, 4> makeTexVertArray(GCRect pos, PixmapTexture &img);
+
 }

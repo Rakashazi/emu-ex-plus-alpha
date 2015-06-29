@@ -81,29 +81,40 @@ void TableView::draw()
 	int yStart = y;
 	noTexProgram.use(projP.makeTranslate());
 	int selectedCellY = INT_MAX;
-	setBlendMode(0);
-	for(int i = startYCell; i < endYCell; i++)
 	{
-		if(i == selected)
+		StaticArrayList<std::array<ColVertex, 4>, 96> vRect;
+		StaticArrayList<std::array<VertexIndex, 6>, vRect.maxSize()> vRectIdx;
+		auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
+		auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
+		for(int i = startYCell; i < endYCell; i++)
 		{
-			selectedCellY = y;
+			if(i == selected)
+			{
+				selectedCellY = y;
+			}
+			if(i != 0)
+			{
+				int ySize = 1;
+				auto color = regularColor;
+				if(!elementIsSelectable(i - 1))
+				{
+					ySize = 4;
+					color = headingColor;
+				}
+				vRectIdx.emplace_back(makeRectIndexArray(vRect.size()));
+				auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize});
+				vRect.emplace_back(makeColVertArray(projP.unProjectRect(rect), color));
+			}
+			y += yCellSize;
+			if(unlikely(vRect.size() == vRect.maxSize()))
+				break;
 		}
-		if(i != 0)
+		if(vRect.size())
 		{
-			int ySize = 1;
-			if(!elementIsSelectable(i - 1))
-			{
-				setColor(.4, .4, .4);
-				ySize = 4;
-			}
-			else
-			{
-				setColor(.2, .2, .2);
-			}
-			auto rect = IG::makeWindowRectRel({x, y-1}, {viewRect().xSize(), ySize});
-			GeomRect::draw(rect, projP);
+			setBlendMode(0);
+			setColor(COLOR_WHITE);
+			drawQuads(&vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
 		}
-		y += yCellSize;
 	}
 
 	// draw selected rectangle

@@ -176,8 +176,9 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 	//resetTransforms();
 	setBlendMode(BLEND_MODE_ALPHA);
 	TextureSampler::bindDefaultNoMipClampSampler();
-	Sprite spr;
-	spr.init({});
+	std::array<TexVertex, 4> vArr;
+	bindTempVertexBuffer();
+	TexVertex::bindAttribs(vArr.data());
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
@@ -231,12 +232,13 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 			}
 			GC xSize = projP.unprojectXSize(gly->metrics.xSize);
 
-			spr.setImg(gly->glyph);
 			auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 			auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
-			spr.setPos(x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize));
+			vArr = makeTexVertArray({x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}, gly->glyph);
+			vertexBufferData(vArr.data(), sizeof(vArr));
+			gly->glyph.bind();
 			//logMsg("drawing");
-			spr.draw();
+			drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 			xPos += projP.unprojectXSize(gly->metrics.xAdvance);
 		}
 		yPos -= nominalHeight;

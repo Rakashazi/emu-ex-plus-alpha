@@ -33,14 +33,10 @@ void QuadGeneric<Vtx>::setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC 
 template<class Vtx>
 void QuadGeneric<Vtx>::draw() const
 {
-	if(useVBOFuncs)
-	{
-		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());
-		glBufferData(GL_ARRAY_BUFFER, sizeof(v), v, GL_STREAM_DRAW);
-		Vtx::draw((Vtx*)nullptr, Gfx::TRIANGLE_STRIP, 4);
-	}
-	else
-		Vtx::draw(v, Gfx::TRIANGLE_STRIP, 4);
+	bindTempVertexBuffer();
+	vertexBufferData(v.data(), sizeof(v));
+	Vtx::bindAttribs(v.data());
+	drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 }
 
 template class QuadGeneric<Vertex>;
@@ -58,5 +54,34 @@ void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bo
 void ColTexQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
 void ColTexQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }
 void ColTexQuad::setColorAlpha(ColorComp a, uint edges) { Gfx::setColorAlpha(v, a, edges); }
+
+std::array<Vertex, 4> makeVertArray(GCRect pos)
+{
+	std::array<Vertex, 4> arr{};
+	setPos(arr, pos.x, pos.y, pos.x2, pos.y2);
+	return arr;
+}
+
+std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col)
+{
+	std::array<ColVertex, 4> arr{};
+	setPos(arr, pos.x, pos.y, pos.x2, pos.y2);
+	setColor(arr, col, EDGE_ALL);
+	return arr;
+}
+
+std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
+{
+	baseIdx *= 4;
+	return
+	{
+		baseIdx,
+		VertexIndex(baseIdx+1),
+		VertexIndex(baseIdx+3),
+		baseIdx,
+		VertexIndex(baseIdx+3),
+		VertexIndex(baseIdx+2),
+	};
+}
 
 }

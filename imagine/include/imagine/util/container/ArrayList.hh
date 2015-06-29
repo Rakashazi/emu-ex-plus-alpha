@@ -13,7 +13,7 @@ struct StaticStorageBase
 	T arr[SIZE]{};
 	T *storage() { return arr; }
 	const T *storage() const { return arr; }
-	uint maxSize() const { return SIZE; }
+	constexpr uint maxSize() const { return SIZE; }
 };
 
 template <class T>

@@ -46,7 +46,16 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
 const Mat4 &projectionMatrix();
 const Viewport &viewport();
 
-enum { TRIANGLE = 1, TRIANGLE_STRIP, QUAD, };
+enum class Primitive
+{
+	TRIANGLE = TRIANGLE_IMPL,
+	TRIANGLE_STRIP = TRIANGLE_STRIP_IMPL
+};
+
+void bindTempVertexBuffer();
+void vertexBufferData(const void *v, uint size);
+void drawPrimitives(Primitive mode, uint start, uint count);
+void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count);
 
 extern bool preferBGRA, preferBGR;
 

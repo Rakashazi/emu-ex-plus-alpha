@@ -72,6 +72,9 @@ using VertexIndex = GLushort;
 using VertexColor = uint;
 using VertexArrayRef = uint;
 
+static constexpr int TRIANGLE_IMPL = GL_TRIANGLES;
+static constexpr int TRIANGLE_STRIP_IMPL = GL_TRIANGLE_STRIP;
+
 static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
 
 class VertexInfo
@@ -83,9 +86,7 @@ public:
 	static constexpr bool hasTexture = false;
 	static const uint textureOffset = 0;
 	template<class Vtx>
-	static void draw(const Vtx *v, uint type, uint count);
-	template<class Vtx>
-	static void draw(const Vtx *v, const VertexIndex *idx, uint type, uint count);
+	static void bindAttribs(const Vtx *v);
 };
 
 class Vertex : public VertexInfo
