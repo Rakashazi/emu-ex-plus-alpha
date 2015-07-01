@@ -74,14 +74,14 @@ std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
 {
 	baseIdx *= 4;
 	return
-	{
+	{{
 		baseIdx,
 		VertexIndex(baseIdx+1),
 		VertexIndex(baseIdx+3),
 		baseIdx,
 		VertexIndex(baseIdx+3),
 		VertexIndex(baseIdx+2),
-	};
+	}};
 }
 
 }
