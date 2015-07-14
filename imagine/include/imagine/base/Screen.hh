@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <vector>
 #include <imagine/engine-globals.h>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/rectangle2.h>
@@ -104,6 +105,7 @@ public:
   double frameRate();
   double frameTime();
   void setFrameRate(double rate);
+  std::vector<double> supportedFrameRates();
 	void setFrameInterval(uint interval);
 	static bool supportsFrameInterval();
 

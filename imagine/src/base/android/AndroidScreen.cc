@@ -28,6 +28,7 @@ namespace Base
 
 static JavaInstMethod<jint()> jGetRotation{};
 static JavaInstMethod<jfloat()> jGetRefreshRate{};
+static JavaInstMethod<jobject()> jGetSupportedRefreshRates{};
 static JavaInstMethod<jobject(jobject)> jGetMetrics{};
 JavaInstMethod<jobject(jobject, jlong)> jPresentation{};
 JavaInstMethod<jobject(jint)> jGetDisplay{};
@@ -132,7 +133,7 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	{
 		jclass jDisplayCls = env->GetObjectClass(aDisplay);
 		jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
-		jGetRefreshRate.setup(env, env->GetObjectClass(aDisplay), "getRefreshRate", "()F");
+		jGetRefreshRate.setup(env, jDisplayCls, "getRefreshRate", "()F");
 		#ifdef CONFIG_BASE_MULTI_SCREEN
 		jGetDisplayId.setup(env, jDisplayCls, "getDisplayId", "()I");
 		#endif
@@ -297,6 +298,35 @@ bool Screen::supportsFrameInterval()
 void Screen::setFrameRate(double rate)
 {
 	// unsupported
+}
+
+std::vector<double> Screen::supportedFrameRates()
+{
+	std::vector<double> rateVec;
+	if(Base::androidSDK() < 21)
+	{
+		rateVec.reserve(1);
+		rateVec.emplace_back(frameRate());
+	}
+	auto env = jEnv();
+	if(unlikely(!jGetSupportedRefreshRates))
+	{
+		jclass jDisplayCls = env->GetObjectClass(aDisplay);
+		jGetSupportedRefreshRates.setup(env, jDisplayCls, "getSupportedRefreshRates", "()[F");
+	}
+	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
+	auto rate = env->GetFloatArrayElements(jRates, 0);
+	auto rates = env->GetArrayLength(jRates);
+	rateVec.reserve(rates);
+	logMsg("screen %d supports %d rate(s):", id, rates);
+	iterateTimes(rates, i)
+	{
+		double r = rate[i];
+		logMsg("%f", r);
+		rateVec.emplace_back(r);
+	}
+	env->ReleaseFloatArrayElements(jRates, rate, 0);
+	return rateVec;
 }
 
 }

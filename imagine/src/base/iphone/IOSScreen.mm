@@ -192,4 +192,13 @@ void Screen::setFrameRate(double rate)
 	// unsupported
 }
 
+std::vector<double> Screen::supportedFrameRates()
+{
+	// TODO
+	std::vector<double> rateVec;
+	rateVec.reserve(1);
+	rateVec.emplace_back(frameRate());
+	return rateVec;
+}
+
 }
