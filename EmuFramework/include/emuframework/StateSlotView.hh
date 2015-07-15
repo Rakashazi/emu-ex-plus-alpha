@@ -17,6 +17,7 @@
 
 #include <emuframework/EmuSystem.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 
 class StateSlotView : public TableView
 {

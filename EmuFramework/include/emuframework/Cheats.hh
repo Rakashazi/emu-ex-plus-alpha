@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 #include <emuframework/EmuSystem.hh>
 
 namespace EmuCheats

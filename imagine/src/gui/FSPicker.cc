@@ -88,14 +88,13 @@ void FSPicker::FSNavView::setTitle(const char *str)
 
 // FSPicker
 
-void FSPicker::init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FilterFunc filter,  bool singleDir, ResourceFace *face)
+void FSPicker::init(Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FilterFunc filter,  bool singleDir, ResourceFace *face)
 {
 	deinit();
 	faceRes = face;
 	var_selfs(filter);
 	var_selfs(singleDir);
 	navV.init(face, backRes, closeRes, singleDir);
-	loadDir(path);
 }
 
 void FSPicker::deinit()
@@ -128,11 +127,22 @@ void FSPicker::place()
 
 void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
 {
-	loadDir(path);
+	if(setPath(path) != OK)
+		return;
 	if(!e.isPointer())
 		tbl.highlightFirstCell();
 	place();
 	postDraw();
+}
+
+void FSPicker::setOnSelectFile(OnSelectFileDelegate del)
+{
+	onSelectFileD = del;
+}
+
+void FSPicker::setOnClose(OnCloseDelegate del)
+{
+	onCloseD = del;
 }
 
 void FSPicker::onLeftNavBtn(const Input::Event &e)
@@ -143,6 +153,11 @@ void FSPicker::onLeftNavBtn(const Input::Event &e)
 void FSPicker::onRightNavBtn(const Input::Event &e)
 {
 	onCloseD(*this, e);
+}
+
+void FSPicker::setOnPathReadError(OnPathReadError del)
+{
+	onPathReadError = del;
 }
 
 void FSPicker::inputEvent(const Input::Event &e)
@@ -176,7 +191,7 @@ void FSPicker::draw()
 	navV.draw(window(), projP);
 }
 
-void FSPicker::loadDir(const char *path)
+CallResult FSPicker::setPath(const char *path)
 {
 	assert(path);
 	{
@@ -185,7 +200,8 @@ void FSPicker::loadDir(const char *path)
 		if(dirResult != OK)
 		{
 			logErr("can't open %s", path);
-			return;
+			onPathReadError.callSafe(*this, dirResult);
+			return dirResult;
 		}
 		FS::current_path(path);
 		dir.clear();
@@ -245,4 +261,5 @@ void FSPicker::loadDir(const char *path)
 	}
 	tbl.init(textPtr, dir.size(), false); // TODO: highlight first cell
 	navV.setTitle(FS::current_path().data());
+	return OK;
 }

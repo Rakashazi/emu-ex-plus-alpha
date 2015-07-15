@@ -34,38 +34,31 @@ class FSPicker : public View
 {
 public:
 	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
-	FilterFunc filter{};
-	TableView tbl;
 	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, const Input::Event &e)>;
-	OnSelectFileDelegate onSelectFileD{};
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, const Input::Event &e)>;
-	OnCloseDelegate onCloseD
-	{
-		[](FSPicker &picker, const Input::Event &e)
-		{
-			picker.dismiss();
-		}
-	};
-	static const bool needsUpDirControl = !Config::envIsPS3;
+	using OnPathReadError = DelegateFunc<void (FSPicker &picker, CallResult res)>;
+	static constexpr bool needsUpDirControl = !Config::envIsPS3;
 
 	FSPicker(Base::Window &win): View{win}, tbl{win} {}
-	void init(const char *path, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+	void init(Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 			FilterFunc filter = {}, bool singleDir = false, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void draw() override;
-	OnSelectFileDelegate &onSelectFile() { return onSelectFileD; }
-	OnCloseDelegate &onClose() { return onCloseD; }
+	void setOnSelectFile(OnSelectFileDelegate del);
+	void setOnClose(OnCloseDelegate del);
 	void onLeftNavBtn(const Input::Event &e);
 	void onRightNavBtn(const Input::Event &e);
+	void setOnPathReadError(OnPathReadError del);
+	CallResult setPath(const char *path);
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void clearSelection() override
 	{
 		tbl.clearSelection();
 	}
 
-private:
+protected:
 	class FSNavView : public BasicNavView
 	{
 	public:
@@ -86,6 +79,17 @@ private:
 		void setTitle(const char *str);
 	};
 
+	FilterFunc filter{};
+	TableView tbl;
+	OnSelectFileDelegate onSelectFileD{};
+	OnCloseDelegate onCloseD
+	{
+		[](FSPicker &picker, const Input::Event &e)
+		{
+			picker.dismiss();
+		}
+	};
+	OnPathReadError onPathReadError{};
 	MenuItem **textPtr{};
 	TextMenuItem *text{};
 	std::vector<FS::FileString> dir{};
@@ -94,6 +98,5 @@ private:
 	FSNavView navV{*this};
 	bool singleDir = false;
 
-	void loadDir(const char *path);
 	void changeDirByInput(const char *path, const Input::Event &e);
 };

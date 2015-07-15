@@ -67,18 +67,18 @@ void BiosSelectMenu::init(bool highlightFirst)
 			chdirFromFilePath(biosPathStr->data());
 			auto &fPicker = *new EmuFilePicker{window()};
 			fPicker.init(!e.isPointer(), false, fsFilter);
-			fPicker.onSelectFile() =
+			fPicker.setOnSelectFile(
 				[this](FSPicker &picker, const char* name, const Input::Event &e)
 				{
 					onSelectFile(name, e);
 					picker.dismiss();
-				};
-			fPicker.onClose() =
+				});
+			fPicker.setOnClose(
 				[](FSPicker &picker, const Input::Event &e)
 				{
 					picker.dismiss();
 					workDirStack.pop();
-				};
+				});
 			modalViewController.pushAndShow(fPicker);
 		};
 	choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
@@ -469,13 +469,13 @@ public:
 				FS::current_path(optionSavePath);
 				auto &fPicker = *new EmuFilePicker{mainWin.win};
 				fPicker.init(!e.isPointer(), true, {});
-				fPicker.onClose() =
+				fPicker.setOnClose(
 					[this](FSPicker &picker, const Input::Event &e)
 					{
 						onClose(e);
 						picker.dismiss();
 						viewStack.popAndShow();
-					};
+					});
 				modalViewController.pushAndShow(fPicker);
 			});
 		multiChoiceView.setItem(1, "Same as Game",
@@ -742,11 +742,12 @@ void FirmwarePathSelector::init(const char *name, bool highlightFirst)
 			FS::current_path(optionFirmwarePath);
 			auto &fPicker = *new EmuFilePicker{mainWin.win};
 			fPicker.init(!e.isPointer(), true, {});
-			fPicker.onClose() = [this](FSPicker &picker, const Input::Event &e)
+			fPicker.setOnClose(
+				[this](FSPicker &picker, const Input::Event &e)
 				{
 					onClose(e);
 					picker.dismiss();
-				};
+				});
 			modalViewController.pushAndShow(fPicker);
 		});
 	multiChoiceView.setItem(1, "Default",

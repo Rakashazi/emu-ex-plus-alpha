@@ -21,8 +21,9 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/util/audio/PcmFormat.hh>
-#include <imagine/gui/FSPicker.hh>
+#include <imagine/util/Rational.hh>
 
 struct AspectRatioInfo
 {

@@ -24,7 +24,7 @@
 
 void EmuFilePicker::init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc filter, bool singleDir)
 {
-	FSPicker::init(".", needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
+	FSPicker::init(needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
 		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr,
 				[filter, singleDir](FS::directory_entry &entry)
 				{
@@ -36,7 +36,26 @@ void EmuFilePicker::init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc
 					else
 						return false;
 				}, singleDir);
-	onSelectFile() = [this](FSPicker &picker, const char* name, const Input::Event &e){GameFilePicker::onSelectFile(name, e);};
+	if(setPath(FS::current_path().data()) != OK)
+	{
+		setPath(Base::storagePath());
+	}
+	setOnPathReadError(
+		[](FSPicker &, CallResult res)
+		{
+			switch(res)
+			{
+				bcase PERMISSION_DENIED: popup.postError("Permission denied reading directory");
+				bcase NOT_FOUND: popup.postError("Directory not found");
+				bcase INVALID_PARAMETER: popup.postError("Not a directory");
+				bdefualt: popup.postError("Unknown error reading directory");
+			}
+		});
+	setOnSelectFile(
+		[this](FSPicker &, const char *name, const Input::Event &e)
+		{
+			GameFilePicker::onSelectFile(name, e);
+		});
 	if(highlightFirst)
 	{
 		tbl.highlightFirstCell();
@@ -128,7 +147,7 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 {
 	EmuFilePicker::init(highlightFirst, false, defaultBenchmarkFsFilter, singleDir);
-	onSelectFile() =
+	setOnSelectFile(
 		[this](FSPicker &picker, const char* name, const Input::Event &e)
 		{
 			EmuSystem::onLoadGameComplete() =
@@ -145,5 +164,29 @@ void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 			{
 				EmuSystem::clearGamePaths();
 			}
-		};
+		});
+}
+
+void EmuFilePicker::inputEvent(const Input::Event &e)
+{
+	if(e.state == Input::PUSHED)
+	{
+		if(e.isDefaultCancelButton())
+		{
+			onCloseD(*this, e);
+			return;
+		}
+
+		if(isMenuDismissKey(e))
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				dismiss();
+				startGameFromMenu();
+				return;
+			}
+		}
+	}
+
+	FSPicker::inputEvent(e);
 }

@@ -30,30 +30,7 @@ public:
 	EmuFilePicker(Base::Window &win): FSPicker(win) {}
 	void init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc filter = defaultFsFilter, bool singleDir = false);
 	void initForBenchmark(bool highlightFirst, bool singleDir = 0);
-
-	void inputEvent(const Input::Event &e)
-	{
-		if(e.state == Input::PUSHED)
-		{
-			if(e.isDefaultCancelButton())
-			{
-				onCloseD(*this, e);
-				return;
-			}
-
-			if(isMenuDismissKey(e))
-			{
-				if(EmuSystem::gameIsRunning())
-				{
-					dismiss();
-					startGameFromMenu();
-					return;
-				}
-			}
-		}
-
-		FSPicker::inputEvent(e);
-	}
+	void inputEvent(const Input::Event &e) override;
 };
 
 class GameFilePicker
