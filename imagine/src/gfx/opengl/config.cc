@@ -107,6 +107,12 @@ static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
 #endif
 static bool useDebugOutput = false;
 
+bool shouldSpecifyDrawReadBuffers = false;
+#ifdef CONFIG_GFX_OPENGL_ES
+void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs){};
+void (* GL_APIENTRY glReadBuffer) (GLenum src){};
+#endif
+
 bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
 
 static Base::GLBufferConfig gfxBufferConfig;
@@ -273,6 +279,15 @@ static void setupPBO()
 	logMsg("using PBOs");
 	usePBO = true;
 	initTexturePBO();
+}
+
+static void setupSpecifyDrawReadBuffers()
+{
+	shouldSpecifyDrawReadBuffers = true;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	glDrawBuffers = (typeof(glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
+	glReadBuffer = (typeof(glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
+	#endif
 }
 
 static void checkExtensionString(const char *extStr)
@@ -576,6 +591,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 	if(glVer >= 20)
 	{
 		setupNonPow2MipmapRepeatTextures();
+		setupSpecifyDrawReadBuffers();
 	}
 	if(glVer >= 21)
 	{
@@ -642,6 +658,8 @@ CallResult init(IG::PixelFormat pixelFormat)
 			setupRGFormats();
 			setupSamplerObjects();
 			setupPBO();
+			if(!Config::envIsIOS)
+				setupSpecifyDrawReadBuffers();
 			useUnpackRowLength = true;
 			useLegacyGLSL = false;
 		}

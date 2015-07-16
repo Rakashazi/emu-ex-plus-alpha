@@ -360,6 +360,14 @@ bool setCurrentWindow(Base::Window *win)
 			return false;
 		currWin = win;
 		gfxContext.setDrawable(win, gfxContext);
+		if(unlikely(win && shouldSpecifyDrawReadBuffers))
+		{
+			logMsg("specifying draw/read buffers");
+			shouldSpecifyDrawReadBuffers = false;
+			const GLenum back = GL_BACK;
+			glDrawBuffers(1, &back);
+			glReadBuffer(GL_BACK);
+		}
 		return true;
 	}
 }

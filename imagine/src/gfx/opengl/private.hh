@@ -44,6 +44,7 @@ extern bool usePBO;
 extern bool useEGLImages;
 extern bool useExternalEGLImages;
 extern TextureSizeSupport textureSizeSupport;
+extern bool shouldSpecifyDrawReadBuffers;
 extern bool useLegacyGLSL;
 
 static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
@@ -73,6 +74,8 @@ extern GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLen
 extern GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
 extern GL_APICALL GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
 extern GL_APICALL GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target);
+extern GL_APICALL void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs);
+extern GL_APICALL void (* GL_APIENTRY glReadBuffer) (GLenum src);
 #endif
 
 static const bool useGLCache = true;
