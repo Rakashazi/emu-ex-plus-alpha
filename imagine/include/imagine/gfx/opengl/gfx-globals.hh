@@ -75,6 +75,21 @@ using VertexArrayRef = uint;
 static constexpr int TRIANGLE_IMPL = GL_TRIANGLES;
 static constexpr int TRIANGLE_STRIP_IMPL = GL_TRIANGLE_STRIP;
 
+static constexpr int ZERO_IMPL = GL_ZERO;
+static constexpr int ONE_IMPL = GL_ONE;
+static constexpr int SRC_COLOR_IMPL = GL_SRC_COLOR;
+static constexpr int ONE_MINUS_SRC_COLOR_IMPL = GL_ONE_MINUS_SRC_COLOR;
+static constexpr int DST_COLOR_IMPL = GL_DST_COLOR;
+static constexpr int ONE_MINUS_DST_COLOR_IMPL = GL_ONE_MINUS_DST_COLOR;
+static constexpr int SRC_ALPHA_IMPL = GL_SRC_ALPHA;
+static constexpr int ONE_MINUS_SRC_ALPHA_IMPL = GL_ONE_MINUS_SRC_ALPHA;
+static constexpr int DST_ALPHA_IMPL = GL_DST_ALPHA;
+static constexpr int ONE_MINUS_DST_ALPHA_IMPL = GL_ONE_MINUS_DST_ALPHA;
+static constexpr int CONSTANT_COLOR_IMPL = GL_CONSTANT_COLOR;
+static constexpr int ONE_MINUS_CONSTANT_COLOR_IMPL = GL_ONE_MINUS_CONSTANT_COLOR;
+static constexpr int CONSTANT_ALPHA_IMPL = GL_CONSTANT_ALPHA;
+static constexpr int ONE_MINUS_CONSTANT_ALPHA_IMPL = GL_ONE_MINUS_CONSTANT_ALPHA;
+
 static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
 
 class VertexInfo

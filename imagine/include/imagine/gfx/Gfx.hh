@@ -83,6 +83,27 @@ void uniformF(int uniformLocation, float v1, float v2);
 void releaseShaderCompiler();
 void autoReleaseShaderCompiler();
 
+enum class BlendFunc
+{
+	ZERO = ZERO_IMPL,
+	ONE = ONE_IMPL,
+	SRC_COLOR = SRC_COLOR_IMPL,
+	ONE_MINUS_SRC_COLOR = ONE_MINUS_SRC_COLOR_IMPL,
+	DST_COLOR = DST_COLOR_IMPL,
+	ONE_MINUS_DST_COLOR = ONE_MINUS_DST_COLOR_IMPL,
+	SRC_ALPHA = SRC_ALPHA_IMPL,
+	ONE_MINUS_SRC_ALPHA = ONE_MINUS_SRC_ALPHA_IMPL,
+	DST_ALPHA = DST_ALPHA_IMPL,
+	ONE_MINUS_DST_ALPHA = ONE_MINUS_DST_ALPHA_IMPL,
+	CONSTANT_COLOR = CONSTANT_COLOR_IMPL,
+	ONE_MINUS_CONSTANT_COLOR = ONE_MINUS_CONSTANT_COLOR_IMPL,
+	CONSTANT_ALPHA = CONSTANT_ALPHA_IMPL,
+	ONE_MINUS_CONSTANT_ALPHA = ONE_MINUS_CONSTANT_ALPHA_IMPL,
+};
+
+void setBlend(bool on);
+void setBlendFunc(BlendFunc s, BlendFunc d);
+
 enum { BLEND_MODE_OFF = 0, BLEND_MODE_ALPHA, BLEND_MODE_INTENSITY };
 void setBlendMode(uint mode);
 
@@ -141,5 +162,6 @@ void loadTranslate(GC x, GC y, GC z);
 void loadIdentTransform();
 
 void setCorrectnessChecks(bool on);
+void setDebugOutput(bool on);
 
 }

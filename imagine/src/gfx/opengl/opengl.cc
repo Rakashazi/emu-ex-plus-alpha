@@ -26,6 +26,14 @@
 #include "private.hh"
 #include "utils.h"
 
+#ifndef GL_BACK_LEFT
+#define GL_BACK_LEFT				0x0402
+#endif
+
+#ifndef GL_BACK_RIGHT
+#define GL_BACK_RIGHT				0x0403
+#endif
+
 namespace Gfx
 {
 
@@ -70,19 +78,32 @@ void setZTest(bool on)
 	}
 }
 
+void setBlend(bool on)
+{
+	if(on)
+		glcEnable(GL_BLEND);
+	else
+		glcDisable(GL_BLEND);
+}
+
+void setBlendFunc(BlendFunc s, BlendFunc d)
+{
+	glcBlendFunc((GLenum)s, (GLenum)d);
+}
+
 void setBlendMode(uint mode)
 {
 	switch(mode)
 	{
 		bcase BLEND_MODE_OFF:
-			glcDisable(GL_BLEND);
+			setBlend(false);
 		bcase BLEND_MODE_ALPHA:
-			glcBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); // general blending
-			//glcBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // for premultiplied alpha
-			glcEnable(GL_BLEND);
+			setBlendFunc(BlendFunc::SRC_ALPHA, BlendFunc::ONE_MINUS_SRC_ALPHA); // general blending
+			//setBlendFunc(BlendFunc::ONE, BlendFunc::ONE_MINUS_SRC_ALPHA); // for premultiplied alpha
+			setBlend(true);
 		bcase BLEND_MODE_INTENSITY:
-			glcBlendFunc(GL_SRC_ALPHA,GL_ONE);
-			glcEnable(GL_BLEND);
+			setBlendFunc(BlendFunc::SRC_ALPHA, BlendFunc::ONE);
+			setBlend(true);
 	}
 }
 
@@ -364,7 +385,7 @@ bool setCurrentWindow(Base::Window *win)
 		{
 			logMsg("specifying draw/read buffers");
 			shouldSpecifyDrawReadBuffers = false;
-			const GLenum back = GL_BACK;
+			const GLenum back = Config::Gfx::OPENGL_ES_MAJOR_VERSION ? GL_BACK : GL_BACK_LEFT;
 			glDrawBuffers(1, &back);
 			glReadBuffer(GL_BACK);
 		}
