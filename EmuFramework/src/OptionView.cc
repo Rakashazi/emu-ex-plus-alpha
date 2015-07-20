@@ -858,7 +858,7 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	savePath.init(savePathStr, true); item[items++] = &savePath;
 	checkSavePathWriteAccess.init(optionCheckSavePathWriteAccess); item[items++] = &checkSavePathWriteAccess;
 	fastForwardSpeedinit(); item[items++] = &fastForwardSpeed;
-	#if defined CONFIG_INPUT_ANDROID
+	#ifdef __ANDROID__
 	processPriorityInit(); item[items++] = &processPriority;
 	#endif
 }

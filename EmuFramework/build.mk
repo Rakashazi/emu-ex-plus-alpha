@@ -16,7 +16,7 @@ ifeq ($(emuFramework_onScreenControls), 1)
  SRC += TouchConfigView.cc VController.cc
 endif
 
-HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
+CFLAGS_OPTIMIZE_RELEASE_DEFAULT += -O3
 
 libName := emuframework$(libNameExt)
 ifndef RELEASE

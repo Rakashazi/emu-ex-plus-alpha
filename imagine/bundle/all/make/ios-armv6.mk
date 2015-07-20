@@ -4,6 +4,7 @@ tempDir = /tmp/imagine-bundle/$(pkgName)
 buildDir = $(tempDir)/build/ios-armv6
 objDir := $(buildDir)
 
+RELEASE := 1
 include $(IMAGINE_PATH)/make/iOS-armv6-gcc.mk
 
 installDir = $(IMAGINE_SDK_PATH)/$(IMAGINE_SDK_PLATFORM)

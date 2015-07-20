@@ -23,10 +23,9 @@ else
 endif
 
 CPPFLAGS += -D_GNU_SOURCE
-COMPILE_FLAGS += -ffunction-sections -fdata-sections
+CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif
 LDLIBS += -lm
 LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--compress-debug-sections=zlib,--icf=all
-

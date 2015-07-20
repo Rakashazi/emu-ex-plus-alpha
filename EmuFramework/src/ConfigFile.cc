@@ -178,7 +178,7 @@ static bool readConfig2(IO &io)
 			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: optionTouchCtrlBoundingBoxes.readFromIO(io, size);
 			bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: optionTouchCtrlShowOnTouch.readFromIO(io, size);
-				#if defined(CONFIG_INPUT_ANDROID)
+				#ifdef __ANDROID__
 				bcase CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES: optionTouchCtrlScaledCoordinates.readFromIO(io, size);
 				#endif
 			#endif
@@ -453,7 +453,7 @@ static OptionBase *cfgFileOption[] =
 	&optionTouchDpadDiagonalSensitivity,
 	&optionTouchCtrlBoundingBoxes,
 	&optionTouchCtrlShowOnTouch,
-		#if defined(CONFIG_INPUT_ANDROID)
+		#ifdef __ANDROID__
 		&optionTouchCtrlScaledCoordinates,
 		#endif
 	#endif
@@ -479,7 +479,7 @@ static OptionBase *cfgFileOption[] =
 	&optionTitleBar,
 	&optionIdleDisplayPowerSave,
 	&optionHideStatusBar,
-	#if defined(CONFIG_INPUT_ANDROID)
+	#ifdef __ANDROID__
 	&optionBackNavigation,
 	#endif
 	&optionRememberLastMenu,

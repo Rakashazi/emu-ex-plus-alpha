@@ -159,7 +159,7 @@ int numCharInString(const char *s, int search)
 	return count;
 }
 
-uchar string_hasDotExtension(const char *s, const char *extension)
+int string_hasDotExtension(const char *s, const char *extension)
 {
 	const char *suffixPos = strrchr(s, '.');
 	if(suffixPos == 0)

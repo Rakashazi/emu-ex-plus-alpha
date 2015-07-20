@@ -18,6 +18,9 @@ IMAGINE_SDK_PATH : Optional, defaults to $(HOME)/imagine-sdk
  - When building Imagine itself, the default install path of the Imagine SDK headers & libs
  - Also used when building an Imagine-based app as the default Imagine SDK path
 
+V : Optional, defaults to undefined
+ - Enables verbose build output when defined, as V=1 for example
+
 2. Dependencies
 ===============
 

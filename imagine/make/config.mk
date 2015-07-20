@@ -18,6 +18,8 @@ projectPath ?= $(firstMakefileDir)
 
 LN ?= ln
 
+toolchainEnvParams = CC="$(CC)" CXX="$(CXX)" LD="$(LD)" AR="$(AR)"
+
 ifndef V
  PRINT_CMD := @
 endif

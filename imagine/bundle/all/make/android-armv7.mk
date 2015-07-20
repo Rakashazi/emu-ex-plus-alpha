@@ -5,6 +5,7 @@ ifeq ($(android_armv7State),-marm)
  undefine O_LTO
 endif
 
+RELEASE := 1
 include $(IMAGINE_PATH)/make/android-armv7-gcc.mk
 
 tempDir = /tmp/imagine-bundle/$(pkgName)

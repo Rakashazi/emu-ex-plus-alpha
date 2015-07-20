@@ -3,9 +3,9 @@ include $(buildSysPath)/linux-gcc.mk
 
 ARCH := x86_64
 ifeq ($(config_compiler),clang)
- COMPILE_FLAGS += -march=x86-64
+ CFLAGS_CODEGEN += -march=x86-64
 else
- COMPILE_FLAGS += -m64 -mtune=generic
+ CFLAGS_CODEGEN += -m64 -mtune=generic
  LDFLAGS += -m64
  ASMFLAGS += -m64
 endif

@@ -115,12 +115,12 @@ void vibrate(uint ms)
 }
 #endif
 
-void setDeviceOrientationChangedSensor(bool on)
+void setDeviceOrientationChangedSensor(bool)
 {
 	// TODO
 }
 
-void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del)
+void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)
 {
 	// TODO
 }

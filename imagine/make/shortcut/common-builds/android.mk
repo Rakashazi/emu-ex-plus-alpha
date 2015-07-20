@@ -4,32 +4,30 @@ ifndef android_arch
  ifdef android_ouyaBuild
   android_arch := armv7
  else
-  android_arch := armv7 x86
+  android_arch := arm64 armv7 x86
  endif
 endif
 
-android_minSDK ?= 9
 android_buildPrefix := android
 
 ifdef android_ouyaBuild
- android_minSDK := 16
  android_buildPrefix := android-ouya
 endif
 
 ifneq ($(filter arm, $(android_arch)),)
- armTarget := $(android_buildPrefix)-$(android_minSDK)-arm$(targetExt)
+ armTarget := $(android_buildPrefix)-arm$(targetExt)
  targets += $(armTarget)
 endif
 ifneq ($(filter armv7, $(android_arch)),)
- armv7Target := $(android_buildPrefix)-$(android_minSDK)-armv7$(targetExt)
+ armv7Target := $(android_buildPrefix)-armv7$(targetExt)
  targets += $(armv7Target)
 endif
 ifneq ($(filter arm64, $(android_arch)),)
- arm64Target := $(android_buildPrefix)-$(android_minSDK)-arm64$(targetExt)
+ arm64Target := $(android_buildPrefix)-arm64$(targetExt)
  targets += $(arm64Target)
 endif
 ifneq ($(filter x86, $(android_arch)),)
- x86Target := $(android_buildPrefix)-$(android_minSDK)-x86$(targetExt)
+ x86Target := $(android_buildPrefix)-x86$(targetExt)
  targets += $(x86Target)
 endif
 

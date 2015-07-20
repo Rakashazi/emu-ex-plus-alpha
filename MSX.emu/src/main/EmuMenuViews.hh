@@ -301,7 +301,7 @@ public:
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
-		fPicker.onSelectFile() =
+		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
@@ -311,7 +311,7 @@ public:
 					onHDMediaChange(name, slot);
 				}
 				picker.dismiss();
-			};
+			});
 		modalViewController.pushAndShow(fPicker);
 	}
 
@@ -374,7 +374,7 @@ public:
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), 1);
-		fPicker.onSelectFile() =
+		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				if(insertROM(name, slot))
@@ -382,7 +382,7 @@ public:
 					onROMMediaChange(name, slot);
 				}
 				picker.dismiss();
-			};
+			});
 		modalViewController.pushAndShow(fPicker);
 	}
 
@@ -458,7 +458,7 @@ public:
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), 1);
-		fPicker.onSelectFile() =
+		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				logMsg("inserting disk in slot %d", slot);
@@ -467,7 +467,7 @@ public:
 					onDiskMediaChange(name, slot);
 				}
 				picker.dismiss();
-			};
+			});
 		modalViewController.pushAndShow(fPicker);
 	}
 

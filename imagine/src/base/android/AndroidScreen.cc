@@ -59,7 +59,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		{
 			{
 				"displayChange", "(II)V",
-				(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint))
+				(void*)(void (*)(JNIEnv*, jobject, jint, jint))
 				([](JNIEnv* env, jobject thiz, jint id, jint change)
 				{
 					switch(change)

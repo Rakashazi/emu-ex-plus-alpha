@@ -1,21 +1,11 @@
 include $(IMAGINE_PATH)/make/config.mk
+include $(buildSysPath)/setAndroidNDKPath.mk
 ARCH := mips
+CHOST := mipsel-linux-android
 android_abi := mips
-
-android_cpuFlags := -EL -mips32 -mhard-float
-
-ifndef android_minSDK 
- android_minSDK := 9
-endif
+android_ndkSDK ?= 15
 android_ndkArch := mips
-
-ifeq ($(origin CC), default)
- CC := mipsel-linux-android-gcc
- CXX := $(CC)
-endif
-
-CPPFLAGS += -D__ANDROID__
-COMPILE_FLAGS += -fno-short-enums
-LDLIBS += -nostartfiles
+clangTarget := mipsel-none-linux-android
+android_cpuFlags := -EL -mips32 -mhard-float
 
 include $(buildSysPath)/android-gcc.mk

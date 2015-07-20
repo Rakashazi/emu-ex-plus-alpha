@@ -621,7 +621,7 @@ CallResult init()
 			{
 				{
 					"deviceChange", "(II)V",
-					(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint))
+					(void*)(void (*)(JNIEnv*, jobject, jint, jint))
 					([](JNIEnv* env, jobject thiz, jint devID, jint change)
 					{
 						switch(change)

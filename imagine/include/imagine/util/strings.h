@@ -28,7 +28,7 @@ BEGIN_C_DECLS
 
 int hexToInt(char c);
 int numCharInString(const char *s, int search);
-uchar string_hasDotExtension(const char *s, const char *extension);
+int string_hasDotExtension(const char *s, const char *extension);
 int charIsDrawableAscii(int c);
 int charIsDrawableUnicode(int c);
 void string_copyUpToLastCharInstance(char *dest, const char *src, char c);

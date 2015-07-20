@@ -6,7 +6,8 @@ ifeq ($(ENV), android)
   CPPFLAGS += -I$(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs/$(android_abi)/include \
    -I$(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/include
  else
-  # TODO: libc++
+  CPPFLAGS += -I$(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libcxx/include \
+   -I$(ANDROID_NDK_PATH)/sources/android/support/include
  endif
 else ifneq ($(filter macosx ios, $(ENV)),)
  include $(buildSysPath)/package/stdc++.mk

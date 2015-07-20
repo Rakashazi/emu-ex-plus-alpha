@@ -15,5 +15,5 @@ endif
 IOS_SYSROOT = /Applications/Xcode44.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.1.sdk
 IOS_FLAGS += -arch armv6
 ASMFLAGS += -arch armv6
-COMPILE_FLAGS += -mdynamic-no-pic
+CFLAGS_CODEGEN += -mdynamic-no-pic
 CHOST := $(shell $(CC) -arch armv6 -dumpmachine)

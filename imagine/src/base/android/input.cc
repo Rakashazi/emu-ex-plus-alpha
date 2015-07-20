@@ -386,7 +386,7 @@ void processInputWithGetEvent(AInputQueue *inputQueue)
 void processInputWithHasEvents(AInputQueue *inputQueue)
 {
 	int events = 0;
-	int32_t hasEventsRet;
+	int32_t hasEventsRet = 0;
 	// Note: never call AInputQueue_hasEvents on first iteration since it may return 0 even if
 	// events are present if they were pre-dispatched, leading to an endless stream of callbacks
 	do

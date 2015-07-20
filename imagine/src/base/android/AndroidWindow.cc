@@ -68,7 +68,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 	{
 		{
 			"onSurfaceCreated", "(JLandroid/view/Surface;)V",
-			(void*)(void JNICALL(*)(JNIEnv*, jobject, jlong, jobject))
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jobject))
 			([](JNIEnv* env, jobject thiz, jlong windowAddr, jobject surface)
 			{
 				auto nWin = ANativeWindow_fromSurface(env, surface);
@@ -78,7 +78,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 		},
 		{
 			"onSurfaceRedrawNeeded", "(J)V",
-			(void*)(void JNICALL(*)(JNIEnv*, jobject, jlong))
+			(void*)(void (*)(JNIEnv*, jobject, jlong))
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
@@ -87,7 +87,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 		},
 		{
 			"onSurfaceDestroyed", "(J)V",
-			(void*)(void JNICALL(*)(JNIEnv*, jobject, jlong))
+			(void*)(void (*)(JNIEnv*, jobject, jlong))
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);

@@ -14,7 +14,6 @@ endif
 compiler_noSanitizeAddress := 1
 include $(buildSysPath)/gcc.mk
 
-#COMPILE_FLAGS += -ffunction-sections -fdata-sections
 ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif

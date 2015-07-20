@@ -224,7 +224,7 @@ CLINK void bug_doExit(const char *msg, ...)
 	va_start(args, msg);
 	char str[256];
 	vsnprintf(str, sizeof(str), msg, args);
-	__android_log_assert("%s", "imagine", str);
+	__android_log_assert("", "imagine", "%s", str);
 	#else
 	va_list args;
 	va_start(args, msg);

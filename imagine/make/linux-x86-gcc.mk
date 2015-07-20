@@ -8,7 +8,7 @@ include $(buildSysPath)/linux-gcc.mk
 
 CHOST := $(shell $(CC) -dumpmachine)
 ARCH := x86
-COMPILE_FLAGS += -m32 -march=pentium4 -mtune=generic
+CFLAGS_CODEGEN += -m32 -march=pentium4 -mtune=generic
 LDFLAGS += -m32
 ASMFLAGS += -m32
 

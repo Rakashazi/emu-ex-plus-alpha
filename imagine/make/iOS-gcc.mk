@@ -24,7 +24,7 @@ endif
 include $(buildSysPath)/clang.mk
 
 ifdef RELEASE
- COMPILE_FLAGS += -DNS_BLOCK_ASSERTIONS
+ CPPFLAGS += -DNS_BLOCK_ASSERTIONS
 endif
 
 OBJCFLAGS += -fobjc-arc

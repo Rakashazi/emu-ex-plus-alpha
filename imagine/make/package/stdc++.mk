@@ -9,7 +9,7 @@ ifneq ($(filter macosx ios, $(ENV)),)
   STDCXXLIB = $(IMAGINE_SDK_PLATFORM_PATH)/lib/libc++.a $(IMAGINE_SDK_PLATFORM_PATH)/lib/libcxxabi.a
  else
   # Use clang to get include/lib path
-  BASE_CXXFLAGS += -stdlib=libc++
+  CXXFLAGS_LANG += -stdlib=libc++
   STDCXXLIB = -stdlib=libc++
  endif
 else

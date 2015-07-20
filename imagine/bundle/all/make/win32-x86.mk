@@ -1,6 +1,6 @@
 -include config.mk
 
-compiler_noSanitizeAddress := 1
+RELEASE := 1
 include $(IMAGINE_PATH)/make/win32-x86.mk
 
 tempDir = /tmp/imagine-bundle/$(pkgName)

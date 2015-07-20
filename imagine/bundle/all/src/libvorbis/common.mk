@@ -36,7 +36,7 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(libvorbisSrcDir)/configure
 	@echo "Configuring libvorbis..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" \
+	dir=`pwd` && cd $(@D) && $(toolchainEnvParams) CFLAGS="$(CPPFLAGS) $(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS) $(LDLIBS)" $(libvorbisSrcDir)/configure \
 	--prefix='$${pcfiledir}/../..' --disable-docs --disable-examples --disable-oggtest \
 	--disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)

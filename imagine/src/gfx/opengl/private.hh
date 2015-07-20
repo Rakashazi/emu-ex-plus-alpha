@@ -27,7 +27,7 @@ extern bool useAnisotropicFiltering;
 extern bool supportBGRPixels;
 extern GLenum bgrInternalFormat;
 extern bool useFBOFuncs;
-using GenerateMipmapsProto = void (*)(GLenum target);
+using GenerateMipmapsProto = void (* GL_APIENTRY)(GLenum target);
 extern GenerateMipmapsProto generateMipmaps;
 extern bool useVBOFuncs;
 extern bool useTextureSwizzle;
@@ -66,16 +66,16 @@ void updateProgramModelViewTransform(GLSLProgram &program);
 void setImgMode(uint mode);
 
 #ifdef CONFIG_GFX_OPENGL_ES
-extern GL_APICALL void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers);
-extern GL_APICALL void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers);
-extern GL_APICALL GLboolean (* GL_APIENTRY glIsSampler) (GLuint sampler);
-extern GL_APICALL void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler);
-extern GL_APICALL void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param);
-extern GL_APICALL void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
-extern GL_APICALL GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
-extern GL_APICALL GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target);
-extern GL_APICALL void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs);
-extern GL_APICALL void (* GL_APIENTRY glReadBuffer) (GLenum src);
+extern void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers);
+extern void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers);
+extern GLboolean (* GL_APIENTRY glIsSampler) (GLuint sampler);
+extern void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler);
+extern void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param);
+extern void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+extern GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+extern GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target);
+extern void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs);
+extern void (* GL_APIENTRY glReadBuffer) (GLenum src);
 #endif
 
 static const bool useGLCache = true;

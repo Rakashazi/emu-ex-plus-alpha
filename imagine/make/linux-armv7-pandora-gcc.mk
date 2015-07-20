@@ -26,11 +26,11 @@ compiler_noSanitizeAddress := 1
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
-WARNINGS_CFLAGS += -Wdouble-promotion
+CFLAGS_WARN += -Wdouble-promotion
 # fix warning from old DBUS & libpng headers
-BASE_CXXFLAGS += -Wno-literal-suffix
+CXXFLAGS_LANG += -Wno-literal-suffix
 
-COMPILE_FLAGS += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+CFLAGS_CODEGEN += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 LDFLAGS += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 
 pandoraSDKSysroot := $(PNDSDK)/usr

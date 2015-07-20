@@ -16,8 +16,8 @@ ios_iconPath := $(projectPath)/res/icons/iOS
 ios_plistTxt := $(ios_targetPath)/Info.txt
 ios_plist := $(ios_targetPath)/Info.plist
 ios_icons := $(wildcard $(ios_iconPath)/*)
-ifdef HIGH_OPTIMIZE_CFLAGS
- ios_HIGH_OPTIMIZE_CFLAGS_param = "HIGH_OPTIMIZE_CFLAGS=$(HIGH_OPTIMIZE_CFLAGS)"
+ifdef CFLAGS_OPTIMIZE
+ ios_CFLAGS_OPTIMIZE_param = "CFLAGS_OPTIMIZE=$(CFLAGS_OPTIMIZE)"
 endif
 
 # Host/IP of the iOS device to install the app over SSH
@@ -47,7 +47,7 @@ ios_armv6ExecName := $(iOS_metadata_exec)-armv6
 ios_armv6Exec := $(ios_targetBinPath)/$(ios_armv6ExecName)
 ios_armv6MakeArgs = -f $(ios_armv6Makefile) $(ios_makefileOpts)\
  targetDir=$(ios_targetBinPath) targetFile=$(ios_armv6ExecName) \
- buildName=$(ios_buildName)-armv6 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ buildName=$(ios_buildName)-armv6 $(ios_CFLAGS_OPTIMIZE_param) \
  projectPath=$(projectPath)
 ios_execs += $(ios_armv6Exec)
 .PHONY: ios-armv6
@@ -80,7 +80,7 @@ ios_armv7ExecName := $(iOS_metadata_exec)-armv7
 ios_armv7Exec := $(ios_targetBinPath)/$(ios_armv7ExecName)
 ios_armv7MakeArgs = -f $(ios_armv7Makefile) $(ios_makefileOpts) \
  targetDir=$(ios_targetBinPath) targetFile=$(ios_armv7ExecName) \
- buildName=$(ios_buildName)-armv7 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ buildName=$(ios_buildName)-armv7 $(ios_CFLAGS_OPTIMIZE_param) \
  projectPath=$(projectPath)
 ios_execs += $(ios_armv7Exec)
 .PHONY: ios-armv7
@@ -113,7 +113,7 @@ ios_arm64ExecName := $(iOS_metadata_exec)-arm64
 ios_arm64Exec := $(ios_targetBinPath)/$(ios_arm64ExecName)
 ios_arm64MakeArgs = -f $(ios_arm64Makefile) $(ios_makefileOpts) \
  targetDir=$(ios_targetBinPath) targetFile=$(ios_arm64ExecName) \
- buildName=$(ios_buildName)-arm64 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ buildName=$(ios_buildName)-arm64 $(ios_CFLAGS_OPTIMIZE_param) \
  projectPath=$(projectPath)
 ios_execs += $(ios_arm64Exec)
 .PHONY: ios-arm64
@@ -146,7 +146,7 @@ ios_x86ExecName := $(iOS_metadata_exec)-x86
 ios_x86Exec := $(ios_targetBinPath)/$(ios_x86ExecName)
 ios_x86MakeArgs = -f $(ios_x86Makefile) $(ios_makefileOpts) \
  targetDir=$(ios_targetBinPath) targetFile=$(ios_x86ExecName) \
- buildName=$(ios_buildName)-x86 $(ios_HIGH_OPTIMIZE_CFLAGS_param) \
+ buildName=$(ios_buildName)-x86 $(ios_CFLAGS_OPTIMIZE_param) \
  projectPath=$(projectPath)
 ios_execs += $(ios_x86Exec)
 .PHONY: ios-x86

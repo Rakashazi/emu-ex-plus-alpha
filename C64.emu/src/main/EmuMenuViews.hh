@@ -250,7 +250,7 @@ public:
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, isC64TapeExtension, true);
-		fPicker.onSelectFile() =
+		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				if(tape_image_attach(1, name) == 0)
@@ -258,7 +258,7 @@ public:
 					onTapeMediaChange(name);
 				}
 				picker.dismiss();
-			};
+			});
 		modalViewController.pushAndShow(fPicker);
 	}
 
@@ -316,7 +316,7 @@ public:
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, isC64CartExtension, true);
-		fPicker.onSelectFile() =
+		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				if(cartridge_attach_image(CARTRIDGE_CRT, name) == 0)
@@ -324,7 +324,7 @@ public:
 					onROMMediaChange(name);
 				}
 				picker.dismiss();
-			};
+			});
 		modalViewController.pushAndShow(fPicker);
 	}
 
@@ -381,7 +381,7 @@ private:
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
 		fPicker.init(!e.isPointer(), false, isC64DiskExtension, true);
-		fPicker.onSelectFile() =
+		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, const Input::Event &e)
 			{
 				logMsg("inserting disk in unit %d", slot+8);
@@ -390,7 +390,7 @@ private:
 					onDiskMediaChange(name, slot);
 				}
 				picker.dismiss();
-			};
+			});
 		modalViewController.pushAndShow(fPicker);
 	}
 

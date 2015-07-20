@@ -93,7 +93,7 @@ static void initMOGAJNI(JNIEnv *env)
 	{
 		{
 			"keyEvent", "(IIJ)V",
-			(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint, jlong))
+			(void*)(void (*)(JNIEnv*, jobject, jint, jint, jlong))
 			([](JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong timestamp)
 			{
 				assert(mogaConnected);
@@ -114,7 +114,7 @@ static void initMOGAJNI(JNIEnv *env)
 		},
 		{
 			"stateEvent", "(II)V",
-			(void*)(void JNICALL(*)(JNIEnv*, jobject, jint, jint))
+			(void*)(void (*)(JNIEnv*, jobject, jint, jint))
 			([](JNIEnv* env, jobject thiz, jint state, jint action)
 			{
 				logMsg("MOGA state event: %d %d", state, action);

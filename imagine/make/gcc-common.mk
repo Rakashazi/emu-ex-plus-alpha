@@ -1,70 +1,40 @@
 #DEBUG := 1
 #RELEASE := 1
 #PROFILE := 1
-#O_NONE := 1
-#O_SIZE := 1
 
-COMPILE_FLAGS += -pipe -fvisibility=hidden
-BASE_CFLAGS := -std=gnu99 -fno-common
-BASE_CXXFLAGS = -std=gnu++1y -Woverloaded-virtual $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
+CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= -O2 -fomit-frame-pointer -fno-stack-protector
+CFLAGS_CODEGEN += -pipe -fvisibility=hidden
+CFLAGS_LANG = -std=gnu99 -fno-common
+CXXFLAGS_LANG = -std=gnu++1y $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
 ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain patches
- BASE_CXXFLAGS += $(if $(cxxExceptions),-fexceptions,)
+ CXXFLAGS_LANG += $(if $(cxxExceptions),-fexceptions,)
 endif
 
 # setup warnings
 
-ifndef NORMAL_WARNINGS_CFLAGS
- NORMAL_WARNINGS_CFLAGS = -Wall -Wextra -Wno-comment -Wno-missing-field-initializers
- #-Winline
-endif
-
-ifndef WARN_UNUSED
- WARNINGS_CFLAGS += $(NORMAL_WARNINGS_CFLAGS) -Wno-unused -Wno-unused-parameter
-endif
+CFLAGS_WARN ?= -Wall -Wextra -Wno-comment -Wno-missing-field-initializers -Wno-unused -Wno-unused-parameter
+CFLAGS_WARN += $(CFLAGS_WARN_EXTRA)
+CXXFLAGS_WARN ?= $(CFLAGS_WARN) -Woverloaded-virtual
 
 # setup optimizations
 
 ifdef O_RELEASE
- O_BEST := 1
  RELEASE := 1
 endif
 
-# TODO: segfault when compiling with LTO on Android GCC 4.9 with -fmerge-all-constants
-#NORMAL_OPTIMIZE_CFLAGS_MISC := -fmerge-all-constants
-ifdef RELEASE
- NORMAL_OPTIMIZE_CFLAGS_MISC += -fomit-frame-pointer
-endif
-HIGH_OPTIMIZE_CFLAGS_MISC = $(NORMAL_OPTIMIZE_CFLAGS_MISC)
-#NORMAL_OPTIMIZE_CFLAGS_MISC += --param inline-unit-growth=1000 --param max-inline-insns-single=5000 --param large-function-growth=8000
-NORMAL_OPTIMIZE_CFLAGS := -O2 $(NORMAL_OPTIMIZE_CFLAGS_MISC)
-SIZE_OPTIMIZE_CFLAGS := -Os $(NORMAL_OPTIMIZE_CFLAGS_MISC)
-HIGH_OPTIMIZE_CFLAGS ?= -Ofast $(HIGH_OPTIMIZE_CFLAGS_MISC)
-
-ifdef O_SIZE
- OPTIMIZE_CFLAGS = $(SIZE_OPTIMIZE_CFLAGS)
-else ifdef O_BEST
- OPTIMIZE_CFLAGS = $(HIGH_OPTIMIZE_CFLAGS)
-else ifdef O_LOW
- OPTIMIZE_CFLAGS = -O1
-else ifdef O_NONE
- OPTIMIZE_CFLAGS = 
-else
- OPTIMIZE_CFLAGS = $(NORMAL_OPTIMIZE_CFLAGS)
-endif
-
-ifdef RELEASE
- ifndef LOGGER
-  NO_LOGGER := 1
- endif
- CPPFLAGS += -DNDEBUG
- OPTIMIZE_CFLAGS += -fno-stack-protector
- WARNINGS_CFLAGS += -Wdisabled-optimization
-endif
-
 ifdef PROFILE
- COMPILE_FLAGS += -pg
+ RELEASE := 1
+ CFLAGS_CODEGEN += -pg
+endif
+
+ifdef RELEASE
+ CFLAGS_OPTIMIZE ?= $(CFLAGS_OPTIMIZE_RELEASE_DEFAULT)
+ CPPFLAGS += -DNDEBUG
+ CFLAGS_WARN += -Wdisabled-optimization
+else
+ CFLAGS_OPTIMIZE ?= $(CFLAGS_OPTIMIZE_DEBUG_DEFAULT)
 endif
 
 compileAction := -c
@@ -73,12 +43,12 @@ ifndef NO_SRC_DEPS
  compileAction += -MMD -MP
 endif
 
-COMPILE_FLAGS += $(OPTIMIZE_CFLAGS) $(EXTRA_CFLAGS)
+CFLAGS_CODEGEN += $(CFLAGS_OPTIMIZE) $(CFLAGS_EXTRA)
 
 # assign all the flags
 
-CFLAGS = $(BASE_CFLAGS) $(COMPILE_FLAGS) $(WARNINGS_CFLAGS)
-CXXFLAGS = $(BASE_CXXFLAGS) $(COMPILE_FLAGS) $(WARNINGS_CFLAGS) $(WARNINGS_CXXFLAGS)
+CFLAGS = $(CFLAGS_LANG) $(CFLAGS_TARGET) $(CFLAGS_CODEGEN) $(CFLAGS_WARN)
+CXXFLAGS = $(CXXFLAGS_LANG) $(CFLAGS_TARGET) $(CFLAGS_CODEGEN) $(CXXFLAGS_WARN)
 
 AS := $(CC) -c
 ASMFLAGS := -O3

@@ -1,23 +1,11 @@
 include $(IMAGINE_PATH)/make/config.mk
+include $(buildSysPath)/setAndroidNDKPath.mk
 ARCH := x86
+CHOST := i686-linux-android
 android_abi := x86
-ifndef android_minSDK
- android_minSDK := 9
-endif
-# TODO: android_minSDK should only apply to APK metadata
-ifndef android_minLibSDK
- android_minLibSDK := 15
-endif
+android_ndkSDK ?= 15
 android_ndkArch := x86
-
-ifeq ($(origin CC), default)
- CC := i686-linux-android-gcc
- CXX := $(CC)
- CHOST := i686-linux-android
-endif
+clangTarget := i686-none-linux-android
+ANDROID_GCC_TOOLCHAIN_ROOT_DIR := x86
 
 include $(buildSysPath)/android-gcc.mk
-
-ifeq ($(config_compiler),clang)
- android_cpuFlags ?= -target i686-none-linux-android
-endif

@@ -19,7 +19,7 @@ ifndef android_arch
  ifdef android_ouyaBuild
   android_arch := armv7
  else
-  android_arch := armv7 x86
+  android_arch := arm64 armv7 x86
  endif
 endif
 
@@ -33,9 +33,6 @@ else
  android_buildPrefix := android
  android_releaseReadySubdir := android
 endif
-
-# append the minimum SDK level
-android_buildPrefix := $(android_buildPrefix)-$(android_minSDK)
 
 android_buildName ?= $(firstMakefileName:.mk=)
 

@@ -29,7 +29,7 @@
 #include <cmath>
 #include <algorithm>
 
-#if defined __ANDROID__ && !(defined __x86_64__ || defined __aarch64__)
+#if !defined __clang__ && defined __ANDROID__ && !(defined __x86_64__ || defined __aarch64__)
 // missing C99 math functions in Bionic prevent TR1 function definitions in cmath,
 // copy needed ones from libstdc++
 namespace std

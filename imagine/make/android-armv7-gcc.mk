@@ -1,19 +1,14 @@
 include $(IMAGINE_PATH)/make/config.mk
+include $(buildSysPath)/setAndroidNDKPath.mk
 SUBARCH := armv7
 android_abi := armeabi-v7a
-
+clangTarget := armv7-none-linux-androideabi
 armv7CPUFlags ?= -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16
-LDFLAGS += -Wl,--fix-cortex-a8
-
 android_hardFP ?= 1
 
 include $(buildSysPath)/android-arm.mk
-
-ifeq ($(config_compiler),clang)
- android_cpuFlags ?= -target armv7-none-linux-androideabi $(armv7CPUFlags)
-else
- android_cpuFlags ?= $(armv7CPUFlags)
-endif
+LDFLAGS += -Wl,--fix-cortex-a8
+android_cpuFlags ?= $(armv7CPUFlags)
 
 ifeq ($(android_hardFP),1)
  android_cpuFlags += -mhard-float

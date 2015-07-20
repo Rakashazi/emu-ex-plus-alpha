@@ -35,6 +35,6 @@ $(outputLibFile) : $(makeFile)
 $(makeFile) : $(liboggSrcDir)/configure
 	@echo "Configuring libogg..."
 	@mkdir -p $(@D)
-	dir=`pwd` && cd $(@D) && CC="$(CC)" CFLAGS="$(CPPFLAGS) $(CFLAGS)" LD="$(LD)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	dir=`pwd` && cd $(@D) && $(toolchainEnvParams) CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
 	$(liboggSrcDir)/configure --prefix='$${pcfiledir}/../..' --disable-shared --host=$(CHOST) $(buildArg)
 

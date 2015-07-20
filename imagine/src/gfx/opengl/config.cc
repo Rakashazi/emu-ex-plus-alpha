@@ -52,7 +52,6 @@ bool preferBGRA = !forceNoBGRPixels, preferBGR = !forceNoBGRPixels;
 GLenum bgrInternalFormat = GL_BGRA;
 
 bool useFBOFuncs = false;
-using GenerateMipmapsProto = void (*)(GLenum target);
 #if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 GenerateMipmapsProto generateMipmaps = glGenerateMipmap;
 #else

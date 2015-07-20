@@ -2,7 +2,7 @@ include $(IMAGINE_PATH)/make/config.mk
 include $(buildSysPath)/win32.mk
 
 ARCH := x86
-COMPILE_FLAGS += -m32 -march=pentium4 -mtune=generic
+CFLAGS_CODEGEN += -m32 -march=pentium4 -mtune=generic
 LDFLAGS += -m32
 ASMFLAGS += -m32
 
