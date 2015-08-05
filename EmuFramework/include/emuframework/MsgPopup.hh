@@ -42,7 +42,7 @@ public:
 	template <typename... ARGS>
 	void printf(uint secs, bool error, ARGS&&... args)
 	{
-		snprintf(str.data(), sizeof(str), std::forward<ARGS>(args)...);
+		string_printf(str, std::forward<ARGS>(args)...);
 		//logMsg("%s", str);
 		post(str.data(), secs, error);
 	}

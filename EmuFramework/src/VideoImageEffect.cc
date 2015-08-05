@@ -197,7 +197,7 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 		{
 			deinitProgram();
 			if(msg)
-				string_printf(*msg, "GPU rejected shader (vertex compile error)");
+				string_copy(*msg, "GPU rejected shader (vertex compile error)");
 			Gfx::autoReleaseShaderCompiler();
 			return INVALID_PARAMETER;
 		}
@@ -224,7 +224,7 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 		{
 			deinitProgram();
 			if(msg)
-				string_printf(*msg, "GPU rejected shader (fragment compile error)");
+				string_copy(*msg, "GPU rejected shader (fragment compile error)");
 			Gfx::autoReleaseShaderCompiler();
 			return INVALID_PARAMETER;
 		}
@@ -235,7 +235,7 @@ CallResult VideoImageEffect::compileEffect(EffectDesc desc, bool isExternalTex, 
 	{
 		deinitProgram();
 		if(msg)
-			string_printf(*msg, "GPU rejected shader (link error)");
+			string_copy(*msg, "GPU rejected shader (link error)");
 		Gfx::autoReleaseShaderCompiler();
 		return INVALID_PARAMETER;
 	}

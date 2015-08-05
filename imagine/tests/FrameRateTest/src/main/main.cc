@@ -14,12 +14,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
+#include <memory>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"
+#ifdef __ANDROID__
+#include <imagine/base/android/RootCpufreqParamSetter.hh>
+#endif
 
 static const uint framesToRun = 60*60;
 static Base::Window mainWin;
@@ -34,6 +38,9 @@ static TestParams testParam[] =
 	{TEST_DRAW, {320, 224}},
 	{TEST_WRITE, {320, 224}},
 };
+#ifdef __ANDROID__
+static std::unique_ptr<RootCpufreqParamSetter> cpuFreq{};
+#endif
 
 static void placeElements()
 {
@@ -64,10 +71,19 @@ static void finishTest(Base::Window &win, Base::FrameTimeBase frameTime)
 	win.postDraw();
 	Base::setIdleDisplayPowerSave(true);
 	Input::setKeyRepeat(true);
+	#ifdef __ANDROID__
+	if(cpuFreq)
+		cpuFreq->setDefaults();
+	#endif
 }
 
 TestFramework *startTest(Base::Window &win, const TestParams &t)
 {
+	#ifdef __ANDROID__
+	if(cpuFreq)
+		cpuFreq->setFastResponse();
+	#endif
+
 	switch(t.test)
 	{
 		bcase TEST_CLEAR:
@@ -184,6 +200,18 @@ CallResult onInit(int argc, char** argv)
 	View::defaultFace->precache(":.%()");
 	picker.init(testParam, sizeofArray(testParam));
 	mainWin.show();
+
+	#ifdef __ANDROID__
+	bool manageCPUFreq = true;
+	if(manageCPUFreq)
+	{
+		cpuFreq = std::make_unique<RootCpufreqParamSetter>();
+		if(!(*cpuFreq))
+		{
+			cpuFreq.reset();
+		}
+	}
+	#endif
 	return OK;
 }
 

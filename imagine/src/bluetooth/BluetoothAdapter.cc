@@ -23,6 +23,8 @@ bool BluetoothAdapter::useScanCache = 1;
 uint BluetoothAdapter::scanSecs = 4;
 #endif
 
+BluetoothAdapter::BluetoothAdapter() {}
+
 BluetoothAdapter *BluetoothAdapter::defaultAdapter()
 {
 	#if defined CONFIG_BLUETOOTH_ANDROID

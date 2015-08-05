@@ -248,6 +248,7 @@ static bool readConfig2(IO &io)
 			bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
 			bcase CFGKEY_ANDROID_TEXTURE_STORAGE: optionAndroidTextureStorage.readFromIO(io, size);
 			bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
+			bcase CFGKEY_MANAGE_CPU_FREQ: optionManageCPUFreq.readFromIO(io, size);
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
@@ -489,6 +490,7 @@ static OptionBase *cfgFileOption[] =
 	&optionDitherImage,
 	&optionAndroidTextureStorage,
 	&optionProcessPriority,
+	&optionManageCPUFreq,
 	#endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,

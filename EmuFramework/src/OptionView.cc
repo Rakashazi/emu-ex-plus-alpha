@@ -18,6 +18,9 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/TextEntry.hh>
 #include <algorithm>
+#ifdef __ANDROID__
+#include <imagine/base/android/RootCpufreqParamSetter.hh>
+#endif
 
 using namespace IG;
 
@@ -860,6 +863,7 @@ void OptionView::loadSystemItems(MenuItem *item[], uint &items)
 	fastForwardSpeedinit(); item[items++] = &fastForwardSpeed;
 	#ifdef __ANDROID__
 	processPriorityInit(); item[items++] = &processPriority;
+	manageCPUFreq.init(optionManageCPUFreq); item[items++] = &manageCPUFreq;
 	#endif
 }
 
@@ -1398,7 +1402,7 @@ OptionView::OptionView(Base::Window &win):
 			optionFastForwardSpeed = val + MIN_FAST_FORWARD_SPEED;
 		}
 	},
-	#if defined CONFIG_BASE_ANDROID
+	#if defined __ANDROID__
 	processPriority
 	{
 		"Process Priority",
@@ -1411,6 +1415,28 @@ OptionView::OptionView(Base::Window &win):
 			else if(val == 2)
 				optionProcessPriority.val = -14;
 			Base::setProcessPriority(optionProcessPriority);
+		}
+	},
+	manageCPUFreq
+	{
+		"Manage Cpufreq Governor (needs root)",
+		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		{
+			cpuFreq.reset();
+			if(!item.on)
+			{
+				cpuFreq = std::make_unique<RootCpufreqParamSetter>();
+				if(!(*cpuFreq))
+				{
+					cpuFreq.reset();
+					optionManageCPUFreq = 0;
+					popup.postError("Error setting up parameters & root shell");
+					return;
+				}
+				popup.post("Enabling this option can improve performance if the app has root permission");
+			}
+			item.toggle(*this);
+			optionManageCPUFreq = item.on;
 		}
 	},
 	#endif

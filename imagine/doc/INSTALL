@@ -28,7 +28,7 @@ For ports that need linking to additional static libraries (currently all except
 
 For example, to build and install the packages needed for the iOS ARMv7 port, and override the name of the tar utility, use:
 
-bash makeAll-ios-armv7.sh install TAR=gnutar
+bash makeAll-ios-armv7.sh TAR=gnutar
 
 3. Building
 ===========

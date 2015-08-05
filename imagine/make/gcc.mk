@@ -31,11 +31,12 @@ ifndef RELEASE
  endif
 endif
 
-CFLAGS_WARN += -Wunsafe-loop-optimizations $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing) -fmax-errors=15
+CFLAGS_WARN += $(if $(ccNoStrictAliasing),,-Werror=strict-aliasing) -fmax-errors=15
 
 ifdef RELEASE
  CFLAGS_CODEGEN += -fno-ident
  CXXFLAGS_LANG += -fno-enforce-eh-specs
+ CFLAGS_WARN += -Wunsafe-loop-optimizations
 endif
 
 ifndef RELEASE

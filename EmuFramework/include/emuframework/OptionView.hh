@@ -104,9 +104,10 @@ protected:
 	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;
 	void fastForwardSpeedinit();
 	MultiChoiceSelectMenuItem fastForwardSpeed;
-	#if defined CONFIG_BASE_ANDROID
+	#if defined __ANDROID__
 	void processPriorityInit();
 	MultiChoiceSelectMenuItem processPriority;
+	BoolMenuItem manageCPUFreq;
 	#endif
 
 	// GUI
@@ -134,7 +135,7 @@ protected:
 	virtual void loadSystemItems(MenuItem *item[], uint &items);
 	virtual void loadGUIItems(MenuItem *item[], uint &items);
 
-	MenuItem *item[26]{};
+	MenuItem *item[27]{};
 
 public:
 	OptionView(Base::Window &win);

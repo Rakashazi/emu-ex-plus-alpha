@@ -27,7 +27,7 @@ struct SocketStatusMessage;
 class AndroidBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	constexpr AndroidBluetoothAdapter() {}
+	AndroidBluetoothAdapter() {}
 	static AndroidBluetoothAdapter *defaultAdapter();
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) override;
 	void cancelScan() override;

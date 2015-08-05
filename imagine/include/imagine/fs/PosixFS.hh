@@ -42,23 +42,14 @@ static constexpr int accReadBitImpl = R_OK;
 static constexpr int accWriteBitImpl = W_OK;
 static constexpr int accExecBitImpl = X_OK;
 
-union FullDirent
-{
-	struct dirent d;
-	char b[offsetof (struct dirent, d_name) + FILE_STRING_SIZE]{};
-};
-
 class DirectoryEntryImpl
 {
-protected:
-	FullDirent dirent_{};
-
 public:
+	struct dirent *dirent_{};
 	file_type type_{};
 	file_type linkType_{};
 	PathStringImpl basePath{};
 
-	FullDirent &dirent() { return dirent_; };
 	const char *name() const;
 	file_type type();
 	file_type symlink_type();

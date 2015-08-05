@@ -54,7 +54,7 @@ public:
 	using OnScanDeviceNameDelegate = DelegateFunc<void (BluetoothAdapter &bta, const char *name, BluetoothAddr addr)>;
 	using OnIncomingL2capConnectionDelegate = DelegateFunc<void (BluetoothAdapter &bta, BluetoothPendingSocket &pending)>;
 
-	constexpr BluetoothAdapter() {}
+	BluetoothAdapter();
 	static BluetoothAdapter *defaultAdapter();
 	virtual bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) = 0;
 	virtual void cancelScan() = 0;
@@ -63,8 +63,8 @@ public:
 	static bool scanCacheUsage() { return useScanCache; }
 	#endif
 	virtual void close() = 0;
-	virtual State state();
-	virtual void setActiveState(bool on, OnStateChangeDelegate onStateChange);
+	virtual State state() = 0;
+	virtual void setActiveState(bool on, OnStateChangeDelegate onStateChange) = 0;
 	const OnStatusDelegate &onScanStatus() { return onScanStatusD; }
 
 	#ifdef CONFIG_BLUETOOTH_SERVER

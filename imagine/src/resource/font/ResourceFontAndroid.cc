@@ -66,8 +66,7 @@ ResourceFont *ResourceFontAndroid::loadSystem()
 	auto env = jEnv();
 	inst->renderer = Base::newFontRenderer(env);
 	setupResourceFontAndroidJni(env, inst->renderer);
-	jthrowable exc = env->ExceptionOccurred();
-	if(exc)
+	if(env->ExceptionCheck())
 	{
 		logErr("exception");
 		env->ExceptionClear();

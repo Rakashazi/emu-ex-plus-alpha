@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <memory>
 #include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/NavView.hh>
@@ -70,6 +71,10 @@ extern bool menuViewIsActive;
 extern SysVController vController;
 #endif
 extern WorkDirStack<1> workDirStack;
+#ifdef __ANDROID__
+class RootCpufreqParamSetter;
+extern std::unique_ptr<RootCpufreqParamSetter> cpuFreq;
+#endif
 
 Gfx::PixmapTexture &getAsset(AssetID assetID);
 Gfx::PixmapTexture *getCollectTextCloseAsset();

@@ -23,6 +23,9 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/assume.h>
 #include <cmath>
+#ifdef __ANDROID__
+#include <imagine/base/android/RootCpufreqParamSetter.hh>
+#endif
 
 AppWindowData mainWin, extraWin;
 bool menuViewIsActive = true;
@@ -40,6 +43,9 @@ static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices;
 #ifdef CONFIG_BLUETOOTH
 BluetoothAdapter *bta{};
+#endif
+#ifdef __ANDROID__
+std::unique_ptr<RootCpufreqParamSetter> cpuFreq{};
 #endif
 
 static const char *assetFilename[] =
@@ -173,12 +179,27 @@ static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceCh
 	}
 }
 
+static void setCPUScalingLowLatency()
+{
+	#ifdef __ANDROID__
+	if(cpuFreq)
+		cpuFreq->setLowLatency();
+	#endif
+}
+
+static void setCPUScalingDefaults()
+{
+	#ifdef __ANDROID__
+	if(cpuFreq)
+		cpuFreq->setDefaults();
+	#endif
+}
+
 static Base::Screen::OnFrameDelegate onFrameUpdate
 {
 	[](Base::Screen::FrameParams params)
 	{
 		commonUpdateInput();
-
 		if(unlikely(fastForwardActive))
 		{
 			EmuSystem::runFrameOnDraw = true;
@@ -230,6 +251,7 @@ static void applyFrameRates()
 
 static void startEmulation()
 {
+	setCPUScalingLowLatency();
 	EmuSystem::start();
 	emuWin->win.screen()->addOnFrameOnce(onFrameUpdate);
 }
@@ -238,12 +260,14 @@ static void pauseEmulation()
 {
 	EmuSystem::pause();
 	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
+	setCPUScalingDefaults();
 }
 
 void closeGame(bool allowAutosaveState)
 {
 	EmuSystem::closeGame();
 	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
+	setCPUScalingDefaults();
 }
 
 static void drawEmuFrame()
@@ -737,6 +761,18 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	{
 		handleOpenFileCommand(launchGame);
 	}
+
+	#ifdef __ANDROID__
+	if(optionManageCPUFreq)
+	{
+		cpuFreq = std::make_unique<RootCpufreqParamSetter>();
+		if(!(*cpuFreq))
+		{
+			cpuFreq.reset();
+			optionManageCPUFreq = 0;
+		}
+	}
+	#endif
 }
 
 void mainInitWindowCommon(Base::Window &win)

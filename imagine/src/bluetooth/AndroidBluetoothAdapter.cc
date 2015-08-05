@@ -470,7 +470,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 					{
 						int16 len = jInRead(env, jInput, jData, 0, 48);
 						//logMsg("read %d bytes", (int)len);
-						if(unlikely(len <= 0 || env->ExceptionOccurred()))
+						if(unlikely(len <= 0 || env->ExceptionCheck()))
 						{
 							if(isClosing)
 								logMsg("input stream %p closing", jInput);

@@ -256,7 +256,7 @@ template <typename... ARGS>
 PathString makePathStringPrintf(ARGS&&... args)
 {
 	PathString path;
-	int ret = snprintf(path.data(), sizeof(path), std::forward<ARGS>(args)...);
+	int ret = string_printf(path, std::forward<ARGS>(args)...);
 	assert(ret >= 0);
 	return path;
 }

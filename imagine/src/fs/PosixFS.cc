@@ -47,14 +47,16 @@ static file_type makeDirType(int type)
 
 const char *DirectoryEntryImpl::name() const
 {
-	return dirent_.d.d_name;
+	assumeExpr(dirent_);
+	return dirent_->d_name;
 }
 
 file_type DirectoryEntryImpl::type()
 {
+	assumeExpr(dirent_);
 	if(type_ == file_type::none)
 	{
-		type_ = makeDirType(dirent_.d.d_type);
+		type_ = makeDirType(dirent_->d_type);
 		if(type_ == file_type::unknown || type_ == file_type::symlink)
 		{
 			type_ = status(path()).type();
@@ -65,9 +67,10 @@ file_type DirectoryEntryImpl::type()
 
 file_type DirectoryEntryImpl::symlink_type()
 {
+	assumeExpr(dirent_);
 	if(linkType_ == file_type::none)
 	{
-		linkType_ = makeDirType(dirent_.d.d_type);
+		linkType_ = makeDirType(dirent_->d_type);
 		if(linkType_ == file_type::unknown)
 		{
 			logMsg("dir entry doesn't provide file type");
@@ -142,13 +145,13 @@ directory_entry* directory_iterator::operator->()
 void directory_iterator::operator++()
 {
 	assumeExpr(dir); // incrementing end-iterator is undefined
-	struct dirent *resultEntry{};
 	int ret = 0;
-	auto &dirent = entry.dirent().d;
-	while((ret = readdir_r(dir.get(), &dirent, &resultEntry)) == 0 && resultEntry)
+	auto &dirent = entry.dirent_;
+	errno = 0;
+	while((dirent = readdir(dir.get())))
 	{
 		//logMsg("reading entry:%s", dirent.d_name);
-		if(!isDotName(dirent.d_name))
+		if(!isDotName(dirent->d_name))
 		{
 			// clear cached types
 			entry.type_ = {};
@@ -156,14 +159,14 @@ void directory_iterator::operator++()
 			#ifdef __APPLE__
 			// Precompose all strings for text renderer
 			// TODO: make optional when renderer supports decomposed unicode
-			precomposeUnicodeString(dirent.d_name, dirent.d_name, NAME_MAX + 1);
+			precomposeUnicodeString(dirent->d_name, dirent->d_name, NAME_MAX + 1);
 			#endif
 			return; // got an entry
 		}
 	}
 	// handle error or end of directory
-	if(Config::DEBUG_BUILD && ret)
-		logErr("readdir_r error: %s", strerror(ret));
+	if(Config::DEBUG_BUILD && errno)
+		logErr("readdir error: %s", strerror(errno));
 	dir = nullptr;
 }
 

@@ -80,8 +80,8 @@ yabause/vdp2debug.c \
 yabause/vidshared.c \
 yabause/vidsoft.c \
 yabause/yabause.c \
-yabause/scsp.c y\
-abause/japmodem.c
+yabause/scsp.c \
+yabause/japmodem.c
 
 #SRC += yabause/c68k/c68kexec.c yabause/c68k/c68k.c yabause/m68kc68k.c
 #CPPFLAGS += -DHAVE_C68K=1

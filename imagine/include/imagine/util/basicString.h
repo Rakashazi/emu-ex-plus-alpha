@@ -4,6 +4,7 @@
 #include <array>
 #include <cstring>
 #include <cctype>
+#include <cstdio>
 #else
 #include <string.h>
 #include <ctype.h>
@@ -46,7 +47,7 @@ static char *string_copy(std::array<char, S> &dest, const char *src)
 #else
 [[gnu::nonnull, gnu::pure]] static constexpr size_t string_len(const char *s)
 {
-	return strlen(s);
+	return std::strlen(s);
 	// If compiler doesn't have constexpr the following recursive version also works:
 	// return *s ? 1 + string_len(s+1) : 0;
 }

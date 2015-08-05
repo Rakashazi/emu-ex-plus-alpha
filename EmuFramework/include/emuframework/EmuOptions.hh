@@ -147,6 +147,7 @@ static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE = OPTION_ANDROID
 extern Byte1Option optionAndroidTextureStorage;
 Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val);
 extern SByte1Option optionProcessPriority;
+extern Byte1Option optionManageCPUFreq;
 #endif
 
 extern Byte1Option optionDitherImage;

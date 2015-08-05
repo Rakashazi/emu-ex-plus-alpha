@@ -70,26 +70,17 @@ static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
 	}
 }
 
-static void initMOGAJNI(JNIEnv *env)
+static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 {
-	if(jNewMOGAHelper)
+	if(jMOGAGetState)
 		return;
-	logMsg("init MOGA JNI & input system");
-	jNewMOGAHelper.setup(env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;");
-	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
-	if(env->ExceptionOccurred())
-	{
-		env->ExceptionClear();
-		logErr("error creating MOGA helper object");
-		return;
-	}
-	mogaHelper = env->NewGlobalRef(mogaHelper);
+	logMsg("init MOGA JNI");
 	auto mogaHelperCls = env->GetObjectClass(mogaHelper);
 	jMOGAGetState.setup(env, mogaHelperCls, "getState", "(I)I");
 	jMOGAOnPause.setup(env, mogaHelperCls, "onPause", "()V");
 	jMOGAOnResume.setup(env, mogaHelperCls, "onResume", "()V");
 	jMOGAExit.setup(env, mogaHelperCls, "exit", "()V");
-	JNINativeMethod method[] =
+	JNINativeMethod method[]
 	{
 		{
 			"keyEvent", "(IIJ)V",
@@ -160,19 +151,19 @@ void initMOGA(bool notify)
 	auto env = Base::jEnv();
 	if(mogaHelper)
 		return;
-	initMOGAJNI(env);
-	if(!mogaHelper) // initMOGAJNI() allocates MOGA helper on first init
+	if(!jNewMOGAHelper)
+		jNewMOGAHelper.setup(env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;");
+	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
+	if(env->ExceptionCheck())
 	{
-		mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
-		if(env->ExceptionOccurred())
-		{
-			env->ExceptionClear();
-			logErr("error creating MOGA helper object");
-			return;
-		}
-		mogaHelper = env->NewGlobalRef(mogaHelper);
-		logMsg("init MOGA input system");
+		env->ExceptionClear();
+		mogaHelper = nullptr;
+		logErr("error creating MOGA helper object");
+		return;
 	}
+	mogaHelper = env->NewGlobalRef(mogaHelper);
+	initMOGAJNIAndDevice(env, mogaHelper);
+	logMsg("init MOGA input system");
 	onResumeMOGA(env, notify);
 }
 
