@@ -7,7 +7,7 @@ You need the following basic tools to start building Imagine. For platform-speci
 
 Linux: GCC 4.9 or newer, GNU Make, pkgconfig (install from your distro's package manager)
 
-MacOS X: Xcode 6.1 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
+MacOS X: Xcode 7 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
 
 The following make variables are used by the build system:
 
@@ -33,7 +33,7 @@ bash makeAll-ios-armv7.sh TAR=gnutar
 3. Building
 ===========
 
-Use one of the makefiles in the root Imagine directory to build that specific port. Build output goes into the "build" and "lib" subdirectories of the working directory. Pass "V=1" as an override for verbose build output. For example, to build and install the debug version of the Android port with verbose output and 4 compile jobs, use:
+Use one of the makefiles in the root Imagine directory to build a specific port. Build output goes into the "build" and "lib" subdirectories of the working directory. For example, to build and install the debug version of the Android port with verbose output and 4 compile jobs, use:
 
 make -f $IMAGINE_PATH/android.mk install V=1 -j4
 
@@ -41,5 +41,5 @@ To use the resulting Imagine SDK with pkg-config, add that port's "lib/pkgconfig
 
 --------------------------------
 
-Copyright 2014 by Robert Broglia
+Copyright 2014-2015 by Robert Broglia
 

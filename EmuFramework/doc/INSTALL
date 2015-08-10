@@ -1,0 +1,20 @@
+Please refer to imagine/doc/INSTALL to install the Imagine SDK before building EmuFramework and associated apps
+
+Building EmuFramework
+=====================
+
+Use one of the makefiles in the root EmuFramework directory to build a specific port. For example, to build and install the debug version of the Android port with verbose output and 4 compile jobs, use:
+
+make -f android.mk install V=1 -j4
+
+Building Apps Using EmuFramework
+================================
+
+With EmuFramework installed into the Imagine SDK, use the makefiles the app's directory to build a specific port. The final output goes into the "target" subdirectory of the working directory. Note the Android version is split into two versions based on CPU architecture (android-9 for ARMv7, android-15 for ARM64 & X86). For example, to build the Android ARMv7 port with the same settings as above, use:
+
+make -f android-9.mk V=1 -j4
+
+--------------------------------
+
+Copyright 2014-2015 by Robert Broglia
+

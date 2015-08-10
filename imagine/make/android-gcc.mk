@@ -5,6 +5,10 @@ CROSS_COMPILE := 1
 binStatic := 1
 android_libm ?= -lm
 
+ifeq ($(wildcard $(ANDROID_NDK_PATH)/platforms)),)
+ $(error Invalid NDK path:$(ANDROID_NDK_PATH), add NDK directory to PATH, define ANDROID_NDK_PATH, or move NDK to the default path:$(defaultNDKPath)
+endif
+
 android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
 
 VPATH += $(android_ndkSysroot)/usr/lib
@@ -20,6 +24,11 @@ endif
 ANDROID_GCC_TOOLCHAIN_BIN_PATH := $(ANDROID_GCC_TOOLCHAIN_PATH)/bin
 ANDROID_CLANG_VERSION ?= 3.6
 ANDROID_CLANG_TOOLCHAIN_BIN_PATH ?= $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm-$(ANDROID_CLANG_VERSION)/prebuilt/*/bin)
+
+ifdef V
+ $(info NDK GCC path: $(ANDROID_GCC_TOOLCHAIN_BIN_PATH))
+ $(info NDK Clang path: $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH))
+endif
 
 ifeq ($(origin CC), default)
  ifeq ($(config_compiler),clang)

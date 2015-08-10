@@ -12,9 +12,8 @@ IOS_SDK : Optional, if not set the first SDK directory found is used
  - The version of the SDK in Xcode to use as the sysroot
 
 ios_arch : Optional, default set by app
- - When building an Imagine-based app, specifies a space separated list of which architectures to build ("armv6 armv7" for example)
+ - When building an Imagine-based app, specifies a space separated list of which architectures to build ("armv7 arm64" for example)
 
 --------------------------------
 
-Copyright 2014 by Robert Broglia
-
+Copyright 2014-2015 by Robert Broglia
