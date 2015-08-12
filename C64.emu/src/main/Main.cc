@@ -15,6 +15,7 @@
 
 #define LOGTAG "main"
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/thread/Semaphore.hh>
@@ -110,18 +111,8 @@ static bool autostartTDE()
 	return intResource("AutostartHandleTrueDriveEmulation");
 }
 
-static int c64Model()
+static void setC64ModelIsPal(int model)
 {
-	return c64model_get();
-}
-
-static void setC64Model(int model)
-{
-	if(model < 0 || model >= C64MODEL_NUM)
-	{
-		logWarn("tried to set C64 model id %d out of range", model);
-		return;
-	}
 	switch(model)
 	{
 		case C64MODEL_C64_NTSC:
@@ -139,7 +130,22 @@ static void setC64Model(int model)
 	{
 		logMsg("C64 model has PAL timings");
 	}
+}
+
+static int c64Model()
+{
+	return c64model_get();
+}
+
+static void setC64Model(int model)
+{
+	if(model < 0 || model >= C64MODEL_NUM)
+	{
+		logWarn("tried to set C64 model id %d out of range", model);
+		return;
+	}
 	c64model_set(model);
+	setC64ModelIsPal(model);
 	EmuSystem::configAudioPlayback();
 }
 
@@ -179,8 +185,8 @@ static Option<OptionMethodFunc<bool, autostartWarp, setAutostartWarp>, uint8>
 	optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
 static Option<OptionMethodFunc<bool, autostartTDE, setAutostartTDE>, uint8>
 	optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
-static Option<OptionMethodFunc<int, c64Model, setC64Model>, uint8>
-	optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC);
+static Byte1Option optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC, false,
+	optionIsValidWithMax<C64MODEL_NUM-1, uint8>);
 static Option<OptionMethodFunc<int, borderMode, setBorderMode>, uint8>
 	optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
 static Option<OptionMethodFunc<int, sidEngine, setSidEngine>, uint8>
@@ -832,13 +838,21 @@ int EmuSystem::saveState()
 
 int EmuSystem::loadState(int saveStateSlot)
 {
+	resources_set_int("WarpMode", 0);
 	SnapshotTrapData data;
 	data.pathStr = sprintStateFilename(saveStateSlot);
-	resources_set_int("WarpMode", 0);
 	runFrame(0, 0, 0); // run extra frame in case C64 was just started
 	interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
+	runFrame(0, 0, 0); // execute cpu trap, snapshot load may cause reboot from a C64 model change
+	if(data.result != STATE_RESULT_OK)
+		return data.result;
+	// reload snapshot in case last load caused a reboot
+	interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	runFrame(0, 0, 0); // execute cpu trap
-	return data.result;
+	int result = data.result;
+	setC64ModelIsPal(c64Model());
+	EmuSystem::configAudioPlayback();
+	return result;
 }
 
 void EmuSystem::saveAutoState()
@@ -891,6 +905,7 @@ void EmuSystem::closeSystem()
 	file_system_detach_disk(10);
 	file_system_detach_disk(11);
 	cartridge_detach_image(-1);
+	setC64Model(optionC64Model.val);
 	machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
 
@@ -950,7 +965,6 @@ int EmuSystem::loadGame(const char *path)
 
 	closeGame();
 	setupGamePaths(path);
-
 	logMsg("loading %s", path);
 	if(autostart_autodetect(path, nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 	{
@@ -1106,7 +1120,6 @@ CallResult onInit(int argc, char** argv)
 	}*/
 
 	EmuSystem::pcmFormat.channels = 1;
-	c64model_set(optionC64Model.defaultVal); // set the default model
 
 	static const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -1120,7 +1133,7 @@ CallResult onInit(int argc, char** argv)
 	mainInitCommon(argc, argv, navViewGrad);
 	setupSysFilePaths(sysFilePath[0], firmwareBasePath);
 	vController.updateKeyboardMapping();
-
+	setC64Model(optionC64Model.val);
 	return OK;
 }
 

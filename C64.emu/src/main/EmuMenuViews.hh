@@ -1,6 +1,24 @@
 #pragma once
 #include <emuframework/OptionView.hh>
 
+static const char *c64ModelStr[]
+{
+	"C64 PAL",
+	"C64C PAL",
+	"C64 old PAL",
+	"C64 NTSC",
+	"C64C NTSC",
+	"C64 old NTSC",
+	"Drean",
+	"C64 SX PAL",
+	"C64 SX NTSC",
+	"Japanese",
+	"C64 GS",
+	"PET64 PAL",
+	"PET64 NTSC",
+	"MAX Machine",
+};
+
 static void setTrueDriveEmu(bool on)
 {
 	optionDriveTrueEmulation = on;
@@ -53,40 +71,27 @@ class SystemOptionView : public OptionView
 		}
 	};
 
-	MultiChoiceSelectMenuItem c64Model
+	MultiChoiceSelectMenuItem defaultC64Model
 	{
-		"C64 Model",
+		"Default C64 Model",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			setC64Model(val);
+			optionC64Model = val;
+			if(!EmuSystem::gameIsRunning())
+			{
+				setC64Model(optionC64Model.val);
+			}
 		}
 	};
 
-	void c64ModelInit()
+	void defaultC64ModelInit()
 	{
-		static const char *str[] =
-		{
-			"C64 PAL",
-			"C64C PAL",
-			"C64 old PAL",
-			"C64 NTSC",
-			"C64C NTSC",
-			"C64 old NTSC",
-			"Drean",
-			"C64 SX PAL",
-			"C64 SX NTSC",
-			"Japanese",
-			"C64 GS",
-			"PET64 PAL",
-			"PET64 NTSC",
-			"MAX Machine",
-		};
-		auto model = c64model_get();
-		if(model >= (int)sizeofArray(str))
+		auto model = optionC64Model;
+		if(model >= (int)sizeofArray(c64ModelStr))
 		{
 			model = 0;
 		}
-		c64Model.init(str, model, sizeofArray(str));
+		defaultC64Model.init(c64ModelStr, model, sizeofArray(c64ModelStr));
 	}
 
 	MultiChoiceSelectMenuItem borderMode
@@ -133,7 +138,7 @@ class SystemOptionView : public OptionView
 	}
 
 	FirmwarePathSelector systemFileSelector;
-	char systemFilePathStr[256] {0};
+	char systemFilePathStr[256]{};
 	TextMenuItem systemFilePath
 	{
 		"",
@@ -212,7 +217,7 @@ public:
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		c64ModelInit(); item[items++] = &c64Model;
+		defaultC64ModelInit(); item[items++] = &defaultC64Model;
 		trueDriveEmu.init(optionDriveTrueEmulation); item[items++] = &trueDriveEmu;
 		autostartTDE.init(intResource("AutostartHandleTrueDriveEmulation")); item[items++] = &autostartTDE;
 		autostartWarp.init(intResource("AutostartWarp")); item[items++] = &autostartWarp;
@@ -362,7 +367,11 @@ private:
 		}
 	};
 
-	static constexpr const char *diskSlotPrefix[2] {"Disk #8:", "Disk #9:"};
+	static constexpr const char *diskSlotPrefix[2]
+	{
+		"Disk #8:",
+		"Disk #9:"
+	};
 	char diskSlotStr[2][1024]{};
 
 	void updateDiskText(int slot)
@@ -431,9 +440,28 @@ private:
 		{[this](TextMenuItem &, View &, const Input::Event &e) { onSelectDisk(e, 1); }},
 	};
 
-	MenuItem *item[9]{};
+	MultiChoiceSelectMenuItem c64Model
+	{
+		"C64 Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			setC64Model(val);
+		}
+	};
+
+	void c64ModelInit()
+	{
+		auto model = c64model_get();
+		if(model >= (int)sizeofArray(c64ModelStr))
+		{
+			model = 0;
+		}
+		c64Model.init(c64ModelStr, model, sizeofArray(c64ModelStr));
+	}
+
+	MenuItem *item[10]{};
 public:
-	C64IOControlView(Base::Window &win): TableView{"IO Control", win} { }
+	C64IOControlView(Base::Window &win): TableView{"System & IO", win} { }
 
 	void init(bool highlightFirst)
 	{
@@ -449,6 +477,8 @@ public:
 
 		updateTapeText();
 		tapeSlot.init(tapeSlotStr); item[i++] = &tapeSlot;
+
+		c64ModelInit(); item[i++] = &c64Model;
 		assert(i <= sizeofArray(item));
 		TableView::init(item, i, highlightFirst);
 	}
@@ -470,7 +500,7 @@ class SystemMenuView : public MenuView
 
 	TextMenuItem c64IOControl
 	{
-		"ROM/Disk/Tape Control",
+		"System & IO Control",
 		[this](TextMenuItem &item, View &, const Input::Event &e)
 		{
 			if(item.active)
