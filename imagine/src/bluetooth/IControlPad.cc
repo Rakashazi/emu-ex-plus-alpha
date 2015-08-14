@@ -101,7 +101,7 @@ static const char *icpButtonName(Key b)
 		case iControlPad::DOWN: return "Down";
 		case iControlPad::LEFT: return "Left";
 	}
-	return "Unknown";
+	return "";
 }
 
 const char *IControlPad::keyName(Key k) const

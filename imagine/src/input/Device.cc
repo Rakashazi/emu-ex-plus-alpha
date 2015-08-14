@@ -227,9 +227,15 @@ static const char *keyButtonName(Key b)
 		case Keycode::END_CALL: return "End Call";
 		case Keycode::FOCUS: return "Focus";
 		case Keycode::HEADSET_HOOK: return "Headset Hook";
+		case Keycode::MEDIA_PLAY_PAUSE: return "Play";
+		case Keycode::MEDIA_STOP: return "Stop";
+		case Keycode::MEDIA_NEXT: return "Next";
+		case Keycode::MEDIA_PREVIOUS: return "Previous";
+		case Keycode::MEDIA_REWIND: return "Rewind";
+		case Keycode::MEDIA_FAST_FORWARD: return "Fast Forward";
 		#endif
 	}
-	return "Unknown";
+	return "";
 }
 
 static const char *iCadeButtonName(Key b)
@@ -364,7 +370,7 @@ const char *Device::keyName(Key k) const
 			return name;
 		}
 	}
-	return "Unknown";
+	return "";
 }
 
 uint Device::map() const

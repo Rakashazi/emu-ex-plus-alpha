@@ -66,12 +66,18 @@ private:
 	InputManagerView &rootIMView;
 	TextMenuItem reset{};
 	MenuItem **text{};
-	BtnConfigMenuItem *btn{};
+	using KeyNameStr = std::array<char, 20>;
+	struct BtnConfigEntry
+	{
+		BtnConfigMenuItem item;
+		KeyNameStr str{};
+	} *btn{};
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
 	Input::Time leftKeyPushTime{};
 
 	void onSet(const Input::Event &e, int keyToSet);
+	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
 
 public:
 	ButtonConfigView(Base::Window &win, InputManagerView &rootIMView);

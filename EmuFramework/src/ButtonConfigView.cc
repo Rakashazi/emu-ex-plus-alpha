@@ -238,6 +238,20 @@ static KeyConfig *mutableConfForDeviceConf(InputDeviceConfig &devConf)
 	return conf;
 }
 
+ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, const char *name)
+{
+	KeyNameStr str;
+	if(strlen(name))
+	{
+		string_copy(str, name);
+	}
+	else
+	{
+		string_printf(str, "Key Code 0x%X", key);
+	}
+	return str;
+}
+
 void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 {
 	auto conf = mutableConfForDeviceConf(*devConf);
@@ -247,8 +261,9 @@ void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 	logMsg("changing key mapping from %s (0x%X) to %s (0x%X)",
 			devConf->dev->keyName(keyEntry), keyEntry, devConf->dev->keyName(e.button), e.button);
 	keyEntry = e.button;
-	btn[keyToSet].t2.setString(devConf->dev->keyName(e.button));
-	btn[keyToSet].t2.compile(projP);
+	auto &b = btn[keyToSet];
+	b.str = makeKeyNameStr(e.button, devConf->dev->keyName(e.button));
+	b.item.t2.compile(projP);
 	keyMapping.buildAll();
 }
 
@@ -284,17 +299,19 @@ void ButtonConfigView::init(const KeyCategory *cat,
 	uint i = 0;
 	uint tblEntries = cat->keys + 1;
 	text = new MenuItem*[tblEntries];
-	btn = new BtnConfigMenuItem[cat->keys];
+	btn = new BtnConfigEntry[cat->keys];
 	reset.init(); text[i++] = &reset;
 	iterateTimes(cat->keys, i2)
 	{
-		btn[i2].init(cat->keyName[i2], devConf.dev->keyName(keyConfig.key(*cat)[i2]));
-		btn[i2].onSelect() =
+		auto key = keyConfig.key(*cat)[i2];
+		btn[i2].str = makeKeyNameStr(key, devConf.dev->keyName(key));
+		btn[i2].item.init(cat->keyName[i2], btn[i2].str.data());
+		btn[i2].item.onSelect() =
 			[this, i2](DualTextMenuItem &item, View &, const Input::Event &e)
 			{
 				auto keyToSet = i2;
 				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
-				btnSetView.init(*this->devConf->dev, btn[keyToSet].t.str, e.isPointer(),
+				btnSetView.init(*this->devConf->dev, btn[keyToSet].item.t.str, e.isPointer(),
 					[this, keyToSet](const Input::Event &e)
 					{
 						onSet(e, keyToSet);
@@ -302,7 +319,7 @@ void ButtonConfigView::init(const KeyCategory *cat,
 				);
 				modalViewController.pushAndShow(btnSetView);
 			};
-		text[i++] = &btn[i2];
+		text[i++] = &btn[i2].item;
 	}
 
 	assert(i <= tblEntries);
@@ -336,8 +353,8 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 					conf->unbindCategory(*cat);
 					iterateTimes(cat->keys, i)
 					{
-						btn[i].t2.setString(devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
-						btn[i].t2.compile(projP);
+						string_copy(btn[i].str, devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
+						btn[i].item.t2.compile(projP);
 					}
 					keyMapping.buildAll();
 				};

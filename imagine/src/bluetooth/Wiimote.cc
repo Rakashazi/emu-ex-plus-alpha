@@ -126,7 +126,7 @@ static const char *wiimoteButtonName(Input::Key k)
 		case Input::Wiimote::NUN_STICK_UP: return "N:Up";
 		case Input::Wiimote::NUN_STICK_DOWN: return "N:Down";
 	}
-	return "Unknown";
+	return "";
 }
 
 static const char *wiiCCButtonName(Input::Key k)
@@ -161,7 +161,7 @@ static const char *wiiCCButtonName(Input::Key k)
 		case WiiCC::DOWN: return "Down";
 		case WiiCC::LEFT: return "Left";
 	}
-	return "Unknown";
+	return "";
 }
 
 static const char *wiiKeyName(Input::Key k, uint map)

@@ -48,7 +48,7 @@ static const char *zeemoteButtonName(Input::Key k)
 		case Input::Zeemote::DOWN: return "Down";
 		case Input::Zeemote::LEFT: return "Left";
 	}
-	return "Unknown";
+	return "";
 }
 
 const char *Zeemote::keyName(Input::Key k) const

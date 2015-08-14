@@ -106,7 +106,7 @@ static const char *ps3ButtonName(Input::Key k)
 		case PS3::RSTICK_DOWN: return "R:Down";
 		case PS3::RSTICK_LEFT: return "R:Left";
 	}
-	return "Unknown";
+	return "";
 }
 
 const char *PS3Controller::keyName(Input::Key k) const

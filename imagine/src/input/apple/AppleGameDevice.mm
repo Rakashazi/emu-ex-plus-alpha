@@ -375,7 +375,7 @@ static const char *appleGCButtonName(Key k)
 		case AppleGC::RSTICK_DOWN: return "R:Down";
 		case AppleGC::RSTICK_LEFT: return "R:Left";
 	}
-	return "Unknown";
+	return "";
 }
 
 }
