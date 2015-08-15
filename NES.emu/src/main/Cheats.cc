@@ -115,7 +115,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							window().postDraw();
 							return 1;
 						}
-						string_copy(addrStr, a ? str : "0", sizeof(addrStr));
+						string_copy(addrStr, a ? str : "0");
 						syncCheat();
 						addr.compile(projP);
 						window().postDraw();
@@ -146,7 +146,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							window().postDraw();
 							return 1;
 						}
-						string_copy(valueStr, a ? str : "0", sizeof(valueStr));
+						string_copy(valueStr, a ? str : "0");
 						syncCheat();
 						value.compile(projP);
 						window().postDraw();
@@ -179,7 +179,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 								window().postDraw();
 								return 1;
 							}
-							string_copy(compStr, str, sizeof(compStr));
+							string_copy(compStr, str);
 						}
 						else
 						{
@@ -213,7 +213,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							window().postDraw();
 							return 1;
 						}
-						string_copy(ggCodeStr, str, sizeof(ggCodeStr));
+						string_copy(ggCodeStr, str);
 						syncCheat();
 						ggCode.compile(projP);
 						window().postDraw();

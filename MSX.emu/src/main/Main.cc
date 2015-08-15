@@ -849,14 +849,14 @@ static int loadBlueMSXState(const char *filename)
 	machineLoadState(machine);
 	logMsg("machine name %s", machine->name);
 	char optionMachineNameStrOld[128];
-	string_copy(optionMachineNameStrOld, optionMachineNameStr, sizeof(optionMachineNameStr));
-	string_copy(optionMachineNameStr, machine->name, sizeof(optionMachineNameStr));
+	string_copy(optionMachineNameStrOld, optionMachineNameStr);
+	string_copy(optionMachineNameStr, machine->name);
 
 	// from this point on, errors are fatal and require the existing game to close
 	if(!createBoardFromLoadGame())
 	{
 		saveStateDestroy();
-		string_copy(optionMachineNameStr, optionMachineNameStrOld, sizeof(optionMachineNameStr)); // restore old machine name
+		string_copy(optionMachineNameStr, optionMachineNameStrOld); // restore old machine name
 		closeGameByFailedStateLoad();
 		return STATE_RESULT_OTHER_ERROR;
 	}

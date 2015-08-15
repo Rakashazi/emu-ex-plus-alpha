@@ -82,7 +82,7 @@ static void installFirmwareFiles()
 		}
 	}
 
-	string_copy(optionMachineNameStr, "MSX2 - C-BIOS", sizeof(optionMachineNameStr));
+	string_copy(optionMachineNameStr, "MSX2 - C-BIOS");
 	popup.post("Installation OK");
 }
 
@@ -171,7 +171,7 @@ private:
 		void doSet(int val, View &view) override
 		{
 			assert((uint)val < machineName.size());
-			string_copy(optionMachineName, machineName[val].data(), sizeof(optionMachineName));
+			string_copy(optionMachineNameStr, machineName[val].data());
 			logMsg("set machine type: %s", (char*)optionMachineName);
 		}
 	} msxMachine;

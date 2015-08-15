@@ -65,7 +65,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							window().postDraw();
 							return 1;
 						}
-						string_copy(addrStr, a ? str : "0", sizeof(addrStr));
+						string_copy(addrStr, a ? str : "0");
 						auto wasEnabled = Cheat.c[idx].enabled;
 						if(wasEnabled)
 						{
@@ -104,7 +104,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 							window().postDraw();
 							return 1;
 						}
-						string_copy(valueStr, a ? str : "0", sizeof(valueStr));
+						string_copy(valueStr, a ? str : "0");
 						auto wasEnabled = Cheat.c[idx].enabled;
 						if(wasEnabled)
 						{
@@ -146,7 +146,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 								window().postDraw();
 								return 1;
 							}
-							string_copy(savedStr, str, sizeof(savedStr));
+							string_copy(savedStr, str);
 						}
 						else
 						{

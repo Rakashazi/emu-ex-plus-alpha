@@ -103,7 +103,7 @@ void TextEntry::place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP)
 
 CallResult TextEntry::init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP)
 {
-	string_copy(str, initText, sizeof(str));
+	string_copy(str, initText);
 	t.init(str, face);
 	t.compile(projP);
 	acceptingInput = 0;
