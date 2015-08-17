@@ -85,8 +85,7 @@ bool showAutoStateConfirm(const Input::Event &e, bool addToRecent)
 		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
 		static char msg[96] = "";
 		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", dateStr);
-		auto &ynAlertView = *new YesNoAlertView{mainWin.win};
-		ynAlertView.init(msg, !e.isPointer(), "Continue", "Restart Game");
+		auto &ynAlertView = *new YesNoAlertView{mainWin.win, msg, !e.isPointer(), "Continue", "Restart Game"};
 		ynAlertView.onYes() =
 			[addToRecent](const Input::Event &e)
 			{

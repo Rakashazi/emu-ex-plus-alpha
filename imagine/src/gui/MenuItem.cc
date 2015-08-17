@@ -173,7 +173,7 @@ void BoolMenuItem::set(bool val, View &view)
 		//logMsg("setting bool: %d", val);
 		on = val;
 		t2.setString(val ? onStr : offStr);
-		t2.compile(view.projP);
+		t2.compile(view.projection());
 		view.postDraw();
 	}
 }
@@ -253,7 +253,7 @@ bool MultiChoiceMenuItem::updateVal(int val, View &view)
 	{
 		choice = val;
 		t2.setString(choiceStr[val]);
-		t2.compile(view.projP);
+		t2.compile(view.projection());
 		view.postDraw();
 		return 1;
 	}

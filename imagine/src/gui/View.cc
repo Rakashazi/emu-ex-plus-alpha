@@ -97,5 +97,3 @@ void View::show()
 	//logMsg("showed view");
 	postDraw();
 }
-
-void View::init() {}

@@ -44,10 +44,10 @@ public:
 	{
 		[this](BoolMenuItem &item, View &, const Input::Event &e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init("Warning, this changes the format of SRAM saves files. "
-					"Turn on to make them compatible with other emulators like Gens. "
-					"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(),
+				"Warning, this changes the format of SRAM saves files. "
+				"Turn on to make them compatible with other emulators like Gens. "
+				"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer()};
 			ynAlertView.onYes() =
 				[this, &item](const Input::Event &e)
 				{

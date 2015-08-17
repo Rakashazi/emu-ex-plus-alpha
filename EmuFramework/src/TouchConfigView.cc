@@ -701,8 +701,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Reset Position & Spacing Options",
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init("Reset buttons to default positions & spacing?", !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(), "Reset buttons to default positions & spacing?", !e.isPointer()};
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
 				{
@@ -718,8 +717,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		"Reset All Options",
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init("Reset all on-screen control options to default?", !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(), "Reset all on-screen control options to default?", !e.isPointer()};
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
 				{

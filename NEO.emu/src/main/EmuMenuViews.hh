@@ -463,8 +463,8 @@ public:
 						{
 							if(entry.bugs)
 							{
-								auto &ynAlertView = *new YesNoAlertView{window()};
-								ynAlertView.init("This game doesn't yet work properly, load anyway?", !e.isPointer());
+								auto &ynAlertView = *new YesNoAlertView{window(),
+									"This game doesn't yet work properly, load anyway?", !e.isPointer()};
 								ynAlertView.onYes() =
 									[&entry](const Input::Event &e)
 									{

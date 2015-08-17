@@ -273,7 +273,6 @@ void KScroll::animate(int minClip, int maxClip, View &view)
 
 void ScrollView::init()
 {
-	View::init();
 	scroll.init(&viewRect(), &contentSize);
 }
 

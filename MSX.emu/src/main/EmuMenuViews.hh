@@ -182,8 +182,7 @@ private:
 		[this](TextMenuItem &, View &, const Input::Event &e)
 		{
 			printInstallFirmwareFilesStr(installFirmwareFilesStr);
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init(installFirmwareFilesStr, !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(), installFirmwareFilesStr, !e.isPointer()};
 			ynAlertView.onYes() =
 				[](const Input::Event &e)
 				{

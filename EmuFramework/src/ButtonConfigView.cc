@@ -342,8 +342,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 		"Unbind All",
 		[this](TextMenuItem &t, View &, const Input::Event &e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init("Really unbind all keys in this category?", !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(), "Really unbind all keys in this category?", !e.isPointer()};
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
 				{

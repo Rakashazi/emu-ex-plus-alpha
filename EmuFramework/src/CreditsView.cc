@@ -61,7 +61,6 @@ void CreditsView::init()
 		};
 	screen()->addOnFrame(animate);
 	place();
-	View::init();
 }
 
 void CreditsView::deinit()

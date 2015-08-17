@@ -24,7 +24,7 @@ void BasicViewController::push(View &v)
 		logMsg("removing existing view from basic view controller");
 		pop();
 	}
-	v.controller = this;
+	v.setController(this);
 	view = &v;
 	logMsg("push view in basic view controller");
 }
@@ -91,7 +91,7 @@ void ViewStack::init(const Base::Window &win)
 {
 	if(size)
 	{
-		view[0]->controller = this;
+		view[0]->setController(this);
 	}
 }
 
@@ -152,7 +152,7 @@ void ViewStack::draw()
 void ViewStack::push(View &v)
 {
 	assert(size != sizeofArray(view));
-	v.controller = this;
+	v.setController(this);
 	view[size] = &v;
 	size++;
 	logMsg("push view, %d in stack", size);

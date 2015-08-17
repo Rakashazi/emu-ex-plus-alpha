@@ -952,8 +952,8 @@ int EmuSystem::loadGame(const char *path)
 	}
 	if(c64FailedInit)
 	{
-		auto &ynAlertView = *new YesNoAlertView{mainWin.win};
-		ynAlertView.init("A previous system file load failed, you must restart the app to run any C64 software", Input::keyInputIsPresent(), "Exit Now", "Cancel");
+		auto &ynAlertView = *new YesNoAlertView{mainWin.win,
+			"A previous system file load failed, you must restart the app to run any C64 software", Input::keyInputIsPresent(), "Exit Now", "Cancel"};
 		ynAlertView.onYes() =
 			[](const Input::Event &e)
 			{

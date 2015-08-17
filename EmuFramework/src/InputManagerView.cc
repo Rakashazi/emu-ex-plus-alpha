@@ -115,8 +115,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					{
 						pop();
 						int deleteDeviceConfigIdx = i;
-						auto &ynAlertView = *new YesNoAlertView{window()};
-						ynAlertView.init(confirmDeleteDeviceSettingsStr, !e.isPointer());
+						auto &ynAlertView = *new YesNoAlertView{window(), confirmDeleteDeviceSettingsStr, !e.isPointer()};
 						ynAlertView.onYes() =
 							[this, deleteDeviceConfigIdx](const Input::Event &e)
 							{
@@ -169,8 +168,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					{
 						pop();
 						int deleteProfileIdx = i;
-						auto &ynAlertView = *new YesNoAlertView{window()};
-						ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
+						auto &ynAlertView = *new YesNoAlertView{window(), confirmDeleteProfileStr, !e.isPointer()};
 						ynAlertView.onYes() =
 							[this, deleteProfileIdx](const Input::Event &e)
 							{
@@ -653,8 +651,8 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 				popup.postError("No space left for new key profiles, please delete one");
 				return;
 			}
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init("Create a new profile? All keys from the current profile will be copied over.", !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(),
+				"Create a new profile? All keys from the current profile will be copied over.", !e.isPointer()};
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
 				{
@@ -697,8 +695,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 				popup.post("Can't delete a built-in profile", 2, 0);
 				return;
 			}
-			auto &ynAlertView = *new YesNoAlertView{window()};
-			ynAlertView.init(confirmDeleteProfileStr, !e.isPointer());
+			auto &ynAlertView = *new YesNoAlertView{window(), confirmDeleteProfileStr, !e.isPointer()};
 			ynAlertView.onYes() =
 				[this](const Input::Event &e)
 				{
@@ -728,8 +725,8 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 			#else
 			if(!item.on)
 			{
-				auto &ynAlertView = *new YesNoAlertView{window()};
-				ynAlertView.init("This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", !e.isPointer(), "Enable", "Cancel");
+				auto &ynAlertView = *new YesNoAlertView{window(),
+					"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", !e.isPointer(), "Enable", "Cancel"};
 				ynAlertView.onYes() =
 					[this](const Input::Event &e)
 					{

@@ -29,7 +29,7 @@ public:
 	IG::WindowRect leftBtn{}, rightBtn{}, textRect{};
 	Gfx::Text text{};
 	IG::WindowRect viewRect{};
-	bool hasBackBtn = 0, leftBtnActive = 0, hasCloseBtn = 0, rightBtnActive = 0;
+	bool hasBackBtn = false, leftBtnActive = false, hasCloseBtn = false, rightBtnActive = false;
 
 	constexpr NavView() {}
 	virtual void onLeftNavBtn(const Input::Event &e) {};

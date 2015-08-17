@@ -111,8 +111,7 @@ class VCSSwitchesView : public TableView
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *new YesNoAlertView{window()};
-				ynAlertView.init("Really Soft Reset Game?", !e.isPointer());
+				auto &ynAlertView = *new YesNoAlertView{window(), "Really Soft Reset Game?", !e.isPointer()};
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
 					{

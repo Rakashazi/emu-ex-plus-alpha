@@ -1251,8 +1251,7 @@ CallResult onInit(int argc, char** argv)
 			if(canInstallCBIOS && checkForMachineFolderOnStart &&
 				!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 			{
-				auto &ynAlertView = *new YesNoAlertView{win};
-				ynAlertView.init(installFirmwareFilesMessage, Input::keyInputIsPresent());
+				auto &ynAlertView = *new YesNoAlertView{win, installFirmwareFilesMessage, Input::keyInputIsPresent()};
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
 					{

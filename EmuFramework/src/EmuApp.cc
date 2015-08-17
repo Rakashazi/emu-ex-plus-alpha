@@ -813,8 +813,7 @@ void mainInitWindowCommon(Base::Window &win)
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
 	{
-		auto &ynAlertView = *new YesNoAlertView{win};
-		ynAlertView.init("Warning: App has been modified by 3rd party, use at your own risk", 0);
+		auto &ynAlertView = *new YesNoAlertView{win, "Warning: App has been modified by 3rd party, use at your own risk", false};
 		ynAlertView.onNo() =
 			[](const Input::Event &e)
 			{

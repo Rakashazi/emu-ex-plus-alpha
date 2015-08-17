@@ -168,8 +168,7 @@ void EmuInputView::inputEvent(const Input::Event &e)
 						}
 						else
 						{
-							auto &ynAlertView = *new YesNoAlertView{window()};
-							ynAlertView.init("Really Overwrite State?", !e.isPointer());
+							auto &ynAlertView = *new YesNoAlertView{window(), "Really Overwrite State?", !e.isPointer()};
 							ynAlertView.onYes() =
 								[](const Input::Event &e)
 								{
@@ -228,8 +227,7 @@ void EmuInputView::inputEvent(const Input::Event &e)
 					if(e.state == Input::PUSHED)
 					{
 						logMsg("request exit from key event");
-						auto &ynAlertView = *new YesNoAlertView{window()};
-						ynAlertView.init("Really Exit?", Input::keyInputIsPresent());
+						auto &ynAlertView = *new YesNoAlertView{window(), "Really Exit?", Input::keyInputIsPresent()};
 						ynAlertView.onYes() =
 							[](const Input::Event &e)
 							{

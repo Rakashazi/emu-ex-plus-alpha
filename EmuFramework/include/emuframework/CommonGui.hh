@@ -24,7 +24,7 @@ static SystemMenuView mMenu(mainWin.win);
 
 void initMainMenu(Base::Window &win)
 {
-	mMenu.win = &win;
+	mMenu.setWindow(&win);
 	mMenu.init(Input::keyInputIsPresent());
 }
 

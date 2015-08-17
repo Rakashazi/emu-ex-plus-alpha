@@ -37,10 +37,12 @@ public:
 
 class View
 {
-public:
+protected:
 	Base::Window *win{};
 	ViewController *controller{};
 	Gfx::ProjectionPlane projP{};
+
+public:
 	const char *name_ = "";
 	static ResourceFace *defaultFace;
 	static ResourceFace *defaultSmallFace;
@@ -74,5 +76,7 @@ public:
 	void pop();
 	void popAndShow();
 	void show();
-	void init();
+	void setWindow(Base::Window *w) { win = w; }
+	void setController(ViewController *c) { controller = c; }
+	Gfx::ProjectionPlane projection() { return projP; }
 };

@@ -206,8 +206,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *new YesNoAlertView{window()};
-				ynAlertView.init("Really Reset Game?", !e.isPointer());
+				auto &ynAlertView = *new YesNoAlertView{window(), "Really Reset Game?", !e.isPointer()};
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
 					{
@@ -225,8 +224,7 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(item.active && EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *new YesNoAlertView{window()};
-				ynAlertView.init("Really Load State?", !e.isPointer());
+				auto &ynAlertView = *new YesNoAlertView{window(), "Really Load State?", !e.isPointer()};
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
 					{
@@ -289,8 +287,7 @@ MenuView::MenuView(Base::Window &win):
 				}
 				else
 				{
-					auto &ynAlertView = *new YesNoAlertView{window()};
-					ynAlertView.init("Really Overwrite State?", !e.isPointer());
+					auto &ynAlertView = *new YesNoAlertView{window(), "Really Overwrite State?", !e.isPointer()};
 					ynAlertView.onYes() =
 						[](const Input::Event &e)
 						{
@@ -421,8 +418,7 @@ MenuView::MenuView(Base::Window &win):
 			{
 				static char str[64];
 				snprintf(str, sizeof(str), "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
-				auto &ynAlertView = *new YesNoAlertView{window()};
-				ynAlertView.init(str, !e.isPointer());
+				auto &ynAlertView = *new YesNoAlertView{window(), str, !e.isPointer()};
 				ynAlertView.onYes() =
 					[](const Input::Event &e)
 					{

@@ -25,35 +25,36 @@
 class AlertView : public View
 {
 public:
-	Gfx::GCRect labelFrame{};
-	Gfx::Text text{};
-	TableView menu;
-	IG::WindowRect rect{};
-
-	AlertView(Base::Window &win): View{win}, menu{win} {}
+	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst);
 	IG::WindowRect &viewRect() override { return rect; }
-	void init(const char *label, MenuItem **menuItem, bool highlightFirst);
+	//void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
 	void draw() override;
+
+protected:
+	Gfx::GCRect labelFrame{};
+	Gfx::Text text{};
+	TableView menu;
+	IG::WindowRect rect{};
 };
 
 class YesNoAlertView : public AlertView
 {
 public:
 	using InputDelegate = DelegateFunc<void (const Input::Event &e)>;
-	InputDelegate onYesD{};
-	InputDelegate onNoD{};
-	MenuItem *menuItem[2]{};
 
-	YesNoAlertView(Base::Window &win);
-	void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr);
+	YesNoAlertView(Base::Window &win, const char *label, bool highlightFirst, const char *choice1 = {}, const char *choice2 = {});
+	//void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr);
 	void deinit() override;
 	// Optional delegates
 	InputDelegate &onYes() { return onYesD; }
 	InputDelegate &onNo() { return onNoD; }
 
-private:
+protected:
+	InputDelegate onYesD{};
+	InputDelegate onNoD{};
+	MenuItem *menuItem[2]{};
 	TextMenuItem yes, no;
 };

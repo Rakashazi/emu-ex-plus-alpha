@@ -18,7 +18,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/logger/logger.h>
 
-void AlertView::init(const char *label, MenuItem **menuItem, bool highlightFirst)
+AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst): View{win}, menu{win}
 {
 	text.init(label, View::defaultFace);
 	menu.init(menuItem, 2, highlightFirst, C2DO);
@@ -86,8 +86,8 @@ void AlertView::draw()
 }
 
 
-YesNoAlertView::YesNoAlertView(Base::Window &win):
-	AlertView(win),
+YesNoAlertView::YesNoAlertView(Base::Window &win, const char *label, bool highlightFirst, const char *choice1, const char *choice2):
+	AlertView(win, label, menuItem, highlightFirst),
 	yes
 	{
 		[this](TextMenuItem &, View &view, const Input::Event &e)
@@ -106,15 +106,9 @@ YesNoAlertView::YesNoAlertView(Base::Window &win):
 			callback.callSafe(e);
 		}
 	}
-{}
-
-void YesNoAlertView::init(const char *label, bool highlightFirst, const char *choice1, const char *choice2)
 {
 	yes.init(choice1 ? choice1 : "Yes"); menuItem[0] = &yes;
 	no.init(choice2 ? choice2 : "No"); menuItem[1] = &no;
-	assert(!onYesD);
-	assert(!onNoD);
-	AlertView::init(label, menuItem, highlightFirst);
 }
 
 void YesNoAlertView::deinit()
