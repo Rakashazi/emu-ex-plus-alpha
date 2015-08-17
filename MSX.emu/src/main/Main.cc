@@ -729,7 +729,7 @@ static bool insertDisk(const char *path, uint slot)
 	return 1;
 }
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
 	fdcActive = 0;

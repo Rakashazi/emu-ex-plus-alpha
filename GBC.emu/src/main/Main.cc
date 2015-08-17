@@ -287,7 +287,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		unsetBits(gbcInput.bits, emuKey);
 }
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
 	gbEmu.reset();

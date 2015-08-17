@@ -100,6 +100,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 const bool EmuSystem::hasPALVideoSystem = true;
+const bool EmuSystem::hasResetModes = true;
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -251,10 +252,13 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		unsetBits(padData, key << playerInputShift(player));
 }
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
-	FCEUI_ResetNES();
+	if(mode == RESET_HARD)
+		FCEUI_PowerNES();
+	else
+		FCEUI_ResetNES();
 }
 
 static char saveSlotChar(int slot)

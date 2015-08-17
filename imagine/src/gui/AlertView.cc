@@ -18,12 +18,16 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/logger/logger.h>
 
-AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst): View{win}, menu{win}
+AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems, bool highlightFirst): View{win}, menu{win}
 {
 	text.init(label, View::defaultFace);
-	menu.init(menuItem, 2, highlightFirst, C2DO);
+	menu.init(menuItem, menuItems, highlightFirst, C2DO);
 	menu.onlyScrollIfNeeded = 1;
 }
+
+AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst):
+	AlertView{win, label, menuItem, 2, highlightFirst}
+{}
 
 void AlertView::deinit()
 {

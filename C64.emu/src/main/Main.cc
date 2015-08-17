@@ -781,7 +781,7 @@ EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isC64Extension;
 void EmuSystem::resetGame()
 {
 	assert(gameIsRunning());
-	machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+	machine_trigger_reset(mode == RESET_HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
 }
 
 static char saveSlotChar(int slot)

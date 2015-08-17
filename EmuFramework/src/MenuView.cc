@@ -37,6 +37,55 @@ extern const char *creditsViewStr;
 extern BluetoothAdapter *bta;
 #endif
 
+class ResetAlertView : public AlertView
+{
+public:
+	ResetAlertView(Base::Window &win, const char *label, bool highlightFirst):
+		AlertView(win, label, menuItem, 3, highlightFirst),
+		soft
+		{
+			"Soft Reset",
+			[this](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				dismiss();
+				EmuSystem::reset(EmuSystem::RESET_SOFT);
+				startGameFromMenu();
+			}
+		},
+		hard
+		{
+			"Hard Reset",
+			[this](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				dismiss();
+				EmuSystem::reset(EmuSystem::RESET_HARD);
+				startGameFromMenu();
+			}
+		},
+		cancel
+		{
+			"Cancel",
+			[this](TextMenuItem &, View &view, const Input::Event &e)
+			{
+				dismiss();
+			}
+		}
+	{
+		soft.init();
+		hard.init();
+		cancel.init();
+	}
+
+	void deinit() override
+	{
+		AlertView::deinit();
+	}
+
+protected:
+	MenuItem *menuItem[3]{&soft, &hard, &cancel};
+	TextMenuItem soft, hard, cancel;
+};
+
 char saveSlotChar(int slot)
 {
 	switch(slot)
@@ -206,14 +255,22 @@ MenuView::MenuView(Base::Window &win):
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *new YesNoAlertView{window(), "Really Reset Game?", !e.isPointer()};
-				ynAlertView.onYes() =
-					[](const Input::Event &e)
-					{
-						EmuSystem::resetGame();
-						startGameFromMenu();
-					};
-				modalViewController.pushAndShow(ynAlertView);
+				if(EmuSystem::hasResetModes)
+				{
+					auto &resetAlertView = *new ResetAlertView{window(), "Really Reset?", !e.isPointer()};
+					modalViewController.pushAndShow(resetAlertView);
+				}
+				else
+				{
+					auto &ynAlertView = *new YesNoAlertView{window(), "Really Reset?", !e.isPointer()};
+					ynAlertView.onYes() =
+						[](const Input::Event &e)
+						{
+							EmuSystem::reset(EmuSystem::RESET_SOFT);
+							startGameFromMenu();
+						};
+					modalViewController.pushAndShow(ynAlertView);
+				}
 			}
 		}
 	},

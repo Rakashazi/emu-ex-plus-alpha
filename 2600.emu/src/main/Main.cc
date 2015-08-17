@@ -54,6 +54,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 const bool EmuSystem::hasPALVideoSystem = true;
+const bool EmuSystem::hasResetModes = true;
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
@@ -501,10 +502,23 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		writeSound(buff, writtenFrames);
 }
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
-	osystem.console().system().reset();
+	if(mode == RESET_HARD)
+	{
+		osystem.console().system().reset();
+	}
+	else
+	{
+		Event &ev = osystem.eventHandler().event();
+		ev.clear();
+		ev.set(Event::ConsoleReset, 1);
+		osystem.console().switches().update();
+		TIA& tia = osystem.console().tia();
+		tia.update();
+		ev.set(Event::ConsoleReset, 0);
+	}
 }
 
 int EmuSystem::saveState()

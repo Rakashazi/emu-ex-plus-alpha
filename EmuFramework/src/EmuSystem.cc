@@ -43,6 +43,7 @@ Base::Timer EmuSystem::autoSaveStateTimer;
 [[gnu::weak]] const bool EmuSystem::hasPALVideoSystem = false;
 double EmuSystem::frameTimeNative = 1./60.;
 double EmuSystem::frameTimePAL = 1./50.;
+[[gnu::weak]] const bool EmuSystem::hasResetModes = false;
 
 void saveAutoStateFromTimer();
 

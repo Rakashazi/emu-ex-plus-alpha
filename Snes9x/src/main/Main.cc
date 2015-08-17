@@ -92,6 +92,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const bool EmuSystem::hasResetModes = true;
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "smc"
@@ -348,10 +349,17 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	return 1;
 }
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
-	S9xSoftReset();
+	if(mode == RESET_HARD)
+	{
+		S9xReset();
+	}
+	else
+	{
+		S9xSoftReset();
+	}
 }
 
 static char saveSlotChar(int slot)

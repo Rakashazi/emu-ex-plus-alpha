@@ -444,7 +444,7 @@ CLINK int OSDChangeCore(int coreid)
 	return 0;
 }
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	logMsg("resetting system");
 	assert(gameIsRunning());

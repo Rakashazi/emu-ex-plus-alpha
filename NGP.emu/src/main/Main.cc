@@ -151,10 +151,10 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 static bool renderToScreen = 0;
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
-	reset();
+	::reset();
 }
 
 static char saveSlotChar(int slot)
@@ -345,7 +345,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	rom_loaded();
 	logMsg("name from NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
-	reset();
+	::reset();
 
 	rom_bootHacks();
 

@@ -380,7 +380,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 static const int FBResX = 352;
 static bool renderToScreen = 0;
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
 	neogeo_reset();

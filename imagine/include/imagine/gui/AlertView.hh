@@ -26,8 +26,8 @@ class AlertView : public View
 {
 public:
 	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst);
+	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems, bool highlightFirst);
 	IG::WindowRect &viewRect() override { return rect; }
-	//void init(const char *label, MenuItem **menuItem, bool highlightFirst);
 	void deinit() override;
 	void place() override;
 	void inputEvent(const Input::Event &e) override;
@@ -46,7 +46,6 @@ public:
 	using InputDelegate = DelegateFunc<void (const Input::Event &e)>;
 
 	YesNoAlertView(Base::Window &win, const char *label, bool highlightFirst, const char *choice1 = {}, const char *choice2 = {});
-	//void init(const char *label, bool highlightFirst, const char *choice1 = nullptr, const char *choice2 = nullptr);
 	void deinit() override;
 	// Optional delegates
 	InputDelegate &onYes() { return onYesD; }

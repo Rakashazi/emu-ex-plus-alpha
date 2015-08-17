@@ -81,6 +81,8 @@ public:
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
 	static double frameTimeNative;
 	static double frameTimePAL;
+	static const bool hasResetModes;
+	enum ResetMode { RESET_HARD, RESET_SOFT };
 
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
@@ -108,7 +110,7 @@ public:
 	static void saveAutoState();
 	static void saveBackupMem();
 	static void savePathChanged();
-	static void resetGame();
+	static void reset(ResetMode mode);
 	static void initOptions();
 	static void onOptionsLoaded();
 	static void writeConfig(IO &io);

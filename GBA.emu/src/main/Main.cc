@@ -247,7 +247,7 @@ void EmuSystem::initOptions() {}
 
 void EmuSystem::onOptionsLoaded() {}
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
 	CPUReset(gGba);
