@@ -679,7 +679,7 @@ void EmuSystem::clearInputBuffers()
 	}
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
-	mouseScroll.init(ContentDrag::XY_AXIS);
+	mouseScroll = ContentDrag{ContentDrag::XY_AXIS};
 	mouseScroll.dragStartY = std::max(1, mainWin.win.heightMMInPixels(1.));
 	mouseScroll.dragStartX = std::max(1, mainWin.win.widthMMInPixels(1.));
 }
@@ -803,7 +803,7 @@ CallResult onInit(int argc, char** argv)
 	mainInitCommon(argc, argv, navViewGrad);
 
 	mainWin.win.setOnInputEvent(
-		[](Base::Window &win, const Input::Event &e)
+		[](Base::Window &win, Input::Event e)
 		{
 			using namespace Input;
 			if(unlikely(EmuSystem::isActive() && e.isPointer()))

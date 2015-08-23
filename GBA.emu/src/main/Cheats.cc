@@ -1,6 +1,6 @@
+#include <imagine/gui/TextEntry.hh>
 #include <emuframework/Cheats.hh>
 #include <emuframework/MsgPopup.hh>
-#include <emuframework/TextEntry.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <gba/Cheats.h>
@@ -22,7 +22,7 @@ void SystemEditCheatView::removed()
 	refreshCheatViews();
 }
 
-void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
+void SystemEditCheatView::init(int cheatIdx)
 {
 	idx = cheatIdx;
 	auto &cheat = cheatsList[idx];
@@ -35,14 +35,14 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	code
 	{
 		"Code",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			popup.post("To change this cheat, please delete and re-add it");
 		}
@@ -62,11 +62,11 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 	{
 		cheat[c].init(cheatsList[c].desc); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, View &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(!e.isPointer(), c);
-				viewStack.pushAndShow(editCheatView);
+				editCheatView.init(c);
+				viewStack.pushAndShow(editCheatView, e);
 			};
 	}
 }
@@ -127,7 +127,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 						return 0;
 					};
 				refreshCheatViews();
-				modalViewController.pushAndShow(textInputView);
+				modalViewController.pushAndShow(textInputView, {});
 			}
 			else
 			{
@@ -135,7 +135,7 @@ void EditCheatListView::addNewCheat(int isGSv3)
 			}
 			return 0;
 		};
-	modalViewController.pushAndShow(textInputView);
+	modalViewController.pushAndShow(textInputView, {});
 }
 
 EditCheatListView::EditCheatListView(Base::Window &win):
@@ -143,7 +143,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addGS12CBCode
 	{
 		"Add Game Shark v1-2/Code Breaker Code",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			addNewCheat(false);
 		}
@@ -151,7 +151,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addGS3Code
 	{
 		"Add Game Shark v3 Code",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			addNewCheat(true);
 		}
@@ -166,7 +166,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		auto &cheatEntry = cheatsList[c];
 		cheat[c].init(cheatEntry.desc, cheatEntry.enabled); item[i++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](BoolMenuItem &item, View &, const Input::Event &e)
+			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				cheatsModified = true;
 				item.toggle(*this);

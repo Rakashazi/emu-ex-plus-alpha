@@ -79,7 +79,7 @@ public:
 
 	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, SurfaceChange change)>;
 	using DrawDelegate = DelegateFunc<void (Window &win, DrawParams params)>;
-	using InputEventDelegate = DelegateFunc<void (Window &win, const Input::Event &event)>;
+	using InputEventDelegate = DelegateFunc<void (Window &win, Input::Event event)>;
 	using FocusChangeDelegate = DelegateFunc<void (Window &win, bool in)>;
 	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
 	using DismissRequestDelegate = DelegateFunc<void (Window &win)>;

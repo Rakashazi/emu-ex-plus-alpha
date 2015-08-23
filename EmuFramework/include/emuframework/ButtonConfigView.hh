@@ -23,13 +23,14 @@ class InputManagerView;
 class ButtonConfigSetView : public View
 {
 private:
-	typedef DelegateFunc<void (const Input::Event &e)> SetDelegate;
+	typedef DelegateFunc<void (Input::Event e)> SetDelegate;
 
 	IG::WindowRect viewFrame{};
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	IG::WindowRect unbindB{}, cancelB{};
 	#endif
-	char str[128]{};
+	std::array<char, 128> str{};
+	std::array<char, 24> actionStr{};
 	Gfx::Text text{};
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	Gfx::Text unbind{}, cancel{};
@@ -48,11 +49,12 @@ public:
 	{}
 
 	IG::WindowRect &viewRect() { return viewFrame; }
-	void init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet);
+	void init(Input::Device &dev, const char *actionName, SetDelegate onSet);
 	void deinit() override;
 	void place() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
 	void draw() override;
+	void onAddedToController(Input::Event e) override;
 };
 
 class ButtonConfigView : public TableView
@@ -76,14 +78,13 @@ private:
 	InputDeviceConfig *devConf{};
 	Input::Time leftKeyPushTime{};
 
-	void onSet(const Input::Event &e, int keyToSet);
+	void onSet(Input::Event e, int keyToSet);
 	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
 
 public:
 	ButtonConfigView(Base::Window &win, InputManagerView &rootIMView);
 
-	void init(const KeyCategory *cat,
-		InputDeviceConfig &devConf, bool highlightFirst);
-	void inputEvent(const Input::Event &e) override;
+	void init(const KeyCategory *cat, InputDeviceConfig &devConf);
+	void inputEvent(Input::Event e) override;
 	void deinit() override;
 };

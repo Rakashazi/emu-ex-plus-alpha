@@ -20,14 +20,14 @@ private:
 
 public:
 	SystemEditCheatView(Base::Window &win);
-	void init(bool highlightFirst, int cheatIdx);
+	void init(int cheatIdx);
 };
 
 class EditCheatListView : public BaseEditCheatListView
 {
 private:
-	TextMenuItem addGS12CBCode, addGS3Code;
-	TextMenuItem cheat[EmuCheats::MAX];
+	TextMenuItem addGS12CBCode{}, addGS3Code{};
+	TextMenuItem cheat[EmuCheats::MAX]{};
 
 	void loadAddCheatItems(MenuItem *item[], uint &items) override;
 	void loadCheatItems(MenuItem *item[], uint &items) override;
@@ -40,7 +40,7 @@ public:
 class CheatsView : public BaseCheatsView
 {
 private:
-	BoolMenuItem cheat[EmuCheats::MAX];
+	BoolMenuItem cheat[EmuCheats::MAX]{};
 
 	void loadCheatItems(MenuItem *item[], uint &i) override;
 

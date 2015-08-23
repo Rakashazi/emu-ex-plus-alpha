@@ -102,37 +102,12 @@ public:
 
 class VCSSwitchesView : public TableView
 {
-	MenuItem *item[4]{};
-
-	TextMenuItem softReset
-	{
-		"Soft Reset",
-		[this](TextMenuItem &, View &, const Input::Event &e)
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				auto &ynAlertView = *new YesNoAlertView{window(), "Really Soft Reset Game?", !e.isPointer()};
-				ynAlertView.onYes() =
-					[](const Input::Event &e)
-					{
-						Event &ev = osystem.eventHandler().event();
-						ev.clear();
-						ev.set(Event::ConsoleReset, 1);
-						osystem.console().switches().update();
-						TIA& tia = osystem.console().tia();
-						tia.update();
-						ev.set(Event::ConsoleReset, 0);
-						startGameFromMenu();
-					};
-				modalViewController.pushAndShow(ynAlertView);
-			}
-		}
-	};
+	MenuItem *item[3]{};
 
 	BoolMenuItem diff1
 	{
 		"Left (P1) Difficulty",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			p1DiffB = item.on;
@@ -142,7 +117,7 @@ class VCSSwitchesView : public TableView
 	BoolMenuItem diff2
 	{
 		"Right (P2) Difficulty",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			p2DiffB = item.on;
@@ -152,7 +127,7 @@ class VCSSwitchesView : public TableView
 	BoolMenuItem color
 	{
 		"Color",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			vcsColor = item.on;
@@ -162,15 +137,14 @@ class VCSSwitchesView : public TableView
 public:
 	VCSSwitchesView(Base::Window &win): TableView{"Switches", win} {}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		uint i = 0;
 		diff1.init("A", "B", p1DiffB); item[i++] = &diff1;
 		diff2.init("A", "B", p2DiffB); item[i++] = &diff2;
 		color.init(vcsColor); item[i++] = &color;
-		softReset.init(); item[i++] = &softReset;
 		assert(i <= sizeofArray(item));
-		TableView::init(item, i, highlightFirst);
+		TableView::init(item, i);
 	}
 
 	void onShow() override
@@ -188,13 +162,13 @@ private:
 	TextMenuItem switches
 	{
 		"Console Switches",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &vcsSwitchesView = *new VCSSwitchesView{window()};
-				vcsSwitchesView.init(!e.isPointer());
-				viewStack.pushAndShow(vcsSwitchesView);
+				vcsSwitchesView.init();
+				viewStack.pushAndShow(vcsSwitchesView, e);
 			}
 		}
 	};
@@ -208,7 +182,7 @@ public:
 		switches.active = EmuSystem::gameIsRunning();
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		name_ = appViewTitle();
 		uint items = 0;
@@ -216,6 +190,6 @@ public:
 		switches.init(); item[items++] = &switches;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		TableView::init(item, items, highlightFirst);
+		TableView::init(item, items);
 	}
 };

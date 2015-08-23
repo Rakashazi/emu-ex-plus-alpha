@@ -11,11 +11,11 @@ static const uint MAX = 254;
 class SystemEditCheatView : public EditCheatView
 {
 private:
-	DualTextMenuItem addr, value, comp, ggCode;
+	DualTextMenuItem addr{}, value{}, comp{}, ggCode{};
 	uint idx = 0;
 	int type = 0;
-	char *nameStr = nullptr;
-	MenuItem *item[5] {nullptr};
+	char *nameStr{};
+	MenuItem *item[5]{};
 	char addrStr[5]{}, valueStr[3]{}, compStr[3]{}, ggCodeStr[9]{};
 
 	void syncCheat(const char *newName = nullptr);
@@ -24,14 +24,14 @@ private:
 
 public:
 	SystemEditCheatView(Base::Window &win);
-	void init(bool highlightFirst, int cheatIdx);
+	void init(int cheatIdx);
 };
 
 class EditCheatListView : public BaseEditCheatListView
 {
 private:
-	TextMenuItem addGG, addRAM;
-	TextMenuItem cheat[EmuCheats::MAX];
+	TextMenuItem addGG{}, addRAM{};
+	TextMenuItem cheat[EmuCheats::MAX]{};
 	uchar addCheatType = 0;
 
 	uint handleNameFromTextInput(const char *str);
@@ -45,7 +45,7 @@ public:
 class CheatsView : public BaseCheatsView
 {
 private:
-	BoolMenuItem cheat[EmuCheats::MAX];
+	BoolMenuItem cheat[EmuCheats::MAX]{};
 
 	void loadCheatItems(MenuItem *item[], uint &i) override;
 

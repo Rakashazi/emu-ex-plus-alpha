@@ -32,8 +32,8 @@ public:
 	bool hasBackBtn = false, leftBtnActive = false, hasCloseBtn = false, rightBtnActive = false;
 
 	constexpr NavView() {}
-	virtual void onLeftNavBtn(const Input::Event &e) {};
-	virtual void onRightNavBtn(const Input::Event &e) {};
+	virtual void onLeftNavBtn(Input::Event e) {};
+	virtual void onRightNavBtn(Input::Event e) {};
 	void setLeftBtnActive(bool on) { leftBtnActive = on; }
 	void setRightBtnActive(bool on) { rightBtnActive = on; }
 	void setTitle(const char *title) { text.setString(title); }
@@ -41,7 +41,7 @@ public:
 	virtual void deinit() = 0;
 	void deinitText();
 	virtual void place(const Gfx::ProjectionPlane &projP);
-	void inputEvent(const Input::Event &e);
+	void inputEvent(Input::Event e);
 	virtual void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) = 0;
 };
 

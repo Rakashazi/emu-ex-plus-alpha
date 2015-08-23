@@ -1,6 +1,6 @@
+#include <imagine/gui/TextEntry.hh>
 #include <emuframework/Cheats.hh>
 #include <emuframework/MsgPopup.hh>
-#include <emuframework/TextEntry.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <cheats.h>
@@ -19,7 +19,7 @@ void SystemEditCheatView::removed()
 	refreshCheatViews();
 }
 
-void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
+void SystemEditCheatView::init(int cheatIdx)
 {
 	idx = cheatIdx;
 	auto &cheat = Cheat.c[idx];
@@ -41,14 +41,14 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
 	addr
 	{
 		"Address",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 6-digit hex", addrStr, getCollectTextCloseAsset());
@@ -82,13 +82,13 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	value
 	{
 		"Value",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
@@ -121,13 +121,13 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	saved
 	{
 		"Saved Value",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex or blank", savedStr, getCollectTextCloseAsset());
@@ -177,7 +177,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
 {}
@@ -194,11 +194,11 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 	{
 		cheat[c].init(Cheat.c[c].name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, View &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(!e.isPointer(), c);
-				pushAndShow(editCheatView);
+				editCheatView.init(c);
+				pushAndShow(editCheatView, e);
 			};
 	}
 }
@@ -208,7 +208,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addCode
 	{
 		"Add Game Genie/Action Replay/Gold Finger Code",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(Cheat.num_cheats == EmuCheats::MAX)
 			{
@@ -263,7 +263,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								return 0;
 							};
 						refreshCheatViews();
-						modalViewController.pushAndShow(textInputView);
+						modalViewController.pushAndShow(textInputView, {});
 					}
 					else
 					{
@@ -271,7 +271,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 					}
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
 {}
@@ -283,7 +283,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 	{
 		cheat[c].init(Cheat.c[c].name, Cheat.c[c].enabled); item[i++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](BoolMenuItem &item, View &, const Input::Event &e)
+			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				item.toggle(*this);
 				if(item.on)

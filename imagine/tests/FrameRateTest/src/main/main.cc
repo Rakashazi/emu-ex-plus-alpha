@@ -174,7 +174,7 @@ CallResult onInit(int argc, char** argv)
 		});
 
 	winConf.setOnInputEvent(
-		[](Base::Window &, const Input::Event &e)
+		[](Base::Window &, Input::Event e)
 		{
 			Gfx::bind();
 			if(!activeTest)

@@ -17,29 +17,29 @@
 #include <imagine/logger/logger.h>
 #include <utility>
 
-void BasicViewController::push(View &v)
+void BasicViewController::push(View &v, Input::Event e)
 {
 	if(view)
 	{
 		logMsg("removing existing view from basic view controller");
 		pop();
 	}
-	v.setController(this);
+	v.setController(this, e);
 	view = &v;
 	logMsg("push view in basic view controller");
 }
 
-void BasicViewController::pushAndShow(View &v, bool needsNavView)
+void BasicViewController::pushAndShow(View &v, Input::Event e, bool needsNavView)
 {
-	push(v);
+	push(v, e);
 	place();
 	v.show();
 	v.postDraw();
 }
 
-void BasicViewController::pushAndShow(View &v)
+void BasicViewController::pushAndShow(View &v, Input::Event e)
 {
-	pushAndShow(v, true);
+	pushAndShow(v, e, true);
 }
 
 void BasicViewController::pop()
@@ -75,7 +75,7 @@ void BasicViewController::place()
 	view->place();
 }
 
-void BasicViewController::inputEvent(const Input::Event &e)
+void BasicViewController::inputEvent(Input::Event e)
 {
 	view->inputEvent(e);
 }
@@ -86,14 +86,6 @@ void BasicViewController::draw()
 }
 
 void BasicViewController::init(const Base::Window &win) {}
-
-void ViewStack::init(const Base::Window &win)
-{
-	if(size)
-	{
-		view[0]->setController(this);
-	}
-}
 
 void ViewStack::setNavView(NavView *nav)
 {
@@ -134,7 +126,7 @@ void ViewStack::place()
 	top().place();
 }
 
-void ViewStack::inputEvent(const Input::Event &e)
+void ViewStack::inputEvent(Input::Event e)
 {
 	if(useNavView && nav && e.isPointer() && nav->viewRect.overlaps({e.x, e.y}))
 	{
@@ -149,10 +141,10 @@ void ViewStack::draw()
 	if(useNavView && nav) nav->draw(top().window(), projP);
 }
 
-void ViewStack::push(View &v)
+void ViewStack::push(View &v, Input::Event e)
 {
 	assert(size != sizeofArray(view));
-	v.setController(this);
+	v.setController(this, e);
 	view[size] = &v;
 	size++;
 	logMsg("push view, %d in stack", size);
@@ -163,18 +155,18 @@ void ViewStack::push(View &v)
 	}
 }
 
-void ViewStack::pushAndShow(View &v, bool needsNavView)
+void ViewStack::pushAndShow(View &v, Input::Event e, bool needsNavView)
 {
 	useNavView = needsNavView;
-	push(v);
+	push(v, e);
 	place();
 	v.show();
 	v.postDraw();
 }
 
-void ViewStack::pushAndShow(View &v)
+void ViewStack::pushAndShow(View &v, Input::Event e)
 {
-	pushAndShow(v, true);
+	pushAndShow(v, e, true);
 }
 
 void ViewStack::pop()

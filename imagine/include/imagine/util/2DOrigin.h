@@ -33,7 +33,7 @@ public:
 	uchar x = _2DORIGIN_NONE, y = _2DORIGIN_NONE;
 	constexpr _2DOrigin() { }
 	constexpr _2DOrigin(uchar x, uchar y): x(x & 7), y(y & 7) { }
-	constexpr _2DOrigin(uchar val): x(val & 7), y(val >> 3) { }
+	explicit constexpr _2DOrigin(uchar val): x(val & 7), y(val >> 3) { }
 
 	static const char *toString(uint value)
 	{

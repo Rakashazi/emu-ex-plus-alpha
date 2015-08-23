@@ -25,7 +25,7 @@ class IdentInputDeviceView : public View
 	Gfx::Text text;
 
 public:
-	using OnIdentInputDelegate = DelegateFunc<void (const Input::Event &e)>;
+	using OnIdentInputDelegate = DelegateFunc<void (Input::Event e)>;
 	OnIdentInputDelegate onIdentInput{};
 
 	IdentInputDeviceView(Base::Window &win): View(win) {}
@@ -33,8 +33,9 @@ public:
 	void init();
 	void deinit() override;
 	void place() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
 	void draw() override;
+	void onAddedToController(Input::Event e) override {}
 };
 
 class InputManagerView : public TableView
@@ -58,7 +59,7 @@ public:
 	char inputDevNameStr[Input::MAX_DEVS][80]{};
 
 	InputManagerView(Base::Window &win);
-	void init(bool highlightFirst);
+	void init();
 	void deinit() override;
 	void onShow() override;
 };
@@ -92,7 +93,7 @@ private:
 
 public:
 	InputManagerOptionsView(Base::Window &win);
-	void init(bool highlightFirst);
+	void init();
 };
 
 class InputManagerDeviceView : public TableView
@@ -116,11 +117,11 @@ private:
 	MenuItem *item[EmuControls::MAX_CATEGORIES + 11]{};
 	InputDeviceConfig *devConf{};
 
-	void confirmICadeMode(const Input::Event &e);
+	void confirmICadeMode(Input::Event e);
 
 public:
 	InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView);
 
-	void init(bool highlightFirst, InputDeviceConfig &devConf);
+	void init(InputDeviceConfig &devConf);
 	void onShow() override;
 };

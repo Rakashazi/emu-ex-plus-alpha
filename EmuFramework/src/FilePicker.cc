@@ -22,7 +22,7 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
 
-void EmuFilePicker::init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc filter, bool singleDir)
+void EmuFilePicker::init(bool pickingDir, EmuNameFilterFunc filter, bool singleDir)
 {
 	FSPicker::init(needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
 		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr,
@@ -52,14 +52,10 @@ void EmuFilePicker::init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc
 			}
 		});
 	setOnSelectFile(
-		[this](FSPicker &, const char *name, const Input::Event &e)
+		[this](FSPicker &, const char *name, Input::Event e)
 		{
 			GameFilePicker::onSelectFile(name, e);
 		});
-	if(highlightFirst)
-	{
-		tbl.highlightFirstCell();
-	}
 }
 
 void loadGameComplete(bool tryAutoState, bool addToRecent)
@@ -71,7 +67,7 @@ void loadGameComplete(bool tryAutoState, bool addToRecent)
 	startGameFromMenu();
 }
 
-bool showAutoStateConfirm(const Input::Event &e, bool addToRecent)
+bool showAutoStateConfirm(Input::Event e, bool addToRecent)
 {
 	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
 	{
@@ -85,24 +81,24 @@ bool showAutoStateConfirm(const Input::Event &e, bool addToRecent)
 		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
 		static char msg[96] = "";
 		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", dateStr);
-		auto &ynAlertView = *new YesNoAlertView{mainWin.win, msg, !e.isPointer(), "Continue", "Restart Game"};
+		auto &ynAlertView = *new YesNoAlertView{mainWin.win, msg, "Continue", "Restart Game"};
 		ynAlertView.onYes() =
-			[addToRecent](const Input::Event &e)
+			[addToRecent](Input::Event e)
 			{
 				loadGameComplete(true, addToRecent);
 			};
 		ynAlertView.onNo() =
-			[addToRecent](const Input::Event &e)
+			[addToRecent](Input::Event e)
 			{
 				loadGameComplete(false, addToRecent);
 			};
-		modalViewController.pushAndShow(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView, e);
 		return 1;
 	}
 	return 0;
 }
 
-void loadGameCompleteFromFilePicker(uint result, const Input::Event &e)
+void loadGameCompleteFromFilePicker(uint result, Input::Event e)
 {
 	if(!result)
 		return;
@@ -113,10 +109,10 @@ void loadGameCompleteFromFilePicker(uint result, const Input::Event &e)
 	}
 }
 
-void GameFilePicker::onSelectFile(const char* name, const Input::Event &e)
+void GameFilePicker::onSelectFile(const char* name, Input::Event e)
 {
 	EmuSystem::onLoadGameComplete() =
-		[](uint result, const Input::Event &e)
+		[](uint result, Input::Event e)
 		{
 			loadGameCompleteFromFilePicker(result, e);
 		};
@@ -131,7 +127,7 @@ void GameFilePicker::onSelectFile(const char* name, const Input::Event &e)
 	}
 }
 
-void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
+void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e)
 {
 	if(result)
 	{
@@ -143,14 +139,14 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, const Input::Event &e)
 	}
 }
 
-void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
+void EmuFilePicker::initForBenchmark(bool singleDir)
 {
-	EmuFilePicker::init(highlightFirst, false, defaultBenchmarkFsFilter, singleDir);
+	EmuFilePicker::init(false, defaultBenchmarkFsFilter, singleDir);
 	setOnSelectFile(
-		[this](FSPicker &picker, const char* name, const Input::Event &e)
+		[this](FSPicker &picker, const char* name, Input::Event e)
 		{
 			EmuSystem::onLoadGameComplete() =
-				[](uint result, const Input::Event &e)
+				[](uint result, Input::Event e)
 				{
 					loadGameCompleteFromBenchmarkFilePicker(result, e);
 				};
@@ -166,7 +162,7 @@ void EmuFilePicker::initForBenchmark(bool highlightFirst, bool singleDir)
 		});
 }
 
-void EmuFilePicker::inputEvent(const Input::Event &e)
+void EmuFilePicker::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{

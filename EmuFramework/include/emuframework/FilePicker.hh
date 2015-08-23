@@ -28,15 +28,15 @@ public:
 	static EmuNameFilterFunc defaultBenchmarkFsFilter;
 
 	EmuFilePicker(Base::Window &win): FSPicker(win) {}
-	void init(bool highlightFirst, bool pickingDir, EmuNameFilterFunc filter = defaultFsFilter, bool singleDir = false);
-	void initForBenchmark(bool highlightFirst, bool singleDir = 0);
-	void inputEvent(const Input::Event &e) override;
+	void init(bool pickingDir, EmuNameFilterFunc filter = defaultFsFilter, bool singleDir = false);
+	void initForBenchmark(bool singleDir = 0);
+	void inputEvent(Input::Event e) override;
 };
 
 class GameFilePicker
 {
 public:
-	static void onSelectFile(const char* name, const Input::Event &e);
+	static void onSelectFile(const char* name, Input::Event e);
 };
 
-void loadGameCompleteFromFilePicker(uint result, const Input::Event &e);
+void loadGameCompleteFromFilePicker(uint result, Input::Event e);

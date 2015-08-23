@@ -19,13 +19,13 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MultiChoiceView.hh>
 #include <imagine/audio/Audio.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
-#include <emuframework/MultiChoiceView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
-void onCloseModalPopWorkDir(const Input::Event &e);
+void onCloseModalPopWorkDir(Input::Event e);
 void chdirFromFilePath(const char *path);
 
 class OptionView : public TableView
@@ -139,7 +139,7 @@ protected:
 
 public:
 	OptionView(Base::Window &win);
-	void init(uint idx, bool highlightFirst);
+	void init(uint idx);
 };
 
 class BiosSelectMenu : public BaseMultiChoiceView
@@ -156,9 +156,9 @@ public:
 	BiosSelectMenu(const char *name, FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, Base::Window &win):
 		BaseMultiChoiceView(name, win), biosPathStr(biosPathStr), fsFilter(fsFilter) {}
 	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
-	void onSelectFile(const char* name, const Input::Event &e);
-	void init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, bool highlightFirst);
-	void init(bool highlightFirst);
+	void onSelectFile(const char* name, Input::Event e);
+	void init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter);
+	void init();
 };
 
 using PathChangeDelegate = DelegateFunc<void (const char *newPath)>;
@@ -169,6 +169,6 @@ public:
 	PathChangeDelegate onPathChange;
 
 	constexpr FirmwarePathSelector() {}
-	void onClose(const Input::Event &e);
-	void init(const char *name, bool highlightFirst);
+	void onClose(Input::Event e);
+	void init(const char *name, Input::Event e);
 };

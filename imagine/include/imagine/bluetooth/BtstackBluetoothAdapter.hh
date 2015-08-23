@@ -22,7 +22,7 @@
 class BtstackBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	constexpr BtstackBluetoothAdapter() {}
+	BtstackBluetoothAdapter() {}
 	static BtstackBluetoothAdapter *defaultAdapter();
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) override;
 	void cancelScan() override;

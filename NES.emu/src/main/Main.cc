@@ -585,7 +585,7 @@ CallResult onInit(int argc, char** argv)
 	mainInitCommon(argc, argv, navViewGrad);
 
 	mainWin.win.setOnInputEvent(
-		[](Base::Window &win, const Input::Event &e)
+		[](Base::Window &win, Input::Event e)
 		{
 			if(EmuSystem::isActive())
 			{

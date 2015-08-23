@@ -26,15 +26,12 @@
 
 Gfx::GC TableView::globalXIndent = 0;
 
-void TableView::init(MenuItem **item, uint items, bool highlightFirst, _2DOrigin align)
+void TableView::init(MenuItem **item, uint items, _2DOrigin align)
 {
 	var_selfs(item);
 	cells_ = items;
 	var_selfs(align);
 	selected = -1;
-	if((!Config::Input::POINTING_DEVICES || highlightFirst) && items)
-		selected = nextSelectableElement(0);
-	ScrollView::init();
 	onlyScrollIfNeeded = false;
 	selectedIsActivated = false;
 }
@@ -48,11 +45,14 @@ void TableView::deinit()
 	}
 }
 
-void TableView::highlightFirstCell()
+void TableView::highlightCell(int idx)
 {
 	if(!cells_)
 		return;
-	selected = nextSelectableElement(0);
+	if(idx >= 0)
+		selected = nextSelectableElement(idx);
+	else
+		selected = -1;
 	postDraw();
 }
 
@@ -153,6 +153,12 @@ void TableView::place()
 		visibleCells = 0;
 }
 
+void TableView::onAddedToController(Input::Event e)
+{
+	if((!Config::Input::POINTING_DEVICES || !e.isPointer()) && cells_)
+		selected = nextSelectableElement(0);
+}
+
 void TableView::setScrollableIfNeeded(bool on)
 {
 	onlyScrollIfNeeded = on;
@@ -174,7 +180,7 @@ void TableView::scrollToFocusRect()
 	}
 }
 
-void TableView::inputEvent(const Input::Event &e)
+void TableView::inputEvent(Input::Event e)
 {
 	bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
 	if(handleScroll && scrollInputEvent(e))
@@ -247,7 +253,7 @@ int TableView::prevSelectableElement(int start)
 	return -1;
 }
 
-bool TableView::handleTableInput(const Input::Event &e)
+bool TableView::handleTableInput(Input::Event e)
 {
 	using namespace IG;
 	if(cells_ == 0)
@@ -356,7 +362,7 @@ void TableView::drawElement(uint i, Gfx::GCRect rect) const
 	item[i]->draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
 }
 
-void TableView::onSelectElement(const Input::Event &e, uint i)
+void TableView::onSelectElement(Input::Event e, uint i)
 {
 	item[i]->select(*this, e);
 }

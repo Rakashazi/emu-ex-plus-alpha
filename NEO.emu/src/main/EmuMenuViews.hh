@@ -85,7 +85,7 @@ private:
 	BoolMenuItem listAll
 	{
 		"List All Games",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionListAllGames = item.on;
@@ -95,7 +95,7 @@ private:
 	BoolMenuItem createAndUseCache
 	{
 		"Make/Use Cache Files",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle((*this));
 			optionCreateAndUseCache = item.on;
@@ -105,7 +105,7 @@ private:
 	BoolMenuItem strictROMChecking
 	{
 		"Strict ROM Checking",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionStrictROMChecking = item.on;
@@ -421,7 +421,7 @@ private:
 	static void loadGame(const RomListEntry &entry)
 	{
 		EmuSystem::onLoadGameComplete() =
-			[](uint result, const Input::Event &e)
+			[](uint result, Input::Event e)
 			{
 				loadGameCompleteFromFilePicker(result, e);
 			};
@@ -457,20 +457,20 @@ public:
 				string_copy(longName[roms], drv->longname);
 				rom[roms].init(longName[roms], fileExists); item[i++] = &rom[roms];
 				rom[roms].onSelect() =
-					[this, &entry](TextMenuItem &item, View &, const Input::Event &e)
+					[this, &entry](TextMenuItem &item, View &, Input::Event e)
 					{
 						if(item.active)
 						{
 							if(entry.bugs)
 							{
 								auto &ynAlertView = *new YesNoAlertView{window(),
-									"This game doesn't yet work properly, load anyway?", !e.isPointer()};
+									"This game doesn't yet work properly, load anyway?"};
 								ynAlertView.onYes() =
-									[&entry](const Input::Event &e)
+									[&entry](Input::Event e)
 									{
 										loadGame(entry);
 									};
-								modalViewController.pushAndShow(ynAlertView);
+								modalViewController.pushAndShow(ynAlertView, e);
 							}
 							else
 							{
@@ -490,7 +490,7 @@ public:
 			return 0;
 
 		assert(i <= sizeofArray(item));
-		TableView::init(item, i, highlightFirst);
+		TableView::init(item, i);
 		return 1;
 	}
 };
@@ -511,7 +511,7 @@ class UnibiosSwitchesView : public TableView
 	BoolMenuItem system
 	{
 		"Mode",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			updateBits(memory.memcard[2], item.on ? IG::bit(7) : 0, 0x80);
@@ -532,13 +532,13 @@ public:
 		region.init(str, setting, sizeofArray(str));
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		uint i = 0;
 		regionInit(); item[i++] = &region;
 		system.init("Console (AES)", "Arcade (MVS)", memory.memcard[2] & 0x80); item[i++] = &system;
 		assert(i <= sizeofArray(item));
-		TableView::init(item, i, highlightFirst);
+		TableView::init(item, i);
 	}
 
 	/*void onShow()
@@ -557,7 +557,7 @@ private:
 	TextMenuItem gameList
 	{
 		"Load Game From List",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto &gameListMenu = *new GameListView{window()};
 			if(!gameListMenu.init(!e.isPointer()))
@@ -565,22 +565,22 @@ private:
 				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
 				return;
 			}
-			viewStack.pushAndShow(gameListMenu);
+			viewStack.pushAndShow(gameListMenu, e);
 		}
 	};
 
 	TextMenuItem unibiosSwitches
 	{
 		"Unibios Switches",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				if(item.active)
 				{
 					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{window()};
-					unibiosSwitchesMenu.init(!e.isPointer());
-					viewStack.pushAndShow(unibiosSwitchesMenu);
+					unibiosSwitchesMenu.init();
+					viewStack.pushAndShow(unibiosSwitchesMenu, e);
 				}
 				else
 				{
@@ -600,7 +600,7 @@ public:
 		unibiosSwitches.active = EmuSystem::gameIsRunning() && isUnibios;
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		name_ = appViewTitle();
 		uint items = 0;
@@ -609,6 +609,6 @@ public:
 		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		TableView::init(item, items, highlightFirst);
+		TableView::init(item, items);
 	}
 };

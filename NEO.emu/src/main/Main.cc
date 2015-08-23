@@ -614,7 +614,7 @@ public:
 		text.compile(projP);
 	}
 
-	void inputEvent(const Input::Event &e) override { }
+	void inputEvent(Input::Event e) override { }
 
 	void draw() override
 	{
@@ -635,6 +635,8 @@ public:
 		setColor(COLOR_WHITE);
 		text.draw(0, 0, C2DO, projP);
 	}
+
+	void onAddedToController(Input::Event e) override {}
 };
 
 static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadGameInBackgroundView)
@@ -730,7 +732,7 @@ int EmuSystem::loadGame(const char *path)
 				modalViewController.pop();
 			auto loadGameInBackgroundView = new LoadGameInBackgroundView{mainWin.win};
 			loadGameInBackgroundView->init();
-			modalViewController.pushAndShow(*loadGameInBackgroundView);
+			modalViewController.pushAndShow(*loadGameInBackgroundView, {});
 			guiPipe.init(
 				[loadGameInBackgroundView](Base::Pipe &pipe)
 				{

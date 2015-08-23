@@ -16,7 +16,7 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
-#include <emuframework/TextEntry.hh>
+#include <imagine/gui/TextEntry.hh>
 #include <algorithm>
 #ifdef __ANDROID__
 #include <imagine/base/android/RootCpufreqParamSetter.hh>
@@ -43,7 +43,7 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 	return desc;
 }
 
-void BiosSelectMenu::onSelectFile(const char* name, const Input::Event &e)
+void BiosSelectMenu::onSelectFile(const char* name, Input::Event e)
 {
 	logMsg("size %d", (int)sizeof(*biosPathStr));
 	string_printf(*biosPathStr, "%s/%s", FS::current_path().data(), name);
@@ -52,48 +52,48 @@ void BiosSelectMenu::onSelectFile(const char* name, const Input::Event &e)
 	viewStack.popAndShow();
 }
 
-void BiosSelectMenu::init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, bool highlightFirst)
+void BiosSelectMenu::init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter)
 {
 	var_selfs(biosPathStr);
 	var_selfs(fsFilter);
-	init(highlightFirst);
+	init();
 }
 
-void BiosSelectMenu::init(bool highlightFirst)
+void BiosSelectMenu::init()
 {
 	assert(biosPathStr);
 	choiceEntry[0].init("Select File"); choiceEntryItem[0] = &choiceEntry[0];
 	choiceEntry[0].onSelect() =
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			workDirStack.push();
 			chdirFromFilePath(biosPathStr->data());
 			auto &fPicker = *new EmuFilePicker{window()};
-			fPicker.init(!e.isPointer(), false, fsFilter);
+			fPicker.init(false, fsFilter);
 			fPicker.setOnSelectFile(
-				[this](FSPicker &picker, const char* name, const Input::Event &e)
+				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
 					onSelectFile(name, e);
 					picker.dismiss();
 				});
 			fPicker.setOnClose(
-				[](FSPicker &picker, const Input::Event &e)
+				[](FSPicker &picker, Input::Event e)
 				{
 					picker.dismiss();
 					workDirStack.pop();
 				});
-			modalViewController.pushAndShow(fPicker);
+			modalViewController.pushAndShow(fPicker, e);
 		};
 	choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
 	choiceEntry[1].onSelect() =
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			strcpy(biosPathStr->data(), "");
 			auto onBiosChange = onBiosChangeD;
 			popAndShow();
 			onBiosChange.callSafe();
 		};
-	TableView::init(choiceEntryItem, sizeofArray(choiceEntry), highlightFirst);
+	TableView::init(choiceEntryItem, sizeofArray(choiceEntry));
 }
 
 void OptionView::autoSaveStateInit()
@@ -453,7 +453,7 @@ public:
 
 	constexpr SavePathSelectMenu() {}
 
-	void onClose(const Input::Event &e)
+	void onClose(Input::Event e)
 	{
 		snprintf(optionSavePath, sizeof(FS::PathString), "%s", FS::current_path().data());
 		logMsg("set save path %s", (char*)optionSavePath);
@@ -461,28 +461,28 @@ public:
 		workDirStack.pop();
 	}
 
-	void init(bool highlightFirst)
+	void init(Input::Event e)
 	{
 		auto &multiChoiceView = *new MultiChoiceView{"Save Path", mainWin.win};
-		multiChoiceView.init(3, highlightFirst);
+		multiChoiceView.init(3);
 		multiChoiceView.setItem(0, "Set Custom Path",
-			[this](TextMenuItem &, View &, const Input::Event &e)
+			[this](TextMenuItem &, View &, Input::Event e)
 			{
 				workDirStack.push();
 				FS::current_path(optionSavePath);
 				auto &fPicker = *new EmuFilePicker{mainWin.win};
-				fPicker.init(!e.isPointer(), true, {});
+				fPicker.init(true, {});
 				fPicker.setOnClose(
-					[this](FSPicker &picker, const Input::Event &e)
+					[this](FSPicker &picker, Input::Event e)
 					{
 						onClose(e);
 						picker.dismiss();
 						viewStack.popAndShow();
 					});
-				modalViewController.pushAndShow(fPicker);
+				modalViewController.pushAndShow(fPicker, e);
 			});
 		multiChoiceView.setItem(1, "Same as Game",
-			[this](TextMenuItem &, View &, const Input::Event &e)
+			[this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto onPathChange = this->onPathChange;
 				viewStack.popAndShow();
@@ -490,14 +490,14 @@ public:
 				if(onPathChange) onPathChange("");
 			});
 		multiChoiceView.setItem(2, "Default",
-			[this](TextMenuItem &, View &, const Input::Event &e)
+			[this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto onPathChange = this->onPathChange;
 				viewStack.popAndShow();
 				strcpy(optionSavePath, optionSavePathDefaultToken);
 				if(onPathChange) onPathChange(optionSavePathDefaultToken);
 			});
-		viewStack.pushAndShow(multiChoiceView);
+		viewStack.pushAndShow(multiChoiceView, e);
 	}
 } pathSelectMenu;
 
@@ -607,7 +607,7 @@ public:
 		fpsText.compile(projP);
 	}
 
-	void inputEvent(const Input::Event &e)
+	void inputEvent(Input::Event e)
 	{
 		if(e.pushed() && e.isDefaultCancelButton())
 		{
@@ -624,6 +624,8 @@ public:
 		fpsText.draw(projP.alignXToPixel(projP.bounds().xCenter()),
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}
+
+	void onAddedToController(Input::Event e) override {}
 };
 
 static class FrameRateSelectMenu
@@ -634,13 +636,13 @@ public:
 
 	constexpr FrameRateSelectMenu() {}
 
-	void init(bool highlightFirst, EmuSystem::VideoSystem vidSys)
+	void init(EmuSystem::VideoSystem vidSys, Input::Event e)
 	{
 		auto &multiChoiceView = *new MultiChoiceView{"Frame Rate", mainWin.win};
 		const bool includeFrameRateDetection = !Config::envIsIOS;
-		multiChoiceView.init(includeFrameRateDetection ? 4 : 3, highlightFirst);
+		multiChoiceView.init(includeFrameRateDetection ? 4 : 3);
 		multiChoiceView.setItem(0, "Set with screen's reported rate",
-			[this](TextMenuItem &, View &view, const Input::Event &e)
+			[this](TextMenuItem &, View &view, Input::Event e)
 			{
 				if(!emuWin->win.screen()->frameRateIsReliable())
 				{
@@ -661,13 +663,13 @@ public:
 				view.popAndShow();
 			});
 		multiChoiceView.setItem(1, "Set default rate",
-			[this, vidSys](TextMenuItem &, View &view, const Input::Event &e)
+			[this, vidSys](TextMenuItem &, View &view, Input::Event e)
 			{
 				onFrameTimeChange.callSafe(EmuSystem::defaultFrameTime(vidSys));
 				view.popAndShow();
 			});
 		multiChoiceView.setItem(2, "Set custom rate",
-			[this](TextMenuItem &, View &view, const Input::Event &e)
+			[this](TextMenuItem &, View &view, Input::Event e)
 			{
 				auto &textInputView = *new CollectTextInputView{view.window()};
 				textInputView.init("Input decimal or fraction", "", getCollectTextCloseAsset());
@@ -696,12 +698,12 @@ public:
 						return 0;
 					};
 				view.popAndShow();
-				modalViewController.pushAndShow(textInputView);
+				modalViewController.pushAndShow(textInputView, e);
 			});
 		if(includeFrameRateDetection)
 		{
 			multiChoiceView.setItem(3, "Detect screen's rate and set",
-				[this](TextMenuItem &, View &view, const Input::Event &e)
+				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					auto &frView = *new DetectFrameRateView{view.window()};
 					frView.init();
@@ -718,14 +720,14 @@ public:
 							}
 						};
 					view.popAndShow();
-					modalViewController.pushAndShow(frView);
+					modalViewController.pushAndShow(frView, e);
 				});
 		}
-		viewStack.pushAndShow(multiChoiceView);
+		viewStack.pushAndShow(multiChoiceView, e);
 	}
 } frameRateSelectMenu;
 
-void FirmwarePathSelector::onClose(const Input::Event &e)
+void FirmwarePathSelector::onClose(Input::Event e)
 {
 	snprintf(optionFirmwarePath, sizeof(FS::PathString), "%s", FS::current_path().data());
 	logMsg("set firmware path %s", (char*)optionFirmwarePath);
@@ -733,34 +735,34 @@ void FirmwarePathSelector::onClose(const Input::Event &e)
 	workDirStack.pop();
 }
 
-void FirmwarePathSelector::init(const char *name, bool highlightFirst)
+void FirmwarePathSelector::init(const char *name, Input::Event e)
 {
 	auto &multiChoiceView = *new MultiChoiceView{name, mainWin.win};
-	multiChoiceView.init(2, highlightFirst);
+	multiChoiceView.init(2);
 	multiChoiceView.setItem(0, "Set Custom Path",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			viewStack.popAndShow();
 			workDirStack.push();
 			FS::current_path(optionFirmwarePath);
 			auto &fPicker = *new EmuFilePicker{mainWin.win};
-			fPicker.init(!e.isPointer(), true, {});
+			fPicker.init(true, {});
 			fPicker.setOnClose(
-				[this](FSPicker &picker, const Input::Event &e)
+				[this](FSPicker &picker, Input::Event e)
 				{
 					onClose(e);
 					picker.dismiss();
 				});
-			modalViewController.pushAndShow(fPicker);
+			modalViewController.pushAndShow(fPicker, e);
 		});
 	multiChoiceView.setItem(1, "Default",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			viewStack.popAndShow();
 			strcpy(optionFirmwarePath, "");
 			if(onPathChange) onPathChange("");
 		});
-	viewStack.pushAndShow(multiChoiceView);
+	viewStack.pushAndShow(multiChoiceView, e);
 }
 
 template <size_t S>
@@ -921,7 +923,7 @@ void OptionView::loadGUIItems(MenuItem *item[], uint &items)
 	}
 }
 
-void OptionView::init(uint idx, bool highlightFirst)
+void OptionView::init(uint idx)
 {
 	uint i = 0;
 	switch(idx)
@@ -933,7 +935,7 @@ void OptionView::init(uint idx, bool highlightFirst)
 		bcase 4: loadGUIItems(item, i);
 	}
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 OptionView::OptionView(Base::Window &win):
@@ -1003,7 +1005,7 @@ OptionView::OptionView(Base::Window &win):
 	dropLateFrames
 	{
 		"Skip Late Frames",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionSkipLateFrames.val = item.on;
@@ -1012,9 +1014,9 @@ OptionView::OptionView(Base::Window &win):
 	frameRate
 	{
 		"",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			frameRateSelectMenu.init(!e.isPointer(), EmuSystem::VIDSYS_NATIVE_NTSC);
+			frameRateSelectMenu.init(EmuSystem::VIDSYS_NATIVE_NTSC, e);
 			frameRateSelectMenu.onFrameTimeChange =
 				[this](double time)
 				{
@@ -1039,9 +1041,9 @@ OptionView::OptionView(Base::Window &win):
 	frameRatePAL
 	{
 		"",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			frameRateSelectMenu.init(!e.isPointer(), EmuSystem::VIDSYS_PAL);
+			frameRateSelectMenu.init(EmuSystem::VIDSYS_PAL, e);
 			frameRateSelectMenu.onFrameTimeChange =
 				[this](double time)
 				{
@@ -1113,7 +1115,7 @@ OptionView::OptionView(Base::Window &win):
 	imgFilter
 	{
 		"Image Interpolation", "None", "Linear",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionImgFilter.val = item.on;
@@ -1232,7 +1234,7 @@ OptionView::OptionView(Base::Window &win):
 	secondDisplay
 	{
 		"2nd Window (for testing only)",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			setEmuViewOnExtraWindow(item.on);
@@ -1243,7 +1245,7 @@ OptionView::OptionView(Base::Window &win):
 	showOnSecondScreen
 	{
 		"External Screen", "OS Managed", "Game Content",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionShowOnSecondScreen = item.on;
@@ -1255,7 +1257,7 @@ OptionView::OptionView(Base::Window &win):
 	dither
 	{
 		"Dither Image",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionDitherImage = item.on;
@@ -1266,7 +1268,7 @@ OptionView::OptionView(Base::Window &win):
 	snd
 	{
 		"Sound",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionSound = item.on;
@@ -1309,7 +1311,7 @@ OptionView::OptionView(Base::Window &win):
 	sndUnderrunCheck
 	{
 		"Strict Underrun Check",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			if(Audio::isOpen())
 				Audio::closePcm();
@@ -1322,7 +1324,7 @@ OptionView::OptionView(Base::Window &win):
 	audioSoloMix
 	{
 		"Mix With Other Apps",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionAudioSoloMix = !item.on;
@@ -1348,7 +1350,7 @@ OptionView::OptionView(Base::Window &win):
 	confirmAutoLoadState
 	{
 		"Confirm Auto-load State",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionConfirmAutoLoadState = item.on;
@@ -1357,7 +1359,7 @@ OptionView::OptionView(Base::Window &win):
 	confirmOverwriteState
 	{
 		"Confirm Overwrite State",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionConfirmOverwriteState = item.on;
@@ -1366,9 +1368,9 @@ OptionView::OptionView(Base::Window &win):
 	savePath
 	{
 		"",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			pathSelectMenu.init(!e.isPointer());
+			pathSelectMenu.init(e);
 			pathSelectMenu.onPathChange =
 				[this](const char *newPath)
 				{
@@ -1388,7 +1390,7 @@ OptionView::OptionView(Base::Window &win):
 	checkSavePathWriteAccess
 	{
 		"Check Save Path Write Access",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionCheckSavePathWriteAccess = item.on;
@@ -1420,7 +1422,7 @@ OptionView::OptionView(Base::Window &win):
 	manageCPUFreq
 	{
 		"Manage Cpufreq Governor (needs root)",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			cpuFreq.reset();
 			if(!item.on)
@@ -1444,7 +1446,7 @@ OptionView::OptionView(Base::Window &win):
 	pauseUnfocused
 	{
 		Config::envIsPS3 ? "Pause in XMB" : "Pause if unfocused",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionPauseUnfocused = item.on;
@@ -1484,7 +1486,7 @@ OptionView::OptionView(Base::Window &win):
 	notificationIcon
 	{
 		"Suspended App Icon",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionNotificationIcon = item.on;
@@ -1520,7 +1522,7 @@ OptionView::OptionView(Base::Window &win):
 	idleDisplayPowerSave
 	{
 		"Dim Screen If Idle",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionIdleDisplayPowerSave = item.on;
@@ -1530,7 +1532,7 @@ OptionView::OptionView(Base::Window &win):
 	navView
 	{
 		"Title Bar",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionTitleBar = item.on;
@@ -1541,7 +1543,7 @@ OptionView::OptionView(Base::Window &win):
 	backNav
 	{
 		"Title Back Navigation",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			View::setNeedsBackControl(item.on);
@@ -1552,7 +1554,7 @@ OptionView::OptionView(Base::Window &win):
 	rememberLastMenu
 	{
 		"Remember Last Menu",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionRememberLastMenu = item.on;
@@ -1561,7 +1563,7 @@ OptionView::OptionView(Base::Window &win):
 	showBundledGames
 	{
 		"Show Bundled Games",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionShowBundledGames = item.on;

@@ -1,4 +1,4 @@
-/*  This file is part of EmuFramework.
+/*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/TextEntry.hh>
+#include <imagine/gui/TextEntry.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gui/TableView.hh>
 
@@ -32,7 +32,7 @@ void TextEntry::setAcceptingInput(bool on)
 	acceptingInput = on;
 }
 
-void TextEntry::inputEvent(const Input::Event &e)
+void TextEntry::inputEvent(Input::Event e)
 {
 	if(e.isPointer() && e.pushed() && b.overlaps({e.x, e.y}))
 	{
@@ -188,7 +188,7 @@ void CollectTextInputView::place()
 	#endif
 }
 
-void CollectTextInputView::inputEvent(const Input::Event &e)
+void CollectTextInputView::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{

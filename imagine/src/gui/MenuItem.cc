@@ -70,7 +70,7 @@ void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC y
 void BaseTextMenuItem::compile(const Gfx::ProjectionPlane &projP) { t.compile(projP); }
 int BaseTextMenuItem::ySize() { return t.face->nominalHeight(); }
 Gfx::GC BaseTextMenuItem::xSize() { return t.xSize; }
-void TextMenuItem::select(View &parent, const Input::Event &e)
+void TextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");
 	if(selectD)
@@ -80,7 +80,7 @@ void TextMenuItem::select(View &parent, const Input::Event &e)
 	}
 }
 
-void DualTextMenuItem::select(View &parent, const Input::Event &e)
+void DualTextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");
 	if(selectD)
@@ -186,7 +186,7 @@ void BoolMenuItem::toggle(View &view)
 		set(1, view);
 }
 
-void BoolMenuItem::select(View &parent, const Input::Event &e)
+void BoolMenuItem::select(View &parent, Input::Event e)
 {
 	if(selectD)
 	{
@@ -268,7 +268,7 @@ void MultiChoiceMenuItem::setVal(int val, View &view)
 	}
 }
 
-bool MultiChoiceMenuItem::set(int val, const Input::Event &e, View &view)
+bool MultiChoiceMenuItem::set(int val, Input::Event e, View &view)
 {
 	setVal(val, view);
 	return 1;

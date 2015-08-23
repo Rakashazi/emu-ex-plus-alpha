@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TableView.hh>
-#include <emuframework/MultiChoiceView.hh>
+#include <imagine/gui/MultiChoiceView.hh>
 #include <emuframework/EmuOptions.hh>
 
 class TouchConfigView : public TableView
@@ -71,7 +71,7 @@ public:
 
 public:
 	TouchConfigView(Base::Window &win, const char *faceBtnName, const char *centerBtnName);
-	void init(bool highlightFirst);
+	void init();
 	void place() override;
 	void draw() override;
 };

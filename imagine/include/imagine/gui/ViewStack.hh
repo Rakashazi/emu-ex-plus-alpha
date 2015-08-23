@@ -32,15 +32,15 @@ class BasicViewController : public ViewController
 public:
 	constexpr BasicViewController() {}
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
-	void push(View &v);
-	void pushAndShow(View &v, bool needsNavView) override;
-	void pushAndShow(View &v);
+	void push(View &v, Input::Event e);
+	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
+	void pushAndShow(View &v, Input::Event e);
 	void pop() override;
 	void dismissView(View &v) override;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool hasView() { return view; }
-	void inputEvent(const Input::Event &e);
+	void inputEvent(Input::Event e);
 	void draw();
 	void init(const Base::Window &win);
 };
@@ -59,17 +59,15 @@ public:
 	bool useNavView = 0;
 
 	constexpr ViewStack() {}
-	constexpr ViewStack(View &root): view{&root}, size{1} {}
-	void init(const Base::Window &win);
 	void setNavView(NavView *nav);
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
-	void inputEvent(const Input::Event &e);
+	void inputEvent(Input::Event e);
 	void draw();
-	void push(View &v);
-	void pushAndShow(View &v, bool needsNavView) override;
-	void pushAndShow(View &v);
+	void push(View &v, Input::Event e);
+	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
+	void pushAndShow(View &v, Input::Event e);
 	void pop() override;
 	void popAndShow() override;
 	void popToRoot();

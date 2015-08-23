@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MultiChoiceView.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/StateSlotView.hh>
 #ifdef CONFIG_BLUETOOTH
@@ -23,7 +24,6 @@
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
 #include <imagine/config/version.h>
-#include <emuframework/MultiChoiceView.hh>
 #include <emuframework/VController.hh>
 
 class OptionCategoryView : public TableView
@@ -40,7 +40,7 @@ class OptionCategoryView : public TableView
 
 public:
 	OptionCategoryView(Base::Window &win): TableView{"Options", win} {}
-	void init(bool highlightFirst);
+	void init();
 };
 
 class RecentGameView : public TableView
@@ -52,7 +52,7 @@ private:
 
 public:
 	RecentGameView(Base::Window &win);
-	void init(bool highlightFirst);
+	void init();
 };
 
 class MenuView : public TableView
@@ -62,7 +62,7 @@ public:
 	void onShow() override;
 	void loadFileBrowserItems(MenuItem *item[], uint &items);
 	void loadStandardItems(MenuItem *item[], uint &items);
-	virtual void init(bool highlightFirst);
+	virtual void init();
 
 	static const uint STANDARD_ITEMS = 19;
 	static const uint MAX_SYSTEM_ITEMS = 3;

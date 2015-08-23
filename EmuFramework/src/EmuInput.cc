@@ -191,7 +191,7 @@ IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
 	return {x, y};
 }
 
-void processRelPtr(const Input::Event &e)
+void processRelPtr(Input::Event e)
 {
 	using namespace IG;
 	if(relPtr.x != 0 && signOf(relPtr.x) != signOf(e.x))
@@ -281,7 +281,7 @@ void commonUpdateInput()
 #endif
 }
 
-bool isMenuDismissKey(const Input::Event &e)
+bool isMenuDismissKey(Input::Event e)
 {
 	using namespace Input;
 	Key dismissKey = Keycode::MENU;

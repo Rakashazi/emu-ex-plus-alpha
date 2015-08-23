@@ -117,7 +117,7 @@ public:
 	static bool readConfig(IO &io, uint key, uint readSize);
 	static int loadGame(const char *path);
 	static int loadGameFromIO(IO &io, const char *origFilename);
-	typedef DelegateFunc<void (uint result, const Input::Event &e)> LoadGameCompleteDelegate;
+	typedef DelegateFunc<void (uint result, Input::Event e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }
 	[[gnu::hot]] static void runFrame(bool renderGfx, bool processGfx, bool renderAudio);

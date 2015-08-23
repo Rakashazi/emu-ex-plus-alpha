@@ -32,13 +32,13 @@ using RefreshCheatsDelegate = DelegateFunc<void ()>;
 class BaseCheatsView : public TableView
 {
 protected:
-	TextMenuItem edit;
+	TextMenuItem edit{};
 	MenuItem *item[EmuCheats::MAX_ITEMS + 1]{};
 	RefreshCheatsDelegate onRefreshCheats{};
 
 public:
 	BaseCheatsView(Base::Window &win);
-	void init(bool highlightFirst);
+	void init();
 	void deinit() override;
 	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;
 };
@@ -46,7 +46,7 @@ public:
 class EditCheatView : public TableView
 {
 protected:
-	TextMenuItem name, remove;
+	TextMenuItem name{}, remove{};
 
 public:
 	EditCheatView(const char *name, Base::Window &win);
@@ -64,7 +64,7 @@ protected:
 
 public:
 	BaseEditCheatListView(Base::Window &win);
-	void init(bool highlightFirst);
+	void init();
 	void deinit() override;
 	virtual void loadAddCheatItems(MenuItem *item[], uint &items) = 0;
 	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;

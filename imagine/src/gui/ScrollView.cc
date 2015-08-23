@@ -23,14 +23,7 @@
 #include <algorithm>
 #include <cmath>
 
-void ContentDrag::init(uint axis)
-{
-	dragStartX = dragStartY = 0;
-	active = pushed = 0;
-	this->axis = axis;
-}
-
-ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, const Input::Event &e)
+ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, Input::Event e)
 {
 	if(!Config::Input::POINTING_DEVICES || (pushed && e.devId != devId))
 		return NO_CHANGE;
@@ -72,27 +65,13 @@ ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, const Input
 	}
 }
 
-void KScroll::init(const IG::WindowRect *viewFrame, const IG::WindowRect *contentFrame)
-{
-	ContentDrag::init();
-	offset = start = 0;
-	prevOffset = 0;
-	vel = 0;
-	assert(contentFrame);
-	assert(viewFrame);
-	this->viewFrame = viewFrame;
-	this->contentFrame = contentFrame;
-	scrollWholeArea = allowScrollWholeArea = 0;
-}
-
-void KScroll::place(View &view)
+void KScroll::place(View &view, IG::WindowRect viewFrame)
 {
 	assert(contentFrame);
-	assert(viewFrame);
 	dragStartY = std::max(1, Config::envIsAndroid ? view.window().heightSMMInPixels(1.5) : view.window().heightSMMInPixels(1.));
-	maxClip = contentFrame->ySize() - viewFrame->ySize();
-	if(viewFrame->ySize() > 0)
-		allowScrollWholeArea = contentFrame->ySize() / viewFrame->ySize() > 3;
+	maxClip = contentFrame->ySize() - viewFrame.ySize();
+	if(viewFrame.ySize() > 0)
+		allowScrollWholeArea = contentFrame->ySize() / viewFrame.ySize() > 3;
 	else
 		allowScrollWholeArea = 0;
 }
@@ -156,12 +135,12 @@ void KScroll::decel2(View &view)
 	}
 }
 
-bool KScroll::inputEvent(const Input::Event &e, View &view)
+bool KScroll::inputEvent(Input::Event e, View &view, IG::WindowRect viewFrame)
 {
 	if(!Config::Input::POINTING_DEVICES)
 		return false;
 	auto dragState = Input::dragState(e.devId);
-	switch(ContentDrag::inputEvent(*viewFrame, e))
+	switch(ContentDrag::inputEvent(viewFrame, e))
 	{
 		case ContentDrag::PUSHED:
 		{
@@ -172,7 +151,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 		case ContentDrag::ENTERED_ACTIVE:
 		{
 			//logMsg("in scroll");
-			if(allowScrollWholeArea && (e.x > viewFrame->xSize() - view.window().widthSMMInPixels(7.5)))
+			if(allowScrollWholeArea && (e.x > viewFrame.xSize() - view.window().widthSMMInPixels(7.5)))
 			{
 				logMsg("scrolling all content");
 				scrollWholeArea = 1;
@@ -197,7 +176,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 			if(scrollWholeArea)
 			{
 				//logMsg("%d from %d-%d to %d-%d", e.y, 0, gfx_viewPixelHeight(), 0, maxClip);
-				offset = IG::scalePointRange((Gfx::GC)e.y, (Gfx::GC)viewFrame->y, (Gfx::GC)viewFrame->y + (Gfx::GC)viewFrame->ySize(), (Gfx::GC)0, (Gfx::GC)maxClip);
+				offset = IG::scalePointRange((Gfx::GC)e.y, (Gfx::GC)viewFrame.y, (Gfx::GC)viewFrame.y + (Gfx::GC)viewFrame.ySize(), (Gfx::GC)0, (Gfx::GC)maxClip);
 				//logMsg("offset %d", offset);
 				offset = IG::clamp(offset, 0, maxClip);
 			}
@@ -215,7 +194,7 @@ bool KScroll::inputEvent(const Input::Event &e, View &view)
 	}
 }
 
-bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &view)
+bool KScroll::inputEvent(int minClip, int maxClip, Input::Event e, View &view, IG::WindowRect viewFrame)
 {
 	prevOffset = offset;
 	bool ret = 0;
@@ -244,7 +223,7 @@ bool KScroll::inputEvent(int minClip, int maxClip, const Input::Event &e, View &
 	}
 	else
 	{
-		ret = e.isPointer() ? inputEvent(e, view) : 0;
+		ret = e.isPointer() ? inputEvent(e, view, viewFrame) : 0;
 	}
 	clipDragOverEdge(minClip, maxClip);
 	if(maxClip < minClip)
@@ -271,17 +250,12 @@ void KScroll::animate(int minClip, int maxClip, View &view)
 		decel2(view);
 }
 
-void ScrollView::init()
-{
-	scroll.init(&viewRect(), &contentSize);
-}
-
 void ScrollView::setContentSize(IG::WP size)
 {
 	contentSize = {0, 0, size.x, size.y};
 	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
 	//scrollFrame.setPosRel(rect.pos(LT2DO), rect.size(), LT2DO);
-	scroll.place(*this);
+	scroll.place(*this, viewRect());
 	contentIsBiggerThanView = contentSize.y > viewRect().ySize();
 	scrollBarRect.x = viewRect().x2 - 5;
 	scrollBarRect.x2 = scrollBarRect.x + 3;
@@ -321,12 +295,12 @@ void ScrollView::drawScrollContent()
 	}
 }
 
-int ScrollView::scrollInputEvent(const Input::Event &e)
+int ScrollView::scrollInputEvent(Input::Event e)
 {
 	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
 	int scrollHasControl = 0;
 	auto oldOffset = scroll.offset;
-	if(scroll.inputEvent(0, contentSize.y - viewRect().ySize(), e, *this))
+	if(scroll.inputEvent(0, contentSize.y - viewRect().ySize(), e, *this, viewRect()))
 	{
 		scrollHasControl = 1;
 	}

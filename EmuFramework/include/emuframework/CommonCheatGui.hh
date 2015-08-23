@@ -18,9 +18,9 @@
 #include <emuframework/EmuApp.hh>
 #include <main/EmuCheatViews.hh>
 
-View *makeEditCheatListView(Base::Window &win, const Input::Event &e)
+View *makeEditCheatListView(Base::Window &win)
 {
 	auto editCheatListView = new EditCheatListView{win};
-	editCheatListView->init(!e.isPointer());
+	editCheatListView->init();
 	return editCheatListView;
 }

@@ -32,18 +32,19 @@ public:
 	TableView(Base::Window &win): ScrollView(win) {}
 	TableView(const char *name, Base::Window &win) : ScrollView(name, win) {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
-	void init(MenuItem **item, uint items, bool highlightFirst, _2DOrigin align = LC2DO);
+	void init(MenuItem **item, uint items, _2DOrigin align = LC2DO);
 	void deinit() override;
 	void draw() override;
 	void place() override;
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
-	void inputEvent(const Input::Event &event) override;
+	void inputEvent(Input::Event event) override;
 	void clearSelection() override;
+	void onAddedToController(Input::Event e) override;
 	static void setDefaultXIndent(const Gfx::ProjectionPlane &projP);
 	int cells() const { return cells_; }
 	IG::WP cellSize() const { return {viewFrame.x, yCellSize}; }
-	void highlightFirstCell();
+	void highlightCell(int idx);
 
 protected:
 	bool selectedIsActivated = false;
@@ -53,14 +54,14 @@ protected:
 	int visibleCells = 0;
 	MenuItem **item{};
 	IG::WindowRect viewFrame{};
-	_2DOrigin align{};
+	_2DOrigin align{LC2DO};
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();
-	void onSelectElement(const Input::Event &e, uint i);
+	void onSelectElement(Input::Event e, uint i);
 	bool elementIsSelectable(uint element);
 	int nextSelectableElement(int start);
 	int prevSelectableElement(int start);
-	bool handleTableInput(const Input::Event &e);
+	bool handleTableInput(Input::Event e);
 	virtual void drawElement(uint i, Gfx::GCRect rect) const;
 };

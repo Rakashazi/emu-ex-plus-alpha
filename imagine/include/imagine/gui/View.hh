@@ -29,7 +29,7 @@ class ViewController
 {
 public:
 	constexpr ViewController() {}
-	virtual void pushAndShow(View &v, bool needsNavView) = 0;
+	virtual void pushAndShow(View &v, Input::Event e, bool needsNavView) = 0;
 	virtual void pop() = 0;
 	virtual void popAndShow() { pop(); };
 	virtual void dismissView(View &v) = 0;
@@ -60,9 +60,10 @@ public:
 	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
 	virtual void draw() = 0;
-	virtual void inputEvent(const Input::Event &event) = 0;
+	virtual void inputEvent(Input::Event event) = 0;
 	virtual void clearSelection() {} // de-select any items from previous input
 	virtual void onShow() {}
+	virtual void onAddedToController(Input::Event e) = 0;
 
 	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
 	void postDraw();
@@ -72,11 +73,11 @@ public:
 	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms();
 	void dismiss();
-	void pushAndShow(View &v, bool needsNavView = true);
+	void pushAndShow(View &v, Input::Event e, bool needsNavView = true);
 	void pop();
 	void popAndShow();
 	void show();
 	void setWindow(Base::Window *w) { win = w; }
-	void setController(ViewController *c) { controller = c; }
+	void setController(ViewController *c, Input::Event e);
 	Gfx::ProjectionPlane projection() { return projP; }
 };

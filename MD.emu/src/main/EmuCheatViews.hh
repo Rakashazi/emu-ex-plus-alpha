@@ -16,7 +16,7 @@ private:
 
 public:
 	SystemEditCheatView(Base::Window &win);
-	void init(bool highlightFirst, MdCheat &cheat);
+	void init(MdCheat &cheat);
 };
 
 extern SystemEditCheatView editCheatView;
@@ -37,7 +37,7 @@ public:
 class CheatsView : public BaseCheatsView
 {
 private:
-	BoolMenuItem cheat[EmuCheats::MAX];
+	BoolMenuItem cheat[EmuCheats::MAX]{};
 
 	void loadCheatItems(MenuItem *item[], uint &i) override;
 

@@ -125,12 +125,10 @@ void FSPicker::place()
 	navV.place(projP);
 }
 
-void FSPicker::changeDirByInput(const char *path, const Input::Event &e)
+void FSPicker::changeDirByInput(const char *path, Input::Event e)
 {
-	if(setPath(path) != OK)
+	if(setPath(path, e) != OK)
 		return;
-	if(!e.isPointer())
-		tbl.highlightFirstCell();
 	place();
 	postDraw();
 }
@@ -145,12 +143,12 @@ void FSPicker::setOnClose(OnCloseDelegate del)
 	onCloseD = del;
 }
 
-void FSPicker::onLeftNavBtn(const Input::Event &e)
+void FSPicker::onLeftNavBtn(Input::Event e)
 {
 	changeDirByInput("..", e);
 }
 
-void FSPicker::onRightNavBtn(const Input::Event &e)
+void FSPicker::onRightNavBtn(Input::Event e)
 {
 	onCloseD(*this, e);
 }
@@ -160,7 +158,7 @@ void FSPicker::setOnPathReadError(OnPathReadError del)
 	onPathReadError = del;
 }
 
-void FSPicker::inputEvent(const Input::Event &e)
+void FSPicker::inputEvent(Input::Event e)
 {
 	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
 	{
@@ -191,7 +189,12 @@ void FSPicker::draw()
 	navV.draw(window(), projP);
 }
 
-CallResult FSPicker::setPath(const char *path)
+void FSPicker::onAddedToController(Input::Event e)
+{
+	tbl.onAddedToController(e);
+}
+
+CallResult FSPicker::setPath(const char *path, Input::Event e)
 {
 	assert(path);
 	{
@@ -236,7 +239,7 @@ CallResult FSPicker::setPath(const char *path)
 			textPtr[i] = &text[i];
 			if(FS::status(dir[i].data()).type() == FS::file_type::directory)
 			{
-				text[i].onSelect() = [this, i](TextMenuItem &, View &, const Input::Event &e)
+				text[i].onSelect() = [this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						assert(!singleDir);
 						logMsg("going to dir %s", dir[i].data());
@@ -245,7 +248,7 @@ CallResult FSPicker::setPath(const char *path)
 			}
 			else
 			{
-				text[i].onSelect() = [this, i](TextMenuItem &, View &, const Input::Event &e)
+				text[i].onSelect() = [this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						onSelectFileD(*this, dir[i].data(), e);
 					};
@@ -259,7 +262,14 @@ CallResult FSPicker::setPath(const char *path)
 		mem_free(textPtr);
 		textPtr = nullptr;
 	}
-	tbl.init(textPtr, dir.size(), false); // TODO: highlight first cell
+	tbl.init(textPtr, dir.size());
+	if(!e.isPointer())
+		tbl.highlightCell(0);
 	navV.setTitle(FS::current_path().data());
 	return OK;
+}
+
+CallResult FSPicker::setPath(const char *path)
+{
+	return setPath(path, Input::defaultEvent());
 }

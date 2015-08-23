@@ -54,13 +54,13 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &cheatsMenu = *new CheatsView{window()};
-				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu);
+				cheatsMenu.init();
+				viewStack.pushAndShow(cheatsMenu, e);
 			}
 		}
 	};
@@ -74,7 +74,7 @@ public:
 		cheats.active = EmuSystem::gameIsRunning();
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		name_ = appViewTitle();
 		uint items = 0;
@@ -82,6 +82,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		TableView::init(item, items, highlightFirst);
+		TableView::init(item, items);
 	}
 };

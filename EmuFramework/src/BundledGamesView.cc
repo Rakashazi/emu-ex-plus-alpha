@@ -20,15 +20,15 @@
 #include <imagine/io/BufferMapIO.hh>
 #include <unzip.h>
 
-void loadGameCompleteFromRecentItem(uint result, const Input::Event &e);
+void loadGameCompleteFromRecentItem(uint result, Input::Event e);
 
-void BundledGamesView::init(bool highlightFirst)
+void BundledGamesView::init()
 {
 	uint i = 0;
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0].init(info.displayName); item[i++] = &game[0];
 	game[0].onSelect() =
-		[&info](TextMenuItem &t, View &, const Input::Event &ev)
+		[&info](TextMenuItem &t, View &, Input::Event ev)
 		{
 			#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 			auto file = openAppAssetIO(info.assetName);
@@ -70,7 +70,7 @@ void BundledGamesView::init(bool highlightFirst)
 			}
 		};
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 [[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)

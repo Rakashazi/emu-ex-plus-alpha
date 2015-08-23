@@ -36,7 +36,7 @@ void CreditsView::place()
 	text.compile(projP);
 }
 
-void CreditsView::inputEvent(const Input::Event &e)
+void CreditsView::inputEvent(Input::Event e)
 {
 	if((e.isPointer() && rect.overlaps({e.x, e.y}) && e.state == Input::RELEASED)
 			|| (!e.isPointer() && e.state == Input::PUSHED))

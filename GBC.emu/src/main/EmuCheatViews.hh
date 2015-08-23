@@ -5,16 +5,16 @@
 class SystemEditCheatView : public EditCheatView
 {
 private:
-	DualTextMenuItem ggCode;
-	GbcCheat *cheat = nullptr;
-	MenuItem *item[3] {nullptr};
+	DualTextMenuItem ggCode{};
+	GbcCheat *cheat{};
+	MenuItem *item[3]{};
 
 	void renamed(const char *str) override;
 	void removed() override;
 
 public:
 	SystemEditCheatView(Base::Window &win);
-	void init(bool highlightFirst, GbcCheat &cheat);
+	void init(GbcCheat &cheat);
 };
 
 extern SystemEditCheatView editCheatView;
@@ -22,8 +22,8 @@ extern SystemEditCheatView editCheatView;
 class EditCheatListView : public BaseEditCheatListView
 {
 private:
-	TextMenuItem addGGGS;
-	TextMenuItem cheat[EmuCheats::MAX];
+	TextMenuItem addGGGS{};
+	TextMenuItem cheat[EmuCheats::MAX]{};
 
 	void loadAddCheatItems(MenuItem *item[], uint &items) override;
 	void loadCheatItems(MenuItem *item[], uint &items) override;
@@ -35,7 +35,7 @@ public:
 class CheatsView : public BaseCheatsView
 {
 private:
-	BoolMenuItem cheat[EmuCheats::MAX];
+	BoolMenuItem cheat[EmuCheats::MAX]{};
 
 	void loadCheatItems(MenuItem *item[], uint &i) override;
 

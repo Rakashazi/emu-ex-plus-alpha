@@ -11,7 +11,7 @@ public:
 
 	BoolMenuItem sixButtonPad
 	{
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			option6BtnPad = item.on;
@@ -24,7 +24,7 @@ public:
 	},
 	multitap
 	{
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			usingMultiTap = item.on;
@@ -33,7 +33,7 @@ public:
 	},
 	smsFM
 	{
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionSmsFM = item.on;
@@ -42,19 +42,19 @@ public:
 	},
 	bigEndianSram
 	{
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			auto &ynAlertView = *new YesNoAlertView{window(),
 				"Warning, this changes the format of SRAM saves files. "
 				"Turn on to make them compatible with other emulators like Gens. "
-				"Any SRAM loaded with the incorrect setting will be corrupted.", !e.isPointer()};
+				"Any SRAM loaded with the incorrect setting will be corrupted."};
 			ynAlertView.onYes() =
-				[this, &item](const Input::Event &e)
+				[this, &item](Input::Event e)
 				{
 					item.toggle(*this);
 					optionBigEndianSram = item.on;
 				};
-			modalViewController.pushAndShow(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView, e);
 		}
 	};
 
@@ -109,9 +109,9 @@ public:
 	char cdBiosPathStr[3][256] { {0} };
 	TextMenuItem cdBiosPath[3]
 	{
-		{ [this](TextMenuItem &item, View &, const Input::Event &e){ cdBiosPathHandler(e, REGION_USA); } },
-		{ [this](TextMenuItem &item, View &, const Input::Event &e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); } },
-		{ [this](TextMenuItem &item, View &, const Input::Event &e){ cdBiosPathHandler(e, REGION_EUROPE); } }
+		{ [this](TextMenuItem &item, View &, Input::Event e){ cdBiosPathHandler(e, REGION_USA); } },
+		{ [this](TextMenuItem &item, View &, Input::Event e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); } },
+		{ [this](TextMenuItem &item, View &, Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); } }
 	};
 
 	template <size_t S>
@@ -128,10 +128,10 @@ public:
 		string_printf(str, "%s: %s", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
 	}
 
-	void cdBiosPathHandler(const Input::Event &e, int region)
+	void cdBiosPathHandler(Input::Event e, int region)
 	{
 		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), isMDExtension, window()};
-		biosSelectMenu.init(!e.isPointer());
+		biosSelectMenu.init();
 		biosSelectMenu.onBiosChange() =
 			[this, region]()
 			{
@@ -140,7 +140,7 @@ public:
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
 				cdBiosPath[idx].compile(projP);
 			};
-		viewStack.pushAndShow(biosSelectMenu);
+		viewStack.pushAndShow(biosSelectMenu, e);
 	}
 
 	void cdBiosPathInit(MenuItem *item[], uint &items)
@@ -250,7 +250,7 @@ public:
 		#endif
 	}
 
-	void init(uint idx, bool highlightFirst)
+	void init(uint idx)
 	{
 		uint i = 0;
 		switch(idx)
@@ -262,7 +262,7 @@ public:
 			bcase 4: loadGUIItems(item, i);
 		}
 		assert(i <= sizeofArray(item));
-		TableView::init(item, i, highlightFirst);
+		TableView::init(item, i);
 	}
 };
 
@@ -275,13 +275,13 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &cheatsMenu = *new CheatsView{window()};
-				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu);
+				cheatsMenu.init();
+				viewStack.pushAndShow(cheatsMenu, e);
 			}
 		}
 	};
@@ -295,7 +295,7 @@ public:
 		cheats.active = EmuSystem::gameIsRunning();
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		name_ = appViewTitle();
 		uint items = 0;
@@ -303,6 +303,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		TableView::init(item, items, highlightFirst);
+		TableView::init(item, items);
 	}
 };

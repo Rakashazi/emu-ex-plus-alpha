@@ -18,12 +18,12 @@ struct MdCheat
 {
 	constexpr MdCheat() { }
 	uchar flags = 0;
-	char name[MAX_CHEAT_NAME_CHARS+1] {0};
-	char code[12] {0};
+	char name[MAX_CHEAT_NAME_CHARS+1]{};
+	char code[12]{};
 	uint32 address = 0;
 	uint16 data = 0;
 	uint16 origData = 0;
-	uint8 *prev = nullptr;
+	uint8 *prev{};
 
 	static const uint ON = IG::bit(0), APPLIED = IG::bit(1);
 

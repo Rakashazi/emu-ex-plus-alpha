@@ -85,12 +85,12 @@ Gfx::PixmapTexture *getCollectTextCloseAsset()
 	return Config::envIsAndroid ? nullptr : &getAsset(ASSET_CLOSE);
 }
 
-void EmuNavView::onLeftNavBtn(const Input::Event &e)
+void EmuNavView::onLeftNavBtn(Input::Event e)
 {
 	viewStack.popAndShow();
 };
 
-void EmuNavView::onRightNavBtn(const Input::Event &e)
+void EmuNavView::onRightNavBtn(Input::Event e)
 {
 	if(EmuSystem::gameIsRunning())
 	{
@@ -353,7 +353,7 @@ void setEmuViewOnExtraWindow(bool on)
 			});
 
 		winConf.setOnInputEvent(
-			[](Base::Window &win, const Input::Event &e)
+			[](Base::Window &win, Input::Event e)
 			{
 				if(!e.isPointer())
 				{
@@ -682,7 +682,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	Base::WindowConfig winConf;
 
 	winConf.setOnInputEvent(
-		[](Base::Window &win, const Input::Event &e)
+		[](Base::Window &win, Input::Event e)
 		{
 			Gfx::bind();
 			handleInputEvent(win, e);
@@ -800,7 +800,6 @@ void mainInitWindowCommon(Base::Window &win)
 				startGameFromMenu();
 			}
 		};
-	viewStack.init(win);
 	if(optionTitleBar)
 	{
 		//logMsg("title bar on");
@@ -813,26 +812,26 @@ void mainInitWindowCommon(Base::Window &win)
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
 	{
-		auto &ynAlertView = *new YesNoAlertView{win, "Warning: App has been modified by 3rd party, use at your own risk", false};
+		auto &ynAlertView = *new YesNoAlertView{win, "Warning: App has been modified by 3rd party, use at your own risk"};
 		ynAlertView.onNo() =
-			[](const Input::Event &e)
+			[](Input::Event e)
 			{
 				Base::exit();
 			};
-		modalViewController.pushAndShow(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
 	}
 	#endif
 
 	placeElements();
 	initMainMenu(win);
 	auto &mMenu = mainMenu();
-	viewStack.pushAndShow(mMenu);
+	viewStack.pushAndShow(mMenu, Input::defaultEvent());
 
 	win.show();
 	win.postDraw();
 }
 
-void handleInputEvent(Base::Window &win, const Input::Event &e)
+void handleInputEvent(Base::Window &win, Input::Event e)
 {
 	if(e.isPointer())
 	{
@@ -888,8 +887,8 @@ void handleOpenFileCommand(const char *filename)
 		FS::current_path(filename);
 		viewStack.popToRoot();
 		auto &fPicker = *new EmuFilePicker{mainWin.win};
-		fPicker.init(Input::keyInputIsPresent(), false);
-		viewStack.pushAndShow(fPicker, false);
+		fPicker.init(false);
+		viewStack.pushAndShow(fPicker, Input::defaultEvent());
 		return;
 	}
 	if(type != FS::file_type::regular || !EmuFilePicker::defaultFsFilter(filename))

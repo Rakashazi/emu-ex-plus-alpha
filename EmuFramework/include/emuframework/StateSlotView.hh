@@ -29,5 +29,5 @@ private:
 
 public:
 	StateSlotView(Base::Window &win): TableView{"State Slot", win} {}
-	void init(bool highlightFirst);
+	void init();
 };

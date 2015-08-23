@@ -49,7 +49,7 @@ void EmuInputView::updateFastforward()
 	fastForwardActive = ffKeyPushed || ffToggleActive;
 }
 
-void EmuInputView::inputEvent(const Input::Event &e)
+void EmuInputView::inputEvent(Input::Event e)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
@@ -135,9 +135,9 @@ void EmuInputView::inputEvent(const Input::Event &e)
 						restoreMenuFromGame();
 						viewStack.popToRoot();
 						auto &fPicker = *new EmuFilePicker{window()};
-						fPicker.init(Input::keyInputIsPresent(), false);
+						fPicker.init(false);
 						viewStack.useNavView = 0;
-						viewStack.pushAndShow(fPicker);
+						viewStack.pushAndShow(fPicker, e);
 						return;
 					}
 
@@ -168,19 +168,19 @@ void EmuInputView::inputEvent(const Input::Event &e)
 						}
 						else
 						{
-							auto &ynAlertView = *new YesNoAlertView{window(), "Really Overwrite State?", !e.isPointer()};
+							auto &ynAlertView = *new YesNoAlertView{window(), "Really Overwrite State?"};
 							ynAlertView.onYes() =
-								[](const Input::Event &e)
+								[](Input::Event e)
 								{
 									doSaveState();
 									startGameFromMenu();
 								};
 							ynAlertView.onNo() =
-								[](const Input::Event &e)
+								[](Input::Event e)
 								{
 									startGameFromMenu();
 								};
-							modalViewController.pushAndShow(ynAlertView);
+							modalViewController.pushAndShow(ynAlertView, e);
 							restoreMenuFromGame();
 						}
 						return;
@@ -227,13 +227,13 @@ void EmuInputView::inputEvent(const Input::Event &e)
 					if(e.state == Input::PUSHED)
 					{
 						logMsg("request exit from key event");
-						auto &ynAlertView = *new YesNoAlertView{window(), "Really Exit?", Input::keyInputIsPresent()};
+						auto &ynAlertView = *new YesNoAlertView{window(), "Really Exit?"};
 						ynAlertView.onYes() =
-							[](const Input::Event &e)
+							[](Input::Event e)
 							{
 								Base::exit();
 							};
-						modalViewController.pushAndShow(ynAlertView);
+						modalViewController.pushAndShow(ynAlertView, e);
 						restoreMenuFromGame();
 						return;
 					}

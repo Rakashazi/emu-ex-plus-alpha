@@ -15,10 +15,10 @@ public:
 	TextMenuItem fdsBiosPath
 	{
 		"",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, isFDSBIOSExtension, window()};
-			biosSelectMenu.init(!e.isPointer());
+			biosSelectMenu.init();
 			biosSelectMenu.onBiosChange() =
 				[this]()
 				{
@@ -26,7 +26,7 @@ public:
 					printBiosMenuEntryStr(fdsBiosPathStr);
 					fdsBiosPath.compile(projP);
 				};
-			viewStack.pushAndShow(biosSelectMenu);
+			viewStack.pushAndShow(biosSelectMenu, e);
 		}
 	};
 
@@ -39,7 +39,7 @@ public:
 	BoolMenuItem fourScore
 	{
 		"4-Player Adapter",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionFourScore = item.on;
@@ -152,7 +152,7 @@ private:
 	{
 		{
 			"Set Disk 1 Side A",
-			[](TextMenuItem &, View &view, const Input::Event &e)
+			[](TextMenuItem &, View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(0);
 				view.popAndShow();
@@ -160,7 +160,7 @@ private:
 		},
 		{
 			"Set Disk 1 Side B",
-			[](TextMenuItem &, View &view, const Input::Event &e)
+			[](TextMenuItem &, View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(1);
 				view.popAndShow();
@@ -168,7 +168,7 @@ private:
 		},
 		{
 			"Set Disk 2 Side A",
-			[](TextMenuItem &, View &view, const Input::Event &e)
+			[](TextMenuItem &, View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(2);
 				view.popAndShow();
@@ -176,7 +176,7 @@ private:
 		},
 		{
 			"Set Disk 2 Side B",
-			[](TextMenuItem &, View &view, const Input::Event &e)
+			[](TextMenuItem &, View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(3);
 				view.popAndShow();
@@ -187,7 +187,7 @@ private:
 	TextMenuItem insertEject
 	{
 		"Eject",
-		[](TextMenuItem &, View &, const Input::Event &e)
+		[](TextMenuItem &, View &, Input::Event e)
 		{
 			if(FCEU_FDSInserted())
 			{
@@ -202,7 +202,7 @@ private:
 public:
 	FDSControlView(Base::Window &win): TableView{"FDS Control", win} {}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		uint i = 0;
 		setSide[0].init(0 < FCEU_FDSSides()); item[i++] = &setSide[0];
@@ -211,7 +211,7 @@ public:
 		setSide[3].init(3 < FCEU_FDSSides()); item[i++] = &setSide[3];
 		insertEject.init(FCEU_FDSInserted()); item[i++] = &insertEject;
 		assert(i <= sizeofArray(item));
-		TableView::init(item, i, highlightFirst);
+		TableView::init(item, i);
 	}
 };
 
@@ -223,13 +223,13 @@ private:
 	TextMenuItem fdsControl
 	{
 		"",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
 				auto &fdsMenu = *new FDSControlView{window()};
-				fdsMenu.init(!e.isPointer());
-				pushAndShow(fdsMenu);
+				fdsMenu.init();
+				pushAndShow(fdsMenu, e);
 			}
 			else
 				popup.post("Disk System not in use", 2);
@@ -239,13 +239,13 @@ private:
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &cheatsMenu = *new CheatsView{window()};
-				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu);
+				cheatsMenu.init();
+				viewStack.pushAndShow(cheatsMenu, e);
 			}
 		}
 	};
@@ -273,7 +273,7 @@ public:
 		refreshFDSItem();
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		name_ = appViewTitle();
 		uint items = 0;
@@ -282,6 +282,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		TableView::init(item, items, highlightFirst);
+		TableView::init(item, items);
 	}
 };

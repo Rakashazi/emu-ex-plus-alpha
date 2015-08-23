@@ -46,8 +46,9 @@ public:
 	void init();
 	void deinit() override;
 	void place() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
 	void draw() override;
+	void onAddedToController(Input::Event e) override {}
 };
 
 void OnScreenInputPlaceView::init()
@@ -96,7 +97,7 @@ void OnScreenInputPlaceView::place()
 	text.compile(projP);
 }
 
-void OnScreenInputPlaceView::inputEvent(const Input::Event &e)
+void OnScreenInputPlaceView::inputEvent(Input::Event e)
 {
 	if(!e.isPointer() && e.state == Input::PUSHED)
 	{
@@ -266,7 +267,7 @@ static int findIdxInArrayOrDefault(T (&arr)[S], const T2 &val, int defaultIdx)
 	#endif
 #endif
 
-void TouchConfigView::init(bool highlightFirst)
+void TouchConfigView::init()
 {
 	uint i = 0;
 	//timeout.init(); text[i++] = &timeout;
@@ -379,7 +380,7 @@ void TouchConfigView::init(bool highlightFirst)
 	resetControls.init(); text[i++] = &resetControls;
 	resetAllControls.init(); text[i++] = &resetAllControls;
 	assert(i <= sizeofArray(text));
-	TableView::init(text, i, highlightFirst);
+	TableView::init(text, i);
 }
 
 void TouchConfigView::draw()
@@ -447,7 +448,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	{
 		"Use Virtual Gamepad",
 		#ifdef CONFIG_ENV_WEBOS
-		[](BoolMenuItem &item, View &, const Input::Event &e)
+		[](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle();
 			optionTouchCtrl = item.on;
@@ -543,7 +544,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	triggerPos
 	{
 		"Inline L/R",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionTouchCtrlTriggerBtnPos = item.on;
@@ -613,7 +614,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	boundingBoxes
 	{
 		"Show Bounding Boxes",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionTouchCtrlBoundingBoxes = item.on;
@@ -624,7 +625,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	vibrate
 	{
 		"Vibration",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionVibrateOnPush = item.on;
@@ -634,7 +635,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 		useScaledCoordinates
 		{
 			"Size Units", "Physical (Millimeters)", "Scaled Points",
-			[this](BoolMenuItem &item, View &, const Input::Event &e)
+			[this](BoolMenuItem &item, View &, Input::Event e)
 			{
 				item.toggle(*this);
 				optionTouchCtrlScaledCoordinates = item.on;
@@ -646,7 +647,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	showOnTouch
 	{
 		"Show Gamepad If Screen Touched",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionTouchCtrlShowOnTouch = item.on;
@@ -665,11 +666,11 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	btnPlace
 	{
 		"Set Button Positions",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto &onScreenInputPlace = *new OnScreenInputPlaceView{window()};
 			onScreenInputPlace.init();
-			modalViewController.pushAndShow(onScreenInputPlace);
+			modalViewController.pushAndShow(onScreenInputPlace, e);
 		}
 	},
 	menuState
@@ -699,42 +700,42 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	resetControls
 	{
 		"Reset Position & Spacing Options",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window(), "Reset buttons to default positions & spacing?", !e.isPointer()};
+			auto &ynAlertView = *new YesNoAlertView{window(), "Reset buttons to default positions & spacing?"};
 			ynAlertView.onYes() =
-				[this](const Input::Event &e)
+				[this](Input::Event e)
 				{
 					resetVControllerOptions();
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				};
-			modalViewController.pushAndShow(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView, e);
 		}
 	},
 	resetAllControls
 	{
 		"Reset All Options",
-		[this](TextMenuItem &, View &, const Input::Event &e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window(), "Reset all on-screen control options to default?", !e.isPointer()};
+			auto &ynAlertView = *new YesNoAlertView{window(), "Reset all on-screen control options to default?"};
 			ynAlertView.onYes() =
-				[this](const Input::Event &e)
+				[this](Input::Event e)
 				{
 					resetAllVControllerOptions();
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				};
-			modalViewController.pushAndShow(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView, e);
 		}
 	},
 	systemOptions
 	{
 		"Emulated System Options",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &optView = *makeOptionCategoryMenu(window(), e, 2);
-			pushAndShow(optView);
+			auto &optView = *makeOptionCategoryMenu(window(), 2);
+			pushAndShow(optView, e);
 		}
 	},
 	btnTogglesHeading

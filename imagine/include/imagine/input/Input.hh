@@ -217,16 +217,17 @@ public:
 	}
 
 	static const char *actionToStr(int action);
-
 	KeyString keyString() const;
 };
+
+Event defaultEvent();
 
 // Input device status
 
 bool keyInputIsPresent();
 
-void dispatchInputEvent(const Event &event);
-void startKeyRepeatTimer(const Event &event);
+void dispatchInputEvent(Event event);
+void startKeyRepeatTimer(Event event);
 void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();
 

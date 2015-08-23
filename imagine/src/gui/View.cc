@@ -20,10 +20,10 @@ ResourceFace *View::defaultFace{};
 ResourceFace *View::defaultSmallFace{};
 bool View::needsBackControl = needsBackControlDefault;
 
-void View::pushAndShow(View &v, bool needsNavView)
+void View::pushAndShow(View &v, Input::Event e, bool needsNavView)
 {
 	assert(controller);
-	controller->pushAndShow(v, needsNavView);
+	controller->pushAndShow(v, e, needsNavView);
 }
 
 void View::pop()
@@ -96,4 +96,13 @@ void View::show()
 	onShow();
 	//logMsg("showed view");
 	postDraw();
+}
+
+void View::setController(ViewController *c, Input::Event e)
+{
+	controller = c;
+	if(c)
+	{
+		onAddedToController(e);
+	}
 }

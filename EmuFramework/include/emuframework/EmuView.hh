@@ -35,5 +35,6 @@ public:
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void draw() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
+	void onAddedToController(Input::Event e) override {}
 };

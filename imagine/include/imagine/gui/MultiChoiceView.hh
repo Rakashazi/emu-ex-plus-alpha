@@ -1,6 +1,6 @@
 #pragma once
 
-/*  This file is part of EmuFramework.
+/*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ public:
 class MultiChoiceView : public BaseMultiChoiceView
 {
 public:
-	typedef DelegateFunc<bool (int i, const Input::Event &e)> OnInputDelegate;
+	typedef DelegateFunc<bool (int i, Input::Event e)> OnInputDelegate;
 	TextMenuItem *choiceEntry{};
 	MenuItem **choiceEntryItem{};
 
@@ -39,15 +39,16 @@ public:
 	MultiChoiceView(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
 	void freeItems();
 	void allocItems(int items);
-	void init(uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);
-	void init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align = LC2DO);
-	void init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align = LC2DO);
+	void init(uint choices, _2DOrigin align = LC2DO);
+	void init(const char **choice, uint choices, _2DOrigin align = LC2DO);
+	void init(MultiChoiceMenuItem &src, _2DOrigin align = LC2DO);
 	void deinit() override;
 	void setItem(int idx, const char *name, TextMenuItem::SelectDelegate del);
 	void setItem(int idx, TextMenuItem::SelectDelegate del);
+	void onAddedToController(Input::Event e) override;
 
 	template <size_t S, size_t S2>
-	void init(const char (&choice)[S][S2], uint choices, bool highlightCurrent, _2DOrigin align = LC2DO)
+	void init(const char (&choice)[S][S2], uint choices, _2DOrigin align = LC2DO)
 	{
 		//assert(choices <= sizeofArray(choiceEntry));
 		allocItems(choices);
@@ -56,7 +57,7 @@ public:
 			choiceEntry[i].init(choice[i]);
 			choiceEntryItem[i] = &choiceEntry[i];
 		}
-		TableView::init(choiceEntryItem, choices, highlightCurrent, align);
+		TableView::init(choiceEntryItem, choices, align);
 	}
 };
 
@@ -68,8 +69,8 @@ struct MultiChoiceSelectMenuItem : public MultiChoiceMenuItem
 	constexpr MultiChoiceSelectMenuItem(const char *str, ValueDelegate valueDel): MultiChoiceMenuItem(str, valueDel) {}
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
 	void init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face);
-	void handleChoices(DualTextMenuItem &, const Input::Event &e);
-	void select(View &parent, const Input::Event &e) override;
+	void handleChoices(DualTextMenuItem &, Input::Event e);
+	void select(View &parent, Input::Event e) override;
 
 	void init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr)
 	{

@@ -15,7 +15,7 @@
 
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/TextEntry.hh>
+#include <imagine/gui/TextEntry.hh>
 
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
@@ -24,24 +24,26 @@ BaseCheatsView::BaseCheatsView(Base::Window &win):
 	edit
 	{
 		"Add/Edit",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &editCheatListView = *makeEditCheatListView(window(), e);
-			pushAndShow(editCheatListView);
+			auto &editCheatListView = *makeEditCheatListView(window());
+			pushAndShow(editCheatListView, e);
 		}
 	},
 	onRefreshCheats
 	{
 		[this]()
 		{
+			auto selectedCell = selected;
 			deinit();
-			init(0);
+			init();
+			highlightCell(selectedCell);
 			place();
 		}
 	}
 {}
 
-void BaseCheatsView::init(bool highlightFirst)
+void BaseCheatsView::init()
 {
 	assert(!onRefreshCheatsList.isFull());
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
@@ -49,7 +51,7 @@ void BaseCheatsView::init(bool highlightFirst)
 	edit.init(); item[i++] = &edit;
 	loadCheatItems(item, i);
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 void BaseCheatsView::deinit()
@@ -72,7 +74,7 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win):
 	TableView{viewName, win},
 	name
 	{
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset());
@@ -89,13 +91,13 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win):
 				view.dismiss();
 				return 0;
 			};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	remove
 	{
 		"Delete Cheat",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			removed();
 			dismiss();
@@ -109,14 +111,16 @@ BaseEditCheatListView::BaseEditCheatListView(Base::Window &win):
 	{
 		[this]()
 		{
+			auto selectedCell = selected;
 			deinit();
-			init(0);
+			init();
+			highlightCell(selectedCell);
 			place();
 		}
 	}
 {}
 
-void BaseEditCheatListView::init(bool highlightFirst)
+void BaseEditCheatListView::init()
 {
 	assert(!onRefreshCheatsList.isFull());
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
@@ -125,7 +129,7 @@ void BaseEditCheatListView::init(bool highlightFirst)
 	assert(i <= EmuCheats::MAX_CODE_TYPES);
 	loadCheatItems(item, i);
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 void BaseEditCheatListView::deinit()

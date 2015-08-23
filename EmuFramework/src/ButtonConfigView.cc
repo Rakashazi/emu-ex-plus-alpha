@@ -36,21 +36,12 @@ void ButtonConfigSetView::initPointerUI()
 }
 #endif
 
-void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, bool withPointerInput, SetDelegate onSet)
+void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, SetDelegate onSet)
 {
-	if(withPointerInput)
-		string_printf(str, "Push key to set:\n%s", actionName);
-	else
-		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionName);
-	text.init(str, View::defaultFace);
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	if(withPointerInput)
-	{
-		initPointerUI();
-	}
-	#endif
+	text.init(str.data(), View::defaultFace);
 	this->dev = &dev;
 	savedDev = nullptr;
+	string_copy(actionStr, actionName);
 	Input::setHandleVolumeKeys(true);
 	Input::setKeyRepeat(false);
 	onSetD = onSet;
@@ -95,7 +86,7 @@ void ButtonConfigSetView::place()
 	#endif
 }
 
-void ButtonConfigSetView::inputEvent(const Input::Event &e)
+void ButtonConfigSetView::inputEvent(Input::Event e)
 {
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.isPointer() && !pointerUIIsInit())
@@ -132,9 +123,9 @@ void ButtonConfigSetView::inputEvent(const Input::Event &e)
 				dismiss();
 				viewStack.popTo(rootIMView);
 				auto &imdMenu = *new InputManagerDeviceView{win, rootIMView};
-				imdMenu.init(1, inputDevConf[d->idx]);
+				imdMenu.init(inputDevConf[d->idx]);
 				imdMenu.name_ = rootIMView.inputDevNameStr[d->idx];
-				rootIMView.pushAndShow(imdMenu);
+				rootIMView.pushAndShow(imdMenu, e);
 			}
 			else
 			{
@@ -175,6 +166,20 @@ void ButtonConfigSetView::draw()
 	}
 	#endif
 	text.draw(0, 0, C2DO, projP);
+}
+
+void ButtonConfigSetView::onAddedToController(Input::Event e)
+{
+	if(e.isPointer())
+		string_printf(str, "Push key to set:\n%s", actionStr);
+	else
+		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr);
+	#ifdef CONFIG_INPUT_POINTING_DEVICES
+	if(e.isPointer())
+	{
+		initPointerUI();
+	}
+	#endif
 }
 
 void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
@@ -252,7 +257,7 @@ ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, co
 	return str;
 }
 
-void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
+void ButtonConfigView::onSet(Input::Event e, int keyToSet)
 {
 	auto conf = mutableConfForDeviceConf(*devConf);
 	if(!conf)
@@ -267,7 +272,7 @@ void ButtonConfigView::onSet(const Input::Event &e, int keyToSet)
 	keyMapping.buildAll();
 }
 
-void ButtonConfigView::inputEvent(const Input::Event &e)
+void ButtonConfigView::inputEvent(Input::Event e)
 {
 	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
 	{
@@ -287,8 +292,7 @@ void ButtonConfigView::inputEvent(const Input::Event &e)
 	}
 }
 
-void ButtonConfigView::init(const KeyCategory *cat,
-	InputDeviceConfig &devConf, bool highlightFirst)
+void ButtonConfigView::init(const KeyCategory *cat, InputDeviceConfig &devConf)
 {
 	name_ = cat->name;
 	logMsg("init button config view for %s", Input::Event::mapName(devConf.dev->map()));
@@ -307,23 +311,23 @@ void ButtonConfigView::init(const KeyCategory *cat,
 		btn[i2].str = makeKeyNameStr(key, devConf.dev->keyName(key));
 		btn[i2].item.init(cat->keyName[i2], btn[i2].str.data());
 		btn[i2].item.onSelect() =
-			[this, i2](DualTextMenuItem &item, View &, const Input::Event &e)
+			[this, i2](DualTextMenuItem &item, View &, Input::Event e)
 			{
 				auto keyToSet = i2;
 				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
-				btnSetView.init(*this->devConf->dev, btn[keyToSet].item.t.str, e.isPointer(),
-					[this, keyToSet](const Input::Event &e)
+				btnSetView.init(*this->devConf->dev, btn[keyToSet].item.t.str,
+					[this, keyToSet](Input::Event e)
 					{
 						onSet(e, keyToSet);
 					}
 				);
-				modalViewController.pushAndShow(btnSetView);
+				modalViewController.pushAndShow(btnSetView, e);
 			};
 		text[i++] = &btn[i2].item;
 	}
 
 	assert(i <= tblEntries);
-	TableView::init(text, i, highlightFirst);
+	TableView::init(text, i);
 }
 
 void ButtonConfigView::deinit()
@@ -340,11 +344,11 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 	reset
 	{
 		"Unbind All",
-		[this](TextMenuItem &t, View &, const Input::Event &e)
+		[this](TextMenuItem &t, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window(), "Really unbind all keys in this category?", !e.isPointer()};
+			auto &ynAlertView = *new YesNoAlertView{window(), "Really unbind all keys in this category?"};
 			ynAlertView.onYes() =
-				[this](const Input::Event &e)
+				[this](Input::Event e)
 				{
 					auto conf = mutableConfForDeviceConf(*devConf);
 					if(!conf)
@@ -357,7 +361,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 					}
 					keyMapping.buildAll();
 				};
-			modalViewController.pushAndShow(ynAlertView);
+			modalViewController.pushAndShow(ynAlertView, e);
 		}
 	}
 {}

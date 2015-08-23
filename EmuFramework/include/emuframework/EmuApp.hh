@@ -39,8 +39,8 @@ class EmuNavView : public BasicNavView
 {
 public:
 	constexpr EmuNavView() {}
-	void onLeftNavBtn(const Input::Event &e) override;
-	void onRightNavBtn(const Input::Event &e) override;
+	void onLeftNavBtn(Input::Event e) override;
+	void onRightNavBtn(Input::Event e) override;
 	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 };
 
@@ -78,9 +78,9 @@ extern std::unique_ptr<RootCpufreqParamSetter> cpuFreq;
 
 Gfx::PixmapTexture &getAsset(AssetID assetID);
 Gfx::PixmapTexture *getCollectTextCloseAsset();
-void handleInputEvent(Base::Window &win, const Input::Event &e);
+void handleInputEvent(Base::Window &win, Input::Event e);
 void handleOpenFileCommand(const char *filename);
-bool isMenuDismissKey(const Input::Event &e);
+bool isMenuDismissKey(Input::Event e);
 void startGameFromMenu();
 void restoreMenuFromGame();
 void closeGame(bool allowAutosaveState = true);
@@ -89,8 +89,8 @@ using MenuShownDelegate = DelegateFunc<void (Base::Window &win)>;
 void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel);
 void initMainMenu(Base::Window &win);
 View &mainMenu();
-View *makeOptionCategoryMenu(Base::Window &win, const Input::Event &e, uint idx);
-View *makeEditCheatListView(Base::Window &win, const Input::Event &e);
+View *makeOptionCategoryMenu(Base::Window &win, uint idx);
+View *makeEditCheatListView(Base::Window &win);
 const char *appViewTitle();
 const char *appName();
 const char *appID();

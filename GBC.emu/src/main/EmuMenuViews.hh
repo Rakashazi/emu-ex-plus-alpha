@@ -27,7 +27,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem useBuiltinGBPalette
 	{
 		"Use Built-in GB Palettes",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionUseBuiltinGBPalette = item.on;
@@ -63,7 +63,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem reportAsGba
 	{
 		"Report Hardware as GBA",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionReportAsGba = item.on;
@@ -73,7 +73,7 @@ class SystemOptionView : public OptionView
 	BoolMenuItem fullSaturation
 	{
 		"Saturated GBC Colors",
-		[this](BoolMenuItem &item, View &, const Input::Event &e)
+		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionFullGbcSaturation = item.on;
@@ -113,13 +113,13 @@ class SystemMenuView : public MenuView
 	TextMenuItem cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &cheatsMenu = *new CheatsView{window()};
-				cheatsMenu.init(!e.isPointer());
-				viewStack.pushAndShow(cheatsMenu);
+				cheatsMenu.init();
+				viewStack.pushAndShow(cheatsMenu, e);
 			}
 		}
 	};
@@ -133,7 +133,7 @@ public:
 		cheats.active = EmuSystem::gameIsRunning();
 	}
 
-	void init(bool highlightFirst)
+	void init()
 	{
 		name_ = appViewTitle();
 		uint items = 0;
@@ -141,6 +141,6 @@ public:
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
-		TableView::init(item, items, highlightFirst);
+		TableView::init(item, items);
 	}
 };

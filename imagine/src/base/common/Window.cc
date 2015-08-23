@@ -52,7 +52,7 @@ void BaseWindow::setOnDragDrop(DragDropDelegate del)
 
 void BaseWindow::setOnInputEvent(InputEventDelegate del)
 {
-	onInputEvent = del ? del : [](Window &, const Input::Event &){};
+	onInputEvent = del ? del : [](Window &, Input::Event ){};
 }
 
 void BaseWindow::setOnDismissRequest(DismissRequestDelegate del)
@@ -185,7 +185,7 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 
 }
 
-void Window::dispatchInputEvent(const Input::Event &event)
+void Window::dispatchInputEvent(Input::Event event)
 {
 	onInputEvent.callCopy(*this, event);
 }

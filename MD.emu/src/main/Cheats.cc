@@ -15,12 +15,12 @@
 
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/IOStream.hh>
+#include <imagine/gui/TextEntry.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
 #include <main/Cheats.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/MsgPopup.hh>
-#include <emuframework/TextEntry.hh>
 #include "EmuCheatViews.hh"
 #include "system.h"
 #include "z80.h"
@@ -533,7 +533,7 @@ void SystemEditCheatView::removed()
 	updateCheats();
 }
 
-void SystemEditCheatView::init(bool highlightFirst, MdCheat &cheat)
+void SystemEditCheatView::init(MdCheat &cheat)
 {
 	this->cheat = &cheat;
 
@@ -542,7 +542,7 @@ void SystemEditCheatView::init(bool highlightFirst, MdCheat &cheat)
 	code.init(cheat.code); item[i++] = &code;
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 SystemEditCheatView::SystemEditCheatView(Base::Window &win):
@@ -550,7 +550,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 	code
 	{
 		"Code",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code, getCollectTextCloseAsset());
@@ -577,7 +577,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
 {}
@@ -596,11 +596,11 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		auto &thisCheat = *it;
 		cheat[c].init(thisCheat.name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, View &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(!e.isPointer(), cheatList[c]);
-				viewStack.pushAndShow(editCheatView);
+				editCheatView.init(cheatList[c]);
+				viewStack.pushAndShow(editCheatView, e);
 			};
 		++it;
 	}
@@ -611,7 +611,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	addCode
 	{
 		"Add Game Genie / Action Replay Code",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset());
@@ -658,7 +658,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 								return 0;
 							};
 						refreshCheatViews();
-						modalViewController.pushAndShow(textInputView);
+						modalViewController.pushAndShow(textInputView, {});
 					}
 					else
 					{
@@ -666,7 +666,7 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 					}
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
 {}
@@ -680,7 +680,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		auto &thisCheat = *it;
 		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[cIdx];
 		cheat[cIdx].onSelect() =
-			[this, cIdx](BoolMenuItem &item, View &, const Input::Event &e)
+			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{
 				item.toggle(*this);
 				auto &c = cheatList[cIdx];

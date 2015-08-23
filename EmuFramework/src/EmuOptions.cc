@@ -384,7 +384,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 				break;
 			}
 
-			_2DOrigin origin = io.readVal<int8>();
+			_2DOrigin origin = _2DOrigin{(uchar)io.readVal<int8>()};
 			if(!origin.isValid())
 			{
 				logWarn("invalid v-controller origin from config file");

@@ -18,15 +18,15 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/logger/logger.h>
 
-AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems, bool highlightFirst): View{win}, menu{win}
+AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems): View{win}, menu{win}
 {
 	text.init(label, View::defaultFace);
-	menu.init(menuItem, menuItems, highlightFirst, C2DO);
+	menu.init(menuItem, menuItems, C2DO);
 	menu.onlyScrollIfNeeded = 1;
 }
 
-AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst):
-	AlertView{win, label, menuItem, 2, highlightFirst}
+AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem):
+	AlertView{win, label, menuItem, 2}
 {}
 
 void AlertView::deinit()
@@ -58,7 +58,7 @@ void AlertView::place()
 	menu.place();
 }
 
-void AlertView::inputEvent(const Input::Event &e)
+void AlertView::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{
@@ -89,12 +89,16 @@ void AlertView::draw()
 	//setClipRect(0);
 }
 
+void AlertView::onAddedToController(Input::Event e)
+{
+	menu.onAddedToController(e);
+}
 
-YesNoAlertView::YesNoAlertView(Base::Window &win, const char *label, bool highlightFirst, const char *choice1, const char *choice2):
-	AlertView(win, label, menuItem, highlightFirst),
+YesNoAlertView::YesNoAlertView(Base::Window &win, const char *label, const char *choice1, const char *choice2):
+	AlertView(win, label, menuItem),
 	yes
 	{
-		[this](TextMenuItem &, View &view, const Input::Event &e)
+		[this](TextMenuItem &, View &view, Input::Event e)
 		{
 			auto callback = onYesD;
 			dismiss();
@@ -103,7 +107,7 @@ YesNoAlertView::YesNoAlertView(Base::Window &win, const char *label, bool highli
 	},
 	no
 	{
-		[this](TextMenuItem &, View &view, const Input::Event &e)
+		[this](TextMenuItem &, View &view, Input::Event e)
 		{
 			auto callback = onNoD;
 			dismiss();

@@ -23,7 +23,7 @@ void NavView::init(ResourceFace *face)
 	hasBackBtn = hasCloseBtn = false;
 }
 
-void NavView::inputEvent(const Input::Event &e)
+void NavView::inputEvent(Input::Event e)
 {
 	assert(e.isPointer());
 	if(e.state == Input::PUSHED)

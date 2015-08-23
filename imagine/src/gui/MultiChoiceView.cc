@@ -1,4 +1,4 @@
-/*  This file is part of EmuFramework.
+/*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/gui/MultiChoiceView.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/number.h>
-#include <emuframework/MultiChoiceView.hh>
+//#include <imagine/util/number.h>
 #include <algorithm>
 
 void BaseMultiChoiceView::drawElement(uint i, Gfx::GCRect rect) const
@@ -53,12 +53,12 @@ void MultiChoiceView::allocItems(int items)
 	}
 }
 
-void MultiChoiceView::init(uint choices, bool highlightCurrent, _2DOrigin align)
+void MultiChoiceView::init(uint choices, _2DOrigin align)
 {
-	init(nullptr, choices, highlightCurrent, align);
+	init(nullptr, choices, align);
 }
 
-void MultiChoiceView::init(const char **choice, uint choices, bool highlightCurrent, _2DOrigin align)
+void MultiChoiceView::init(const char **choice, uint choices, _2DOrigin align)
 {
 	allocItems(choices);
 	iterateTimes(choices, i)
@@ -69,10 +69,10 @@ void MultiChoiceView::init(const char **choice, uint choices, bool highlightCurr
 			choiceEntry[i].init();
 		choiceEntryItem[i] = &choiceEntry[i];
 	}
-	TableView::init(choiceEntryItem, choices, highlightCurrent, align);
+	TableView::init(choiceEntryItem, choices, align);
 }
 
-void MultiChoiceView::init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DOrigin align)
+void MultiChoiceView::init(MultiChoiceMenuItem &src, _2DOrigin align)
 {
 	//assert((uint)src.choices <= sizeofArray(choiceEntry));
 	allocItems(src.choices);
@@ -80,7 +80,7 @@ void MultiChoiceView::init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DO
 	{
 		choiceEntry[i].init(src.choiceStr[i], src.t2.face);
 		choiceEntry[i].onSelect() =
-			[&src, i](TextMenuItem &, View &view, const Input::Event &e)
+			[&src, i](TextMenuItem &, View &view, Input::Event e)
 			{
 				logMsg("set choice %d", i);
 				if(src.set((int)i, e, view))
@@ -90,12 +90,8 @@ void MultiChoiceView::init(MultiChoiceMenuItem &src, bool highlightCurrent, _2DO
 			};
 		choiceEntryItem[i] = &choiceEntry[i];
 	}
-	TableView::init(choiceEntryItem, src.choices, false, align);
+	TableView::init(choiceEntryItem, src.choices, align);
 	activeItem = src.choice;
-	if(highlightCurrent)
-	{
-		selected = src.choice;
-	}
 }
 
 void MultiChoiceView::deinit()
@@ -117,6 +113,14 @@ void MultiChoiceView::setItem(int idx, const char *name, TextMenuItem::SelectDel
 	choiceEntry[idx].onSelect() = del;
 }
 
+void MultiChoiceView::onAddedToController(Input::Event e)
+{
+	if(!e.isPointer())
+	{
+		selected = activeItem;
+	}
+}
+
 void MultiChoiceSelectMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
 {
 	MultiChoiceMenuItem::init(str, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
@@ -127,9 +131,9 @@ void MultiChoiceSelectMenuItem::init(const char **choiceStr, int val, int max, i
 	MultiChoiceMenuItem::init(choiceStr, val, max, baseVal, active, initialDisplayStr, face);
 }
 
-void MultiChoiceSelectMenuItem::select(View &parent, const Input::Event &e)
+void MultiChoiceSelectMenuItem::select(View &parent, Input::Event e)
 {
 	auto &multiChoiceView = *new MultiChoiceView{t.str, parent.window()};
-	multiChoiceView.init(*this, !e.isPointer());
-	parent.pushAndShow(multiChoiceView);
+	multiChoiceView.init(*this);
+	parent.pushAndShow(multiChoiceView, e);
 }

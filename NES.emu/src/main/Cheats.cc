@@ -1,6 +1,6 @@
+#include <imagine/gui/TextEntry.hh>
 #include <emuframework/Cheats.hh>
 #include <emuframework/MsgPopup.hh>
-#include <emuframework/TextEntry.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <fceu/driver.h>
@@ -41,6 +41,7 @@ void SystemEditCheatView::renamed(const char *str)
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
 	name.t.setString(nameStr);
 	name.compile(projP);
+	refreshCheatViews();
 }
 
 void SystemEditCheatView::removed()
@@ -51,7 +52,7 @@ void SystemEditCheatView::removed()
 	refreshCheatViews();
 }
 
-void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
+void SystemEditCheatView::init(int cheatIdx)
 {
 	idx = cheatIdx;
 	uint32 a;
@@ -86,7 +87,7 @@ void SystemEditCheatView::init(bool highlightFirst, int cheatIdx)
 	}
 	loadRemoveItem(item, i);
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }
 
 static bool isValidGGCodeLen(const char *str)
@@ -98,7 +99,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	addr
 	{
 		"Address",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset());
@@ -123,13 +124,13 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	value
 	{
 		"Value",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
@@ -154,13 +155,13 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	comp
 	{
 		"Compare",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset());
@@ -192,13 +193,13 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	ggCode
 	{
 		"GG Code",
-		[this](DualTextMenuItem &item, View &, const Input::Event &e)
+		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset());
@@ -221,7 +222,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 					view.dismiss();
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
 {}
@@ -243,11 +244,11 @@ void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
 		if(!gotCheat) continue;
 		cheat[c].init(name); item[items++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, View &, const Input::Event &e)
+			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(!e.isPointer(), c);
-				viewStack.pushAndShow(editCheatView);
+				editCheatView.init(c);
+				viewStack.pushAndShow(editCheatView, e);
 			};
 	}
 }
@@ -256,7 +257,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 	addGG
 	{
 		"Add Game Genie Code",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
@@ -306,7 +307,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 								return 0;
 							};
 						refreshCheatViews();
-						modalViewController.pushAndShow(textInputView);
+						modalViewController.pushAndShow(textInputView, {});
 					}
 					else
 					{
@@ -314,13 +315,13 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 					}
 					return 0;
 				};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	},
 	addRAM
 	{
 		"Add RAM Patch",
-		[this](TextMenuItem &item, View &, const Input::Event &e)
+		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
 			textInputView.init("Input description", getCollectTextCloseAsset());
@@ -342,8 +343,8 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 					view.dismiss();
 					refreshCheatViews();
 					// go to directly to cheat's menu to finish entering values
-					editCheatView.init(0, fceuCheats-1);
-					viewStack.pushAndShow(editCheatView);
+					editCheatView.init(fceuCheats-1);
+					viewStack.pushAndShow(editCheatView, {});
 				}
 				else
 				{
@@ -351,7 +352,7 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 				}
 				return 0;
 			};
-			modalViewController.pushAndShow(textInputView);
+			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
 {}
@@ -368,7 +369,7 @@ void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
 		if(!gotCheat) continue;
 		cheat[c].init(name, status); item[i++] = &cheat[c];
 		cheat[c].onSelect() =
-			[this, c](BoolMenuItem &item, View &, const Input::Event &e)
+			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				uint32 a;
 				uint8 v;

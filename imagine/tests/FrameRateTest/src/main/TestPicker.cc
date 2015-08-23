@@ -40,7 +40,7 @@ void TestPicker::init(const TestParams *testParams, uint tests)
 		entry.init(entry.testStr.data(), nullptr);
 		item[i] = &entry;
 		entry.onSelect() =
-			[this, i](DualTextMenuItem &, View &, const Input::Event &e)
+			[this, i](DualTextMenuItem &, View &, Input::Event e)
 			{
 				auto test = startTest(window(), testParamPtr[i]);
 				test->onTestFinished =
@@ -60,5 +60,7 @@ void TestPicker::init(const TestParams *testParams, uint tests)
 					};
 			};
 	}
-	TableView::init(item, tests, Input::keyInputIsPresent());
+	TableView::init(item, tests);
+	if(Input::keyInputIsPresent())
+		highlightCell(0);
 }

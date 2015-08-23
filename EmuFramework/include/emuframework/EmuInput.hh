@@ -54,7 +54,7 @@ static const int guiKeyIdxFastForward = 6;
 static const int guiKeyIdxGameScreenshot = 7;
 static const int guiKeyIdxExit = 8;
 
-void processRelPtr(const Input::Event &e);
+void processRelPtr(Input::Event e);
 void commonInitInput();
 void commonUpdateInput();
 extern TurboInput turboActions;

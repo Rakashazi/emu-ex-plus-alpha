@@ -4,16 +4,34 @@ ifneq ($(filter linux ios android webos,$(ENV)),)
  emuFramework_onScreenControls := 1
 endif
 
-SRC += CreditsView.cc MsgPopup.cc FilePicker.cc EmuSystem.cc \
-Screenshot.cc ButtonConfigView.cc VideoImageOverlay.cc \
-StateSlotView.cc MenuView.cc EmuInput.cc TextEntry.cc \
-EmuOptions.cc OptionView.cc EmuView.cc MultiChoiceView.cc \
-ConfigFile.cc InputManagerView.cc FileUtils.cc EmuApp.cc \
-BundledGamesView.cc VideoImageEffect.cc EmuVideo.cc \
-EmuInputView.cc EmuVideoLayer.cc Cheats.cc Recent.cc
+SRC += CreditsView.cc \
+MsgPopup.cc \
+FilePicker.cc \
+EmuSystem.cc \
+Screenshot.cc \
+ButtonConfigView.cc \
+VideoImageOverlay.cc \
+StateSlotView.cc \
+MenuView.cc \
+EmuInput.cc \
+EmuOptions.cc \
+OptionView.cc \
+EmuView.cc \
+ConfigFile.cc \
+InputManagerView.cc \
+FileUtils.cc \
+EmuApp.cc \
+BundledGamesView.cc \
+VideoImageEffect.cc \
+EmuVideo.cc \
+EmuInputView.cc \
+EmuVideoLayer.cc \
+Cheats.cc \
+Recent.cc
 
 ifeq ($(emuFramework_onScreenControls), 1)
- SRC += TouchConfigView.cc VController.cc
+ SRC += TouchConfigView.cc \
+ VController.cc
 endif
 
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT += -O3

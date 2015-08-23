@@ -29,13 +29,13 @@ public:
 	bool active = false, pushed = false;
 	int dragStartX = 0, dragStartY = 0;
 	enum { X_AXIS, Y_AXIS, XY_AXIS };
-	uint axis = 0;
+	uint axis = Y_AXIS;
 
 	constexpr ContentDrag() {}
-	void init(uint axis = Y_AXIS);
+	constexpr ContentDrag(uint axis): axis{axis} {}
 	bool testingXAxis() { return axis == X_AXIS || axis == XY_AXIS; }
 	bool testingYAxis() { return axis == Y_AXIS || axis == XY_AXIS; }
-	State inputEvent(const IG::WindowRect &bt, const Input::Event &e);
+	State inputEvent(const IG::WindowRect &bt, Input::Event e);
 };
 
 class KScroll : public ContentDrag
@@ -48,30 +48,28 @@ public:
 	int maxClip = 0;
 
 	constexpr KScroll() {}
-	void init(const IG::WindowRect *viewFrame, const IG::WindowRect *contentFrame);
-	void place(View &view);
+	constexpr KScroll(const IG::WindowRect &contentFrame): contentFrame{&contentFrame} {}
+	void place(View &view, IG::WindowRect viewFrame);
 	bool clipOverEdge(int minC, int maxC, View &view);
 	void clipDragOverEdge(int minC, int maxC);
 	void decel2(View &view);
-	bool inputEvent(const Input::Event &e, View &view);
-	bool inputEvent(int minClip, int maxClip, const Input::Event &e, View &view);
+	bool inputEvent(Input::Event e, View &view, IG::WindowRect viewFrame);
+	bool inputEvent(int minClip, int maxClip, Input::Event e, View &view, IG::WindowRect viewFrame);
 	void setOffset(int o);
 	void animate(int minClip, int maxClip, View &view);
 
 private:
-	const IG::WindowRect *viewFrame = nullptr;
-	const IG::WindowRect *contentFrame = nullptr;
+	const IG::WindowRect *contentFrame{};
 };
 
 class ScrollView : public View
 {
 public:
 	using View::View;
-	void init();
 	bool isDoingScrollGesture() { return scroll.active; }
 
 protected:
-	KScroll scroll{};
+	KScroll scroll{contentSize};
 	IG::WindowRect contentSize{};
 	IG::WindowRect scrollBarRect{};
 	bool contentIsBiggerThanView = false;
@@ -79,5 +77,5 @@ protected:
 	void setContentSize(IG::WP size);
 	void updateGfx();
 	void drawScrollContent();
-	int scrollInputEvent(const Input::Event &e);
+	int scrollInputEvent(Input::Event e);
 };

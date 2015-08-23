@@ -16,7 +16,7 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuApp.hh>
 
-void StateSlotView::init(bool highlightFirst)
+void StateSlotView::init()
 {
 	uint i = 0;
 
@@ -46,7 +46,7 @@ void StateSlotView::init(bool highlightFirst)
 		}
 
 		stateSlot[idx].onSelect() =
-			[slot](TextMenuItem &, View &view, const Input::Event &e)
+			[slot](TextMenuItem &, View &view, Input::Event e)
 			{
 				EmuSystem::saveStateSlot = slot;
 				logMsg("set state slot %d", EmuSystem::saveStateSlot);
@@ -54,5 +54,5 @@ void StateSlotView::init(bool highlightFirst)
 			};
 	}
 	assert(i <= sizeofArray(item));
-	TableView::init(item, i, highlightFirst);
+	TableView::init(item, i);
 }

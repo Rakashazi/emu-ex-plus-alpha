@@ -50,7 +50,7 @@ bool allowKeyRepeats()
 	return allowKeyRepeats_;
 }
 
-void startKeyRepeatTimer(const Event &event)
+void startKeyRepeatTimer(Event event)
 {
 	if(!allowKeyRepeats_)
 		return;
@@ -163,7 +163,7 @@ bool keyInputIsPresent()
 	return Device::anyTypeBitsPresent(Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_GAMEPAD);
 }
 
-void dispatchInputEvent(const Input::Event &event)
+void dispatchInputEvent(Input::Event event)
 {
 	Base::mainWindow().dispatchInputEvent(event);
 }
@@ -293,6 +293,13 @@ bool isVolumeKey(Key event)
 	#else
 	return false;
 	#endif
+}
+
+Event defaultEvent()
+{
+	Event e{};
+	e.map = keyInputIsPresent() ? Event::MAP_SYSTEM : Event::MAP_POINTER;
+	return e;
 }
 
 #ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT

@@ -25,13 +25,14 @@
 class AlertView : public View
 {
 public:
-	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, bool highlightFirst);
-	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems, bool highlightFirst);
+	AlertView(Base::Window &win, const char *label, MenuItem **menuItem);
+	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems);
 	IG::WindowRect &viewRect() override { return rect; }
 	void deinit() override;
 	void place() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
 	void draw() override;
+	void onAddedToController(Input::Event e) override;
 
 protected:
 	Gfx::GCRect labelFrame{};
@@ -43,9 +44,9 @@ protected:
 class YesNoAlertView : public AlertView
 {
 public:
-	using InputDelegate = DelegateFunc<void (const Input::Event &e)>;
+	using InputDelegate = DelegateFunc<void (Input::Event e)>;
 
-	YesNoAlertView(Base::Window &win, const char *label, bool highlightFirst, const char *choice1 = {}, const char *choice2 = {});
+	YesNoAlertView(Base::Window &win, const char *label, const char *choice1 = {}, const char *choice2 = {});
 	void deinit() override;
 	// Optional delegates
 	InputDelegate &onYes() { return onYesD; }

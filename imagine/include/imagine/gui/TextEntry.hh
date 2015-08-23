@@ -1,6 +1,6 @@
 #pragma once
 
-/*  This file is part of EmuFramework.
+/*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ public:
 	CallResult init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP);
 	void deinit();
 	void setAcceptingInput(bool on);
-	void inputEvent(const Input::Event &e);
+	void inputEvent(Input::Event e);
 	void draw();
 	void place();
 	void place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
@@ -65,6 +65,7 @@ public:
 	void deinit() override;
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
 	void draw() override;
+	void onAddedToController(Input::Event e) override {}
 };

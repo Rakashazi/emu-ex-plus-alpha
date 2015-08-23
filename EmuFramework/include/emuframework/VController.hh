@@ -179,8 +179,8 @@ public:
 	void init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	void place();
 	void toggleKeyboard();
-	void findElementUnderPos(const Input::Event &e, int elemOut[2]);
-	void applyInput(const Input::Event &e);
+	void findElementUnderPos(Input::Event e, int elemOut[2]);
+	void applyInput(Input::Event e);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden = false);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
 	int numElements() const;

@@ -45,7 +45,7 @@ void EmuView::place()
 	}
 }
 
-void EmuView::inputEvent(const Input::Event &e)
+void EmuView::inputEvent(Input::Event e)
 {
 	if(inputView)
 	{

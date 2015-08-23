@@ -778,7 +778,7 @@ static bool isC64Extension(const char *name)
 EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isC64Extension;
 EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isC64Extension;
 
-void EmuSystem::resetGame()
+void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
 	machine_trigger_reset(mode == RESET_HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
@@ -953,13 +953,13 @@ int EmuSystem::loadGame(const char *path)
 	if(c64FailedInit)
 	{
 		auto &ynAlertView = *new YesNoAlertView{mainWin.win,
-			"A previous system file load failed, you must restart the app to run any C64 software", Input::keyInputIsPresent(), "Exit Now", "Cancel"};
+			"A previous system file load failed, you must restart the app to run any C64 software", "Exit Now", "Cancel"};
 		ynAlertView.onYes() =
-			[](const Input::Event &e)
+			[](Input::Event e)
 			{
 				Base::exit();
 			};
-		modalViewController.pushAndShow(ynAlertView);
+		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent()); // TODO: loadGame should propagate input event
 		return 0;
 	}
 

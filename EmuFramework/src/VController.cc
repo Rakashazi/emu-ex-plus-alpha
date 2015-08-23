@@ -789,7 +789,7 @@ void VController::toggleKeyboard()
 	toggle(kbMode);
 }
 
-void VController::findElementUnderPos(const Input::Event &e, int elemOut[2])
+void VController::findElementUnderPos(Input::Event e, int elemOut[2])
 {
 	if(isInKeyboardMode())
 	{
@@ -852,7 +852,7 @@ void VController::findElementUnderPos(const Input::Event &e, int elemOut[2])
 	#endif
 }
 
-void VController::applyInput(const Input::Event &e)
+void VController::applyInput(Input::Event e)
 {
 	using namespace IG;
 	assert(e.isPointer());

@@ -26,5 +26,5 @@ private:
 
 public:
 	BundledGamesView(Base::Window &win): TableView{"Bundled Games", win} {}
-	void init(bool highlightFirst);
+	void init();
 };

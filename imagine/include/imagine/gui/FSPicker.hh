@@ -34,8 +34,8 @@ class FSPicker : public View
 {
 public:
 	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
-	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, const Input::Event &e)>;
-	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, const Input::Event &e)>;
+	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, Input::Event e)>;
+	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, CallResult res)>;
 	static constexpr bool needsUpDirControl = !Config::envIsPS3;
 
@@ -44,13 +44,15 @@ public:
 			FilterFunc filter = {}, bool singleDir = false, ResourceFace *face = View::defaultFace);
 	void deinit() override;
 	void place() override;
-	void inputEvent(const Input::Event &e) override;
+	void inputEvent(Input::Event e) override;
 	void draw() override;
+	void onAddedToController(Input::Event e) override;
 	void setOnSelectFile(OnSelectFileDelegate del);
 	void setOnClose(OnCloseDelegate del);
-	void onLeftNavBtn(const Input::Event &e);
-	void onRightNavBtn(const Input::Event &e);
+	void onLeftNavBtn(Input::Event e);
+	void onRightNavBtn(Input::Event e);
 	void setOnPathReadError(OnPathReadError del);
+	CallResult setPath(const char *path, Input::Event e);
 	CallResult setPath(const char *path);
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void clearSelection() override
@@ -66,11 +68,11 @@ protected:
 		FS::PathString titleStr{};
 
 		constexpr FSNavView(FSPicker &inst): inst(inst) {}
-		void onLeftNavBtn(const Input::Event &e) override
+		void onLeftNavBtn(Input::Event e) override
 		{
 			inst.onLeftNavBtn(e);
 		};
-		void onRightNavBtn(const Input::Event &e) override
+		void onRightNavBtn(Input::Event e) override
 		{
 			inst.onRightNavBtn(e);
 		};
@@ -84,7 +86,7 @@ protected:
 	OnSelectFileDelegate onSelectFileD{};
 	OnCloseDelegate onCloseD
 	{
-		[](FSPicker &picker, const Input::Event &e)
+		[](FSPicker &picker, Input::Event e)
 		{
 			picker.dismiss();
 		}
@@ -98,5 +100,5 @@ protected:
 	FSNavView navV{*this};
 	bool singleDir = false;
 
-	void changeDirByInput(const char *path, const Input::Event &e);
+	void changeDirByInput(const char *path, Input::Event e);
 };

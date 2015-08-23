@@ -25,7 +25,7 @@ static SystemMenuView mMenu(mainWin.win);
 void initMainMenu(Base::Window &win)
 {
 	mMenu.setWindow(&win);
-	mMenu.init(Input::keyInputIsPresent());
+	mMenu.init();
 }
 
 View &mainMenu()
@@ -33,10 +33,10 @@ View &mainMenu()
 	return mMenu;
 }
 
-View *makeOptionCategoryMenu(Base::Window &win, const Input::Event &e, uint idx)
+View *makeOptionCategoryMenu(Base::Window &win, uint idx)
 {
 	auto oCategoryMenu = new SystemOptionView{win};
-	oCategoryMenu->init(idx, !e.isPointer());
+	oCategoryMenu->init(idx);
 	return oCategoryMenu;
 }
 
