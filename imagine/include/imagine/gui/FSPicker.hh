@@ -67,7 +67,7 @@ protected:
 		FSPicker &inst;
 		FS::PathString titleStr{};
 
-		constexpr FSNavView(FSPicker &inst): inst(inst) {}
+		FSNavView(FSPicker &inst): inst(inst) {}
 		void onLeftNavBtn(Input::Event e) override
 		{
 			inst.onLeftNavBtn(e);

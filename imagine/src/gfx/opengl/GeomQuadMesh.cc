@@ -21,6 +21,7 @@ namespace Gfx
 
 CallResult GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color)
 {
+	deinit();
 	if(xVals < 2 || yVals < 2)
 		return INVALID_PARAMETER;
 	verts = xVals * yVals;
@@ -66,7 +67,11 @@ CallResult GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y
 void GeomQuadMesh::deinit()
 {
 	//logMsg("GeomQuadMesh::deinit()");
-	mem_free(v.arr);
+	if(v.arr)
+	{
+		mem_free(v.arr);
+		v.arr = nullptr;
+	}
 }
 
 void GeomQuadMesh::draw()

@@ -475,19 +475,9 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return false; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	EmuSystem::pcmFormat.channels = 1;
-	emuVideo.initPixmap((char*)cfb, pixFmt, ngpResX, ngpResY);
-	gfx_buildMonoConvMap();
-	gfx_buildColorConvMap();
-	system_colour = COLOURMODE_AUTO;
-	bios_install();
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build((101./255.) * .4, (45./255.) * .4, (193./255.) * .4, 1.) },
@@ -495,9 +485,16 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build((34./255.) * .4, (15./255.) * .4, (64./255.) * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
-
-	mainInitCommon(argc, argv, navViewGrad);
-	return OK;
+	view.setBackgroundGradient(navViewGrad);
 }
 
+CallResult EmuSystem::onInit()
+{
+	EmuSystem::pcmFormat.channels = 1;
+	emuVideo.initPixmap((char*)cfb, pixFmt, ngpResX, ngpResY);
+	gfx_buildMonoConvMap();
+	gfx_buildColorConvMap();
+	system_colour = COLOURMODE_AUTO;
+	bios_install();
+	return OK;
 }

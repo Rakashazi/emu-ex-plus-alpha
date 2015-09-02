@@ -38,7 +38,7 @@ enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_ME
 class EmuNavView : public BasicNavView
 {
 public:
-	constexpr EmuNavView() {}
+	EmuNavView() {}
 	void onLeftNavBtn(Input::Event e) override;
 	void onRightNavBtn(Input::Event e) override;
 	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
@@ -85,8 +85,6 @@ void startGameFromMenu();
 void restoreMenuFromGame();
 void closeGame(bool allowAutosaveState = true);
 void applyOSNavStyle(bool inGame);
-using MenuShownDelegate = DelegateFunc<void (Base::Window &win)>;
-void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel);
 void initMainMenu(Base::Window &win);
 View &mainMenu();
 View *makeOptionCategoryMenu(Base::Window &win, uint idx);
@@ -99,17 +97,5 @@ void placeEmuViews();
 void placeElements();
 void startViewportAnimation(AppWindowData &winData);
 void updateAndDrawEmuVideo();
-
-template <size_t NAV_GRAD_SIZE>
-void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE], MenuShownDelegate menuShownDel)
-{
-	mainInitCommon(argc, argv, navViewGrad, NAV_GRAD_SIZE, menuShownDel);
-}
-
-template <size_t NAV_GRAD_SIZE>
-void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc (&navViewGrad)[NAV_GRAD_SIZE])
-{
-	mainInitCommon(argc, argv, navViewGrad, NAV_GRAD_SIZE, {});
-}
 
 static constexpr const char *strftimeFormat = "%x  %r";

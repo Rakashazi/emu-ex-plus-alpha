@@ -11,9 +11,9 @@ class GeomQuadMesh
 {
 public:
 	uint verts = 0;
-	Mem2D<ColVertex> v;
+	Mem2D<ColVertex> v{};
 	uint idxs = 0;
-	VertexIndex *i = nullptr;
+	VertexIndex *i{};
 
 	constexpr GeomQuadMesh() {}
 	CallResult init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color = 0);

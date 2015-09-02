@@ -487,7 +487,7 @@ static const char *parseCmdLineArgs(int argc, char** argv)
 	return launchGame;
 }
 
-void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navViewGrad, uint navViewGradSize, MenuShownDelegate menuShownDel)
+void mainInitCommon(int argc, char** argv)
 {
 	Base::setOnResume(
 		[](bool focused)
@@ -676,8 +676,9 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 	#endif
 
 	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
-			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr, navViewGrad, navViewGradSize);
+			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr);
 	viewNav.setRightBtnActive(false);
+	EmuSystem::onCustomizeNavView(viewNav);
 
 	Base::WindowConfig winConf;
 
@@ -747,8 +748,7 @@ void mainInitCommon(int argc, char** argv, const Gfx::LGradientStopDesc *navView
 
 	Gfx::initWindow(mainWin.win, winConf);
 	mainInitWindowCommon(mainWin.win);
-	if(menuShownDel)
-		menuShownDel(mainWin.win);
+	EmuSystem::onMainWindowCreated(mainWin.win);
 
 	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
 	{
@@ -945,4 +945,16 @@ static Gfx::Viewport makeViewport(const Base::Window &win)
 	}
 	else
 		return Gfx::Viewport::makeFromWindow(win);
+}
+
+namespace Base
+{
+
+CallResult onInit(int argc, char** argv)
+{
+	EmuSystem::onInit();
+	mainInitCommon(argc, argv);
+	return OK;
+}
+
 }

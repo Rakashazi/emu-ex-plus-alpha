@@ -40,6 +40,8 @@ struct BundledGameInfo
 	const char *assetName;
 };
 
+class EmuNavView;
+
 enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE_RESULT_IO_ERROR,
 	STATE_RESULT_INVALID_DATA, STATE_RESULT_OTHER_ERROR };
 
@@ -84,6 +86,9 @@ public:
 	static const bool hasResetModes;
 	enum ResetMode { RESET_HARD, RESET_SOFT };
 
+	static CallResult onInit();
+	static void onMainWindowCreated(Base::Window &win);
+	static void onCustomizeNavView(EmuNavView &view);
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static bool isPaused() { return state == State::PAUSED; }

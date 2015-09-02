@@ -763,35 +763,9 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return true; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
-	#ifndef SNES9X_VERSION_1_4
-	GFX.Screen = screenBuff;
-	#else
-	GFX.Screen = (uint8*)screenBuff;
-	#endif
-
-	Memory.Init();
-	S9xGraphicsInit();
-	S9xInitAPU();
-	assert(Settings.Stereo == TRUE);
-	#ifndef SNES9X_VERSION_1_4
-	S9xInitSound(20, 0);
-	S9xUnmapAllControls();
-	#else
-	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
-	assert(Settings.FrameTime == Settings.FrameTimeNTSC);
-	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
-	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
-	#endif
-
-	emuVideo.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build((139./255.) * .4, (149./255.) * .4, (230./255.) * .4, 1.) },
@@ -799,10 +773,12 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build((46./255.) * .4, (50./255.) * .4, (77./255.) * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-	mainInitCommon(argc, argv, navViewGrad);
-
-	mainWin.win.setOnInputEvent(
+void EmuSystem::onMainWindowCreated(Base::Window &win)
+{
+	win.setOnInputEvent(
 		[](Base::Window &win, Input::Event e)
 		{
 			using namespace Input;
@@ -925,8 +901,31 @@ CallResult onInit(int argc, char** argv)
 			}
 			handleInputEvent(win, e);
 		});
-
-	return OK;
 }
 
+CallResult EmuSystem::onInit()
+{
+	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
+	#ifndef SNES9X_VERSION_1_4
+	GFX.Screen = screenBuff;
+	#else
+	GFX.Screen = (uint8*)screenBuff;
+	#endif
+
+	Memory.Init();
+	S9xGraphicsInit();
+	S9xInitAPU();
+	assert(Settings.Stereo == TRUE);
+	#ifndef SNES9X_VERSION_1_4
+	S9xInitSound(20, 0);
+	S9xUnmapAllControls();
+	#else
+	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);
+	assert(Settings.FrameTime == Settings.FrameTimeNTSC);
+	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
+	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
+	#endif
+
+	emuVideo.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
+	return OK;
 }

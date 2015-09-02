@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <memory>
 #include <imagine/engine-globals.h>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
@@ -50,11 +51,19 @@ class BasicNavView : public NavView
 public:
 	Gfx::Sprite leftSpr{}, rightSpr{};
 	Gfx::LGradient bg{};
+	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops{};
 
-	constexpr BasicNavView() {}
-	void init(ResourceFace *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes,
-			const Gfx::LGradientStopDesc *gradStop, uint gradStops);
+	BasicNavView() {}
+	void init(ResourceFace *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
 	void setBackImage(Gfx::PixmapTexture *img);
+	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops);
+
+	template <size_t S>
+	void setBackgroundGradient(const Gfx::LGradientStopDesc (&gradStop)[S])
+	{
+		setBackgroundGradient(gradStop, S);
+	}
+
 	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 	void place(const Gfx::ProjectionPlane &projP) override;
 	void deinit() override;

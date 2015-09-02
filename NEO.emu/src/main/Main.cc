@@ -854,10 +854,20 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return false; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
+	const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
+		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-CallResult onInit(int argc, char** argv)
+CallResult EmuSystem::onInit()
 {
 	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
 	emuVideo.initPixmap((char*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, FBResX*2);
@@ -875,18 +885,6 @@ CallResult onInit(int argc, char** argv)
 	{
 		string_printf(datafilePath, "%s/gngeo_data.zip", Base::assetPath());
 	}
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (215./255.) * .4, (0./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((85./255.) * .4, (71./255.) * .4, (0./255.) * .4, 1.) },
-		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
-	mainInitCommon(argc, argv, navViewGrad);
 	return OK;
 }
 
-}

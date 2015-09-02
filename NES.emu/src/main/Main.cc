@@ -559,21 +559,9 @@ void EmuSystem::savePathChanged()
 
 bool EmuSystem::hasInputOptions() { return true; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	EmuSystem::pcmFormat.channels = 1;
-	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
-	backupSavestates = 0;
-	if(!FCEUI_Initialize())
-	{
-		bug_exit("error in FCEUI_Initialize");
-	}
-	//FCEUI_SetSoundQuality(2);
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build(1. * .4, 0., 0., 1.) },
@@ -581,10 +569,12 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build(.5 * .4, 0., 0., 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-	mainInitCommon(argc, argv, navViewGrad);
-
-	mainWin.win.setOnInputEvent(
+void EmuSystem::onMainWindowCreated(Base::Window &win)
+{
+	win.setOnInputEvent(
 		[](Base::Window &win, Input::Event e)
 		{
 			if(EmuSystem::isActive())
@@ -619,8 +609,17 @@ CallResult onInit(int argc, char** argv)
 			}
 			handleInputEvent(win, e);
 		});
-
-	return OK;
 }
 
+CallResult EmuSystem::onInit()
+{
+	EmuSystem::pcmFormat.channels = 1;
+	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
+	backupSavestates = 0;
+	if(!FCEUI_Initialize())
+	{
+		bug_exit("error in FCEUI_Initialize");
+	}
+	//FCEUI_SetSoundQuality(2);
+	return OK;
 }

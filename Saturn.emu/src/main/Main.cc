@@ -583,12 +583,9 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return false; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build(.8 * .4, 0., 0., 1.) },
@@ -596,9 +593,11 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build(.2 * .4, 0., 0., 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-	mainInitCommon(argc, argv, navViewGrad);
+CallResult EmuSystem::onInit()
+{
 	return OK;
 }
 
-}

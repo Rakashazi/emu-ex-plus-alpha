@@ -438,3 +438,7 @@ bool EmuSystem::setFrameTime(VideoSystem system, double time)
 	}
 	return true;
 }
+
+[[gnu::weak]] void EmuSystem::onMainWindowCreated(Base::Window &win) {}
+
+[[gnu::weak]] void EmuSystem::onCustomizeNavView(EmuNavView &view) {}

@@ -59,8 +59,7 @@ void NavView::place(const Gfx::ProjectionPlane &projP)
 
 // BasicNavView
 
-void BasicNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
-		const Gfx::LGradientStopDesc *gradStop, uint gradStops)
+void BasicNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes)
 {
 	NavView::init(face);
 	leftSpr.init({-.5, -.5, .5, .5});
@@ -80,7 +79,6 @@ void BasicNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::Pi
 	}
 	if(compiled)
 		Gfx::autoReleaseShaderCompiler();
-	bg.init(gradStops, gradStop, 0, 0);
 }
 
 void BasicNavView::deinit()
@@ -99,12 +97,22 @@ void BasicNavView::setBackImage(Gfx::PixmapTexture *img)
 	hasBackBtn = leftSpr.image();
 }
 
+void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops)
+{
+	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops);
+	memcpy(gradientStops.get(), gradStop, sizeof(Gfx::LGradientStopDesc) * gradStops);
+	bg.setPos(gradientStops.get(), gradStops, {});
+}
+
 void BasicNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
-	setBlendMode(0);
-	noTexProgram.use(projP.makeTranslate());
-	bg.draw();
+	if(bg)
+	{
+		setBlendMode(0);
+		noTexProgram.use(projP.makeTranslate());
+		bg.draw();
+	}
 	setColor(COLOR_WHITE);
 	texAlphaReplaceProgram.use();
 	//text.draw(unproject(viewRect, C2DO), C2DO);
@@ -155,5 +163,5 @@ void BasicNavView::place(const Gfx::ProjectionPlane &projP)
 		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
 		rightSpr.setPos(scaledRect);
 	}
-	bg.setPos(projP.unProjectRect(viewRect));
+	bg.setPos(gradientStops.get(), bg.stops(), projP.unProjectRect(viewRect));
 }

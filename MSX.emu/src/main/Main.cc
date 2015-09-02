@@ -1159,10 +1159,35 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return false; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
+	const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, Gfx::VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build((42./255.) * .4, (85./255.) * .4, (85./255.) * .4, 1.) },
+		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-CallResult onInit(int argc, char** argv)
+void EmuSystem::onMainWindowCreated(Base::Window &win)
+{
+	if(canInstallCBIOS && checkForMachineFolderOnStart &&
+		!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
+	{
+		auto &ynAlertView = *new YesNoAlertView{win, installFirmwareFilesMessage};
+		ynAlertView.onYes() =
+			[](Input::Event e)
+			{
+				installFirmwareFiles();
+			};
+		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
+	}
+};
+
+CallResult EmuSystem::onInit()
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
@@ -1236,33 +1261,5 @@ CallResult onInit(int argc, char** argv)
 	mixerSetBoardFrequencyFixed(frequency);
 	mixerSetWriteCallback(mixer, 0, 0, 10000);
 
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, Gfx::VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build((127./255.) * .4, (255./255.) * .4, (212./255.) * .4, 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((42./255.) * .4, (85./255.) * .4, (85./255.) * .4, 1.) },
-		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
-	static MenuShownDelegate menuShown =
-		[](Base::Window &win)
-		{
-			if(canInstallCBIOS && checkForMachineFolderOnStart &&
-				!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
-			{
-				auto &ynAlertView = *new YesNoAlertView{win, installFirmwareFilesMessage};
-				ynAlertView.onYes() =
-					[](Input::Event e)
-					{
-						installFirmwareFiles();
-					};
-				modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
-			}
-		};
-
-	mainInitCommon(argc, argv, navViewGrad, menuShown);
 	return OK;
-}
-
 }

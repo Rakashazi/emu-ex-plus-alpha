@@ -18,23 +18,23 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/logger/logger.h>
 
-static const Gfx::LGradientStopDesc fsNavViewGrad[] =
-{
-	{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	{ .03, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-	{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
-	{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
-	{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-};
-
 // FSNavView
 
 void FSPicker::FSNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, bool singleDir)
 {
 	if(singleDir)
 		backRes = nullptr;
-	BasicNavView::init(face, backRes, closeRes, fsNavViewGrad, sizeofArray(fsNavViewGrad));
+	BasicNavView::init(face, backRes, closeRes);
 	//logMsg("has back:%p close:%p", leftSpr.img, rightSpr.img);
+	const Gfx::LGradientStopDesc fsNavViewGrad[]
+	{
+		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build(1. * .4, 1. * .4, 1. * .4, 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
+		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+	setBackgroundGradient(fsNavViewGrad);
 }
 
 void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP)

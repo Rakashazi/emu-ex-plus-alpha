@@ -1070,10 +1070,27 @@ void setupSysFilePaths(FS::PathString outPath[3], const FS::PathString &firmware
 	string_printf(outPath[2], "%s/PRINTER", firmwareBasePath.data());
 }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
+	const Gfx::LGradientStopDesc navViewGrad[] =
+	{
+		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+		{ .03, Gfx::VertexColorPixelFormat.build(48./255., 36./255., 144./255., 1.) },
+		{ .3, Gfx::VertexColorPixelFormat.build(48./255., 36./255., 144./255., 1.) },
+		{ .97, Gfx::VertexColorPixelFormat.build((48./255.) * .4, (36./255.) * .4, (144./255.) * .4, 1.) },
+		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
+	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-CallResult onInit(int argc, char** argv)
+void EmuSystem::onMainWindowCreated(Base::Window &)
+{
+	setupSysFilePaths(sysFilePath[0], firmwareBasePath);
+	vController.updateKeyboardMapping();
+	setC64Model(optionC64Model.val);
+}
+
+CallResult EmuSystem::onInit()
 {
 	emuVideo.initPixmap((char*)pix, pixFmt, 320, 200);
 	IG::runOnThread(
@@ -1120,21 +1137,5 @@ CallResult onInit(int argc, char** argv)
 	}*/
 
 	EmuSystem::pcmFormat.channels = 1;
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
-	{
-		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-		{ .03, Gfx::VertexColorPixelFormat.build(48./255., 36./255., 144./255., 1.) },
-		{ .3, Gfx::VertexColorPixelFormat.build(48./255., 36./255., 144./255., 1.) },
-		{ .97, Gfx::VertexColorPixelFormat.build((48./255.) * .4, (36./255.) * .4, (144./255.) * .4, 1.) },
-		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
-	};
-
-	mainInitCommon(argc, argv, navViewGrad);
-	setupSysFilePaths(sysFilePath[0], firmwareBasePath);
-	vController.updateKeyboardMapping();
-	setC64Model(optionC64Model.val);
 	return OK;
-}
-
 }

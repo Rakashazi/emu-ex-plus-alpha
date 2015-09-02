@@ -820,14 +820,9 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return true; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build(0., 0., 1. * .4, 1.) },
@@ -835,10 +830,12 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build(0., 0., .6 * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
+	view.setBackgroundGradient(navViewGrad);
+}
 
-	mainInitCommon(argc, argv, navViewGrad);
-
-	mainWin.win.setOnInputEvent(
+void EmuSystem::onMainWindowCreated(Base::Window &win)
+{
+	win.setOnInputEvent(
 		[](Base::Window &win, Input::Event e)
 		{
 			if(EmuSystem::isActive())
@@ -865,8 +862,10 @@ CallResult onInit(int argc, char** argv)
 			}
 			handleInputEvent(win, e);
 		});
-
-	return OK;
 }
 
+CallResult EmuSystem::onInit()
+{
+	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
+	return OK;
 }

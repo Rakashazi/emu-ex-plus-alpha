@@ -552,19 +552,9 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return false; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	osystem.settings().setValue("framerate", 60); // set to avoid auto-frame calculation
-	Paddles::setDigitalSensitivity(5);
-	Paddles::setMouseSensitivity(7);
-	EmuSystem::pcmFormat.channels = soundChannels;
-	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	emuVideo.initPixmap((char*)pixBuff, IG::PIXEL_FMT_RGB565, vidBufferX, vidBufferY);
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build((200./255.) * .4, (100./255.) * .4, (0./255.) * .4, 1.) },
@@ -572,9 +562,16 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build((75./255.) * .4, (37.5/255.) * .4, (0./255.) * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
-
-	mainInitCommon(argc, argv, navViewGrad);
-	return OK;
+	view.setBackgroundGradient(navViewGrad);
 }
 
+CallResult EmuSystem::onInit()
+{
+	osystem.settings().setValue("framerate", 60); // set to avoid auto-frame calculation
+	Paddles::setDigitalSensitivity(5);
+	Paddles::setMouseSensitivity(7);
+	EmuSystem::pcmFormat.channels = soundChannels;
+	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
+	emuVideo.initPixmap((char*)pixBuff, IG::PIXEL_FMT_RGB565, vidBufferX, vidBufferY);
+	return OK;
 }

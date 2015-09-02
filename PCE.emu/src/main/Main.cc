@@ -608,15 +608,9 @@ void EmuSystem::savePathChanged() { }
 
 bool EmuSystem::hasInputOptions() { return true; }
 
-namespace Base
+void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {
-
-CallResult onInit(int argc, char** argv)
-{
-	emuVideo.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
-	emuSys->name = (uint8*)EmuSystem::gameName;
-
-	static const Gfx::LGradientStopDesc navViewGrad[] =
+	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 		{ .03, Gfx::VertexColorPixelFormat.build((255./255.) * .4, (104./255.) * .4, (31./255.) * .4, 1.) },
@@ -624,9 +618,12 @@ CallResult onInit(int argc, char** argv)
 		{ .97, Gfx::VertexColorPixelFormat.build((85./255.) * .4, (35./255.) * .4, (10./255.) * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
-
-	mainInitCommon(argc, argv, navViewGrad);
-	return OK;
+	view.setBackgroundGradient(navViewGrad);
 }
 
+CallResult EmuSystem::onInit()
+{
+	emuVideo.initPixmap((char*)pixBuff, pixFmt, vidBufferX, vidBufferY);
+	emuSys->name = (uint8*)EmuSystem::gameName;
+	return OK;
 }
