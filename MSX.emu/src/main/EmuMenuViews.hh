@@ -226,7 +226,7 @@ private:
 					msxMachine.compile(projP);
 					if(!strlen(newPath))
 					{
-						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath() : Base::storagePath());
+						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
 					}
 				};
 			postDraw();

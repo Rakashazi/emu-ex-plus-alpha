@@ -54,6 +54,14 @@ public:
 	void setOnPathReadError(OnPathReadError del);
 	CallResult setPath(const char *path, Input::Event e);
 	CallResult setPath(const char *path);
+	CallResult setPath(FS::PathString path, Input::Event e)
+	{
+		return setPath(path.data(), e);
+	}
+	CallResult setPath(FS::PathString path)
+	{
+		return setPath(path.data());
+	}
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void clearSelection() override
 	{

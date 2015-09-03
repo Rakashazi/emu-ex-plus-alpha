@@ -277,8 +277,8 @@ void EmuSystem::setGameSavePath(const char *path)
 void EmuSystem::makeDefaultSavePath()
 {
 	assert(strlen(gameName_));
-	FS::PathString pathTemp;
-	string_printf(pathTemp, "%s/Game Data", Base::storagePath());
+	FS::PathString pathTemp = Base::storagePath();
+	string_cat(pathTemp, "/Game Data");
 	FS::create_directory(pathTemp);
 	string_cat(pathTemp, "/");
 	string_cat(pathTemp, shortSystemName());
@@ -309,7 +309,7 @@ const char *EmuSystem::defaultSavePath()
 	assert(strlen(gameName_));
 	if(!strlen(defaultSavePath_.data()))
 	{
-		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath(), shortSystemName(), gameName_);
+		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath().data(), shortSystemName(), gameName_);
 		logMsg("game default save path: %s", defaultSavePath_.data());
 	}
 	if(!FS::exists(defaultSavePath_.data()))
@@ -319,7 +319,7 @@ const char *EmuSystem::defaultSavePath()
 
 FS::PathString EmuSystem::baseDefaultGameSavePath()
 {
-	return FS::makePathStringPrintf("%s/Game Data/%s", Base::storagePath(), shortSystemName());
+	return FS::makePathStringPrintf("%s/Game Data/%s", Base::storagePath().data(), shortSystemName());
 }
 
 void EmuSystem::closeGame(bool allowAutosaveState)

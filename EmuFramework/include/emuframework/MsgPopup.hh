@@ -29,6 +29,8 @@ private:
 	bool error = false;
 	std::array<char, 1024> str{};
 
+	void postContent(int secs, bool error);
+
 public:
 	MsgPopup() {}
 	void init();
@@ -39,11 +41,6 @@ public:
 	void postError(const char *msg, int secs = 3);
 	void draw();
 
-	template <typename... ARGS>
-	void printf(uint secs, bool error, ARGS&&... args)
-	{
-		string_printf(str, std::forward<ARGS>(args)...);
-		//logMsg("%s", str);
-		post(str.data(), secs, error);
-	}
+	[[gnu::format(printf, 4, 5)]]
+	void printf(uint secs, bool error, const char *format, ...);
 };

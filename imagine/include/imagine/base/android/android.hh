@@ -21,11 +21,13 @@
 namespace Base
 {
 
+using AndroidPropString = std::array<char, 92>;
+
 uint androidSDK();
 void setProcessPriority(int nice);
 int processPriority();
 bool apkSignatureIsConsistent();
-const char *androidBuildDevice();
+AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
 
 }

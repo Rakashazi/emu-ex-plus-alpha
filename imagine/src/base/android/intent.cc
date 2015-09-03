@@ -75,7 +75,6 @@ void handleIntent(JNIEnv *env, jobject activity)
 		logMsg("got intent with path: %s", intentDataPathStr);
 		dispatchOnInterProcessMessage(intentDataPathStr);
 		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
-		env->DeleteLocalRef(intentDataPathJStr);
 	}
 }
 

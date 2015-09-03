@@ -127,7 +127,6 @@ void ResourceFontAndroid::unlockCharBitmap()
 	AndroidBitmap_unlockPixels(env, lockedBitmap);
 	jUnlockCharBitmap(env, renderer, lockedBitmap);
 	env->DeleteLocalRef(lockedBitmap);
-	//env->DeleteGlobalRef(lockedBitmap);
 	lockedBitmap = nullptr;
 }
 

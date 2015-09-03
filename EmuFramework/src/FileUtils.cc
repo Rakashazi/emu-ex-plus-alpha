@@ -36,7 +36,7 @@ void fixFilePermissions(const char *path)
 	else
 		return;
 
-	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath(), path);
+	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath().data(), path);
 	//logMsg("executing %s", execPath);
 	int err = system(execPath.data());
 	if(err)

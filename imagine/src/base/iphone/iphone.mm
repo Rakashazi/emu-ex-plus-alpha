@@ -537,31 +537,26 @@ void endIdleByUserActivity()
 	}
 }
 
-const char *assetPath() { return appPath.data(); }
+FS::PathString assetPath() { return appPath; }
 
-const char *documentsPath()
-{
-	if(!docPath)
-	{
-		if(isRunningAsSystemApp)
-			return "/User/Library/Preferences";
-		else
-		{
-			NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-			NSString *documentsDirectory = [paths firstObject];
-			if(documentsDirectory)
-				docPath = strdup([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
-			else
-				docPath = "";
-		}
-	}
-	return docPath;
-}
-
-const char *storagePath()
+FS::PathString documentsPath()
 {
 	if(isRunningAsSystemApp)
-		return "/User/Media";
+		return {"/User/Library/Preferences"};
+	else
+	{
+		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+		NSString *documentsDirectory = [paths firstObject];
+		if(documentsDirectory)
+			FS::makePathString([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
+		return {};
+	}
+}
+
+FS::PathString storagePath()
+{
+	if(isRunningAsSystemApp)
+		return {"/User/Media"};
 	else
 		return documentsPath();
 }

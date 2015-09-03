@@ -883,7 +883,7 @@ CallResult EmuSystem::onInit()
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		string_printf(datafilePath, "%s/gngeo_data.zip", Base::assetPath());
+		string_printf(datafilePath, "%s/gngeo_data.zip", Base::assetPath().data());
 	}
 	return OK;
 }

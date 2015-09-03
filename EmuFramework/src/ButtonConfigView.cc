@@ -171,9 +171,9 @@ void ButtonConfigSetView::draw()
 void ButtonConfigSetView::onAddedToController(Input::Event e)
 {
 	if(e.isPointer())
-		string_printf(str, "Push key to set:\n%s", actionStr);
+		string_printf(str, "Push key to set:\n%s", actionStr.data());
 	else
-		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr);
+		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr.data());
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.isPointer())
 	{

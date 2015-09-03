@@ -23,24 +23,20 @@
 namespace Base
 {
 
-static const char *buildDevice{};
 static jobject vibrator{};
 static JavaInstMethod<void(jlong)> jVibrate{};
 static bool vibrationSystemIsInit = false;
 static JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{};
 
-const char *androidBuildDevice()
+AndroidPropString androidBuildDevice()
 {
-	if(unlikely(!buildDevice))
-	{
-		auto env = jEnv();
-		JavaClassMethod<jobject()> jDevName{env, jBaseActivityCls, "devName", "()Ljava/lang/String;"};
-		auto devName = (jstring)jDevName(env, jBaseActivityCls);
-		buildDevice = env->GetStringUTFChars(devName, nullptr);
-		logMsg("device name: %s", buildDevice);
-		assert(buildDevice);
-	}
-	return buildDevice;
+	auto env = jEnv();
+	JavaClassMethod<jobject()> jDevName{env, jBaseActivityCls, "devName", "()Ljava/lang/String;"};
+	auto devName = (jstring)jDevName(env, jBaseActivityCls);
+	AndroidPropString str{};
+	javaStringCopy(env, str, devName);
+	//logMsg("device name: %s", str.data());
+	return str;
 }
 
 bool isXperiaPlayDeviceStr(const char *str)

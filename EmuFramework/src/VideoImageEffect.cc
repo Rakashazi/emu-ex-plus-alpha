@@ -166,7 +166,7 @@ void VideoImageEffect::compile(bool isExternalTex)
 		if(r != OK)
 		{
 			// print error from original compile if fallback effect not found
-			popup.printf(3, true, "%s", r == NOT_FOUND ? msg.data() : fallbackMsg.data(), 3);
+			popup.printf(3, true, "%s", r == NOT_FOUND ? msg.data() : fallbackMsg.data());
 			deinit();
 			return;
 		}

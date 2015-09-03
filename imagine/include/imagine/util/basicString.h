@@ -5,6 +5,8 @@
 #include <cstring>
 #include <cctype>
 #include <cstdio>
+#include <cstdarg>
+#include <imagine/util/iterator.hh>
 #else
 #include <string.h>
 #include <ctype.h>
@@ -18,7 +20,6 @@ int string_containsChar(const char *s, int c);
 bool string_isHexValue(const char *s, uint maxChars);
 int string_equalNoCase(const char *s1, const char *s2) ATTRS(nonnull);
 int string_equal(const char *s1, const char *s2) ATTRS(nonnull);
-char *string_dup(const char *s) ATTRS(nonnull);
 char *string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
 
 // copies at most destSize-1 chars from src until null byte or dest size is reached
@@ -29,23 +30,18 @@ END_C_DECLS
 
 #ifdef __cplusplus
 
-template <size_t S>
-static char *string_copy(char (&dest)[S], const char *src)
+template <typename T>
+static char *string_copy(T &dest, const char *src)
 {
-	return string_copy(dest, src, S);
-}
-
-template <size_t S>
-static char *string_copy(std::array<char, S> &dest, const char *src)
-{
-	return string_copy(dest.data(), src, S);
+	return string_copy(IG::data(dest), src, IG::size(dest));
 }
 
 #ifdef __clang__
 // need to directly call builtin version to get constexpr
 #define string_len(s) __builtin_strlen(s)
 #else
-[[gnu::nonnull, gnu::pure]] static constexpr size_t string_len(const char *s)
+[[gnu::nonnull, gnu::pure]]
+static constexpr size_t string_len(const char *s)
 {
 	return std::strlen(s);
 	// If compiler doesn't have constexpr the following recursive version also works:
@@ -53,35 +49,32 @@ static char *string_copy(std::array<char, S> &dest, const char *src)
 }
 #endif
 
-template <size_t S>
-static char *string_cat(char (&dest)[S], const char *src)
+template <typename T>
+static char *string_cat(T &dest, const char *src)
 {
-	return string_cat(dest, src, S);
+	return string_cat(IG::data(dest), src, IG::size(dest));
+}
+
+template <typename T>
+[[gnu::format(printf, 2, 3)]]
+static int string_printf(T &dest, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	auto result = vsnprintf(IG::data(dest), IG::size(dest), format, args);
+	va_end(args);
+	return result;
 }
 
 template <size_t S>
-static char *string_cat(std::array<char, S> &dest, const char *src)
-{
-	return string_cat(dest.data(), src, S);
-}
-
-template <size_t S, typename... ARGS>
-static int string_printf(char (&buffer)[S], ARGS&&... args)
-{
-	return snprintf(buffer, S, std::forward<ARGS>(args)...);
-}
-
-template <size_t S, typename... ARGS>
-static int string_printf(std::array<char, S> &buffer, ARGS&&... args)
-{
-	return snprintf(buffer.data(), S, std::forward<ARGS>(args)...);
-}
-
-template <size_t S, typename... ARGS>
-static std::array<char, S> string_makePrintf(ARGS&&... args)
+[[gnu::format(printf, 1, 2)]]
+static std::array<char, S> string_makePrintf(const char *format, ...)
 {
 	std::array<char, S> str;
-	snprintf(str.data(), S, std::forward<ARGS>(args)...);
+	va_list args;
+	va_start(args, format);
+	vsnprintf(str.data(), S, format, args);
+	va_end(args);
 	return str;
 }
 

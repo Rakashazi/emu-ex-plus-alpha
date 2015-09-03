@@ -120,7 +120,6 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 				Screen::addScreen(s);
 			}
 		}
-		env->DeleteLocalRef(jPDisplay);
 	}
 	#endif
 }
@@ -165,9 +164,10 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	if(Base::androidSDK() <= 10)
 	{
 		// corrections for devices known to report wrong refresh rates
-		if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "R800at"))
+		auto buildDevice = Base::androidBuildDevice();
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(buildDevice.data(), "R800at"))
 			refreshRate_ = 61.5;
-		else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "sholes"))
+		else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(buildDevice.data(), "sholes"))
 			refreshRate_ = 60;
 		else
 			reliableRefreshRate = false;

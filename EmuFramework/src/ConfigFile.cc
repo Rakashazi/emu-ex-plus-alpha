@@ -673,7 +673,7 @@ static void writeConfig2(IO &io)
 	{
 		logErr("option string too long to write");
 	}
-	else if(!string_equal(workDir.data(), Base::storagePath()))
+	else if(!string_equal(workDir.data(), Base::storagePath().data()))
 	{
 		logMsg("saving current directory: %s", workDir.data());
 		io.writeVal((uint16)(2 + len), &r);
@@ -690,9 +690,9 @@ void loadConfigFile()
 {
 	FS::PathString configFilePath;
 	if(Base::documentsPathIsShared())
-		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
+		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath().data(), EmuSystem::configFilename);
 	else
-		string_printf(configFilePath, "%s/config", Base::documentsPath());
+		string_printf(configFilePath, "%s/config", Base::documentsPath().data());
 	FileIO configFile;
 	if(configFile.open(configFilePath.data()) != OK)
 	{
@@ -709,14 +709,15 @@ void saveConfigFile()
 	FS::PathString configFilePath;
 	if(Base::documentsPathIsShared())
 	{
-		string_printf(configFilePath, "%s/explusalpha.com", Base::documentsPath());
+		auto documentsPath = Base::documentsPath();
+		string_printf(configFilePath, "%s/explusalpha.com", documentsPath.data());
 		FS::create_directory(configFilePath);
 		fixFilePermissions(configFilePath);
-		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath(), EmuSystem::configFilename);
+		string_printf(configFilePath, "%s/explusalpha.com/%s", documentsPath.data(), EmuSystem::configFilename);
 	}
 	else
 	{
-		string_printf(configFilePath, "%s/config", Base::documentsPath());
+		string_printf(configFilePath, "%s/config", Base::documentsPath().data());
 	}
 	FileIO configFile;
 	configFile.create(configFilePath.data());

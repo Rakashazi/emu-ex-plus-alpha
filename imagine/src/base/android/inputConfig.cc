@@ -693,12 +693,13 @@ CallResult init()
 		// no multi-input device support
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			if(Base::isXperiaPlayDeviceStr(Base::androidBuildDevice()))
+			auto buildDevice = Base::androidBuildDevice();
+			if(Base::isXperiaPlayDeviceStr(buildDevice.data()))
 			{
 				logMsg("detected Xperia Play gamepad");
 				genericKeyDev.subtype_ = Device::SUBTYPE_XPERIA_PLAY;
 			}
-			else if(string_equal(Base::androidBuildDevice(), "sholes"))
+			else if(string_equal(buildDevice.data(), "sholes"))
 			{
 				logMsg("detected Droid/Milestone keyboard");
 				genericKeyDev.subtype_ = Device::SUBTYPE_MOTO_DROID_KEYBOARD;

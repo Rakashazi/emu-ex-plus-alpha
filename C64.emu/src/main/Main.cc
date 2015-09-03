@@ -914,9 +914,9 @@ static void popupC64FirmwareError()
 	popup.printf(6, 1, "System files missing, place C64, DRIVES, & PRINTER directories from VICE"
 		" in a path below, or set a custom path in options:\n"
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		"%s\n%s\n%s", Base::assetPath(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+		"%s\n%s\n%s", Base::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 		#else
-		"%s/C64.emu", Base::storagePath());
+		"%s/C64.emu", Base::storagePath().data());
 		#endif
 }
 
@@ -1102,12 +1102,12 @@ CallResult EmuSystem::onInit()
 		});
 
 	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-	setupSysFilePaths(sysFilePath[1], Base::assetPath());
+	setupSysFilePaths(sysFilePath[1], Base::assetPath().data());
 	setupSysFilePaths(sysFilePath[2], "~/.local/share/C64.emu");
 	setupSysFilePaths(sysFilePath[3], "/usr/share/games/vice");
 	#else
 	{
-		auto path = FS::makePathStringPrintf("%s/C64.emu", Base::storagePath());
+		auto path = FS::makePathStringPrintf("%s/C64.emu", Base::storagePath().data());
 		setupSysFilePaths(sysFilePath[1], path);
 	}
 	#endif

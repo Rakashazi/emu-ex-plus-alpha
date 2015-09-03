@@ -15,82 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <ctime>
-#include <unistd.h>
-#include <limits.h>
 #include <imagine/engine-globals.h>
 #include <imagine/util/operators.hh>
-
-#include <imagine/fs/PosixFS.hh>
+#include <imagine/fs/FSDefs.hh>
 
 // Tries to mirror API of C++ filesystem TS library in most cases
 
 namespace FS
 {
-
-using FileString = FileStringImpl;
-
-using PathString = PathStringImpl;
-
-using file_time_type = FileTimeTypeImpl;
-
-enum class file_type
-{
-	none = 0,
-	not_found = -1,
-	regular = 1,
-	directory = 2,
-	symlink = 3,
-	block = 4,
-	character = 5,
-	fifo = 6,
-	socket = 7,
-	unknown = 8
-};
-
-enum class acc
-{
-	e = accExistsImpl,
-	r = accReadBitImpl,
-	w = accWriteBitImpl,
-	x = accExecBitImpl,
-	rw = r | w,
-	rx = r | x,
-	wx = w | x,
-	rwx = r | w | x
-};
-
-class file_status
-{
-protected:
-	file_type type_ = file_type::none;
-	std::uintmax_t size_ = 0;
-	file_time_type lastWriteTime{};
-
-public:
-	constexpr file_status() {}
-	constexpr file_status(file_type type_, std::uintmax_t size_, file_time_type lastWriteTime):
-		type_{type_}, size_{size_}, lastWriteTime{lastWriteTime} {}
-
-	file_type type() const
-	{
-		return type_;
-	}
-
-	std::uintmax_t size() const
-	{
-		return size_;
-	}
-
-	file_time_type last_write_time() const
-	{
-		return lastWriteTime;
-	}
-
-	std::tm last_write_time_local() const;
-};
-
-using directory_entry = DirectoryEntryImpl;
 
 class directory_iterator : public DirectoryIteratorImpl,
 	public std::iterator<std::input_iterator_tag, directory_entry>,
@@ -252,15 +184,8 @@ static void rename(PathString oldPath, PathString newPath, CallResult &result)
 	rename(oldPath.data(), newPath.data(), result);
 }
 
-template <typename... ARGS>
-PathString makePathStringPrintf(ARGS&&... args)
-{
-	PathString path;
-	int ret = string_printf(path, std::forward<ARGS>(args)...);
-	assert(ret >= 0);
-	return path;
-}
-
+[[gnu::format(printf, 1, 2)]]
+PathString makePathStringPrintf(const char *format, ...);
 FileString makeFileString(const char *str);
 PathString makePathString(const char *str);
 

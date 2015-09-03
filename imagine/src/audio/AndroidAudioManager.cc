@@ -33,7 +33,6 @@ static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)>
 {
 	auto propJStr = env->NewStringUTF(propStr);
 	auto valJStr = (jstring)jGetProperty(env, audioManager, propJStr);
-	env->DeleteLocalRef(propJStr);
 	if(!valJStr)
 	{
 		logWarn("%s is null", propStr);
@@ -42,7 +41,6 @@ static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)>
 	auto valStr = env->GetStringUTFChars(valJStr, nullptr);
 	int val = atoi(valStr);
 	env->ReleaseStringUTFChars(valJStr, valStr);
-	env->DeleteLocalRef(valJStr);
 	return val;
 }
 

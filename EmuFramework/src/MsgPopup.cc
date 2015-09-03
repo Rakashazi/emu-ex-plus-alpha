@@ -24,41 +24,48 @@ void MsgPopup::init()
 {
 	//logMsg("init MsgPopup");
 	text.init(View::defaultFace);
+	text.setString(str.data());
 	text.maxLines = 6;
 }
 
 void MsgPopup::clear()
 {
-	if(text.str)
+	if(strlen(str.data()))
 	{
 		unpostTimer.deinit();
+		str = {};
 	}
-	text.str = 0;
 }
 
 void MsgPopup::place(const Gfx::ProjectionPlane &projP)
 {
 	var_selfs(projP)
 	text.maxLineSize = projP.w;
-	if(text.str)
+	if(strlen(str.data()))
 		text.compile(projP);
 }
 
 void MsgPopup::unpost()
 {
 	logMsg("unposting");
-	text.str = 0;
+	str = {};
 	mainWin.win.postDraw();
+}
+
+void MsgPopup::postContent(int secs, bool error)
+{
+	assert(strlen(str.data()));
+	mainWin.win.postDraw();
+	logMsg("%s", str.data());
+	text.compile(projP);
+	this->error = error;
+	unpostTimer.callbackAfterSec([this](){unpost();}, secs);
 }
 
 void MsgPopup::post(const char *msg, int secs, bool error)
 {
-	mainWin.win.postDraw();
-	logMsg("%s", msg);
-	text.setString(msg);
-	text.compile(projP);
-	this->error = error;
-	unpostTimer.callbackAfterSec([this](){unpost();}, secs);
+	string_copy(str, msg);
+	postContent(secs, error);
 }
 
 void MsgPopup::postError(const char *msg, int secs)
@@ -66,10 +73,19 @@ void MsgPopup::postError(const char *msg, int secs)
 	post(msg, secs, 1);
 }
 
+void MsgPopup::printf(uint secs, bool error, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	auto result = vsnprintf(str.data(), str.size(), format, args);
+	va_end(args);
+	postContent(secs, error);
+}
+
 void MsgPopup::draw()
 {
 	using namespace Gfx;
-	if(text.str)
+	if(strlen(str.data()))
 	{
 		noTexProgram.use(projP.makeTranslate());
 		setBlendMode(BLEND_MODE_ALPHA);

@@ -406,9 +406,9 @@ char *archdep_default_rtc_file_name(void)
 {
 	FS::PathString path{};
 	if(Base::documentsPathIsShared())
-		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath());
+		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath().data());
 	else
-		string_printf(path, "%s/vice.rtc", Base::documentsPath());
+		string_printf(path, "%s/vice.rtc", Base::documentsPath().data());
 	return lib_stralloc(path.data());
 }
 

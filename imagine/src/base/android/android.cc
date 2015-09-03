@@ -24,6 +24,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/assume.h>
@@ -49,7 +50,7 @@ static JavaInstMethod<void(jint)> jSetUIVisibility{};
 //static JavaInstMethod<void()> jFinish{};
 static JavaInstMethod<jobject()> jNewFontRenderer{};
 JavaInstMethod<void(jint)> jSetRequestedOrientation{};
-static const char *filesDir{}, *eStoreDir{};
+static const char *filesDir{};
 static uint aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
 SurfaceRotation osRotation{};
@@ -81,9 +82,34 @@ void abort() { ::abort(); }
 
 //void openURL(const char *url) { };
 
-const char *assetPath() { return ""; }
-const char *documentsPath() { return filesDir; }
-const char *storagePath() { return eStoreDir; }
+FS::PathString assetPath() { return {}; }
+
+FS::PathString documentsPath()
+{
+	if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
+	{
+		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
+		auto env = jEnv();
+		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
+		auto filesDirStr = (jstring)filesDir(env, jBaseActivity);
+		FS::PathString path{};
+		javaStringCopy(env, path, filesDirStr);
+		return path;
+	}
+	else
+		return FS::makePathString(filesDir);
+}
+
+FS::PathString storagePath()
+{
+	auto env = jEnv();
+	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
+	auto extStorageDirStr = (jstring)extStorageDir(env, jBaseActivityCls);
+	FS::PathString path{};
+	javaStringCopy(env, path, extStorageDirStr);
+	return path;
+}
+
 bool documentsPathIsShared() { return false; }
 
 AAssetManager *activityAAssetManager()
@@ -166,20 +192,11 @@ static void activityInit(JNIEnv* env, jobject activity)
 			env->RegisterNatives(jBaseActivityCls, method, sizeofArray(method));
 		}
 
-		if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
+		if(Config::DEBUG_BUILD)
 		{
-			logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
-			JavaInstMethod<jobject()> jFilesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
-			filesDir = env->GetStringUTFChars((jstring)jFilesDir(env, activity), nullptr);
+			logMsg("internal storage path: %s", documentsPath().data());
+			logMsg("external storage path: %s", storagePath().data());
 		}
-		{
-			JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
-			eStoreDir = env->GetStringUTFChars((jstring)extStorageDir(env, jBaseActivityCls), nullptr);
-		}
-		assert(filesDir);
-		assert(eStoreDir);
-		logMsg("internal storage path: %s", filesDir);
-		logMsg("external storage path: %s", eStoreDir);
 
 		doOrAbort(logger_init());
 		engineInit();

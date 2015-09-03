@@ -20,7 +20,6 @@
 #include "../utils.h"
 #include "../../../base/android/android.hh"
 #include <imagine/base/GLContext.hh>
-#include <imagine/util/ScopeGuard.hh>
 
 namespace Gfx
 {
@@ -119,15 +118,16 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 			return true;
 		if(string_equal(rendererStr, "Mali-400 MP"))
 			return true;
+		auto buildDevice = Base::androidBuildDevice();
 		if(Base::androidSDK() >= 20 &&
-			string_equal(Base::androidBuildDevice(), "mako"))
+			string_equal(buildDevice.data(), "mako"))
 		{
 			// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
 			// other devices like the HTC One M7 will crash using GraphicBuffers
 			return true;
 		}
 		if(Base::androidSDK() >= 19 &&
-			string_equal(Base::androidBuildDevice(), "ha3g"))
+			string_equal(buildDevice.data(), "ha3g"))
 		{
 			// works on Galaxy Note 3 (SM-N900) with Mali-T628
 			// but not on all devices with this GPU

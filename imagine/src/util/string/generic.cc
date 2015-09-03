@@ -286,15 +286,6 @@ int string_equal(const char *s1, const char *s2)
 	return strcmp(s1, s2) == 0;
 }
 
-char *string_dup(const char *s)
-{
-	auto bytes = strlen(s)+1;
-	char *dup = (char*)mem_alloc(bytes);
-	if(dup)
-		memcpy(dup, s, bytes);
-	return dup;
-}
-
 char *string_copy(char *dest, const char *src, size_t destSize)
 {
 	uint charsToCopy = std::min(destSize-1, strlen(src));

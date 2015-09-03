@@ -58,38 +58,32 @@ void openURL(const char *url)
 	auto ret = system(FS::makePathStringPrintf("xdg-open %s", url).data());
 }
 
-const char *assetPath()
+FS::PathString assetPath()
 {
-	return appPath.data();
+	return appPath;
 }
 
-const char *documentsPath()
+FS::PathString documentsPath()
 {
-	return appPath.data();
+	return appPath;
 }
 
-const char *storagePath()
+FS::PathString storagePath()
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
-		static FS::PathString sdPath{};
 		// look for the first mounted SD card
 		for(auto &entry : FS::directory_iterator{"/media"})
 		{
 			if(entry.type() == FS::file_type::directory && strstr(entry.name(), "mmcblk"))
 			{
-				//logMsg("storage dir: %s", dir.entryFilename(0));
-				string_copy(sdPath, entry.path().data());
-				break;
+				//logMsg("storage dir: %s", entry.path().data());
+				return entry.path();
 			}
-		}
-		if(strlen(sdPath.data()))
-		{
-			return sdPath.data();
 		}
 		// fall back to appPath
 	}
-	return appPath.data();
+	return appPath;
 }
 
 bool documentsPathIsShared()

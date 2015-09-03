@@ -20,6 +20,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/fs/FSDefs.hh>
 #if defined CONFIG_BASE_ANDROID
 #include <imagine/base/android/android.hh>
 #elif defined CONFIG_BASE_IOS
@@ -53,9 +54,9 @@ static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
 void openURL(const char *url);
 
 // file system paths
-const char *assetPath();
-const char *documentsPath();
-const char *storagePath();
+FS::PathString assetPath();
+FS::PathString documentsPath();
+FS::PathString storagePath();
 bool documentsPathIsShared();
 
 // OS UI management (status & navigation bar)

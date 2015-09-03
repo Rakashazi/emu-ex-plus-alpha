@@ -38,14 +38,14 @@ static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release 
 static FS::PathString externalLogPath()
 {
 	FS::PathString path{};
-	const char *prefix = ".";
+	FS::PathString prefix{"."};
 	if(Config::envIsIOS)
-		prefix = "/var/mobile";
+		prefix = FS::makePathString("/var/mobile");
 	else if(Config::envIsAndroid)
 		prefix = Base::storagePath();
 	else if(Config::envIsWebOS)
-		prefix = "/media/internal";
-	string_printf(path, "%s/imagine.log", prefix);
+		prefix = FS::makePathString("/media/internal");
+	string_printf(path, "%s/imagine.log", prefix.data());
 	return path;
 }
 

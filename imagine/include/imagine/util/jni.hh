@@ -144,16 +144,16 @@ public:
 	}
 };
 
-static void javaStringDup(JNIEnv *env, const char *&dest, jstring jstr)
+template <size_t S>
+static void javaStringCopy(JNIEnv *env, std::array<char, S> &dest, jstring jstr)
 {
-	const char *str = env->GetStringUTFChars(jstr, nullptr);
-	if(!str)
+	auto utfChars = env->GetStringUTFChars(jstr, nullptr);
+	if(!utfChars)
 	{
-		dest = nullptr;
 		return; // OutOfMemoryError thrown
 	}
-	dest = string_dup(str);
-	env->ReleaseStringUTFChars(jstr, str);
+	string_copy(dest, utfChars);
+	env->ReleaseStringUTFChars(jstr, utfChars);
 }
 
 // method call specializations

@@ -309,7 +309,7 @@ void initOptions()
 		#endif
 		optionSoundBuffers.initDefault(6);
 	}
-	else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice(), "roth")) // NVidia Shield
+	else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice().data(), "roth")) // NVidia Shield
 	{
 		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 		optionSoundUnderrunCheck.initDefault(0);

@@ -40,7 +40,7 @@ void BundledGamesView::init()
 			auto res = EmuSystem::loadGameFromIO(file, info.assetName);
 			file.close();
 			#else
-			auto zipPath = FS::makePathStringPrintf("%s/%s", Base::assetPath(), info.assetName);
+			auto zipPath = FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), info.assetName);
 			auto zip = unzOpen(zipPath.data());
 			if(!zip)
 			{
