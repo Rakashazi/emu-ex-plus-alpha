@@ -17,6 +17,8 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/TextEntry.hh>
 
+static constexpr uint MAX_ITEMS = 256;
+static constexpr uint MAX_CODE_TYPES = 2;
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
 BaseCheatsView::BaseCheatsView(Base::Window &win):
@@ -47,17 +49,17 @@ void BaseCheatsView::init()
 {
 	assert(!onRefreshCheatsList.isFull());
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
-	uint i = 0;
-	edit.init(); item[i++] = &edit;
-	loadCheatItems(item, i);
-	assert(i <= sizeofArray(item));
-	TableView::init(item, i);
+	item.reserve(MAX_ITEMS + 1);
+	edit.init(); item.emplace_back(&edit);
+	loadCheatItems(item);
+	TableView::init(item.data(), item.size());
 }
 
 void BaseCheatsView::deinit()
 {
 	TableView::deinit();
 	onRefreshCheatsList.remove(&onRefreshCheats);
+	item.clear();
 }
 
 void EditCheatView::loadNameItem(const char *nameStr, MenuItem *item[], uint &items)
@@ -124,18 +126,17 @@ void BaseEditCheatListView::init()
 {
 	assert(!onRefreshCheatsList.isFull());
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
-	uint i = 0;
-	loadAddCheatItems(item, i);
-	assert(i <= EmuCheats::MAX_CODE_TYPES);
-	loadCheatItems(item, i);
-	assert(i <= sizeofArray(item));
-	TableView::init(item, i);
+	item.reserve(MAX_ITEMS + MAX_CODE_TYPES);
+	loadAddCheatItems(item);
+	loadCheatItems(item);
+	TableView::init(item.data(), item.size());
 }
 
 void BaseEditCheatListView::deinit()
 {
 	TableView::deinit();
 	onRefreshCheatsList.remove(&onRefreshCheats);
+	item.clear();
 }
 
 void refreshCheatViews()

@@ -1,5 +1,6 @@
 #pragma once
 #include <emuframework/Cheats.hh>
+#include <vector>
 
 namespace EmuCheats
 {
@@ -11,7 +12,7 @@ static const uint MAX = 100;
 class SystemEditCheatView : public EditCheatView
 {
 private:
-	DualTextMenuItem code;
+	DualTextMenuItem code{};
 	uint idx = 0;
 	MenuItem *item[5]{};
 
@@ -27,10 +28,10 @@ class EditCheatListView : public BaseEditCheatListView
 {
 private:
 	TextMenuItem addGS12CBCode{}, addGS3Code{};
-	TextMenuItem cheat[EmuCheats::MAX]{};
+	std::vector<TextMenuItem> cheat{};
 
-	void loadAddCheatItems(MenuItem *item[], uint &items) override;
-	void loadCheatItems(MenuItem *item[], uint &items) override;
+	void loadAddCheatItems(std::vector<MenuItem*> &item) override;
+	void loadCheatItems(std::vector<MenuItem*> &item) override;
 	void addNewCheat(int isGSv3);
 
 public:
@@ -40,9 +41,9 @@ public:
 class CheatsView : public BaseCheatsView
 {
 private:
-	BoolMenuItem cheat[EmuCheats::MAX]{};
+	std::vector<BoolMenuItem> cheat{};
 
-	void loadCheatItems(MenuItem *item[], uint &i) override;
+	void loadCheatItems(std::vector<MenuItem*> &item) override;
 
 public:
 	CheatsView(Base::Window &win): BaseCheatsView(win) {}

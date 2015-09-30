@@ -91,7 +91,7 @@
 
 //=============================================================================
 
-RomInfo rom;
+RomInfo rom{};
 RomHeader* rom_header;
 
 #define MATCH_CATALOG(c, s)	(rom_header->catalog == htole16(c) \

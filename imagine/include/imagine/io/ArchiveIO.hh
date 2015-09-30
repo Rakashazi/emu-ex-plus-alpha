@@ -17,40 +17,42 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/io/IO.hh>
-#include <unzip.h>
+#include <array>
 
-class ZipIO : public IO
+struct archive;
+struct archive_entry;
+
+class ArchiveIO : public IO
 {
 public:
 	using IOUtils::read;
 	using IOUtils::write;
-	using IOUtils::tell;
+	using IOUtils::seek;
 
-	ZipIO() {}
-	~ZipIO() override;
-	ZipIO(ZipIO &&o);
-	ZipIO &operator=(ZipIO &&o);
+	ArchiveIO() {}
+	ArchiveIO(std::shared_ptr<struct archive> arch, struct archive_entry *entry):
+		arch{std::move(arch)}, entry{entry}
+	{}
+	~ArchiveIO() override;
+	ArchiveIO(ArchiveIO &&o);
+	ArchiveIO &operator=(ArchiveIO &&o);
 	operator GenericIO();
-	CallResult open(const char *path, const char *pathInZip);
+	std::shared_ptr<struct archive> releaseArchive();
+	const char *name();
 
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
-	off_t tell(CallResult *resultOut) override;
-	CallResult seek(off_t offset, SeekMode mode) override;
+	off_t seek(off_t offset, SeekMode mode, CallResult *resultOut) override;
 	void close() override;
 	size_t size() override;
 	bool eof() override;
 	explicit operator bool() override;
 
 private:
-	unzFile zip{};
-	GenericIO zipIo{};
-	size_t uncompSize = 0;
+	std::shared_ptr<struct archive> arch{};
+	struct archive_entry *entry{};
 
-	bool openZipFile(const char *path);
-	bool openFileInZip();
-	void resetFileInZip();
 	// no copying outside of class
-	ZipIO(const ZipIO &) = default;
-	ZipIO &operator=(const ZipIO &) = default;
+	ArchiveIO(const ArchiveIO &) = default;
+	ArchiveIO &operator=(const ArchiveIO &) = default;
 };

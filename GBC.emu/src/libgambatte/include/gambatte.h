@@ -44,24 +44,15 @@ public:
 	};
 
 	 /*
-	  * Load ROM image.
+	  * Load ROM image
 	  *
-	  * @param romfile  Path to rom image file. Typically a .gbc, .gb, or .zip-file (if
-	  *                 zip-support is compiled in).
-	  * @param flags    ORed combination of LoadFlags.
-	  * @return 0 on success, negative value on failure.
-	  */
-	LoadRes load(std::string const &romfile, unsigned flags = 0);
-
-	 /*
-	  * Load ROM image via custom File object.
-	  *
-	  * @param romfile  File to read rom image from
+	  * @param romdata  Buffer to read rom image from
+	  * @param size  Size of the buffer
 	  * @param romfilename  Name of the rom, used to determine save data strings
 	  * @param flags    ORed combination of LoadFlags.
 	  * @return 0 on success, negative value on failure.
 	  */
-	LoadRes load(File &romfile, std::string const &romfilename, unsigned const flags = 0);
+	LoadRes load(const void *romdata, std::size_t size, std::string const &romfilename, unsigned const flags = 0);
 
 	/**
 	  * Emulates until at least 'samples' audio samples are produced in the

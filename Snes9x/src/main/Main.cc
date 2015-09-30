@@ -81,7 +81,7 @@ const bool EmuSystem::inputHasRevBtnLayout = false;
 #ifdef SNES9X_VERSION_1_4
 const char *EmuSystem::configFilename = "Snes9x.config";
 #else
-const bool EmuSystem::hasBundledGames = true;
+bool EmuSystem::hasBundledGames = true;
 const char *EmuSystem::configFilename = "Snes9xP.config";
 #endif
 const uint EmuSystem::maxPlayers = 5;
@@ -92,7 +92,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-const bool EmuSystem::hasResetModes = true;
+bool EmuSystem::hasResetModes = true;
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "smc"
@@ -157,21 +157,15 @@ void EmuSystem::writeConfig(IO &io)
 	#endif
 }
 
-static bool isROMExtension(const char *name)
+static bool hasSNESExtension(const char *name)
 {
 	return string_hasDotExtension(name, "smc") ||
 			string_hasDotExtension(name, "sfc") ||
-			string_hasDotExtension(name, "fig") ||
-			string_hasDotExtension(name, "1");
+			string_hasDotExtension(name, "fig");
 }
 
-static bool isSNESExtension(const char *name)
-{
-	return isROMExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isSNESExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isSNESExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasSNESExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasSNESExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
@@ -387,12 +381,12 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 
 static FS::PathString sprintSRAMFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 static FS::PathString sprintCheatsFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 int EmuSystem::saveState()
@@ -620,28 +614,25 @@ static int loadGameCommon()
 
 int EmuSystem::loadGame(const char *path)
 {
-	closeGame();
-	setupGamePaths(path);
-	if(!Memory.LoadROM(fullGamePath()))
-	{
-		logMsg("failed to load game");
-		popup.postError("Error loading game");
-		return 0;
-	}
-	return loadGameCommon();
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
-	#ifndef SNES9X_VERSION_1_4
 	closeGame();
-	setupGameName(origFilename);
+	setupGamePaths(origFilename);
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE)
 	{
 		//popup.postError("ROM size is too big");
     return 0;
 	}
+	#ifndef SNES9X_VERSION_1_4
+	mem_zero(Memory.NSRTHeader);
+	#endif
+	Memory.HeaderCount = 0;
+	string_copy(Memory.ROMFilename, path);
 	bool success;
 	if(io.mmapConst())
 	{
@@ -653,7 +644,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 		if(!io.read(dataPtr, size))
 		{
 			mem_free(dataPtr);
-			//popup.postError("IO Error loading game");
+			popup.postError("IO Error loading game");
 			return 0;
 		}
 		success = Memory.LoadROMMem(dataPtr, size);
@@ -661,14 +652,10 @@ int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
 	}
 	if(!success)
 	{
-		logMsg("failed to load game");
 		popup.postError("Error loading game");
 		return 0;
 	}
 	return loadGameCommon();
-	#else
-	return 0;
-	#endif
 }
 
 void EmuSystem::clearInputBuffers()

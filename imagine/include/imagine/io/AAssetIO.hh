@@ -24,7 +24,7 @@ class AAssetIO : public IO
 public:
 	using IOUtils::read;
 	using IOUtils::write;
-	using IOUtils::tell;
+	using IOUtils::seek;
 
 	AAssetIO() {}
 	~AAssetIO() override;
@@ -36,8 +36,7 @@ public:
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
 	const char *mmapConst() override;
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
-	off_t tell(CallResult *resultOut) override;
-	CallResult seek(off_t offset, SeekMode mode) override;
+	off_t seek(off_t offset, SeekMode mode, CallResult *resultOut) override;
 	void close() override;
 	size_t size() override;
 	bool eof() override;

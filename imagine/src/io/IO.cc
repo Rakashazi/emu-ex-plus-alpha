@@ -16,6 +16,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/api/stdio.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 
 IO::~IO() {}
@@ -65,21 +66,16 @@ CallResult GenericIO::truncate(off_t offset)
 	return io ? io->truncate(offset) : (CallResult)BAD_STATE;
 }
 
-off_t GenericIO::tell(CallResult *resultOut)
+off_t GenericIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
 {
 	if(io)
-		return io->tell(resultOut);
+		return io->seek(offset, mode, resultOut);
 	else
 	{
 		if(resultOut)
 			*resultOut = BAD_STATE;
-		return 0;
+		return -1;
 	}
-}
-
-CallResult GenericIO::seek(off_t offset, IO::SeekMode mode)
-{
-	return io ? io->seek(offset, mode) : (CallResult)BAD_STATE;
 }
 
 void GenericIO::close()
@@ -181,7 +177,7 @@ long ftell(IO &io)
 
 int fseek(IO &io, long offset, int whence)
 {
-	return io.seek(offset, (IODefs::SeekMode)whence);
+	return io.seek(offset, (IODefs::SeekMode)whence) == -1 ? -1 : 0;
 }
 
 int fclose(IO &stream)

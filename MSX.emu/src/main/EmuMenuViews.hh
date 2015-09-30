@@ -257,11 +257,11 @@ public:
 
 	static EmuNameFilterFunc fsFilter(uint type)
 	{
-		EmuNameFilterFunc filter = isMSXROMExtension;
+		EmuNameFilterFunc filter = hasMSXROMExtension;
 		if(type == DISK)
-			filter = isMSXDiskExtension;
+			filter = hasMSXDiskExtension;
 		else if(type == TAPE)
-			filter = isMSXTapeExtension;
+			filter = hasMSXTapeExtension;
 		return filter;
 	}
 };

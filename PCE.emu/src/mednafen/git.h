@@ -5,11 +5,11 @@
 
 #include "video.h"
 
-typedef struct
+struct FileExtensionSpecStruct
 {
  const char *extension; // Example ".nes"
  const char *description; // Example "iNES Format ROM Image"
-} FileExtensionSpecStruct;
+};
 
 #include "file.h"
 

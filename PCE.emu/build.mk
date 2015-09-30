@@ -9,7 +9,8 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 SRC += main/Main.cc \
 main/EmuControls.cc \
 common/MDFNApi.cc \
-main/PCEFast.cc
+main/PCEFast.cc \
+main/MDFNFILE.cc
 
 CPPFLAGS += -DHAVE_CONFIG_H \
 -I$(projectPath)/src \
@@ -71,7 +72,6 @@ SRC += $(MDFN_SRC) $(COMPRESS_SRC)
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/libvorbis.mk
 include $(IMAGINE_PATH)/make/package/libsndfile.mk
-include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 

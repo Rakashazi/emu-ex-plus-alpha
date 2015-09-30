@@ -261,6 +261,7 @@ void utilStripDoubleExtension(const char *file, char *buffer)
   }
 }
 
+#if 0
 // Opens and scans archive using accept(). Returns fex_t if found.
 // If error or not found, displays message and returns NULL.
 static fex_t* scan_arc(const char *file, bool (*accept)(const char *),
@@ -303,6 +304,7 @@ static fex_t* scan_arc(const char *file, bool (*accept)(const char *),
 	}
 	return fe;
 }
+#endif
 
 static bool utilIsImage(const char *file)
 {
@@ -313,6 +315,7 @@ static bool utilIsImage(const char *file)
 #include <windows.h>
 #endif
 
+#if 0
 IMAGE_TYPE utilFindType(const char *file)
 {
 	char buffer [2048];
@@ -426,6 +429,7 @@ u8 *utilLoad(const char *file,
 
 	return image;
 }
+#endif
 
 void utilWriteInt(gzFile gzFile, int i)
 {

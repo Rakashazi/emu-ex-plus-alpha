@@ -1516,15 +1516,13 @@ bool8 CMemory::LoadROMMem (const uint8 *source, uint32 sourceSize)
     if(!source || sourceSize > MAX_ROM_SIZE)
         return FALSE;
 
-    strcpy(ROMFilename,"MemoryROM");
-
-    do
-    {
-        memset(ROM,0, MAX_ROM_SIZE);
-	    memset(&Multi, 0,sizeof(Multi));
-        memcpy(ROM,source,sourceSize);
-    }
-    while(!LoadROMInt(sourceSize));
+    memset(ROM, 0, MAX_ROM_SIZE);
+	  memset(&Multi, 0, sizeof(Multi));
+    memcpy(ROM, source, sourceSize);
+    int32 romSize = HeaderRemove(sourceSize, ROM);
+    if (!Settings.NoPatch)
+		 CheckForAnyPatch(ROMFilename, HeaderCount != 0, romSize);
+    LoadROMInt(romSize);
 
     return TRUE;
 }

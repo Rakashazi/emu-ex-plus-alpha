@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/PosixIO.hh>
+#include <imagine/fs/FSDefs.hh>
 
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
@@ -23,7 +24,7 @@ public:
 	using IOUtils::read;
 	using IOUtils::readAtPos;
 	using IOUtils::write;
-	using IOUtils::tell;
+	using IOUtils::seek;
 
 	PosixFileIO();
 	~PosixFileIO();
@@ -33,10 +34,21 @@ public:
 	operator IO&(){ return io(); }
 	operator GenericIO();
 	CallResult open(const char *path, uint mode = 0);
+
+	CallResult open(FS::PathString path, uint mode = 0)
+	{
+		return open(path.data(), mode);
+	}
+
 	CallResult create(const char *path, uint mode = 0)
 	{
 		mode |= IO::OPEN_WRITE | IO::OPEN_CREATE;
 		return open(path, mode);
+	}
+
+	CallResult create(FS::PathString path, uint mode = 0)
+	{
+		return create(path.data(), mode);
 	}
 
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut);
@@ -44,8 +56,7 @@ public:
 	const char *mmapConst();
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut);
 	CallResult truncate(off_t offset);
-	off_t tell(CallResult *resultOut);
-	CallResult seek(off_t offset, IO::SeekMode mode);
+	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut);
 	void close();
 	void sync();
 	size_t size();

@@ -156,31 +156,24 @@ CallResult PosixIO::truncate(off_t offset)
 	return OK;
 }
 
-off_t PosixIO::tell(CallResult *resultOut)
-{
-	auto pos = lseek(fd_, 0, SEEK_CUR);
-	if(pos == -1)
-	{
-		logErr("error getting file position");
-		if(resultOut)
-			*resultOut = IO_ERROR;
-	}
-	return pos;
-}
-
-CallResult PosixIO::seek(off_t offset, SeekMode mode)
+off_t PosixIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
 {
 	if(!isSeekModeValid(mode))
 	{
 		bug_exit("invalid seek mode: %d", (int)mode);
-		return INVALID_PARAMETER;
+		if(resultOut)
+			*resultOut = INVALID_PARAMETER;
+		return -1;
 	}
-	if(lseek(fd_, offset, mode) == -1)
+	auto newPos = lseek(fd_, offset, mode);
+	if(newPos == 1)
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
-		return IO_ERROR;
+		if(resultOut)
+			*resultOut = IO_ERROR;
+		return -1;
 	}
-	return OK;
+	return newPos;
 }
 
 void PosixIO::close()

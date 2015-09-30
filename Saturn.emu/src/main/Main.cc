@@ -23,14 +23,14 @@ static PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
 
-static bool isCDExtension(const char *name)
+static bool hasCDExtension(const char *name)
 {
 	return string_hasDotExtension(name, "cue") ||
 			string_hasDotExtension(name, "iso") ||
 			string_hasDotExtension(name, "bin");
 }
 
-static bool isBIOSExtension(const char *name)
+static bool hasBIOSExtension(const char *name)
 {
 	return string_hasDotExtension(name, "bin");
 }
@@ -255,6 +255,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+bool EmuSystem::handlesGenericIO = false;
 #include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
@@ -304,8 +305,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionSH2Core.writeWithKeyIfNotDefault(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isCDExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 
@@ -553,7 +554,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	return 0; // TODO
 }

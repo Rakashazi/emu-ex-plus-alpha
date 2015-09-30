@@ -30,24 +30,24 @@ uint fceuCheats = 0;
 #include <fceu/input.h>
 #include <fceu/cheat.h>
 
-static bool isFDSBIOSExtension(const char *name)
+static bool hasFDSBIOSExtension(const char *name)
 {
 	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "bin");
 }
 
-static bool isFDSExtension(const char *name)
+static bool hasFDSExtension(const char *name)
 {
 	return string_hasDotExtension(name, "fds");
 }
 
-static bool isROMExtension(const char *name)
+static bool hasROMExtension(const char *name)
 {
 	return string_hasDotExtension(name, "nes") || string_hasDotExtension(name, "unf");
 }
 
-static bool isNESExtension(const char *name)
+static bool hasNESExtension(const char *name)
 {
-	return isROMExtension(name) || isFDSExtension(name) || string_hasDotExtension(name, "zip");
+	return hasROMExtension(name) || hasFDSExtension(name);
 }
 
 // controls
@@ -99,8 +99,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-const bool EmuSystem::hasPALVideoSystem = true;
-const bool EmuSystem::hasResetModes = true;
+bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::hasResetModes = true;
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -163,8 +163,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionFdsBiosPath.writeToIO(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isNESExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isNESExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasNESExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasNESExtension;
 
 #ifdef USE_PIX_RGB565
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
@@ -465,33 +465,25 @@ static int loadGameCommon()
 
 int EmuSystem::loadGame(const char *path)
 {
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
+}
+
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
+{
 	closeGame();
 	setupGamePaths(path);
 	setDirOverrides();
-	FCEUI_SetVidSystem(0); // default to NTSC
-	if(!FCEUI_LoadGame(EmuSystem::fullGamePath(), 1))
-	{
-		popup.post("Error loading game", 1);
-		return 0;
-	}
-	return loadGameCommon();
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
-{
-	closeGame();
-	setupGameName(origFilename);
-	setDirOverrides();
 	auto ioStream = new EMUFILE_IO(io);
 	auto file = new FCEUFILE();
-	file->filename = origFilename;
-	file->logicalPath = origFilename;
-	file->fullFilename = origFilename;
+	file->filename = path;
+	file->logicalPath = path;
+	file->fullFilename = path;
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
 	FCEUI_SetVidSystem(0); // default to NTSC
-	if(!FCEUI_LoadGameWithFile(file, origFilename, 1))
+	if(!FCEUI_LoadGameWithFile(file, path, 1))
 	{
 		popup.post("Error loading game", 1);
 		return 0;

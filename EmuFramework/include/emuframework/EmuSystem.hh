@@ -48,9 +48,8 @@ enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE
 class EmuSystem
 {
 private:
-	using GameNameArr = char[256];
 	static FS::PathString gamePath_, fullGamePath_;
-	static GameNameArr gameName_, fullGameName_;
+	static FS::FileString gameName_, fullGameName_;
 	static FS::PathString defaultSavePath_;
 	static FS::PathString gameSavePath_;
 
@@ -77,14 +76,16 @@ public:
 	static const uint inputFaceBtns;
 	static const bool inputHasTriggerBtns;
 	static const bool inputHasRevBtnLayout;
-	static const bool inputHasKeyboard;
-	static const bool hasBundledGames;
-	static const bool hasPALVideoSystem;
+	static bool inputHasKeyboard;
+	static bool hasBundledGames;
+	static bool hasPALVideoSystem;
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
 	static double frameTimeNative;
 	static double frameTimePAL;
-	static const bool hasResetModes;
+	static bool hasResetModes;
 	enum ResetMode { RESET_HARD, RESET_SOFT };
+	static bool handlesArchiveFiles;
+	static bool handlesGenericIO;
 
 	static CallResult onInit();
 	static void onMainWindowCreated(Base::Window &win);
@@ -103,14 +104,14 @@ public:
 	static const BundledGameInfo &bundledGameInfo(uint idx);
 	static const char *gamePath() { return gamePath_.data(); }
 	static const char *fullGamePath() { return fullGamePath_.data(); }
-	static const GameNameArr &gameName() { return gameName_; }
-	static const GameNameArr &fullGameName() { return strlen(fullGameName_) ? fullGameName_ : gameName_; }
+	static FS::FileString gameName() { return gameName_; }
+	static FS::FileString fullGameName() { return strlen(fullGameName_.data()) ? fullGameName_ : gameName_; }
 	static void setFullGameName(const char *name) { string_copy(fullGameName_, name); }
 	static void makeDefaultSavePath();
 	static const char *defaultSavePath();
 	static const char *savePath();
 	static FS::PathString sprintStateFilename(int slot,
-		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_);
+		const char *statePath = savePath(), const char *gameName = EmuSystem::gameName_.data());
 	static bool loadAutoState();
 	static void saveAutoState();
 	static void saveBackupMem();
@@ -121,7 +122,9 @@ public:
 	static void writeConfig(IO &io);
 	static bool readConfig(IO &io, uint key, uint readSize);
 	static int loadGame(const char *path);
-	static int loadGameFromIO(IO &io, const char *origFilename);
+	static int loadGameFromIO(IO &io, const char *path, const char *origFilename);
+	static FS::PathString willLoadGameFromPath(FS::PathString path);
+	static int loadGameFromPath(FS::PathString path);
 	typedef DelegateFunc<void (uint result, Input::Event e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }
@@ -154,13 +157,12 @@ public:
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);
 	static void setupGameSavePath();
-	static void setupGameName(const char *name);
 	static void clearGamePaths();
 	static FS::PathString baseDefaultGameSavePath();
 	static IG::Time benchmark();
 	static bool gameIsRunning()
 	{
-		return !string_equal(gameName_, "");
+		return !string_equal(gameName_.data(), "");
 	}
 	static void resetFrameTime();
 	static void pause();

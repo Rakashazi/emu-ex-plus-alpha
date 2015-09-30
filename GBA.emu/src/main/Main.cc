@@ -41,7 +41,7 @@ const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 const char *EmuSystem::configFilename = "GbaEmu.config";
-const bool EmuSystem::hasBundledGames = true;
+bool EmuSystem::hasBundledGames = true;
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -218,15 +218,13 @@ void EmuSystem::writeConfig(IO &io)
 	optionRtcEmulation.writeWithKeyIfNotDefault(io);
 }
 
-static bool isGBAExtension(const char *name)
+static bool hasGBAExtension(const char *name)
 {
-	return string_hasDotExtension(name, "gba")
-			|| string_hasDotExtension(name, "zip")
-			|| string_hasDotExtension(name, "7z");
+	return string_hasDotExtension(name, "gba");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isGBAExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isGBAExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasGBAExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasGBAExtension;
 
 #define USE_PIX_RGB565
 #ifdef USE_PIX_RGB565
@@ -302,7 +300,7 @@ void EmuSystem::saveBackupMem()
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory");
-		auto saveStr = FS::makePathStringPrintf("%s/%s.sav", savePath(), gameName());
+		auto saveStr = FS::makePathStringPrintf("%s/%s.sav", savePath(), gameName().data());
 		fixFilePermissions(saveStr);
 		CPUWriteBatteryFile(gGba, saveStr.data());
 		writeCheatFile();
@@ -318,7 +316,7 @@ void EmuSystem::clearInputBuffers() { P1 = 0x03FF; }
 void EmuSystem::closeSystem()
 {
 	assert(gameIsRunning());
-	logMsg("closing game %s", gameName());
+	logMsg("closing game %s", gameName().data());
 	saveBackupMem();
 	CPUCleanUp();
 	detectedRtcGame = 0;
@@ -372,13 +370,13 @@ static int loadGameCommon(int size)
 	}
 	emuVideo.initImage(0, 240, 160);
 	setGameSpecificSettings(gGba);
-	if(!applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName(), gGba.mem.rom, size))
+	if(!applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size))
 	{
 		return 0;
 	}
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
-	auto saveStr = FS::makePathStringPrintf("%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName());
+	auto saveStr = FS::makePathStringPrintf("%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName().data());
 	CPUReadBatteryFile(gGba, saveStr.data());
 	readCheatFile();
 	logMsg("started emu");
@@ -387,16 +385,14 @@ static int loadGameCommon(int size)
 
 int EmuSystem::loadGame(const char *path)
 {
-	closeGame();
-	setupGamePaths(path);
-	int size = CPULoadRom(gGba, fullGamePath());
-	return loadGameCommon(size);
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *)
 {
 	closeGame();
-	setupGameName(origFilename);
+	setupGamePaths(path);
 	int size = CPULoadRomWithIO(gGba, io);
 	return loadGameCommon(size);
 }

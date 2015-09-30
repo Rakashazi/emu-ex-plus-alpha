@@ -36,42 +36,13 @@ common/memgzio.c \
 common/Patch.cpp \
 Util.cpp
 #gba/remote.cpp gba/GBASockClient.cpp gba/GBALink.cpp gba/agbprint.cpp
-# 7z_C/7zHeader.c 7z_C/7zItem.c gba/armdis.cpp gba/elf.cpp
+#gba/armdis.cpp gba/elf.cpp
 
 vbamSrc += apu/Gb_Apu.cpp \
 apu/Gb_Oscs.cpp \
 apu/Blip_Buffer.cpp \
 apu/Multi_Buffer.cpp \
 apu/Gb_Apu_State.cpp
-
-vbamSrc += fex/Binary_Extractor.cpp \
-fex/Gzip_Extractor.cpp \
-fex/blargg_common.cpp \
-fex/Gzip_Reader.cpp \
-fex/blargg_errors.cpp \
-fex/Rar_Extractor.cpp \
-fex/Data_Reader.cpp \
-fex/Zip7_Extractor.cpp \
-fex/fex.cpp \
-fex/Zip_Extractor.cpp \
-fex/File_Extractor.cpp \
-fex/Zlib_Inflater.cpp
-
-vbamSrc += 7z_C/7zAlloc.c \
-7z_C/Bra.c \
-7z_C/7zBuf.c \
-7z_C/CpuArch.c \
-7z_C/7zDec.c \
-7z_C/7zCrc.c \
-7z_C/Lzma2Dec.c \
-7z_C/7zIn.c \
-7z_C/7zCrcOpt.c \
-7z_C/7zStream.c \
-7z_C/LzmaDec.c \
-7z_C/Bcj2.c \
-7z_C/Bra86.c \
-7z_C/Ppmd7.c \
-7z_C/Ppmd7Dec.c
 
 vbamPath := vbam
 SRC += main/Main.cc \

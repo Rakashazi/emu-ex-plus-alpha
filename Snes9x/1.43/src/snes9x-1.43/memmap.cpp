@@ -561,8 +561,11 @@ void CMemory::FreeSDD1Data ()
 /* This function loads a Snes-Backup image                                                    */
 /**********************************************************************************************/
 
-bool8 CMemory::LoadROM (const char *filename)
+bool8 CMemory::LoadROMMem (const uint8 *source, uint32 sourceSize)
 {
+	if(!source || sourceSize > MAX_ROM_SIZE)
+    return FALSE;
+
     int32 TotalFileSize = 0;
     bool8 Interleaved = FALSE;
     bool8 Tales = FALSE;
@@ -588,12 +591,25 @@ again:
 	Settings.DisplayColor=0xffff;
 	SET_UI_COLOR(255,255,255);
 
-	TotalFileSize = FileLoader(ROM, filename, MAX_ROM_SIZE);
+	TotalFileSize = sourceSize;
+	memset(ROM, 0, MAX_ROM_SIZE + 0x200 + 0x8000);
+	memcpy(ROM, source, sourceSize);
+	{
+		int calc_size = (TotalFileSize / 0x2000) * 0x2000;
+
+		if ((TotalFileSize - calc_size == 512 && !Settings.ForceNoHeader) ||
+			Settings.ForceHeader)
+		{
+			memmove (ROM, ROM + 512, calc_size);
+			HeaderCount++;
+			TotalFileSize -= 512;
+	  }
+	}
 
 	if (!TotalFileSize)
 		return FALSE;		// it ends here
 	else if(!Settings.NoPatch)
-		CheckForIPSPatch (filename, HeaderCount != 0, TotalFileSize);
+		CheckForIPSPatch (ROMFilename, HeaderCount != 0, TotalFileSize);
 
 	//fix hacked games here.
 	if((strncmp("HONKAKUHA IGO GOSEI", (char*)&ROM[0x7FC0],19)==0)&&(ROM[0x7FD5]!=0x31))

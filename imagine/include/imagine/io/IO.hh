@@ -38,11 +38,20 @@ public:
 	ssize_t read(void *buff, size_t bytes) { return ((IO*)this)->read(buff, bytes, nullptr); }
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) { return ((IO*)this)->readAtPos(buff, bytes, offset, nullptr); }
 	ssize_t write(const void *buff, size_t bytes) { return ((IO*)this)->write(buff, bytes, nullptr); }
-	off_t tell() { return ((IO*)this)->tell(nullptr); }
+	off_t seek(off_t offset, IODefs::SeekMode mode) { return ((IO*)this)->seek(offset, mode, nullptr); }
+	off_t seekS(off_t offset, CallResult *resultOut) { return ((IO*)this)->seek(offset, SEEK_SET, resultOut); }
+	off_t seekE(off_t offset, CallResult *resultOut) { return ((IO*)this)->seek(offset, SEEK_END, resultOut); }
+	off_t seekC(off_t offset, CallResult *resultOut) { return ((IO*)this)->seek(offset, SEEK_CUR, resultOut); }
+	off_t seekS(off_t offset) { return ((IO*)this)->seek(offset, SEEK_SET); }
+	off_t seekE(off_t offset) { return ((IO*)this)->seek(offset, SEEK_END); }
+	off_t seekC(off_t offset) { return ((IO*)this)->seek(offset, SEEK_CUR); }
 
-	CallResult seekS(off_t offset) { return ((IO*)this)->seek(offset, SEEK_SET); }
-	CallResult seekE(off_t offset) { return ((IO*)this)->seek(offset, SEEK_END); }
-	CallResult seekC(off_t offset) { return ((IO*)this)->seek(offset, SEEK_CUR); }
+	off_t tell(CallResult *resultOut)
+	{
+		return ((IO*)this)->seekC(0, resultOut);
+	}
+
+	off_t tell() { return ((IO*)this)->tell(nullptr); }
 
 	CallResult readAll(void *buff, size_t bytes)
 	{
@@ -120,7 +129,7 @@ public:
 	using IOUtils::read;
 	using IOUtils::readAtPos;
 	using IOUtils::write;
-	using IOUtils::tell;
+	using IOUtils::seek;
 
 	// allow reading file, default if OPEN_WRITE isn't present
 	static constexpr uint OPEN_READ = IG::bit(0);
@@ -146,11 +155,8 @@ public:
 	virtual ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) = 0;
 	virtual CallResult truncate(off_t offset) { return UNSUPPORTED_OPERATION; };
 
-	// file position
-	virtual off_t tell(CallResult *resultOut) = 0;
-
 	// seeking
-	virtual CallResult seek(off_t offset, SeekMode mode) = 0;
+	virtual off_t seek(off_t offset, SeekMode mode, CallResult *resultOut) = 0;
 
 	// other functions
 	virtual void close() = 0;
@@ -167,7 +173,7 @@ public:
 	using IOUtils::read;
 	using IOUtils::readAtPos;
 	using IOUtils::write;
-	using IOUtils::tell;
+	using IOUtils::seek;
 
 	GenericIO() {}
 	template<class T>
@@ -184,8 +190,7 @@ public:
 	const char *mmapConst();
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut);
 	CallResult truncate(off_t offset);
-	off_t tell(CallResult *resultOut);
-	CallResult seek(off_t offset, IO::SeekMode mode);
+	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut);
 	void close();
 	void sync();
 	size_t size();

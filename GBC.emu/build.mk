@@ -36,7 +36,6 @@ src/video/sprite_mapper.cpp \
 src/mem/cartridge.cpp \
 src/mem/memptrs.cpp \
 src/interruptrequester.cpp \
-src/file/file_zip.cpp \
 src/mem/pakinfo.cpp \
 src/loadres.cpp
 
@@ -59,7 +58,6 @@ gambatteCommonPath := common
 SRC +=  $(addprefix $(gambatteCommonPath)/,$(gambatteCommonSrc))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
-include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 

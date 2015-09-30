@@ -201,6 +201,26 @@ void EncodeGG(char *str, int a, int v, int c)
 	return;
 }
 
+EMUFILE_IO::EMUFILE_IO(IO &srcIO)
+{
+	auto size = srcIO.size();
+	auto mmapData = srcIO.mmapConst();
+	if(mmapData)
+	{
+		io.open(mmapData, size);
+	}
+	else
+	{
+		auto romData = new char[size]();
+		if(srcIO.read(romData, size) != (ssize_t)size)
+		{
+			failbit = true;
+			return;
+		}
+		io.open(romData, size, [romData](BufferMapIO &){ delete[] romData; });
+	}
+}
+
 void EMUFILE_IO::truncate(s32 length)
 {
 	io.truncate(length);

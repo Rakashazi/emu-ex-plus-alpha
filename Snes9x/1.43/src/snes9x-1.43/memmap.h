@@ -144,7 +144,7 @@ enum file_formats { FILE_ZIP, FILE_RAR, FILE_JMA, FILE_DEFAULT };
 
 class CMemory {
 public:
-    bool8 LoadROM (const char *);
+    bool8 LoadROMMem (const uint8 *source, uint32 sourceSize);
     uint32 FileLoader (uint8* buffer, const char* filename, int32 maxsize);
     void  InitROM (bool8);
     bool8 LoadSRAM (const char *);

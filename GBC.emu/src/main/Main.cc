@@ -30,36 +30,6 @@ static Resampler *resampler{};
 static uint8 activeResampler = 1;
 static const GBPalette *gameBuiltinPalette{};
 
-class ImagineFile : public gambatte::File
-{
-public:
-	ImagineFile(IO &io): io(io) {}
-
-	~ImagineFile() override {}
-
-	void rewind() override
-	{
-		io.seekS(0);
-	}
-
-	std::size_t size() const override
-	{
-		return io.size();
-	}
-
-	void read(char *buffer, std::size_t amount) override
-	{
-		if(io.readAll(buffer, amount) != OK)
-			failed = true;
-	}
-
-	bool fail() const override { return failed; }
-
-private:
-	IO &io;
-	bool failed = false;
-};
-
 // controls
 
 enum
@@ -211,19 +181,14 @@ void EmuSystem::onOptionsLoaded()
 	gbEmu.setInputGetter(&gbcInput);
 }
 
-static bool isROMExtension(const char *name)
+static bool hasROMExtension(const char *name)
 {
 	return string_hasDotExtension(name, "gb") ||
 			string_hasDotExtension(name, "gbc");
 }
 
-static bool isGBCExtension(const char *name)
-{
-	return isROMExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isGBCExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isGBCExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasROMExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasROMExtension;
 
 static const int gbResX = 160, gbResY = 144;
 
@@ -396,20 +361,32 @@ static int loadGameCommon(gambatte::LoadRes result)
 
 int EmuSystem::loadGame(const char *path)
 {
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
+}
+
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
+{
 	closeGame();
 	setupGamePaths(path);
 	gbEmu.setSaveDir(EmuSystem::savePath());
-	auto result = gbEmu.load(fullGamePath(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
-	return loadGameCommon(result);
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
-{
-	closeGame();
-	setupGameName(origFilename);
-	gbEmu.setSaveDir(EmuSystem::savePath());
-	ImagineFile file(io);
-	auto result = gbEmu.load(file, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	auto size = io.size();
+	auto mmapData = io.mmapConst();
+	gambatte::LoadRes result;
+	if(mmapData)
+	{
+		result = gbEmu.load(mmapData, size, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	}
+	else
+	{
+		auto romData = std::make_unique<char[]>(size);
+		if(io.read(romData.get(), size) != (ssize_t)size)
+		{
+			popup.printf(3, 1, "IO Error");
+			return 0;
+		}
+		result = gbEmu.load(romData.get(), size, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	}
 	return loadGameCommon(result);
 }
 

@@ -39,6 +39,8 @@ THE SOFTWARE.
 #include <algorithm>
 #include <string>
 
+#include <imagine/io/BufferMapIO.hh>
+
 class EMUFILE {
 protected:
 	bool failbit;
@@ -347,15 +349,13 @@ public:
 
 };
 
-class IO;
-
 class EMUFILE_IO : public EMUFILE {
 protected:
-	IO &io;
+	BufferMapIO io{};
 
 public:
 
-	EMUFILE_IO(IO &io): io(io) {}
+	EMUFILE_IO(IO &io);
 
 	~EMUFILE_IO() {
 	}

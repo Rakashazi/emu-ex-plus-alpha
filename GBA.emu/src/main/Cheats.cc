@@ -49,18 +49,21 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	}
 {}
 
-void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
+void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
 {
-	addGS12CBCode.init(); item[items++] = &addGS12CBCode;
-	addGS3Code.init(); item[items++] = &addGS3Code;
+	addGS12CBCode.init(); item.emplace_back(&addGS12CBCode);
+	addGS3Code.init(); item.emplace_back(&addGS3Code);
 }
 
-void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
+void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
 {
-	uint cheats = std::min((uint)cheatsNumber, (uint)sizeofArray(cheat));
+	uint cheats = cheatsNumber;
+	cheat.clear();
+	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat[c].init(cheatsList[c].desc); item[items++] = &cheat[c];
+		cheat.emplace_back();
+		cheat[c].init(cheatsList[c].desc); item.emplace_back(&cheat[c]);
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
@@ -158,13 +161,16 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	}
 {}
 
-void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
+void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
 {
-	uint cheats = std::min((uint)cheatsNumber, (uint)sizeofArray(cheat));
+	uint cheats = cheatsNumber;
+	cheat.clear();
+	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
+		cheat.emplace_back();
 		auto &cheatEntry = cheatsList[c];
-		cheat[c].init(cheatEntry.desc, cheatEntry.enabled); item[i++] = &cheat[c];
+		cheat[c].init(cheatEntry.desc, cheatEntry.enabled); item.emplace_back(&cheat[c]);
 		cheat[c].onSelect() =
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
@@ -183,7 +189,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = FS::makePathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
 
 	if(!cheatsNumber)
 	{
@@ -198,7 +204,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = FS::makePathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
 	if(cheatsLoadCheatList(filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());

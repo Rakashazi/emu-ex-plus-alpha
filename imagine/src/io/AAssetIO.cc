@@ -98,28 +98,25 @@ ssize_t AAssetIO::write(const void *buff, size_t bytes, CallResult *resultOut)
 	return -1;
 }
 
-off_t AAssetIO::tell(CallResult *resultOut)
+off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
 {
 	if(mapIO)
-		return mapIO.tell(resultOut);
-	return size() - AAsset_getRemainingLength(asset);
-}
-
-CallResult AAssetIO::seek(off_t offset, SeekMode mode)
-{
-	if(mapIO)
-		return mapIO.seek(offset, mode);
+		return mapIO.seek(offset, mode, resultOut);
 	if(!isSeekModeValid(mode))
 	{
 		bug_exit("invalid seek mode: %u", mode);
-		return INVALID_PARAMETER;
+		if(resultOut)
+			*resultOut = INVALID_PARAMETER;
+		return -1;
 	}
-	if(AAsset_seek(asset, offset, mode) >= 0)
+	auto newPos = AAsset_seek(asset, offset, mode);
+	if(newPos < 0)
 	{
-		return OK;
+		if(resultOut)
+			*resultOut = IO_ERROR;
+		return -1;
 	}
-	else
-		return IO_ERROR;
+	return newPos;
 }
 
 void AAssetIO::close()

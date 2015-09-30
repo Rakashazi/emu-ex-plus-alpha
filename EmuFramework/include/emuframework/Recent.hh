@@ -25,7 +25,7 @@
 struct RecentGameInfo
 {
 	FS::PathString path{};
-	char name[256]{};
+	FS::FileString name{};
 	static constexpr uint MAX_RECENT = 10;
 
 	constexpr RecentGameInfo() {}
@@ -44,5 +44,5 @@ void recent_addGame(const char *fullPath, const char *name);
 
 static void recent_addGame()
 {
-	recent_addGame(EmuSystem::fullGamePath(), EmuSystem::fullGameName());
+	recent_addGame(EmuSystem::fullGamePath(), EmuSystem::fullGameName().data());
 }

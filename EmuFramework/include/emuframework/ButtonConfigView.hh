@@ -48,7 +48,7 @@ public:
 		View(win), rootIMView{rootIMView}
 	{}
 
-	IG::WindowRect &viewRect() { return viewFrame; }
+	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, SetDelegate onSet);
 	void deinit() override;
 	void place() override;

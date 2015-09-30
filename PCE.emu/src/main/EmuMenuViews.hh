@@ -2,8 +2,6 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
 
-static bool isHuCardExtension(const char *name);
-
 class SystemOptionView : public OptionView
 {
 public:
@@ -14,7 +12,7 @@ public:
 		"",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath, isHuCardExtension, window()};
+			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath, hasHuCardExtension, window()};
 			biosSelectMenu.init();
 			biosSelectMenu.onBiosChange() =
 				[this]()

@@ -10,14 +10,16 @@ ifdef O_LTO
  ifdef O_LTO_FAT
   CFLAGS_CODEGEN += -ffat-lto-objects
  endif
+else
+ ifdef O_LTO_LINK_ONLY
+  # link thin LTO objects with non-LTO objects
+  LDFLAGS += -flto $(CFLAGS_CODEGEN)
+ else
+  LDFLAGS += -fno-lto
+ endif
 endif
 
 AR ?= $(CHOST_PREFIX)gcc-ar
-
-ifdef O_LTO_LINK_ONLY
- # link thin LTO objects with non-LTO objects
- LDFLAGS += -flto $(CFLAGS_CODEGEN)
-endif
 
 gccVersion := $(shell $(CC) -dumpversion)
 #gcc_isAtLeastVer4_9 := $(shell expr $(gccVersion) \>= 4.9)

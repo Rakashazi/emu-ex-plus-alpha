@@ -32,7 +32,6 @@
 #include "utils/endian.h"
 #include "utils/memory.h"
 #include "utils/md5.h"
-#include "unzip.h"
 #include "driver.h"
 #include "types.h"
 #include "fceu.h"
@@ -182,6 +181,7 @@ FileBaseInfo DetermineFileBase(const char *f) {
 
 inline FileBaseInfo DetermineFileBase(const std::string& str) { return DetermineFileBase(str.c_str()); }
 
+#if 0
 static FCEUFILE * TryUnzip(const std::string& path) {
 	unzFile tz;
 	if((tz=unzOpen(path.c_str())))  // If it's not a zip file, use regular file handlers.
@@ -251,6 +251,7 @@ zpfail:
 
 	return 0;
 }
+#endif
 
 FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, const char *mode, char *ext, int index, const char** extensions)
 {
@@ -285,6 +286,7 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, const char *mode, cha
 				return 0;
 			}
 
+#if 0
 			//try to read a zip file
 			{
 				fceufp = TryUnzip(fileToOpen);
@@ -297,6 +299,7 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, const char *mode, cha
 					goto applyips;
 				}
 			}
+#endif
 
 			//try to read a gzipped file
 			{

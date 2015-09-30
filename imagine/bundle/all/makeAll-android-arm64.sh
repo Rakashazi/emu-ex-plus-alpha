@@ -4,6 +4,10 @@ makefilesToRun='
 	src/libvorbis/android-arm64.mk
 	
 	src/libsndfile/android-arm64.mk
+		
+	src/xz/android-arm64.mk
+	
+	src/libarchive/android-arm64.mk
 	
 	src/minizip/android-arm64.mk
 	

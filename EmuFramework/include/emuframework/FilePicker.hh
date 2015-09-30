@@ -29,7 +29,7 @@ public:
 
 	EmuFilePicker(Base::Window &win): FSPicker(win) {}
 	void init(bool pickingDir, EmuNameFilterFunc filter = defaultFsFilter, bool singleDir = false);
-	void initForBenchmark(bool singleDir = 0);
+	void initForBenchmark(bool singleDir = false);
 	void inputEvent(Input::Event e) override;
 };
 
@@ -40,3 +40,4 @@ public:
 };
 
 void loadGameCompleteFromFilePicker(uint result, Input::Event e);
+bool hasArchiveExtension(const char *name);

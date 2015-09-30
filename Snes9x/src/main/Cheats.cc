@@ -182,23 +182,26 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	}
 {}
 
-void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
+void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
 {
-	addCode.init(); item[items++] = &addCode;
+	addCode.init(); item.emplace_back(&addCode);
 }
 
-void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
+void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
 {
-	int cheats = std::min(Cheat.num_cheats, (uint)sizeofArray(cheat));
+	uint cheats = Cheat.num_cheats;
+	cheat.clear();
+	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat[c].init(Cheat.c[c].name); item[items++] = &cheat[c];
+		cheat.emplace_back();
+		cheat[c].init(Cheat.c[c].name); item.emplace_back(&cheat[c]);
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new SystemEditCheatView{window()};
 				editCheatView.init(c);
-				pushAndShow(editCheatView, e);
+				viewStack.pushAndShow(editCheatView, e);
 			};
 	}
 }
@@ -276,12 +279,15 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	}
 {}
 
-void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
+void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
 {
-	int cheats = std::min(Cheat.num_cheats, (uint)sizeofArray(cheat));
+	uint cheats = Cheat.num_cheats;
+	cheat.clear();
+	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat[c].init(Cheat.c[c].name, Cheat.c[c].enabled); item[i++] = &cheat[c];
+		cheat.emplace_back();
+		cheat[c].init(Cheat.c[c].name, Cheat.c[c].enabled); item.emplace_back(&cheat[c]);
 		cheat[c].onSelect() =
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{

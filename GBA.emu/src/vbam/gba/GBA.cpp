@@ -2922,6 +2922,8 @@ void CPUInit(GBASys &gba, const char *biosFileName, bool useBiosFile)
   useBios = false;
 
   if(useBiosFile) {
+  	bug_exit("TODO");
+  	#if 0
     int size = 0x4000;
     if(utilLoad(biosFileName,
                 CPUIsGBABios,
@@ -2932,6 +2934,7 @@ void CPUInit(GBASys &gba, const char *biosFileName, bool useBiosFile)
       else
         systemMessage(MSG_INVALID_BIOS_FILE_SIZE, N_("Invalid BIOS file size"));
     }
+		#endif
   }
 
   if(!useBios) {

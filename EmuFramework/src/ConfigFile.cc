@@ -141,7 +141,7 @@ static bool readConfig2(IO &io)
 		if(size < 3) // all blocks are at least a 2 byte key + 1 byte or more of data
 		{
 			logMsg("skipping %d byte block", size);
-			if(io.seekC(size) != OK)
+			if(io.seekC(size) == -1)
 			{
 				logErr("unable to seek to next block, skipping rest of config");
 				return dirChange;
@@ -405,7 +405,7 @@ static bool readConfig2(IO &io)
 			}
 		}
 
-		if(io.seekS(nextBlockPos) != OK)
+		if(io.seekS(nextBlockPos) == -1)
 		{
 			logErr("unable to seek to next block, skipping rest of config");
 			return dirChange;

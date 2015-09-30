@@ -97,16 +97,12 @@ void GB::setSaveDir(std::string const &sdir) {
 	p_->cpu.setSaveDir(sdir);
 }
 
-LoadRes GB::load(std::string const &romfile, unsigned const flags) {
-	scoped_ptr<File> const rom(newFileInstance(romfile));
-	return load(*rom, romfile, flags);
-}
-
-LoadRes GB::load(File &romfile, std::string const &romfilename, unsigned const flags) {
+LoadRes GB::load(const void *romdata, std::size_t size, std::string const &romfilename, unsigned const flags) {
 	if (p_->cpu.loaded())
 		p_->cpu.saveSavedata();
 
-	LoadRes const loadres = p_->cpu.load(romfile, romfilename,
+	LoadRes const loadres = p_->cpu.load(romdata, size,
+		                                   romfilename,
 	                                     flags & FORCE_DMG,
 	                                     flags & MULTICART_COMPAT);
 	if (loadres == LOADRES_OK) {

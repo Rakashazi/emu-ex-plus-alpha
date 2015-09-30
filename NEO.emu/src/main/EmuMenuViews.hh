@@ -138,7 +138,8 @@ struct RomListEntry
 	uint bugs;
 };
 
-static const RomListEntry romlist[] = {
+static const RomListEntry romlist[]
+{
 	{ "2020bb.zip", 0 },
 	{ "2020bba.zip", 0 },
 	{ "2020bbh.zip", 0 },
@@ -415,7 +416,7 @@ class GameListView : public TableView
 {
 private:
 	char longName[sizeofArrayConst(romlist)][128]{};
-	TextMenuItem rom[sizeofArrayConst(romlist)];
+	TextMenuItem rom[sizeofArrayConst(romlist)]{};
 	MenuItem *item[sizeofArrayConst(romlist)]{};
 
 	static void loadGame(const RomListEntry &entry)
@@ -425,7 +426,7 @@ private:
 			{
 				loadGameCompleteFromFilePicker(result, e);
 			};
-		auto res = EmuSystem::loadGame(entry.filename);
+		auto res = EmuSystem::loadGameFromPath(FS::makePathString(entry.filename));
 		if(res == 1)
 		{
 			loadGameCompleteFromFilePicker(1, Input::Event{});
@@ -497,7 +498,7 @@ public:
 
 class UnibiosSwitchesView : public TableView
 {
-	MenuItem *item[2] {nullptr};
+	MenuItem *item[2]{};
 	MultiChoiceSelectMenuItem region
 	{
 		"Region",

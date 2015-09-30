@@ -1,7 +1,7 @@
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
-#include <imagine/io/ZipIO.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
@@ -144,9 +144,10 @@ static void setTimerIntOption()
 		bcase 1: conf.raster = 1;
 		bcase 2:
 			bool needsTimer = 0;
-			if(EmuSystem::gameIsRunning() && (strstr(EmuSystem::fullGameName(), "Sidekicks 2") || strstr(EmuSystem::fullGameName(), "Sidekicks 3")
-					|| strstr(EmuSystem::fullGameName(), "Ultimate 11") || strstr(EmuSystem::fullGameName(), "Neo-Geo Cup")
-					|| strstr(EmuSystem::fullGameName(), "Spin Master")))
+			auto gameStr = EmuSystem::fullGameName().data();
+			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
+					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")
+					|| strstr(gameStr, "Spin Master")))
 				needsTimer = 1;
 			if(needsTimer) logMsg("auto enabled timer interrupt");
 			conf.raster = needsTimer;
@@ -167,6 +168,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 #include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
@@ -206,8 +208,8 @@ void EmuSystem::onOptionsLoaded()
 		ROM_DEF *drv = dr_check_zip(e.path.data());
 		if(!drv)
 			continue;
-		logMsg("updating recent game name %s to %s", e.name, drv->longname);
-		string_copy(e.name, drv->longname, sizeof(e.name));
+		logMsg("updating recent game name %s to %s", e.name.data(), drv->longname);
+		string_copy(e.name, drv->longname);
 		free(drv);
 	}
 }
@@ -237,13 +239,13 @@ void EmuSystem::writeConfig(IO &io)
 	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
 }
 
-static bool isNeoGeoExtension(const char *name)
+static bool hasNeoGeoExtension(const char *name)
 {
-	return string_hasDotExtension(name, "zip");
+	return false; // archives handled by EmuFramework
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isNeoGeoExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isNeoGeoExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasNeoGeoExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasNeoGeoExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[352*256] __attribute__ ((aligned (8))) {0};
@@ -491,7 +493,7 @@ static void reverseSwapCPUMemForDump(bool swappedBIOS)
 static void loadGamePhase2()
 {
 	EmuSystem::setFullGameName(activeDrv->longname);
-	logMsg("set long game name: %s", EmuSystem::fullGameName());
+	logMsg("set long game name: %s", EmuSystem::fullGameName().data());
 	free(activeDrv);
 	activeDrv = 0;
 
@@ -526,9 +528,7 @@ static auto openGngeoDataIO(const char *filename)
 	#ifdef __ANDROID__
 	return openAppAssetIO(filename);
 	#else
-	ZipIO io;
-	io.open(datafilePath.data(), filename);
-	return io;
+	return FS::fileFromArchive(datafilePath.data(), filename);
 	#endif
 }
 
@@ -797,7 +797,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	return 0; // TODO
 }

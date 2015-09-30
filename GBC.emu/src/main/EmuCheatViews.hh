@@ -23,10 +23,10 @@ class EditCheatListView : public BaseEditCheatListView
 {
 private:
 	TextMenuItem addGGGS{};
-	TextMenuItem cheat[EmuCheats::MAX]{};
+	std::vector<TextMenuItem> cheat{};
 
-	void loadAddCheatItems(MenuItem *item[], uint &items) override;
-	void loadCheatItems(MenuItem *item[], uint &items) override;
+	void loadAddCheatItems(std::vector<MenuItem*> &item) override;
+	void loadCheatItems(std::vector<MenuItem*> &item) override;
 
 public:
 	EditCheatListView(Base::Window &win);
@@ -35,9 +35,9 @@ public:
 class CheatsView : public BaseCheatsView
 {
 private:
-	BoolMenuItem cheat[EmuCheats::MAX]{};
+	std::vector<BoolMenuItem> cheat{};
 
-	void loadCheatItems(MenuItem *item[], uint &i) override;
+	void loadCheatItems(std::vector<MenuItem*> &item) override;
 
 public:
 	CheatsView(Base::Window &win): BaseCheatsView(win) {}

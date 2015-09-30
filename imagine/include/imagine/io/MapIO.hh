@@ -24,15 +24,14 @@ public:
 	using IOUtils::read;
 	using IOUtils::readAtPos;
 	using IOUtils::write;
-	using IOUtils::tell;
+	using IOUtils::seek;
 
 	constexpr MapIO() {}
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut) override;
 	const char *mmapConst() override;
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
-	off_t tell(CallResult *resultOut) override;
-	CallResult seek(off_t offset, SeekMode mode) override;
+	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut) override;
 	size_t size() override;
 	bool eof() override;
 	explicit operator bool() override;

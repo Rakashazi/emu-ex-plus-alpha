@@ -14,10 +14,10 @@
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
+#include <imagine/fs/ArchiveFS.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
-#include <imagine/io/ZipIO.hh>
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -109,40 +109,25 @@ char hdName[4][512]{};
 static bool insertDisk(const char *path, uint slot = 0);
 static bool insertROM(const char *path, uint slot = 0);
 
-static bool isTapeExtension(const char *name)
+static bool hasMSXTapeExtension(const char *name)
 {
 	return string_hasDotExtension(name, "cas");
 }
 
-static bool isDiskExtension(const char *name)
+static bool hasMSXDiskExtension(const char *name)
 {
 	return string_hasDotExtension(name, "dsk");
 }
 
-static bool isROMExtension(const char *name)
+static bool hasMSXROMExtension(const char *name)
 {
 	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "mx1")
 			|| string_hasDotExtension(name, "mx2") || string_hasDotExtension(name, "col");
 }
 
-static bool isMSXExtension(const char *name)
+static bool hasMSXExtension(const char *name)
 {
-	return isROMExtension(name) || isDiskExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-static bool isMSXROMExtension(const char *name)
-{
-	return isROMExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-static bool isMSXDiskExtension(const char *name)
-{
-	return isDiskExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-static bool isMSXTapeExtension(const char *name)
-{
-	return isTapeExtension(name) || string_hasDotExtension(name, "zip");
+	return hasMSXROMExtension(name) || hasMSXDiskExtension(name);
 }
 
 static const uint msxKeyboardKeys = 92;
@@ -227,7 +212,7 @@ const uint EmuSystem::inputFaceBtns = 2;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const bool EmuSystem::inputHasKeyboard = true;
+bool EmuSystem::inputHasKeyboard = true;
 const char *EmuSystem::configFilename = "MsxEmu.config";
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -236,6 +221,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 #include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
@@ -282,8 +268,8 @@ void EmuSystem::onOptionsLoaded()
 	fixFilePermissions(machineBasePath);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isMSXExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isMSXExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasMSXExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasMSXExtension;
 
 static const uint msxMaxResX = (256) * 2, msxResY = 224,
 		msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
@@ -935,21 +921,6 @@ int EmuSystem::loadGame(const char *path)
 		return 0;
 	}
 
-	// First, try to load auto-save which will initialize the MSX with stored parameters
-	/*if(allowAutosaveState && optionAutoSaveState)
-	{
-		string_copyUpToLastCharInstance(gameName, path, '.');
-		FsSys::PathString saveStr;
-		sprintStateFilename(saveStr, -1);
-		if(FsSys::fileExists(saveStr) && loadBlueMSXState(saveStr) == STATE_RESULT_OK)
-		{
-			logMsg("set game name: %s", gameName);
-			logMsg("started emu from auto-save state");
-			return 1;
-		}
-		strcpy(gameName, ""); // clear game name from save state failure
-	}*/
-
 	// No auto-save, initialize and boot the MSX with the selected media
 	if(!initMachine(optionMachineName)) // make sure machine is set to user's selection
 	{
@@ -978,8 +949,7 @@ int EmuSystem::loadGame(const char *path)
 		else if(getFirstDiskFilenameInZip(path, fileInZipName, sizeof(fileInZipName)))
 		{
 			logMsg("found %s in zip", fileInZipName);
-			ZipIO fileInZip;
-			fileInZip.open(path, fileInZipName);
+			auto fileInZip = FS::fileFromArchive(path, fileInZipName);
 			bool loadAsHD = fileInZip.size() >= 1024 * 1024;
 			fileInZip.close();
 			if(loadAsHD)
@@ -1019,7 +989,7 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 	}
-	else if(isROMExtension(path))
+	else if(hasMSXROMExtension(path))
 	{
 		strcpy(cartName[0], path);// cartType[0] = 0;
 		if(!boardChangeCartridge(0, ROM_UNKNOWN, path, 0))
@@ -1029,7 +999,7 @@ int EmuSystem::loadGame(const char *path)
 			return 0;
 		}
 	}
-	else if(isDiskExtension(path))
+	else if(hasMSXDiskExtension(path))
 	{
 		bool loadAsHD = FS::file_size(path) >= 1024 * 1024;
 		if(loadAsHD)
@@ -1071,7 +1041,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	return 0; // TODO
 }

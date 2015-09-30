@@ -202,7 +202,7 @@ int sprintScreenshotFilename(FS::PathString str)
 	int num = -1;
 	iterateTimes(maxNum, i)
 	{
-		string_printf(str, "%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName(), i);
+		string_printf(str, "%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName().data(), i);
 		if(!FS::exists(str))
 		{
 			num = i;

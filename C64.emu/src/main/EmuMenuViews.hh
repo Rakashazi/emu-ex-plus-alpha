@@ -229,9 +229,9 @@ public:
 constexpr int SystemOptionView::sidEngineChoiceMap[];
 
 static const char *insertEjectMenuStr[] { "Insert File", "Eject" };
-static bool isC64DiskExtension(const char *name);
-static bool isC64TapeExtension(const char *name);
-static bool isC64CartExtension(const char *name);
+static bool hasC64DiskExtension(const char *name);
+static bool hasC64TapeExtension(const char *name);
+static bool hasC64CartExtension(const char *name);
 
 class C64IOControlView : public TableView
 {
@@ -254,7 +254,7 @@ public:
 	void addTapeFilePickerView(Input::Event e)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
-		fPicker.init(false, isC64TapeExtension, true);
+		fPicker.init(false, hasC64TapeExtension, true);
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -320,7 +320,7 @@ public:
 	void addCartFilePickerView(Input::Event e)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
-		fPicker.init(false, isC64CartExtension, true);
+		fPicker.init(false, hasC64CartExtension, true);
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -389,7 +389,7 @@ private:
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
-		fPicker.init(false, isC64DiskExtension, true);
+		fPicker.init(false, hasC64DiskExtension, true);
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{

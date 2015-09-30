@@ -43,11 +43,7 @@ public:
 			[](void *cookie, fpos_t offset, int whence)
 			{
 				auto &s = *(IOStream*)cookie;
-				if(s.io.seek(offset, (IODefs::SeekMode)whence) != OK)
-				{
-					return (fpos_t)-1;
-				}
-				return (fpos_t)s.io.tell();
+				return (fpos_t)s.io.seek(offset, (IODefs::SeekMode)whence);
 			},
 			[](void *cookie)
 			{
@@ -79,11 +75,12 @@ public:
 			[](void *cookie, off64_t *position, int whence)
 			{
 				auto &s = *(IOStream*)cookie;
-				if(s.io.seek(*position, (IODefs::SeekMode)whence) != OK)
+				auto newPos = s.io.seek(*position, (IODefs::SeekMode)whence);
+				if(newPos == -1)
 				{
 					return -1;
 				}
-				*position = s.io.tell();
+				*position = newPos;
 				return 0;
 			};
 		funcs.close =

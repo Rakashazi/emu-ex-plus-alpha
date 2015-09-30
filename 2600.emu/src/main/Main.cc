@@ -26,7 +26,6 @@
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Paddles.hxx>
 #include "SoundGeneric.hh"
-#include <unzip.h>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include <emuframework/CommonGui.hh>
@@ -53,8 +52,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-const bool EmuSystem::hasPALVideoSystem = true;
-const bool EmuSystem::hasResetModes = true;
+bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::hasResetModes = true;
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
@@ -152,18 +151,13 @@ void EmuSystem::writeConfig(IO &io)
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
 }
 
-static bool isVCSRomExtension(const char *name)
+static bool hasVCSRomExtension(const char *name)
 {
 	return string_hasDotExtension(name, "a26") || string_hasDotExtension(name, "bin");
 }
 
-static bool isVCSExtension(const char *name)
-{
-	return isVCSRomExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isVCSExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isVCSExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasVCSRomExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasVCSRomExtension;
 
 static char saveSlotChar(int slot)
 {
@@ -220,75 +214,6 @@ uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
-static bool openROM(uchar buff[MAX_ROM_SIZE], const char *path, uint32& size)
-{
-	if(string_hasDotExtension(path, "zip"))
-	{
-		unzFile zipFile = unzOpen(path);
-		if(!zipFile) return 0;
-
-		if(unzGoToFirstFile(zipFile) != UNZ_OK)
-		{
-			unzClose(zipFile);
-			return 0;
-		}
-
-		// Find a valid file
-		unz_file_info info;
-		bool foundRom = 0;
-		do
-		{
-			FS::PathString name;
-			if(unzGetCurrentFileInfo(zipFile, &info, name.data(), 128, NULL, 0, NULL, 0) != UNZ_OK)
-			{
-				unzClose(zipFile);
-				return 0;
-			}
-
-			if(isVCSRomExtension(name.data()))
-			{
-				foundRom = 1;
-				break;
-			}
-		}
-		while(unzGoToNextFile(zipFile) == UNZ_OK);
-
-		if(!foundRom || info.uncompressed_size > MAX_ROM_SIZE)
-		{
-			unzClose(zipFile);
-			return 0;
-		}
-
-		// read the ROM data
-		if(unzOpenCurrentFile(zipFile) != UNZ_OK)
-		{
-			unzClose(zipFile);
-			return 0;
-		}
-
-		size = info.uncompressed_size;
-		if(unzReadCurrentFile(zipFile, buff, info.uncompressed_size) != (int)info.uncompressed_size)
-		{
-			unzCloseCurrentFile(zipFile);
-			unzClose(zipFile);
-			return 0;
-		}
-
-		unzCloseCurrentFile(zipFile);
-		unzClose(zipFile);
-		return 1;
-	}
-	else
-	{
-		FileIO f;
-		f.open(path);
-		if(!f)
-			return 0;
-		size = f.read(buff, MAX_ROM_SIZE);
-		return 1;
-	}
-}
-
 static int loadGameCommon(const uint8 *buff, uint size)
 {
 	string md5 = MD5(buff, size);
@@ -324,22 +249,14 @@ static int loadGameCommon(const uint8 *buff, uint size)
 
 int EmuSystem::loadGame(const char *path)
 {
-	closeGame();
-	setupGamePaths(path);
-	uint8 buff[MAX_ROM_SIZE];
-	uint32 size;
-	if(!openROM(buff, path, size))
-	{
-		popup.post("Error loading game", 1);
-		return 0;
-	}
-	return loadGameCommon(buff, size);
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *)
 {
 	closeGame();
-	setupGameName(origFilename);
+	setupGamePaths(path);
 	uint8 buff[MAX_ROM_SIZE];
 	uint32 size = io.read(buff, MAX_ROM_SIZE);
 	return loadGameCommon(buff, size);

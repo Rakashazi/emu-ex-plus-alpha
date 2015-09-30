@@ -10,7 +10,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 snes9xPath := snes9x
 CPPFLAGS += -I$(projectPath)/src -I$(projectPath)/src/snes9x -I$(projectPath)/src/snes9x/apu/bapu \
--DHAVE_STRINGS_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR -DZLIB -DUNZIP_SUPPORT \
+-DHAVE_STRINGS_H -DHAVE_STDINT_H -DRIGHTSHIFT_IS_SAR -DZLIB \
 -DUSE_OPENGL -DPIXEL_FORMAT=RGB565
 #-DHAVE_MKSTEMP -DUSE_THREADS -DJMA_SUPPORT
 
@@ -26,10 +26,6 @@ apu/bapu/dsp/sdsp.cpp apu/bapu/dsp/SPC_DSP.cpp \
 apu/bapu/smp/smp.cpp apu/bapu/smp/smp_state.cpp
 # conffile.cpp crosshairs.cpp logger.cpp screenshot.cpp snes9x.cpp
 
-#SRC += jma/7zlzma.cpp unzip/crc32.cpp unzip/iiostrm.cpp \
-jma/inbyte.cpp unzip/jma.cpp unzip/lzma.cpp \
-jma/lzmadec.cpp unzip/s9x-jma.cpp unzip/winout.cpp
-
 SRC += main/Main.cc main/S9XApi.cc main/EmuControls.cc main/Cheats.cc $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
 ifdef RELEASE
@@ -40,7 +36,6 @@ $(objDir)/main/Main.o $(objDir)/main/S9XApi.o $(objDir)/main/Cheats.o $(objDir)/
 endif
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
-include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

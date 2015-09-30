@@ -28,4 +28,4 @@ ifndef PROFILE
  OPTIMIZE_LDFLAGS = -s
 endif
 LDLIBS += -lm
-LDFLAGS += -Wl,-O1,--gc-sections,--as-needed,--compress-debug-sections=zlib,--icf=all
+LDFLAGS += -fuse-ld=gold -Wl,-O1,--gc-sections,--as-needed,--compress-debug-sections=zlib,--icf=all

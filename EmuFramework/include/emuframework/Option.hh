@@ -381,9 +381,11 @@ struct OptionRecentGames : public OptionBase
 				logErr("error reading string option");
 				return true;
 			}
+			if(!bytesRead)
+				continue; // don't add empty paths
 			info.path[bytesRead] = 0;
 			readSize -= len;
-			string_copyUpToLastCharInstance(info.name, FS::basename(info.path).data(), '.');
+			string_copyUpToLastCharInstance(info.name.data(), FS::basename(info.path).data(), '.');
 			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
 			recentGameList.push_back(info);
 		}

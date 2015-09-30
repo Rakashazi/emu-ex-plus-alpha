@@ -18,14 +18,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <emuframework/EmuSystem.hh>
-
-namespace EmuCheats
-{
-
-static const uint MAX_ITEMS = 256;
-static constexpr uint MAX_CODE_TYPES = 2;
-
-}
+#include <vector>
 
 using RefreshCheatsDelegate = DelegateFunc<void ()>;
 
@@ -33,14 +26,14 @@ class BaseCheatsView : public TableView
 {
 protected:
 	TextMenuItem edit{};
-	MenuItem *item[EmuCheats::MAX_ITEMS + 1]{};
+	std::vector<MenuItem*> item{};
 	RefreshCheatsDelegate onRefreshCheats{};
 
 public:
 	BaseCheatsView(Base::Window &win);
 	void init();
 	void deinit() override;
-	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;
+	virtual void loadCheatItems(std::vector<MenuItem*> &item) = 0;
 };
 
 class EditCheatView : public TableView
@@ -59,15 +52,15 @@ public:
 class BaseEditCheatListView : public TableView
 {
 protected:
-	MenuItem *item[EmuCheats::MAX_ITEMS + EmuCheats::MAX_CODE_TYPES]{};
+	std::vector<MenuItem*> item{};
 	RefreshCheatsDelegate onRefreshCheats{};
 
 public:
 	BaseEditCheatListView(Base::Window &win);
 	void init();
 	void deinit() override;
-	virtual void loadAddCheatItems(MenuItem *item[], uint &items) = 0;
-	virtual void loadCheatItems(MenuItem *item[], uint &items) = 0;
+	virtual void loadAddCheatItems(std::vector<MenuItem*> &item) = 0;
+	virtual void loadCheatItems(std::vector<MenuItem*> &item) = 0;
 };
 
 void refreshCheatViews();

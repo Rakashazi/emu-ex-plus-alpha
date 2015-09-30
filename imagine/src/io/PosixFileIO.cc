@@ -116,14 +116,9 @@ CallResult PosixFileIO::truncate(off_t offset)
 	return io().truncate(offset);
 }
 
-off_t PosixFileIO::tell(CallResult *resultOut)
+off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
 {
-	return io().tell(resultOut);
-}
-
-CallResult PosixFileIO::seek(off_t offset, IO::SeekMode mode)
-{
-	return io().seek(offset, mode);
+	return io().seek(offset, mode, resultOut);
 }
 
 void PosixFileIO::close()

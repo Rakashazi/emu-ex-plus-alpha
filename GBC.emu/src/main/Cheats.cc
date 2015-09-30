@@ -50,7 +50,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
 
 	if(!cheatList.size())
 	{
@@ -86,7 +86,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName());
+	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
 	FileIO file;
 	file.open(filename.data());
 	if(!file)
@@ -181,19 +181,22 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 	}
 {}
 
-void EditCheatListView::loadAddCheatItems(MenuItem *item[], uint &items)
+void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
 {
-	addGGGS.init(); item[items++] = &addGGGS;
+	addGGGS.init(); item.emplace_back(&addGGGS);
 }
 
-void EditCheatListView::loadCheatItems(MenuItem *item[], uint &items)
+void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
 {
-	int cheats = std::min(cheatList.size(), (uint)sizeofArray(cheat));
+	uint cheats = cheatList.size();
+	cheat.clear();
+	cheat.reserve(cheats);
 	auto it = cheatList.begin();
 	iterateTimes(cheats, c)
 	{
+		cheat.emplace_back();
 		auto &thisCheat = *it;
-		cheat[c].init(thisCheat.name); item[items++] = &cheat[c];
+		cheat[c].init(thisCheat.name); item.emplace_back(&cheat[c]);
 		cheat[c].onSelect() =
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
@@ -270,14 +273,17 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 	}
 {}
 
-void CheatsView::loadCheatItems(MenuItem *item[], uint &i)
+void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
 {
-	int cheats = std::min(cheatList.size(), (uint)sizeofArray(cheat));
+	uint cheats = cheatList.size();
+	cheat.clear();
+	cheat.reserve(cheats);
 	auto it = cheatList.begin();
 	iterateTimes(cheats, cIdx)
 	{
+		cheat.emplace_back();
 		auto &thisCheat = *it;
-		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item[i++] = &cheat[cIdx];
+		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item.emplace_back(&cheat[cIdx]);
 		cheat[cIdx].onSelect() =
 			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{

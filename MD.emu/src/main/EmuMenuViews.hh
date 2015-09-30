@@ -130,7 +130,7 @@ public:
 
 	void cdBiosPathHandler(Input::Event e, int region)
 	{
-		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), isMDExtension, window()};
+		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region), hasMDExtension, window()};
 		biosSelectMenu.init();
 		biosSelectMenu.onBiosChange() =
 			[this, region]()

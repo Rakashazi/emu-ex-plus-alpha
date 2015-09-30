@@ -1,7 +1,10 @@
 #define LOGTAG "main"
 #include <neopop.h>
 #include <flash.h>
-#include <unzip.h>
+#include "TLCS900h_interpret.h"
+#include "TLCS900h_registers.h"
+#include "Z80_interface.h"
+#include "interrupt.h"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include <emuframework/CommonGui.hh>
@@ -78,20 +81,15 @@ void EmuSystem::writeConfig(IO &io)
 	optionNGPLanguage.writeWithKeyIfNotDefault(io);
 }
 
-static bool isROMExtension(const char *name)
+static bool hasNGPExtension(const char *name)
 {
 	return string_hasDotExtension(name, "ngc") ||
 			string_hasDotExtension(name, "ngp") ||
 			string_hasDotExtension(name, "npc");
 }
 
-static bool isNGPExtension(const char *name)
-{
-	return isROMExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isNGPExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isNGPExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasNGPExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasNGPExtension;
 
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 
@@ -205,7 +203,7 @@ bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLeng
 
 static FS::PathString sprintSaveFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 bool system_io_flash_read(uchar* buffer, uint32 len)
@@ -247,7 +245,7 @@ void EmuSystem::saveAutoState()
 void EmuSystem::closeSystem()
 {
 	rom_unload();
-	logMsg("closing game %s", gameName());
+	logMsg("closing game %s", gameName().data());
 }
 
 bool EmuSystem::vidSysIsPAL() { return 0; }
@@ -255,107 +253,43 @@ uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
-#define HAVE_LIBZ
-static bool romLoad(const char *filename)
+static bool romLoad(IO &io)
 {
-#ifdef HAVE_LIBZ
-	unzFile z;
-	if ((z=unzOpen(filename)) != 0)
-	{
-		for (int err=unzGoToFirstFile(z); err==0; err=unzGoToNextFile(z))
-		{
-			char name[1024];
-			unz_file_info zfi;
-			if (unzGetCurrentFileInfo(z, &zfi, name, sizeof(name), NULL, 0, NULL, 0) != UNZ_OK)
-				continue;
-			if (zfi.size_filename > sizeof(name))
-				continue;
-			int l = strlen(name);
-			if (l < 4)
-				continue;
-			if (strcasecmp(name+l-4, ".ngp") == 0 || strcasecmp(name+l-4, ".ngc") == 0
-					|| strcasecmp(name+l-4, ".npc") == 0)
-			{
-				rom.length = zfi.uncompressed_size;
-				rom.data = (uchar*)calloc(rom.length, 1);
-
-				if ((unzOpenCurrentFile(z) != UNZ_OK)
-				|| (unzReadCurrentFile(z, rom.data, rom.length)
-				!= (int)rom.length))
-				{
-					free(rom.data);
-					rom.data = NULL;
-					logMsg("error in unzOpenCurrentFile: %s", filename);
-					unzCloseCurrentFile(z);
-					unzClose(z);
-					return 0;
-				}
-				if (unzCloseCurrentFile(z) != UNZ_OK)
-				{
-					free(rom.data);
-					rom.data = NULL;
-					logMsg("error in unzCloseCurrentFile: %s", filename);
-					unzClose(z);
-					return 0;
-				}
-				unzClose(z);
-				logMsg("read 0x%X byte rom", rom.length);
-				return 1;
-			}
-		}
-		unzClose(z);
-		logMsg("`%s': no rom found", filename);
-		return 0;
-	}
-#endif
-
 	const uint maxRomSize = 0x400000;
-	rom.data = (uchar*)calloc(maxRomSize, 1);
-
-	uint readSize = readFromFile(filename, rom.data, maxRomSize);
+	auto data = (uchar*)calloc(maxRomSize, 1);
+	uint readSize = io.read(data, maxRomSize);
 	if(readSize > 0)
 	{
-    	logMsg("read 0x%X byte rom", readSize);
-    	rom.length = readSize;
-    	return 1;
+		logMsg("read 0x%X byte rom", readSize);
+		rom.data = data;
+		rom.length = readSize;
+		return true;
 	}
-
-	logMsg("%s `%s'", "error reading rom", filename);
-	free(rom.data);
-	rom.data = NULL;
-	return 0;
+	free(data);
+	return false;
 }
-
-#include "TLCS900h_interpret.h"
-#include "TLCS900h_registers.h"
-#include "Z80_interface.h"
-#include "interrupt.h"
 
 int EmuSystem::loadGame(const char *path)
 {
-	closeGame(1);
-	emuVideo.initImage(0, ngpResX, ngpResY);
-	setupGamePaths(path);
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
+}
 
-	if(!romLoad(fullGamePath()))
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
+{
+	closeGame(true);
+	emuVideo.initImage(false, ngpResX, ngpResY);
+	setupGamePaths(path);
+	if(!romLoad(io))
 	{
-		logMsg("failed to load game");
 		popup.postError("Error loading game");
 		return 0;
 	}
 	rom_loaded();
-	logMsg("name from NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
+	logMsg("loaded NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
 	::reset();
-
 	rom_bootHacks();
-
-	logMsg("started emu");
 	return 1;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
-{
-	return 0; // TODO
 }
 
 void EmuSystem::clearInputBuffers()

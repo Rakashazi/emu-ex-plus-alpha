@@ -22,6 +22,13 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
 
+bool hasArchiveExtension(const char *name)
+{
+	return string_hasDotExtension(name, "7z") ||
+		string_hasDotExtension(name, "rar") ||
+		string_hasDotExtension(name, "zip");
+}
+
 void EmuFilePicker::init(bool pickingDir, EmuNameFilterFunc filter, bool singleDir)
 {
 	FSPicker::init(needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
@@ -30,6 +37,8 @@ void EmuFilePicker::init(bool pickingDir, EmuNameFilterFunc filter, bool singleD
 				{
 					logMsg("%s %d", entry.name(), (int)entry.type());
 					if(!singleDir && entry.type() == FS::file_type::directory)
+						return true;
+					else if(!EmuSystem::handlesArchiveFiles && hasArchiveExtension(entry.name()))
 						return true;
 					else if(filter)
 						return filter(entry.name());
@@ -116,7 +125,7 @@ void GameFilePicker::onSelectFile(const char* name, Input::Event e)
 		{
 			loadGameCompleteFromFilePicker(result, e);
 		};
-	auto res = EmuSystem::loadGame(name);
+	auto res = EmuSystem::loadGameFromPath(FS::makePathString(name));
 	if(res == 1)
 	{
 		loadGameCompleteFromFilePicker(1, e);
@@ -150,7 +159,7 @@ void EmuFilePicker::initForBenchmark(bool singleDir)
 				{
 					loadGameCompleteFromBenchmarkFilePicker(result, e);
 				};
-			auto res = EmuSystem::loadGame(name);
+			auto res = EmuSystem::loadGameFromPath(FS::makePathString(name));
 			if(res == 1)
 			{
 				loadGameCompleteFromBenchmarkFilePicker(1, e);

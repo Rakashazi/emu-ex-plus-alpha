@@ -3,7 +3,6 @@
 #include <emuframework/MenuView.hh>
 #include "EmuCheatViews.hh"
 
-static bool isFDSBIOSExtension(const char *name);
 static void setupNESInputPorts();
 static void setupNESFourScore();
 
@@ -17,7 +16,7 @@ public:
 		"",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, isFDSBIOSExtension, window()};
+			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath, hasFDSBIOSExtension, window()};
 			biosSelectMenu.init();
 			biosSelectMenu.onBiosChange() =
 				[this]()

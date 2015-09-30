@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/BufferMapIO.hh>
-#include <unzip.h>
+#include <imagine/fs/ArchiveFS.hh>
 
 void loadGameCompleteFromRecentItem(uint result, Input::Event e);
 
@@ -37,28 +37,11 @@ void BundledGamesView::init()
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			auto res = EmuSystem::loadGameFromIO(file, info.assetName);
+			auto res = EmuSystem::loadGameFromIO(file, info.assetName, info.assetName);
 			file.close();
 			#else
 			auto zipPath = FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), info.assetName);
-			auto zip = unzOpen(zipPath.data());
-			if(!zip)
-			{
-				logErr("error opening bundled game asset: %s", info.assetName);
-				return;
-			}
-			unzGoToFirstFile(zip);
-			unz_file_info zipInfo;
-			unzGetCurrentFileInfo(zip, &zipInfo, 0, 0, 0, 0, 0, 0);
-			unzOpenCurrentFile(zip);
-			auto size = zipInfo.uncompressed_size;
-			auto buf = mem_alloc(size);
-			unzReadCurrentFile(zip, buf, size);
-			unzCloseCurrentFile(zip);
-			unzClose(zip);
-			BufferMapIO io;
-			io.open(buf, size, [buf](BufferMapIO &) { mem_free(buf); });
-			auto res = EmuSystem::loadGameFromIO(io, info.assetName);
+			auto res = EmuSystem::loadGameFromPath(zipPath);
 			#endif
 			if(res == 1)
 			{

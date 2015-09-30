@@ -248,6 +248,7 @@ ifdef RELEASE
 endif
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
+include $(IMAGINE_PATH)/make/package/unzip.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

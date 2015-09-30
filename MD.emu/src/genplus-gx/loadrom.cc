@@ -375,15 +375,21 @@ static void deinterleave_block(uint8 * src)
   *
   * Load a new ROM file.
   ***************************************************************************/
-int load_rom(char *filename)
+int load_rom(IO &io, const char *path, const char *filename)
 {
-  int i, size;
- 
-  uint8 *ptr;
-  ptr = load_archive(filename, &size);
-  if(!ptr) return (0);
-  memcpy(cart.rom, ptr, size);
-  free(ptr);
+  int size = 0;
+  FS::FileString origFileStr{};
+  if(!io)
+  {
+  	size = loadArchive(cart.rom, MAXROMSIZE, path, origFileStr);
+  	filename = origFileStr.data();
+  }
+  else
+  {
+		size = io.read(cart.rom, MAXROMSIZE);
+  }
+  if(size <= 0)
+  	return 0;
 
   /* Minimal ROM size */
   /*if (size < 0x4000)
@@ -417,7 +423,7 @@ int load_rom(char *filename)
     if (system_hw != SYSTEM_PBC)
     #endif
     {
-      for (i = 0; i < (size / 0x4000); i++)
+      for (int i = 0; i < (size / 0x4000); i++)
       {
         deinterleave_block (cart.rom + (i * 0x4000));
       }
@@ -453,7 +459,7 @@ int load_rom(char *filename)
 #ifdef LSB_FIRST
     /* Byteswap ROM */
     uint8 temp;
-    for(i = 0; i < size; i += 2)
+    for(int i = 0; i < size; i += 2)
     {
       temp = cart.rom[i];
       cart.rom[i] = cart.rom[i+1];
@@ -466,7 +472,7 @@ int load_rom(char *filename)
         ((strstr(rominfo.product,"-K0109") != NULL) && (rominfo.checksum == 0x4f10)))
     {
       uint8 temp;
-      for(i = 0; i < size; i += 2)
+      for(int i = 0; i < size; i += 2)
       {
         temp = cart.rom[i];
         cart.rom[i] = cart.rom[i+1];

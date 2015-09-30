@@ -1,6 +1,8 @@
 #ifndef __MDFN_SURFACE_H
 #define __MDFN_SURFACE_H
 
+#include "../types.h"
+
 typedef struct
 {
  int32 x, y, w, h;

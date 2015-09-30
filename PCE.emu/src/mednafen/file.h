@@ -4,6 +4,8 @@
 #include <string>
 
 class Stream;
+class IO;
+struct FileExtensionSpecStruct;
 
 #define MDFNFILE_EC_NOTFOUND	1
 #define MDFNFILE_EC_OTHER	2
@@ -12,7 +14,8 @@ class MDFNFILE
 {
 	public:
 
-	MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
+	MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = nullptr);
+	MDFNFILE(IO &io, const char *path, const char *purpose = nullptr);
 	~MDFNFILE();
 
         void ApplyIPS(Stream *);
@@ -20,8 +23,8 @@ class MDFNFILE
 
 	const int64 &size;
 	const uint8 * const &data;
-        const char * const &ext;
-        const char * const &fbase;
+  const char * const &ext;
+  const char * const &fbase;
 
 	inline int64 Size(void)
 	{
@@ -66,15 +69,15 @@ class MDFNFILE
 
 	private:
 
-        uint8 *f_data;
-        int64 f_size;
-        char *f_ext;
-	char *f_fbase;
+  uint8 *f_data{};
+  int64 f_size = 0;
+  char *f_ext{};
+	char *f_fbase{};
 
-        int64 location;
+        int64 location = 0;
 
 	#ifdef HAVE_MMAP
-	bool is_mmap;
+	bool is_mmap = false;
 	#endif
 
 	void Open(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
@@ -96,12 +99,12 @@ class PtrLengthPair
 
  } 
 
- INLINE const void *GetData(void) const
+ inline const void *GetData(void) const
  {
   return(data);
  }
 
- INLINE uint64 GetLength(void) const
+ inline uint64 GetLength(void) const
  {
   return(length);
  }

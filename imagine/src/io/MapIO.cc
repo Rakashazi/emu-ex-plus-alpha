@@ -52,27 +52,25 @@ ssize_t MapIO::write(const void *buff, size_t bytes, CallResult *resultOut)
 	return -1;
 }
 
-off_t MapIO::tell(CallResult *resultOut)
-{
-	assert(currPos >= data);
-	return currPos - data;
-}
-
-CallResult MapIO::seek(off_t offset, SeekMode mode)
+off_t MapIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
 {
 	if(!isSeekModeValid(mode))
 	{
 		logErr("invalid seek parameter: %d", (int)mode);
-		return INVALID_PARAMETER;
+		if(resultOut)
+			*resultOut = INVALID_PARAMETER;
+		return -1;
 	}
 	auto newPos = (const char*)transformOffsetToAbsolute(mode, offset, (off_t)data, off_t(dataEnd()), (off_t)currPos);
 	if(newPos < data || newPos > dataEnd())
 	{
 		logErr("illegal seek position");
-		return OUT_OF_BOUNDS;
+		if(resultOut)
+			*resultOut = OUT_OF_BOUNDS;
+		return -1;
 	}
 	currPos = newPos;
-	return OK;
+	return currPos - data;
 }
 
 size_t MapIO::size()

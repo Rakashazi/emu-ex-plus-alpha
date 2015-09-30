@@ -32,6 +32,7 @@
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif
+#include <fileio/fileio.h>
 #include <main/Cheats.hh>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
@@ -39,31 +40,21 @@ t_config config{};
 uint config_ym2413_enabled = 1;
 static int8 mdInputPortDev[2]{-1, -1};
 
-uint isROMExtension(const char *name)
+static bool hasMDExtension(const char *name)
 {
-	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "smd") ||
-			string_hasDotExtension(name, "md") || string_hasDotExtension(name, "gen")
-		#ifndef NO_SYSTEM_PBC
-			|| string_hasDotExtension(name, "sms")
-		#endif
-			;
+	return hasROMExtension(name);
 }
 
-static bool isMDExtension(const char *name)
-{
-	return isROMExtension(name) || string_hasDotExtension(name, "zip");
-}
-
-static bool isMDCDExtension(const char *name)
+static bool hasMDCDExtension(const char *name)
 {
 	return string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "iso");
 }
 
-static bool isMDWithCDExtension(const char *name)
+static bool hasMDWithCDExtension(const char *name)
 {
-	return isMDExtension(name)
+	return hasMDExtension(name)
 	#ifndef NO_SCD
-		|| isMDCDExtension(name)
+		|| hasMDCDExtension(name)
 	#endif
 	;
 }
@@ -131,7 +122,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-const bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::hasPALVideoSystem = true;
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -203,8 +194,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionRegion.writeWithKeyIfNotDefault(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isMDWithCDExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isMDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasMDWithCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasMDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
@@ -347,19 +338,18 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 
 static FS::PathString sprintSaveFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 static FS::PathString sprintBRAMSaveFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName());
+	return FS::makePathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
 
 static int saveMDState(const char *path)
 {
-	//static uchar stateData[maxSaveStateSize] ATTRS(aligned(4));
 	uchar *stateData = (uchar*)malloc(maxSaveStateSize);
 	if(!stateData)
 		return STATE_RESULT_IO_ERROR;
@@ -605,33 +595,40 @@ static uint detectISORegion(uint8 bootSector[0x800])
 		return REGION_JAPAN_NTSC;
 }
 
-int EmuSystem::loadGame(const char *path)
+FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 {
-	closeGame();
-	emuVideo.initImage(0, mdResX, mdResY);
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
-	if(string_hasDotExtension(path, "bin"))
+	if(string_hasDotExtension(path.data(), "bin"))
 	{
-		FS::PathString possibleCuePath{};
-		auto len = strlen(path);
-		string_copy(possibleCuePath, path);
+		auto len = strlen(path.data());
+		auto possibleCuePath = path;
 		possibleCuePath[len-3] = 0; // delete extension
 		string_cat(possibleCuePath, "cue");
 		if(FS::exists(possibleCuePath))
 		{
 			logMsg("loading %s instead of .bin file", possibleCuePath.data());
-			setupGamePaths(possibleCuePath.data());
+			return possibleCuePath;
 		}
-		else
-			setupGamePaths(path);
 	}
-	else
 	#endif
-		setupGamePaths(path);
+	return path;
+}
+
+int EmuSystem::loadGame(const char *path)
+{
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
+}
+
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
+{
+	closeGame();
+	emuVideo.initImage(0, mdResX, mdResY);
+	setupGamePaths(path);
 	#ifndef NO_SCD
-	CDAccess *cd = nullptr;
-	if(isMDCDExtension(fullGamePath()) ||
+	CDAccess *cd{};
+	if(hasMDCDExtension(fullGamePath()) ||
 		(string_hasDotExtension(path, "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
 	{
 		try
@@ -669,10 +666,8 @@ int EmuSystem::loadGame(const char *path)
 			delete cd;
 			return 0;
 		}
-
-		FS::PathString loadFullGamePath;
-		string_copy(loadFullGamePath, biosPath);
-		if(!load_rom(loadFullGamePath.data())) // load_rom can modify the string
+		FileIO io;
+		if(!load_rom(io, biosPath, nullptr))
 		{
 			popup.printf(4, 1, "Error loading BIOS: %s", biosPath);
 			delete cd;
@@ -687,12 +682,10 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else
 	#endif
-	if(isMDExtension(fullGamePath())) // ROM
+	if(hasMDExtension(origFilename)) // ROM
 	{
-		logMsg("loading ROM %s", fullGamePath());
-		FS::PathString loadFullGamePath;
-		string_copy(loadFullGamePath, fullGamePath());
-		if(!load_rom(loadFullGamePath.data())) // load_rom can modify the string
+		logMsg("loading ROM %s", path);
+		if(!load_rom(io, path, origFilename))
 		{
 			popup.post("Error loading game", 1);
 			return 0;
@@ -794,11 +787,6 @@ int EmuSystem::loadGame(const char *path)
 
 	logMsg("started emu");
 	return 1;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
-{
-	return 0; // TODO
 }
 
 void EmuSystem::clearInputBuffers()

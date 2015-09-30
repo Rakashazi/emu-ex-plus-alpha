@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include "EmuConfig.hh"
+#include <imagine/util/ScopeGuard.hh>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
@@ -34,19 +35,19 @@ namespace PCE_Fast
 	extern vce_t vce;
 }
 
-static bool isHuCardExtension(const char *name)
+static bool hasHuCardExtension(const char *name)
 {
-	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx") || string_hasDotExtension(name, "zip");
+	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx");
 }
 
-static bool isCDExtension(const char *name)
+static bool hasCDExtension(const char *name)
 {
 	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
 }
 
-static bool isPCEWithCDExtension(const char *name)
+static bool hasPCEWithCDExtension(const char *name)
 {
-	return isHuCardExtension(name) || isCDExtension(name);
+	return hasHuCardExtension(name) || hasCDExtension(name);
 }
 
 Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
@@ -134,8 +135,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionSysCardPath.writeToIO(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isPCEWithCDExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isHuCardExtension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasPCEWithCDExtension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasHuCardExtension;
 
 static std::vector<CDIF *> CDInterfaces;
 
@@ -245,34 +246,30 @@ bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
 {
+	bug_exit("should only use loadGameFromIO()");
+	return 0;
+}
+
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
+{
 	closeGame();
 	setupGamePaths(path);
-
-	if(isHuCardExtension(path))
-	{
-		const FileExtensionSpecStruct ext[]
+	auto unloadCD = IG::scopeGuard(
+		[]()
 		{
-			{".pce", 0},
-			{".sgx", 0},
-			{0, 0}
-		};
-		try
-		{
-			MDFNFILE fp(fullGamePath(), ext);
-			emuSys->Load(&fp);
-		}
-		catch(std::exception &e)
-		{
-			popup.printf(3, 1, "%s", e.what());
-			goto FAIL;
-		}
-	}
-	else if(isCDExtension(path))
+			if(CDInterfaces.size())
+			{
+				assert(CDInterfaces.size() == 1);
+				delete CDInterfaces[0];
+				CDInterfaces.clear();
+			}
+		});
+	if(hasCDExtension(path))
 	{
 		if(!strlen(sysCardPath.data()) || !FS::exists(sysCardPath))
 		{
 			popup.printf(3, 1, "No System Card Set");
-			goto FAIL;
+			return 0;
 		}
 		CDInterfaces.reserve(1);
 		try
@@ -284,11 +281,22 @@ int EmuSystem::loadGame(const char *path)
 		catch(std::exception &e)
 		{
 			popup.printf(4, 1, "%s", e.what());
-			goto FAIL;
+			return 0;
 		}
 	}
 	else
-		goto FAIL;
+	{
+		try
+		{
+			MDFNFILE fp(io, origFilename);
+			emuSys->Load(&fp);
+		}
+		catch(std::exception &e)
+		{
+			popup.printf(3, 1, "%s", e.what());
+			return 0;
+		}
+	}
 
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
 	iterateTimes(5, i)
@@ -315,21 +323,8 @@ int EmuSystem::loadGame(const char *path)
 	}
 
 	configAudioPlayback();
+	unloadCD.cancel();
 	return 1;
-
-	FAIL:
-	if(CDInterfaces.size())
-	{
-		assert(CDInterfaces.size() == 1);
-		delete CDInterfaces[0];
-		CDInterfaces.clear();
-	}
-	return 0;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
-{
-	return 0; // TODO
 }
 
 void EmuSystem::clearInputBuffers()

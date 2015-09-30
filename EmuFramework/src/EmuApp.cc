@@ -537,7 +537,7 @@ void mainInitCommon(int argc, char** argv)
 				{
 					//auto title = CONFIG_APP_NAME " was suspended";
 					auto title = string_makePrintf<64>("%s was suspended", appName());
-					Base::addNotification(title.data(), title.data(), EmuSystem::fullGameName());
+					Base::addNotification(title.data(), title.data(), EmuSystem::fullGameName().data());
 				}
 			}
 			else

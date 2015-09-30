@@ -241,7 +241,7 @@ const uint EmuSystem::inputFaceBtns = 2;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const bool EmuSystem::inputHasKeyboard = true;
+bool EmuSystem::inputHasKeyboard = true;
 const char *EmuSystem::configFilename = "C64Emu.config";
 const uint EmuSystem::maxPlayers = 2;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -250,7 +250,9 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
-const bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::handlesArchiveFiles = false; // TODO: need to re-factor VICE file loading code
+bool EmuSystem::handlesGenericIO = false;
 #include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
@@ -747,7 +749,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	}
 }
 
-static bool isC64DiskExtension(const char *name)
+static bool hasC64DiskExtension(const char *name)
 {
 	return string_hasDotExtension(name, "d64") ||
 			string_hasDotExtension(name, "g64") ||
@@ -755,28 +757,28 @@ static bool isC64DiskExtension(const char *name)
 			string_hasDotExtension(name, "x64");
 }
 
-static bool isC64TapeExtension(const char *name)
+static bool hasC64TapeExtension(const char *name)
 {
 	return string_hasDotExtension(name, "t64") ||
 			string_hasDotExtension(name, "tap");
 }
 
-static bool isC64CartExtension(const char *name)
+static bool hasC64CartExtension(const char *name)
 {
 	return string_hasDotExtension(name, "bin") ||
 			string_hasDotExtension(name, "crt");
 }
 
-static bool isC64Extension(const char *name)
+static bool hasC64Extension(const char *name)
 {
-	return isC64DiskExtension(name) ||
-			isC64TapeExtension(name) ||
-			isC64CartExtension(name) ||
+	return hasC64DiskExtension(name) ||
+			hasC64TapeExtension(name) ||
+			hasC64CartExtension(name) ||
 			string_hasDotExtension(name, "prg");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = isC64Extension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = isC64Extension;
+EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasC64Extension;
+EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasC64Extension;
 
 void EmuSystem::reset(ResetMode mode)
 {
@@ -896,7 +898,7 @@ void EmuSystem::clearInputBuffers()
 void EmuSystem::closeSystem()
 {
 	assert(gameIsRunning());
-	logMsg("closing game %s", gameName());
+	logMsg("closing game %s", gameName().data());
 	saveBackupMem();
 	resources_set_int("WarpMode", 0);
 	tape_image_detach(1);
@@ -975,7 +977,7 @@ int EmuSystem::loadGame(const char *path)
 	return 1;
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *origFilename)
+int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	return 0; // TODO
 }

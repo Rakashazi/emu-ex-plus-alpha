@@ -16,11 +16,13 @@
 #include <emuframework/Recent.hh>
 #include <imagine/logger/logger.h>
 
-StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
+StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList{};
 
 void recent_addGame(const char *fullPath, const char *name)
 {
-	logMsg("adding %s to recent list, current size: %d", name, recentGameList.size());
+	if(!strlen(fullPath))
+		return;
+	logMsg("adding %s @ %s to recent list, current size: %d", name, fullPath, recentGameList.size());
 	RecentGameInfo recent;
 	string_copy(recent.path, fullPath);
 	string_copy(recent.name, name);
@@ -33,6 +35,6 @@ void recent_addGame(const char *fullPath, const char *name)
 	/*logMsg("list contents:");
 	for(auto &e : recentGameList)
 	{
-		logMsg("path: %s name: %s", e.path, e.name);
+		logMsg("path: %s name: %s", e.path.data(), e.name.data());
 	}*/
 }

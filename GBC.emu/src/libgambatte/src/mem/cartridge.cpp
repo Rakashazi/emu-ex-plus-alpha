@@ -535,12 +535,13 @@ static bool presumedMulti64Mbc1(unsigned char const header[], unsigned rombanks)
 	return header[0x147] == 1 && header[0x149] == 0 && rombanks == 64;
 }
 
-LoadRes Cartridge::loadROM(File &rom, std::string const &romfilename,
+LoadRes Cartridge::loadROM(const void *romdata, std::size_t size,
+                           std::string const &romfilename,
                            bool const forceDmg,
                            bool const multicartCompat)
 {
-	if (rom.fail())
-		return LOADRES_IO_ERROR;
+	if (size < 0x150)
+		return LOADRES_BAD_FILE_OR_UNKNOWN_MBC;
 
 	enum Cartridgetype { type_plain,
 	                     type_mbc1,
@@ -554,8 +555,7 @@ LoadRes Cartridge::loadROM(File &rom, std::string const &romfilename,
 	bool cgb = false;
 
 	{
-		unsigned char header[0x150];
-		rom.read(reinterpret_cast<char *>(header), sizeof header);
+		const unsigned char *header = reinterpret_cast<const unsigned char *>(romdata);
 
 		switch (header[0x0147]) {
 		case 0x00: type = type_plain; break;
@@ -612,7 +612,7 @@ LoadRes Cartridge::loadROM(File &rom, std::string const &romfilename,
 		cgb = header[0x0143] >> 7 & (1 ^ forceDmg);
 	}
 
-	std::size_t const filesize = rom.size();
+	std::size_t const filesize = size;
 	rombanks = std::max(pow2ceil(filesize / 0x4000), 2u);
 
 	defaultSaveBasePath_.clear();
@@ -621,15 +621,11 @@ LoadRes Cartridge::loadROM(File &rom, std::string const &romfilename,
 	memptrs_.reset(rombanks, rambanks, cgb ? 8 : 2);
 	rtc_.set(false, 0);
 
-	rom.rewind();
-	rom.read(reinterpret_cast<char*>(memptrs_.romdata()), filesize / 0x4000 * 0x4000ul);
+	std::memcpy(memptrs_.romdata(), romdata, filesize / 0x4000 * 0x4000ul);
 	std::memset(memptrs_.romdata() + filesize / 0x4000 * 0x4000ul,
 	            0xFF,
 	            (rombanks - filesize / 0x4000) * 0x4000ul);
 	enforce8bit(memptrs_.romdata(), rombanks * 0x4000ul);
-
-	if (rom.fail())
-		return LOADRES_IO_ERROR;
 
 	defaultSaveBasePath_ = stripExtension(romfilename);
 

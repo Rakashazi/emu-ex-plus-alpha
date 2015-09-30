@@ -419,7 +419,7 @@ MenuView::MenuView(Base::Window &win):
 					return;
 				}
 				auto &textInputView = *new CollectTextInputView{window()};
-				textInputView.init("Shortcut Name", EmuSystem::fullGameName(),
+				textInputView.init("Shortcut Name", EmuSystem::fullGameName().data(),
 						getCollectTextCloseAsset());
 				textInputView.onText() =
 					[this](CollectTextInputView &view, const char *str)
@@ -618,7 +618,7 @@ void RecentGameInfo::handleMenuSelection(TextMenuItem &, Input::Event e)
 		{
 			loadGameCompleteFromRecentItem(result, e);
 		};
-	auto res = EmuSystem::loadGame(path.data());
+	auto res = EmuSystem::loadGameFromPath(path);
 	if(res == 1)
 	{
 		loadGameCompleteFromRecentItem(1, e);
@@ -636,7 +636,7 @@ void RecentGameView::init()
 	int rIdx = 0;
 	for(auto &e : recentGameList)
 	{
-		recentGame[rIdx].init(e.name, FS::exists(e.path.data())); item[i++] = &recentGame[rIdx];
+		recentGame[rIdx].init(e.name.data(), FS::exists(e.path.data())); item[i++] = &recentGame[rIdx];
 		recentGame[rIdx].onSelect() = [&e](TextMenuItem &t, View &, Input::Event ev) {e.handleMenuSelection(t,ev);};
 		rIdx++;
 	}

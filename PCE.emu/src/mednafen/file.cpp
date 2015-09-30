@@ -35,7 +35,6 @@
 
 
 #include <zlib.h>
-#include <unzip.h>
 
 #include "file.h"
 #include "general.h"
@@ -49,6 +48,7 @@ enum
  MDFN_FILETYPE_ZIP = 2,
 };
 
+#if 0
 static const char *unzErrorString(int error_code)
 {
  if(error_code == UNZ_OK)
@@ -70,6 +70,7 @@ static const char *unzErrorString(int error_code)
  else
   return("ZIP Unknown");
 }
+#endif
 
 void MDFNFILE::ApplyIPS(Stream *ips)
 {
@@ -166,6 +167,7 @@ void MDFNFILE::ApplyIPS(Stream *ips)
  MDFN_printf(_("IPS EOF:  Did %d patches\n\n"), count);
 }
 
+#if 0
 void MDFNFILE::MakeMemWrap(void *tz, int type)
 {
  #ifdef HAVE_MMAP
@@ -473,6 +475,7 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
   gzp = NULL;
  }
 }
+#endif
 
 void MDFNFILE::Close(void) throw()
 {

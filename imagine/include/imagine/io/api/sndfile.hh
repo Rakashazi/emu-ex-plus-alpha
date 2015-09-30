@@ -14,8 +14,7 @@ static SF_VIRTUAL_IO sndfile
 	[](sf_count_t offset, int whence, void *user_data) // seek
 	{
 		auto &io = *(IO*)user_data;
-		io.seek(offset, (IO::SeekMode)whence);
-		return (sf_count_t)io.tell();
+		return (sf_count_t)io.seek(offset, (IO::SeekMode)whence);
 	},
 	[](void *ptr, sf_count_t count, void *user_data) // read
 	{

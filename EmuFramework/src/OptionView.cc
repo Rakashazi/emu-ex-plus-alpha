@@ -597,17 +597,17 @@ public:
 		emuWin->win.screen()->addOnFrame(detectFrameRate);
 	}
 
-	void deinit()
+	void deinit() override
 	{
 		emuWin->win.screen()->removeOnFrame(detectFrameRate);
 	}
 
-	void place()
+	void place() override
 	{
 		fpsText.compile(projP);
 	}
 
-	void inputEvent(Input::Event e)
+	void inputEvent(Input::Event e) override
 	{
 		if(e.pushed() && e.isDefaultCancelButton())
 		{
@@ -616,7 +616,7 @@ public:
 		}
 	}
 
-	void draw()
+	void draw() override
 	{
 		using namespace Gfx;
 		setColor(1., 1., 1., 1.);

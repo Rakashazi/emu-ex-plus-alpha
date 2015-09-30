@@ -12,7 +12,7 @@ public:
 		"",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath, isBIOSExtension, window()};
+			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath, hasBIOSExtension, window()};
 			biosSelectMenu.init();
 			biosSelectMenu.onBiosChange() =
 				[this]()

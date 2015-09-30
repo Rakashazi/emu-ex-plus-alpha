@@ -1,14 +1,6 @@
-#ifndef _FILEIO_H_
-#define _FILEIO_H_
+#pragma once
 
-/* Global variables */
-extern int cart_size;
-extern char cart_name[0x100];
+#include <imagine/io/IO.hh>
 
-/* Function prototypes */
-uint8 *load_archive(char *filename, int *file_size);
-int load_cart(char *filename);
-int check_zip(char *filename);
-int gzsize(gzFile *gd);
-
-#endif /* _FILEIO_H_ */
+uint hasROMExtension(const char *name);
+int loadArchive(void *buff, uint bytes, const char *path, FS::FileString &nameInArchive);
