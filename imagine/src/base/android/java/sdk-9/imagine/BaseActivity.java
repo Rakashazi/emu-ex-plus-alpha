@@ -519,4 +519,19 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		Bitmap bitmap = BitmapFactory.decodeStream(in);
 		return bitmap;
 	}
+	
+	String nativeLibPath()
+	{
+		String libname = "main";
+		ActivityInfo ai;
+		try
+		{
+			ai = getPackageManager().getActivityInfo(getIntent().getComponent(), PackageManager.GET_META_DATA);
+		}
+		catch(PackageManager.NameNotFoundException e)
+		{
+			throw new RuntimeException("Error getting activity info", e);
+		}
+		return ai.applicationInfo.nativeLibraryDir + "/" + System.mapLibraryName(libname);
+	}
 }

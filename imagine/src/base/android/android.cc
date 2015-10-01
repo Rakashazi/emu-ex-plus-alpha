@@ -47,7 +47,6 @@ bool aHasFocus = true;
 static AConfiguration *aConfig{};
 static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
-//static JavaInstMethod<void()> jFinish{};
 static JavaInstMethod<jobject()> jNewFontRenderer{};
 JavaInstMethod<void(jint)> jSetRequestedOrientation{};
 static const char *filesDir{};
@@ -60,6 +59,8 @@ static bool keepScreenOn = false;
 static Timer userActivityCallback{};
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 AInputQueue *inputQueue{};
+static void *mainLibHandle{};
+static bool unloadNativeLibOnDestroy = false;
 
 // window
 JavaInstMethod<void(jint, jint)> jSetWinFlags{};
@@ -71,14 +72,16 @@ uint appActivityState() { return appState; }
 void exit(int returnVal)
 {
 	// TODO: return exit value as activity result
-	logMsg("exiting process");
 	appState = APP_EXITING;
-	dispatchOnExit(false);
-	removePostedNotifications();
-	::exit(returnVal);
-	//jFinish(env, jBaseActivity);
+	auto env = jEnv();
+	JavaInstMethod<void()> jFinish{env, jBaseActivityCls, "finish", "()V"};
+	jFinish(env, jBaseActivity);
 }
-void abort() { ::abort(); }
+
+void abort()
+{
+	::abort();
+}
 
 //void openURL(const char *url) { };
 
@@ -172,7 +175,6 @@ static void activityInit(JNIEnv* env, jobject activity)
 	{
 		jBaseActivityCls = (jclass)env->NewGlobalRef(env->GetObjectClass(activity));
 		jSetRequestedOrientation.setup(env, jBaseActivityCls, "setRequestedOrientation", "(I)V");
-		//jFinish.setup(env, jBaseActivityCls, "finish", "()V");
 		#ifdef CONFIG_RESOURCE_FONT_ANDROID
 		jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
 		#endif
@@ -227,6 +229,22 @@ static void activityInit(JNIEnv* env, jobject activity)
 			}
 			else
 				Base::hasPermanentMenuKey = 1;
+		}
+
+		if(unloadNativeLibOnDestroy)
+		{
+			JavaInstMethod<jobject()> jNativeLibPath{env, jBaseActivityCls, "nativeLibPath", "()Ljava/lang/String;"};
+			auto jstr = (jstring)jNativeLibPath(env, activity);
+			auto utfChars = env->GetStringUTFChars(jstr, nullptr);
+			#if __ANDROID_API__ >= 21
+			mainLibHandle = dlopen(utfChars, RTLD_LAZY | RTLD_NOLOAD);
+			#else
+			mainLibHandle = dlopen(utfChars, RTLD_LAZY);
+			dlclose(mainLibHandle);
+			#endif
+			env->ReleaseStringUTFChars(jstr, utfChars);
+			if(!mainLibHandle)
+				logWarn("unable to get native lib handle");
 		}
 	}
 
@@ -331,7 +349,17 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onDestroy =
 		[](ANativeActivity *)
 		{
-			::exit(0);
+			removePostedNotifications();
+			if(mainLibHandle)
+			{
+				logMsg("closing main lib:%p", mainLibHandle);
+				dlclose(mainLibHandle);
+			}
+			else
+			{
+				logMsg("exiting process");
+				::exit(0);
+			}
 		};
 	//activity->callbacks->onStart = nullptr; // unused
 	activity->callbacks->onResume =
