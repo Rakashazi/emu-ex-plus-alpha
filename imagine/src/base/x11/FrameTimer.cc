@@ -50,6 +50,7 @@ private:
 public:
 	constexpr FBDevFrameTimer() {}
 	bool init();
+	void deinit();
 	void scheduleVSync();
 	void cancel();
 
@@ -66,13 +67,16 @@ private:
 	Base::EventLoopFileSource fdSrc;
 	int fd = -1;
 	sem_t sem{};
+	sem_t initSem{};
 	bool requested = false;
 	bool cancelled = false;
 	bool inFrameHandlers = false;
+	bool finishing = false;
 
 public:
 	constexpr SGIFrameTimer() {}
 	bool init();
+	void deinit();
 	void scheduleVSync();
 	void cancel();
 
@@ -99,6 +103,7 @@ private:
 public:
 	constexpr OMLFrameTimer() {}
 	bool init();
+	void deinit();
 	void scheduleVSync();
 	void cancel();
 
@@ -125,6 +130,11 @@ void initFrameTimer()
 	{
 		exit(1);
 	}
+}
+
+void deinitFrameTimer()
+{
+	frameTimer.deinit();
 }
 
 void frameTimerScheduleVSync()
@@ -196,6 +206,11 @@ bool FBDevFrameTimer::init()
 	return true;
 }
 
+void FBDevFrameTimer::deinit()
+{
+	// TODO
+}
+
 void FBDevFrameTimer::scheduleVSync()
 {
 	assert(fd != -1);
@@ -225,7 +240,6 @@ bool SGIFrameTimer::init()
 	fd = eventfd(0, 0);
 	assert(fd != -1);
 	sem_init(&sem, 0, 0);
-	sem_t initSem;
 	sem_init(&initSem, 0, 0);
 	fdSrc.init(fd,
 		[this](int fd, int event)
@@ -258,7 +272,7 @@ bool SGIFrameTimer::init()
 			return 1;
 		});
 	IG::runOnThread(
-		[this, &initSem]()
+		[this]()
 		{
 			GLContext context;
 			GLBufferConfig bufferConfig;
@@ -277,11 +291,11 @@ bool SGIFrameTimer::init()
 				}
 				assert(context);
 			}
+			Base::Window dummyWindow;
 			{
 				auto rootWindow = RootWindowOfScreen(mainScreen().xScreen);
 				XSetWindowAttributes attr{};
 				attr.colormap = XCreateColormap(dpy, rootWindow, bufferConfig.visual, AllocNone);
-				Base::Window dummyWindow;
 				dummyWindow.xWin = XCreateWindow(dpy, rootWindow, 0, 0, 1, 1, 0,
 					bufferConfig.depth, InputOutput, bufferConfig.visual,
 					CWColormap, &attr);
@@ -295,6 +309,8 @@ bool SGIFrameTimer::init()
 			for(;;)
 			{
 				sem_wait(&sem);
+				if(unlikely(finishing))
+					break;
 				//logMsg("waiting for vsync");
 				unsigned int retraces = 0;
 				if(glXWaitVideoSyncSGI(1, 0, &retraces) != 0)
@@ -306,11 +322,29 @@ bool SGIFrameTimer::init()
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));
 			}
+			logMsg("cleaning up frame timer thread");
+			context.deinit();
+			GLContext::setCurrent({}, nullptr);
+			dummyWindow.deinit();
+			sem_post(&initSem);
 		}
 	);
 	sem_wait(&initSem);
-	sem_destroy(&initSem);
 	return true;
+}
+
+void SGIFrameTimer::deinit()
+{
+	if(fd == -1)
+		return;
+	cancel();
+	finishing = true;
+	sem_post(&sem);
+	sem_wait(&initSem);
+	sem_destroy(&initSem);
+	fdSrc.deinit();
+	close(fd);
+	fd = -1;
 }
 
 void SGIFrameTimer::scheduleVSync()
@@ -385,6 +419,11 @@ bool OMLFrameTimer::init()
 			return 1;
 		});
 	return true;
+}
+
+void OMLFrameTimer::deinit()
+{
+	// TODO
 }
 
 void OMLFrameTimer::scheduleVSync()

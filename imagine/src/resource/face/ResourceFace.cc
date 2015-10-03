@@ -125,12 +125,6 @@ ResourceFace *ResourceFace::loadSystem(FontSettings *set)
 	#else
 		#ifdef CONFIG_PACKAGE_FONTCONFIG
 		logMsg("locating system fonts with fontconfig");
-		// TODO: should move to one-time init function
-		if(!FcInitLoadConfigAndFonts())
-		{
-			logErr("error initializing fontconfig");
-			return nullptr;
-		}
 		// Let fontconfig handle loading specific fonts on-demand
 		auto font = ResourceFontFreetype::load();
 		return create(font, set);

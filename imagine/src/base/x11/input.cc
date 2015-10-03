@@ -74,7 +74,6 @@ static int xPointerMapping[Config::Input::MAX_POINTERS]{};
 static XkbDescPtr coreKeyboardDesc{};
 static Device *vkbDevice{};
 
-
 static const Device *deviceForInputId(int osId)
 {
 	iterateTimes(xDevice.size(), i)
@@ -126,7 +125,7 @@ void initPerWindowData(::Window win)
 		if(!blankCursor)
 		{
 			// make a blank cursor
-			char data[1] = {0};
+			char data[1]{};
 			auto blank = XCreateBitmapFromData(dpy, win, data, 1, 1);
 			if(blank == None)
 			{
@@ -138,7 +137,6 @@ void initPerWindowData(::Window win)
 			normalCursor = XCreateFontCursor(dpy, XC_left_ptr);
 		}
 	}
-
 	XIEventMaskData xiMask;
 	setXIEventMaskData(xiMask);
 	XISelectEvents(dpy, win, &xiMask.eventMask, 1);
@@ -326,6 +324,17 @@ CallResult init()
 
 	coreKeyboardDesc = XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd);
 	return OK;
+}
+
+void deinit()
+{
+	//logMsg("deinit input data");
+	if(blankCursor)
+		XFreeCursor(dpy, blankCursor);
+	if(normalCursor)
+		XFreeCursor(dpy, normalCursor);
+	if(coreKeyboardDesc)
+		XkbFreeClientMap(coreKeyboardDesc, 0, true);
 }
 
 static void updatePointer(Base::Window &win, uint key, int p, uint action, int x, int y, Input::Time time)

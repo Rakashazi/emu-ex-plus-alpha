@@ -29,7 +29,7 @@
 namespace Base
 {
 
-Display *dpy;
+Display *dpy{};
 
 // TODO: move into generic header after testing
 static void fileURLToPath(char *url)

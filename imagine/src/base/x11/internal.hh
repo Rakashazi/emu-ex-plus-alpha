@@ -37,6 +37,7 @@ namespace Base
 	int indexOfScreen(Screen &screen);
 	void toggleFullScreen(::Window xWin);
 	void initFrameTimer();
+	void deinitFrameTimer();
 	void frameTimerScheduleVSync();
 	void frameTimerCancel();
 }
@@ -44,7 +45,7 @@ namespace Base
 namespace Input
 {
 	void initPerWindowData(::Window win);
-
+	void deinit();
 	// returns true if event is XI2, false otherwise
 	bool handleXI2GenericEvent(XEvent &event);
 }

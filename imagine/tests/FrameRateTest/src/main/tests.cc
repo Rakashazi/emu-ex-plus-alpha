@@ -50,6 +50,7 @@ void TestFramework::init(IG::Point2D<int> pixmapSize)
 
 void TestFramework::deinit()
 {
+	cpuStatsText.deinit();
 	frameStatsText.deinit();
 	deinitTest();
 }
@@ -199,9 +200,7 @@ void TestFramework::finish(Base::FrameTimeBase frameTime)
 	endTime = frameTime;
 	if(onTestFinished)
 		onTestFinished(*this);
-	deinit();
 }
-
 
 void ClearTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime)
 {

@@ -182,7 +182,7 @@ CallResult Window::init(const WindowConfig &config)
 	auto winRect = makeWindowRectWithConfig(config, rootWindow);
 	#endif
 	updateSize({winRect.xSize(), winRect.ySize()});
-	XSetWindowAttributes attr{0};
+	XSetWindowAttributes attr{};
 	attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
 	#if defined CONFIG_MACHINE_PANDORA
 	xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
@@ -191,7 +191,8 @@ CallResult Window::init(const WindowConfig &config)
 	#else
 	pos = {winRect.x, winRect.y};
 	{
-		attr.colormap = XCreateColormap(dpy, rootWindow, config.glConfig().visual, AllocNone);
+		colormap = XCreateColormap(dpy, rootWindow, config.glConfig().visual, AllocNone);
+		attr.colormap = colormap;
 		xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
 			config.glConfig().depth, InputOutput, config.glConfig().visual,
 			CWColormap | CWEventMask, &attr);
@@ -260,17 +261,26 @@ void Window::deinit()
 		XDestroyWindow(dpy, xWin);
 		xWin = None;
 	}
+	#ifndef CONFIG_MACHINE_PANDORA
+	if(colormap != None)
+	{
+		XFreeColormap(dpy, colormap);
+		colormap = None;
+	}
+	#endif
 }
 
 void deinitWindowSystem()
 {
 	logMsg("shutting down window system");
+	deinitFrameTimer();
 	GLContext::current().deinit();
 	GLContext::setCurrent({}, nullptr);
 	iterateTimes(Window::windows(), i)
 	{
 		Window::window(i)->deinit();
 	}
+	Input::deinit();
 	XCloseDisplay(dpy);
 }
 

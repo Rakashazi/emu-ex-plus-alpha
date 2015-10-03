@@ -18,43 +18,59 @@
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/strings.h>
+#include <imagine/util/ScopeGuard.hh>
 #include <imagine/io/FileIO.hh>
 #ifdef CONFIG_PACKAGE_FONTCONFIG
 #include <fontconfig/fontconfig.h>
 #endif
 
 #ifdef CONFIG_PACKAGE_FONTCONFIG
-static CallResult getFontFilenameWithPattern(FcPattern *pat, char *&filename, FcPattern *&matchPatOut)
+static FcConfig *fcConf{};
+
+static CallResult getFontPathWithPattern(FcPattern *pat, FS::PathString &path)
 {
 	FcDefaultSubstitute(pat);
 	if(!FcConfigSubstitute(nullptr, pat, FcMatchPattern))
 	{
 		logErr("error applying font substitutions");
-		FcPatternDestroy(pat);
 		return INVALID_PARAMETER;
 	}
 	FcResult result = FcResultMatch;
 	auto matchPat = FcFontMatch(nullptr, pat, &result);
-	FcPatternDestroy(pat);
+	auto destroyPattern = IG::scopeGuard(
+		[&]()
+		{
+			if(matchPat)
+			{
+				FcPatternDestroy(matchPat);
+			}
+		});
 	if(!matchPat || result == FcResultNoMatch)
 	{
 		logErr("fontconfig couldn't find a valid font");
-		if(matchPat)
-			FcPatternDestroy(matchPat);
 		return INVALID_PARAMETER;
 	}
-	if(FcPatternGetString(matchPat, FC_FILE, 0, (FcChar8**)&filename) != FcResultMatch)
+	FcChar8 *patternStr;
+	if(FcPatternGetString(matchPat, FC_FILE, 0, &patternStr) != FcResultMatch)
 	{
 		logErr("fontconfig font missing file path");
-		FcPatternDestroy(matchPat);
 		return INVALID_PARAMETER;
 	}
-	matchPatOut = matchPat;
+	string_copy(path, (char*)patternStr);
 	return OK;
 }
 
 static bool addonSystemFontContainingChar(ResourceFontFreetype &font, int c)
 {
+	if(!fcConf)
+	{
+		fcConf = FcInitLoadConfigAndFonts();
+		if(!fcConf)
+		{
+			logErr("error initializing fontconfig");
+			return false;
+		}
+	}
 	logMsg("looking for font with char: %c", c);
 	auto pat = FcPatternCreate();
 	if(!pat)
@@ -62,20 +78,32 @@ static bool addonSystemFontContainingChar(ResourceFontFreetype &font, int c)
 		logErr("error allocating fontconfig pattern");
 		return false;
 	}
+	auto destroyPattern = IG::scopeGuard([&](){ FcPatternDestroy(pat); });
 	auto charSet = FcCharSetCreate();
-	FcCharSetAddChar(charSet, c);
-	FcPatternAddCharSet(pat, FC_CHARSET, charSet);
-	char *filename;
-	FcPattern *matchPat;
-	if(getFontFilenameWithPattern(pat, filename, matchPat) != OK)
+	if(!charSet)
 	{
-		FcCharSetDestroy(charSet);
+		logErr("error allocating fontconfig char set");
 		return false;
 	}
-	auto ret = font.loadIntoNextSlot((char*)filename);
-	FcPatternDestroy(matchPat);
-	FcCharSetDestroy(charSet);
+	auto destroyCharSet = IG::scopeGuard([&](){ FcCharSetDestroy(charSet); });
+	FcCharSetAddChar(charSet, c);
+	FcPatternAddCharSet(pat, FC_CHARSET, charSet);
+	FS::PathString path;
+	if(getFontPathWithPattern(pat, path) != OK)
+	{
+		return false;
+	}
+	auto ret = font.loadIntoNextSlot(path.data());
 	return ret == OK;
+}
+
+[[gnu::destructor]] static void finalizeFc()
+{
+	if(fcConf)
+	{
+		FcConfigDestroy(fcConf);
+		FcFini();
+	}
 }
 #endif
 

@@ -56,25 +56,34 @@ static void placeElements()
 	}
 }
 
-static void finishTest(Base::Window &win, Base::FrameTimeBase frameTime)
+static void cleanupTest()
 {
-	deinitCPUFreqStatus();
-	deinitCPULoadStatus();
 	if(activeTest)
 	{
-		activeTest->finish(frameTime);
+		activeTest->deinit();
 	}
 	delete activeTest;
 	activeTest = nullptr;
-	Gfx::setClearColor(0, 0, 0);
-	placeElements();
-	win.postDraw();
+	deinitCPUFreqStatus();
+	deinitCPULoadStatus();
 	Base::setIdleDisplayPowerSave(true);
 	Input::setKeyRepeat(true);
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setDefaults();
 	#endif
+}
+
+static void finishTest(Base::Window &win, Base::FrameTimeBase frameTime)
+{
+	if(activeTest)
+	{
+		activeTest->finish(frameTime);
+	}
+	cleanupTest();
+	Gfx::setClearColor(0, 0, 0);
+	placeElements();
+	win.postDraw();
 }
 
 TestFramework *startTest(Base::Window &win, const TestParams &t)
@@ -128,6 +137,17 @@ namespace Base
 
 CallResult onInit(int argc, char** argv)
 {
+	Base::setOnExit(
+		[](bool backgrounded)
+		{
+			cleanupTest();
+			if(!backgrounded)
+			{
+				picker.deinit();
+				View::defaultFace->free();
+			}
+		});
+
 	Gfx::init();
 	View::compileGfxPrograms();
 	View::defaultFace = ResourceFace::loadSystem();

@@ -44,6 +44,7 @@ public:
 	#endif
 	#ifndef CONFIG_MACHINE_PANDORA
 	IG::Point2D<int> pos;
+	Colormap colormap{};
 	#endif
 	bool presented = false;
 
