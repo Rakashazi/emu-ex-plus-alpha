@@ -113,6 +113,7 @@ public:
 	#ifdef __ANDROID__
 	static bool setAndroidStorageImpl(AndroidStorageImpl impl);
 	static AndroidStorageImpl androidStorageImpl();
+	static bool isAndroidGraphicBufferStorageWhitelisted();
 	bool isExternal();
 	#endif
 };

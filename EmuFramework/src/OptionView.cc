@@ -948,45 +948,88 @@ OptionView::OptionView(Base::Window &win):
 		[this](MultiChoiceMenuItem &item, View &view, int val)
 		{
 			using namespace Gfx;
-			auto newVal = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-			switch(val)
+			static auto modeForMenuValue =
+				[](int val)
+				{
+					switch(val)
+					{
+						case 1: return OPTION_ANDROID_TEXTURE_STORAGE_NONE;
+						case 2: return OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER;
+						case 3: return OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
+					}
+					return OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
+				};
+			static auto resetVideo =
+				[]()
+				{
+					if(emuVideo.vidImg)
+					{
+						// texture may switch to external format so
+						// force effect shaders to re-compile
+						emuVideoLayer.setEffect(0);
+						emuVideo.reinitImage();
+						emuVideo.clearImage();
+						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+						emuVideoLayer.setEffect(optionImgEffect);
+						#endif
+					}
+				};
+			static auto setAutoMode =
+				[](MultiChoiceSelectMenuItem &item, View &view)
+				{
+					item.updateVal(0, view);
+					optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
+					Gfx::Texture::setAndroidStorageImpl(Texture::ANDROID_AUTO);
+					resetVideo();
+				};
+			static auto setMode =
+				[](MultiChoiceSelectMenuItem &item, View &view)
+				{
+					uint8 newMode = modeForMenuValue(item.choice);
+					if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(newMode)))
+					{
+						popup.postError("Not supported on this GPU, using Auto");
+						setAutoMode(item, view);
+					}
+					else
+					{
+						resetVideo();
+						optionAndroidTextureStorage = newMode;
+						if(newMode == OPTION_ANDROID_TEXTURE_STORAGE_AUTO)
+						{
+							const char *modeStr = "Standard";
+							switch(Texture::androidStorageImpl())
+							{
+								bcase Texture::ANDROID_GRAPHIC_BUFFER: modeStr = "Graphic Buffer";
+								bcase Texture::ANDROID_SURFACE_TEXTURE: modeStr = "Surface Texture";
+								bdefault: break;
+							}
+							popup.printf(3, false, "Set %s mode via Auto", modeStr);
+						}
+					}
+				};
+			uint8 newMode = modeForMenuValue(val);
+			if(newMode == OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER &&
+				!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted())
 			{
-				bcase 1: newVal = OPTION_ANDROID_TEXTURE_STORAGE_NONE;
-				bcase 2: newVal = OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER;
-				bcase 3: newVal = OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
-			}
-			if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(newVal)))
-			{
-				popup.postError("Not supported on this GPU, using Auto");
-				item.updateVal(0, view);
-				optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-				Gfx::Texture::setAndroidStorageImpl(Texture::ANDROID_AUTO);
+				auto &ynAlertView = *new YesNoAlertView{view.window(),
+					"Graphic Buffer improves performance but may hang or crash "
+					"the app depending on your device or GPU. Really use this option?"};
+				ynAlertView.onYes() =
+					[this](Input::Event e)
+					{
+						setMode(androidTextureStorage, *this);
+					};
+				ynAlertView.onNo() =
+					[this](Input::Event e)
+					{
+						setAutoMode(androidTextureStorage, *this);
+					};
+				modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
 			}
 			else
 			{
-				optionAndroidTextureStorage = newVal;
-				if(newVal == OPTION_ANDROID_TEXTURE_STORAGE_AUTO)
-				{
-					const char *modeStr = "Standard";
-					switch(Texture::androidStorageImpl())
-					{
-						bcase Texture::ANDROID_GRAPHIC_BUFFER: modeStr = "Graphic Buffer";
-						bcase Texture::ANDROID_SURFACE_TEXTURE: modeStr = "Surface Texture";
-						bdefault: break;
-					}
-					popup.printf(3, false, "Set %s mode via Auto", modeStr);
-				}
-			}
-			if(emuVideo.vidImg)
-			{
-				// texture may switch to external format so
-				// force effect shaders to re-compile
-				emuVideoLayer.setEffect(0);
-				emuVideo.reinitImage();
-				emuVideo.clearImage();
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-				emuVideoLayer.setEffect(optionImgEffect);
-				#endif
+				setMode(androidTextureStorage, *this);
 			}
 		}
 	},

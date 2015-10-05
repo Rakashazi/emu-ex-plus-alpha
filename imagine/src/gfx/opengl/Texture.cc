@@ -1219,6 +1219,11 @@ bool GLTexture::setAndroidStorageImpl(AndroidStorageImpl impl)
 	}
 }
 
+bool GLTexture::isAndroidGraphicBufferStorageWhitelisted()
+{
+	return GraphicBufferStorage::isRendererWhitelisted((const char*)glGetString(GL_RENDERER));
+}
+
 bool GLTexture::isExternal()
 {
 	return target == GL_TEXTURE_EXTERNAL_OES;
