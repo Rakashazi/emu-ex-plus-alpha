@@ -621,7 +621,7 @@ int EmuSystem::loadGame(const char *path)
 int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	closeGame();
-	setupGamePaths(origFilename);
+	setupGamePaths(path);
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE)
 	{
