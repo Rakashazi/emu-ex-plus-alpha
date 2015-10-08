@@ -251,6 +251,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
+bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesArchiveFiles = false; // TODO: need to re-factor VICE file loading code
 bool EmuSystem::handlesGenericIO = false;
 #include <emuframework/CommonGui.hh>
