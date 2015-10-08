@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "TimerFD"
 #include <unistd.h>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/EventLoopFileSource.hh>
@@ -32,16 +33,16 @@
 #include <time.h>
 #include <sys/syscall.h>
 
-static int timerfd_create(clockid_t __clock_id, int __flags)
+static int timerfd_create(clockid_t clock_id, int flags)
 {
-	return syscall(__NR_timerfd_create, __clock_id, __flags);
+	return syscall(__NR_timerfd_create, clock_id, flags);
 }
 
-static int timerfd_settime(int __ufd, int __flags,
-					const struct itimerspec *__utmr,
-					struct itimerspec *__otmr)
+static int timerfd_settime(int ufd, int flags,
+					const struct itimerspec *utmr,
+					struct itimerspec *otmr)
 {
-	return syscall(__NR_timerfd_settime, __ufd, __flags, __utmr, __otmr);
+	return syscall(__NR_timerfd_settime, ufd, flags, utmr, otmr);
 }
 #endif
 
@@ -84,12 +85,13 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, bool shouldReuseResour
 		rearm = true;
 	}
 
-	logMsg("%s %stimerfd %d to run in %ld second(s) and %ld ns", rearm ? "re-arming" : "creating", reuseResources ? "reusable " : "",
-		fd, (long)time.tv_sec, (long)time.tv_nsec);
+	logMsg("%s %sfd:%d to run in %lds & %ldns, repeat every %lds & %ldns",
+		rearm ? "re-arming" : "creating", reuseResources ? "reusable " : "",
+		fd, (long)time.tv_sec, (long)time.tv_nsec,
+		(long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec);
 	if(repeatInterval.tv_sec || repeatInterval.tv_nsec)
 	{
 		repeating = true;
-		logMsg("repeating every %ld second(s) and %ld ns", (long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec);
 	}
 	struct itimerspec newTime { repeatInterval, time };
 	if(timerfd_settime(fd, 0, &newTime, nullptr) != 0)
@@ -105,7 +107,7 @@ void TimerFD::deinit()
 {
 	if(fd >= 0)
 	{
-		logMsg("closing timerfd %d", fd);
+		logMsg("closing fd:%d", fd);
 		#if defined __ANDROID__
 		ALooper_removeFd(Base::activityLooper(), fd);
 		#else
@@ -124,7 +126,12 @@ void Timer::deinit()
 
 void TimerFD::timerFired()
 {
-	logMsg("running callback, fd %d", fd);
+	logMsg("callback ready for fd:%d", fd);
+	if(unlikely(!armed))
+	{
+		logMsg("disarmed after fd became ready");
+		return;
+	}
 	armed = repeating; // disarm timer if non-repeating, can be re-armed in callback()
 	callback();
 	if(!armed && !reuseResources)
@@ -197,7 +204,7 @@ void Timer::cancel()
 		{
 			// disarm timer
 			assert(fd);
-			logMsg("disarming timerfd: %d", fd);
+			logMsg("disarming fd:%d", fd);
 			struct itimerspec newTime{{0}};
 			timerfd_settime(fd, 0, &newTime, nullptr);
 			armed = false;

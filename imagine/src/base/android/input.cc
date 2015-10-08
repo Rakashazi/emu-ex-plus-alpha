@@ -28,6 +28,7 @@ namespace Input
 
 void (*processInput)(AInputQueue *inputQueue) = processInputWithHasEvents;
 static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
+static int mostRecentKeyEventDevID = -1;
 
 static struct TouchState
 {
@@ -307,32 +308,56 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				return 0;
 			}
-
-			if(allowOSKeyRepeats || AKeyEvent_getRepeatCount(event) == 0)
+			auto keyWasRepeated =
+				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
+				{
+					if(Base::androidSDK() < 12)
+					{
+						return repeatCount != 0;
+					}
+					else
+					{
+						// On Android 3.1+, 2 or more devices pushing the same
+						// button is considered a repeat event by the OS.
+						// Filter out this case by checking that the previous
+						// event came from the same device ID if it has
+						// a repeat count.
+						return repeatCount != 0 && devID == mostRecentKeyEventDevID;
+					}
+				};
+			auto devID = AInputEvent_getDeviceId(event);
+			if(!allowKeyRepeats())
 			{
-				auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
-				if(unlikely(!dev))
+				auto repeatCount = AKeyEvent_getRepeatCount(event);
+				if(keyWasRepeated(devID, mostRecentKeyEventDevID, repeatCount))
 				{
-					assert(virtualDev);
-					//logWarn("re-mapping unknown device ID %d to Virtual", AInputEvent_getDeviceId(event));
-					dev = virtualDev;
+					//logMsg("skipped repeat key event");
+					return 1;
 				}
-				auto metaState = AKeyEvent_getMetaState(event);
-				mapKeycodesForSpecialDevices(*dev, keyCode, metaState, event);
-				if(unlikely(!keyCode)) // ignore "unknown" key codes
-				{
-					return 0;
-				}
-				uint shiftState = metaState & AMETA_SHIFT_ON;
-				auto time = makeTimeFromKeyEvent(event);
-				assert((uint)keyCode < Keycode::COUNT);
-				uint action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
-				if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, Base::mainWindow())))
-				{
-					cancelKeyRepeatTimer();
-					Key key = keyCode & 0x1ff;
-					Base::mainWindow().dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, time, dev});
-				}
+			}
+			mostRecentKeyEventDevID = devID;
+			auto dev = deviceForInputId(devID);
+			if(unlikely(!dev))
+			{
+				assert(virtualDev);
+				//logWarn("re-mapping unknown device ID %d to Virtual", AInputEvent_getDeviceId(event));
+				dev = virtualDev;
+			}
+			auto metaState = AKeyEvent_getMetaState(event);
+			mapKeycodesForSpecialDevices(*dev, keyCode, metaState, event);
+			if(unlikely(!keyCode)) // ignore "unknown" key codes
+			{
+				return 0;
+			}
+			uint shiftState = metaState & AMETA_SHIFT_ON;
+			auto time = makeTimeFromKeyEvent(event);
+			assert((uint)keyCode < Keycode::COUNT);
+			uint action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
+			if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, Base::mainWindow())))
+			{
+				cancelKeyRepeatTimer();
+				Key key = keyCode & 0x1ff;
+				Base::mainWindow().dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, time, dev});
 			}
 			return 1;
 		}

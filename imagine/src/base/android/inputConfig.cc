@@ -35,7 +35,6 @@ namespace Input
 static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
 static bool trackballNav = false;
 bool handleVolumeKeys = false;
-bool allowOSKeyRepeats = true;
 bool sendInputToIME = false;
 static constexpr uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
 static Base::Timer inputRescanCallback;
@@ -154,13 +153,6 @@ static const char *androidEventEnumToStr(uint e)
 
 void setKeyRepeat(bool on)
 {
-	// always accept repeats on Android 3.1+ because 2+ devices pushing
-	// the same button is considered a repeat by the OS
-	if(Base::androidSDK() < 12)
-	{
-		logMsg("set key repeat %s", on ? "On" : "Off");
-		allowOSKeyRepeats = on;
-	}
 	setAllowKeyRepeats(on);
 }
 

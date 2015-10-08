@@ -56,7 +56,6 @@ extern AndroidInputDevice genericKeyDev;
 static constexpr uint maxSysInputDevs = MAX_DEVS;
 extern StaticArrayList<AndroidInputDevice*, maxSysInputDevs> sysInputDev;
 extern bool handleVolumeKeys;
-extern bool allowOSKeyRepeats;
 extern void (*processInput)(AInputQueue *inputQueue);
 
 void setEventsUseOSInputMethod(bool on);
