@@ -59,6 +59,10 @@ public:
 	{
 		return xWin != None;
 	}
+
+	#ifdef CONFIG_BASE_X11_EGL
+	EGLSurface eglSurface() { return surface; }
+	#endif
 };
 
 void shutdownWindowSystem();

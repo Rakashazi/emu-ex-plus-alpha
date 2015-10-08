@@ -119,6 +119,11 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 		if(string_equal(rendererStr, "Mali-400 MP"))
 			return true;
 		auto buildDevice = Base::androidBuildDevice();
+		if(string_equal(buildDevice.data(), "shamu"))
+		{
+			// works on Nexus 6
+			return true;
+		}
 		if(Base::androidSDK() >= 20 &&
 			string_equal(buildDevice.data(), "mako"))
 		{

@@ -51,7 +51,7 @@ final class DisplayListenerHelper
 	DisplayListenerHelper(Activity act)
 	{
 		//Log.i(logTag, "registering input device listener");
-		displayManager = (DisplayManager)act.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+		displayManager = (DisplayManager)act.getSystemService(Context.DISPLAY_SERVICE);
 		displayManager.registerDisplayListener(new Listener(), null);
 	}
 	

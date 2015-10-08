@@ -222,4 +222,10 @@ CallResult initWindowSystem(EventLoopFileSource &eventSrc)
 	return OK;
 }
 
+void setSysUIStyle(uint flags) {}
+
+bool hasTranslucentSysUI() { return false; }
+
+bool hasHardwareNavButtons() { return false; }
+
 }

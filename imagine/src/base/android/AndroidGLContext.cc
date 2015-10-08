@@ -74,7 +74,7 @@ void GLContext::present(Window &win)
 	else
 	{
 		glFlush();
-		win.presented = true;
+		win.setPresented(true);
 	}
 }
 
@@ -85,10 +85,10 @@ void GLContext::present(Window &win, GLContext cachedCurrentContext)
 
 void AndroidGLContext::swapPresentedBuffers(Window &win)
 {
-	if(win.presented)
+	if(win.presented())
 	{
 		assert(!swapBuffersIsAsync()); // shouldn't set presented = true if swap is async
-		win.presented = false;
+		win.setPresented(false);
 		EGLContextBase::swapBuffers(win);
 	}
 }

@@ -379,16 +379,15 @@ bool setCurrentWindow(Base::Window *win)
 	{
 		if(win == currWin)
 			return false;
-		currWin = win;
 		gfxContext.setDrawable(win, gfxContext);
-		if(unlikely(win && shouldSpecifyDrawReadBuffers))
+		if(shouldSpecifyDrawReadBuffers && win)
 		{
-			logMsg("specifying draw/read buffers");
-			shouldSpecifyDrawReadBuffers = false;
+			//logMsg("specifying draw/read buffers");
 			const GLenum back = Config::Gfx::OPENGL_ES_MAJOR_VERSION ? GL_BACK : GL_BACK_LEFT;
 			glDrawBuffers(1, &back);
 			glReadBuffer(GL_BACK);
 		}
+		currWin = win;
 		return true;
 	}
 }

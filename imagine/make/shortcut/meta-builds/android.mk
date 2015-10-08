@@ -9,7 +9,7 @@ all : android-apk
 
 android_minSDK ?= 9
 android_baseModuleSDK := 9
-android_targetSDK ?= 22
+android_targetSDK ?= 23
 
 android_soName := main
 
@@ -55,6 +55,12 @@ android_useMOGASrc ?= 1
 
 ifdef imagineLibExt
  android_makefileOpts += imagineLibExt=$(imagineLibExt)
+endif
+
+android_sdkToolsPath := $(shell dirname `which android`)
+
+ifeq ($(android_sdkToolsPath),)
+ $(error couldn't find Android SDK Tools path, make sure the "android" executable is in your PATH)
 endif
 
 # metadata
@@ -175,6 +181,57 @@ $(android_mogaJavaSrcPath) :
 	ln -s $(IMAGINE_PATH)/src/base/android/java/bda $@
 endif
 
+android_supportLib4SrcPath := $(android_sdkToolsPath)/../extras/android/support/v4/android-support-v4.jar
+android_supportLib4 := $(android_targetPath)/libs/android-support-v4.jar
+
+$(android_supportLib4) : | $(android_supportLib4SrcPath)
+	@mkdir -p $(@D)
+	ln -s $| $@
+
+android_styles21Xml := $(android_targetPath)/res/values-v21/styles.xml
+
+$(android_styles21Xml) :
+	@mkdir -p $(@D)
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.Material.NoActionBar.TranslucentDecor"/>\n</resources>\n' > $@
+
+android_stylesXmlFiles += $(android_styles21Xml)
+
+ifeq ($(shell expr $(android_minSDK) \< 21), 1)
+
+android_styles19Xml := $(android_targetPath)/res/values-v19/styles.xml
+
+$(android_styles19Xml) :
+	@mkdir -p $(@D)
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.Holo.NoActionBar.TranslucentDecor"/>\n</resources>\n' > $@
+
+android_stylesXmlFiles += $(android_styles19Xml)
+
+endif
+
+ifeq ($(shell expr $(android_minSDK) \< 19), 1)
+
+android_styles11Xml := $(android_targetPath)/res/values-v11/styles.xml
+
+$(android_styles11Xml) :
+	@mkdir -p $(@D)
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.Holo.NoActionBar"/>\n</resources>\n' > $@
+
+android_stylesXmlFiles += $(android_styles11Xml)
+
+endif
+
+ifeq ($(shell expr $(android_minSDK) \< 11), 1)
+
+android_stylesXml := $(android_targetPath)/res/values/styles.xml
+
+$(android_stylesXml) :
+	@mkdir -p $(@D)
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<style name="AppTheme" parent="android:Theme.NoTitleBar"/>\n</resources>\n' > $@
+
+android_stylesXmlFiles += $(android_stylesXml)
+
+endif
+
 android_stringsXml := $(android_targetPath)/res/values/strings.xml
 
 $(android_stringsXml) : $(projectPath)/metadata/conf.mk
@@ -184,7 +241,7 @@ $(android_stringsXml) : $(projectPath)/metadata/conf.mk
 android_buildXml := $(android_targetPath)/build.xml
 
 $(android_buildXml) : | $(android_manifestXml) $(android_stringsXml) $(android_imagineJavaSrcPath) $(android_mogaJavaSrcPath) \
-$(android_drawableIconPaths) $(android_assetsPath) $(android_antProperties)
+$(android_drawableIconPaths) $(android_assetsPath) $(android_antProperties) $(android_stylesXmlFiles) $(android_supportLib4)
 	android update project -p $(@D) -n $(android_metadata_project) -t android-$(android_targetSDK)
 	rm $(@D)/proguard-project.txt
 

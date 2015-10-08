@@ -225,8 +225,9 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 	else if(win)
 	{
 		assert(context != EGL_NO_CONTEXT);
-		logMsg("setting surface %ld current", (long)win->surface);
-		if(eglMakeCurrent(display, win->surface, win->surface, context) == EGL_FALSE)
+		auto surface = win->eglSurface();
+		logMsg("setting surface %ld current", (long)surface);
+		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
 			bug_exit("error setting surface current");
 		}
@@ -276,8 +277,9 @@ GLContext GLContext::current()
 void EGLContextBase::swapBuffers(Window &win)
 {
 	assert(display != EGL_NO_DISPLAY);
-	assert(win.surface != EGL_NO_SURFACE);
-	if(eglSwapBuffers(display, win.surface) == EGL_FALSE)
+	auto surface = win.eglSurface();
+	assert(surface != EGL_NO_SURFACE);
+	if(eglSwapBuffers(display, surface) == EGL_FALSE)
 	{
 		bug_exit("error 0x%X swapping buffers for window: %p", eglGetError(), &win);
 	}

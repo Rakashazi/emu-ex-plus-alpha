@@ -49,17 +49,15 @@ final class Bluetooth
 		devs.clear();
 		if(adapter.isDiscovering())
 			adapter.cancelDiscovery();
-		Context context = act.getApplicationContext();
-		context.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-		context.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
+		act.registerReceiver(onDiscoveryFinished, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+		act.registerReceiver(onDeviceFound, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         return adapter.startDiscovery();
 	}
 	
 	static void cancelScan(Activity act, BluetoothAdapter adapter)
 	{
-		Context context = act.getApplicationContext();
-		context.unregisterReceiver(onDiscoveryFinished);
-		context.unregisterReceiver(onDeviceFound);
+		act.unregisterReceiver(onDiscoveryFinished);
+		act.unregisterReceiver(onDeviceFound);
 		adapter.cancelDiscovery();
 		devs.clear();
 	}

@@ -421,6 +421,11 @@ void setSysUIStyle(uint flags)
 	setStatusBarHidden(flags & SYS_UI_STYLE_HIDE_STATUS);
 }
 
+bool hasTranslucentSysUI()
+{
+	return hasAtLeastIOS7();
+}
+
 UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
 {
 	using namespace Base;

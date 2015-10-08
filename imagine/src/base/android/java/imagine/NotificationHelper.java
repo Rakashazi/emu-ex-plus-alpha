@@ -17,30 +17,33 @@ package com.imagine;
 
 import android.app.*;
 import android.content.*;
+import android.support.v4.app.NotificationCompat;
 
 final class NotificationHelper
 {
-	private static NotificationManager notificationManager = null;
 	static void addNotification(Context ctx, String onShow, String title, String message)
 	{
-		if(notificationManager == null)
-			notificationManager = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+		NotificationManager notificationManager = (NotificationManager)ctx.getSystemService(Context.NOTIFICATION_SERVICE);
 		int icon = ctx.getResources().getIdentifier("icon", "drawable", ctx.getPackageName());
 		long when = System.currentTimeMillis();
-		Notification notification = new Notification(icon, onShow, when);
-		notification.flags |= /*Notification.FLAG_ONGOING_EVENT |*/ Notification.FLAG_AUTO_CANCEL;
-		CharSequence contentTitle = title;
-		CharSequence contentText = message;
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx);
 		Intent notificationIntent = new Intent(ctx, BaseActivity.class);
 		PendingIntent contentIntent = PendingIntent.getActivity(ctx, 0, notificationIntent, 0);
-
-		notification.setLatestEventInfo(ctx, contentTitle, contentText, contentIntent);
+		Notification notification =
+			builder.setContentIntent(contentIntent)
+				.setSmallIcon(icon)
+				.setTicker(onShow)
+				.setWhen(when)
+				.setAutoCancel(true)
+				.setContentTitle(title)
+				.setContentText(message)
+				.build();
 		notificationManager.notify(1, notification);
 	}
-	
-	static void removeNotification()
+
+	static void removeNotification(Context ctx)
 	{
-		if(notificationManager != null)
-			notificationManager.cancel(1);
+		NotificationManager notificationManager = (NotificationManager)ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.cancel(1);
 	}
 }

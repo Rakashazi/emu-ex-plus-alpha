@@ -90,7 +90,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		try
 		{
 			Method hasPermanentMenuKeyFunc = ViewConfiguration.class.getMethod("hasPermanentMenuKey");
-			ViewConfiguration viewConf = ViewConfiguration.get(getApplicationContext());
+			ViewConfiguration viewConf = ViewConfiguration.get(this);
 			try
 			{
 				hasKey = (Boolean)hasPermanentMenuKeyFunc.invoke(viewConf);
@@ -115,7 +115,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		try
 		{
-			Signature[] sig = getPackageManager().getPackageInfo(getApplicationContext().getPackageName(), PackageManager.GET_SIGNATURES).signatures;
+			Signature[] sig = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES).signatures;
 			//Log.i(logTag, "sig hash " + sig[0].hashCode());
 			return sig[0].hashCode();
 		}
@@ -164,7 +164,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	String filesDir()
 	{
-		return getApplicationContext().getFilesDir().getAbsolutePath();
+		return getFilesDir().getAbsolutePath();
 	}
 	
 	static String extStorageDir()
@@ -179,7 +179,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	Vibrator systemVibrator()
 	{
-		Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+		Vibrator vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
 		boolean hasVibrator = vibrator != null ? true : false;
 		if(hasVibrator && android.os.Build.VERSION.SDK_INT >= 11)
 		{
@@ -210,12 +210,12 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	AudioManager audioManager()
 	{
-		return (AudioManager)getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+		return (AudioManager)getSystemService(Context.AUDIO_SERVICE);
 	}
 	
 	boolean hasLowLatencyAudio()
 	{
-		return getApplicationContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_LOW_LATENCY);
+		return getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_LOW_LATENCY);
 	}
 	
 	@Override public void onAudioFocusChange(int focusChange)
@@ -273,12 +273,12 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	void addNotification(String onShow, String title, String message)
 	{
-		NotificationHelper.addNotification(getApplicationContext(), onShow, title, message);
+		NotificationHelper.addNotification(this, onShow, title, message);
 	}
 	
 	void removeNotification()
 	{
-		NotificationHelper.removeNotification();
+		NotificationHelper.removeNotification(this);
 	}
 	
 	static native void onBTScanStatus(int result);
@@ -352,7 +352,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	void addViewShortcut(String name, String path)
 	{
-		Intent viewIntent = new Intent(getApplicationContext(), BaseActivity.class);
+		Intent viewIntent = new Intent(this, BaseActivity.class);
 		viewIntent.setAction(Intent.ACTION_VIEW);
 		viewIntent.setData(Uri.parse("file://" + path));
 		Intent launcherIntent = new Intent();
@@ -361,9 +361,9 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		final String EXTRA_SHORTCUT_DUPLICATE = "duplicate";
 		launcherIntent.putExtra(EXTRA_SHORTCUT_DUPLICATE, false);
 		int icon = getResources().getIdentifier("icon", "drawable", getPackageName());
-		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), icon));
+		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(this, icon));
 		launcherIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
-		getApplicationContext().sendBroadcast(launcherIntent);
+		sendBroadcast(launcherIntent);
 	}
 	
 	@Override protected void onNewIntent(Intent intent)
@@ -373,19 +373,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
-		if(android.os.Build.VERSION.SDK_INT >= 21)
-		{
-			setTheme(android.R.style.Theme_Material_NoActionBar);
-		}
-		else if(android.os.Build.VERSION.SDK_INT >= 11)
-		{
-			setTheme(android.R.style.Theme_Holo_NoActionBar);
-		}
 		Window win = getWindow();
-		if(android.os.Build.VERSION.SDK_INT >= 16)
-			setUIVisibility(0); // apply SYSTEM_UI_FLAG_LAYOUT_*
-		else
-			win.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR);
+		win.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR);
 		super.onCreate(savedInstanceState);
 		win.setBackgroundDrawable(null);
 		win.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
@@ -497,7 +486,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			FileOutputStream output = new FileOutputStream(path);
 			success = bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
 			output.close();
-		} catch(Exception e)
+		}
+		catch(Exception e)
 		{
 			success = false;
 		}
@@ -512,7 +502,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		try
 		{
 			in = assets.open(name);
-		} catch(Exception e)
+		}
+		catch(Exception e)
 		{
 			return null;
 		}

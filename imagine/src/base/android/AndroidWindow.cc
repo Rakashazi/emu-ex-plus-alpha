@@ -73,7 +73,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			{
 				auto nWin = ANativeWindow_fromSurface(env, surface);
 				auto &win = *((Window*)windowAddr);
-				androidWindowInitSurface(win, nWin);
+				win.setNativeWindow(nWin);
 			})
 		},
 		{
@@ -91,8 +91,8 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				ANativeWindow_release(win.nWin);
-				androidWindowSurfaceDestroyed(win);
+				ANativeWindow_release(win.nativeWindow());
+				win.setNativeWindow(nullptr);
 			})
 		},
 	};
@@ -207,7 +207,7 @@ void Window::deinit()
 		{
 			ANativeWindow_release(nWin);
 		}
-		androidWindowSurfaceDestroyed(*this);
+		setNativeWindow(nullptr);
 		auto env = jEnv();
 		jPresentationDeinit(env, jDialog);
 		env->DeleteGlobalRef(jDialog);
@@ -228,6 +228,25 @@ IG::WindowRect Window::contentBounds() const
 bool Window::hasSurface()
 {
 	return nWin;
+}
+
+EGLSurface AndroidWindow::eglSurface()
+{
+	if(unlikely(surface == EGL_NO_SURFACE && nWin))
+	{
+		initEGLSurface(GLContext::eglDisplay());
+	}
+	return surface;
+}
+
+bool AndroidWindow::presented()
+{
+	return presented_;
+}
+
+void AndroidWindow::setPresented(bool presented)
+{
+	presented_ = presented;
 }
 
 void AndroidWindow::initEGLSurface(EGLDisplay display)
@@ -268,19 +287,37 @@ void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 	surfaceChange.addContentRectResized();
 }
 
-void androidWindowInitSurface(Window &win, ANativeWindow *nWin)
+void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 {
-	win.nWin = nWin;
-	if(Config::DEBUG_BUILD)
-		logMsg("creating window with native visual ID: %d with format: %d", win.pixelFormat, ANativeWindow_getFormat(nWin));
-	ANativeWindow_setBuffersGeometry(nWin, 0, 0, win.pixelFormat);
-	win.initEGLSurface(GLContext::eglDisplay());
-	win.setNeedsDraw(true);
+	if(nWindow)
+	{
+		assert(!nWin);
+		nWin = nWindow;
+		if(Config::DEBUG_BUILD)
+			logMsg("creating window with native visual ID: %d with format: %d", pixelFormat, ANativeWindow_getFormat(nWindow));
+		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
+	}
+	else
+	{
+		((Window*)this)->unpostDraw();
+		destroyEGLSurface(GLContext::eglDisplay());
+		nWin = nullptr;
+	}
+}
+
+ANativeWindow *AndroidWindow::nativeWindow()
+{
+	return nWin;
+}
+
+int AndroidWindow::nativePixelFormat()
+{
+	return pixelFormat;
 }
 
 void androidWindowNeedsRedraw(Window &win)
 {
-	logMsg("window needs redraw event");
+	logMsg("window surface redraw needed");
 	win.setNeedsDraw(true);
 	win.dispatchOnDraw();
 	if(!AndroidGLContext::swapBuffersIsAsync())
@@ -297,7 +334,7 @@ void androidWindowNeedsRedraw(Window &win)
 
 void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, const IG::Point2D<int> &winSize)
 {
-	logMsg("content rect change event: %d:%d:%d:%d in %dx%d",
+	logMsg("content rect changed: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	win.updateContentRect(rect);
 	if(win.updateSize(winSize))
@@ -309,13 +346,6 @@ void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, co
 		onGLDrawableChanged.callCopySafe(nullptr);
 	}
 	win.postDraw();
-}
-
-void androidWindowSurfaceDestroyed(Window &win)
-{
-	win.unpostDraw();
-	win.destroyEGLSurface(GLContext::eglDisplay());
-	win.nWin = nullptr;
 }
 
 void Window::setTitle(const char *name) {}

@@ -195,7 +195,7 @@ fi
 
 echo '	<supports-screens android:largeScreens="true" android:xlargeScreens="true" />' >> $outPath
 echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-targetSDKOutput='android:targetSdkVersion="22"'
+targetSDKOutput='android:targetSdkVersion="23"'
 
 intentFilters="<action android:name=\"android.intent.action.MAIN\" />
 				<category android:name=\"android.intent.category.LAUNCHER\" />
@@ -249,7 +249,7 @@ echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
 	<application android:label=\"@string/app_name\" $applicationOutput>
 		<activity android:name=\"$activityName\"
 				android:label=\"@string/app_name\"
-				android:theme=\"@android:style/Theme.NoTitleBar\"
+				android:theme=\"@style/AppTheme\"
 				android:configChanges=\"$uiChanges\"
 				android:launchMode=\"singleInstance\">
 			<intent-filter>

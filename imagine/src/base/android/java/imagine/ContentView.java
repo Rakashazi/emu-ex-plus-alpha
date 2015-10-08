@@ -18,18 +18,23 @@ package com.imagine;
 import android.view.View;
 import android.graphics.Rect;
 import android.content.Context;
+import android.app.Activity;
+import android.util.Log;
 
 //For API level >= 16, SYSTEM_UI_FLAG_LAYOUT_* always gives us a full screen view rectangle,
 // so use fitSystemWindows to get the area not overlapping the system windows
 final class ContentView extends View
 {
+	private static final String logTag = "ContentView";
 	public long windowAddr;
 	private Rect contentRect = new Rect();
+	private Rect newContentRect = new Rect();
 	private int windowWidth, windowHeight;
 
 	public ContentView(Context context)
 	{
 		super(context);
+		((Activity)context).getWindow().getAttributes().systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	}
 	
 	public ContentView(Context context, long windowAddr)
@@ -42,22 +47,31 @@ final class ContentView extends View
 	{
 		if(getWidth() == 0 || getHeight() == 0)
 			return true;
-		//Log.i(logTag, "system window insets: " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
 		View rootView = getRootView();
 		int newWindowWidth = rootView.getWidth();
 		int newWindowHeight = rootView.getHeight();
+		//Log.i(logTag, "system window insets: " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
 		// adjust insets to become content rect
-		insets.right = getWidth() - insets.right;
-		insets.bottom = getHeight() - insets.bottom;
-		if(!contentRect.equals(insets) || newWindowWidth != windowWidth || newWindowHeight != windowHeight)
+		int visFlags = getWindowSystemUiVisibility();
+		boolean applyNavInsets = ((visFlags & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) ? true : false;
+		newContentRect.left = 0;
+		newContentRect.right = getWidth();
+		newContentRect.top = insets.top;
+		newContentRect.bottom = getHeight();
+		if(applyNavInsets)
+		{
+			newContentRect.left += insets.left;
+			newContentRect.right -= insets.right;
+			newContentRect.bottom -= insets.bottom;
+		}
+		if(!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight)
 		{
 			//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
-			//		+ " -> " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
-			BaseActivity.onContentRectChanged(windowAddr, insets.left, insets.top, insets.right, insets.bottom, newWindowWidth, newWindowHeight);
-			contentRect.left = insets.left;
-			contentRect.top = insets.top;
-			contentRect.right = insets.right;
-			contentRect.bottom = insets.bottom;
+			//		+ " -> " + newContentRect.left + "," + newContentRect.top + " " + newContentRect.right + "," + newContentRect.bottom);
+			BaseActivity.onContentRectChanged(windowAddr,
+				newContentRect.left, newContentRect.top, newContentRect.right, newContentRect.bottom,
+				newWindowWidth, newWindowHeight);
+			contentRect.set(newContentRect);
 			windowWidth = newWindowWidth;
 			windowHeight = newWindowHeight;
 		}

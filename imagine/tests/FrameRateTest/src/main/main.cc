@@ -90,7 +90,7 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 {
 	#ifdef __ANDROID__
 	if(cpuFreq)
-		cpuFreq->setFastResponse();
+		cpuFreq->setLowLatency();
 	#endif
 
 	switch(t.test)

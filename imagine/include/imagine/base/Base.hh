@@ -67,13 +67,9 @@ static constexpr uint
   SYS_UI_STYLE_HIDE_NAV = bit(1),
   SYS_UI_STYLE_HIDE_STATUS = bit(2);
 
-#if defined CONFIG_BASE_IOS || defined CONFIG_BASE_ANDROID
 void setSysUIStyle(uint flags);
+bool hasTranslucentSysUI();
 bool hasHardwareNavButtons();
-#else
-static void setSysUIStyle(uint flags) {}
-static bool hasHardwareNavButtons() { return false; }
-#endif
 void setSystemOrientation(uint o);
 uint defaultSystemOrientations();
 

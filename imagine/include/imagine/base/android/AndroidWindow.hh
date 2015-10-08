@@ -28,17 +28,6 @@ namespace Base
 class AndroidWindow : public BaseWindow, public NotEquals<AndroidWindow>
 {
 public:
-	ANativeWindow *nWin = nullptr;
-	EGLSurface surface = EGL_NO_SURFACE;
-	EGLConfig eglConfig{};
-	int pixelFormat = 0;
-	IG::WindowRect contentRect; // active window content
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	jobject jDialog = nullptr;
-	#endif
-	bool initialInit = false;
-	bool presented = false;
-
 	constexpr AndroidWindow() {}
 
 	bool operator ==(AndroidWindow const &rhs) const
@@ -51,9 +40,28 @@ public:
 		return initialInit;
 	}
 
-	void initEGLSurface(EGLDisplay display);
+	void setNativeWindow(ANativeWindow *nWin);
+	ANativeWindow *nativeWindow();
+	int nativePixelFormat();
+	EGLSurface eglSurface();
 	void destroyEGLSurface(EGLDisplay display);
+	bool presented();
+	void setPresented(bool presented);
 	void updateContentRect(const IG::WindowRect &rect);
+
+protected:
+	ANativeWindow *nWin{};
+	EGLSurface surface = EGL_NO_SURFACE;
+	EGLConfig eglConfig{};
+	int pixelFormat = 0;
+	IG::WindowRect contentRect; // active window content
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	jobject jDialog{};
+	#endif
+	bool initialInit = false;
+	bool presented_ = false;
+
+	void initEGLSurface(EGLDisplay display);
 };
 
 using WindowImpl = AndroidWindow;

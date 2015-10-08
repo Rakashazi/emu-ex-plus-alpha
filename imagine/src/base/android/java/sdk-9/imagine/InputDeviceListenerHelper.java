@@ -49,7 +49,7 @@ final class InputDeviceListenerHelper
 	InputDeviceListenerHelper(Activity act)
 	{
 		//Log.i(logTag, "registering input device listener");
-		InputManager inputManager = (InputManager)act.getApplicationContext().getSystemService(Context.INPUT_SERVICE);
+		InputManager inputManager = (InputManager)act.getSystemService(Context.INPUT_SERVICE);
 		inputManager.registerInputDeviceListener(new Listener(), null);
 	}
 }
