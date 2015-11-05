@@ -17,6 +17,7 @@
 
 #include <imagine/engine-globals.h>
 #include <imagine/io/IO.hh>
+#include <imagine/io/BufferMapIO.hh>
 #include <array>
 
 struct archive;
@@ -39,6 +40,7 @@ public:
 	operator GenericIO();
 	std::shared_ptr<struct archive> releaseArchive();
 	const char *name();
+	BufferMapIO moveToMapIO();
 
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
 	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;

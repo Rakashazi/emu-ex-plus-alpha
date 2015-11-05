@@ -24,6 +24,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include "ios.hh"
 
 #ifndef GL_RENDERBUFFER

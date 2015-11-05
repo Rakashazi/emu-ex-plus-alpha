@@ -35,7 +35,7 @@ extern void uimon_window_suspend(void);
 extern struct console_s *uimon_window_resume(void);
 extern void uimon_window_close(void);
 
-extern int uimon_out(const char *buffer);
+extern int VICE_API uimon_out(const char *buffer);
 
 extern char *uimon_in(const char *prompt);
 

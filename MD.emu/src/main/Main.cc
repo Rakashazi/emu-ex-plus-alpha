@@ -524,7 +524,7 @@ static void setupMDInput()
 		return;
 	}
 
-	mem_zero(playerIdxMap);
+	IG::fillData(playerIdxMap);
 	playerIdxMap[0] = 0;
 	playerIdxMap[1] = 4;
 
@@ -727,7 +727,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");
-			mem_zero(bram);
+			IG::fillData(bram);
 			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
 			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
 			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));
@@ -791,8 +791,11 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 
 void EmuSystem::clearInputBuffers()
 {
-	mem_zero(input.pad);
-	mem_zero(input.analog);
+	IG::fillData(input.pad);
+	for(auto &analog : input.analog)
+	{
+		IG::fillData(analog);
+	}
 }
 
 void EmuSystem::configAudioRate(double frameTime)

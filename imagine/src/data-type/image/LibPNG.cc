@@ -20,6 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/util/strings.h>
+#include <imagine/mem/mem.h>
 
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8

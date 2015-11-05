@@ -95,7 +95,7 @@ extern int tape_find_header_trap(void);
 extern int tape_receive_trap(void);
 extern int tape_find_header_trap_plus4(void);
 extern int tape_receive_trap_plus4(void);
-extern const char *tape_get_file_name(void);
+extern VICE_API const char *tape_get_file_name(void);
 extern int tape_tap_attached(void);
 
 extern void tape_traps_install(void);
@@ -110,9 +110,9 @@ extern int tape_read(tape_image_t *tape_image, BYTE *buf, size_t size);
 extern int tape_internal_close_tape_image(tape_image_t *tape_image);
 extern tape_image_t *tape_internal_open_tape_image(const char *name, unsigned int read_only);
 /* External tape image interface.  */
-extern int tape_image_detach(unsigned int unit);
+extern VICE_API int tape_image_detach(unsigned int unit);
 extern int tape_image_detach_internal(unsigned int unit);
-extern int tape_image_attach(unsigned int unit, const char *name);
+extern VICE_API int tape_image_attach(unsigned int unit, const char *name);
 extern int tape_image_open(tape_image_t *tape_image);
 extern int tape_image_close(tape_image_t *tape_image);
 extern int tape_image_create(const char *name, unsigned int type);

@@ -569,7 +569,7 @@ void md_cart_init(void)
   /**********************************************
         Cartridge Extra Hardware
   ***********************************************/
-  mem_zero(cart.hw);
+  cart.hw = {};
 
   /* search for game into database */
   for (i=0; i < CART_CNT; i++)

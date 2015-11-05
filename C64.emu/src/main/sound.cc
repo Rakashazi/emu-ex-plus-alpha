@@ -16,13 +16,12 @@
 #define LOGTAG "sound"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
+#include "internal.hh"
 
 extern "C"
 {
 	#include "sound.h"
 }
-
-extern bool doAudio;
 
 static int soundInit(const char *param, int *speed,
 		   int *fragsize, int *fragnr, int *channels)
@@ -57,5 +56,5 @@ static sound_device_t soundDevice =
 
 CLINK int sound_init_dummy_device()
 {
-	return sound_register_device(&soundDevice);
+	return plugin.sound_register_device(&soundDevice);
 }

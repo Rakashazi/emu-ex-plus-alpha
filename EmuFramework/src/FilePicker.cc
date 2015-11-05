@@ -177,7 +177,7 @@ void EmuFilePicker::inputEvent(Input::Event e)
 	{
 		if(e.isDefaultCancelButton())
 		{
-			onCloseD(*this, e);
+			onCloseD.callCopy(*this, e);
 			return;
 		}
 

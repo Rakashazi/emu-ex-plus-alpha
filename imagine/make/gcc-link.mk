@@ -7,11 +7,14 @@ ifdef LINK_MAP
 endif
 
 ifdef O_RELEASE
- LDFLAGS += $(OPTIMIZE_LDFLAGS)
+ LDFLAGS_SYSTEM += $(OPTIMIZE_LDFLAGS)
 endif
 
 ifdef PROFILE
- LDFLAGS += -pg
+ LDFLAGS_SYSTEM += -pg
 endif
 
-LDFLAGS += $(CFLAGS_TARGET) $(EXTRA_LDFLAGS)
+linkLoadableModuleAction ?= -shared
+loadableModuleExt := .so
+
+LDFLAGS += $(CFLAGS_TARGET) $(LDFLAGS_SYSTEM) $(EXTRA_LDFLAGS)

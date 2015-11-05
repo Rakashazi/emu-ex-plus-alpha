@@ -10,4 +10,4 @@ clangTarget := aarch64-none-linux-android
 
 include $(buildSysPath)/android-gcc.mk
 CFLAGS_CODEGEN += -fpic
-LDFLAGS += -fuse-ld=gold
+LDFLAGS_SYSTEM += -fuse-ld=gold

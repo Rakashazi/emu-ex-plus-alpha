@@ -33,6 +33,16 @@
 namespace FS
 {
 
+FileString makeFileStringPrintf(const char *format, ...)
+{
+	FileString path{};
+	va_list args;
+	va_start(args, format);
+	vsnprintf(path.data(), path.size(), format, args);
+	va_end(args);
+	return path;
+}
+
 PathString makePathStringPrintf(const char *format, ...)
 {
 	PathString path{};

@@ -19,6 +19,7 @@
 #include <imagine/util/bits.h>
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/mem/mem.h>
 
 #ifdef CONFIG_RESOURCE_FONT_FREETYPE
 #include <imagine/resource/font/ResourceFontFreetype.hh>

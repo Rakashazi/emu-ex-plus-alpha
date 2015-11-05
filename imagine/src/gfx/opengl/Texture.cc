@@ -18,6 +18,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/assume.h>
+#include <imagine/mem/mem.h>
 #include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"

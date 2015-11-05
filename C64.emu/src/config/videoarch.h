@@ -12,5 +12,6 @@ struct video_canvas_s
 	struct geometry_s *geometry;
 	struct palette_s *palette;
 	struct video_draw_buffer_callback_s *video_draw_buffer_callback;
+	char skipFrame;
 };
 typedef struct video_canvas_s video_canvas_t;

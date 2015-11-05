@@ -841,7 +841,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	renderToScreen = renderGfx;
 	skip_this_frame = !processGfx;
 	if(processGfx)
-		mem_setElem(screenBuff, (uint16)current_pc_pal[4095]);
+		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
 	main_frame();
 	YM2610Update_stream(audioFramesPerVideoFrame);
 	if(renderAudio)

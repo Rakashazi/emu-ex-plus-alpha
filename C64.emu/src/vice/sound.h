@@ -187,7 +187,7 @@ extern int sound_init_aix_device(void);
 extern int sound_init_allegro_device(void);
 extern int sound_init_alsa_device(void);
 extern int sound_init_sb_device(void);
-extern int sound_init_dummy_device(void);
+extern VICE_API int sound_init_dummy_device(void);
 extern int sound_init_dump_device(void);
 extern int sound_init_fs_device(void);
 extern int sound_init_wav_device(void);
@@ -217,7 +217,7 @@ extern int sound_init_mp3_device(void);
 extern int sound_init_pulse_device(void);
 
 /* internal function for sound device registration */
-extern int sound_register_device(sound_device_t *pdevice);
+extern VICE_API int sound_register_device(sound_device_t *pdevice);
 
 /* other internal functions used around sound -code */
 extern int sound_read(WORD addr, int chipno);

@@ -285,7 +285,7 @@ struct M68KCPU
   int irqLatency = 0;
   uint cycleCount = 0;
   uint endCycles = 0;
-  _m68k_memory_map memory_map[256];
+  _m68k_memory_map memory_map[256]{};
 
   /* Set the IPL0-IPL2 pins on the CPU (IRQ).
    * A transition from < 7 to 7 will cause a non-maskable interrupt (NMI).

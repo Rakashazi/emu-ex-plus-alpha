@@ -1,0 +1,91 @@
+2009-01-17  Antti S. Lankila  <alankila@bel.fi>, Hannu Nuotio  <hannu.nuotio@tut.fi>
+
+        Version 1 of the ReSID-DTV. Forked reSID 0.16, and then performed
+        a substantial rewrite.
+
+        * siddefs.h.in: Add DTVSID chip model. Remove others. The chip model
+          is not actually used, it is there only to keep ABI compatibility with
+          reSID.
+
+        * sid.cc: value written on chip doesn't fade.
+
+        * sid.cc: Fixed a phase error in output "interpolated resampling" mode,
+          which improves stopband attenuation.
+
+        * sid.cc: Removed clock_fast(). Removed all fast clocking modes which
+          are identified by clock(delta_t).
+
+        * wave.h, wave.cc: Waveform generator updated. Base waveforms of the
+          DTV are identical to reSID waveforms. Combined waveforms are made
+          with ORing the bits together. Noise is identical. OSC3 always returns
+          noise generator state. Test bit does not reset noise generator. Ring
+          modulation has been found to ignore the MSB of the affected waveform
+          generator.
+
+        * sid.cc, wave.cc: New register added to set highest 8 bits of the
+          voice 1 accumulator.
+
+        * wave6581*, wave8580*: deleted, as combined waveforms do not need to
+          be tabularized.
+
+        * envelope.h, envelope.cc: Envelope generator updated. DTV has
+          different timing table for the attack, decay and release. The sustain
+          levels are differently spaced. Attack rate 0 has been found to cause
+          instantenous attack. Decay occurs at 1/3 of the rate of the value of
+          corresponding attack. Release rates are slowed down with decreasing
+          envelope level, but not exponentially as in classical SID.
+
+        * voice.h, voice.cc: There is no waveform zero-level compensation. The
+          compensation occurs only via external capacitors.
+
+        * voice.h, envelope.h: Simulate voice output based on emulation of two
+          of the three sigma-delta converters:
+
+          - 12-bit delta-sigma converter at oscillator
+          - 8-bit delta-sigma for envelope level
+          - 4-bit delta-sigma for volume level
+
+          Alone, each of the delta-sigma converts would work perfectly to
+          approximate intermediate levels of sound between 0 and maximum
+          voltage. However, ANDing the related bitstreams results in artifacts
+          because the generated bittrains are correlated with each other. The
+          correlation is apparent as sound level jumping during slow ADSR
+          curves, and as scratchy noises during faster ADSR curves.
+
+          The waveform delta-sigma converter has been found to produce wideband
+          hissing noise for the ramping waveforms such as sawtooth. This is
+          due to interaction with envelope generator and changes in the top 12
+          bits of the waveform.
+
+          Additionally, the noise waveform appears to be generated at full 12
+          bits instead of just 8 bits. We are not quite sure what the algorithm
+          for the lowest bits is, but the other sigma-delta conversions seem to
+          just clone the bottom bits.
+
+        * sid.cc, envelope.cc: New register added to set the voice 2 envelope
+          level.
+
+          Normally envelope and volume retain certain phase with each other
+          because all attack, decay and release times are divisble by 8 C64
+          clocks or 256 DTV clocks, which is the longest repeating pattern of
+          the envelope delta-sigma converter. (All other pattern lengths are
+          integer fractions of 256.) When envelope is performing one of the
+          longer patterns, CPU may change the level mid-way the 256-clock
+          pattern. The volume and envelope patterns become desynced, and the
+          resulting volume levels change too. The shift stays until system
+          powerdown, or until next such adjustment is made. There is no way
+          to know if the bit patterns are desynced, apart from asking the
+          user if he hears anything for some key envelope and volume values.
+          This register should therefore not be used by mere mortals.
+
+        * filter.h, filter.cc: There is no filter on the chip. However, the
+          chip appears to honour voice3off. Mix volume level to output at
+          level of single SID voice (0 .. 16383), or 1/4 of dynamic range.
+
+        * spline.h: deleted, as filter curves do not exist.
+
+        * extfilt.h, extfilt.cc: External output circuitry has a lowpass filter
+          and two highpass filters. Output of the DTV to clips on the positive
+          half-wave. This appears to be due to the amplifying transistor
+          before the final DC removal circuit. Added some fixed point
+          arithmetics to improve sound quality.

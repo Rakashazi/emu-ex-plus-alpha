@@ -72,8 +72,8 @@
 #define KEYBOARD_RAND() lib_unsigned_rand(1, machine_get_cycles_per_frame())
 
 /* Keyboard array.  */
-int keyarr[KBD_ROWS];
-int rev_keyarr[KBD_COLS];
+VICE_API int keyarr[KBD_ROWS];
+VICE_API int rev_keyarr[KBD_COLS];
 
 /* Shift lock state.  */
 int keyboard_shiftlock = 0;

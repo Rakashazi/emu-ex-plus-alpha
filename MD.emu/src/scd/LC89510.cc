@@ -23,7 +23,7 @@ static void CDD_Reset(void)
 	//logMsg("reset CDD");
 
 	memset(sCD.gate+0x34, 0, 2*2); // CDD.Fader, CDD.Control
-	mem_zero(sCD.cdd);
+	sCD.cdd = {};
 
 	// clear receive status and transfer command
 	memset(sCD.gate+0x38, 0, 20);

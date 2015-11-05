@@ -18,6 +18,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/input/DragPointer.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include "internal.hh"
 #include "android.hh"
 #include "../../input/private.hh"

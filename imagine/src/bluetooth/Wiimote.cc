@@ -446,7 +446,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						}
 						extension = EXT_CC;
 						sendDataModeByExtension();
-						memset(prevExtData, 0xFF, sizeof(prevExtData));
+						IG::fillData(prevExtData, 0xFF);
 						axisKey[0] = {31-8, 31+8,
 							WiiCC::LSTICK_LEFT, WiiCC::LSTICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
 						axisKey[1] = {31-8, 31+8,
@@ -467,7 +467,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is Nunchuk");
 						extension = EXT_NUNCHUK;
 						sendDataModeByExtension();
-						memset(prevExtData, 0xFF, sizeof(prevExtData));
+						IG::fillData(prevExtData, 0xFF);
 						axisKey[0] = {127-64, 127+64,
 							Input::Wiimote::NUN_STICK_LEFT, Input::Wiimote::NUN_STICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
 						axisKey[1] = {127-64, 127+64,
@@ -479,7 +479,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is Wii U Pro");
 						extension = EXT_WIIU_PRO;
 						sendDataModeByExtension();
-						memset(prevExtData, 0xFF, sizeof(prevExtData));
+						IG::fillData(prevExtData, 0xFF);
 						axisKey[0] = {2048-256, 2048+256,
 							WiiCC::LSTICK_LEFT, WiiCC::LSTICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
 						axisKey[1] = {2048-256, 2048+256,

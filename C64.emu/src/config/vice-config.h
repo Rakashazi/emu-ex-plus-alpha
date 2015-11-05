@@ -590,7 +590,7 @@
 /* #undef HAVE_STRING_H */
 
 /* Define to 1 if you have the `strlcpy' function. */
-/* #undef HAVE_STRLCPY */
+#define HAVE_STRLCPY 1
 
 /* Define to 1 if you have the `strlwr' function. */
 /* #undef HAVE_STRLWR */
@@ -999,3 +999,5 @@
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */
+
+#define VICE_API __attribute__((visibility("default")))

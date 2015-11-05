@@ -19,6 +19,7 @@
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/mem/mem.h>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
 

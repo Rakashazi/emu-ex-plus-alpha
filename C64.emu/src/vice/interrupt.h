@@ -278,7 +278,7 @@ extern unsigned int interrupt_cpu_status_int_new(interrupt_cpu_status_t *cs,
                                                  const char *name);
 extern void interrupt_ack_reset(interrupt_cpu_status_t *cs);
 extern void interrupt_set_reset_trap_func(interrupt_cpu_status_t *cs, void (*reset_trap_func)(void));
-extern void interrupt_maincpu_trigger_trap(void (*trap_func)(WORD, void *data), void *data);
+extern VICE_API void interrupt_maincpu_trigger_trap(void (*trap_func)(WORD, void *data), void *data);
 extern void interrupt_do_trap(interrupt_cpu_status_t *cs, WORD address);
 
 extern void interrupt_monitor_trap_on(interrupt_cpu_status_t *cs);

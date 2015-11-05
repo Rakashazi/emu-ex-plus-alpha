@@ -18,6 +18,7 @@
 #ifdef CONFIG_UNICODE_CHARS
 #include <imagine/util/utf.hh>
 #endif
+#include <imagine/mem/mem.h>
 #include <cstring>
 #include <assert.h>
 

@@ -21,8 +21,8 @@
 
 class IdentInputDeviceView : public View
 {
-	IG::WindowRect viewFrame;
-	Gfx::Text text;
+	IG::WindowRect viewFrame{};
+	Gfx::Text text{};
 
 public:
 	using OnIdentInputDelegate = DelegateFunc<void (Input::Event e)>;
@@ -42,16 +42,16 @@ class InputManagerView : public TableView
 {
 private:
 	char deviceConfigStr[MAX_SAVED_INPUT_DEVICES][MAX_INPUT_DEVICE_NAME_SIZE]{};
-	TextMenuItem deleteDeviceConfig;
+	TextMenuItem deleteDeviceConfig{};
 	const char *profileStr[MAX_CUSTOM_KEY_CONFIGS]{};
-	TextMenuItem deleteProfile;
+	TextMenuItem deleteProfile{};
 	#ifdef CONFIG_BASE_ANDROID
-	TextMenuItem rescanOSDevices;
+	TextMenuItem rescanOSDevices{};
 	#endif
-	TextMenuItem identDevice;
-	TextMenuItem generalOptions;
-	TextMenuItem systemOptions;
-	TextHeadingMenuItem deviceListHeading;
+	TextMenuItem identDevice{};
+	TextMenuItem generalOptions{};
+	TextMenuItem systemOptions{};
+	TextHeadingMenuItem deviceListHeading{};
 	TextMenuItem inputDevName[Input::MAX_DEVS]{};
 	MenuItem *item[sizeofArrayConst(inputDevName) + 7]{};
 
@@ -68,27 +68,27 @@ class InputManagerOptionsView : public TableView
 {
 private:
 	#ifdef CONFIG_BASE_ANDROID
-	MultiChoiceSelectMenuItem relativePointerDecel;
+	MultiChoiceSelectMenuItem relativePointerDecel{};
 	void relativePointerDecelInit();
 	#endif
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	BoolMenuItem mogaInputSystem;
+	BoolMenuItem mogaInputSystem{};
 	#endif
 	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-	BoolMenuItem notifyDeviceChange;
+	BoolMenuItem notifyDeviceChange{};
 	#endif
 	#ifdef CONFIG_BLUETOOTH
-	TextHeadingMenuItem bluetoothHeading;
-	BoolMenuItem keepBtActive;
+	TextHeadingMenuItem bluetoothHeading{};
+	BoolMenuItem keepBtActive{};
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	MultiChoiceSelectMenuItem btScanSecs;
+	MultiChoiceSelectMenuItem btScanSecs{};
 	void btScanSecsInit();
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-	BoolMenuItem btScanCache;
+	BoolMenuItem btScanCache{};
 	#endif
-	BoolMenuItem altGamepadConfirm;
+	BoolMenuItem altGamepadConfirm{};
 	MenuItem *item[10]{};
 
 public:
@@ -100,18 +100,18 @@ class InputManagerDeviceView : public TableView
 {
 private:
 	InputManagerView &rootIMView;
-	MultiChoiceSelectMenuItem player;
+	MultiChoiceSelectMenuItem player{};
 	char profileStr[128]{};
-	TextMenuItem loadProfile;
-	TextMenuItem renameProfile;
-	TextMenuItem newProfile;
-	TextMenuItem deleteProfile;
+	TextMenuItem loadProfile{};
+	TextMenuItem renameProfile{};
+	TextMenuItem newProfile{};
+	TextMenuItem deleteProfile{};
 	#if defined CONFIG_INPUT_ICADE
-	BoolMenuItem iCadeMode;
+	BoolMenuItem iCadeMode{};
 	#endif
-	BoolMenuItem joystickAxis1DPad;
-	BoolMenuItem joystickAxis2DPad;
-	BoolMenuItem joystickAxisHatDPad;
+	BoolMenuItem joystickAxis1DPad{};
+	BoolMenuItem joystickAxis2DPad{};
+	BoolMenuItem joystickAxisHatDPad{};
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
 	TextMenuItem inputCategory[EmuControls::MAX_CATEGORIES]{};
 	MenuItem *item[EmuControls::MAX_CATEGORIES + 11]{};

@@ -11,7 +11,7 @@ ifndef RELEASE
  ifndef compiler_noSanitizeAddress
   CFLAGS_CODEGEN += -fsanitize=address -fno-omit-frame-pointer
   ifndef O_LTO
-   LDFLAGS += -fsanitize=address
+   LDFLAGS_SYSTEM += -fsanitize=address
   endif
  endif
 endif

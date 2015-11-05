@@ -19,6 +19,7 @@
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/util/strings.h>
+#include <imagine/mem/mem.h>
 
 namespace Gfx
 {

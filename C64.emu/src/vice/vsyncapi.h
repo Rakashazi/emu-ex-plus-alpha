@@ -73,4 +73,6 @@ extern int vsyncarch_vbl_sync_enabled(void);
 extern void vsyncarch_sync_with_raster(struct video_canvas_s *c);
 #endif
 
+void VICE_API vsyncarch_refresh_frequency_changed(double rate);
+
 #endif

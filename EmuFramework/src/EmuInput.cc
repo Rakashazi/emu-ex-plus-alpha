@@ -13,7 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/util/algorithm.h>
 #include <imagine/data-type/image/sys.hh>
+#include <imagine/mem/mem.h>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
@@ -27,8 +29,8 @@ uint pointerInputPlayer = 0;
 
 struct RelPtr  // for Android trackball
 {
-	int x, y;
-	uint xAction, yAction;
+	int x = 0, y = 0;
+	uint xAction = 0, yAction = 0;
 };
 static RelPtr relPtr{};
 
@@ -229,8 +231,8 @@ void processRelPtr(Input::Event e)
 
 void commonInitInput()
 {
-	mem_zero(relPtr);
-	mem_zero(turboActions);
+	relPtr = {};
+	turboActions = {};
 	fastForwardActive = false;
 }
 
@@ -240,19 +242,19 @@ void commonUpdateInput()
 	static const uint turboFrames = 4;
 	static uint turboClock = 0;
 
-	forEachInArray(turboActions.activeAction, e)
+	for(auto e : turboActions.activeAction)
 	{
-		if(e->action)
+		if(e.action)
 		{
 			if(turboClock == 0)
 			{
-				//logMsg("turbo push for player %d, action %d", e->player, e->action);
-				EmuSystem::handleInputAction(Input::PUSHED, e->action);
+				//logMsg("turbo push for player %d, action %d", e.player, e.action);
+				EmuSystem::handleInputAction(Input::PUSHED, e.action);
 			}
 			else if(turboClock == turboFrames/2)
 			{
-				//logMsg("turbo release for player %d, action %d", e->player, e->action);
-				EmuSystem::handleInputAction(Input::RELEASED, e->action);
+				//logMsg("turbo release for player %d, action %d", e.player, e.action);
+				EmuSystem::handleInputAction(Input::RELEASED, e.action);
 			}
 		}
 	}
@@ -615,8 +617,9 @@ void KeyMapping::buildAll()
 		{
 			//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(inputDevConf[i].dev->map, key[k]));
 			assert(key[k] < Input::Event::mapNumKeys(e->map()));
-			auto slot = IG::mem_findFirstZeroValue(actionGroup[key[k]]);
-			if(slot)
+			auto &group = actionGroup[key[k]];
+			auto slot = IG::findData_if(group, [](Action a){ return a == 0; });
+			if(slot != group + IG::size(group))
 				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
 		}
 
@@ -632,13 +635,13 @@ void generic2PlayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCa
 	if(player == 0)
 	{
 		// clear P2 joystick keys
-		mem_zero(&key[category[startCategory+1].configOffset], category[startCategory+1].keys * sizeof(KeyConfig::Key));
+		std::fill_n(&key[category[startCategory+1].configOffset], category[startCategory+1].keys, 0);
 	}
 	else
 	{
 		// transpose joystick keys
 		memcpy(&key[category[startCategory+1].configOffset], &key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
-		mem_zero(&key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+		std::fill_n(&key[category[startCategory].configOffset], category[startCategory].keys, 0);
 	}
 }
 
@@ -650,12 +653,12 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 		{
 			//logMsg("moving to player %d map", i);
 			memcpy(&key[category[i+startCategory].configOffset], &key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
-			mem_zero(&key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+			std::fill_n(&key[category[startCategory].configOffset], category[startCategory].keys, 0);
 		}
 		else if(i)
 		{
 			//logMsg("clearing player %d map", i);
-			mem_zero(&key[category[i+startCategory].configOffset], category[i+startCategory].keys * sizeof(KeyConfig::Key));
+			std::fill_n(&key[category[i+startCategory].configOffset], category[i+startCategory].keys, 0);
 		}
 	}
 }
@@ -854,4 +857,31 @@ void updateVControlImg()
 	}
 }
 
+}
+
+void TurboInput::init()
+{
+	activeAction = {};
+}
+
+void TurboInput::addEvent(uint action)
+{
+	Action *slot = IG::findData_if(activeAction, [](Action a){ return a == 0; });
+	if(slot != activeAction.end())
+	{
+		slot->action = action;
+		logMsg("added turbo event action %d", action);
+	}
+}
+
+void TurboInput::removeEvent(uint action)
+{
+	for(auto &e : activeAction)
+	{
+		if(e.action == action)
+		{
+			e.action = 0;
+			logMsg("removed turbo event action %d", action);
+		}
+	}
 }

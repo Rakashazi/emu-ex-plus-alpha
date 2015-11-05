@@ -54,7 +54,7 @@ extern "C"
 #include <blueMSX/Utils/ziphelper.h>
 
 const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
-BoardInfo boardInfo = { 0 };
+BoardInfo boardInfo{};
 extern bool fdcActive;
 Machine *machine = 0;
 Mixer *mixer = 0;
@@ -517,7 +517,7 @@ static void destroyMSX()
 		ejectMedia();
 		boardInfo.destroy();
 	}
-	mem_zero(boardInfo);
+	boardInfo = {};
 	clearAllMediaNames();
 }
 
@@ -576,7 +576,7 @@ static bool createBoardFromLoadGame()
 		destroyMSX();
 	if(!createBoard())
 	{
-		mem_zero(boardInfo);
+		boardInfo = {};
 		popup.printf(2, 1, "Error initializing %s", machine->name);
 		return 0;
 	}
@@ -724,7 +724,7 @@ void EmuSystem::reset(ResetMode mode)
 	boardInfo.destroy();
 	if(!createBoard())
 	{
-		mem_zero(boardInfo);
+		boardInfo = {};
 		popup.postError("Error during MSX reset");
 		destroyMSX();
 	}
@@ -1048,7 +1048,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 
 void EmuSystem::clearInputBuffers()
 {
-	mem_zero(eventMap);
+	IG::fillData(eventMap);
 }
 
 void EmuSystem::configAudioRate(double frameTime)

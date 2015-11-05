@@ -9,7 +9,7 @@ include $(buildSysPath)/linux-gcc.mk
 CHOST := $(shell $(CC) -dumpmachine)
 ARCH := x86
 CFLAGS_CODEGEN += -m32 -march=pentium4 -mtune=generic
-LDFLAGS += -m32
+LDFLAGS_SYSTEM += -m32
 ASMFLAGS += -m32
 
 ifneq ($(filter x86_64-%,$(CHOST)),)

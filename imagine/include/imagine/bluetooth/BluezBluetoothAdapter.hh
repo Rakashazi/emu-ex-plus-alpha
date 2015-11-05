@@ -22,7 +22,9 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/base/Pipe.hh>
+#ifdef CONFIG_BLUETOOTH_SERVER
 #include <imagine/util/container/DLList.hh>
+#endif
 
 class BluetoothPendingSocket
 {

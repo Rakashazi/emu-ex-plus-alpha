@@ -49,7 +49,7 @@ static int str2ba(const char *str, BluetoothAddr *ba)
 	int i;
 
 	if (bachk(str) < 0) {
-		memset(ba, 0, sizeof(*ba));
+		*ba = {};
 		return -1;
 	}
 

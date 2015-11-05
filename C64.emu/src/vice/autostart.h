@@ -45,7 +45,7 @@ extern void autostart_reinit(CLOCK _min_cycles,
                              int _handle_drive_true_emulation, int _blnsw,
                              int _pnt, int _pntr, int _lnmx);
 
-extern int autostart_autodetect(const char *file_name,
+extern VICE_API int autostart_autodetect(const char *file_name,
                                 const char *program_name,
                                 unsigned int program_number,
                                 unsigned int runmode);

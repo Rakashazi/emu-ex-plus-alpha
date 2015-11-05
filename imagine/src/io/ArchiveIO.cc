@@ -55,6 +55,20 @@ const char *ArchiveIO::name()
 	return archive_entry_pathname(entry);
 }
 
+BufferMapIO ArchiveIO::moveToMapIO()
+{
+	auto s = size();
+	auto data = new char[s];
+	if(read(data, s) != (ssize_t)s)
+	{
+		logErr("error reading data for MapIO");
+		return {};
+	}
+	BufferMapIO mapIO{};
+	mapIO.open(data, s, [data](BufferMapIO &){ delete[] data; });
+	return mapIO;
+}
+
 ssize_t ArchiveIO::read(void *buff, size_t bytes, CallResult *resultOut)
 {
 	int bytesRead = archive_read_data(arch.get(), buff, bytes);

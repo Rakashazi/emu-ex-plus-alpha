@@ -29,13 +29,15 @@
 #ifndef VICE_ARCHAPI
 #define VICE_ARCHAPI
 
+#include "vice.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
 
 /* Program start.  */
 extern int archdep_init(int *argc, char **argv);
-extern void archdep_startup_log_error(const char *format, ...);
+extern VICE_API void archdep_startup_log_error(const char *format, ...);
 
 /* Filesystem related functions.  */
 extern char *archdep_program_name(void);
@@ -59,7 +61,7 @@ extern char *archdep_default_save_resource_file_name(void);
 extern char *archdep_default_fliplist_file_name(void);
 
 /* RTC. */
-extern char *archdep_default_rtc_file_name(void);
+extern VICE_API char *archdep_default_rtc_file_name(void);
 
 /* Autostart-PRG */
 extern char *archdep_default_autostart_disk_image_file_name(void);

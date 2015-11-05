@@ -185,6 +185,8 @@ static void rename(PathString oldPath, PathString newPath, CallResult &result)
 }
 
 [[gnu::format(printf, 1, 2)]]
+FileString makeFileStringPrintf(const char *format, ...);
+[[gnu::format(printf, 1, 2)]]
 PathString makePathStringPrintf(const char *format, ...);
 FileString makeFileString(const char *str);
 PathString makePathString(const char *str);

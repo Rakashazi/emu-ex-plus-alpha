@@ -1,5 +1,6 @@
 #include <scd/scd.h>
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include "shared.h"
 #include "mem.hh"
 

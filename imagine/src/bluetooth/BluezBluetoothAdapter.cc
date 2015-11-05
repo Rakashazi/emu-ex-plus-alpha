@@ -298,8 +298,7 @@ void BluezBluetoothAdapter::setL2capService(uint psm, bool active, OnStatusDeleg
 		return;
 	}
 	logMsg("registering l2cap service for PSM 0x%X", psm);
-	struct sockaddr_l2 addr;
-	mem_zero(addr);
+	struct sockaddr_l2 addr{};
 	addr.l2_family = AF_BLUETOOTH;
 	addr.l2_psm = htobs(psm);
 
@@ -323,8 +322,7 @@ void BluezBluetoothAdapter::setL2capService(uint psm, bool active, OnStatusDeleg
 	/*{
 		int lm = L2CAP_LM_MASTER;
 		setsockopt(serverFd, SOL_L2CAP, L2CAP_LM, &lm, sizeof(lm));
-		struct l2cap_options opts;
-		mem_zero(opts);
+		struct l2cap_options opts{};
 		opts.imtu = 64;
 		opts.omtu = HIDP_DEFAULT_MTU;
 		opts.flush_to = 0xffff;
@@ -465,8 +463,7 @@ void BluezBluetoothSocket::setupFDEvents(int events)
 
 CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 {
-	struct sockaddr_rc addr;
-	mem_zero(addr);
+	struct sockaddr_rc addr{};
 	addr.rc_family = AF_BLUETOOTH;
 	addr.rc_channel = (uint8_t)channel;
 	memcpy(addr.rc_bdaddr.b, bdaddr.b, 6);
@@ -494,8 +491,7 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 
 CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
 {
-	struct sockaddr_l2 addr;
-	mem_zero(addr);
+	struct sockaddr_l2 addr{};
 	addr.l2_family = AF_BLUETOOTH;
 	addr.l2_psm = htobs(psm);
 	memcpy(addr.l2_bdaddr.b, bdaddr.b, 6);

@@ -18,7 +18,6 @@
 #include <cstdlib>
 #include <assert.h>
 #include <imagine/util/ansiTypes.h>
-#include <imagine/util/algorithm.h>
 #include <imagine/util/builtins.h>
 #include <assert.h>
 #include <imagine/util/bits.h>

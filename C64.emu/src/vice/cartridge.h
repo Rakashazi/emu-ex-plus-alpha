@@ -48,12 +48,12 @@ extern void cartridge_init_config(void);
 /* detect cartridge type (takes crt and bin files) */
 extern int cartridge_detect(const char *filename);
 /* attach (and enable) a cartridge by type and filename (takes crt and bin files) */
-extern int cartridge_attach_image(int type, const char *filename);
+extern VICE_API int cartridge_attach_image(int type, const char *filename);
 /* enable cartridge by type. loads default image if any.
    should be used by the UI instead of using the resources directly */
 extern int cartridge_enable(int type);
 /* detaches/disables the cartridge with the associated id. pass -1 to detach all */
-extern void cartridge_detach_image(int type);
+extern VICE_API void cartridge_detach_image(int type);
 
 /* FIXME: this should also be made a generic function that takes the type */
 /* set current "Main Slot" cart as default */
@@ -73,7 +73,7 @@ extern void cartridge_trigger_freeze_nmi_only(void);
 /* FIXME: this should also be made a generic function that takes the type */
 extern void cartridge_release_freeze(void);
 
-extern const char *cartridge_get_file_name(int type);
+extern VICE_API const char *cartridge_get_file_name(int type);
 extern int cartridge_type_enabled(int type);
 
 /* save the (rom/ram)image of the give cart type to a file */

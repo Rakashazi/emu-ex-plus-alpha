@@ -87,7 +87,7 @@ extern void maincpu_init(void);
 extern void maincpu_early_init(void);
 extern void maincpu_shutdown(void);
 extern void maincpu_reset(void);
-extern void maincpu_mainloop(void);
+extern VICE_API void maincpu_mainloop(void);
 extern struct monitor_interface_s *maincpu_monitor_interface_get(void);
 extern int maincpu_snapshot_read_module(struct snapshot_s *s);
 extern int maincpu_snapshot_write_module(struct snapshot_s *s);

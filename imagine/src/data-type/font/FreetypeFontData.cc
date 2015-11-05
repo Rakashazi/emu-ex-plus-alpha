@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/util/algorithm.h>
 #include FT_FREETYPE_H
 #include FT_BITMAP_H
 #include FT_SIZES_H

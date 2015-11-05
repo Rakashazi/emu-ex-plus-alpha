@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
+#define LOGTAG "EAGL"
 #include <dlfcn.h>
 #import <OpenGLES/ES2/gl.h> // for GL_RENDERBUFFER, same values in ES1/ES2
 #include <imagine/base/GLContext.hh>

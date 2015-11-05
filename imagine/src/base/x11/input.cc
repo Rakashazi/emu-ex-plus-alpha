@@ -19,6 +19,7 @@
 #include <imagine/util/bits.h>
 #include <imagine/input/DragPointer.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/algorithm.h>
 #include "internal.hh"
 #include "../../input/private.hh"
 

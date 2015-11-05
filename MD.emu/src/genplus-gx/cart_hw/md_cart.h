@@ -39,26 +39,26 @@
 /* Cartridge extra hardware */
 typedef struct
 {
-  uint8 regs[4];                                            /* internal registers (R/W) */
-  uint32 mask[4];                                           /* registers address mask */
-  uint32 addr[4];                                           /* registers address */
-  uint16 realtec;                                           /* realtec mapper */
-  uint16 bankshift;                                         /* cartridge with bankshift mecanism reseted on software reset */
-  unsigned int (*time_r)(unsigned int address);             /* !TIME signal ($a130xx) read handler  */
-  void (*time_w)(unsigned int address, unsigned int data);  /* !TIME signal ($a130xx) write handler */
-  unsigned int (*regs_r)(unsigned int address);             /* cart hardware registers read handler  */
-  void (*regs_w)(unsigned int address, unsigned int data);  /* cart hardware registers write handler */
+  uint8 regs[4]{};                                            /* internal registers (R/W) */
+  uint32 mask[4]{};                                           /* registers address mask */
+  uint32 addr[4]{};                                           /* registers address */
+  uint16 realtec = 0;                                           /* realtec mapper */
+  uint16 bankshift = 0;                                         /* cartridge with bankshift mecanism reseted on software reset */
+  unsigned int (*time_r)(unsigned int address){};             /* !TIME signal ($a130xx) read handler  */
+  void (*time_w)(unsigned int address, unsigned int data){};  /* !TIME signal ($a130xx) write handler */
+  unsigned int (*regs_r)(unsigned int address){};             /* cart hardware registers read handler  */
+  void (*regs_w)(unsigned int address, unsigned int data){};  /* cart hardware registers write handler */
 } T_CART_HW;
 
 /* Cartridge type */
 typedef struct
 {
-  uint8 rom[MAXROMSIZE] __attribute__ ((aligned (8)));     /* ROM area */
-  uint8 *base;    /* ROM base (saved for OS/Cartridge ROM swap) */
-  uint32 romsize; /* ROM size */
-  uint32 mask;    /* ROM mask */
-  uint8 special;  /* Lock-On, J-Cart or SMS 3-D glasses hardware */
-  T_CART_HW hw;   /* Extra mapping hardware */
+  uint8 rom[MAXROMSIZE] __attribute__ ((aligned (8))){};     /* ROM area */
+  uint8 *base{};    /* ROM base (saved for OS/Cartridge ROM swap) */
+  uint32 romsize = 0; /* ROM size */
+  uint32 mask = 0;    /* ROM mask */
+  uint8 special = 0;  /* Lock-On, J-Cart or SMS 3-D glasses hardware */
+  T_CART_HW hw{};   /* Extra mapping hardware */
 } T_CART;
 
 /* global variables */

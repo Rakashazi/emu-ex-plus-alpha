@@ -3,7 +3,7 @@ include $(buildSysPath)/win32.mk
 
 ARCH := x86
 CFLAGS_CODEGEN += -m32 -march=pentium4 -mtune=generic
-LDFLAGS += -m32
+LDFLAGS_SYSTEM += -m32
 ASMFLAGS += -m32
 
 ifeq ($(origin CC), default)

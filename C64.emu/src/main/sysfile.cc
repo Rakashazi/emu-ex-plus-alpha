@@ -14,38 +14,148 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "sysfile"
+#include <array>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/FilePicker.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include <imagine/io/api/stdio.hh>
+#include <imagine/fs/ArchiveFS.hh>
+#include "internal.hh"
 
 extern "C"
 {
 	#include "sysfile.h"
+	#include "lib.h"
+	#include "archapi.h"
 }
 
-extern FS::PathString sysFilePath[Config::envIsLinux ? 4 : 2][3];
+static std::array<const char*, 3> sysFileDirs =
+{
+	"",
+	"DRIVES",
+	"PRINTER",
+};
+
+static bool containsSysFileDirName(FS::FileString path)
+{
+	for(const auto &subDir : sysFileDirs)
+	{
+		if(string_equal(path.data(), subDir))
+			return true;
+	}
+	return false;
+}
+
+static int loadSysFile(IO &file, const char *name, BYTE *dest, int minsize, int maxsize)
+{
+	//logMsg("loading system file: %s", complete_path);
+	ssize_t rsize = file.size();
+	bool load_at_end;
+	if(minsize < 0)
+	{
+		minsize = -minsize;
+		load_at_end = 0;
+	}
+	else
+	{
+		load_at_end = 1;
+	}
+	if(rsize < (minsize))
+	{
+		logErr("ROM %s: short file", name);
+		return -1;
+	}
+	if(rsize == (maxsize + 2))
+	{
+		logWarn("ROM `%s': two bytes too large - removing assumed start address", name);
+		if(file.read((char*)dest, 2) < 2)
+		{
+			return -1;
+		}
+		rsize -= 2;
+	}
+	if(load_at_end && rsize < (maxsize))
+	{
+		dest += maxsize - rsize;
+	}
+	else if(rsize > (maxsize))
+	{
+		logWarn("ROM `%s': long file, discarding end.", name);
+		rsize = maxsize;
+	}
+	if((rsize = file.read((char *)dest, rsize)) < minsize)
+		return -1;
+
+	return (int)rsize;
+}
+
+static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFileName, char **complete_path_return)
+{
+	CallResult res = OK;
+	for(auto &entry : FS::ArchiveIterator{archivePath, res})
+	{
+		if(entry.type() == FS::file_type::directory)
+		{
+			continue;
+		}
+		auto name = entry.name();
+		if(!string_equal(FS::basename(name).data(), sysFileName))
+			continue;
+		if(!containsSysFileDirName(FS::basename(FS::dirname(name).data())))
+			continue;
+		logMsg("archive file entry:%s", name);
+		if(complete_path_return)
+		{
+			auto fullPath = FS::makePathStringPrintf("%s/%s", archivePath, name);
+			*complete_path_return = strdup(fullPath.data());
+			assert(*complete_path_return);
+		}
+		return entry.moveIO();
+	}
+	if(res != OK)
+	{
+		logErr("error opening archive:%s", archivePath);
+	}
+	else
+	{
+		logErr("not found in archive:%s", archivePath);
+	}
+	return {};
+}
+
+CLINK int sysfile_init(const char *emu_id)
+{
+	sysFileDirs[0] = emu_id;
+	return 0;
+}
 
 CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const char *open_mode)
 {
-	for(const auto &pathGroup : sysFilePath)
+	logMsg("sysfile open:%s", name);
+	for(const auto &basePath : sysFilePath)
 	{
-		for(const auto &p : pathGroup)
+		if(!strlen(basePath.data()) || !FS::exists(basePath))
+			continue;
+		if(hasArchiveExtension(basePath.data()))
 		{
-			if(!strlen(p.data()))
+			auto io = archiveIOForSysFile(basePath.data(), name, complete_path_return);
+			if(!io)
 				continue;
-			auto fullPath = FS::makePathStringPrintf("%s/%s", p.data(), name);
-			auto file = fopen(fullPath.data(), open_mode);
-			if(file)
+			// Uncompress file into memory and wrap in FILE
+			return GenericIO{io.moveToMapIO()}.moveToFileStream(open_mode);
+		}
+		else
+		{
+			for(const auto &subDir : sysFileDirs)
 			{
+				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
+				auto file = fopen(fullPath.data(), open_mode);
+				if(!file)
+					continue;
 				if(complete_path_return)
 				{
 					*complete_path_return = strdup(fullPath.data());
-					if(!*complete_path_return)
-					{
-						logErr("out of memory trying to allocate string in sysfile_open");
-						fclose(file);
-						return nullptr;
-					}
+					assert(*complete_path_return);
 				}
 				return file;
 			}
@@ -57,25 +167,34 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 
 CLINK int sysfile_locate(const char *name, char **complete_path_return)
 {
-	for(const auto &pathGroup : sysFilePath)
+	logMsg("sysfile locate:%s", name);
+	for(const auto &basePath : sysFilePath)
 	{
-		for(const auto &p : pathGroup)
+		if(!strlen(basePath.data()) || !FS::exists(basePath))
+			continue;
+		if(hasArchiveExtension(basePath.data()))
 		{
-			if(!strlen(p.data()))
-				continue;
-			auto fullPath = FS::makePathStringPrintf("%s/%s", p.data(), name);
-			if(FS::exists(fullPath))
+			// TODO
+			continue;
+		}
+		else
+		{
+			for(const auto &subDir : sysFileDirs)
 			{
-				if(complete_path_return)
+				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
+				if(FS::exists(fullPath))
 				{
-					*complete_path_return = strdup(fullPath.data());
-					if(!*complete_path_return)
+					if(complete_path_return)
 					{
-						logErr("out of memory trying to allocate string in sysfile_locate");
-						return -1;
+						*complete_path_return = strdup(fullPath.data());
+						if(!*complete_path_return)
+						{
+							logErr("out of memory trying to allocate string in sysfile_locate");
+							return -1;
+						}
 					}
+					return 0;
 				}
-				return 0;
 			}
 		}
 	}
@@ -85,63 +204,54 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 
 CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 {
-	for(const auto &pathGroup : sysFilePath)
+	logMsg("sysfile load:%s", name);
+	for(const auto &basePath : sysFilePath)
 	{
-		for(const auto &p : pathGroup)
+		if(!strlen(basePath.data()) || !FS::exists(basePath))
+			continue;
+		if(hasArchiveExtension(basePath.data()))
 		{
-			if(!strlen(p.data()))
+			auto io = archiveIOForSysFile(basePath.data(), name, nullptr);
+			if(!io)
 				continue;
-			auto complete_path = FS::makePathStringPrintf("%s/%s", p.data(), name);
-			FileIO file;
-			file.open(complete_path.data());
-			if(file)
+			auto size = loadSysFile(io, name, dest, minsize, maxsize);
+			if(size == -1)
 			{
+				logErr("failed loading system file:%s from:%s", name, basePath.data());
+				return -1;
+			}
+			return size;
+		}
+		else
+		{
+			for(const auto &subDir : sysFileDirs)
+			{
+				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
+				FileIO file;
+				file.open(fullPath.data());
+				if(!file)
+					continue;
 				//logMsg("loading system file: %s", complete_path);
-				ssize_t rsize = file.size();
-				bool load_at_end;
-				if(minsize < 0)
+				auto size = loadSysFile(file, name, dest, minsize, maxsize);
+				if(size == -1)
 				{
-					minsize = -minsize;
-					load_at_end = 0;
-				}
-				else
-				{
-					load_at_end = 1;
-				}
-				if(rsize < (minsize))
-				{
-					logErr("ROM %s: short file", complete_path.data());
-					goto fail;
-				}
-				if(rsize == (maxsize + 2))
-				{
-					logWarn("ROM `%s': two bytes too large - removing assumed start address", complete_path.data());
-					if(file.read((char*)dest, 2) < 2)
-					{
-						goto fail;
-					}
-					rsize -= 2;
-				}
-				if(load_at_end && rsize < (maxsize))
-				{
-					dest += maxsize - rsize;
-				}
-				else if(rsize > (maxsize))
-				{
-					logWarn("ROM `%s': long file, discarding end.", complete_path.data());
-					rsize = maxsize;
-				}
-				if((rsize = file.read((char *)dest, rsize)) < minsize)
-					goto fail;
-
-				return (int)rsize;
-
-				fail:
-					logErr("failed loading system file: %s", name);
+					logErr("failed loading system file:%s from:%s", name, basePath.data());
 					return -1;
+				}
+				return size;
 			}
 		}
 	}
 	logErr("can't load %s in system paths", name);
 	return -1;
+}
+
+CLINK char *archdep_default_rtc_file_name(void)
+{
+	FS::PathString path{};
+	if(Base::documentsPathIsShared())
+		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath().data());
+	else
+		string_printf(path, "%s/vice.rtc", Base::documentsPath().data());
+	return plugin.lib_stralloc(path.data());
 }

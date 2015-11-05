@@ -511,9 +511,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return bitmap;
 	}
 	
-	String nativeLibPath()
+	String libDir()
 	{
-		String libname = "main";
 		ActivityInfo ai;
 		try
 		{
@@ -523,6 +522,12 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 			throw new RuntimeException("Error getting activity info", e);
 		}
-		return ai.applicationInfo.nativeLibraryDir + "/" + System.mapLibraryName(libname);
+		return ai.applicationInfo.nativeLibraryDir;
+	}
+	
+	String mainSOPath()
+	{
+		String libname = "main";
+		return libDir() + "/" + System.mapLibraryName(libname);
 	}
 }

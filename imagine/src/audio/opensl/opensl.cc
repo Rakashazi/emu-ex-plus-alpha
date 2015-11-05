@@ -17,6 +17,7 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/number.h>
+#include <imagine/util/algorithm.h>
 #include "../../base/android/android.hh"
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>

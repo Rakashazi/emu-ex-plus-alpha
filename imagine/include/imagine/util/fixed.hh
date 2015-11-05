@@ -18,6 +18,7 @@
 #include <imagine/util/number.h>
 #include <imagine/util/Rational.hh>
 #include <imagine/util/operators.hh>
+#include <imagine/util/algorithm.h>
 
 namespace IG
 {

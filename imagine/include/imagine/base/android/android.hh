@@ -17,6 +17,7 @@
 
 #include <android/api-level.h>
 #include <imagine/engine-globals.h>
+#include <imagine/fs/FSDefs.hh>
 
 namespace Base
 {
@@ -29,6 +30,7 @@ int processPriority();
 bool apkSignatureIsConsistent();
 AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
+FS::PathString mainSOPath();
 
 }
 

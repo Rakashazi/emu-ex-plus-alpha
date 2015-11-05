@@ -28,6 +28,7 @@
 #endif
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
+#include <imagine/mem/mem.h>
 
 namespace Base
 {

@@ -55,7 +55,7 @@ extern void cart_power_off(void);
 extern void cart_attach_from_snapshot(int type);
 
 extern void cart_detach_slotmain(void);
-extern int cart_getid_slotmain(void); /* returns ID of cart in "Main Slot" */
+extern VICE_API int cart_getid_slotmain(void); /* returns ID of cart in "Main Slot" */
 extern int cart_getid_slot0(void);
 extern int cart_getid_slot1(void);
 

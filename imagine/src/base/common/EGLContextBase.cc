@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EGL"
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EGLContextBase.hh>
 #include <EGL/eglext.h>
@@ -226,7 +227,7 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 	{
 		assert(context != EGL_NO_CONTEXT);
 		auto surface = win->eglSurface();
-		logMsg("setting surface %ld current", (long)surface);
+		logMsg("setting surface 0x%lX current", (long)surface);
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
 			bug_exit("error setting surface current");

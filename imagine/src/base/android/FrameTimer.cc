@@ -21,6 +21,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/algorithm.h>
 #include "internal.hh"
 #include "android.hh"
 

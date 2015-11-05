@@ -20,6 +20,7 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/algorithm.h>
 #include "internal.hh"
 #include "android.hh"
 #include "../../input/private.hh"

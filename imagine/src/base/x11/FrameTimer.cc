@@ -21,6 +21,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
 #include <semaphore.h>

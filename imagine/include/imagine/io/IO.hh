@@ -184,6 +184,7 @@ public:
 	operator IO*(){ return io.get(); }
 	operator IO&(){ return *io; }
 	IO *release() { return io.release(); }
+	FILE *moveToFileStream(const char *opentype);
 
 	ssize_t read(void *buff, size_t bytes, CallResult *resultOut);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut);

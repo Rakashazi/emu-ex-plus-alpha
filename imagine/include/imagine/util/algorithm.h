@@ -16,6 +16,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/utility.h>
+#ifdef __cplusplus
+#include <imagine/util/iterator.hh>
+#include <algorithm>
+#endif
 
 // integer iteration
 // 0 to [counts] - 1, i_s caches the value of counts (type of value is maintained)
@@ -68,6 +72,29 @@ static bool equalsAny(const T val, const T possible[], S num)
 			return 1;
 	}
 	return 0;
+}
+
+namespace IG
+{
+
+template <class C, class V>
+static void fillData(C &c, const V &val)
+{
+	std::fill_n(IG::data(c), IG::size(c), val);
+}
+
+template <class C>
+static void fillData(C &c)
+{
+	fillData(c, typeof(*IG::data(c)){});
+}
+
+template <class C, class UnaryPredicate>
+static auto findData_if(C &c, UnaryPredicate pred) -> decltype(IG::data(c))
+{
+	return std::find_if(IG::data(c), IG::data(c) + IG::size(c), pred);
+}
+
 }
 
 #endif

@@ -27,9 +27,11 @@
 #ifndef VICE_INIT_H
 #define VICE_INIT_H
 
+#include "vice.h"
+
 extern int init_resources(void);
 extern int init_cmdline_options(void);
-extern int init_main(void);
+extern VICE_API int init_main(void);
 
 extern void init_resource_fail(const char *module);
 extern void init_cmdline_options_fail(const char *module);

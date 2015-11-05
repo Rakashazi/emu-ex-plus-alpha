@@ -39,5 +39,6 @@ public:
 	static void onSelectFile(const char* name, Input::Event e);
 };
 
+void loadGameComplete(bool tryAutoState, bool addToRecent);
 void loadGameCompleteFromFilePicker(uint result, Input::Event e);
 bool hasArchiveExtension(const char *name);

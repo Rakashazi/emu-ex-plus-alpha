@@ -1,10 +1,9 @@
 #pragma once
 #include <imagine/util/ansiTypes.h>
-#include <imagine/util/algorithm.h>
-#include <imagine/util/operators.hh>
 #include "containerUtils.hh"
 #include <assert.h>
 #include <iterator>
+#include <algorithm>
 
 template <class T, uint SIZE>
 struct StaticStorageBase
@@ -37,58 +36,30 @@ private:
 
 public:
 	using STORAGE_BASE::storage;
+	using value_type = T;
+	using iterator = T*;
+	using const_iterator = const T*;
+	using reverse_iterator = std::reverse_iterator<iterator>;
+	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
 	constexpr ArrayListBase() {}
 
 	bool remove(const T &val)
 	{
-		iterateTimes(size(), i)
-		{
-			if(storage()[i] == val)
-			{
-				erase(&storage()[i]);
-				return true;
-			}
-		}
-		return false;
+		auto it = std::find(begin(), end(), val);
+		if(it == end())
+			return false;
+		erase(it);
+		return true;
 	}
 
 	// Iterators (STL API)
-	template <bool REVERSE = false>
-	class ConstIterator : public std::iterator<std::random_access_iterator_tag, T>,
-		public NotEquals<ConstIterator<REVERSE>>
-	{
-	public:
-		//using difference_type = typename std::iterator<std::random_access_iterator_tag, T>::difference_type;
-		T *p;
-
-		constexpr ConstIterator(T *p): p(p) {}
-		const T& operator*() const { return *p; }
-		const T* operator->() const { return p; }
-		void operator++() { p = REVERSE ? p-1 : p+1; }
-		void operator--() { p = REVERSE ? p+1 : p-1; }
-		bool operator==(ConstIterator const& rhs) const { return p == rhs.p; }
-	};
-
-	template <bool REVERSE = false>
-	class Iterator : public ConstIterator<REVERSE>
-	{
-	public:
-		using ConstIterator<REVERSE>::ConstIterator;
-		using ConstIterator<REVERSE>::p;
-		T& operator*() const { return *p; }
-		T* operator->() const { return p; }
-	};
-
-	using iterator = Iterator<>;
-	using const_iterator = ConstIterator<>;
-	using reverse_iterator = Iterator<true>;
-	using const_reverse_iterator = ConstIterator<true>;
-	iterator begin() { return &(*this)[0]; }
-	iterator end() { return &(*this)[size()]; }
+	iterator begin() { return data(); }
+	iterator end() { return data() + size(); }
 	const_iterator cbegin() const { return begin(); }
 	const_iterator cend() const { return end(); }
-	reverse_iterator rbegin() { return reverse_iterator(&(*this)[size()-1]); }
-	reverse_iterator rend() { return reverse_iterator(&(*this)[-1]); }
+	reverse_iterator rbegin() { return reverse_iterator(end()); }
+	reverse_iterator rend() { return reverse_iterator(begin()); }
 	const_reverse_iterator crbegin() const { return rbegin(); }
 	const_reverse_iterator crend() const { return rend(); }
 
@@ -125,19 +96,11 @@ public:
 		return (*this)[idx];
 	}
 
-	T& operator[] (int idx) { return storage()[idx]; }
-	const T& operator[] (int idx) const { return storage()[idx]; }
+	T *data() { return storage(); }
+	const T *data() const { return storage(); }
 
-	// Element Access
-//	int contains(const T &d) const
-//	{
-//		iterateTimes(size(), i)
-//		{
-//			if(storage()[i] == d)
-//				return 1;
-//		}
-//		return 0;
-//	}
+	T& operator[] (int idx) { return data()[idx]; }
+	const T& operator[] (int idx) const { return data()[idx]; }
 
 	// Modifiers (STL API)
 	void clear()
@@ -155,7 +118,7 @@ public:
 	void push_back(const T &d)
 	{
 		assert(size_ < max_size());
-		storage()[size_] = d;
+		data()[size_] = d;
 		size_++;
 	}
 
@@ -163,35 +126,35 @@ public:
 	void emplace_back(ARGS&&... args)
 	{
 		assert(size_ < max_size());
-		new(&storage()[size_]) T(std::forward<ARGS>(args)...);
+		new(&data()[size_]) T(std::forward<ARGS>(args)...);
 		size_++;
 	}
 
 	iterator insert(const_iterator position, const T& val)
 	{
-		ptrsize idx = position.p - &storage()[0];
+		ptrsize idx = position - data();
 		assert(idx <= size());
 		ptrsize elemsAfterInsertIdx = size()-idx;
 		if(elemsAfterInsertIdx)
 		{
-			memmove(&storage()[idx+1], &storage()[idx], sizeof(T)*elemsAfterInsertIdx);
+			memmove(&data()[idx+1], &data()[idx], sizeof(T)*elemsAfterInsertIdx);
 		}
-		storage()[idx] = val;
+		data()[idx] = val;
 		size_++;
-		return &storage()[idx];
+		return &data()[idx];
 	}
 
 	iterator erase(const_iterator position)
 	{
-		ptrsize idx = position.p - &storage()[0];
+		ptrsize idx = position - data();
 		assert(idx < size());
 		ptrsize elemsAfterEraseIdx = (size()-1)-idx;
 		if(elemsAfterEraseIdx)
 		{
-			memmove(&storage()[idx], &storage()[idx+1], sizeof(T)*elemsAfterEraseIdx);
+			memmove(&data()[idx], &data()[idx+1], sizeof(T)*elemsAfterEraseIdx);
 		}
 		size_--;
-		return &storage()[idx];
+		return &data()[idx];
 	}
 };
 

@@ -585,8 +585,6 @@ void OptionCategoryView::init()
 	TableView::init(item, i);
 }
 
-extern void loadGameComplete(bool tryAutoState, bool addToRecent);
-
 static void loadGameCompleteConfirmYesAutoLoadState(Input::Event e)
 {
 	loadGameComplete(1, 0);

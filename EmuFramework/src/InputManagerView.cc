@@ -500,10 +500,10 @@ class ProfileSelectMenu : public TableView
 {
 public:
 	ProfileSelectMenu(Base::Window &win): TableView{"Key Profile", win} {}
-	TextMenuItem choiceEntry[MAX_DEFAULT_KEY_CONFIGS_PER_TYPE + MAX_CUSTOM_KEY_CONFIGS];
-	MenuItem *choiceEntryItem[sizeofArrayConst(choiceEntry)] {nullptr};
+	TextMenuItem choiceEntry[MAX_DEFAULT_KEY_CONFIGS_PER_TYPE + MAX_CUSTOM_KEY_CONFIGS]{};
+	MenuItem *choiceEntryItem[sizeofArrayConst(choiceEntry)]{};
 	typedef DelegateFunc<void (const KeyConfig &profile)> ProfileChangeDelegate;
-	ProfileChangeDelegate onProfileChange;
+	ProfileChangeDelegate onProfileChange{};
 	int activeItem = -1;
 
 	void init(Input::Device &dev, const char *selectedName)

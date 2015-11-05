@@ -83,7 +83,7 @@ static int relative_speed;
 static int refresh_rate;
 
 /* "Warp mode".  If nonzero, attempt to run as fast as possible. */
-int warp_mode_enabled;
+VICE_API int warp_mode_enabled;
 
 /* Dingoo overclocking mode */
 #ifdef DINGOO_NATIVE
@@ -270,6 +270,7 @@ void vsync_set_machine_parameter(double refresh_rate, long cycles)
     refresh_frequency = refresh_rate;
     cycles_per_sec = cycles;
     set_timer_speed(relative_speed);
+    vsyncarch_refresh_frequency_changed(refresh_frequency);
 }
 
 double vsync_get_refresh_frequency(void)

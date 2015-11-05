@@ -28,6 +28,7 @@
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/assume.h>
+#include <imagine/util/algorithm.h>
 #include "../common/windowPrivate.hh"
 #include "../common/basePrivate.hh"
 #include "android.hh"
@@ -110,6 +111,26 @@ FS::PathString storagePath()
 	auto extStorageDirStr = (jstring)extStorageDir(env, jBaseActivityCls);
 	FS::PathString path{};
 	javaStringCopy(env, path, extStorageDirStr);
+	return path;
+}
+
+FS::PathString libPath()
+{
+	auto env = jEnv();
+	JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
+	auto libDirStr = (jstring)libDir(env, jBaseActivity);
+	FS::PathString path{};
+	javaStringCopy(env, path, libDirStr);
+	return path;
+}
+
+FS::PathString mainSOPath()
+{
+	auto env = jEnv();
+	JavaInstMethod<jobject()> soPath{env, jBaseActivityCls, "mainSOPath", "()Ljava/lang/String;"};
+	auto soPathStr = (jstring)soPath(env, jBaseActivity);
+	FS::PathString path{};
+	javaStringCopy(env, path, soPathStr);
 	return path;
 }
 
@@ -233,16 +254,13 @@ static void activityInit(JNIEnv* env, jobject activity)
 
 		if(unloadNativeLibOnDestroy)
 		{
-			JavaInstMethod<jobject()> jNativeLibPath{env, jBaseActivityCls, "nativeLibPath", "()Ljava/lang/String;"};
-			auto jstr = (jstring)jNativeLibPath(env, activity);
-			auto utfChars = env->GetStringUTFChars(jstr, nullptr);
+			auto soPath = mainSOPath();
 			#if __ANDROID_API__ >= 21
-			mainLibHandle = dlopen(utfChars, RTLD_LAZY | RTLD_NOLOAD);
+			mainLibHandle = dlopen(soPath.data(), RTLD_LAZY | RTLD_NOLOAD);
 			#else
-			mainLibHandle = dlopen(utfChars, RTLD_LAZY);
+			mainLibHandle = dlopen(soPath.data(), RTLD_LAZY);
 			dlclose(mainLibHandle);
 			#endif
-			env->ReleaseStringUTFChars(jstr, utfChars);
 			if(!mainLibHandle)
 				logWarn("unable to get native lib handle");
 		}

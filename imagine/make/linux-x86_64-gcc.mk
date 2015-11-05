@@ -6,6 +6,6 @@ ifeq ($(config_compiler),clang)
  CFLAGS_CODEGEN += -march=x86-64
 else
  CFLAGS_CODEGEN += -m64 -mtune=generic
- LDFLAGS += -m64
+ LDFLAGS_SYSTEM += -m64
  ASMFLAGS += -m64
 endif

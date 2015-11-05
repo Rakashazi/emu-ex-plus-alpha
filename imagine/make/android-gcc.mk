@@ -89,9 +89,10 @@ CFLAGS_TARGET += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonic
 CFLAGS_CODEGEN += -ffunction-sections -fdata-sections \
 -Wa,--noexecstack
 ASMFLAGS += -Wa,--noexecstack $(android_cpuFlags)
-LDFLAGS += -no-canonical-prefixes \
+LDFLAGS_SYSTEM += -no-canonical-prefixes \
 -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
-LDFLAGS_SO := -Wl,-soname,lib$(android_soName).so -shared
-LDLIBS += -lgcc -lc $(android_libm)
+linkAction := -Wl,-soname,lib$(android_soName).so -shared
+LDLIBS_SYSTEM += -lgcc -lc $(android_libm)
+LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
-LDFLAGS += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
+LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed

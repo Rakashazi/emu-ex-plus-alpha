@@ -57,6 +57,7 @@ void openURL(const char *url);
 FS::PathString assetPath();
 FS::PathString documentsPath();
 FS::PathString storagePath();
+FS::PathString libPath();
 bool documentsPathIsShared();
 
 // OS UI management (status & navigation bar)

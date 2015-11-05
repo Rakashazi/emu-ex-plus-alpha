@@ -16,6 +16,7 @@
 #define LOGTAG "XScreen"
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include "internal.hh"
 
 namespace Base

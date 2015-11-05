@@ -7,7 +7,7 @@ armv7CPUFlags ?= -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16
 android_hardFP ?= 1
 
 include $(buildSysPath)/android-arm.mk
-LDFLAGS += -Wl,--fix-cortex-a8
+LDFLAGS_SYSTEM += -Wl,--fix-cortex-a8
 android_cpuFlags ?= $(armv7CPUFlags)
 
 ifeq ($(android_hardFP),1)
@@ -15,7 +15,7 @@ ifeq ($(android_hardFP),1)
  # NOTE: do not also link in -lm or strange runtime behavior can result, especially with LTO
  android_libm := -lm_hard
  CPPFLAGS += -D_NDK_MATH_NO_SOFTFP=1
- LDFLAGS += -Wl,--no-warn-mismatch
+ LDFLAGS_SYSTEM += -Wl,--no-warn-mismatch
  android_hardFPExt := -hard
 endif
 

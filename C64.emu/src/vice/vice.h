@@ -125,7 +125,7 @@ typedef int ssize_t;
 
 /* ------------------------------------------------------------------------- */
 /* Which OS is using the common keyboard routines?  */
-#if !defined(__OS2__) || defined(USE_SDLUI)
+#if !defined(EMUFRAMEWORK_BUILD) && (!defined(__OS2__) || defined(USE_SDLUI))
 #define COMMON_KBD
 #endif
 

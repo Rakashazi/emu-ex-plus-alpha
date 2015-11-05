@@ -75,7 +75,7 @@
 
 /* Global joystick value.  */
 /*! \todo SRT: document: what are these values joystick_value[0, 1, 2, ..., 5] used for? */
-BYTE joystick_value[JOYSTICK_NUM + 1] = { 0 };
+VICE_API BYTE joystick_value[JOYSTICK_NUM + 1] = { 0 };
 static BYTE network_joystick_value[JOYSTICK_NUM + 1] = { 0 };
 
 /* Latched joystick status.  */

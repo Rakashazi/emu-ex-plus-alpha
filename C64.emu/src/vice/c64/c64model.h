@@ -100,8 +100,8 @@ typedef struct {
     int kernalrev;
 } c64model_details_t;
 
-extern int c64model_get(void);
-extern void c64model_set(int model);
+extern VICE_API int c64model_get(void);
+extern VICE_API void c64model_set(int model);
 /* get details for model */
 extern void c64model_set_details(c64model_details_t *details, int model);
 /* get model from details */

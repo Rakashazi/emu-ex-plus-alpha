@@ -3,6 +3,7 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
 #include "EmuConfig.hh"
+#include <imagine/mem/mem.h>
 
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4
@@ -629,7 +630,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
     return 0;
 	}
 	#ifndef SNES9X_VERSION_1_4
-	mem_zero(Memory.NSRTHeader);
+	IG::fillData(Memory.NSRTHeader);
 	#endif
 	Memory.HeaderCount = 0;
 	string_copy(Memory.ROMFilename, path);

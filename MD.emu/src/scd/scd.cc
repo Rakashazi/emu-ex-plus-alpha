@@ -6,6 +6,7 @@
 #include "mem.hh"
 
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include <imagine/io/FileIO.hh>
 
 SegaCD sCD;
@@ -98,7 +99,7 @@ void scd_init()
 {
 	logMsg("doing scd init");
 	M68KCPU &sm68k = sCD.cpu;
-	mem_zero(sm68k.memory_map);
+	IG::fillData(sm68k.memory_map);
 
 	for (int i=0; i<=0xFF; i++)
 	{
@@ -143,7 +144,7 @@ void scd_init()
 	//m68k_set_pc_changed_callback(sm68k, s68kPCChange);
 	//m68k_set_pc_changed_callback(mm68k, m68kPCChange);
 
-	mem_zero(sCD.TOC);
+	sCD.TOC = {};
 }
 
 void scd_deinit()
@@ -169,11 +170,11 @@ void scd_reset()
 	sCD.timer_int3 = 0;
 	sCD.stopwatchTimer = 0;
 	sCD.delayedDMNA = 0;
-	mem_zero(sCD.pcmMem.b);
-	mem_zero(sCD.word);
-	mem_zero(sCD.prg);
-	mem_zero(sCD.gate);
-	mem_zero(sCD.pcm);
+	sCD.pcmMem = {};
+	sCD.word = {};
+	sCD.prg = {};
+	IG::fillData(sCD.gate);
+	sCD.pcm = {};
 	sCD.gate[0x3] = 1; // 2M word RAM mode with m68k access after reset
 	sCD.volume = 1024;
 

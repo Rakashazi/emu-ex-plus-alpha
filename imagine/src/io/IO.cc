@@ -41,6 +41,73 @@ GenericIO &GenericIO::operator=(GenericIO &&o)
 	return *this;
 }
 
+FILE *GenericIO::moveToFileStream(const char *opentype)
+{
+	#if defined __ANDROID__ || __APPLE__
+	auto f = funopen(release(),
+		[](void *cookie, char *buf, int size)
+		{
+			auto &io = *(IO*)cookie;
+			return (int)io.read(buf, size);
+		},
+		[](void *cookie, const char *buf, int size)
+		{
+			auto &io = *(IO*)cookie;
+			return (int)io.write(buf, size);
+		},
+		[](void *cookie, fpos_t offset, int whence)
+		{
+			auto &io = *(IO*)cookie;
+			return (fpos_t)io.seek(offset, (IODefs::SeekMode)whence);
+		},
+		[](void *cookie)
+		{
+			delete (IO*)cookie;
+			return 0;
+		});
+	#else
+	cookie_io_functions_t funcs{};
+	funcs.read =
+		[](void *cookie, char *buf, size_t size)
+		{
+			auto &io = *(IO*)cookie;
+			return (ssize_t)io.read(buf, size);
+		};
+	funcs.write =
+		[](void *cookie, const char *buf, size_t size)
+		{
+			auto &io = *(IO*)cookie;
+			auto bytesWritten = io.write(buf, size);
+			if(bytesWritten == -1)
+			{
+				bytesWritten = 0; // needs to return 0 for error
+			}
+			return (ssize_t)bytesWritten;
+		};
+	funcs.seek =
+		[](void *cookie, off64_t *position, int whence)
+		{
+			auto &io = *(IO*)cookie;
+			auto newPos = io.seek(*position, (IODefs::SeekMode)whence);
+			if(newPos == -1)
+			{
+				return -1;
+			}
+			*position = newPos;
+			return 0;
+		};
+	funcs.close =
+		[](void *cookie)
+		{
+			delete (IO*)cookie;
+			return 0;
+		};
+	auto f = fopencookie(release(), opentype, funcs);
+	#endif
+	assert(f);
+	return f;
+}
+
 ssize_t GenericIO::read(void *buff, size_t bytes, CallResult *resultOut)
 {
 	return io ? io->read(buff, bytes, resultOut) : (CallResult)BAD_STATE;

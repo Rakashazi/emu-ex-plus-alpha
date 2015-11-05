@@ -17,6 +17,7 @@
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <algorithm>
+#include <imagine/util/memory/search.h>
 
 void VControllerDPad::init() {}
 

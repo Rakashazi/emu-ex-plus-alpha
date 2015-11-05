@@ -329,7 +329,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 
 void EmuSystem::clearInputBuffers()
 {
-	mem_zero(inputBuff);
+	IG::fillData(inputBuff);
 }
 
 void EmuSystem::configAudioRate(double frameTime)

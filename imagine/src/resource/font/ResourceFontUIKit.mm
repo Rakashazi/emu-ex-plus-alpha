@@ -19,6 +19,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/strings.h>
+#include <imagine/mem/mem.h>
 #include "../../base/iphone/private.hh"
 #import <CoreGraphics/CGBitmapContext.h>
 #import <CoreGraphics/CGContext.h>
@@ -115,7 +116,6 @@ CallResult ResourceFontUIKit::activeChar(int idx, GlyphMetrics &metrics)
 			mem_free(pixBuffer);
 		pixBuffer = (char*)mem_calloc(bufferSize);
 		//pixBuffer = (char*)mem_realloc(pixBuffer, bufferSize);
-		//mem_zero(pixBuffer, bufferSize);
 		renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
 			Base::grayColorSpace, textColor, activeFont());
 		

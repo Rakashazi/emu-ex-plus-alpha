@@ -65,7 +65,7 @@ public:
 	virtual void init();
 
 	static const uint STANDARD_ITEMS = 19;
-	static const uint MAX_SYSTEM_ITEMS = 3;
+	static const uint MAX_SYSTEM_ITEMS = 5;
 
 protected:
 	TextMenuItem loadGame;

@@ -102,7 +102,7 @@ struct KeyConfig
 
 	void unbindCategory(const KeyCategory &category)
 	{
-		mem_zero(key(category), category.keys * sizeof(Key));
+		std::fill_n(key(category), category.keys, 0);
 	}
 
 	static const KeyConfig *defaultConfigsForInputMap(uint map, uint &size);
@@ -189,7 +189,7 @@ struct KeyMapping
 	static constexpr uint maxKeyActions = 4;
 	typedef uint8 Action;
 	typedef Action ActionGroup[maxKeyActions];
-	ActionGroup *inputDevActionTablePtr[Input::MAX_DEVS] {nullptr};
+	ActionGroup *inputDevActionTablePtr[Input::MAX_DEVS]{};
 
 	constexpr KeyMapping() {}
 	void buildAll();

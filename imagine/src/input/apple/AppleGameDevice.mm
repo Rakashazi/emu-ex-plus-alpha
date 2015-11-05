@@ -241,10 +241,10 @@ static uint findFreeDevId()
 		if(e->enumId() < sizeofArray(id))
 			id[e->enumId()] = 1;
 	}
-	forEachInArray(id, e)
+	for(const auto &e : id)
 	{
-		if(*e == 0)
-			return e_i;
+		if(e == 0)
+			return &e - id;
 	}
 	logWarn("too many devices to enumerate");
 	return 0;

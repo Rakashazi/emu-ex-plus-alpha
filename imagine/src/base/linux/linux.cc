@@ -86,6 +86,11 @@ FS::PathString storagePath()
 	return appPath;
 }
 
+FS::PathString libPath()
+{
+	return appPath;
+}
+
 bool documentsPathIsShared()
 {
 	// TODO

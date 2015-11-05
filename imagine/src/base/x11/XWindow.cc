@@ -19,6 +19,7 @@
 #include "xlibutils.h"
 #include "xdnd.hh"
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/algorithm.h>
 
 namespace Base
 {

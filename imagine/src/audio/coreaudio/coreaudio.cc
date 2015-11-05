@@ -60,7 +60,7 @@ static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioAct
 	if(unlikely(hadUnderrun))
 	{
 		*ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;
-		mem_zero(buf, bytes);
+		std::fill_n(buf, bytes, 0);
 		return 0;
 	}
 
@@ -71,7 +71,7 @@ static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioAct
 		hadUnderrun = true;
 		uint padBytes = bytes - read;
 		//logMsg("padding %d bytes", padBytes);
-		mem_zero(&buf[read], padBytes);
+		std::fill_n(&buf[read], padBytes, 0);
 	}
 	return 0;
 }

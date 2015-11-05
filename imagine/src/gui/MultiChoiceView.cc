@@ -15,7 +15,7 @@
 
 #include <imagine/gui/MultiChoiceView.hh>
 #include <imagine/logger/logger.h>
-//#include <imagine/util/number.h>
+#include <imagine/mem/mem.h>
 #include <algorithm>
 
 void BaseMultiChoiceView::drawElement(uint i, Gfx::GCRect rect) const

@@ -13,9 +13,9 @@ ifdef O_LTO
 else
  ifdef O_LTO_LINK_ONLY
   # link thin LTO objects with non-LTO objects
-  LDFLAGS += -flto $(CFLAGS_CODEGEN)
+  LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
  else
-  LDFLAGS += -fno-lto
+  LDFLAGS_SYSTEM += -fno-lto
  endif
 endif
 
@@ -28,7 +28,7 @@ ifndef RELEASE
  ifndef compiler_noSanitizeAddress
   CFLAGS_CODEGEN += -fsanitize=address -fno-omit-frame-pointer
   ifndef O_LTO
-   LDFLAGS += -fsanitize=address
+   LDFLAGS_SYSTEM += -fsanitize=address
   endif
  endif
 endif

@@ -24,6 +24,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragPointer.hh>
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/algorithm.h>
 #include "ios.hh"
 #if !defined __ARM_ARCH_6K__
 #import <OpenGLES/ES2/gl.h>

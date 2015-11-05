@@ -1,0 +1,6 @@
+This is ReSID-DTV, a reverse-engineered software emulation of the C64DTV
+SID component.
+
+ReSID-DTV is free software. See the file COPYING for copying permission.
+
+See ../resid/README for original reSID readme file.

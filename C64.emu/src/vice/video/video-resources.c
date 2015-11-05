@@ -269,7 +269,7 @@ static const char *vname_chip_rendermode[] = { "Filter", NULL };
 
 static resource_int_t resources_chip_rendermode[] =
 {
-    { NULL, VIDEO_FILTER_CRT, RES_EVENT_NO, NULL,
+    { NULL, VIDEO_FILTER_NONE, RES_EVENT_NO, NULL,
       NULL, set_chip_rendermode, NULL },
     RESOURCE_INT_LIST_END
 };

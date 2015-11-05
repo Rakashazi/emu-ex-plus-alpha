@@ -18,28 +18,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <imagine/util/ansiTypes.h>
-#include <imagine/util/algorithm.h>
 #include <assert.h>
 
-static void mem_zero(void *buff, size_t count)
-{
-	memset(buff, 0, count);
-}
-
 #ifdef __cplusplus
-
-template <class T>
-static void mem_zero(T (&buff))
-{
-	memset(&buff, 0, sizeof(T));
-}
-
-template <class T, size_t S>
-static void mem_setElem(T (&arr)[S], T val)
-{
-	forEachInArray(arr, e)
-		*e = val;
-}
 
 template <class T>
 static void toggle(T& x)

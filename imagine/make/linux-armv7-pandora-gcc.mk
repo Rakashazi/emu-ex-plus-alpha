@@ -31,7 +31,7 @@ CFLAGS_WARN += -Wdouble-promotion
 CXXFLAGS_LANG += -Wno-literal-suffix
 
 CFLAGS_CODEGEN += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-LDFLAGS += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+LDFLAGS_SYSTEM += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 
 pandoraSDKSysroot := $(PNDSDK)/usr
 PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(pandoraSDKSysroot)/lib/pkgconfig
@@ -51,5 +51,5 @@ x11GLWinSystem := egl
 
 ifdef O_LTO
  # -flto-partition=none seems to help .symver issues
- LDFLAGS += -flto-partition=none
+ LDFLAGS_SYSTEM += -flto-partition=none
 endif

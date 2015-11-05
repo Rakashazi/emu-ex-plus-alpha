@@ -21,6 +21,7 @@
  *
  ****************************************************************************************/
 
+#include <imagine/util/algorithm.h>
 #include "shared.h"
 #include "Fir_Resampler.h"
 #include "eq.h"

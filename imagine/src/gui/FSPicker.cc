@@ -17,6 +17,7 @@
 
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/mem/mem.h>
 
 // FSNavView
 
@@ -150,7 +151,7 @@ void FSPicker::onLeftNavBtn(Input::Event e)
 
 void FSPicker::onRightNavBtn(Input::Event e)
 {
-	onCloseD(*this, e);
+	onCloseD.callCopy(*this, e);
 }
 
 void FSPicker::setOnPathReadError(OnPathReadError del)
@@ -162,7 +163,7 @@ void FSPicker::inputEvent(Input::Event e)
 {
 	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
 	{
-		onCloseD(*this, e);
+		onCloseD.callCopy(*this, e);
 		return;
 	}
 
@@ -250,7 +251,7 @@ CallResult FSPicker::setPath(const char *path, Input::Event e)
 			{
 				text[i].onSelect() = [this, i](TextMenuItem &, View &, Input::Event e)
 					{
-						onSelectFileD(*this, dir[i].data(), e);
+						onSelectFileD.callCopy(*this, dir[i].data(), e);
 					};
 			}
 		}

@@ -1,32 +1,7 @@
 #pragma once
+#include <imagine/gui/TextEntry.hh>
 #include <emuframework/OptionView.hh>
-
-static const char *c64ModelStr[]
-{
-	"C64 PAL",
-	"C64C PAL",
-	"C64 old PAL",
-	"C64 NTSC",
-	"C64C NTSC",
-	"C64 old NTSC",
-	"Drean",
-	"C64 SX PAL",
-	"C64 SX NTSC",
-	"Japanese",
-	"C64 GS",
-	"PET64 PAL",
-	"PET64 NTSC",
-	"MAX Machine",
-};
-
-static void setTrueDriveEmu(bool on)
-{
-	optionDriveTrueEmulation = on;
-	if(c64IsInit)
-	{
-		resources_set_int("DriveTrueEmulation", on);
-	}
-}
+#include "VicePlugin.hh"
 
 class SystemOptionView : public OptionView
 {
@@ -36,7 +11,8 @@ class SystemOptionView : public OptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
-			setTrueDriveEmu(item.on);
+			optionDriveTrueEmulation = item.on;
+			setDriveTrueEmulation(item.on);
 		}
 	};
 
@@ -46,7 +22,8 @@ class SystemOptionView : public OptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
-			resources_set_int("AutostartWarp", item.on);
+			optionAutostartWarp = item.on;
+			setAutostartWarp(item.on);
 		}
 	};
 
@@ -56,7 +33,8 @@ class SystemOptionView : public OptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
-			resources_set_int("AutostartHandleTrueDriveEmulation", item.on);
+			optionAutostartTDE = item.on;
+			setAutostartTDE(item.on);
 		}
 	};
 
@@ -71,35 +49,142 @@ class SystemOptionView : public OptionView
 		}
 	};
 
+	template <size_t S>
+	void defaultModelInit(MultiChoiceSelectMenuItem &item, Byte1Option option, const char *(&modelStr)[S], int baseVal = 0)
+	{
+		auto model = option;
+		if(model < baseVal || model >= (int)S + baseVal)
+		{
+			model = baseVal;
+		}
+		item.init(modelStr, model, S, baseVal);
+	}
+
 	MultiChoiceSelectMenuItem defaultC64Model
 	{
 		"Default C64 Model",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
 			optionC64Model = val;
-			if(!EmuSystem::gameIsRunning())
+			if(!EmuSystem::gameIsRunning() &&
+				(currSystem == VICE_SYSTEM_C64 || currSystem == VICE_SYSTEM_C64SC))
 			{
-				setC64Model(optionC64Model.val);
+				setSysModel(optionC64Model.val);
 			}
 		}
 	};
 
-	void defaultC64ModelInit()
+	MultiChoiceSelectMenuItem defaultDTVModel
 	{
-		auto model = optionC64Model;
-		if(model >= (int)sizeofArray(c64ModelStr))
+		"Default DTV Model",
+		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			model = 0;
+			optionDTVModel = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_C64DTV)
+			{
+				setSysModel(optionDTVModel.val);
+			}
 		}
-		defaultC64Model.init(c64ModelStr, model, sizeofArray(c64ModelStr));
-	}
+	};
+
+	MultiChoiceSelectMenuItem defaultC128Model
+	{
+		"Default C128 Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionC128Model = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_C128)
+			{
+				setSysModel(optionC128Model.val);
+			}
+		}
+	};
+
+	MultiChoiceSelectMenuItem defaultSuperCPUModel
+	{
+		"Default C64 SuperCPU Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionSuperCPUModel = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_SUPER_CPU)
+			{
+				setSysModel(optionSuperCPUModel.val);
+			}
+		}
+	};
+
+	MultiChoiceSelectMenuItem defaultCBM2Model
+	{
+		"Default CBM-II 6x0 Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionCBM2Model = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_CBM2)
+			{
+				setSysModel(optionCBM2Model.val);
+			}
+		}
+	};
+
+	MultiChoiceSelectMenuItem defaultCBM5x0Model
+	{
+		"Default CBM-II 5x0 Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionCBM5x0Model = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_CBM5X0)
+			{
+				setSysModel(optionCBM5x0Model.val);
+			}
+		}
+	};
+
+	MultiChoiceSelectMenuItem defaultPetModel
+	{
+		"Default PET Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionPETModel = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_PET)
+			{
+				setSysModel(optionPETModel.val);
+			}
+		}
+	};
+
+	MultiChoiceSelectMenuItem defaultPlus4Model
+	{
+		"Default Plus/4 Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionPlus4Model = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_PLUS4)
+			{
+				setSysModel(optionPlus4Model.val);
+			}
+		}
+	};
+
+	MultiChoiceSelectMenuItem defaultVIC20Model
+	{
+		"Default VIC-20 Model",
+		[](MultiChoiceMenuItem &, View &, int val)
+		{
+			optionVIC20Model = val;
+			if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_VIC20)
+			{
+				setSysModel(optionVIC20Model.val);
+			}
+		}
+	};
 
 	MultiChoiceSelectMenuItem borderMode
 	{
-		"Border Mode",
+		"Borders",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			resources_set_int("VICIIBorderMode", val);
+			optionBorderMode = val;
+			setBorderMode(val);
 		}
 	};
 
@@ -112,7 +197,7 @@ class SystemOptionView : public OptionView
 			"Debug",
 			"None"
 		};
-		auto mode = intResource("VICIIBorderMode");
+		auto mode = optionBorderMode.val;
 		if(mode >= (int)sizeofArray(str))
 		{
 			mode = VICII_NORMAL_BORDERS;
@@ -127,7 +212,8 @@ class SystemOptionView : public OptionView
 		{
 			assert(val <= (int)sizeofArray(sidEngineChoiceMap));
 			logMsg("setting SID engine: %d", sidEngineChoiceMap[val]);
-			resources_set_int("SidEngine", sidEngineChoiceMap[val]);
+			optionSidEngine = sidEngineChoiceMap[val];
+			setSidEngine(sidEngineChoiceMap[val]);
 		}
 	};
 
@@ -150,7 +236,7 @@ class SystemOptionView : public OptionView
 				{
 					printSysPathMenuEntryStr(systemFilePathStr);
 					systemFilePath.compile(projP);
-					setupSysFilePaths(sysFilePath[0], firmwareBasePath);
+					sysFilePath[0] = firmwareBasePath;
 					if(!strlen(newPath))
 					{
 						if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
@@ -167,7 +253,7 @@ public:
 	static constexpr int sidEngineChoiceMap[]
 	{
 		SID_ENGINE_FASTSID,
-		#if defined(HAVE_RESID)
+		#if defined HAVE_RESID
 		SID_ENGINE_RESID,
 		#endif
 	};
@@ -178,7 +264,7 @@ private:
 		static const char *str[] =
 		{
 			"FastSID",
-			#if defined(HAVE_RESID)
+			#if defined HAVE_RESID
 			"ReSID",
 			#endif
 		};
@@ -217,10 +303,18 @@ public:
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		defaultC64ModelInit(); item[items++] = &defaultC64Model;
+		defaultModelInit(defaultC64Model, optionC64Model, c64ModelStr); item[items++] = &defaultC64Model;
+		defaultModelInit(defaultDTVModel, optionDTVModel, dtvModelStr); item[items++] = &defaultDTVModel;
+		defaultModelInit(defaultC128Model, optionC128Model, c128ModelStr); item[items++] = &defaultC128Model;
+		defaultModelInit(defaultSuperCPUModel, optionSuperCPUModel, superCPUModelStr); item[items++] = &defaultSuperCPUModel;
+		defaultModelInit(defaultCBM2Model, optionCBM2Model, cbm2ModelStr, 2); item[items++] = &defaultCBM2Model;
+		defaultModelInit(defaultCBM5x0Model, optionCBM5x0Model, cbm5x0ModelStr); item[items++] = &defaultCBM5x0Model;
+		defaultModelInit(defaultPetModel, optionPETModel, petModelStr); item[items++] = &defaultPetModel;
+		defaultModelInit(defaultPlus4Model, optionPlus4Model, plus4ModelStr); item[items++] = &defaultPlus4Model;
+		defaultModelInit(defaultVIC20Model, optionVIC20Model, vic20ModelStr); item[items++] = &defaultVIC20Model;
 		trueDriveEmu.init(optionDriveTrueEmulation); item[items++] = &trueDriveEmu;
-		autostartTDE.init(intResource("AutostartHandleTrueDriveEmulation")); item[items++] = &autostartTDE;
-		autostartWarp.init(intResource("AutostartWarp")); item[items++] = &autostartWarp;
+		autostartTDE.init(optionAutostartTDE); item[items++] = &autostartTDE;
+		autostartWarp.init(optionAutostartWarp); item[items++] = &autostartWarp;
 		printSysPathMenuEntryStr(systemFilePathStr);
 		systemFilePath.init(systemFilePathStr, true); item[items++] = &systemFilePath;
 	}
@@ -240,7 +334,7 @@ private:
 
 	void updateTapeText()
 	{
-		auto name = tape_get_file_name();
+		auto name = plugin.tape_get_file_name();
 		string_printf(tapeSlotStr, "Tape: %s", name ? FS::basename(name).data() : "");
 	}
 
@@ -258,7 +352,7 @@ public:
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
-				if(tape_image_attach(1, name) == 0)
+				if(plugin.tape_image_attach(1, name) == 0)
 				{
 					onTapeMediaChange(name);
 				}
@@ -272,8 +366,10 @@ private:
 	{
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			if(!item.active) return;
-			if(tape_get_file_name() && strlen(tape_get_file_name()))
+			if(!item.active)
+				return;
+			auto name = plugin.tape_get_file_name();
+			if(name && strlen(name))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Tape Drive", window()};
 				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr));
@@ -287,7 +383,7 @@ private:
 				multiChoiceView.setItem(1,
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
-						tape_image_detach(1);
+						plugin.tape_image_detach(1);
 						onTapeMediaChange("");
 						popAndShow();
 					});
@@ -305,8 +401,7 @@ private:
 
 	void updateROMText()
 	{
-		auto name = cartridge_get_file_name(cart_getid_slotmain());
-		FS::PathString basenameTemp;
+		auto name = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
 		string_printf(romSlotStr, "ROM: %s", name ? FS::basename(name).data() : "");
 	}
 
@@ -317,6 +412,20 @@ public:
 		romSlot.compile(projP);
 	}
 
+	static int systemCartType(ViceSystem system)
+	{
+		switch(system)
+		{
+			case VICE_SYSTEM_CBM2:
+			case VICE_SYSTEM_CBM5X0:
+				return CARTRIDGE_CBM2_8KB_1000;
+			case VICE_SYSTEM_PLUS4:
+				return CARTRIDGE_PLUS4_DETECT;
+			default:
+				return CARTRIDGE_CRT;
+		}
+	}
+
 	void addCartFilePickerView(Input::Event e)
 	{
 		auto &fPicker = *new EmuFilePicker{window()};
@@ -324,7 +433,7 @@ public:
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
-				if(cartridge_attach_image(CARTRIDGE_CRT, name) == 0)
+				if(plugin.cartridge_attach_image(systemCartType(currSystem), name) == 0)
 				{
 					onROMMediaChange(name);
 				}
@@ -338,7 +447,7 @@ private:
 	{
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto cartFilename = cartridge_get_file_name(cart_getid_slotmain());
+			auto cartFilename = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
 			if(cartFilename && strlen(cartFilename))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Cartridge Slot", window()};
@@ -353,7 +462,7 @@ private:
 				multiChoiceView.setItem(1,
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
-						cartridge_detach_image(-1);
+						plugin.cartridge_detach_image(-1);
 						onROMMediaChange("");
 						popAndShow();
 					});
@@ -376,7 +485,7 @@ private:
 
 	void updateDiskText(int slot)
 	{
-		auto name = file_system_get_disk_name(slot+8);
+		auto name = plugin.file_system_get_disk_name(slot+8);
 		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], name ? FS::basename(name).data() : "");
 	}
 
@@ -394,7 +503,7 @@ private:
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
 				logMsg("inserting disk in unit %d", slot+8);
-				if(file_system_attach_disk(slot+8, name) == 0)
+				if(plugin.file_system_attach_disk(slot+8, name) == 0)
 				{
 					onDiskMediaChange(name, slot);
 				}
@@ -406,7 +515,8 @@ private:
 public:
 	void onSelectDisk(Input::Event e, uint8 slot)
 	{
-		if(file_system_get_disk_name(slot+8) && strlen(file_system_get_disk_name(slot+8)))
+		auto name = plugin.file_system_get_disk_name(slot+8);
+		if(name && strlen(name))
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
 			multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr));
@@ -420,7 +530,7 @@ public:
 			multiChoiceView.setItem(1,
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
-					file_system_detach_disk(slot+8);
+					plugin.file_system_detach_disk(slot+8);
 					onDiskMediaChange("", slot);
 					popAndShow();
 				});
@@ -440,23 +550,24 @@ private:
 		{[this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 1); }},
 	};
 
-	MultiChoiceSelectMenuItem c64Model
+	MultiChoiceSelectMenuItem model
 	{
-		"C64 Model",
+		"Model",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			setC64Model(val);
+			setSysModel(val);
 		}
 	};
 
-	void c64ModelInit()
+	void modelInit()
 	{
-		auto model = c64model_get();
-		if(model >= (int)sizeofArray(c64ModelStr))
+		auto modelVal = sysModel();
+		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
+		if(modelVal < baseVal || modelVal >= plugin.models + baseVal)
 		{
-			model = 0;
+			modelVal = baseVal;
 		}
-		c64Model.init(c64ModelStr, model, sizeofArray(c64ModelStr));
+		model.init(plugin.modelStr, modelVal, plugin.models, baseVal);
 	}
 
 	MenuItem *item[10]{};
@@ -466,8 +577,11 @@ public:
 	void init()
 	{
 		uint i = 0;
-		updateROMText();
-		romSlot.init(romSlotStr); item[i++] = &romSlot;
+		if(plugin.cartridge_attach_image_)
+		{
+			updateROMText();
+			romSlot.init(romSlotStr); item[i++] = &romSlot;
+		}
 
 		iterateTimes(1, slot)
 		{
@@ -478,7 +592,7 @@ public:
 		updateTapeText();
 		tapeSlot.init(tapeSlotStr); item[i++] = &tapeSlot;
 
-		c64ModelInit(); item[i++] = &c64Model;
+		modelInit(); item[i++] = &model;
 		assert(i <= sizeofArray(item));
 		TableView::init(item, i);
 	}
@@ -515,7 +629,7 @@ class SystemMenuView : public MenuView
 
 	TextMenuItem quickSettings
 	{
-		"Apply Quick C64 Settings",
+		"Apply Quick Settings",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			static auto reloadGame =
@@ -536,35 +650,155 @@ class SystemMenuView : public MenuView
 				[this](TextMenuItem &, View &, Input::Event e)
 				{
 					popAndShow();
-					setTrueDriveEmu(1);
-					setC64Model(C64MODEL_C64_NTSC);
+					optionDriveTrueEmulation = true;
+					setDriveTrueEmulation(true);
+					setDefaultNTSCModel();
 					reloadGame();
 				});
 			multiChoiceView.setItem(1, "2. NTSC",
 				[this](TextMenuItem &, View &, Input::Event e)
 				{
 					popAndShow();
-					setTrueDriveEmu(0);
-					setC64Model(C64MODEL_C64_NTSC);
+					optionDriveTrueEmulation = false;
+					setDriveTrueEmulation(false);
+					setDefaultNTSCModel();
 					reloadGame();
 				});
 			multiChoiceView.setItem(2, "3. PAL & True Drive Emu",
 				[this](TextMenuItem &, View &, Input::Event e)
 				{
 					popAndShow();
-					setTrueDriveEmu(1);
-					setC64Model(C64MODEL_C64_PAL);
+					optionDriveTrueEmulation = true;
+					setDriveTrueEmulation(true);
+					setDefaultPALModel();
 					reloadGame();
 				});
 			multiChoiceView.setItem(3, "4. PAL",
 				[this](TextMenuItem &, View &, Input::Event e)
 				{
 					popAndShow();
-					setTrueDriveEmu(0);
-					setC64Model(C64MODEL_C64_PAL);
+					optionDriveTrueEmulation = false;
+					setDriveTrueEmulation(false);
+					setDefaultPALModel();
 					reloadGame();
 				});
 			viewStack.pushAndShow(multiChoiceView, e);
+		}
+	};
+
+	std::array<char, 34> systemStr{};
+
+	TextMenuItem system
+	{
+		systemStr.data(),
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			bool systemPresent[VicePlugin::SYSTEMS]{};
+			uint systems = 0;
+			iterateTimes(sizeofArray(systemPresent), i)
+			{
+				bool hasSystem = VicePlugin::hasSystemLib((ViceSystem)i);
+				systemPresent[i] = hasSystem;
+				if(hasSystem)
+					systems++;
+			}
+			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
+			multiChoiceView.init(systems, LC2DO);
+			uint idx = 0;
+			iterateTimes(sizeofArray(systemPresent), i)
+			{
+				if(!systemPresent[i])
+				{
+					continue;
+				}
+				multiChoiceView.setItem(idx, VicePlugin::systemName((ViceSystem)i),
+					[this, i](TextMenuItem &, View &, Input::Event e)
+					{
+						optionViceSystem = i;
+						popAndShow();
+						auto &ynAlertView = *new YesNoAlertView{window(), "Changing systems needs app restart, exit now?"};
+						ynAlertView.onYes() =
+							[](Input::Event e)
+							{
+								Base::exit();
+							};
+						modalViewController.pushAndShow(ynAlertView, e);
+					});
+				idx++;
+			}
+			viewStack.pushAndShow(multiChoiceView, e);
+		}
+	};
+
+	FS::FileString newDiskName;
+
+	TextMenuItem startWithBlankDisk
+	{
+		"Start System With Blank Disk",
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			auto &textInputView = *new CollectTextInputView{window()};
+			textInputView.init("Input Disk Name", getCollectTextCloseAsset());
+			textInputView.onText() =
+				[this](CollectTextInputView &view, const char *str)
+				{
+					if(str)
+					{
+						if(!strlen(str))
+						{
+							popup.postError("Name can't be blank");
+							return 1;
+						}
+						string_copy(newDiskName, str);
+						workDirStack.push();
+						FS::current_path(optionSavePath);
+						auto &fPicker = *new EmuFilePicker{window()};
+						fPicker.init(true, {});
+						fPicker.setOnClose(
+							[this](FSPicker &picker, Input::Event e)
+							{
+								picker.dismiss();
+								auto path = FS::makePathStringPrintf("%s/%s.d64", FS::current_path().data(), newDiskName.data());
+								workDirStack.pop();
+								if(e.isDefaultCancelButton())
+								{
+									// picker was cancelled
+									popup.clear();
+									return;
+								}
+								if(FS::exists(path))
+								{
+									popup.postError("File already exists");
+									return;
+								}
+								if(plugin.vdrive_internal_create_format_disk_image(path.data(),
+									FS::makeFileStringPrintf("%s,dsk", newDiskName.data()).data(),
+									DISK_IMAGE_TYPE_D64) == -1)
+								{
+									popup.postError("Error creating disk image");
+									return;
+								}
+								auto res = ::loadGame(path.data(), false);
+								if(res == 1)
+								{
+									loadGameComplete(false, true);
+								}
+								else if(res == 0)
+								{
+									EmuSystem::clearGamePaths();
+								}
+							});
+						view.dismiss();
+						modalViewController.pushAndShow(fPicker, Input::defaultEvent());
+						popup.post("Set directory to save disk");
+					}
+					else
+					{
+						view.dismiss();
+					}
+					return 0;
+				};
+			modalViewController.pushAndShow(textInputView, {});
 		}
 	};
 
@@ -583,9 +817,12 @@ public:
 		name_ = appViewTitle();
 		uint items = 0;
 		loadFileBrowserItems(item, items);
+		startWithBlankDisk.init(); item[items++] = &startWithBlankDisk;
 		c64IOControl.init(); item[items++] = &c64IOControl;
 		quickSettings.init(); item[items++] = &quickSettings;
 		swapJoystickPorts.init(optionSwapJoystickPorts); item[items++] = &swapJoystickPorts;
+		string_printf(systemStr, "System: %s", VicePlugin::systemName(currSystem));
+		system.init(); item[items++] = &system;
 		loadStandardItems(item, items);
 		assert(items <= sizeofArray(item));
 		TableView::init(item, items);

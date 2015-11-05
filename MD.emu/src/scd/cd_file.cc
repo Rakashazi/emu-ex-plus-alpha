@@ -11,6 +11,7 @@
 #include "cd_file.h"
 #include "cd_sys.h"
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
