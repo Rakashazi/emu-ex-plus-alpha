@@ -15,7 +15,7 @@
 
 #import <UIKit/UIKit.h>
 #import <OpenGLES/EAGL.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/iphone/config.h>
 
 @interface EAGLView : UIView

@@ -17,7 +17,7 @@
 
 #include <jni.h>
 #include <semaphore.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>

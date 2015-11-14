@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 
 #if defined(CONFIG_RESOURCE_FACE)
@@ -23,7 +23,7 @@
 #include <float.h>
 #include "GfxSprite.hh"
 #include <imagine/util/2DOrigin.h>
-#include <imagine/util/basicString.h>
+#include <imagine/util/string.h>
 #include <imagine/resource/face/ResourceFace.hh>
 
 namespace Gfx

@@ -194,7 +194,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 	{
 		type_ |= Device::TYPE_BIT_VIRTUAL;
 	}
-	if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_GAMEPAD))
+	if(IG::isBitMaskSet(src, AInputDeviceJ::SOURCE_GAMEPAD))
 	{
 		bool isGamepad = 1;
 		if(Config::MACHINE_IS_GENERIC_ARMV7 && strstr(name, "-zeus"))
@@ -240,7 +240,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 			type_ |= Device::TYPE_BIT_GAMEPAD;
 		}
 	}
-	if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_KEYBOARD))
+	if(IG::isBitMaskSet(src, AInputDeviceJ::SOURCE_KEYBOARD))
 	{
 		auto kbType = aDev.getKeyboardType(env);
 		// Classify full alphabetic keyboards, and also devices with other keyboard
@@ -253,7 +253,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, AInputDeviceJ aDev, uint enu
 			logMsg("has keyboard type: %s", inputDeviceKeyboardTypeToStr(kbType));
 		}
 	}
-	if(bit_isMaskSet(src, AInputDeviceJ::SOURCE_JOYSTICK))
+	if(IG::isBitMaskSet(src, AInputDeviceJ::SOURCE_JOYSTICK))
 	{
 		type_ |= Device::TYPE_BIT_JOYSTICK;
 		logMsg("detected a joystick");
@@ -409,7 +409,7 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 				return true;
 			}
 		}
-		unsetBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
+		typeBits = IG::clearBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
 	}
 
 	if(Config::MACHINE_IS_GENERIC_ARMV7 && hasXperiaPlayGamepad() &&
@@ -645,7 +645,7 @@ CallResult init()
 					})
 				}
 			};
-			env->RegisterNatives(inputDeviceListenerHelperCls, method, sizeofArray(method));
+			env->RegisterNatives(inputDeviceListenerHelperCls, method, IG::size(method));
 		}
 		else
 		{

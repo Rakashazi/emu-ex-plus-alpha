@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/base/iphone/config.h>

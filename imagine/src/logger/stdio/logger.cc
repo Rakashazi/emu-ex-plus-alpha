@@ -17,6 +17,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/string.h>
 #include <cstdio>
 
 #ifdef __ANDROID__

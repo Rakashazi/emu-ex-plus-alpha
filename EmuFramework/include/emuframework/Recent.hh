@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/fs/FS.hh>
-#include <imagine/util/basicString.h>
+#include <imagine/util/string.h>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/MenuItem.hh>

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
-#include <imagine/util/fixed.hh>
+#include <imagine/config/defs.hh>
 #include <imagine/util/normalFloat.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 
@@ -59,9 +58,9 @@ using VertexPos = float;
 using Angle = float;
 using TextureCoordinate = float;
 
-static constexpr Angle angleFromDegree(Angle deg) { return IG::toRadians(deg); }
+static constexpr Angle angleFromDegree(Angle deg) { return IG::radians(deg); }
 static constexpr Angle angleFromRadian(Angle rad) { return rad; }
-static constexpr Angle angleToDegree(Angle a) { return IG::toDegrees(a); }
+static constexpr Angle angleToDegree(Angle a) { return IG::degrees(a); }
 static constexpr Angle angleToRadian(Angle a) { return a; }
 
 static const uint gColor_steps = 255;

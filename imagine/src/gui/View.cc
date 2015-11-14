@@ -63,7 +63,7 @@ bool View::compileGfxPrograms()
 void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
 {
 	this->viewRect() = rect;
-	var_selfs(projP);
+	this->projP = projP;
 }
 
 void View::postDraw()

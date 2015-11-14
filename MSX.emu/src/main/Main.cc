@@ -220,7 +220,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 #include <emuframework/CommonGui.hh>
 
@@ -316,7 +316,7 @@ static void setupVKeyboardMap(uint boardType)
 
 void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
 {
-	memcpy(map, mode ? kbToEventMap2 : kbToEventMap, sizeof(SysVController::KbMap));
+	map = mode ? kbToEventMap2 : kbToEventMap;
 }
 
 void updateVControllerMapping(uint player, SysVController::Map &map)

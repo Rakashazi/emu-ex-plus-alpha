@@ -17,6 +17,7 @@
 #include <emuframework/inGameActionKeys.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
+#include <imagine/util/math/int.hh>
 
 #ifdef CONFIG_INPUT_POINTING_DEVICES
 bool ButtonConfigSetView::pointerUIIsInit()
@@ -296,7 +297,7 @@ void ButtonConfigView::init(const KeyCategory *cat, InputDeviceConfig &devConf)
 {
 	name_ = cat->name;
 	logMsg("init button config view for %s", Input::Event::mapName(devConf.dev->map()));
-	var_selfs(cat);
+	this->cat = cat;
 	this->devConf = &devConf;
 	auto keyConfig = devConf.keyConf();
 

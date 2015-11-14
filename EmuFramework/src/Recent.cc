@@ -15,6 +15,7 @@
 
 #include <emuframework/Recent.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 
 StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList{};
 
@@ -26,7 +27,7 @@ void recent_addGame(const char *fullPath, const char *name)
 	RecentGameInfo recent;
 	string_copy(recent.path, fullPath);
 	string_copy(recent.name, name);
-	if(contains(recentGameList, recent)) // remove existing entry so it's added to the front
+	if(IG::contains(recentGameList, recent)) // remove existing entry so it's added to the front
 		recentGameList.remove(recent);
 	else if(recentGameList.isFull()) // list full
 		recentGameList.pop_back();

@@ -20,6 +20,8 @@ ifdef O_LTO
  CFLAGS_CODEGEN += -flto
 endif
 
+CFLAGS_WARN += -Wno-missing-braces
+
 AR ?= llvm-ar
 
 # TODO: check if still needed

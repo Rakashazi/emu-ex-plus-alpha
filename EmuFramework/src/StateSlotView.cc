@@ -53,6 +53,6 @@ void StateSlotView::init()
 				view.dismiss();
 			};
 	}
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }

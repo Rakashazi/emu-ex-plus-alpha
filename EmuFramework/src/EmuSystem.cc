@@ -21,6 +21,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/audio/Audio.hh>
 #include <imagine/util/assume.h>
+#include <imagine/util/math/int.hh>
 #include <algorithm>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;

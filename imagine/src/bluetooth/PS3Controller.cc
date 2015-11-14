@@ -18,7 +18,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
-#include <imagine/util/algorithm.h>
 #include "../input/private.hh"
 
 using namespace IG;
@@ -234,14 +233,14 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 		{
 			auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 			const uchar *digitalBtnData = &packet[3];
-			forEachInArray(padDataAccess, e)
+			for(auto &e : padDataAccess)
 			{
-				int newState = e->updateState(prevData, digitalBtnData);
+				int newState = e.updateState(prevData, digitalBtnData);
 				if(newState != -1)
 				{
-					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e->keyEvent), newState ? "pushed" : "released", player);
+					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
 					Base::endIdleByUserActivity();
-					Event event{player, Event::MAP_PS3PAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, time, this};
+					Event event{player, Event::MAP_PS3PAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -310,15 +309,15 @@ uchar PS3Controller::playerLEDs(uint player)
 
 uint PS3Controller::findFreeDevId()
 {
-	uint id[5] {0};
+	uint id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
 	}
-	forEachInArray(id, e)
+	for(auto &e : id)
 	{
-		if(*e == 0)
-			return e_i;
+		if(e == 0)
+			return &e - id;
 	}
 	logMsg("too many devices");
 	return 0;

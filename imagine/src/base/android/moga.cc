@@ -15,6 +15,7 @@
 
 #define LOGTAG "MOGAInput"
 #include <imagine/base/Base.hh>
+#include <imagine/util/algorithm.h>
 #include "internal.hh"
 #include "android.hh"
 #include "../../input/private.hh"
@@ -116,7 +117,7 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			})
 		}
 	};
-	env->RegisterNatives(mogaHelperCls, method, sizeofArray(method));
+	env->RegisterNatives(mogaHelperCls, method, IG::size(method));
 
 	mogaDev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
 	mogaDev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
@@ -176,7 +177,7 @@ void deinitMOGA()
 	jMOGAExit(env, mogaHelper);
 	env->DeleteGlobalRef(mogaHelper);
 	mogaHelper = nullptr;
-	if(contains(devList, &mogaDev))
+	if(IG::contains(devList, &mogaDev))
 	{
 		mogaConnected = false;
 		removeDevice(mogaDev);

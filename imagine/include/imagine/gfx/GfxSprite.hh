@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/GeomRect.hh>
@@ -66,15 +66,16 @@ public:
 			return false;
 	}
 
-	void useDefaultProgram(uint mode, const Mat4 *modelMat)
+	void useDefaultProgram(uint mode, const Mat4 *modelMat) const
 	{
 		if(img)
 			img->useDefaultProgram(mode, modelMat);
 	}
 
-	void useDefaultProgram(uint mode) { useDefaultProgram(mode, nullptr); }
-	void useDefaultProgram(uint mode, Mat4 modelMat) { useDefaultProgram(mode, &modelMat); }
+	void useDefaultProgram(uint mode) const { useDefaultProgram(mode, nullptr); }
+	void useDefaultProgram(uint mode, Mat4 modelMat) const { useDefaultProgram(mode, &modelMat); }
 	Texture *image() { return img; }
+	const Texture *image() const { return img; }
 
 private:
 	Texture *img{};

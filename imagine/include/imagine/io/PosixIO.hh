@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
 #include <imagine/io/BufferMapIO.hh>
 

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <assert.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/utility.h>
 #include <imagine/util/builtins.h>
 //#include <imagine/logger/logger.h>
 

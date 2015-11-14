@@ -74,7 +74,7 @@ static GBPalette gbPal[] =
 };
 
 static Byte1Option optionGBPal
-		(CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<sizeofArray(gbPal)-1>);
+		(CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<IG::size(gbPal)-1>);
 static Byte1Option optionUseBuiltinGBPalette(CFGKEY_USE_BUILTIN_GB_PAL, 1);
 static Byte1Option optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
 static Byte1Option optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
@@ -82,7 +82,7 @@ static Byte1Option optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
 static void applyGBPalette()
 {
 	uint idx = optionGBPal;
-	assert(idx < sizeofArray(gbPal));
+	assert(idx < IG::size(gbPal));
 	bool useBuiltin = optionUseBuiltinGBPalette && gameBuiltinPalette;
 	if(useBuiltin)
 		logMsg("using built-in game palette");
@@ -127,7 +127,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"10:9 (Original)", 10, 9},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -246,10 +246,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	if(state == Input::PUSHED)
-		setBits(gbcInput.bits, emuKey);
-	else
-		unsetBits(gbcInput.bits, emuKey);
+	gbcInput.bits = IG::setOrClearBits(gbcInput.bits, emuKey, state == Input::PUSHED);
 }
 
 void EmuSystem::reset(ResetMode mode)

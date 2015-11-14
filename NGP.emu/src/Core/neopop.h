@@ -120,8 +120,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <endian.h>
-// Provides min()/max()
-#include <imagine/util/basicMath.hh>
 #include <imagine/util/ansiTypes.h>
 
 //=============================================================================

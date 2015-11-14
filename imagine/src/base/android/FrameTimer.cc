@@ -171,7 +171,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 				})
 			}
 		};
-		env->RegisterNatives(choreographerHelperCls, method, sizeofArray(method));
+		env->RegisterNatives(choreographerHelperCls, method, IG::size(method));
 	}
 	else // MessageQueue.IdleHandler
 	{
@@ -210,7 +210,7 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 				})
 			}
 		};
-		env->RegisterNatives(idleHelperCls, method, sizeofArray(method));
+		env->RegisterNatives(idleHelperCls, method, IG::size(method));
 	}
 	return true;
 }

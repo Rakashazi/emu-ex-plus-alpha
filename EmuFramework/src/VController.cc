@@ -16,8 +16,8 @@
 #define LOGTAG "VController"
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
-#include <algorithm>
-#include <imagine/util/memory/search.h>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/math/int.hh>
 
 void VControllerDPad::init() {}
 
@@ -125,7 +125,7 @@ void VControllerDPad::setBoundingAreaVisible(bool on)
 	}
 }
 
-void VControllerDPad::draw()
+void VControllerDPad::draw() const
 {
 	Gfx::TextureSampler::bindDefaultNearestMipClampSampler();
 	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
@@ -138,7 +138,7 @@ void VControllerDPad::draw()
 	}
 }
 
-int VControllerDPad::getInput(int cx, int cy)
+int VControllerDPad::getInput(int cx, int cy) const
 {
 	if(padArea.overlaps({cx, cy}))
 	{
@@ -209,7 +209,7 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset)
 	logMsg("key size %dx%d", keyXSize, keyYSize);
 }
 
-void VControllerKeyboard::draw()
+void VControllerKeyboard::draw() const
 {
 	if(spr.image()->levels() > 1)
 		Gfx::TextureSampler::bindDefaultNearestMipClampSampler();
@@ -219,7 +219,7 @@ void VControllerKeyboard::draw()
 	spr.draw();
 }
 
-int VControllerKeyboard::getInput(int cx, int cy)
+int VControllerKeyboard::getInput(int cx, int cy) const
 {
 	if(bound.overlaps({cx, cy}))
 	{
@@ -263,7 +263,7 @@ void VControllerGamepad::setBoundingAreaVisible(bool on)
 	dp.setBoundingAreaVisible(on);
 }
 
-bool VControllerGamepad::boundingAreaVisible()
+bool VControllerGamepad::boundingAreaVisible() const
 {
 	return showBoundingArea;
 }
@@ -451,13 +451,13 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos)
 		uint btnMap6[] 		{2, 1, 0, 3, 4, 5};
 		uint rows = rowsForButtons(activeFaceBtns);
 		if(activeFaceBtns == 6)
-			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap6Rev : btnMap6, sizeofArray(btnMap6), rows, pos);
+			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap6Rev : btnMap6, IG::size(btnMap6), rows, pos);
 		else if(activeFaceBtns == 4)
-			layoutBtnRows(btnMap4, sizeofArray(btnMap4), rows, pos);
+			layoutBtnRows(btnMap4, IG::size(btnMap4), rows, pos);
 		else if(activeFaceBtns == 3)
-			layoutBtnRows(btnMap3, sizeofArray(btnMap3), rows, pos);
+			layoutBtnRows(btnMap3, IG::size(btnMap3), rows, pos);
 		else
-			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap2Rev : btnMap, sizeofArray(btnMap), rows, pos);
+			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap2Rev : btnMap, IG::size(btnMap), rows, pos);
 	}
 	else
 	{
@@ -467,11 +467,11 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos)
 			uint btnMap6[] {1, 0, 5, 3, 2, 4};
 			uint btnMap4[] {1, 0, 2, 3};
 			if(EmuSystem::inputFaceBtns == 8)
-				layoutBtnRows(btnMap8, sizeofArray(btnMap8), 2, pos);
+				layoutBtnRows(btnMap8, IG::size(btnMap8), 2, pos);
 			else if(EmuSystem::inputFaceBtns == 6)
-				layoutBtnRows(btnMap6, sizeofArray(btnMap6), 2, pos);
+				layoutBtnRows(btnMap6, IG::size(btnMap6), 2, pos);
 			else
-				layoutBtnRows(btnMap4, sizeofArray(btnMap4), 2, pos);
+				layoutBtnRows(btnMap4, IG::size(btnMap4), 2, pos);
 		}
 		else
 		{
@@ -479,11 +479,11 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos)
 			uint btnMap6[] {1, 0, 3, 2};
 			uint btnMap4[] {1, 0};
 			if(EmuSystem::inputFaceBtns == 8)
-				layoutBtnRows(btnMap8, sizeofArray(btnMap8), 2, pos);
+				layoutBtnRows(btnMap8, IG::size(btnMap8), 2, pos);
 			else if(EmuSystem::inputFaceBtns == 6)
-				layoutBtnRows(btnMap6, sizeofArray(btnMap6), 2, pos);
+				layoutBtnRows(btnMap6, IG::size(btnMap6), 2, pos);
 			else
-				layoutBtnRows(btnMap4, sizeofArray(btnMap4), 1, pos);
+				layoutBtnRows(btnMap4, IG::size(btnMap4), 1, pos);
 		}
 	}
 }
@@ -512,24 +512,27 @@ void VControllerGamepad::setBaseBtnSize(uint sizeInPixels)
 	rTriggerBound = IG::makeWindowRectRel({0, 0}, {btnSizePixels, btnSizePixels});
 }
 
-void VControllerGamepad::getCenterBtnInput(int x, int y, int btnOut[2])
+std::array<int, 2> VControllerGamepad::getCenterBtnInput(int x, int y) const
 {
+	std::array<int, 2> btnOut{-1, -1};
 	uint count = 0;
 	iterateTimes(EmuSystem::inputCenterBtns, i)
 	{
 		if(centerBtnBound[i].overlaps({x, y}))
 		{
-			//logMsg("overlaps %d", (int)e_i);
+			//logMsg("overlaps %d", (int)i);
 			btnOut[count] = i;
 			count++;
 			if(count == 2)
-				return;
+				return btnOut;
 		}
 	}
+	return btnOut;
 }
 
-void VControllerGamepad::getBtnInput(int x, int y, int btnOut[2])
+std::array<int, 2> VControllerGamepad::getBtnInput(int x, int y) const
 {
+	std::array<int, 2> btnOut{-1, -1};
 	uint count = 0;
 	bool doSeparateTriggers = EmuSystem::inputHasTriggerBtns && !triggersInline;
 	if(faceBtnsState)
@@ -538,11 +541,11 @@ void VControllerGamepad::getBtnInput(int x, int y, int btnOut[2])
 		{
 			if(faceBtnBound[i].overlaps({x, y}))
 			{
-				//logMsg("overlaps %d", (int)e_i);
+				//logMsg("overlaps %d", (int)i);
 				btnOut[count] = i;
 				count++;
 				if(count == 2)
-					return;
+					return btnOut;
 			}
 		}
 	}
@@ -556,7 +559,7 @@ void VControllerGamepad::getBtnInput(int x, int y, int btnOut[2])
 				btnOut[count] = lTriggerIdx();
 				count++;
 				if(count == 2)
-					return;
+					return btnOut;
 			}
 		}
 		if(rTriggerState)
@@ -566,13 +569,15 @@ void VControllerGamepad::getBtnInput(int x, int y, int btnOut[2])
 				btnOut[count] = rTriggerIdx();
 				count++;
 				if(count == 2)
-					return;
+					return btnOut;
 			}
 		}
 	}
+
+	return btnOut;
 }
 
-void VControllerGamepad::draw(bool showHidden)
+void VControllerGamepad::draw(bool showHidden) const
 {
 	using namespace Gfx;
 	if(dp.state == 1 || (showHidden && dp.state))
@@ -646,22 +651,22 @@ void VControllerGamepad::draw(bool showHidden)
 	}
 }
 
-Gfx::GC VController::xMMSize(Gfx::GC mm)
+Gfx::GC VController::xMMSize(Gfx::GC mm) const
 {
 	return useScaledCoordinates ? mainWin.projectionPlane.xSMMSize(mm) : mainWin.projectionPlane.xMMSize(mm);
 }
 
-Gfx::GC VController::yMMSize(Gfx::GC mm)
+Gfx::GC VController::yMMSize(Gfx::GC mm) const
 {
 	return useScaledCoordinates ? mainWin.projectionPlane.ySMMSize(mm) : mainWin.projectionPlane.yMMSize(mm);
 }
 
-int VController::xMMSizeToPixel(const Base::Window &win, Gfx::GC mm)
+int VController::xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const
 {
 	return useScaledCoordinates ? win.widthSMMInPixels(mm) : win.widthMMInPixels(mm);
 }
 
-int VController::yMMSizeToPixel(const Base::Window &win, Gfx::GC mm)
+int VController::yMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const
 {
 	return useScaledCoordinates ? win.heightSMMInPixels(mm) : win.heightMMInPixels(mm);
 }
@@ -685,7 +690,7 @@ void VController::setBoundingAreaVisible(bool on)
 	#endif
 }
 
-bool VController::boundingAreaVisible()
+bool VController::boundingAreaVisible() const
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	return gp.boundingAreaVisible();
@@ -726,12 +731,12 @@ void VController::inputAction(uint action, uint vBtn)
 {
 	if(isInKeyboardMode())
 	{
-		assert(vBtn < sizeofArray(kbMap));
+		assert(vBtn < IG::size(kbMap));
 		EmuSystem::handleInputAction(action, kbMap[vBtn]);
 	}
 	else
 	{
-		assert(vBtn < sizeofArray(map));
+		assert(vBtn < IG::size(map));
 		auto turbo = map[vBtn] & TURBO_BIT;
 		auto keyCode = map[vBtn] & ACTION_MASK;
 		if(turbo)
@@ -751,21 +756,20 @@ void VController::inputAction(uint action, uint vBtn)
 
 void VController::resetInput(bool init)
 {
-	iterateTimes(Config::Input::MAX_POINTERS, i)
+	for(auto &e : ptrElem)
 	{
-		iterateTimes(2, j)
+		for(auto &vBtn : e)
 		{
-			if(!init && ptrElem[i][j] != -1) // release old key, if any
-				inputAction(Input::RELEASED, ptrElem[i][j]);
-			ptrElem[i][j] = -1;
-			prevPtrElem[i][j] = -1;
+			if(!init && vBtn != -1) // release old key, if any
+				inputAction(Input::RELEASED, vBtn);
+			vBtn = -1;
 		}
 	}
 }
 
 void VController::init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP)
 {
-	var_selfs(alpha);
+	this->alpha = alpha;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	gp.init(alpha);
 	#endif
@@ -787,16 +791,16 @@ void VController::toggleKeyboard()
 {
 	logMsg("toggling keyboard");
 	resetInput();
-	toggle(kbMode);
+	kbMode ^= true;
 }
 
-void VController::findElementUnderPos(Input::Event e, int elemOut[2])
+std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 {
 	if(isInKeyboardMode())
 	{
 		int kbChar = kb.getInput(e.x, e.y);
 		if(kbChar == -1)
-			return;
+			return {-1, -1};
 		if(kbChar == 30 && e.pushed())
 		{
 			logMsg("dismiss kb");
@@ -805,39 +809,31 @@ void VController::findElementUnderPos(Input::Event e, int elemOut[2])
 		else if((kbChar == 31 || kbChar == 32) && e.pushed())
 		{
 			logMsg("switch kb mode");
-			toggle(kb.mode);
+			kb.mode ^= true;
 			kb.updateImg();
 			resetInput();
 			updateKeyboardMapping();
 		}
 		else
-			elemOut[0] = kbChar;
-		return;
+			 return {kbChar, -1};
+		return {-1, -1};
 	}
 
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if(gp.centerBtnsState != 0)
 	{
-		int elem[2]= { -1, -1 };
-		gp.getCenterBtnInput(e.x, e.y, elem);
+		auto elem = gp.getCenterBtnInput(e.x, e.y);
 		if(elem[0] != -1)
 		{
-			elemOut[0] = C_ELEM + elem[0];
-			if(elem[1] != -1)
-				elemOut[1] = C_ELEM + elem[1];
-			return;
+			return {C_ELEM + elem[0], elem[1] != -1 ? C_ELEM + elem[1] : -1};
 		}
 	}
 
 	{
-		int elem[2]= { -1, -1 };
-		gp.getBtnInput(e.x, e.y, elem);
+		auto elem = gp.getBtnInput(e.x, e.y);
 		if(elem[0] != -1)
 		{
-			elemOut[0] = F_ELEM + elem[0];
-			if(elem[1] != -1)
-				elemOut[1] = F_ELEM + elem[1];
-			return;
+			return {F_ELEM + elem[0], elem[1] != -1 ? F_ELEM + elem[1] : -1};
 		}
 	}
 
@@ -846,11 +842,11 @@ void VController::findElementUnderPos(Input::Event e, int elemOut[2])
 		int elem = gp.dp.getInput(e.x, e.y);
 		if(elem != -1)
 		{
-			elemOut[0] = D_ELEM + elem;
-			return;
+			return {D_ELEM + elem, -1};
 		}
 	}
 	#endif
+	return {-1, -1};
 }
 
 void VController::applyInput(Input::Event e)
@@ -858,18 +854,17 @@ void VController::applyInput(Input::Event e)
 	using namespace IG;
 	assert(e.isPointer());
 	auto drag = Input::dragState(e.devId);
-
-	int elem[2] = { -1, -1 };
+	auto &currElem = ptrElem[e.devId];
+	std::array<int, 2> elem{-1, -1};
 	if(drag->pushed) // make sure the cursor isn't hovering
-		findElementUnderPos(e, elem);
+		elem = findElementUnderPos(e);
 
 	//logMsg("under %d %d", elem[0], elem[1]);
 
 	// release old buttons
-	iterateTimes(2, i)
+	for(auto vBtn : currElem)
 	{
-		auto vBtn = ptrElem[e.devId][i];
-		if(vBtn != -1 && !mem_findFirstValue(elem, vBtn))
+		if(vBtn != -1 && !IG::contains(elem, vBtn))
 		{
 			//logMsg("releasing %d", vBtn);
 			inputAction(Input::RELEASED, vBtn);
@@ -877,10 +872,9 @@ void VController::applyInput(Input::Event e)
 	}
 
 	// push new buttons
-	iterateTimes(2, i)
+	for(auto vBtn : elem)
 	{
-		auto vBtn = elem[i];
-		if(vBtn != -1 && !mem_findFirstValue(ptrElem[e.devId], vBtn))
+		if(vBtn != -1 && !IG::contains(currElem, vBtn))
 		{
 			//logMsg("pushing %d", vBtn);
 			inputAction(Input::PUSHED, vBtn);
@@ -891,7 +885,7 @@ void VController::applyInput(Input::Event e)
 		}
 	}
 
-	memcpy(ptrElem[e.devId], elem, sizeof(elem));
+	currElem = elem;
 }
 
 void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden)
@@ -1023,7 +1017,7 @@ void VController::setState(int elemIdx, uint state)
 	#endif
 }
 
-uint VController::state(int elemIdx)
+uint VController::state(int elemIdx) const
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	switch(elemIdx)

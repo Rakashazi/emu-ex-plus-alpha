@@ -124,7 +124,6 @@
 
 #include <imagine/logger/logger.h>
 #include <genplus-config.h>
-#include <imagine/util/branch.h>
 #include <imagine/util/algorithm.h>
 #include <string.h>
 

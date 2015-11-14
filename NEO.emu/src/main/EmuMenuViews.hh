@@ -22,7 +22,7 @@ private:
 		{
 				"Off", "On", "Auto"
 		};
-		timer.init(str, std::min(2, (int)optionTimerInt), sizeofArray(str));
+		timer.init(str, std::min(2, (int)optionTimerInt), IG::size(str));
 	}
 
 	MultiChoiceSelectMenuItem region
@@ -46,7 +46,7 @@ private:
 		{
 			setting = conf.country;
 		}
-		region.init(str, setting, sizeofArray(str));
+		region.init(str, setting, IG::size(str));
 	}
 
 	MultiChoiceSelectMenuItem bios
@@ -79,7 +79,7 @@ private:
 			bcase SYS_UNIBIOS_3_1: setting = 2;
 			bcase SYS_ARCADE: setting = 3;
 		}
-		bios.init(str, setting, sizeofArray(str));
+		bios.init(str, setting, IG::size(str));
 	}
 
 	BoolMenuItem listAll
@@ -415,9 +415,9 @@ static const RomListEntry romlist[]
 class GameListView : public TableView
 {
 private:
-	char longName[sizeofArrayConst(romlist)][128]{};
-	TextMenuItem rom[sizeofArrayConst(romlist)]{};
-	MenuItem *item[sizeofArrayConst(romlist)]{};
+	char longName[IG::size(romlist)][128]{};
+	TextMenuItem rom[IG::size(romlist)]{};
+	MenuItem *item[IG::size(romlist)]{};
 
 	static void loadGame(const RomListEntry &entry)
 	{
@@ -490,7 +490,7 @@ public:
 		if(!roms)
 			return 0;
 
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 		return 1;
 	}
@@ -504,8 +504,8 @@ class UnibiosSwitchesView : public TableView
 		"Region",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			updateBits(memory.memcard[3], val, 0x3);
-			updateBits(memory.sram[3], val, 0x3);
+			memory.memcard[3] = IG::updateBits(memory.memcard[3], (Uint8)val, (Uint8)0x3);
+			memory.sram[3] = IG::updateBits(memory.sram[3], (Uint8)val, (Uint8)0x3);
 		}
 	};
 
@@ -515,8 +515,8 @@ class UnibiosSwitchesView : public TableView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
-			updateBits(memory.memcard[2], item.on ? IG::bit(7) : 0, 0x80);
-			updateBits(memory.sram[2], item.on ? IG::bit(7) : 0, 0x80);
+			memory.memcard[2] = IG::updateBits(memory.memcard[2], (Uint8)(item.on ? IG::bit(7) : 0), (Uint8)0x80);
+			memory.sram[2] = IG::updateBits(memory.sram[2], (Uint8)(item.on ? IG::bit(7) : 0), (Uint8)0x80);
 		}
 	};
 public:
@@ -530,7 +530,7 @@ public:
 		};
 		int setting = 0;
 		setting = memory.memcard[3] & 0x3;
-		region.init(str, setting, sizeofArray(str));
+		region.init(str, setting, IG::size(str));
 	}
 
 	void init()
@@ -538,7 +538,7 @@ public:
 		uint i = 0;
 		regionInit(); item[i++] = &region;
 		system.init("Console (AES)", "Arcade (MVS)", memory.memcard[2] & 0x80); item[i++] = &system;
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 	}
 
@@ -609,7 +609,7 @@ public:
 		gameList.init(); item[items++] = &gameList;
 		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

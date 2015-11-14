@@ -18,7 +18,7 @@
 #include <mach/semaphore.h>
 #include <mach/task.h>
 #include <mach/mach.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 
 namespace IG
 {

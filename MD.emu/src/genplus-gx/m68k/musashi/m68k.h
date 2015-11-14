@@ -31,7 +31,6 @@
 /* Import the configuration for this build */
 #include <genplus-config.h>
 #include <assert.h>
-#include <imagine/util/branch.h>
 #include <imagine/logger/logger.h>
 #include <stdlib.h>
 #include "m68kconf.h"

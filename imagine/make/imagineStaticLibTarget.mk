@@ -1,6 +1,10 @@
 include $(buildSysPath)/imagineCommonTarget.mk
 include $(buildSysPath)/evalPkgConfigCFlags.mk
 
+ifdef STDCXXINC
+ CPPFLAGS += $(STDCXXINC)
+endif
+
 targetFile := $(target).a
 
 $(targetDir)/$(targetFile) : $(OBJ)

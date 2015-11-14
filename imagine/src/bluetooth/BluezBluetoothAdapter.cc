@@ -466,7 +466,7 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 	struct sockaddr_rc addr{};
 	addr.rc_family = AF_BLUETOOTH;
 	addr.rc_channel = (uint8_t)channel;
-	memcpy(addr.rc_bdaddr.b, bdaddr.b, 6);
+	memcpy(addr.rc_bdaddr.b, bdaddr.data(), 6);
 	//addr.rc_bdaddr = bdaddr;
 	fd = ::socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
 	if(fd == -1)
@@ -494,7 +494,7 @@ CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
 	struct sockaddr_l2 addr{};
 	addr.l2_family = AF_BLUETOOTH;
 	addr.l2_psm = htobs(psm);
-	memcpy(addr.l2_bdaddr.b, bdaddr.b, 6);
+	memcpy(addr.l2_bdaddr.b, bdaddr.data(), 6);
 	//addr.l2_bdaddr = bdaddr;
 	fd = ::socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP);
 	if(fd == -1)

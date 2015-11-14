@@ -68,15 +68,3 @@ public:
 };
 
 #define forEachInContainer(container, it) for(ForEachIteratorWrapper<decltype(container)> it {container, (container).begin()}; it != (container).end(); ++it)
-
-template <class Container, class T>
-static bool contains(Container c, const T& val)
-{
-	for(auto &e : c)
-	{
-		if(e == val)
-			return true;
-	}
-	return false;
-	//return std::find(c.begin(), c.end(), val) != c.end();
-}

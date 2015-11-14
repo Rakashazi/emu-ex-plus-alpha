@@ -15,8 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/util/number.h>
+#include <imagine/config/defs.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 
@@ -32,6 +31,7 @@ using Coordinate = TransformCoordinate;
 using GTexC = TextureCoordinate;
 using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
+using GCRect = IG::CoordinateRect<GC, true, true>;
 
 static constexpr GC operator"" _gc (long double n)
 {
@@ -52,8 +52,6 @@ static constexpr GC operator"" _gtexc (unsigned long long n)
 {
 	return (GTexC)n;
 }
-
-using GCRect = IG::CoordinateRect<GC, true, true>;
 
 static GCRect makeGCRectRel(GP p, GP size)
 {

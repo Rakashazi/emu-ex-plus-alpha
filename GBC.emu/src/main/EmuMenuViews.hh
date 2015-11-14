@@ -21,7 +21,7 @@ class SystemOptionView : public OptionView
 		{
 			"Original", "Brown", "Red", "Dark Brown", "Pastel", "Orange", "Yellow", "Blue", "Dark Blue", "Gray", "Green", "Dark Green", "Reverse"
 		};
-		gbPalette.init(str, int(optionGBPal), sizeofArray(str));
+		gbPalette.init(str, int(optionGBPal), IG::size(str));
 	}
 
 	BoolMenuItem useBuiltinGBPalette
@@ -50,7 +50,7 @@ class SystemOptionView : public OptionView
 	void resamplerInit()
 	{
 		logMsg("%d resamplers", (int)ResamplerInfo::num());
-		auto resamplers = std::min(ResamplerInfo::num(), sizeofArray(resamplerName));
+		auto resamplers = std::min(ResamplerInfo::num(), IG::size(resamplerName));
 		iterateTimes(resamplers, i)
 		{
 			ResamplerInfo r = ResamplerInfo::get(i);
@@ -140,7 +140,7 @@ public:
 		loadFileBrowserItems(item, items);
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

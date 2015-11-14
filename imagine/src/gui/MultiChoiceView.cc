@@ -16,6 +16,7 @@
 #include <imagine/gui/MultiChoiceView.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/mem/mem.h>
+#include <imagine/util/math/int.hh>
 #include <algorithm>
 
 void BaseMultiChoiceView::drawElement(uint i, Gfx::GCRect rect) const
@@ -74,7 +75,7 @@ void MultiChoiceView::init(const char **choice, uint choices, _2DOrigin align)
 
 void MultiChoiceView::init(MultiChoiceMenuItem &src, _2DOrigin align)
 {
-	//assert((uint)src.choices <= sizeofArray(choiceEntry));
+	//assert((uint)src.choices <= IG::size(choiceEntry));
 	allocItems(src.choices);
 	iterateTimes(src.choices, i)
 	{

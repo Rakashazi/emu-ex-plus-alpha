@@ -7,6 +7,10 @@ ifeq ($(ENV), android)
  target := lib$(android_soName).so
 endif
 
+ifdef STDCXXINC
+ CPPFLAGS += $(STDCXXINC)
+endif
+
 ifdef O_LTO
  LDFLAGS_SYSTEM += $(CFLAGS_CODEGEN)
 endif

@@ -48,7 +48,7 @@ void EventLoopFileSource::init(int fd, PollEventDelegate callback, uint events)
 {
 	logMsg("adding fd %d to looper", fd);
 	fd_ = fd;
-	var_selfs(callback);
+	this->callback = callback;
 	assert(aLooper);
 	int ret = ALooper_addFd(aLooper, fd, ALOOPER_POLL_CALLBACK, events, pollEventCallback, this);
 	assert(ret == 1);

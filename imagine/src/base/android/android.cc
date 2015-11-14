@@ -212,7 +212,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 					})
 				}
 			};
-			env->RegisterNatives(jBaseActivityCls, method, sizeofArray(method));
+			env->RegisterNatives(jBaseActivityCls, method, IG::size(method));
 		}
 
 		if(Config::DEBUG_BUILD)
@@ -221,7 +221,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 			logMsg("external storage path: %s", storagePath().data());
 		}
 
-		doOrAbort(logger_init());
+		logger_init();
 		engineInit();
 		logMsg("SDK API Level: %d", aSDK);
 
@@ -517,11 +517,11 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	filesDir = activity->internalDataPath;
 	activityInit(jEnv_, activity->clazz);
 	setNativeActivityCallbacks(activity);
-	doOrAbort(Input::init());
+	Input::init();
 	aConfig = AConfiguration_new();
 	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
 	initConfig(aConfig);
-	doOrAbort(onInit(0, nullptr));
+	onInit(0, nullptr);
 	if(!Window::windows())
 	{
 		bug_exit("didn't create a window");

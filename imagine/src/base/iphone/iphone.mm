@@ -28,6 +28,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/fs/FS.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/coreFoundation.h>
+#include <imagine/util/string.h>
 #include "../common/basePrivate.hh"
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
@@ -205,7 +206,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 		isIPad = 1;
 		logMsg("running on iPad");
 	}
-	doOrAbort(Input::init());	
+	Input::init();
 	if(hasAtLeastIOS7())
 	{
 		#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
@@ -294,7 +295,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	[mainScreen().displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 	#endif
 	// TODO: use NSProcessInfo
-	doOrAbort(onInit(0, nullptr));
+	onInit(0, nullptr);
 	if(!deviceWindow())
 		bug_exit("no main window created");
 	logMsg("exiting didFinishLaunchingWithOptions");
@@ -641,7 +642,7 @@ int main(int argc, char *argv[])
 	setupUID();
 	#endif
 	engineInit();
-	doOrAbort(logger_init());
+	logger_init();
 	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
 	
 	#ifdef CONFIG_BASE_IOS_SETUID

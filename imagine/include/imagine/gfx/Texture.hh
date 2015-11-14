@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <utility>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
@@ -229,9 +229,9 @@ public:
 	IG::WP size(uint level) const;
 	IG::PixmapDesc pixmapDesc() const;
 	bool compileDefaultProgram(uint mode);
-	void useDefaultProgram(uint mode, const Mat4 *modelMat);
-	void useDefaultProgram(uint mode) { useDefaultProgram(mode, nullptr); }
-	void useDefaultProgram(uint mode, Mat4 modelMat) { useDefaultProgram(mode, &modelMat); }
+	void useDefaultProgram(uint mode, const Mat4 *modelMat) const;
+	void useDefaultProgram(uint mode) const { useDefaultProgram(mode, nullptr); }
+	void useDefaultProgram(uint mode, Mat4 modelMat) const { useDefaultProgram(mode, &modelMat); }
 	explicit operator bool() const;
 };
 

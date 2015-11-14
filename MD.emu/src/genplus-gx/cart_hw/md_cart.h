@@ -37,18 +37,18 @@
 #define HW_LOCK_ON  0x08
 
 /* Cartridge extra hardware */
-typedef struct
+struct T_CART_HW
 {
-  uint8 regs[4]{};                                            /* internal registers (R/W) */
-  uint32 mask[4]{};                                           /* registers address mask */
-  uint32 addr[4]{};                                           /* registers address */
-  uint16 realtec = 0;                                           /* realtec mapper */
-  uint16 bankshift = 0;                                         /* cartridge with bankshift mecanism reseted on software reset */
-  unsigned int (*time_r)(unsigned int address){};             /* !TIME signal ($a130xx) read handler  */
-  void (*time_w)(unsigned int address, unsigned int data){};  /* !TIME signal ($a130xx) write handler */
-  unsigned int (*regs_r)(unsigned int address){};             /* cart hardware registers read handler  */
-  void (*regs_w)(unsigned int address, unsigned int data){};  /* cart hardware registers write handler */
-} T_CART_HW;
+  uint8 regs[4];                                            /* internal registers (R/W) */
+  uint32 mask[4];                                           /* registers address mask */
+  uint32 addr[4];                                           /* registers address */
+  uint16 realtec;                                           /* realtec mapper */
+  uint16 bankshift;                                         /* cartridge with bankshift mecanism reseted on software reset */
+  unsigned int (*time_r)(unsigned int address);             /* !TIME signal ($a130xx) read handler  */
+  void (*time_w)(unsigned int address, unsigned int data);  /* !TIME signal ($a130xx) write handler */
+  unsigned int (*regs_r)(unsigned int address);             /* cart hardware registers read handler  */
+  void (*regs_w)(unsigned int address, unsigned int data);  /* cart hardware registers write handler */
+};
 
 /* Cartridge type */
 typedef struct

@@ -17,6 +17,7 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
+#include <imagine/util/math/Point2D.hh>
 #include <algorithm>
 
 extern bool touchControlsAreOn;

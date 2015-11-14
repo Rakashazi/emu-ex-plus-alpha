@@ -45,7 +45,7 @@ CallResult BufferMapIO::open(const void *buff, size_t size, OnCloseDelegate onCl
 {
 	close();
 	setData(buff, size);
-	var_selfs(onClose);
+	this->onClose = onClose;
 	return OK;
 }
 

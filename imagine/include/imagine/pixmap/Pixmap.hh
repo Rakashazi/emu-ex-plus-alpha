@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>

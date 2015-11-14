@@ -17,8 +17,9 @@
 #include <imagine/resource/font/ResourceFontFreetype.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/util/strings.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 #include <imagine/io/FileIO.hh>
 #ifdef CONFIG_PACKAGE_FONTCONFIG
 #include <fontconfig/fontconfig.h>
@@ -218,9 +219,9 @@ CallResult ResourceFontFreetype::loadIntoNextSlot(const char *name)
 
 void ResourceFontFreetype::free()
 {
-	iterateTimes(MAX_FREETYPE_SLOTS, i)
+	for(auto &e : f)
 	{
-		f[i].close(1);
+		e.close(1);
 	}
 	delete this;
 }

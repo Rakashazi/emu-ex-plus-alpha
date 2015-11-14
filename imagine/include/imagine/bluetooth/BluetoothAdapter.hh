@@ -15,7 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <array>
+#include <cstddef>
+#include <imagine/config/defs.hh>
 #include <imagine/bluetooth/config.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/operators.hh>
@@ -24,15 +26,26 @@ class BluetoothPendingSocket;
 
 struct BluetoothAddr : public NotEquals<BluetoothAddr>
 {
-	uint8 b[6]{};
-
 	constexpr BluetoothAddr() {}
-	constexpr BluetoothAddr(uint8 b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
+	constexpr BluetoothAddr(const uint8 b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
+
+	const uint8 *data() const
+	{
+		return b.data();
+	}
+
+	uint8 *data()
+	{
+		return b.data();
+	}
 
 	bool operator ==(BluetoothAddr const& rhs) const
 	{
-		return memcmp(b, rhs.b, sizeof(b)) == 0;
+		return b == rhs.b;
 	}
+
+private:
+	std::array<uint8, 6>b{};
 } __attribute__((packed));
 
 class BluetoothAdapter

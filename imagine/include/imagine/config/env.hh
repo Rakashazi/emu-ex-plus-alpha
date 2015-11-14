@@ -29,7 +29,7 @@ namespace Config
 
 // TODO: have to use ANDROID_ for now since ANDROID is needed as a macro in some system headers not yet using __ANDROID__
 enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, WIN32_, PS3 };
-static const uint ENV =
+static constexpr uint ENV =
 	#if defined __ANDROID__
 	ANDROID_;
 	#elif defined __APPLE__ && TARGET_OS_IPHONE
@@ -49,22 +49,22 @@ static const uint ENV =
 	UNKNOWN;
 	#endif
 
-static const bool envIsAndroid = ENV == ANDROID_;
-static const bool envIsIOS = ENV == IOS;
-static const bool envIsMacOSX = ENV == MACOSX;
-static const bool envIsWebOS = ENV == WEBOS;
-static const bool envIsLinux = ENV == LINUX;
-static const bool envIsPS3 = ENV == PS3;
+static constexpr bool envIsAndroid = ENV == ANDROID_;
+static constexpr bool envIsIOS = ENV == IOS;
+static constexpr bool envIsMacOSX = ENV == MACOSX;
+static constexpr bool envIsWebOS = ENV == WEBOS;
+static constexpr bool envIsLinux = ENV == LINUX;
+static constexpr bool envIsPS3 = ENV == PS3;
 
-static const bool envIsWebOS3 =
+static constexpr bool envIsWebOS3 =
 	#if CONFIG_ENV_WEBOS_OS >= 3
 	1;
 	#else
 	0;
 	#endif
-static const bool envIsWebOS1 = envIsWebOS && !envIsWebOS3;
+static constexpr bool envIsWebOS1 = envIsWebOS && !envIsWebOS3;
 
-static const uint ENV_ANDROID_MINSDK =
+static constexpr uint ENV_ANDROID_MINSDK =
 	#ifdef __ANDROID_API__
 	__ANDROID_API__;
 	#else
@@ -72,7 +72,7 @@ static const uint ENV_ANDROID_MINSDK =
 	#endif
 
 #define CONFIG_UNICODE_CHARS
-static const bool UNICODE_CHARS = true;
+static constexpr bool UNICODE_CHARS = true;
 
 #ifndef NDEBUG
 static constexpr bool DEBUG_BUILD = true;

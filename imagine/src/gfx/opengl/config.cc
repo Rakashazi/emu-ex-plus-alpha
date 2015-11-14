@@ -17,6 +17,7 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/util/string.h>
 #include "private.hh"
 #include "utils.h"
 #include "GLStateCache.hh"
@@ -119,14 +120,14 @@ static Base::GLBufferConfig gfxBufferConfig;
 static void initVBOs()
 {
 	logMsg("making stream VBO");
-	glGenBuffers(sizeofArray(streamVBO), streamVBO);
+	glGenBuffers(IG::size(streamVBO), streamVBO);
 }
 
 GLuint getVBO()
 {
 	assert(streamVBO[streamVBOIdx]);
 	auto vbo = streamVBO[streamVBOIdx];
-	streamVBOIdx = (streamVBOIdx+1) % sizeofArray(streamVBO);
+	streamVBOIdx = (streamVBOIdx+1) % IG::size(streamVBO);
 	return vbo;
 }
 
@@ -718,7 +719,7 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 	// has multiple valid orientations
 	if(Config::SYSTEM_ROTATES_WINDOWS || win != Base::mainWindow())
 		return;
-	Base::setDeviceOrientationChangeSensor(bit_numSet(win.validSoftOrientations()) > 1);
+	Base::setDeviceOrientationChangeSensor(IG::bitsSet(win.validSoftOrientations()) > 1);
 }
 
 void initWindow(Base::Window &win, Base::WindowConfig config)

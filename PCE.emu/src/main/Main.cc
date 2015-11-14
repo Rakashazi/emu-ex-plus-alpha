@@ -70,7 +70,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
 const char *EmuSystem::shortSystemName()
 {
@@ -535,10 +535,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
 	uint player = emuKey >> 12;
 	assert(player < maxPlayers);
-	if(state == Input::PUSHED)
-		setBits(inputBuff[player], emuKey);
-	else
-		unsetBits(inputBuff[player], emuKey);
+	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)emuKey, state == Input::PUSHED);
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)

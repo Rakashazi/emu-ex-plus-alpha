@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/number.h>
 #include <emuframework/ConfigFile.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
@@ -526,7 +525,7 @@ static void writeConfig2(IO &io)
 	uint8 blockHeaderSize = 2;
 	io.writeVal(blockHeaderSize, &r);
 
-	forEachDInArray(cfgFileOption, e)
+	for(auto &e : cfgFileOption)
 	{
 		if(!e->isDefault())
 		{

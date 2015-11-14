@@ -24,8 +24,6 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/Recent.hh>
 #include <imagine/audio/Audio.hh>
-#include <imagine/util/strings.h>
-#include <imagine/util/Rational.hh>
 #include <imagine/logger/logger.h>
 
 struct OptionBase
@@ -330,7 +328,7 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 		logMsg("read aspect ratio config %u,%u", x, y);
 		if(y == 0)
 			y = 1;
-		val = Rational::make<uint>(x, y);
+		val = {x, y};
 		return true;
 	}
 };
@@ -354,49 +352,7 @@ struct OptionRecentGames : public OptionBase
 		return true;
 	}
 
-	bool readFromIO(IO &io, uint readSize_)
-	{
-		int readSize = readSize_;
-		while(readSize && !recentGameList.isFull())
-		{
-			if(readSize < 2)
-			{
-				logMsg("expected string length but only %d bytes left", readSize);
-				break;
-			}
-
-			auto len = io.readVal<uint16>();
-			readSize -= 2;
-
-			if(len > readSize)
-			{
-				logMsg("string length %d longer than %d bytes left", len, readSize);
-				break;
-			}
-
-			RecentGameInfo info;
-			auto bytesRead = io.read(info.path.data(), len);
-			if(bytesRead == -1)
-			{
-				logErr("error reading string option");
-				return true;
-			}
-			if(!bytesRead)
-				continue; // don't add empty paths
-			info.path[bytesRead] = 0;
-			readSize -= len;
-			string_copyUpToLastCharInstance(info.name.data(), FS::basename(info.path).data(), '.');
-			//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
-			recentGameList.push_back(info);
-		}
-
-		if(readSize)
-		{
-			logMsg("skipping excess %d bytes", readSize);
-		}
-
-		return true;
-	}
+	bool readFromIO(IO &io, uint readSize_);
 
 	uint ioSize()
 	{

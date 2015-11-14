@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/util/DelegateFunc.hh>
 
@@ -75,7 +75,7 @@ public:
 
 	void setPosition(Point2D<int> pos)
 	{
-		var_selfs(pos);
+		this->pos = pos;
 	}
 
 	Point2D<int> position() const
@@ -95,7 +95,7 @@ public:
 
 	void setSize(Point2D<int> size_)
 	{
-		var_selfs(size_);
+		this->size_ = size_;
 	}
 
 	Point2D<int> size() const
@@ -105,7 +105,7 @@ public:
 
 	void setMinimumSize(Point2D<int> minSize)
 	{
-		var_selfs(minSize);
+		this->minSize = minSize;
 	}
 
 	Point2D<int> minimumSize() const
@@ -115,7 +115,7 @@ public:
 
 	void setGLConfig(GLBufferConfig glConfig_)
 	{
-		var_selfs(glConfig_);
+		this->glConfig_ = glConfig_;
 	}
 
 	GLBufferConfig glConfig() const

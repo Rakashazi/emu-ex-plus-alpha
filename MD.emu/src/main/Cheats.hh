@@ -25,7 +25,7 @@ struct MdCheat
 	uint16 origData = 0;
 	uint8 *prev{};
 
-	static const uint ON = IG::bit(0), APPLIED = IG::bit(1);
+	static const uchar ON = IG::bit(0), APPLIED = IG::bit(1);
 
 	bool isOn()
 	{
@@ -39,15 +39,12 @@ struct MdCheat
 
 	void toggleOn()
 	{
-		toggleBits(flags, ON);
+		flags = IG::flipBits(flags, ON);
 	}
 
 	void setApplied(bool applied)
 	{
-		if(applied)
-			setBits(flags, APPLIED);
-		else
-			unsetBits(flags, APPLIED);
+		IG::setOrClearBits(flags, APPLIED, applied);
 	}
 
 	bool operator ==(MdCheat const& rhs) const

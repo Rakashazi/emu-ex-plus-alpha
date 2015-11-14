@@ -19,6 +19,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/assume.h>
+#include <imagine/util/string.h>
 #include <archive.h>
 #include <archive_entry.h>
 

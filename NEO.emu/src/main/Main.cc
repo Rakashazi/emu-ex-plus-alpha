@@ -167,7 +167,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 #include <emuframework/CommonGui.hh>
 
@@ -332,10 +332,8 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 	if(emuKey & 0xFF) // joystick
 	{
-		if(state == Input::PUSHED)
-			unsetBits(player ? memory.intern_p2 : memory.intern_p1, emuKey & 0xFF);
-		else
-			setBits(player ? memory.intern_p2 : memory.intern_p1, emuKey & 0xFF);
+		auto &p = player ? memory.intern_p2 : memory.intern_p1;
+		p = IG::setOrClearBits(p, (Uint8)(emuKey & 0xFF), state != Input::PUSHED);
 		return;
 	}
 
@@ -344,19 +342,13 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		if(conf.system == SYS_ARCADE)
 		{
 			uint bits = player ? NGKey::COIN2 : NGKey::COIN1;
-			if(state == Input::PUSHED)
-				unsetBits(memory.intern_coin, bits);
-			else
-				setBits(memory.intern_coin, bits);
+			memory.intern_coin = IG::setOrClearBits(memory.intern_coin, (Uint8)bits, state != Input::PUSHED);
 		}
 		else
 		{
 			// convert COIN to SELECT
 			uint bits = player ? NGKey::SELECT2 : NGKey::SELECT1;
-			if(state == Input::PUSHED)
-				unsetBits(memory.intern_start, bits);
-			else
-				setBits(memory.intern_start, bits);
+			memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, state != Input::PUSHED);
 		}
 		return;
 	}
@@ -364,10 +356,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	if(emuKey & NGKey::START_EMU_INPUT)
 	{
 		uint bits = player ? NGKey::START2 : NGKey::START1;
-		if(state == Input::PUSHED)
-			unsetBits(memory.intern_start, bits);
-		else
-			setBits(memory.intern_start, bits);
+		memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, state != Input::PUSHED);
 		return;
 	}
 

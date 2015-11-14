@@ -50,7 +50,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"20:19 (Original)", 20, 19},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
 const char *EmuSystem::shortSystemName()
 {
@@ -141,10 +141,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
 	uchar &ctrlBits = ram[0x6F82];
-	if(state == Input::PUSHED)
-		setBits(ctrlBits, emuKey);
-	else
-		unsetBits(ctrlBits, emuKey);
+	ctrlBits = IG::setOrClearBits(ctrlBits, (uchar)emuKey, state == Input::PUSHED);
 }
 
 static bool renderToScreen = 0;

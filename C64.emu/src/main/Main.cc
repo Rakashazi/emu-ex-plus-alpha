@@ -233,7 +233,7 @@ static Byte1Option optionDTVModel(CFGKEY_DTV_MODEL, DTVMODEL_V3_NTSC, false,
 static Byte1Option optionC128Model(CFGKEY_C128_MODEL, C128MODEL_C128_NTSC, false,
 	optionIsValidWithMax<C128MODEL_NUM-1, uint8>);
 static Byte1Option optionSuperCPUModel(CFGKEY_SUPER_CPU_MODEL, C64MODEL_C64_NTSC, false,
-	optionIsValidWithMax<sizeofArray(superCPUModelStr)-1, uint8>);
+	optionIsValidWithMax<IG::size(superCPUModelStr)-1, uint8>);
 static Byte1Option optionCBM2Model(CFGKEY_CBM2_MODEL, CBM2MODEL_610_NTSC, false,
 	optionIsValidWithMinMax<CBM2MODEL_610_PAL, CBM2MODEL_720PLUS_NTSC, uint8>);
 static Byte1Option optionCBM5x0Model(CFGKEY_CBM5x0_MODEL, CBM2MODEL_510_NTSC, false,
@@ -358,7 +358,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesArchiveFiles = false; // TODO: need to re-factor VICE file loading code
@@ -619,8 +619,7 @@ static const SysVController::KbMap kbToEventMap2Shifted
 
 void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
 {
-	auto &kbMap = mode ? (shiftLock ? kbToEventMap2Shifted : kbToEventMap2) : (shiftLock ? kbToEventMapShifted : kbToEventMap);
-	memcpy(map, &kbMap, sizeof(kbMap));
+	map = mode ? (shiftLock ? kbToEventMap2Shifted : kbToEventMap2) : (shiftLock ? kbToEventMapShifted : kbToEventMap);
 }
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
@@ -800,10 +799,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			player = (player == 1) ? 2 : 1;
 		}
 		//logMsg("js %X p %d", key & 0x1F, player);
-		if(state == Input::PUSHED)
-			setBits(joystick_value[player], key & 0x1F);
-		else
-			unsetBits(joystick_value[player], key & 0x1F);
+		joystick_value[player] = IG::setOrClearBits(joystick_value[player], (BYTE)(key & 0x1F), state == Input::PUSHED);
 	}
 	else // Keyboard
 	{
@@ -832,7 +828,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			{
 				if(state == Input::PUSHED)
 				{
-					toggle(shiftLock);
+					shiftLock ^= true;
 					vController.updateKeyboardMapping();
 				}
 				return;
@@ -841,7 +837,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			{
 				if(state == Input::PUSHED)
 				{
-					toggle(ctrlLock);
+					ctrlLock ^= true;
 					setC64KBKey(KB_CTRL, ctrlLock);
 				}
 				return;

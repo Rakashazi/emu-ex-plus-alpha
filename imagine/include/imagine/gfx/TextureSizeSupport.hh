@@ -1,9 +1,9 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/util/number.h>
+#include <imagine/util/math/int.hh>
 #include <algorithm>
 
 class TextureSizeSupport
@@ -33,11 +33,11 @@ public:
 		}
 		else if(nonSquare)
 		{
-			supportedSize = {(int)nextHighestPowerOf2(size.x), (int)nextHighestPowerOf2(size.y)};
+			supportedSize = {(int)roundUpPowOf2((uint)size.x), (int)roundUpPowOf2((uint)size.y)};
 		}
 		else
 		{
-			supportedSize.x = supportedSize.y = nextHighestPowerOf2(std::max(size.x, size.y));
+			supportedSize.x = supportedSize.y = roundUpPowOf2((uint)std::max(size.x, size.y));
 		}
 		if(Config::MACHINE_IS_PANDORA && (supportedSize.x <= 16 || supportedSize.y <= 16))
 		{

@@ -4,34 +4,36 @@
 #include <array>
 #include <cstring>
 #include <cctype>
-#include <cstdio>
 #include <cstdarg>
 #include <imagine/util/iterator.hh>
 #else
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 #endif
+#include <imagine/config/imagineTypes.h>
 #include <imagine/util/builtins.h>
 
 BEGIN_C_DECLS
 
-void string_toUpper(char *s);
-int string_containsChar(const char *s, int c);
-bool string_isHexValue(const char *s, uint maxChars);
-int string_equalNoCase(const char *s1, const char *s2) ATTRS(nonnull);
-int string_equal(const char *s1, const char *s2) ATTRS(nonnull);
-char *string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
+int char_hexToInt(char c);
+const char *string_dotExtension(const char *s) ATTRS(nonnull);
+bool string_hasDotExtension(const char *s, const char *extension) ATTRS(nonnull);
+void string_toUpper(char *s) ATTRS(nonnull);
+bool string_equalNoCase(const char *s1, const char *s2) ATTRS(nonnull);
+bool string_equal(const char *s1, const char *s2) ATTRS(nonnull);
+size_t string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
 
 // copies at most destSize-1 chars from src until null byte or dest size is reached
 // dest is always null terminated
-char *string_copy(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
+size_t string_copy(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
 
 END_C_DECLS
 
 #ifdef __cplusplus
 
 template <typename T>
-static char *string_copy(T &dest, const char *src)
+size_t string_copy(T &dest, const char *src)
 {
 	return string_copy(IG::data(dest), src, IG::size(dest));
 }
@@ -50,7 +52,7 @@ static constexpr size_t string_len(const char *s)
 #endif
 
 template <typename T>
-static char *string_cat(T &dest, const char *src)
+static size_t string_cat(T &dest, const char *src)
 {
 	return string_cat(IG::data(dest), src, IG::size(dest));
 }
@@ -77,5 +79,9 @@ static std::array<char, S> string_makePrintf(const char *format, ...)
 	va_end(args);
 	return str;
 }
+
+CallResult string_convertCharCode(const char** sourceStart, uint &c);
+
+std::array<char, 2> string_fromChar(char c);
 
 #endif

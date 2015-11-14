@@ -112,15 +112,15 @@ const char *IControlPad::keyName(Key k) const
 
 uint IControlPad::findFreeDevId()
 {
-	uint id[5] = { 0 };
+	uint id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
 	}
-	forEachInArray(id, e)
+	for(auto &e : id)
 	{
-		if(*e == 0)
-			return e_i;
+		if(e == 0)
+			return &e - id;
 	}
 	logMsg("too many devices");
 	return 0;
@@ -261,15 +261,15 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint player)
 {
 	using namespace Input;
-	forEachInArray(iCPDataAccess, e)
+	for(auto e : iCPDataAccess)
 	{
-		bool oldState = prevBtnData[e->byteOffset] & e->mask,
-			newState = btnData[e->byteOffset] & e->mask;
+		bool oldState = prevBtnData[e.byteOffset] & e.mask,
+			newState = btnData[e.byteOffset] & e.mask;
 		if(oldState != newState)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ICONTROLPAD, e->keyEvent, e->sysKey, newState ? PUSHED : RELEASED, 0, time, this};
+			Event event{player, Event::MAP_ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -323,4 +323,9 @@ void IControlPad::setJoystickAxisAsDpadBits(uint axisMask)
 		axisKey[3].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::RNUB_DOWN;
 		axisKey[3].highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
 	}
+}
+
+bool IControlPad::isSupportedClass(const uchar devClass[3])
+{
+	return IG::equal_n(devClass, 3, btClass);
 }

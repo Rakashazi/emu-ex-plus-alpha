@@ -67,7 +67,7 @@ class SystemOptionView : public OptionView
 		};
 		if(optionTVPhosphor > 2)
 			optionTVPhosphor = 2;
-		tvPhosphor.init(str, int(optionTVPhosphor), sizeofArray(str));
+		tvPhosphor.init(str, int(optionTVPhosphor), IG::size(str));
 	}
 
 	MultiChoiceSelectMenuItem videoSystem
@@ -85,8 +85,8 @@ class SystemOptionView : public OptionView
 		{
 			"Auto", "NTSC", "PAL", "SECAM", "NTSC 50", "PAL 60", "SECAM 60"
 		};
-		assert(optionVideoSystem < (int)sizeofArray(str));
-		videoSystem.init(str, optionVideoSystem, sizeofArray(str));
+		assert(optionVideoSystem < (int)IG::size(str));
+		videoSystem.init(str, optionVideoSystem, IG::size(str));
 	}
 
 public:
@@ -143,7 +143,7 @@ public:
 		diff1.init("A", "B", p1DiffB); item[i++] = &diff1;
 		diff2.init("A", "B", p2DiffB); item[i++] = &diff2;
 		color.init(vcsColor); item[i++] = &color;
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 	}
 
@@ -189,7 +189,7 @@ public:
 		loadFileBrowserItems(item, items);
 		switches.init(); item[items++] = &switches;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

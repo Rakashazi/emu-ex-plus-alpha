@@ -330,7 +330,7 @@ void InputManagerOptionsView::relativePointerDecelInit()
 		init = 1;
 	if(optionRelPointerDecel == optionRelPointerDecelHigh)
 		init = 2;
-	relativePointerDecel.init(str, init, sizeofArray(str));
+	relativePointerDecel.init(str, init, IG::size(str));
 }
 #endif
 
@@ -351,7 +351,7 @@ void InputManagerOptionsView::btScanSecsInit()
 		bcase 8: val = 3;
 		bcase 10: val = 4;
 	}
-	btScanSecs.init(str, val, sizeofArray(str));
+	btScanSecs.init(str, val, IG::size(str));
 }
 #endif
 
@@ -499,9 +499,10 @@ void InputManagerOptionsView::init()
 class ProfileSelectMenu : public TableView
 {
 public:
+	static constexpr uint MAX_KEY_CONFIGS = MAX_DEFAULT_KEY_CONFIGS_PER_TYPE + MAX_CUSTOM_KEY_CONFIGS;
 	ProfileSelectMenu(Base::Window &win): TableView{"Key Profile", win} {}
-	TextMenuItem choiceEntry[MAX_DEFAULT_KEY_CONFIGS_PER_TYPE + MAX_CUSTOM_KEY_CONFIGS]{};
-	MenuItem *choiceEntryItem[sizeofArrayConst(choiceEntry)]{};
+	TextMenuItem choiceEntry[MAX_KEY_CONFIGS]{};
+	MenuItem *choiceEntryItem[MAX_KEY_CONFIGS]{};
 	typedef DelegateFunc<void (const KeyConfig &profile)> ProfileChangeDelegate;
 	ProfileChangeDelegate onProfileChange{};
 	int activeItem = -1;
@@ -526,13 +527,13 @@ public:
 						del(conf);
 					};
 				i++;
-				if(i >= sizeofArray(choiceEntry))
+				if(i >= IG::size(choiceEntry))
 					break;
 			}
 		}
 		uint defaultConfs = 0;
 		auto defaultConf = KeyConfig::defaultConfigsForDevice(dev, defaultConfs);
-		assert(i + defaultConfs < sizeofArray(choiceEntry));
+		assert(i + defaultConfs < IG::size(choiceEntry));
 		iterateTimes(defaultConfs, c)
 		{
 			auto &conf = KeyConfig::defaultConfigsForDevice(dev)[c];
@@ -753,7 +754,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 		{
 			item.toggle(*this);
 			auto bits = devConf->joystickAxisAsDpadBits();
-			updateBits(bits, item.on ? Input::Device::AXIS_BITS_STICK_1 : 0, Input::Device::AXIS_BITS_STICK_1);
+			bits = IG::updateBits(bits, item.on ? Input::Device::AXIS_BITS_STICK_1 : 0, Input::Device::AXIS_BITS_STICK_1);
 			devConf->setJoystickAxisAsDpadBits(bits);
 			devConf->save();
 		}
@@ -765,7 +766,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 		{
 			item.toggle(*this);
 			auto bits = devConf->joystickAxisAsDpadBits();
-			updateBits(bits, item.on ? Input::Device::AXIS_BITS_STICK_2 : 0, Input::Device::AXIS_BITS_STICK_2);
+			bits = IG::updateBits(bits, item.on ? Input::Device::AXIS_BITS_STICK_2 : 0, Input::Device::AXIS_BITS_STICK_2);
 			devConf->setJoystickAxisAsDpadBits(bits);
 			devConf->save();
 		}
@@ -777,7 +778,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 		{
 			item.toggle(*this);
 			auto bits = devConf->joystickAxisAsDpadBits();
-			updateBits(bits, item.on ? Input::Device::AXIS_BITS_HAT : 0, Input::Device::AXIS_BITS_HAT);
+			bits = IG::updateBits(bits, item.on ? Input::Device::AXIS_BITS_HAT : 0, Input::Device::AXIS_BITS_HAT);
 			devConf->setJoystickAxisAsDpadBits(bits);
 			devConf->save();
 		}

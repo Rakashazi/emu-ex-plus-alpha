@@ -15,8 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
-#include <imagine/util/number.h>
+#include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -24,6 +23,7 @@
 #include <imagine/input/Device.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/Time.hh>
+#include <array>
 
 namespace Base
 {

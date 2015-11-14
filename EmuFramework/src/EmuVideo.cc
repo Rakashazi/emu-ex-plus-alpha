@@ -24,7 +24,7 @@ void EmuVideo::initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y,
 		vidPix = {{{(int)x, (int)y}, format}, pixBuff};
 	else
 		vidPix = {{{(int)x, (int)y}, format}, pixBuff, {pitch, vidPix.BYTE_UNITS}};
-	var_selfs(pixBuff);
+	this->pixBuff = pixBuff;
 }
 
 void EmuVideo::reinitImage()

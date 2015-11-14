@@ -36,7 +36,7 @@ public:
 		"SH2",
 		[](MultiChoiceMenuItem &, View &, int val)
 		{
-			assert(val < (int)sizeofArray(SH2CoreList)-1);
+			assert(val < (int)IG::size(SH2CoreList)-1);
 			yinit.sh2coretype = SH2CoreList[val]->id;
 			optionSH2Core = SH2CoreList[val]->id;
 		}
@@ -47,9 +47,9 @@ public:
 		static const char *str[6];
 
 		int setting = 0, cores = 0;
-		iterateTimes(sizeofArray(SH2CoreList)-1, i)
+		iterateTimes(IG::size(SH2CoreList)-1, i)
 		{
-			if(i == sizeofArray(str))
+			if(i == IG::size(str))
 				break;
 			str[i] = SH2CoreList[i]->Name;
 			if(SH2CoreList[i]->id == yinit.sh2coretype)
@@ -68,7 +68,7 @@ public:
 	void loadSystemItems(MenuItem *item[], uint &items)
 	{
 		OptionView::loadSystemItems(item, items);
-		if(sizeofArray(SH2CoreList) > 2)
+		if(IG::size(SH2CoreList) > 2)
 		{
 			sh2CoreInit(); item[items++] = &sh2Core;
 		}

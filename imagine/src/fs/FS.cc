@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
 #include <libgen.h>
 #ifdef basename
 // libgen.h may define this macro and clash with FS::basename

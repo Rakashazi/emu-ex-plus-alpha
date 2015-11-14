@@ -63,7 +63,7 @@ void EmuInputView::inputEvent(Input::Event e)
 		}
 		else if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps({e.x, e.y}))
 		{
-			toggle(ffToggleActive);
+			ffToggleActive ^= true;
 			updateFastforward();
 		}
 		else if((touchControlsAreOn && touchControlsApplicable())

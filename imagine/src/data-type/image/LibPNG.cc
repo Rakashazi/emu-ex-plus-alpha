@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
 #include <imagine/mem/mem.h>
 
 // this must be in the range 1 to 8
@@ -116,7 +116,9 @@ CallResult Png::readHeader(GenericIO io)
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
 	uchar header[INITIAL_HEADER_READ_BYTES];
-	doOrReturn(io.readAll(&header, INITIAL_HEADER_READ_BYTES));
+	auto ret = io.readAll(&header, INITIAL_HEADER_READ_BYTES);
+	if(ret != OK)
+		return ret;
 	
 	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)

@@ -1,5 +1,5 @@
 #pragma once
-#include <imagine/util/memory.h>
+#include <imagine/util/ansiTypes.h>
 #include <assert.h>
 
 template <class T>
@@ -15,9 +15,21 @@ public:
 	operator T*() const { return arr; }
 	T& operator[] (int i) const { return arr[i]; }
 
+	// offset in row-major order, standard C arrays
+	static uint arrOffsetRM(uint col, uint row, uint numCols)
+	{
+		return (row*numCols) + col;
+	}
+
+	// offset in column-major order
+	static uint arrOffsetCM(uint col, uint row, uint numRows)
+	{
+		return row + (col*numRows);
+	}
+
 	uint idxOf(uint row, uint col) const
 	{
-		return mem_arr2DOffsetRM(col, row, columns);
+		return arrOffsetRM(col, row, columns);
 	}
 
 	T& operator() (uint row, uint col) const

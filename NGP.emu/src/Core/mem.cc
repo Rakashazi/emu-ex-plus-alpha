@@ -89,7 +89,6 @@ should stop "Gals Fighters" from writing all over itself.
 #include "flash.h"
 #include <assert.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/branch.h>
 #include <imagine/util/bits.h>
 
 //=============================================================================

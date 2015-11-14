@@ -20,7 +20,6 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/GLContext.hh>
-#include <imagine/util/number.h>
 #include "GLStateCache.hh"
 #include <imagine/util/Interpolator.hh>
 #include "private.hh"

@@ -86,7 +86,7 @@ void SystemEditCheatView::init(int cheatIdx)
 		comp.init(compStr); item[i++] = &comp;
 	}
 	loadRemoveItem(item, i);
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

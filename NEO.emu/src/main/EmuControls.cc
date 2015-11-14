@@ -263,7 +263,7 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 };
 
-const uint defaultKeyProfiles = sizeofArray(defaultKeyProfile);
+const uint defaultKeyProfiles = IG::size(defaultKeyProfile);
 
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 
@@ -290,7 +290,7 @@ const KeyConfig defaultAppleGCProfile[] =
 	},
 };
 
-const uint defaultAppleGCProfiles = sizeofArray(defaultAppleGCProfile);
+const uint defaultAppleGCProfiles = IG::size(defaultAppleGCProfile);
 
 #endif
 
@@ -320,7 +320,7 @@ const KeyConfig defaultWiimoteProfile[] =
 	},
 };
 
-const uint defaultWiimoteProfiles = sizeofArray(defaultWiimoteProfile);
+const uint defaultWiimoteProfiles = IG::size(defaultWiimoteProfile);
 
 const KeyConfig defaultWiiCCProfile[] =
 {
@@ -346,7 +346,7 @@ const KeyConfig defaultWiiCCProfile[] =
 	},
 };
 
-const uint defaultWiiCCProfiles = sizeofArray(defaultWiiCCProfile);
+const uint defaultWiiCCProfiles = IG::size(defaultWiiCCProfile);
 
 // iControlPad
 
@@ -374,7 +374,7 @@ const KeyConfig defaultIControlPadProfile[] =
 	},
 };
 
-const uint defaultIControlPadProfiles = sizeofArray(defaultIControlPadProfile);
+const uint defaultIControlPadProfiles = IG::size(defaultIControlPadProfile);
 
 // iCade
 
@@ -402,7 +402,7 @@ const KeyConfig defaultICadeProfile[] =
 	},
 };
 
-const uint defaultICadeProfiles = sizeofArray(defaultICadeProfile);
+const uint defaultICadeProfiles = IG::size(defaultICadeProfile);
 
 // Zeemote
 
@@ -428,7 +428,7 @@ const KeyConfig defaultZeemoteProfile[] =
 	},
 };
 
-const uint defaultZeemoteProfiles = sizeofArray(defaultZeemoteProfile);
+const uint defaultZeemoteProfiles = IG::size(defaultZeemoteProfile);
 
 // PS3
 
@@ -456,6 +456,6 @@ const KeyConfig defaultPS3Profile[] =
 	},
 };
 
-const uint defaultPS3Profiles = sizeofArray(defaultPS3Profile);
+const uint defaultPS3Profiles = IG::size(defaultPS3Profile);
 
 };

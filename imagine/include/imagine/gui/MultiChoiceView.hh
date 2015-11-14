@@ -15,8 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cstddef>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/util/algorithm.h>
 
 class BaseMultiChoiceView : public TableView
 {

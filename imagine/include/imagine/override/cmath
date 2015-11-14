@@ -1,0 +1,31 @@
+#pragma once
+
+#include_next <cmath>
+
+#if !defined __clang__ && defined __ANDROID__ && !(defined __x86_64__ || defined __aarch64__)
+
+#include <imagine/util/typeTraits.hh>
+
+// missing C99 math functions in Bionic prevent TR1 function definitions in cmath,
+// copy needed ones from libstdc++
+namespace std
+{
+
+constexpr float
+round(float x)
+{ return __builtin_roundf(x); }
+
+constexpr long double
+round(long double x)
+{ return __builtin_roundl(x); }
+
+constexpr double
+round(double x)
+{ return __builtin_round(x); }
+
+template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
+constexpr T round(T x)
+{ return __builtin_round(x); }
+
+}
+#endif

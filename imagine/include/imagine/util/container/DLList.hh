@@ -1,8 +1,9 @@
 #pragma once
 
 #include <imagine/util/algorithm.h>
-#include <imagine/util/memory.h>
+#include <imagine/util/iterator.hh>
 #include <imagine/util/operators.hh>
+#include <cstddef>
 #include <assert.h>
 #include <utility>
 #include <imagine/logger/logger.h>

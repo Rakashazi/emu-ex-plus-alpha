@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 
 #ifdef CONFIG_BASE_X11
 #include <imagine/base/x11/inputDefs.hh>

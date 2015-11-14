@@ -18,7 +18,7 @@
 #include <ctime>
 #include <unistd.h>
 #include <limits.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 
 #include <imagine/fs/PosixFS.hh>
 

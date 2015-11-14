@@ -23,6 +23,7 @@
 #ifdef CONFIG_INPUT_EVDEV
 #include "../../input/evdev/evdev.hh"
 #endif
+#include <cstring>
 
 namespace Base
 {
@@ -75,7 +76,7 @@ FS::PathString storagePath()
 		// look for the first mounted SD card
 		for(auto &entry : FS::directory_iterator{"/media"})
 		{
-			if(entry.type() == FS::file_type::directory && strstr(entry.name(), "mmcblk"))
+			if(entry.type() == FS::file_type::directory && std::strstr(entry.name(), "mmcblk"))
 			{
 				//logMsg("storage dir: %s", entry.path().data());
 				return entry.path();
@@ -115,7 +116,7 @@ void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del) {}
 int main(int argc, char** argv)
 {
 	using namespace Base;
-	doOrAbort(logger_init());
+	logger_init();
 	engineInit();
 	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
 	initMainEventLoop();
@@ -127,7 +128,7 @@ int main(int argc, char** argv)
 	#ifdef CONFIG_INPUT_EVDEV
 	Input::initEvdev();
 	#endif
-	doOrAbort(onInit(argc, argv));
+	onInit(argc, argv);
 	runMainEventLoop();
 	return 0;
 }

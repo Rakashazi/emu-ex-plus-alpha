@@ -15,9 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cstddef>
 #include <jni.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/basicString.h>
+#include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <assert.h>
 

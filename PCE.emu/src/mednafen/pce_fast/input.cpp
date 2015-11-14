@@ -20,6 +20,7 @@
 #include "huc.h"
 #include "../movie.h"
 #include "../endian.h"
+#include <imagine/util/utility.h>
 
 namespace PCE_Fast
 {

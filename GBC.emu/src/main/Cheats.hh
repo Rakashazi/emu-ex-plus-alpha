@@ -17,7 +17,7 @@ struct GbcCheat
 	char name[64]{};
 	char code[12]{};
 
-	static const uint ON = IG::bit(0);
+	static const uchar ON = IG::bit(0);
 
 	bool isOn()
 	{
@@ -26,7 +26,7 @@ struct GbcCheat
 
 	void toggleOn()
 	{
-		toggleBits(flags, ON);
+		flags = IG::flipBits(flags, ON);
 		// if(game running) refresh cheats
 	}
 

@@ -15,6 +15,7 @@
 
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
+#include <imagine/util/algorithm.h>
 #include "tests.hh"
 #include "cpuUtils.hh"
 
@@ -89,7 +90,7 @@ void TestFramework::placeFrameStatsText()
 
 void TestFramework::place(const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
 {
-	var_selfs(projP);
+	this->projP = projP;
 	frameStatsText.maxLineSize = projP.bounds().xSize();
 	placeCPUStatsText();
 	placeFrameStatsText();
@@ -204,7 +205,7 @@ void TestFramework::finish(Base::FrameTimeBase frameTime)
 
 void ClearTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime)
 {
-	toggle(flash);
+	flash ^= true;
 }
 
 void ClearTest::drawTest()
@@ -232,7 +233,10 @@ void DrawTest::initTest(IG::WP pixmapSize)
 	memset(pixmap.pixel({}), 0xFF, pixmap.pixelBytes());
 	Gfx::TextureConfig texConf{pixmap};
 	texConf.setWillWriteOften(true);
-	doOrAbort(texture.init(texConf));
+	if(texture.init(texConf) != OK)
+	{
+		bug_exit("cannot init test texture");
+	}
 	texture.write(0, pixmap, {});
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
@@ -253,7 +257,7 @@ void DrawTest::deinitTest()
 
 void DrawTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime)
 {
-	toggle(flash);
+	flash ^= true;
 }
 
 void DrawTest::drawTest()

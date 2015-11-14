@@ -2,7 +2,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <cstddef>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/Mem2D.hh>
 

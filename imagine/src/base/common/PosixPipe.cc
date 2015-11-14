@@ -15,6 +15,7 @@
 
 #include <imagine/base/Pipe.hh>
 #include <imagine/util/fd-utils.h>
+#include <cstring>
 
 namespace Base
 {
@@ -28,7 +29,7 @@ void Pipe::init(Delegate del)
 	}
 	int res = pipe(msgPipe);
 	assert(res == 0);
-	var_selfs(del);
+	this->del = del;
 	fdSrc.init(msgPipe[0],
 		[this](int fd, int events)
 		{

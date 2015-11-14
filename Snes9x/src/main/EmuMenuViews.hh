@@ -71,7 +71,7 @@ public:
 		else if(snesInputPort == SNES_MOUSE_SWAPPED)
 			setting = SNES_MOUSE_MENU_IDX;
 
-		inputPorts.init(str, setting, sizeofArray(str));
+		inputPorts.init(str, setting, IG::size(str));
 	}
 
 	#ifndef SNES9X_VERSION_1_4
@@ -138,7 +138,7 @@ public:
 		loadFileBrowserItems(item, items);
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

@@ -16,8 +16,9 @@
 #define LOGTAG "CoreAudio"
 #include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/number.h>
 #include <imagine/util/ringbuffer/MachRingBuffer.hh>
+#include <imagine/util/utility.h>
+#include <imagine/util/algorithm.h>
 #include <AudioUnit/AudioUnit.h>
 #include <TargetConditionals.h>
 

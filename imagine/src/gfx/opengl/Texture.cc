@@ -276,9 +276,9 @@ static LockedTextureBuffer makeLockedTextureBuffer(IG::Pixmap pix, IG::WindowRec
 static GLuint getTexturePBO()
 {
 	assert(texturePBO[texturePBOIdx]);
-	usedTexturePBOs = std::min(usedTexturePBOs + 1, (uint)sizeofArray(texturePBO));
+	usedTexturePBOs = std::min(usedTexturePBOs + 1, (uint)IG::size(texturePBO));
 	auto pbo = texturePBO[texturePBOIdx];
-	texturePBOIdx = (texturePBOIdx+1) % sizeofArray(texturePBO);
+	texturePBOIdx = (texturePBOIdx+1) % IG::size(texturePBO);
 	return pbo;
 }
 
@@ -286,7 +286,7 @@ void initTexturePBO()
 {
 	if(unlikely(usePBO && !texturePBO[0]))
 	{
-		glGenBuffers(sizeofArray(texturePBO), texturePBO);
+		glGenBuffers(IG::size(texturePBO), texturePBO);
 	}
 }
 
@@ -534,9 +534,9 @@ LockedTextureBuffer::operator bool() const
 
 void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel)
 {
-	var_selfs(pix);
-	var_selfs(srcDirtyRect);
-	var_selfs(lockedLevel);
+	this->pix = pix;
+	this->srcDirtyRect = srcDirtyRect;
+	this->lockedLevel = lockedLevel;
 }
 
 CallResult Texture::init(TextureConfig config)
@@ -987,7 +987,7 @@ bool Texture::compileDefaultProgram(uint mode)
 	}
 }
 
-void Texture::useDefaultProgram(uint mode, const Mat4 *modelMat)
+void Texture::useDefaultProgram(uint mode, const Mat4 *modelMat) const
 {
 	#ifndef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	const uint type_ = TEX_2D_4;

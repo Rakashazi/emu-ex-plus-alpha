@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/operators.hh>
-#include <imagine/util/number.h>
+#include <imagine/util/math/math.hh>
 
 namespace IG
 {
@@ -68,57 +68,25 @@ struct Point2D : public NotEquals< Point2D<T> >, public Arithmetics< Point2D<T> 
 		return (Ratio)x/(Ratio)y;
 	}
 
-	T vectorLength()
+	constexpr T vectorLength()
 	{
-		return distance({(T)0, (T)0}, *this);
+		return distance({(T)0, (T)0});
+	}
+
+	constexpr T midpoint()
+	{
+		return (x + y) / (T)2;
+	}
+
+	constexpr T distance()
+	{
+		return std::abs(x - y);
+	}
+
+	constexpr T distance(Point2D<T> other)
+	{
+		return std::sqrt(pow2(x - other.x) + pow2(y - other.y));
 	}
 };
-
-template <class T, class T2>
-static Point2D<T> sizesWithRatioBestFit(T2 destAspectRatio, T x, T y)
-{
-	auto sourceAspectRatio = (T2)x/(T2)y;
-	T xSize = 0, ySize = 0;
-	if(destAspectRatio == sourceAspectRatio)
-	{
-		xSize = x;
-		ySize = y;
-	}
-	else if(destAspectRatio > sourceAspectRatio)
-	{
-		setSizesWithRatioX(xSize, ySize, destAspectRatio, x);
-	}
-	else
-	{
-		setSizesWithRatioY(xSize, ySize, destAspectRatio, y);
-	}
-	return {xSize, ySize};
-}
-
-template <class T, class T2>
-static constexpr Point2D<T> makeFromXWithRatio(T x, T2 r)
-{
-	return {x, x / r};
-}
-
-template <class T, class T2>
-static constexpr Point2D<T> makeFromYWithRatio(T y, T2 r)
-{
-	return {y * r, y};
-}
-
-template<class T>
-static T distance(const Point2D<T> &v1, const Point2D<T> &v2)
-{
-	return distance2D(v1.x, v1.y, v2.x, v2.y);
-}
-
-template <class T>
-static Point2D<T> rotateAboutAxis(T rads, const Point2D<T> &v)
-{
-	auto temp = v;
-	rotateAboutAxis(rads, temp.x, temp.y);
-	return temp;
-}
 
 }

@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/number.h>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/operators.hh>
 #include <imagine/util/Point2D.hh>
+#include <imagine/util/algorithm.h>
 
 namespace IG
 {
@@ -118,7 +118,7 @@ public:
 		return *this;
 	}
 
-	bool overlaps(const Rect2 &other) const
+	bool overlaps(Rect2 other) const
 	{
 		//logMsg("testing rect %d,%d %d,%d with %d,%d %d,%d", a1.x, a1.x2, a1.y, a1.y2, a2.x, a2.x2, a2.y, a2.y2);
 		return  y2 < other.y ? 0 :
@@ -127,42 +127,32 @@ public:
 				x > other.x2 ? 0 : 1;
 	}
 
-	bool overlaps(const IG::Point2D<T> point) const
+	bool overlaps(IG::Point2D<T> p) const
 	{
-		//logMsg("testing %d,%d in rect %d,%d %d,%d", px, py, a.x, a.y, a.x2, a.y2);
-		return IG::isInRange(point.x, x, x2+1) && IG::isInRange(point.y, y, y2+1);
+		//logMsg("testing %d,%d in rect %d,%d %d,%d", p.x, p.y, x, y, x2, y2);
+		return IG::isInRange(p.x, x, x2+1) && IG::isInRange(p.y, y, y2+1);
 	}
 
-	bool contains(const Rect2 &other) const
+	bool contains(Rect2 other) const
 	{
 		//logMsg("testing %d,%d %d,%d is in %d,%d %d,%d", x, y, x2, y2, other.x, other.y, other.x2, other.y2);
 		return x <= other.x && x2 >= other.x2 &&
 			y <= other.y && y2 >= other.y2;
 	}
 
-	bool contains(const IG::Point2D<T> point) const
+	bool contains(IG::Point2D<T> point) const
 	{
 		return contains({point.x, point.y, point.x, point.y});
 	}
 
 	T xCenter() const
 	{
-		return IG::midpoint(x, x2);
+		return Point2D<T>{x, x2}.midpoint();
 	}
-
-	/*T xPos(_2DOrigin origin) const
-	{
-		switch(origin.xScaler())
-		{
-			case -1: return x;
-			case 1: return x2;
-		}
-		return xCenter();
-	}*/
 
 	T yCenter() const
 	{
-		return IG::midpoint(y, y2);
+		return Point2D<T>{y, y2}.midpoint();
 	}
 
 	IG::Point2D<T> center() const
@@ -360,7 +350,7 @@ public:
 		{
 			case xOriginVal: return x;
 			case x2OriginVal: return x2;
-			default: return IG::midpoint(x, x2);
+			default: return Point2DType{x, x2}.midpoint();
 		}
 	}
 
@@ -370,7 +360,7 @@ public:
 		{
 			case yOriginVal: return y;
 			case y2OriginVal: return y2;
-			default: return IG::midpoint(y, y2);
+			default: return Point2DType{y, y2}.midpoint();
 		}
 	}
 

@@ -70,7 +70,7 @@ struct KeyConfig
 	uint devSubtype;
 	char name[MAX_KEY_CONFIG_NAME_SIZE];
 	using Key = Input::Key;
-	using KeyArray = Key[MAX_KEY_CONFIG_KEYS];
+	using KeyArray = std::array<Key, MAX_KEY_CONFIG_KEYS>;
 	KeyArray key_;
 
 	bool operator ==(KeyConfig const& rhs) const
@@ -170,8 +170,8 @@ struct InputDeviceConfig
 	bool setICadeMode(bool on);
 	bool iCadeMode();
 	#endif
-	uint8 joystickAxisAsDpadBits();
-	void setJoystickAxisAsDpadBits(uint8 axisMask);
+	uint joystickAxisAsDpadBits();
+	void setJoystickAxisAsDpadBits(uint axisMask);
 	const KeyConfig &keyConf();
 	bool setKeyConf(const KeyConfig &kConf);
 	void setDefaultKeyConf();

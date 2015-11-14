@@ -21,6 +21,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
@@ -156,7 +157,7 @@ struct EvdevInputDevice : public Device
 				}
 				bcase EV_ABS:
 				{
-					if(ev.code >= sizeofArray(axis) || !axis[ev.code].active)
+					if(ev.code >= IG::size(axis) || !axis[ev.code].active)
 					{
 						continue; // out of range or inactive
 					}
@@ -226,7 +227,7 @@ struct EvdevInputDevice : public Device
 				logMsg("%d - %d", axis[axisId].keyEmu.lowLimit, axis[axisId].keyEmu.highLimit);
 				axes++;
 				keycodeIdx += 2; // move to the next +/- axis keycode pair
-				if(axes == sizeofArray(axisKeycode)/2)
+				if(axes == IG::size(axisKeycode)/2)
 				{
 					logMsg("reached maximum joystick axes");
 					break;

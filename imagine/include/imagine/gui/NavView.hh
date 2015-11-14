@@ -15,8 +15,9 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GfxLGradient.hh>

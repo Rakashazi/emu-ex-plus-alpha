@@ -18,7 +18,7 @@
 #include <imagine/input/Device.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/basicString.h>
+#include <imagine/util/string.h>
 #include <imagine/util/jni.hh>
 
 namespace Input

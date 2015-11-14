@@ -218,7 +218,7 @@ CallResult onInit(int argc, char** argv)
 	View::defaultFace->applySettings(faceSize);
 	View::defaultFace->precacheAlphaNum();
 	View::defaultFace->precache(":.%()");
-	picker.init(testParam, sizeofArray(testParam));
+	picker.init(testParam, IG::size(testParam));
 	mainWin.show();
 
 	#ifdef __ANDROID__

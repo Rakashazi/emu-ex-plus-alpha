@@ -14,6 +14,7 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <dlfcn.h>
+#include <cstring>
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
@@ -67,7 +68,7 @@ static FS::PathString libPath{};
 
 static FS::PathString makePluginLibPath(const char *libName)
 {
-	if(unlikely(!strlen(libPath.data())))
+	if(unlikely(!std::strlen(libPath.data())))
 	{
 		libPath = Base::libPath();
 	}
@@ -421,7 +422,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 	{
 		// C64
 		{
-			sizeofArray(c64ModelStr),
+			IG::size(c64ModelStr),
 			c64ModelStr,
 			"c64model_get",
 			"c64model_set",
@@ -429,7 +430,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// C64 (accurate)
 		{
-			sizeofArray(c64ModelStr),
+			IG::size(c64ModelStr),
 			c64ModelStr,
 			"c64model_get",
 			"c64model_set",
@@ -437,7 +438,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// DTV
 		{
-			sizeofArray(dtvModelStr),
+			IG::size(dtvModelStr),
 			dtvModelStr,
 			"dtvmodel_get",
 			"dtvmodel_set",
@@ -445,7 +446,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// C128
 		{
-			sizeofArray(c128ModelStr),
+			IG::size(c128ModelStr),
 			c128ModelStr,
 			"c128model_get",
 			"c128model_set",
@@ -453,7 +454,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// C64 Super CPU
 		{
-			sizeofArray(superCPUModelStr),
+			IG::size(superCPUModelStr),
 			superCPUModelStr,
 			"c64model_get",
 			"c64model_set",
@@ -461,14 +462,14 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// CBM-II 6x0
 		{
-			sizeofArray(cbm2ModelStr),
+			IG::size(cbm2ModelStr),
 			cbm2ModelStr,
 			"cbm2model_get",
 			"cbm2model_set"
 		},
 		// CBM-II 5x0
 		{
-			sizeofArray(cbm5x0ModelStr),
+			IG::size(cbm5x0ModelStr),
 			cbm5x0ModelStr,
 			"cbm2model_get",
 			"cbm2model_set",
@@ -476,14 +477,14 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// PET
 		{
-			sizeofArray(petModelStr),
+			IG::size(petModelStr),
 			petModelStr,
 			"petmodel_get",
 			"petmodel_set"
 		},
 		// PLUS4
 		{
-			sizeofArray(plus4ModelStr),
+			IG::size(plus4ModelStr),
 			plus4ModelStr,
 			"plus4model_get",
 			"plus4model_set",
@@ -491,7 +492,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// VIC20
 		{
-			sizeofArray(vic20ModelStr),
+			IG::size(vic20ModelStr),
 			vic20ModelStr,
 			"vic20model_get",
 			"vic20model_set",

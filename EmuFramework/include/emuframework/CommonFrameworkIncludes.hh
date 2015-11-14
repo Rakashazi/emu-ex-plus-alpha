@@ -9,4 +9,4 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>

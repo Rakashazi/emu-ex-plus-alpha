@@ -23,7 +23,7 @@ void EventLoopFileSource::init(int fd, PollEventDelegate callback, uint events)
 {
 	logMsg("adding fd %d to run loop", fd);
 	fd_ = fd;
-	var_selfs(callback);
+	this->callback = callback;
 	CFFileDescriptorContext ctx{0, this};
 	fdRef = CFFileDescriptorCreate(kCFAllocatorDefault, fd, false,
 		[](CFFileDescriptorRef fdRef, CFOptionFlags callbackEventTypes, void *info)

@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <vector>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/container/ArrayList.hh>

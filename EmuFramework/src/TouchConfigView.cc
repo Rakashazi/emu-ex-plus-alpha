@@ -229,11 +229,11 @@ static const uint alphaMenuVals[] =
 template <class T, class T2, size_t S>
 static int findIdxInArray(T (&arr)[S], const T2 &val)
 {
-	forEachInArray(arr, e)
+	for(const auto &e : arr)
 	{
-		if(val == *e)
+		if(val == e)
 		{
-			return e_i;
+			return &e - arr;
 		}
 	}
 	return -1;
@@ -299,7 +299,7 @@ void TouchConfigView::init()
 		{
 			if(layoutPos[3].state == 0)
 				layoutPos[3].state = 1;
-			menuState.init(&ctrlStateStr[1], layoutPos[3].state-1, sizeofArray(ctrlStateStr)-1);
+			menuState.init(&ctrlStateStr[1], layoutPos[3].state-1, IG::size(ctrlStateStr)-1);
 		}
 		else
 			menuState.init(ctrlStateStr, layoutPos[3].state);
@@ -337,7 +337,7 @@ void TouchConfigView::init()
 	}
 	{
 		static const char *str[] = { "-0.75x V", "-0.5x V", "0", "0.5x V", "0.75x V", "1x H&V" };
-		assert(optionTouchCtrlBtnStagger < sizeofArray(str));
+		assert(optionTouchCtrlBtnStagger < IG::size(str));
 		int init = optionTouchCtrlBtnStagger;
 		btnStagger.init(str, init); text[i++] = &btnStagger;
 	}
@@ -357,7 +357,7 @@ void TouchConfigView::init()
 		static const char *str[] = { "None", "Gap only", "10%", "25%" };
 		// uses same values as X counter-part
 		int init = findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVals, (uint)optionTouchCtrlExtraYBtnSizeMultiRow, 0);
-		btnExtraYSizeMultiRow.init((EmuSystem::inputFaceBtns == 4 || (EmuSystem::inputFaceBtns >= 6 && EmuSystem::inputHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, sizeofArray(str));
+		btnExtraYSizeMultiRow.init((EmuSystem::inputFaceBtns == 4 || (EmuSystem::inputFaceBtns >= 6 && EmuSystem::inputHasTriggerBtns)) ? "V Overlap" : "V Overlap (2 rows)", str, init, IG::size(str));
 		text[i++] = &btnExtraYSizeMultiRow;
 	}
 	otherHeading.init(); text[i++] = &otherHeading;
@@ -379,7 +379,7 @@ void TouchConfigView::init()
 	}
 	resetControls.init(); text[i++] = &resetControls;
 	resetAllControls.init(); text[i++] = &resetAllControls;
-	assert(i <= sizeofArray(text));
+	assert(i <= IG::size(text));
 	TableView::init(text, i);
 }
 

@@ -37,7 +37,7 @@ static void installFirmwareFiles()
 		"Machines/MSX2 - C-BIOS", "Machines/MSX2+ - C-BIOS"
 	};
 
-	forEachDInArray(dirsToCreate, e)
+	for(auto e : dirsToCreate)
 	{
 		auto pathTemp = FS::makePathStringPrintf("%s/%s", machineBasePath.data(), e);
 		CallResult ret;
@@ -64,7 +64,7 @@ static void installFirmwareFiles()
 			"MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS"
 	};
 
-	forEachDInArray(srcPath, e)
+	for(auto &e : srcPath)
 	{
 		auto src = openAppAssetIO(e);
 		if(!src)
@@ -72,6 +72,7 @@ static void installFirmwareFiles()
 			popup.printf(4, 1, "Can't open source file:\n %s", e);
 			return;
 		}
+		auto e_i = &e - srcPath;
 		auto pathTemp = FS::makePathStringPrintf("%s/Machines/%s/%s",
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
 		CallResult ret = writeIOToNewFile(src, pathTemp.data());
@@ -320,7 +321,7 @@ public:
 		if(strlen(hdName[slot]))
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Hard Drive", window()};
-			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr));
+			multiChoiceView.init(insertEjectDiskMenuStr, IG::size(insertEjectDiskMenuStr));
 			multiChoiceView.setItem(0,
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -475,7 +476,7 @@ public:
 		if(strlen(diskName[slot]))
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
-			multiChoiceView.init(insertEjectDiskMenuStr, sizeofArray(insertEjectDiskMenuStr));
+			multiChoiceView.init(insertEjectDiskMenuStr, IG::size(insertEjectDiskMenuStr));
 			multiChoiceView.setItem(0,
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -527,7 +528,7 @@ public:
 			updateHDText(slot);
 			hdSlot[slot].init(hdSlotStr[slot], boardGetHdType(slot/2) == HD_SUNRISEIDE); item[i++] = &hdSlot[slot];
 		}
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 	}
 };
@@ -582,7 +583,7 @@ public:
 		loadFileBrowserItems(item, items);
 		msxIOControl.init(); item[items++] = &msxIOControl;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

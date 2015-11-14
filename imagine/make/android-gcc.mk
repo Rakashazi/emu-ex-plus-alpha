@@ -96,3 +96,7 @@ LDLIBS_SYSTEM += -lgcc -lc $(android_libm)
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
 LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
+
+ifndef RELEASE
+ CFLAGS_CODEGEN += -funwind-tables
+endif

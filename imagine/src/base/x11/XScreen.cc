@@ -17,6 +17,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 #include "internal.hh"
 
 namespace Base
@@ -25,7 +26,7 @@ namespace Base
 void XScreen::init(::Screen *xScreen)
 {
 	assert(xScreen);
-	var_selfs(xScreen);
+	this->xScreen = xScreen;
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
 	auto screenRes = XRRGetScreenResourcesCurrent(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));

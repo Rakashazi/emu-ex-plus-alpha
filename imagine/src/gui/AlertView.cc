@@ -17,6 +17,7 @@
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/math/int.hh>
 
 AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems): View{win}, menu{win}
 {

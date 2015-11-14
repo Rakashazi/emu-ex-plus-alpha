@@ -39,7 +39,7 @@ void MsgPopup::clear()
 
 void MsgPopup::place(const Gfx::ProjectionPlane &projP)
 {
-	var_selfs(projP)
+	this->projP = projP;
 	text.maxLineSize = projP.w;
 	if(strlen(str.data()))
 		text.compile(projP);

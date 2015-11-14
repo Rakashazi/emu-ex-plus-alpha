@@ -98,7 +98,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 #include <emuframework/CommonGui.hh>
@@ -246,10 +246,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		if(state == Input::PUSHED && key == bit(3))
 			FCEUI_VSUniCoin();
 	}
-	if(state == Input::PUSHED)
-		setBits(padData, key << playerInputShift(player));
-	else
-		unsetBits(padData, key << playerInputShift(player));
+	padData = IG::setOrClearBits(padData, key << playerInputShift(player), state == Input::PUSHED);
 }
 
 void EmuSystem::reset(ResetMode mode)

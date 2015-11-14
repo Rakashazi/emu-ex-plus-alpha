@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <android/api-level.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
 
 namespace Base

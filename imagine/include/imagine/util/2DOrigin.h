@@ -17,7 +17,9 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <imagine/util/memory.h>
+#include <imagine/util/utility.h>
+#include <imagine/util/math/math.hh>
+#include <imagine/util/ansiTypes.h>
 #include <assert.h>
 
 // Origins are based on Cartesian coordinates,
@@ -205,9 +207,9 @@ public:
 	{
 		int scaleDiff = inputScale - outputScale;
 		if(std::abs(scaleDiff) == 1)
-			return pos - halfSize * IG::signOf(scaleDiff);
+			return pos - halfSize * IG::sign(scaleDiff);
 		else if(std::abs(scaleDiff) == 2)
-			return pos - fullSize * IG::signOf(scaleDiff);
+			return pos - fullSize * IG::sign(scaleDiff);
 		else
 			return pos;
 	}

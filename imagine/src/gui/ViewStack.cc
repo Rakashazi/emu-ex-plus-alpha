@@ -15,6 +15,7 @@
 
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/math/int.hh>
 #include <utility>
 
 void BasicViewController::push(View &v, Input::Event e)
@@ -62,7 +63,7 @@ void BasicViewController::dismissView(View &v)
 void BasicViewController::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
 {
 	viewRect = rect;
-	var_selfs(projP);
+	this->projP = projP;
 	place();
 }
 
@@ -89,7 +90,7 @@ void BasicViewController::init(const Base::Window &win) {}
 
 void ViewStack::setNavView(NavView *nav)
 {
-	var_selfs(nav);
+	this->nav = nav;
 	if(nav)
 	{
 		nav->setLeftBtnActive(size > 1);
@@ -105,7 +106,7 @@ NavView *ViewStack::navView() const
 void ViewStack::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
 {
 	viewRect = rect;
-	var_selfs(projP);
+	this->projP = projP;
 	place();
 }
 
@@ -143,7 +144,7 @@ void ViewStack::draw()
 
 void ViewStack::push(View &v, Input::Event e)
 {
-	assert(size != sizeofArray(view));
+	assert(size != IG::size(view));
 	v.setController(this, e);
 	view[size] = &v;
 	size++;

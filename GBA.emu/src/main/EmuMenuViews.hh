@@ -33,7 +33,7 @@ class SystemOptionView : public OptionView
 			"Off",
 			"On"
 		};
-		rtc.init(str, optionRtcEmulation, sizeofArray(str));
+		rtc.init(str, optionRtcEmulation, IG::size(str));
 	}
 
 public:
@@ -81,7 +81,7 @@ public:
 		loadFileBrowserItems(item, items);
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

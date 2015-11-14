@@ -54,8 +54,8 @@ void BiosSelectMenu::onSelectFile(const char* name, Input::Event e)
 
 void BiosSelectMenu::init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter)
 {
-	var_selfs(biosPathStr);
-	var_selfs(fsFilter);
+	this->biosPathStr = biosPathStr;
+	this->fsFilter = fsFilter;
 	init();
 }
 
@@ -93,7 +93,7 @@ void BiosSelectMenu::init()
 			popAndShow();
 			onBiosChange.callSafe();
 		};
-	TableView::init(choiceEntryItem, sizeofArray(choiceEntry));
+	TableView::init(choiceEntryItem, IG::size(choiceEntry));
 }
 
 void OptionView::autoSaveStateInit()
@@ -110,7 +110,7 @@ void OptionView::autoSaveStateInit()
 		bcase 15: val = 2;
 		bcase 30: val = 3;
 	}
-	autoSaveState.init(str, val, sizeofArray(str));
+	autoSaveState.init(str, val, IG::size(str));
 }
 
 void OptionView::fastForwardSpeedinit()
@@ -125,7 +125,7 @@ void OptionView::fastForwardSpeedinit()
 	{
 		val = optionFastForwardSpeed - MIN_FAST_FORWARD_SPEED;
 	}
-	fastForwardSpeed.init(str, val, sizeofArray(str));
+	fastForwardSpeed.init(str, val, IG::size(str));
 }
 
 
@@ -138,7 +138,7 @@ static void uiVisibiltyInit(const Byte1Option &option, MultiChoiceSelectMenuItem
 	int val = 2;
 	if(option < 2)
 		val = option;
-	menuItem.init(str, val, sizeofArray(str));
+	menuItem.init(str, val, IG::size(str));
 }
 
 #ifdef __ANDROID__
@@ -152,7 +152,7 @@ void OptionView::androidTextureStorageInit()
 		"Surface Texture"
 	};
 	int val = optionAndroidTextureStorage;
-	androidTextureStorage.init(str, val, Base::androidSDK() >= 14 ? sizeofArray(str) : sizeofArray(str)-1);
+	androidTextureStorage.init(str, val, Base::androidSDK() >= 14 ? IG::size(str) : IG::size(str)-1);
 }
 #endif
 
@@ -165,7 +165,7 @@ void OptionView::frameIntervalInit()
 	};
 	int baseVal = 1;
 	int val = int(optionFrameInterval);
-	frameInterval.init(str, val, sizeofArray(str), baseVal);
+	frameInterval.init(str, val, IG::size(str), baseVal);
 }
 #endif
 
@@ -238,7 +238,7 @@ static void orientationInit(MultiChoiceSelectMenuItem &item, uint option)
 		initVal = O_0;
 	else if(option == Base::VIEW_ROTATE_180)
 		initVal = O_180;
-	item.init(str, initVal, sizeofArray(str), baseVal);
+	item.init(str, initVal, IG::size(str), baseVal);
 }
 
 void OptionView::gameOrientationInit()
@@ -253,7 +253,7 @@ void OptionView::menuOrientationInit()
 
 void OptionView::aspectRatioInit()
 {
-	assert(sizeofArray(aspectRatioStr) >= EmuSystem::aspectRatioInfos);
+	assert(IG::size(aspectRatioStr) >= EmuSystem::aspectRatioInfos);
 	int val = 0;
 	iterateTimes(EmuSystem::aspectRatioInfos, i)
 	{
@@ -271,8 +271,8 @@ void OptionView::soundBuffersInit()
 {
 	static const char *str2[] = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
 	static const char *str3[] = { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
-	static_assert(sizeofArray(str2) == 12 - (OPTION_SOUND_BUFFERS_MIN-1) || sizeofArray(str3) == 12 - (OPTION_SOUND_BUFFERS_MIN-1), "incorrect sound buffers string array");
-	soundBuffers.init((OPTION_SOUND_BUFFERS_MIN == 2) ? str2 : str3, std::max((int)optionSoundBuffers - (int)OPTION_SOUND_BUFFERS_MIN, 0), (OPTION_SOUND_BUFFERS_MIN == 2) ? sizeofArray(str2) : sizeofArray(str3));
+	static_assert(IG::size(str2) == 12 - (OPTION_SOUND_BUFFERS_MIN-1) || IG::size(str3) == 12 - (OPTION_SOUND_BUFFERS_MIN-1), "incorrect sound buffers string array");
+	soundBuffers.init((OPTION_SOUND_BUFFERS_MIN == 2) ? str2 : str3, std::max((int)optionSoundBuffers - (int)OPTION_SOUND_BUFFERS_MIN, 0), (OPTION_SOUND_BUFFERS_MIN == 2) ? IG::size(str2) : IG::size(str3));
 }
 #endif
 
@@ -289,7 +289,7 @@ void OptionView::zoomInit()
 		bcase optionImageZoomIntegerOnly: val = 4;
 		bcase optionImageZoomIntegerOnlyY: val = 5;
 	}
-	zoom.init(str, val, sizeofArray(str));
+	zoom.init(str, val, IG::size(str));
 }
 
 void OptionView::viewportZoomInit()
@@ -303,7 +303,7 @@ void OptionView::viewportZoomInit()
 		bcase 90: val = 2;
 		bcase 85: val = 3;
 	}
-	viewportZoom.init(str, val, sizeofArray(str));
+	viewportZoom.init(str, val, IG::size(str));
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -317,7 +317,7 @@ void OptionView::imgEffectInit()
 		bcase VideoImageEffect::SCALE2X: init = 2;
 		bcase VideoImageEffect::PRESCALE2X: init = 3;
 	}
-	imgEffect.init(str, init, sizeofArray(str));
+	imgEffect.init(str, init, IG::size(str));
 }
 #endif
 
@@ -333,7 +333,7 @@ void OptionView::overlayEffectInit()
 		bcase VideoImageOverlay::CRT_RGB: init = 4;
 		bcase VideoImageOverlay::CRT_RGB_2: init = 5;
 	}
-	overlayEffect.init(str, init, sizeofArray(str));
+	overlayEffect.init(str, init, IG::size(str));
 }
 
 void OptionView::overlayEffectLevelInit()
@@ -349,7 +349,7 @@ void OptionView::overlayEffectLevelInit()
 		bcase 75: init = 5;
 		bcase 100: init = 6;
 	}
-	overlayEffectLevel.init(str, init, sizeofArray(str));
+	overlayEffectLevel.init(str, init, IG::size(str));
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -365,7 +365,7 @@ void OptionView::imgEffectPixelFormatInit()
 		bcase PIXEL_RGB565: init = 1;
 		bcase PIXEL_RGBA8888: init = 2;
 	}
-	imgEffectPixelFormat.init(str, init, sizeofArray(str));
+	imgEffectPixelFormat.init(str, init, IG::size(str));
 }
 #endif
 
@@ -382,7 +382,7 @@ void OptionView::windowPixelFormatInit()
 		bcase PIXEL_RGB565: init = 1;
 		bcase PIXEL_RGB888: init = 2;
 	}
-	windowPixelFormat.init(str, init, sizeofArray(str));
+	windowPixelFormat.init(str, init, IG::size(str));
 }
 #endif
 
@@ -421,7 +421,7 @@ void OptionView::fontSizeInit()
 		bcase 10000: init = 16;
 		bcase 10500: init = 17;
 	}
-	fontSize.init(str, init, sizeofArray(str));
+	fontSize.init(str, init, IG::size(str));
 }
 
 #if defined CONFIG_BASE_ANDROID
@@ -436,7 +436,7 @@ void OptionView::processPriorityInit()
 		init = 1;
 	if(optionProcessPriority.val == -14)
 		init = 2;
-	processPriority.init(str, init, sizeofArray(str));
+	processPriority.init(str, init, IG::size(str));
 }
 #endif
 
@@ -934,7 +934,7 @@ void OptionView::init(uint idx)
 		bcase 3: loadSystemItems(item, i);
 		bcase 4: loadGUIItems(item, i);
 	}
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

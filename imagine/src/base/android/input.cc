@@ -38,7 +38,7 @@ static struct TouchState
 	DragPointer dragState;
 	bool isTouching = false;
 } m[Config::Input::MAX_POINTERS];
-static uint numCursors = sizeofArray(m);
+static uint numCursors = IG::size(m);
 
 static AndroidInputDevice *sysDeviceForInputId(int osId)
 {
@@ -125,7 +125,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 		case AMOTION_EVENT_ACTION_DOWN:
 		case AMOTION_EVENT_ACTION_POINTER_DOWN:
 			//logMsg("touch down for %d", pid);
-			iterateTimes(sizeofArray(m), i) // find a free touch element
+			iterateTimes(IG::size(m), i) // find a free touch element
 			{
 				if(m[i].id == -1)
 				{
@@ -138,21 +138,21 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 			}
 		bcase AMOTION_EVENT_ACTION_UP:
 		//case AMOTION_EVENT_ACTION_CANCEL: // calling code always uses AMOTION_EVENT_ACTION_UP
-			forEachInArray(m, p)
+			for(auto &p : m)
 			{
-				if(p->isTouching)
+				if(p.isTouching)
 				{
 					//logMsg("touch up for %d from gesture end", p_i);
-					int x = p->dragState.x;
-					int y = p->dragState.y;
-					p->id = -1;
-					p->isTouching = false;
-					dispatchTouch(p_i, RELEASED, *p, {x, y}, time, isTouch);
+					int x = p.dragState.x;
+					int y = p.dragState.y;
+					p.id = -1;
+					p.isTouching = false;
+					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isTouch);
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
 			//logMsg("touch up for %d", pid);
-			iterateTimes(sizeofArray(m), i) // find the touch element
+			iterateTimes(IG::size(m), i) // find the touch element
 			{
 				if(m[i].id == pid)
 				{
@@ -166,7 +166,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 		bdefault:
 			// move event
 			//logMsg("event id %d", action);
-			iterateTimes(sizeofArray(m), i) // find the touch element
+			iterateTimes(IG::size(m), i) // find the touch element
 			{
 				if(m[i].id == pid)
 				{
@@ -178,7 +178,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 	}
 
 	/*logMsg("pointer state:");
-	iterateTimes(sizeofArray(m), i)
+	iterateTimes(IG::size(m), i)
 	{
 		if(m[i].id != -1)
 			logMsg("id: %d x: %d y: %d inWin: %d", m[i].id, m[i].dragState.x, m[i].dragState.y, m[i].s.inWin);

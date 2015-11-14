@@ -15,9 +15,12 @@
 
 #define LOGTAG "TimerFD"
 #include <unistd.h>
+#include <errno.h>
+#include <cstring>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/utility.h>
 // TODO: can use __has_include in GCC 5 to simplify
 #if defined __ANDROID__
 #include "../../android/android.hh"
@@ -146,7 +149,7 @@ void TimerFD::timerFired()
 
 void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, Flags flags)
 {
-	var_selfs(callback);
+	this->callback = callback;
 	int seconds = ns / 1000000000;
 	long leftoverNs = ns % 1000000000;
 	int repeatSeconds = repeatNs / 1000000000;
@@ -159,7 +162,7 @@ void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, F
 
 void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, Flags flags)
 {
-	var_selfs(callback);
+	this->callback = callback;
 	int seconds = ms / 1000;
 	int leftoverMs = ms % 1000;
 	long leftoverNs = leftoverMs * 1000000;
@@ -174,7 +177,7 @@ void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, F
 
 void Timer::callbackAfterSec(CallbackDelegate callback, int s, int repeatS, Flags flags)
 {
-	var_selfs(callback);
+	this->callback = callback;
 	if(!arm({s, 0}, {repeatS, 0}, flags & HINT_REUSE))
 	{
 		bug_exit("failed to setup timer, OS resources may be low or bad parameters present");

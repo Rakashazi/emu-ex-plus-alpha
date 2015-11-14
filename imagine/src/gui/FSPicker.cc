@@ -93,8 +93,8 @@ void FSPicker::init(Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, F
 {
 	deinit();
 	faceRes = face;
-	var_selfs(filter);
-	var_selfs(singleDir);
+	this->filter = filter;
+	this->singleDir = singleDir;
 	navV.init(face, backRes, closeRes, singleDir);
 }
 

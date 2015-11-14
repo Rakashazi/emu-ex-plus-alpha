@@ -80,7 +80,7 @@ public:
 			setting = config.region_detect;
 		}
 
-		region.init(str, setting, sizeofArray(str));
+		region.init(str, setting, IG::size(str));
 	}
 
 	#ifndef NO_SCD
@@ -194,7 +194,7 @@ public:
 		else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_JUSTIFIER)
 			setting = 3;
 
-		inputPorts.init(str, setting, sizeofArray(str));
+		inputPorts.init(str, setting, IG::size(str));
 	}
 
 	MultiChoiceSelectMenuItem videoSystem
@@ -212,7 +212,7 @@ public:
 		{
 			"Auto", "NTSC", "PAL"
 		};
-		videoSystem.init(str, std::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
+		videoSystem.init(str, std::min((int)optionVideoSystem, (int)IG::size(str)-1), IG::size(str));
 	}
 
 public:
@@ -261,7 +261,7 @@ public:
 			bcase 3: loadSystemItems(item, i);
 			bcase 4: loadGUIItems(item, i);
 		}
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 	}
 };
@@ -302,7 +302,7 @@ public:
 		loadFileBrowserItems(item, items);
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

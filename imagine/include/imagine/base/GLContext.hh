@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/pixmap/PixelFormat.hh>
@@ -28,7 +28,7 @@ private:
 public:
 	void setPixelFormat(PixelFormat pixelFormat_)
 	{
-		var_selfs(pixelFormat_);
+		this->pixelFormat_ = pixelFormat_;
 	}
 
 	uint pixelFormat() const
@@ -40,7 +40,7 @@ public:
 
 	void setUseDepth(bool useDepth_)
 	{
-		var_selfs(useDepth_);
+		this->useDepth_ = useDepth_;
 	}
 
 	bool useDepth() const
@@ -50,7 +50,7 @@ public:
 
 	void setUseStencil(bool useStencil_)
 	{
-		var_selfs(useStencil_);
+		this->useStencil_ = useStencil_;
 	}
 
 	bool useStencil() const
@@ -72,7 +72,7 @@ public:
 	{
 		if(!majorVer)
 			majorVer = 1;
-		var_selfs(majorVer);
+		this->majorVer = majorVer;
 	}
 
 	uint majorVersion() const
@@ -82,7 +82,7 @@ public:
 
 	void setMinorVersion(uint minorVer)
 	{
-		var_selfs(minorVer);
+		this->minorVer = minorVer;
 	}
 
 	uint minorVersion() const
@@ -92,7 +92,7 @@ public:
 
 	void setOpenGLESAPI(bool glesAPI)
 	{
-		var_selfs(glesAPI);
+		this->glesAPI = glesAPI;
 	}
 
 	bool openGLESAPI() const

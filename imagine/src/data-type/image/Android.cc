@@ -18,7 +18,6 @@
 #include <imagine/data-type/image/Android.hh>
 #include <assert.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/strings.h>
 #include <imagine/util/jni.hh>
 #include "../../base/android/android.hh"
 

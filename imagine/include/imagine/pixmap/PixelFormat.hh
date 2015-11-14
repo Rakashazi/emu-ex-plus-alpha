@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/pixmap/PixelDesc.hh>
 
 namespace IG

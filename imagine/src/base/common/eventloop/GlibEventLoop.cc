@@ -16,6 +16,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/string.h>
 #include <glib-unix.h>
 
 namespace Base
@@ -42,7 +43,7 @@ void EventLoopFileSource::init(int fd, PollEventDelegate callback, uint events)
 		nullptr
 	};
 	fd_ = fd;
-	var_selfs(callback);
+	this->callback = callback;
 	source = g_source_new(&fdSourceFuncs, sizeof(GSource));
 	tag = g_source_add_unix_fd(source, fd, (GIOCondition)events);
 	g_source_set_callback(source, nullptr, this, nullptr);

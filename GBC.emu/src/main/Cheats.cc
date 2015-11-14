@@ -11,15 +11,18 @@ bool cheatsModified = 0;
 
 static bool strIsGGCode(const char *str)
 {
-	return strlen(str) == 11 && str[3] == '-' && str[7] == '-' &&
-		string_isHexValue(&str[0], 3) &&
-		string_isHexValue(&str[4], 3) &&
-		string_isHexValue(&str[8], 3);
+	int hex;
+	return strlen(str) == 11 &&
+		sscanf(str, "%1x%1x%1x-%1x%1x%1x-%1x%1x%1x",
+			&hex, &hex, &hex, &hex, &hex, &hex, &hex, &hex, &hex) == 9;
 }
 
 static bool strIsGSCode(const char *str)
 {
-	return strlen(str) == 8 && string_isHexValue(str, 8);
+	int hex;
+	return strlen(str) == 8 &&
+		sscanf(str, "%1x%1x%1x%1x%1x%1x%1x%1x",
+			&hex, &hex, &hex, &hex, &hex, &hex, &hex, &hex) == 8;
 }
 
 void applyCheats()
@@ -142,7 +145,7 @@ void SystemEditCheatView::init(GbcCheat &cheat)
 	loadNameItem(cheat.name, item, i);
 	ggCode.init(cheat.code); item[i++] = &ggCode;
 	loadRemoveItem(item, i);
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

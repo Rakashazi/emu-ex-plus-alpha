@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 
 // Automatic CONFIG_GFX_* settings
 

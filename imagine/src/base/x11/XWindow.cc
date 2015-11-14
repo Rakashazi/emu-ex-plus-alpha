@@ -20,6 +20,7 @@
 #include "xdnd.hh"
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 
 namespace Base
 {

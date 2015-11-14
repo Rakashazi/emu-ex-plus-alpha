@@ -101,7 +101,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 				})
 			}
 		};
-		env->RegisterNatives(displayListenerHelperCls, method, sizeofArray(method));
+		env->RegisterNatives(displayListenerHelperCls, method, IG::size(method));
 
 		// get the current presentation screens
 		JavaInstMethod<jobject()> jGetPresentationDisplays{env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};

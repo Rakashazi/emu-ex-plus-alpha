@@ -48,7 +48,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"3:2 (Original)", 3, 2},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
 
@@ -189,10 +189,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	if(state == Input::PUSHED)
-		unsetBits(P1, emuKey);
-	else
-		setBits(P1, emuKey);
+	P1 = IG::setOrClearBits(P1, (uint16)emuKey, state != Input::PUSHED);
 }
 
 enum

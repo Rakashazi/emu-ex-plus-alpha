@@ -16,7 +16,7 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <Foundation/NSString.h>
 #include <imagine/util/string/apple.h>
-#include <imagine/util/basicString.h>
+#include <imagine/util/string.h>
 
 void precomposeUnicodeString(const char *src, char *dest, unsigned int destSize)
 {

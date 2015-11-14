@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/bits.h>
 
@@ -99,10 +99,7 @@ public:
 	uint typeBits() const;
 	uint subtype() const { return subtype_; }
 
-	bool operator ==(Device const& rhs) const
-	{
-		return enumId() == rhs.enumId() && map_ == rhs.map_ && string_equal(name(), rhs.name());
-	}
+	bool operator ==(Device const& rhs) const;
 
 	virtual void setICadeMode(bool on);
 	virtual bool iCadeMode() const { return false; }

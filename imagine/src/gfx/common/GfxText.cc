@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/math/int.hh>
 #include <imagine/mem/mem.h>
 
 namespace Gfx

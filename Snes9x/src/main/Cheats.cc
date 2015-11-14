@@ -40,7 +40,7 @@ void SystemEditCheatView::init(int cheatIdx)
 	saved.init(savedStr); item[i++] = &saved;
 
 	loadRemoveItem(item, i);
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

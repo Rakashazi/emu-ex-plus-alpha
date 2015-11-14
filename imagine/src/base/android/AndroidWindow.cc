@@ -96,7 +96,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			})
 		},
 	};
-	env->RegisterNatives(cls, method, sizeofArray(method));
+	env->RegisterNatives(cls, method, IG::size(method));
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)

@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <memory>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/io/ArchiveIO.hh>

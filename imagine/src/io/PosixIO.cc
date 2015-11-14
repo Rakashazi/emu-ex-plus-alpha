@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 

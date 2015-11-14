@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <jni.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 #include <android/bitmap.h>

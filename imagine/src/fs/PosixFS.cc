@@ -18,9 +18,8 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/util/strings.h>
-#include <imagine/util/string/generic.h>
 #include <imagine/util/assume.h>
+#include <imagine/util/string.h>
 #include <errno.h>
 
 #ifdef __APPLE__

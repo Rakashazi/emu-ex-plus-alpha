@@ -27,7 +27,6 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
-#include <imagine/util/strings.h>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
@@ -559,7 +558,7 @@ void MenuView::init()
 	uint items = 0;
 	loadFileBrowserItems(item, items);
 	loadStandardItems(item, items);
-	assert(items <= sizeofArray(item));
+	assert(items <= IG::size(item));
 	TableView::init(item, items);
 }
 
@@ -567,21 +566,22 @@ void OptionCategoryView::init()
 {
 	//logMsg("running option category init");
 	uint i = 0;
-	forEachInArray(subConfig, e)
+	for(auto &e : subConfig)
 	{
 		// TODO: Emulated system input options moved to on-screen & key input option views,
 		// rework how option views are initialized
-		if(e_i == 2)
+		auto idx = &e - subConfig;
+		if(idx == 2)
 			continue;
-		e->init(); item[i++] = e;
-		e->onSelect() =
-		[this, e_i](TextMenuItem &, View &, Input::Event e)
+		e.init(); item[i++] = &e;
+		e.onSelect() =
+		[this, idx](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &oCategoryMenu = *makeOptionCategoryMenu(window(), e_i);
+			auto &oCategoryMenu = *makeOptionCategoryMenu(window(), idx);
 			viewStack.pushAndShow(oCategoryMenu, e);
 		};
 	}
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 
@@ -639,7 +639,7 @@ void RecentGameView::init()
 		rIdx++;
 	}
 	clear.init(recentGameList.size()); item[i++] = &clear;
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

@@ -58,7 +58,7 @@ static const char *assetFilename[] =
 	"fastForward.png"
 };
 
-static Gfx::PixmapTexture assetBuffImg[sizeofArray(assetFilename)];
+static Gfx::PixmapTexture assetBuffImg[IG::size(assetFilename)];
 
 static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport);
 static Gfx::Viewport makeViewport(const Base::Window &win);
@@ -66,7 +66,7 @@ void mainInitWindowCommon(Base::Window &win);
 
 Gfx::PixmapTexture &getAsset(AssetID assetID)
 {
-	assert(assetID < sizeofArray(assetFilename));
+	assert(assetID < IG::size(assetFilename));
 	auto &res = assetBuffImg[assetID];
 	if(!res)
 	{

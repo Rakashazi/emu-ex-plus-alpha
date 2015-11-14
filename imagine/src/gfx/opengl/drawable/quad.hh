@@ -1,6 +1,5 @@
 #pragma once
 #include <imagine/gfx/GeomQuad.hh>
-#include <imagine/gfx/VertexArray.hh>
 
 namespace Gfx
 {

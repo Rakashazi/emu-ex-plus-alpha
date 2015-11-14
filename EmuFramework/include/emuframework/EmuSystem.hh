@@ -23,11 +23,11 @@
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/audio/PcmFormat.hh>
-#include <imagine/util/Rational.hh>
+#include <imagine/util/string.h>
 
 struct AspectRatioInfo
 {
-	constexpr AspectRatioInfo(const char *name, int n, int d): name(name), aspect{Rational::make<uint>(n, d)} {}
+	constexpr AspectRatioInfo(const char *name, uint n, uint d): name(name), aspect{n, d} {}
 	const char *name;
 	IG::Point2D<uint> aspect;
 };

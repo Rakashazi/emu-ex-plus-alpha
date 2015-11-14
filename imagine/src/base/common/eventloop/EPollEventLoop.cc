@@ -30,7 +30,7 @@ void EventLoopFileSource::init(int fd, PollEventDelegate callback, uint events)
 {
 	logMsg("adding fd %d to epoll", fd);
 	fd_ = fd;
-	var_selfs(callback);
+	this->callback = callback;
 	struct epoll_event ev {0};
 	ev.data.ptr = this;
 	ev.events = events;
@@ -92,7 +92,7 @@ void runMainEventLoop()
 	{
 		struct epoll_event event[16];
 		int events;
-		while((events = epollWaitWrapper(ePoll, event, sizeofArray(event))) > 0)
+		while((events = epollWaitWrapper(ePoll, event, IG::size(event))) > 0)
 		{
 			//logMsg("%d events ready", events);
 			iterateTimes(events, i)

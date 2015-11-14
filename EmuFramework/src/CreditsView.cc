@@ -16,6 +16,7 @@
 #define LOGTAG "CreditsView"
 #include <emuframework/CreditsView.hh>
 #include <emuframework/EmuApp.hh>
+#include <imagine/util/math/int.hh>
 
 CreditsView::CreditsView(const char *str, Base::Window &win):
 	View{win}, str(str) {}

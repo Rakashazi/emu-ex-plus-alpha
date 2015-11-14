@@ -15,9 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/util/bits.h>
 #include <memory>
+#include <algorithm>
+#include <cstddef>
 #include <cstdio> // for SEEK_*
 
 class IODefs

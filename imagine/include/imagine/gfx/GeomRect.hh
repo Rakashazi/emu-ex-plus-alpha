@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/GeomQuad.hh>
 

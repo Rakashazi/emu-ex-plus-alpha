@@ -15,6 +15,7 @@
 
 #include "GLStateCache.hh"
 #include "utils.h"
+#include <cstring>
 
 bool GLStateCache::verifyState = false;
 
@@ -346,9 +347,9 @@ void GLStateCache::texEnvfv(GLenum target, GLenum pname, const GLfloat *params)
 {
 	if(target == GL_TEXTURE_ENV && pname == GL_TEXTURE_ENV_COLOR)
 	{
-		if(memcmp(params, GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, sizeof(GLfloat)*4))
+		if(std::memcmp(params, GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, sizeof(GLfloat)*4))
 		{
-			memcpy(GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, params, sizeof(GLfloat)*4);
+			std::memcpy(GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state, params, sizeof(GLfloat)*4);
 			glTexEnvfv(target, pname, params);
 			handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glTexEnvfv", err); });
 		}
@@ -439,7 +440,7 @@ void GLStateCache::vertexPointer(GLint size, GLenum type, GLsizei stride, const 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 void GLStateCache::vertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
 {
-	if(index >= sizeofArray(vertexAttribPointerState) || vboIsBound())
+	if(index >= IG::size(vertexAttribPointerState) || vboIsBound())
 	{
 		// uncached
 		glVertexAttribPointer(index, size, type, normalized, stride, pointer);

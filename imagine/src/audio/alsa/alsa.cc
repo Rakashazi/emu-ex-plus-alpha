@@ -147,7 +147,7 @@ public:
 
 	CallResult begin(snd_pcm_t *pcmHnd, snd_pcm_uframes_t *frames)
 	{
-		var_selfs(pcmHnd);
+		this->pcmHnd = pcmHnd;
 		snd_pcm_uframes_t wantedFrames = *frames;
 		if(snd_pcm_mmap_begin(pcmHnd, &areas, &offset, frames) != 0)
 		{

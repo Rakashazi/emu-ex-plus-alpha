@@ -37,10 +37,10 @@ static int bachk(const char *str)
 	return 0;
 }
 
-static int ba2str(const BluetoothAddr *ba, char *str)
+static int ba2str(BluetoothAddr ba, char *str)
 {
 	return sprintf(str, "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
-		ba->b[5], ba->b[4], ba->b[3], ba->b[2], ba->b[1], ba->b[0]);
+		ba.data()[5], ba.data()[4], ba.data()[3], ba.data()[2], ba.data()[1], ba.data()[0]);
 }
 
 static int str2ba(const char *str, BluetoothAddr *ba)
@@ -54,7 +54,7 @@ static int str2ba(const char *str, BluetoothAddr *ba)
 	}
 
 	for (i = 0; i < 6; i++, str += 3)
-		b.b[i] = strtol(str, NULL, 16);
+		b.data()[i] = strtol(str, NULL, 16);
 
 	baswap(ba, &b);
 

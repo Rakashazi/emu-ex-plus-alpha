@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>

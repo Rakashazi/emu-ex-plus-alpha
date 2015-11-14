@@ -4,7 +4,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
-#include <imagine/util/number.h>
+#include <algorithm>
 #include <imagine/logger/logger.h>
 #include <sys/ioctl.h>
 

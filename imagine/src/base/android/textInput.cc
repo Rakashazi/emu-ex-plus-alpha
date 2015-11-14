@@ -45,7 +45,7 @@ static void setupTextInputJni(JNIEnv* env)
 		{
 			{"sysTextInputEnded", "(Ljava/lang/String;ZZ)V", (void *)&textInputEnded}
 		};
-		env->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+		env->RegisterNatives(jBaseActivityCls, activityMethods, IG::size(activityMethods));
 	}
 }
 

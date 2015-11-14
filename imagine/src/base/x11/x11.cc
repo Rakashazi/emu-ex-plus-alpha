@@ -17,7 +17,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
 #include "../common/basePrivate.hh"
@@ -25,6 +25,9 @@
 #include "internal.hh"
 #include "xdnd.hh"
 #include "xlibutils.h"
+
+#define ASCII_LF 0xA
+#define ASCII_CR 0xD
 
 namespace Base
 {
@@ -61,9 +64,9 @@ static void fileURLToPath(char *url)
 		else // decode the next 2 chars as hex digits
 		{
 			srcPos++;
-			uchar msd = hexToInt(pathStart[srcPos]) << 4;
+			int msd = char_hexToInt(pathStart[srcPos]) << 4;
 			srcPos++;
-			uchar lsd = hexToInt(pathStart[srcPos]);
+			int lsd = char_hexToInt(pathStart[srcPos]);
 			url[destPos] = msd + lsd;
 		}
 	}
@@ -217,7 +220,7 @@ CallResult initWindowSystem(EventLoopFileSource &eventSrc)
 	}
 	initXScreens();
 	initFrameTimer();
-	doOrAbort(Input::init());
+	Input::init();
 	eventSrc.initX(ConnectionNumber(dpy));
 	return OK;
 }

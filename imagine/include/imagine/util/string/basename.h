@@ -15,7 +15,20 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define doOrElse(Do, Else) { if(Do != OK) Else; }
-#define doOrReturnVal(Do, Val) doOrElse(Do, return(Val))
-#define doOrReturn(Do) { CallResult r_ = Do; if(r_ != OK) return r_; }
-#define doOrAbort(Do) doOrElse(Do, Base::abort())
+#include <imagine/util/builtins.h>
+
+#ifdef __cplusplus
+
+template <class T>
+T baseNamePos(T path);
+
+#endif
+
+BEGIN_C_DECLS
+
+void baseName(const char *path, char *pathOut);
+void baseNameInPlace(char *path);
+void dirName(const char *path, char *pathOut);
+void dirNameInPlace(char *path);
+
+END_C_DECLS

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
 

@@ -69,7 +69,7 @@ void setProjectionMatrix(const Mat4 &mat)
 	projectionMatPreTransformed = mat;
 	if(projectionMatRot)
 	{
-		logMsg("rotated projection matrix by %f degrees", (double)IG::toDegrees(projectionMatRot));
+		logMsg("rotated projection matrix by %f degrees", (double)IG::degrees(projectionMatRot));
 		auto rotatedMat = mat.rollRotate(projectionMatRot);
 		setGLProjectionMatrix(rotatedMat);
 	}

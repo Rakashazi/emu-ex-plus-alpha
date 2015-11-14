@@ -52,7 +52,7 @@ void BundledGamesView::init()
 				EmuSystem::clearGamePaths();
 			}
 		};
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

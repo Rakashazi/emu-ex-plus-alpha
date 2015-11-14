@@ -15,7 +15,6 @@
 
 #define LOGTAG "ResFace"
 
-#include <imagine/util/strings.h>
 #include <imagine/util/bits.h>
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/logger/logger.h>
@@ -32,6 +31,10 @@
 #include <imagine/resource/font/ResourceFontUIKit.hh>
 #endif
 
+static const char firstDrawableAsciiChar = '!';
+static const char lastDrawableAsciiChar = '~';
+static const uint numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
+
 // definitions for the Unicode Basic Multilingual Plane (BMP)
 static const uint unicodeBmpChars = 0xFFFE;
 
@@ -44,6 +47,23 @@ static const uint unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars
 static const uint glyphTableEntries = ResourceFace::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
 static CallResult mapCharToTable(uint c, uint &tableIdx);
+
+static int charIsDrawableAscii(int c)
+{
+	if(c >= firstDrawableAsciiChar && c <= lastDrawableAsciiChar)
+		return 1;
+	else return 0;
+}
+
+static int charIsDrawableUnicode(int c)
+{
+	return !(
+			(c >= 0x0 && c < '!')
+			|| (c > '~' && c < 0xA1)
+			|| (c >= 0x2000 && c <= 0x200F)
+			|| (c == 0x3000)
+			);
+}
 
 bool ResourceFace::initGlyphTable()
 {
@@ -78,7 +98,7 @@ void ResourceFace::freeCaches(uint32 purgeBits)
 				}
 				glyphTable[tableIdx].glyph.deinit();
 			}
-			unsetBits(usedGlyphTableBits, IG::bit(i));
+			usedGlyphTableBits = IG::clearBits(usedGlyphTableBits, IG::bit(i));
 		}
 		tableBits >>= 1;
 		purgeBits >>= 1;

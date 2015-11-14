@@ -16,7 +16,6 @@
 #define LOGTAG "ResFontAndroid"
 #include <imagine/resource/font/ResourceFontAndroid.hh>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/util/strings.h>
 #include <imagine/util/jni.hh>
 #include "../../base/android/android.hh"
 #include <android/bitmap.h>

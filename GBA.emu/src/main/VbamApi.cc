@@ -4,7 +4,6 @@
 #include <vbam/common/SoundDriver.h>
 #include <vbam/Util.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/branch.h>
 #include <imagine/audio/Audio.hh>
 #include <main/Main.hh>
 
@@ -931,30 +930,30 @@ void setGameSpecificSettings(GBASys &gba)
 
 	resetGameSettings();
 	logMsg("game id: %c%c%c%c", gba.mem.rom[0xac], gba.mem.rom[0xad], gba.mem.rom[0xae], gba.mem.rom[0xaf]);
-	forEachInArray(setting, e)
+	for(auto e : setting)
 	{
-		if(mem_equal(e->gameID, &gba.mem.rom[0xac], 4))
+		if(IG::equal_n(e.gameID, 4, &gba.mem.rom[0xac]))
 		{
-			logMsg("loading settings for: %s", e->gameName);
-			if(e->rtcEnabled >= 0)
+			logMsg("loading settings for: %s", e.gameName);
+			if(e.rtcEnabled >= 0)
 			{
 				logMsg("using RTC");
 				detectedRtcGame = 1;
 			}
-			if(e->flashSize > 0)
+			if(e.flashSize > 0)
 			{
-				logMsg("using flash size %d", e->flashSize);
-				flashSetSize(e->flashSize);
+				logMsg("using flash size %d", e.flashSize);
+				flashSetSize(e.flashSize);
 			}
-			if(e->saveType >= 0)
+			if(e.saveType >= 0)
 			{
-				logMsg("using save type %d", e->saveType);
-				cpuSaveType = e->saveType;
+				logMsg("using save type %d", e.saveType);
+				cpuSaveType = e.saveType;
 			}
-			if(e->mirroringEnabled >= 0)
+			if(e.mirroringEnabled >= 0)
 			{
 				logMsg("using mirroring");
-				mirroringEnable = e->mirroringEnabled;
+				mirroringEnable = e.mirroringEnabled;
 			}
 			break;
 		}

@@ -92,7 +92,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasResetModes = true;
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
@@ -299,11 +299,8 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
 	uint player = emuKey >> 29; // player is encoded in upper 3 bits of input code
 	assert(player < maxPlayers);
-	auto padData = S9xGetJoypadBits(player);
-	if(state == Input::PUSHED)
-		setBits(*padData, emuKey & 0xFFFF);
-	else
-		unsetBits(*padData, emuKey & 0xFFFF);
+	auto &padData = *S9xGetJoypadBits(player);
+	padData = IG::setOrClearBits(padData, (uint16)(emuKey & 0xFFFF), state == Input::PUSHED);
 }
 
 static int snesResX = 256, snesResY = 224;

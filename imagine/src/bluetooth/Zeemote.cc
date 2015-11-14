@@ -59,15 +59,15 @@ const char *Zeemote::keyName(Input::Key k) const
 
 uint Zeemote::findFreeDevId()
 {
-	uint id[5] = { 0 };
+	uint id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
 	}
-	forEachInArray(id, e)
+	for(auto &e : id)
 	{
-		if(*e == 0)
-			return e_i;
+		if(e == 0)
+			return &e - id;
 	}
 	logMsg("too many devices");
 	return 0;
@@ -245,4 +245,9 @@ void Zeemote::processBtnReport(const uchar *btnData, Input::Time time, uint play
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
+}
+
+bool Zeemote::isSupportedClass(const uchar devClass[3])
+{
+	return IG::equal_n(devClass, 3, btClass);
 }

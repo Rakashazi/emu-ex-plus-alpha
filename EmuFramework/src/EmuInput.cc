@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/algorithm.h>
+#include <imagine/util/math/int.hh>
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/mem/mem.h>
 #include <emuframework/EmuSystem.hh>
@@ -196,7 +197,7 @@ IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
 void processRelPtr(Input::Event e)
 {
 	using namespace IG;
-	if(relPtr.x != 0 && signOf(relPtr.x) != signOf(e.x))
+	if(relPtr.x != 0 && sign(relPtr.x) != sign(e.x))
 	{
 		//logMsg("reversed trackball X direction");
 		relPtr.x = e.x;
@@ -211,7 +212,7 @@ void processRelPtr(Input::Event e)
 		EmuSystem::handleInputAction(Input::PUSHED, relPtr.xAction);
 	}
 
-	if(relPtr.y != 0 && signOf(relPtr.y) != signOf(e.y))
+	if(relPtr.y != 0 && sign(relPtr.y) != sign(e.y))
 	{
 		//logMsg("reversed trackball Y direction");
 		relPtr.y = e.y;
@@ -265,7 +266,7 @@ void commonUpdateInput()
 	auto applyRelPointerDecel =
 		[](int val)
 		{
-			return std::max(std::abs(val) - (int)optionRelPointerDecel, 0) * IG::signOf(val);
+			return std::max(std::abs(val) - (int)optionRelPointerDecel, 0) * IG::sign(val);
 		};
 
 	if(relPtr.x)
@@ -454,12 +455,12 @@ bool InputDeviceConfig::iCadeMode()
 }
 #endif
 
-uint8 InputDeviceConfig::joystickAxisAsDpadBits()
+uint InputDeviceConfig::joystickAxisAsDpadBits()
 {
 	return dev->joystickAxisAsDpadBits();
 }
 
-void InputDeviceConfig::setJoystickAxisAsDpadBits(uint8 axisMask)
+void InputDeviceConfig::setJoystickAxisAsDpadBits(uint axisMask)
 {
 	dev->setJoystickAxisAsDpadBits(axisMask);
 }
@@ -554,7 +555,7 @@ void InputDeviceConfig::save()
 
 void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
 {
-	var_selfs(savedConf);
+	this->savedConf = savedConf;
 	if(savedConf)
 	{
 		player = savedConf->player;
@@ -606,8 +607,7 @@ void KeyMapping::buildAll()
 			i++;
 			continue;
 		}
-		KeyConfig::KeyArray key;
-		memcpy(key, inputDevConf[i].keyConf().key(), sizeof(key));
+		KeyConfig::KeyArray key = inputDevConf[i].keyConf().key();
 		if(inputDevConf[i].player != InputDeviceConfig::PLAYER_MULTI)
 		{
 			logMsg("transposing keys for player %d", inputDevConf[i].player+1);
@@ -640,7 +640,7 @@ void generic2PlayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCa
 	else
 	{
 		// transpose joystick keys
-		memcpy(&key[category[startCategory+1].configOffset], &key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+		std::copy_n(&key[category[startCategory].configOffset], category[startCategory].keys, &key[category[startCategory+1].configOffset]);
 		std::fill_n(&key[category[startCategory].configOffset], category[startCategory].keys, 0);
 	}
 }
@@ -652,7 +652,7 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 		if(player && i == player)
 		{
 			//logMsg("moving to player %d map", i);
-			memcpy(&key[category[i+startCategory].configOffset], &key[category[startCategory].configOffset], category[startCategory].keys * sizeof(KeyConfig::Key));
+			std::copy_n(&key[category[startCategory].configOffset], category[startCategory].keys, &key[category[i+startCategory].configOffset]);
 			std::fill_n(&key[category[startCategory].configOffset], category[startCategory].keys, 0);
 		}
 		else if(i)
@@ -765,69 +765,6 @@ void updateAutoOnScreenControlVisible()
 	}
 	#endif
 }
-
-/*static const _2DOrigin allCornersO[] = { RT2DO, RC2DO, RB2DO, CB2DO, LB2DO, LC2DO, LT2DO, CT2DO };
-static const _2DOrigin onlyTopBottomO[] = { RT2DO, RB2DO, CB2DO, LB2DO, LT2DO, CT2DO };
-template <size_t S, size_t S2>
-static _2DOrigin getFreeOnScreenSpace(const _2DOrigin(&occupiedCorner)[S], const _2DOrigin(&wantedCorner)[S2])
-{
-	forEachInArray(wantedCorner, e)
-	{
-		if(!equalsAny(*e, occupiedCorner))
-			return *e;
-	}
-	return NULL2DO; // no free corners
-}
-
-static bool onScreenObjectCanOverlap(_2DOrigin &a, _2DOrigin &b)
-{
-	return (&a == &optionTouchCtrlCenterBtnPos.val || &b == &optionTouchCtrlCenterBtnPos.val) // one is the center btn. group, and
-		&& (&a == &optionTouchCtrlFaceBtnPos.val || &b == &optionTouchCtrlFaceBtnPos.val
-				|| &a == &optionTouchCtrlDpadPos.val || &b == &optionTouchCtrlDpadPos.val); // one is the dpad/face btn. group
-}
-
-void resolveOnScreenCollisions(_2DOrigin *movedObj)
-{
-	_2DOrigin *obj[] = { &optionTouchCtrlFaceBtnPos.val, &optionTouchCtrlDpadPos.val, &optionTouchCtrlCenterBtnPos.val, &optionTouchCtrlMenuPos.val, &optionTouchCtrlFFPos.val };
-	iterateTimes(sizeofArray(obj), i)
-	{
-		if(movedObj == obj[i] || *obj[i] == NULL2DO) // don't move object that was just placed, and ignore objects that are off
-		{
-			//logMsg("skipped obj %d", (int)i);
-			continue;
-		}
-
-		iterateTimes(sizeofArray(obj), j)
-		{
-			if(obj[i] != obj[j] && *obj[j] != NULL2DO && *obj[i] == *obj[j] && !onScreenObjectCanOverlap(*obj[i], *obj[j]))
-			{
-				_2DOrigin freeO;
-				if(obj[i] == &optionTouchCtrlCenterBtnPos.val)
-				{
-					// Center btns. can only collide with menu/ff hot-spots
-					const _2DOrigin occupied[] = { optionTouchCtrlMenuPos.val, optionTouchCtrlFFPos.val };
-					freeO = getFreeOnScreenSpace(occupied, onlyTopBottomO);
-				}
-				else if(obj[i] == &optionTouchCtrlMenuPos.val || obj[i] == &optionTouchCtrlFFPos.val)
-				{
-					// Menu/ff hot-spots collide with everything
-					const _2DOrigin occupied[] = { optionTouchCtrlMenuPos.val, optionTouchCtrlFFPos.val, optionTouchCtrlFaceBtnPos.val, optionTouchCtrlDpadPos.val, optionTouchCtrlCenterBtnPos.val, };
-					freeO = getFreeOnScreenSpace(occupied, allCornersO);
-				}
-				else
-				{
-					// Main btns. collide with others of themselves and Menu/ff hot-spots
-					const _2DOrigin occupied[] = { optionTouchCtrlMenuPos.val, optionTouchCtrlFFPos.val, optionTouchCtrlFaceBtnPos.val, optionTouchCtrlDpadPos.val };
-					freeO = getFreeOnScreenSpace(occupied, allCornersO);
-				}
-				assert(freeO != NULL2DO);
-				logMsg("objs %d & %d collide, moving first to %d,%d", (int)i, (int)j, freeO.x, freeO.y);
-				*obj[i] = freeO;
-				break;
-			}
-		}
-	}
-}*/
 
 void updateVControlImg()
 {

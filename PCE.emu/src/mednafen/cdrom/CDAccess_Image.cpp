@@ -47,7 +47,7 @@
 
 #include "audioreader.h"
 #include <imagine/io/api/stdio.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
 
 #include <map>
 

@@ -86,7 +86,7 @@ public:
 		else if(nesInputPortDev[0] == SI_ZAPPER && nesInputPortDev[1] == SI_GAMEPAD)
 			setting = 3;
 
-		inputPorts.init(str, setting, sizeofArray(str));
+		inputPorts.init(str, setting, IG::size(str));
 	}
 
 	MultiChoiceSelectMenuItem videoSystem
@@ -117,7 +117,7 @@ public:
 		{
 			"Auto", "NTSC", "PAL"
 		};
-		videoSystem.init(str, std::min((int)optionVideoSystem, (int)sizeofArray(str)-1), sizeofArray(str));
+		videoSystem.init(str, std::min((int)optionVideoSystem, (int)IG::size(str)-1), IG::size(str));
 	}
 
 public:
@@ -147,7 +147,8 @@ public:
 class FDSControlView : public TableView
 {
 private:
-	TextMenuItem setSide[4]
+	static constexpr uint DISK_SIDES = 4;
+	TextMenuItem setSide[DISK_SIDES]
 	{
 		{
 			"Set Disk 1 Side A",
@@ -196,7 +197,7 @@ private:
 		}
 	};
 
-	MenuItem *item[sizeofArrayConst(setSide) + 1]{};
+	MenuItem *item[DISK_SIDES + 1]{};
 
 public:
 	FDSControlView(Base::Window &win): TableView{"FDS Control", win} {}
@@ -209,7 +210,7 @@ public:
 		setSide[2].init(2 < FCEU_FDSSides()); item[i++] = &setSide[2];
 		setSide[3].init(3 < FCEU_FDSSides()); item[i++] = &setSide[3];
 		insertEject.init(FCEU_FDSInserted()); item[i++] = &insertEject;
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 	}
 };
@@ -280,7 +281,7 @@ public:
 		fdsControl.init(); item[items++] = &fdsControl;
 		cheats.init(); item[items++] = &cheats;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

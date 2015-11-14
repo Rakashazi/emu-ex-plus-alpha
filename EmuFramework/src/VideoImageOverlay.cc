@@ -58,7 +58,7 @@ alignas(8) static uint32 crtRgbPixmapBuff[] =
 
 void VideoImageOverlay::setEffect(uint effect)
 {
-	var_selfs(effect);
+	this->effect = effect;
 	IG::Pixmap pix;
 	switch(effect)
 	{

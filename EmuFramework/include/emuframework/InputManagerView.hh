@@ -53,7 +53,7 @@ private:
 	TextMenuItem systemOptions{};
 	TextHeadingMenuItem deviceListHeading{};
 	TextMenuItem inputDevName[Input::MAX_DEVS]{};
-	MenuItem *item[sizeofArrayConst(inputDevName) + 7]{};
+	MenuItem *item[Input::MAX_DEVS + 7]{};
 
 public:
 	char inputDevNameStr[Input::MAX_DEVS][80]{};

@@ -15,6 +15,7 @@
 
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/utility.h>
 #include <imagine/util/preprocessor/enum.h>
 #include "xdnd.hh"
 #include <imagine/logger/logger.h>
@@ -64,12 +65,12 @@ ENUM(xdndAtomStr, 11,
      ),
      static char xdndAtomStr[][sizeof("iSelectionProperty")]);
 
-static Atom xdndAtom[sizeofArray(xdndAtomStr)];
+static Atom xdndAtom[IG::size(xdndAtomStr)];
 static constexpr Atom currentDNDVersion = 5;
 
 void registerXdndAtoms(Display *dpy)
 {
-	uint atoms = sizeofArray(xdndAtomStr);
+	uint atoms = IG::size(xdndAtomStr);
 	char *strPtr[atoms];
 	iterateTimes(atoms, i)
 	{

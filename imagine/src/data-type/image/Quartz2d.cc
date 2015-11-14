@@ -21,7 +21,6 @@
 #include <imagine/base/Base.hh>
 #include <imagine/fs/FS.hh>
 #include "../../base/iphone/private.hh"
-#include <imagine/util/strings.h>
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
 

@@ -198,11 +198,11 @@ class SystemOptionView : public OptionView
 			"None"
 		};
 		auto mode = optionBorderMode.val;
-		if(mode >= (int)sizeofArray(str))
+		if(mode >= (int)IG::size(str))
 		{
 			mode = VICII_NORMAL_BORDERS;
 		}
-		borderMode.init(str, mode, sizeofArray(str));
+		borderMode.init(str, mode, IG::size(str));
 	}
 
 	MultiChoiceSelectMenuItem sidEngine
@@ -210,7 +210,7 @@ class SystemOptionView : public OptionView
 		"SID Engine",
 		[this](MultiChoiceMenuItem &, View &, int val)
 		{
-			assert(val <= (int)sizeofArray(sidEngineChoiceMap));
+			assert(val <= (int)IG::size(sidEngineChoiceMap));
 			logMsg("setting SID engine: %d", sidEngineChoiceMap[val]);
 			optionSidEngine = sidEngineChoiceMap[val];
 			setSidEngine(sidEngineChoiceMap[val]);
@@ -271,15 +271,15 @@ private:
 		auto engine = intResource("SidEngine");
 		logMsg("current SID engine: %d", engine);
 		uint idx = 0;
-		forEachInArray(sidEngineChoiceMap, e)
+		for(auto &e : sidEngineChoiceMap)
 		{
-			if(*e == engine)
+			if(e == engine)
 			{
-				idx = e_i;
+				idx = &e - sidEngineChoiceMap;
 				break;
 			}
 		}
-		sidEngine.init(str, idx, sizeofArray(str));
+		sidEngine.init(str, idx, IG::size(str));
 	}
 
 public:
@@ -372,7 +372,7 @@ private:
 			if(name && strlen(name))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Tape Drive", window()};
-				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr));
+				multiChoiceView.init(insertEjectMenuStr, IG::size(insertEjectMenuStr));
 				multiChoiceView.setItem(0,
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
@@ -451,7 +451,7 @@ private:
 			if(cartFilename && strlen(cartFilename))
 			{
 				auto &multiChoiceView = *new MultiChoiceView{"Cartridge Slot", window()};
-				multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr));
+				multiChoiceView.init(insertEjectMenuStr, IG::size(insertEjectMenuStr));
 				multiChoiceView.setItem(0,
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
@@ -519,7 +519,7 @@ public:
 		if(name && strlen(name))
 		{
 			auto &multiChoiceView = *new MultiChoiceView{"Disk Drive", window()};
-			multiChoiceView.init(insertEjectMenuStr, sizeofArray(insertEjectMenuStr));
+			multiChoiceView.init(insertEjectMenuStr, IG::size(insertEjectMenuStr));
 			multiChoiceView.setItem(0,
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -593,7 +593,7 @@ public:
 		tapeSlot.init(tapeSlotStr); item[i++] = &tapeSlot;
 
 		modelInit(); item[i++] = &model;
-		assert(i <= sizeofArray(item));
+		assert(i <= IG::size(item));
 		TableView::init(item, i);
 	}
 };
@@ -695,7 +695,7 @@ class SystemMenuView : public MenuView
 		{
 			bool systemPresent[VicePlugin::SYSTEMS]{};
 			uint systems = 0;
-			iterateTimes(sizeofArray(systemPresent), i)
+			iterateTimes(IG::size(systemPresent), i)
 			{
 				bool hasSystem = VicePlugin::hasSystemLib((ViceSystem)i);
 				systemPresent[i] = hasSystem;
@@ -705,7 +705,7 @@ class SystemMenuView : public MenuView
 			auto &multiChoiceView = *new MultiChoiceView{item.t.str, window()};
 			multiChoiceView.init(systems, LC2DO);
 			uint idx = 0;
-			iterateTimes(sizeofArray(systemPresent), i)
+			iterateTimes(IG::size(systemPresent), i)
 			{
 				if(!systemPresent[i])
 				{
@@ -824,7 +824,7 @@ public:
 		string_printf(systemStr, "System: %s", VicePlugin::systemName(currSystem));
 		system.init(); item[items++] = &system;
 		loadStandardItems(item, items);
-		assert(items <= sizeofArray(item));
+		assert(items <= IG::size(item));
 		TableView::init(item, items);
 	}
 };

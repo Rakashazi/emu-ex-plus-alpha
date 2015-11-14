@@ -96,7 +96,7 @@ void TextEntry::place()
 
 void TextEntry::place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP)
 {
-	var_selfs(projP);
+	this->projP = projP;
 	b = rect;
 	place();
 }
@@ -204,7 +204,7 @@ void CollectTextInputView::inputEvent(Input::Event e)
 	if(!textEntry.acceptingInput && acceptingInput)
 	{
 		logMsg("calling on-text delegate");
-		if(onTextD(*this, textEntry.str))
+		if(onTextD.callCopy(*this, textEntry.str))
 		{
 			textEntry.setAcceptingInput(1);
 		}

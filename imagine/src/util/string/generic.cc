@@ -13,21 +13,26 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
+#include <imagine/util/string/basename.h>
 #include <imagine/util/ansiTypes.h>
+#include <imagine/util/assume.h>
 #ifdef CONFIG_UNICODE_CHARS
 #include <imagine/util/utf.hh>
 #endif
 #include <imagine/mem/mem.h>
-#include <cstring>
 #include <assert.h>
+
+#if defined __ANDROID__ || defined __APPLE__
+#define HAS_STRL_FUNCS
+#endif
 
 static const char pathSeparator[] = { '/'
 #ifdef CONFIG_BASE_WIN32
 		, '\\'
 #endif
 };
-static const uint numPathSeparators = sizeofArray(pathSeparator);
+static const uint numPathSeparators = IG::size(pathSeparator);
 
 template <class T>
 static T *dirNameCutoffPoint(T *path)
@@ -114,112 +119,28 @@ void baseName(const char *path, char *pathOut)
 	strcpy(pathOut, cutoffPoint);
 }
 
-int hexToInt(char c)
+int char_hexToInt(char c)
 {
-	switch(c)
-	{
-		case '0': return 0;
-		case '1': return 1;
-		case '2': return 2;
-		case '3': return 3;
-		case '4': return 4;
-		case '5': return 5;
-		case '6': return 6;
-		case '7': return 7;
-		case '8': return 8;
-		case '9': return 9;
-		case 'a':
-		case 'A':
-			return 0xa;
-		case 'b':
-		case 'B':
-			return 0xb;
-		case 'c':
-		case 'C':
-			return 0xc;
-		case 'd':
-		case 'D':
-			return 0xd;
-		case 'e':
-		case 'E':
-			return 0xe;
-		case 'f':
-		case 'F':
-			return 0xf;
-		default : bug_branch("%d", c); return 0;
-	}
+	int hex = -1;
+	sscanf(string_fromChar(c).data(), "%x", &hex);
+	return hex;
 }
 
-int numCharInString(const char *s, int search)
+const char *string_dotExtension(const char *s)
 {
-	int count = 0;
-	for(char c = *s; c != 0; c = *(++s))
-	{
-		if(c == search) count++;
-	}
-	return count;
+	return strrchr(s, '.');
 }
 
-int string_hasDotExtension(const char *s, const char *extension)
+bool string_hasDotExtension(const char *s, const char *extension)
 {
-	const char *suffixPos = strrchr(s, '.');
-	if(suffixPos == 0)
+	const char *extPos = string_dotExtension(s);
+	if(!extPos)
 	{
 		//logMsg("name has no dot to specify extension");
-		return 0;
+		return false;
 	}
-	suffixPos++; //skip past dot
-
-	return string_equalNoCase(suffixPos, extension);
-}
-
-int charIsDrawableAscii(int c)
-{
-	if(c >= firstDrawableAsciiChar && c <= lastDrawableAsciiChar)
-		return 1;
-	else return 0;
-}
-
-int charIsDrawableUnicode(int c)
-{
-	return !(
-			(c >= 0x0 && c < '!')
-			|| (c > '~' && c < 0xA1)
-			|| (c >= 0x2000 && c <= 0x200F)
-			|| (c == 0x3000)
-			);
-}
-
-void string_copyUpToLastCharInstance(char *dest, const char *src, char c)
-{
-	const char *limit = strrchr(src, c);
-	if(!limit)
-		limit = &src[strlen(src)];
-	memcpy(dest, src, limit-src);
-	dest[limit-src] = 0;
-}
-
-int string_numCharsInLine(const char *s)
-{
-	int count = 0;
-	for(const char *c = s; *c != '\n' && *c != '\0'; c++)
-	{
-		count++;
-	}
-	return count;
-}
-
-void string_copyNCharsInLine(char *dest, const char *src, uint destSize)
-{
-	iterateTimes(destSize, i)
-	{
-		if(src[i] == '\n' || src[i] == '\0' || i == destSize - 1)
-		{
-			dest[i] = '\0';
-			break;
-		}
-		dest[i] = src[i];
-	}
+	extPos++; //skip past dot
+	return string_equalNoCase(extPos, extension);
 }
 
 CallResult string_convertCharCode(const char** sourceStart, uint &c)
@@ -249,54 +170,52 @@ void string_toUpper(char *s)
 	}
 }
 
-int string_containsChar(const char *s, int c)
-{
-	auto pos = strchr(s, c);
-	int found = 0;
-	while(pos)
-	{
-		found++;
-		pos = strchr(pos+1, c);
-	}
-	return found;
-}
-
-bool string_isHexValue(const char *s, uint maxChars)
-{
-	if(!maxChars || *s == '\0')
-		return 0; // empty string
-	iterateTimes(maxChars, i)
-	{
-		char c = s[i];
-		if(c == '\0')
-			break;
-		bool isHex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-		if (!isHex)
-			return 0;
-	}
-	return 1;
-}
-
-int string_equalNoCase(const char *s1, const char *s2)
+bool string_equalNoCase(const char *s1, const char *s2)
 {
 	return strcasecmp(s1, s2) == 0;
 }
 
-int string_equal(const char *s1, const char *s2)
+bool string_equal(const char *s1, const char *s2)
 {
 	return strcmp(s1, s2) == 0;
 }
 
-char *string_copy(char *dest, const char *src, size_t destSize)
+size_t string_copy(char *dest, const char *src, size_t destSize)
 {
-	uint charsToCopy = std::min(destSize-1, strlen(src));
-	memcpy(dest, src, charsToCopy);
-	dest[charsToCopy] = '\0';
-	return dest;
+	#ifdef HAS_STRL_FUNCS
+	return strlcpy(dest, src, destSize);
+	#else
+	size_t srcLen = strlen(src);
+	if(srcLen)
+	{
+		size_t copyBytes = std::min(destSize-1, srcLen);
+		memcpy(dest, src, copyBytes);
+		dest[copyBytes] = '\0';
+	}
+	return srcLen;
+	#endif
+
 }
 
-char *string_cat(char *dest, const char *src, size_t destSize)
+size_t string_cat(char *dest, const char *src, size_t destSize)
 {
-	string_copy(dest + strlen(dest), src, destSize - strlen(dest));
-	return dest;
+	#ifdef HAS_STRL_FUNCS
+	return strlcat(dest, src, destSize);
+	#else
+	size_t destLen = strlen(dest);
+	assumeExpr(destSize >= destLen);
+	dest += destLen;
+	destSize -= destLen;
+	size_t srcLen = strlen(src);
+	size_t copyBytes = std::min(destSize-1, srcLen);
+	memcpy(dest, src, copyBytes);
+	dest[copyBytes] = '\0';
+	size_t newLen = destLen + srcLen;
+	return newLen;
+	#endif
+}
+
+std::array<char, 2> string_fromChar(char c)
+{
+	return {c, '\0'};
 }

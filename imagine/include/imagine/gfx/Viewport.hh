@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/operators.hh>
@@ -88,10 +88,7 @@ public:
 		return relRectFromViewport(newX, newY, size.x, size.y, posOrigin, screenOrigin);
 	}
 
-	IG::Point2D<int> sizesWithRatioBestFitFromViewport(float destAspectRatio) const
-	{
-		return IG::sizesWithRatioBestFit(destAspectRatio, (int)width(), (int)height());
-	}
+	IG::Point2D<int> sizesWithRatioBestFitFromViewport(float destAspectRatio) const;
 
 	IG::WindowRect rectWithRatioBestFitFromViewport(int newX, int newY, float aR, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
 	{

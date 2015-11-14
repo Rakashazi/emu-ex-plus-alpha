@@ -35,7 +35,7 @@ static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 extern OSystem osystem;
 static StateManager stateManager{osystem};
 Properties defaultGameProps{};
-bool p1DiffB = 1, p2DiffB = 1, vcsColor = 1;
+bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 static const uint vidBufferX = 160, vidBufferY = 320;
 alignas(8) static uInt16 pixBuff[vidBufferX*vidBufferY]{};
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
@@ -51,7 +51,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 
@@ -357,21 +357,21 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		bcase Event::Combo1:
 			if(state != Input::PUSHED)
 				break;
-			toggle(p1DiffB);
+			p1DiffB ^= true;
 			popup.post(p1DiffB ? "P1 Difficulty -> B" : "P1 Difficulty -> A", 1);
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
 		bcase Event::Combo2:
 			if(state != Input::PUSHED)
 				break;
-			toggle(p2DiffB);
+			p2DiffB ^= true;
 			popup.post(p2DiffB ? "P2 Difficulty -> B" : "P2 Difficulty -> A", 1);
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
 		bcase Event::Combo3:
 			if(state != Input::PUSHED)
 				break;
-			toggle(vcsColor);
+			vcsColor ^= true;
 			popup.post(vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W", 1);
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);

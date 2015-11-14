@@ -30,19 +30,18 @@
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif
-#include <imagine/util/memory.h>
 
 #define CART_CNT (48)
 
 /* Cart database entry */
-typedef struct
+struct T_CART_ENTRY
 {
   uint16 chk_1;       /* header checksum */
   uint16 chk_2;       /* real checksum */
   uint8 bank_start;   /* first mapped bank in $400000-$7fffff region */
   uint8 bank_end;     /* last mapped bank in $400000-$7fffff region */
   T_CART_HW cart_hw;  /* hardware description */
-} T_CART_ENTRY;
+};
 
 extern int emulate_address_error;
 
@@ -74,7 +73,7 @@ static void sega_channel_w(uint32 address, uint32 data);
   - copy protection device
   - custom ROM banking device
 */
-static const T_CART_ENTRY rom_database[CART_CNT] =
+static const T_CART_ENTRY rom_database[CART_CNT]
 {
 /* Funny World & Balloon Boy */
   {0x0000,0x06ab,0x40,0x40,{{0x00,0x00,0x00,0x00},{0xffffff,0xffffff,0xffffff,0xffffff},{0x000000,0x000000,0x000000,0x000000},1,0,NULL,NULL,NULL,mapper_realtec_w}},

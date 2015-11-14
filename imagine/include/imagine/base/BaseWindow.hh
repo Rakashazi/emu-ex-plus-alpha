@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
@@ -66,7 +66,7 @@ public:
 		void addSurfaceResized() { flags |= SURFACE_RESIZED; }
 		void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
 		void addCustomViewportResized() { flags |= CUSTOM_VIEWPORT_RESIZED; }
-		void removeCustomViewportResized() { unsetBits(flags, CUSTOM_VIEWPORT_RESIZED); }
+		void removeCustomViewportResized() { flags = clearBits(flags, CUSTOM_VIEWPORT_RESIZED); }
 	};
 
 	struct DrawParams

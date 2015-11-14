@@ -16,7 +16,6 @@
 #define LOGTAG "Pixmap"
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/fixed.hh>
 #include <imagine/util/assume.h>
 #include <imagine/util/algorithm.h>
 #include <cstring>

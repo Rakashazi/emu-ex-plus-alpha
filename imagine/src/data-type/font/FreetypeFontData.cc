@@ -134,7 +134,9 @@ CallResult FreetypeFontData::newSize(int x, int y, FT_Size *sizeRef)
 	}
 	//logMsg("done");
 	
-	doOrReturn(setSizes(x, y));
+	auto ret = setSizes(x, y);
+	if(ret != OK)
+		return ret;
 	
 	//logMsg("scaled ascender x descender %dx%d", (int)size->metrics.ascender >> 6, (int)size->metrics.descender >> 6);
 	return OK;

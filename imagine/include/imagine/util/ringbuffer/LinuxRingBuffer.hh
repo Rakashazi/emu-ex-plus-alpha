@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <cstddef>
 #include <atomic>
 #include <sys/mman.h>
 #include <unistd.h>

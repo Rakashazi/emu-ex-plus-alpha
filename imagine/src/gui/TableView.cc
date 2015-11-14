@@ -22,15 +22,16 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Base.hh>
 #include <algorithm>
-#include <imagine/util/number.h>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/math/int.hh>
 
 Gfx::GC TableView::globalXIndent = 0;
 
 void TableView::init(MenuItem **item, uint items, _2DOrigin align)
 {
-	var_selfs(item);
+	this->item = item;
 	cells_ = items;
-	var_selfs(align);
+	this->align = align;
 	selected = -1;
 	onlyScrollIfNeeded = false;
 	selectedIsActivated = false;
@@ -226,14 +227,14 @@ IG::WindowRect TableView::focusRect()
 int TableView::nextSelectableElement(int start)
 {
 	using namespace IG;
-	int elem = wrapToBound(start, 0, cells_);
+	int elem = wrapMinMax(start, 0, cells_);
 	iterateTimes(cells_, i)
 	{
 		if(elementIsSelectable(elem))
 		{
 			return elem;
 		}
-		elem = wrapToBound(elem+1, 0, cells_);
+		elem = wrapMinMax(elem+1, 0, cells_);
 	}
 	return -1;
 }
@@ -241,14 +242,14 @@ int TableView::nextSelectableElement(int start)
 int TableView::prevSelectableElement(int start)
 {
 	using namespace IG;
-	int elem = wrapToBound(start, 0, cells_);
+	int elem = wrapMinMax(start, 0, cells_);
 	iterateTimes(cells_, i)
 	{
 		if(elementIsSelectable(elem))
 		{
 			return elem;
 		}
-		elem = wrapToBound(elem-1, 0, cells_);
+		elem = wrapMinMax(elem-1, 0, cells_);
 	}
 	return -1;
 }

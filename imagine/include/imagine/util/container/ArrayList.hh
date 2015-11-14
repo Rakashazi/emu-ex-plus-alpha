@@ -1,9 +1,27 @@
 #pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <imagine/util/ansiTypes.h>
+#include <imagine/util/iterator.hh>
 #include "containerUtils.hh"
 #include <assert.h>
 #include <iterator>
 #include <algorithm>
+#include <cstring>
 
 template <class T, uint SIZE>
 struct StaticStorageBase
@@ -24,7 +42,7 @@ struct PointerStorageBase
 	const T *storage() const { return arr; }
 
 	uint size = 0;
-	void setStorage(T *s, uint size) { arr = s; var_selfs(size);}
+	void setStorage(T *s, uint size) { arr = s; this->size = size;}
 	uint maxSize() const { return size; }
 };
 
@@ -137,7 +155,7 @@ public:
 		ptrsize elemsAfterInsertIdx = size()-idx;
 		if(elemsAfterInsertIdx)
 		{
-			memmove(&data()[idx+1], &data()[idx], sizeof(T)*elemsAfterInsertIdx);
+			std::memmove(&data()[idx+1], &data()[idx], sizeof(T)*elemsAfterInsertIdx);
 		}
 		data()[idx] = val;
 		size_++;
@@ -151,7 +169,7 @@ public:
 		ptrsize elemsAfterEraseIdx = (size()-1)-idx;
 		if(elemsAfterEraseIdx)
 		{
-			memmove(&data()[idx], &data()[idx+1], sizeof(T)*elemsAfterEraseIdx);
+			std::memmove(&data()[idx], &data()[idx+1], sizeof(T)*elemsAfterEraseIdx);
 		}
 		size_--;
 		return &data()[idx];

@@ -20,6 +20,7 @@
 #include "../utils.h"
 #include "../../../base/android/android.hh"
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/string.h>
 
 namespace Gfx
 {

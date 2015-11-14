@@ -22,7 +22,7 @@ namespace Base
 
 void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime, CFTimeInterval repeatInterval, bool shouldReuseResources)
 {
-	var_selfs(callback);
+	this->callback = callback;
 	if(repeat != repeatInterval || (shouldReuseResources && !reuseResources))
 	{
 		// re-create timer if:

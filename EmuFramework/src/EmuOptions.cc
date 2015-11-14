@@ -415,7 +415,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 
 uint OptionVControllerLayoutPosition::ioSize()
 {
-	uint positions = sizeofArray(vControllerLayoutPos[0]) * sizeofArray(vControllerLayoutPos);
+	uint positions = IG::size(vControllerLayoutPos[0]) * IG::size(vControllerLayoutPos);
 	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
 }
 
@@ -458,3 +458,49 @@ Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val)
 	}
 }
 #endif
+
+bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
+{
+	int readSize = readSize_;
+	while(readSize && !recentGameList.isFull())
+	{
+		if(readSize < 2)
+		{
+			logMsg("expected string length but only %d bytes left", readSize);
+			break;
+		}
+
+		auto len = io.readVal<uint16>();
+		readSize -= 2;
+
+		if(len > readSize)
+		{
+			logMsg("string length %d longer than %d bytes left", len, readSize);
+			break;
+		}
+
+		RecentGameInfo info;
+		auto bytesRead = io.read(info.path.data(), len);
+		if(bytesRead == -1)
+		{
+			logErr("error reading string option");
+			return true;
+		}
+		if(!bytesRead)
+			continue; // don't add empty paths
+		info.path[bytesRead] = 0;
+		readSize -= len;
+		auto basename = FS::basename(info.path);
+		auto dotpos = string_dotExtension(basename.data());
+		std::copy_n(basename.data(), dotpos ? dotpos - basename.data() : std::strlen(basename.data()), info.name.data());
+		//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
+		recentGameList.push_back(info);
+	}
+
+	if(readSize)
+	{
+		logMsg("skipping excess %d bytes", readSize);
+	}
+
+	return true;
+}

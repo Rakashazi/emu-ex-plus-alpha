@@ -45,13 +45,7 @@ public:
 	void writeReg(uchar offset, uchar val);
 	void readReg(uint offset, uchar size);
 	const char *keyName(Input::Key k) const override;
-
-	static bool isSupportedClass(const uchar devClass[3])
-	{
-		return mem_equal(devClass, btClass, 3)
-			|| mem_equal(devClass, btClassDevOnly, 3)
-			|| mem_equal(devClass, btClassRemotePlus, 3);
-	}
+	static bool isSupportedClass(const uchar devClass[3]);
 
 private:
 	BluetoothSocketSys ctlSock, intSock;

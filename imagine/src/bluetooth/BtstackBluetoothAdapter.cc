@@ -16,6 +16,7 @@
 #define LOGTAG "BTstack"
 #include <imagine/bluetooth/BtstackBluetoothAdapter.hh>
 #include <imagine/util/container/DLList.hh>
+#include <imagine/util/utility.h>
 
 static BtstackBluetoothAdapter defaultBtstackAdapter;
 static int writeAuthEnable = -1;
@@ -30,7 +31,7 @@ struct BtstackCmd
 	{
 		struct
 		{
-			bd_addr_t address;
+			BluetoothAddr address;
 			uint channel;
 		} createChannelData;
 		struct
@@ -39,7 +40,7 @@ struct BtstackCmd
 		} inquiryData;
 		struct
 		{
-			bd_addr_t address;
+			BluetoothAddr address;
 			uint8_t pageScanRepetitionMode;
 			uint16_t clockOffset;
 		} remoteNameRequestData;
@@ -65,12 +66,12 @@ struct BtstackCmd
 			bcase CREATE_L2CAP:
 			{
 				logMsg("l2cap_create_channel");
-				bt_send_cmd(&l2cap_create_channel, createChannelData.address, createChannelData.channel);
+				bt_send_cmd(&l2cap_create_channel, createChannelData.address.data(), createChannelData.channel);
 			}
 			bcase CREATE_RFCOMM:
 			{
 				logMsg("rfcomm_create_channel");
-				bt_send_cmd(&rfcomm_create_channel, createChannelData.address, createChannelData.channel);
+				bt_send_cmd(&rfcomm_create_channel, createChannelData.address.data(), createChannelData.channel);
 			}
 			bcase INQUIRY:
 			{
@@ -80,7 +81,7 @@ struct BtstackCmd
 			bcase REMOTE_NAME_REQ:
 			{
 				logMsg("hci_remote_name_request");
-				bt_send_cmd(&hci_remote_name_request, remoteNameRequestData.address,
+				bt_send_cmd(&hci_remote_name_request, remoteNameRequestData.address.data(),
 					remoteNameRequestData.pageScanRepetitionMode, 0, remoteNameRequestData.clockOffset);
 			}
 			bcase WRITE_AUTH_ENABLE:
@@ -110,18 +111,18 @@ struct BtstackCmd
 		return 1;
 	}
 
-	static BtstackCmd l2capCreateChannel(bd_addr_t address, uint channel)
+	static BtstackCmd l2capCreateChannel(BluetoothAddr address, uint channel)
 	{
 		BtstackCmd cmd = { CREATE_L2CAP };
-		memcpy(cmd.createChannelData.address, address, sizeof(bd_addr_t));
+		cmd.createChannelData.address = address;
 		cmd.createChannelData.channel = channel;
 		return cmd;
 	}
 
-	static BtstackCmd rfcommCreateChannel(bd_addr_t address, uint channel)
+	static BtstackCmd rfcommCreateChannel(BluetoothAddr address, uint channel)
 	{
 		BtstackCmd cmd = { CREATE_RFCOMM };
-		memcpy(cmd.createChannelData.address, address, sizeof(bd_addr_t));
+		cmd.createChannelData.address = address;
 		cmd.createChannelData.channel = channel;
 		return cmd;
 	}
@@ -133,10 +134,10 @@ struct BtstackCmd
 		return cmd;
 	}
 
-	static BtstackCmd remoteNameRequest(bd_addr_t address, uint8_t pageScanRepetitionMode, uint16_t clockOffset)
+	static BtstackCmd remoteNameRequest(BluetoothAddr address, uint8_t pageScanRepetitionMode, uint16_t clockOffset)
 	{
 		BtstackCmd cmd = { REMOTE_NAME_REQ };
-		memcpy(cmd.remoteNameRequestData.address, address, sizeof(bd_addr_t));
+		cmd.remoteNameRequestData.address = address;
 		cmd.remoteNameRequestData.pageScanRepetitionMode = pageScanRepetitionMode;
 		cmd.remoteNameRequestData.clockOffset = clockOffset;
 		return cmd;
@@ -313,7 +314,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					bt_flip_addr(addr, &packet[5]);
 					uint status = packet[2];
 					logMsg("got HCI_EVENT_CONNECTION_COMPLETE: addr: %s, handle: %d, status: %d", bd_addr_to_str(addr), handle, status);
-					if(cmdActive && activeCmd.cmd == BtstackCmd::CREATE_L2CAP && BD_ADDR_CMP(activeCmd.createChannelData.address, addr) == 0)
+					if(cmdActive && activeCmd.cmd == BtstackCmd::CREATE_L2CAP && BD_ADDR_CMP(activeCmd.createChannelData.address.data(), addr) == 0)
 					{
 						// update handle
 						auto sock = BtstackBluetoothSocket::findSocket(addr, activeCmd.createChannelData.channel);
@@ -332,7 +333,8 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					logMsg("got HCI_EVENT_DISCONNECTION_COMPLETE: handle: %d", handle);
 					if(cmdActive && activeCmd.cmd == BtstackCmd::CREATE_L2CAP)
 					{
-						auto sock = BtstackBluetoothSocket::findSocket(activeCmd.createChannelData.address, activeCmd.createChannelData.channel);
+						bd_addr_t &btAddr = *((bd_addr_t*)activeCmd.createChannelData.address.data());
+						auto sock = BtstackBluetoothSocket::findSocket(btAddr, activeCmd.createChannelData.channel);
 						if(!sock)
 						{
 							bug_exit("can't find socket");
@@ -844,7 +846,7 @@ BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter()
 void BtstackBluetoothAdapter::requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName)
 {
 	onScanDeviceNameD = onDeviceName;
-	pendingCmdList.addToEnd(BtstackCmd::remoteNameRequest(pending.addr.b, 0, 0));
+	pendingCmdList.addToEnd(BtstackCmd::remoteNameRequest(pending.addr, 0, 0));
 	BtstackBluetoothAdapter::processCommands();
 }
 
@@ -872,8 +874,8 @@ CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint channel)
 	}
 	logMsg("creating RFCOMM channel %d socket", channel);
 	pendingCmdList.addToEnd(BtstackCmd::writeAuthenticationEnable(1));
-	pendingCmdList.addToEnd(BtstackCmd::rfcommCreateChannel(addr.b, channel));
-	var_selfs(addr);
+	pendingCmdList.addToEnd(BtstackCmd::rfcommCreateChannel(addr, channel));
+	this->addr = addr;
 	ch = channel;
 	BtstackBluetoothAdapter::processCommands();
 	return OK;
@@ -890,14 +892,14 @@ CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint psm)
 	if(inL2capSocketOpenHandler)
 	{
 		// hack to boost command priority when opening 2nd Wiimote channel
-		pendingCmdList.add(BtstackCmd::l2capCreateChannel(addr.b, psm));
+		pendingCmdList.add(BtstackCmd::l2capCreateChannel(addr, psm));
 	}
 	else
 	{
 		pendingCmdList.addToEnd(BtstackCmd::writeAuthenticationEnable(0));
-		pendingCmdList.addToEnd(BtstackCmd::l2capCreateChannel(addr.b, psm));
+		pendingCmdList.addToEnd(BtstackCmd::l2capCreateChannel(addr, psm));
 	}
-	var_selfs(addr);
+	this->addr = addr;
 	ch = psm;
 	BtstackBluetoothAdapter::processCommands();
 	return OK;
@@ -921,9 +923,9 @@ CallResult BtstackBluetoothSocket::open(BluetoothPendingSocket &pending)
 	return OK;
 }
 
-static bool btAddrIsEqual(const BluetoothAddr addr1, const bd_addr_t addr2)
+static bool btAddrIsEqual(BluetoothAddr addr1, const bd_addr_t addr2)
 {
-	return memcmp(addr1.b, addr2, 6) == 0;
+	return memcmp(addr1.data(), addr2, 6) == 0;
 }
 
 BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(uint16_t localCh)

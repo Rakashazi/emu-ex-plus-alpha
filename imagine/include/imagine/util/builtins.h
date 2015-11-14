@@ -23,4 +23,3 @@
 #define ATTRS(...) __attribute__((__VA_ARGS__))
 
 #define INITFIRST __attribute__((init_priority(101)))
-

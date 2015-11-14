@@ -7,7 +7,7 @@
 #include <imagine/thread/Thread.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/string.h>
 
 struct MDFN_Thread {};
 struct MDFN_Mutex : public IG::Mutex {};

@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #pragma once
-#include <imagine/util/number.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/input/DragPointer.hh>
@@ -28,22 +27,15 @@ extern TurboInput turboActions;
 class VControllerDPad
 {
 public:
-	Gfx::GCRect padBase{};
-	IG::WindowRect padBaseArea{}, padArea{};
-	int deadzone = 0;
-	float diagonalSensitivity = 1.;
 	Gfx::Sprite spr{};
 	uint state = 1;
-	Gfx::PixmapTexture mapImg{};
-	Gfx::Sprite mapSpr{};
-	bool visualizeBounds = 0;
 
 	constexpr VControllerDPad() {}
 	void init();
 	void setImg(Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
-	void draw();
+	void draw() const;
 	void setBoundingAreaVisible(bool on);
-	int getInput(int cx, int cy);
+	int getInput(int cx, int cy) const;
 	IG::WindowRect bounds() const;
 	void setPos(IG::Point2D<int> pos);
 	void setSize(uint sizeInPixels);
@@ -51,6 +43,13 @@ public:
 	void setDiagonalSensitivity(float newDiagonalSensitivity);
 
 private:
+	Gfx::GCRect padBase{};
+	IG::WindowRect padBaseArea{}, padArea{};
+	int deadzone = 0;
+	float diagonalSensitivity = 1.;
+	Gfx::PixmapTexture mapImg{};
+	Gfx::Sprite mapSpr{};
+	bool visualizeBounds = 0;
 	int btnSizePixels = 0;
 
 	void updateBoundingAreaGfx();
@@ -71,41 +70,30 @@ public:
 	void updateImg();
 	void setImg(Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
-	void draw();
-	int getInput(int cx, int cy);
+	void draw() const;
+	int getInput(int cx, int cy) const;
 };
 
 class VControllerGamepad
 {
 public:
-	// center buttons
 	static constexpr uint MAX_CENTER_BTNS = 2;
-	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS]{};
-	IG::WindowRect centerBtnsBound{};
-	Gfx::Sprite centerBtnSpr[MAX_CENTER_BTNS]{};
-	uint centerBtnsState = 1;
-
-	uint lTriggerState = 1;
-	uint rTriggerState = 1;
-
 	static constexpr uint MAX_FACE_BTNS = 8;
-	IG::WindowRect faceBtnBound[MAX_FACE_BTNS]{};
-	IG::WindowRect faceBtnsBound{}, lTriggerBound{}, rTriggerBound{};
-	uint faceBtnsState = 1;
-	Gfx::Sprite circleBtnSpr[MAX_FACE_BTNS]{};
-	VControllerDPad dp;
-
-	bool triggersInline = false;
-	uint activeFaceBtns = 0;
+	VControllerDPad dp{};
 	int btnSpacePixels = 0, btnStaggerPixels = 0, btnRowShiftPixels = 0;
 	Gfx::GC btnSpace = 0, btnStagger = 0, btnRowShift = 0;//, btnAreaXOffset = 0;
 	Gfx::GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
-	bool showBoundingArea = false;
+	uint centerBtnsState = 1;
+	uint lTriggerState = 1;
+	uint rTriggerState = 1;
+	uint faceBtnsState = 1;
+	uint activeFaceBtns = 0;
+	bool triggersInline = false;
 
 	constexpr VControllerGamepad() {}
 	void init(float alpha);
 	void setBoundingAreaVisible(bool on);
-	bool boundingAreaVisible();
+	bool boundingAreaVisible() const;
 	void setImg(Gfx::PixmapTexture &pics);
 	uint rowsForButtons(uint activeButtons);
 	void setBaseBtnSize(uint sizeInPixels);
@@ -118,11 +106,18 @@ public:
 	void layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos);
 	IG::WindowRect faceBtnBounds() const;
 	void setFaceBtnPos(IG::Point2D<int> pos);
-	void getCenterBtnInput(int x, int y, int btnOut[2]);
-	void getBtnInput(int x, int y, int btnOut[2]);
-	void draw(bool showHidden);
+	std::array<int, 2> getCenterBtnInput(int x, int y) const;
+	std::array<int, 2> getBtnInput(int x, int y) const;
+	void draw(bool showHidden) const;
 
 private:
+	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS]{};
+	IG::WindowRect centerBtnsBound{};
+	IG::WindowRect faceBtnBound[MAX_FACE_BTNS]{};
+	IG::WindowRect faceBtnsBound{}, lTriggerBound{}, rTriggerBound{};
+	Gfx::Sprite centerBtnSpr[MAX_CENTER_BTNS]{};
+	Gfx::Sprite circleBtnSpr[MAX_FACE_BTNS]{};
+	bool showBoundingArea = false;
 	Gfx::GC btnSize = 0;
 	int btnSizePixels = 0;
 };
@@ -132,11 +127,12 @@ class VController
 public:
 	static constexpr int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
 	static constexpr uint TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
-	int ptrElem[Config::Input::MAX_POINTERS][2]{};
-	int prevPtrElem[Config::Input::MAX_POINTERS][2]{};
+	using Map = std::array<uint, D_ELEM+9>;
+	using KbMap = std::array<uint, 40>;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	VControllerGamepad gp{};
 	#endif
+	VControllerKeyboard kb{};
 
 	// menu button
 	Gfx::Sprite menuBtnSpr{};
@@ -148,30 +144,25 @@ public:
 	IG::WindowRect ffBound{};
 	uint ffBtnState = 1;
 
-	float alpha = 0;
-	typedef uint Map[D_ELEM+9];
-	Map map{};
-	VControllerKeyboard kb;
-	uint kbMode = 0;
-	typedef uint KbMap[40];
-	KbMap kbMap{};
 	#ifdef CONFIG_BASE_ANDROID
 	bool useScaledCoordinates = true;
 	#else
 	static constexpr bool useScaledCoordinates = false;
 	#endif
 
+	float alpha = 0;
+
 	constexpr VController() {}
-	Gfx::GC xMMSize(Gfx::GC mm);
-	Gfx::GC yMMSize(Gfx::GC mm);
-	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm);
-	int yMMSizeToPixel(const Base::Window &win, Gfx::GC mm);
+	Gfx::GC xMMSize(Gfx::GC mm) const;
+	Gfx::GC yMMSize(Gfx::GC mm) const;
+	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
+	int yMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
 	void updateMapping(uint player);
 	void updateKeyboardMapping();
 	bool hasTriggers() const;
 	void setImg(Gfx::PixmapTexture &pics);
 	void setBoundingAreaVisible(bool on);
-	bool boundingAreaVisible();
+	bool boundingAreaVisible() const;
 	void setMenuBtnPos(IG::Point2D<int> pos);
 	void setFFBtnPos(IG::Point2D<int> pos);
 	void inputAction(uint action, uint vBtn);
@@ -179,7 +170,7 @@ public:
 	void init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	void place();
 	void toggleKeyboard();
-	void findElementUnderPos(Input::Event e, int elemOut[2]);
+	std::array<int, 2> findElementUnderPos(Input::Event e);
 	void applyInput(Input::Event e);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden = false);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
@@ -187,9 +178,15 @@ public:
 	IG::WindowRect bounds(int elemIdx) const;
 	void setPos(int elemIdx, IG::Point2D<int> pos);
 	void setState(int elemIdx, uint state);
-	uint state(int elemIdx);
+	uint state(int elemIdx) const;
 	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	bool isInKeyboardMode() const;
+
+private:
+	std::array<std::array<int, 2>, Config::Input::MAX_POINTERS> ptrElem{};
+	Map map{};
+	uint kbMode = 0;
+	KbMap kbMap{};
 };
 
 using SysVController = VController;

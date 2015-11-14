@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/gfx/ProjectionPlane.hh>
@@ -37,7 +37,7 @@ public:
 
 	void setPos(const QuadGeneric &quad)
 	{
-		memcpy(v.data(), quad.v.data(), sizeof(v));
+		v = quad.v;
 	}
 
 	void setPos(const IG::WindowRect &b, const ProjectionPlane &proj)

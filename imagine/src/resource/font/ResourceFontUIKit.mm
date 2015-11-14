@@ -18,7 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/resource/font/ResourceFontUIKit.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/util/strings.h>
+#include <imagine/util/Mem2D.hh>
 #include <imagine/mem/mem.h>
 #include "../../base/iphone/private.hh"
 #import <CoreGraphics/CGBitmapContext.h>
@@ -124,7 +124,7 @@ CallResult ResourceFontUIKit::activeChar(int idx, GlyphMetrics &metrics)
 		iterateTimes(cYFullSize, y)
 			iterateTimes(cXFullSize, x)
 			{
-				if(pixBuffer[mem_arr2DOffsetRM(x, y, cXFullSize)])
+				if(pixBuffer[Mem2D<char>::arrOffsetRM(x, y, cXFullSize)])
 				{
 					if (x < minX) minX = x;
 					if (x > maxX) maxX = x;
@@ -137,7 +137,7 @@ CallResult ResourceFontUIKit::activeChar(int idx, GlyphMetrics &metrics)
 		cXSize = (maxX - minX) + 1;
 		auto cYOffset = minY;
 		cYSize = (maxY - minY) + 1;
-		startOfCharInPixBuffer = pixBuffer + mem_arr2DOffsetRM(cXOffset, cYOffset, cXFullSize);
+		startOfCharInPixBuffer = pixBuffer + Mem2D<char>::arrOffsetRM(cXOffset, cYOffset, cXFullSize);
 		
 		metrics.xSize = cXSize;
 		metrics.ySize = cYSize;

@@ -19,6 +19,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/assume.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/math/int.hh>
 #include "windowPrivate.hh"
 
 namespace Base
@@ -73,7 +74,7 @@ bool Screen::removeOnFrame(OnFrameDelegate del)
 
 bool Screen::containsOnFrame(OnFrameDelegate del)
 {
-	return contains(onFrameDelegate, del);
+	return IG::contains(onFrameDelegate, del);
 }
 
 void Screen::runOnFrameDelegates(FrameTimeBase timestamp)

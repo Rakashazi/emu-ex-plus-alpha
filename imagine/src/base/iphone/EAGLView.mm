@@ -217,7 +217,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(sizeofArray(m), i) // find a free touch element
+		iterateTimes(IG::size(m), i) // find a free touch element
 		{
 			if(Input::m[i].touch == nil)
 			{
@@ -243,7 +243,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(sizeofArray(m), i) // find the touch element
+		iterateTimes(IG::size(m), i) // find the touch element
 		{
 			if(Input::m[i].touch == touch)
 			{
@@ -268,7 +268,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(sizeofArray(m), i) // find the touch element
+		iterateTimes(IG::size(m), i) // find the touch element
 		{
 			if(Input::m[i].touch == touch)
 			{

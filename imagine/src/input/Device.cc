@@ -16,6 +16,7 @@
 #include <imagine/input/Device.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/string.h>
 
 namespace Input
 {
@@ -386,6 +387,11 @@ uint Device::typeBits() const
 void Device::setICadeMode(bool on)
 {
 	logWarn("setICadeMode called but unimplemented");
+}
+
+bool Device::operator ==(Device const& rhs) const
+{
+	return enumId() == rhs.enumId() && map_ == rhs.map_ && string_equal(name(), rhs.name());
 }
 
 }

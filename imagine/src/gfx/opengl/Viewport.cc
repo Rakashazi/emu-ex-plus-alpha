@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Gfx.hh>
+#include <imagine/util/math/Point2D.hh>
 #include "private.hh"
 
 namespace Gfx
@@ -86,6 +87,11 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect 
 	v.relYFlipViewport = {v.realBounds().x, win.realHeight() - v.realBounds().y2, v.realWidth(), v.realHeight()};
 	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
 	return v;
+}
+
+IG::Point2D<int> Viewport::sizesWithRatioBestFitFromViewport(float destAspectRatio) const
+{
+	return IG::sizesWithRatioBestFit(destAspectRatio, (int)width(), (int)height());
 }
 
 }

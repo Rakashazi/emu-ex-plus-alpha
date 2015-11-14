@@ -541,7 +541,7 @@ void SystemEditCheatView::init(MdCheat &cheat)
 	loadNameItem(cheat.name, item, i);
 	code.init(cheat.code); item[i++] = &code;
 	loadRemoveItem(item, i);
-	assert(i <= sizeofArray(item));
+	assert(i <= IG::size(item));
 	TableView::init(item, i);
 }
 

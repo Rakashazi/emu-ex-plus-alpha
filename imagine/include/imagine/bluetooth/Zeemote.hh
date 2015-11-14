@@ -36,11 +36,7 @@ public:
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	bool dataHandler(const char *packet, size_t size);
 	const char *keyName(Input::Key k) const override;
-
-	static bool isSupportedClass(const uchar devClass[3])
-	{
-		return mem_equal(devClass, btClass, 3);
-	}
+	static bool isSupportedClass(const uchar devClass[3]);
 
 private:
 	BluetoothSocketSys sock;

@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/thread/Semaphore.hh>
+#include <assert.h>
 
 namespace IG
 {

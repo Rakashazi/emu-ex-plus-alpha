@@ -139,31 +139,31 @@ void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::
 void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
 {
 	BaseDualTextMenuItem::init(str, on ? onStr : offStr, active, face);
-	var_selfs(on);
+	this->on = on;
 }
 
 void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
 {
-	var_selfs(offStr);
-	var_selfs(onStr);
+	this->offStr = offStr;
+	this->onStr = onStr;
 	onOffStyle = false;
 	BaseDualTextMenuItem::init(str, on ? onStr : offStr, active, face);
-	var_selfs(on);
+	this->on = on;
 }
 
 void BoolMenuItem::init(bool on, bool active, ResourceFace *face)
 {
 	BaseDualTextMenuItem::init(on ? onStr : offStr, active, face);
-	var_selfs(on);
+	this->on = on;
 }
 
 void BoolMenuItem::init(const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
 {
-	var_selfs(offStr);
-	var_selfs(onStr);
+	this->offStr = offStr;
+	this->onStr = onStr;
 	onOffStyle = false;
 	BaseDualTextMenuItem::init(on ? onStr : offStr, active, face);
-	var_selfs(on);
+	this->on = on;
 }
 
 void BoolMenuItem::set(bool val, View &view)
@@ -277,7 +277,7 @@ bool MultiChoiceMenuItem::set(int val, Input::Event e, View &view)
 void MultiChoiceMenuItem::cycle(int direction, View &view)
 {
 	if(direction > 0)
-		setVal(IG::incWrapped(choice, choices), view);
+		setVal(IG::wrapMax(choice + 1, choices), view);
 	else if(direction < 0)
-		setVal(IG::decWrapped(choice, choices), view);
+		setVal(IG::wrapMax(choice - 1, choices), view);
 }

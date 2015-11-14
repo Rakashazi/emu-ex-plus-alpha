@@ -121,7 +121,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = sizeofArray(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 #include <emuframework/CommonGui.hh>
 #include <emuframework/CommonCheatGui.hh>
@@ -270,10 +270,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	uint player = emuKey >> 30; // player is encoded in upper 2 bits of input code
 	assert(player <= 4);
 	uint16 &padData = input.pad[playerIdxMap[player]];
-	if(state == Input::PUSHED)
-		setBits(padData, emuKey);
-	else
-		unsetBits(padData, emuKey);
+	padData = IG::setOrClearBits(padData, (uint16)emuKey, state == Input::PUSHED);
 }
 
 void commitVideoFrame()
@@ -847,7 +844,7 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 					}
 					else if(e.state == Input::RELEASED)
 					{
-						unsetBits(input.pad[gunDevIdx], INPUT_A);
+						input.pad[gunDevIdx] = IG::clearBits(input.pad[gunDevIdx], (uint16)INPUT_A);
 					}
 				}
 			}

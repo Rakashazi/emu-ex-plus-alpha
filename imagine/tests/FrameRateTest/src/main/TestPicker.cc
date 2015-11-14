@@ -15,6 +15,7 @@
 
 #include "TestPicker.hh"
 #include <imagine/logger/logger.h>
+#include <imagine/util/algorithm.h>
 
 void TestTableEntry::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {

@@ -40,7 +40,6 @@ extern "C" {
 #include <string.h>
 #include <imagine/util/builtins.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/branch.h>
 #include <imagine/logger/logger.h>
 // throw_exception.hpp, Boost 1.50
 #define UUID_AA15E74A856F11E08B8D93F24824019B
@@ -557,25 +556,25 @@ extern "C" MediaType* mediaDbLookupRom(const void *buffer, int size)
 		sha1.get_digest(digest);
 		logMsg("rom sha1 0x%X 0x%X 0x%X 0x%X 0x%X", digest[0], digest[1], digest[2], digest[3], digest[4]);
 
-		forEachInArray(romDB, e)
+		for(auto e : romDB)
 		{
 			int match = 0;
 			iterateTimes(5, i)
 			{
-					if(digest[i] != e->digest[i])
+					if(digest[i] != e.digest[i])
 						break;
 					else match++;
 			}
 			if(match == 5)
 			{
-				logMsg("found match with type %s", romTypeToString(e->romType));
-				staticMediaType = e->romType;
+				logMsg("found match with type %s", romTypeToString(e.romType));
+				staticMediaType = e.romType;
 				return &staticMediaType;
 			}
 		}
 
 		logMsg("rom not in DB");
-		return NULL;
+		return nullptr;
 
     /*MediaType* mediaType = mediaDbLookup(romdb, buffer, size);
 

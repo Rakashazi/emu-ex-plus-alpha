@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <semaphore.h>
-#include <imagine/engine-globals.h>
+#include <imagine/config/defs.hh>
 
 namespace IG
 {

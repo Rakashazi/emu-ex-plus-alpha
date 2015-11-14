@@ -209,7 +209,7 @@ bool AndroidBluetoothAdapter::openDefault()
 			{"onBTOn", "(Z)V", (void *)&turnOnResult}
 		};
 
-		env->RegisterNatives(jBaseActivityCls, activityMethods, sizeofArray(activityMethods));
+		env->RegisterNatives(jBaseActivityCls, activityMethods, IG::size(activityMethods));
 	}
 
 	logMsg("opening default BT adapter");
@@ -549,8 +549,8 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 
 CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel, bool l2cap)
 {
-	ba2str(&bdaddr, addrStr);
-	var_selfs(channel);
+	ba2str(bdaddr, addrStr);
+	this->channel = channel;
 	isL2cap = l2cap;
 	sem_init(&connectSem, 0, 0);
 	isConnecting = true;
