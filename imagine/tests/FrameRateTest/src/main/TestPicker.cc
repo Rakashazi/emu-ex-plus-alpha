@@ -30,17 +30,29 @@ void TestTableEntry::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySi
 	}
 }
 
-void TestPicker::init(const TestParams *testParams, uint tests)
+TestPicker::TestPicker(Base::Window &win):
+	TableView
+	{
+		win,
+		[this](const TableView &)
+		{
+			return testEntry.size();
+		},
+		[this](const TableView &, int idx) -> MenuItem&
+		{
+			return testEntry[idx];
+		}
+	}
+{}
+
+void TestPicker::setTests(const TestParams *testParams, uint tests)
 {
-	assert(tests <= MAX_TESTS);
-	this->testParamPtr = testParams;
+	testParamPtr = testParams;
+	testEntry.clear();
+	testEntry.reserve(tests);
 	iterateTimes(tests, i)
 	{
-		auto &entry = testEntry[i];
-		entry.testStr = testParams[i].makeTestName();
-		entry.init(entry.testStr.data(), nullptr);
-		item[i] = &entry;
-		entry.onSelect() =
+		testEntry.emplace_back(
 			[this, i](DualTextMenuItem &, View &, Input::Event e)
 			{
 				auto test = startTest(window(), testParamPtr[i]);
@@ -59,9 +71,9 @@ void TestPicker::init(const TestParams *testParams, uint tests)
 						entry.t2.setString(entry.fpsStr.data());
 						entry.redText = test.droppedFrames;
 					};
-			};
+			});
+		testEntry[i].testStr = testParams[i].makeTestName();
 	}
-	TableView::init(item, tests);
 	if(Input::keyInputIsPresent())
 		highlightCell(0);
 }

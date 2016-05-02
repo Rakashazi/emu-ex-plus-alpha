@@ -27,20 +27,20 @@
 #include <imagine/base/android/RootCpufreqParamSetter.hh>
 #endif
 
-AppWindowData mainWin, extraWin;
+AppWindowData mainWin{}, extraWin{};
 bool menuViewIsActive = true;
-EmuNavView viewNav;
+EmuNavView viewNav{};
 EmuView emuView{mainWin.win}, emuView2{extraWin.win};
-EmuVideo emuVideo;
+EmuVideo emuVideo{};
 EmuVideoLayer emuVideoLayer{emuVideo};
 EmuInputView emuInputView{mainWin.win};
 AppWindowData *emuWin = &mainWin;
-ViewStack viewStack;
-MsgPopup popup;
-BasicViewController modalViewController;
-WorkDirStack<1> workDirStack;
+ViewStack viewStack{};
+MsgPopup popup{};
+BasicViewController modalViewController{};
+WorkDirStack<1> workDirStack{};
 static bool updateInputDevicesOnResume = false;
-DelegateFunc<void ()> onUpdateInputDevices;
+DelegateFunc<void ()> onUpdateInputDevices{};
 #ifdef CONFIG_BLUETOOTH
 BluetoothAdapter *bta{};
 #endif
@@ -813,19 +813,18 @@ void mainInitWindowCommon(Base::Window &win)
 	if(!Base::apkSignatureIsConsistent())
 	{
 		auto &ynAlertView = *new YesNoAlertView{win, "Warning: App has been modified by 3rd party, use at your own risk"};
-		ynAlertView.onNo() =
-			[](Input::Event e)
+		ynAlertView.setOnNo(
+			[](TextMenuItem &, View &view, Input::Event e)
 			{
 				Base::exit();
-			};
+			});
 		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
 	}
 	#endif
 
 	placeElements();
-	initMainMenu(win);
-	auto &mMenu = mainMenu();
-	viewStack.pushAndShow(mMenu, Input::defaultEvent());
+	auto mMenu = EmuSystem::makeView(win, EmuSystem::ViewID::MAIN_MENU);
+	viewStack.pushAndShow(*mMenu, Input::defaultEvent());
 
 	win.show();
 	win.postDraw();
@@ -886,12 +885,11 @@ void handleOpenFileCommand(const char *filename)
 		restoreMenuFromGame();
 		FS::current_path(filename);
 		viewStack.popToRoot();
-		auto &fPicker = *new EmuFilePicker{mainWin.win};
-		fPicker.init(false);
+		auto &fPicker = *new EmuFilePicker{mainWin.win, false};
 		viewStack.pushAndShow(fPicker, Input::defaultEvent());
 		return;
 	}
-	if(type != FS::file_type::regular || !EmuFilePicker::defaultFsFilter(filename))
+	if(type != FS::file_type::regular || !EmuSystem::defaultFsFilter(filename))
 	{
 		logMsg("unrecognized file type");
 		return;

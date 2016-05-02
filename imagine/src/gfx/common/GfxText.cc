@@ -24,18 +24,11 @@
 namespace Gfx
 {
 
-void Text::deinit()
+Text::~Text()
 {
-	spaceSize = 0;
-	nominalHeight = 0;
-	yLineStart = 0;
-	xSize = ySize = 0;
-	chars = 0;
-	lines = 0;
 	if(lineInfo)
 	{
 		mem_free(lineInfo);
-		lineInfo = nullptr;
 	}
 }
 

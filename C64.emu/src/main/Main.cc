@@ -17,8 +17,11 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuAppInlines.hh>
+#include <emuframework/FilePicker.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/thread/Semaphore.hh>
+#include <imagine/gui/AlertView.hh>
 #include "internal.hh"
 #include <sys/time.h>
 
@@ -66,15 +69,15 @@ extern "C"
 	#include "vdrive-internal.h"
 }
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 IG::Semaphore execSem{0}, execDoneSem{0};
 alignas(8) uint16 pix[1024*512]{};
 bool runningFrame = false, doAudio = false;
 static bool c64IsInit = false, c64FailedInit = false,
 	shiftLock = false, ctrlLock = false;
 uint c64VidX = 320, c64VidY = 200;
-static uint c64VidActiveX = 0, c64VidActiveY = 0;
-static FS::PathString firmwareBasePath{};
+uint c64VidActiveX = 0, c64VidActiveY = 0;
+FS::PathString firmwareBasePath{};
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 bool isPal = false;
 VicePlugin plugin{};
@@ -119,9 +122,7 @@ enum
 	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273
 };
 
-int loadGame(const char *path, bool autoStartMedia);
-
-static int intResource(const char *name)
+int intResource(const char *name)
 {
 	int val = 0;
 	auto failed = plugin.resources_get_int(name, &val);
@@ -129,7 +130,7 @@ static int intResource(const char *name)
 	return val;
 }
 
-static void setAutostartWarp(bool on)
+void setAutostartWarp(bool on)
 {
 	plugin.resources_set_int("AutostartWarp", on);
 }
@@ -139,7 +140,7 @@ static bool autostartWarp()
 	return intResource("AutostartWarp");
 }
 
-static void setAutostartTDE(bool on)
+void setAutostartTDE(bool on)
 {
 	plugin.resources_set_int("AutostartHandleTrueDriveEmulation", on);
 }
@@ -166,12 +167,12 @@ static void setModel(int model)
 	plugin.model_set(model);
 }
 
-static int sysModel()
+int sysModel()
 {
 	return plugin.model_get();
 }
 
-static void setSysModel(int model)
+void setSysModel(int model)
 {
 	setModel(model);
 	isPal = sysIsPal();
@@ -181,17 +182,17 @@ static void setSysModel(int model)
 	}
 }
 
-static void setDefaultNTSCModel()
+void setDefaultNTSCModel()
 {
 	setSysModel(defaultNTSCModel[currSystem]);
 }
 
-static void setDefaultPALModel()
+void setDefaultPALModel()
 {
 	setSysModel(defaultPALModel[currSystem]);
 }
 
-static void setBorderMode(int mode)
+void setBorderMode(int mode)
 {
 	if(!plugin.borderModeStr)
 		return;
@@ -205,7 +206,7 @@ static int borderMode()
 	return intResource(plugin.borderModeStr);
 }
 
-static void setSidEngine(int engine)
+void setSidEngine(int engine)
 {
 	plugin.resources_set_int("SidEngine", engine);
 }
@@ -215,44 +216,126 @@ static int sidEngine()
 	return intResource("SidEngine");
 }
 
-static void setDriveTrueEmulation(bool on)
+void setDriveTrueEmulation(bool on)
 {
 	plugin.resources_set_int("DriveTrueEmulation", on);
 }
 
-static Byte1Option optionDriveTrueEmulation(CFGKEY_DRIVE_TRUE_EMULATION, 1);
-static Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
-static Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
-static Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
-static Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
+void setDefaultC64Model(int model)
+{
+	optionC64Model = model;
+	if(!EmuSystem::gameIsRunning() &&
+		(currSystem == VICE_SYSTEM_C64 || currSystem == VICE_SYSTEM_C64SC))
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultDTVModel(int model)
+{
+	optionDTVModel = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_C64DTV)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultC128Model(int model)
+{
+	optionC128Model = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_C128)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultSuperCPUModel(int model)
+{
+	optionSuperCPUModel = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_SUPER_CPU)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultCBM2Model(int model)
+{
+	optionCBM2Model = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_CBM2)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultCBM5x0Model(int model)
+{
+	optionCBM5x0Model = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_CBM5X0)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultPETModel(int model)
+{
+	optionPETModel = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_PET)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultPlus4Model(int model)
+{
+	optionPlus4Model = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_PLUS4)
+	{
+		setSysModel(model);
+	}
+}
+
+void setDefaultVIC20Model(int model)
+{
+	optionVIC20Model = model;
+	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_VIC20)
+	{
+		setSysModel(model);
+	}
+}
+
+Byte1Option optionDriveTrueEmulation(CFGKEY_DRIVE_TRUE_EMULATION, 1);
+Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
+Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
+Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
+Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
 	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8>);
-static Byte1Option optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC, false,
+Byte1Option optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC, false,
 	optionIsValidWithMax<C64MODEL_NUM-1, uint8>);
-static Byte1Option optionDTVModel(CFGKEY_DTV_MODEL, DTVMODEL_V3_NTSC, false,
+Byte1Option optionDTVModel(CFGKEY_DTV_MODEL, DTVMODEL_V3_NTSC, false,
 	optionIsValidWithMax<DTVMODEL_NUM-1, uint8>);
-static Byte1Option optionC128Model(CFGKEY_C128_MODEL, C128MODEL_C128_NTSC, false,
+Byte1Option optionC128Model(CFGKEY_C128_MODEL, C128MODEL_C128_NTSC, false,
 	optionIsValidWithMax<C128MODEL_NUM-1, uint8>);
-static Byte1Option optionSuperCPUModel(CFGKEY_SUPER_CPU_MODEL, C64MODEL_C64_NTSC, false,
+Byte1Option optionSuperCPUModel(CFGKEY_SUPER_CPU_MODEL, C64MODEL_C64_NTSC, false,
 	optionIsValidWithMax<IG::size(superCPUModelStr)-1, uint8>);
-static Byte1Option optionCBM2Model(CFGKEY_CBM2_MODEL, CBM2MODEL_610_NTSC, false,
+Byte1Option optionCBM2Model(CFGKEY_CBM2_MODEL, CBM2MODEL_610_NTSC, false,
 	optionIsValidWithMinMax<CBM2MODEL_610_PAL, CBM2MODEL_720PLUS_NTSC, uint8>);
-static Byte1Option optionCBM5x0Model(CFGKEY_CBM5x0_MODEL, CBM2MODEL_510_NTSC, false,
+Byte1Option optionCBM5x0Model(CFGKEY_CBM5x0_MODEL, CBM2MODEL_510_NTSC, false,
 	optionIsValidWithMinMax<CBM2MODEL_510_PAL, CBM2MODEL_510_NTSC, uint8>);
-static Byte1Option optionPETModel(CFGKEY_PET_MODEL, PETMODEL_8032, false,
+Byte1Option optionPETModel(CFGKEY_PET_MODEL, PETMODEL_8032, false,
 	optionIsValidWithMax<PETMODEL_NUM-1, uint8>);
-static Byte1Option optionPlus4Model(CFGKEY_PLUS4_MODEL, PLUS4MODEL_PLUS4_NTSC, false,
+Byte1Option optionPlus4Model(CFGKEY_PLUS4_MODEL, PLUS4MODEL_PLUS4_NTSC, false,
 	optionIsValidWithMax<PLUS4MODEL_NUM-1, uint8>);
-static Byte1Option optionVIC20Model(CFGKEY_VIC20_MODEL, VIC20MODEL_VIC20_NTSC, false,
+Byte1Option optionVIC20Model(CFGKEY_VIC20_MODEL, VIC20MODEL_VIC20_NTSC, false,
 	optionIsValidWithMax<VIC20MODEL_NUM-1, uint8>);
-static Byte1Option optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
-static Byte1Option optionSidEngine(CFGKEY_SID_ENGINE,
+Byte1Option optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
+Byte1Option optionSidEngine(CFGKEY_SID_ENGINE,
 		#ifdef HAVE_RESID
 		SID_ENGINE_RESID
 		#else
 		SID_ENGINE_FASTSID
 		#endif
 	);
-static Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
+Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
 PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 
 static void applyInitialOptionResources()
@@ -363,7 +446,6 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesArchiveFiles = false; // TODO: need to re-factor VICE file loading code
 bool EmuSystem::handlesGenericIO = false;
-#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {
@@ -858,7 +940,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	}
 }
 
-static bool hasC64DiskExtension(const char *name)
+bool hasC64DiskExtension(const char *name)
 {
 	return string_hasDotExtension(name, "d64") ||
 			string_hasDotExtension(name, "d67") ||
@@ -875,13 +957,13 @@ static bool hasC64DiskExtension(const char *name)
 			string_hasDotExtension(name, "dsk");
 }
 
-static bool hasC64TapeExtension(const char *name)
+bool hasC64TapeExtension(const char *name)
 {
 	return string_hasDotExtension(name, "t64") ||
 			string_hasDotExtension(name, "tap");
 }
 
-static bool hasC64CartExtension(const char *name)
+bool hasC64CartExtension(const char *name)
 {
 	return string_hasDotExtension(name, "bin") ||
 			string_hasDotExtension(name, "crt");
@@ -896,8 +978,8 @@ static bool hasC64Extension(const char *name)
 			string_hasDotExtension(name, "p00");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasC64Extension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasC64Extension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasC64Extension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasC64Extension;
 
 void EmuSystem::reset(ResetMode mode)
 {
@@ -1076,11 +1158,11 @@ int loadGame(const char *path, bool autoStartMedia)
 	{
 		auto &ynAlertView = *new YesNoAlertView{mainWin.win,
 			"A previous system file load failed, you must restart the app to run any C64 software", "Exit Now", "Cancel"};
-		ynAlertView.onYes() =
-			[](Input::Event e)
+		ynAlertView.setOnYes(
+			[](TextMenuItem &, View &, Input::Event e)
 			{
 				Base::exit();
-			};
+			});
 		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent()); // TODO: loadGame should propagate input event
 		return 0;
 	}

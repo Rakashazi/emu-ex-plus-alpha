@@ -14,12 +14,13 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuAppInlines.hh>
 #include "EmuConfig.hh"
+#include "internal.hh"
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 uint fceuCheats = 0;
 
 #include <fceu/driver.h>
@@ -30,7 +31,7 @@ uint fceuCheats = 0;
 #include <fceu/input.h>
 #include <fceu/cheat.h>
 
-static bool hasFDSBIOSExtension(const char *name)
+bool hasFDSBIOSExtension(const char *name)
 {
 	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "bin");
 }
@@ -71,7 +72,7 @@ enum
 	nesKeyIdxAB,
 };
 
-static ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
+ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 
 enum {
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
@@ -79,10 +80,10 @@ enum {
 };
 
 FS::PathString fdsBiosPath{};
-static PathOption optionFdsBiosPath(CFGKEY_FDS_BIOS_PATH, fdsBiosPath, "");
-static Byte1Option optionFourScore(CFGKEY_FOUR_SCORE, 0);
-static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
-static uint autoDetectedVidSysPAL = 0;
+PathOption optionFdsBiosPath{CFGKEY_FDS_BIOS_PATH, fdsBiosPath, ""};
+Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
+Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0};
+uint autoDetectedVidSysPAL = 0;
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
@@ -101,8 +102,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-#include <emuframework/CommonGui.hh>
-#include <emuframework/CommonCheatGui.hh>
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "nes"
@@ -163,8 +162,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionFdsBiosPath.writeToIO(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasNESExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasNESExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNESExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNESExtension;
 
 #ifdef USE_PIX_RGB565
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
@@ -392,7 +391,7 @@ static void connectNESInput(int port, ESI type)
 	}
 }
 
-static void setupNESFourScore()
+void setupNESFourScore()
 {
 	if(!GameInfo)
 		return;
@@ -411,7 +410,7 @@ uint EmuSystem::multiresVideoBaseX() { return 0; }
 uint EmuSystem::multiresVideoBaseY() { return 0; }
 bool touchControlsApplicable() { return 1; }
 
-static void setupNESInputPorts()
+void setupNESInputPorts()
 {
 	if(!GameInfo)
 		return;

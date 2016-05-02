@@ -14,9 +14,10 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuAppInlines.hh>
+#include "internal.hh"
 #include "system.h"
 #include "loadrom.h"
 #include "md_cart.h"
@@ -33,14 +34,14 @@
 #include <scd/scd.h>
 #endif
 #include <fileio/fileio.h>
-#include <main/Cheats.hh>
+#include "Cheats.hh"
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 t_config config{};
 uint config_ym2413_enabled = 1;
-static int8 mdInputPortDev[2]{-1, -1};
+int8 mdInputPortDev[2]{-1, -1};
 
-static bool hasMDExtension(const char *name)
+bool hasMDExtension(const char *name)
 {
 	return hasROMExtension(name);
 }
@@ -94,18 +95,18 @@ enum {
 	CFGKEY_MD_REGION = 284, CFGKEY_VIDEO_SYSTEM = 285,
 };
 
-static bool usingMultiTap = 0;
-static Byte1Option optionBigEndianSram(CFGKEY_BIG_ENDIAN_SRAM, 0);
-static Byte1Option optionSmsFM(CFGKEY_SMS_FM, 1);
-static Byte1Option option6BtnPad(CFGKEY_6_BTN_PAD, 0);
-static Byte1Option optionRegion(CFGKEY_MD_REGION, 0);
+bool usingMultiTap = false;
+Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
+Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
+Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
+Byte1Option optionRegion{CFGKEY_MD_REGION, 0};
 #ifndef NO_SCD
 FS::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
-static PathOption optionCDBiosUsaPath(CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, "");
-static PathOption optionCDBiosJpnPath(CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, "");
-static PathOption optionCDBiosEurPath(CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, "");
+PathOption optionCDBiosUsaPath{CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, ""};
+PathOption optionCDBiosJpnPath{CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, ""};
+PathOption optionCDBiosEurPath{CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, ""};
 #endif
-static Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0);
+Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0};
 static uint autoDetectedVidSysPAL = 0;
 
 const char *EmuSystem::inputFaceBtnName = "A/B/C";
@@ -123,8 +124,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
-#include <emuframework/CommonGui.hh>
-#include <emuframework/CommonCheatGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {
@@ -194,8 +193,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionRegion.writeWithKeyIfNotDefault(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasMDWithCDExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasMDExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
@@ -511,7 +510,7 @@ static void setupSMSInput()
 	input.system[0] = input.system[1] =  SYSTEM_MS_GAMEPAD;
 }
 
-static void setupMDInput()
+void setupMDInput()
 {
 	if(!EmuSystem::gameIsRunning())
 	{

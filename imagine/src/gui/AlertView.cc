@@ -13,31 +13,27 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "AlertView"
+#define LOGTAG "BaseAlertView"
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 
-AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems): View{win}, menu{win}
+BaseAlertView::BaseAlertView(Base::Window &win, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+	View{win},
+	text{label, View::defaultFace},
+	menu
+	{
+		win,
+		items,
+		item
+	}
 {
-	text.init(label, View::defaultFace);
-	menu.init(menuItem, menuItems, C2DO);
-	menu.onlyScrollIfNeeded = 1;
+	menu.setAlign(C2DO);
+	menu.onlyScrollIfNeeded = true;
 }
 
-AlertView::AlertView(Base::Window &win, const char *label, MenuItem **menuItem):
-	AlertView{win, label, menuItem, 2}
-{}
-
-void AlertView::deinit()
-{
-	//logMsg("deinit AlertView");
-	text.deinit();
-	menu.deinit();
-}
-
-void AlertView::place()
+void BaseAlertView::place()
 {
 	using namespace Gfx;
 	int xSize = rect.xSize() * .8;
@@ -59,7 +55,7 @@ void AlertView::place()
 	menu.place();
 }
 
-void AlertView::inputEvent(Input::Event e)
+void BaseAlertView::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{
@@ -72,7 +68,7 @@ void AlertView::inputEvent(Input::Event e)
 	menu.inputEvent(e);
 }
 
-void AlertView::draw()
+void BaseAlertView::draw()
 {
 	using namespace Gfx;
 	setBlendMode(BLEND_MODE_ALPHA);
@@ -90,40 +86,48 @@ void AlertView::draw()
 	//setClipRect(0);
 }
 
-void AlertView::onAddedToController(Input::Event e)
+void BaseAlertView::onAddedToController(Input::Event e)
 {
-	menu.onAddedToController(e);
+	menu.setController(controller, e);
+}
+
+void BaseAlertView::setLabel(const char *label)
+{
+	text.setString(label);
+}
+
+AlertView::AlertView(Base::Window &win, const char *label, uint menuItems):
+	BaseAlertView{win, label, item},
+	item{menuItems}
+{}
+
+void AlertView::setItem(uint idx, const char *name, TextMenuItem::SelectDelegate del)
+{
+	assert(idx < item.size());
+	item[idx].t.setString(name);
+	item[idx].setOnSelect(del);
 }
 
 YesNoAlertView::YesNoAlertView(Base::Window &win, const char *label, const char *choice1, const char *choice2):
-	AlertView(win, label, menuItem),
-	yes
-	{
-		[this](TextMenuItem &, View &view, Input::Event e)
+	BaseAlertView(win, label,
+		[](const TableView &)
 		{
-			auto callback = onYesD;
-			dismiss();
-			callback.callSafe(e);
-		}
-	},
-	no
-	{
-		[this](TextMenuItem &, View &view, Input::Event e)
+			return 2;
+		},
+		[this](const TableView &, int idx) -> MenuItem&
 		{
-			auto callback = onNoD;
-			dismiss();
-			callback.callSafe(e);
-		}
-	}
+			return idx == 0 ? yes : no;
+		}),
+	yes{choice1 ? choice1 : "Yes", [this]() { dismiss(); }},
+	no{choice2 ? choice2 : "No", [this]() { dismiss(); }}
+{}
+
+void YesNoAlertView::setOnYes(TextMenuItem::SelectDelegate del)
 {
-	yes.init(choice1 ? choice1 : "Yes"); menuItem[0] = &yes;
-	no.init(choice2 ? choice2 : "No"); menuItem[1] = &no;
+	yes.setOnSelect(del);
 }
 
-void YesNoAlertView::deinit()
+void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 {
-	logMsg("deinit alert");
-	AlertView::deinit();
-	onYesD = {};
-	onNoD = {};
+	no.setOnSelect(del);
 }

@@ -8,7 +8,7 @@ extern uint fceuCheats;
 void EncodeGG(char *str, int a, int v, int c);
 static const int UNCHANGED_VAL = -2;
 
-void SystemEditCheatView::syncCheat(const char *newName)
+void EmuEditCheatView::syncCheat(const char *newName)
 {
 	if(type)
 	{
@@ -35,7 +35,7 @@ void SystemEditCheatView::syncCheat(const char *newName)
 	}
 }
 
-void SystemEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(const char *str)
 {
 	syncCheat(str);
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
@@ -44,61 +44,58 @@ void SystemEditCheatView::renamed(const char *str)
 	refreshCheatViews();
 }
 
-void SystemEditCheatView::removed()
-{
-	assert(fceuCheats != 0);
-	FCEUI_DelCheat(idx);
-	fceuCheats--;
-	refreshCheatViews();
-}
-
-void SystemEditCheatView::init(int cheatIdx)
-{
-	idx = cheatIdx;
-	uint32 a;
-	uint8 v;
-	int compare;
-	int gotCheat = FCEUI_GetCheat(cheatIdx, &nameStr, &a, &v, &compare, 0, &type);
-	logMsg("got cheat with addr 0x%.4x val 0x%.2x comp %d", a, v, compare);
-
-	uint i = 0;
-	loadNameItem(nameStr, item, i);
-	if(type)
-	{
-		name_ = "Edit Code";
-		if(a == 0 && v == 0 && compare == -1)
-			ggCodeStr[0] = 0;
-		else
-			EncodeGG(ggCodeStr, a, v, compare);
-		ggCode.init(ggCodeStr); item[i++] = &ggCode;
-	}
-	else
-	{
-		name_ = "Edit RAM Patch";
-		snprintf(addrStr, sizeof(addrStr), "%x", a);
-		addr.init(addrStr); item[i++] = &addr;
-		snprintf(valueStr, sizeof(valueStr), "%x", v);
-		value.init(valueStr); item[i++] = &value;
-		if(compare == -1)
-			compStr[0] = 0;
-		else
-			snprintf(compStr, sizeof(compStr), "%x", compare);
-		comp.init(compStr); item[i++] = &comp;
-	}
-	loadRemoveItem(item, i);
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
-}
-
 static bool isValidGGCodeLen(const char *str)
 {
 	return strlen(str) == 6 || strlen(str) == 8;
 }
 
-SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
+EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
+	BaseEditCheatView
+	{
+		"",
+		win,
+		"",
+		[this](const TableView &)
+		{
+			return type ? 3 : 5;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			if(type)
+			{
+				switch(idx)
+				{
+					case 0: return name;
+					case 1: return ggCode;
+					default: return remove;
+				}
+			}
+			else
+			{
+				switch(idx)
+				{
+					case 0: return name;
+					case 1: return addr;
+					case 2: return value;
+					case 3: return comp;
+					default: return remove;
+				}
+			}
+		},
+		[this](TextMenuItem &, View &, Input::Event)
+		{
+			assert(fceuCheats != 0);
+			FCEUI_DelCheat(idx);
+			fceuCheats--;
+			refreshCheatViews();
+			dismiss();
+			return true;
+		}
+	},
 	addr
 	{
 		"Address",
+		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -130,6 +127,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	value
 	{
 		"Value",
+		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -161,6 +159,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	comp
 	{
 		"Compare",
+		compStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -199,6 +198,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	ggCode
 	{
 		"GG Code",
+		ggCodeStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -224,39 +224,72 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 				};
 			modalViewController.pushAndShow(textInputView, e);
 		}
-	}
-{}
-
-void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
+	},
+	idx{cheatIdx}
 {
-	addGG.init(); item.emplace_back(&addGG);
-	addRAM.init(); item.emplace_back(&addRAM);
+	uint32 a;
+	uint8 v;
+	int compare;
+	int gotCheat = FCEUI_GetCheat(cheatIdx, &nameStr, &a, &v, &compare, 0, &type);
+	logMsg("got cheat with addr 0x%.4x val 0x%.2x comp %d", a, v, compare);
+	name.t.setString(nameStr);
+	if(type)
+	{
+		name_ = "Edit Code";
+		if(a == 0 && v == 0 && compare == -1)
+			ggCodeStr[0] = 0;
+		else
+			EncodeGG(ggCodeStr, a, v, compare);
+	}
+	else
+	{
+		name_ = "Edit RAM Patch";
+		snprintf(addrStr, sizeof(addrStr), "%x", a);
+		snprintf(valueStr, sizeof(valueStr), "%x", v);
+		if(compare == -1)
+			compStr[0] = 0;
+		else
+			snprintf(compStr, sizeof(compStr), "%x", compare);
+	}
 }
 
-void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
+void EmuEditCheatListView::loadCheatItems()
 {
 	uint cheats = fceuCheats;
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
 		char *name;
 		int gotCheat = FCEUI_GetCheat(c, &name, 0, 0, 0, 0, 0);
 		assert(gotCheat);
-		if(!gotCheat) continue;
-		cheat[c].init(name); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(gotCheat ? name : "Corrupt Cheat",
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(c);
+				auto &editCheatView = *new EmuEditCheatView{window(), c};
 				viewStack.pushAndShow(editCheatView, e);
-			};
+			});
 	}
 }
 
-EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(win),
+EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+	BaseEditCheatListView
+	{
+		win,
+		[this](const TableView &)
+		{
+			return 2 + cheat.size();
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return addGG;
+				case 1: return addRAM;
+				default: return cheat[idx - 2];
+			}
+		}
+	},
 	addGG
 	{
 		"Add Game Genie Code",
@@ -342,11 +375,9 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 					fceuCheats++;
 					FCEUI_ToggleCheat(fceuCheats-1);
 					logMsg("added new cheat, %d total", fceuCheats);
-					auto &editCheatView = *new SystemEditCheatView{view.window()};
+					auto &editCheatView = *new EmuEditCheatView{view.window(), fceuCheats-1};
 					view.dismiss();
 					refreshCheatViews();
-					// go to directly to cheat's menu to finish entering values
-					editCheatView.init(fceuCheats-1);
 					viewStack.pushAndShow(editCheatView, {});
 				}
 				else
@@ -358,37 +389,43 @@ EditCheatListView::EditCheatListView(Base::Window &win): BaseEditCheatListView(w
 			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
-{}
+{
+	loadCheatItems();
+}
 
-void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
+EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+{
+	loadCheatItems();
+}
+
+void EmuCheatsView::loadCheatItems()
 {
 	uint cheats = fceuCheats;
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
 		char *name;
-		int status;
+		int status = 0;
 		int gotCheat = FCEUI_GetCheat(c, &name, 0, 0, 0, &status, 0);
 		assert(gotCheat);
-		if(!gotCheat) continue;
-		cheat[c].init(name, status); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(gotCheat ? name : "Corrupt Cheat", status,
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				uint32 a;
 				uint8 v;
 				int compare, type;
-				FCEUI_GetCheat(c, nullptr, &a, &v, &compare, 0, &type);
-				if(!item.on && type && a == 0 && v == 0 && compare == -1)
+				int gotCheat = FCEUI_GetCheat(c, nullptr, &a, &v, &compare, 0, &type);
+				if(!gotCheat)
+					return;
+				if(!item.boolValue() && type && a == 0 && v == 0 && compare == -1)
 				{
 					// Don't turn on null Game Genie codes
 					popup.postError("Game Genie code isn't set", 2);
 					return;
 				}
-				item.toggle(*this);
+				item.flipBoolValue(*this);
 				FCEUI_ToggleCheat(c);
-			};
+			});
 	}
 }

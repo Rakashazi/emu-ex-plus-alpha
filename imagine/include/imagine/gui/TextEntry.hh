@@ -28,9 +28,8 @@ public:
 	bool multiLine = false;
 	Gfx::ProjectionPlane projP;
 
-	constexpr TextEntry() {}
+	TextEntry() {}
 	CallResult init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP);
-	void deinit();
 	void setAcceptingInput(bool on);
 	void inputEvent(Input::Event e);
 	void draw();
@@ -57,12 +56,12 @@ public:
 	OnTextDelegate &onText() { return onTextD; }
 
 	CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
+	~CollectTextInputView() override;
 	void init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, ResourceFace *face = View::defaultFace);
 	void init(const char *msgText, Gfx::PixmapTexture *closeRes, ResourceFace *face = View::defaultFace)
 	{
 		init(msgText, "", closeRes, face);
 	}
-	void deinit() override;
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void inputEvent(Input::Event e) override;

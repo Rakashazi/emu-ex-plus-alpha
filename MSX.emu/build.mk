@@ -8,6 +8,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc \
 main/EmuControls.cc \
+main/EmuMenuViews.cc \
 main/BlueMSXApi.cc \
 main/Board.cc
 

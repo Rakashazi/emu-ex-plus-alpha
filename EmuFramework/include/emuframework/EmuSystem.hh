@@ -22,8 +22,16 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/gui/View.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
+
+#ifdef ENV_NOTE
+#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
+#else
+#define PLATFORM_INFO_STR "(" CONFIG_ARCH_STR ")"
+#endif
+#define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
 struct AspectRatioInfo
 {
@@ -54,7 +62,24 @@ private:
 	static FS::PathString gameSavePath_;
 
 public:
-	enum class State { OFF, STARTING, PAUSED, ACTIVE };
+	enum class State
+	{
+		OFF,
+		STARTING,
+		PAUSED,
+		ACTIVE
+	};
+	enum class ViewID
+	{
+		MAIN_MENU,
+		VIDEO_OPTIONS,
+		AUDIO_OPTIONS,
+		INPUT_OPTIONS,
+		SYSTEM_OPTIONS,
+		GUI_OPTIONS,
+		EDIT_CHEATS,
+	};
+	using NameFilterFunc = bool(*)(const char *name);
 	static State state;
 	static FS::PathString savePath_;
 	static Base::Timer autoSaveStateTimer;
@@ -86,10 +111,14 @@ public:
 	enum ResetMode { RESET_HARD, RESET_SOFT };
 	static bool handlesArchiveFiles;
 	static bool handlesGenericIO;
+	static NameFilterFunc defaultFsFilter;
+	static NameFilterFunc defaultBenchmarkFsFilter;
+	static const char *creditsViewStr;
 
 	static CallResult onInit();
 	static void onMainWindowCreated(Base::Window &win);
 	static void onCustomizeNavView(EmuNavView &view);
+	static View *makeView(Base::Window &win, ViewID id);
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static bool isPaused() { return state == State::PAUSED; }

@@ -1,12 +1,14 @@
+
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuAppInlines.hh>
 #include "EmuConfig.hh"
+#include "internal.hh"
 
 extern "C"
 {
@@ -65,7 +67,7 @@ extern "C"
 	}
 }
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 CLINK void main_frame();
 static ROM_DEF *activeDrv{};
 
@@ -129,14 +131,14 @@ static bool countryEnumIsValid(uint8 val)
 	return val < CTY_MAX;
 }
 
-static Byte1Option optionListAllGames(CFGKEY_LIST_ALL_GAMES, 0);
-static Byte1Option optionBIOSType(CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid);
-static Byte1Option optionMVSCountry(CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid);
-static Byte1Option optionTimerInt(CFGKEY_TIMER_INT, 2);
-static Byte1Option optionCreateAndUseCache(CFGKEY_CREATE_USE_CACHE, 0);
-static Byte1Option optionStrictROMChecking(CFGKEY_STRICT_ROM_CHECKING, 0);
+Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
+Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};
+Byte1Option optionMVSCountry{CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid};
+Byte1Option optionTimerInt{CFGKEY_TIMER_INT, 2};
+Byte1Option optionCreateAndUseCache{CFGKEY_CREATE_USE_CACHE, 0};
+Byte1Option optionStrictROMChecking{CFGKEY_STRICT_ROM_CHECKING, 0};
 
-static void setTimerIntOption()
+void setTimerIntOption()
 {
 	switch(optionTimerInt)
 	{
@@ -169,7 +171,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
-#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {
@@ -244,8 +245,8 @@ static bool hasNeoGeoExtension(const char *name)
 	return false; // archives handled by EmuFramework
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasNeoGeoExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasNeoGeoExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNeoGeoExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNeoGeoExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[352*256] __attribute__ ((aligned (8))) {0};
@@ -569,7 +570,7 @@ CLINK void *res_load_data(char *name)
 class LoadGameInBackgroundView : public View
 {
 public:
-	Gfx::Text text;
+	Gfx::Text text{"Loading...", View::defaultFace};
 	IG::WindowRect rect;
 	IG::WindowRect &viewRect() override { return rect; }
 
@@ -585,17 +586,6 @@ public:
 	void setPos(uint val)
 	{
 		pos = val;
-	}
-
-	void init()
-	{
-		text.init("Loading...", View::defaultFace);
-		pos = max = 0;
-	}
-
-	void deinit() override
-	{
-		text.deinit();
 	}
 
 	void place() override
@@ -720,7 +710,6 @@ int EmuSystem::loadGame(const char *path)
 			if(modalViewController.hasView())
 				modalViewController.pop();
 			auto loadGameInBackgroundView = new LoadGameInBackgroundView{mainWin.win};
-			loadGameInBackgroundView->init();
 			modalViewController.pushAndShow(*loadGameInBackgroundView, {});
 			guiPipe.init(
 				[loadGameInBackgroundView](Base::Pipe &pipe)

@@ -18,14 +18,6 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/util/Interpolator.hh>
-#include <imagine/config/version.h>
-
-#ifdef ENV_NOTE
-#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
-#else
-#define PLATFORM_INFO_STR "(" CONFIG_ARCH_STR ")"
-#endif
-#define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
 class CreditsView : public View
 {
@@ -38,11 +30,10 @@ private:
 
 public:
 	CreditsView(const char *str, Base::Window &win);
+	~CreditsView();
 	IG::WindowRect &viewRect() override { return rect; }
 	void draw() override;
 	void place() override;
 	void inputEvent(Input::Event e) override;
-	void init();
-	void deinit() override;
 	void onAddedToController(Input::Event e) override {}
 };

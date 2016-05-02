@@ -14,10 +14,11 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
-#include <main/Main.hh>
-#include <main/Cheats.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/EmuAppInlines.hh>
+#include "internal.hh"
+#include "Cheats.hh"
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/Sound.h>
 #include <vbam/gba/RTC.h>
@@ -33,7 +34,7 @@ bool CPUWriteBatteryFile(GBASys &gba, const char *);
 bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const uint EmuSystem::inputFaceBtns = 4;
@@ -43,14 +44,12 @@ const bool EmuSystem::inputHasRevBtnLayout = false;
 const char *EmuSystem::configFilename = "GbaEmu.config";
 bool EmuSystem::hasBundledGames = true;
 const uint EmuSystem::maxPlayers = 1;
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 {
 		{"3:2 (Original)", 3, 2},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-#include <emuframework/CommonGui.hh>
-#include <emuframework/CommonCheatGui.hh>
 
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "gba"
@@ -220,8 +219,8 @@ static bool hasGBAExtension(const char *name)
 	return string_hasDotExtension(name, "gba");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasGBAExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasGBAExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasGBAExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasGBAExtension;
 
 #define USE_PIX_RGB565
 #ifdef USE_PIX_RGB565

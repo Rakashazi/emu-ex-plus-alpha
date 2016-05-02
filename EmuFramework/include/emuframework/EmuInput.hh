@@ -22,6 +22,9 @@
 #include <emuframework/TurboInput.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/inGameActionKeys.hh>
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+#include <emuframework/VController.hh>
+#endif
 #include <imagine/util/container/DLList.hh>
 
 struct KeyCategory

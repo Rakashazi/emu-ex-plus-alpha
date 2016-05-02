@@ -27,9 +27,9 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/MsgPopup.hh>
+#include <emuframework/FileUtils.hh>
 #include <emuframework/InputManagerView.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <emuframework/VController.hh>
 #include <emuframework/TouchConfigView.hh>
 #endif
 
@@ -85,9 +85,6 @@ void startGameFromMenu();
 void restoreMenuFromGame();
 void closeGame(bool allowAutosaveState = true);
 void applyOSNavStyle(bool inGame);
-void initMainMenu(Base::Window &win);
-View &mainMenu();
-View *makeOptionCategoryMenu(Base::Window &win, uint idx);
 View *makeEditCheatListView(Base::Window &win);
 const char *appViewTitle();
 const char *appName();

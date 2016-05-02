@@ -15,9 +15,11 @@
 
 #define LOGTAG "main"
 #include <imagine/fs/ArchiveFS.hh>
-#include <emuframework/EmuSystem.hh>
+#include <imagine/gui/AlertView.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include "../../../EmuFramework/include/emuframework/EmuAppInlines.hh"
+#include "internal.hh"
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -34,7 +36,7 @@ static const bool checkForMachineFolderOnStart = true;
 static const bool checkForMachineFolderOnStart = false;
 #endif
 
-static bool canInstallCBIOS = true;
+bool canInstallCBIOS = true;
 
 extern "C"
 {
@@ -53,17 +55,16 @@ extern "C"
 
 #include <blueMSX/Utils/ziphelper.h>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 BoardInfo boardInfo{};
-extern bool fdcActive;
-Machine *machine = 0;
-Mixer *mixer = 0;
+Machine *machine{};
+Mixer *mixer{};
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-static FS::PathString machineCustomPath{};
-static FS::PathString machineBasePath{};
+FS::PathString machineCustomPath{};
+FS::PathString machineBasePath{};
 
-static FS::PathString makeMachineBasePath(FS::PathString customPath)
+FS::PathString makeMachineBasePath(FS::PathString customPath)
 {
 	FS::PathString outPath;
 	if(!strlen(customPath.data()))
@@ -100,26 +101,23 @@ void chdirToPrevWorkingDir(char *prevWDir)
 	logMsg("changed back to: %s", prevWDir);
 }
 
-static char cartName[2][512]{};
+char cartName[2][512]{};
 extern RomType currentRomType[2];
-static char diskName[2][512]{};
+char diskName[2][512]{};
 static char tapeName[512]{};
 char hdName[4][512]{};
 
-static bool insertDisk(const char *path, uint slot = 0);
-static bool insertROM(const char *path, uint slot = 0);
-
-static bool hasMSXTapeExtension(const char *name)
+bool hasMSXTapeExtension(const char *name)
 {
 	return string_hasDotExtension(name, "cas");
 }
 
-static bool hasMSXDiskExtension(const char *name)
+bool hasMSXDiskExtension(const char *name)
 {
 	return string_hasDotExtension(name, "dsk");
 }
 
-static bool hasMSXROMExtension(const char *name)
+bool hasMSXROMExtension(const char *name)
 {
 	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "mx1")
 			|| string_hasDotExtension(name, "mx2") || string_hasDotExtension(name, "col");
@@ -201,11 +199,11 @@ enum
 };
 
 #define optionMachineNameDefault "MSX2"
-static char optionMachineNameStr[128] = optionMachineNameDefault;
-static PathOption optionMachineName(CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault);
-Byte1Option optionSkipFdcAccess(CFGKEY_SKIP_FDC_ACCESS, 1);
-PathOption optionFirmwarePath(CFGKEY_MACHINE_FILE_PATH, machineCustomPath, "");
-static uint activeBoardType = BOARD_MSX;
+char optionMachineNameStr[128] = optionMachineNameDefault;
+PathOption optionMachineName{CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault};
+Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
+PathOption optionFirmwarePath{CFGKEY_MACHINE_FILE_PATH, machineCustomPath, ""};
+uint activeBoardType = BOARD_MSX;
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Space/KB";
 const uint EmuSystem::inputFaceBtns = 2;
@@ -222,7 +220,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
-#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {
@@ -268,8 +265,8 @@ void EmuSystem::onOptionsLoaded()
 	fixFilePermissions(machineBasePath);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasMSXExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasMSXExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMSXExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
 static const uint msxMaxResX = (256) * 2, msxResY = 224,
 		msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
@@ -671,7 +668,7 @@ static bool getFirstTapeFilenameInZip(const char *zipPath, char *nameOut, uint o
 	return 0;
 }
 
-static bool insertROM(const char *path, uint slot)
+bool insertROM(const char *path, uint slot)
 {
 	char fileInZipName[256] = "";
 	if(string_hasDotExtension(path, "zip"))
@@ -693,7 +690,7 @@ static bool insertROM(const char *path, uint slot)
 	return 1;
 }
 
-static bool insertDisk(const char *path, uint slot)
+bool insertDisk(const char *path, uint slot)
 {
 	char fileInZipName[256] = "";
 	if(string_hasDotExtension(path, "zip"))
@@ -802,8 +799,6 @@ static void closeGameByFailedStateLoad()
 		// failed while in-game, restore the menu
 		restoreMenuFromGame();
 	}
-	// notify main menu game is closed
-	mMenu.gameStopped();
 	// leave any sub menus that may depending on running game state
 	viewStack.popToRoot();
 }
@@ -1148,11 +1143,12 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 		!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 	{
 		auto &ynAlertView = *new YesNoAlertView{win, installFirmwareFilesMessage};
-		ynAlertView.onYes() =
-			[](Input::Event e)
+		ynAlertView.setOnYes(
+			[](TextMenuItem &, View &view, Input::Event e)
 			{
+				view.dismiss();
 				installFirmwareFiles();
-			};
+			});
 		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
 	}
 };

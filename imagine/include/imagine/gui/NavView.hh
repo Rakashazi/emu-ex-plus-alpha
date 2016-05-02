@@ -33,14 +33,14 @@ public:
 	IG::WindowRect viewRect{};
 	bool hasBackBtn = false, leftBtnActive = false, hasCloseBtn = false, rightBtnActive = false;
 
-	constexpr NavView() {}
+	NavView() {}
+	virtual ~NavView() {}
 	virtual void onLeftNavBtn(Input::Event e) {};
 	virtual void onRightNavBtn(Input::Event e) {};
 	void setLeftBtnActive(bool on) { leftBtnActive = on; }
 	void setRightBtnActive(bool on) { rightBtnActive = on; }
 	void setTitle(const char *title) { text.setString(title); }
 	void init(ResourceFace *face);
-	virtual void deinit() = 0;
 	void deinitText();
 	virtual void place(const Gfx::ProjectionPlane &projP);
 	void inputEvent(Input::Event e);
@@ -67,5 +67,4 @@ public:
 
 	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
 	void place(const Gfx::ProjectionPlane &projP) override;
-	void deinit() override;
 };

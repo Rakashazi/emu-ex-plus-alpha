@@ -22,12 +22,23 @@
 
 void loadGameCompleteFromRecentItem(uint result, Input::Event e);
 
-void BundledGamesView::init()
+BundledGamesView::BundledGamesView(Base::Window &win):
+	TableView
+	{
+		"Bundled Games",
+		win,
+		[this](const TableView &)
+		{
+			return 1;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			return game[0];
+		}
+	}
 {
-	uint i = 0;
 	auto &info = EmuSystem::bundledGameInfo(0);
-	game[0].init(info.displayName); item[i++] = &game[0];
-	game[0].onSelect() =
+	game[0] = {info.displayName,
 		[&info](TextMenuItem &t, View &, Input::Event ev)
 		{
 			#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
@@ -51,9 +62,7 @@ void BundledGamesView::init()
 			{
 				EmuSystem::clearGamePaths();
 			}
-		};
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
+		}};
 }
 
 [[gnu::weak]] const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)

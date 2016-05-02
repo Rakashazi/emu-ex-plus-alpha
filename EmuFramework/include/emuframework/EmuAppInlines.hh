@@ -16,29 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <meta.h>
-#include <emuframework/EmuApp.hh>
-#include <emuframework/FileUtils.hh>
-#include <main/EmuMenuViews.hh>
-
-static SystemMenuView mMenu(mainWin.win);
-
-void initMainMenu(Base::Window &win)
-{
-	mMenu.setWindow(&win);
-	mMenu.init();
-}
-
-View &mainMenu()
-{
-	return mMenu;
-}
-
-View *makeOptionCategoryMenu(Base::Window &win, uint idx)
-{
-	auto oCategoryMenu = new SystemOptionView{win};
-	oCategoryMenu->init(idx);
-	return oCategoryMenu;
-}
+#include <imagine/config/version.h>
 
 const char *appViewTitle()
 {

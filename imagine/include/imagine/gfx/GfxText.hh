@@ -54,34 +54,12 @@ public:
 	LineInfo *lineInfo{};
 
 	constexpr Text() {}
-	constexpr Text(const char *str): str(str) {}
-
-	void init(const char *str)
-	{
-		setString(str);
-	}
-
-	void init(const char *str, ResourceFace *face)
-	{
-		setString(str);
-		setFace(face);
-	}
-
-	void init(ResourceFace *face)
-	{
-		setFace(face);
-	}
-
-	void initCompiled(const char *str, ResourceFace *face, const ProjectionPlane &projP)
-	{
-		init(str, face);
-		compile(projP);
-	}
-	void deinit();
+	constexpr Text(const char *str): str{str} {}
+	constexpr Text(const char *str, ResourceFace *face): face{face}, str{str} {}
+	~Text();
 	void setString(const char *str);
 	void setFace(ResourceFace *face);
 	void compile(const ProjectionPlane &projP);
-
 	void draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const;
 	void draw(GP p, _2DOrigin o, const ProjectionPlane &projP) const
 	{

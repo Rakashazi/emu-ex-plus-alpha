@@ -24,6 +24,12 @@
 
 using namespace IG;
 
+static constexpr bool USE_MOBILE_ORIENTATION_NAMES = Config::envIsAndroid || Config::envIsIOS;
+static const char *landscapeName = USE_MOBILE_ORIENTATION_NAMES ? "Landscape" : "90 Left";
+static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2" : "90 Right";
+static const char *portraitName = USE_MOBILE_ORIENTATION_NAMES ? "Portrait" : "Standard";
+static const char *portrait2Name = USE_MOBILE_ORIENTATION_NAMES ? "Portrait 2" : "Upside Down";
+
 static FS::PathString savePathStrToDescStr(char *savePathStr)
 {
 	FS::PathString desc{};
@@ -43,33 +49,33 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 	return desc;
 }
 
-void BiosSelectMenu::onSelectFile(const char* name, Input::Event e)
-{
-	logMsg("size %d", (int)sizeof(*biosPathStr));
-	string_printf(*biosPathStr, "%s/%s", FS::current_path().data(), name);
-	if(onBiosChangeD) onBiosChangeD();
-	workDirStack.pop();
-	viewStack.popAndShow();
-}
-
-void BiosSelectMenu::init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter)
-{
-	this->biosPathStr = biosPathStr;
-	this->fsFilter = fsFilter;
-	init();
-}
-
-void BiosSelectMenu::init()
-{
-	assert(biosPathStr);
-	choiceEntry[0].init("Select File"); choiceEntryItem[0] = &choiceEntry[0];
-	choiceEntry[0].onSelect() =
+BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
+	EmuSystem::NameFilterFunc fsFilter_, Base::Window &win):
+	TableView
+	{
+		name,
+		win,
+		[this](const TableView &)
+		{
+			return 2;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return selectFile;
+				default: return unset;
+			}
+		}
+	},
+	selectFile
+	{
+		"Select File",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			workDirStack.push();
 			chdirFromFilePath(biosPathStr->data());
-			auto &fPicker = *new EmuFilePicker{window()};
-			fPicker.init(false, fsFilter);
+			auto &fPicker = *new EmuFilePicker{window(), false, fsFilter};
 			fPicker.setOnSelectFile(
 				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
@@ -83,362 +89,192 @@ void BiosSelectMenu::init()
 					workDirStack.pop();
 				});
 			modalViewController.pushAndShow(fPicker, e);
-		};
-	choiceEntry[1].init("Unset"); choiceEntryItem[1] = &choiceEntry[1];
-	choiceEntry[1].onSelect() =
-		[this](TextMenuItem &, View &, Input::Event e)
+		}
+	},
+	unset
+	{
+		"Unset",
+		[this]()
 		{
 			strcpy(biosPathStr->data(), "");
 			auto onBiosChange = onBiosChangeD;
 			popAndShow();
 			onBiosChange.callSafe();
-		};
-	TableView::init(choiceEntryItem, IG::size(choiceEntry));
+		}
+	},
+	onBiosChangeD{onBiosChange_},
+	biosPathStr{biosPathStr_},
+	fsFilter{fsFilter_}
+{
+	assert(biosPathStr);
 }
 
-void OptionView::autoSaveStateInit()
+void BiosSelectMenu::onSelectFile(const char* name, Input::Event e)
 {
-	static const char *str[] =
-	{
-		"Off", "Game Exit",
-		"15mins", "30mins"
-	};
-	int val = 0;
-	switch(optionAutoSaveState.val)
-	{
-		bcase 1: val = 1;
-		bcase 15: val = 2;
-		bcase 30: val = 3;
-	}
-	autoSaveState.init(str, val, IG::size(str));
+	logMsg("size %d", (int)sizeof(*biosPathStr));
+	string_printf(*biosPathStr, "%s/%s", FS::current_path().data(), name);
+	if(onBiosChangeD) onBiosChangeD();
+	workDirStack.pop();
+	viewStack.popAndShow();
 }
 
-void OptionView::fastForwardSpeedinit()
+static void setAutoSaveState(uint val)
 {
-	static const char *str[] =
-	{
-		"3x", "4x", "5x",
-		"6x", "7x", "8x"
-	};
-	int val = 0;
-	if(optionFastForwardSpeed >= MIN_FAST_FORWARD_SPEED && optionFastForwardSpeed <= 7)
-	{
-		val = optionFastForwardSpeed - MIN_FAST_FORWARD_SPEED;
-	}
-	fastForwardSpeed.init(str, val, IG::size(str));
-}
-
-
-static void uiVisibiltyInit(const Byte1Option &option, MultiChoiceSelectMenuItem &menuItem)
-{
-	static const char *str[] =
-	{
-		"Off", "In Game", "On",
-	};
-	int val = 2;
-	if(option < 2)
-		val = option;
-	menuItem.init(str, val, IG::size(str));
+	optionAutoSaveState = val;
+	logMsg("set auto-savestate %d", optionAutoSaveState.val);
 }
 
 #ifdef __ANDROID__
-void OptionView::androidTextureStorageInit()
+static const char *androidTextureStorageModeStr(uint8 mode)
 {
-	static const char *str[]
+	switch(mode)
 	{
-		"Auto",
-		"Standard",
-		"Graphic Buffer",
-		"Surface Texture"
-	};
-	int val = optionAndroidTextureStorage;
-	androidTextureStorage.init(str, val, Base::androidSDK() >= 14 ? IG::size(str) : IG::size(str)-1);
+		case Gfx::Texture::ANDROID_GRAPHIC_BUFFER: return "Graphic Buffer";
+		case Gfx::Texture::ANDROID_SURFACE_TEXTURE: return "Surface Texture";
+		default: return "Standard";
+	}
+}
+
+static bool setAndroidTextureStorage(uint8 mode)
+{
+	using namespace Gfx;
+	static auto resetVideo =
+		[]()
+		{
+			if(emuVideo.vidImg)
+			{
+				// texture may switch to external format so
+				// force effect shaders to re-compile
+				emuVideoLayer.setEffect(0);
+				emuVideo.reinitImage();
+				emuVideo.clearImage();
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				emuVideoLayer.setEffect(optionImgEffect);
+				#endif
+			}
+		};
+	if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(mode)))
+	{
+		return false;
+	}
+	resetVideo();
+	optionAndroidTextureStorage = Texture::androidStorageImpl();
+	return true;
 }
 #endif
 
 #if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-void OptionView::frameIntervalInit()
+static void setFrameInterval(int interval)
 {
-	static const char *str[] =
-	{
-		"Full", "1/2", "1/3", "1/4"
-	};
-	int baseVal = 1;
-	int val = int(optionFrameInterval);
-	frameInterval.init(str, val, IG::size(str), baseVal);
+	optionFrameInterval = interval;
+	logMsg("set frame interval: %d", int(optionFrameInterval));
 }
 #endif
 
-void OptionView::audioRateInit()
+static void setAudioRate(uint rate)
 {
-	static const char *str[] =
-	{
-		"22KHz", "32KHz", "44KHz", "48KHz"
-	};
-	int rates = 3;
-	if(AudioManager::nativeFormat().rate >= 48000)
-	{
-		logMsg("supports 48KHz");
-		rates++;
-	}
-
-	int val = 2; // default to 44KHz
-	switch(optionSoundRate)
-	{
-		bcase 22050: val = 0;
-		bcase 32000: val = 1;
-		bcase 48000: val = 3;
-	}
-
-	audioRate.init(str, val, rates);
+	optionSoundRate = rate;
+	EmuSystem::configAudioPlayback();
 }
 
-enum { O_AUTO = -1, O_90, O_270, O_0, O_180 };
-
-int convertOrientationMenuValueToOption(int val)
+static void setMenuOrientation(uint val)
 {
-	if(val == O_AUTO)
-		return Base::VIEW_ROTATE_AUTO;
-	else if(val == O_90)
-		return Base::VIEW_ROTATE_90;
-	else if(val == O_270)
-		return Base::VIEW_ROTATE_270;
-	else if(val == O_0)
-		return Base::VIEW_ROTATE_0;
-	else if(val == O_180)
-		return Base::VIEW_ROTATE_180;
-	bug_exit("invalid value %d", val);
-	return 0;
+	optionMenuOrientation = val;
+	Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
+	logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 }
 
-static void orientationInit(MultiChoiceSelectMenuItem &item, uint option)
+static void setGameOrientation(uint val)
 {
-	static const char *str[] =
-	{
-		#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || CONFIG_ENV_WEBOS_OS >= 3
-		"Auto",
-		#endif
-
-		#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || (defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2)
-		"Landscape", "Landscape 2", "Portrait", "Portrait 2"
-		#else
-		"90 Left", "90 Right", "Standard", "Upside Down"
-		#endif
-	};
-	int baseVal = 0;
-	#if defined(CONFIG_BASE_IOS) || defined(CONFIG_BASE_ANDROID) || CONFIG_ENV_WEBOS_OS >= 3
-	baseVal = -1;
-	#endif
-	uint initVal = O_AUTO;
-	if(option == Base::VIEW_ROTATE_90)
-		initVal = O_90;
-	else if(option == Base::VIEW_ROTATE_270)
-		initVal = O_270;
-	else if(option == Base::VIEW_ROTATE_0)
-		initVal = O_0;
-	else if(option == Base::VIEW_ROTATE_180)
-		initVal = O_180;
-	item.init(str, initVal, IG::size(str), baseVal);
-}
-
-void OptionView::gameOrientationInit()
-{
-	orientationInit(gameOrientation, optionGameOrientation);
-}
-
-void OptionView::menuOrientationInit()
-{
-	orientationInit(menuOrientation, optionMenuOrientation);
-}
-
-void OptionView::aspectRatioInit()
-{
-	assert(IG::size(aspectRatioStr) >= EmuSystem::aspectRatioInfos);
-	int val = 0;
-	iterateTimes(EmuSystem::aspectRatioInfos, i)
-	{
-		aspectRatioStr[i] = EmuSystem::aspectRatioInfo[i].name;
-		if(optionAspectRatio == EmuSystem::aspectRatioInfo[i].aspect)
-		{
-			val = i;
-		}
-	}
-	aspectRatio.init(aspectRatioStr, val, EmuSystem::aspectRatioInfos);
+	optionGameOrientation = val;
+	logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
 }
 
 #ifdef CONFIG_AUDIO_LATENCY_HINT
-void OptionView::soundBuffersInit()
+static void setSoundBuffers(int val)
 {
-	static const char *str2[] = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
-	static const char *str3[] = { "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" };
-	static_assert(IG::size(str2) == 12 - (OPTION_SOUND_BUFFERS_MIN-1) || IG::size(str3) == 12 - (OPTION_SOUND_BUFFERS_MIN-1), "incorrect sound buffers string array");
-	soundBuffers.init((OPTION_SOUND_BUFFERS_MIN == 2) ? str2 : str3, std::max((int)optionSoundBuffers - (int)OPTION_SOUND_BUFFERS_MIN, 0), (OPTION_SOUND_BUFFERS_MIN == 2) ? IG::size(str2) : IG::size(str3));
+	if(Audio::isOpen())
+		Audio::closePcm();
+	optionSoundBuffers = val;
 }
 #endif
 
-void OptionView::zoomInit()
+static void setZoom(int val)
 {
-	static const char *str[] = { "100%", "90%", "80%", "70%", "Integer-only", "Integer-only (Height)" };
-	int val = 0;
-	switch(optionImageZoom.val)
-	{
-		bcase 100: val = 0;
-		bcase 90: val = 1;
-		bcase 80: val = 2;
-		bcase 70: val = 3;
-		bcase optionImageZoomIntegerOnly: val = 4;
-		bcase optionImageZoomIntegerOnlyY: val = 5;
-	}
-	zoom.init(str, val, IG::size(str));
+	optionImageZoom = val;
+	logMsg("set image zoom: %d", int(optionImageZoom));
+	placeEmuViews();
+	emuWin->win.postDraw();
 }
 
-void OptionView::viewportZoomInit()
+static void setViewportZoom(int val)
 {
-	static const char *str[] = { "100%", "95%", "90%", "85%" };
-	int val = 0;
-	switch(optionViewportZoom.val)
-	{
-		bcase 100: val = 0;
-		bcase 95: val = 1;
-		bcase 90: val = 2;
-		bcase 85: val = 3;
-	}
-	viewportZoom.init(str, val, IG::size(str));
+	optionViewportZoom = val;
+	logMsg("set viewport zoom: %d", int(optionViewportZoom));
+	startViewportAnimation(mainWin);
+	mainWin.win.postDraw();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void OptionView::imgEffectInit()
+static void setImgEffect(uint val)
 {
-	static const char *str[] {"Off", "hq2x", "Scale2x", "Prescale 2x"};
-	uint init = 0;
-	switch(optionImgEffect)
+	optionImgEffect = val;
+	if(emuVideo.vidImg)
 	{
-		bcase VideoImageEffect::HQ2X: init = 1;
-		bcase VideoImageEffect::SCALE2X: init = 2;
-		bcase VideoImageEffect::PRESCALE2X: init = 3;
+		emuVideoLayer.setEffect(val);
+		emuWin->win.postDraw();
 	}
-	imgEffect.init(str, init, IG::size(str));
 }
 #endif
 
-void OptionView::overlayEffectInit()
+static void setOverlayEffect(uint val)
 {
-	static const char *str[] = { "Off", "Scanlines", "Scanlines 2x", "CRT Mask", "CRT", "CRT 2x" };
-	uint init = 0;
-	switch(optionOverlayEffect)
-	{
-		bcase VideoImageOverlay::SCANLINES: init = 1;
-		bcase VideoImageOverlay::SCANLINES_2: init = 2;
-		bcase VideoImageOverlay::CRT: init = 3;
-		bcase VideoImageOverlay::CRT_RGB: init = 4;
-		bcase VideoImageOverlay::CRT_RGB_2: init = 5;
-	}
-	overlayEffect.init(str, init, IG::size(str));
+	optionOverlayEffect = val;
+	emuVideoLayer.vidImgOverlay.setEffect(val);
+	emuVideoLayer.placeOverlay();
+	emuWin->win.postDraw();
 }
 
-void OptionView::overlayEffectLevelInit()
+static void setOverlayEffectLevel(uint val)
 {
-	static const char *str[] = { "10%", "25%", "33%", "50%", "66%", "75%", "100%" };
-	uint init = 0;
-	switch(optionOverlayEffectLevel)
-	{
-		bcase 25: init = 1;
-		bcase 33: init = 2;
-		bcase 50: init = 3;
-		bcase 66: init = 4;
-		bcase 75: init = 5;
-		bcase 100: init = 6;
-	}
-	overlayEffectLevel.init(str, init, IG::size(str));
+	optionOverlayEffectLevel = val;
+	emuVideoLayer.vidImgOverlay.intensity = val/100.;
+	emuWin->win.postDraw();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void OptionView::imgEffectPixelFormatInit()
+static void setImgEffectPixelFormat(PixelFormatID format)
 {
-	static const char *str[]
-	{
-		"Auto", "RGB 16", "RGB 24"
-	};
-	uint init = 0;
-	switch(optionImageEffectPixelFormat.val)
-	{
-		bcase PIXEL_RGB565: init = 1;
-		bcase PIXEL_RGBA8888: init = 2;
-	}
-	imgEffectPixelFormat.init(str, init, IG::size(str));
+	if(format == PIXEL_NONE)
+		popup.printf(3, false, "Set RGB565 mode via Auto");
+	optionImageEffectPixelFormat = format;
+	emuVideoLayer.vidImgEffect.setBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
+	emuWin->win.postDraw();
 }
 #endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-void OptionView::windowPixelFormatInit()
+static void setWindowPixelFormat(PixelFormatID format)
 {
-	static const char *str[]
+	if(format == PIXEL_NONE)
 	{
-		"Auto", "RGB 16", "RGB 24"
-	};
-	uint init = 0;
-	switch(optionWindowPixelFormat.val)
-	{
-		bcase PIXEL_RGB565: init = 1;
-		bcase PIXEL_RGB888: init = 2;
+		popup.printf(3, false, "Set %s mode via Auto, restart app for option to take effect",
+			Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGB888");
 	}
-	windowPixelFormat.init(str, init, IG::size(str));
+	else
+	{
+		popup.post("Restart app for option to take effect");
+	}
+	optionWindowPixelFormat = format;
 }
 #endif
 
-void OptionView::fontSizeInit()
+static void setFontSize(uint val)
 {
-	static const char *str[] =
-	{
-			"2", "2.5",
-			"3", "3.5",
-			"4", "4.5",
-			"5", "5.5",
-			"6", "6.5",
-			"7", "7.5",
-			"8", "8.5",
-			"9", "9.5",
-			"10", "10.50",
-	};
-	uint init = 0;
-	switch(optionFontSize)
-	{
-		bcase 2500: init = 1;
-		bcase 3000: init = 2;
-		bcase 3500: init = 3;
-		bcase 4000: init = 4;
-		bcase 4500: init = 5;
-		bcase 5000: init = 6;
-		bcase 5500: init = 7;
-		bcase 6000: init = 8;
-		bcase 6500: init = 9;
-		bcase 7000: init = 10;
-		bcase 7500: init = 11;
-		bcase 8000: init = 12;
-		bcase 8500: init = 13;
-		bcase 9000: init = 14;
-		bcase 9500: init = 15;
-		bcase 10000: init = 16;
-		bcase 10500: init = 17;
-	}
-	fontSize.init(str, init, IG::size(str));
+	optionFontSize = val;
+	setupFont();
+	placeElements();
 }
-
-#if defined CONFIG_BASE_ANDROID
-void OptionView::processPriorityInit()
-{
-	static const char *str[] = { "Normal", "High", "Very High" };
-	auto prio = Base::processPriority();
-	int init = 0;
-	if(optionProcessPriority.val == 0)
-		init = 0;
-	if(optionProcessPriority.val == -6)
-		init = 1;
-	if(optionProcessPriority.val == -14)
-		init = 2;
-	processPriority.init(str, init, IG::size(str));
-}
-#endif
 
 template <size_t S>
 static void printPathMenuEntryStr(char (&str)[S])
@@ -463,15 +299,13 @@ public:
 
 	void init(Input::Event e)
 	{
-		auto &multiChoiceView = *new MultiChoiceView{"Save Path", mainWin.win};
-		multiChoiceView.init(3);
-		multiChoiceView.setItem(0, "Set Custom Path",
+		auto &multiChoiceView = *new TextTableView{"Save Path", mainWin.win, 3};
+		multiChoiceView.appendItem("Set Custom Path",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
 				workDirStack.push();
 				FS::current_path(optionSavePath);
-				auto &fPicker = *new EmuFilePicker{mainWin.win};
-				fPicker.init(true, {});
+				auto &fPicker = *new EmuFilePicker{mainWin.win, true, {}};
 				fPicker.setOnClose(
 					[this](FSPicker &picker, Input::Event e)
 					{
@@ -481,16 +315,16 @@ public:
 					});
 				modalViewController.pushAndShow(fPicker, e);
 			});
-		multiChoiceView.setItem(1, "Same as Game",
-			[this](TextMenuItem &, View &, Input::Event e)
+		multiChoiceView.appendItem("Same as Game",
+			[this]()
 			{
 				auto onPathChange = this->onPathChange;
 				viewStack.popAndShow();
 				strcpy(optionSavePath, "");
 				if(onPathChange) onPathChange("");
 			});
-		multiChoiceView.setItem(2, "Default",
-			[this](TextMenuItem &, View &, Input::Event e)
+		multiChoiceView.appendItem("Default",
+			[this]()
 			{
 				auto onPathChange = this->onPathChange;
 				viewStack.popAndShow();
@@ -517,6 +351,12 @@ public:
 	std::array<char, 32> fpsStr{};
 
 	DetectFrameRateView(Base::Window &win): View(win) {}
+
+	~DetectFrameRateView() override
+	{
+		emuWin->win.screen()->removeOnFrame(detectFrameRate);
+	}
+
 	IG::WindowRect &viewRect() override { return viewFrame; }
 
 	double totalFrameTimeSecs() const
@@ -533,7 +373,7 @@ public:
 	{
 		View::defaultFace->precacheAlphaNum();
 		View::defaultFace->precache(".");
-		fpsText.init(View::defaultFace);
+		fpsText = {nullptr, View::defaultFace};
 		fpsText.setString("Preparing to detect frame rate...");
 		detectFrameRate =
 			[this](Base::Screen::FrameParams params)
@@ -597,11 +437,6 @@ public:
 		emuWin->win.screen()->addOnFrame(detectFrameRate);
 	}
 
-	void deinit() override
-	{
-		emuWin->win.screen()->removeOnFrame(detectFrameRate);
-	}
-
 	void place() override
 	{
 		fpsText.compile(projP);
@@ -638,10 +473,9 @@ public:
 
 	void init(EmuSystem::VideoSystem vidSys, Input::Event e)
 	{
-		auto &multiChoiceView = *new MultiChoiceView{"Frame Rate", mainWin.win};
 		const bool includeFrameRateDetection = !Config::envIsIOS;
-		multiChoiceView.init(includeFrameRateDetection ? 4 : 3);
-		multiChoiceView.setItem(0, "Set with screen's reported rate",
+		auto &multiChoiceView = *new TextTableView{"Frame Rate", mainWin.win, includeFrameRateDetection ? 4 : 3};
+		multiChoiceView.appendItem("Set with screen's reported rate",
 			[this](TextMenuItem &, View &view, Input::Event e)
 			{
 				if(!emuWin->win.screen()->frameRateIsReliable())
@@ -662,13 +496,13 @@ public:
 				onFrameTimeChange.callSafe(0);
 				view.popAndShow();
 			});
-		multiChoiceView.setItem(1, "Set default rate",
+		multiChoiceView.appendItem("Set default rate",
 			[this, vidSys](TextMenuItem &, View &view, Input::Event e)
 			{
 				onFrameTimeChange.callSafe(EmuSystem::defaultFrameTime(vidSys));
 				view.popAndShow();
 			});
-		multiChoiceView.setItem(2, "Set custom rate",
+		multiChoiceView.appendItem("Set custom rate",
 			[this](TextMenuItem &, View &view, Input::Event e)
 			{
 				auto &textInputView = *new CollectTextInputView{view.window()};
@@ -702,7 +536,7 @@ public:
 			});
 		if(includeFrameRateDetection)
 		{
-			multiChoiceView.setItem(3, "Detect screen's rate and set",
+			multiChoiceView.appendItem("Detect screen's rate and set",
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					auto &frView = *new DetectFrameRateView{view.window()};
@@ -737,16 +571,14 @@ void FirmwarePathSelector::onClose(Input::Event e)
 
 void FirmwarePathSelector::init(const char *name, Input::Event e)
 {
-	auto &multiChoiceView = *new MultiChoiceView{name, mainWin.win};
-	multiChoiceView.init(2);
-	multiChoiceView.setItem(0, "Set Custom Path",
+	auto &multiChoiceView = *new TextTableView{name, mainWin.win, 2};
+	multiChoiceView.appendItem("Set Custom Path",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			viewStack.popAndShow();
 			workDirStack.push();
 			FS::current_path(optionFirmwarePath);
-			auto &fPicker = *new EmuFilePicker{mainWin.win};
-			fPicker.init(true, {});
+			auto &fPicker = *new EmuFilePicker{mainWin.win, true, {}};
 			fPicker.setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{
@@ -755,8 +587,8 @@ void FirmwarePathSelector::init(const char *name, Input::Event e)
 				});
 			modalViewController.pushAndShow(fPicker, e);
 		});
-	multiChoiceView.setItem(1, "Default",
-		[this](TextMenuItem &, View &, Input::Event e)
+	multiChoiceView.appendItem("Default",
+		[this]()
 		{
 			viewStack.popAndShow();
 			strcpy(optionFirmwarePath, "");
@@ -779,284 +611,255 @@ static void printFrameRatePALStr(char (&str)[S])
 		1. / EmuSystem::frameTime(EmuSystem::VIDSYS_PAL));
 }
 
-void OptionView::loadVideoItems(MenuItem *item[], uint &items)
+void VideoOptionView::loadStockItems()
 {
-	name_ = "Video Options";
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	frameIntervalInit(); item[items++] = &frameInterval;
+	item.emplace_back(&frameInterval);
 	#endif
-	dropLateFrames.init(optionSkipLateFrames); item[items++] = &dropLateFrames;
+	item.emplace_back(&dropLateFrames);
 	if(!optionFrameRate.isConst)
 	{
 		printFrameRateStr(frameRateStr);
-		frameRate.init(frameRateStr, true); item[items++] = &frameRate;
+		item.emplace_back(&frameRate);
 	}
 	if(!optionFrameRatePAL.isConst)
 	{
 		printFrameRatePALStr(frameRatePALStr);
-		frameRatePAL.init(frameRatePALStr, true); item[items++] = &frameRatePAL;
+		item.emplace_back(&frameRatePAL);
 	}
-	imgFilter.init(optionImgFilter); item[items++] = &imgFilter;
+	item.emplace_back(&imgFilter);
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	imgEffectInit(); item[items++] = &imgEffect;
+	item.emplace_back(&imgEffect);
 	#endif
-	overlayEffectInit(); item[items++] = &overlayEffect;
-	overlayEffectLevelInit(); item[items++] = &overlayEffectLevel;
-	zoomInit(); item[items++] = &zoom;
-	viewportZoomInit(); item[items++] = &viewportZoom;
-	aspectRatioInit(); item[items++] = &aspectRatio;
+	item.emplace_back(&overlayEffect);
+	item.emplace_back(&overlayEffectLevel);
+	item.emplace_back(&zoom);
+	item.emplace_back(&viewportZoom);
+	item.emplace_back(&aspectRatio);
 	#ifdef CONFIG_BASE_ANDROID
 	if(!Config::MACHINE_IS_OUYA)
 	{
-		androidTextureStorageInit(); item[items++] = &androidTextureStorage;
+		item.emplace_back(&androidTextureStorage);
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	imgEffectPixelFormatInit(); item[items++] = &imgEffectPixelFormat;
+	item.emplace_back(&imgEffectPixelFormat);
 	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	windowPixelFormatInit(); item[items++] = &windowPixelFormat;
+	item.emplace_back(&windowPixelFormat);
 	#endif
 	if(!optionDitherImage.isConst)
 	{
-		dither.init(optionDitherImage); item[items++] = &dither;
+		item.emplace_back(&dither);
 	}
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
-	secondDisplay.init(false); item[items++] = &secondDisplay;
+	item.emplace_back(&secondDisplay);
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 	if(!optionShowOnSecondScreen.isConst)
 	{
-		showOnSecondScreen.init(optionShowOnSecondScreen); item[items++] = &showOnSecondScreen;
+		item.emplace_back(&showOnSecondScreen);
 	}
 	#endif
 }
 
-void OptionView::loadAudioItems(MenuItem *item[], uint &items)
+void AudioOptionView::loadStockItems()
 {
-	name_ = "Audio Options";
-	snd.init(optionSound); item[items++] = &snd;
-	if(!optionSoundRate.isConst) { audioRateInit(); item[items++] = &audioRate; }
+	item.emplace_back(&snd);
+	if(!optionSoundRate.isConst) { item.emplace_back(&audioRate); }
 	#ifdef CONFIG_AUDIO_LATENCY_HINT
-	soundBuffersInit(); item[items++] = &soundBuffers;
+	item.emplace_back(&soundBuffers);
 	#endif
-#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-	sndUnderrunCheck.init(optionSoundUnderrunCheck); item[items++] = &sndUnderrunCheck;
+	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
+	item.emplace_back(&sndUnderrunCheck);
 	#endif
 	#ifdef CONFIG_AUDIO_SOLO_MIX
-	audioSoloMix.init(!optionAudioSoloMix); item[items++] = &audioSoloMix;
+	item.emplace_back(&audioSoloMix);
 	#endif
 }
 
-void OptionView::loadInputItems(MenuItem *item[], uint &items)
+void SystemOptionView::loadStockItems()
 {
-	name_ = "Input Options";
-}
-
-void OptionView::loadSystemItems(MenuItem *item[], uint &items)
-{
-	name_ = "System Options";
-	autoSaveStateInit(); item[items++] = &autoSaveState;
-	confirmAutoLoadState.init(optionConfirmAutoLoadState); item[items++] = &confirmAutoLoadState;
-	confirmOverwriteState.init(optionConfirmOverwriteState); item[items++] = &confirmOverwriteState;
+	item.emplace_back(&autoSaveState);
+	item.emplace_back(&confirmAutoLoadState);
+	item.emplace_back(&confirmOverwriteState);
 	printPathMenuEntryStr(savePathStr);
-	savePath.init(savePathStr, true); item[items++] = &savePath;
-	checkSavePathWriteAccess.init(optionCheckSavePathWriteAccess); item[items++] = &checkSavePathWriteAccess;
-	fastForwardSpeedinit(); item[items++] = &fastForwardSpeed;
+	item.emplace_back(&savePath);
+	item.emplace_back(&checkSavePathWriteAccess);
+	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
-	processPriorityInit(); item[items++] = &processPriority;
-	manageCPUFreq.init(optionManageCPUFreq); item[items++] = &manageCPUFreq;
+	item.emplace_back(&processPriority);
+	item.emplace_back(&manageCPUFreq);
 	#endif
 }
 
-void OptionView::loadGUIItems(MenuItem *item[], uint &items)
+void GUIOptionView::loadStockItems()
 {
-	name_ = "GUI Options";
 	if(!optionPauseUnfocused.isConst)
 	{
-		pauseUnfocused.init(optionPauseUnfocused); item[items++] = &pauseUnfocused;
+		item.emplace_back(&pauseUnfocused);
 	}
 	if(!optionNotificationIcon.isConst)
 	{
-		notificationIcon.init(optionNotificationIcon); item[items++] = &notificationIcon;
+		item.emplace_back(&notificationIcon);
 	}
 	if(!optionTitleBar.isConst)
 	{
-		navView.init(optionTitleBar); item[items++] = &navView;
+		item.emplace_back(&navView);
 	}
 	if(!View::needsBackControlIsConst)
 	{
-		backNav.init(View::needsBackControl); item[items++] = &backNav;
+		item.emplace_back(&backNav);
 	}
-	rememberLastMenu.init(optionRememberLastMenu); item[items++] = &rememberLastMenu;
+	item.emplace_back(&rememberLastMenu);
 	if(!optionFontSize.isConst)
 	{
-		fontSizeInit(); item[items++] = &fontSize;
+		item.emplace_back(&fontSize);
 	}
 	if(!optionIdleDisplayPowerSave.isConst)
 	{
-		idleDisplayPowerSave.init(optionIdleDisplayPowerSave); item[items++] = &idleDisplayPowerSave;
+		item.emplace_back(&idleDisplayPowerSave);
 	}
 	if(!optionLowProfileOSNav.isConst)
 	{
-		uiVisibiltyInit(optionLowProfileOSNav, lowProfileOSNav);
-		item[items++] = &lowProfileOSNav;
+		item.emplace_back(&lowProfileOSNav);
 	}
 	if(!optionHideOSNav.isConst)
 	{
-		uiVisibiltyInit(optionHideOSNav, hideOSNav);
-		item[items++] = &hideOSNav;
+		item.emplace_back(&hideOSNav);
 	}
 	if(!optionHideStatusBar.isConst)
 	{
-		uiVisibiltyInit(optionHideStatusBar, statusBar); item[items++] = &statusBar;
+		item.emplace_back(&statusBar);
 	}
 	if(EmuSystem::hasBundledGames)
 	{
-		showBundledGames.init(optionShowBundledGames); item[items++] = &showBundledGames;
+		item.emplace_back(&showBundledGames);
 	}
 	if(!optionGameOrientation.isConst)
 	{
-		orientationHeading.init(); item[items++] = &orientationHeading;
-		gameOrientationInit(); item[items++] = &gameOrientation;
-		menuOrientationInit(); item[items++] = &menuOrientation;
+		item.emplace_back(&orientationHeading);
+		item.emplace_back(&gameOrientation);
+		item.emplace_back(&menuOrientation);
 	}
 }
 
-void OptionView::init(uint idx)
-{
-	uint i = 0;
-	switch(idx)
-	{
-		bcase 0: loadVideoItems(item, i);
-		bcase 1: loadAudioItems(item, i);
-		bcase 2: loadInputItems(item, i);
-		bcase 3: loadSystemItems(item, i);
-		bcase 4: loadGUIItems(item, i);
-	}
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
-}
-
-OptionView::OptionView(Base::Window &win):
-	TableView{"Options", win},
-	// Video
+VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
+	TableView{"Video Options", win, item},
 	#ifdef __ANDROID__
+	androidTextureStorageItem
+	{
+		{
+			"Auto",
+			[this]()
+			{
+				setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_AUTO);
+			}
+		},
+		{
+			"Standard",
+			[this]()
+			{
+				setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_NONE);
+			}
+		},
+		{
+			"Graphic Buffer",
+			[this](TextMenuItem &, View &view, Input::Event)
+			{
+				static auto setAndroidTextureStorageGraphicBuffer =
+					[]()
+					{
+						if(!setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER))
+						{
+							popup.postError("Not supported on this GPU");
+							return false;
+						}
+						return true;
+					};
+				if(!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted())
+				{
+					auto &ynAlertView = *new YesNoAlertView{view.window(),
+						"Setting Graphic Buffer improves performance but may hang or crash "
+						"the app depending on your device or GPU"};
+					ynAlertView.setOnYes(
+						[this](TextMenuItem &, View &view, Input::Event e)
+						{
+							if(setAndroidTextureStorageGraphicBuffer())
+							{
+								androidTextureStorage.setSelected(2);
+								view.dismiss();
+								popAndShow();
+							}
+							else
+							{
+								view.dismiss();
+							}
+						});
+					modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
+					return false;
+				}
+				else
+				{
+					return setAndroidTextureStorageGraphicBuffer();
+				}
+			}
+		},
+		{
+			"Surface Texture",
+			[this]()
+			{
+				if(!setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE))
+				{
+					popup.postError("Not supported on this GPU");
+					return false;
+				}
+				return true;
+			}
+		}
+	},
 	androidTextureStorage
 	{
 		"GPU Copy Mode",
-		[this](MultiChoiceMenuItem &item, View &view, int val)
+		optionAndroidTextureStorage,
+		[](const MultiChoiceMenuItem &) -> int
 		{
-			using namespace Gfx;
-			static auto modeForMenuValue =
-				[](int val)
-				{
-					switch(val)
-					{
-						case 1: return OPTION_ANDROID_TEXTURE_STORAGE_NONE;
-						case 2: return OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER;
-						case 3: return OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
-					}
-					return OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-				};
-			static auto resetVideo =
-				[]()
-				{
-					if(emuVideo.vidImg)
-					{
-						// texture may switch to external format so
-						// force effect shaders to re-compile
-						emuVideoLayer.setEffect(0);
-						emuVideo.reinitImage();
-						emuVideo.clearImage();
-						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-						emuVideoLayer.setEffect(optionImgEffect);
-						#endif
-					}
-				};
-			static auto setAutoMode =
-				[](MultiChoiceSelectMenuItem &item, View &view)
-				{
-					item.updateVal(0, view);
-					optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-					Gfx::Texture::setAndroidStorageImpl(Texture::ANDROID_AUTO);
-					resetVideo();
-				};
-			static auto setMode =
-				[](MultiChoiceSelectMenuItem &item, View &view)
-				{
-					uint8 newMode = modeForMenuValue(item.choice);
-					if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(newMode)))
-					{
-						popup.postError("Not supported on this GPU, using Auto");
-						setAutoMode(item, view);
-					}
-					else
-					{
-						resetVideo();
-						optionAndroidTextureStorage = newMode;
-						if(newMode == OPTION_ANDROID_TEXTURE_STORAGE_AUTO)
-						{
-							const char *modeStr = "Standard";
-							switch(Texture::androidStorageImpl())
-							{
-								bcase Texture::ANDROID_GRAPHIC_BUFFER: modeStr = "Graphic Buffer";
-								bcase Texture::ANDROID_SURFACE_TEXTURE: modeStr = "Surface Texture";
-								bdefault: break;
-							}
-							popup.printf(3, false, "Set %s mode via Auto", modeStr);
-						}
-					}
-				};
-			uint8 newMode = modeForMenuValue(val);
-			if(newMode == OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER &&
-				!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted())
-			{
-				auto &ynAlertView = *new YesNoAlertView{view.window(),
-					"Graphic Buffer improves performance but may hang or crash "
-					"the app depending on your device or GPU. Really use this option?"};
-				ynAlertView.onYes() =
-					[this](Input::Event e)
-					{
-						setMode(androidTextureStorage, *this);
-					};
-				ynAlertView.onNo() =
-					[this](Input::Event e)
-					{
-						setAutoMode(androidTextureStorage, *this);
-					};
-				modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
-			}
-			else
-			{
-				setMode(androidTextureStorage, *this);
-			}
+			// TODO: init in lambda capture
+			return Base::androidSDK() >= 14 ? 4u : 3u;
+		},
+		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		{
+			return androidTextureStorageItem[idx];
 		}
 	},
 	#endif
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	frameIntervalItem
+	{
+		{"Full", [this]() { setFrameInterval(1); }},
+		{"1/2", [this]() { setFrameInterval(2); }},
+		{"1/3", [this]() { setFrameInterval(3); }},
+		{"1/4", [this]() { setFrameInterval(4); }},
+	},
 	frameInterval
 	{
 		"Target Frame Rate",
-		[](MultiChoiceMenuItem &, View &, int val)
-		{
-			optionFrameInterval.val = val;
-			logMsg("set frame interval: %d", int(optionFrameInterval));
-		}
+		(uint)optionFrameInterval - 1u,
+		frameIntervalItem
 	},
 	#endif
 	dropLateFrames
 	{
 		"Skip Late Frames",
+		(bool)optionSkipLateFrames,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionSkipLateFrames.val = item.on;
+			optionSkipLateFrames.val = item.flipBoolValue(*this);
 		}
 	},
 	frameRate
 	{
-		"",
+		frameRateStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			frameRateSelectMenu.init(EmuSystem::VIDSYS_NATIVE_NTSC, e);
@@ -1083,7 +886,7 @@ OptionView::OptionView(Base::Window &win):
 	},
 	frameRatePAL
 	{
-		"",
+		frameRatePALStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			frameRateSelectMenu.init(EmuSystem::VIDSYS_PAL, e);
@@ -1111,306 +914,404 @@ OptionView::OptionView(Base::Window &win):
 	aspectRatio
 	{
 		"Aspect Ratio",
-		[this](MultiChoiceMenuItem &, View &, int val)
+		0,
+		[](const MultiChoiceMenuItem &) -> int
 		{
-			optionAspectRatio.val = EmuSystem::aspectRatioInfo[val].aspect;
-			logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
-			placeEmuViews();
-			emuWin->win.postDraw();
+			return EmuSystem::aspectRatioInfos;
+		},
+		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		{
+			return aspectRatioItem[idx];
 		}
+	},
+	zoomItem
+	{
+		{"100%", [this]() { setZoom(100); }},
+		{"90%", [this]() { setZoom(90); }},
+		{"80%", [this]() { setZoom(80); }},
+		{"70%", [this]() { setZoom(70); }},
+		{"Integer-only", [this]() { setZoom(optionImageZoomIntegerOnly); }},
+		{"Integer-only (Height)", [this]() { setZoom(optionImageZoomIntegerOnlyY); }},
 	},
 	zoom
 	{
 		"Zoom",
-		[this](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			switch(val)
+			switch(optionImageZoom.val)
 			{
-				bcase 0: optionImageZoom.val = 100;
-				bcase 1: optionImageZoom.val = 90;
-				bcase 2: optionImageZoom.val = 80;
-				bcase 3: optionImageZoom.val = 70;
-				bcase 4: optionImageZoom.val = optionImageZoomIntegerOnly;
-				bcase 5: optionImageZoom.val = optionImageZoomIntegerOnlyY;
+				default:
+				case 100: return 0;
+				case 90: return 1;
+				case 80: return 2;
+				case 70: return 3;
+				case optionImageZoomIntegerOnly: return 4;
+				case optionImageZoomIntegerOnlyY: return 5;
 			}
-			logMsg("set image zoom: %d", int(optionImageZoom));
-			placeEmuViews();
-			emuWin->win.postDraw();
-		}
+		}(),
+		zoomItem
+	},
+	viewportZoomItem
+	{
+		{"100%", [this]() { setViewportZoom(100); }},
+		{"95%", [this]() { setViewportZoom(95); }},
+		{"90%", [this]() { setViewportZoom(90); }},
+		{"85%", [this]() { setViewportZoom(85); }}
 	},
 	viewportZoom
 	{
 		"Screen Area",
-		[this](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			switch(val)
+			switch(optionViewportZoom.val)
 			{
-				bcase 0: optionViewportZoom.val = 100;
-				bcase 1: optionViewportZoom.val = 95;
-				bcase 2: optionViewportZoom.val = 90;
-				bcase 3: optionViewportZoom.val = 85;
+				default:
+				case 100: return 0;
+				case 95: return 1;
+				case 90: return 2;
+				case 85: return 3;
 			}
-			logMsg("set viewport zoom: %d", int(optionViewportZoom));
-			startViewportAnimation(mainWin);
-			window().postDraw();
-		}
+		}(),
+		viewportZoomItem
 	},
 	imgFilter
 	{
-		"Image Interpolation", "None", "Linear",
+		"Image Interpolation",
+		(bool)optionImgFilter,
+		"None", "Linear",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionImgFilter.val = item.on;
-			emuVideoLayer.setLinearFilter(item.on);
+			optionImgFilter.val = item.flipBoolValue(*this);
+			emuVideoLayer.setLinearFilter(optionImgFilter);
 			emuWin->win.postDraw();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	imgEffectItem
+	{
+		{"Off", [this]() { setImgEffect(0); }},
+		{"hq2x", [this]() { setImgEffect(VideoImageEffect::HQ2X); }},
+		{"Scale2x", [this]() { setImgEffect(VideoImageEffect::SCALE2X); }},
+		{"Prescale 2x", [this]() { setImgEffect(VideoImageEffect::PRESCALE2X); }}
+	},
 	imgEffect
 	{
 		"Image Effect",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			uint setVal = 0;
-			switch(val)
+			switch(optionImgEffect)
 			{
-				bcase 1: setVal = VideoImageEffect::HQ2X;
-				bcase 2: setVal = VideoImageEffect::SCALE2X;
-				bcase 3: setVal = VideoImageEffect::PRESCALE2X;
+				default: return 0;
+				case VideoImageEffect::HQ2X: return 1;
+				case VideoImageEffect::SCALE2X: return 2;
+				case VideoImageEffect::PRESCALE2X: return 3;
 			}
-			optionImgEffect.val = setVal;
-			if(emuVideo.vidImg)
-			{
-				emuVideoLayer.setEffect(setVal);
-				emuWin->win.postDraw();
-			}
-		}
+		}(),
+		imgEffectItem
 	},
 	#endif
+	overlayEffectItem
+	{
+		{"Off", [this]() { setOverlayEffect(0); }},
+		{"Scanlines", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES); }},
+		{"Scanlines 2x", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES_2); }},
+		{"CRT Mask", [this]() { setOverlayEffect(VideoImageOverlay::CRT); }},
+		{"CRT", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB); }},
+		{"CRT 2x", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB_2); }}
+	},
 	overlayEffect
 	{
 		"Overlay Effect",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			uint setVal = 0;
-			switch(val)
+			switch(optionOverlayEffect)
 			{
-				bcase 1: setVal = VideoImageOverlay::SCANLINES;
-				bcase 2: setVal = VideoImageOverlay::SCANLINES_2;
-				bcase 3: setVal = VideoImageOverlay::CRT;
-				bcase 4: setVal = VideoImageOverlay::CRT_RGB;
-				bcase 5: setVal = VideoImageOverlay::CRT_RGB_2;
+				default: return 0;
+				case VideoImageOverlay::SCANLINES: return 1;
+				case VideoImageOverlay::SCANLINES_2: return 2;
+				case VideoImageOverlay::CRT: return 3;
+				case VideoImageOverlay::CRT_RGB: return 4;
+				case VideoImageOverlay::CRT_RGB_2: return 5;
 			}
-			optionOverlayEffect.val = setVal;
-			emuVideoLayer.vidImgOverlay.setEffect(setVal);
-			emuVideoLayer.placeOverlay();
-			emuWin->win.postDraw();
-		}
+		}(),
+		overlayEffectItem
+	},
+	overlayEffectLevelItem
+	{
+		{"10%", [this]() { setOverlayEffectLevel(10); }},
+		{"25%", [this]() { setOverlayEffectLevel(25); }},
+		{"33%", [this]() { setOverlayEffectLevel(33); }},
+		{"50%", [this]() { setOverlayEffectLevel(50); }},
+		{"66%", [this]() { setOverlayEffectLevel(66); }},
+		{"75%", [this]() { setOverlayEffectLevel(75); }},
+		{"100%", [this]() { setOverlayEffectLevel(100); }}
 	},
 	overlayEffectLevel
 	{
 		"Overlay Effect Level",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			uint setVal = 10;
-			switch(val)
+			switch(optionOverlayEffectLevel)
 			{
-				bcase 1: setVal = 25;
-				bcase 2: setVal = 33;
-				bcase 3: setVal = 50;
-				bcase 4: setVal = 66;
-				bcase 5: setVal = 75;
-				bcase 6: setVal = 100;
+				default: return 0;
+				case 25: return 1;
+				case 33: return 2;
+				case 50: return 3;
+				case 66: return 4;
+				case 75: return 5;
+				case 100: return 6;
 			}
-			optionOverlayEffectLevel.val = setVal;
-			emuVideoLayer.vidImgOverlay.intensity = setVal/100.;
-			emuWin->win.postDraw();
-		}
+		}(),
+		overlayEffectLevelItem
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	imgEffectPixelFormatItem
+	{
+		{"Auto", [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
+		{"RGB 16", [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
+		{"RGB 24", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
+	},
 	imgEffectPixelFormat
 	{
 		"Effect Color Format",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			PixelFormatID format = PIXEL_NONE;
-			switch(val)
+			switch(optionImageEffectPixelFormat.val)
 			{
-				bcase 1: format = PIXEL_RGB565;
-				bcase 2: format = PIXEL_RGBA8888;
+				default: return 0;
+				case PIXEL_RGB565: return 1;
+				case PIXEL_RGBA8888: return 2;
 			}
-			if(format == PIXEL_NONE)
-				popup.printf(3, false, "Set RGB565 mode via Auto");
-			optionImageEffectPixelFormat.val = format;
-			emuVideoLayer.vidImgEffect.setBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
-			emuWin->win.postDraw();
-		}
+		}(),
+		imgEffectPixelFormatItem
 	},
 	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	windowPixelFormatItem
+	{
+		{"Auto", [this]() { setWindowPixelFormat(PIXEL_NONE); }},
+		{"RGB 16", [this]() { setWindowPixelFormat(PIXEL_RGB565); }},
+		{"RGB 24", [this]() { setWindowPixelFormat(PIXEL_RGB888); }},
+	},
 	windowPixelFormat
 	{
 		"Display Color Format",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			uint format = PIXEL_NONE;
-			switch(val)
+			switch(optionWindowPixelFormat.val)
 			{
-				bcase 1: format = PIXEL_RGB565;
-				bcase 2: format = PIXEL_RGB888;
+				default: return 0;
+				case PIXEL_RGB565: return 1;
+				case PIXEL_RGB888: return 2;
 			}
-			if(format == PIXEL_NONE)
-			{
-				popup.printf(3, false, "Set %s mode via Auto, restart app for option to take effect",
-					Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGB888");
-			}
-			else
-			{
-				popup.post("Restart app for option to take effect");
-			}
-			optionWindowPixelFormat.val = format;
-		}
+		}(),
+		windowPixelFormatItem
 	},
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	secondDisplay
 	{
 		"2nd Window (for testing only)",
+		false,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			setEmuViewOnExtraWindow(item.on);
+			setEmuViewOnExtraWindow(item.flipBoolValue(*this));
 		}
 	},
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 	showOnSecondScreen
 	{
-		"External Screen", "OS Managed", "Game Content",
+		"External Screen",
+		(bool)optionShowOnSecondScreen,
+		"OS Managed", "Game Content",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionShowOnSecondScreen = item.on;
+			optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(Base::Screen::screens() > 1)
-				setEmuViewOnExtraWindow(item.on);
+				setEmuViewOnExtraWindow(optionShowOnSecondScreen);
 		}
 	},
 	#endif
 	dither
 	{
 		"Dither Image",
+		(bool)optionDitherImage,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionDitherImage = item.on;
-			Gfx::setDither(item.on);
+			optionDitherImage = item.flipBoolValue(*this);
+			Gfx::setDither(optionDitherImage);
 		}
-	},
-	// Audio
+	}
+{
+	iterateTimes(EmuSystem::aspectRatioInfos, i)
+	{
+		aspectRatioItem[i] = {EmuSystem::aspectRatioInfo[i].name,
+			[this, i]()
+			{
+				optionAspectRatio.val = EmuSystem::aspectRatioInfo[i].aspect;
+				logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
+				placeEmuViews();
+				emuWin->win.postDraw();
+			}};
+		if(optionAspectRatio == EmuSystem::aspectRatioInfo[i].aspect)
+		{
+			aspectRatio.setSelected(i, *this);
+		}
+	}
+	if(!customMenu)
+	{
+		loadStockItems();
+	}
+}
+
+AudioOptionView::AudioOptionView(Base::Window &win, bool customMenu):
+	TableView{"Audio Options", win, item},
 	snd
 	{
 		"Sound",
+		(bool)optionSound,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionSound = item.on;
-			if(!item.on)
+			optionSound = item.flipBoolValue(*this);
+			if(!optionSound)
 				Audio::closePcm();
 		}
 	},
 	#ifdef CONFIG_AUDIO_LATENCY_HINT
+	soundBuffersItem
+	{
+		{"2", [this]() { setSoundBuffers(2); }},
+		{"3", [this]() { setSoundBuffers(3); }},
+		{"4", [this]() { setSoundBuffers(4); }},
+		{"5", [this]() { setSoundBuffers(5); }},
+		{"6", [this]() { setSoundBuffers(6); }},
+		{"7", [this]() { setSoundBuffers(7); }},
+		{"8", [this]() { setSoundBuffers(8); }},
+		{"9", [this]() { setSoundBuffers(9); }},
+		{"10", [this]() { setSoundBuffers(10); }},
+	},
 	soundBuffers
 	{
 		"Buffer Size In Frames",
-		[](MultiChoiceMenuItem &, View &, int val)
+		std::min((uint)optionSoundBuffers - (uint)OPTION_SOUND_BUFFERS_MIN, (uint)IG::size(soundBuffersItem) - 1u),
+		[this](const MultiChoiceMenuItem &) -> int
 		{
-			if(Audio::isOpen())
-				Audio::closePcm();
-			optionSoundBuffers = val+OPTION_SOUND_BUFFERS_MIN;
+			return IG::size(soundBuffersItem) - (OPTION_SOUND_BUFFERS_MIN - 2);
+		},
+		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		{
+			return soundBuffersItem[idx + (OPTION_SOUND_BUFFERS_MIN - 2)];
 		}
 	},
 	#endif
+	audioRateItem
+	{
+		{"22KHz", [this]() { setAudioRate(22050); }},
+		{"32KHz", [this]() { setAudioRate(32000); }},
+		{"44KHz", [this]() { setAudioRate(44100); }},
+		{"48KHz", [this]() { setAudioRate(48000); }}
+	},
 	audioRate
 	{
 		"Sound Rate",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			uint rate = 44100;
-			switch(val)
+			switch(optionSoundRate)
 			{
-				bcase 0: rate = 22050;
-				bcase 1: rate = 32000;
-				bcase 3: rate = 48000;
+				case 22050: return 0;
+				case 32000: return 1;
+				default:
+				case 44100: return 2;
+				case 48000: return 3;
 			}
-			if(rate != optionSoundRate)
-			{
-				optionSoundRate = rate;
-				EmuSystem::configAudioPlayback();
-			}
+		}(),
+		[this](const MultiChoiceMenuItem &) -> int
+		{
+			return AudioManager::nativeFormat().rate >= 48000 ? 4u : 3u;
+		},
+		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		{
+			return audioRateItem[idx];
 		}
-	},
+	}
 	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-	sndUnderrunCheck
+	,sndUnderrunCheck
 	{
 		"Strict Underrun Check",
+		(bool)optionSoundUnderrunCheck,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			if(Audio::isOpen())
 				Audio::closePcm();
-			item.toggle(*this);
-			optionSoundUnderrunCheck = item.on;
+			optionSoundUnderrunCheck = item.flipBoolValue(*this);
 		}
-	},
+	}
 	#endif
 	#ifdef CONFIG_AUDIO_SOLO_MIX
-	audioSoloMix
+	,audioSoloMix
 	{
 		"Mix With Other Apps",
+		!optionAudioSoloMix,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			item.toggle(*this);
 			optionAudioSoloMix = !item.on;
 		}
-	},
+	}
 	#endif
-	// System
+{
+	if(!customMenu)
+	{
+		loadStockItems();
+	}
+}
+
+SystemOptionView::SystemOptionView(Base::Window &win, bool customMenu):
+	TableView{"System Options", win, item},
+	autoSaveStateItem
+	{
+		{"Off", [this]() { setAutoSaveState(0); }},
+		{"Game Exit", [this]() { setAutoSaveState(1); }},
+		{"15mins", [this]() { setAutoSaveState(15); }},
+		{"30mins", [this]() { setAutoSaveState(30); }}
+	},
 	autoSaveState
 	{
 		"Auto-save State",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			switch(val)
+			switch(optionAutoSaveState.val)
 			{
-				bcase 0: optionAutoSaveState.val = 0;
-				bcase 1: optionAutoSaveState.val = 1;
-				bcase 2: optionAutoSaveState.val = 15;
-				bcase 3: optionAutoSaveState.val = 30;
+				default: return 0;
+				case 1: return 1;
+				case 15: return 2;
+				case 30: return 3;
 			}
-			logMsg("set auto-savestate %d", optionAutoSaveState.val);
-		}
+		}(),
+		autoSaveStateItem
 	},
 	confirmAutoLoadState
 	{
 		"Confirm Auto-load State",
+		(bool)optionConfirmAutoLoadState,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionConfirmAutoLoadState = item.on;
+			optionConfirmAutoLoadState = item.flipBoolValue(*this);
 		}
 	},
 	confirmOverwriteState
 	{
 		"Confirm Overwrite State",
+		(bool)optionConfirmOverwriteState,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionConfirmOverwriteState = item.on;
+			optionConfirmOverwriteState = item.flipBoolValue(*this);
 		}
 	},
 	savePath
 	{
-		"",
+		savePathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pathSelectMenu.init(e);
@@ -1433,42 +1334,84 @@ OptionView::OptionView(Base::Window &win):
 	checkSavePathWriteAccess
 	{
 		"Check Save Path Write Access",
+		(bool)optionCheckSavePathWriteAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionCheckSavePathWriteAccess = item.on;
+			optionCheckSavePathWriteAccess = item.flipBoolValue(*this);
 		}
+	},
+	fastForwardSpeedItem
+	{
+		{"3x", [this]() { optionFastForwardSpeed = 2; }},
+		{"4x", [this]() { optionFastForwardSpeed = 3; }},
+		{"5x", [this]() { optionFastForwardSpeed = 4; }},
+		{"6x", [this]() { optionFastForwardSpeed = 5; }},
+		{"7x", [this]() { optionFastForwardSpeed = 6; }},
+		{"8x", [this]() { optionFastForwardSpeed = 7; }},
 	},
 	fastForwardSpeed
 	{
 		"Fast Forward Speed",
-		[this](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			optionFastForwardSpeed = val + MIN_FAST_FORWARD_SPEED;
+			if(optionFastForwardSpeed >= MIN_FAST_FORWARD_SPEED && optionFastForwardSpeed <= 7)
+			{
+				return optionFastForwardSpeed - MIN_FAST_FORWARD_SPEED;
+			}
+			return 0;
+		}(),
+		fastForwardSpeedItem
+	}
+	#if defined __ANDROID__
+	,processPriorityItem
+	{
+		{
+			"Normal",
+			[this]()
+			{
+				optionProcessPriority = 0;
+				Base::setProcessPriority(optionProcessPriority);
+			}
+		},
+		{
+			"High",
+			[this]()
+			{
+				optionProcessPriority = -6;
+				Base::setProcessPriority(optionProcessPriority);
+			}
+		},
+		{
+			"Very High",
+			[this]()
+			{
+				optionProcessPriority = -14;
+				Base::setProcessPriority(optionProcessPriority);
+			}
 		}
 	},
-	#if defined __ANDROID__
 	processPriority
 	{
 		"Process Priority",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			if(val == 0)
-				optionProcessPriority.val = 0;
-			else if(val == 1)
-				optionProcessPriority.val = -6;
-			else if(val == 2)
-				optionProcessPriority.val = -14;
-			Base::setProcessPriority(optionProcessPriority);
-		}
+			switch(optionProcessPriority.val)
+			{
+				default: return 0;
+				case -6: return 1;
+				case -14: return 2;
+			}
+		}(),
+		processPriorityItem
 	},
 	manageCPUFreq
 	{
 		"Manage Cpufreq Governor (needs root)",
+		(bool)optionManageCPUFreq,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			cpuFreq.reset();
-			if(!item.on)
+			if(!item.boolValue())
 			{
 				cpuFreq = std::make_unique<RootCpufreqParamSetter>();
 				if(!(*cpuFreq))
@@ -1480,116 +1423,214 @@ OptionView::OptionView(Base::Window &win):
 				}
 				popup.post("Enabling this option can improve performance if the app has root permission");
 			}
-			item.toggle(*this);
-			optionManageCPUFreq = item.on;
+			optionManageCPUFreq = item.flipBoolValue(*this);
 		}
-	},
+	}
 	#endif
-	// GUI
+{
+	if(!customMenu)
+	{
+		loadStockItems();
+	}
+}
+
+GUIOptionView::GUIOptionView(Base::Window &win, bool customMenu):
+	TableView{"GUI Options", win, item},
 	pauseUnfocused
 	{
 		Config::envIsPS3 ? "Pause in XMB" : "Pause if unfocused",
+		(bool)optionPauseUnfocused,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionPauseUnfocused = item.on;
+			optionPauseUnfocused = item.flipBoolValue(*this);
 		}
+	},
+	fontSizeItem
+	{
+		{"2", [this](){ setFontSize(2000); }},
+		{"2.5", [this]() { setFontSize(2500); }},
+		{"3", [this]() { setFontSize(3000); }},
+		{"3.5", [this]() { setFontSize(3500); }},
+		{"4", [this]() { setFontSize(4000); }},
+		{"4.5", [this]() { setFontSize(4500); }},
+		{"5", [this]() { setFontSize(5000); }},
+		{"5.5", [this]() { setFontSize(5500); }},
+		{"6", [this]() { setFontSize(6000); }},
+		{"6.5", [this]() { setFontSize(6500); }},
+		{"7", [this]() { setFontSize(7000); }},
+		{"7.5", [this]() { setFontSize(7500); }},
+		{"8", [this]() { setFontSize(8000); }},
+		{"8.5", [this]() { setFontSize(8500); }},
+		{"9", [this]() { setFontSize(9000); }},
+		{"9.5", [this]() { setFontSize(9500); }},
+		{"10", [this]() { setFontSize(10000); }},
+		{"10.5", [this]() { setFontSize(10500); }},
 	},
 	fontSize
 	{
 		"Font Size",
-		[this](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			optionFontSize = 3000;
-			switch(val)
+			switch(optionFontSize)
 			{
-				bcase 0: optionFontSize = 2000;
-				bcase 1: optionFontSize = 2500;
-				// 2: 3000
-				bcase 3: optionFontSize = 3500;
-				bcase 4: optionFontSize = 4000;
-				bcase 5: optionFontSize = 4500;
-				bcase 6: optionFontSize = 5000;
-				bcase 7: optionFontSize = 5500;
-				bcase 8: optionFontSize = 6000;
-				bcase 9: optionFontSize = 6500;
-				bcase 10: optionFontSize = 7000;
-				bcase 11: optionFontSize = 7500;
-				bcase 12: optionFontSize = 8000;
-				bcase 13: optionFontSize = 8500;
-				bcase 14: optionFontSize = 9000;
-				bcase 15: optionFontSize = 9500;
-				bcase 16: optionFontSize = 10000;
-				bcase 17: optionFontSize = 10500;
+				default: return 0;
+				case 2500: return 1;
+				case 3000: return 2;
+				case 3500: return 3;
+				case 4000: return 4;
+				case 4500: return 5;
+				case 5000: return 6;
+				case 5500: return 7;
+				case 6000: return 8;
+				case 6500: return 9;
+				case 7000: return 10;
+				case 7500: return 11;
+				case 8000: return 12;
+				case 8500: return 13;
+				case 9000: return 14;
+				case 9500: return 15;
+				case 10000: return 16;
+				case 10500: return 17;
 			}
-			setupFont();
-			placeElements();
-		}
+		}(),
+		fontSizeItem
 	},
 	notificationIcon
 	{
 		"Suspended App Icon",
+		(bool)optionNotificationIcon,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionNotificationIcon = item.on;
+			optionNotificationIcon = item.flipBoolValue(*this);
+		}
+	},
+	statusBarItem
+	{
+		{
+			"Off",
+			[this]()
+			{
+				optionHideStatusBar = 0;
+				applyOSNavStyle(false);
+			}
+		},
+		{
+			"In Game",
+			[this]()
+			{
+				optionHideStatusBar = 1;
+				applyOSNavStyle(false);
+			}
+		},
+		{
+			"On",
+			[this]()
+			{
+				optionHideStatusBar = 2;
+				applyOSNavStyle(false);
+			}
 		}
 	},
 	statusBar
 	{
 		"Hide Status Bar",
-		[](MultiChoiceMenuItem &, View &, int val)
+		optionHideStatusBar,
+		statusBarItem
+	},
+	lowProfileOSNavItem
+	{
 		{
-			optionHideStatusBar = val;
-			applyOSNavStyle(false);
+			"Off",
+			[this]()
+			{
+				optionLowProfileOSNav = 0;
+				applyOSNavStyle(false);
+			}
+		},
+		{
+			"In Game",
+			[this]()
+			{
+				optionLowProfileOSNav = 1;
+				applyOSNavStyle(false);
+			}
+		},
+		{
+			"On",
+			[this]()
+			{
+				optionLowProfileOSNav = 2;
+				applyOSNavStyle(false);
+			}
 		}
 	},
 	lowProfileOSNav
 	{
 		"Dim OS Navigation",
-		[](MultiChoiceMenuItem &, View &, int val)
+		optionLowProfileOSNav,
+		lowProfileOSNavItem
+	},
+	hideOSNavItem
+	{
 		{
-			optionLowProfileOSNav = val;
-			applyOSNavStyle(false);
+			"Off",
+			[this]()
+			{
+				optionHideOSNav = 0;
+				applyOSNavStyle(false);
+			}
+		},
+		{
+			"In Game",
+			[this]()
+			{
+				optionHideOSNav = 1;
+				applyOSNavStyle(false);
+			}
+		},
+		{
+			"On",
+			[this]()
+			{
+				optionHideOSNav = 2;
+				applyOSNavStyle(false);
+			}
 		}
 	},
 	hideOSNav
 	{
 		"Hide OS Navigation",
-		[](MultiChoiceMenuItem &, View &, int val)
-		{
-			optionHideOSNav = val;
-			applyOSNavStyle(false);
-		}
+		optionHideOSNav,
+		hideOSNavItem
 	},
 	idleDisplayPowerSave
 	{
 		"Dim Screen If Idle",
+		(bool)optionIdleDisplayPowerSave,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionIdleDisplayPowerSave = item.on;
-			Base::setIdleDisplayPowerSave(item.on);
+			optionIdleDisplayPowerSave = item.flipBoolValue(*this);
+			Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 		}
 	},
 	navView
 	{
 		"Title Bar",
+		(bool)optionTitleBar,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionTitleBar = item.on;
-			viewStack.setNavView(item.on ? &viewNav : 0);
+			optionTitleBar = item.flipBoolValue(*this);
+			viewStack.setNavView(optionTitleBar ? &viewNav : 0);
 			placeElements();
 		}
 	},
 	backNav
 	{
 		"Title Back Navigation",
+		View::needsBackControl,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			View::setNeedsBackControl(item.on);
+			View::setNeedsBackControl(item.flipBoolValue(*this));
 			viewNav.setBackImage(View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr);
 			placeElements();
 		}
@@ -1597,44 +1638,83 @@ OptionView::OptionView(Base::Window &win):
 	rememberLastMenu
 	{
 		"Remember Last Menu",
+		(bool)optionRememberLastMenu,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionRememberLastMenu = item.on;
+			optionRememberLastMenu = item.flipBoolValue(*this);
 		}
 	},
 	showBundledGames
 	{
 		"Show Bundled Games",
+		(bool)optionShowBundledGames,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionShowBundledGames = item.on;
-			mainMenu().deinit();
-			initMainMenu(window());
+			optionShowBundledGames = item.flipBoolValue(*this);
+			bug_exit("TODO");
 		}
 	},
 	orientationHeading
 	{
 		"Orientation",
 	},
+	menuOrientationItem
+	{
+		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
+		{"Auto", [](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO); }},
+		#endif
+		{landscapeName, [](){ setMenuOrientation(Base::VIEW_ROTATE_90); }},
+		{landscape2Name, [](){ setMenuOrientation(Base::VIEW_ROTATE_270); }},
+		{portraitName, [](){ setMenuOrientation(Base::VIEW_ROTATE_0); }},
+		{portrait2Name, [](){ setMenuOrientation(Base::VIEW_ROTATE_180); }},
+	},
 	menuOrientation
 	{
 		"In Menu",
-		[this](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			optionMenuOrientation.val = convertOrientationMenuValueToOption(val);
-			Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
-			logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
-		}
+			uint itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
+			switch(optionMenuOrientation)
+			{
+				default: return 0;
+				case Base::VIEW_ROTATE_90: return 1 - itemOffset;
+				case Base::VIEW_ROTATE_270: return 2 - itemOffset;
+				case Base::VIEW_ROTATE_0: return 3 - itemOffset;
+				case Base::VIEW_ROTATE_180: return 4 - itemOffset;
+			}
+		}(),
+		menuOrientationItem
+	},
+	gameOrientationItem
+	{
+		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
+		{"Auto", [](){ setGameOrientation(Base::VIEW_ROTATE_AUTO); }},
+		#endif
+		{landscapeName, [](){ setGameOrientation(Base::VIEW_ROTATE_90); }},
+		{landscape2Name, [](){ setGameOrientation(Base::VIEW_ROTATE_270); }},
+		{portraitName, [](){ setGameOrientation(Base::VIEW_ROTATE_0); }},
+		{portrait2Name, [](){ setGameOrientation(Base::VIEW_ROTATE_180); }},
 	},
 	gameOrientation
 	{
 		"In Game",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			optionGameOrientation.val = convertOrientationMenuValueToOption(val);
-			logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
-		}
+			uint itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
+			switch(optionGameOrientation)
+			{
+				default: return 0;
+				case Base::VIEW_ROTATE_90: return 1 - itemOffset;
+				case Base::VIEW_ROTATE_270: return 2 - itemOffset;
+				case Base::VIEW_ROTATE_0: return 3 - itemOffset;
+				case Base::VIEW_ROTATE_180: return 4 - itemOffset;
+			}
+		}(),
+		gameOrientationItem
 	}
-{}
+{
+	if(!customMenu)
+	{
+		loadStockItems();
+	}
+}

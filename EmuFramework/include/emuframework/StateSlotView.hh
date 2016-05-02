@@ -25,9 +25,7 @@ private:
 	static constexpr uint stateSlots = 11;
 	char stateStr[stateSlots][40]{};
 	TextMenuItem stateSlot[stateSlots]{};
-	MenuItem *item[stateSlots]{};
 
 public:
-	StateSlotView(Base::Window &win): TableView{"State Slot", win} {}
-	void init();
+	StateSlotView(Base::Window &win);
 };

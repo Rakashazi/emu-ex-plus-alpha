@@ -7,7 +7,8 @@ CFLAGS_OPTIMIZE_RELEASE_DEFAULT += -O3
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc \
-main/EmuControls.cc
+main/EmuControls.cc \
+main/EmuMenuViews.cc
 
 CPPFLAGS += -I$(projectPath)/src \
 -DHAVE_CONFIG_H

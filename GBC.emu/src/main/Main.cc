@@ -14,17 +14,17 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/EmuOptions.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include "../../../EmuFramework/include/emuframework/EmuAppInlines.hh"
 #include <gambatte.h>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
 #include <main/Cheats.hh>
 #include <main/Palette.hh>
+#include "internal.hh"
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
 gambatte::GB gbEmu;
 static Resampler *resampler{};
 static uint8 activeResampler = 1;
@@ -73,13 +73,12 @@ static GBPalette gbPal[] =
 	{ { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc } }, // Reverse
 };
 
-static Byte1Option optionGBPal
-		(CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<IG::size(gbPal)-1>);
-static Byte1Option optionUseBuiltinGBPalette(CFGKEY_USE_BUILTIN_GB_PAL, 1);
-static Byte1Option optionReportAsGba(CFGKEY_REPORT_AS_GBA, 0);
-static Byte1Option optionAudioResampler(CFGKEY_AUDIO_RESAMPLER, 1);
+Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<IG::size(gbPal)-1>};
+Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
+Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
+Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
 
-static void applyGBPalette()
+void applyGBPalette()
 {
 	uint idx = optionGBPal;
 	assert(idx < IG::size(gbPal));
@@ -107,12 +106,8 @@ public:
 	unsigned operator()() override { return bits; }
 } gbcInput;
 
-namespace gambatte
-{
-extern bool useFullColorSaturation;
-}
-
-static Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8> optionFullGbcSaturation(CFGKEY_FULL_GBC_SATURATION, 0);
+Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8>
+optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
@@ -128,8 +123,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-#include <emuframework/CommonGui.hh>
-#include <emuframework/CommonCheatGui.hh>
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
@@ -187,8 +180,8 @@ static bool hasROMExtension(const char *name)
 			string_hasDotExtension(name, "gbc");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasROMExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasROMExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasROMExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasROMExtension;
 
 static const int gbResX = 160, gbResY = 144;
 

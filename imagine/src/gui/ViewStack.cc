@@ -47,7 +47,6 @@ void BasicViewController::pop()
 {
 	assert(view);
 	view->postDraw();
-	view->deinit();
 	delete view;
 	view = nullptr;
 	if(removeViewDel)
@@ -56,7 +55,6 @@ void BasicViewController::pop()
 
 void BasicViewController::dismissView(View &v)
 {
-	assert(view == &v);
 	pop();
 }
 
@@ -173,7 +171,6 @@ void ViewStack::pushAndShow(View &v, Input::Event e)
 void ViewStack::pop()
 {
 	assert(size > 1);
-	top().deinit();
 	delete &top();
 	size--;
 	logMsg("pop view, %d in stack", size);
@@ -247,7 +244,13 @@ bool ViewStack::contains(View &v) const
 void ViewStack::dismissView(View &v)
 {
 	//logMsg("dismissing view: %p", &v);
-	assert(contains(v));
-	assert(viewIdx(v) != 0);
-	popTo(*view[viewIdx(v)-1]);
+	if(contains(v))
+	{
+		assert(viewIdx(v) != 0);
+		popTo(*view[viewIdx(v)-1]);
+	}
+	else
+	{
+		pop();
+	}
 }

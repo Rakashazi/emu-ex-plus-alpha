@@ -17,18 +17,31 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/TextEntry.hh>
 
-static constexpr uint MAX_ITEMS = 256;
-static constexpr uint MAX_CODE_TYPES = 2;
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
 BaseCheatsView::BaseCheatsView(Base::Window &win):
-	TableView{"Cheats", win},
+	TableView
+	{
+		"Cheats",
+		win,
+		[this](const TableView &)
+		{
+			return 1 + cheat.size();
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			if(idx == 0)
+				return edit;
+			else
+				return cheat[idx - 1];
+		}
+	},
 	edit
 	{
 		"Add/Edit",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &editCheatListView = *makeEditCheatListView(window());
+			auto &editCheatListView = *EmuSystem::makeView(window(), EmuSystem::ViewID::EDIT_CHEATS);
 			pushAndShow(editCheatListView, e);
 		}
 	},
@@ -37,45 +50,33 @@ BaseCheatsView::BaseCheatsView(Base::Window &win):
 		[this]()
 		{
 			auto selectedCell = selected;
-			deinit();
-			init();
+			loadCheatItems();
 			highlightCell(selectedCell);
 			place();
 		}
 	}
-{}
-
-void BaseCheatsView::init()
 {
 	assert(!onRefreshCheatsList.isFull());
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
-	item.reserve(MAX_ITEMS + 1);
-	edit.init(); item.emplace_back(&edit);
-	loadCheatItems(item);
-	TableView::init(item.data(), item.size());
 }
 
-void BaseCheatsView::deinit()
+BaseCheatsView::~BaseCheatsView()
 {
-	TableView::deinit();
 	onRefreshCheatsList.remove(&onRefreshCheats);
-	item.clear();
 }
 
-void EditCheatView::loadNameItem(const char *nameStr, MenuItem *item[], uint &items)
-{
-	name.init(nameStr); item[items++] = &name;
-}
-
-void EditCheatView::loadRemoveItem(MenuItem *item[], uint &items)
-{
-	remove.init(); item[items++] = &remove;
-}
-
-EditCheatView::EditCheatView(const char *viewName, Base::Window &win):
-	TableView{viewName, win},
+BaseEditCheatView::BaseEditCheatView(const char *viewName, Base::Window &win, const char *cheatName,
+	TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed):
+	TableView
+	{
+		viewName,
+		win,
+		items,
+		item
+	},
 	name
 	{
+		cheatName,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -99,44 +100,36 @@ EditCheatView::EditCheatView(const char *viewName, Base::Window &win):
 	remove
 	{
 		"Delete Cheat",
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			removed();
-			dismiss();
-		}
+		removed
 	}
 {}
 
-BaseEditCheatListView::BaseEditCheatListView(Base::Window &win):
-	TableView{"Edit Cheats", win},
+BaseEditCheatListView::BaseEditCheatListView(Base::Window &win, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+	TableView
+	{
+		"Edit Cheats",
+		win,
+		items,
+		item
+	},
 	onRefreshCheats
 	{
 		[this]()
 		{
 			auto selectedCell = selected;
-			deinit();
-			init();
+			loadCheatItems();
 			highlightCell(selectedCell);
 			place();
 		}
 	}
-{}
-
-void BaseEditCheatListView::init()
 {
 	assert(!onRefreshCheatsList.isFull());
 	onRefreshCheatsList.emplace_back(&onRefreshCheats);
-	item.reserve(MAX_ITEMS + MAX_CODE_TYPES);
-	loadAddCheatItems(item);
-	loadCheatItems(item);
-	TableView::init(item.data(), item.size());
 }
 
-void BaseEditCheatListView::deinit()
+BaseEditCheatListView::~BaseEditCheatListView()
 {
-	TableView::deinit();
 	onRefreshCheatsList.remove(&onRefreshCheats);
-	item.clear();
 }
 
 void refreshCheatViews()

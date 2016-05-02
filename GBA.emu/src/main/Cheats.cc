@@ -6,7 +6,7 @@
 #include <gba/Cheats.h>
 static bool cheatsModified = false;
 
-void SystemEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(const char *str)
 {
 	cheatsModified = true;
 	auto &cheat = cheatsList[idx];
@@ -15,66 +15,63 @@ void SystemEditCheatView::renamed(const char *str)
 	name.compile(projP);
 }
 
-void SystemEditCheatView::removed()
-{
-	cheatsModified = true;
-	cheatsDelete(gGba.cpu, idx, true);
-	refreshCheatViews();
-}
-
-void SystemEditCheatView::init(int cheatIdx)
-{
-	idx = cheatIdx;
-	auto &cheat = cheatsList[idx];
-
-	uint i = 0;
-	loadNameItem(cheat.desc, item, i);
-
-	name_ = "Edit Code";
-	code.init(cheat.codestring); item[i++] = &code;
-
-	loadRemoveItem(item, i);
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
-}
-
-SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
+EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
+	BaseEditCheatView
+	{
+		"Edit Code",
+		win,
+		cheatsList[cheatIdx].desc,
+		[this](const TableView &)
+		{
+			return 3;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return name;
+				case 1: return code;
+				default: return remove;
+			}
+		},
+		[this](TextMenuItem &item, View &parent, Input::Event e)
+		{
+			cheatsModified = true;
+			cheatsDelete(gGba.cpu, idx, true);
+			refreshCheatViews();
+			dismiss();
+			return true;
+		}
+	},
 	code
 	{
 		"Code",
-		[this](DualTextMenuItem &item, View &, Input::Event e)
+		cheatsList[cheatIdx].codestring,
+		[this](DualTextMenuItem &, View &, Input::Event)
 		{
 			popup.post("To change this cheat, please delete and re-add it");
 		}
-	}
+	},
+	idx{cheatIdx}
 {}
 
-void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
-{
-	addGS12CBCode.init(); item.emplace_back(&addGS12CBCode);
-	addGS3Code.init(); item.emplace_back(&addGS3Code);
-}
-
-void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
+void EmuEditCheatListView::loadCheatItems()
 {
 	uint cheats = cheatsNumber;
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
-		cheat[c].init(cheatsList[c].desc); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(cheatsList[c].desc,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(c);
+				auto &editCheatView = *new EmuEditCheatView{window(), c};
 				viewStack.pushAndShow(editCheatView, e);
-			};
+			});
 	}
 }
 
-void EditCheatListView::addNewCheat(int isGSv3)
+void EmuEditCheatListView::addNewCheat(int isGSv3)
 {
 	if(cheatsNumber == EmuCheats::MAX)
 	{
@@ -141,8 +138,24 @@ void EditCheatListView::addNewCheat(int isGSv3)
 	modalViewController.pushAndShow(textInputView, {});
 }
 
-EditCheatListView::EditCheatListView(Base::Window &win):
-	BaseEditCheatListView(win),
+EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+	BaseEditCheatListView
+	{
+		win,
+		[this](const TableView &)
+		{
+			return 2 + cheat.size();
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return addGS12CBCode;
+				case 1: return addGS3Code;
+				default: return cheat[idx - 2];
+			}
+		}
+	},
 	addGS12CBCode
 	{
 		"Add Game Shark v1-2/Code Breaker Code",
@@ -159,29 +172,34 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			addNewCheat(true);
 		}
 	}
-{}
+{
+	loadCheatItems();
+}
 
-void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
+void EmuCheatsView::loadCheatItems()
 {
 	uint cheats = cheatsNumber;
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
 		auto &cheatEntry = cheatsList[c];
-		cheat[c].init(cheatEntry.desc, cheatEntry.enabled); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(cheatEntry.desc, cheatEntry.enabled,
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				cheatsModified = true;
-				item.toggle(*this);
-				if(item.on)
+				bool on = item.flipBoolValue(*this);
+				if(on)
 					cheatsEnable(c);
 				else
 					cheatsDisable(gGba.cpu, c);
-			};
+			});
 	}
+}
+
+EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+{
+	loadCheatItems();
 }
 
 void writeCheatFile()

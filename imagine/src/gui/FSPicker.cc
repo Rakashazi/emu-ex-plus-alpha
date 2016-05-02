@@ -17,7 +17,6 @@
 
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/mem/mem.h>
 
 // FSNavView
 
@@ -89,30 +88,15 @@ void FSPicker::FSNavView::setTitle(const char *str)
 
 // FSPicker
 
-void FSPicker::init(Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, FilterFunc filter,  bool singleDir, ResourceFace *face)
+FSPicker::FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+	FilterFunc filter,  bool singleDir, ResourceFace *face):
+	View{win},
+	filter{filter},
+	tbl{win, text},
+	faceRes{face},
+	singleDir{singleDir}
 {
-	deinit();
-	faceRes = face;
-	this->filter = filter;
-	this->singleDir = singleDir;
 	navV.init(face, backRes, closeRes, singleDir);
-}
-
-void FSPicker::deinit()
-{
-	dir.clear();
-	navV.deinit();
-	tbl.deinit();
-	if(text)
-	{
-		mem_free(text);
-		text = nullptr;
-	}
-	if(textPtr)
-	{
-		mem_free(textPtr);
-		textPtr = nullptr;
-	}
 }
 
 void FSPicker::place()
@@ -219,51 +203,33 @@ CallResult FSPicker::setPath(const char *path, Input::Event e)
 		}
 	}
 	std::sort(dir.begin(), dir.end(), FS::fileStringNoCaseLexCompare());
+	text.clear();
 	if(dir.size())
 	{
-		// TODO free old pointer on failure
-		text = mem_newRealloc(text, dir.size());
-		if(!text)
-		{
-			logMsg("out of memory loading directory");
-			Base::abort(); // TODO: handle without exiting
-		}
-		textPtr = mem_newRealloc(textPtr, dir.size());
-		if(!textPtr)
-		{
-			logMsg("out of memory loading directory");
-			Base::abort(); // TODO: handle without exiting
-		}
+		text.reserve(dir.size());
 		iterateTimes(dir.size(), i)
 		{
-			text[i].init(dir[i].data(), 1, faceRes);
-			textPtr[i] = &text[i];
-			if(FS::status(dir[i].data()).type() == FS::file_type::directory)
+			bool isDir = FS::status(dir[i].data()).type() == FS::file_type::directory;
+			if(isDir)
 			{
-				text[i].onSelect() = [this, i](TextMenuItem &, View &, Input::Event e)
+				text.emplace_back(dir[i].data(),
+					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						assert(!singleDir);
 						logMsg("going to dir %s", dir[i].data());
 						changeDirByInput(dir[i].data(), e);
-					};
+					});
 			}
 			else
 			{
-				text[i].onSelect() = [this, i](TextMenuItem &, View &, Input::Event e)
+				text.emplace_back(dir[i].data(),
+					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						onSelectFileD.callCopy(*this, dir[i].data(), e);
-					};
+					});
 			}
 		}
 	}
-	else
-	{
-		mem_free(text);
-		text = nullptr;
-		mem_free(textPtr);
-		textPtr = nullptr;
-	}
-	tbl.init(textPtr, dir.size());
 	if(!e.isPointer())
 		tbl.highlightCell(0);
 	navV.setTitle(FS::current_path().data());

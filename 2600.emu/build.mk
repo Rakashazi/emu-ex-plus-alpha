@@ -81,6 +81,7 @@ CartWD.cxx
 stellaPath := stella/emucore
 SRC += main/Main.cc \
 main/EmuControls.cc \
+main/EmuMenuViews.cc \
 main/SoundGeneric.cc \
 main/FrameBuffer.cc \
 main/OSystem.cc \

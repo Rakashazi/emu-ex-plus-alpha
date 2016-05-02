@@ -143,7 +143,6 @@ CallResult onInit(int argc, char** argv)
 			cleanupTest();
 			if(!backgrounded)
 			{
-				picker.deinit();
 				View::defaultFace->free();
 			}
 		});
@@ -218,7 +217,7 @@ CallResult onInit(int argc, char** argv)
 	View::defaultFace->applySettings(faceSize);
 	View::defaultFace->precacheAlphaNum();
 	View::defaultFace->precache(":.%()");
-	picker.init(testParam, IG::size(testParam));
+	picker.setTests(testParam, IG::size(testParam));
 	mainWin.show();
 
 	#ifdef __ANDROID__

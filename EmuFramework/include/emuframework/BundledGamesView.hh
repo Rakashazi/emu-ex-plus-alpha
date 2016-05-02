@@ -22,9 +22,7 @@ class BundledGamesView : public TableView
 {
 private:
 	TextMenuItem game[1]{};
-	MenuItem *item[1]{};
 
 public:
-	BundledGamesView(Base::Window &win): TableView{"Bundled Games", win} {}
-	void init();
+	BundledGamesView(Base::Window &win);
 };

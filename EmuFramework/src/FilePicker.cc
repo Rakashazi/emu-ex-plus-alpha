@@ -22,6 +22,33 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
 
+class AutoStateConfirmAlertView : public YesNoAlertView
+{
+	std::array<char, 96> msg{};
+
+public:
+	AutoStateConfirmAlertView(Base::Window &win, const char *dateStr, bool addToRecent):
+		YesNoAlertView{win, "", "Continue", "Restart Game"}
+	{
+		string_printf(msg, "Auto-save state exists from:\n%s", dateStr);
+		setLabel(msg.data());
+		setOnYes(
+			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			{
+				view.dismiss();
+				loadGameComplete(true, addToRecent);
+			});
+		setOnNo(
+			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			{
+				view.dismiss();
+				loadGameComplete(false, addToRecent);
+			});
+	}
+};
+
+void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e);
+
 bool hasArchiveExtension(const char *name)
 {
 	return string_hasDotExtension(name, "7z") ||
@@ -29,22 +56,27 @@ bool hasArchiveExtension(const char *name)
 		string_hasDotExtension(name, "zip");
 }
 
-void EmuFilePicker::init(bool pickingDir, EmuNameFilterFunc filter, bool singleDir)
-{
-	FSPicker::init(needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
+EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir):
+	FSPicker
+	{
+		win,
+		needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
 		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr,
-				[filter, singleDir](FS::directory_entry &entry)
-				{
-					logMsg("%s %d", entry.name(), (int)entry.type());
-					if(!singleDir && entry.type() == FS::file_type::directory)
-						return true;
-					else if(!EmuSystem::handlesArchiveFiles && hasArchiveExtension(entry.name()))
-						return true;
-					else if(filter)
-						return filter(entry.name());
-					else
-						return false;
-				}, singleDir);
+		[filter, singleDir](FS::directory_entry &entry)
+		{
+			logMsg("%s %d", entry.name(), (int)entry.type());
+			if(!singleDir && entry.type() == FS::file_type::directory)
+				return true;
+			else if(!EmuSystem::handlesArchiveFiles && hasArchiveExtension(entry.name()))
+				return true;
+			else if(filter)
+				return filter(entry.name());
+			else
+				return false;
+		},
+		singleDir
+	}
+{
 	if(setPath(FS::current_path().data()) != OK)
 	{
 		setPath(Base::storagePath());
@@ -65,6 +97,30 @@ void EmuFilePicker::init(bool pickingDir, EmuNameFilterFunc filter, bool singleD
 		{
 			GameFilePicker::onSelectFile(name, e);
 		});
+}
+
+EmuFilePicker *EmuFilePicker::makeForBenchmarking(Base::Window &win, bool singleDir)
+{
+	auto picker = new EmuFilePicker{win, false, EmuSystem::defaultBenchmarkFsFilter, singleDir};
+	picker->setOnSelectFile(
+		[](FSPicker &picker, const char* name, Input::Event e)
+		{
+			EmuSystem::onLoadGameComplete() =
+				[](uint result, Input::Event e)
+				{
+					loadGameCompleteFromBenchmarkFilePicker(result, e);
+				};
+			auto res = EmuSystem::loadGameFromPath(FS::makePathString(name));
+			if(res == 1)
+			{
+				loadGameCompleteFromBenchmarkFilePicker(1, e);
+			}
+			else if(res == 0)
+			{
+				EmuSystem::clearGamePaths();
+			}
+		});
+	return picker;
 }
 
 void loadGameComplete(bool tryAutoState, bool addToRecent)
@@ -88,19 +144,7 @@ bool showAutoStateConfirm(Input::Event e, bool addToRecent)
 		auto mTime = FS::status(saveStr).last_write_time_local();
 		char dateStr[64]{};
 		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
-		static char msg[96] = "";
-		snprintf(msg, sizeof(msg), "Auto-save state exists from:\n%s", dateStr);
-		auto &ynAlertView = *new YesNoAlertView{mainWin.win, msg, "Continue", "Restart Game"};
-		ynAlertView.onYes() =
-			[addToRecent](Input::Event e)
-			{
-				loadGameComplete(true, addToRecent);
-			};
-		ynAlertView.onNo() =
-			[addToRecent](Input::Event e)
-			{
-				loadGameComplete(false, addToRecent);
-			};
+		auto &ynAlertView = *new AutoStateConfirmAlertView{mainWin.win, dateStr, addToRecent};
 		modalViewController.pushAndShow(ynAlertView, e);
 		return 1;
 	}
@@ -146,29 +190,6 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e)
 		logMsg("done in: %f", double(time));
 		popup.printf(2, 0, "%.2f fps", double(180.)/double(time));
 	}
-}
-
-void EmuFilePicker::initForBenchmark(bool singleDir)
-{
-	EmuFilePicker::init(false, defaultBenchmarkFsFilter, singleDir);
-	setOnSelectFile(
-		[this](FSPicker &picker, const char* name, Input::Event e)
-		{
-			EmuSystem::onLoadGameComplete() =
-				[](uint result, Input::Event e)
-				{
-					loadGameCompleteFromBenchmarkFilePicker(result, e);
-				};
-			auto res = EmuSystem::loadGameFromPath(FS::makePathString(name));
-			if(res == 1)
-			{
-				loadGameCompleteFromBenchmarkFilePicker(1, e);
-			}
-			else if(res == 0)
-			{
-				EmuSystem::clearGamePaths();
-			}
-		});
 }
 
 void EmuFilePicker::inputEvent(Input::Event e)

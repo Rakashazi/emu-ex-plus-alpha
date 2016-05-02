@@ -1,134 +1,123 @@
-#pragma once
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
 #include <imagine/util/bits.h>
+#include "internal.hh"
 
-class SystemOptionView : public OptionView
+extern "C"
+{
+	#include <gngeo/roms.h>
+	#include <gngeo/conf.h>
+	#include <gngeo/emu.h>
+	#include <gngeo/fileio.h>
+	#include <gngeo/timer.h>
+	#include <gngeo/memory.h>
+}
+
+class EmuSystemOptionView : public SystemOptionView
 {
 private:
-	MultiChoiceSelectMenuItem timer
+	TextMenuItem timerItem[3]
+	{
+		{"Off", [](){ optionTimerInt = 0; setTimerIntOption(); }},
+		{"On", [](){ optionTimerInt = 1; setTimerIntOption(); }},
+		{"Auto", [](){ optionTimerInt = 2; setTimerIntOption(); }},
+	};
+
+	MultiChoiceMenuItem timer
 	{
 		"Emulate Timer",
-		[](MultiChoiceMenuItem &, View &, int val)
-		{
-			optionTimerInt = val;
-			setTimerIntOption();
-		}
+		std::min((uint)optionTimerInt, 2u),
+		timerItem
 	};
 
-	void timerInit()
+	TextMenuItem regionItem[4]
 	{
-		static const char *str[] =
-		{
-				"Off", "On", "Auto"
-		};
-		timer.init(str, std::min(2, (int)optionTimerInt), IG::size(str));
-	}
+		{"Japan", [](){ conf.country = CTY_JAPAN; optionMVSCountry = conf.country; }},
+		{"Europe", [](){ conf.country = CTY_EUROPE; optionMVSCountry = conf.country; }},
+		{"USA", [](){ conf.country = CTY_USA; optionMVSCountry = conf.country; }},
+		{"Asia", [](){ conf.country = CTY_ASIA; optionMVSCountry = conf.country; }},
+	};
 
-	MultiChoiceSelectMenuItem region
+	MultiChoiceMenuItem region
 	{
 		"MVS Region",
-		[](MultiChoiceMenuItem &, View &, int val)
-		{
-			conf.country = (COUNTRY)val;
-			optionMVSCountry = conf.country;
-		}
+		std::min((uint)conf.country, 3u),
+		regionItem
 	};
 
-	void regionInit()
+	TextMenuItem biosItem[4]
 	{
-		static const char *str[] =
-		{
-				"Japan", "Europe", "USA", "Asia"
-		};
-		int setting = 0;
-		if(conf.country < 4)
-		{
-			setting = conf.country;
-		}
-		region.init(str, setting, IG::size(str));
-	}
+		{"Unibios 2.3", [](){ conf.system = SYS_UNIBIOS; optionMVSCountry = conf.system; }},
+		{"Unibios 3.0", [](){ conf.system = SYS_UNIBIOS_3_0; optionMVSCountry = conf.system; }},
+		{"Unibios 3.1", [](){ conf.system = SYS_UNIBIOS_3_1; optionMVSCountry = conf.system; }},
+		{"MVS", [](){ conf.system = SYS_ARCADE; optionMVSCountry = conf.system; }},
+	};
 
-	MultiChoiceSelectMenuItem bios
+	MultiChoiceMenuItem bios
 	{
 		"BIOS Type",
-		[](MultiChoiceMenuItem &, View &, int val)
+		[]() -> uint
 		{
-			switch(val)
+			switch(conf.system)
 			{
-				bcase 0: conf.system = SYS_UNIBIOS;
-				bcase 1: conf.system = SYS_UNIBIOS_3_0;
-				bcase 2: conf.system = SYS_UNIBIOS_3_1;
-				bcase 3: conf.system = SYS_ARCADE;
+				default: return 0;
+				case SYS_UNIBIOS_3_0: return 1;
+				case SYS_UNIBIOS_3_1: return 2;
+				case SYS_ARCADE: return 3;
 			}
-			optionBIOSType = conf.system;
-		}
-	};
-
-	void biosInit()
-	{
-		static const char *str[] =
-		{
-			"Unibios 2.3", "Unibios 3.0", "Unibios 3.1", "MVS"
-		};
-		int setting = 0;
-		switch(conf.system)
-		{
-			bdefault: setting = 0;
-			bcase SYS_UNIBIOS_3_0: setting = 1;
-			bcase SYS_UNIBIOS_3_1: setting = 2;
-			bcase SYS_ARCADE: setting = 3;
-		}
-		bios.init(str, setting, IG::size(str));
-	}
-
-	BoolMenuItem listAll
-	{
-		"List All Games",
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			item.toggle(*this);
-			optionListAllGames = item.on;
-		}
+		}(),
+		biosItem
 	};
 
 	BoolMenuItem createAndUseCache
 	{
 		"Make/Use Cache Files",
+		(bool)optionCreateAndUseCache,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle((*this));
-			optionCreateAndUseCache = item.on;
+			optionCreateAndUseCache = item.flipBoolValue(*this);
 		}
 	};
 
 	BoolMenuItem strictROMChecking
 	{
 		"Strict ROM Checking",
+		(bool)optionStrictROMChecking,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionStrictROMChecking = item.on;
+			optionStrictROMChecking = item.flipBoolValue(*this);
 		}
 	};
 
 public:
-	SystemOptionView(Base::Window &win): OptionView(win) {}
-
-	void loadSystemItems(MenuItem *item[], uint &items)
+	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
 	{
-		OptionView::loadSystemItems(item, items);
-		biosInit(); item[items++] = &bios;
-		regionInit(); item[items++] = &region;
-		timerInit(); item[items++] = &timer;
-		createAndUseCache.init(optionCreateAndUseCache); item[items++] = &createAndUseCache;
-		strictROMChecking.init(optionStrictROMChecking); item[items++] = &strictROMChecking;
+		loadStockItems();
+		item.emplace_back(&bios);
+		item.emplace_back(&region);
+		item.emplace_back(&timer);
+		item.emplace_back(&createAndUseCache);
+		item.emplace_back(&strictROMChecking);
 	}
+};
 
-	void loadGUIItems(MenuItem *item[], uint &items)
+class EmuGUIOptionView : public GUIOptionView
+{
+	BoolMenuItem listAll
 	{
-		OptionView::loadGUIItems(item, items);
-		listAll.init(optionListAllGames); item[items++] = &listAll;
+		"List All Games",
+		(bool)optionListAllGames,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionListAllGames = item.flipBoolValue(*this);
+		}
+	};
+
+public:
+	EmuGUIOptionView(Base::Window &win): GUIOptionView{win, true}
+	{
+		loadStockItems();
+		item.emplace_back(&listAll);
 	}
 };
 
@@ -415,9 +404,20 @@ static const RomListEntry romlist[]
 class GameListView : public TableView
 {
 private:
-	char longName[IG::size(romlist)][128]{};
-	TextMenuItem rom[IG::size(romlist)]{};
-	MenuItem *item[IG::size(romlist)]{};
+	struct GameMenuItem
+	{
+		std::array<char, 128> longNameStr{};
+		TextMenuItem i;
+
+		GameMenuItem(char longName[128], TextMenuItem::SelectDelegate selectDel): i{longNameStr.data(), selectDel}
+		{
+			string_copy(longNameStr, longName);
+		}
+
+		GameMenuItem(const GameMenuItem &o): longNameStr(o.longNameStr), i{longNameStr.data(), o.i.onSelect()} {}
+	};
+
+	std::vector<GameMenuItem> item{};
 
 	static void loadGame(const RomListEntry &entry)
 	{
@@ -438,11 +438,21 @@ private:
 	}
 
 public:
-	GameListView(Base::Window &win): TableView{"Game List", win} { }
-
-	bool init(bool highlightFirst)
+	GameListView(Base::Window &win):
+		TableView
+		{
+			"Game List",
+			win,
+			[this](const TableView &)
+			{
+				return item.size();
+			},
+			[this](const TableView &, uint idx) -> MenuItem&
+			{
+				return item[idx].i;
+			}
+		}
 	{
-		uint i = 0, roms = 0;
 		for(const auto &entry : romlist)
 		{
 			ROM_DEF *drv = dr_check_zip(entry.filename);
@@ -455,22 +465,21 @@ public:
 					free(drv);
 					continue;
 				}
-				string_copy(longName[roms], drv->longname);
-				rom[roms].init(longName[roms], fileExists); item[i++] = &rom[roms];
-				rom[roms].onSelect() =
+				item.emplace_back(drv->longname,
 					[this, &entry](TextMenuItem &item, View &, Input::Event e)
 					{
-						if(item.active)
+						if(item.active())
 						{
 							if(entry.bugs)
 							{
 								auto &ynAlertView = *new YesNoAlertView{window(),
 									"This game doesn't yet work properly, load anyway?"};
-								ynAlertView.onYes() =
-									[&entry](Input::Event e)
+								ynAlertView.setOnYes(
+									[&entry](TextMenuItem &, View &view, Input::Event e)
 									{
+										view.dismiss();
 										loadGame(entry);
-									};
+									});
 								modalViewController.pushAndShow(ynAlertView, e);
 							}
 							else
@@ -482,65 +491,75 @@ public:
 						{
 							popup.printf(3, 1, "%s not present", entry.filename);
 						}
-					};
-				roms++;
+						return true;
+					});
+				item.back().i.setActive(fileExists);
 			}
 			free(drv);
 		}
-		if(!roms)
-			return 0;
+	}
 
-		assert(i <= IG::size(item));
-		TableView::init(item, i);
-		return 1;
+	int games()
+	{
+		return item.size();
 	}
 };
 
 class UnibiosSwitchesView : public TableView
 {
-	MenuItem *item[2]{};
-	MultiChoiceSelectMenuItem region
+	TextMenuItem regionItem[3]
+	{
+		{"Japan", [](){ setRegion(0); }},
+		{"USA", [](){ setRegion(1); }},
+		{"Europe", [](){ setRegion(2); }},
+	};
+
+	MultiChoiceMenuItem region
 	{
 		"Region",
-		[](MultiChoiceMenuItem &, View &, int val)
-		{
-			memory.memcard[3] = IG::updateBits(memory.memcard[3], (Uint8)val, (Uint8)0x3);
-			memory.sram[3] = IG::updateBits(memory.sram[3], (Uint8)val, (Uint8)0x3);
-		}
+		(uint)memory.memcard[3] & 0x3,
+		regionItem
 	};
 
 	BoolMenuItem system
 	{
 		"Mode",
+		bool(memory.memcard[2] & 0x80),
+		"Console (AES)", "Arcade (MVS)",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			memory.memcard[2] = IG::updateBits(memory.memcard[2], (Uint8)(item.on ? IG::bit(7) : 0), (Uint8)0x80);
-			memory.sram[2] = IG::updateBits(memory.sram[2], (Uint8)(item.on ? IG::bit(7) : 0), (Uint8)0x80);
+			bool on = item.flipBoolValue(*this);
+			memory.memcard[2] = IG::updateBits(memory.memcard[2], (Uint8)(on ? IG::bit(7) : 0), (Uint8)0x80);
+			memory.sram[2] = IG::updateBits(memory.sram[2], (Uint8)(on ? IG::bit(7) : 0), (Uint8)0x80);
 		}
 	};
+
+	static void setRegion(Uint8 val)
+	{
+		memory.memcard[3] = IG::updateBits(memory.memcard[3], (Uint8)val, (Uint8)0x3);
+		memory.sram[3] = IG::updateBits(memory.sram[3], (Uint8)val, (Uint8)0x3);
+	}
+
 public:
-	UnibiosSwitchesView(Base::Window &win): TableView{"Unibios Switches", win} {}
-
-	void regionInit()
-	{
-		static const char *str[] =
+	UnibiosSwitchesView(Base::Window &win):
+		TableView
 		{
-				"Japan", "USA", "Europe"
-		};
-		int setting = 0;
-		setting = memory.memcard[3] & 0x3;
-		region.init(str, setting, IG::size(str));
-	}
-
-	void init()
-	{
-		uint i = 0;
-		regionInit(); item[i++] = &region;
-		system.init("Console (AES)", "Arcade (MVS)", memory.memcard[2] & 0x80); item[i++] = &system;
-		assert(i <= IG::size(item));
-		TableView::init(item, i);
-	}
+			"Unibios Switches",
+			win,
+			[this](const TableView &)
+			{
+				return 2;
+			},
+			[this](const TableView &, uint idx) -> MenuItem&
+			{
+				switch(idx)
+				{
+					case 0: return region;
+					default: return system;
+				}
+			}
+		}
+	{}
 
 	/*void onShow()
 	{
@@ -548,10 +567,9 @@ public:
 		region.refreshActive();
 		system.refreshActive();
 	}*/
-
 };
 
-class SystemMenuView : public MenuView
+class EmuMenuView : public MenuView
 {
 private:
 
@@ -561,9 +579,10 @@ private:
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto &gameListMenu = *new GameListView{window()};
-			if(!gameListMenu.init(!e.isPointer()))
+			if(!gameListMenu.games())
 			{
 				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
+				delete &gameListMenu;
 				return;
 			}
 			viewStack.pushAndShow(gameListMenu, e);
@@ -577,10 +596,9 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				if(item.active)
+				if(item.active())
 				{
 					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{window()};
-					unibiosSwitchesMenu.init();
 					viewStack.pushAndShow(unibiosSwitchesMenu, e);
 				}
 				else
@@ -592,24 +610,31 @@ private:
 	};
 
 public:
-	SystemMenuView(Base::Window &win): MenuView{win} {}
+	EmuMenuView(Base::Window &win): MenuView{win, true}
+	{
+		loadFileBrowserItems();
+		item.emplace_back(&gameList);
+		item.emplace_back(&unibiosSwitches);
+		loadStandardItems();
+	}
 
 	void onShow()
 	{
 		MenuView::onShow();
 		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_1;
-		unibiosSwitches.active = EmuSystem::gameIsRunning() && isUnibios;
-	}
-
-	void init()
-	{
-		name_ = appViewTitle();
-		uint items = 0;
-		loadFileBrowserItems(item, items);
-		gameList.init(); item[items++] = &gameList;
-		unibiosSwitches.init(); item[items++] = &unibiosSwitches;
-		loadStandardItems(item, items);
-		assert(items <= IG::size(item));
-		TableView::init(item, items);
+		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
 	}
 };
+
+View *EmuSystem::makeView(Base::Window &win, ViewID id)
+{
+	switch(id)
+	{
+		case ViewID::MAIN_MENU: return new EmuMenuView(win);
+		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(win);
+		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(win);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
+		default: return nullptr;
+	}
+}

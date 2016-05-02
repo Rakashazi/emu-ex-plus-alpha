@@ -157,9 +157,16 @@ static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
 
 #if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_IOS || defined CONFIG_ENV_WEBOS
 #define CONFIG_BASE_CAN_BACKGROUND_APP
-static const bool BASE_CAN_BACKGROUND_APP = true;
+static constexpr bool BASE_CAN_BACKGROUND_APP = true;
 #else
-static const bool BASE_CAN_BACKGROUND_APP = false;
+static constexpr bool BASE_CAN_BACKGROUND_APP = false;
+#endif
+
+#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
+#define CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
+static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = true;
+#else
+static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = false;
 #endif
 
 }

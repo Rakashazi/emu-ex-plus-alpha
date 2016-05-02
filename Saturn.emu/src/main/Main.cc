@@ -1,8 +1,10 @@
+
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuAppInlines.hh>
 #include "EmuConfig.hh"
+#include "internal.hh"
 
 extern "C"
 {
@@ -18,7 +20,7 @@ extern "C"
 	#include <yabause/cs2.h>
 }
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 static PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
@@ -30,7 +32,7 @@ static bool hasCDExtension(const char *name)
 			string_hasDotExtension(name, "bin");
 }
 
-static bool hasBIOSExtension(const char *name)
+bool hasBIOSExtension(const char *name)
 {
 	return string_hasDotExtension(name, "bin");
 }
@@ -106,7 +108,7 @@ static FS::PathString bupPath{};
 static char mpegPath[] = "";
 static char cartPath[] = "";
 
-SH2Interface_struct *SH2CoreList[] =
+SH2Interface_struct *SH2CoreList[]
 {
 	#ifdef SH2_DYNAREC
 	&SH2Dynarec,
@@ -115,6 +117,8 @@ SH2Interface_struct *SH2CoreList[] =
 	//&SH2DebugInterpreter,
 	nullptr
 };
+
+uint SH2Cores = IG::size(SH2CoreList) - 1;
 
 static const int defaultSH2CoreID =
 #ifdef SH2_DYNAREC
@@ -215,10 +219,10 @@ static bool OptionSH2CoreIsValid(uint8 val)
 }
 
 FS::PathString biosPath{};
-static PathOption optionBiosPath(CFGKEY_BIOS_PATH, biosPath, "");
-static Byte1Option optionSH2Core(CFGKEY_SH2_CORE, defaultSH2CoreID, false, OptionSH2CoreIsValid);
+static PathOption optionBiosPath{CFGKEY_BIOS_PATH, biosPath, ""};
+Byte1Option optionSH2Core{CFGKEY_SH2_CORE, defaultSH2CoreID, false, OptionSH2CoreIsValid};
 
-static yabauseinit_struct yinit =
+yabauseinit_struct yinit
 {
 	PERCORE_DUMMY,
 	defaultSH2CoreID,
@@ -256,7 +260,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::handlesGenericIO = false;
-#include <emuframework/CommonGui.hh>
 
 const char *EmuSystem::shortSystemName()
 {
@@ -305,8 +308,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionSH2Core.writeWithKeyIfNotDefault(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasCDExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasCDExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasCDExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 

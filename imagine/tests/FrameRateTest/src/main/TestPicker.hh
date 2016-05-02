@@ -26,20 +26,17 @@ public:
 	std::array<char, 9> fpsStr{};
 	bool redText{};
 
-	constexpr TestTableEntry() {}
+	TestTableEntry(SelectDelegate selectDel): DualTextMenuItem{testStr.data(), nullptr, selectDel} {}
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 };
 
 class TestPicker : public TableView
 {
 public:
-	static constexpr uint MAX_TESTS = 16;
-
-	TestPicker(Base::Window &win): TableView(win) {}
-	void init(const TestParams *testParams, uint tests);
+	TestPicker(Base::Window &win);
+	void setTests(const TestParams *testParams, uint tests);
 
 private:
-	TestTableEntry testEntry[MAX_TESTS];
-	MenuItem *item[MAX_TESTS]{};
+	std::vector<TestTableEntry> testEntry{};
 	const TestParams *testParamPtr{};
 };

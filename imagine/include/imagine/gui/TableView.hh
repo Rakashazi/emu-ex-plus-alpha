@@ -26,14 +26,26 @@ class MenuItem;
 class TableView : public ScrollView
 {
 public:
+	using ItemsDelegate = DelegateFunc<int (const TableView &view)>;
+	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, uint idx)>;
 	static Gfx::GC globalXIndent;
 	bool onlyScrollIfNeeded = false;
 
-	TableView(Base::Window &win): ScrollView(win) {}
-	TableView(const char *name, Base::Window &win) : ScrollView(name, win) {}
+	TableView(Base::Window &win, ItemsDelegate items, ItemDelegate item);
+	TableView(const char *name, Base::Window &win, ItemsDelegate items, ItemDelegate item);
+	template <class CONTAINER>
+	TableView(Base::Window &win, CONTAINER &item):
+		TableView{"", win, item} {}
+	template <class CONTAINER>
+	TableView(const char *name, Base::Window &win, CONTAINER &item):
+		TableView
+		{
+			name,
+			win,
+			[&item](const TableView &) { return IG::size(item); },
+			[&item](const TableView &, uint idx) -> MenuItem& { return derefMenuItem(IG::data(item)[idx]); }
+		} {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
-	void init(MenuItem **item, uint items, _2DOrigin align = LC2DO);
-	void deinit() override;
 	void draw() override;
 	void place() override;
 	void setScrollableIfNeeded(bool yes);
@@ -41,27 +53,36 @@ public:
 	void inputEvent(Input::Event event) override;
 	void clearSelection() override;
 	void onAddedToController(Input::Event e) override;
-	static void setDefaultXIndent(const Gfx::ProjectionPlane &projP);
-	int cells() const { return cells_; }
+	uint cells() { return items(*this); }
 	IG::WP cellSize() const { return {viewFrame.x, yCellSize}; }
 	void highlightCell(int idx);
+	void setAlign(_2DOrigin align);
+	static void setDefaultXIndent(const Gfx::ProjectionPlane &projP);
+	static MenuItem& derefMenuItem(MenuItem *item)
+	{
+		return *item;
+	}
+	static MenuItem& derefMenuItem(MenuItem &item)
+	{
+		return item;
+	}
 
 protected:
 	bool selectedIsActivated = false;
 	int yCellSize = 0;
-	int cells_ = 0;
 	int selected = -1;
 	int visibleCells = 0;
-	MenuItem **item{};
 	IG::WindowRect viewFrame{};
 	_2DOrigin align{LC2DO};
+	ItemsDelegate items{};
+	ItemDelegate item{};
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();
-	void onSelectElement(Input::Event e, uint i);
-	bool elementIsSelectable(uint element);
-	int nextSelectableElement(int start);
-	int prevSelectableElement(int start);
+	virtual void onSelectElement(Input::Event e, uint i, MenuItem &item);
+	bool elementIsSelectable(MenuItem &item);
+	int nextSelectableElement(int start, int items);
+	int prevSelectableElement(int start, int items);
 	bool handleTableInput(Input::Event e);
-	virtual void drawElement(uint i, Gfx::GCRect rect) const;
+	virtual void drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const;
 };

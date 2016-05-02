@@ -16,53 +16,42 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TableView.hh>
-#include <imagine/gui/MultiChoiceView.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/StateSlotView.hh>
+#include <imagine/gui/TextTableView.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
-#include <imagine/config/version.h>
 #include <emuframework/VController.hh>
+#include <array>
 
 class OptionCategoryView : public TableView
 {
-	TextMenuItem subConfig[5]
-	{
-		"Video",
-		"Audio",
-		"Input",
-		"System",
-		"GUI"
-	};
-	MenuItem *item[5]{};
+	TextMenuItem subConfig[4];
 
 public:
-	OptionCategoryView(Base::Window &win): TableView{"Options", win} {}
-	void init();
+	OptionCategoryView(Base::Window &win);
 };
 
 class RecentGameView : public TableView
 {
 private:
-	TextMenuItem recentGame[10]{};
+	std::vector<TextMenuItem> recentGame{};
 	TextMenuItem clear{};
-	MenuItem *item[1 + 10 + 1]{};
 
 public:
 	RecentGameView(Base::Window &win);
-	void init();
 };
 
 class MenuView : public TableView
 {
 public:
-	MenuView(Base::Window &win);
+	MenuView(Base::Window &win, bool customMenu = false);
 	void onShow() override;
-	void loadFileBrowserItems(MenuItem *item[], uint &items);
-	void loadStandardItems(MenuItem *item[], uint &items);
-	virtual void init();
+	void loadFileBrowserItems();
+	void loadStandardItems();
 
 	static const uint STANDARD_ITEMS = 19;
 	static const uint MAX_SYSTEM_ITEMS = 5;
@@ -85,6 +74,7 @@ protected:
 	#endif
 	#ifdef CONFIG_BLUETOOTH
 	TextMenuItem scanWiimotes;
+	std::array<char, 64> bluetoothDisconnectStr{};
 	TextMenuItem bluetoothDisconnect;
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SERVER
@@ -93,5 +83,5 @@ protected:
 	TextMenuItem about;
 	TextMenuItem exitApp;
 	TextMenuItem screenshot;
-	MenuItem *item[STANDARD_ITEMS + MAX_SYSTEM_ITEMS]{};
+	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
 };

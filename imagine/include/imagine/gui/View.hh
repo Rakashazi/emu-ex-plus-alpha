@@ -41,9 +41,9 @@ protected:
 	Base::Window *win{};
 	ViewController *controller{};
 	Gfx::ProjectionPlane projP{};
+	const char *name_ = "";
 
 public:
-	const char *name_ = "";
 	static ResourceFace *defaultFace;
 	static ResourceFace *defaultSmallFace;
 	// Does the platform need an on-screen/pointer-based control to move to a previous view?
@@ -56,7 +56,6 @@ public:
 	constexpr View(Base::Window &win): win(&win) {}
 	constexpr View(const char *name, Base::Window &win) : win(&win), name_(name) {}
 
-	virtual void deinit() = 0;
 	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
 	virtual void draw() = 0;
@@ -70,6 +69,7 @@ public:
 	Base::Window &window();
 	Base::Screen *screen();
 	const char *name() { return name_; }
+	void setName(const char *name) { name_ = name; }
 	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms();
 	void dismiss();

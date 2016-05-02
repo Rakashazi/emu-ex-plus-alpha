@@ -14,38 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/MenuItem.hh>
-
-void BaseTextMenuItem::init(const char *str, bool active, ResourceFace *face)
-{
-	t.init(str, face);
-	this->active = active;
-}
-
-void BaseTextMenuItem::init(const char *str, ResourceFace *face)
-{
-	t.init(str, face);
-}
-
-void BaseTextMenuItem::init(bool active, ResourceFace *face)
-{
-	t.setFace(face);
-	this->active = active;
-}
-
-void BaseTextMenuItem::init()
-{
-	t.setFace(View::defaultFace);
-}
-
-void BaseTextMenuItem::deinit()
-{
-	t.deinit();
-}
+#include <imagine/gui/TextTableView.hh>
+#include <imagine/logger/logger.h>
 
 void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
-	if(!active)
+	if(!active_)
 	{
 		// half-bright color
 		uint col = color();
@@ -67,51 +42,52 @@ void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC y
 	t.draw(xPos, yPos, align, projP);
 }
 
-void BaseTextMenuItem::compile(const Gfx::ProjectionPlane &projP) { t.compile(projP); }
-int BaseTextMenuItem::ySize() { return t.face->nominalHeight(); }
-Gfx::GC BaseTextMenuItem::xSize() { return t.xSize; }
-void TextMenuItem::select(View &parent, Input::Event e)
+void BaseTextMenuItem::compile(const Gfx::ProjectionPlane &projP)
+{
+	t.compile(projP);
+}
+
+int BaseTextMenuItem::ySize()
+{
+	return t.face->nominalHeight();
+}
+
+Gfx::GC BaseTextMenuItem::xSize()
+{
+	return t.xSize;
+}
+
+void BaseTextMenuItem::setActive(bool on)
+{
+	active_ = on;
+}
+
+bool BaseTextMenuItem::active()
+{
+	return active_;
+}
+
+bool TextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");
-	if(selectD)
-	{
-		auto del = selectD;
-		del(*this, parent, e);
-	}
+	return selectD.callCopySafe(*this, parent, e);
 }
 
-void DualTextMenuItem::select(View &parent, Input::Event e)
+void TextMenuItem::setOnSelect(SelectDelegate onSelect)
+{
+	selectD = onSelect;
+}
+
+bool DualTextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");
-	if(selectD)
-	{
-		auto del = selectD;
-		del(*this, parent, e);
-	}
+	selectD.callCopySafe(*this, parent, e);
+	return true;
 }
 
-void BaseDualTextMenuItem::init(const char *str, const char *str2, bool active, ResourceFace *face)
+void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
 {
-	BaseTextMenuItem::init(str, active, face);
-	if(str2)
-		t2.init(str2, face);
-	else
-		t2.init(face);
-}
-
-void BaseDualTextMenuItem::init(const char *str2, bool active, ResourceFace *face)
-{
-	BaseTextMenuItem::init(active, face);
-	if(str2)
-		t2.init(str2, face);
-	else
-		t2.init(face);
-}
-
-void BaseDualTextMenuItem::deinit()
-{
-	t2.deinit();
-	BaseTextMenuItem::deinit();
+	selectD = onSelect;
 }
 
 void BaseDualTextMenuItem::compile(const Gfx::ProjectionPlane &projP)
@@ -136,63 +112,66 @@ void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::
 		BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
-void BoolMenuItem::init(const char *str, bool on, bool active, ResourceFace *face)
+BoolMenuItem::BoolMenuItem(const char *str, bool val, SelectDelegate selectDel):
+	BaseDualTextMenuItem{str, val ? "On" : "Off"},
+	selectD{selectDel},
+	on{val}
+{}
+
+BoolMenuItem::BoolMenuItem(const char *str, bool val, const char *offStr, const char *onStr, SelectDelegate selectDel):
+	BaseDualTextMenuItem{str, val ? onStr : offStr},
+	selectD{selectDel},
+	offStr{offStr},
+	onStr{onStr},
+	on{val},
+	onOffStyle{false}
+{}
+
+bool BoolMenuItem::select(View &parent, Input::Event e)
 {
-	BaseDualTextMenuItem::init(str, on ? onStr : offStr, active, face);
-	this->on = on;
+	selectD.callCopySafe(*this, parent, e);
+	return true;
 }
 
-void BoolMenuItem::init(const char *str, const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
+bool BoolMenuItem::setBoolValue(bool val, View &view)
 {
-	this->offStr = offStr;
-	this->onStr = onStr;
-	onOffStyle = false;
-	BaseDualTextMenuItem::init(str, on ? onStr : offStr, active, face);
-	this->on = on;
+	if(val != on)
+	{
+		setBoolValue(val);
+		t2.compile(view.projection());
+		view.postDraw();
+		return true;
+	}
+	return false;
 }
 
-void BoolMenuItem::init(bool on, bool active, ResourceFace *face)
-{
-	BaseDualTextMenuItem::init(on ? onStr : offStr, active, face);
-	this->on = on;
-}
-
-void BoolMenuItem::init(const char *offStr, const char *onStr, bool on, bool active, ResourceFace *face)
-{
-	this->offStr = offStr;
-	this->onStr = onStr;
-	onOffStyle = false;
-	BaseDualTextMenuItem::init(on ? onStr : offStr, active, face);
-	this->on = on;
-}
-
-void BoolMenuItem::set(bool val, View &view)
+bool BoolMenuItem::setBoolValue(bool val)
 {
 	if(val != on)
 	{
 		//logMsg("setting bool: %d", val);
 		on = val;
 		t2.setString(val ? onStr : offStr);
-		t2.compile(view.projection());
-		view.postDraw();
+		return true;
 	}
+	return false;
 }
 
-void BoolMenuItem::toggle(View &view)
+bool BoolMenuItem::boolValue() const
 {
-	if(on)
-		set(0, view);
-	else
-		set(1, view);
+	return on;
 }
 
-void BoolMenuItem::select(View &parent, Input::Event e)
+bool BoolMenuItem::flipBoolValue(View &view)
 {
-	if(selectD)
-	{
-		auto del = selectD;
-		del(*this, parent, e);
-	}
+	setBoolValue(on ^ true, view);
+	return on;
+}
+
+bool BoolMenuItem::flipBoolValue()
+{
+	setBoolValue(on ^ true);
+	return on;
 }
 
 void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
@@ -208,31 +187,85 @@ void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize
 	draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
-void MultiChoiceMenuItem::init(const char *str, const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
+void BoolMenuItem::setOnSelect(SelectDelegate onSelect)
 {
-	val -= baseVal;
-	if(!initialDisplayStr)
-	{
-		assert(val >= 0);
-	}
-	if(str)
-		BaseDualTextMenuItem::init(str, initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
-	else
-		BaseDualTextMenuItem::init(initialDisplayStr ? initialDisplayStr : choiceStr[val], active, face);
-	if(val >= max)
-	{
-		bug_exit("%d exceeds max %d", val, max);
-	}
-	choice = val;
-	choices = max;
-	this->baseVal = baseVal;
-	this->choiceStr = choiceStr;
+	selectD = onSelect;
 }
 
-void MultiChoiceMenuItem::init(const char **choiceStr, int val, int max, int baseVal, bool active, const char *initialDisplayStr, ResourceFace *face)
+class MenuItemTableView : public TableView
 {
-	init(nullptr, choiceStr, val, max, baseVal, active, initialDisplayStr, face);
-}
+public:
+	int activeItem;
+	MultiChoiceMenuItem &src;
+
+	MenuItemTableView(const char *name, Base::Window &win, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
+		TableView{name, win, items, item},
+		activeItem{active},
+		src{src}
+	{}
+
+	void onAddedToController(Input::Event e) override
+	{
+		if(!e.isPointer())
+		{
+			selected = activeItem;
+		}
+	}
+
+	void drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const override
+	{
+		using namespace Gfx;
+		if((int)i == activeItem)
+			setColor(0., .8, 1.);
+		else
+			setColor(COLOR_WHITE);
+		item.draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
+	}
+
+	void onSelectElement(Input::Event e, uint i, MenuItem &item) override
+	{
+		if(item.select(*this, e))
+		{
+			src.setSelected(i, *this);
+			dismiss();
+		}
+	}
+};
+
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, const char *displayStr,
+	uint selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
+	BaseDualTextMenuItem
+	{
+		str,
+		displayStr
+	},
+	selected_{selected},
+	selectD
+	{
+		selectDel ? selectDel :
+			[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				item.defaultOnSelect(view, e);
+			}
+	},
+	items_{items},
+	item_{item}
+{}
+
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, uint selected,
+	ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
+	MultiChoiceMenuItem{str, nullptr, selected, items, item, selectDel}
+{}
+
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, const char *displayStr,
+	uint selected, ItemsDelegate items, ItemDelegate item):
+	MultiChoiceMenuItem{str, displayStr, selected, items, item, {}}
+{}
+
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, uint selected,
+	ItemsDelegate items, ItemDelegate item):
+	MultiChoiceMenuItem{str, nullptr, selected, items, item, {}}
+{}
 
 void MultiChoiceMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
@@ -243,41 +276,94 @@ void MultiChoiceMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::G
 	BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
 }
 
-bool MultiChoiceMenuItem::updateVal(int val, View &view)
+void MultiChoiceMenuItem::compile(const Gfx::ProjectionPlane &projP)
 {
-	if(val < 0 || val >= choices)
+	if(selected_ < items_(*this))
 	{
-		bug_exit("value %d out of range for %d choices", val, choices);
+		setDisplayString(item_(*this, selected_).t.str);
 	}
-	if(val != choice)
-	{
-		choice = val;
-		t2.setString(choiceStr[val]);
-		t2.compile(view.projection());
-		view.postDraw();
-		return 1;
-	}
-	return 0;
+	BaseDualTextMenuItem::compile(projP);
 }
 
-void MultiChoiceMenuItem::setVal(int val, View &view)
+uint MultiChoiceMenuItem::selected() const
 {
-	if(updateVal(val, view))
+	return selected_;
+}
+
+uint MultiChoiceMenuItem::items() const
+{
+	return items_(*this);
+}
+
+bool MultiChoiceMenuItem::setSelected(uint idx, View &view)
+{
+	bool selectChanged = setSelected(idx);
+	t2.compile(view.projection());
+	view.postDraw();
+	return selectChanged;
+}
+
+bool MultiChoiceMenuItem::setSelected(uint idx)
+{
+	bool selectChanged = selected_ != idx;
+	selected_ = idx;
+	if(selected_ < items_(*this))
 	{
-		doSet(val + baseVal, view);
+		setDisplayString(item_(*this, idx).t.str);
 	}
+	return selectChanged;
 }
 
-bool MultiChoiceMenuItem::set(int val, Input::Event e, View &view)
+void MultiChoiceMenuItem::setDisplayString(const char *str)
 {
-	setVal(val, view);
-	return 1;
+	t2.setString(str);
 }
 
-void MultiChoiceMenuItem::cycle(int direction, View &view)
+int MultiChoiceMenuItem::cycleSelected(int offset, View &view)
 {
-	if(direction > 0)
-		setVal(IG::wrapMax(choice + 1, choices), view);
-	else if(direction < 0)
-		setVal(IG::wrapMax(choice - 1, choices), view);
+	setSelected(IG::wrapMax(selected_ + offset, items()), view);
+	return selected_;
+}
+
+int MultiChoiceMenuItem::cycleSelected(int offset)
+{
+	setSelected(IG::wrapMax(selected_ + offset, items()));
+	return selected_;
+}
+
+bool MultiChoiceMenuItem::select(View &parent, Input::Event e)
+{
+	//logMsg("calling delegate");
+	selectD.callCopySafe(*this, parent, e);
+	return true;
+}
+
+void MultiChoiceMenuItem::setOnSelect(SelectDelegate onSelect)
+{
+	selectD = onSelect;
+}
+
+TableView *MultiChoiceMenuItem::makeTableView(Base::Window &window)
+{
+	return new MenuItemTableView
+	{
+		t.str,
+		window,
+		selected_ < items_(*this) ? (int)selected_ : -1,
+		[this](const TableView &)
+		{
+			return items_(*this);
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			return item_(*this, idx);
+		},
+		*this
+	};
+}
+
+void MultiChoiceMenuItem::defaultOnSelect(View &view, Input::Event e)
+{
+	auto &multiChoiceView = *makeTableView(view.window());
+	view.pushAndShow(multiChoiceView, e);
 }

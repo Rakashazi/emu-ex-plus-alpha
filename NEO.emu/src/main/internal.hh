@@ -1,0 +1,12 @@
+#pragma once
+
+#include <emuframework/Option.hh>
+
+extern Byte1Option optionListAllGames;
+extern Byte1Option optionBIOSType;
+extern Byte1Option optionMVSCountry;
+extern Byte1Option optionTimerInt;
+extern Byte1Option optionCreateAndUseCache;
+extern Byte1Option optionStrictROMChecking;
+
+void setTimerIntOption();

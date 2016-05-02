@@ -39,10 +39,8 @@ public:
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, CallResult res)>;
 	static constexpr bool needsUpDirControl = !Config::envIsPS3;
 
-	FSPicker(Base::Window &win): View{win}, tbl{win} {}
-	void init(Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+	FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 			FilterFunc filter = {}, bool singleDir = false, ResourceFace *face = View::defaultFace);
-	void deinit() override;
 	void place() override;
 	void inputEvent(Input::Event e) override;
 	void draw() override;
@@ -100,8 +98,7 @@ protected:
 		}
 	};
 	OnPathReadError onPathReadError{};
-	MenuItem **textPtr{};
-	TextMenuItem *text{};
+	std::vector<TextMenuItem> text{};
 	std::vector<FS::FileString> dir{};
 	IG::WindowRect viewFrame{};
 	ResourceFace *faceRes{};

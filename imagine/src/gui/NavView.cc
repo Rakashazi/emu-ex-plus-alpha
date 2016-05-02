@@ -39,11 +39,6 @@ void NavView::inputEvent(Input::Event e)
 	}
 }
 
-void NavView::deinitText()
-{
-	text.deinit();
-}
-
 void NavView::place(const Gfx::ProjectionPlane &projP)
 {
 	text.compile(projP);
@@ -79,14 +74,6 @@ void BasicNavView::init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::Pi
 	}
 	if(compiled)
 		Gfx::autoReleaseShaderCompiler();
-}
-
-void BasicNavView::deinit()
-{
-	NavView::deinitText();
-	rightSpr.deinit();
-	leftSpr.deinit();
-	bg.deinit();
 }
 
 void BasicNavView::setBackImage(Gfx::PixmapTexture *img)

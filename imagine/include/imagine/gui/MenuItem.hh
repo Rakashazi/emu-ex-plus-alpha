@@ -15,6 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <initializer_list>
+#include <vector>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/View.hh>
@@ -24,62 +26,111 @@
 class MenuItem
 {
 public:
+	bool isSelectable = true;
+
 	constexpr MenuItem() {}
 	constexpr MenuItem(bool isSelectable):
-		isSelectable{isSelectable}
-		{}
-	bool isSelectable = true;
+		isSelectable{isSelectable} {}
+	virtual ~MenuItem() {};
 	virtual void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const = 0;
 	virtual void compile(const Gfx::ProjectionPlane &projP) = 0;
 	virtual int ySize() = 0;
 	virtual Gfx::GC xSize() = 0;
-	virtual void deinit() = 0;
-	virtual void select(View &parent, Input::Event e) { bug_exit("unimplemented select()"); };
+	virtual bool select(View &parent, Input::Event e) = 0;
 };
 
 class BaseTextMenuItem : public MenuItem
 {
 public:
 	Gfx::Text t{};
-	bool active = true;
 
-	constexpr BaseTextMenuItem() {}
-	constexpr BaseTextMenuItem(const char *str): t(str) {}
-	constexpr BaseTextMenuItem(const char *str, bool isSelectable):
+	BaseTextMenuItem() {}
+	BaseTextMenuItem(const char *str):
+		t{str, View::defaultFace} {}
+	BaseTextMenuItem(const char *str, bool isSelectable):
 		MenuItem(isSelectable),
-		t(str)
-		{}
-	void init(const char *str, bool active, ResourceFace *face = View::defaultFace);
-	void init(const char *str, ResourceFace *face = View::defaultFace);
-	void init(bool active, ResourceFace *face = View::defaultFace);
-	void init();
-	void deinit() override;
+		t{str, View::defaultFace} {}
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	void compile(const Gfx::ProjectionPlane &projP) override;
 	int ySize() override;
 	Gfx::GC xSize() override;
+	void setActive(bool on);
+	bool active();
+
+protected:
+	bool active_ = true;
 };
 
 class TextMenuItem : public BaseTextMenuItem
 {
 public:
-	using SelectDelegate = DelegateFunc<void (TextMenuItem &item, View &parent, Input::Event e)>;
-	SelectDelegate selectD{};
+	using SelectDelegate = DelegateFunc<bool (TextMenuItem &item, View &parent, Input::Event e)>;
 
-	constexpr TextMenuItem() {}
-	constexpr TextMenuItem(const char *str): BaseTextMenuItem(str) {}
-	constexpr TextMenuItem(SelectDelegate selectDel): selectD(selectDel) {}
-	constexpr TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem(str), selectD(selectDel) {}
-	void select(View &parent, Input::Event e) override;
-	SelectDelegate &onSelect() { return selectD; }
+	TextMenuItem() {}
+	TextMenuItem(const char *str, SelectDelegate selectDel): BaseTextMenuItem{str}, selectD{selectDel} {}
+	template<class FUNC>
+	TextMenuItem(const char *str, FUNC &&selectDel): TextMenuItem{str, wrapSelectDelegate(selectDel)} {}
+	bool select(View &parent, Input::Event e) override;
+	void setOnSelect(SelectDelegate onSelect);
+	template<class FUNC>
+	void setOnSelect(FUNC &&onSelect) { setOnSelect(wrapSelectDelegate(onSelect)); }
+	SelectDelegate onSelect() const { return selectD; }
+	template<class FUNC,
+		ENABLE_IF_BOOL(std::is_same<bool, typename IG::function_traits<FUNC>::result_type>::value
+			&& IG::function_traits<FUNC>::arity == 3)>
+	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
+	{
+		return selectDel;
+	}
+	template<class FUNC,
+		ENABLE_IF_BOOL(std::is_same<void, typename IG::function_traits<FUNC>::result_type>::value
+			&& IG::function_traits<FUNC>::arity == 3)>
+	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
+	{
+		// for void (TextMenuItem &, View &, Input::Event)
+		return
+			[=](TextMenuItem &item, View &parent, Input::Event e)
+			{
+				selectDel(item, parent, e);
+				return true;
+			};
+	}
+	template<class FUNC,
+		ENABLE_IF_BOOL(std::is_same<bool, typename IG::function_traits<FUNC>::result_type>::value
+			&& IG::function_traits<FUNC>::arity == 0)>
+	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
+	{
+		// for bool ()
+		return
+			[=](TextMenuItem &item, View &parent, Input::Event e)
+			{
+				return selectDel();
+			};
+	}
+	template<class FUNC,
+		ENABLE_IF_BOOL(std::is_same<void, typename IG::function_traits<FUNC>::result_type>::value
+			&& IG::function_traits<FUNC>::arity == 0)>
+	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
+	{
+		// for void ()
+		return
+			[=](TextMenuItem &item, View &parent, Input::Event e)
+			{
+				selectDel();
+				return true;
+			};
+	}
+
+protected:
+	SelectDelegate selectD{};
 };
 
 class TextHeadingMenuItem : public BaseTextMenuItem
 {
 public:
-	constexpr TextHeadingMenuItem() {}
-	constexpr TextHeadingMenuItem(const char *str): BaseTextMenuItem(str, false) {}
-	void select(View &parent, Input::Event e) override {};
+	TextHeadingMenuItem() {}
+	TextHeadingMenuItem(const char *str): BaseTextMenuItem{str, false} {}
+	bool select(View &parent, Input::Event e) override { return true; };
 };
 
 class BaseDualTextMenuItem : public BaseTextMenuItem
@@ -87,11 +138,10 @@ class BaseDualTextMenuItem : public BaseTextMenuItem
 public:
 	Gfx::Text t2{};
 
-	constexpr BaseDualTextMenuItem() {}
-	constexpr BaseDualTextMenuItem(const char *str): BaseTextMenuItem(str) {}
-	void init(const char *str, const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
-	void init(const char *str2, bool active = 1, ResourceFace *face = View::defaultFace);
-	void deinit() override;
+	BaseDualTextMenuItem() {}
+	BaseDualTextMenuItem(const char *str, const char *str2):
+		BaseTextMenuItem{str},
+		t2{str2, View::defaultFace} {}
 	void compile(const Gfx::ProjectionPlane &projP) override;
 	void draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const;
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
@@ -101,64 +151,96 @@ class DualTextMenuItem : public BaseDualTextMenuItem
 {
 public:
 	using SelectDelegate = DelegateFunc<void (DualTextMenuItem &item, View &parent, Input::Event e)>;
-	SelectDelegate selectD{};
 
-	constexpr DualTextMenuItem() {}
-	constexpr DualTextMenuItem(const char *str): BaseDualTextMenuItem(str) {}
-	constexpr DualTextMenuItem(SelectDelegate selectDel): selectD(selectDel) {}
-	constexpr DualTextMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectD(selectDel) {}
-	void select(View &parent, Input::Event e) override;
-	SelectDelegate &onSelect() { return selectD; }
+	DualTextMenuItem() {}
+	DualTextMenuItem(const char *str, const char *str2): BaseDualTextMenuItem{str, str2} {}
+	DualTextMenuItem(const char *str, const char *str2, SelectDelegate selectDel): BaseDualTextMenuItem{str, str2}, selectD{selectDel} {}
+	bool select(View &parent, Input::Event e) override;
+	void setOnSelect(SelectDelegate onSelect);
+
+protected:
+	SelectDelegate selectD{};
 };
 
 
 class BoolMenuItem : public BaseDualTextMenuItem
 {
 public:
-	typedef DelegateFunc<void (BoolMenuItem &item, View &parent, Input::Event e)> SelectDelegate;
+	using SelectDelegate = DelegateFunc<void (BoolMenuItem &item, View &parent, Input::Event e)>;
+
+	BoolMenuItem() {}
+	BoolMenuItem(const char *str, bool val, SelectDelegate selectDel);
+	BoolMenuItem(const char *str, bool val, const char *offStr, const char *onStr, SelectDelegate selectDel);
+	bool boolValue() const;
+	bool setBoolValue(bool val, View &view);
+	bool setBoolValue(bool val);
+	bool flipBoolValue(View &view);
+	bool flipBoolValue();
+	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	bool select(View &parent, Input::Event e) override;
+	void setOnSelect(SelectDelegate onSelect);
+
+protected:
 	SelectDelegate selectD{};
-	SelectDelegate &onSelect() { return selectD; }
 	const char *offStr = "Off", *onStr = "On";
 	bool on = false;
 	bool onOffStyle = true;
-
-	constexpr BoolMenuItem() {}
-	constexpr BoolMenuItem(const char *str): BaseDualTextMenuItem(str) {}
-	constexpr BoolMenuItem(const char *str, const char *offStr, const char *onStr): BaseDualTextMenuItem(str),
-		offStr(offStr), onStr(onStr) {}
-	constexpr BoolMenuItem(SelectDelegate selectDel): selectD(selectDel) {}
-	constexpr BoolMenuItem(const char *str, SelectDelegate selectDel): BaseDualTextMenuItem(str), selectD(selectDel) {}
-	constexpr BoolMenuItem(const char *str, const char *offStr, const char *onStr, SelectDelegate selectDel): BaseDualTextMenuItem(str),
-		selectD(selectDel), offStr(offStr), onStr(onStr), onOffStyle(false) {}
-	void init(const char *str, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
-	void init(const char *str, const char *offStr, const char *onStr, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
-	void init(bool on, bool active = 1, ResourceFace *face = View::defaultFace);
-	void init(const char *offStr, const char *onStr, bool on, bool active = 1, ResourceFace *face = View::defaultFace);
-	void set(bool val, View &view);
-	void toggle(View &view);
-	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
-	void select(View &parent, Input::Event e) override;
 };
 
-class MultiChoiceMenuItem : public DualTextMenuItem
+class MultiChoiceMenuItem : public BaseDualTextMenuItem
 {
 public:
-	typedef DelegateFunc<void (MultiChoiceMenuItem &item, View &parent, int val)> ValueDelegate;
-	ValueDelegate valueD{};
-	ValueDelegate &onValue() { return valueD; }
-	const char **choiceStr{};
-	int choice = 0, choices = 0, baseVal = 0;
+	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &item, View &parent, Input::Event e)>;
+	using ItemsDelegate = DelegateFunc<uint (const MultiChoiceMenuItem &item)>;
+	using ItemDelegate = DelegateFunc<TextMenuItem& (const MultiChoiceMenuItem &item, uint idx)>;
 
-	constexpr MultiChoiceMenuItem() {}
-	constexpr MultiChoiceMenuItem(const char *str): DualTextMenuItem(str) {}
-	constexpr MultiChoiceMenuItem(ValueDelegate valueD): valueD(valueD) {}
-	constexpr MultiChoiceMenuItem(const char *str, ValueDelegate valueD): DualTextMenuItem(str), valueD(valueD) {}
-	void init(const char *str, const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
-	void init(const char **choiceStr, int val, int max, int baseVal = 0, bool active = 1, const char *initialDisplayStr = 0, ResourceFace *face = View::defaultFace);
+	MultiChoiceMenuItem() {}
+	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
+	MultiChoiceMenuItem(const char *str, uint selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
+	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, ItemsDelegate items, ItemDelegate item);
+	MultiChoiceMenuItem(const char *str, uint selected, ItemsDelegate items, ItemDelegate item);
+	template <class C>
+	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, C &item, SelectDelegate selectDel):
+		MultiChoiceMenuItem{str, displayStr, selected,
+		[&item](const MultiChoiceMenuItem &) -> int
+		{
+			return IG::size(item);
+		},
+		[&item](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		{
+			return IG::data(item)[idx];
+		},
+		selectDel}
+	{}
+	template <class C>
+	MultiChoiceMenuItem(const char *str, uint selected, C &item, SelectDelegate selectDel):
+		MultiChoiceMenuItem{str, nullptr, selected, item, selectDel}
+	{}
+	template <class C>
+	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, C &item):
+		MultiChoiceMenuItem{str, displayStr, selected, item, {}}
+	{}
+	template <class C>
+	MultiChoiceMenuItem(const char *str, uint selected, C &item):
+		MultiChoiceMenuItem{str, nullptr, selected, item, {}}
+	{}
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
-	bool updateVal(int val, View &view);
-	void setVal(int val, View &view);
-	bool set(int val, Input::Event e, View &view);
-	virtual void doSet(int val, View &view) { valueD(*this, view, val); }
-	void cycle(int direction, View &view);
+	void compile(const Gfx::ProjectionPlane &projP) override;
+	uint selected() const;
+	uint items() const;
+	bool setSelected(uint idx, View &view);
+	bool setSelected(uint idx);
+	int cycleSelected(int offset, View &view);
+	int cycleSelected(int offset);
+	bool select(View &parent, Input::Event e) override;
+	void setOnSelect(SelectDelegate onSelect);
+	void setDisplayString(const char *str);
+	TableView *makeTableView(Base::Window &window);
+	void defaultOnSelect(View &view, Input::Event e);
+
+protected:
+	uint selected_ = 0;
+	SelectDelegate selectD{};
+	ItemsDelegate items_{};
+	ItemDelegate item_{};
 };

@@ -8,7 +8,7 @@ include $(imagineSrcDir)/fs/system.mk
 SRC += gui/AlertView.cc \
 gui/FSPicker.cc \
 gui/MenuItem.cc \
-gui/MultiChoiceView.cc \
+gui/TextTableView.cc \
 gui/NavView.cc \
 gui/ScrollView.cc \
 gui/TableView.cc \

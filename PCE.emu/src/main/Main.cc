@@ -15,9 +15,10 @@
 
 #define LOGTAG "main"
 #include "MDFN.hh"
-#include <emuframework/EmuSystem.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuApp.hh>
+#include "../../../EmuFramework/include/emuframework/EmuAppInlines.hh"
 #include "EmuConfig.hh"
+#include "internal.hh"
 #include <imagine/util/ScopeGuard.hh>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
@@ -25,17 +26,9 @@
 
 using namespace IG;
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 
-namespace PCE_Fast
-{
-	void applyVideoFormat(MDFN_Surface &espec);
-	void applySoundFormat(EmulateSpecStruct *espec);
-	extern bool AVPad6Enabled[5];
-	extern vce_t vce;
-}
-
-static bool hasHuCardExtension(const char *name)
+bool hasHuCardExtension(const char *name)
 {
 	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx");
 }
@@ -50,11 +43,9 @@ static bool hasPCEWithCDExtension(const char *name)
 	return hasHuCardExtension(name) || hasCDExtension(name);
 }
 
-Byte1Option optionArcadeCard(CFGKEY_ARCADE_CARD, 1);
+Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
 FS::PathString sysCardPath{};
-static PathOption optionSysCardPath(CFGKEY_SYSCARD_PATH, sysCardPath, "");
-
-#include <emuframework/CommonGui.hh>
+static PathOption optionSysCardPath{CFGKEY_SYSCARD_PATH, sysCardPath, ""};
 
 const char *EmuSystem::inputFaceBtnName = "I/II";
 const char *EmuSystem::inputCenterBtnName = "Select/Run";
@@ -135,8 +126,8 @@ void EmuSystem::writeConfig(IO &io)
 	optionSysCardPath.writeToIO(io);
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasPCEWithCDExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasHuCardExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
 static std::vector<CDIF *> CDInterfaces;
 

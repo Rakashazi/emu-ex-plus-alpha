@@ -25,12 +25,11 @@
 #include <stella/emucore/StateManager.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Paddles.hxx>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppInlines.hh>
 #include "SoundGeneric.hh"
-#include <emuframework/EmuSystem.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
-#include <emuframework/CommonGui.hh>
+#include "internal.hh"
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 extern OSystem osystem;
 static StateManager stateManager{osystem};
@@ -38,6 +37,7 @@ Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 static const uint vidBufferX = 160, vidBufferY = 320;
 alignas(8) static uInt16 pixBuff[vidBufferX*vidBufferY]{};
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "Select/Reset";
 const uint EmuSystem::inputFaceBtns = 2;
@@ -46,7 +46,7 @@ const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 const uint EmuSystem::maxPlayers = 2;
 const char *EmuSystem::configFilename = "2600emu.config";
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
+const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 {
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
@@ -156,8 +156,8 @@ static bool hasVCSRomExtension(const char *name)
 	return string_hasDotExtension(name, "a26") || string_hasDotExtension(name, "bin");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasVCSRomExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasVCSRomExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasVCSRomExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasVCSRomExtension;
 
 static char saveSlotChar(int slot)
 {

@@ -104,16 +104,10 @@ void TextEntry::place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP)
 CallResult TextEntry::init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP)
 {
 	string_copy(str, initText);
-	t.init(str, face);
+	t = {str, face};
 	t.compile(projP);
 	acceptingInput = 0;
 	return OK;
-}
-
-void TextEntry::deinit()
-{
-	Input::hideSoftInput();
-	t.deinit();
 }
 
 void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, ResourceFace *face)
@@ -126,7 +120,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 			Gfx::autoReleaseShaderCompiler();
 	}
 	#endif
-	message.init(msgText, face);
+	message = {msgText, face};
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry.init(initialContent, face, projP);
 	textEntry.setAcceptingInput(1);
@@ -151,15 +145,9 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 	#endif
 }
 
-void CollectTextInputView::deinit()
+CollectTextInputView::~CollectTextInputView()
 {
-	#ifndef CONFIG_BASE_ANDROID
-	cancelSpr.deinit();
-	#endif
-	message.deinit();
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textEntry.deinit();
-	#else
+	#ifdef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	Input::cancelSysTextInput();
 	#endif
 }

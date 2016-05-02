@@ -119,6 +119,7 @@ endif
 
 SRC += main/Main.cc \
 main/EmuControls.cc \
+main/EmuMenuViews.cc \
 main/Cheats.cc \
 fileio/fileio.cc \
 $(addprefix $(gplusPath)/,$(gplusSrc))

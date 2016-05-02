@@ -6,48 +6,46 @@
 #include <cheats.h>
 extern CollectTextInputView textInputView;
 
-void SystemEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(const char *str)
 {
 	string_copy(Cheat.c[idx].name, str);
 	name.t.setString(Cheat.c[idx].name);
 	name.compile(projP);
 }
 
-void SystemEditCheatView::removed()
-{
-	S9xDeleteCheat(idx);
-	refreshCheatViews();
-}
-
-void SystemEditCheatView::init(int cheatIdx)
-{
-	idx = cheatIdx;
-	auto &cheat = Cheat.c[idx];
-	logMsg("got cheat with addr 0x%.6x val 0x%.2x saved val 0x%.2x", cheat.address, cheat.byte, cheat.saved_byte);
-
-	uint i = 0;
-	loadNameItem(cheat.name, item, i);
-
-	name_ = "Edit Address/Values";
-	string_printf(addrStr, "%x", cheat.address);
-	addr.init(addrStr); item[i++] = &addr;
-	string_printf(valueStr, "%x", cheat.byte);
-	value.init(valueStr); item[i++] = &value;
-	if(!cheat.saved)
-		savedStr[0] = 0;
-	else
-		string_printf(savedStr, "%x", cheat.saved_byte);
-	saved.init(savedStr); item[i++] = &saved;
-
-	loadRemoveItem(item, i);
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
-}
-
-SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", win),
+EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
+	BaseEditCheatView
+	{
+		"Edit Address/Values",
+		win,
+		Cheat.c[idx].name,
+		[this](const TableView &)
+		{
+			return 5;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return name;
+				case 1: return addr;
+				case 2: return value;
+				case 3: return saved;
+				default: return remove;
+			}
+		},
+		[this](TextMenuItem &, View &, Input::Event)
+		{
+			S9xDeleteCheat(idx);
+			refreshCheatViews();
+			dismiss();
+			return true;
+		}
+	},
 	addr
 	{
 		"Address",
+		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -88,6 +86,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	value
 	{
 		"Value",
+		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -127,6 +126,7 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 	saved
 	{
 		"Saved Value",
+		savedStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -179,35 +179,52 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win): EditCheatView("", w
 				};
 			modalViewController.pushAndShow(textInputView, e);
 		}
-	}
-{}
-
-void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
+	},
+	idx{cheatIdx}
 {
-	addCode.init(); item.emplace_back(&addCode);
+	auto &cheat = Cheat.c[idx];
+	logMsg("got cheat with addr 0x%.6x val 0x%.2x saved val 0x%.2x", cheat.address, cheat.byte, cheat.saved_byte);
+	string_printf(addrStr, "%x", cheat.address);
+	string_printf(valueStr, "%x", cheat.byte);
+	if(!cheat.saved)
+		savedStr[0] = 0;
+	else
+		string_printf(savedStr, "%x", cheat.saved_byte);
 }
 
-void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
+void EmuEditCheatListView::loadCheatItems()
 {
 	uint cheats = Cheat.num_cheats;
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
-		cheat[c].init(Cheat.c[c].name); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(Cheat.c[c].name,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(c);
+				auto &editCheatView = *new EmuEditCheatView{window(), c};
 				viewStack.pushAndShow(editCheatView, e);
-			};
+			});
 	}
 }
 
-EditCheatListView::EditCheatListView(Base::Window &win):
-	BaseEditCheatListView(win),
+EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+	BaseEditCheatListView
+	{
+		win,
+		[this](const TableView &)
+		{
+			return 1 + cheat.size();
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return addCode;
+				default: return cheat[idx - 1];
+			}
+		}
+	},
 	addCode
 	{
 		"Add Game Genie/Action Replay/Gold Finger Code",
@@ -277,25 +294,30 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
-{}
+{
+	loadCheatItems();
+}
 
-void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
+EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+{
+	loadCheatItems();
+}
+
+void EmuCheatsView::loadCheatItems()
 {
 	uint cheats = Cheat.num_cheats;
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
-		cheat[c].init(Cheat.c[c].name, Cheat.c[c].enabled); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(Cheat.c[c].name, Cheat.c[c].enabled,
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
-				item.toggle(*this);
-				if(item.on)
+				bool on = item.flipBoolValue(*this);
+				if(on)
 					S9xEnableCheat(c);
 				else
 					S9xDisableCheat(c);
-			};
+			});
 	}
 }

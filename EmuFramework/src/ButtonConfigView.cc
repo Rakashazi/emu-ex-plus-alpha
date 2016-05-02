@@ -30,8 +30,8 @@ void ButtonConfigSetView::initPointerUI()
 	if(!pointerUIIsInit())
 	{
 		logMsg("init pointer UI elements");
-		unbind.init("Unbind", View::defaultFace);
-		cancel.init("Cancel", View::defaultFace);
+		unbind = {"Unbind", View::defaultFace};
+		cancel = {"Cancel", View::defaultFace};
 		unbindB.x2 = 1;
 	}
 }
@@ -39,7 +39,7 @@ void ButtonConfigSetView::initPointerUI()
 
 void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, SetDelegate onSet)
 {
-	text.init(str.data(), View::defaultFace);
+	text = {str.data(), View::defaultFace};
 	this->dev = &dev;
 	savedDev = nullptr;
 	string_copy(actionStr, actionName);
@@ -48,19 +48,8 @@ void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, SetDe
 	onSetD = onSet;
 }
 
-void ButtonConfigSetView::deinit()
+ButtonConfigSetView::~ButtonConfigSetView()
 {
-	savedDev = nullptr;
-	text.deinit();
-	#ifdef CONFIG_INPUT_POINTING_DEVICES
-	if(pointerUIIsInit())
-	{
-		unbind.deinit();
-		cancel.deinit();
-		unbindB = {};
-		cancelB = {};
-	}
-	#endif
 	Input::setHandleVolumeKeys(false);
 	Input::setKeyRepeat(true);
 }
@@ -123,9 +112,8 @@ void ButtonConfigSetView::inputEvent(Input::Event e)
 				auto &win = window();
 				dismiss();
 				viewStack.popTo(rootIMView);
-				auto &imdMenu = *new InputManagerDeviceView{win, rootIMView};
-				imdMenu.init(inputDevConf[d->idx]);
-				imdMenu.name_ = rootIMView.inputDevNameStr[d->idx];
+				auto &imdMenu = *new InputManagerDeviceView{win, rootIMView, inputDevConf[d->idx]};
+				imdMenu.setName(rootIMView.inputDevNameStr[d->idx]);
 				rootIMView.pushAndShow(imdMenu, e);
 			}
 			else
@@ -293,64 +281,40 @@ void ButtonConfigView::inputEvent(Input::Event e)
 	}
 }
 
-void ButtonConfigView::init(const KeyCategory *cat, InputDeviceConfig &devConf)
-{
-	name_ = cat->name;
-	logMsg("init button config view for %s", Input::Event::mapName(devConf.dev->map()));
-	this->cat = cat;
-	this->devConf = &devConf;
-	auto keyConfig = devConf.keyConf();
-
-	uint i = 0;
-	uint tblEntries = cat->keys + 1;
-	text = new MenuItem*[tblEntries];
-	btn = new BtnConfigEntry[cat->keys];
-	reset.init(); text[i++] = &reset;
-	iterateTimes(cat->keys, i2)
-	{
-		auto key = keyConfig.key(*cat)[i2];
-		btn[i2].str = makeKeyNameStr(key, devConf.dev->keyName(key));
-		btn[i2].item.init(cat->keyName[i2], btn[i2].str.data());
-		btn[i2].item.onSelect() =
-			[this, i2](DualTextMenuItem &item, View &, Input::Event e)
-			{
-				auto keyToSet = i2;
-				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
-				btnSetView.init(*this->devConf->dev, btn[keyToSet].item.t.str,
-					[this, keyToSet](Input::Event e)
-					{
-						onSet(e, keyToSet);
-					}
-				);
-				modalViewController.pushAndShow(btnSetView, e);
-			};
-		text[i++] = &btn[i2].item;
-	}
-
-	assert(i <= tblEntries);
-	TableView::init(text, i);
-}
-
-void ButtonConfigView::deinit()
+ButtonConfigView::~ButtonConfigView()
 {
 	logMsg("deinit ButtonConfigView");
-	TableView::deinit();
 	delete[] btn;
-	delete[] text;
 }
 
-ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMView):
-	TableView{win},
-	rootIMView{rootIMView},
+ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMView_, const KeyCategory *cat_, InputDeviceConfig &devConf_):
+	TableView
+	{
+		cat_->name,
+		win,
+		[this](const TableView &)
+		{
+			return 1 + cat->keys;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			if(idx == 0)
+				return reset;
+			else
+				return btn[idx-1].item;
+		}
+	},
+	rootIMView{rootIMView_},
 	reset
 	{
 		"Unbind All",
 		[this](TextMenuItem &t, View &, Input::Event e)
 		{
 			auto &ynAlertView = *new YesNoAlertView{window(), "Really unbind all keys in this category?"};
-			ynAlertView.onYes() =
-				[this](Input::Event e)
+			ynAlertView.setOnYes(
+				[this](TextMenuItem &, View &view, Input::Event e)
 				{
+					view.dismiss();
 					auto conf = mutableConfForDeviceConf(*devConf);
 					if(!conf)
 						return;
@@ -361,8 +325,33 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 						btn[i].item.t2.compile(projP);
 					}
 					keyMapping.buildAll();
-				};
+				});
 			modalViewController.pushAndShow(ynAlertView, e);
 		}
 	}
-{}
+{
+	logMsg("init button config view for %s", Input::Event::mapName(devConf_.dev->map()));
+	cat = cat_;
+	devConf = &devConf_;
+	auto keyConfig = devConf_.keyConf();
+	btn = new BtnConfigEntry[cat->keys];
+	iterateTimes(cat->keys, i)
+	{
+		auto key = keyConfig.key(*cat)[i];
+		btn[i].str = makeKeyNameStr(key, devConf_.dev->keyName(key));
+		btn[i].item.t.setString(cat->keyName[i]);
+		btn[i].item.setOnSelect(
+			[this, i](DualTextMenuItem &item, View &, Input::Event e)
+			{
+				auto keyToSet = i;
+				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
+				btnSetView.init(*devConf->dev, btn[keyToSet].item.t.str,
+					[this, keyToSet](Input::Event e)
+					{
+						onSet(e, keyToSet);
+					}
+				);
+				modalViewController.pushAndShow(btnSetView, e);
+			});
+	}
+}

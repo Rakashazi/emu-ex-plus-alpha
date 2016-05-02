@@ -21,18 +21,27 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
+#include <vector>
 
-class AlertView : public View
+class BaseAlertView : public View
 {
 public:
-	AlertView(Base::Window &win, const char *label, MenuItem **menuItem);
-	AlertView(Base::Window &win, const char *label, MenuItem **menuItem, uint menuItems);
+	BaseAlertView(Base::Window &win, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item);
+	template <class CONTAINER>
+	BaseAlertView(Base::Window &win, const char *label, CONTAINER &item):
+		BaseAlertView
+		{
+			win,
+			label,
+			[&item](const TableView &) { return IG::size(item); },
+			[&item](const TableView &, uint idx) -> MenuItem& { return TableView::derefMenuItem(IG::data(item)[idx]); }
+		} {}
 	IG::WindowRect &viewRect() override { return rect; }
-	void deinit() override;
 	void place() override;
 	void inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override;
+	void setLabel(const char *label);
 
 protected:
 	Gfx::GCRect labelFrame{};
@@ -41,20 +50,33 @@ protected:
 	IG::WindowRect rect{};
 };
 
-class YesNoAlertView : public AlertView
+class AlertView : public BaseAlertView
 {
 public:
-	using InputDelegate = DelegateFunc<void (Input::Event e)>;
-
-	YesNoAlertView(Base::Window &win, const char *label, const char *choice1 = {}, const char *choice2 = {});
-	void deinit() override;
-	// Optional delegates
-	InputDelegate &onYes() { return onYesD; }
-	InputDelegate &onNo() { return onNoD; }
+	AlertView(Base::Window &win, const char *label, uint menuItems);
+	void setItem(uint idx, const char *name, TextMenuItem::SelectDelegate del);
 
 protected:
-	InputDelegate onYesD{};
-	InputDelegate onNoD{};
-	MenuItem *menuItem[2]{};
+	std::vector<TextMenuItem> item;
+};
+
+class YesNoAlertView : public BaseAlertView
+{
+public:
+	YesNoAlertView(Base::Window &win, const char *label, const char *choice1 = {}, const char *choice2 = {});
+	void setOnYes(TextMenuItem::SelectDelegate del);
+	template<class C>
+	void setOnYes(C &&del)
+	{
+		setOnYes(TextMenuItem::wrapSelectDelegate(del));
+	}
+	void setOnNo(TextMenuItem::SelectDelegate del);
+	template<class C>
+	void setOnNo(C &&del)
+	{
+		setOnNo(TextMenuItem::wrapSelectDelegate(del));
+	}
+
+protected:
 	TextMenuItem yes, no;
 };

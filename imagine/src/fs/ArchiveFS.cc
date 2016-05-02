@@ -68,7 +68,7 @@ ArchiveIO ArchiveEntry::moveIO()
 
 void ArchiveEntry::moveIO(ArchiveIO io)
 {
-	arch = std::move(io.releaseArchive());
+	arch = io.releaseArchive();
 }
 
 static void setReadSupport(struct archive *arch)

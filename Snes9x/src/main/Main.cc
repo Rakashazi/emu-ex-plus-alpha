@@ -1,8 +1,10 @@
+
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include "../../../EmuFramework/include/emuframework/EmuAppInlines.hh"
 #include "EmuConfig.hh"
+#include "internal.hh"
 #include <imagine/mem/mem.h>
 
 #include <snes9x.h>
@@ -17,20 +19,20 @@
 #include <snapshot.h>
 #include <cheats.h>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
 
 #ifndef SNES9X_VERSION_1_4
 
-static const int SNES_AUTO_INPUT = 255;
-static const int SNES_JOYPAD = CTL_JOYPAD;
-static const int SNES_MOUSE_SWAPPED = CTL_MOUSE;
-static const int SNES_SUPERSCOPE = CTL_SUPERSCOPE;
-static int snesInputPort = SNES_AUTO_INPUT;
+const int SNES_AUTO_INPUT = 255;
+const int SNES_JOYPAD = CTL_JOYPAD;
+const int SNES_MOUSE_SWAPPED = CTL_MOUSE;
+const int SNES_SUPERSCOPE = CTL_SUPERSCOPE;
+int snesInputPort = SNES_AUTO_INPUT;
 static int snesActiveInputPort = SNES_JOYPAD;
 
 #else
 
-static int snesInputPort = SNES_JOYPAD;
+int snesInputPort = SNES_JOYPAD;
 static const int &snesActiveInputPort = snesInputPort;
 
 #endif
@@ -65,13 +67,10 @@ enum {
 	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277
 };
 
-static Byte1Option optionMultitap(CFGKEY_MULTITAP, 0);
+Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
 #ifndef SNES9X_VERSION_1_4
-static Byte1Option optionBlockInvalidVRAMAccess(CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1);
+Byte1Option optionBlockInvalidVRAMAccess{CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1};
 #endif
-
-#include <emuframework/CommonGui.hh>
-#include <emuframework/CommonCheatGui.hh>
 
 const char *EmuSystem::inputFaceBtnName = "A/B/X/Y";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
@@ -165,8 +164,8 @@ static bool hasSNESExtension(const char *name)
 			string_hasDotExtension(name, "fig");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasSNESExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasSNESExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasSNESExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasSNESExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
@@ -460,7 +459,7 @@ uint EmuSystem::multiresVideoBaseX() { return 256; }
 uint EmuSystem::multiresVideoBaseY() { return 239; }
 bool touchControlsApplicable() { return snesActiveInputPort == SNES_JOYPAD; }
 
-static void setupSNESInput()
+void setupSNESInput()
 {
 	#ifndef SNES9X_VERSION_1_4
 	int inputSetup = snesInputPort;

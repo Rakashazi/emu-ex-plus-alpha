@@ -134,8 +134,7 @@ void EmuInputView::inputEvent(Input::Event e)
 						logMsg("open load game menu from key event");
 						restoreMenuFromGame();
 						viewStack.popToRoot();
-						auto &fPicker = *new EmuFilePicker{window()};
-						fPicker.init(false);
+						auto &fPicker = *new EmuFilePicker{window(), false};
 						viewStack.useNavView = 0;
 						viewStack.pushAndShow(fPicker, e);
 						return;
@@ -169,17 +168,19 @@ void EmuInputView::inputEvent(Input::Event e)
 						else
 						{
 							auto &ynAlertView = *new YesNoAlertView{window(), "Really Overwrite State?"};
-							ynAlertView.onYes() =
-								[](Input::Event e)
+							ynAlertView.setOnYes(
+								[](TextMenuItem &, View &view, Input::Event e)
 								{
+									view.dismiss();
 									doSaveState();
 									startGameFromMenu();
-								};
-							ynAlertView.onNo() =
-								[](Input::Event e)
+								});
+							ynAlertView.setOnNo(
+								[](TextMenuItem &, View &view, Input::Event e)
 								{
+									view.dismiss();
 									startGameFromMenu();
-								};
+								});
 							modalViewController.pushAndShow(ynAlertView, e);
 							restoreMenuFromGame();
 						}
@@ -228,11 +229,11 @@ void EmuInputView::inputEvent(Input::Event e)
 					{
 						logMsg("request exit from key event");
 						auto &ynAlertView = *new YesNoAlertView{window(), "Really Exit?"};
-						ynAlertView.onYes() =
-							[](Input::Event e)
+						ynAlertView.setOnYes(
+							[](TextMenuItem &, View &view, Input::Event e)
 							{
 								Base::exit();
-							};
+							});
 						modalViewController.pushAndShow(ynAlertView, e);
 						restoreMenuFromGame();
 						return;

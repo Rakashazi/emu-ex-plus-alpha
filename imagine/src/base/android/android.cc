@@ -459,8 +459,10 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 				// Explicitly setting the format here seems to fix the problem (Android driver bug?).
 				// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
 				if(Config::DEBUG_BUILD)
+				{
 					logMsg("setting window format to %d (current %d) after surface creation",
 						deviceWindow()->nativePixelFormat(), ANativeWindow_getFormat(nWin));
+				}
 				jSetWinFormat(activity->env, activity->clazz, deviceWindow()->nativePixelFormat());
 			}
 			deviceWindow()->setNativeWindow(nWin);

@@ -123,37 +123,45 @@ void readCheatFile()
 	}
 }
 
-void SystemEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(const char *str)
 {
 	string_copy(cheat->name, str);
 	cheatsModified = 1;
 }
 
-void SystemEditCheatView::removed()
-{
-	cheatList.remove(*cheat);
-	cheatsModified = 1;
-	refreshCheatViews();
-	applyCheats();
-}
-
-void SystemEditCheatView::init(GbcCheat &cheat)
-{
-	this->cheat = &cheat;
-
-	uint i = 0;
-	loadNameItem(cheat.name, item, i);
-	ggCode.init(cheat.code); item[i++] = &ggCode;
-	loadRemoveItem(item, i);
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
-}
-
-SystemEditCheatView::SystemEditCheatView(Base::Window &win):
-	EditCheatView("Edit Code", win),
+EmuEditCheatView::EmuEditCheatView(Base::Window &win, GbcCheat &cheat_):
+	BaseEditCheatView
+	{
+		"Edit Code",
+		win,
+		cheat_.name,
+		[this](const TableView &)
+		{
+			return 3;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return name;
+				case 1: return ggCode;
+				default: return remove;
+			}
+		},
+		[this](TextMenuItem &, View &, Input::Event)
+		{
+			cheatList.remove(*cheat);
+			cheatsModified = 1;
+			refreshCheatViews();
+			applyCheats();
+			dismiss();
+			return true;
+		}
+	},
 	ggCode
 	{
 		"Code",
+		cheat_.code,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -181,38 +189,27 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 				};
 			modalViewController.pushAndShow(textInputView, e);
 		}
-	}
+	},
+	cheat{&cheat_}
 {}
 
-void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
-{
-	addGGGS.init(); item.emplace_back(&addGGGS);
-}
-
-void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
-{
-	uint cheats = cheatList.size();
-	cheat.clear();
-	cheat.reserve(cheats);
-	auto it = cheatList.begin();
-	iterateTimes(cheats, c)
+EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+	BaseEditCheatListView
 	{
-		cheat.emplace_back();
-		auto &thisCheat = *it;
-		cheat[c].init(thisCheat.name); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
-			[this, c](TextMenuItem &, View &, Input::Event e)
+		win,
+		[this](const TableView &)
+		{
+			return 1 + cheat.size();
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
 			{
-				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(cheatList[c]);
-				viewStack.pushAndShow(editCheatView, e);
-			};
-		++it;
-	}
-}
-
-EditCheatListView::EditCheatListView(Base::Window &win):
-	BaseEditCheatListView(win),
+				case 0: return addGGGS;
+				default: return cheat[idx - 1];
+			}
+		}
+	},
 	addGGGS
 	{
 		"Add Game Genie / GameShark Code",
@@ -274,9 +271,35 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
-{}
+{
+	loadCheatItems();
+}
 
-void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
+void EmuEditCheatListView::loadCheatItems()
+{
+	uint cheats = cheatList.size();
+	cheat.clear();
+	cheat.reserve(cheats);
+	auto it = cheatList.begin();
+	iterateTimes(cheats, c)
+	{
+		auto &thisCheat = *it;
+		cheat.emplace_back(thisCheat.name,
+			[this, c](TextMenuItem &, View &, Input::Event e)
+			{
+				auto &editCheatView = *new EmuEditCheatView{window(), cheatList[c]};
+				viewStack.pushAndShow(editCheatView, e);
+			});
+		++it;
+	}
+}
+
+EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+{
+	loadCheatItems();
+}
+
+void EmuCheatsView::loadCheatItems()
 {
 	uint cheats = cheatList.size();
 	cheat.clear();
@@ -284,18 +307,16 @@ void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
 	auto it = cheatList.begin();
 	iterateTimes(cheats, cIdx)
 	{
-		cheat.emplace_back();
 		auto &thisCheat = *it;
-		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item.emplace_back(&cheat[cIdx]);
-		cheat[cIdx].onSelect() =
+		cheat.emplace_back(thisCheat.name, thisCheat.isOn(),
 			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{
-				item.toggle(*this);
+				item.flipBoolValue(*this);
 				auto &c = cheatList[cIdx];
 				c.toggleOn();
 				cheatsModified = 1;
 				applyCheats();
-			};
+			});
 		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
 		++it;
 	}

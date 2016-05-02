@@ -464,7 +464,7 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 			}
 			auto name = entry.name();
 			logMsg("archive file entry:%s", entry.name());
-			if(EmuFilePicker::defaultFsFilter(name))
+			if(EmuSystem::defaultFsFilter(name))
 			{
 				io = entry.moveIO();
 				break;

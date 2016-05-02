@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <emuframework/MenuView.hh>
 #include <emuframework/EmuInput.hh>
 
@@ -29,9 +30,9 @@ public:
 	OnIdentInputDelegate onIdentInput{};
 
 	IdentInputDeviceView(Base::Window &win): View(win) {}
+	~IdentInputDeviceView() override;
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init();
-	void deinit() override;
 	void place() override;
 	void inputEvent(Input::Event e) override;
 	void draw() override;
@@ -53,14 +54,14 @@ private:
 	TextMenuItem systemOptions{};
 	TextHeadingMenuItem deviceListHeading{};
 	TextMenuItem inputDevName[Input::MAX_DEVS]{};
-	MenuItem *item[Input::MAX_DEVS + 7]{};
+	StaticArrayList<MenuItem*, Input::MAX_DEVS + 7> item{};
+
+	void loadItems();
 
 public:
 	char inputDevNameStr[Input::MAX_DEVS][80]{};
 
 	InputManagerView(Base::Window &win);
-	void init();
-	void deinit() override;
 	void onShow() override;
 };
 
@@ -68,8 +69,8 @@ class InputManagerOptionsView : public TableView
 {
 private:
 	#ifdef CONFIG_BASE_ANDROID
-	MultiChoiceSelectMenuItem relativePointerDecel{};
-	void relativePointerDecelInit();
+	TextMenuItem relativePointerDecelItem[3];
+	MultiChoiceMenuItem relativePointerDecel{};
 	#endif
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	BoolMenuItem mogaInputSystem{};
@@ -82,25 +83,25 @@ private:
 	BoolMenuItem keepBtActive{};
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	MultiChoiceSelectMenuItem btScanSecs{};
-	void btScanSecsInit();
+	TextMenuItem btScanSecsItem[5];
+	MultiChoiceMenuItem btScanSecs{};
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	BoolMenuItem btScanCache{};
 	#endif
 	BoolMenuItem altGamepadConfirm{};
-	MenuItem *item[10]{};
+	StaticArrayList<MenuItem*, 10> item{};
 
 public:
 	InputManagerOptionsView(Base::Window &win);
-	void init();
 };
 
 class InputManagerDeviceView : public TableView
 {
 private:
 	InputManagerView &rootIMView;
-	MultiChoiceSelectMenuItem player{};
+	TextMenuItem playerItem[6];
+	MultiChoiceMenuItem player{};
 	char profileStr[128]{};
 	TextMenuItem loadProfile{};
 	TextMenuItem renameProfile{};
@@ -114,14 +115,15 @@ private:
 	BoolMenuItem joystickAxisHatDPad{};
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
 	TextMenuItem inputCategory[EmuControls::MAX_CATEGORIES]{};
-	MenuItem *item[EmuControls::MAX_CATEGORIES + 11]{};
+	StaticArrayList<MenuItem*, EmuControls::MAX_CATEGORIES + 11> item{};
 	InputDeviceConfig *devConf{};
+	uint inputCategories = 0;
 
 	void confirmICadeMode(Input::Event e);
+	void loadItems();
 
 public:
-	InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView);
-
-	void init(InputDeviceConfig &devConf);
+	InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView, InputDeviceConfig &devConf);
+	void setPlayer(int playerVal);
 	void onShow() override;
 };

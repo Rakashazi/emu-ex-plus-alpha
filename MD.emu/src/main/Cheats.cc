@@ -519,37 +519,45 @@ void ROMCheatUpdate()
 	}
 }
 
-void SystemEditCheatView::renamed(const char *str)
+void EmuEditCheatView::renamed(const char *str)
 {
 	string_copy(cheat->name, str);
 	cheatsModified = 1;
 }
 
-void SystemEditCheatView::removed()
-{
-	cheatList.remove(*cheat);
-	cheatsModified = 1;
-	refreshCheatViews();
-	updateCheats();
-}
-
-void SystemEditCheatView::init(MdCheat &cheat)
-{
-	this->cheat = &cheat;
-
-	uint i = 0;
-	loadNameItem(cheat.name, item, i);
-	code.init(cheat.code); item[i++] = &code;
-	loadRemoveItem(item, i);
-	assert(i <= IG::size(item));
-	TableView::init(item, i);
-}
-
-SystemEditCheatView::SystemEditCheatView(Base::Window &win):
-	EditCheatView("Edit Code", win),
+EmuEditCheatView::EmuEditCheatView(Base::Window &win, MdCheat &cheat_):
+	BaseEditCheatView
+	{
+		"Edit Code",
+		win,
+		cheat_.name,
+		[this](const TableView &)
+		{
+			return 3;
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return name;
+				case 1: return code;
+				default: return remove;
+			}
+		},
+		[this](TextMenuItem &, View &, Input::Event)
+		{
+			cheatList.remove(*cheat);
+			cheatsModified = 1;
+			refreshCheatViews();
+			updateCheats();
+			dismiss();
+			return true;
+		}
+	},
 	code
 	{
 		"Code",
+		cheat_.code,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			auto &textInputView = *new CollectTextInputView{window()};
@@ -579,15 +587,11 @@ SystemEditCheatView::SystemEditCheatView(Base::Window &win):
 				};
 			modalViewController.pushAndShow(textInputView, e);
 		}
-	}
+	},
+	cheat{&cheat_}
 {}
 
-void EditCheatListView::loadAddCheatItems(std::vector<MenuItem*> &item)
-{
-	addCode.init(); item.emplace_back(&addCode);
-}
-
-void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
+void EmuEditCheatListView::loadCheatItems()
 {
 	uint cheats = cheatList.size();
 	cheat.clear();
@@ -595,22 +599,34 @@ void EditCheatListView::loadCheatItems(std::vector<MenuItem*> &item)
 	auto it = cheatList.begin();
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back();
 		auto &thisCheat = *it;
-		cheat[c].init(thisCheat.name); item.emplace_back(&cheat[c]);
-		cheat[c].onSelect() =
+		cheat.emplace_back(thisCheat.name,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new SystemEditCheatView{window()};
-				editCheatView.init(cheatList[c]);
+				auto &editCheatView = *new EmuEditCheatView{window(), cheatList[c]};
 				viewStack.pushAndShow(editCheatView, e);
-			};
+			});
 		++it;
 	}
 }
 
-EditCheatListView::EditCheatListView(Base::Window &win):
-	BaseEditCheatListView(win),
+EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+	BaseEditCheatListView
+	{
+		win,
+		[this](const TableView &)
+		{
+			return 1 + cheat.size();
+		},
+		[this](const TableView &, uint idx) -> MenuItem&
+		{
+			switch(idx)
+			{
+				case 0: return addCode;
+				default: return cheat[idx - 1];
+			}
+		}
+	},
 	addCode
 	{
 		"Add Game Genie / Action Replay Code",
@@ -672,9 +688,16 @@ EditCheatListView::EditCheatListView(Base::Window &win):
 			modalViewController.pushAndShow(textInputView, e);
 		}
 	}
-{}
+{
+	loadCheatItems();
+}
 
-void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
+EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+{
+	loadCheatItems();
+}
+
+void EmuCheatsView::loadCheatItems()
 {
 	uint cheats = cheatList.size();
 	cheat.clear();
@@ -682,18 +705,16 @@ void CheatsView::loadCheatItems(std::vector<MenuItem*> &item)
 	auto it = cheatList.begin();
 	iterateTimes(cheats, cIdx)
 	{
-		cheat.emplace_back();
 		auto &thisCheat = *it;
-		cheat[cIdx].init(thisCheat.name, thisCheat.isOn()); item.emplace_back(&cheat[cIdx]);
-		cheat[cIdx].onSelect() =
+		cheat.emplace_back(thisCheat.name, thisCheat.isOn(),
 			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{
-				item.toggle(*this);
+				item.flipBoolValue(*this);
 				auto &c = cheatList[cIdx];
 				c.toggleOn();
 				cheatsModified = 1;
 				updateCheats();
-			};
+			});
 		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
 		++it;
 	}

@@ -26,41 +26,39 @@ class BaseCheatsView : public TableView
 {
 protected:
 	TextMenuItem edit{};
-	std::vector<MenuItem*> item{};
+	std::vector<BoolMenuItem> cheat{};
 	RefreshCheatsDelegate onRefreshCheats{};
+
+	virtual void loadCheatItems() = 0;
 
 public:
 	BaseCheatsView(Base::Window &win);
-	void init();
-	void deinit() override;
-	virtual void loadCheatItems(std::vector<MenuItem*> &item) = 0;
-};
-
-class EditCheatView : public TableView
-{
-protected:
-	TextMenuItem name{}, remove{};
-
-public:
-	EditCheatView(const char *name, Base::Window &win);
-	void loadNameItem(const char *name, MenuItem *item[], uint &items);
-	void loadRemoveItem(MenuItem *item[], uint &items);
-	virtual void renamed(const char *str) = 0;
-	virtual void removed() = 0;
+	~BaseCheatsView() override;
 };
 
 class BaseEditCheatListView : public TableView
 {
 protected:
-	std::vector<MenuItem*> item{};
+	std::vector<TextMenuItem> cheat{};
 	RefreshCheatsDelegate onRefreshCheats{};
 
+	virtual void loadCheatItems() = 0;
+
 public:
-	BaseEditCheatListView(Base::Window &win);
-	void init();
-	void deinit() override;
-	virtual void loadAddCheatItems(std::vector<MenuItem*> &item) = 0;
-	virtual void loadCheatItems(std::vector<MenuItem*> &item) = 0;
+	BaseEditCheatListView(Base::Window &win, TableView::ItemsDelegate items, TableView::ItemDelegate item);
+	~BaseEditCheatListView() override;
+};
+
+class BaseEditCheatView : public TableView
+{
+protected:
+	TextMenuItem name{}, remove{};
+
+	virtual void renamed(const char *str) = 0;
+
+public:
+	BaseEditCheatView(const char *name, Base::Window &win, const char *cheatName,
+		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed);
 };
 
 void refreshCheatViews();

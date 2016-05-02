@@ -85,12 +85,14 @@ public:
 	{
 		if(exec)
 			return this->operator()(in...);
+		return R();
 	}
 
 	R callCopySafe(ARGS ... in) const
 	{
 		if(exec)
-			callCopy(in...);
+			return callCopy(in...);
+		return R();
 	}
 
 private:

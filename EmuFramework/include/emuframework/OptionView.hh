@@ -19,55 +19,56 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/gui/MultiChoiceView.hh>
 #include <imagine/audio/Audio.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include <imagine/gui/TextTableView.hh>
 void onCloseModalPopWorkDir(Input::Event e);
 void chdirFromFilePath(const char *path);
 
-class OptionView : public TableView
+class VideoOptionView : public TableView
 {
 protected:
-	// Video
+	static constexpr uint MAX_ASPECT_RATIOS = 4;
+
 	#ifdef __ANDROID__
-	void androidTextureStorageInit();
-	MultiChoiceSelectMenuItem androidTextureStorage;
+	TextMenuItem androidTextureStorageItem[4];
+	MultiChoiceMenuItem androidTextureStorage;
 	#endif
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-	MultiChoiceSelectMenuItem frameInterval;
-	void frameIntervalInit();
+	TextMenuItem frameIntervalItem[4];
+	MultiChoiceMenuItem frameInterval;
 	#endif
-	BoolMenuItem dropLateFrames{};
+	BoolMenuItem dropLateFrames;
 	char frameRateStr[64]{};
 	TextMenuItem frameRate;
 	char frameRatePALStr[64]{};
 	TextMenuItem frameRatePAL;
-	const char *aspectRatioStr[4]{};
-	MultiChoiceSelectMenuItem aspectRatio;
-	void aspectRatioInit();
-	MultiChoiceSelectMenuItem zoom;
-	void zoomInit();
-	MultiChoiceSelectMenuItem viewportZoom;
-	void viewportZoomInit();
+	TextMenuItem aspectRatioItem[MAX_ASPECT_RATIOS]{};
+	MultiChoiceMenuItem aspectRatio;
+	TextMenuItem zoomItem[6];
+	MultiChoiceMenuItem zoom;
+	TextMenuItem viewportZoomItem[4];
+	MultiChoiceMenuItem viewportZoom;
 	BoolMenuItem imgFilter;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	MultiChoiceSelectMenuItem imgEffect;
-	void imgEffectInit();
+	TextMenuItem imgEffectItem[4];
+	MultiChoiceMenuItem imgEffect;
 	#endif
-	MultiChoiceSelectMenuItem overlayEffect;
-	void overlayEffectInit();
-	MultiChoiceSelectMenuItem overlayEffectLevel;
-	void overlayEffectLevelInit();
+	TextMenuItem overlayEffectItem[6];
+	MultiChoiceMenuItem overlayEffect;
+	TextMenuItem overlayEffectLevelItem[7];
+	MultiChoiceMenuItem overlayEffectLevel;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	MultiChoiceSelectMenuItem imgEffectPixelFormat;
-	void imgEffectPixelFormatInit();
+	TextMenuItem imgEffectPixelFormatItem[3];
+	MultiChoiceMenuItem imgEffectPixelFormat;
 	#endif
 	#if defined EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	MultiChoiceSelectMenuItem windowPixelFormat;
-	void windowPixelFormatInit();
+	TextMenuItem windowPixelFormatItem[3];
+	MultiChoiceMenuItem windowPixelFormat;
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;
@@ -76,25 +77,41 @@ protected:
 	BoolMenuItem showOnSecondScreen;
 	#endif
 	BoolMenuItem dither;
+	StaticArrayList<MenuItem*, 24> item{};
 
-	// Audio
+public:
+	VideoOptionView(Base::Window &win, bool customMenu = false);
+	void loadStockItems();
+};
+
+class AudioOptionView : public TableView
+{
+protected:
 	BoolMenuItem snd;
 	#ifdef CONFIG_AUDIO_LATENCY_HINT
-	MultiChoiceSelectMenuItem soundBuffers;
-	void soundBuffersInit();
+	TextMenuItem soundBuffersItem[9];
+	MultiChoiceMenuItem soundBuffers;
 	#endif
-	MultiChoiceSelectMenuItem audioRate;
-	void audioRateInit();
+	TextMenuItem audioRateItem[4];
+	MultiChoiceMenuItem audioRate;
 	#ifdef CONFIG_AUDIO_OPENSL_ES
 	BoolMenuItem sndUnderrunCheck;
 	#endif
 	#ifdef CONFIG_AUDIO_SOLO_MIX
 	BoolMenuItem audioSoloMix;
 	#endif
+	StaticArrayList<MenuItem*, 12> item{};
 
-	// System
-	MultiChoiceSelectMenuItem autoSaveState;
-	void autoSaveStateInit();
+public:
+	AudioOptionView(Base::Window &win, bool customMenu = false);
+	void loadStockItems();
+};
+
+class SystemOptionView : public TableView
+{
+protected:
+	TextMenuItem autoSaveStateItem[4];
+	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
 	void savePathUpdated(const char *newPath);
@@ -102,63 +119,66 @@ protected:
 	TextMenuItem savePath;
 	BoolMenuItem checkSavePathWriteAccess;
 	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;
-	void fastForwardSpeedinit();
-	MultiChoiceSelectMenuItem fastForwardSpeed;
+	TextMenuItem fastForwardSpeedItem[6];
+	MultiChoiceMenuItem fastForwardSpeed;
 	#if defined __ANDROID__
-	void processPriorityInit();
-	MultiChoiceSelectMenuItem processPriority;
+	TextMenuItem processPriorityItem[3];
+	MultiChoiceMenuItem processPriority;
 	BoolMenuItem manageCPUFreq;
 	#endif
+	StaticArrayList<MenuItem*, 24> item{};
 
-	// GUI
+public:
+	SystemOptionView(Base::Window &win, bool customMenu = false);
+	void loadStockItems();
+};
+
+class GUIOptionView : public TableView
+{
+protected:
 	BoolMenuItem pauseUnfocused;
-	MultiChoiceSelectMenuItem fontSize;
-	void fontSizeInit();
+	TextMenuItem fontSizeItem[18];
+	MultiChoiceMenuItem fontSize;
 	BoolMenuItem notificationIcon;
-	MultiChoiceSelectMenuItem statusBar;
-	MultiChoiceSelectMenuItem lowProfileOSNav;
-	MultiChoiceSelectMenuItem hideOSNav;
+	TextMenuItem statusBarItem[3];
+	MultiChoiceMenuItem statusBar;
+	TextMenuItem lowProfileOSNavItem[3];
+	MultiChoiceMenuItem lowProfileOSNav;
+	TextMenuItem hideOSNavItem[3];
+	MultiChoiceMenuItem hideOSNav;
 	BoolMenuItem idleDisplayPowerSave;
 	BoolMenuItem navView;
 	BoolMenuItem backNav;
 	BoolMenuItem rememberLastMenu;
 	BoolMenuItem showBundledGames;
 	TextHeadingMenuItem orientationHeading;
-	MultiChoiceSelectMenuItem menuOrientation;
-	void menuOrientationInit();
-	MultiChoiceSelectMenuItem gameOrientation;
-	void gameOrientationInit();
-
-	virtual void loadVideoItems(MenuItem *item[], uint &items);
-	virtual void loadAudioItems(MenuItem *item[], uint &items);
-	virtual void loadInputItems(MenuItem *item[], uint &items);
-	virtual void loadSystemItems(MenuItem *item[], uint &items);
-	virtual void loadGUIItems(MenuItem *item[], uint &items);
-
-	MenuItem *item[27]{};
+	TextMenuItem menuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
+	MultiChoiceMenuItem menuOrientation;
+	TextMenuItem gameOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
+	MultiChoiceMenuItem gameOrientation;
+	StaticArrayList<MenuItem*, 20> item{};
 
 public:
-	OptionView(Base::Window &win);
-	void init(uint idx);
+	GUIOptionView(Base::Window &win, bool customMenu = false);
+	void loadStockItems();
 };
 
-class BiosSelectMenu : public BaseMultiChoiceView
+class BiosSelectMenu : public TableView
 {
 public:
-	TextMenuItem choiceEntry[2];
-	MenuItem *choiceEntryItem[2]{};
-	typedef DelegateFunc<void ()> BiosChangeDelegate;
-	BiosChangeDelegate onBiosChangeD;
-	FS::PathString *biosPathStr{};
-	EmuNameFilterFunc fsFilter{};
+	using BiosChangeDelegate = DelegateFunc<void ()>;
 
-	BiosSelectMenu(const char *name, Base::Window &win): BaseMultiChoiceView(name, win) {}
-	BiosSelectMenu(const char *name, FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter, Base::Window &win):
-		BaseMultiChoiceView(name, win), biosPathStr(biosPathStr), fsFilter(fsFilter) {}
-	BiosChangeDelegate &onBiosChange() { return onBiosChangeD; };
+	BiosSelectMenu(const char *name, FS::PathString *biosPathStr, BiosChangeDelegate onBiosChange,
+		EmuSystem::NameFilterFunc fsFilter, Base::Window &win);
+
+protected:
+	TextMenuItem selectFile{};
+	TextMenuItem unset{};
+	BiosChangeDelegate onBiosChangeD{};
+	FS::PathString *biosPathStr{};
+	EmuSystem::NameFilterFunc fsFilter{};
+
 	void onSelectFile(const char* name, Input::Event e);
-	void init(FS::PathString *biosPathStr, EmuNameFilterFunc fsFilter);
-	void init();
 };
 
 using PathChangeDelegate = DelegateFunc<void (const char *newPath)>;

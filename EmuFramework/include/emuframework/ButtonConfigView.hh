@@ -45,12 +45,11 @@ private:
 
 public:
 	ButtonConfigSetView(Base::Window &win, InputManagerView &rootIMView):
-		View(win), rootIMView{rootIMView}
+		View{win}, rootIMView{rootIMView}
 	{}
-
+	~ButtonConfigSetView();
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, SetDelegate onSet);
-	void deinit() override;
 	void place() override;
 	void inputEvent(Input::Event e) override;
 	void draw() override;
@@ -62,17 +61,22 @@ class ButtonConfigView : public TableView
 private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
+		using DualTextMenuItem::DualTextMenuItem;
 		void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	};
 
 	InputManagerView &rootIMView;
 	TextMenuItem reset{};
-	MenuItem **text{};
 	using KeyNameStr = std::array<char, 20>;
 	struct BtnConfigEntry
 	{
-		BtnConfigMenuItem item;
+		BtnConfigMenuItem item{nullptr, ""};
 		KeyNameStr str{};
+
+		BtnConfigEntry()
+		{
+			item.t2.setString(str.data());
+		}
 	} *btn{};
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
@@ -82,9 +86,7 @@ private:
 	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
 
 public:
-	ButtonConfigView(Base::Window &win, InputManagerView &rootIMView);
-
-	void init(const KeyCategory *cat, InputDeviceConfig &devConf);
+	ButtonConfigView(Base::Window &win, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
+	~ButtonConfigView() override;
 	void inputEvent(Input::Event e) override;
-	void deinit() override;
 };

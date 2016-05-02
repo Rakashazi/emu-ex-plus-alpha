@@ -19,7 +19,22 @@
 #include <imagine/util/math/int.hh>
 
 CreditsView::CreditsView(const char *str, Base::Window &win):
-	View{win}, str(str) {}
+	View{appViewTitle(), win}, str(str)
+{
+	text = {str, View::defaultFace};
+	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
+	animate =
+		[this](Base::Screen::FrameParams params)
+		{
+			window().postDraw();
+			if(fade.update(1))
+			{
+				params.readdOnFrame();
+			}
+		};
+	screen()->addOnFrame(animate);
+	place();
+}
 
 void CreditsView::draw()
 {
@@ -46,26 +61,7 @@ void CreditsView::inputEvent(Input::Event e)
 	}
 }
 
-void CreditsView::init()
+CreditsView::~CreditsView()
 {
-	name_ = appViewTitle();
-	text.init(str, View::defaultFace);
-	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
-	animate =
-		[this](Base::Screen::FrameParams params)
-		{
-			window().postDraw();
-			if(fade.update(1))
-			{
-				params.readdOnFrame();
-			}
-		};
-	screen()->addOnFrame(animate);
-	place();
-}
-
-void CreditsView::deinit()
-{
-	text.deinit();
 	screen()->removeOnFrame(animate);
 }

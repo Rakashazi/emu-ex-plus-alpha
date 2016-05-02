@@ -47,6 +47,7 @@ apu/Gb_Apu_State.cpp
 vbamPath := vbam
 SRC += main/Main.cc \
 main/EmuControls.cc \
+main/EmuMenuViews.cc \
 main/VbamApi.cc \
 main/Cheats.cc \
 $(addprefix $(vbamPath)/,$(vbamSrc))

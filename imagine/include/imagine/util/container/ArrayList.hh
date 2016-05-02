@@ -74,10 +74,14 @@ public:
 	// Iterators (STL API)
 	iterator begin() { return data(); }
 	iterator end() { return data() + size(); }
+	const_iterator begin() const { return data(); }
+	const_iterator end() const { return data() + size(); }
 	const_iterator cbegin() const { return begin(); }
 	const_iterator cend() const { return end(); }
 	reverse_iterator rbegin() { return reverse_iterator(end()); }
 	reverse_iterator rend() { return reverse_iterator(begin()); }
+	const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+	const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
 	const_reverse_iterator crbegin() const { return rbegin(); }
 	const_reverse_iterator crend() const { return rend(); }
 
@@ -150,6 +154,7 @@ public:
 
 	iterator insert(const_iterator position, const T& val)
 	{
+		// TODO: re-write using std::move
 		ptrsize idx = position - data();
 		assert(idx <= size());
 		ptrsize elemsAfterInsertIdx = size()-idx;
@@ -162,17 +167,23 @@ public:
 		return &data()[idx];
 	}
 
-	iterator erase(const_iterator position)
+	iterator erase(iterator position)
 	{
-		ptrsize idx = position - data();
-		assert(idx < size());
-		ptrsize elemsAfterEraseIdx = (size()-1)-idx;
-		if(elemsAfterEraseIdx)
-		{
-			std::memmove(&data()[idx], &data()[idx+1], sizeof(T)*elemsAfterEraseIdx);
-		}
+		if(position + 1 != end())
+			std::move(position + 1, end(), position);
 		size_--;
-		return &data()[idx];
+		return position;
+	}
+
+	iterator erase(iterator first, iterator last)
+	{
+		if(first != last)
+		{
+			if(last != end())
+				std::move(last, end(), first);
+			size_ -= std::distance(first, last);
+		}
+		return first;
 	}
 };
 

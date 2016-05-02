@@ -1,3 +1,4 @@
+
 #define LOGTAG "main"
 #include <neopop.h>
 #include <flash.h>
@@ -5,11 +6,10 @@
 #include "TLCS900h_registers.h"
 #include "Z80_interface.h"
 #include "interrupt.h"
-#include <emuframework/EmuSystem.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
-#include <emuframework/CommonGui.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppInlines.hh>
 
-const char *creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
 
 // controls
@@ -35,7 +35,7 @@ enum {
 	CFGKEY_NGPKEY_LANGUAGE = 269,
 };
 
-static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNGPLanguage(CFGKEY_NGPKEY_LANGUAGE, 1);
+static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Option";
@@ -88,8 +88,8 @@ static bool hasNGPExtension(const char *name)
 			string_hasDotExtension(name, "npc");
 }
 
-EmuNameFilterFunc EmuFilePicker::defaultFsFilter = hasNGPExtension;
-EmuNameFilterFunc EmuFilePicker::defaultBenchmarkFsFilter = hasNGPExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNGPExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNGPExtension;
 
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 

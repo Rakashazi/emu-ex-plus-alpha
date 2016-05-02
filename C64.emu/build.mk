@@ -17,6 +17,7 @@ endif
 
 SRC += main/Main.cc \
 main/EmuControls.cc \
+main/EmuMenuViews.cc \
 main/VicePlugin.cc \
 main/sysfile.cc \
 main/video.cc \
