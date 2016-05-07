@@ -4,7 +4,7 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libarchiveVer := 3.1.2-git
+libarchiveVer := 3.2.0
 libarchiveSrcDir := $(tempDir)/libarchive-$(libarchiveVer)
 libarchiveSrcArchive := libarchive-$(libarchiveVer).tar.xz
 
@@ -22,6 +22,9 @@ install : $(outputLibFile)
 	@mkdir -p $(installIncludeDir) $(installDir)/lib/pkgconfig
 	cp $(outputLibFile) $(installDir)/lib/
 	cp $(libarchiveSrcDir)/libarchive/archive.h $(libarchiveSrcDir)/libarchive/archive_entry.h $(installIncludeDir)/
+ifeq ($(ENV),android)
+	echo > $(installIncludeDir)/android_lf.h
+endif
 	cp $(buildDir)/build/pkgconfig/libarchive.pc $(installDir)/lib/pkgconfig/
 
 .PHONY : all install
@@ -30,6 +33,7 @@ $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	@echo "Extracting libarchive..."
 	@mkdir -p $(libarchiveSrcDir)
 	tar -mxJf $| -C $(libarchiveSrcDir)/..
+	cp $(libarchiveSrcDir)/contrib/android/include/android_lf.h $(libarchiveSrcDir)/libarchive/
 	cp ../gnuconfig/config.* $(libarchiveSrcDir)/build/autoconf/
 	cd $(libarchiveSrcDir) && build/autogen.sh
 
@@ -67,9 +71,3 @@ $(makeFile) : $(libarchiveSrcDir)/configure
 	PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) \
 	PKG_CONFIG="pkg-config" \
 	$(buildArg)
-ifeq ($(ENV),android) # work around SDK 9 headers
-	echo >> $(buildDir)/config.h
-	echo \#"include <stdlib.h>" >> $(buildDir)/config.h
-	echo "void arc4random_buf(void*, size_t);" >> $(buildDir)/config.h
-	echo \#undef HAVE_FSTATFS >> $(buildDir)/config.h
-endif
