@@ -38,7 +38,7 @@ static float sqrtFast(float x)
 	return u.x;
 }
 
-template <typename T, ENABLE_IF_COND(std::is_unsigned<T>)>
+template <typename T, ENABLE_IF_EXPR(std::is_unsigned_v<T>)>
 static T sqrtFast(T remainder)
 {
 	T place = (T)1 << (sizeof(T) * 8 - 2); // calculated by precompiler = same runtime as: place = 0x40000000

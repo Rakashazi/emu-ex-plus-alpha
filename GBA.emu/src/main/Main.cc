@@ -43,6 +43,7 @@ const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 const char *EmuSystem::configFilename = "GbaEmu.config";
 bool EmuSystem::hasBundledGames = true;
+bool EmuSystem::hasCheats = true;
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 {
@@ -51,17 +52,11 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
-#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
-#define GAME_ASSET_EXT "gba"
-#else
-#define GAME_ASSET_EXT "zip"
-#endif
-
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
 	static const BundledGameInfo info[]
 	{
-		{ "Motocross Challenge", "Motocross Challenge." GAME_ASSET_EXT }
+		{"Motocross Challenge", "Motocross Challenge.7z"}
 	};
 
 	return info[0];

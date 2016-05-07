@@ -508,11 +508,11 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	},
 	diagonalSensitivityItem
 	{
-		{touchDpadDiagonalSensitivityMenuName[0], [this](){ setSize(touchDpadDiagonalSensitivityMenuVal[0]); }},
-		{touchDpadDiagonalSensitivityMenuName[1], [this](){ setSize(touchDpadDiagonalSensitivityMenuVal[1]); }},
-		{touchDpadDiagonalSensitivityMenuName[2], [this](){ setSize(touchDpadDiagonalSensitivityMenuVal[2]); }},
-		{touchDpadDiagonalSensitivityMenuName[3], [this](){ setSize(touchDpadDiagonalSensitivityMenuVal[3]); }},
-		{touchDpadDiagonalSensitivityMenuName[4], [this](){ setSize(touchDpadDiagonalSensitivityMenuVal[4]); }},
+		{touchDpadDiagonalSensitivityMenuName[0], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[0]); }},
+		{touchDpadDiagonalSensitivityMenuName[1], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[1]); }},
+		{touchDpadDiagonalSensitivityMenuName[2], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[2]); }},
+		{touchDpadDiagonalSensitivityMenuName[3], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[3]); }},
+		{touchDpadDiagonalSensitivityMenuName[4], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[4]); }},
 	},
 	diagonalSensitivity
 	{
@@ -768,6 +768,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 			ynAlertView.setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
+					view.dismiss();
 					resetVControllerOptions();
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
@@ -784,6 +785,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 			ynAlertView.setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
+					view.dismiss();
 					resetAllVControllerOptions();
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();

@@ -62,12 +62,12 @@ class file_status
 protected:
 	file_type type_ = file_type::none;
 	std::uintmax_t size_ = 0;
-	file_time_type lastWriteTime{};
+	file_time_type lastWriteTime_{};
 
 public:
 	constexpr file_status() {}
-	constexpr file_status(file_type type_, std::uintmax_t size_, file_time_type lastWriteTime):
-		type_{type_}, size_{size_}, lastWriteTime{lastWriteTime} {}
+	constexpr file_status(file_type type_, std::uintmax_t size_, file_time_type lastWriteTime_):
+		type_{type_}, size_{size_}, lastWriteTime_{lastWriteTime_} {}
 
 	file_type type() const
 	{
@@ -79,12 +79,12 @@ public:
 		return size_;
 	}
 
-	file_time_type last_write_time() const
+	file_time_type lastWriteTime() const
 	{
-		return lastWriteTime;
+		return lastWriteTime_;
 	}
 
-	std::tm last_write_time_local() const;
+	std::tm lastWriteTimeLocal() const;
 };
 
 using directory_entry = DirectoryEntryImpl;

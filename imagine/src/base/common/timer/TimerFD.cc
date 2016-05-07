@@ -21,16 +21,11 @@
 #include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
-// TODO: can use __has_include in GCC 5 to simplify
 #if defined __ANDROID__
 #include "../../android/android.hh"
-	#if __ANDROID_API__ >= 21
-	#define HAS_TIMERFD_H
-	#endif
-#else
-#define HAS_TIMERFD_H
 #endif
-#ifdef HAS_TIMERFD_H
+
+#if __has_include(<sys/timerfd.h>)
 #include <sys/timerfd.h>
 #else
 #include <time.h>

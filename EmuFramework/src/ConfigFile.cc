@@ -251,6 +251,7 @@ static bool readConfig2(IO &io)
 			#endif
 			#ifdef CONFIG_BLUETOOTH
 			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
+			bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
 				#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 				bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
 				#endif
@@ -493,6 +494,7 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	#ifdef CONFIG_BLUETOOTH
 	&optionKeepBluetoothActive,
+	&optionShowBluetoothScan,
 		#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 		&optionBlueToothScanCache,
 		#endif

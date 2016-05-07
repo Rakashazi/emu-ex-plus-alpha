@@ -605,6 +605,28 @@ bool hasAtLeastIOS8()
 			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0;
 }
 
+bool usesPermission(Permission p)
+{
+	return false;
+}
+
+bool requestPermission(Permission p)
+{
+	return false;
+}
+
+void registerInstance(const char *appID, int argc, char** argv) {}
+
+void setAcceptIPC(const char *appID, bool on) {}
+
+void addNotification(const char *onShow, const char *title, const char *message) {}
+
+void addLauncherIcon(const char *name, const char *path) {}
+
+bool hasVibrator() { return false; }
+
+void vibrate(uint ms) {}
+
 #ifdef CONFIG_BASE_IOS_SETUID
 
 uid_t realUID = 0, effectiveUID = 0;

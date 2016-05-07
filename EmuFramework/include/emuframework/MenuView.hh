@@ -58,6 +58,7 @@ public:
 
 protected:
 	TextMenuItem loadGame;
+	TextMenuItem cheats;
 	TextMenuItem reset;
 	TextMenuItem loadState;
 	TextMenuItem recentGames;

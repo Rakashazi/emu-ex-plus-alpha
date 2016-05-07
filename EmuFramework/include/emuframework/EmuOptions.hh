@@ -81,6 +81,7 @@ extern Byte1Option optionMOGAInputSystem;
 
 #ifdef CONFIG_BLUETOOTH
 extern Byte1Option optionKeepBluetoothActive;
+extern Byte1Option optionShowBluetoothScan;
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	extern OptionBlueToothScanCache optionBlueToothScanCache;
 	#endif

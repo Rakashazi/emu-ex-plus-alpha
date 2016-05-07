@@ -78,6 +78,7 @@ public:
 		SYSTEM_OPTIONS,
 		GUI_OPTIONS,
 		EDIT_CHEATS,
+		LIST_CHEATS,
 	};
 	using NameFilterFunc = bool(*)(const char *name);
 	static State state;
@@ -111,6 +112,7 @@ public:
 	enum ResetMode { RESET_HARD, RESET_SOFT };
 	static bool handlesArchiveFiles;
 	static bool handlesGenericIO;
+	static bool hasCheats;
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;

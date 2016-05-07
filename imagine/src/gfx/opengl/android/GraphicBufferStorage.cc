@@ -25,6 +25,8 @@
 namespace Gfx
 {
 
+bool GraphicBufferStorage::testPassed = false;
+
 GraphicBufferStorage::~GraphicBufferStorage()
 {
 	if(eglImg != EGL_NO_IMAGE_KHR)

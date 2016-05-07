@@ -136,6 +136,34 @@ FS::PathString mainSOPath()
 
 bool documentsPathIsShared() { return false; }
 
+static jstring permissionToJString(JNIEnv *env, Permission p)
+{
+	switch(p)
+	{
+		case Permission::WRITE_EXT_STORAGE: return env->NewStringUTF("android.permission.WRITE_EXTERNAL_STORAGE");
+		default: return nullptr;
+	}
+}
+
+bool usesPermission(Permission p)
+{
+	if(Base::androidSDK() < 23)
+		return false;
+	return true;
+}
+
+bool requestPermission(Permission p)
+{
+	if(Base::androidSDK() < 23)
+		return false;
+	auto env = jEnv();
+	auto permissionJStr = permissionToJString(env, p);
+	if(!permissionJStr)
+		return false;
+	JavaInstMethod<jboolean(jobject)> requestPermission{env, jBaseActivityCls, "requestPermission", "(Ljava/lang/String;)Z"};
+	return requestPermission(env, jBaseActivity, permissionJStr);
+}
+
 AAssetManager *activityAAssetManager()
 {
 	assert(assetManager);

@@ -15,6 +15,7 @@
 
 #include <emuframework/BundledGamesView.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/FilePicker.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/BufferMapIO.hh>
@@ -41,24 +42,53 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 	game[0] = {info.displayName,
 		[&info](TextMenuItem &t, View &, Input::Event ev)
 		{
-			#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 			auto file = openAppAssetIO(info.assetName);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			auto res = EmuSystem::loadGameFromIO(file, info.assetName, info.assetName);
+			int loadGameRes;
+			if(string_hasDotExtension(info.assetName, "lzma") || hasArchiveExtension(info.assetName))
+			{
+				ArchiveIO io{};
+				CallResult res = OK;
+				for(auto &entry : FS::ArchiveIterator{GenericIO{std::move(file)}, res})
+				{
+					if(entry.type() == FS::file_type::directory)
+					{
+						continue;
+					}
+					auto name = entry.name();
+					logMsg("archive file entry:%s", entry.name());
+					if(EmuSystem::defaultFsFilter(name))
+					{
+						io = entry.moveIO();
+						break;
+					}
+				}
+				if(res != OK)
+				{
+					logErr("error opening asset archive:%s", info.assetName);
+					return;
+				}
+				if(!io)
+				{
+					logErr("no recognized file extensions in asset archive:%s", info.assetName);
+					return;
+				}
+				loadGameRes = EmuSystem::loadGameFromIO(io, info.assetName, io.name());
+			}
+			else
+			{
+				loadGameRes = EmuSystem::loadGameFromIO(file, info.assetName, info.assetName);
+			}
 			file.close();
-			#else
-			auto zipPath = FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), info.assetName);
-			auto res = EmuSystem::loadGameFromPath(zipPath);
-			#endif
-			if(res == 1)
+			if(loadGameRes == 1)
 			{
 				loadGameCompleteFromRecentItem(1, ev); // has same behavior as if loading from recent item
 			}
-			else if(res == 0)
+			else if(loadGameRes == 0)
 			{
 				EmuSystem::clearGamePaths();
 			}

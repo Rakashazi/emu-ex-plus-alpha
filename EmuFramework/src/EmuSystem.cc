@@ -49,6 +49,7 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] bool EmuSystem::hasResetModes = false;
 [[gnu::weak]] bool EmuSystem::handlesArchiveFiles = false;
 [[gnu::weak]] bool EmuSystem::handlesGenericIO = true;
+[[gnu::weak]] bool EmuSystem::hasCheats = false;
 
 void saveAutoStateFromTimer();
 

@@ -25,7 +25,7 @@ public:
 		bytesPerPixel_{bytesPerPixel}, name_{name}
 	{}
 
-	template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+	template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 	constexpr uint build(T r, T g, T b, T a) const
 	{
 		return (rBits ? ((r & makeFullBits<uint>(rBits)) << rShift) : 0) |
@@ -34,7 +34,7 @@ public:
 			(aBits ? ((a & makeFullBits<uint>(aBits)) << aShift) : 0);
 	}
 
-	template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
+	template<class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
 	constexpr uint build(T r, T g, T b, T a) const
 	{
 		return build(IG::scaleDecToBits<uint>(r, rBits), IG::scaleDecToBits<uint>(g, gBits), IG::scaleDecToBits<uint>(b, bBits), IG::scaleDecToBits<uint>(a, aBits));

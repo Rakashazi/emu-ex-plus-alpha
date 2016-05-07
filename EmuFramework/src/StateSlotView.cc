@@ -41,7 +41,7 @@ StateSlotView::StateSlotView(Base::Window &win):
 			bool fileExists = FS::exists(saveStr);
 			if(fileExists)
 			{
-				auto mTime = FS::status(saveStr).last_write_time_local();
+				auto mTime = FS::status(saveStr).lastWriteTimeLocal();
 				char dateStr[64]{};
 				std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
 				string_printf(stateStr[idx], "%s (%s)", stateNameStr(slot), dateStr);

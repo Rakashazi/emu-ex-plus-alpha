@@ -92,6 +92,7 @@ const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 const char *EmuSystem::configFilename = "NesEmu.config";
+bool EmuSystem::hasCheats = true;
 const uint EmuSystem::maxPlayers = 4;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -102,7 +103,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-
 #if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 #define GAME_ASSET_EXT "nes"
 #else

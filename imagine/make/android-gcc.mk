@@ -3,7 +3,6 @@
 ENV := android
 CROSS_COMPILE := 1
 binStatic := 1
-android_libm ?= -lm
 
 ifeq ($(wildcard $(ANDROID_NDK_PATH)/platforms)),)
  $(error Invalid NDK path:$(ANDROID_NDK_PATH), add NDK directory to PATH, define ANDROID_NDK_PATH, or move NDK to the default path:$(defaultNDKPath)
@@ -22,25 +21,27 @@ ifeq ($(ANDROID_GCC_TOOLCHAIN_PATH),)
  $(error missing Android GCC toolchain at path:$(ANDROID_GCC_TOOLCHAIN_PATH))
 endif
 ANDROID_GCC_TOOLCHAIN_BIN_PATH := $(ANDROID_GCC_TOOLCHAIN_PATH)/bin
-ANDROID_CLANG_VERSION ?= 3.6
-ANDROID_CLANG_TOOLCHAIN_BIN_PATH ?= $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm-$(ANDROID_CLANG_VERSION)/prebuilt/*/bin)
+ANDROID_CLANG_TOOLCHAIN_BIN_PATH ?= $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*/bin)
 
 ifdef V
  $(info NDK GCC path: $(ANDROID_GCC_TOOLCHAIN_BIN_PATH))
  $(info NDK Clang path: $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH))
 endif
 
+config_compiler ?= clang
+
 ifeq ($(origin CC), default)
  ifeq ($(config_compiler),clang)
   CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
   CXX := $(CC)++
-  AR := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar
- else 
+  AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
+  RANLIB := ranlib
+ else
   CC := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-gcc
   CXX := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-g++
   AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-gcc-ar
+  RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ranlib
  endif
- RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ranlib
  STRIP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-strip
  OBJDUMP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-objdump
  toolchainEnvParams += RANLIB="$(RANLIB)" STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
@@ -50,6 +51,7 @@ else
   $(info detected clang compiler)
   config_compiler = clang
  endif
+ $(error user-defined compiler not yet supported)
 endif
 
 CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O2
@@ -59,23 +61,38 @@ ifeq ($(config_compiler),clang)
  android_stdcxx := libcxx
  CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
  CFLAGS_CODEGEN += -fno-integrated-as
+ ASMFLAGS += -fno-integrated-as
+ # -flto needed to enable linking any static archives with LTO 
+ LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
+ 
+ # check for llvm-ar
+ ifeq ($(shell which $(AR)),)
+  $(error missing llvm-ar, make sure LLVM is installed (Android NDK's LLVM doesn't provide this))
+ endif
 else
  include $(buildSysPath)/gcc.mk
  android_stdcxx := gnu
+ CFLAGS_CODEGEN += -Wa,--noexecstack
 endif
 
 ifeq ($(android_stdcxx), gnu)
- android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(gccVersion)/libs
+ android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(ANDROID_GCC_VERSION)/libs
  android_stdcxxLibName := libgnustl_static.a
+ android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)/$(android_stdcxxLibName)
+ ifeq ($(ARCH), arm)
+  ifeq ($(android_armState),-mthumb)
+   android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)/thumb/$(android_stdcxxLibName)
+  endif
+ endif
 else # libc++
  android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libs
  android_stdcxxLibName := libc++_static.a
-endif
-
-android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)/$(android_stdcxxLibName)
-ifeq ($(ARCH), arm)
- ifeq ($(android_armState),-mthumb)
-  android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)/thumb/$(android_stdcxxLibName)
+ android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)
+ android_stdcxxLib := $(android_stdcxxLibArchPath)/$(android_stdcxxLibName) \
+ $(android_stdcxxLibArchPath)/libc++abi.a \
+ $(android_stdcxxLibArchPath)/libandroid_support.a
+ ifeq ($(ARCH), arm)
+  android_stdcxxLib += $(android_stdcxxLibArchPath)/libunwind.a
  endif
 endif
 
@@ -86,13 +103,15 @@ ifdef ANDROID_APK_SIGNATURE_HASH
 endif
 
 CFLAGS_TARGET += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonical-prefixes
-CFLAGS_CODEGEN += -ffunction-sections -fdata-sections \
--Wa,--noexecstack
-ASMFLAGS += -Wa,--noexecstack $(android_cpuFlags)
+CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
+ASMFLAGS += $(CFLAGS_TARGET) -Wa,--noexecstack
 LDFLAGS_SYSTEM += -no-canonical-prefixes \
 -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
 linkAction := -Wl,-soname,lib$(android_soName).so -shared
-LDLIBS_SYSTEM += -lgcc -lc $(android_libm)
+ifneq ($(config_compiler),clang)
+ LDLIBS_SYSTEM += -lc -lgcc
+endif
+LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
 LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed

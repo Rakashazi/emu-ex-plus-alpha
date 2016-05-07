@@ -251,19 +251,6 @@ private:
 		}
 	};
 
-	TextMenuItem cheats
-	{
-		"Cheats",
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				auto &cheatsMenu = *new EmuCheatsView{window()};
-				viewStack.pushAndShow(cheatsMenu, e);
-			}
-		}
-	};
-
 	void refreshFDSItem()
 	{
 		fdsControl.setActive(isFDS);
@@ -277,19 +264,24 @@ private:
 		fdsControl.compile(projP);
 	}
 
+	void reloadItems()
+	{
+		item.clear();
+		loadFileBrowserItems();
+		item.emplace_back(&fdsControl);
+		loadStandardItems();
+	}
+
 public:
 	EmuMenuView(Base::Window &win): MenuView{win, true}
 	{
-		loadFileBrowserItems();
-		item.emplace_back(&fdsControl);
-		item.emplace_back(&cheats);
-		loadStandardItems();
+		reloadItems();
+		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()
 	{
 		MenuView::onShow();
-		cheats.setActive(EmuSystem::gameIsRunning());
 		refreshFDSItem();
 	}
 };
@@ -305,6 +297,7 @@ View *EmuSystem::makeView(Base::Window &win, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
 		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(win);
+		case ViewID::LIST_CHEATS: return new EmuCheatsView(win);
 		default: return nullptr;
 	}
 }

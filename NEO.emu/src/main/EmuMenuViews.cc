@@ -609,13 +609,20 @@ private:
 		}
 	};
 
-public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	void reloadItems()
 	{
+		item.clear();
 		loadFileBrowserItems();
 		item.emplace_back(&gameList);
 		item.emplace_back(&unibiosSwitches);
 		loadStandardItems();
+	}
+
+public:
+	EmuMenuView(Base::Window &win): MenuView{win, true}
+	{
+		reloadItems();
+		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()

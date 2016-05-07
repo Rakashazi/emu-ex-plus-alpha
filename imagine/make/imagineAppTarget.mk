@@ -15,6 +15,14 @@ ifdef O_LTO
  LDFLAGS_SYSTEM += $(CFLAGS_CODEGEN)
 endif
 
+LDFLAGS += $(STDCXXLIB)
+
+ifeq ($(android_hardFP),1)
+ # make sure soft-float libm isn't linked
+ LDFLAGS := $(LDFLAGS:-lm=)
+ LDFLAGS += -lm_hard
+endif
+
 targetFile := $(target)$(targetSuffix)$(targetExtension)
 
 linkerLibsDep := $(linkerLibs)
@@ -28,7 +36,7 @@ linkerLibsDep := $(linkerLibsDep:-lgcc=)
 $(targetDir)/$(targetFile) : $(OBJ) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkAction) $(OBJ) $(LDFLAGS) $(STDCXXLIB)
+	$(PRINT_CMD) $(LD) -o $@ $(linkAction) $(OBJ) $(LDFLAGS)
 ifeq ($(ENV), ios)
  ifndef iOSNoCodesign
 	@echo "Signing $@"

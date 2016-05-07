@@ -193,10 +193,10 @@ static file_type makeFileType(struct stat s)
 	return file_type::unknown;
 }
 
-std::tm file_status::last_write_time_local() const
+std::tm file_status::lastWriteTimeLocal() const
 {
 	std::tm localMTime;
-	std::time_t mTime = last_write_time();
+	std::time_t mTime = lastWriteTime();
 	if(!localtime_r(&mTime, &localMTime))
 	{
 		logErr("localtime_r failed");

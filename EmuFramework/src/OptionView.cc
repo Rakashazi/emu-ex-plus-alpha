@@ -736,6 +736,9 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&showBundledGames);
 	}
+	#ifdef CONFIG_BLUETOOTH
+	item.emplace_back(&showBluetoothScan);
+	#endif
 	if(!optionGameOrientation.isConst)
 	{
 		item.emplace_back(&orientationHeading);
@@ -781,7 +784,8 @@ VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
 				{
 					auto &ynAlertView = *new YesNoAlertView{view.window(),
 						"Setting Graphic Buffer improves performance but may hang or crash "
-						"the app depending on your device or GPU"};
+						"the app depending on your device or GPU",
+						"OK", "Cancel"};
 					ynAlertView.setOnYes(
 						[this](TextMenuItem &, View &view, Input::Event e)
 						{
@@ -822,10 +826,9 @@ VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
 	{
 		"GPU Copy Mode",
 		optionAndroidTextureStorage,
-		[](const MultiChoiceMenuItem &) -> int
+		[items = Base::androidSDK() >= 14 ? 4u : 3u](const MultiChoiceMenuItem &) -> int
 		{
-			// TODO: init in lambda capture
-			return Base::androidSDK() >= 14 ? 4u : 3u;
+			return items;
 		},
 		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
 		{
@@ -1651,7 +1654,17 @@ GUIOptionView::GUIOptionView(Base::Window &win, bool customMenu):
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionShowBundledGames = item.flipBoolValue(*this);
-			bug_exit("TODO");
+			onMainMenuItemOptionChanged();
+		}
+	},
+	showBluetoothScan
+	{
+		"Show Bluetooth Menu Items",
+		(bool)optionShowBluetoothScan,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionShowBluetoothScan = item.flipBoolValue(*this);
+			onMainMenuItemOptionChanged();
 		}
 	},
 	orientationHeading

@@ -185,6 +185,7 @@ void MenuView::onShow()
 {
 	logMsg("refreshing main menu state");
 	recentGames.setActive(recentGameList.size());
+	cheats.setActive(EmuSystem::gameIsRunning());
 	reset.setActive(EmuSystem::gameIsRunning());
 	saveState.setActive(EmuSystem::gameIsRunning());
 	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot));
@@ -211,6 +212,10 @@ void MenuView::loadFileBrowserItems()
 
 void MenuView::loadStandardItems()
 {
+	if(EmuSystem::hasCheats)
+	{
+		item.emplace_back(&cheats);
+	}
 	item.emplace_back(&reset);
 	item.emplace_back(&loadState);
 	item.emplace_back(&saveState);
@@ -223,11 +228,14 @@ void MenuView::loadStandardItems()
 	item.emplace_back(&inputManager);
 	item.emplace_back(&options);
 	#ifdef CONFIG_BLUETOOTH
-	item.emplace_back(&scanWiimotes);
+	if(optionShowBluetoothScan)
+	{
+		item.emplace_back(&scanWiimotes);
 		#ifdef CONFIG_BLUETOOTH_SERVER
 		item.emplace_back(&acceptPS3ControllerConnection);
 		#endif
-	item.emplace_back(&bluetoothDisconnect);
+		item.emplace_back(&bluetoothDisconnect);
+	}
 	#endif
 	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	item.emplace_back(&addLauncherIcon);
@@ -247,6 +255,18 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		{
 			auto &fPicker = *new EmuFilePicker{window(), false};
 			pushAndShow(fPicker, e, false);
+		}
+	},
+	cheats
+	{
+		"Cheats",
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &cheatsMenu = *EmuSystem::makeView(window(), EmuSystem::ViewID::LIST_CHEATS);
+				viewStack.pushAndShow(cheatsMenu, e);
+			}
 		}
 	},
 	reset
@@ -553,6 +573,13 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 	{
 		loadFileBrowserItems();
 		loadStandardItems();
+		setOnMainMenuItemOptionChanged(
+			[this]()
+			{
+				item.clear();
+				loadFileBrowserItems();
+				loadStandardItems();
+			});
 	}
 }
 

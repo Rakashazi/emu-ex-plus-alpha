@@ -77,9 +77,9 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::Name
 		singleDir
 	}
 {
-	if(setPath(FS::current_path().data()) != OK)
+	if(setPath(FS::current_path().data(), false) != OK)
 	{
-		setPath(Base::storagePath());
+		setPath(Base::storagePath(), true);
 	}
 	setOnPathReadError(
 		[](FSPicker &, CallResult res)
@@ -141,7 +141,7 @@ bool showAutoStateConfirm(Input::Event e, bool addToRecent)
 	auto saveStr = EmuSystem::sprintStateFilename(-1);
 	if(FS::exists(saveStr))
 	{
-		auto mTime = FS::status(saveStr).last_write_time_local();
+		auto mTime = FS::status(saveStr).lastWriteTimeLocal();
 		char dateStr[64]{};
 		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
 		auto &ynAlertView = *new AutoStateConfirmAlertView{mainWin.win, dateStr, addToRecent};

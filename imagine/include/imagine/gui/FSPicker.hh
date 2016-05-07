@@ -50,15 +50,15 @@ public:
 	void onLeftNavBtn(Input::Event e);
 	void onRightNavBtn(Input::Event e);
 	void setOnPathReadError(OnPathReadError del);
-	CallResult setPath(const char *path, Input::Event e);
-	CallResult setPath(const char *path);
-	CallResult setPath(FS::PathString path, Input::Event e)
+	CallResult setPath(const char *path, bool forcePathChange, Input::Event e);
+	CallResult setPath(const char *path, bool forcePathChange);
+	CallResult setPath(FS::PathString path, bool forcePathChange, Input::Event e)
 	{
-		return setPath(path.data(), e);
+		return setPath(path.data(), forcePathChange, e);
 	}
-	CallResult setPath(FS::PathString path)
+	CallResult setPath(FS::PathString path, bool forcePathChange)
 	{
-		return setPath(path.data());
+		return setPath(path.data(), forcePathChange);
 	}
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void clearSelection() override
@@ -105,5 +105,5 @@ protected:
 	FSNavView navV{*this};
 	bool singleDir = false;
 
-	void changeDirByInput(const char *path, Input::Event e);
+	void changeDirByInput(const char *path, bool forcePathChange, Input::Event e);
 };

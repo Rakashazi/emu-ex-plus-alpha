@@ -22,12 +22,6 @@ ifdef pkgConfigStaticDeps
  endif
 endif
 
-ifeq ($(android_hardFP),1)
- # make sure soft-float libm isn't linked
- LDLIBS := $(LDLIBS:-lm=-lm_hard)
- linkerLibs := $(linkerLibs:-lm=-lm_hard)
-endif
-
 ifdef PKG_CONFIG_SYSTEM_LIBRARY_PATH
  VPATH += $(PKG_CONFIG_SYSTEM_LIBRARY_PATH)
 endif

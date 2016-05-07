@@ -30,8 +30,8 @@ public:
 	constexpr DelegateFunc() {}
 
 	// construct from lambda
-	template<class T, DISABLE_IF_COND(std::is_convertible<T, R (*)(ARGS...)>)>
-	DelegateFunc(T const &lambda) :
+	template<class T, DISABLE_IF_EXPR(std::is_convertible_v<T, R (*)(ARGS...)>)>
+	constexpr DelegateFunc(T const &lambda) :
 		exec
 		{
 			[](const Storage &lambda, ARGS... arguments) -> R
@@ -45,7 +45,7 @@ public:
 	}
 
 	// construct from free function
-	template <class T, ENABLE_IF_COND(std::is_convertible<T, R (*)(ARGS...)>)>
+	template <class T, ENABLE_IF_EXPR(std::is_convertible_v<T, R (*)(ARGS...)>)>
 	constexpr DelegateFunc(T const &func) :
 		exec
 		{

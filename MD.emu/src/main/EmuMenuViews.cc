@@ -282,47 +282,18 @@ public:
 constexpr const char *EmuSystemOptionView::biosHeadingStr[3];
 #endif
 
-class EmuMenuView : public MenuView
-{
-	TextMenuItem cheats
-	{
-		"Cheats",
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				auto &cheatsMenu = *new EmuCheatsView{window()};
-				viewStack.pushAndShow(cheatsMenu, e);
-			}
-		}
-	};
-
-public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
-	{
-		loadFileBrowserItems();
-		item.emplace_back(&cheats);
-		loadStandardItems();
-	}
-
-	void onShow()
-	{
-		MenuView::onShow();
-		cheats.setActive(EmuSystem::gameIsRunning());
-	}
-};
-
 View *EmuSystem::makeView(Base::Window &win, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(win);
+		case ViewID::MAIN_MENU: return new MenuView(win);
 		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
 		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(win);
 		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(win);
 		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
 		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(win);
+		case ViewID::LIST_CHEATS: return new EmuCheatsView(win);
 		default: return nullptr;
 	}
 }

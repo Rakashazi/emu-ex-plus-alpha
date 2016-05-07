@@ -111,6 +111,34 @@ uint defaultSystemOrientations()
 
 void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del) {}
 
+bool usesPermission(Permission p)
+{
+	return false;
+}
+
+bool requestPermission(Permission p)
+{
+	return false;
+}
+
+void setIdleDisplayPowerSave(bool on) {}
+
+void endIdleByUserActivity() {}
+
+#ifndef CONFIG_BASE_DBUS
+void registerInstance(const char *appID, int argc, char** argv) {}
+
+void setAcceptIPC(const char *appID, bool on) {}
+#endif
+
+void addNotification(const char *onShow, const char *title, const char *message) {}
+
+void addLauncherIcon(const char *name, const char *path) {}
+
+bool hasVibrator() { return false; }
+
+void vibrate(uint ms) {}
+
 }
 
 int main(int argc, char** argv)

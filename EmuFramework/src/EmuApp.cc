@@ -47,6 +47,7 @@ BluetoothAdapter *bta{};
 #ifdef __ANDROID__
 std::unique_ptr<RootCpufreqParamSetter> cpuFreq{};
 #endif
+static OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 
 static const char *assetFilename[] =
 {
@@ -746,6 +747,11 @@ void mainInitCommon(int argc, char** argv)
 			}
 		});
 
+	if(Base::usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&
+		!Base::requestPermission(Base::Permission::WRITE_EXT_STORAGE))
+	{
+		logMsg("requested external storage write permissions");
+	}
 	Gfx::initWindow(mainWin.win, winConf);
 	mainInitWindowCommon(mainWin.win);
 	EmuSystem::onMainWindowCreated(mainWin.win);
@@ -943,6 +949,16 @@ static Gfx::Viewport makeViewport(const Base::Window &win)
 	}
 	else
 		return Gfx::Viewport::makeFromWindow(win);
+}
+
+void onMainMenuItemOptionChanged()
+{
+	onMainMenuOptionChanged_.callSafe();
+}
+
+void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
+{
+	onMainMenuOptionChanged_ = func;
 }
 
 namespace Base

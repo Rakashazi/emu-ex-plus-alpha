@@ -23,7 +23,7 @@ constexpr double
 round(double x)
 { return __builtin_round(x); }
 
-template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
+template <typename T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 constexpr T round(T x)
 { return __builtin_round(x); }
 

@@ -46,7 +46,8 @@ static Gfx::Shader makeEffectFragmentShader(const char *src, bool isExternalTex)
 	{
 		const char *shaderSrc[]
 		{
-			"#extension GL_OES_EGL_image_external : require\n",
+			"#extension GL_OES_EGL_image_external : enable\n"
+			"#extension GL_OES_EGL_image_external_essl3 : enable\n"
 			"#define TEXTURE texture2D\n",
 			fragDefs,
 			"uniform lowp samplerExternalOES TEX;\n",

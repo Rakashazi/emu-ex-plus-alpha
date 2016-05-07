@@ -12,6 +12,8 @@ makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/src/liblzma/.libs/liblzma.a
 installIncludeDir := $(installDir)/include
 
+cpuIsBigEndian := no
+
 all : $(outputLibFile)
 
 install : $(outputLibFile)
@@ -40,6 +42,7 @@ $(makeFile) : $(xzSrcDir)/configure
 	dir=`pwd` && cd $(@D) && $(toolchainEnvParams) \
 	CFLAGS="$(CPPFLAGS) $(CFLAGS)" \
 	LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	ac_cv_c_bigendian=$(cpuIsBigEndian) \
 	$(xzSrcDir)/configure \
 	--prefix='$$$${pcfiledir}/../..' \
 	--disable-xz \

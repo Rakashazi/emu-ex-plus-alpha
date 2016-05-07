@@ -37,6 +37,7 @@ public:
 	uint getHeight();
 	uint getStride();
 	android_native_buffer_t *getNativeBuffer();
+	static bool hasBufferMapper();
 
 private:
 	bool initSize(uint w, uint h, uint format, uint usage);

@@ -54,7 +54,7 @@ GLenum bgrInternalFormat = GL_BGRA;
 
 bool useFBOFuncs = false;
 #if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
-GenerateMipmapsProto generateMipmaps = glGenerateMipmap;
+GenerateMipmapsProto generateMipmaps = (GenerateMipmapsProto)glGenerateMipmap;
 #else
 GenerateMipmapsProto generateMipmaps{}; // set via extensions
 #endif
@@ -92,7 +92,8 @@ void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum inter
 bool usePBO = false;
 #ifdef CONFIG_GFX_OPENGL_ES
 GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
-GLboolean (* GL_APIENTRY glUnmapBuffer) (GLenum target){};
+using UnmapBufferProto = GLboolean (* GL_APIENTRY) (GLenum target);
+UnmapBufferProto glUnmapBuffer{};
 #endif
 
 bool useEGLImages = false;
@@ -362,7 +363,7 @@ static void checkExtensionString(const char *extStr)
 		if(!glMapBufferRange)
 			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
 		if(!glUnmapBuffer)
-			glUnmapBuffer = glUnmapBufferOES;
+			glUnmapBuffer = (UnmapBufferProto)glUnmapBufferOES;
 	}
 	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
 	{
@@ -370,7 +371,7 @@ static void checkExtensionString(const char *extStr)
 		if(!glMapBufferRange)
 			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
 		if(!glUnmapBuffer)
-			glUnmapBuffer = glUnmapBufferOES;
+			glUnmapBuffer = (UnmapBufferProto)glUnmapBufferOES;
 	}
 	/*else if(string_equal(extStr, "GL_OES_mapbuffer"))
 	{

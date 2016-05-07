@@ -94,22 +94,24 @@ static void initVibration(JNIEnv* env)
 	jVibrate.setup(env, vibratorCls, "vibrate", "(J)V");
 }
 
-#if !defined CONFIG_MACHINE_OUYA
 bool hasVibrator()
 {
+	if(Config::MACHINE_IS_OUYA)
+		return false;
 	initVibration(jEnv());
 	return vibrator;
 }
 
 void vibrate(uint ms)
 {
+	if(Config::MACHINE_IS_OUYA)
+		return;
 	initVibration(jEnv());
 	if(unlikely(!vibrator))
 		return;
 	//logDMsg("vibrating for %u ms", ms);
 	jVibrate(jEnv(), vibrator, (jlong)ms);
 }
-#endif
 
 void setDeviceOrientationChangedSensor(bool)
 {

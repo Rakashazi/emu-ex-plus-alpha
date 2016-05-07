@@ -5,7 +5,7 @@
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= -O2 -fomit-frame-pointer -fno-stack-protector
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden
 CFLAGS_LANG = -std=gnu99 -fno-common
-CXXFLAGS_LANG = -std=gnu++1y $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
+CXXFLAGS_LANG = -std=gnu++14 $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
 ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain patches

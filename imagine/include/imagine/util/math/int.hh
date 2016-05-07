@@ -23,7 +23,7 @@
 namespace IG
 {
 
-template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 static T fls(T x)
 {
 	if(sizeof(T) <= sizeof(int))
@@ -32,19 +32,19 @@ static T fls(T x)
 		return ::flsl(x);
 }
 
-template<class T, ENABLE_IF_COND(std::is_unsigned<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_unsigned_v<T>)>
 static T roundUpPowOf2(T x)
 {
 	return 1 << fls(x - 1);
 }
 
-template<class T, ENABLE_IF_COND(std::is_unsigned<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_unsigned_v<T>)>
 static T roundDownPowOf2(T x)
 {
 	return 1 << (fls(x) - 1);
 }
 
-template <typename T, ENABLE_IF_COND(std::is_integral<T>)>
+template <typename T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 static T pow(T base, T exp)
 {
 	T result = 1;
@@ -60,38 +60,38 @@ static T pow(T base, T exp)
 	return result;
 }
 
-template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 constexpr static bool isEven(T x)
 {
 	return x % 2 == 0;
 }
 
-template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 constexpr static bool isOdd(T x)
 {
 	return !isEven(x);
 }
 
-template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 constexpr static T makeEvenRoundedUp(T x)
 {
 	return isEven(x) ? x : x+1;
 }
 
-template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 constexpr static T makeEvenRoundedDown(T x)
 {
 	return isEven(x) ? x : x-1;
 }
 
-template <class T, ENABLE_IF_COND(std::is_integral<T>)>
+template <class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 static constexpr bool isPowerOf2(T x)
 {
 	return x && !( (x-1) & x );
 	// return ((x != 0) && ((x & (~x + 1)) == x)); // alternate method
 }
 
-template <class T, ENABLE_IF_COND(std::is_unsigned<T>)>
+template <class T, ENABLE_IF_EXPR(std::is_unsigned_v<T>)>
 static T alignRoundedUp(T addr, unsigned int align)
 {
 	assumeExpr(isPowerOf2(align));
@@ -99,14 +99,14 @@ static T alignRoundedUp(T addr, unsigned int align)
 }
 
 // divide integer rounding-upwards
-template<class T, ENABLE_IF_COND(std::is_integral<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
 constexpr static T divRoundUp(T x, T y)
 {
 	return (x + (y - 1)) / y;
 }
 
 // divide rounding to closest integer
-template<class T, ENABLE_IF_COND(std::is_unsigned<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_unsigned_v<T>)>
 constexpr static T divRoundClosest(T x, T y)
 {
 	return (x > 0) ?
@@ -114,7 +114,7 @@ constexpr static T divRoundClosest(T x, T y)
 		(x - (y / 2)) / y;
 }
 
-template<class T, ENABLE_IF_COND(std::is_floating_point<T>)>
+template<class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
 constexpr static T divRoundClosest(T x, T y)
 {
 	return std::round(x / y);

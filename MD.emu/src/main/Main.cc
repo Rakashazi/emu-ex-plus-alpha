@@ -116,6 +116,7 @@ const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = true;
 const char *EmuSystem::configFilename = "MdEmu.config";
+bool EmuSystem::hasCheats = true;
 const uint EmuSystem::maxPlayers = 4;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {

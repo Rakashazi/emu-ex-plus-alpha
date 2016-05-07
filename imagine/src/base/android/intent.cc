@@ -83,4 +83,8 @@ void openURL(const char *url)
 	// TODO
 }
 
+void registerInstance(const char *appID, int argc, char** argv) {}
+
+void setAcceptIPC(const char *appID, bool on) {}
+
 }

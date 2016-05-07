@@ -35,6 +35,8 @@ import android.bluetooth.*;
 import android.content.pm.*;
 import java.lang.reflect.*;
 import java.io.*;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.app.ActivityCompat;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
@@ -529,5 +531,13 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		String libname = "main";
 		return libDir() + "/" + System.mapLibraryName(libname);
+	}
+	
+	boolean requestPermission(String permission)
+	{
+		if(ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED)
+			return true;
+		ActivityCompat.requestPermissions(this, new String[]{permission}, 0);
+		return false;
 	}
 }

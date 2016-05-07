@@ -365,7 +365,7 @@ InputManagerOptionsView::InputManagerOptionsView(Base::Window &win):
 	mogaInputSystem
 	{
 		"MOGA Controller Support",
-		optionMOGAInputSystem,
+		(bool)optionMOGAInputSystem,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
@@ -746,6 +746,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 				ynAlertView.setOnYes(
 					[this](TextMenuItem &, View &view, Input::Event e)
 					{
+						view.dismiss();
 						confirmICadeMode(e);
 					});
 				modalViewController.pushAndShow(ynAlertView, e);

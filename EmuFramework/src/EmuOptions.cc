@@ -102,6 +102,7 @@ Byte1Option optionMOGAInputSystem(CFGKEY_MOGA_INPUT_SYSTEM, 0, 0);
 
 #ifdef CONFIG_BLUETOOTH
 Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
+Byte1Option optionShowBluetoothScan(CFGKEY_SHOW_BLUETOOTH_SCAN, 1);
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 	OptionBlueToothScanCache optionBlueToothScanCache(CFGKEY_BLUETOOTH_SCAN_CACHE, 1);
 	#endif
@@ -319,6 +320,12 @@ void initOptions()
 	if(Base::androidSDK() < 17)
 	{
 		optionShowOnSecondScreen.isConst = true;
+	}
+	else
+	{
+		#ifdef CONFIG_BLUETOOTH
+		optionShowBluetoothScan.initDefault(0);
+		#endif
 	}
 	#endif
 

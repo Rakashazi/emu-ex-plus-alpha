@@ -1169,10 +1169,10 @@ bool GLTexture::setAndroidStorageImpl(AndroidStorageImpl impl)
 				logMsg("not using GraphicBuffer due to app lockup on Tegra 4 and older");
 				return false;
 			}
-			if(GraphicBufferStorage::isRendererWhitelisted(rendererStr))
+			if(GraphicBufferStorage::testPassed)
 			{
 				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;
-				logMsg("using Android GraphicBuffers as texture storage (white-listed)");
+				logMsg("using Android GraphicBuffer as texture storage (skipping test)");
 				return true;
 			}
 			else
@@ -1183,7 +1183,12 @@ bool GLTexture::setAndroidStorageImpl(AndroidStorageImpl impl)
 					logErr("Can't use GraphicBuffer without OES_EGL_image extension");
 					return false;
 				}
-				Base::GraphicBuffer gb;
+				Base::GraphicBuffer gb{};
+				if(!gb.hasBufferMapper())
+				{
+					logErr("failed GraphicBuffer mapper initialization");
+					return false;
+				}
 				if(!gb.reallocate(256, 256, HAL_PIXEL_FORMAT_RGB_565, GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE))
 				{
 					logErr("failed GraphicBuffer allocation test");
@@ -1197,6 +1202,7 @@ bool GLTexture::setAndroidStorageImpl(AndroidStorageImpl impl)
 				}
 				gb.unlock();
 				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;
+				GraphicBufferStorage::testPassed = true;
 				logMsg("using Android GraphicBuffer as texture storage");
 				return true;
 			}

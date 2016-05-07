@@ -4,7 +4,7 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libvorbisVer := 1.3.4
+libvorbisVer := 1.3.5
 libvorbisSrcDir := $(tempDir)/libvorbis-$(libvorbisVer)
 libvorbisSrcArchive := libvorbis-$(libvorbisVer).tar.xz
 
@@ -28,6 +28,7 @@ $(libvorbisSrcDir)/configure : | $(libvorbisSrcArchive)
 	@mkdir -p $(libvorbisSrcDir)
 	tar -mxJf $| -C $(libvorbisSrcDir)/..
 	cp ../gnuconfig/config.* $(libvorbisSrcDir)/
+	patch -d $(libvorbisSrcDir) -p1 < remove-mno-ieee-fp-for-clang.patch
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libvorbis..."

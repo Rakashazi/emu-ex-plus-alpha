@@ -23,7 +23,7 @@ namespace Base
 static gralloc_module_t const *grallocMod{};
 static alloc_device_t *allocDev{};
 
-void initAllocDev()
+static void initAllocDev()
 {
 	if(allocDev)
 		return;
@@ -130,6 +130,11 @@ uint GraphicBuffer::getStride()
 android_native_buffer_t *GraphicBuffer::getNativeBuffer()
 {
 	return static_cast<android_native_buffer_t*>(this);
+}
+
+bool GraphicBuffer::hasBufferMapper()
+{
+	return grallocMod;
 }
 
 }

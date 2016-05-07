@@ -84,6 +84,7 @@ const char *EmuSystem::configFilename = "Snes9x.config";
 bool EmuSystem::hasBundledGames = true;
 const char *EmuSystem::configFilename = "Snes9xP.config";
 #endif
+bool EmuSystem::hasCheats = true;
 const uint EmuSystem::maxPlayers = 5;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -94,17 +95,11 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasResetModes = true;
 
-#if defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
-#define GAME_ASSET_EXT "smc"
-#else
-#define GAME_ASSET_EXT "zip"
-#endif
-
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
 	static const BundledGameInfo info[]
 	{
-		{ "Bio Worm", "Bio Worm." GAME_ASSET_EXT	}
+		{"Bio Worm", "Bio Worm.7z"}
 	};
 
 	return info[0];

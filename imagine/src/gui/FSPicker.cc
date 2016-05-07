@@ -110,9 +110,9 @@ void FSPicker::place()
 	navV.place(projP);
 }
 
-void FSPicker::changeDirByInput(const char *path, Input::Event e)
+void FSPicker::changeDirByInput(const char *path, bool forcePathChange, Input::Event e)
 {
-	if(setPath(path, e) != OK)
+	if(setPath(path, forcePathChange, e) != OK && !forcePathChange)
 		return;
 	place();
 	postDraw();
@@ -130,7 +130,7 @@ void FSPicker::setOnClose(OnCloseDelegate del)
 
 void FSPicker::onLeftNavBtn(Input::Event e)
 {
-	changeDirByInput("..", e);
+	changeDirByInput("..", true, e);
 }
 
 void FSPicker::onRightNavBtn(Input::Event e)
@@ -155,7 +155,7 @@ void FSPicker::inputEvent(Input::Event e)
 	if(!singleDir && e.state == Input::PUSHED && e.isDefaultLeftButton())
 	{
 		logMsg("going up a dir");
-		changeDirByInput("..", e);
+		changeDirByInput("..", true, e);
 	}
 	else if(e.isPointer() && navV.viewRect.overlaps({e.x, e.y}) && !tbl.isDoingScrollGesture())
 	{
@@ -179,17 +179,18 @@ void FSPicker::onAddedToController(Input::Event e)
 	tbl.onAddedToController(e);
 }
 
-CallResult FSPicker::setPath(const char *path, Input::Event e)
+CallResult FSPicker::setPath(const char *path, bool forcePathChange, Input::Event e)
 {
 	assert(path);
+	CallResult res = OK;
 	{
-		CallResult dirResult = OK;
-		auto dirIt = FS::directory_iterator{path, dirResult};
-		if(dirResult != OK)
+		auto dirIt = FS::directory_iterator{path, res};
+		if(res != OK)
 		{
 			logErr("can't open %s", path);
-			onPathReadError.callSafe(*this, dirResult);
-			return dirResult;
+			onPathReadError.callSafe(*this, res);
+			if(!forcePathChange)
+				return res;
 		}
 		FS::current_path(path);
 		dir.clear();
@@ -217,7 +218,7 @@ CallResult FSPicker::setPath(const char *path, Input::Event e)
 					{
 						assert(!singleDir);
 						logMsg("going to dir %s", dir[i].data());
-						changeDirByInput(dir[i].data(), e);
+						changeDirByInput(dir[i].data(), false, e);
 					});
 			}
 			else
@@ -233,10 +234,10 @@ CallResult FSPicker::setPath(const char *path, Input::Event e)
 	if(!e.isPointer())
 		tbl.highlightCell(0);
 	navV.setTitle(FS::current_path().data());
-	return OK;
+	return res;
 }
 
-CallResult FSPicker::setPath(const char *path)
+CallResult FSPicker::setPath(const char *path, bool forcePathChange)
 {
-	return setPath(path, Input::defaultEvent());
+	return setPath(path, forcePathChange, Input::defaultEvent());
 }

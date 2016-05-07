@@ -151,6 +151,7 @@ protected:
 	BoolMenuItem backNav;
 	BoolMenuItem rememberLastMenu;
 	BoolMenuItem showBundledGames;
+	BoolMenuItem showBluetoothScan;
 	TextHeadingMenuItem orientationHeading;
 	TextMenuItem menuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem menuOrientation;

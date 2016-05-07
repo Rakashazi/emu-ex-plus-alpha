@@ -76,15 +76,15 @@ public:
 	void setOnSelect(FUNC &&onSelect) { setOnSelect(wrapSelectDelegate(onSelect)); }
 	SelectDelegate onSelect() const { return selectD; }
 	template<class FUNC,
-		ENABLE_IF_BOOL(std::is_same<bool, typename IG::function_traits<FUNC>::result_type>::value
-			&& IG::function_traits<FUNC>::arity == 3)>
+		ENABLE_IF_EXPR(std::is_same_v<bool, IG::functionTraitsRType<FUNC>>
+			&& IG::functionTraitsArity<FUNC> == 3)>
 	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
 	{
 		return selectDel;
 	}
 	template<class FUNC,
-		ENABLE_IF_BOOL(std::is_same<void, typename IG::function_traits<FUNC>::result_type>::value
-			&& IG::function_traits<FUNC>::arity == 3)>
+		ENABLE_IF_EXPR(std::is_same_v<void, IG::functionTraitsRType<FUNC>>
+			&& IG::functionTraitsArity<FUNC> == 3)>
 	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
 	{
 		// for void (TextMenuItem &, View &, Input::Event)
@@ -96,8 +96,8 @@ public:
 			};
 	}
 	template<class FUNC,
-		ENABLE_IF_BOOL(std::is_same<bool, typename IG::function_traits<FUNC>::result_type>::value
-			&& IG::function_traits<FUNC>::arity == 0)>
+		ENABLE_IF_EXPR(std::is_same_v<bool, IG::functionTraitsRType<FUNC>>
+			&& IG::functionTraitsArity<FUNC> == 0)>
 	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
 	{
 		// for bool ()
@@ -108,8 +108,8 @@ public:
 			};
 	}
 	template<class FUNC,
-		ENABLE_IF_BOOL(std::is_same<void, typename IG::function_traits<FUNC>::result_type>::value
-			&& IG::function_traits<FUNC>::arity == 0)>
+		ENABLE_IF_EXPR(std::is_same_v<void, IG::functionTraitsRType<FUNC>>
+			&& IG::functionTraitsArity<FUNC> == 0)>
 	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
 	{
 		// for void ()

@@ -116,6 +116,7 @@ const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 const char *EmuSystem::configFilename = "GbcEmu.config";
+bool EmuSystem::hasCheats = true;
 const uint EmuSystem::maxPlayers = 1;
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {

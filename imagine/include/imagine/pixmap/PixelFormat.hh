@@ -104,26 +104,8 @@ public:
 
 	static constexpr PixelDesc desc(PixelFormatID id)
 	{
-		return
-			id == PIXEL_I8 ? PIXEL_DESC_I8 :
-			id == PIXEL_A8 ? PIXEL_DESC_A8 :
-			id == PIXEL_IA88 ? PIXEL_DESC_IA88 :
-			id == PIXEL_RGB565 ? PIXEL_DESC_RGB565 :
-			id == PIXEL_RGBA5551 ? PIXEL_DESC_RGBA5551 :
-			id == PIXEL_ABGR1555 ? PIXEL_DESC_ABGR1555 :
-			id == PIXEL_RGBA4444 ? PIXEL_DESC_RGBA4444 :
-			id == PIXEL_ABGR4444 ? PIXEL_DESC_ABGR4444 :
-			id == PIXEL_RGB888 ? PIXEL_DESC_RGB888 :
-			id == PIXEL_BGR888 ? PIXEL_DESC_BGR888 :
-			id == PIXEL_RGBA8888 ? PIXEL_DESC_RGBA8888 :
-			id == PIXEL_BGRA8888 ? PIXEL_DESC_BGRA8888 :
-			id == PIXEL_ARGB8888 ? PIXEL_DESC_ARGB8888 :
-			id == PIXEL_ABGR8888 ? PIXEL_DESC_ABGR8888 :
-			PIXEL_DESC_NONE;
-		// TODO: can use switch statement in constexpr with GCC 5.0
-		/*switch(id)
+		switch(id)
 		{
-			default: return PIXEL_DESC_NONE;
 			case PIXEL_I8: return PIXEL_DESC_I8;
 			case PIXEL_A8: return PIXEL_DESC_A8;
 			case PIXEL_IA88: return PIXEL_DESC_IA88;
@@ -138,7 +120,10 @@ public:
 			case PIXEL_BGRA8888: return PIXEL_DESC_BGRA8888;
 			case PIXEL_ARGB8888: return PIXEL_DESC_ARGB8888;
 			case PIXEL_ABGR8888: return PIXEL_DESC_ABGR8888;
-		}*/
+			case PIXEL_NONE: ;
+			case PIXEL_END: ;
+		}
+		return PIXEL_DESC_NONE;
 	}
 };
 

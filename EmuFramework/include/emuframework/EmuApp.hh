@@ -56,6 +56,8 @@ struct AppWindowData
 	constexpr AppWindowData() {};
 };
 
+using OnMainMenuOptionChanged = DelegateFunc<void()>;
+
 extern AppWindowData mainWin, extraWin;
 extern AppWindowData *emuWin;
 extern EmuNavView viewNav;
@@ -94,5 +96,7 @@ void placeEmuViews();
 void placeElements();
 void startViewportAnimation(AppWindowData &winData);
 void updateAndDrawEmuVideo();
+void onMainMenuItemOptionChanged();
+void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 
 static constexpr const char *strftimeFormat = "%x  %r";

@@ -828,9 +828,9 @@ class EmuMenuView : public MenuView
 		}
 	};
 
-public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	void reloadItems()
 	{
+		item.clear();
 		loadFileBrowserItems();
 		item.emplace_back(&startWithBlankDisk);
 		item.emplace_back(&c64IOControl);
@@ -841,7 +841,14 @@ public:
 		loadStandardItems();
 	}
 
-	void onShow()
+public:
+	EmuMenuView(Base::Window &win): MenuView{win, true}
+	{
+		reloadItems();
+		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+	}
+
+	void onShow() override
 	{
 		MenuView::onShow();
 		c64IOControl.setActive(EmuSystem::gameIsRunning());

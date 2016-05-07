@@ -25,10 +25,11 @@ namespace Gfx
 
 struct GraphicBufferStorage: public DirectTextureStorage
 {
-	Base::GraphicBuffer gBuff;
+	Base::GraphicBuffer gBuff{};
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
 	uint bpp = 0;
 	uint pitch = 0;
+	static bool testPassed;
 
 	GraphicBufferStorage() {}
 	~GraphicBufferStorage() override;
