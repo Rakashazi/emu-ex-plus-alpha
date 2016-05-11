@@ -11,8 +11,6 @@ makefilesToRun='
 	
 	src/libarchive/ios-arm64.mk
 	
-	src/minizip/ios-arm64.mk
-	
 	src/boost/ios-arm64.mk
 '
 

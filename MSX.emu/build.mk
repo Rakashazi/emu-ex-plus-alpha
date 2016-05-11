@@ -10,7 +10,8 @@ SRC += main/Main.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/BlueMSXApi.cc \
-main/Board.cc
+main/Board.cc \
+main/ziphelper.cc
 
 BMSX := blueMSX
 
@@ -36,7 +37,6 @@ CPPFLAGS += -I$(projectPath)/src \
 -I$(projectPath)/src/$(BMSX)/Emulator \
 -I$(projectPath)/src/$(BMSX)/Input \
 -I$(projectPath)/src/$(BMSX)/Utils \
--I$(projectPath)/src/$(BMSX)/Unzip \
 -I$(projectPath)/src/$(BMSX)/Language \
 -I$(projectPath)/src/$(BMSX)/IoDevice \
 -I$(projectPath)/src/$(BMSX)/Debugger
@@ -102,16 +102,11 @@ $(BMSX)/IoDevice/HarddiskIDE.c
 
 # Utils
 SRC += $(BMSX)/Utils/SaveState.c \
-$(BMSX)/Utils/ziphelper.c \
-$(BMSX)/Utils/ZipFromMem.c \
 $(BMSX)/Utils/TokenExtract.c \
 $(BMSX)/Utils/IniFileParser.c \
 $(BMSX)/Utils/IsFileExtension.c
+# $(BMSX)/Utils/ZipFromMem.c \
 # $(BMSX)/Utils/StrcmpNoCase.c
-
-# Unzip
-#SRC += $(BMSX)/Unzip/deflate.c $(BMSX)/Unzip/unzip.c $(BMSX)/Unzip/zip.c $(BMSX)/Unzip/ioapi.c \
-#$(BMSX)/Unzip/zutil.c $(BMSX)/Unzip/trees.c
 
 # Input
 SRC += $(BMSX)/Input/JoystickPort.c \
@@ -249,7 +244,6 @@ ifdef RELEASE
 endif
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
-include $(IMAGINE_PATH)/make/package/unzip.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

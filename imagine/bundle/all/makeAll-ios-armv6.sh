@@ -11,8 +11,6 @@ makefilesToRun='
 	
 	src/libarchive/ios-armv6.mk
 	
-	src/minizip/ios-armv6.mk
-	
 	src/boost/ios-armv6.mk
 	
 	src/libcxxabi/ios-armv6.mk

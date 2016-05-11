@@ -115,7 +115,9 @@
 #include "spc7110.h"
 #include "seta.h"
 
+#ifdef UNZIP_SUPPORT
 #include "unzip.h"
+#endif
 
 #ifdef __W32_HEAP
 #include <malloc.h>

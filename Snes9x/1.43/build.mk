@@ -16,7 +16,6 @@ CPPFLAGS += \
 -DVAR_CYCLES \
 -DRIGHTSHIFT_IS_SAR \
 -DZLIB \
--DUNZIP_SUPPORT \
 -DUSE_OPENGL \
 -DCPU_SHUTDOWN \
 -DSPC700_SHUTDOWN \
@@ -73,7 +72,6 @@ main/Cheats.cc \
 $(addprefix $(snes9xPath)/,$(snes9xSrc))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
-include $(IMAGINE_PATH)/make/package/unzip.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

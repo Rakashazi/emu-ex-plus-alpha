@@ -1,1 +1,0 @@
-../../make/linux-x86.mk

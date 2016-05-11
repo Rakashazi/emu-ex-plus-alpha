@@ -40,3 +40,5 @@ bool hasMSXDiskExtension(const char *name);
 bool hasMSXROMExtension(const char *name);
 bool insertROM(const char *path, uint slot = 0);
 bool insertDisk(const char *path, uint slot = 0);
+CallResult zipStartWrite(const char *fileName);
+CallResult zipEndWrite();

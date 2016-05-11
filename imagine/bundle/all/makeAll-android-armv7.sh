@@ -9,8 +9,6 @@ makefilesToRun='
 	
 	src/libarchive/android-armv7.mk
 	
-	src/minizip/android-armv7.mk
-	
 	src/boost/android-armv7.mk
 '
 

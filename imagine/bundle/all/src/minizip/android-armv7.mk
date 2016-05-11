@@ -1,1 +1,0 @@
-../../make/android-armv7.mk

@@ -1,1 +1,0 @@
-../../make/android-x86.mk

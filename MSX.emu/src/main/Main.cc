@@ -605,67 +605,46 @@ static bool initMachine(const char *machineName)
 	return 1;
 }
 
-static bool getFirstROMFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
+template<class MATCH_FUNC>
+static bool getFirstFilenameInZip(const char *zipPath, char *nameOut, uint outBytes, MATCH_FUNC nameMatch)
 {
 	assert(nameOut);
-	int count;
-	char *fileList = zipGetFileList(zipPath, ".rom", &count);
-	if (fileList)
+	ArchiveIO io{};
+	CallResult res = OK;
+	for(auto &entry : FS::ArchiveIterator{zipPath, res})
 	{
-		string_copy(nameOut, fileList, outBytes);
-		free(fileList);
-		return 1;
+		if(entry.type() == FS::file_type::directory)
+		{
+			continue;
+		}
+		auto name = entry.name();
+		logMsg("archive file entry:%s", entry.name());
+		if(nameMatch(name))
+		{
+			string_copy(nameOut, name, outBytes);
+			return true;
+		}
 	}
-	fileList = zipGetFileList(zipPath, ".mx1", &count);
-	if (fileList)
+	if(res != OK)
 	{
-		string_copy(nameOut, fileList, outBytes);
-		free(fileList);
-		return 1;
+		logErr("error opening archive:%s", zipPath);
 	}
-	fileList = zipGetFileList(zipPath, ".mx2", &count);
-	if (fileList)
-	{
-		string_copy(nameOut, fileList, outBytes);
-		free(fileList);
-		return 1;
-	}
-	fileList = zipGetFileList(zipPath, ".col", &count);
-	if (fileList)
-	{
-		string_copy(nameOut, fileList, outBytes);
-		free(fileList);
-		return 1;
-	}
-	return 0;
+	return false;
+}
+
+static bool getFirstROMFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
+{
+	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXROMExtension);
 }
 
 static bool getFirstDiskFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
 {
-	assert(nameOut);
-	int count;
-	char *fileList = zipGetFileList(zipPath, ".dsk", &count);
-	if (fileList)
-	{
-		string_copy(nameOut, fileList, outBytes);
-		free(fileList);
-		return 1;
-	}
-	return 0;
+	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXDiskExtension);
 }
 
 static bool getFirstTapeFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
 {
-	assert(nameOut);
-	int count;
-	char *fileList = zipGetFileList(zipPath, ".cas", &count);
-	if (fileList)
-	{
-		string_copy(nameOut, fileList, outBytes);
-		free(fileList);
-		return 1;
-	}
-	return 0;
+	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXTapeExtension);
 }
 
 bool insertROM(const char *path, uint slot)
@@ -743,16 +722,24 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
-static char saveStateVersion[] = "blueMSX - state  v 8";
+static const char saveStateVersion[] = "blueMSX - state  v 8";
 extern int pendingInt;
 
 static int saveBlueMSXState(const char *filename)
 {
+	CallResult res = zipStartWrite(filename);
+	if(res != OK)
+	{
+		logErr("error creating zip:%s", filename);
+		return STATE_RESULT_IO_ERROR;
+	}
 	saveStateCreateForWrite(filename);
 	int rv = zipSaveFile(filename, "version", 0, saveStateVersion, sizeof(saveStateVersion));
 	if (!rv)
 	{
 		saveStateDestroy();
+		zipEndWrite();
+		logErr("error writing to zip:%s", filename);
 		return STATE_RESULT_IO_ERROR;
 	}
 
@@ -782,6 +769,7 @@ static int saveBlueMSXState(const char *filename)
 	machineSaveState(machine);
 	boardInfo.saveState();
 	saveStateDestroy();
+	zipEndWrite();
 	return STATE_RESULT_OK;
 }
 
