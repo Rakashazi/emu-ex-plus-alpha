@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#if 0
 typedef struct ZFILE {
 	//char *name;
 	int pos;
@@ -45,13 +46,17 @@ typedef struct PKZIP {
 	uint16_t nb_item;
 	uint8_t *map;
 }PKZIP;
+#endif
 
-void gn_unzip_fclose(ZFILE *z);
-int gn_unzip_fread(ZFILE *z,uint8_t *data,unsigned int size);
-ZFILE *gn_unzip_fopen(PKZIP *zf,const char *filename,uint32_t file_crc);
-PKZIP *gn_open_zip(char *file);
-uint8_t *gn_unzip_file_malloc(PKZIP *zf,const char *filename,uint32_t file_crc,unsigned int *outlen);
-void gn_close_zip(PKZIP *zf);
+struct ZFILE;
+struct PKZIP;
+
+void gn_unzip_fclose(struct ZFILE *z);
+int gn_unzip_fread(struct ZFILE *z,uint8_t *data,unsigned int size);
+struct ZFILE *gn_unzip_fopen(struct PKZIP *zf,const char *filename,uint32_t file_crc);
+struct PKZIP *gn_open_zip(const char *file);
+uint8_t *gn_unzip_file_malloc(struct PKZIP *zf,const char *filename,uint32_t file_crc,unsigned int *outlen);
+void gn_close_zip(struct PKZIP *zf);
 int gn_strictROMChecking();
 
 #endif /* UNZIP_H_ */

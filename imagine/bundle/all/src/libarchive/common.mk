@@ -33,6 +33,7 @@ $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	@echo "Extracting libarchive..."
 	@mkdir -p $(libarchiveSrcDir)
 	tar -mxJf $| -C $(libarchiveSrcDir)/..
+	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.0-entry-crc32.patch # adds ability to read file CRCs per entry
 	cp $(libarchiveSrcDir)/contrib/android/include/android_lf.h $(libarchiveSrcDir)/libarchive/
 	cp ../gnuconfig/config.* $(libarchiveSrcDir)/build/autoconf/
 	cd $(libarchiveSrcDir) && build/autogen.sh

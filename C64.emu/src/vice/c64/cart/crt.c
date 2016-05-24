@@ -35,6 +35,7 @@
 #include "resources.h"
 #include "types.h"
 #include "c64cart.h"
+#include "zfile.h"
 
 #define CARTRIDGE_INCLUDE_PRIVATE_API
 #include "actionreplay.h"
@@ -121,7 +122,7 @@ static FILE *crt_open(const char *filename, crt_header_t *header)
     DWORD skip;
     FILE *fd;
 
-    fd = fopen(filename, MODE_READ);
+    fd = zfile_fopen(filename, MODE_READ);
 
     if (fd == NULL) {
         return NULL;
@@ -157,7 +158,7 @@ static FILE *crt_open(const char *filename, crt_header_t *header)
         return fd; /* Ok, exit */
     } while (0);
 
-    fclose(fd);
+    zfile_fclose(fd);
     return NULL; /* Fault */
 }
 /*
@@ -174,7 +175,7 @@ int crt_getid(const char *filename)
         return -1;
     }
 
-    fclose(fd);
+    zfile_fclose(fd);
 
     return header.type;
 }
@@ -509,7 +510,7 @@ int crt_attach(const char *filename, BYTE *rawcart)
             break;
     }
 
-    fclose(fd);
+    zfile_fclose(fd);
 
     if (rc == -1) {
         DBG(("crt_attach error (%d)\n", rc));

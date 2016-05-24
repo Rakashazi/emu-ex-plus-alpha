@@ -7,6 +7,7 @@ CFLAGS_OPTIMIZE_RELEASE_DEFAULT += -O3
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc \
+main/unzip.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc
 
@@ -33,8 +34,7 @@ $(GEO)/pd4990a.c \
 $(GEO)/roms.c \
 $(GEO)/state.c \
 $(GEO)/timer.c \
-$(GEO)/video.c \
-$(GEO)/unzip.c
+$(GEO)/video.c
 
 ifeq ($(ENV), webos)
  LDLIBS += -lpthread

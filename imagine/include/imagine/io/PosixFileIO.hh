@@ -17,6 +17,7 @@
 
 #include <imagine/io/PosixIO.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <type_traits>
 
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
@@ -65,20 +66,16 @@ public:
 	explicit operator bool();
 
 protected:
-	union [[gnu::aligned]]
-	{
-		std::aligned_storage_t<sizeof(PosixIO), alignof(PosixIO)> posixIO_;
-		std::aligned_storage_t<sizeof(BufferMapIO), alignof(BufferMapIO)> bufferMapIO_;
-	};
+	std::aligned_union_t<0, PosixIO, BufferMapIO> ioStorage;
 	bool usingMapIO = false;
 
 	IO &io();
 	PosixIO &posixIO()
 	{
-		return *(PosixIO*)(void*)&posixIO_;
+		return *(PosixIO*)&ioStorage;
 	}
 	BufferMapIO &bufferMapIO()
 	{
-		return *(BufferMapIO*)(void*)&bufferMapIO_;
+		return *(BufferMapIO*)&ioStorage;
 	}
 };

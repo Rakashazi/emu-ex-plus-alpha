@@ -1,0 +1,96 @@
+diff -burp libarchive-3.2.0/libarchive/archive_entry.c libarchive-3.2.0-patched/libarchive/archive_entry.c
+--- libarchive-3.2.0/libarchive/archive_entry.c	2016-04-30 13:26:35.000000000 -0400
++++ libarchive-3.2.0-patched/libarchive/archive_entry.c	2016-05-22 02:37:56.814053610 -0400
+@@ -1399,6 +1399,22 @@ archive_entry_copy_mac_metadata(struct a
+   }
+ }
+ 
++int archive_entry_crc32(struct archive_entry *entry)
++{
++  return (entry->crc32);
++}
++
++int archive_entry_crc32_is_set(struct archive_entry *entry)
++{
++  return (entry->crc32_set);
++}
++
++void archive_entry_set_crc32(struct archive_entry *entry, int crc32)
++{
++  entry->crc32 = crc32;
++  entry->crc32_set = 1;
++}
++
+ /*
+  * ACL management.  The following would, of course, be a lot simpler
+  * if: 1) the last draft of POSIX.1e were a really thorough and
+diff -burp libarchive-3.2.0/libarchive/archive_entry.h libarchive-3.2.0-patched/libarchive/archive_entry.h
+--- libarchive-3.2.0/libarchive/archive_entry.h	2016-04-30 13:26:35.000000000 -0400
++++ libarchive-3.2.0-patched/libarchive/archive_entry.h	2016-05-22 02:38:04.522071983 -0400
+@@ -254,6 +254,8 @@ __LA_DECL const wchar_t	*archive_entry_u
+ __LA_DECL int archive_entry_is_data_encrypted(struct archive_entry *);
+ __LA_DECL int archive_entry_is_metadata_encrypted(struct archive_entry *);
+ __LA_DECL int archive_entry_is_encrypted(struct archive_entry *);
++__LA_DECL int archive_entry_crc32(struct archive_entry *);
++__LA_DECL int archive_entry_crc32_is_set(struct archive_entry *);
+ 
+ /*
+  * Set fields in an archive_entry.
+@@ -333,6 +335,7 @@ __LA_DECL void	archive_entry_copy_uname_
+ __LA_DECL int	archive_entry_update_uname_utf8(struct archive_entry *, const char *);
+ __LA_DECL void	archive_entry_set_is_data_encrypted(struct archive_entry *, char is_encrypted);
+ __LA_DECL void	archive_entry_set_is_metadata_encrypted(struct archive_entry *, char is_encrypted);
++__LA_DECL void  archive_entry_set_crc32(struct archive_entry *, int);
+ /*
+  * Routines to bulk copy fields to/from a platform-native "struct
+  * stat."  Libarchive used to just store a struct stat inside of each
+diff -burp libarchive-3.2.0/libarchive/archive_entry_private.h libarchive-3.2.0-patched/libarchive/archive_entry_private.h
+--- libarchive-3.2.0/libarchive/archive_entry_private.h	2016-04-30 13:26:35.000000000 -0400
++++ libarchive-3.2.0-patched/libarchive/archive_entry_private.h	2016-05-22 02:02:51.716748689 -0400
+@@ -154,6 +154,9 @@ struct archive_entry {
+ 	/* Not used within libarchive; useful for some clients. */
+ 	struct archive_mstring ae_sourcepath;	/* Path this entry is sourced from. */
+ 
++	int crc32;
++	char crc32_set;
++
+ #define AE_ENCRYPTION_NONE 0
+ #define AE_ENCRYPTION_DATA 1
+ #define AE_ENCRYPTION_METADATA 2
+diff -burp libarchive-3.2.0/libarchive/archive_read_support_format_7zip.c libarchive-3.2.0-patched/libarchive/archive_read_support_format_7zip.c
+--- libarchive-3.2.0/libarchive/archive_read_support_format_7zip.c	2016-04-30 13:26:35.000000000 -0400
++++ libarchive-3.2.0-patched/libarchive/archive_read_support_format_7zip.c	2016-05-22 02:39:41.754304228 -0400
+@@ -774,6 +774,11 @@ archive_read_format_7zip_read_header(str
+ 		archive_entry_set_size(entry, 0);
+ 	}
+ 
++	if (zip->entry->flg & CRC32_IS_SET)
++	{
++		archive_entry_set_crc32(entry, zip->si.ss.digests[zip->entry->ssIndex]);
++	}
++
+ 	/* Set up a more descriptive format name. */
+ 	sprintf(zip->format_name, "7-Zip");
+ 	a->archive.archive_format_name = zip->format_name;
+diff -burp libarchive-3.2.0/libarchive/archive_read_support_format_rar.c libarchive-3.2.0-patched/libarchive/archive_read_support_format_rar.c
+--- libarchive-3.2.0/libarchive/archive_read_support_format_rar.c	2016-04-30 13:26:35.000000000 -0400
++++ libarchive-3.2.0-patched/libarchive/archive_read_support_format_rar.c	2016-05-22 02:39:42.974307149 -0400
+@@ -1358,6 +1358,7 @@ read_header(struct archive_read *a, stru
+   rar->mtime = get_time(ttime);
+ 
+   rar->file_crc = archive_le32dec(file_header.file_crc);
++  archive_entry_set_crc32(entry, rar->file_crc);
+ 
+   if (rar->file_flags & FHD_PASSWORD)
+   {
+diff -burp libarchive-3.2.0/libarchive/archive_read_support_format_zip.c libarchive-3.2.0-patched/libarchive/archive_read_support_format_zip.c
+--- libarchive-3.2.0/libarchive/archive_read_support_format_zip.c	2016-04-30 13:26:35.000000000 -0400
++++ libarchive-3.2.0-patched/libarchive/archive_read_support_format_zip.c	2016-05-22 02:39:44.698311275 -0400
+@@ -777,6 +777,7 @@ zip_read_local_file_header(struct archiv
+ 	zip_entry->compression = (char)archive_le16dec(p + 8);
+ 	zip_entry->mtime = zip_time(p + 10);
+ 	zip_entry->crc32 = archive_le32dec(p + 14);
++	archive_entry_set_crc32(entry, zip_entry->crc32);
+ 	if (zip_entry->zip_flags & ZIP_LENGTH_AT_END)
+ 		zip_entry->decdat = p[11];
+ 	else

@@ -1,3 +1,17 @@
+/*  This file is part of NEO.emu.
+
+	MD.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MD.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <imagine/base/Pipe.hh>
@@ -680,7 +694,7 @@ int EmuSystem::loadGame(const char *path)
 	setupGamePaths(path);
 
 	{
-		ROM_DEF *drv = dr_check_zip(path);
+		ROM_DEF *drv = dr_check_zip(FS::basename(path).data());
 		if(!drv)
 		{
 			popup.postError("This game isn't recognized");
@@ -691,7 +705,7 @@ int EmuSystem::loadGame(const char *path)
 
 	logMsg("rom set %s, %s", activeDrv->name, activeDrv->longname);
 	char gnoFilename[8+4+1];
-	snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
+	string_printf(gnoFilename, "%s.gno", activeDrv->name);
 
 	if(optionCreateAndUseCache && FS::exists(gnoFilename))
 	{
@@ -721,7 +735,7 @@ int EmuSystem::loadGame(const char *path)
 				{
 					using namespace Base;
 					char gnoFilename[8+4+1];
-					snprintf(gnoFilename, sizeof(gnoFilename), "%s.gno", activeDrv->name);
+					string_printf(gnoFilename, "%s.gno", activeDrv->name);
 					loadThreadIsRunning = true;
 					auto loadThreadDone = IG::scopeGuard([](){ loadThreadIsRunning = false; });
 					if(!init_game(activeDrv->name))

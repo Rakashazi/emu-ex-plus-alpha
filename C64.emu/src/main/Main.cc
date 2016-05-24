@@ -444,7 +444,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-bool EmuSystem::handlesArchiveFiles = false; // TODO: need to re-factor VICE file loading code
 bool EmuSystem::handlesGenericIO = false;
 
 const char *EmuSystem::shortSystemName()
@@ -953,6 +952,7 @@ bool hasC64DiskExtension(const char *name)
 			string_hasDotExtension(name, "d4m") ||
 			string_hasDotExtension(name, "g64") ||
 			string_hasDotExtension(name, "p64") ||
+			string_hasDotExtension(name, "g41") ||
 			string_hasDotExtension(name, "x64") ||
 			string_hasDotExtension(name, "dsk");
 }

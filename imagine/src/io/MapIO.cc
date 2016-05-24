@@ -160,7 +160,7 @@ ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const char *addr, CallResult
 	}
 	else bytesToRead = bytes;
 
-	//logDMsg("reading %llu bytes at offset %llu", (unsigned long long)bytesToRead, unsigned long long(readPos - data));
+	//logDMsg("reading %llu bytes at offset %llu", (unsigned long long)bytesToRead, (unsigned long long)(addr - data));
 	memcpy(buff, addr, bytesToRead);
 
 	return bytesToRead;

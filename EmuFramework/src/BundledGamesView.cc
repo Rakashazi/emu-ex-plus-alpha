@@ -60,7 +60,7 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 						continue;
 					}
 					auto name = entry.name();
-					logMsg("archive file entry:%s", entry.name());
+					logMsg("archive file entry:%s", name);
 					if(EmuSystem::defaultFsFilter(name))
 					{
 						io = entry.moveIO();

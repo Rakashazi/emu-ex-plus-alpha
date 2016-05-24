@@ -29,6 +29,7 @@
 #define VICE_ZFILE_H
 
 #include <stdio.h>
+#include "vice.h"
 
 /* actions to be done when a zfile is closed */
 typedef enum {
@@ -37,7 +38,7 @@ typedef enum {
     ZFILE_DEL           /* Remove original file.  */
 } zfile_action_t;
 
-extern FILE *zfile_fopen(const char *name, const char *mode);
+extern VICE_API FILE *zfile_fopen(const char *name, const char *mode);
 extern int zfile_fclose(FILE *stream);
 
 extern void zfile_shutdown(void);

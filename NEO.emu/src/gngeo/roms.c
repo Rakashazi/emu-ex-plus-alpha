@@ -142,9 +142,6 @@ int bankoffset_kof2000[64] = {
 };
 Uint8 scramblecode_kof2000[7] = {0xEC, 15, 14, 7, 3, 10, 5,};
 
-#define LOAD_BUF_SIZE (128*1024)
-static Uint8* iloadbuf = NULL;
-
 char romerror[1024];
 
 /* Actuall Code */
@@ -928,94 +925,69 @@ static void free_region(ROM_REGION *r) {
 	r->p = NULL;
 }
 
-static int zip_seek_current_file(ZFILE *gz, Uint32 offset) {
-	Uint8 *buf;
-	Uint32 s = 4096, c;
-	buf = malloc(s);
-	if (!buf)
-		return -1;
+static int zip_seek_current_file(struct ZFILE *gz, Uint32 offset) {
+	const Uint32 s = 1024 * 32;
+	Uint8 buf[s];
 	while (offset) {
-		c = offset;
+		Uint32 c = offset;
 		if (c > s)
 			c = s;
 
 		c = gn_unzip_fread(gz, buf, c);
-		if (c == 0) {
+		if (c <= 0) {
 			break;
 		}
 		offset -= c;
 	}
-	free(buf);
 	return 0;
 
 }
 
 static int read_counter;
 
-static int read_data_i(ZFILE *gz, ROM_REGION *r, Uint32 dest, Uint32 size) {
-	//Uint8 *buf;
+static int read_data_i(struct ZFILE *gz, ROM_REGION *r, Uint32 dest, Uint32 size) {
 	Uint8 *p = r->p + dest;
-	Uint32 s = LOAD_BUF_SIZE, c, i;
 	if (r->p == NULL || r->size < (dest & ~0x1) + (size * 2)) {
 		logMsg("Region not allocated or not big enough %08x %08x", r->size,
 				dest + (size * 2));
 		return -1;
 	}
-	//buf=malloc(s);
-	if (!iloadbuf)
-		return -1;
-
-	while (size) {
-		c = size;
-		if (c > s)
-			c = s;
-
-		c = gn_unzip_fread(gz, iloadbuf, c);
-		if (c == 0) {
-			//free(buf);
-			return 0;
-		}
-		for (i = 0; i < c; i++) {
-			//printf("%d %d\n",i,c);
-			*p = iloadbuf[i];
-			p += 2;
-		}
-		size -= c;
-		read_counter += c;
+	Uint8 *buf = malloc(size);
+	Uint32 c = gn_unzip_fread(gz, buf, size);
+	if (c <= 0) {
+		free(buf);
+		return 0;
 	}
+	for (Uint32 i = 0; i < c; i++) {
+		//printf("%d %d\n",i,c);
+		*p = buf[i];
+		p += 2;
+	}
+	free(buf);
+	read_counter += c;
 	gn_update_pbar(read_counter);
-	//free(buf);
 	return 0;
 }
 
-static int read_data_p(ZFILE *gz, ROM_REGION *r, Uint32 dest, Uint32 size) {
-	Uint32 s = LOAD_BUF_SIZE, c, i = 0;
+static int read_data_p(struct ZFILE *gz, ROM_REGION *r, Uint32 dest, Uint32 size) {
 	if (r->p == NULL || r->size < dest + size) {
 		logMsg("Region not allocated or not big enough");
 		return -1;
 	}
-	while (size) {
-		c = size;
-		if (c > s)
-			c = s;
-		c = gn_unzip_fread(gz, r->p + dest + i, c);
-		if (c == 0) {
-			//free(buf);
-			return 0;
-		}
-		i += c;
-		size -= c;
-		read_counter += c;
+	Uint32 c = gn_unzip_fread(gz, r->p + dest, size);
+	if (c <= 0) {
+		return 0;
 	}
+	read_counter += c;
 	gn_update_pbar(read_counter);
 	return 0;
 }
 
-static int load_region(PKZIP *pz, GAME_ROMS *r, int region, Uint32 src,
+static int load_region(struct PKZIP *pz, GAME_ROMS *r, int region, Uint32 src,
 		Uint32 dest, Uint32 size, Uint32 crc, char *filename) {
 	int rc;
 	int badcrc = 0;
-	ZFILE *gz;
+	struct ZFILE *gz;
 
 
 	gz = gn_unzip_fopen(pz, filename, crc);
@@ -1080,15 +1052,30 @@ static int load_region(PKZIP *pz, GAME_ROMS *r, int region, Uint32 src,
 	return 0;
 }
 
-static PKZIP *open_rom_zip(char *rom_path, char *name) {
-	char *buf;
+static struct PKZIP *open_rom_zip(char *rom_path, char *name) {
 	int size = strlen(rom_path) + strlen(name) + 6;
-	PKZIP *gz;
-	buf = malloc(size);
+	struct PKZIP *gz;
+	char buf[size];
+	// Try to open each possible archive type
 	snprintf(buf, size, "%s/%s.zip", rom_path, name);
 	gz = gn_open_zip(buf);
-	free(buf);
-	return gz;
+	if(gz)
+	{
+		return gz;
+	}
+	snprintf(buf, size, "%s/%s.7z", rom_path, name);
+	gz = gn_open_zip(buf);
+	if(gz)
+	{
+		return gz;
+	}
+	snprintf(buf, size, "%s/%s.rar", rom_path, name);
+	gz = gn_open_zip(buf);
+	if(gz)
+	{
+		return gz;
+	}
+	return NULL;
 }
 
 static int convert_roms_tile(Uint8 *g, int tileno) {
@@ -1219,7 +1206,7 @@ static int init_roms(GAME_ROMS *r) {
 	return 0;
 }
 
-static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file_crc, PKZIP *pz, char *rpath)
+static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file_crc, struct PKZIP *pz, char *rpath)
 {
 	/* First check in neogeo.zip */
 	r->bios_m68k.p = gn_unzip_file_malloc(pz, unibiosFilename, file_crc, &r->bios_m68k.size);
@@ -1244,8 +1231,8 @@ static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file
 
 bool dr_load_bios(GAME_ROMS *r) {
 	int i;
-	PKZIP *pz;
-	ZFILE *z;
+	struct PKZIP *pz;
+	struct ZFILE *z;
 	unsigned int size;
 	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
 	char *fpath;
@@ -1368,7 +1355,7 @@ ROM_DEF *dr_check_zip(const char *filename) {
 	//	printf("Game=%s\n", game);
 	if (game == NULL)
 		return NULL;
-	z = strstr(game, ".zip");
+	z = strstr(game, ".");
 	//	printf("z=%s\n", game);
 	if (z == NULL)
 	{
@@ -1383,7 +1370,7 @@ ROM_DEF *dr_check_zip(const char *filename) {
 
 int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name) {
 	//unzFile *gz,*gzp=NULL,*rdefz;
-	PKZIP *gz, *gzp = NULL;
+	struct PKZIP *gz, *gzp = NULL;
 	ROM_DEF *drv;
 	int i;
 	int romsize;
@@ -1462,8 +1449,6 @@ int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name) {
 				REGION_FIXED_LAYER_BIOS);
 	}
 
-	iloadbuf = malloc(LOAD_BUF_SIZE);
-
 	/* Now, load the roms */
 	read_counter = 0;
 	romsize = 0;
@@ -1523,8 +1508,6 @@ int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name) {
 	 */
 	memory.nb_of_tiles = r->tiles.size >> 7;
 
-	free(iloadbuf);
-
 	/* Init rom and bios */
 	init_roms(r);
 	convert_all_tile(r);
@@ -1546,7 +1529,7 @@ int dr_load_game(char *name) {
 	//GAME_ROMS rom;
 	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
 	int rc;
-	logMsg("Loading %s/%s.zip\n", rpath, name);
+	logMsg("Loading %s/%s\n", rpath, name);
 	memory.bksw_handler = 0;
 	memory.bksw_unscramble = NULL;
 	memory.bksw_offset = NULL;

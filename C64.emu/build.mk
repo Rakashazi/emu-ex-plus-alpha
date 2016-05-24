@@ -22,7 +22,8 @@ main/VicePlugin.cc \
 main/sysfile.cc \
 main/video.cc \
 main/sound.cc \
-main/log.cc
+main/log.cc \
+main/zfile.cc
 
 CPPFLAGS += \
 -I$(projectPath)/src \
@@ -112,7 +113,6 @@ translate.c \
 traps.c \
 util.c \
 vsync.c \
-zfile.c \
 zipcode.c
 
 libc64cartsystem_a_SOURCES = \

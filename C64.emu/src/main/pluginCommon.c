@@ -50,6 +50,7 @@
 #include "tape.h"
 #include "viewport.h"
 #include "vsync.h"
+#include "zfile.h"
 
 int console_mode = 0;
 int video_disabled_mode = 0;
@@ -484,6 +485,19 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
 	kbdbuf_flush();
 	vsync_hook();
 	return vsync_do_vsync2(c, been_skipped);
+}
+
+int zfile_fclose(FILE *stream)
+{
+	return fclose(stream);
+}
+
+void zfile_shutdown(void) {}
+
+int zfile_close_action(const char *filename, zfile_action_t action,
+	const char *request_string)
+{
+	return 0;
 }
 
 VICE_API int vice_init()

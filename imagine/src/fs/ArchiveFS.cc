@@ -23,67 +23,29 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-namespace FS
-{
-
 struct ArchiveGenericIO
 {
 	GenericIO io;
-	std::array<char, 8192> buff{};
+	bool rewindOnClose = false;
 
 	ArchiveGenericIO(GenericIO io): io{std::move(io)} {}
 };
 
-static file_type makeEntryType(int type)
+struct ArchiveGenericBufferedIO : public ArchiveGenericIO
 {
-	switch(type)
-	{
-		case AE_IFREG: return file_type::regular;
-		case AE_IFDIR: return file_type::directory;
-		case AE_IFLNK: return file_type::symlink;
-		case AE_IFBLK: return file_type::block;
-		case AE_IFCHR: return file_type::character;
-		case AE_IFIFO: return file_type::fifo;
-		case AE_IFSOCK: return file_type::socket;
-	}
-	return file_type::unknown;
-}
+	alignas(__BIGGEST_ALIGNMENT__) std::array<char, 32 * 1024> buff{};
 
-const char *ArchiveEntry::name() const
-{
-	assumeExpr(entry);
-	return archive_entry_pathname(entry);
-}
+	ArchiveGenericBufferedIO(GenericIO io): ArchiveGenericIO{std::move(io)} {}
+};
 
-file_type ArchiveEntry::type() const
+namespace FS
 {
-	assumeExpr(entry);
-	return makeEntryType(archive_entry_filetype(entry));
-}
-
-ArchiveIO ArchiveEntry::moveIO()
-{
-	return ArchiveIO{std::move(arch), entry};
-}
-
-void ArchiveEntry::moveIO(ArchiveIO io)
-{
-	arch = io.releaseArchive();
-}
 
 static void setReadSupport(struct archive *arch)
 {
-	if(Config::envIsLinux)
-	{
-		archive_read_support_filter_all(arch);
-		archive_read_support_format_all(arch);
-	}
-	else
-	{
-		archive_read_support_format_7zip(arch);
-		archive_read_support_format_rar(arch);
-		archive_read_support_format_zip(arch);
-	}
+	archive_read_support_format_7zip(arch);
+	archive_read_support_format_rar(arch);
+	archive_read_support_format_zip(arch);
 }
 
 void ArchiveIterator::init(const char *path, CallResult &result)
@@ -103,106 +65,89 @@ void ArchiveIterator::init(GenericIO io, CallResult &result)
 	archEntry.arch = {archive_read_new(),
 		[](struct archive *arch)
 		{
-			logMsg("closing archive");
-			archive_read_close(arch);
+			logMsg("freeing archive data");
 			archive_read_free(arch);
 		}
 	};
 	setReadSupport(archEntry.arch.get());
+	auto seekFunc =
+		[](struct archive *, void *data, int64_t offset, int whence) -> int64_t
+		{
+			//logMsg("seek %lld %d", (long long)offset, whence);
+			auto &gIO = *((ArchiveGenericIO*)data);
+			auto newPos = gIO.io.seek(offset, whence);
+			if(newPos == -1)
+			{
+				logErr("error seeking to %llu", (long long)newPos);
+				return ARCHIVE_FATAL;
+			}
+			return newPos;
+		};
+	auto skipFunc =
+		[](struct archive *, void *data, int64_t request) -> int64_t
+		{
+			//logMsg("skip %lld", (long long)request);
+			auto &gIO = *((ArchiveGenericIO*)data);
+			if(gIO.io.seekC(request) == OK)
+				return request;
+			else
+				return 0;
+		};
+	auto closeFunc =
+		[](struct archive *, void *data)
+		{
+			auto gIO = (ArchiveGenericIO*)data;
+			if(gIO->rewindOnClose)
+			{
+				//logMsg("rewinding IO");
+				gIO->io.seekS(0);
+				gIO->rewindOnClose = false;
+			}
+			else
+			{
+				gIO->io.close();
+				delete gIO;
+			}
+			return ARCHIVE_OK;
+		};
+	archive_read_set_seek_callback(archEntry.arch.get(), seekFunc);
 	int openRes = ARCHIVE_FATAL;
 	auto fileMap = io.mmapConst();
 	if(fileMap)
 	{
-		// Take ownership of generic IO and use directly
-		logMsg("source IO supports mapping");
-		auto seekFunc =
-			[](struct archive *, void *data, int64_t offset, int whence) -> int64_t
-			{
-				//logMsg("seek %lld %d", (long long)offset, whence);
-				auto &gIO = *((IO*)data);
-				auto newPos = gIO.seek(offset, whence);
-				if(newPos == -1)
-					return ARCHIVE_FATAL;
-				return newPos;
-			};
+		//logMsg("source IO supports mapping");
 		auto readFunc =
 			[](struct archive *, void *data, const void **buffOut) -> ssize_t
 			{
-				auto &gIO = *((IO*)data);
+				auto &gIO = *((ArchiveGenericIO*)data);
 				// return the entire buffer after the file position
-				auto pos = gIO.tell();
-				ssize_t bytesRead = gIO.size() - pos;
+				auto pos = gIO.io.tell();
+				ssize_t bytesRead = gIO.io.size() - pos;
 				if(bytesRead)
 				{
-					*buffOut = gIO.mmapConst() + pos;
-					gIO.seekC(bytesRead);
+					*buffOut = gIO.io.mmapConst() + pos;
+					gIO.io.seekC(bytesRead);
 				}
-				//logMsg("read %lld bytes", (long long)bytesRead);
+				//logMsg("read %lld bytes @ offset:%llu", (long long)bytesRead, (long long)pos);
 				return bytesRead;
 			};
-		auto skipFunc =
-			[](struct archive *, void *data, int64_t request) -> int64_t
-			{
-				//logMsg("skip %lld", (long long)request);
-				auto &gIO = *((IO*)data);
-				if(gIO.seekC(request) == OK)
-					return request;
-				else
-					return 0;
-			};
-		auto closeFunc =
-			[](struct archive *, void *data)
-			{
-				auto gIO = (IO*)data;
-				gIO->close();
-				delete gIO;
-				return ARCHIVE_OK;
-			};
-
-		archive_read_set_seek_callback(archEntry.arch.get(), seekFunc);
+		auto archGenIO = new ArchiveGenericIO{std::move(io)};
+		archEntry.genericIO = archGenIO;
 		openRes = archive_read_open2(archEntry.arch.get(),
-			io.release(), nullptr, readFunc, skipFunc, closeFunc);
+			archGenIO, nullptr, readFunc, skipFunc, closeFunc);
 	}
 	else
 	{
-		// Use wrapper object with read buffer
-		auto seekFunc =
-			[](struct archive *, void *data, int64_t offset, int whence) -> int64_t
-			{
-				auto &gIO = *((ArchiveGenericIO*)data);
-				auto newPos = gIO.io.seek(offset, whence);
-				if(newPos == -1)
-					return ARCHIVE_FATAL;
-				return newPos;
-			};
 		auto readFunc =
 			[](struct archive *, void *data, const void **buffOut) -> ssize_t
 			{
-				auto &gIO = *((ArchiveGenericIO*)data);
+				auto &gIO = *((ArchiveGenericBufferedIO*)data);
 				auto bytesRead = gIO.io.read(gIO.buff.data(), gIO.buff.size());
 				*buffOut = gIO.buff.data();
 				return bytesRead;
 			};
-		auto skipFunc =
-			[](struct archive *, void *data, int64_t request) -> int64_t
-			{
-				auto &gIO = *((ArchiveGenericIO*)data);
-				if(gIO.io.seekC(request) == OK)
-					return request;
-				else
-					return 0;
-			};
-		auto closeFunc =
-			[](struct archive *, void *data)
-			{
-				auto gIO = (ArchiveGenericIO*)data;
-				gIO->io.close();
-				delete gIO;
-				return ARCHIVE_OK;
-			};
-
-		auto archGenIO = new ArchiveGenericIO{std::move(io)};
-		archive_read_set_seek_callback(archEntry.arch.get(), seekFunc);
+		auto archGenIO = new ArchiveGenericBufferedIO{std::move(io)};
+		archEntry.genericIO = archGenIO;
 		openRes = archive_read_open2(archEntry.arch.get(),
 			archGenIO, nullptr, readFunc, skipFunc, closeFunc);
 	}
@@ -256,7 +201,7 @@ void ArchiveIterator::operator++()
 {
 	if(!archEntry.arch) // check in case archive object was moved out
 		return;
-	auto ret = archive_read_next_header(archEntry.arch.get(), &archEntry.entry);
+	auto ret = archive_read_next_header(archEntry.arch.get(), &archEntry.ptr);
 	if(ret != ARCHIVE_OK)
 	{
 		if(ret == ARCHIVE_EOF)
@@ -276,6 +221,19 @@ void ArchiveIterator::operator++()
 bool ArchiveIterator::operator==(ArchiveIterator const &rhs) const
 {
 	return archEntry.arch == rhs.archEntry.arch;
+}
+
+void ArchiveIterator::rewind()
+{
+	archEntry.genericIO->rewindOnClose = true;
+	assumeExpr(archEntry.arch.unique());
+	archEntry.arch.reset();
+	auto io = std::move(archEntry.genericIO->io);
+	delete archEntry.genericIO;
+	archEntry.genericIO = nullptr;
+	CallResult dummy;
+	logMsg("re-opening archive");
+	init(std::move(io), dummy);
 }
 
 ArchiveIO fileFromArchive(const char *archivePath, const char *filePath)

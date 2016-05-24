@@ -1,3 +1,18 @@
+/*  This file is part of NEO.emu.
+
+	MD.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MD.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
 #include <imagine/util/bits.h>
@@ -401,6 +416,17 @@ static const RomListEntry romlist[]
 	{ "zupapa.zip", 0 },
 };
 
+static bool gameFileExists(const char *name)
+{
+	if(FS::exists(FS::makePathStringPrintf("%s.zip", name)))
+		return true;
+	if(FS::exists(FS::makePathStringPrintf("%s.7z", name)))
+		return true;
+	if(FS::exists(FS::makePathStringPrintf("%s.rar", name)))
+		return true;
+	return false;
+}
+
 class GameListView : public TableView
 {
 private:
@@ -458,7 +484,7 @@ public:
 			ROM_DEF *drv = dr_check_zip(entry.filename);
 			if(drv)
 			{
-				bool fileExists = FS::exists(entry.filename);
+				bool fileExists = gameFileExists(drv->name);
 				if(!optionListAllGames && !fileExists)
 				{
 					// TODO: free via scope exit wrapper

@@ -15,29 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <memory>
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/io/ArchiveIO.hh>
-
-struct archive;
-struct archive_entry;
 
 namespace FS
 {
-
-class ArchiveEntry
-{
-public:
-	std::shared_ptr<struct archive> arch{};
-	struct archive_entry *entry{};
-
-	const char *name() const;
-	file_type type() const;
-	ArchiveIO moveIO();
-	void moveIO(ArchiveIO io);
-};
 
 class ArchiveIterator :
 	public std::iterator<std::input_iterator_tag, ArchiveEntry>,
@@ -53,11 +36,13 @@ public:
 	ArchiveIterator(const char *path, CallResult &result);
 	ArchiveIterator(GenericIO io);
 	ArchiveIterator(GenericIO io, CallResult &result);
+	ArchiveIterator(ArchiveEntry &&entry): archEntry{std::move(entry)} {}
 	~ArchiveIterator();
 	ArchiveEntry& operator*();
 	ArchiveEntry* operator->();
 	void operator++();
 	bool operator==(ArchiveIterator const &rhs) const;
+	void rewind();
 
 private:
 	void init(const char *path, CallResult &result);

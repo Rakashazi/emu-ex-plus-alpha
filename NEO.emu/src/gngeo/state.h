@@ -65,9 +65,6 @@ typedef struct Z80_STATE {
     Uint8  ram[0x800];
 }Z80_STATE;
 
-typedef struct YM2610_STATE {
-}YM2610_STATE;
-
 typedef struct NEOGEO_STATE {
     Uint16 vptr;
     Sint16 modulo;
