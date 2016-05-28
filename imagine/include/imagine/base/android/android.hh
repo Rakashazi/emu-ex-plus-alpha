@@ -18,9 +18,23 @@
 #include <android/api-level.h>
 #include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/util/jni.hh>
 
 namespace Base
 {
+
+class UserActivityFaker
+{
+	jobject inst{};
+	JavaInstMethod<void()> jStart{};
+	JavaInstMethod<void()> jStop{};
+
+public:
+	UserActivityFaker();
+	~UserActivityFaker();
+	void start();
+	void stop();
+};
 
 using AndroidPropString = std::array<char, 92>;
 

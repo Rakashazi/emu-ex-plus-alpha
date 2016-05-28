@@ -412,34 +412,57 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 				::exit(0);
 			}
 		};
-	//activity->callbacks->onStart = nullptr; // unused
+	activity->callbacks->onStart =
+		[](ANativeActivity *activity)
+		{
+			logMsg("app started");
+			appState = APP_RUNNING;
+			Screen::setActiveAll(true);
+			dispatchOnResume(aHasFocus);
+			handleIntent(activity->env, activity->clazz);
+		};
 	activity->callbacks->onResume =
 		[](ANativeActivity *activity)
 		{
 			logMsg("app resumed");
 			appState = APP_RUNNING;
-			Screen::setActiveAll(true);
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onResumeMOGA(jEnv(), true);
 			#endif
-			dispatchOnResume(aHasFocus);
-			handleIntent(activity->env, activity->clazz);
 		};
 	//activity->callbacks->onSaveInstanceState = nullptr; // unused
 	activity->callbacks->onPause =
 		[](ANativeActivity *activity)
 		{
-			if(appIsRunning())
-				appState = APP_PAUSED;
-			logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
-			Screen::setActiveAll(false);
-			dispatchOnExit(appState == APP_PAUSED);
+			if(Base::androidSDK() < 11)
+			{
+				if(appIsRunning())
+					appState = APP_PAUSED;
+				logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
+				// App is killable in Android 2.3, run exit handler to save volatile data
+				dispatchOnExit(appState == APP_PAUSED);
+			}
+			else
+				logMsg("app paused");
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onPauseMOGA(activity->env);
 			#endif
 			Input::deinitKeyRepeatTimer();
 		};
-	//activity->callbacks->onStop = nullptr; // unused
+	activity->callbacks->onStop =
+		[](ANativeActivity *activity)
+		{
+			if(Base::androidSDK() >= 11)
+			{
+				if(appIsRunning())
+					appState = APP_PAUSED;
+				logMsg("app %s", appState == APP_PAUSED ? "stopped" : "exiting");
+				dispatchOnExit(appState == APP_PAUSED);
+			}
+			else
+				logMsg("app stopped");
+			Screen::setActiveAll(false);
+		};
 	activity->callbacks->onConfigurationChanged =
 		[](ANativeActivity *activity)
 		{

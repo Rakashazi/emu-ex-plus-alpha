@@ -472,6 +472,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return p;
 	}
 	
+	UserActivityFaker userActivityFaker()
+	{
+		return new UserActivityFaker();
+	}
+	
 	Bitmap makeBitmap(int width, int height, int format)
 	{
 		Bitmap.Config config = Bitmap.Config.ARGB_8888;

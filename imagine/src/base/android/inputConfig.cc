@@ -27,7 +27,7 @@
 #include "AndroidInputDevice.hh"
 
 #if __ANDROID_API__ < 12
-float (__NDK_FPABI__ *AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
+float (*AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
 #endif
 
 namespace Input

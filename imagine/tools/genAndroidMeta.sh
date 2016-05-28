@@ -23,6 +23,9 @@ do
 		--min-sdk=*)
 			minSDK=$optarg
 		;;
+		--target-sdk=*)
+			targetSDK=$optarg
+		;;
 		--activity-name=*)
 			activityName=$optarg
 		;;
@@ -138,6 +141,11 @@ then
 	exit 1
 fi
 
+if [ ! "$targetSDK" ]
+then
+	targetSDK=24
+fi
+
 if [ ! $versionCode ]
 then
 	minSdkPad=`printf "%02d" $minSDK`
@@ -195,7 +203,7 @@ fi
 
 echo '	<supports-screens android:largeScreens="true" android:xlargeScreens="true" />' >> $outPath
 echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-targetSDKOutput='android:targetSdkVersion="23"'
+targetSDKOutput="android:targetSdkVersion=\"$targetSDK\""
 
 intentFilters="<action android:name=\"android.intent.action.MAIN\" />
 				<category android:name=\"android.intent.category.LAUNCHER\" />

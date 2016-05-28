@@ -58,7 +58,7 @@ CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O2
 compiler_noSanitizeAddress := 1
 ifeq ($(config_compiler),clang)
  include $(buildSysPath)/clang.mk
- android_stdcxx := libcxx
+ android_stdcxx ?= libcxx
  CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
  CFLAGS_CODEGEN += -fno-integrated-as
  ASMFLAGS += -fno-integrated-as
@@ -71,23 +71,18 @@ ifeq ($(config_compiler),clang)
  endif
 else
  include $(buildSysPath)/gcc.mk
- android_stdcxx := gnu
+ android_stdcxx ?= gnu
  CFLAGS_CODEGEN += -Wa,--noexecstack
 endif
 
 ifeq ($(android_stdcxx), gnu)
  android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(ANDROID_GCC_VERSION)/libs
  android_stdcxxLibName := libgnustl_static.a
- android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)/$(android_stdcxxLibName)
- ifeq ($(ARCH), arm)
-  ifeq ($(android_armState),-mthumb)
-   android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)/thumb/$(android_stdcxxLibName)
-  endif
- endif
+ android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)/$(android_stdcxxLibName)
 else # libc++
  android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libs
  android_stdcxxLibName := libc++_static.a
- android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)$(android_hardFPExt)
+ android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)
  android_stdcxxLib := $(android_stdcxxLibArchPath)/$(android_stdcxxLibName) \
  $(android_stdcxxLibArchPath)/libc++abi.a \
  $(android_stdcxxLibArchPath)/libandroid_support.a

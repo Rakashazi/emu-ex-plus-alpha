@@ -71,6 +71,10 @@ ifdef android_metadata_bluetooth
  android_gen_metadata_args += --permission-bluetooth
 endif
 
+ifdef android_metadata_target_sdk
+ android_gen_metadata_args += --target-sdk=$(android_metadata_target_sdk)
+endif
+
 ifdef android_ouyaBuild
  android_gen_metadata_args += --ouya-build
 else

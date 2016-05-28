@@ -20,6 +20,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
 #include "../common/screenPrivate.hh"

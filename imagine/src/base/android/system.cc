@@ -123,4 +123,33 @@ void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)
 	// TODO
 }
 
+UserActivityFaker::UserActivityFaker()
+{
+	auto env = jEnv();
+	JavaInstMethod<jobject()> jUserActivityFaker{env,
+		jBaseActivityCls, "userActivityFaker", "()Lcom/imagine/UserActivityFaker;"};
+	auto userActivityFaker = jUserActivityFaker(env, jBaseActivity);
+	assert(userActivityFaker);
+	auto cls = env->GetObjectClass(userActivityFaker);
+	inst = env->NewGlobalRef(userActivityFaker);
+	jStart.setup(env, cls, "start", "()V");
+	jStop.setup(env, cls, "stop", "()V");
+}
+
+UserActivityFaker::~UserActivityFaker()
+{
+	stop();
+	jEnv()->DeleteGlobalRef(inst);
+}
+
+void UserActivityFaker::start()
+{
+	jStart(jEnv(), inst);
+}
+
+void UserActivityFaker::stop()
+{
+	jStop(jEnv(), inst);
+}
+
 }

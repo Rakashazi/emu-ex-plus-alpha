@@ -17,12 +17,6 @@ endif
 
 LDFLAGS += $(STDCXXLIB)
 
-ifeq ($(android_hardFP),1)
- # make sure soft-float libm isn't linked
- LDFLAGS := $(LDFLAGS:-lm=)
- LDFLAGS += -lm_hard
-endif
-
 targetFile := $(target)$(targetSuffix)$(targetExtension)
 
 linkerLibsDep := $(linkerLibs)

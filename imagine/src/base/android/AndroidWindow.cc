@@ -289,20 +289,18 @@ void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 
 void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 {
-	if(nWindow)
-	{
-		assert(!nWin);
-		nWin = nWindow;
-		if(Config::DEBUG_BUILD)
-			logMsg("creating window with native visual ID: %d with format: %d", pixelFormat, ANativeWindow_getFormat(nWindow));
-		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
-	}
-	else
+	if(nWin)
 	{
 		((Window*)this)->unpostDraw();
 		destroyEGLSurface(GLContext::eglDisplay());
 		nWin = nullptr;
 	}
+	if(!nWindow)
+		return;
+	nWin = nWindow;
+	if(Config::DEBUG_BUILD)
+		logMsg("creating window with native visual ID: %d with format: %d", pixelFormat, ANativeWindow_getFormat(nWindow));
+	ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
 }
 
 ANativeWindow *AndroidWindow::nativeWindow()

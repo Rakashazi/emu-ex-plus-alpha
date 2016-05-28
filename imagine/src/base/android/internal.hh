@@ -74,5 +74,5 @@ bool hasGetAxisValue();
 }
 
 #if __ANDROID_API__ < 12
-extern float (__NDK_FPABI__ *AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
+extern float (*AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
 #endif

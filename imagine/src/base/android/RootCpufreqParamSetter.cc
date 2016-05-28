@@ -39,6 +39,9 @@ static int readIntFileValue(const char *path)
 
 }
 
+namespace Base
+{
+
 RootCpufreqParamSetter::RootCpufreqParamSetter()
 {
 	origTimerRate = readIntFileValue(TIMER_RATE_PATH);
@@ -118,4 +121,6 @@ void RootCpufreqParamSetter::setDefaults()
 			fprintf(rootShell, "echo -n %d > " SAMPLING_RATE_PATH "\n", origSamplingRate);
 	}
 	fflush(rootShell);
+}
+
 }

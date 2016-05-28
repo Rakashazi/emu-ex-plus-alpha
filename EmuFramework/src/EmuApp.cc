@@ -23,9 +23,6 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/assume.h>
 #include <cmath>
-#ifdef __ANDROID__
-#include <imagine/base/android/RootCpufreqParamSetter.hh>
-#endif
 
 AppWindowData mainWin{}, extraWin{};
 bool menuViewIsActive = true;
@@ -45,7 +42,7 @@ DelegateFunc<void ()> onUpdateInputDevices{};
 BluetoothAdapter *bta{};
 #endif
 #ifdef __ANDROID__
-std::unique_ptr<RootCpufreqParamSetter> cpuFreq{};
+std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 #endif
 static OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 
@@ -180,19 +177,16 @@ static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceCh
 	}
 }
 
-static void setCPUScalingLowLatency()
+void setCPUNeedsLowLatency(bool needed)
 {
 	#ifdef __ANDROID__
-	if(cpuFreq)
-		cpuFreq->setLowLatency();
-	#endif
-}
-
-static void setCPUScalingDefaults()
-{
-	#ifdef __ANDROID__
-	if(cpuFreq)
-		cpuFreq->setDefaults();
+	if(userActivityFaker)
+	{
+		if(needed)
+			userActivityFaker->start();
+		else
+			userActivityFaker->stop();
+	}
 	#endif
 }
 
@@ -252,7 +246,7 @@ static void applyFrameRates()
 
 static void startEmulation()
 {
-	setCPUScalingLowLatency();
+	setCPUNeedsLowLatency(true);
 	EmuSystem::start();
 	emuWin->win.screen()->addOnFrameOnce(onFrameUpdate);
 }
@@ -261,14 +255,14 @@ static void pauseEmulation()
 {
 	EmuSystem::pause();
 	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
-	setCPUScalingDefaults();
+	setCPUNeedsLowLatency(false);
 }
 
 void closeGame(bool allowAutosaveState)
 {
 	EmuSystem::closeGame();
 	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
-	setCPUScalingDefaults();
+	setCPUNeedsLowLatency(false);
 }
 
 static void drawEmuFrame()
@@ -536,7 +530,6 @@ void mainInitCommon(int argc, char** argv)
 				Base::dispatchOnFreeCaches();
 				if(optionNotificationIcon)
 				{
-					//auto title = CONFIG_APP_NAME " was suspended";
 					auto title = string_makePrintf<64>("%s was suspended", appName());
 					Base::addNotification(title.data(), title.data(), EmuSystem::fullGameName().data());
 				}
@@ -769,14 +762,9 @@ void mainInitCommon(int argc, char** argv)
 	}
 
 	#ifdef __ANDROID__
-	if(optionManageCPUFreq)
+	if(optionFakeUserActivity)
 	{
-		cpuFreq = std::make_unique<RootCpufreqParamSetter>();
-		if(!(*cpuFreq))
-		{
-			cpuFreq.reset();
-			optionManageCPUFreq = 0;
-		}
+		userActivityFaker = std::make_unique<Base::UserActivityFaker>();
 	}
 	#endif
 }

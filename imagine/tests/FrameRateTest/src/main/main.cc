@@ -39,7 +39,8 @@ static TestParams testParam[] =
 	{TEST_WRITE, {320, 224}},
 };
 #ifdef __ANDROID__
-static std::unique_ptr<RootCpufreqParamSetter> cpuFreq{};
+static std::unique_ptr<Base::RootCpufreqParamSetter> cpuFreq{};
+static std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 #endif
 
 static void placeElements()
@@ -71,6 +72,8 @@ static void cleanupTest()
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setDefaults();
+	if(userActivityFaker)
+		userActivityFaker->stop();
 	#endif
 }
 
@@ -91,6 +94,8 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setLowLatency();
+	if(userActivityFaker)
+		userActivityFaker->start();
 	#endif
 
 	switch(t.test)
@@ -221,14 +226,19 @@ CallResult onInit(int argc, char** argv)
 	mainWin.show();
 
 	#ifdef __ANDROID__
-	bool manageCPUFreq = true;
+	bool manageCPUFreq = false;
 	if(manageCPUFreq)
 	{
-		cpuFreq = std::make_unique<RootCpufreqParamSetter>();
+		cpuFreq = std::make_unique<Base::RootCpufreqParamSetter>();
 		if(!(*cpuFreq))
 		{
 			cpuFreq.reset();
 		}
+	}
+	bool fakeUserActivity = true;
+	if(fakeUserActivity)
+	{
+		userActivityFaker = std::make_unique<Base::UserActivityFaker>();
 	}
 	#endif
 	return OK;

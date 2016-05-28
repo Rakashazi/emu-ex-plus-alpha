@@ -18,9 +18,6 @@
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <algorithm>
-#ifdef __ANDROID__
-#include <imagine/base/android/RootCpufreqParamSetter.hh>
-#endif
 
 using namespace IG;
 
@@ -350,10 +347,17 @@ public:
 	uint callbacks = 0;
 	std::array<char, 32> fpsStr{};
 
-	DetectFrameRateView(Base::Window &win): View(win) {}
+	DetectFrameRateView(Base::Window &win): View(win),
+		fpsText{nullptr, View::defaultFace}
+	{
+		View::defaultFace->precacheAlphaNum();
+		View::defaultFace->precache(".");
+		fpsText.setString("Preparing to detect frame rate...");
+	}
 
 	~DetectFrameRateView() override
 	{
+		setCPUNeedsLowLatency(false);
 		emuWin->win.screen()->removeOnFrame(detectFrameRate);
 	}
 
@@ -369,15 +373,36 @@ public:
 		return totalFrameTimeSecs() / (double)totalFrames;
 	}
 
-	void init()
+	void place() override
 	{
-		View::defaultFace->precacheAlphaNum();
-		View::defaultFace->precache(".");
-		fpsText = {nullptr, View::defaultFace};
-		fpsText.setString("Preparing to detect frame rate...");
+		fpsText.compile(projP);
+	}
+
+	void inputEvent(Input::Event e) override
+	{
+		if(e.pushed() && e.isDefaultCancelButton())
+		{
+			logMsg("aborted detection");
+			popAndShow();
+		}
+	}
+
+	void draw() override
+	{
+		using namespace Gfx;
+		setColor(1., 1., 1., 1.);
+		texAlphaProgram.use(projP.makeTranslate());
+		fpsText.draw(projP.alignXToPixel(projP.bounds().xCenter()),
+			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
+	}
+
+	void onAddedToController(Input::Event e) override
+	{
+		setCPUNeedsLowLatency(true);
 		detectFrameRate =
 			[this](Base::Screen::FrameParams params)
 			{
+				postDraw();
 				const uint callbacksToSkip = 30;
 				callbacks++;
 				if(callbacks >= callbacksToSkip)
@@ -385,6 +410,7 @@ public:
 					detectFrameRate =
 						[this](Base::Screen::FrameParams params)
 						{
+							postDraw();
 							const uint framesToTime = 120 * 10;
 							totalFrameTime += params.timestampDiff();
 							totalFrames++;
@@ -412,7 +438,6 @@ public:
 									string_printf(fpsStr, "%.2ffps", 1. / averageFrameTimeSecs());
 									fpsText.setString(fpsStr.data());
 									fpsText.compile(projP);
-									postDraw();
 								}
 							}
 							if(totalFrames >= framesToTime)
@@ -436,31 +461,6 @@ public:
 			};
 		emuWin->win.screen()->addOnFrame(detectFrameRate);
 	}
-
-	void place() override
-	{
-		fpsText.compile(projP);
-	}
-
-	void inputEvent(Input::Event e) override
-	{
-		if(e.pushed() && e.isDefaultCancelButton())
-		{
-			logMsg("aborted detection");
-			popAndShow();
-		}
-	}
-
-	void draw() override
-	{
-		using namespace Gfx;
-		setColor(1., 1., 1., 1.);
-		texAlphaProgram.use(projP.makeTranslate());
-		fpsText.draw(projP.alignXToPixel(projP.bounds().xCenter()),
-			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
-	}
-
-	void onAddedToController(Input::Event e) override {}
 };
 
 static class FrameRateSelectMenu
@@ -540,7 +540,6 @@ public:
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					auto &frView = *new DetectFrameRateView{view.window()};
-					frView.init();
 					frView.onDetectFrameTime =
 						[this](double frameTime)
 						{
@@ -689,7 +688,8 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
 	item.emplace_back(&processPriority);
-	item.emplace_back(&manageCPUFreq);
+	if(!optionFakeUserActivity.isConst)
+		item.emplace_back(&fakeUserActivity);
 	#endif
 }
 
@@ -1407,26 +1407,18 @@ SystemOptionView::SystemOptionView(Base::Window &win, bool customMenu):
 		}(),
 		processPriorityItem
 	},
-	manageCPUFreq
+	fakeUserActivity
 	{
-		"Manage Cpufreq Governor (needs root)",
-		(bool)optionManageCPUFreq,
+		"Prevent CPU Idling",
+		(bool)optionFakeUserActivity,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			cpuFreq.reset();
+			userActivityFaker.reset();
 			if(!item.boolValue())
 			{
-				cpuFreq = std::make_unique<RootCpufreqParamSetter>();
-				if(!(*cpuFreq))
-				{
-					cpuFreq.reset();
-					optionManageCPUFreq = 0;
-					popup.postError("Error setting up parameters & root shell");
-					return;
-				}
-				popup.post("Enabling this option can improve performance if the app has root permission");
+				userActivityFaker = std::make_unique<Base::UserActivityFaker>();
 			}
-			optionManageCPUFreq = item.flipBoolValue(*this);
+			optionFakeUserActivity = item.flipBoolValue(*this);
 		}
 	}
 	#endif

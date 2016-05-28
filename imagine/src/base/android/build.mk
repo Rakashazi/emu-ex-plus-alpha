@@ -24,7 +24,8 @@ base/android/privateApi/libhardware.c \
 base/android/privateApi/GraphicBuffer.cc \
 base/common/timer/TimerFD.cc \
 base/common/PosixPipe.cc \
-base/common/EGLContextBase.cc
+base/common/EGLContextBase.cc \
+util/jni.cc
 
 LDLIBS += -landroid
 

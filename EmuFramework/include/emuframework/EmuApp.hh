@@ -74,8 +74,7 @@ extern SysVController vController;
 #endif
 extern WorkDirStack<1> workDirStack;
 #ifdef __ANDROID__
-class RootCpufreqParamSetter;
-extern std::unique_ptr<RootCpufreqParamSetter> cpuFreq;
+extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;
 #endif
 
 Gfx::PixmapTexture &getAsset(AssetID assetID);
@@ -98,5 +97,6 @@ void startViewportAnimation(AppWindowData &winData);
 void updateAndDrawEmuVideo();
 void onMainMenuItemOptionChanged();
 void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
+void setCPUNeedsLowLatency(bool needed);
 
 static constexpr const char *strftimeFormat = "%x  %r";

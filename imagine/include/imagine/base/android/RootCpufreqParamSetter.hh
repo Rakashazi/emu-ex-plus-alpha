@@ -17,6 +17,9 @@
 
 #include <cstdio>
 
+namespace Base
+{
+
 class RootCpufreqParamSetter
 {
 protected:
@@ -40,3 +43,5 @@ public:
 		return rootShell;
 	}
 };
+
+}

@@ -17,6 +17,7 @@
 #include <imagine/resource/font/ResourceFontAndroid.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/jni.hh>
+#include <imagine/logger/logger.h>
 #include "../../base/android/android.hh"
 #include <android/bitmap.h>
 

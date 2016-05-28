@@ -226,7 +226,7 @@ OptionRecentGames optionRecentGames;
 Byte1Option optionAndroidTextureStorage{CFGKEY_ANDROID_TEXTURE_STORAGE, OPTION_ANDROID_TEXTURE_STORAGE_AUTO,
 	0, optionIsValidWithMax<OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE>};
 SByte1Option optionProcessPriority{CFGKEY_PROCESS_PRIORITY, -6, 0, optionIsValidWithMinMax<-17, 0>};
-Byte1Option optionManageCPUFreq{CFGKEY_MANAGE_CPU_FREQ, 0, 0};
+Byte1Option optionFakeUserActivity{CFGKEY_FAKE_USER_ACTIVITY, 1, 0};
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
@@ -326,6 +326,16 @@ void initOptions()
 		#ifdef CONFIG_BLUETOOTH
 		optionShowBluetoothScan.initDefault(0);
 		#endif
+	}
+	if(Base::androidSDK() < 16)
+	{
+		optionFakeUserActivity.initDefault(0);
+		optionFakeUserActivity.isConst = true;
+	}
+	if(Base::androidSDK() < 11)
+	{
+		// never run app in onPaused state on Android 2.3
+		optionPauseUnfocused.isConst = true;
 	}
 	#endif
 

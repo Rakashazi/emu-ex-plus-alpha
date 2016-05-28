@@ -17,13 +17,18 @@
 
 #include <cstddef>
 #include <jni.h>
-#include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <assert.h>
 
+jmethodID getJNIStaticMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
+jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
+
 template<typename R>
 R callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args);
+
+template<typename R>
+R callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args);
 
 template <typename T> class JavaClassMethod {};
 
@@ -42,14 +47,9 @@ public:
 
 	bool setup(JNIEnv *env, jclass cls, const char *fName, const char *sig)
 	{
-		if(!cls)
-		{
-			bug_exit("class missing for java static method: %s (%s)", fName, sig);
-		}
-		method = env->GetStaticMethodID(cls, fName, sig);
+		method = getJNIStaticMethodID(env, cls, fName, sig);
 		if(!method)
 		{
-			logErr("java static method not found: %s (%s)", fName, sig);
 			return false;
 		}
 		return true;
@@ -76,9 +76,6 @@ private:
 	}
 };
 
-template<typename R>
-R callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args);
-
 template <typename T> class JavaInstMethod {};
 
 template <typename R, typename ...ARGS>
@@ -96,14 +93,9 @@ public:
 
 	bool setup(JNIEnv *env, jclass cls, const char *fName, const char *sig)
 	{
-		if(!cls)
-		{
-			bug_exit("class missing for java method: %s (%s)", fName, sig);
-		}
-		method = env->GetMethodID(cls, fName, sig);
+		method = getJNIMethodID(env, cls, fName, sig);
 		if(!method)
 		{
-			logErr("java method not found: %s (%s)", fName, sig);
 			return false;
 		}
 		return true;
@@ -155,126 +147,4 @@ static void javaStringCopy(JNIEnv *env, std::array<char, S> &dest, jstring jstr)
 	}
 	string_copy(dest, utfChars);
 	env->ReleaseStringUTFChars(jstr, utfChars);
-}
-
-// method call specializations
-
-template<>
-inline void callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	env->CallVoidMethodV(obj, method, args);
-}
-
-template<>
-inline jobject callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallObjectMethodV(obj, method, args);
-}
-
-template<>
-inline jboolean callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallBooleanMethodV(obj, method, args);
-}
-
-template<>
-inline jbyte callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallByteMethodV(obj, method, args);
-}
-
-template<>
-inline jchar callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallCharMethodV(obj, method, args);
-}
-
-template<>
-inline jshort callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallShortMethodV(obj, method, args);
-}
-
-template<>
-inline jint callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallIntMethodV(obj, method, args);
-}
-
-template<>
-inline jlong callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallLongMethodV(obj, method, args);
-}
-
-template<>
-inline jfloat callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallFloatMethodV(obj, method, args);
-}
-
-template<>
-inline jdouble callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
-{
-	return env->CallDoubleMethodV(obj, method, args);
-}
-
-template<>
-inline void callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	env->CallStaticVoidMethodV(cls, method, args);
-}
-
-template<>
-inline jobject callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticObjectMethodV(cls, method, args);
-}
-
-template<>
-inline jboolean callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticBooleanMethodV(cls, method, args);
-}
-
-template<>
-inline jbyte callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticByteMethodV(cls, method, args);
-}
-
-template<>
-inline jchar callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticCharMethodV(cls, method, args);
-}
-
-template<>
-inline jshort callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticShortMethodV(cls, method, args);
-}
-
-template<>
-inline jint callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticIntMethodV(cls, method, args);
-}
-
-template<>
-inline jlong callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticLongMethodV(cls, method, args);
-}
-
-template<>
-inline jfloat callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticFloatMethodV(cls, method, args);
-}
-
-template<>
-inline jdouble callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
-{
-	return env->CallStaticDoubleMethodV(cls, method, args);
 }

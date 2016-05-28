@@ -9,8 +9,6 @@
 .global draw_tile_arm_xyflip_xzoom
 .global draw_tile_arm_xflip_xzoom
 .global draw_tile_arm_yflip_xzoom
-.global Gp2x_ClearBuffer
-.global myuname
 .extern current_pc_pal
 .extern current_fix
 .extern dda_y_skip_i
@@ -751,37 +749,3 @@ draw_tile_arm_yflip_xzoom:
 	.align 4	
 draw_tile_arm_xzoom:
 	DRAW_TILE_XZOOM XZ_NORM 0	
-
-	@ r0=buffer r1=color
-Gp2x_ClearBuffer:
-  stmfd sp!, {r4-r10}  @ remember registers 4-10
-  mov r2, #4928        @ we will run the loop 4800 times to copy the screen
-        mov r3, r1           @ load up the registers with zeros
-        mov r4, r1
-        mov r5, r1
-        mov r6, r1
-        mov r7, r1
-        mov r8, r1
-        mov r9, r1
-        mov r10, r1
-.ClearScreenLoop:
-  stmia r0!, {r3-r10}  @ write the 32 bytes of zeros to the destination
-  subs r2, r2, #1      @ decrement the loop counter
-  bne .ClearScreenLoop  @ if we're not done, do it again
-  ldmfd sp!, {r4-r10}  @ restore the registers
-        mov pc, lr           @ return
-
-myuname:
-	swi #0x90007a
-	mov pc, lr
-
-.global spend_cycles @ c
-
-spend_cycles:
-    mov     r0, r0, lsr #2  @ 4 cycles/iteration
-    sub     r0, r0, #2      @ entry/exit/init
-.sc_loop:
-    subs    r0, r0, #1
-    bpl     .sc_loop
-
-    bx      lr
