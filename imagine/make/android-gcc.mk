@@ -34,7 +34,7 @@ ifeq ($(origin CC), default)
  ifeq ($(config_compiler),clang)
   CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
   CXX := $(CC)++
-  AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
+  AR := ar
   RANLIB := ranlib
  else
   CC := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-gcc

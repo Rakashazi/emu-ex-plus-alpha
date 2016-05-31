@@ -26,13 +26,14 @@
 
 static int pageSize_ = 0;
 
+#ifdef USE_GETPAGESIZE
+__attribute__((constructor))
 void initPageSize()
 {
-	#ifdef USE_GETPAGESIZE
 	pageSize_ = getpagesize();
 	assert(pageSize_);
-	#endif
 }
+#endif
 
 int pageSize()
 {

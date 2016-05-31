@@ -71,7 +71,6 @@ static constexpr uint ENV_ANDROID_MINSDK =
 	0;
 	#endif
 
-#define CONFIG_UNICODE_CHARS
 static constexpr bool UNICODE_CHARS = true;
 
 #ifndef NDEBUG

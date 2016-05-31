@@ -13,13 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/config/defs.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/string/basename.h>
 #include <imagine/util/ansiTypes.h>
 #include <imagine/util/assume.h>
-#ifdef CONFIG_UNICODE_CHARS
 #include <imagine/util/utf.hh>
-#endif
 #include <imagine/mem/mem.h>
 #include <assert.h>
 
@@ -145,20 +144,23 @@ bool string_hasDotExtension(const char *s, const char *extension)
 
 CallResult string_convertCharCode(const char** sourceStart, uint &c)
 {
-#ifdef CONFIG_UNICODE_CHARS
-	switch(UTF::ConvertUTF8toUTF32((const uint8**)sourceStart, UTF::strictConversion, c))
+	if(Config::UNICODE_CHARS)
 	{
-		case UTF::conversionOK: return OK;
-		case UTF::reachedNullChar: return OUT_OF_BOUNDS;
-		default: return INVALID_PARAMETER;
+		switch(UTF::ConvertUTF8toUTF32((const uint8**)sourceStart, UTF::strictConversion, c))
+		{
+			case UTF::conversionOK: return OK;
+			case UTF::reachedNullChar: return OUT_OF_BOUNDS;
+			default: return INVALID_PARAMETER;
+		}
 	}
-#else
-	c = **sourceStart;
-	if(c == '\0')
-		return OUT_OF_BOUNDS;
-	*sourceStart += 1;
-	return OK;
-#endif
+	else
+	{
+		c = **sourceStart;
+		if(c == '\0')
+			return OUT_OF_BOUNDS;
+		*sourceStart += 1;
+		return OK;
+	}
 }
 
 void string_toUpper(char *s)

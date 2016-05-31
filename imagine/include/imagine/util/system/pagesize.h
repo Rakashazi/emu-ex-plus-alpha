@@ -20,7 +20,6 @@
 
 BEGIN_C_DECLS
 
-void initPageSize();
 int pageSize();
 uintptr_t roundDownToPageSize(uintptr_t val);
 uintptr_t roundUpToPageSize(uintptr_t val);

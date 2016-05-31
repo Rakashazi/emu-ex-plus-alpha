@@ -825,7 +825,7 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 				prevPixmapY = pixmap.h();
 				logDMsg("non-optimal texture write operation with %ux%u pixmap", pixmap.w(), pixmap.h());
 			}
-			alignas(8) char tempPixData[pixmap.pixelBytes()];
+			alignas(__BIGGEST_ALIGNMENT__) char tempPixData[pixmap.pixelBytes()];
 			IG::Pixmap tempPix{pixmap, tempPixData};
 			glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
 			tempPix.write(pixmap, {});
