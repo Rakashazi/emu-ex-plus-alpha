@@ -1309,7 +1309,7 @@ void EmuSystem::onMainWindowCreated(Base::Window &)
 CallResult EmuSystem::onInit()
 {
 	emuVideo.initPixmap((char*)pix, pixFmt, 320, 200);
-	IG::runOnThread(
+	IG::makeDetachedThread(
 		[]()
 		{
 			execSem.wait();

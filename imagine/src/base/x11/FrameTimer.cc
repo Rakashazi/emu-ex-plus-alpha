@@ -187,7 +187,7 @@ bool FBDevFrameTimer::init()
 			}
 			return 1;
 		});
-	IG::runOnThread(
+	IG::makeDetachedThread(
 		[this, fbdev]()
 		{
 			//logMsg("ready to wait for vsync");
@@ -272,7 +272,7 @@ bool SGIFrameTimer::init()
 			inFrameHandlers = false;
 			return 1;
 		});
-	IG::runOnThread(
+	IG::makeDetachedThread(
 		[this]()
 		{
 			GLContext context;

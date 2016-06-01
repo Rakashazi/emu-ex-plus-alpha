@@ -230,7 +230,7 @@ bool BluezBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceCla
 		onScanStatusD = onResult;
 		onScanDeviceClassD = onDeviceClass;
 		onScanDeviceNameD = onDeviceName;
-		IG::runOnThread(
+		IG::makeDetachedThread(
 			[this]()
 			{
 				doScan(onScanDeviceClassD, onScanDeviceNameD);

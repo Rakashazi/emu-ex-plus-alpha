@@ -410,7 +410,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 		else
 		{
 			logMsg("starting read thread");
-			IG::runOnThread(
+			IG::makeDetachedThread(
 				[this]()
 				{
 					if(Config::DEBUG_BUILD)
@@ -554,7 +554,7 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 	isL2cap = l2cap;
 	sem_init(&connectSem, 0, 0);
 	isConnecting = true;
-	IG::runOnThread(
+	IG::makeDetachedThread(
 		[this]()
 		{
 			logMsg("in connect thread %d", gettid());

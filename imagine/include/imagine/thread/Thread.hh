@@ -26,26 +26,35 @@
 namespace IG
 {
 
-// Thread creation defined in implementation header:
-// template<class F>
-// void runOnThread(F func);
-
-class Mutex : public MutexImpl
+class thread : public ThreadImpl
 {
 public:
-	Mutex();
-	~Mutex();
-	void lock();
-	void unlock();
+	using id = ThreadIDImpl;
+
+	thread();
+	~thread();
+	thread(thread&& other);
+	template<class Function>
+	explicit thread(Function&& f) : ThreadImpl{f} {}
+	thread(const thread&) = delete;
+	bool joinable() const;
+	id get_id() const;
+	void join();
+	void detach();
 };
 
-class ConditionVar : public ConditionVarImpl
+namespace this_thread
 {
-public:
-	ConditionVar();
-	~ConditionVar();
-	void wait(Mutex &mutex);
-	void notify_one();
-};
+
+thread::id get_id();
+
+}
+
+template<class Func>
+static void makeDetachedThread(Func&& f)
+{
+	thread t{f};
+	t.detach();
+}
 
 }

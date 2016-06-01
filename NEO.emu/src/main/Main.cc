@@ -730,7 +730,7 @@ int EmuSystem::loadGame(const char *path)
 				{
 					return onGUIMessageHandler(pipe, *loadGameInBackgroundView);
 				});
-			IG::runOnThread(
+			IG::makeDetachedThread(
 				[]()
 				{
 					using namespace Base;

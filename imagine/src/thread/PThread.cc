@@ -20,44 +20,52 @@
 namespace IG
 {
 
-Mutex::Mutex() {}
+thread::thread() {}
 
-Mutex::~Mutex()
+thread::~thread()
 {
-	pthread_mutex_destroy(&mutex);
+	assert(!joinable());
 }
 
-void Mutex::lock()
+thread::thread(thread&& other)
 {
-	if(pthread_mutex_lock(&mutex) < 0)
+	assert(!joinable());
+	id_ = other.id_;
+	other.id_ = {};
+}
+
+bool thread::joinable() const
+{
+	return get_id() != thread::id{};
+}
+
+thread::id thread::get_id() const
+{
+	return id_;
+}
+
+void thread::join()
+{
+	assert(joinable());
+	pthread_join(id_, nullptr);
+	id_ = {};
+}
+
+void thread::detach()
+{
+	assert(joinable());
+	pthread_detach(id_);
+	id_ = {};
+}
+
+	namespace this_thread
 	{
-		logErr("error in pthread_mutex_lock");
-	}
-}
 
-void Mutex::unlock()
-{
-	if(pthread_mutex_unlock(&mutex) < 0)
+	thread::id get_id()
 	{
-		logErr("error in pthread_mutex_unlock");
+		return pthread_self();
 	}
-}
 
-ConditionVar::ConditionVar() {}
-
-ConditionVar::~ConditionVar()
-{
-	pthread_cond_destroy(&cond);
-}
-
-void ConditionVar::wait(Mutex &mutex)
-{
-	pthread_cond_wait(&cond, &mutex.nativeObject());
-}
-
-void ConditionVar::notify_one()
-{
-	pthread_cond_signal(&cond);
-}
+	}
 
 }
