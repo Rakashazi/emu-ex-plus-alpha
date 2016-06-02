@@ -23,6 +23,6 @@ public:
 	glm::vec4 v{};
 
 	constexpr GLMVec4() {}
-	constexpr GLMVec4(float x, float y, float z, float w): v{x, y, z, w} {}
+	GLMVec4(float x, float y, float z, float w): v{x, y, z, w} {}
 	constexpr GLMVec4(glm::vec4 v): v{v} {}
 };
