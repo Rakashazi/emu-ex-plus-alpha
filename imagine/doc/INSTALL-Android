@@ -3,6 +3,8 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 1. Tools and Environment Setup
 ==============================
 
+Download & install the Android SDK Manager
+
 Download & extract Android NDK Revision 12 from https://github.com/android-ndk/ndk/wiki. Perform any one of the following to tell the build system the location of the NDK directory:
 
 1. Add the root NDK directory to your PATH environment as instructed in Google's docs
@@ -19,7 +21,19 @@ ANDROID_NDK_PATH : Optional, defaults to $(HOME)/android-ndk
 android_arch : Optional, default set by app
  - When building an Imagine-based app, specifies a space separated list of which architectures to build ("arm64 armv7 x86" for example)
 
+2. Dependencies
+===============
+
+Install the SDK platform for Android 6.0 (API 23) and the Android Support Library v4 from the SDK Manager
+
+3. Building
+===========
+
+In addition to the native library, build & install the Java portion of Imagine (imagine-v9.jar) using:
+
+make -f android-java.mk install
+
 --------------------------------
 
-Copyright 2014-2015 by Robert Broglia
+Copyright 2014-2016 by Robert Broglia
 
