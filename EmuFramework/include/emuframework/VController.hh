@@ -16,7 +16,6 @@
 #pragma once
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/base/Base.hh>
-#include <imagine/input/DragPointer.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/TurboInput.hh>

@@ -18,6 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/input/DragTracker.hh>
 #include <utility>
 
 static constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
@@ -137,6 +138,7 @@ class OnScreenInputPlaceView : public View
 	Base::Screen::OnFrameDelegate animate;
 	IG::WindowRect exitBtnRect;
 	DragState drag[Config::Input::MAX_POINTERS];
+	Input::DragTracker dragTracker{};
 
 public:
 	OnScreenInputPlaceView(Base::Window &win): View(win) {}
@@ -196,45 +198,46 @@ void OnScreenInputPlaceView::place()
 
 void OnScreenInputPlaceView::inputEvent(Input::Event e)
 {
-	if(!e.isPointer() && e.state == Input::PUSHED)
+	if(!e.isPointer())
 	{
-		dismiss();
+		if(e.pushed())
+			dismiss();
 		return;
 	}
-
-	if(e.isPointer())
+	if(e.pushed() && !textFade.duration())
 	{
-		if(e.pushed() && !textFade.duration())
+		animationStartTimer.deinit();
+		logMsg("starting fade");
+		textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
+		screen()->addOnFrame(animate);
+	}
+	auto &d = drag[e.devId];
+	dragTracker.inputEvent(e,
+		[&](Input::DragTrackerState)
 		{
-			animationStartTimer.deinit();
-			logMsg("starting fade");
-			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
-			screen()->addOnFrame(animate);
-		}
-
-		auto &d = drag[e.devId];
-		if(e.pushed() && d.elem == -1)
-		{
-			iterateTimes(vController.numElements(), i)
+			if(d.elem == -1)
 			{
-				if(vController.state(i) != 0 && vController.bounds(i).contains({e.x, e.y}))
+				iterateTimes(vController.numElements(), i)
 				{
-					for(auto &otherDrag : drag)
+					if(vController.state(i) != 0 && vController.bounds(i).contains(e.pos()))
 					{
-						if(otherDrag.elem == (int)i)
-							continue; // element already grabbed
+						for(auto &otherDrag : drag)
+						{
+							if(otherDrag.elem == (int)i)
+								continue; // element already grabbed
+						}
+						d.elem = i;
+						d.startPos = vController.bounds(d.elem).pos(C2DO);
+						break;
 					}
-					d.elem = i;
-					d.startPos = vController.bounds(d.elem).pos(C2DO);
-					break;
 				}
 			}
-		}
-		else if(d.elem >= 0)
+		},
+		[&](Input::DragTrackerState state, Input::DragTrackerState)
 		{
-			if(e.moved())
+			if(d.elem >= 0)
 			{
-				auto newPos = d.startPos + Input::dragState(e.devId)->dragOffset();
+				auto newPos = d.startPos + state.downPosDiff();
 				vController.setPos(d.elem, newPos);
 				auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size());
 				//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
@@ -245,17 +248,18 @@ void OnScreenInputPlaceView::inputEvent(Input::Event e)
 				placeEmuViews();
 				postDraw();
 			}
-			else if(e.released())
+		},
+		[&](Input::DragTrackerState state)
+		{
+			if(d.elem >= 0)
 			{
 				d.elem = -1;
 			}
-		}
-		else if(e.released() && exitBtnRect.overlaps({e.x, e.y}) && exitBtnRect.overlaps(Input::dragState(e.devId)->pushPos()))
-		{
-			dismiss();
-			return;
-		}
-	}
+			else if(exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
+			{
+				dismiss();
+			}
+		});
 }
 
 void OnScreenInputPlaceView::draw()

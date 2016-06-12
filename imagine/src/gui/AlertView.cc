@@ -30,7 +30,7 @@ BaseAlertView::BaseAlertView(Base::Window &win, const char *label, TableView::It
 	}
 {
 	menu.setAlign(C2DO);
-	menu.onlyScrollIfNeeded = true;
+	menu.setScrollableIfNeeded(true);
 }
 
 void BaseAlertView::place()

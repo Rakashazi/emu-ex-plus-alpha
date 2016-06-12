@@ -268,6 +268,11 @@ InputManagerView::InputManagerView(Base::Window &win):
 	loadItems();
 }
 
+InputManagerView::~InputManagerView()
+{
+	onUpdateInputDevices = {};
+}
+
 void InputManagerView::loadItems()
 {
 	item.clear();

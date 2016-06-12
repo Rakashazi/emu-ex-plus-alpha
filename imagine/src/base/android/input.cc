@@ -16,7 +16,6 @@
 #define LOGTAG "Input"
 #include <android/api-level.h>
 #include <imagine/base/Base.hh>
-#include <imagine/input/DragPointer.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "internal.hh"
@@ -35,7 +34,6 @@ static struct TouchState
 {
 	constexpr TouchState() {}
 	int id = -1;
-	DragPointer dragState;
 	bool isTouching = false;
 } m[Config::Input::MAX_POINTERS];
 static uint numCursors = IG::size(m);
@@ -111,8 +109,7 @@ static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, in
 static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isTouch)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
-	p.dragState.pointerEvent(Pointer::LBUTTON, action, pos);
-	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, action, pos.x, pos.y, isTouch, time, nullptr});
+	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, Input::RELEASED ? 0 : 1, action, pos.x, pos.y, (int)idx, isTouch, time, nullptr});
 }
 
 static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isTouch)
@@ -143,8 +140,6 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 				if(p.isTouching)
 				{
 					//logMsg("touch up for %d from gesture end", p_i);
-					int x = p.dragState.x;
-					int y = p.dragState.y;
 					p.id = -1;
 					p.isTouching = false;
 					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isTouch);
@@ -211,7 +206,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 					if(eventAction == AMOTION_EVENT_ACTION_MOVE)
-						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, 0, MOVED_RELATIVE, pos.x, pos.y, false, time, nullptr});
+						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, 0, 0, MOVED_RELATIVE, pos.x, pos.y, 0, false, time, nullptr});
 					else
 					{
 						Key key = Keycode::ENTER;
@@ -451,11 +446,6 @@ static const char* aInputSourceToStr(uint source)
 		case AINPUT_SOURCE_ANY: return "Any";
 		default:  return "Unhandled value";
 	}
-}
-
-DragPointer *dragState(int p)
-{
-	return &m[p].dragState;
 }
 
 Time Time::makeWithNSecs(uint64_t nsecs)

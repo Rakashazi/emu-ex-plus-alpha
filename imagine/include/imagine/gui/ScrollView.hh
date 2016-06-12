@@ -18,64 +18,41 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/input/DragTracker.hh>
+#include <imagine/input/VelocityTracker.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/gui/View.hh>
-
-class ContentDrag
-{
-public:
-	enum State { INACTIVE, PUSHED, ENTERED_ACTIVE, ACTIVE, LEFT_ACTIVE, RELEASED, NO_CHANGE };
-	uint devId = 0;
-	bool active = false, pushed = false;
-	int dragStartX = 0, dragStartY = 0;
-	enum { X_AXIS, Y_AXIS, XY_AXIS };
-	uint axis = Y_AXIS;
-
-	constexpr ContentDrag() {}
-	constexpr ContentDrag(uint axis): axis{axis} {}
-	bool testingXAxis() { return axis == X_AXIS || axis == XY_AXIS; }
-	bool testingYAxis() { return axis == Y_AXIS || axis == XY_AXIS; }
-	State inputEvent(const IG::WindowRect &bt, Input::Event e);
-};
-
-class KScroll : public ContentDrag
-{
-public:
-	int start = 0, offset = 0;
-	int prevOffset = 0;
-	Gfx::GC vel = 0;
-	bool scrollWholeArea = 0, allowScrollWholeArea = 0;
-	int maxClip = 0;
-
-	constexpr KScroll() {}
-	constexpr KScroll(const IG::WindowRect &contentFrame): contentFrame{&contentFrame} {}
-	void place(View &view, IG::WindowRect viewFrame);
-	bool clipOverEdge(int minC, int maxC, View &view);
-	void clipDragOverEdge(int minC, int maxC);
-	void decel2(View &view);
-	bool inputEvent(Input::Event e, View &view, IG::WindowRect viewFrame);
-	bool inputEvent(int minClip, int maxClip, Input::Event e, View &view, IG::WindowRect viewFrame);
-	void setOffset(int o);
-	void animate(int minClip, int maxClip, View &view);
-
-private:
-	const IG::WindowRect *contentFrame{};
-};
 
 class ScrollView : public View
 {
 public:
-	using View::View;
-	bool isDoingScrollGesture() { return scroll.active; }
+	ScrollView(Base::Window &win);
+	ScrollView(const char *name, Base::Window &win);
+	~ScrollView();
+	bool isDoingScrollGesture() const;
+	bool isOverScrolled() const;
+	int overScroll() const;
 
 protected:
-	KScroll scroll{contentSize};
-	IG::WindowRect contentSize{};
+	Base::Screen::OnFrameDelegate animate;
+	Input::SingleDragTracker dragTracker{};
+	Input::VelocityTracker<float, 1> velTracker{}; // tracks y velocity as pixels/sec
 	IG::WindowRect scrollBarRect{};
+	float scrollVel = 0;
+	float scrollAccel = 0;
+	float offsetAsDec = 0;
+	float overScrollVelScale = 0;
+	int offset = 0;
+	int offsetMax = 0;
+	int onDragOffset = 0;
 	bool contentIsBiggerThanView = false;
+	bool scrollWholeArea_ = false;
+	bool allowScrollWholeArea_ = false;
 
 	void setContentSize(IG::WP size);
-	void updateGfx();
 	void drawScrollContent();
-	int scrollInputEvent(Input::Event e);
+	bool scrollInputEvent(Input::Event e);
+	void setScrollOffset(int o);
+	int scrollOffset() const;
+	void stopScrollAnimation();
 };

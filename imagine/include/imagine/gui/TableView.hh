@@ -29,7 +29,6 @@ public:
 	using ItemsDelegate = DelegateFunc<int (const TableView &view)>;
 	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, uint idx)>;
 	static Gfx::GC globalXIndent;
-	bool onlyScrollIfNeeded = false;
 
 	TableView(Base::Window &win, ItemsDelegate items, ItemDelegate item);
 	TableView(const char *name, Base::Window &win, ItemsDelegate items, ItemDelegate item);
@@ -50,6 +49,7 @@ public:
 	void place() override;
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
+	void resetScroll();
 	void inputEvent(Input::Event event) override;
 	void clearSelection() override;
 	void onAddedToController(Input::Event e) override;
@@ -68,6 +68,7 @@ public:
 	}
 
 protected:
+	bool onlyScrollIfNeeded = false;
 	bool selectedIsActivated = false;
 	int yCellSize = 0;
 	int selected = -1;

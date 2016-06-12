@@ -18,7 +18,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <CoreFoundation/CoreFoundation.h>
 #include <dlfcn.h>
 #include <imagine/input/Input.hh>
-#include <imagine/input/DragPointer.hh>
 #include <imagine/logger/logger.h>
 #import "MainApp.hh"
 #include "../../input/private.hh"

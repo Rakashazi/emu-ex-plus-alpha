@@ -22,7 +22,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/logger/logger.h>
 #include "../common/windowPrivate.hh"
 #include <imagine/input/Input.hh>
-#include <imagine/input/DragPointer.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/algorithm.h>
 #include "ios.hh"
@@ -51,14 +50,8 @@ static struct TouchState
 {
 	constexpr TouchState() {}
 	UITouch *touch = nil;
-	DragPointer dragState;
 } m[Config::Input::MAX_POINTERS];
 static uint numCursors = Config::Input::MAX_POINTERS;
-
-DragPointer *dragState(int p)
-{
-	return &m[p].dragState;
-}
 
 }
 
@@ -228,8 +221,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 				pos.y *= win.pointScale;
 				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, PUSHED, transPos);
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, PUSHED, transPos.x, transPos.y, true, time, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 1, PUSHED, transPos.x, transPos.y, (int)i, true, time, nullptr});
 				break;
 			}
 		}
@@ -253,8 +245,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 				pos.y *= win.pointScale;
 				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, MOVED, transPos);
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, MOVED, transPos.x, transPos.y, true, time, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 1, MOVED, transPos.x, transPos.y, (int)i, true, time, nullptr});
 				break;
 			}
 		}
@@ -279,8 +270,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 				pos.y *= win.pointScale;
 				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				p.dragState.pointerEvent(Input::Pointer::LBUTTON, RELEASED, transPos);
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, RELEASED, transPos.x, transPos.y, true, time, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 0, RELEASED, transPos.x, transPos.y, (int)i, true, time, nullptr});
 				break;
 			}
 		}

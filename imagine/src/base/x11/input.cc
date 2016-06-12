@@ -17,10 +17,11 @@
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/bits.h>
-#include <imagine/input/DragPointer.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
+#include <imagine/util/ScopeGuard.hh>
+#include "xlibutils.h"
 #include "internal.hh"
 #include "../../input/private.hh"
 
@@ -67,7 +68,6 @@ struct XInputDevice : public Device
 };
 
 static StaticArrayList<XInputDevice*, 16> xDevice;
-static DragPointer dragStateArr[Config::Input::MAX_POINTERS];
 static Cursor blankCursor{};
 static Cursor normalCursor{};
 static uint numCursors = 0;
@@ -88,11 +88,6 @@ static const Device *deviceForInputId(int osId)
 	if(!vkbDevice)
 		bug_exit("device id %d doesn't exist", osId);
 	return vkbDevice;
-}
-
-DragPointer *dragState(int p)
-{
-	return &dragStateArr[p];
 }
 
 void setKeyRepeat(bool on)
@@ -339,12 +334,17 @@ void deinit()
 		XkbFreeClientMap(coreKeyboardDesc, 0, true);
 }
 
-static void updatePointer(Base::Window &win, uint key, int p, uint action, int x, int y, Input::Time time)
+static uint makePointerButtonState(XIButtonState state)
 {
-	auto &state = dragStateArr[p];
+	uchar byte1 = state.mask_len > 0 ? state.mask[0] : 0;
+	uchar byte2 = state.mask_len > 1 ? state.mask[1] : 0;
+	return byte1 | (byte2 << 8);
+}
+
+static void updatePointer(Base::Window &win, uint key, uint btnState, int p, uint action, int x, int y, Input::Time time)
+{
 	auto pos = transformInputPos(win, {x, y});
-	state.pointerEvent(key, action, pos);
-	win.dispatchInputEvent(Event{(uint)p, Event::MAP_POINTER, (Key)key, action, pos.x, pos.y, false, time, nullptr});
+	win.dispatchInputEvent(Event{(uint)p, Event::MAP_POINTER, (Key)key, btnState, action, pos.x, pos.y, p, false, time, nullptr});
 }
 
 bool handleXI2GenericEvent(XEvent &event)
@@ -359,7 +359,7 @@ bool handleXI2GenericEvent(XEvent &event)
 		logMsg("error in XGetEventData for XI2 event");
 		return true;
 	}
-
+	auto freeEventData = IG::scopeGuard([&]() { XFreeEventData(dpy, &event.xcookie); });
 	XGenericEventCookie *cookie = &event.xcookie;
 	auto &ievent = *((XIDeviceEvent*)cookie->data);
 	// XI_HierarchyChanged isn't window-specific
@@ -387,7 +387,6 @@ bool handleXI2GenericEvent(XEvent &event)
 				Input::removeXInputDevice(ev.info[i].deviceid);
 			}
 		}
-		XFreeEventData(dpy, &event.xcookie);
 		return true;
 	}
 	// others events are for specific windows
@@ -395,7 +394,6 @@ bool handleXI2GenericEvent(XEvent &event)
 	if(unlikely(!destWin))
 	{
 		//logWarn("ignored event for unknown window");
-		XFreeEventData(dpy, &event.xcookie);
 		return true;
 	}
 	auto &win = *destWin;
@@ -431,15 +429,15 @@ bool handleXI2GenericEvent(XEvent &event)
 	switch(ievent.evtype)
 	{
 		bcase XI_ButtonPress:
-			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, time);
 		bcase XI_ButtonRelease:
-			updatePointer(win, ievent.detail, devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, time);
 		bcase XI_Motion:
-			updatePointer(win, 0, devIdToPointer(ievent.deviceid), MOVED, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, 0, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid), MOVED, ievent.event_x, ievent.event_y, time);
 		bcase XI_Enter:
-			updatePointer(win, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW, ievent.event_x, ievent.event_y, time);
 		bcase XI_Leave:
-			updatePointer(win, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, time);
 		bcase XI_FocusIn:
 			win.dispatchFocusChange(true);
 		bcase XI_FocusOut:
@@ -450,7 +448,6 @@ bool handleXI2GenericEvent(XEvent &event)
 		bcase XI_KeyRelease:
 			handleKeyEvent(win, ievent, time, false);
 	}
-	XFreeEventData(dpy, &event.xcookie);
 	return true;
 }
 

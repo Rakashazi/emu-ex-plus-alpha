@@ -1,6 +1,9 @@
 #pragma once
 
-#include <imagine/logger/logger.h>
+#define BOOL X11BOOL
+#include <X11/Xlib.h>
+#include <X11/extensions/XInput2.h>
+#undef BOOL
 
 // EWMH (Extended Window Manager Hints) support
 // http://freedesktop.org/wiki/Specifications/wm-spec
@@ -8,29 +11,6 @@
 #define _NET_WM_STATE_REMOVE        0    /* remove/unset property */
 #define _NET_WM_STATE_ADD           1    /* add/set property */
 #define _NET_WM_STATE_TOGGLE        2    /* toggle property  */
-
-static void ewmhFullscreen(Display *dpy, ::Window win, int action)
-{
-	assert(action == _NET_WM_STATE_REMOVE || action == _NET_WM_STATE_ADD || action == _NET_WM_STATE_TOGGLE);
-
-	XEvent xev = { 0 };
-	xev.xclient.type = ClientMessage;
-	xev.xclient.send_event = True;
-	xev.xclient.message_type = XInternAtom(dpy, "_NET_WM_STATE", False);
-	xev.xclient.window = win;
-	xev.xclient.format = 32;
-	xev.xclient.data.l[0] = action;
-	xev.xclient.data.l[1] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-
-	// TODO: test if DefaultRootWindow(dpy) works on other screens
-	XWindowAttributes attr;
-	XGetWindowAttributes(dpy, win, &attr);
-	if(!XSendEvent(dpy, attr.root, False,
-		SubstructureRedirectMask | SubstructureNotifyMask, &xev))
-	{
-		logWarn("couldn't send root window NET_WM_STATE message");
-	}
-}
 
 static const char *xEventTypeToString(int type)
 {

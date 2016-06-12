@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "GuiTable1D"
+#define LOGTAG "TableView"
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -21,18 +21,17 @@
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/base/Base.hh>
-#include <algorithm>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 
 Gfx::GC TableView::globalXIndent{};
 
 TableView::TableView(Base::Window &win, ItemsDelegate items, ItemDelegate item):
-	ScrollView(win), items{items}, item{item}
+	ScrollView{win}, items{items}, item{item}
 {}
 
 TableView::TableView(const char *name, Base::Window &win, ItemsDelegate items, ItemDelegate item):
-	ScrollView(name, win), items{items}, item{item}
+	ScrollView{name, win}, items{items}, item{item}
 {}
 
 void TableView::highlightCell(int idx)
@@ -57,14 +56,10 @@ void TableView::draw()
 	auto cells_ = items(*this);
 	if(!cells_)
 		return;
-
 	using namespace Gfx;
-	ScrollView::updateGfx();
-	ScrollView::drawScrollContent();
-
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
-	int startYCell = std::min(scroll.offset / yCellSize, cells_ - 1);
+	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
 	int endYCell = IG::clamp(startYCell + visibleCells, 0, cells_);
 	if(startYCell < 0)
 	{
@@ -72,17 +67,20 @@ void TableView::draw()
 		y += -startYCell * yCellSize;
 		startYCell = 0;
 	}
-	y -= scroll.offset % yCellSize;
+	//logMsg("draw cells [%d,%d)", startYCell, endYCell);
+	y -= scrollOffset() % yCellSize;
 
 	// draw separators
 	int yStart = y;
 	noTexProgram.use(projP.makeTranslate());
 	int selectedCellY = INT_MAX;
 	{
-		StaticArrayList<std::array<ColVertex, 4>, 96> vRect;
+		StaticArrayList<std::array<ColVertex, 4>, 80> vRect;
 		StaticArrayList<std::array<VertexIndex, 6>, vRect.maxSize()> vRectIdx;
 		auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
 		auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
+		auto regularYSize = std::max(1, window().heightSMMInPixels(.2));
+		auto headingYSize = std::max(2, window().heightSMMInPixels(.4));
 		for(int i = startYCell; i < endYCell; i++)
 		{
 			if(i == selected)
@@ -91,11 +89,11 @@ void TableView::draw()
 			}
 			if(i != 0)
 			{
-				int ySize = 1;
+				int ySize = regularYSize;
 				auto color = regularColor;
 				if(!elementIsSelectable(item(*this, i - 1)))
 				{
-					ySize = 4;
+					ySize = headingYSize;
 					color = headingColor;
 				}
 				vRectIdx.emplace_back(makeRectIndexArray(vRect.size()));
@@ -113,6 +111,9 @@ void TableView::draw()
 			drawQuads(&vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
 		}
 	}
+
+	// draw scroll bar
+	ScrollView::drawScrollContent();
 
 	// draw selected rectangle
 	if(selectedCellY != INT_MAX)
@@ -173,14 +174,19 @@ void TableView::scrollToFocusRect()
 		return;
 	int topFocus = yCellSize * selected;
 	int bottomFocus = topFocus + yCellSize;
-	if(topFocus < scroll.offset)
+	if(topFocus < scrollOffset())
 	{
-		scroll.setOffset(topFocus);
+		setScrollOffset(topFocus);
 	}
-	else if(bottomFocus > scroll.offset + viewRect().ySize())
+	else if(bottomFocus > scrollOffset() + viewRect().ySize())
 	{
-		scroll.setOffset(bottomFocus - viewRect().ySize());
+		setScrollOffset(bottomFocus - viewRect().ySize());
 	}
+}
+
+void TableView::resetScroll()
+{
+	setScrollOffset(0);
 }
 
 void TableView::inputEvent(Input::Event e)
@@ -262,7 +268,12 @@ bool TableView::handleTableInput(Input::Event e)
 			//logMsg("cursor not in table");
 			return false;
 		}
-		int i = ((e.y + scroll.offset) - viewRect().y) / yCellSize;
+		int i = ((e.y + scrollOffset()) - viewRect().y) / yCellSize;
+		if(i < 0 || i >= cells_)
+		{
+			//logMsg("pushed outside of item bounds");
+			return false;
+		}
 		auto &it = item(*this, i);
 		if(e.state == Input::PUSHED)
 		{

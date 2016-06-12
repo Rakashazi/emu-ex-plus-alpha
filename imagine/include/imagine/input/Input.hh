@@ -129,8 +129,8 @@ public:
 
 	constexpr Event() {}
 
-	constexpr Event(uint devId, uint map, Key button, uint state, int x, int y, bool pointerIsTouch, Time time, const Device *device)
-		: devId{devId}, map{map}, button{button}, state{state}, x{x}, y{y}, time{time}, device{device}, pointerIsTouch{pointerIsTouch} {}
+	constexpr Event(uint devId, uint map, Key button, uint metaState, uint state, int x, int y, int pointerID, bool pointerIsTouch, Time time, const Device *device)
+		: devId{devId}, map{map}, button{button}, state{state}, x{x}, y{y}, pointerID{pointerID}, metaState{metaState}, time{time}, device{device}, pointerIsTouch{pointerIsTouch} {}
 
 	constexpr Event(uint devId, uint map, Key button, Key sysKey, uint state, uint metaState, Time time, const Device *device)
 		: devId{devId}, map{map}, button{button}, sysKey_{sysKey}, state{state}, metaState{metaState}, time{time}, device{device} {}
@@ -142,6 +142,7 @@ public:
 	#endif
 	uint state = 0;
 	int x = 0, y = 0;
+	int pointerID = 0;
 	uint metaState = 0;
 	Time time{};
 	const Device *device{};
@@ -191,9 +192,9 @@ public:
 		return state == PUSHED;
 	}
 
-	bool pushed(Key button) const
+	bool pushed(Key key) const
 	{
-		return pushed() && this->button == button;
+		return pushed() && button == key;
 	}
 
 	bool pushedKey(Key sysKey) const
@@ -206,6 +207,16 @@ public:
 		return state == RELEASED;
 	}
 
+	bool released(Key key) const
+	{
+		return released() && button == key;
+	}
+
+	bool releasedKey(Key sysKey) const
+	{
+		return released() && sysKey_ == sysKey;
+	}
+
 	bool moved() const
 	{
 		return state == MOVED;
@@ -214,6 +225,20 @@ public:
 	bool isShiftPushed() const
 	{
 		return metaState != 0;
+	}
+
+	IG::WP pos() const
+	{
+		return {x, y};
+	}
+
+	bool isPointerPushed(Key k) const
+	{
+		if(released() && button == k)
+			return false;
+		if(pushed(k))
+			return true;
+		return metaState & IG::bit(k);
 	}
 
 	static const char *actionToStr(int action);

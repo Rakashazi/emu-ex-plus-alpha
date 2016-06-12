@@ -13,277 +13,132 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "ScrollView1D"
+#define LOGTAG "ScrollView"
 
 #include <imagine/gui/ScrollView.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/input/DragPointer.hh>
+#include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/util/math/space.hh>
+#include <imagine/util/math/int.hh>
 #include <algorithm>
 #include <cmath>
 
-ContentDrag::State ContentDrag::inputEvent(const IG::WindowRect &bt, Input::Event e)
-{
-	if(!Config::Input::POINTING_DEVICES || (pushed && e.devId != devId))
-		return NO_CHANGE;
+// minimum velocity before releasing a drag causes a scroll animation
+static constexpr float SCROLL_MIN_START_VEL = 1.;
+// scroll animation deceleration amount
+static constexpr float SCROLL_DECEL = 1. * 60.;
+// over scroll animation velocity scale
+static constexpr float OVER_SCROLL_VEL_SCALE = .2 * 60.;
 
-	auto dragState = Input::dragState(e.devId);
-	if(e.pushed(Input::Pointer::LBUTTON) && bt.overlaps({e.x, e.y}))
-	{
-		pushed = 1;
-		devId = e.devId;
-		//logMsg("pushed");
-		return PUSHED;
-	}
-	else if(pushed && !active && dragState->draggedFromRect(bt) &&
-			((testingXAxis() && std::abs(dragState->pushX - e.x) > dragStartX) ||
-			(testingYAxis() && std::abs(dragState->pushY - e.y) > dragStartY)))
-	{
-		//logMsg("in scroll");
-		active = 1;
-		return ENTERED_ACTIVE;
-	}
-	else if(active && (e.state == Input::RELEASED || e.state == Input::EXIT_VIEW))
-	{
-		active = 0;
-		pushed = 0;
-		return LEFT_ACTIVE;
-	}
-	else if(active && dragState->draggedFromRect(bt))
-	{
-		return ACTIVE;
-	}
-	else if(e.state == Input::RELEASED)
-	{
-		pushed = 0;
-		return RELEASED;
-	}
-	else
-	{
-		return INACTIVE;
-	}
-}
+ScrollView::ScrollView(Base::Window &win): ScrollView{"", win} {}
 
-void KScroll::place(View &view, IG::WindowRect viewFrame)
-{
-	assert(contentFrame);
-	dragStartY = std::max(1, Config::envIsAndroid ? view.window().heightSMMInPixels(1.5) : view.window().heightSMMInPixels(1.));
-	maxClip = contentFrame->ySize() - viewFrame.ySize();
-	if(viewFrame.ySize() > 0)
-		allowScrollWholeArea = contentFrame->ySize() / viewFrame.ySize() > 3;
-	else
-		allowScrollWholeArea = 0;
-}
-
-bool KScroll::clipOverEdge(int minC, int maxC, View &view)
-{
-	using namespace IG;
-	if(!active)
+ScrollView::ScrollView(const char *name, Base::Window &win):
+	View{name, win},
+	animate
 	{
-		if(maxC < minC)
-			maxC = minC;
-		int clip = offset < minC ? minC : maxC;
-		int sign = offset < minC ? 1 : -1;
-		if(offset < minC || offset > maxC)
+		[this](Base::Screen::FrameParams params)
 		{
-			//logMsg("clip over edge");
-			offset += sign * std::max(1, (int)std::abs((clip - offset) * Gfx::GC(.2)));
-			if((sign == 1 && offset > minC)
-				|| (sign == -1 && offset < maxC))
+			auto frames = std::max(params.elapsedFrames(), 1u);
+			if(scrollVel) // scrolling deceleration
 			{
-				//logMsg("reached clip");
-				offset = clip;
+				postDraw();
+				auto prevSignBit = std::signbit(scrollVel);
+				scrollVel += scrollAccel * frames;
+				if(std::signbit(scrollVel) != prevSignBit) // stop when velocity overflows
+					scrollVel = 0;
+				//logMsg("velocity:%f", (double)scrollVel);
+				offsetAsDec += scrollVel;
+				offset = std::round(offsetAsDec);
+				if(isOverScrolled())
+					scrollVel = 0;
+				if(scrollVel || isOverScrolled())
+					params.readdOnFrame();
 			}
-			vel = 0;
-			view.postDraw();
-			return 1;
-		}
-	}
-	return 0;
-}
-
-void KScroll::clipDragOverEdge(int minC, int maxC)
-{
-	if(active)
-	{
-		if(maxC < minC)
-			maxC = minC;
-		//int clip = offset < minC ? minC : maxC;
-		//int sign = offset < minC ? 1 : -1;
-		if(offset < minC || offset > maxC)
-		{
-			int clip = offset < minC ? minC : maxC;
-			//int sign = offset < minC ? 1 : -1;
-
-			offset += (clip - offset)/2;
-		}
-	}
-}
-
-void KScroll::decel2(View &view)
-{
-	Gfx::GC stoppingVel = 1;
-	if(!active && vel != (Gfx::GC)0)
-	{
-		vel *= 0.9f;
-		offset += vel;
-		if(std::abs(vel) <= stoppingVel)
-			vel = 0;
-		view.postDraw();
-		//logMsg("did decel scroll");
-	}
-}
-
-bool KScroll::inputEvent(Input::Event e, View &view, IG::WindowRect viewFrame)
-{
-	if(!Config::Input::POINTING_DEVICES)
-		return false;
-	auto dragState = Input::dragState(e.devId);
-	switch(ContentDrag::inputEvent(viewFrame, e))
-	{
-		case ContentDrag::PUSHED:
-		{
-			start = offset;
-		}
-		return false;
-
-		case ContentDrag::ENTERED_ACTIVE:
-		{
-			//logMsg("in scroll");
-			if(allowScrollWholeArea && (e.x > viewFrame.xSize() - view.window().widthSMMInPixels(7.5)))
+			else if(isOverScrolled())
 			{
-				logMsg("scrolling all content");
-				scrollWholeArea = 1;
-			}
-			else
-			{
-				scrollWholeArea = 0;
+				//logMsg("animating over-scroll");
+				postDraw();
+				int clip = offset < 0 ? 0 : offsetMax;
+				int sign = offset < 0 ? 1 : -1;
+				iterateTimes(frames, i)
+				{
+					int vel = std::abs((clip - offset) * overScrollVelScale);
+					offset += sign * std::max(1, vel);
+				}
+				if((sign == 1 && offset >= 0)
+					|| (sign == -1 && offset <= offsetMax))
+				{
+					//logMsg("done animating over-scroll");
+					offset = clip;
+				}
+				else
+				{
+					params.readdOnFrame();
+				}
 			}
 		}
-		return true;
-
-		case ContentDrag::LEFT_ACTIVE:
-		{
-			//logMsg("out of scroll, with yVel %f", (double)vel);
-			//if(vel != (GC)0) // TODO: situations where a redraw is needed even with vel == 0
-				view.postDraw();
-		}
-		return true;
-
-		case ContentDrag::ACTIVE:
-		{
-			if(scrollWholeArea)
-			{
-				//logMsg("%d from %d-%d to %d-%d", e.y, 0, gfx_viewPixelHeight(), 0, maxClip);
-				offset = IG::scalePointRange((Gfx::GC)e.y, (Gfx::GC)viewFrame.y, (Gfx::GC)viewFrame.y + (Gfx::GC)viewFrame.ySize(), (Gfx::GC)0, (Gfx::GC)maxClip);
-				//logMsg("offset %d", offset);
-				offset = IG::clamp(offset, 0, maxClip);
-			}
-			else
-			{
-				offset = start - (e.y - dragState->pushY);
-				vel = (offset - prevOffset);
-				//logMsg("dragging with vel %f", vel);
-			}
-			view.postDraw();
-		}
-		return true;
-
-		default: return false;
 	}
+{}
+
+ScrollView::~ScrollView()
+{
+	stopScrollAnimation();
 }
 
-bool KScroll::inputEvent(int minClip, int maxClip, Input::Event e, View &view, IG::WindowRect viewFrame)
+bool ScrollView::isDoingScrollGesture() const
 {
-	prevOffset = offset;
-	bool ret = 0;
-	if(Config::Input::MOUSE_DEVICES
-			&& e.isPointer() && (e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN))
-	{
-		if(e.pushed() && offset >= minClip && offset <= maxClip)
-		{
-			bool clip = 1; // snap to edges
-			if(offset == minClip || offset == maxClip)
-			{
-				clip = 0; // if exactly at edge don't clip for snap-back
-			}
-			auto vel = view.window().heightSMMInPixels(10.0);
-			offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
-			if(clip)
-			{
-				if(offset < minClip)
-					offset = minClip;
-				else if(offset > maxClip)
-					offset = maxClip;
-			}
-			view.postDraw();
-		}
-		ret = 1;
-	}
-	else
-	{
-		ret = e.isPointer() ? inputEvent(e, view, viewFrame) : 0;
-	}
-	clipDragOverEdge(minClip, maxClip);
-	if(maxClip < minClip)
-		maxClip = minClip;
-	if(offset < minClip || offset > maxClip)
-	{
-		//logMsg("offset needs to be clipped");
-		view.postDraw();
-	}
-	return ret;
+	return dragTracker.isDragging();
 }
 
-void KScroll::setOffset(int o)
+bool ScrollView::isOverScrolled() const
 {
-	prevOffset = offset = o;
-	vel = 0;
-	active = 0;
-	pushed = 0;
+	return overScroll();
 }
 
-void KScroll::animate(int minClip, int maxClip, View &view)
+int ScrollView::overScroll() const
 {
-	if(!clipOverEdge(minClip, maxClip, view))
-		decel2(view);
+	return offset < 0 ? offset :
+		offset > offsetMax ? offset - offsetMax :
+		0;
 }
 
 void ScrollView::setContentSize(IG::WP size)
 {
-	contentSize = {0, 0, size.x, size.y};
-	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
-	//scrollFrame.setPosRel(rect.pos(LT2DO), rect.size(), LT2DO);
-	scroll.place(*this, viewRect());
-	contentIsBiggerThanView = contentSize.y > viewRect().ySize();
-	scrollBarRect.x = viewRect().x2 - 5;
-	scrollBarRect.x2 = scrollBarRect.x + 3;
+	IG::WP contentSize = {size.x, size.y};
+	overScrollVelScale = OVER_SCROLL_VEL_SCALE / screen()->frameRate();
+	dragTracker.setXDragStartDistance(-1);
+	dragTracker.setYDragStartDistance(std::max(1, Config::envIsAndroid ? window().heightSMMInPixels(1.5) : window().heightSMMInPixels(1.)));
+	const auto viewFrame = viewRect();
+	offsetMax = std::max(0, contentSize.y - viewFrame.ySize());
+	if(isOverScrolled())
+	{
+		screen()->addOnFrameOnce(animate);
+	}
+	if(viewFrame.ySize() > 0)
+		allowScrollWholeArea_ = contentSize.y / viewFrame.ySize() > 3;
+	else
+		allowScrollWholeArea_ = false;
+	contentIsBiggerThanView = contentSize.y > viewFrame.ySize();
+	auto scrollBarRightPadding = std::max(2, IG::makeEvenRoundedUp(window().widthSMMInPixels(.4)));
+	auto scrollBarWidth = std::max(2, IG::makeEvenRoundedUp(window().widthSMMInPixels(.3)));
+	scrollBarRect.x = (viewFrame.x2 - scrollBarRightPadding) - scrollBarWidth;
+	scrollBarRect.x2 = scrollBarRect.x + scrollBarWidth;
 	scrollBarRect.y = 0;
-	/*if(contentFrame->ySize() == 0)
-		scrollBarRect.y2 = 0;*/
-	scrollBarRect.y2 = viewRect().ySize() * (viewRect().ySize() / (Gfx::GC)contentSize.y);
-	if(scrollBarRect.y2 < 10)
-		scrollBarRect.y2 = 10;
-}
-
-void ScrollView::updateGfx()
-{
-	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
-	scroll.animate(0, contentSize.y - viewRect().ySize(), *this);
+	scrollBarRect.y2 = std::max(10, (int)(viewFrame.ySize() * (viewFrame.ySize() / (Gfx::GC)contentSize.y)));
 }
 
 void ScrollView::drawScrollContent()
 {
 	using namespace Gfx;
-	if(contentIsBiggerThanView && (scroll.allowScrollWholeArea || scroll.active))
+	if(contentIsBiggerThanView && (allowScrollWholeArea_ || dragTracker.isDragging()))
 	{
 		noTexProgram.use(projP.makeTranslate());
 		setBlendMode(0);
-		if(scroll.scrollWholeArea)
+		if(scrollWholeArea_)
 		{
-			if(scroll.active)
+			if(dragTracker.isDragging())
 				setColor(.8, .8, .8);
 			else
 				setColor(.5, .5, .5);
@@ -291,19 +146,104 @@ void ScrollView::drawScrollContent()
 		else
 			setColor(.5, .5, .5);
 		scrollBarRect.setYPos(
-			IG::scalePointRange((Gfx::GC)scroll.offset, 0_gc, Gfx::GC(scroll.maxClip), (Gfx::GC)viewRect().y, Gfx::GC(viewRect().y2 - scrollBarRect.ySize())));
+			IG::scalePointRange((Gfx::GC)offset, 0_gc, Gfx::GC(offsetMax), (Gfx::GC)viewRect().y, Gfx::GC(viewRect().y2 - scrollBarRect.ySize())));
 		GeomRect::draw(scrollBarRect, projP);
 	}
 }
 
-int ScrollView::scrollInputEvent(Input::Event e)
+bool ScrollView::scrollInputEvent(Input::Event e)
 {
-	IG::WP contentSize = {this->contentSize.xSize(), this->contentSize.ySize()};
-	int scrollHasControl = 0;
-	auto oldOffset = scroll.offset;
-	if(scroll.inputEvent(0, contentSize.y - viewRect().ySize(), e, *this, viewRect()))
+	if(!e.isPointer())
+		return false;
+	// mouse wheel scroll
+	if(Config::Input::MOUSE_DEVICES && !dragTracker.isDragging()
+		&& (e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN))
 	{
-		scrollHasControl = 1;
+		auto prevOffset = offset;
+		auto vel = window().heightSMMInPixels(10.0);
+		offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
+		offset = IG::clamp(offset, 0, offsetMax);
+		if(offset != prevOffset)
+			postDraw();
+		return true;
 	}
-	return scrollHasControl;
+	// click & drag scroll
+	bool isDragging = dragTracker.inputEvent(e,
+		[&](Input::DragTrackerState)
+		{
+			stopScrollAnimation();
+			velTracker = {e.time, {(float)e.pos().y}};
+			scrollVel = 0;
+			onDragOffset = offset;
+			const auto viewFrame = viewRect();
+			if(allowScrollWholeArea_ && (e.pos().x > viewFrame.xSize() - window().widthSMMInPixels(7.5)))
+			{
+				logMsg("will scroll all content");
+				scrollWholeArea_ = true;
+			}
+			else
+			{
+				scrollWholeArea_ = false;
+			}
+		},
+		[&](Input::DragTrackerState state, Input::DragTrackerState)
+		{
+			velTracker.update(e.time, {(float)e.pos().y});
+			if(state.isDragging())
+			{
+				auto prevOffset = offset;
+				const auto viewFrame = viewRect();
+				if(scrollWholeArea_)
+				{
+					offset = IG::scalePointRange((Gfx::GC)e.pos().y, (Gfx::GC)viewFrame.y, (Gfx::GC)viewFrame.y + (Gfx::GC)viewFrame.ySize(), (Gfx::GC)0, (Gfx::GC)offsetMax);
+					offset = IG::clamp(offset, 0, offsetMax);
+				}
+				else
+				{
+					offset = onDragOffset - state.downPosDiff().y;
+					if(isOverScrolled())
+					{
+						int clip = offset < 0 ? 0 : offsetMax;
+						offset += (clip - offset) / 2;
+					}
+				}
+				if(offset != prevOffset)
+					postDraw();
+			}
+		},
+		[&](Input::DragTrackerState state)
+		{
+			if(state.isDragging() && !isOverScrolled())
+			{
+				//logMsg("release velocity %f", (double)velTracker.velocity(0));
+				scrollVel = -velTracker.velocity(0) / screen()->frameRate();
+				float decelAmount = SCROLL_DECEL / screen()->frameRate();
+				scrollAccel = scrollVel > 0 ? -decelAmount : decelAmount;
+				offsetAsDec = offset;
+				if(std::abs(scrollVel) <= SCROLL_MIN_START_VEL)
+					scrollVel = 0;
+			}
+			if(scrollVel || isOverScrolled())
+			{
+				screen()->addOnFrameOnce(animate);
+			}
+			postDraw(); // scroll bar visual update on input release
+		});
+	return isDragging;
+}
+
+void ScrollView::setScrollOffset(int o)
+{
+	offset = IG::clamp(o, 0, offsetMax);
+	stopScrollAnimation();
+}
+
+int ScrollView::scrollOffset() const
+{
+	return offset;
+}
+
+void ScrollView::stopScrollAnimation()
+{
+	screen()->removeOnFrame(animate);
 }

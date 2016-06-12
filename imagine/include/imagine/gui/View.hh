@@ -19,7 +19,6 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/DragPointer.hh>
 #include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 

@@ -233,6 +233,8 @@ CallResult FSPicker::setPath(const char *path, bool forcePathChange, Input::Even
 	}
 	if(!e.isPointer())
 		tbl.highlightCell(0);
+	else
+		tbl.resetScroll();
 	navV.setTitle(FS::current_path().data());
 	return res;
 }

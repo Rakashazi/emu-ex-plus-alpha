@@ -230,7 +230,8 @@ static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
 #endif
 
 static uint doubleClickFrames, rightClickFrames;
-static ContentDrag mouseScroll;
+static Input::SingleDragTracker dragTracker{};
+static bool dragWithButton = false; // true to start next mouse drag with a button held
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
@@ -658,9 +659,10 @@ void EmuSystem::clearInputBuffers()
 	}
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
-	mouseScroll = ContentDrag{ContentDrag::XY_AXIS};
-	mouseScroll.dragStartY = std::max(1, mainWin.win.heightMMInPixels(1.));
-	mouseScroll.dragStartX = std::max(1, mainWin.win.widthMMInPixels(1.));
+	dragWithButton = false;
+	dragTracker.finish();
+	dragTracker.setXDragStartDistance(mainWin.win.widthMMInPixels(1.));
+	dragTracker.setYDragStartDistance(mainWin.win.heightMMInPixels(1.));
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -804,11 +806,8 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 
 					bcase SNES_MOUSE_SWAPPED:
 					{
-						auto dragState = Input::dragState(e.devId);
-						static bool dragWithButton = 0; // true to start next mouse drag with a button held
-						switch(mouseScroll.inputEvent(win.contentBounds(), e))
-						{
-							bcase ContentDrag::PUSHED:
+						dragTracker.inputEvent(e,
+							[&](Input::DragTrackerState)
 							{
 								rightClickFrames = 15;
 								if(doubleClickFrames) // check if in double-click time window
@@ -820,61 +819,63 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 									dragWithButton = 0;
 									doubleClickFrames = 15;
 								}
-							}
-
-							bcase ContentDrag::ENTERED_ACTIVE:
+							},
+							[&](Input::DragTrackerState state, Input::DragTrackerState prevState)
 							{
-								if(dragWithButton)
+								if(!state.isDragging())
+									return;
+								if(!prevState.isDragging())
 								{
-									snesMouseClick = 0;
-									if(!rightClickFrames)
+									if(dragWithButton)
 									{
-										// in right-click time window
-										snesPointerBtns = 2;
-										logMsg("started drag with right-button");
+										snesMouseClick = 0;
+										if(!rightClickFrames)
+										{
+											// in right-click time window
+											snesPointerBtns = 2;
+											logMsg("started drag with right-button");
+										}
+										else
+										{
+											snesPointerBtns = 1;
+											logMsg("started drag with left-button");
+										}
 									}
 									else
 									{
-										snesPointerBtns = 1;
-										logMsg("started drag with left-button");
+										logMsg("started drag");
 									}
 								}
 								else
 								{
-									logMsg("started drag");
+									auto relPos = state.pos() - prevState.pos();
+									snesPointerX += relPos.x;
+									snesPointerY += relPos.y;
 								}
-							}
-
-							bcase ContentDrag::LEFT_ACTIVE:
+							},
+							[&](Input::DragTrackerState state)
 							{
-								logMsg("stopped drag");
-								snesPointerBtns = 0;
-							}
-
-							bcase ContentDrag::ACTIVE:
-							{
-								snesPointerX += dragState->relX();
-								snesPointerY += dragState->relY();
-							}
-
-							bcase ContentDrag::RELEASED:
-							{
-								if(!rightClickFrames)
+								if(state.isDragging())
 								{
-									logMsg("right clicking mouse");
-									snesPointerBtns = 2;
-									doubleClickFrames = 15; // allow extra time for a right-click & drag
+									logMsg("stopped drag");
+									snesPointerBtns = 0;
 								}
 								else
 								{
-									logMsg("left clicking mouse");
-									snesPointerBtns = 1;
+									if(!rightClickFrames)
+									{
+										logMsg("right clicking mouse");
+										snesPointerBtns = 2;
+										doubleClickFrames = 15; // allow extra time for a right-click & drag
+									}
+									else
+									{
+										logMsg("left clicking mouse");
+										snesPointerBtns = 1;
+									}
+									snesMouseClick = 3;
 								}
-								snesMouseClick = 3;
-							}
-
-							bdefault: break;
-						}
+							});
 					}
 				}
 			}

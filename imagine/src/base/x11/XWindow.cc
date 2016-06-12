@@ -18,6 +18,7 @@
 #include "internal.hh"
 #include "xlibutils.h"
 #include "xdnd.hh"
+#include <imagine/logger/logger.h>
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>

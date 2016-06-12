@@ -62,6 +62,7 @@ public:
 	char inputDevNameStr[Input::MAX_DEVS][80]{};
 
 	InputManagerView(Base::Window &win);
+	~InputManagerView();
 	void onShow() override;
 };
 

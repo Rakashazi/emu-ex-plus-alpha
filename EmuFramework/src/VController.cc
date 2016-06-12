@@ -853,10 +853,9 @@ void VController::applyInput(Input::Event e)
 {
 	using namespace IG;
 	assert(e.isPointer());
-	auto drag = Input::dragState(e.devId);
 	auto &currElem = ptrElem[e.devId];
 	std::array<int, 2> elem{-1, -1};
-	if(drag->pushed) // make sure the cursor isn't hovering
+	if(e.isPointerPushed(Input::Pointer::LBUTTON)) // make sure the cursor isn't hovering
 		elem = findElementUnderPos(e);
 
 	//logMsg("under %d %d", elem[0], elem[1]);
