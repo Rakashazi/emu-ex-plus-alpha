@@ -106,3 +106,8 @@ void View::setController(ViewController *c, Input::Event e)
 		onAddedToController(e);
 	}
 }
+
+bool View::pointIsInView(IG::WP pos)
+{
+	return viewRect().overlaps(pos);
+}

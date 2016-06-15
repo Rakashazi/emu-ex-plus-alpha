@@ -79,4 +79,5 @@ public:
 	void setWindow(Base::Window *w) { win = w; }
 	void setController(ViewController *c, Input::Event e);
 	Gfx::ProjectionPlane projection() { return projP; }
+	bool pointIsInView(IG::WP pos);
 };

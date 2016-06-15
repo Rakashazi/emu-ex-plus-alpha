@@ -11,7 +11,8 @@ android_minSDK ?= 9
 android_baseModuleSDK := 9
 android_targetSDK ?= 23
 
-android_soName := main
+android_metadata_soName ?= main
+android_makefileOpts += android_metadata_soName=$(android_metadata_soName)
 
 # Architecture setup
 
@@ -388,3 +389,17 @@ android_cleanTargets += android-clean-project
 
 .PHONY: android-clean
 android-clean: $(android_cleanTargets)
+
+.DEFAULT:
+ifndef android_noArm
+	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs) $@
+endif
+ifndef android_noArmv7
+	$(PRINT_CMD)$(MAKE) $(android_armv7MakeArgs) $@
+endif
+ifndef android_noArm64
+	$(PRINT_CMD)$(MAKE) $(android_arm64MakeArgs) $@
+endif
+ifndef android_noX86
+	$(PRINT_CMD)$(MAKE) $(android_x86MakeArgs) $@
+endif

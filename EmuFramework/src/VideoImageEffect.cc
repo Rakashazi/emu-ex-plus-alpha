@@ -46,8 +46,10 @@ static Gfx::Shader makeEffectFragmentShader(const char *src, bool isExternalTex)
 	{
 		const char *shaderSrc[]
 		{
+			// extensions -> shaderSrc[0]
 			"#extension GL_OES_EGL_image_external : enable\n"
-			"#extension GL_OES_EGL_image_external_essl3 : enable\n"
+			"#extension GL_OES_EGL_image_external_essl3 : enable\n",
+			// texture define -> shaderSrc[1]
 			"#define TEXTURE texture2D\n",
 			fragDefs,
 			"uniform lowp samplerExternalOES TEX;\n",
@@ -67,8 +69,8 @@ static Gfx::Shader makeEffectFragmentShader(const char *src, bool isExternalTex)
 	{
 		const char *shaderSrc[]
 		{
+			"#define TEXTURE texture\n",
 			fragDefs,
-			"#define TEXTURE texture\n"
 			"uniform sampler2D TEX;\n",
 			src
 		};

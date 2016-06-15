@@ -1,5 +1,4 @@
 ENV := win32
-binStatic := 1
 
 ifndef target
  target = $(metadata_exec)

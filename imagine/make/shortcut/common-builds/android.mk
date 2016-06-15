@@ -37,24 +37,14 @@ ifdef imagineLibExt
  makefileOpts += imagineLibExt=$(imagineLibExt)
 endif
 
-installTargets := $(targets:=-install)
-installLinksTargets := $(targets:=-install-links)
 commonBuildPath := $(buildSysPath)/shortcut/common-builds
 
-.PHONY: all $(targets) $(installTargets) $(installLinksTargets)
+.PHONY: all
 
-all : $(targets)
-install : $(installTargets)
-install-links : $(installLinksTargets)
+makeTargets = $(foreach target, $(1),$(MAKE) -f $(commonBuildPath)/$(target).mk $(makefileOpts) $(2);)
 
-$(targets) :
-	@echo "Performing target $@"
-	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$@.mk $(makefileOpts)
+all :
+	$(PRINT_CMD)+$(call makeTargets,$(targets),)
 
-$(installTargets) :
-	@echo "Performing target $@"
-	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$(@:-install=).mk $(makefileOpts) install
-
-$(installLinksTargets) :
-	@echo "Performing target $@"
-	$(PRINT_CMD)$(MAKE) -f $(commonBuildPath)/$(@:-install-links=).mk $(makefileOpts) install-links
+.DEFAULT:
+	$(PRINT_CMD)+$(call makeTargets,$(targets),$@)

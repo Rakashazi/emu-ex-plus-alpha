@@ -48,3 +48,5 @@ endif
 ifdef cxxExceptions
  CXXFLAGS_LANG += -fnothrow-opt
 endif
+
+ASMFLAGS += -O3

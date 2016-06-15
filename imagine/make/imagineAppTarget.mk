@@ -4,15 +4,14 @@ include $(buildSysPath)/evalPkgConfigCFlags.mk
 include $(buildSysPath)/evalPkgConfigLibs.mk
 
 ifeq ($(ENV), android)
- target := lib$(android_soName).so
+ ifndef android_metadata_soName
+  $(error android_metadata_soName not defined)
+ endif
+ target := lib$(android_metadata_soName).so
 endif
 
 ifdef STDCXXINC
  CPPFLAGS += $(STDCXXINC)
-endif
-
-ifdef O_LTO
- LDFLAGS_SYSTEM += $(CFLAGS_CODEGEN)
 endif
 
 LDFLAGS += $(STDCXXLIB)

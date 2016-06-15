@@ -153,11 +153,11 @@ void ScrollView::drawScrollContent()
 
 bool ScrollView::scrollInputEvent(Input::Event e)
 {
-	if(!e.isPointer())
+	if(!e.isPointer() || (!dragTracker.isDragging() && !pointIsInView(e.pos())))
 		return false;
 	// mouse wheel scroll
 	if(Config::Input::MOUSE_DEVICES && !dragTracker.isDragging()
-		&& (e.button == Input::Pointer::WHEEL_UP || e.button == Input::Pointer::WHEEL_DOWN))
+		&& (e.pushed(Input::Pointer::WHEEL_UP) || e.pushed(Input::Pointer::WHEEL_DOWN)))
 	{
 		auto prevOffset = offset;
 		auto vel = window().heightSMMInPixels(10.0);

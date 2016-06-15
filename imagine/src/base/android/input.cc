@@ -109,7 +109,8 @@ static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, in
 static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isTouch)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
-	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, Input::RELEASED ? 0 : 1, action, pos.x, pos.y, (int)idx, isTouch, time, nullptr});
+	uint metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
+	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, isTouch, time, nullptr});
 }
 
 static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isTouch)

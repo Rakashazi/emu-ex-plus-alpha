@@ -20,6 +20,9 @@ ifdef O_LTO
  CFLAGS_CODEGEN += -flto
 endif
 
+# -flto needed to enable linking any static archives with LTO 
+LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
+
 CFLAGS_WARN += -Wno-missing-braces
 
 AR ?= llvm-ar

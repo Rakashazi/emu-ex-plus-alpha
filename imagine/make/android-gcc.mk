@@ -2,7 +2,6 @@
 
 ENV := android
 CROSS_COMPILE := 1
-binStatic := 1
 
 ifeq ($(wildcard $(ANDROID_NDK_PATH)/platforms)),)
  $(error Invalid NDK path:$(ANDROID_NDK_PATH), add NDK directory to PATH, define ANDROID_NDK_PATH, or move NDK to the default path:$(defaultNDKPath)
@@ -11,8 +10,6 @@ endif
 android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
 
 VPATH += $(android_ndkSysroot)/usr/lib
-
-android_soName := main
 
 ANDROID_GCC_VERSION ?= 4.9
 ANDROID_GCC_TOOLCHAIN_ROOT_DIR ?= $(CHOST)
@@ -62,17 +59,11 @@ ifeq ($(config_compiler),clang)
  CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
  CFLAGS_CODEGEN += -fno-integrated-as
  ASMFLAGS += -fno-integrated-as
- # -flto needed to enable linking any static archives with LTO 
- LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
- 
- # check for llvm-ar
- ifeq ($(shell which $(AR)),)
-  $(error missing llvm-ar, make sure LLVM is installed (Android NDK's LLVM doesn't provide this))
- endif
 else
  include $(buildSysPath)/gcc.mk
  android_stdcxx ?= gnu
  CFLAGS_CODEGEN += -Wa,--noexecstack
+ LDLIBS_SYSTEM += -lc -lgcc
 endif
 
 ifeq ($(android_stdcxx), gnu)
@@ -102,10 +93,7 @@ CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ASMFLAGS += $(CFLAGS_TARGET) -Wa,--noexecstack
 LDFLAGS_SYSTEM += -no-canonical-prefixes \
 -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
-linkAction := -Wl,-soname,lib$(android_soName).so -shared
-ifneq ($(config_compiler),clang)
- LDLIBS_SYSTEM += -lc -lgcc
-endif
+linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID

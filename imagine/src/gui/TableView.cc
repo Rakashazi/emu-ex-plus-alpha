@@ -263,7 +263,7 @@ bool TableView::handleTableInput(Input::Event e)
 
 	if(e.isPointer())
 	{
-		if(!viewRect().overlaps({e.x, e.y}) || e.button != Input::Pointer::LBUTTON)
+		if(!pointIsInView(e.pos()) || e.button != Input::Pointer::LBUTTON)
 		{
 			//logMsg("cursor not in table");
 			return false;

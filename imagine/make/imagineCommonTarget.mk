@@ -21,3 +21,23 @@ LDFLAGS += $(LDLIBS)
 cppcheck: $(CXX_SRC) $(C_SRC)
 	cppcheck $^ $(CPPFLAGS) -D__GNUC__ -DCHAR_BIT=8
 #--check-config
+
+.PHONY: cppflags cflags cxxflags objcflags asmflags ldflags
+
+cppflags:
+	@echo CPPFLAGS: $(CPPFLAGS)
+
+cflags:
+	@echo CFLAGS: $(CFLAGS)
+
+cxxflags:
+	@echo CXXFLAGS: $(CXXFLAGS)
+
+objcflags:
+	@echo OBJCFLAGS: $(OBJCFLAGS)
+
+asmflags:
+	@echo ASMFLAGS: $(ASMFLAGS)
+
+ldflags:
+	@echo LDFLAGS: $(LDFLAGS)

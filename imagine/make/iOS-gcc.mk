@@ -1,6 +1,5 @@
 ENV := ios
 CROSS_COMPILE := 1
-binStatic := 1
 
 ifndef target
  target = $(metadata_exec)
