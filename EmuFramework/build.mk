@@ -34,8 +34,6 @@ ifeq ($(emuFramework_onScreenControls), 1)
  VController.cc
 endif
 
-CFLAGS_OPTIMIZE_RELEASE_DEFAULT += -O3
-
 libName := emuframework$(libNameExt)
 ifndef RELEASE
  libName := $(libName)-debug

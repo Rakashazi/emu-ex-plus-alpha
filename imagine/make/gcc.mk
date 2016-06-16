@@ -3,7 +3,7 @@ include $(buildSysPath)/gcc-link.mk
 include $(buildSysPath)/gcc-common.mk
 
 CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -Og
-CFLAGS_OPTIMIZE_RELEASE_DEFAULT += -funsafe-loop-optimizations
+CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT += -funsafe-loop-optimizations
 
 ifdef O_LTO
  CFLAGS_CODEGEN += -flto

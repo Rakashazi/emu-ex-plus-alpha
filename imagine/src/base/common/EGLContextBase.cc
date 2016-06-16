@@ -200,10 +200,6 @@ CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 	}
 	// TODO: EGL 1.5 or higher supports surfaceless without any extension
 	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
-	#ifdef __ANDROID__
-	if(androidSDK() == 23) // TODO: broken in Android N DP3, disable until fixed
-		supportsSurfaceless = false;
-	#endif
 	if(!supportsSurfaceless)
 	{
 		logMsg("surfaceless context not supported");

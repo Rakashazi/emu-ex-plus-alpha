@@ -3,7 +3,7 @@ inc_main := 1
 
 ifneq ($(ENV), linux)
  # -O3 is faster with Snes9x
- HIGH_OPTIMIZE_CFLAGS := -O3 $(HIGH_OPTIMIZE_CFLAGS_MISC)
+ CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -O3
 endif
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk

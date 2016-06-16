@@ -2,7 +2,9 @@
 #RELEASE := 1
 #PROFILE := 1
 
-CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= -O2 -fomit-frame-pointer -fno-stack-protector
+CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT ?= -fomit-frame-pointer -fno-stack-protector
+CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -O2
+CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= $(CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT) $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT)
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden
 CFLAGS_LANG = -std=gnu99 -fno-common
 CXXFLAGS_LANG = -std=gnu++14 $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \

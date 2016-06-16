@@ -62,7 +62,12 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::Name
 		win,
 		needsUpDirControl ? &getAsset(ASSET_ARROW) : nullptr,
 		pickingDir ? &getAsset(ASSET_ACCEPT) : View::needsBackControl ? &getAsset(ASSET_CLOSE) : nullptr,
-		[filter, singleDir](FS::directory_entry &entry)
+		pickingDir ?
+		FSPicker::FilterFunc{[](FS::directory_entry &entry)
+		{
+			return entry.type() == FS::file_type::directory;
+		}}:
+		FSPicker::FilterFunc{[filter, singleDir](FS::directory_entry &entry)
 		{
 			logMsg("%s %d", entry.name(), (int)entry.type());
 			if(!singleDir && entry.type() == FS::file_type::directory)
@@ -73,7 +78,7 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::Name
 				return filter(entry.name());
 			else
 				return false;
-		},
+		}},
 		singleDir
 	}
 {

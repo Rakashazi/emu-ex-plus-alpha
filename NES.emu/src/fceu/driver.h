@@ -247,6 +247,7 @@ void FCEUI_VSUniCoin(void);
 void FCEUI_FDSInsert(void); //mbg merge 7/17/06 changed to void fn(void) to make it an EMUCMDFN
 //int FCEUI_FDSEject(void);
 void FCEUI_FDSSelect(void);
+int FCEUD_FDSReadBIOS(void *buff, uint32 size);
 
 int FCEUI_DatachSet(const uint8 *rcode);
 

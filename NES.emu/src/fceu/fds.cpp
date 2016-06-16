@@ -671,31 +671,7 @@ static void PostSave(void) {
 }
 
 int FDSLoad(const char *name, FCEUFILE *fp) {
-	FILE *zp;
 	int x;
-
-	char *fn = strdup(FCEU_MakeFName(FCEUMKF_FDSROM, 0, 0).c_str());
-
-	if (!(zp = FCEUD_UTF8fopen(fn, "rb"))) {
-		FCEU_PrintError("FDS BIOS ROM image missing: %s", FCEU_MakeFName(FCEUMKF_FDSROM, 0, 0).c_str());
-		if(!strlen(fdsBiosPath.data()) || !CheckFileExists(fdsBiosPath.data()))
-			fceuReturnedError = "No FDS BIOS set";
-		else
-			fceuReturnedError = "Error opening FDS BIOS";
-		free(fn);
-		return 0;
-	}
-
-	free(fn);
-
-	fseek(zp, 0L, SEEK_END);
-	if (ftell(zp) != 8192) {
-		fclose(zp);
-		FCEU_PrintError("FDS BIOS ROM image incompatible: %s", FCEU_MakeFName(FCEUMKF_FDSROM, 0, 0).c_str());
-		fceuReturnedError = "Incompatible FDS BIOS";
-		return 0;
-	}
-	fseek(zp, 0L, SEEK_SET);
 
 	ResetCartMapping();
 
@@ -713,16 +689,13 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
 	FDSBIOS = (uint8*)FCEU_gmalloc(FDSBIOSsize);
 	SetupCartPRGMapping(0, FDSBIOS, FDSBIOSsize, 0);
 
-	if (fread(FDSBIOS, 1, FDSBIOSsize, zp) != FDSBIOSsize) {
+	if (FCEUD_FDSReadBIOS(FDSBIOS, FDSBIOSsize) != FDSBIOSsize) {
 		if(FDSBIOS)
 			free(FDSBIOS);
 		FDSBIOS = NULL;
-		fclose(zp);
 		FCEU_PrintError("Error reading FDS BIOS ROM image.");
 		return 0;
 	}
-
-	fclose(zp);
 
 	FCEU_fseek(fp, 0, SEEK_SET);
 

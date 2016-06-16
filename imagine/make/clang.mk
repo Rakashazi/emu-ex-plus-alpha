@@ -18,10 +18,11 @@ endif
 
 ifdef O_LTO
  CFLAGS_CODEGEN += -flto
+ LDFLAGS_SYSTEM += $(CFLAGS_CODEGEN)
+else
+ # -flto needed to enable linking any static archives with LTO 
+ LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
 endif
-
-# -flto needed to enable linking any static archives with LTO 
-LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
 
 CFLAGS_WARN += -Wno-missing-braces
 
