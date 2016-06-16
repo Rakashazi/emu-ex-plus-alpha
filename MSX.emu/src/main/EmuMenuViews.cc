@@ -213,6 +213,7 @@ public:
 		loadStockItems();
 		reloadMachineItem();
 		item.emplace_back(&skipFdcAccess);
+		item.emplace_back(&msxMachine);
 		printMachinePathMenuEntryStr(machineFilePathStr);
 		item.emplace_back(&machineFilePath);
 		if(canInstallCBIOS)
