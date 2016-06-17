@@ -115,6 +115,8 @@ public:
 	static AndroidStorageImpl androidStorageImpl();
 	static bool isAndroidGraphicBufferStorageWhitelisted();
 	bool isExternal();
+	static const char *androidStorageImplStr(AndroidStorageImpl);
+	static const char *androidStorageImplStr();
 	#endif
 };
 

@@ -122,16 +122,6 @@ static void setAutoSaveState(uint val)
 }
 
 #ifdef __ANDROID__
-static const char *androidTextureStorageModeStr(uint8 mode)
-{
-	switch(mode)
-	{
-		case Gfx::Texture::ANDROID_GRAPHIC_BUFFER: return "Graphic Buffer";
-		case Gfx::Texture::ANDROID_SURFACE_TEXTURE: return "Surface Texture";
-		default: return "Standard";
-	}
-}
-
 static bool setAndroidTextureStorage(uint8 mode)
 {
 	using namespace Gfx;
@@ -155,7 +145,7 @@ static bool setAndroidTextureStorage(uint8 mode)
 		return false;
 	}
 	resetVideo();
-	optionAndroidTextureStorage = Texture::androidStorageImpl();
+	optionAndroidTextureStorage = mode;
 	return true;
 }
 #endif
@@ -757,6 +747,7 @@ VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
 			[this]()
 			{
 				setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_AUTO);
+				popup.printf(3, false, "Set %s mode via Auto", Gfx::Texture::androidStorageImplStr());
 			}
 		},
 		{

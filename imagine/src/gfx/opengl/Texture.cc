@@ -1216,6 +1216,14 @@ bool GLTexture::setAndroidStorageImpl(AndroidStorageImpl impl)
 				logErr("can't use SurfaceTexture without OES_EGL_image_external");
 				return false;
 			}
+			// check if external textures work in GLSL
+			if(texExternalReplaceProgram.compile())
+				autoReleaseShaderCompiler();
+			if(!texExternalReplaceProgram)
+			{
+				logErr("can't use SurfaceTexture due to test shader compilation error");
+				return false;
+			}
 			androidStorageImpl_ = ANDROID_SURFACE_TEXTURE;
 			logMsg("using Android SurfaceTexture as texture storage");
 			return true;
@@ -1234,6 +1242,23 @@ bool GLTexture::isAndroidGraphicBufferStorageWhitelisted()
 bool GLTexture::isExternal()
 {
 	return target == GL_TEXTURE_EXTERNAL_OES;
+}
+
+const char *GLTexture::androidStorageImplStr(AndroidStorageImpl impl)
+{
+	switch(impl)
+	{
+		case ANDROID_AUTO: return "Auto";
+		case ANDROID_NONE: return "Standard";
+		case ANDROID_GRAPHIC_BUFFER: return "Graphic Buffer";
+		case ANDROID_SURFACE_TEXTURE: return "Surface Texture";
+	}
+	return "Unknown";
+}
+
+const char *GLTexture::androidStorageImplStr()
+{
+	return androidStorageImplStr(androidStorageImpl());
 }
 #endif
 

@@ -645,7 +645,12 @@ void mainInitCommon(int argc, char** argv)
 	{
 		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
 	}
-	Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(optionAndroidTextureStorage));
+	if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(optionAndroidTextureStorage)))
+	{
+		// try auto if the stored setting didn't work
+		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
+		Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(optionAndroidTextureStorage));
+	}
 	#endif
 
 	View::defaultFace = ResourceFace::loadSystem();
