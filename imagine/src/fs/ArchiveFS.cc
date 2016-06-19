@@ -156,7 +156,7 @@ void ArchiveIterator::init(GenericIO io, CallResult &result)
 		if(Config::DEBUG_BUILD)
 			logErr("error opening archive:%s", archive_error_string(archEntry.arch.get()));
 		archEntry.arch = {};
-		result = IO_ERROR;
+		result = READ_ERROR;
 		return;
 	}
 	result = OK;

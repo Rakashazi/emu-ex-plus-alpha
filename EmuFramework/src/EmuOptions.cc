@@ -58,7 +58,7 @@ Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck(CFGKEY_SOUND_UNDERRUN_CHECK, 1);
 #endif
 
-#ifdef CONFIG_AUDIO_SOLO_MIX
+#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
 #endif
 

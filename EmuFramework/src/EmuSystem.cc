@@ -445,6 +445,16 @@ bool EmuSystem::setFrameTime(VideoSystem system, double time)
 	return path;
 }
 
+static const char *loadErrorStr(CallResult res)
+{
+	switch(res)
+	{
+		case PERMISSION_DENIED: return "Permission Denied";
+		case READ_ERROR: return "Read Error";
+	}
+	return "IO Error";
+}
+
 int EmuSystem::loadGameFromPath(FS::PathString path)
 {
 	path = willLoadGameFromPath(path);
@@ -473,12 +483,12 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 		}
 		if(res != OK)
 		{
-			logErr("error opening archive:%s", path.data());
+			popup.printf(3, true, "Error opening archive: %s", loadErrorStr(res));
 			return 0;
 		}
 		if(!io)
 		{
-			logErr("no recognized file extensions in archive:%s", path.data());
+			popup.postError("No recognized file extensions in archive");
 			return 0;
 		}
 		return EmuSystem::loadGameFromIO(io, path.data(), io.name());
@@ -486,10 +496,11 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 	else
 	{
 		FileIO io{};
-		io.open(path);
-		if(!io)
+		CallResult res = OK;
+		io.open(path, res);
+		if(res != OK)
 		{
-			logErr("error opening file:%s", path.data());
+			popup.printf(3, true, "Error opening file: %s", loadErrorStr(res));
 			return 0;
 		}
 		return EmuSystem::loadGameFromIO(io, path.data(), path.data());

@@ -885,10 +885,10 @@ void handleOpenFileCommand(const char *filename)
 		FS::current_path(filename);
 		viewStack.popToRoot();
 		auto &fPicker = *new EmuFilePicker{mainWin.win, false};
-		viewStack.pushAndShow(fPicker, Input::defaultEvent());
+		viewStack.pushAndShow(fPicker, Input::defaultEvent(), false);
 		return;
 	}
-	if(type != FS::file_type::regular || !EmuSystem::defaultFsFilter(filename))
+	if(type != FS::file_type::regular || (!hasArchiveExtension(filename) && !EmuSystem::defaultFsFilter(filename)))
 	{
 		logMsg("unrecognized file type");
 		return;

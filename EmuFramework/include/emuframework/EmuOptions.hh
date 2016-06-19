@@ -53,8 +53,8 @@ extern Byte1Option optionSoundBuffers;
 #define EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 extern OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck;
 #endif
-#ifdef CONFIG_AUDIO_SOLO_MIX
-using OptionAudioSoloMix = Option<OptionMethodFunc<bool, Audio::soloMix, Audio::setSoloMix>, uint8>;
+#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
+using OptionAudioSoloMix = Option<OptionMethodFunc<bool, AudioManager::soloMix, AudioManager::setSoloMix>, uint8>;
 extern OptionAudioSoloMix optionAudioSoloMix;
 #endif
 extern Byte4Option optionSoundRate;

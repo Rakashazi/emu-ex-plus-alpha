@@ -97,7 +97,7 @@ protected:
 	#ifdef CONFIG_AUDIO_OPENSL_ES
 	BoolMenuItem sndUnderrunCheck;
 	#endif
-	#ifdef CONFIG_AUDIO_SOLO_MIX
+	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	BoolMenuItem audioSoloMix;
 	#endif
 	StaticArrayList<MenuItem*, 12> item{};

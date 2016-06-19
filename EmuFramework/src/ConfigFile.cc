@@ -262,7 +262,7 @@ static bool readConfig2(IO &io)
 			#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 			bcase CFGKEY_SOUND_UNDERRUN_CHECK: optionSoundUnderrunCheck.readFromIO(io, size);
 			#endif
-			#ifdef CONFIG_AUDIO_SOLO_MIX
+			#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
 			#endif
 			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
@@ -505,7 +505,7 @@ static OptionBase *cfgFileOption[] =
 	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 	&optionSoundUnderrunCheck,
 	#endif
-	#ifdef CONFIG_AUDIO_SOLO_MIX
+	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	&optionAudioSoloMix,
 	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION

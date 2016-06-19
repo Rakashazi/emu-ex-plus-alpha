@@ -113,6 +113,8 @@ void GraphicBufferStorage::unlock(GLuint tex)
 
 bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 {
+	if(Base::androidSDK() >= 24)
+		return false;
 	if(Config::MACHINE_IS_GENERIC_ARMV7)
 	{
 		if(string_equal(rendererStr, "PowerVR SGX 530"))
@@ -124,7 +126,7 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 		auto buildDevice = Base::androidBuildDevice();
 		if(string_equal(buildDevice.data(), "shamu"))
 		{
-			// works on Nexus 6
+			// works on Nexus 6 on Android 6.0
 			return true;
 		}
 		if(Base::androidSDK() >= 20 &&

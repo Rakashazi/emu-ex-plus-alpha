@@ -662,7 +662,7 @@ void AudioOptionView::loadStockItems()
 	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
 	item.emplace_back(&sndUnderrunCheck);
 	#endif
-	#ifdef CONFIG_AUDIO_SOLO_MIX
+	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	item.emplace_back(&audioSoloMix);
 	#endif
 }
@@ -1242,15 +1242,14 @@ AudioOptionView::AudioOptionView(Base::Window &win, bool customMenu):
 		}
 	}
 	#endif
-	#ifdef CONFIG_AUDIO_SOLO_MIX
+	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	,audioSoloMix
 	{
 		"Mix With Other Apps",
 		!optionAudioSoloMix,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			item.toggle(*this);
-			optionAudioSoloMix = !item.on;
+			optionAudioSoloMix = item.flipBoolValue(*this);
 		}
 	}
 	#endif
