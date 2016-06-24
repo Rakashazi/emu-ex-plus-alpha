@@ -79,7 +79,7 @@ static void printEGLConfs(EGLDisplay display)
 	EGLConfig conf[96];
 	EGLint num = 0;
 	eglGetConfigs(display, conf, IG::size(conf), &num);
-	logMsg("got %d configs", num);
+	logMsg("EGLDisplay has %d configs:", num);
 	iterateTimes(num, i)
 	{
 		printEGLConf(display, conf[i]);

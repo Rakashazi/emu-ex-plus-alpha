@@ -95,6 +95,11 @@ void EmuVideo::initImage(bool force, uint xO, uint yO, uint x, uint y, uint tota
 	}
 }
 
+void EmuVideo::updateImage()
+{
+	vidImg.write(0, vidPix, {}, vidPixAlign);
+}
+
 void EmuVideo::takeGameScreenshot()
 {
 	FS::PathString path;

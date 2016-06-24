@@ -35,31 +35,47 @@ static EGLDisplay display = EGL_NO_DISPLAY;
 using EGLAttrList = StaticArrayList<int, 24>;
 using EGLContextAttrList = StaticArrayList<int, 16>;
 
-static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr, bool failsafe)
+static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	EGLAttrList list;
-
-	if(!failsafe)
+	// don't accept slow configs
+	list.push_back(EGL_CONFIG_CAVEAT);
+	list.push_back(EGL_NONE);
+	switch(attr.pixelFormat().id())
 	{
-		// don't accept slow configs
-		list.push_back(EGL_CONFIG_CAVEAT);
-		list.push_back(EGL_NONE);
+		bdefault:
+			bug_branch("%d", attr.pixelFormat().id());
+		bcase PIXEL_NONE:
+			// don't set any color bits
+		bcase PIXEL_RGB565:
+			list.push_back(EGL_BUFFER_SIZE);
+			list.push_back(16);
+		bcase PIXEL_RGB888:
+			list.push_back(EGL_RED_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_GREEN_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_BLUE_SIZE);
+			list.push_back(8);
+		bcase PIXEL_RGBX8888:
+			list.push_back(EGL_RED_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_GREEN_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_BLUE_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_BUFFER_SIZE);
+			list.push_back(32);
+		bcase PIXEL_RGBA8888:
+			list.push_back(EGL_RED_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_GREEN_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_BLUE_SIZE);
+			list.push_back(8);
+			list.push_back(EGL_ALPHA_SIZE);
+			list.push_back(8);
 	}
-
-	if(!failsafe && attr.pixelFormat() == PIXEL_RGB888)
-	{
-		list.push_back(EGL_RED_SIZE);
-		list.push_back(8);
-		list.push_back(EGL_GREEN_SIZE);
-		list.push_back(8);
-		list.push_back(EGL_BLUE_SIZE);
-		list.push_back(8);
-	}
-	else
-	{
-		//logDMsg("requesting lowest color config");
-	}
-
 	if(!ctxAttr.openGLESAPI())
 	{
 		list.push_back(EGL_RENDERABLE_TYPE);
@@ -76,7 +92,6 @@ static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBuffer
 		list.push_back(EGL_RENDERABLE_TYPE);
 		list.push_back(EGL_OPENGL_ES3_BIT);
 	}
-
 	list.push_back(EGL_NONE);
 	return list;
 }
@@ -125,19 +140,27 @@ std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(GLContextAttribute
 	EGLConfig config;
 	EGLint configs = 0;
 	{
-		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr, false);
+		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr);
+		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
+	}
+	if(!configs && attr.pixelFormat() != Window::defaultPixelFormat())
+	{
+		logErr("no EGL configs found, retrying with default window format");
+		attr.setPixelFormat(Window::defaultPixelFormat());
+		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
 	if(!configs)
 	{
-		logErr("no EGL configs found, retrying with failsafe config");
-		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr, true);
+		logErr("no EGL configs found, retrying with no color bits set");
+		attr.setPixelFormat(IG::PIXEL_NONE);
+		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
-		if(!configs)
-		{
-			logErr("no usable EGL configs found with major version:%u", ctxAttr.majorVersion());
-			return std::make_pair(INVALID_PARAMETER, EGLConfig{});
-		}
+	}
+	if(!configs)
+	{
+		logErr("no usable EGL configs found with major version:%u", ctxAttr.majorVersion());
+		return std::make_pair(INVALID_PARAMETER, EGLConfig{});
 	}
 	if(Config::DEBUG_BUILD)
 		printEGLConf(display, config);
@@ -168,6 +191,7 @@ EGLDisplay EGLContextBase::eglDisplay()
 			logMsg("version: %s (%s)", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION));
 			logMsg("APIs: %s", eglQueryString(display, EGL_CLIENT_APIS));
 			logMsg("extensions: %s", eglQueryString(display, EGL_EXTENSIONS));
+			//printEGLConfs(display);
 		}
 	}
 	return display;

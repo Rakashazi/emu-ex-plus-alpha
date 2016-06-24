@@ -138,20 +138,6 @@ void changeInputConfig(AConfiguration *config)
 	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
 }
 
-static const char *androidEventEnumToStr(uint e)
-{
-	switch(e)
-	{
-		case AMOTION_EVENT_ACTION_DOWN: return "Down";
-		case AMOTION_EVENT_ACTION_UP: return "Up";
-		case AMOTION_EVENT_ACTION_MOVE: return "Move";
-		case AMOTION_EVENT_ACTION_CANCEL: return "Cancel";
-		case AMOTION_EVENT_ACTION_POINTER_DOWN: return "PDown";
-		case AMOTION_EVENT_ACTION_POINTER_UP: return "PUp";
-	}
-	return "Unknown";
-}
-
 void setKeyRepeat(bool on)
 {
 	setAllowKeyRepeats(on);

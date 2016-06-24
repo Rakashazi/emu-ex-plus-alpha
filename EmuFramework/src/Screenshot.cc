@@ -197,7 +197,7 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 
 #endif
 
-int sprintScreenshotFilename(FS::PathString str)
+int sprintScreenshotFilename(FS::PathString &str)
 {
 	const uint maxNum = 999;
 	int num = -1;

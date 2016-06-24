@@ -28,6 +28,7 @@ namespace Input
 
 void (*processInput)(AInputQueue *inputQueue) = processInputWithHasEvents;
 static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
+static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
 static int mostRecentKeyEventDevID = -1;
 
 static struct TouchState
@@ -106,17 +107,36 @@ static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, in
 	}
 }
 
-static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isTouch)
+static const char *androidEventEnumToStr(uint e)
+{
+	switch(e)
+	{
+		case AMOTION_EVENT_ACTION_DOWN: return "Down";
+		case AMOTION_EVENT_ACTION_UP: return "Up";
+		case AMOTION_EVENT_ACTION_MOVE: return "Move";
+		case AMOTION_EVENT_ACTION_CANCEL: return "Cancel";
+		case AMOTION_EVENT_ACTION_POINTER_DOWN: return "PDown";
+		case AMOTION_EVENT_ACTION_POINTER_UP: return "PUp";
+	}
+	return "Unknown";
+}
+
+static bool isFromSource(int src, int srcTest)
+{
+	return (src & srcTest) == srcTest;
+}
+
+static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	uint metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
-	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, isTouch, time, nullptr});
+	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, nullptr});
 }
 
-static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isTouch)
+static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isMouse)
 {
-	//logMsg("%s action: %s from id %d @ %d,%d @ time %f",
-	//	isTouch ? "touch" : "mouse", pid, x, y, androidEventEnumToStr(action), (double)time);
+	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
+	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
 	auto pos = transformInputPos(Base::mainWindow(), {x, y});
 	switch(action)
 	{
@@ -130,7 +150,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					auto &p = m[i];
 					p.id = pid;
 					p.isTouching = true;
-					dispatchTouch(i, PUSHED, p, pos, time, isTouch);
+					dispatchTouch(i, PUSHED, p, pos, time, isMouse);
 					break;
 				}
 			}
@@ -143,7 +163,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					//logMsg("touch up for %d from gesture end", p_i);
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isTouch);
+					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isMouse);
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
@@ -155,7 +175,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					auto &p = m[i];
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(i, RELEASED, p, pos, time, isTouch);
+					dispatchTouch(i, RELEASED, p, pos, time, isMouse);
 					break;
 				}
 			}
@@ -167,7 +187,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 				if(m[i].id == pid)
 				{
 					auto &p = m[i];
-					dispatchTouch(i, MOVED, p, pos, time, isTouch);
+					dispatchTouch(i, MOVED, p, pos, time, isMouse);
 					break;
 				}
 			}
@@ -186,17 +206,51 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 static bool processInputEvent(AInputEvent* event, Base::Window &win)
 {
 	auto type = AInputEvent_getType(event);
-	auto source = AInputEvent_getSource(event);
 	switch(type)
 	{
 		case AINPUT_EVENT_TYPE_MOTION:
 		{
+			auto source = AInputEvent_getSource(event);
 			int eventAction = AMotionEvent_getAction(event);
-			//logMsg("get motion event action %d", eventAction);
-			bool isTouch = false;
-			switch(source)
+			//logMsg("motion event action:%d source:%d", eventAction, source);
+			switch(source & AINPUT_SOURCE_CLASS_MASK)
 			{
-				case AINPUT_SOURCE_TRACKBALL:
+				case AINPUT_SOURCE_CLASS_POINTER:
+				{
+					bool isMouse = isFromSource(source, AINPUT_SOURCE_MOUSE);
+					uint action = eventAction & AMOTION_EVENT_ACTION_MASK;
+					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
+					{
+						// touch gesture ended
+						processTouchEvent(AMOTION_EVENT_ACTION_UP,
+								AMotionEvent_getX(event, 0),
+								AMotionEvent_getY(event, 0),
+								AMotionEvent_getPointerId(event, 0),
+								makeTimeFromMotionEvent(event), isMouse);
+						return true;
+					}
+					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+					int pointers = AMotionEvent_getPointerCount(event);
+					//logMsg("motion event action:%d source:%d pointers:%d:%d",
+					//	eventAction, source, pointers, actionPIdx);
+					iterateTimes(pointers, i)
+					{
+						int pAction = action;
+						// a pointer not performing the action just needs its position updated
+						if(actionPIdx != i)
+						{
+							//logMsg("non-action pointer idx %d", i);
+							pAction = AMOTION_EVENT_ACTION_MOVE;
+						}
+						processTouchEvent(pAction,
+							AMotionEvent_getX(event, i),
+							AMotionEvent_getY(event, i),
+							AMotionEvent_getPointerId(event, i),
+							makeTimeFromMotionEvent(event), isMouse);
+					}
+					return true;
+				}
+				case AINPUT_SOURCE_CLASS_NAVIGATION:
 				{
 					//logMsg("from trackball");
 					auto x = AMotionEvent_getX(event, 0);
@@ -213,58 +267,15 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 						Key key = Keycode::ENTER;
 						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr});
 					}
-					return 1;
+					return true;
 				}
-				case AINPUT_SOURCE_TOUCHPAD: // TODO
-				{
-					//logMsg("from touchpad");
-					return 0;
-				}
-				case AINPUT_SOURCE_TOUCHSCREEN:
-				{
-					isTouch = true;
-					// fall-through to case AINPUT_SOURCE_MOUSE
-				}
-				case AINPUT_SOURCE_MOUSE:
-				{
-					//logMsg("from touchscreen or mouse");
-					uint action = eventAction & AMOTION_EVENT_ACTION_MASK;
-					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
-					{
-						// touch gesture ended
-						processTouchEvent(AMOTION_EVENT_ACTION_UP,
-								AMotionEvent_getX(event, 0),
-								AMotionEvent_getY(event, 0),
-								AMotionEvent_getPointerId(event, 0),
-								makeTimeFromMotionEvent(event), isTouch);
-						return 1;
-					}
-					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
-					int pointers = AMotionEvent_getPointerCount(event);
-					iterateTimes(pointers, i)
-					{
-						int pAction = action;
-						// a pointer not performing the action just needs its position updated
-						if(actionPIdx != i)
-						{
-							//logMsg("non-action pointer idx %d", i);
-							pAction = AMOTION_EVENT_ACTION_MOVE;
-						}
-						processTouchEvent(pAction,
-							AMotionEvent_getX(event, i),
-							AMotionEvent_getY(event, i),
-							AMotionEvent_getPointerId(event, i),
-							makeTimeFromMotionEvent(event), isTouch);
-					}
-					return 1;
-				}
-				case AINPUT_SOURCE_JOYSTICK: // Joystick
+				case AINPUT_SOURCE_CLASS_JOYSTICK:
 				{
 					auto dev = sysDeviceForInputId(AInputEvent_getDeviceId(event));
 					if(unlikely(!dev))
 					{
 						logWarn("discarding joystick input from unknown device ID: %d", AInputEvent_getDeviceId(event));
-						return 0;
+						return false;
 					}
 					auto enumID = dev->enumId();
 					//logMsg("Joystick input from %s", dev->name());
@@ -287,12 +298,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 							dev->axis[i].keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, time, *dev, win);
 						}
 					}
-					return 1;
+					return true;
 				}
 				default:
 				{
 					//logWarn("from other source: %s, %dx%d", aInputSourceToStr(source), (int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0));
-					return 0;
+					return false;
 				}
 			}
 		}

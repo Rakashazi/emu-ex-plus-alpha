@@ -281,7 +281,9 @@ bool SGIFrameTimer::init()
 				Base::GLContextAttributes glAttr;
 				glAttr.setMajorVersion(3);
 				glAttr.setMinorVersion(3);
-				bufferConfig = context.makeBufferConfig(glAttr, {});
+				Base::GLBufferConfigAttributes glBuffAttr;
+				glBuffAttr.setPixelFormat(Window::defaultPixelFormat());
+				bufferConfig = context.makeBufferConfig(glAttr, glBuffAttr);
 				context.init(glAttr, bufferConfig);
 				if(!context)
 				{

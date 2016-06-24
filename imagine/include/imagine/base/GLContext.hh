@@ -31,7 +31,7 @@ public:
 		this->pixelFormat_ = pixelFormat_;
 	}
 
-	uint pixelFormat() const
+	PixelFormat pixelFormat() const
 	{
 		if(!pixelFormat_)
 			return Window::defaultPixelFormat();

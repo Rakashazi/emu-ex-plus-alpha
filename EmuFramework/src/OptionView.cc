@@ -246,7 +246,7 @@ static void setWindowPixelFormat(PixelFormatID format)
 	if(format == PIXEL_NONE)
 	{
 		popup.printf(3, false, "Set %s mode via Auto, restart app for option to take effect",
-			Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGB888");
+			Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888");
 	}
 	else
 	{
@@ -1062,8 +1062,8 @@ VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
 	imgEffectPixelFormatItem
 	{
 		{"Auto", [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
-		{"RGB 16", [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
-		{"RGB 24", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
+		{"RGB565", [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
+		{"RGBA8888", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
 	},
 	imgEffectPixelFormat
 	{
@@ -1084,8 +1084,10 @@ VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
 	windowPixelFormatItem
 	{
 		{"Auto", [this]() { setWindowPixelFormat(PIXEL_NONE); }},
-		{"RGB 16", [this]() { setWindowPixelFormat(PIXEL_RGB565); }},
-		{"RGB 24", [this]() { setWindowPixelFormat(PIXEL_RGB888); }},
+		{"RGB565", [this]() { setWindowPixelFormat(PIXEL_RGB565); }},
+		{"RGB888", [this]() { setWindowPixelFormat(PIXEL_RGB888); }},
+		{"RGBX8888", [this]() { setWindowPixelFormat(PIXEL_RGBX8888); }},
+		{"RGBA8888", [this]() { setWindowPixelFormat(PIXEL_RGBA8888); }},
 	},
 	windowPixelFormat
 	{
@@ -1097,6 +1099,8 @@ VideoOptionView::VideoOptionView(Base::Window &win, bool customMenu):
 				default: return 0;
 				case PIXEL_RGB565: return 1;
 				case PIXEL_RGB888: return 2;
+				case PIXEL_RGBX8888: return 3;
+				case PIXEL_RGBA8888: return 4;
 			}
 		}(),
 		windowPixelFormatItem

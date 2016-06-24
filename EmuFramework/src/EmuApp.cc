@@ -114,7 +114,7 @@ static void drawEmuVideo()
 
 void updateAndDrawEmuVideo()
 {
-	emuVideo.vidImg.write(0, emuVideo.vidPix, {}, emuVideo.vidPixAlign);
+	emuVideo.updateImage();
 	drawEmuVideo();
 }
 
@@ -833,11 +833,11 @@ void handleInputEvent(Base::Window &win, Input::Event e)
 {
 	if(e.isPointer())
 	{
-		//logMsg("Pointer %s @ %d,%d", Input::eventActionToStr(e.state), e.x, e.y);
+		//logMsg("Pointer %s @ %d,%d", e.actionToStr(e.state), e.x, e.y);
 	}
 	else
 	{
-		//logMsg("%s %s from %s", e.device->keyName(e.button), Input::eventActionToStr(e.state), e.device->name());
+		//logMsg("%s %s from %s", e.device->keyName(e.button), e.actionToStr(e.state), e.device->name());
 	}
 	if(likely(EmuSystem::isActive()))
 	{

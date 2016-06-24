@@ -82,10 +82,6 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::Name
 		singleDir
 	}
 {
-	if(setPath(FS::current_path().data(), false) != OK)
-	{
-		setPath(Base::storagePath(), true);
-	}
 	setOnPathReadError(
 		[](FSPicker &, CallResult res)
 		{
@@ -97,6 +93,10 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::Name
 				bdefualt: popup.postError("Unknown error reading directory");
 			}
 		});
+	if(setPath(FS::current_path().data(), false) != OK)
+	{
+		setPath(Base::storagePath(), true);
+	}
 	setOnSelectFile(
 		[this](FSPicker &, const char *name, Input::Event e)
 		{

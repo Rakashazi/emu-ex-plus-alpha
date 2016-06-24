@@ -122,6 +122,13 @@ int VicePlugin::resources_get_string(const char *name, const char **value_return
 	return -1;
 }
 
+int VicePlugin::resources_set_string(const char *name, const char *value)
+{
+	if(resources_set_string_)
+		return resources_set_string_(name, value);
+	return -1;
+}
+
 int VicePlugin::resources_get_int(const char *name, int *value_return)
 {
 	if(resources_get_int_)
@@ -340,6 +347,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	plugin.joystick_value = (typeof plugin.joystick_value)dlsym(lib, "joystick_value");
 	plugin.warp_mode_enabled = (typeof plugin.warp_mode_enabled)dlsym(lib, "warp_mode_enabled");
 	plugin.resources_get_string_ = (typeof plugin.resources_get_string_)dlsym(lib, "resources_get_string");
+	plugin.resources_set_string_ = (typeof plugin.resources_set_string_)dlsym(lib, "resources_set_string");
 	plugin.resources_get_int_ = (typeof plugin.resources_get_int_)dlsym(lib, "resources_get_int");
 	plugin.resources_set_int_ = (typeof plugin.resources_set_int_)dlsym(lib, "resources_set_int");
 	plugin.machine_write_snapshot_ = (typeof plugin.machine_write_snapshot_)dlsym(lib, "machine_write_snapshot");

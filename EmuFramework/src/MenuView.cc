@@ -565,7 +565,10 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		[](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
+			{
 				emuVideo.takeGameScreenshot();
+				EmuSystem::runFrame(false, true, false);
+			}
 		}
 	}
 {

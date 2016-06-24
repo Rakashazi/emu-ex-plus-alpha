@@ -36,13 +36,15 @@ static GLXAttrList glConfigAttrsToGLXAttrs(GLBufferConfigAttributes attr)
 	list.push_back(GLX_DOUBLEBUFFER);
 	list.push_back(True);
 
-	if(attr.pixelFormat() == PIXEL_RGB888)
+	if(attr.pixelFormat() == PIXEL_RGBA8888)
 	{
 		list.push_back(GLX_RED_SIZE);
 		list.push_back(8);
 		list.push_back(GLX_GREEN_SIZE);
 		list.push_back(8);
 		list.push_back(GLX_BLUE_SIZE);
+		list.push_back(8);
+		list.push_back(GLX_ALPHA_SIZE);
 		list.push_back(8);
 	}
 	else
@@ -112,6 +114,8 @@ static void printGLXVisual(Display *display, XVisualInfo &config)
 GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
+	// force default pixel format for now since SGIFrameTimer needs context with matching format
+	attr.setPixelFormat(Window::defaultPixelFormat());
 	int screenIdx = indexOfScreen(mainScreen());
 	{
 		int count;

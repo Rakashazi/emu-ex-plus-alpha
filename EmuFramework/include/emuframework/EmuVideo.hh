@@ -34,6 +34,7 @@ public:
 	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
 	void initImage(bool force, uint x, uint y, uint pitch = 0);
 	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
+	void updateImage();
 	void takeGameScreenshot();
 	bool isExternalTexture();
 };

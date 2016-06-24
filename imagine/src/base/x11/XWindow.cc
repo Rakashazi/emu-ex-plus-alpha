@@ -28,7 +28,7 @@ namespace Base
 
 PixelFormat Window::defaultPixelFormat()
 {
-	return PIXEL_FMT_RGB888;
+	return PIXEL_FMT_RGBA8888;
 }
 
 void Window::setAcceptDnd(bool on)

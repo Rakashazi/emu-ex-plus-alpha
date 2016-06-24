@@ -239,6 +239,8 @@ bool windowPixelFormatIsValid(uint8 val)
 		case IG::PIXEL_NONE:
 		case IG::PIXEL_RGB565:
 		case IG::PIXEL_RGB888:
+		case IG::PIXEL_RGBX8888:
+		case IG::PIXEL_RGBA8888:
 			return true;
 	}
 	return false;

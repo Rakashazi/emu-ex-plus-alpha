@@ -23,6 +23,7 @@ enum PixelFormatID
 	PIXEL_BGRA8888,
 	PIXEL_ARGB8888,
 	PIXEL_ABGR8888,
+	PIXEL_RGBX8888,
 	PIXEL_END,
 	PIXEL_MAX = PIXEL_END - 1
 };
@@ -42,6 +43,7 @@ static constexpr PixelDesc PIXEL_DESC_RGBA8888 	{8, 8, 8, 8, 24,	16, 8, 	0, 	4, 
 static constexpr PixelDesc PIXEL_DESC_BGRA8888 	{8, 8, 8, 8, 8, 	16, 24, 0, 	4, "BGRA8888"};
 static constexpr PixelDesc PIXEL_DESC_ARGB8888 	{8, 8, 8, 8, 16,	8, 	0, 	24, 4, "ARGB8888"};
 static constexpr PixelDesc PIXEL_DESC_ABGR8888 	{8, 8, 8, 8, 0,		8, 	16, 24, 4, "ABGR8888"};
+static constexpr PixelDesc PIXEL_DESC_RGBX8888 	{8, 8, 8, 0, 24,	16, 8, 	0, 	4, "RGBX8888"};
 
 class PixelFormat
 {
@@ -120,6 +122,7 @@ public:
 			case PIXEL_BGRA8888: return PIXEL_DESC_BGRA8888;
 			case PIXEL_ARGB8888: return PIXEL_DESC_ARGB8888;
 			case PIXEL_ABGR8888: return PIXEL_DESC_ABGR8888;
+			case PIXEL_RGBX8888: return PIXEL_DESC_RGBX8888;
 			case PIXEL_NONE: ;
 			case PIXEL_END: ;
 		}
@@ -142,5 +145,6 @@ static constexpr PixelFormat PIXEL_FMT_RGBA8888{PIXEL_RGBA8888};
 static constexpr PixelFormat PIXEL_FMT_BGRA8888{PIXEL_BGRA8888};
 static constexpr PixelFormat PIXEL_FMT_ARGB8888{PIXEL_ARGB8888};
 static constexpr PixelFormat PIXEL_FMT_ABGR8888{PIXEL_ABGR8888};
+static constexpr PixelFormat PIXEL_FMT_RGBX8888{PIXEL_RGBX8888};
 
 }

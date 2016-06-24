@@ -67,7 +67,7 @@ protected:
 	MultiChoiceMenuItem imgEffectPixelFormat;
 	#endif
 	#if defined EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	TextMenuItem windowPixelFormatItem[3];
+	TextMenuItem windowPixelFormatItem[5];
 	MultiChoiceMenuItem windowPixelFormat;
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11

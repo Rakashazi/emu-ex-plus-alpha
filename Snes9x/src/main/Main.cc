@@ -156,7 +156,8 @@ static bool hasSNESExtension(const char *name)
 {
 	return string_hasDotExtension(name, "smc") ||
 			string_hasDotExtension(name, "sfc") ||
-			string_hasDotExtension(name, "fig");
+			string_hasDotExtension(name, "fig") ||
+			string_hasDotExtension(name, "mgd");
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasSNESExtension;
@@ -324,7 +325,6 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 				emuVideo.resizeImage(snesResX, snesResY);
 			}
 		}
-
 		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}

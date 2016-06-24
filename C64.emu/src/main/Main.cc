@@ -67,6 +67,7 @@ extern "C"
 	#include "vicii.h"
 	#include "diskimage.h"
 	#include "vdrive-internal.h"
+	#include "autostart-prg.h"
 }
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
@@ -1304,6 +1305,7 @@ void EmuSystem::onMainWindowCreated(Base::Window &)
 	sysFilePath[0] = firmwareBasePath;
 	vController.updateKeyboardMapping();
 	setSysModel(optionModel(currSystem));
+	plugin.resources_set_string("AutostartPrgDiskImage", "AutostartPrgDisk.d64");
 }
 
 CallResult EmuSystem::onInit()

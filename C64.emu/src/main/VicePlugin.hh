@@ -52,6 +52,7 @@ struct VicePlugin
 	int (*model_get_)(){};
 	void (*model_set_)(int model){};
 	int (*resources_get_string_)(const char *name, const char **value_return){};
+	int (*resources_set_string_)(const char *name, const char *value){};
 	int (*resources_get_int_)(const char *name, int *value_return){};
 	int (*resources_set_int_)(const char *name, int value){};
 	int (*machine_write_snapshot_)(const char *name, int save_roms, int save_disks, int even_mode){};
@@ -90,6 +91,7 @@ struct VicePlugin
 	int model_get();
 	void model_set(int model);
 	int resources_get_string(const char *name, const char **value_return);
+	int resources_set_string(const char *name, const char *value);
 	int resources_get_int(const char *name, int *value_return);
 	int resources_set_int(const char *name, int value);
 	int machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode);

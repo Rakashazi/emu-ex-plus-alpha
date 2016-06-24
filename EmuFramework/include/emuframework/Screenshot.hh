@@ -19,4 +19,4 @@
 #include <imagine/fs/FS.hh>
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);
-int sprintScreenshotFilename(FS::PathString str);
+int sprintScreenshotFilename(FS::PathString &str);

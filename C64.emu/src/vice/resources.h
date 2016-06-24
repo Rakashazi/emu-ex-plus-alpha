@@ -124,7 +124,7 @@ extern int resources_register_string(const resource_string_t *r);
 extern void resources_shutdown(void);
 extern int resources_set_value(const char *name, resource_value_t value);
 extern VICE_API int resources_set_int(const char *name, int value);
-extern int resources_set_string(const char *name, const char *value);
+extern VICE_API int resources_set_string(const char *name, const char *value);
 extern void resources_set_value_event(void *data, int size);
 extern int resources_set_int_sprintf(const char *name, int value, ...);
 extern int resources_set_string_sprintf(const char *name, const char *value, ...);
