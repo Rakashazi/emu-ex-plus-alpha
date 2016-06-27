@@ -783,7 +783,7 @@ static void event_playback_start_trap(WORD addr, void *data)
     event_version[0] = 0;
 
     s = snapshot_open(
-        event_snapshot_path(event_end_snapshot), &major, &minor, machine_name);
+        event_snapshot_path(event_end_snapshot), &major, &minor, machine_get_name());
 
     if (s == NULL) {
         ui_error(translate_text(IDGS_CANT_OPEN_END_SNAP_S),

@@ -36,12 +36,12 @@
 #define CARTRIDGE_INCLUDE_SLOT0_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOT0_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "drive.h"
+#include "export.h"
 #include "lib.h"
 #include "log.h"
 #include "parallel.h"
@@ -108,7 +108,7 @@ static io_source_t tpi_io2_device = {
 
 static io_source_list_t *tpi_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_IEEE488, 0, 0, NULL, &tpi_io2_device, CARTRIDGE_IEEE488
 };
 
@@ -410,10 +410,10 @@ void tpi_setup_context(machine_context_t *machine_context)
     tpi_context->restore_int = restore_int;
 }
 
-void tpi_passthrough_changed(struct export_s *export)
+void tpi_passthrough_changed(export_t *export)
 {
-    tpi_extexrom = ((export_t*)export)->exrom;
-    tpi_extgame = ((export_t*)export)->game;
+    tpi_extexrom = (export)->exrom;
+    tpi_extgame = (export)->game;
     DBG(("IEEE488 passthrough changed exrom: %d game: %d\n", tpi_extexrom, tpi_extgame));
 
     cart_set_port_game_slot0(tpi_extgame);
@@ -438,7 +438,7 @@ static int set_ieee488_enabled(int value, void *param)
 #endif
         lib_free(tpi_rom);
         tpi_rom = NULL;
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         io_source_unregister(tpi_list_item);
         tpi_list_item = NULL;
         ieee488_enabled = 0;
@@ -465,7 +465,7 @@ static int set_ieee488_enabled(int value, void *param)
         } else {
             cart_power_off();
             /* if the param is == NULL, then we should actually set the resource */
-            if (c64export_add(&export_res) < 0) {
+            if (export_add(&export_res) < 0) {
                 DBG(("IEEE: set_enabled did not register\n"));
                 lib_free(tpi_rom);
                 tpi_rom = NULL;
@@ -594,12 +594,12 @@ int tpi_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
     return CART_READ_THROUGH;
 }
 
-void tpi_config_init(struct export_s *export)
+void tpi_config_init(export_t *export)
 {
     DBG(("TPI: tpi_config_init\n"));
 
-    tpi_extexrom = ((export_t*)export)->exrom;
-    tpi_extgame = ((export_t*)export)->game;
+    tpi_extexrom = export->exrom;
+    tpi_extgame = export->game;
 
     cart_set_port_exrom_slot0(1);
     cart_set_port_game_slot0(tpi_extgame);

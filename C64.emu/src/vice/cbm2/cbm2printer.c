@@ -58,17 +58,9 @@ int machine_printer_cmdline_options_init(void)
     return 0;
 }
 
-static void cbm2printer_userport_set_busy(unsigned int b)
-{
-    if (b != 0) {
-        ciacore_set_flag(machine_context.cia1);
-    }
-}
-
 void machine_printer_init(void)
 {
     printer_serial_init();
-    printer_userport_init(cbm2printer_userport_set_busy);
 }
 
 void machine_printer_shutdown(void)

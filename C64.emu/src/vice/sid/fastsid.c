@@ -1073,11 +1073,11 @@ static void fastsid_prevent_clk_overflow(sound_t *psid, CLOCK sub)
     psid->laststoreclk -= sub;
 }
 
-static void fastsid_state_read(sound_t *psid, sid_snapshot_state_t *sid_state)
+static void fastsid_resid_state_read(sound_t *psid, sid_snapshot_state_t *sid_state)
 {
 }
 
-static void fastsid_state_write(sound_t *psid, sid_snapshot_state_t *sid_state)
+static void fastsid_resid_state_write(sound_t *psid, sid_snapshot_state_t *sid_state)
 {
 }
 
@@ -1092,6 +1092,184 @@ sid_engine_t fastsid_hooks =
     fastsid_calculate_samples,
     fastsid_prevent_clk_overflow,
     fastsid_dump_state,
-    fastsid_state_read,
-    fastsid_state_write
+    fastsid_resid_state_read,
+    fastsid_resid_state_write
 };
+
+/* ---------------------------------------------------------------------*/
+
+void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_s *sid_state)
+{
+    int i;
+
+    sid_state->factor = (DWORD)psid->factor;
+
+    for (i = 0; i < 32; ++i) {
+        sid_state->d[i] = psid->d[i];
+    }
+
+    sid_state->has3 = psid->has3;
+    sid_state->vol = psid->vol;
+
+    for (i = 0; i < 16; ++i) {
+        sid_state->adrs[i] = psid->adrs[i];
+        sid_state->sz[i] = psid->sz[i];
+    }
+
+    sid_state->speed1 = psid->speed1;
+    sid_state->update = psid->update;
+    sid_state->newsid = psid->newsid;
+    sid_state->laststore = psid->laststore;
+    sid_state->laststorebit = psid->laststorebit;
+    sid_state->laststoreclk = (DWORD)psid->laststoreclk;
+    sid_state->emulatefilter = (DWORD)psid->emulatefilter;
+    sid_state->filterDy = (float)psid->filterDy;
+    sid_state->filterResDy = (float)psid->filterResDy;
+    sid_state->filterType = psid->filterType;
+    sid_state->filterCurType = psid->filterCurType;
+    sid_state->filterValue = psid->filterValue;
+
+    for (i = 0; i < 3; ++i) {
+        sid_state->v_nr[i] = (DWORD)psid->v[i].nr;
+        sid_state->v_f[i] = psid->v[i].f;
+        sid_state->v_fs[i] = psid->v[i].fs;
+        sid_state->v_noise[i] = psid->v[i].noise;
+        sid_state->v_adsr[i] = psid->v[i].adsr;
+        sid_state->v_adsrs[i] = psid->v[i].adsrs;
+        sid_state->v_adsrz[i] = psid->v[i].adsrz;
+        sid_state->v_sync[i] = psid->v[i].sync;
+        sid_state->v_filter[i] = psid->v[i].filter;
+        sid_state->v_update[i] = psid->v[i].update;
+        sid_state->v_gateflip[i] = psid->v[i].gateflip;
+        sid_state->v_adsrm[i] = psid->v[i].adsrm;
+        sid_state->v_attack[i] = psid->v[i].attack;
+        sid_state->v_decay[i] = psid->v[i].decay;
+        sid_state->v_sustain[i] = psid->v[i].sustain;
+        sid_state->v_release[i] = psid->v[i].release;
+        sid_state->v_rv[i] = psid->v[i].rv;
+
+        if (psid->v[i].wt >= &wavetable00[0] && psid->v[i].wt <= &wavetable00[1]) {
+            sid_state->v_wt[i] = 0;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable00[0];
+        } else if (psid->v[i].wt >= &wavetable10[0] && psid->v[i].wt <= &wavetable10[4095]) {
+            sid_state->v_wt[i] = 1;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable10[0];
+        } else if (psid->v[i].wt >= &wavetable20[0] && psid->v[i].wt <= &wavetable20[4095]) {
+            sid_state->v_wt[i] = 2;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable20[0];
+        } else if (psid->v[i].wt >= &wavetable30[0] && psid->v[i].wt <= &wavetable30[4095]) {
+            sid_state->v_wt[i] = 3;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable30[0];
+        } else if (psid->v[i].wt >= &wavetable40[0] && psid->v[i].wt <= &wavetable40[8191]) {
+            sid_state->v_wt[i] = 4;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable40[0];
+        } else if (psid->v[i].wt >= &wavetable50[0] && psid->v[i].wt <= &wavetable50[8191]) {
+            sid_state->v_wt[i] = 5;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable50[0];
+        } else if (psid->v[i].wt >= &wavetable60[0] && psid->v[i].wt <= &wavetable60[8191]) {
+            sid_state->v_wt[i] = 6;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable60[0];
+        } else if (psid->v[i].wt >= &wavetable70[0] && psid->v[i].wt <= &wavetable70[8191]) {
+            sid_state->v_wt[i] = 7;
+            sid_state->v_wt_offset[i] = psid->v[i].wt - &wavetable70[0];
+        } else {
+            sid_state->v_wt[i] = 0;
+            sid_state->v_wt_offset[i] = 0;
+        }
+
+        sid_state->v_wtpf[i] = psid->v[i].wtpf;
+        sid_state->v_wtl[i] = psid->v[i].wtl;
+        sid_state->v_wtr[0][i] = psid->v[i].wtr[0];
+        sid_state->v_wtr[1][i] = psid->v[i].wtr[1];
+        sid_state->v_filtIO[i] = (BYTE)psid->v[i].filtIO;
+        sid_state->v_filtLow[i] = (float)psid->v[i].filtLow;
+        sid_state->v_filtRef[i] = (float)psid->v[i].filtRef;
+    }
+}
+
+void fastsid_state_write(struct sound_s *psid, struct sid_fastsid_snapshot_state_s *sid_state)
+{
+    int i;
+
+    psid->factor = (int)sid_state->factor;
+
+    for (i = 0; i < 32; ++i) {
+        psid->d[i] = sid_state->d[i];
+    }
+
+    psid->has3 = sid_state->has3;
+    psid->vol = sid_state->vol;
+
+    for (i = 0; i < 16; ++i) {
+        psid->adrs[i] = sid_state->adrs[i];
+        psid->sz[i] = sid_state->sz[i];
+    }
+
+    psid->speed1 = sid_state->speed1;
+    psid->update = sid_state->update;
+    psid->newsid = sid_state->newsid;
+    psid->laststore = sid_state->laststore;
+    psid->laststorebit = sid_state->laststorebit;
+    psid->laststoreclk = (CLOCK)sid_state->laststoreclk;
+    psid->emulatefilter = (int)sid_state->emulatefilter;
+    psid->filterDy = (vreal_t)sid_state->filterDy;
+    psid->filterResDy = (vreal_t)sid_state->filterResDy;
+    psid->filterType = psid->filterType;
+    psid->filterCurType = sid_state->filterCurType;
+    psid->filterValue = sid_state->filterValue;
+
+    for (i = 0; i < 3; ++i) {
+        psid->v[i].nr = (int)sid_state->v_nr[i];
+        psid->v[i].f = sid_state->v_f[i];
+        psid->v[i].fs = sid_state->v_fs[i];
+        psid->v[i].noise = sid_state->v_noise[i];
+        psid->v[i].adsr = sid_state->v_adsr[i];
+        psid->v[i].adsrs = sid_state->v_adsrs[i];
+        psid->v[i].adsrz = sid_state->v_adsrz[i];
+        psid->v[i].sync = sid_state->v_sync[i];
+        psid->v[i].filter = sid_state->v_filter[i];
+        psid->v[i].update = sid_state->v_update[i];
+        psid->v[i].gateflip = sid_state->v_gateflip[i];
+        psid->v[i].adsrm = sid_state->v_adsrm[i];
+        psid->v[i].attack = sid_state->v_attack[i];
+        psid->v[i].decay = sid_state->v_decay[i];
+        psid->v[i].sustain = sid_state->v_sustain[i];
+        psid->v[i].release = sid_state->v_release[i];
+        psid->v[i].rv = sid_state->v_rv[i];
+
+        switch ((int)sid_state->v_wt[i]) {
+            case 0:
+                psid->v[i].wt = &wavetable00[sid_state->v_wt_offset[i]];
+                break;
+            case 1:
+                psid->v[i].wt = &wavetable10[sid_state->v_wt_offset[i]];
+                break;
+            case 2:
+                psid->v[i].wt = &wavetable20[sid_state->v_wt_offset[i]];
+                break;
+            case 3:
+                psid->v[i].wt = &wavetable30[sid_state->v_wt_offset[i]];
+                break;
+            case 4:
+                psid->v[i].wt = &wavetable40[sid_state->v_wt_offset[i]];
+                break;
+            case 5:
+                psid->v[i].wt = &wavetable50[sid_state->v_wt_offset[i]];
+                break;
+            case 6:
+                psid->v[i].wt = &wavetable60[sid_state->v_wt_offset[i]];
+                break;
+            case 7:
+                psid->v[i].wt = &wavetable70[sid_state->v_wt_offset[i]];
+                break;
+        }
+
+        psid->v[i].wtpf = sid_state->v_wtpf[i];
+        psid->v[i].wtl = sid_state->v_wtl[i];
+        psid->v[i].wtr[0] = sid_state->v_wtr[0][i];
+        psid->v[i].wtr[1] = sid_state->v_wtr[1][i];
+        psid->v[i].filtIO = (signed char)sid_state->v_filtIO[i];
+        psid->v[i].filtLow = (vreal_t)sid_state->v_filtLow[i];
+        psid->v[i].filtRef = (vreal_t)sid_state->v_filtRef[i];
+    }
+}

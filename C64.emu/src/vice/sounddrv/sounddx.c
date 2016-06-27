@@ -53,7 +53,7 @@
 #include <dsound.h>
 #endif
 
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
 #define INCLUDE_SDL_SYSWM_H
 #include "vice_sdl.h"
 #endif
@@ -63,7 +63,7 @@
 #include "types.h"
 #include "uiapi.h"
 
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
 HWND ui_get_main_hwnd(void)
 {
     SDL_SysWMinfo info;

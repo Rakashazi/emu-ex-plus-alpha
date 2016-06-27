@@ -109,7 +109,7 @@ static char *kernal64_rom_name = NULL;
 /* Flag: Do we enable the emulation of banks 2 and 3 of ram? */
 int c128_full_banks;
 
-/* Flag: Emulate new CIA (6526A)? */
+/* Flag: Emulate new CIA */
 int cia1_model = CIA_MODEL_6526A;
 int cia2_model = CIA_MODEL_6526A;
 

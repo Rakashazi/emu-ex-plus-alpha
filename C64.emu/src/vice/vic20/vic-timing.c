@@ -48,21 +48,25 @@ void vic_timing_set(machine_timing_t *machine_timing, int border_mode)
                     vic.first_displayed_line = VIC_NTSC_NORMAL_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_NTSC_NORMAL_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_NTSC_NORMAL_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_NTSC_NORMAL_LEFTBORDERWIDTH;
                     break;
                 case VIC_FULL_BORDERS:
                     vic.first_displayed_line = VIC_NTSC_FULL_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_NTSC_FULL_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_NTSC_FULL_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_NTSC_FULL_LEFTBORDERWIDTH;
                     break;
                 case VIC_DEBUG_BORDERS:
                     vic.first_displayed_line = VIC_NTSC_DEBUG_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_NTSC_DEBUG_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_NTSC_DEBUG_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_NTSC_DEBUG_LEFTBORDERWIDTH;
                     break;
                 case VIC_NO_BORDERS:
                     vic.first_displayed_line = VIC_NTSC_NO_BORDER_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_NTSC_NO_BORDER_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_NTSC_NO_BORDER_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_NTSC_NO_BORDER_LEFTBORDERWIDTH;
                     break;
             }
             vic.screen_width = VIC_NTSC_SCREEN_WIDTH;
@@ -79,21 +83,25 @@ void vic_timing_set(machine_timing_t *machine_timing, int border_mode)
                     vic.first_displayed_line = VIC_PAL_NORMAL_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_PAL_NORMAL_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_PAL_NORMAL_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_PAL_NORMAL_LEFTBORDERWIDTH;
                     break;
                 case VIC_FULL_BORDERS:
                     vic.first_displayed_line = VIC_PAL_FULL_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_PAL_FULL_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_PAL_FULL_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_PAL_FULL_LEFTBORDERWIDTH;
                     break;
                 case VIC_DEBUG_BORDERS:
                     vic.first_displayed_line = VIC_PAL_DEBUG_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_PAL_DEBUG_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_PAL_DEBUG_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_PAL_DEBUG_LEFTBORDERWIDTH;
                     break;
                 case VIC_NO_BORDERS:
                     vic.first_displayed_line = VIC_PAL_NO_BORDER_FIRST_DISPLAYED_LINE;
                     vic.last_displayed_line = VIC_PAL_NO_BORDER_LAST_DISPLAYED_LINE;
                     vic.display_width = VIC_PAL_NO_BORDER_DISPLAY_WIDTH;
+                    vic.screen_leftborderwidth = VIC_PAL_NO_BORDER_LEFTBORDERWIDTH;
                     break;
             }
             vic.screen_width = VIC_PAL_SCREEN_WIDTH;

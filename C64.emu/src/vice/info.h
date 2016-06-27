@@ -38,7 +38,7 @@ extern const char info_contrib_text[];
 
 extern const char info_warranty_text[];
 
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
 
 #ifdef WINMIPS
 extern const char *info_license_text40[];

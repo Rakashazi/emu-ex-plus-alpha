@@ -51,6 +51,7 @@
 #include "viewport.h"
 #include "vsync.h"
 #include "zfile.h"
+#include "mousedrv.h"
 
 int console_mode = 0;
 int video_disabled_mode = 0;
@@ -80,7 +81,6 @@ void scpu64ui_shutdown() {}
 void vic20ui_shutdown() {}
 
 #ifndef COMMON_KBD
-int joystick_resources_init(void) { return 0; }
 int c128_kbd_init(void) { return 0; }
 int vic20_kbd_init(void) { return 0; }
 int cbm2_kbd_init(void) { return 0; }
@@ -410,6 +410,7 @@ int initcmdline_init() { return 0; }
 void cmdline_shutdown() {}
 void video_render_1x2_init() {}
 void video_render_2x2_init() {}
+int cmdline_get_autostart_mode(void) { return AUTOSTART_MODE_NONE; }
 
 #define DUMMY_VIDEO_RENDER(func) void func(video_render_color_tables_t *color_tab, \
 const BYTE *src, BYTE *trg, \
@@ -444,7 +445,7 @@ DUMMY_VIDEO_RENDER(render_24_2x2_ntsc)
 DUMMY_VIDEO_RENDER(render_32_2x2_ntsc)
 DUMMY_VIDEO_RENDER(render_32_2x2_pal)
 
-int mousedrv_resources_init(void) { return 0; }
+int mousedrv_resources_init(mouse_func_t *funcs) { return 0; }
 int mousedrv_cmdline_options_init(void) { return 0; }
 void mousedrv_init(void) {}
 
@@ -456,6 +457,10 @@ unsigned long mousedrv_get_timestamp(void) { return 0; }
 
 void mouse_button(int bnumber, int state) {}
 void mouse_move(int x, int y) {}
+
+int joy_arch_init(void) { return 0; }
+int joy_arch_set_device(int port_idx, int new_dev) { return 0; }
+int joy_arch_resources_init(void) { return 0; }
 
 void vsyncarch_init(void) {}
 

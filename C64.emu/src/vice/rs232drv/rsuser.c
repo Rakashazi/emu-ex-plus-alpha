@@ -427,9 +427,9 @@ BYTE rsuser_get_rx_bit(void)
     return byte;
 }
 
-BYTE rsuser_read_ctrl(void)
+BYTE rsuser_read_ctrl(BYTE b)
 {
-    return rsuser_get_rx_bit() | CTS_IN | (rsuser_baudrate > 2400 ? 0 : DCD_IN);
+    return b & (rsuser_get_rx_bit() | CTS_IN | (rsuser_baudrate > 2400 ? 0 : DCD_IN));
 }
 
 void rsuser_tx_byte(BYTE b)

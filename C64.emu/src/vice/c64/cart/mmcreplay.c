@@ -33,18 +33,19 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "c64pla.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "crt.h"
+#include "export.h"
 #include "flash040.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
+#include "monitor.h"
 #include "resources.h"
 #include "ser-eeprom.h"
 #include "snapshot.h"
@@ -278,6 +279,7 @@ static BYTE mmcreplay_io1_read(WORD addr);
 static void mmcreplay_io1_store(WORD addr, BYTE value);
 static BYTE mmcreplay_io2_read(WORD addr);
 static void mmcreplay_io2_store(WORD addr, BYTE value);
+static int mmcreplay_dump(void);
 
 static io_source_t mmcreplay_io1_device = {
     CARTRIDGE_NAME_MMC_REPLAY,
@@ -288,7 +290,7 @@ static io_source_t mmcreplay_io1_device = {
     mmcreplay_io1_store,
     mmcreplay_io1_read,
     NULL, /* TODO: peek */
-    NULL, /* TODO: dump */
+    mmcreplay_dump,
     CARTRIDGE_MMC_REPLAY,
     0,
     0
@@ -303,7 +305,7 @@ static io_source_t mmcreplay_io2_device = {
     mmcreplay_io2_store,
     mmcreplay_io2_read,
     NULL, /* TODO: peek */
-    NULL, /* TODO: dump */
+    mmcreplay_dump,
     CARTRIDGE_MMC_REPLAY,
     0,
     0
@@ -312,7 +314,7 @@ static io_source_t mmcreplay_io2_device = {
 static io_source_list_t *mmcreplay_io1_list_item = NULL;
 static io_source_list_t *mmcreplay_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_MMC_REPLAY, 1, 1, &mmcreplay_io1_device, &mmcreplay_io2_device, CARTRIDGE_MMC_REPLAY
 };
 
@@ -1286,7 +1288,7 @@ BYTE mmcreplay_io1_read(WORD addr)
 #ifdef LOG_CLOCKPORT
                         LOG(("MMCREPLAY: Clockport RD %04x", addr));
 #endif
-                        mmcreplay_io1_device.io_source_valid = 1;
+                        /* mmcreplay_io1_device.io_source_valid = 1; */
                         return 0;
                     }
                 }
@@ -1403,7 +1405,12 @@ void mmcreplay_io1_store(WORD addr, BYTE value)
 
                 /* Every bit in $de01 can always be altered in Super Mapper mode+MMC Bios Mode. */
                 bank_address_13_15 = (((value >> 3) & 3) | ((value >> 5) & 4)); /* bit 3,4,7 */
-                mmcr_clockport_enabled = value & 1;     /* bit 0 */
+                if (mmcr_clockport_enabled != (value & 1)) {
+                    mmcr_clockport_enabled = value & 1; /* bit 0 */
+#ifdef HAVE_TFE
+                    tfe_clockport_changed();
+#endif
+                }
 
                 /* bits 1,2,5,6 are "write once" if not in mmc bios mode */
                 if ((write_once == 0) || (disable_mmc_bios == 0)) {
@@ -1827,6 +1834,15 @@ void mmcreplay_io2_store(WORD addr, BYTE value)
     }
 }
 
+static int mmcreplay_dump(void)
+{
+    /* FIXME: incomplete */
+    /* mon_out("MMC Replay registers are %s.\n", mmcr_active ? "enabled" : "disabled"); */
+    mon_out("Clockport is %s.\n", mmcr_clockport_enabled ? "enabled" : "disabled");
+
+    return 0;
+}
+
 /********************************************************************************************************************
 MEM Area
 ********************************************************************************************************************/
@@ -2239,6 +2255,10 @@ void mmcreplay_set_stdcfg(void)
     enable_mmc_regs_pending = 1;
 #else
 #endif
+
+#ifdef HAVE_TFE
+    tfe_clockport_changed();
+#endif
 }
 
 int mmcreplay_freeze_allowed(void)
@@ -2443,7 +2463,7 @@ void mmcreplay_config_setup(BYTE *rawcart)
 
 static int mmcreplay_common_attach(const char *filename)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -2649,7 +2669,7 @@ void mmcreplay_detach(void)
     mmcr_filename = NULL;
     mmc_close_card_image();
     eeprom_close_image(mmcr_eeprom_rw);
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(mmcreplay_io1_list_item);
     io_source_unregister(mmcreplay_io2_list_item);
     mmcreplay_io1_list_item = NULL;

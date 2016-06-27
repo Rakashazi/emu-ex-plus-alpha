@@ -63,7 +63,7 @@
 #define ATA_DRQ 0x08
 #define ATA_ERR 0x01
 #define ATA_COPYRIGHT "KAJTAR ZSOLT (SOCI/SINGULAR)"
-#define ATA_SERIAL_NUMBER &"$Date:: 2015-02-17 16:41:45 #$"[8]
+#define ATA_SERIAL_NUMBER &"$Date:: 2015-02-17 13:41:45 #$"[8]
 #define ATA_REVISION &"$Revision:: 29352    $"[12]
 
 #ifdef ATA_DEBUG

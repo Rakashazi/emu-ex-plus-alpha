@@ -44,10 +44,10 @@
 #include <string.h>
 
 #include "archdep.h"
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
@@ -277,7 +277,7 @@ static io_source_t reu_io2_device = {
 
 static io_source_list_t *reu_list_item = NULL;
 
-static const c64export_resource_t export_res_reu = {
+static const export_resource_t export_res_reu = {
     CARTRIDGE_NAME_REU, 0, 0, NULL, &reu_io2_device, CARTRIDGE_REU
 };
 
@@ -319,7 +319,7 @@ static int set_reu_enabled(int value, void *param)
         if (reu_deactivate() < 0) {
             return -1;
         }
-        c64export_remove(&export_res_reu);
+        export_remove(&export_res_reu);
         io_source_unregister(reu_list_item);
         reu_list_item = NULL;
         reu_enabled = 0;
@@ -327,7 +327,7 @@ static int set_reu_enabled(int value, void *param)
         if (reu_activate() < 0) {
             return -1;
         }
-        if (c64export_add(&export_res_reu) < 0) {
+        if (export_add(&export_res_reu) < 0) {
             return -1;
         }
         reu_list_item = io_source_register(&reu_io2_device);
@@ -911,13 +911,17 @@ static BYTE reu_io2_read(WORD addr)
 
                 maincpu_set_irq(reu_int_num, 0);
                 break;
+            case REU_REG_RW_BANK:
+                /* on actual REUs that were modded to contain more memory the upper
+                   bits can not be read from the latch. */
+                retval |= 0xf8;
+                break;
             default:
                 break;
         }
 
         DEBUG_LOG(DEBUG_LEVEL_REGISTER, (reu_log, "read [$%02X] => $%02X.", addr, retval));
     }
-
     return retval;
 }
 
@@ -1446,6 +1450,15 @@ void reu_dma_start(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* REU1764 snapshot module format:
+
+   type  | name      | description
+   -------------------------------
+   DWORD | size      | size of REU in KB
+   ARRAY | registers | 16 BYTES of register data
+   ARRAY | RAM       | 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608 or 16777216 BYTES of RAM data
+ */
+
 static char snap_module_name[] = "REU1764"; /*!< the name of the module for the snapshot */
 #define SNAP_MAJOR 0 /*!< version number for this module, major number */
 #define SNAP_MINOR 0 /*!< version number for this module, minor number */
@@ -1479,17 +1492,20 @@ int reu_write_snapshot_module(snapshot_t *s)
     }
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (SMW_DW(m, (reu_size >> 10)) < 0 || SMW_BA(m, reu, sizeof(reu)) < 0 || SMW_BA(m, reu_ram, reu_size) < 0) {
+    if (0
+        || SMW_DW(m, (reu_size >> 10)) < 0
+        || SMW_BA(m, reu, sizeof(reu)) < 0
+        || SMW_BA(m, reu_ram, reu_size) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 /*! \brief read the REU module data from the snapshot
@@ -1515,8 +1531,9 @@ int reu_read_snapshot_module(snapshot_t *s)
         return -1;
     }
 
-    if (major_version != SNAP_MAJOR) {
-        log_error(reu_log, "Major version %d not valid; should be %d.", major_version, SNAP_MAJOR);
+    /* Do not accept versions higher than current */
+    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
@@ -1549,7 +1566,6 @@ int reu_read_snapshot_module(snapshot_t *s)
     for (reu_address = 0; reu_address < sizeof(reu); reu_address++) {
         reu_store_without_sideeffects(reu_address, reu[reu_address]);
     }
-
 
     snapshot_module_close(m);
     reu_enabled = 1;

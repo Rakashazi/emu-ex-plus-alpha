@@ -2577,9 +2577,9 @@
         if (interrupt65816 != IK_NONE) {
             DO_INTERRUPT(interrupt65816);
             if (interrupt65816 & IK_RESET) {
-                p0 = 0x300;
+                p0 = 0x102;
             } else if (interrupt65816 & IK_NMI) {
-                p0 = 0x200;
+                p0 = 0x101;
             } else if (interrupt65816 & IK_IRQ) {
                 p0 = 0x100;
             } else {
@@ -3630,20 +3630,17 @@ trap_skipped:
             SBC(LOAD_ABS_LONG_X_FUNC);
             break;
 
-          default:
-            switch (p0) {
-            case 0x100:           /* IRQ */
-                IRQ();
-                break;
+          case 0x100:           /* IRQ */
+            IRQ();
+            break;
 
-            case 0x200:           /* NMI */
-                NMI();
-                break;
+          case 0x101:           /* NMI */
+            NMI();
+            break;
 
-            case 0x300:           /* RES */
-                RES();
-                break;
-            }
+          case 0x102:           /* RES */
+            RES();
+            break;
         }
 #ifdef DEBUG
         if (TRACEFLG && p0 < 0x100) {

@@ -24,7 +24,7 @@
  *
  */
 
-#define DBGLOGGING
+/* #define DBGLOGGING */
 
 #include "vice.h"
 
@@ -42,7 +42,7 @@
 #include "util.h"
 
 #ifdef DBGLOGGING
-#define DBG(x) printf
+#define DBG(x) printf x
 #else
 #define DBG(x)
 #endif

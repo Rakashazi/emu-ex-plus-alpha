@@ -215,7 +215,7 @@ char *mon_disassemble_with_label(MEMSPACE memspace, WORD loc, int hex,
                                      hex,
                                      opc_size_p);
 
-    return lib_msprintf((hex ? "%04X: %s%10s" : "05u: %s%10s"), loc, p, "");
+    return lib_msprintf((hex ? "%04X: %s%10s" : "%05u: %s%10s"), loc, p, "");
 }
 
 char *mon_dump_with_label(MEMSPACE memspace, WORD loc, int hex, unsigned *label_p)

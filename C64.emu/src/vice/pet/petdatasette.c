@@ -30,12 +30,12 @@
 #include "petpia.h"
 
 
-void datasette_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(unsigned int on)
 {
     pia1_signal(PIA_SIG_CA1, PIA_SIG_FALL);
 }
 
-void datasette_set_tape_sense(int sense)
+void machine_set_tape_sense(int sense)
 {
     pia1_set_tape_sense(sense);
 }

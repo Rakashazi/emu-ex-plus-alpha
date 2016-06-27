@@ -490,7 +490,7 @@ int fdd_rotate(fd_drive_t *drv, int bytes)
     return bytes;
 }
 
-inline int fdd_index(fd_drive_t *drv)
+int fdd_index(fd_drive_t *drv)
 {
     if (!drv) {
         return 0;
@@ -498,7 +498,7 @@ inline int fdd_index(fd_drive_t *drv)
     return (drv->raw.head < INDEXLEN) ? 1 : 0;
 }
 
-inline void fdd_index_count_reset(fd_drive_t *drv)
+void fdd_index_count_reset(fd_drive_t *drv)
 {
     if (!drv) {
         return;
@@ -506,7 +506,7 @@ inline void fdd_index_count_reset(fd_drive_t *drv)
     drv->index_count = 0;
 }
 
-inline int fdd_index_count(fd_drive_t *drv)
+int fdd_index_count(fd_drive_t *drv)
 {
     if (!drv) {
         return 0;
@@ -514,7 +514,7 @@ inline int fdd_index_count(fd_drive_t *drv)
     return drv->index_count;
 }
 
-inline int fdd_track0(fd_drive_t *drv)
+int fdd_track0(fd_drive_t *drv)
 {
     if (!drv) {
         return 0;
@@ -522,7 +522,7 @@ inline int fdd_track0(fd_drive_t *drv)
     return drv->track ? 0 : 1;
 }
 
-inline int fdd_write_protect(fd_drive_t *drv)
+int fdd_write_protect(fd_drive_t *drv)
 {
     if (!drv) {
         return 0;
@@ -530,7 +530,7 @@ inline int fdd_write_protect(fd_drive_t *drv)
     return drv->write_protect;
 }
 
-inline int fdd_disk_change(fd_drive_t *drv)
+int fdd_disk_change(fd_drive_t *drv)
 {
     if (!drv) {
         return 0;
@@ -653,35 +653,38 @@ int fdd_snapshot_write_module(fd_drive_t *drv, struct snapshot_s *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, drv->myname,
-                               FDD_SNAP_MAJOR, FDD_SNAP_MINOR);
+    m = snapshot_module_create(s, drv->myname, FDD_SNAP_MAJOR, FDD_SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    SMW_B(m, (BYTE)drv->number);
-    SMW_B(m, (BYTE)drv->disk_change);
-    SMW_B(m, (BYTE)drv->write_protect);
-    SMW_B(m, (BYTE)drv->track);
-    SMW_B(m, (BYTE)drv->tracks);
-    SMW_B(m, (BYTE)drv->head);
-    SMW_B(m, (BYTE)drv->sectors);
-    SMW_B(m, (BYTE)drv->motor);
-    SMW_B(m, (BYTE)drv->rate);
-    SMW_B(m, (BYTE)drv->sector_size);
-    SMW_B(m, (BYTE)drv->iso);
-    SMW_B(m, (BYTE)drv->gap2);
-    SMW_B(m, (BYTE)drv->gap3);
-    SMW_B(m, (BYTE)drv->head_invert);
-    SMW_B(m, (BYTE)drv->disk_rate);
-    SMW_DW(m, drv->image_sectors);
-    SMW_DW(m, drv->index_count);
-
-    SMW_DW(m, (BYTE)drv->raw.head);
-    SMW_B(m, (BYTE)drv->raw.track_head);
-    SMW_B(m, (BYTE)drv->raw.dirty);
-    SMW_BA(m, drv->raw.data, drv->raw.size);
-    SMW_BA(m, drv->raw.sync, (drv->raw.size + 7) >> 3);
+    if (0
+        || SMW_B(m, (BYTE)drv->number) < 0
+        || SMW_B(m, (BYTE)drv->disk_change) < 0
+        || SMW_B(m, (BYTE)drv->write_protect) < 0
+        || SMW_B(m, (BYTE)drv->track) < 0
+        || SMW_B(m, (BYTE)drv->tracks) < 0
+        || SMW_B(m, (BYTE)drv->head) < 0
+        || SMW_B(m, (BYTE)drv->sectors) < 0
+        || SMW_B(m, (BYTE)drv->motor) < 0
+        || SMW_B(m, (BYTE)drv->rate) < 0
+        || SMW_B(m, (BYTE)drv->sector_size) < 0
+        || SMW_B(m, (BYTE)drv->iso) < 0
+        || SMW_B(m, (BYTE)drv->gap2) < 0
+        || SMW_B(m, (BYTE)drv->gap3) < 0
+        || SMW_B(m, (BYTE)drv->head_invert) < 0
+        || SMW_B(m, (BYTE)drv->disk_rate) < 0
+        || SMW_DW(m, drv->image_sectors) < 0
+        || SMW_DW(m, drv->index_count) < 0
+        || SMW_DW(m, (BYTE)drv->raw.head) < 0
+        || SMW_B(m, (BYTE)drv->raw.track_head) < 0
+        || SMW_B(m, (BYTE)drv->raw.dirty) < 0
+        || SMW_BA(m, drv->raw.data, drv->raw.size) < 0
+        || SMW_BA(m, drv->raw.sync, (drv->raw.size + 7) >> 3) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
 
     /* TODO: Disk image save */
 
@@ -698,59 +701,70 @@ int fdd_snapshot_read_module(fd_drive_t *drv, struct snapshot_s *s)
         return -1;
     }
 
-    if ((vmajor != FDD_SNAP_MAJOR) || (vminor != FDD_SNAP_MINOR)) {
+    /* Do not accept versions higher than current */
+    if (vmajor > FDD_SNAP_MAJOR || vminor > FDD_SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
 
-    SMR_B_INT(m, &drv->number);
-    SMR_B_INT(m, &drv->disk_change);
-    SMR_B_INT(m, &drv->write_protect);
-    SMR_B_INT(m, &drv->track);
+    if (0
+        || SMR_B_INT(m, &drv->number) < 0
+        || SMR_B_INT(m, &drv->disk_change) < 0
+        || SMR_B_INT(m, &drv->write_protect) < 0
+        || SMR_B_INT(m, &drv->track) < 0
+        || SMR_B_INT(m, &drv->tracks) < 0
+        || SMR_B_INT(m, &drv->head) < 0
+        || SMR_B_INT(m, &drv->sectors) < 0
+        || SMR_B_INT(m, &drv->motor) < 0
+        || SMR_B_INT(m, &drv->rate) < 0
+        || SMR_B_INT(m, &drv->sector_size) < 0
+        || SMR_B_INT(m, &drv->iso) < 0
+        || SMR_B_INT(m, &drv->gap2) < 0
+        || SMR_B_INT(m, &drv->gap3) < 0
+        || SMR_B_INT(m, &drv->head_invert) < 0
+        || SMR_B_INT(m, &drv->disk_rate) < 0
+        || SMR_DW_INT(m, &drv->image_sectors) < 0
+        || SMR_DW_INT(m, &drv->index_count) < 0
+        || SMR_DW_INT(m, &drv->raw.head) < 0
+        || SMR_B_INT(m, &drv->raw.track_head) < 0
+        || SMR_B_INT(m, &drv->raw.dirty) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
     if (drv->track < 0) {
         drv->track = 0;
     }
     if (drv->track > 82) {
         drv->track = 82;
     }
-    SMR_B_INT(m, &drv->tracks);
     if (drv->tracks < 0) {
         drv->tracks = 0;
     }
     if (drv->tracks > 82) {
         drv->tracks = 82;
     }
-    SMR_B_INT(m, &drv->head);
     drv->head &= 1;
-    SMR_B_INT(m, &drv->sectors);
-    SMR_B_INT(m, &drv->motor);
     drv->motor &= 1;
-    SMR_B_INT(m, &drv->rate);
     drv->rate &= 3;
-    SMR_B_INT(m, &drv->sector_size);
     drv->sector_size &= 3;
-    SMR_B_INT(m, &drv->iso);
-    SMR_B_INT(m, &drv->gap2);
-    SMR_B_INT(m, &drv->gap3);
-    SMR_B_INT(m, &drv->head_invert);
-    SMR_B_INT(m, &drv->disk_rate);
     drv->disk_rate &= 3;
-    SMR_DW_INT(m, &drv->image_sectors);
-    SMR_DW_INT(m, &drv->index_count);
 
     drv->raw.size = 25 * fdd_data_rates[drv->disk_rate];
-    SMR_DW_INT(m, &drv->raw.head);
     drv->raw.head %= drv->raw.size;
-    SMR_B_INT(m, &drv->raw.track_head);
-    SMR_B_INT(m, &drv->raw.dirty);
 
     lib_free(drv->raw.data);
     drv->raw.data = lib_malloc(drv->raw.size);
     lib_free(drv->raw.sync);
     drv->raw.sync = lib_malloc((drv->raw.size + 7) >> 3);
 
-    SMR_BA(m, drv->raw.data, drv->raw.size);
-    SMR_BA(m, drv->raw.sync, (drv->raw.size + 7) >> 3);
+    if (0
+        || SMR_BA(m, drv->raw.data, drv->raw.size) < 0
+        || SMR_BA(m, drv->raw.sync, (drv->raw.size + 7) >> 3) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
 
     return snapshot_module_close(m);
 }

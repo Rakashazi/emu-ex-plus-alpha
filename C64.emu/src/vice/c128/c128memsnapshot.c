@@ -63,8 +63,7 @@ static int mem_write_rom_snapshot_module(snapshot_t *s)
 
     /* Main memory module.  */
 
-    m = snapshot_module_create(s, snap_rom_module_name,
-                               SNAP_ROM_MAJOR, SNAP_ROM_MINOR);
+    m = snapshot_module_create(s, snap_rom_module_name, SNAP_ROM_MAJOR, SNAP_ROM_MINOR);
     if (m == NULL) {
         return -1;
     }
@@ -72,8 +71,7 @@ static int mem_write_rom_snapshot_module(snapshot_t *s)
     if (0
         || SMW_BA(m, c128memrom_kernal_rom, C128_KERNAL_ROM_SIZE) < 0
         || SMW_BA(m, c128memrom_basic_rom, C128_BASIC_ROM_SIZE) < 0
-        || SMW_BA(m, c128memrom_basic_rom + C128_BASIC_ROM_SIZE,
-                  C128_EDITOR_ROM_SIZE) < 0
+        || SMW_BA(m, c128memrom_basic_rom + C128_BASIC_ROM_SIZE, C128_EDITOR_ROM_SIZE) < 0
         || SMW_BA(m, mem_chargen_rom, C128_CHARGEN_ROM_SIZE) < 0) {
         goto fail;
     }
@@ -104,8 +102,8 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
 
     /* Main memory module.  */
 
-    m = snapshot_module_open(s, snap_rom_module_name,
-                             &major_version, &minor_version);
+    m = snapshot_module_open(s, snap_rom_module_name, &major_version, &minor_version);
+
     /* This module is optional.  */
     if (m == NULL) {
         return 0;
@@ -115,7 +113,9 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     resources_get_int("VirtualDevices", &trapfl);
     resources_set_int("VirtualDevices", 0);
 
+    /* Do not accept higher versions than current */
     if (major_version > SNAP_ROM_MAJOR || minor_version > SNAP_ROM_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         log_error(c128_snapshot_log,
                   "MEM: Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
@@ -126,16 +126,14 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     if (0
         || SMR_BA(m, c128memrom_kernal_rom, C128_KERNAL_ROM_SIZE) < 0
         || SMR_BA(m, c128memrom_basic_rom, C128_BASIC_ROM_SIZE) < 0
-        || SMR_BA(m, c128memrom_basic_rom + C128_BASIC_ROM_SIZE,
-                  C128_EDITOR_ROM_SIZE) < 0
+        || SMR_BA(m, c128memrom_basic_rom + C128_BASIC_ROM_SIZE, C128_EDITOR_ROM_SIZE) < 0
         || SMR_BA(m, mem_chargen_rom, C128_CHARGEN_ROM_SIZE) < 0) {
         goto fail;
     }
 
     log_warning(c128_snapshot_log, "Dumped Romset files and saved settings will "                "represent\nthe state before loading the snapshot!");
 
-    memcpy(c128memrom_kernal_trap_rom, c128memrom_kernal_rom,
-           C128_KERNAL_ROM_SIZE);
+    memcpy(c128memrom_kernal_trap_rom, c128memrom_kernal_rom, C128_KERNAL_ROM_SIZE);
 
     c128rom_basic_checksum();
     c128rom_kernal_checksum();
@@ -158,6 +156,7 @@ fail:
     }
     return -1;
 }
+
 static char snap_module_name[] = "C128MEM";
 #define SNAP_MAJOR 0
 #define SNAP_MINOR 0
@@ -217,13 +216,15 @@ int c128_snapshot_read_module(snapshot_t *s)
 
     /* Main memory module.  */
 
-    m = snapshot_module_open(s, snap_module_name,
-                             &major_version, &minor_version);
+    m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
+
     if (m == NULL) {
         return -1;
     }
 
+    /* Do not accept higher versions than current */
     if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         log_error(c128_snapshot_log,
                   "MEM: Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
@@ -238,8 +239,7 @@ int c128_snapshot_read_module(snapshot_t *s)
         mmu_store(i, byte);     /* Assuming no side-effects */
     }
 
-    if (0
-        || SMR_BA(m, mem_ram, C128_RAM_SIZE) < 0) {
+    if (SMR_BA(m, mem_ram, C128_RAM_SIZE) < 0) {
         goto fail;
     }
 

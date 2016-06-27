@@ -43,6 +43,7 @@ extern void drivemem_set_func(struct drivecpud_context_s *cpud,
                               unsigned int start, unsigned int stop,
                               drive_read_func_t *read_func,
                               drive_store_func_t *store_func,
+                              drive_peek_func_t *peek_func,
                               BYTE *base, DWORD limit);
 
 extern struct mem_ioreg_list_s *drivemem_ioreg_list_get(void *context);

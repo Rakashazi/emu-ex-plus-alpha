@@ -32,9 +32,11 @@
 
 #include "datasette.h"
 #include "interrupt.h"
+#include "joyport.h"
 #include "keyboard.h"
 #include "lib.h"
 #include "maincpu.h"
+#include "tapeport.h"
 #include "types.h"
 #include "via.h"
 #include "vic20.h"
@@ -108,9 +110,12 @@ static void undump_prb(via_context_t *via_context, BYTE byte)
 static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
                       WORD addr)
 {
+    BYTE joy_bit = (byte & 0x80) >> 4;
+
     if ((byte ^ myoldpb) & 8) {
-        datasette_toggle_write_bit((~(via_context->via[VIA_DDRB]) | byte) & 0x8);
+        tapeport_toggle_write_bit((~(via_context->via[VIA_DDRB]) | byte) & 0x8);
     }
+    store_joyport_dig(JOYPORT_1, joy_bit, 8);
 }
 
 static void undump_pcr(via_context_t *via_context, BYTE byte)
@@ -164,6 +169,7 @@ static BYTE read_prb(via_context_t *via_context)
     /* FIXME: not 100% sure about this... */
     BYTE val = ~(via_context->via[VIA_DDRB]);
     BYTE msk = via_context->oldpa;
+    BYTE joy = ~read_joyport_dig(JOYPORT_1);
     int m, i;
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
@@ -174,7 +180,7 @@ static BYTE read_prb(via_context_t *via_context)
 
     /* Bit 7 is mapped to the right direction of the joystick (bit
        3 in `joystick_value[]'). */
-    if ((joystick_value[1] | joystick_value[2]) & 0x8) {
+    if (joy & 0x8) {
         val &= 0x7f;
     }
 

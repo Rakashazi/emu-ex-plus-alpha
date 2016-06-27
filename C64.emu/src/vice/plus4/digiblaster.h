@@ -33,10 +33,9 @@
 extern int digiblaster_resources_init(void);
 extern int digiblaster_cmdline_options_init(void);
 
-extern void digiblaster_store(WORD addr, BYTE value);
-extern BYTE digiblaster_read(WORD addr);
-
 extern void digiblaster_sound_chip_init(void);
 extern int digiblaster_enabled(void);
+
+extern void digiblaster_set_address(WORD addr);
 
 #endif

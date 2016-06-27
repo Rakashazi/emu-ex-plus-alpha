@@ -28,6 +28,7 @@
 // Compiler specifics.
 #define HAVE_BOOL @HAVE_BOOL@
 #define HAVE_BUILTIN_EXPECT @HAVE_BUILTIN_EXPECT@
+#define HAVE_LOG1P @HAVE_LOG1P@
 
 // Define bool, true, and false for C++ compilers that lack these keywords.
 #if !HAVE_BOOL

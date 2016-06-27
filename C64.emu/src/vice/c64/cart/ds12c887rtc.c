@@ -30,12 +30,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "ds12c887.h"
 #include "ds12c887rtc.h"
+#include "export.h"
 #include "lib.h"
 #include "machine.h"
 #include "maincpu.h"
@@ -80,6 +80,7 @@ static int ds12c887rtc_accessed = 0;
 /* Some prototypes are needed */
 static BYTE ds12c887rtc_read(WORD addr);
 static void ds12c887rtc_store(WORD addr, BYTE byte);
+static int ds12c887rtc_dump(void);
 
 static io_source_t ds12c887rtc_device = {
     CARTRIDGE_NAME_DS12C887RTC,
@@ -90,7 +91,7 @@ static io_source_t ds12c887rtc_device = {
     ds12c887rtc_store,
     ds12c887rtc_read,
     ds12c887rtc_read,
-    NULL,
+    ds12c887rtc_dump,
     CARTRIDGE_DS12C887RTC,
     0,
     0
@@ -98,7 +99,7 @@ static io_source_t ds12c887rtc_device = {
 
 static io_source_list_t *ds12c887rtc_list_item = NULL;
 
-static c64export_resource_t export_res = {
+static export_resource_t export_res = {
     CARTRIDGE_NAME_DS12C887RTC, 0, 0, &ds12c887rtc_device, NULL, CARTRIDGE_DS12C887RTC
 };
 
@@ -127,10 +128,8 @@ static int set_ds12c887rtc_enabled(int value, void *param)
                 runmode = ds12c887rtc_run_mode;
             }
         }
-        if (export_res.io1 != NULL || export_res.io2 != NULL) {
-            if (c64export_add(&export_res) < 0) {
-                return -1;
-            }
+        if (export_add(&export_res) < 0) {
+            return -1;
         }
         ds12c887rtc_list_item = io_source_register(&ds12c887rtc_device);
         ds12c887rtc_context = ds12c887_init("DS12C887");
@@ -142,9 +141,7 @@ static int set_ds12c887rtc_enabled(int value, void *param)
         ds12c887rtc_enabled = 1;
     } else if (ds12c887rtc_enabled && !val) {
         if (ds12c887rtc_list_item != NULL) {
-            if (export_res.io1 != NULL || export_res.io2 != NULL) {
-                c64export_remove(&export_res);
-            }
+            export_remove(&export_res);
             io_source_unregister(ds12c887rtc_list_item);
             ds12c887rtc_list_item = NULL;
             if (ds12c887rtc_context) {
@@ -284,6 +281,11 @@ void ds12c887rtc_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
+static int ds12c887rtc_dump(void)
+{
+    return ds12c887_dump(ds12c887rtc_context);
+}
+
 static BYTE ds12c887rtc_read(WORD addr)
 {
     if (addr & 1) {
@@ -400,29 +402,35 @@ int ds12c887rtc_cmdline_options_init(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTDS12C887RTC"
+/* CARTDS12C887RTC snapshot module format:
+
+   type  | name     | description
+   ------------------------------
+   DWORD | base     | base address of the RTC
+ */
+
+static char snap_module_name[] = "CARTDS12C887RTC";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
 
 int ds12c887rtc_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    /* FIXME: Implement the RTC snapshot part */
-    if (0
-        || (SMW_DW(m, (DWORD)ds12c887rtc_base_address) < 0)) {
+    if (SMW_DW(m, (DWORD)ds12c887rtc_base_address) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
     snapshot_module_close(m);
-    return 0;
+
+    return ds12c887_write_snapshot(ds12c887rtc_context, s);
 }
 
 int ds12c887rtc_snapshot_read_module(snapshot_t *s)
@@ -431,21 +439,20 @@ int ds12c887rtc_snapshot_read_module(snapshot_t *s)
     snapshot_module_t *m;
     int temp_ds12c887rtc_address;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    /* FIXME: Implement the RTC snapshot part */
-    if (0
-        || (SMR_DW_INT(m, &temp_ds12c887rtc_address) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+    if (SMR_DW_INT(m, &temp_ds12c887rtc_address) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
@@ -454,5 +461,13 @@ int ds12c887rtc_snapshot_read_module(snapshot_t *s)
     ds12c887rtc_base_address = -1;
     set_ds12c887rtc_base(temp_ds12c887rtc_address, NULL);
 
-    return ds12c887rtc_enable();
+    if (ds12c887rtc_enable() < 0) {
+        return -1;
+    }
+
+    return ds12c887_read_snapshot(ds12c887rtc_context, s);
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

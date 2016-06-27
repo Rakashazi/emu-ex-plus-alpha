@@ -27,6 +27,7 @@
 #ifndef VICE_C64_MEMORY_HACKS_H
 #define VICE_C64_MEMORY_HACKS_H
 
+#include "snapshot.h"
 #include "types.h"
 
 #define MEMORY_HACK_NONE       0
@@ -36,5 +37,8 @@
 
 extern int memory_hacks_resources_init(void);
 extern int memory_hacks_cmdline_options_init(void);
+
+extern int memhacks_snapshot_write_modules(struct snapshot_s *s);
+extern int memhacks_snapshot_read_modules(struct snapshot_s *s);
 
 #endif

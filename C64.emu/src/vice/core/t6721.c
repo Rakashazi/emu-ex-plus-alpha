@@ -988,6 +988,17 @@ void t6721_sound_machine_init(t6721_state *t6721, int speed, int cycles_per_sec)
     up2smp = (((float)cycles_per_sec) / ((float)speed));
 }
 
+void t6721_sound_machine_init_vbr(t6721_state *t6721, int speed, int cycles_per_sec, int factor)
+{
+    DBG(("sound machine init: speed %d cycles/sec: %d\n", speed, cycles_per_sec));
+    t6721->samples_per_sec = speed;
+    t6721->cycles_per_sec = (cycles_per_sec * 1000 / factor);
+    /* ratio for converting ringbuffer -> output */
+    upsmp = (((float)speed) / ((float)PARCOR_OUTPUT_HZ));
+    /* ratio for converting samples in output buffer -> cpu/system cycles */
+    up2smp = (((float)cycles_per_sec) / ((float)speed));
+}
+
 int t6721_dump(t6721_state *t6721)
 {
     mon_out("reference cycles per second: %d\n", t6721->cycles_per_sec);

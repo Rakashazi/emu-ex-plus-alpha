@@ -79,11 +79,6 @@ void iec128dcr_drive_rom_setup_image(unsigned int dnr)
     iec128dcrrom_setup_image(drive_context[dnr]->drive);
 }
 
-int iec128dcr_drive_rom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    return iec128dcrrom_read(type, addr, data);
-}
-
 int iec128dcr_drive_rom_check_loaded(unsigned int type)
 {
     return iec128dcrrom_check_loaded(type);

@@ -33,10 +33,10 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
 #include "freezemachine.h"
 #include "snapshot.h"
 #include "types.h"
@@ -99,9 +99,9 @@ static int allow_toggle;
 static BYTE freezemachine_io1_read(WORD addr)
 {
     DBG(("io1 r %04x\n", addr));
-    if (addr == 0) {
+    /* if (addr == 0) */ {
         roml_toggle = 1;
-        cart_config_changed_slotmain(2, (BYTE)(1 | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
+        cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_16KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
         DBG(("Freeze Machine: switching to 16k game mapping\n"));
     }
     return 0; /* invalid */
@@ -120,8 +120,8 @@ static void freezemachine_io1_store(WORD addr, BYTE value)
 static BYTE freezemachine_io2_read(WORD addr)
 {
     DBG(("io2 r %04x\n", addr));
-    if (addr == 0) {
-        cart_config_changed_slotmain(2, 2, CMODE_READ);
+    /* if (addr == 0) */ {
+        cart_config_changed_slotmain(CMODE_RAM, CMODE_RAM, CMODE_READ);
         DBG(("Freeze Machine: disabled\n"));
     }
 
@@ -147,7 +147,7 @@ static io_source_t freezemachine_io1_device = {
     freezemachine_io1_store,
     freezemachine_io1_read,
     freezemachine_io1_peek,
-    NULL,
+    NULL, /* TODO: dump */
     CARTRIDGE_FREEZE_MACHINE,
     0,
     0
@@ -162,7 +162,7 @@ static io_source_t freezemachine_io2_device = {
     freezemachine_io2_store,
     freezemachine_io2_read,
     freezemachine_io2_peek,
-    NULL,
+    NULL, /* TODO: dump */
     CARTRIDGE_FREEZE_MACHINE,
     0,
     0
@@ -171,7 +171,7 @@ static io_source_t freezemachine_io2_device = {
 static io_source_list_t *freezemachine_io1_list_item = NULL;
 static io_source_list_t *freezemachine_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_FREEZE_MACHINE, 1, 1, &freezemachine_io1_device, &freezemachine_io2_device, CARTRIDGE_FREEZE_MACHINE
 };
 
@@ -181,9 +181,8 @@ BYTE freezemachine_roml_read(WORD addr)
 {
     if (roml_toggle) {
         return romh_banks[(addr & 0x1fff) | (rom_A14 << 13)];
-    } else {
-        return roml_banks[(addr & 0x1fff) | (rom_A14 << 13)];
     }
+    return roml_banks[(addr & 0x1fff) | (rom_A14 << 13)];
 }
 
 /* ---------------------------------------------------------------------*/
@@ -194,7 +193,7 @@ void freezemachine_reset(void)
         rom_A14 ^= 1; /* select other 16k ROM bank on every other reset */
     }
     roml_toggle = 0;
-    cart_config_changed_slotmain(2, (BYTE)(0 | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_8KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
     DBG(("Freeze Machine: reset (%d)\n", rom_A14));
 }
 
@@ -202,12 +201,12 @@ void freezemachine_freeze(void)
 {
     DBG(("Freeze Machine: freeze\n"));
     roml_toggle = 1;
-    cart_config_changed_slotmain(2, (BYTE)(3 | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_ULTIMAX | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_RELEASE_FREEZE);
 }
 
 void freezemachine_config_init(void)
 {
-    cart_config_changed_slotmain(2, (BYTE)(0 | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_8KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
 void freezemachine_config_setup(BYTE *rawcart)
@@ -218,14 +217,14 @@ void freezemachine_config_setup(BYTE *rawcart)
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
     memcpy(&roml_banks[0x2000], &rawcart[0x4000], 0x2000);
     memcpy(&romh_banks[0x2000], &rawcart[0x6000], 0x2000);
-    cart_config_changed_slotmain(2, 0 | (0 << CMODE_BANK_SHIFT), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, CMODE_8KGAME | (0 << CMODE_BANK_SHIFT), CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
 
 static int freezemachine_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -249,36 +248,102 @@ int freezemachine_bin_attach(const char *filename, BYTE *rawcart)
     return freezemachine_common_attach();
 }
 
+/*
+ * (old) wrong formats:
+ * 
+ * cartconv produced this until 2011:
+ *
+ * offset  sig  type  bank start size  chunklen
+ * $000040 CHIP ROM   #000 $8000 $2000 $2010
+ * $002050 CHIP ROM   #001 $8000 $2000 $2010
+ * $004060 CHIP ROM   #002 $8000 $2000 $2010 (32k ROMs only)
+ * $006070 CHIP ROM   #003 $8000 $2000 $2010 (32k ROMs only)
+ *
+ * cartconv produced this from 2011 to 12/2015:
+ *
+ * offset  sig  type  bank start size  chunklen
+ * $000040 CHIP ROM   #000 $8000 $2000 $2010
+ * $002050 CHIP ROM   #000 $a000 $2000 $2010
+ * $004060 CHIP ROM   #001 $8000 $2000 $2010 (32k ROMs only)
+ * $006070 CHIP ROM   #001 $a000 $2000 $2010 (32k ROMs only)
+ *
+ * (new) correct format (since 12/2015):
+ * 
+ * offset  sig  type  bank start size  chunklen
+ * $000040 CHIP ROM   #000 $8000 $4000 $4010
+ * $004050 CHIP ROM   #001 $8000 $4000 $4010 (32k ROMs only)
+ *
+ */
 int freezemachine_crt_attach(FILE *fd, BYTE *rawcart)
 {
-    int i;
+    int i, pos, banks, chips;
     crt_chip_header_t chip;
 
-    for (i = 0; i < 4; i++) {
+    /* find out how many banks and chips are in the file */
+    /* FIXME: this is kindof ugly, perhaps make it a generic function */
+    banks = 0;
+    pos = ftell(fd);
+    for (chips = 0; chips < 4; chips++) {
         if (crt_read_chip_header(&chip, fd)) {
             break;
         }
-
-        if (chip.bank > 3 || chip.size != 0x2000 || (chip.start != 0x8000 && chip.start != 0xa000)) {
+        if (crt_read_chip(rawcart, 0, &chip, fd)) {
             return -1;
         }
-
-        if (crt_read_chip(rawcart, (chip.start & 0x2000) + (chip.bank << 14), &chip, fd)) {
-            return -1;
+        if (chip.bank > banks) {
+            banks = chip.bank;
         }
     }
-
-    if (i != 2 && i != 4) {
+    banks++;
+    DBG(("fm attach: %d banks, %d chips found\n", banks, chips));
+    if ((chips != 1) && (chips != 2) && (chips != 4)) {
+        DBG(("fm attach: wrong number of chips\n"));
         return -1;
     }
+    fseek(fd, pos, SEEK_SET);
 
-    allow_toggle = (i == 4);
+    for (i = 0; i < chips; i++) {
+        if (crt_read_chip_header(&chip, fd)) {
+            return -1;
+        }
+        DBG(("fm attach: chip.size %04x\n", chip.size));
+        /* first the new format */
+        if ((chip.size == 0x4000) && (((chips == 1) && (banks == 1)) || ((chips == 2) && (banks == 2)))) {
+            if ((chip.bank > 1) || (chip.start != 0x8000)) {
+                return -1;
+            }
+            if (crt_read_chip(rawcart, (chip.bank << 14), &chip, fd)) {
+                return -1;
+            }
+            allow_toggle = (chips == 2);
+        /* older format */
+        } else if ((chip.size == 0x2000) && (((chips == 2) && (banks == 1)) || ((chips == 4) && (banks == 2)))) {
+            if ((chip.bank > 1) || ((chip.start != 0x8000) && (chip.start != 0xa000))) {
+                return -1;
+            }
+            if (crt_read_chip(rawcart, (chip.start & 0x2000) + (chip.bank << 14), &chip, fd)) {
+                return -1;
+            }
+            allow_toggle = (chips == 4);
+        /* very old format */
+        } else if ((chip.size == 0x2000) && (((chips == 2) && (banks == 2)) || ((chips == 4) && (banks == 4)))) {
+            if ((chip.bank > 3) || (chip.start != 0x8000)) {
+                return -1;
+            }
+            if (crt_read_chip(rawcart, chip.bank << 13, &chip, fd)) {
+                return -1;
+            }
+            allow_toggle = (chips == 4);
+        } else {
+            return -1;
+        }
+    }
     return freezemachine_common_attach();
 }
 
 void freezemachine_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(freezemachine_io1_list_item);
     io_source_unregister(freezemachine_io2_list_item);
     freezemachine_io1_list_item = NULL;
@@ -287,32 +352,42 @@ void freezemachine_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   1
-#define SNAP_MODULE_NAME  "CARTFREEZEM"
+/* CARTFREEZEM snapshot module format:
+
+   type  | name         | version | description
+   --------------------------------------------
+   BYTE  | ROM A14      |   0.0+  | A14 line state
+   BYTE  | ROML toggle  |   0.0+  | ROML toggle flag
+   BYTE  | allow toggle |   0.1   | allow toggle flag
+   ARRAY | ROML         |   0.0+  | 16384 BYTES of ROML data
+   ARRAY | ROMH         |   0.0+  | 16384 BYTES of ROMH data
+ */
+
+static char snap_module_name[] = "CARTFREEZEM";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
 
 int freezemachine_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_B(m, (BYTE)rom_A14) < 0)
-        || (SMW_B(m, (BYTE)roml_toggle) < 0)
-        || (SMW_B(m, (BYTE)allow_toggle) < 0)
-        || (SMW_BA(m, roml_banks, 0x4000) < 0)
-        || (SMW_BA(m, romh_banks, 0x4000) < 0)) {
+        || SMW_B(m, (BYTE)rom_A14) < 0
+        || SMW_B(m, (BYTE)roml_toggle) < 0
+        || SMW_B(m, (BYTE)allow_toggle) < 0
+        || SMW_BA(m, roml_banks, 0x4000) < 0
+        || SMW_BA(m, romh_banks, 0x4000) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int freezemachine_snapshot_read_module(snapshot_t *s)
@@ -320,27 +395,44 @@ int freezemachine_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
     if (0
-        || (SMR_B_INT(m, &rom_A14) < 0)
-        || (SMR_B_INT(m, &roml_toggle) < 0)
-        || (SMR_B_INT(m, &allow_toggle) < 0)
-        || (SMR_BA(m, roml_banks, 0x4000) < 0)
-        || (SMR_BA(m, romh_banks, 0x4000) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMR_B_INT(m, &rom_A14) < 0
+        || SMR_B_INT(m, &roml_toggle) < 0) {
+        goto fail;
+    }
+
+    /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (SMR_B_INT(m, &allow_toggle) < 0) {
+            goto fail;
+        }
+    } else {
+        allow_toggle = 0;
+    }
+
+    if (0
+        || SMR_BA(m, roml_banks, 0x4000) < 0
+        || SMR_BA(m, romh_banks, 0x4000) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     return freezemachine_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

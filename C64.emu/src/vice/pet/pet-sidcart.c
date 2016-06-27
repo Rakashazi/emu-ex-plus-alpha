@@ -26,6 +26,7 @@
 
 #include "vice.h"
 
+#include "cartio.h"
 #include "cmdline.h"
 #include "resources.h"
 #include "sid.h"
@@ -71,6 +72,38 @@ void sidcart_sound_chip_init(void)
 
 /* ------------------------------------------------------------------------- */
 
+static io_source_t sidcart_8f00_device = {
+    "SIDCART",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0x8f00, 0x8fff, 0x1f,
+    1, /* read is always valid */
+    sid_store,
+    sid_read,
+    NULL, /* no peek */
+    sid_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t sidcart_e900_device = {
+    "SIDCART",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xe900, 0xe9ff, 0x1f,
+    1, /* read is always valid */
+    sid_store,
+    sid_read,
+    NULL, /* no peek */
+    sid_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_list_t *sidcart_list_item = NULL;
+
 int sidcart_enabled(void)
 {
     return sidcart_sound_chip.chip_enabled;
@@ -80,10 +113,24 @@ static int set_sidcart_enabled(int value, void *param)
 {
     int val = value ? 1 : 0;
 
-    if (val != sidcart_sound_chip.chip_enabled) {
-        sidcart_sound_chip.chip_enabled = val;
-        sound_state_changed = 1;
+    if (val == sidcart_sound_chip.chip_enabled) {
+        return 0;
     }
+
+    if (val) {
+        if (sidcart_address == 0x8f00) {
+            sidcart_list_item = io_source_register(&sidcart_8f00_device);
+        } else {
+            sidcart_list_item = io_source_register(&sidcart_e900_device);
+        }
+    } else {
+        io_source_unregister(sidcart_list_item);
+        sidcart_list_item = NULL;
+    }
+
+    sidcart_sound_chip.chip_enabled = val;
+    sound_state_changed = 1;
+
     return 0;
 }
 
@@ -95,6 +142,19 @@ static int set_sid_address(int val, void *param)
             break;
         default:
             return -1;
+    }
+
+    if (sidcart_address == val) {
+        return 0;
+    }
+
+    if (sidcart_sound_chip.chip_enabled) {
+        io_source_unregister(sidcart_list_item);
+        if (val == 0x8f00) {
+            sidcart_list_item = io_source_register(&sidcart_8f00_device);
+        } else {
+            sidcart_list_item = io_source_register(&sidcart_e900_device);
+        }
     }
 
     sidcart_address = val;

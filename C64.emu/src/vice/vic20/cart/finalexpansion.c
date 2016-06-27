@@ -34,6 +34,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "lib.h"
 #include "machine.h"
 #include "maincpu.h"
@@ -179,6 +180,10 @@ static io_source_t finalexpansion_device = {
 };
 
 static io_source_list_t *finalexpansion_list_item = NULL;
+
+static const export_resource_t export_res = {
+    CARTRIDGE_VIC20_NAME_FINAL_EXPANSION, 0, 0, NULL, &finalexpansion_device, CARTRIDGE_VIC20_FINAL_EXPANSION
+};
 
 /* ------------------------------------------------------------------------- */
 
@@ -658,6 +663,10 @@ int finalexpansion_bin_attach(const char *filename)
         return -1;
     }
 
+    if (export_add(&export_res) < 0) {
+        return -1;
+    }
+
     mem_cart_blocks = VIC_CART_RAM123 |
                       VIC_CART_BLK1 | VIC_CART_BLK2 | VIC_CART_BLK3 | VIC_CART_BLK5 |
                       VIC_CART_IO3;
@@ -706,6 +715,7 @@ void finalexpansion_detach(void)
     if (finalexpansion_list_item != NULL) {
         io_source_unregister(finalexpansion_list_item);
         finalexpansion_list_item = NULL;
+        export_remove(&export_res);
     }
 }
 

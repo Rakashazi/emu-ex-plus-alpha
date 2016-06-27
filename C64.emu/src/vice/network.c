@@ -481,7 +481,7 @@ static void network_server_connect_trap(WORD addr, void *data)
         }
         buf_size = util_file_length(f);
         buf = lib_malloc(buf_size);
-        if (fread(buf, 1, buf_size, f) <= 0) {
+        if (fread(buf, 1, buf_size, f) == 0) {
             log_debug("network_server_connect_trap read failed.");
         }
         fclose(f);
@@ -743,7 +743,7 @@ int network_connect_client(void)
         return -1;
     }
 
-    if (fwrite(buf, 1, buf_size, f) <= 0) {
+    if (fwrite(buf, 1, buf_size, f) == 0) {
         log_debug("network_connect_client write failed.");
     }
     fclose(f);

@@ -37,6 +37,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "flash040.h"
 #include "lib.h"
 #include "log.h"
@@ -161,6 +162,9 @@ static io_source_t vfp_device = {
 
 static io_source_list_t *vfp_list_item = NULL;
 
+static const export_resource_t export_res = {
+    CARTRIDGE_VIC20_NAME_FP, 0, 0, &vfp_device, NULL, CARTRIDGE_VIC20_FP
+};
 
 /* ------------------------------------------------------------------------- */
 
@@ -335,6 +339,10 @@ int vic_fp_bin_attach(const char *filename)
         return -1;
     }
 
+    if (export_add(&export_res) < 0) {
+        return -1;
+    }
+
     flash040core_init(&flash_state, maincpu_alarm_context, FLASH040_TYPE_032B_A0_1_SWAP, cart_rom);
 
     mem_cart_blocks = VIC_CART_RAM123 |
@@ -385,6 +393,7 @@ void vic_fp_detach(void)
     cartfile = NULL;
 
     if (vfp_list_item != NULL) {
+        export_remove(&export_res);
         io_source_unregister(vfp_list_item);
         vfp_list_item = NULL;
     }

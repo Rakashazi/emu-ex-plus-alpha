@@ -60,6 +60,12 @@ BYTE cia1571_peek(drive_context_t *ctxptr, WORD addr)
     return ciacore_peek(ctxptr->cia1571, addr);
 }
 
+int cia1571_dump(drive_context_t *ctxptr, WORD addr)
+{
+    ciacore_dump(ctxptr->cia1571);
+    return 0;
+}
+
 static void cia_set_int_clk(cia_context_t *cia_context, int value, CLOCK clk)
 {
     drive_context_t *drive_context;

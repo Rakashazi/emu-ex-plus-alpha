@@ -66,7 +66,7 @@
 #define DISK_IMAGE_TYPE_D81 1581
 #define DISK_IMAGE_TYPE_D80 8050
 #define DISK_IMAGE_TYPE_D82 8250
-#define DISK_IMAGE_TYPE_TAP 1531
+#define DISK_IMAGE_TYPE_TAP 1531 /* FIXME: this is nonsense, rename and move elsewhere */
 #define DISK_IMAGE_TYPE_D1M 1000
 #define DISK_IMAGE_TYPE_D2M 2000
 #define DISK_IMAGE_TYPE_D4M 4000

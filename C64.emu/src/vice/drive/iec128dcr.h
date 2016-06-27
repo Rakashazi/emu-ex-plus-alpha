@@ -41,7 +41,6 @@ extern void iec128dcr_drive_mem_init(struct drive_context_s *drv, unsigned int t
 extern void iec128dcr_drive_setup_context(struct drive_context_s *drv);
 extern void iec128dcr_drive_rom_load(void);
 extern void iec128dcr_drive_rom_setup_image(unsigned int dnr);
-extern int iec128dcr_drive_rom_read(unsigned int type, WORD addr, BYTE *data);
 extern int iec128dcr_drive_rom_check_loaded(unsigned int type);
 
 #endif

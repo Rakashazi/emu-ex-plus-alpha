@@ -120,7 +120,8 @@ enum
 	CFGKEY_C128_MODEL = 266, CFGKEY_SUPER_CPU_MODEL = 267,
 	CFGKEY_CBM2_MODEL = 268, CFGKEY_CBM5x0_MODEL = 269,
 	CFGKEY_PET_MODEL = 270, CFGKEY_PLUS4_MODEL = 271,
-	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273
+	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273,
+	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274
 };
 
 int intResource(const char *name)
@@ -222,6 +223,21 @@ void setDriveTrueEmulation(bool on)
 	plugin.resources_set_int("DriveTrueEmulation", on);
 }
 
+bool driveTrueEmulation()
+{
+	return intResource("DriveTrueEmulation");
+}
+
+void setVirtualDeviceTraps(bool on)
+{
+	plugin.resources_set_int("VirtualDevices", on);
+}
+
+bool virtualDeviceTraps()
+{
+	return intResource("VirtualDevices");
+}
+
 void setDefaultC64Model(int model)
 {
 	optionC64Model = model;
@@ -304,7 +320,19 @@ void setDefaultVIC20Model(int model)
 	}
 }
 
-Byte1Option optionDriveTrueEmulation(CFGKEY_DRIVE_TRUE_EMULATION, 1);
+static void setIntResourceToDefault(const char *name)
+{
+	int val;
+	if(plugin.resources_get_default_value(name, &val) < 0)
+	{
+		return;
+	}
+	logMsg("setting resource %s to default:%d", name, val);
+	plugin.resources_set_int(name, val);
+}
+
+Byte1Option optionDriveTrueEmulation(CFGKEY_DRIVE_TRUE_EMULATION, 0);
+Byte1Option optionVirtualDeviceTraps(CFGKEY_VIRTUAL_DEVICE_TRAPS, 1);
 Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
 Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
 Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
@@ -341,12 +369,17 @@ PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 
 static void applyInitialOptionResources()
 {
-	if(!optionDriveTrueEmulation) // on by default
-		setDriveTrueEmulation(false);
+	setVirtualDeviceTraps(optionVirtualDeviceTraps);
+	setDriveTrueEmulation(optionDriveTrueEmulation);
 	setAutostartWarp(optionAutostartWarp);
 	setAutostartTDE(optionAutostartTDE);
 	setBorderMode(optionBorderMode);
 	setSidEngine(optionSidEngine);
+	// default drive setup
+	setIntResourceToDefault("Drive8Type");
+	plugin.resources_set_int("Drive9Type", DRIVE_TYPE_NONE);
+	plugin.resources_set_int("Drive10Type", DRIVE_TYPE_NONE);
+	plugin.resources_set_int("Drive11Type", DRIVE_TYPE_NONE);
 }
 
 void EmuSystem::initOptions() {}
@@ -367,6 +400,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 	{
 		default: return 0;
 		bcase CFGKEY_DRIVE_TRUE_EMULATION: optionDriveTrueEmulation.readFromIO(io, readSize);
+		bcase CFGKEY_VIRTUAL_DEVICE_TRAPS: optionVirtualDeviceTraps.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
 		bcase CFGKEY_VICE_SYSTEM: optionViceSystem.readFromIO(io, readSize);
@@ -391,6 +425,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 void EmuSystem::writeConfig(IO &io)
 {
 	optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
+	optionVirtualDeviceTraps.writeWithKeyIfNotDefault(io);
 	optionAutostartWarp.writeWithKeyIfNotDefault(io);
 	optionAutostartTDE.writeWithKeyIfNotDefault(io);
 	optionViceSystem.writeWithKeyIfNotDefault(io);
@@ -1130,7 +1165,6 @@ static bool initC64()
 {
 	if(c64IsInit)
 		return true;
-
 	logMsg("initializing C64");
   if(plugin.init_main() < 0)
   {
@@ -1138,14 +1172,8 @@ static bool initC64()
   	c64FailedInit = true;
   	return false;
 	}
-
-  plugin.resources_set_int("Drive8Type", DRIVE_TYPE_1541II);
-  plugin.resources_set_int("Drive9Type", DRIVE_TYPE_NONE);
-  plugin.resources_set_int("Drive10Type", DRIVE_TYPE_NONE);
-  plugin.resources_set_int("Drive11Type", DRIVE_TYPE_NONE);
-  applyInitialOptionResources();
-  c64IsInit = true;
-  return true;
+	c64IsInit = true;
+	return true;
 }
 
 int loadGame(const char *path, bool autoStartMedia)
@@ -1167,8 +1195,8 @@ int loadGame(const char *path, bool autoStartMedia)
 		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent()); // TODO: loadGame should propagate input event
 		return 0;
 	}
-
 	EmuSystem::closeGame();
+	applyInitialOptionResources();
 	EmuSystem::setupGamePaths(path);
 	logMsg("loading %s", path);
 	if(autoStartMedia)
@@ -1197,7 +1225,6 @@ int loadGame(const char *path, bool autoStartMedia)
 			}
 		}
 	}
-
 	return 1;
 }
 

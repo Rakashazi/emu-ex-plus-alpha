@@ -43,6 +43,6 @@ extern void mmu_init(void);
 extern int mmu_resources_init(void);
 extern int mmu_cmdline_options_init(void);
 
-extern int mmu_dump(void);
+extern int mmu_dump(void *context, WORD addr);
 
 #endif

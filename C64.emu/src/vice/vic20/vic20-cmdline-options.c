@@ -242,6 +242,16 @@ static cmdline_option_t const cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_MODEL, IDCLS_SET_VIC20_MODEL,
       NULL, NULL },
+    { "-vflimod", SET_RESOURCE, 0,
+      NULL, NULL, "VFLImod", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_VFLI_MOD,
+      NULL, NULL },
+    { "+vflimod", SET_RESOURCE, 0,
+      NULL, NULL, "VFLImod", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_VFLI_MOD,
+      NULL, NULL },
     { NULL}
 };
 

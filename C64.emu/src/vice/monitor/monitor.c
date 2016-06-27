@@ -726,6 +726,7 @@ void mon_print_convert(int val)
     mon_out("+%d\n", val);
     print_hex(val);
     print_octal(val);
+    mon_out("%%");
     mon_print_bin(val, '1', '0');
     mon_out("\n");
 }
@@ -1555,7 +1556,7 @@ void mon_display_io_regs(MON_ADDR addr)
                 if (addr > 0) {
                     if (mem_ioreg_list_base[n].dump) {
                         mon_out("\n");
-                        if (mem_ioreg_list_base[n].dump((WORD)(addr_location(start))) < 0) {
+                        if (mem_ioreg_list_base[n].dump(mem_ioreg_list_base[n].context, (WORD)(addr_location(start))) < 0) {
                             mon_out("No details available.\n");
                         }
                     } else {
@@ -1578,7 +1579,7 @@ void mon_display_io_regs(MON_ADDR addr)
 }
 
 void mon_ioreg_add_list(mem_ioreg_list_t **list, const char *name,
-                        int start_, int end_, void *dump)
+                        int start_, int end_, void *dump, void *context)
 {
     mem_ioreg_list_t *base;
     unsigned int n;
@@ -1608,6 +1609,7 @@ void mon_ioreg_add_list(mem_ioreg_list_t **list, const char *name,
     base[n].start = start;
     base[n].end = end;
     base[n].dump = dump;
+    base[n].context = context;
     base[n].next = 0;
 
     *list = base;
@@ -1852,12 +1854,14 @@ void mon_add_name_to_symbol_table(MON_ADDR addr, char *name)
 
     old_name = mon_symbol_table_lookup_name(mem, loc);
     old_addr = mon_symbol_table_lookup_addr(mem, name);
-    if (old_name && (WORD)(old_addr) != addr) {
+    if (old_name && addr_location(old_addr) != addr) {
         mon_out("Warning: label(s) for address $%04x already exist.\n", loc);
     }
-    if (old_addr >= 0 && old_addr != loc) {
-        mon_out("Changing address of label %s from $%04x to $%04x\n",
-                name, old_addr, loc);
+    if (old_addr >= 0) {
+        if (old_addr != loc) {
+            mon_out("Changing address of label %s from $%04x to $%04x\n",
+                    name, old_addr, loc);
+        }
         mon_remove_name_from_symbol_table(mem, name);
     }
 
@@ -1948,6 +1952,22 @@ void mon_print_symbol_table(MEMSPACE mem)
     while (sym_ptr) {
         mon_out("$%04x %s\n", sym_ptr->addr, sym_ptr->name);
         sym_ptr = sym_ptr->next;
+    }
+}
+
+void mon_clear_symbol_table(MEMSPACE mem)
+{
+    int i;
+
+    if (mem == e_default_space) {
+        mem = default_memspace;
+    }
+
+    free_symbol_table(mem);
+    monitor_labels[mem].name_list = NULL;
+
+    for (i = 0; i < HASH_ARRAY_SIZE; i++) {
+        monitor_labels[mem].addr_hash_table[i] = NULL;
     }
 }
 

@@ -7,3 +7,9 @@ extern int translate_cmdline_options_init(void);
 extern void translate_arch_language_init(void);
 extern char *translate_text(int en_resource);
 extern int translate_res(int en_resource);
+
+/* union to change pointer types for dynamic translations */
+union char_func{
+    const char *c;
+    char *(*f)(int id);
+};

@@ -27,8 +27,15 @@
 #include "vice.h"
 
 /* Tested and confirmed working on:
-   - i386-aros (mingw hosted)
-   - i386-aros (native)
+CPU   | PLATFORM
+----------------
+amd64 | native
+amd64 | linux hosted
+i386  | native
+i386  | linux hosted
+i386  | windows hosted
+m68k  | amiga native
+ppc   | linux hosted
 */
 
 #ifdef AMIGA_AROS
@@ -57,7 +64,7 @@ char *platform_get_aros_runtime_os(void)
 {
     int rc;
     ULONG relMajor, relMinor;
-    STRPTR arch;
+    STRPTR arch = NULL;
 
     if (!got_runtime_os) {
         if (!(ArosBase = OpenLibrary(AROSLIBNAME, AROSLIBVERSION))) {
@@ -68,7 +75,11 @@ char *platform_get_aros_runtime_os(void)
 
     if (!got_runtime_os) {
         ArosInquire(AI_ArosReleaseMajor, (IPTR)&relMajor, AI_ArosReleaseMinor, (IPTR)&relMinor, AI_ArosArchitecture, (IPTR)&arch, TAG_DONE);
-        sprintf(runtime_os, "AROS-%ld.%ld (%s)", relMajor, relMinor, arch);
+        if (arch) {
+            sprintf(runtime_os, "AROS-%ld.%ld (%s)", relMajor, relMinor, arch);
+        } else {
+            sprintf(runtime_os, "Unknown AROS version.");
+        }
         got_runtime_os = 1;
         CloseLibrary(ArosBase);
     }
@@ -82,6 +93,9 @@ char *platform_get_aros_runtime_cpu(void)
         ProcessorBase = OpenResource(PROCESSORNAME);
         GetCPUInfoTags(GCIT_ModelString, (IPTR)&modelstring, TAG_DONE);
     }
-    return (char *)modelstring;
+    if (modelstring) {
+        return (char *)modelstring;
+    }
+    return "Unknown CPU";
 }
 #endif

@@ -91,6 +91,11 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_SPRITE_SPRITE,
       NULL, NULL },
+    CMDLINE_LIST_END
+};
+
+static const cmdline_option_t cmdline_options_dtv[] =
+{
     { "-VICIInewluminance", SET_RESOURCE, 0,
       NULL, NULL, "VICIINewLuminances", (void *)1,
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
@@ -110,5 +115,10 @@ int vicii_cmdline_options_init(void)
         return -1;
     }
 
+    if (machine_class == VICE_MACHINE_C64DTV) {
+        if (cmdline_register_options(cmdline_options_dtv) < 0) {
+            return -1;
+        }
+    }
     return cmdline_register_options(cmdline_options);
 }

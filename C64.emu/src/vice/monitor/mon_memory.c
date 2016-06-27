@@ -246,7 +246,7 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
     prefix = (format == DF_PETSCII) ? '>' : '*';
 
     if (radix_type) {
-        if (radix_type != e_hexadecimal) {
+        if (radix_type != e_hexadecimal && radix_type != e_decimal && radix_type != e_octal) {
             max_width = (console_log->console_xres - 12)
                         / (radix_chars_per_byte[radix_type] + 2);
         } else {
@@ -285,8 +285,11 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     break;
                 case e_decimal:
                     memset(printables, 0, 50);
+                    if (!(cnt % 4)) {
+                        mon_out(" ");
+                    }
                     if (cnt < len) {
-                        mon_out("%3d ", v);
+                        mon_out("%03d ", v);
                         real_width++;
                         cnt++;
                     } else {
@@ -308,6 +311,9 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     break;
                 case e_octal:
                     memset(printables, 0, 50);
+                    if (!(cnt % 4)) {
+                        mon_out(" ");
+                    }
                     if (cnt < len) {
                         mon_out("%03o ", v);
                         real_width++;

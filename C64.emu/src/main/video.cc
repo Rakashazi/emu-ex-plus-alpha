@@ -41,7 +41,7 @@ void setCanvasSkipFrame(bool on)
 CLINK LVISIBLE int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
 int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 {
-	assert(EmuSystem::gameIsRunning());
+	//assert(EmuSystem::gameIsRunning());
 	if(likely(runningFrame))
 	{
 		//logMsg("vsync_do_vsync signaling main thread");
@@ -93,17 +93,10 @@ int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 
 void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned int ys, unsigned int xi, unsigned int yi, unsigned int w, unsigned int h)
 {
-	if(c->videoconfig->doublesizex)
-	{
-		xi *= (c->videoconfig->doublesizex + 1);
-		w *= (c->videoconfig->doublesizex + 1);
-	}
-
-	if(c->videoconfig->doublesizey)
-	{
-		yi *= (c->videoconfig->doublesizey + 1);
-		h *= (c->videoconfig->doublesizey + 1);
-	}
+	xi *= c->videoconfig->scalex;
+	w *= c->videoconfig->scalex;
+	yi *= c->videoconfig->scaley;
+	h *= c->videoconfig->scaley;
 
 	w = std::min(w, c64VidX);
 	h = std::min(h, c64VidY);
@@ -115,8 +108,8 @@ void video_canvas_resize(struct video_canvas_s *c, char resize_canvas)
 {
 	c64VidX = c->draw_buffer->canvas_width;
 	c64VidY = c->draw_buffer->canvas_height;
-	c64VidX *= (c->videoconfig->doublesizex + 1);
-	c64VidY *= (c->videoconfig->doublesizey + 1);
+	c64VidX *= c->videoconfig->scalex;
+	c64VidY *= c->videoconfig->scaley;
 	logMsg("resized canvas to %d,%d, renderer %d", c64VidX, c64VidY, c->videoconfig->rendermode);
 	if(unlikely(!emuVideo.vidImg))
 	{

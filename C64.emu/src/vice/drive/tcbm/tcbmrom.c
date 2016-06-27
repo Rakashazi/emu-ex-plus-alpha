@@ -70,17 +70,6 @@ void tcbmrom_setup_image(drive_t *drive)
     }
 }
 
-int tcbmrom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    switch (type) {
-        case DRIVE_TYPE_1551:
-            *data = drive_rom1551[addr & (DRIVE_ROM1551_SIZE - 1)];
-            return 0;
-    }
-
-    return -1;
-}
-
 int tcbmrom_check_loaded(unsigned int type)
 {
     switch (type) {

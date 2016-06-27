@@ -83,7 +83,7 @@
 
 /* ------------------------------------------------------------------------- */
 
-#define PETCATVERSION   2.20
+#define PETCATVERSION   2.21
 #define PETCATLEVEL     1
 
 #define B_1              1
@@ -125,96 +125,452 @@
 #define B_WARSAW        35
 #define B_EXPBAS20      36
 #define B_SUPERGRA      37
+#define B_KIPPER        38
+#define B_BOB           39
+#define B_EVE           40
+#define B_TT64          41
+
+/* Super Expander (VIC20) -- Tokens 0xCC - 0xDD */
+
+const char *superexpkwcc[] = { 
+    "key",   "graphic", "scnclr", "circle", "draw", "region", "color", "point",
+    "sound", "char",    "paint",  "rpot",   "rpen", "rsnd",   "rcolr", "rgr",
+    "rjoy",  "rdot"
+};
+
+/* Turtle Basic v1.0 (VIC20) by Craig Bruce -- Tokens 0xCC - 0xED */
+
+const char *turtlekwcc[] = {
+    "graphic", "old",    "turn",   "pen",    "draw",  "move", "point", "kill",
+    "write",   "repeat", "screen", "doke",   "reloc", "fill", "rtime", "base",
+    "pause",   "pop",    "color",  "merge",  "char",  "take", "sound", "vol",
+    "put",     "place",  "cls",    "accept", "reset", "grab", "rdot",  "plr$",
+    "deek",    "joy"
+};
+
+/* Simon's Basic (C64) -- Tokens 0x6400 - 0x647F */
+
+const char *simonskw[] = {
+    "",         "hires",    "plot",     "line",    "block",    "fchr",
+    "fcol",     "fill",     "rec",      "rot",     "draw",     "char",
+    "hi col",   "inv",      "frac",     "move",    "place",    "upb",
+    "upw",      "leftw",    "leftb",    "downb",   "downw",    "rightb",
+    "rightw",   "multi",    "colour",   "mmob",    "bflash",   "mob set",
+    "music",    "flash",    "repeat",   "play",    ">>",       "centre",
+    "envelope", "cgoto",    "wave",     "fetch",   "at(",      "until",
+    ">>",       ">>",       "use",      ">>",      "global",   ">>",
+    "reset",    "proc",     "call",     "exec",    "end proc", "exit",
+    "end loop", "on key",   "disable",  "resume",  "loop",     "delay",
+    ">>",       ">>",       ">>",       ">>",      "secure",   "disapa",
+    "circle",   "on error", "no error", "local",   "rcomp",    "else",
+    "retrace",  "trace",    "dir",      "page",    "dump",     "find",
+    "option",   "auto",     "old",      "joy",     "mod",      "div",
+    ">>",       "dup",      "inkey",    "inst",    "test",     "lin",
+    "exor",     "insert",   "pot",      "penx",    ">>",       "peny",
+    "sound",    "graphics", "design",   "rlocmob", "cmob",     "bckgnds",
+    "pause",    "nrm",      "mob off",  "off",     "angl",     "arc",
+    "cold",     "scrsv",    "scrld",    "text",    "cset",     "vol",
+    "disk",     "hrdcpy",   "key",      "paint",   "low col",  "copy",
+    "merge",    "renumber", "mem",      "detect",  "check",    "display",
+    "err",      "out"
+};
+
+/* Speech Basic v2.7 (C64) - Tokens 0xCC - 0xE6 */
+
+const char *speechkwcc[] = {
+    "reset",  "basic",  "help", "key",   "himem",  "disk", "dir",    "bload",
+    "bsave",  "map",    "mem",  "pause", "block",  "hear", "record", "play",
+    "voldef", "coldef", "hex",  "dez",   "screen", "exec", "mon",    "<-",
+    "from",   "speed",  "off"
+};
+
+/* @Basic (C64) by Andre Fachat -- Tokens 0xCC - 0xF6 */
+
+const char *atbasickwcc[] = {
+    "trace",    "delete",  "auto",   "old",     "dump",      "find",
+    "renumber", "dload",   "dsave",  "dverify", "directory", "catalog",
+    "scratch",  "collect", "rename", "copy",    "backup",    "disk",
+    "header",   "append",  "merge",  "mload",   "mverify",   "msave",
+    "key",      "basic",   "reset",  "exit",    "enter",     "doke",
+    "set",      "help",    "screen", "lomem",   "himem",     "colour",
+    "type",     "time",    "deek",   "hex$",    "bin$",      "off",
+    "alarm"
+};
+
+/* Basic v4.0 (PET) -- TOKENS 0xCC - 0xDA / Basic v4.0 extension (C64) -- Tokens 0xCC - 0xE3 */
+const char *petkwcc[] = {
+    "concat",    "dopen",  "dclose", "record", "header",  "collect", "backup",
+    "copy",      "append", "dsave",  "dload",  "catalog", "rename",  "scratch",
+    "directory",
+
+    /* Basic 4 Extension for C64 (0xdb - 0xe3) */
+    "color",  "cold", "key", "dverify", "delete", "auto", "merge", "old",
+    "monitor"
+};
+
+/* Final Cartridge III (C64) by Matti 'ccr' Hamalainen -- Tokens 0xCC - 0xE8 */
+
+const char *fc3kw[] = {
+    "off",   "auto",    "del",     "renum",  "?ERROR?", "find",   "old",
+    "dload", "dverify", "dsave",   "append", "dappend", "dos",    "kill",
+    "mon",   "pdir",    "plist",   "bar",    "desktop", "dump",   "array",
+    "mem",   "trace",   "replace", "order",  "pack",    "unpack", "mread",
+    "mwrite"
+};
+
+/* Ultrabasic-64 (C64) by Marco van den Heuvel - Tokens 0xCC - 0xFE */
+
+const char *ultrabasic64kwcc[] = {
+    "dot",    "draw",  "box",    "tic",    "copy", "sprite", "off",   "mode",
+    "norm",   "graph", "dump",   "gread",  "char", "place",  "multi", "hires",
+    "hex",    "bit",   "colors", "pixel",  "fill", "circle", "block", "sdata",
+    "vol",    "gen",   "scoll",  "bcoll",  "joy",  "paddle", "pen",   "sound",
+    "tune",   "tdata", "set",    "turnto", "turn", "tup",    "tdown", "tcolor",
+    "turtle", "move",  "bye",    "rotate", "tpos", "ctr",    "sctr",  "[",
+    "]",      "hard",  "exit"
+};
+
+/* Graphics basic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xFE */
+
+const char *graphicsbasickwcc[] = {
+    "background", "border", "dir",   "disk",   "fill",      "key",     "circle",
+    "procedure",  "dot",    "find",  "change", "ren",       "else",    "copy",
+    "scroll",     "roll",   "box",   "scale",  "do",        "line",    "sprite",
+    "color",      "hires",  "clear", "text",   "window",    "off",     "at",
+    "shape",      "xysize", "speed", "from",   "setorigin", "animate", "multi",
+    "eze",        "move",   "under", "edit",   "reset",     "xpos",    "gprint",
+    "voice",      "adsr",   "wave",  "ne",     "volume",    "play",    "ypos",
+    "sound",      "joy"
+};
+
+/* WS (WohnzimmerSoft) basic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xFE */
+
+const char *wsbasickwcc[] = {
+    "copy",   "old",    "port",  "doke",  "vpoke",  "fill",   "error",
+    "send",   "call",   "bit",   "dir",   "bload",  "bsave",  "find",
+    "speed",  "pitch",  "say",   "fast",  "slow",   "talk",   "shutup",
+    "stash",  "fetch",  "swap",  "off",   "screen", "device", "object",
+    "vstash", "vfetch", "quiet", "color", "cls",    "curpos", "monitor",
+    "subend", "do",     "loop",  "exit",  "deek",   "rsc",    "rsm",
+    "dec",    "hex$",   "hi",   "lo",    "ds$",    "line",   "vpeek",
+    "row",    "joy"
+};
+
+/* Mighty Basic (VIC20) -- Tokens 0xCC - 0xFE */
+
+const char *mightykwcc[] = {
+    "delete",  "old",     "renumber",  "help",   "header", "move",
+    "trace",   "kill",    "dump",      "dsave",  "dload",  "dverify",
+    "dresave", "scratch", "directory", "key",    "send",   "pop",
+    "off",     "bsave",   "bload",     "find",   "auto",   "pprint",
+    "accept",  "reset",   "else",      "color",  "take",   "pause",
+    "base",    "copychr", "char",      "beep",   "cls",    "fill",
+    "merge",   "sound",   "give",      "plist",  "put",    "volume",
+    "rtime",   "msb",     "lsb",       "vector", "joy",    "dec",
+    "hex$",    "grab",    "ds$"
+};
+
+/* Pegasus basic v4.0 (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xEC */
+
+const char *pegbasickwcc[] = {
+    "off",      "asc(",     "sin(",    "cos(",  "tan(",     "atn(",
+    "deg(",     "rad(",     "frac(",   "mod(",  "round(",   "dec(",
+    "bin(",     "deek(",    "instr(",  "joy(",  "pot(",     "screen(",
+    "test(",    "using",    "ds$",     "hex$(", "bin$(",    "space$(",
+    "ucase$(",  "string$(", "input$(", "time$", "spritex(", "spritey(",
+    "turtlex(", "turtley(", "turtleang"
+};
+
+/* Xbasic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xEC */
+
+const char *xbasickwcc[] = {
+    "sprat",   "brdr",    "screen", "quit",     "sprmult", "move",  "sprite",
+    "asprite", "dsprite", "sid",    "envelope", "gate",    "frq",   "wave",
+    "vol",     "fcut",    "fmode",  "filter",   "frsn",    "cset",  "multi",
+    "extnd",   "locate",  "center", "hires",    "line",    "hprnt", "plot",
+    "text",    "clear",   "colr",   "stick",    "btn"
+};
+
+/* Drago basic v2.2 (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xD8 */
+
+const char *dragobasickwcc[] = {
+    "punkt",   "linia",  "rysuj", "param",  "kuntur", "anim", "kolor", "puwid",
+    "ryselip", "koguma", "fiut",  "figura", "figuma"
+};
+
+/* REU-basic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xDA */
+
+const char *reubasickwcc[] = {
+    "push", "pull", "flip", "rec", "stash", "fetch", "swap", "reu", "size",
+    "dir",  "@",    "kill", "rom", "ram",   "move"
+};
+
+/* Basic Lightning (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xFE */
+
+const char *baslkwcc[] = {
+    "else",  "hex$",  "deek",     "true",    "import",  "cfn",   "size",
+    "false", "ver$",  "lpx",      "lpy",     "common%", "crow",  "ccol",
+    "atr",   "inc",   "num",      "row2",    "col2",    "spn2",  "hgt",
+    "wid",   "row",   "col",      "spn",     "task",    "halt",  "repeat",
+    "until", "while", "wend",     "cif",     "celse",   "cend",  "label",
+    "doke",  "exit",  "allocate", "disable", "pull",    "dload", "dsave",
+    "var",   "local", "procend",  "proc",    "casend",  "of",    "case",
+    "rpt",   "setatr"
+};
+
+/* Magic Basic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xFD */
+
+const char *magickwcc[] = {
+    "assembler", "auto",   "cdrive", "cat",     "dappend", "delete",  "dez",
+    "dir",       "dload",  "dsave",  "dverify", "config",  "find",    " ",
+    " ",         "help",   "hex",    "jump",    "llist",   "lprint",  "off",
+    "old",       "renum",  "crun",   "send",    "status",  "hires",   "multi",
+    "clear",     "plot",   "invert", "line",    "text",    "graphik", "page",
+    "box",       "draw",   "mix",    "copy",    "circle",  "gsave",   "gload",
+    "frame",     "hprint", "vprint", "block",   "fill",    " ",       "replace",
+    "lrun"
+};
+
+/* Easy Basic (VIC20) -- Tokens 0xCC - 0xFE */
+
+const char *easykwcc[] = {
+    "delete", "old",     "renumber",  "dump",   "merge", "plot",
+    "trace",  "kill",    "help",      "dload",  "dsave", "dverify",
+    "append", "screen",  "directory", "key",    "send",  "pop",
+    "off",    "pout",    "header",    "find",   "auto",  "pprint",
+    "accept", "reset",   "scratch",   "color",  "take",  "pause",
+    "base",   "copychr", "char",      "clk",    "cls",   "fill",
+    "retime", "sound",   "poff",      "plist",  "put",   "volume",
+    "joy",    "msb",     "lsb",       "vector", "rkey",  "dec",
+    "hex$",   "grab",    "ds$"
+};
+
+/* Blarg (C64) by Marco van den Heuvel -- Tokens 0xE0 - 0xEA */
+
+const char *blargkwe0[] = {
+    "plot",   "line", "circle", "gron", "groff", "mode", "origin", "clear",
+    "buffer", "swap", "color"
+};
+
+/* Basic 4.0 extension (VIC20) -- Tokens 0xCC - 0xDF */
+
+const char *vic4kwcc[] = {
+    "concat",  "dopen",   "dclose",    "record", "header", "collect",
+    "backup",  "copy",    "append",    "dsave",  "dload",  "catalog",
+    "rename",  "scratch", "directory", "ieee",   "serial", "parallel",
+    "monitor", "modem"
+};
+
+/* Basic 5.0 extension (VIC20) -- Tokens 0xCC - 0xF1 */
+
+const char *vic5kwcc[] = {
+    "concat", "dopen",    "dclose",    "record",  "header",  "collect",
+    "backup", "copy",     "append",    "dsave",   "dload",   "catalog",
+    "rename", "scratch",  "directory", "dverify", "monitor", "repeat",
+    "bell",   "commands", "renew",     "`",       "key",     "auto",
+    "off",    "",         "merge",     "color",   "mem",     "enter",
+    "delete", "find",     "number",    "else",    "call",    "graphic",
+    "alpha",  "dmerge"
+};
+
+/* WS (WohnzimmerSoft) Basic final (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xFE */
+
+const char *wsfbasickwcc[] = {
+    "copy",   "bank",   "old",   "doke",  "display", "fill",   "error",
+    "send",   "call",   "bit",   "dir",   "bload",   "bsave",  "find",
+    "speed",  "pitch",  "say",   "fast",  "slow",    "talk",   "shutup",
+    "stash",  "fetch",  "swap",  "off",   "mode",    "device", "object",
+    "vstash", "vfetch", "latch", "color", "cls",     "curpos", "monitor",
+    "subend", "do",     "loop",  "exit",  "deek",    "col",    "rsm",
+    "dec",    "hex$",   "hi",    "lo",    "ds$",     "line",   "bnk",
+    "ypos",   "joy"
+};
+
+/* Game Basic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xE8 */
+
+const char *gbkwcc[] = {
+    "window", "bfile",   "upper",   "lower",   "cls",    "screen", "parse",
+    "proc",   "else",    "scratch", "replace", "device", "dir",    "repeat",
+    "until",  "disk",    "fetch#",  "put#",    "prompt", "pop",    "help",
+    "exit",   "disable", "enter",   "reset",   "warm",   "num",    "type",
+    "text$"
+};
+
+/* Basex (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xEA */
+
+const char *bsxkwcc[] = {
+    "append",   "auto",   "bar",    "circle", "clg",      "cls",   "csr",
+    "delete",   "disk",   "draw",   "edge",   "envelope", "fill",  "key",
+    "mob",      "mode",   "move",   "old",    "pic",      "dump",  "plot",
+    "renumber", "repeat", "scroll", "sound",  "while",    "until", "voice",
+    "ass",      "dis",    "mem"
+};
+
+/* Super Basic (C64) by Marco van den Heuvel -- Tokens 0xDB - 0xFE */
+
+const char *superbaskwdb[] = {
+    "volume",   "reset",     "mem",    "trace",   "basic",   "resume", "letter",
+    "help",     "coke",      "ground", "matrix",  "dispose", "print@", "himem",
+    "hardcopy", "inputform", "lock",   "swap",    "using",   "sec",    "else",
+    "error",    "round",     "deek",   "string$", "point",   "instr",  "ceek",
+    "min",      "max",       "varptr", "frac",    "odd",     "dec",    "hex$",
+    "eval"
+};
+
+/* Expanded Basic (C64) by Marco van den Heuvel - Tokens 0xCC - 0xF5 */
+
+const char *expbas64kwcc[] = {
+    "hires",    "norm",     "graph",    "set",    "line",     "circle",
+    "fill",     "mode",     "cls",      "text",   "color",    "gsave",
+    "gload",    "inverse",  "frame",    "move",   "using",    "renumber",
+    "delete",   "box",      "mobdef",   "sprite", "mobset",   "modsize",
+    "mobcolor", "mobmulti", "mobmove",  "doke",   "allclose", "old",
+    "auto",     "volume",   "envelope", "wave",   "play",     "case error",
+    "resume",   "no error", "find",     "inkey",  "merge",    "hardcopy"
+};
+
+/* Super Expander Chip (C64) -- Tokens 0xFE00 - 0xFE1F */
+
+const char *sxckwfe[] = {
+    "key",    "color",  "graphic", "scnclr", "locate", "scale",  "box",
+    "circle", "char",   "draw",    "gshape", "paint",  "sshape", "tune",
+    "filter", "sprdef", "tempo",   "movspr", "sprcol", "sprite", "colint",
+    "sprsav", "rbump",  "rclr",    "rdot",   "rgr",    "rjoy",   "rpen",
+    "rpot",   "rspcol", "rsppos",  "rspr"
+};
+
+/* Warsaw Basic Keywords (C64) by Marco van den Heuvel -- Tokens 0xDB - 0xFE */
+
+const char *warsawkwdb[] = {
+    "hisave", "sline", "mem",    "trace",   "beep",    "resume", "letter",
+    "help",   "*****", "ground", "revers",  "dispose", "print@", "himem",
+    "*****",  "line",  "proc",   "axis",    "using",   "sec",    "else",
+    "rror",   "round", "****",   "*******", "*****",   "*****",  "pound",
+    "min",    "max",   "******", "frac",    "odd",     "***",    "heek",
+    "eval"
+};
+
+/* Expanded Basic (VIC20) by Marco van den Heuvel -- Tokens 0xCC - 0xE3 */
+
+const char *expbas20kwcc[] = {
+    "reset", "sound", "slow(", "com",   "mem",    "stat(", "key",   "off",
+    "col(",  "plot(", "pop(",  "chol(", "curol(", "beep(", "paus(", "msav",
+    "reg(",  "dpek(", "pdl",   "joy",   "dpok",   "do",    "until", "old"
+};
+
+/* Data Becker Supergrafik 64 (C64) by Sven Droll -- Tokens 0xCC - 0xFD */
+
+const char *supergrakw[] = {
+    " ",      " ",       "   ",    " ",      " ",         " ",       " ",
+    " ",      " ",       " ",      " ",      "directory", "spower",  "gcomb",
+    "dtaset", "merge",   "renum",  "key",    "trans",     " ",       "tune",
+    "sound",  "volume=", "filter", "sread",  "define",    "set",     "swait",
+    "smode",  "gmode",   "gclear", "gmove",  "plot",      "draw",    "fill",
+    "frame",  "invers",  "text",   "circle", "paddle",    "scale=",  "color=",
+    "scol=",  "pcol=",   "gsave",  "gload",  "hcopy",     "ireturn", "if#",
+    "paint"
+};
+
+/* Kipper Basic (C64) by Marco van den Heuvel -- Tokens 0xE1 - 0xF2 */
+
+const char *kipperkwe1[] = {
+    "ipcfg", "dhcp",      "ping",    "myip",     "netmask", "gateway",
+    "dns",   "tftp",      "tfget",   "tfput",    "netcat",  "tcpconnect",
+    "poll",  "tcplisten", "tcpsend", "tcpclose", "tcpblat", "mac"
+};
+
+/* Basic on Bails (C64) by Marco van den Heuvel -- Tokens 0xE1 - 0xF0 */
+
+const char *bobkwe1[] = {
+    "ipcfg", "dhcp",  "ping", "myip",  "netmask", "gateway", "dns",   "hook",
+    "yield", "xsend", "!",    "httpd", "type",    "status",  "flush", "mac"
+};
+
+/* Eve Basic (C64) by Marco van den Heuvel -- Tokens 0xCC - 0xF9 */
+
+const char *evekwcc[] = {
+    "else",     "page",    "paper",  "ink",    "locate", "erase",    "graphic",
+    "scale",    "pen",     "point",  "line",   "paint",  "write",    "draw",
+    "image",    "sprite",  "sprpic", "sprcol", "sprloc", "sprmulti", "tone",
+    "envelope", "wave",    "vol",    "filter", "dos",    "dvc",      "dir",
+    "cat",      "record#", "swap",   "exit",   "do",     "loop",     "while",
+    "until",    "cur",     "bin$",   "mak$",   "input$", "fmt$",     "infix$",
+    "instr",    "ds$",     "ds",     "sd"
+};
+
+/* The Tool 64 (C64) by Marco van den Heuvel -- Tokens 0xDB - 0xF4 */
+
+const char *tt64kwdb[] = {
+    " ",       "sort",  "extract", "carget", " ",    " ",     "screen",
+    "graphic", "text",  "auto",    "find",   "dump", "error", "renu",
+    "delete",  "plot",  "point",   "draw",   "move", "color", "else",
+    "display", "trace", "off",     "hcopy",  "joy"
+};
+
+typedef struct basic_list_s {
+    BYTE version;
+    BYTE num_tokens;
+    BYTE max_token;
+    WORD load_address;
+    BYTE token_offset;
+    BYTE token_start;
+    const char **tokens;
+    char *version_select;
+    char *name;
+} basic_list_t;
+
+static basic_list_t basic_list[] = {
+    { B_1,        75, 0xCB, 0x0801, 0, 0,    NULL, /* fix */    "1",         "PET Basic v1.0" },
+    { B_2,        76, 0xDD, 0x0801, 0, 0,    NULL, /* fix */    "2",         "Basic v2.0" },
+    { B_SUPEREXP, 18, 0xDD, 0x0401, 0, 0xCC, superexpkwcc,      "superexp",  "Basic v2.0 with Super Expander (VIC20)" },
+    { B_TURTLE,   34, 0xED, 0x3701, 0, 0xCC, turtlekwcc,        "turtle",    "Basic v2.0 with Turtle Basic v1.0 (VIC20)" },
+    { B_SIMON,   128, 0xCB, 0x0801, 1, 0,    simonskw,          "simon",     "Basic v2.0 with Simon's Basic (C64)" },
+    { B_SPEECH,   27, 0xE6, 0x0801, 0, 0xCC, speechkwcc,        "speech",    "Basic v2.0 with Speech Basic v2.7 (C64)" },
+    { B_ATBAS,    43, 0xF6, 0x0801, 0, 0xCC, atbasickwcc,       "a",         "Basic v2.0 with @Basic (C64)" },
+    { B_4,        15, 0xDA, 0x0801, 0, 0xCC, petkwcc,           "40",        "Basic v4.0 (PET)" },
+    { B_4E,       24, 0xE3, 0x0801, 0, 0xCC, petkwcc,           "4e",        "Basic v4.0 extension (C64)" },
+    { B_35,      126, 0xCB, 0x1001, 0, 0,    NULL, /* fix */    "3",         "Basic v3.5 (C16)" },
+    { B_7,        39, 0x26, 0x1c01, 2, 0,    NULL, /* fix */    "70",        "Basic v7.0 (C128)" },
+    { B_10,       62, 0x3D, 0x2001, 2, 0,    NULL, /* fix */    "10",        "Basic v10.0 (C65/C64DX)" },
+    { B_FC3,      29, 0xE8, 0x0801, 0, 0xCC, fc3kw,             "f",         "Basic v2.0 with Final Cartridge III (C64)" },
+    { B_ULTRA,    51, 0xFE, 0x2c01, 0, 0xCC, ultrabasic64kwcc,  "ultra",     "Basic v2.0 with Ultrabasic-64 (C64)" },
+    { B_GRAPH,    51, 0xFE, 0x1001, 0, 0xCC, graphicsbasickwcc, "graph",     "Basic v2.0 with Graphics basic (C64)" },
+    { B_WS,       51, 0xFE, 0x0801, 0, 0xCC, wsbasickwcc,       "wsb",       "Basic v2.0 with WS basic (C64)" },
+    { B_MIGHTY,   51, 0xFE, 0x3201, 0, 0xCC, mightykwcc,        "mighty",    "Basic v2.0 with Mighty Basic (VIC20)" },
+    { B_PEG,      33, 0xEC, 0x0401, 0, 0xCC, pegbasickwcc,      "pegasus",   "Basic v2.0 with Pegasus basic v4.0 (C64)" },
+    { B_X,        33, 0xEC, 0x0801, 0, 0xCC, xbasickwcc,        "xbasic",    "Basic v2.0 with Xbasic (C64)" },
+    { B_DRAGO,    13, 0xD8, 0x0801, 0, 0xCC, dragobasickwcc,    "drago",     "Basic v2.0 with Drago basic v2.2 (C64)" },
+    { B_REU,      14, 0xDA, 0x0801, 0, 0xCC, reubasickwcc,      "reu",       "Basic v2.0 with REU-basic (C64)" },
+    { B_BASL,     51, 0xFE, 0x0801, 0, 0xCC, baslkwcc,          "lightning", "Basic v2.0 with Basic Lightning (C64)" },
+    { B_71,       56, 0x39, 0x1c01, 2, 0,    NULL, /* fix */    "71",        "Basic v7.1 (C128)" },
+    { B_MAGIC,    50, 0xFD, 0x0801, 0, 0xCC, magickwcc,         "magic",     "Basic v2.0 with Magic Basic (C64)" },
+    { B_EASY,     51, 0xFE, 0x3001, 0, 0xCC, easykwcc,          "easy",      "Basic v2.0 with Easy Basic (VIC20)" },
+    { B_BLARG,    11, 0xEA, 0x0801, 0, 0xE0, blargkwe0,         "blarg",     "Basic v2.0 with Blarg (C64)" },
+    { B_VIC4,     20, 0xDF, 0x0801, 0, 0xCC, vic4kwcc,          "4v",        "Basic v4.0 (VIC20)" },
+    { B_VIC5,     38, 0xF1, 0x0801, 0, 0xCC, vic5kwcc,          "5",         "Basic v5.0 (VIC20)" },
+    { B_WSF,      51, 0xFE, 0x0801, 0, 0xCC, wsfbasickwcc,      "wsf",       "Basic v2.0 with WS basic final (C64)" },
+    { B_GB,       29, 0xE8, 0x0801, 0, 0xCC, gbkwcc,            "game",      "Basic v2.0 with Game Basic (C64)" },
+    { B_BSX,      31, 0xEA, 0x0401, 0, 0xCC, bsxkwcc,           "bsx",       "Basic v2.0 with Basex (C64)" },
+    { B_SUPERBAS, 36, 0xFE, 0x0801, 0, 0xDB, superbaskwdb,      "superbas",  "Basic v2.0 with Super Basic (C64)" },
+    { B_EXPBAS64, 42, 0xF5, 0x0801, 0, 0xCC, expbas64kwcc,      "exp64",     "Basic v2.0 with Expanded Basic (C64)" },
+    { B_SXC,      32, 0x1F, 0x0801, 0, 0,    sxckwfe,           "sxc",       "Basic v2.0 with Super Expander Chip (C64)" },
+    { B_WARSAW,   36, 0xFE, 0x0801, 0, 0xDB, warsawkwdb,        "warsaw",    "Basic v2.0 with Warsaw Basic (C64)" },
+    { B_EXPBAS20, 24, 0xE3, 0x0801, 0, 0xCC, expbas20kwcc,      "exp20",     "Basic v2.0 with Expanded Basic (VIC20)" },
+    { B_SUPERGRA, 50, 0xFE, 0x0801, 0, 0xCC, supergrakw,        "supergra",  "Basic v2.0 with Supergrafik 64 (C64)" },
+    { B_KIPPER,   18, 0xF2, 0x0801, 0, 0xE1, kipperkwe1,        "k",         "Basic v2.0 with Kipper Basic (C64)" },
+    { B_BOB,      16, 0xF0, 0x0801, 0, 0xE1, bobkwe1,           "bb",        "Basic v2.0 with Basic on Bails (C64)" },
+    { B_EVE,      46, 0xF9, 0x0801, 0, 0xCC, evekwcc,           "eve",       "Basic v2.0 with Eve Basic (C64)" },
+    { B_TT64,     26, 0xF4, 0x5b01, 0, 0xDB, tt64kwdb,          "tt64",      "Basic v2.0 with The Tool 64 (C64)" },
+    { -1,         -1, -1,   -1,     0, 0,    NULL,              NULL,        NULL }
+};
+
+#define NUM_VERSIONS ((sizeof(basic_list) / sizeof(basic_list[0])) - 1)
 
 /* Limits */
 
-#define NUM_B_1         75      /* Basic 1.0 */
-
-#define NUM_COMM        76      /* common for all versions 2.0 ... 10.0 */
-#define NUM_SECC        18      /* VIC-20 extension */
-#define NUM_TUCC        34      /* VIC-20 Turtle Basic extension */
-
-#define NUM_V4CC        15      /* PET 4.0 */
-#define NUM_4ECC        24      /* 4.0 extension (C64) */
-#define NUM_VIC4        20      /* 4.0 extension (VIC20) */
-#define NUM_VIC5        38      /* 5.0 extension (VIC20) */
-#define NUM_SPECC       27      /* Speech Basic */
-#define NUM_ATBCC       43      /* Atbasic */
-
-#define NUM_FC3CC       29      /* Final Cartridge III */
-
 #define NUM_KWCE        11
-#define NUM_V7FE        39
-#define NUM_V71FE       56
-#define NUM_V10FE       62
-#define NUM_SXCFE       32
-
-#define NUM_ULTRCC      51      /* Ultrabasic-64 */
-#define NUM_GRAPHCC     51      /* graphics basic (c64) */
-#define NUM_WSCC        51      /* WS basic (c64) */
-#define NUM_MIGHTYCC    51      /* Mighty basic (vic20) */
-#define NUM_PEGCC       33      /* Pegasus basic 4.0 (c64) */
-#define NUM_XCC         33      /* Xbasic (c64) */
-#define NUM_DRAGOCC     13      /* Drago basic 2.2 (c64) */
-#define NUM_REUCC       14      /* REU-basic (c64) */
-#define NUM_BASLCC      51      /* Basic Lightning (c64) */
-#define NUM_MAGICCC     50      /* Magic Basic (c64) */
-#define NUM_EASYCC      51      /* Easy Basic (vic20) */
-#define NUM_WSFCC       51      /* WS basic final (c64) */
-#define NUM_GBCC        29
-#define NUM_BSXCC       31      /* Basex (c64) */
-#define NUM_EXPBAS64CC  42      /* Expanded Basic (c64) */
-#define NUM_EXPBAS20CC  24      /* Expanded Basic (vic20) */
-
-#define NUM_BLARGE0     11      /* Blarg (c64) */
-
-#define NUM_SUPERBASDB  36      /* Superbasic (c64) */
-#define NUM_WARSAWDB    36      /* Warsaw Basic (c64) */
-
-#define NUM_SUPERGRACC  50      /* Supergrafik 64 (c64) */
-
-#define MAX_COMM        0xCB    /* common for all versions */
-#define MAX_SECC        0xDD    /* VIC-20 extension */
-#define MAX_TUCC        0xED    /* VIC-20 Turtle Basic extension */
-
-#define MAX_V4CC        0xDA    /* PET 4.0 */
-#define MAX_4ECC        0xE3    /* 4.0 extension (C64) */
-#define MAX_VIC4        0xDF    /* 4.0 extension (VIC20) */
-#define MAX_VIC5        0xF1    /* 5.0 extension (VIC20) */
-#define MAX_SPECC       0xE6    /* Speech Basic */
-#define MAX_ATBCC       0xF6    /* Atbasic */
-
-#define MAX_FC3CC       0xE8    /* Final Cartridge III */
-
-#define MAX_ULTRCC      0xFE    /* Ultrabasic-64 */
-#define MAX_GRAPHCC     0xFE    /* graphics basic (c64) */
-#define MAX_WSCC        0xFE    /* WS basic (c64) */
-#define MAX_MIGHTYCC    0xFE    /* Mighty basic (vic20) */
-#define MAX_PEGCC       0xEC    /* Pegasus basic 4.0 (c64) */
-#define MAX_XCC         0xEC    /* Xbasic (c64) */
-#define MAX_DRAGOCC     0xD8    /* Drago basic 2.2 (c64) */
-#define MAX_REUCC       0xDA    /* REU-basic (c64) */
-#define MAX_BASLCC      0xFE    /* Basic Lightning (c64) */
-#define MAX_MAGICCC     0xFD    /* Magic Basic (c64) */
-#define MAX_EASYCC      0xFE    /* Easy Basic (vic20) */
-#define MAX_WSFCC       0xFE    /* WS basic final (c64) */
-#define MAX_GBCC        0xE8    /* Game Basic (c64) */
-#define MAX_BSXCC       0xEA    /* Basex (c64) */
-#define MAX_EXPBAS64CC  0xF5    /* Expanded Basic (c64) */
-#define MAX_EXPBAS20CC  0xE3    /* Expanded Basic (vic20) */
-
-#define MAX_BLARGE0     0xEA    /* Blarg (c64) */
-
-#define MAX_SUPERBASDB  0xFE    /* Superbasic (c64) */
-#define MAX_WARSAWDB    0xFE    /* Warsaw Basic (c64) */
 
 #define MAX_KWCE        0x0A
-#define MAX_V7FE        0x26
-#define MAX_V71FE       0x39
-#define MAX_V10FE       0x3D
-#define MAX_SXCFE       0x1F
-
-#define MAX_SUPERGRACC  0xFE    /* Supergrafik 64 (c64) */
 
 #define KW_NONE         0xFE    /* flag unused token */
 
@@ -405,54 +761,6 @@ const char *c_ctrl2[0x20] = {
 
 /* ------------------------------------------------------------------------- */
 
-#define NUM_VERSIONS  35
-
-const char *VersNames[] = {
-    "Basic 1.0",
-    "Basic 2.0",
-    "Basic 2.0 with Super Expander",
-    "Basic 2.0 with Turtle Basic v1.0",
-
-    "Basic 2.0 with Simon's Basic",
-    "Basic 2.0 with Speech Basic v2.7",
-    "Basic 2.0 with @Basic",
-
-    "Basic 4.0",
-    "Basic 4.0 extension for C64",
-    "Basic 3.5",
-    "Basic 7.0",
-    "Basic 10.0",
-
-    "Basic 2.0 with Final Cartridge III",
-    "Basic 2.0 with Ultrabasic-64",
-    "Basic 2.0 with graphics basic",
-    "Basic 2.0 with WS basic",
-    "Basic 2.0 with Mighty basic",
-    "Basic 2.0 with Pegasus basic 4.0",
-    "Basic 2.0 with Xbasic",
-    "Basic 2.0 with Drago basic 2.2",
-    "Basic 2.0 with REU-basic",
-    "Basic 2.0 with Basic Lightning",
-
-    "Basic 7.1 extension",
-
-    "Basic 2.0 with Magic Basic",
-    "Basic 2.0 with Easy Basic",
-    "Basic 2.0 with Blarg",
-    "Basic 4.0 extension for VIC20",
-    "Basic 5.0 extension for VIC20",
-    "Basic 2.0 with WS basic final",
-    "Basic 2.0 with Game Basic",
-    "Basic 2.0 with Basex",
-    "Basic 2.0 with super basic",
-    "Basic 2.0 with expanded basic 20"
-    "Basic 2.0 with expanded basic 64",
-    "Basic 2.0 with super expander chip",
-    "Basic 2.0 with Warsaw Basic",
-    "Basic 2.0 with Supergrafik 64"
-    ""
-};
-
 /*
  * Two BASIC tokens which need some special care
  */
@@ -532,352 +840,6 @@ const char *kwfe71[] = {
     "merge"
 };
 
-const char *superexpkwcc[] = { /* VIC Super Expander commands 0xcc - 0xdd */
-    "key",   "graphic", "scnclr", "circle", "draw", "region", "color", "point",
-    "sound", "char",    "paint",  "rpot",   "rpen", "rsnd",   "rcolr", "rgr",
-    "rjoy",  "rdot"
-};
-
-
-const char *petkwcc[] = {       /* PET Basic 4.0 0xcc - 0xda */
-    "concat", "dopen", "dclose", "record",  "header", "collect", "backup",    "copy",
-    "append", "dsave", "dload",  "catalog", "rename", "scratch", "directory",
-
-    /* Basic 4 Extension for C64 (0xdb - 0xe3) */
-    "color",  "cold", "key", "dverify", "delete", "auto", "merge", "old",
-    "monitor"
-};
-
-
-/* ------------------------------------------------------------------------- */
-
-/*
- * Third party products for VIC-20
- */
-
-/* Turtle Basic v1.0 Keywords  -- Craig Bruce */
-
-const char *turtlekwcc[] = {
-    "graphic", "old",    "turn",   "pen",    "draw",  "move", "point", "kill",
-    "write",   "repeat", "screen", "doke",   "reloc", "fill", "rtime", "base",
-    "pause",   "pop",    "color",  "merge",  "char",  "take", "sound", "vol",
-    "put",     "place",  "cls",    "accept", "reset", "grab", "rdot",  "plr$",
-    "deek",    "joy"
-};
-
-
-/* Easy Basic Keywords */
-
-const char *easykwcc[] = {
-    "delete", "old",    "renumber", "dump",    "merge",  "plot",   "trace",     "kill",
-    "help",   "dload",  "dsave",    "dverify", "append", "screen", "directory", "key",
-    "send",   "pop",    "off",      "pout",    "header", "find",   "auto",      "pprint",
-    "accept", "reset",  "scratch",  "color",   "take",   "pause",  "base",      "copychr",
-    "char",   "clk",    "cls",      "fill",    "retime", "sound",  "poff",      "plist",
-    "put",    "volume", "joy",      "msb",     "lsb",    "vector", "rkey",      "dec",
-    "hex$",   "grab",   "ds$"
-};
-
-
-/* Mighty basic Keywords */
-
-const char *mightykwcc[] = {
-    "delete", "old",    "renumber", "help",    "header",  "move",    "trace",     "kill",
-    "dump",   "dsave",  "dload",    "dverify", "dresave", "scratch", "directory", "key",
-    "send",   "pop",    "off",      "bsave",   "bload",   "find",    "auto",      "pprint",
-    "accept", "reset",  "else",     "color",   "take",    "pause",   "base",      "copychr",
-    "char",   "beep",   "cls",      "fill",    "merge",   "sound",   "give",      "plist",
-    "put",    "volume", "rtime",    "msb",     "lsb",     "vector",  "joy",       "dec",
-    "hex$",   "grab",   "ds$"
-};
-
-
-/* Basic 4.0 extension Keywords */
-
-const char *vic4kwcc[] = {
-    "concat", "dopen",    "dclose",  "record",  "header", "collect", "backup",    "copy",
-    "append", "dsave",    "dload",   "catalog", "rename", "scratch", "directory", "ieee",
-    "serial", "parallel", "monitor", "modem"
-};
-
-
-/* Basic 5.0 extension Keywords */
-
-const char *vic5kwcc[] = {
-    "concat",  "dopen",  "dclose", "record",   "header", "collect", "backup",    "copy",
-    "append",  "dsave",  "dload",  "catalog",  "rename", "scratch", "directory", "dverify",
-    "monitor", "repeat", "bell",   "commands", "renew",  "`",       "key",       "auto",
-    "off",     "",       "merge",  "color",    "mem",    "enter",   "delete",    "find",
-    "number",  "else",   "call",   "graphic",  "alpha",  "dmerge"
-};
-
-
-/*
- * Third party products for C=64
- */
-
-
-/* Speech Basic v2.7  Keywords (Tokens CC - E6) */
-
-const char *speechkwcc[] = {
-    "reset",  "basic",  "help", "key",   "himem",  "disk", "dir",    "bload",
-    "bsave",  "map",    "mem",  "pause", "block",  "hear", "record", "play",
-    "voldef", "coldef", "hex",  "dez",   "screen", "exec", "mon",    "<-",
-    "from",   "speed",  "off"
-};
-
-
-/* Blarg Keywords (Tokens E0 - EA) -- Marco van den Heuvel */
-
-const char *blargkwe0[] = {
-    "plot",   "line", "circle", "gron", "groff", "mode", "origin", "clear",
-    "buffer", "swap", "color"
-};
-
-
-/* Super Basic Keywords (Tokens DB - FE) -- Marco van den Heuvel */
-
-const char *superbaskwdb[] = {
-    "volume",  "reset",  "mem",    "trace",   "basic",  "resume", "letter",   "help",
-    "coke",    "ground", "matrix", "dispose", "print@", "himem",  "hardcopy", "inputform",
-    "lock",    "swap",   "using",  "sec",     "else",   "error",  "round",    "deek",
-    "string$", "point",  "instr",  "ceek",    "min",    "max",    "varptr",   "frac",
-    "odd",     "dec",    "hex$",   "eval"
-};
-
-
-/* Warsaw Basic Keywords (TOKENS DB - FE) -- Marco van den Heuvel */
-
-const char *warsawkwdb[] = {
-    "hisave",  "sline",  "mem",    "trace",   "beep",   "resume", "letter", "help",
-    "*****",   "ground", "revers", "dispose", "print@", "himem",  "*****",  "line",
-    "proc",    "axis",   "using",  "sec",     "else",   "error",  "round",  "****",
-    "*******", "*****",  "*****",  "pound",   "min",    "max",    "******", "frac",
-    "odd",     "***",    "heek",   "eval"
-};
-
-
-/* @Basic (Atbasic) Keywords (Tokens CC - F6) -- Andre Fachat */
-
-const char *atbasickwcc[] = {
-    "trace",  "delete",  "auto",      "old",     "dump",    "find",    "renumber", "dload",
-    "dsave",  "dverify", "directory", "catalog", "scratch", "collect", "rename",   "copy",
-    "backup", "disk",    "header",    "append",  "merge",   "mload",   "mverify",  "msave",
-    "key",    "basic",   "reset",     "exit",    "enter",   "doke",    "set",      "help",
-    "screen", "lomem",   "himem",     "colour",  "type",    "time",    "deek",     "hex$",
-    "bin$",   "off",     "alarm"
-};
-
-
-/* Ultrabasic-64 Keywords (Tokens CC - FE) -- Marco van den Heuvel */
-
-const char *ultrabasic64kwcc[] = {
-    "dot",    "draw",  "box",    "tic",    "copy", "sprite", "off",   "mode",
-    "norm",   "graph", "dump",   "gread",  "char", "place",  "multi", "hires",
-    "hex",    "bit",   "colors", "pixel",  "fill", "circle", "block", "sdata",
-    "vol",    "gen",   "scoll",  "bcoll",  "joy",  "paddle", "pen",   "sound",
-    "tune",   "tdata", "set",    "turnto", "turn", "tup",    "tdown", "tcolor",
-    "turtle", "move",  "bye",    "rotate", "tpos", "ctr",    "sctr",  "[",
-    "]",      "hard",  "exit"
-};
-
-
-/* Graphics basic (c64) Keywords (Tokens CC - FE) -- Marco van den Heuvel */
-
-const char *graphicsbasickwcc[] = {
-    "background", "border",  "dir",    "disk", "fill",   "key",    "circle", "procedure",
-    "dot",        "find",    "change", "ren",  "else",   "copy",   "scroll", "roll",
-    "box",        "scale",   "do",     "line", "sprite", "color",  "hires",  "clear",
-    "text",       "window",  "off",    "at",   "shape",  "xysize", "speed",  "from",
-    "setorigin",  "animate", "multi",  "eze",  "move",   "under",  "edit",   "reset",
-    "xpos",       "gprint",  "voice",  "adsr", "wave",   "ne",     "volume", "play",
-    "ypos",       "sound",   "joy"
-};
-
-
-/* WS (WohnzimmerSoft) basic (c64) Keywords (Tokens CC - FE) -- Marco van den Heuvel */
-
-const char *wsbasickwcc[] = {
-    "copy",  "old",    "port",    "doke",   "vpoke",  "fill",   "error", "send",
-    "call",  "bit",    "dir",     "bload",  "bsave",  "find",   "speed", "pitch",
-    "say",   "fast",   "slow",    "talk",   "shutup", "stash",  "fetch", "swap",
-    "off",   "screen", "device",  "object", "vstash", "vfetch", "quiet", "color",
-    "cls",   "curpos", "monitor", "subend", "do",     "loop",   "exit",  "deek",
-    "rsc",   "rsm",    "dec",     "hex$",   "hi",     "lo",     "ds$",   "line",
-    "vpeek", "row",    "joy"
-};
-
-
-/* WS (WohnzimmerSoft) basic final (c64) Keywords (Tokens CC - FE) -- Marco van den Heuvel */
-
-const char *wsfbasickwcc[] = {
-    "copy", "bank",   "old",     "doke",   "display", "fill",   "error", "send",
-    "call", "bit",    "dir",     "bload",  "bsave",   "find",   "speed", "pitch",
-    "say",  "fast",   "slow",    "talk",   "shutup",  "stash",  "fetch", "swap",
-    "off",  "mode",   "device",  "object", "vstash",  "vfetch", "latch", "color",
-    "cls",  "curpos", "monitor", "subend", "do",      "loop",   "exit",  "deek",
-    "col",  "rsm",    "dec",     "hex$",   "hi",      "lo",     "ds$",   "line",
-    "bnk",  "ypos",   "joy"
-};
-
-
-/* Pegasus basic 4.0 (c64) Keywords (Tokens CC - EC) -- Marco van den Heuvel */
-
-const char *pegbasickwcc[] = {
-    "off",      "asc(",     "sin(",    "cos(",  "tan(",     "atn(",     "deg(",     "rad(",
-    "frac(",    "mod(",     "round(",  "dec(",  "bin(",     "deek(",    "instr(",   "joy(",
-    "pot(",     "screen(",  "test(",   "using", "ds$",      "hex$(",    "bin$(",    "space$(",
-    "ucase$(",  "string$(", "input$(", "time$", "spritex(", "spritey(", "turtlex(", "turtley(",
-    "turtleang"
-};
-
-
-/* Xbasic (c64) Keywords (Tokens CC - EC) -- Marco van den Heuvel */
-
-const char *xbasickwcc[] = {
-    "sprat",   "brdr",   "screen",   "quit", "sprmult", "move",  "sprite", "asprite",
-    "dsprite", "sid",    "envelope", "gate", "frq",     "wave",  "vol",    "fcut",
-    "fmode",   "filter", "frsn",     "cset", "multi",   "extnd", "locate", "center",
-    "hires",   "line",   "hprnt",    "plot", "text",    "clear", "colr",   "stick",
-    "btn"
-};
-
-
-/* Drago basic 2.2 (c64) Keywords (Tokens CC - D8) -- Marco van den Heuvel */
-
-const char *dragobasickwcc[] = {
-    "punkt",   "linia",  "rysuj", "param",  "kuntur", "anim", "kolor", "puwid",
-    "ryselip", "koguma", "fiut",  "figura", "figuma"
-};
-
-
-/* REU-basic (c64) Keywords (Tokens CC - DA) -- Marco van den Heuvel */
-
-const char *reubasickwcc[] = {
-    "push", "pull", "flip", "rec",  "stash", "fetch", "swap", "reu",
-    "size", "dir",  "@",    "kill", "rom",   "ram",   "move"
-};
-
-
-/* Basic Lightning (c64) Keywords (Tokens CC - FE) -- Marco van den Heuvel */
-
-const char *baslkwcc[] = {
-    "else",  "hex$",  "deek",  "true",    "import",  "cfn",      "size",    "false",
-    "ver$",  "lpx",   "lpy",   "common%", "crow",    "ccol",     "atr",     "inc",
-    "num",   "row2",  "col2",  "spn2",    "hgt",     "wid",      "row",     "col",
-    "spn",   "task",  "halt",  "repeat",  "until",   "while",    "wend",    "cif",
-    "celse", "cend",  "label", "doke",    "exit",    "allocate", "disable", "pull",
-    "dload", "dsave", "var",   "local",   "procend", "proc",     "casend",  "of",
-    "case",  "rpt",   "setatr"
-};
-
-
-/* Magic Basic (c64) Keywords (Tokens CC - FD) -- Marco van den Heuvel */
-
-const char *magickwcc[] = {
-    "assembler", "auto",    "cdrive",  "cat",    "dappend", "delete", "dez",    "dir",
-    "dload",     "dsave",   "dverify", "config", "find",    " ",      " ",      "help",
-    "hex",       "jump",    "llist",   "lprint", "off",     "old",    "renum",  "crun",
-    "send",      "status",  "hires",   "multi",  "clear",   "plot",   "invert", "line",
-    "text",      "graphik", "page",    "box",    "draw",    "mix",    "copy",   "circle",
-    "gsave",     "gload",   "frame",   "hprint", "vprint",  "block",  "fill",   " ",
-    "replace",   "lrun"
-};
-
-
-/* Game Basic (c64) Keywords (Tokens CC - E8) -- Marco van den Heuvel */
-
-const char *gbkwcc[] = {
-    "window", "bfile",   "upper",   "lower",  "cls",  "screen", "parse",   "proc",
-    "else",   "scratch", "replace", "device", "dir",  "repeat", "until",   "disk",
-    "fetch#", "put#",    "prompt",  "pop",    "help", "exit",   "disable", "enter",
-    "reset",  "warm",    "num",     "type",   "text$"
-};
-
-
-/* Basex (c64) Keywords (Tokens CC - EA) -- Marco van den Heuvel */
-
-const char *bsxkwcc[] = {
-    "append", "auto",  "bar",   "circle",   "clg",  "cls",      "csr",    "delete",
-    "disk",   "draw",  "edge",  "envelope", "fill", "key",      "mob",    "mode",
-    "move",   "old",   "pic",   "dump",     "plot", "renumber", "repeat", "scroll",
-    "sound",  "while", "until", "voice",    "ass",  "dis",      "mem"
-};
-
-/* Expanded Basic (c64) Keywords (Tokens CC - F5) -- Marco van den Heuvel */
-
-const char *expbas64kwcc[] = {
-    "hires",    "norm",     "graph",   "set",        "line",     "circle",   "fill",   "mode",
-    "cls",      "text",     "color",   "gsave",      "gload",    "inverse",  "frame",  "move",
-    "using",    "renumber", "delete",  "box",        "mobdef",   "sprite",   "mobset", "modsize",
-    "mobcolor", "mobmulti", "mobmove", "doke",       "allclose", "old",      "auto",   "volume",
-    "envelope", "wave",     "play",    "case error", "resume",   "no error", "find",   "inkey",
-    "merge",    "hardcopy"
-};
-
-/* Expanded Basic (vic20) Keywords (Tokens CC - E3) -- Marco van den Heuvel */
-
-const char *expbas20kwcc[] = {
-    "reset", "sound", "slow(", "com",   "mem",    "stat(", "key",   "off",
-    "col(",  "plot(", "pop(",  "chol(", "curol(", "beep(", "paus(", "msav",
-    "reg(",  "dpek(", "pdl",   "joy",   "dpok",   "do",    "until", "old"
-};
-
-/* Simon's Basic Keywords */
-
-const char *simonskw[] = {
-    "",        "hires",    "plot",   "line",     "block",    "fchr",    "fcol",     "fill",
-    "rec",     "rot",      "draw",   "char",     "hi col",   "inv",     "frac",     "move",
-    "place",   "upb",      "upw",    "leftw",    "leftb",    "downb",   "downw",    "rightb",
-    "rightw",  "multi",    "colour", "mmob",     "bflash",   "mob set", "music",    "flash",
-    "repeat",  "play",     ">>",     "centre",   "envelope", "cgoto",   "wave",     "fetch",
-    "at(",     "until",    ">>",     ">>",       "use",      ">>",      "global",   ">>",
-    "reset",   "proc",     "call",   "exec",     "end proc", "exit",    "end loop", "on key",
-    "disable", "resume",   "loop",   "delay",    ">>",       ">>",      ">>",       ">>",
-    "secure",  "disapa",   "circle", "on error", "no error", "local",   "rcomp",    "else",
-    "retrace", "trace",    "dir",    "page",     "dump",     "find",    "option",   "auto",
-    "old",     "joy",      "mod",    "div",      ">>",       "dup",     "inkey",    "inst",
-    "test",    "lin",      "exor",   "insert",   "pot",      "penx",    ">>",       "peny",
-    "sound",   "graphics", "design", "rlocmob",  "cmob",     "bckgnds", "pause",    "nrm",
-    "mob off", "off",      "angl",   "arc",      "cold",     "scrsv",   "scrld",    "text",
-    "cset",    "vol",      "disk",   "hrdcpy",   "key",      "paint",   "low col",  "copy",
-    "merge",   "renumber", "mem",    "detect",   "check",    "display", "err",      "out"
-};
-
-
-/* Final Cartridge III Keywords -- Matti 'ccr' Hamalainen */
-
-const char *fc3kw[] = {
-    "off",     "auto",  "del",     "renum",   "?ERROR?", "find", "old",   "dload",
-    "dverify", "dsave", "append",  "dappend", "dos",     "kill", "mon",   "pdir",
-    "plist",   "bar",   "desktop", "dump",    "array",   "mem",  "trace", "replace",
-    "order",   "pack",  "unpack",  "mread",   "mwrite"
-};
-
-
-/* Super Expander Chip extension */
-
-const char *sxckwfe[] = {
-    "key",   "color",  "graphic", "scnclr", "locate", "scale",  "box",    "circle",
-    "char",  "draw",   "gshape",  "paint",  "sshape", "tune",   "filter", "sprdef",
-    "tempo", "movspr", "sprcol",  "sprite", "colint", "sprsav", "rbump",  "rclr",
-    "rdot",  "rgr",    "rjoy",    "rpen",   "rpot",   "rspcol", "rsppos", "rspr"
-};
-
-
-/* Data Becker Supergrafik 64 (C64) Keywords (Tokens CC - FD) -- Sven Droll */
-
-const char *supergrakw[] = {
-    " ",      " ",      "   ",   " ",         " ",      " ",     " ",       " ",
-    " ",      " ",      " ",     "directory", "spower", "gcomb", "dtaset",  "merge",
-    "renum",  "key",    "trans", " ",         "tune",   "sound", "volume=", "filter",
-    "sread",  "define", "set",   "swait",     "smode",  "gmode", "gclear",  "gmove",
-    "plot",   "draw",   "fill",  "frame",     "invers", "text",  "circle",  "paddle",
-    "scale=", "color=", "scol=", "pcol=",     "gsave",  "gload", "hcopy",   "ireturn",
-    "if#",    "paint"
-};
-
-
 /* ------------------------------------------------------------------------- */
 
 static void usage(char *progname);
@@ -885,7 +847,7 @@ static int parse_version(char *str);
 static void list_keywords(int version);
 static void pet_2_asc (int ctrls);
 static void asc_2_pet (int ctrls);
-static void _p_toascii(int c, int ctrls);
+static void _p_toascii(int c, int ctrls, int quote);
 static int p_expand(int version, int addr, int ctrls);
 static void p_tokenize(int version, unsigned int addr, int ctrls);
 static unsigned char sstrcmp(unsigned char *line, const char **wordlist, int token, int maxitems);
@@ -896,6 +858,7 @@ static int sstrcmp_codes(unsigned char *line, const char **wordlist, int token, 
 static FILE *source, *dest;
 static unsigned int kwlen = 0;
 static int codesnocase = 0; /* flag, =1 if controlcodes should be interpreted case insensitive */
+static int quotedcodes = 0; /* flag, =1 if non alphanumeric characters inside quotes should always be converted to controlcodes */
 static int dec = 0;         /* flag, =1 if output control codes in decimal */
 static int verbose = 0;     /* flag, =1 for verbose output */
 
@@ -939,6 +902,11 @@ int main(int argc, char **argv)
 
         if (!strcmp(argv[0], "-ic")) {
             codesnocase = 1;
+            continue;
+        }
+
+        if (!strcmp(argv[0], "-qc")) {
+            quotedcodes = 1;
             continue;
         }
 
@@ -1039,39 +1007,7 @@ int main(int argc, char **argv)
     }
 
     if (!load_addr) {
-        switch (version) {
-            case B_PEG:
-            case B_SUPEREXP:
-            case B_BSX:
-                load_addr = 0x0401;
-                break;
-            case B_TURTLE:
-                load_addr = 0x3701;
-                break;
-            case B_GRAPH:
-            case B_35:
-                load_addr = 0x1001;
-                break;
-            case B_71:
-            case B_7:
-                load_addr = 0x1c01;
-                break;
-            case B_10:
-                load_addr = 0x2001;
-                break;
-            case B_ULTRA:
-                load_addr = 0x2c01;
-                break;
-            case B_EASY:
-                load_addr = 0x3001;
-                break;
-            case B_MIGHTY:
-                load_addr = 0x3201;
-                break;
-
-            default:
-                load_addr = 0x0801;
-        }
+        load_addr = basic_list[version - 1].load_address;
     }
 
     if (verbose) {
@@ -1198,6 +1134,8 @@ int main(int argc, char **argv)
 /* ------------------------------------------------------------------------- */
 void usage(char *progname)
 {
+    int i;
+
     fprintf(stdout,
             "\n\t%s V%4.2f PL %d -- Basic list/crunch utility.\n\tPart of "PACKAGE " "VERSION "\n",
             progname, (float)PETCATVERSION, PETCATLEVEL );
@@ -1214,6 +1152,7 @@ void usage(char *progname)
             "   -nc\t\tno controls (suppress control codes in printout)\n"
             "   \t\t<default if non-textmode>\n"
             "   -ic\t\tinterpret control codes case-insensitive\n"
+            "   -qc\t\tconvert all non alphanumeric characters inside quotes into controlcodes\n"
             "   -d\t\toutput raw codes in decimal\n"
             "   -h\t\twrite header <default if output is stdout>\n"
             "   -nh\t\tno header <default if output is a file>\n"
@@ -1228,43 +1167,11 @@ void usage(char *progname)
             "   -f\t\tForce overwritten the output file\n"
             "   \t\tThe default depends on the BASIC version.\n");
 
-    fprintf(stdout, "\n\tVersions:\n"
-            "\t1\tPET Basic V1.0\n"
-            "\t2\tBasic v2.0\n"
-            "\tsuperexp\tBasic v2.0 with Super Expander (VIC20)\n"
-            "\tturtle\tBasic v2.0 with Turtle Basic by Craig Bruce (VIC20)\n"
-            "\tmighty\tBasic v2.0 with Mighty Basic by Craig Bruce (VIC20)\n"
-            "\ta\tBasic v2.0 with AtBasic (C64)\n"
-            "\tsimon\tBasic v2.0 with Simon's Basic extension (C64)\n"
-            "\tspeech\tBasic v2.0 with Speech Basic v2.7 (C64)\n"
-            "\tF\tBasic v2.0 with Final Cartridge III (C64)\n"
-            "\tultra\tBasic v2.0 with Ultrabasic-64 (C64)\n"
-            "\tgraph\tBasic v2.0 with Graphics basic (C64)\n"
-            "\tWSB\tBasic v2.0 with WS basic (C64)\n"
-            "\tWSBF\tBasic v2.0 with WS basic final (C64)\n"
-            "\tPegasus\tBasic v2.0 with Pegasus basic 4.0 (C64)\n"
-            "\tXbasic\tBasic v2.0 with Xbasic (C64)\n"
-            "\tDrago\tBasic v2.0 with Drago basic 2.2 (C64)\n"
-            "\tREU\tBasic v2.0 with REU-basic (C64)\n"
-            "\tLightning\tBasic v2.0 with Basic Lightning (C64)\n"
-            "\tmagic\tBasic v2.0 with Magic Basic (C64)\n"
-            "\teasy\tBasic v2.0 with Easy Basic (VIC20)\n"
-            "\tblarg\tBasic v2.0 with Blarg (C64)\n"
-            "\tGame\tBasic v2.0 with Game Basic (C64)\n"
-            "\tBSX\tBasic v2.0 with Basex (C64)\n"
-            "\tsuperbas\tBasic v2.0 with Super Basic (C64)\n"
-            "\texp20\tBasic 2.0 with Expanded Basic (VIC20)\n"
-            "\texp64\tBasic 2.0 with Expanded Basic (C64)\n"
-            "\tsxc\tBasic 2.0 with Super Expander Chip (C64)\n"
-            "\twarsaw\tBasic 2.0 with Warsaw Basic (C64)\n"
-            "\t4v\tBasic 2.0 with Basic 4.0 extensions (VIC20)\n"
-            "\t4 -w4e\tPET Basic v4.0 program (PET/C64)\n"
-            "\t5\tBasic 2.0 with Basic 5.0 extensions (VIC20)\n"
-            "\t3\tBasic v3.5 program (C16)\n"
-            "\t70\tBasic v7.0 program (C128)\n"
-            "\t71\tBasic v7.1 program (C128)\n"
-            "\t10\tBasic v10.0 program (C64DX)\n"
-            "\tsupergra\tBasic v2.0 with Supergrafik 64 (C64)\n\n");
+    fprintf(stdout, "\n\tVersions:\n");
+    for (i = 0; basic_list[i].version_select; ++i) {
+            fprintf(stdout, "\t%s\t%s\n", basic_list[i].version_select, basic_list[i].name);
+    }
+    fprintf(stdout, "\n");
 
     fprintf(stdout, "\tUsage examples:\n"
             "\tpetcat -2 -o outputfile.txt -- inputfile.prg\n"
@@ -1286,217 +1193,21 @@ void usage(char *progname)
 
 static int parse_version(char *str)
 {
-    int version = -1;
+    int i;
 
     if (str == NULL || !*str) {
         return 0;
     }
 
-    switch (util_toupper(*str)) {
-        case '1':         /* Basic 1.0 and Basic 10.0 */
-            if (str[1] == '0') {
-                version = B_10;
-            } else if (!str[1]) {
-                version = B_1;
-            }
-            break;
-
-        case '2':
-            version = B_2;
-            break;
-
-        case '3':
-            version = B_35; /* 3.5 */
-            break;
-
-        case '4':
-            version = ((util_toupper(str[1]) == 'E') ? B_4E : ((util_toupper(str[1]) == 'v') ? B_VIC4 : B_4)); /* Basic 4.0 */
-            break;
-
-        case '5':
-            version = B_VIC5; /* 5.0 */
-            break;
-
-        case '7':
-            switch (str[1]) {
-                case '0':
-                    version = B_7;
-                    break;
-                case '1':
-                    version = B_71;
-                    break;
-                default:
-                    fprintf(stderr, "Please, select one of the following: 70, 71\n");
-            }
-            break;
-
-        case 'A':
-            version = B_ATBAS;
-            break;
-
-        case 'B':
-            switch (util_toupper(str[1])) {
-                case 'L':
-                    version = B_BLARG;
-                    break;
-                case 'S':
-                    version = B_BSX;
-                    break;
-                default:
-                    fprintf(stderr, "Please, select one of the following: blarg, bsx\n");
-            }
-            break;
-
-        case 'D':
-            version = B_DRAGO;
-            break;
-
-        case 'E':
-            switch (util_toupper(str[1])) {
-                case 'A':
-                    version = B_EASY;
-                    break;
-                case 'X':
-                    if (util_toupper(str[2]) != 'P') {
-                        fprintf(stderr, "Please, select one of the following: exp20, exp64\n");
-                    } else {
-                        switch (util_toupper(str[3])) {
-                            case '2':
-                                version = B_EXPBAS20;
-                                break;
-                            case '6':
-                                version = B_EXPBAS64;
-                                break;
-                            default:
-                                fprintf(stderr, "Please, select one of the following: exp20, exp64\n");
-                        }
-                    }
-                    break;
-            }
-            break;
-
-        case 'F':
-            version = B_FC3;
-            break;
-
-        case 'G':
-            switch (util_toupper(str[1])) {
-                case 'R':
-                    version = B_GRAPH;
-                    break;
-                case 'A':
-                    version = B_GB;
-                    break;
-                default:
-                    fprintf (stderr, "Please, select one of the following: graphics, game\n");
-            }
-            break;
-
-        case 'L':
-            version = B_BASL;
-            break;
-
-        case 'M':
-            switch (util_toupper(str[1])) {
-                case 'I':
-                    version = B_MIGHTY;
-                    break;
-                case 'A':
-                    version = B_MAGIC;
-                    break;
-                default:
-                    fprintf (stderr, "Please, select one of the following: magic, mighty\n");
-            }
-            break;
-
-        case 'P':
-            version = B_PEG;
-            break;
-
-        case 'R':
-            version = B_REU;
-            break;
-
-        case 'S':
-            switch (util_toupper(str[1])) {
-                case 'U':
-                    if (util_toupper(str[2]) != 'P' || util_toupper(str[3]) != 'E' || util_toupper(str[4]) != 'R') {
-                        fprintf(stderr, "Please, select one of the following: superbas, superexp, supergra\n");
-                    } else {
-                        switch (util_toupper(str[5])) {
-                            case 'B':
-                                version = B_SUPERBAS;
-                                break;
-                            case 'E':
-                                version = B_SUPEREXP;
-                                break;
-                            case 'G':
-                                version = B_SUPERGRA;
-                                break;
-                            default:
-                                fprintf(stderr, "Please, select one of the following: superbas, superexp, supergra\n");
-                        }
-                    }
-                    break;
-                case 'B':
-                    version = B_SUPERBAS;
-                    break;
-                case 'E':
-                    version = B_SUPEREXP;
-                    break;
-                case 'I':
-                    version = B_SIMON;
-                    break;
-                case 'P':
-                    version = B_SPEECH;
-                    break;
-                case 'X':
-                    version = B_SXC;
-                    break;
-                default:
-                    fprintf (stderr, "Please, select one of the following: superbas, superexp, simon, speech, sxc\n");
-            }
-            break;
-
-        case 'T':
-            version = B_TURTLE;
-            break;
-
-        case 'U':
-            version = B_ULTRA;
-            break;
-
-        case 'W':
-            switch (util_toupper(str[1])) {
-                case 'A':
-                    version = B_WARSAW;
-                    break;
-                case 'S':
-                    if (util_toupper(str[2]) != 'B') {
-                        fprintf(stderr, "Please, select one of the following: WSB, WSBF\n");
-                    } else {
-                        if (util_toupper(str[3]) == 'F') {
-                            version = B_WSF;
-                        } else {
-                            version = B_WS;
-                        }
-                    }
-                    break;
-                default:
-                    fprintf(stderr, "Please, select one of the following: Warsaw, WSB, WSBF\n");
-                    break;
-            }
-
-        case 'X':
-            version = B_X;
-            break;
-
-        default:
-            fprintf (stderr, "\nUnimplemented version '%s'\n", str);
-            version = -1;
+    for (i = 0; basic_list[i].version_select; ++i) {
+        if (!strncasecmp(str, basic_list[i].version_select, strlen(basic_list[i].version_select))) {
+            return i + 1;
+        }
     }
 
-    return (version);
+    fprintf(stderr, "\nUnimplemented version '%s'\n", str);
+
+    return -1;
 }
 
 static void list_keywords(int version)
@@ -1506,21 +1217,21 @@ static void list_keywords(int version)
     if (version <= 0 || version > NUM_VERSIONS) {
         printf("\n  The following versions are supported on  %s V%4.2f\n\n", "petcat", (float)PETCATVERSION );
 
-        for (n = 0; n < NUM_VERSIONS; n++) {
-            printf("\t%s\n", VersNames[n]);
+        for (n = 0; basic_list[n].name; n++) {
+            printf("\t%s\n", basic_list[n].name);
         }
         printf("\n");
         return;
     }
 
-    printf("\n  Available Keywords on %s\n\n", VersNames[version - 1]);
+    printf("\n  Available Keywords on %s\n\n", basic_list[version - 1].name);
 
     if (version == B_1) {
-        max = NUM_B_1;
+        max = basic_list[B_1 - 1].num_tokens;
     } else if (version == B_35 || version == B_7 || version == B_71 || version == B_10) {
-        max = 0x7E;
+        max = basic_list[B_35 - 1].num_tokens;
     } else {
-        max = NUM_COMM;
+        max = basic_list[B_2 - 1].num_tokens;
     }
 
     for (n = 0; n < max; n++) {
@@ -1532,209 +1243,53 @@ static void list_keywords(int version)
 
 
     if (version == B_7 || version == B_71 || version == B_10 || version == B_SXC) {
-        switch (version) {
-            case B_10:
-                for (n = 2; n < NUM_V10FE; n++) {
-                    printf("%s\t", kwfe[n] /*, 0xfe, n*/);
-                }
-                break;
-            case B_71:
-                for (n = 2; n < NUM_V71FE; n++) {
-                    printf("%s\t", kwfe71[n] /*, 0xfe, n*/);
-                }
-                break;
-            default:
-            case B_7:
-                for (n = 2; n < NUM_V7FE; n++) {
-                    printf("%s\t", kwfe[n] /*, 0xfe, n*/);
-                }
-                break;
-            case B_SXC:
-                for (n = 0; n < NUM_SXCFE; n++) {
-                    printf("%s\t", sxckwfe[n] /*, 0xfe, n*/);
-                }
-                break;
+        for (n = basic_list[version - 1].token_offset; n < basic_list[version - 1].num_tokens; n++) {
+            printf("%s\t", kwfe[n] /*, 0xfe, n*/);
         }
 
         if (version != B_SXC) {
-            for (n = 2; n < NUM_KWCE; n++) {
+            for (n = basic_list[version - 1].token_offset; n < NUM_KWCE; n++) {
                 printf("%s\t", kwce[n] /*, 0xce, n*/);
             }
         }
     } else {
         switch (version) {
-            case B_SUPEREXP:
-                for (n = 0; n < NUM_SECC; n++) {
-                    printf("%s\t", superexpkwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_TURTLE:
-                for (n = 0; n < NUM_TUCC; n++) {
-                    printf("%s\t", turtlekwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_MIGHTY:
-                for (n = 0; n < NUM_MIGHTYCC; n++) {
-                    printf("%s\t", mightykwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_MAGIC:
-                for (n = 0; n < NUM_MAGICCC; n++) {
-                    printf("%s\t", magickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_EASY:
-                for (n = 0; n < NUM_EASYCC; n++) {
-                    printf("%s\t", easykwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_BLARG:
-                for (n = 0; n < NUM_BLARGE0; n++) {
-                    printf("%s\t", blargkwe0[n] /*, n + 0xe0*/);
-                }
-                break;
-
-            case B_SUPERBAS:
-                for (n = 0; n < NUM_SUPERBASDB; n++) {
-                    printf("%s\t", superbaskwdb[n] /*, n + 0xdb*/);
-                }
-                break;
-
-            case B_WARSAW:
-                for (n = 0; n < NUM_WARSAWDB; n++) {
-                    printf("%s\t", warsawkwdb[n] /*, n + 0xdb*/);
-                }
-                break;
-
-            case B_EXPBAS20:
-                for (n = 0; n < NUM_EXPBAS20CC; n++) {
-                    printf("%s\t", expbas20kwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
             case B_EXPBAS64:
-                for (n = 0; n < NUM_EXPBAS64CC; n++) {
-                    printf("%s\t", expbas64kwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_GB:
-                for (n = 0; n < NUM_GBCC; n++) {
-                    printf("%s\t", gbkwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
+            case B_SUPERBAS:
+            case B_BLARG:
+            case B_EASY:
+            case B_MAGIC:
+            case B_MIGHTY:
+            case B_TURTLE:
+            case B_SUPEREXP:
             case B_BSX:
-                for (n = 0; n < NUM_BSXCC; n++) {
-                    printf("%s\t", bsxkwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
+            case B_GB:
+            case B_VIC5:
+            case B_VIC4:
             case B_4:
             case B_4E:
-                for (n = 0; n < ((version == B_4) ? NUM_V4CC : NUM_4ECC); n++) {
-                    printf("%s\t", petkwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_VIC4:
-                for (n = 0; n < NUM_VIC4; n++) {
-                    printf("%s\t", vic4kwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_VIC5:
-                for (n = 0; n < NUM_VIC5; n++) {
-                    printf("%s\t", vic5kwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_SIMON:
-                for (n = 1; n < 0x80; n++) {
-                    printf("%s\t", simonskw[n] /*, 0x64, n*/);
-                }
-                break;
-
-            case B_SPEECH:
-                for (n = 0; n < NUM_SPECC; n++) {
-                    printf("%s\t", speechkwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_ATBAS:
-                for (n = 0; n < NUM_ATBCC; n++) {
-                    printf("%s\t", atbasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_ULTRA:
-                for (n = 0; n < NUM_ULTRCC; n++) {
-                    printf("%s\t", ultrabasic64kwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_GRAPH:
-                for (n = 0; n < NUM_GRAPHCC; n++) {
-                    printf("%s\t", graphicsbasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_WS:
-                for (n = 0; n < NUM_WSCC; n++) {
-                    printf("%s\t", wsbasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
+            case B_WARSAW:
+            case B_EXPBAS20:
             case B_WSF:
-                for (n = 0; n < NUM_WSFCC; n++) {
-                    printf("%s\t", wsfbasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_PEG:
-                for (n = 0; n < NUM_PEGCC; n++) {
-                    printf("%s\t", pegbasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_X:
-                for (n = 0; n < NUM_XCC; n++) {
-                    printf("%s\t", xbasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_DRAGO:
-                for (n = 0; n < NUM_DRAGOCC; n++) {
-                    printf("%s\t", dragobasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_REU:
-                for (n = 0; n < NUM_REUCC; n++) {
-                    printf("%s\t", reubasickwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
-            case B_FC3:
-                for (n = 0; n < NUM_FC3CC; n++) {
-                    printf("%s\t", fc3kw[n] /*, n + 0xcc*/);
-                }
-                break;
-
             case B_BASL:
-                for (n = 0; n < NUM_BASLCC; n++) {
-                    printf("%s\t", baslkwcc[n] /*, n + 0xcc*/);
-                }
-                break;
-
+            case B_REU:
+            case B_DRAGO:
+            case B_X:
+            case B_PEG:
+            case B_WS:
+            case B_GRAPH:
+            case B_ULTRA:
+            case B_FC3:
+            case B_SPEECH:
+            case B_ATBAS:
             case B_SUPERGRA:
-                for (n = 0; n < NUM_SUPERGRACC; n++) {
-                    printf("%s\t", supergrakw[n] /*, n + 0xcc*/);
+            case B_KIPPER:
+            case B_BOB:
+            case B_EVE:
+            case B_SIMON:
+            case B_TT64:
+                for (n = basic_list[version - 1].token_offset; n < basic_list[version - 1].num_tokens; n++) {
+                    printf("%s\t", basic_list[version -1].tokens[n] /*, n + 0xcc*/);
                 }
                 break;
         }  /* switch */
@@ -1750,12 +1305,13 @@ static void list_keywords(int version)
  * Conversion Routines
  */
 
+/* used in text mode */
 static void pet_2_asc(int ctrls)
 {
     int c;
 
     while ((c = getc(source)) != EOF) {
-        _p_toascii(c, ctrls);           /* convert character */
+        _p_toascii(c, ctrls, 0);           /* convert character */
     }      /* line */
 }
 
@@ -1777,38 +1333,54 @@ static void out_ctrl(unsigned char c)
     }
 }
 
-static void _p_toascii(int c, int ctrls)
+static void _p_fputc(int c, int p, int quote)
+{
+   if (quote && quotedcodes) {
+        /* if enabled, output all quoted non alphanumeric characters as control codes */
+        if (!(((c >= 'a') && (c <= 'A')) ||
+              ((c >= 'A') && (c <= 'Z')) ||
+              ((c >= '0') && (c <= '9')) ||
+              (c == '"') /* needed so the leading quote does NOT get converted into a control code */
+           )) {
+            out_ctrl((unsigned char)(p & 0xff));
+            return;
+        }
+    }
+    fputc(c, dest);
+}
+
+static void _p_toascii(int c, int ctrls, int quote)
 {
     /* fprintf(stderr, "<%02x:%d>", c, ctrls); */
     switch (c) {
         case 0x00: /* 00 for SEQ */
         case 0x0a:
             if (!ctrls) {
-                fputc('\n', dest);
+                _p_fputc('\n', c, quote);
             } else {
                 out_ctrl((unsigned char)(c & 0xff));
             }
             break;
         case 0x0d: /* CBM carriage return */
-            fputc('\n', dest);
+            _p_fputc('\n', c, quote);
             break;
         case 0x40:
-            fputc('@', dest);
+            _p_fputc('@', c, quote);
             break;
         case 0x5b:
-            fputc('[', dest);
+            _p_fputc('[', c, quote);
             break;
         case 0x5c:
-            fputc('\\', dest);
+            _p_fputc('\\', c, quote);
             break;
         case 0x5d:
-            fputc(']', dest);
+            _p_fputc(']', c, quote);
             break;
         case 0x5e:
-            fputc('^', dest);
+            _p_fputc('^', c, quote);
             break;
         case 0x5f: /* left arrow */
-            fputc('_', dest);
+            _p_fputc('_', c, quote);
             break;
         case 0x60: /* produces the same screencode as $c0! */
             out_ctrl((unsigned char)(c & 0xff));
@@ -1844,40 +1416,40 @@ static void _p_toascii(int c, int ctrls)
         case 0xa0: /* shifted Space */
         case 0xe0: /* produces the same screencode as $a0! */
             if (!ctrls) {
-                fputc(' ', dest);
+                _p_fputc(' ', c, quote);
             } else {
                 out_ctrl((unsigned char)(c & 0xff));
             }
             break;
         case 0xff: /* (*) PI produces the same screencode as $7e and $de! */
-            fputc(0x7e, dest); /*  '~' is ASCII for 'pi' */
+            _p_fputc(0x7e, c, quote); /*  '~' is ASCII for 'pi' */
             break;
 
         default:
             switch (c & 0xe0) {
-                case 0x40:                /* 41 - 5F */
-                    fputc(c ^ 0x20, dest);
+                case 0x40:                /* 41 - 5F (no duplicated set exists) */
+                    _p_fputc(c ^ 0x20, c, quote);
                     break;
                 case 0x60:                /* 61 - 7F (produces same screencodes as C1...) */
                     if (ctrls) {
                         out_ctrl((unsigned char)(c & 0xff));
                     } else {
-                        fputc(c ^ 0x20, dest);
+                        _p_fputc(c ^ 0x20, c, quote);
                     }
                     break;
-                case 0xa0:                /* (*) A1 - BF (produces same screencodes as E1...) */
+                case 0xa0:                /* (primary set) A1 - BF (produces same screencodes as E1...) */
                     fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, cbmkeys[c & 0x1f]);
                     break;
                 case 0xe0:                /* E1 - FE (produces same screencodes as A1...) */
                     out_ctrl((unsigned char)(c & 0xff));
                     break;
-                case 0xc0:                /* (*) C0 - DF (produces same screencodes as 61...) */
-                    fputc(c ^ 0x80, dest);
+                case 0xc0:                /* (primary set) C0 - DF (produces same screencodes as 61...) */
+                    _p_fputc(c ^ 0x80, c, quote);
                     break;
 
                 default:
                     if ((c > 0x1f) && isprint(c)) {
-                        fputc(c, dest);
+                        _p_fputc(c, c, quote);
                     } else if (ctrls) {
                         if ((c < 0x20) && *ctrl1[c]) {
                             fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, ctrl1[c]);
@@ -1987,7 +1559,7 @@ static int p_expand(int version, int addr, int ctrls)
 
             if (!quote && (c == 0x64)) {
                 if ((c = getc(source)) < 0x80) {
-                    fprintf(dest, "%s", simonskw[c]);
+                    fprintf(dest, "%s", basic_list[version - 1].tokens[c]);
                     continue;
                 } else {
                     fprintf(dest, "($64)");     /* it wasn't prefix */
@@ -1998,7 +1570,7 @@ static int p_expand(int version, int addr, int ctrls)
 
             if (!quote && c > 0x7f) {
                 /* check for keywords common to all versions, include pi */
-                if (c <= MAX_COMM || c == 0xff) {
+                if (c <= basic_list[B_1 - 1].max_token || c == 0xff) {
                     fprintf(dest, "%s", keyword[c & 0x7f]);
 
                     if (c == 0x9E) {
@@ -2016,13 +1588,13 @@ static int p_expand(int version, int addr, int ctrls)
                         continue;
                     } else if (c == 0xfe) {
                         if (version == B_SXC) {
-                            if ((c = getc(source)) <= MAX_SXCFE) {
-                                fprintf(dest, "%s", sxckwfe[c]);
+                            if ((c = getc(source)) <= basic_list[B_SXC - 1].max_token) {
+                                fprintf(dest, "%s", basic_list[version - 1].tokens[c]);
                             } else {
                                 fprintf(dest, "($fe%02x)", c);
                             }
                         } else {
-                            if ((c = getc(source)) <= MAX_V10FE) {
+                            if ((c = getc(source)) <= basic_list[B_10 - 1].max_token) {
                                 fprintf(dest, "%s", (version == B_71) ? kwfe71[c] : kwfe[c]);
                             } else {
                                 fprintf(dest, "($fe%02x)", c);
@@ -2033,172 +1605,41 @@ static int p_expand(int version, int addr, int ctrls)
                 }
                 switch (version) {
                     case B_2:
-                    case B_SUPEREXP:         /* VIC extension */
-                        if (c >= 0xcc && c <= MAX_SECC) {
-                            fprintf(dest, "%s", superexpkwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_TURTLE:        /* VIC extension as well */
-                        if (c >= 0xcc && c <= MAX_TUCC) {
-                            fprintf(dest, "%s", turtlekwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_MIGHTY:        /* VIC Mightyb basic */
-                        if (c >= 0xcc && c <= MAX_MIGHTYCC) {
-                            fprintf(dest, "%s", mightykwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_MAGIC:
-                        if (c >= 0xcc && c <= MAX_MAGICCC) {
-                            fprintf(dest, "%s", magickwcc[c - 0xcc]);
-                        }
-                        break;
-
                     case B_EASY:
-                        if (c >= 0xcc && c <= MAX_EASYCC) {
-                            fprintf(dest, "%s", easykwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_BLARG:
-                        if (c >= 0xe0 && c <= MAX_BLARGE0) {
-                            fprintf(dest, "%s", blargkwe0[c - 0xe0]);
-                        }
-                        break;
-
-                    case B_SUPERBAS:
-                        if (c >= 0xdb && c <= MAX_SUPERBASDB) {
-                            fprintf(dest, "%s", superbaskwdb[c - 0xdb]);
-                        }
-                        break;
-
-                    case B_WARSAW:
-                        if (c >= 0xdb && c <= MAX_WARSAWDB) {
-                            fprintf(dest, "%s", warsawkwdb[c - 0xdb]);
-                        }
-                        break;
-
+                    case B_MAGIC:
+                    case B_MIGHTY:        /* VIC Mightyb basic */
+                    case B_TURTLE:        /* VIC extension as well */
                     case B_EXPBAS20:
-                        if (c >= 0xcc && c <= MAX_EXPBAS20CC) {
-                            fprintf(dest, "%s", expbas20kwcc[c - 0xcc]);
-                        }
-                        break;
-
+                    case B_SUPEREXP:         /* VIC extension */
                     case B_EXPBAS64:
-                        if (c >= 0xcc && c <= MAX_EXPBAS64CC) {
-                            fprintf(dest, "%s", expbas64kwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_GB:
-                        if (c >= 0xcc && c <= MAX_GBCC) {
-                            fprintf(dest, "%s", gbkwcc[c - 0xcc]);
-                        }
-                        break;
-
                     case B_BSX:
-                        if (c >= 0xcc && c <= MAX_BSXCC) {
-                            fprintf(dest, "%s", bsxkwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_SPEECH:        /* C64 Speech basic */
-                        if (c >= 0xcc && c <= MAX_SPECC) {
-                            fprintf(dest, "%s", speechkwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_ATBAS:         /* C64 Atbasic */
-                        if (c >= 0xcc && c <= MAX_ATBCC) {
-                            fprintf(dest, "%s", atbasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_FC3:           /* C64 FC3 */
-                        if (c >= 0xcc && c <= MAX_FC3CC) {
-                            fprintf(dest, "%s", fc3kw[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_ULTRA:         /* C64 Ultrabasic-64 */
-                        if (c >= 0xcc && c <= MAX_ULTRCC) {
-                            fprintf(dest, "%s", ultrabasic64kwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_GRAPH:
-                        if (c >= 0xcc && c <= MAX_GRAPHCC) {
-                            fprintf(dest, "%s", graphicsbasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_WS:
-                        if (c >= 0xcc && c <= MAX_WSCC) {
-                            fprintf(dest, "%s", wsbasickwcc[c - 0xcc]);
-                        }
-                        break;
-
+                    case B_GB:
                     case B_WSF:
-                        if (c >= 0xcc && c <= MAX_WSFCC) {
-                            fprintf(dest, "%s", wsfbasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_PEG:
-                        if (c >= 0xcc && c <= MAX_PEGCC) {
-                            fprintf(dest, "%s", pegbasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_X:
-                        if (c >= 0xcc && c <= MAX_XCC) {
-                            fprintf(dest, "%s", xbasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_DRAGO:
-                        if (c >= 0xcc && c <= MAX_DRAGOCC) {
-                            fprintf(dest, "%s", dragobasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_REU:
-                        if (c >= 0xcc && c <= MAX_REUCC) {
-                            fprintf(dest, "%s", reubasickwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_BASL:
-                        if (c >= 0xcc && c <= MAX_BASLCC) {
-                            fprintf(dest, "%s", baslkwcc[c - 0xcc]);
-                        }
-                        break;
-
+                    case B_VIC5:
+                    case B_VIC4:
                     case B_4:             /* PET V4.0 */
                     case B_4E:            /* V4.0 extension */
-                        if (c >= 0xcc && c <= MAX_4ECC) {
-                            fprintf(dest, "%s", petkwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_VIC4:
-                        if (c >= 0xcc && c <= MAX_VIC4) {
-                            fprintf(dest, "%s", vic4kwcc[c - 0xcc]);
-                        }
-                        break;
-
-                    case B_VIC5:
-                        if (c >= 0xcc && c <= MAX_VIC5) {
-                            fprintf(dest, "%s", vic5kwcc[c - 0xcc]);
-                        }
-                        break;
-
+                    case B_BASL:
+                    case B_REU:
+                    case B_DRAGO:
+                    case B_X:
+                    case B_PEG:
+                    case B_WS:
+                    case B_GRAPH:
+                    case B_ULTRA:         /* C64 Ultrabasic-64 */
+                    case B_FC3:           /* C64 FC3 */
+                    case B_ATBAS:         /* C64 Atbasic */
                     case B_SUPERGRA:
-                        if (c >= 0xcc && c <= MAX_SUPERGRACC) {
-                            fprintf(dest, "%s", supergrakw[c - 0xcc]);
+                    case B_SPEECH:        /* C64 Speech basic */
+                    case B_BLARG:
+                    case B_SUPERBAS:
+                    case B_WARSAW:
+                    case B_KIPPER:
+                    case B_BOB:
+                    case B_EVE:
+                    case B_TT64:
+                        if (c >= basic_list[version - 1].token_start && c <= basic_list[version - 1].max_token) {
+                            fprintf(dest, "%s", basic_list[version - 1].tokens[c - basic_list[version - 1].token_start]);
                         }
                         break;
 
@@ -2213,7 +1654,7 @@ static int p_expand(int version, int addr, int ctrls)
                 continue;
             }
 
-            _p_toascii((int)c, ctrls);  /* convert character */
+            _p_toascii((int)c, ctrls, quote);  /* convert character */
         } while ((c = getc(source)) != EOF && c);
         fprintf(dest, "\n");
     }      /* line */
@@ -2381,38 +1822,14 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                 if (version == B_7 || version == B_71 || version == B_10 || version == B_SXC) {
                     switch (version) {
                         case B_10:
-                            if ((c = sstrcmp(p2, kwfe, 2, NUM_V10FE)) != KW_NONE) {
-                                *p1++ = 0xfe;
-                                *p1++ = c;
-                                p2 += kwlen;
-                                match++;
-                            } else if ((c = sstrcmp(p2, kwce, 2, NUM_KWCE)) != KW_NONE) {
-                                *p1++ = 0xce;
-                                *p1++ = c;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
                         case B_71:
-                            if ((c = sstrcmp(p2, kwfe, 2, NUM_V71FE)) != KW_NONE) {
-                                *p1++ = 0xfe;
-                                *p1++ = c;
-                                p2 += kwlen;
-                                match++;
-                            } else if ((c = sstrcmp(p2, kwce, 2, NUM_KWCE)) != KW_NONE) {
-                                *p1++ = 0xce;
-                                *p1++ = c;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
                         case B_7:
-                            if ((c = sstrcmp(p2, kwfe, 2, NUM_V7FE)) != KW_NONE) {
+                            if ((c = sstrcmp(p2, kwfe, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0xfe;
                                 *p1++ = c;
                                 p2 += kwlen;
                                 match++;
-                            } else if ((c = sstrcmp(p2, kwce, 2, NUM_KWCE)) != KW_NONE) {
+                            } else if ((c = sstrcmp(p2, kwce, basic_list[version - 1].token_offset, NUM_KWCE)) != KW_NONE) {
                                 *p1++ = 0xce;
                                 *p1++ = c;
                                 p2 += kwlen;
@@ -2420,7 +1837,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                             }
                             break;
                         case B_SXC:
-                            if ((c = sstrcmp(p2, sxckwfe, 2, NUM_SXCFE)) != KW_NONE) {
+                            if ((c = sstrcmp(p2, basic_list[version - 1].tokens, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0xfe;
                                 *p1++ = c;
                                 p2 += kwlen;
@@ -2437,12 +1854,12 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                     int max;
 
                     if (version == B_1) {
-                        max = NUM_B_1;
+                        max = basic_list[B_1 - 1].num_tokens;
                     } else if ((version == B_35) || (version == B_7) || (version == B_71) ||
                                (version == B_10) || (version == B_SXC)) {
-                        max = 0x7E;
+                        max = basic_list[B_35 - 1].num_tokens;
                     } else {
-                        max = NUM_COMM;
+                        max = basic_list[B_2 - 1].num_tokens;
                     }
 
                     if ((c = sstrcmp(p2, keyword, 0, max)) != KW_NONE) {
@@ -2469,235 +1886,50 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
                 if (!match) {
                     switch (version) {
-                        case B_SUPEREXP:
-                            if ((c = sstrcmp(p2, superexpkwcc, 0, NUM_SECC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_TURTLE:
-                            if ((c = sstrcmp(p2, turtlekwcc, 0, NUM_TUCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_EASY:
-                            if ((c = sstrcmp(p2, easykwcc, 0, NUM_EASYCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_BLARG:
-                            if ((c = sstrcmp(p2, blargkwe0, 0, NUM_BLARGE0)) != KW_NONE) {
-                                *p1++ = c + 0xe0;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_SUPERBAS:
-                            if ((c = sstrcmp(p2, superbaskwdb, 0, NUM_SUPERBASDB)) != KW_NONE) {
-                                *p1++ = c + 0xdb;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_WARSAW:
-                            if ((c = sstrcmp(p2, warsawkwdb, 0, NUM_WARSAWDB)) != KW_NONE) {
-                                *p1++ = c + 0xdb;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_EXPBAS20:
-                            if ((c = sstrcmp(p2, expbas20kwcc, 0, NUM_EXPBAS20CC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
                         case B_EXPBAS64:
-                            if ((c = sstrcmp(p2, expbas64kwcc, 0, NUM_EXPBAS64CC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_GB:
-                            if ((c = sstrcmp(p2, gbkwcc, 0, NUM_GBCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p1 += kwlen;
-                                match++;
-                            }
-                            break;
-
                         case B_BSX:
-                            if ((c = sstrcmp(p2, bsxkwcc, 0, NUM_BSXCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p1 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_MIGHTY:
-                            if ((c = sstrcmp(p2, mightykwcc, 0, NUM_MIGHTYCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_MAGIC:
-                            if ((c = sstrcmp(p2, magickwcc, 0, NUM_MAGICCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
+                        case B_GB:
+                        case B_WSF:
+                        case B_VIC5:
+                        case B_VIC4:
                         case B_4:
                         case B_4E:
-                            if ((c = sstrcmp(p2, petkwcc, 0, ((version == B_4) ? NUM_V4CC : NUM_4ECC))) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_VIC4:
-                            if ((c = sstrcmp(p2, vic4kwcc, 0, NUM_VIC4)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_VIC5:
-                            if ((c = sstrcmp(p2, vic5kwcc, 0, NUM_VIC5)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
+                        case B_MAGIC:
+                        case B_MIGHTY:
+                        case B_BASL:
+                        case B_REU:
+                        case B_DRAGO:
+                        case B_X:
+                        case B_PEG:
+                        case B_WS:
+                        case B_GRAPH:
+                        case B_ULTRA:
+                        case B_FC3:
+                        case B_ATBAS:
+                        case B_SPEECH:
+                        case B_EASY:
+                        case B_TURTLE:
+                        case B_SUPEREXP:
+                        case B_EXPBAS20:
+                        case B_SUPERGRA:
+                        case B_BLARG:
+                        case B_KIPPER:
+                        case B_BOB:
+                        case B_EVE:
+                        case B_TT64:
+                        case B_WARSAW:
+                        case B_SUPERBAS:
+                            if ((c = sstrcmp(p2, basic_list[version - 1].tokens, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
+                                *p1++ = c + basic_list[version - 1].token_start;
                                 p2 += kwlen;
                                 match++;
                             }
                             break;
 
                         case B_SIMON:
-                            if ((c = sstrcmp(p2, simonskw, 1, 0x80)) != KW_NONE) {
+                            if ((c = sstrcmp(p2, basic_list[version - 1].tokens, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0x64;
                                 *p1++ = c;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_SPEECH:
-                            if ((c = sstrcmp(p2, speechkwcc, 0, NUM_SPECC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_ATBAS:
-                            if ((c = sstrcmp(p2, atbasickwcc, 0, NUM_ATBCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_FC3:
-                            if ((c = sstrcmp(p2, fc3kw, 0, NUM_FC3CC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_ULTRA:
-                            if ((c = sstrcmp(p2, ultrabasic64kwcc, 0, NUM_ULTRCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_GRAPH:
-                            if ((c = sstrcmp(p2, graphicsbasickwcc, 0, NUM_GRAPHCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_WS:
-                            if ((c = sstrcmp(p2, wsbasickwcc, 0, NUM_WSCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_WSF:
-                            if ((c = sstrcmp(p2, wsfbasickwcc, 0, NUM_WSCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_PEG:
-                            if ((c = sstrcmp(p2, pegbasickwcc, 0, NUM_PEGCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_X:
-                            if ((c = sstrcmp(p2, xbasickwcc, 0, NUM_XCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_DRAGO:
-                            if ((c = sstrcmp(p2, dragobasickwcc, 0, NUM_DRAGOCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_REU:
-                            if ((c = sstrcmp(p2, reubasickwcc, 0, NUM_REUCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_BASL:
-                            if ((c = sstrcmp(p2, baslkwcc, 0, NUM_BASLCC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
-                                p2 += kwlen;
-                                match++;
-                            }
-                            break;
-
-                        case B_SUPERGRA:
-                            if ((c = sstrcmp(p2, supergrakw, 0, NUM_SUPERGRACC)) != KW_NONE) {
-                                *p1++ = c + 0xcc;
                                 p2 += kwlen;
                                 match++;
                             }

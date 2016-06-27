@@ -27,6 +27,8 @@
 #ifndef VICE_SIDCART_H
 #define VICE_SIDCART_H
 
+#include "snapshot.h"
+
 #define SIDCART_CLOCK_C64     0
 #define SIDCART_CLOCK_NATIVE  1
 
@@ -35,14 +37,16 @@ extern int sidcartjoy_enabled;
 extern int sidcart_cmdline_options_init(void);
 extern int sidcart_resources_init(void);
 
-extern void sidcartjoy_store(WORD addr, BYTE value);
-extern BYTE sidcartjoy_read(WORD addr);
-
 extern int sidcart_enabled(void);
 
 extern int sidcart_address;
 extern int sidcart_clock;
 
 extern void sidcart_sound_chip_init(void);
+
+extern void sidcart_detach(void);
+
+extern int sidcart_snapshot_write_module(snapshot_t *s);
+extern int sidcart_snapshot_read_module(snapshot_t *s);
 
 #endif

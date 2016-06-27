@@ -30,10 +30,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "fmopl.h"
 #include "lib.h"
 #include "machine.h"
@@ -45,6 +45,16 @@
 #include "sound.h"
 #include "uiapi.h"
 #include "translate.h"
+
+/*
+    Note: this cartridge has a passthrough port, which for some odd reason does
+          connect all lines 1:1 straight through, EXCEPT for these:
+
+          A1 goes to A0 at the passthrough port
+          R/!W goes to A1 at the passthrough port
+
+    see http://www.zimmers.net/anonftp/pub/cbm/schematics/cartridges/c64/sfx/sfx-sch.gif
+ */
 
 /* Flag: What type of ym chip is used?  */
 int sfx_soundexpander_chip = 3526;
@@ -93,11 +103,11 @@ static io_source_t sfx_soundexpander_piano_device = {
 static io_source_list_t *sfx_soundexpander_sound_list_item = NULL;
 static io_source_list_t *sfx_soundexpander_piano_list_item = NULL;
 
-static const c64export_resource_t export_res_sound = {
+static const export_resource_t export_res_sound = {
     CARTRIDGE_NAME_SFX_SOUND_EXPANDER, 0, 0, NULL, &sfx_soundexpander_sound_device, CARTRIDGE_SFX_SOUND_EXPANDER
 };
 
-static const c64export_resource_t export_res_piano = {
+static const export_resource_t export_res_piano = {
     CARTRIDGE_NAME_SFX_SOUND_EXPANDER, 0, 0, NULL, &sfx_soundexpander_piano_device, CARTRIDGE_SFX_SOUND_EXPANDER
 };
 
@@ -156,10 +166,10 @@ static int set_sfx_soundexpander_enabled(int value, void *param)
 
     if (sfx_soundexpander_sound_chip.chip_enabled != val) {
         if (val) {
-            if (c64export_add(&export_res_sound) < 0) {
+            if (export_add(&export_res_sound) < 0) {
                 return -1;
             }
-            if (c64export_add(&export_res_piano) < 0) {
+            if (export_add(&export_res_piano) < 0) {
                 return -1;
             }
             if (machine_class == VICE_MACHINE_VIC20) {
@@ -179,8 +189,8 @@ static int set_sfx_soundexpander_enabled(int value, void *param)
             sfx_soundexpander_piano_list_item = io_source_register(&sfx_soundexpander_piano_device);
             sfx_soundexpander_sound_chip.chip_enabled = 1;
         } else {
-            c64export_remove(&export_res_sound);
-            c64export_remove(&export_res_piano);
+            export_remove(&export_res_sound);
+            export_remove(&export_res_piano);
             io_source_unregister(sfx_soundexpander_sound_list_item);
             io_source_unregister(sfx_soundexpander_piano_list_item);
             sfx_soundexpander_sound_list_item = NULL;
@@ -470,9 +480,622 @@ static BYTE sfx_soundexpander_piano_read(WORD addr)
 /* ---------------------------------------------------------------------*/
 /*    snapshot support functions                                             */
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTSFXSE"
+/* CARTSFXSE snapshot module format:
+
+   type  | name                  | version | description
+   -----------------------------------------------------
+   BYTE  | IO swap               |   0.1   | VIC20 I/O swap flag
+   DWORD | chip type             |   0.0+  | chip type
+   BYTE  | sound command         |   0.0+  | sound command
+   DWORD | ch 0 slot 0 ar        |   0.0+  | channel 0, slot 0, ar
+   DWORD | ch 0 slot 0 dr        |   0.0+  | channel 0, slot 0, dr
+   DWORD | ch 0 slot 0 rr        |   0.0+  | channel 0, slot 0, rr
+   BYTE  | ch 0 slot 0 KSR       |   0.0+  | channel 0, slot 0, KSR
+   BYTE  | ch 0 slot 0 ksl       |   0.0+  | channel 0, slot 0, ksl
+   BYTE  | ch 0 slot 0 ksr       |   0.0+  | channel 0, slot 0, ksr
+   BYTE  | ch 0 slot 0 mul       |   0.0+  | channel 0, slot 0, mul
+   DWORD | ch 0 slot 0 Cnt       |   0.0+  | channel 0, slot 0, Cnt
+   DWORD | ch 0 slot 0 Incr      |   0.0+  | channel 0, slot 0, Incr
+   BYTE  | ch 0 slot 0 FB        |   0.0+  | channel 0, slot 0, FB
+   DWORD | ch 0 slot 0 connect1  |   0.0+  | channel 0, slot 0, connect1
+   DWORD | ch 0 slot 0 op1 out 0 |   0.0+  | channel 0, slot 0, op1 out 0
+   DWORD | ch 0 slot 0 op1 out 1 |   0.0+  | channel 0, slot 0, op1 out 1
+   BYTE  | ch 0 slot 0 CON       |   0.0+  | channel 0, slot 0, CON
+   BYTE  | ch 0 slot 0 eg type   |   0.0+  | channel 0, slot 0, eg type
+   BYTE  | ch 0 slot 0 state     |   0.0+  | channel 0, slot 0, state
+   DWORD | ch 0 slot 0 TL        |   0.0+  | channel 0, slot 0, TL
+   DWORD | ch 0 slot 0 TLL       |   0.0+  | channel 0, slot 0, TLL
+   DWORD | ch 0 slot 0 volume    |   0.0+  | channel 0, slot 0, volume
+   DWORD | ch 0 slot 0 sl        |   0.0+  | channel 0, slot 0, sl
+   BYTE  | ch 0 slot 0 eg sh ar  |   0.0+  | channel 0, slot 0, eg sh ar
+   BYTE  | ch 0 slot 0 eg sel ar |   0.0+  | channel 0, slot 0, eg sel ar
+   BYTE  | ch 0 slot 0 eg sh dr  |   0.0+  | channel 0, slot 0, eg sh dr
+   BYTE  | ch 0 slot 0 eg sel dr |   0.0+  | channel 0, slot 0, eg sel dr
+   BYTE  | ch 0 slot 0 eg sh rr  |   0.0+  | channel 0, slot 0, eg sh rr
+   BYTE  | ch 0 slot 0 eg sel rr |   0.0+  | channel 0, slot 0, eg sel rr
+   DWORD | ch 0 slot 0 key       |   0.0+  | channel 0, slot 0, key
+   DWORD | ch 0 slot 0 AMmask    |   0.0+  | channel 0, slot 0, AMmask
+   BYTE  | ch 0 slot 0 vib       |   0.0+  | channel 0, slot 0, vib
+   WORD  | ch 0 slot 0 wavetable |   0.0+  | channel 0, slot 0, wavetable
+   DWORD | ch 0 slot 1 ar        |   0.0+  | channel 0, slot 1, ar
+   DWORD | ch 0 slot 1 dr        |   0.0+  | channel 0, slot 1, dr
+   DWORD | ch 0 slot 1 rr        |   0.0+  | channel 0, slot 1, rr
+   BYTE  | ch 0 slot 1 KSR       |   0.0+  | channel 0, slot 1, KSR
+   BYTE  | ch 0 slot 1 ksl       |   0.0+  | channel 0, slot 1, ksl
+   BYTE  | ch 0 slot 1 ksr       |   0.0+  | channel 0, slot 1, ksr
+   BYTE  | ch 0 slot 1 mul       |   0.0+  | channel 0, slot 1, mul
+   DWORD | ch 0 slot 1 Cnt       |   0.0+  | channel 0, slot 1, Cnt
+   DWORD | ch 0 slot 1 Incr      |   0.0+  | channel 0, slot 1, Incr
+   BYTE  | ch 0 slot 1 FB        |   0.0+  | channel 0, slot 1, FB
+   DWORD | ch 0 slot 1 connect1  |   0.0+  | channel 0, slot 1, connect1
+   DWORD | ch 0 slot 1 op1 out 0 |   0.0+  | channel 0, slot 1, op1 out 0
+   DWORD | ch 0 slot 1 op1 out 1 |   0.0+  | channel 0, slot 1, op1 out 1
+   BYTE  | ch 0 slot 1 CON       |   0.0+  | channel 0, slot 1, CON
+   BYTE  | ch 0 slot 1 eg type   |   0.0+  | channel 0, slot 1, eg type
+   BYTE  | ch 0 slot 1 state     |   0.0+  | channel 0, slot 1, state
+   DWORD | ch 0 slot 1 TL        |   0.0+  | channel 0, slot 1, TL
+   DWORD | ch 0 slot 1 TLL       |   0.0+  | channel 0, slot 1, TLL
+   DWORD | ch 0 slot 1 volume    |   0.0+  | channel 0, slot 1, volume
+   DWORD | ch 0 slot 1 sl        |   0.0+  | channel 0, slot 1, sl
+   BYTE  | ch 0 slot 1 eg sh ar  |   0.0+  | channel 0, slot 1, eg sh ar
+   BYTE  | ch 0 slot 1 eg sel ar |   0.0+  | channel 0, slot 1, eg sel ar
+   BYTE  | ch 0 slot 1 eg sh dr  |   0.0+  | channel 0, slot 1, eg sh dr
+   BYTE  | ch 0 slot 1 eg sel dr |   0.0+  | channel 0, slot 1, eg sel dr
+   BYTE  | ch 0 slot 1 eg sh rr  |   0.0+  | channel 0, slot 1, eg sh rr
+   BYTE  | ch 0 slot 1 eg sel rr |   0.0+  | channel 0, slot 1, eg sel rr
+   DWORD | ch 0 slot 1 key       |   0.0+  | channel 0, slot 1, key
+   DWORD | ch 0 slot 1 AMmask    |   0.0+  | channel 0, slot 1, AMmask
+   BYTE  | ch 0 slot 1 vib       |   0.0+  | channel 0, slot 1, vib
+   WORD  | ch 0 slot 1 wavetable |   0.0+  | channel 0, slot 1, wavetable
+   DWORD | ch 0 block fnum       |   0.0+  | channel 0, block fnum
+   DWORD | ch 0 fc               |   0.0+  | channel 0, fc
+   DWORD | ch 0 ksl base         |   0.0+  | channel 0, ksl base
+   BYTE  | ch 0 kcode            |   0.0+  | channel 0, kcode
+   DWORD | ch 1 slot 0 ar        |   0.0+  | channel 1, slot 0, ar
+   DWORD | ch 1 slot 0 dr        |   0.0+  | channel 1, slot 0, dr
+   DWORD | ch 1 slot 0 rr        |   0.0+  | channel 1, slot 0, rr
+   BYTE  | ch 1 slot 0 KSR       |   0.0+  | channel 1, slot 0, KSR
+   BYTE  | ch 1 slot 0 ksl       |   0.0+  | channel 1, slot 0, ksl
+   BYTE  | ch 1 slot 0 ksr       |   0.0+  | channel 1, slot 0, ksr
+   BYTE  | ch 1 slot 0 mul       |   0.0+  | channel 1, slot 0, mul
+   DWORD | ch 1 slot 0 Cnt       |   0.0+  | channel 1, slot 0, Cnt
+   DWORD | ch 1 slot 0 Incr      |   0.0+  | channel 1, slot 0, Incr
+   BYTE  | ch 1 slot 0 FB        |   0.0+  | channel 1, slot 0, FB
+   DWORD | ch 1 slot 0 connect1  |   0.0+  | channel 1, slot 0, connect1
+   DWORD | ch 1 slot 0 op1 out 0 |   0.0+  | channel 1, slot 0, op1 out 0
+   DWORD | ch 1 slot 0 op1 out 1 |   0.0+  | channel 1, slot 0, op1 out 1
+   BYTE  | ch 1 slot 0 CON       |   0.0+  | channel 1, slot 0, CON
+   BYTE  | ch 1 slot 0 eg type   |   0.0+  | channel 1, slot 0, eg type
+   BYTE  | ch 1 slot 0 state     |   0.0+  | channel 1, slot 0, state
+   DWORD | ch 1 slot 0 TL        |   0.0+  | channel 1, slot 0, TL
+   DWORD | ch 1 slot 0 TLL       |   0.0+  | channel 1, slot 0, TLL
+   DWORD | ch 1 slot 0 volume    |   0.0+  | channel 1, slot 0, volume
+   DWORD | ch 1 slot 0 sl        |   0.0+  | channel 1, slot 0, sl
+   BYTE  | ch 1 slot 0 eg sh ar  |   0.0+  | channel 1, slot 0, eg sh ar
+   BYTE  | ch 1 slot 0 eg sel ar |   0.0+  | channel 1, slot 0, eg sel ar
+   BYTE  | ch 1 slot 0 eg sh dr  |   0.0+  | channel 1, slot 0, eg sh dr
+   BYTE  | ch 1 slot 0 eg sel dr |   0.0+  | channel 1, slot 0, eg sel dr
+   BYTE  | ch 1 slot 0 eg sh rr  |   0.0+  | channel 1, slot 0, eg sh rr
+   BYTE  | ch 1 slot 0 eg sel rr |   0.0+  | channel 1, slot 0, eg sel rr
+   DWORD | ch 1 slot 0 key       |   0.0+  | channel 1, slot 0, key
+   DWORD | ch 1 slot 0 AMmask    |   0.0+  | channel 1, slot 0, AMmask
+   BYTE  | ch 1 slot 0 vib       |   0.0+  | channel 1, slot 0, vib
+   WORD  | ch 1 slot 0 wavetable |   0.0+  | channel 1, slot 0, wavetable
+   DWORD | ch 1 slot 1 ar        |   0.0+  | channel 1, slot 1, ar
+   DWORD | ch 1 slot 1 dr        |   0.0+  | channel 1, slot 1, dr
+   DWORD | ch 1 slot 1 rr        |   0.0+  | channel 1, slot 1, rr
+   BYTE  | ch 1 slot 1 KSR       |   0.0+  | channel 1, slot 1, KSR
+   BYTE  | ch 1 slot 1 ksl       |   0.0+  | channel 1, slot 1, ksl
+   BYTE  | ch 1 slot 1 ksr       |   0.0+  | channel 1, slot 1, ksr
+   BYTE  | ch 1 slot 1 mul       |   0.0+  | channel 1, slot 1, mul
+   DWORD | ch 1 slot 1 Cnt       |   0.0+  | channel 1, slot 1, Cnt
+   DWORD | ch 1 slot 1 Incr      |   0.0+  | channel 1, slot 1, Incr
+   BYTE  | ch 1 slot 1 FB        |   0.0+  | channel 1, slot 1, FB
+   DWORD | ch 1 slot 1 connect1  |   0.0+  | channel 1, slot 1, connect1
+   DWORD | ch 1 slot 1 op1 out 0 |   0.0+  | channel 1, slot 1, op1 out 0
+   DWORD | ch 1 slot 1 op1 out 1 |   0.0+  | channel 1, slot 1, op1 out 1
+   BYTE  | ch 1 slot 1 CON       |   0.0+  | channel 1, slot 1, CON
+   BYTE  | ch 1 slot 1 eg type   |   0.0+  | channel 1, slot 1, eg type
+   BYTE  | ch 1 slot 1 state     |   0.0+  | channel 1, slot 1, state
+   DWORD | ch 1 slot 1 TL        |   0.0+  | channel 1, slot 1, TL
+   DWORD | ch 1 slot 1 TLL       |   0.0+  | channel 1, slot 1, TLL
+   DWORD | ch 1 slot 1 volume    |   0.0+  | channel 1, slot 1, volume
+   DWORD | ch 1 slot 1 sl        |   0.0+  | channel 1, slot 1, sl
+   BYTE  | ch 1 slot 1 eg sh ar  |   0.0+  | channel 1, slot 1, eg sh ar
+   BYTE  | ch 1 slot 1 eg sel ar |   0.0+  | channel 1, slot 1, eg sel ar
+   BYTE  | ch 1 slot 1 eg sh dr  |   0.0+  | channel 1, slot 1, eg sh dr
+   BYTE  | ch 1 slot 1 eg sel dr |   0.0+  | channel 1, slot 1, eg sel dr
+   BYTE  | ch 1 slot 1 eg sh rr  |   0.0+  | channel 1, slot 1, eg sh rr
+   BYTE  | ch 1 slot 1 eg sel rr |   0.0+  | channel 1, slot 1, eg sel rr
+   DWORD | ch 1 slot 1 key       |   0.0+  | channel 1, slot 1, key
+   DWORD | ch 1 slot 1 AMmask    |   0.0+  | channel 1, slot 1, AMmask
+   BYTE  | ch 1 slot 1 vib       |   0.0+  | channel 1, slot 1, vib
+   WORD  | ch 1 slot 1 wavetable |   0.0+  | channel 1, slot 1, wavetable
+   DWORD | ch 1 block fnum       |   0.0+  | channel 1, block fnum
+   DWORD | ch 1 fc               |   0.0+  | channel 1, fc
+   DWORD | ch 1 ksl base         |   0.0+  | channel 1, ksl base
+   BYTE  | ch 1 kcode            |   0.0+  | channel 1, kcode
+   DWORD | ch 2 slot 0 ar        |   0.0+  | channel 2, slot 0, ar
+   DWORD | ch 2 slot 0 dr        |   0.0+  | channel 2, slot 0, dr
+   DWORD | ch 2 slot 0 rr        |   0.0+  | channel 2, slot 0, rr
+   BYTE  | ch 2 slot 0 KSR       |   0.0+  | channel 2, slot 0, KSR
+   BYTE  | ch 2 slot 0 ksl       |   0.0+  | channel 2, slot 0, ksl
+   BYTE  | ch 2 slot 0 ksr       |   0.0+  | channel 2, slot 0, ksr
+   BYTE  | ch 2 slot 0 mul       |   0.0+  | channel 2, slot 0, mul
+   DWORD | ch 2 slot 0 Cnt       |   0.0+  | channel 2, slot 0, Cnt
+   DWORD | ch 2 slot 0 Incr      |   0.0+  | channel 2, slot 0, Incr
+   BYTE  | ch 2 slot 0 FB        |   0.0+  | channel 2, slot 0, FB
+   DWORD | ch 2 slot 0 connect1  |   0.0+  | channel 2, slot 0, connect1
+   DWORD | ch 2 slot 0 op1 out 0 |   0.0+  | channel 2, slot 0, op1 out 0
+   DWORD | ch 2 slot 0 op1 out 1 |   0.0+  | channel 2, slot 0, op1 out 1
+   BYTE  | ch 2 slot 0 CON       |   0.0+  | channel 2, slot 0, CON
+   BYTE  | ch 2 slot 0 eg type   |   0.0+  | channel 2, slot 0, eg type
+   BYTE  | ch 2 slot 0 state     |   0.0+  | channel 2, slot 0, state
+   DWORD | ch 2 slot 0 TL        |   0.0+  | channel 2, slot 0, TL
+   DWORD | ch 2 slot 0 TLL       |   0.0+  | channel 2, slot 0, TLL
+   DWORD | ch 2 slot 0 volume    |   0.0+  | channel 2, slot 0, volume
+   DWORD | ch 2 slot 0 sl        |   0.0+  | channel 2, slot 0, sl
+   BYTE  | ch 2 slot 0 eg sh ar  |   0.0+  | channel 2, slot 0, eg sh ar
+   BYTE  | ch 2 slot 0 eg sel ar |   0.0+  | channel 2, slot 0, eg sel ar
+   BYTE  | ch 2 slot 0 eg sh dr  |   0.0+  | channel 2, slot 0, eg sh dr
+   BYTE  | ch 2 slot 0 eg sel dr |   0.0+  | channel 2, slot 0, eg sel dr
+   BYTE  | ch 2 slot 0 eg sh rr  |   0.0+  | channel 2, slot 0, eg sh rr
+   BYTE  | ch 2 slot 0 eg sel rr |   0.0+  | channel 2, slot 0, eg sel rr
+   DWORD | ch 2 slot 0 key       |   0.0+  | channel 2, slot 0, key
+   DWORD | ch 2 slot 0 AMmask    |   0.0+  | channel 2, slot 0, AMmask
+   BYTE  | ch 2 slot 0 vib       |   0.0+  | channel 2, slot 0, vib
+   WORD  | ch 2 slot 0 wavetable |   0.0+  | channel 2, slot 0, wavetable
+   DWORD | ch 2 slot 1 ar        |   0.0+  | channel 2, slot 1, ar
+   DWORD | ch 2 slot 1 dr        |   0.0+  | channel 2, slot 1, dr
+   DWORD | ch 2 slot 1 rr        |   0.0+  | channel 2, slot 1, rr
+   BYTE  | ch 2 slot 1 KSR       |   0.0+  | channel 2, slot 1, KSR
+   BYTE  | ch 2 slot 1 ksl       |   0.0+  | channel 2, slot 1, ksl
+   BYTE  | ch 2 slot 1 ksr       |   0.0+  | channel 2, slot 1, ksr
+   BYTE  | ch 2 slot 1 mul       |   0.0+  | channel 2, slot 1, mul
+   DWORD | ch 2 slot 1 Cnt       |   0.0+  | channel 2, slot 1, Cnt
+   DWORD | ch 2 slot 1 Incr      |   0.0+  | channel 2, slot 1, Incr
+   BYTE  | ch 2 slot 1 FB        |   0.0+  | channel 2, slot 1, FB
+   DWORD | ch 2 slot 1 connect1  |   0.0+  | channel 2, slot 1, connect1
+   DWORD | ch 2 slot 1 op1 out 0 |   0.0+  | channel 2, slot 1, op1 out 0
+   DWORD | ch 2 slot 1 op1 out 1 |   0.0+  | channel 2, slot 1, op1 out 1
+   BYTE  | ch 2 slot 1 CON       |   0.0+  | channel 2, slot 1, CON
+   BYTE  | ch 2 slot 1 eg type   |   0.0+  | channel 2, slot 1, eg type
+   BYTE  | ch 2 slot 1 state     |   0.0+  | channel 2, slot 1, state
+   DWORD | ch 2 slot 1 TL        |   0.0+  | channel 2, slot 1, TL
+   DWORD | ch 2 slot 1 TLL       |   0.0+  | channel 2, slot 1, TLL
+   DWORD | ch 2 slot 1 volume    |   0.0+  | channel 2, slot 1, volume
+   DWORD | ch 2 slot 1 sl        |   0.0+  | channel 2, slot 1, sl
+   BYTE  | ch 2 slot 1 eg sh ar  |   0.0+  | channel 2, slot 1, eg sh ar
+   BYTE  | ch 2 slot 1 eg sel ar |   0.0+  | channel 2, slot 1, eg sel ar
+   BYTE  | ch 2 slot 1 eg sh dr  |   0.0+  | channel 2, slot 1, eg sh dr
+   BYTE  | ch 2 slot 1 eg sel dr |   0.0+  | channel 2, slot 1, eg sel dr
+   BYTE  | ch 2 slot 1 eg sh rr  |   0.0+  | channel 2, slot 1, eg sh rr
+   BYTE  | ch 2 slot 1 eg sel rr |   0.0+  | channel 2, slot 1, eg sel rr
+   DWORD | ch 2 slot 1 key       |   0.0+  | channel 2, slot 1, key
+   DWORD | ch 2 slot 1 AMmask    |   0.0+  | channel 2, slot 1, AMmask
+   BYTE  | ch 2 slot 1 vib       |   0.0+  | channel 2, slot 1, vib
+   WORD  | ch 2 slot 1 wavetable |   0.0+  | channel 2, slot 1, wavetable
+   DWORD | ch 2 block fnum       |   0.0+  | channel 2, block fnum
+   DWORD | ch 2 fc               |   0.0+  | channel 2, fc
+   DWORD | ch 2 ksl base         |   0.0+  | channel 2, ksl base
+   BYTE  | ch 2 kcode            |   0.0+  | channel 2, kcode
+   DWORD | ch 3 slot 0 ar        |   0.0+  | channel 3, slot 0, ar
+   DWORD | ch 3 slot 0 dr        |   0.0+  | channel 3, slot 0, dr
+   DWORD | ch 3 slot 0 rr        |   0.0+  | channel 3, slot 0, rr
+   BYTE  | ch 3 slot 0 KSR       |   0.0+  | channel 3, slot 0, KSR
+   BYTE  | ch 3 slot 0 ksl       |   0.0+  | channel 3, slot 0, ksl
+   BYTE  | ch 3 slot 0 ksr       |   0.0+  | channel 3, slot 0, ksr
+   BYTE  | ch 3 slot 0 mul       |   0.0+  | channel 3, slot 0, mul
+   DWORD | ch 3 slot 0 Cnt       |   0.0+  | channel 3, slot 0, Cnt
+   DWORD | ch 3 slot 0 Incr      |   0.0+  | channel 3, slot 0, Incr
+   BYTE  | ch 3 slot 0 FB        |   0.0+  | channel 3, slot 0, FB
+   DWORD | ch 3 slot 0 connect1  |   0.0+  | channel 3, slot 0, connect1
+   DWORD | ch 3 slot 0 op1 out 0 |   0.0+  | channel 3, slot 0, op1 out 0
+   DWORD | ch 3 slot 0 op1 out 1 |   0.0+  | channel 3, slot 0, op1 out 1
+   BYTE  | ch 3 slot 0 CON       |   0.0+  | channel 3, slot 0, CON
+   BYTE  | ch 3 slot 0 eg type   |   0.0+  | channel 3, slot 0, eg type
+   BYTE  | ch 3 slot 0 state     |   0.0+  | channel 3, slot 0, state
+   DWORD | ch 3 slot 0 TL        |   0.0+  | channel 3, slot 0, TL
+   DWORD | ch 3 slot 0 TLL       |   0.0+  | channel 3, slot 0, TLL
+   DWORD | ch 3 slot 0 volume    |   0.0+  | channel 3, slot 0, volume
+   DWORD | ch 3 slot 0 sl        |   0.0+  | channel 3, slot 0, sl
+   BYTE  | ch 3 slot 0 eg sh ar  |   0.0+  | channel 3, slot 0, eg sh ar
+   BYTE  | ch 3 slot 0 eg sel ar |   0.0+  | channel 3, slot 0, eg sel ar
+   BYTE  | ch 3 slot 0 eg sh dr  |   0.0+  | channel 3, slot 0, eg sh dr
+   BYTE  | ch 3 slot 0 eg sel dr |   0.0+  | channel 3, slot 0, eg sel dr
+   BYTE  | ch 3 slot 0 eg sh rr  |   0.0+  | channel 3, slot 0, eg sh rr
+   BYTE  | ch 3 slot 0 eg sel rr |   0.0+  | channel 3, slot 0, eg sel rr
+   DWORD | ch 3 slot 0 key       |   0.0+  | channel 3, slot 0, key
+   DWORD | ch 3 slot 0 AMmask    |   0.0+  | channel 3, slot 0, AMmask
+   BYTE  | ch 3 slot 0 vib       |   0.0+  | channel 3, slot 0, vib
+   WORD  | ch 3 slot 0 wavetable |   0.0+  | channel 3, slot 0, wavetable
+   DWORD | ch 3 slot 1 ar        |   0.0+  | channel 3, slot 1, ar
+   DWORD | ch 3 slot 1 dr        |   0.0+  | channel 3, slot 1, dr
+   DWORD | ch 3 slot 1 rr        |   0.0+  | channel 3, slot 1, rr
+   BYTE  | ch 3 slot 1 KSR       |   0.0+  | channel 3, slot 1, KSR
+   BYTE  | ch 3 slot 1 ksl       |   0.0+  | channel 3, slot 1, ksl
+   BYTE  | ch 3 slot 1 ksr       |   0.0+  | channel 3, slot 1, ksr
+   BYTE  | ch 3 slot 1 mul       |   0.0+  | channel 3, slot 1, mul
+   DWORD | ch 3 slot 1 Cnt       |   0.0+  | channel 3, slot 1, Cnt
+   DWORD | ch 3 slot 1 Incr      |   0.0+  | channel 3, slot 1, Incr
+   BYTE  | ch 3 slot 1 FB        |   0.0+  | channel 3, slot 1, FB
+   DWORD | ch 3 slot 1 connect1  |   0.0+  | channel 3, slot 1, connect1
+   DWORD | ch 3 slot 1 op1 out 0 |   0.0+  | channel 3, slot 1, op1 out 0
+   DWORD | ch 3 slot 1 op1 out 1 |   0.0+  | channel 3, slot 1, op1 out 1
+   BYTE  | ch 3 slot 1 CON       |   0.0+  | channel 3, slot 1, CON
+   BYTE  | ch 3 slot 1 eg type   |   0.0+  | channel 3, slot 1, eg type
+   BYTE  | ch 3 slot 1 state     |   0.0+  | channel 3, slot 1, state
+   DWORD | ch 3 slot 1 TL        |   0.0+  | channel 3, slot 1, TL
+   DWORD | ch 3 slot 1 TLL       |   0.0+  | channel 3, slot 1, TLL
+   DWORD | ch 3 slot 1 volume    |   0.0+  | channel 3, slot 1, volume
+   DWORD | ch 3 slot 1 sl        |   0.0+  | channel 3, slot 1, sl
+   BYTE  | ch 3 slot 1 eg sh ar  |   0.0+  | channel 3, slot 1, eg sh ar
+   BYTE  | ch 3 slot 1 eg sel ar |   0.0+  | channel 3, slot 1, eg sel ar
+   BYTE  | ch 3 slot 1 eg sh dr  |   0.0+  | channel 3, slot 1, eg sh dr
+   BYTE  | ch 3 slot 1 eg sel dr |   0.0+  | channel 3, slot 1, eg sel dr
+   BYTE  | ch 3 slot 1 eg sh rr  |   0.0+  | channel 3, slot 1, eg sh rr
+   BYTE  | ch 3 slot 1 eg sel rr |   0.0+  | channel 3, slot 1, eg sel rr
+   DWORD | ch 3 slot 1 key       |   0.0+  | channel 3, slot 1, key
+   DWORD | ch 3 slot 1 AMmask    |   0.0+  | channel 3, slot 1, AMmask
+   BYTE  | ch 3 slot 1 vib       |   0.0+  | channel 3, slot 1, vib
+   WORD  | ch 3 slot 1 wavetable |   0.0+  | channel 3, slot 1, wavetable
+   DWORD | ch 3 block fnum       |   0.0+  | channel 3, block fnum
+   DWORD | ch 3 fc               |   0.0+  | channel 3, fc
+   DWORD | ch 3 ksl base         |   0.0+  | channel 3, ksl base
+   BYTE  | ch 3 kcode            |   0.0+  | channel 3, kcode
+   DWORD | ch 4 slot 0 ar        |   0.0+  | channel 4, slot 0, ar
+   DWORD | ch 4 slot 0 dr        |   0.0+  | channel 4, slot 0, dr
+   DWORD | ch 4 slot 0 rr        |   0.0+  | channel 4, slot 0, rr
+   BYTE  | ch 4 slot 0 KSR       |   0.0+  | channel 4, slot 0, KSR
+   BYTE  | ch 4 slot 0 ksl       |   0.0+  | channel 4, slot 0, ksl
+   BYTE  | ch 4 slot 0 ksr       |   0.0+  | channel 4, slot 0, ksr
+   BYTE  | ch 4 slot 0 mul       |   0.0+  | channel 4, slot 0, mul
+   DWORD | ch 4 slot 0 Cnt       |   0.0+  | channel 4, slot 0, Cnt
+   DWORD | ch 4 slot 0 Incr      |   0.0+  | channel 4, slot 0, Incr
+   BYTE  | ch 4 slot 0 FB        |   0.0+  | channel 4, slot 0, FB
+   DWORD | ch 4 slot 0 connect1  |   0.0+  | channel 4, slot 0, connect1
+   DWORD | ch 4 slot 0 op1 out 0 |   0.0+  | channel 4, slot 0, op1 out 0
+   DWORD | ch 4 slot 0 op1 out 1 |   0.0+  | channel 4, slot 0, op1 out 1
+   BYTE  | ch 4 slot 0 CON       |   0.0+  | channel 4, slot 0, CON
+   BYTE  | ch 4 slot 0 eg type   |   0.0+  | channel 4, slot 0, eg type
+   BYTE  | ch 4 slot 0 state     |   0.0+  | channel 4, slot 0, state
+   DWORD | ch 4 slot 0 TL        |   0.0+  | channel 4, slot 0, TL
+   DWORD | ch 4 slot 0 TLL       |   0.0+  | channel 4, slot 0, TLL
+   DWORD | ch 4 slot 0 volume    |   0.0+  | channel 4, slot 0, volume
+   DWORD | ch 4 slot 0 sl        |   0.0+  | channel 4, slot 0, sl
+   BYTE  | ch 4 slot 0 eg sh ar  |   0.0+  | channel 4, slot 0, eg sh ar
+   BYTE  | ch 4 slot 0 eg sel ar |   0.0+  | channel 4, slot 0, eg sel ar
+   BYTE  | ch 4 slot 0 eg sh dr  |   0.0+  | channel 4, slot 0, eg sh dr
+   BYTE  | ch 4 slot 0 eg sel dr |   0.0+  | channel 4, slot 0, eg sel dr
+   BYTE  | ch 4 slot 0 eg sh rr  |   0.0+  | channel 4, slot 0, eg sh rr
+   BYTE  | ch 4 slot 0 eg sel rr |   0.0+  | channel 4, slot 0, eg sel rr
+   DWORD | ch 4 slot 0 key       |   0.0+  | channel 4, slot 0, key
+   DWORD | ch 4 slot 0 AMmask    |   0.0+  | channel 4, slot 0, AMmask
+   BYTE  | ch 4 slot 0 vib       |   0.0+  | channel 4, slot 0, vib
+   WORD  | ch 4 slot 0 wavetable |   0.0+  | channel 4, slot 0, wavetable
+   DWORD | ch 4 slot 1 ar        |   0.0+  | channel 4, slot 1, ar
+   DWORD | ch 4 slot 1 dr        |   0.0+  | channel 4, slot 1, dr
+   DWORD | ch 4 slot 1 rr        |   0.0+  | channel 4, slot 1, rr
+   BYTE  | ch 4 slot 1 KSR       |   0.0+  | channel 4, slot 1, KSR
+   BYTE  | ch 4 slot 1 ksl       |   0.0+  | channel 4, slot 1, ksl
+   BYTE  | ch 4 slot 1 ksr       |   0.0+  | channel 4, slot 1, ksr
+   BYTE  | ch 4 slot 1 mul       |   0.0+  | channel 4, slot 1, mul
+   DWORD | ch 4 slot 1 Cnt       |   0.0+  | channel 4, slot 1, Cnt
+   DWORD | ch 4 slot 1 Incr      |   0.0+  | channel 4, slot 1, Incr
+   BYTE  | ch 4 slot 1 FB        |   0.0+  | channel 4, slot 1, FB
+   DWORD | ch 4 slot 1 connect1  |   0.0+  | channel 4, slot 1, connect1
+   DWORD | ch 4 slot 1 op1 out 0 |   0.0+  | channel 4, slot 1, op1 out 0
+   DWORD | ch 4 slot 1 op1 out 1 |   0.0+  | channel 4, slot 1, op1 out 1
+   BYTE  | ch 4 slot 1 CON       |   0.0+  | channel 4, slot 1, CON
+   BYTE  | ch 4 slot 1 eg type   |   0.0+  | channel 4, slot 1, eg type
+   BYTE  | ch 4 slot 1 state     |   0.0+  | channel 4, slot 1, state
+   DWORD | ch 4 slot 1 TL        |   0.0+  | channel 4, slot 1, TL
+   DWORD | ch 4 slot 1 TLL       |   0.0+  | channel 4, slot 1, TLL
+   DWORD | ch 4 slot 1 volume    |   0.0+  | channel 4, slot 1, volume
+   DWORD | ch 4 slot 1 sl        |   0.0+  | channel 4, slot 1, sl
+   BYTE  | ch 4 slot 1 eg sh ar  |   0.0+  | channel 4, slot 1, eg sh ar
+   BYTE  | ch 4 slot 1 eg sel ar |   0.0+  | channel 4, slot 1, eg sel ar
+   BYTE  | ch 4 slot 1 eg sh dr  |   0.0+  | channel 4, slot 1, eg sh dr
+   BYTE  | ch 4 slot 1 eg sel dr |   0.0+  | channel 4, slot 1, eg sel dr
+   BYTE  | ch 4 slot 1 eg sh rr  |   0.0+  | channel 4, slot 1, eg sh rr
+   BYTE  | ch 4 slot 1 eg sel rr |   0.0+  | channel 4, slot 1, eg sel rr
+   DWORD | ch 4 slot 1 key       |   0.0+  | channel 4, slot 1, key
+   DWORD | ch 4 slot 1 AMmask    |   0.0+  | channel 4, slot 1, AMmask
+   BYTE  | ch 4 slot 1 vib       |   0.0+  | channel 4, slot 1, vib
+   WORD  | ch 4 slot 1 wavetable |   0.0+  | channel 4, slot 1, wavetable
+   DWORD | ch 4 block fnum       |   0.0+  | channel 4, block fnum
+   DWORD | ch 4 fc               |   0.0+  | channel 4, fc
+   DWORD | ch 4 ksl base         |   0.0+  | channel 4, ksl base
+   BYTE  | ch 4 kcode            |   0.0+  | channel 4, kcode
+   DWORD | ch 5 slot 0 ar        |   0.0+  | channel 5, slot 0, ar
+   DWORD | ch 5 slot 0 dr        |   0.0+  | channel 5, slot 0, dr
+   DWORD | ch 5 slot 0 rr        |   0.0+  | channel 5, slot 0, rr
+   BYTE  | ch 5 slot 0 KSR       |   0.0+  | channel 5, slot 0, KSR
+   BYTE  | ch 5 slot 0 ksl       |   0.0+  | channel 5, slot 0, ksl
+   BYTE  | ch 5 slot 0 ksr       |   0.0+  | channel 5, slot 0, ksr
+   BYTE  | ch 5 slot 0 mul       |   0.0+  | channel 5, slot 0, mul
+   DWORD | ch 5 slot 0 Cnt       |   0.0+  | channel 5, slot 0, Cnt
+   DWORD | ch 5 slot 0 Incr      |   0.0+  | channel 5, slot 0, Incr
+   BYTE  | ch 5 slot 0 FB        |   0.0+  | channel 5, slot 0, FB
+   DWORD | ch 5 slot 0 connect1  |   0.0+  | channel 5, slot 0, connect1
+   DWORD | ch 5 slot 0 op1 out 0 |   0.0+  | channel 5, slot 0, op1 out 0
+   DWORD | ch 5 slot 0 op1 out 1 |   0.0+  | channel 5, slot 0, op1 out 1
+   BYTE  | ch 5 slot 0 CON       |   0.0+  | channel 5, slot 0, CON
+   BYTE  | ch 5 slot 0 eg type   |   0.0+  | channel 5, slot 0, eg type
+   BYTE  | ch 5 slot 0 state     |   0.0+  | channel 5, slot 0, state
+   DWORD | ch 5 slot 0 TL        |   0.0+  | channel 5, slot 0, TL
+   DWORD | ch 5 slot 0 TLL       |   0.0+  | channel 5, slot 0, TLL
+   DWORD | ch 5 slot 0 volume    |   0.0+  | channel 5, slot 0, volume
+   DWORD | ch 5 slot 0 sl        |   0.0+  | channel 5, slot 0, sl
+   BYTE  | ch 5 slot 0 eg sh ar  |   0.0+  | channel 5, slot 0, eg sh ar
+   BYTE  | ch 5 slot 0 eg sel ar |   0.0+  | channel 5, slot 0, eg sel ar
+   BYTE  | ch 5 slot 0 eg sh dr  |   0.0+  | channel 5, slot 0, eg sh dr
+   BYTE  | ch 5 slot 0 eg sel dr |   0.0+  | channel 5, slot 0, eg sel dr
+   BYTE  | ch 5 slot 0 eg sh rr  |   0.0+  | channel 5, slot 0, eg sh rr
+   BYTE  | ch 5 slot 0 eg sel rr |   0.0+  | channel 5, slot 0, eg sel rr
+   DWORD | ch 5 slot 0 key       |   0.0+  | channel 5, slot 0, key
+   DWORD | ch 5 slot 0 AMmask    |   0.0+  | channel 5, slot 0, AMmask
+   BYTE  | ch 5 slot 0 vib       |   0.0+  | channel 5, slot 0, vib
+   WORD  | ch 5 slot 0 wavetable |   0.0+  | channel 5, slot 0, wavetable
+   DWORD | ch 5 slot 1 ar        |   0.0+  | channel 5, slot 1, ar
+   DWORD | ch 5 slot 1 dr        |   0.0+  | channel 5, slot 1, dr
+   DWORD | ch 5 slot 1 rr        |   0.0+  | channel 5, slot 1, rr
+   BYTE  | ch 5 slot 1 KSR       |   0.0+  | channel 5, slot 1, KSR
+   BYTE  | ch 5 slot 1 ksl       |   0.0+  | channel 5, slot 1, ksl
+   BYTE  | ch 5 slot 1 ksr       |   0.0+  | channel 5, slot 1, ksr
+   BYTE  | ch 5 slot 1 mul       |   0.0+  | channel 5, slot 1, mul
+   DWORD | ch 5 slot 1 Cnt       |   0.0+  | channel 5, slot 1, Cnt
+   DWORD | ch 5 slot 1 Incr      |   0.0+  | channel 5, slot 1, Incr
+   BYTE  | ch 5 slot 1 FB        |   0.0+  | channel 5, slot 1, FB
+   DWORD | ch 5 slot 1 connect1  |   0.0+  | channel 5, slot 1, connect1
+   DWORD | ch 5 slot 1 op1 out 0 |   0.0+  | channel 5, slot 1, op1 out 0
+   DWORD | ch 5 slot 1 op1 out 1 |   0.0+  | channel 5, slot 1, op1 out 1
+   BYTE  | ch 5 slot 1 CON       |   0.0+  | channel 5, slot 1, CON
+   BYTE  | ch 5 slot 1 eg type   |   0.0+  | channel 5, slot 1, eg type
+   BYTE  | ch 5 slot 1 state     |   0.0+  | channel 5, slot 1, state
+   DWORD | ch 5 slot 1 TL        |   0.0+  | channel 5, slot 1, TL
+   DWORD | ch 5 slot 1 TLL       |   0.0+  | channel 5, slot 1, TLL
+   DWORD | ch 5 slot 1 volume    |   0.0+  | channel 5, slot 1, volume
+   DWORD | ch 5 slot 1 sl        |   0.0+  | channel 5, slot 1, sl
+   BYTE  | ch 5 slot 1 eg sh ar  |   0.0+  | channel 5, slot 1, eg sh ar
+   BYTE  | ch 5 slot 1 eg sel ar |   0.0+  | channel 5, slot 1, eg sel ar
+   BYTE  | ch 5 slot 1 eg sh dr  |   0.0+  | channel 5, slot 1, eg sh dr
+   BYTE  | ch 5 slot 1 eg sel dr |   0.0+  | channel 5, slot 1, eg sel dr
+   BYTE  | ch 5 slot 1 eg sh rr  |   0.0+  | channel 5, slot 1, eg sh rr
+   BYTE  | ch 5 slot 1 eg sel rr |   0.0+  | channel 5, slot 1, eg sel rr
+   DWORD | ch 5 slot 1 key       |   0.0+  | channel 5, slot 1, key
+   DWORD | ch 5 slot 1 AMmask    |   0.0+  | channel 5, slot 1, AMmask
+   BYTE  | ch 5 slot 1 vib       |   0.0+  | channel 5, slot 1, vib
+   WORD  | ch 5 slot 1 wavetable |   0.0+  | channel 5, slot 1, wavetable
+   DWORD | ch 5 block fnum       |   0.0+  | channel 5, block fnum
+   DWORD | ch 5 fc               |   0.0+  | channel 5, fc
+   DWORD | ch 5 ksl base         |   0.0+  | channel 5, ksl base
+   BYTE  | ch 5 kcode            |   0.0+  | channel 5, kcode
+   DWORD | ch 6 slot 0 ar        |   0.0+  | channel 6, slot 0, ar
+   DWORD | ch 6 slot 0 dr        |   0.0+  | channel 6, slot 0, dr
+   DWORD | ch 6 slot 0 rr        |   0.0+  | channel 6, slot 0, rr
+   BYTE  | ch 6 slot 0 KSR       |   0.0+  | channel 6, slot 0, KSR
+   BYTE  | ch 6 slot 0 ksl       |   0.0+  | channel 6, slot 0, ksl
+   BYTE  | ch 6 slot 0 ksr       |   0.0+  | channel 6, slot 0, ksr
+   BYTE  | ch 6 slot 0 mul       |   0.0+  | channel 6, slot 0, mul
+   DWORD | ch 6 slot 0 Cnt       |   0.0+  | channel 6, slot 0, Cnt
+   DWORD | ch 6 slot 0 Incr      |   0.0+  | channel 6, slot 0, Incr
+   BYTE  | ch 6 slot 0 FB        |   0.0+  | channel 6, slot 0, FB
+   DWORD | ch 6 slot 0 connect1  |   0.0+  | channel 6, slot 0, connect1
+   DWORD | ch 6 slot 0 op1 out 0 |   0.0+  | channel 6, slot 0, op1 out 0
+   DWORD | ch 6 slot 0 op1 out 1 |   0.0+  | channel 6, slot 0, op1 out 1
+   BYTE  | ch 6 slot 0 CON       |   0.0+  | channel 6, slot 0, CON
+   BYTE  | ch 6 slot 0 eg type   |   0.0+  | channel 6, slot 0, eg type
+   BYTE  | ch 6 slot 0 state     |   0.0+  | channel 6, slot 0, state
+   DWORD | ch 6 slot 0 TL        |   0.0+  | channel 6, slot 0, TL
+   DWORD | ch 6 slot 0 TLL       |   0.0+  | channel 6, slot 0, TLL
+   DWORD | ch 6 slot 0 volume    |   0.0+  | channel 6, slot 0, volume
+   DWORD | ch 6 slot 0 sl        |   0.0+  | channel 6, slot 0, sl
+   BYTE  | ch 6 slot 0 eg sh ar  |   0.0+  | channel 6, slot 0, eg sh ar
+   BYTE  | ch 6 slot 0 eg sel ar |   0.0+  | channel 6, slot 0, eg sel ar
+   BYTE  | ch 6 slot 0 eg sh dr  |   0.0+  | channel 6, slot 0, eg sh dr
+   BYTE  | ch 6 slot 0 eg sel dr |   0.0+  | channel 6, slot 0, eg sel dr
+   BYTE  | ch 6 slot 0 eg sh rr  |   0.0+  | channel 6, slot 0, eg sh rr
+   BYTE  | ch 6 slot 0 eg sel rr |   0.0+  | channel 6, slot 0, eg sel rr
+   DWORD | ch 6 slot 0 key       |   0.0+  | channel 6, slot 0, key
+   DWORD | ch 6 slot 0 AMmask    |   0.0+  | channel 6, slot 0, AMmask
+   BYTE  | ch 6 slot 0 vib       |   0.0+  | channel 6, slot 0, vib
+   WORD  | ch 6 slot 0 wavetable |   0.0+  | channel 6, slot 0, wavetable
+   DWORD | ch 6 slot 1 ar        |   0.0+  | channel 6, slot 1, ar
+   DWORD | ch 6 slot 1 dr        |   0.0+  | channel 6, slot 1, dr
+   DWORD | ch 6 slot 1 rr        |   0.0+  | channel 6, slot 1, rr
+   BYTE  | ch 6 slot 1 KSR       |   0.0+  | channel 6, slot 1, KSR
+   BYTE  | ch 6 slot 1 ksl       |   0.0+  | channel 6, slot 1, ksl
+   BYTE  | ch 6 slot 1 ksr       |   0.0+  | channel 6, slot 1, ksr
+   BYTE  | ch 6 slot 1 mul       |   0.0+  | channel 6, slot 1, mul
+   DWORD | ch 6 slot 1 Cnt       |   0.0+  | channel 6, slot 1, Cnt
+   DWORD | ch 6 slot 1 Incr      |   0.0+  | channel 6, slot 1, Incr
+   BYTE  | ch 6 slot 1 FB        |   0.0+  | channel 6, slot 1, FB
+   DWORD | ch 6 slot 1 connect1  |   0.0+  | channel 6, slot 1, connect1
+   DWORD | ch 6 slot 1 op1 out 0 |   0.0+  | channel 6, slot 1, op1 out 0
+   DWORD | ch 6 slot 1 op1 out 1 |   0.0+  | channel 6, slot 1, op1 out 1
+   BYTE  | ch 6 slot 1 CON       |   0.0+  | channel 6, slot 1, CON
+   BYTE  | ch 6 slot 1 eg type   |   0.0+  | channel 6, slot 1, eg type
+   BYTE  | ch 6 slot 1 state     |   0.0+  | channel 6, slot 1, state
+   DWORD | ch 6 slot 1 TL        |   0.0+  | channel 6, slot 1, TL
+   DWORD | ch 6 slot 1 TLL       |   0.0+  | channel 6, slot 1, TLL
+   DWORD | ch 6 slot 1 volume    |   0.0+  | channel 6, slot 1, volume
+   DWORD | ch 6 slot 1 sl        |   0.0+  | channel 6, slot 1, sl
+   BYTE  | ch 6 slot 1 eg sh ar  |   0.0+  | channel 6, slot 1, eg sh ar
+   BYTE  | ch 6 slot 1 eg sel ar |   0.0+  | channel 6, slot 1, eg sel ar
+   BYTE  | ch 6 slot 1 eg sh dr  |   0.0+  | channel 6, slot 1, eg sh dr
+   BYTE  | ch 6 slot 1 eg sel dr |   0.0+  | channel 6, slot 1, eg sel dr
+   BYTE  | ch 6 slot 1 eg sh rr  |   0.0+  | channel 6, slot 1, eg sh rr
+   BYTE  | ch 6 slot 1 eg sel rr |   0.0+  | channel 6, slot 1, eg sel rr
+   DWORD | ch 6 slot 1 key       |   0.0+  | channel 6, slot 1, key
+   DWORD | ch 6 slot 1 AMmask    |   0.0+  | channel 6, slot 1, AMmask
+   BYTE  | ch 6 slot 1 vib       |   0.0+  | channel 6, slot 1, vib
+   WORD  | ch 6 slot 1 wavetable |   0.0+  | channel 6, slot 1, wavetable
+   DWORD | ch 6 block fnum       |   0.0+  | channel 6, block fnum
+   DWORD | ch 6 fc               |   0.0+  | channel 6, fc
+   DWORD | ch 6 ksl base         |   0.0+  | channel 6, ksl base
+   BYTE  | ch 6 kcode            |   0.0+  | channel 6, kcode
+   DWORD | ch 7 slot 0 ar        |   0.0+  | channel 7, slot 0, ar
+   DWORD | ch 7 slot 0 dr        |   0.0+  | channel 7, slot 0, dr
+   DWORD | ch 7 slot 0 rr        |   0.0+  | channel 7, slot 0, rr
+   BYTE  | ch 7 slot 0 KSR       |   0.0+  | channel 7, slot 0, KSR
+   BYTE  | ch 7 slot 0 ksl       |   0.0+  | channel 7, slot 0, ksl
+   BYTE  | ch 7 slot 0 ksr       |   0.0+  | channel 7, slot 0, ksr
+   BYTE  | ch 7 slot 0 mul       |   0.0+  | channel 7, slot 0, mul
+   DWORD | ch 7 slot 0 Cnt       |   0.0+  | channel 7, slot 0, Cnt
+   DWORD | ch 7 slot 0 Incr      |   0.0+  | channel 7, slot 0, Incr
+   BYTE  | ch 7 slot 0 FB        |   0.0+  | channel 7, slot 0, FB
+   DWORD | ch 7 slot 0 connect1  |   0.0+  | channel 7, slot 0, connect1
+   DWORD | ch 7 slot 0 op1 out 0 |   0.0+  | channel 7, slot 0, op1 out 0
+   DWORD | ch 7 slot 0 op1 out 1 |   0.0+  | channel 7, slot 0, op1 out 1
+   BYTE  | ch 7 slot 0 CON       |   0.0+  | channel 7, slot 0, CON
+   BYTE  | ch 7 slot 0 eg type   |   0.0+  | channel 7, slot 0, eg type
+   BYTE  | ch 7 slot 0 state     |   0.0+  | channel 7, slot 0, state
+   DWORD | ch 7 slot 0 TL        |   0.0+  | channel 7, slot 0, TL
+   DWORD | ch 7 slot 0 TLL       |   0.0+  | channel 7, slot 0, TLL
+   DWORD | ch 7 slot 0 volume    |   0.0+  | channel 7, slot 0, volume
+   DWORD | ch 7 slot 0 sl        |   0.0+  | channel 7, slot 0, sl
+   BYTE  | ch 7 slot 0 eg sh ar  |   0.0+  | channel 7, slot 0, eg sh ar
+   BYTE  | ch 7 slot 0 eg sel ar |   0.0+  | channel 7, slot 0, eg sel ar
+   BYTE  | ch 7 slot 0 eg sh dr  |   0.0+  | channel 7, slot 0, eg sh dr
+   BYTE  | ch 7 slot 0 eg sel dr |   0.0+  | channel 7, slot 0, eg sel dr
+   BYTE  | ch 7 slot 0 eg sh rr  |   0.0+  | channel 7, slot 0, eg sh rr
+   BYTE  | ch 7 slot 0 eg sel rr |   0.0+  | channel 7, slot 0, eg sel rr
+   DWORD | ch 7 slot 0 key       |   0.0+  | channel 7, slot 0, key
+   DWORD | ch 7 slot 0 AMmask    |   0.0+  | channel 7, slot 0, AMmask
+   BYTE  | ch 7 slot 0 vib       |   0.0+  | channel 7, slot 0, vib
+   WORD  | ch 7 slot 0 wavetable |   0.0+  | channel 7, slot 0, wavetable
+   DWORD | ch 7 slot 1 ar        |   0.0+  | channel 7, slot 1, ar
+   DWORD | ch 7 slot 1 dr        |   0.0+  | channel 7, slot 1, dr
+   DWORD | ch 7 slot 1 rr        |   0.0+  | channel 7, slot 1, rr
+   BYTE  | ch 7 slot 1 KSR       |   0.0+  | channel 7, slot 1, KSR
+   BYTE  | ch 7 slot 1 ksl       |   0.0+  | channel 7, slot 1, ksl
+   BYTE  | ch 7 slot 1 ksr       |   0.0+  | channel 7, slot 1, ksr
+   BYTE  | ch 7 slot 1 mul       |   0.0+  | channel 7, slot 1, mul
+   DWORD | ch 7 slot 1 Cnt       |   0.0+  | channel 7, slot 1, Cnt
+   DWORD | ch 7 slot 1 Incr      |   0.0+  | channel 7, slot 1, Incr
+   BYTE  | ch 7 slot 1 FB        |   0.0+  | channel 7, slot 1, FB
+   DWORD | ch 7 slot 1 connect1  |   0.0+  | channel 7, slot 1, connect1
+   DWORD | ch 7 slot 1 op1 out 0 |   0.0+  | channel 7, slot 1, op1 out 0
+   DWORD | ch 7 slot 1 op1 out 1 |   0.0+  | channel 7, slot 1, op1 out 1
+   BYTE  | ch 7 slot 1 CON       |   0.0+  | channel 7, slot 1, CON
+   BYTE  | ch 7 slot 1 eg type   |   0.0+  | channel 7, slot 1, eg type
+   BYTE  | ch 7 slot 1 state     |   0.0+  | channel 7, slot 1, state
+   DWORD | ch 7 slot 1 TL        |   0.0+  | channel 7, slot 1, TL
+   DWORD | ch 7 slot 1 TLL       |   0.0+  | channel 7, slot 1, TLL
+   DWORD | ch 7 slot 1 volume    |   0.0+  | channel 7, slot 1, volume
+   DWORD | ch 7 slot 1 sl        |   0.0+  | channel 7, slot 1, sl
+   BYTE  | ch 7 slot 1 eg sh ar  |   0.0+  | channel 7, slot 1, eg sh ar
+   BYTE  | ch 7 slot 1 eg sel ar |   0.0+  | channel 7, slot 1, eg sel ar
+   BYTE  | ch 7 slot 1 eg sh dr  |   0.0+  | channel 7, slot 1, eg sh dr
+   BYTE  | ch 7 slot 1 eg sel dr |   0.0+  | channel 7, slot 1, eg sel dr
+   BYTE  | ch 7 slot 1 eg sh rr  |   0.0+  | channel 7, slot 1, eg sh rr
+   BYTE  | ch 7 slot 1 eg sel rr |   0.0+  | channel 7, slot 1, eg sel rr
+   DWORD | ch 7 slot 1 key       |   0.0+  | channel 7, slot 1, key
+   DWORD | ch 7 slot 1 AMmask    |   0.0+  | channel 7, slot 1, AMmask
+   BYTE  | ch 7 slot 1 vib       |   0.0+  | channel 7, slot 1, vib
+   WORD  | ch 7 slot 1 wavetable |   0.0+  | channel 7, slot 1, wavetable
+   DWORD | ch 7 block fnum       |   0.0+  | channel 7, block fnum
+   DWORD | ch 7 fc               |   0.0+  | channel 7, fc
+   DWORD | ch 7 ksl base         |   0.0+  | channel 7, ksl base
+   BYTE  | ch 7 kcode            |   0.0+  | channel 7, kcode
+   DWORD | ch 8 slot 0 ar        |   0.0+  | channel 8, slot 0, ar
+   DWORD | ch 8 slot 0 dr        |   0.0+  | channel 8, slot 0, dr
+   DWORD | ch 8 slot 0 rr        |   0.0+  | channel 8, slot 0, rr
+   BYTE  | ch 8 slot 0 KSR       |   0.0+  | channel 8, slot 0, KSR
+   BYTE  | ch 8 slot 0 ksl       |   0.0+  | channel 8, slot 0, ksl
+   BYTE  | ch 8 slot 0 ksr       |   0.0+  | channel 8, slot 0, ksr
+   BYTE  | ch 8 slot 0 mul       |   0.0+  | channel 8, slot 0, mul
+   DWORD | ch 8 slot 0 Cnt       |   0.0+  | channel 8, slot 0, Cnt
+   DWORD | ch 8 slot 0 Incr      |   0.0+  | channel 8, slot 0, Incr
+   BYTE  | ch 8 slot 0 FB        |   0.0+  | channel 8, slot 0, FB
+   DWORD | ch 8 slot 0 connect1  |   0.0+  | channel 8, slot 0, connect1
+   DWORD | ch 8 slot 0 op1 out 0 |   0.0+  | channel 8, slot 0, op1 out 0
+   DWORD | ch 8 slot 0 op1 out 1 |   0.0+  | channel 8, slot 0, op1 out 1
+   BYTE  | ch 8 slot 0 CON       |   0.0+  | channel 8, slot 0, CON
+   BYTE  | ch 8 slot 0 eg type   |   0.0+  | channel 8, slot 0, eg type
+   BYTE  | ch 8 slot 0 state     |   0.0+  | channel 8, slot 0, state
+   DWORD | ch 8 slot 0 TL        |   0.0+  | channel 8, slot 0, TL
+   DWORD | ch 8 slot 0 TLL       |   0.0+  | channel 8, slot 0, TLL
+   DWORD | ch 8 slot 0 volume    |   0.0+  | channel 8, slot 0, volume
+   DWORD | ch 8 slot 0 sl        |   0.0+  | channel 8, slot 0, sl
+   BYTE  | ch 8 slot 0 eg sh ar  |   0.0+  | channel 8, slot 0, eg sh ar
+   BYTE  | ch 8 slot 0 eg sel ar |   0.0+  | channel 8, slot 0, eg sel ar
+   BYTE  | ch 8 slot 0 eg sh dr  |   0.0+  | channel 8, slot 0, eg sh dr
+   BYTE  | ch 8 slot 0 eg sel dr |   0.0+  | channel 8, slot 0, eg sel dr
+   BYTE  | ch 8 slot 0 eg sh rr  |   0.0+  | channel 8, slot 0, eg sh rr
+   BYTE  | ch 8 slot 0 eg sel rr |   0.0+  | channel 8, slot 0, eg sel rr
+   DWORD | ch 8 slot 0 key       |   0.0+  | channel 8, slot 0, key
+   DWORD | ch 8 slot 0 AMmask    |   0.0+  | channel 8, slot 0, AMmask
+   BYTE  | ch 8 slot 0 vib       |   0.0+  | channel 8, slot 0, vib
+   WORD  | ch 8 slot 0 wavetable |   0.0+  | channel 8, slot 0, wavetable
+   DWORD | ch 8 slot 1 ar        |   0.0+  | channel 8, slot 1, ar
+   DWORD | ch 8 slot 1 dr        |   0.0+  | channel 8, slot 1, dr
+   DWORD | ch 8 slot 1 rr        |   0.0+  | channel 8, slot 1, rr
+   BYTE  | ch 8 slot 1 KSR       |   0.0+  | channel 8, slot 1, KSR
+   BYTE  | ch 8 slot 1 ksl       |   0.0+  | channel 8, slot 1, ksl
+   BYTE  | ch 8 slot 1 ksr       |   0.0+  | channel 8, slot 1, ksr
+   BYTE  | ch 8 slot 1 mul       |   0.0+  | channel 8, slot 1, mul
+   DWORD | ch 8 slot 1 Cnt       |   0.0+  | channel 8, slot 1, Cnt
+   DWORD | ch 8 slot 1 Incr      |   0.0+  | channel 8, slot 1, Incr
+   BYTE  | ch 8 slot 1 FB        |   0.0+  | channel 8, slot 1, FB
+   DWORD | ch 8 slot 1 connect1  |   0.0+  | channel 8, slot 1, connect1
+   DWORD | ch 8 slot 1 op1 out 0 |   0.0+  | channel 8, slot 1, op1 out 0
+   DWORD | ch 8 slot 1 op1 out 1 |   0.0+  | channel 8, slot 1, op1 out 1
+   BYTE  | ch 8 slot 1 CON       |   0.0+  | channel 8, slot 1, CON
+   BYTE  | ch 8 slot 1 eg type   |   0.0+  | channel 8, slot 1, eg type
+   BYTE  | ch 8 slot 1 state     |   0.0+  | channel 8, slot 1, state
+   DWORD | ch 8 slot 1 TL        |   0.0+  | channel 8, slot 1, TL
+   DWORD | ch 8 slot 1 TLL       |   0.0+  | channel 8, slot 1, TLL
+   DWORD | ch 8 slot 1 volume    |   0.0+  | channel 8, slot 1, volume
+   DWORD | ch 8 slot 1 sl        |   0.0+  | channel 8, slot 1, sl
+   BYTE  | ch 8 slot 1 eg sh ar  |   0.0+  | channel 8, slot 1, eg sh ar
+   BYTE  | ch 8 slot 1 eg sel ar |   0.0+  | channel 8, slot 1, eg sel ar
+   BYTE  | ch 8 slot 1 eg sh dr  |   0.0+  | channel 8, slot 1, eg sh dr
+   BYTE  | ch 8 slot 1 eg sel dr |   0.0+  | channel 8, slot 1, eg sel dr
+   BYTE  | ch 8 slot 1 eg sh rr  |   0.0+  | channel 8, slot 1, eg sh rr
+   BYTE  | ch 8 slot 1 eg sel rr |   0.0+  | channel 8, slot 1, eg sel rr
+   DWORD | ch 8 slot 1 key       |   0.0+  | channel 8, slot 1, key
+   DWORD | ch 8 slot 1 AMmask    |   0.0+  | channel 8, slot 1, AMmask
+   BYTE  | ch 8 slot 1 vib       |   0.0+  | channel 8, slot 1, vib
+   WORD  | ch 8 slot 1 wavetable |   0.0+  | channel 8, slot 1, wavetable
+   DWORD | ch 8 block fnum       |   0.0+  | channel 8, block fnum
+   DWORD | ch 8 fc               |   0.0+  | channel 8, fc
+   DWORD | ch 8 ksl base         |   0.0+  | channel 8, ksl base
+   BYTE  | ch 8 kcode            |   0.0+  | channel 8, kcode
+   DWORD | eg cnt                |   0.0+  | eg cnt
+   DWORD | eg timer              |   0.0+  | eg timer
+   DWORD | eg timer add          |   0.0+  | eg timer add
+   DWORD | eg timer overflow     |   0.0+  | eg timer overflow
+   BYTE  | rhythm                |   0.0+  | rhythm
+   ARRAY | fn table              |   0.0+  | 1024 DWORDS of fn table data
+   BYTE  | lfo am depth          |   0.0+  | lfo am depth
+   BYTE  | lfo pm depth range    |   0.0+  | lfo pm depth range
+   DWORD | lfo am cnt            |   0.0+  | lfo am cnt
+   DWORD | lfo am inc            |   0.0+  | lfo am inc
+   DWORD | lfo pm cnt            |   0.0+  | lfo pm cnt
+   DWORD | lfo pm inc            |   0.0+  | lfo pm inc
+   DWORD | noise rng             |   0.0+  | noise rng
+   DWORD | noise p               |   0.0+  | noise p
+   DWORD | noise f               |   0.0+  | noise f
+   BYTE  | wavesel               |   0.0+  | wavesel
+   DWORD | T 0                   |   0.0+  | T 0
+   DWORD | T 1                   |   0.0+  | T 1
+   BYTE  | st 0                  |   0.0+  | st 0
+   BYTE  | st 1                  |   0.0+  | st 1
+   BYTE  | type                  |   0.0+  | type
+   BYTE  | address               |   0.0+  | address
+   BYTE  | status                |   0.0+  | status
+   BYTE  | status mask           |   0.0+  | status mask
+   BYTE  | mode                  |   0.0+  | mode
+   DWORD | clock                 |   0.0+  | clock
+   DWORD | rate                  |   0.0+  | rate
+   DBL   | freqbase              |   0.0+  | freqbase
+ */
+
+static char snap_module_name[] = "CARTSFXSE";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
 
 int sfx_soundexpander_snapshot_write_module(snapshot_t *s)
 {
@@ -484,113 +1107,110 @@ int sfx_soundexpander_snapshot_write_module(snapshot_t *s)
         return 0;
     }
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_DW(m, (DWORD)sfx_soundexpander_chip) < 0)
-        || (SMW_B(m, (BYTE)snd.command) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMW_B(m, (BYTE)sfx_soundexpander_io_swap) < 0
+        || SMW_DW(m, (DWORD)sfx_soundexpander_chip) < 0
+        || SMW_B(m, (BYTE)snd.command) < 0) {
+        goto fail;
     }
 
     for (x = 0; x < 9; x++) {
         for (y = 0; y < 2; y++) {
             if (0
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].ar) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].dr) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].rr) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].KSR) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].ksl) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].ksr) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].mul) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].Cnt) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].Incr) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].FB) < 0)
-                || (SMW_DW(m, (DWORD)connect1_is_output0(chip->P_CH[x].SLOT[y].connect1)) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].op1_out[0]) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].op1_out[1]) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].CON) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_type) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].state) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].TL) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].TLL) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].volume) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].sl) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_ar) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_ar) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_dr) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_dr) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_rr) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_rr) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].key) < 0)
-                || (SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].AMmask) < 0)
-                || (SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].vib) < 0)
-                || (SMW_W(m, (WORD)chip->P_CH[x].SLOT[y].wavetable) < 0)) {
-                snapshot_module_close(m);
-                return -1;
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].ar) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].dr) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].rr) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].KSR) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].ksl) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].ksr) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].mul) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].Cnt) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].Incr) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].FB) < 0
+                || SMW_DW(m, (DWORD)connect1_is_output0(chip->P_CH[x].SLOT[y].connect1)) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].op1_out[0]) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].op1_out[1]) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].CON) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_type) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].state) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].TL) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].TLL) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].volume) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].sl) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_ar) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_ar) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_dr) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_dr) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_rr) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_rr) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].key) < 0
+                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].AMmask) < 0
+                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].vib) < 0
+                || SMW_W(m, (WORD)chip->P_CH[x].SLOT[y].wavetable) < 0) {
+                goto fail;
             }
         }
         if (0
-            || (SMW_DW(m, (DWORD)chip->P_CH[x].block_fnum) < 0)
-            || (SMW_DW(m, (DWORD)chip->P_CH[x].fc) < 0)
-            || (SMW_DW(m, (DWORD)chip->P_CH[x].ksl_base) < 0)
-            || (SMW_B(m, (BYTE)chip->P_CH[x].kcode) < 0)) {
-            snapshot_module_close(m);
-            return -1;
+            || SMW_DW(m, (DWORD)chip->P_CH[x].block_fnum) < 0
+            || SMW_DW(m, (DWORD)chip->P_CH[x].fc) < 0
+            || SMW_DW(m, (DWORD)chip->P_CH[x].ksl_base) < 0
+            || SMW_B(m, (BYTE)chip->P_CH[x].kcode) < 0) {
+            goto fail;
         }
     }
 
     if (0
-        || (SMW_DW(m, (DWORD)chip->eg_cnt) < 0)
-        || (SMW_DW(m, (DWORD)chip->eg_timer) < 0)
-        || (SMW_DW(m, (DWORD)chip->eg_timer_add) < 0)
-        || (SMW_DW(m, (DWORD)chip->eg_timer_overflow) < 0)
-        || (SMW_B(m, (BYTE)chip->rhythm) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMW_DW(m, (DWORD)chip->eg_cnt) < 0
+        || SMW_DW(m, (DWORD)chip->eg_timer) < 0
+        || SMW_DW(m, (DWORD)chip->eg_timer_add) < 0
+        || SMW_DW(m, (DWORD)chip->eg_timer_overflow) < 0
+        || SMW_B(m, (BYTE)chip->rhythm) < 0) {
+        goto fail;
     }
 
     for (x = 0; x < 1024; x++) {
-        if (0
-            || (SMW_DW(m, (DWORD)chip->fn_tab[x]) < 0)) {
-            snapshot_module_close(m);
-            return -1;
+        if (SMW_DW(m, (DWORD)chip->fn_tab[x]) < 0) {
+            goto fail;
         }
     }
 
     if (0
-        || (SMW_B(m, (BYTE)chip->lfo_am_depth) < 0)
-        || (SMW_B(m, (BYTE)chip->lfo_pm_depth_range) < 0)
-        || (SMW_DW(m, (DWORD)chip->lfo_am_cnt) < 0)
-        || (SMW_DW(m, (DWORD)chip->lfo_am_inc) < 0)
-        || (SMW_DW(m, (DWORD)chip->lfo_pm_cnt) < 0)
-        || (SMW_DW(m, (DWORD)chip->lfo_pm_inc) < 0)
-        || (SMW_DW(m, (DWORD)chip->noise_rng) < 0)
-        || (SMW_DW(m, (DWORD)chip->noise_p) < 0)
-        || (SMW_DW(m, (DWORD)chip->noise_f) < 0)
-        || (SMW_B(m, (BYTE)chip->wavesel) < 0)
-        || (SMW_DW(m, (DWORD)chip->T[0]) < 0)
-        || (SMW_DW(m, (DWORD)chip->T[1]) < 0)
-        || (SMW_B(m, (BYTE)chip->st[0]) < 0)
-        || (SMW_B(m, (BYTE)chip->st[1]) < 0)
-        || (SMW_B(m, (BYTE)chip->type) < 0)
-        || (SMW_B(m, (BYTE)chip->address) < 0)
-        || (SMW_B(m, (BYTE)chip->status) < 0)
-        || (SMW_B(m, (BYTE)chip->statusmask) < 0)
-        || (SMW_B(m, (BYTE)chip->mode) < 0)
-        || (SMW_DW(m, (DWORD)chip->clock) < 0)
-        || (SMW_DW(m, (DWORD)chip->rate) < 0)
-        || (SMW_DB(m, (double)chip->freqbase) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMW_B(m, (BYTE)chip->lfo_am_depth) < 0
+        || SMW_B(m, (BYTE)chip->lfo_pm_depth_range) < 0
+        || SMW_DW(m, (DWORD)chip->lfo_am_cnt) < 0
+        || SMW_DW(m, (DWORD)chip->lfo_am_inc) < 0
+        || SMW_DW(m, (DWORD)chip->lfo_pm_cnt) < 0
+        || SMW_DW(m, (DWORD)chip->lfo_pm_inc) < 0
+        || SMW_DW(m, (DWORD)chip->noise_rng) < 0
+        || SMW_DW(m, (DWORD)chip->noise_p) < 0
+        || SMW_DW(m, (DWORD)chip->noise_f) < 0
+        || SMW_B(m, (BYTE)chip->wavesel) < 0
+        || SMW_DW(m, (DWORD)chip->T[0]) < 0
+        || SMW_DW(m, (DWORD)chip->T[1]) < 0
+        || SMW_B(m, (BYTE)chip->st[0]) < 0
+        || SMW_B(m, (BYTE)chip->st[1]) < 0
+        || SMW_B(m, (BYTE)chip->type) < 0
+        || SMW_B(m, (BYTE)chip->address) < 0
+        || SMW_B(m, (BYTE)chip->status) < 0
+        || SMW_B(m, (BYTE)chip->statusmask) < 0
+        || SMW_B(m, (BYTE)chip->mode) < 0
+        || SMW_DW(m, (DWORD)chip->clock) < 0
+        || SMW_DW(m, (DWORD)chip->rate) < 0
+        || SMW_DB(m, (double)chip->freqbase) < 0) {
+        goto fail;
     }
 
+    return snapshot_module_close(m);
+
+fail:
     snapshot_module_close(m);
-    return 0;
+    return -1;
 }
 
 int sfx_soundexpander_snapshot_read_module(snapshot_t *s)
@@ -602,19 +1222,29 @@ int sfx_soundexpander_snapshot_read_module(snapshot_t *s)
     int temp_connect1;
     int x, y;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0 || (SMR_DW_INT(m, &temp_chip) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+    /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (SMR_B_INT(m, &sfx_soundexpander_io_swap) < 0) {
+            goto fail;
+        }
+    } else {
+        sfx_soundexpander_io_swap = 0;
+    }
+
+    if (SMR_DW_INT(m, &temp_chip) < 0) {
+        goto fail;
     }
 
     if (sfx_soundexpander_sound_chip.chip_enabled) {
@@ -624,101 +1254,97 @@ int sfx_soundexpander_snapshot_read_module(snapshot_t *s)
     set_sfx_soundexpander_enabled(1, NULL);
     chip = (temp_chip == 3526) ? YM3526_chip : YM3812_chip;
 
-    if (0 || (SMR_B(m, &snd.command) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+    if (SMR_B(m, &snd.command) < 0) {
+        goto fail;
     }
 
     for (x = 0; x < 9; x++) {
         for (y = 0; y < 2; y++) {
             if (0
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].ar) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].dr) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].rr) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].KSR) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].ksl) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].ksr) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].mul) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].Cnt) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].Incr) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].FB) < 0)
-                || (SMR_DW_INT(m, &temp_connect1) < 0)
-                || (SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].op1_out[0]) < 0)
-                || (SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].op1_out[1]) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].CON) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_type) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].state) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].TL) < 0)
-                || (SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].TLL) < 0)
-                || (SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].volume) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].sl) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sh_ar) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sel_ar) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sh_dr) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sel_dr) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sh_rr) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sel_rr) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].key) < 0)
-                || (SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].AMmask) < 0)
-                || (SMR_B(m, &chip->P_CH[x].SLOT[y].vib) < 0)
-                || (SMR_W(m, &chip->P_CH[x].SLOT[y].wavetable) < 0)) {
-                snapshot_module_close(m);
-                return -1;
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].ar) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].dr) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].rr) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].KSR) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].ksl) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].ksr) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].mul) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].Cnt) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].Incr) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].FB) < 0
+                || SMR_DW_INT(m, &temp_connect1) < 0
+                || SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].op1_out[0]) < 0
+                || SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].op1_out[1]) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].CON) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_type) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].state) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].TL) < 0
+                || SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].TLL) < 0
+                || SMR_DW_INT(m, &chip->P_CH[x].SLOT[y].volume) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].sl) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sh_ar) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sel_ar) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sh_dr) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sel_dr) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sh_rr) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].eg_sel_rr) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].key) < 0
+                || SMR_DW_UINT(m, &chip->P_CH[x].SLOT[y].AMmask) < 0
+                || SMR_B(m, &chip->P_CH[x].SLOT[y].vib) < 0
+                || SMR_W(m, &chip->P_CH[x].SLOT[y].wavetable) < 0) {
+                goto fail;
             }
             set_connect1(chip, x, y, temp_connect1);
         }
         if (0
-            || (SMR_DW_UINT(m, &chip->P_CH[x].block_fnum) < 0)
-            || (SMR_DW_UINT(m, &chip->P_CH[x].fc) < 0)
-            || (SMR_DW_UINT(m, &chip->P_CH[x].ksl_base) < 0)
-            || (SMR_B(m, &chip->P_CH[x].kcode) < 0)) {
-            snapshot_module_close(m);
-            return -1;
+            || SMR_DW_UINT(m, &chip->P_CH[x].block_fnum) < 0
+            || SMR_DW_UINT(m, &chip->P_CH[x].fc) < 0
+            || SMR_DW_UINT(m, &chip->P_CH[x].ksl_base) < 0
+            || SMR_B(m, &chip->P_CH[x].kcode) < 0) {
+            goto fail;
         }
     }
     if (0
-        || (SMR_DW_UINT(m, &chip->eg_cnt) < 0)
-        || (SMR_DW_UINT(m, &chip->eg_timer) < 0)
-        || (SMR_DW_UINT(m, &chip->eg_timer_add) < 0)
-        || (SMR_DW_UINT(m, &chip->eg_timer_overflow) < 0)
-        || (SMR_B(m, &chip->rhythm) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMR_DW_UINT(m, &chip->eg_cnt) < 0
+        || SMR_DW_UINT(m, &chip->eg_timer) < 0
+        || SMR_DW_UINT(m, &chip->eg_timer_add) < 0
+        || SMR_DW_UINT(m, &chip->eg_timer_overflow) < 0
+        || SMR_B(m, &chip->rhythm) < 0) {
+        goto fail;
     }
     for (x = 0; x < 1024; x++) {
-        if (0
-            || (SMR_DW_UINT(m, &chip->fn_tab[x]) < 0)) {
-            snapshot_module_close(m);
-            return -1;
+        if (SMR_DW_UINT(m, &chip->fn_tab[x]) < 0) {
+            goto fail;
         }
     }
     if (0
-        || (SMR_B(m, &chip->lfo_am_depth) < 0)
-        || (SMR_B(m, &chip->lfo_pm_depth_range) < 0)
-        || (SMR_DW_UINT(m, &chip->lfo_am_cnt) < 0)
-        || (SMR_DW_UINT(m, &chip->lfo_am_inc) < 0)
-        || (SMR_DW_UINT(m, &chip->lfo_pm_cnt) < 0)
-        || (SMR_DW_UINT(m, &chip->lfo_pm_inc) < 0)
-        || (SMR_DW_UINT(m, &chip->noise_rng) < 0)
-        || (SMR_DW_UINT(m, &chip->noise_p) < 0)
-        || (SMR_DW_UINT(m, &chip->noise_f) < 0)
-        || (SMR_B(m, &chip->wavesel) < 0)
-        || (SMR_DW_UINT(m, &chip->T[0]) < 0)
-        || (SMR_DW_UINT(m, &chip->T[1]) < 0)
-        || (SMR_B(m, &chip->st[0]) < 0)
-        || (SMR_B(m, &chip->st[1]) < 0)
-        || (SMR_B(m, &chip->type) < 0)
-        || (SMR_B(m, &chip->address) < 0)
-        || (SMR_B(m, &chip->status) < 0)
-        || (SMR_B(m, &chip->statusmask) < 0)
-        || (SMR_B(m, &chip->mode) < 0)
-        || (SMR_DW_UINT(m, &chip->clock) < 0)
-        || (SMR_DW_UINT(m, &chip->rate) < 0)
-        || (SMR_DB(m, &chip->freqbase) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMR_B(m, &chip->lfo_am_depth) < 0
+        || SMR_B(m, &chip->lfo_pm_depth_range) < 0
+        || SMR_DW_UINT(m, &chip->lfo_am_cnt) < 0
+        || SMR_DW_UINT(m, &chip->lfo_am_inc) < 0
+        || SMR_DW_UINT(m, &chip->lfo_pm_cnt) < 0
+        || SMR_DW_UINT(m, &chip->lfo_pm_inc) < 0
+        || SMR_DW_UINT(m, &chip->noise_rng) < 0
+        || SMR_DW_UINT(m, &chip->noise_p) < 0
+        || SMR_DW_UINT(m, &chip->noise_f) < 0
+        || SMR_B(m, &chip->wavesel) < 0
+        || SMR_DW_UINT(m, &chip->T[0]) < 0
+        || SMR_DW_UINT(m, &chip->T[1]) < 0
+        || SMR_B(m, &chip->st[0]) < 0
+        || SMR_B(m, &chip->st[1]) < 0
+        || SMR_B(m, &chip->type) < 0
+        || SMR_B(m, &chip->address) < 0
+        || SMR_B(m, &chip->status) < 0
+        || SMR_B(m, &chip->statusmask) < 0
+        || SMR_B(m, &chip->mode) < 0
+        || SMR_DW_UINT(m, &chip->clock) < 0
+        || SMR_DW_UINT(m, &chip->rate) < 0
+        || SMR_DB(m, &chip->freqbase) < 0) {
+        goto fail;
     }
 
+    return snapshot_module_close(m);
+
+fail:
     snapshot_module_close(m);
-    return 0;
+    return -1;
 }

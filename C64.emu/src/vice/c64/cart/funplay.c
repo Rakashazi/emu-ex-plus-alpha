@@ -32,10 +32,10 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
 #include "funplay.h"
 #include "log.h"
 #include "monitor.h"
@@ -146,7 +146,7 @@ static io_source_t funplay_device = {
 
 static io_source_list_t *funplay_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_FUNPLAY, 1, 1, &funplay_device, NULL, CARTRIDGE_FUNPLAY
 };
 
@@ -169,7 +169,7 @@ void funplay_config_setup(BYTE *rawcart)
 /* ---------------------------------------------------------------------*/
 static int funplay_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
     funplay_list_item = io_source_register(&funplay_device);
@@ -213,34 +213,45 @@ void funplay_detach(void)
 {
     io_source_unregister(funplay_list_item);
     funplay_list_item = NULL;
-    c64export_remove(&export_res);
+    export_remove(&export_res);
 }
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   1
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTFUNPLAY"
+/* CARTFUNPLAY snapshot module format:
+
+   type  | name   | version | description
+   --------------------------------------
+   BYTE  | regval |   1.1   | register
+   BYTE  | bank   |   0.0+  | current bank
+   ARRAY | ROML   |   1.0+  | 131072 BYTES of ROML data
+
+   Note: 0.0 is incompatible with 1.0+ snapshots.
+ */
+
+static char snap_module_name[] = "CARTFUNPLAY";
+#define SNAP_MAJOR   1
+#define SNAP_MINOR   1
 
 int funplay_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_B(m, (BYTE)currbank) < 0)
-        || (SMW_BA(m, roml_banks, 0x2000 * 16) < 0)) {
+        || SMW_B(m, regval) < 0
+        || SMW_B(m, (BYTE)currbank) < 0
+        || SMW_BA(m, roml_banks, 0x2000 * 16) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int funplay_snapshot_read_module(snapshot_t *s)
@@ -248,24 +259,44 @@ int funplay_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    /* Only accept compatible snapshots */
+    if (!SNAPVAL(vmajor, vminor, 1, 0)) {
+        snapshot_set_error(SNAPSHOT_MODULE_INCOMPATIBLE);
+        goto fail;
+    }
+
+    /* new in 1.1 */
+    if (SNAPVAL(vmajor, vminor, 1, 1)) {
+        if (SMR_B(m, &regval) < 0) {
+            goto fail;
+        }
+    } else {
+        regval = 0;
     }
 
     if (0
-        || (SMR_B_INT(m, &currbank) < 0)
-        || (SMR_BA(m, roml_banks, 0x2000 * 16) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMR_B_INT(m, &currbank) < 0
+        || SMR_BA(m, roml_banks, 0x2000 * 16) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     return funplay_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

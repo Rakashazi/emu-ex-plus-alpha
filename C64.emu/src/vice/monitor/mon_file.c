@@ -173,7 +173,7 @@ static int mon_file_close(unsigned int secondary, int device)
 void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
                    bool is_bload)
 {
-    WORD adr;
+    WORD adr, load_addr = 0, basic_addr;
     BYTE b1 = 0, b2 = 0;
     int ch = 0;
     MEMSPACE mem;
@@ -184,36 +184,32 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
         return;
     }
 
+    /* if loading a .prg file, read/skip the start address */
     if (is_bload == FALSE) {
         mon_file_read(&b1, 0, device);
         mon_file_read(&b2, 0, device);
+        load_addr = (BYTE)b1 | ((BYTE)b2 << 8);
     }
 
-    mon_evaluate_default_addr(&start_addr);
+    mem_get_basic_text(&basic_addr, NULL); /* get BASIC start */
+    mon_evaluate_default_addr(&start_addr); /* get target addr given in monitor */
 
     if (!mon_is_valid_addr(start_addr)) {   /* No Load address given */
         if (is_bload == TRUE) {
+            /* when loading plain binary, load addr is required */
             mon_out("No LOAD address given.\n");
             mon_file_close(0, device);
             return;
         }
 
-        if (b1 == 1) {   /* Load Basic */
-            mem_get_basic_text(&adr, NULL);
+        if (load_addr == basic_addr) {   /* Load to BASIC start */
+            adr = basic_addr;
             mem = e_comp_space;
         } else {
-            adr = (BYTE)b1 | ((BYTE)b2 << 8);
-            mem = e_default_space;
-            start_addr = new_addr(mem, adr);
+            start_addr = new_addr(e_default_space, load_addr);
             mon_evaluate_default_addr(&start_addr);
             adr = addr_location(start_addr);
             mem = addr_memspace(start_addr);
-
-            /* if we are not writing to BASIC, do not
-             * adjust BASIC pointers */
-            if (mem != e_comp_space) {
-                is_bload = TRUE;
-            }
         }
     } else {
         adr = addr_location(start_addr);
@@ -236,7 +232,9 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
         mon_set_mem_val(mem, ADDR_LIMIT(adr + ch), load_byte);
 
         /* Hack to be able to read large .prgs for x64dtv */
-        if ((machine_class == VICE_MACHINE_C64DTV) && (ADDR_LIMIT(adr + ch) == 0xffff) && ((curbank >= mem_bank_from_name("ram00")) && (curbank <= mem_bank_from_name("ram1f")))) {
+        if ((machine_class == VICE_MACHINE_C64DTV) &&
+            (ADDR_LIMIT(adr + ch) == 0xffff) &&
+            ((curbank >= mem_bank_from_name("ram00")) && (curbank <= mem_bank_from_name("ram1f")))) {
             curbank++;
             if (curbank > mem_bank_from_name("ram1f")) {
                 curbank = mem_bank_from_name("ram00");
@@ -253,8 +251,12 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
 
     mon_out("to %04X (%x bytes)\n", ADDR_LIMIT(adr + ch), ch);
 
-    if (is_bload == FALSE && (adr & 0xff) == 1) {
-        /* set end of load addresses like kernal load */
+    /* set end of load addresses like kernal load if
+     * 1. loading .prg file
+     * 2. loading to BASIC start
+     * 3. loading to computer bank/memory
+     */
+    if ((is_bload == FALSE) && (load_addr == basic_addr) && (mem == e_comp_space)) {
         mem_set_basic_text(adr, (WORD)(adr + ch));
     }
 

@@ -67,6 +67,9 @@ extern char *platform_get_beosppc_runtime_cpu(void);
 extern char *platform_get_sunos_runtime_os(void);
 extern char *platform_get_sunos_runtime_cpu(void);
 
+extern char *platform_get_amix_runtime_os(void);
+extern char *platform_get_amix_runtime_cpu(void);
+
 extern char *platform_get_solaris_runtime_os(void);
 extern char *platform_get_solaris_runtime_cpu(void);
 
@@ -85,6 +88,21 @@ extern char *platform_get_syllable_runtime_cpu(void);
 extern char *platform_get_linux_runtime_os(void);
 extern char *platform_get_linux_runtime_cpu(void);
 
+extern char *platform_get_netbsd_runtime_os(void);
+extern char *platform_get_netbsd_runtime_cpu(void);
+
+extern char *platform_get_freebsd_runtime_os(void);
+extern char *platform_get_freebsd_runtime_cpu(void);
+
+extern char *platform_get_dragonfly_runtime_os(void);
+extern char *platform_get_dragonfly_runtime_cpu(void);
+
+extern char *platform_get_openbsd_runtime_os(void);
+extern char *platform_get_openbsd_runtime_cpu(void);
+
+extern char *platform_get_ultrix_runtime_os(void);
+extern char *platform_get_ultrix_runtime_cpu(void);
+
 extern char *platform_get_interix_runtime_os(void);
 
 extern char *platform_get_cygwin_runtime_os(void);
@@ -101,6 +119,8 @@ extern char *platform_get_skyos_runtime_cpu(void);
 extern char *platform_get_minix_runtime_os(void);
 extern char *platform_get_minix_runtime_cpu(void);
 
+extern char *platform_get_hurd_runtime_os(void);
+
 /* Set the runtime os call for known platforms */
 
 /* Windows on cygwin */
@@ -111,6 +131,11 @@ extern char *platform_get_minix_runtime_cpu(void);
 /* MacOSX */
 #if defined(MACOSX_COCOA)
 #define RUNTIME_OS_CALL platform_get_macosx_runtime_os
+#endif
+
+/* AMIX */
+#ifdef __AMIX__
+#define RUNTIME_OS_CALL platform_get_amix_runtime_os
 #endif
 
 /* SunOS */
@@ -128,6 +153,11 @@ extern char *platform_get_minix_runtime_cpu(void);
 #define RUNTIME_OS_CALL platform_get_minix_runtime_os
 #endif
 
+/* GNU Hurd */
+#if defined(__GNU__) && !defined(NEXTSTEP_COMPILE) && !defined(OPENSTEP_COMPILE)
+#define RUNTIME_OS_CALL platform_get_hurd_runtime_os
+#endif
+
 /* Syllable */
 #ifdef __SYLLABLE__
 #define RUNTIME_OS_CALL platform_get_syllable_runtime_os
@@ -136,6 +166,31 @@ extern char *platform_get_minix_runtime_cpu(void);
 /* Linux */
 #if defined(__linux) && !defined(__ANDROID__) && !defined(AMIGA_AROS)
 #define RUNTIME_OS_CALL platform_get_linux_runtime_os
+#endif
+
+/* NetBSD */
+#ifdef __NetBSD__
+#define RUNTIME_OS_CALL platform_get_netbsd_runtime_os
+#endif
+
+/* FreeBSD */
+#if defined(__FreeBSD__) && !defined(__DragonFly__)
+#define RUNTIME_OS_CALL platform_get_freebsd_runtime_os
+#endif
+
+/* DragonFly BSD */
+#ifdef __DragonFly__
+#define RUNTIME_OS_CALL platform_get_dragonfly_runtime_os
+#endif
+
+/* OpenBSD */
+#ifdef __OpenBSD__
+#define RUNTIME_OS_CALL platform_get_openbsd_runtime_os
+#endif
+
+/* Ultrix */
+#if defined(ultrix) || defined(__ultrix) || defined(__ultrix__)
+#define RUNTIME_OS_CALL platform_get_ultrix_runtime_os
 #endif
 
 /* Interix */
@@ -196,6 +251,11 @@ extern char *platform_get_minix_runtime_cpu(void);
 #define RUNTIME_CPU_CALL platform_get_sco_runtime_cpu
 #endif
 
+/* AMIX */
+#ifdef __AMIX__
+#define RUNTIME_CPU_CALL platform_get_amix_runtime_cpu
+#endif
+
 /* SunOS */
 #if (defined(sun) || defined(__sun)) && !(defined(__SVR4) || defined(__svr4__))
 #define RUNTIME_CPU_CALL platform_get_sunos_runtime_cpu
@@ -246,6 +306,31 @@ extern char *platform_get_minix_runtime_cpu(void);
 /* Linux */
 #if defined(__linux) && !defined(__ANDROID__)
 #define RUNTIME_CPU_CALL platform_get_linux_runtime_cpu
+#endif
+
+/* NetBSD */
+#ifdef __NetBSD__
+#define RUNTIME_CPU_CALL platform_get_netbsd_runtime_cpu
+#endif
+
+/* FreeBSD */
+#if defined(__FreeBSD__) && !defined(__DragonFly__)
+#define RUNTIME_CPU_CALL platform_get_freebsd_runtime_cpu
+#endif
+
+/* FreeBSD */
+#ifdef __DragonFly__
+#define RUNTIME_CPU_CALL platform_get_dragonfly_runtime_cpu
+#endif
+
+/* OpenBSD */
+#ifdef __OpenBSD__
+#define RUNTIME_CPU_CALL platform_get_openbsd_runtime_cpu
+#endif
+
+/* Ultrix */
+#if defined(ultrix) || defined(__ultrix) || defined(__ultrix__)
+#define RUNTIME_CPU_CALL platform_get_ultrix_runtime_cpu
 #endif
 
 /* x86/amd64/x86_64 */

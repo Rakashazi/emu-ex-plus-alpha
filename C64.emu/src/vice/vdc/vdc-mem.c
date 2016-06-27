@@ -559,7 +559,7 @@ void vdc_ram_store(WORD addr, BYTE value)
 }
 
 
-int vdc_dump(void)
+int vdc_dump(void *context, WORD addr)
 {
     unsigned int r, c, regnum=0;
 

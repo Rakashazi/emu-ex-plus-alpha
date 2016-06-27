@@ -63,6 +63,7 @@ int ram_block_1_enabled;
 int ram_block_2_enabled;
 int ram_block_3_enabled;
 int ram_block_5_enabled;
+int vflimod_enabled;
 
 /* ------------------------------------------------------------------------- */
 
@@ -138,6 +139,15 @@ static int set_ram_block_5_enabled(int value, void *param)
     return 0;
 }
 
+static int set_vflimod_enabled(int value, void *param)
+{
+    vflimod_enabled = value ? 1 : 0;
+
+    mem_initialize_memory();
+
+    return 0;
+}
+
 static int set_sync_factor(int val, void *param)
 {
     int change_timing = 0;
@@ -190,6 +200,8 @@ static const resource_int_t resources_int[] =
       &ram_block_3_enabled, set_ram_block_3_enabled, NULL },
     { "RAMBlock5", 0, RES_EVENT_SAME, NULL,
       &ram_block_5_enabled, set_ram_block_5_enabled, NULL },
+    { "VFLImod", 0, RES_EVENT_SAME, NULL,
+      &vflimod_enabled, set_vflimod_enabled, NULL },
     {NULL}
 };
 

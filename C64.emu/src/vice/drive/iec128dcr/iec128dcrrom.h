@@ -33,7 +33,6 @@ struct drive_s;
 
 extern void iec128dcrrom_init(void);
 extern void iec128dcrrom_setup_image(struct drive_s *drive);
-extern int iec128dcrrom_read(unsigned int type, WORD addr, BYTE *data);
 extern int iec128dcrrom_check_loaded(unsigned int type);
 
 extern int iec128dcrrom_load_1571cr(void);

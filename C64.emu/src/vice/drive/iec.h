@@ -44,7 +44,6 @@ extern void iec_drive_setup_context(struct drive_context_s *drv);
 extern void iec_drive_idling_method(unsigned int dnr);
 extern void iec_drive_rom_load(void);
 extern void iec_drive_rom_setup_image(unsigned int dnr);
-extern int iec_drive_rom_read(unsigned int type, WORD addr, BYTE *data);
 extern int iec_drive_rom_check_loaded(unsigned int type);
 extern void iec_drive_rom_do_checksum(unsigned int dnr);
 extern int iec_drive_snapshot_read(struct drive_context_s *ctxptr, struct snapshot_s *s);

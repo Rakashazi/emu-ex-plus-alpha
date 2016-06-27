@@ -78,6 +78,8 @@ CLOCK debug_clk;
 
 /* ------------------------------------------------------------------------- */
 
+int check_ba_low = 0;
+
 inline static void interrupt_delay(void)
 {
     while (maincpu_clk >= alarm_context_next_pending_clk(maincpu_alarm_context)) {
@@ -97,6 +99,7 @@ static void maincpu_steal_cycles(void)
 {
     interrupt_cpu_status_t *cs = maincpu_int_status;
     BYTE opcode;
+
     if (maincpu_ba_low_flags & MAINCPU_BA_LOW_VICII) {
         vicii_steal_cycles();
         maincpu_ba_low_flags &= ~MAINCPU_BA_LOW_VICII;
@@ -116,17 +119,28 @@ static void maincpu_steal_cycles(void)
     switch (opcode) {
         /* SHA */
         case 0x93:
+            if (check_ba_low) {
+                OPINFO_SET_ENABLES_IRQ(*cs->last_opcode_info_ptr, 1);
+            }
+            break;
+
         /* SHS */
         case 0x9b:
+            /* (fall through) */
         /* SHY */
         case 0x9c:
+            /* (fall through) */
         /* SHX */
         case 0x9e:
+            /* (fall through) */
         /* SHA */
         case 0x9f:
         /* this is a hacky way of signaling SET_ABS_SH_I() that
            cycles were stolen before the write */
-        /* (fall through) */
+            if (check_ba_low) {
+                OPINFO_SET_ENABLES_IRQ(*cs->last_opcode_info_ptr, 1);
+            }
+            break;
 
         /* ANE */
         case 0x8b:
@@ -230,6 +244,13 @@ BYTE memmap_mem_read(unsigned int addr)
     memmap_mem_read(addr)
 #endif
 
+#ifndef LOAD_CHECK_BA_LOW
+#define LOAD_CHECK_BA_LOW(addr) \
+    check_ba_low = 1;           \
+    memmap_mem_read(addr);      \
+    check_ba_low = 0
+#endif
+
 #ifndef STORE_ZERO
 #define STORE_ZERO(addr, value) \
     memmap_mem_store((addr) & 0xff, value)
@@ -262,6 +283,13 @@ inline static BYTE mem_read_check_ba(unsigned int addr)
 #ifndef LOAD
 #define LOAD(addr) \
     mem_read_check_ba(addr)
+#endif
+
+#ifndef LOAD_CHECK_BA_LOW
+#define LOAD_CHECK_BA_LOW(addr) \
+    check_ba_low = 1;           \
+    mem_read_check_ba(addr);    \
+    check_ba_low = 0
 #endif
 
 #ifndef STORE_ZERO

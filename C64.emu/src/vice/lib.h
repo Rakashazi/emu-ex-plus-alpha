@@ -82,7 +82,7 @@ extern void *lib_calloc(size_t nmemb, size_t size);
 extern void *lib_realloc(void *p, size_t size);
 extern void lib_free(const void *ptr);
 
-extern VICE_API char *lib_stralloc(const char *str);
+extern char *lib_stralloc(const char *str);
 
 #if defined(AMIGA_SUPPORT) || defined(__VBCC__)
 extern void *lib_AllocVec(unsigned long size, unsigned long attributes);

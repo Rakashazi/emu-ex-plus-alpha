@@ -158,7 +158,7 @@ void parallel_cable_cpu_write(int type, BYTE data)
     DBG(("PARCABLE (%d:%d) CPU W DATA %02x", type, port, data));
 }
 
-BYTE parallel_cable_cpu_read(int type)
+BYTE parallel_cable_cpu_read(int type, BYTE data)
 {
     BYTE rc;
 
@@ -168,7 +168,7 @@ BYTE parallel_cable_cpu_read(int type)
 
     DBG(("PARCABLE (%d:%d) CPU R %02x", type, portmap[type], rc));
 
-    return rc;
+    return data & rc;
 }
 
 void parallel_cable_cpu_pulse(int type)

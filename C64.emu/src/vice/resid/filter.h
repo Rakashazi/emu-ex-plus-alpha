@@ -1276,8 +1276,12 @@ for my $mix (0..2**@i-1) {
   }
   else {
     // FIXME: Temporary code for MOS 8580, should use code above.
-    return Vi*vol >> 4;
-  }
+    /* do hard clipping here, else some tunes manage to overflow this
+       (eg /MUSICIANS/L/Linus/64_Forever.sid, starting at 0:44) */
+    int tmp = Vi*(int)vol >> 4;
+    if (tmp < -32768) tmp = -32768;
+    if (tmp > 32767) tmp = 32767;
+    return (short)tmp;  }
 }
 
 

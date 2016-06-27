@@ -56,6 +56,12 @@ CPPFLAGS += \
 -I$(projectPath)/src/vice/vic20 \
 -I$(projectPath)/src/vice/vic20/cart \
 -I$(projectPath)/src/vice/crtc \
+-I$(projectPath)/src/vice/tapeport \
+-I$(projectPath)/src/vice/joyport \
+-I$(projectPath)/src/vice/samplerdrv \
+-I$(projectPath)/src/vice/drive/iec \
+-I$(projectPath)/src/vice/drive/ieee \
+-I$(projectPath)/src/vice/drive/tcbm \
 -DSTDC_HEADERS=1 \
 -DHAVE_SYS_TYPES_H=1 \
 -DHAVE_SYS_STAT_H=1 \
@@ -89,18 +95,15 @@ info.c \
 init.c \
 interrupt.c \
 ioutil.c \
-joystick.c \
 kbdbuf.c \
 keyboard.c \
 lib.c \
 libm_math.c \
-lightpen.c \
 machine-bus.c \
 machine.c \
 network.c \
 opencbmlib.c \
 palette.c \
-ps2mouse.c \
 ram.c \
 rawfile.c \
 rawnet.c \
@@ -133,12 +136,16 @@ c64-midi.c \
 c64tpi.c \
 capture.c \
 comal80.c \
+cpmcart.c \
+daa.c \
+debugcart.c \
 delaep256.c \
 delaep64.c \
 delaep7x8.c \
 diashowmaker.c \
-dqbb.c \
 dinamic.c \
+dqbb.c \
+easycalc.c \
 easyflash.c \
 epyxfastload.c \
 exos.c \
@@ -173,6 +180,9 @@ rexep256.c \
 rexutility.c \
 rgcd.c \
 ross.c \
+rrnetmk3.c \
+shortbus.c \
+shortbus_digimax.c \
 silverrock128.c \
 simonsbasic.c \
 snapshot64.c \
@@ -185,7 +195,11 @@ supersnapshot4.c \
 warpspeed.c \
 westermann.c \
 zaxxon.c
+
 libc64cart_a_SOURCES := $(addprefix c64/cart/,$(libc64cart_a_SOURCES))
+
+# don't include cpmcart.c for C128 due to conflicting Z80 regs definition
+libc128cart_a_SOURCES := $(libc64cart_a_SOURCES:c64/cart/cpmcart.c=) main/cpmcartStubs.c
 
 libc64commoncart_a_SOURCES = \
 c64acia1.c \
@@ -233,6 +247,7 @@ c64_256k.c \
 c64bus.c \
 c64cia1.c \
 c64cia2.c \
+c64cpu.c \
 c64datasette.c \
 c64drive.c \
 c64export.c \
@@ -330,7 +345,7 @@ c64_256k.c \
 c64bus.c \
 c64cia1.c \
 c64cia2.c \
-c64cpu.c \
+c64cpusc.c \
 c64datasette.c \
 c64drive.c \
 c64export.c \
@@ -427,6 +442,7 @@ c64dtvmodel.c \
 c64dtvpla.c \
 c64dtvprinter.c \
 c64dtvsound.c \
+debugcart.c \
 flash-trap.c \
 hummeradc.c
 libc64dtv_a_SOURCES := $(addprefix c64dtv/,$(libc64dtv_a_SOURCES))
@@ -471,7 +487,6 @@ c128model.c \
 c128rom.c \
 c128romset.c \
 c128video.c \
-daa.c \
 functionrom.c \
 z80.c \
 z80mem.c
@@ -525,6 +540,7 @@ vic20cpu.c \
 vic20datasette.c \
 vic20drive.c \
 vic20embedded.c \
+vic20export.c \
 vic20iec.c \
 vic20ieeevia1.c \
 vic20ieeevia2.c \
@@ -544,8 +560,11 @@ vic20video.c
 libvic20_a_SOURCES := $(addprefix vic20/,$(libvic20_a_SOURCES))
 
 libvic20cart_a_SOURCES = \
+debugcart.c \
 finalexpansion.c \
+ioramcart.c \
 megacart.c \
+ultimem.c \
 vic-fp.c \
 vic20-generic.c \
 vic20-ieee488.c \
@@ -561,6 +580,7 @@ libmascuerade_a_SOURCES := $(addprefix vic20/cart/,$(libmascuerade_a_SOURCES))
 
 libpet_a_SOURCES = \
 6809.c \
+debugcart.c \
 petcpu.c \
 pet-cmdline-options.c \
 pet-resources.c \
@@ -576,6 +596,7 @@ petdww.c \
 petembedded.c \
 pethre.c \
 petiec.c \
+petio.c \
 petmem.c \
 petmemsnapshot.c \
 petmodel.c \
@@ -591,6 +612,7 @@ petvideo.c
 libpet_a_SOURCES := $(addprefix pet/,$(libpet_a_SOURCES))
 
 libplus4_a_SOURCES = \
+debugcart.c \
 digiblaster.c \
 plus4-cmdline-options.c \
 plus4-resources.c \
@@ -605,6 +627,7 @@ plus4datasette.c \
 plus4drive.c \
 plus4embedded.c \
 plus4iec.c \
+plus4io.c \
 plus4mem.c \
 plus4memcsory256k.c \
 plus4memhacks.c \
@@ -651,6 +674,7 @@ cbm2datasette.c \
 cbm2drive.c \
 cbm2embedded.c \
 cbm2iec.c \
+cbm2io.c \
 cbm2mem.c \
 cbm2memsnapshot.c \
 cbm2model.c \
@@ -660,7 +684,8 @@ cbm2romset.c \
 cbm2sound.c \
 cbm2tpi1.c \
 cbm2tpi2.c \
-cbm2video.c
+cbm2video.c \
+debugcart.c
 libcbm2_a_SOURCES := $(addprefix cbm2/,$(libcbm2_a_SOURCES))
 
 libcbm5x0_a_SOURCES = \
@@ -677,6 +702,7 @@ cbm2cpu.c \
 cbm2datasette.c \
 cbm2drive.c \
 cbm2iec.c \
+cbm2io.c \
 cbm5x0mem.c \
 cbm2memsnapshot.c \
 cbm2model.c \
@@ -686,7 +712,8 @@ cbm2romset.c \
 cbm2sound.c \
 cbm2tpi1.c \
 cbm2tpi2.c \
-cbm5x0video.c
+cbm5x0video.c \
+debugcart.c
 libcbm5x0_a_SOURCES := $(addprefix cbm2/,$(libcbm5x0_a_SOURCES))
 
 libdrive_a_SOURCES = \
@@ -870,8 +897,12 @@ bq4830y.c \
 ds12c887.c \
 ds1202_1302.c \
 ds1216e.c \
+ds1307.c \
+ds1602.c \
+pcf8583.c \
 rtc.c \
-rtc-58321a.c
+rtc-58321a.c \
+rtc-72421.c
 librtc_a_SOURCES := $(addprefix rtc/,$(librtc_a_SOURCES))
 
 libtape_a_SOURCES = \
@@ -900,10 +931,14 @@ ata.c
 libcore_a_SOURCES := $(addprefix core/,$(libcore_a_SOURCES))
 
 libuserport_a_SOURCES = \
+userport.c \
+userport_4bit_sampler.c \
+userport_8bss.c \
 userport_dac.c \
 userport_digimax.c \
 userport_joystick.c \
-userport_rtc.c
+userport_rtc_58321a.c \
+userport_rtc_ds1307.c
 libuserport_a_SOURCES := $(addprefix userport/,$(libuserport_a_SOURCES))
 
 libraster_a_SOURCES = \
@@ -925,6 +960,7 @@ libraster_a_SOURCES := $(addprefix raster/,$(libraster_a_SOURCES))
 libvideo_a_SOURCES = \
 render1x1.c \
 render1x2.c \
+render1x1crt.c \
 render1x2crt.c \
 render1x1pal.c \
 render1x1ntsc.c \
@@ -989,6 +1025,30 @@ fileio.c \
 p00.c
 libfileio_a_SOURCES := $(addprefix fileio/,$(libfileio_a_SOURCES))
 
+libjoyport_a_SOURCES = \
+bbrtc.c \
+joyport.c \
+joystick.c \
+lightpen.c \
+mouse.c \
+paperclip64.c \
+sampler2bit.c \
+sampler4bit.c
+libjoyport_a_SOURCES := $(addprefix joyport/,$(libjoyport_a_SOURCES))
+
+libtapeport_a_SOURCES = \
+cp-clockf83.c \
+dtl-basic-dongle.c \
+sense-dongle.c \
+tapelog.c \
+tapeport.c
+libtapeport_a_SOURCES := $(addprefix tapeport/,$(libtapeport_a_SOURCES))
+
+libsamplerdrv_a_SOURCES = \
+file_drv.c \
+sampler.c
+libsamplerdrv_a_SOURCES := $(addprefix samplerdrv/,$(libsamplerdrv_a_SOURCES))
+
 pluginNoTape_src = \
 main/pluginCommon.c \
 $(libsounddrv_a_SOURCES) \
@@ -999,6 +1059,9 @@ $(libfsdevice_a_SOURCES) \
 $(libfileio_a_SOURCES) \
 $(libserial_a_SOURCES) \
 $(libcore_a_SOURCES) \
+$(libjoyport_a_SOURCES) \
+$(libsamplerdrv_a_SOURCES) \
+$(libdrivetcbm_a_SOURCES) \
 $(base_sources)
 
 plugin_src = \
@@ -1029,7 +1092,7 @@ $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libresid_a_SOURCES) \
-maincpu.c
+$(libtapeport_a_SOURCES)
 
 c64sc_src = \
 $(plugin_src) \
@@ -1054,6 +1117,7 @@ $(libuserport_a_SOURCES) \
 $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES)
 
 scpu64_src = \
@@ -1104,13 +1168,14 @@ $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
 $(libresiddtv_a_SOURCES) \
-$(libc64dtvstubs_a_SOURCES)
+$(libc64dtvstubs_a_SOURCES) \
+ps2mouse.c
 
 c128_src = \
 $(plugin_src) \
 $(libc128_a_SOURCES) \
 $(libc64cartsystem_a_SOURCES) \
-$(libc64cart_a_SOURCES) \
+$(libc128cart_a_SOURCES) \
 $(libc64commoncart_a_SOURCES) \
 $(libc64c128_a_SOURCES) \
 $(libdriveiec_a_SOURCES) \
@@ -1132,6 +1197,7 @@ $(libuserport_a_SOURCES) \
 $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES)
 
 vic_src = \
@@ -1155,6 +1221,7 @@ $(libuserport_a_SOURCES) \
 $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES)
 
 pet_src = \
@@ -1162,6 +1229,7 @@ $(plugin_src) \
 $(libpet_a_SOURCES) \
 $(libdriveiecieee_a_SOURCES) \
 $(libdriveieee_a_SOURCES) \
+$(libdriveiec_a_SOURCES) \
 $(libdrive_a_SOURCES) \
 $(libp64_a_SOURCES) \
 $(libparallel_a_SOURCES) \
@@ -1174,6 +1242,7 @@ $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES) \
 main/iecbusStubs.c
 
@@ -1182,8 +1251,8 @@ $(plugin_src) \
 $(libplus4_a_SOURCES) \
 $(libdriveiec_a_SOURCES) \
 $(libdriveiecieee_a_SOURCES) \
+$(libdriveieee_a_SOURCES) \
 $(libdriveiecplus4exp_a_SOURCES) \
-$(libdrivetcbm_a_SOURCES) \
 $(libdrive_a_SOURCES) \
 $(libp64_a_SOURCES) \
 $(libiecbus_a_SOURCES) \
@@ -1195,6 +1264,7 @@ $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES)
 
 cbm2_src = \
@@ -1202,6 +1272,7 @@ $(plugin_src) \
 $(libcbm2_a_SOURCES) \
 $(libdriveiecieee_a_SOURCES) \
 $(libdriveieee_a_SOURCES) \
+$(libdriveiec_a_SOURCES) \
 $(libdrive_a_SOURCES) \
 $(libp64_a_SOURCES) \
 $(libparallel_a_SOURCES) \
@@ -1214,6 +1285,7 @@ $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES) \
 main/iecbusStubs.c
 
@@ -1222,6 +1294,7 @@ $(plugin_src) \
 $(libcbm5x0_a_SOURCES) \
 $(libdriveiecieee_a_SOURCES) \
 $(libdriveieee_a_SOURCES) \
+$(libdriveiec_a_SOURCES) \
 $(libdrive_a_SOURCES) \
 $(libp64_a_SOURCES) \
 $(libparallel_a_SOURCES) \
@@ -1234,6 +1307,7 @@ $(librtc_a_SOURCES) \
 $(libvideo_a_SOURCES) \
 $(libsid_a_SOURCES) \
 $(libimagecontents_a_SOURCES) \
+$(libtapeport_a_SOURCES) \
 $(libresid_a_SOURCES) \
 main/iecbusStubs.c
 

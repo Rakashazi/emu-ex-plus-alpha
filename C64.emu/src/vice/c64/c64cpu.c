@@ -1,8 +1,7 @@
 /*
- * c64cpu.c - Emulation of the C64 6510 processor.
+ * c64cpu.c - Emulation of the main 6510 processor used for x64
  *
- * Written by
- *  Hannu Nuotio <hannu.nuotio@tut.fi>
+ * Written by groepaz <groepaz@gmx.net>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -26,150 +25,85 @@
 
 #include "vice.h"
 
-#include <stdio.h>
+#include "maincpu.h"
+#include "mem.h"
 
+#include "cpmcart.h"
+
+#ifdef FEATURE_CPUMEMHISTORY
 #include "monitor.h"
-#include "vicii-cycle.h"
+#include "c64pla.h"
+#endif
 
 /* ------------------------------------------------------------------------- */
 
-/* Global clock counter.  */
-CLOCK maincpu_clk = 0L;
-/* if != 0, exit when this many cycles have been executed */
-CLOCK maincpu_clk_limit = 0L;
+/* MACHINE_STUFF should define/undef
 
-#define REWIND_FETCH_OPCODE(clock) /*clock-=2*/
+ - NEED_REG_PC
+ - TRACE
 
-/* Mask: BA low */
-int maincpu_ba_low_flags = 0;
+ The following are optional:
 
-#define CLK_INC()                                  \
-    interrupt_delay();                             \
-    maincpu_clk++;                                 \
-    maincpu_ba_low_flags &= ~MAINCPU_BA_LOW_VICII; \
-    maincpu_ba_low_flags |= vicii_cycle()
+ - PAGE_ZERO
+ - PAGE_ONE
+ - STORE_IND
+ - LOAD_IND
+ - DMA_FUNC
+ - DMA_ON_RESET
+ - CHECK_AND_RUN_ALTERNATE_CPU
 
+*/
 
-/* Skip cycle implementation */
-
-#define SKIP_CYCLE 0
-
-/* Opcode info updated in FETCH_OPCODE.
-   Needed for CLI/SEI detection in vicii_steal_cycles. */
-#define OPCODE_UPDATE_IN_FETCH
-
-
-/* opcode_t etc */
-
-#if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
-
-#define opcode_t DWORD
-
-#define p0 (opcode & 0xff)
-#define p1 ((opcode >> 8) & 0xff)
-#define p2 (opcode >> 8)
-
-#define SET_OPCODE(o) (opcode) = o;
-
-#else /* WORDS_BIGENDIAN || !ALLOW_UNALIGNED_ACCESS */
-
-#define opcode_t         \
-    struct {             \
-        BYTE ins;        \
-        union {          \
-            BYTE op8[2]; \
-            WORD op16;   \
-        } op;            \
+#ifdef FEATURE_CPUMEMHISTORY
+void memmap_mem_store(unsigned int addr, unsigned int value)
+{
+    if ((addr >= 0xd000) && (addr <= 0xdfff)) {
+        monitor_memmap_store(addr, MEMMAP_I_O_W);
+    } else {
+        monitor_memmap_store(addr, MEMMAP_RAM_W);
     }
+    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value));
+}
 
-#define p0 (opcode.ins)
-#define p2 (opcode.op.op16)
+void memmap_mark_read(unsigned int addr)
+{
+    switch (addr >> 12) {
+        case 0xa:
+        case 0xb:
+        case 0xe:
+        case 0xf:
+            memmap_state |= MEMMAP_STATE_IGNORE;
+            if (pport.data_read & (1 << ((addr >> 14) & 1))) {
+                monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_ROM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_ROM_R);
+            } else {
+                monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_RAM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_RAM_R);
+            }
+            memmap_state &= ~(MEMMAP_STATE_IGNORE);
+            break;
+        case 0xd:
+            monitor_memmap_store(addr, MEMMAP_I_O_R);
+            break;
+        default:
+            monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_RAM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_RAM_R);
+            break;
+    }
+    memmap_state &= ~(MEMMAP_STATE_OPCODE);
+}
 
-#ifdef WORDS_BIGENDIAN
-
-#define p1 (opcode.op.op8[1])
-
-#define SET_OPCODE(o)                          \
-    do {                                       \
-        opcode.ins = (o) & 0xff;               \
-        opcode.op.op8[1] = ((o) >> 8) & 0xff;  \
-        opcode.op.op8[0] = ((o) >> 16) & 0xff; \
-    } while (0)
-
-#else /* !WORDS_BIGENDIAN */
-
-#define p1 (opcode.op.op8[0])
-
-#define SET_OPCODE(o)                          \
-    do {                                       \
-        opcode.ins = (o) & 0xff;               \
-        opcode.op.op8[0] = ((o) >> 8) & 0xff;  \
-        opcode.op.op8[1] = ((o) >> 16) & 0xff; \
-    } while (0)
-
+BYTE memmap_mem_read(unsigned int addr)
+{
+    memmap_mark_read(addr);
+    return (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr));
+}
 #endif
 
-#endif /* WORDS_BIGENDIAN || !ALLOW_UNALIGNED_ACCESS */
+static void check_and_run_alternate_cpu(void)
+{
+    cpmcart_check_and_run_z80();
+}
 
+#define CHECK_AND_RUN_ALTERNATE_CPU check_and_run_alternate_cpu();
 
-/* FETCH_OPCODE implementation(s) */
-#if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
-#define FETCH_OPCODE(o)                                        \
-    do {                                                       \
-        if (((int)reg_pc) < bank_limit) {                      \
-            check_ba();                                        \
-            o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff); \
-            SET_LAST_OPCODE(p0);                               \
-            CLK_INC();                                         \
-            check_ba();                                        \
-            CLK_INC();                                         \
-            if (fetch_tab[o & 0xff]) {                         \
-                check_ba();                                    \
-                CLK_INC();                                     \
-            }                                                  \
-        } else {                                               \
-            o = LOAD(reg_pc);                                  \
-            SET_LAST_OPCODE(p0);                               \
-            CLK_INC();                                         \
-            o |= LOAD(reg_pc + 1) << 8;                        \
-            CLK_INC();                                         \
-            if (fetch_tab[o & 0xff]) {                         \
-                o |= (LOAD(reg_pc + 2) << 16);                 \
-                CLK_INC();                                     \
-            }                                                  \
-        }                                                      \
-    } while (0)
+#define HAVE_Z80_REGS
 
-#else /* WORDS_BIGENDIAN || !ALLOW_UNALIGNED_ACCESS */
-#define FETCH_OPCODE(o)                                          \
-    do {                                                         \
-        if (((int)reg_pc) < bank_limit) {                        \
-            check_ba();                                          \
-            (o).ins = *(bank_base + reg_pc);                     \
-            SET_LAST_OPCODE(p0);                                 \
-            CLK_INC();                                           \
-            check_ba();                                          \
-            (o).op.op16 = *(bank_base + reg_pc + 1);             \
-            CLK_INC();                                           \
-            if (fetch_tab[(o).ins]) {                            \
-                check_ba();                                      \
-                (o).op.op16 |= (*(bank_base + reg_pc + 2) << 8); \
-                CLK_INC();                                       \
-            }                                                    \
-        } else {                                                 \
-            (o).ins = LOAD(reg_pc);                              \
-            SET_LAST_OPCODE(p0);                                 \
-            CLK_INC();                                           \
-            (o).op.op16 = LOAD(reg_pc + 1);                      \
-            CLK_INC();                                           \
-            if (fetch_tab[(o).ins]) {                            \
-                (o).op.op16 |= (LOAD(reg_pc + 2) << 8);          \
-                CLK_INC();                                       \
-            }                                                    \
-        }                                                        \
-    } while (0)
-
-#endif /* WORDS_BIGENDIAN || !ALLOW_UNALIGNED_ACCESS */
-
-
-#include "../mainc64cpu.c"
+#include "../maincpu.c"

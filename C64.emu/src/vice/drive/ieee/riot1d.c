@@ -48,6 +48,18 @@ BYTE riot1_read(drive_context_t *ctxptr, WORD addr)
     return riotcore_read(ctxptr->riot1, addr);
 }
 
+BYTE riot1_peek(drive_context_t *ctxptr, WORD addr)
+{
+    return riotcore_peek(ctxptr->riot1, addr);
+}
+
+int riot1_dump(drive_context_t *ctxptr, WORD addr)
+{
+    /* TODO: implement dump feature */
+    /* riotcore_dump(ctxptr->riot1, addr); */
+    return -1;
+}
+
 static void set_irq(riot_context_t *riot_context, int fl, CLOCK clk)
 {
 }

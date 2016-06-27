@@ -27,14 +27,72 @@
 /* Tested and confirmed working on:
    cpu      | netbsd version
    -------------------------
+   i386     | 0.9
+   i386     | 1.0
+   i386     | 1.1
+   i386     | 1.2
+   i386     | 1.2.1
+   i386     | 1.3
+   i386     | 1.3.1
+   i386     | 1.3.2
+   i386     | 1.3.3
+   i386     | 1.4
+   i386     | 1.4.1
+   i386     | 1.4.2
+   i386     | 1.4.3
+   i386     | 1.5
+   i386     | 1.5.1
+   i386     | 1.5.2
+   i386     | 1.5.3
+   i386     | 1.6
+   i386     | 1.6.1
+   i386     | 1.6.2
+   i386     | 2.0
+   i386     | 2.0.2
+   i386     | 2.1
+   i386     | 3.0
+   i386     | 3.0.1
+   i386     | 3.0.2
+   i386     | 3.0.3
+   i386     | 3.1
+   i386     | 3.1.1
+   i386     | 4.0
+   i386     | 4.0.1
+   i386     | 5.0
+   i386     | 5.0.1
+   i386     | 5.0.2
+   i386     | 5.1
+   i386     | 5.1.1
+   i386     | 5.1.2
+   i386     | 5.1.3
+   i386     | 5.1.4
+   i386     | 5.1.5
+   i386     | 5.2
+   i386     | 5.2.1
+   i386     | 5.2.2
+   i386     | 5.2.3
+   i386     | 6.0
+   i386     | 6.0.1
+   i386     | 6.0.2
+   i386     | 6.0.3
+   i386     | 6.0.4
+   i386     | 6.0.5
+   i386     | 6.0.6
+   i386     | 6.1
+   i386     | 6.1.1
+   i386     | 6.1.2
+   i386     | 6.1.3
+   i386     | 6.1.4
    amd64    | 6.1.5
+   i386     | 6.1.5
    m68k     | 6.1.5
    mipsel   | 6.1.5
    mipsel64 | 6.1.5
    sparc    | 6.1.5
    sparc64  | 6.1.5
    vax      | 6.1.5
-   x86      | 6.1.5
+   amd64    | 7.0
+   i386     | 7.0
  */
 
 #include "vice.h"
@@ -43,7 +101,11 @@
 
 #include <stdio.h>
 #include <sys/utsname.h>
+#include <sys/param.h>
 #include <sys/sysctl.h>
+#include <string.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include "archdep.h"
 #include "lib.h"
@@ -68,10 +130,12 @@ char *platform_get_netbsd_runtime_cpu(void)
     size_t size1 = 0;
     size_t size2 = 0;
     struct utsname name;
+#if !defined(__i386__) && !defined(__amd64__)
     char *cpu = NULL;
     char *machine = NULL;
     char *model = NULL;
     size_t len = 0;
+#endif
 
     if (!got_netbsd_cpu) {
         sprintf(netbsd_cpu, "Unknown CPU");
@@ -168,7 +232,7 @@ char *platform_get_netbsd_runtime_cpu(void)
                         loc2 = strstr(loc1, ":");
                         if (loc2) {
                             loc2 += 2;
-                            while (isspace(*loc2)) {
+                            while (isspace((int)*loc2)) {
                                 loc2++;
                             }
                             loc3 = strstr(loc2, "\n");

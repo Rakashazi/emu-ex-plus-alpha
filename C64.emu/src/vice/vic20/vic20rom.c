@@ -76,9 +76,9 @@ int vic20rom_load_kernal(const char *rom_name)
         return 0;
     }
 
-    /* disable traps before saving the ROM */
+    /* disable traps before loading the ROM */
     resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 1);
+    resources_set_int("VirtualDevices", 0);
 
     /* Load Kernal ROM. */
     if (sysfile_load(rom_name,

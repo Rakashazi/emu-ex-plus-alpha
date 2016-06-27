@@ -44,8 +44,8 @@
 #  include "platform_amd64_msvc_cpuid.h"
 #endif
 
-/* cpuid code for x86 msvc */
-#if !defined(CPUID_DEFINED) && defined(_MSC_VER)
+/* cpuid code for x86 msvc / vac++ */
+#if !defined(CPUID_DEFINED) && (defined(_MSC_VER) || defined(__IBMC__))
 #  define CPUID_DEFINED
 #  include "platform_x86_msvc_cpuid.h"
 #endif

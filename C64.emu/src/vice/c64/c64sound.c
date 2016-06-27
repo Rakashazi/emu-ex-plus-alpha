@@ -42,7 +42,6 @@ static BYTE machine_sid2_read(WORD addr)
     return sid2_read(addr);
 }
 
-
 static void machine_sid2_store(WORD addr, BYTE byte)
 {
     sid2_store(addr, byte);
@@ -69,7 +68,7 @@ static io_source_t stereo_sid_device = {
     machine_sid2_store,
     machine_sid2_read,
     NULL, /* TODO: peek */
-    NULL, /* TODO: dump */
+    sid2_dump,
     0,
     0,
     0
@@ -84,7 +83,7 @@ static io_source_t triple_sid_device = {
     machine_sid3_store,
     machine_sid3_read,
     NULL, /* TODO: peek */
-    NULL, /* TODO: dump */
+    sid3_dump,
     0,
     0,
     0

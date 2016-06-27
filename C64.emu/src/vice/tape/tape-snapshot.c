@@ -190,8 +190,6 @@ fail:
 }
 
 
-
-
 #define TAPE_SNAP_MAJOR 1
 #define TAPE_SNAP_MINOR 0
 
@@ -260,18 +258,8 @@ int tape_snapshot_write_module(snapshot_t *s, int save_image)
             break;
     }
 
-    if (snapshot_module_close(m) < 0) {
-        return -1;
-    }
-
-    if (datasette_write_snapshot(s) < 0) {
-        return -1;
-    }
-
-    return 0;
+    return snapshot_module_close(m);
 }
-
-
 
 
 int tape_snapshot_read_module(snapshot_t *s)
@@ -338,11 +326,5 @@ int tape_snapshot_read_module(snapshot_t *s)
             break;
     }
 
-    snapshot_module_close(m);
-
-    if (datasette_read_snapshot(s) < 0) {
-        return -1;
-    }
-
-    return 0;
+    return snapshot_module_close(m);
 }

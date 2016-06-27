@@ -35,6 +35,7 @@
 #include "c64dtvmem.h"
 #include "c64dtvmeminit.h"
 #include "c64memrom.h"
+#include "debugcart.h"
 #include "sid.h"
 #include "vicii-mem.h"
 
@@ -77,6 +78,12 @@ static const DWORD limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
 /* IO is enabled at memory configs 5, 6, 7 */
 const unsigned int c64dtvmeminit_io_config[8] = { 0, 0, 0, 0, 0, 1, 1, 1 };
 
+static void sid_store_d700(WORD addr, BYTE val)
+{
+    sid_store(addr, val);
+    debugcart_store(addr, val);
+}
+
 void c64dtvmeminit(unsigned int base)
 {
     unsigned int i, j;
@@ -96,10 +103,11 @@ void c64dtvmeminit(unsigned int base)
                 mem_read_tab_set(base + j, i, vicii_read);
                 mem_set_write_hook(base + j, i, vicii_store);
             }
-            for (i = 0xd4; i <= 0xd7; i++) {
+            for (i = 0xd4; i <= 0xd6; i++) {
                 mem_read_tab_set(base + j, i, sid_read);
                 mem_set_write_hook(base + j, i, sid_store);
             }
+            mem_set_write_hook(base + j, i, sid_store_d700);
             for (i = 0xd8; i <= 0xdb; i++) {
                 mem_read_tab_set(base + j, i, colorram_read);
                 mem_set_write_hook(base + j, i, colorram_store);

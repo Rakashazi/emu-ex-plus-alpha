@@ -25,8 +25,19 @@
  */
 
 /* Tested and confirmed working on:
+ * - Darwin 1.4.1 (x86)
+ * - Darwin 1.4.1 (ppc)
+ * - Darwin 6.0.2 (x86)
  * - Darwin 6.0.2 (ppc)
+ * - Darwin 7.0.1 (x86)
+ * - Darwin 7.0.1 (ppc)
  * - Darwin 8.0.1 (x86)
+ * - Darwin 8.0.1 (ppc)
+ * - PureDarwin (x86) [Darwin 9.8]
+ * - Mac OS X 10.1 (ppc)
+ * - Mac OS X 10.2 (ppc)
+ * - Mac OS X 10.3 (ppc)
+ * - Mac OS X 10.4 (ppc)
  */
 
 #include "vice.h"
@@ -39,6 +50,8 @@
 #include <mach/mach.h>
 
 #ifdef __ppc__
+#include <sys/stat.h>
+
 #include "archdep.h"
 #include "lib.h"
 #include "util.h"
@@ -128,6 +141,7 @@ char *platform_get_darwin_runtime_cpu(void)
     int amount = 0;
     char *tempfile = NULL;
     char *tempsystem = NULL;
+    struct stat st;
 #endif
 
     if (!got_cpu) {
@@ -140,23 +154,25 @@ char *platform_get_darwin_runtime_cpu(void)
         }
 
 #ifdef __ppc__
-        tempfile = archdep_tmpnam();
-        tempsystem = util_concat("uname -m >", tempfile, NULL);
-        system(tempsystem);
-        infile = fopen(tempfile, "rb");
-        if (infile) {
-            amount = fread(buffer, 1, 4095, infile);
-            if (amount) {
-                buffer[strlen(buffer)] = 0;
-                if (strcmp(buffer, "Power Macintosh")) {
-                    sprintf(cpu, "%s [Rosetta (%s)]", cpu, buffer);
+        if (!stat("/usr/libexec/oah/translate", &st))
+            tempfile = archdep_tmpnam();
+            tempsystem = util_concat("uname -m >", tempfile, NULL);
+            system(tempsystem);
+            infile = fopen(tempfile, "rb");
+            if (infile) {
+                amount = fread(buffer, 1, 4095, infile);
+                if (amount) {
+                    buffer[strlen(buffer)] = 0;
+                    if (strcmp(buffer, "Power Macintosh")) {
+                        sprintf(cpu, "%s [Rosetta (%s)]", cpu, buffer);
+                    }
                 }
+                fclose(infile);
+                unlink(tempfile);
             }
-            fclose(infile);
-            unlink(tempfile);
+            lib_free(tempsystem);
+            lib_free(tempfile);
         }
-        lib_free(tempsystem);
-        lib_free(tempfile);
 #endif
         got_cpu = 1;
     }

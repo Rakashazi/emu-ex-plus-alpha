@@ -3,6 +3,8 @@
  *
  * Written by
  *  Hannu Nuotio <hannu.nuotio@tut.fi>
+ * Extended by
+ *  Marko Makela <marko.makela@iki.fi>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -19,8 +21,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
- *  02111-1307  USA.
+ *  Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335 USA.
  *
  */
 
@@ -56,6 +57,7 @@
 struct flash_types_s {
     BYTE manufacturer_ID;
     BYTE device_ID;
+    BYTE device_ID_addr;
     unsigned int size;
     unsigned int sector_mask;
     unsigned int sector_size;
@@ -68,31 +70,38 @@ struct flash_types_s {
 };
 typedef struct flash_types_s flash_types_t;
 
-static flash_types_t flash_types[FLASH040_TYPE_NUM] = {
+static const flash_types_t flash_types[FLASH040_TYPE_NUM] = {
     /* 29F040 */
-    { 0x01, 0xa4,
+    { 0x01, 0xa4, 1,
       0x80000,
       0x70000, 0x10000, 16,
       0x5555, 0x2aaa, 0x7fff, 0x7fff,
       0x40 },
     /* 29F040B */
-    { 0x01, 0xa4,
+    { 0x01, 0xa4, 1,
       0x80000,
       0x70000, 0x10000, 16,
       0x555, 0x2aa, 0x7ff, 0x7ff,
       0x40 },
     /* 29F010 */
-    { 0x01, 0x20,
+    { 0x01, 0x20, 1,
       0x20000,
       0x1c000, 0x04000, 14,
       0x5555, 0x2aaa, 0x7fff, 0x7fff,
       0x40 },
     /* 29F032B with A0/1 swap */
-    { 0x01, 0x41,
+    { 0x01, 0x41, 1,
       0x400000,
       0x3f0000, 0x10000, 16,
       0x556, 0x2a9, 0x7ff, 0x7ff,
       0x44 },
+    /* Spansion S29GL064N */
+    { 0x01, 0x7e, 2,
+      0x800000,
+      /* FIXME: some models support non-uniform sector layout */
+      0x7f0000, 0x10000, 16,
+      0xaaa, 0x555, 0xfff, 0xfff,
+      0x40 },
 };
 
 /* -------------------------------------------------------------------------- */
@@ -408,19 +417,14 @@ BYTE flash040core_read(flash040_context_t *flash040_context, unsigned int addr)
                 }
             }
 
-            switch (addr & 0xff) {
-                case 0x00:
-                    value = flash_types[flash040_context->flash_type].manufacturer_ID;
-                    break;
-                case 0x01:
-                    value = flash_types[flash040_context->flash_type].device_ID;
-                    break;
-                case 0x02:
-                    value = 0;
-                    break;
-                default:
-                    value = flash040_context->flash_data[addr];
-                    break;
+            if ((addr & 0xff) == 0) {
+                value = flash_types[flash040_context->flash_type].manufacturer_ID;
+            } else if ((addr & 0xff) == flash_types[flash040_context->flash_type].device_ID_addr) {
+                value = flash_types[flash040_context->flash_type].device_ID;
+            } else if ((addr & 0xff) == 2) {
+                value = 0;
+            } else {
+                value = flash040_context->flash_data[addr];
             }
             break;
 

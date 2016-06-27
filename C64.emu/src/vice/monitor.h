@@ -55,7 +55,9 @@ typedef enum t_memspace MEMSPACE;
 
 enum CPU_TYPE_s {
     CPU_6502,
+    CPU_WDC65C02,
     CPU_R65C02,
+    CPU_65SC02,
     CPU_65816,
     CPU_Z80,
     CPU_6502DTV,
@@ -185,7 +187,7 @@ extern const char *mon_disassemble_to_string(MEMSPACE, unsigned int addr, unsign
 /** Register interface.  */
 extern struct mon_reg_list_s *mon_register_list_get(int mem);
 extern void mon_ioreg_add_list(struct mem_ioreg_list_s **list, const char *name,
-                               int start, int end, void *dump);
+                               int start, int end, void *dump, void *context);
 
 /* Assembler initialization.  */
 extern void asm6502_init(struct monitor_cpu_type_s *monitor_cpu_type);

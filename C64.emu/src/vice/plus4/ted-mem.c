@@ -34,6 +34,7 @@
 
 #include "alarm.h"
 #include "interrupt.h"
+#include "joyport.h"
 #include "keyboard.h"
 #include "log.h"
 #include "maincpu.h"
@@ -422,6 +423,8 @@ inline static void ted08_store(const BYTE value)
     BYTE val = 0xff;
     BYTE msk = pio2_kbd;
     BYTE m;
+    BYTE joy1 = ~read_joyport_dig(JOYPORT_1);
+    BYTE joy2 = ~read_joyport_dig(JOYPORT_2);
     int i;
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
@@ -431,15 +434,15 @@ inline static void ted08_store(const BYTE value)
     }
 
     if (!(value & 4)) {
-        val = val & ~(joystick_value[1] & 15);
-        if (joystick_value[1] & 16) {
+        val = val & ~(joy1 & 15);
+        if (joy1 & 16) {
             val = val & ~64;
         }
     }
 
     if (!(value & 2)) {
-        val = val & ~(joystick_value[2] & 15);
-        if (joystick_value[2] & 16) {
+        val = val & ~(joy2 & 15);
+        if (joy2 & 16) {
             val = val & ~128;
         }
     }
@@ -868,7 +871,8 @@ void ted_store(WORD addr, BYTE value)
     }
 }
 
-
+/* FIXME: unused? */
+#if 0
 inline static unsigned int read_raster_y(void)
 {
     int raster_y;
@@ -884,6 +888,7 @@ inline static unsigned int read_raster_y(void)
 
     return raster_y;
 }
+#endif
 
 inline static BYTE ted08_read(void)
 {

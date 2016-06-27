@@ -31,11 +31,10 @@
 
 struct drive_s;
 
-/* IF: 875ns delay (14*62.5ns R cycles) for data bus read access */
+/* 875ns delay (14*62.5ns R cycles) for data bus read access */
 #define BUS_READ_DELAY 14
 
 extern void rotation_init(int freq, unsigned int dnr);
-extern void rotation_init_table(int freq, unsigned int dnr);
 extern void rotation_reset(struct drive_s *drive);
 extern void rotation_speed_zone_set(unsigned int zone, unsigned int dnr);
 extern void rotation_table_get(DWORD *rotation_table_ptr);

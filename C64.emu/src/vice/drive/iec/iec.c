@@ -168,11 +168,6 @@ void iec_drive_rom_setup_image(unsigned int dnr)
     iecrom_setup_image(drive_context[dnr]->drive);
 }
 
-int iec_drive_rom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    return iecrom_read(type, addr, data);
-}
-
 int iec_drive_rom_check_loaded(unsigned int type)
 {
     return iecrom_check_loaded(type);

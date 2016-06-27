@@ -61,6 +61,16 @@
 #define PLATFORM_COMPILER "clang " QUOTE(__clang_major__) "." QUOTE(__clang_minor__) "." QUOTE(__clang_patchlevel__)
 #endif
 
+/* Intel compiler discovery */
+#if !defined(PLATFORM_COMPILER) && defined(__INTEL_COMPILER)
+#  define PLATFORM_COMPILER "Intel Compiler " QUOTE(__INTEL_COMPILER)
+#  define PLATFORM_COMPILER_NAME "Intel Compiler"
+#  define PLATFORM_COMPILER_VERSION __INTEL_COMPILER
+#  define PLATFORM_COMPILER_MAJOR_MASK 100
+#  define PLATFORM_COMPILER_MINOR_MASK 10
+#  define PLATFORM_COMPILER_PATCHLEVEL_MASK 1
+#endif
+
 /* GCC discovery */
 #if !defined(PLATFORM_COMPILER) && defined(__GNUC__)
 #  if (__GNUC__>2)
@@ -101,16 +111,6 @@
 #  define PLATFORM_COMPILER_VERSION __COMO_VERSION__
 #  define PLATFORM_COMPILER_MAJOR_MASK 100
 #  define PLATFORM_COMPILER_MINOR_MASK 1
-#endif
-
-/* Intel compiler discovery */
-#if !defined(PLATFORM_COMPILER) && defined(__INTEL_COMPILER)
-#  define PLATFORM_COMPILER "Intel Compiler " QUOTE(__INTEL_COMPILER)
-#  define PLATFORM_COMPILER_NAME "Intel Compiler"
-#  define PLATFORM_COMPILER_VERSION __INTEL_COMPILER
-#  define PLATFORM_COMPILER_MAJOR_MASK 100
-#  define PLATFORM_COMPILER_MINOR_MASK 10
-#  define PLATFORM_COMPILER_PATCHLEVEL_MASK 1
 #endif
 
 /* compaq/dec compiler discovery */
@@ -200,7 +200,48 @@
 
 /* Sun Studio compiler discovery */
 #if !defined(PLATFORM_COMPILER) && defined(__SUNPRO_C)
-#  define PLATFORM_COMPILER "Sun Studio Compiler " QUOTE(__SUNPRO_C)
+#  if (__SUNPRO_C==20496 || __SUNPRO_C==1296)
+#    define PLATFORM_COMPILER "Sun WorkShop 6"
+#  endif
+#  if (__SUNPRO_C==20512 || __SUNPRO_C==1312)
+#    define PLATFORM_COMPILER "Sun WorkShop 6 Update 1"
+#  endif
+#  if (__SUNPRO_C==20528 || __SUNPRO_C==1328)
+#    define PLATFORM_COMPILER "Sun WorkShop 6 Update 2"
+#  endif
+#  if (__SUNPRO_C==20544 || __SUNPRO_C==1344)
+#    define PLATFORM_COMPILER "Forte Developer 7"
+#  endif
+#  if (__SUNPRO_C==20560 || __SUNPRO_C==1360)
+#    define PLATFORM_COMPILER "Sun Studio 8"
+#  endif
+#  if (__SUNPRO_C==20576 || __SUNPRO_C==1376)
+#    define PLATFORM_COMPILER "Sun Studio 9"
+#  endif
+#  if (__SUNPRO_C==20592 || __SUNPRO_C==1392)
+#    define PLATFORM_COMPILER "Sun Studio 10"
+#  endif
+#  if (__SUNPRO_C==20608 || __SUNPRO_C==1408)
+#    define PLATFORM_COMPILER "Sun Studio 11"
+#  endif
+#  if (__SUNPRO_C==20624 || __SUNPRO_C==1424)
+#    define PLATFORM_COMPILER "Sun Studio 12"
+#  endif
+#  if (__SUNPRO_C==20736)
+#    define PLATFORM_COMPILER "Sun Studio 12 Update 1"
+#  endif
+#  if (__SUNPRO_C==20752)
+#    define PLATFORM_COMPILER "Oracle Solaris Studio 12.2"
+#  endif
+#  if (__SUNPRO_C==20768)
+#    define PLATFORM_COMPILER "Oracle Solaris Studio 12.3"
+#  endif
+#  if (__SUNPRO_C==20784)
+#    define PLATFORM_COMPILER "Oracle Solaris Studio 12.4"
+#  endif
+#  ifndef PLATFORM_COMPILER
+#    define PLATFORM_COMPILER "Sun Studio Compiler " QUOTE(__SUNPRO_C)
+#  endif
 #  define PLATFORM_COMPILER_NAME "Sun Studio Compiler"
 #  define PLATFORM_COMPILER_VERSION __SUNPRO_C
 #  define PLATFORM_COMPILER_MAJOR_MASK 0x100
@@ -247,6 +288,9 @@
 #  if (_MSC_VER == 1800)
 #    define PLATFORM_COMPILER "msvc12/vs2013"
 #  endif
+#  if (_MSC_VER == 1900)
+#    define PLATFORM_COMPILER "msvc14/vs2015"
+#  endif
 #  ifndef PLATFORM_COMPILER
 #    define PLATFORM_COMPILER "msvc"
 #  endif
@@ -268,6 +312,20 @@
 #      define PLATFORM_COMPILER "SunOS C"
 #    endif
 #  endif
+#endif
+
+
+/* Ultrix native compiler discovery */
+#ifndef PLATFORM_COMPILER
+#  if defined(ultrix) || defined(__ultrix) || defined(__ultrix__)
+#    define PLATFORM_COMPILER "DEC C"
+#  endif
+#endif
+
+
+/* VBCC discovery */
+#ifdef __VBCC__
+#define PLATFORM_COMPILER "VBCC"
 #endif
 
 #endif

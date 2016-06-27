@@ -39,11 +39,11 @@
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOT0_API
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
@@ -836,7 +836,7 @@ static io_source_t magicvoice_io2_device = {
 
 static io_source_list_t *magicvoice_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_MAGIC_VOICE, 1, 1, NULL, &magicvoice_io2_device, CARTRIDGE_MAGIC_VOICE
 };
 
@@ -1059,10 +1059,10 @@ int magicvoice_peek_mem(WORD addr, BYTE *value)
     return CART_READ_C64MEM;
 }
 
-void magicvoice_passthrough_changed(struct export_s *export)
+void magicvoice_passthrough_changed(export_t *export)
 {
-    mv_extexrom = ((export_t*)export)->exrom;
-    mv_extgame = ((export_t*)export)->game;
+    mv_extexrom = export->exrom;
+    mv_extgame = export->game;
     DBG(("MV passthrough changed exrom: %d game: %d\n", mv_extexrom, mv_extgame));
 
     ga_memconfig_changed(CMODE_READ);
@@ -1084,7 +1084,7 @@ static int set_magicvoice_enabled(int value, void *param)
             DBG(("MV: BUG: magicvoice_sound_chip.chip_enabled == 1 and magicvoice_io2_list_item == NULL ?!\n"));
         }
 #endif
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         io_source_unregister(magicvoice_io2_list_item);
         magicvoice_io2_list_item = NULL;
         magicvoice_sound_chip.chip_enabled = 0;
@@ -1105,7 +1105,7 @@ static int set_magicvoice_enabled(int value, void *param)
         } else {
             cart_power_off();
             /* if the param is == NULL, then we should actually set the resource */
-            if (c64export_add(&export_res) < 0) {
+            if (export_add(&export_res) < 0) {
                 DBG(("MV: set_enabled did not register\n"));
                 return -1;
             } else {
@@ -1327,12 +1327,12 @@ int magicvoice_mmu_translate(unsigned int addr, BYTE **base, int *start, int *li
 }
 
 /* called at reset */
-void magicvoice_config_init(struct export_s *export)
+void magicvoice_config_init(export_t *export)
 {
     DBG(("MV: magicvoice_config_init\n"));
 
-    mv_extexrom = ((export_t*)export)->exrom;
-    mv_extgame = ((export_t*)export)->game;
+    mv_extexrom = export->exrom;
+    mv_extgame = export->game;
 
     if (magicvoice_sound_chip.chip_enabled) {
         mv_exrom = 1;
@@ -1371,6 +1371,27 @@ int magicvoice_bin_attach(const char *filename, BYTE *rawcart)
     return magicvoice_common_attach();
 }
 
+/*
+ * (old) wrong formats:
+ *
+ * cartconv produced this until 2011:
+ *
+ * offset  sig  type  bank start size  chunklen
+ * $000040 CHIP ROM   #000 $8000 $2000 $2010
+ * $002050 CHIP ROM   #001 $8000 $2000 $2010
+ *
+ * cartconv produced this from 2011 to 12/2015:
+ *
+ * offset  sig  type  bank start size  chunklen
+ * $000040 CHIP ROM   #000 $8000 $2000 $2010
+ * $002050 CHIP ROM   #000 $a000 $2000 $2010
+ *
+ * (new) correct format (since 12/2015):
+ *
+ * offset  sig  type  bank start size  chunklen
+ * $000040 CHIP ROM   #000 $8000 $4000 $4010
+ *
+ */
 int magicvoice_crt_attach(FILE *fd, BYTE *rawcart)
 {
     int i;
@@ -1378,18 +1399,25 @@ int magicvoice_crt_attach(FILE *fd, BYTE *rawcart)
 
     for (i = 0; i < 2; i++) {
         if (crt_read_chip_header(&chip, fd)) {
+            break;
+        }
+
+        if ((chip.size == 0x4000) && (chip.start == 0x8000)) {
+            if (crt_read_chip(rawcart, 0, &chip, fd)) {
+                return -1;
+            }
+        } else if ((chip.size == 0x2000) && ((chip.start == 0x8000) || (chip.start == 0xa000))) {
+            if (crt_read_chip(rawcart, (chip.start & 0x2000) + (chip.bank << 13), &chip, fd)) {
+                return -1;
+            }
+        } else {
             return -1;
         }
 
-        if (chip.size != 0x2000 || (chip.start != 0x8000 && chip.start != 0xa000)) {
-            return -1;
-        }
-
-        if (crt_read_chip(rawcart, chip.start & 0x2000, &chip, fd)) {
-            return -1;
-        }
     }
-
+    if (i != 1 && i != 2) {
+        return -1;
+    }
     return magicvoice_common_attach();
 }
 
@@ -1449,7 +1477,7 @@ static int magicvoice_sound_machine_calculate_samples(sound_t **psid, SWORD *pbu
     int i;
     SWORD *buffer;
 
-    buffer = lib_malloc(nr * 2);
+    buffer = lib_malloc(nr * sizeof(SWORD));
 
     t6721_update_output(t6721, buffer, nr);
 

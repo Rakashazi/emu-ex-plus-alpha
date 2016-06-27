@@ -38,6 +38,6 @@ extern BYTE vdc_peek(WORD addr);
 extern void vdc_ram_store(WORD addr, BYTE value);
 extern BYTE vdc_ram_read(WORD addr);
 
-extern int vdc_dump(void);
+extern int vdc_dump(void *context, WORD addr);
 
 #endif

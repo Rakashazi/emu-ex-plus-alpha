@@ -30,6 +30,7 @@
 #include <string.h>
 
 #include "cmdline.h"
+#include "lib.h"
 #include "machine.h"
 #include "ram.h"
 #include "resources.h"
@@ -140,56 +141,45 @@ void ram_init(BYTE *memram, unsigned int ramsize)
     }
 }
 
-
-const char *ram_init_print_pattern(void)
+/* create a preview of the RAM init pattern - this should be as fast as
+   possible since it is used in the GUI */
+void ram_init_print_pattern(char *s, int len, char *eol)
 {
-    static char s[512], s_tmp[16], pattern_line[64];
-    BYTE v = start_value;
-    int i;
-    int linenum = 0;
-    int last_line_drawn = 0;
+    unsigned char *mem;
+    char *p = s, *pp;
+    int i, a;
+    const char hextab[16] = "0123456789abcdef";
 
-    s[0] = 0;
+    mem = lib_malloc(len);
+    ram_init(mem, len);
 
-    do {
-        pattern_line[0] = 0;
-
-        for (i = 0; i < 8; i++) {
-            sprintf(s_tmp, " %02x", v);
-
-            strcat(pattern_line, s_tmp);
-
-            if (value_invert > 0 && (linenum * 8 + i + 1) % value_invert == 0) {
-                v ^= 0xff;
-            }
-
-            if (pattern_invert > 0 && (linenum * 8 + i + 1) % pattern_invert == 0) {
-                v ^= 0xff;
+    for (a = 0; a < len;) {
+        /* add address at start if line */
+        *p++ = hextab[(a >> 12) & 0x0f];
+        *p++ = hextab[(a >> 8) & 0x0f];
+        *p++ = hextab[(a >> 4) & 0x0f];
+        *p++ = hextab[a & 0x0f];
+        *p++ = ':';
+        *p++ = ' ';
+        /* add 16 bytes hex dump */
+        for (i = 0; i < 16; i++, a++) {
+            *p++ = hextab[(mem[a] >> 4) & 0x0f];
+            *p++ = hextab[(mem[a]) & 0x0f];
+            *p++ = ' ';
+        }
+        /* add end of line */
+        pp = eol;
+        while (*pp) {
+            *p++ = *pp++;
+        }
+        /* after each full page add another end of line */
+        if ((a & 0xff) == 0) {
+            pp = eol;
+            while (*pp) {
+                *p++ = *pp++;
             }
         }
-
-        if (linenum * 8 == 0
-            || linenum * 8 == value_invert
-            || linenum * 8 == pattern_invert
-            || linenum * 8 == pattern_invert + value_invert) {
-            sprintf(s_tmp, "%04x ", linenum * 8);
-            strcat(s, s_tmp);
-            strcat(s, pattern_line);
-            strcat(s, "\n");
-            last_line_drawn = 1;
-        } else {
-            if (last_line_drawn == 1) {
-                strcat(s, "...\n");
-            }
-            last_line_drawn = 0;
-        }
-
-        linenum++;
-    } while (linenum * 8 < value_invert * 2 || linenum * 8 < pattern_invert * 2);
-
-    if (last_line_drawn == 1) {
-        strcat(s, "...\n");
     }
-
-    return s;
+    *p = 0;
+    lib_free(mem);
 }

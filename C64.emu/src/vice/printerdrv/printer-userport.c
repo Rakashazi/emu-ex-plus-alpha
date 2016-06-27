@@ -40,18 +40,3 @@ int printer_userport_init_cmdline_options(void)
 {
     return interface_userport_init_cmdline_options();
 }
-
-void printer_userport_init(void (*set_busy)(unsigned int))
-{
-    interface_userport_init(set_busy);
-}
-
-void printer_userport_write_data(BYTE b)
-{
-    interface_userport_write_data(b);
-}
-
-void printer_userport_write_strobe(int s)
-{
-    interface_userport_write_strobe(s);
-}

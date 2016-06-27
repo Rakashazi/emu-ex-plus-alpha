@@ -33,6 +33,8 @@ extern int ide64_resources_init(void);
 extern int ide64_resources_shutdown(void);
 extern int ide64_cmdline_options_init(void);
 
+extern void ide64_reset(void);
+
 extern void ide64_config_init(void);
 extern void ide64_config_setup(BYTE *rawcart);
 extern int ide64_bin_attach(const char *filename, BYTE *rawcart);
@@ -40,15 +42,19 @@ extern int ide64_crt_attach(FILE *fd, BYTE *rawcart);
 extern char *ide64_image_file;
 extern void ide64_detach(void);
 
-extern BYTE ide64_roml_read(WORD addr);
-extern BYTE ide64_romh_read(WORD addr);
-extern BYTE ide64_1000_7fff_read(WORD addr);
-extern void ide64_1000_7fff_store(WORD addr, BYTE value);
-extern BYTE ide64_a000_bfff_read(WORD addr);
+extern BYTE ide64_rom_read(WORD addr);
+extern BYTE ide64_ram_read(WORD addr);
+extern void ide64_rom_store(WORD addr, BYTE value);
+extern void ide64_ram_store(WORD addr, BYTE value);
 extern void ide64_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
 
 struct snapshot_s;
 extern int ide64_snapshot_read_module(struct snapshot_s *s);
 extern int ide64_snapshot_write_module(struct snapshot_s *s);
+
+/* values to be used with IDE64Version resource */
+#define IDE64_VERSION_3 0
+#define IDE64_VERSION_4_1 1
+#define IDE64_VERSION_4_2 2
 
 #endif

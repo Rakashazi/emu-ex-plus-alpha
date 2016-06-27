@@ -28,10 +28,9 @@
 
 #include "raster.h"
 #include "types.h"
-/*#include "vic-mem.h"*/
 
-#define VIC_PAL_SCREEN_WIDTH            272
-#define VIC_NTSC_SCREEN_WIDTH           208
+#define VIC_PAL_SCREEN_WIDTH            284     /* 71 cycles * 4 pixels */
+#define VIC_NTSC_SCREEN_WIDTH           260     /* 65 cycles * 4 pixels */
 
 #define VIC_PAL_MAX_TEXT_COLS           32
 #define VIC_NTSC_MAX_TEXT_COLS          31
@@ -40,8 +39,6 @@
 
 #define VIC_PAL_DISPLAY_WIDTH           224 /* FIXME: REMOVE */
 #define VIC_NTSC_DISPLAY_WIDTH          200 /* FIXME: REMOVE */
-
-#define VIC_NUM_SPRITES 0
 
 #define VIC_NUM_COLORS 16
 

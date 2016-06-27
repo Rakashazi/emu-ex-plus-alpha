@@ -38,7 +38,7 @@
 
 /* Uncomment the following if you want emulation of the
    6809 illegal/undocumented opcodes/behaviour. */
-/* #define FULL6809 */
+#define FULL6809
 
 /* Uncomment the following if you want emulation of the
    6309 CPU. */

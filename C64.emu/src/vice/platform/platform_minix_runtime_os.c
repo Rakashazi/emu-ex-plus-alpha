@@ -41,6 +41,7 @@
 
 #ifdef __minix
 
+#include <sys/types.h>
 #include <sys/utsname.h>
 #include <string.h>
 

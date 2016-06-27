@@ -253,5 +253,5 @@ CLINK char *archdep_default_rtc_file_name(void)
 		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath().data());
 	else
 		string_printf(path, "%s/vice.rtc", Base::documentsPath().data());
-	return plugin.lib_stralloc(path.data());
+	return strdup(path.data());
 }

@@ -42,7 +42,6 @@ extern void tcbm_drive_mem_init(struct drive_context_s *drv, unsigned int type);
 extern void tcbm_drive_setup_context(struct drive_context_s *drv);
 extern void tcbm_drive_rom_load(void);
 extern void tcbm_drive_rom_setup_image(unsigned int dnr);
-extern int tcbm_drive_rom_read(unsigned int type, WORD addr, BYTE *data);
 extern int tcbm_drive_rom_check_loaded(unsigned int type);
 extern void tcbm_drive_rom_do_checksum(unsigned int dnr);
 extern int tcbm_drive_snapshot_read(struct drive_context_s *ctxptr, struct snapshot_s *s);

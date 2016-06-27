@@ -56,7 +56,7 @@ extern void ui_shutdown(void);
 extern void ui_message(const char *format, ...);
 
 /* Print an error message.  */
-extern void VICE_API ui_error(const char *format, ...);
+extern VICE_API void ui_error(const char *format, ...);
 
 /* Display a mesage without interrupting emulation */
 extern void ui_display_statustext(const char *text, int fade_out);

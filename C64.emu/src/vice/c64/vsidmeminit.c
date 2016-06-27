@@ -39,6 +39,7 @@
 #include "resources.h"
 #include "sid.h"
 #include "sid-resources.h"
+#include "vsid-debugcart.h"
 #include "vicii-mem.h"
 #include "vicii-phi1.h"
 
@@ -103,6 +104,12 @@ void vsid_io_store(WORD addr, BYTE val)
     }
 }
 
+static void sid_store_d700(WORD addr, BYTE val)
+{
+    sid_store(addr, val);
+    debugcart_store(addr, val);
+}
+
 void c64meminit(unsigned int base)
 {
     unsigned int i, j;
@@ -133,7 +140,7 @@ void c64meminit(unsigned int base)
             mem_read_tab_set(base + j, 0xd6, sid_read);
             mem_set_write_hook(base + j, 0xd6, sid_store);
             mem_read_tab_set(base + j, 0xd7, sid_read);
-            mem_set_write_hook(base + j, 0xd7, sid_store);
+            mem_set_write_hook(base + j, 0xd7, sid_store_d700);
             for (i = 0xd8; i <= 0xdb; i++) {
                 mem_read_tab_set(base + j, i, colorram_read);
                 mem_set_write_hook(base + j, i, colorram_store);

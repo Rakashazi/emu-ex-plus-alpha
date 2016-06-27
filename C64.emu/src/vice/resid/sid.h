@@ -51,7 +51,7 @@ public:
   void clock(cycle_count delta_t);
   int clock(cycle_count& delta_t, short* buf, int n, int interleave = 1);
   void reset();
-  
+
   // Read/write registers.
   reg8 read(reg8 offset);
   void write(reg8 offset, reg8 value);
@@ -86,7 +86,7 @@ public:
     bool hold_zero[3];
     cycle_count envelope_pipeline[3];
   };
-    
+
   State read_state();
   void write_state(const State& state);
 

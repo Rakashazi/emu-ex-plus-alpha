@@ -383,6 +383,28 @@
 #  define __mc68060__
 #endif
 
+
+/* Convert __M680?0 to __mc680?0__ if needed */
+#if defined(__M68000) && !defined(__mc68000__)
+#  define __mc68000__
+#endif
+#if defined(__M68010) && !defined(__mc68010__)
+#  define __mc68010__
+#endif
+#if defined(__M68020) && !defined(__mc68020__)
+#  define __mc68020__
+#endif
+#if defined(__M68030) && !defined(__mc68030__)
+#  define __mc68030__
+#endif
+#if defined(__M68040) && !defined(__mc68040__)
+#  define __mc68040__
+#endif
+#if defined(__M68060) && !defined(__mc68060__)
+#  define __mc68060__
+#endif
+
+
 /* Generic m68k cpu discovery */
 #if (defined(__mc68060__) || defined(__mc68040__) || defined(__mc68030__) || defined(__mc68020__) || defined(__mc68010__) || defined(__mc68000__)) && !defined(__m68k__)
 #  define __m68k__
@@ -460,7 +482,7 @@
 
 
 /* Generic powerpc cpu discovery */
-#if !defined(PLATFORM_CPU) && (defined(__powerpc__) || defined(__ppc__)) && !defined(__powerpc64__)
+#if !defined(PLATFORM_CPU) && (defined(__powerpc__) || defined(__ppc__) || defined(__PPC__) || defined(__ppc)) && !defined(__powerpc64__)
 #  define PLATFORM_CPU "PPC"
 #endif
 
@@ -508,7 +530,7 @@
 
 
 /* Generic vax cpu discovery */
-#if !defined(PLATFORM_CPU) && defined(__vax__)
+#if !defined(PLATFORM_CPU) && (defined(__vax__) || defined(__vax))
 #  define PLATFORM_CPU "VAX"
 #endif
 

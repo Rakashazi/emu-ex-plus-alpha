@@ -30,12 +30,12 @@
 #include <stdio.h>
 
 #include "types.h"
+#include "c64cart.h"
 
 struct snapshot_s;
-struct export_s;
 
 extern BYTE zaxxon_roml_read(WORD addr);
-extern int zaxxon_peek_mem(struct export_s *export, WORD addr, BYTE *value);
+extern int zaxxon_peek_mem(export_t *export, WORD addr, BYTE *value);
 
 extern void zaxxon_config_init(void);
 extern void zaxxon_config_setup(BYTE *rawcart);

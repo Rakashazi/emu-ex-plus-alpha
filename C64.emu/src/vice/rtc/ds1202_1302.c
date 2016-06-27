@@ -28,6 +28,7 @@
 
 #include "ds1202_1302.h"
 #include "lib.h"
+#include "monitor.h"
 #include "rtc.h"
 #include "snapshot.h"
 
@@ -645,58 +646,211 @@ BYTE ds1202_1302_read_data_line(rtc_ds1202_1302_t *context)
     return 0;
 }
 
+int ds1202_1302_dump(rtc_ds1202_1302_t *context)
+{
+    int latched = context->clock_halt;
+    time_t offset = (latched) ? context->clock_halt_latch : context->offset;
+    int i, j;
+
+    mon_out("Registers contents:\n");
+    for (i = 0; i < 8; ++i) {
+        mon_out("%02X", ds1202_1302_get_clock_register(context, i, offset, latched));
+        if (i != 7) {
+            mon_out(" ");
+        }
+    }
+    mon_out("\n\nRAM contents:\n");
+    for (i = 0; i < 4; ++i) {
+        mon_out("%02X-%02X:", i * 8, (i * 8) + 7);
+        for (j = 0; j < 8; ++j) {
+            mon_out(" %02X", context->ram[(i * 8) + j]);
+        }
+        mon_out("\n");
+    }
+
+    return 0;
+}
+
 /* ---------------------------------------------------------------------*/
 /*    snapshot support functions                                             */
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "DS1202_1302"
+/* RTC_DS1202_1302 snapshot module format:
 
-/* FIXME: implement snapshot support */
-int ds1202_1302_snapshot_write_module(snapshot_t *s)
+   type   | name                | description
+   ------------------------------------------
+   BYTE   | rtc type            | RTC type
+   BYTE   | clock halt          | clock halt flag
+   DWORD  | clock halt latch hi | high DWORD of clock halt offset
+   DWORD  | clock halt latch lo | low DWORD of clock halt offset
+   BYTE   | am pm               | AM/PM flag
+   BYTE   | write protect       | write protect flag
+   DWORD  | latch hi            | high DWORD of latch offset
+   DWORD  | latch lo            | low DWORD of latch offset
+   DWORD  | offset hi           | high DWORD of RTC offset
+   DWORD  | offset lo           | low DWORD of RTC offset
+   DWORD  | old offset hi       | high DWORD of old RTC offset
+   DWORD  | old offset lo       | low DWORD of old RTC offset
+   ARRAY  | clock regs          | 8 BYTES of register data
+   ARRAY  | old clock regs      | 8 BYTES of old register data
+   BYTE   | trickle charge      | trickle charge
+   ARRAY  | RAM                 | 32 BYTES of RAM data
+   ARRAY  | old RAM             | 32 BYTES of old RAM data
+   BYTE   | state               | current RTC read/write state
+   BYTE   | reg                 | current register
+   BYTE   | bit                 | current bit
+   BYTE   | output bit          | current output bit
+   BYTE   | io byte             | current I/O BYTE
+   BYTE   | sclk                | SCLK line state
+   BYTE   | clock register      | clock register flag
+   STRING | device              | device name STRING
+ */
+
+static char snap_module_name[] = "RTC_DS1202_1302";
+#define SNAP_MAJOR 0
+#define SNAP_MINOR 0
+
+int ds1202_1302_write_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s)
 {
-    return -1;
-#if 0
+    DWORD clock_halt_latch_hi = 0;
+    DWORD clock_halt_latch_lo = 0;
+    DWORD latch_lo = 0;
+    DWORD latch_hi = 0;
+    DWORD offset_lo = 0;
+    DWORD offset_hi = 0;
+    DWORD old_offset_lo = 0;
+    DWORD old_offset_hi = 0;
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME, CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    /* time_t can be either 32bit or 64bit, so we save as 64bit */
+#if (SIZE_OF_TIME_T == 8)
+    clock_halt_latch_hi = (DWORD)(context->clock_halt_latch >> 32);
+    clock_halt_latch_lo = (DWORD)(context->clock_halt_latch & 0xffffffff);
+    latch_hi = (DWORD)(context->latch >> 32);
+    latch_lo = (DWORD)(context->latch & 0xffffffff);
+    offset_hi = (DWORD)(context->offset >> 32);
+    offset_lo = (DWORD)(context->offset & 0xffffffff);
+    old_offset_hi = (DWORD)(context->old_offset >> 32);
+    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+#else
+    clock_halt_latch_lo = (DWORD)context->clock_halt_latch;
+    latch_lo = (DWORD)context->latch;
+    offset_lo = (DWORD)context->offset;
+    old_offset_lo = (DWORD)context->old_offset;
+#endif
+
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (0) {
+    if (0
+        || SMW_B(m, (BYTE)context->rtc_type) < 0
+        || SMW_B(m, (BYTE)context->clock_halt) < 0
+        || SMW_DW(m, clock_halt_latch_hi) < 0
+        || SMW_DW(m, clock_halt_latch_lo) < 0
+        || SMW_B(m, (BYTE)context->am_pm) < 0
+        || SMW_B(m, (BYTE)context->write_protect) < 0
+        || SMW_DW(m, latch_hi) < 0
+        || SMW_DW(m, latch_lo) < 0
+        || SMW_DW(m, offset_hi) < 0
+        || SMW_DW(m, offset_lo) < 0
+        || SMW_DW(m, old_offset_hi) < 0
+        || SMW_DW(m, old_offset_lo) < 0
+        || SMW_BA(m, context->clock_regs, DS1202_1302_REG_SIZE) < 0
+        || SMW_BA(m, context->old_clock_regs, DS1202_1302_REG_SIZE) < 0
+        || SMW_B(m, context->trickle_charge) < 0
+        || SMW_BA(m, context->ram, DS1202_1302_RAM_SIZE) < 0
+        || SMW_BA(m, context->old_ram, DS1202_1302_RAM_SIZE) < 0
+        || SMW_B(m, context->state) < 0
+        || SMW_B(m, context->reg) < 0
+        || SMW_B(m, context->bit) < 0
+        || SMW_B(m, context->output_bit) < 0
+        || SMW_B(m, context->io_byte) < 0
+        || SMW_B(m, context->sclk_line) < 0
+        || SMW_B(m, context->clock_register) < 0
+        || SMW_STR(m, context->device) < 0) {
         snapshot_module_close(m);
         return -1;
     }
-
-    snapshot_module_close(m);
-    return 0;
-#endif
+    return snapshot_module_close(m);
 }
 
-int ds1202_1302_snapshot_read_module(snapshot_t *s)
+int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s)
 {
-    return -1;
-#if 0
+    DWORD clock_halt_latch_hi = 0;
+    DWORD clock_halt_latch_lo = 0;
+    DWORD latch_lo = 0;
+    DWORD latch_hi = 0;
+    DWORD offset_lo = 0;
+    DWORD offset_hi = 0;
+    DWORD old_offset_lo = 0;
+    DWORD old_offset_hi = 0;
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0) {
-        snapshot_module_close(m);
-        return -1;
+    if (0
+        || SMR_B_INT(m, &context->rtc_type) < 0
+        || SMR_B_INT(m, &context->clock_halt) < 0
+        || SMR_DW(m, &clock_halt_latch_hi) < 0
+        || SMR_DW(m, &clock_halt_latch_lo) < 0
+        || SMR_B_INT(m, &context->am_pm) < 0
+        || SMR_B_INT(m, &context->write_protect) < 0
+        || SMR_DW(m, &latch_hi) < 0
+        || SMR_DW(m, &latch_lo) < 0
+        || SMR_DW(m, &offset_hi) < 0
+        || SMR_DW(m, &offset_lo) < 0
+        || SMR_DW(m, &old_offset_hi) < 0
+        || SMR_DW(m, &old_offset_lo) < 0
+        || SMR_BA(m, context->clock_regs, DS1202_1302_REG_SIZE) < 0
+        || SMR_BA(m, context->old_clock_regs, DS1202_1302_REG_SIZE) < 0
+        || SMR_B(m, &context->trickle_charge) < 0
+        || SMR_BA(m, context->ram, DS1202_1302_RAM_SIZE) < 0
+        || SMR_BA(m, context->old_ram, DS1202_1302_RAM_SIZE) < 0
+        || SMR_B(m, &context->state) < 0
+        || SMR_B(m, &context->reg) < 0
+        || SMR_B(m, &context->bit) < 0
+        || SMR_B(m, &context->output_bit) < 0
+        || SMR_B(m, &context->io_byte) < 0
+        || SMR_B(m, &context->sclk_line) < 0
+        || SMR_B(m, &context->clock_register) < 0
+        || SMR_STR(m, &context->device) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
-    return 0;
+
+#if (SIZE_OF_TIME_T == 8)
+    context->clock_halt_latch = (time_t)(clock_halt_latch_hi) << 32;
+    context->clock_halt_latch |= clock_halt_latch_lo;
+    context->latch = (time_t)(latch_hi) << 32;
+    context->latch |= latch_lo;
+    context->offset = (time_t)(offset_hi) << 32;
+    context->offset |= offset_lo;
+    context->old_offset = (time_t)(old_offset_hi) << 32;
+    context->old_offset |= old_offset_lo;
+#else
+    context->clock_halt_latch = clock_halt_latch_lo;
+    context->latch = latch_lo;
+    context->offset = offset_lo;
+    context->old_offset = old_offset_lo;
 #endif
+
+    return 0;
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

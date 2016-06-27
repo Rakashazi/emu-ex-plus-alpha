@@ -41,4 +41,6 @@ struct snapshot_s;
 extern int vic20_midi_snapshot_read_module(struct snapshot_s *s);
 extern int vic20_midi_snapshot_write_module(struct snapshot_s *s);
 
+extern void vic20_midi_detach(void);
+
 #endif

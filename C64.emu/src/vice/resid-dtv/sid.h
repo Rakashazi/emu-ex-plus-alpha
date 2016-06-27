@@ -40,7 +40,7 @@ class SID
 public:
   SID();
   ~SID();
-  
+
   /* Some hacks to keep DTV looking like regular ReSID engine -- hopefully
    * removed at some point. */
   void set_chip_model(chip_model ignored);
@@ -59,7 +59,7 @@ public:
   void clock(cycle_count delta_t);
   int clock(cycle_count& delta_t, short* buf, int n, int interleave = 1);
   void reset();
-  
+
   // Read/write registers.
   reg8 read(reg8 offset);
   void write(reg8 offset, reg8 value);
@@ -84,7 +84,7 @@ public:
     EnvelopeGenerator::State envelope_state[3];
     bool hold_zero[3];
   };
-    
+
   State read_state();
   void write_state(const State& state);
 

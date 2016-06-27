@@ -1,8 +1,9 @@
 /*
- * c64export.c - Expansion port handling for the C64.
+ * c64export.c - Expansion port and devices handling for the C64.
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -32,7 +33,7 @@
 #include "assert.h"
 #include "c64cart.h"
 #include "c64cartsystem.h"
-#include "c64export.h"
+#include "export.h"
 #include "lib.h"
 #include "monitor.h"
 #include "translate.h"
@@ -48,7 +49,7 @@
 
 export_list_t c64export_head = { NULL, NULL, NULL };
 
-export_list_t *c64export_query_list(export_list_t *item)
+export_list_t *export_query_list(export_list_t *item)
 {
     if (item) {
         return item->next;
@@ -57,12 +58,12 @@ export_list_t *c64export_query_list(export_list_t *item)
     }
 }
 
-void c64export_dump(void)
+void export_dump(void)
 {
     export_list_t *current = NULL;
     io_source_t *io;
 
-    current = c64export_query_list(current);
+    current = export_query_list(current);
 
     if (current == NULL) {
         mon_out("No expansion port devices.\n");
@@ -105,7 +106,7 @@ void c64export_dump(void)
     }
 }
 
-int c64export_add(const c64export_resource_t *export_res)
+int export_add(const export_resource_t *export_res)
 {
     export_list_t *current;
     export_list_t *newentry = lib_malloc(sizeof(export_list_t));
@@ -121,13 +122,13 @@ int c64export_add(const c64export_resource_t *export_res)
     /* add new entry at end of list */
     current->next = newentry;
     newentry->previous = current;
-    newentry->device = (c64export_resource_t *)export_res;
+    newentry->device = (export_resource_t *)export_res;
     newentry->next = NULL;
 
     return 0;
 }
 
-int c64export_remove(const c64export_resource_t *export_res)
+int export_remove(const export_resource_t *export_res)
 {
     export_list_t *current;
     export_list_t *prev;
@@ -157,7 +158,7 @@ int c64export_remove(const c64export_resource_t *export_res)
     return -1;
 }
 
-int c64export_resources_init(void)
+int export_resources_init(void)
 {
     return 0;
 }

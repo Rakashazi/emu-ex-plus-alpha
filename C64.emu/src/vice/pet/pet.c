@@ -34,12 +34,15 @@
 
 #include "attach.h"
 #include "autostart.h"
+#include "bbrtc.h"
+#include "cartio.h"
 #include "clkguard.h"
 #include "cmdline.h"
 #include "crtc-mem.h"
 #include "crtc.h"
 #include "datasette.h"
 #include "debug.h"
+#include "debugcart.h"
 #include "diskimage.h"
 #include "drive-cmdline-options.h"
 #include "drive-resources.h"
@@ -51,6 +54,8 @@
 #include "gfxoutput.h"
 #include "iecdrive.h"
 #include "init.h"
+#include "joyport.h"
+#include "joystick.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
 #include "log.h"
@@ -62,6 +67,7 @@
 #include "mem.h"
 #include "monitor.h"
 #include "network.h"
+#include "paperclip64.h"
 #include "parallel.h"
 #include "pet-cmdline-options.h"
 #include "pet-resources.h"
@@ -82,6 +88,9 @@
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
+#include "sampler.h"
+#include "sampler2bit.h"
+#include "sampler4bit.h"
 #include "screenshot.h"
 #include "sid.h"
 #include "sid-cmdline-options.h"
@@ -89,16 +98,25 @@
 #include "sidcart.h"
 #include "sound.h"
 #include "tape.h"
+#include "tapeport.h"
+#include "translate.h"
 #include "traps.h"
 #include "types.h"
+#include "userport.h"
 #include "userport_dac.h"
 #include "userport_joystick.h"
+#include "userport_rtc_58321a.h"
+#include "userport_rtc_ds1307.h"
 #include "util.h"
 #include "via.h"
 #include "vice-event.h"
 #include "video.h"
 #include "video-sound.h"
 #include "vsync.h"
+
+#ifdef HAVE_MOUSE
+#include "mouse.h"
+#endif
 
 machine_context_t machine_context;
 
@@ -154,6 +172,32 @@ kbdtype_info_t *machine_get_keyboard_info_list(void)
 
 /* ------------------------------------------------------------------------ */
 
+static joyport_port_props_t userport_joy_control_port_1 = 
+{
+    "Userport joystick adapter port 1",
+    IDGS_USERPORT_JOY_ADAPTER_PORT_1,
+    0,				/* has NO potentiometer connected to this port */
+    0,				/* has NO lightpen support on this port */
+    0					/* port can be switched on/off */
+};
+
+static joyport_port_props_t userport_joy_control_port_2 = 
+{
+    "Userport joystick adapter port 2",
+    IDGS_USERPORT_JOY_ADAPTER_PORT_2,
+    0,				/* has NO potentiometer connected to this port */
+    0,				/* has NO lightpen support on this port */
+    0					/* port can be switched on/off */
+};
+
+static int init_joyport_ports(void)
+{
+    if (joyport_port_register(JOYPORT_3, &userport_joy_control_port_1) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_4, &userport_joy_control_port_2);
+}
+
 /* PET-specific resource initialization.  This is called before initializing
    the machine itself with `machine_init()'.  */
 int machine_resources_init(void)
@@ -164,6 +208,10 @@ int machine_resources_init(void)
     }
     if (pet_resources_init() < 0) {
         init_resource_fail("pet");
+        return -1;
+    }
+    if (cartio_resources_init() < 0) {
+        init_resource_fail("cartio");
         return -1;
     }
     if (petreu_resources_init() < 0) {
@@ -190,12 +238,12 @@ int machine_resources_init(void)
         init_resource_fail("sidcart");
         return -1;
     }
-    if (userport_dac_resources_init() < 0) {
-        init_resource_fail("userport dac");
-        return -1;
-    }
     if (drive_resources_init() < 0) {
         init_resource_fail("drive");
+        return -1;
+    }
+    if (tapeport_resources_init() < 0) {
+        init_resource_fail("tapeport");
         return -1;
     }
     if (datasette_resources_init() < 0) {
@@ -218,12 +266,44 @@ int machine_resources_init(void)
         init_resource_fail("userport printer");
         return -1;
     }
+    if (init_joyport_ports() < 0) {
+        init_resource_fail("joyport ports");
+        return -1;
+    }
+    if (joyport_resources_init() < 0) {
+        init_resource_fail("joyport devices");
+        return -1;
+    }
+    if (joyport_sampler2bit_resources_init() < 0) {
+        init_resource_fail("joyport 2bit sampler");
+        return -1;
+    }
+    if (joyport_sampler4bit_resources_init() < 0) {
+        init_resource_fail("joyport 4bit sampler");
+        return -1;
+    }
+    if (joyport_bbrtc_resources_init() < 0) {
+        init_resource_fail("joyport bbrtc");
+        return -1;
+    }
+    if (joyport_paperclip64_resources_init() < 0) {
+        init_resource_fail("joyport paperclip64 dongle");
+        return -1;
+    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
     }
+    if (userport_resources_init() < 0) {
+        init_resource_fail("userport devices");
+        return -1;
+    }
     if (gfxoutput_resources_init() < 0) {
         init_resource_fail("gfxoutput");
+        return -1;
+    }
+    if (sampler_resources_init() < 0) {
+        init_resource_fail("samplerdrv");
         return -1;
     }
     if (fliplist_resources_init() < 0) {
@@ -267,6 +347,12 @@ int machine_resources_init(void)
         return -1;
     }
 #endif
+#ifdef HAVE_MOUSE
+    if (mouse_resources_init() < 0) {
+        init_resource_fail("mouse");
+        return -1;
+    }
+#endif
 #ifndef COMMON_KBD
     if (pet_kbd_resources_init() < 0) {
         init_resource_fail("pet kbd");
@@ -275,6 +361,22 @@ int machine_resources_init(void)
 #endif
     if (userport_joystick_resources_init() < 0) {
         init_resource_fail("userport joystick");
+        return -1;
+    }
+    if (userport_dac_resources_init() < 0) {
+        init_resource_fail("userport dac");
+        return -1;
+    }
+    if (userport_rtc_58321a_resources_init() < 0) {
+        init_resource_fail("userport rtc (58321a)");
+        return -1;
+    }
+    if (userport_rtc_ds1307_resources_init() < 0) {
+        init_resource_fail("userport rtc (ds1307)");
+        return -1;
+    }
+    if (debugcart_resources_init() < 0) {
+        init_resource_fail("debug cart");
         return -1;
     }
     return 0;
@@ -291,6 +393,14 @@ void machine_resources_shutdown(void)
     drive_resources_shutdown();
     fsdevice_resources_shutdown();
     disk_image_resources_shutdown();
+    sampler_resources_shutdown();
+    cartio_shutdown();
+    userport_rtc_58321a_resources_shutdown();
+    userport_rtc_ds1307_resources_shutdown();
+    userport_resources_shutdown();
+    joyport_bbrtc_resources_shutdown();
+    tapeport_resources_shutdown();
+    debugcart_resources_shutdown();
 }
 
 /* PET-specific command-line option initialization.  */
@@ -302,6 +412,10 @@ int machine_cmdline_options_init(void)
     }
     if (pet_cmdline_options_init() < 0) {
         init_cmdline_options_fail("pet");
+        return -1;
+    }
+    if (cartio_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("cartio");
         return -1;
     }
     if (petreu_cmdline_options_init() < 0) {
@@ -328,12 +442,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("sidcart");
         return -1;
     }
-    if (userport_dac_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport dac");
-        return -1;
-    }
     if (drive_cmdline_options_init() < 0) {
         init_cmdline_options_fail("drive");
+        return -1;
+    }
+    if (tapeport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("tapeport");
         return -1;
     }
     if (datasette_cmdline_options_init() < 0) {
@@ -356,12 +470,28 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport printer");
         return -1;
     }
+    if (joyport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("joyport");
+        return -1;
+    }
+    if (joyport_bbrtc_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("bbrtc");
+        return -1;
+    }
     if (joystick_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joystick");
         return -1;
     }
+    if (userport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport");
+        return -1;
+    }
     if (gfxoutput_cmdline_options_init() < 0) {
         init_cmdline_options_fail("gfxoutput");
+        return -1;
+    }
+    if (sampler_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("samplerdrv");
         return -1;
     }
     if (fliplist_cmdline_options_init() < 0) {
@@ -404,6 +534,12 @@ int machine_cmdline_options_init(void)
         return -1;
     }
 #endif
+#ifdef HAVE_MOUSE
+    if (mouse_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("mouse");
+        return -1;
+    }
+#endif
 #ifndef COMMON_KBD
     if (pet_kbd_cmdline_options_init() < 0) {
         init_cmdline_options_fail("pet kbd");
@@ -412,6 +548,22 @@ int machine_cmdline_options_init(void)
 #endif
     if (userport_joystick_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport joystick");
+        return -1;
+    }
+    if (userport_dac_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport dac");
+        return -1;
+    }
+    if (userport_rtc_58321a_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport rtc (58321a)");
+        return -1;
+    }
+    if (userport_rtc_ds1307_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport rtc (ds1307)");
+        return -1;
+    }
+    if (debugcart_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("debug cart");
         return -1;
     }
     return 0;
@@ -497,10 +649,12 @@ int machine_specific_init(void)
     /* initialize print devices */
     printer_init();
 
-    /* Initialize autostart.  FIXME: We could probably use smaller values.  */
-    /* moved to mem_load() as it is kernal-dependant AF 30jun1998
-    autostart_init(1 * PET_PAL_RFSH_PER_SEC * PET_PAL_CYCLES_PER_RFSH, 0);
-    */
+#ifdef USE_BEOS_UI
+    /* Pre-init PET-specific parts of the menus before crtc_init()
+       creates a canvas window with a menubar at the top. This could
+       also be used by other ports, e.g. GTK+...  */
+    petui_init_early();
+#endif
 
     /* Initialize the CRTC emulation.  */
     if (crtc_init() == NULL) {
@@ -545,7 +699,7 @@ int machine_specific_init(void)
     /* Initialize native sound chip */
     pet_sound_chip_init();
 
-    /* Initialize cartridge based sound chips */
+    /* Initialize userport based sound chips */
     userport_dac_sound_chip_init();
 
     drive_sound_init();
@@ -561,7 +715,9 @@ int machine_specific_init(void)
     */
 
     /* Initialize the PET-specific part of the UI.  */
-    petui_init();
+    if (!console_mode) {
+        petui_init();
+    }
 
     /* Initialize the PET Ram and Expansion Unit. */
     petreu_init();
@@ -574,10 +730,14 @@ int machine_specific_init(void)
 
     petiec_init();
 
+#ifdef HAVE_MOUSE
+    /* Initialize mouse support (if present).  */
+    mouse_init();
+#endif
+
     machine_drive_stub();
 
-#if defined (USE_XF86_EXTENSIONS) && \
-    (defined(USE_XF86_VIDMODE_EXT) || defined (HAVE_XRANDR))
+#if defined (USE_XF86_EXTENSIONS) && (defined(USE_XF86_VIDMODE_EXT) || defined (HAVE_XRANDR))
     {
         /* set fullscreen if user used `-fullscreen' on cmdline */
         int fs;
@@ -613,6 +773,7 @@ void machine_specific_reset(void)
     petreu_reset();
     petdww_reset();
     pethre_reset();
+    sampler_reset();
 }
 
 void machine_specific_shutdown(void)
@@ -628,6 +789,10 @@ void machine_specific_shutdown(void)
     crtc_shutdown();
 
     petreu_shutdown();
+
+#ifdef HAVE_MOUSE
+    mouse_shutdown();
+#endif
 
     petui_shutdown();
 }
@@ -856,6 +1021,11 @@ BYTE machine_tape_type_default(void)
     return TAPE_CAS_TYPE_PRG;
 }
 
+BYTE machine_tape_behaviour(void)
+{
+    return TAPE_BEHAVIOUR_NORMAL;
+}
+
 int machine_addr_in_ram(unsigned int addr)
 {
     return addr < 0xb000;
@@ -878,4 +1048,26 @@ BYTE *crtc_get_active_bitmap(void)
     /* left open for future expansion of boards with their own ram */
 
     return retval;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static void pet_userport_set_flag(BYTE b)
+{
+    viacore_signal(machine_context.via, VIA_SIG_CA1, b ? VIA_SIG_RISE : VIA_SIG_FALL);
+}
+
+static userport_port_props_t userport_props = {
+    1, /* has pa2 pin */
+    0, /* NO pa3 pin */
+    pet_userport_set_flag, /* has flag pin */
+    0, /* NO pc pin */
+    0  /* NO cnt1, cnt2 or sp pins */
+};
+
+int machine_register_userport(void)
+{
+    userport_port_register(&userport_props);
+
+    return 0;
 }

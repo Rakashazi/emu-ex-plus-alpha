@@ -47,6 +47,13 @@ struct snapshot_s;
 #define VICII_NO_BORDERS     3
 #define VICII_BORDER_MODE(v) (v << 12)
 
+/* VICII model defines (for vicii/) FIXME enum instead? */
+#define VICII_MODEL_PALG        0
+#define VICII_MODEL_PALG_OLD    1
+#define VICII_MODEL_NTSCM       2
+#define VICII_MODEL_NTSCM_OLD   3
+#define VICII_MODEL_PALN        4
+
 /* VICII model defines (for viciisc/) FIXME enum instead? */
 /* PAL, 63 cycle, 9 luma, "old" */
 #define VICII_MODEL_6569    0

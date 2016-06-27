@@ -29,6 +29,7 @@
 
 #include <time.h>
 
+#include "snapshot.h"
 #include "types.h"
 
 #define BQ4830Y_RAM_SIZE   0x8000
@@ -73,5 +74,7 @@ extern void bq4830y_destroy(rtc_bq4830y_t *context, int save);
 
 extern void bq4830y_store(rtc_bq4830y_t *context, WORD address, BYTE val);
 extern BYTE bq4830y_read(rtc_bq4830y_t *context, WORD address);
+extern int bq4830y_write_snapshot(rtc_bq4830y_t *context, snapshot_t *s);
+extern int bq4830y_read_snapshot(rtc_bq4830y_t *context, snapshot_t *s);
 
 #endif

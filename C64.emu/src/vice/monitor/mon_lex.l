@@ -162,7 +162,7 @@ HDIGIT  [0-9a-f]
         block_write|bw  { BEGIN(INITIAL);       return CMD_BLOCK_WRITE; }
         cartfreeze      { BEGIN(INITIAL);       return CMD_CARTFREEZE; }
         cd              { BEGIN(ROL);           return CMD_CHDIR; }
-        stopwatch|sw    { BEGIN(INITIAL);       return CMD_STOPWATCH; }
+        clear_labels|cl { BEGIN(INITIAL);       return CMD_CLEAR_LABELS; }
         command         { BEGIN(INITIAL);       return CMD_COMMAND; }
         compare|c       { BEGIN(INITIAL);       return CMD_COMPARE; }
         condition|cond  { BEGIN(INITIAL);       return CMD_CONDITION; }
@@ -220,6 +220,7 @@ HDIGIT  [0-9a-f]
         sidefx|sfx      { BEGIN(INITIAL);       return CMD_SIDEFX; }
         step|z          { BEGIN(INITIAL);       return CMD_STEP; }
         stop            { BEGIN(INITIAL);       return CMD_MON_STOP; }
+        stopwatch|sw    { BEGIN(INITIAL);       return CMD_STOPWATCH; }
         tapectrl        { BEGIN(INITIAL);       return CMD_TAPECTRL; }
         trace|tr        { BEGIN(INITIAL);       return CMD_TRACE; }
         until|un        { BEGIN(INITIAL);       return CMD_UNTIL; }

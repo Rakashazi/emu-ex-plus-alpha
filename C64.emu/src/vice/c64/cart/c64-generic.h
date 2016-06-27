@@ -32,7 +32,6 @@
 #include "types.h"
 
 struct snapshot_s;
-struct export_s;
 
 extern void generic_8kb_config_init(void);
 extern void generic_16kb_config_init(void);
@@ -53,7 +52,7 @@ extern void generic_roml_store(WORD addr, BYTE value);
 extern BYTE generic_romh_read(WORD addr);
 extern int generic_romh_phi1_read(WORD addr, BYTE *value);
 extern int generic_romh_phi2_read(WORD addr, BYTE *value);
-extern int generic_peek_mem(struct export_s *export, WORD addr, BYTE *value);
+extern int generic_peek_mem(export_t *export, WORD addr, BYTE *value);
 extern void generic_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
 
 extern int generic_snapshot_write_module(struct snapshot_s *s, int type);

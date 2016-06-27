@@ -27,41 +27,48 @@
 #ifndef VICE_VIC_TIMING_H
 #define VICE_VIC_TIMING_H
 
+/* PAL: total screen dimension of 224x283 + 284th rasterline in bordercolor */
 #define VIC_PAL_NORMAL_FIRST_DISPLAYED_LINE         28
 #define VIC_PAL_NORMAL_LAST_DISPLAYED_LINE          311
 #define VIC_PAL_NORMAL_DISPLAY_WIDTH                224
+#define VIC_PAL_NORMAL_LEFTBORDERWIDTH              12
 
 #define VIC_PAL_FULL_FIRST_DISPLAYED_LINE           18
 #define VIC_PAL_FULL_LAST_DISPLAYED_LINE            311
-#define VIC_PAL_FULL_DISPLAY_WIDTH                  248
+#define VIC_PAL_FULL_DISPLAY_WIDTH                  256
+#define VIC_PAL_FULL_LEFTBORDERWIDTH                12
 
 #define VIC_PAL_DEBUG_FIRST_DISPLAYED_LINE          0
 #define VIC_PAL_DEBUG_LAST_DISPLAYED_LINE           311
-#define VIC_PAL_DEBUG_DISPLAY_WIDTH                 272
+#define VIC_PAL_DEBUG_DISPLAY_WIDTH                 284  /* 71 cycles * 4 pixels */
+#define VIC_PAL_DEBUG_LEFTBORDERWIDTH               12
 
 #define VIC_PAL_NO_BORDER_FIRST_DISPLAYED_LINE      76
 #define VIC_PAL_NO_BORDER_LAST_DISPLAYED_LINE       259
 #define VIC_PAL_NO_BORDER_DISPLAY_WIDTH             176
+#define VIC_PAL_NO_BORDER_LEFTBORDERWIDTH           12
 
-/*
-    FIXME: in NTSC the text window is (by default) not centered on the line,
-           some way to do that is needed to make "no border" work correctly.
- */
-#define VIC_NTSC_NORMAL_FIRST_DISPLAYED_LINE        8
-#define VIC_NTSC_NORMAL_LAST_DISPLAYED_LINE         260
+
+/* NTSC: total screen dimension of 200x233 + 234th rasterline in bordercolor */
+#define VIC_NTSC_NORMAL_FIRST_DISPLAYED_LINE        28
+#define VIC_NTSC_NORMAL_LAST_DISPLAYED_LINE         261
 #define VIC_NTSC_NORMAL_DISPLAY_WIDTH               200
+#define VIC_NTSC_NORMAL_LEFTBORDERWIDTH             4
 
 #define VIC_NTSC_FULL_FIRST_DISPLAYED_LINE          4
-#define VIC_NTSC_FULL_LAST_DISPLAYED_LINE           260
-#define VIC_NTSC_FULL_DISPLAY_WIDTH                 204
+#define VIC_NTSC_FULL_LAST_DISPLAYED_LINE           261
+#define VIC_NTSC_FULL_DISPLAY_WIDTH                 232
+#define VIC_NTSC_FULL_LEFTBORDERWIDTH               4
 
-#define VIC_NTSC_DEBUG_FIRST_DISPLAYED_LINE         0
-#define VIC_NTSC_DEBUG_LAST_DISPLAYED_LINE          260
-#define VIC_NTSC_DEBUG_DISPLAY_WIDTH                208
+#define VIC_NTSC_DEBUG_FIRST_DISPLAYED_LINE         1
+#define VIC_NTSC_DEBUG_LAST_DISPLAYED_LINE          261
+#define VIC_NTSC_DEBUG_DISPLAY_WIDTH                260  /* 65 cycles * 4 pixels */
+#define VIC_NTSC_DEBUG_LEFTBORDERWIDTH              4
 
 #define VIC_NTSC_NO_BORDER_FIRST_DISPLAYED_LINE     50
 #define VIC_NTSC_NO_BORDER_LAST_DISPLAYED_LINE      233
-#define VIC_NTSC_NO_BORDER_DISPLAY_WIDTH            (176 + 8) /* FIXME */
+#define VIC_NTSC_NO_BORDER_DISPLAY_WIDTH            176
+#define VIC_NTSC_NO_BORDER_LEFTBORDERWIDTH          5
 
 
 struct machine_timing_s;

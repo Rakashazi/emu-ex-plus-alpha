@@ -111,19 +111,6 @@ void machine_drive_rom_setup_image(unsigned int dnr)
     ieee_drive_rom_setup_image(dnr);
 }
 
-int machine_drive_rom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    if (iec_drive_rom_read(type, addr, data) == 0) {
-        return 0;
-    }
-
-    if (ieee_drive_rom_read(type, addr, data) == 0) {
-        return 0;
-    }
-
-    return -1;
-}
-
 int machine_drive_rom_check_loaded(unsigned int type)
 {
     if (iec_drive_rom_check_loaded(type) == 0) {

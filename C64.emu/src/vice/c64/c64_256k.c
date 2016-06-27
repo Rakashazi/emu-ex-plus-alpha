@@ -1,5 +1,5 @@
 /*
- * c64_256k.c - 256K EXPANSION emulation.
+ * c64_256k.c - 256K Expansion emulation.
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>
@@ -181,7 +181,7 @@ static io_source_list_t *c64_256k_list_item = NULL;
 
 /* ---------------------------------------------------------------------*/
 
-int set_c64_256k_enabled(int value)
+int set_c64_256k_enabled(int value, int disable_reset)
 {
     int val = value ? 1 : 0;
 
@@ -193,7 +193,9 @@ int set_c64_256k_enabled(int value)
         if (c64_256k_deactivate() < 0) {
             return -1;
         }
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        if (!disable_reset) {
+            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        }
         io_source_unregister(c64_256k_list_item);
         c64_256k_list_item = NULL;
         c64_256k_enabled = 0;
@@ -202,7 +204,9 @@ int set_c64_256k_enabled(int value)
         if (c64_256k_activate() < 0) {
             return -1;
         }
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        if (!disable_reset) {
+            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        }
         c64_256k_list_item = io_source_register(&c64_256k_device);
         c64_256k_enabled = 1;
         return 0;
@@ -450,4 +454,124 @@ BYTE c64_256k_ram_segment2_read(WORD addr)
 BYTE c64_256k_ram_segment3_read(WORD addr)
 {
     return c64_256k_ram[(c64_256k_segment3 * 0x4000) + (addr & 0x3fff)];
+}
+
+/* ------------------------------------------------------------------------- */
+
+/* C64_256K snapshot module format:
+
+   type  | name     | description
+   ------------------------------
+   WORD  | base     | base address of the control registers
+   BYTE  | DDA      | register A direction
+   BYTE  | PRA      | register A data
+   BYTE  | CRA      | register A control
+   BYTE  | DDB      | register B direction
+   BYTE  | PRB      | register B data
+   BYTE  | CRB      | register B control
+   BYTE  | vbank    | video bank
+   BYTE  | segment0 | segment 0 bank
+   BYTE  | segment1 | segment 1 bank
+   BYTE  | segment2 | segment 2 bank
+   BYTE  | segment3 | segment 3 bank
+   ARRAY | RAM      | 262144 BYTES of RAM data
+ */
+
+static char snap_module_name[] = "C64_256K";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
+int c64_256k_snapshot_write(struct snapshot_s *s)
+{
+    snapshot_module_t *m;
+
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    if (0
+        || SMW_W (m, (WORD)c64_256k_start) < 0
+        || SMW_B (m, c64_256k_DDA) < 0
+        || SMW_B (m, c64_256k_PRA) < 0
+        || SMW_B (m, c64_256k_CRA) < 0
+        || SMW_B (m, c64_256k_DDB) < 0
+        || SMW_B (m, c64_256k_PRB) < 0
+        || SMW_B (m, c64_256k_CRB) < 0
+        || SMW_B (m, (BYTE)cia_vbank) < 0
+        || SMW_B (m, (BYTE)c64_256k_segment0) < 0
+        || SMW_B (m, (BYTE)c64_256k_segment1) < 0
+        || SMW_B (m, (BYTE)c64_256k_segment2) < 0
+        || SMW_B (m, (BYTE)c64_256k_segment3) < 0
+        || SMW_BA(m, c64_256k_ram, 0x40000) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
+    return snapshot_module_close(m);
+}
+
+int c64_256k_snapshot_read(struct snapshot_s *s)
+{
+    snapshot_module_t *m;
+    BYTE vmajor, vminor;
+
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    /* do not accept higher versions than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    if (SMR_W_INT(m, &c64_256k_start) < 0) {
+        goto fail;
+    }
+
+    /* enable c64 256k, without reset */
+    set_c64_256k_enabled(1, 1);
+
+    /* overwrite registers */
+    if (0
+        || SMR_B(m, &c64_256k_DDA) < 0
+        || SMR_B(m, &c64_256k_PRA) < 0
+        || SMR_B(m, &c64_256k_CRA) < 0
+        || SMR_B(m, &c64_256k_DDB) < 0
+        || SMR_B(m, &c64_256k_PRB) < 0
+        || SMR_B(m, &c64_256k_CRB) < 0) {
+        goto fail;
+    }
+
+    /* get vbank */
+    if (SMR_B_INT(m, &cia_vbank) < 0) {
+        goto fail;
+    }
+    pia_set_vbank();
+
+    /* get segments and overwrite ram */
+    if (0
+        || SMR_B_INT(m, &c64_256k_segment0) < 0
+        || SMR_B_INT(m, &c64_256k_segment1) < 0
+        || SMR_B_INT(m, &c64_256k_segment2) < 0
+        || SMR_B_INT(m, &c64_256k_segment3) < 0
+        || SMR_BA(m, c64_256k_ram, 0x40000) < 0) {
+        goto fail;
+    }
+
+    return snapshot_module_close(m);
+   
+fail:
+    if (m != NULL) {
+        snapshot_module_close(m);
+    }
+
+    /* disable c64 256k, without reset */
+    set_c64_256k_enabled(0, 1);
+
+    return -1;
 }

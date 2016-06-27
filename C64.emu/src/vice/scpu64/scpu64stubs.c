@@ -29,6 +29,7 @@
 #include "snapshot.h"
 #include "tap.h"
 #include "tape.h"
+#include "tapeport.h"
 
 /*******************************************************************************
     tape
@@ -131,4 +132,34 @@ void tape_get_header(tape_image_t *tape_image, BYTE *name)
 const char *tape_get_file_name(void)
 {
     return NULL;
+}
+
+BYTE colorram_read(WORD addr)
+{
+    return 0;
+}
+
+void colorram_store(WORD addr, BYTE value)
+{
+}
+
+tapeport_device_list_t *tapeport_device_register(tapeport_device_t *device)
+{
+    return NULL;
+}
+
+void tapeport_snapshot_register(tapeport_snapshot_t *snapshot)
+{
+}
+
+void tapeport_device_unregister(tapeport_device_list_t *device)
+{
+}
+
+void tapeport_trigger_flux_change(unsigned int on, int id)
+{
+}
+
+void tapeport_set_tape_sense(int sense, int id)
+{
 }

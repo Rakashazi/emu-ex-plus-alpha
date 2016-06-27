@@ -277,9 +277,6 @@ int plus4cart_load_c2hi(const char *rom_name)
     return 0;
 }
 
-/*
-    FIXME: remove in UIs (replace by cartridge_detach_image(-1): Amiga, SDL, Win32
-*/
 void plus4cart_detach_cartridges(void)
 {
     resources_set_string("c1loName", "");

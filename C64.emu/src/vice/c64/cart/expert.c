@@ -35,12 +35,12 @@
 #define CARTRIDGE_INCLUDE_SLOT1_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOT1_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "crt.h"
+#include "export.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "resources.h"
@@ -239,13 +239,13 @@ static io_source_t expert_io1_device = {
     expert_io1_store,
     expert_io1_read,
     expert_io1_peek,
-    NULL, /* dump */
+    NULL, /* TODO: dump */
     CARTRIDGE_EXPERT,
     0,
     0
 };
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_EXPERT, 1, 1, &expert_io1_device, NULL, CARTRIDGE_EXPERT
 };
 
@@ -356,7 +356,7 @@ static int set_expert_enabled(int value, void *param)
         }
         io_source_unregister(expert_io1_list_item);
         expert_io1_list_item = NULL;
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         expert_enabled = 0;
         cart_power_off();
     } else if (!expert_enabled && val) {
@@ -365,7 +365,7 @@ static int set_expert_enabled(int value, void *param)
             return -1;
         }
         expert_io1_list_item = io_source_register(&expert_io1_device);
-        if (c64export_add(&export_res) < 0) {
+        if (export_add(&export_res) < 0) {
             DBG(("EXPERT: set enabled: error\n"));
             io_source_unregister(expert_io1_list_item);
             expert_io1_list_item = NULL;
@@ -800,16 +800,27 @@ int expert_enable(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTEXPERT"
+/* CARTEXPERT snapshot module format:
+
+   type  | name            | description
+   -------------------------------------
+   BYTE  | mode            | cartridge mode
+   BYTE  | register enable | register enable flag
+   BYTE  | RAM writable    | RAM writable flag
+   BYTE  | RAMH enable     | RAMH enable flag
+   ARRAY | RAM             | 8192 BYTES of RAM data
+ */
+
+static char snap_module_name[] = "CARTEXPERT";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
 
 int expert_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
@@ -824,8 +835,7 @@ int expert_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int expert_snapshot_read_module(snapshot_t *s)
@@ -833,12 +843,15 @@ int expert_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
@@ -866,7 +879,7 @@ int expert_snapshot_read_module(snapshot_t *s)
     /* FIXME: ugly code duplication to avoid cart_config_changed calls */
     expert_io1_list_item = io_source_register(&expert_io1_device);
 
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         lib_free(expert_ram);
         expert_ram = NULL;
         io_source_unregister(expert_io1_list_item);

@@ -29,32 +29,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mascuerade-stubs.h"
-
-export_list_t *c64export_query_list(export_list_t *item)
-{
-    return item;
-}
-
-void c64export_dump(void)
-{
-}
-
-int c64export_add(const c64export_resource_t *export_res)
-{
-    return 0;
-}
-
-int c64export_remove(const c64export_resource_t *export_res)
-{
-    return 0;
-}
-
-int c64export_resources_init(void)
-{
-    return 0;
-}
-
 int mmc64_cart_enabled(void)
 {
     return 0;
@@ -66,6 +40,11 @@ int mmcreplay_cart_enabled(void)
 }
 
 int retroreplay_cart_enabled(void)
+{
+    return 0;
+}
+
+int rrnetmk3_cart_enabled(void)
 {
     return 0;
 }

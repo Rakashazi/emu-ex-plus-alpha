@@ -136,6 +136,12 @@ BYTE via2d_peek(drive_context_t *ctxptr, WORD addr)
     return viacore_peek(ctxptr->via2, addr);
 }
 
+int via2d_dump(drive_context_t *ctxptr, WORD addr)
+{
+    viacore_dump(ctxptr->via2);
+    return 0;
+}
+
 /*
     pcrval
       bit 5:  1: reading, 0: writing

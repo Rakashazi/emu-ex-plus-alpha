@@ -32,12 +32,12 @@
 #include "vic20via.h"
 
 
-void datasette_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(unsigned int on)
 {
     viacore_signal(machine_context.via1, VIA_SIG_CA1, VIA_SIG_FALL);
 }
 
-void datasette_set_tape_sense(int sense)
+void machine_set_tape_sense(int sense)
 {
     via2_set_tape_sense(sense);
 }

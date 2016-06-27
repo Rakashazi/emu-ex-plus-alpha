@@ -36,6 +36,7 @@
 #include "embedded.h"
 #include "lib.h"
 #include "log.h"
+#include "machine.h"
 #include "palette.h"
 #include "sysfile.h"
 #include "types.h"
@@ -236,6 +237,7 @@ int palette_load(const char *file_name, palette_t *palette_return)
         lib_free(tmp);
 
         if (f == NULL) {
+            log_error(palette_log, "Palette not found: `%s'.", file_name);
             return -1;
         }
     }
@@ -278,6 +280,69 @@ int palette_save(const char *file_name, const palette_t *palette)
 
     return fclose(f);
 }
+
+/******************************************************************************/
+
+/*
+ TODO: the following list should be generated at runtime, by scanning the
+       "SYSTEMPATH" for .vpl files and extracting the respective info.
+       - "opendir" kind of API that searches the SYSTEMPATH is needed
+       - existing .vpl files must be extended to contain CHIP and NAME info
+       - when generating the list, sort by NAME
+ */
+static palette_info_t palettelist[] = {
+    /* data/C64/ */
+    /* data/C128/ */
+    /* data/CBM-II/ */
+    /* data/SCPU64/ */
+    { "VICII", "Pepto (PAL)",        "vice"}, /* default */ /* FIXME: rename to pepto.vpl */
+    { "VICII", "Pepto (NTSC, Sony)", "pepto-ntsc-sony"},
+    { "VICII", "Pepto (NTSC)",       "pepto-ntsc"},
+    { "VICII", "VICE",               "default"}, /* FIXME: rename to "vice.vpl */
+    { "VICII", "C64HQ",              "c64hq"},
+    { "VICII", "C64S",               "c64s"},
+    { "VICII", "CCS64",              "ccs64"},
+    { "VICII", "Frodo",              "frodo"},
+    { "VICII", "Godot",              "godot"},
+    { "VICII", "PC64",               "pc64"},
+    { "VICII", "RGB",                "rgb"},
+    { "VICII", "Deekay",             "deekay"},
+    { "VICII", "Ptoing",             "ptoing"},
+    { "VICII", "Community Colors",   "community-colors"},
+    /* data/C128/ */
+    { "VDC",   "RGB",                "vdc_deft"}, /* default */
+    { "VDC",   "Composite",          "vdc_comp"},
+    /* data/VIC20/ */
+    { "VIC",   "Mike (PAL)",         "mike-pal"}, /* default */
+    { "VIC",   "Mike (NTSC)",        "mike-ntsc"},
+    { "VIC",   "VICE",               "default"},
+    /* data/CBM-II/ */
+    /* data/PET/ */
+    { "Crtc",  "Green",              "green"}, /* default */
+    { "Crtc",  "Amber",              "amber"},
+    { "Crtc",  "Black/White",        "white"},
+    /* data/TED/ */
+    { "TED",   "VICE",               "default"}, /* default */
+
+    { NULL, 0, 0 }
+};
+
+static palette_info_t palettelist_dtv[] = {
+    /* data/C64dtv/ */
+    { "VICII","Spiff", "spiff"}, /* default */
+    { NULL, 0, 0 }
+};
+
+palette_info_t *palette_get_info_list(void)
+{
+    /* special case handling is needed to distinguish from regular VICII */
+    if (machine_class == VICE_MACHINE_C64DTV) {
+        return &palettelist_dtv[0];
+    }
+    return &palettelist[0];
+}
+
+/******************************************************************************/
 
 void palette_init(void)
 {

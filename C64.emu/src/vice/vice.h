@@ -38,15 +38,7 @@
    actually automake barfs if the source directory was already
    configured, so this should not be an issue anymore.  */
 
-#ifdef IDE_COMPILE
-# include <ide-config.h> /* standard config file for IDE based compiles. */
-#else
-# ifdef ANDROID_COMPILE
-#  include <config.android.h>
-# else
-#  include <vice-config.h> /* Automagically created by the `configure' script.  */
-# endif
-#endif
+#include <vice-config.h>
 
 /* ------------------------------------------------------------------------- */
 
@@ -105,6 +97,7 @@
 #define ALLOW_UNALIGNED_ACCESS
 #endif
 
+
 /* Allow unaligned access for ARMv6 and newer, or ARMv7 and newer when on Android */
 #if __ARM_ARCH >= 6 && (!defined __ANDROID__ || __ARM_ARCH >= 7)
 #define ALLOW_UNALIGNED_ACCESS
@@ -125,7 +118,7 @@ typedef int ssize_t;
 
 /* ------------------------------------------------------------------------- */
 /* Which OS is using the common keyboard routines?  */
-#if !defined(EMUFRAMEWORK_BUILD) && (!defined(__OS2__) || defined(USE_SDLUI))
+#if !defined(EMUFRAMEWORK_BUILD) && (!defined(__OS2__) || defined(USE_SDLUI) || defined(USE_SDLUI2))
 #define COMMON_KBD
 #endif
 

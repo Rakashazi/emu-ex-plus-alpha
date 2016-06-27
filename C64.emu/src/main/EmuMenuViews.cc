@@ -24,6 +24,71 @@ extern "C"
 	#include "diskimage.h"
 	#include "sid/sid.h"
 	#include "vicii.h"
+	#include "drive.h"
+}
+
+static constexpr const char *driveMenuPrefix[4]
+{
+	"Disk 8",
+	"Disk 9",
+	"Disk 10",
+	"Disk 11",
+};
+
+static constexpr const char *driveResName[4]
+{
+	"Drive8Type",
+	"Drive9Type",
+	"Drive10Type",
+	"Drive11Type",
+};
+
+static constexpr int driveTypeVal[18]
+{
+	DRIVE_TYPE_NONE,
+	DRIVE_TYPE_1540,
+	DRIVE_TYPE_1541,
+	DRIVE_TYPE_1541II,
+	DRIVE_TYPE_1551,
+	DRIVE_TYPE_1570,
+	DRIVE_TYPE_1571,
+	DRIVE_TYPE_1571CR,
+	DRIVE_TYPE_1581,
+	DRIVE_TYPE_2000,
+	DRIVE_TYPE_4000,
+	DRIVE_TYPE_2031,
+	DRIVE_TYPE_2040,
+	DRIVE_TYPE_3040,
+	DRIVE_TYPE_4040,
+	DRIVE_TYPE_1001,
+	DRIVE_TYPE_8050,
+	DRIVE_TYPE_8250
+};
+
+static constexpr const char *driveTypeStr(int type)
+{
+	switch(type)
+	{
+		case DRIVE_TYPE_NONE: return "None";
+		case DRIVE_TYPE_1540: return "1540";
+		case DRIVE_TYPE_1541: return "1541";
+		case DRIVE_TYPE_1541II: return "1541-II";
+		case DRIVE_TYPE_1551: return "1551";
+		case DRIVE_TYPE_1570: return "1570";
+		case DRIVE_TYPE_1571: return "1571";
+		case DRIVE_TYPE_1571CR: return "1571CR";
+		case DRIVE_TYPE_1581: return "1581";
+		case DRIVE_TYPE_2000: return "2000";
+		case DRIVE_TYPE_4000: return "4000";
+		case DRIVE_TYPE_2031: return "2031";
+		case DRIVE_TYPE_2040: return "2040";
+		case DRIVE_TYPE_3040: return "3040";
+		case DRIVE_TYPE_4040: return "4040";
+		case DRIVE_TYPE_1001: return "1001";
+		case DRIVE_TYPE_8050: return "8050";
+		case DRIVE_TYPE_8250: return "8250";
+	}
+	return "?";
 }
 
 class EmuVideoOptionView : public VideoOptionView
@@ -104,17 +169,6 @@ public:
 
 class EmuSystemOptionView : public SystemOptionView
 {
-	BoolMenuItem trueDriveEmu
-	{
-		"True Drive Emulation (TDE)",
-		(bool)optionDriveTrueEmulation,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			optionDriveTrueEmulation = item.flipBoolValue(*this);
-			setDriveTrueEmulation(optionDriveTrueEmulation);
-		}
-	};
-
 	BoolMenuItem autostartWarp
 	{
 		"Autostart Fast-forward",
@@ -133,7 +187,35 @@ class EmuSystemOptionView : public SystemOptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionAutostartTDE = item.flipBoolValue(*this);
-			setAutostartTDE(optionAutostartTDE);
+			setAutostartTDE(optionAutostartTDE);		}
+	};
+
+	TextHeadingMenuItem defaultsHeading
+	{
+		"Default Boot Options"
+	};
+
+	BoolMenuItem trueDriveEmu
+	{
+		"True Drive Emulation (TDE)",
+		(bool)optionDriveTrueEmulation,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionDriveTrueEmulation = item.flipBoolValue(*this);
+			if(!optionDriveTrueEmulation && !optionVirtualDeviceTraps)
+			{
+				popup.post("Enable Virtual Device Traps to use disks without TDE");
+			}
+		}
+	};
+
+	BoolMenuItem virtualDeviceTraps
+	{
+		"Virtual Device Traps",
+		(bool)optionVirtualDeviceTraps,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionVirtualDeviceTraps = item.flipBoolValue(*this);
 		}
 	};
 
@@ -157,7 +239,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultC64Model
 	{
-		"Default C64 Model",
+		"C64 Model",
 		optionC64Model,
 		defaultC64ModelItem
 	};
@@ -173,7 +255,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultDTVModel
 	{
-		"Default DTV Model",
+		"DTV Model",
 		optionDTVModel,
 		defaultDTVModelItem
 	};
@@ -188,7 +270,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultC128Model
 	{
-		"Default C128 Model",
+		"C128 Model",
 		optionC128Model,
 		defaultC128ModelItem
 	};
@@ -210,7 +292,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultSuperCPUModel
 	{
-		"Default C64 SuperCPU Model",
+		"C64 SuperCPU Model",
 		optionSuperCPUModel,
 		defaultSuperCPUModelItem
 	};
@@ -230,7 +312,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultCBM2Model
 	{
-		"Default CBM-II 6x0 Model",
+		"CBM-II 6x0 Model",
 		optionCBM2Model - 2u,
 		defaultCBM2ModelItem
 	};
@@ -243,7 +325,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultCBM5x0Model
 	{
-		"Default CBM-II 5x0 Model",
+		"CBM-II 5x0 Model",
 		optionCBM5x0Model,
 		defaultCBM5x0ModelItem
 	};
@@ -266,7 +348,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultPetModel
 	{
-		"Default PET Model",
+		"PET Model",
 		optionPETModel,
 		defaultPETModelItem
 	};
@@ -283,7 +365,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultPlus4Model
 	{
-		"Default Plus/4 Model",
+		"Plus/4 Model",
 		optionPlus4Model,
 		defaultPlus4ModelItem
 	};
@@ -297,7 +379,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem defaultVIC20Model
 	{
-		"Default VIC-20 Model",
+		"VIC-20 Model",
 		optionVIC20Model,
 		defaultVIC20ModelItem
 	};
@@ -339,6 +421,13 @@ public:
 	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
 	{
 		loadStockItems();
+		printSysPathMenuEntryStr(systemFilePathStr);
+		item.emplace_back(&systemFilePath);
+		item.emplace_back(&autostartTDE);
+		item.emplace_back(&autostartWarp);
+		item.emplace_back(&defaultsHeading);
+		item.emplace_back(&trueDriveEmu);
+		item.emplace_back(&virtualDeviceTraps);
 		item.emplace_back(&defaultC64Model);
 		item.emplace_back(&defaultDTVModel);
 		item.emplace_back(&defaultC128Model);
@@ -348,11 +437,6 @@ public:
 		item.emplace_back(&defaultPetModel);
 		item.emplace_back(&defaultPlus4Model);
 		item.emplace_back(&defaultVIC20Model);
-		item.emplace_back(&trueDriveEmu);
-		item.emplace_back(&autostartTDE);
-		item.emplace_back(&autostartWarp);
-		printSysPathMenuEntryStr(systemFilePathStr);
-		item.emplace_back(&systemFilePath);
 	}
 };
 
@@ -505,20 +589,15 @@ private:
 		}
 	};
 
-	static constexpr const char *diskSlotPrefix[2]
-	{
-		"Disk #8:",
-		"Disk #9:"
-	};
-	char diskSlotStr[2][1024]{};
+	char diskSlotStr[4][1024]{};
 
 	void updateDiskText(int slot)
 	{
 		auto name = plugin.file_system_get_disk_name(slot+8);
-		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], name ? FS::basename(name).data() : "");
+		string_printf(diskSlotStr[slot], "%s: %s", driveMenuPrefix[slot], name ? FS::basename(name).data() : "");
 	}
 
-	void onDiskMediaChange(const char *name, int slot)
+	void onDiskMediaChange(int slot)
 	{
 		updateDiskText(slot);
 		diskSlot[slot].compile(projP);
@@ -533,7 +612,7 @@ private:
 				logMsg("inserting disk in unit %d", slot+8);
 				if(plugin.file_system_attach_disk(slot+8, name) == 0)
 				{
-					onDiskMediaChange(name, slot);
+					onDiskMediaChange(slot);
 				}
 				picker.dismiss();
 			});
@@ -558,7 +637,7 @@ public:
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
 					plugin.file_system_detach_disk(slot+8);
-					onDiskMediaChange("", slot);
+					onDiskMediaChange(slot);
 					popAndShow();
 				});
 			viewStack.pushAndShow(multiChoiceView, e);
@@ -571,10 +650,36 @@ public:
 	}
 
 private:
-	TextMenuItem diskSlot[2]
+	TextMenuItem diskSlot[4]
 	{
 		{diskSlotStr[0], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 0); }},
 		{diskSlotStr[1], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 1); }},
+		{diskSlotStr[2], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 2); }},
+		{diskSlotStr[3], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 3); }},
+	};
+
+	BoolMenuItem trueDriveEmu
+	{
+		"True Drive Emulation (TDE)",
+		driveTrueEmulation(),
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			setDriveTrueEmulation(item.flipBoolValue(*this));
+			if(!driveTrueEmulation() && !virtualDeviceTraps())
+			{
+				popup.post("Enable Virtual Device Traps to use disks without TDE");
+			}
+		}
+	};
+
+	BoolMenuItem virtualDeviceTraps_
+	{
+		"Virtual Device Traps",
+		virtualDeviceTraps(),
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			setVirtualDeviceTraps(item.flipBoolValue(*this));
+		}
 	};
 
 	std::vector<TextMenuItem> modelItem{};
@@ -595,13 +700,197 @@ private:
 		modelItem
 	};
 
-	StaticArrayList<MenuItem*, 10> item{};
+	bool setDriveType(bool isActive, uint slot, int type)
+	{
+		assumeExpr(slot < 4);
+		if(!isActive)
+		{
+			popup.printf(3, true, "Cannot use on %s", VicePlugin::systemName(currSystem));
+			return false;
+		}
+		plugin.resources_set_int(driveResName[slot], type);
+		onDiskMediaChange(slot);
+		return true;
+	}
+
+	uint currDriveTypeSlot = 0;
+
+	TextMenuItem driveTypeItem[18]
+	{
+		{
+			driveTypeStr(DRIVE_TYPE_NONE),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_NONE); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1540),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1540); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1541),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1541); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1541II),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1541II); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1551),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1551); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1570),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1570); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1571),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1571); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1571CR),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1571CR); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1581),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1581); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_2000),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2000); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_4000),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_4000); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_2031),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2031); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_2040),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2040); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_3040),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_3040); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_4040),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_4040); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_1001),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1001); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_8050),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_8050); },
+		},
+		{
+			driveTypeStr(DRIVE_TYPE_8250),
+			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_8250); },
+		}
+	};
+
+	static uint driveTypeMenuIdx(int type)
+	{
+		switch(type)
+		{
+			default:
+			case DRIVE_TYPE_NONE: return 0;
+			case DRIVE_TYPE_1540: return 1;
+			case DRIVE_TYPE_1541: return 2;
+			case DRIVE_TYPE_1541II: return 3;
+			case DRIVE_TYPE_1551: return 4;
+			case DRIVE_TYPE_1570: return 5;
+			case DRIVE_TYPE_1571: return 6;
+			case DRIVE_TYPE_1571CR: return 7;
+			case DRIVE_TYPE_1581: return 8;
+			case DRIVE_TYPE_2000: return 9;
+			case DRIVE_TYPE_4000: return 10;
+			case DRIVE_TYPE_2031: return 11;
+			case DRIVE_TYPE_2040: return 12;
+			case DRIVE_TYPE_3040: return 13;
+			case DRIVE_TYPE_4040: return 14;
+			case DRIVE_TYPE_1001: return 15;
+			case DRIVE_TYPE_8050: return 16;
+			case DRIVE_TYPE_8250: return 17;
+		}
+	}
+
+	MultiChoiceMenuItem drive8Type
+	{
+		"Drive 8 Type",
+		driveTypeMenuIdx(intResource(driveResName[0])),
+		driveTypeItem,
+		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+		{
+			currDriveTypeSlot = 0;
+			iterateTimes(IG::size(driveTypeItem), i)
+			{
+				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
+			}
+			item.defaultOnSelect(view, e);
+		}
+	};
+
+	MultiChoiceMenuItem drive9Type
+	{
+		"Drive 9 Type",
+		driveTypeMenuIdx(intResource(driveResName[1])),
+		driveTypeItem,
+		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+		{
+			currDriveTypeSlot = 1;
+			iterateTimes(IG::size(driveTypeItem), i)
+			{
+				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
+			}
+			item.defaultOnSelect(view, e);
+		}
+	};
+
+	MultiChoiceMenuItem drive10Type
+	{
+		"Drive 10 Type",
+		driveTypeMenuIdx(intResource(driveResName[2])),
+		driveTypeItem,
+		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+		{
+			currDriveTypeSlot = 2;
+			iterateTimes(IG::size(driveTypeItem), i)
+			{
+				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
+			}
+			item.defaultOnSelect(view, e);
+		}
+	};
+
+	MultiChoiceMenuItem drive11Type
+	{
+		"Drive 11 Type",
+		driveTypeMenuIdx(intResource(driveResName[3])),
+		driveTypeItem,
+		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+		{
+			currDriveTypeSlot = 3;
+			iterateTimes(IG::size(driveTypeItem), i)
+			{
+				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
+			}
+			item.defaultOnSelect(view, e);
+		}
+	};
+
+	TextHeadingMenuItem mediaOptions{"Media Options"};
+	TextHeadingMenuItem systemOptions{"System Options"};
+
+	StaticArrayList<MenuItem*, 15> item{};
 
 public:
 	C64IOControlView(Base::Window &win):
 		TableView
 		{
-			"System & IO",
+			"System & Media",
 			win,
 			item
 		}
@@ -619,18 +908,24 @@ public:
 			updateROMText();
 			item.emplace_back(&romSlot);
 		}
-		iterateTimes(1, slot)
+		iterateTimes(4, slot)
 		{
 			updateDiskText(slot);
 			item.emplace_back(&diskSlot[slot]);
 		}
 		updateTapeText();
 		item.emplace_back(&tapeSlot);
+		item.emplace_back(&mediaOptions);
+		item.emplace_back(&drive8Type);
+		item.emplace_back(&drive9Type);
+		item.emplace_back(&drive10Type);
+		item.emplace_back(&drive11Type);
+		item.emplace_back(&trueDriveEmu);
+		item.emplace_back(&virtualDeviceTraps_);
+		item.emplace_back(&systemOptions);
 		item.emplace_back(&model);
 	}
 };
-
-constexpr const char *C64IOControlView::diskSlotPrefix[2];
 
 class EmuMenuView : public MenuView
 {
@@ -646,71 +941,69 @@ class EmuMenuView : public MenuView
 
 	TextMenuItem c64IOControl
 	{
-		"System & IO Control",
+		"System & Media Control",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			if(item.active())
-			{
-				FS::current_path(EmuSystem::gamePath());// Stay in active media's directory
-				auto &c64IoMenu = *new C64IOControlView{window()};
-				viewStack.pushAndShow(c64IoMenu, e);
-			}
+			if(!item.active())
+				return;
+			FS::current_path(EmuSystem::gamePath());// Stay in active media's directory
+			auto &c64IoMenu = *new C64IOControlView{window()};
+			viewStack.pushAndShow(c64IoMenu, e);
 		}
 	};
 
 	TextMenuItem quickSettings
 	{
-		"Apply Quick Settings",
+		"Apply Runtime Settings & Autostart",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
+			if(!item.active())
+				return;
+			assert(EmuSystem::gameIsRunning());
 			static auto reloadGame =
 				[]()
 				{
-					if(EmuSystem::gameIsRunning())
-					{
-						FS::PathString gamePath;
-						string_copy(gamePath, EmuSystem::fullGamePath());
-						EmuSystem::loadGame(gamePath.data());
-						startGameFromMenu();
-					}
+					FS::PathString gamePath;
+					string_copy(gamePath, EmuSystem::fullGamePath());
+					EmuSystem::loadGame(gamePath.data());
+					startGameFromMenu();
 				};
-
 			auto &multiChoiceView = *new TextTableView{item.t.str, window(), 4};
 			multiChoiceView.appendItem("1. NTSC & True Drive Emu",
 				[this]()
 				{
 					popAndShow();
-					optionDriveTrueEmulation = true;
+					reloadGame();
+					setVirtualDeviceTraps(false);
 					setDriveTrueEmulation(true);
 					setDefaultNTSCModel();
-					reloadGame();
 				});
 			multiChoiceView.appendItem("2. NTSC",
 				[this]()
 				{
 					popAndShow();
-					optionDriveTrueEmulation = false;
+					reloadGame();
+					setVirtualDeviceTraps(true);
 					setDriveTrueEmulation(false);
 					setDefaultNTSCModel();
-					reloadGame();
 				});
 			multiChoiceView.appendItem("3. PAL & True Drive Emu",
 				[this]()
 				{
 					popAndShow();
-					optionDriveTrueEmulation = true;
+					reloadGame();
+					setVirtualDeviceTraps(false);
 					setDriveTrueEmulation(true);
 					setDefaultPALModel();
-					reloadGame();
 				});
 			multiChoiceView.appendItem("4. PAL",
 				[this]()
 				{
 					popAndShow();
-					optionDriveTrueEmulation = false;
+					reloadGame();
+					setVirtualDeviceTraps(true);
 					setDriveTrueEmulation(false);
 					setDefaultPALModel();
-					reloadGame();
 				});
 			viewStack.pushAndShow(multiChoiceView, e);
 		}
@@ -852,6 +1145,7 @@ public:
 	{
 		MenuView::onShow();
 		c64IOControl.setActive(EmuSystem::gameIsRunning());
+		quickSettings.setActive(EmuSystem::gameIsRunning());
 		swapJoystickPorts.setBoolValue(optionSwapJoystickPorts);
 	}
 };

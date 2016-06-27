@@ -74,14 +74,14 @@ void video_viewport_resize(video_canvas_t *canvas, char resize_canvas)
            the size of the emulator's screen changes in order to adapt to it */
         canvas->draw_buffer->canvas_width = canvas->draw_buffer->visible_width;
         canvas->draw_buffer->canvas_height = canvas->draw_buffer->visible_height;
-        canvas->draw_buffer->canvas_physical_width = canvas->draw_buffer->canvas_width * (canvas->videoconfig->doublesizex + 1);
-        canvas->draw_buffer->canvas_physical_height = canvas->draw_buffer->canvas_height * (canvas->videoconfig->doublesizey + 1);
+        canvas->draw_buffer->canvas_physical_width = canvas->draw_buffer->canvas_width * canvas->videoconfig->scalex;
+        canvas->draw_buffer->canvas_physical_height = canvas->draw_buffer->canvas_height * canvas->videoconfig->scaley;
     } else {
         /* The emulator's screen has been resized,
            or he emulated screen has changed but the emulator's screen is unable to adapt:
            in any case, the size of the emulator screen won't change now */
-        canvas->draw_buffer->canvas_width = canvas->draw_buffer->canvas_physical_width / (canvas->videoconfig->doublesizex + 1);
-        canvas->draw_buffer->canvas_height = canvas->draw_buffer->canvas_physical_height / (canvas->videoconfig->doublesizey + 1);
+        canvas->draw_buffer->canvas_width = canvas->draw_buffer->canvas_physical_width / canvas->videoconfig->scalex;
+        canvas->draw_buffer->canvas_height = canvas->draw_buffer->canvas_physical_height / canvas->videoconfig->scaley;
     }
     width = canvas->draw_buffer->canvas_width;
     height = canvas->draw_buffer->canvas_height;

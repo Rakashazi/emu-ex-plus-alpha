@@ -376,7 +376,7 @@ void mmu_ffxx_store(WORD addr, BYTE value)
     }
 }
 
-int mmu_dump(void)
+int mmu_dump(void *context, WORD addr)
 {
     mon_out("CR: bank: %d, $4000-$7FFF: %s, $8000-$BFFF: %s, $C000-$CFFF: %s, $D000-$DFFF: %s, $E000-$FFFF: %s\n",
             (mmu[0] & 0xc0) >> 6,

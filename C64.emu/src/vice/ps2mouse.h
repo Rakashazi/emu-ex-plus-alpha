@@ -41,17 +41,11 @@ extern int ps2mouse_cmdline_options_init(void);
 
 extern int ps2mouse_enabled;
 
-extern int mouse_resources_init(void);
-extern int mouse_cmdline_options_init(void);
-extern void mouse_init(void);
-extern void mouse_shutdown(void);
+extern int mouse_ps2_resources_init(void);
+extern int mouse_ps2_cmdline_options_init(void);
+extern void mouse_ps2_init(void);
+extern void mouse_ps2_shutdown(void);
 
-extern void mouse_button_left(int pressed);
-extern void mouse_button_right(int pressed);
-
-extern BYTE mouse_get_x(void);
-extern BYTE mouse_get_y(void);
-
-extern int _mouse_enabled;
+extern int _mouse_ps2_enabled;
 
 #endif

@@ -58,6 +58,7 @@
 #include "printer.h"
 #include "resources.h"
 #include "romset.h"
+#include "screenshot.h"
 #include "sound.h"
 #include "sysfile.h"
 #include "tape.h"
@@ -65,6 +66,7 @@
 #include "translate.h"
 #include "types.h"
 #include "uiapi.h"
+#include "util.h"
 #include "video.h"
 #include "vsync.h"
 #include "zfile.h"
@@ -78,6 +80,7 @@ static int mem_initialized = 0;
 static int ignore_jam = 0;
 static int jam_action = MACHINE_JAM_ACTION_DIALOG;
 int machine_keymap_index;
+static char *ExitScreenshotName = NULL;
 
 unsigned int machine_jam(const char *format, ...)
 {
@@ -235,12 +238,27 @@ static void machine_maincpu_shutdown(void)
     maincpu_shutdown();
 }
 
+static void screenshot_at_exit(void)
+{
+    struct video_canvas_s *canvas;
+
+    if ((ExitScreenshotName == NULL) || (ExitScreenshotName[0] == 0)) {
+        return;
+    }
+    /* FIXME: this always uses the first canvas, for x128/VDC we will need extra handling */
+    canvas = machine_video_canvas_get(0);
+    /* FIXME: perhaps select driver based on the extension of the given name. for now PNG is good enough :) */
+    screenshot_save("PNG", ExitScreenshotName, canvas);
+}
+
 void machine_shutdown(void)
 {
     if (!machine_init_was_called) {
         /* happens at the -help command line command*/
         return;
     }
+
+    screenshot_at_exit();
 
     file_system_detach_disk_shutdown();
 
@@ -332,6 +350,20 @@ static int set_jam_action(int val, void *param)
     return 0;
 }
 
+static int set_exit_screenshot_name(const char *val, void *param)
+{
+    if (util_string_set(&ExitScreenshotName, val)) {
+        return 0;
+    }
+
+    return 0;
+}
+
+static resource_string_t resources_string[] = {
+    { "ExitScreenshotName", "", RES_EVENT_NO, NULL,
+      &ExitScreenshotName, set_exit_screenshot_name, NULL },
+    { NULL }
+};
 static const resource_int_t resources_int[] = {
     { "JAMAction", MACHINE_JAM_ACTION_DIALOG, RES_EVENT_SAME, NULL,
       &jam_action, set_jam_action, NULL },
@@ -340,12 +372,23 @@ static const resource_int_t resources_int[] = {
 
 int machine_common_resources_init(void)
 {
+    if (resources_register_string(resources_string) < 0) {
+        return -1;
+    }
     return resources_register_int(resources_int);
+}
+
+void machine_common_resources_shutdown(void)
+{
+    lib_free(ExitScreenshotName);
 }
 
 static const cmdline_option_t cmdline_options[] = {
     { "-jamaction", SET_RESOURCE, 1, NULL, NULL, "JAMAction", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_TYPE, IDCLS_SET_MACHINE_JAM_ACTION,
+      NULL, NULL },
+    { "-exitscreenshot", SET_RESOURCE, 1, NULL, NULL, "ExitScreenshotName", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_NAME, IDCLS_SET_EXIT_SCREENSHOT,
       NULL, NULL },
     { NULL }
 };

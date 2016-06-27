@@ -29,15 +29,15 @@
 #include <stdio.h>
 
 #include "types.h"
+#include "c64cart.h"
 
 struct snapshot_s;
-struct export_s;
 
 extern BYTE stardos_roml_read(WORD addr);
 extern BYTE stardos_romh_read(WORD addr);
 extern int stardos_romh_phi1_read(WORD addr, BYTE *value);
 extern int stardos_romh_phi2_read(WORD addr, BYTE *value);
-extern int stardos_peek_mem(struct export_s *export, WORD addr, BYTE *value);
+extern int stardos_peek_mem(export_t *export, WORD addr, BYTE *value);
 
 extern void stardos_config_init(void);
 extern void stardos_reset(void);

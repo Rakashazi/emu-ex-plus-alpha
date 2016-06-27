@@ -29,6 +29,7 @@
 
 #include <time.h>
 
+#include "snapshot.h"
 #include "types.h"
 
 typedef struct rtc_58321a_s {
@@ -67,5 +68,8 @@ extern void rtc58321a_write_data(rtc_58321a_t *context, BYTE data);
 
 extern void rtc58321a_stop_clock(rtc_58321a_t *context);
 extern void rtc58321a_start_clock(rtc_58321a_t *context);
+
+extern int rtc58321a_write_snapshot(rtc_58321a_t *context, snapshot_t *s);
+extern int rtc58321a_read_snapshot(rtc_58321a_t *context, snapshot_t *s);
 
 #endif

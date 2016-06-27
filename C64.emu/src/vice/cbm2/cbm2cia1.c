@@ -48,10 +48,9 @@
 #include "machine.h"
 #include "maincpu.h"
 #include "parallel.h"
-#include "printer.h"
 #include "tpi.h"
 #include "types.h"
-#include "userport_joystick.h"
+#include "userport.h"
 
 void cia1_store(WORD addr, BYTE data)
 {
@@ -122,8 +121,8 @@ void cia1_set_ieee_dir(cia_context_t *cia_context, int isout)
 
 static void do_reset_cia(cia_context_t *cia_context)
 {
-    printer_userport_write_strobe(1);
-    printer_userport_write_data(0xff);
+    store_userport_pbx(0xff);
+    store_userport_pa2(1);
 }
 
 static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
@@ -132,6 +131,9 @@ static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 
 static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
+    store_userport_pa2((BYTE)((byte & 4) >> 2));
+    store_userport_pa3((BYTE)((byte & 8) >> 3));
+
     /* FIXME: PA0 and PA1 are used as selector for the
        Paddle 1/2 selection for the A/D converter. */
     parallel_cpu_set_bus((BYTE)(cia1_ieee_is_output ? byte : 0xff));
@@ -139,6 +141,8 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 
 static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
+    store_userport_pa2((BYTE)((byte & 4) >> 2));
+    store_userport_pa3((BYTE)((byte & 8) >> 3));
     parallel_cpu_set_bus((BYTE)(cia1_ieee_is_output ? byte : 0xff));
 }
 
@@ -148,12 +152,10 @@ static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE b)
 
 static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
-    printer_userport_write_data(byte);
-    printer_userport_write_strobe(0);
-    printer_userport_write_strobe(1);
+    store_userport_pbx(byte);
 
-    /* FIXME: in the upcoming userport system this call needs to be conditional */
-    userport_joystick_store_pbx(byte);
+    store_userport_pa2(0);
+    store_userport_pa2(1);
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
@@ -172,15 +174,8 @@ static BYTE read_ciapa(cia_context_t *cia_context)
                     parallel_bus, cia_context->c_cia[CIA_PRA],
                     cia_context->c_cia[CIA_DDRA], byte);
     }
-    if (machine_class == VICE_MACHINE_CBM5x0) {
-        byte = ((byte & ~(cia_context->c_cia[CIA_DDRA]))
-                | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]))
-               & ~(((joystick_value[1] & 0x10) ? 0x40 : 0)
-                   | ((joystick_value[2] & 0x10) ? 0x80 : 0));
-    } else {
-        byte = ((byte & ~(cia_context->c_cia[CIA_DDRA]))
-                | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]));
-    }
+    byte = ((byte & ~(cia_context->c_cia[CIA_DDRA]))
+            | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]));
     return byte;
 }
 
@@ -189,18 +184,11 @@ static BYTE read_ciapb(cia_context_t *cia_context)
 {
     BYTE byte = 0xff;
 
-    if (machine_class == VICE_MACHINE_CBM5x0) {
-        byte = ((0xff & ~(cia_context->c_cia[CIA_DDRB]))
-                | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]))
-               & ~((joystick_value[1] & 0x0f)
-                   | ((joystick_value[2] & 0x0f) << 4));
-    } else {
-        /* FIXME: in the upcoming userport system this call needs to be conditional */
-        byte = userport_joystick_read_pbx(byte);
+    byte = read_userport_pbx((BYTE)~cia_context->c_cia[CIA_DDRB], byte);
 
-        byte &= ((0xff & ~(cia_context->c_cia[CIA_DDRB]))
-                 | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]));
-    }
+    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
+    byte &= ((0xff & ~(cia_context->c_cia[CIA_DDRB]))
+             | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]));
     return byte;
 }
 
@@ -245,11 +233,7 @@ void cia1_setup_context(machine_context_t *machine_context)
     cia->rmw_flag = &maincpu_rmw_flag;
     cia->clk_ptr = &maincpu_clk;
 
-    if (machine_class == VICE_MACHINE_CBM5x0) {
-        cia1_set_timing(cia, C500_NTSC_CYCLES_PER_SEC, 60);
-    } else {
-        cia1_set_timing(cia, C610_NTSC_CYCLES_PER_SEC, 60);
-    }
+    cia1_set_timing(cia, C610_NTSC_CYCLES_PER_SEC, 60);
 
     ciacore_setup_context(cia);
 

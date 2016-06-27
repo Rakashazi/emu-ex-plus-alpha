@@ -79,7 +79,6 @@
 #include <string.h>
 
 #include "c64cart.h"
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
@@ -202,7 +201,7 @@ static io_source_list_t *vicii_d000_full_list_item = NULL;
 static io_source_list_t *vicii_d040_list_item = NULL;
 static io_source_list_t *vicii_d100_list_item = NULL;
 
-int set_plus60k_enabled(int value)
+int set_plus60k_enabled(int value, int disable_reset)
 {
     int val = value ? 1 : 0;
 
@@ -215,7 +214,9 @@ int set_plus60k_enabled(int value)
             return -1;
         }
 
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        if (!disable_reset) {
+            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        }
         plus60k_enabled = 0;
         return 0;
     } else {
@@ -223,7 +224,9 @@ int set_plus60k_enabled(int value)
             return -1;
         }
         plus60k_enabled = 1;
-        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        if (!disable_reset) {
+            machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+        }
         return 0;
     }
 }
@@ -486,4 +489,83 @@ void plus60k_ram_store(WORD addr, BYTE value)
     } else {
         mem_ram[addr] = value;
     }
+}
+
+/* ------------------------------------------------------------------------- */
+
+/* PLUS60K snapshot module format:
+
+   type  | name     | description
+   --------------------------------------
+   WORD  | base     | base address of register
+   BYTE  | register | register
+   ARRAY | RAM      | 61440 BYTES of RAM data
+
+   Note: for some reason this snapshot module started at 0.1, so there never was a 0.0
+ */
+
+static char snap_module_name[] = "PLUS60K";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
+
+int plus60k_snapshot_write(struct snapshot_s *s)
+{
+    snapshot_module_t *m;
+
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    if (0
+        || SMW_W (m, (WORD)plus60k_base) < 0
+        || SMW_B (m, plus60k_reg) < 0
+        || SMW_BA(m, plus60k_ram, 0xf000) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
+    return snapshot_module_close(m);
+}
+
+int plus60k_snapshot_read(struct snapshot_s *s)
+{
+    snapshot_module_t *m;
+    BYTE vmajor, vminor;
+
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    /* Do not accept versions higher than current */
+    if ((vmajor != SNAP_MAJOR) || (vminor != SNAP_MINOR)) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    if (SMR_W_INT(m, &plus60k_base) < 0) {
+        goto fail;
+    }
+
+    /* enable plus60k, without reset */
+    set_plus60k_enabled(1, 1);
+
+    if (0
+        || SMR_B(m, &plus60k_reg) < 0
+        || SMR_BA(m, plus60k_ram, 0xf000) < 0) {
+        goto fail;
+    }
+
+    return snapshot_module_close(m);
+
+fail:
+    snapshot_module_close(m);
+
+    /* disable plus60k, without reset */
+    set_plus60k_enabled(0, 1);
+
+    return -1;
 }

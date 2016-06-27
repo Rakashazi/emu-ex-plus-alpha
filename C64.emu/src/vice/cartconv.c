@@ -95,7 +95,6 @@ typedef struct sorted_cart_s {
 static void save_regular_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 static void save_fcplus_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 static void save_2_blocks_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
-static void save_8000_a000_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 static void save_generic_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char p5, unsigned char p6);
 static void save_easyflash_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 static void save_ocean_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
@@ -106,6 +105,7 @@ static void save_delaep64_crt(unsigned int p1, unsigned int p2, unsigned int p3,
 static void save_delaep256_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 static void save_delaep7x8_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 static void save_rexep256_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
+static void save_easycalc_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char game, unsigned char exrom);
 
 /* this table must be in correct order so it can be indexed by CRT ID */
 /*
@@ -125,7 +125,7 @@ static const cart_t cart_info[] = {
     {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB | CARTRIDGE_SIZE_12KB | CARTRIDGE_SIZE_16KB, 0, 0, 0, 0, "Generic Cartridge", NULL, save_generic_crt},
     {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY, "ar5", save_regular_crt}, /* this is NOT AR1, but 4.2,5,6 etc */
     {0, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_KCS_POWER, "kcs", save_2_blocks_crt},
-    {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_FINAL_III, "fc3", save_regular_crt},
+    {1, 1, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_256KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_FINAL_III, "fc3", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_SIMONS_BASIC, "simon", save_2_blocks_crt},
     {0, 0, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_128KB | CARTRIDGE_SIZE_256KB | CARTRIDGE_SIZE_512KB, 0x2000, 0, 0, 0, CARTRIDGE_NAME_OCEAN, "ocean", save_ocean_crt},
     {1, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 2, CARTRIDGE_NAME_EXPERT, "expert", NULL},
@@ -161,17 +161,17 @@ static const cart_t cart_info[] = {
     {0, 0, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_RETRO_REPLAY, "rr", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MMC64, "mmc64", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MMC_REPLAY, "mmcr", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x4000, 0x8000, 0, 2, CARTRIDGE_NAME_IDE64, "ide64", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT, "ss4", save_8000_a000_crt},
+    {0, 1, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB | CARTRIDGE_SIZE_512KB, 0x4000, 0x8000, 0, 2, CARTRIDGE_NAME_IDE64, "ide64", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT, "ss4", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_4KB, 0x1000, 0x8000, 1, 0, CARTRIDGE_NAME_IEEE488, "ieee", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_GAME_KILLER, "gk", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_256KB, 0x2000, 0x8000, 32, 0, CARTRIDGE_NAME_P64, "p64", save_regular_crt},
     {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_EXOS, "exos", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_FREEZE_FRAME, "ff", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_FREEZE_MACHINE, "fm", save_8000_a000_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_FREEZE_MACHINE, "fm", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_4KB, 0x1000, 0xe000, 1, 0, CARTRIDGE_NAME_SNAPSHOT64, "s64", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_EXPLODE_V5, "se5", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_MAGIC_VOICE, "mv", save_8000_a000_crt},
+    {0, 1, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_MAGIC_VOICE, "mv", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY2, "ar2", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MACH5, "mach5", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_DIASHOW_MAKER, "dsm", save_regular_crt},
@@ -180,6 +180,8 @@ static const cart_t cart_info[] = {
     {0, 1, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_SILVERROCK_128, "silver", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0xe000, 4, 0, CARTRIDGE_NAME_FORMEL64, "f64", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_64KB, 0x2000, 0x8000, 8, 0, CARTRIDGE_NAME_RGCD, "rgcd", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_RRNETMK3, "rrnet", save_regular_crt},
+    {1, 1, CARTRIDGE_SIZE_24KB, 0, 0, 3, 0, CARTRIDGE_NAME_EASYCALC, "ecr", save_easycalc_crt},
     {0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL}
 };
 
@@ -294,29 +296,18 @@ static int compare_elements(const void *op1, const void *op2)
     return strcmp(p1->opt, p2->opt);
 }
 
-static void usage(void)
+static void usage_types(void)
 {
     int i = 1, n = 0;
     int amount;
     sorted_cart_t *sorted_option_elements;
 
     cleanup();
-    printf("convert:    cartconv [-r] [-q] [-t cart type] -i \"input name\" -o \"output name\" [-n \"cart name\"] [-l load address]\n");
-    printf("print info: cartconv [-r] -f \"input name\"\n\n");
-    printf("-f <name>    print info on file\n");
-    printf("-r           repair mode (accept broken input files)\n");
-    printf("-p           accept non padded binaries as input\n");
-    printf("-t <type>    output cart type\n");
-    printf("-i <name>    input filename\n");
-    printf("-o <name>    output filename\n");
-    printf("-n <name>    crt cart name\n");
-    printf("-l <addr>    load address\n");
-    printf("-q           quiet\n");
-    printf("\ncart types:\n");
+    printf("supported cart types:\n\n");
 
     printf("bin      Binary .bin file (Default crt->bin)\n");
+    printf("prg      Binary C64 .prg file with load-address\n\n");
     printf("normal   Generic 8kb/12kb/16kb .crt file (Default bin->crt)\n");
-    printf("prg      Binary C64 .prg file with load-address\n");
     printf("ulti     Ultimax mode 4kb/8kb/16kb .crt file\n\n");
 
     /* get the amount of valid options, excluding crt id 0 */
@@ -354,6 +345,24 @@ static void usage(void)
         printf("%-8s %s .crt file%s\n", sorted_option_elements[i].opt, sorted_option_elements[i].name, n ? ", extra files can be inserted" : "");
     }
     free(sorted_option_elements);
+    exit(1);
+}
+
+static void usage(void)
+{
+    cleanup();
+    printf("convert:    cartconv [-r] [-q] [-t cart type] -i \"input name\" -o \"output name\" [-n \"cart name\"] [-l load address]\n");
+    printf("print info: cartconv [-r] -f \"input name\"\n\n");
+    printf("-f <name>    print info on file\n");
+    printf("-r           repair mode (accept broken input files)\n");
+    printf("-p           accept non padded binaries as input\n");
+    printf("-t <type>    output cart type\n");
+    printf("-i <name>    input filename\n");
+    printf("-o <name>    output filename\n");
+    printf("-n <name>    crt cart name\n");
+    printf("-l <addr>    load address\n");
+    printf("-q           quiet\n");
+    printf("--types      show the supported cart types\n");
     exit(1);
 }
 
@@ -448,7 +457,7 @@ static int checkflag(char *flg, char *arg)
 {
     int i;
 
-    switch (tolower((int)flg[1])) {
+    switch (tolower(flg[1])) {
         case 'f':
             printinfo(arg);
             return 2;
@@ -492,7 +501,7 @@ static int checkflag(char *flg, char *arg)
             } else {
                 for (i = 0; cart_info[i].name != NULL; i++) {
                     if (cart_info[i].opt != NULL) {
-                        if (!strncasecmp(cart_info[i].opt, arg, strlen(cart_info[i].opt))) {
+                        if (!strcasecmp(cart_info[i].opt, arg)) {
                             cart_type = i;
                             break;
                         }
@@ -524,6 +533,7 @@ static int checkflag(char *flg, char *arg)
             return 2;
         default:
             usage();
+            break;
     }
     return 1;
 }
@@ -855,39 +865,6 @@ static void save_2_blocks_crt(unsigned int l1, unsigned int l2, unsigned int a1,
     exit(0);
 }
 
-static void save_8000_a000_crt(unsigned int length, unsigned int banks, unsigned int a1, unsigned int a2, unsigned char game, unsigned char exrom)
-{
-    unsigned int i;
-    unsigned int real_banks = banks;
-
-
-    if (real_banks == 0) {
-        real_banks = loadfile_size / length;
-    }
-
-    if (write_crt_header(game, exrom) < 0) {
-        cleanup();
-        exit(1);
-    }
-
-    for (i = 0; i < (real_banks >> 1); i++) {
-        if (write_chip_package(0x2000, i, 0x8000, 0) < 0) {
-            cleanup();
-            exit(1);
-        }
-
-        if (write_chip_package(0x2000, i, 0xa000, 0) < 0) {
-            cleanup();
-            exit(1);
-        }
-    }
-
-    fclose(outfile);
-    bin2crt_ok();
-    cleanup();
-    exit(0);
-}
-
 static int check_empty_easyflash(void)
 {
     int i;
@@ -914,7 +891,7 @@ static void save_easyflash_crt(unsigned int p1, unsigned int p2, unsigned int p3
             if (check_empty_easyflash() == 1) {
                 loadfile_offset += 0x2000;
             } else {
-                if (write_chip_package(0x2000, i, (j == 0) ? 0x8000 : 0xa000, 0) < 0) {
+                if (write_chip_package(0x2000, i, (j == 0) ? 0x8000 : 0xa000, 2) < 0) {
                     cleanup();
                     exit(1);
                 }
@@ -979,6 +956,34 @@ static void save_funplay_crt(unsigned int p1, unsigned int p2, unsigned int p3, 
         if (i == 0x40) {
             i = 1;
         }
+    }
+
+    fclose(outfile);
+    bin2crt_ok();
+    cleanup();
+    exit(0);
+}
+
+static void save_easycalc_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char p5, unsigned char p6)
+{
+    if (write_crt_header(1, 1) < 0) {
+        cleanup();
+        exit(1);
+    }
+
+    if (write_chip_package(0x2000, 0, 0x8000, 0) < 0) {
+        cleanup();
+        exit(1);
+    }
+
+    if (write_chip_package(0x2000, 0, 0xa000, 0) < 0) {
+        cleanup();
+        exit(1);
+    }
+
+    if (write_chip_package(0x2000, 1, 0xa000, 0) < 0) {
+        cleanup();
+        exit(1);
     }
 
     fclose(outfile);
@@ -1060,8 +1065,10 @@ static int load_input_file(char *filename)
         }
         if (headerbuffer[0x10] != 0 || headerbuffer[0x11] != 0 || headerbuffer[0x12] != 0 || headerbuffer[0x13] != 0x40) {
             fprintf(stderr, "Error: Illegal header size in %s\n", filename);
-            fclose(infile);
-            return -1;
+            if (!repair_mode) {
+                fclose(infile);
+                return -1;
+            }
         }
         if (headerbuffer[0x18] == 1 && headerbuffer[0x19] == 0) {
             loadfile_is_ultimax = 1;
@@ -1621,6 +1628,12 @@ int main(int argc, char *argv[])
     int i;
     int arg_counter = 1;
     char *flag, *argument;
+
+    if (argc > 1) {
+        if(!strcmp(argv[1], "--types")) {
+            usage_types();
+        }
+    }
 
     if (argc < 3) {
         usage();

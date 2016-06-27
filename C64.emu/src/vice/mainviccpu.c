@@ -137,6 +137,11 @@ BYTE memmap_mem_read(unsigned int addr)
     (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr))
 #endif
 
+#ifndef LOAD_CHECK_BA_LOW
+#define LOAD_CHECK_BA_LOW(addr) \
+    (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr))
+#endif
+
 #ifndef STORE_ZERO
 #define STORE_ZERO(addr, value) \
     (*_mem_write_tab_ptr[0])((WORD)(addr), (BYTE)(value))

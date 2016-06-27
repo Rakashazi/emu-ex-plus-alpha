@@ -409,14 +409,14 @@ int eeprom_open_image(char *name, int rw)
             log_debug("could not open eeprom card image: %s", eeprom_image_filename);
             return -1;
         } else {
-            if (fread(eeprom_data, 1, EEPROM_SIZE, eeprom_image_file) <= 0) {
+            if (fread(eeprom_data, 1, EEPROM_SIZE, eeprom_image_file) == 0) {
                 log_debug("could not read eeprom card image: %s", eeprom_image_filename);
             }
             fseek(eeprom_image_file, 0, SEEK_SET);
             log_debug("opened eeprom card image (ro): %s", eeprom_image_filename);
         }
     } else {
-        if (fread(eeprom_data, 1, EEPROM_SIZE, eeprom_image_file) <= 0) {
+        if (fread(eeprom_data, 1, EEPROM_SIZE, eeprom_image_file) == 0) {
             log_debug("could not read eeprom card image: %s", eeprom_image_filename);
         }
         fseek(eeprom_image_file, 0, SEEK_SET);
@@ -431,7 +431,7 @@ void eeprom_close_image(int rw)
     if (eeprom_image_file != NULL) {
         if (rw) {
             fseek(eeprom_image_file, 0, SEEK_SET);
-            if (fwrite(eeprom_data, 1, EEPROM_SIZE, eeprom_image_file) <= 0) {
+            if (fwrite(eeprom_data, 1, EEPROM_SIZE, eeprom_image_file) == 0) {
                 log_debug("could not write eeprom card image");
             }
         }

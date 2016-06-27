@@ -38,9 +38,6 @@
 /* NLS datadirname. */
 #define DATADIRNAME "share"
 
-/* Enable debugging code */
-/* #undef DEBUG */
-
 /* Use debugging of the zfile */
 /* #undef DEBUG_ZFILE */
 
@@ -361,6 +358,9 @@
 /* Is libXpm available? */
 #define HAVE_LIBXPM /**/
 
+/* Enable lightpen support */
+#define HAVE_LIGHTPEN /**/
+
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
 
@@ -607,6 +607,9 @@
 /* Define to 1 if you have the `strtok_r' function. */
 #define HAVE_STRTOK_R 1
 
+/* Define to 1 if you have the `strtoul' function. */
+#define HAVE_STRTOUL 1
+
 /* Define to 1 if you have the `swab' function. */
 #define HAVE_SWAB 1
 
@@ -622,9 +625,6 @@
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
    */
 /* #undef HAVE_SYS_DIR_H */
-
-/* Define to 1 if you have the <sys/ioctl.h> header file. */
-#define HAVE_SYS_IOCTL_H 1
 
 /* Define to 1 if you have the <sys/io.h> header file. */
 /* #undef HAVE_SYS_IO_H */
@@ -925,7 +925,7 @@
 //#define USE_XF86_VIDMODE_EXT /**/
 
 /* Version number of package */
-#define VERSION "2.4.20"
+#define VERSION "2.4.28"
 
 /* Win32 Version string. */
 #define VERSION_RC "$VERSION_RC"

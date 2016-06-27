@@ -34,12 +34,12 @@
 #define CARTRIDGE_INCLUDE_SLOT1_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOT1_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "crt.h"
+#include "export.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -84,6 +84,7 @@
  * with the registers mapped, and the current page being mapped into any unmapped ultimax
  * memory space, it will also generate an NMI. Which activates the freezer.
  *
+ * FIXME: the way this cart is emulated is most likely NOT how the real cartridge works.
  */
 
 /* #define DEBUGISEPIC */
@@ -118,6 +119,13 @@ static const char STRING_ISEPIC[] = CARTRIDGE_NAME_ISEPIC;
 #define ISEPIC_RAM_SIZE 2048
 
 static int isepic_load_image(void);
+
+#define ISEPIC_STATE_PROGRAMMING   0
+#define ISEPIC_STATE_NMI_WAITING   1
+#define ISEPIC_STATE_NMI_EXECUTING 2
+
+/* isepic state */
+static int isepic_state = ISEPIC_STATE_NMI_WAITING;
 
 /* ------------------------------------------------------------------------- */
 
@@ -160,7 +168,7 @@ static io_source_t isepic_io2_device = {
     0
 };
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_ISEPIC, 1, 1, &isepic_io1_device, &isepic_io2_device, CARTRIDGE_ISEPIC
 };
 
@@ -256,7 +264,7 @@ static int set_isepic_enabled(int value, void *param)
         io_source_unregister(isepic_io2_list_item);
         isepic_io1_list_item = NULL;
         isepic_io2_list_item = NULL;
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         isepic_enabled = 0;
         if (isepic_switch) {
             cart_config_changed_slot1(2, 2, CMODE_READ | CMODE_RELEASE_FREEZE);
@@ -266,7 +274,7 @@ static int set_isepic_enabled(int value, void *param)
         isepic_ram = lib_malloc(ISEPIC_RAM_SIZE);
         isepic_io1_list_item = io_source_register(&isepic_io1_device);
         isepic_io2_list_item = io_source_register(&isepic_io2_device);
-        if (c64export_add(&export_res) < 0) {
+        if (export_add(&export_res) < 0) {
             lib_free(isepic_ram);
             isepic_ram = NULL;
             io_source_unregister(isepic_io1_list_item);
@@ -302,12 +310,14 @@ static int set_isepic_switch(int value, void *param)
         if (isepic_enabled) {
             cart_config_changed_slot1(2, 2, CMODE_READ | CMODE_RELEASE_FREEZE);
         }
+        isepic_state = ISEPIC_STATE_NMI_WAITING;
     } else if (!isepic_switch && val) {
         isepic_switch = 1;
         if (isepic_enabled) {
             cartridge_trigger_freeze();
             cart_config_changed_slot1(2, 3, CMODE_READ | CMODE_RELEASE_FREEZE);
         }
+        isepic_state = ISEPIC_STATE_NMI_EXECUTING;
     }
     return 0;
 }
@@ -495,33 +505,33 @@ static int isepic_dump(void)
 
 BYTE isepic_romh_read(WORD addr)
 {
-    switch (addr) {
-        case 0xfffa:
-        case 0xfffb:
-            return isepic_ram[(isepic_page * 256) + (addr & 0xff)];
-            break;
-        default:
-            return mem_read_without_ultimax(addr);
-            break;
+    if (isepic_state == ISEPIC_STATE_NMI_EXECUTING) {
+       switch (addr) {
+            case 0xfffa:
+            case 0xfffb:
+                return isepic_ram[(isepic_page * 256) + (addr & 0xff)];
+                break;
+        }
     }
+    return mem_read_without_ultimax(addr);
 }
 
 void isepic_romh_store(WORD addr, BYTE byte)
 {
-    switch (addr) {
-        case 0xfffa:
-        case 0xfffb:
-            isepic_ram[(isepic_page * 256) + (addr & 0xff)] = byte;
-            break;
-        default:
-            mem_store_without_ultimax(addr, byte);
-            break;
-    }
+    if (isepic_state == ISEPIC_STATE_NMI_EXECUTING) {
+        switch (addr) {
+            case 0xfffa:
+            case 0xfffb:
+                isepic_ram[(isepic_page * 256) + (addr & 0xff)] = byte;
+                break;
+		}
+	}
+    mem_store_without_ultimax(addr, byte);
 }
 
 BYTE isepic_page_read(WORD addr)
 {
-    if (isepic_switch) {
+    if (isepic_switch && addr >= 0x8000 && addr < 0xa000 && isepic_state == ISEPIC_STATE_NMI_EXECUTING) {
         return isepic_ram[(isepic_page * 256) + (addr & 0xff)];
     } else {
         return mem_read_without_ultimax(addr);
@@ -530,7 +540,7 @@ BYTE isepic_page_read(WORD addr)
 
 void isepic_page_store(WORD addr, BYTE value)
 {
-    if (isepic_switch) {
+    if (isepic_switch && addr >= 0x8000 && addr < 0xa000 && isepic_state == ISEPIC_STATE_NMI_EXECUTING) {
         isepic_ram[(isepic_page * 256) + (addr & 0xff)] = value;
     } else {
         mem_store_without_ultimax(addr, value);
@@ -539,11 +549,13 @@ void isepic_page_store(WORD addr, BYTE value)
 
 int isepic_romh_phi1_read(WORD addr, BYTE *value)
 {
-    switch (addr) {
-        case 0xfffa:
-        case 0xfffb:
-            *value = isepic_ram[(isepic_page * 256) + (addr & 0xff)];
-            return CART_READ_VALID;
+    if (isepic_state == ISEPIC_STATE_NMI_EXECUTING) {
+        switch (addr) {
+            case 0xfffa:
+            case 0xfffb:
+                *value = isepic_ram[(isepic_page * 256) + (addr & 0xff)];
+                return CART_READ_VALID;
+        }
     }
     return CART_READ_C64MEM;
 }
@@ -581,6 +593,7 @@ const char *isepic_get_file_name(void)
 
 void isepic_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
 {
+#if 0
     switch (addr & 0xf000) {
         case 0xc000:
         case 0xb000:
@@ -601,6 +614,7 @@ void isepic_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit
         default:
             break;
     }
+#endif
     *base = NULL;
     *start = 0;
     *limit = 0;
@@ -613,7 +627,10 @@ void isepic_config_init(void)
 
 void isepic_reset(void)
 {
-    /* TODO: do nothing ? */
+    if (isepic_state == ISEPIC_STATE_NMI_EXECUTING) {
+        cart_config_changed_slot1(2, 2, CMODE_READ | CMODE_RELEASE_FREEZE);
+        isepic_state = ISEPIC_STATE_PROGRAMMING;
+    }
 }
 
 void isepic_config_setup(BYTE *rawcart)
@@ -768,16 +785,26 @@ void isepic_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTISEPIC"
+/* CARTISEPIC snapshot module format:
+
+   type  | name    | description
+   -----------------------------
+   BYTE  | enabled | cartridge enabled flag
+   BYTE  | switch  | switch flag
+   BYTE  | page    | current page
+   ARRAY | RAM     | 2048 BYTES of RAM data
+ */
+
+static char snap_module_name[] = "CARTISEPIC";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
 
 int isepic_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
@@ -791,8 +818,7 @@ int isepic_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int isepic_snapshot_read_module(snapshot_t *s)
@@ -800,12 +826,15 @@ int isepic_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
@@ -833,7 +862,7 @@ int isepic_snapshot_read_module(snapshot_t *s)
     isepic_io1_list_item = io_source_register(&isepic_io1_device);
     isepic_io2_list_item = io_source_register(&isepic_io2_device);
 
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         lib_free(isepic_ram);
         isepic_ram = NULL;
         io_source_unregister(isepic_io1_list_item);

@@ -55,6 +55,7 @@ struct VicePlugin
 	int (*resources_set_string_)(const char *name, const char *value){};
 	int (*resources_get_int_)(const char *name, int *value_return){};
 	int (*resources_set_int_)(const char *name, int value){};
+	int (*resources_get_default_value_)(const char *name, void *value_return){};
 	int (*machine_write_snapshot_)(const char *name, int save_roms, int save_disks, int even_mode){};
 	int (*machine_read_snapshot_)(const char *name, int event_mode){};
 	void (*machine_set_restore_key_)(int v){};
@@ -74,8 +75,8 @@ struct VicePlugin
 	int (*file_system_attach_disk_)(unsigned int unit, const char *filename){};
 	void (*file_system_detach_disk_)(int unit){};
 	const char *(*file_system_get_disk_name_)(unsigned int unit){};
+	int (*drive_check_type_)(unsigned int drive_type, unsigned int dnr){};
 	int (*sound_register_device_)(sound_device_t *pdevice){};
-	char *(*lib_stralloc_)(const char *str){};
 	void (*video_canvas_render_)(struct video_canvas_s *canvas, BYTE *trg,
 		int width, int height, int xs, int ys,
 		int xt, int yt, int pitcht, int depth){};
@@ -94,6 +95,7 @@ struct VicePlugin
 	int resources_set_string(const char *name, const char *value);
 	int resources_get_int(const char *name, int *value_return);
 	int resources_set_int(const char *name, int value);
+	int resources_get_default_value(const char *name, void *value_return);
 	int machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode);
 	int machine_read_snapshot(const char *name, int event_mode);
 	void machine_set_restore_key(int v);
@@ -113,8 +115,8 @@ struct VicePlugin
 	int file_system_attach_disk(unsigned int unit, const char *filename);
 	void file_system_detach_disk(int unit);
 	const char *file_system_get_disk_name(unsigned int unit);
+	int drive_check_type(unsigned int drive_type, unsigned int dnr);
 	int sound_register_device(sound_device_t *pdevice);
-	char *lib_stralloc(const char *str);
 	void video_canvas_render(struct video_canvas_s *canvas, BYTE *trg,
 		int width, int height, int xs, int ys,
 		int xt, int yt, int pitcht, int depth);

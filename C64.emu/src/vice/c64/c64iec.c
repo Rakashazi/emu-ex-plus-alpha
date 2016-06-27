@@ -116,6 +116,8 @@ static void iec_debug_ports(void)
 
 #endif
 
+int c64iec_active = 1;
+
 void iec_update_cpu_bus(BYTE data)
 {
     iecbus.cpu_bus = (((data << 2) & 0x80) | ((data << 2) & 0x40) | ((data << 1) & 0x10));
@@ -166,4 +168,21 @@ int iec_available_busses(void)
 void c64iec_init(void)
 {
     iecbus_update_ports = iec_update_ports;
+}
+
+void c64iec_enable(int val)
+{
+    c64iec_active = val ? 1 : 0;
+}
+
+/* KLUDGES: dummy to satisfy linker, unused */
+BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+void plus4tcbm_update_pa(BYTE byte, unsigned int dnr)
+{
+}
+void plus4tcbm_update_pb(BYTE byte, unsigned int dnr)
+{
+}
+void plus4tcbm_update_pc(BYTE byte, unsigned int dnr)
+{
 }

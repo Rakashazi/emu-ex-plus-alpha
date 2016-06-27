@@ -150,6 +150,7 @@ int mem_reg_simm;               /* simm configuration */
 int mem_pport;                  /* processor "port" */
 
 /* ------------------------------------------------------------------------- */
+
 inline static void check_ba_read(void)
 {
     if (!scpu64_fastmode && maincpu_ba_low_flags) {
@@ -236,6 +237,20 @@ static void pport_store(WORD addr, BYTE value)
         mem_pport = value;
         mem_pla_config_changed();
     }
+}
+
+BYTE zero_read(WORD addr)
+{
+    addr &= 0xff;
+
+    switch ((BYTE)addr) {
+        case 0:
+            return pport.dir_read;
+        case 1:
+            return pport.data_read;
+    }
+
+    return mem_ram[addr & 0xff];
 }
 
 void zero_store(WORD addr, BYTE value)
@@ -1720,7 +1735,7 @@ void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
     mem_sram[addr] = byte;
 }
 
-static int mem_dump_io(WORD addr)
+static int mem_dump_io(void *context, WORD addr)
 {
     if ((addr >= 0xdc00) && (addr <= 0xdc3f)) {
         return ciacore_dump(machine_context.cia1);
@@ -1734,8 +1749,8 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL);
 
     io_source_ioreg_add_list(&mem_ioreg_list);
 

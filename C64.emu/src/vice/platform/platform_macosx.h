@@ -33,39 +33,57 @@
 #include "AvailabilityMacros.h"
 
 /* determine compile-time OS */
-#ifdef MAC_OS_X_VERSION_10_7
-#define PLATFORM_OS "Mac OS X 10.7"
-#else
-#ifdef MAC_OS_X_VERSION_10_6
-#define PLATFORM_OS "Mac OS X 10.6"
-#else
-#ifdef MAC_OS_X_VERSION_10_5
-#define PLATFORM_OS "Mac OS X 10.5"
-#else
-#ifdef MAC_OS_X_VERSION_10_4
-#define PLATFORM_OS "Mac OS X 10.4"
-#else
-#ifdef MAC_OS_X_VERSION_10_3
-#define PLATFORM_OS "Mac OS X 10.3"
-#else
-#ifdef MAC_OS_X_VERSION_10_2
-#define PLATFORM_OS "Mac OS X 10.2"
-#else
-#ifdef MAC_OS_X_VERSION_10_1
-#define PLATFORM_OS "Mac OS X 10.1"
-#else
-#ifdef MAC_OS_X_VERSION_10_0
-#define PLATFORM_OS "Mac OS X 10.0"
-#else
-#define PLATFORM_OS "Mac OS X"
-#endif /* 10.0 */
-#endif /* 10.1 */
-#endif /* 10.2 */
-#endif /* 10.3 */
-#endif /* 10.4 */
-#endif /* 10.5 */
-#endif /* 10.6 */
-#endif /* 10.7 */
+#ifdef MAC_OS_X_VERSION_10_11
+#define PLATFORM_OS "Mac OS X 10.11 (El Capitan)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_10)
+#define PLATFORM_OS "Mac OS X 10.10 (Yosemite)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_9)
+#define PLATFORM_OS "Mac OS X 10.9 (Mavericks)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_8)
+#define PLATFORM_OS "Mac OS X 10.8 (Mountain Lion)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_7)
+#define PLATFORM_OS "Mac OS X 10.7 (Lion)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_6)
+#define PLATFORM_OS "Mac OS X 10.6 (Snow Leopard)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_5)
+#define PLATFORM_OS "Mac OS X 10.5 (Leopard)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_4)
+#define PLATFORM_OS "Mac OS X 10.4 (Tiger)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_3)
+#define PLATFORM_OS "Mac OS X 10.3 (Panther)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_2)
+#define PLATFORM_OS "Mac OS X 10.2 (Jaguar)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_1)
+#define PLATFORM_OS "Mac OS X 10.1 (Puma)"
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_0)
+#define PLATFORM_OS "Mac OS X 10.0 (Cheetah)"
+#endif
+
+#ifndef PLATFORM_OS
+#define PLATFORM_OS "Unknown Mac OS X"
+#endif
 
 /* detrmine compile-time CPU */
 #ifdef __POWERPC__

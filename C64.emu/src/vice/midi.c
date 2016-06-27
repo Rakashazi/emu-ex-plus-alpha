@@ -496,56 +496,107 @@ static void int_midi(CLOCK offset, void *data)
 /* ---------------------------------------------------------------------*/
 /*    snapshot support functions                                             */
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "MIDI"
+/* MIDI snapshot module format:
 
-/* FIXME: implement snapshot support */
+   type  | name         | description
+   ----------------------------------
+   BYTE  | ctrl         | control
+   BYTE  | status       | status
+   BYTE  | rxdata       | RX data
+   BYTE  | rxdata       | TX data
+   BYTE  | last read    | last read value
+   DWORD | ticks        | midi ticks
+   BYTE  | intx         | intx
+   BYTE  | rx irq       | RX IRQ
+   BYTE  | rx irq       | TX IRQ
+   BYTE  | alarm active | alarm active flag
+   BYTE  | IRQ          | IRQ
+   DWORD | IRQ res      | IRQ res
+   BYTE  | mode         | midi mode
+   DWORD | int num      | interrupt number
+   DWORD | alarm clk    | alarm clock
+ */
+
+static char snap_module_name[] = "MIDI";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
 int midi_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME, CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (0) {
+    if (0
+        || SMW_B(m, ctrl) < 0
+        || SMW_B(m, status) < 0
+        || SMW_B(m, rxdata) < 0
+        || SMW_B(m, txdata) < 0
+        || SMW_B(m, midi_last_read) < 0
+        || SMW_DW(m, (DWORD)midi_ticks) < 0
+        || SMW_B(m, (BYTE)intx) < 0
+        || SMW_B(m, (BYTE)rx_irq) < 0
+        || SMW_B(m, (BYTE)tx_irq) < 0
+        || SMW_B(m, (BYTE)alarm_active) < 0
+        || SMW_B(m, (BYTE)midi_irq) < 0
+        || SMW_DW(m, (DWORD)midi_irq_res) < 0
+        || SMW_B(m, (BYTE)midi_mode) < 0
+        || SMW_DW(m, (DWORD)midi_int_num) < 0
+        || SMW_DW(m, (DWORD)midi_alarm_clk) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
-#endif
+    return snapshot_module_close(m);
 }
 
 int midi_snapshot_read_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     BYTE vmajor, vminor;
     snapshot_module_t *m;
+    DWORD tmpc;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0) {
-        snapshot_module_close(m);
-        return -1;
+    if (0
+        || SMR_B(m, &ctrl) < 0
+        || SMR_B(m, &status) < 0
+        || SMR_B(m, &rxdata) < 0
+        || SMR_B(m, &txdata) < 0
+        || SMR_B(m, &midi_last_read) < 0
+        || SMR_DW_INT(m, &midi_ticks) < 0
+        || SMR_B_INT(m, &intx) < 0
+        || SMR_B_INT(m, &rx_irq) < 0
+        || SMR_B_INT(m, &tx_irq) < 0
+        || SMR_B_INT(m, &alarm_active) < 0
+        || SMR_B_INT(m, &midi_irq) < 0
+        || SMR_DW_INT(m, &midi_irq_res) < 0
+        || SMR_B_INT(m, &midi_mode) < 0
+        || SMR_DW_UINT(m, &midi_int_num) < 0
+        || SMR_DW(m, &tmpc) < 0) {
+        goto fail;
     }
 
+    midi_alarm_clk = (CLOCK)tmpc;
+
+    return snapshot_module_close(m);
+
+fail:
     snapshot_module_close(m);
-    return 0;
-#endif
+    return -1;
 }
 #endif

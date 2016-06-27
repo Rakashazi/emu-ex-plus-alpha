@@ -25,6 +25,8 @@
  */
 
 /* Tested and confirmed working on:
+   - AmigaOS 4.0
+   - AmigaOS 4.1
 */
 
 #include "vice.h"

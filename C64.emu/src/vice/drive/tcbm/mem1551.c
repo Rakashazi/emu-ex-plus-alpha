@@ -82,10 +82,10 @@ void mem1551_init(struct drive_context_s *drv, unsigned int type)
     switch (type) {
     case DRIVE_TYPE_1551:
         drv->cpu->pageone = drv->drive->drive_ram + 0x100;
-        drivemem_set_func(cpud, 0x00, 0x01, drive_read_zero, drive_store_zero, drv->drive->drive_ram, 0x000207fd);
-        drivemem_set_func(cpud, 0x01, 0x08, drive_read_1551ram, drive_store_1551ram, &drv->drive->drive_ram[0x0100], 0x000207fd);
-        drivemem_set_func(cpud, 0x40, 0x80, tpid_read, tpid_store, NULL, 0);
-        drivemem_set_func(cpud, 0xc0, 0x100, drive_read_rom, NULL, &drv->drive->trap_rom[0x4000], 0xc000fffd);
+        drivemem_set_func(cpud, 0x00, 0x01, drive_read_zero, drive_store_zero, NULL, drv->drive->drive_ram, 0x000207fd);
+        drivemem_set_func(cpud, 0x01, 0x08, drive_read_1551ram, drive_store_1551ram, NULL, &drv->drive->drive_ram[0x0100], 0x000207fd);
+        drivemem_set_func(cpud, 0x40, 0x80, tpid_read, tpid_store, tpid_peek, NULL, 0);
+        drivemem_set_func(cpud, 0xc0, 0x100, drive_read_rom, NULL, NULL, &drv->drive->trap_rom[0x4000], 0xc000fffd);
         break;
     default:
         break;

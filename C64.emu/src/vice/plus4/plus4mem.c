@@ -30,13 +30,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "cartio.h"
 #include "datasette.h"
 #include "digiblaster.h"
 #include "iecbus.h"
 #include "maincpu.h"
 #include "mem.h"
 #include "monitor.h"
-#include "plus4acia.h"
 #include "plus4iec.h"
 #include "plus4mem.h"
 #include "plus4memcsory256k.h"
@@ -45,13 +45,10 @@
 #include "plus4memrom.h"
 #include "plus4pio1.h"
 #include "plus4pio2.h"
-#include "plus4speech.h"
 #include "plus4tcbm.h"
 #include "ram.h"
 #include "resources.h"
-#include "sid-resources.h"
-#include "sid.h"
-#include "sidcart.h"
+#include "tapeport.h"
 #include "ted.h"
 #include "ted-mem.h"
 #include "types.h"
@@ -182,14 +179,14 @@ inline static void mem_proc_port_store(void)
 
     if (((~pport.dir | pport.data) & 0x02) != old_port_write_bit) {
         old_port_write_bit = (~pport.dir | pport.data) & 0x02;
-        datasette_toggle_write_bit((~pport.dir | ~pport.data) & 0x02);
+        tapeport_toggle_write_bit((~pport.dir | ~pport.data) & 0x02);
     }
 
     (*iecbus_callback_write)((BYTE)~pport.data_out, last_write_cycle);
 
     if (((pport.dir & pport.data) & 0x08) != old_port_data_out) {
         old_port_data_out = (pport.dir & pport.data) & 0x08;
-        datasette_set_motor(!old_port_data_out);
+        tapeport_set_motor(!old_port_data_out);
     }
 }
 
@@ -392,136 +389,6 @@ BYTE mem_read(WORD addr)
 
 /* ------------------------------------------------------------------------- */
 
-static BYTE fdxx_read(WORD addr)
-{
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (addr >= 0xfd00 && addr <= 0xfd0f) {
-        return acia_read(addr);
-    }
-#endif
-
-    if (addr == 0xfd16 && h256k_enabled) {
-        return h256k_reg_read(addr);
-    }
-
-    if (addr == 0xfd15 && cs256k_enabled) {
-        return cs256k_reg_read(addr);
-    }
-
-    if (addr == 0xfd10) {
-        return pio1_read(addr);
-    }
-
-    if (addr >= 0xfd11 && addr <= 0xfd1f && !cs256k_enabled && !h256k_enabled) {
-        return pio1_read(addr);
-    }
-
-    if (speech_cart_enabled() && addr >= 0xfd20 && addr <= 0xfd22) {
-        return speech_read(addr);
-    }
-
-    if (addr >= 0xfd30 && addr <= 0xfd3f) {
-        return pio2_read(addr);
-    }
-
-    if (sidcart_enabled() && addr >= sidcart_address && addr <= sidcart_address + 0x1f) {
-        return sid_read(addr);
-    }
-
-    if (sidcart_enabled() && sidcartjoy_enabled && addr >= 0xfd80 && addr <= 0xfd8f) {
-        return sidcartjoy_read(addr);
-    }
-
-    return 0;
-}
-
-static void fdxx_store(WORD addr, BYTE value)
-{
-#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    if (addr >= 0xfd00 && addr <= 0xfd0f) {
-        acia_store(addr, value);
-        return;
-    }
-#endif
-    if (addr == 0xfd16 && h256k_enabled) {
-        h256k_reg_store(addr, value);
-        return;
-    }
-    if (addr == 0xfd15 && cs256k_enabled) {
-        cs256k_reg_store(addr, value);
-        return;
-    }
-    if (addr == 0xfd10) {
-        pio1_store(addr, value);
-        return;
-    }
-    if (addr >= 0xfd11 && addr <= 0xfd1f && !cs256k_enabled && !h256k_enabled) {
-        pio1_store(addr, value);
-        return;
-    }
-    if (speech_cart_enabled() && addr >= 0xfd20 && addr <= 0xfd22) {
-        speech_store(addr, value);
-        return;
-    }
-    if (addr >= 0xfd30 && addr <= 0xfd3f) {
-        pio2_store(addr, value);
-        return;
-    }
-    if (sidcart_enabled() && addr >= sidcart_address && addr <= sidcart_address + 0x1d) {
-        sid_store(addr, value);
-        return;
-    }
-    if (sidcart_enabled() && digiblaster_enabled() && addr == sidcart_address + 0x1e) {
-        digiblaster_store(addr, value);
-        return;
-    }
-    if (sidcart_enabled() && sidcartjoy_enabled && addr >= 0xfd80 && addr <= 0xfd8f) {
-        sidcartjoy_store(addr, value);
-        return;
-    }
-    if (addr >= 0xfdd0 && addr <= 0xfddf) {
-        mem_config_rom_set((addr & 0xf) << 1);
-        return;
-    }
-}
-
-static BYTE fexx_read(WORD addr)
-{
-    if (addr >= 0xfec0 && addr <= 0xfedf) {
-        return plus4tcbm2_read(addr);
-    }
-
-    if (addr >= 0xfee0 && addr <= 0xfeff) {
-        return plus4tcbm1_read(addr);
-    }
-
-    if (sidcart_enabled() && addr >= sidcart_address && addr <= sidcart_address + 0x1f) {
-        return sid_read(addr);
-    }
-
-    return 0;
-}
-
-static void fexx_store(WORD addr, BYTE value)
-{
-    if (addr >= 0xfec0 && addr <= 0xfedf) {
-        plus4tcbm2_store(addr, value);
-        return;
-    }
-    if (addr >= 0xfee0 && addr <= 0xfeff) {
-        plus4tcbm1_store(addr, value);
-        return;
-    }
-    if (sidcart_enabled() && addr >= sidcart_address && addr <= sidcart_address + 0x1d) {
-        sid_store(addr, value);
-        return;
-    }
-    if (sidcart_enabled() && digiblaster_enabled() && addr == sidcart_address + 0x1e) {
-        digiblaster_store(addr, value);
-        return;
-    }
-}
-
 /*
     note: the TED pseudo registers at ff3e/3f can't be read.
 
@@ -678,6 +545,18 @@ static void rom_ffxx_store_16k(WORD addr, BYTE value)
     } else {
         ram_store_16k(addr, value);
     }
+}
+
+/* FIXME: this always returns 0x00, but it should return the
+          last data floating on the bus. (cpu/ted/dma) */
+BYTE read_unused(WORD addr)
+{
+    return 0;
+}
+
+static void mem_config_rom_set_store(WORD addr, BYTE value)
+{
+    mem_config_rom_set((addr & 0xf) << 1);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -882,18 +761,18 @@ void mem_initialize_memory(void)
         mem_read_base_tab[i + 1][0xfc] = plus4memrom_kernal_trap_rom
                                          + ((0xfc & 0x3f) << 8);
 
-        mem_read_tab[i + 0][0xfd] = fdxx_read;
-        mem_write_tab[i + 0][0xfd] = fdxx_store;
+        mem_read_tab[i + 0][0xfd] = plus4io_fd00_read;
+        mem_write_tab[i + 0][0xfd] = plus4io_fd00_store;
         mem_read_base_tab[i + 0][0xfd] = NULL;
-        mem_read_tab[i + 1][0xfd] = fdxx_read;
-        mem_write_tab[i + 1][0xfd] = fdxx_store;
+        mem_read_tab[i + 1][0xfd] = plus4io_fd00_read;
+        mem_write_tab[i + 1][0xfd] = plus4io_fd00_store;
         mem_read_base_tab[i + 1][0xfd] = NULL;
 
-        mem_read_tab[i + 0][0xfe] = fexx_read;
-        mem_write_tab[i + 0][0xfe] = fexx_store;
+        mem_read_tab[i + 0][0xfe] = plus4io_fe00_read;
+        mem_write_tab[i + 0][0xfe] = plus4io_fe00_store;
         mem_read_base_tab[i + 0][0xfe] = NULL;
-        mem_read_tab[i + 1][0xfe] = fexx_read;
-        mem_write_tab[i + 1][0xfe] = fexx_store;
+        mem_read_tab[i + 1][0xfe] = plus4io_fe00_read;
+        mem_write_tab[i + 1][0xfe] = plus4io_fe00_store;
         mem_read_base_tab[i + 1][0xfe] = NULL;
 
         switch (ram_size) {
@@ -1044,19 +923,15 @@ int mem_bank_from_name(const char *name)
 
 void store_bank_io(WORD addr, BYTE byte)
 {
-    if (acia_enabled() && (addr >= 0xfd00) && (addr <= 0xfd0f)) {
-        acia_store(addr, byte);
-    } else if ((addr >= 0xfd10) && (addr <= 0xfd1f)) {
-        pio1_store(addr, byte);
-    } else if (speech_cart_enabled() && ((addr >= 0xfd20) && (addr <= 0xfd2f))) {
-        speech_store(addr, byte);
-    } else if ((addr >= 0xfd30) && (addr <= 0xfd3f)) {
-        pio2_store(addr, byte);
-    } else if ((addr >= 0xfec0) && (addr <= 0xfedf)) {
-        plus4tcbm2_store(addr, byte);
-    } else if ((addr >= 0xfee0) && (addr <= 0xfeff)) {
-        plus4tcbm1_store(addr, byte);
-    } else if ((addr >= 0xff00) && (addr <= 0xff3f)) {
+    if (addr >= 0xfd00 && addr <= 0xfdff) {
+        plus4io_fd00_store(addr, byte);
+    }
+
+    if (addr >= 0xfe00 && addr <= 0xfeff) {
+        plus4io_fe00_store(addr, byte);
+    }
+
+    if ((addr >= 0xff00) && (addr <= 0xff3f)) {
         ted_store(addr, byte);
     } else {
         mem_store(addr, byte);
@@ -1066,43 +941,36 @@ void store_bank_io(WORD addr, BYTE byte)
 /* read i/o without side-effects */
 static BYTE peek_bank_io(WORD addr)
 {
-    if (acia_enabled() && (addr >= 0xfd00) && (addr <= 0xfd0f)) {
-        return acia_read(addr); /* FIXME */
-    } else if ((addr >= 0xfd10) && (addr <= 0xfd1f)) {
-        return pio1_read(addr); /* FIXME */
-    } else if (speech_cart_enabled() && ((addr >= 0xfd20) && (addr <= 0xfd2f))) {
-        return speech_peek(addr);
-    } else if ((addr >= 0xfd30) && (addr <= 0xfd3f)) {
-        return pio2_read(addr); /* FIXME */
-    } else if ((addr >= 0xfec0) && (addr <= 0xfedf)) {
-        return plus4tcbm2_read(addr); /* FIXME */
-    } else if ((addr >= 0xfee0) && (addr <= 0xfeff)) {
-        return plus4tcbm1_read(addr); /* FIXME */
-    } else if ((addr >= 0xff00) && (addr <= 0xff3f)) {
+    if ((addr >= 0xff00) && (addr <= 0xff3f)) {
         return ted_peek(addr);
     }
-    return 0xff; /* FIXME */
+
+    if (addr >= 0xfd00 && addr <= 0xfdff) {
+        return plus4io_fd00_peek(addr);
+    }
+
+    if (addr >= 0xfe00 && addr <= 0xfeff) {
+        return plus4io_fe00_peek(addr);
+    }
+    return read_unused(addr);
 }
 
 /* read i/o with side-effects */
 static BYTE read_bank_io(WORD addr)
 {
-    if (acia_enabled() && (addr >= 0xfd00) && (addr <= 0xfd0f)) {
-        return acia_read(addr);
-    } else if ((addr >= 0xfd10) && (addr <= 0xfd1f)) {
-        return pio1_read(addr);
-    } else if (speech_cart_enabled() && ((addr >= 0xfd20) && (addr <= 0xfd2f))) {
-        return speech_read(addr);
-    } else if ((addr >= 0xfd30) && (addr <= 0xfd3f)) {
-        return pio2_read(addr);
-    } else if ((addr >= 0xfec0) && (addr <= 0xfedf)) {
-        return plus4tcbm2_read(addr);
-    } else if ((addr >= 0xfee0) && (addr <= 0xfeff)) {
-        return plus4tcbm1_read(addr);
-    } else if ((addr >= 0xff00) && (addr <= 0xff3f)) {
+    if ((addr >= 0xff00) && (addr <= 0xff3f)) {
         return ted_peek(addr);
     }
-    return 0xff; /* FIXME */
+
+    if (addr >= 0xfd00 && addr <= 0xfdff) {
+        return plus4io_fd00_read(addr);
+    }
+
+    if (addr >= 0xfe00 && addr <= 0xfeff) {
+        return plus4io_fe00_read(addr);
+    }
+
+    return read_unused(addr);
 }
 
 /* read memory without side-effects */
@@ -1226,25 +1094,9 @@ void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
     mem_ram[addr] = byte;
 }
 
-static int mem_dump_io(WORD addr)
+static int mem_dump_io(void *context, WORD addr)
 {
-    if ((addr >= 0xfd00) && (addr <= 0xfd0f)) {
-        if (acia_enabled()) {
-            /* return acia_dump(machine_context.acia1); */ /* FIXME */
-        }
-    } else if ((addr >= 0xfd10) && (addr <= 0xfd1f)) {
-        /* return pio_dump(machine_context.pio1); */ /* FIXME */
-    } else if ((addr >= 0xfd20) && (addr <= 0xfd2f)) {
-        if (speech_cart_enabled()) {
-            return speech_dump(NULL); /* FIXME */
-        }
-    } else if ((addr >= 0xfd30) && (addr <= 0xfd3f)) {
-        /* return pio_dump(machine_context.pio2); */ /* FIXME */
-    } else if ((addr >= 0xfec0) && (addr <= 0xfedf)) {
-        /* return tia_dump(machine_context.tia1); */ /* FIXME */
-    } else if ((addr >= 0xfee0) && (addr <= 0xfeff)) {
-        /* return tia_dump(machine_context.tia2); */ /* FIXME */
-    } else if ((addr >= 0xff00) && (addr <= 0xff3f)) {
+    if ((addr >= 0xff00) && (addr <= 0xff3f)) {
         /* return ted_dump(machine_context.ted); */ /* FIXME */
     }
     return -1;
@@ -1254,20 +1106,8 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    /* no ACIA in C16/C116 */
-    if (acia_enabled()) {
-        mon_ioreg_add_list(&mem_ioreg_list, "ACIA", 0xfd00, 0xfd0f, mem_dump_io);
-    }
-    mon_ioreg_add_list(&mem_ioreg_list, "PIO1", 0xfd10, 0xfd1f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "PIO2", 0xfd30, 0xfd3f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "TIA1", 0xfec0, 0xfedf, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "TIA2", 0xfee0, 0xfeff, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "TED", 0xff00, 0xff3f, mem_dump_io);
-
-    /* FIXME: hook up other extensions */
-    if (speech_cart_enabled()) {
-        mon_ioreg_add_list(&mem_ioreg_list, "SPEECH", 0xfd20, 0xfd2f, mem_dump_io);
-    }
+    io_source_ioreg_add_list(&mem_ioreg_list);
+    mon_ioreg_add_list(&mem_ioreg_list, "TED", 0xff00, 0xff3f, mem_dump_io, NULL);
 
     return mem_ioreg_list;
 }
@@ -1278,4 +1118,168 @@ void mem_get_screen_parameter(WORD *base, BYTE *rows, BYTE *columns, int *bank)
     *rows = 25;
     *columns = 40;
     *bank = 0;
+}
+
+/* ------------------------------------------------------------------------- */
+
+typedef struct mem_config_s {
+    char *mem_8000;
+    char *mem_c000;
+} mem_config_t;
+
+static mem_config_t mem_config_table[] = {
+    { "BASIC",  "KERNAL" }, /* 0xfdd0 */
+    { "3+1",    "KERNAL" }, /* 0xfdd1 */
+    { "CART-1", "KERNAL" }, /* 0xfdd2 */
+    { "CART-2", "KERNAL" }, /* 0xfdd3 */
+    { "BASIC",  "3+1"    }, /* 0xfdd4 */
+    { "3+1",    "3+1"    }, /* 0xfdd5 */
+    { "CART-1", "3+1"    }, /* 0xfdd6 */
+    { "CART-2", "3+1"    }, /* 0xfdd7 */
+    { "BASIC",  "CART-1" }, /* 0xfdd8 */
+    { "3+1",    "CART-1" }, /* 0xfdd9 */
+    { "CART-1", "CART-1" }, /* 0xfdda */
+    { "CART-2"  "CART-1" }, /* 0xfddb */
+    { "BASIC",  "CART-2" }, /* 0xfddc */
+    { "3+1",    "CART-2" }, /* 0xfddd */
+    { "CART-1", "CART-2" }, /* 0xfdde */
+    { "CART-2"  "CART-2" }  /* 0xfddf */
+};
+
+static int memconfig_dump(void)
+{
+    mon_out("$8000-$BFFF: %s", (mem_config & 1) ? mem_config_table[mem_config >> 1].mem_8000 : "RAM");
+    mon_out("$C000-$FFFF: %s", (mem_config & 1) ? mem_config_table[mem_config >> 1].mem_c000 : "RAM");
+
+    return 0;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static io_source_t mem_config_device = {
+    "MEMCONFIG",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfdd0, 0xfddf, 0xf,
+    0, /* read is never valid */
+    mem_config_rom_set_store,
+    NULL, /* no read */
+    NULL, /* no peek */
+    memconfig_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t pio1_with_mirrors_device = {
+    "PIO1",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfd10, 0xfd1f, 1,
+    1, /* read is always valid */
+    pio1_store,
+    pio1_read,
+    NULL, /* no peek */
+    NULL, /* nothing to dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t pio1_only_device = {
+    "PIO1",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfd10, 0xfd10, 1,
+    1, /* read is always valid */
+    pio1_store,
+    pio1_read,
+    NULL, /* no peek */
+    NULL, /* nothing to dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t pio2_device = {
+    "PIO2",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfd30, 0xfd3f, 1,
+    1, /* read is always valid */
+    pio2_store,
+    pio2_read,
+    NULL, /* no peek */
+    NULL, /* nothing to dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t tcbm1_device = {
+    "TCBM1",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfee0, 0xfeff, 0x1f,
+    1, /* read is always valid */
+    plus4tcbm1_store,
+    plus4tcbm1_read,
+    NULL, /* no peek */
+    NULL, /* TODO: dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t tcbm2_device = {
+    "TCBM2",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfec0, 0xfedf, 0x1f,
+    1, /* read is always valid */
+    plus4tcbm2_store,
+    plus4tcbm2_read,
+    NULL, /* no peek */
+    NULL, /* TODO: dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_list_t *mem_config_list_item = NULL;
+static io_source_list_t *pio1_list_item = NULL;
+static io_source_list_t *pio2_list_item = NULL;
+static io_source_list_t *tcbm1_list_item = NULL;
+static io_source_list_t *tcbm2_list_item = NULL;
+
+static int pio1_devices_blocking_mirror = 0;
+
+void plus4_pio1_init(int block)
+{
+    int rereg = 0;
+
+    if (pio1_devices_blocking_mirror == 0 || (pio1_devices_blocking_mirror == 1 && block == -1)) {
+        io_source_unregister(pio1_list_item);
+        rereg = 1;
+    }
+
+    pio1_devices_blocking_mirror += block;
+
+    if (rereg) {
+        if (!pio1_devices_blocking_mirror) {
+            pio1_list_item = io_source_register(&pio1_with_mirrors_device);
+        } else {
+            pio1_list_item = io_source_register(&pio1_only_device);
+        }
+    }
+}
+
+/* C16/C232/PLUS4/V364-specific I/O initialization, only common devices. */
+void plus4io_init(void)
+{
+    mem_config_list_item = io_source_register(&mem_config_device);
+    pio1_list_item = io_source_register(&pio1_with_mirrors_device);
+    pio2_list_item = io_source_register(&pio2_device);
+    tcbm1_list_item = io_source_register(&tcbm1_device);
+    tcbm2_list_item = io_source_register(&tcbm2_device);
 }

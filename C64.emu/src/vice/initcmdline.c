@@ -59,8 +59,12 @@
 static char *autostart_string = NULL;
 static char *startup_disk_images[4];
 static char *startup_tape_image;
-static unsigned int autostart_mode;
+static unsigned int autostart_mode = AUTOSTART_MODE_NONE;
 
+int cmdline_get_autostart_mode(void)
+{
+    return autostart_mode;
+}
 
 static void cmdline_free_autostart_string(void)
 {
@@ -112,6 +116,11 @@ static int cmdline_config(const char *param, void *extra_param)
        but it also needs to be registered as a cmdline option,
        hence this kludge. */
     return 0;
+}
+
+static int cmdline_dumpconfig(const char *param, void *extra_param)
+{
+    return resources_dump(param);
 }
 
 static int cmdline_default(const char *param, void *extra_param)
@@ -209,6 +218,11 @@ static const cmdline_option_t common_cmdline_options[] = {
       cmdline_config, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_FILE, IDCLS_SPECIFY_CONFIG_FILE,
+      NULL, NULL },
+    { "-dumpconfig", CALL_FUNCTION, 1,
+      cmdline_dumpconfig, NULL, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_FILE, IDCLS_SPECIFY_DUMPCONFIG_FILE,
       NULL, NULL },
     { "-chdir", CALL_FUNCTION, 1,
       cmdline_chdir, NULL, NULL, NULL,
@@ -338,6 +352,7 @@ int initcmdline_check_args(int argc, char **argv)
     /* The last orphan option is the same as `-autostart'.  */
     if ((argc > 1) && (autostart_string == NULL)) {
         autostart_string = lib_stralloc(argv[1]);
+        autostart_mode = AUTOSTART_MODE_RUN;
         argc--, argv++;
     }
     DBG(("initcmdline_check_args 2 (argc:%d)\n", argc));

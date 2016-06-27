@@ -35,7 +35,9 @@ extern void kbdbuf_init(int location, int plocation, int buffer_size, CLOCK minc
 extern void kbdbuf_shutdown(void);
 extern void kbdbuf_reset(int location, int plocation, int buffer_size, CLOCK mincycles);
 extern int kbdbuf_feed(const char *s);
+extern int kbdbuf_feed_runcmd(const char *string);
 extern int kbdbuf_feed_string(const char *string);
+extern void kbdbuf_feed_cmdline(void);
 extern void kbdbuf_flush(void);
 extern int kbdbuf_cmdline_options_init(void);
 extern int kbdbuf_resources_init(void);

@@ -165,7 +165,7 @@ int screenshot_save(const char *drvname, const char *filename,
     screenshot_t screenshot;
     gfxoutputdrv_t *drv;
     int result;
-
+    /* printf("screenshot_save(%s, %s, ...)\n", drvname, filename); */
     if ((drv = gfxoutput_get_driver(drvname)) == NULL) {
         return -1;
     }
@@ -216,7 +216,7 @@ int memmap_screenshot_save(const char *drvname, const char *filename, int x_size
 }
 #endif
 
-int screenshot_record()
+int screenshot_record(void)
 {
     screenshot_t screenshot;
 

@@ -114,7 +114,12 @@
 #    ifndef REGVAL_ENABLE_SU_TO_ROOT
 #      define PLATFORM_OS "Interix 5.2"
 #    else
-#      define PLATFORM_OS "Interix 6.x"
+#      include <net/if.h>
+#      if (IF_NAMESIZE==127)
+#        define PLATFORM_OS "Interix 6.0"
+#      else
+#        define PLATFORM_OS "Interix 6.1/6.2"
+#      endif
 #    endif
 #  endif
 #  define FIND_X86_CPU
@@ -169,7 +174,16 @@
 
 /* AmigaOS 3.x discovery */
 #ifdef AMIGA_M68K
-#  define PLATFORM_OS "AmigaOS 3.x"
+#  if defined(__VBCC__) && defined(__PPC__)
+#    include <proto/powerpc.h>
+#    ifdef _VBCCINLINE_POWERPC_H
+#      define PLATFORM_OS "WarpOS (AmigaOS 3.x)"
+#    else
+#      define PLATFORM_OS "PowerUP (AmigaOS 3.x)"
+#    endif
+#  else
+#    define PLATFORM_OS "AmigaOS 3.x"
+#  endif
 #endif
 
 
@@ -230,13 +244,13 @@
 
 /* DragonFly BSD discovery */
 #ifdef __DragonFly__
-#  define PLATFORM_OS "DragonFly BSD"
 #  define FIND_X86_CPU
+#  include "platform_dragonfly_version.h"
 #endif
 
 
 /* FreeBSD discovery */
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) && !defined(__DragonFly__)
 #  include "platform_freebsd_version.h"
 #endif
 
@@ -329,12 +343,17 @@
 /* SunOS and Solaris discovery */
 #if defined(sun) || defined(__sun)
 #  if defined(__SVR4) || defined(__svr4__)
-#    define PLATFORM_OS "Solaris"
+#    include "platform_solaris_version.h"
 #  else
 #    define PLATFORM_OS "SunOS"
 #  endif
 #endif
 
+
+/* AMIX discovery */
+#ifdef __AMIX__
+#  define PLATFORM_OS "AMIX"
+#endif
 
 /* Linux discovery */
 #if defined(__linux) && !defined(__ANDROID__) && !defined(AMIGA_AROS)
@@ -350,7 +369,9 @@
 
 /* GNU Hurd discovery */
 #if defined(__GNU__) && !defined(NEXTSTEP_COMPILE) && !defined(OPENSTEP_COMPILE)
-#  define PLATFORM_OS "GNU Hurd"
+#  include <mach/version.h>
+#  include <features.h>
+#  define PLATFORM_OS "GNU Hurd " QUOTE(KERNEL_MAJOR_VERSION) "." QUOTE(KERNEL_MINOR_VERSION) " (glibc " QUOTE(__GLIBC__) "." QUOTE(__GLIBC_MINOR__) ")"
 #endif
 
 
@@ -412,7 +433,7 @@
 
 
 /* Ultrix discovery */
-#if defined(ultrix) || defined(__ultrix) || defined(__ultrix)
+#if defined(ultrix) || defined(__ultrix) || defined(__ultrix__)
 #  define PLATFORM_OS "Ultrix"
 #endif
 

@@ -38,26 +38,27 @@
 #endif
 
 #include "archdep.h"
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "cs8900.h"
 #include "crc32.h"
+#include "export.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
+#include "monitor.h"
 #include "rawnet.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "translate.h"
-#include "snapshot.h"
 #include "util.h"
 
 #define CARTRIDGE_INCLUDE_PRIVATE_API
 #include "mmc64.h"
 #include "mmcreplay.h"
 #include "retroreplay.h"
+#include "rrnetmk3.h"
 #include "tfe.h"
 #undef CARTRIDGE_INCLUDE_PRIVATE_API
 
@@ -88,6 +89,7 @@
 static void tfe_store(WORD io_address, BYTE byte);
 static BYTE tfe_read(WORD io_address);
 static BYTE tfe_peek(WORD io_address);
+static int tfe_dump(void);
 
 static io_source_t rrnet_io1_mmc64_device = {
     CARTRIDGE_NAME_RRNET " on " CARTRIDGE_NAME_MMC64 " Clockport",
@@ -98,7 +100,7 @@ static io_source_t rrnet_io1_mmc64_device = {
     tfe_store,
     tfe_read,
     tfe_peek,
-    NULL, /* TODO: dump */
+    tfe_dump,
     CARTRIDGE_TFE,
     0,
     0
@@ -113,7 +115,7 @@ static io_source_t rrnet_io1_retroreplay_device = {
     tfe_store,
     tfe_read,
     tfe_peek,
-    NULL, /* TODO: dump */
+    tfe_dump,
     CARTRIDGE_TFE,
     0,
     0
@@ -128,7 +130,22 @@ static io_source_t rrnet_io1_mmcreplay_device = {
     tfe_store,
     tfe_read,
     tfe_peek,
-    NULL, /* dump */
+    tfe_dump,
+    CARTRIDGE_TFE,
+    0,
+    0
+};
+
+static io_source_t rrnet_io1_mk3_device = {
+    CARTRIDGE_NAME_RRNET " on " CARTRIDGE_NAME_RRNETMK3,
+    IO_DETACH_RESOURCE,
+    "ETHERNET_ACTIVE",
+    0xde02, 0xde0f, 0x0f,
+    0,
+    tfe_store,
+    tfe_read,
+    tfe_peek,
+    tfe_dump,
     CARTRIDGE_TFE,
     0,
     0
@@ -143,7 +160,7 @@ static io_source_t rrnet_io1_device = {
     tfe_store,
     tfe_read,
     tfe_peek,
-    NULL, /* dump */
+    tfe_dump,
     CARTRIDGE_TFE,
     0,
     0
@@ -158,7 +175,7 @@ static io_source_t tfe_io1_device = {
     tfe_store,
     tfe_read,
     tfe_peek,
-    NULL, /* dump */
+    tfe_dump,
     CARTRIDGE_TFE,
     0,
     0
@@ -173,13 +190,13 @@ static io_source_t rrnet_io2_mmc64_device = {
     tfe_store,
     tfe_read,
     tfe_peek,
-    NULL, /* dump */
+    tfe_dump,
     CARTRIDGE_TFE,
     0,
     0
 };
 
-static c64export_resource_t export_res = {
+static export_resource_t export_res = {
     CARTRIDGE_NAME_TFE, 0, 0, &tfe_io1_device, NULL, CARTRIDGE_TFE
 };
 
@@ -337,13 +354,16 @@ void tfe_clockport_changed(void)
         if (mmcreplay_cart_enabled() && mmcr_clockport_enabled) {
             tfe_current_device = &rrnet_io1_mmcreplay_device;
         }
+        if (rrnetmk3_cart_enabled()) {
+            tfe_current_device = &rrnet_io1_mk3_device;
+        }
     }
     /* if adapter is already enabled then reset the LAN chip */
     if (tfe_enabled) {
         io_source_unregister(tfe_list_item);
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         export_res.io1 = tfe_current_device;
-        if (c64export_add(&export_res) < 0) {
+        if (export_add(&export_res) < 0) {
             DBG(("TFE: set tfe_clockport_changed: error\n"));
             tfe_list_item = NULL;
             tfe_enabled = 0;
@@ -417,6 +437,16 @@ static void tfe_store(WORD io_address, BYTE byte)
     }
 }
 
+static int tfe_dump(void)
+{
+    mon_out("CS8900 mapped to $%04x ($%04x-$%04x).\n",
+            tfe_current_device->start_address & ~tfe_current_device->address_mask,
+            tfe_current_device->start_address,
+            tfe_current_device->end_address);
+
+    return cs8900_dump();
+}
+
 static int set_tfe_disabled(int val, void *param)
 {
     /* dummy function since we don't want "disabled" to be stored on disk */
@@ -464,8 +494,9 @@ static int set_tfe_enabled(int value, void *param)
                 }
                 io_source_unregister(tfe_list_item);
                 tfe_list_item = NULL;
-                c64export_remove(&export_res);
+                export_remove(&export_res);
             }
+            tfe_clockport_changed();
             return 0;
         } else {
             if (!tfe_enabled) {
@@ -474,7 +505,7 @@ static int set_tfe_enabled(int value, void *param)
                     return -1;
                 }
                 export_res.io1 = tfe_current_device;
-                if (c64export_add(&export_res) < 0) {
+                if (export_add(&export_res) < 0) {
                     DBG(("TFE: set enabled: error\n"));
                     tfe_list_item = NULL;
                     tfe_enabled = 0;
@@ -492,7 +523,7 @@ static int set_tfe_enabled(int value, void *param)
                 }
                 tfe_list_item = io_source_register(tfe_current_device);
             }
-
+            tfe_clockport_changed();
             return 0;
         }
     }
@@ -507,7 +538,7 @@ static int set_tfe_interface(const char *name, void *param)
 
     util_string_set(&tfe_interface, name);
 
-    /* CV: if the last interface name was wrong then allow a retry with new name: */
+    /* if the last interface name was wrong then allow a retry with new name: */
     tfe_cannot_use = 0;
 
     if (tfe_enabled) {

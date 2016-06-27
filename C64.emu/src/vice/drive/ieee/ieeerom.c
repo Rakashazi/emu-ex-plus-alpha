@@ -128,31 +128,6 @@ void ieeerom_setup_image(drive_t *drive)
     }
 }
 
-int ieeerom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    switch (type) {
-        case DRIVE_TYPE_2031:
-            *data = drive_rom2031[addr & (DRIVE_ROM2031_SIZE - 1)];
-            return 0;
-        case DRIVE_TYPE_2040:
-            *data = drive_rom2040[addr & (DRIVE_ROM2040_SIZE - 1)];
-            return 0;
-        case DRIVE_TYPE_3040:
-            *data = drive_rom3040[addr & (DRIVE_ROM3040_SIZE - 1)];
-            return 0;
-        case DRIVE_TYPE_4040:
-            *data = drive_rom4040[addr & (DRIVE_ROM4040_SIZE - 1)];
-            return 0;
-        case DRIVE_TYPE_1001:
-        case DRIVE_TYPE_8050:
-        case DRIVE_TYPE_8250:
-            *data = drive_rom1001[addr & (DRIVE_ROM1001_SIZE - 1)];
-            return 0;
-    }
-
-    return -1;
-}
-
 int ieeerom_check_loaded(unsigned int type)
 {
     switch (type) {

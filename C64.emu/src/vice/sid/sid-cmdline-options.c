@@ -106,6 +106,11 @@ static struct engine_s engine_match[] = {
     { "par3", SID_PARSID_PORT3 },
     { "lpt3", SID_PARSID_PORT3 },
 #endif
+#ifdef HAVE_SSI2001
+    { "1792", SID_SSI2001 },
+    { "ssi2001", SID_SSI2001 },
+    { "ssi", SID_SSI2001 },
+#endif
     { NULL, -1 }
 };
 

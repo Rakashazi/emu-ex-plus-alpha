@@ -27,6 +27,7 @@
 #ifndef VICE_PLUS4UI_H
 #define VICE_PLUS4UI_H
 
+extern int plus4ui_init_early(void);
 extern int plus4ui_init(void);
 extern void plus4ui_shutdown(void);
 

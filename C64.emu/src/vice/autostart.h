@@ -31,6 +31,7 @@
 
 #include "types.h"
 
+#define AUTOSTART_MODE_NONE -1
 #define AUTOSTART_MODE_RUN  0
 #define AUTOSTART_MODE_LOAD 1
 

@@ -188,6 +188,7 @@ extern char *machine_romset_file_list(void);
 extern int machine_romset_archive_item_create(const char *romset_name);
 
 extern BYTE machine_tape_type_default(void);
+extern BYTE machine_tape_behaviour(void);
 
 /* Check if address is in RAM (for autostart) */
 extern int machine_addr_in_ram(unsigned int addr);
@@ -210,5 +211,7 @@ extern kbdtype_info_t *machine_get_keyboard_info_list(void);
 
 extern int machine_get_keyboard_type(void);
 extern char *machine_get_keyboard_type_name(int type);
+
+extern int machine_register_userport(void);
 
 #endif

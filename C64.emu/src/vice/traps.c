@@ -160,6 +160,7 @@ static int install_trap(const trap_t *t)
         }
     }
 
+    log_verbose("Trap '%s' installed.", t->name);
     (t->storefunc)(t->address, TRAP_OPCODE);
 
     return 0;
@@ -176,6 +177,8 @@ int traps_add(const trap_t *trap)
 
     if (traps_enabled) {
         install_trap(trap);
+    } else {
+        log_verbose("Traps are disabled, trap '%s' not installed.", trap->name);
     }
 
     return 0;
@@ -187,6 +190,7 @@ static int remove_trap(const trap_t *trap)
         log_error(traps_log, "No trap `%s' installed?", trap->name);
         return -1;
     }
+    log_verbose("Trap '%s' disabled.", trap->name);
 
     (trap->storefunc)(trap->address, trap->check[0]);
     return 0;

@@ -33,7 +33,6 @@ struct drive_s;
 
 extern void ieeerom_init(void);
 extern void ieeerom_setup_image(struct drive_s *drive);
-extern int ieeerom_read(unsigned int type, WORD addr, BYTE *data);
 extern int ieeerom_check_loaded(unsigned int type);
 
 extern int ieeerom_load_2031(void);

@@ -322,6 +322,7 @@ extern char* mon_prepend_dot_to_name(char *name);
 extern void mon_add_name_to_symbol_table(MON_ADDR addr, char *name);
 extern void mon_remove_name_from_symbol_table(MEMSPACE mem, char *name);
 extern void mon_print_symbol_table(MEMSPACE mem);
+extern void mon_clear_symbol_table(MEMSPACE mem);
 extern void mon_load_symbols(MEMSPACE mem, const char *filename);
 extern void mon_save_symbols(MEMSPACE mem, const char *filename);
 

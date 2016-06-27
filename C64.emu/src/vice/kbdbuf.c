@@ -33,10 +33,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "alarm.h"
+#include "autostart.h"
 #include "charset.h"
 #include "cmdline.h"
+#include "initcmdline.h"
 #include "kbdbuf.h"
 #include "lib.h"
+#include "machine.h"
 #include "maincpu.h"
 #include "mem.h"
 #include "resources.h"
@@ -66,7 +70,7 @@ static BYTE queue[QUEUE_SIZE];
 /* Next element in `queue' we must push into the kernal's queue.  */
 static int head_idx = 0;
 
-/* Number of pending characters.  */
+/* Number of pending characters in the incoming queue  */
 static int num_pending = 0;
 
 /* Flag if we are initialized already.  */
@@ -76,6 +80,12 @@ static int kbd_buf_enabled = 0;
 static char *kbd_buf_string = NULL;
 
 static int KbdbufDelay = 0;
+
+static int use_kbdbuf_flush_alarm = 0;
+
+static alarm_t *kbdbuf_flush_alarm = NULL;
+
+CLOCK kbdbuf_flush_alarm_time = 0;
 
 /* ------------------------------------------------------------------------- */
 
@@ -194,6 +204,73 @@ int kbdbuf_cmdline_options_init(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* put character into the keyboard queue inside the emulation */
+static void tokbdbuffer(int c)
+{
+    int num = mem_read((WORD)(num_pending_location));
+    /* printf("tokbdbuffer c:%d num:%d\n", c, num); */
+    mem_inject((WORD)(buffer_location + num), (BYTE)c);
+    mem_inject((WORD)(num_pending_location), (BYTE)(num + 1));
+}
+
+/* Return nonzero if the keyboard buffer is empty.  */
+int kbdbuf_is_empty(void)
+{
+    return (int)(mem_read((WORD)(num_pending_location)) == 0);
+}
+
+/* Feed `string' into the incoming queue.  */
+static int string_to_queue(const char *string)
+{
+    const int num = (int)strlen(string);
+    int i, p;
+
+    if ((num_pending + num) > QUEUE_SIZE || !kbd_buf_enabled) {
+        return -1;
+    }
+
+    for (p = (head_idx + num_pending) % QUEUE_SIZE, i = 0;
+         i < num; p = (p + 1) % QUEUE_SIZE, i++) {
+        queue[p] = string[i];
+        /* printf("string_to_queue %d:'%c'\n",p,queue[p]); */
+    }
+
+    num_pending += num;
+
+    kbdbuf_flush();
+
+    return 0;
+}
+
+/* remove current character from incoming queue */
+static void removefromqueue(void)
+{
+    --num_pending;
+    head_idx = (head_idx + 1) % QUEUE_SIZE;
+}
+
+void kbdbuf_feed_cmdline(void)
+{
+    /* printf("kbdbuf_feed_cmdline\n"); */
+    if (kbd_buf_string != NULL) {
+        /* printf("kbdbuf_feed_cmdline: %d '%s'\n", KbdbufDelay, kbd_buf_string); */
+        if (KbdbufDelay) {
+            kbdbuf_feed_runcmd(kbd_buf_string);
+        } else {
+            kbdbuf_feed(kbd_buf_string);
+        }
+    }
+}
+
+static void kbdbuf_flush_alarm_triggered(CLOCK offset, void *data)
+{
+    alarm_unset(kbdbuf_flush_alarm);
+    kbdbuf_flush_alarm_time = 0;
+
+    tokbdbuffer(13);
+    removefromqueue();
+}
+
 void kbdbuf_reset(int location, int plocation, int size, CLOCK mincycles)
 {
     buffer_location = location;
@@ -211,10 +288,18 @@ void kbdbuf_reset(int location, int plocation, int size, CLOCK mincycles)
 /* Initialization.  */
 void kbdbuf_init(int location, int plocation, int size, CLOCK mincycles)
 {
-    kbdbuf_reset(location, plocation, size, mincycles + KbdbufDelay);
+    int isautoload = (cmdline_get_autostart_mode() != AUTOSTART_MODE_NONE);
 
-    if (kbd_buf_string != NULL) {
-        kbdbuf_feed(kbd_buf_string);
+    if (!isautoload) {
+        mincycles += KbdbufDelay;
+    }
+    kbdbuf_flush_alarm = alarm_new(maincpu_alarm_context, "Keybuf", kbdbuf_flush_alarm_triggered, NULL);
+    kbdbuf_reset(location, plocation, size, mincycles);
+    /* printf("kbdbuf_init cmdline_get_autostart_mode(): %d\n", cmdline_get_autostart_mode()); */
+    /* inject string given to -keybuf option on commandline into keyboard buffer,
+       except autoload/start was used, then it is postponed to after the loading */
+    if (!isautoload) {
+        kbdbuf_feed_cmdline();
     }
 }
 
@@ -223,51 +308,44 @@ void kbdbuf_shutdown(void)
     lib_free(kbd_buf_string);
 }
 
-/* Return nonzero if the keyboard buffer is empty.  */
-int kbdbuf_is_empty(void)
-{
-    return (int)(mem_read((WORD)(num_pending_location)) == 0);
-}
-
-/* Feed `string' into the queue.  */
 int kbdbuf_feed(const char *string)
 {
-    const int num = (int)strlen(string);
-    int i, p;
-
-    if ((num_pending + num) > QUEUE_SIZE || !kbd_buf_enabled) {
-        return -1;
-    }
-
-    for (p = (head_idx + num_pending) % QUEUE_SIZE, i = 0;
-         i < num; p = (p + 1) % QUEUE_SIZE, i++) {
-        queue[p] = string[i];
-    }
-
-    num_pending += num;
-
-    kbdbuf_flush();
-
-    return 0;
+    use_kbdbuf_flush_alarm = 0;
+    return string_to_queue(string);
 }
 
-/* Flush pending characters into the kernal's queue if possible.  */
+int kbdbuf_feed_runcmd(const char *string)
+{
+    use_kbdbuf_flush_alarm = 1;
+    return string_to_queue(string);
+}
+
+/* Flush pending characters into the kernal's queue if possible.
+   This is (at least) called once per frame in vsync handler */
 void kbdbuf_flush(void)
 {
     unsigned int i, n;
 
     if ((!kbd_buf_enabled)
         || (num_pending == 0)
+        || !kbdbuf_is_empty()
         || (maincpu_clk < kernal_init_cycles)
-        || !kbdbuf_is_empty()) {
+        || (kbdbuf_flush_alarm_time != 0)) {
         return;
     }
-
     n = num_pending > buffer_size ? buffer_size : num_pending;
-    for (i = 0; i < n; head_idx = (head_idx + 1) % QUEUE_SIZE, i++) {
-        mem_inject((WORD)(buffer_location + i), queue[head_idx]);
+    /* printf("kbdbuf_flush pending: %d n: %d head_idx: %d\n", num_pending, n, head_idx); */
+    for (i = 0; i < n; i++) {
+        /* printf("kbdbuf_flush i:%d head_idx:%d queue[head_idx]: %d use_kbdbuf_flush_alarm: %d\n",i,head_idx,queue[head_idx],use_kbdbuf_flush_alarm); */
+        /* use an alarm to randomly delay RETURN for up to one frame */
+        if ((queue[head_idx] == 13) && (use_kbdbuf_flush_alarm == 1)) {
+            /* we actually need to wait _at least_ one frame to not overrun the buffer */
+            kbdbuf_flush_alarm_time = maincpu_clk + machine_get_cycles_per_frame();
+            kbdbuf_flush_alarm_time += lib_unsigned_rand(1, machine_get_cycles_per_frame());
+            alarm_set(kbdbuf_flush_alarm, kbdbuf_flush_alarm_time);
+            return;
+        }
+        tokbdbuffer(queue[head_idx]);
+        removefromqueue();
     }
-
-    mem_inject((WORD)(num_pending_location), (BYTE)(n));
-    num_pending -= n;
 }

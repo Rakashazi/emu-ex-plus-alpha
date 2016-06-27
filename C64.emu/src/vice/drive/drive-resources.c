@@ -295,6 +295,30 @@ static int set_drive_idling_method(int val, void *param)
     return 0;
 }
 
+static int set_drive_rpm(int val, void *param)
+{
+    unsigned int dnr;
+    drive_t *drive;
+
+    dnr = vice_ptr_to_uint(param);
+    drive = drive_context[dnr]->drive;
+
+    drive->rpm = val;
+    return 0;
+}
+
+static int set_drive_rpm_wobble(int val, void *param)
+{
+    unsigned int dnr;
+    drive_t *drive;
+
+    dnr = vice_ptr_to_uint(param);
+    drive = drive_context[dnr]->drive;
+
+    drive->rpm_wobble = val;
+    return 0;
+}
+
 static int set_drive_rtc_save(int val, void *param)
 {
     unsigned int dnr;
@@ -323,6 +347,10 @@ static resource_int_t res_drive[] = {
       NULL, set_drive_extend_image_policy, NULL },
     { NULL, DRIVE_IDLE_NO_IDLE, RES_EVENT_SAME, NULL,
       NULL, set_drive_idling_method, NULL },
+    { NULL, 30000, RES_EVENT_SAME, NULL,
+      NULL, set_drive_rpm, NULL },
+    { NULL, 50, RES_EVENT_SAME, NULL,
+      NULL, set_drive_rpm_wobble, NULL },
     { NULL }
 };
 
@@ -337,6 +365,7 @@ int drive_resources_init(void)
     unsigned int dnr;
     drive_t *drive;
     int has_iec;
+    int i;
 
     switch (machine_class) {
         case VICE_MACHINE_NONE:
@@ -359,6 +388,12 @@ int drive_resources_init(void)
         res_drive[1].name = lib_msprintf("Drive%iIdleMethod", dnr + 8);
         res_drive[1].value_ptr = &(drive->idling_method);
         res_drive[1].param = uint_to_void_ptr(dnr);
+        res_drive[2].name = lib_msprintf("Drive%iRPM", dnr + 8);
+        res_drive[2].value_ptr = &(drive->rpm);
+        res_drive[2].param = uint_to_void_ptr(dnr);
+        res_drive[3].name = lib_msprintf("Drive%iWobble", dnr + 8);
+        res_drive[3].value_ptr = &(drive->rpm_wobble);
+        res_drive[3].param = uint_to_void_ptr(dnr);
 
         if (has_iec) {
             res_drive_rtc[0].name = lib_msprintf("Drive%iRTCSave", dnr + 8);
@@ -373,15 +408,22 @@ int drive_resources_init(void)
             return -1;
         }
 
-        lib_free((char *)(res_drive[0].name));
-        lib_free((char *)(res_drive[1].name));
+        for (i = 0; i < 4; i++) {
+            lib_free((char *)(res_drive[i].name));
+        }
         if (has_iec) {
             lib_free((char *)(res_drive_rtc[0].name));
         }
     }
 
-    return machine_drive_resources_init()
-           | resources_register_int(resources_int);
+    if (resources_register_int(resources_int) < 0) {
+        return -1;
+    }
+    /* make sure machine_drive_resources_init() is called last here, as that
+       will also initialize the default drive type and if it fails to do that
+       because other drive related resources are not initialized yet then we
+       end up with a non functioning drive at startup */
+    return machine_drive_resources_init();
 }
 
 void drive_resources_shutdown(void)
@@ -389,6 +431,7 @@ void drive_resources_shutdown(void)
     machine_drive_resources_shutdown();
 }
 
+/* FIXME: (re)move this! */
 #ifdef ANDROID_COMPILE
 void loader_set_drive_true_emulation(int val)
 {

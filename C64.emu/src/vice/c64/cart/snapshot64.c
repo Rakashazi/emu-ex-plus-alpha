@@ -32,10 +32,10 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
 #include "snapshot.h"
 #include "snapshot64.h"
 #include "types.h"
@@ -105,7 +105,7 @@ static io_source_t ss64_io2_device = {
 
 static io_source_list_t *ss64_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_SNAPSHOT64, 1, 1, NULL, &ss64_io2_device, CARTRIDGE_SNAPSHOT64
 };
 
@@ -175,7 +175,7 @@ void snapshot64_config_setup(BYTE *rawcart)
 
 static int snapshot64_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -212,36 +212,43 @@ int snapshot64_crt_attach(FILE *fd, BYTE *rawcart)
 
 void snapshot64_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(ss64_io2_list_item);
     ss64_io2_list_item = NULL;
 }
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTSNAP64"
+/* CARTSNAP64 snapshot module format:
+
+   type  | name       | description
+   --------------------------------
+   BYTE  | ROM config | ROM configuration
+   ARRAY | ROML       | 4096 BYTES of ROML data
+ */
+
+static char snap_module_name[] = "CARTSNAP64";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
 
 int snapshot64_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_B(m, romconfig) < 0)
-        || (SMW_BA(m, roml_banks, 0x1000) < 0)) {
+        || SMW_B(m, romconfig) < 0
+        || SMW_BA(m, roml_banks, 0x1000) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int snapshot64_snapshot_read_module(snapshot_t *s)
@@ -249,24 +256,29 @@ int snapshot64_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
     if (0
-        || (SMR_B(m, &romconfig) < 0)
-        || (SMR_BA(m, roml_banks, 0x1000) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        || SMR_B(m, &romconfig) < 0
+        || SMR_BA(m, roml_banks, 0x1000) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     return snapshot64_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

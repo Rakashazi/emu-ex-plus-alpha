@@ -56,9 +56,6 @@
 
 #define C64MODEL_UNKNOWN 99
 
-#define OLD_LUMA 0
-#define NEW_LUMA 1
-
 #define OLD_CIA 0
 #define NEW_CIA 1
 
@@ -88,7 +85,6 @@
 
 typedef struct {
     int vicii_model;
-    int new_luma;
     int sid_model;
     int glue_logic; /* x64sc only */
     int cia1_model;

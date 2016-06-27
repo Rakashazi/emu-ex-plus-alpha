@@ -40,8 +40,6 @@ extern void h256k_init(void);
 extern void h256k_reset(void);
 extern void h256k_shutdown(void);
 
-extern BYTE h256k_reg_read(WORD addr);
-extern void h256k_reg_store(WORD addr, BYTE value);
 extern void h256k_store(WORD addr, BYTE value);
 extern BYTE h256k_read(WORD addr);
 

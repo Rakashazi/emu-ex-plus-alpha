@@ -125,8 +125,8 @@ void drive_set_last_read(unsigned int track, unsigned int sector, BYTE *buffer,
     if (drive->type == DRIVE_TYPE_1570
         || drive->type == DRIVE_TYPE_1571
         || drive->type == DRIVE_TYPE_1571CR) {
-        if (track > 35) {
-            track -= 35;
+        if (track > (DRIVE_HALFTRACKS_1571 / 2)) {
+            track -= (DRIVE_HALFTRACKS_1571 / 2);
             side = 1;
         }
     }
@@ -552,12 +552,12 @@ void drive_set_half_track(int num, int side, drive_t *dptr)
          || dptr->type == DRIVE_TYPE_1541II
          || dptr->type == DRIVE_TYPE_1551
          || dptr->type == DRIVE_TYPE_1570
-         || dptr->type == DRIVE_TYPE_2031) && num > 84) {
-        num = 84;
+         || dptr->type == DRIVE_TYPE_2031) && (num > DRIVE_HALFTRACKS_1541)) {
+        num = DRIVE_HALFTRACKS_1541;
     }
     if ((dptr->type == DRIVE_TYPE_1571 || dptr->type == DRIVE_TYPE_1571CR)
-        && num > 70) {
-        num = 70;
+        && (num > DRIVE_HALFTRACKS_1571)) {
+        num = DRIVE_HALFTRACKS_1571;
     }
     if (num < 2) {
         num = 2;
@@ -571,7 +571,7 @@ void drive_set_half_track(int num, int side, drive_t *dptr)
     }
     dptr->side = side;
 
-    dptr->GCR_track_start_ptr = dptr->gcr->tracks[dptr->current_half_track - 2 + dptr->side * 70].data;
+    dptr->GCR_track_start_ptr = dptr->gcr->tracks[dptr->current_half_track - 2 + (dptr->side * DRIVE_HALFTRACKS_1571)].data;
 
     if (dptr->GCR_current_track_size != 0) {
         dptr->GCR_head_offset = (dptr->GCR_head_offset
@@ -605,7 +605,7 @@ void drive_gcr_data_writeback(drive_t *drive)
         return;
     }
 
-    half_track = drive->current_half_track + drive->side * 70;
+    half_track = drive->current_half_track + (drive->side * DRIVE_HALFTRACKS_1571);
     track = drive->current_half_track / 2;
 
     if (drive->image->type == DISK_IMAGE_TYPE_P64) {
@@ -762,7 +762,7 @@ void drive_update_ui_status(void)
                 dual = dual || drive->drive1;   /* also include drive 0 */
                 ui_display_drive_track(i,
                                        dual ? 0 : 8,
-                                       drive->current_half_track + drive->side * 70);
+                                       drive->current_half_track + (drive->side * DRIVE_HALFTRACKS_1571));
             }
         }
     }

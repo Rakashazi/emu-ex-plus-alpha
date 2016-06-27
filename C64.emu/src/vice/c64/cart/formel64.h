@@ -30,15 +30,15 @@
 #include <stdio.h>
 
 #include "types.h"
+#include "c64cart.h"
 
 struct snapshot_s;
-struct export_s;
 
 extern BYTE formel64_romh_read(WORD addr);
 extern BYTE formel64_romh_read_hirom(WORD addr);
 extern int formel64_romh_phi1_read(WORD addr, BYTE *value);
 extern int formel64_romh_phi2_read(WORD addr, BYTE *value);
-extern int formel64_peek_mem(struct export_s *export, WORD addr, BYTE *value);
+extern int formel64_peek_mem(export_t *export, WORD addr, BYTE *value);
 
 extern void formel64_config_init(void);
 extern void formel64_reset(void);

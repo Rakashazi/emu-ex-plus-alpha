@@ -29,6 +29,7 @@
 #include "rtc-58321a.h"
 #include "lib.h"
 #include "rtc.h"
+#include "snapshot.h"
 
 #include <string.h>
 
@@ -84,7 +85,7 @@
  */
 
 /* This module is currently used in the following emulated hardware:
-   - C64/C128 userport RTC expansion
+   - userport RTC (58321a) device
  */
 
 /* ---------------------------------------------------------------------------------------------------- */
@@ -168,6 +169,9 @@ BYTE rtc58321a_read(rtc_58321a_t *context)
             break;
         case RTC58321A_REGISTER_WEEKDAYS:
             retval = rtc_get_weekday(latch) - 1;
+            if (retval > 6) {
+                retval = 6;
+            }
             break;
         case RTC58321A_REGISTER_MONTHDAYS:
             retval = rtc_get_day_of_month(latch, 0);
@@ -402,4 +406,132 @@ void rtc58321_start_clock(rtc_58321a_t *context)
         context->stop = 0;
         context->offset = context->offset - (rtc_get_latch(0) - (context->latch - context->offset));
     }
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+/* RTC_58321A snapshot module format:
+
+   type   | name          | description
+   --------------------------------
+   BYTE   | stop          | stop flag
+   BYTE   | 24 hours      | 24 hours flag
+   BYTE   | address       | current address
+   DWORD  | latch hi      | high DWORD of latch offset
+   DWORD  | latch lo      | low DWORD of latch offset
+   DWORD  | offset hi     | high DWORD of RTC offset
+   DWORD  | offset lo     | low DWORD of RTC offset
+   DWORD  | old offset hi | high DWORD of old RTC offset
+   DWORD  | old offset lo | low DWORD of old RTC offset
+   STRING | device        | device name STRING
+ */
+
+static char snap_module_name[] = "RTC_58321A";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
+int rtc58321a_write_snapshot(rtc_58321a_t *context, snapshot_t *s)
+{
+    DWORD latch_lo = 0;
+    DWORD latch_hi = 0;
+    DWORD offset_lo = 0;
+    DWORD offset_hi = 0;
+    DWORD old_offset_lo = 0;
+    DWORD old_offset_hi = 0;
+    snapshot_module_t *m;
+
+    /* time_t can be either 32bit or 64bit, so we save as 64bit */
+#if (SIZE_OF_TIME_T == 8)
+    latch_hi = (DWORD)(context->latch >> 32);
+    latch_lo = (DWORD)(context->latch & 0xffffffff);
+    offset_hi = (DWORD)(context->offset >> 32);
+    offset_lo = (DWORD)(context->offset & 0xffffffff);
+    old_offset_hi = (DWORD)(context->old_offset >> 32);
+    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+#else
+    latch_lo = (DWORD)context->latch;
+    offset_lo = (DWORD)context->offset;
+    old_offset_lo = (DWORD)context->old_offset;
+#endif
+
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    if (0
+        || SMW_B(m, (BYTE)context->stop) < 0
+        || SMW_B(m, (BYTE)context->hour24) < 0
+        || SMW_B(m, context->address) < 0
+        || SMW_DW(m, latch_hi) < 0
+        || SMW_DW(m, latch_lo) < 0
+        || SMW_DW(m, offset_hi) < 0
+        || SMW_DW(m, offset_lo) < 0
+        || SMW_DW(m, old_offset_hi) < 0
+        || SMW_DW(m, old_offset_lo) < 0
+        || SMW_STR(m, context->device) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+    return snapshot_module_close(m);
+}
+
+int rtc58321a_read_snapshot(rtc_58321a_t *context, snapshot_t *s)
+{
+    DWORD latch_lo = 0;
+    DWORD latch_hi = 0;
+    DWORD offset_lo = 0;
+    DWORD offset_hi = 0;
+    DWORD old_offset_lo = 0;
+    DWORD old_offset_hi = 0;
+    BYTE vmajor, vminor;
+    snapshot_module_t *m;
+
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    if (0
+        || SMR_B_INT(m, &context->stop) < 0
+        || SMR_B_INT(m, &context->hour24) < 0
+        || SMR_B(m, &context->address) < 0
+        || SMR_DW(m, &latch_hi) < 0
+        || SMR_DW(m, &latch_lo) < 0
+        || SMR_DW(m, &offset_hi) < 0
+        || SMR_DW(m, &offset_lo) < 0
+        || SMR_DW(m, &old_offset_hi) < 0
+        || SMR_DW(m, &old_offset_lo) < 0
+        || SMR_STR(m, &context->device) < 0) {
+        goto fail;
+    }
+
+    snapshot_module_close(m);
+
+#if (SIZE_OF_TIME_T == 8)
+    context->latch = (time_t)(latch_hi) << 32;
+    context->latch |= latch_lo;
+    context->offset = (time_t)(offset_hi) << 32;
+    context->offset |= offset_lo;
+    context->old_offset = (time_t)(old_offset_hi) << 32;
+    context->old_offset |= old_offset_lo;
+#else
+    context->latch = latch_lo;
+    context->offset = offset_lo;
+    context->old_offset = old_offset_lo;
+#endif
+
+    return 0;
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

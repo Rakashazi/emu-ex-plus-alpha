@@ -89,15 +89,19 @@ void video_canvas_render(video_canvas_t *canvas, BYTE *trg, int width,
                          int height, int xs, int ys, int xt, int yt,
                          int pitcht, int depth)
 {
+    static int lastmode = -1;
     viewport_t *viewport = canvas->viewport;
 #ifdef VIDEO_SCALE_SOURCE
-    if (canvas->videoconfig->doublesizex) {
-        xs /= (canvas->videoconfig->doublesizex + 1);
-    }
-    if (canvas->videoconfig->doublesizey) {
-        ys /= (canvas->videoconfig->doublesizey + 1);
-    }
+    xs /= canvas->videoconfig->scalex;
+    ys /= canvas->videoconfig->scaley;
 #endif
+
+    /* when the color encoding changed, the palette must be recalculated */
+    if (viewport->crt_type != lastmode) {
+        canvas->videoconfig->color_tables.updated = 0;
+        lastmode = viewport->crt_type;
+    }
+
     if (!canvas->videoconfig->color_tables.updated) { /* update colors as necessary */
         video_color_update_palette(canvas);
     }

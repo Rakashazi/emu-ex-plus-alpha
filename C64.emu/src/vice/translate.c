@@ -136,6 +136,13 @@ static char *translate_and_build_sid_cmdline_option(int en_resource)
     old = new;
 #endif
 
+#ifdef HAVE_SSI2001
+    /* add ssi2001 options if available */
+    new = util_concat(old, ", ", translate_text(IDCLS_SSI2001_ENGINE_MODEL), NULL);
+    lib_free(old);
+    old = new;
+#endif
+
     /* add ending bracket */
     new = util_concat(old, ")", NULL);
     lib_free(old);

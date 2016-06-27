@@ -59,7 +59,7 @@ void parallel_cable_cpu_write(int type, BYTE data)
     parallel_cable_cpu_value = data;
 }
 
-BYTE parallel_cable_cpu_read(int type)
+BYTE parallel_cable_cpu_read(int type, BYTE data)
 {
     if (!(drive_context[0]->drive->enable)
         && !(drive_context[1]->drive->enable)) {
@@ -68,7 +68,7 @@ BYTE parallel_cable_cpu_read(int type)
 
     drive_cpu_execute_all(maincpu_clk);
 
-    return parallel_cable_cpu_value & parallel_cable_drive_value[0] & parallel_cable_drive_value[1];
+    return data & (parallel_cable_cpu_value & parallel_cable_drive_value[0] & parallel_cable_drive_value[1]);
 }
 
 void parallel_cable_cpu_undump(int type, BYTE data)

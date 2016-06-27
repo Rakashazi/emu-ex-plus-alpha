@@ -27,6 +27,8 @@
  *
  */
 
+/* #define DEBUGCART */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -36,6 +38,7 @@
 #include "archdep.h"
 #include "cartridge.h"
 #include "lib.h"
+#include "log.h"
 #include "mem.h"
 #include "resources.h"
 #include "snapshot.h"
@@ -47,6 +50,11 @@
 #include "vic20-generic.h"
 #include "zfile.h"
 
+#ifdef DEBUGCART
+#define DBG(x) printf x
+#else
+#define DBG(x)
+#endif
 
 #define TRY_RESOURCE_CARTFILE2 (1 << 8)
 #define TRY_RESOURCE_CARTFILE4 (1 << 9)
@@ -208,41 +216,58 @@ static int attach_image(int type, const char *filename)
 {
     BYTE rawcart[0x4000];
     FILE *fd;
-    int addr;
+    int addr, len;
     size_t n;
-    int type2 = CARTRIDGE_VIC20_DETECT;
+
+    DBG(("attach_image type %d, file=`%s'.\n", type, filename));
 
     fd = zfile_fopen(filename, MODE_READ);
     if (!fd) {
         return -1;
     }
 
-    addr = fgetc(fd);
-    addr = (addr & 0xff) | ((fgetc(fd) << 8) & 0xff00);
+    /* check length and find out if there is a load address */
+    fseek(fd, 0, SEEK_END);
+    len = ftell(fd);
+    fseek(fd, 0, SEEK_SET);
+    switch (len & 0xfff) {
+        case 0: /* plain binary */
+            addr = 0;
+            break;
+        case 2: /* load address */
+            addr = fgetc(fd);
+            addr = (addr & 0xff) | ((fgetc(fd) << 8) & 0xff00);
+            break;
+        default: /* not a valid file */
+            zfile_fclose(fd);
+            DBG(("attach_image error, len=`%d'.\n", len));
+            return -1;
+            break;
+    }
 
-    if (addr == 0x6000 || addr == 0x7000) {
-        type2 = CARTRIDGE_VIC20_16KB_6000;
-    } else if (addr == 0xA000) {
-        type2 = CARTRIDGE_VIC20_8KB_A000;
-    } else if (addr == 0x2000 || addr == 0x3000) {
-        type2 = CARTRIDGE_VIC20_16KB_2000;
-    } else if (addr == 0xB000) {
-        type2 = CARTRIDGE_VIC20_4KB_B000;
-    } else if (addr == 0x4000 || addr == 0x5000) {
-        type2 = CARTRIDGE_VIC20_16KB_4000;
-    }
-    if (type2 == CARTRIDGE_VIC20_DETECT) {
-        /* rewind to the beginning of the file (no load address) */
-        fseek(fd, 0, SEEK_SET);
-        /* raw 8KB binary images default to $a000-$bfff */
-        type = CARTRIDGE_VIC20_8KB_A000;
-    }
     if (type == CARTRIDGE_VIC20_DETECT) {
-        type = type2;
+        if (addr == 0x6000 || addr == 0x7000) {
+            type = CARTRIDGE_VIC20_16KB_6000;
+        } else if (addr == 0xA000) {
+            type = CARTRIDGE_VIC20_8KB_A000;
+        } else if (addr == 0x2000 || addr == 0x3000) {
+            type = CARTRIDGE_VIC20_16KB_2000;
+        } else if (addr == 0xB000) {
+            type = CARTRIDGE_VIC20_4KB_B000;
+        } else if (addr == 0x4000 || addr == 0x5000) {
+            type = CARTRIDGE_VIC20_16KB_4000;
+        } else {
+            /* raw 8KB binary images default to $a000-$bfff */
+            type = CARTRIDGE_VIC20_8KB_A000;
+            log_message(LOG_DEFAULT, "could not determine type of cartridge, defaulting to 8k $a000-$bfff");
+        }
     }
 
     memset(rawcart, 0xff, 0x4000);
 
+    /* FIXME: the following can probably be shortened and simplified by using the
+              file length that was determined above */
+    /* FIXME: some of the defined types are not handled here */
     switch (type) {
         case CARTRIDGE_VIC20_16KB_4000:
             if ((n = fread(rawcart, 0x1000, 4, fd)) < 1) {
@@ -323,13 +348,26 @@ static int attach_image(int type, const char *filename)
             memcpy(cart_rom + 0x2000, rawcart, 0x2000);
             generic_rom_blocks |= VIC_CART_BLK1;
             break;
+        case CARTRIDGE_VIC20_16KB_2000:
+            memcpy(cart_rom + 0x2000, rawcart, 0x4000);
+            generic_rom_blocks |= (VIC_CART_BLK1 | VIC_CART_BLK2);
+            break;
         case CARTRIDGE_VIC20_8KB_4000:
             memcpy(cart_rom + 0x4000, rawcart, 0x2000);
             generic_rom_blocks |= VIC_CART_BLK2;
             break;
+        case CARTRIDGE_VIC20_16KB_4000:
+            memcpy(cart_rom + 0x4000, rawcart, 0x4000);
+            generic_rom_blocks |= (VIC_CART_BLK2 | VIC_CART_BLK3);
+            break;
         case CARTRIDGE_VIC20_8KB_6000:
             memcpy(cart_rom + 0x6000, rawcart, 0x2000);
             generic_rom_blocks |= VIC_CART_BLK3;
+            break;
+        case CARTRIDGE_VIC20_16KB_6000:
+            memcpy(cart_rom + 0x6000, rawcart, 0x2000);
+            memcpy(cart_rom + 0x0000, rawcart + 0x2000, 0x2000);
+            generic_rom_blocks |= (VIC_CART_BLK3 | VIC_CART_BLK5);
             break;
         case CARTRIDGE_VIC20_4KB_A000:
             memcpy(cart_rom + 0x0000, rawcart, 0x1000);
@@ -370,6 +408,8 @@ int generic_bin_attach(int type, const char *filename)
     if (!cart_rom) {
         cart_rom = lib_malloc(CART_ROM_SIZE);
     }
+
+    DBG(("generic_bin_attach type %d, file=`%s'.\n", type, filename));
 
     if (type == CARTRIDGE_VIC20_GENERIC) {
         /*

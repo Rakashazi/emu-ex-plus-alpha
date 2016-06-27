@@ -152,7 +152,7 @@ extern int cur_len, last_len;
 %token CMD_DUMP CMD_UNDUMP CMD_EXIT CMD_DELETE CMD_CONDITION CMD_COMMAND
 %token CMD_ASSEMBLE CMD_DISASSEMBLE CMD_NEXT CMD_STEP CMD_PRINT CMD_DEVICE
 %token CMD_HELP CMD_WATCH CMD_DISK CMD_QUIT CMD_CHDIR CMD_BANK
-%token CMD_LOAD_LABELS CMD_SAVE_LABELS CMD_ADD_LABEL CMD_DEL_LABEL CMD_SHOW_LABELS
+%token CMD_LOAD_LABELS CMD_SAVE_LABELS CMD_ADD_LABEL CMD_DEL_LABEL CMD_SHOW_LABELS CMD_CLEAR_LABELS
 %token CMD_RECORD CMD_MON_STOP CMD_PLAYBACK CMD_CHAR_DISPLAY CMD_SPRITE_DISPLAY
 %token CMD_TEXT_DISPLAY CMD_SCREENCODE_DISPLAY CMD_ENTER_DATA CMD_ENTER_BIN_DATA CMD_KEYBUF
 %token CMD_BLOAD CMD_BSAVE CMD_SCREEN CMD_UNTIL CMD_CPU CMD_YYDEBUG
@@ -303,6 +303,10 @@ symbol_table_rules: CMD_LOAD_LABELS memspace opt_sep filename end_cmd
                     { mon_print_symbol_table($2); }
                   | CMD_SHOW_LABELS end_cmd
                     { mon_print_symbol_table(e_default_space); }
+                  | CMD_CLEAR_LABELS memspace end_cmd
+                    { mon_clear_symbol_table($2); }
+                  | CMD_CLEAR_LABELS end_cmd
+                    { mon_clear_symbol_table(e_default_space); }
                   | CMD_LABEL_ASGN EQUALS address end_cmd
                     {
                         mon_add_name_to_symbol_table($3, mon_prepend_dot_to_name($1));

@@ -36,10 +36,15 @@
 
 /*
     right now this is basically the PAL renderer without delay line emulation
-
-    TODO: use NTSC color space and conversion matrix
 */
 
+/*
+    YIQ->RGB (Sony CXA2025AS US decoder matrix)
+
+    R = Y + (1.630 * I + 0.317 * Q)
+    G = Y - (0.378 * I + 0.466 * Q)
+    B = Y - (1.089 * I - 1.677 * Q)
+*/
 static inline
 void yuv_to_rgb(SDWORD y, SDWORD u, SDWORD v, SWORD *red, SWORD *grn, SWORD *blu)
 {
@@ -48,9 +53,9 @@ void yuv_to_rgb(SDWORD y, SDWORD u, SDWORD v, SWORD *red, SWORD *grn, SWORD *blu
 # pragma warning( disable: 4244 )
 #endif
 
-    *red = (y + v) >> 16;
-    *blu = (y + u) >> 16;
-    *grn = (y - ((50 * u + 130 * v) >> 8)) >> 16;
+    *red = (y + ((209 * u +  41 * v) >> 7)) >> 15;
+    *grn = (y - (( 48 * u +  69 * v) >> 7)) >> 15;
+    *blu = (y - ((139 * u - 215 * v) >> 7)) >> 15;
 
 #ifdef _MSC_VER
 # pragma warning( pop )

@@ -29,6 +29,7 @@
 
 #include <time.h>
 
+#include "snapshot.h"
 #include "types.h"
 
 #define DS1216E_REG_SIZE   8
@@ -63,5 +64,8 @@ extern rtc_ds1216e_t *ds1216e_init(char *device);
 extern void ds1216e_destroy(rtc_ds1216e_t *context, int save);
 
 extern BYTE ds1216e_read(rtc_ds1216e_t *context, WORD address, BYTE original_read);
+
+extern int ds1216e_write_snapshot(rtc_ds1216e_t *context, snapshot_t *s);
+extern int ds1216e_read_snapshot(rtc_ds1216e_t *context, snapshot_t *s);
 
 #endif

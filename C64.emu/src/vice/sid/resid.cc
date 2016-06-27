@@ -138,7 +138,7 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
     if (resources_get_int("SidResidGain", &gain_percentage) < 0) {
         return 0;
     }
-    
+
     if (resources_get_int("SidResidFilterBias", &filter_bias_mV) < 0) {
         return 0;
     }

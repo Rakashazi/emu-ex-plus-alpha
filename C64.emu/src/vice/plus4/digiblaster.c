@@ -1,5 +1,5 @@
 /*
- * digimax.c - Digimax DAC cartridge emulation.
+ * digiblaster.c - DigiBlaster DAC/ADC cartridge emulation.
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>
@@ -30,11 +30,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cartio.h"
 #include "cmdline.h"
 #include "digiblaster.h"
 #include "lib.h"
 #include "maincpu.h"
+#include "plus4mem.h"
 #include "resources.h"
+#include "sampler.h"
+#include "sidcart.h"
 #include "sound.h"
 #include "uiapi.h"
 #include "translate.h"
@@ -81,13 +85,80 @@ void digiblaster_sound_chip_init(void)
 
 /* ---------------------------------------------------------------------*/
 
+/* Some prototypes */
+static BYTE digiblaster_read(WORD addr);
+static void digiblaster_store(WORD addr, BYTE value);
+
+static io_source_t digiblaster_fd5e_device = {
+    "DigiBlaster",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfd5e, 0xfd5f, 3,
+    1, /* read is always valid */
+    digiblaster_store,
+    digiblaster_read,
+    NULL, /* no peek */
+    NULL, /* nothing to dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t digiblaster_fe9e_device = {
+    "DigiBlaster",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfe9e, 0xfe9f, 3,
+    1, /* read is always valid */
+    digiblaster_store,
+    digiblaster_read,
+    NULL, /* no peek */
+    NULL, /* nothing to dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_list_t *digiblaster_list_item = NULL;
+
+void digiblaster_set_address(WORD addr)
+{
+    if (digiblaster_sound_chip.chip_enabled) {
+        io_source_unregister(digiblaster_list_item);
+        if (addr == 0xfd40) {
+            digiblaster_list_item = io_source_register(&digiblaster_fd5e_device);
+        } else {
+            digiblaster_list_item = io_source_register(&digiblaster_fe9e_device);
+        }
+    }
+}
+
 int digiblaster_enabled(void)
 {
     return digiblaster_sound_chip.chip_enabled;
 }
 
-static int set_digiblaster_enabled(int val, void *param)
+static int set_digiblaster_enabled(int value, void *param)
 {
+    int val = value ? 1 : 0;
+
+    if (digiblaster_sound_chip.chip_enabled == val) {
+        return 0;
+    }
+
+    if (val) {
+        if (sidcart_address == 0xfd40) {
+            digiblaster_list_item = io_source_register(&digiblaster_fd5e_device);
+        } else {
+            digiblaster_list_item = io_source_register(&digiblaster_fe9e_device);
+        }
+        sampler_start(SAMPLER_OPEN_MONO, "DigiBlaster");
+    } else {
+        io_source_unregister(digiblaster_list_item);
+        digiblaster_list_item = NULL;
+        sampler_stop();
+    }
+
     digiblaster_sound_chip.chip_enabled = val ? 1 : 0;
 
     return 0;
@@ -165,13 +236,18 @@ static void digiblaster_sound_reset(sound_t *psid, CLOCK cpu_clk)
 
 /* ---------------------------------------------------------------------*/
 
-void digiblaster_store(WORD addr, BYTE value)
+static void digiblaster_store(WORD addr, BYTE value)
 {
-    digiblaster_sound_data = value;
-    sound_store(digiblaster_sound_chip_offset, value, 0);
+    if ((addr & 1) == 0) {
+        digiblaster_sound_data = value;
+        sound_store(digiblaster_sound_chip_offset, value, 0);
+    }
 }
 
-BYTE digiblaster_read(WORD addr)
+static BYTE digiblaster_read(WORD addr)
 {
-    return sound_read(digiblaster_sound_chip_offset, 0);
+    if ((addr & 1) == 0) {
+        return sound_read(digiblaster_sound_chip_offset, 0);
+    }
+    return sampler_get_sample(SAMPLER_CHANNEL_DEFAULT);
 }

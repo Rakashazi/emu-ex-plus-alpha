@@ -32,6 +32,7 @@
 
 #include "drive.h"
 #include "drivetypes.h"
+#include "lib.h"
 #include "rotation.h"
 #include "types.h"
 #include "p64.h"
@@ -84,8 +85,8 @@ typedef struct rotation_s rotation_t;
 static rotation_t rotation[DRIVE_NUM];
 
 /* Speed (in bps) of the disk in the 4 disk areas.  */
-static const int rot_speed_bps[2][4] = { { 250000, 266667, 285714, 307692 },
-                                         { 125000, 133333, 142857, 153846 } };
+static const unsigned int rot_speed_bps[2][4] = { { 250000, 266667, 285714, 307692 },
+                                                  { 125000, 133333, 142857, 153846 } };
 
 
 void rotation_init(int freq, unsigned int dnr)
@@ -290,9 +291,11 @@ void rotation_begins(drive_t *dptr)
     rotation[dnr].cycle_index = 0;
 }
 
-/* 1541 circuit simulation for GCR-based images, see 1541 circuit description in
-   this file for details */
-void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
+/*******************************************************************************
+ * 1541 circuit simulation for GCR-based images (.g64),
+ * see 1541 circuit description in this file for details
+ ******************************************************************************/
+static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
 {
     rotation_t *rptr;
     int clk_ref_per_rev, cyc_act_frv;
@@ -300,6 +303,12 @@ void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
     SDWORD delta;
     DWORD count_new_bitcell, cyc_sum_frv /*, sum_new_bitcell*/;
     unsigned int dnr = dptr->mynumber;
+    int wobble;
+#ifdef _MSC_VER
+    __int64 tmp = 30000UL;
+#else
+    unsigned long long tmp = 30000UL;
+#endif
 
     rptr = &rotation[dptr->mynumber];
 
@@ -307,6 +316,19 @@ void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
      * reference clock is 16MHz, one revolution has 16MHz/5 reference cycles
      */
     clk_ref_per_rev = 16000000 / (300 / 60);
+
+    /* RPM can be anything ranging from 295...305 or so, meaning
+     * clk_ref_per_rev = 16000000 / (295 / 60) = 3254237
+     * clk_ref_per_rev = 16000000 / (300 / 60) = 3200000
+     * clk_ref_per_rev = 16000000 / (305 / 60) = 3147540
+     * -> the reference cycles are 3200000 +/- ~54000 in worst case
+     *    in reality the constant offset can be relatively large, but does not
+     *    change a lot over time, so the random offset is rather small.
+     */
+    wobble = dptr->rpm_wobble ? lib_unsigned_rand(0, dptr->rpm_wobble) - (dptr->rpm_wobble / 2) : 0;
+    tmp *= clk_ref_per_rev;
+    tmp /= dptr->rpm + wobble;
+    clk_ref_per_rev = (int)tmp;
 
     /* cell cycles for the actual flux reversal period, it is 1 now, but could be different with variable density */
     cyc_act_frv = 1;
@@ -511,7 +533,7 @@ void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
     }
 }
 
-void rotation_1541_gcr_cycle(drive_t *dptr)
+static void rotation_1541_gcr_cycle(drive_t *dptr)
 {
     rotation_t *rptr = &rotation[dptr->mynumber];
     CLOCK cpu_cycles;
@@ -550,8 +572,14 @@ void rotation_1541_gcr_cycle(drive_t *dptr)
     }
 }
 
-/* 1541 circuit simulation for NZRI transition flux pulse-based images, see 1541 circuit description in this file for details */
-void rotation_1541_p64(drive_t *dptr, int ref_cycles)
+/*******************************************************************************
+ * 1541 circuit simulation for NZRI transition flux pulse-based images (.p64),
+ * see 1541 circuit description in this file for details
+ ******************************************************************************/
+
+/* FIXME: RPM related resources "DriveXRPM" and "DriveXwobble" are ignored for p64 */
+
+static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
 {
     rotation_t *rptr;
     PP64PulseStream P64PulseStream;
@@ -875,7 +903,7 @@ void rotation_1541_p64(drive_t *dptr, int ref_cycles)
     }
 }
 
-void rotation_1541_p64_cycle(drive_t *dptr)
+static void rotation_1541_p64_cycle(drive_t *dptr)
 {
     rotation_t *rptr = &rotation[dptr->mynumber];
     CLOCK cpu_cycles;
@@ -914,29 +942,23 @@ void rotation_1541_p64_cycle(drive_t *dptr)
     }
 }
 
-/* Rotate the disk according to the current value of `drive_clk[]'.  If
-   `mode_change' is non-zero, there has been a Read -> Write mode switch.  */
-void rotation_rotate_disk(drive_t *dptr)
+/*******************************************************************************
+ * very simple and fast emulation for perfect images like those comming from
+ * dxx files
+ ******************************************************************************/
+static void rotation_1541_simple(drive_t *dptr)
 {
     rotation_t *rptr;
     CLOCK delta;
     int tdelta;
     int bits_moved = 0;
-
-    if ((dptr->byte_ready_active & 4) == 0) {
-        dptr->req_ref_cycles = 0;
-        return;
-    }
-
-    if (dptr->complicated_image_loaded) { /* stuff that needs complex and slow emulation */
-        if (dptr->P64_image_loaded) {
-            rotation_1541_p64_cycle(dptr);
-        } else {
-            rotation_1541_gcr_cycle(dptr);
-        }
-        return;
-    }
-    /* very simple and fast emulation for perfect images like those comming from dxx files */
+#ifdef _MSC_VER
+    __int64 tmp = 1000000UL;
+#else
+    unsigned long long tmp = 1000000UL;
+#endif
+    unsigned long rpmscale;
+    int wobble;
 
     dptr->req_ref_cycles = 0;
 
@@ -947,13 +969,17 @@ void rotation_rotate_disk(drive_t *dptr)
     delta = *(dptr->clk) - rptr->rotation_last_clk;
     rptr->rotation_last_clk = *(dptr->clk);
 
+    wobble = dptr->rpm_wobble ? lib_unsigned_rand(0, dptr->rpm_wobble) - (dptr->rpm_wobble / 2) : 0;
+    tmp *= 30000UL;
+    tmp /= (dptr->rpm + wobble);
+    rpmscale = (unsigned long)(tmp);
+
     while (delta > 0) {
         tdelta = delta > 1000 ? 1000 : delta;
         delta -= tdelta;
-
         rptr->accum += rot_speed_bps[rptr->frequency][rptr->speed_zone] * tdelta;
-        bits_moved += rptr->accum / 1000000;
-        rptr->accum %= 1000000;
+        bits_moved += rptr->accum / rpmscale;
+        rptr->accum %= rpmscale;
     }
 
     if (dptr->read_write_mode) {
@@ -1036,6 +1062,31 @@ void rotation_rotate_disk(drive_t *dptr)
         dptr->complicated_image_loaded = 1;
     }
 }
+
+/*******************************************************************************
+ * Rotate the disk according to the current value of `drive_clk[]'.
+ * If `mode_change' is non-zero, there has been a Read -> Write mode switch.
+ ******************************************************************************/
+void rotation_rotate_disk(drive_t *dptr)
+{
+    if ((dptr->byte_ready_active & 4) == 0) {
+        dptr->req_ref_cycles = 0;
+        return;
+    }
+
+    if (dptr->complicated_image_loaded) {
+        /* stuff that needs complex and slow emulation */
+        if (dptr->P64_image_loaded) {
+            rotation_1541_p64_cycle(dptr);
+        } else {
+            rotation_1541_gcr_cycle(dptr);
+        }
+    } else {
+        rotation_1541_simple(dptr);
+    }
+}
+
+/******************************************************************************/
 
 /* Return non-zero if the Sync mark is found.  It is required to
    call rotation_rotate_disk() to update drive[].GCR_head_offset first.

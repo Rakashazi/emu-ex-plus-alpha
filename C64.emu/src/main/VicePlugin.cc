@@ -143,6 +143,13 @@ int VicePlugin::resources_set_int(const char *name, int value)
 	return -1;
 }
 
+int VicePlugin::resources_get_default_value(const char *name, void *value_return)
+{
+	if(resources_get_default_value_)
+		return resources_get_default_value_(name, value_return);
+	return -1;
+}
+
 int VicePlugin::machine_write_snapshot(const char *name, int save_roms, int save_disks, int even_mode)
 {
 	if(machine_write_snapshot_)
@@ -280,18 +287,18 @@ const char *VicePlugin::file_system_get_disk_name(unsigned int unit)
 	return "";
 }
 
+int VicePlugin::drive_check_type(unsigned int drive_type, unsigned int dnr)
+{
+	if(drive_check_type_)
+		return drive_check_type_(drive_type, dnr);
+	return 0;
+}
+
 int VicePlugin::sound_register_device(sound_device_t *pdevice)
 {
 	if(sound_register_device_)
 		return sound_register_device_(pdevice);
 	return -1;
-}
-
-char *VicePlugin::lib_stralloc(const char *str)
-{
-	if(lib_stralloc_)
-		return lib_stralloc_(str);
-	return nullptr;
 }
 
 void VicePlugin::video_canvas_render(struct video_canvas_s *canvas, BYTE *trg,
@@ -350,12 +357,14 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	plugin.resources_set_string_ = (typeof plugin.resources_set_string_)dlsym(lib, "resources_set_string");
 	plugin.resources_get_int_ = (typeof plugin.resources_get_int_)dlsym(lib, "resources_get_int");
 	plugin.resources_set_int_ = (typeof plugin.resources_set_int_)dlsym(lib, "resources_set_int");
+	plugin.resources_get_default_value_ = (typeof plugin.resources_get_default_value_)dlsym(lib, "resources_get_default_value");
 	plugin.machine_write_snapshot_ = (typeof plugin.machine_write_snapshot_)dlsym(lib, "machine_write_snapshot");
 	plugin.machine_read_snapshot_ = (typeof plugin.machine_read_snapshot_)dlsym(lib, "machine_read_snapshot");
 	plugin.machine_set_restore_key_ = (typeof plugin.machine_set_restore_key_)dlsym(lib, "machine_set_restore_key");
 	plugin.machine_trigger_reset_ = (typeof plugin.machine_trigger_reset_)dlsym(lib, "machine_trigger_reset");
 	plugin.interrupt_maincpu_trigger_trap_ = (typeof plugin.interrupt_maincpu_trigger_trap_)dlsym(lib, "interrupt_maincpu_trigger_trap");
 	plugin.init_main_ = (typeof plugin.init_main_)dlsym(lib, "init_main");
+	assert(plugin.init_main_);
 	plugin.maincpu_mainloop_ = (typeof plugin.maincpu_mainloop_)dlsym(lib, "maincpu_mainloop");
 	if(system == VICE_SYSTEM_PET)
 	{
@@ -414,8 +423,8 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	plugin.file_system_attach_disk_ = (typeof plugin.file_system_attach_disk_)dlsym(lib, "file_system_attach_disk");
 	plugin.file_system_detach_disk_ = (typeof plugin.file_system_detach_disk_)dlsym(lib, "file_system_detach_disk");
 	plugin.file_system_get_disk_name_ = (typeof plugin.file_system_get_disk_name_)dlsym(lib, "file_system_get_disk_name");
+	plugin.drive_check_type_ = (typeof plugin.drive_check_type_)dlsym(lib, "drive_check_type");
 	plugin.sound_register_device_ = (typeof plugin.sound_register_device_)dlsym(lib, "sound_register_device");
-	plugin.lib_stralloc_ = (typeof plugin.lib_stralloc_)dlsym(lib, "lib_stralloc");
 	plugin.video_canvas_render_ = (typeof plugin.video_canvas_render_)dlsym(lib, "video_canvas_render");
 	plugin.video_render_setphysicalcolor_ = (typeof plugin.video_render_setphysicalcolor_)dlsym(lib, "video_render_setphysicalcolor");
 	plugin.video_render_setrawrgb_ = (typeof plugin.video_render_setrawrgb_)dlsym(lib, "video_render_setrawrgb");

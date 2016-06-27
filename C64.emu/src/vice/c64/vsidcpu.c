@@ -1,5 +1,5 @@
 /*
- * vsidcpu.c - Emulation of the main 6510 processor used for vsid and x64
+ * vsidcpu.c - Emulation of the main 6510 processor used for vsid
  *
  * Written by groepaz <groepaz@gmx.net>
  *

@@ -481,24 +481,46 @@ int c64dtvdma_cmdline_options_init(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* C64DTVDMA snapshot module format:
+
+   type  | name            | description
+   -------------------------------------
+   ARRAY | regs            | 32 BYTES of register data
+   DWORD | source off      | source offset
+   DWORD | dest off        | destination offset
+   DWORD | busy            | DMA busy flag
+   DWORD | IRQ             | DMA IRQ state
+   DWORD | on IRQ          | on IRQ
+   DWORD | active          | DMA active flag
+   BYTE  | data            | DMA data
+   BYTE  | data swap       | DMA data swap flag
+   DWORD | count           | DMA counter
+   DWORD | state           | DMA state
+   DWORD | source line off | source line offset
+   DWORD | dest line off   | destination line offset
+   BYTE  | source mem type | source memory type
+   BYTE  | dest mem type   | destination memory type
+ */
+
+static const char snap_module_name[] = "C64DTVDMA";
 #define SNAP_MAJOR 0
 #define SNAP_MINOR 0
 
-static log_t c64_snapshot_log = LOG_ERR;
-
-static const char snap_dma_module_name[] = "C64DTVDMA";
+/* static log_t c64_snapshot_log = LOG_ERR; */
 
 int c64dtvdma_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
     /* DMA module.  */
-    m = snapshot_module_create(s, snap_dma_module_name, SNAP_MAJOR, SNAP_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (SMW_BA(m, c64dtvmem_dma, 0x20) < 0
+    if (0
+        || SMW_BA(m, c64dtvmem_dma, 0x20) < 0
         || SMW_DW(m, dma_source_off) < 0
         || SMW_DW(m, dma_dest_off) < 0
         || SMW_DW(m, dma_busy) < 0
@@ -513,23 +535,12 @@ int c64dtvdma_snapshot_write_module(snapshot_t *s)
         || SMW_DW(m, dest_line_off) < 0
         || SMW_B(m, source_memtype) < 0
         || SMW_B(m, dest_memtype) < 0) {
-        goto fail;
-    }
-
-    if (snapshot_module_close(m) < 0) {
-        goto fail;
-    }
-    m = NULL;
-
-    return 0;
-
-fail:
-    if (m != NULL) {
         snapshot_module_close(m);
+        return -1;
     }
-    return -1;
-}
 
+    return snapshot_module_close(m);
+}
 
 int c64dtvdma_snapshot_read_module(snapshot_t *s)
 {
@@ -538,21 +549,20 @@ int c64dtvdma_snapshot_read_module(snapshot_t *s)
     int temp_dma_state;
 
     /* DMA module.  */
-    m = snapshot_module_open(s, snap_dma_module_name,
-                             &major_version, &minor_version);
+    m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
+
     if (m == NULL) {
         return -1;
     }
 
+    /* Do not accept versions higher than current */
     if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
-        log_error(c64_snapshot_log,
-                  "Snapshot module version (%d.%d) newer than %d.%d.",
-                  major_version, minor_version,
-                  SNAP_MAJOR, SNAP_MINOR);
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
-    if (SMR_BA(m, c64dtvmem_dma, 0x20) < 0
+    if (0
+        || SMR_BA(m, c64dtvmem_dma, 0x20) < 0
         || SMR_DW_INT(m, &dma_source_off) < 0
         || SMR_DW_INT(m, &dma_dest_off) < 0
         || SMR_DW_INT(m, &dma_busy) < 0
@@ -572,16 +582,9 @@ int c64dtvdma_snapshot_read_module(snapshot_t *s)
 
     dma_state = temp_dma_state;
 
-    if (snapshot_module_close(m) < 0) {
-        goto fail;
-    }
-    m = NULL;
-
-    return 0;
+    return snapshot_module_close(m);
 
 fail:
-    if (m != NULL) {
-        snapshot_module_close(m);
-    }
+    snapshot_module_close(m);
     return -1;
 }

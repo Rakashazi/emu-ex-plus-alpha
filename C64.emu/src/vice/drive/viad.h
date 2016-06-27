@@ -39,6 +39,7 @@ extern void via2d_init(struct drive_context_s *ctxptr);
 extern void via2d_store(struct drive_context_s *ctxptr, WORD addr, BYTE byte);
 extern BYTE via2d_read(struct drive_context_s *ctxptr, WORD addr);
 extern BYTE via2d_peek(struct drive_context_s *ctxptr, WORD addr);
+extern int via2d_dump(struct drive_context_s *ctxptr, WORD addr);
 
 extern void via2d_update_pcr(int pcrval, struct drive_s *dptr);
 

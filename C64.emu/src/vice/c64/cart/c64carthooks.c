@@ -38,12 +38,13 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "cpmcart.h"
 #include "crt.h"
+#include "export.h"
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
@@ -69,6 +70,7 @@
 #include "c64tpi.h"
 #include "comal80.h"
 #include "capture.h"
+#include "debugcart.h"
 #include "delaep256.h"
 #include "delaep64.h"
 #include "delaep7x8.h"
@@ -77,6 +79,7 @@
 #include "dinamic.h"
 #include "dqbb.h"
 #include "ds12c887rtc.h"
+#include "easycalc.h"
 #include "easyflash.h"
 #include "epyxfastload.h"
 #include "exos.h"
@@ -96,6 +99,7 @@
 #include "kcs.h"
 #include "kingsoft.h"
 #include "mach5.h"
+#include "machine.h"
 #include "magicdesk.h"
 #include "magicformel.h"
 #include "magicvoice.h"
@@ -113,7 +117,9 @@
 #include "rexep256.h"
 #include "rexutility.h"
 #include "rgcd.h"
+#include "rrnetmk3.h"
 #include "ross.h"
+#include "shortbus_digimax.h"
 #include "silverrock128.h"
 #include "simonsbasic.h"
 #include "snapshot64.h"
@@ -171,6 +177,7 @@ extern export_t export_passthrough; /* slot1 and main combined, goes into slot0 
         CARTRIDGE_MIDI_MAPLIN
         CARTRIDGE_TFE
         CARTRIDGE_TURBO232
+        CARTRIDGE_CPM
 
     all other carts should get a commandline option here like this:
 
@@ -269,6 +276,11 @@ static const cmdline_option_t cmdline_options[] =
       cart_attach_cmdline, (void *)CARTRIDGE_EASYFLASH, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_ATTACH_RAW_EASY_FLASH_CART,
+      NULL, NULL },
+    { "-carteasycalc", CALL_FUNCTION, 1,
+      cart_attach_cmdline, (void *)CARTRIDGE_EASYCALC, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_ATTACH_RAW_EASYCALC_CART,
       NULL, NULL },
     /* omitted: CARTRIDGE_EASYFLASH_XBANK (NO CART EXISTS!) */
     { "-cartepyx", CALL_FUNCTION, 1,
@@ -431,6 +443,11 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_ATTACH_RAW_RGCD_CART,
       NULL, NULL },
+    { "-cartrrnet", CALL_FUNCTION, 1,
+      cart_attach_cmdline, (void *)CARTRIDGE_RRNETMK3, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_ATTACH_RAW_RRNETMK3_CART,
+      NULL, NULL },
     { "-cartross", CALL_FUNCTION, 1,
       cart_attach_cmdline, (void *)CARTRIDGE_ROSS, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -541,9 +558,22 @@ int cart_cmdline_options_init(void)
         || ide64_cmdline_options_init() < 0
         || mmcreplay_cmdline_options_init() < 0
         || retroreplay_cmdline_options_init() < 0
+        || rrnetmk3_cmdline_options_init() < 0
+        || supersnapshot_v5_cmdline_options_init() < 0
         ) {
         return -1;
     }
+
+    if (debugcart_cmdline_options_init() < 0) {
+        return -1;
+    }
+
+    if (machine_class == VICE_MACHINE_C64 || machine_class == VICE_MACHINE_C64SC) {
+        if (cpmcart_cmdline_options_init() < 0) {
+            return -1;
+        }
+    }
+
     return cmdline_register_options(cmdline_options);
 }
 
@@ -584,9 +614,22 @@ int cart_resources_init(void)
         || ide64_resources_init() < 0
         || mmcreplay_resources_init() < 0
         || retroreplay_resources_init() < 0
+        || rrnetmk3_resources_init() < 0
+        || supersnapshot_v5_resources_init() < 0
         ) {
         return -1;
     }
+
+    if (debugcart_resources_init() < 0) {
+        return -1;
+    }
+
+    if (machine_class == VICE_MACHINE_C64 || machine_class == VICE_MACHINE_C64SC) {
+        if (cpmcart_resources_init() < 0) {
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -614,6 +657,8 @@ void cart_resources_shutdown(void)
     ide64_resources_shutdown();
     mmcreplay_resources_shutdown();
     retroreplay_resources_shutdown();
+    rrnetmk3_resources_shutdown();
+    supersnapshot_v5_resources_shutdown();
 
     /* "Slot 1" */
     expert_resources_shutdown();
@@ -879,6 +924,8 @@ int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
             return dsm_bin_attach(filename, rawcart);
         case CARTRIDGE_DINAMIC:
             return dinamic_bin_attach(filename, rawcart);
+        case CARTRIDGE_EASYCALC:
+            return easycalc_bin_attach(filename, rawcart);
         case CARTRIDGE_EASYFLASH:
             return easyflash_bin_attach(filename, rawcart);
         case CARTRIDGE_EASYFLASH_XBANK:
@@ -939,6 +986,8 @@ int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
             return rexep256_bin_attach(filename, rawcart);
         case CARTRIDGE_RGCD:
             return rgcd_bin_attach(filename, rawcart);
+        case CARTRIDGE_RRNETMK3:
+            return rrnetmk3_bin_attach(filename, rawcart);
         case CARTRIDGE_ROSS:
             return ross_bin_attach(filename, rawcart);
         case CARTRIDGE_SILVERROCK_128:
@@ -1047,6 +1096,9 @@ void cart_attach(int type, BYTE *rawcart)
         case CARTRIDGE_DINAMIC:
             dinamic_config_setup(rawcart);
             break;
+        case CARTRIDGE_EASYCALC:
+            easycalc_config_setup(rawcart);
+            break;
         case CARTRIDGE_EASYFLASH:
             easyflash_config_setup(rawcart);
             break;
@@ -1136,6 +1188,9 @@ void cart_attach(int type, BYTE *rawcart)
             break;
         case CARTRIDGE_ROSS:
             ross_config_setup(rawcart);
+            break;
+        case CARTRIDGE_RRNETMK3:
+            rrnetmk3_config_setup(rawcart);
             break;
         case CARTRIDGE_SILVERROCK_128:
             silverrock128_config_setup(rawcart);
@@ -1460,6 +1515,9 @@ void cart_detach(int type)
         case CARTRIDGE_DINAMIC:
             dinamic_detach();
             break;
+        case CARTRIDGE_EASYCALC:
+            easycalc_detach();
+            break;
         case CARTRIDGE_EASYFLASH:
             easyflash_detach();
             break;
@@ -1540,6 +1598,9 @@ void cart_detach(int type)
             break;
         case CARTRIDGE_RGCD:
             rgcd_detach();
+            break;
+        case CARTRIDGE_RRNETMK3:
+            rrnetmk3_detach();
             break;
         case CARTRIDGE_ROSS:
             ross_detach();
@@ -1690,6 +1751,9 @@ void cartridge_init_config(void)
         case CARTRIDGE_DINAMIC:
             dinamic_config_init();
             break;
+        case CARTRIDGE_EASYCALC:
+            easycalc_config_init();
+            break;
         case CARTRIDGE_EASYFLASH:
             easyflash_config_init();
             break;
@@ -1777,6 +1841,9 @@ void cartridge_init_config(void)
         case CARTRIDGE_RGCD:
             rgcd_config_init();
             break;
+        case CARTRIDGE_RRNETMK3:
+            rrnetmk3_config_init();
+            break;
         case CARTRIDGE_ROSS:
             ross_config_init();
             break;
@@ -1843,11 +1910,11 @@ void cartridge_init_config(void)
 
     /* "Slot 0" */
     if (magicvoice_cart_enabled()) {
-        magicvoice_config_init((struct export_s*)&export_passthrough);
+        magicvoice_config_init(&export_passthrough);
     } else if (mmc64_cart_enabled()) {
-        mmc64_config_init((struct export_s*)&export_passthrough);
+        mmc64_config_init(&export_passthrough);
     } else if (tpi_cart_enabled()) {
-        tpi_config_init((struct export_s*)&export_passthrough);
+        tpi_config_init(&export_passthrough);
     }
 }
 
@@ -1927,11 +1994,17 @@ void cartridge_reset(void)
         case CARTRIDGE_FREEZE_MACHINE:
             freezemachine_reset();
             break;
+        case CARTRIDGE_IDE64:
+            ide64_reset();
+            break;
         case CARTRIDGE_MAGIC_FORMEL:
             magicformel_reset();
             break;
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_reset();
+            break;
+        case CARTRIDGE_RRNETMK3:
+            rrnetmk3_reset();
             break;
         case CARTRIDGE_RGCD:
             rgcd_reset();
@@ -1962,6 +2035,9 @@ void cartridge_reset(void)
     }
     if (mmc64_cart_enabled()) {
         mmc64_reset();
+    }
+    if (cpmcart_cart_enabled()) {
+        cpmcart_reset();
     }
 }
 
@@ -2140,6 +2216,8 @@ int cartridge_flush_image(int type)
             return mmcreplay_flush_image();
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_flush_image();
+        case CARTRIDGE_RRNETMK3:
+            return rrnetmk3_flush_image();
         /* "I/O" */
         case CARTRIDGE_GEORAM:
             return georam_flush_image();
@@ -2178,6 +2256,8 @@ int cartridge_bin_save(int type, const char *filename)
             return mmcreplay_bin_save(filename);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_bin_save(filename);
+        case CARTRIDGE_RRNETMK3:
+            return rrnetmk3_bin_save(filename);
         /* "I/O Slot" */
         case CARTRIDGE_GEORAM:
             return georam_bin_save(filename);
@@ -2213,6 +2293,8 @@ int cartridge_crt_save(int type, const char *filename)
             return mmcreplay_crt_save(filename);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_crt_save(filename);
+        case CARTRIDGE_RRNETMK3:
+            return rrnetmk3_crt_save(filename);
     }
     return -1;
 }
@@ -2225,6 +2307,7 @@ void cartridge_sound_chip_init(void)
     sfx_soundsampler_sound_chip_init();
     sfx_soundexpander_sound_chip_init();
     magicvoice_sound_chip_init();
+    shortbus_digimax_sound_chip_init();
 }
 
 /* ------------------------------------------------------------------------- */
@@ -2265,8 +2348,14 @@ void cartridge_sound_chip_init(void)
 void cartridge_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
 {
     int res = CART_READ_THROUGH;
+#if 0
+    /* disable all the mmu translation stuff for testing */
+    *base = NULL;
+    *start = 0;
+    *limit = 0;
+    return;
+#endif
     /* "Slot 0" */
-
     if (mmc64_cart_enabled()) {
         if ((res = mmc64_mmu_translate(addr, base, start, limit)) == CART_READ_VALID) {
             return;
@@ -2332,6 +2421,9 @@ void cartridge_mmu_translate(unsigned int addr, BYTE **base, int *start, int *li
         case CARTRIDGE_RETRO_REPLAY:
             retroreplay_mmu_translate(addr, base, start, limit);
             return;
+        case CARTRIDGE_RRNETMK3:
+            rrnetmk3_mmu_translate(addr, base, start, limit);
+            return;
         case CARTRIDGE_SUPER_SNAPSHOT_V5:
             supersnapshot_v5_mmu_translate(addr, base, start, limit);
             return;
@@ -2369,7 +2461,7 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
 
     /* Find out which carts are attached */
     {
-        export_list_t *e = c64export_query_list(NULL);
+        export_list_t *e = export_query_list(NULL);
 
         while (e != NULL) {
             if (number_of_carts == C64CART_DUMP_MAX_CARTS) {
@@ -2446,6 +2538,11 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
     for (i = 0; i < number_of_carts; i++) {
         switch (cart_ids[i]) {
             /* "Slot 0" */
+            case CARTRIDGE_CPM:
+                if (cpmcart_snapshot_write_module(s) < 0) {
+                    return -1;
+                }
+                break;
             case CARTRIDGE_MMC64:
                 if (mmc64_snapshot_write_module(s) < 0) {
                     return -1;
@@ -2542,6 +2639,11 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                 break;
             case CARTRIDGE_DINAMIC:
                 if (dinamic_snapshot_write_module(s) < 0) {
+                    return -1;
+                }
+                break;
+            case CARTRIDGE_EASYCALC:
+                if (easycalc_snapshot_write_module(s) < 0) {
                     return -1;
                 }
                 break;
@@ -2684,6 +2786,11 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                 break;
             case CARTRIDGE_RGCD:
                 if (rgcd_snapshot_write_module(s) < 0) {
+                    return -1;
+                }
+                break;
+            case CARTRIDGE_RRNETMK3:
+                if (rrnetmk3_snapshot_write_module(s) < 0) {
                     return -1;
                 }
                 break;
@@ -2915,6 +3022,11 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
     for (i = 0; i < number_of_carts; i++) {
         switch (cart_ids[i]) {
             /* "Slot 0" */
+            case CARTRIDGE_CPM:
+                if (cpmcart_snapshot_read_module(s) < 0) {
+                    goto fail2;
+                }
+                break;
             case CARTRIDGE_MMC64:
                 if (mmc64_snapshot_read_module(s) < 0) {
                     goto fail2;
@@ -3011,6 +3123,11 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                 break;
             case CARTRIDGE_DINAMIC:
                 if (dinamic_snapshot_read_module(s) < 0) {
+                    goto fail2;
+                }
+                break;
+            case CARTRIDGE_EASYCALC:
+                if (easycalc_snapshot_read_module(s) < 0) {
                     goto fail2;
                 }
                 break;
@@ -3153,6 +3270,11 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                 break;
             case CARTRIDGE_RGCD:
                 if (rgcd_snapshot_read_module(s) < 0) {
+                    goto fail2;
+                }
+                break;
+            case CARTRIDGE_RRNETMK3:
+                if (rrnetmk3_snapshot_read_module(s) < 0) {
                     goto fail2;
                 }
                 break;

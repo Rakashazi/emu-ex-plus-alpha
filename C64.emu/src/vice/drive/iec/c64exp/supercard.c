@@ -103,7 +103,7 @@ void supercard_mem_init(struct drive_context_s *drv, unsigned int type)
     case DRIVE_TYPE_1570:
     case DRIVE_TYPE_1571:
     case DRIVE_TYPE_1571CR:
-        drivemem_set_func(cpud, 0x10, 0x18, supercard_read, NULL, supercard_rom, 0x100017fd);
+        drivemem_set_func(cpud, 0x10, 0x18, supercard_read, NULL, NULL, supercard_rom, 0x100017fd);
         break;
     default:
         break;

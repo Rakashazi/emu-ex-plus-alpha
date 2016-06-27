@@ -32,6 +32,7 @@
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "machine.h"
 #include "resources.h"
 #include "snapshot.h"
@@ -58,7 +59,7 @@ static BYTE vic20midi_peek(WORD address)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t midi_device = {
-    "MIDI",
+    CARTRIDGE_VIC20_NAME_MIDI,
     IO_DETACH_RESOURCE,
     "MIDIEnable",
     0x9c00, 0x9fff, 0x3ff,
@@ -74,6 +75,10 @@ static io_source_t midi_device = {
 
 static io_source_list_t *midi_list_item = NULL;
 
+static const export_resource_t export_res = {
+    CARTRIDGE_VIC20_NAME_MIDI, 0, 0, NULL, &midi_device, CARTRIDGE_MIDI_MAPLIN
+};
+
 /* ---------------------------------------------------------------------*/
 
 static int set_midi_enabled(int value, void *param)
@@ -81,9 +86,13 @@ static int set_midi_enabled(int value, void *param)
     int val = value ? 1 : 0;
 
     if (!midi_enabled && val) {
+        if (export_add(&export_res) < 0) {
+            return -1;
+        }
         midi_list_item = io_source_register(&midi_device);
         midi_enabled = 1;
     } else if (midi_enabled && !val) {
+        export_remove(&export_res);
         io_source_unregister(midi_list_item);
         midi_list_item = NULL;
         midi_enabled = 0;
@@ -125,57 +134,78 @@ int vic20_midi_cmdline_options_init(void)
 /* ---------------------------------------------------------------------*/
 /*    snapshot support functions                                             */
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTMIDI"
+/* CARTMIDI snapshot module format:
 
-/* FIXME: implement snapshot support */
+   type  | name | description
+   --------------------------
+   BYTE  | mode | midi mode
+ */
+
+static char snap_module_name[] = "CARTMIDI";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
 int vic20_midi_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME, CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (0) {
+    if (SMW_B(m, (BYTE)midi_mode) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
     snapshot_module_close(m);
-    return 0;
-#endif
+
+    return midi_snapshot_write_module(s);
 }
 
 int vic20_midi_snapshot_read_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     BYTE vmajor, vminor;
     snapshot_module_t *m;
+    int tmp_midi_mode;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not allow versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0) {
-        snapshot_module_close(m);
-        return -1;
+    if (SMR_B_INT(m, &tmp_midi_mode) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
-    return 0;
+
+    /* enable midi */
+#if 0
+    midi_set_vic20mode(tmp_midi_mode, NULL);
 #endif
+    set_midi_enabled(1, NULL);
+
+    return midi_snapshot_read_module(s);
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }
 
+/* ---------------------------------------------------------------------*/
+
+void vic20_midi_detach(void)
+{
+    set_midi_enabled(0, NULL);
+}
 #endif

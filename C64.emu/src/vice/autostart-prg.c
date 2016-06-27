@@ -43,6 +43,7 @@
 #include "drive.h"
 
 /* ----- Globals ----- */
+extern int autostart_basic_load;
 
 /* program from last injection */
 static autostart_prg_t *inject_prg;
@@ -70,13 +71,19 @@ static autostart_prg_t * load_prg(const char *file_name, fileio_info_t *finfo, l
         log_error(log, "Cannot read start address from '%s'", file_name);
         return NULL;
     }
-    prg->start_addr = (WORD)hi << 8 | (WORD)lo;
+
+    /* get load addr */
+    if (autostart_basic_load) {
+        mem_get_basic_text(&prg->start_addr, NULL);
+    } else {
+        prg->start_addr = (WORD)hi << 8 | (WORD)lo;
+    }
     prg->size -= 2; /* skip load addr */
 
     /* check range */
     end = prg->start_addr + prg->size - 1;
     if (end > 0xffff) {
-        log_error(log, "Invalid size of '%s': %d", file_name, prg->size);
+        log_error(log, "Invalid size of '%s': %d", file_name, (unsigned int)prg->size);
         return NULL;
     }
 
@@ -330,7 +337,7 @@ int autostart_prg_perform_injection(log_t log)
 
     log_message(log, "Injecting program data at $%04x (size $%04x)",
                 prg->start_addr,
-                prg->size);
+                (unsigned int)prg->size);
 
     /* store data in emu memory */
     for (i = 0; i < prg->size; i++) {

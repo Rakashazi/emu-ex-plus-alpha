@@ -73,6 +73,11 @@
 
 #define DRIVE_TYPE_NUM    17
 
+/* max. half tracks */
+#define DRIVE_HALFTRACKS_1541   84
+/* FIXME: this constant is at some places used unconditionally for all 2-sided drives */
+#define DRIVE_HALFTRACKS_1571   70
+
 /* Possible colors of the drive active LED.  */
 #define DRIVE_LED1_RED     0
 #define DRIVE_LED1_GREEN   1
@@ -272,6 +277,10 @@ typedef struct drive_s {
 
     /* Drive RAM */
     BYTE drive_ram[DRIVE_RAM_SIZE];
+
+    /* rotations per minute (300rpm = 30000) */
+    int rpm;
+    int rpm_wobble;
 } drive_t;
 
 
@@ -316,7 +325,7 @@ extern void drive_set_disk_memory(BYTE *id, unsigned int track,
 extern void drive_set_last_read(unsigned int track, unsigned int sector,
                                 BYTE *buffer, struct drive_context_s *drv);
 
-extern int drive_check_type(unsigned int drive_type, unsigned int dnr);
+extern VICE_API int drive_check_type(unsigned int drive_type, unsigned int dnr);
 extern int drive_check_extend_policy(int drive_type);
 extern int drive_check_idle_method(int drive_type);
 extern int drive_check_expansion(int drive_type);

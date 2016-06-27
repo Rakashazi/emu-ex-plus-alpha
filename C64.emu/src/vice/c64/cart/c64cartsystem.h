@@ -87,10 +87,14 @@ extern void cart_detach_conflicting(int type);
 extern void cart_reset_memptr(void);
 
 /* mode_phiN bit 0,1 control exrom/game */
+
+/* FIXME: EXROM is inverted in these constants, while GAME is not */
 #define CMODE_8KGAME 0
 #define CMODE_16KGAME 1
 #define CMODE_RAM 2
 #define CMODE_ULTIMAX 3
+
+extern const char *cart_config_string(BYTE mode); /* convert above mode into human readable string */
 
 /* mode_phiN other bits select bank (main slot only!) */
 #define CMODE_BANK_SHIFT 2

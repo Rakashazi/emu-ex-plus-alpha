@@ -30,11 +30,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "digimax.h"
+#include "export.h"
 #include "lib.h"
 #include "machine.h"
 #include "maincpu.h"
@@ -46,6 +46,8 @@
 #include "util.h"
 #include "translate.h"
 
+#include "digimaxcore.c"
+
 /*
     Digimax Cartridge
 
@@ -55,17 +57,18 @@
     When inserted into the cart port the cart uses 4 registers,
     one for each channel. The base address can be relocated
     through the entire I/O-1 and I/O-2 range in 0x20 increments.
-
-    TODO: Userport pin description.
 */
 
 /* DIGIMAX address */
 int digimax_address;
-sound_dac_t digimax_dac[4];
 
 static char *digimax_address_list = NULL;
 
 /* ---------------------------------------------------------------------*/
+
+/* some prototypes are needed */
+static void digimax_sound_store(WORD addr, BYTE value);
+static BYTE digimax_sound_read(WORD addr);
 
 static io_source_t digimax_device = {
     CARTRIDGE_NAME_DIGIMAX,
@@ -76,7 +79,7 @@ static io_source_t digimax_device = {
     digimax_sound_store,
     digimax_sound_read,
     digimax_sound_read,
-    NULL,
+    NULL, /* nothing to dump */
     CARTRIDGE_DIGIMAX,
     0,
     0
@@ -84,70 +87,29 @@ static io_source_t digimax_device = {
 
 static io_source_list_t * digimax_list_item = NULL;
 
-static c64export_resource_t export_res = {
+static export_resource_t export_res = {
     CARTRIDGE_NAME_DIGIMAX, 0, 0, &digimax_device, NULL, CARTRIDGE_DIGIMAX
 };
 
 /* ---------------------------------------------------------------------*/
-
-/* Some prototypes are needed */
-static int digimax_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int digimax_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
-static void digimax_sound_machine_store(sound_t *psid, WORD addr, BYTE val);
-static BYTE digimax_sound_machine_read(sound_t *psid, WORD addr);
-static void digimax_sound_reset(sound_t *psid, CLOCK cpu_clk);
-
-static int digimax_sound_machine_cycle_based(void)
-{
-    return 0;
-}
-
-static int digimax_sound_machine_channels(void)
-{
-    return 1;     /* FIXME: needs to become stereo for stereo capable ports */
-}
-
-static sound_chip_t digimax_sound_chip = {
-    NULL, /* no open */
-    digimax_sound_machine_init,
-    NULL, /* no close */
-    digimax_sound_machine_calculate_samples,
-    digimax_sound_machine_store,
-    digimax_sound_machine_read,
-    digimax_sound_reset,
-    digimax_sound_machine_cycle_based,
-    digimax_sound_machine_channels,
-    0 /* chip enabled */
-};
-
-static WORD digimax_sound_chip_offset = 0;
 
 void digimax_sound_chip_init(void)
 {
     digimax_sound_chip_offset = sound_chip_register(&digimax_sound_chip);
 }
 
-/* ---------------------------------------------------------------------*/
-
 int digimax_cart_enabled(void)
 {
     return digimax_sound_chip.chip_enabled;
 }
 
-static BYTE digimax_sound_data[4];
-
-int digimax_is_userport(void)
-{
-    return (digimax_address == 0xdd00);
-}
-
-void digimax_sound_store(WORD addr, BYTE value)
+static void digimax_sound_store(WORD addr, BYTE value)
 {
     digimax_sound_data[addr] = value;
     sound_store((WORD)(digimax_sound_chip_offset | addr), value, 0);
 }
 
-BYTE digimax_sound_read(WORD addr)
+static BYTE digimax_sound_read(WORD addr)
 {
     BYTE value = sound_read((WORD)(digimax_sound_chip_offset | addr), 0);
 
@@ -161,16 +123,14 @@ static int set_digimax_enabled(int value, void *param)
     int val = value ? 1 : 0;
 
     if (!digimax_sound_chip.chip_enabled && val) {
-        if (!digimax_is_userport()) {
-            if (c64export_add(&export_res) < 0) {
-                return -1;
-            }
-            digimax_list_item = io_source_register(&digimax_device);
+        if (export_add(&export_res) < 0) {
+            return -1;
         }
+        digimax_list_item = io_source_register(&digimax_device);
         digimax_sound_chip.chip_enabled = 1;
     } else if (digimax_sound_chip.chip_enabled && !val) {
         if (digimax_list_item != NULL) {
-            c64export_remove(&export_res);
+            export_remove(&export_res);
             io_source_unregister(digimax_list_item);
             digimax_list_item = NULL;
         }
@@ -201,8 +161,6 @@ static int set_digimax_base(int val, void *param)
     }
 
     switch (addr) {
-        case 0xdd00:   /* special case, userport interface */
-            break;
         case 0xde00:
         case 0xde20:
         case 0xde40:
@@ -350,7 +308,7 @@ int digimax_cmdline_options_init(void)
         lib_free(temp2);
     } else {
         temp1 = util_gen_hex_address_list(0xde00, 0xe000, 0x20);
-        digimax_address_list = util_concat(". (0xDD00: Userport/", temp1, ")", NULL);
+        digimax_address_list = util_concat(". (", temp1, ")", NULL);
     }
     lib_free(temp1);
 
@@ -361,97 +319,34 @@ int digimax_cmdline_options_init(void)
 
 /* ---------------------------------------------------------------------*/
 
-struct digimax_sound_s {
-    BYTE voice0;
-    BYTE voice1;
-    BYTE voice2;
-    BYTE voice3;
-};
+/* CARTDIGIMAX snapshot module format:
 
-static struct digimax_sound_s snd;
+   type  | name       | description
+   --------------------------------
+   DWORD | base       | base address of the control registers
+   ARRAY | sound data | 4 BYTES of sound data
+   BYTE  | voice 0    | voice 0 data
+   BYTE  | voice 1    | voice 1 data
+   BYTE  | voice 2    | voice 2 data
+   BYTE  | voice 3    | voice 3 data
+ */
 
-static int digimax_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
-{
-    sound_dac_calculate_samples(&digimax_dac[0], pbuf, (int)snd.voice0 * 64, nr, soc, 1);
-    sound_dac_calculate_samples(&digimax_dac[1], pbuf, (int)snd.voice1 * 64, nr, soc, (soc > 1) ? 2 : 1);
-    sound_dac_calculate_samples(&digimax_dac[2], pbuf, (int)snd.voice2 * 64, nr, soc, 1);
-    sound_dac_calculate_samples(&digimax_dac[3], pbuf, (int)snd.voice3 * 64, nr, soc, (soc > 1) ? 2 : 1);
-    return nr;
-}
-
-static int digimax_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
-{
-    sound_dac_init(&digimax_dac[0], speed);
-    sound_dac_init(&digimax_dac[1], speed);
-    sound_dac_init(&digimax_dac[2], speed);
-    sound_dac_init(&digimax_dac[3], speed);
-    snd.voice0 = 0;
-    snd.voice1 = 0;
-    snd.voice2 = 0;
-    snd.voice3 = 0;
-
-    return 1;
-}
-
-static void digimax_sound_machine_store(sound_t *psid, WORD addr, BYTE val)
-{
-    switch (addr & 3) {
-        case 0:
-            snd.voice0 = val;
-            break;
-        case 1:
-            snd.voice1 = val;
-            break;
-        case 2:
-            snd.voice2 = val;
-            break;
-        case 3:
-            snd.voice3 = val;
-            break;
-    }
-}
-
-static BYTE digimax_sound_machine_read(sound_t *psid, WORD addr)
-{
-    return digimax_sound_data[addr & 3];
-}
-
-static void digimax_sound_reset(sound_t *psid, CLOCK cpu_clk)
-{
-    snd.voice0 = 0;
-    snd.voice1 = 0;
-    snd.voice2 = 0;
-    snd.voice3 = 0;
-    digimax_sound_data[0] = 0;
-    digimax_sound_data[1] = 0;
-    digimax_sound_data[2] = 0;
-    digimax_sound_data[3] = 0;
-}
-
-/* ---------------------------------------------------------------------*/
-
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTDIGIMAX"
+static char snap_module_name[] = "CARTDIGIMAX";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
 
 int digimax_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
         || (SMW_DW(m, (DWORD)digimax_address) < 0)
-/* FIXME: implement userport part in userport_digimax.c */
-#if 0
-        || (SMW_B(m, digimax_userport_address) < 0)
-        || (SMW_B(m, digimax_userport_direction_A) < 0)
-        || (SMW_B(m, digimax_userport_direction_B) < 0)
-#endif
         || (SMW_BA(m, digimax_sound_data, 4) < 0)
         || (SMW_B(m, snd.voice0) < 0)
         || (SMW_B(m, snd.voice1) < 0)
@@ -461,8 +356,7 @@ int digimax_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int digimax_snapshot_read_module(snapshot_t *s)
@@ -471,31 +365,26 @@ int digimax_snapshot_read_module(snapshot_t *s)
     snapshot_module_t *m;
     int temp_digimax_address;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
     if (0
         || (SMR_DW_INT(m, &temp_digimax_address) < 0)
-/* FIXME: Implement the userport part in userport_digimax.c */
-#if 0
-        || (SMR_B(m, &digimax_userport_address) < 0)
-        || (SMR_B(m, &digimax_userport_direction_A) < 0)
-        || (SMR_B(m, &digimax_userport_direction_B) < 0)
-#endif
         || (SMR_BA(m, digimax_sound_data, 4) < 0)
         || (SMR_B(m, &snd.voice0) < 0)
         || (SMR_B(m, &snd.voice1) < 0)
         || (SMR_B(m, &snd.voice2) < 0)
         || (SMR_B(m, &snd.voice3) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        goto fail;
     }
 
     snapshot_module_close(m);
@@ -505,4 +394,8 @@ int digimax_snapshot_read_module(snapshot_t *s)
     set_digimax_base(temp_digimax_address, NULL);
 
     return digimax_enable();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

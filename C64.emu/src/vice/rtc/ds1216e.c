@@ -29,6 +29,7 @@
 #include "ds1216e.h"
 #include "lib.h"
 #include "rtc.h"
+#include "snapshot.h"
 
 #include <string.h>
 
@@ -348,4 +349,151 @@ BYTE ds1216e_read(rtc_ds1216e_t *context, WORD address, BYTE origbyte)
         ds1216e_match_pattern(context, address);
     }
     return origbyte;
+}
+
+/* ---------------------------------------------------------------------------------------------------- */
+
+/* RTC_DS1216E snapshot module format:
+
+   type   | name               | description
+   -------------------------------------
+   BYTE   | reset              | reset flag
+   BYTE   | inactive           | inactive flag
+   BYTE   | 12hours            | 12 hours flag
+   BYTE   | pattern pos        | pattern position
+   BYTE   | pattern ignore     | pattern ignore flag
+   BYTE   | output             | current output bit
+   BYTE   | output pos         | current output position
+   DWORD  | latch hi           | high DWORD of the latch offset
+   DWORD  | latch lo           | low DWORD of the latch offset
+   DWORD  | offset hi          | high DWORD of the RTC offset
+   DWORD  | offset lo          | low DWORD of the RTC offset
+   DWORD  | old offset hi      | high DWORD of the old RTC offset
+   DWORD  | old offset lo      | low DWORD of the old RTC offset
+   ARRAY  | clock regs         | 8 BYTES of register data
+   ARRAY  | old clock regs     | 8 BYTES of old register data
+   ARRAY  | clock regs changed | 8 BYTES of changed register data
+   STRING | device             | device name STRING
+ */
+
+static char snap_module_name[] = "RTC_DS1216E";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
+int ds1216e_write_snapshot(rtc_ds1216e_t *context, snapshot_t *s)
+{
+    DWORD latch_lo = 0;
+    DWORD latch_hi = 0;
+    DWORD offset_lo = 0;
+    DWORD offset_hi = 0;
+    DWORD old_offset_lo = 0;
+    DWORD old_offset_hi = 0;
+    snapshot_module_t *m;
+
+    /* time_t can be either 32bit or 64bit, so we save as 64bit */
+#if (SIZE_OF_TIME_T == 8)
+    latch_hi = (DWORD)(context->latch >> 32);
+    latch_lo = (DWORD)(context->latch & 0xffffffff);
+    offset_hi = (DWORD)(context->offset >> 32);
+    offset_lo = (DWORD)(context->offset & 0xffffffff);
+    old_offset_hi = (DWORD)(context->old_offset >> 32);
+    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+#else
+    latch_lo = (DWORD)context->latch;
+    offset_lo = (DWORD)context->offset;
+    old_offset_lo = (DWORD)context->old_offset;
+#endif
+
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    if (0
+        || SMW_B(m, (BYTE)context->reset) < 0
+        || SMW_B(m, (BYTE)context->inactive) < 0
+        || SMW_B(m, (BYTE)context->hours12) < 0
+        || SMW_B(m, (BYTE)context->pattern_pos) < 0
+        || SMW_B(m, (BYTE)context->pattern_ignore) < 0
+        || SMW_B(m, (BYTE)context->output) < 0
+        || SMW_B(m, (BYTE)context->output_pos) < 0
+        || SMW_DW(m, latch_hi) < 0
+        || SMW_DW(m, latch_lo) < 0
+        || SMW_DW(m, offset_hi) < 0
+        || SMW_DW(m, offset_lo) < 0
+        || SMW_DW(m, old_offset_hi) < 0
+        || SMW_DW(m, old_offset_lo) < 0
+        || SMW_BA(m, context->clock_regs, DS1216E_REG_SIZE) < 0
+        || SMW_BA(m, context->old_clock_regs, DS1216E_REG_SIZE) < 0
+        || SMW_BA(m, context->clock_regs_changed, DS1216E_REG_SIZE) < 0
+        || SMW_STR(m, context->device) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+    return snapshot_module_close(m);
+}
+
+int ds1216e_read_snapshot(rtc_ds1216e_t *context, snapshot_t *s)
+{
+    DWORD latch_lo = 0;
+    DWORD latch_hi = 0;
+    DWORD offset_lo = 0;
+    DWORD offset_hi = 0;
+    DWORD old_offset_lo = 0;
+    DWORD old_offset_hi = 0;
+    BYTE vmajor, vminor;
+    snapshot_module_t *m;
+
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
+    if (m == NULL) {
+        return -1;
+    }
+
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
+    }
+
+    if (0
+        || SMR_B_INT(m, &context->reset) < 0
+        || SMR_B_INT(m, &context->inactive) < 0
+        || SMR_B_INT(m, &context->hours12) < 0
+        || SMR_B_INT(m, &context->pattern_pos) < 0
+        || SMR_B_INT(m, &context->pattern_ignore) < 0
+        || SMR_B_INT(m, &context->output) < 0
+        || SMR_B_INT(m, &context->output_pos) < 0
+        || SMR_DW(m, &latch_hi) < 0
+        || SMR_DW(m, &latch_lo) < 0
+        || SMR_DW(m, &offset_hi) < 0
+        || SMR_DW(m, &offset_lo) < 0
+        || SMR_DW(m, &old_offset_hi) < 0
+        || SMR_DW(m, &old_offset_lo) < 0
+        || SMR_BA(m, context->clock_regs, DS1216E_REG_SIZE) < 0
+        || SMR_BA(m, context->old_clock_regs, DS1216E_REG_SIZE) < 0
+        || SMR_BA(m, context->clock_regs_changed, DS1216E_REG_SIZE) < 0
+        || SMR_STR(m, &context->device) < 0) {
+        goto fail;
+    }
+
+#if (SIZE_OF_TIME_T == 8)
+    context->latch = (time_t)(latch_hi) << 32;
+    context->latch |= latch_lo;
+    context->offset = (time_t)(offset_hi) << 32;
+    context->offset |= offset_lo;
+    context->old_offset = (time_t)(old_offset_hi) << 32;
+    context->old_offset |= old_offset_lo;
+#else
+    context->latch = latch_lo;
+    context->offset = offset_lo;
+    context->old_offset = old_offset_lo;
+#endif
+
+    return snapshot_module_close(m);
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

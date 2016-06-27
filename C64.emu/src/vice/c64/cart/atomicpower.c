@@ -34,10 +34,11 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
+#include "monitor.h"
 #include "snapshot.h"
 #include "types.h"
 #include "util.h"
@@ -78,8 +79,8 @@
        bit 2,6,7 (cart disable, freeze clear) are 0,
 
     then Cart ROM (Bank 0..3) is mapped at 8000-9fff,
-     and Cart RAM (Bank 0) is mapped at A000-bfff
-     and Cart RAM (Bank 0) is is enabled in io2 area
+     and Cart RAM (Bank 0) is mapped at a000-bfff
+     and Cart RAM (Bank 0) is enabled in io2 area
      using 16K Game config
 
     io2 (r/w)
@@ -96,6 +97,7 @@ static int ap_active;
 static void atomicpower_io1_store(WORD addr, BYTE value);
 static BYTE atomicpower_io2_read(WORD addr);
 static void atomicpower_io2_store(WORD addr, BYTE value);
+static int atomicpower_dump(void);
 
 static io_source_t atomicpower_io1_device = {
     CARTRIDGE_NAME_ATOMIC_POWER,
@@ -106,7 +108,7 @@ static io_source_t atomicpower_io1_device = {
     atomicpower_io1_store,
     NULL,
     NULL, /* TODO: peek */
-    NULL, /* TODO: dump */
+    atomicpower_dump,
     CARTRIDGE_ATOMIC_POWER,
     0,
     0
@@ -121,7 +123,7 @@ static io_source_t atomicpower_io2_device = {
     atomicpower_io2_store,
     atomicpower_io2_read,
     NULL, /* TODO: peek */
-    NULL, /* TODO: dump */
+    atomicpower_dump,
     CARTRIDGE_ATOMIC_POWER,
     0,
     0
@@ -130,15 +132,20 @@ static io_source_t atomicpower_io2_device = {
 static io_source_list_t *atomicpower_io1_list_item = NULL;
 static io_source_list_t *atomicpower_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_ATOMIC_POWER, 1, 1, &atomicpower_io1_device, &atomicpower_io2_device, CARTRIDGE_ATOMIC_POWER
 };
 
 /* ---------------------------------------------------------------------*/
+
+static BYTE atomicpower_control_reg = 0;
+
 static void atomicpower_io1_store(WORD addr, BYTE value)
 {
     int flags = CMODE_WRITE, bank, mode;
+
     if (ap_active) {
+        atomicpower_control_reg = value;
         bank = ((value >> 3) & 3);
         mode = (value & 3);
         DBG(("io1 w %02x mode %d bank %d (np special: %s)\n", value, mode, bank, ((value & 0xe7) == 0x22) ? "yes" : "no"));
@@ -201,6 +208,27 @@ static void atomicpower_io2_store(WORD addr, BYTE value)
             export_ram0[0x1f00 + (addr & 0xff)] = value;
         }
     }
+}
+
+static int atomicpower_dump(void)
+{
+    int bank = ((atomicpower_control_reg & 0x80) >> 5) | ((atomicpower_control_reg & 0x18) >> 3);
+    int freeze_reset = (atomicpower_control_reg & 0x40) ? 1 : 0;
+    int ram_enable = (atomicpower_control_reg & 0x20) ? 1 : 0;
+    int cart_disable = (atomicpower_control_reg & 4) ? 1 : 0;
+    int exrom = (atomicpower_control_reg & 2) ? 1 : 0;
+    char *exrom_line = (exrom) ? "high" : "low";
+    int game = atomicpower_control_reg & 1;
+    char *game_line = (game) ? "low" : "high";
+
+    mon_out("Bank: %d, Freeze Reset: %d, RAM Enable: %d, Cart Disable: %d, EXROM: %s, GAME: %s\n",
+            bank, freeze_reset, ram_enable, cart_disable, exrom_line, game_line);
+
+    /* TODO: what is at $8000-$9FFF (cart RAM, cart ROM, system RAM),
+             what is at $A000-$BFFF (cart RAM, BASIC ROM)
+     */
+
+    return 0;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -305,7 +333,7 @@ void atomicpower_config_setup(BYTE *rawcart)
 
 static int atomicpower_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -348,7 +376,7 @@ int atomicpower_crt_attach(FILE *fd, BYTE *rawcart)
 
 void atomicpower_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(atomicpower_io1_list_item);
     io_source_unregister(atomicpower_io2_list_item);
     atomicpower_io1_list_item = NULL;
@@ -357,16 +385,26 @@ void atomicpower_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTAP"
+/* CARTAP snapshot module format:
+
+   type  | name        | description
+   ---------------------------------
+   BYTE  | active      | cartridge active flag
+   BYTE  | ram at a000 | RAM at $A000 flag
+   ARRAY | ROML        | 32768 BYTES of ROML data
+   ARRAY | RAM         | 8192 BYTES of RAM data
+ */
+
+static char snap_module_name[] = "CARTAP";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
 
 int atomicpower_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
@@ -380,8 +418,7 @@ int atomicpower_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int atomicpower_snapshot_read_module(snapshot_t *s)
@@ -389,14 +426,16 @@ int atomicpower_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
     if (0
@@ -404,12 +443,16 @@ int atomicpower_snapshot_read_module(snapshot_t *s)
         || (SMR_B_INT(m, &export_ram_at_a000) < 0)
         || (SMR_BA(m, roml_banks, 0x8000) < 0)
         || (SMR_BA(m, export_ram0, 0x2000) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     memcpy(romh_banks, roml_banks, 0x8000);
+
     return atomicpower_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

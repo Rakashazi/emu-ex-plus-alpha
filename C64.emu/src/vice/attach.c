@@ -43,7 +43,6 @@
 #include "network.h"
 #include "resources.h"
 #include "serial.h"
-#include "snapshot.h"
 #include "translate.h"
 #include "types.h"
 #include "uiapi.h"

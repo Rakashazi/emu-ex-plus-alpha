@@ -213,10 +213,13 @@ static inline int vice_min(int a, int b)
     return a < b ? a : b;
 }
 
+/* FIXME: dead code? */
+#if 0
 static inline int vice_max(int a, int b)
 {
     return a > b ? a : b;
 }
+#endif
 
 static void mix(BYTE *old, int new)
 {

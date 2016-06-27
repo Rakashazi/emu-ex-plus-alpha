@@ -69,4 +69,12 @@ extern int cbm2mem_bank_ind;
 extern void colorram_store(WORD addr, BYTE value);
 extern BYTE colorram_read(WORD addr);
 
+extern BYTE read_unused(WORD addr);
+
+extern void mem_handle_pending_alarms_external(int cycles);
+extern void mem_handle_pending_alarms_external_write(void);
+
+extern void cbm2io_init(void);
+extern void cbm5x0io_init(void);
+
 #endif

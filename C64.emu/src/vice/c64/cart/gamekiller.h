@@ -30,11 +30,11 @@
 #include <stdio.h>
 
 #include "types.h"
+#include "c64cart.h"
 
 struct snapshot_s;
-struct export_s;
 
-extern int gamekiller_peek_mem(struct export_s *export, WORD addr, BYTE *value);
+extern int gamekiller_peek_mem(export_t *export, WORD addr, BYTE *value);
 
 extern void gamekiller_config_init(void);
 extern void gamekiller_config_setup(BYTE *rawcart);

@@ -78,6 +78,7 @@ void video_render_initconfig(video_render_config_t *config)
     }
 }
 
+/* called from archdep code */
 void video_render_setphysicalcolor(video_render_config_t *config, int index,
                                    DWORD color, int depth)
 {

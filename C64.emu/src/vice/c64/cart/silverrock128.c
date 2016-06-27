@@ -191,9 +191,9 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
 #include "silverrock128.h"
 #include "monitor.h"
 #include "snapshot.h"
@@ -203,7 +203,7 @@
 
 
 static const BYTE bank_seq[] = {0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15};
-static const BYTE bank_val[] = {0x00, 0x80, 0x10, 0x90, 0x20, 0xa0, 0x30, 0xb0, 0x40, 0xc0, 0x50, 0xd0, 0x60, 0xe0, 0x70, 0xf0};
+/* static const BYTE bank_val[] = {0x00, 0x80, 0x10, 0x90, 0x20, 0xa0, 0x30, 0xb0, 0x40, 0xc0, 0x50, 0xd0, 0x60, 0xe0, 0x70, 0xf0}; */
 
 static BYTE regval = 0;
 static int currbank = 0;
@@ -267,7 +267,7 @@ static io_source_t silverrock128_device = {
 
 static io_source_list_t *silverrock128_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_SILVERROCK_128, 1, 0, &silverrock128_device, NULL, CARTRIDGE_SILVERROCK_128
 };
 
@@ -289,7 +289,7 @@ void silverrock128_config_setup(BYTE *rawcart)
 /* ---------------------------------------------------------------------*/
 static int silverrock128_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
     silverrock128_list_item = io_source_register(&silverrock128_device);
@@ -334,36 +334,45 @@ int silverrock128_crt_attach(FILE *fd, BYTE *rawcart)
 
 void silverrock128_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(silverrock128_list_item);
     silverrock128_list_item = NULL;
 }
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTSILVERROCK128"
+/* CARTSILVERROCK128 snapshot module format:
+
+   type  | name   | version | description
+   --------------------------------------
+   BYTE  | regval |   0.1   | register
+   BYTE  | bank   |   0.0+  | current bank
+   ARRAY | ROML   |   0.0+  | 262144 BYTES of ROML data
+ */
+
+static char snap_module_name[] = "CARTSILVERROCK128";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
 
 int silverrock128_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_B(m, (BYTE)currbank) < 0)
-        || (SMW_BA(m, roml_banks, 0x2000 * 32) < 0)) {
+        || SMW_B(m, regval) < 0
+        || SMW_B(m, (BYTE)currbank) < 0
+        || SMW_BA(m, roml_banks, 0x2000 * 32) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int silverrock128_snapshot_read_module(snapshot_t *s)
@@ -371,24 +380,38 @@ int silverrock128_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0
-        || (SMR_B_INT(m, &currbank) < 0)
-        || (SMR_BA(m, roml_banks, 0x2000 * 32) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+     /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (SMR_B(m, &regval) < 0) {
+            goto fail;
+        }
+    } else {
+        regval = 0;
+    }
+
+   if (0
+        || SMR_B_INT(m, &currbank) < 0
+        || SMR_BA(m, roml_banks, 0x2000 * 32) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     return silverrock128_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

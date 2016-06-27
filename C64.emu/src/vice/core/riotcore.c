@@ -319,6 +319,44 @@ BYTE myriot_read_(riot_context_t *riot_context, WORD addr)
     return 0xff;
 }
 
+/* read from I/O without side effects */
+/* FIXME: check if this is working correctly */
+BYTE riotcore_peek(riot_context_t *riot_context, WORD addr)
+{
+    CLOCK rclk = *(riot_context->clk_ptr); /* FIXME */
+    BYTE ret = 0xff;
+
+    addr &= 0x1f;
+
+    /* manage the weird addressing schemes */
+    if ((addr & 0x04) == 0) {           /* I/O */
+        switch (addr & 3) {
+            case 0:       /* ORA */
+                ret = riot_context->read_pra(riot_context); /* FIXME */
+                break;
+            case 1:       /* DDRA */
+                ret = riot_context->riot_io[1];
+                break;
+            case 2:       /* ORB */
+                ret = riot_context->read_prb(riot_context); /* FIXME */
+                break;
+            case 3:       /* DDRB */
+                ret = riot_context->riot_io[3];
+                break;
+        }
+    } else if ((addr & 0x05) == 0x04) {        /* read timer */
+        ret = (BYTE)(riot_context->r_N - (rclk - riot_context->r_write_clk) / riot_context->r_divider);
+    } else if ((addr & 0x05) == 0x05) {        /* read irq flag */
+        ret = riot_context->r_irqfl;
+    }
+    return ret;
+}
+
+void riotcore_dump(riot_context_t *riot_context)
+{
+    /* TODO: implement dump feature */
+}
+
 static void riotcore_int_riot(CLOCK offset, void *data)
 {
     riot_context_t *riot_context = (riot_context_t *)data;
@@ -400,53 +438,52 @@ int riotcore_snapshot_write_module(riot_context_t *riot_context, snapshot_t *p)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(p, riot_context->myname,
-                               RIOT_DUMP_VER_MAJOR, RIOT_DUMP_VER_MINOR);
+    m = snapshot_module_create(p, riot_context->myname, RIOT_DUMP_VER_MAJOR, RIOT_DUMP_VER_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     update_timer(riot_context);
 
-    SMW_B(m, riot_context->riot_io[0]);
-    SMW_B(m, riot_context->riot_io[1]);
-    SMW_B(m, riot_context->riot_io[2]);
-    SMW_B(m, riot_context->riot_io[3]);
+    if (0
+        || SMW_B(m, riot_context->riot_io[0]) < 0
+        || SMW_B(m, riot_context->riot_io[1]) < 0
+        || SMW_B(m, riot_context->riot_io[2]) < 0
+        || SMW_B(m, riot_context->riot_io[3]) < 0
+        || SMW_B(m, riot_context->r_edgectrl) < 0
+        || SMW_B(m, (BYTE)(riot_context->r_irqfl | (riot_context->r_irqline ? 1 : 0))) < 0
+        || SMW_B(m, (BYTE)(riot_context->r_N - (*(riot_context->clk_ptr) - riot_context->r_write_clk) / riot_context->r_divider)) < 0
+        || SMW_W(m, (WORD)(riot_context->r_divider)) < 0
+        || SMW_W(m, (BYTE)((*(riot_context->clk_ptr) - riot_context->r_write_clk) % riot_context->r_divider)) < 0
+        || SMW_B(m, (BYTE)(riot_context->r_irqen ? 1 : 0)) < 0) {
+            snapshot_module_close(m);
+            return -1;
+    }
 
-    SMW_B(m, riot_context->r_edgectrl);
-    SMW_B(m, (BYTE)(riot_context->r_irqfl | (riot_context->r_irqline ? 1 : 0)));
-
-    SMW_B(m, (BYTE)(riot_context->r_N - (*(riot_context->clk_ptr)
-                                         - riot_context->r_write_clk)
-                    / riot_context->r_divider));
-    SMW_W(m, (WORD)(riot_context->r_divider));
-    SMW_W(m, (BYTE)((*(riot_context->clk_ptr) - riot_context->r_write_clk)
-                    % riot_context->r_divider));
-    SMW_B(m, (BYTE)(riot_context->r_irqen ? 1 : 0));
-
-    snapshot_module_close(m);
-
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int riotcore_snapshot_read_module(riot_context_t *riot_context, snapshot_t *p)
 {
     BYTE vmajor, vminor;
+    BYTE byte_r_N;
     BYTE byte;
-    WORD word;
+    WORD word_r_divider;
+    WORD word_r_write_clk;
     snapshot_module_t *m;
 
     m = snapshot_module_open(p, riot_context->myname, &vmajor, &vminor);
+
     if (m == NULL) {
         log_message(riot_context->log,
                     "Could not find snapshot module %s", riot_context->myname);
         return -1;
     }
 
-    if (vmajor != RIOT_DUMP_VER_MAJOR) {
-        log_error(riot_context->log,
-                  "Snapshot module version (%d.%d) newer than %d.%d.",
-                  vmajor, vminor, RIOT_DUMP_VER_MAJOR, RIOT_DUMP_VER_MINOR);
+    /* Do not accept versions higher than current */
+    if (vmajor > RIOT_DUMP_VER_MAJOR || vminor > RIOT_DUMP_VER_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
@@ -454,42 +491,48 @@ int riotcore_snapshot_read_module(riot_context_t *riot_context, snapshot_t *p)
     /* just to be safe */
     alarm_unset(riot_context->alarm);
 
-    SMR_B(m, &(riot_context->riot_io)[0]);
-    SMR_B(m, &(riot_context->riot_io)[1]);
+    if (0
+        || SMR_B(m, &(riot_context->riot_io)[0]) < 0
+        || SMR_B(m, &(riot_context->riot_io)[1]) < 0
+        || SMR_B(m, &(riot_context->riot_io)[2]) < 0
+        || SMR_B(m, &(riot_context->riot_io)[3]) < 0
+        || SMR_B(m, &(riot_context->r_edgectrl)) < 0
+        || SMR_B(m, &(riot_context->r_irqfl)) < 0
+        || SMR_B(m, &byte_r_N) < 0
+        || SMR_W(m, &word_r_divider) < 0
+        || SMR_W(m, &word_r_write_clk) < 0
+        || SMR_B(m, &byte) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
+
     riot_context->old_pa = riot_context->riot_io[0]
                            | ~(riot_context->riot_io)[1];
     riot_context->undump_pra(riot_context, riot_context->old_pa);
 
-    SMR_B(m, &(riot_context->riot_io)[2]);
-    SMR_B(m, &(riot_context->riot_io)[3]);
     riot_context->old_pb = riot_context->riot_io[2]
                            | ~(riot_context->riot_io)[3];
     riot_context->undump_prb(riot_context, riot_context->old_pb);
 
-    SMR_B(m, &(riot_context->r_edgectrl));
-    SMR_B(m, &(riot_context->r_irqfl));
+    riot_context->r_N = byte_r_N;
+
+    riot_context->r_divider = word_r_divider;
+
+    riot_context->r_write_clk = *(riot_context->clk_ptr) - word_r_write_clk;
+
     if (riot_context->r_irqfl & 1) {
         riot_context->r_irqline = 1;
         riot_context->restore_irq(riot_context, 1);
     }
     riot_context->r_irqfl &= 0xc0;
 
-    SMR_B(m, &byte);
-    riot_context->r_N = byte;
-    SMR_W(m, &word);
-    riot_context->r_divider = word;
-    SMR_W(m, &word);
-    riot_context->r_write_clk = *(riot_context->clk_ptr) - word;
-    SMR_B(m, &byte);
     riot_context->r_irqen = byte;
     if (riot_context->r_irqen) {
         alarm_set(riot_context->alarm, riot_context->r_write_clk
                   + riot_context->r_N * riot_context->r_divider);
     }
 
-    snapshot_module_close(m);
-
     riot_context->read_clk = 0;
 
-    return 0;
+    return snapshot_module_close(m);
 }

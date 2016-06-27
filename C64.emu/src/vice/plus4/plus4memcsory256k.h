@@ -35,8 +35,6 @@ extern void cs256k_init(void);
 extern void cs256k_reset(void);
 extern void cs256k_shutdown(void);
 
-extern BYTE cs256k_reg_read(WORD addr);
-extern void cs256k_reg_store(WORD addr, BYTE value);
 extern void cs256k_store(WORD addr, BYTE value);
 extern BYTE cs256k_read(WORD addr);
 

@@ -49,8 +49,13 @@
 #include "snapshot.h"
 #include "tap.h"
 #include "tape.h"
+#include "tapeport.h"
 #include "vicii-phi1.h"
 #include "ds1202_1302.h"
+
+#ifdef __MSDOS__
+#include "sampler.h"
+#endif
 
 /*******************************************************************************
     Memory related
@@ -212,6 +217,16 @@ BYTE ds1202_1302_read_data_line(rtc_ds1202_1302_t *context)
 
 void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save)
 {
+}
+
+int ds1202_1302_write_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s)
+{
+    return -1;
+}
+
+int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s)
+{
+    return -1;
 }
 
 /*******************************************************************************
@@ -789,12 +804,24 @@ int vdrive_read_sector(const vdrive_t *vdrive, BYTE *buf, unsigned int track, un
     c64 stuff
 *******************************************************************************/
 
-void datasette_trigger_flux_change(unsigned int on)
+tapeport_device_list_t *tapeport_device_register(tapeport_device_t *device)
 {
-    ciacore_set_flag(machine_context.cia1);
+    return NULL;
 }
 
-void datasette_set_tape_sense(int sense)
+void tapeport_device_unregister(tapeport_device_list_t *device)
+{
+}
+
+void tapeport_trigger_flux_change(unsigned int on, int id)
+{
+}
+
+void tapeport_set_tape_sense(int sense, int id)
+{
+}
+
+void tapeport_snapshot_register(tapeport_snapshot_t *snapshot)
 {
 }
 
@@ -814,5 +841,12 @@ void loader_set_drive_true_emulation(int val)
 int loader_get_drive_true_emulation()
 {
     return loader_true_drive;
+}
+#endif
+
+#ifdef __MSDOS__
+sampler_device_t *sampler_get_devices(void)
+{
+    return NULL;
 }
 #endif

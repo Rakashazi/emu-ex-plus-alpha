@@ -211,8 +211,8 @@ int driverom_snapshot_write(snapshot_t *s, const drive_t *drive)
 
     sprintf(snap_module_name, "DRIVEROM%i", drive->mynumber);
 
-    m = snapshot_module_create(s, snap_module_name, ROM_SNAP_MAJOR,
-                               ROM_SNAP_MINOR);
+    m = snapshot_module_create(s, snap_module_name, ROM_SNAP_MAJOR, ROM_SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
@@ -290,10 +290,8 @@ int driverom_snapshot_write(snapshot_t *s, const drive_t *drive)
         }
         return -1;
     }
-    if (snapshot_module_close(m) < 0) {
-        return -1;
-    }
-    return 0;
+
+    return snapshot_module_close(m);
 }
 
 int driverom_snapshot_read(snapshot_t *s, drive_t *drive)
@@ -306,17 +304,20 @@ int driverom_snapshot_read(snapshot_t *s, drive_t *drive)
 
     sprintf(snap_module_name, "DRIVEROM%i", drive->mynumber);
 
-    m = snapshot_module_open(s, snap_module_name,
-                             &major_version, &minor_version);
+    m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
     if (m == NULL) {
         return 0;
     }
 
+    /* Do not accept versions higher than current */
     if (major_version > ROM_SNAP_MAJOR || minor_version > ROM_SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         log_error(driverom_log,
                   "Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
                   ROM_SNAP_MAJOR, ROM_SNAP_MINOR);
+        snapshot_module_close(m);
+        return -1;
     }
 
     switch (drive->type) {
@@ -395,9 +396,7 @@ int driverom_snapshot_read(snapshot_t *s, drive_t *drive)
 
     machine_drive_rom_do_checksum(drive->mynumber);
 
-    snapshot_module_close(m);
-
-    return 0;
+    return snapshot_module_close(m);
 }
 
 void driverom_init(void)

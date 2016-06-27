@@ -165,6 +165,15 @@ void c64_glue_init(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* GLUE snapshot module format:
+
+   type | name         | description
+   ------------------------------
+   BYTE | type         | glue logic type
+   BYTE | old vbank    | old video bank
+   BYTE | alarm active | alarm is active
+ */
+
 static char snap_module_name[] = "GLUE";
 #define SNAP_MAJOR 1
 #define SNAP_MINOR 0
@@ -200,17 +209,14 @@ int c64_glue_snapshot_read_module(snapshot_t *s)
     int snap_type, snap_alarm_active;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, snap_module_name,
-                             &major_version, &minor_version);
+    m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
     if (m == NULL) {
         return -1;
     }
 
+    /* Do not accept versions higher than current */
     if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
-        log_error(LOG_ERR,
-                  "GlueLogic: Snapshot module version (%d.%d) newer than %d.%d.",
-                  major_version, minor_version,
-                  SNAP_MAJOR, SNAP_MINOR);
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 

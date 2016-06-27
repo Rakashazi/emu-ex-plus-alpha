@@ -42,6 +42,11 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
+#ifdef __ppc__
+#include <sys/stat.h>
+#endif
+
 #include "CoreServices/CoreServices.h"
 #include "platform_macosx.h"
 
@@ -173,6 +178,10 @@ static int64_t get_sysctl_hw_int64(int sect)
 
 char *platform_get_macosx_runtime_cpu(void)
 {
+#ifdef __ppc__
+    struct stat st;
+#endif
+
     if (os_cpu_str[0] == 0) {
         char *machine = get_sysctl_hw_string(HW_MACHINE);
         char *model = get_sysctl_hw_string(HW_MODEL);
@@ -180,6 +189,11 @@ char *platform_get_macosx_runtime_cpu(void)
         int64_t memsize = get_sysctl_hw_int64(HW_MEMSIZE);
         int mem_mb = (int)(memsize >> 20);
 
+#ifdef __ppc__
+        if (!stat("/usr/libexec/oah/translate", &st)) {
+            snprintf(os_cpu_str, MAX_OS_CPU_STR, "%s [%s] [%d CPUs] [%d MiB RAM] [Rosetta]", machine, model, num_cpus, mem_mb);
+        } else
+#endif
         snprintf(os_cpu_str, MAX_OS_CPU_STR, "%s [%s] [%d CPUs] [%d MiB RAM]", machine, model, num_cpus, mem_mb);
 
         if (machine != NULL) {

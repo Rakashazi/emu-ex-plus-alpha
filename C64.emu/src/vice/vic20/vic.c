@@ -133,7 +133,7 @@ static void vic_set_geometry(void)
                         23 * 8,          /* handled dynamically  */
                         22, 23,          /* handled dynamically  */
                         /* handled dynamically  */
-                        12 * 4 * VIC_PIXEL_WIDTH,
+                        vic.screen_leftborderwidth * 4 * VIC_PIXEL_WIDTH,
                         38 * 2 - vic.first_displayed_line,
                         1,
                         vic.first_displayed_line,

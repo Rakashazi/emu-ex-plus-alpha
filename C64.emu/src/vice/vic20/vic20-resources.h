@@ -36,5 +36,6 @@ extern int ram_block_1_enabled;
 extern int ram_block_2_enabled;
 extern int ram_block_3_enabled;
 extern int ram_block_5_enabled;
+extern int vflimod_enabled;
 
 #endif

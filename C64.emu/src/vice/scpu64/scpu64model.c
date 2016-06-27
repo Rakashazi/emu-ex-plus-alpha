@@ -45,11 +45,11 @@
 #define CIA_MODEL_DEFAULT_NEW CIA_MODEL_6526A
 
 static int scpu64model_get_temp(int vicii_model, int sid_model, int glue_logic,
-                                int cia1_model, int cia2_model, int new_luma, int iecreset,
+                                int cia1_model, int cia2_model, int iecreset,
                                 const char *chargen);
 static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
                                  int *glue_logic, int *cia1_model, int *cia2_model,
-                                 int *new_luma, int *iecreset,
+                                 int *iecreset,
                                  const char *chargen);
 
 /******************************************************************************/
@@ -83,7 +83,6 @@ static int is_new_cia(int model)
 struct model_s {
     int vicii;      /* VIC-II model */
     int video;      /* machine video timing */
-    int luma;       /* old or new */
     int cia;        /* old or new */
     int glue;       /* discrete or ASIC */
     int sid;        /* old or new */
@@ -97,68 +96,68 @@ struct model_s {
 static struct model_s scpu64models[] = {
 
     /* C64 PAL / PET64 PAL */
-    { VICII_MODEL_6569, MACHINE_SYNC_PAL, NEW_LUMA,
+    { VICII_MODEL_6569, MACHINE_SYNC_PAL,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64C PAL */
-    { VICII_MODEL_8565, MACHINE_SYNC_PAL, NEW_LUMA,
+    { VICII_MODEL_8565, MACHINE_SYNC_PAL,
       CIA_MODEL_DEFAULT_NEW, GLUE_CUSTOM_IC, NEW_SID, IEC_HARD_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64 OLD PAL */
-    { VICII_MODEL_6569R1, MACHINE_SYNC_PAL, OLD_LUMA,
+    { VICII_MODEL_6569R1, MACHINE_SYNC_PAL,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64 NTSC / PET64 NTSC */
-    { VICII_MODEL_6567, MACHINE_SYNC_NTSC, NEW_LUMA,
+    { VICII_MODEL_6567, MACHINE_SYNC_NTSC,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64C NTSC */
-    { VICII_MODEL_8562, MACHINE_SYNC_NTSC, NEW_LUMA,
+    { VICII_MODEL_8562, MACHINE_SYNC_NTSC,
       CIA_MODEL_DEFAULT_NEW, GLUE_CUSTOM_IC, NEW_SID, IEC_HARD_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64 OLD NTSC */
-    { VICII_MODEL_6567R56A, MACHINE_SYNC_NTSCOLD, OLD_LUMA,
+    { VICII_MODEL_6567R56A, MACHINE_SYNC_NTSCOLD,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64 PAL-N */
-    { VICII_MODEL_6572, MACHINE_SYNC_PALN, NEW_LUMA,
+    { VICII_MODEL_6572, MACHINE_SYNC_PALN,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* SX64 PAL, FIXME: guessed */
-    { VICII_MODEL_6569, MACHINE_SYNC_PAL, NEW_LUMA,
+    { VICII_MODEL_6569, MACHINE_SYNC_PAL,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* SX64 NTSC, FIXME: guessed */
-    { VICII_MODEL_6567, MACHINE_SYNC_NTSC, NEW_LUMA,
+    { VICII_MODEL_6567, MACHINE_SYNC_NTSC,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "chargen" },
 
     /* C64 Japanese, FIXME: guessed */
-    { VICII_MODEL_6567, MACHINE_SYNC_NTSC, NEW_LUMA,
+    { VICII_MODEL_6567, MACHINE_SYNC_NTSC,
       CIA_MODEL_DEFAULT_OLD, GLUE_DISCRETE, OLD_SID, IEC_SOFT_RESET,
       HAS_IEC, HAS_USERPORT, HAS_KEYBOARD, "jpchrgen" },
 
     /* C64 GS, FIXME: guessed */
-    { VICII_MODEL_8565, MACHINE_SYNC_PAL, NEW_LUMA,
+    { VICII_MODEL_8565, MACHINE_SYNC_PAL,
       CIA_MODEL_DEFAULT_NEW, GLUE_CUSTOM_IC, NEW_SID, IEC_HARD_RESET,
       NO_IEC, NO_USERPORT, NO_KEYBOARD, "chargen" },
 
     /* end of list */
-    { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, NULL },
+    { -1, -1, -1, -1, -1, -1, -1, -1, -1, NULL },
 };
 
 /* ------------------------------------------------------------------------- */
 
 static int scpu64model_get_temp(int vicii_model, int sid_model, int glue_logic,
-                                int cia1_model, int cia2_model, int new_luma,
+                                int cia1_model, int cia2_model,
                                 int iecreset, const char *chargen)
 {
     int new_sid;
@@ -174,7 +173,6 @@ static int scpu64model_get_temp(int vicii_model, int sid_model, int glue_logic,
 
     for (i = 0; scpu64models[i].chargenname != NULL; ++i) {
         if ((scpu64models[i].vicii == vicii_model)
-            && (scpu64models[i].luma == new_luma)
             && (is_new_cia(scpu64models[i].cia) == new_cia)
             && (scpu64models[i].glue == glue_logic)
             && (scpu64models[i].sid == new_sid)
@@ -191,13 +189,13 @@ static int scpu64model_get_temp(int vicii_model, int sid_model, int glue_logic,
 int c64model_get_model(c64model_details_t *details)
 {
     return scpu64model_get_temp(details->vicii_model, details->sid_model, details->glue_logic,
-                                details->cia1_model, details->cia2_model, details->new_luma, 
+                                details->cia1_model, details->cia2_model,
                                 details->iecreset, details->chargen);
 }
 
 int c64model_get(void)
 {
-    int vicii_model, sid_model, glue_logic, cia1_model, cia2_model, new_luma, iecreset;
+    int vicii_model, sid_model, glue_logic, cia1_model, cia2_model, iecreset;
     char c[0x10];
     const char *chargen = c;
 
@@ -206,20 +204,19 @@ int c64model_get(void)
         || (resources_get_int("GlueLogic", &glue_logic) < 0)
         || (resources_get_int("CIA1Model", &cia1_model) < 0)
         || (resources_get_int("CIA2Model", &cia2_model) < 0)
-        || (resources_get_int("VICIINewLuminances", &new_luma) < 0)
         || (resources_get_int("IECReset", &iecreset) < 0)
         || (resources_get_string("ChargenName", &chargen) < 0)) {
         return -1;
     }
 
     return scpu64model_get_temp(vicii_model, sid_model, glue_logic,
-                                cia1_model, cia2_model, new_luma, iecreset,
+                                cia1_model, cia2_model, iecreset,
                                 chargen);
 }
 
 static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
                                  int *glue_logic, int *cia1_model, int *cia2_model,
-                                 int *new_luma, int *iecreset,
+                                 int *iecreset,
                                  const char *chargen)
 {
     int old_model;
@@ -230,7 +227,7 @@ static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
     int new_type;
 
     old_model = scpu64model_get_temp(*vicii_model, *sid_model, *glue_logic,
-                                     *cia1_model, *cia2_model, *new_luma, 
+                                     *cia1_model, *cia2_model,
                                      *iecreset, chargen);
 
     if ((model == old_model) || (model == C64MODEL_UNKNOWN)) {
@@ -241,7 +238,6 @@ static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
     *cia1_model = scpu64models[model].cia;
     *cia2_model = scpu64models[model].cia;
     *glue_logic = scpu64models[model].glue;
-    *new_luma = scpu64models[model].luma;
     *iecreset = scpu64models[model].iecreset;
 
     /* Only change the SID model if the model changes from 6581 to 8580.
@@ -265,7 +261,7 @@ void c64model_set_details(c64model_details_t *details, int model)
 {
     scpu64model_set_temp(model, &details->vicii_model, &details->sid_model,
                        &details->glue_logic, &details->cia1_model, &details->cia2_model,
-                       &details->new_luma, &details->iecreset, details->chargen);
+                       &details->iecreset, details->chargen);
 }
 
 void c64model_set(int model)

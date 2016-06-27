@@ -51,6 +51,7 @@
 #include "imagecontents.h"
 #include "tapecontents.h"
 #include "diskcontents.h"
+#include "initcmdline.h"
 #include "interrupt.h"
 #include "ioutil.h"
 #include "kbdbuf.h"
@@ -158,7 +159,7 @@ static int c128_column4080_key;
 
 /* ------------------------------------------------------------------------- */
 
-static int autostart_basic_load = 0;
+int autostart_basic_load = 0;
 
 static int AutostartRunWithColon = 0;
 
@@ -436,7 +437,8 @@ static enum { YES, NO, NOT_YET } check(const char *s, unsigned int blink_mode)
 
     line_length = (int)(lnmx < 0 ? -lnmx : mem_read((WORD)(lnmx)) + 1);
 
-    DBG(("check(%s) addr:%04x column:%d, linelen:%d blnsw:%04x(%d)", s, screen_addr, cursor_column, line_length, blnsw, mem_read(blnsw)));
+    DBG(("check(%s) pnt:%04x pntr:%04x addr:%04x column:%d, linelen:%d blnsw:%04x(%d)",
+         s, pnt, pntr, screen_addr, cursor_column, line_length, blnsw, mem_read(blnsw)));
 
     if (!kbdbuf_is_empty()) {
         return NOT_YET;
@@ -550,7 +552,7 @@ static void load_snapshot_trap(WORD unused_addr, void *unused_data)
 {
     if (autostart_program_name
         && machine_read_snapshot((char *)autostart_program_name, 0) < 0) {
-        ui_error(translate_text(IDGS_CANNOT_LOAD_SNAPSHOT_FILE));
+        snapshot_display_error();
     }
 
     ui_update_menus();
@@ -625,12 +627,22 @@ static void autostart_finish(void)
         if ((machine_class == VICE_MACHINE_C128) && (c128_column4080_key == 0)) {
             kbdbuf_feed("GRAPHIC5:");
         }
-        kbdbuf_feed(AutostartRunCommand);
+        /* log_message(autostart_log, "Run command is: '%s' (%s)", AutostartRunCommand, AutostartDelayRandom ? "delayed" : "no delay"); */
+        if (AutostartDelayRandom) {
+            kbdbuf_feed_runcmd(AutostartRunCommand);
+        } else {
+            kbdbuf_feed(AutostartRunCommand);
+        }
     } else {
         log_message(autostart_log, "Program loaded.");
         if ((machine_class == VICE_MACHINE_C128) && (c128_column4080_key == 0)) {
             kbdbuf_feed("GRAPHIC5\x0d");
         }
+    }
+    /* printf("autostart_finish cmdline_get_autostart_mode(): %d\n", cmdline_get_autostart_mode()); */
+    /* inject string given to -keybuf option on commandline into keyboard buffer */
+    if (cmdline_get_autostart_mode() != AUTOSTART_MODE_NONE) {
+        kbdbuf_feed_cmdline();
     }
 }
 
@@ -1003,7 +1015,7 @@ static void reboot_for_autostart(const char *program_name, unsigned int mode,
                                  unsigned int runmode)
 {
     int rnd;
-    char *temp_name, *temp;
+    char *temp_name = NULL, *temp;
 
     if (!autostart_enabled) {
         return;
@@ -1121,7 +1133,9 @@ int autostart_tape(const char *file_name, const char *program_name,
                 tape_seek_start(tape_image_dev1);
             }
         }
-        resources_set_int("VirtualDevices", 1); /* Kludge: for t64 images we need devtraps ON */
+        if (!tape_tap_attached()) {
+            resources_set_int("VirtualDevices", 1); /* Kludge: for t64 images we need devtraps ON */
+        }
         reboot_for_autostart(program_name, AUTOSTART_HASTAPE, runmode);
 
         return 0;
@@ -1286,17 +1300,14 @@ int autostart_autodetect_opt_prgname(const char *file_prog_name,
 
             charset_petconvstring((BYTE *)autostart_prg_name, 0);
             name = charset_replace_hexcodes(autostart_prg_name);
-            result = autostart_autodetect(autostart_file, name, 0,
-                                          runmode);
+            result = autostart_autodetect(autostart_file, name, 0, runmode);
             lib_free(name);
         } else {
-            result = autostart_autodetect(file_prog_name, NULL, alt_prg_number,
-                                          runmode);
+            result = autostart_autodetect(file_prog_name, NULL, alt_prg_number, runmode);
         }
         lib_free(autostart_file);
     } else {
-        result = autostart_autodetect(file_prog_name, NULL, alt_prg_number,
-                                      runmode);
+        result = autostart_autodetect(file_prog_name, NULL, alt_prg_number, runmode);
     }
     return result;
 }
@@ -1376,7 +1387,7 @@ int autostart_device(int num)
 
 int autostart_in_progress(void)
 {
-    return (autostartmode != AUTOSTART_NONE && autostartmode != AUTOSTART_DONE);
+    return ((autostartmode != AUTOSTART_NONE) && (autostartmode != AUTOSTART_DONE));
 }
 
 /* Disable autostart on reset.  */

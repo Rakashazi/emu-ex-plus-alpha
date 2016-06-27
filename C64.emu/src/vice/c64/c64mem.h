@@ -89,6 +89,10 @@ extern BYTE read_bank_io(WORD addr);
 
 extern void c64_mem_init(void);
 
+extern int c64_mem_ui_init_early(void);
+extern int c64_mem_ui_init(void);
+extern void c64_mem_ui_shutdown(void);
+
 extern BYTE vsid_io_read(WORD addr);
 extern void vsid_io_store(WORD addr, BYTE val);
 

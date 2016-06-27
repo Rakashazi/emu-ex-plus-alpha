@@ -30,7 +30,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cartio.h"
 #include "cmdline.h"
+#include "digiblaster.h"
+#include "joyport.h"
 #include "keyboard.h"
 #include "plus4.h"
 #include "resources.h"
@@ -45,8 +48,8 @@
 
 int sidcartjoy_enabled = 0;
 
-int sidcart_address;
-int sidcart_clock;
+int sidcart_address = 0xfd40;
+int sidcart_clock = 1;
 
 /* ------------------------------------------------------------------------- */
 
@@ -85,6 +88,58 @@ void sidcart_sound_chip_init(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* Some prototypes are needed */
+static void sidcartjoy_store(WORD addr, BYTE value);
+static BYTE sidcartjoy_read(WORD addr);
+
+static io_source_t sidcart_fd40_device = {
+    "SIDCart",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfd40, 0xfd5d, 0x1f,
+    1, /* read is always valid */
+    sid_store,
+    sid_read,
+    NULL, /* no peek */
+    sid_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t sidcart_fe80_device = {
+    "SIDCart",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfe80, 0xfe9d, 0x1f,
+    1, /* read is always valid */
+    sid_store,
+    sid_read,
+    NULL, /* no peek */
+    sid_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL,
+    0
+};
+
+static io_source_t sidcart_joy_device = {
+    "SIDCartJoy",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xfd80, 0xfd8f, 1,
+    1, /* read is always valid */
+    sidcartjoy_store,
+    sidcartjoy_read,
+    NULL, /* no peek */
+    NULL, /* TODO: dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_NORMAL, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_list_t *sidcartjoy_list_item = NULL;
+static io_source_list_t *sidcart_list_item = NULL;
+
 int sidcart_enabled(void)
 {
     return sidcart_sound_chip.chip_enabled;
@@ -94,10 +149,22 @@ static int set_sidcart_enabled(int value, void *param)
 {
     int val = value ? 1 : 0;
 
-    if (val != sidcart_sound_chip.chip_enabled) {
-        sidcart_sound_chip.chip_enabled = val;
-        sound_state_changed = 1;
+    if (val == sidcart_sound_chip.chip_enabled) {
+        return 0;
     }
+
+    if (val) {
+        if (sidcart_address == 0xfd40) {
+            sidcart_list_item = io_source_register(&sidcart_fd40_device);
+        } else {
+            sidcart_list_item = io_source_register(&sidcart_fe80_device);
+        }
+    } else {
+        io_source_unregister(sidcart_list_item);
+        sidcart_list_item = NULL;
+    }
+    sidcart_sound_chip.chip_enabled = val;
+    sound_state_changed = 1;
     return 0;
 }
 
@@ -111,6 +178,20 @@ static int set_sid_address(int val, void *param)
             return -1;
     }
 
+    if (sidcart_address == val) {
+        return 0;
+    }
+
+    if (sidcart_sound_chip.chip_enabled) {
+        io_source_unregister(sidcart_list_item);
+        if (val == 0xfd40) {
+            sidcart_list_item = io_source_register(&sidcart_fd40_device);
+        } else {
+            sidcart_list_item = io_source_register(&sidcart_fe80_device);
+        }
+    }
+
+    digiblaster_set_address((WORD)val);
     sidcart_address = val;
 
     return 0;
@@ -133,9 +214,22 @@ static int set_sid_clock(int val, void *param)
     return 0;
 }
 
-static int set_sidcartjoy_enabled(int val, void *param)
+static int set_sidcartjoy_enabled(int value, void *param)
 {
-    sidcartjoy_enabled = val ? 1 : 0;
+    int val = value ? 1 : 0;
+
+    if (val == sidcartjoy_enabled) {
+        return 0;
+    }
+
+    if (val) {
+        sidcartjoy_list_item = io_source_register(&sidcart_joy_device);
+    } else {
+        io_source_unregister(sidcartjoy_list_item);
+        sidcartjoy_list_item = NULL;
+    }
+
+    sidcartjoy_enabled = val;
 
     return 0;
 }
@@ -208,15 +302,12 @@ int sidcart_cmdline_options_init(void)
 
 /* ------------------------------------------------------------------------- */
 
-/* dummy function for now, since only joystick support
-   has been added, might be expanded when other devices
-   get supported */
-
-void sidcartjoy_store(WORD addr, BYTE value)
+static void sidcartjoy_store(WORD addr, BYTE value)
 {
+    store_joyport_dig(JOYPORT_3, value, 0xff);
 }
 
-BYTE sidcartjoy_read(WORD addr)
+static BYTE sidcartjoy_read(WORD addr)
 {
-    return ~joystick_value[3];
+    return read_joyport_dig(JOYPORT_3);
 }

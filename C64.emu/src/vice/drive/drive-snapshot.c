@@ -160,7 +160,7 @@ int drive_snapshot_write_module(snapshot_t *s, int save_disks, int save_roms)
             || SMW_DW(m, (DWORD)(drive->attach_clk)) < 0
             || SMW_B(m, (BYTE)(drive->byte_ready_level)) < 0
             || SMW_B(m, (BYTE)(drive->clock_frequency)) < 0
-            || SMW_W(m, (WORD)(drive->current_half_track + drive->side * 70)) < 0
+            || SMW_W(m, (WORD)(drive->current_half_track + (drive->side * DRIVE_HALFTRACKS_1571))) < 0
             || SMW_DW(m, (DWORD)(drive->detach_clk)) < 0
             || SMW_B(m, (BYTE)0) < 0
             || SMW_B(m, (BYTE)0) < 0
@@ -676,9 +676,9 @@ int drive_snapshot_read_module(snapshot_t *s)
         if (drive->type == DRIVE_TYPE_1570
             || drive->type == DRIVE_TYPE_1571
             || drive->type == DRIVE_TYPE_1571CR) {
-            if (half_track[i] > 71) {
+            if (half_track[i] > (DRIVE_HALFTRACKS_1571 + 1)) {
                 side = 1;
-                half_track[i] -= 70;
+                half_track[i] -= DRIVE_HALFTRACKS_1571;
             }
         }
         drive_set_half_track(half_track[i], side, drive);

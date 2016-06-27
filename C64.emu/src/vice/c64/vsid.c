@@ -67,6 +67,7 @@
 #include "vicii-mem.h"
 #include "video.h"
 #include "vsidui.h"
+#include "vsid-debugcart.h"
 #include "vsync.h"
 
 machine_context_t machine_context;
@@ -109,18 +110,23 @@ int machine_resources_init(void)
         init_resource_fail("psid");
         return -1;
     }
+    if (debugcart_resources_init() < 0) {
+        init_resource_fail("debug cart");
+        return -1;
+    }
     return 0;
 }
 
 void machine_resources_shutdown(void)
 {
     c64_resources_shutdown();
+    debugcart_resources_shutdown();
 }
 
 /* C64-specific command-line option initialization.  */
 int machine_cmdline_options_init(void)
 {
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
     if (vicii_cmdline_options_init() < 0) {
         init_cmdline_options_fail("vicii");
         return -1;
@@ -132,6 +138,10 @@ int machine_cmdline_options_init(void)
     }
     if (psid_cmdline_options_init() < 0) {
         init_cmdline_options_fail("psid");
+        return -1;
+    }
+    if (debugcart_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("debug cart");
         return -1;
     }
     return 0;
@@ -167,7 +177,7 @@ void machine_setup_context(void)
 /* C64-specific initialization.  */
 int machine_specific_init(void)
 {
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
     if (console_mode) {
         video_disabled_mode = 1;
     }
@@ -282,7 +292,7 @@ static void machine_vsync_hook(void)
                 mem_inject((WORD)(vsid_autostart_load_addr + i), vsid_autostart_data[i]);
             }
             mem_set_basic_text(vsid_autostart_load_addr, (WORD)(vsid_autostart_load_addr + vsid_autostart_length));
-            kbdbuf_feed("RUN\r");
+            kbdbuf_feed_runcmd("RUN\r");
         }
     }
 
@@ -434,6 +444,11 @@ struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
 }
 
 BYTE machine_tape_type_default(void)
+{
+    return 0;
+}
+
+BYTE machine_tape_behaviour(void)
 {
     return 0;
 }

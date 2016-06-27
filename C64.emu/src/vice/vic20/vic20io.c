@@ -1,5 +1,5 @@
 /*
- * vic20io.c - VIC20 io handling ($9800-$9FFF).
+ * vic20io.c - VIC20 io handling ($9000-$93FF & $9800-$9FFF).
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>
@@ -65,6 +65,7 @@ static unsigned int order = 0;
 
 /* ---------------------------------------------------------------------------------------------------------- */
 
+static io_source_list_t vic20io0_head = { NULL, NULL, NULL };
 static io_source_list_t vic20io2_head = { NULL, NULL, NULL };
 static io_source_list_t vic20io3_head = { NULL, NULL, NULL };
 
@@ -397,6 +398,9 @@ io_source_list_t *io_source_register(io_source_t *device)
     DBG(("IO: register id:%d name:%s\n", device->cart_id, device->name));
 
     switch (device->start_address & 0xfc00) {
+        case 0x9000:
+            current = &vic20io0_head;
+            break;
         case 0x9800:
             current = &vic20io2_head;
             break;
@@ -444,6 +448,12 @@ void cartio_shutdown(void)
 {
     io_source_list_t *current;
 
+    current = vic20io0_head.next;
+    while (current) {
+        io_source_unregister(current);
+        current = vic20io0_head.next;
+    }
+
     current = vic20io2_head.next;
     while (current) {
         io_source_unregister(current);
@@ -463,6 +473,24 @@ void cartio_set_highest_order(unsigned int nr)
 }
 
 /* ---------------------------------------------------------------------------------------------------------- */
+
+BYTE vic20io0_read(WORD addr)
+{
+    DBGRW(("IO: io0 r %04x\n", addr));
+    return io_read(&vic20io0_head, addr);
+}
+
+BYTE vic20io0_peek(WORD addr)
+{
+    DBGRW(("IO: io0 p %04x\n", addr));
+    return io_peek(&vic20io0_head, addr);
+}
+
+void vic20io0_store(WORD addr, BYTE value)
+{
+    DBGRW(("IO: io0 w %04x %02x\n", addr, value));
+    io_store(&vic20io0_head, addr, value);
+}
 
 BYTE vic20io2_read(WORD addr)
 {
@@ -519,17 +547,24 @@ void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list)
 {
     io_source_list_t *current;
 
+    current = vic20io0_head.next;
+
+    while (current) {
+        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump, NULL);
+        current = current->next;
+    }
+
     current = vic20io2_head.next;
 
     while (current) {
-        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump);
+        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump, NULL);
         current = current->next;
     }
 
     current = vic20io3_head.next;
 
     while (current) {
-        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump);
+        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump, NULL);
         current = current->next;
     }
 }

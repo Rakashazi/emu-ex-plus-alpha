@@ -27,6 +27,7 @@
 #ifndef VICE_C64_256K_H
 #define VICE_C64_256K_H
 
+#include "snapshot.h"
 #include "types.h"
 
 extern int c64_256k_start;
@@ -50,6 +51,9 @@ extern BYTE c64_256k_ram_segment1_read(WORD addr);
 extern BYTE c64_256k_ram_segment2_read(WORD addr);
 extern BYTE c64_256k_ram_segment3_read(WORD addr);
 
-extern int set_c64_256k_enabled(int value);
+extern int set_c64_256k_enabled(int value, int disable_reset);
+
+extern int c64_256k_snapshot_write(struct snapshot_s *s);
+extern int c64_256k_snapshot_read(struct snapshot_s *s);
 
 #endif

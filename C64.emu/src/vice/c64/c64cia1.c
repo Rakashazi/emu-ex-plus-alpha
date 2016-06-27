@@ -34,9 +34,12 @@
 #include "c64-resources.h"
 #include "c64.h"
 #include "c64cia.h"
+#include "c64iec.h"
+#include "c64keyboard.h"
 #include "cia.h"
 #include "interrupt.h"
 #include "drive.h"
+#include "joyport.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "lib.h"
@@ -44,7 +47,7 @@
 #include "machine.h"
 #include "maincpu.h"
 #include "types.h"
-#include "userport_joystick.h"
+#include "userport.h"
 #include "vicii.h"
 
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -65,8 +68,14 @@
 #define DBGB(x)
 #endif
 
+static BYTE cia1_cra = 0;
+
 void cia1_store(WORD addr, BYTE data)
 {
+    if ((addr & 0xf) == CIA_CRA) {
+        cia1_cra = data;
+    }
+
     ciacore_store(machine_context.cia1, addr, data);
 }
 
@@ -131,17 +140,19 @@ static void do_reset_cia(cia_context_t *cia_context)
 static void cia1_internal_lightpen_check(BYTE pa, BYTE pb)
 {
     BYTE val = 0xff;
-    BYTE msk = pa & ~joystick_value[2];
+    BYTE msk = pa & read_joyport_dig(JOYPORT_2);
     BYTE m;
     int i;
 
-    for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
-        if (!(msk & m)) {
-            val &= ~keyarr[i];
+    if (c64keyboard_active) {
+        for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+            if (!(msk & m)) {
+                val &= ~keyarr[i];
+            }
         }
     }
 
-    m = val & pb & ~joystick_value[1];
+    m = val & pb & read_joyport_dig(JOYPORT_1);
 
     vicii_set_light_pen(maincpu_clk, !(m & 0x10));
 }
@@ -155,17 +166,9 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE b)
 {
     cia1_internal_lightpen_check(b, machine_context.cia1->old_pb);
 
-#ifdef HAVE_MOUSE
-    mouse_set_input((b >> 6) & 0x03);
+    set_joyport_pot_mask((b >> 6) & 3);
 
-    if (_mouse_enabled && (mouse_port == 2)) {
-        if (mouse_type == MOUSE_TYPE_NEOS) {
-            neos_mouse_store(b);
-        } else if (mouse_type == MOUSE_TYPE_SMART) {
-            smart_mouse_store(b);
-        }
-    }
-#endif
+    store_joyport_dig(JOYPORT_2, b, 0xff);
 }
 
 static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE b)
@@ -176,15 +179,7 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
     cia1_internal_lightpen_check(machine_context.cia1->old_pa, byte);
 
-#ifdef HAVE_MOUSE
-    if (_mouse_enabled && (mouse_port == 1)) {
-        if (mouse_type == MOUSE_TYPE_NEOS) {
-            neos_mouse_store(byte);
-        } else if (mouse_type == MOUSE_TYPE_SMART) {
-            smart_mouse_store(byte);
-        }
-    }
-#endif
+    store_joyport_dig(JOYPORT_1, byte, 0xff);
 }
 
 static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
@@ -211,11 +206,14 @@ static void matrix_activate_row(int row, BYTE *activerows, BYTE *activecolumns)
 {
     BYTE msk;
     int m, i;
+
     if ((1 << row) & ~(*activerows)) {
         *activerows |= (1 << row);
         msk = keyarr[row];
+
         /* loop over columns */
         for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+
             /* activate each column connected to the given row */
             if ((msk & m) & ~(*activecolumns)) {
                 matrix_activate_column(i, activerows, activecolumns);
@@ -228,11 +226,14 @@ static void matrix_activate_column(int column, BYTE *activerows, BYTE *activecol
 {
     BYTE msk;
     int m, i;
+
     if ((1 << column) & ~(*activecolumns)) {
         *activecolumns |= (1 << column);
         msk = rev_keyarr[column];
+
         /* loop over rows */
         for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+
             /* activate each row connected to the given column */
             if ((msk & m) & ~(*activerows)) {
                 matrix_activate_row(i, activerows, activecolumns);
@@ -301,21 +302,23 @@ static BYTE read_ciapa(cia_context_t *cia_context)
     /* loop over columns,
        pull down all bits connected to a column which is output and active.
      */
-    msk = cia_context->old_pb & ~joystick_value[1];
-    for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
-        if (!(msk & m)) {
-            tmp = matrix_get_active_columns_by_column(i);
+    msk = cia_context->old_pb & read_joyport_dig(JOYPORT_1);
+    if (c64keyboard_active) {
+        for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+            if (!(msk & m)) {
+                tmp = matrix_get_active_columns_by_column(i);
 
-            /* when scanning from port B to port A with inactive bits set to 1
-               in port B, ghostkeys will be eliminated (pulled high) if the
-               matrix is connected to more 1 bits of port B. this does NOT happen
-               when the respective bits are set to input. (see testprogs/CIA/ciaports)
-             */
-            if (tmp & cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]) {
-                val &= ~rev_keyarr[i];
-                DBGA(("<force high %02x>", m));
-            } else {
-                val &= ~matrix_get_active_rows_by_column(i);
+                /* when scanning from port B to port A with inactive bits set to 1
+                   in port B, ghostkeys will be eliminated (pulled high) if the
+                   matrix is connected to more 1 bits of port B. this does NOT happen
+                   when the respective bits are set to input. (see testprogs/CIA/ciaports)
+                 */
+                if (tmp & cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]) {
+                    val &= ~rev_keyarr[i];
+                    DBGA(("<force high %02x>", m));
+                } else {
+                    val &= ~matrix_get_active_rows_by_column(i);
+                }
             }
         }
     }
@@ -325,40 +328,19 @@ static BYTE read_ciapa(cia_context_t *cia_context)
        pull down all bits connected to a row which is output and active.
        handles the case when port a is used for both input and output
      */
-    msk = cia_context->old_pa & ~joystick_value[2];
-    for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
-        if (!(msk & m)) {
-            val &= ~matrix_get_active_rows_by_row(i);
+    msk = cia_context->old_pa & read_joyport_dig(JOYPORT_2);
+    if (c64keyboard_active) {
+        for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+            if (!(msk & m)) {
+                val &= ~matrix_get_active_rows_by_row(i);
+            }
         }
     }
     DBGA((" val:%02x", val));
 
-    byte = (val & (cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA]))) & ~joystick_value[2];
+    byte = (val & (cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA]))) & read_joyport_dig(JOYPORT_2);
 
     DBGA((" out:%02x\n", byte));
-
-#ifdef HAVE_MOUSE
-    if (_mouse_enabled && (mouse_port == 2)) {
-        switch (mouse_type) {
-        case MOUSE_TYPE_NEOS:
-            byte &= neos_mouse_read();
-            break;
-        case MOUSE_TYPE_SMART:
-            byte &= smart_mouse_read();
-            break;
-        case MOUSE_TYPE_ST:
-        case MOUSE_TYPE_AMIGA:
-        case MOUSE_TYPE_CX22:
-            byte &= mouse_poll();
-            break;
-        case MOUSE_TYPE_MICROMYS:
-            byte &= micromys_mouse_read();
-            break;
-        default:
-            break;
-        }
-    }
-#endif
 
     return byte;
 }
@@ -367,17 +349,19 @@ inline static int ciapb_forcelow(int row, BYTE mask)
 {
     BYTE v;
 
-    /* Check for shift lock.
-       FIXME: keyboard_shiftlock state may be inconsistent
-              with the (rev_)keyarr state. */
-    if ((row == 1) && keyboard_shiftlock) {
-        return 1;
-    }
+    if (c64keyboard_active) {
+        /* Check for shift lock.
+           FIXME: keyboard_shiftlock state may be inconsistent
+                  with the (rev_)keyarr state. */
+        if ((row == 1) && keyboard_shiftlock) {
+            return 1;
+        }
 
-    /* Check if two or more rows are connected */
-    v = matrix_get_active_rows_by_row(row) & mask;
-    if ((v & (v - 1)) != 0) {
-        return 1;
+        /* Check if two or more rows are connected */
+        v = matrix_get_active_rows_by_row(row) & mask;
+        if ((v & (v - 1)) != 0) {
+            return 1;
+        }
     }
 
     /* TODO: check joysticks? */
@@ -402,26 +386,28 @@ static BYTE read_ciapb(cia_context_t *cia_context)
           cia_context->c_cia[CIA_DDRA], cia_context->c_cia[CIA_PRA],
           cia_context->c_cia[CIA_DDRB], cia_context->c_cia[CIA_PRB]));
 
-    msk = cia_context->old_pa & ~joystick_value[2];
-    for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
-        if (!(msk & m)) {
-            tmp = matrix_get_active_columns_by_row(i);
-            val &= ~tmp;
+    msk = cia_context->old_pa & read_joyport_dig(JOYPORT_2);
+    if (c64keyboard_active) {
+        for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+            if (!(msk & m)) {
+                tmp = matrix_get_active_columns_by_row(i);
+                val &= ~tmp;
 
-            /*
-                Handle the special case when both port A and port B are programmed as output,
-                port A outputs (active) low, and port B outputs high.
+                /*
+                    Handle the special case when both port A and port B are programmed as output,
+                    port A outputs (active) low, and port B outputs high.
 
-                In this case either connecting one port A 0 bit (by pressing either shift-lock)
-                or two or more port A 0 bits (by pressing keys of the same column) to one port B
-                bit is required to drive port B low (see testprogs/CIA/ciaports)
-            */
-            if ((cia_context->c_cia[CIA_DDRA] & ~cia_context->c_cia[CIA_PRA] & m) &&
-                (cia_context->c_cia[CIA_DDRB] & cia_context->c_cia[CIA_PRB] & tmp)) {
-                DBGB(("(%d)", i));
-                if (ciapb_forcelow(i, (BYTE)(cia_context->c_cia[CIA_DDRA] & ~cia_context->c_cia[CIA_PRA]))) {
-                    val_outhi &= ~tmp;
-                    DBGB(("<force low, val_outhi:%02x>", val_outhi));
+                    In this case either connecting one port A 0 bit (by pressing either shift-lock)
+                    or two or more port A 0 bits (by pressing keys of the same column) to one port B
+                    bit is required to drive port B low (see testprogs/CIA/ciaports)
+                */
+                if ((cia_context->c_cia[CIA_DDRA] & ~cia_context->c_cia[CIA_PRA] & m) &&
+                    (cia_context->c_cia[CIA_DDRB] & cia_context->c_cia[CIA_PRB] & tmp)) {
+                    DBGB(("(%d)", i));
+                    if (ciapb_forcelow(i, (BYTE)(cia_context->c_cia[CIA_DDRA] & ~cia_context->c_cia[CIA_PRA]))) {
+                        val_outhi &= ~tmp;
+                        DBGB(("<force low, val_outhi:%02x>", val_outhi));
+                    }
                 }
             }
         }
@@ -432,42 +418,21 @@ static BYTE read_ciapb(cia_context_t *cia_context)
        pull down all bits connected to a column which is output and active.
        handles the case when port b is used for both input and output
      */
-    msk = cia_context->old_pb & ~joystick_value[1];
-    for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
-        if (!(msk & m)) {
-            val &= ~matrix_get_active_columns_by_column(i);
+    msk = cia_context->old_pb & read_joyport_dig(JOYPORT_1);
+    if (c64keyboard_active) {
+        for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
+            if (!(msk & m)) {
+                val &= ~matrix_get_active_columns_by_column(i);
+            }
         }
     }
     DBGB((" val:%02x", val));
 
     byte = val & (cia_context->c_cia[CIA_PRB] | ~(cia_context->c_cia[CIA_DDRB]));
     byte |= val_outhi;
-    byte &= ~joystick_value[1];
+    byte &= read_joyport_dig(JOYPORT_1);
 
     DBGB((" out:%02x\n", byte));
-
-#ifdef HAVE_MOUSE
-    if (_mouse_enabled && (mouse_port == 1)) {
-        switch (mouse_type) {
-        case MOUSE_TYPE_NEOS:
-            byte &= neos_mouse_read();
-            break;
-        case MOUSE_TYPE_SMART:
-            byte &= smart_mouse_read();
-            break;
-        case MOUSE_TYPE_ST:
-        case MOUSE_TYPE_AMIGA:
-        case MOUSE_TYPE_CX22:
-            byte &= mouse_poll();
-            break;
-        case MOUSE_TYPE_MICROMYS:
-            byte &= micromys_mouse_read();
-            break;
-        default:
-            break;
-        }
-    }
-#endif
 
     return byte;
 }
@@ -488,16 +453,20 @@ static void read_sdr(cia_context_t *cia_context)
 
 static void store_sdr(cia_context_t *cia_context, BYTE byte)
 {
-    if (burst_mod == BURST_MOD_CIA1) {
-        c64fastiec_fast_cpu_write((BYTE)byte);
+    if ((cia1_cra & 0x59) == 0x51) {
+        store_userport_sp1();
+    }
+
+    if (c64iec_active) {
+        if (burst_mod == BURST_MOD_CIA1) {
+            c64fastiec_fast_cpu_write((BYTE)byte);
+        }
     }
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
         rsuser_tx_byte(byte);
     }
 #endif
-    /* FIXME: in the upcoming userport system this call needs to be conditional */
-    userport_joystick_store_sdr(byte);
 }
 
 void cia1_init(cia_context_t *cia_context)
@@ -559,4 +528,3 @@ void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
     cia_context->power_tickcounter = 0;
     cia_context->power_ticks = 0;
 }
-

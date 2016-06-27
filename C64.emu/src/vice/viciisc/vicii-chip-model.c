@@ -835,6 +835,7 @@ void vicii_chip_model_init(void)
         default:
             /* should never happen */
             vicii_chip_model_set(&chip_model_mos6569r3);
+            log_error(LOG_DEFAULT, "vicii_chip_model_init: unknown VICII type.");
             break;
     }
 }

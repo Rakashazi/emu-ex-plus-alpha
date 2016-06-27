@@ -54,6 +54,23 @@ iecbus_t *iecbus_drive_port(void)
     return NULL;
 }
 
+BYTE iec_drive_read(unsigned int dnr)
+{
+    /* FIXME: unused */
+    return 0;
+}
+
+void iec_drive_write(BYTE data, unsigned int dnr)
+{
+    /* FIXME: unused */
+    iec_update_ports();
+}
+
+BYTE parallel_cable_drive_read(int type, int handshake)
+{
+    return 0;
+}
+
 void parallel_cable_drive_write(int port, BYTE data, int handshake, unsigned int dnr)
 {
 }
@@ -61,4 +78,44 @@ void parallel_cable_drive_write(int port, BYTE data, int handshake, unsigned int
 int iec_available_busses(void)
 {
     return IEC_BUS_IEEE;
+}
+
+void iec_fast_drive_direction(int direction, unsigned int dnr)
+{
+}
+
+void iec_fast_drive_write(BYTE data, unsigned int dnr)
+{
+}
+
+void debug_iec_drv_read(unsigned int data)
+{
+    /* FIXME: unused */
+}
+
+void debug_iec_drv_write(unsigned int data)
+{
+    /* FIXME: unused */
+}
+
+void debug_iec_bus_read(unsigned int data)
+{
+    /* FIXME: unused */
+}
+
+void debug_iec_bus_write(unsigned int data)
+{
+    /* FIXME: unused */
+}
+
+/* KLUDGES: dummy to satisfy linker, unused */
+BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+void plus4tcbm_update_pa(BYTE byte, unsigned int dnr)
+{
+}
+void plus4tcbm_update_pb(BYTE byte, unsigned int dnr)
+{
+}
+void plus4tcbm_update_pc(BYTE byte, unsigned int dnr)
+{
 }

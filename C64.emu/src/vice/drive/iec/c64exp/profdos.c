@@ -95,8 +95,8 @@ void profdos_mem_init(struct drive_context_s *drv, unsigned int type)
     case DRIVE_TYPE_1570:
     case DRIVE_TYPE_1571:
     case DRIVE_TYPE_1571CR:
-        drivemem_set_func(cpud, 0x60, 0x70, profdos_read, NULL, profdos_1571_rom, 0x60006ffd);
-        drivemem_set_func(cpud, 0x70, 0x80, profdos_read2, NULL, NULL, 0);
+        drivemem_set_func(cpud, 0x60, 0x70, profdos_read, NULL, NULL, profdos_1571_rom, 0x60006ffd);
+        drivemem_set_func(cpud, 0x70, 0x80, profdos_read2, NULL, NULL, NULL, 0);
         break;
     default:
         break;

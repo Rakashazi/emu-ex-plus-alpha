@@ -230,6 +230,13 @@ static const mon_cmds_t mon_cmd_array[] = {
       IDGS_MON_SHOW_LABELS_DESCRIPTION,
       NULL, NULL },
 
+    { "clear_labels", "cl",
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      "[<%s>]", 1,
+      { IDGS_MEMSPACE, IDGS_UNUSED, IDGS_UNUSED, IDGS_UNUSED },
+      IDGS_MON_CLEAR_LABELS_DESCRIPTION,
+      NULL, NULL },
+
     { "", "",
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       NULL, 0,

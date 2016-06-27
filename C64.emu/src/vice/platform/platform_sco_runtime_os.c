@@ -29,6 +29,8 @@
    - SCO Openserver 5.0.7
    - SCO Openserver 6.0.0
    - SCO Unixware 7.1.3
+   - NetBSD (Emulation layer)
+   - FreeBSD (Emulation layer)
 */
 
 #include "vice.h"
@@ -52,43 +54,72 @@ char *platform_get_sco_runtime_os(void)
     int retval = 0;
     struct utsname name;
     FILE *infile;
+    FILE *bsd_emul_test;
     int amount = 0;
     int i = 0;
+    int is_bsd = 0;
+    int ret;
     char *tempfile = NULL;
     char *tempsystem = NULL;
 
     if (!got_os) {
-        buffer[0] = 0;
-        retval = uname(&name);
-        if (!retval) {
-            sprintf(buffer, "%s", name.version);
-        } else {
-            tempfile = archdep_tmpnam();
-            tempsystem = util_concat("uname -v >", tempfile, NULL);
-            system(tempsystem);
-            infile = fopen(tempfile, "rb");
-            if (infile) {
-                amount = fread(buffer, 1, 80, infile);
-                if (amount) {
-                    while (buffer[i] != '\n') {
-                        i++;
-                    }
-                    buffer[i] = 0;
-                }
-                fclose(infile);
+        unlink("emultest.sh");
+        bsd_emul_test = fopen("emultest.sh", "wb");
+        if (bsd_emul_test) {
+            unlink("emultest.result");
+            fprintf(bsd_emul_test, "#!/bin/sh\n");
+            fprintf(bsd_emul_test, "if test -f /proc/self/emul; then\n");
+            fprintf(bsd_emul_test, "  echo emulation >emultest.result\n");
+            fprintf(bsd_emul_test, "fi\n");
+            fclose(bsd_emul_test);
+            ret = system("sh ./emultest.sh");
+            if (!ret) {
+                unlink("emultest.sh");
             }
-            unlink(tempfile);
-            lib_free(tempfile);
-            lib_free(tempsystem);
+            bsd_emul_test = fopen("emultest.result", "rb");
+            if (bsd_emul_test) {
+                sprintf(platform_os, "NetBSD");
+                fclose(bsd_emul_test);
+                unlink("emultest.result");
+                is_bsd = 1;
+            }
         }
-        if (buffer[0] == '2') {
-            sprintf(platform_os, "SCO Unix v4.x");
-        } else if (buffer[0] == '5' || buffer[0] == '6') {
-            sprintf(platform_os, "SCO Openserver %s", buffer);
-        } else if (buffer[0] == '7') {
-            sprintf(platform_os, "SCO Unixware %s", buffer);
-        } else {
-            sprintf(platform_os, "SCO Unix");
+
+        if (!is_bsd) {
+            buffer[0] = 0;
+            retval = uname(&name);
+            if (!retval) {
+                sprintf(buffer, "%s", name.version);
+            } else {
+                tempfile = archdep_tmpnam();
+                tempsystem = util_concat("uname -v >", tempfile, NULL);
+                system(tempsystem);
+                infile = fopen(tempfile, "rb");
+                if (infile) {
+                    amount = fread(buffer, 1, 80, infile);
+                    if (amount) {
+                        while (buffer[i] != '\n') {
+                            i++;
+                        }
+                        buffer[i] = 0;
+                    }
+                    fclose(infile);
+                }
+                unlink(tempfile);
+                lib_free(tempfile);
+                lib_free(tempsystem);
+            }
+            if (!retval && !strcasecmp(name.sysname, "FreeBSD")) {
+                sprintf(platform_os, "FreeBSD");
+            } else if (buffer[0] == '2') {
+                sprintf(platform_os, "SCO Unix v4.x");
+            } else if (buffer[0] == '5' || buffer[0] == '6') {
+                sprintf(platform_os, "SCO Openserver %s", buffer);
+            } else if (buffer[0] == '7') {
+                sprintf(platform_os, "SCO Unixware %s", buffer);
+            } else {
+                sprintf(platform_os, "SCO Unix");
+            }
         }
         got_os = 1;
     }

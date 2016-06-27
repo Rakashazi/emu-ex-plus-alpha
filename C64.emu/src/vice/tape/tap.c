@@ -39,6 +39,7 @@
 #include "types.h"
 #include "util.h"
 #include "zfile.h"
+#include "machine.h"
 
 #define TAP_DEBUG 0
 
@@ -551,7 +552,7 @@ static int tap_cbm_read_block_once(tap_t *tap, int *pass, BYTE *buffer, int *siz
                 log_debug(" %02x", (BYTE) data);
 #endif
                 buffer[count++] = (BYTE) data;
-                if ((tap->system == 2) && (count == *size)) {
+                if ((machine_tape_behaviour() == TAPE_BEHAVIOUR_C16) && (count == *size)) {
                     /*  On the C16 a block is finished with 1 Medium pulse
                         followed by 450 Small pulse
                         Return here, because the byte read expects a Long pulse
@@ -645,7 +646,7 @@ static int tap_cbm_read_header(tap_t *tap)
     BYTE buffer[255];
 
     /* read header data */
-    ret = tap_cbm_read_block(tap, buffer, tap->system == 2 ? 193 : 255);
+    ret = tap_cbm_read_block(tap, buffer, machine_tape_behaviour() == TAPE_BEHAVIOUR_C16 ? 193 : 255);
     if (ret < 0) {
         return ret;
     }

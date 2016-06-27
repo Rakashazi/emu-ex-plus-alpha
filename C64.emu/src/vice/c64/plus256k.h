@@ -27,6 +27,7 @@
 #ifndef VICE_PLUS256K_H
 #define VICE_PLUS256K_H
 
+#include "snapshot.h"
 #include "types.h"
 
 extern int plus256k_enabled;
@@ -43,6 +44,9 @@ extern void plus256k_ram_high_store(WORD addr, BYTE value);
 extern BYTE plus256k_ram_low_read(WORD addr);
 extern BYTE plus256k_ram_high_read(WORD addr);
 
-extern int set_plus256k_enabled(int value);
+extern int set_plus256k_enabled(int value, int disable_reset);
+
+extern int plus256k_snapshot_write(struct snapshot_s *s);
+extern int plus256k_snapshot_read(struct snapshot_s *s);
 
 #endif

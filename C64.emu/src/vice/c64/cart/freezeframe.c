@@ -33,11 +33,12 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
 #include "freezeframe.h"
+#include "monitor.h"
 #include "snapshot.h"
 #include "types.h"
 #include "util.h"
@@ -77,12 +78,16 @@
 
 /* ---------------------------------------------------------------------*/
 
+static int freezeframe_rom_8000 = 0;
+static int freezeframe_rom_e000 = 0;
+
 static BYTE freezeframe_io1_read(WORD addr)
 {
     DBG(("io1 r %04x\n", addr));
     if (addr == 0) {
         cart_config_changed_slotmain(2, 1, CMODE_READ);
         DBG(("Freeze Frame: switching to 8k game mode\n"));
+        freezeframe_rom_8000 = 1;
     }
     return 0; /* invalid */
 }
@@ -103,6 +108,8 @@ static BYTE freezeframe_io2_read(WORD addr)
     if (addr == 0) {
         cart_config_changed_slotmain(2, 2, CMODE_READ);
         DBG(("Freeze Frame disabled\n"));
+        freezeframe_rom_8000 = 0;
+        freezeframe_rom_e000 = 0;
     }
     return 0; /* invalid */
 }
@@ -117,6 +124,14 @@ static void freezeframe_io2_store(WORD addr, BYTE value)
     DBG(("io2 %04x %02x\n", addr, value));
 }
 
+static int freezeframe_dump(void)
+{
+    mon_out("$8000-$9FFF ROM: %s", (freezeframe_rom_8000) ? "enabled" : "disabled");
+    mon_out("$E000-$FFFF ROM: %s", (freezeframe_rom_e000) ? "enabled" : "disabled");
+
+    return 0;
+}
+
 static io_source_t freezeframe_io1_device = {
     CARTRIDGE_NAME_FREEZE_FRAME,
     IO_DETACH_CART,
@@ -126,7 +141,7 @@ static io_source_t freezeframe_io1_device = {
     freezeframe_io1_store,
     freezeframe_io1_read,
     freezeframe_io1_peek,
-    NULL,
+    freezeframe_dump,
     CARTRIDGE_FREEZE_FRAME,
     0,
     0
@@ -141,7 +156,7 @@ static io_source_t freezeframe_io2_device = {
     freezeframe_io2_store,
     freezeframe_io2_read,
     freezeframe_io2_peek,
-    NULL,
+    freezeframe_dump,
     CARTRIDGE_FREEZE_FRAME,
     0,
     0
@@ -150,7 +165,7 @@ static io_source_t freezeframe_io2_device = {
 static io_source_list_t *freezeframe_io1_list_item = NULL;
 static io_source_list_t *freezeframe_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_FREEZE_FRAME, 1, 1, &freezeframe_io1_device, &freezeframe_io2_device, CARTRIDGE_FREEZE_FRAME
 };
 
@@ -160,11 +175,15 @@ void freezeframe_freeze(void)
 {
     DBG(("Freeze Frame: freeze\n"));
     cart_config_changed_slotmain(2, 3, CMODE_READ | CMODE_RELEASE_FREEZE);
+    freezeframe_rom_8000 = 1;
+    freezeframe_rom_e000 = 1;
 }
 
 void freezeframe_config_init(void)
 {
     cart_config_changed_slotmain(2, 0, CMODE_READ);
+    freezeframe_rom_8000 = 1;
+    freezeframe_rom_e000 = 0;
 }
 
 void freezeframe_config_setup(BYTE *rawcart)
@@ -172,13 +191,15 @@ void freezeframe_config_setup(BYTE *rawcart)
     memcpy(roml_banks, rawcart, FREEZE_FRAME_CART_SIZE);
     memcpy(romh_banks, rawcart, FREEZE_FRAME_CART_SIZE);
     cart_config_changed_slotmain(2, 0, CMODE_READ);
+    freezeframe_rom_8000 = 1;
+    freezeframe_rom_e000 = 0;
 }
 
 /* ---------------------------------------------------------------------*/
 
 static int freezeframe_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -219,7 +240,7 @@ int freezeframe_crt_attach(FILE *fd, BYTE *rawcart)
 
 void freezeframe_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(freezeframe_io1_list_item);
     io_source_unregister(freezeframe_io2_list_item);
     freezeframe_io1_list_item = NULL;
@@ -228,28 +249,38 @@ void freezeframe_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTFREEZEF"
+/* CARTFREEZEF snapshot module format:
+
+   type  | name     | version | description
+   ----------------------------------------
+   BYTE  | ROM 8000 |   0.1   | ROM $8000 active flag
+   BYTE  | ROM E000 |   0.1   | ROM $E000 active flag
+   ARRAY | ROML     |   0.0+  | 8192 BYTES of ROML data
+ */
+
+static char snap_module_name[] = "CARTFREEZEF";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
 
 int freezeframe_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
+        || (SMW_B(m, (BYTE)freezeframe_rom_8000) < 0)
+        || (SMW_B(m, (BYTE)freezeframe_rom_e000) < 0)
         || (SMW_BA(m, roml_banks, FREEZE_FRAME_CART_SIZE) < 0)) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int freezeframe_snapshot_read_module(snapshot_t *s)
@@ -257,20 +288,32 @@ int freezeframe_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0
-        || (SMR_BA(m, roml_banks, FREEZE_FRAME_CART_SIZE) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+    /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (0
+            || SMR_B_INT(m, &freezeframe_rom_8000) < 0
+            || SMR_B_INT(m, &freezeframe_rom_e000) < 0) {
+            goto fail;
+        }
+    } else {
+        freezeframe_rom_8000 = 0;
+        freezeframe_rom_e000 = 0;
+    }
+
+    if (SMR_BA(m, roml_banks, FREEZE_FRAME_CART_SIZE) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
@@ -278,4 +321,8 @@ int freezeframe_snapshot_read_module(snapshot_t *s)
     memcpy(romh_banks, roml_banks, FREEZE_FRAME_CART_SIZE);
 
     return freezeframe_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

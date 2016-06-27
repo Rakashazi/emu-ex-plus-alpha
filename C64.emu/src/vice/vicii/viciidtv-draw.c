@@ -1557,6 +1557,8 @@ inline static void _draw_8bpp_chunky_bitmap(BYTE *p, unsigned int xs,
     }
 }
 
+/* FIXME: dead code */
+#if 0
 inline static void _draw_8bpp_chunky_bitmap_cached(BYTE *p, unsigned int xs,
                                                    unsigned int xe,
                                                    raster_cache_t *cache)
@@ -1581,6 +1583,7 @@ inline static void _draw_8bpp_chunky_bitmap_cached(BYTE *p, unsigned int xs,
     }
 */
 }
+#endif
 
 static void draw_8bpp_chunky_bitmap(void)
 {
@@ -1676,6 +1679,8 @@ inline static void _draw_8bpp_two_plane_bitmap_mode(BYTE *p, unsigned int xs,
     }
 }
 
+/* FIXME: dead code */
+#if 0
 inline static void _draw_8bpp_two_plane_bitmap_mode_cached(BYTE *p, unsigned int xs,
                                                            unsigned int xe,
                                                            raster_cache_t *cache)
@@ -1694,6 +1699,7 @@ inline static void _draw_8bpp_two_plane_bitmap_mode_cached(BYTE *p, unsigned int
         *(msk_ptr + i) = foreground_data[i];
 */
 }
+#endif
 
 static void draw_8bpp_two_plane_bitmap_mode(void)
 {
@@ -1789,6 +1795,8 @@ inline static void _draw_8bpp_fred_bitmap_mode(BYTE *p, unsigned int xs,
     }
 }
 
+/* FIXME: dead code */
+#if 0
 inline static void _draw_8bpp_fred_bitmap_mode_cached(BYTE *p, unsigned int xs,
                                                       unsigned int xe,
                                                       raster_cache_t *cache)
@@ -1807,6 +1815,7 @@ inline static void _draw_8bpp_fred_bitmap_mode_cached(BYTE *p, unsigned int xs,
         *(msk_ptr + i) = mcmsktable[foreground_data[i] | 0x100];
 */
 }
+#endif
 
 static void draw_8bpp_fred_bitmap_mode(void)
 {
@@ -1909,6 +1918,8 @@ inline static void _draw_8bpp_fred2_bitmap_mode(BYTE *p, unsigned int xs,
     }
 }
 
+/* FIXME: dead code */
+#if 0
 inline static void _draw_8bpp_fred2_bitmap_mode_cached(BYTE *p, unsigned int xs,
                                                        unsigned int xe,
                                                        raster_cache_t *cache)
@@ -1927,6 +1938,7 @@ inline static void _draw_8bpp_fred2_bitmap_mode_cached(BYTE *p, unsigned int xs,
         *(msk_ptr + i) = mcmsktable[foreground_data[i] | 0x100];
 */
 }
+#endif
 
 static void draw_8bpp_fred2_bitmap_mode(void)
 {
@@ -2014,6 +2026,8 @@ inline static void _draw_8bpp_pixel_cell_bitmap_mode(BYTE *p, unsigned int xs,
     }
 }
 
+/* FIXME: dead code */
+#if 0
 inline static void _draw_8bpp_pixel_cell_bitmap_mode_cached(BYTE *p, unsigned int xs,
                                                             unsigned int xe,
                                                             raster_cache_t *cache)
@@ -2032,6 +2046,7 @@ inline static void _draw_8bpp_pixel_cell_bitmap_mode_cached(BYTE *p, unsigned in
         *(msk_ptr + i) = mcmsktable[foreground_data[i] | 0x100];
 */
 }
+#endif
 
 static void draw_8bpp_pixel_cell_bitmap_mode(void)
 {

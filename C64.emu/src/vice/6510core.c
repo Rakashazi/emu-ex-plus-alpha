@@ -43,11 +43,11 @@
 #ifndef C64DTV
 /* The C64DTV can use different shadow registers for accu read/write. */
 /* For standard 6510, this is not the case. */
-#define reg_a_write(c) reg_a = c
+#define reg_a_write(c) reg_a = (c)
 #define reg_a_read  reg_a
-#define reg_x_write(c) reg_x = c
+#define reg_x_write(c) reg_x = (c)
 #define reg_x_read  reg_x
-#define reg_y_write(c) reg_y = c
+#define reg_y_write(c) reg_y = (c)
 #define reg_y_read  reg_y
 
 /* Opcode execution time may vary on the C64DTV. */
@@ -91,7 +91,7 @@
 /* Backup for non-variable cycle CPUs.  */
 
 #ifndef CLK_ADD
-#define CLK_ADD(clock, amount) clock += amount
+#define CLK_ADD(clock, amount) clock += (amount)
 #endif
 
 #ifndef REWIND_FETCH_OPCODE
@@ -1971,6 +1971,11 @@ static const BYTE rewind_fetch_tab[] = {
 {
     /* handle 8502 fast mode refresh cycles */
     CPU_REFRESH_CLK
+
+    /* handle any extra cpu switches */
+#ifdef CHECK_AND_RUN_ALTERNATE_CPU
+    CHECK_AND_RUN_ALTERNATE_CPU
+#endif
 
     CPU_DELAY_CLK
 

@@ -32,5 +32,8 @@
 #define VICE_C64IEC_H
 
 extern void c64iec_init(void);
+extern void c64iec_enable(int val);
+
+extern int c64iec_active;
 
 #endif

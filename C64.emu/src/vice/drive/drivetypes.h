@@ -49,6 +49,8 @@ typedef BYTE drive_read_func_t (struct drive_context_s *, WORD);
 typedef drive_read_func_t *drive_read_func_ptr_t;
 typedef void drive_store_func_t (struct drive_context_s *, WORD, BYTE);
 typedef drive_store_func_t *drive_store_func_ptr_t;
+typedef BYTE drive_peek_func_t (struct drive_context_s *, WORD);
+typedef drive_peek_func_t *drive_peek_func_ptr_t;
 
 /*
  *  The private CPU data.
@@ -114,12 +116,14 @@ typedef struct drivecpud_context_s {
     /* Pointers to the currently used memory read and write tables. */
     drive_read_func_ptr_t *read_func_ptr;
     drive_store_func_ptr_t *store_func_ptr;
+    drive_peek_func_ptr_t *peek_func_ptr;
     BYTE **read_base_tab_ptr;
     DWORD *read_limit_tab_ptr;
 
     /* Memory read and write tables.  */
     drive_read_func_t *read_tab[1][0x101];
     drive_store_func_t *store_tab[1][0x101];
+    drive_peek_func_t *peek_tab[1][0x101];
     BYTE *read_base_tab[1][0x101];
     DWORD read_limit_tab[1][0x101];
 

@@ -62,10 +62,6 @@ extern void petdww_shutdown(void);
 extern void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, BYTE **mem_base_tab, int *mem_limit_tab);
 extern void petdww_restore_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, BYTE **mem_base_tab, int *mem_limit_tab);
 extern void petdww_signal(int line, int edge);
-extern BYTE read_petdww_reg(WORD addr);
-extern BYTE read_petdww_ec00_ram(WORD addr);
-extern void store_petdww_reg(WORD addr, BYTE byte);
-extern void store_petdww_ec00_ram(WORD addr, BYTE byte);
 
 extern int petdww_snapshot_read_module(struct snapshot_s *);
 extern int petdww_snapshot_write_module(struct snapshot_s *);

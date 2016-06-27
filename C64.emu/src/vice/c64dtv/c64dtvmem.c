@@ -39,6 +39,7 @@
 #include "c64dtvflash.h"
 #include "cia.h"
 #include "cmdline.h"
+#include "debugcart.h"
 #include "lib.h"
 #include "log.h"
 #include "util.h"
@@ -81,6 +82,14 @@
 #include "vicii-phi1.h"
 #include "vicii.h"
 #include "viciitypes.h"
+
+/* #define DBGMEM */
+
+#ifdef DBGMEM
+#define DBG(x) log_message(c64dtvmem_log, x);
+#else
+#define DBG(x)
+#endif
 
 /* C64 memory-related resources.  */
 
@@ -546,6 +555,7 @@ void store_bank_io(WORD addr, BYTE byte)
         case 0xd600:
         case 0xd700:
             sid_store(addr, byte);
+            debugcart_store(addr, byte);
             break;
         case 0xd800:
         case 0xd900:
@@ -633,7 +643,7 @@ static BYTE peek_bank_io(WORD addr)
 
 /* Exported banked memory access functions for the monitor.  */
 
-static int mem_dump_io(WORD addr)
+static int mem_dump_io(void *context, WORD addr)
 {
     if ((addr >= 0xd000) && (addr <= 0xd04f)) {
         return vicii_dump();
@@ -651,11 +661,11 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    mon_ioreg_add_list(&mem_ioreg_list, "VIC-II", 0xd000, 0xd04f, mem_dump_io);
+    mon_ioreg_add_list(&mem_ioreg_list, "VIC-II", 0xd000, 0xd04f, mem_dump_io, NULL);
     /* TODO blitter, DMA... */
-    mon_ioreg_add_list(&mem_ioreg_list, "SID", 0xd400, 0xd41f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io);
+    mon_ioreg_add_list(&mem_ioreg_list, "SID", 0xd400, 0xd41f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL);
 
     return mem_ioreg_list;
 }
@@ -803,7 +813,7 @@ void c64dtv_init(void)
     c64dtvblitter_init();
     c64dtvdma_init();
     c64dtvflash_init();
-    log_message(c64dtvmem_log, "installing floppy traps"); /* DEBUG */
+    DBG("installing floppy traps");
     /* TODO disable copying by command line parameter */
     /* Make sure serial code traps are in place.  */
     resources_get_int("VirtualDevices", &trapfl);
@@ -811,7 +821,7 @@ void c64dtv_init(void)
     resources_set_int("VirtualDevices", trapfl);
     /* TODO chargen ROM support */
 
-    log_message(c64dtvmem_log, "END init"); /* DEBUG */
+    DBG("END init");
 }
 
 /* init C64DTV memory table changes */
@@ -820,7 +830,7 @@ void c64dtvmem_init_config(void)
     int i, j, k;
 
     /* install DMA engine handlers */
-    log_message(c64dtvmem_log, "install mem_read/mem_write handlers"); /* DEBUG */
+    DBG("install mem_read/mem_write handlers");
     for (i = 0; i < NUM_CONFIGS; i++)
     {
         for (j = 1; j <= 0xff; j++)
@@ -848,7 +858,7 @@ void c64dtvmem_init_config(void)
             }
         }
     }
-    log_message(c64dtvmem_log, "END init_config"); /* DEBUG */
+    DBG("END init_config");
 }
 
 
@@ -867,13 +877,13 @@ void c64dtvmem_shutdown(void)
     c64dtvflash_shutdown();
     resources_set_int("VirtualDevices", trapfl);
 
-    log_message(c64dtvmem_log, "END shutdown"); /* DEBUG */
+    DBG("END shutdown");
 }
 
 void c64dtvmem_reset(void)
 {
     int trapfl;
-    log_message(c64dtvmem_log, "reset"); /* DEBUG */
+    DBG("reset");
 
     /* Disable serial traps when resetting mem mapper */
     resources_get_int("VirtualDevices", &trapfl);
@@ -925,7 +935,7 @@ void c64dtv_mapper_store(WORD addr, BYTE value)
     /* handle aliasing */
     addr &= 0x0f;
 
-/* log_message(c64dtvmem_log, "Wrote %d to %x", value, addr);  */ /* DEBUG */
+    /* DBG("Wrote %d to %x", value, addr); */
 
     switch (addr) {
         case 0x00:

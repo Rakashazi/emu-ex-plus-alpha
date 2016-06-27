@@ -163,6 +163,7 @@ typedef struct _t6721_state {
 
 extern void t6721_reset(t6721_state *t6721);
 extern void t6721_sound_machine_init(t6721_state *t6721, int samples_per_sec, int cycles_per_sec);
+extern void t6721_sound_machine_init_vbr(t6721_state *t6721, int speed, int cycles_per_sec, int factor);
 /* read/write from/to  d0..d3 */
 extern BYTE t6721_read(t6721_state *t6721); /* read from d0..d3 (status) */
 extern void t6721_store(t6721_state *t6721, BYTE data); /* store to d0..d3 (command) */

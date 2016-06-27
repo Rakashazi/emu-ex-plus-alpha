@@ -110,7 +110,7 @@ static void do_reset_cia(cia_context_t *cia_context)
 static void cia1_internal_lightpen_check(BYTE pa, BYTE pb)
 {
     BYTE val = 0xff;
-    BYTE msk = pa & ~joystick_value[2];
+    BYTE msk = pa;
     BYTE m;
     int i;
 
@@ -120,7 +120,7 @@ static void cia1_internal_lightpen_check(BYTE pa, BYTE pb)
         }
     }
 
-    m = val & pb & ~joystick_value[1];
+    m = val & pb;
 
     vicii_set_light_pen(maincpu_clk, !(m & 0x10));
 }
@@ -152,7 +152,7 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 {
     BYTE byte;
     BYTE val = 0xff;
-    BYTE msk = cia_context->old_pb & ~joystick_value[1];
+    BYTE msk = cia_context->old_pb;
     BYTE m;
     int i;
 
@@ -162,7 +162,7 @@ static BYTE read_ciapa(cia_context_t *cia_context)
         }
     }
 
-    byte = (val & (cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA]))) & ~joystick_value[2];
+    byte = (val & (cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA])));
 
     return byte;
 }
@@ -171,7 +171,7 @@ static BYTE read_ciapb(cia_context_t *cia_context)
 {
     BYTE byte;
     BYTE val = 0xff;
-    BYTE msk = cia_context->old_pa & ~joystick_value[2];
+    BYTE msk = cia_context->old_pa;
     BYTE m;
     int i;
 
@@ -181,7 +181,7 @@ static BYTE read_ciapb(cia_context_t *cia_context)
         }
     }
 
-    byte = (val & (cia_context->c_cia[CIA_PRB] | ~(cia_context->c_cia[CIA_DDRB]))) & ~joystick_value[1];
+    byte = (val & (cia_context->c_cia[CIA_PRB] | ~(cia_context->c_cia[CIA_DDRB])));
 
     /*
         handle the special case when both port a and port b are programmed as output,

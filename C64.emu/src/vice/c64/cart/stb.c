@@ -33,9 +33,10 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
+#include "monitor.h"
 #include "snapshot.h"
 #include "stb.h"
 #include "types.h"
@@ -54,6 +55,7 @@
 static BYTE stb_io1_read(WORD addr);
 static BYTE stb_io1_peek(WORD addr);
 static void stb_io1_store(WORD addr, BYTE value);
+static int stb_dump(void);
 
 static io_source_t stb_device = {
     CARTRIDGE_NAME_STRUCTURED_BASIC,
@@ -64,7 +66,7 @@ static io_source_t stb_device = {
     stb_io1_store,
     stb_io1_read,
     stb_io1_peek,
-    NULL, /* dump */
+    stb_dump,
     CARTRIDGE_STRUCTURED_BASIC,
     0,
     0
@@ -72,11 +74,14 @@ static io_source_t stb_device = {
 
 static io_source_list_t *stb_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_STRUCTURED_BASIC, 1, 0, &stb_device, NULL, CARTRIDGE_STRUCTURED_BASIC
 };
 
 /* ---------------------------------------------------------------------*/
+
+static int stb_bank = 0;
+static int stb_active = 0;
 
 static void stb_io(WORD addr)
 {
@@ -85,16 +90,22 @@ static void stb_io(WORD addr)
         case 0:
         case 1:
             cart_config_changed_slotmain(0, 0, CMODE_READ);
+            stb_bank = 0;
+            stb_active = 1;
             break;
 
         /* bank 1 visible, gets copied to RAM during reset */
         case 2:
             cart_config_changed_slotmain(0 | (1 << CMODE_BANK_SHIFT), 0 | (1 << CMODE_BANK_SHIFT), CMODE_READ);
+            stb_bank = 1;
+            stb_active = 1;
             break;
 
         /* RAM visible, which contains bank 1 */
         case 3:
             cart_config_changed_slotmain(2, 2, CMODE_READ);
+            stb_bank = 1;
+            stb_active = 0;
             break;
     }
 }
@@ -115,12 +126,23 @@ static void stb_io1_store(WORD addr, BYTE value)
     stb_io(addr);
 }
 
+static int stb_dump(void)
+{
+    mon_out("$8000-$9FFF ROM: %s\n", (stb_active) ? "enabled" : "disabled");
+    if (stb_active) {
+        mon_out("bank: %d\n", stb_bank);
+    }
+    return 0;
+}
+
 /* ---------------------------------------------------------------------*/
 
 void stb_config_init(void)
 {
     /* turn on normal config: bank 0 */
     cart_config_changed_slotmain(0, 0, CMODE_READ);
+    stb_bank = 0;
+    stb_active = 1;
 }
 
 void stb_config_setup(BYTE *rawcart)
@@ -130,6 +152,8 @@ void stb_config_setup(BYTE *rawcart)
 
     /* turn on normal config: bank 0 */
     cart_config_changed_slotmain(0, 0, CMODE_READ);
+    stb_bank = 0;
+    stb_active = 1;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -137,7 +161,7 @@ void stb_config_setup(BYTE *rawcart)
 static int stb_common_attach(void)
 {
     /* add export */
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -179,35 +203,45 @@ int stb_crt_attach(FILE *fd, BYTE *rawcart)
 
 void stb_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(stb_list_item);
     stb_list_item = NULL;
 }
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTSTB"
+/* CARTSTB snapshot module format:
+
+   type  | name   | version | description
+   --------------------------------------
+   BYTE  | bank   |   0.1   | current bank
+   BYTE  | active |   0.1   | cartridge active flag
+   ARRAY | ROML   |   0.0+  | 16384 BYTES of ROML data
+ */
+
+static char snap_module_name[] = "CARTSTB";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
 
 int stb_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_BA(m, roml_banks, 0x4000) < 0)) {
+        || SMW_B(m, (BYTE)stb_bank) < 0
+        || SMW_B(m, (BYTE)stb_active) < 0
+        || SMW_BA(m, roml_banks, 0x4000) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int stb_snapshot_read_module(snapshot_t *s)
@@ -215,23 +249,39 @@ int stb_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0
-        || (SMR_BA(m, roml_banks, 0x4000) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+    /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (0
+            || SMR_B_INT(m, &stb_bank) < 0
+            || SMR_B_INT(m, &stb_active) < 0) {
+            goto fail;
+        }
+    } else {
+        stb_bank = 0;
+        stb_active = 0;
+    }
+
+    if (SMR_BA(m, roml_banks, 0x4000) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     return stb_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

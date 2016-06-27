@@ -193,7 +193,6 @@ void c128model_set(int model)
     resources_set_int("MachineVideoStandard", c128models[model].video);
     resources_set_int("CIA1Model", c128models[model].cia);
     resources_set_int("CIA2Model", c128models[model].cia);
-    resources_set_int("VICIINewLuminances", 1);
     resources_set_int("VDCRevision", c128models[model].vdc);
     resources_set_int("VDC64KB", c128models[model].vdc64k);
 

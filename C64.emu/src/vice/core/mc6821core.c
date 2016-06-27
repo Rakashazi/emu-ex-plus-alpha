@@ -343,17 +343,16 @@ int mc6821core_snapshot_write_data(mc6821_state *ctx, snapshot_module_t *m)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)ctx->ctrlA) < 0)
-        || (SMW_B(m, (BYTE)ctx->ctrlB) < 0)
-        || (SMW_B(m, (BYTE)ctx->dataA) < 0)
-        || (SMW_B(m, (BYTE)ctx->dataB) < 0)
-        || (SMW_B(m, (BYTE)ctx->ddrA) < 0)
-        || (SMW_B(m, (BYTE)ctx->ddrB) < 0)
-        || (SMW_B(m, (BYTE)ctx->CA2) < 0)
-        || (SMW_B(m, (BYTE)ctx->CA2state) < 0)
-        || (SMW_B(m, (BYTE)ctx->CB2) < 0)
-        || (SMW_B(m, (BYTE)ctx->CB2state) < 0)) {
-        snapshot_module_close(m);
+        || SMW_B(m, (BYTE)ctx->ctrlA) < 0
+        || SMW_B(m, (BYTE)ctx->ctrlB) < 0
+        || SMW_B(m, (BYTE)ctx->dataA) < 0
+        || SMW_B(m, (BYTE)ctx->dataB) < 0
+        || SMW_B(m, (BYTE)ctx->ddrA) < 0
+        || SMW_B(m, (BYTE)ctx->ddrB) < 0
+        || SMW_B(m, (BYTE)ctx->CA2) < 0
+        || SMW_B(m, (BYTE)ctx->CA2state) < 0
+        || SMW_B(m, (BYTE)ctx->CB2) < 0
+        || SMW_B(m, (BYTE)ctx->CB2state) < 0) {
         return -1;
     }
 
@@ -367,17 +366,16 @@ int mc6821core_snapshot_read_data(mc6821_state *ctx, snapshot_module_t *m)
     }
 
     if (0
-        || (SMR_B(m, &ctx->ctrlA) < 0)
-        || (SMR_B(m, &ctx->ctrlB) < 0)
-        || (SMR_B(m, &ctx->dataA) < 0)
-        || (SMR_B(m, &ctx->dataB) < 0)
-        || (SMR_B(m, &ctx->ddrA) < 0)
-        || (SMR_B(m, &ctx->ddrB) < 0)
-        || (SMR_B_INT(m, &ctx->CA2) < 0)
-        || (SMR_B_INT(m, &ctx->CA2state) < 0)
-        || (SMR_B_INT(m, &ctx->CB2) < 0)
-        || (SMR_B_INT(m, &ctx->CB2state) < 0)) {
-        snapshot_module_close(m);
+        || SMR_B(m, &ctx->ctrlA) < 0
+        || SMR_B(m, &ctx->ctrlB) < 0
+        || SMR_B(m, &ctx->dataA) < 0
+        || SMR_B(m, &ctx->dataB) < 0
+        || SMR_B(m, &ctx->ddrA) < 0
+        || SMR_B(m, &ctx->ddrB) < 0
+        || SMR_B_INT(m, &ctx->CA2) < 0
+        || SMR_B_INT(m, &ctx->CA2state) < 0
+        || SMR_B_INT(m, &ctx->CB2) < 0
+        || SMR_B_INT(m, &ctx->CB2state) < 0) {
         return -1;
     }
 

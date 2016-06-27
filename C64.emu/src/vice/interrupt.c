@@ -356,10 +356,10 @@ int interrupt_write_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
     return 0;
 }
 
-int interrupt_write_new_snapshot(interrupt_cpu_status_t *cs,
-                                 snapshot_module_t *m)
+int interrupt_write_new_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
-    if (SMW_DW(m, cs->nirq) < 0
+    if (0
+        || SMW_DW(m, cs->nirq) < 0
         || SMW_DW(m, cs->nnmi) < 0
         || SMW_DW(m, cs->global_pending_int) < 0) {
         return -1;
@@ -368,10 +368,10 @@ int interrupt_write_new_snapshot(interrupt_cpu_status_t *cs,
     return 0;
 }
 
-int interrupt_write_sc_snapshot(interrupt_cpu_status_t *cs,
-                                snapshot_module_t *m)
+int interrupt_write_sc_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
-    if (SMW_DW(m, cs->irq_delay_cycles) < 0
+    if (0
+        || SMW_DW(m, cs->irq_delay_cycles) < 0
         || SMW_DW(m, cs->nmi_delay_cycles) < 0) {
         return -1;
     }
@@ -391,7 +391,8 @@ int interrupt_read_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
     cs->global_pending_int = IK_NONE;
     cs->nirq = cs->nnmi = cs->reset = cs->trap = 0;
 
-    if (SMR_DW(m, &cs->irq_clk) < 0
+    if (0
+        || SMR_DW(m, &cs->irq_clk) < 0
         || SMR_DW(m, &cs->nmi_clk) < 0
         || SMR_DW(m, &cs->irq_pending_clk) < 0) {
         return -1;
@@ -412,7 +413,8 @@ int interrupt_read_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 
 int interrupt_read_new_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
-    if (SMR_DW_INT(m, &cs->nirq) < 0
+    if (0
+        || SMR_DW_INT(m, &cs->nirq) < 0
         || SMR_DW_INT(m, &cs->nnmi) < 0
         || SMR_DW_UINT(m, &cs->global_pending_int) < 0) {
         return -1;
@@ -423,7 +425,8 @@ int interrupt_read_new_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m
 
 int interrupt_read_sc_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
-    if (SMR_DW_UINT(m, &cs->irq_delay_cycles) < 0
+    if (0
+        || SMR_DW_UINT(m, &cs->irq_delay_cycles) < 0
         || SMR_DW_UINT(m, &cs->nmi_delay_cycles) < 0) {
         return -1;
     }

@@ -30,11 +30,12 @@
 #include <string.h>
 
 #include "archdep.h"
-#include "cbm2cart.h"
+#include "cartio.h"
 #include "cartridge.h"
 #include "cbm2-resources.h"
 #include "cbm2.h"
 #include "cbm2acia.h"
+#include "cbm2cart.h"
 #include "cbm2cia.h"
 #include "cbm2mem.h"
 #include "cbm2model.h"
@@ -252,6 +253,19 @@ void cbm2mem_set_bank_ind(int val)
 }
 
 /* ------------------------------------------------------------------------- */
+BYTE zero_read(WORD addr)
+{
+    addr &= 0xff;
+
+    switch ((BYTE)addr) {
+        case 0:
+            return cbm2mem_bank_exec;
+        case 1:
+            return cbm2mem_bank_ind;
+    }
+
+    return mem_page_zero[addr & 0xff];
+}
 
 void zero_store(WORD addr, BYTE value)
 {
@@ -418,9 +432,9 @@ void rom_store(WORD addr, BYTE value)
     mem_rom[addr] = value;
 }
 
-static BYTE read_unused(WORD addr)
+BYTE read_unused(WORD addr)
 {
-    return 0xff; /* (addr >> 8) & 0xff; */
+    return vicii_read_phi1();
 }
 
 static void store_dummy(WORD addr, BYTE value)
@@ -498,26 +512,28 @@ void store_io(WORD addr, BYTE value)
         case 0xd800:
             switch (addr & 0xff00) {
                 case 0xd800:
-                    vicii_store(addr, value);
+                    cbm2io_d800_store(addr, value);
                     return;
                 case 0xd900:
-                    return;             /* disk units */
+                    cbm2io_d900_store(addr, value);
+                    return;
                 case 0xda00:
-                    sid_store((WORD)(addr & 0xff), value);
+                    cbm2io_da00_store(addr, value);
                     return;
                 case 0xdb00:
-                    return;             /* coprocessor */
+                    cbm2io_db00_store(addr, value);
+                    return;
                 case 0xdc00:
-                    cia1_store((WORD)(addr & 0x0f), value);
+                    cbm2io_dc00_store(addr, value);
                     return;
                 case 0xdd00:
-                    acia1_store((WORD)(addr & 0x03), value);
+                    cbm2io_dd00_store(addr, value);
                     return;
                 case 0xde00:
-                    tpi1_store((WORD)(addr & 0x07), value);
+                    cbm2io_de00_store(addr, value);
                     return;
                 case 0xdf00:
-                    tpi2_store((WORD)(addr & 0x07), value);
+                    cbm2io_df00_store(addr, value);
                     return;
             }
     }
@@ -531,26 +547,23 @@ BYTE read_io(WORD addr)
         case 0xd800:
             switch (addr & 0xff00) {
                 case 0xd800:
-                    return vicii_read(addr);
+                    return cbm2io_d800_read(addr);
                 case 0xd900:
-                    return read_unused(addr);
+                    return cbm2io_d900_read(addr);
                 case 0xda00:
-                    return sid_read(addr);
+                    return cbm2io_da00_read(addr);
                 case 0xdb00:
-                    return read_unused(addr);
+                    return cbm2io_db00_read(addr);
                 case 0xdc00:
-                    return cia1_read((WORD)(addr & 0x0f));
+                    return cbm2io_dc00_read(addr);
                 case 0xdd00:
-                    return acia1_read((WORD)(addr & 0x03));
+                    return cbm2io_dd00_read(addr);
                 case 0xde00:
-                    /* FIXME: VIC-II irq? */
-                    /* if ((machine_class == VICE_MACHINE_CBM5x0) && ((addr & 7) == 2)) {
-                           return tpi1_read(addr&7)|1; }   */
-                    return tpi1_read((WORD)(addr & 0x07));
+                    return cbm2io_de00_read(addr);
                 case 0xdf00:
-                    return tpi2_read((WORD)(addr & 0x07));
+                    return cbm2io_df00_read(addr);
             }
-    }
+	}
     return read_unused(addr);
 }
 
@@ -901,21 +914,21 @@ static BYTE peek_bank_io(WORD addr)
         case 0xd800:
             switch (addr & 0xff00) {
                 case 0xd800:
-                    return vicii_peek(addr);
+                    return cbm2io_d800_peek(addr);
                 case 0xd900:
-                    return read_unused(addr);
+                    return cbm2io_d900_peek(addr);
                 case 0xda00:
-                    return sid_read(addr);
+                    return cbm2io_da00_peek(addr);
                 case 0xdb00:
-                    return read_unused(addr);
+                    return cbm2io_db00_peek(addr);
                 case 0xdc00:
-                    return cia1_peek(addr);
+                    return cbm2io_dc00_peek(addr);
                 case 0xdd00:
-                    return acia1_peek(addr);
+                    return cbm2io_dd00_peek(addr);
                 case 0xde00:
-                    return tpi1_peek((WORD)(addr & 0x07));
+                    return cbm2io_de00_peek(addr);
                 case 0xdf00:
-                    return tpi2_peek((WORD)(addr & 0x07));
+                    return cbm2io_df00_peek(addr);
             }
     }
     return read_unused(addr);
@@ -1006,34 +1019,11 @@ void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
     store_dummy(addr, byte);
 }
 
-static int mem_dump_io(WORD addr)
-{
-    if ((addr >= 0xd800) && (addr <= 0xd82e)) {
-        return vicii_dump();
-    } else if ((addr >= 0xda00) && (addr <= 0xda1f)) {
-        /* return sidcore_dump(machine_context.sid); */ /* FIXME */
-    } else if ((addr >= 0xdc00) && (addr <= 0xdc0f)) {
-        return ciacore_dump(machine_context.cia1);
-    } else if ((addr >= 0xdd00) && (addr <= 0xdd03)) {
-        /* return acia_dump(machine_context.acia); */ /* FIXME */
-    } else if ((addr >= 0xde00) && (addr <= 0xde07)) {
-        return tpicore_dump(machine_context.tpi1);
-    } else if ((addr >= 0xdf00) && (addr <= 0xdf07)) {
-        return tpicore_dump(machine_context.tpi2);
-    }
-    return -1;
-}
-
 mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    mon_ioreg_add_list(&mem_ioreg_list, "VIC-II", 0xd800, 0xd82e, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "SID", 0xda00, 0xda1f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "ACIA1", 0xdd00, 0xdd03, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "TPI1", 0xde00, 0xde07, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "TPI2", 0xdf00, 0xdf07, mem_dump_io);
+    io_source_ioreg_add_list(&mem_ioreg_list);
 
     return mem_ioreg_list;
 }
@@ -1054,4 +1044,141 @@ void mem_color_ram_to_snapshot(BYTE *color_ram)
 void mem_color_ram_from_snapshot(BYTE *color_ram)
 {
     memcpy(mem_color_ram, color_ram, 0x400);
+}
+
+void mem_handle_pending_alarms_external(int cycles)
+{
+    vicii_handle_pending_alarms_external(cycles);
+}
+
+void mem_handle_pending_alarms_external_write(void)
+{
+    vicii_handle_pending_alarms_external_write();
+}
+
+/* ------------------------------------------------------------------------- */
+
+static int cia1_dump(void)
+{
+    return ciacore_dump(machine_context.cia1);
+}
+
+static int tpi1_dump(void)
+{
+    return tpicore_dump(machine_context.tpi1);
+}
+
+static int tpi2_dump(void)
+{
+    return tpicore_dump(machine_context.tpi2);
+}
+
+/* ------------------------------------------------------------------------- */
+
+static io_source_t vicii_device = {
+    "VICII",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xd800, 0xd8ff, 0x3f,
+    1, /* read is always valid */
+    vicii_store,
+    vicii_read,
+    vicii_peek,
+    vicii_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_t sid_device = {
+    "SID",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xda00, 0xdaff, 0x1f,
+    1, /* read is always valid */
+    sid_store,
+    sid_read,
+    sid_peek,
+    sid_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_t cia_device = {
+    "CIA",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xdc00, 0xdcff, 0xf,
+    1, /* read is always valid */
+    cia1_store,
+    cia1_read,
+    cia1_peek,
+    cia1_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_t acia_device = {
+    "ACIA",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xdd00, 0xddff, 3,
+    1, /* read is always valid */
+    acia1_store,
+    acia1_read,
+    acia1_peek,
+    NULL, /* TODO: dump */
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_t tpi1_device = {
+    "TPI1",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xde00, 0xdeff, 7,
+    1, /* read is always valid */
+    tpi1_store,
+    tpi1_read,
+    tpi1_peek,
+    tpi1_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_t tpi2_device = {
+    "TPI2",
+    IO_DETACH_CART, /* dummy */
+    NULL,           /* dummy */
+    0xdf00, 0xdfff, 7,
+    1, /* read is always valid */
+    tpi2_store,
+    tpi2_read,
+    tpi2_peek,
+    tpi2_dump,
+    0, /* dummy (not a cartridge) */
+    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
+    0
+};
+
+static io_source_list_t *vicii_list_item = NULL;
+static io_source_list_t *sid_list_item = NULL;
+static io_source_list_t *cia_list_item = NULL;
+static io_source_list_t *acia_list_item = NULL;
+static io_source_list_t *tpi1_list_item = NULL;
+static io_source_list_t *tpi2_list_item = NULL;
+
+/* CBM5x0-specific I/O initialization. */
+void cbm5x0io_init(void)
+{
+    vicii_list_item = io_source_register(&vicii_device);
+    sid_list_item = io_source_register(&sid_device);
+    cia_list_item = io_source_register(&cia_device);
+    acia_list_item = io_source_register(&acia_device);
+    tpi1_list_item = io_source_register(&tpi1_device);
+    tpi2_list_item = io_source_register(&tpi2_device);
 }

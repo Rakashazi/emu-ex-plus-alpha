@@ -1,0 +1,4255 @@
+2008-07-18  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 2.0
+
+2008-07-18  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/tfe.c: provide a default value for ppaddress in
+	tfe_store()
+
+2008-07-18  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/cocoa/video.m: fixed canvas registration
+
+	* arch/unix/macosx/cocoa/menu/vicemachinecontroller.m: fixed
+	compile without ffmpeg
+
+2008-07-18  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* translate.c, arch/amigaos/intl.c, arch/win32/rescbm2.rc,
+	arch/win32/resplus4.rc, arch/win32/resvic20.rc,
+	arch/win32/resc128.rc, arch/win32/resc64.rc, arch/win32/res.rc,
+	arch/win32/respet.rc: Updated the German text items.
+
+2008-07-18  pottendo  <pottendo@aon.at>
+
+	* arch/unix/x11/gnome/uipalcontrol.c (all): #ifdefed UI elements
+	for old PAL emulation as it is replaced by the new PAL Emulation.
+
+	* arch/unix/gui/uipalemu.c: Removed UI for `Old PAL Emu' in case
+	of `USE_GNOMEUI.
+
+2008-07-16  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.27
+
+2008-07-16  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/ui.cc, arch/beos/ui_file.cc,
+	arch/beos/vicemenu.cc: Added fixes as provided by
+	Marcus Sutton <loggedoubt@gmail.com>
+
+2008-07-15  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/kbd.c: In kbd_handle_keydown() and
+	kbd_handle_keyup(), filter out keystrokes if the happen because
+	of key autorepeat of Windows.
+
+2008-07-15  Hannu Nuotio  <hannu.nuotio@tut.fi>
+
+	* arch/unix/x11/gnome/uipalcontrol.c: Removed "Emulation" from
+	radio button texts. Fixes single size window stretching.
+
+2008-07-15  Hannu Nuotio  <hannu.nuotio@tut.fi>
+
+	* c64/c64keyboard.c: Changed Restore to ignore key release and
+	automatically clear the NMI. Fixes "nmitest" (bug 2016657).
+
+2008-07-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/skyos/make-bindist.sh: Reverted back to what worked
+	before.
+
+2008-07-13  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.26
+
+2008-07-12  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* vicii/vicii-fetch.c, vicii/vicii_fetch.h: vicii_fetch_matrix
+	now gets the cycle and uses it to change xsmooth_color in time.
+	This fixes bug in Crest/Krestage multiplexer crunchtable.
+	
+	* vicii/vicii-draw.c (draw_mc_bitmap_foreground): Change from
+	VICII_ILLEGAL_TEXT_MODE is handled now. This fixes bug in
+	Crest/Digital Magic.
+	
+	* vicii/vicii-mem.c (d015_store): Force a DMA check even on
+	last_dma_line. This fixes bug in Oregon/Maulhalten.
+	
+	* vicii/vicii-sprites.c (vicii_sprites_set_x_position): Another
+	fix to make Cosmos Design/Living Chips happy. This is not the
+	end of the story...
+
+2008-07-12  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/README.AMIGA: Updated.
+
+	* arch/unix/gp2x/make-bindist.sh,
+	arch/unix/sco_sol/make-bindist.sh: Fixed a typo.
+
+2008-07-13  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/reu.c: Fixed the end of transfer length when doing a
+	compare.
+
+2008-07-12  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/unix/x11/gnome/x11ui.c: removed weird unicode character
+	from a commentary in ui_open_canvas_window().
+
+	* c64/reu.c: Fixed a bug with transfer and swap file operations
+	introduced on 2008-07-10; Added assert()s for input parameters
+	in reu_dma_update_reads(), reu_dma_host_to_dma(),
+	reu_dma_reu_to_host(), reu_dma_compare(); Fixed an error in
+	reu_dma_compare() where it "forgot" to generate an IRQ if a
+	verify error occurred; length is now written correctly in
+	reu_dma_update_regs() (value 0x10000 was not corrected to 0!).
+
+2008-07-10  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.25
+
+2008-07-10  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/reu.c: The status register bits are not reset if a new
+	transfer starts without reading the status register; however,
+	the interrupt only occurs if they are set again to new values.
+
+2008-07-09  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/reu.c: set_reu_size(): Do not reset
+	first_unused_register_address; remove a warning about
+	uninitialised object in reu_read().
+
+2008-07-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* translate.c: Updated the dutch translations.
+
+2008-07-08  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* translate.c: 2 new texts for -autostartrunwithcolon.
+
+	* arch/win32/resc128.rc, arch/win32/c128ui.c: cosmetic change:
+	Norwegain -> Norwegian.
+
+2008-06-22  pottendo  <pottendo@aon.at>
+
+	* c128/c128-cmdline-options.c (cmdline_options): cosmetic change:
+	Norwegain -> Norwegian.
+
+	* arch/unix/joy.c (new_joystick_init): cosmetic change.
+
+2008-07-07  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.24
+
+2008-07-07  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/reu.c: fixed "end-of-block" for REU compare operation
+	according to Wolfgang Moser's REU reference.
+
+	* init.c, autostart.c, autostart.h, translate.txt, translate.c:
+	Added new command-line options -autostartrunwithcolon and
+	+autostartrunwithcolon along with corresponding vicerc option
+	AutostartRunWithColon=x.
+
+2008-07-07  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/Makefile.am, arch/beos/constants.h, arch/beos/ui.cc,
+	arch/beos/vicemenu.cc: Added copy/paste support.
+
+	* arch/beos/console.c: Fixed a typo.
+
+	* arch/beos/ui_sid.cc: Added a missing variable.
+
+	* arch/os2/ui.c: Fixed a typo.
+
+	* arch/os2/vac++/incl/mainsrc.icc, arch/os2/watcom/mainsrc.tgt,
+	arch/os2/watcom/vice.wpj, arch/win32/watcom/base.tgt,
+	arch/win32/watcom/vice.wpj: Added clipboard.c to the project
+	files.
+
+	* clipboard.h: Changed the _CLIPBOARD_H define to
+	_VICE_CLIPBOARD_H so that it won't interfere with the beos
+	clipboard define.
+
+	* sound.h: Fixed up to return SWORD and use int calculations
+	without casts.
+
+2008-07-04  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.23
+
+2008-07-04  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/Makefile.am: Removed vice.dsp
+
+	* arch/win32/vice.dsw: Removed vice.dsp
+
+	* c64/ramcart.c: Include vicii-phi1.h for vicii_read_phi1().
+
+	* clipboard.c: Define for variable i as unsigned to prevent a
+	warning.
+
+	* arch/win32/base.dsp: Add clipboard.c so vice compiles again.
+
+	* sound.h: changed SWORD sound_audio_mix(SWORD ch1, SWORD ch2);
+	to SWORD sound_audio_mix(int ch1, int ch2).
+
+	* gfxoutputdrv/bmpdrv.c: bmpdrv_write_memmap() now is a void
+	function.
+
+	* screenshot.c: memmap_screenshot_save() had an unused variable
+	i, removed that.
+
+	* lib.c, lib.h: lib_free() now takes a const pointer.
+
+	* arch/unix/archdep.c: viceuserdir is now a const pointer.
+
+	* arch/unix/tfearch.c: Removed unused TfePcapCloseAdapter()
+	function.
+
+2008-07-04  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am, arch/win32/ui.c, clipboard.c, clipboard.h: Moved
+	the common clipboard code that Spiro made to the new common
+	files called 'clipboard.c' and 'clipboard.h'.
+
+	* arch/amigaos/c128uires.h, arch/amigaos/c64uires.h,
+	arch/amigaos/cbm2uires.h, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/amigaos/petuires.h,
+	arch/amigaos/plus4uires.h, arch/amigaos/private.h,
+	arch/amigaos/ui.c, arch/amigaos/uires.h,
+	arch/amigaos/vic20uires.h: Added text-only copy and paste
+	support to the amiga ports.
+
+	* arch/amigaos/joyai.c: Corrected some typos.
+
+	* arch/amigaos/video.c: Fixed a wrongly placed #endif.
+
+2008-07-04  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/unix/macosx/Makefile.am: Make sure the file
+	VICE.xcodeproj/project.pbxproj is included in the source
+	distribution.
+
+	* arch/unix/macosx/Resources/English.lproj/Makefile.am: Make
+	sure some MacOS files are included in the source distribution.
+
+2008-07-01  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/ui.c, c128/c128mem.c, c64/c64mem.c, cbm2/cbm2mem.c,
+	mem.h, monitor/monitor.c, pet/petmem.c, plus4/plus4mem.c,
+	vic20/vic20mem.c: Fixed the returned values of the
+	mem_get_screen_parameter() of some of the emulators, and added a
+	bank parameter to the mem_get_screen_parameter() function, this
+	was needed to get it to work for xcbm2.
+
+	* sound.h: Added a static inline 2-channel digital audio mixing
+	routine.
+
+	* c64/digimax.c, pet/petsound.c, plus4/ted-sound.c,
+	vic20/vic20sound.c: Fixed to use proper digital audio mixing.
+
+2008-07-02  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/Makefile.am: Renamed _all.dsp to _vice.dsp
+
+	* arch/win32/_all.dsp, arch/win32/_vice.dsp: renamed _all.dsp to
+	_vice.dsp.
+
+2008-07-02  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/ui.c: Moved creation of accelerators to
+	ui_init_finish.
+
+	* arch/win32/uikeyboard.c: Log a warning if the shortcut file
+	cannot be opened.
+
+2008-07-02  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/Makefile.am: Added new file _all.dsp.
+
+	* c64/reu.c: The banking register has a shadow register, too.
+
+2008-07-01  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.22
+
+2008-06-30  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/res.rc,
+	arch/win32/reside64.rc, arch/win32/resmouse.rc, translate.c:
+	Updated the Hungarian text.
+
+	* arch/unix/qnx6/make-bindist.sh,
+	arch/unix/sco_sol/make-bindist.sh,
+	arch/unix/skyos/make-bindist.sh: Improved.
+
+	* arch/unix/x11/gnome/x11ui.c: Corrected a typo.
+
+	* arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/rescbm2.rc, arch/win32/respet.rc,
+	arch/win32/resplus4.rc, arch/win32/resvic20.rc: Updated the
+	Hungarian text and extended the copy/paste text to the other
+	languages.
+
+	* arch/win32/uikeyboard.c: Fixed the shortcut text routine to
+	work for win9x/winnt4 too.
+
+	* c64/c64io.c, c64/georam.h: Fixed the reading of the GeoRAM
+	registers.
+
+	* c64/cart/c64cart.c: Fixed some text elements.
+
+	* c64/georam.c: Fixed the reading of the GeoRAM registers, and
+	added a comment block describing the GeoRAM in more detail.
+
+	* c64/ramcart.c: Fixed the reading of the RamCart registers, and
+	added a comment block describing the RamCart in more detail.
+
+	* pet/petmem.c, vic20/vic20mem.c: Fixed the
+	mem_get_screen_parameter() to fill in the correct data.
+
+	* vic20/vic-mem.c: Added a previously missing vic_peek()
+	function.
+
+	* vicii/vicii-cmdline-options.c: Added N_() for text that didn't
+	have it yet.
+
+	* video/video-resources.c: Fixed the crash that came from the
+	new PAL emu check.
+
+2008-06-29  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.21
+
+2008-06-29  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/ui.c: Add copy to clipboard for the text screen.
+	All emulators which support the monitor "screen" command are
+	supported, that is: x64, xplus4, xvic, x128 in VIC-II mode.
+	xcbm2 and xpet are not supported, as their base video addresses
+	are not given with mem_get_screen_parameter(). New functions
+	read_screen_output(), ui_copy_clipboard().
+
+2008-06-28  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/rescbm2.rc, arch/win32/resplus4.rc,
+	arch/win32/resmenu.txt, arch/win32/ui.c, arch/win32/resvic20.rc,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/respet.rc: Removed IDM_EDIT_CUT (how should we cut
+	something from the VICE window? Does not make much sense, does
+	it?
+
+	* arch/win32/ui.c: Added paste function to paste from clipboard
+	to the VICE keyboard buffer. It is selected either via menu
+	(Edit/Paste), or via right-click on the VICE window.
+
+	* arch/win32/resmenu.txt, arch/win32/rescbm2.rc,
+	arch/win32/resplus4.rc, arch/win32/resmenu.txt,
+	arch/win32/resvic20.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/respet.rc: Added IDM_EDIT_CUT,
+	IDM_EDIT_COPY and IDM_EDIT_PASTE.
+
+2008-06-27  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* autostart.c: Incorporated patch from iAN Coog: 1. Add colon
+	(":") after "LOAD" and "RUN" lines used to start. This is
+	helpful if there is already something on the screen, to prevent
+	it to provoke some error messages. 2. remember original true
+	drive emulation state before using autostart. This fixes the
+	problem that TDE is not re-activated after autostart.  3. Dev
+	Traps set to ON always in autostart_tape() for T64s. T64 without
+	VTD don't load, so it's a must to activate it always with them.
+	(TAP files don't care.)
+
+2008-06-25  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/vice.dsw, arch/win32/_all.dsp: New (dummy) project
+	_all.
+
+	* c64/reu.c: Fixed problems with bank register not masking out
+	unused bits, and autoload option which has to copy the shadow
+	registers back. Fixed doxygen a little.
+
+2008-06-23  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.20
+
+2008-06-23  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/make-msvc-bindist.bat,
+	arch/win32/watcom/make-watcom-bindist.bat: Added (had been
+	forgotten in the previous version)
+
+2008-06-23  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/reu.c: Implement the special wrap-around of the 1700 when
+	it uses 64Kx1 DRAMs.  That is, the bank register behaves like
+	the other REUs (with the special wrap around), but the DRAM
+	access itself is limited to 0x00000-0x1ffff.
+
+	* vdrive/vdrive_command: Changed flow in vdrive_command_memory()
+	as suggested by Marco.
+
+	* c64/tfe.c: disabled log_message() for tfe_hash_mask[], as it
+	accessed memory out of bounds.
+
+2008-06-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/uiapi.c, arch/os2/ui.c,
+	arch/unix/x11/gnome/x11ui.c, arch/unix/x11/xaw/x11ui.c: Added
+	the option to choose 'continue' for the CPU JAM dailog.
+
+	* monitor/mon_lex.c, monitor/mon_lex.l: Fixed the undump command
+	as provided by M. Kiesel <mayne@users.sourceforge.net>.
+
+	* plus4/plus4mem.c: Fixed the reported plus4 hannes/csory memory
+	expansion bug for memory at $ffxx.
+
+	* arch/unix/qnx6/make-bindist.sh,
+	arch/unix/sco_sol/make-bindist.sh,
+	arch/unix/skyos/make-bindist.sh: Improved some of the
+	make-bindist.sh scripts.
+
+2008-06-19  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* vdrive/vdrive-internal.c, vdrive/vdrive-command.c,
+	plus4/ted-mem.c, vicii/vicii-mem.c, cbmimage.c, c128/c128mem.c,
+	c1541.c, fsdevice/fsdevice-open.c, pet/petmem.c: Changed around
+	to get rid of unreachable code.
+
+	* video/video-resources.c, video/video-resources.h,
+	video/video-resources-pal.c: Added a check for win32, new
+	PAL-mode, PAL emulation on, double size, double scan to give a
+	warning about the performance problem of that combination on
+	win32.
+
+	* sid/sid-resources.c: Changed the unsigned int to int for some
+	variables used in a resource-table.
+
+	* alarm.h, sounddrv/soundwmm.c: Got rid of a comparison of an
+	unsigned type with smaller than zero (unsigned int x < 0).
+
+	* main.c, arch/amigaos/mui/mui.c, arch/os2/dialogs/dialogs.rc,
+	arch/unix/macosx/Resources/Credits.html,
+	arch/unix/x11/xaw/about.c, arch/unix/x11/gnome/about.c,
+	arch/msdos/menudefs.c, arch/beos/ui.cc: Added Fabrizio to the
+	VICE core members.
+
+	* info.c: Added Fabrizio to the VICE core members, got rid of a
+	duplicate Christian Vogelgsang entry and added/updated external
+	contributors entries.
+
+	* translate.c: Updated the German and Swedish texts and added a
+	log warning when returning a NULL.
+
+	* arch/amigaos/intl.c: Updated the German and Swedish texts.
+
+	* arch/win32/uikeyboard.c, arch/win32/uipetset.c,
+	arch/win32/uiplus60k.c, arch/win32/rescbm2.rc,
+	arch/win32/uicart.c, arch/win32/resgeoram.rc, arch/win32/intl.c,
+	arch/win32/uigeoram.c, arch/win32/intl.h,
+	arch/win32/uimediafile.c, arch/win32/uiramcart.c,
+	arch/win32/ffmpeglib.c, arch/win32/uiconsole.c,
+	arch/win32/uiattach.c, arch/win32/resplus4.rc,
+	arch/win32/uirs232user.c, arch/win32/uicmdline.c,
+	arch/win32/ui.c, arch/win32/ui.h, arch/win32/uinetwork.c,
+	arch/win32/uicbm2set.c, arch/win32/uic64_256k.c,
+	arch/win32/uic64cart.c, arch/win32/statusbar.c,
+	arch/win32/uic128.c, arch/win32/uidrivevic20.c,
+	arch/win32/uievent.c, arch/win32/resmouse.rc,
+	arch/win32/uifliplist.c, arch/win32/uiplus256k.c,
+	arch/win32/uisnapshot.c, arch/win32/uidriveplus4.c,
+	arch/win32/resstrings.txt, arch/win32/uidrivec128.c,
+	arch/win32/uisound.c, arch/win32/fullscrn.c,
+	arch/win32/uiquicksnapshot.c, arch/win32/uiacia.c,
+	arch/win32/uilib.c, arch/win32/uiide64.c, arch/win32/uisid.c,
+	arch/win32/resvic20.rc, arch/win32/uidrivepetcbm2.c,
+	arch/win32/uirom.c, arch/win32/uipetreu.c,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/signals.c, arch/win32/uivideo.c, arch/win32/res.rc,
+	arch/win32/uiplus4cart.c, arch/win32/respet.rc,
+	arch/win32/uidrivec64.c, arch/win32/uihelp.c,
+	arch/win32/uiperipheral.c, arch/win32/uireu.c,
+	arch/win32/uijoystick.c: Changed over to the new way (made by
+	Tibor) of getting strings from the string resource blocks to
+	avoid situations where in the old way a string was not able to
+	be found even though it was present, and updated the German and
+	Swedish texts.
+
+	* arch/win32/Makefile.am, arch/win32/make-msvc-bindist.bat,
+	arch/win32/watcom/make-watcom-bindist.bat: Added msvc and watcom
+	binary distribution generation batch files.
+
+2008-06-22  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.19
+
+2008-06-22  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* c64/c64io.c: Give the full address to the REU module, so that
+	it can decide itself how much memory it occupies in the memory
+	map.
+
+	* c64/reu.c: Emulate more aspects of the REU now, according the
+	Wolfgang Moser's CSG8726 document, revision 0.9. Added doxygen
+	information and more fine-granular debugging output.
+
+2008-06-15  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.18
+
+2008-06-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* gfxoutputdrv/ffmpegdrv.c: Corrected a typo.
+
+	* vdrive/vdrive-bam.h, vdrive/vdrive-bam.c: Corrected block
+	allocation and interleave for c1541/vdrive as provided by Ingo
+	Korb <ingo@akana.de>.
+
+	* video/render2x2pal.c, video/render2x2.c, video/render2x2pal.h,
+	video/video-resources.c, video/render2x2.h, video/video-color.c,
+	video/video-resources.h, video/video-resources-pal.c,
+	video/video-render-pal.c, video.h,
+	vicii/vicii-cmdline-options.c: Added new PAL emulation as
+	provided by Groepaz/Hitmen <groepaz@gmx.net>.
+
+	* network.c: Made the recv and send prototypes for minix only be
+	used for minix versions that don't have the prototypes in the
+	system headers.
+
+	* sounddrv/soundbeos.cc, initcmdline.c, arch/beos/archdep.c,
+	arch/beos/ui_ram.cc, arch/beos/ui_sound.cc,
+	arch/beos/ui_video.cc, arch/beos/kbd.c, arch/beos/ui_vicii.cc,
+	arch/beos/joy.cc, arch/beos/kbd.h, arch/beos/ui_sid.cc,
+	arch/beos/vicewindow.cc, arch/beos/constants.h,
+	arch/beos/ui_device.cc, arch/beos/vicemenu.cc,
+	arch/beos/uimon.c, arch/beos/blockdev.c, arch/beos/c64ui.cc:
+	Fixed some beos warnings/issues.
+
+	* c64/c64io.c, c64/c64io.h, c64/cart/actionreplay4.c,
+	c64/cart/actionreplay4.h, c64/cart/crt.c, c64/cart/c64cartmem.c,
+	c64/cart/c64cart.c, c64/cart/stardos.c, c64/cart/stardos.h,
+	c64/cart/Makefile.am, cartridge.h: Added the action replay 4 and
+	stardos carts, as provided by Groepaz/Hitmen <groepaz@gmx.net>.
+
+	* c64/c64-resources.c, c64/c64rom.c, c64/c64rom.h,
+	c128/c128rom.c, c128/c128rom.h, c128/c128-resources.c: Added a
+	parameter to the c64rom_load_kernal function to be able to have
+	hardware kernal replacements (without using ultimax), as used in
+	the stardos cart.
+
+	* translate.txt, translate.c, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/win32/intl.c: Added translation
+	elements for the new PAL emulation and new carts.
+
+	* sound.c: Added a fix to not limit the minimum size of the
+	sound buffer as provided by Hannu Nuotio <hannu.nuotio@tut.fi>.
+
+	* arch/amigaos/mui/uivideoc128.c,
+	arch/amigaos/mui/uivideoc64plus4vic20.c,
+	arch/amigaos/c64uires.h, arch/amigaos/c128uires.h,
+	arch/amigaos/uic64cart.c, arch/amigaos/uires.h,
+	arch/win32/resmenu.txt, arch/win32/uic64cart.c,
+	arch/win32/resstrings.txt, arch/win32/resdialogs.txt,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/uivideo.c, arch/win32/res.rc,
+	arch/os2/dialogs/dlg-color.rc, arch/os2/dialogs/menubar.rc,
+	arch/os2/dialogs/menubar.c, arch/os2/dialogs/menubar.h,
+	arch/os2/dialogs/dlg-color.c, arch/os2/dialogs/dlg-color.h,
+	arch/unix/gui/uipalemu.c, arch/unix/gui/uic64cart.c,
+	arch/unix/x11/gnome/uipalcontrol.c, arch/msdos/uic64cart.c:
+	Added UI elements for the new PAL emulation and the new carts.
+
+	* arch/amigaos/make-bindist.sh,
+	arch/unix/sco_sol/make-bindist.sh,
+	arch/unix/gp2x/make-bindist.sh, arch/unix/qnx6/make-bindist.sh,
+	arch/msdos/make-bindist.sh, arch/beos/make-bindist.sh: Fixed to
+	not include the new win32 shortcut file in the binary dist.
+
+	* arch/win32/watcom/c64cart.tgt, arch/win32/c64cart.dsp,
+	arch/os2/watcom/c64cart.tgt, arch/os2/vac++/incl/c64cart.icc:
+	Added the new cart files to the project files.
+
+	* arch/unix/vsyncarch.c, arch/unix/rs232.c, arch/unix/coproc.c,
+	arch/unix/signals.c: Fixed some openserver 6.x issues.
+
+	* arch/unix/gui/c64ui.c, arch/unix/gui/uivicii.c,
+	arch/unix/gui/uivicii.h, arch/unix/gui/c128ui.c,
+	arch/unix/gui/cbm2ui.c: Fixed the set_video_standard_submenu
+	issue.
+
+	* arch/unix/mousedrv.c, arch/unix/x11/xaw/x11ui.c: Added xaw
+	mouse grab fix as provided by Hannu Nuotio
+	<hannu.nuotio@tut.fi>.
+
+	* arch/unix/x11/qnxshm.c: Fixed some qnx warnings/issues.
+
+	* arch/unix/x11/xaw/widgets/FileSel.c,
+	arch/unix/x11/xaw/widgets/MultiList.c: Added min/max definition
+	fix.
+
+	* arch/unix/x11/renderxv.c: Fixed some minix warnings/issues.
+
+	* arch/beos/console.c: Added beos console fix as provided by
+	Marcus Sutton <loggedoubt@gmail.com>
+
+	* cartconv.c: Added support for the new carts.
+
+2008-06-06  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* gfxoutputdrv/ffmpegdrv.c: Applied fix from Christian
+	Vogelgsang to make ffmpeg compile again.
+
+2008-06-06  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* raster/raster-sprite-status.c, raster-sprite-status.c,
+	raster-sprite.c, raster-sprite.h, vicii/vicii-sprites.c,
+	vicii-sprites.h, vicii.c: Fixed warnings. Fixed a bug in sprite
+	initialization using different border mode.
+
+2008-06-03  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.17.
+
+	* arch/unix/tfearch.c: Support libnet 1.1 if VICE_USE_LIBNET_1_1
+	is defined. This is based on some preliminary work from Jacques
+	Pelletier.
+
+	* arch/unix/gui/uitfe.c: Fixed a typo (compatibity ->
+	compatibility).
+
+2008-06-03  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/unix/x11/xaw/widgets/MultiList.c,
+	arch/unix/x11/xaw/widgets/TextField.c: Removed warnings by
+	providing prototypes for some functions.
+
+2008-06-01  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* gfxoutputdrv/pngdrv.c, gfxoutputdrv/jpegdrv.c,
+	gfxoutputdrv/pcxdrv.c, gfxoutputdrv/ppmdrv.c,
+	gfxoutputdrv/iffdrv.c, gfxoutputdrv/ffmpegdrv.c,
+	gfxoutputdrv/gifdrv.c, gfxoutputdrv/bmpdrv.c, gfxoutput.h,
+	screenshot.c, screenshot.h, c64/c64mem.c, maincpu.c,
+	monitor/mon_parse.c, monitor/mon_command.c, monitor/mon_parse.h,
+	monitor/mon_lex.c, monitor/mon_parse.y, monitor/mon_lex.l,
+	monitor/montypes.h, monitor/monitor.c, monitor.h, 6510core.c:
+	Added the memmap feature from VICEplus as provided by Hannu
+	Nuotio <hannu.nuotio@tut.fi>.
+
+	* video/video-resources.c, arch/unix/x11/xaw/x11video.c:
+	Prototype before the actual function was static, so made the
+	function static too.
+
+	* network.c, arch/unix/x11/renderxv.c: Added some minix fixes.
+
+	* sounddrv/soundsun.c: Fixed some solaris related
+	warnings/issues.
+
+	* sounddrv/soundhpux.c: Fixes some hpux related warnings/issues.
+
+	* c64/patchrom.c, monitor/mon_assemblez80.c,
+	monitor/mon_assemble6502.c, resources.c, util.c, c1541.c,
+	sound.c, arch/unix/archdep.c, zfile.c: Added the inclusion of
+	the strings.h header if present.
+
+	* arch/unix/x11/gnome/uipalcontrol.c: Fixed a typo.
+
+2008-05-25  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.16.
+
+2008-05-25  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/archdep.[ch]: made archdep_pref_path const.
+
+	* arch/unix/macosx/make-bindist.sh, arch/unix/macosx/Info.plist:
+	added crt file format. use new icons for Cocoa port.
+
+	* arch/unix/macosx/VICE.xcodeproj/project.pbxproj: added VICE
+	XCode project to manage nib files more easily
+
+	* arch/unix/macosx/cocoa/main.m: store preferences in
+	~/Library/Preferences/org.viceteam.<emu> now
+
+	* arch/unix/macosx/cocoa/uimon.m,
+	arch/unix/macosx/cocoa/console.m,
+	arch/unix/macosx/cocoa/menu/c64machinecontroller.m: deprecated
+	NSString calls removed
+
+	* arch/unix/macosx/cocoa/kbd.h: added cocoa sym_de keymap
+
+	* arch/unix/macosx/cocoa/videoarch.h,
+	arch/unix/macosx/cocoa/viceapplication.h,
+	arch/unix/macosx/cocoa/vicemachine.h,
+	arch/unix/macosx/cocoa/video.m,
+	arch/unix/macosx/cocoa/vicemachine.m: added canvasId to manage
+	canvas ptr on App side
+
+	* arch/unix/macosx/cocoa/kbd.m: added missing include
+
+	* arch/unix/macosx/cocoa/fullscreen.m: removed obsolete function
+
+	* arch/unix/macosx/cocoa/view/joystickview.m,
+	arch/unix/macosx/cocoa/view/keypressview.m: removed compile
+	warning
+
+	* arch/unix/macosx/cocoa/view/consolewindow.m: fixed output bug
+
+	* arch/unix/macosx/cocoa/view/viceglview.[hm]: added auto hide
+	mouse and menu
+
+	* arch/unix/macosx/cocoa/dialog/viceresourcewindowcontroller.[hm]:
+	added resource methods
+
+	* arch/unix/macosx/cocoa/dialog/drivesettingswindowcontroller.[hm]:
+	rewrote drive settings UI
+
+	* arch/unix/macosx/cocoa/dialog/resourcetreeitem.[hm],
+	arch/unix/macosx/cocoa/dialog/resourceeditorcontroller.[hm]:
+	added resource editor
+
+	* arch/unix/macosx/cocoa/dialog/printersettingswindowcontroller.[hm]:
+	added printer settings UI
+
+	* arch/unix/macosx/cocoa/dialog/soundsettingswindowcontroller.[hm]:
+	added sound settings UI
+
+	* arch/unix/macosx/cocoa/dialog/iecdrivesettingswindowcontroller.[hm]:
+	added IEC drive settings UI
+
+	* arch/unix/macosx/cocoa/dialog/recordmediawindowcontroller.[hm]:
+	added record media UI
+
+	* arch/unix/macosx/cocoa/dialog/keyboardsettingswindowcontroller.[hm]:
+	added keyboard settings UI
+
+	* arch/unix/macosx/cocoa/menu/viceappcontroller.[hm],
+	arch/unix/macosx/cocoa/menu/c64controller.[hm]: added new UI
+	dialogs
+
+	* arch/unix/macosx/cocoa/menu/vicemachinecontroller.[hm]: added
+	machine control functions for new UI features
+
+	* arch/unix/macosx/Resources/English.lproj/*: added nib files
+	for new UI
+
+	* arch/unix/macosx/Makefile.am,
+	arch/unix/macosx/Resources/Makefile.am,
+	arch/unix/macosx/cocoa/dialog/Makefile.am: added new files
+
+2008-05-24  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* joystick.c, keyboard.c: Added #ifdef COMMON_KBD around common
+	keyboard specific elements.
+
+	* vic20/vic20cartridge.c, c64/cart/c64cart.c,
+	monitor/mon_parse.c, monitor/mon_command.c, monitor/mon_parse.h,
+	monitor/mon_lex.c, monitor/mon_parse.y, monitor/mon_lex.l,
+	monitor/mon_memory.c, monitor/montypes.h, monitor/monitor.c,
+	monitor/mon_file.c, monitor/mon_file.h, translate.txt,
+	monitor.h: Added most of the new VICEplus monitor features, as
+	provided by Hannu Nuotio <hannu.nuotio@tut.fi> and Daniel Kahlin
+	<daniel@kahlin.net>.
+
+	* network.c, sounddrv/soundallegro.c, sounddrv/soundvoc.c,
+	sounddrv/soundmmos2.c, sounddrv/soundwav.c, sounddrv/soundmp3.c,
+	sounddrv/soundarts.c, c64/c64io.c, c64/mmc64.c, tape/tape.c,
+	translate.c, fsdevice/fsdevice-close.c, crtc/crtc.c,
+	drive/rotation.c, arch/amigaos/intl.c, arch/amigaos/video.c,
+	arch/amigaos/mui/uivideoc128.c, arch/amigaos/mui/mui.h,
+	arch/amigaos/mui/uisnapshot.c, arch/amigaos/catweaselmkiii.c,
+	arch/amigaos/joyai.c, arch/amigaos/screen-shot.c,
+	arch/riscos/videoarch.h, arch/riscos/ui.c, arch/riscos/video.c,
+	arch/riscos/spritedrv.c, arch/win32/intl.c, arch/win32/ui.c,
+	arch/win32/watcom/monitor.tgt, arch/win32/watcom/vic20.tgt,
+	arch/win32/watcom/plus4.tgt, arch/win32/watcom/c64.tgt,
+	arch/os2/archdep.c, arch/os2/fullscr.c, arch/os2/ui.c,
+	arch/os2/dialogs/dlg-joystick.c, arch/os2/dialogs/menubar.c,
+	arch/os2/dialogs/dlg-fileio.c, arch/os2/dialogs/dlg-drive.c,
+	arch/os2/dialogs/dlg-cmdopt.c, arch/os2/dialogs/dlg-monitor.c,
+	arch/os2/vsidui.c, arch/os2/video.c, arch/os2/kbd/parse.c,
+	arch/os2/uimon.c, arch/os2/blockdev.c, arch/unix/joy.h,
+	arch/unix/gp2x/vic20ui.c, arch/unix/gp2x/minimal.c,
+	arch/unix/gp2x/vkeyboard_gp2x.c, arch/unix/gp2x/c64ui.c,
+	arch/unix/gp2x/input_gp2x.c, arch/unix/gp2x/audio_gp2x.c,
+	arch/unix/gp2x/vsidui.c, arch/unix/gp2x/input_gp2x.h,
+	arch/unix/gp2x/plus4ui.c, arch/unix/gp2x/video.c,
+	arch/unix/gp2x/c128ui.c, arch/unix/gp2x/prefs_gp2x.c,
+	arch/unix/gp2x/uiarch.h, arch/unix/gp2x/cbm2ui.c,
+	arch/unix/gp2x/petui.c, arch/unix/gui/vsidui.c,
+	arch/unix/x11/xaw/x11video.c,
+	arch/unix/x11/xaw/widgets/FileSel.c,
+	arch/unix/x11/gnome/uipalcontrol.c,
+	arch/unix/x11/gnome/uicolor.c, arch/msdos/joy.c,
+	arch/msdos/console.c, arch/msdos/uiperipherial.c,
+	arch/msdos/uinetplay.c, arch/msdos/video.c, arch/msdos/petui.c,
+	arch/msdos/ui.c, arch/msdos/plus4ui.c, arch/msdos/cbm2ui.c,
+	arch/msdos/uijoystick.c, zfile.c, cartconv.c: Fixed some
+	warnings and other issues.
+
+	* arch/unix/readline/editline2.c, arch/unix/readline/editline.h,
+	arch/unix/readline/sysunix.c, arch/unix/readline/complete.c,
+	arch/unix/readline/editline.c: Updated the prototypes.
+
+2008-05-19  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* resid/configure, resid/depcomp, resid/config.guess,
+	resid/config.sub, resid/mkinstalldirs, resid/missing,
+	resid/aclocal.m4, resid/install-sh: Removed some more
+	auto-generated or unnecessary files.
+
+2008-05-18  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/signals.c: break64() now has a full backup text in
+	case translate_text() fails. This prevents empty dialog boxes in
+	the case of an error, which occurs rather frequently on Windows,
+	as these calls fail.
+
+2008-05-18  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.15.
+
+2008-05-18  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/uiapi.c, arch/win32/ui-resources.c: The
+	-confirmexit/+confirmexit (both platforms) and
+	-singlecpu/+singlecpu (Win32 only) command-line options had a
+	reversed logic for switching on and off w.r.t. the
+	documentation; fixed that.
+
+2008-05-16  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* ioutil.c: Riscos already has getcwd, even though it's not
+	detected by configure.
+
+	* arch/win32/watcom/maincpu.tgt: Added extra parameters for the
+	generation of menuid.h.
+
+	* arch/win32/watcom/config.h, arch/os2/watcom/config.h,
+	arch/os2/vac++/config.h: Added '#define HAVE_GETCWD'.
+
+2008-05-13  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* config.h.in, */Makefile.in: removed files which can be
+	auto-generated by autogen.sh script.
+
+	* monitor/Makefile.am: remove mon_parse.h from BUILT_SOURCES
+	file, because make complains that it cannot build it.
+
+2008-05-18  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/unix/x11/gnome/uifileentry.c: #include
+	<gtk/gtkfilechooserwidget.h> for missing prototypes. This fixed
+	debian bug #449427
+	(http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=449427)
+
+	* arch/unix/x11/ui-resources.c: Use firefox instead of netscape
+	as default browser. This partially fixes debian bug #480714.
+	(http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=480714)
+
+2008-05-07  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.14.
+
+2008-05-01  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/x11/xaw/x11video.c: Added #ifdef HAVE_XVIDEO for
+	some xvideo specific code.
+
+2008-04-28  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/ui.c (ui_shutdown): Call uikeyboard_shutdown.
+
+	* arch/win32/uikeyboard.c,arch/win32/uikeyboard.h: New function
+	uikeyboard_shutdown. Moved cleanup of menuitemmodifier to this
+	function.
+
+2008-04-27  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.13.
+
+	* romset.c: romset_archive_save() now opens the VRA file to
+	write in binary mode, as the contents written already contain
+	the "right" delimiters for the platform.
+
+2008-04-20  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/archdep.c, arch/unix/archdep.h: added global
+	'archdep_pref_path' to relocate preferences to System Directory
+	in Mac OS X Cocoa Port.
+
+2008-04-26  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.12.
+
+	* arch/win32/rescommon.h: Undid the last change: Now, do not
+	include winres.h, as it is not available for mingw compilations.
+
+2008-04-20  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* arch/win32/rescbm2.rc, arch/win32/resplus4.rc,
+	arch/win32/resvic20.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/res.rc, arch/win32/respet.rc:
+	Allow for scrolling in the edit boxes of the ROM settings
+	dialogs.
+
+	* arch/win32/rescommon.h: Include winres.h instead of doubling
+	all definitions.
+
+2008-04-20  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.11.
+
+2008-04-20  Thomas Giesel  <skoe@directbox.com>
+
+	* init.c, monitor.h, monitor/monitor.c, translate.txt, translate.c:
+	New command line switch "-moncommands <name>" to execute monitor
+	commands
+
+	* monitor/mon_lex.l, monitor/mon_parse.y, monitor/montypes.h,:
+	Implemented debug command for monitor grammar; Monitor accepts labels
+	created by the Acme assembler now; Minor clean up of monitor
+	interpreter code.
+
+	* monitor/mon_command.c: Re-arranged monitor help output.
+
+2008-04-19  Greg King  <greg.king4@verizon.net>
+
+	* c64/cart/ide64.c: adds a working RTC to the emulation of the
+	IDE64 cartridge.
+
+2008-04-19  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* monitor/mon_memory.c: In mon_memory_display(), define variable
+	v as BYTE instead of "unsigned int" to prevent a warning for an
+	implicit cast which might loose information.
+
+	* arch/win32/uikeyboard.c: Define MIIM_STRING "by hand" if it is
+	not defined yet.  This fixed compilation for MSVC6.
+
+2008-04-09  Spiro Trikaliotis  <spiro.trikaliotis@gmx.de>
+
+	* Version 1.22.10.
+
+2008-04-08  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/msvc/config.h: Define HAVE_GETCWD.
+
+	* arch/win32/*.rc: Removed all the tab-seperated shortcut
+	markers. This is done dynamically now.
+
+	* arch/win32/ui.c: Removed static shortcut stuff and call
+	uikeyboard_create_accelerator_table and
+	uikeyboard_menu_shortcuts instead.
+
+	* arch/win32/uikeyboard.c: New function
+	uikeyboard_menu_shortcuts.  uikeyboard_create_accelerator_table
+	now remembers strings to add in the menu items.
+
+2008-03-24  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.9.
+
+	* arch/unix/gui/vsidui.c: Reversed `sid_submenu' change for
+	now as it won't link otherwise.
+
+2008-03-05  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* core/ciacore.c (cia_do_set_int): Don't trigger an
+	interrupt if ICR is read on the underrun cycle. This
+	fixes ICR01 in Lorenz test suite.
+
+2008-02-26  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/uimenu.h, arch/unix/videoarch.h,
+	arch/unix/x11/x11menu.h, arch/unix/x11/x11ui.h,
+	arch/unix/x11/xaw/uimenu.h,
+	arch/unix/x11/xaw/widgets/Directory.c,
+	arch/unix/x11/xaw/widgets/Directory.h, c128/Makefile.am,
+	c128/z80vms.c, ioutil.c: Updated to include support for
+	building for vax, alpha and ia64 vms.
+
+	* core/ciatimer.h, gcr.c, gcr.h, vdc/vdc-mem.c, vdc/vdc.c,
+	vdc/vdctypes.h: Got rid of some CR's.
+
+2008-02-11  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/Makefile.am, arch/unix/archdep.c,
+	arch/unix/gui/plus4ui.c, arch/unix/gui/uisound.c,
+	arch/unix/gui/uited.c, arch/unix/gui/vic20ui.c,
+	arch/unix/gui/vsidui.c, arch/unix/rs232.c,
+	arch/unix/vms/config.h, arch/unix/vmstermios.h,
+	arch/unix/x11/xaw/uiarch.h, network.c, rawfile.c,
+	vdc/Makefile.am: Added preliminary OpenVMS support.
+
+2008-02-11  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/Makefile.am, arch.dsp, genmenuid.sh: Added new
+	file. Modification for creation of menuid.h.
+
+	* arch/win32/c128ui.c, c64ui.c, ui.c, uiattach.c, uic64cart.c,
+	uievent.c, uifliplist.c, uiperipheral.c: Unified and
+	simplified the test for shortcut commands.
+
+	* uikeyboard.c (uikeyboard_create_accelerator_table): New
+	function.
+
+	* arch/win32/uilib.c, uilib.h: Changed order of filters to
+	make disk images the default filter for autostart.
+	(set_filter): Use memcopy instead of memcpy when moving
+	inside the filter string.
+
+	* arch/win32/uimediafile.c: Make PNG the default driver at
+	startup.
+
+	* arch/win32/utils/genwinres.c: Modified to create menuid.h.
+
+2008-02-10  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/x11/gnome/x11ui.c: always draw with OpenGL on Macs
+	if hardware scaling is enabled
+
+2008-02-10  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/make-bindist.sh: added missing type role
+
+2008-02-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/archdep.c, arch/unix/coproc.c, arch/unix/rs232.c,
+	arch/unix/x11/xaw/widgets/Directory.c,
+	arch/unix/x11/xaw/widgets/Directory.h, ioutil.c,
+	lib/zlib/zconf.h: Added initial nextstep/openstep support.
+
+2008-02-04  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am, arch/unix/Makefile.am,
+	arch/unix/skyos/make-bindist.sh: Added support for SkyOS.
+
+	* arch/unix/x11/gnome/x11ui.c: Fixed the
+	gtk_widget_set_tooltip_text() issue.
+
+2008-02-02  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* raster/raster-changes.h (raster_changes_add_sorted_int):
+	New function to add change in correct order.
+
+	* raster/raster.h (raster_changes_sprites_add_int): Uses
+	raster_changes_add_sorted_int.
+
+2008-02-02  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/x11ui.c (convert_utf8): Fixed bug for
+	0xa0 handling.
+
+2008-01-31  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/x11ui.c: Do not exit the program if HW
+	scaling not available at runtime.
+
+	* video/video-resources.c, video.h: Move resources vars from
+	video_resource_chip_t to video_render_config_t, which were often
+	unnecessarily duplicated, and made modification of resources a
+	nightmare.
+
+	* video/video-resources.c: Add resource HwScalePossible, to
+	enable/disable HW scaling menu entry.
+
+2008-01-31  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/x11ui.c: (all): removed some dead code.
+	(convert_utf8): New function: basic UTF-8 conversion for
+	PETSCII.
+	(ui_init_finish): Reworked CBM font handling. Credits to Chris
+	Vogelgsang for providing a proper converted CBM truetype font.
+	(rebuild_contents_menu): ditto.
+	(ui_fill_preview): ditto.
+	(build_file_selector): ditto.
+
+	* arch/unix/x11/gnome/uicolor.c: Removed x11 dependent
+	headers.
+
+2008-01-27  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.8.
+
+2008-01-26  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/ui.cc, arch/beos/ui.h, arch/beos/vicewindow.cc,
+	sound.c: Fixed for Haiku.
+
+2008-01-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/Makefile.am, arch/unix/qnx/getlibs.c,
+	arch/unix/qnx/getsize.c, arch/unix/qnx/make-bindist.sh,
+	arch/unix/qnx4/install_msg, arch/unix/qnx4/make-bindist.sh,
+	arch/unix/qnx6/getlibs.c, arch/unix/qnx6/getsize.c,
+	arch/unix/qnx6/make-bindist.sh, arch/unix/rs232.c,
+	arch/unix/x11/qnxshm.c: Added qnx4 support.
+
+	* arch/unix/x11/xaw/widgets/Directory.c: Fixed a typo.
+
+2008-01-23  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/Makefile.am, arch/unix/hpux/getdate.pl,
+	arch/unix/hpux/getnow.pl,
+	arch/unix/hpux/make-bindist.sh: Finalized the hpux support.
+
+2008-01-22  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/uimediafile.c: Fixed buffer overrun.
+
+	* datasette.c: Use alarm handler to stop motor even for
+	recording.
+
+	* gfxoutputdrv/ffmpegdrv.c: New codec PCM for avi format.
+	Use PIX_FMT_RGBA32 for FFV1 codec.
+
+2008-01-20  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/make-bindist.sh: Changed the text a bit.
+
+	* arch/unix/Makefile.am, arch/unix/hpux/make-bindist.sh: Added
+	preliminary hpux support.
+
+	* network.c: Fixed for port where htonl and htons are not
+	functions but defines.
+
+2008-01-18  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/joy.cc: Fixed.
+
+	* arch/beos/ui_cbm2.cc: Fixed a typo.
+
+	* arch/os2/snippets/Makefile.am, arch/os2/snippets/isatty.c,
+	arch/os2/vac++/incl/archdep.icc: Added a dummy isatty
+	function.
+
+	* arch/riscos/make-bindist.sh: Fixed.
+
+	* arch/unix/sco_sol/make-bindist.sh: Fixed the man and info
+	directories.
+
+	* c1541.c, resources.c: Fixed the network_get_mode() problem
+	once and for all.
+
+	* joystick.c: Fixed to handle simultaneous joystick state
+	changes again.
+
+	* libm_math.c: Don't compile for riscos or beos.
+
+	* monitor/mon_memory.h: Changed "DF_SCREEN_CODE," to
+	"DF_SCREEN_CODE" to avoid compiler errors.
+
+	* sounddrv/Makefile.am: Fixed.
+
+2008-01-12  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/make-bindist.sh, arch/beos/make-bindist.sh,
+	arch/msdos/make-bindist.sh, arch/riscos/make-bindist.sh,
+	arch/unix/gp2x/make-bindist.sh, arch/unix/qnx/make-bindist.sh,
+	arch/unix/sco_sol/make-bindist.sh,
+	arch/win32/make-bindist.sh: Made the variables more readable.
+
+2008-01-09  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/msvc/wpcap/pcap-stdinc.h: Removed vsnprintf
+	definition which conflicts with some newer MSVC header.
+
+	* monitor/mon_lex.c, mon_parse.c, mon_parse.h: Recreated with
+	Flex-2.5.33 and Bison-2.3 to make it compile with MSVC.
+
+2008-01-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/resstrings.txt: Fixed.
+
+	* gfxoutputdrv/bmpdrv.c: Extended to support 24bit.
+
+2008-01-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/x11/gnome/x11ui.c, arch/unix/x11/xaw/x11ui.c:
+	Fixed unix mouse for single size display.
+
+2008-01-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/resmouse.rc, mouse.c, translate.c: Updated german
+	and dutch texts.
+
+2008-01-02  pottendo  <pottendo@utanet.at>
+
+	* video.h (struct cap_fullscreen_s): New field `statusbar'.
+
+	* video/video-resources.c (struct video_resource_chip_s): New
+	field `fullscreen_statusbar_enabled'.
+	(set_fullscreen_enabled): Handle statusbar.
+	(set_fullscreen_statusbar): New function.
+	(resources_chip_fullscreen_string): Added resource
+	`Fullscreen_Statusbar'. 
+	(video_resources_chip_init): Handle statusbar_enabled.
+
+	* arch/unix/x11/xaw/x11kbd.c: #include <uimenu.h>
+
+	* arch/unix/x11/xaw/uimenu.h: New Prototype `ui_dispatch_hotkeys()'.
+
+	* arch/unix/x11/gnome/x11ui.c (all): Removed old unused code:
+	GNOME_MENUS, etc.
+	(ui_fullscreen_statusbar): New function.
+
+	* arch/unix/x11/gnome/uiarch.h (enum ui_keysym_s): New hotkey
+	`KEYSYM_b'. New prototype for `ui_fullscreen_statusbar()'.
+	* arch/unix/x11/xaw/uiarch.h (enum ui_keysym_s): Likewise.
+
+	* arch/unix/x11/fullscreen.c (all): Compile only if
+	`HAVE_FULLSCREEN' is set.
+	(fullscreen_statusbar): New function. 
+	(fullscreen_capability): fill `fullscreen_statusbar'. 
+
+	* arch/unix/gui/uifullscreen-menu.h: New file.
+
+	* arch/unix/gui/uicrtc.c (all): Updated to use
+	`uifullscreen-menu.h'
+	 Replaced `USE_XF86_EXTENSIONS' by `HAVE_FULLSCREEN' where
+	appropriate.
+	* arch/unix/gui/uited.c (all): Likewise.
+	* arch/unix/gui/uivdc.c (all): Likewise.
+	* arch/unix/gui/uivic.c (all): Likewise.
+	* arch/unix/gui/uivicii.c (all): Likewise.
+
+	* arch/unix/gui/ui.c (all): Replaced `USE_XF86_EXTENSIONS' by
+	`HAVE_FULLSCREEN' where appropriate.
+	* arch/unix/gui/uicommands.c (all): Likewise.
+	* arch/unix/x11/gnome/gnomevideo.c (all): Likewise.
+	* arch/unix/x11/gnome/videoarch.h (all): Likewise.
+	* arch/unix/x11/gnome/x11ui.c (all): Likewise. 
+	* arch/unix/x11/xaw/uimenu.c (all): Likewise.
+	* arch/unix/x11/xaw/videoarch.h (all): Likewise.
+	* arch/unix/x11/xaw/x11ui.c (all): Likewise.
+	* arch/unix/x11/xaw/x11video.c (all): Likewise.
+
+	* arch/unix/gui/Makefile.am (libarchgui_a_SOURCES): Added
+	`uifullscreen-menu.h' 
+
+	* arch/unix/gui/cbm2ui.c (cbm2_menu): fixed menu VIC-II. 
+
+2008-01-02  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* petcat.c: Added game basic support.
+
+2008-01-01  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* mouse.c: Fixed a neos and amiga mouse button issue.
+
+2008-01-01  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/mui/mui.c, arch/beos/ui.cc,
+	arch/msdos/menudefs.c arch/os2/dialogs/dialogs.rc,
+	arch/unix/macosx/Info.plist, arch/unix/x11/gnome/about.c,
+	arch/unix/x11/xaw/about.c, arch/win32/res.rc: Updated '2007'
+	to '2008'.
+
+	* gfxoutputdrv/iffdrv.c, gfxoutputdrv/jpegdrv.c,
+	gfxoutputdrv/pcxdrv.c, gfxoutputdrv/ppmdrv.c: Fixed some
+	filename related issues.
+
+2007-12-30  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.7.
+
+2007-12-28  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/x11ui.h: Added X11 specific prototypes conditional
+	to USE_XF86_EXTENSIONS.
+
+	* arch/unix/x11/Makefile.am (EXTRA_libx11ui_a_SOURCES): Removed
+	dga1.[ch], dga2.[ch].
+
+	* arch/unix/x11/gnome/gnomevideo.c (video_canvas_resize): use
+	rename `ui_resize_canvas_window()' instead of
+	`x11ui_open_canvas_window()' - for consistency.
+
+	* arch/unix/x11/dga1.[ch]: removed.
+	* arch/unix/x11/dga2.[ch]: removed.
+	
+	* arch/unix/gui/uicrtc.c (all): removed dga1, dga2 code.
+	* arch/unix/gui/uited.c: Likewise.
+	* arch/unix/gui/uivdc.c: Likewise.
+	* arch/unix/gui/uivic.c: Likewise.
+	* arch/unix/gui/uivicii.c: Likewise.
+	* arch/unix/x11/fullscreen.c: Likewise.
+	* arch/unix/x11/vidmode.c: Likewise.
+
+	* arch/unix/x11/gnome/x11ui.c (exposure_callback_canvas):
+	replaced C++ comments
+	(ui_create_status_bar): (all) fixed derecated`gtk_tooltips...()'
+	to new GTK API.
+	#include `x11ui.h' dependent on USE_XF86_EXTENSIONS.
+
+	* arch/unix/gui/vsidui.c: use `vsidui_top_menu' only if
+	USE_GNOMEUI is set.
+	removed inclusion of `x11ui.h'.
+
+	* arch/unix/x11/xaw/x11ui.c renamed `x11ui_open_canvas_window()'
+	to `ui_open_canvas_window()' to be consistent with `ui_...()' 
+	functions. 
+ 	* arch/unix/x11/gnome/x11ui.c: changed to fit to changed name.
+	* arch/unix/x11/xaw/x11video.c: Likewise.
+	* arch/unix/x11/xaw/uiarch.h: Likewise.
+	* arch/unix/x11/gnome/gnomevideo.c: Likewise.
+	* arch/unix/x11/gnome/uiarch.h: Likewise.
+	* arch/unix/gui/vsidui.c: Likewise.
+	
+	* arch/unix/x11/gnome/uicolor.c (uicolor_set_palette): return 0 to
+	fit prototype.
+
+	* arch/unix/x11/gnome/uimenu.c: include <string.h>
+	* arch/unix/x11/gnome/uinetplay.c: Likewise.
+	* arch/unix/x11/gnome/uiscreenshot.c: Likewise.
+ 	* arch/unix/x11/xrandr.c: Likewise.
+ 	* arch/unix/x11/openGL_sync.c: Likewise.
+ 	* arch/unix/gui/plus4ui.c: Likewise.
+	* arch/unix/x11/gnome/uiedisk.c: Likewise.
+
+2007-12-26  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am, libm_math.c, libm_math.h: Added needed math
+	functions in case there is no libm present on a platform.
+
+2007-11-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/os2/dialogs/dialogs.rc: Fixed some os/2 openwatcom
+	related issues.
+
+2007-12-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/c128ui.c,
+	arch/amigaos/c128uires.h, arch/amigaos/c64ui.c,
+	arch/amigaos/c64uires.h, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/amigaos/mui/uimouse.c,
+	arch/amigaos/mui/uimouse.h, arch/amigaos/uires.h,
+	arch/beos/c128ui.cc, arch/beos/c64ui.cc,
+	arch/beos/constants.h, arch/beos/vicemenu.cc,
+	arch/msdos/c128ui.c, arch/msdos/c64ui.c,
+	arch/unix/gui/c128ui.c, arch/unix/gui/c64ui.c,
+	arch/unix/gui/uimouse.c, arch/win32/Makefile.am,
+	arch/win32/arch.dsp, arch/win32/c128ui.c, arch/win32/c64ui.c,
+	arch/win32/intl.c, arch/win32/resc128.rc,
+	arch/win32/resc64.rc,
+	arch/win32/resdialogs.txt, arch/win32/resmenu.txt,
+	arch/win32/resmouse.rc, arch/win32/uimouse.c,
+	arch/win32/uimouse.h, arch/win32/watcom/arch.tgt,
+	arch/win32/watcom/vice.wpj, arch/win32/x128.dsp,
+	arch/win32/x64.dsp, c128/c128cia1.c, c64/c64cia1.c, mouse.c,
+	mouse.h, translate.c, translate.txt: Added experimental NEOS
+	and Amiga mouse support provided by Hannu Nuotio
+	<hannu.nuotio@pp.inet.fi>.
+
+	* arch/beos/joy.cc, arch/beos/ui_cbm2.cc,
+	arch/beos/ui_datasette.cc, arch/beos/ui_device.cc,
+	arch/beos/ui_drive.cc, arch/beos/ui_joystick.cc,
+	arch/beos/ui_netplay.cc, arch/beos/ui_pet.cc,
+	arch/beos/ui_ram.cc, arch/beos/ui_sid.cc,
+	arch/beos/ui_sound.cc, arch/beos/ui_vic20.cc,
+	arch/beos/ui_vicii.cc: Added fixes
+	provided by Marcus Sutton <loggedoubt@gmail.com>.
+
+	* c128/c128cpu.c, c128/c128mem.h, c128/z80mem.h, c64/c64mem.h,
+	cbm2/cbm2cpu.c, cbm2/cbm2mem.c, cbm2/cbm2memsnapshot.c,
+	drive/drivemem.c, monitor/monitor.c, pet/petmem.c,
+	pet/petmemsnapshot.c, plus4/plus4mem.c,
+	plus4/plus4memcsory256k.c, plus4/plus4memhannes256k.c,
+	plus4/ted-badline.c, plus4/ted-mem.c, plus4/ted.c,
+	vic20/vic-snapshot.c, vic20/vic.c, vic20/vic20mem.c,
+	vic20/vic20memsnapshot.c, vicii/vicii-fetch.c,
+	vicii/vicii-snapshot.c, vicii/vicii.c: Added some openwatcom
+	related fixes.
+
+2007-12-18  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* mouse.c: Fixed a command line options issue.
+
+	* network.c: Added a dummy network_get_mode() function for
+	when HAVE_NETWORK is not defined.
+
+2007-12-09  Fabrizio Gennari <fabrizio.ge@tiscali.it>
+
+	* arch/unix/gui/c128ui.c, arch/unix/gui/uiattach.c,
+	arch/unix/gui/uic64cart.c, arch/unix/gui/uicommands.c,
+	arch/unix/gui/uicrtc.c, arch/unix/gui/uidrive.c,
+	arch/unix/gui/uidrivec64c128.c, arch/unix/gui/uidriveiec.c,
+	arch/unix/gui/uidriveplus4.c, arch/unix/gui/uifliplist.c,
+	arch/unix/gui/uiide64.c, arch/unix/gui/uijoystick2.c,
+	arch/unix/gui/uikeyboard.c, arch/unix/gui/uimouse.c,
+	arch/unix/gui/uipalemu.c, arch/unix/gui/uipalette.c,
+	arch/unix/gui/uiprinteriec.c,
+	arch/unix/gui/uiprinteriecplus4.c,
+	arch/unix/gui/uiprinterieee.c, arch/unix/gui/uiromset.c,
+	arch/unix/gui/uirs232.c, arch/unix/gui/uisettings.c,
+	arch/unix/gui/uited.c, arch/unix/gui/uivdc.c,
+	arch/unix/gui/uivic.c, arch/unix/gui/uivicii.c,
+	arch/unix/gui/vic20ui.c, arch/unix/gui/vsidui.c: remove True
+	and False, they are X-specific
+
+	* arch/unix/x11/gnome/uiarch.h, arch/unix/x11/gnome/uicolor.c,
+	arch/unix/x11/gnome/uimenu.c, arch/unix/x11/gnome/uimenu.h,
+	arch/unix/x11/gnome/x11ui.c: remove X-specific definitions,
+	replacing them with GTK-specific ones
+
+	* arch/unix/x11/gnome/x11ui.c: use gdk_gc_set_rgb_fg_color
+	instead of gdk_gc_set_foreground, the former does not require
+	the color to be allocated in advance
+
+	* arch/unix/x11/gnome/x11ui.c: use gtkglext (GTK extensions to
+	support OpenGL) to rescale and display the image
+
+	* arch/unix/x11/kbd.c, arch/unix/x11/uihotkey.c,
+	arch/unix/x11/videoarch.h, arch/unix/x11/video.c,
+	arch/unix/x11/x11menu.c: removed, code moved to the relevant
+	xaw and gnome folders
+
+2007-12-09  Andreas Boose  <viceteam@t-online.de>
+
+        * Version 1.22.6.
+
+	* arch/win32/resstrings.txt: Removed stray CR found by Martin.
+
+2007-11-28  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* core/ciatimer.h (ciat_single_step): Only step if the
+	timer is running. This fixes bug in So-phisticated demo.
+	No regression with all known CIA test suites.
+
+	* vicii/vicii-sprites.c: Various fixes for sprites in NTSC
+	mode. This fixes some demos and is validated with data
+	written by a test suite on a NTSC machine.
+
+2007-11-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* sounddrv/sounduss.c: Fixed for OpenBSD.
+
+2007-11-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/c128uires.h, arch/amigaos/c64uires.h,
+	arch/amigaos/cbm2uires.h, arch/amigaos/petuires.h,
+	arch/amigaos/plus4uires.h, arch/amigaos/vic20uires.h: Got rid
+	of some unneeded elements.
+
+	* arch/amigaos/intl.c, arch/amigaos/intl.txt,
+	arch/win32/res.rc, arch/win32/resacia.rc,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/resc64_256k.rc, arch/win32/rescbm2.rc,
+	arch/win32/resdigimax.rc,
+	arch/win32/resdrivec128.rc, arch/win32/resdrivec64.rc,
+	arch/win32/resdrivepetcbm2.rc, arch/win32/resdriveplus4.rc,
+	arch/win32/resdrivevic20.rc, arch/win32/resgeoram.rc,
+	arch/win32/reside64.rc, arch/win32/resmmc64.rc,
+	arch/win32/respet.rc, arch/win32/respetreu.rc,
+	arch/win32/resplus256k.rc, arch/win32/resplus4.rc,
+	arch/win32/resplus60k.rc, arch/win32/resramcart.rc,
+	arch/win32/resreu.rc, arch/win32/resrs232user.rc,
+	arch/win32/ressid.rc, arch/win32/ressidcart.rc,
+	arch/win32/restfe.rc, arch/win32/resvic20.rc,
+	arch/win32/resvicii.rc, translate.c: Updated the dutch
+	translations.
+
+	* arch/unix/joy_usb.c: Fixed some more usb issues.
+
+	* c64/digimax.c: Added a previously untranslated item.
+
+	* vice.h: Added some tested platforms/cpu's for which
+	ALLOW_UNALIGNED_ACCESS winds up in a speedup.
+
+2007-11-04  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.5.
+
+	* machine.c (machine_jam): Fixed some warning.
+
+2007-11-04  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/statusbar.c (statusbar_create): Set slider
+	value directly instead of using statusbar_display_volume. This
+	fixes problem when returning from fullscreen mode.
+
+	* raster/raster.h, raster.c: Added new member last_video_mode
+	to the raster struct which is initialized with -1 (last mode
+	not used).
+
+	* vicii/vicii-draw.c (draw_std_text_foreground,
+	_draw_hires_bitmap_foreground, draw_mc_text_foreground,
+	draw_mc_bitmap_foreground, draw_ext_text_foreground):
+	If last_video_mode is set, change drawing depending on this
+	last mode.
+
+	* vicii/vicii.c (vicii_update_video_mode): Not only multicolor
+	changes but every change needs to be triggered one cycle
+	earlier with last_video_mode also set on this cycle and
+	cleared two cycles later which will lead to the two chars wide
+	area with mixed mode drawing.
+	FIXME: Change of Idle data needs further testing.
+
+2007-11-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/joy_usb.c: Fixed.
+
+2007-10-30  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/archdep.c, arch/unix/macosx/make-bindist.sh,
+	arch/unix/macosx/x11-launcher.sh: adapted to new Mac OS X 10.5
+
+	* sounddrv/soundcoreaudio.c: fixed bug in API call
+
+	* Makefile.am: added initial support for automake 1.10
+
+	* main.c: added myself to VICE team here, too
+
+2007-10-21  Georg Feil <georg@sgl.sci.yorku.ca>
+
+	* pet/petsound.c, pet/petsound.h, pet/petvia.c: Added support
+	for toggling CB2 sound output line.
+
+2007-10-21  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.4.
+
+2007-10-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arc/unix/x11/Makefile.am: Changed the 'SYNC' keyword to
+	'VICE_SYNC' to make the source compile ok on gentoo.
+
+2007-09-16  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.3.
+
+2007-09-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am: Fixed a netplay libs issue.
+
+2007-09-12  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* machine.c (machine_jam): Set ignore_jam flag if desired
+	action isn't reset or monitor start.
+	(machine_trigger_reset_internal): Clear the ignor_jam flag.
+
+	* uiapi.h: New ui_jam_action_t member UI_JAM_NONE.
+
+	* arch/win32/res.rc: Added explanation in IDS_START_MONITOR.
+
+	* arch/win32/ui.c (ui_jam_dialog): Added Cancel button to the
+	message box and return UI_JAM_NONE as its action.
+
+2007-09-07  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* raster/raster-line.c (draw_sprites_partial): Use the
+	zero_gfx_msk if we are on an xsmooth shift right and
+	reset the flag.
+
+	* raster/raster.h, raster.c (raster_reset): Init for new
+	members sprite_xsmooth and sprite_xsmooth_shift_right.
+
+	* vicii/vicii-mem.c (d016_store): Set a copy of xsmooth for
+	the sprite drawing code. Set sprite_xsmooth_shift_right flag
+	at the starting point of a shift right.
+
+	* vicii/vicii-snapshot.c (vicii_snapshot_read_module): Set
+	sprite_xsmooth.
+
+	* vicii/vicii-sprites.c (draw_sprite_partial): Don't use
+	xsmooth which is already progressed to next line but
+	sprite_xsmooth.
+
+2007-09-06  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* vicii/vicii-mem.c (d01c_store), vicii/vicii-sprites.c
+	(vicii_sprites_set_x_position), vicii/vicii.c
+	(vicii_trigger_light_pen): Fixed raster x positions for
+	different screen border settings.
+
+2007-09-06  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am: Added libpng and zlib deps.
+
+	* monitor/Makefile.am, raster/Makefile.am: Cosmetic fixes.
+
+2007-09-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am: Added 'BUILT_SOURCES' dependency to the
+	x64-all, x128-all, xcbm2-all, xpet-all, xplus4-all and
+	xvic-all targets.
+
+2007-09-02  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c64/c64.h, c64/c64mem.c, c64/c64pla.c, c64/c64pla.h: Changed
+	the fall-off time and behavior of the unused bit in $01 to
+	match the real hardware.
+
+2007-09-02  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.2.
+
+2007-08-27  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* 6510core.c: Cosmetic fixes.
+
+	* vic20/vic20mem.c: Added unconnected c-bus floating byte
+	support.
+
+2007-08-23  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c64/c64.c, c64/c64.h, c64/c64mem.c, c64/c64mem.h,
+	c64/c64pla.h: Added $01 unused bits drop off support.
+
+2007-08-23  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/sco_sol/convertprototype.c: Updated.
+
+2007-08-19  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* vicii-mem.c (d017_store): The cycles after the memory fetch
+	are all "smaller" than cycle 15 so handle them the same way.
+	This fixes Tsunami nose bug.
+
+	* vicii-sprites.c (vicii_sprites_set_x_position): Rewritten
+	to make Krestage 3 and +H2K (and some test progs) happy.
+
+2007-08-19  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* vicii/vicii-mem.c (check_lower_upper_border): Display is
+	enabled if we switch to 25 row mode on its first line and
+	DEN bit is enabled (even if it is cleared in the same cycle).
+	(d011_store): Setting DEN bit on the first cycle of a new line
+	isn't handled in vicii_raster_draw_alarm_handler so
+	allow_bad_lines needs to be set here.
+
+2007-08-19  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.1.
+
+	* c64/c64cia1.c, c128/c128cia1.c (store_ciapa): Write access
+	to port a can also trigger a lightpen interrupt if some
+	corresponding key is pressed.
+
+	* arch/unix/Makefile.am: Removed sco directory references.
+
+2007-08-18  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/win32/uiattach.c, arch/win32/uilib.h: split off .prg
+	and .p00 from tape image files filter into a new filter
+
+	* arch/win32/uilib.c: when filling file filter, add new
+	entries at the beginning, rather than at the end, so "All
+	files" is always the last
+
+	* arch/win32/intl.c, /arch/win32/res.rc,
+	arch/win32/resstrings.txt: add one string, change another one
+
+2007-08-17  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/Makefile.am, arch/unix/rs232.c,
+	arch/unix/sco_sol/convertprototype.c,
+	arch/unix/sco_sol/make-bindist.sh, arch/unix/signals.c,
+	arch/unix/vsyncarch.c, network.c: Added SCO Openserver and
+	Unixware support.
+
+	* arch/unix/solaris/convertprototype.c,
+	arch/unix/solaris/make-bindist.sh: Removed.
+
+2007-08-16  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/uijoystickkeys.c: use GtkTable so
+	buttons are better aligned.
+
+2007-08-16  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* 6510core.c: Fixed timing of SHA_ABS_Y, SHX_ABS_Y, SHY_ABS_X
+	and SHS_ABS_Y.
+
+2007-08-11  Spiro Trikaliotis  <Spiro.Trikaliotis@gmx.de>
+
+	* arch/win32/ui.c: Make sure the window content's are repaint
+	if the user changes with Alt+TAB in full-screen mode, or if
+	the user connects remotely to another machine (for example,
+	via Remote Desktop). This works except for x128 with its two
+	windows, where the bottom status-bar is erroneous after
+	entering fullscreen. Note that this behaviour was present even
+	before this patch.
+
+2007-08-05  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.22.
+
+	* info.c: Updated.
+
+2007-08-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resvicii.rc, translate.c: Updated.
+
+2007-08-04  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.13.
+
+2007-08-04  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/uijoystickkeys.c: fix deprecated use of
+	`gtk_signal_connect'.
+
+	* arch/unix/x11/gnome/x11ui.c (x11ui_open_canvas_window): Use
+	new_window->window for gtk_window_resize().
+	(all): fixed several warnings about unused variables - mostly
+	due to the size-allocation fix.
+
+	* arch/unix/x11/video.c (video_arch_resources_init): Register
+	openGL_syn resources early.
+
+	* arch/unix/x11/dga2.c (dga2_init_internal): turn off DGA2 if
+	no suitable mode is found.
+
+	* arch/unix/gui/uivdc.c (ALL): added XRANDR fullscreen
+	device. Fixes several memory corruption related bugs in x128.
+
+	* arch/unix/x11/openGL_sync.c (set_openGL_sync): Handle case
+	where openGL_sync is set from vicerc.
+	(openGL_sync_init): Initialize only once and not for every
+	canvas.
+	(openGL_register_resources): New function.
+
+	* arch/unix/x11/xrandr.c (xrandr_menu_shutdown): Avoid double
+	free'ing in case of e.g. VDC and reused menu. Shutdown early
+	to restore screen when emu exited with active
+	XRANDR/fullscreen mode.
+	(xrandr_menu_create): Reuse menu for second menu (e.g. VDC).
+	Fixed allocation for xrandr resolution menu.
+
+	* arch/unix/x11/xaw/x11ui.c (x11ui_fullscreen): Check resource
+	`40/80ColumnKey' to determine which shell to maximize.
+	Currently this is hardwired: 0 -> VDC, 1 -> VICII.
+	fix fullscreen WM message. Credits to Kim Taylor.
+
+	* video.h (FULLSCREEN_MAXDEV): Set to 4 (vidmode, DGA1, DGA2,
+	XRandR) - might fix the AMD64/XRandR issue.
+
+2007-08-02  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/statusbar.c (statusbar_create_brushes): Fixed
+	col init for correct last green brush.
+
+2007-08-02  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/make-bindist.sh, arch/beos/make-bindist.sh,
+	arch/msdos/make-bindist.sh, arch/riscos/make-bindist.sh,
+	arch/unix/qnx/make-bindist.sh,
+	arch/unix/solaris/make-bindist.sh,
+	arch/win32/make-bindist.sh: Fixed.
+
+2007-08-01  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* 6510core.c: If DEBUG is defined remember the CPU clock
+	before FETCH_OPCODE and use this clock in the debug output.
+
+2007-07-29  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/cocoa/view/joystickview.m,
+	arch/unix/macosx/cocoa/view/keypressview.m: bug fixes
+
+2007-07-29  Fabrizio Gennari <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/x11ui.c: do not handle signal
+	size-allocate, as sometimes it is triggered with wrong params
+
+2007-07-27  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/cocoa/ui.m: made compatible to Mac OS X
+	10.3
+
+2007-07-16  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.12.
+
+2007-07-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/make-bindist.sh, arch/amigaos/mousedrv.c,
+	arch/amigaos/uiattach.c: Added gcc warpos compile support.
+
+2007-07-11  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* vicii/vicii-mem.c: Cleaned from old disabled code.
+	(d01c_store): All possible changes between MC and HIRES are
+	handled now.
+
+	* vicii/vicii-sprites.c (draw_mc_sprite_normal): Change to
+	MC within the sprite is implemented now.
+
+2007-07-11  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* info.c: Updated.
+
+2007-07-11  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/fullscrn.c, arch/win32/ui.c: Fixed the calls to
+	statusbar_create() function.
+
+2007-07-10  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/statusbar.c, statusbar.h (SetStatusWindowParts):
+	Move the volume slider to correct position.
+	(statusbar_create): Removed hwnd parameter. Slider is named
+	"Volume" now.
+
+	* raster/raster-sprite.h: Added new member mc_bug to sprite
+	struct.
+
+	* vicii/vicii-mem.c (d01c_store): Set mc_bug depending on
+	the x position of the sprite. Only HIRES->MC change is
+	handled for now.
+
+	* vicii/vicii-sprites.c (draw_mc_sprite_expanded): Handle
+	switch to MC within the sprite.
+	(draw_all_sprites_partial): Reset mc_bug.
+	(vicii_sprites_set_x_position): Handle changes to and from
+	the area behind the sprite fetch by using the raster_changes
+	API to make drawing a sprite twice in one emulated line
+	possible.
+
+2007-07-10  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/x11/xaw/x11ui.c: Added support for <xpm.h> type
+	include.
+
+2007-07-08  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* color.c: Prevent a color to have the same owner multiple
+	times (may happen because, in PAL emulation, palette can have
+	same color multiple times)
+
+2007-07-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* vic20/Makefile.am, vic20/vic20click.h, vic20/vic20sound.c:
+	Added emulation of the volume changing click.
+
+2007-07-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* build/beos/ppc-build.sh: Fixed a typo.
+
+	* arch/beos/c128ui.cc, arch/beos/c64ui.cc,
+	arch/beos/vicemenu.cc: Fixed.
+
+	* arch/msdos/uiscreenshot.c: Added a previously missing
+	include.
+
+	* arch/os2/dialogs/dialogs.rc, arch/os2/vac++/incl/iec.icc,
+	arch/os2/vac++/incl/vicii.icc,
+	arch/os2/vac++/x128/X128.ICC: Fixed.
+
+2007-07-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* network.c: Fixed for AmigaOS3.
+
+2007-07-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c128/c128mmu.c: Fixed for riscos.
+
+	* vsync.c: Fixed for riscos and msdos.
+
+2007-07-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/joy_usb.c: Applied the NetBSD fix provided by
+	Frank Wille <frank@phoenix.owl.de>.
+
+2007-07-01  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.11.
+
+2007-06-28  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/os2/Makefile.am, arch/os2/archdep.c, arch/os2/config.h,
+	arch/os2/dialogs/dialogs.c, arch/os2/dialogs/dialogs.h,
+	arch/os2/dialogs/dialogs.rc, arch/os2/dialogs/dlg-color.rc,
+	arch/os2/dialogs/dlg-datasette.rc,
+	arch/os2/dialogs/dlg-drive.rc,
+	arch/os2/dialogs/dlg-emulator.rc,
+	arch/os2/dialogs/dlg-fileio.c, arch/os2/dialogs/dlg-fileio.rc,
+	arch/os2/dialogs/dlg-joystick.rc,
+	arch/os2/dialogs/dlg-monitor.rc, arch/os2/dialogs/menubar.rc,
+	arch/os2/fullscr.c, arch/os2/gradd.h, arch/os2/joy.c,
+	arch/os2/joy.h, arch/os2/mousedrv.c, arch/os2/signals.c,
+	arch/os2/snippets/dirport.c, arch/os2/snippets/dirport.h,
+	arch/os2/snippets/pmwin2.c, arch/os2/sounddrv.c,
+	arch/os2/vac++/Makefile.am, arch/os2/vac++/X1541.ICC,
+	arch/os2/vac++/config.h, arch/os2/vac++/x128/X128.ICC,
+	arch/os2/vac++/x64/X64.ICC, arch/os2/vac++/xcbm2/Xcbm2.ICC,
+	arch/os2/vac++/xpet/Xpet.ICC,
+	arch/os2/vac++/xplus4/Xplus4.ICC,
+	arch/os2/vac++/xvic/Xvic.ICC, arch/os2/video.c,
+	arch/os2/watcom/README.txt, arch/os2/watcom/archdep.tgt,
+	arch/os2/watcom/c128-c64-snapshot.c,
+	arch/os2/watcom/c128-c64acia1.c,
+	arch/os2/watcom/c128-c64bus.c,
+	arch/os2/watcom/c128-c64cia2.c,
+	arch/os2/watcom/c128-c64datasette.c,
+	arch/os2/watcom/c128-c64export.c,
+	arch/os2/watcom/c128-c64iec.c,
+	arch/os2/watcom/c128-c64io.c,
+	arch/os2/watcom/c128-c64keyboard.c,
+	arch/os2/watcom/c128-c64meminit.c,
+	arch/os2/watcom/c128-c64memrom.c,
+	arch/os2/watcom/c128-c64parallel.c,
+	arch/os2/watcom/c128-c64pla.c,
+	arch/os2/watcom/c128-c64printer.c,
+	arch/os2/watcom/c128-c64rsuser.c,
+	arch/os2/watcom/c128-c64sound.c,
+	arch/os2/watcom/c128-c64tpi.c,
+	arch/os2/watcom/c128-digimax.c, arch/os2/watcom/c128-georam.c,
+	arch/os2/watcom/c128-mmc64.c, arch/os2/watcom/c128-patchrom.c,
+	arch/os2/watcom/c128-ramcart.c, arch/os2/watcom/c128-reu.c,
+	arch/os2/watcom/c128-tfe.c, arch/os2/watcom/c128.tgt,
+	arch/os2/watcom/c128c64.tgt, arch/os2/watcom/c64.tgt,
+	arch/os2/watcom/c64cart.tgt, arch/os2/watcom/cartconv.tgt,
+	arch/os2/watcom/cbm2.tgt, arch/os2/watcom/config.h,
+	arch/os2/watcom/core.tgt, arch/os2/watcom/crtc.tgt,
+	arch/os2/watcom/dialogs.tgt, arch/os2/watcom/diskimage.tgt,
+	arch/os2/watcom/drive.tgt, arch/os2/watcom/fileio.tgt,
+	arch/os2/watcom/fsdevice.tgt,
+	arch/os2/watcom/gfxoutputdrv.tgt,
+	arch/os2/watcom/iec.tgt, arch/os2/watcom/iecbus.tgt,
+	arch/os2/watcom/iecc64exp.tgt, arch/os2/watcom/iecieee.tgt,
+	arch/os2/watcom/iecplus4exp.tgt, arch/os2/watcom/ieee.tgt,
+	arch/os2/watcom/imagecontents.tgt, arch/os2/watcom/kbd.tgt,
+	arch/os2/watcom/mainsrc.tgt, arch/os2/watcom/monitor.tgt,
+	arch/os2/watcom/nonresid-sid-cmdline-options.c,
+	arch/os2/watcom/nonresid-sid-resources.c,
+	arch/os2/watcom/nonresid-sid-snapshot.c,
+	arch/os2/watcom/nonresid-sid.c,
+	arch/os2/watcom/nonresid-specific.tgt,
+	arch/os2/watcom/nonvic1or2-specific.tgt,
+	arch/os2/watcom/nonvic1or2-video.c,
+	arch/os2/watcom/nonx128-proc.c,
+	arch/os2/watcom/nonx128-specific.tgt,
+	arch/os2/watcom/nonx1541-log.c,
+	arch/os2/watcom/nonx1541-specific.tgt,
+	arch/os2/watcom/nonx64-dragndrop.c,
+	arch/os2/watcom/nonx64-specific.tgt,
+	arch/os2/watcom/nonx64-vsyncarch.c,
+	arch/os2/watcom/parallel.tgt,
+	arch/os2/watcom/pet.tgt, arch/os2/watcom/petcat-archdep.c,
+	arch/os2/watcom/petcat-signals.c,
+	arch/os2/watcom/petcat-specific.tgt,
+	arch/os2/watcom/petcat.tgt,
+	arch/os2/watcom/plus4.tgt, arch/os2/watcom/printerdrv.tgt,
+	arch/os2/watcom/raster.tgt, arch/os2/watcom/resid-fastsid.c,
+	arch/os2/watcom/resid-sid.cc,
+	arch/os2/watcom/resid-specific.tgt,
+	arch/os2/watcom/resid.tgt, arch/os2/watcom/rs232drv.tgt,
+	arch/os2/watcom/serial.tgt, arch/os2/watcom/sounddrv.tgt,
+	arch/os2/watcom/tape.tgt, arch/os2/watcom/tcbm.tgt,
+	arch/os2/watcom/vdc.tgt, arch/os2/watcom/vdrive.tgt,
+	arch/os2/watcom/vic20.tgt, arch/os2/watcom/vice.wpj,
+	arch/os2/watcom/vicii.tgt, arch/os2/watcom/video.tgt,
+	arch/os2/watcom/vsid.tgt, arch/os2/watcom/x128-dlg-fileio.c,
+	arch/os2/watcom/x128-main.c, arch/os2/watcom/x128-menubar.c,
+	arch/os2/watcom/x128-specific.tgt,
+	arch/os2/watcom/x128-video.c,
+	arch/os2/watcom/x128.tgt, arch/os2/watcom/x1541-archdep.c,
+	arch/os2/watcom/x1541-signals.c,
+	arch/os2/watcom/x1541-specific.tgt, arch/os2/watcom/x1541.tgt,
+	arch/os2/watcom/x64-specific.tgt, arch/os2/watcom/x64.tgt,
+	arch/os2/watcom/x64x128-sid.c,
+	arch/os2/watcom/x64x128-specific.tgt,
+	arch/os2/watcom/xall-specific.tgt, arch/os2/watcom/xall.tgt,
+	arch/os2/watcom/xcbm2-dlg-fileio.c,
+	arch/os2/watcom/xcbm2-kbd-pet.c, arch/os2/watcom/xcbm2-main.c,
+	arch/os2/watcom/xcbm2-menubar.c,
+	arch/os2/watcom/xcbm2-specific.tgt, arch/os2/watcom/xcbm2.tgt,
+	arch/os2/watcom/xpet-dlg-fileio.c,
+	arch/os2/watcom/xpet-main.c,
+	arch/os2/watcom/xpet-maincpu.c,
+	arch/os2/watcom/xpet-menubar.c,
+	arch/os2/watcom/xpet-specific.tgt, arch/os2/watcom/xpet.tgt,
+	arch/os2/watcom/xplus4-dlg-fileio.c,
+	arch/os2/watcom/xplus4-main.c,
+	arch/os2/watcom/xplus4-menubar.c,
+	arch/os2/watcom/xplus4-specific.tgt,
+	arch/os2/watcom/xplus4.tgt,
+	arch/os2/watcom/xvic-dlg-fileio.c,
+	arch/os2/watcom/xvic-main.c,
+	arch/os2/watcom/xvic-maincpu.c,
+	arch/os2/watcom/xvic-menubar.c,
+	arch/os2/watcom/xvic-specific.tgt,
+	arch/os2/watcom/xvic-video.c,
+	arch/os2/watcom/xvic.tgt, c128/c128mmu.c: Added watcom compile
+	support for the os/2 port.
+
+2007-06-21  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* vic20/vic20mem.c (mem_patch_kernal): Also patch the
+	vic20memrom_kernal_trap_rom.
+
+2007-06-20  Fabrizio Gennari <fabrizio.ge@tiscali.it>
+
+	* joystick.c: read resources from correct variables, fix size
+	of joypad_status array
+
+2007-06-17  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/Makefile.am: added Resources and source
+	tree of new cocoa port
+
+	* arch/unix/macosx/Info.plist,
+	arch/unix/macosx/make-bindist.sh:
+	support all types of images for drag & drop
+
+	* arch/unix/mousedrv.c: disable generic unix mouse driver
+	if using cocoa. it has its own implementation.
+
+2007-06-15  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/statusbar.c (statusbar_notify): Gets index
+	of the windows as parameter and handles correct volume
+	slider. Focus issue fixed like Tibor suggested.
+
+	* arch/win32/statusbar.h, ui.c: Fixed prototype and call of
+	statusbar_notify.
+
+	* core/ciacore.c (ciacore_snapshot_write_module): sr_bits
+	is directly written into snapshot now since nobody could
+	explain the factor 2 and problems with Athena history
+	recording are fixed with this.
+
+2007-06-13  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* network.c: Fixed.
+
+2007-06-10  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.10.
+
+	* network.c: Changed back closesocket define.
+
+2007-06-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c128/c128.c, c64/c64.c, cbm2/cbm2.c, pet/pet.c,
+	plus4/plus4.c, vic20/vic20.c: Changed the asmarray
+	initialization.
+
+2007-06-02  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* network.c: Fixed.
+
+2007-05-31  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/Makefile.am, arch/win32/res.rc,
+	arch/win32/uiacia.c, arch/win32/watcom/README.txt,
+	arch/win32/watcom/arch.tgt, arch/win32/watcom/base.tgt,
+	arch/win32/watcom/c128-c64-snapshot.c,
+	arch/win32/watcom/c128-c64acia1.c,
+	arch/win32/watcom/c128-c64bus.c,
+	arch/win32/watcom/c128-c64cia2.c,
+	arch/win32/watcom/c128-c64datasette.c,
+	arch/win32/watcom/c128-c64export.c,
+	arch/win32/watcom/c128-c64iec.c,
+	arch/win32/watcom/c128-c64io.c,
+	arch/win32/watcom/c128-c64keyboard.c,
+	arch/win32/watcom/c128-c64meminit.c,
+	arch/win32/watcom/c128-c64memrom.c,
+	arch/win32/watcom/c128-c64parallel.c,
+	arch/win32/watcom/c128-c64pla.c,
+	arch/win32/watcom/c128-c64printer.c,
+	arch/win32/watcom/c128-c64rsuser.c,
+	arch/win32/watcom/c128-c64sound.c,
+	arch/win32/watcom/c128-c64tpi.c,
+	arch/win32/watcom/c128-digimax.c,
+	arch/win32/watcom/c128-georam.c,
+	arch/win32/watcom/c128-mmc64.c,
+	arch/win32/watcom/c128-patchrom.c,
+	arch/win32/watcom/c128-ramcart.c,
+	arch/win32/watcom/c128-reu.c,
+	arch/win32/watcom/c128-tfe.c, arch/win32/watcom/c128.tgt,
+	arch/win32/watcom/c1541.tgt, arch/win32/watcom/c64.tgt,
+	arch/win32/watcom/c64c128.tgt, arch/win32/watcom/c64cart.tgt,
+	arch/win32/watcom/c64exp.tgt, arch/win32/watcom/cartconv.tgt,
+	arch/win32/watcom/cbm2.tgt, arch/win32/watcom/config.h,
+	arch/win32/watcom/core.tgt, arch/win32/watcom/crtc.tgt,
+	arch/win32/watcom/diskimage.tgt, arch/win32/watcom/drive.tgt,
+	arch/win32/watcom/fileio.tgt, arch/win32/watcom/fsdevice.tgt,
+	arch/win32/watcom/gentranslate.tgt,
+	arch/win32/watcom/genwinres.tgt,
+	arch/win32/watcom/gfxoutputdrv.tgt, arch/win32/watcom/iec.tgt,
+	arch/win32/watcom/iec128dcr.tgt, arch/win32/watcom/iecbus.tgt,
+	arch/win32/watcom/iecieee.tgt, arch/win32/watcom/ieee.tgt,
+	arch/win32/watcom/imagecontents.tgt,
+	arch/win32/watcom/maincpu.tgt, arch/win32/watcom/monitor.tgt,
+	arch/win32/watcom/parallel.tgt, arch/win32/watcom/pet.tgt,
+	arch/win32/watcom/petcat.tgt, arch/win32/watcom/plus4.tgt,
+	arch/win32/watcom/plus4exp.tgt,
+	arch/win32/watcom/printerdrv.tgt,
+	arch/win32/watcom/raster.tgt, arch/win32/watcom/rs232drv.tgt,
+	arch/win32/watcom/serial.tgt, arch/win32/watcom/sid.tgt,
+	arch/win32/watcom/sounddrv.tgt, arch/win32/watcom/system.h,
+	arch/win32/watcom/tape.tgt, arch/win32/watcom/tcbm.tgt,
+	arch/win32/watcom/vdc.tgt, arch/win32/watcom/vdrive.tgt,
+	arch/win32/watcom/vic20.tgt, arch/win32/watcom/vice.wpj,
+	arch/win32/watcom/vicii.tgt, arch/win32/watcom/video.tgt,
+	arch/win32/watcom/x128.tgt, arch/win32/watcom/x128main.c,
+	arch/win32/watcom/x64.tgt, arch/win32/watcom/x64main.c,
+	arch/win32/watcom/xcbm2.tgt, arch/win32/watcom/xcbm2main.c,
+	arch/win32/watcom/xpet.tgt, arch/win32/watcom/xpetmain.c,
+	arch/win32/watcom/xplus4.tgt, arch/win32/watcom/xplus4main.c,
+	arch/win32/watcom/xvic.tgt, arch/win32/watcom/xvicmain.c,
+	c128/c128.c, c64/c64.c, cbm2/cbm2.c, monitor/mon_parse.c,
+	pet/pet.c, plus4/plus4.c, vic20/vic20.c: Added openwatcom
+	compiler support to the win32 port.
+
+2007-05-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* raster/raster.c: Fixed.
+
+2007-05-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/archdep.h, network.c: Added netplay support to
+	Amiga OS3 and AROS ports.
+
+	* arch/amigaos/intl.c, arch/amigaos/intl.txt,
+	arch/amigaos/mui/uisound.c: Added volume control UI element to
+	the Amiga ports.
+
+	* sound.c: Fixed.
+
+2007-05-20  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.9.
+
+	* c128/c128mem.c, c128/c128meminit.c: Added support for vbank
+	writes, does not honour 0/1 page and second 64k bank.
+
+2007-05-07  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* vic20/vic20sound.c: Fixed the clicking and distortion
+	problems.
+
+2007-05-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c128/c128cpu.c, vicii/vicii-clock-stretch.c: Fixed.
+
+	* sound.c: Added 'SWORD' casts.
+
+2007-05-05  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.8.
+
+	* c128/c128mmu.c [resources_int]: Changed default value to
+	C128 mode.
+
+	* zfile.c (try_uncompress_with_bzip): Removed debug cruft.
+
+	* kbdbuf.c, kbdbuf.h (kbdbuf_reset): New function.
+	(kbdbuf_init): Return void.
+
+	* c128/c128.c, c128/c128.h (machine_kbdbuf_reset_c128,
+	machine_kbdbuf_reset_c64, machine_autostart_reset_c128,
+	machine_autostart_reset_c64): New functions.
+
+	* c128/c128mmu.c (mmu_switch_to_c64mode,
+	mmu_switch_to_c128mode): New functions.
+
+	* autostart.c, autostart.h (autostart_reinit): New function.
+
+2007-05-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* 6510core.c, c128/c128cpu.c, maincpu.c, maincpu.h,
+	vicii/vicii-clock-stretch.c, vicii/viciitypes.h,
+	vicii.h: Added 8502 fast mode memory refresh cycle support.
+
+	* translate.c, translate.txt: Updated.
+
+2007-05-02  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/amigaos/uiapi.c, arch/beos/ui.cc, arch/msdos/ui.c,
+	arch/os2/ui.c, arch/riscos/ui.c, arch/unix/gp2x/ui.c,
+	arch/unix/gui/ui.c, arch/win32/ui.c, uiapi.h: Added new
+	function ui_display_volume (dummies for non-win32).
+
+	* arch/win32/fullscrn.c, statusbar.c, statusbar.h, ui.c:
+	Added width parameter for statusbar_create. Changed statusbar
+	handling for additional slider part.
+
+	* arch/win32/resdialogs.txt: Added IDC_SLIDER.
+
+	* sound.c: Added resource "SoundVolume". (sound_run_sound)
+	Scales the sound buffer if volume isn't maximal.
+
+	* translate.txt: Added missing IDCLS_GO64_MODE,
+	IDCLS_GO64_MODE.
+
+2007-05-01  Spiro Trikaliotis  <Spiro.Trikaliotis@gmx.de>
+
+	* c64/tfe.c: Removed unused variables.
+
+2007-04-29  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.7.
+
+	* 6510core.c [LOAD_IND_X, LOAD_IND_Y]: Increment clock here,
+	removed separate increments.
+
+	* keyboard.c, arch/unix/archdep.h, arch/amigaos/archdep.h,
+	arch/os2/archdep.h, arch/beos/archdep.h, arch/msdos/archdep.h,
+	arch/riscos/archdep.h, arch/win32/archdep.h: Defined no key
+	symcode to remove amigaos specific defines.
+
+	* keyboard.c, keyboard.h: Allow the definition of an
+	alternative keyboard mapping.
+
+	* c128/c128mmu.c (mmu_update_config): Set alternative keyboard
+	mapping if c64 mode is entered.
+
+	* c128/c128mmu.c, translate.c, arch/unix/gui/c128ui.c: Added
+	support to always switch to C64 mode on reset.
+
+2007-04-29  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.6.
+
+2007-04-25  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/Makefile.am: only include macosx dir in native Mac
+	port
+
+	* arch/unix/archdep.c: added global for default log handle
+
+	* arch/unix/macosx/make-bindist.sh,
+	arch/unix/macosx/vice-launcher.sh,
+	build/macosx/build-vice-dist.sh:
+	added support for native Cocoa port
+
+2007-04-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* 6510core.c: Removed the opcode duplicates.
+
+	* sounddrv/soundsun.c: Fixed a typo.
+
+2007-04-22  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.5.
+
+	* arch/unix/x11/xaw/uicolor.c, arch/unix/x11/gnome/uicolor.c:
+	Added patch from the Debian Bug tracking system posted by
+	Pier Luigi Pau.
+
+	* c128/c128cpu.c (c128cpu_clock_add): New function.
+
+2007-04-16  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c128/c128.c, c64/c64.c: Fixed MMC64 resource warnings for
+	x128.
+
+2007-04-14  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* 6510core.c, c128/c128.c, c128/c128cpu.c, c128/c128mem.c,
+	c128/c128mem.h, c128/c128meminit.c, c64/c64.c, cbm2/cbm2.c,
+	machine.h, maincpu.h, monitor/mon_register6502.c,
+	monitor/monitor.c, monitor.h, pet/pet.c, plus4/plus4.c,
+	vic20/vic20.c, vicii/vicii-clock-stretch.c, vicii.h: Added
+	8502 cycle stretch support.
+
+2007-04-09  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.4.
+
+	* video.h, arch/unix/archdep.h, arch/win32/archdep.h,
+	arch/msdos/archdep.h, arch/riscos/archdep.h,
+	arch/os2/archdep.h, arch/beos/archdep.h
+	vicii/vicii-resources.c, vdc/vdc-resources.c,
+	crtc/crtc-resources.c, vic20/vic-resources.c,
+	plus4/ted-resources.c, video/video-resources.c: Added double
+	buffering resource. Currently not used.
+
+2007-04-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/amigaos/intl.txt,
+	arch/amigaos/mui/uivicii.c, arch/beos/c128ui.cc,
+	arch/beos/c64ui.cc, arch/beos/constants.h,
+	arch/beos/vicemenu.cc: Added vicii border UI elements.
+
+	* arch/win32/intl.c, arch/win32/resvicii.rc,
+	translate.c: Updated.
+
+2007-04-02  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* 6510core.c, arch/os2/vac++/incl/vicii.icc,
+	arch/win32/vicii.dsp, c128/c128cpu.c, vicii/Makefile.am,
+	vicii/vicii-badline.c, vicii/vicii-clock-stretch.c,
+	vicii/vicii-fetch.c, vicii/vicii-mem.c, vicii/vicii.c,
+	vicii/viciitypes.h, vicii.h: Started the c128 2mhz mode
+	support.
+
+2007-04-01  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.3.
+
+	* vicii/vicii-timing.h, vicii/vicii-cmdline-options.c,
+	vicii/vicii.h, vicii/vicii-resources.c, vicii/vicii-timing.c,
+	c64/c64.c, c128/c128.c, cbm2/cbm2.c, c128/c128-resources.c,
+	cbm2/cbm2-resources.c, arch/win32/uivicii.c: Moved and renamed
+	border mode defines.
+
+	* arch/win32/ui.c: Fixed a warning.
+
+	* arch/unix/gui/uivicii.c: Added border mode menu.
+
+	* vicii.h: Moved to main source directory.
+
+	* gfxoutput.h, gfxoutputdrv/gifdrv.h, arch/win32/gifdrv.c:
+	Moved prototype.
+
+	* Makefile.am, vicii/Makefile.am, arch/win32/Makefile.am,
+	arch/win32/arch.dsp: Updated.
+
+2007-03-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* 6510core.c, c128/c128cpu.c, vicii/vicii-badline.c,
+	vicii/vicii-fetch.c, vicii/vicii-mem.c, vicii/vicii.c,
+	vicii/viciitypes.h: Started the first step of the c128 2mhz
+	mode.
+
+2007-03-25  Gunnar Ruthenberg  <Krill.Plush@gmail.com>
+
+	* arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resmenu.txt, arch/win32/resstrings.txt,
+	arch/win32/ui.c, machine.c, vsync.c, vsync.h:
+	Added WIN32 single frame advance UI command.
+
+2007-03-24  Gunnar Ruthenberg  <Krill.Plush@gmail.com>
+
+	* translate.c, translate.txt, arch/win32/resdialogs.txt,
+	arch/win32/resstrings.txt, arch/win32/resvicii.rc,
+	arch/win32/uivicii.c, c64/c128-resources.c, c128/c128.c,
+	c64/c64-resources.c, c64/c64.c, cbm2/cbm2-resources.c,
+	cbm2/cbm2.c, raster/raster-line.c, raster/raster.c,
+	vicii/vicii-cmdline-options.c, vicii/vicii-draw.c,
+	vicii/vicii-mem.c, vicii/vicii-resources.c,
+	vicii/vicii-resources.h, vicii/vicii-sprites.c,
+	vicii/vicii-timing.c, vicii/vicii-timing.h,
+	vicii/vicii.c, vicii/vicii.h, vicii/viciitypes.h,
+	video/render1x1pal.c, video/render2x2pal.c,
+	video/video-canvas.c: Added VIC-II border mode setting and the
+	WIN32 frontend for it.
+
+2007-03-23  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/archdep.c, arch/unix/gui/uicommands.c:
+	added --disable-bundle switch and MACOSX_BUNDLE define to
+	disable application bundle creation on Macs.
+
+2007-03-22  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/x11-launcher.sh: fixed typo in EMU selector
+
+2007-03-22  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* Makefile.am: introduced xxx_LIBS per module and emu_extlibs.
+	link executables against minimal set of required libs.
+
+2007-03-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/archdep.h: Changed the preferred libdir and docdir
+	for netbsd and freebsd.
+
+	* arch/unix/joy.c: Added support for sys/joystick.h header.
+
+	* arch/unix/joy_usb.c: Added sys/ioccom.h as needed for
+	freebsd.
+
+2007-03-19  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.2.
+
+	* c1541.c (unlynx_cmd): Eliminated some bugs and added more
+	error checking.
+
+	* c1541.c, monitor/mon_file.c, vdrive/vdrive-iec.c,
+	vdrive/vdrive-iec.h, machine-bus.c, machine-bus.h,
+	fsdevice/fsdevice-open.h, fsdevice/fsdevice-open.c,
+	printerdrv/interface-serial.c, serial.h, serial/fsdrive.c,
+	parallel/parallel-trap.c: Added command parse struct to open
+	routine.
+
+	* drive/iec/c64exp/mc6821.c: Moved to here.
+
+	* drive/iec/iec.c, drive/iec/c64exp/iec-c64exp.c, mc6821.h,
+	drive/iec/memiec.c, drive/iec/Makefile.am,
+	drive/iec/c64exp/Makefile.am, arch/win32/iec.dsp,
+	arch/win32/c64exp.dsp: Updated.
+
+	* drive/c64exp/profdos.c (profdos_store, profdos_read): Made
+	static.
+
+	* arch/win32/resdialogs.txt: Reordered c64 keyboard dialog
+	defines.
+
+	* arch/win32/uikeyboard.c (mapping_dialog_proc): Removed
+	cruft.
+
+	* arch/win32/statusbar.c (statusbar_create_brushes): Fixed
+	some warning.
+
+	* arch/win32/joy.c: Removed unused variables.
+
+	* arch/win32/uidrivec64vic20.c, arch/win32/uidrivec64vic20.h,
+	arch/win32/resdrivec64vic20.rc: Splitted.
+
+	* arch/win32/uidrivec64.c, arch/win32/uidrivec64.h,
+	arch/win32/uidrivevic20.c, arch/win32/uidrivevic20.h,
+	arch/win32/resdrivec64.rc, arch/win32/resdrivevic20.rc: New
+	files.
+
+	* arch/win32/c64ui.c, arch/win32/vic20ui.c,
+	arch/win32/Makefile.am, arch/win32/arch.dsp,
+	arch/win32/x64.dsp, arch/win32/xvic.dsp, arch/win32/intl.c,
+	arch/win32/resdialogs.txt: Updated.
+
+	* arch/unix/gui/uited.c: Added video standard menu entry.
+
+2007-03-17  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.1.
+
+	* c64/c64-resources.c: Changed keyboard index defines.
+
+2007-03-14  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/make-bindist.sh, arch/beos/make-bindist.sh,
+	arch/msdos/make-bindist.sh, arch/unix/gp2x/make-bindist.sh,
+	arch/unix/macosx/make-bindist.sh,
+	arch/unix/qnx/make-bindist.sh,
+	arch/unix/solaris/make-bindist.sh,
+	arch/win32/make-bindist.sh: Updated for riscos .vkm files.
+
+	* resid/Makefile.in: Added AR change that was already present
+	in Makefile.am.
+
+	* arch/riscos/Makefile.am, arch/riscos/binfiles/ReadMeRO,
+	arch/riscos/binfiles/ReadMeSnd, arch/riscos/binfiles/bplot,
+	arch/riscos/binfiles/c64boot, arch/riscos/binfiles/help,
+	arch/riscos/binfiles/messages, arch/riscos/binfiles/rsrcboot,
+	arch/riscos/binfiles/rsrcrun,
+	arch/riscos/binfiles/rsrcsprites,
+	arch/riscos/binfiles/runc64, arch/riscos/binfiles/runothers,
+	arch/riscos/binfiles/runvsid, arch/riscos/binfiles/templates,
+	arch/riscos/binfiles/vicesprites,
+	arch/riscos/binfiles/vsidsprites,
+	arch/riscos/binfiles/x128.vra, arch/riscos/binfiles/x128.vrs,
+	arch/riscos/binfiles/x128basic,
+	arch/riscos/binfiles/x128charg64,
+	arch/riscos/binfiles/x128sprites,
+	arch/riscos/binfiles/x128vicerc, arch/riscos/binfiles/x64.vra,
+	arch/riscos/binfiles/x64sprites,
+	arch/riscos/binfiles/x64vicerc,
+	arch/riscos/binfiles/xcbm2.vra,
+	arch/riscos/binfiles/xcbm2sprites,
+	arch/riscos/binfiles/xcbm2vicerc,
+	arch/riscos/binfiles/xpet.vra,
+	arch/riscos/binfiles/xpetsprites,
+	arch/riscos/binfiles/xpetvicerc,
+	arch/riscos/binfiles/xplus4sprites,
+	arch/riscos/binfiles/xplus4vicerc,
+	arch/riscos/binfiles/xvic.vra,
+	arch/riscos/binfiles/xvicsprites,
+	arch/riscos/binfiles/xvicvicerc,
+	arch/riscos/binfiles/xvsidvicerc,
+	arch/riscos/binfiles/z80bios: Added extra files needed for the
+	riscos binary distribution.
+
+	* arch/riscos/make-bindist.sh: Added binary distribution
+	generation script for the riscos port.
+
+2007-03-12  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/uiattach.c: Changed to use the libcall pragmas
+	for AmigaOS3.
+
+	* arch/beos/make-bindist.sh: Changed to generate distributions
+	with x86 instead of i586.
+
+	* arch/unix/joy_usb.c: Fixed to work with DragonFly and
+	alternative usb headers.
+
+	* vice.h: Change for ppc-beos to define inline to nothing only
+	for C (not C++) compiles.
+
+2007-03-10  Gunnar Ruthenberg  <Krill.Plush@gmail.com>
+
+        * drive/iecieee/via2d.c, arch/win32/ui.c,
+        arch/win32/statusbar.c: Fixed general drive LED pwm emulation
+        and the WIN32 frontend for it.
+
+2007-03-05  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/x11ui.c (x11ui_open_canvas_window):
+	Don't attach size-allocate hook in vsid mode.
+
+2007-03-04  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.21.
+
+2007-03-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resacia.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/resc64_256k.rc,
+	arch/win32/rescbm2.rc, arch/win32/resdigimax.rc,
+	arch/win32/resmmc64.rc, arch/win32/respet.rc,
+	arch/win32/resplus4.rc, arch/win32/ressidcart.rc,
+	arch/win32/resvic20.rc, translate.c: Updated the swedish
+	translations.
+
+2007-03-03  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/x11ui.c (x11ui_open_canvas_window): Make
+	MACOSX hack local to MACOSX.
+
+2007-03-03  pottendo  <pottendo@utanet.at>
+
+	* Makefile.am (libdriveiecc64exp, libdriveiecplus4exp): fixed
+	path to `cd drive/iec'. Makes e.g. `make x64-all' work again.
+
+2007-03-03  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.24.
+
+2007-03-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/os2/dialogs/dialogs.rc, arch/win32/res.rc: Added
+	Christian to the about dialogs.
+
+2007-03-02  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* info.c: added myself to VICE team
+
+	* arch/amigaos/mui/mui.c, arch/beos/ui.cc,
+	arch/msdos/menudefs.c, arch/unix/x11/gnome/about.c,
+	arch/unix/x11/xaw/about.c: added myself to VICE team in about
+	dialogs of ports
+
+2007-03-02  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/x11-launcher.sh: small fix to make bundle
+	naming more robust
+
+2007-02-27  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/x11ui.c, arch/unix/x11/ui-resources.c:
+	save window size, reload it at startup if videoconfig->hwscale
+	is true
+
+2007-02-27  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* info.c: Updated.
+
+2007-02-27  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/about.c (ui_about): add handling of
+	Cancel.
+
+2007-02-27  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/rescbm2.rc, arch/win32/resdigimax.rc,
+	arch/win32/reside64.rc, arch/win32/resmmc64.rc,
+	arch/win32/respet.rc, arch/win32/resplus4.rc,
+	arch/win32/ressidcart.rc, arch/win32/resvic20.rc,
+	translate.c: Updated
+
+	* arch/unix/x11/openGL_sync.c: Got rid of _() for log
+	messages.
+
+2007-02-26  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/x11/gnome/x11ui.c: minor layout adjustment around
+	canvas widget to fix initial canvas size on Mac Gtk+
+
+2007-02-26  pottendo  <pottendo@utanet.at>
+
+	* info.c: Added Zoltan.
+
+2007-02-26  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* translate.c: Updated the dutch translations.
+
+2007-02-25  Fabrizio Gennari <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/x11ui.c, arch/unix/x11/x11ui.h,
+	arch/unix/x11/video.c: make main window non-resizable when
+	hardware scaling is off
+
+	* video/video-viewport.c: avoid viewport->first_line = 0,
+	which made render_32_1x1_pal read outside an allocated buffer,
+	causing memory corruption
+
+2007-02-25  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.23.
+
+	* c64/tfe.c: Fixed some comment.
+
+2007-02-23  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* c64/tfe.c: rewrote core to better emulate the real CS8900a
+	chip (revised packet page handling, aded tx/rx states)
+
+2007-02-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/c128uires.h, arch/amigaos/c64uires.h,
+	arch/amigaos/cbm2uires.h, arch/amigaos/petuires.h,
+	arch/amigaos/plus4uires.h, arch/amigaos/ui.c,
+	arch/amigaos/uiattach.c, arch/amigaos/uiattach.h,
+	arch/amigaos/vic20uires.h: Added disk/tape attach dialog
+	work-around for aros.
+
+	* arch/os2/vac++/Makefile.am: Added iecplus4exp.icc.
+
+2007-02-21  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resacia.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/rescbm2.rc,
+	arch/win32/resdigimax.rc, arch/win32/resdrivec128.rc,
+	arch/win32/resdrivec64vic20.rc, arch/win32/resdrivepetcbm2.rc,
+	arch/win32/resdriveplus4.rc, arch/win32/resgeoram.rc,
+	arch/win32/reside64.rc, arch/win32/resmmc64.rc,
+	arch/win32/respet.rc, arch/win32/respetreu.rc,
+	arch/win32/resplus256k.rc, arch/win32/resplus4.rc,
+	arch/win32/resramcart.rc, arch/win32/resrs232user.rc,
+	arch/win32/ressid.rc, arch/win32/ressidcart.rc,
+	arch/win32/resvic20.rc, arch/win32/resvicii.rc,
+	translate.c: Updated the german, italian and hungarian
+	translations.
+
+2007-02-21  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/c128ui.cc, arch/beos/c64ui.cc,
+	arch/beos/make-bindist.sh, arch/beos/petui.cc: Fixed the beos
+	ports.
+
+	* arch/os2/dialogs/dlg-color.c, arch/os2/joy.c,
+	arch/os2/vac++/Makefile.am, arch/os2/vac++/incl/c64.icc,
+	arch/os2/vac++/incl/c64cart.icc, arch/os2/vac++/incl/cbm2.icc,
+	arch/os2/vac++/incl/iec.icc,
+	arch/os2/vac++/incl/iecc64exp.icc,
+	arch/os2/vac++/incl/iecplus4exp.icc,
+	arch/os2/vac++/incl/sounddrv.icc,
+	arch/os2/vac++/x128/X128.ICC,
+	arch/os2/vac++/x64/X64.ICC, arch/os2/vac++/xpet/Xpet.ICC,
+	arch/os2/vac++/xplus4/Xplus4.ICC,
+	arch/os2/vac++/xvic/Xvic.ICC: Fixed the os2 port.
+
+	* arch/unix/qnx/make-bindist.sh: Fixed the qnx6 port.
+
+	* arch/unix/solaris/make-bindist.sh: Fixed the solaris ports.
+
+	* drive/iec/c64exp/Makefile.am,
+	drive/iec/plus4exp/Makefile.am: Fixed a typo.
+
+	* resid/Makefile.am: Fixed for cross compile.
+
+	* sounddrv/soundmp3.c: Changed the mp3 buffer from signed to
+	unsigned.
+
+	* vdc/vdc-draw.c: Changed the C++ style comments to C style.
+
+	* vice.h: Added inline fix for ppc-beos.
+
+2007-02-15  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/x11/gnome/x11ui.c: fixed input string and change
+	dir dialog. fixed focus handling.
+
+2007-02-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/archdep.c: Fixed missing variable.
+
+	* arch/unix/gp2x/input_gp2x.c: Added dummy
+	kbd_initialize_numpad_joykeys() function.
+
+2007-02-13  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* configure.in: Added an extra check for libmp3lame in case it
+	needs libmpgdecoder to link correctly (msdos port).
+
+2007-02-12  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/openGL_sync.c (init_openGL): Added message
+	string instrumentation for translation again.
+
+2007-02-12  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/c128ui.cc, arch/beos/c64ui.cc,
+	arch/beos/constants.h, arch/beos/petui.cc,
+	arch/beos/plus4ui.cc, arch/beos/ui.cc, arch/beos/ui_file.cc,
+	arch/beos/ui_file.h, arch/beos/vic20ui.cc,
+	arch/beos/vicemenu.cc, arch/beos/video.cc: Added previously
+	missing gui elements.
+
+	* arch/win32/uisound.c, util.c: Fixed the usage of the
+	util_add_extension_maxpath() call.
+
+	* sounddrv/soundaiff.c: Fixed a typo.
+
+2007-02-11  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.22.
+
+	* plus4/ted.c (ted_update_memory_ptrs): Fixed calculation of
+	char address.
+
+2007-02-11  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/vice-launcher.sh: search in emulator
+	bundle, too
+
+	* arch/unix/macosx/x11-launcher.sh: run correctly with spaces
+	in path
+
+2007-02-10  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/c128uires.h, arch/amigaos/c64uires.h,
+	arch/amigaos/cbm2uires.h, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/amigaos/mui/uisound.c,
+	arch/amigaos/mui/uisound.h, arch/amigaos/petuires.h,
+	arch/amigaos/plus4uires.h, arch/amigaos/ui.c,
+	arch/amigaos/uires.h, arch/amigaos/vic20uires.h: Added sound
+	record support.
+
+	* arch/amigaos/mui/uidigimax.c: Fixed a typo.
+
+	* arch/unix/gui/uicommands.c: Extended the sound record with
+	aiff, iff, voc and mp3.
+
+	* arch/win32/intl.c, arch/win32/res.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/rescbm2.rc,
+	arch/win32/resdialogs.txt, arch/win32/resmenu.txt,
+	arch/win32/respet.rc, arch/win32/resplus4.rc,
+	arch/win32/resstrings.txt, arch/win32/resvic20.rc,
+	arch/win32/ui.c, arch/win32/uisound.c, arch/win32/uisound.h,
+	arch/win32/sounddrv.dsp: Added sound record support.
+
+	* sound.c, sound.h, sounddrv/Makefile.am,
+	sounddrv/soundaiff.c, sounddrv/soundiff.c,
+	sounddrv/soundmp3.c, sounddrv/soundvoc.c: Extended the sound
+	record drivers with aiff, iff, voc and mp3 drivers.
+
+	* util.c, util.h: Added a new function to add an extension to
+	a foo[MAX_PATH] string.
+
+2007-02-10  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* event.c (event_record_in_list, event_record_start_trap):
+	Set the type of new event to EVENT_LIST_END.
+
+2007-02-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/ahi.c,
+	arch/amigaos/c128ui.c, arch/amigaos/c64ui.c,
+	arch/amigaos/cbm2ui.c, arch/amigaos/fixdeps.c,
+	arch/amigaos/mousedrv.c, arch/amigaos/mui/filereq.c,
+	arch/amigaos/mui/mui.h, arch/amigaos/petui.c,
+	arch/amigaos/plus4ui.c, arch/amigaos/pointer.c,
+	arch/amigaos/statusbar.c, arch/amigaos/timer.c: Added native
+	AmigaOS4 compile support as provided by Peter Gordon
+	<pete@petergordon.org.uk>.
+
+2007-02-04  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/c128ui.c,
+	arch/amigaos/c128uires.h, arch/amigaos/c64ui.c,
+	arch/amigaos/c64uires.h, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/amigaos/mui/uidigimax.c,
+	arch/amigaos/mui/uidigimax.h, arch/amigaos/uires.h,
+	arch/beos/c128ui.cc, arch/beos/c64ui.cc,
+	arch/beos/constants.h, arch/beos/vicemenu.cc,
+	arch/msdos/Makefile.am, arch/msdos/c128ui.c,
+	arch/msdos/c64ui.c, arch/msdos/uidigimax.c,
+	arch/msdos/uidigimax.h, arch/os2/dialogs/menubar.c,
+	arch/os2/dialogs/menubar.h, arch/os2/dialogs/menubar.rc,
+	arch/os2/vac++/incl/c64.icc, arch/os2/vac++/x128/X128.ICC,
+	arch/unix/gui/Makefile.am, arch/unix/gui/c128ui.c,
+	arch/unix/gui/c64ui.c, arch/unix/gui/uidigimax.c,
+	arch/unix/gui/uidigimax.h, arch/win32/Makefile.am,
+	arch/win32/arch.dsp, arch/win32/c128ui.c, arch/win32/c64.dsp,
+	arch/win32/c64c128.dsp, arch/win32/c64ui.c,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/resdialogs.txt, arch/win32/resdigimax.rc,
+	arch/win32/resmenu.txt, arch/win32/resstrings.txt,
+	arch/win32/uidigimax.c, arch/win32/uidigimax.h,
+	arch/win32/x128.dsp, arch/win32/x64.dsp, c128/c128.c,
+	c64/Makefile.am, c64/c64.c, c64/c64cia2.c, c64/c64io.c,
+	c64/c64io.h, c64/c64sound.c, c64/digimax.c, c64/digimax.h,
+	translate.c, translate.txt: Added digimax support.
+
+	* printerdrv/drv-nl10.c: Fixed for ppc-beos.
+
+2007-02-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/Makefile.am, arch/beos/c128ui.cc,
+	arch/beos/make-bindist.sh, arch/beos/ppc-ar.sh,
+	arch/beos/ui.cc, arch/beos/ui_video.cc,
+	arch/beos/vicewindow.cc, c128/c128.c, c64/c64.c, cbm2/cbm2.c,
+	drive/drivesync.c, gfxoutputdrv/bmpdrv.c,
+	gfxoutputdrv/gifdrv.c, gfxoutputdrv/iffdrv.c,
+	gfxoutputdrv/jpegdrv.c, gfxoutputdrv/pcxdrv.c,
+	gfxoutputdrv/ppmdrv.c, parallel/parallel.c, pet/pet.c,
+	plus4/plus4.c, printerdrv/drv-nl10.c, vic20/vic20.c,
+	resid/configure.in: Added ppc-beos support.
+
+2007-01-31  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/gui/uivicii.c, fixed a comment.
+
+	* arch/unix/x11/openGL_sync.c, arch/unix/x11/xrandr.c: Removed
+	some unneeded _().
+
+2007-01-30  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/ui_file.h, arch/beos/ui_ram.cc: Added some zeta
+	needed includes, as suggested by Bernd Korz.
+
+	* arch/beos/vicemenu.cc: Fixed so it won't crash on zeta
+	anymore.
+
+2007-01-30  Andreas Dehmel  <zarquon@t-online.de>
+
+	* arch/unix/x11/fullscreen.c: wrong macro used for masking
+	xrandr_menu_shutdown()
+
+2007-01-28  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.21.
+
+2007-01-28  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/ui.h, arch/amigaos/uires.h: Fixed.
+
+	* arch/beos/archdep.c, arch/beos/joy.cc, arch/beos/joy.h,
+	arch/beos/kbd.c, arch/beos/ui_cbm2.cc,
+	arch/beos/ui_datasette.cc, arch/beos/ui_drive.h,
+	arch/beos/ui_pet.cc, arch/beos/ui_sid.cc,
+	arch/beos/ui_vic20.cc, arch/beos/ui_vicii.cc,
+	arch/beos/ui_video.cc: Fixed.
+
+2007-01-23  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/ahi.c,
+	arch/amigaos/ahi.h, arch/amigaos/amigamain.c,
+	arch/amigaos/archdep.c, arch/amigaos/c128ui.c,
+	arch/amigaos/config.h.vbcc, arch/amigaos/console.c,
+	arch/amigaos/intl.c, arch/amigaos/joy.h,
+	arch/amigaos/mousedrv.c, arch/amigaos/mui/mui.h,
+	arch/amigaos/mui/uinetwork.c,
+	arch/amigaos/mui/uipetsettings.c, arch/amigaos/plus4ui.c,
+	arch/amigaos/private.h, arch/amigaos/screen-shot.c,
+	arch/amigaos/screen-shot.h, arch/amigaos/timer.c,
+	arch/amigaos/timer.h, arch/amigaos/ui.c, arch/amigaos/ui.h,
+	arch/amigaos/uiapi.c, arch/amigaos/uilib.c,
+	arch/amigaos/video.c, arch/amigaos/vsyncapi.c, c128/c128.c,
+	c64/c64.c, cbm2/cbm2.c, lib.c, pet/pet.c, plus4/plus4.c,
+	vic20/vic20.c, video/video-resources.c: Added amiga vbcc
+	compiler support.
+
+2007-01-21  Spiro Trikaliotis  <Spiro.Trikaliotis@gmx.de>
+
+	* ioutil.c, ioutil.h: Changed prototype of ioutil_maxpathlen()
+	to return an unsigned int in order to remove warnings.
+
+2007-01-21  Spiro Trikaliotis  <Spiro.Trikaliotis@gmx.de>
+
+	* arch/win32/msvc/config.h: Define CONFIG_WIN32, int64_t_C and
+	uint64_t_C in order to let config.h from ffmpeg compile with
+	MSVC 6.
+
+2007-01-09  pottendo  <pottendo@utanet.at>
+
+	* video/video-resources.c (set_fullscreen_device): Allow
+	selection of fullscreen device only in window mode.
+
+	* arch/unix/x11/vidmode.c (vidmode_enable): Dont' use
+	`canvas->fullscreenconfig->mode'. 
+
+	* arch/unix/x11/xrandr.c (xrandr_enable): Don't set
+	`xrandr_selected_mode' from `canvas->fullscreenconfig->mode'.
+	(xrandr_mode): Don't set `canvas->fullscreenconfig->mode'.
+
+	* arch/unix/x11/fullscreen.c (fullscreen_shutdown): Call
+	xrandr_shutdown.
+
+	* arch/unix/x11/xrandr.c (xrandr_shutdown): New Function.
+
+	* arch/unix/x11/openGL_sync.c (openGL_sync_init): fixed proper
+	exit if openGL isn't available.
+	Removed preprocessor checks for XRandR which is not required by
+	openGL. Fixes `--disable-fullscreen' builds.
+
+2007-01-07  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/vice-launcher.sh: fixed startup via symlink
+
+2007-01-07  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.20.
+
+	* lib/Makefile.am: Added missing ffmpeg header files.
+
+	* arch/unix/x11/openGL_sync.c, arch/unix/gui/ui.c,
+	arch/unix/gui/uivicii.c, arch/unix/x11/video.c: Only use
+	openGL support if also xrandx support is present as compiling
+	`openGL_sync.c' requires both anyway.
+
+	* arch/unix/x11/xaw/uiedisk.c: Added fix for "create empty
+	disk" dialog written by Ingo D. Rullhusen.
+
+	* info.c: Updated.
+
+2007-01-05  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/ahi.c,
+	arch/amigaos/console.c, arch/amigaos/noinlineargs.c: Fixed the
+	inline stdarg problem.
+
+2007-01-01  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/mui/mui.c, arch/beos/ui.cc,
+	arch/msdos/menudefs.c, arch/os2/dialogs/dialogs.rc,
+	arch/unix/macosx/Info.plist, arch/unix/x11/gnome/about.c,
+	arch/unix/x11/xaw/about.c, arch/win32/res.rc: Changed the
+	'2006' year references to '2007'.
+
+2006-12-31  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/xrandr.[ch]: New file. Implement XRandR base
+	fullscreen mode.
+
+	* arch/unix/x11/x11ui.h (x11ui_fullscreen): New prototype.
+
+	* arch/unix/x11/openGL_sync.c: Removed XRandR specifics. Handle
+	context allocation properly.
+
+	* arch/unix/x11/Makefile.am (EXTRA_libx11ui_a_SOURCES): Added
+	`xrandr.[ch]'.
+
+	* arch/unix/x11/gnome/x11ui.c (x11ui_open_canvas_window):
+	Introduced separate callback for resizing events. Make topmenu
+	fixed size. 
+	all: removed expizit resize requests.
+	(x11ui_fullscreen): New function.
+	(size_allocate): New function.
+
+	* arch/unix/x11/fullscreen.c: Introduced XRandR fullscreen mode.
+
+	* arch/unix/openGL_sync.h (init_openGL): Fixed prototypes.
+
+	* arch/unix/gui/uivicii.c: Separate openGL sync from XRandR
+	fullscreen mode; introduce XRandR fullscreen mode.
+	
+	* arch/unix/x11/xaw/x11ui.c (x11ui_fullscreen): New function
+	(unfortunately it doesn't work. :()
+
+	* arch/unix/x11/vidmode.c (vidmode_mode): initialize mode even
+	when vm_vidmode isn't initialized yet. Fixes resources set by
+	vicerc. 
+
+2006-12-27  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c: Updated.
+
+2006-12-25  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/xaw/x11ui.c (x11ui_get_X11_window): New function.
+
+2006-12-25  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/x11ui.h (x11ui_get_screen): New prototypes.
+
+	* arch/unix/x11/video.c (video_canvas_create): Initialize openGL
+	and XRandR.
+	(video_canvas_refresh): Synchronize with raster. This is an
+	intermediate solution until openGL sync is properly merged into
+	vsync code (if ever).
+
+	* arch/unix/x11/openGL_sync.c: New file.
+
+	* arch/unix/x11/Makefile.am (EXTRA_libx11ui_a_SOURCES): Added
+	`openGL_sync.c'. 
+
+	* arch/unix/x11/gnome/x11ui.c (x11ui_get_visual): New function.
+	(x11ui_get_X11_window): Ditto.
+	(x11ui_get_screen): Ditto.
+
+	* arch/unix/openGL_sync.h: New file.
+
+	* arch/unix/Makefile.am: (libarch_a_SOURCES): added
+	`openGL_sync.h'.
+
+	* arch/unix/gui/uivicii.c: Added menu entries for openGL sync.
+
+	* arch/unix/gui/ui.c (ui_common_shutdown): added shutdown openGL.
+
+2006-12-24  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.19.
+
+2006-12-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/console.c, arch/amigaos/mui/uidrivec128.c,
+	arch/amigaos/mui/uidrivec64vic20.c,
+	arch/amigaos/mui/uidrivepetcbm2.c,
+	arch/amigaos/mui/uidriveplus4.c, arch/amigaos/private.h,
+	arch/amigaos/ui.c, arch/amigaos/video.c: Added/fixed/updated
+	some ui elements.
+
+2006-12-12  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am,
+	arch/amigaos/info-files/morphos/VICE.info,
+	arch/amigaos/info-files/morphos/x128.info,
+	arch/amigaos/info-files/morphos/x64.info,
+	arch/amigaos/info-files/morphos/xcbm2.info,
+	arch/amigaos/info-files/morphos/xpet.info,
+	arch/amigaos/info-files/morphos/xplus4.info,
+	arch/amigaos/info-files/morphos/xvic.info,
+	arch/amigaos/make-bindist.sh: Added native MorphOS icons,
+	icons were created by Andr351 'JoBBo' Siegel.
+
+2006-12-10  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/gui/uicommands.c: fixed location of html docs in
+	mac bundle
+
+	* arch/unix/macosx/Info.plist,
+	arch/unix/macosx/make-bindist.sh,
+	arch/unix/macosx/x11-launcher.sh,
+	arch/unix/macosx/vice-launcher, arch/unix/macosx/Makefile.am:
+	fixes for gtk bundling on mac. changed to bundling a single
+	mac app with all emulators inside. added command line launcher
+	for emulators.
+
+2006-12-09  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/c128ui.c,
+	arch/amigaos/c128uires.h, arch/amigaos/c64ui.c,
+	arch/amigaos/c64uires.h, arch/amigaos/cbm2ui.c,
+	arch/amigaos/cbm2uires.h, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/amigaos/mui/mui.h,
+	arch/amigaos/mui/uic128settings.c,
+	arch/amigaos/mui/uic128settings.h,
+	arch/amigaos/mui/uipetsettings.c,
+	arch/amigaos/mui/uipetsettings.h,
+	arch/amigaos/mui/uiplus4settings.c,
+	arch/amigaos/mui/uiplus4settings.h,
+	arch/amigaos/mui/uiromc128settings.c,
+	arch/amigaos/mui/uiromc128settings.h,
+	arch/amigaos/mui/uiromc64vic20settings.c,
+	arch/amigaos/mui/uiromc64vic20settings.h,
+	arch/amigaos/mui/uiromcbm2settings.c,
+	arch/amigaos/mui/uiromcbm2settings.h,
+	arch/amigaos/mui/uirompetsettings.c,
+	arch/amigaos/mui/uirompetsettings.h,
+	arch/amigaos/mui/uiromplus4settings.c,
+	arch/amigaos/mui/uiromplus4settings.h, arch/amigaos/petui.c,
+	arch/amigaos/petuires.h, arch/amigaos/plus4ui.c,
+	arch/amigaos/plus4uires.h, arch/amigaos/uires.h,
+	arch/amigaos/vic20ui.c, arch/amigaos/vic20uires.h: Added new
+	ui elements.
+
+	* arch/win32/c128ui.c: Fixed an accidental swap.
+
+2006-12-06  Andreas Matthies  <andreas.matthies@gmx.net>
+
+	* arch/win32/ffmpeglib.c: Updated to load the latest
+	ffmpeg library (API 51)
+
+	* gfxoutputdrv/ffmpegdrv.c (ffmpegdrv_init_video): pix_fmt
+	needs to be set in the codec context.
+
+	* lib/libffmpeg/ffmpeg/*.h: Updated with latest ffmpeg
+	headers (ffmpeg snapshot from 5.12.2006) and some hacks to
+	make them compile with MSVC.
+
+2006-12-04  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am, arch/amigaos/c128ui.c,
+	arch/amigaos/c128uires.h, arch/amigaos/c64ui.c,
+	arch/amigaos/c64uires.h, arch/amigaos/cbm2ui.c,
+	arch/amigaos/cbm2uires.h, arch/amigaos/intl.c,
+	arch/amigaos/intl.txt, arch/amigaos/mui/mui.c,
+	arch/amigaos/mui/mui.h, arch/amigaos/mui/uifliplist.c,
+	arch/amigaos/mui/uifliplist.h, arch/amigaos/mui/uisnapshot.c,
+	arch/amigaos/mui/uisnapshot.h, arch/amigaos/mui/uivideoc128.c,
+	arch/amigaos/mui/uivideoc128.h,
+	arch/amigaos/mui/uivideoc64plus4vic20.c,
+	arch/amigaos/mui/uivideoc64plus4vic20.h,
+	arch/amigaos/mui/uivideocbm2pet.c,
+	arch/amigaos/mui/uivideocbm2pet.h, arch/amigaos/petui.c,
+	arch/amigaos/petuires.h, arch/amigaos/plus4ui.c,
+	arch/amigaos/plus4uires.h, arch/amigaos/ui.c,
+	arch/amigaos/uires.h, arch/amigaos/vic20ui.c,
+	arch/amigaos/vic20uires.h: Added more ui support.
+
+	* arch/win32/res.rc, arch/win32/resplus4.rc: Updated some text
+	elements.
+
+	* c64/mmc64.c: Changed some C++ style comments to C style.
+
+	* sid/sid-cmdline-options.c: Fixed a typo.
+
+2006-12-03  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.18.
+
+2006-12-02  John Selck  <selck_j@informatik.haw-hamburg.de>
+
+	* vdc/vdctypes.h: Changed struct vdc_s: Removed unused
+	force_black_overscan_background_color variable.
+	Added new frame_counter and attribute_blink variables.
+	Removed variables: cursor_visible, cursor_frequency,
+	cursor_counter, text_blink_visible, text_blink_frequency,
+	text_blink_counter.
+
+	* vdc/vdc.c: Changed vdc_reset(): Removed initialization of
+	old cursor and blink variables.
+	Changed vdc_set_video_mode(): VDC idle mode is now enabled
+	according to register 9 instead of 23.
+	Changed vdc_raster_draw_alarm_handler(): Removed old cursor
+	and attribute blink logic and added new attribute blink
+	logic.
+
+	* vdc/vdc-mem.c: Changed vdc_store(): Register 10 access logic
+	removed due to new cursor logic in get_attr_char_data().
+	Register 24 access now modified to suit new blink logic.
+
+	* vdc/vdc-draw.c: Rewrote get_attr_char_data() to correctly
+	do character underline, blink, reverse, cursor invert,
+	visible character height and visible character width.
+	Also added most parts of the cursor logic here. Set some now
+	unused parameters of cache_data_fill_attr_text() to 0.
+
+2006-11-29  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/make-bindist.sh,
+	arch/unix/macosx/x11-launcher.sh: correctly handle and embed
+	dynamic libs in mac os x bundling process
+
+	* c64/tfe.c: disabled warning on write on RR control register
+	as it is a legal operation
+
+2006-11-27  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/msdos/Makefile.am, arch/msdos/c64ui.c,
+	arch/msdos/petui.c, arch/msdos/plus4ui.c,
+	arch/msdos/tuimenu.h, arch/msdos/uimmc64.c,
+	arch/msdos/uimmc64.h, arch/msdos/uisidcart.c,
+	arch/msdos/uisidcart.h, arch/msdos/vic20ui.c: Added MMC64 and
+	SID cart support.
+
+	* arch/msdos/uinetplay.c: Changed the snprintf call to
+	strncpy.
+
+2006-11-27  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/Makefile.am: Added IDE64, MMC64 and SID cart
+	support.
+
+	* arch/amigaos/ahi.h, arch/amigaos/fullscreenarch.h,
+	arch/amigaos/joyai.h, arch/amigaos/mui/filereq.h,
+	arch/amigaos/mui/uiacia.h, arch/amigaos/mui/uicbm2settings.h,
+	arch/amigaos/mui/uidatasette.h,
+	arch/amigaos/mui/uidrivec128.h,
+	arch/amigaos/mui/uidrivec64vic20.h,
+	arch/amigaos/mui/uidrivepetcbm2.h,
+	arch/amigaos/mui/uidriveplus4.h,
+	arch/amigaos/mui/uijoystickll.h, arch/amigaos/mui/uiram.h,
+	arch/amigaos/mui/uirs232user.h, arch/amigaos/mui/uisid.h,
+	arch/amigaos/mui/uisound.h, arch/amigaos/mui/uivic20mem.h,
+	arch/amigaos/mui/uivicii.h, arch/amigaos/private.h,
+	arch/amigaos/statusbar.h, arch/amigaos/timer.h: Changed to
+	where the prototypes are now defined as extern.
+
+	* arch/amigaos/archdep.c: Fixed the archdep_spawn call to the
+	latest changes.
+
+	* arch/amigaos/c128ui.c: Added file select support for REU,
+	GEORAM and RAMCART and added IDE64 support.
+
+	* arch/amigaos/c128uires.h, arch/amigaos/c64uires.h,
+	arch/amigaos/cbm2uires.h: Added MMC64 and SID cart support.
+
+	* arch/amigaos/c64ui.c: Added file select support for REU,
+	GEORAM, RAMCART, PLUS60K, PLUS256K and 256K and added IDE64
+	and MMC64 support.
+
+	* arch/amigaos/intl.c, arch/amigaos/intl.txt: Updated.
+
+	* arch/amigaos/joy.c, arch/amigaos/joy.h,
+	arch/amigaos/joyll.c, arch/amigaos/joyll.h,
+	arch/amigaos/kbd.c, arch/amigaos/kbd.h,
+	arch/amigaos/mui/uijoystick.c,
+	arch/amigaos/mui/uijoystick.h: Fixed for the latest
+	keyboard/joystick changes.
+
+	* arch/amigaos/mui/mui.c, arch/amigaos/mui/mui.h,
+	arch/amigaos/mui/uic64_256k.c, arch/amigaos/mui/uic64_256k.h,
+	arch/amigaos/mui/uigeoram.c, arch/amigaos/mui/uigeoram.h,
+	arch/amigaos/mui/uipetreu.c, arch/amigaos/mui/uipetreu.h,
+	arch/amigaos/mui/uiplus256k.c, arch/amigaos/mui/uiplus256k.h,
+	arch/amigaos/mui/uiplus60k.c, arch/amigaos/mui/uiplus60k.h,
+	arch/amigaos/mui/uiramcart.c, arch/amigaos/mui/uiramcart.h,
+	arch/amigaos/mui/uireu.c, arch/amigaos/mui/uireu.h: Added file
+	select support.
+
+	* arch/amigaos/mui/uiide64.c, arch/amigaos/mui/uiide64.h:
+	Added IDE64 support.
+
+	* arch/amigaos/mui/uimmc64.c, arch/amigaos/mui/uimmc64.h:
+	Added MMC64 support.
+
+	* arch/amigaos/mui/uinetwork.c, arch/amigaos/mui/uinetwork.h,
+	arch/amigaos/mui/uisid.c: Added intl support.
+
+	* arch/amigaos/mui/uisidcart.c, arch/amigaos/mui/uisidcart.h,
+	arch/amigaos/petui.c, arch/amigaos/petuires.h,
+	arch/amigaos/plus4ui.c, arch/amigaos/plus4uires.h,
+	arch/amigaos/uires.h, arch/amigaos/vic20ui.c,
+	arch/amigaos/vic20uires.h: Added SID cart support.
+
+	* lib/libffmpeg/ffmpeg/avcodec.h,
+	lib/libffmpeg/ffmpeg/rational.h: Changed C++ style comments to
+	C style comments.
+
+	* lib/libffmpeg/ffmpeg/common.h: Fixed the inttypes.h include
+	situation.
+
+	* network.c, resources.c: Fixed the network_get_mode() function
+	for platforms that don't support netplay.
+
+2006-11-26  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/uiscreenshot.c: Fixed a small bug.
+
+2006-11-26  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* gfxoutputdrv/ffmpegdrv.c: Changed to latest FFMPEG library
+	API.
+
+2006-11-16  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, translate.c: Updated.
+
+2006-11-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/petui.c, arch/win32/plus4ui.c,
+	arch/win32/uisidcart.c, arch/win32/uisidcart.h,
+	arch/win32/vic20ui.c: Fixed the win32 sidcart ui.
+
+	* pet/petsound.c, plus4/ted-sound.c, sid/sid-resources.c,
+	vic20/vic20sound.c: Added clock switching support for sidcart.
+
+2006-11-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am, arch/unix/gui/Makefile.am,
+	arch/unix/gui/uisidcart.c, arch/win32/Makefile.am,
+	arch/win32/arch.dsp, arch/win32/pet.dsp, arch/win32/petui.c,
+	arch/win32/plus4.dsp, arch/win32/plus4ui.c,
+	arch/win32/ressidcart.rc, arch/win32/sidcart.dsp,
+	arch/win32/uisidcart.c, arch/win32/uisidcart.h,
+	arch/win32/vic20.dsp, arch/win32/vic20ui.c,
+	arch/win32/vice.dsw, arch/win32/xpet.dsp,
+	arch/win32/xplus4.dsp, arch/win32/xvic.dsp, pet/Makefile.am,
+	pet/pet.c, pet/petmem.c, pet/petsound.c, plus4/Makefile.am,
+	plus4/plus4.c, plus4/plus4mem.c, plus4/ted-sound.c,
+	sid/sid-cmdline-options.c, sid/sid-cmdline-options.h,
+	sid/sid-resources.c, sid/sid-resources.h, sid/sid.c,
+	sid/sid.h, vic20/Makefile.am, vic20/vic20.c, vic20/vic20mem.c,
+	vic20/vic20sound.c: Improved the sidcart support.
+
+	* sidcart/Makefile.am, sidcart/Makefile.in, sidcart/fastsid.c,
+	sidcart/fastsid.h, sidcart/sidcart-cmdline-options.c,
+	sidcart/sidcart-cmdline-options.h,
+	sidcart/sidcart-resources.c,  sidcart/sidcart-resources.h,
+	sidcart/sidcart.c, sidcart/sidcart.h: Got rid of the sidcart
+	directory.
+
+	* arch/win32/c64.dsp, arch/win32/c64c128.dsp,
+	arch/win32/cbm2.dsp, c128/c128.c, c64/Makefile.am, c64/c64.c,
+	c64/c64sound.c, cbm2/Makefile.am, cbm2/cbm2.c,
+	cbm2/cbm2sound.c: Made the sound sid support more general.
+	
+	* translate.c, translate.txt: Added sidcart text elements.
+
+2006-11-13  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.17.
+
+	* util.c (util_check_filename_access): Use ioutil function for
+	unlink().
+
+	* arch/unix/archdep.c, arch/win32/archdep.c,
+	arch/msdos/archdep.c, arch/os2/archdep.c,
+	arch/beos/archdep.c (archdep_spawn): Allocate temp name if
+	empty pointer is passed.
+
+	* zfile.c: Removed some calls to `archdep_tmpnam()' now that
+	`archdep_spawn()' allocates the temporary name.
+
+	* arch/win32/uisid.c (resize_general_sid_dialog): Fixed some
+	warnings.
+
+2006-11-11  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/Makefile.am, arch/win32/arch.dsp,
+	arch/win32/gifdrv.c, gfxoutputdrv/gfxoutput.c: Added
+	gif/ungif dll support.
+
+2006-11-10  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/archdep.c, arch/unix/macosx/Makefile.am,
+	arch/unix/macosx/make-bindist.sh,
+	arch/unix/macosx/x11-launcher.sh:
+	added new mac x11 launcher script that supports file drops on
+	startup with platypus and command line startup with arbitrary
+	arguments.
+
+2006-11-10  Tibor Biczo  <crown@t-online.hu>
+
+	* arch/win32/Makefile.am (genmsvcver.dsp): Added new file.
+
+	* arch/win32/genmsvcver.dsp: New file.
+
+	* arch/win32/res.rc: Include manifest file if compiled with
+	MSVC versions earlier than VS2005.
+
+	* arch/win32/uisound.c: Added 48000 and 96000 Hz sound
+	frequency to UI.
+
+	* arch/win32/utils/Makefile.am (genmsvcver.c): Added new file.
+
+	* arch/win32/utils/genmsvcver.c: New file.
+
+	* arch/win32/vice.dsw (genmsvcver.dsp): Added new project.
+
+	* sound.c (sound_open): Increased maximum accepted frequency
+	to 96000Hz.
+
+2006-11-08  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/mui/uipetreu.c, arch/beos/constants.h,
+	arch/beos/petui.cc, arch/beos/vicemenu.cc,
+	arch/msdos/uipetreu.c, arch/os2/dialogs/menubar.c,
+	arch/os2/dialogs/menubar.h, arch/os2/dialogs/menubar.rc,
+	arch/unix/gui/uipetreu.c, arch/win32/uipetreu.c,
+	pet/petmem.c, pet/petreu.c, pet/petreu.h: Added
+	512/1024/2048kb ram expansion emulation support.
+
+2006-11-07  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c64/c64_256k.c, c64/georam.c, c64/mmc64.c, c64/plus256k.c,
+	c64/plus60k.c, c64/ramcart.c, c64/reu.c, pet/petreu.c,
+	util.c, util.h: Fixed the setting of an illegal filename.
+
+2006-11-06  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am, arch/unix/gui/Makefile.am,
+	arch/unix/gui/petui.c, arch/unix/gui/plus4ui.c,
+	arch/unix/gui/uisidcart.c, arch/unix/gui/uisidcart.h,
+	arch/unix/gui/vic20ui.c, arch/win32/Makefile.am,
+	arch/win32/arch.dsp, arch/win32/intl.c, arch/win32/pet.dsp,
+	arch/win32/petui.c, arch/win32/plus4.dsp,
+	arch/win32/plus4ui.c, arch/win32/resdialogs.txt,
+	arch/win32/resmenu.txt, arch/win32/respet.rc,
+	arch/win32/resplus4.rc, arch/win32/ressidcart.rc,
+	arch/win32/resvic20.rc, arch/win32/sidcart.dsp,
+	arch/win32/uisidcart.c, arch/win32/uisidcart.h,
+	arch/win32/vic20.dsp, arch/win32/vic20ui.c,
+	arch/win32/vice.dsw, arch/win32/xplus4.dsp,
+	arch/win32/xvic.dsp, pet/Makefile.am,
+	pet/pet.c, pet/petmem.c, pet/petsound.c, plus4/Makefile.am,
+	plus4/plus4.c, plus4/plus4mem.c, plus4/ted-sound.c,
+	sidcart/Makefile.am, sidcart/fastsid.c, sidcart/fastsid.h,
+	sidcart/sidcart-cmdline-options.c,
+	sidcart/sidcart-cmdline-options.h,
+	sidcart/sidcart-resources.c, sidcart/sidcart-resources.h,
+	sidcart/sidcart.c, sidcart/sidcart.h, vic20/Makefile.am,
+	vic20/vic20.c, vic20/vic20mem.c, vic20/vic20sound.c: Added SID
+	cartridge emulation.
+
+	* drive/iec/mc6821.c: Fixed a cast.
+
+	* keyboard.c: Got rid of some unused variables.
+
+2006-11-05  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.16.
+
+	* drive/rotation.c (rotation_sync_found): Changed back to old
+	sync code.
+
+2006-11-03  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* c64/tfe.c: set correct init state of ethernet chip.
+
+2006-10-31  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/gui/uicommands.c: Got rid of a unneeded_()
+	element.
+
+2006-10-30  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resacia.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/resc64_256k.rc,
+	arch/win32/rescbm2.rc, arch/win32/resdrivec128.rc,
+	arch/win32/resdrivec64vic20.rc, arch/win32/resdrivepetcbm2.rc,
+	arch/win32/resdriveplus4.rc, arch/win32/resgeoram.rc,
+	arch/win32/reside64.rc, arch/win32/respet.rc,
+	arch/win32/respetreu.rc, arch/win32/resplus256k.rc,
+	arch/win32/resplus4.rc, arch/win32/resplus60k.rc,
+	arch/win32/resramcart.rc, arch/win32/resreu.rc,
+	arch/win32/resrs232user.rc, arch/win32/ressid.rc,
+	arch/win32/restfe.rc, arch/win32/resvic20.rc,
+	arch/win32/resvicii.rc, translate.c: Updated.
+
+2006-10-27  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* c64/tfe.c: fixed rr-net toggle. ensure correct setup of the
+	ethernet device.
+
+2006-10-23  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* translate.c: updated.
+
+2006-10-22  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.15.
+
+	* drive/iec/c64exp/iec-c64exp.c, drive/iec-c64exp.h,
+	drive/iec/c64exp/Makefile.am, drive/iec-plus4exp.h,
+	drive/iec/plus4exp/iecplus4exp.c,
+	drive/iec/plus4exp/Makefile.am: New files.
+
+	* drive/iec/c64exp/Makefile.am, drive/iec-c64exp.h,
+	drive/iec/c64exp/iec-c64exp.c,
+	drive/iec/c64exp/c64exp-resources.c,
+	drive/iec/c64exp/c64exp-resources.h,
+	drive/iec/c64exp/c64exp-cmdline-options.c,
+	drive/iec/c64exp/c64exp-cmdline-options.h,
+	drive/iec/plus4exp/Makefile.am, drive/iec-plus4exp.h,
+        drive/iec/plus4exp/iec-plus4exp.c,
+	drive/iec/plus4exp/plus4exp-resources.c,
+	drive/iec/plus4exp/plus4exp-resources.h
+	drive/iec/plus4exp/plus4exp-cmdline-options.c,
+	drive/iec/plus4exp/plus4exp-cmdline-options.h,
+	arch/win32/c64exp.dsp, arch/win32/plus4exp.dsp: New files.
+
+	* drive/iec/Makefile.am, drive/Makefile.am, Makefile.am,
+	arch/win32/Makefile.am, arch/win32/iec.dsp,
+	arch/win32/vice.dsw: Updated.
+
+	* drive/iec/iec.c, drive/iec/memiec.c, c128/c128drive.c
+	c64/c64drive.c, plus4/plus4drive.c, drive/iec/iec-resources.c,
+	drive/iec/iec-cmdline-options.c: Moved c64 and plus4 specific
+	routines to separate files.
+
+	* drive/iec/profdos.c, drive/iec/profdos.h: Moved to c64exp
+	subdirectory.
+
+	* translate.txt, translate.c: Added ProfDOS strings, separated
+	parallel cable strings.
+
+	* arch/unix/kbd.h, arch/win32/kbd.h, arch/msdos/kbd.h,
+	joystick.c: Added missing prototype.
+
+2006-10-22  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/rescbm2.rc, arch/win32/resmmc64.rc,
+	arch/win32/respet.rc, arch/win32/resplus4.rc,
+	arch/win32/resvic20.rc, translate.c: Updated german text
+	elements.
+
+2006-10-22  Andreas Dehmel  <zarquon@t-online.de>
+
+	* joystick.c: didn't compile/link if COMMON_KBD undefined.
+
+2006-10-22  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/joy.c: adapted code to changed joystick
+	interface.
+
+2006-10-22  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/uiscreenshot.c (ui_screenshot_dialog):
+	removed debug code form ffmpeg.
+
+	* arch/unix/x11/gnome/uimenu.c (make_menu_label): reintroduced
+	to activate gettext again.
+	(ui_menu_create): use `make_menu_label'.
+
+2006-10-21  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.14.
+
+	* arch/unix/gui/uidrivec64.c, arch/unix/gui/uidrivec128.c,
+	arch/unix/gui/uidrivevic20.c, arch/unix/gui/uidriveplus4.c,
+	arch/unix/gui/uidriveiec.c: Reorganized drive expansion UI.
+
+	* arch/unix/gui/uidrivec64c128.c,
+	arch/unix/gui/uidrivec64c128.h: New files.
+
+	* arch/unix/gui/Makefile.am: Added new files.
+	Added missing `uijoystickkeys.h'.
+
+	* arch/win32/uic64cart.c, resmenu.txt, resstrings.txt,
+	arch/win32/intl.c, arch/win32/res.rc: Added Action Replay III
+	attach UI.
+
+2006-10-20  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c64/c64io.c, c64/mmc64.c, c64/mmc64.h: Added (RR-NET)
+	clockport support to MMC64.
+
+2006-10-20  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/msdos/joy.c, arch/msdos/joy.h, arch/msdos/kbd.c,
+	arch/msdos/uijoystick.c, arch/unix/gui/uijoystick2.c,
+	arch/unix/gui/vic20ui.c, arch/unix/joy.c, arch/unix/joy.h,
+	arch/unix/x11/gnome/gnomekbd.c, arch/unix/x11/xaw/x11kbd.c,
+	arch/win32/joy.c, arch/win32/joy.h, arch/win32/kbd.c,
+	arch/win32/uijoystick.c, joystick.c, joystick.h, keyboard.c,
+	keyboard.h: Add ability to redefine key-to-joystick mapping on
+	Unix, unified joystick resources.
+
+	* arch/unix/x11/gnome/uijoystickkeys.c,
+	arch/unix/x11/gnome/uijoystickkeys.h,
+	arch/unix/gui/uijoystickkeys.h: new files.
+
+	* arch/unix/x11/gnome/Makefile.am: Added new file.
+
+	* arch/msdos/uijoystick.c: removed an MS-DOS newline
+
+	* joystick.c: make functions joyreleaseval, joystick_check_set
+	and joystick_check_clr more readable
+
+2006-10-19  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.13.
+
+	* drive/iec/profdos.c, drive/iec/profdos.h: New files.
+
+	* drive/iec/Makefile.am, arch/win32/iec.dsp: Added new files.
+
+	* drive/drive.h, drive/iec/iec.c: Added support for ProfDOS.
+
+	* drive/rotation.c: Switched back to old sync code.
+
+	* drive/iec/memiec.c (memiec_init): Restructured, added 1571
+	$4000 expansion.
+
+	* drive/drivemem.c, drive/drivemem.h (drivemem_set_func): New
+	function.
+
+	* drive/iec/cia1571d.c (pulse_ciapc): Use this function to
+	pulse parallel cable.
+
+	* drive/drive-check.c, drive/drive.h:
+	(drive_check_expansion4000): Allow 157x drives.
+	(drive_check_profdos): New function.
+
+	* arch/unix/gui/uidriveiec.c: Added ProfDOS expansion.
+
+2006-10-19  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resacia.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/rescbm2.rc,
+	arch/win32/resgeoram.rc, arch/win32/respet.rc,
+	arch/win32/respetreu.rc, arch/win32/resplus4.rc,
+	arch/win32/resplus60k.rc, arch/win32/resramcart.rc,
+	arch/win32/resreu.rc, arch/win32/ressid.rc,
+	arch/win32/resvic20.rc, translate.c: Updated hungarian text
+	elements.
+
+	* c64/c64.c: Added mmc64.h include.
+
+2006-10-17  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* event.c, translate.c, translate.txt: Updated.
+
+2006-10-17  Tibor Biczo  <crown@t-online.hu>
+
+	* arch/win32/gentranslate.dsp, arch/win32/genwinres.dsp,
+	arch/win32/png.dsp, arch/win32/zlib.dsp: Added
+	_CRT_SECURE_NO_DEPRECATE define, so MSVC8 does not complain
+	about the use of unsecure C runtime calls.
+
+	* arch/win32/res.rc: Do not include manifest file if resorce
+	file is compiled under MSVC. Needs further work, so that this
+	is true if MSVC8 or later is used.
+
+	* arch/win32/resid.dsp, arch/win32/sid.dsp: Reorganized build
+	steps for .cc files. Instead of directly calling cl, we copy
+	.cc files to .cpp and let the compiler compile those files.
+	Helps with MSVC8.
+
+	* arch/win32/x128.dsp, arch/win32/x64.dsp,
+	arch/win32/xcbm2.dsp, arch/win32/xpet.dsp,
+	arch/win32/xplus4.dsp, arch/win32/xvic.dsp: Added
+	vice.manifest into project file. MSVC8 automatically includes
+	manifest files added to the project during manifest
+	autogeneration.
+
+2006-10-17  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/unix/gui/Makefile.am, arch/unix/gui/c128ui.c,
+	arch/unix/gui/c64ui.c, arch/unix/gui/uimmc64.c,
+	arch/unix/gui/uimmc64.h, arch/win32/Makefile.am,
+	arch/win32/arch.dsp, arch/win32/c128ui.c, arch/win32/c64.dsp,
+	arch/win32/c64c128.dsp, arch/win32/c64ui.c, arch/win32/intl.c,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/resdialogs.txt, arch/win32/resmenu.txt,
+	arch/win32/resmmc64.rc, arch/win32/uimmc64.c,
+	arch/win32/uimmc64.h, arch/win32/x128.dsp, arch/win32/x64.dsp,
+	c64/Makefile.am, c64/c64.c, c64/c64io.c, c64/c64io.h,
+	c64/c64mem.c, c64/cart/c64cartmem.c, c64/mmc64.c, c64/mmc64.h,
+	translate.c, translate.txt: Added MMC64 support, based upon the
+	work done by Markus Stehr <bastetfurry@ircnet.de>.
+
+	* arch/win32/utils/gentranslate.c: Fixed the 0x0d char parsing
+	problem.
+
+2006-10-16  Andreas Boose  <viceteam@t-online.de>
+
+        * Version 1.20.12.
+
+        * drive/iec/mc6821.c (mc6821_write_ddra, mc6821_write_ddrb):
+        New functions, update parallel cable status on direction
+        change.
+
+        * drive/drive.h, drive/iec/iec-resources.c,
+        drive/iec/via1d1541.c, drive/iec/cia1571d.c,
+        drive/iec/mc6821.c, drive/drive-snapshot.c, c64/c64parallel.c,
+        plus4/plus4pio1.c, arch/unix/gui/uidrivec64.c,
+        arch/unix/gui/uidrivec128.c, arch/unix/gui/uidriveplus4.c,
+        drive/iec/memiec.c, drive/iec/iec-cmdline-options.c: Unified
+	parallel cable and mc6821 resource.
+
+	* c64/cart/c64cart.c: Fixed string define.
+
+	* translate.txt, translate.c: Updated.
+
+2006-10-15  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.11.
+
+	* vdc/vdc-mem.c (vdc_store): Changed back xsmooth calculation
+	to use only 3 bits. This is surely not correct, but at least
+	all 80 chars are displayed at startup.
+
+	* arch/unix/archdep.c, arch/win32/archdep.c,
+	arch/msdos/archdep.c, arch/riscos/archdep.c,
+	arch/beos/archdep.carch/os2/archdep.c, archapi.h, zfile.c
+	(archdep_spawn): Take pointer to stdout filename pointer,
+	needed for later mkstemp changes.
+
+	* c64/cart/actionreplay3.c, c64/cart/actionreplay3.h: New
+	files.
+
+	* c64/cart/Makefile.am, arch/win32/c64cart.dsp: Added new
+	files.
+
+	* cartridge.h, c64/cart/c64cart.c, c64/cart/c64cartmem.c,
+	arch/unix/gui/uic64cart.c: Added support for Action Replay
+	III.
+
+	* c64/c64-resources.c, arch/win32/c64ui.c, c64/c64.c: Changed
+	to make Unix keyboard UI work again.
+
+	* debug.c (debug_open_new_file): Fixed typo.
+
+2006-10-15  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* Makefile.am, arch/amigaos/Makefile.am,
+	arch/amigaos/genintl_h.sh, arch/amigaos/genintltable.sh,
+	arch/amigaos/intl.h, arch/amigaos/intl.txt,
+	arch/amigaos/intl_funcs.h, arch/win32/Makefile.am,
+	arch/win32/base.dsp, arch/win32/gentranslate.dsp,
+	arch/win32/utils/Makefile.am, arch/win32/utils/gentranslate.c,
+	arch/win32/vice.dsw, gentranslate_h.sh, gentranslatetable.sh,
+	translate.h, translate.txt, translate_funcs.h: Added automatic
+	generation of the intl header files.
+
+	* arch/amigaos/c128uires.h, arch/amigaos/c64uires.h,
+	arch/amigaos/cbm2uires.h, arch/amigaos/intl.c,
+	arch/amigaos/petuires.h, arch/amigaos/plus4uires.h,
+	arch/amigaos/uires.h, arch/amigaos/vic20uires.h,
+	arch/win32/intl.c, arch/win32/res.rc, arch/win32/resacia.rc,
+	arch/win32/resc128.rc, arch/win32/resc64.rc,
+	arch/win32/resc64_256k.rc, arch/win32/rescbm2.rc,
+	arch/win32/resdialogs.txt, arch/win32/resdrivec128.rc,
+	arch/win32/resdrivec64vic20.rc, arch/win32/resdrivepetcbm2.rc,
+	arch/win32/resdriveplus4.rc, arch/win32/resgeoram.rc,
+	arch/win32/reside64.rc, arch/win32/resmenu.txt,
+	arch/win32/respet.rc, arch/win32/respetreu.rc,
+	arch/win32/resplus256k.rc, arch/win32/resplus4.rc,
+	arch/win32/resplus60k.rc, arch/win32/resramcart.rc,
+	arch/win32/resreu.rc, arch/win32/resrs232user.rc,
+	arch/win32/ressid.rc, arch/win32/resstrings.txt,
+	arch/win32/restfe.rc, arch/win32/resvic20.rc,
+	arch/win32/resvicii.rc, arch/win32/ui.c, translate.c: Added
+	(empty) hungarian texts.
+
+	* main.c: Fixed translate.h include.
+
+2006-10-14  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.10.
+
+	* drive/iec/mc6821.c, mc6821.h: New files.
+
+	* drive/iec/Makefile.am, Makefile.am, arch/win32/iec.dsp:
+	Added new files.
+
+	* drive/iec/iec-resources.c, drive/iec/memiec.c,
+	drive/drive.h, drive/iec/iec.c, c64/c64parallel.c
+
+	* iecdrive.h, c64/c64parallel.c, drive/iec/via1d1541.c,
+	drive/iec/cia1571d.c, drive/iec/mc6821.c,
+	drive/drive-snapshot.c, plus4/plus4parallel.c
+	(parallel_cable_drive_write): Allow handshake only write.
+
+	* drive/iec/wd1770.h: Removed cruft.
+
+2006-10-02  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/unix/x11/gnome/x11ui.c, arch/unix/x11/gnome/gnomekbd.c:
+	handle key events in a sub-widget of the main window, rather
+	than the main window, so the main window's keyboard handler
+	does not interfere
+
+2006-10-02  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/win32/intl.c, arch/win32/res.rc,
+	arch/win32/resacia.rc, arch/win32/resc128.rc,
+	arch/win32/resc64.rc, arch/win32/resc64_256k.rc,
+	arch/win32/rescbm2.rc, arch/win32/respet.rc,
+	arch/win32/resplus4.rc, arch/win32/resplus60k.rc,
+	arch/win32/resvic20.rc, translate.c: Updated the german
+	translations.
+
+2006-10-01  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.9.
+
+	* arch/unix/archdep.c, arch/win32/archdep.c,
+	arch/msdos/archdep.c, arch/os2/archdep.c,
+	arch/riscos/archdep.c, arch/beos/archdep.c,
+	arch/amigaos/archdep.c, archapi.h (archdep_mkstemp_fd): New
+	function.
+
+	* tape/tape-snapshot.c, drive/drive-snapshot.c, event.c,
+	network.c, translate.c, zfile.c: Use new function.
+
+	* arch/unix/gui/uidrivec64.c, arch/unix/gui/uidrivec64.h,
+	arch/unix/gui/uidrivevic20.c, arch/unix/gui/uidrivevic20.h:
+	New files.
+
+	* arch/unix/gui/Makefile.am: Added new files.
+
+	* arch/unix/gui/c64ui.c, arch/unix/gui/vic20ui.c,
+	arch/unix/gui/uidrivec64vic20.c: Separated menu entries.
+
+	* drive/drive.h, drive/drive-check.c: Updated type specific
+	drive checks.
+
+	* arch/unix/gui/uidriveiec.c, arch/unix/gui/uidriveiec.h,
+	arch/unix/gui/uidrivec128.c, arch/unix/gui/uidrivec64.c,
+	arch/unix/gui/uidrivevic20.c, arch/unix/gui/uidriveplus4.c,
+	arch/unix/gui/uidrivepetcbm2.c, arch/unix/gui/uidrive.c,
+	arch/unix/gui/uidrive.h: Added menu entry greying.
+
+	* arch/unix/x11/xaw/uimenu.h, arch/unix/x11/gnome/uimenu.h
+	[UI_MENU_DEFINE_TOGGLE_COND]: New macro.
+
+	* arch/win32/uidrivec128.c, arch/win32/uidrivec64vic20.c,
+	arch/win32/uidriveplus4.c: Use check function instead if
+	macros.
+
+	* arch/os2/kbd/kmap-pet.c, arch/os2/kbd/kmap.c,
+	arch/os2/kbd/proc.c, arch/os2/dialogs/dlg-fileio.c,
+	arch/os2/dialogs/menubar.c, arch/os2/dialogs/dragndrop.c,
+	arch/os2/dialogs/dlg-datasette.c, arch/os2/kbd.c,
+	arch/os2/dialogs/dlg-emulator.c, arch/os2/tfearch.c,
+	arch/os2/dialogs/dlg-joystick.c, arch/os2/dialogs/dlg-color.c,
+	arch/os2/dialogs/dlg-vsid.c, arch/os2/vsidui.c,
+	arch/os2/dialogs/dlg-drive.c, arch/os2/os2main.c, 
+	arch/os2/archdep.c: Changed to new resource API.
+
+2006-09-30  Andreas Dehmel  <zarquon@t-online.de>
+
+	* arch/riscos/cbm2ui.c, arch/riscos/kbd.c,
+	arch/riscos/petui.c, arch/riscos/ui.c, arch/riscos/ui.h,
+	arch/riscos/vic20ui.c: Ported to new resources interface
+
+	* network.c: missing stubs function if HAVE_NETWORK undefined
+
+2006-09-30  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.8.
+
+	* c64/c64parallel.c, drive/iec/cia1571d.c: Added support for
+	1571 style parallel cable.
+
+	* drive/iec/memiec.c: Added support for 1571 style 8KB memory
+	expansion.
+
+2006-09-28  Fabrizio Gennari  <fabrizio.ge@tiscali.it>
+
+	* arch/unix/gui/c128ui.c, arch/unix/gui/c64ui.c,
+	arch/unix/gui/cbm2ui.c, arch/unix/gui/petui.c,
+	arch/unix/gui/plus4ui.c, arch/unix/gui/uifliplist.c,
+	arch/unix/gui/vic20ui.c, arch/unix/gui/vsidui.c,
+	arch/unix/ui.h, arch/unix/x11/gnome/gnomekbd.c,
+	arch/unix/x11/gnome/uiarch.h, arch/unix/x11/gnome/uimenu.c,
+	arch/unix/x11/gnome/uimenu.h, arch/unix/x11/gnome/x11ui.c,
+	arch/unix/x11/x11menu.c, arch/unix/x11/x11menu.h,
+	arch/unix/x11/xaw/uiarch.h, arch/unix/x11/xaw/uimenu.c,
+	arch/unix/x11/xaw/x11ui.c: Added GTK accelerators.
+
+2006-09-26  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* c64/cart/c64cart.c, c64/tfe.c, translate.c: Corrected some
+	text elements.
+
+2006-09-25  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.7.
+
+	* drive/iec/via1d1541.c, drive/ieee/via1d2031.c,
+	drive/iecieee/via2d.c: Initialize VIA struct.
+
+	* arch/unix/x11/xaw/widgets/FileSel.c (UpdateTextLines): Fixed
+	some bug.
+
+	* arch/unix/console.c, arch/msdos/console.c,
+	arch/riscos/console.c, arch/beos/console.c (console_open):
+	Inititalize `console_cannot_output'.
+
+	* arch/unix/gui/uinetplay.c: Moved down IPV6 settings.
+
+	* network.c (network_hook): Splitted into separate functions,
+	made portable, fixed memory leaks and checked return values.
+	(network_event_record_sync_test): Made portable.
+	(network_send_buffer): Prevent SIGPIPE on writes to
+	disconnected sockets.
+
+	* snapshot.c,  snapshot.h
+	(snapshot_module_read_dword_into_uint): New function.
+
+	* maincpu.c, drive/drive-snapshot.c, drive/drivecpu.c,
+	event.c Use new snapshot function.
+
+	* datasette.c [datasette_zero_gap_delay,
+	datasette_speed_tuning]: Changed it `int'.
+
+	* arch/win32/uivicii.c, arch/win32/uivideo.c,
+	arch/win32/uipetset.c, arch/win32/uimon.c,
+	arch/win32/console.c, arch/win32/tfearch.c: Removed or
+	commented out unused functions.
+
+2006-09-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/amigaos/intl.c, arch/amigaos/mui/uidrivec128.c,
+	arch/amigaos/mui/uidrivec64vic20.c,
+	arch/amigaos/mui/uidrivepetcbm2.c,
+	arch/amigaos/mui/uidriveplus4.c,
+	arch/amigaos/mui/uijoystick.c,
+	arch/amigaos/mui/uisound.c: Fixed some ui related issues.
+
+2006-09-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/msdos/uinetplay.c: Fixed some ui related issue.
+
+2006-09-25  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/win32/res.rc: Deleted some unused parts.
+
+2006-09-23  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.6.
+
+	* sid/resid.cc, printerdrv/output-graphics.c, c64/c64rom.c,
+	c64/cart/c64cartmem.c, c64/psid.c, c64/c64memsnapshot.c,
+	c64/cart/expert.c, c64/c64io.c, c128/c128-resources.c,
+	c128/c128rom.c, c128/c128memsnapshot.c, c128/c128mmu.c,
+	vic20/vic.c, vic20/vic20-snapshot.c, vic20/vic20iec.c,
+	vic20/vic20mem.c, vic20/vic20rom.c, vic20/vic20memsnapshot.c,
+	vic20/vic20-cmdline-options.c, pet/petmemsnapshot.c,
+	pet/petmem.c, pet/petrom.c, plus4/plus4mem.c,
+	plus4/plus4rom.c, plus4/ted-timing.c, plus4/plus4cart.c,
+	plus4/plus4memhannes256k.c, plus4/plus4-resources.c,
+	plus4/plus4memcsory256k.c, cbm2/cbm2memsnapshot.c,
+	cbm2/cbm2rom.c, cbm2/cbm2mem.c, vicii/vicii-timing.c,
+	drive/iec/iecrom.c, drive/ieee/ieeerom.c,
+	drive/tcbm/tcbmrom.c, drive/iec128dcr/iec128dcrrom.c,
+	drive/drive.c, drive/drive-snapshot.c, sounddrv/soundacorn.c,
+	video/video-resources.c, gfxoutputdrv/ffmpegdrv.c,
+	monitor/mon_ui.c, fsdevice/fsdevice.c, sid/sid-snapshot.c,
+	sid/sid.c, sid/fastsid.c, arch/riscos/ui.c, arch/riscos/kbd.c,
+	arch/riscos/vsidui.c, arch/riscos/c128ui.c,
+	arch/riscos/video.c, arch/riscos/cbm2ui.c,
+	arch/riscos/petui.c, arch/riscos/vsync.c, arch/beos/ui.cc,
+	arch/beos/ui_device.cc, arch/beos/ui_file.cc,
+	arch/beos/ui_joystick.cc, arch/beos/ui_drive.cc: Changed to
+	new resource API.
+
+	* sid/fastsid.c [sound_s]: Changed `emulatefilter' to integer
+	as this variable is passed to resource code!
+
+	* petcat.c (p_tokenize): Fixed a warning.
+
+	* util.c (util_be_buf_to_dword, util_int_to_be_buf4,
+	util_int_to_le_buf4, util_le_buf4_to_int,
+	util_be_buf4_to_int): New functions.
+
+	* network.c (network_server_connect_trap,
+	network_client_connect_trap, network_connect_client): Exchange
+	length of the event and snapshot file in a portable way.
+
+	* fsdevice/fsdevice-flush.c: Do not directly use `PATH_MAX'.
+
+	* arch/win32/msvc/config.h: Removed `PATH_MAX' define.
+
+	* monitor/monitor.c (playback_commands): Make it readable.
+
+	* romset.c (romset_file_load): `fp' is a pointer.
+
+	* keyboard.c (keyboard_parse_keymap): It is not necessary to
+	free the return path on error.
+
+	* arch/os2/kbd/parse.c (load_keymap_file): Changed likewise.
+
+	* arch/amigaos/uilib.c [MAX_PATH]: Removed obsolete define.
+
+	* vicii/vicii.c (vicii_handle_pending_alarms):
+	`vicii_raster_draw_alarm_handler()' takes `CLOCK'.
+
+	* plus4/ted.c (ted_handle_pending_alarms): Changed likewise.
+
+	* alarm.h (alarm_context_dispatch): Use `CLOCK' instead of
+	`long'.
+
+	* c64/georam.c (georam_read_snapshot_module): Use `int'
+	instead of `long'.
+
+	* c64/reu.c (reu_read_snapshot_module): Changed likewise.
+
+	* maincpu.c (maincpu_generic_dma): Only define this function
+	if `DMA_FUNC' is not defined.
+
+2006-09-23  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/*: get rid of deprecated libgnome et
+	al. dependencies. Credits to Fabrizio Gennari.
+
+2006-09-17  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.5.
+
+	* Makefile.am: Added forgotten `ChangeLog.5' file.
+
+	* mos6510.h, 6510core.c, c128/z80.c: Changed status bit set
+	macros to avoid warnings.
+
+	* arch/beos/types.h, arch/unix/types.h, arch/msdos/types.h,
+	arch/riscos/config.h, arch/amigaos/types.h: Removed test for
+	`SIZEOF_UNSIGNED_INT = 2' as VICE won't work on those archs
+	anyway.
+
+	* tap.h [tap_t]: Variables `cycle_counter' and
+	`cycle_counter_total' must be int otherwise snapshot breaks on
+	64bit archs.
+
+	* vicii/vicii-sprites.c (draw_sprite_partial): Do not inline
+	this big function.
+
+	* cartconv.c (load_input_file): Fixed a warning.
+
+	* c64/reu.c, c64/georam.c, c64/ramcart.c, pet/petreu.c: Do not
+	use `DWORD' for expansion size.
+
+	* network.c [network_control]: Changed to `int'.
+
+	* c64/plus60k.c, c64/plus60k.h [plus60k_base]: Changed to
+	`int'.
+
+	* c64/c64_256k.c, c64/c64_256k.h [c64_256k_start]: Changed to
+	`int'.
+
+	* arch/msdos/c128ui.c, arch/msdos/c64ui.c, arch/msdos/kbd.c,
+	arch/msdos/cbm2ui.c, arch/msdos/menudefs.c,
+	arch/msdos/petui.c, arch/msdos/plus4ui.c,
+	arch/msdos/statusbar.c, arch/msdos/tuimenu.c,
+	arch/msdos/uic64_256k.c, arch/msdos/uidrive.c,
+	arch/msdos/uigeoram.c, arch/msdos/uijoystick.c,
+	arch/msdos/uinetplay.c, arch/msdos/uiperipherial.c,
+	arch/msdos/uipetreu.c, arch/msdos/uiplus256k.c,
+	arch/msdos/uiplus60k.c, arch/msdos/uiprinter.c,
+	arch/msdos/uiramcart.c, arch/msdos/uireu.c,
+	arch/msdos/uisid.c, arch/msdos/uisound.c, arch/msdos/uitfe.c,
+	arch/msdos/vic20ui.c, arch/msdos/video.c,
+	arch/beos/ui_netplay.cc, arch/beos/ui_device.cc,
+	arch/beos/vicewindow.cc, arch/beos/ui_cbm2.cc,
+	arch/beos/ui.cc, arch/beos/ui_datasette.cc,
+	arch/beos/ui_file.cc, arch/beos/ui_joystick.cc,
+	arch/beos/ui_pet.cc, arch/beos/ui_sid.cc,
+	arch/beos/ui_sound.cc, arch/beos/ui_vic20.cc,
+	arch/beos/ui_vicii.cc, arch/beos/ui_video.cc: Changed to new
+	resource API.
+
+2006-09-16  Andreas Dehmel  <zarquon@t-online.de>
+
+	* arch/riscos/kbd.c, arch/riscos/vsync.c: fixed minor
+	oversights of resource-restructuring.
+
+2006-09-16  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.4.
+
+	* autostart.c, datasette.c, debug.c, keyboard.c, main.c,
+	romset.c, arch/unix/gp2x/c128ui.c, arch/unix/gp2x/c64ui.c,
+	arch/unix/gp2x/cbm2ui.c, arch/unix/gp2x/input_gp2x.c,
+	arch/unix/gp2x/petui.c, arch/unix/gp2x/plus4ui.c,
+	arch/unix/gp2x/prefs_gp2x.c, arch/unix/gp2x/vic20ui.c,
+	arch/unix/gui/c128ui.c, arch/unix/gui/cbm2ui.c,
+	arch/unix/gui/petui.c, arch/unix/gui/uicommands.c,
+	arch/unix/gui/uidatasette.c, arch/unix/gui/uidrive.c,
+	arch/unix/gui/uifliplist.c, arch/unix/gui/uiide64.c,
+	arch/unix/gui/uijoystick2.c, arch/unix/gui/uikeyboard.c,
+	arch/unix/gui/uilib.c, arch/unix/gui/uinetplay.c:,
+	arch/unix/gui/uipalemu.c, arch/unix/gui/uiprinter.c,
+	arch/unix/gui/uiromset.c, arch/unix/gui/uirs232.c,
+	arch/unix/gui/uisettings.c, arch/unix/gui/uited.c,
+	arch/unix/gui/uivic.c, arch/unix/gui/uivicii.c,
+	arch/unix/gui/vic20ui.c, arch/unix/x11/gnome/uimenu.c,
+	arch/unix/x11/gnome/uinetplay.c,
+	arch/unix/x11/gnome/uipalcontrol.c,
+	arch/unix/x11/gnome/uiscreenshot.c,
+	arch/unix/x11/gnome/x11ui.c, arch/unix/x11/xaw/uimenu.c,
+	arch/unix/x11/xaw/x11ui.c, arch/win32/fullscrn.c,
+	arch/win32/uiacia.c, arch/win32/uic128.c,
+	arch/win32/uic64_256k.c, arch/win32/uicbm2set.c,
+	arch/win32/ui.c, arch/win32/uidatasette.c,
+	arch/win32/uidrivec128.c, arch/win32/uidrivec64vic20.c,
+	arch/win32/uidriveplus4.c, arch/win32/uigeoram.c,
+	arch/win32/uiide64.c, arch/win32/uijoystick.c,
+	arch/win32/uikeyboard.c, arch/win32/uilib.c,
+	arch/win32/uimediafile.c, arch/win32/uimon.c,
+	arch/win32/uiram.c, arch/win32/uireu.c, arch/win32/uirom.c,
+	arch/win32/uisid.c, arch/win32/uitfe.c, arch/win32/uirs232.c,
+	arch/win32/uirs232user.c, arch/win32/uiperipheral.c,
+	arch/win32/uivicset.c, arch/win32/uispeed.c,
+	arch/win32/uisound.c, arch/win32/uinetwork.c,
+	arch/win32/uipetreu.c, arch/win32/uipetset.c,
+	arch/win32/uiplus256k.c, arch/win32/uiplus4cart.c,
+	arch/win32/uiplus4mem.c, arch/win32/uiplus60k.c,
+	arch/win32/uiramcart.c, arch/win32/uivicii.c,
+	arch/win32/uivideo.c, resources.h, resources.c
+	(resources_get_int, resources_get_string, resources_set_int,
+	resources_set_string): New functions, changed API.
+
+	* resources.c, resources.h, arch/os2/dialogs/dlg-drive.c,
+	arch/win32/ui.c, arch/win32/uidriveplus4.c, romset.c,
+	arch/win32/uidrivec128.c, arch/win32/uirom.c,
+	arch/win32/uidrivepetcbm2.c, arch/win32/uiperipheral.c,
+	arch/win32/uidrivec64vic20.c, printerdrv/output-graphics.c
+	(resources_get_int_sprintf, resources_get_string_sprintf):
+	New functions, changed API.
+
+	* resources.c, resources.h, arch/os2/dialogs/dlg-drive.c,
+	arch/unix/gui/uiattach.c, arch/win32/ui.c, event.c,
+	arch/win32/uidriveplus4.c, arch/win32/uidrivec128.c,
+	arch/win32/uirom.c, arch/win32/uidrivepetcbm2.c,
+	arch/win32/uiperipheral.c, arch/win32/uidrivec64vic20.c
+	(resources_set_int_sprintf, resources_set_string_sprintf):
+	New functions, changed API.
+
+	* resources.h, resources.c, arch/os2/dialogs/dialogs.c,
+	arch/os2/dialogs/dlg-drive.c, arch/msdos/tuimenu.c,
+	arch/win32/uisid.c, arch/riscos/ui.c (resources_toggle):
+	Changed return parameter to `int *'.
+
+	* debug.c (debug_create_new_file, debug_open_new_file): Use
+	`lib_msprintf()'.
+
+	* machine.h, c64/c64.c, c128/c128.c, vic20/vic20.c, pet/pet.c,
+	plus4/plus4.c, cbm2/cbm2.c (machine_num_keyboard_mappings):
+	Changed return value to `int'.
+
+	* translate.c: Fixed typo.
+
+	* arch/win32/uimon.c (decode, getString3): Made parameter
+	const.
+
+	* arch/win32/uirom.c (browse_archive_romset_dialog): Commented
+	out unused dialog.
+
+2006-09-10  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.3.
+
+	* resources.c, resources.h (resources_register): Removed.
+
+	* aciacore.c, attach.c, datasette.c, debug.c, event.c,
+	fliplist.c, log.c, mouse.c, network.c, ram.c, romset.c,
+	sound.c, sysfile.c, translate.c, traps.c, vsync.c,
+	c64/cart/c64cart.c, c64/cart/ide64.c, c64/plus60k.c,
+	c64/reu.c, c64/tfe.c, c64/ramcart.c, c64/plus256k.c,
+	c64/georam.c, c64/psid.c, c64/c64-resources.c, c64/c64_256k.c,
+	c128/functionrom.c, c128/c128-resources.c, c128/z80mem.c,
+	c128/c128mmu.c, vic20/vic20cartridge.c,
+	vic20/vic20-resources.c, pet/pet.c, pet/pet-resources.c,
+	pet/petpia1.c, pet/petreu.c, plus4/plus4memhannes256k.c,
+	plus4/plus4-resources.c, plus4/plus4memcsory256k.c,
+	cbm2/cbm2-resources.c, arch/os2/kbd/kmap-pet.c,
+	arch/os2/kbd/kmap.c, arch/os2/ui.c, arch/os2/mousedrv.c,
+	arch/os2/kbd.c, arch/os2/joy.c, arch/os2/rs232.c,
+	arch/os2/unused/video_gpi.c, arch/os2/unused/vsync.c,
+	arch/os2/video.c, arch/beos/kbd.c, arch/beos/ui.cc,
+	arch/beos/joy.cc, arch/beos/video.cc,
+	arch/unix/x11/ui-resources.c, arch/unix/x11/video.c,
+	arch/unix/joy.c, arch/unix/rs232.c, arch/unix/macosx/joy.c,
+	arch/msdos/joy.c, arch/msdos/video.c, arch/msdos/vsync.c,
+	arch/win32/joy.c, arch/win32/ui-resources.c,
+	arch/win32/video.c, arch/riscos/ui.c, arch/riscos/kbd.c,
+	arch/riscos/joy.c, arch/riscos/rs232.c, arch/riscos/video.c,
+	arch/riscos/vsync.c, arch/amigaos/joyai.c,
+	arch/amigaos/joyll.c, arch/amigaos/joy.c,
+	arch/amigaos/uiapi.c, drive/iec/iec-resources.c,
+	drive/ieee/ieee-resources.c, drive/tcbm/tcbm-resources.c,
+	drive/iec128dcr/iec128dcr-resources.c,
+	drive/drive-resources.c, sid/sid-resources.c,
+	vdc/vdc-resources.c, diskimage/rawimage.c,
+	vicii/vicii-resources.c, video/video-resources.c,
+	video/video-resources-pal.c, rs232drv/rsuser.c,
+	rs232drv/rs232drv.c, raster/raster-resources.c,
+	serial/serial-iec-device.c, fsdevice/fsdevice-resources.c,
+	printerdrv/interface-serial.c,
+	printerdrv/interface-userport.c, printerdrv/driver-select.c,
+	printerdrv/output-text.c, printerdrv/output-select.c,
+	printerdrv/output-graphics.c, gfxoutputdrv/ffmpegdrv.c,
+	arch/unix/x11/dga2.c, sid/sid-resources.h, keyboard.c,
+	keyboard.h: Changed resource set functions to new register
+	API.
+
+	* machine.c, machine.h, keyboard.c, c64/c64-resources.c,
+	c128/c128-resources.c, vic20/vic20-resources.c,
+	pet/pet-resources.c, plus4/plus4-resources.c,
+	cbm2/cbm2-resources.c: `machine_keymap_index' is int.
+
+2006-09-09  pottendo  <pottendo@utanet.at>
+
+	* fsdevice/fsdevice-resources.c: (resource_string) added
+	`NULL'. 
+
+2006-09-09  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.2.
+
+	* resources.c, resources.h: New resource structs for integer
+	and string resources. (resources_register_int,
+	resources_register_string): New functions.
+
+	* aciacore.c, attach.c, datasette.c, debug.c, event.c,
+	fliplist.c, log.c, mouse.c, network.c, ram.c, romset.c,
+	sound.c, sysfile.c, translate.c, traps.c, vsync.c,
+	c64/cart/c64cart.c, c64/cart/ide64.c, c64/plus60k.c,
+	c64/reu.c, c64/tfe.c, c64/ramcart.c, c64/plus256k.c,
+	c64/georam.c, c64/psid.c, c64/c64-resources.c, c64/c64_256k.c,
+	c128/functionrom.c, c128/c128-resources.c, c128/z80mem.c,
+	c128/c128mmu.c, vic20/vic20cartridge.c,
+	vic20/vic20-resources.c, pet/pet.c, pet/pet-resources.c,
+	pet/petpia1.c, pet/petreu.c, plus4/plus4memhannes256k.c,
+	plus4/plus4-resources.c, plus4/plus4memcsory256k.c,
+	cbm2/cbm2-resources.c, arch/os2/kbd/kmap-pet.c,
+	arch/os2/kbd/kmap.c, arch/os2/ui.c, arch/os2/mousedrv.c,
+	arch/os2/kbd.c, arch/os2/joy.c, arch/os2/rs232.c,
+	arch/os2/unused/video_gpi.c, arch/os2/unused/vsync.c,
+	arch/os2/video.c, arch/beos/kbd.c, arch/beos/ui.cc,
+	arch/beos/joy.cc, arch/beos/video.cc,
+	arch/unix/x11/ui-resources.c, arch/unix/x11/video.c,
+	arch/unix/joy.c, arch/unix/rs232.c, arch/unix/macosx/joy.c,
+	arch/msdos/joy.c, arch/msdos/video.c, arch/msdos/vsync.c,
+	arch/win32/joy.c, arch/win32/ui-resources.c,
+	arch/win32/video.c, arch/riscos/ui.c, arch/riscos/kbd.c,
+	arch/riscos/joy.c, arch/riscos/rs232.c, arch/riscos/video.c,
+	arch/riscos/vsync.c, arch/amigaos/joyai.c,
+	arch/amigaos/joyll.c, arch/amigaos/joy.c,
+	arch/amigaos/uiapi.c, drive/iec/iec-resources.c,
+	drive/ieee/ieee-resources.c, drive/tcbm/tcbm-resources.c,
+	drive/iec128dcr/iec128dcr-resources.c,
+	drive/drive-resources.c, sid/sid-resources.c,
+	vdc/vdc-resources.c, diskimage/rawimage.c,
+	vicii/vicii-resources.c, video/video-resources.c,
+	video/video-resources-pal.c, rs232drv/rsuser.c,
+	rs232drv/rs232drv.c, raster/raster-resources.c,
+	serial/serial-iec-device.c, fsdevice/fsdevice-resources.c,
+	printerdrv/interface-serial.c,
+	printerdrv/interface-userport.c, printerdrv/driver-select.c,
+	printerdrv/output-text.c, printerdrv/output-select.c,
+	printerdrv/output-graphics.c, gfxoutputdrv/ffmpegdrv.c:
+	Changed resource definitons to new register API.
+
+2006-09-09  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/x11ui.c (archdep_ui_init): replaced
+	deprecated gnome_program_init(...).
+	Credits to Fabrizio Gennari.
+
+2006-09-09  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/os2/video.c: Fixed a resource bug.
+
+2006-09-04  Spiro Trikaliotis  <Spiro.Trikaliotis@gmx.de>
+
+	* petcat.c: Applied fixes by Groepaz: * Use separate buffers
+	for input and output in the tokenizer; before, the output
+	could overwrite the input, which was bad (TODO: overflow
+	checks should be integrated) * output an error and abort if an
+	unknown control code has been found. Before, it was inserted
+	as plain-text. * added more control codes.
+
+2006-09-03  Andreas Boose  <viceteam@t-online.de>
+
+	* Version 1.20.1
+
+2006-09-03  Marco van den Heuvel  <blackystardust68@yahoo.com>
+
+	* arch/beos/ui.cc: Updated the ui_display_drive_led function.
+
+	* network.c: Updated for BeOS to define HAVE_HTONS and
+	HAVE_HTONL.
+
+2006-09-02  pottendo  <pottendo@utanet.at>
+
+	* arch/unix/x11/gnome/about.c (ui_about): Added Csaba.
+
+	* info.c: Added Csaba.
+
+2006-08-27  Christian Vogelgsang  <chris@vogelgsang.org>
+
+	* arch/unix/macosx/make-bindist.sh:
+	Added correct PATH environment to launcher script.
+	It is required to launch c1541 that is now embedded in each
+	bundle. Disk Image is gzipped to shrink it even more.

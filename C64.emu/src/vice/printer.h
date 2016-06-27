@@ -57,8 +57,5 @@ extern void printer_serial_shutdown(void);
 /* Userport interface.  */
 extern int printer_userport_init_resources(void);
 extern int printer_userport_init_cmdline_options(void);
-extern void printer_userport_init(void (*set_busy)(unsigned int));
-extern void printer_userport_write_data(BYTE b);
-extern void printer_userport_write_strobe(int s);
 
 #endif

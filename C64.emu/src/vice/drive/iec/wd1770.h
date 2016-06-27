@@ -41,12 +41,13 @@ extern void wd1770_shutdown(wd1770_t *drv);
 extern int wd1770_attach_image(struct disk_image_s *image, unsigned int unit);
 extern int wd1770_detach_image(struct disk_image_s *image, unsigned int unit);
 
-extern inline int wd1770_disk_change(wd1770_t *drv);
-extern inline void wd1770d_store(struct drive_context_s *drv, WORD addr, BYTE byte);
-extern inline BYTE wd1770d_read(struct drive_context_s *drv, WORD addr);
+extern int wd1770_disk_change(wd1770_t *drv);
+extern void wd1770d_store(struct drive_context_s *drv, WORD addr, BYTE byte);
+extern BYTE wd1770d_read(struct drive_context_s *drv, WORD addr);
+extern BYTE wd1770d_peek(struct drive_context_s *drv, WORD addr);
 extern void wd1770_reset(wd1770_t *drv);
-extern inline void wd1770_set_side(wd1770_t *drv, int side);
-extern inline void wd1770_set_motor(wd1770_t *drv, int on);
+extern void wd1770_set_side(wd1770_t *drv, int side);
+extern void wd1770_set_motor(wd1770_t *drv, int on);
 
 extern int wd1770_snapshot_write_module(wd1770_t *drv, struct snapshot_s *s);
 extern int wd1770_snapshot_read_module(wd1770_t *drv, struct snapshot_s *s);

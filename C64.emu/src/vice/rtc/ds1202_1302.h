@@ -27,6 +27,7 @@
 #ifndef VICE_DS1202_1302_H
 #define VICE_DS1202_1302_H
 
+#include "snapshot.h"
 #include "types.h"
 
 typedef struct rtc_ds1202_1302_s rtc_ds1202_1302_t;
@@ -38,8 +39,9 @@ extern void ds1202_1302_destroy(rtc_ds1202_1302_t *context, int save);
 extern void ds1202_1302_set_lines(rtc_ds1202_1302_t *context, unsigned int ce_line, unsigned int sclk_line, unsigned int input_bit);
 extern BYTE ds1202_1302_read_data_line(rtc_ds1202_1302_t *context);
 
-struct snapshot_s;
-extern int ds1202_1302_snapshot_read_module(struct snapshot_s *s);
-extern int ds1202_1302_snapshot_write_module(struct snapshot_s *s);
+extern int ds1202_1302_dump(rtc_ds1202_1302_t *context);
+
+extern int ds1202_1302_write_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s);
+extern int ds1202_1302_read_snapshot(rtc_ds1202_1302_t *context, snapshot_t *s);
 
 #endif

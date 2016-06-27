@@ -55,12 +55,9 @@ int plus4rom_load_kernal(const char *rom_name)
         return 0;
     }
 
-    /* Make sure serial code assumes there are no traps installed.  */
-    /* serial_remove_traps(); */
-    /* we also need the TAPE traps!!! therefore -> */
-    /* disable traps before saving the ROM */
+    /* disable traps before loading the ROM */
     resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 1);
+    resources_set_int("VirtualDevices", 0);
 
     /* Load Kernal ROM.  */
     if (sysfile_load(rom_name, plus4memrom_kernal_rom,

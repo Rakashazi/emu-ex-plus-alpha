@@ -31,10 +31,10 @@
 #include <string.h>
 
 #include "archdep.h"
-#include "c64export.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
+#include "export.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -175,7 +175,7 @@ static io_source_t georam_io2_device = {
 static io_source_list_t *georam_io1_list_item = NULL;
 static io_source_list_t *georam_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_GEORAM, 0, 0, &georam_io1_device, &georam_io2_device, CARTRIDGE_GEORAM
 };
 
@@ -300,14 +300,14 @@ static int set_georam_enabled(int value, void *param)
         io_source_unregister(georam_io2_list_item);
         georam_io1_list_item = NULL;
         georam_io2_list_item = NULL;
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         georam_enabled = 0;
     }
     if (!georam_enabled && val) {
         if (georam_activate() < 0) {
             return -1;
         }
-        if (c64export_add(&export_res) < 0) {
+        if (export_add(&export_res) < 0) {
             return -1;
         }
         if (machine_class == VICE_MACHINE_VIC20) {
@@ -607,42 +607,67 @@ int georam_flush_image(void)
 
 /* ------------------------------------------------------------------------- */
 
+/* GEORAM snapshot module format:
+
+   type  | name    | version | description
+   ---------------------------------------
+   BYTE  | io swap |   0.1   | VIC20 I/O swap flag
+   DWORD | size    |   0.0+  | size in KB
+   ARRAY | regs    |   0.0+  | 2 BYTES of register data
+   ARRAY | RAM     |   0.0+  | 65536, 131072, 262144, 524288, 1048576, 2097152 or 4194304 BYTES of RAM data
+ */
+
 static char snap_module_name[] = "GEORAM";
 #define SNAP_MAJOR 0
-#define SNAP_MINOR 0
+#define SNAP_MINOR 1
 
 int georam_write_snapshot_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (SMW_DW(m, (georam_size >> 10)) < 0 || SMW_BA(m, georam, sizeof(georam)) < 0 || SMW_BA(m, georam_ram, georam_size) < 0) {
+    if (0
+        || SMW_B(m, (BYTE)georam_io_swap) < 0
+        || SMW_DW(m, (georam_size >> 10)) < 0
+        || SMW_BA(m, georam, sizeof(georam)) < 0
+        || SMW_BA(m, georam_ram, georam_size) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int georam_read_snapshot_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    BYTE vmajor, vminor;
     snapshot_module_t *m;
     DWORD size;
 
-    m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (major_version != SNAP_MAJOR) {
-        log_error(georam_log, "Major version %d not valid; should be %d.", major_version, SNAP_MAJOR);
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
+    }
+
+    /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (SMR_B_INT(m, &georam_io_swap) < 0) {
+            goto fail;
+        }
+    } else {
+        georam_io_swap = 0;
     }
 
     /* Read RAM size.  */

@@ -45,6 +45,9 @@ extern void plus60k_ram_hi_store(WORD addr, BYTE value);
 extern BYTE plus60k_ram_read(WORD addr);
 extern void plus60k_ram_store(WORD addr, BYTE value);
 
-extern int set_plus60k_enabled(int value);
+extern int set_plus60k_enabled(int value, int disable_reset);
+
+extern int plus60k_snapshot_write(struct snapshot_s *s);
+extern int plus60k_snapshot_read(struct snapshot_s *s);
 
 #endif

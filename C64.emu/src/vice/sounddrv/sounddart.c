@@ -425,7 +425,7 @@ static void dart_close()
     DosReleaseMutexSem(hmtxOC);
 }
 
-/*
+#if 0
 static int dart_write(SWORD *pbuf, size_t nr)
 {
     /* The MCI_MIX_BUFFER structure is used for reading and writing data to
@@ -475,7 +475,8 @@ static int dart_write(SWORD *pbuf, size_t nr)
     DosReleaseMutexSem(hmtxSnd);
 
     return 0;
-}*/
+}
+#endif
 
 static int dart_write2(SWORD *pbuf, size_t nr)
 {

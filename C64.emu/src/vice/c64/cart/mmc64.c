@@ -37,16 +37,17 @@
 #define CARTRIDGE_INCLUDE_SLOT0_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOT0_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "crt.h"
+#include "export.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "mem.h"
+#include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "spi-sdcard.h"
@@ -160,38 +161,41 @@ static int mmc64_deactivate(void);
 
 /* some prototypes are needed */
 static void mmc64_clockport_enable_store(WORD addr, BYTE value);
+static BYTE mmc64_clockport_enable_peek(WORD addr);
 static void mmc64_io1_store(WORD addr, BYTE value);
 static BYTE mmc64_io1_read(WORD addr);
 static BYTE mmc64_io1_peek(WORD addr);
 static void mmc64_io2_store(WORD addr, BYTE value);
 static BYTE mmc64_io2_read(WORD addr);
 static BYTE mmc64_io2_peek(WORD addr);
+static int mmc64_dump(void);
 
 static io_source_t mmc64_io1_clockport_device = {
-    CARTRIDGE_NAME_MMC64 " CLOCKPORT ENABLE",
+    CARTRIDGE_NAME_MMC64 " Clockport enable",
     IO_DETACH_RESOURCE,
     "MMC64",
     0xde01, 0xde01, 0x01,
     0,
     mmc64_clockport_enable_store,
-    NULL,
-    NULL,
-    NULL,
+    NULL, /* read */
+    mmc64_clockport_enable_peek,
+    mmc64_dump,
     CARTRIDGE_MMC64,
     0,
     0
 };
 
+/* FIXME: register map doesnt show a register at $df21 - is this correct? */
 static io_source_t mmc64_io2_clockport_device = {
-    CARTRIDGE_NAME_MMC64 " CLOCKPORT ENABLE",
+    CARTRIDGE_NAME_MMC64 " Clockport enable",
     IO_DETACH_RESOURCE,
     "MMC64",
     0xdf21, 0xdf21, 0x01,
     0,
     mmc64_clockport_enable_store,
-    NULL,
-    NULL,
-    NULL,
+    NULL, /* read */
+    mmc64_clockport_enable_peek,
+    mmc64_dump,
     CARTRIDGE_MMC64,
     0,
     0
@@ -201,9 +205,12 @@ static io_source_t *mmc64_current_clockport_device = &mmc64_io1_clockport_device
 
 /* FIXME: register/handle the clockport resource properly */
 
-static const c64export_resource_t export_cp_res = {
+/* FIXME: unused? */
+#if 0
+static const export_resource_t export_cp_res = {
     CARTRIDGE_NAME_MMC64 " Clockport", 0, 0, &mmc64_io1_clockport_device, &mmc64_io2_clockport_device, CARTRIDGE_MMC64
 };
+#endif
 
 static io_source_t mmc64_io2_device = {
     CARTRIDGE_NAME_MMC64,
@@ -214,7 +221,7 @@ static io_source_t mmc64_io2_device = {
     mmc64_io2_store,
     mmc64_io2_read,
     mmc64_io2_peek,
-    NULL,
+    mmc64_dump,
     CARTRIDGE_MMC64,
     1, /* mask df10-df13 from passthrough */
     0
@@ -229,7 +236,7 @@ static io_source_t mmc64_io1_device = {
     mmc64_io1_store,
     mmc64_io1_read,
     mmc64_io1_peek,
-    NULL,
+    mmc64_dump,
     CARTRIDGE_MMC64,
     0,
     0
@@ -239,7 +246,7 @@ static io_source_list_t *mmc64_clockport_list_item = NULL;
 static io_source_list_t *mmc64_io1_list_item = NULL;
 static io_source_list_t *mmc64_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_MMC64, 1, 0, &mmc64_io1_device, &mmc64_io2_device, CARTRIDGE_MMC64
 };
 
@@ -344,7 +351,7 @@ static int set_mmc64_enabled(int value, void *param)
             LOG(("MMC64: set_enabled(0) '%s'", mmc64_bios_filename));
             cart_power_off();
             /* if the param is == NULL, then we should actually set the resource */
-            if (c64export_add(&export_res) < 0) {
+            if (export_add(&export_res) < 0) {
                 LOG(("MMC64: set_enabled(0) did not register"));
                 return -1;
             } else {
@@ -368,7 +375,7 @@ static int set_mmc64_enabled(int value, void *param)
             return -1;
         }
         cart_power_off();
-        c64export_remove(&export_res);
+        export_remove(&export_res);
         mmc64_enabled = 0;
         cart_set_port_exrom_slot0(0);
         cart_port_config_changed_slot0();
@@ -516,7 +523,7 @@ int mmc64_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
     return CART_READ_THROUGH;
 }
 
-void mmc64_config_init(struct export_s *export)
+void mmc64_config_init(export_t *export)
 {
     LOG(("MMC64 mmc64_config_init"));
 
@@ -534,8 +541,8 @@ void mmc64_config_init(struct export_s *export)
     mmc64_extexrom = 0;
     mmc64_extgame = 0;
 #endif
-    mmc64_extexrom = ((export_t*)export)->exrom;
-    mmc64_extgame = ((export_t*)export)->game;
+    mmc64_extexrom = export->exrom;
+    mmc64_extgame = export->game;
 
     if (mmc64_enabled) {
 #if USEPASSTHROUGHHACK
@@ -549,10 +556,10 @@ void mmc64_config_init(struct export_s *export)
     }
 }
 
-void mmc64_passthrough_changed(struct export_s *export)
+void mmc64_passthrough_changed(export_t *export)
 {
-    mmc64_extexrom = ((export_t*)export)->exrom;
-    mmc64_extgame = ((export_t*)export)->game;
+    mmc64_extexrom = export->exrom;
+    mmc64_extgame = export->game;
     LOG(("MMC64 passthrough changed exrom: %d game: %d (mmc64_active: %d)", mmc64_extexrom, mmc64_extgame, mmc64_active));
     if (!mmc64_active) {
         cart_set_port_game_slot0(mmc64_extgame);
@@ -571,6 +578,11 @@ static void mmc64_clockport_enable_store(WORD addr, BYTE value)
         tfe_clockport_changed();
 #endif
     }
+}
+
+static BYTE mmc64_clockport_enable_peek(WORD addr)
+{
+    return mmc64_clockport_enabled;
 }
 
 static void mmc64_reg_store(WORD addr, BYTE value, int active)
@@ -911,6 +923,16 @@ static BYTE mmc64_io1_peek(WORD addr)
 
 /* ---------------------------------------------------------------------*/
 
+static int mmc64_dump(void)
+{
+    mon_out("Clockport is %s.\n", mmc64_clockport_enabled ? "enabled" : "disabled");
+    mon_out("Clockport mapped to $%04x.\n", mmc64_hw_clockport);
+
+    return 0;
+}
+
+/* ---------------------------------------------------------------------*/
+
 int mmc64_roml_read(WORD addr, BYTE *value)
 {
 #if USEPASSTHROUGHHACK
@@ -1203,60 +1225,160 @@ int mmc64_enable(void)
 /* ---------------------------------------------------------------------*/
 /*    snapshot support functions                                             */
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTMMC64"
+/* CARTMMC64 snapshot module format:
 
-/* FIXME: implement snapshot support */
+   type  | name              | description
+   ---------------------------------------
+   BYTE  | clockport enable  | clockport enable flag
+   WORD  | clockport address | clockport address
+   BYTE  | bios write        | bios writable flag
+   BYTE  | bit 7 unlocked    | bit 7 unlocked flag
+   ARRAY | unlocking         | 2 BYTES of unlocking data
+   BYTE  | bios changed      | bios changed flag
+   BYTE  | flash jumper      | flash jumper state
+   BYTE  | write protect     | write protect flag
+   BYTE  | active            | cartridge active flag
+   BYTE  | SPI mode          | SPI mode
+   BYTE  | extrom            | extrom flag
+   BYTE  | flash mode        | flash mode
+   BYTE  | cport             | cport
+   BYTE  | speed             | speed
+   BYTE  | cardsel           | cardsel
+   BYTE  | biossel           | biossel
+   BYTE  | extexrom          | EXROM line state
+   BYTE  | extgame           | GAME line state
+   BYTE  | revision          | MMC64 revision
+   BYTE  | SD type           | SD type
+   BYTE  | image readonly    | image read-only flag
+   ARRAY | BIOS              | 8194 BYTES of BIOS data
+   BYTE  | BIOS offset       | BIOS offset
+   BYTE  | BIOS type         | BIOS type
+ */
+
+static char snap_module_name[] = "CARTMMC64";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   0
+
 int mmc64_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    if (0) {
+    if (0
+        || SMW_B(m, (BYTE)mmc64_clockport_enabled) < 0
+        || SMW_W(m, (WORD)mmc64_hw_clockport) < 0
+        || SMW_B(m, (BYTE)mmc64_bios_write) < 0
+        || SMW_B(m, (BYTE)mmc64_bit7_unlocked) < 0
+        || SMW_B(m, mmc64_unlocking[0]) < 0
+        || SMW_B(m, mmc64_unlocking[1]) < 0
+        || SMW_B(m, (BYTE)mmc64_bios_changed) < 0
+        || SMW_B(m, (BYTE)mmc64_hw_flashjumper) < 0
+        || SMW_B(m, (BYTE)mmc64_hw_writeprotect) < 0
+        || SMW_B(m, mmc64_active) < 0
+        || SMW_B(m, mmc64_spi_mode) < 0
+        || SMW_B(m, mmc64_extrom) < 0
+        || SMW_B(m, mmc64_flashmode) < 0
+        || SMW_B(m, mmc64_cport) < 0
+        || SMW_B(m, mmc64_speed) < 0
+        || SMW_B(m, mmc64_cardsel) < 0
+        || SMW_B(m, mmc64_biossel) < 0
+        || SMW_B(m, mmc64_extexrom) < 0
+        || SMW_B(m, mmc64_extgame) < 0
+        || SMW_B(m, (BYTE)mmc64_revision) < 0
+        || SMW_B(m, (BYTE)mmc64_sd_type) < 0
+        || SMW_B(m, mmc64_image_file_readonly) < 0
+        || SMW_BA(m, mmc64_bios, 0x2002) < 0
+        || SMW_B(m, (BYTE)mmc64_bios_offset) < 0
+        || SMW_B(m, (BYTE)mmc64_bios_type) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
-#endif
+    return snapshot_module_close(m);
 }
 
 int mmc64_snapshot_read_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0) {
-        snapshot_module_close(m);
-        return -1;
+    if (0
+        || SMR_B_INT(m, &mmc64_clockport_enabled) < 0
+        || SMR_W_INT(m, &mmc64_hw_clockport) < 0
+        || SMR_B_INT(m, &mmc64_bios_write) < 0
+        || SMR_B_INT(m, &mmc64_bit7_unlocked) < 0
+        || SMR_B(m, &mmc64_unlocking[0]) < 0
+        || SMR_B(m, &mmc64_unlocking[1]) < 0
+        || SMR_B_INT(m, &mmc64_bios_changed) < 0
+        || SMR_B_INT(m, &mmc64_hw_flashjumper) < 0
+        || SMR_B_INT(m, &mmc64_hw_writeprotect) < 0
+        || SMR_B(m, &mmc64_active) < 0
+        || SMR_B(m, &mmc64_spi_mode) < 0
+        || SMR_B(m, &mmc64_extrom) < 0
+        || SMR_B(m, &mmc64_flashmode) < 0
+        || SMR_B(m, &mmc64_cport) < 0
+        || SMR_B(m, &mmc64_speed) < 0
+        || SMR_B(m, &mmc64_cardsel) < 0
+        || SMR_B(m, &mmc64_biossel) < 0
+        || SMR_B(m, &mmc64_extexrom) < 0
+        || SMR_B(m, &mmc64_extgame) < 0
+        || SMR_B_INT(m, &mmc64_revision) < 0
+        || SMR_B_INT(m, &mmc64_sd_type) < 0
+        || SMR_B(m, &mmc64_image_file_readonly) < 0
+        || SMR_BA(m, mmc64_bios, 0x2002) < 0
+        || SMR_B_INT(m, &mmc64_bios_offset) < 0
+        || SMR_B_INT(m, &mmc64_bios_type) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
-    if (mmc64_common_attach() < 0) {
+    mmc64_enabled = 1;
+
+    /* FIXME: ugly code duplication to avoid cart_config_changed calls */
+    mmc64_io1_list_item = io_source_register(&mmc64_io1_device);
+    mmc64_io2_list_item = io_source_register(&mmc64_io2_device);
+
+    if (mmc64_clockport_enabled) {
+        if (mmc64_hw_clockport == 0xde02) {
+            mmc64_current_clockport_device = &mmc64_io1_clockport_device;
+        } else {
+            mmc64_current_clockport_device = &mmc64_io2_clockport_device;
+        }
+        mmc64_clockport_list_item = io_source_register(mmc64_current_clockport_device);
+    }
+
+    if (export_add(&export_res) < 0) {
+        io_source_unregister(mmc64_io1_list_item);
+        io_source_unregister(mmc64_io2_list_item);
+        io_source_unregister(mmc64_clockport_list_item);
+        mmc64_io1_list_item = NULL;
+        mmc64_io2_list_item = NULL;
+        mmc64_clockport_list_item = NULL;
+        mmc64_enabled = 0;
         return -1;
     }
+
     return 0;
-#endif
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

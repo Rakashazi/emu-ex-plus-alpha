@@ -58,6 +58,8 @@ inline static void line_becomes_good(int cycle)
     }
 }
 
+/* FIXME: dead code? */
+#if 0
 inline static void line_becomes_bad(int cycle)
 {
     if (cycle >= TED_FETCH_CYCLE
@@ -167,6 +169,7 @@ inline static void line_becomes_bad(int cycle)
         ted.force_display_state = 1;
     }
 }
+#endif
 
 void ted_badline_check_state(BYTE value, const int cycle,
                              const unsigned int line)

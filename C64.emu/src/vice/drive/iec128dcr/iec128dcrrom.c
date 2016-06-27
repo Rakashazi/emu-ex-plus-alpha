@@ -69,17 +69,6 @@ void iec128dcrrom_setup_image(drive_t *drive)
     }
 }
 
-int iec128dcrrom_read(unsigned int type, WORD addr, BYTE *data)
-{
-    switch (type) {
-        case DRIVE_TYPE_1571CR:
-            *data = drive_rom1571cr[addr & (DRIVE_ROM1571CR_SIZE - 1)];
-            return 0;
-    }
-
-    return -1;
-}
-
 int iec128dcrrom_check_loaded(unsigned int type)
 {
     switch (type) {

@@ -35,6 +35,7 @@
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
+#include "monitor.h"
 #include "snapshot.h"
 #include "types.h"
 #include "via.h"
@@ -185,7 +186,7 @@ inline static CLOCK myviatb(via_context_t *via_context)
         if (via_context->tbi) {
             BYTE t2hi = via_context->t2ch;
 
-            if (*(via_context->clk_ptr) == via_context->tbi) {
+            if (*(via_context->clk_ptr) == via_context->tbi + 1) {
                 t2hi--;
             }
 
@@ -206,6 +207,7 @@ inline static void update_myviatal(via_context_t *via_context, CLOCK rclk)
                   / (via_context->tal + 2);
 
         if (!(via_context->via[VIA_ACR] & 0x40)) {
+            /* one shot mode */
             if (((nuf - via_context->pb7sx) > 1) || (!(via_context->pb7))) {
                 via_context->pb7o = 1;
                 via_context->pb7sx = 0;
@@ -245,13 +247,17 @@ void viacore_reset(via_context_t *via_context)
 {
     int i;
 
-    /* clear registers */
+    /* port data/ddr */
     for (i = 0; i < 4; i++) {
         via_context->via[i] = 0;
     }
+    /* timer 1/2 counter/latches */
+#if 0
     for (i = 4; i < 10; i++) {
         via_context->via[i] = 0xff;
     }
+#endif
+    /* omit shift register (10) */
     for (i = 11; i < 16; i++) {
         via_context->via[i] = 0;
     }
@@ -310,7 +316,7 @@ void viacore_signal(via_context_t *via_context, int line, int edge)
                 update_myviairq(via_context);
 #ifdef MYVIA_NEED_LATCHING
                 if (IS_PA_INPUT_LATCH()) {
-                    via_context->ila = (via_context->read_pra)(via_context, addr);
+                    via_context->ila = (via_context->read_pra)(via_context, VIA_PRA);
                 }
 #endif
             }
@@ -383,10 +389,13 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
             if (via_context->ier & (VIA_IM_CA1 | VIA_IM_CA2)) {
                 update_myviairq(via_context);
             }
+            /* fall through */
 
         case VIA_PRA_NHS: /* port A, no handshake */
             via_context->via[VIA_PRA_NHS] = byte;
             addr = VIA_PRA;
+            /* fall through */
+
         case VIA_DDRA:
             via_context->via[addr] = byte;
             byte = via_context->via[VIA_PRA] | ~(via_context->via[VIA_DDRA]);
@@ -410,6 +419,7 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
             if (via_context->ier & (VIA_IM_CB1 | VIA_IM_CB2)) {
                 update_myviairq(via_context);
             }
+            /* fall through */
 
         case VIA_DDRB:
             via_context->via[addr] = byte;
@@ -427,6 +437,7 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
                 update_myviairq(via_context);
                 via_context->shift_state = 0;
             }
+
             (via_context->store_sr)(via_context, byte);
             break;
 
@@ -458,7 +469,16 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
         case VIA_T1LH:          /* Write timer A high order latch */
             via_context->via[addr] = byte;
             update_myviatal(via_context, rclk);
-            /* IF: Does not change T1 interrupt, see Synertek notes */
+
+            /* CAUTION: according to the synertek notes, writing to T1LH does
+               NOT change the interrupt flags. however, not doing so breaks eg
+               the VIC20 game "bandits". also in a seperare test program it was
+               verified that indeed writing to the high order latch clears the
+               interrupt flag, also on synertek VIAs. (see via_t1irqack) */
+
+            /* Clear T1 interrupt */
+            via_context->ifr &= ~VIA_IM_T1;
+            update_myviairq(via_context);
             break;
 
         case VIA_T2LL:          /* Write timer 2 low latch */
@@ -477,7 +497,7 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
                 /* set the next alarm to the low latch value as timer cascading mode change 
                 matters at each underflow of the T2 low counter */
                 via_context->tbu = rclk + via_context->t2cl + 3;
-                via_context->tbi = rclk + via_context->t2cl + 2;
+                via_context->tbi = rclk + via_context->t2cl + 1;
                 alarm_set(via_context->t2_alarm, via_context->tbi);
             }
 
@@ -563,7 +583,7 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
                     /* Timer mode; set the next alarm to the low latch value as timer cascading mode change 
                     matters at each underflow of the T2 low counter */
                     via_context->tbu = rclk + via_context->t2cl + 3;
-                    via_context->tbi = rclk + via_context->t2cl + 2;
+                    via_context->tbi = rclk + via_context->t2cl + 1;
                     alarm_set(via_context->t2_alarm, via_context->tbi);
                 }
             }
@@ -613,7 +633,7 @@ void viacore_store(via_context_t *via_context, WORD addr, BYTE byte)
 
         default:
             via_context->via[addr] = byte;
-    }                           /* switch */
+    }
 }
 
 
@@ -725,23 +745,23 @@ BYTE viacore_read_(via_context_t *via_context, WORD addr)
 
         /* Timers */
 
-        case VIA_T1CL /*TIMER_AL */:    /* timer A low */
+        case VIA_T1CL /*TIMER_AL */:    /* timer A low counter */
             via_context->ifr &= ~VIA_IM_T1;
             update_myviairq(via_context);
             via_context->last_read = (BYTE)(myviata(via_context) & 0xff);
             return via_context->last_read;
 
-        case VIA_T1CH /*TIMER_AH */:    /* timer A high */
+        case VIA_T1CH /*TIMER_AH */:    /* timer A high counter */
             via_context->last_read = (BYTE)((myviata(via_context) >> 8) & 0xff);
             return via_context->last_read;
 
-        case VIA_T2CL /*TIMER_BL */:    /* timer B low */
+        case VIA_T2CL /*TIMER_BL */:    /* timer B low counter */
             via_context->ifr &= ~VIA_IM_T2;
             update_myviairq(via_context);
             via_context->last_read = (BYTE)(myviatb(via_context) & 0xff);
             return via_context->last_read;
 
-        case VIA_T2CH /*TIMER_BH */:    /* timer B high */
+        case VIA_T2CH /*TIMER_BH */:    /* timer B high counter */
             via_context->last_read = (BYTE)((myviatb(via_context) >> 8) & 0xff);
             return via_context->last_read;
 
@@ -770,31 +790,41 @@ BYTE viacore_read_(via_context_t *via_context, WORD addr)
         case VIA_IER:           /* 6522 Interrupt Control Register */
             via_context->last_read = (via_context->ier /*[VIA_IER] */ | 0x80);
             return via_context->last_read;
-    }                           /* switch */
+    }
 
     via_context->last_read = via_context->via[addr];
 
     return via_context->via[addr];
 }
 
+/* return value of a register without side effects */
+/* FIXME: this is buggy/incomplete */
 BYTE viacore_peek(via_context_t *via_context, WORD addr)
 {
-    CLOCK rclk = *(via_context->clk_ptr);
 
     addr &= 0xf;
 
-    if (via_context->tai && (via_context->tai <= *(via_context->clk_ptr))) {
-        viacore_intt1(*(via_context->clk_ptr) - via_context->tai,
-                      (void *)via_context);
-    }
-    if (via_context->tbi && (via_context->tbi <= *(via_context->clk_ptr))) {
-        viacore_intt2(*(via_context->clk_ptr) - via_context->tbi,
-                      (void *)via_context);
-    }
-
     switch (addr) {
         case VIA_PRA:
-            return viacore_read(via_context, VIA_PRA_NHS);
+        case VIA_PRA_NHS: /* port A, no handshake */
+            {
+                BYTE byte;
+                /* WARNING: this pin reads the voltage of the output pins, not
+                the ORA value as the other port. Value read might be different
+                from what is expected due to excessive load. */
+#ifdef MYVIA_NEED_LATCHING
+                if (IS_PA_INPUT_LATCH()) {
+                    byte = via_context->ila;
+                } else {
+                    /* FIXME: side effects ? */
+                    byte = (via_context->read_pra)(via_context, addr);
+                }
+#else
+                /* FIXME: side effects ? */
+                byte = (via_context->read_pra)(via_context, addr);
+#endif
+                return byte;
+            }
 
         case VIA_PRB:           /* port B */
             {
@@ -803,36 +833,58 @@ BYTE viacore_peek(via_context_t *via_context, WORD addr)
                 if (IS_PB_INPUT_LATCH()) {
                     byte = via_context->ilb;
                 } else {
+                    /* FIXME: side effects ? */
                     byte = (via_context->read_prb)(via_context);
                 }
 #else
+                /* FIXME: side effects ? */
                 byte = (via_context->read_prb)(via_context);
 #endif
                 byte = (byte & ~(via_context->via[VIA_DDRB]))
                        | (via_context->via[VIA_PRB] & via_context->via[VIA_DDRB]);
                 if (via_context->via[VIA_ACR] & 0x80) {
-                    update_myviatal(via_context, rclk);
+                    /* update_myviatal(via_context, rclk); */
                     byte = (byte & 0x7f) | (((via_context->pb7 ^ via_context->pb7x)
                                              | via_context->pb7o) ? 0x80 : 0);
                 }
                 return byte;
             }
+        case VIA_DDRA:
+        case VIA_DDRB:
+            break;
 
         /* Timers */
 
         case VIA_T1CL /*TIMER_AL */:    /* timer A low */
             return (BYTE)(myviata(via_context) & 0xff);
 
+        case VIA_T1CH /*TIMER_AH */:    /* timer A high */
+            return (BYTE)((myviata(via_context) >> 8) & 0xff);
+
+        case VIA_T1LL: /* timer A low order latch */
+        case VIA_T1LH: /* timer A high order latch */
+            break;
+
         case VIA_T2CL /*TIMER_BL */:    /* timer B low */
             return (BYTE)(myviatb(via_context) & 0xff);
 
-        default:
+        case VIA_T2CH /*TIMER_BH */:    /* timer B high */
+            return (BYTE)((myviatb(via_context) >> 8) & 0xff);
+
+        case VIA_IFR:           /* Interrupt Flag Register */
+            return via_context->ifr;
+
+        case VIA_IER:           /* 6522 Interrupt Control Register */
+            return via_context->ier | 0x80;
+
+        case VIA_PCR:
+        case VIA_ACR:
+        case VIA_SR:
             break;
-    }                           /* switch */
+    }
 
-    return viacore_read(via_context, addr);
+    return via_context->via[addr];
 }
-
 
 /* ------------------------------------------------------------------------- */
 
@@ -873,8 +925,9 @@ static void viacore_intt1(CLOCK offset, void *data)
     /*(viaier & VIA_IM_T1) ? 1:0; */
 }
 
-/* T2 can be switched between 8 and 16 bit modes ad-hoc, any time, by setting the shifter to be 
-   controlled by T2 via selecting the relevant ACR shift register operating mode. 
+/* T2 can be switched between 8 and 16 bit modes ad-hoc, any time, by setting
+   the shifter to be controlled by T2 via selecting the relevant ACR shift
+   register operating mode.
    This change affects how the next T2 low underflow is handled */
 static void viacore_intt2(CLOCK offset, void *data)
 {
@@ -989,6 +1042,8 @@ static void viacore_clk_overflow_callback(CLOCK sub, void *data)
 
 void viacore_setup_context(via_context_t *via_context)
 {
+    int i;
+
     via_context->read_clk = 0;
     via_context->read_offset = 0;
     via_context->last_read = 0;
@@ -998,6 +1053,15 @@ void viacore_setup_context(via_context_t *via_context)
     via_context->my_module_name_alt2 = NULL;
 
     via_context->write_offset = 1;
+    /* assume all registers 0 at powerup */
+    for (i = 0; i < 16; i++) {
+        via_context->via[i] = 0;
+    }
+    /* timers and timer latches apparently do not contain 0 at powerup */
+    via_context->via[4] = via_context->via[6] = 0xff;
+    via_context->via[5] = via_context->via[7] = 223;  /* my vic20 gives 223 here (gpz) */
+    via_context->via[8] = 0xff;
+    via_context->via[9] = 0xff;
 }
 
 void viacore_init(via_context_t *via_context, alarm_context_t *alarm_context,
@@ -1097,55 +1161,50 @@ int viacore_snapshot_write_module(via_context_t *via_context, snapshot_t *s)
                       (void *)via_context);
     }
 
-    m = snapshot_module_create(s, via_context->my_module_name,
-                               VIA_DUMP_VER_MAJOR, VIA_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, via_context->my_module_name, VIA_DUMP_VER_MAJOR, VIA_DUMP_VER_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
-    SMW_B(m, via_context->via[VIA_PRA]);
-    SMW_B(m, via_context->via[VIA_DDRA]);
-    SMW_B(m, via_context->via[VIA_PRB]);
-    SMW_B(m, via_context->via[VIA_DDRB]);
+    if (0
+        || SMW_B(m, via_context->via[VIA_PRA]) < 0
+        || SMW_B(m, via_context->via[VIA_DDRA]) < 0
+        || SMW_B(m, via_context->via[VIA_PRB]) < 0
+        || SMW_B(m, via_context->via[VIA_DDRB]) < 0
+        || SMW_W(m, (WORD)(via_context->tal)) < 0
+        || SMW_W(m, (WORD)myviata(via_context)) < 0
+        || SMW_B(m, via_context->via[VIA_T2LL]) < 0
+        || SMW_B(m, via_context->via[VIA_T2LH]) < 0
+        || SMW_B(m, via_context->t2cl) < 0
+        || SMW_B(m, via_context->t2ch) < 0
+        || SMW_W(m, (WORD)myviatb(via_context)) < 0
+        || SMW_B(m, (BYTE)((via_context->tai ? 0x80 : 0) | (via_context->tbi ? 0x40 : 0))) < 0
+        || SMW_B(m, via_context->via[VIA_SR]) < 0
+        || SMW_B(m, via_context->via[VIA_ACR]) < 0
+        || SMW_B(m, via_context->via[VIA_PCR]) < 0
+        || SMW_B(m, (BYTE)(via_context->ifr)) < 0
+        || SMW_B(m, (BYTE)(via_context->ier)) < 0
+        /* FIXME! */
+        || SMW_B(m, (BYTE)((((via_context->pb7 ^ via_context->pb7x) | via_context->pb7o) ? 0x80 : 0))) < 0
+        /* SRHBITS */
+        || SMW_B(m, (BYTE)via_context->shift_state) < 0
+        || SMW_B(m, (BYTE)((via_context->ca2_state ? 0x80 : 0) | (via_context->cb2_state ? 0x40 : 0))) < 0
+        || SMW_B(m, via_context->ila) < 0
+        || SMW_B(m, via_context->ilb) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
 
-    SMW_W(m, (WORD)(via_context->tal));
-    SMW_W(m, (WORD)myviata(via_context));
-    SMW_B(m, via_context->via[VIA_T2LL]);
-    SMW_B(m, via_context->via[VIA_T2LH]);
-    SMW_B(m, via_context->t2cl);
-    SMW_B(m, via_context->t2ch);
-    SMW_W(m, (WORD)myviatb(via_context));
-
-    SMW_B(m, (BYTE)((via_context->tai ? 0x80 : 0) | (via_context->tbi ? 0x40 : 0)));
-
-    SMW_B(m, via_context->via[VIA_SR]);
-    SMW_B(m, via_context->via[VIA_ACR]);
-    SMW_B(m, via_context->via[VIA_PCR]);
-
-    SMW_B(m, (BYTE)(via_context->ifr));
-    SMW_B(m, (BYTE)(via_context->ier));
-    /* FIXME! */
-    SMW_B(m, (BYTE)((((via_context->pb7 ^ via_context->pb7x)
-                      | via_context->pb7o) ? 0x80 : 0)));
-
-    SMW_B(m, (BYTE)via_context->shift_state);           /* SRHBITS */
-
-    SMW_B(m, (BYTE)((via_context->ca2_state ? 0x80 : 0)
-                    | (via_context->cb2_state ? 0x40 : 0)));
-
-    SMW_B(m, via_context->ila);
-    SMW_B(m, via_context->ilb);
-
-    snapshot_module_close(m);
-
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int viacore_snapshot_read_module(via_context_t *via_context, snapshot_t *s)
 {
     BYTE vmajor, vminor;
     BYTE byte;
-    WORD word;
+    BYTE byte1, byte2, byte3, byte4, byte5, byte6;
+    WORD word1, word2, word3;
     WORD addr;
     CLOCK rclk = *(via_context->clk_ptr);
     snapshot_module_t *m;
@@ -1172,10 +1231,9 @@ int viacore_snapshot_read_module(via_context_t *via_context, snapshot_t *s)
         }
     }
 
-    if (vmajor != VIA_DUMP_VER_MAJOR) {
-        log_error(via_context->log,
-                  "Snapshot module version (%d.%d) newer than %d.%d.",
-                  vmajor, vminor, VIA_DUMP_VER_MAJOR, VIA_DUMP_VER_MINOR);
+    /* Do not accept versions higher than current */
+    if (vmajor > VIA_DUMP_VER_MAJOR || vminor > VIA_DUMP_VER_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
@@ -1186,99 +1244,109 @@ int viacore_snapshot_read_module(via_context_t *via_context, snapshot_t *s)
     via_context->tai = 0;
     via_context->tbi = 0;
 
-    SMR_B(m, &(via_context->via[VIA_PRA]));
-    SMR_B(m, &(via_context->via[VIA_DDRA]));
-    SMR_B(m, &(via_context->via[VIA_PRB]));
-    SMR_B(m, &(via_context->via[VIA_DDRB]));
-    {
-        addr = VIA_DDRA;
-        byte = via_context->via[VIA_PRA] | ~(via_context->via[VIA_DDRA]);
-        (via_context->undump_pra)(via_context, byte);
-        via_context->oldpa = byte;
-
-        addr = VIA_DDRB;
-        byte = via_context->via[VIA_PRB] | ~(via_context->via[VIA_DDRB]);
-        (via_context->undump_prb)(via_context, byte);
-        via_context->oldpb = byte;
+    if (0
+        || SMR_B(m, &(via_context->via[VIA_PRA])) < 0
+        || SMR_B(m, &(via_context->via[VIA_DDRA])) < 0
+        || SMR_B(m, &(via_context->via[VIA_PRB])) < 0
+        || SMR_B(m, &(via_context->via[VIA_DDRB])) < 0
+        || SMR_W(m, &word1) < 0
+        || SMR_W(m, &word2) < 0
+        || SMR_B(m, &(via_context->via[VIA_T2LL])) < 0
+        || SMR_B(m, &(via_context->via[VIA_T2LH])) < 0
+        || SMR_B(m, &(via_context->t2cl)) < 0
+        || SMR_B(m, &(via_context->t2ch)) < 0
+        || SMR_W(m, &word3) < 0
+        || SMR_B(m, &byte1) < 0
+        || SMR_B(m, &(via_context->via[VIA_SR])) < 0
+        || SMR_B(m, &(via_context->via[VIA_ACR])) < 0
+        || SMR_B(m, &(via_context->via[VIA_PCR])) < 0
+        || SMR_B(m, &byte2) < 0
+        || SMR_B(m, &byte3) < 0
+        || SMR_B(m, &byte4) < 0
+        /* SRHBITS */
+        || SMR_B(m, &byte5) < 0
+        /* CABSTATE */
+        || SMR_B(m, &byte6) < 0
+        || SMR_B(m, &(via_context->ila)) < 0
+        || SMR_B(m, &(via_context->ilb)) < 0) {
+        snapshot_module_close(m);
+        return -1;
     }
 
-    SMR_W(m, &word);
-    via_context->tal = word;
+    addr = VIA_DDRA;
+    byte = via_context->via[VIA_PRA] | ~(via_context->via[VIA_DDRA]);
+    (via_context->undump_pra)(via_context, byte);
+    via_context->oldpa = byte;
+
+    addr = VIA_DDRB;
+    byte = via_context->via[VIA_PRB] | ~(via_context->via[VIA_DDRB]);
+    (via_context->undump_prb)(via_context, byte);
+    via_context->oldpb = byte;
+
+    via_context->tal = word1;
     via_context->via[VIA_T1LL] = via_context->tal & 0xff;
     via_context->via[VIA_T1LH] = (via_context->tal >> 8) & 0xff;
-    SMR_W(m, &word);
-    via_context->tau = rclk + word + 2 /* 3 */ + TAUOFFSET;
-    via_context->tai = rclk + word + 1;
 
-    SMR_B(m, &(via_context->via[VIA_T2LL]));
-    SMR_B(m, &(via_context->via[VIA_T2LH]));
-    SMR_B(m, &(via_context->t2cl));
-    SMR_B(m, &(via_context->t2ch));
-    SMR_W(m, &word);
-    via_context->tbu = rclk + word + 2 /* 3 */;
-    via_context->tbi = rclk + word + 1;
+    via_context->tau = rclk + word2 + 2 /* 3 */ + TAUOFFSET;
+    via_context->tai = rclk + word2 + 1;
 
-    SMR_B(m, &byte);
-    if (byte & 0x80) {
+    via_context->tbu = rclk + word3 + 2 /* 3 */;
+    via_context->tbi = rclk + word3 + 0;
+
+    if (byte1 & 0x80) {
         alarm_set(via_context->t1_alarm, via_context->tai);
     } else {
         via_context->tai = 0;
     }
-    if (byte & 0x40) {
+    if (byte1 & 0x40) {
         alarm_set(via_context->t2_alarm, via_context->tbi);
     } else {
         via_context->tbi = 0;
     }
 
-    SMR_B(m, &(via_context->via[VIA_SR]));
-    SMR_B(m, &(via_context->via[VIA_ACR]));
-    SMR_B(m, &(via_context->via[VIA_PCR]));
-
-    SMR_B(m, &byte);
-    via_context->ifr = byte;
-    SMR_B(m, &byte);
-    via_context->ier = byte;
+    via_context->ifr = byte2;
+    via_context->ier = byte3;
 
     via_restore_int(via_context, via_context->ifr & via_context->ier & 0x7f);
 
     /* FIXME! */
-    SMR_B(m, &byte);
-    via_context->pb7 = byte ? 1 : 0;
+    via_context->pb7 = byte4 ? 1 : 0;
     via_context->pb7x = 0;
     via_context->pb7o = 0;
-    SMR_B(m, &byte);        /* SRHBITS */
-    via_context->shift_state = byte;
+    via_context->shift_state = byte5;
 
-    SMR_B(m, &byte);        /* CABSTATE */
-    via_context->ca2_state = byte & 0x80;
-    via_context->cb2_state = byte & 0x40;
+    via_context->ca2_state = byte6 & 0x80;
+    via_context->cb2_state = byte6 & 0x40;
 
     /* undump_pcr also restores the ca2_state/cb2_state effects if necessary;
        i.e. calls set_c*2(c*2_state) if necessary */
-    {
-        addr = VIA_PCR;
-        byte = via_context->via[addr];
-        (via_context->undump_pcr)(via_context, byte);
-    }
-    {
-        addr = VIA_SR;
-        byte = via_context->via[addr];
-        (via_context->store_sr)(via_context, byte);
-    }
-    {
-        addr = VIA_ACR;
-        byte = via_context->via[addr];
-        (via_context->undump_acr)(via_context, byte);
-    }
+    addr = VIA_PCR;
+    byte = via_context->via[addr];
+    (via_context->undump_pcr)(via_context, byte);
 
-    SMR_B(m, &(via_context->ila));
-    SMR_B(m, &(via_context->ilb));
+    addr = VIA_SR;
+    byte = via_context->via[addr];
+    (via_context->store_sr)(via_context, byte);
+
+    addr = VIA_ACR;
+    byte = via_context->via[addr];
+    (via_context->undump_acr)(via_context, byte);
 
     return snapshot_module_close(m);
 }
 
 int viacore_dump(via_context_t *via_context)
 {
-    /* FIXME: dump details using mon_out(). return 0 on success */
-    return -1;
+    mon_out("Port A: %02x DDR: %02x no HS: %02x\n",
+            viacore_peek(via_context, 0x01), viacore_peek(via_context, 0x03), viacore_peek(via_context, 0x0f));
+    mon_out("Port B: %02x DDR: %02x\n", viacore_peek(via_context, 0x00), viacore_peek(via_context, 0x02));
+    mon_out("Timer 1: %04x Latch: %04x\n", viacore_peek(via_context, 0x04) + (viacore_peek(via_context, 0x05) * 256),
+            viacore_peek(via_context, 0x06) + (viacore_peek(via_context, 0x07) * 256));
+    mon_out("Timer 2: %04x\n", viacore_peek(via_context, 0x08) + (viacore_peek(via_context, 0x09) * 256));
+    mon_out("Aux. control: %02x\n", viacore_peek(via_context, 0x0b));
+    mon_out("Per. control: %02x\n", viacore_peek(via_context, 0x0c));
+    mon_out("IRQ flags: %02x\n", viacore_peek(via_context, 0x0d));
+    mon_out("IRQ enable: %02x\n", viacore_peek(via_context, 0x0e));
+    mon_out("\nSynchronous Serial I/O Data Buffer: %02x\n", viacore_peek(via_context, 0x0a));
+    return 0;
 }

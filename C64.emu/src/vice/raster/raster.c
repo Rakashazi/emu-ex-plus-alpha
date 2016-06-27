@@ -164,7 +164,7 @@ static int realize_canvas(raster_t *raster)
 
         raster->canvas = new_canvas;
 
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
         /* A hack to allow raster_force_repaint() calls for SDL UI & vkbd */
         raster->canvas->parent_raster = raster;
 #endif
@@ -197,6 +197,8 @@ static int perform_mode_change(raster_t *raster)
     return 0;
 }
 
+/* FIXME: dead code */
+#if 0
 inline static void draw_blank(raster_t *raster,
                               unsigned int start,
                               unsigned int end)
@@ -205,8 +207,6 @@ inline static void draw_blank(raster_t *raster,
            raster->border_color, end - start + 1);
 }
 
-/* seemingly dead code */
-#if 0
 /* Draw the borders.  */
 inline static void draw_borders(raster_t *raster)
 {
@@ -533,12 +533,8 @@ void raster_async_refresh(raster_t *raster, struct canvas_refresh_s *ref)
              + raster->canvas->viewport->first_x;
     ref->y = raster->geometry->first_displayed_line;
 
-    if (raster->canvas->videoconfig->doublesizex) {
-        ref->x *= (raster->canvas->videoconfig->doublesizex + 1);
-    }
-    if (raster->canvas->videoconfig->doublesizey) {
-        ref->y *= (raster->canvas->videoconfig->doublesizey + 1);
-    }
+    ref->x *= raster->canvas->videoconfig->scalex;
+    ref->y *= raster->canvas->videoconfig->scaley;
 }
 
 void raster_shutdown(raster_t *raster)

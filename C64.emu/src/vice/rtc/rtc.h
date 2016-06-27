@@ -29,7 +29,13 @@
 
 #include "types.h"
 
+#ifdef HAVE_TIME_T_IN_TIME_H
 #include <time.h>
+#endif
+
+#ifdef HAVE_TIME_T_IN_TYPES_H
+#include <sys/types.h>
+#endif
 
 #define RTC_MONTH_JAN   0
 #define RTC_MONTH_FEB   1

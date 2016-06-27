@@ -33,6 +33,8 @@
 #include "alarm.h"
 #include "attach.h"
 #include "autostart.h"
+#include "bbrtc.h"
+#include "cartio.h"
 #include "cartridge.h"
 #include "cbm2-cmdline-options.h"
 #include "cbm2-resources.h"
@@ -49,6 +51,7 @@
 #include "cmdline.h"
 #include "datasette.h"
 #include "debug.h"
+#include "debugcart.h"
 #include "diskimage.h"
 #include "drive-cmdline-options.h"
 #include "drive-resources.h"
@@ -59,6 +62,8 @@
 #include "gfxoutput.h"
 #include "iecdrive.h"
 #include "init.h"
+#include "joyport.h"
+#include "joystick.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
 #include "log.h"
@@ -70,10 +75,14 @@
 #include "mem.h"
 #include "monitor.h"
 #include "network.h"
+#include "paperclip64.h"
 #include "parallel.h"
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
+#include "sampler.h"
+#include "sampler2bit.h"
+#include "sampler4bit.h"
 #include "screenshot.h"
 #include "serial.h"
 #include "sid-cmdline-options.h"
@@ -82,7 +91,9 @@
 #include "snapshot.h"
 #include "sound.h"
 #include "tape.h"
+#include "tapeport.h"
 #include "tpi.h"
+#include "translate.h"
 #include "traps.h"
 #include "types.h"
 #include "vice-event.h"
@@ -91,6 +102,10 @@
 #include "video.h"
 #include "video-sound.h"
 #include "vsync.h"
+
+#ifdef HAVE_MOUSE
+#include "mouse.h"
+#endif
 
 machine_context_t machine_context;
 
@@ -136,6 +151,33 @@ kbdtype_info_t *machine_get_keyboard_info_list(void)
 
 /* ------------------------------------------------------------------------- */
 
+static joyport_port_props_t control_port_1 = 
+{
+    "Control port 1",
+    IDGS_CONTROL_PORT_1,
+    1,				/* has a potentiometer connected to this port */
+    0,				/* officially has lightpen support on this port,
+					   but no lightpen support is in the cbm5x0 code */
+    1					/* port is always active */
+};
+
+static joyport_port_props_t control_port_2 = 
+{
+    "Control port 2",
+    IDGS_CONTROL_PORT_2,
+    1,				/* has a potentiometer connected to this port */
+    0,				/* has NO lightpen support on this port */
+    1					/* port is always active */
+};
+
+static int init_joyport_ports(void)
+{
+    if (joyport_port_register(JOYPORT_1, &control_port_1) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_2, &control_port_2);
+}
+
 /* CBM-II-specific resource initialization.  This is called before initializing
    the machine itself with `machine_init()'.  */
 int machine_resources_init(void)
@@ -146,6 +188,10 @@ int machine_resources_init(void)
     }
     if (cbm2_resources_init() < 0) {
         init_resource_fail("cbm2");
+        return -1;
+    }
+    if (cartio_resources_init() < 0) {
+        init_resource_fail("cartio");
         return -1;
     }
     if (cartridge_resources_init() < 0) {
@@ -162,6 +208,10 @@ int machine_resources_init(void)
     }
     if (drive_resources_init() < 0) {
         init_resource_fail("drive");
+        return -1;
+    }
+    if (tapeport_resources_init() < 0) {
+        init_resource_fail("tapeport");
         return -1;
     }
     if (datasette_resources_init() < 0) {
@@ -184,12 +234,40 @@ int machine_resources_init(void)
         init_resource_fail("userport printer");
         return -1;
     }
+    if (init_joyport_ports() < 0) {
+        init_resource_fail("joyport ports");
+        return -1;
+    }
+    if (joyport_resources_init() < 0) {
+        init_resource_fail("joyport devices");
+        return -1;
+    }
+    if (joyport_sampler2bit_resources_init() < 0) {
+        init_resource_fail("joyport 2bit sampler");
+        return -1;
+    }
+    if (joyport_sampler4bit_resources_init() < 0) {
+        init_resource_fail("joyport 4bit sampler");
+        return -1;
+    }
+    if (joyport_bbrtc_resources_init() < 0) {
+        init_resource_fail("joyport bbrtc");
+        return -1;
+    }
+    if (joyport_paperclip64_resources_init() < 0) {
+        init_resource_fail("joyport paperclip64 dongle");
+        return -1;
+    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
     }
     if (gfxoutput_resources_init() < 0) {
         init_resource_fail("gfxoutput");
+        return -1;
+    }
+    if (sampler_resources_init() < 0) {
+        init_resource_fail("samplerdrv");
         return -1;
     }
     if (fliplist_resources_init() < 0) {
@@ -233,12 +311,29 @@ int machine_resources_init(void)
         return -1;
     }
 #endif
+#ifdef HAVE_MOUSE
+    if (mouse_resources_init() < 0) {
+        init_resource_fail("mouse");
+        return -1;
+    }
+/* FIXME: add lightpen support for xcbm5x0 */
+#if 0
+    if (lightpen_resources_init() < 0) {
+        init_resource_fail("lightpen");
+        return -1;
+    }
+#endif
+#endif
 #ifndef COMMON_KBD
     if (pet_kbd_resources_init() < 0) {
         init_resource_fail("pet kbd");
         return -1;
     }
 #endif
+    if (debugcart_resources_init() < 0) {
+        init_resource_fail("debug cart");
+        return -1;
+    }
     return 0;
 }
 
@@ -250,6 +345,11 @@ void machine_resources_shutdown(void)
     drive_resources_shutdown();
     fsdevice_resources_shutdown();
     disk_image_resources_shutdown();
+    sampler_resources_shutdown();
+    cartio_shutdown();
+    joyport_bbrtc_resources_shutdown();
+    tapeport_resources_shutdown();
+    debugcart_resources_shutdown();
 }
 
 /* CBM-II-specific command-line option initialization.  */
@@ -261,6 +361,10 @@ int machine_cmdline_options_init(void)
     }
     if (cbm2_cmdline_options_init() < 0) {
         init_cmdline_options_fail("cbm2");
+        return -1;
+    }
+    if (cartio_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("cartio");
         return -1;
     }
     if (cartridge_cmdline_options_init() < 0) {
@@ -277,6 +381,10 @@ int machine_cmdline_options_init(void)
     }
     if (drive_cmdline_options_init() < 0) {
         init_cmdline_options_fail("drive");
+        return -1;
+    }
+    if (tapeport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("tapeport");
         return -1;
     }
     if (datasette_cmdline_options_init() < 0) {
@@ -299,12 +407,24 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport printer");
         return -1;
     }
+    if (joyport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("joyport");
+        return -1;
+    }
+    if (joyport_bbrtc_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("bbrtc");
+        return -1;
+    }
     if (joystick_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joystick");
         return -1;
     }
     if (gfxoutput_cmdline_options_init() < 0) {
         init_cmdline_options_fail("gfxoutput");
+        return -1;
+    }
+    if (sampler_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("samplerdrv");
         return -1;
     }
     if (fliplist_cmdline_options_init() < 0) {
@@ -347,12 +467,22 @@ int machine_cmdline_options_init(void)
         return -1;
     }
 #endif
+#ifdef HAVE_MOUSE
+    if (mouse_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("mouse");
+        return -1;
+    }
+#endif
 #ifndef COMMON_KBD
     if (pet_kbd_cmdline_options_init() < 0) {
         init_cmdline_options_fail("pet kbd");
         return -1;
     }
 #endif
+    if (debugcart_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("debug cart");
+        return -1;
+    }
     return 0;
 }
 
@@ -494,10 +624,29 @@ int machine_specific_init(void)
 
     gfxoutput_init();
 
+#ifdef HAVE_MOUSE
+    /* Initialize mouse support (if present).  */
+    mouse_init();
+
+#if 0
+    /* Initialize lightpen support and register VICII callbacks */
+    lightpen_init();
+    lightpen_register_timing_callback(vicii_lightpen_timing, 0);
+    lightpen_register_trigger_callback(vicii_trigger_light_pen);
+#endif
+#endif
+
     rs232drv_init();
 
     /* initialize print devices */
     printer_init();
+
+#ifdef USE_BEOS_UI
+    /* Pre-init CBM-II-specific parts of the menus before vicii_init()
+       creates a canvas window with a menubar at the top. This could
+       also be used by other ports, e.g. GTK+...  */
+    cbm5x0ui_init_early();
+#endif
 
     if (vicii_init(VICII_STANDARD) == NULL) {
         return -1;
@@ -559,11 +708,16 @@ int machine_specific_init(void)
     kbdbuf_init(939, 209, 10, (CLOCK)(machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh));
 
     /* Initialize the CBM-II-specific part of the UI.  */
-    cbm5x0ui_init();
+    if (!console_mode) {
+        cbm5x0ui_init();
+    }
 
     cbm2iec_init();
 
     machine_drive_stub();
+
+    /* Initialize the CBM5x0-specific I/O */
+    cbm5x0io_init();
 
 #if defined (USE_XF86_EXTENSIONS) && (defined(USE_XF86_VIDMODE_EXT) || defined (HAVE_XRANDR))
     {
@@ -600,6 +754,8 @@ void machine_specific_reset(void)
     datasette_reset();
 
     mem_reset();
+
+    sampler_reset();
 }
 
 void machine_specific_powerup(void)
@@ -614,6 +770,10 @@ void machine_specific_shutdown(void)
     ciacore_shutdown(machine_context.cia1);
     tpicore_shutdown(machine_context.tpi1);
     tpicore_shutdown(machine_context.tpi2);
+
+#ifdef HAVE_MOUSE
+    mouse_shutdown();
+#endif
 
     /* close the video chip(s) */
     vicii_shutdown();
@@ -731,6 +891,9 @@ void machine_change_timing(int timeval)
     debug_set_machine_parameter(machine_timing.cycles_per_line,
                                 machine_timing.screen_lines);
     drive_set_machine_parameter(machine_timing.cycles_per_sec);
+#ifdef HAVE_MOUSE
+    neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
+#endif
     clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing, border_mode);
@@ -803,6 +966,11 @@ struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
 BYTE machine_tape_type_default(void)
 {
     return TAPE_CAS_TYPE_BAS;
+}
+
+BYTE machine_tape_behaviour(void)
+{
+    return TAPE_BEHAVIOUR_NORMAL;
 }
 
 int machine_addr_in_ram(unsigned int addr)

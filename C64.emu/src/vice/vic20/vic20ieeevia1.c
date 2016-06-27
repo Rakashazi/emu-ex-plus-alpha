@@ -40,6 +40,11 @@
 #include "vic20ieeevia.h"
 
 
+int ieeevia1_dump(void)
+{
+    return viacore_dump(machine_context.ieeevia1);
+}
+
 void ieeevia1_store(WORD addr, BYTE data)
 {
     viacore_store(machine_context.ieeevia1, addr, data);

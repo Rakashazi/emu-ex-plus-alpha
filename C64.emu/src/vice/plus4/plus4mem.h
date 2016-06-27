@@ -66,4 +66,9 @@ extern BYTE *mem_get_tedmem_base(unsigned int segment);
 extern void mem_proc_port_trigger_flux_change(unsigned int on);
 extern void pio1_set_tape_sense(int sense);
 
+extern void plus4io_init(void);
+extern void plus4_pio1_init(int block);
+
+extern BYTE read_unused(WORD addr);
+
 #endif

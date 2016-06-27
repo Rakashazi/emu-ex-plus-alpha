@@ -100,7 +100,7 @@ static int set_double_size_enabled(int value, void *param)
 {
     cap_render_t *cap_render;
     video_canvas_t *canvas = (video_canvas_t *)param;
-    int old_doublesizex, old_doublesizey;
+    int old_scalex, old_scaley;
     video_chip_cap_t *video_chip_cap = canvas->videoconfig->cap;
     int val = value ? 1 : 0;
 
@@ -112,17 +112,17 @@ static int set_double_size_enabled(int value, void *param)
 
     canvas->videoconfig->rendermode = cap_render->rmode;
 
-    old_doublesizex = canvas->videoconfig->doublesizex;
-    old_doublesizey = canvas->videoconfig->doublesizey;
+    old_scalex = canvas->videoconfig->scalex;
+    old_scaley = canvas->videoconfig->scaley;
 
     if (cap_render->sizex > 1
         && (video_chip_cap->dsize_limit_width == 0
             || (canvas->draw_buffer->canvas_width
                 <= video_chip_cap->dsize_limit_width))
         ) {
-        canvas->videoconfig->doublesizex = (cap_render->sizex - 1);
+        canvas->videoconfig->scalex = cap_render->sizex;
     } else {
-        canvas->videoconfig->doublesizex = 0;
+        canvas->videoconfig->scalex = 1;
     }
 
     if (cap_render->sizey > 1
@@ -130,18 +130,18 @@ static int set_double_size_enabled(int value, void *param)
             || (canvas->draw_buffer->canvas_height
                 <= video_chip_cap->dsize_limit_height))
         ) {
-        canvas->videoconfig->doublesizey = (cap_render->sizey - 1);
+        canvas->videoconfig->scaley = cap_render->sizey;
     } else {
-        canvas->videoconfig->doublesizey = 0;
+        canvas->videoconfig->scaley = 1;
     }
 
 
-    DBG(("set_double_size_enabled sizex:%d sizey:%d doublesizex:%d doublesizey:%d rendermode:%d", cap_render->sizex, cap_render->sizey, canvas->videoconfig->doublesizex, canvas->videoconfig->doublesizey, canvas->videoconfig->rendermode));
+    DBG(("set_double_size_enabled sizex:%d sizey:%d scalex:%d scaley:%d rendermode:%d", cap_render->sizex, cap_render->sizey, canvas->videoconfig->scalex, canvas->videoconfig->scaley, canvas->videoconfig->rendermode));
 
     canvas->videoconfig->color_tables.updated = 0;
     if ((canvas->videoconfig->double_size_enabled != val
-         || old_doublesizex != canvas->videoconfig->doublesizex
-         || old_doublesizey != canvas->videoconfig->doublesizey)
+         || old_scalex != canvas->videoconfig->scalex
+         || old_scaley != canvas->videoconfig->scaley)
         && canvas->initialized
         && canvas->viewport->update_canvas > 0) {
         video_viewport_resize(canvas, 1);
@@ -283,7 +283,7 @@ static int set_fullscreen_enabled(int value, void *param)
 
     canvas->videoconfig->fullscreen_enabled = val;
 
-#ifndef USE_SDLUI
+#if !defined(USE_SDLUI) && !defined(USE_SDLUI2)
     if (canvas->initialized)
 #endif
     {
@@ -671,10 +671,10 @@ int video_resources_chip_init(const char *chipname,
 
     /* Set single size render as default.  */
     (*canvas)->videoconfig->rendermode = video_chip_cap->single_mode.rmode;
-    (*canvas)->videoconfig->doublesizex
-        = video_chip_cap->single_mode.sizex > 1 ? 1 : 0;
-    (*canvas)->videoconfig->doublesizey
-        = video_chip_cap->single_mode.sizey > 1 ? 1 : 0;
+    (*canvas)->videoconfig->scalex
+        = video_chip_cap->single_mode.sizex > 1 ? 2 : 1;
+    (*canvas)->videoconfig->scaley
+        = video_chip_cap->single_mode.sizey > 1 ? 2 : 1;
 
     /* CHIPDoubleScan */
     if (video_chip_cap->dscan_allowed != 0) {

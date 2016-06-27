@@ -28,14 +28,25 @@
 #define VICE_PARSID_H
 
 #include "types.h"
-
-extern int parsid_port;
+#include "sid-snapshot.h"
 
 extern int parsid_check_port(int port);
+extern void parsid_reset(void);
 extern int parsid_open(int port);
 extern int parsid_close(void);
-extern void parsid_reset(void);
 extern int parsid_read(WORD addr, int chipno);
-extern void parsid_store(WORD addr, BYTE val, int chipno);
+extern void parsid_store(WORD addr, BYTE outval, int chipno);
+
+extern int parsid_drv_check_port(int port);
+extern void parsid_drv_out_ctr(WORD parsid_ctrport);
+extern BYTE parsid_drv_in_ctr(void);
+extern int parsid_drv_init(void);
+extern int parsid_drv_close(void);
+extern BYTE parsid_drv_in_data(void);
+extern void parsid_drv_out_data(BYTE addr);
+extern void parsid_drv_sleep(int amount);
+
+extern void parsid_state_read(int chipno, struct sid_parsid_snapshot_state_s *sid_state);
+extern void parsid_state_write(int chipno, struct sid_parsid_snapshot_state_s *sid_state);
 
 #endif

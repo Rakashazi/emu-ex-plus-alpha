@@ -195,7 +195,10 @@ static const BYTE burst_status_tab[] = {
 #define CLK_IND_Y_RMW2 (3 - (dtv_registers[9] & 1))
 #define CLK_BRANCH2 (1 - (dtv_registers[9] & 1))
 #define CLK_INT_CYCLE (1 - (dtv_registers[9] & 1))
-#define CLK_JSR_INT_CYCLE (1 - (dtv_registers[9] & 1) + ((dtv_registers[9] & 2) && (reg_pc == 0)) ? 1 : 0)
+/* CAUTION: operator '?:' has lower precedence than '+'; '+' will be evaluated first */
+/* FIXME: confirm this is correct and remove the old macro or fix the new one
+   #define CLK_JSR_INT_CYCLE (1 - (dtv_registers[9] & 1) + ((dtv_registers[9] & 2) && (reg_pc == 0)) ? 1 : 0) */
+#define CLK_JSR_INT_CYCLE ((1 - (dtv_registers[9] & 1) + ((dtv_registers[9] & 2) && (reg_pc == 0))) ? 1 : 0)
 #define CLK_IND_Y_W (2 - (dtv_registers[9] & 1))
 #define CLK_NOOP_ZERO_X (2 - (dtv_registers[9] & 1))
 

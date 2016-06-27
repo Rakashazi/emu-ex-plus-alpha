@@ -41,12 +41,6 @@ extern int speech_resources_init(void);
 extern void speech_resources_shutdown(void);
 extern void speech_shutdown(void);
 
-extern BYTE speech_read(WORD addr);
-extern BYTE speech_peek(WORD addr);
-extern void speech_store(WORD addr, BYTE value);
-
 extern void speech_sound_chip_init(void);
-
-extern int speech_dump(void *ctx);
 
 #endif

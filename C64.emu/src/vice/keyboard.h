@@ -31,7 +31,9 @@
 
 #include "types.h"
 
-#include "joystick.h"
+#ifndef COMMON_KBD
+#include "kbd.h"
+#endif
 
 /* Maximum of keyboard array (CBM-II values
  * (8 for C64/VIC20, 10 for PET, 11 for C128; we need max).  */
@@ -112,24 +114,9 @@ extern int keyarr[KBD_ROWS];
 extern int rev_keyarr[KBD_COLS];
 extern int keyboard_shiftlock;
 
-extern BYTE joystick_value[JOYSTICK_NUM + 1];
-
-extern int c64_kbd_init(void);
-extern int c128_kbd_init(void);
-extern int vic20_kbd_init(void);
-extern int pet_kbd_init(void);
-extern int plus4_kbd_init(void);
-extern int cbm2_kbd_init(void);
-
 #ifdef COMMON_KBD
 extern int keyboard_resources_init(void);
 extern int keyboard_cmdline_options_init(void);
 #endif
-
-/* FIXME: these two are apparently only used in OS/2 and BEOS ports -> move to archdep? */
-extern int kbd_cmdline_options_init(void);
-extern int kbd_resources_init(void);
-extern int pet_kbd_cmdline_options_init(void);
-extern int pet_kbd_resources_init(void);
 
 #endif

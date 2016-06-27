@@ -45,7 +45,7 @@ extern int rsuser_cmdline_options_init(void);
 
 extern void rsuser_tx_byte(BYTE b);
 extern void rsuser_write_ctrl(BYTE b);
-extern BYTE rsuser_read_ctrl(void);
+extern BYTE rsuser_read_ctrl(BYTE b);
 
 extern void rsuser_reset(void);
 

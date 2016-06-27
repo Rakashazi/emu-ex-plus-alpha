@@ -226,8 +226,6 @@ static WORD V;
 #define H6309_NATIVE_MODE() (MD & 1)
 #endif /* H6309 */
 
-/* #define FULL6809 */
-
 static WORD ea = 0;
 static unsigned int irqs_pending = 0;
 static unsigned int firqs_pending = 0;
@@ -756,16 +754,6 @@ static BYTE get_f(void)
     return F;
 }
 
-static WORD get_w(void)
-{
-    return W;
-}
-
-static DWORD get_q(void)
-{
-    return Q;
-}
-
 static WORD get_v(void)
 {
     return V;
@@ -834,16 +822,6 @@ static void set_e(BYTE val)
 static void set_f(BYTE val)
 {
     F = val;
-}
-
-static void set_w(WORD val)
-{
-    W = val;
-}
-
-static void set_q(DWORD val)
-{
-    Q = val;
 }
 
 static void set_v(WORD val)
@@ -6008,8 +5986,8 @@ int cpu6809_snapshot_write_module(snapshot_t *s)
     BYTE md, e, f;
     WORD v;
 
-    m = snapshot_module_create(s, snap_module_name, ((BYTE)SNAP_MAJOR),
-                               ((BYTE)SNAP_MINOR));
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
@@ -6079,13 +6057,16 @@ int cpu6809_snapshot_read_module(snapshot_t *s)
     BYTE e, f, md;
 
     m = snapshot_module_open(s, snap_module_name, &major, &minor);
+
     if (m == NULL) {
         /* This module is optional */
         cpu6809_reset();
         return 0;
     }
 
-    if (major != SNAP_MAJOR) {
+    /* Do not accept versions higher than current */
+    if (major > SNAP_MAJOR || minor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 

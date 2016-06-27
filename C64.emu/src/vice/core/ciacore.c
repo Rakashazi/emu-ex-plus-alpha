@@ -1680,6 +1680,13 @@ int ciacore_snapshot_read_module(cia_context_t *cia_context, snapshot_t *s)
 int ciacore_dump(cia_context_t *cia_context)
 {
     mon_out("ICR: %02x CTRLA: %02x CTRLB: %02x\n\n", ciacore_peek(cia_context, 0x0d), ciacore_peek(cia_context, 0x0e), ciacore_peek(cia_context, 0x0f));
+    mon_out("ICR write: %02x Timer A IRQ: %s Timer B IRQ: %s TOD IRQ: %s Serial IRQ: %s Cassette IRQ: %s\n\n",
+        cia_context->c_cia[CIA_ICR],
+        (cia_context->c_cia[CIA_ICR] & 1) ? "on" : "off",
+        (cia_context->c_cia[CIA_ICR] & (1<<1)) ? "on" : "off",
+        (cia_context->c_cia[CIA_ICR] & (1<<2)) ? "on" : "off",
+        (cia_context->c_cia[CIA_ICR] & (1<<3)) ? "on" : "off",
+        (cia_context->c_cia[CIA_ICR] & (1<<4)) ? "on" : "off");
     mon_out("Port A:  %02x DDR: %02x\n", ciacore_peek(cia_context, 0x00), ciacore_peek(cia_context, 0x02));
     mon_out("Port B:  %02x DDR: %02x\n", ciacore_peek(cia_context, 0x01), ciacore_peek(cia_context, 0x03));
     mon_out("Timer A: %04x\n", ciacore_peek(cia_context, 0x04) + (ciacore_peek(cia_context, 0x05) << 8));

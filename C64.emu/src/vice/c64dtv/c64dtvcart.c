@@ -28,6 +28,8 @@
 #include "types.h"
 
 #include "c64cart.h"
+#include "snapshot.h"
+#include "tapeport.h"
 
 /* Expansion port signals. */
 export_t export = { 0, 0, 0, 0};
@@ -91,4 +93,8 @@ BYTE *ultimax_romh_phi1_ptr(WORD addr)
 BYTE *ultimax_romh_phi2_ptr(WORD addr)
 {
     return romh_banks;
+}
+
+void tapeport_snapshot_register(tapeport_snapshot_t *snapshot)
+{
 }

@@ -1105,19 +1105,11 @@ int vdrive_command_memory_exec(vdrive_t *vdrive, const BYTE *buf, WORD addr, uns
 }
 
 /*
-    FIXME: machine_drive_rom_read will always return $00 right now, because appearently the
-           floppy roms are not loaded when truedrive emulation is disabled.
-           this is not really critical, as it rarely makes sense to return the floppy rom on
-           memory reads anyway - the more common (and useful) case is to return zeros, or
-           whatever else that will make programs notice that they are NOT talking to a drive
-           they "know", so they can eg disable their fastloader.
-           for this reason, when fixing this, make sure to make it optional!
+  Not a real drive, nothing to return.
 */
 int vdrive_command_memory_read(vdrive_t *vdrive, const BYTE *buf, WORD addr, unsigned int length)
 {
     unsigned int len = buf[0];
-    unsigned int i;
-    BYTE val;
 
     log_warning(vdrive_command_log, "M-R %04x %u (+%d) (might need TDE)", addr, len, length - 6);
     if (length < 6) {
@@ -1128,43 +1120,7 @@ int vdrive_command_memory_read(vdrive_t *vdrive, const BYTE *buf, WORD addr, uns
         len = IP_MAX_COMMAND_LEN;
     }
 
-    for (i = 0; i < len; i++) {
-        val = 0;
-
-        if (addr >= 0x8000) {
-            switch (vdrive->image_format) {
-                case VDRIVE_IMAGE_FORMAT_2040:
-                    if (machine_drive_rom_read(2040, addr, &val) < 0) {
-                        val = 0x55;
-                    }
-                    break;
-                case VDRIVE_IMAGE_FORMAT_1541:
-                    if (machine_drive_rom_read(1541, addr, &val) < 0) {
-                        val = 0x55;
-                    }
-                    break;
-                case VDRIVE_IMAGE_FORMAT_1571:
-                    if (machine_drive_rom_read(1571, addr, &val) < 0) {
-                        val = 0x55;
-                    }
-                    break;
-                case VDRIVE_IMAGE_FORMAT_1581:
-                    if (machine_drive_rom_read(1581, addr, &val) < 0) {
-                        val = 0x55;
-                    }
-                    break;
-                case VDRIVE_IMAGE_FORMAT_8050:
-                case VDRIVE_IMAGE_FORMAT_8250:
-                    if (machine_drive_rom_read(1001, addr, &val) < 0) {
-                        val = 0x55;
-                    }
-                    break;
-            }
-        }
-        addr++;
-
-        vdrive->mem_buf[i] = val;
-    }
+    memset(vdrive->mem_buf, 0, len);
 
     vdrive->mem_length = len;
     return CBMDOS_IPE_MEMORY_READ;

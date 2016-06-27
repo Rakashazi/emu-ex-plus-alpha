@@ -33,6 +33,7 @@
 
 #include "attach.h"
 #include "autostart.h"
+#include "bbrtc.h"
 #include "c64-cmdline-options.h"
 #include "c64-memory-hacks.h"
 #include "c64-resources.h"
@@ -44,7 +45,6 @@
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cia.h"
-#include "c64export.h"
 #include "c64fastiec.h"
 #include "c64gluelogic.h"
 #include "c64iec.h"
@@ -52,7 +52,6 @@
 #include "c64mem.h"
 #include "c64memrom.h"
 #include "c64rsuser.h"
-#include "c64ui.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cia.h"
@@ -64,14 +63,16 @@
 #include "drive-resources.h"
 #include "drive-sound.h"
 #include "drive.h"
+#include "export.h"
 #include "fliplist.h"
 #include "fsdevice.h"
 #include "gfxoutput.h"
 #include "imagecontents.h"
 #include "init.h"
+#include "joyport.h"
+#include "joystick.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
-#include "lightpen.h"
 #include "log.h"
 #include "machine-drive.h"
 #include "machine-printer.h"
@@ -81,6 +82,7 @@
 #include "mem.h"
 #include "monitor.h"
 #include "network.h"
+#include "paperclip64.h"
 #include "parallel.h"
 #include "patchrom.h"
 #include "plus256k.h"
@@ -90,6 +92,9 @@
 #include "resources.h"
 #include "rs232drv.h"
 #include "rsuser.h"
+#include "sampler.h"
+#include "sampler2bit.h"
+#include "sampler4bit.h"
 #include "screenshot.h"
 #include "serial.h"
 #include "sid-cmdline-options.h"
@@ -97,10 +102,18 @@
 #include "sid.h"
 #include "sound.h"
 #include "tape.h"
+#include "tapeport.h"
+#include "translate.h"
 #include "traps.h"
 #include "types.h"
+#include "userport.h"
+#include "userport_4bit_sampler.h"
+#include "userport_8bss.h"
+#include "userport_dac.h"
+#include "userport_digimax.h"
 #include "userport_joystick.h"
-#include "userport_rtc.h"
+#include "userport_rtc_58321a.h"
+#include "userport_rtc_ds1307.h"
 #include "vice-event.h"
 #include "vicii.h"
 #include "vicii-mem.h"
@@ -109,6 +122,7 @@
 #include "vsync.h"
 
 #ifdef HAVE_MOUSE
+#include "lightpen.h"
 #include "mouse.h"
 #endif
 
@@ -259,7 +273,7 @@ static io_source_t sid_d400_device = {
     sid_store,
     sid_read,
     sid_peek,
-    NULL, /* TODO: dump */
+    sid_dump,
     0, /* dummy (not a cartridge) */
     IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
     0
@@ -274,7 +288,7 @@ static io_source_t sid_d420_device = {
     sid_store,
     sid_read,
     sid_peek,
-    NULL, /* TODO: dump */
+    sid_dump,
     0, /* dummy (not a cartridge) */
     IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
     0
@@ -289,7 +303,7 @@ static io_source_t sid_d500_device = {
     sid_store,
     sid_read,
     sid_peek,
-    NULL, /* TODO: dump */
+    sid_dump,
     0, /* dummy (not a cartridge) */
     IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
     0
@@ -304,7 +318,7 @@ static io_source_t sid_d600_device = {
     sid_store,
     sid_read,
     sid_peek,
-    NULL, /* TODO: dump */
+    sid_dump,
     0, /* dummy (not a cartridge) */
     IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
     0
@@ -319,7 +333,7 @@ static io_source_t sid_d700_device = {
     sid_store,
     sid_read,
     sid_peek,
-    NULL, /* TODO: dump */
+    sid_dump,
     0, /* dummy (not a cartridge) */
     IO_PRIO_LOW, /* low priority, device and mirrors never involved in collisions */
     0
@@ -379,6 +393,56 @@ static void c64io_init(void)
 
 /* ------------------------------------------------------------------------ */
 
+static joyport_port_props_t control_port_1 = 
+{
+    "Control port 1",
+    IDGS_CONTROL_PORT_1,
+    1,				/* has a potentiometer connected to this port */
+    1,				/* has lightpen support on this port */
+    1					/* port is always active */
+};
+
+static joyport_port_props_t control_port_2 = 
+{
+    "Control port 2",
+    IDGS_CONTROL_PORT_2,
+    1,				/* has a potentiometer connected to this port */
+    0,				/* has NO lightpen support on this port */
+    1					/* port is always active */
+};
+
+static joyport_port_props_t userport_joy_control_port_1 = 
+{
+    "Userport joystick adapter port 1",
+    IDGS_USERPORT_JOY_ADAPTER_PORT_1,
+    0,				/* has NO potentiometer connected to this port */
+    0,				/* has NO lightpen support on this port */
+    0					/* port can be switched on/off */
+};
+
+static joyport_port_props_t userport_joy_control_port_2 = 
+{
+    "Userport joystick adapter port 2",
+    IDGS_USERPORT_JOY_ADAPTER_PORT_2,
+    0,				/* has NO potentiometer connected to this port */
+    0,				/* has NO lightpen support on this port */
+    0					/* port can be switched on/off */
+};
+
+static int init_joyport_ports(void)
+{
+    if (joyport_port_register(JOYPORT_1, &control_port_1) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_2, &control_port_2) < 0) {
+        return -1;
+    }
+    if (joyport_port_register(JOYPORT_3, &userport_joy_control_port_1) < 0) {
+        return -1;
+    }
+    return joyport_port_register(JOYPORT_4, &userport_joy_control_port_2);
+}
+
 /* C64-specific resource initialization.  This is called before initializing
    the machine itself with `machine_init()'.  */
 int machine_resources_init(void)
@@ -395,7 +459,7 @@ int machine_resources_init(void)
         init_resource_fail("c64");
         return -1;
     }
-    if (c64export_resources_init() < 0) {
+    if (export_resources_init() < 0) {
         init_resource_fail("c64export");
         return -1;
     }
@@ -443,12 +507,44 @@ int machine_resources_init(void)
         init_resource_fail("userport printer");
         return -1;
     }
+    if (init_joyport_ports() < 0) {
+        init_resource_fail("joyport ports");
+        return -1;
+    }
+    if (joyport_resources_init() < 0) {
+        init_resource_fail("joyport devices");
+        return -1;
+    }
+    if (joyport_sampler2bit_resources_init() < 0) {
+        init_resource_fail("joyport 2bit sampler");
+        return -1;
+    }
+    if (joyport_sampler4bit_resources_init() < 0) {
+        init_resource_fail("joyport 4bit sampler");
+        return -1;
+    }
+    if (joyport_bbrtc_resources_init() < 0) {
+        init_resource_fail("joyport bbrtc");
+        return -1;
+    }
+    if (joyport_paperclip64_resources_init() < 0) {
+        init_resource_fail("joyport paperclip64 dongle");
+        return -1;
+    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
     }
+    if (userport_resources_init() < 0) {
+        init_resource_fail("userport devices");
+        return -1;
+    }
     if (gfxoutput_resources_init() < 0) {
         init_resource_fail("gfxoutput");
+        return -1;
+    }
+    if (sampler_resources_init() < 0) {
+        init_resource_fail("samplerdrv");
         return -1;
     }
     if (fliplist_resources_init() < 0) {
@@ -497,10 +593,12 @@ int machine_resources_init(void)
         init_resource_fail("mouse");
         return -1;
     }
+#ifdef HAVE_LIGHTPEN
     if (lightpen_resources_init() < 0) {
         init_resource_fail("lightpen");
         return -1;
     }
+#endif
 #endif
 #ifndef COMMON_KBD
     if (kbd_resources_init() < 0) {
@@ -510,6 +608,10 @@ int machine_resources_init(void)
 #endif
     if (drive_resources_init() < 0) {
         init_resource_fail("drive");
+        return -1;
+    }
+    if (tapeport_resources_init() < 0) {
+        init_resource_fail("tapeport");
         return -1;
     }
     if (datasette_resources_init() < 0) {
@@ -524,8 +626,28 @@ int machine_resources_init(void)
         init_resource_fail("userport joystick");
         return -1;
     }
-    if (userport_rtc_resources_init() < 0) {
-        init_resource_fail("userport rtc");
+    if (userport_dac_resources_init() < 0) {
+        init_resource_fail("userport dac");
+        return -1;
+    }
+    if (userport_digimax_resources_init() < 0) {
+        init_resource_fail("userport dac");
+        return -1;
+    }
+    if (userport_rtc_58321a_resources_init() < 0) {
+        init_resource_fail("userport rtc (58321a)");
+        return -1;
+    }
+    if (userport_rtc_ds1307_resources_init() < 0) {
+        init_resource_fail("userport rtc (ds1307)");
+        return -1;
+    }
+    if (userport_4bit_sampler_resources_init() < 0) {
+        init_resource_fail("userport 4bit sampler");
+        return -1;
+    }
+    if (userport_8bss_resources_init() < 0) {
+        init_resource_fail("userport 8bit stereo sampler");
         return -1;
     }
     if (cartio_resources_init() < 0) {
@@ -551,10 +673,15 @@ void machine_resources_shutdown(void)
     drive_resources_shutdown();
     cartridge_resources_shutdown();
     rombanks_resources_shutdown();
-    userport_rtc_resources_shutdown();
+    userport_rtc_58321a_resources_shutdown();
+    userport_rtc_ds1307_resources_shutdown();
     cartio_shutdown();
     fsdevice_resources_shutdown();
     disk_image_resources_shutdown();
+    sampler_resources_shutdown();
+    userport_resources_shutdown();
+    joyport_bbrtc_resources_shutdown();
+    tapeport_resources_shutdown();
 }
 
 /* C64-specific command-line option initialization.  */
@@ -612,12 +739,28 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport printer");
         return -1;
     }
+    if (joyport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("joyport");
+        return -1;
+    }
+    if (joyport_bbrtc_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("bbrtc");
+        return -1;
+    }
     if (joystick_cmdline_options_init() < 0) {
         init_cmdline_options_fail("joystick");
         return -1;
     }
+    if (userport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport");
+        return -1;
+    }
     if (gfxoutput_cmdline_options_init() < 0) {
         init_cmdline_options_fail("gfxoutput");
+        return -1;
+    }
+    if (sampler_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("samplerdrv");
         return -1;
     }
     if (fliplist_cmdline_options_init() < 0) {
@@ -665,10 +808,6 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("mouse");
         return -1;
     }
-    if (lightpen_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("lightpen");
-        return -1;
-    }
 #endif
 #ifndef COMMON_KBD
     if (kbd_cmdline_options_init() < 0) {
@@ -678,6 +817,10 @@ int machine_cmdline_options_init(void)
 #endif
     if (drive_cmdline_options_init() < 0) {
         init_cmdline_options_fail("drive");
+        return -1;
+    }
+    if (tapeport_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("tapeport");
         return -1;
     }
     if (datasette_cmdline_options_init() < 0) {
@@ -692,8 +835,28 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport joystick");
         return -1;
     }
-    if (userport_rtc_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("userport rtc");
+    if (userport_dac_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport dac");
+        return -1;
+    }
+    if (userport_digimax_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport digimax");
+        return -1;
+    }
+    if (userport_rtc_58321a_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport rtc (58321a)");
+        return -1;
+    }
+    if (userport_rtc_ds1307_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport rtc (ds1307)");
+        return -1;
+    }
+    if (userport_4bit_sampler_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport 4bit sampler");
+        return -1;
+    }
+    if (userport_8bss_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport 8bit stereo sampler");
         return -1;
     }
     if (cartio_cmdline_options_init() < 0) {
@@ -710,16 +873,19 @@ int machine_cmdline_options_init(void)
 static void c64_monitor_init(void)
 {
     unsigned int dnr;
-    monitor_cpu_type_t asm6502, asmR65C02;
+    monitor_cpu_type_t asm6502, asmR65C02, asmz80;
     monitor_interface_t *drive_interface_init[DRIVE_NUM];
-    monitor_cpu_type_t *asmarray[3];
+    monitor_cpu_type_t *asmarray[4];
+    int i = 0;
 
-    asmarray[0] = &asm6502;
-    asmarray[1] = &asmR65C02;
-    asmarray[2] = NULL;
+    asmarray[i++] = &asm6502;
+    asmarray[i++] = &asmz80;
+    asmarray[i++] = &asmR65C02;
+    asmarray[i] = NULL;
 
     asm6502_init(&asm6502);
     asmR65C02_init(&asmR65C02);
+    asmz80_init(&asmz80);
 
     for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
         drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
@@ -787,6 +953,15 @@ int machine_specific_init(void)
     /* Initialize autostart.  */
     autostart_init((CLOCK)(delay * C64_PAL_RFSH_PER_SEC * C64_PAL_CYCLES_PER_RFSH), 1, 0xcc, 0xd1, 0xd3, 0xd5);
 
+#ifdef USE_BEOS_UI
+    /* Pre-init C64-specific parts of the menus before vicii_init()
+       creates a canvas window with a menubar at the top. This could
+       also be used by other ports, e.g. GTK+...  */
+    if (!console_mode) {
+        c64_mem_ui_init_early();
+    }
+#endif
+
     if (vicii_init(VICII_STANDARD) == NULL && !video_disabled_mode) {
         return -1;
     }
@@ -816,6 +991,10 @@ int machine_specific_init(void)
     /* Initialize cartridge based sound chips */
     cartridge_sound_chip_init();
 
+    /* Initialize userport based sound chips */
+    userport_dac_sound_chip_init();
+    userport_digimax_sound_chip_init();
+
     drive_sound_init();
     video_sound_init();
 
@@ -837,11 +1016,7 @@ int machine_specific_init(void)
 
     /* Initialize the C64-specific part of the UI.  */
     if (!console_mode) {
-        if (machine_class == VICE_MACHINE_C64SC) {
-            c64scui_init();
-        } else {
-            c64ui_init();
-        }
+        c64_mem_ui_init();
     }
 
     /* Initialize glue logic.  */
@@ -860,10 +1035,12 @@ int machine_specific_init(void)
     /* Initialize mouse support (if present).  */
     mouse_init();
 
+#ifdef HAVE_LIGHTPEN
     /* Initialize lightpen support and register VICII callbacks */
     lightpen_init();
     lightpen_register_timing_callback(vicii_lightpen_timing, 0);
     lightpen_register_trigger_callback(vicii_trigger_light_pen);
+#endif
 #endif
     c64iec_init();
     c64fastiec_init();
@@ -919,6 +1096,8 @@ void machine_specific_reset(void)
     plus256k_reset();
     c64_256k_reset();
 
+    sampler_reset();
+
     reset_poweron = 0;
 }
 
@@ -954,7 +1133,7 @@ void machine_specific_shutdown(void)
 
     sid_cmdline_options_shutdown();
 
-    c64ui_shutdown();
+    c64_mem_ui_shutdown();
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -1092,6 +1271,9 @@ void machine_change_timing(int timeval)
     drive_set_machine_parameter(machine_timing.cycles_per_sec);
     serial_iec_device_set_machine_parameter(machine_timing.cycles_per_sec);
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
+#ifdef HAVE_MOUSE
+    neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
+#endif
     clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing, border_mode);
@@ -1132,6 +1314,7 @@ void machine_play_psid(int tune)
 {
     /* psid_set_tune(tune); */
 }
+
 /* ------------------------------------------------------------------------- */
 
 int machine_screenshot(screenshot_t *screenshot, struct video_canvas_s *canvas)
@@ -1169,6 +1352,11 @@ BYTE machine_tape_type_default(void)
     return TAPE_CAS_TYPE_PRG;
 }
 
+BYTE machine_tape_behaviour(void)
+{
+    return TAPE_BEHAVIOUR_NORMAL;
+}
+
 static int get_cart_emulation_state(void)
 {
     int value;
@@ -1201,4 +1389,28 @@ const char *machine_get_name(void)
     }
 
     return machine_name;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static void c64_userport_set_flag(BYTE b)
+{
+    if (b != 0) {
+        ciacore_set_flag(machine_context.cia2);
+    }
+}
+
+static userport_port_props_t userport_props = {
+    1, /* has pa2 pin */
+    1, /* has pa3 pin */
+    c64_userport_set_flag, /* has flag pin */
+    1, /* has pc pin */
+    1  /* has cnt1, cnt2 and sp pins */
+};
+
+int machine_register_userport(void)
+{
+    userport_port_register(&userport_props);
+
+    return 0;
 }

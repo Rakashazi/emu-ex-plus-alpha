@@ -33,10 +33,11 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
+#include "monitor.h"
 #include "snapshot.h"
 #include "superexplode5.h"
 #include "types.h"
@@ -99,16 +100,26 @@
 
 /* ---------------------------------------------------------------------*/
 
+static int se5_bank = 0;
+
 static void se5_io2_store(WORD addr, BYTE value)
 {
     DBG(("io2 wr %04x %02x\n", addr, value));
-    cart_romlbank_set_slotmain((value & 0x80) >> 7);
+    se5_bank = (value & 0x80) ? 1 : 0;
+    cart_romlbank_set_slotmain(se5_bank);
 }
 
 static BYTE se5_io2_read(WORD addr)
 {
     addr |= 0xdf00;
     return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
+}
+
+static int se5_dump(void)
+{
+    mon_out("Bank: %d\n", se5_bank);
+
+    return 0;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -122,7 +133,7 @@ static io_source_t se5_io2_device = {
     se5_io2_store,
     se5_io2_read,
     NULL,
-    NULL,
+    se5_dump,
     CARTRIDGE_SUPER_EXPLODE_V5,
     0,
     0
@@ -130,7 +141,7 @@ static io_source_t se5_io2_device = {
 
 static io_source_list_t *se5_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_SUPER_EXPLODE_V5, 1, 0, NULL, &se5_io2_device, CARTRIDGE_SUPER_EXPLODE_V5
 };
 
@@ -152,6 +163,7 @@ void se5_config_init(void)
 {
     cart_config_changed_slotmain(0, 0, CMODE_READ);
     cart_romlbank_set_slotmain(0);
+    se5_bank = 0;
 }
 
 void se5_config_setup(BYTE *rawcart)
@@ -159,13 +171,14 @@ void se5_config_setup(BYTE *rawcart)
     memcpy(roml_banks, rawcart, SE5_CART_SIZE);
     cart_config_changed_slotmain(0, 0, CMODE_READ);
     cart_romlbank_set_slotmain(0);
+    se5_bank = 0;
 }
 
 /* ---------------------------------------------------------------------*/
 
 static int se5_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -208,35 +221,43 @@ int se5_crt_attach(FILE *fd, BYTE *rawcart)
 
 void se5_detach(void)
 {
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(se5_io2_list_item);
     se5_io2_list_item = NULL;
 }
 
 /* ---------------------------------------------------------------------*/
 
-#define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
-#define SNAP_MODULE_NAME  "CARTSE5"
+/* CARTSE5 snapshot module format:
+
+   type  | name | version | description
+   --------------------------------------
+   BYTE  | bank |   0.1   | current bank
+   ARRAY | ROML |   0.0+  | 16384 BYTES of ROML data
+ */
+
+static char snap_module_name[] = "CARTSE5";
+#define SNAP_MAJOR   0
+#define SNAP_MINOR   1
 
 int se5_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || (SMW_BA(m, roml_banks, SE5_CART_SIZE) < 0)) {
+        || SMW_B(m, (BYTE)se5_bank) < 0
+        || SMW_BA(m, roml_banks, SE5_CART_SIZE) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
-    snapshot_module_close(m);
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int se5_snapshot_read_module(snapshot_t *s)
@@ -244,23 +265,36 @@ int se5_snapshot_read_module(snapshot_t *s)
     BYTE vmajor, vminor;
     snapshot_module_t *m;
 
-    m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
+    m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
+
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
-        snapshot_module_close(m);
-        return -1;
+    /* Do not accept versions higher than current */
+    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
+        goto fail;
     }
 
-    if (0
-        || (SMR_BA(m, roml_banks, SE5_CART_SIZE) < 0)) {
-        snapshot_module_close(m);
-        return -1;
+    /* new in 0.1 */
+    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+        if (SMR_B_INT(m, &se5_bank) < 0) {
+            goto fail;
+        }
+    } else {
+        se5_bank = 0;
+    }
+
+    if (SMR_BA(m, roml_banks, SE5_CART_SIZE) < 0) {
+        goto fail;
     }
 
     snapshot_module_close(m);
 
     return se5_common_attach();
+
+fail:
+    snapshot_module_close(m);
+    return -1;
 }

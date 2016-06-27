@@ -32,12 +32,12 @@
 #include "datasette.h"
 
 
-void datasette_trigger_flux_change(unsigned int on)
+void machine_trigger_flux_change(unsigned int on)
 {
     ciacore_set_flag(machine_context.cia1);
 }
 
-void datasette_set_tape_sense(int sense)
+void machine_set_tape_sense(int sense)
 {
     mem_set_tape_sense(sense);
 }

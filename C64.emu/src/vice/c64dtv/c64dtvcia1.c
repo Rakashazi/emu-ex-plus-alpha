@@ -37,6 +37,8 @@
 #include "c64cia.h"
 #include "cia.h"
 #include "interrupt.h"
+#include "joyport.h"
+#include "joystick.h"
 #include "keyboard.h"
 #include "lib.h"
 #include "log.h"
@@ -147,7 +149,7 @@ static BYTE read_ciapa(cia_context_t *cia_context)
     BYTE m;
     int i;
 
-    msk = cia_context->old_pb & ~joystick_value[1];
+    msk = cia_context->old_pb & read_joyport_dig(JOYPORT_1);
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
         if (!(msk & m)) {
@@ -156,7 +158,7 @@ static BYTE read_ciapa(cia_context_t *cia_context)
     }
 
     byte = (val & (cia_context->c_cia[CIA_PRA]
-                   | ~(cia_context->c_cia[CIA_DDRA]))) & ~joystick_value[2];
+                   | ~(cia_context->c_cia[CIA_DDRA]))) & read_joyport_dig(JOYPORT_2);
 
     return byte;
 }
@@ -169,7 +171,7 @@ static BYTE read_ciapb(cia_context_t *cia_context)
     BYTE m;
     int i;
 
-    msk = cia_context->old_pa & ~joystick_value[2];
+    msk = cia_context->old_pa & read_joyport_dig(JOYPORT_2);
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
         if (!(msk & m)) {
@@ -182,7 +184,7 @@ static BYTE read_ciapb(cia_context_t *cia_context)
     }
 
     byte = (val & (cia_context->c_cia[CIA_PRB]
-                   | ~(cia_context->c_cia[CIA_DDRB]))) & ~joystick_value[1];
+                   | ~(cia_context->c_cia[CIA_DDRB]))) & read_joyport_dig(JOYPORT_1);
 
     return byte;
 }

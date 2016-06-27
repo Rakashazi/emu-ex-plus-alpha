@@ -65,6 +65,8 @@
 /* The VIC20 memory. */
 BYTE mem_ram[VIC20_RAM_SIZE];
 
+BYTE vfli_ram[0x4000]; /* for mikes vfli modification */
+
 /* Last data read/write by the cpu, this value lingers on the C(PU)-bus and
    gets used when the CPU reads from unconnected space on the C(PU)-bus */
 BYTE vic20_cpu_last_data;
@@ -142,9 +144,16 @@ static BYTE ram_peek(WORD addr)
 
 /* ------------------------------------------------------------------------- */
 
+extern int vic20_vflihack_userport;
+
 static BYTE colorram_read(WORD addr)
 {
-    vic20_cpu_last_data = mem_ram[addr] | (vic20_v_bus_last_data & 0xf0);
+    if (vflimod_enabled) {
+        addr = (addr & 0x3ff) | (vic20_vflihack_userport << 10);
+        vic20_cpu_last_data = vfli_ram[addr] | (vic20_v_bus_last_data & 0xf0);
+    } else {
+        vic20_cpu_last_data = mem_ram[addr] | (vic20_v_bus_last_data & 0xf0);
+    }
     vic20_v_bus_last_data = vic20_cpu_last_data; /* TODO verify this */
     return vic20_cpu_last_data;
 }
@@ -153,7 +162,12 @@ static void colorram_store(WORD addr, BYTE value)
 {
     vic20_cpu_last_data = value;
     vic20_v_bus_last_data = vic20_cpu_last_data; /* TODO verify this */
-    mem_ram[addr & (VIC20_RAM_SIZE - 1)] = value & 0xf;
+    if (vflimod_enabled) {
+        addr = (addr & 0x3ff) | (vic20_vflihack_userport << 10);
+        vfli_ram[addr] = value & 0xf;
+    } else {
+        mem_ram[addr & (VIC20_RAM_SIZE - 1)] = value & 0xf;
+    }
 }
 
 static BYTE colorram_peek(WORD addr)
@@ -163,90 +177,19 @@ static BYTE colorram_peek(WORD addr)
 
 /* ------------------------------------------------------------------------- */
 
-static void via_store(WORD addr, BYTE value)
-{
-    vic20_cpu_last_data = value;
-
-    if (addr & 0x10) {          /* $911x (VIA2) */
-        via2_store(addr, value);
-    }
-    if (addr & 0x20) {          /* $912x (VIA1) */
-        via1_store(addr, value);
-    }
-    vic20_mem_v_bus_store(addr);
-}
-
-static BYTE via_read(WORD addr)
-{
-    if ((addr & 0x30) == 0x00) {    /* $910x (unconnected V-bus) */
-        vic20_cpu_last_data = vic20_v_bus_last_data;
-    } else {
-        BYTE temp_bus = 0xff;
-
-        if (addr & 0x10) {          /* $911x (VIA2) */
-            temp_bus &= via2_read(addr);
-        }
-        if (addr & 0x20) {          /* $912x (VIA1) */
-            temp_bus &= via1_read(addr);
-        }
-        vic20_cpu_last_data = temp_bus;
-    }
-    vic20_mem_v_bus_read(addr);
-    return vic20_cpu_last_data;
-}
-
-static BYTE via_peek(WORD addr)
-{
-    if ((addr & 0x30) == 0x00) {  /* $910x (unconnected V-bus) */
-        return vic20_v_bus_last_data;
-    } else {
-        BYTE temp_bus = 0xff;
-
-        if (addr & 0x10) {          /* $911x (VIA2) */
-            temp_bus &= via2_read(addr);
-        }
-        if (addr & 0x20) {          /* $912x (VIA1) */
-            temp_bus &= via1_read(addr);
-        }
-        return temp_bus;
-    }
-}
-
-/*-------------------------------------------------------------------*/
-
 static BYTE io3_peek(WORD addr)
 {
-#if 0
-    /* TODO */
-    if (sidcart_enabled && sidcart_address == 1 && addr >= 0x9c00 && addr <= 0x9c1f) {
-        return sid_peek(addr);
-    }
-#endif
-
-#ifdef HAVE_MIDI
-#if 0
-    /* TODO */
-    if (midi_enabled && (addr & 0xff00) == 0x9c00) {
-        if (midi_test_peek((WORD)(addr & 0xff))) {
-            return midi_peek((WORD)(addr & 0xff));
-        }
-    }
-#endif
-#endif
-
-    return vic20_v_bus_last_data;
+    return vic20io3_peek(addr);
 }
 
 static BYTE io2_peek(WORD addr)
 {
-#if 0
-    /* TODO */
-    if (sidcart_enabled && sidcart_address == 0 && addr >= 0x9800 && addr <= 0x981f) {
-        return sid_peek(addr);
-    }
-#endif
+    return vic20io2_peek(addr);
+}
 
-    return vic20_v_bus_last_data;
+static BYTE io0_peek(WORD addr)
+{
+    return vic20io0_peek(addr);
 }
 
 /*-------------------------------------------------------------------*/
@@ -504,14 +447,9 @@ void mem_initialize_memory(void)
             chargen_read, store_dummy_v_bus, chargen_peek,
             NULL, 0);
 
-    /* Setup VIC-I at $9000-$90FF. */
-    set_mem(0x90, 0x90,
-            vic_read, vic_store, vic_peek,
-            NULL, 0);
-
-    /* Setup VIAs at $9100-$93FF. */
-    set_mem(0x91, 0x93,
-            via_read, via_store, via_peek,
+    /* Setup I/O0 */
+    set_mem(0x90, 0x93,
+            vic20io0_read, vic20io0_store, io0_peek,
             NULL, 0);
 
     /* Setup color memory at $9400-$97FF.
@@ -527,7 +465,7 @@ void mem_initialize_memory(void)
             vic20io2_read, vic20io2_store, io2_peek,
             NULL, 0);
 
-    /* Setup I/O3 at the expansion port (includes emulator ID) */
+    /* Setup I/O3 at the expansion port */
     set_mem(0x9c, 0x9f,
             vic20io3_read, vic20io3_store, io3_peek,
             NULL, 0);
@@ -590,6 +528,7 @@ void mem_toggle_watchpoints(int flag, void *context)
 void mem_powerup(void)
 {
     ram_init(mem_ram, 0x8000);
+    ram_init(vfli_ram, 0x4000);
     memset(mem_ram + 0x8000, 0, 0x8000);
 }
 
@@ -671,26 +610,9 @@ void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
     mem_store(addr, byte);
 }
 
-/* FIXME: add other i/o extensions here */
-static int mem_dump_io(WORD addr)
-{
-    if ((addr >= 0x9000) && (addr <= 0x900f)) {
-        return vic_dump();
-    } else if ((addr >= 0x9120) && (addr <= 0x912f)) {
-        return viacore_dump(machine_context.via1);
-    } else if ((addr >= 0x9110) && (addr <= 0x911f)) {
-        return viacore_dump(machine_context.via2);
-    }
-    return -1;
-}
-
 mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
-
-    mon_ioreg_add_list(&mem_ioreg_list, "VIC", 0x9000, 0x900f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "VIA1", 0x9120, 0x912f, mem_dump_io);
-    mon_ioreg_add_list(&mem_ioreg_list, "VIA2", 0x9110, 0x911f, mem_dump_io);
 
     io_source_ioreg_add_list(&mem_ioreg_list);
 

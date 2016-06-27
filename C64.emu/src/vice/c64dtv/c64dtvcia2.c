@@ -47,10 +47,9 @@
 #include "lib.h"
 #include "log.h"
 #include "maincpu.h"
-#include "printer.h"
 #include "ps2mouse.h"
 #include "types.h"
-#include "userport_joystick.h"
+#include "userport.h"
 #include "vicii.h"
 
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -61,9 +60,9 @@
 void cia2_store(WORD addr, BYTE data)
 {
     if ((addr & 0x1f) == 1) {
-        /* FIXME: in the upcoming userport system this call needs to be conditional */
-        userport_joystick_store_pbx(data);
+        store_userport_pbx(data);
 
+        /* The functions below will gradually be removed as the functionality is added to the new userport system. */
         if (c64dtv_hummer_adc_enabled) {
             hummeradc_store(data);
         }
@@ -80,9 +79,9 @@ BYTE cia2_read(WORD addr)
     BYTE retval = 0xff;
 
     if ((addr & 0x1f) == 1) {
-        /* FIXME: in the upcoming userport system this call needs to be conditional */
-        retval = userport_joystick_read_pbx(retval);
+        retval = read_userport_pbx(0x1f, retval);
 
+        /* The functions below will gradually be removed as the functionality is added to the new userport system. */
         if (ps2mouse_enabled) {
             retval &= (ps2mouse_read() | 0x3f);
         }
@@ -127,8 +126,9 @@ static int vbank;
 
 static void do_reset_cia(cia_context_t *cia_context)
 {
-    printer_userport_write_strobe(1);
-    printer_userport_write_data((BYTE)0xff);
+    store_userport_pbx(0xff);
+
+    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     rsuser_write_ctrl((BYTE)0xff);
     rsuser_set_tx_bit(1);
@@ -171,7 +171,6 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
             mem_set_vbank(new_vbank);
         }
         (*iecbus_callback_write)((BYTE)tmp, maincpu_clk);
-        printer_userport_write_strobe(tmp & 0x04);
     }
 }
 
@@ -190,6 +189,9 @@ static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 
 static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 {
+    store_userport_pbx(byte);
+
+    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
     parallel_cable_cpu_write(DRIVE_PC_STANDARD, (BYTE)byte);
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     rsuser_write_ctrl((BYTE)byte);
@@ -199,20 +201,19 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 {
     parallel_cable_cpu_pulse(DRIVE_PC_STANDARD);
-    printer_userport_write_data((BYTE)(cia_context->old_pb));
 }
 
 /* FIXME! */
 static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk,
                                 BYTE byte)
 {
+    store_userport_pbx(byte);
+
+    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
     parallel_cable_cpu_undump(DRIVE_PC_STANDARD, (BYTE)byte);
-    printer_userport_write_data((BYTE)byte);
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     rsuser_write_ctrl((BYTE)byte);
 #endif
-    /* in the upcoming userport system this call needs to be conditional */
-    userport_joystick_store_pbx(byte);
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
@@ -225,13 +226,17 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 /* read_* functions must return 0xff if nothing to read!!! */
 static BYTE read_ciapb(cia_context_t *cia_context)
 {
-    BYTE byte;
+    BYTE byte = 0xff;
+
+    byte = read_userport_pbx(0x1f, byte);
+
+    /* The functions below will gradually be removed as the functionality is added to the new userport system. */
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
-        byte = rsuser_read_ctrl();
+        byte = rsuser_read_ctrl(byte);
     } else
 #endif
-    byte = parallel_cable_cpu_read(DRIVE_PC_STANDARD);
+    byte = parallel_cable_cpu_read(DRIVE_PC_STANDARD, byte);
 
     byte = (byte & ~(cia_context->c_cia[CIA_DDRB]))
            | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]);

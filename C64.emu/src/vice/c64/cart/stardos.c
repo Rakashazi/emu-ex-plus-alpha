@@ -32,15 +32,16 @@
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
-#include "c64export.h"
 #include "c64mem.h"
 #include "c64memrom.h"
 #include "c64pla.h"
 #include "c64rom.h"
 #include "cartio.h"
 #include "cartridge.h"
+#include "export.h"
 #include "machine.h"
 #include "maincpu.h"
+#include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
 #include "stardos.h"
@@ -201,6 +202,13 @@ static void stardos_io2_store(WORD addr, BYTE value)
     cap_discharge();
 }
 
+static int stardos_dump(void)
+{
+    mon_out("$8000-$9FFF ROM: %s\n", (roml_enable) ? "enabled" : "disabled");
+
+    return 0;
+}
+
 /* ---------------------------------------------------------------------*/
 
 static io_source_t stardos_io1_device = {
@@ -213,7 +221,7 @@ static io_source_t stardos_io1_device = {
     stardos_io1_store,
     stardos_io1_read,
     stardos_io_peek,
-    NULL,
+    stardos_dump,
     CARTRIDGE_STARDOS,
     0,
     0
@@ -229,7 +237,7 @@ static io_source_t stardos_io2_device = {
     stardos_io2_store,
     stardos_io2_read,
     stardos_io_peek,
-    NULL,
+    stardos_dump,
     CARTRIDGE_STARDOS,
     0,
     0
@@ -238,7 +246,7 @@ static io_source_t stardos_io2_device = {
 static io_source_list_t *stardos_io1_list_item = NULL;
 static io_source_list_t *stardos_io2_list_item = NULL;
 
-static const c64export_resource_t export_res = {
+static const export_resource_t export_res = {
     CARTRIDGE_NAME_STARDOS, 1, 1, &stardos_io1_device, &stardos_io2_device, CARTRIDGE_STARDOS
 };
 
@@ -272,7 +280,7 @@ int stardos_romh_phi2_read(WORD addr, BYTE *value)
     return stardos_romh_phi1_read(addr, value);
 }
 
-int stardos_peek_mem(struct export_s *export, WORD addr, BYTE *value)
+int stardos_peek_mem(export_t *export, WORD addr, BYTE *value)
 {
     if (roml_enable) {
         if (addr >= 0x8000 && addr <= 0x9fff) {
@@ -317,7 +325,7 @@ void stardos_config_setup(BYTE *rawcart)
 
 static int stardos_common_attach(void)
 {
-    if (c64export_add(&export_res) < 0) {
+    if (export_add(&export_res) < 0) {
         return -1;
     }
 
@@ -364,7 +372,7 @@ int stardos_crt_attach(FILE *fd, BYTE *rawcart)
 void stardos_detach(void)
 {
     alarm_destroy(stardos_alarm);
-    c64export_remove(&export_res);
+    export_remove(&export_res);
     io_source_unregister(stardos_io1_list_item);
     io_source_unregister(stardos_io2_list_item);
     stardos_io1_list_item = NULL;

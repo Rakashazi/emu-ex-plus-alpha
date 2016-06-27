@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 
+#include "c64-memory-hacks.h"
 #include "c64-snapshot.h"
 #include "c64.h"
 #include "c64gluelogic.h"
@@ -37,6 +38,7 @@
 #include "drive-snapshot.h"
 #include "drive.h"
 #include "ioutil.h"
+#include "joyport.h"
 #include "joystick.h"
 #include "keyboard.h"
 #include "log.h"
@@ -45,8 +47,9 @@
 #include "sid-snapshot.h"
 #include "snapshot.h"
 #include "sound.h"
-#include "tape-snapshot.h"
+#include "tapeport.h"
 #include "types.h"
+#include "userport.h"
 #include "vice-event.h"
 #include "vicii.h"
 
@@ -76,9 +79,12 @@ int c64_snapshot_write(const char *name, int save_roms, int save_disks, int even
         || vicii_snapshot_write_module(s) < 0
         || c64_glue_snapshot_write_module(s) < 0
         || event_snapshot_write_module(s, event_mode) < 0
-        || tape_snapshot_write_module(s, save_disks) < 0
-        || keyboard_snapshot_write_module(s)
-        || joystick_snapshot_write_module(s)) {
+        || memhacks_snapshot_write_modules(s) < 0
+        || tapeport_snapshot_write_module(s, save_disks) < 0
+        || keyboard_snapshot_write_module(s) < 0
+        || joyport_snapshot_write_module(s, JOYPORT_1) < 0
+        || joyport_snapshot_write_module(s, JOYPORT_2) < 0
+        || userport_snapshot_write_module(s) < 0) {
         snapshot_close(s);
         ioutil_remove(name);
         return -1;
@@ -105,6 +111,8 @@ int c64_snapshot_read(const char *name, int event_mode)
 
     vicii_snapshot_prepare();
 
+    joyport_clear_devices();
+
     if (maincpu_snapshot_read_module(s) < 0
         || c64_snapshot_read_module(s) < 0
         || ciacore_snapshot_read_module(machine_context.cia1, s) < 0
@@ -114,9 +122,12 @@ int c64_snapshot_read(const char *name, int event_mode)
         || vicii_snapshot_read_module(s) < 0
         || c64_glue_snapshot_read_module(s) < 0
         || event_snapshot_read_module(s, event_mode) < 0
-        || tape_snapshot_read_module(s) < 0
+        || memhacks_snapshot_read_modules(s) < 0
+        || tapeport_snapshot_read_module(s) < 0
         || keyboard_snapshot_read_module(s) < 0
-        || joystick_snapshot_read_module(s) < 0) {
+        || joyport_snapshot_read_module(s, JOYPORT_1) < 0
+        || joyport_snapshot_read_module(s, JOYPORT_2) < 0
+        || userport_snapshot_read_module(s) < 0) {
         goto fail;
     }
 

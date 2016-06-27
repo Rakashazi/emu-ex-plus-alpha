@@ -40,7 +40,10 @@ struct vicii_resources_s {
        IRQ?  */
     int sprite_background_collisions_enabled;
 
-    /* Flag: New or old luminances? */
+    /* TODO: VIC-II model */
+    int model;
+
+    /* on DTV this controls the hardware fix of the luma DAC */
     int new_luminances;
 };
 typedef struct vicii_resources_s vicii_resources_t;

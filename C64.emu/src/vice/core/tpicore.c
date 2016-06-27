@@ -426,29 +426,27 @@ int tpicore_snapshot_write_module(tpi_context_t *tpi_context, snapshot_t *p)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(p, tpi_context->myname,
-                               TPI_DUMP_VER_MAJOR, TPI_DUMP_VER_MINOR);
+    m = snapshot_module_create(p, tpi_context->myname, TPI_DUMP_VER_MAJOR, TPI_DUMP_VER_MINOR);
     if (m == NULL) {
         return -1;
     }
 
-    SMW_B(m, tpi_context->c_tpi[TPI_PA]);
-    SMW_B(m, tpi_context->c_tpi[TPI_PB]);
-    SMW_B(m, tpi_context->c_tpi[TPI_PC]);
-    SMW_B(m, tpi_context->c_tpi[TPI_DDPA]);
-    SMW_B(m, tpi_context->c_tpi[TPI_DDPB]);
-    SMW_B(m, tpi_context->c_tpi[TPI_DDPC]);
-    SMW_B(m, tpi_context->c_tpi[TPI_CREG]);
-    SMW_B(m, tpi_context->c_tpi[TPI_AIR]);
+    if (0
+        || SMW_B(m, tpi_context->c_tpi[TPI_PA]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_PB]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_PC]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_DDPA]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_DDPB]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_DDPC]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_CREG]) < 0
+        || SMW_B(m, tpi_context->c_tpi[TPI_AIR]) < 0
+        || SMW_B(m, tpi_context->irq_stack) < 0
+        || SMW_B(m, (BYTE)((tpi_context->ca_state ? 0x80 : 0) | (tpi_context->cb_state ? 0x40 : 0))) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
 
-    SMW_B(m, tpi_context->irq_stack);
-
-    SMW_B(m, (BYTE)((tpi_context->ca_state ? 0x80 : 0)
-                    | (tpi_context->cb_state ? 0x40 : 0)));
-
-    snapshot_module_close(m);
-
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int tpicore_snapshot_read_module(tpi_context_t *tpi_context, snapshot_t *p)
@@ -464,40 +462,43 @@ int tpicore_snapshot_read_module(tpi_context_t *tpi_context, snapshot_t *p)
         return -1;
     }
 
-    if (vmajor != TPI_DUMP_VER_MAJOR) {
+    /* Do not accept versions higher than current */
+    if (vmajor > TPI_DUMP_VER_MAJOR || vminor > TPI_DUMP_VER_MINOR) {
+        snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
 
-    SMR_B(m, &(tpi_context->c_tpi[TPI_PA]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_PB]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_PC]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_DDPA]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_DDPB]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_DDPC]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_CREG]));
-    SMR_B(m, &(tpi_context->c_tpi[TPI_AIR]));
+    if (0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_PA])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_PB])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_PC])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_DDPA])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_DDPB])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_DDPC])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_CREG])) < 0
+        || SMR_B(m, &(tpi_context->c_tpi[TPI_AIR])) < 0
+        || SMR_B(m, &(tpi_context->irq_stack)) < 0
+        || SMR_B(m, &byte) < 0) {
+        snapshot_module_close(m);
+        return -1;
+    }
 
-    SMR_B(m, &(tpi_context->irq_stack));
-
-    SMR_B(m, &byte);
     tpi_context->ca_state = byte & 0x80;
     tpi_context->cb_state = byte & 0x40;
 
-    {
-        byte = tpi_context->c_tpi[TPI_PA] | ~(tpi_context->c_tpi[TPI_DDPA]);
-        (tpi_context->undump_pa)(tpi_context, byte);
-        tpi_context->oldpa = byte;
+    byte = tpi_context->c_tpi[TPI_PA] | ~(tpi_context->c_tpi[TPI_DDPA]);
+    (tpi_context->undump_pa)(tpi_context, byte);
+    tpi_context->oldpa = byte;
 
-        byte = tpi_context->c_tpi[TPI_PB] | ~(tpi_context->c_tpi)[TPI_DDPB];
-        (tpi_context->undump_pb)(tpi_context, byte);
-        tpi_context->oldpb = byte;
+    byte = tpi_context->c_tpi[TPI_PB] | ~(tpi_context->c_tpi)[TPI_DDPB];
+    (tpi_context->undump_pb)(tpi_context, byte);
+    tpi_context->oldpb = byte;
 
-        if (!irq_mode) {
-            byte = tpi_context->c_tpi[TPI_PC] | ~(tpi_context->c_tpi)[TPI_DDPC];
-            (tpi_context->undump_pc)(tpi_context, byte);
-            tpi_context->oldpc = byte;
-        }
+    if (!irq_mode) {
+        byte = tpi_context->c_tpi[TPI_PC] | ~(tpi_context->c_tpi)[TPI_DDPC];
+        (tpi_context->undump_pc)(tpi_context, byte);
+        tpi_context->oldpc = byte;
     }
 
     (tpi_context->set_ca)(tpi_context, tpi_context->ca_state);
@@ -506,11 +507,7 @@ int tpicore_snapshot_read_module(tpi_context_t *tpi_context, snapshot_t *p)
     (tpi_context->restore_int)(tpi_context->tpi_int_num, irq_active
                                ? tpi_context->irq_line : 0);
 
-    if (snapshot_module_close(m) < 0) {
-        return -1;
-    }
-
-    return 0;
+    return snapshot_module_close(m);
 }
 
 int tpicore_dump(tpi_context_t *tpi_context)

@@ -35,7 +35,7 @@
 #include "mem.h"
 #include "types.h"
 
-char *clipboard_read_screen_output(char *line_ending)
+char *clipboard_read_screen_output(const char *line_ending)
 {
     char * outputbuffer = NULL;
 

@@ -49,6 +49,12 @@
 #include "types.h"
 #include "debug.h"
 
+#if (defined(sun) || defined(__sun)) && !(defined(__SVR4) || defined(__svr4__))
+#  ifndef RAND_MAX
+#    define RAND_MAX 32767
+#  endif
+#endif
+
 #ifdef DEBUG
 /* enable memory debugging */
 #define LIB_DEBUG

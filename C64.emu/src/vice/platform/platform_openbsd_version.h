@@ -42,7 +42,12 @@
 #endif
 
 #ifdef OpenBSD2_3
-#define PLATFORM_OS "OpenBSD 2.3"
+#  include <dev/eisa/eisadevs.h>
+#  ifdef EISA_PRODUCT_DTI0000
+#    define PLATFORM_OS "OpenBSD 2.4"
+#  else
+#    define PLATFORM_OS "OpenBSD 2.3"
+#  endif
 #endif
 
 #ifdef OpenBSD2_4
@@ -159,6 +164,34 @@
 
 #ifdef OpenBSD5_2
 #define PLATFORM_OS "OpenBSD 5.2"
+#endif
+
+#ifdef OpenBSD5_3
+#define PLATFORM_OS "OpenBSD 5.3"
+#endif
+
+#ifdef OpenBSD5_4
+#define PLATFORM_OS "OpenBSD 5.4"
+#endif
+
+#ifdef OpenBSD5_5
+#define PLATFORM_OS "OpenBSD 5.5"
+#endif
+
+#ifdef OpenBSD5_6
+#define PLATFORM_OS "OpenBSD 5.6"
+#endif
+
+#ifdef OpenBSD5_7
+#define PLATFORM_OS "OpenBSD 5.7"
+#endif
+
+#ifdef OpenBSD5_8
+#define PLATFORM_OS "OpenBSD 5.8"
+#endif
+
+#ifdef OpenBSD5_9
+#define PLATFORM_OS "OpenBSD 5.9"
 #endif
 
 #ifndef PLATFORM_OS

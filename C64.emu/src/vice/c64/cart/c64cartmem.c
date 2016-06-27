@@ -97,6 +97,7 @@
 #include "reu.h"
 #include "rexep256.h"
 #include "rexutility.h"
+#include "rrnetmk3.h"
 #include "ross.h"
 #include "simonsbasic.h"
 #include "snapshot64.h"
@@ -153,7 +154,11 @@ static void ultimax_memptr_update(void);
   bit 1  0x02   - release freeze (stop asserting NMI)
   bit 0  0x01   - r/w flag
 */
-
+const char *cart_config_string(BYTE mode)
+{
+    const char *modes[4] = {"8k game", "16k game", "Off", "Ultimax"};
+    return modes[mode & 3];
+}
 
 #ifndef USESLOTS
 static void cart_config_changed(int slot, BYTE mode_phi1, BYTE mode_phi2, unsigned int wflag)
@@ -278,13 +283,13 @@ void cart_passthrough_changed(void)
 
     switch (cart_getid_slot0()) {
         case CARTRIDGE_MMC64:
-            mmc64_passthrough_changed((struct export_s*)&export_passthrough);
+            mmc64_passthrough_changed(&export_passthrough);
             break;
         case CARTRIDGE_MAGIC_VOICE:
-            magicvoice_passthrough_changed((struct export_s*)&export_passthrough);
+            magicvoice_passthrough_changed(&export_passthrough);
             break;
         case CARTRIDGE_IEEE488:
-            tpi_passthrough_changed((struct export_s*)&export_passthrough);
+            tpi_passthrough_changed(&export_passthrough);
             break;
         default:
             /* no slot 0 cartridge */
@@ -577,7 +582,7 @@ static BYTE roml_read_slotmain(WORD addr)
         case CARTRIDGE_FREEZE_MACHINE:
             return freezemachine_roml_read(addr);
         case CARTRIDGE_IDE64:
-            return ide64_roml_read(addr);
+            return ide64_rom_read(addr);
         case CARTRIDGE_KINGSOFT:
             return kingsoft_roml_read(addr);
         case CARTRIDGE_MMC_REPLAY:
@@ -586,6 +591,8 @@ static BYTE roml_read_slotmain(WORD addr)
             return pagefox_roml_read(addr);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_roml_read(addr);
+        case CARTRIDGE_RRNETMK3:
+            return rrnetmk3_roml_read(addr);
         case CARTRIDGE_STARDOS:
             return stardos_roml_read(addr);
         case CARTRIDGE_SNAPSHOT64:
@@ -699,6 +706,11 @@ void roml_store(WORD addr, BYTE value)
         ramcart_roml_store(addr, value);
         return;
     }
+    if (isepic_cart_active()) {
+        isepic_page_store(addr, value);
+        return;
+    }
+
     /* "Main Slot" */
     switch (mem_cartridge_type) {
         case CARTRIDGE_ACTION_REPLAY:
@@ -721,6 +733,9 @@ void roml_store(WORD addr, BYTE value)
             return;
         case CARTRIDGE_RETRO_REPLAY:
             retroreplay_roml_store(addr, value);
+            return;
+        case CARTRIDGE_RRNETMK3:
+            rrnetmk3_roml_store(addr, value);
             return;
         case CARTRIDGE_CAPTURE:
         case CARTRIDGE_EXOS:
@@ -769,7 +784,7 @@ static BYTE romh_read_slotmain(WORD addr)
         case CARTRIDGE_FORMEL64:
             return formel64_romh_read(addr);
         case CARTRIDGE_IDE64:
-            return ide64_romh_read(addr);
+            return ide64_rom_read(addr);
         case CARTRIDGE_KINGSOFT:
             return kingsoft_romh_read(addr);
         case CARTRIDGE_MAGIC_FORMEL:
@@ -873,7 +888,7 @@ BYTE ultimax_romh_read_hirom_slotmain(WORD addr)
         case CARTRIDGE_FORMEL64:
             return formel64_romh_read_hirom(addr);
         case CARTRIDGE_IDE64:
-            return ide64_romh_read(addr);
+            return ide64_rom_read(addr);
         case CARTRIDGE_KINGSOFT:
             return kingsoft_romh_read(addr);
         case CARTRIDGE_MAGIC_FORMEL:
@@ -1019,6 +1034,9 @@ void romh_no_ultimax_store(WORD addr, BYTE value)
         case CARTRIDGE_RETRO_REPLAY:
             retroreplay_romh_store(addr, value);
             break;
+        case CARTRIDGE_IDE64:
+            ide64_rom_store(addr, value);
+            break;
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
             break;
@@ -1068,6 +1086,14 @@ void roml_no_ultimax_store(WORD addr, BYTE value)
             if (retroreplay_roml_no_ultimax_store(addr, value)) {
                 return; /* FIXME: this is weird */
             }
+            break;
+        case CARTRIDGE_RRNETMK3:
+            if (rrnetmk3_roml_store(addr, value)) {
+                return; /* FAKE ultimax, if EEPROM was being written to, dont write to RAM */
+            }
+            break;
+        case CARTRIDGE_IDE64:
+            ide64_rom_store(addr, value);
             break;
         case CARTRIDGE_CRT: /* invalid */
             DBG(("CARTMEM: BUG! invalid type %d for main cart (addr %04x)\n", mem_cartridge_type, addr));
@@ -1144,7 +1170,7 @@ BYTE ultimax_1000_7fff_read_slot1(WORD addr)
         case CARTRIDGE_CAPTURE:
             return capture_1000_7fff_read(addr);
         case CARTRIDGE_IDE64:
-            return ide64_1000_7fff_read(addr);
+            return ide64_ram_read(addr);
         case CARTRIDGE_MMC_REPLAY:
             return mmcreplay_1000_7fff_read(addr);
         case CARTRIDGE_FORMEL64:
@@ -1210,7 +1236,7 @@ void ultimax_1000_7fff_store(WORD addr, BYTE value)
     /* "Main Slot" */
     switch (mem_cartridge_type) {
         case CARTRIDGE_IDE64:
-            ide64_1000_7fff_store(addr, value);
+            ide64_ram_store(addr, value);
             break;
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_1000_7fff_store(addr, value);
@@ -1250,12 +1276,14 @@ BYTE ultimax_a000_bfff_read_slot1(WORD addr)
 
     /* "Main Slot" */
     switch (mem_cartridge_type) {
-        case CARTRIDGE_IDE64:
-            return ide64_a000_bfff_read(addr);
-        case CARTRIDGE_MMC_REPLAY:
-            return mmcreplay_a000_bfff_read(addr);
         case CARTRIDGE_FINAL_PLUS:
             return final_plus_a000_bfff_read(addr);
+        case CARTRIDGE_IDE64:
+            return ide64_rom_read(addr);
+        case CARTRIDGE_MMC_REPLAY:
+            return mmcreplay_a000_bfff_read(addr);
+        case CARTRIDGE_RETRO_REPLAY:
+            return retroreplay_a000_bfff_read(addr);
         case CARTRIDGE_FORMEL64:
         case CARTRIDGE_MAGIC_FORMEL:
         case CARTRIDGE_CAPTURE:
@@ -1316,6 +1344,9 @@ void ultimax_a000_bfff_store(WORD addr, BYTE value)
     switch (mem_cartridge_type) {
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_a000_bfff_store(addr, value);
+            break;
+        case CARTRIDGE_RETRO_REPLAY:
+            retroreplay_a000_bfff_store(addr, value);
             break;
         case CARTRIDGE_CAPTURE:
         case CARTRIDGE_MAGIC_FORMEL:
@@ -1852,34 +1883,37 @@ static BYTE cartridge_peek_mem_slotmain(WORD addr)
         case CARTRIDGE_ULTIMAX:
         case CARTRIDGE_GENERIC_8KB:
         case CARTRIDGE_GENERIC_16KB:
-            res = generic_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = generic_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_CAPTURE:
-            res = capture_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = capture_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_EXOS:
-            res = exos_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = exos_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_FINAL_PLUS:
-            res = final_plus_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = final_plus_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_FORMEL64:
-            res = formel64_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = formel64_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_GAME_KILLER:
-            res = gamekiller_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = gamekiller_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_MAGIC_FORMEL:
-            res = magicformel_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = magicformel_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_RETRO_REPLAY:
-            res = retroreplay_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = retroreplay_peek_mem(&export_slotmain, addr, &value);
+            break;
+        case CARTRIDGE_RRNETMK3:
+            res = rrnetmk3_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_STARDOS:
-            res = stardos_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = stardos_peek_mem(&export_slotmain, addr, &value);
             break;
         case CARTRIDGE_ZAXXON:
-            res = zaxxon_peek_mem((struct export_s*)&export_slotmain, addr, &value);
+            res = zaxxon_peek_mem(&export_slotmain, addr, &value);
             break;
         default:
             /* generic fallback */

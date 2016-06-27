@@ -56,16 +56,9 @@ int machine_printer_cmdline_options_init(void)
     return 0;
 }
 
-static void vic20printer_userport_set_busy(unsigned int b)
-{
-    viacore_signal(machine_context.via2,
-                   VIA_SIG_CB1, b ? VIA_SIG_RISE : VIA_SIG_FALL);
-}
-
 void machine_printer_init(void)
 {
     printer_serial_init();
-    printer_userport_init(vic20printer_userport_set_busy);
 }
 
 void machine_printer_shutdown(void)

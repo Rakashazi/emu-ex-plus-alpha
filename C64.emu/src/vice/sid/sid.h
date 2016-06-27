@@ -33,7 +33,7 @@
 #include "types.h"
 #include "sound.h"
 
-#if (defined(WIN32) || defined(MACOSX_COCOA) || defined(WATCOM_COMPILE) || defined(USE_BEOS_UI)) && !defined(USE_SDLUI)
+#ifndef __OS2__
 #define SID_SETTINGS_DIALOG
 #endif
 
@@ -47,6 +47,7 @@ struct sid_snapshot_state_s;
 #define SID_ENGINE_PARSID_PORT1   4
 #define SID_ENGINE_PARSID_PORT2   5
 #define SID_ENGINE_PARSID_PORT3   6
+#define SID_ENGINE_SSI2001        7
 #define SID_ENGINE_DEFAULT       99
 
 #define SID_MODEL_6581           0
@@ -70,6 +71,7 @@ struct sid_snapshot_state_s;
 #define SID_PARSID_PORT1          (SID_ENGINE_PARSID_PORT1 << 8)
 #define SID_PARSID_PORT2          (SID_ENGINE_PARSID_PORT2 << 8)
 #define SID_PARSID_PORT3          (SID_ENGINE_PARSID_PORT3 << 8)
+#define SID_SSI2001               (SID_ENGINE_SSI2001 << 8)
 
 extern void machine_sid2_enable(int val);
 
@@ -80,6 +82,9 @@ extern BYTE sid3_read(WORD address);
 extern void sid_store(WORD address, BYTE byte);
 extern void sid2_store(WORD address, BYTE byte);
 extern void sid3_store(WORD address, BYTE byte);
+extern int sid_dump(void);
+extern int sid2_dump(void);
+extern int sid3_dump(void);
 extern void sid_reset(void);
 
 extern void sid_set_machine_parameter(long clock_rate);

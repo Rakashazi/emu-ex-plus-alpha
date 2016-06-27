@@ -42,6 +42,7 @@
 #include "petpia.h"
 #include "piacore.h"
 #include "resources.h"
+#include "tapeport.h"
 #include "translate.h"
 #include "types.h"
 
@@ -147,7 +148,7 @@ static void pia_set_ca2(int a)
 static void pia_set_cb2(int a)
 {
     if (old_cb2_status != a) {
-        datasette_set_motor(!a);
+        tapeport_set_motor(!a);
         old_cb2_status = a;
     }
 }
@@ -189,6 +190,7 @@ E813    CB2         output to cassette #1 motor: 0=on, 1=off
 
 static void store_pa(BYTE byte)
 {
+    tapeport_set_sense_out(byte & 16 ? 1 : 0);
 }
 
 static void store_pb(BYTE byte)

@@ -602,7 +602,7 @@ const char info_license_text[] =
    sometimes only handle 40 chars it's easier to use a specially
    prepared text where needed.
  */
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
 #ifdef WINMIPS
 const char *info_license_text40[] = {
     "       GNU GENERAL PUBLIC LICENSE\n",
@@ -1494,7 +1494,7 @@ const char info_warranty_text[] =
     "EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF\n"
     "THE POSSIBILITY OF SUCH DAMAGES.\n";
 
-#ifdef USE_SDLUI
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
 const char info_warranty_text40[] =
     "NO WARRANTY\n"
     "~~~~~~~~~~~\n"

@@ -169,7 +169,7 @@ FILE *fopen_or_pipe(char *name)
 #if COPROC_SUPPORT
         int fd_rd, fd_wr;
         if (fork_coproc(&fd_wr, &fd_rd, name + 1) < 0) {
-            // error
+            /* error */
             return NULL;
         }
         close(fd_rd);   /* We only want to write to the process */

@@ -107,7 +107,7 @@ int cbm2rom_load_chargen(const char *rom_name)
 
 int cbm2rom_checksum(void)
 {
-    int i;
+    int i, delay;
     WORD sum;
 
     /* Checksum over top 8 kByte kernal.  */
@@ -115,8 +115,17 @@ int cbm2rom_checksum(void)
         sum += mem_rom[i];
     }
 
-    log_message(cbm2rom_log, "Kernal checksum is %d ($%04X).",
-                sum, sum);
+    log_message(cbm2rom_log, "Kernal checksum is %d ($%04X).", sum, sum);
+
+    resources_get_int("AutostartDelay", &delay);
+    if (delay == 0) {
+        delay = 10; /* default */
+    }
+    autostart_init((CLOCK)(delay * C500_PAL_RFSH_PER_SEC * C500_PAL_CYCLES_PER_RFSH), 0,
+                    0, /* Pointer: Cursor Blink enable: 0 = Flash Cursor */
+                    0xc8, /* Pointer: Current Screen Line Address */
+                    0xcb, /* Pointer: Cursor Column on Current Line */
+                    -40); /* chars per line */
     return 0;
 }
 

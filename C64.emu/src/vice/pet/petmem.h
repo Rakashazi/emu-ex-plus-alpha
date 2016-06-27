@@ -62,6 +62,7 @@ extern int pet_mem_init_cmdline_options(void);
 extern void mem_initialize_memory(void);
 extern void get_mem_access_tables(read_func_ptr_t **read, store_func_ptr_t **write, BYTE ***base, int **limit);
 extern int petmem_get_screen_columns(void);
+extern int petmem_get_rom_columns(void);
 extern void petmem_check_info(struct petres_s *pi);
 
 extern void petmem_reset(void);
@@ -107,5 +108,7 @@ extern void mem_initialize_memory_6809(void);
 extern void ramsel_changed(void);
 
 extern int superpet_sync(void);
+
+extern BYTE read_unused(WORD addr);
 
 #endif

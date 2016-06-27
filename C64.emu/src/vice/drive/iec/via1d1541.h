@@ -39,5 +39,6 @@ extern void via1d1541_init(struct drive_context_s *ctxptr);
 extern void via1d1541_store(struct drive_context_s *ctxptr, WORD addr, BYTE byte);
 extern BYTE via1d1541_read(struct drive_context_s *ctxptr, WORD addr);
 extern BYTE via1d1541_peek(struct drive_context_s *ctxptr, WORD addr);
+extern int via1d1541_dump(drive_context_t *ctxptr, WORD addr);
 
 #endif

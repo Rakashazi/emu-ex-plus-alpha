@@ -82,6 +82,16 @@ static cmdline_option_t cmd_drive[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_METHOD, IDCLS_SET_IDLE_METHOD,
       NULL, NULL },
+    { NULL, SET_RESOURCE, 1,
+      NULL, NULL, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_RPM, IDCLS_SET_DRIVE_RPM,
+      NULL, NULL },
+    { NULL, SET_RESOURCE, 1,
+      NULL, NULL, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_WOBBLE, IDCLS_SET_DRIVE_WOBBLE,
+      NULL, NULL },
     { NULL }
 };
 
@@ -170,6 +180,12 @@ int drive_cmdline_options_init(void)
         cmd_drive[2].name = lib_msprintf("-drive%iidle", dnr + 8);
         cmd_drive[2].resource_name
             = lib_msprintf("Drive%iIdleMethod", dnr + 8);
+        cmd_drive[3].name = lib_msprintf("-drive%irpm", dnr + 8);
+        cmd_drive[3].resource_name
+            = lib_msprintf("Drive%iRPM", dnr + 8);
+        cmd_drive[4].name = lib_msprintf("-drive%iwobble", dnr + 8);
+        cmd_drive[4].resource_name
+            = lib_msprintf("Drive%iWobble", dnr + 8);
 
         if (has_iec) {
             cmd_drive_rtc[0].name = lib_msprintf("-drive%irtcsave", dnr + 8);
@@ -186,7 +202,7 @@ int drive_cmdline_options_init(void)
             return -1;
         }
 
-        for (i = 0; i < 3; i++) {
+        for (i = 0; i < 5; i++) {
             lib_free((char *)cmd_drive[i].name);
             lib_free((char *)cmd_drive[i].resource_name);
         }

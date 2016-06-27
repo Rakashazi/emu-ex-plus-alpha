@@ -120,6 +120,7 @@ char *platform_get_beos_runtime_os(void)
     return platform_name;
 }
 
+#ifdef WORDS_BIGENDIAN
 /* TODO: cpu_types enum in the Haiku version of OS.h
    lists many more PPC CPU types. */
 char *platform_get_beosppc_runtime_cpu(void)
@@ -155,4 +156,5 @@ char *platform_get_beosppc_runtime_cpu(void)
     }
     return platform_cpu;
 }
+#endif
 #endif

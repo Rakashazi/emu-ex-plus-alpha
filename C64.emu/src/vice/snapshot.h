@@ -32,8 +32,37 @@
 #define SNAPSHOT_MACHINE_NAME_LEN       16
 #define SNAPSHOT_MODULE_NAME_LEN        16
 
+#define SNAPSHOT_NO_ERROR                         0
+#define SNAPSHOT_WRITE_EOF_ERROR                  1
+#define SNAPSHOT_WRITE_BYTE_ARRAY_ERROR           2
+#define SNAPSHOT_READ_EOF_ERROR                   3
+#define SNAPSHOT_READ_BYTE_ARRAY_ERROR            4
+#define SNAPSHOT_ILLEGAL_STRING_LENGTH_ERROR      5
+#define SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR         6
+#define SNAPSHOT_ILLEGAL_OFFSET_ERROR             7
+#define SNAPSHOT_FIRST_MODULE_NOT_FOUND_ERROR     8
+#define SNAPSHOT_MODULE_HEADER_READ_ERROR         9
+#define SNAPSHOT_MODULE_NOT_FOUND_ERROR          10
+#define SNAPSHOT_MODULE_CLOSE_ERROR              11
+#define SNAPSHOT_MODULE_SKIP_ERROR               12
+#define SNAPSHOT_CANNOT_CREATE_SNAPSHOT_ERROR    13
+#define SNAPSHOT_CANNOT_WRITE_MAGIC_STRING_ERROR 14
+#define SNAPSHOT_CANNOT_WRITE_VERSION_ERROR      15
+#define SNAPSHOT_CANNOT_WRITE_MACHINE_NAME_ERROR 16
+#define SNAPSHOT_CANNOT_OPEN_FOR_READ_ERROR      17
+#define SNAPSHOT_MAGIC_STRING_MISMATCH_ERROR     18
+#define SNAPSHOT_CANNOT_READ_VERSION_ERROR       19
+#define SNAPSHOT_CANNOT_READ_MACHINE_NAME_ERROR  20
+#define SNAPSHOT_MACHINE_MISMATCH_ERROR          21
+#define SNAPSHOT_READ_CLOSE_EOF_ERROR            22
+#define SNAPSHOT_WRITE_CLOSE_EOF_ERROR           23
+#define SNAPSHOT_MODULE_HIGHER_VERSION           24
+#define SNAPSHOT_MODULE_INCOMPATIBLE             25
+
 typedef struct snapshot_module_s snapshot_module_t;
 typedef struct snapshot_s snapshot_t;
+
+extern void snapshot_display_error(void);
 
 extern int snapshot_module_write_byte(snapshot_module_t *m, BYTE data);
 extern int snapshot_module_write_word(snapshot_module_t *m, WORD data);
@@ -114,5 +143,11 @@ extern snapshot_t *snapshot_open(const char *filename,
                                  BYTE *minor_version_return,
                                  const char *snapshot_machine_name);
 extern int snapshot_close(snapshot_t *s);
+
+extern void snapshot_set_error(int error);
+
+extern int snapshot_version_at_least(BYTE major_version, BYTE minor_version, BYTE major_version_required, BYTE minor_version_required);
+
+#define SNAPVAL snapshot_version_at_least
 
 #endif

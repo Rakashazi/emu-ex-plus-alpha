@@ -29,6 +29,7 @@
 
 #include <time.h>
 
+#include "snapshot.h"
 #include "types.h"
 
 #define DS12C887_RAM_SIZE   128
@@ -83,5 +84,10 @@ extern int ds12c887_update_flags(rtc_ds12c887_t *context);
 extern void ds12c887_store_address(rtc_ds12c887_t *context, BYTE address);
 extern void ds12c887_store_data(rtc_ds12c887_t *context, BYTE data);
 extern BYTE ds12c887_read(rtc_ds12c887_t *context);
+
+extern int ds12c887_dump(rtc_ds12c887_t *context);
+
+extern int ds12c887_write_snapshot(rtc_ds12c887_t *context, snapshot_t *s);
+extern int ds12c887_read_snapshot(rtc_ds12c887_t *context, snapshot_t *s);
 
 #endif

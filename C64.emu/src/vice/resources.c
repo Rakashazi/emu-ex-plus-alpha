@@ -25,8 +25,6 @@
  *
  */
 
-/* #define DBGRESOURCES */
-
 /* This implements simple facilities to handle the resources and command-line
    options.  All the resources for the emulators can be stored in a single
    file, and they are separated by an `emulator identifier', i.e. the machine
@@ -36,6 +34,8 @@
    ResourceValue unless it is put between quotes (").  */
 
 #include "vice.h"
+
+/* #define DBGRESOURCES */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -796,7 +796,7 @@ int resources_set_default_int(const char *name, int value)
     return 0;
 }
 
-int resources_set_default_string(const char *name, const char *value)
+int resources_set_default_string(const char *name, char *value)
 {
     resource_ram_t *r = lookup(name);
 
@@ -994,9 +994,14 @@ static int check_emu_id(const char *buf)
 
 /* ------------------------------------------------------------------------- */
 
-/* Read one resource line from the file descriptor `f'.  Return 1 on success,
-   -1 on parse/type error, -2 on unknown resource error, 0 on EOF or
-   end of emulator section.  */
+/* Read one resource line from the file descriptor `f'.
+   Returns:
+    1 on success,
+    0 on EOF or end of emulator section.
+   -1 on general error
+   RESERR_TYPE_INVALID on parse/type error
+   RESERR_UNKNOWN_RESOURCE on unknown resource error
+*/
 /* FIXME: make event safe */
 int resources_read_item_from_file(FILE *f)
 {
@@ -1045,7 +1050,7 @@ int resources_read_item_from_file(FILE *f)
         r = lookup(buf);
         if (r == NULL) {
             log_error(LOG_DEFAULT, "Unknown resource `%s'.", buf);
-            return -2;
+            return RESERR_UNKNOWN_RESOURCE;
         }
 
         switch (r->type) {
@@ -1058,13 +1063,20 @@ int resources_read_item_from_file(FILE *f)
             default:
                 log_error(LOG_DEFAULT, "Unknown resource type for `%s'.",
                           r->name);
-                result = -1;
+                result = RESERR_TYPE_INVALID;
                 break;
         }
 
         if (result < 0) {
-            log_error(LOG_DEFAULT, "Cannot assign value to resource `%s'.",
-                      r->name);
+            switch (r->type) {
+                case RES_INTEGER:
+                case RES_STRING:
+                    log_error(LOG_DEFAULT, "Cannot assign value `%s' to resource `%s'.", arg_ptr, r->name);
+                    break;
+                default:
+                    log_error(LOG_DEFAULT, "Cannot assign value to resource `%s'.", r->name);
+                    break;
+            }
             return -1;
         }
 
@@ -1120,16 +1132,18 @@ int resources_load(const char *fname)
 
     do {
         retval = resources_read_item_from_file(f);
-        if (retval == -1) {
-            log_error(LOG_DEFAULT,
-                      "%s: Invalid resource specification at line %d.",
-                      fname, line_num);
-            err = 1;
-        } else
-        if (retval == -2) {
-            log_warning(LOG_DEFAULT,
-                        "%s: Unknown resource specification at line %d.",
-                        fname, line_num);
+        switch (retval) {
+            case RESERR_TYPE_INVALID:
+                    log_error(LOG_DEFAULT,
+                            "%s: Invalid resource specification at line %d.",
+                            fname, line_num);
+                    err = 1;
+                break;
+            case RESERR_UNKNOWN_RESOURCE:
+                    log_warning(LOG_DEFAULT,
+                                "%s: Unknown resource specification at line %d.",
+                                fname, line_num);
+                break;
         }
         line_num++;
     } while (retval != 0);
@@ -1184,6 +1198,39 @@ static void write_resource_item(FILE *f, int num)
         fputs(line, f);
         lib_free(line);
     }
+}
+
+/* check if a resource contains its default value */
+static int resource_item_isdefault(int num)
+{
+    int i1, i2;
+    char *s1, *s2;
+    resource_value_t v;
+
+    switch (resources[num].type) {
+        case RES_INTEGER:
+            v = (resource_value_t) uint_to_void_ptr(*(int *)resources[num].value_ptr);
+            i1 = vice_ptr_to_int(v);
+            i2 = vice_ptr_to_int(resources[num].factory_value);
+            if (i1 == i2) {
+                return 1;
+            }
+            DBG(("%s = (int) default: \"%d\" is: \"%d\"\n", resources[num].name, i2, i1));
+            break;
+        case RES_STRING:
+            v = *resources[num].value_ptr;
+            s1 = (char *)v == NULL ? "" : (char *)v;
+            s2 = (char *)resources[num].factory_value == NULL ? "" : (char *)resources[num].factory_value;
+            if (!strcmp(s1, s2)) {
+                return 1;
+            }
+            DBG(("%s = (string) default: \"%s\" is: \"%s\"\n", resources[num].name, s2, s1));
+            break;
+        default:
+            log_error(LOG_DEFAULT, "Unknown value type for resource `%s'.", resources[num].name);
+            break;
+    }
+    return 0;
 }
 
 /* Save all the resources into file `fname'.  If `fname' is NULL, save them
@@ -1278,7 +1325,10 @@ int resources_save(const char *fname)
     /* Write our current configuration.  */
     fprintf(out_file, "[%s]\n", machine_id);
     for (i = 0; i < num_resources; i++) {
-        write_resource_item(out_file, i);
+        /* only dump into the file what is different to the default config */
+        if (!resource_item_isdefault(i)) {
+            write_resource_item(out_file, i);
+        }
     }
     fprintf(out_file, "\n");
 
@@ -1312,6 +1362,32 @@ int resources_save(const char *fname)
     fclose(out_file);
     lib_free(backup_name);
     lib_free(default_name);
+    return 0;
+}
+
+/* dump ALL resources of the current machine into a file */
+int resources_dump(const char *fname)
+{
+    FILE *out_file;
+    unsigned int i;
+
+    log_message(LOG_DEFAULT, "Dumping %d resources to file `%s'.", num_resources, fname);
+
+    out_file = fopen(fname, MODE_WRITE_TEXT);
+    if (!out_file) {
+        return RESERR_CANNOT_CREATE_FILE;
+    }
+
+    setbuf(out_file, NULL);
+
+    /* Write our current configuration.  */
+    fprintf(out_file, "[%s]\n", machine_id);
+    for (i = 0; i < num_resources; i++) {
+        write_resource_item(out_file, i);
+    }
+    fprintf(out_file, "\n");
+
+    fclose(out_file);
     return 0;
 }
 

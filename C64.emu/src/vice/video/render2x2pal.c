@@ -33,6 +33,13 @@
 #include "types.h"
 #include "video-color.h"
 
+/*
+    YUV to RGB
+
+    R = Y + V
+    G = Y - (0.1953 * U + 0.5078 * V)
+    B = Y + U
+*/
 static inline
 void yuv_to_rgb(SDWORD y, SDWORD u, SDWORD v, SWORD *red, SWORD *grn, SWORD *blu)
 {

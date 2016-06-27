@@ -40,9 +40,6 @@ struct vicii_resources_s {
        IRQ?  */
     int sprite_background_collisions_enabled;
 
-    /* Flag: New or old luminances? */
-    int new_luminances;
-
     /* VIC-II model */
     int model;
 

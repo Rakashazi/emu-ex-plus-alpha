@@ -272,7 +272,7 @@ int c128rom_kernal_setup(void)
 
     /* disable traps before loading the ROM */
     resources_get_int("VirtualDevices", &trapfl);
-    resources_set_int("VirtualDevices", 1);
+    resources_set_int("VirtualDevices", 0);
 
     memcpy(&c128memrom_basic_rom[C128_BASIC_ROM_SIZE], kernal, C128_EDITOR_ROM_SIZE);
     memcpy(z80bios_rom, &kernal[C128_EDITOR_ROM_SIZE], C128_Z80BIOS_ROM_SIZE);

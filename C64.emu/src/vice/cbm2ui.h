@@ -28,9 +28,11 @@
 #ifndef VICE_CBM2UI_H
 #define VICE_CBM2UI_H
 
+extern int cbm2ui_init_early(void);
 extern int cbm2ui_init(void);
 extern void cbm2ui_shutdown(void);
 
+extern int cbm5x0ui_init_early(void);
 extern int cbm5x0ui_init(void);
 extern void cbm5x0ui_shutdown(void);
 

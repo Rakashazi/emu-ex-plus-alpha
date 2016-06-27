@@ -180,16 +180,28 @@ static int set_cia2_model(int val, void *param)
 
 static int set_kernal_revision(int val, void *param)
 {
+    int trapfl;
+
     log_verbose("set_kernal_revision val:%d kernal_revision: %d", val, kernal_revision);
     if(!c64rom_isloaded()) {
         return 0;
     }
+    /* disable device traps before kernal patching */
+    if (machine_class != VICE_MACHINE_VSID) {
+        resources_get_int("VirtualDevices", &trapfl);
+        resources_set_int("VirtualDevices", 0);
+    }
+    /* patch kernal to given revision */
     if ((val != -1) && (patch_rom_idx(val) < 0)) {
         val = -1;
     }
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);
     if (kernal_revision != val) {
         machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    }
+    /* restore traps */
+    if (machine_class != VICE_MACHINE_VSID) {
+        resources_set_int("VirtualDevices", trapfl);
     }
     kernal_revision = val;
     log_verbose("set_kernal_revision new kernal_revision: %d", kernal_revision);

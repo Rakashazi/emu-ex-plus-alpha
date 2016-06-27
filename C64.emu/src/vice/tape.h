@@ -45,6 +45,9 @@
 #define TAPE_CAS_TYPE_DATA 4 /* Data Record */
 #define TAPE_CAS_TYPE_EOF  5 /* End of Tape marker */
 
+#define TAPE_BEHAVIOUR_NORMAL 0 /* tape interrupt is falling-edge triggered, normal tape blocks end with a long and a short pulse */
+#define TAPE_BEHAVIOUR_C16    1 /* tape senses both falling edges and rising edges, normal tape blocks end with a medium and a short pulse */
+
 struct trap_s;
 
 struct tape_image_s {
