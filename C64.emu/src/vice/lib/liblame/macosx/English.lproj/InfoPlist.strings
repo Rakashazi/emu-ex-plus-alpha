@@ -1,6 +1,0 @@
-/* Localized versions of Info.plist keys */
-
-CFBundleName = "LAME";
-CFBundleShortVersionString = "3.97b2";
-CFBundleGetInfoString = "LAME version 3.97b2 LGPL licensed";
-NSHumanReadableCopyright = "LGPL licensed";
