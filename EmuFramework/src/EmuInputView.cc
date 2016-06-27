@@ -135,8 +135,7 @@ void EmuInputView::inputEvent(Input::Event e)
 						restoreMenuFromGame();
 						viewStack.popToRoot();
 						auto &fPicker = *new EmuFilePicker{window(), false};
-						viewStack.useNavView = 0;
-						viewStack.pushAndShow(fPicker, e);
+						viewStack.pushAndShow(fPicker, e, false);
 						return;
 					}
 

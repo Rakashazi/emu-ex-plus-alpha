@@ -660,6 +660,12 @@
 /* Support for The Final Ethernet */
 /* #undef HAVE_TFE */
 
+/* Is the type time_t defined in <time.h>? */
+#define HAVE_TIME_T_IN_TIME_H
+
+/* Is the type time_t defined in <sys/types.h>? */
+/* #undef HAVE_TIME_T_IN_TYPES_H */
+
 /* Define to 1 if you have the `ultoa' function. */
 /* #undef HAVE_ULTOA */
 
