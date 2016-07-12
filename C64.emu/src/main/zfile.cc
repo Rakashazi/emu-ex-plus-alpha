@@ -32,8 +32,8 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 			logErr("opening archive %s with write mode not supported", path);
 			return nullptr;
 		}
-		CallResult res = OK;
-		for(auto &entry : FS::ArchiveIterator{path, res})
+		std::error_code ec{};
+		for(auto &entry : FS::ArchiveIterator{path, ec})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -46,7 +46,7 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 				return GenericIO{entry.moveIO().moveToMapIO()}.moveToFileStream(mode);
 			}
 		}
-		if(res != OK)
+		if(ec)
 		{
 			logErr("error opening archive:%s", path);
 			return nullptr;

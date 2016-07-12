@@ -309,9 +309,6 @@ static void reset()
 
 static void destroy() 
 {
-  char wDir[1024];
-  chdirToMachineBaseDir(wDir, sizeof(wDir));
-
     boardRemoveExternalDevices();
 
     sn76489Destroy(sn76489);
@@ -319,8 +316,6 @@ static void destroy()
     slotManagerDestroy();
     deviceManagerDestroy();
     r800Destroy(r800);
-
-    chdirToPrevWorkingDir(wDir);
 }
 
 static int getRefreshRate()
@@ -375,9 +370,6 @@ int colecoCreate(Machine* machine,
     boardInfo->clearBreakpoint  = r800ClearBreakpoint;
     boardInfo->setDataBus       = r800SetDataBus;
 
-    char wDir[1024];
-    chdirToMachineBaseDir(wDir, sizeof(wDir));
-
     deviceManagerCreate();
 
     boardInit(&r800->systemTime);
@@ -417,8 +409,6 @@ int colecoCreate(Machine* machine,
     for (i = 0; i < 8; i++) {
         slotMapRamPage(0, 0, i);
     }
-
-    chdirToPrevWorkingDir(wDir);
 
     if (success) {
         success = boardInsertExternalDevices();

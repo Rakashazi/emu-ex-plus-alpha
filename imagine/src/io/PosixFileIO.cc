@@ -54,15 +54,15 @@ PosixFileIO::operator GenericIO()
 		return GenericIO{posixIO()};
 }
 
-CallResult PosixFileIO::open(const char *path, uint mode)
+std::error_code PosixFileIO::open(const char *path, uint mode)
 {
 	close();
 	{
 		PosixIO file;
-		auto r = file.open(path, mode);
-		if(r != OK)
+		auto ec = file.open(path, mode);
+		if(ec)
 		{
-			return r;
+			return ec;
 		}
 		new(&posixIO()) PosixIO{std::move(file)};
 		usingMapIO = false;
@@ -72,7 +72,8 @@ CallResult PosixFileIO::open(const char *path, uint mode)
 	if(!(mode & IO::OPEN_WRITE))
 	{
 		BufferMapIO mappedFile;
-		if(openPosixMapIO(mappedFile, posixIO().fd()) == OK)
+		auto ec = openPosixMapIO(mappedFile, posixIO().fd());
+		if(!ec)
 		{
 			//logMsg("switched to mmap mode");
 			posixIO().close();
@@ -88,17 +89,17 @@ CallResult PosixFileIO::open(const char *path, uint mode)
 		advise(0, 0, IO::ADVICE_SEQUENTIAL);
 	}
 
-	return OK;
+	return {};
 }
 
-ssize_t PosixFileIO::read(void *buff, size_t bytes, CallResult *resultOut)
+ssize_t PosixFileIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 {
-	return io().read(buff, bytes, resultOut);
+	return io().read(buff, bytes, ecOut);
 }
 
-ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut)
+ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
 {
-	return io().readAtPos(buff, bytes, offset, resultOut);
+	return io().readAtPos(buff, bytes, offset, ecOut);
 }
 
 const char *PosixFileIO::mmapConst()
@@ -106,19 +107,19 @@ const char *PosixFileIO::mmapConst()
 	return io().mmapConst();
 }
 
-ssize_t PosixFileIO::write(const void *buff, size_t bytes, CallResult *resultOut)
+ssize_t PosixFileIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
 {
-	return io().write(buff, bytes, resultOut);
+	return io().write(buff, bytes, ecOut);
 }
 
-CallResult PosixFileIO::truncate(off_t offset)
+std::error_code PosixFileIO::truncate(off_t offset)
 {
 	return io().truncate(offset);
 }
 
-off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
+off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
-	return io().seek(offset, mode, resultOut);
+	return io().seek(offset, mode, ecOut);
 }
 
 void PosixFileIO::close()

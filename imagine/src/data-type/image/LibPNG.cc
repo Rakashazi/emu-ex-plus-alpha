@@ -65,7 +65,8 @@ CLINK void PNGAPI png_chunk_warning(png_const_structrp png_ptr, png_const_charp 
 static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 {
 	auto &io = *(IO*)png_get_io_ptr(pngPtr);
-	if(io.readAll(data, length) != OK)
+	auto ec = io.readAll(data, length);
+	if(ec)
 	{
 		logErr("error reading png file");
 		png_error(pngPtr, "Read Error");
@@ -108,7 +109,7 @@ static void png_memFree(png_structp png_ptr, png_voidp ptr)
 	mem_free(ptr);
 }
 
-CallResult Png::readHeader(GenericIO io)
+std::error_code Png::readHeader(GenericIO io)
 {
 	//logMsg("reading header from file handle @ %p",stream);
 	
@@ -116,15 +117,15 @@ CallResult Png::readHeader(GenericIO io)
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
 	uchar header[INITIAL_HEADER_READ_BYTES];
-	auto ret = io.readAll(&header, INITIAL_HEADER_READ_BYTES);
-	if(ret != OK)
-		return ret;
+	auto ec = io.readAll(&header, INITIAL_HEADER_READ_BYTES);
+	if(ec)
+		return ec;
 	
 	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)
 	{
 		logErr("error - not a png file");
-		return (INVALID_PARAMETER);
+		return {EINVAL, std::system_category()};
 	}
 
 	png = png_create_read_struct_2 (PNG_LIBPNG_VER_STRING,
@@ -133,7 +134,7 @@ CallResult Png::readHeader(GenericIO io)
 	if (png == NULL)
 	{
 		logErr("error allocating png struct");
-		return (OUT_OF_MEMORY);
+		return {ENOMEM, std::system_category()};
 	}
 
 	//log_mPrintf(LOG_MSG,"creating info struct");
@@ -143,7 +144,7 @@ CallResult Png::readHeader(GenericIO io)
 		logErr("error allocating png info");
 		png_structpp pngStructpAddr = &png;
 		png_destroy_read_struct(pngStructpAddr, (png_infopp)NULL, (png_infopp)NULL);
-		return (OUT_OF_MEMORY);
+		return {ENOMEM, std::system_category()};
 	}
 
 	/*log_mPrintf(LOG_MSG,"creating end info struct");
@@ -164,7 +165,7 @@ CallResult Png::readHeader(GenericIO io)
 		png_infopp pngInfopAddr = &info;
 		//void * pngEndInfopAddr = &data->end;
 		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL/*pngEndInfopAddr*/);
-		return (IO_ERROR);
+		return {EIO, std::system_category()};
 	}
 	
 	//init custom libpng io
@@ -177,7 +178,7 @@ CallResult Png::readHeader(GenericIO io)
 	png_read_info(png, info);
 	
 	//log_mPrintf(LOG_MSG,"finished reading header");
-	return (OK);
+	return {};
 }
 
 void Png::freeImageData()
@@ -282,7 +283,7 @@ void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-CallResult Png::readImage(IG::Pixmap &dest)
+std::error_code Png::readImage(IG::Pixmap &dest)
 {
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
@@ -299,7 +300,7 @@ CallResult Png::readImage(IG::Pixmap &dest)
 		png_structpp pngStructpAddr = &png;
 		png_infopp pngInfopAddr = &info;
 		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL);
-		return (OUT_OF_MEMORY);
+		return {ENOMEM, std::system_category()};
 	}
 	setTransforms(dest.format(), transInfo);
 	
@@ -313,7 +314,7 @@ CallResult Png::readImage(IG::Pixmap &dest)
 		if (setjmp(png_jmpbuf((png_structp)png)))
 		{
 			logErr("error reading image, jumped to setjmp");
-			return (IO_ERROR);
+			return {EIO, std::system_category()};
 		}
 
 		for (int i = 0; i < height; i++)
@@ -335,7 +336,7 @@ CallResult Png::readImage(IG::Pixmap &dest)
 		if (setjmp(png_jmpbuf((png_structp)png)))
 		{
 			logErr("error reading image, jumped to setjmp");
-			return (IO_ERROR);
+			return {EIO, std::system_category()};
 		}
 
 		png_read_image(png, rowPtr);
@@ -346,10 +347,10 @@ CallResult Png::readImage(IG::Pixmap &dest)
 
 	png_infopp pngInfopAddr = &transInfo;
 	png_destroy_info_struct(png, pngInfopAddr);
-	return OK;
+	return {};
 }
 
-CallResult PngFile::write(IG::Pixmap &dest)
+std::error_code PngFile::write(IG::Pixmap &dest)
 {
 	return(png.readImage(dest));
 }
@@ -362,37 +363,34 @@ IG::Pixmap PngFile::lockPixmap()
 
 void PngFile::unlockPixmap() {}
 
-CallResult PngFile::load(GenericIO io)
+std::error_code PngFile::load(GenericIO io)
 {
 	deinit();
 	if(!io)
-		return INVALID_PARAMETER;
-
-	if(png.readHeader(std::move(io)) != OK)
+		return {EINVAL, std::system_category()};
+	auto ec = png.readHeader(std::move(io));
+	if(ec)
 	{
 		logErr("error reading header");
-		return IO_ERROR;
+		return ec;
 	}
-
-	return OK;
+	return {};
 }
 
-CallResult PngFile::load(const char *name)
+std::error_code PngFile::load(const char *name)
 {
 	deinit();
 	if(!string_hasDotExtension(name, "png"))
 	{
 		logErr("suffix doesn't match PNG image");
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
-
 	FileIO io;
-	io.open(name);
-	if(!io)
+	auto ec = io.open(name);
+	if(ec)
 	{
-		return IO_ERROR;
+		return ec;
 	}
-
 	return load(io);
 }
 

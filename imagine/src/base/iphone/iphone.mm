@@ -137,7 +137,7 @@ static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
 	using namespace Input;
 	logMsg("editing ended");
 	//inVKeyboard = 0;
-	auto delegate = moveAndClear(vKeyboardTextDelegate);
+	auto delegate = IG::moveAndClear(vKeyboardTextDelegate);
 	char text[256];
 	string_copy(text, [textField.text UTF8String]);
 	[textField removeFromSuperview];

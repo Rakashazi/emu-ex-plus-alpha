@@ -88,24 +88,11 @@ const char *machineBasePathStr()
 	return machineBasePath.data();
 }
 
-void chdirToMachineBaseDir(char *prevWDir, size_t prevWDirSize)
-{
-	string_copy(prevWDir, FS::current_path().data(), prevWDirSize);
-	FS::current_path(machineBasePathStr());
-	logMsg("changed to machine base path: %s", machineBasePathStr());
-}
-
-void chdirToPrevWorkingDir(char *prevWDir)
-{
-	FS::current_path(prevWDir);
-	logMsg("changed back to: %s", prevWDir);
-}
-
-char cartName[2][512]{};
+FS::FileString cartName[2]{};
 extern RomType currentRomType[2];
-char diskName[2][512]{};
-static char tapeName[512]{};
-char hdName[4][512]{};
+FS::FileString diskName[2]{};
+static FS::FileString tapeName{};
+FS::FileString hdName[4]{};
 
 bool hasMSXTapeExtension(const char *name)
 {
@@ -443,31 +430,39 @@ static bool insertMedia()
 					popup.postError("Error loading Sunrise IDE device");
 				}
 			bdefault:
-				if(strlen(cartName[i])) logMsg("loading ROM %s", cartName[i]);
-				if(strlen(cartName[i]) && !insertROM(cartName[i], i))
+			{
+				bool exists = strlen(cartName[i].data());
+				if(exists)
+					logMsg("loading ROM %s", cartName[i].data());
+				if(exists && !insertROM(cartName[i].data(), i))
 				{
-					popup.printf(3, 1, "Error loading ROM%d:\n%s", i, cartName[i]);
+					popup.printf(3, 1, "Error loading ROM%d:\n%s", i, cartName[i].data());
 					return 0;
 				}
+			}
 		}
 	}
 
 	iterateTimes(2, i)
 	{
-		if(strlen(diskName[i])) logMsg("loading Disk %s", diskName[i]);
-		if(strlen(diskName[i]) && !insertDisk(diskName[i], i))
+		bool exists = strlen(diskName[i].data());
+		if(exists)
+			logMsg("loading Disk %s", diskName[i].data());
+		if(exists && !insertDisk(diskName[i].data(), i))
 		{
-			popup.printf(3, 1, "Error loading Disk%d:\n%s", i, diskName[i]);
+			popup.printf(3, 1, "Error loading Disk%d:\n%s", i, diskName[i].data());
 			return 0;
 		}
 	}
 
 	iterateTimes(4, i)
 	{
-		if(strlen(hdName[i])) logMsg("loading HD %s", hdName[i]);
-		if(strlen(hdName[i]) && !insertDisk(hdName[i], diskGetHdDriveId(i / 2, i % 2)))
+		bool exists = strlen(hdName[i].data());
+		if(exists)
+			logMsg("loading HD %s", hdName[i].data());
+		if(exists && !insertDisk(hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			popup.printf(3, 1, "Error loading Disk%d:\n%s", i, hdName[i]);
+			popup.printf(3, 1, "Error loading Disk%d:\n%s", i, hdName[i].data());
 			return 0;
 		}
 	}
@@ -481,15 +476,15 @@ static bool msxIsInit()
 
 static void clearAllMediaNames()
 {
-	strcpy(cartName[0], "");
-	strcpy(cartName[1], "");
-	strcpy(diskName[0], "");
-	strcpy(diskName[1], "");
-	strcpy(hdName[0], "");
-	strcpy(hdName[1], "");
-	strcpy(hdName[2], "");
-	strcpy(hdName[3], "");
-	strcpy(tapeName, "");
+	cartName[0] = {};
+	cartName[1] = {};
+	diskName[0] = {};
+	diskName[1] = {};
+	hdName[0] = {};
+	hdName[1] = {};
+	hdName[2] = {};
+	hdName[3] = {};
+	tapeName = {};
 }
 
 static void ejectMedia()
@@ -591,11 +586,8 @@ static bool initMachine(const char *machineName)
 	logMsg("loading machine %s", machineName);
 	if(machine)
 		machineDestroy(machine);
-	FS::PathString wDir{};
-	string_copy(wDir, FS::current_path().data());
-	FS::current_path(machineBasePath);
+	FS::current_path(machineBasePathStr());
 	machine = machineCreate(machineName);
-	FS::current_path(wDir);
 	if(!machine)
 	{
 		popup.printf(5, 1, "Error loading machine files for\n\"%s\",\nmake sure they are in:\n%s", machineName, machineBasePath.data());
@@ -610,8 +602,8 @@ static bool getFirstFilenameInZip(const char *zipPath, char *nameOut, uint outBy
 {
 	assert(nameOut);
 	ArchiveIO io{};
-	CallResult res = OK;
-	for(auto &entry : FS::ArchiveIterator{zipPath, res})
+	std::error_code ec{};
+	for(auto &entry : FS::ArchiveIterator{zipPath, ec})
 	{
 		if(entry.type() == FS::file_type::directory)
 		{
@@ -625,7 +617,7 @@ static bool getFirstFilenameInZip(const char *zipPath, char *nameOut, uint outBy
 			return true;
 		}
 	}
-	if(res != OK)
+	if(ec)
 	{
 		logErr("error opening archive:%s", zipPath);
 	}
@@ -647,48 +639,46 @@ static bool getFirstTapeFilenameInZip(const char *zipPath, char *nameOut, uint o
 	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXTapeExtension);
 }
 
-bool insertROM(const char *path, uint slot)
+bool insertROM(const char *name, uint slot)
 {
+	auto path = FS::makePathString(EmuSystem::gamePath(), name);
 	char fileInZipName[256] = "";
-	if(string_hasDotExtension(path, "zip"))
+	if(string_hasDotExtension(path.data(), "zip"))
 	{
-		if(!getFirstROMFilenameInZip(path, fileInZipName, sizeof(fileInZipName)))
+		if(!getFirstROMFilenameInZip(path.data(), fileInZipName, sizeof(fileInZipName)))
 		{
 			popup.postError("No ROM found in zip");
-			return 0;
+			return false;
 		}
 		logMsg("found %s in zip", fileInZipName);
 	}
-
-	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path, strlen(fileInZipName) ? fileInZipName : 0))
+	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), strlen(fileInZipName) ? fileInZipName : 0))
 	{
 		popup.postError("Error loading ROM");
-		return 0;
+		return false;
 	}
-
-	return 1;
+	return true;
 }
 
-bool insertDisk(const char *path, uint slot)
+bool insertDisk(const char *name, uint slot)
 {
+	auto path = FS::makePathString(EmuSystem::gamePath(), name);
 	char fileInZipName[256] = "";
-	if(string_hasDotExtension(path, "zip"))
+	if(string_hasDotExtension(path.data(), "zip"))
 	{
-		if(!getFirstDiskFilenameInZip(path, fileInZipName, sizeof(fileInZipName)))
+		if(!getFirstDiskFilenameInZip(path.data(), fileInZipName, sizeof(fileInZipName)))
 		{
 			popup.postError("No Disk found in zip");
-			return 0;
+			return false;
 		}
 		logMsg("found %s in zip", fileInZipName);
 	}
-
-	if(!diskChange(slot, path, strlen(fileInZipName) ? fileInZipName : 0))
+	if(!diskChange(slot, path.data(), strlen(fileInZipName) ? fileInZipName : 0))
 	{
 		popup.postError("Error loading Disk");
-		return 0;
+		return false;
 	}
-
-	return 1;
+	return true;
 }
 
 void EmuSystem::reset(ResetMode mode)
@@ -696,7 +686,6 @@ void EmuSystem::reset(ResetMode mode)
 	assert(gameIsRunning());
 	fdcActive = 0;
 	//boardInfo.softReset();
-	FS::current_path(EmuSystem::gamePath());
 	boardInfo.destroy();
 	if(!createBoard())
 	{
@@ -747,23 +736,23 @@ static int saveBlueMSXState(const char *filename)
 
 	saveStateSet(state, "pendingInt", pendingInt);
 	saveStateSet(state, "cartType00", currentRomType[0]);
-	if(strlen(cartName[0]))
-		saveStateSetBuffer(state, "cartName00",  cartName[0], strlen(cartName[0]) + 1);
+	if(strlen(cartName[0].data()))
+		saveStateSetBuffer(state, "cartName00",  cartName[0].data(), strlen(cartName[0].data()) + 1);
 	saveStateSet(state, "cartType01", currentRomType[1]);
-	if(strlen(cartName[1]))
-		saveStateSetBuffer(state, "cartName01",  cartName[1], strlen(cartName[1]) + 1);
-	if(strlen(diskName[0]))
-		saveStateSetBuffer(state, "diskName00",  diskName[0], strlen(diskName[0]) + 1);
-	if(strlen(diskName[1]))
-		saveStateSetBuffer(state, "diskName01",  diskName[1], strlen(diskName[1]) + 1);
-	if(strlen(hdName[0]))
-		saveStateSetBuffer(state, "diskName02",  hdName[0], strlen(hdName[0]) + 1);
-	if(strlen(hdName[1]))
-		saveStateSetBuffer(state, "diskName03",  hdName[1], strlen(hdName[1]) + 1);
-	if(strlen(hdName[2]))
-		saveStateSetBuffer(state, "diskName10",  hdName[2], strlen(hdName[2]) + 1);
-	if(strlen(hdName[3]))
-		saveStateSetBuffer(state, "diskName11",  hdName[3], strlen(hdName[3]) + 1);
+	if(strlen(cartName[1].data()))
+		saveStateSetBuffer(state, "cartName01",  cartName[1].data(), strlen(cartName[1].data()) + 1);
+	if(strlen(diskName[0].data()))
+		saveStateSetBuffer(state, "diskName00",  diskName[0].data(), strlen(diskName[0].data()) + 1);
+	if(strlen(diskName[1].data()))
+		saveStateSetBuffer(state, "diskName01",  diskName[1].data(), strlen(diskName[1].data()) + 1);
+	if(strlen(hdName[0].data()))
+		saveStateSetBuffer(state, "diskName02",  hdName[0].data(), strlen(hdName[0].data()) + 1);
+	if(strlen(hdName[1].data()))
+		saveStateSetBuffer(state, "diskName03",  hdName[1].data(), strlen(hdName[1].data()) + 1);
+	if(strlen(hdName[2].data()))
+		saveStateSetBuffer(state, "diskName10",  hdName[2].data(), strlen(hdName[2].data()) + 1);
+	if(strlen(hdName[3].data()))
+		saveStateSetBuffer(state, "diskName11",  hdName[3].data(), strlen(hdName[3].data()) + 1);
 	saveStateClose(state);
 
 	machineSaveState(machine);
@@ -789,6 +778,17 @@ static void closeGameByFailedStateLoad()
 	}
 	// leave any sub menus that may depending on running game state
 	viewStack.popToRoot();
+}
+
+template <typename T>
+static void saveStateGetFileString(SaveState* state, const char* tagName, T &dest)
+{
+	saveStateGetBuffer(state, tagName,  dest.data(), dest.size());
+	if(strlen(dest.data()))
+	{
+		// strip any file path
+		dest = FS::basename(dest);
+	}
 }
 
 static int loadBlueMSXState(const char *filename)
@@ -833,15 +833,15 @@ static int loadBlueMSXState(const char *filename)
 	clearAllMediaNames();
 	SaveState* state = saveStateOpenForRead("board");
 	currentRomType[0] = saveStateGet(state, "cartType00", 0);
-	saveStateGetBuffer(state, "cartName00",  cartName[0], sizeof(cartName[0]));
+	saveStateGetFileString(state, "cartName00",  cartName[0]);
 	currentRomType[1] = saveStateGet(state, "cartType01", 0);
-	saveStateGetBuffer(state, "cartName01",  cartName[1], sizeof(cartName[1]));
-	saveStateGetBuffer(state, "diskName00",  diskName[0], sizeof(diskName[0]));
-	saveStateGetBuffer(state, "diskName01",  diskName[1], sizeof(diskName[1]));
-	saveStateGetBuffer(state, "diskName02",  hdName[0], sizeof(hdName[0]));
-	saveStateGetBuffer(state, "diskName03",  hdName[1], sizeof(hdName[1]));
-	saveStateGetBuffer(state, "diskName10",  hdName[2], sizeof(hdName[2]));
-	saveStateGetBuffer(state, "diskName11",  hdName[3], sizeof(hdName[3]));
+	saveStateGetFileString(state, "cartName01",  cartName[1]);
+	saveStateGetFileString(state, "diskName00",  diskName[0]);
+	saveStateGetFileString(state, "diskName01",  diskName[1]);
+	saveStateGetFileString(state, "diskName02",  hdName[0]);
+	saveStateGetFileString(state, "diskName03",  hdName[1]);
+	saveStateGetFileString(state, "diskName10",  hdName[2]);
+	saveStateGetFileString(state, "diskName11",  hdName[3]);
 	saveStateClose(state);
 
 	if(!insertMedia())
@@ -921,7 +921,7 @@ int EmuSystem::loadGame(const char *path)
 		if(getFirstROMFilenameInZip(path, fileInZipName, sizeof(fileInZipName)))
 		{
 			logMsg("found %s in zip", fileInZipName);
-			strcpy(cartName[0], path);
+			cartName[0] = FS::basename(path);
 			if(!boardChangeCartridge(0, ROM_UNKNOWN, path, fileInZipName))
 			{
 				destroyMSX();
@@ -939,14 +939,14 @@ int EmuSystem::loadGame(const char *path)
 			{
 				logMsg("load disk as HD");
 				int hdId = diskGetHdDriveId(0, 0);
-				strcpy(cartName[0], "Sunrise IDE");
+				string_copy(cartName[0], "Sunrise IDE");
 				if(!boardChangeCartridge(0, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
 					destroyMSX();
 					popup.postError("Error loading Sunrise IDE device");
 					return 0;
 				}
-				strcpy(hdName[0], path);
+				hdName[0] = FS::basename(path);
 				if(!diskChange(hdId, path, fileInZipName))
 				{
 					destroyMSX();
@@ -956,7 +956,7 @@ int EmuSystem::loadGame(const char *path)
 			}
 			else
 			{
-				strcpy(diskName[0], path);
+				diskName[0] = FS::basename(path);
 				if(!diskChange(0, path, fileInZipName))
 				{
 					destroyMSX();
@@ -974,7 +974,7 @@ int EmuSystem::loadGame(const char *path)
 	}
 	else if(hasMSXROMExtension(path))
 	{
-		strcpy(cartName[0], path);// cartType[0] = 0;
+		cartName[0] = FS::basename(path);
 		if(!boardChangeCartridge(0, ROM_UNKNOWN, path, 0))
 		{
 			destroyMSX();
@@ -989,14 +989,14 @@ int EmuSystem::loadGame(const char *path)
 		{
 			logMsg("load disk as HD");
 			int hdId = diskGetHdDriveId(0, 0);
-			strcpy(cartName[0], "Sunrise IDE");
+			string_copy(cartName[0], "Sunrise IDE");
 			if(!boardChangeCartridge(0, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 			{
 				destroyMSX();
 				popup.postError("Error loading Sunrise IDE device");
 				return 0;
 			}
-			strcpy(hdName[0], path);
+			hdName[0] = FS::basename(path);
 			if(!diskChange(hdId, path, 0))
 			{
 				destroyMSX();
@@ -1006,7 +1006,7 @@ int EmuSystem::loadGame(const char *path)
 		}
 		else
 		{
-			strcpy(diskName[0], path);
+			diskName[0] = FS::basename(path);
 			if(!diskChange(0, path, 0))
 			{
 				destroyMSX();

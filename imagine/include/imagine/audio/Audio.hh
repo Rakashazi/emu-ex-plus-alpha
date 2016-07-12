@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/util/audio/PcmFormat.hh>
+#include <system_error>
 
 #if defined CONFIG_AUDIO_ALSA
 #include <imagine/audio/alsa/config.hh>
@@ -48,7 +49,7 @@ struct BufferContext
 
 extern PcmFormat pcmFormat; // the currently playing format
 
-CallResult openPcm(const PcmFormat &format);
+std::error_code openPcm(const PcmFormat &format);
 void closePcm();
 void pausePcm();
 void resumePcm();

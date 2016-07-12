@@ -54,7 +54,8 @@ void initCPUFreqStatus()
 	if(cpuFreqFile)
 		return; // already open
 	const char *cpuFreqPath = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq";
-	if(cpuFreqFile.open(cpuFreqPath) != OK)
+	auto ec = cpuFreqFile.open(cpuFreqPath);
+	if(ec)
 	{
 		logWarn("can't open %s", cpuFreqPath);
 	}

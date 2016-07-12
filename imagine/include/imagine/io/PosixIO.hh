@@ -32,19 +32,19 @@ public:
 	PosixIO(PosixIO &&o);
 	PosixIO &operator=(PosixIO &&o);
 	operator GenericIO();
-	CallResult open(const char *path, uint mode = 0);
-	CallResult create(const char *path, uint mode = 0)
+	std::error_code open(const char *path, uint mode = 0);
+	std::error_code create(const char *path, uint mode = 0)
 	{
 		mode |= OPEN_WRITE | OPEN_CREATE;
 		return open(path, mode);
 	}
 	int fd() const;
 
-	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut) override;
-	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
-	CallResult truncate(off_t offset) override;
-	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut) override;
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) override;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
+	std::error_code truncate(off_t offset) override;
+	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) override;
 	void close() override;
 	void sync() override;
 	size_t size() override;
@@ -60,4 +60,4 @@ protected:
 	PosixIO &operator=(const PosixIO &) = default;
 };
 
-CallResult openPosixMapIO(BufferMapIO &io, int fd);
+std::error_code openPosixMapIO(BufferMapIO &io, int fd);

@@ -130,12 +130,12 @@ static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 	return list;
 }
 
-std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+std::pair<bool, EGLConfig> EGLContextBase::chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	if(eglDisplay() == EGL_NO_DISPLAY)
 	{
 		logErr("unable to get EGL display");
-		return std::make_pair(INVALID_PARAMETER, EGLConfig{});
+		return std::make_pair(false, EGLConfig{});
 	}
 	EGLConfig config;
 	EGLint configs = 0;
@@ -160,11 +160,11 @@ std::pair<CallResult, EGLConfig> EGLContextBase::chooseConfig(GLContextAttribute
 	if(!configs)
 	{
 		logErr("no usable EGL configs found with major version:%u", ctxAttr.majorVersion());
-		return std::make_pair(INVALID_PARAMETER, EGLConfig{});
+		return std::make_pair(false, EGLConfig{});
 	}
 	if(Config::DEBUG_BUILD)
 		printEGLConf(display, config);
-	return std::make_pair(OK, config);
+	return std::make_pair(true, config);
 }
 
 void *GLContext::procAddress(const char *funcName)
@@ -197,12 +197,12 @@ EGLDisplay EGLContextBase::eglDisplay()
 	return display;
 }
 
-CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
+std::error_code EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 {
 	if(eglDisplay() == EGL_NO_DISPLAY)
 	{
 		logErr("unable to get EGL display");
-		return INVALID_PARAMETER;
+		return {ENOENT, std::system_category()};
 	}
 	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
@@ -219,7 +219,7 @@ CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 		{
 			if(Config::DEBUG_BUILD)
 				logErr("error creating context: 0x%X", (int)eglGetError());
-			return INVALID_PARAMETER;
+			return {EINVAL, std::system_category()};
 		}
 	}
 	// TODO: EGL 1.5 or higher supports surfaceless without any extension
@@ -238,7 +238,7 @@ CallResult EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
 			assert(dummyPbuffConfig == config.glConfig);
 		}
 	}
-	return OK;
+	return {};
 }
 
 void EGLContextBase::setCurrentContext(EGLContext context, Window *win)

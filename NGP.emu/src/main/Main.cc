@@ -215,11 +215,8 @@ bool system_io_flash_write(uchar* buffer, uint32 len)
 		return 0;
 	auto saveStr = sprintSaveFilename();
 	logMsg("writing flash %s", saveStr.data());
-	CallResult ret;
-	if((ret = writeToNewFile(saveStr.data(), buffer, len)) == OK)
-		return 1;
-	else
-		return 0;
+	auto ec = writeToNewFile(saveStr.data(), buffer, len);
+	return !ec;
 }
 
 void EmuSystem::saveBackupMem()

@@ -165,23 +165,20 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 	return 0;
 }
 
-static CallResult setupXInput2(Display *dpy)
+static void setupXInput2(Display *dpy)
 {
 	int event, error;
 	if(!XQueryExtension(dpy, "XInputExtension", &xI2opcode, &event, &error))
 	{
 		logErr("XInput extension not available");
-		return INVALID_PARAMETER;
+		::exit(-1);
 	}
-
 	int major = 2, minor = 0;
 	if(XIQueryVersion(dpy, &major, &minor) == BadRequest)
 	{
 		logErr("required XInput 2.0 version not available, server supports %d.%d", major, minor);
-		return INVALID_PARAMETER;
+		::exit(-1);
 	}
-
-	return OK;
 }
 
 static int devIdToPointer(int id)
@@ -272,12 +269,9 @@ static Key keysymToKey(KeySym k)
 	return k <= 0xFFFF ? k : k & 0xEFFF;
 }
 
-CallResult init()
+void init()
 {
-	if(setupXInput2(dpy) != OK)
-	{
-		exit();
-	}
+	setupXInput2(dpy);
 
 	// request input device changes events
 	{
@@ -320,7 +314,6 @@ CallResult init()
 	XIFreeDeviceInfo(device);
 
 	coreKeyboardDesc = XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd);
-	return OK;
 }
 
 void deinit()

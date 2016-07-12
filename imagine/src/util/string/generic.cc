@@ -188,7 +188,7 @@ size_t string_copy(char *dest, const char *src, size_t destSize)
 	return strlcpy(dest, src, destSize);
 	#else
 	size_t srcLen = strlen(src);
-	if(srcLen)
+	if(destSize)
 	{
 		size_t copyBytes = std::min(destSize-1, srcLen);
 		memcpy(dest, src, copyBytes);

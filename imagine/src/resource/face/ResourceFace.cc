@@ -46,7 +46,7 @@ static const uint unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars
 
 static const uint glyphTableEntries = ResourceFace::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
-static CallResult mapCharToTable(uint c, uint &tableIdx);
+static std::error_code mapCharToTable(uint c, uint &tableIdx);
 
 static int charIsDrawableAscii(int c)
 {
@@ -91,7 +91,8 @@ void ResourceFace::freeCaches(uint32 purgeBits)
 			iterateTimesFromStart(2048, firstChar, c)
 			{
 				uint tableIdx;
-				if(mapCharToTable(c, tableIdx) != OK)
+				auto ec = mapCharToTable(c, tableIdx);
+				if(ec)
 				{
 					//logMsg( "%c not a known drawable character, skipping", c);
 					continue;
@@ -218,7 +219,7 @@ void ResourceFace::calcNominalHeight()
 	nominalHeight_ = mGly->metrics.ySize + (gGly->metrics.ySize/2);
 }
 
-CallResult ResourceFace::applySettings(FontSettings set)
+bool ResourceFace::applySettings(FontSettings set)
 {
 	set.process();
 	if(set.pixelWidth < font->minUsablePixels())
@@ -245,16 +246,16 @@ CallResult ResourceFace::applySettings(FontSettings set)
 			bug_exit("couldn't re-allocate glyph table");
 		}
 		calcNominalHeight();
-		return OK;
+		return true;
 	}
 	else
-		return RESOURCE_FACE_SETTINGS_UNCHANGED;
+		return false;
 }
 
 //int ResourceFace::maxDescender () { font->applySize(faceSize); return font->currentFaceDescender(); }
 //int ResourceFace::maxAscender () { font->applySize(faceSize); return font->currentFaceAscender(); }
 
-CallResult ResourceFace::writeCurrentChar(IG::Pixmap &out)
+std::error_code ResourceFace::writeCurrentChar(IG::Pixmap &out)
 {
 	auto src = font->charBitmap();
 	//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
@@ -269,15 +270,15 @@ CallResult ResourceFace::writeCurrentChar(IG::Pixmap &out)
 	out.write(src, {});
 	//memset ( out->data, 0xFF, 16 ); // test by filling with white
 	font->unlockCharBitmap();
-	return OK;
+	return {};
 }
 
-CallResult ResourceFace::cacheChar(int c, int tableIdx)
+std::error_code ResourceFace::cacheChar(int c, int tableIdx)
 {
 	if(glyphTable[tableIdx].metrics.ySize == -1)
 	{
 		// failed to previously cache char
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	GlyphMetrics metrics;
 	// make sure applySize() has been called on the font object first
@@ -285,7 +286,7 @@ CallResult ResourceFace::cacheChar(int c, int tableIdx)
 	{
 		// mark failed attempt
 		glyphTable[tableIdx].metrics.ySize = -1;
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = metrics;
@@ -293,10 +294,10 @@ CallResult ResourceFace::cacheChar(int c, int tableIdx)
 	glyphTable[tableIdx].glyph.init(img, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
-	return OK;
+	return {};
 }
 
-static CallResult mapCharToTable(uint c, uint &tableIdx)
+static std::error_code mapCharToTable(uint c, uint &tableIdx)
 {
 	if(ResourceFace::supportsUnicode)
 	{
@@ -306,40 +307,43 @@ static CallResult mapCharToTable(uint c, uint &tableIdx)
 			if(c < unicodeBmpPrivateStart)
 			{
 				tableIdx = c;
-				return OK;
+				return {};
 			}
 			else if(c > unicodeBmpPrivateEnd)
 			{
 				tableIdx = c - unicodeBmpPrivateChars; // surrogate & private chars are a hole in the table
-				return OK;
+				return {};
 			}
 			else
 			{
-				return INVALID_PARAMETER;
+				return {EINVAL, std::system_category()};
 			}
 		}
-		else return INVALID_PARAMETER;
+		else
+			return {EINVAL, std::system_category()};
 	}
 	else
 	{
 		if(charIsDrawableAscii(c))
 		{
 			tableIdx = c - firstDrawableAsciiChar;
-			return OK;
+			return {};
 		}
-		else return INVALID_PARAMETER;
+		else
+			return {EINVAL, std::system_category()};
 	}
 }
 
 // TODO: update for unicode
-CallResult ResourceFace::precache(const char *string)
+std::error_code ResourceFace::precache(const char *string)
 {
 	assert(settings.areValid());
 	font->applySize(faceSize);
 	for(int i = 0, c = string[i]; c != 0; c = string[++i])
 	{
 		uint tableIdx;
-		if(mapCharToTable(c, tableIdx) != OK)
+		auto ec = mapCharToTable(c, tableIdx);
+		if(ec)
 		{
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
@@ -353,20 +357,22 @@ CallResult ResourceFace::precache(const char *string)
 		logMsg("precaching char %c", c);
 		cacheChar(c, tableIdx);
 	}
-	return OK;
+	return {};
 }
 
 GlyphEntry *ResourceFace::glyphEntry(int c)
 {
 	assert(settings.areValid());
 	uint tableIdx;
-	if(mapCharToTable(c, tableIdx) != OK)
+	auto ec = mapCharToTable(c, tableIdx);
+	if(ec)
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);
 	if(!glyphTable[tableIdx].glyph)
 	{
 		font->applySize(faceSize);
-		if(cacheChar(c, tableIdx) != OK)
+		auto ec = cacheChar(c, tableIdx);
+		if(ec)
 			return nullptr;
 		logMsg("char 0x%X was not in table, cached", c);
 	}
@@ -374,7 +380,7 @@ GlyphEntry *ResourceFace::glyphEntry(int c)
 	return &glyphTable[tableIdx];
 }
 
-CallResult GfxGlyphImage::write(IG::Pixmap &dest)
+std::error_code GfxGlyphImage::write(IG::Pixmap &dest)
 {
 	return face->writeCurrentChar(dest);
 }

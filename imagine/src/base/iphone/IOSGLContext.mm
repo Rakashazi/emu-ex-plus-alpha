@@ -23,7 +23,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace Base
 {
 
-CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig)
+std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig)
 {
 	assert(attr.openGLESAPI());
 	deinit();
@@ -45,10 +45,10 @@ CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig)
 	if(!newContext)
 	{
 		logErr("error creating context");
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	context_ = (void*)CFBridgingRetain(newContext);
-	return OK;
+	return {};
 }
 
 GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)

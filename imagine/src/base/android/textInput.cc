@@ -101,7 +101,7 @@ static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboo
 		return;
 	}
 	setEventsUseOSInputMethod(false);
-	auto delegate = moveAndClear(vKeyboardTextDelegate);
+	auto delegate = IG::moveAndClear(vKeyboardTextDelegate);
 	if(delegate)
 	{
 		if(jStr)

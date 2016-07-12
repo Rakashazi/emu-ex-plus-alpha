@@ -118,12 +118,12 @@ static void init()
 	assert(result == SL_RESULT_SUCCESS);
 }
 
-CallResult openPcm(const PcmFormat &format)
+std::error_code openPcm(const PcmFormat &format)
 {
 	if(player)
 	{
 		logWarn("called openPcm when pcm already on");
-		return OK;
+		return {};
 	}
 	if(unlikely(!isInit()))
 		init();
@@ -158,7 +158,7 @@ CallResult openPcm(const PcmFormat &format)
 	{
 		logErr("CreateAudioPlayer returned 0x%X", (uint)result);
 		player = nullptr;
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 
 	result = (*player)->Realize(player, SL_BOOLEAN_FALSE);
@@ -180,7 +180,7 @@ CallResult openPcm(const PcmFormat &format)
 	(*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
 
 	logMsg("PCM opened");
-	return OK;
+	return {};
 }
 
 void closePcm()

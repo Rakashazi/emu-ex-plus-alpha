@@ -207,7 +207,7 @@ void Window::dispatchDismissRequest()
 
 void Window::dispatchSurfaceChange()
 {
-	onSurfaceChange.callCopy(*this, moveAndClear(surfaceChange));
+	onSurfaceChange.callCopy(*this, IG::moveAndClear(surfaceChange));
 }
 
 void Window::dispatchOnDraw()

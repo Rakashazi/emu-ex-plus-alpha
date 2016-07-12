@@ -52,8 +52,8 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 			if(string_hasDotExtension(info.assetName, "lzma") || hasArchiveExtension(info.assetName))
 			{
 				ArchiveIO io{};
-				CallResult res = OK;
-				for(auto &entry : FS::ArchiveIterator{GenericIO{std::move(file)}, res})
+				std::error_code ec{};
+				for(auto &entry : FS::ArchiveIterator{GenericIO{std::move(file)}, ec})
 				{
 					if(entry.type() == FS::file_type::directory)
 					{
@@ -67,7 +67,7 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 						break;
 					}
 				}
-				if(res != OK)
+				if(ec)
 				{
 					logErr("error opening asset archive:%s", info.assetName);
 					return;

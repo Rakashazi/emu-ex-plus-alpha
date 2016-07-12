@@ -48,19 +48,19 @@ static void setReadSupport(struct archive *arch)
 	archive_read_support_format_zip(arch);
 }
 
-void ArchiveIterator::init(const char *path, CallResult &result)
+void ArchiveIterator::init(const char *path, std::error_code &ec)
 {
 	FileIO file;
-	auto fileRes = file.open(path);
-	if(fileRes != OK)
+	auto fileEC = file.open(path);
+	if(fileEC)
 	{
-		result = fileRes;
+		ec = fileEC;
 		return;
 	}
-	init(GenericIO{std::move(file)}, result);
+	init(GenericIO{std::move(file)}, ec);
 }
 
-void ArchiveIterator::init(GenericIO io, CallResult &result)
+void ArchiveIterator::init(GenericIO io, std::error_code &result)
 {
 	archEntry.arch = {archive_read_new(),
 		[](struct archive *arch)
@@ -156,31 +156,31 @@ void ArchiveIterator::init(GenericIO io, CallResult &result)
 		if(Config::DEBUG_BUILD)
 			logErr("error opening archive:%s", archive_error_string(archEntry.arch.get()));
 		archEntry.arch = {};
-		result = READ_ERROR;
+		result = {EILSEQ, std::system_category()};
 		return;
 	}
-	result = OK;
+	result.clear();
 	++(*static_cast<ArchiveIterator*>(this)); // go to first entry
 }
 
 ArchiveIterator::ArchiveIterator(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	init(path, dummy);
 }
 
-ArchiveIterator::ArchiveIterator(const char *path, CallResult &result)
+ArchiveIterator::ArchiveIterator(const char *path, std::error_code &result)
 {
 	init(path, result);
 }
 
 ArchiveIterator::ArchiveIterator(GenericIO io)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	init(std::move(io), dummy);
 }
 
-ArchiveIterator::ArchiveIterator(GenericIO io, CallResult &result)
+ArchiveIterator::ArchiveIterator(GenericIO io, std::error_code &result)
 {
 	init(std::move(io), result);
 }
@@ -231,7 +231,7 @@ void ArchiveIterator::rewind()
 	auto io = std::move(archEntry.genericIO->io);
 	delete archEntry.genericIO;
 	archEntry.genericIO = nullptr;
-	CallResult dummy;
+	std::error_code dummy;
 	logMsg("re-opening archive");
 	init(std::move(io), dummy);
 }

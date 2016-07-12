@@ -31,6 +31,9 @@
 // const int x = 1; Bar<template_ntype(x)> bar;
 #define template_ntype(var) typeof(var), var
 
+namespace IG
+{
+
 // make and return a copy of the variable, clearing the original
 template <class T>
 static T moveAndClear(T &v)
@@ -38,6 +41,16 @@ static T moveAndClear(T &v)
 	auto temp = std::move(v);
 	v = {};
 	return temp;
+}
+
+template<class T>
+constexpr static void swap(T& a, T& b)
+{
+	T tmp = std::move(a);
+	a = std::move(b);
+	b = std::move(tmp);
+}
+
 }
 
 #endif

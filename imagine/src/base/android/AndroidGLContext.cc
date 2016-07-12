@@ -31,7 +31,7 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBuffer
 		return GLBufferConfig{};
 	}
 	auto configResult = chooseConfig(ctxAttr, attr);
-	if(std::get<CallResult>(configResult) != OK)
+	if(!std::get<bool>(configResult))
 	{
 		return GLBufferConfig{};
 	}
@@ -43,12 +43,9 @@ EGLDisplay EGLContextBase::getDisplay()
 	return eglGetDisplay(EGL_DEFAULT_DISPLAY);
 }
 
-CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
+std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
-	auto result = EGLContextBase::init(attr, config);
-	if(result != OK)
-		return result;
-	return OK;
+	return EGLContextBase::init(attr, config);
 }
 
 void GLContext::deinit()

@@ -24,7 +24,7 @@ int get_line(IO &file, std::string &str)
 
  str.clear();	// or str.resize(0)??
 
- while(file.readAll(&c, sizeof(c)) == OK)
+ while(!file.readAll(&c, sizeof(c)))
  {
   if(c == '\r' || c == '\n' || c == 0)
    return(c);

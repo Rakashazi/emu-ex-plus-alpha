@@ -27,7 +27,7 @@ static void initAllocDev()
 {
 	if(allocDev)
 		return;
-	if(libhardware_dl() != OK)
+	if(!libhardware_dl())
 	{
 		logErr("Incompatible libhardware.so");
 		return;

@@ -454,7 +454,7 @@ private:
 	}
 
 public:
-	void onTapeMediaChange(const char *name)
+	void onTapeMediaChange()
 	{
 		updateTapeText();
 		tapeSlot.compile(projP);
@@ -462,13 +462,14 @@ public:
 
 	void addTapeFilePickerView(Input::Event e)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), false, hasC64TapeExtension, true};
+		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false, hasC64TapeExtension, true};
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
-				if(plugin.tape_image_attach(1, name) == 0)
+				auto path = picker.makePathString(name);
+				if(plugin.tape_image_attach(1, path.data()) == 0)
 				{
-					onTapeMediaChange(name);
+					onTapeMediaChange();
 				}
 				picker.dismiss();
 			});
@@ -498,7 +499,7 @@ private:
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
 						plugin.tape_image_detach(1);
-						onTapeMediaChange("");
+						onTapeMediaChange();
 						popAndShow();
 					});
 				viewStack.pushAndShow(multiChoiceView, e);
@@ -520,7 +521,7 @@ private:
 	}
 
 public:
-	void onROMMediaChange(const char *name)
+	void onROMMediaChange()
 	{
 		updateROMText();
 		romSlot.compile(projP);
@@ -542,13 +543,14 @@ public:
 
 	void addCartFilePickerView(Input::Event e)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), false, hasC64CartExtension, true};
+		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false, hasC64CartExtension, true};
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
-				if(plugin.cartridge_attach_image(systemCartType(currSystem), name) == 0)
+				auto path = picker.makePathString(name);
+				if(plugin.cartridge_attach_image(systemCartType(currSystem), path.data()) == 0)
 				{
-					onROMMediaChange(name);
+					onROMMediaChange();
 				}
 				picker.dismiss();
 			});
@@ -576,7 +578,7 @@ private:
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
 						plugin.cartridge_detach_image(-1);
-						onROMMediaChange("");
+						onROMMediaChange();
 						popAndShow();
 					});
 				viewStack.pushAndShow(multiChoiceView, e);
@@ -605,12 +607,13 @@ private:
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), false, hasC64DiskExtension, true};
+		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false, hasC64DiskExtension, true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
+				auto path = picker.makePathString(name);
 				logMsg("inserting disk in unit %d", slot+8);
-				if(plugin.file_system_attach_disk(slot+8, name) == 0)
+				if(plugin.file_system_attach_disk(slot+8, path.data()) == 0)
 				{
 					onDiskMediaChange(slot);
 				}
@@ -946,7 +949,6 @@ class EmuMenuView : public MenuView
 		{
 			if(!item.active())
 				return;
-			FS::current_path(EmuSystem::gamePath());// Stay in active media's directory
 			auto &c64IoMenu = *new C64IOControlView{window()};
 			viewStack.pushAndShow(c64IoMenu, e);
 		}
@@ -1070,15 +1072,12 @@ class EmuMenuView : public MenuView
 							return 1;
 						}
 						string_copy(newDiskName, str);
-						workDirStack.push();
-						FS::current_path(optionSavePath);
-						auto &fPicker = *new EmuFilePicker{window(), true, {}};
+						auto &fPicker = *new EmuFilePicker{window(), optionSavePath, true, {}};
 						fPicker.setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
+								auto path = FS::makePathStringPrintf("%s/%s.d64", picker.path().data(), newDiskName.data());
 								picker.dismiss();
-								auto path = FS::makePathStringPrintf("%s/%s.d64", FS::current_path().data(), newDiskName.data());
-								workDirStack.pop();
 								if(e.isDefaultCancelButton())
 								{
 									// picker was cancelled

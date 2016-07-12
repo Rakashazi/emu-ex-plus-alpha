@@ -35,7 +35,6 @@ AppWindowData *emuWin = &mainWin;
 ViewStack viewStack{};
 MsgPopup popup{};
 BasicViewController modalViewController{};
-WorkDirStack<1> workDirStack{};
 static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices{};
 #ifdef CONFIG_BLUETOOTH
@@ -45,6 +44,7 @@ BluetoothAdapter *bta{};
 std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 #endif
 static OnMainMenuOptionChanged onMainMenuOptionChanged_{};
+FS::PathString lastLoadPath{};
 
 static const char *assetFilename[] =
 {
@@ -69,7 +69,8 @@ Gfx::PixmapTexture &getAsset(AssetID assetID)
 	if(!res)
 	{
 		PngFile png;
-		if(png.loadAsset(assetFilename[assetID]) != OK)
+		auto ec = png.loadAsset(assetFilename[assetID]);
+		if(ec)
 		{
 			bug_exit("couldn't load %s", assetFilename[assetID]);
 		}
@@ -875,33 +876,30 @@ void handleInputEvent(Base::Window &win, Input::Event e)
 	}
 }
 
-void handleOpenFileCommand(const char *filename)
+void handleOpenFileCommand(const char *path)
 {
-	auto type = FS::status(filename).type();
+	auto type = FS::status(path).type();
 	if(type == FS::file_type::directory)
 	{
-		logMsg("changing to dir %s from external command", filename);
+		logMsg("changing to dir %s from external command", path);
 		restoreMenuFromGame();
-		FS::current_path(filename);
 		viewStack.popToRoot();
-		auto &fPicker = *new EmuFilePicker{mainWin.win, false};
+		string_copy(lastLoadPath, path);
+		auto &fPicker = *EmuFilePicker::makeForLoading(mainWin.win);
 		viewStack.pushAndShow(fPicker, Input::defaultEvent(), false);
 		return;
 	}
-	if(type != FS::file_type::regular || (!hasArchiveExtension(filename) && !EmuSystem::defaultFsFilter(filename)))
+	if(type != FS::file_type::regular || (!hasArchiveExtension(path) && !EmuSystem::defaultFsFilter(path)))
 	{
 		logMsg("unrecognized file type");
 		return;
 	}
-	auto dir = FS::dirname(filename);
-	auto file = FS::basename(filename);
-	FS::current_path(dir);
-	logMsg("opening file %s in dir %s from external command", file.data(), dir.data());
+	logMsg("opening file %s from external command", path);
 	restoreMenuFromGame();
 	viewStack.popToRoot();
 	if(modalViewController.hasView())
 		modalViewController.pop();
-	GameFilePicker::onSelectFile(file.data(), Input::Event{});
+	GameFilePicker::onSelectFile(path, Input::Event{});
 }
 
 void placeEmuViews()
@@ -957,11 +955,10 @@ void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 namespace Base
 {
 
-CallResult onInit(int argc, char** argv)
+void onInit(int argc, char** argv)
 {
 	EmuSystem::onInit();
 	mainInitCommon(argc, argv);
-	return OK;
 }
 
 }

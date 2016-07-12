@@ -160,6 +160,7 @@ extern Byte1Option optionWindowPixelFormat;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
 extern PathOption optionSavePath;
+extern PathOption optionLastLoadPath;
 extern Byte1Option optionCheckSavePathWriteAccess;
 
 extern Byte1Option optionShowBundledGames;

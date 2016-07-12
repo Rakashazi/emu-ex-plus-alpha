@@ -573,7 +573,7 @@ static void setupDevices(JNIEnv* env)
 	}
 }
 
-CallResult init()
+void init()
 {
 	if(Base::androidSDK() >= 12)
 	{
@@ -687,7 +687,6 @@ CallResult init()
 		addDevice(genericKeyDev);
 		builtinKeyboardDev = &genericKeyDev;
 	}
-	return OK;
 }
 
 }

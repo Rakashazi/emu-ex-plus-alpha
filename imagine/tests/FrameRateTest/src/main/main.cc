@@ -140,7 +140,7 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 namespace Base
 {
 
-CallResult onInit(int argc, char** argv)
+void onInit(int argc, char** argv)
 {
 	Base::setOnExit(
 		[](bool backgrounded)
@@ -241,7 +241,6 @@ CallResult onInit(int argc, char** argv)
 		userActivityFaker = std::make_unique<Base::UserActivityFaker>();
 	}
 	#endif
-	return OK;
 }
 
 }

@@ -290,7 +290,7 @@ void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }
 
-CallResult init()
+void init()
 {
 	addDevice(keyDev);
 	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
@@ -313,7 +313,6 @@ CallResult init()
 	#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 	initAppleGameControllers();
 	#endif
-	return OK;
 }
 
 }

@@ -82,8 +82,7 @@ void FSPicker::FSNavView::draw(const Base::Window &win, const Gfx::ProjectionPla
 
 void FSPicker::FSNavView::setTitle(const char *str)
 {
-	string_copy(titleStr, str);
-	NavView::setTitle(titleStr.data());
+	NavView::setTitle(str);
 }
 
 // FSPicker
@@ -112,42 +111,48 @@ void FSPicker::place()
 
 void FSPicker::changeDirByInput(const char *path, bool forcePathChange, Input::Event e)
 {
-	if(setPath(path, forcePathChange, e) != OK && !forcePathChange)
+	auto ec = setPath(path, forcePathChange, e);
+	if(ec && !forcePathChange)
 		return;
 	place();
 	postDraw();
 }
 
+void FSPicker::setOnChangePath(OnChangePathDelegate del)
+{
+	onChangePath_ = del;
+}
+
 void FSPicker::setOnSelectFile(OnSelectFileDelegate del)
 {
-	onSelectFileD = del;
+	onSelectFile_ = del;
 }
 
 void FSPicker::setOnClose(OnCloseDelegate del)
 {
-	onCloseD = del;
+	onClose_ = del;
 }
 
 void FSPicker::onLeftNavBtn(Input::Event e)
 {
-	changeDirByInput("..", true, e);
+	changeDirByInput(FS::dirname(currPath).data(), true, e);
 }
 
 void FSPicker::onRightNavBtn(Input::Event e)
 {
-	onCloseD.callCopy(*this, e);
+	onClose_.callCopy(*this, e);
 }
 
 void FSPicker::setOnPathReadError(OnPathReadError del)
 {
-	onPathReadError = del;
+	onPathReadError_ = del;
 }
 
 void FSPicker::inputEvent(Input::Event e)
 {
 	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
 	{
-		onCloseD.callCopy(*this, e);
+		onClose_.callCopy(*this, e);
 		return;
 	}
 
@@ -155,7 +160,7 @@ void FSPicker::inputEvent(Input::Event e)
 	if(!singleDir && e.state == Input::PUSHED && e.isDefaultLeftButton())
 	{
 		logMsg("going up a dir");
-		changeDirByInput("..", true, e);
+		changeDirByInput(FS::dirname(currPath).data(), true, e);
 	}
 	else if(e.isPointer() && navV.viewRect.overlaps({e.x, e.y}) && !tbl.isDoingScrollGesture())
 	{
@@ -179,20 +184,20 @@ void FSPicker::onAddedToController(Input::Event e)
 	tbl.onAddedToController(e);
 }
 
-CallResult FSPicker::setPath(const char *path, bool forcePathChange, Input::Event e)
+std::error_code FSPicker::setPath(const char *path, bool forcePathChange, Input::Event e)
 {
 	assert(path);
-	CallResult res = OK;
 	{
-		auto dirIt = FS::directory_iterator{path, res};
-		if(res != OK)
+		std::error_code ec{};
+		auto dirIt = FS::directory_iterator{path, ec};
+		if(ec)
 		{
 			logErr("can't open %s", path);
-			onPathReadError.callSafe(*this, res);
+			onPathReadError_.callSafe(*this, ec);
 			if(!forcePathChange)
-				return res;
+				return ec;
 		}
-		FS::current_path(path);
+		string_copy(currPath, path);
 		dir.clear();
 		for(auto &entry : dirIt)
 		{
@@ -210,15 +215,17 @@ CallResult FSPicker::setPath(const char *path, bool forcePathChange, Input::Even
 		text.reserve(dir.size());
 		iterateTimes(dir.size(), i)
 		{
-			bool isDir = FS::status(dir[i].data()).type() == FS::file_type::directory;
+			auto filePath = makePathString(dir[i].data());
+			bool isDir = FS::status(filePath.data()).type() == FS::file_type::directory;
 			if(isDir)
 			{
 				text.emplace_back(dir[i].data(),
 					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						assert(!singleDir);
-						logMsg("going to dir %s", dir[i].data());
-						changeDirByInput(dir[i].data(), false, e);
+						auto filePath = makePathString(dir[i].data());
+						logMsg("going to dir %s", filePath.data());
+						changeDirByInput(filePath.data(), false, e);
 					});
 			}
 			else
@@ -226,7 +233,7 @@ CallResult FSPicker::setPath(const char *path, bool forcePathChange, Input::Even
 				text.emplace_back(dir[i].data(),
 					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
-						onSelectFileD.callCopy(*this, dir[i].data(), e);
+						onSelectFile_.callCopy(*this, dir[i].data(), e);
 					});
 			}
 		}
@@ -235,11 +242,22 @@ CallResult FSPicker::setPath(const char *path, bool forcePathChange, Input::Even
 		tbl.highlightCell(0);
 	else
 		tbl.resetScroll();
-	navV.setTitle(FS::current_path().data());
-	return res;
+	navV.setTitle(currPath.data());
+	onChangePath_.callSafe(*this, currPath, e);
+	return {};
 }
 
-CallResult FSPicker::setPath(const char *path, bool forcePathChange)
+std::error_code FSPicker::setPath(const char *path, bool forcePathChange)
 {
 	return setPath(path, forcePathChange, Input::defaultEvent());
+}
+
+FS::PathString FSPicker::path() const
+{
+	return currPath;
+}
+
+FS::PathString FSPicker::makePathString(const char *base) const
+{
+	return FS::makePathString(currPath.data(), base);
 }

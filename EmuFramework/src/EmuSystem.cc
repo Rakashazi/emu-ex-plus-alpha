@@ -228,7 +228,8 @@ static bool hasWriteAccessToDir(const char *path)
 	{
 		auto testFilePath = FS::makePathStringPrintf("%s/.safe-to-delete-me", path);
 		FileIO testFile;
-		if(testFile.create(testFilePath.data()) != OK)
+		auto ec = testFile.create(testFilePath.data());
+		if(ec)
 		{
 			hasAccess = false;
 		}
@@ -445,14 +446,15 @@ bool EmuSystem::setFrameTime(VideoSystem system, double time)
 	return path;
 }
 
-static const char *loadErrorStr(CallResult res)
+static const char *loadErrorStr(std::error_code ec)
 {
-	switch(res)
+	/*switch(ec.value())
 	{
 		case PERMISSION_DENIED: return "Permission Denied";
 		case READ_ERROR: return "Read Error";
 	}
-	return "IO Error";
+	return "IO Error";*/
+	return strerror(ec.value());
 }
 
 int EmuSystem::loadGameFromPath(FS::PathString path)
@@ -466,8 +468,8 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 	if(hasArchiveExtension(path.data()))
 	{
 		ArchiveIO io{};
-		CallResult res = OK;
-		for(auto &entry : FS::ArchiveIterator{path, res})
+		std::error_code ec{};
+		for(auto &entry : FS::ArchiveIterator{path, ec})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -481,9 +483,9 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 				break;
 			}
 		}
-		if(res != OK)
+		if(ec)
 		{
-			popup.printf(3, true, "Error opening archive: %s", loadErrorStr(res));
+			popup.printf(3, true, "Error opening archive: %s", loadErrorStr(ec));
 			return 0;
 		}
 		if(!io)
@@ -496,11 +498,10 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 	else
 	{
 		FileIO io{};
-		CallResult res = OK;
-		io.open(path, res);
-		if(res != OK)
+		auto ec = io.open(path);
+		if(ec)
 		{
-			popup.printf(3, true, "Error opening file: %s", loadErrorStr(res));
+			popup.printf(3, true, "Error opening file: %s", loadErrorStr(ec));
 			return 0;
 		}
 		return EmuSystem::loadGameFromIO(io, path.data(), path.data());

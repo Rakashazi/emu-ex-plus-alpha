@@ -99,9 +99,6 @@ static void reset()
 }
 
 static void destroy() {
-    char wDir[1024];
-    chdirToMachineBaseDir(wDir, sizeof(wDir));
-
     rtcDestroy(rtc);
 
     boardRemoveExternalDevices();
@@ -115,8 +112,6 @@ static void destroy() {
     deviceManagerDestroy();
 
     r800Destroy(r800);
-
-  chdirToPrevWorkingDir(wDir);
 }
 
 int getPC(){return r800->regs.PC.W;}
@@ -220,9 +215,6 @@ int msxCreate(Machine* machine,
     boardInfo->clearBreakpoint  = r800ClearBreakpoint;
     boardInfo->setDataBus       = r800SetDataBus;
 
-    char wDir[1024];
-    chdirToMachineBaseDir(wDir, sizeof(wDir));
-
     deviceManagerCreate();
     boardInit(&r800->systemTime);
 
@@ -275,8 +267,6 @@ int msxCreate(Machine* machine,
     for (i = 0; i < 8; i++) {
         slotMapRamPage(0, 0, i);
     }
-
-    chdirToPrevWorkingDir(wDir);
 
     if (success) {
         success = boardInsertExternalDevices();

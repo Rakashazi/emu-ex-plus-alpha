@@ -163,12 +163,12 @@ static IG::WindowRect makeWindowRectWithConfig(const WindowConfig &config, ::Win
 	return winRect;
 }
 
-CallResult Window::init(const WindowConfig &config)
+std::error_code Window::init(const WindowConfig &config)
 {
 	if(xWin != None)
 	{
 		// already init
-		return OK;
+		return {};
 	}
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
@@ -205,7 +205,7 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		logErr("error initializing window");
 		deinit();
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	#ifdef CONFIG_BASE_X11_EGL
 	//logMsg("setting up EGL window surface");
@@ -215,7 +215,7 @@ CallResult Window::init(const WindowConfig &config)
 	{
 		logErr("error creating window surface: 0x%X", (int)eglGetError());
 		deinit();
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	#endif
 	logMsg("created window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
@@ -246,7 +246,7 @@ CallResult Window::init(const WindowConfig &config)
 	mainWin = this;
 	#endif
 
-	return OK;
+	return {};
 }
 
 void Window::deinit()

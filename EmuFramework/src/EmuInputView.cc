@@ -134,7 +134,7 @@ void EmuInputView::inputEvent(Input::Event e)
 						logMsg("open load game menu from key event");
 						restoreMenuFromGame();
 						viewStack.popToRoot();
-						auto &fPicker = *new EmuFilePicker{window(), false};
+						auto &fPicker = *EmuFilePicker::makeForLoading(window());
 						viewStack.pushAndShow(fPicker, e, false);
 						return;
 					}

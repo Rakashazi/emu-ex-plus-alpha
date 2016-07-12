@@ -117,9 +117,9 @@ public:
 	bool writeToIO(IO &io)
 	{
 		logMsg("writing option key %u after size %u", KEY, ioSize());
-		CallResult r = OK;
-		io.writeVal(KEY, &r);
-		io.writeVal((SERIALIZED_T)V::get(), &r);
+		std::error_code ec{};
+		io.writeVal(KEY, &ec);
+		io.writeVal((SERIALIZED_T)V::get(), &ec);
 		return true;
 	}
 
@@ -127,8 +127,8 @@ public:
 	{
 		if(!isDefault())
 		{
-			CallResult r = OK;
-			io.writeVal((uint16)ioSize(), &r);
+			std::error_code ec{};
+			io.writeVal((uint16)ioSize(), &ec);
 			writeToIO(io);
 		}
 		return true;
@@ -145,9 +145,9 @@ public:
 			return false;
 		}
 
-		CallResult r = OK;
-		auto x = io.readVal<SERIALIZED_T>(&r);
-		if(r != OK)
+		std::error_code ec{};
+		auto x = io.readVal<SERIALIZED_T>(&ec);
+		if(ec)
 		{
 			logErr("error reading option from io");
 			return false;
@@ -198,10 +198,10 @@ struct PathOption : public OptionBase
 			logMsg("skipping 0 length option string");
 			return 0;
 		}
-		CallResult r = OK;
-		io.writeVal((uint16)(2 + len), &r);
-		io.writeVal((uint16)KEY, &r);
-		io.write(val, len, &r);
+		std::error_code ec{};
+		io.writeVal((uint16)(2 + len), &ec);
+		io.writeVal((uint16)KEY, &ec);
+		io.write(val, len, &ec);
 		return true;
 	}
 
@@ -307,11 +307,11 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 
 	bool writeToIO(IO &io)
 	{
-		CallResult r = OK;
-		io.writeVal((uint16)CFGKEY_GAME_ASPECT_RATIO, &r);
+		std::error_code ec{};
+		io.writeVal((uint16)CFGKEY_GAME_ASPECT_RATIO, &ec);
 		logMsg("writing aspect ratio config %u:%u", val.x, val.y);
-		io.writeVal((uint8)val.x, &r);
-		io.writeVal((uint8)val.y, &r);
+		io.writeVal((uint8)val.x, &ec);
+		io.writeVal((uint8)val.y, &ec);
 		return true;
 	}
 
@@ -341,13 +341,13 @@ struct OptionRecentGames : public OptionBase
 	bool writeToIO(IO &io)
 	{
 		logMsg("writing recent list");
-		CallResult r = OK;
-		io.writeVal(key, &r);
+		std::error_code ec{};
+		io.writeVal(key, &ec);
 		for(auto &e : recentGameList)
 		{
 			uint len = strlen(e.path.data());
-			io.writeVal((uint16)len, &r);
-			io.write(e.path.data(), len, &r);
+			io.writeVal((uint16)len, &ec);
+			io.write(e.path.data(), len, &ec);
 		}
 		return true;
 	}

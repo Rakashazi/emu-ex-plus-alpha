@@ -89,24 +89,18 @@ static bool isDotName(const char *name)
 	return string_equal(name, ".") || string_equal(name, "..");
 }
 
-void DirectoryIteratorImpl::init(const char *path, CallResult &result)
+void DirectoryIteratorImpl::init(const char *path, std::error_code &result)
 {
 	DIR *d = opendir(path);
 	if(!d)
 	{
-		logErr("opendir(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-		}
+		if(Config::DEBUG_BUILD)
+			logErr("opendir(%s) error: %s", path, strerror(errno));
+		result = {errno, std::system_category()};
 		return;
 	}
 	logMsg("opened directory:%s", path);
-	result = OK;
+	result.clear();
 	dir = {d,
 		[](DIR *dir)
 		{
@@ -120,11 +114,11 @@ void DirectoryIteratorImpl::init(const char *path, CallResult &result)
 
 directory_iterator::directory_iterator(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	init(path, dummy);
 }
 
-directory_iterator::directory_iterator(const char *path, CallResult &result)
+directory_iterator::directory_iterator(const char *path, std::error_code &result)
 {
 	init(path, result);
 }
@@ -207,23 +201,18 @@ std::tm file_status::lastWriteTimeLocal() const
 
 PathString current_path()
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return current_path(dummy);
 }
 
-PathString current_path(CallResult &result)
+PathString current_path(std::error_code &result)
 {
 	PathString wDir{};
 	if(!getcwd(wDir.data(), sizeof(wDir)))
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("getcwd error: %s", strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase ENOENT: result = NOT_FOUND;
-		}
+		result = {errno, std::system_category()};
 		return {};
 	}
 	#ifdef __APPLE__
@@ -231,297 +220,199 @@ PathString current_path(CallResult &result)
 	// TODO: make optional when renderer supports decomposed unicode
 	precomposeUnicodeString(wDir.data(), wDir.data(), sizeof(wDir));
 	#endif
-	result = OK;
+	result.clear();
 	return wDir;
 }
 
 void current_path(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	current_path(path, dummy);
 }
 
-void current_path(const char *path, CallResult &result)
+void current_path(const char *path, std::error_code &result)
 {
 	if(chdir(path) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("chdir(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase EIO: result = IO_ERROR;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-		}
+		result = {errno, std::system_category()};
 		return;
 	}
-	result = OK;
+	result.clear();
 }
 
 bool exists(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return exists(path, dummy);
 }
 
-bool exists(const char *path, CallResult &result)
+bool exists(const char *path, std::error_code &result)
 {
 	return access(path, acc::e, result);
 }
 
 std::uintmax_t file_size(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return file_size(path, dummy);
 }
 
-std::uintmax_t file_size(const char *path, CallResult &result)
+std::uintmax_t file_size(const char *path, std::error_code &ec)
 {
-	auto s = status(path, result);
-	if(result != OK)
+	auto s = status(path, ec);
+	if(ec)
 	{
-		return 0;
+		return -1;
 	}
 	if(s.type() != file_type::regular)
 	{
-		result = INVALID_PARAMETER;
-		return 0;
+		ec = {EINVAL, std::system_category()};
+		return -1;
 	}
+	ec.clear();
 	return s.size();
 }
 
 file_status status(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return status(path, dummy);
 }
 
-file_status status(const char *path, CallResult &result)
+file_status status(const char *path, std::error_code &result)
 {
 	struct stat s;
 	if(stat(path, &s) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("stat(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-		}
-		if(result == NOT_FOUND)
+		result = {errno, std::system_category()};
+		if(result.value() == ENOENT)
 			return {file_type::not_found, {}, {}};
 		else
 			return {};
 	}
-	result = OK;
+	result.clear();
 	return {makeFileType(s), (std::uintmax_t)s.st_size, (file_time_type)s.st_mtime};
 }
 
 file_status symlink_status(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return symlink_status(path, dummy);
 }
 
-file_status symlink_status(const char *path, CallResult &result)
+file_status symlink_status(const char *path, std::error_code &result)
 {
 	struct stat s;
 	if(lstat(path, &s) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("lstat(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-		}
-		if(result == NOT_FOUND)
+		result = {errno, std::system_category()};
+		if(result.value() == ENOENT)
 			return {file_type::not_found, {}, {}};
 		else
 			return {};
 	}
-	result = OK;
+	result.clear();
 	return {makeFileType(s), (std::uintmax_t)s.st_size, (file_time_type)s.st_mtime};
 }
 
 void chown(const char *path, uid_t owner, gid_t group)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return chown(path, owner, group, dummy);
 }
 
-void chown(const char *path, uid_t owner, gid_t group, CallResult &result)
+void chown(const char *path, uid_t owner, gid_t group, std::error_code &result)
 {
 	if(::chown(path, owner, group) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("chown(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-			bcase EPERM: result = PERMISSION_DENIED;
-			bcase EROFS: result = PERMISSION_DENIED;
-		}
+		result = {errno, std::system_category()};
 		return;
 	}
-	result = OK;
+	result.clear();
 }
 
 bool access(const char *path, acc type)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return access(path, type, dummy);
 }
 
-bool access(const char *path, acc type, CallResult &result)
+bool access(const char *path, acc type, std::error_code &result)
 {
 	if(::access(path, (int)type) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("access(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase EINVAL: result = INVALID_PARAMETER;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase EIO: result = IO_ERROR;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-			bcase EROFS: result = PERMISSION_DENIED;
-			bcase ETXTBSY: result = PERMISSION_DENIED;
-		}
+		result = {errno, std::system_category()};
 		return false;
 	}
-	result = OK;
+	result.clear();
 	return true;
 }
 
 bool remove(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return remove(path, dummy);
 }
 
-bool remove(const char *path, CallResult &result)
+bool remove(const char *path, std::error_code &result)
 {
 	logErr("removing: %s", path);
 	if(::unlink(path) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("unlink(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EBUSY: result = IO_ERROR;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase EIO: result = IO_ERROR;
-			bcase ENOMEM: result = OUT_OF_MEMORY;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-			bcase EPERM: result = PERMISSION_DENIED;
-			bcase EROFS: result = PERMISSION_DENIED;
-		}
+		result = {errno, std::system_category()};
 		return false;
 	}
-	result = OK;
+	result.clear();
 	return true;
 }
 
 bool create_directory(const char *path)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return create_directory(path, dummy);
 }
 
-bool create_directory(const char *path, CallResult &result)
+bool create_directory(const char *path, std::error_code &result)
 {
 	const mode_t defaultOpenMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 	if(::mkdir(path, defaultOpenMode) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("mkdir(%s) error: %s", path, strerror(errno));
-		result = BAD_STATE;
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EEXIST: result = ALREADY_EXISTS;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase EMLINK: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOSPC: result = NO_FREE_ENTRIES;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-			bcase EROFS: result = PERMISSION_DENIED;
-		}
+		result = {errno, std::system_category()};
 		return false;
 	}
-	result = OK;
+	result.clear();
 	return true;
 }
 
 void rename(const char *oldPath, const char *newPath)
 {
-	CallResult dummy;
+	std::error_code dummy;
 	return rename(oldPath, newPath, dummy);
 }
 
-void rename(const char *oldPath, const char *newPath, CallResult &result)
+void rename(const char *oldPath, const char *newPath, std::error_code &result)
 {
 	if(::rename(oldPath, newPath) == -1)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("rename(%s, %s) error: %s", oldPath, newPath, strerror(errno));
-		switch(errno)
-		{
-			bcase EACCES: result = PERMISSION_DENIED;
-			bcase EBUSY: result = IO_ERROR;
-			bcase EDQUOT: result = NO_FREE_ENTRIES;
-			bcase EFAULT: result = INVALID_PARAMETER;
-			bcase EINVAL: result = INVALID_PARAMETER;
-			bcase EISDIR: result = INVALID_PARAMETER;
-			bcase ELOOP: result = INVALID_PARAMETER;
-			bcase EMLINK: result = INVALID_PARAMETER;
-			bcase ENAMETOOLONG: result = INVALID_PARAMETER;
-			bcase ENOENT: result = NOT_FOUND;
-			bcase ENOSPC: result = NO_FREE_ENTRIES;
-			bcase ENOTDIR: result = INVALID_PARAMETER;
-			bcase EEXIST: result = ALREADY_EXISTS;
-			bcase EROFS: result = PERMISSION_DENIED;
-		}
+		result = {errno, std::system_category()};
 	}
-	result = OK;
+	result.clear();
 }
 
 }

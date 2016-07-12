@@ -353,14 +353,14 @@ static int saveMDState(const char *path)
 	logMsg("saving state data");
 	int size = state_save(stateData);
 	logMsg("writing to file");
-	CallResult ret;
-	if((ret = writeToNewFile(path, stateData, size)) != OK)
+	auto ec = writeToNewFile(path, stateData, size);
+	if(ec)
 	{
 		free(stateData);
 		logMsg("error writing state file");
-		switch(ret)
+		switch(ec.value())
 		{
-			case PERMISSION_DENIED: return STATE_RESULT_NO_FILE_ACCESS;
+			case (int)std::errc::permission_denied: return STATE_RESULT_NO_FILE_ACCESS;
 			default: return STATE_RESULT_IO_ERROR;
 		}
 	}
@@ -372,13 +372,13 @@ static int saveMDState(const char *path)
 static int loadMDState(const char *path)
 {
 	FileIO f;
-	auto ret = f.open(path);
-	if(ret != OK)
+	auto ec = f.open(path);
+	if(ec)
 	{
-		switch(ret)
+		switch(ec.value())
 		{
-			case PERMISSION_DENIED: return STATE_RESULT_NO_FILE_ACCESS;
-			case NOT_FOUND: return STATE_RESULT_NO_FILE;
+			case (int)std::errc::permission_denied: return STATE_RESULT_NO_FILE_ACCESS;
+			case (int)std::errc::no_such_file_or_directory: return STATE_RESULT_NO_FILE;
 			default: return STATE_RESULT_IO_ERROR;
 		}
 	}
@@ -457,7 +457,8 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			}
 			sramPtr = sramTemp;
 		}
-		if(writeToNewFile(saveStr.data(), sramPtr, 0x10000) == IO_ERROR)
+		auto ec = writeToNewFile(saveStr.data(), sramPtr, 0x10000);
+		if(ec)
 			logMsg("error creating sram file");
 	}
 	writeCheatFile();
@@ -628,6 +629,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	if(hasMDCDExtension(fullGamePath()) ||
 		(string_hasDotExtension(path, "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
 	{
+		FS::current_path(gamePath());
 		try
 		{
 			cd = cdaccess_open_image(fullGamePath(), false);

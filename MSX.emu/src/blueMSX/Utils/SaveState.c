@@ -238,6 +238,7 @@ void saveStateGetBuffer(SaveState* state, const char* tagName, void* buffer, UIn
         elemTag = state->buffer[offset++];
         elemLen = state->buffer[offset++];
         if (elemTag == tag) {
+        	fprintf(stderr, "found tag %d with len %d\n", elemTag, elemLen);
             memcpy(buffer, state->buffer + offset, length < elemLen ? length : elemLen);
         }
         offset += (elemLen + sizeof(UInt32) - 1) / sizeof(UInt32);

@@ -38,8 +38,8 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 {
 	if(hasArchiveExtension(path))
 	{
-		CallResult res = OK;
-		for(auto &entry : FS::ArchiveIterator{path, res})
+		std::error_code ec{};
+		for(auto &entry : FS::ArchiveIterator{path, ec})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -61,7 +61,7 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 				return; // success
 			}
 		}
-		if(res != OK)
+		if(ec)
 		{
 			throw MDFN_Error(0, "Error opening archive");
 		}

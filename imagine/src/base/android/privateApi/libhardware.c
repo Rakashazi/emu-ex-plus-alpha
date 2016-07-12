@@ -9,15 +9,15 @@ typedef int (*hw_get_moduleProto)(const char *id, const struct hw_module_t **mod
 
 static hw_get_moduleProto hw_get_moduleSym = 0;
 
-CallResult libhardware_dl()
+bool libhardware_dl()
 {
 	if(hw_get_moduleSym)
-		return OK;
+		return true;
 	void *libhardware = dlopen("libhardware.so", RTLD_LAZY);
 	if(!libhardware)
 	{
 		logErr("libhardware not found");
-		return INVALID_PARAMETER;
+		return false;
 	}
 	hw_get_moduleSym = (hw_get_moduleProto)dlsym(libhardware, "hw_get_module");
 	if(!hw_get_moduleSym)
@@ -25,10 +25,10 @@ CallResult libhardware_dl()
 		logErr("missing libhardware functions");
 		dlclose(libhardware);
 		hw_get_moduleSym = 0;
-		return INVALID_PARAMETER;
+		return false;
 	}
 	logMsg("libhardware symbols loaded");
-	return OK;
+	return true;
 }
 
 int hw_get_module(const char *id, const struct hw_module_t **module)

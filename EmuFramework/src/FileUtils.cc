@@ -17,11 +17,6 @@
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 
-void chdirFromFilePath(const char *path)
-{
-	FS::current_path(FS::dirname(path));
-}
-
 void fixFilePermissions(const char *path)
 {
 	#if defined CONFIG_BASE_IOS

@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-CallResult libhardware_dl();
+bool libhardware_dl();
 
 // hardware/hardware.h
 

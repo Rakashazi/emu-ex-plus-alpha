@@ -19,6 +19,7 @@
 #include <imagine/util/bits.h>
 #include <memory>
 #include <algorithm>
+#include <system_error>
 #include <cstddef>
 #include <cstdio> // for SEEK_*
 
@@ -41,46 +42,46 @@ public:
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) { return ((IO*)this)->readAtPos(buff, bytes, offset, nullptr); }
 	ssize_t write(const void *buff, size_t bytes) { return ((IO*)this)->write(buff, bytes, nullptr); }
 	off_t seek(off_t offset, IODefs::SeekMode mode) { return ((IO*)this)->seek(offset, mode, nullptr); }
-	off_t seekS(off_t offset, CallResult *resultOut) { return ((IO*)this)->seek(offset, SEEK_SET, resultOut); }
-	off_t seekE(off_t offset, CallResult *resultOut) { return ((IO*)this)->seek(offset, SEEK_END, resultOut); }
-	off_t seekC(off_t offset, CallResult *resultOut) { return ((IO*)this)->seek(offset, SEEK_CUR, resultOut); }
+	off_t seekS(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_SET, ecOut); }
+	off_t seekE(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_END, ecOut); }
+	off_t seekC(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_CUR, ecOut); }
 	off_t seekS(off_t offset) { return ((IO*)this)->seek(offset, SEEK_SET); }
 	off_t seekE(off_t offset) { return ((IO*)this)->seek(offset, SEEK_END); }
 	off_t seekC(off_t offset) { return ((IO*)this)->seek(offset, SEEK_CUR); }
 
-	off_t tell(CallResult *resultOut)
+	off_t tell(std::error_code *ecOut)
 	{
-		return ((IO*)this)->seekC(0, resultOut);
+		return ((IO*)this)->seekC(0, ecOut);
 	}
 
 	off_t tell() { return ((IO*)this)->tell(nullptr); }
 
-	CallResult readAll(void *buff, size_t bytes)
+	std::error_code readAll(void *buff, size_t bytes)
 	{
-		CallResult r = OK;
-		auto bytesRead = ((IO*)this)->read(buff, bytes, &r);
+		std::error_code ec{};
+		auto bytesRead = ((IO*)this)->read(buff, bytes, &ec);
 		if(bytesRead != (ssize_t)bytes)
-			return r == OK ? (CallResult)INVALID_PARAMETER : r;
-		return OK;
+			return !ec ? std::error_code{EINVAL, std::system_category()} : ec;
+		return {};
 	}
 
-	CallResult writeAll(void *buff, size_t bytes)
+	std::error_code writeAll(void *buff, size_t bytes)
 	{
-		CallResult r = OK;
-		auto bytesWritten = ((IO*)this)->write(buff, bytes, &r);
+		std::error_code ec{};
+		auto bytesWritten = ((IO*)this)->write(buff, bytes, &ec);
 		if(bytesWritten != (ssize_t)bytes)
-			return r == OK ? (CallResult)INVALID_PARAMETER : r;
-		return OK;
+			return !ec ? std::error_code{EINVAL, std::system_category()} : ec;
+		return {};
 	}
 
 	template <class T>
-	T readVal(CallResult *resultOut)
+	T readVal(std::error_code *ecOut)
 	{
 		T val;
-		if(((IO*)this)->read(&val, sizeof(T), resultOut) != sizeof(T))
+		if(((IO*)this)->read(&val, sizeof(T), ecOut) != sizeof(T))
 		{
-			if(resultOut)
-				*resultOut = IO_ERROR;
+			if(ecOut)
+				*ecOut = {EINVAL, std::system_category()};
 			val = {};
 		}
 		return val;
@@ -93,16 +94,16 @@ public:
 	}
 
 	template <class T>
-	void writeVal(T val, CallResult *resultOut)
+	void writeVal(T val, std::error_code *ecOut)
 	{
-		if(((IO*)this)->write(&val, sizeof(T), resultOut) != sizeof(T))
+		if(((IO*)this)->write(&val, sizeof(T), ecOut) != sizeof(T))
 		{
-			if(resultOut)
-				*resultOut = IO_ERROR;
+			if(ecOut)
+				*ecOut = {EINVAL, std::system_category()};
 		}
 	}
 
-	CallResult writeToIO(IO &io)
+	std::error_code writeToIO(IO &io)
 	{
 		seekS(0);
 		ssize_t bytesToWrite = ((IO*)this)->size();
@@ -110,18 +111,18 @@ public:
 		{
 			char buff[4096];
 			ssize_t bytes = std::min((ssize_t)sizeof(buff), bytesToWrite);
-			auto r = readAll(buff, bytes);
-			if(r != OK)
+			auto ec = readAll(buff, bytes);
+			if(ec)
 			{
-				return r;
+				return ec;
 			}
 			if(io.write(buff, bytes) != bytes)
 			{
-				return IO_ERROR;
+				return {EINVAL, std::system_category()};
 			}
 			bytesToWrite -= bytes;
 		}
-		return OK;
+		return {};
 	}
 };
 
@@ -149,16 +150,16 @@ public:
 	virtual ~IO() = 0;
 
 	// reading
-	virtual ssize_t read(void *buff, size_t bytes, CallResult *resultOut) = 0;
-	virtual ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut);
+	virtual ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) = 0;
+	virtual ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
 	virtual const char *mmapConst() { return nullptr; };
 
 	// writing
-	virtual ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) = 0;
-	virtual CallResult truncate(off_t offset) { return UNSUPPORTED_OPERATION; };
+	virtual ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) = 0;
+	virtual std::error_code truncate(off_t offset) { return {ENOSYS, std::system_category()}; };
 
 	// seeking
-	virtual off_t seek(off_t offset, SeekMode mode, CallResult *resultOut) = 0;
+	virtual off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) = 0;
 
 	// other functions
 	virtual void close() = 0;
@@ -188,12 +189,12 @@ public:
 	IO *release() { return io.release(); }
 	FILE *moveToFileStream(const char *opentype);
 
-	ssize_t read(void *buff, size_t bytes, CallResult *resultOut);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut);
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
 	const char *mmapConst();
-	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut);
-	CallResult truncate(off_t offset);
-	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut);
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
+	std::error_code truncate(off_t offset);
+	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);
 	void close();
 	void sync();
 	size_t size();

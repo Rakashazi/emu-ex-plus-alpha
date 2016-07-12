@@ -47,23 +47,23 @@ const IG::PixelFormat Quartz2dImage::pixelFormat()
 		return hasAlphaChannel() ? IG::PIXEL_FMT_RGBA8888 : IG::PIXEL_FMT_RGB888;
 }
 
-CallResult Quartz2dImage::load(const char *name)
+std::error_code Quartz2dImage::load(const char *name)
 {
 	freeImageData();
 	CGDataProviderRef dataProvider = CGDataProviderCreateWithFilename(name);
 	if(!dataProvider)
 	{
 		logErr("error opening file: %s", name);
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	img = CGImageCreateWithPNGDataProvider(dataProvider, nullptr, 0, kCGRenderingIntentDefault);
 	CGDataProviderRelease(dataProvider);
 	if(!img)
 	{
 		logErr("error creating CGImage from file: %s", name);
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
-	return OK;
+	return {};
 }
 
 bool Quartz2dImage::hasAlphaChannel()
@@ -73,7 +73,7 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-CallResult Quartz2dImage::readImage(IG::Pixmap &dest)
+std::error_code Quartz2dImage::readImage(IG::Pixmap &dest)
 {
 	assert(dest.format() == pixelFormat());
 	int height = this->height();
@@ -84,7 +84,7 @@ CallResult Quartz2dImage::readImage(IG::Pixmap &dest)
 	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);
 	CGContextRelease(context);
-	return OK;
+	return {};
 }
 
 void Quartz2dImage::freeImageData()
@@ -96,7 +96,7 @@ void Quartz2dImage::freeImageData()
 	}
 }
 
-CallResult PngFile::write(IG::Pixmap &dest)
+std::error_code PngFile::write(IG::Pixmap &dest)
 {
 	return(png.readImage(dest));
 }
@@ -109,13 +109,13 @@ IG::Pixmap PngFile::lockPixmap()
 
 void PngFile::unlockPixmap() {}
 
-CallResult PngFile::load(const char *name)
+std::error_code PngFile::load(const char *name)
 {
 	deinit();
 	return png.load(name);
 }
 
-CallResult PngFile::loadAsset(const char *name)
+std::error_code PngFile::loadAsset(const char *name)
 {
 	return load(FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), name).data());
 }

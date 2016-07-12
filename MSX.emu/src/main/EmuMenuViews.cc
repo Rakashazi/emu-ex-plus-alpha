@@ -17,9 +17,9 @@ static void printInstallFirmwareFilesStr(char (&str)[S])
 
 void installFirmwareFiles()
 {
-	CallResult ret;
-	FS::create_directory(machineBasePath, ret);
-	if(ret != OK && ret != ALREADY_EXISTS)
+	std::error_code ec{};
+	FS::create_directory(machineBasePath, ec);
+	if(ec && ec.value() != (int)std::errc::file_exists)
 	{
 		popup.printf(4, 1, "Can't create directory:\n%s", machineBasePath.data());
 		return;
@@ -34,9 +34,9 @@ void installFirmwareFiles()
 	for(auto e : dirsToCreate)
 	{
 		auto pathTemp = FS::makePathStringPrintf("%s/%s", machineBasePath.data(), e);
-		CallResult ret;
-		FS::create_directory(pathTemp, ret);
-		if(ret != OK && ret != ALREADY_EXISTS)
+		std::error_code ec{};
+		FS::create_directory(pathTemp, ec);
+		if(ec && ec.value() != (int)std::errc::file_exists)
 		{
 			popup.printf(4, 1, "Can't create directory:\n%s", pathTemp.data());
 			return;
@@ -69,8 +69,8 @@ void installFirmwareFiles()
 		auto e_i = &e - srcPath;
 		auto pathTemp = FS::makePathStringPrintf("%s/Machines/%s/%s",
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-		CallResult ret = writeIOToNewFile(src, pathTemp.data());
-		if(ret != OK)
+		auto ec = writeIOToNewFile(src, pathTemp.data());
+		if(ec)
 		{
 			popup.printf(4, 1, "Can't write file:\n%s", e);
 			return;
@@ -249,8 +249,7 @@ public:
 
 	void updateHDText(int slot)
 	{
-		string_printf(hdSlotStr[slot], "%s %s", hdSlotPrefix[slot],
-			strlen(hdName[slot]) ? FS::basename(hdName[slot]).data() : "");
+		string_printf(hdSlotStr[slot], "%s %s", hdSlotPrefix[slot], hdName[slot].data());
 	}
 
 	void updateHDStatusFromCartSlot(int cartSlot)
@@ -265,14 +264,14 @@ public:
 
 	void onHDMediaChange(const char *name, int slot)
 	{
-		strcpy(hdName[slot], name);
+		string_copy(hdName[slot], name);
 		updateHDText(slot);
 		hdSlot[slot].compile(projP);
 	}
 
 	void addHDFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), false,
+		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
@@ -292,7 +291,7 @@ public:
 	{
 		if(!item.active())
 			return;
-		if(strlen(hdName[slot]))
+		if(strlen(hdName[slot].data()))
 		{
 			auto &multiChoiceView = *new TextTableView{"Hard Drive", window(), IG::size(insertEjectDiskMenuStr)};
 			multiChoiceView.appendItem(insertEjectDiskMenuStr[0],
@@ -331,13 +330,12 @@ public:
 
 	void updateROMText(int slot)
 	{
-		string_printf(romSlotStr[slot], "%s %s", romSlotPrefix[slot],
-			strlen(cartName[slot]) ? FS::basename(cartName[slot]).data() : "");
+		string_printf(romSlotStr[slot], "%s %s", romSlotPrefix[slot], cartName[slot].data());
 	}
 
 	void onROMMediaChange(const char *name, int slot)
 	{
-		strcpy(cartName[slot], name);
+		string_copy(cartName[slot], name);
 		updateROMText(slot);
 		romSlot[slot].compile(projP);
 		updateHDStatusFromCartSlot(slot);
@@ -345,7 +343,7 @@ public:
 
 	void addROMFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), false,
+		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
@@ -415,20 +413,19 @@ public:
 
 	void updateDiskText(int slot)
 	{
-		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot],
-			strlen(diskName[slot]) ? FS::basename(diskName[slot]).data() : "");
+		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], diskName[slot].data());
 	}
 
 	void onDiskMediaChange(const char *name, int slot)
 	{
-		strcpy(diskName[slot], name);
+		string_copy(diskName[slot], name);
 		updateDiskText(slot);
 		diskSlot[slot].compile(projP);
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), false,
+		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
@@ -445,7 +442,7 @@ public:
 
 	void onSelectDisk(Input::Event e, uint8 slot)
 	{
-		if(strlen(diskName[slot]))
+		if(strlen(diskName[slot].data()))
 		{
 			auto &multiChoiceView = *new TextTableView{"Disk Drive", window(), IG::size(insertEjectDiskMenuStr)};
 			multiChoiceView.appendItem(insertEjectDiskMenuStr[0],
@@ -530,7 +527,6 @@ private:
 		{
 			if(item.active())
 			{
-				FS::current_path(EmuSystem::gamePath());// Stay in active media's directory
 				auto &msxIoMenu = *new MsxIOControlView{window()};
 				viewStack.pushAndShow(msxIoMenu, e);
 			}

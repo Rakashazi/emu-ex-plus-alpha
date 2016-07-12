@@ -19,7 +19,14 @@ OBJCFLAGS += -fobjc-arc
 LDFLAGS_SYSTEM += -fobjc-arc
 
 XCODE_PATH := $(shell xcode-select --print-path)
-OSX_SYSROOT ?= $(XCODE_PATH)/Platforms//MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk
+macosSDKsPath := $(XCODE_PATH)/Platforms/MacOSX.platform/Developer/SDKs
+ifndef OSX_SYSROOT
+ ifdef OSX_SDK
+  OSX_SYSROOT := $(macosSDKsPath)/MacOSX$(IOS_SDK).sdk
+ else
+  OSX_SYSROOT := $(firstword $(wildcard $(macosSDKsPath)/MacOSX*.sdk))
+ endif
+endif
 OSX_FLAGS = -isysroot $(OSX_SYSROOT) -mmacosx-version-min=10.8
 CPPFLAGS += $(OSX_FLAGS)
 LDFLAGS_SYSTEM += $(OSX_FLAGS)
@@ -32,4 +39,3 @@ endif
 
 macportsPath := /opt/local
 macportsPkgconfigPath := $(macportsPath)/lib/pkgconfig
-CPPFLAGS += -I$(macportsPath)/include

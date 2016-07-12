@@ -33,7 +33,7 @@ class Window;
 namespace Input
 {
 
-[[gnu::cold]] CallResult init();
+[[gnu::cold]] void init();
 
 // OS text input support
 typedef DelegateFunc<void (const char *str)> InputTextDelegate;

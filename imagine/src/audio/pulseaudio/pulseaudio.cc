@@ -254,7 +254,7 @@ void writePcm(const void *samples, uint framesToWrite)
 	iterateMainLoop();
 }
 
-static CallResult init()
+static std::error_code init()
 {
 	#ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
 	mainloop = pa_glib_mainloop_new(nullptr);
@@ -269,7 +269,7 @@ static CallResult init()
 	if(!context)
 	{
 		logErr("unable to create context");
-		return IO_ERROR;
+		return {EIO, std::system_category()};
 	}
 	auto unrefContext = IG::scopeGuard([](){
 		pa_context_unref(context);
@@ -294,7 +294,7 @@ static CallResult init()
 	if(pa_context_connect(context, nullptr, PA_CONTEXT_NOFLAGS, nullptr) < 0)
 	{
 		logErr("unable to connect context");
-		return IO_ERROR;
+		return {EIO, std::system_category()};
 	}
 	lockMainLoop();
 	startMainLoop();
@@ -305,26 +305,26 @@ static CallResult init()
 		logErr("context connection failed");
 		unlockMainLoop();
 		stopMainLoop();
-		return IO_ERROR;
+		return {EIO, std::system_category()};
 	}
 	unlockMainLoop();
 	unrefContext.cancel();
 	freeMain.cancel();
-	return OK;
+	return {};
 }
 
-CallResult openPcm(const PcmFormat &format)
+std::error_code openPcm(const PcmFormat &format)
 {
 	if(isOpen())
 	{
 		logMsg("audio already open");
-		return OK;
+		return {};
 	}
 	if(unlikely(!context))
 	{
-		auto res = init();
-		if(res != OK)
-			return res;
+		auto ec = init();
+		if(ec)
+			return ec;
 	}
 	pcmFormat = format;
 	pa_sample_spec spec {(pa_sample_format_t)0};
@@ -339,7 +339,7 @@ CallResult openPcm(const PcmFormat &format)
 	{
 		logErr("error creating stream");
 		pa_proplist_free(props);
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	pa_proplist_free(props);
 	pa_stream_state_t finalState = PA_STREAM_FAILED;
@@ -369,7 +369,7 @@ CallResult openPcm(const PcmFormat &format)
 	{
 		logErr("error connecting playback stream");
 		closePcm();
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	waitMainLoop();
 	pa_stream_set_state_callback(stream, nullptr, nullptr);
@@ -377,14 +377,14 @@ CallResult openPcm(const PcmFormat &format)
 	{
 		logErr("error connecting playback stream async");
 		closePcm();
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	auto serverAttr = pa_stream_get_buffer_attr(stream);
 	unlockMainLoop();
 	assert(serverAttr);
 	isCorked = false;
 	logMsg("opened stream with target fill bytes: %d", serverAttr->tlength);
-	return OK;
+	return {};
 }
 
 void closePcm()

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <vector>
+#include <system_error>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
@@ -34,9 +35,10 @@ class FSPicker : public View
 {
 public:
 	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
-	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char* name, Input::Event e)>;
+	using OnChangePathDelegate = DelegateFunc<void (FSPicker &picker, FS::PathString path, Input::Event e)>;
+	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char *name, Input::Event e)>;
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
-	using OnPathReadError = DelegateFunc<void (FSPicker &picker, CallResult res)>;
+	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
 	static constexpr bool needsUpDirControl = !Config::envIsPS3;
 
 	FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
@@ -45,33 +47,35 @@ public:
 	void inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override;
+	void setOnChangePath(OnChangePathDelegate del);
 	void setOnSelectFile(OnSelectFileDelegate del);
 	void setOnClose(OnCloseDelegate del);
+	void setOnPathReadError(OnPathReadError del);
 	void onLeftNavBtn(Input::Event e);
 	void onRightNavBtn(Input::Event e);
-	void setOnPathReadError(OnPathReadError del);
-	CallResult setPath(const char *path, bool forcePathChange, Input::Event e);
-	CallResult setPath(const char *path, bool forcePathChange);
-	CallResult setPath(FS::PathString path, bool forcePathChange, Input::Event e)
+	std::error_code setPath(const char *path, bool forcePathChange, Input::Event e);
+	std::error_code setPath(const char *path, bool forcePathChange);
+	std::error_code setPath(FS::PathString path, bool forcePathChange, Input::Event e)
 	{
 		return setPath(path.data(), forcePathChange, e);
 	}
-	CallResult setPath(FS::PathString path, bool forcePathChange)
+	std::error_code setPath(FS::PathString path, bool forcePathChange)
 	{
 		return setPath(path.data(), forcePathChange);
 	}
+	FS::PathString path() const;
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void clearSelection() override
 	{
 		tbl.clearSelection();
 	}
+	FS::PathString makePathString(const char *base) const;
 
 protected:
 	class FSNavView : public BasicNavView
 	{
 	public:
 		FSPicker &inst;
-		FS::PathString titleStr{};
 
 		FSNavView(FSPicker &inst): inst(inst) {}
 		void onLeftNavBtn(Input::Event e) override
@@ -89,17 +93,19 @@ protected:
 
 	FilterFunc filter{};
 	TableView tbl;
-	OnSelectFileDelegate onSelectFileD{};
-	OnCloseDelegate onCloseD
+	OnChangePathDelegate onChangePath_{};
+	OnSelectFileDelegate onSelectFile_{};
+	OnCloseDelegate onClose_
 	{
 		[](FSPicker &picker, Input::Event e)
 		{
 			picker.dismiss();
 		}
 	};
-	OnPathReadError onPathReadError{};
+	OnPathReadError onPathReadError_{};
 	std::vector<TextMenuItem> text{};
 	std::vector<FS::FileString> dir{};
+	FS::PathString currPath{};
 	IG::WindowRect viewFrame{};
 	ResourceFace *faceRes{};
 	FSNavView navV{*this};

@@ -70,20 +70,12 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 		"Select File",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			workDirStack.push();
-			chdirFromFilePath(biosPathStr->data());
-			auto &fPicker = *new EmuFilePicker{window(), false, fsFilter};
+			auto &fPicker = *new EmuFilePicker{window(), FS::dirname(*biosPathStr).data(), false, fsFilter};
 			fPicker.setOnSelectFile(
 				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
-					onSelectFile(name, e);
+					onSelectFile(picker.makePathString(name), e);
 					picker.dismiss();
-				});
-			fPicker.setOnClose(
-				[](FSPicker &picker, Input::Event e)
-				{
-					picker.dismiss();
-					workDirStack.pop();
 				});
 			modalViewController.pushAndShow(fPicker, e);
 		}
@@ -106,12 +98,10 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 	assert(biosPathStr);
 }
 
-void BiosSelectMenu::onSelectFile(const char* name, Input::Event e)
+void BiosSelectMenu::onSelectFile(FS::PathString path, Input::Event e)
 {
-	logMsg("size %d", (int)sizeof(*biosPathStr));
-	string_printf(*biosPathStr, "%s/%s", FS::current_path().data(), name);
-	if(onBiosChangeD) onBiosChangeD();
-	workDirStack.pop();
+	*biosPathStr = path;
+	onBiosChangeD.callSafe();
 	viewStack.popAndShow();
 }
 
@@ -276,12 +266,11 @@ public:
 
 	constexpr SavePathSelectMenu() {}
 
-	void onClose(Input::Event e)
+	void onClose(FSPicker &picker, Input::Event e)
 	{
-		snprintf(optionSavePath, sizeof(FS::PathString), "%s", FS::current_path().data());
+		EmuSystem::savePath_ = picker.path();
 		logMsg("set save path %s", (char*)optionSavePath);
-		if(onPathChange) onPathChange(optionSavePath);
-		workDirStack.pop();
+		onPathChange.callSafe(optionSavePath);
 	}
 
 	void init(Input::Event e)
@@ -290,13 +279,11 @@ public:
 		multiChoiceView.appendItem("Set Custom Path",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				workDirStack.push();
-				FS::current_path(optionSavePath);
-				auto &fPicker = *new EmuFilePicker{mainWin.win, true, {}};
+				auto &fPicker = *new EmuFilePicker{mainWin.win, optionSavePath, true, {}};
 				fPicker.setOnClose(
 					[this](FSPicker &picker, Input::Event e)
 					{
-						onClose(e);
+						onClose(picker, e);
 						picker.dismiss();
 						viewStack.popAndShow();
 					});
@@ -308,7 +295,7 @@ public:
 				auto onPathChange = this->onPathChange;
 				viewStack.popAndShow();
 				strcpy(optionSavePath, "");
-				if(onPathChange) onPathChange("");
+				onPathChange.callSafe("");
 			});
 		multiChoiceView.appendItem("Default",
 			[this]()
@@ -316,7 +303,7 @@ public:
 				auto onPathChange = this->onPathChange;
 				viewStack.popAndShow();
 				strcpy(optionSavePath, optionSavePathDefaultToken);
-				if(onPathChange) onPathChange(optionSavePathDefaultToken);
+				onPathChange.callSafe(optionSavePathDefaultToken);
 			});
 		viewStack.pushAndShow(multiChoiceView, e);
 	}
@@ -550,12 +537,11 @@ public:
 	}
 } frameRateSelectMenu;
 
-void FirmwarePathSelector::onClose(Input::Event e)
+void FirmwarePathSelector::onClose(FSPicker &picker, Input::Event e)
 {
-	snprintf(optionFirmwarePath, sizeof(FS::PathString), "%s", FS::current_path().data());
+	snprintf(optionFirmwarePath, sizeof(FS::PathString), "%s", picker.path().data());
 	logMsg("set firmware path %s", (char*)optionFirmwarePath);
-	if(onPathChange) onPathChange(optionFirmwarePath);
-	workDirStack.pop();
+	onPathChange.callSafe(optionFirmwarePath);
 }
 
 void FirmwarePathSelector::init(const char *name, Input::Event e)
@@ -565,13 +551,11 @@ void FirmwarePathSelector::init(const char *name, Input::Event e)
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			viewStack.popAndShow();
-			workDirStack.push();
-			FS::current_path(optionFirmwarePath);
-			auto &fPicker = *new EmuFilePicker{mainWin.win, true, {}};
+			auto &fPicker = *new EmuFilePicker{mainWin.win, optionFirmwarePath, true, {}};
 			fPicker.setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{
-					onClose(e);
+					onClose(picker, e);
 					picker.dismiss();
 				});
 			modalViewController.pushAndShow(fPicker, e);
@@ -581,7 +565,7 @@ void FirmwarePathSelector::init(const char *name, Input::Event e)
 		{
 			viewStack.popAndShow();
 			strcpy(optionFirmwarePath, "");
-			if(onPathChange) onPathChange("");
+			onPathChange.callSafe("");
 		});
 	viewStack.pushAndShow(multiChoiceView, e);
 }

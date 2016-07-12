@@ -18,6 +18,7 @@
 #include <ctime>
 #include <memory>
 #include <array>
+#include <system_error>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -64,7 +65,7 @@ protected:
 	std::shared_ptr<DIR> dir{};
 	DirectoryEntryImpl entry{};
 
-	void init(const char *path, CallResult &result);
+	void init(const char *path, std::error_code &result);
 };
 
 };

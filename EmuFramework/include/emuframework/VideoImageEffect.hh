@@ -19,6 +19,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/RenderTarget.hh>
 #include <imagine/pixmap/Pixmap.hh>
+#include <system_error>
 
 class VideoImageEffect
 {
@@ -48,7 +49,7 @@ private:
 	void initRenderTargetTexture();
 	void updateProgramUniforms();
 	void compile(bool isExternalTex);
-	CallResult compileEffect(EffectDesc desc, bool isExternalTex, bool useFallback, ErrorMessage *msg);
+	std::system_error compileEffect(EffectDesc desc, bool isExternalTex, bool useFallback);
 	void deinitProgram();
 
 public:

@@ -204,8 +204,5 @@ int  boardGetVideoAutodetect();
 
 void boardSetPeriodicCallback(BoardTimerCb cb, void* reference, UInt32 frequency);
 
-void chdirToMachineBaseDir(char *prevWDir, size_t prevWDirSize);
-void chdirToPrevWorkingDir(char *prevWDir);
-
 #endif /* BOARD_H */
 

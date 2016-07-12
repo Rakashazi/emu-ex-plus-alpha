@@ -543,7 +543,8 @@ CallResult init(IG::PixelFormat pixelFormat)
 		glAttr.setMajorVersion(3);
 		glAttr.setMinorVersion(3);
 		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-		if(gfxContext.init(glAttr, gfxBufferConfig) != OK)
+		auto ec = gfxContext.init(glAttr, gfxBufferConfig);
+		if(ec)
 		{
 			logMsg("3.3 context not supported");
 		}
@@ -556,7 +557,8 @@ CallResult init(IG::PixelFormat pixelFormat)
 		glAttr.setMajorVersion(1);
 		glAttr.setMinorVersion(3);
 		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-		if(gfxContext.init(glAttr, gfxBufferConfig) != OK)
+		auto ec = gfxContext.init(glAttr, gfxBufferConfig);
+		if(ec)
 		{
 			logMsg("1.3 context not supported");
 		}

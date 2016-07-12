@@ -263,6 +263,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 			return 0;
 		}
 		CDInterfaces.reserve(1);
+		FS::current_path(gamePath());
 		try
 		{
 			CDInterfaces.push_back(CDIF_Open(fullGamePath(), false, false));

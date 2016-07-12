@@ -72,17 +72,17 @@ void writeCheatFile()
 	}
 	logMsg("writing cheats file %s", filename.data());
 
-	CallResult r;
+	std::error_code ec{};
 	int version = 0;
-	file.writeVal((uint8)version, &r);
-	file.writeVal((uint16)cheatList.size(), &r);
+	file.writeVal((uint8)version, &ec);
+	file.writeVal((uint16)cheatList.size(), &ec);
 	for(auto &e : cheatList)
 	{
-		file.writeVal((uint8)e.flags, &r);
-		file.writeVal((uint16)strlen(e.name), &r);
-		file.write(e.name, strlen(e.name), &r);
-		file.writeVal((uint8)strlen(e.code), &r);
-		file.write(e.code, strlen(e.code), &r);
+		file.writeVal((uint8)e.flags, &ec);
+		file.writeVal((uint16)strlen(e.name), &ec);
+		file.write(e.name, strlen(e.name), &ec);
+		file.writeVal((uint8)strlen(e.code), &ec);
+		file.write(e.code, strlen(e.code), &ec);
 	}
 	cheatsModified = 0;
 }

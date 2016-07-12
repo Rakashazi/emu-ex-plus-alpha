@@ -253,7 +253,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"Load Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &fPicker = *new EmuFilePicker{window(), false};
+			auto &fPicker = *EmuFilePicker::makeForLoading(window());
 			pushAndShow(fPicker, e, false);
 		}
 	},
@@ -650,7 +650,6 @@ void loadGameCompleteFromRecentItem(uint result, Input::Event e)
 
 void RecentGameInfo::handleMenuSelection(TextMenuItem &, Input::Event e)
 {
-	FS::current_path(FS::dirname(path));
 	EmuSystem::onLoadGameComplete() =
 		[](uint result, Input::Event e)
 		{

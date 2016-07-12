@@ -22,8 +22,9 @@
 class EmuFilePicker : public FSPicker
 {
 public:
-	EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::NameFilterFunc filter = EmuSystem::defaultFsFilter, bool singleDir = false);
+	EmuFilePicker(Base::Window &win, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir = false);
 	static EmuFilePicker *makeForBenchmarking(Base::Window &win, bool singleDir = false);
+	static EmuFilePicker *makeForLoading(Base::Window &win, bool singleDir = false);
 	void inputEvent(Input::Event e) override;
 };
 

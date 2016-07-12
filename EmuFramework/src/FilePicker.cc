@@ -56,7 +56,7 @@ bool hasArchiveExtension(const char *name)
 		string_hasDotExtension(name, "zip");
 }
 
-EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir):
+EmuFilePicker::EmuFilePicker(Base::Window &win, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir):
 	FSPicker
 	{
 		win,
@@ -83,30 +83,37 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, bool pickingDir, EmuSystem::Name
 	}
 {
 	setOnPathReadError(
-		[](FSPicker &, CallResult res)
+		[](FSPicker &, std::error_code ec)
 		{
-			switch(res)
+			switch(ec.value())
 			{
-				bcase PERMISSION_DENIED: popup.postError("Permission denied reading directory");
-				bcase NOT_FOUND: popup.postError("Directory not found");
-				bcase INVALID_PARAMETER: popup.postError("Not a directory");
+				bcase (int)std::errc::permission_denied: popup.postError("Permission denied reading directory");
+				bcase (int)std::errc::no_such_file_or_directory: popup.postError("Directory not found");
+				bcase (int)std::errc::invalid_argument: popup.postError("Not a directory");
 				bdefualt: popup.postError("Unknown error reading directory");
 			}
 		});
-	if(setPath(FS::current_path().data(), false) != OK)
+	bool setDefaultPath = true;
+	if(strlen(startingPath))
 	{
-		setPath(Base::storagePath(), true);
-	}
-	setOnSelectFile(
-		[this](FSPicker &, const char *name, Input::Event e)
+		auto ec = setPath(startingPath, false);
+		if(!ec)
 		{
-			GameFilePicker::onSelectFile(name, e);
-		});
+			setDefaultPath = false;
+		}
+	}
+	if(setDefaultPath)
+		setPath(Base::storagePath(), true);
 }
 
 EmuFilePicker *EmuFilePicker::makeForBenchmarking(Base::Window &win, bool singleDir)
 {
-	auto picker = new EmuFilePicker{win, false, EmuSystem::defaultBenchmarkFsFilter, singleDir};
+	auto picker = new EmuFilePicker{win, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, singleDir};
+	picker->setOnChangePath(
+		[](FSPicker &, FS::PathString path, Input::Event)
+		{
+			lastLoadPath = path;
+		});
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
@@ -115,7 +122,7 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(Base::Window &win, bool single
 				{
 					loadGameCompleteFromBenchmarkFilePicker(result, e);
 				};
-			auto res = EmuSystem::loadGameFromPath(FS::makePathString(name));
+			auto res = EmuSystem::loadGameFromPath(picker.makePathString(name));
 			if(res == 1)
 			{
 				loadGameCompleteFromBenchmarkFilePicker(1, e);
@@ -128,10 +135,33 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(Base::Window &win, bool single
 	return picker;
 }
 
+EmuFilePicker *EmuFilePicker::makeForLoading(Base::Window &win, bool singleDir)
+{
+	auto picker = new EmuFilePicker{win, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, singleDir};
+	picker->setOnChangePath(
+		[](FSPicker &, FS::PathString path, Input::Event)
+		{
+			lastLoadPath = path;
+		});
+	picker->setOnSelectFile(
+		[](FSPicker &picker, const char *name, Input::Event e)
+		{
+			GameFilePicker::onSelectFile(picker.makePathString(name).data(), e);
+		});
+	return picker;
+}
+
 void loadGameComplete(bool tryAutoState, bool addToRecent)
 {
 	if(tryAutoState)
+	{
 		EmuSystem::loadAutoState();
+		if(!EmuSystem::gameIsRunning())
+		{
+			logErr("game was closed while trying to load auto-state");
+			return;
+		}
+	}
 	if(addToRecent)
 		recent_addGame();
 	startGameFromMenu();
@@ -203,7 +233,7 @@ void EmuFilePicker::inputEvent(Input::Event e)
 	{
 		if(e.isDefaultCancelButton())
 		{
-			onCloseD.callCopy(*this, e);
+			onClose_.callCopy(*this, e);
 			return;
 		}
 

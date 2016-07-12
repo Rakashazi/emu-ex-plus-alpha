@@ -47,14 +47,14 @@ AAssetIO::operator GenericIO()
 	return GenericIO{*this};
 }
 
-CallResult AAssetIO::open(const char *name)
+std::error_code AAssetIO::open(const char *name)
 {
 	logMsg("opening asset %s", name);
 	asset = AAssetManager_open(Base::activityAAssetManager(), name, AASSET_MODE_BUFFER);
 	if(!asset)
 	{
 		logErr("error in AAssetManager_open");
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 
 	// try to get a memory mapping
@@ -67,18 +67,18 @@ CallResult AAssetIO::open(const char *name)
 		mapIO.open(buff, size);
 		logMsg("mapped into memory");
 	}
-	return OK;
+	return {};
 }
 
-ssize_t AAssetIO::read(void *buff, size_t bytes, CallResult *resultOut)
+ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 {
 	if(mapIO)
-		return mapIO.read(buff, bytes, resultOut);
+		return mapIO.read(buff, bytes, ecOut);
 	auto bytesRead = AAsset_read(asset, buff, bytes);
 	if(bytesRead < 0)
 	{
-		if(resultOut)
-			*resultOut = READ_ERROR;
+		if(ecOut)
+			*ecOut = {EIO, std::system_category()};
 		return -1;
 	}
 	return bytesRead;
@@ -91,29 +91,23 @@ const char *AAssetIO::mmapConst()
 	else return nullptr;
 }
 
-ssize_t AAssetIO::write(const void *buff, size_t bytes, CallResult *resultOut)
+ssize_t AAssetIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
 {
-	if(resultOut)
-		*resultOut = UNSUPPORTED_OPERATION;
+	if(ecOut)
+		*ecOut = {ENOSYS, std::system_category()};
 	return -1;
 }
 
-off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
+off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
 	if(mapIO)
-		return mapIO.seek(offset, mode, resultOut);
-	if(!isSeekModeValid(mode))
-	{
-		bug_exit("invalid seek mode: %u", mode);
-		if(resultOut)
-			*resultOut = INVALID_PARAMETER;
-		return -1;
-	}
+		return mapIO.seek(offset, mode, ecOut);
+	assumeExpr(isSeekModeValid(mode));
 	auto newPos = AAsset_seek(asset, offset, mode);
 	if(newPos < 0)
 	{
-		if(resultOut)
-			*resultOut = IO_ERROR;
+		if(ecOut)
+			*ecOut = {EINVAL, std::system_category()};;
 		return -1;
 	}
 	return newPos;

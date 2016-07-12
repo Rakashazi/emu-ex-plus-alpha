@@ -4,6 +4,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/pixmap/PixelFormat.hh>
+#include <system_error>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XGLContext.hh>
@@ -117,7 +118,7 @@ public:
 	enum API {OPENGL_API, OPENGL_ES_API};
 
 	constexpr GLContext() {}
-	CallResult init(GLContextAttributes attr, GLBufferConfig config);
+	std::error_code init(GLContextAttributes attr, GLBufferConfig config);
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
 	void deinit();

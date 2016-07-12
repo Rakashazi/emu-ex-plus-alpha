@@ -144,7 +144,7 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAt
 	return conf;
 }
 
-CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
+std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
 	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
@@ -153,7 +153,7 @@ CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 	if(!context)
 	{
 		logErr("can't find a compatible context");
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	bool supportsSurfaceless = false;
 	if(!supportsSurfaceless)
@@ -170,17 +170,13 @@ CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 			assert(dummyPbuffConfig == config.glConfig);
 		}
 	}
-
 	if(Config::DEBUG_BUILD)
 	{
 		int glxMajorVersion, glxMinorVersion;
 		glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
 		logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(dpy, context) ? "yes" : "no");
-		if(!glXIsDirect(dpy, context))
-			bug_exit("direct rendering not supported, check your X configuration");
 	}
-
-	return OK;
+	return {};
 }
 
 static void setCurrentContext(GLXContext context, Window *win)

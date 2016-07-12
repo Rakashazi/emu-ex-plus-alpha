@@ -174,10 +174,10 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-CallResult Window::init(const WindowConfig &config)
+std::error_code Window::init(const WindowConfig &config)
 {
 	if(uiWin_)
-		return OK;
+		return {};
 	BaseWindow::init(config);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
@@ -230,7 +230,7 @@ CallResult Window::init(const WindowConfig &config)
 	#endif
 	rootViewCtrl.view = glView();
 	uiWin().rootViewController = rootViewCtrl;
-	return OK;
+	return {};
 }
 
 void Window::deinit()

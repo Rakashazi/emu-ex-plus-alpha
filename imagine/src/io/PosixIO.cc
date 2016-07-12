@@ -19,6 +19,7 @@
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
+#include <imagine/util/assume.h>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 
@@ -48,7 +49,7 @@ PosixIO::operator GenericIO()
 	return GenericIO{*this};
 }
 
-CallResult PosixIO::open(const char *path, uint mode)
+std::error_code PosixIO::open(const char *path, uint mode)
 {
 	close();
 
@@ -94,26 +95,20 @@ CallResult PosixIO::open(const char *path, uint mode)
 	if((fd_ = ::open(path, flags, openMode)) == -1)
 	{
 		logMsg("error opening file (%s) @ %s", logFlagsStr.data(), path);
-		switch(errno)
-		{
-			case EACCES: return PERMISSION_DENIED;
-			case ENOSPC: return NO_FREE_ENTRIES;
-			case ENOENT: return NOT_FOUND;
-			default: return IO_ERROR;
-		}
+		return {errno, std::system_category()};
 	}
 	logMsg("opened file (%s) fd %d @ %s", logFlagsStr.data(), fd_, path);
-	return OK;
+	return {};
 }
 
-ssize_t PosixIO::read(void *buff, size_t bytes, CallResult *resultOut)
+ssize_t PosixIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 {
 	auto bytesRead = ::read(fd_, buff, bytes);
 	if(bytesRead == -1)
 	{
 		logErr("error reading %zu bytes", bytes);
-		if(resultOut)
-			*resultOut = READ_ERROR;
+		if(ecOut)
+			*ecOut = {errno, std::system_category()};
 	}
 	else
 	{
@@ -122,56 +117,50 @@ ssize_t PosixIO::read(void *buff, size_t bytes, CallResult *resultOut)
 	return bytesRead;
 }
 
-ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut)
+ssize_t PosixIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
 {
 	auto bytesRead = ::pread(fd_, buff, bytes, offset);
 	if(bytesRead == -1)
 	{
 		logErr("error reading %zu bytes at offset %lld", bytes, (long long)offset);
-		if(resultOut)
-			*resultOut = READ_ERROR;
+		if(ecOut)
+			*ecOut = {errno, std::system_category()};
 	}
 	return bytesRead;
 }
 
-ssize_t PosixIO::write(const void *buff, size_t bytes, CallResult *resultOut)
+ssize_t PosixIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
 {
 	auto bytesWritten = ::write(fd_, buff, bytes);
 	if(bytesWritten == -1)
 	{
 		logErr("error writing %zu bytes", bytes);
-		if(resultOut)
-			*resultOut = WRITE_ERROR;
+		if(ecOut)
+			*ecOut = {errno, std::system_category()};
 	}
 	return bytesWritten;
 }
 
-CallResult PosixIO::truncate(off_t offset)
+std::error_code PosixIO::truncate(off_t offset)
 {
 	logMsg("truncating at offset %lld", (long long)offset);
 	if(ftruncate(fd_, offset) == -1)
 	{
 		logErr("truncate failed");
-		return IO_ERROR;
+		return {errno, std::system_category()};
 	}
-	return OK;
+	return {};
 }
 
-off_t PosixIO::seek(off_t offset, IO::SeekMode mode, CallResult *resultOut)
+off_t PosixIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
-	if(!isSeekModeValid(mode))
-	{
-		bug_exit("invalid seek mode: %d", (int)mode);
-		if(resultOut)
-			*resultOut = INVALID_PARAMETER;
-		return -1;
-	}
+	assumeExpr(isSeekModeValid(mode));
 	auto newPos = lseek(fd_, offset, mode);
 	if(newPos == 1)
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
-		if(resultOut)
-			*resultOut = IO_ERROR;
+		if(ecOut)
+			*ecOut = {errno, std::system_category()};
 		return -1;
 	}
 	return newPos;
@@ -234,18 +223,18 @@ int PosixIO::fd() const
 	return fd_;
 }
 
-CallResult openPosixMapIO(BufferMapIO &io, int fd)
+std::error_code openPosixMapIO(BufferMapIO &io, int fd)
 {
 	io.close();
 	off_t size = fd_size(fd);
 	void *data = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
 	if(data == MAP_FAILED)
-		return INVALID_PARAMETER;
+		return {errno, std::system_category()};
 	io.open((const char*)data, size,
 		[data](BufferMapIO &io)
 		{
 			logMsg("unmapping %p", data);
 			munmap(data, io.size());
 		});
-	return OK;
+	return {};
 }

@@ -42,6 +42,6 @@ static AssetIO openAppAssetIO(std::array<char, S> name)
 	return openAppAssetIO(name.data());
 }
 
-CallResult writeToNewFile(const char *path, void *data, size_t size);
+std::error_code writeToNewFile(const char *path, void *data, size_t size);
 ssize_t readFromFile(const char *path, void *data, size_t size);
-CallResult writeIOToNewFile(IO &io, const char *path);
+std::error_code writeIOToNewFile(IO &io, const char *path);

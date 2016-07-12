@@ -130,7 +130,7 @@ void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del);
 void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del);
 
 // Called on app startup
-[[gnu::cold]] CallResult onInit(int argc, char** argv);
+[[gnu::cold]] void onInit(int argc, char** argv);
 
 } // Base
 

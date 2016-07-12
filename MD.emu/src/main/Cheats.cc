@@ -406,20 +406,20 @@ void writeCheatFile()
 	}
 	logMsg("writing cheats file %s", filename.data());
 
-	CallResult r = OK;
+	std::error_code ec{};
 	for(auto &e : cheatList)
 	{
 		if(!strlen(e.code))
 		{
 			continue; // ignore incomplete code entries
 		}
-		file.write(e.code, strlen(e.code), &r);
-		file.writeVal('\t', &r);
-		file.write(e.name, strlen(e.name), &r);
-		file.writeVal('\n', &r);
+		file.write(e.code, strlen(e.code), &ec);
+		file.writeVal('\t', &ec);
+		file.write(e.name, strlen(e.name), &ec);
+		file.writeVal('\n', &ec);
 		if(e.isOn())
 		{
-			file.write("ON\n", strlen("ON\n"), &r);
+			file.write("ON\n", strlen("ON\n"), &ec);
 		}
 	}
 	cheatsModified = false;

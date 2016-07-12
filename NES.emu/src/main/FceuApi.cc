@@ -130,8 +130,8 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	}
 	if(hasArchiveExtension(fdsBiosPath.data()))
 	{
-		CallResult res = OK;
-		for(auto &entry : FS::ArchiveIterator{fdsBiosPath, res})
+		std::error_code ec{};
+		for(auto &entry : FS::ArchiveIterator{fdsBiosPath, ec})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{

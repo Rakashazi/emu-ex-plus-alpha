@@ -34,30 +34,30 @@ public:
 	operator IO*(){ return &io(); }
 	operator IO&(){ return io(); }
 	operator GenericIO();
-	CallResult open(const char *path, uint mode = 0);
+	std::error_code open(const char *path, uint mode = 0);
 
-	CallResult open(FS::PathString path, uint mode = 0)
+	std::error_code open(FS::PathString path, uint mode = 0)
 	{
 		return open(path.data(), mode);
 	}
 
-	CallResult create(const char *path, uint mode = 0)
+	std::error_code create(const char *path, uint mode = 0)
 	{
 		mode |= IO::OPEN_WRITE | IO::OPEN_CREATE;
 		return open(path, mode);
 	}
 
-	CallResult create(FS::PathString path, uint mode = 0)
+	std::error_code create(FS::PathString path, uint mode = 0)
 	{
 		return create(path.data(), mode);
 	}
 
-	ssize_t read(void *buff, size_t bytes, CallResult *resultOut);
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut);
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
 	const char *mmapConst();
-	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut);
-	CallResult truncate(off_t offset);
-	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut);
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
+	std::error_code truncate(off_t offset);
+	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);
 	void close();
 	void sync();
 	size_t size();

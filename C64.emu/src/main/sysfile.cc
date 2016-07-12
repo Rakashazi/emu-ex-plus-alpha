@@ -91,8 +91,8 @@ static int loadSysFile(IO &file, const char *name, BYTE *dest, int minsize, int 
 
 static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFileName, char **complete_path_return)
 {
-	CallResult res = OK;
-	for(auto &entry : FS::ArchiveIterator{archivePath, res})
+	std::error_code ec{};
+	for(auto &entry : FS::ArchiveIterator{archivePath, ec})
 	{
 		if(entry.type() == FS::file_type::directory)
 		{
@@ -112,7 +112,7 @@ static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFil
 		}
 		return entry.moveIO();
 	}
-	if(res != OK)
+	if(ec)
 	{
 		logErr("error opening archive:%s", archivePath);
 	}

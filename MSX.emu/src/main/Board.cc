@@ -215,7 +215,7 @@ void boardTimerRemove(BoardTimer* timer)
 
 const char* boardGetBaseDirectory()
 {
-    return ".";
+    return EmuSystem::savePath();
 }
 
 void boardOnBreakpoint(UInt16 pc) { }
@@ -381,13 +381,6 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
     }
 
     logMsg("HD Type %d", (int)hdType[cartNo]);
-    bool changeToMachineDir = currentRomType[cartNo] == ROM_SUNRISEIDE ? 1 : 0;
-    FS::PathString wDir;
-    if(changeToMachineDir)
-    {
-    	logMsg("loading ROM from Machine path");
-    	chdirToMachineBaseDir(wDir.data(), sizeof(wDir));
-    }
 
     bool success;
     if(cartNo < boardInfo.cartridgeCount)
@@ -395,8 +388,6 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
     else
     	success = 0;
 
-    if(changeToMachineDir)
-    	chdirToPrevWorkingDir(wDir.data());
     return success;
 }
 

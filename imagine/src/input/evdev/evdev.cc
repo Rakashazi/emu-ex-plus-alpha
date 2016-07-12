@@ -461,8 +461,8 @@ void initEvdev()
 	}
 
 	logMsg("checking device nodes");
-	CallResult dirResult = OK;
-	for(auto &entry : FS::directory_iterator{DEV_NODE_PATH, dirResult})
+	std::error_code err;
+	for(auto &entry : FS::directory_iterator{DEV_NODE_PATH, err})
 	{
 		if(evDevice.isFull())
 		{
@@ -478,7 +478,7 @@ void initEvdev()
 			continue;
 		processDevNode(path.data(), id, false);
 	}
-	if(dirResult != OK)
+	if(err)
 	{
 		logErr("can't open " DEV_NODE_PATH);
 		return;

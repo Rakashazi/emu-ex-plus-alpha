@@ -179,7 +179,7 @@ protected:
 	FS::PathString *biosPathStr{};
 	EmuSystem::NameFilterFunc fsFilter{};
 
-	void onSelectFile(const char* name, Input::Event e);
+	void onSelectFile(FS::PathString path, Input::Event e);
 };
 
 using PathChangeDelegate = DelegateFunc<void (const char *newPath)>;
@@ -190,6 +190,6 @@ public:
 	PathChangeDelegate onPathChange;
 
 	constexpr FirmwarePathSelector() {}
-	void onClose(Input::Event e);
+	void onClose(FSPicker &picker, Input::Event e);
 	void init(const char *name, Input::Event e);
 };

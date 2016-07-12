@@ -28,12 +28,9 @@ EGLDisplay EGLContextBase::getDisplay()
 	return eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
 }
 
-CallResult GLContext::init(GLContextAttributes attr, GLBufferConfig config)
+std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 {
-	auto result = EGLContextBase::init(attr, config);
-	if(result != OK)
-		return result;
-	return OK;
+	return EGLContextBase::init(attr, config);
 }
 
 void GLContext::deinit()

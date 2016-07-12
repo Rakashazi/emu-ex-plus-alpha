@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/io/ArchiveIO.hh>
+#include <system_error>
 
 namespace FS
 {
@@ -32,10 +33,10 @@ public:
 	ArchiveIterator() {}
 	ArchiveIterator(PathString path): ArchiveIterator{path.data()} {}
 	ArchiveIterator(const char *path);
-	ArchiveIterator(PathString path, CallResult &result): ArchiveIterator{path.data(), result} {}
-	ArchiveIterator(const char *path, CallResult &result);
+	ArchiveIterator(PathString path, std::error_code &result): ArchiveIterator{path.data(), result} {}
+	ArchiveIterator(const char *path, std::error_code &result);
 	ArchiveIterator(GenericIO io);
-	ArchiveIterator(GenericIO io, CallResult &result);
+	ArchiveIterator(GenericIO io, std::error_code &result);
 	ArchiveIterator(ArchiveEntry &&entry): archEntry{std::move(entry)} {}
 	~ArchiveIterator();
 	ArchiveEntry& operator*();
@@ -45,8 +46,8 @@ public:
 	void rewind();
 
 private:
-	void init(const char *path, CallResult &result);
-	void init(GenericIO io, CallResult &result);
+	void init(const char *path, std::error_code &result);
+	void init(GenericIO io, std::error_code &result);
 };
 
 static const ArchiveIterator &begin(const ArchiveIterator &iter)

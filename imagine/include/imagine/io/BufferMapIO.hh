@@ -30,8 +30,8 @@ public:
 	BufferMapIO(BufferMapIO &&o);
 	BufferMapIO &operator=(BufferMapIO &&o);
 	operator GenericIO();
-	CallResult open(const void *buff, size_t size, OnCloseDelegate onClose);
-	CallResult open(const void *buff, size_t size)
+	std::error_code open(const void *buff, size_t size, OnCloseDelegate onClose);
+	std::error_code open(const void *buff, size_t size)
 	{
 		return open(buff, size, {});
 	}

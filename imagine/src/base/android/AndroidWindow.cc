@@ -146,10 +146,10 @@ PixelFormat Window::defaultPixelFormat()
 	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
 
-CallResult Window::init(const WindowConfig &config)
+std::error_code Window::init(const WindowConfig &config)
 {
 	if(initialInit)
-		return OK;
+		return {};
 	BaseWindow::init(config);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
@@ -193,7 +193,7 @@ CallResult Window::init(const WindowConfig &config)
 	updateSize({screen()->width(), screen()->height()});
 	contentRect.x2 = width();
 	contentRect.y2 = height();
-	return OK;
+	return {};
 }
 
 void Window::deinit()

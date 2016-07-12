@@ -27,11 +27,11 @@ public:
 	using IOUtils::seek;
 
 	constexpr MapIO() {}
-	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, CallResult *resultOut) override;
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) override;
 	const char *mmapConst() override;
-	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
-	off_t seek(off_t offset, IO::SeekMode mode, CallResult *resultOut) override;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
+	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) override;
 	size_t size() override;
 	bool eof() override;
 	explicit operator bool() override;
@@ -47,5 +47,5 @@ protected:
 	void setData(const void* buff, size_t size);
 	void resetData();
 	const char *dataEnd();
-	ssize_t readAtAddr(void* buff, size_t bytes, const char *readPos, CallResult *resultOut);
+	ssize_t readAtAddr(void* buff, size_t bytes, const char *readPos, std::error_code *ecOut);
 };

@@ -61,9 +61,9 @@ public:
 	const char *name();
 	BufferMapIO moveToMapIO();
 
-	ssize_t read(void *buff, size_t bytes, CallResult *resultOut) override;
-	ssize_t write(const void *buff, size_t bytes, CallResult *resultOut) override;
-	off_t seek(off_t offset, SeekMode mode, CallResult *resultOut) override;
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
+	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) override;
 	void close() override;
 	size_t size() override;
 	bool eof() override;

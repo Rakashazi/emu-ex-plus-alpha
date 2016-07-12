@@ -71,9 +71,9 @@ int gn_unzip_fread(ZFILE *z, uint8_t *data, unsigned int size)
 
 PKZIP *gn_open_zip(const char *path)
 {
-	CallResult res;
-	auto arch = std::make_unique<FS::ArchiveIterator>(path, res);
-	if(res != OK)
+	std::error_code ec{};
+	auto arch = std::make_unique<FS::ArchiveIterator>(path, ec);
+	if(ec)
 	{
 		logErr("error opening archive:%s", path);
 		return nullptr;

@@ -18,10 +18,10 @@
 #include <imagine/config/defs.hh>
 #include <imagine/resource/font/ResourceFont.h>
 #include <imagine/resource/font/glyphTable.h>
-#define RESOURCE_FACE_SETTINGS_UNCHANGED 128
 #include <imagine/io/FileIO.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
+#include <system_error>
 
 class ResourceFace
 {
@@ -40,12 +40,12 @@ public:
 	}
 	static ResourceFace *loadSystem(FontSettings *set = nullptr);
 	void free();
-	CallResult applySettings(FontSettings set);
+	bool applySettings(FontSettings set);
 	//int maxDescender();
 	//int maxAscender();
-	CallResult writeCurrentChar(IG::Pixmap &out);
-	CallResult precache(const char *string);
-	CallResult precacheAlphaNum()
+	std::error_code writeCurrentChar(IG::Pixmap &out);
+	std::error_code precache(const char *string);
+	std::error_code precacheAlphaNum()
 	{
 		return precache("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
@@ -65,7 +65,7 @@ private:
 
 	void calcNominalHeight();
 	bool initGlyphTable();
-	CallResult cacheChar(int c, int tableIdx);
+	std::error_code cacheChar(int c, int tableIdx);
 };
 
 class GfxGlyphImage : public GfxImageSource
@@ -75,7 +75,7 @@ public:
 	GlyphEntry *entry;
 
 	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) {}
-	CallResult write(IG::Pixmap &dest) override;
+	std::error_code write(IG::Pixmap &dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
 };

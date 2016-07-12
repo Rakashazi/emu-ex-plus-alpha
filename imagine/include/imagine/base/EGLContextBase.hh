@@ -17,6 +17,7 @@
 
 #include <EGL/egl.h>
 #include <utility>
+#include <system_error>
 
 namespace Base
 {
@@ -29,9 +30,9 @@ class EGLContextBase
 protected:
 	EGLContext context = EGL_NO_CONTEXT;
 
-	CallResult init(GLContextAttributes attr, GLBufferConfig config);
+	std::error_code init(GLContextAttributes attr, GLBufferConfig config);
 	void deinit();
-	static std::pair<CallResult, EGLConfig> chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
+	static std::pair<bool, EGLConfig> chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
 	static EGLDisplay getDisplay();
 	static void setCurrentContext(EGLContext context, Window *win);
 

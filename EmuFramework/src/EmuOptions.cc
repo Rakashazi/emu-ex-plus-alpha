@@ -250,6 +250,7 @@ Byte1Option optionWindowPixelFormat(CFGKEY_WINDOW_PIXEL_FORMAT, IG::PIXEL_NONE, 
 #endif
 
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");
+PathOption optionLastLoadPath(CFGKEY_LAST_DIR, lastLoadPath, "");
 Byte1Option optionCheckSavePathWriteAccess{CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS, 1};
 
 Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
@@ -369,16 +370,16 @@ bool OptionVControllerLayoutPosition::isDefault() const
 bool OptionVControllerLayoutPosition::writeToIO(IO &io)
 {
 	logMsg("writing vcontroller positions");
-	CallResult r = OK;
-	io.writeVal(key, &r);
+	std::error_code ec{};
+	io.writeVal(key, &ec);
 	for(auto &posArr : vControllerLayoutPos)
 	{
 		for(auto &e : posArr)
 		{
-			io.writeVal((uint8)e.origin, &r);
-			io.writeVal((uint8)e.state, &r);
-			io.writeVal((int32)e.pos.x, &r);
-			io.writeVal((int32)e.pos.y, &r);
+			io.writeVal((uint8)e.origin, &ec);
+			io.writeVal((uint8)e.state, &ec);
+			io.writeVal((int32)e.pos.x, &ec);
+			io.writeVal((int32)e.pos.y, &ec);
 		}
 	}
 	return 1;

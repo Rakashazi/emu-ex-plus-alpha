@@ -773,7 +773,8 @@ void updateVControlImg()
 		static Gfx::PixmapTexture overlayImg;
 		PngFile png;
 		auto filename =	"overlays128.png";
-		if(png.loadAsset(filename) != OK)
+		auto ec = png.loadAsset(filename);
+		if(ec)
 		{
 			bug_exit("couldn't load overlay png");
 		}
@@ -785,7 +786,8 @@ void updateVControlImg()
 	{
 		static Gfx::PixmapTexture kbOverlayImg;
 		PngFile png;
-		if(png.loadAsset("kbOverlay.png") != OK)
+		auto ec = png.loadAsset("kbOverlay.png");
+		if(ec)
 		{
 			bug_exit("couldn't load kb overlay png");
 		}

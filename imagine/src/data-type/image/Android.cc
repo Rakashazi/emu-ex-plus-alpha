@@ -62,7 +62,7 @@ PixelFormat BitmapFactoryImage::pixelFormat() const
 	}
 }
 
-CallResult BitmapFactoryImage::load(const char *name)
+std::error_code BitmapFactoryImage::load(const char *name)
 {
 	freeImageData();
 	auto env = Base::jEnv();
@@ -77,7 +77,7 @@ CallResult BitmapFactoryImage::load(const char *name)
 	if(!bitmap)
 	{
 		logErr("couldn't decode file: %s", name);
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	if(!jRecycle)
 	{
@@ -85,10 +85,10 @@ CallResult BitmapFactoryImage::load(const char *name)
 	}
 	AndroidBitmap_getInfo(env, bitmap, &info);
 	bitmap = env->NewGlobalRef(bitmap);
-	return OK;
+	return {};
 }
 
-CallResult BitmapFactoryImage::loadAsset(const char *name)
+std::error_code BitmapFactoryImage::loadAsset(const char *name)
 {
 	freeImageData();
 	logMsg("loading PNG asset: %s", name);
@@ -104,7 +104,7 @@ CallResult BitmapFactoryImage::loadAsset(const char *name)
 	if(!bitmap)
 	{
 		logErr("couldn't decode file: %s", name);
-		return INVALID_PARAMETER;
+		return {EINVAL, std::system_category()};
 	}
 	if(!jRecycle)
 	{
@@ -113,7 +113,7 @@ CallResult BitmapFactoryImage::loadAsset(const char *name)
 	AndroidBitmap_getInfo(env, bitmap, &info);
 	//logMsg("%d %d %d", info.width, info.height, info.stride);
 	bitmap = env->NewGlobalRef(bitmap);
-	return OK;
+	return {};
 }
 
 bool BitmapFactoryImage::hasAlphaChannel()
@@ -121,7 +121,7 @@ bool BitmapFactoryImage::hasAlphaChannel()
 	return info.format == ANDROID_BITMAP_FORMAT_RGBA_8888 || info.format == ANDROID_BITMAP_FORMAT_RGBA_4444;
 }
 
-CallResult BitmapFactoryImage::readImage(IG::Pixmap &dest)
+std::error_code BitmapFactoryImage::readImage(IG::Pixmap &dest)
 {
 	assert(dest.format() == pixelFormat());
 	auto env = Base::jEnv();
@@ -130,7 +130,7 @@ CallResult BitmapFactoryImage::readImage(IG::Pixmap &dest)
 	IG::Pixmap src{{{(int)info.width, (int)info.height}, pixelFormat()}, buff, {info.stride, IG::Pixmap::BYTE_UNITS}};
 	dest.write(src, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
-	return OK;
+	return {};
 }
 
 void BitmapFactoryImage::freeImageData()
@@ -144,7 +144,7 @@ void BitmapFactoryImage::freeImageData()
 	}
 }
 
-CallResult PngFile::write(IG::Pixmap &dest)
+std::error_code PngFile::write(IG::Pixmap &dest)
 {
 	return(png.readImage(dest));
 }
@@ -157,13 +157,13 @@ IG::Pixmap PngFile::lockPixmap()
 
 void PngFile::unlockPixmap() {}
 
-CallResult PngFile::load(const char *name)
+std::error_code PngFile::load(const char *name)
 {
 	deinit();
 	return png.load(name);
 }
 
-CallResult PngFile::loadAsset(const char *name)
+std::error_code PngFile::loadAsset(const char *name)
 {
 	deinit();
 	return png.loadAsset(name);

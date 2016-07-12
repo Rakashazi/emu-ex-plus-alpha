@@ -50,10 +50,10 @@ static FS::PathString externalLogPath()
 	return path;
 }
 
-CallResult logger_init()
+void logger_init()
 {
 	if(!logEnabled)
-		return OK;
+		return;
 	#if defined __APPLE__ && (defined __i386__ || defined __x86_64__)
 	asl_add_log_file(nullptr, STDERR_FILENO); // output to stderr
 	#endif
@@ -62,13 +62,8 @@ CallResult logger_init()
 		auto path = externalLogPath();
 		logMsg("external log file: %s", path.data());
 		logExternalFile = fopen(path.data(), "wb");
-		if(!logExternalFile)
-		{
-			return IO_ERROR;
-		}
 	}
 	//logMsg("init logger");
-	return OK;
 }
 
 void logger_setEnabled(bool enable)

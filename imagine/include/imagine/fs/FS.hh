@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <cstddef>
+#include <system_error>
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/fs/FSDefs.hh>
@@ -33,8 +34,8 @@ public:
 	constexpr directory_iterator() {}
 	directory_iterator(PathString path): directory_iterator{path.data()} {}
 	directory_iterator(const char *path);
-	directory_iterator(PathString path, CallResult &result): directory_iterator{path.data(), result} {}
-	directory_iterator(const char *path, CallResult &result);
+	directory_iterator(PathString path, std::error_code &result): directory_iterator{path.data(), result} {}
+	directory_iterator(const char *path, std::error_code &result);
 	~directory_iterator();
 	directory_entry& operator*();
 	directory_entry* operator->();
@@ -53,134 +54,134 @@ static directory_iterator end(const directory_iterator &)
 }
 
 PathString current_path();
-PathString current_path(CallResult &result);
+PathString current_path(std::error_code &result);
 
 void current_path(const char *path);
-void current_path(const char *path, CallResult &result);
+void current_path(const char *path, std::error_code &result);
 
 static void current_path(PathString path)
 {
 	current_path(path.data());
 }
 
-static void current_path(PathString path, CallResult &result)
+static void current_path(PathString path, std::error_code &result)
 {
 	current_path(path.data(), result);
 }
 
 bool exists(const char *path);
-bool exists(const char *path, CallResult &result);
+bool exists(const char *path, std::error_code &result);
 
 static bool exists(PathString path)
 {
 	return exists(path.data());
 }
 
-static bool exists(PathString path, CallResult &result)
+static bool exists(PathString path, std::error_code &result)
 {
 	return exists(path.data(), result);
 }
 
 std::uintmax_t file_size(const char *path);
-std::uintmax_t file_size(const char *path, CallResult &result);
+std::uintmax_t file_size(const char *path, std::error_code &result);
 
 static std::uintmax_t file_size(PathString path)
 {
 	return file_size(path.data());
 }
 
-static std::uintmax_t file_size(PathString path, CallResult &result)
+static std::uintmax_t file_size(PathString path, std::error_code &result)
 {
 	return file_size(path.data(), result);
 }
 
 file_status status(const char *path);
-file_status status(const char *path, CallResult &result);
+file_status status(const char *path, std::error_code &result);
 
 static file_status status(PathString path)
 {
 	return status(path.data());
 }
 
-static file_status status(PathString path, CallResult &result)
+static file_status status(PathString path, std::error_code &result)
 {
 	return status(path.data(), result);
 }
 
 file_status symlink_status(const char *path);
-file_status symlink_status(const char *path, CallResult &result);
+file_status symlink_status(const char *path, std::error_code &result);
 
 static file_status symlink_status(PathString path)
 {
 	return symlink_status(path.data());
 }
 
-static file_status symlink_status(PathString path, CallResult &result)
+static file_status symlink_status(PathString path, std::error_code &result)
 {
 	return symlink_status(path.data(), result);
 }
 
 void chown(const char *path, uid_t owner, gid_t group);
-void chown(const char *path, uid_t owner, gid_t group, CallResult &result);
+void chown(const char *path, uid_t owner, gid_t group, std::error_code &result);
 
 static void chown(PathString path, uid_t owner, gid_t group)
 {
 	chown(path.data(), owner, group);
 }
 
-static void chown(PathString path, uid_t owner, gid_t group, CallResult &result)
+static void chown(PathString path, uid_t owner, gid_t group, std::error_code &result)
 {
 	chown(path.data(), owner, group, result);
 }
 
 bool access(const char *path, acc type);
-bool access(const char *path, acc type, CallResult &result);
+bool access(const char *path, acc type, std::error_code &result);
 
 static bool access(PathString path, acc type)
 {
 	return access(path.data(), type);
 }
 
-static bool access(PathString path, acc type, CallResult &result)
+static bool access(PathString path, acc type, std::error_code &result)
 {
 	return access(path.data(), type, result);
 }
 
 bool remove(const char *path);
-bool remove(const char *path, CallResult &result);
+bool remove(const char *path, std::error_code &result);
 
 static bool remove(PathString path)
 {
 	return remove(path.data());
 }
 
-static bool remove(PathString path, CallResult &result)
+static bool remove(PathString path, std::error_code &result)
 {
 	return remove(path.data(), result);
 }
 
 bool create_directory(const char *path);
-bool create_directory(const char *path, CallResult &result);
+bool create_directory(const char *path, std::error_code &result);
 
 static bool create_directory(PathString path)
 {
 	return create_directory(path.data());
 }
 
-static bool create_directory(PathString path, CallResult &result)
+static bool create_directory(PathString path, std::error_code &result)
 {
 	return create_directory(path.data(), result);
 }
 
 void rename(const char *oldPath, const char *newPath);
-void rename(const char *oldPath, const char *newPath, CallResult &result);
+void rename(const char *oldPath, const char *newPath, std::error_code &result);
 
 static void rename(PathString oldPath, PathString newPath)
 {
 	rename(oldPath.data(), newPath.data());
 }
 
-static void rename(PathString oldPath, PathString newPath, CallResult &result)
+static void rename(PathString oldPath, PathString newPath, std::error_code &result)
 {
 	rename(oldPath.data(), newPath.data(), result);
 }
@@ -191,6 +192,7 @@ FileString makeFileStringPrintf(const char *format, ...);
 PathString makePathStringPrintf(const char *format, ...);
 FileString makeFileString(const char *str);
 PathString makePathString(const char *str);
+PathString makePathString(const char *dir, const char *base);
 
 PathString makeAppPathFromLaunchCommand(const char *launchPath);
 

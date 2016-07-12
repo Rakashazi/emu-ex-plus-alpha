@@ -867,9 +867,10 @@ void CDAccess_Image::ImageOpenBinary(const char *path, bool isIso)
 	auto &track = Tracks[1];
 	track = {};
 	FileIO fp;
-	if(fp.open(path) != OK)
+	auto ec = fp.open(path);
+	if(ec)
 	{
-		ErrnoHolder ene(errno);
+		ErrnoHolder ene(ec.value());
 		throw(MDFN_Error(ene.Errno(), _("Could not open file \"%s\": %s"), path, ene.StrError()));
 	}
 	track.fp = std::make_shared<FileIO>(std::move(fp));

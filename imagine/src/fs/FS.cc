@@ -67,6 +67,11 @@ PathString makePathString(const char *str)
 	return path;
 }
 
+PathString makePathString(const char *dir, const char *file)
+{
+	return makePathStringPrintf("%s/%s", dir, file);
+}
+
 PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 {
 	logMsg("getting app path from launch command: %s", launchCmd);

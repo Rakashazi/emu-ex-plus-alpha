@@ -20,7 +20,6 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
-#include <imagine/fs/WorkDirStack.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
@@ -72,10 +71,10 @@ extern bool menuViewIsActive;
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif
-extern WorkDirStack<1> workDirStack;
 #ifdef __ANDROID__
 extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;
 #endif
+extern FS::PathString lastLoadPath;
 
 Gfx::PixmapTexture &getAsset(AssetID assetID);
 Gfx::PixmapTexture *getCollectTextCloseAsset();
