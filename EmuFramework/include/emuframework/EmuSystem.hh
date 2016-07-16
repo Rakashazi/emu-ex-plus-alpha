@@ -23,6 +23,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/gui/NavView.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
 
@@ -48,7 +49,7 @@ struct BundledGameInfo
 	const char *assetName;
 };
 
-class EmuNavView;
+using EmuNavView = BasicNavView;
 
 enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE_RESULT_IO_ERROR,
 	STATE_RESULT_INVALID_DATA, STATE_RESULT_OTHER_ERROR };

@@ -70,7 +70,8 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 		"Select File",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &fPicker = *new EmuFilePicker{window(), FS::dirname(*biosPathStr).data(), false, fsFilter};
+			auto startPath = strlen(biosPathStr->data()) ? FS::dirname(*biosPathStr) : lastLoadPath;
+			auto &fPicker = *new EmuFilePicker{window(), startPath.data(), false, fsFilter};
 			fPicker.setOnSelectFile(
 				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
@@ -279,7 +280,8 @@ public:
 		multiChoiceView.appendItem("Set Custom Path",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &fPicker = *new EmuFilePicker{mainWin.win, optionSavePath, true, {}};
+				auto startPath = strlen(optionSavePath) ? optionSavePath : optionLastLoadPath;
+				auto &fPicker = *new EmuFilePicker{mainWin.win, startPath, true, {}};
 				fPicker.setOnClose(
 					[this](FSPicker &picker, Input::Event e)
 					{
@@ -551,7 +553,8 @@ void FirmwarePathSelector::init(const char *name, Input::Event e)
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			viewStack.popAndShow();
-			auto &fPicker = *new EmuFilePicker{mainWin.win, optionFirmwarePath, true, {}};
+			auto startPath = strlen(optionFirmwarePath) ? optionFirmwarePath : optionLastLoadPath;
+			auto &fPicker = *new EmuFilePicker{mainWin.win, startPath, true, {}};
 			fPicker.setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{
@@ -1593,7 +1596,7 @@ GUIOptionView::GUIOptionView(Base::Window &win, bool customMenu):
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionTitleBar = item.flipBoolValue(*this);
-			viewStack.setNavView(optionTitleBar ? &viewNav : 0);
+			viewStack.showNavView(optionTitleBar);
 			placeElements();
 		}
 	},
@@ -1604,7 +1607,7 @@ GUIOptionView::GUIOptionView(Base::Window &win, bool customMenu):
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			View::setNeedsBackControl(item.flipBoolValue(*this));
-			viewNav.setBackImage(View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr);
+			viewStack.setShowNavViewBackButton(View::needsBackControl);
 			placeElements();
 		}
 	},

@@ -40,7 +40,8 @@ static FS::file_type makeEntryType(int type)
 const char *ArchiveEntry::name() const
 {
 	assumeExpr(ptr);
-	return archive_entry_pathname(ptr);
+	auto name = archive_entry_pathname(ptr);
+	return name ? name : "";
 }
 
 FS::file_type ArchiveEntry::type() const

@@ -21,6 +21,7 @@
 #include <emuframework/Recent.hh>
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
+#include <string>
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
@@ -82,26 +83,25 @@ EmuFilePicker::EmuFilePicker(Base::Window &win, const char *startingPath, bool p
 		singleDir
 	}
 {
-	setOnPathReadError(
-		[](FSPicker &, std::error_code ec)
-		{
-			switch(ec.value())
-			{
-				bcase (int)std::errc::permission_denied: popup.postError("Permission denied reading directory");
-				bcase (int)std::errc::no_such_file_or_directory: popup.postError("Directory not found");
-				bcase (int)std::errc::invalid_argument: popup.postError("Not a directory");
-				bdefualt: popup.postError("Unknown error reading directory");
-			}
-		});
 	bool setDefaultPath = true;
 	if(strlen(startingPath))
 	{
+		setOnPathReadError(
+			[](FSPicker &, std::error_code ec)
+			{
+				popup.printf(4, true, "Can't open last saved directory: %s", ec.message().c_str());
+			});
 		auto ec = setPath(startingPath, false);
 		if(!ec)
 		{
 			setDefaultPath = false;
 		}
 	}
+	setOnPathReadError(
+		[](FSPicker &, std::error_code ec)
+		{
+			popup.printf(3, true, "Can't open directory: %s", ec.message().c_str());
+		});
 	if(setDefaultPath)
 		setPath(Base::storagePath(), true);
 }
@@ -110,9 +110,9 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(Base::Window &win, bool single
 {
 	auto picker = new EmuFilePicker{win, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, singleDir};
 	picker->setOnChangePath(
-		[](FSPicker &, FS::PathString path, Input::Event)
+		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
-			lastLoadPath = path;
+			lastLoadPath = picker.path();
 		});
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char* name, Input::Event e)
@@ -139,9 +139,9 @@ EmuFilePicker *EmuFilePicker::makeForLoading(Base::Window &win, bool singleDir)
 {
 	auto picker = new EmuFilePicker{win, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, singleDir};
 	picker->setOnChangePath(
-		[](FSPicker &, FS::PathString path, Input::Event)
+		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
-			lastLoadPath = path;
+			lastLoadPath = picker.path();
 		});
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char *name, Input::Event e)

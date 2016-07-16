@@ -1,0 +1,11 @@
+diff -burp libarchive-3.2.1/libarchive/archive_string.c libarchive-3.2.1-patched/libarchive/archive_string.c
+--- libarchive-3.2.1/libarchive/archive_string.c	2016-06-19 23:30:48.000000000 -0400
++++ libarchive-3.2.1-patched/libarchive/archive_string.c	2016-07-16 16:26:02.569086234 -0400
+@@ -413,6 +413,7 @@ static const char *
+ default_iconv_charset(const char *charset) {
+ 	if (charset != NULL && charset[0] != '\0')
+ 		return charset;
++	return "UTF-8";
+ #if HAVE_LOCALE_CHARSET && !defined(__APPLE__)
+ 	/* locale_charset() is broken on Mac OS */
+ 	return locale_charset();

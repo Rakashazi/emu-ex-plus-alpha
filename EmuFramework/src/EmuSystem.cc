@@ -23,6 +23,7 @@
 #include <imagine/util/assume.h>
 #include <imagine/util/math/int.hh>
 #include <algorithm>
+#include <string>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FS::PathString EmuSystem::gamePath_{};
@@ -332,7 +333,7 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 		closeSystem();
 		clearGamePaths();
 		cancelAutoSaveStateTimer();
-		viewNav.setRightBtnActive(0);
+		viewStack.navView()->showRightBtn(false);
 		state = State::OFF;
 	}
 }
@@ -446,17 +447,6 @@ bool EmuSystem::setFrameTime(VideoSystem system, double time)
 	return path;
 }
 
-static const char *loadErrorStr(std::error_code ec)
-{
-	/*switch(ec.value())
-	{
-		case PERMISSION_DENIED: return "Permission Denied";
-		case READ_ERROR: return "Read Error";
-	}
-	return "IO Error";*/
-	return strerror(ec.value());
-}
-
 int EmuSystem::loadGameFromPath(FS::PathString path)
 {
 	path = willLoadGameFromPath(path);
@@ -485,7 +475,7 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 		}
 		if(ec)
 		{
-			popup.printf(3, true, "Error opening archive: %s", loadErrorStr(ec));
+			popup.printf(3, true, "Error opening archive: %s", ec.message().c_str());
 			return 0;
 		}
 		if(!io)
@@ -501,7 +491,7 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 		auto ec = io.open(path);
 		if(ec)
 		{
-			popup.printf(3, true, "Error opening file: %s", loadErrorStr(ec));
+			popup.printf(3, true, "Error opening file: %s", ec.message().c_str());
 			return 0;
 		}
 		return EmuSystem::loadGameFromIO(io, path.data(), path.data());

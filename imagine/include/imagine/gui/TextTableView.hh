@@ -23,9 +23,6 @@
 
 class TextTableView : public TableView
 {
-protected:
-	std::vector<TextMenuItem> textItem{};
-
 public:
 	int activeItem = -1;
 
@@ -39,4 +36,7 @@ public:
 	void setItems(uint items);
 	void onAddedToController(Input::Event e) override;
 	void drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const override;
+
+protected:
+	std::vector<TextMenuItem> textItem{};
 };

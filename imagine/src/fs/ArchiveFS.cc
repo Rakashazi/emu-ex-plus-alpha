@@ -202,19 +202,21 @@ void ArchiveIterator::operator++()
 	if(!archEntry.arch) // check in case archive object was moved out
 		return;
 	auto ret = archive_read_next_header(archEntry.arch.get(), &archEntry.ptr);
-	if(ret != ARCHIVE_OK)
+	if(ret == ARCHIVE_EOF)
 	{
-		if(ret == ARCHIVE_EOF)
-		{
-			logErr("reached archive end");
-		}
-		else
-		{
-			if(Config::DEBUG_BUILD)
-				logErr("error reading archive entry:%s", archive_error_string(archEntry.arch.get()));
-		}
+		logMsg("reached archive end");
 		archEntry.arch = {};
-		return;
+	}
+	else if(ret <= ARCHIVE_FAILED)
+	{
+		if(Config::DEBUG_BUILD)
+			logErr("error reading archive entry:%s", archive_error_string(archEntry.arch.get()));
+		archEntry.arch = {};
+	}
+	else if(ret != ARCHIVE_OK)
+	{
+		if(Config::DEBUG_BUILD)
+			logWarn("warning reading archive entry:%s", archive_error_string(archEntry.arch.get()));
 	}
 }
 

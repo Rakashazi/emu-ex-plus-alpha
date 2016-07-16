@@ -34,15 +34,6 @@
 
 enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
 
-class EmuNavView : public BasicNavView
-{
-public:
-	EmuNavView() {}
-	void onLeftNavBtn(Input::Event e) override;
-	void onRightNavBtn(Input::Event e) override;
-	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
-};
-
 struct AppWindowData
 {
 	Base::Window win{};
@@ -59,7 +50,6 @@ using OnMainMenuOptionChanged = DelegateFunc<void()>;
 
 extern AppWindowData mainWin, extraWin;
 extern AppWindowData *emuWin;
-extern EmuNavView viewNav;
 extern EmuVideo emuVideo;
 extern EmuVideoLayer emuVideoLayer;
 extern ViewStack viewStack;

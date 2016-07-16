@@ -86,19 +86,18 @@ void BasicViewController::draw()
 
 void BasicViewController::init(const Base::Window &win) {}
 
-void ViewStack::setNavView(NavView *nav)
+void ViewStack::setNavView(std::unique_ptr<NavView> nav)
 {
-	this->nav = nav;
+	this->nav = std::move(nav);
 	if(nav)
 	{
-		nav->setLeftBtnActive(size > 1);
-		useNavView = 1;
+		showNavLeftBtn();
 	}
 }
 
 NavView *ViewStack::navView() const
 {
-	return nav;
+	return nav.get();
 }
 
 void ViewStack::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
@@ -110,16 +109,16 @@ void ViewStack::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &pr
 
 void ViewStack::place()
 {
-	if(!size)
+	if(!size_)
 		return;
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
-	if(useNavView && nav)
+	if(navViewIsActive())
 	{
 		nav->setTitle(top().name());
-		nav->viewRect.setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->text.face->nominalHeight()*(double)1.75))}, LT2DO);
+		nav->viewRect().setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))}, LT2DO);
 		nav->place(projP);
-		customViewRect.y += nav->viewRect.ySize();
+		customViewRect.y += nav->viewRect().ySize();
 	}
 	top().setViewRect(customViewRect, projP);
 	top().place();
@@ -127,7 +126,7 @@ void ViewStack::place()
 
 void ViewStack::inputEvent(Input::Event e)
 {
-	if(useNavView && nav && e.isPointer() && nav->viewRect.overlaps({e.x, e.y}))
+	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps({e.x, e.y}))
 	{
 		nav->inputEvent(e);
 	}
@@ -137,27 +136,29 @@ void ViewStack::inputEvent(Input::Event e)
 void ViewStack::draw()
 {
 	top().draw();
-	if(useNavView && nav) nav->draw(top().window(), projP);
+	if(navViewIsActive())
+		nav->draw(top().window(), projP);
 }
 
 void ViewStack::push(View &v, Input::Event e)
 {
-	assert(size != IG::size(view));
+	assert(size_ != IG::size(view));
 	v.setController(this, e);
-	view[size] = &v;
-	size++;
-	logMsg("push view, %d in stack", size);
+	view[size_] = &v;
+	viewNeedsNavView[size_] = true;
+	size_++;
+	logMsg("push view, %d in stack", size_);
 
 	if(nav)
 	{
-		nav->setLeftBtnActive(size > 1);
+		showNavLeftBtn();
 	}
 }
 
 void ViewStack::pushAndShow(View &v, Input::Event e, bool needsNavView)
 {
-	useNavView = needsNavView;
 	push(v, e);
+	viewNeedsNavView[size_ - 1] = needsNavView;
 	place();
 	v.show();
 	v.postDraw();
@@ -170,16 +171,15 @@ void ViewStack::pushAndShow(View &v, Input::Event e)
 
 void ViewStack::pop()
 {
-	assert(size > 1);
+	assert(size_ > 1);
 	delete &top();
-	size--;
-	logMsg("pop view, %d in stack", size);
+	size_--;
+	logMsg("pop view, %d in stack", size_);
 
 	if(nav)
 	{
-		nav->setLeftBtnActive(size > 1);
+		showNavLeftBtn();
 		nav->setTitle(top().name());
-		useNavView = 1;
 	}
 }
 
@@ -193,7 +193,7 @@ void ViewStack::popAndShow()
 
 void ViewStack::popToRoot()
 {
-	while(size > 1)
+	while(size_ > 1)
 		pop();
 	place();
 	top().show();
@@ -202,7 +202,7 @@ void ViewStack::popToRoot()
 
 void ViewStack::popTo(View &v)
 {
-	while(size > 1 && view[size-1] != &v)
+	while(size_ > 1 && view[size_-1] != &v)
 		pop();
 	place();
 	top().show();
@@ -216,19 +216,19 @@ void ViewStack::show()
 
 View &ViewStack::top() const
 {
-	assert(size != 0);
-	return *view[size-1];
+	assert(size_ != 0);
+	return *view[size_-1];
 }
 
 View &ViewStack::viewAtIdx(uint idx) const
 {
-	assert(idx < size);
+	assert(idx < size_);
 	return *view[idx];
 }
 
 int ViewStack::viewIdx(View &v) const
 {
-	iterateTimes(size, i)
+	iterateTimes(size_, i)
 	{
 		if(view[i] == &v)
 			return i;
@@ -253,4 +253,38 @@ void ViewStack::dismissView(View &v)
 	{
 		pop();
 	}
+}
+
+void ViewStack::showNavView(bool show)
+{
+	showNavView_ = show;
+}
+
+void ViewStack::setShowNavViewBackButton(bool show)
+{
+	showNavBackBtn = show;
+	if(nav)
+		showNavLeftBtn();
+}
+
+void ViewStack::showNavLeftBtn()
+{
+	nav->showLeftBtn(showNavBackBtn && size_ > 1);
+}
+
+uint ViewStack::size() const
+{
+	return size_;
+}
+
+bool ViewStack::topNeedsNavView() const
+{
+	if(!size_)
+		return false;
+	return viewNeedsNavView[size_ - 1];
+}
+
+bool ViewStack::navViewIsActive() const
+{
+	return nav && showNavView_ && topNeedsNavView();
 }

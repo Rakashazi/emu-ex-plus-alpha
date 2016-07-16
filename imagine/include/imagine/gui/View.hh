@@ -36,12 +36,6 @@ public:
 
 class View
 {
-protected:
-	Base::Window *win{};
-	ViewController *controller{};
-	Gfx::ProjectionPlane projP{};
-	const char *name_ = "";
-
 public:
 	static ResourceFace *defaultFace;
 	static ResourceFace *defaultSmallFace;
@@ -80,4 +74,10 @@ public:
 	void setController(ViewController *c, Input::Event e);
 	Gfx::ProjectionPlane projection() { return projP; }
 	bool pointIsInView(IG::WP pos);
+
+protected:
+	Base::Window *win{};
+	ViewController *controller{};
+	Gfx::ProjectionPlane projP{};
+	const char *name_ = "";
 };

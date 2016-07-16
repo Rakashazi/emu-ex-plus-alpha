@@ -20,16 +20,13 @@
 #include <imagine/gui/NavView.hh>
 #include <utility>
 #include <memory>
+#include <array>
 
 class BasicViewController : public ViewController
 {
-	View *view{};
-	IG::WindowRect viewRect{};
-	Gfx::ProjectionPlane projP{};
-	using RemoveViewDelegate = DelegateFunc<void ()>;
-	RemoveViewDelegate removeViewDel{};
-
 public:
+	using RemoveViewDelegate = DelegateFunc<void ()>;
+
 	constexpr BasicViewController() {}
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
 	void push(View &v, Input::Event e);
@@ -43,23 +40,19 @@ public:
 	void inputEvent(Input::Event e);
 	void draw();
 	void init(const Base::Window &win);
+
+protected:
+	View *view{};
+	IG::WindowRect viewRect{};
+	Gfx::ProjectionPlane projP{};
+	RemoveViewDelegate removeViewDel{};
 };
 
 class ViewStack : public ViewController
 {
-private:
-	View *view[5]{};
-	NavView *nav{};
-	//ViewController *nextController{};
-	IG::WindowRect viewRect{}, customViewRect{};
-	Gfx::ProjectionPlane projP{};
-
 public:
-	uint size = 0;
-	bool useNavView = 0;
-
-	constexpr ViewStack() {}
-	void setNavView(NavView *nav);
+	ViewStack() {}
+	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
@@ -78,4 +71,22 @@ public:
 	int viewIdx(View &v) const;
 	bool contains(View &v) const;
 	void dismissView(View &v) override;
+	void showNavView(bool show);
+	void setShowNavViewBackButton(bool show);
+	uint size() const;
+
+protected:
+	View *view[5]{};
+	std::unique_ptr<NavView> nav{};
+	//ViewController *nextController{};
+	IG::WindowRect viewRect{}, customViewRect{};
+	Gfx::ProjectionPlane projP{};
+	uint size_ = 0;
+	std::array<bool, 5> viewNeedsNavView{};
+	bool showNavBackBtn = true;
+	bool showNavView_ = true;
+
+	void showNavLeftBtn();
+	bool topNeedsNavView() const;
+	bool navViewIsActive() const;
 };

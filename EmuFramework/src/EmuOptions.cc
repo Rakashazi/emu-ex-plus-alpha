@@ -259,6 +259,11 @@ Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
 
 void initOptions()
 {
+	if(!strlen(lastLoadPath.data()))
+	{
+		lastLoadPath = Base::storagePath();
+	}
+
 	optionSoundRate.initDefault(AudioManager::nativeFormat().rate);
 
 	#ifdef CONFIG_BASE_IOS

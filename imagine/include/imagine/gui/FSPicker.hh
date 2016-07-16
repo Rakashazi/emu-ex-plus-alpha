@@ -35,7 +35,7 @@ class FSPicker : public View
 {
 public:
 	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
-	using OnChangePathDelegate = DelegateFunc<void (FSPicker &picker, FS::PathString path, Input::Event e)>;
+	using OnChangePathDelegate = DelegateFunc<void (FSPicker &picker, FS::PathString prevPath, Input::Event e)>;
 	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char *name, Input::Event e)>;
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
@@ -72,25 +72,6 @@ public:
 	FS::PathString makePathString(const char *base) const;
 
 protected:
-	class FSNavView : public BasicNavView
-	{
-	public:
-		FSPicker &inst;
-
-		FSNavView(FSPicker &inst): inst(inst) {}
-		void onLeftNavBtn(Input::Event e) override
-		{
-			inst.onLeftNavBtn(e);
-		};
-		void onRightNavBtn(Input::Event e) override
-		{
-			inst.onRightNavBtn(e);
-		};
-		void init(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes, bool singleDir);
-		void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
-		void setTitle(const char *str);
-	};
-
 	FilterFunc filter{};
 	TableView tbl;
 	OnChangePathDelegate onChangePath_{};
@@ -108,7 +89,9 @@ protected:
 	FS::PathString currPath{};
 	IG::WindowRect viewFrame{};
 	ResourceFace *faceRes{};
-	FSNavView navV{*this};
+	BasicNavView navV;
+	std::array<char, 48> msgStr{};
+	Gfx::Text msgText{};
 	bool singleDir = false;
 
 	void changeDirByInput(const char *path, bool forcePathChange, Input::Event e);

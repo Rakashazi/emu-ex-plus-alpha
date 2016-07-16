@@ -26,7 +26,6 @@
 
 AppWindowData mainWin{}, extraWin{};
 bool menuViewIsActive = true;
-EmuNavView viewNav{};
 EmuView emuView{mainWin.win}, emuView2{extraWin.win};
 EmuVideo emuVideo{};
 EmuVideoLayer emuVideoLayer{emuVideo};
@@ -84,19 +83,6 @@ Gfx::PixmapTexture *getCollectTextCloseAsset()
 	return Config::envIsAndroid ? nullptr : &getAsset(ASSET_CLOSE);
 }
 
-void EmuNavView::onLeftNavBtn(Input::Event e)
-{
-	viewStack.popAndShow();
-};
-
-void EmuNavView::onRightNavBtn(Input::Event e)
-{
-	if(EmuSystem::gameIsRunning())
-	{
-		startGameFromMenu();
-	}
-};
-
 void postDrawToEmuWindows()
 {
 	emuWin->win.postDraw();
@@ -117,41 +103,6 @@ void updateAndDrawEmuVideo()
 {
 	emuVideo.updateImage();
 	drawEmuVideo();
-}
-
-void EmuNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP)
-{
-	using namespace Gfx;
-	setBlendMode(0);
-	noTexProgram.use(projP.makeTranslate());
-	bg.draw();
-	setColor(COLOR_WHITE);
-	texAlphaProgram.use();
-	text.draw(projP.alignToPixel(projP.unProjectRect(viewRect).pos(C2DO)), C2DO, projP);
-	if(leftSpr.image())
-	{
-		if(leftBtnActive)
-		{
-			setColor(COLOR_WHITE);
-			setBlendMode(BLEND_MODE_ALPHA);
-			TextureSampler::bindDefaultNearestMipClampSampler();
-			auto trans = projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO));
-			trans = trans.rollRotate(angleFromDegree(90));
-			leftSpr.useDefaultProgram(IMG_MODE_MODULATE, trans);
-			leftSpr.draw();
-		}
-	}
-	if(rightSpr.image())
-	{
-		if(rightBtnActive)
-		{
-			setColor(COLOR_WHITE);
-			setBlendMode(BLEND_MODE_ALPHA);
-			TextureSampler::bindDefaultNearestMipClampSampler();
-			rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
-			rightSpr.draw();
-		}
-	}
 }
 
 void startViewportAnimation(AppWindowData &winData)
@@ -434,7 +385,7 @@ void startGameFromMenu()
 	#endif
 	logMsg("running game");
 	menuViewIsActive = 0;
-	viewNav.setRightBtnActive(1);
+	viewStack.navView()->showRightBtn(true);
 	emuInputView.resetInput();
 	//logMsg("touch control state: %d", touchControlsAreOn);
 	Gfx::setWindowValidOrientations(mainWin.win, optionGameOrientation);
@@ -593,7 +544,7 @@ void mainInitCommon(int argc, char** argv)
 				}
 
 				#ifdef CONFIG_BLUETOOTH
-				if(viewStack.size == 1) // update bluetooth items
+				if(viewStack.size() == 1) // update bluetooth items
 					viewStack.top().onShow();
 				#endif
 			}
@@ -675,10 +626,32 @@ void mainInitCommon(int argc, char** argv)
 	emuVideoLayer.vidImgEffect.setBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
 	#endif
 
-	viewNav.init(View::defaultFace, View::needsBackControl ? &getAsset(ASSET_ARROW) : nullptr,
-			!Config::envIsPS3 ? &getAsset(ASSET_GAME_ICON) : nullptr);
-	viewNav.setRightBtnActive(false);
-	EmuSystem::onCustomizeNavView(viewNav);
+	{
+		auto viewNav = std::make_unique<BasicNavView>
+		(
+			View::defaultFace,
+			&getAsset(ASSET_ARROW),
+			&getAsset(ASSET_GAME_ICON)
+		);
+		viewNav->rotateLeftBtn = true;
+		viewNav->setOnPushLeftBtn(
+			[](Input::Event)
+			{
+				viewStack.popAndShow();
+			});
+		viewNav->setOnPushRightBtn(
+			[](Input::Event)
+			{
+				if(EmuSystem::gameIsRunning())
+				{
+					startGameFromMenu();
+				}
+			});
+		viewNav->showRightBtn(false);
+		viewStack.setShowNavViewBackButton(View::needsBackControl);
+		EmuSystem::onCustomizeNavView(*viewNav);
+		viewStack.setNavView(std::move(viewNav));
+	}
 
 	Base::WindowConfig winConf;
 
@@ -800,11 +773,7 @@ void mainInitWindowCommon(Base::Window &win)
 				startGameFromMenu();
 			}
 		};
-	if(optionTitleBar)
-	{
-		//logMsg("title bar on");
-		viewStack.setNavView(&viewNav);
-	}
+	viewStack.showNavView(optionTitleBar);
 	//logMsg("setting menu orientation");
 	Gfx::setWindowValidOrientations(win, optionMenuOrientation);
 	win.setAcceptDnd(1);
@@ -850,7 +819,7 @@ void handleInputEvent(Base::Window &win, Input::Event e)
 	{
 		if(e.state == Input::PUSHED && e.isDefaultCancelButton())
 		{
-			if(viewStack.size == 1)
+			if(viewStack.size() == 1)
 			{
 				//logMsg("cancel button at view stack root");
 				if(EmuSystem::gameIsRunning())
