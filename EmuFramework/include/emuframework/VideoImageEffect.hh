@@ -32,7 +32,6 @@ public:
 	};
 
 private:
-	using ErrorMessage = std::array<char, 128>;
 	Gfx::Program prog{};
 	Gfx::Shader vShader{};
 	Gfx::Shader fShader{};

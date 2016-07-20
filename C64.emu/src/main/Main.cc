@@ -1041,7 +1041,7 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 struct SnapshotTrapData
 {
 	constexpr SnapshotTrapData() {}
-	uint result = STATE_RESULT_IO_ERROR;
+	bool hasError = true;
 	FS::PathString pathStr{};
 };
 
@@ -1050,9 +1050,9 @@ static void loadSnapshotTrap(WORD, void *data)
 	auto snapData = (SnapshotTrapData*)data;
 	logMsg("loading state: %s", snapData->pathStr.data());
 	if(plugin.machine_read_snapshot(snapData->pathStr.data(), 0) < 0)
-		snapData->result = STATE_RESULT_IO_ERROR;
+		snapData->hasError = true;
 	else
-		snapData->result = STATE_RESULT_OK;
+		snapData->hasError = false;
 }
 
 static void saveSnapshotTrap(WORD, void *data)
@@ -1060,22 +1060,22 @@ static void saveSnapshotTrap(WORD, void *data)
 	auto snapData = (SnapshotTrapData*)data;
 	logMsg("saving state: %s", snapData->pathStr.data());
 	if(plugin.machine_write_snapshot(snapData->pathStr.data(), 1, 1, 0) < 0)
-		snapData->result = STATE_RESULT_IO_ERROR;
+		snapData->hasError = true;
 	else
-		snapData->result = STATE_RESULT_OK;
+		snapData->hasError = false;
 }
 
-int EmuSystem::saveState()
+std::error_code EmuSystem::saveState()
 {
 	SnapshotTrapData data;
 	data.pathStr = sprintStateFilename(saveStateSlot);
 	fixFilePermissions(data.pathStr);
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	runFrame(0, 0, 0); // execute cpu trap
-	return data.result;
+	return data.hasError ? std::error_code{EIO, std::system_category()} : std::error_code{};
 }
 
-int EmuSystem::loadState(int saveStateSlot)
+std::system_error EmuSystem::loadState(int saveStateSlot)
 {
 	plugin.resources_set_int("WarpMode", 0);
 	SnapshotTrapData data;
@@ -1083,14 +1083,14 @@ int EmuSystem::loadState(int saveStateSlot)
 	runFrame(0, 0, 0); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	runFrame(0, 0, 0); // execute cpu trap, snapshot load may cause reboot from a C64 model change
-	if(data.result != STATE_RESULT_OK)
-		return data.result;
+	if(data.hasError)
+		return {{EIO, std::system_category()}};
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	runFrame(0, 0, 0); // execute cpu trap
-	int result = data.result;
+	bool hasError = data.hasError;
 	isPal = sysIsPal();
-	return result;
+	return hasError ? std::system_error{{EIO, std::system_category()}} : std::system_error{{}};
 }
 
 void EmuSystem::saveAutoState()
@@ -1102,7 +1102,7 @@ void EmuSystem::saveAutoState()
 		fixFilePermissions(data.pathStr);
 		plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 		runFrame(0, 0, 0); // execute cpu trap
-		if(data.result != STATE_RESULT_OK)
+		if(data.hasError)
 		{
 			logErr("error writing auto-save state %s", data.pathStr.data());
 		}

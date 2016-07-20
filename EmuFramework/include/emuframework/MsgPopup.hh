@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <cstdio>
+#include <system_error>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Timer.hh>
@@ -39,6 +40,8 @@ public:
 	void unpost();
 	void post(const char *msg, int secs = 3, bool error = false);
 	void postError(const char *msg, int secs = 3);
+	void post(const char *prefix, const std::system_error &err, int secs = 3);
+	void post(const char *prefix, std::error_code ec, int secs = 3);
 	void draw();
 
 	[[gnu::format(printf, 4, 5)]]

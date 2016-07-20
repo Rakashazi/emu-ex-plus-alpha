@@ -308,11 +308,10 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 					[](TextMenuItem &, View &view, Input::Event e)
 					{
 						view.dismiss();
-						int ret = EmuSystem::loadState();
-						if(ret != STATE_RESULT_OK)
+						auto err = EmuSystem::loadState();
+						if(err.code())
 						{
-							if(ret != STATE_RESULT_OTHER_ERROR) // check if we're responsible for posting the error
-								popup.postError(stateResultToStr(ret));
+							popup.post("Load State: ", err, 4);
 						}
 						else
 							startGameFromMenu();
@@ -352,9 +351,9 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 				static auto doSaveState =
 					[]()
 					{
-						int ret = EmuSystem::saveState();
-						if(ret != STATE_RESULT_OK)
-							popup.postError(stateResultToStr(ret));
+						auto ec = EmuSystem::saveState();
+						if(ec)
+							popup.post("Save State: ", ec);
 						else
 							startGameFromMenu();
 					};

@@ -22,34 +22,99 @@
 
 #include "shared.h"
 #include <imagine/logger/logger.h>
-//static unsigned char state[STATE_SIZE] __attribute__ ((aligned (4)));
+#include <system_error>
+#include <imagine/util/string.h>
 
-int state_load(const unsigned char *buffer)
+static uint oldStateSizeAfterZ80Regs()
 {
-	unsigned char *state = (unsigned char*)malloc(STATE_SIZE);
-	if(!state)
+	uint size = 0;
+  #ifndef NO_SYSTEM_PBC
+  if (system_hw == SYSTEM_PBC)
+  {
+    size += 4;
+  }
+  else
+  #endif
+  {
+    size += 4 + 0x40;
+    if(svp)
+  	{
+    	auto ssp1601Size = 1280;
+  		size += 0x800 + 0x20000 + ssp1601Size;
+  	}
+  }
+	#ifndef NO_SCD
+	if (sCD.isActive)
 	{
-		logErr("out of memory loading state");
-		return -1;
+		auto m68kSize = 78;
+		size += m68kSize + 920658;
 	}
+	#endif
+	return size;
+}
+
+static uint oldStateSizeAfterVDP(int exVersion, bool is64Bit)
+{
+	uint size = 0;
+
+	// Sound state
+	#ifndef NO_SYSTEM_PBC
+  if (system_hw == SYSTEM_PBC)
+  {
+   size += 5976;
+  }
+  else
+  #endif
+  {
+	 size += is64Bit ? 19992 : 19748;
+	 // DT table indices
+	 size += 4 * 6 * 2;
+  }
+
+  // SN76489 state
+  size += 112;
+  // fm_cycles_count & psg_cycles_count
+  size += 8;
+
+  // M68K state
+	#ifndef NO_SYSTEM_PBC
+  if (system_hw != SYSTEM_PBC)
+  #endif
+  {
+    size += (18 * 4) + 2;
+    if(exVersion >= 1)
+    {
+    	size += 4;
+    }
+  }
+
+  // Z80 state
+  size += is64Bit ? 80 : 72;
+
+  size += oldStateSizeAfterZ80Regs();
+
+  return size;
+}
+
+std::system_error state_load(const unsigned char *buffer)
+{
+	auto state = std::make_unique<unsigned char[]>(STATE_SIZE);
 
   /* buffer size */
-  int bufferptr = 0;
+  uint bufferptr = 0;
 
   /* uncompress savestate */
-  unsigned long inbytes, outbytes;
   uint32 inbytes32;
   memcpy(&inbytes32, buffer, 4);
-  inbytes = inbytes32;
-  outbytes = STATE_SIZE;
+  unsigned long inbytes = inbytes32;
+  unsigned long outbytes = STATE_SIZE;
   logMsg("uncompressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
   {
-  	int result = uncompress((Bytef *)state, &outbytes, (Bytef *)(buffer + 4), inbytes);
+  	int result = uncompress((Bytef *)state.get(), &outbytes, (Bytef *)(buffer + 4), inbytes);
 		if(result != Z_OK)
 		{
-			logErr("error %d in uncompress loading state", result);
-			free(state);
-			return -1;
+			//logErr("error %d in uncompress loading state", result);
+			return {{ECANCELED, std::system_category()}, string_makePrintf<48>("Error %d during uncompress", result).data()};
 		}
   }
 
@@ -59,17 +124,13 @@ int state_load(const unsigned char *buffer)
   version[16] = 0;
   if (strncmp(version,STATE_VERSION,11))
   {
-  	logErr("bad signature loading state");
-  	free(state);
-    return -1;
+    return {{ECANCELED, std::system_category()}, "Missing header"};
   }
 
   /* version check (1.5.0 and above) */
   if ((version[11] < 0x31) || ((version[11] == 0x31) && (version[13] < 0x35)))
   {
-  	logErr("version too old loading state");
-  	free(state);
-    return -1;
+    return {{ECANCELED, std::system_category()}, "Version too old"};
   }
 
   uint exVersion = (version[15] >= 0x32) ? version[15] - 0x31 : 0;
@@ -130,8 +191,40 @@ int state_load(const unsigned char *buffer)
   // VDP
   bufferptr += vdp_context_load(&state[bufferptr]);
 
-  // SOUND 
-  bufferptr += sound_context_load(&state[bufferptr], version);
+  // SOUND
+  uint ptrSize = 0;
+  if(exVersion < 2)
+  {
+  	// Old save states include pointer members and padding with different
+  	// sizes on 32/64-bit platforms after this point. Use the remaining state
+  	// bytes along with the expected remaining bytes to determine if the state
+  	// was saved on a 32 or 64-bit machine and how much data to skip over.
+  	int bytesLeft32 = oldStateSizeAfterVDP(exVersion, false);
+  	int bytesLeft64 = oldStateSizeAfterVDP(exVersion, true);
+  	int bytesLeft = (int)outbytes - bufferptr;
+  	if(bytesLeft == bytesLeft32)
+  	{
+  		logMsg("state was made on 32-bit system");
+  		ptrSize = 4;
+  	}
+  	else if(bytesLeft == bytesLeft64)
+  	{
+  		logMsg("state was made on 64-bit system");
+  		ptrSize = 8;
+  	}
+  	else
+  	{
+  		logErr("unexpected amount of bytes remaining in state:%d, should be %d or %d",
+  			bytesLeft, bytesLeft32, bytesLeft64);
+  		system_reset();
+  		return {{ECANCELED, std::system_category()}, "Can't determine if created on 32 or 64-bit system"};
+  	}
+  	bufferptr += sound_context_load(&state[bufferptr], version, true, ptrSize);
+  }
+  else
+  {
+    bufferptr += sound_context_load(&state[bufferptr], version, false, 0);
+  }
 
   // 68000 
   #ifndef NO_SYSTEM_PBC
@@ -167,7 +260,12 @@ int state_load(const unsigned char *buffer)
 
   // Z80 
   load_param(&Z80, sizeof(Z80_Regs));
-  //Z80.irq_callback = z80_irq_callback;
+  if(exVersion < 2)
+  {
+  	assumeExpr(ptrSize == 4 || ptrSize == 8);
+  	logMsg("skipping extra Z80 regs data in state");
+  	bufferptr += ptrSize * 2;
+  }
 
   // Cartridge HW
   #ifndef NO_SYSTEM_PBC
@@ -188,15 +286,18 @@ int state_load(const unsigned char *buffer)
 	}
 	#endif
 
-	free(state);
-  return 1;
+	if(bufferptr != outbytes)
+	{
+		system_reset();
+		return {{ECANCELED, std::system_category()}, string_makePrintf<80>("Expected %d size state but got %d", bufferptr, (int)outbytes).data()};
+	}
+
+  return {{}};
 }
 
 int state_save(unsigned char *buffer)
 {
-	unsigned char *state = (unsigned char*)malloc(STATE_SIZE);
-	if(!state)
-		return -1;
+	auto state = std::make_unique<unsigned char[]>(STATE_SIZE);
 
   /* buffer size */
   int bufferptr = 0;
@@ -296,9 +397,8 @@ int state_save(unsigned char *buffer)
   unsigned long inbytes   = bufferptr;
   unsigned long outbytes  = STATE_SIZE;
   logMsg("compressing %d bytes to buffer of %d size", (int)inbytes, (int)outbytes);
-  int ret = compress2 ((Bytef *)(buffer + 4), &outbytes, (Bytef *)state, inbytes, 9);
+  int ret = compress2 ((Bytef *)(buffer + 4), &outbytes, (Bytef *)state.get(), inbytes, 9);
   logMsg("compress2 returned %d, reduced to %d bytes", ret, (int)outbytes);
-  free(state);
   uint32 outbytes32 = outbytes; // assumes no save states will ever be over 4GB
   memcpy(buffer, &outbytes32, 4);
 

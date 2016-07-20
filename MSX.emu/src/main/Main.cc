@@ -714,13 +714,13 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 static const char saveStateVersion[] = "blueMSX - state  v 8";
 extern int pendingInt;
 
-static int saveBlueMSXState(const char *filename)
+static std::error_code saveBlueMSXState(const char *filename)
 {
 	CallResult res = zipStartWrite(filename);
 	if(res != OK)
 	{
 		logErr("error creating zip:%s", filename);
-		return STATE_RESULT_IO_ERROR;
+		return {EIO, std::system_category()};
 	}
 	saveStateCreateForWrite(filename);
 	int rv = zipSaveFile(filename, "version", 0, saveStateVersion, sizeof(saveStateVersion));
@@ -729,7 +729,7 @@ static int saveBlueMSXState(const char *filename)
 		saveStateDestroy();
 		zipEndWrite();
 		logErr("error writing to zip:%s", filename);
-		return STATE_RESULT_IO_ERROR;
+		return {EIO, std::system_category()};
 	}
 
 	SaveState* state = saveStateOpenForWrite("board");
@@ -759,10 +759,10 @@ static int saveBlueMSXState(const char *filename)
 	boardInfo.saveState();
 	saveStateDestroy();
 	zipEndWrite();
-	return STATE_RESULT_OK;
+	return {};
 }
 
-int EmuSystem::saveState()
+std::error_code EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	return saveBlueMSXState(saveStr.data());
@@ -791,7 +791,7 @@ static void saveStateGetFileString(SaveState* state, const char* tagName, T &des
 	}
 }
 
-static int loadBlueMSXState(const char *filename)
+static std::system_error loadBlueMSXState(const char *filename)
 {
 	logMsg("loading state %s", filename);
 
@@ -804,14 +804,13 @@ static int loadBlueMSXState(const char *filename)
 	if(!version)
 	{
 		saveStateDestroy();
-		return STATE_RESULT_IO_ERROR;
+		return {{EIO, std::system_category()}};
 	}
 	if(0 != strncmp(version, saveStateVersion, sizeof(saveStateVersion) - 1))
 	{
 		free(version);
 		saveStateDestroy();
-		popup.postError("Incorrect state version");
-		return STATE_RESULT_OTHER_ERROR;
+		return {{EILSEQ, std::system_category()}, "Incorrect state version"};
 	}
 	free(version);
 
@@ -827,7 +826,7 @@ static int loadBlueMSXState(const char *filename)
 		saveStateDestroy();
 		string_copy(optionMachineNameStr, optionMachineNameStrOld); // restore old machine name
 		closeGameByFailedStateLoad();
-		return STATE_RESULT_OTHER_ERROR;
+		return {{EILSEQ, std::system_category()}, "Invalid data in file"};
 	}
 
 	clearAllMediaNames();
@@ -847,23 +846,23 @@ static int loadBlueMSXState(const char *filename)
 	if(!insertMedia())
 	{
 		closeGameByFailedStateLoad();
-		return STATE_RESULT_OTHER_ERROR;
+		return {{EIO, std::system_category()}, "Error loading media"};
 	}
 
 	boardInfo.loadState();
 	saveStateDestroy();
 	emuVideo.initImage(0, msxResX, msxResY);
-	return STATE_RESULT_OK;
+	return {{}};
 }
 
-int EmuSystem::loadState(int saveStateSlot)
+std::system_error EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(FS::exists(saveStr.data()))
 	{
 		return loadBlueMSXState(saveStr.data());
 	}
-	return STATE_RESULT_NO_FILE;
+	return {{ENOENT, std::system_category()}};
 }
 
 void EmuSystem::saveBackupMem()

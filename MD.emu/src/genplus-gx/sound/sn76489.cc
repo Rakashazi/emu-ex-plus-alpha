@@ -51,21 +51,21 @@
 typedef struct
 {
   /* Configuration */
-  int BoostNoise;         /* double noise volume when non-zero */
+  int32 BoostNoise;         /* double noise volume when non-zero */
 
   /* PSG registers: */
-  int Registers[8];       /* Tone, vol x4 */
-  int LatchedRegister;
-  int NoiseShiftRegister;
-  int NoiseFreq;          /* Noise channel signal generator frequency */
+  int32 Registers[8];       /* Tone, vol x4 */
+  int32 LatchedRegister;
+  int32 NoiseShiftRegister;
+  int32 NoiseFreq;          /* Noise channel signal generator frequency */
 
   /* Output calculation variables */
-  int ToneFreqVals[4];    /* Frequency register values (counters) */
-  int ToneFreqPos[4];     /* Frequency channel flip-flops */
-  int Channels[4];        /* Value of each channel, before stereo is applied */
+  int32 ToneFreqVals[4];    /* Frequency register values (counters) */
+  int32 ToneFreqPos[4];     /* Frequency channel flip-flops */
+  int32 Channels[4];        /* Value of each channel, before stereo is applied */
 
   /* Blip-Buffer variables */
-  int chan_amp[4];        /* current channel amplitudes in delta buffers */
+  int32 chan_amp[4];        /* current channel amplitudes in delta buffers */
 } SN76489_Context;
 
 static const uint PSGVolumeValues[16] = {

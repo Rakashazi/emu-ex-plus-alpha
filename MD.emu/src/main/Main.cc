@@ -345,59 +345,47 @@ static FS::PathString sprintBRAMSaveFilename()
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
 
-static int saveMDState(const char *path)
+static std::error_code saveMDState(const char *path)
 {
-	uchar *stateData = (uchar*)malloc(maxSaveStateSize);
+	auto stateData = std::make_unique<uchar[]>(maxSaveStateSize);
 	if(!stateData)
-		return STATE_RESULT_IO_ERROR;
+		return {ENOMEM, std::system_category()};
 	logMsg("saving state data");
-	int size = state_save(stateData);
+	int size = state_save(stateData.get());
 	logMsg("writing to file");
-	auto ec = writeToNewFile(path, stateData, size);
+	auto ec = writeToNewFile(path, stateData.get(), size);
 	if(ec)
 	{
-		free(stateData);
 		logMsg("error writing state file");
-		switch(ec.value())
-		{
-			case (int)std::errc::permission_denied: return STATE_RESULT_NO_FILE_ACCESS;
-			default: return STATE_RESULT_IO_ERROR;
-		}
+		return ec;
 	}
-	free(stateData);
 	logMsg("wrote %d byte state", size);
-	return STATE_RESULT_OK;
+	return {};
 }
 
-static int loadMDState(const char *path)
+static std::system_error loadMDState(const char *path)
 {
 	FileIO f;
 	auto ec = f.open(path);
 	if(ec)
 	{
-		switch(ec.value())
-		{
-			case (int)std::errc::permission_denied: return STATE_RESULT_NO_FILE_ACCESS;
-			case (int)std::errc::no_such_file_or_directory: return STATE_RESULT_NO_FILE;
-			default: return STATE_RESULT_IO_ERROR;
-		}
+		return {ec};
 	}
-
 	auto stateData = (const uchar *)f.mmapConst();
 	if(!stateData)
 	{
-		return STATE_RESULT_IO_ERROR;
+		return {{EIO, std::system_category()}};
 	}
-	if(state_load(stateData) <= 0)
+	auto err = state_load(stateData);
+	if(err.code())
 	{
-		return STATE_RESULT_INVALID_DATA;
+		return err;
 	}
-
 	//sound_restore();
-	return STATE_RESULT_OK;
+	return {{}};
 }
 
-int EmuSystem::saveState()
+std::error_code EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	fixFilePermissions(saveStr);
@@ -405,7 +393,7 @@ int EmuSystem::saveState()
 	return saveMDState(saveStr.data());
 }
 
-int EmuSystem::loadState(int saveStateSlot)
+std::system_error EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	logMsg("loading state %s", saveStr.data());

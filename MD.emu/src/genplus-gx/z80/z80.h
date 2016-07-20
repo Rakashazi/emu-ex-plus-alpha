@@ -43,9 +43,6 @@ typedef struct
   UINT8  nmi_pending;    /* nmi pending */
   UINT8  irq_state;      /* irq line state */
   UINT8  after_ei;      /* are we in the EI shadow? */
-  // can't remove next 2 members unless save state code is made aware
-  const struct z80_irq_daisy_chain *daisy;
-  int    (*irq_callback)(int irqline);
 }  Z80_Regs;
 
 class Z80CPU : public Z80_Regs

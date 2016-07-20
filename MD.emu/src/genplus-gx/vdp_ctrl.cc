@@ -105,7 +105,7 @@ static uint16 sat_base_mask;  /* Base bits of SAT */
 static uint16 sat_addr_mask;  /* Index bits of SAT */
 static uint32 dma_endCycles;  /* 68k cycles to DMA end */
 static uint32 fifo_latency;   /* CPU access latency */
-static int cached_write;      /* 2nd part of 32-bit CTRL port write */
+static int32 cached_write;      /* 2nd part of 32-bit CTRL port write */
 static uint16 fifo[4] __attribute__ ((aligned (4)));        /* FIFO buffer */
 
 /* set Z80 or 68k interrupt lines */

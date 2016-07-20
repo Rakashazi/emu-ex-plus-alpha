@@ -26,9 +26,9 @@
 
 /* Cycle-accurate samples */
 static unsigned int psg_cycles_ratio;
-static unsigned int psg_cycles_count;
+static uint32 psg_cycles_count;
 static unsigned int fm_cycles_ratio;
-static unsigned int fm_cycles_count;
+static uint32 fm_cycles_count;
 
 /* YM chip function pointers */
 static void (*YM_Reset)(void);
@@ -226,7 +226,7 @@ void sound_restore()
     else
     #endif
     {
-    	YM2612Restore(temp);
+    	YM2612RestoreContext(temp);
     }
     free(temp);
   }
@@ -254,7 +254,7 @@ int sound_context_save(uint8 *state)
   return bufferptr;
 }
 
-int sound_context_load(uint8 *state, char *version)
+int sound_context_load(uint8 *state, char *version, bool hasExcessYM2612Data, uint ptrSize)
 {
   int bufferptr = 0;
 
@@ -267,7 +267,9 @@ int sound_context_load(uint8 *state, char *version)
   else
   #endif
   {
-	  bufferptr = YM2612LoadContext(state);
+  	if(hasExcessYM2612Data)
+  		logMsg("skipping extra YM2612 data in state");
+	  bufferptr = YM2612LoadContext(state, hasExcessYM2612Data, ptrSize);
   }
 
   load_param(SN76489_GetContextPtr(),SN76489_GetContextSize());

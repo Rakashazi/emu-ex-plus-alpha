@@ -15,38 +15,38 @@
 
 struct CDC
 {
-	constexpr CDC() { }
-	unsigned char Buffer[(32 * 1024 * 2) + 2352] = {0};
+	constexpr CDC() {}
+	unsigned char Buffer[(32 * 1024 * 2) + 2352]{};
 //	unsigned int Host_Data;		// unused
 //	unsigned int DMA_Adr;		// 0A
 //	unsigned int Stop_Watch;	// 0C
-	unsigned int COMIN = 0;
-	unsigned int IFSTAT = 0;
+	int32 COMIN = 0;
+	uint32 IFSTAT = 0;
 	union DBC_T
 	{
-		constexpr DBC_T(): N(0) { }
+		constexpr DBC_T(): N(0) {}
 		struct
 		{
 			unsigned char L;
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int N;
+		int32 N;
 	} DBC;
 	union DAC_T
 	{
-		constexpr DAC_T(): N(0) { }
+		constexpr DAC_T(): N(0) {}
 		struct
 		{
 			unsigned char L;
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int N;
+		int32 N;
 	} DAC;
 	union HEAD_T
 	{
-		constexpr HEAD_T(): N(0) { }
+		constexpr HEAD_T(): N(0) {}
 		struct
 		{
 			unsigned char B0;
@@ -54,33 +54,33 @@ struct CDC
 			unsigned char B2;
 			unsigned char B3;
 		} B;
-		unsigned int N;
+		uint32 N;
 	} HEAD;
 	union PT_T
 	{
-		constexpr PT_T(): N(0) { }
+		constexpr PT_T(): N(0) {}
 		struct
 		{
 			unsigned char L;
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int N;
+		int32 N;
 	} PT;
 	union WA_T
 	{
-		constexpr WA_T(): N(0) { }
+		constexpr WA_T(): N(0) {}
 		struct
 		{
 			unsigned char L;
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int N;
+		int32 N;
 	} WA;
 	union STAT_T
 	{
-		constexpr STAT_T(): N(0) { }
+		constexpr STAT_T(): N(0) {}
 		struct
 		{
 			unsigned char B0;
@@ -88,13 +88,13 @@ struct CDC
 			unsigned char B2;
 			unsigned char B3;
 		} B;
-		unsigned int N;
+		uint32 N;
 	} STAT;
-	unsigned int SBOUT = 0;
-	unsigned int IFCTRL = 0;
+	uint32 SBOUT = 0;
+	uint32 IFCTRL = 0;
 	union CTRL_T
 	{
-		constexpr CTRL_T(): N(0) { }
+		constexpr CTRL_T(): N(0) {}
 		struct
 		{
 			unsigned char B0;
@@ -102,9 +102,9 @@ struct CDC
 			unsigned char B2;
 			unsigned char B3;
 		} B;
-		unsigned int N;
+		uint32 N;
 	} CTRL;
-	unsigned int Decode_Reg_Read = 0;
+	uint32 Decode_Reg_Read = 0;
 };
 
 struct CDD

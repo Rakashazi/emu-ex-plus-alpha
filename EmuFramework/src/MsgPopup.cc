@@ -17,6 +17,7 @@
 #include <emuframework/MsgPopup.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/View.hh>
+#include <string>
 
 using namespace Base;
 
@@ -70,7 +71,17 @@ void MsgPopup::post(const char *msg, int secs, bool error)
 
 void MsgPopup::postError(const char *msg, int secs)
 {
-	post(msg, secs, 1);
+	post(msg, secs, true);
+}
+
+void MsgPopup::post(const char *prefix, const std::system_error &err, int secs)
+{
+	printf(secs, true, "%s%s", prefix, err.what());
+}
+
+void MsgPopup::post(const char *prefix, std::error_code ec, int secs)
+{
+	printf(secs, true, "%s%s", prefix, ec.message().c_str());
 }
 
 void MsgPopup::printf(uint secs, bool error, const char *format, ...)

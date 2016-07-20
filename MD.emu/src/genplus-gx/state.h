@@ -23,13 +23,15 @@
 #ifndef _STATE_H_
 #define _STATE_H_
 
+#include <system_error>
+
 #ifndef NO_SCD
 #include <scd/scd.h>
 #define STATE_SIZE    0x48100 + sizeof(SegaCD)
 #else
 #define STATE_SIZE    0x48100
 #endif
-#define STATE_VERSION "GENPLUS-GX 1.5.2"
+#define STATE_VERSION "GENPLUS-GX 1.5.3"
 
 #define load_param(param, size) \
   memcpy(param, &state[bufferptr], size); \
@@ -40,7 +42,7 @@
   bufferptr+= size;
 
 /* Function prototypes */
-extern int state_load(const unsigned char *buffer);
-extern int state_save(unsigned char *buffer);
+std::system_error state_load(const unsigned char *buffer);
+int state_save(unsigned char *buffer);
 
 #endif

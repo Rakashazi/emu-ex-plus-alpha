@@ -26,6 +26,7 @@
 #include <imagine/gui/NavView.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
+#include <system_error>
 
 #ifdef ENV_NOTE
 #define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
@@ -127,8 +128,8 @@ public:
 	static bool isPaused() { return state == State::PAUSED; }
 	static void cancelAutoSaveStateTimer();
 	static void startAutoSaveStateTimer();
-	static int loadState(int slot = saveStateSlot);
-	static int saveState();
+	static std::system_error loadState(int slot = saveStateSlot);
+	static std::error_code saveState();
 	static bool stateExists(int slot);
 	static bool shouldOverwriteExistingState();
 	static const char *systemName();
@@ -202,18 +203,6 @@ public:
 	static void closeSystem();
 	static void closeGame(bool allowAutosaveState = 1);
 };
-
-static const char *stateResultToStr(int res)
-{
-	switch(res)
-	{
-		case STATE_RESULT_NO_FILE: return "No State Exists";
-		case STATE_RESULT_NO_FILE_ACCESS: return "File Permission Denied";
-		case STATE_RESULT_IO_ERROR: return "File I/O Error";
-		case STATE_RESULT_INVALID_DATA: return "Invalid State Data";
-		default: bug_branch("%d", res); return 0;
-	}
-}
 
 static const char *stateNameStr(int slot)
 {

@@ -131,7 +131,8 @@ bool EmuSystem::loadAutoState()
 {
 	if(optionAutoSaveState)
 	{
-		if(loadState(-1))
+		auto err = loadState(-1);
+		if(!err.code())
 		{
 			logMsg("loaded autosave-state");
 			return 1;

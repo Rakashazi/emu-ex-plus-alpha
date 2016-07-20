@@ -491,7 +491,7 @@ int scd_saveState(uint8 *state)
   save_param(&sCD.cddaLBA, 4);
   save_param(&sCD.cddaDataLeftover, 2);
 
-  uchar reserved[24] {0};
+  uchar reserved[24]{};
   save_param(reserved, 24);
 
   return bufferptr;

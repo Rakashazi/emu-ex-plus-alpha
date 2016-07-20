@@ -282,8 +282,8 @@ struct M68KCPU
 #endif
 
   int irqLatency = 0;
-  uint cycleCount = 0;
-  uint endCycles = 0;
+  uint32 cycleCount = 0;
+  uint32 endCycles = 0;
   _m68k_memory_map memory_map[256]{};
 
   /* Set the IPL0-IPL2 pins on the CPU (IRQ).

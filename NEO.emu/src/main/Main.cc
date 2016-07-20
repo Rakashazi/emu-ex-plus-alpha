@@ -409,28 +409,28 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
 }
 
-int EmuSystem::saveState()
+std::error_code EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	fixFilePermissions(saveStr);
 	if(!save_stateWithName(saveStr.data()))
-		return STATE_RESULT_IO_ERROR;
+		return {EIO, std::system_category()};
 	else
-		return STATE_RESULT_OK;
+		return {};
 }
 
-int EmuSystem::loadState(int saveStateSlot)
+std::system_error EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	if(FS::exists(saveStr.data()))
 	{
 		logMsg("loading state %s", saveStr.data());
 		if(load_stateWithName(saveStr.data()))
-			return STATE_RESULT_OK;
+			return {{}};
 		else
-			return STATE_RESULT_IO_ERROR;
+			return {{EIO, std::system_category()}};
 	}
-	return STATE_RESULT_NO_FILE;
+	return {{ENOENT, std::system_category()}};
 }
 
 void EmuSystem::saveBackupMem()

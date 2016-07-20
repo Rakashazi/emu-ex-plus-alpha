@@ -439,7 +439,7 @@ void EmuSystem::reset(ResetMode mode)
 	}
 }
 
-int EmuSystem::saveState()
+std::error_code EmuSystem::saveState()
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	logMsg("saving state %s", saveStr.data());
@@ -447,12 +447,12 @@ int EmuSystem::saveState()
 	Serializer state(string(saveStr.data()), 0);
 	if(!stateManager.saveState(state))
 	{
-		return STATE_RESULT_IO_ERROR;
+		return {EIO, std::system_category()};
 	}
-	return STATE_RESULT_OK;
+	return {};
 }
 
-int EmuSystem::loadState(int saveStateSlot)
+std::system_error EmuSystem::loadState(int saveStateSlot)
 {
 	auto saveStr = sprintStateFilename(saveStateSlot);
 	logMsg("loading state %s", saveStr.data());
@@ -460,10 +460,10 @@ int EmuSystem::loadState(int saveStateSlot)
 	Serializer state(string(saveStr.data()), 1);
 	if(!stateManager.loadState(state))
 	{
-		return STATE_RESULT_IO_ERROR;
+		return {EIO, std::system_category()};
 	}
 	updateSwitchValues();
-	return STATE_RESULT_OK;
+	return {};
 }
 
 void EmuSystem::savePathChanged() { }

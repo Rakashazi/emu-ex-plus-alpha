@@ -559,7 +559,7 @@ void EmuSystem::reset(ResetMode mode)
 	PCE_Fast::PCE_Power();
 }
 
-int EmuSystem::saveState()
+std::error_code EmuSystem::saveState()
 {
 	char ext[] = { "nc0" };
 	ext[2] = saveSlotChar(saveStateSlot);
@@ -567,12 +567,12 @@ int EmuSystem::saveState()
 	logMsg("saving state %s", statePath.c_str());
 	fixFilePermissions(statePath.c_str());
 	if(!MDFNI_SaveState(statePath.c_str(), 0, 0, 0, 0))
-		return STATE_RESULT_IO_ERROR;
+		return {EIO, std::system_category()};
 	else
-		return STATE_RESULT_OK;
+		return {};
 }
 
-int EmuSystem::loadState(int saveStateSlot)
+std::system_error EmuSystem::loadState(int saveStateSlot)
 {
 	char ext[] = { "nc0" };
 	ext[2] = saveSlotChar(saveStateSlot);
@@ -581,11 +581,11 @@ int EmuSystem::loadState(int saveStateSlot)
 	{
 		logMsg("loading state %s", statePath.c_str());
 		if(!MDFNI_LoadState(statePath.c_str(), 0))
-			return STATE_RESULT_IO_ERROR;
+			return {{EIO, std::system_category()}};
 		else
-			return STATE_RESULT_OK;
+			return {{}};
 	}
-	return STATE_RESULT_NO_FILE;
+	return {{ENOENT, std::system_category()}};
 }
 
 void EmuSystem::savePathChanged() { }

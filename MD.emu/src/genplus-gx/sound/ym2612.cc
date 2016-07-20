@@ -2177,7 +2177,7 @@ unsigned int YM2612GetContextSize(void)
   return sizeof(YM2612);
 }
 
-void YM2612Restore(unsigned char *buffer)
+void YM2612RestoreContext(unsigned char *buffer)
 {
   /* save current timings */
 	float clock = ym2612.OPN.ST.clock;
@@ -2203,12 +2203,116 @@ void YM2612Restore(unsigned char *buffer)
   init_tables();
 }
 
-int YM2612LoadContext(unsigned char *state)
+int YM2612Restore(unsigned char *state, bool hasExcessData, uint ptrSize)
 {
-  int bufferptr = sizeof(YM2612);
+  /* save current timings */
+	float clock = ym2612.OPN.ST.clock;
+  int rate = ym2612.OPN.ST.rate;
 
+  /* restore internal state */
+  int bufferptr = 0;
+  iterateTimes(6, c)
+  {
+  	iterateTimes(4, s)
+		{
+  		if(hasExcessData)
+  		{
+  			// skip DT
+  			bufferptr += ptrSize;
+  		}
+  		load_param(&ym2612.CH[c].SLOT[s].KSR, 1);
+  		if(hasExcessData)
+  			bufferptr += 3;
+  		load_param(&ym2612.CH[c].SLOT[s].ar, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].d1r, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].d2r, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].rr, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].ksr, 1);
+  		if(hasExcessData)
+  			bufferptr += 3;
+  		load_param(&ym2612.CH[c].SLOT[s].mul, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].phase, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].Incr, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].state, 1);
+  		if(hasExcessData)
+  			bufferptr += 3;
+  		load_param(&ym2612.CH[c].SLOT[s].tl, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].volume, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].sl, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].vol_out, 4);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sh_ar, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sel_ar, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sh_d1r, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sel_d1r, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sh_d2r, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sel_d2r, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sh_rr, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].eg_sel_rr, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].ssg, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].ssgn, 1);
+  		load_param(&ym2612.CH[c].SLOT[s].key, 1);
+  		if(hasExcessData)
+  			bufferptr += 1;
+  		load_param(&ym2612.CH[c].SLOT[s].AMmask, 4);
+		}
+  	{
+  		load_param(&ym2612.CH[c].ALGO, 1);
+  		load_param(&ym2612.CH[c].FB, 1);
+  		if(hasExcessData)
+  			bufferptr += 2;
+  		load_param(&ym2612.CH[c].op1_out[0], 8);
+  		if(hasExcessData)
+  		{
+  			if(ptrSize == 8)
+  				bufferptr += 4;
+  			// skip connect1-4 and mem_connect
+  			bufferptr += ptrSize * 5;
+  		}
+  		load_param(&ym2612.CH[c].mem_value, 4);
+  		load_param(&ym2612.CH[c].pms, 4);
+  		load_param(&ym2612.CH[c].ams, 1);
+  		if(hasExcessData)
+  			bufferptr += 3;
+  		load_param(&ym2612.CH[c].fc, 4);
+  		load_param(&ym2612.CH[c].kcode, 1);
+  		if(hasExcessData)
+  			bufferptr += 3;
+  		load_param(&ym2612.CH[c].block_fnum, 4);
+  	}
+  }
+  {
+  	load_param(&ym2612.dacen, 1);
+  	if(hasExcessData)
+  		bufferptr += 3;
+  	load_param(&ym2612.dacout, 4);
+  	load_param(&ym2612.OPN, sizeof(FM_OPN));
+  	if(ptrSize == 8)
+  		bufferptr += 4;
+  }
+
+  /* keep current timings */
+  ym2612.OPN.ST.clock = clock;
+  ym2612.OPN.ST.rate  = rate;
+  OPNSetPres(6*24);
+
+  /* restore outputs connections */
+  setup_connection(&ym2612.CH[0],0);
+  setup_connection(&ym2612.CH[1],1);
+  setup_connection(&ym2612.CH[2],2);
+  setup_connection(&ym2612.CH[3],3);
+  setup_connection(&ym2612.CH[4],4);
+  setup_connection(&ym2612.CH[5],5);
+
+  /* restore TL table (DAC resolution might have been modified) */
+  init_tables();
+
+  return bufferptr;
+}
+
+int YM2612LoadContext(unsigned char *state, bool hasExcessData, uint ptrSize)
+{
   /* restore YM2612 context */
-  YM2612Restore(state);
+  int bufferptr = YM2612Restore(state, hasExcessData, ptrSize);
 
   int c,s;
   uint8 index;
@@ -2227,14 +2331,71 @@ int YM2612LoadContext(unsigned char *state)
   return bufferptr;
 }
 
+static constexpr uint chPtrOffset[6]
+{
+	offsetof(YM2612, CH[0].connect1),
+	offsetof(YM2612, CH[1].connect1),
+	offsetof(YM2612, CH[2].connect1),
+	offsetof(YM2612, CH[3].connect1),
+	offsetof(YM2612, CH[4].connect1),
+	offsetof(YM2612, CH[5].connect1)
+};
+
 int YM2612SaveContext(unsigned char *state)
 {
   int c,s;
   uint8 index;
-  int bufferptr = sizeof(YM2612);
+  int bufferptr = 0;
 
   /* save YM2612 context */
-  memcpy(state, &ym2612, sizeof(YM2612));
+  iterateTimes(6, c)
+  {
+  	iterateTimes(4, s)
+		{
+  		save_param(&ym2612.CH[c].SLOT[s].KSR, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].ar, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].d1r, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].d2r, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].rr, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].ksr, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].mul, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].phase, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].Incr, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].state, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].tl, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].volume, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].sl, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].vol_out, 4);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sh_ar, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sel_ar, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sh_d1r, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sel_d1r, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sh_d2r, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sel_d2r, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sh_rr, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].eg_sel_rr, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].ssg, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].ssgn, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].key, 1);
+  		save_param(&ym2612.CH[c].SLOT[s].AMmask, 4);
+		}
+  	{
+  		save_param(&ym2612.CH[c].ALGO, 1);
+  		save_param(&ym2612.CH[c].FB, 1);
+  		save_param(&ym2612.CH[c].op1_out[0], 8);
+  		save_param(&ym2612.CH[c].mem_value, 4);
+  		save_param(&ym2612.CH[c].pms, 4);
+  		save_param(&ym2612.CH[c].ams, 1);
+  		save_param(&ym2612.CH[c].fc, 4);
+  		save_param(&ym2612.CH[c].kcode, 1);
+  		save_param(&ym2612.CH[c].block_fnum, 4);
+  	}
+  }
+  {
+  	save_param(&ym2612.dacen, 1);
+  	save_param(&ym2612.dacout, 4);
+  	save_param(&ym2612.OPN, sizeof(FM_OPN));
+  }
 
   /* save DT table index for each channel slots */
   for( c = 0 ; c < 6 ; c++ )
