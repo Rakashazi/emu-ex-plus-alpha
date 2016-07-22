@@ -57,3 +57,10 @@ AS = $(CC) -c
 ifdef CHOST
  CHOST_PREFIX := $(CHOST)-
 endif
+
+ifndef RELEASE
+ ifndef compiler_noSanitizeAddress
+  CFLAGS_CODEGEN += -fsanitize=address -fno-omit-frame-pointer
+  LDFLAGS_SYSTEM += -fsanitize=address
+ endif
+endif

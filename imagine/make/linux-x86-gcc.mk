@@ -1,9 +1,5 @@
 include $(IMAGINE_PATH)/make/config.mk
 
-# gcc-ar on GCC 4.8.2 & binutils 2.24.51.0.3 seems to segfault with slim-LTO, disable for now
-# TODO: re-test in future version of GCC and/or binutils
-O_LTO_FAT := 1
-
 include $(buildSysPath)/linux-gcc.mk
 
 CHOST := $(shell $(CC) -dumpmachine)

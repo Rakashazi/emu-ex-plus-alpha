@@ -115,39 +115,54 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 {
 	if(Base::androidSDK() >= 24)
 		return false;
-	if(Config::MACHINE_IS_GENERIC_ARMV7)
+	else if(Base::androidSDK() >= 11)
 	{
-		if(string_equal(rendererStr, "PowerVR SGX 530"))
-			return true;
-		if(string_equal(rendererStr, "PowerVR SGX 540"))
-			return true;
-		if(string_equal(rendererStr, "Mali-400 MP"))
-			return true;
+		// whitelist known tested devices with Android 3.0+
 		auto buildDevice = Base::androidBuildDevice();
-		if(string_equal(buildDevice.data(), "shamu"))
+		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			// works on Nexus 6 on Android 6.0
-			return true;
+			if(string_equal(buildDevice.data(), "shamu"))
+			{
+				// works on Nexus 6 on Android 6.0
+				return true;
+			}
+			if(Base::androidSDK() >= 20 &&
+				string_equal(buildDevice.data(), "mako"))
+			{
+				// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
+				// other devices like the HTC One M7 will crash using GraphicBuffers
+				return true;
+			}
+			if(Base::androidSDK() >= 19 &&
+				string_equal(buildDevice.data(), "ha3g"))
+			{
+				// works on Galaxy Note 3 (SM-N900) with Mali-T628
+				// but not on all devices with this GPU
+				return true;
+			}
 		}
-		if(Base::androidSDK() >= 20 &&
-			string_equal(buildDevice.data(), "mako"))
+		else if(Config::MACHINE_IS_GENERIC_X86)
 		{
-			// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
-			// other devices like the HTC One M7 will crash using GraphicBuffers
-			return true;
-		}
-		if(Base::androidSDK() >= 19 &&
-			string_equal(buildDevice.data(), "ha3g"))
-		{
-			// works on Galaxy Note 3 (SM-N900) with Mali-T628
-			// but not on all devices with this GPU
-			return true;
+			if(Base::androidSDK() >= 19 &&
+				string_equal(buildDevice.data(), "ducati2fhd"))
+			{
+				// Works on Acer Iconia Tab 8 (A1-840FHD)
+				return true;
+			}
 		}
 	}
-	else if(Config::MACHINE_IS_GENERIC_X86)
+	else
 	{
-		if(strstr(rendererStr, "BayTrail"))
-			return true;
+		// general rules for Android 2.3 devices
+		if(Config::MACHINE_IS_GENERIC_ARMV7)
+		{
+			if(string_equal(rendererStr, "PowerVR SGX 530"))
+				return true;
+			if(string_equal(rendererStr, "PowerVR SGX 540"))
+				return true;
+			if(string_equal(rendererStr, "Mali-400 MP"))
+				return true;
+		}
 	}
 	return false;
 }

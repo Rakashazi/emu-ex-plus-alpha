@@ -23,6 +23,10 @@ endif
 # Host/IP of the iOS device to install the app over SSH
 ios_installHost := iphone5
 
+ifdef LTO_MODE
+ ios_makefileOpts += LTO_MODE=$(LTO_MODE)
+endif
+
 ios_arch ?= armv7 arm64
 ifeq ($(filter armv6, $(ios_arch)),)
  ios_noARMv6 := 1

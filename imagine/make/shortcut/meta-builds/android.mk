@@ -84,6 +84,10 @@ $(android_antProperties) :
 
 endif
 
+ifdef LTO_MODE
+ android_makefileOpts += LTO_MODE=$(LTO_MODE)
+endif
+
 resPath := $(projectPath)/res
 android_resSrcPath := $(resPath)/android
 

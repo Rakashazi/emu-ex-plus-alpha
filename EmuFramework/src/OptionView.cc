@@ -1240,7 +1240,7 @@ AudioOptionView::AudioOptionView(Base::Window &win, bool customMenu):
 		!optionAudioSoloMix,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionAudioSoloMix = item.flipBoolValue(*this);
+			optionAudioSoloMix = !item.flipBoolValue(*this);
 		}
 	}
 	#endif

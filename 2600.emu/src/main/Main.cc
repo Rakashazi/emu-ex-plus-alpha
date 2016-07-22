@@ -460,10 +460,10 @@ std::system_error EmuSystem::loadState(int saveStateSlot)
 	Serializer state(string(saveStr.data()), 1);
 	if(!stateManager.loadState(state))
 	{
-		return {EIO, std::system_category()};
+		return {{EIO, std::system_category()}};
 	}
 	updateSwitchValues();
-	return {};
+	return {{}};
 }
 
 void EmuSystem::savePathChanged() { }

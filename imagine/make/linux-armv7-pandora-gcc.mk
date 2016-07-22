@@ -49,7 +49,7 @@ LDLIBS += -L$(pandoraSDKSysroot)/lib -Wl,-rpath-link=$(pandoraSDKSysroot)/lib -l
 linuxEventLoop := epoll
 x11GLWinSystem := egl
 
-ifdef O_LTO
+ifneq ($(ltoMode),off)
  # -flto-partition=none seems to help .symver issues
  LDFLAGS_SYSTEM += -flto-partition=none
 endif

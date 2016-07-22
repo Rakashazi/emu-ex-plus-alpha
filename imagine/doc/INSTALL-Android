@@ -33,6 +33,10 @@ In addition to the native library, build & install the Java portion of Imagine (
 
 make -f android-java.mk install
 
+To specify the SDK build tools version used for compiling the Java portion, set ANDROID_BUILD_TOOLS_VERSION in ~/.gradle/gradle.properties. For example:
+
+ANDROID_BUILD_TOOLS_VERSION=24.0.1
+
 --------------------------------
 
 Copyright 2014-2016 by Robert Broglia

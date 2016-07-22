@@ -10,7 +10,16 @@ apply plugin: 'android-library'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '24.0.0'
+
+    // set ANDROID_BUILD_TOOLS_VERSION in ~/.gradle/gradle.properties, or use the default value in this file
+    if (project.hasProperty('ANDROID_BUILD_TOOLS_VERSION'))
+    {
+	    buildToolsVersion ANDROID_BUILD_TOOLS_VERSION
+	}
+	else
+	{
+		buildToolsVersion '24.0.1'
+	}
 
     buildTypes {
         release {

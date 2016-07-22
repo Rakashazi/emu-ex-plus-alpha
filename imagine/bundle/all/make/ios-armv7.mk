@@ -2,7 +2,7 @@
 
 # don't LTO with -marm since oupt will eventually be combined with THUMB code
 ifeq ($(ios_armv7State),-marm)
- O_LTO :=
+ LTO_MODE := off
 endif
 
 tempDir = /tmp/imagine-bundle/$(pkgName)

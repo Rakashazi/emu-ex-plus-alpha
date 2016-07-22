@@ -2,33 +2,34 @@ include $(buildSysPath)/common.mk
 include $(buildSysPath)/gcc-link.mk
 include $(buildSysPath)/gcc-common.mk
 
+ifeq ($(origin AR), default)
+ AR := llvm-ar
+endif
+
 CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O1
 
-CFLAGS_WARN += -Wno-attributes
+CFLAGS_WARN += -Wno-attributes -Wno-missing-braces
 
 ifndef RELEASE
  CFLAGS_CODEGEN += -g
- ifndef compiler_noSanitizeAddress
-  CFLAGS_CODEGEN += -fsanitize=address -fno-omit-frame-pointer
-  ifndef O_LTO
-   LDFLAGS_SYSTEM += -fsanitize=address
-  endif
- endif
 endif
 
-ifdef O_LTO
+ifeq ($(LTO_MODE),lto)
+ ltoMode := lto
+else ifeq ($(LTO_MODE),lto-fat)
+ # lto-fat isn't supported
+ ltoMode := lto
+else ifeq ($(LTO_MODE),lto-link)
+ # lto-link and off have the same effect
+ ltoMode := lto-link
+else
+ ltoMode := lto-link
+endif
+
+ifeq ($(ltoMode),lto)
  CFLAGS_CODEGEN += -flto
  LDFLAGS_SYSTEM += $(CFLAGS_CODEGEN)
 else
- # -flto needed to enable linking any static archives with LTO 
+ # -flto needed to enable linking any static archives with LTO
  LDFLAGS_SYSTEM += -flto $(CFLAGS_CODEGEN)
-endif
-
-CFLAGS_WARN += -Wno-missing-braces
-
-AR ?= llvm-ar
-
-# TODO: check if still needed
-ifeq ($(ENV),linux)
- CPPFLAGS += -D__extern_always_inline=inline
 endif

@@ -47,15 +47,15 @@ extern "C"
 	CONF_ITEM* cf_get_item_by_name(const char *name)
 	{
 		//logMsg("getting conf item %s", name);
-		static CONF_ITEM conf {0};
+		static CONF_ITEM conf{};
 		if(string_equal(name, "rompath"))
 		{
-			static CONF_ITEM rompath {0};
+			string_copy(rompathConfItem.data.dt_str.str, EmuSystem::gamePath());
 			return &rompathConfItem;
 		}
 		else if(string_equal(name, "dump"))
 		{
-			static CONF_ITEM dump {0};
+			static CONF_ITEM dump{};
 			return &dump;
 		}
 		else if(string_equal(name, "effect"))
@@ -536,7 +536,7 @@ static auto openGngeoDataIO(const char *filename)
 	#endif
 }
 
-CLINK ROM_DEF *res_load_drv(char *name)
+CLINK ROM_DEF *res_load_drv(const char *name)
 {
 	auto drvFilename = string_makePrintf<32>(DATAFILE_PREFIX "rom/%s.drv", name);
 	auto io = openGngeoDataIO(drvFilename.data());
@@ -567,7 +567,7 @@ CLINK ROM_DEF *res_load_drv(char *name)
 	return drv;
 }
 
-CLINK void *res_load_data(char *name)
+CLINK void *res_load_data(const char *name)
 {
 	auto io = openGngeoDataIO(name);
 	if(!io)
@@ -704,13 +704,13 @@ int EmuSystem::loadGame(const char *path)
 	}
 
 	logMsg("rom set %s, %s", activeDrv->name, activeDrv->longname);
-	char gnoFilename[8+4+1];
-	string_printf(gnoFilename, "%s.gno", activeDrv->name);
+	FS::PathString gnoFilename{};
+	string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), activeDrv->name);
 
 	if(optionCreateAndUseCache && FS::exists(gnoFilename))
 	{
 		logMsg("loading .gno file");
-		if(!init_game(gnoFilename))
+		if(!init_game(gnoFilename.data()))
 		{
 			popup.printf(4, 1, "%s", romerror);
 			free(activeDrv); activeDrv = 0;
@@ -734,8 +734,8 @@ int EmuSystem::loadGame(const char *path)
 				[]()
 				{
 					using namespace Base;
-					char gnoFilename[8+4+1];
-					string_printf(gnoFilename, "%s.gno", activeDrv->name);
+					FS::PathString gnoFilename{};
+					string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), activeDrv->name);
 					loadThreadIsRunning = true;
 					auto loadThreadDone = IG::scopeGuard([](){ loadThreadIsRunning = false; });
 					if(!init_game(activeDrv->name))
@@ -748,11 +748,11 @@ int EmuSystem::loadGame(const char *path)
 					}
 					if(optionCreateAndUseCache && !FS::exists(gnoFilename))
 					{
-						logMsg("%s doesn't exist, creating", gnoFilename);
+						logMsg("%s doesn't exist, creating", gnoFilename.data());
 						#ifdef USE_GENERATOR68K
 						bool swappedBIOS = swapCPUMemForDump();
 						#endif
-						dr_save_gno(&memory.rom, gnoFilename);
+						dr_save_gno(&memory.rom, gnoFilename.data());
 						#ifdef USE_GENERATOR68K
 						reverseSwapCPUMemForDump(swappedBIOS);
 						#endif
@@ -773,11 +773,11 @@ int EmuSystem::loadGame(const char *path)
 
 			if(optionCreateAndUseCache && !FS::exists(gnoFilename))
 			{
-				logMsg("%s doesn't exist, creating", gnoFilename);
+				logMsg("%s doesn't exist, creating", gnoFilename.data());
 				#ifdef USE_GENERATOR68K
 				bool swappedBIOS = swapCPUMemForDump();
 				#endif
-				dr_save_gno(&memory.rom, gnoFilename);
+				dr_save_gno(&memory.rom, gnoFilename.data());
 				#ifdef USE_GENERATOR68K
 				reverseSwapCPUMemForDump(swappedBIOS);
 				#endif

@@ -35,6 +35,7 @@ $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	tar -mxJf $| -C $(libarchiveSrcDir)/..
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.0-entry-crc32.patch # adds ability to read file CRCs per entry
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.1-force-utf8-charset.patch # don't rely on nl_langinfo due to possibly unset locale and Android issues
+	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.1-acl-fix.patch
 	cp $(libarchiveSrcDir)/contrib/android/include/android_lf.h $(libarchiveSrcDir)/libarchive/
 	cp ../gnuconfig/config.* $(libarchiveSrcDir)/build/autoconf/
 	cd $(libarchiveSrcDir) && build/autogen.sh

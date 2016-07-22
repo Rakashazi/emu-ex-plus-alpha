@@ -23,6 +23,10 @@ pandora_imagineLibPath ?= $(IMAGINE_PATH)/lib/pandora
 pandora_imagineIncludePath ?= $(IMAGINE_PATH)/build/pandora/gen
 pandora_pndDeps = $(pandora_exec)
 
+ifdef LTO_MODE
+ pandora_makefileOpts += LTO_MODE=$(LTO_MODE)
+endif
+
 .PHONY: pandora-build
 pandora-build :
 	@echo "Building Executable"

@@ -2,7 +2,7 @@
 
 # don't LTO with -marm since output will eventually be combined with THUMB code
 ifeq ($(android_armv7State),-marm)
- undefine O_LTO
+ LTO_MODE := off
 endif
 
 RELEASE := 1
