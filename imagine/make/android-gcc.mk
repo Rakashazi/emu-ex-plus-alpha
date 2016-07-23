@@ -31,8 +31,15 @@ ifeq ($(origin CC), default)
  ifeq ($(config_compiler),clang)
   CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
   CXX := $(CC)++
-  AR := ar
-  RANLIB := ranlib
+  AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
+  RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar s
+  # fix up LLVM linker plugins if missing
+  ANDROID_GCC_TOOLCHAIN_BFD_PLUGINS_PATH := $(ANDROID_GCC_TOOLCHAIN_PATH)/lib/bfd-plugins
+  ifeq ($(wildcard $(ANDROID_GCC_TOOLCHAIN_BFD_PLUGINS_PATH)),)
+   ANDROID_CLANG_TOOLCHAIN_PLUGINS_PATH := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/../lib64
+   $(info Linking LLVM plugins directory:$(ANDROID_CLANG_TOOLCHAIN_PLUGINS_PATH) to binutils plugin directory:$(ANDROID_GCC_TOOLCHAIN_BFD_PLUGINS_PATH))
+   $(shell $(LN) -srf $(ANDROID_CLANG_TOOLCHAIN_PLUGINS_PATH) $(ANDROID_GCC_TOOLCHAIN_BFD_PLUGINS_PATH))
+  endif
  else
   CC := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-gcc
   CXX := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-g++
@@ -55,31 +62,24 @@ CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O2
 compiler_noSanitizeAddress := 1
 ifeq ($(config_compiler),clang)
  include $(buildSysPath)/clang.mk
- android_stdcxx ?= libcxx
  CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
  CFLAGS_CODEGEN += -fno-integrated-as
  ASMFLAGS += -fno-integrated-as
 else
  include $(buildSysPath)/gcc.mk
- android_stdcxx ?= gnu
  CFLAGS_CODEGEN += -Wa,--noexecstack
  LDLIBS_SYSTEM += -lc -lgcc
 endif
 
-ifeq ($(android_stdcxx), gnu)
- android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/gnu-libstdc++/$(ANDROID_GCC_VERSION)/libs
- android_stdcxxLibName := libgnustl_static.a
- android_stdcxxLib := $(android_stdcxxLibPath)/$(android_abi)/$(android_stdcxxLibName)
-else # libc++
- android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libs
- android_stdcxxLibName := libc++_static.a
- android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)
- android_stdcxxLib := $(android_stdcxxLibArchPath)/$(android_stdcxxLibName) \
- $(android_stdcxxLibArchPath)/libc++abi.a \
- $(android_stdcxxLibArchPath)/libandroid_support.a
- ifeq ($(ARCH), arm)
-  android_stdcxxLib += $(android_stdcxxLibArchPath)/libunwind.a
- endif
+# libc++
+android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libs
+android_stdcxxLibName := libc++_static.a
+android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)
+android_stdcxxLib := $(android_stdcxxLibArchPath)/$(android_stdcxxLibName) \
+$(android_stdcxxLibArchPath)/libc++abi.a \
+$(android_stdcxxLibArchPath)/libandroid_support.a
+ifeq ($(ARCH), arm)
+ android_stdcxxLib += $(android_stdcxxLibArchPath)/libunwind.a
 endif
 
 pkg_stdcxxStaticLib := $(android_stdcxxLib)
