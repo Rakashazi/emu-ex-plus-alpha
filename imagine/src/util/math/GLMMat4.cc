@@ -3,6 +3,28 @@
 #include <imagine/glm/gtc/matrix_transform.hpp>
 #include <imagine/glm/gtc/matrix_inverse.hpp>
 
+namespace glm
+{
+	template <typename T, typename U, precision P>
+	GLM_FUNC_QUALIFIER tvec3<T, P> unProjectWithInverse
+	(
+		tvec3<T, P> const & win,
+		tmat4x4<T, P> const & inverse,
+		tvec4<U, P> const & viewport
+	)
+	{
+		tvec4<T, P> tmp = tvec4<T, P>(win, T(1));
+		tmp.x = (tmp.x - T(viewport[0])) / T(viewport[2]);
+		tmp.y = (tmp.y - T(viewport[1])) / T(viewport[3]);
+		tmp = tmp * T(2) - T(1);
+
+		tvec4<T, P> obj = inverse * tmp;
+		obj /= obj.w;
+
+		return tvec3<T, P>(obj);
+	}
+}
+
 GLMMat4 GLMMat4::translate(GLMVec3 translation) const
 {
 	return glm::translate(m, translation.v);

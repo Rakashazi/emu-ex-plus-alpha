@@ -1,7 +1,34 @@
+///////////////////////////////////////////////////////////////////////////////////
+/// OpenGL Mathematics (glm.g-truc.net)
+///
+/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Permission is hereby granted, free of charge, to any person obtaining a copy
+/// of this software and associated documentation files (the "Software"), to deal
+/// in the Software without restriction, including without limitation the rights
+/// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+/// copies of the Software, and to permit persons to whom the Software is
+/// furnished to do so, subject to the following conditions:
+/// 
+/// The above copyright notice and this permission notice shall be included in
+/// all copies or substantial portions of the Software.
+/// 
+/// Restrictions:
+///		By making use of the Software for military purposes, you choose to make
+///		a Bunny unhappy.
+/// 
+/// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+/// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+/// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+/// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+/// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+/// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+/// THE SOFTWARE.
+///
 /// @ref gtc_bitfield
 /// @file glm/gtc/bitfield.inl
-
-#include "../simd/integer.h"
+/// @date 2011-10-14 / 2012-01-25
+/// @author Christophe Riccio
+///////////////////////////////////////////////////////////////////////////////////
 
 namespace glm{
 namespace detail
@@ -60,20 +87,20 @@ namespace detail
 		glm::uint64 REG1(x);
 		glm::uint64 REG2(y);
 
-		REG1 = ((REG1 << 16) | REG1) & glm::uint64(0x0000FFFF0000FFFFull);
-		REG2 = ((REG2 << 16) | REG2) & glm::uint64(0x0000FFFF0000FFFFull);
+		REG1 = ((REG1 << 16) | REG1) & glm::uint64(0x0000FFFF0000FFFF);
+		REG2 = ((REG2 << 16) | REG2) & glm::uint64(0x0000FFFF0000FFFF);
 
-		REG1 = ((REG1 <<  8) | REG1) & glm::uint64(0x00FF00FF00FF00FFull);
-		REG2 = ((REG2 <<  8) | REG2) & glm::uint64(0x00FF00FF00FF00FFull);
+		REG1 = ((REG1 <<  8) | REG1) & glm::uint64(0x00FF00FF00FF00FF);
+		REG2 = ((REG2 <<  8) | REG2) & glm::uint64(0x00FF00FF00FF00FF);
 
-		REG1 = ((REG1 <<  4) | REG1) & glm::uint64(0x0F0F0F0F0F0F0F0Full);
-		REG2 = ((REG2 <<  4) | REG2) & glm::uint64(0x0F0F0F0F0F0F0F0Full);
+		REG1 = ((REG1 <<  4) | REG1) & glm::uint64(0x0F0F0F0F0F0F0F0F);
+		REG2 = ((REG2 <<  4) | REG2) & glm::uint64(0x0F0F0F0F0F0F0F0F);
 
-		REG1 = ((REG1 <<  2) | REG1) & glm::uint64(0x3333333333333333ull);
-		REG2 = ((REG2 <<  2) | REG2) & glm::uint64(0x3333333333333333ull);
+		REG1 = ((REG1 <<  2) | REG1) & glm::uint64(0x3333333333333333);
+		REG2 = ((REG2 <<  2) | REG2) & glm::uint64(0x3333333333333333);
 
-		REG1 = ((REG1 <<  1) | REG1) & glm::uint64(0x5555555555555555ull);
-		REG2 = ((REG2 <<  1) | REG2) & glm::uint64(0x5555555555555555ull);
+		REG1 = ((REG1 <<  1) | REG1) & glm::uint64(0x5555555555555555);
+		REG2 = ((REG2 <<  1) | REG2) & glm::uint64(0x5555555555555555);
 
 		return REG1 | (REG2 << 1);
 	}
