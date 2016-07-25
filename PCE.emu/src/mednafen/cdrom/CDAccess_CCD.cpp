@@ -355,10 +355,10 @@ void CDAccess_CCD::CheckSubQSanity(void)
      int lba = ((BCD_to_U8(am_bcd) * 60 + BCD_to_U8(as_bcd)) * 75 + BCD_to_U8(af_bcd)) - 150;
      uint8 track = BCD_to_U8(track_bcd);
 
-     if(prev_lba != INT_MAX && abs(lba - prev_lba) > 100)
+     if(prev_lba != INT_MAX && std::abs(lba - prev_lba) > 100)
       throw MDFN_Error(0, _("Garbage subchannel Q data detected(excessively large jump in AMSF)"));
 
-     if(abs(lba - s) > 100)
+     if(std::abs(lba - (int)s) > 100)
       throw MDFN_Error(0, _("Garbage subchannel Q data detected(AMSF value is out of tolerance)"));
 
      prev_lba = lba;
