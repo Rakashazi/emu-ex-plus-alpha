@@ -39,6 +39,7 @@ class StateManager;
 class VideoDialog;
 
 #include "bspf.hxx"
+#undef HAVE_UNISTD_H
 
 class OSystem
 {

@@ -29,7 +29,7 @@ public:
 	Gfx::ProjectionPlane projP;
 
 	TextEntry() {}
-	CallResult init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP);
+	CallResult init(const char *initText, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);
 	void inputEvent(Input::Event e);
 	void draw();
@@ -57,8 +57,8 @@ public:
 
 	CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
 	~CollectTextInputView() override;
-	void init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, ResourceFace *face = View::defaultFace);
-	void init(const char *msgText, Gfx::PixmapTexture *closeRes, ResourceFace *face = View::defaultFace)
+	void init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face = &View::defaultFace);
+	void init(const char *msgText, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face = &View::defaultFace)
 	{
 		init(msgText, "", closeRes, face);
 	}

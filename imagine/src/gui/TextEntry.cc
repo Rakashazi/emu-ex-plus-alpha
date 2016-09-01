@@ -101,7 +101,7 @@ void TextEntry::place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP)
 	place();
 }
 
-CallResult TextEntry::init(const char *initText, ResourceFace *face, const Gfx::ProjectionPlane &projP)
+CallResult TextEntry::init(const char *initText, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP)
 {
 	string_copy(str, initText);
 	t = {str, face};
@@ -110,7 +110,7 @@ CallResult TextEntry::init(const char *initText, ResourceFace *face, const Gfx::
 	return OK;
 }
 
-void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, ResourceFace *face)
+void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face)
 {
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl && closeRes)
@@ -141,7 +141,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 				dismiss();
 			}
 		},
-		initialContent, msgText, face->settings.pixelHeight);
+		initialContent, msgText, face->settings.pixelHeight());
 	#endif
 }
 
@@ -158,7 +158,7 @@ void CollectTextInputView::place()
 	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.image())
 	{
-		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace->nominalHeight() * 1.75, RT2DO);
+		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace.nominalHeight() * 1.75, RT2DO);
 		cancelSpr.setPos(-projP.unprojectXSize(cancelBtn)/3., -projP.unprojectYSize(cancelBtn)/3., projP.unprojectXSize(cancelBtn)/3., projP.unprojectYSize(cancelBtn)/3.);
 	}
 	#endif
@@ -166,7 +166,7 @@ void CollectTextInputView::place()
 	message.compile(projP);
 	IG::WindowRect textRect;
 	int xSize = rect.xSize() * 0.95;
-	int ySize = View::defaultFace->nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
+	int ySize = View::defaultFace.nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, {xSize, ySize}, C2DO);
 	textEntry.place(textRect, projP);

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <imagine/gfx/Texture.hh>
+namespace IG
+{
 
 struct GlyphMetrics
 {
@@ -13,10 +14,4 @@ struct GlyphMetrics
 	constexpr GlyphMetrics() {}
 };
 
-struct GlyphEntry
-{
-	Gfx::PixmapTexture glyph{};
-	GlyphMetrics metrics{};
-
-	constexpr GlyphEntry() {}
-};
+}

@@ -17,7 +17,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/logger/logger.h>
 
-NavView::NavView(ResourceFace *face):
+NavView::NavView(Gfx::GlyphTextureSet *face):
 	text{"", face}
 {
 	text.setFace(face);
@@ -81,14 +81,14 @@ IG::WindowRect &NavView::viewRect()
 	return viewRect_;
 }
 
-ResourceFace *NavView::titleFace()
+Gfx::GlyphTextureSet *NavView::titleFace()
 {
 	return text.face;
 }
 
 // BasicNavView
 
-BasicNavView::BasicNavView(ResourceFace *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes):
+BasicNavView::BasicNavView(Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes):
 	NavView{face}
 {
 	leftSpr.init({-.5, -.5, .5, .5});

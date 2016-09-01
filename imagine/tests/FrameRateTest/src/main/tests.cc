@@ -42,8 +42,8 @@ std::array<char, 64> TestParams::makeTestName() const
 
 void TestFramework::init(IG::Point2D<int> pixmapSize)
 {
-	cpuStatsText = {cpuStatsStr.data(), View::defaultFace};
-	frameStatsText = {frameStatsStr.data(), View::defaultFace};
+	cpuStatsText = {cpuStatsStr.data(), &View::defaultFace};
+	frameStatsText = {frameStatsStr.data(), &View::defaultFace};
 	initTest(pixmapSize);
 }
 

@@ -14,19 +14,45 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "ResFont"
-#include <imagine/resource/font/ResourceFont.h>
+#include <imagine/font/Font.hh>
 #include <imagine/gfx/Gfx.hh>
 
-CallResult ResourceFont::initWithName(const char *name)
+namespace IG
 {
-	/*if(Resource::initWithName(name) != OK)
-	{
-		return OUT_OF_MEMORY;
-	}*/
-	return OK;
+
+FontSettings::operator bool() const
+{
+	return pixHeight || pixWidth;
 }
 
-int ResourceFont::minUsablePixels() const
+int FontSettings::pixelWidth() const
+{
+	return pixWidth ? pixWidth : pixHeight;
+}
+
+int FontSettings::pixelHeight() const
+{
+	return pixHeight ? pixHeight : pixWidth;
+}
+
+void FontSettings::setPixelWidth(int w)
+{
+	pixWidth = w;
+}
+
+void FontSettings::setPixelHeight(int h)
+{
+	pixHeight = h;
+}
+
+int Font::minUsablePixels() const
 {
 	return 16;
+}
+
+GlyphImage::~GlyphImage()
+{
+	unlock();
+}
+
 }

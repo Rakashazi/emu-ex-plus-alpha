@@ -26,7 +26,6 @@ using namespace IG;
 static jclass jBitmapFactory{};
 static JavaClassMethod<jobject(jstring)> jDecodeFile{};
 static JavaInstMethod<jobject(jstring)> jDecodeAsset{};
-static JavaInstMethod<void()> jRecycle{};
 
 uint BitmapFactoryImage::width()
 {
@@ -79,10 +78,6 @@ std::error_code BitmapFactoryImage::load(const char *name)
 		logErr("couldn't decode file: %s", name);
 		return {EINVAL, std::system_category()};
 	}
-	if(!jRecycle)
-	{
-		jRecycle.setup(env, env->GetObjectClass(bitmap), "recycle", "()V");
-	}
 	AndroidBitmap_getInfo(env, bitmap, &info);
 	bitmap = env->NewGlobalRef(bitmap);
 	return {};
@@ -105,10 +100,6 @@ std::error_code BitmapFactoryImage::loadAsset(const char *name)
 	{
 		logErr("couldn't decode file: %s", name);
 		return {EINVAL, std::system_category()};
-	}
-	if(!jRecycle)
-	{
-		jRecycle.setup(env, env->GetObjectClass(bitmap), "recycle", "()V");
 	}
 	AndroidBitmap_getInfo(env, bitmap, &info);
 	//logMsg("%d %d %d", info.width, info.height, info.stride);
@@ -138,7 +129,7 @@ void BitmapFactoryImage::freeImageData()
 	if(bitmap)
 	{
 		auto env = Base::jEnv();
-		jRecycle(env, bitmap);
+		Base::recycleBitmap(env, bitmap);
 		env->DeleteGlobalRef(bitmap);
 		bitmap = nullptr;
 	}

@@ -146,16 +146,11 @@ void onInit(int argc, char** argv)
 		[](bool backgrounded)
 		{
 			cleanupTest();
-			if(!backgrounded)
-			{
-				View::defaultFace->free();
-			}
 		});
 
 	Gfx::init();
 	View::compileGfxPrograms();
-	View::defaultFace = ResourceFace::loadSystem();
-	assert(View::defaultFace);
+	View::defaultFace = IG::ResourceFace::makeSystem(IG::FontSettings{});
 	WindowConfig winConf;
 
 	winConf.setOnSurfaceChange(
@@ -219,9 +214,9 @@ void onInit(int argc, char** argv)
 	Gfx::initWindow(mainWin, winConf);
 	mainWin.setTitle("Frame Rate Test");
 	uint faceSize = mainWin.heightSMMInPixels(3.5);
-	View::defaultFace->applySettings(faceSize);
-	View::defaultFace->precacheAlphaNum();
-	View::defaultFace->precache(":.%()");
+	View::defaultFace.setFontSettings(faceSize);
+	View::defaultFace.precacheAlphaNum();
+	View::defaultFace.precache(":.%()");
 	picker.setTests(testParam, IG::size(testParam));
 	mainWin.show();
 

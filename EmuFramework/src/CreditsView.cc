@@ -21,7 +21,7 @@
 CreditsView::CreditsView(const char *str, Base::Window &win):
 	View{appViewTitle(), win}, str(str)
 {
-	text = {str, View::defaultFace};
+	text = {str, &View::defaultFace};
 	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
 	animate =
 		[this](Base::Screen::FrameParams params)

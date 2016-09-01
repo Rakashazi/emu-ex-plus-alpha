@@ -16,24 +16,32 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/resource/font/ResourceFont.h>
-#include <jni.h>
+#include <imagine/util/operators.hh>
 
-class ResourceFontAndroid : public ResourceFont
+namespace IG
+{
+
+class FontSettings : public NotEquals<FontSettings>
 {
 public:
-	constexpr ResourceFontAndroid() {}
-	static ResourceFont *loadSystem();
-	void free() override;
-	IG::Pixmap charBitmap() override;
-	CallResult activeChar(int idx, GlyphMetrics &metrics) override;
-	void unlockCharBitmap() override;
-	//int currentFaceDescender() const override;
-	//int currentFaceAscender() const override;
-	CallResult newSize(const FontSettings &settings, FontSizeRef &sizeRef) override;
-	CallResult applySize(FontSizeRef &sizeRef) override;
-	void freeSize(FontSizeRef &sizeRef) override;
+	constexpr FontSettings() {}
+	constexpr FontSettings(int pixelWidth, int pixelHeight) : pixWidth{pixelWidth}, pixHeight{pixelHeight} {}
+	constexpr FontSettings(int pixelHeight) : FontSettings{0, pixelHeight} {}
+	operator bool() const;
+	int pixelWidth() const;
+	int pixelHeight() const;
+	void setPixelWidth(int w);
+	void setPixelHeight(int h);
+
+	bool operator==(const FontSettings& other) const
+	{
+		return pixHeight == other.pixHeight
+			&& pixWidth == other.pixWidth;
+	}
+
 
 private:
-	jobject renderer{}, lockedBitmap{};
+	int pixWidth = 0, pixHeight = 0;
 };
+
+}

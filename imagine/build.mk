@@ -29,7 +29,7 @@ include $(imagineSrcDir)/io/system.mk
 include $(imagineSrcDir)/io/MapIO.mk
 include $(imagineSrcDir)/bluetooth/system.mk
 include $(imagineSrcDir)/gui/gui.mk
-include $(imagineSrcDir)/resource/font/system.mk
+include $(imagineSrcDir)/font/system.mk
 include $(imagineSrcDir)/data-type/image/system.mk
 include $(imagineSrcDir)/mem/malloc.mk
 include $(imagineSrcDir)/util/system/pagesize.mk

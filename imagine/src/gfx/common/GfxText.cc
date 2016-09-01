@@ -16,7 +16,6 @@
 #include <algorithm>
 #include <cctype>
 #include <imagine/logger/logger.h>
-#include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/mem/mem.h>
@@ -38,13 +37,13 @@ void Text::setString(const char *str)
 	this->str = str;
 }
 
-void Text::setFace(ResourceFace *face)
+void Text::setFace(GlyphTextureSet *face)
 {
 	assert(face);
 	this->face = face;
 }
 
-static GC xSizeOfChar(ResourceFace *face, int c, GC spaceX, const ProjectionPlane &projP)
+static GC xSizeOfChar(GlyphTextureSet *face, int c, GC spaceX, const ProjectionPlane &projP)
 {
 	assert(c != '\0');
 	if(c == ' ')

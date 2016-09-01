@@ -46,10 +46,15 @@ public:
 
 	BaseTextMenuItem() {}
 	BaseTextMenuItem(const char *str):
-		t{str, View::defaultFace} {}
+		t{str, &View::defaultFace} {}
+	BaseTextMenuItem(const char *str, Gfx::GlyphTextureSet *face):
+		t{str, face} {}
 	BaseTextMenuItem(const char *str, bool isSelectable):
 		MenuItem(isSelectable),
-		t{str, View::defaultFace} {}
+		t{str, &View::defaultFace} {}
+	BaseTextMenuItem(const char *str, bool isSelectable, Gfx::GlyphTextureSet *face):
+		MenuItem(isSelectable),
+		t{str, face} {}
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	void compile(const Gfx::ProjectionPlane &projP) override;
 	int ySize() override;
@@ -129,7 +134,7 @@ class TextHeadingMenuItem : public BaseTextMenuItem
 {
 public:
 	TextHeadingMenuItem() {}
-	TextHeadingMenuItem(const char *str): BaseTextMenuItem{str, false} {}
+	TextHeadingMenuItem(const char *str): BaseTextMenuItem{str, false, &View::defaultBoldFace} {}
 	bool select(View &parent, Input::Event e) override { return true; };
 };
 
@@ -141,7 +146,7 @@ public:
 	BaseDualTextMenuItem() {}
 	BaseDualTextMenuItem(const char *str, const char *str2):
 		BaseTextMenuItem{str},
-		t2{str2, View::defaultFace} {}
+		t2{str2, &View::defaultFace} {}
 	void compile(const Gfx::ProjectionPlane &projP) override;
 	void draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const;
 	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;

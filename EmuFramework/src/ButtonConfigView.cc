@@ -30,8 +30,8 @@ void ButtonConfigSetView::initPointerUI()
 	if(!pointerUIIsInit())
 	{
 		logMsg("init pointer UI elements");
-		unbind = {"Unbind", View::defaultFace};
-		cancel = {"Cancel", View::defaultFace};
+		unbind = {"Unbind", &View::defaultFace};
+		cancel = {"Cancel", &View::defaultFace};
 		unbindB.x2 = 1;
 	}
 }
@@ -39,7 +39,7 @@ void ButtonConfigSetView::initPointerUI()
 
 void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, SetDelegate onSet)
 {
-	text = {str.data(), View::defaultFace};
+	text = {str.data(), &View::defaultFace};
 	this->dev = &dev;
 	savedDev = nullptr;
 	string_copy(actionStr, actionName);

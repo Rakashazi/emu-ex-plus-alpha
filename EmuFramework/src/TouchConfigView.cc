@@ -154,7 +154,7 @@ public:
 void OnScreenInputPlaceView::init()
 {
 	applyOSNavStyle(true);
-	text = {"Click center to go back", View::defaultFace};
+	text = {"Click center to go back", &View::defaultFace};
 	textFade.set(1.);
 	animate =
 		[this](Base::Screen::FrameParams params)

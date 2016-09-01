@@ -464,10 +464,8 @@ void setupFont()
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
-	View::defaultFace->applySettings(FontSettings(mainWin.win.heightSMMInPixels(size)));
-	// TODO: not used yet
-	//float smallSize = std::max(2000, optionFontSize - 500) / 1000.;
-	//View::defaultSmallFace->applySettings(FontSettings(mainWin.win.heightSMMInPixels(smallSize)));
+	View::defaultFace.setFontSettings(IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
+	View::defaultBoldFace.setFontSettings(IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
 }
 
 #ifdef __ANDROID__

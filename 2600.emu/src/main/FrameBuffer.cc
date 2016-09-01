@@ -14,8 +14,8 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <FrameBuffer.hxx>
-#include <emuframework/EmuApp.hh>
 #include <stella/emucore/TIA.hxx>
+#include <emuframework/EmuApp.hh>
 
 extern uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
 

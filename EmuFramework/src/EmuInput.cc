@@ -65,7 +65,7 @@ void initVControls()
 	vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
 	vController.gp.dp.setDiagonalSensitivity(optionTouchDpadDiagonalSensitivity / 1000.);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
-	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	#else
 	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
 	#endif
@@ -726,7 +726,7 @@ void setupVControllerVars()
 			vController.gp.btnRowShift = -(btnSize + vController.gp.btnSpace);
 			vController.gp.btnRowShiftPixels = -(btnSizePixels + vController.gp.btnSpacePixels);
 	}
-	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
 	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);

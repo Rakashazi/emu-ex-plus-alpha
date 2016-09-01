@@ -15,6 +15,7 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
+#undef HAVE_UNISTD_H
 #include "internal.hh"
 
 class EmuVideoOptionView : public VideoOptionView

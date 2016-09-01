@@ -463,9 +463,9 @@ void mainInitCommon(int argc, char** argv)
 		{
 			Gfx::bind();
 			if(View::defaultFace)
-				View::defaultFace->freeCaches();
-			if(View::defaultSmallFace)
-				View::defaultSmallFace->freeCaches();
+				View::defaultFace.freeCaches();
+			if(View::defaultBoldFace)
+				View::defaultBoldFace.freeCaches();
 		});
 
 	Base::setOnExit(
@@ -605,10 +605,8 @@ void mainInitCommon(int argc, char** argv)
 	}
 	#endif
 
-	View::defaultFace = ResourceFace::loadSystem();
-	assert(View::defaultFace);
-	// TODO: not used yet
-	//View::defaultSmallFace = ResourceFace::create(View::defaultFace);
+	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(IG::FontSettings{});
+	View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(IG::FontSettings{});
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(optionMOGAInputSystem)
@@ -629,7 +627,7 @@ void mainInitCommon(int argc, char** argv)
 	{
 		auto viewNav = std::make_unique<BasicNavView>
 		(
-			View::defaultFace,
+			&View::defaultFace,
 			&getAsset(ASSET_ARROW),
 			&getAsset(ASSET_GAME_ICON)
 		);

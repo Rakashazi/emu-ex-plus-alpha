@@ -327,10 +327,10 @@ public:
 	std::array<char, 32> fpsStr{};
 
 	DetectFrameRateView(Base::Window &win): View(win),
-		fpsText{nullptr, View::defaultFace}
+		fpsText{nullptr, &View::defaultFace}
 	{
-		View::defaultFace->precacheAlphaNum();
-		View::defaultFace->precache(".");
+		View::defaultFace.precacheAlphaNum();
+		View::defaultFace.precache(".");
 		fpsText.setString("Preparing to detect frame rate...");
 	}
 

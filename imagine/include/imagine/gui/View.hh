@@ -19,7 +19,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/resource/face/ResourceFace.hh>
+#include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 
 class View;
@@ -37,8 +37,8 @@ public:
 class View
 {
 public:
-	static ResourceFace *defaultFace;
-	static ResourceFace *defaultSmallFace;
+	static Gfx::GlyphTextureSet defaultFace;
+	static Gfx::GlyphTextureSet defaultBoldFace;
 	// Does the platform need an on-screen/pointer-based control to move to a previous view?
 	static bool needsBackControl;
 	static const bool needsBackControlDefault = !(Config::envIsPS3 || Config::envIsAndroid || (Config::envIsWebOS && !Config::envIsWebOS3));

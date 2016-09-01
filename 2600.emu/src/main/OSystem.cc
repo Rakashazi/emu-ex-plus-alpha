@@ -13,9 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/time/Time.hh>
-#include <imagine/logger/logger.h>
-#include <emuframework/EmuSystem.hh>
 #include <OSystem.hxx>
 #include <FrameBuffer.hxx>
 #include <EventHandler.hxx>
@@ -25,6 +22,9 @@
 #include <stella/emucore/SerialPort.hxx>
 #include <stella/emucore/Settings.hxx>
 #include "SoundGeneric.hh"
+#include <imagine/time/Time.hh>
+#include <imagine/logger/logger.h>
+#include <emuframework/EmuSystem.hh>
 
 OSystem osystem{};
 static Random myRandom{osystem};

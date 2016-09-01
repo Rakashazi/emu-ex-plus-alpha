@@ -39,6 +39,7 @@ namespace Base
 
 JavaVM* jVM{};
 static JNIEnv* jEnv_{};
+static JavaInstMethod<void()> jRecycle{};
 
 // activity
 jclass jBaseActivityCls{};
@@ -67,6 +68,15 @@ static bool unloadNativeLibOnDestroy = false;
 JavaInstMethod<void(jint, jint)> jSetWinFlags{};
 JavaInstMethod<void(jint)> jSetWinFormat{};
 JavaInstMethod<jint()> jWinFormat{}, jWinFlags{};
+
+void recycleBitmap(JNIEnv *env, jobject bitmap)
+{
+	if(unlikely(!jRecycle))
+	{
+		jRecycle.setup(env, env->GetObjectClass(bitmap), "recycle", "()V");
+	}
+	jRecycle(env, bitmap);
+}
 
 uint appActivityState() { return appState; }
 

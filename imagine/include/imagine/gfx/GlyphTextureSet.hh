@@ -16,34 +16,44 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/resource/font/ResourceFont.h>
-#include <imagine/resource/font/glyphTable.h>
 #include <imagine/io/FileIO.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/gfx/Texture.hh>
+#include <imagine/font/Font.hh>
 #include <system_error>
+#include <memory>
 
-class ResourceFace
+namespace Gfx
+{
+
+struct GlyphEntry
+{
+	Gfx::PixmapTexture glyph{};
+	IG::GlyphMetrics metrics{};
+
+	constexpr GlyphEntry() {}
+};
+
+class GlyphTextureSet
 {
 public:
-	FontSettings settings{};
+	IG::FontSettings settings{};
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
-	constexpr ResourceFace() {}
-	static ResourceFace *create(ResourceFont *font, FontSettings *set = nullptr);
-	static ResourceFace *create(ResourceFace *face, FontSettings *set = nullptr);
-	static ResourceFace *load(const char *path, FontSettings *set = nullptr);
-	static ResourceFace *load(GenericIO io, FontSettings *set = nullptr);
-	static ResourceFace *loadAsset(const char *name, FontSettings *set = nullptr)
-	{
-		return load(openAppAssetIO(name), set);
-	}
-	static ResourceFace *loadSystem(FontSettings *set = nullptr);
-	void free();
-	bool applySettings(FontSettings set);
-	//int maxDescender();
-	//int maxAscender();
-	std::error_code writeCurrentChar(IG::Pixmap &out);
+	GlyphTextureSet() {}
+	GlyphTextureSet(std::unique_ptr<IG::Font> font, IG::FontSettings set);
+	GlyphTextureSet(const char *path, IG::FontSettings set);
+	GlyphTextureSet(GenericIO io, IG::FontSettings set);
+	static GlyphTextureSet makeSystem(IG::FontSettings set);
+	static GlyphTextureSet makeBoldSystem(IG::FontSettings set);
+	static GlyphTextureSet makeFromAsset(const char *name, IG::FontSettings set);
+	GlyphTextureSet(GlyphTextureSet &&o);
+	GlyphTextureSet &operator=(GlyphTextureSet o);
+	~GlyphTextureSet();
+	operator bool() const;
+	static void swap(GlyphTextureSet &a, GlyphTextureSet &b);
+	bool setFontSettings(IG::FontSettings set);
 	std::error_code precache(const char *string);
 	std::error_code precacheAlphaNum()
 	{
@@ -53,13 +63,11 @@ public:
 	uint nominalHeight() const;
 	void freeCaches(uint32 rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
-	IG::Pixmap charBitmap() { return font->charBitmap(); }
-	void unlockCharBitmap() { font->unlockCharBitmap(); }
 
 private:
-	ResourceFont *font{};
+	std::unique_ptr<IG::Font> font{};
 	GlyphEntry *glyphTable{};
-	FontSizeRef faceSize{};
+	IG::FontSize faceSize{};
 	uint nominalHeight_ = 0;
 	uint32 usedGlyphTableBits = 0;
 
@@ -68,14 +76,4 @@ private:
 	std::error_code cacheChar(int c, int tableIdx);
 };
 
-class GfxGlyphImage : public GfxImageSource
-{
-public:
-	ResourceFace *face;
-	GlyphEntry *entry;
-
-	GfxGlyphImage(ResourceFace *face, GlyphEntry *entry): face(face), entry(entry) {}
-	std::error_code write(IG::Pixmap &dest) override;
-	IG::Pixmap lockPixmap() override;
-	void unlockPixmap() override;
-};
+}

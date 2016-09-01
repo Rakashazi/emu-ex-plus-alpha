@@ -60,19 +60,19 @@ CallResult SurfaceTextureStorage::init(GLuint tex)
 	}
 	*this = {};
 	auto env = jEnv();
-	surfaceTex = makeSurfaceTexture(env, tex, true);
-	if(!surfaceTex)
+	auto localSurfaceTex = makeSurfaceTexture(env, tex, true);
+	if(!localSurfaceTex)
 	{
 		// fallback to buffered mode
-		surfaceTex = makeSurfaceTexture(env, tex);
+		localSurfaceTex = makeSurfaceTexture(env, tex);
 		singleBuffered = false;
 	}
 	else
 	{
-		updateTexImage(env, surfaceTex, tex);
+		updateTexImage(env, localSurfaceTex, tex);
 		singleBuffered = true;
 	}
-	if(!surfaceTex)
+	if(!localSurfaceTex)
 	{
 		logErr("SurfaceTexture ctor failed with texture:0x%X", tex);
 		*this = {};
@@ -80,23 +80,23 @@ CallResult SurfaceTextureStorage::init(GLuint tex)
 	}
 	logMsg("created%sSurfaceTexture with texture:0x%X",
 		singleBuffered ? " " : " buffered ", tex);
-	surface = makeSurface(env, surfaceTex);
-	if(!surface)
+	auto localSurface = makeSurface(env, localSurfaceTex);
+	if(!localSurface)
 	{
 		logErr("Surface ctor failed");
 		*this = {};
 		return INVALID_PARAMETER;
 	}
-	nativeWin = ANativeWindow_fromSurface(env, surface);
+	nativeWin = ANativeWindow_fromSurface(env, localSurface);
 	if(!nativeWin)
 	{
 		logErr("ANativeWindow_fromSurface failed");
 		*this = {};
 		return INVALID_PARAMETER;
 	}
-	logMsg("native window:%p from Surface:%p", nativeWin, surface);
-	surfaceTex = env->NewGlobalRef(surfaceTex);
-	surface = env->NewGlobalRef(surface);
+	logMsg("native window:%p from Surface:%p", nativeWin, localSurface);
+	surfaceTex = env->NewGlobalRef(localSurfaceTex);
+	surface = env->NewGlobalRef(localSurface);
 	return OK;
 }
 

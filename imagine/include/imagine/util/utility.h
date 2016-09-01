@@ -44,7 +44,7 @@ static T moveAndClear(T &v)
 }
 
 template<class T>
-constexpr static void swap(T& a, T& b)
+constexpr static void cswap(T& a, T& b)
 {
 	T tmp = std::move(a);
 	a = std::move(b);

@@ -24,7 +24,7 @@ using namespace Base;
 void MsgPopup::init()
 {
 	//logMsg("init MsgPopup");
-	text = {nullptr, View::defaultFace};
+	text = {nullptr, &View::defaultFace};
 	text.setString(str.data());
 	text.maxLines = 6;
 }

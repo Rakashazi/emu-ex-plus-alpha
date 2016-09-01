@@ -24,7 +24,7 @@
 #include "GfxSprite.hh"
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string.h>
-#include <imagine/resource/face/ResourceFace.hh>
+#include <imagine/gfx/GlyphTextureSet.hh>
 
 namespace Gfx
 {
@@ -41,7 +41,7 @@ public:
 		uint chars;
 	};
 
-	ResourceFace *face{};
+	GlyphTextureSet *face{};
 	GC spaceSize = 0;
 	GC nominalHeight = 0;
 	GC yLineStart = 0;
@@ -55,10 +55,10 @@ public:
 
 	constexpr Text() {}
 	constexpr Text(const char *str): str{str} {}
-	constexpr Text(const char *str, ResourceFace *face): face{face}, str{str} {}
+	constexpr Text(const char *str, GlyphTextureSet *face): face{face}, str{str} {}
 	~Text();
 	void setString(const char *str);
-	void setFace(ResourceFace *face);
+	void setFace(GlyphTextureSet *face);
 	void compile(const ProjectionPlane &projP);
 	void draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const;
 	void draw(GP p, _2DOrigin o, const ProjectionPlane &projP) const

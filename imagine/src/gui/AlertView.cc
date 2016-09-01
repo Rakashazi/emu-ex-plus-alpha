@@ -21,7 +21,7 @@
 
 BaseAlertView::BaseAlertView(Base::Window &win, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 	View{win},
-	text{label, View::defaultFace},
+	text{label, &View::defaultFace},
 	menu
 	{
 		win,

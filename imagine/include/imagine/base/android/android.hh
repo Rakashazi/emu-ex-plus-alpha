@@ -45,6 +45,7 @@ bool apkSignatureIsConsistent();
 AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
 FS::PathString mainSOPath();
+void recycleBitmap(JNIEnv *env, jobject bitmap);
 
 }
 

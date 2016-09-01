@@ -24,7 +24,6 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/resource/face/ResourceFace.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/DelegateFunc.hh>
@@ -42,7 +41,7 @@ public:
 	static constexpr bool needsUpDirControl = !Config::envIsPS3;
 
 	FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
-			FilterFunc filter = {}, bool singleDir = false, ResourceFace *face = View::defaultFace);
+			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = &View::defaultFace);
 	void place() override;
 	void inputEvent(Input::Event e) override;
 	void draw() override;
@@ -88,7 +87,7 @@ protected:
 	std::vector<FS::FileString> dir{};
 	FS::PathString currPath{};
 	IG::WindowRect viewFrame{};
-	ResourceFace *faceRes{};
+	Gfx::GlyphTextureSet *faceRes{};
 	BasicNavView navV;
 	std::array<char, 48> msgStr{};
 	Gfx::Text msgText{};

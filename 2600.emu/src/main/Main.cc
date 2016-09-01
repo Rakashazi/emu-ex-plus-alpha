@@ -17,6 +17,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
 // TODO: Stella includes can clash with PAGE_SHIFT & PAGE_MASK based on order
+#undef HAVE_UNISTD_H
 #include <stella/emucore/Console.hxx>
 #include <stella/emucore/Cart.hxx>
 #include <stella/emucore/Props.hxx>

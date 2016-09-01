@@ -16,8 +16,8 @@
 #include <imagine/gui/View.hh>
 #include <imagine/logger/logger.h>
 
-ResourceFace *View::defaultFace{};
-ResourceFace *View::defaultSmallFace{};
+Gfx::GlyphTextureSet View::defaultFace{};
+Gfx::GlyphTextureSet View::defaultBoldFace{};
 bool View::needsBackControl = needsBackControlDefault;
 
 void View::pushAndShow(View &v, Input::Event e, bool needsNavView)

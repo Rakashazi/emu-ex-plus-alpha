@@ -30,7 +30,7 @@ class NavView
 public:
 	using OnPushDelegate = DelegateFunc<void (Input::Event e)>;
 
-	NavView(ResourceFace *face);
+	NavView(Gfx::GlyphTextureSet *face);
 	virtual ~NavView() {}
 	void setOnPushLeftBtn(OnPushDelegate del);
 	void setOnPushRightBtn(OnPushDelegate del);
@@ -42,7 +42,7 @@ public:
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;
 	IG::WindowRect &viewRect();
-	ResourceFace *titleFace();
+	Gfx::GlyphTextureSet *titleFace();
 
 protected:
 	IG::WindowRect leftBtn{}, rightBtn{}, textRect{};
@@ -61,7 +61,7 @@ public:
 	bool centerTitle = true;
 	bool rotateLeftBtn = false;
 
-	BasicNavView(ResourceFace *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
+	BasicNavView(Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
 	void setBackImage(Gfx::PixmapTexture *img);
 	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops);
 

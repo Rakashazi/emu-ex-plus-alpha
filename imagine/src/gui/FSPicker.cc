@@ -21,7 +21,7 @@
 #include <string>
 
 FSPicker::FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
-	FilterFunc filter,  bool singleDir, ResourceFace *face):
+	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face):
 	View{win},
 	filter{filter},
 	tbl{win, text},
