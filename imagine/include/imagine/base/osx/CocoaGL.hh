@@ -17,41 +17,57 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/Window.hh>
-#ifdef CONFIG_BASE_X11_EGL
-#include <imagine/base/EGLContextBase.hh>
+
+#ifdef __OBJC__
+#import <AppKit/NSOpenGL.h>
+#import <Cocoa/Cocoa.h>
+
+@interface GLView : NSView {}
+@end
 #endif
 
 namespace Base
 {
 
-#ifdef CONFIG_BASE_X11_EGL
+class GLDisplay;
 
-class XGLContext : public EGLContextBase
+class GLDisplayImpl {};
+
+struct CocoaGLContext
 {
 protected:
-	static bool swapBuffersIsAsync();
+	void *context_{}; // NSOpenGLContext in ObjC
 
 public:
-	constexpr XGLContext() {}
-	static void swapPresentedBuffers(Window &win);
+	constexpr CocoaGLContext() {}
+	#ifdef __OBJC__
+	NSOpenGLContext *context() { return (__bridge NSOpenGLContext*)context_; }
+	#endif
 };
 
-#else
-
-class GLContext;
-
-class XGLContext
+class GLViewDrawable
 {
-protected:
-	GLXContext context{};
-
 public:
-	constexpr XGLContext() {}
-	static void swapPresentedBuffers(Window &win);
+	constexpr GLViewDrawable() {}
+	#ifdef __OBJC__
+	GLView *glView() { return (__bridge EAGLView*)glView_; }
+	#endif
+
+protected:
+	void *glView_{}; // EAGLView in ObjC
 };
 
-#endif
+struct GLBufferConfig
+{
+	explicit operator bool() const
+	{
+		return true;
+	}
 
-using GLContextImpl = XGLContext;
+	Base::NativeWindowFormat windowFormat(GLDisplay display);
+};
+
+using GLDrawableImpl = GLViewDrawable;
+using GLContextImpl = CocoaGLContext;
 
 }

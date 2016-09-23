@@ -105,13 +105,65 @@ static void printGLXVisual(Display *display, XVisualInfo &config)
 	glXGetConfig(display, &config, GLX_DEPTH_SIZE, &depthSize);
 	glXGetConfig(display, &config, GLX_STENCIL_SIZE, &stencilSize);
 	glXGetConfig(display, &config, GLX_SAMPLE_BUFFERS, &sampleBuff);
-	logMsg("config %d %d:%d:%d:%d d:%d sten:%d sampleBuff:%d",
-			buffSize, redSize, greenSize, blueSize, alphaSize,
+	logMsg("visual:0x%x config %d %d:%d:%d:%d d:%d sten:%d sampleBuff:%d",
+			(int)config.visualid, buffSize, redSize, greenSize, blueSize, alphaSize,
 			depthSize, stencilSize,
 			sampleBuff);
 }
 
-GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)
+// GLDisplay
+
+GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+{
+	ec = {};
+	return {dpy};
+}
+
+GLDisplay::operator bool() const
+{
+	return display;
+}
+
+bool GLDisplay::operator ==(GLDisplay const &rhs) const
+{
+	return display == rhs.display;
+}
+
+bool GLDisplay::deinit()
+{
+	display = {};
+	return true;
+}
+
+GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec)
+{
+	ec = {};
+	return {win.nativeObject()};
+}
+
+bool GLDisplay::deleteDrawable(GLDrawable &drawable)
+{
+	drawable = {};
+	return true;
+}
+
+// GLDrawable
+
+void GLDrawable::freeCaches() {}
+
+GLDrawable::operator bool() const
+{
+	return drawable_;
+}
+
+bool GLDrawable::operator ==(GLDrawable const &rhs) const
+{
+	return drawable_ == rhs.drawable_;
+}
+
+// GLContext
+
+GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
 	// force default pixel format for now since SGIFrameTimer needs context with matching format
@@ -137,23 +189,23 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAt
 		}
 		if(Config::DEBUG_BUILD)
 			printGLXVisual(dpy, *viPtr);
-		conf.visual = viPtr->visual;
-		conf.depth = viPtr->depth;
+		conf.fmt.visual = viPtr->visual;
+		conf.fmt.depth = viPtr->depth;
 		XFree(viPtr);
 	}
 	return conf;
 }
 
-std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec)
 {
-	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
 	auto glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
 	context = glXCreateContextAttribsARB(dpy, config.glConfig, 0, True, &glContextAttrsToGLXAttrs(attr)[0]);
 	if(!context)
 	{
 		logErr("can't find a compatible context");
-		return {EINVAL, std::system_category()};
+		ec = {EINVAL, std::system_category()};
+		return;
 	}
 	bool supportsSurfaceless = false;
 	if(!supportsSurfaceless)
@@ -176,10 +228,10 @@ std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
 		glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
 		logMsg("GLX version %d.%d, direct context: %s", glxMajorVersion, glxMinorVersion, glXIsDirect(dpy, context) ? "yes" : "no");
 	}
-	return {};
+	ec = {};
 }
 
-static void setCurrentContext(GLXContext context, Window *win)
+static void setCurrentContext(GLDisplay display, GLXContext context, GLDrawable win)
 {
 	if(!context)
 	{
@@ -192,9 +244,9 @@ static void setCurrentContext(GLXContext context, Window *win)
 	}
 	else if(win)
 	{
-		if(!glXMakeContextCurrent(dpy, win->xWin, win->xWin, context))
+		if(!glXMakeContextCurrent(dpy, win.drawable(), win.drawable(), context))
 		{
-			bug_exit("error setting window 0x%p current", win);
+			bug_exit("error setting window %lld current", (long long)win.drawable());
 		}
 	}
 	else
@@ -221,41 +273,43 @@ static void setCurrentContext(GLXContext context, Window *win)
 	}
 }
 
-void GLContext::setCurrent(GLContext context, Window *win)
+void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 {
-	setCurrentContext(context.context, win);
+	setCurrentContext(display, context.context, win);
 }
 
-void GLContext::setDrawable(Window *win)
+void GLContext::setDrawable(GLDisplay display, GLDrawable win)
 {
-	setDrawable(win, current());
+	setDrawable(display, win, current(display));
 }
 
-void GLContext::setDrawable(Window *win, GLContext cachedCurrentContext)
+void GLContext::setDrawable(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
-	setCurrentContext(cachedCurrentContext.context, win);
+	setCurrentContext(display, cachedCurrentContext.context, win);
 }
 
-GLContext GLContext::current()
+GLContext GLContext::current(GLDisplay display)
 {
 	GLContext c;
 	c.context = glXGetCurrentContext();
 	return c;
 }
 
-void GLContext::present(Window &win)
+void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	auto swapTime = IG::timeFuncDebug([&](){ glXSwapBuffers(dpy, win.xWin); }).nSecs();
+	auto swapTime = IG::timeFuncDebug([&](){ glXSwapBuffers(dpy, win.drawable()); }).nSecs();
 	if(swapTime > 16000000)
 	{
 		logWarn("buffer swap took %lldns", (long long)swapTime);
 	}
 }
 
-void GLContext::present(Window &win, GLContext cachedCurrentContext)
+void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
-	present(win);
+	present(display, win);
 }
+
+void GLContext::finishPresent(GLDisplay display, GLDrawable win) {}
 
 GLContext::operator bool() const
 {
@@ -267,7 +321,7 @@ bool GLContext::operator ==(GLContext const &rhs) const
 	return context == rhs.context;
 }
 
-void GLContext::deinit()
+void GLContext::deinit(GLDisplay display)
 {
 	if(context)
 	{
@@ -284,6 +338,11 @@ bool GLContext::bindAPI(API api)
 void *GLContext::procAddress(const char *funcName)
 {
 	return (void*)glXGetProcAddress((const GLubyte*)funcName);
+}
+
+Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display)
+{
+	return fmt;
 }
 
 }

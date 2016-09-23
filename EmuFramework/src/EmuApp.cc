@@ -96,7 +96,7 @@ static void drawEmuVideo()
 		emuView2.draw();
 	popup.draw();
 	Gfx::setClipRect(false);
-	Gfx::presentWindow(emuWin->win);
+	Gfx::presentDrawable(emuWin->drawable);
 }
 
 void updateAndDrawEmuVideo()
@@ -280,12 +280,13 @@ void setEmuViewOnExtraWindow(bool on)
 					emuView2.setViewRect(extraWin.viewport().bounds(), extraWin.projectionPlane);
 					emuView2.place();
 				}
+				Gfx::updateDrawableForSurfaceChange(extraWin.drawable, change);
 			});
 
 		winConf.setOnDraw(
 			[](Base::Window &win, Base::Window::DrawParams params)
 			{
-				Gfx::updateCurrentWindow(win, params, extraWin.viewport(), extraWin.projectionMat);
+				Gfx::updateCurrentDrawable(extraWin.drawable, win, params, extraWin.viewport(), extraWin.projectionMat);
 				Gfx::clear();
 				if(EmuSystem::isActive())
 				{
@@ -295,8 +296,9 @@ void setEmuViewOnExtraWindow(bool on)
 				{
 					emuView2.draw();
 					Gfx::setClipRect(false);
-					Gfx::presentWindow(win);
+					Gfx::presentDrawable(extraWin.drawable);
 				}
+				Gfx::finishPresentDrawable(extraWin.drawable);
 			});
 
 		winConf.setOnInputEvent(
@@ -326,7 +328,7 @@ void setEmuViewOnExtraWindow(bool on)
 		winConf.setOnDismiss(
 			[](Base::Window &win)
 			{
-				Gfx::setCurrentWindow(nullptr);
+				Gfx::setCurrentDrawable({});
 				EmuSystem::resetFrameTime();
 				logMsg("setting emu view on main window");
 				emuWin = &mainWin;
@@ -497,6 +499,10 @@ void mainInitCommon(int argc, char** argv)
 			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
 				Bluetooth::closeBT(bta);
 			#endif
+
+			mainWin.drawable.freeCaches();
+			extraWin.drawable.freeCaches();
+			Gfx::finish();
 
 			#ifdef CONFIG_BASE_IOS
 			//if(backgrounded)
@@ -686,12 +692,13 @@ void mainInitCommon(int argc, char** argv)
 				emuView.setViewRect(mainWin.viewport().bounds(), mainWin.projectionPlane);
 				placeElements();
 			}
+			Gfx::updateDrawableForSurfaceChange(mainWin.drawable, change);
 		});
 
 	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			Gfx::updateCurrentWindow(win, params, mainWin.viewport(), mainWin.projectionMat);
+			Gfx::updateCurrentDrawable(mainWin.drawable, win, params, mainWin.viewport(), mainWin.projectionMat);
 			Gfx::clear();
 			if(EmuSystem::isActive())
 			{
@@ -701,7 +708,7 @@ void mainInitCommon(int argc, char** argv)
 				{
 					emuView.draw();
 					Gfx::setClipRect(false);
-					Gfx::presentWindow(win);
+					Gfx::presentDrawable(mainWin.drawable);
 				}
 			}
 			else
@@ -713,8 +720,9 @@ void mainInitCommon(int argc, char** argv)
 					viewStack.draw();
 				popup.draw();
 				Gfx::setClipRect(false);
-				Gfx::presentWindow(win);
+				Gfx::presentDrawable(mainWin.drawable);
 			}
+			Gfx::finishPresentDrawable(mainWin.drawable);
 		});
 
 	if(Base::usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&

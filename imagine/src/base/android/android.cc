@@ -246,7 +246,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 					([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
 					{
 						auto win = windowAddr ? (Window*)windowAddr : deviceWindow();
-						androidWindowContentRectChanged(*win, {x, y, x2, y2}, {winWidth, winHeight});
+						win->setContentRect({x, y, x2, y2}, {winWidth, winHeight});
 					})
 				}
 			};

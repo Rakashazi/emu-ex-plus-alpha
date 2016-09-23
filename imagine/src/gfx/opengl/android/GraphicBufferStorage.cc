@@ -31,7 +31,7 @@ GraphicBufferStorage::~GraphicBufferStorage()
 {
 	if(eglImg != EGL_NO_IMAGE_KHR)
 	{
-		eglDestroyImageKHR(Base::GLContext::eglDisplay(), eglImg);
+		eglDestroyImageKHR(glDpy.eglDisplay(), eglImg);
 	}
 }
 
@@ -62,7 +62,7 @@ CallResult GraphicBufferStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
 		EGL_IMAGE_PRESERVED_KHR, EGL_TRUE,
 		EGL_NONE, EGL_NONE
 	};
-	eglImg = eglCreateImageKHR(Base::GLContext::eglDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
+	eglImg = eglCreateImageKHR(glDpy.eglDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
 		(EGLClientBuffer)gBuff.getNativeBuffer(), eglImgAttrs);
 	if(eglImg == EGL_NO_IMAGE_KHR)
 	{

@@ -50,6 +50,7 @@ public:
 	static uint windows();
 	static Window *window(uint idx);
 	static PixelFormat defaultPixelFormat();
+	NativeWindow nativeObject();
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target
@@ -159,10 +160,6 @@ private:
 	void dispatchSurfaceChange();
 };
 
-using OnGLDrawableChangedDelegate = DelegateFunc<void (Window *newDrawable)>;
-
-// Called when a system event changes the currently bound GL drawable
-void setOnGLDrawableChanged(OnGLDrawableChangedDelegate del);
 Window &mainWindow();
 Screen &mainScreen();
 

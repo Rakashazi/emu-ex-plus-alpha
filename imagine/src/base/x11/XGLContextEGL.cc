@@ -23,30 +23,35 @@
 namespace Base
 {
 
-EGLDisplay EGLContextBase::getDisplay()
+// GLDisplay
+
+GLDisplay GLDisplay::makeDefault(std::error_code &ec)
 {
-	return eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
+	auto display = eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
+	ec = initDisplay(display);
+	return {display};
 }
 
-std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
+// GLContext
+
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
+	XGLContext{display.eglDisplay(), attr, config, ec}
+{}
+
+void GLContext::deinit(GLDisplay display)
 {
-	return EGLContextBase::init(attr, config);
+	EGLContextBase::deinit(display.eglDisplay());
 }
 
-void GLContext::deinit()
+void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 {
-	EGLContextBase::deinit();
+	setCurrentContext(display.eglDisplay(), context.context, win);
 }
 
-void GLContext::setCurrent(GLContext context, Window *win)
+GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
-	setCurrentContext(context.context, win);
-}
-
-GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
-{
-	auto configResult = chooseConfig(ctxAttr, attr);
-	if(configResult.first != OK)
+	auto configResult = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	if(!std::get<bool>(configResult))
 	{
 		return GLBufferConfig{};
 	}
@@ -55,7 +60,7 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBuffer
 	{
 		// get matching x visual
 		EGLint nativeID;
-		eglGetConfigAttrib(eglDisplay(), conf.glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
+		eglGetConfigAttrib(display.eglDisplay(), conf.glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
 		XVisualInfo viTemplate;
 		viTemplate.visualid = nativeID;
 		int visuals;
@@ -65,19 +70,19 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBuffer
 			logErr("unable to find matching X Visual");
 			return GLBufferConfig{};
 		}
-		conf.visual = viPtr->visual;
-		conf.depth = viPtr->depth;
+		conf.fmt.visual = viPtr->visual;
+		conf.fmt.depth = viPtr->depth;
 		XFree(viPtr);
 	}
 	#endif
 	return conf;
 }
 
-void GLContext::present(Window &win)
+void GLContext::present(GLDisplay display, GLDrawable win)
 {
 	if(swapBuffersIsAsync())
 	{
-		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).nSecs();
+		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
 		if(swapTime > 16000000)
 		{
 			logWarn("buffer swap took %lldns", (long long)swapTime);
@@ -86,13 +91,12 @@ void GLContext::present(Window &win)
 	else
 	{
 		glFlush();
-		win.presented = true;
 	}
 }
 
-void GLContext::present(Window &win, GLContext cachedCurrentContext)
+void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
-	present(win);
+	present(display, win);
 }
 
 bool XGLContext::swapBuffersIsAsync()
@@ -100,13 +104,11 @@ bool XGLContext::swapBuffersIsAsync()
 	return !Config::MACHINE_IS_PANDORA;
 }
 
-void XGLContext::swapPresentedBuffers(Window &win)
+void GLContext::finishPresent(GLDisplay display, GLDrawable win)
 {
-	if(win.presented)
+	if(!swapBuffersIsAsync())
 	{
-		assert(!swapBuffersIsAsync()); // shouldn't set presented to true if swap is async
-		win.presented = false;
-		EGLContextBase::swapBuffers(win);
+		bug_exit("TODO: update for new GLDrawable behavior");
 	}
 }
 
@@ -116,6 +118,15 @@ bool GLContext::bindAPI(API api)
 		return eglBindAPI(EGL_OPENGL_ES_API);
 	else
 		return eglBindAPI(EGL_OPENGL_API);
+}
+
+Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display)
+{
+	#ifndef CONFIG_MACHINE_PANDORA
+	return fmt;
+	#else
+	return {};
+	#endif
 }
 
 }

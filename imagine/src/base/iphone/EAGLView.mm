@@ -167,7 +167,7 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 
 - (void)dealloc
 {
-	assert(Base::GLContext::current());
+	assert(Base::GLContext::current({}));
 	[self deleteDrawable];
 }
 
@@ -191,13 +191,16 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 {
 	logMsg("in layoutSubviews");
 	using namespace Base;
-	assert(GLContext::current());
+	assert(GLContext::current({}));
 	[self deleteDrawable];
 	auto size = makeLayerGLDrawable([EAGLContext currentContext], (CAEAGLLayer*)self.layer,
 		framebuffer, colorRenderbuffer, depthRenderbuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
+	iterateTimes(Window::windows(), i)
+	{
+		Window::window(i)->resetSurface();
+	}
 	auto &win = *Base::windowForUIWindow(self.window);
-	onGLDrawableChanged.callCopySafe(&win);
 	updateWindowSizeAndContentRect(win, size.x, size.y, sharedApp);
 	win.postDraw();
 	//logMsg("exiting layoutSubviews");

@@ -25,10 +25,8 @@
 #include <sys/eventfd.h>
 #include <sys/timerfd.h>
 #include <semaphore.h>
-#if !defined CONFIG_MACHINE_PANDORA && defined CONFIG_BASE_X11_EGL
-#include <EGL/eglextchromium.h>
-#endif
 #include "internal.hh"
+#include "../linux/DRMFrameTimer.hh"
 
 // for fbdev vsync
 #include <unistd.h>
@@ -39,6 +37,7 @@
 namespace Base
 {
 
+// TODO: remove once is DRMFrameTimer is fully tested
 class FBDevFrameTimer
 {
 private:
@@ -86,41 +85,14 @@ public:
 		return fd >= 0;
 	}
 };
-
-class OMLFrameTimer
-{
-private:
-	Base::EventLoopFileSource fdSrc;
-	#ifndef CONFIG_BASE_X11_EGL
-	PFNGLXGETSYNCVALUESOMLPROC getSyncValues = nullptr;
-	using syncval_t = int64_t;
-	#else
-	PFNEGLGETSYNCVALUESCHROMIUMPROC getSyncValues = nullptr;
-	using syncval_t = EGLuint64CHROMIUM;
-	#endif
-	int fd = -1;
-	bool requested = false;
-
-public:
-	constexpr OMLFrameTimer() {}
-	bool init();
-	void deinit();
-	void scheduleVSync();
-	void cancel();
-
-	explicit operator bool() const
-	{
-		return fd >= 0;
-	}
-};
 #endif
 
 #if defined CONFIG_MACHINE_PANDORA
-static FBDevFrameTimer frameTimer;
+static FBDevFrameTimer frameTimer{};
 #elif defined CONFIG_BASE_X11_EGL
-static OMLFrameTimer frameTimer;
+static DRMFrameTimer frameTimer{};
 #else
-static SGIFrameTimer frameTimer;
+static SGIFrameTimer frameTimer{};
 #endif
 
 void initFrameTimer()
@@ -140,12 +112,14 @@ void deinitFrameTimer()
 
 void frameTimerScheduleVSync()
 {
-	frameTimer.scheduleVSync();
+	if(frameTimer)
+		frameTimer.scheduleVSync();
 }
 
 void frameTimerCancel()
 {
-	frameTimer.cancel();
+	if(frameTimer)
+		frameTimer.cancel();
 }
 
 bool FBDevFrameTimer::init()
@@ -164,7 +138,8 @@ bool FBDevFrameTimer::init()
 	fdSrc.init(fd,
 		[this](int fd, int event)
 		{
-			GLContext::swapPresentedBuffers(mainWindow());
+			bug_exit("TODO: Update to new GLDrawable behavior");
+			//GLContext::swapPresentedBuffers(mainWindow());
 			uint64_t timestamp;
 			auto ret = read(fd, &timestamp, sizeof(timestamp));
 			assert(ret == sizeof(timestamp));
@@ -277,20 +252,22 @@ bool SGIFrameTimer::init()
 		{
 			GLContext context;
 			GLBufferConfig bufferConfig;
+			std::error_code ec;
+			auto display = GLDisplay::makeDefault(ec);
 			{
 				Base::GLContextAttributes glAttr;
 				glAttr.setMajorVersion(3);
 				glAttr.setMinorVersion(3);
 				Base::GLBufferConfigAttributes glBuffAttr;
 				glBuffAttr.setPixelFormat(Window::defaultPixelFormat());
-				bufferConfig = context.makeBufferConfig(glAttr, glBuffAttr);
-				context.init(glAttr, bufferConfig);
+				bufferConfig = context.makeBufferConfig(display, glAttr, glBuffAttr);
+				context.init(display, glAttr, bufferConfig);
 				if(!context)
 				{
 					glAttr.setMajorVersion(1);
 					glAttr.setMinorVersion(3);
-					bufferConfig = context.makeBufferConfig(glAttr, {});
-					context.init(glAttr, bufferConfig);
+					bufferConfig = context.makeBufferConfig(display, glAttr, {});
+					context.init(display, glAttr, bufferConfig);
 				}
 				assert(context);
 			}
@@ -298,12 +275,14 @@ bool SGIFrameTimer::init()
 			{
 				auto rootWindow = RootWindowOfScreen(mainScreen().xScreen);
 				XSetWindowAttributes attr{};
-				attr.colormap = XCreateColormap(dpy, rootWindow, bufferConfig.visual, AllocNone);
+				attr.colormap = XCreateColormap(dpy, rootWindow, bufferConfig.fmt.visual, AllocNone);
 				dummyWindow.xWin = XCreateWindow(dpy, rootWindow, 0, 0, 1, 1, 0,
-					bufferConfig.depth, InputOutput, bufferConfig.visual,
+					bufferConfig.fmt.depth, InputOutput, bufferConfig.fmt.visual,
 					CWColormap, &attr);
+				Base::GLDrawable drawable{};
+				drawable = display.makeDrawable(dummyWindow, bufferConfig, ec);
 				//logMsg("setting context current");
-				GLContext::setCurrent(context, &dummyWindow);
+				GLContext::setCurrent(display, context, drawable);
 			}
 			//logMsg("getting glXWaitVideoSyncSGI address");
 			auto glXWaitVideoSyncSGI = (PFNGLXWAITVIDEOSYNCSGIPROC)glXGetProcAddress((const GLubyte*)"glXWaitVideoSyncSGI");
@@ -326,8 +305,8 @@ bool SGIFrameTimer::init()
 				assert(ret == sizeof(timestamp));
 			}
 			logMsg("cleaning up frame timer thread");
-			context.deinit();
-			GLContext::setCurrent({}, nullptr);
+			context.deinit(display);
+			GLContext::setCurrent(display, {}, {});
 			dummyWindow.deinit();
 			sem_post(&initSem);
 		}
@@ -364,108 +343,6 @@ void SGIFrameTimer::scheduleVSync()
 void SGIFrameTimer::cancel()
 {
 	cancelled = true;
-}
-
-#elif !defined CONFIG_MACHINE_PANDORA
-
-bool OMLFrameTimer::init()
-{
-	if(fd >= 0)
-		return true;
-	#ifndef CONFIG_BASE_X11_EGL
-	getSyncValues = (PFNGLXGETSYNCVALUESOMLPROC)glXGetProcAddress((const GLubyte*)"glXGetSyncValuesOML");
-	#else
-	GLContext::eglDisplay(); // make sure EGL is initialized
-	getSyncValues = (PFNEGLGETSYNCVALUESCHROMIUMPROC)eglGetProcAddress("eglGetSyncValuesCHROMIUM");
-	#endif
-	if(!getSyncValues)
-	{
-		#ifndef CONFIG_BASE_X11_EGL
-		logErr("error creating frame timer, GLX_OML_sync_control extension is required");
-		#else
-		logErr("error creating frame timer, EGL_CHROMIUM_sync_control extension is required");
-		#endif
-		return false;
-	}
-	fd = timerfd_create(CLOCK_REALTIME, 0);
-	assert(fd != -1);
-	fdSrc.init(fd,
-		[this](int fd, int event)
-		{
-			{
-				uint64_t timesFired;
-				int bytes = ::read(fd, &timesFired, 8);
-				assert(bytes != -1);
-			}
-			if(!requested)
-				return 1;
-			int64_t frameTimeNanos;
-			{
-				syncval_t ust, msc, sbc;
-				#ifndef CONFIG_BASE_X11_EGL
-				getSyncValues(dpy, mainWindow().xWin, &ust, &msc, &sbc);
-				#else
-				getSyncValues(GLContext::eglDisplay(), mainWindow().surface, &ust, &msc, &sbc);
-				#endif
-				timestamp = ust * 1000;
-			}
-			requested = false;
-			iterateTimes(Screen::screens(), i)
-			{
-				auto s = Screen::screen(i);
-				if(s->isPosted())
-				{
-					s->frameUpdate(timestamp);
-					s->prevFrameTimestamp = timestamp;
-				}
-			}
-			return 1;
-		});
-	return true;
-}
-
-void OMLFrameTimer::deinit()
-{
-	// TODO
-}
-
-void OMLFrameTimer::scheduleVSync()
-{
-	assert(fd != -1);
-	if(requested)
-		return;
-	requested = true;
-	syncval_t nextFrameTimeUSecs;
-	{
-		syncval_t ust, msc, sbc;
-		#ifndef CONFIG_BASE_X11_EGL
-		getSyncValues(dpy, mainWindow().xWin, &ust, &msc, &sbc);
-		#else
-		getSyncValues(GLContext::eglDisplay(), mainWindow().surface, &ust, &msc, &sbc);
-		#endif
-		// TODO: get real refresh rate, assuming 60Hz
-		nextFrameTimeUSecs = ust + (1000000 / (syncval_t)60);
-	}
-	//logMsg("last frame at %lld, next at %lld, now %lld", (long long)lastFrameTimeUSecs, (long long)nextFrameTimeUSecs, (long long)IG::Time::now().toNs() / 1000);
-	int64_t seconds = nextFrameTimeUSecs / 1000000;
-	int64_t leftoverUs = nextFrameTimeUSecs % 1000000;
-	int64_t leftoverNs = leftoverUs * 1000;
-	struct itimerspec vsyncTime{{0, 0}, {seconds, leftoverNs}};
-	//logMsg("timerfd @ %lld second(s) and %lld ns", (long long)newTime.it_value.tv_sec, (long long)newTime.it_value.tv_nsec);
-	if(timerfd_settime(fd, TIMER_ABSTIME, &vsyncTime, nullptr) != 0)
-	{
-		logErr("error in timerfd_settime: %s", strerror(errno));
-	}
-}
-
-void OMLFrameTimer::cancel()
-{
-	assert(fd != -1);
-	if(!requested)
-		return;
-	requested = false;
-	struct itimerspec disable{{0}};
-	timerfd_settime(fd, 0, &disable, nullptr);
 }
 
 #endif

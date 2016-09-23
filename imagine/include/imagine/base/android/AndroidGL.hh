@@ -17,19 +17,25 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/EGLContextBase.hh>
-#include <imagine/base/Window.hh>
 
 namespace Base
 {
 
+class GLDrawable;
+
 struct AndroidGLContext : public EGLContextBase
 {
 public:
+	using EGLContextBase::EGLContextBase;
+
 	constexpr AndroidGLContext() {}
-	static void swapPresentedBuffers(Window &win);
+	static void swapPresentedBuffers(GLDrawable &win);
 	static bool swapBuffersIsAsync();
 };
 
+using GLDisplayImpl = EGLDisplayConnection;
+using GLDrawableImpl = EGLDrawable;
 using GLContextImpl = AndroidGLContext;
+using GLBufferConfig = EGLBufferConfig;
 
 }

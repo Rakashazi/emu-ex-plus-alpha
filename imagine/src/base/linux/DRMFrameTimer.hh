@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,28 +13,32 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/base/Window.hh>
-
-#ifdef __OBJC__
-#import <AppKit/NSOpenGL.h>
-#endif
+#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/time/Time.hh>
 
 namespace Base
 {
 
-struct CocoaGLContext
+class DRMFrameTimer
 {
-protected:
-	void *context_{}; // NSOpenGLContext in ObjC
+private:
+	Base::EventLoopFileSource fdSrc;
+	int fd = -1;
+	bool requested = false;
+	bool cancelled = false;
+	IG::Time timestamp{};
 
 public:
-	constexpr CocoaGLContext() {}
-	#ifdef __OBJC__
-	NSOpenGLContext *context() { return (__bridge NSOpenGLContext*)context_; }
-	#endif
-};
+	constexpr DRMFrameTimer() {}
+	bool init();
+	void deinit();
+	void scheduleVSync();
+	void cancel();
 
-using GLContextImpl = CocoaGLContext;
+	explicit operator bool() const
+	{
+		return fd >= 0;
+	}
+};
 
 }

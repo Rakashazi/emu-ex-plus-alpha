@@ -35,10 +35,14 @@ Base::WindowConfig makeWindowConfig();
 void setWindowConfig(Base::WindowConfig &config);
 void initWindow(Base::Window &win, Base::WindowConfig config);
 void setWindowValidOrientations(Base::Window &win, uint validO);
-bool setCurrentWindow(Base::Window *win);
-bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat);
-void presentWindow(Base::Window &win);
-bool bind(); // for callbacks using Gfx functions to verify context is bound, and that don't call setCurrentWindow
+void updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceChange change);
+bool setCurrentDrawable(Drawable win);
+bool updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat);
+void deinitDrawable(Drawable &drawable);
+void presentDrawable(Drawable win);
+void finishPresentDrawable(Drawable win);
+bool bind(); // for callbacks using Gfx functions to verify context is bound, and that don't call setCurrentDrawable
+void finish();
 void setViewport(const Viewport &v);
 void setProjectionMatrix(const Mat4 &mat);
 void setProjectionMatrixRotation(Angle angle);

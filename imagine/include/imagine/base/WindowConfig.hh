@@ -50,7 +50,7 @@ private:
 	Point2D<int> pos{-1, -1};
 	Point2D<int> size_{0, 0};
 	Point2D<int> minSize{320, 240};
-	GLBufferConfig glConfig_{};
+	NativeWindowFormat fmt{};
 	Screen *screen_{};
 	BaseWindow::SurfaceChangeDelegate onSurfaceChange_;
 	BaseWindow::DrawDelegate onDraw_;
@@ -113,14 +113,14 @@ public:
 		return minSize;
 	}
 
-	void setGLConfig(GLBufferConfig glConfig_)
+	void setFormat(NativeWindowFormat fmt)
 	{
-		this->glConfig_ = glConfig_;
+		this->fmt = fmt;
 	}
 
-	GLBufferConfig glConfig() const
+	NativeWindowFormat format() const
 	{
-		return glConfig_;
+		return fmt;
 	}
 
 	void setScreen(Screen &screen)

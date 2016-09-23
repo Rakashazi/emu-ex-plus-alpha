@@ -50,7 +50,10 @@ public:
 		uint8 flags = 0;
 		static constexpr uint8 SURFACE_RESIZED = IG::bit(0),
 			CONTENT_RECT_RESIZED = IG::bit(1),
-			CUSTOM_VIEWPORT_RESIZED = IG::bit(2);
+			CUSTOM_VIEWPORT_RESIZED = IG::bit(2),
+			SURFACE_CREATED = IG::bit(3),
+			SURFACE_DESTORYED = IG::bit(4),
+			SURFACE_RESET = IG::bit(5);
 		static constexpr uint8 RESIZE_BITS =
 			SURFACE_RESIZED | CONTENT_RECT_RESIZED | CUSTOM_VIEWPORT_RESIZED;
 
@@ -63,9 +66,15 @@ public:
 		bool surfaceResized() const { return flags & SURFACE_RESIZED; }
 		bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
 		bool customViewportResized() const { return flags & CUSTOM_VIEWPORT_RESIZED; }
+		bool created() const { return flags & SURFACE_CREATED; }
+		bool destroyed() const { return flags & SURFACE_DESTORYED; }
+		bool reset() const { return flags & SURFACE_RESET; }
 		void addSurfaceResized() { flags |= SURFACE_RESIZED; }
 		void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
 		void addCustomViewportResized() { flags |= CUSTOM_VIEWPORT_RESIZED; }
+		void addCreated() { flags |= SURFACE_CREATED; }
+		void addDestroyed() { flags |= SURFACE_DESTORYED; }
+		void addReset() { flags |= SURFACE_RESET; }
 		void removeCustomViewportResized() { flags = clearBits(flags, CUSTOM_VIEWPORT_RESIZED); }
 	};
 

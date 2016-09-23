@@ -116,7 +116,7 @@ void (* GL_APIENTRY glReadBuffer) (GLenum src){};
 
 bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
 
-static Base::GLBufferConfig gfxBufferConfig;
+Base::GLBufferConfig gfxBufferConfig{};
 
 static void initVBOs()
 {
@@ -485,17 +485,15 @@ CallResult init(IG::PixelFormat pixelFormat)
 			});
 	}
 
-	Base::setOnGLDrawableChanged(
-		[](Base::Window *newDrawable)
+	{
+		std::error_code ec{};
+		glDpy = Base::GLDisplay::makeDefault(ec);
+		if(ec)
 		{
-			// update the cached current window
-			if(currWin != newDrawable)
-			{
-				logMsg("current window changed by event to %p", newDrawable);
-				currWin = newDrawable;
-			}
-		});
-
+			logErr("error getting GL display");
+			return INVALID_PARAMETER;
+		}
+	}
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
 	int glVer = 0;
@@ -512,22 +510,24 @@ CallResult init(IG::PixelFormat pixelFormat)
 	glAttr.setOpenGLESAPI(true);
 	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1)
 	{
-		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-		gfxContext.init(glAttr, gfxBufferConfig);
+		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		std::error_code ec{};
+		gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
 	}
 	else
 	{
 		glAttr.setMajorVersion(3);
-		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
+		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		std::error_code ec{};
 		if(gfxBufferConfig)
 		{
-			gfxContext.init(glAttr, gfxBufferConfig);
+			gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
 		}
 		if(!gfxContext)
 		{
 			glAttr.setMajorVersion(2);
-			gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-			gfxContext.init(glAttr, gfxBufferConfig);
+			gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+			gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
 		}
 	}
 	#else
@@ -542,9 +542,10 @@ CallResult init(IG::PixelFormat pixelFormat)
 		#endif
 		glAttr.setMajorVersion(3);
 		glAttr.setMinorVersion(3);
-		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-		auto ec = gfxContext.init(glAttr, gfxBufferConfig);
-		if(ec)
+		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		std::error_code ec{};
+		gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
+		if(!gfxContext)
 		{
 			logMsg("3.3 context not supported");
 		}
@@ -556,9 +557,10 @@ CallResult init(IG::PixelFormat pixelFormat)
 		#endif
 		glAttr.setMajorVersion(1);
 		glAttr.setMinorVersion(3);
-		gfxBufferConfig = gfxContext.makeBufferConfig(glAttr, glBuffAttr);
-		auto ec = gfxContext.init(glAttr, gfxBufferConfig);
-		if(ec)
+		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		std::error_code ec{};
+		gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
+		if(!gfxContext)
 		{
 			logMsg("1.3 context not supported");
 		}
@@ -570,7 +572,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 		return INVALID_PARAMETER;
 	}
 
-	gfxContext.setCurrent(gfxContext, nullptr);
+	gfxContext.setCurrent(glDpy, gfxContext, {});
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");
@@ -713,7 +715,7 @@ Base::WindowConfig makeWindowConfig()
 
 void setWindowConfig(Base::WindowConfig &config)
 {
-	config.setGLConfig(gfxBufferConfig);
+	config.setFormat(gfxBufferConfig.windowFormat(glDpy));
 }
 
 static void updateSensorStateForWindowOrientations(Base::Window &win)

@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuApp.hh>
 #include <FrameBuffer.hxx>
 #include <stella/emucore/TIA.hxx>
-#include <emuframework/EmuApp.hh>
 
 extern uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
 

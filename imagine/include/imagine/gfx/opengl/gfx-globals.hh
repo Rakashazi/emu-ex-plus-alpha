@@ -3,6 +3,8 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/normalFloat.hh>
 #include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/base/GLContext.hh>
+#include "glIncludes.h"
 
 #if defined __APPLE__ && !defined __ARM_ARCH_6K__
 #define CONFIG_GFX_MATH_GLKIT
@@ -11,7 +13,6 @@
 #endif
 
 #include <imagine/gfx/Mat4.hh>
-#include "glIncludes.h"
 
 namespace Config
 {
@@ -300,5 +301,7 @@ extern DefaultColorProgram noTexProgram;
 using ProgramImpl = GLSLProgram;
 
 enum { TEX_UNSET, TEX_2D_1, TEX_2D_2, TEX_2D_4, TEX_2D_EXTERNAL };
+
+using Drawable = Base::GLDrawable;
 
 }

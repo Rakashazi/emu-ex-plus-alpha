@@ -2,7 +2,7 @@ include $(IMAGINE_PATH)/make/config.mk
 
 ARCH := arm
 SUBARCH := armv7
-minIOSVer ?= 5.0
+minIOSVer ?= 6.0
 include $(buildSysPath)/iOS-gcc.mk
 
 ifndef targetSuffix

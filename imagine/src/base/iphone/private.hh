@@ -17,6 +17,9 @@
 
 #include <CoreGraphics/CGColorSpace.h>
 #include <imagine/base/iphone/config.h>
+#ifdef __OBJC__
+#import <UIKit/UIKit.h>
+#endif
 
 namespace Base
 {
@@ -24,3 +27,9 @@ namespace Base
 extern CGColorSpaceRef grayColorSpace, rgbColorSpace;
 
 }
+
+#ifdef __OBJC__
+@interface ImagineUIViewController : UIViewController
+
+@end
+#endif

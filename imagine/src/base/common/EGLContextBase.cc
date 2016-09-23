@@ -31,7 +31,6 @@ namespace Base
 
 static bool hasDummyPbuffConfig = false;
 static EGLConfig dummyPbuffConfig{};
-static EGLDisplay display = EGL_NO_DISPLAY;
 using EGLAttrList = StaticArrayList<int, 24>;
 using EGLContextAttrList = StaticArrayList<int, 16>;
 
@@ -130,13 +129,10 @@ static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 	return list;
 }
 
-std::pair<bool, EGLConfig> EGLContextBase::chooseConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+// GLContext
+
+std::pair<bool, EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
-	if(eglDisplay() == EGL_NO_DISPLAY)
-	{
-		logErr("unable to get EGL display");
-		return std::make_pair(false, EGLConfig{});
-	}
 	EGLConfig config;
 	EGLint configs = 0;
 	{
@@ -173,38 +169,8 @@ void *GLContext::procAddress(const char *funcName)
 	return (void*)eglGetProcAddress(funcName);
 }
 
-EGLDisplay EGLContextBase::eglDisplay()
+EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, std::error_code &ec)
 {
-	if(display == EGL_NO_DISPLAY)
-	{
-		display = getDisplay();
-		assert(display != EGL_NO_DISPLAY);
-		if(!eglInitialize(display, nullptr, nullptr))
-		{
-			bug_exit("error initializing EGL");
-			display = EGL_NO_DISPLAY;
-			return display;
-		}
-		//logMsg("initialized EGL with display %ld", (long)display);
-		if(Config::DEBUG_BUILD)
-		{
-			logMsg("version: %s (%s)", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION));
-			logMsg("APIs: %s", eglQueryString(display, EGL_CLIENT_APIS));
-			logMsg("extensions: %s", eglQueryString(display, EGL_EXTENSIONS));
-			//printEGLConfs(display);
-		}
-	}
-	return display;
-}
-
-std::error_code EGLContextBase::init(GLContextAttributes attr, GLBufferConfig config)
-{
-	if(eglDisplay() == EGL_NO_DISPLAY)
-	{
-		logErr("unable to get EGL display");
-		return {ENOENT, std::system_category()};
-	}
-	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
 	context = eglCreateContext(display, config.glConfig, EGL_NO_CONTEXT, &glContextAttrsToEGLAttrs(attr)[0]);
 	if(context == EGL_NO_CONTEXT)
@@ -219,7 +185,8 @@ std::error_code EGLContextBase::init(GLContextAttributes attr, GLBufferConfig co
 		{
 			if(Config::DEBUG_BUILD)
 				logErr("error creating context: 0x%X", (int)eglGetError());
-			return {EINVAL, std::system_category()};
+			ec = {EINVAL, std::system_category()};
+			return;
 		}
 	}
 	// TODO: EGL 1.5 or higher supports surfaceless without any extension
@@ -238,10 +205,10 @@ std::error_code EGLContextBase::init(GLContextAttributes attr, GLBufferConfig co
 			assert(dummyPbuffConfig == config.glConfig);
 		}
 	}
-	return {};
+	ec = {};
 }
 
-void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
+void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable win)
 {
 	assert(display != EGL_NO_DISPLAY);
 	if(context == EGL_NO_CONTEXT)
@@ -253,7 +220,7 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 	else if(win)
 	{
 		assert(context != EGL_NO_CONTEXT);
-		auto surface = win->eglSurface();
+		auto surface = win.eglSurface();
 		logMsg("setting surface 0x%lX current", (long)surface);
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
@@ -285,24 +252,24 @@ void EGLContextBase::setCurrentContext(EGLContext context, Window *win)
 	}
 }
 
-void GLContext::setDrawable(Window *win)
+void GLContext::setDrawable(GLDisplay display, GLDrawable win)
 {
-	setDrawable(win, current());
+	setDrawable(display, win, current(display));
 }
 
-void GLContext::setDrawable(Window *win, GLContext cachedCurrentContext)
+void GLContext::setDrawable(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
-	setCurrentContext(cachedCurrentContext.context, win);
+	setCurrentContext(display.eglDisplay(), cachedCurrentContext.context, win);
 }
 
-GLContext GLContext::current()
+GLContext GLContext::current(GLDisplay display)
 {
 	GLContext c;
 	c.context = eglGetCurrentContext();
 	return c;
 }
 
-void EGLContextBase::swapBuffers(Window &win)
+void EGLContextBase::swapBuffers(EGLDisplay display, GLDrawable &win)
 {
 	assert(display != EGL_NO_DISPLAY);
 	auto surface = win.eglSurface();
@@ -323,7 +290,7 @@ bool GLContext::operator ==(GLContext const &rhs) const
 	return context == rhs.context;
 }
 
-void EGLContextBase::deinit()
+void EGLContextBase::deinit(EGLDisplay display)
 {
 	if(context != EGL_NO_CONTEXT)
 	{
@@ -331,6 +298,83 @@ void EGLContextBase::deinit()
 		eglDestroyContext(display, context);
 		context = EGL_NO_CONTEXT;
 	}
+}
+
+// GLDisplay
+
+std::error_code EGLDisplayConnection::initDisplay(EGLDisplay display)
+{
+	if(!eglInitialize(display, nullptr, nullptr))
+	{
+		logErr("error initializing EGL");
+		return {EINVAL, std::system_category()};
+	}
+	//logMsg("initialized EGL with display %ld", (long)display);
+	if(Config::DEBUG_BUILD)
+	{
+		logMsg("version: %s (%s)", eglQueryString(display, EGL_VENDOR), eglQueryString(display, EGL_VERSION));
+		logMsg("APIs: %s", eglQueryString(display, EGL_CLIENT_APIS));
+		logMsg("extensions: %s", eglQueryString(display, EGL_EXTENSIONS));
+		//printEGLConfs(display);
+	}
+	return {};
+}
+
+GLDisplay::operator bool() const
+{
+	return display != EGL_NO_DISPLAY;
+}
+
+bool GLDisplay::operator ==(GLDisplay const &rhs) const
+{
+	return display == rhs.display;
+}
+
+bool GLDisplay::deinit()
+{
+	if(display == EGL_NO_DISPLAY)
+		return true;
+	auto success = eglTerminate(display);
+	display = EGL_NO_DISPLAY;
+	return success;
+}
+
+GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec)
+{
+	auto surface = eglCreateWindowSurface(display, config.glConfig,
+		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)win.nativeObject(),
+		nullptr);
+	if(surface == EGL_NO_SURFACE)
+	{
+		ec = {EINVAL, std::system_category()};
+		return {};
+	}
+	ec = {};
+	return {surface};
+}
+
+bool GLDisplay::deleteDrawable(GLDrawable &drawable)
+{
+	auto &surface = drawable.eglSurface();
+	if(surface == EGL_NO_SURFACE)
+		return true;
+	auto success = eglDestroySurface(display, surface);
+	surface = EGL_NO_SURFACE;
+	return success;
+}
+
+// GLDrawable
+
+void GLDrawable::freeCaches() {}
+
+GLDrawable::operator bool() const
+{
+	return surface != EGL_NO_SURFACE;
+}
+
+bool GLDrawable::operator ==(GLDrawable const &rhs) const
+{
+	return surface == rhs.surface;
 }
 
 }

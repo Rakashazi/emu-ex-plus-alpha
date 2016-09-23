@@ -37,6 +37,7 @@ enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_ME
 struct AppWindowData
 {
 	Base::Window win{};
+	Gfx::Drawable drawable{};
 	Gfx::Viewport viewport() { return projectionPlane.viewport; }
 	Gfx::Mat4 projectionMat{};
 	Gfx::ProjectionPlane projectionPlane{};

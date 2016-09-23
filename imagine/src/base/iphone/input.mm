@@ -143,7 +143,7 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 	{
 		vkbdField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(), textRect)];
 		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[deviceWindow()->glView() addSubview: vkbdField];
+		[deviceWindow()->uiWin().rootViewController.view addSubview: vkbdField];
 	}
 	else
 	{

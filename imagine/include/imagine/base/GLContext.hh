@@ -1,5 +1,20 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
 #include <imagine/config/defs.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/operators.hh>
@@ -7,13 +22,13 @@
 #include <system_error>
 
 #if defined CONFIG_BASE_X11
-#include <imagine/base/x11/XGLContext.hh>
+#include <imagine/base/x11/XGL.hh>
 #elif defined CONFIG_BASE_ANDROID
-#include <imagine/base/android/AndroidGLContext.hh>
+#include <imagine/base/android/AndroidGL.hh>
 #elif defined CONFIG_BASE_IOS
-#include <imagine/base/iphone/IOSGLContext.hh>
+#include <imagine/base/iphone/IOSGL.hh>
 #elif defined CONFIG_BASE_MACOSX
-#include <imagine/base/osx/CocoaGLContext.hh>
+#include <imagine/base/osx/CocoaGL.hh>
 #endif
 
 namespace Base
@@ -22,17 +37,17 @@ namespace Base
 class GLBufferConfigAttributes
 {
 private:
-	PixelFormat pixelFormat_;
+	IG::PixelFormat pixelFormat_;
 	bool useDepth_ = false;
 	bool useStencil_ = false;
 
 public:
-	void setPixelFormat(PixelFormat pixelFormat_)
+	void setPixelFormat(IG::PixelFormat pixelFormat_)
 	{
 		this->pixelFormat_ = pixelFormat_;
 	}
 
-	PixelFormat pixelFormat() const
+	IG::PixelFormat pixelFormat() const
 	{
 		if(!pixelFormat_)
 			return Window::defaultPixelFormat();
@@ -112,24 +127,51 @@ public:
 	}
 };
 
+class GLDrawable : public GLDrawableImpl, public NotEquals<GLDrawable>
+{
+public:
+	using GLDrawableImpl::GLDrawableImpl;
+
+	constexpr GLDrawable() {}
+	void freeCaches();
+	explicit operator bool() const;
+	bool operator ==(GLDrawable const &rhs) const;
+};
+
+class GLDisplay : public GLDisplayImpl, public NotEquals<GLDisplay>
+{
+public:
+	using GLDisplayImpl::GLDisplayImpl;
+
+	constexpr GLDisplay() {}
+	static GLDisplay makeDefault(std::error_code &ec);
+	explicit operator bool() const;
+	bool operator ==(GLDisplay const &rhs) const;
+	bool deinit();
+	GLDrawable makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec);
+	bool deleteDrawable(GLDrawable &drawable);
+};
+
 class GLContext : public GLContextImpl, public NotEquals<GLContext>
 {
 public:
+	using GLContextImpl::GLContextImpl;
 	enum API {OPENGL_API, OPENGL_ES_API};
 
 	constexpr GLContext() {}
-	std::error_code init(GLContextAttributes attr, GLBufferConfig config);
+	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec);
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
-	void deinit();
-	static GLBufferConfig makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
-	static GLContext current();
+	void deinit(GLDisplay display);
+	static GLBufferConfig makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
+	static GLContext current(GLDisplay display);
 	static void *procAddress(const char *funcName);
-	static void setCurrent(GLContext context, Window *win);
-	static void setDrawable(Window *win);
-	static void setDrawable(Window *win, GLContext cachedCurrentContext);
-	static void present(Window &win);
-	static void present(Window &win, GLContext cachedCurrentContext);
+	static void setCurrent(GLDisplay display, GLContext context, GLDrawable drawable);
+	static void setDrawable(GLDisplay display, GLDrawable drawable);
+	static void setDrawable(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
+	static void present(GLDisplay display, GLDrawable drawable);
+	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
+	static void finishPresent(GLDisplay display, GLDrawable drawable);
 	static bool bindAPI(API api);
 };
 

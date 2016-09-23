@@ -16,27 +16,60 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/base/iphone/config.h>
 #include <imagine/base/Window.hh>
 
 #ifdef __OBJC__
 #import <OpenGLES/EAGL.h>
+#import <imagine/base/iphone/EAGLView.hh>
 #endif
 
 namespace Base
 {
 
-struct IOSGLContext
-{
-protected:
-	void *context_{}; // EAGLContext in ObjC
+class GLDisplay;
 
+class GLDisplayImpl {};
+
+class IOSGLContext
+{
 public:
 	constexpr IOSGLContext() {}
 	#ifdef __OBJC__
 	EAGLContext *context() { return (__bridge EAGLContext*)context_; }
 	#endif
+
+protected:
+	void *context_{}; // EAGLContext in ObjC
 };
 
+class EAGLViewDrawable
+{
+public:
+	constexpr EAGLViewDrawable() {}
+	constexpr EAGLViewDrawable(void *glView): glView_{glView} {}
+	#ifdef __OBJC__
+	EAGLView *glView() { return (__bridge EAGLView*)glView_; }
+	#endif
+	void *glViewPtr() { return glView_; }
+
+protected:
+	void *glView_{}; // EAGLView in ObjC
+};
+
+struct GLBufferConfig
+{
+	bool useRGB565 = false;
+
+	explicit operator bool() const
+	{
+		return true;
+	}
+
+	Base::NativeWindowFormat windowFormat(GLDisplay display);
+};
+
+using GLDrawableImpl = EAGLViewDrawable;
 using GLContextImpl = IOSGLContext;
 
 }

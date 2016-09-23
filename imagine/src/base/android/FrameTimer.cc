@@ -96,7 +96,6 @@ bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 			deviceWindow()->setNeedsDraw(true);
 			screen.frameUpdate(screen.currFrameTimestamp);
 			screen.prevFrameTimestamp = screen.currFrameTimestamp;
-			GLContext::swapPresentedBuffers(*deviceWindow());
 			if(screen.isPosted())
 			{
 				screen.currFrameTimestamp = IG::Time::now().nSecs();
@@ -197,7 +196,6 @@ bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
 					deviceWindow()->setNeedsDraw(true);
 					screen.frameUpdate(screen.currFrameTimestamp);
 					screen.prevFrameTimestamp = screen.currFrameTimestamp;
-					GLContext::swapPresentedBuffers(*deviceWindow());
 					if(screen.isPosted())
 					{
 						screen.currFrameTimestamp = IG::Time::now().nSecs();

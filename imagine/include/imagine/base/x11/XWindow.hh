@@ -22,16 +22,19 @@
 #define BOOL X11BOOL
 #include <X11/X.h>
 #include <X11/Xutil.h>
-#ifdef CONFIG_BASE_X11_EGL
-#include <EGL/egl.h>
-#else
-#include <imagine/base/x11/glxIncludes.h>
-#endif
 #undef BOOL
 #undef pointer
 
 namespace Base
 {
+
+struct NativeWindowFormat
+{
+	Visual *visual{};
+	int depth{};
+};
+
+using NativeWindow = ::Window;
 
 class XWindow : public BaseWindow, public NotEquals<XWindow>
 {
@@ -39,9 +42,6 @@ public:
 	::Window xWin = None;
 	::Window draggerXWin = None;
 	Atom dragAction = None;
-	#ifdef CONFIG_BASE_X11_EGL
-	EGLSurface surface = EGL_NO_SURFACE;
-	#endif
 	#ifndef CONFIG_MACHINE_PANDORA
 	IG::Point2D<int> pos;
 	Colormap colormap{};
@@ -59,47 +59,10 @@ public:
 	{
 		return xWin != None;
 	}
-
-	#ifdef CONFIG_BASE_X11_EGL
-	EGLSurface eglSurface() { return surface; }
-	#endif
 };
 
 void shutdownWindowSystem();
 
 using WindowImpl = XWindow;
-
-struct GLBufferConfig
-{
-	#ifdef CONFIG_BASE_X11_EGL
-	EGLConfig glConfig{};
-	#else
-	GLXFBConfig glConfig{};
-	#endif
-	using Config = typeof(glConfig);
-	#ifndef CONFIG_MACHINE_PANDORA
-	Visual *visual{};
-	int depth{};
-	#else
-	bool isInit = false;
-	#endif
-
-	constexpr GLBufferConfig(const Config &config):
-		glConfig{config}
-		#ifdef CONFIG_MACHINE_PANDORA
-		, isInit{true}
-		#endif
-		{}
-	constexpr GLBufferConfig() {}
-
-	explicit operator bool() const
-	{
-		#ifndef CONFIG_MACHINE_PANDORA
-		return visual;
-		#else
-		return isInit;
-		#endif
-	}
-};
 
 }

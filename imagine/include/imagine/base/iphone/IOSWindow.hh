@@ -21,12 +21,11 @@
 #include <imagine/base/iphone/config.h>
 #import <CoreGraphics/CGBase.h>
 
-#ifdef __OBJC__
-#import <imagine/base/iphone/EAGLView.hh>
-#endif
-
 namespace Base
 {
+
+struct NativeWindowFormat {};
+using NativeWindow = void*;
 
 #ifdef CONFIG_BASE_IOS_RETINA_SCALE
 extern uint screenPointScale;
@@ -38,7 +37,6 @@ class IOSWindow : public BaseWindow, public NotEquals<IOSWindow>
 {
 public:
 	void *uiWin_ = nullptr; // UIWindow in ObjC
-	void *glView_ = nullptr; // EAGLView in ObjC
 	IG::WindowRect contentRect; // active window content
 	#ifdef CONFIG_BASE_IOS_RETINA_SCALE
 	CGFloat pointScale{1.};
@@ -50,8 +48,9 @@ public:
 	#ifdef __OBJC__
 	void updateContentRect(int width, int height, uint softOrientation, UIApplication *sharedApp);
 	UIWindow *uiWin() { return (__bridge UIWindow*)uiWin_; }
-	EAGLView *glView() { return (__bridge EAGLView*)glView_; }
 	#endif
+
+	void resetSurface();
 
 	bool operator ==(IOSWindow const &rhs) const
 	{
@@ -65,15 +64,5 @@ public:
 };
 
 using WindowImpl = IOSWindow;
-
-struct GLBufferConfig
-{
-	bool useRGB565 = false;
-
-	explicit operator bool() const
-	{
-		return true;
-	}
-};
 
 }

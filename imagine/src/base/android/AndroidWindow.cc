@@ -16,7 +16,6 @@
 #define LOGTAG "AndroidWindow"
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
-#include <imagine/base/GLContext.hh>
 #include "android.hh"
 #include "internal.hh"
 #include <imagine/util/fd-utils.h>
@@ -34,26 +33,6 @@ static JavaInstMethod<void()> jPresentationDeinit{};
 Window *deviceWindow()
 {
 	return Window::window(0);
-}
-
-static int winFormatFromEGLConfig(EGLDisplay display, EGLConfig config)
-{
-	EGLint nId;
-	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &nId);
-	if(!nId)
-	{
-		nId = WINDOW_FORMAT_RGBA_8888;
-		EGLint alphaSize;
-		eglGetConfigAttrib(display, config, EGL_ALPHA_SIZE, &alphaSize);
-		if(!alphaSize)
-			nId = WINDOW_FORMAT_RGBX_8888;
-		EGLint redSize;
-		eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
-		if(redSize < 8)
-			nId = WINDOW_FORMAT_RGB_565;
-		//logWarn("config didn't provide a native format id, guessing %d", nId);
-	}
-	return nId;
 }
 
 static void initPresentationJNI(JNIEnv* env, jobject presentation)
@@ -91,7 +70,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				ANativeWindow_release(win.nativeWindow());
+				ANativeWindow_release(win.nativeObject());
 				win.setNativeWindow(nullptr);
 			})
 		},
@@ -178,8 +157,7 @@ std::error_code Window::init(const WindowConfig &config)
 	#else
 	mainWin = this;
 	#endif
-	eglConfig = config.glConfig().glConfig;
-	pixelFormat = winFormatFromEGLConfig(GLContext::eglDisplay(), eglConfig);
+	pixelFormat = config.format();
 	if(Base::androidSDK() < 11 && this == deviceWindow())
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
@@ -230,57 +208,6 @@ bool Window::hasSurface()
 	return nWin;
 }
 
-EGLSurface AndroidWindow::eglSurface()
-{
-	if(unlikely(surface == EGL_NO_SURFACE && nWin))
-	{
-		initEGLSurface(GLContext::eglDisplay());
-	}
-	return surface;
-}
-
-bool AndroidWindow::presented()
-{
-	return presented_;
-}
-
-void AndroidWindow::setPresented(bool presented)
-{
-	presented_ = presented;
-}
-
-void AndroidWindow::initEGLSurface(EGLDisplay display)
-{
-	assert(display != EGL_NO_DISPLAY);
-	assert(nWin);
-	if(surface != EGL_NO_SURFACE)
-	{
-		return;
-	}
-	logMsg("creating EGL surface for native window %p", nWin);
-	surface = eglCreateWindowSurface(display, eglConfig, nWin, nullptr);
-	assert(surface != EGL_NO_SURFACE);
-}
-
-void AndroidWindow::destroyEGLSurface(EGLDisplay display)
-{
-	if(surface == EGL_NO_SURFACE)
-	{
-		return;
-	}
-	if(eglGetCurrentSurface(EGL_DRAW) == surface)
-	{
-		GLContext::setDrawable(nullptr);
-		onGLDrawableChanged.callCopySafe(nullptr);
-	}
-	logMsg("destroying EGL surface for native window %p", nWin);
-	if(eglDestroySurface(display, surface) == EGL_FALSE)
-	{
-		bug_exit("couldn't destroy surface");
-	}
-	surface = EGL_NO_SURFACE;
-}
-
 void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 {
 	contentRect = rect;
@@ -291,8 +218,8 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 {
 	if(nWin)
 	{
-		((Window*)this)->unpostDraw();
-		destroyEGLSurface(GLContext::eglDisplay());
+		static_cast<Window*>(this)->unpostDraw();
+		static_cast<Window*>(this)->surfaceChange.addDestroyed();
 		nWin = nullptr;
 	}
 	if(!nWindow)
@@ -303,7 +230,7 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 	ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
 }
 
-ANativeWindow *AndroidWindow::nativeWindow()
+NativeWindow Window::nativeObject()
 {
 	return nWin;
 }
@@ -318,8 +245,6 @@ void androidWindowNeedsRedraw(Window &win)
 	logMsg("window surface redraw needed");
 	win.setNeedsDraw(true);
 	win.dispatchOnDraw();
-	if(!AndroidGLContext::swapBuffersIsAsync())
-		GLContext::swapPresentedBuffers(win);
 	// On some OS versions like CM7 on the HP Touchpad,
 	// the very next frame is rendered incorrectly
 	// (as if the window still has its previous size).
@@ -330,20 +255,20 @@ void androidWindowNeedsRedraw(Window &win)
 	win.postDraw();
 }
 
-void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, const IG::Point2D<int> &winSize)
+void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D<int> &winSize)
 {
 	logMsg("content rect changed: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
-	win.updateContentRect(rect);
-	if(win.updateSize(winSize))
+	updateContentRect(rect);
+	if(static_cast<Window*>(this)->updateSize(winSize))
 	{
 		// If the surface changed size, make sure
 		// it's set again with eglMakeCurrent to avoid
 		// the context possibly rendering to it with
 		// the old size, as occurs on Intel HD Graphics
-		onGLDrawableChanged.callCopySafe(nullptr);
+		surfaceChange.addReset();
 	}
-	win.postDraw();
+	static_cast<Window*>(this)->postDraw();
 }
 
 void Window::setTitle(const char *name) {}

@@ -32,7 +32,6 @@ extern FrameTimer *frameTimer;
 
 Window *deviceWindow();
 void androidWindowNeedsRedraw(Window &win);
-void androidWindowContentRectChanged(Window &win, const IG::WindowRect &rect, const IG::Point2D<int> &winSize);
 void initFrameTimer(JNIEnv *env, jobject activity);
 void removePostedNotifications();
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls);

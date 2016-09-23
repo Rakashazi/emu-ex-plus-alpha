@@ -16,12 +16,9 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "Base"
 #import "MainApp.hh"
-#import <imagine/base/iphone/EAGLView.hh>
 #import <dlfcn.h>
 #import <unistd.h>
-#import <OpenGLES/ES2/gl.h> // for glFinish()
 #include <imagine/base/Base.hh>
-#include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "private.hh"
@@ -340,13 +337,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	dispatchOnExit(true);
 	Base::Screen::setActiveAll(false);
 	Input::deinitKeyRepeatTimer();
-	iterateTimes(Window::windows(), i)
-	{
-		[Window::window(i)->glView() deleteDrawable];
-	}
-	GLContext::setDrawable(nullptr);
-	onGLDrawableChanged.callCopySafe(nullptr);
-	glFinish();
 	logMsg("entered background");
 }
 

@@ -584,7 +584,7 @@ CLINK void *res_load_data(const char *name)
 class LoadGameInBackgroundView : public View
 {
 public:
-	Gfx::Text text{"Loading...", View::defaultFace};
+	Gfx::Text text{"Loading...", &View::defaultFace};
 	IG::WindowRect rect;
 	IG::WindowRect &viewRect() override { return rect; }
 

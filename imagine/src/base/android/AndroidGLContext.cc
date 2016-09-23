@@ -19,18 +19,30 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/android/android.hh>
 #include <imagine/time/Time.hh>
+#include <android/native_window.h>
 
 namespace Base
 {
 
-GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+// GLDisplay
+
+GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+{
+	auto display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	ec = initDisplay(display);
+	return {display};
+}
+
+// GLContext
+
+GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	if(ctxAttr.majorVersion() > 2 && Base::androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
 		return GLBufferConfig{};
 	}
-	auto configResult = chooseConfig(ctxAttr, attr);
+	auto configResult = chooseConfig(display.eglDisplay(), ctxAttr, attr);
 	if(!std::get<bool>(configResult))
 	{
 		return GLBufferConfig{};
@@ -38,32 +50,26 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes ctxAttr, GLBuffer
 	return GLBufferConfig{std::get<EGLConfig>(configResult)};
 }
 
-EGLDisplay EGLContextBase::getDisplay()
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
+	AndroidGLContext{display.eglDisplay(), attr, config, ec}
+{}
+
+void GLContext::deinit(GLDisplay display)
 {
-	return eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	EGLContextBase::deinit(display.eglDisplay());
 }
 
-std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig config)
+void GLContext::setCurrent(GLDisplay display, GLContext c, GLDrawable win)
 {
-	return EGLContextBase::init(attr, config);
+	setCurrentContext(display.eglDisplay(), c.context, win);
 }
 
-void GLContext::deinit()
-{
-	EGLContextBase::deinit();
-}
-
-void GLContext::setCurrent(GLContext c, Window *win)
-{
-	setCurrentContext(c.context, win);
-}
-
-void GLContext::present(Window &win)
+void GLContext::present(GLDisplay display, GLDrawable win)
 {
 	if(swapBuffersIsAsync())
 	{
 		// check if buffer swap blocks even though triple-buffering is used
-		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(win); }).nSecs();
+		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
 		if(swapTime > 16000000)
 		{
 			logWarn("buffer swap took %lldns", (long long)swapTime);
@@ -72,22 +78,19 @@ void GLContext::present(Window &win)
 	else
 	{
 		glFlush();
-		win.setPresented(true);
 	}
 }
 
-void GLContext::present(Window &win, GLContext cachedCurrentContext)
+void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
-	present(win);
+	present(display, win);
 }
 
-void AndroidGLContext::swapPresentedBuffers(Window &win)
+void GLContext::finishPresent(GLDisplay display, GLDrawable win)
 {
-	if(win.presented())
+	if(!swapBuffersIsAsync())
 	{
-		assert(!swapBuffersIsAsync()); // shouldn't set presented = true if swap is async
-		win.setPresented(false);
-		EGLContextBase::swapBuffers(win);
+		EGLContextBase::swapBuffers(display.eglDisplay(), win);
 	}
 }
 
@@ -99,6 +102,27 @@ bool AndroidGLContext::swapBuffersIsAsync()
 bool GLContext::bindAPI(API api)
 {
 	return api == OPENGL_ES_API;
+}
+
+Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display_)
+{
+	EGLint nId;
+	auto display = display_.eglDisplay();
+	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nId);
+	if(!nId)
+	{
+		nId = WINDOW_FORMAT_RGBA_8888;
+		EGLint alphaSize;
+		eglGetConfigAttrib(display, glConfig, EGL_ALPHA_SIZE, &alphaSize);
+		if(!alphaSize)
+			nId = WINDOW_FORMAT_RGBX_8888;
+		EGLint redSize;
+		eglGetConfigAttrib(display, glConfig, EGL_RED_SIZE, &redSize);
+		if(redSize < 8)
+			nId = WINDOW_FORMAT_RGB_565;
+		//logWarn("config didn't provide a native format id, guessing %d", nId);
+	}
+	return nId;
 }
 
 }

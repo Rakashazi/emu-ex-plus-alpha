@@ -18,12 +18,14 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
-#include <EGL/egl.h>
 
 struct ANativeWindow;
 
 namespace Base
 {
+
+using NativeWindowFormat = int32_t;
+using NativeWindow = ANativeWindow*;
 
 class AndroidWindow : public BaseWindow, public NotEquals<AndroidWindow>
 {
@@ -41,45 +43,20 @@ public:
 	}
 
 	void setNativeWindow(ANativeWindow *nWin);
-	ANativeWindow *nativeWindow();
 	int nativePixelFormat();
-	EGLSurface eglSurface();
-	void destroyEGLSurface(EGLDisplay display);
-	bool presented();
-	void setPresented(bool presented);
 	void updateContentRect(const IG::WindowRect &rect);
+	void setContentRect(const IG::WindowRect &rect, const IG::Point2D<int> &winSize);
 
 protected:
 	ANativeWindow *nWin{};
-	EGLSurface surface = EGL_NO_SURFACE;
-	EGLConfig eglConfig{};
-	int pixelFormat = 0;
+	int32_t pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	jobject jDialog{};
 	#endif
 	bool initialInit = false;
-	bool presented_ = false;
-
-	void initEGLSurface(EGLDisplay display);
 };
 
 using WindowImpl = AndroidWindow;
-
-
-struct GLBufferConfig
-{
-	EGLConfig glConfig{};
-	bool isInit = false;
-
-	constexpr GLBufferConfig(const EGLConfig &eglConfig):
-		glConfig{eglConfig}, isInit{true} {}
-	constexpr GLBufferConfig() {}
-
-	explicit operator bool() const
-	{
-		return isInit;
-	}
-};
 
 }

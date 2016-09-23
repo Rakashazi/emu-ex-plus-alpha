@@ -36,8 +36,9 @@
 namespace Gfx
 {
 
-Base::GLContext gfxContext;
-Base::Window *currWin{};
+Base::GLDisplay glDpy{};
+Base::GLContext gfxContext{};
+Base::GLDrawable currWin{};
 GLStateCache glState;
 TimedInterpolator<Gfx::GC> projAngleM;
 bool checkGLErrors = Config::DEBUG_BUILD;
@@ -356,29 +357,42 @@ void clear()
 
 bool bind()
 {
-	if(multipleContextsPerThread && gfxContext != Base::GLContext::current())
+	if(multipleContextsPerThread && gfxContext != Base::GLContext::current(glDpy))
 	{
 		logMsg("restoring context");
-		gfxContext.setCurrent(gfxContext, currWin);
+		gfxContext.setCurrent(glDpy, gfxContext, currWin);
 		return true;
 	}
 	return false;
 }
 
-bool setCurrentWindow(Base::Window *win)
+void updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceChange change)
 {
-	if(multipleContextsPerThread && gfxContext != Base::GLContext::current())
+	if(change.destroyed())
+	{
+		Gfx::deinitDrawable(drawable);
+	}
+	else if(change.reset())
+	{
+		if(currWin == drawable)
+			currWin = {};
+	}
+}
+
+bool setCurrentDrawable(Drawable win)
+{
+	if(multipleContextsPerThread && gfxContext != Base::GLContext::current(glDpy))
 	{
 		logMsg("restoring context");
 		currWin = win;
-		gfxContext.setCurrent(gfxContext, win);
+		gfxContext.setCurrent(glDpy, gfxContext, win);
 		return true;
 	}
 	else
 	{
 		if(win == currWin)
 			return false;
-		gfxContext.setDrawable(win, gfxContext);
+		gfxContext.setDrawable(glDpy, win, gfxContext);
 		if(shouldSpecifyDrawReadBuffers && win)
 		{
 			//logMsg("specifying draw/read buffers");
@@ -391,9 +405,18 @@ bool setCurrentWindow(Base::Window *win)
 	}
 }
 
-bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat)
+bool updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat)
 {
-	if(setCurrentWindow(&win) || params.wasResized())
+	if(!drawable)
+	{
+		std::error_code ec{};
+		drawable = glDpy.makeDrawable(win, gfxBufferConfig, ec);
+		if(ec)
+		{
+			logErr("Error creating GL drawable");
+		}
+	}
+	if(setCurrentDrawable(drawable) || params.wasResized())
 	{
 		setViewport(viewport);
 		setProjectionMatrix(projMat);
@@ -402,10 +425,31 @@ bool updateCurrentWindow(Base::Window &win, Base::Window::DrawParams params, Vie
 	return false;
 }
 
-void presentWindow(Base::Window &win)
+void deinitDrawable(Drawable &drawable)
+{
+	if(currWin == drawable)
+		currWin = {};
+	glDpy.deleteDrawable(drawable);
+}
+
+void presentDrawable(Drawable win)
 {
 	discardTemporaryData();
-	gfxContext.present(win, gfxContext);
+	gfxContext.present(glDpy, win, gfxContext);
+}
+
+void finishPresentDrawable(Drawable win)
+{
+	gfxContext.finishPresent(glDpy, win);
+}
+
+void finish()
+{
+	setCurrentDrawable({});
+	if(Config::envIsIOS)
+	{
+		glFinish();
+	}
 }
 
 void setCorrectnessChecks(bool on)

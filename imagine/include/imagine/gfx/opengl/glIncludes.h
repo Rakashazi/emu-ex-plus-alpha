@@ -34,6 +34,7 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GLES/gl.h>
 #include <SDL/SDL_opengles_ext.h>
+#undef GL_GLEXT_PROTOTYPES
 #elif defined CONFIG_BASE_WIN32
 #include <util/windows/windows.h>
 #define GLEW_STATIC
@@ -55,10 +56,12 @@
 		using GLchar = char;
 		#endif
 	#endif
+#undef GL_GLEXT_PROTOTYPES
 #else // Generic OpenGL headers
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 #include <GL/glext.h>
+#undef GL_GLEXT_PROTOTYPES
 #endif
 
 // Symbol Re-mapping

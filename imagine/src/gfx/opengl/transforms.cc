@@ -87,8 +87,8 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 		[](Base::Screen::FrameParams params)
 		{
 			using namespace Base;
-			setCurrentWindow(&mainWindow());
 			//logMsg("animating rotation");
+			bind();
 			projAngleM.update(1);
 			setProjectionMatrixRotation(projAngleM.now());
 			setProjectionMatrix(projectionMatrix());

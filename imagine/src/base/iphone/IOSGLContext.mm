@@ -19,14 +19,91 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <OpenGLES/ES2/gl.h> // for GL_RENDERBUFFER, same values in ES1/ES2
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
+#include "private.hh"
 
 namespace Base
 {
 
-std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig)
+// GLDisplay
+
+GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+{
+	ec = {};
+	return {};
+}
+
+GLDisplay::operator bool() const
+{
+	return true;
+}
+
+bool GLDisplay::operator ==(GLDisplay const &rhs) const
+{
+	return true;
+}
+
+bool GLDisplay::deinit()
+{
+	return true;
+}
+
+GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec)
+{
+	CGRect rect = win.screen()->uiScreen().bounds;
+	// Create the OpenGL ES view and add it to the Window
+	auto glView = [[EAGLView alloc] initWithFrame:rect];
+	if(config.useRGB565)
+	{
+		[glView setDrawableColorFormat:kEAGLColorFormatRGB565];
+	}
+	if(*win.screen() == mainScreen())
+	{
+		glView.multipleTouchEnabled = YES;
+	}
+	//logMsg("setting root view controller");
+	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
+	#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
+	rootViewCtrl.wantsFullScreenLayout = YES;
+	#endif
+	rootViewCtrl.view = glView;
+	win.uiWin().rootViewController = rootViewCtrl;
+	ec = {};
+	return{(void*)CFBridgingRetain(glView)};
+}
+
+bool GLDisplay::deleteDrawable(GLDrawable &drawable)
+{
+	if(drawable.glViewPtr())
+	{
+		CFRelease(drawable.glViewPtr());
+		drawable = {};
+	}
+	return true;
+}
+
+// GLDrawable
+
+void GLDrawable::freeCaches()
+{
+	if(glView_)
+		[glView() deleteDrawable];
+}
+
+GLDrawable::operator bool() const
+{
+	return glView_;
+}
+
+bool GLDrawable::operator ==(GLDrawable const &rhs) const
+{
+	return glView_ == rhs.glView_;
+}
+
+// GLContext
+
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec)
 {
 	assert(attr.openGLESAPI());
-	deinit();
 	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
 	EAGLContext *newContext = nil;
 	switch(attr.majorVersion())
@@ -45,13 +122,14 @@ std::error_code GLContext::init(GLContextAttributes attr, GLBufferConfig)
 	if(!newContext)
 	{
 		logErr("error creating context");
-		return {EINVAL, std::system_category()};
+		ec = {EINVAL, std::system_category()};
+		return;
 	}
 	context_ = (void*)CFBridgingRetain(newContext);
-	return {};
+	ec = {};
 }
 
-GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAttributes attr)
+GLBufferConfig GLContext::makeBufferConfig(GLDisplay, GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat() == PIXEL_RGB565)
@@ -61,13 +139,13 @@ GLBufferConfig GLContext::makeBufferConfig(GLContextAttributes, GLBufferConfigAt
 	return conf;
 }
 
-void GLContext::setCurrent(GLContext c, Window *win)
+void GLContext::setCurrent(GLDisplay, GLContext c, GLDrawable win)
 {
 	if(c.context())
 	{
 		auto success = [EAGLContext setCurrentContext:c.context()];
 		assert(success);	
-		setDrawable(win);
+		setDrawable({}, win);
 	}
 	else
 	{
@@ -77,35 +155,37 @@ void GLContext::setCurrent(GLContext c, Window *win)
 	}
 }
 
-void GLContext::setDrawable(Window *win)
+void GLContext::setDrawable(GLDisplay, GLDrawable win)
 {
 	if(win)
 	{
-		[win->glView() bindDrawable];
+		[win.glView() bindDrawable];
 	}
 }
 
-void GLContext::setDrawable(Window *win, GLContext cachedCurrentContext)
+void GLContext::setDrawable(GLDisplay, GLDrawable win, GLContext cachedCurrentContext)
 {
-	setDrawable(win);
+	setDrawable({}, win);
 }
 
-GLContext GLContext::current()
+GLContext GLContext::current(GLDisplay)
 {
 	GLContext c;
 	c.context_ = (__bridge void*)[EAGLContext currentContext];
 	return c;
 }
 
-void GLContext::present(Window &win)
+void GLContext::present(GLDisplay, GLDrawable win)
 {
-	present(win, current());
+	present({}, win, current({}));
 }
 
-void GLContext::present(Window &win, GLContext cachedCurrentContext)
+void GLContext::present(GLDisplay, GLDrawable win, GLContext cachedCurrentContext)
 {
 	[cachedCurrentContext.context() presentRenderbuffer:GL_RENDERBUFFER];
 }
+
+void GLContext::finishPresent(GLDisplay, GLDrawable win) {}
 
 GLContext::operator bool() const
 {
@@ -117,7 +197,7 @@ bool GLContext::operator ==(GLContext const &rhs) const
 	return context_ == rhs.context_;
 }
 
-void GLContext::deinit()
+void GLContext::deinit(GLDisplay)
 {
 	if(context_)
 	{
@@ -134,6 +214,11 @@ bool GLContext::bindAPI(API api)
 void *GLContext::procAddress(const char *funcName)
 {
 	return dlsym(RTLD_DEFAULT, funcName);
+}
+
+Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay)
+{
+	return {};
 }
 
 }

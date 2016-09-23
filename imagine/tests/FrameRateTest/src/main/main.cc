@@ -27,6 +27,7 @@
 
 static const uint framesToRun = 60*60;
 static Base::Window mainWin;
+static Gfx::Drawable drawable;
 static Gfx::ProjectionPlane projP;
 static Gfx::Mat4 projMat;
 static Gfx::GCRect testRect;
@@ -146,11 +147,13 @@ void onInit(int argc, char** argv)
 		[](bool backgrounded)
 		{
 			cleanupTest();
+			drawable.freeCaches();
+			Gfx::finish();
 		});
 
 	Gfx::init();
 	View::compileGfxPrograms();
-	View::defaultFace = IG::ResourceFace::makeSystem(IG::FontSettings{});
+	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(IG::FontSettings{});
 	WindowConfig winConf;
 
 	winConf.setOnSurfaceChange(
@@ -165,12 +168,13 @@ void onInit(int argc, char** argv)
 				testRect = projP.unProjectRect(viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO));
 				placeElements();
 			}
+			Gfx::updateDrawableForSurfaceChange(drawable, change);
 		});
 
 	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			Gfx::updateCurrentWindow(win, params, projP.viewport, projMat);
+			Gfx::updateCurrentDrawable(drawable, win, params, projP.viewport, projMat);
 			if(!activeTest)
 			{
 				Gfx::clear();
@@ -185,11 +189,12 @@ void onInit(int argc, char** argv)
 			{
 				activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
 			}
-			Gfx::presentWindow(win);
+			Gfx::presentDrawable(drawable);
 			if(activeTest)
 			{
 				activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
 			}
+			Gfx::finishPresentDrawable(drawable);
 		});
 
 	winConf.setOnInputEvent(

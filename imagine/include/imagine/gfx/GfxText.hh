@@ -18,8 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
 
-#if defined(CONFIG_RESOURCE_FACE)
-
 #include <float.h>
 #include "GfxSprite.hh"
 #include <imagine/util/2DOrigin.h>
@@ -68,5 +66,3 @@ public:
 };
 
 }
-
-#endif

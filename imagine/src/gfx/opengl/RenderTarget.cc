@@ -61,7 +61,7 @@ void RenderTarget::setCurrent()
 void RenderTarget::setDefaultCurrent()
 {
 	#if defined __APPLE__ && TARGET_OS_IPHONE
-	Base::GLContext::setDrawable(currWin);
+	Base::GLContext::setDrawable(glDpy, currWin);
 	#else
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	#endif
