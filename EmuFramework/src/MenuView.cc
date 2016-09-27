@@ -659,10 +659,6 @@ void RecentGameInfo::handleMenuSelection(TextMenuItem &, Input::Event e)
 	{
 		loadGameCompleteFromRecentItem(1, e);
 	}
-	else if(res == 0)
-	{
-		EmuSystem::clearGamePaths();
-	}
 }
 
 RecentGameView::RecentGameView(Base::Window &win):

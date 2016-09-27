@@ -453,14 +453,32 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 	path = willLoadGameFromPath(path);
 	if(!handlesGenericIO)
 	{
-		return loadGame(path.data());
+		auto res = loadGame(path.data());
+		if(res == 0)
+		{
+			clearGamePaths();
+		}
+		return res;
 	}
 	logMsg("load from path:%s", path.data());
-	if(hasArchiveExtension(path.data()))
+	FileIO io{};
+	auto ec = io.open(path);
+	if(ec)
+	{
+		popup.printf(3, true, "Error opening file: %s", ec.message().c_str());
+		return 0;
+	}
+	return loadGameFromFile(GenericIO{std::move(io)}, path.data());
+}
+
+int EmuSystem::loadGameFromFile(GenericIO file, const char *name)
+{
+	int res;
+	if(hasArchiveExtension(name))
 	{
 		ArchiveIO io{};
 		std::error_code ec{};
-		for(auto &entry : FS::ArchiveIterator{path, ec})
+		for(auto &entry : FS::ArchiveIterator{std::move(file), ec})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -484,17 +502,15 @@ int EmuSystem::loadGameFromPath(FS::PathString path)
 			popup.postError("No recognized file extensions in archive");
 			return 0;
 		}
-		return EmuSystem::loadGameFromIO(io, path.data(), io.name());
+		res = EmuSystem::loadGameFromIO(io, name, io.name());
 	}
 	else
 	{
-		FileIO io{};
-		auto ec = io.open(path);
-		if(ec)
-		{
-			popup.printf(3, true, "Error opening file: %s", ec.message().c_str());
-			return 0;
-		}
-		return EmuSystem::loadGameFromIO(io, path.data(), path.data());
+		res = EmuSystem::loadGameFromIO(file, name, name);
 	}
+	if(res == 0)
+	{
+		clearGamePaths();
+	}
+	return res;
 }

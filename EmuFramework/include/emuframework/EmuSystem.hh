@@ -158,6 +158,7 @@ public:
 	static int loadGameFromIO(IO &io, const char *path, const char *origFilename);
 	static FS::PathString willLoadGameFromPath(FS::PathString path);
 	static int loadGameFromPath(FS::PathString path);
+	static int loadGameFromFile(GenericIO io, const char *origFilename);
 	typedef DelegateFunc<void (uint result, Input::Event e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }

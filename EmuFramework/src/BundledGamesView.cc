@@ -48,49 +48,10 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			int loadGameRes;
-			if(string_hasDotExtension(info.assetName, "lzma") || hasArchiveExtension(info.assetName))
-			{
-				ArchiveIO io{};
-				std::error_code ec{};
-				for(auto &entry : FS::ArchiveIterator{GenericIO{std::move(file)}, ec})
-				{
-					if(entry.type() == FS::file_type::directory)
-					{
-						continue;
-					}
-					auto name = entry.name();
-					logMsg("archive file entry:%s", name);
-					if(EmuSystem::defaultFsFilter(name))
-					{
-						io = entry.moveIO();
-						break;
-					}
-				}
-				if(ec)
-				{
-					logErr("error opening asset archive:%s", info.assetName);
-					return;
-				}
-				if(!io)
-				{
-					logErr("no recognized file extensions in asset archive:%s", info.assetName);
-					return;
-				}
-				loadGameRes = EmuSystem::loadGameFromIO(io, info.assetName, io.name());
-			}
-			else
-			{
-				loadGameRes = EmuSystem::loadGameFromIO(file, info.assetName, info.assetName);
-			}
-			file.close();
+			int loadGameRes = EmuSystem::loadGameFromFile(GenericIO{std::move(file)}, info.assetName);
 			if(loadGameRes == 1)
 			{
 				loadGameCompleteFromRecentItem(1, ev); // has same behavior as if loading from recent item
-			}
-			else if(loadGameRes == 0)
-			{
-				EmuSystem::clearGamePaths();
 			}
 		}};
 }

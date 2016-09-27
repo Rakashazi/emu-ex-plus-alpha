@@ -127,10 +127,6 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(Base::Window &win, bool single
 			{
 				loadGameCompleteFromBenchmarkFilePicker(1, e);
 			}
-			else if(res == 0)
-			{
-				EmuSystem::clearGamePaths();
-			}
 		});
 	return picker;
 }
@@ -208,10 +204,6 @@ void GameFilePicker::onSelectFile(const char* name, Input::Event e)
 	if(res == 1)
 	{
 		loadGameCompleteFromFilePicker(1, e);
-	}
-	else if(res == 0)
-	{
-		EmuSystem::clearGamePaths();
 	}
 }
 
