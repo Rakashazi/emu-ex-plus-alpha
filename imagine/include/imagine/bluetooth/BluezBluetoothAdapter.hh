@@ -20,7 +20,7 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/l2cap.h>
 #include <imagine/base/Base.hh>
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/base/Pipe.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER
 #include <imagine/util/container/DLList.hh>
@@ -69,7 +69,7 @@ private:
 		constexpr L2CapServer(uint psm, int fd): psm(psm), fd(fd) {}
 		uint psm = 0;
 		int fd = -1;
-		Base::EventLoopFileSource connectSrc;
+		Base::FDEventSource connectSrc;
 	};
 	StaticDLList<L2CapServer, 2> serverList;
 	#endif
@@ -93,7 +93,7 @@ public:
 	int readPendingData(int events);
 
 private:
-	Base::EventLoopFileSource fdSrc;
+	Base::FDEventSource fdSrc;
 	int fd = -1;
 	void setupFDEvents(int events);
 };

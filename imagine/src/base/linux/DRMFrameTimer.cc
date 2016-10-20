@@ -24,7 +24,7 @@
 namespace Base
 {
 
-bool DRMFrameTimer::init()
+bool DRMFrameTimer::init(EventLoop loop)
 {
 	if(fd >= 0)
 		return true;
@@ -38,7 +38,7 @@ bool DRMFrameTimer::init()
 		logErr("error creating frame timer, DRM/DRI access is required");
 		return false;
 	}
-	fdSrc.init(fd,
+	fdSrc = {fd, loop,
 		[this](int fd, int event)
 		{
 			requested = false;
@@ -72,7 +72,7 @@ bool DRMFrameTimer::init()
 				}
 			}
 			return 1;
-		});
+		}};
 	return true;
 }
 
@@ -80,7 +80,7 @@ void DRMFrameTimer::deinit()
 {
 	if(fd < 0)
 		return;
-	fdSrc.deinit();
+	fdSrc.removeFromEventLoop();
 	close(fd);
 	fd = -1;
 }

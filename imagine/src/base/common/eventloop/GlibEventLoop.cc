@@ -13,10 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EventLoop"
 #include <imagine/base/Base.hh>
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
+#include <imagine/util/ScopeGuard.hh>
 #include <glib-unix.h>
 
 namespace Base
@@ -27,34 +29,68 @@ extern void x11FDHandler();
 extern bool x11FDPending();
 #endif
 
-void EventLoopFileSource::init(int fd, PollEventDelegate callback, uint events)
+FDEventSource::FDEventSource(int fd):
+	GlibFDEventSource{fd}
+{}
+
+FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
+	FDEventSource{fd}
 {
-	logMsg("adding fd %d to glib context", fd);
+	addToEventLoop(loop, callback, events);
+}
+
+FDEventSource::FDEventSource(FDEventSource &&o)
+{
+	swap(*this, o);
+}
+
+FDEventSource &FDEventSource::operator=(FDEventSource o)
+{
+	swap(*this, o);
+	return *this;
+}
+
+FDEventSource::~FDEventSource()
+{
+	removeFromEventLoop();
+}
+
+void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
+{
+	std::swap(a.source, b.source);
+	std::swap(a.tag, b.tag);
+	std::swap(a.fd_, b.fd_);
+}
+
+FDEventSource FDEventSource::makeXServerAddedToEventLoop(int fd, EventLoop loop)
+{
+	FDEventSource src{fd};
+	src.addXServerToEventLoop(loop);
+	return src;
+}
+
+bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
+{
 	static GSourceFuncs fdSourceFuncs
 	{
 		nullptr,
 		nullptr,
-		[](GSource *source, GSourceFunc, gpointer user_data)
+		[](GSource *source, GSourceFunc, gpointer userData)
 		{
-			auto &e = *((EventLoopFileSource*)user_data);
-			//logMsg("events for fd: %d", e.fd());
-			return (gboolean)e.callback(e.fd_, g_source_query_unix_fd(source, e.tag));
+			auto s = (GSource2*)source;
+			auto pollFD = (GPollFD*)userData;
+			//logMsg("events for source:%p", source);
+			return (gboolean)s->callback(pollFD->fd, g_source_query_unix_fd(source, pollFD));
 		},
 		nullptr
 	};
-	fd_ = fd;
-	this->callback = callback;
-	source = g_source_new(&fdSourceFuncs, sizeof(GSource));
-	tag = g_source_add_unix_fd(source, fd, (GIOCondition)events);
-	g_source_set_callback(source, nullptr, this, nullptr);
-	g_source_attach(source, nullptr);
-	g_source_unref(source);
+	if(!loop)
+		loop = EventLoop::forThread();
+	return makeAndAttachSource(&fdSourceFuncs, callback, (GIOCondition)events, loop.nativeObject());
 }
 
-#ifdef CONFIG_BASE_X11
-void EventLoopFileSource::initX(int fd)
+void FDEventSource::addXServerToEventLoop(EventLoop loop)
 {
-	logMsg("adding X fd %d to glib context", fd);
 	static GSourceFuncs fdSourceFuncs
 	{
 		[](GSource *, gint *timeout)
@@ -74,46 +110,76 @@ void EventLoopFileSource::initX(int fd)
 		},
 		nullptr
 	};
-	fd_ = fd;
-	source = g_source_new(&fdSourceFuncs, sizeof(GSource));
-	tag = g_source_add_unix_fd(source, fd, G_IO_IN);
-	g_source_attach(source, nullptr);
-	g_source_unref(source);
+	if(!loop)
+		loop = EventLoop::forThread();
+	makeAndAttachSource(&fdSourceFuncs, {}, G_IO_IN, loop.nativeObject());
 }
-#endif
 
-void EventLoopFileSource::setEvents(uint events)
+void FDEventSource::modifyEvents(uint events)
 {
-	if(!fd_)
-	{
-		bug_exit("tried to set events on uninitialized source");
-	}
+	assert(source);
 	g_source_modify_unix_fd(source, tag, (GIOCondition)events);
 }
 
-int EventLoopFileSource::fd() const
+void FDEventSource::removeFromEventLoop()
+{
+	if(source)
+	{
+		g_source_destroy(source);
+		source = {};
+	}
+}
+
+bool FDEventSource::hasEventLoop()
+{
+	return source;
+}
+
+int FDEventSource::fd() const
 {
 	return fd_;
 }
 
-void EventLoopFileSource::deinit()
+bool GlibFDEventSource::makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
+	PollEventDelegate callback_, GIOCondition events, GMainContext *ctx)
 {
-	logMsg("removing fd %d from glib context", fd_);
-	if(!fd_)
+	assert(!source);
+	auto source = (GSource2*)g_source_new(fdSourceFuncs, sizeof(GSource2));
+	source->callback = callback_;
+	auto unrefSource = IG::scopeGuard([&](){ g_source_unref(source); });
+	tag = g_source_add_unix_fd(source, fd_, events);
+	g_source_set_callback(source, nullptr, tag, nullptr);
+	if(!g_source_attach(source, ctx))
 	{
-		bug_exit("tried to destroy uninitialized source");
+		logErr("error attaching source with fd:%d", fd_);
+		return false;
 	}
-	g_source_destroy(source);
-	fd_ = -1;
+	this->source = source;
+	logMsg("added fd:%d to main context:%p", fd_, ctx);
+	return true;
 }
 
-void initMainEventLoop() {}
-
-void runMainEventLoop()
+EventLoop EventLoop::forThread()
 {
-	logMsg("entering glib event loop");
-	auto mainLoop = g_main_loop_new(nullptr, false);
+	return {g_main_context_get_thread_default()};
+}
+
+EventLoop EventLoop::makeForThread()
+{
+	return forThread();
+}
+
+void EventLoop::run()
+{
+	logMsg("running event loop:%p", mainContext);
+	auto mainLoop = g_main_loop_new(mainContext, false);
 	g_main_loop_run(mainLoop);
+	logMsg("event loop:%p finished", mainContext);
+}
+
+EventLoop::operator bool() const
+{
+	return contextIsSet;
 }
 
 }

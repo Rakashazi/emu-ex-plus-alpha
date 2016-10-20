@@ -24,7 +24,6 @@
 #include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
-#include <imagine/base/EventLoopFileSource.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include "evdev.hh"
@@ -133,7 +132,7 @@ struct EvdevInputDevice : public Device
 		AxisKeyEmu<int> keyEmu;
 		bool active = 0;
 	} axis[ABS_HAT3Y];
-	Base::EventLoopFileSource fdSrc;
+	Base::FDEventSource fdSrc;
 	char name[80] {0};
 
 	void setEnumId(int id) { devId = id; }
@@ -241,7 +240,7 @@ struct EvdevInputDevice : public Device
 	void addPollEvent()
 	{
 		assert(fd >= 0);
-		fdSrc.init(fd,
+		fdSrc = {fd, {},
 			[this](int fd, int pollEvents)
 			{
 				if(unlikely(pollEvents & Base::POLLEV_ERR))
@@ -268,12 +267,12 @@ struct EvdevInputDevice : public Device
 					}
 				}
 				return 1;
-			});
+			}};
 	}
 
 	void close()
 	{
-		fdSrc.deinit();
+		fdSrc.removeFromEventLoop();
 		::close(fd);
 		removeDevice(*this);
 		onDeviceChange.callCopySafe(*this, { Device::Change::REMOVED });
@@ -410,7 +409,7 @@ static bool processDevNodeName(const char *name, FS::PathString &path, uint &id)
 	return true;
 }
 
-void initEvdev()
+void initEvdev(Base::EventLoop loop)
 {
 	logMsg("setting up inotify for hotplug");
 	{
@@ -419,8 +418,8 @@ void initEvdev()
 		{
 			auto watch = inotify_add_watch(inputDevNotifyFd, DEV_NODE_PATH, IN_CREATE | IN_ATTRIB);
 			fd_setNonblock(inputDevNotifyFd, 1);
-			static Base::EventLoopFileSource evdevSrc;
-			evdevSrc.init(inputDevNotifyFd,
+			static Base::FDEventSource evdevSrc;
+			evdevSrc = {inputDevNotifyFd, loop,
 				[](int fd, int)
 				{
 					char event[sizeof(struct inotify_event) + 2048];
@@ -452,7 +451,7 @@ void initEvdev()
 						} while(len);
 					}
 					return 1;
-				});
+				}};
 		}
 		else
 		{

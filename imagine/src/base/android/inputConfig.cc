@@ -640,7 +640,7 @@ void init()
 			if(inputDevNotifyFd >= 0)
 			{
 				auto watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE );
-				int ret = ALooper_addFd(Base::activityLooper(), inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+				int ret = ALooper_addFd(Base::EventLoop::forThread().nativeObject(), inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 					[](int fd, int events, void* data)
 					{
 						logMsg("got inotify event");
@@ -652,7 +652,7 @@ void init()
 								[]()
 								{
 									devicesChanged(Base::jEnv());
-								}, 250);
+								}, 250, {});
 						}
 						return 1;
 					}, nullptr);

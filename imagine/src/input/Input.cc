@@ -69,7 +69,7 @@ void startKeyRepeatTimer(Event event)
 			logMsg("repeating key event");
 			if(likely(keyRepeatEvent.pushed()))
 				dispatchInputEvent(keyRepeatEvent);
-		}, 400, 50, Base::Timer::HINT_REUSE);
+		}, 400, 50, {}, Base::Timer::HINT_REUSE);
 }
 
 void cancelKeyRepeatTimer()

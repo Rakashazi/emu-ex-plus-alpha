@@ -20,7 +20,8 @@
 namespace Base
 {
 
-void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime, CFTimeInterval repeatInterval, bool shouldReuseResources)
+void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime,
+	CFTimeInterval repeatInterval, CFRunLoopRef loop, bool shouldReuseResources)
 {
 	this->callback = callback;
 	if(repeat != repeatInterval || (shouldReuseResources && !reuseResources))
@@ -56,7 +57,9 @@ void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime
 		logMsg("creating %stimer %p to run in %f second(s)", reuseResources ? "reusable " : "", timer, (double)relTime);
 		if(repeat)
 			logMsg("repeats every %f second(s)", repeat);
-		CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer, kCFRunLoopDefaultMode);
+		if(!loop)
+			loop = CFRunLoopGetCurrent();
+		CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
 	}
 	else
 	{
@@ -68,34 +71,34 @@ void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime
 	armed = true;
 }
 
-void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, Flags flags)
+void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags)
 {
-	callbackInCFAbsoluteTime(callback, ns / 1000000000., repeatNs / 1000000000., flags & HINT_REUSE);
+	callbackInCFAbsoluteTime(callback, ns / 1000000000., repeatNs / 1000000000., loop.nativeObject(), flags & HINT_REUSE);
 }
 
-void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, Flags flags)
+void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop, Flags flags)
 {
-	callbackInCFAbsoluteTime(callback, ms / 1000., repeatMs / 1000., flags & HINT_REUSE);
+	callbackInCFAbsoluteTime(callback, ms / 1000., repeatMs / 1000., loop.nativeObject(), flags & HINT_REUSE);
 }
 
-void Timer::callbackAfterSec(CallbackDelegate callback, int s, int repeatS, Flags flags)
+void Timer::callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop, Flags flags)
 {
-	callbackInCFAbsoluteTime(callback, s, repeatS, flags & HINT_REUSE);
+	callbackInCFAbsoluteTime(callback, s, repeatS, loop.nativeObject(), flags & HINT_REUSE);
 }
 
-void Timer::callbackAfterNSec(CallbackDelegate callback, int ns)
+void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, EventLoop loop)
 {
-	callbackAfterNSec(callback, ns, 0, HINT_NONE);
+	callbackAfterNSec(callback, ns, 0, loop, HINT_NONE);
 }
 
-void Timer::callbackAfterMSec(CallbackDelegate callback, int ms)
+void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, EventLoop loop)
 {
-	callbackAfterMSec(callback, ms, 0, HINT_NONE);
+	callbackAfterMSec(callback, ms, 0, loop, HINT_NONE);
 }
 
-void Timer::callbackAfterSec(CallbackDelegate callback, int s)
+void Timer::callbackAfterSec(CallbackDelegate callback, int s, EventLoop loop)
 {
-	callbackAfterSec(callback, s, 0, HINT_NONE);
+	callbackAfterSec(callback, s, 0, loop, HINT_NONE);
 }
 
 void Timer::cancel()

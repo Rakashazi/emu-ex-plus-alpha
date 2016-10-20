@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
 
 namespace Base
@@ -22,7 +22,7 @@ namespace Base
 class DRMFrameTimer
 {
 private:
-	Base::EventLoopFileSource fdSrc;
+	Base::FDEventSource fdSrc;
 	int fd = -1;
 	bool requested = false;
 	bool cancelled = false;
@@ -30,7 +30,7 @@ private:
 
 public:
 	constexpr DRMFrameTimer() {}
-	bool init();
+	bool init(EventLoop loop);
 	void deinit();
 	void scheduleVSync();
 	void cancel();

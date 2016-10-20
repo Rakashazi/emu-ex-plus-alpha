@@ -69,7 +69,7 @@ void EmuSystem::startAutoSaveStateTimer()
 			{
 				logMsg("auto-save state timer fired");
 				EmuSystem::saveAutoState();
-			}, secs, secs);
+			}, secs, secs, {});
 	}
 }
 

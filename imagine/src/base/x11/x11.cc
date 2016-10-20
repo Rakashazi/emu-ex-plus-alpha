@@ -229,7 +229,7 @@ void initXScreens()
 	#endif
 }
 
-CallResult initWindowSystem(EventLoopFileSource &eventSrc)
+CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc)
 {
 	#ifndef CONFIG_BASE_X11_EGL
 	// needed to call glXWaitVideoSyncSGI in separate thread
@@ -242,9 +242,9 @@ CallResult initWindowSystem(EventLoopFileSource &eventSrc)
 		return IO_ERROR;
 	}
 	initXScreens();
-	initFrameTimer();
+	initFrameTimer(loop);
 	Input::init();
-	eventSrc.initX(ConnectionNumber(dpy));
+	eventSrc = FDEventSource::makeXServerAddedToEventLoop(ConnectionNumber(dpy), loop);
 	return OK;
 }
 

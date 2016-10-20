@@ -13,63 +13,115 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
 
 namespace Base
 {
 
-static ALooper *aLooper{};
-
 static int pollEventCallback(int fd, int events, void *data)
 {
-	auto &source = *((EventLoopFileSource*)data);
-	source.callback(fd, events);
+	auto &callback = *((PollEventDelegate*)data);
+	callback(fd, events);
 	return 1;
 }
 
-ALooper *activityLooper()
+FDEventSource::FDEventSource(int fd):
+	ALooperFDEventSource{fd}
+{}
+
+FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
+	FDEventSource{fd}
 {
-	assert(aLooper);
-	return aLooper;
+	addToEventLoop(loop, callback, events);
 }
 
-void initActivityLooper()
+FDEventSource::FDEventSource(FDEventSource &&o)
 {
-	if(aLooper)
+	swap(*this, o);
+}
+
+FDEventSource &FDEventSource::operator=(FDEventSource o)
+{
+	swap(*this, o);
+	return *this;
+}
+
+FDEventSource::~FDEventSource()
+{
+	removeFromEventLoop();
+}
+
+void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
+{
+	std::swap(a.callback_, b.callback_);
+	std::swap(a.looper, b.looper);
+	std::swap(a.fd_, b.fd_);
+}
+
+bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
+{
+	logMsg("adding fd %d to looper", fd_);
+	if(!loop)
+		loop = EventLoop::forThread();
+	callback_ = std::make_unique<PollEventDelegate>(callback);
+	auto res = ALooper_addFd(loop.nativeObject(), fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, callback_.get());
+	if(res != 1)
 	{
-		bug_exit("called setupActivityLooper() more than once");
+		callback_ = {};
+		return false;
 	}
-	aLooper = ALooper_forThread();
-	assert(aLooper);
+	looper = loop.nativeObject();
+	return true;
 }
 
-void EventLoopFileSource::init(int fd, PollEventDelegate callback, uint events)
+void FDEventSource::modifyEvents(uint events)
 {
-	logMsg("adding fd %d to looper", fd);
-	fd_ = fd;
-	this->callback = callback;
-	assert(aLooper);
-	int ret = ALooper_addFd(aLooper, fd, ALOOPER_POLL_CALLBACK, events, pollEventCallback, this);
-	assert(ret == 1);
+	assert(looper);
+	ALooper_addFd(looper, fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, callback_.get());
 }
 
-void EventLoopFileSource::setEvents(uint events)
+void FDEventSource::removeFromEventLoop()
 {
-	int ret = ALooper_addFd(aLooper, fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, this);
-	assert(ret == 1);
+	if(looper)
+	{
+		logMsg("removing fd %d from looper", fd_);
+		ALooper_removeFd(looper, fd_);
+		looper = {};
+		callback_ = {};
+	}
 }
 
-int EventLoopFileSource::fd() const
+bool FDEventSource::hasEventLoop()
+{
+	return looper;
+}
+
+int FDEventSource::fd() const
 {
 	return fd_;
 }
 
-void EventLoopFileSource::deinit()
+EventLoop EventLoop::forThread()
 {
-	logMsg("removing fd %d from looper", fd_);
-	int ret = ALooper_removeFd(aLooper, fd_);
-	assert(ret != -1);
+	return {ALooper_forThread()};
+}
+
+EventLoop EventLoop::makeForThread()
+{
+	return {ALooper_prepare(0)};
+}
+
+void EventLoop::run()
+{
+	logMsg("running event loop:%p", looper);
+	ALooper_pollAll(-1, nullptr, nullptr, nullptr);
+	logMsg("event loop:%p finished", looper);
+}
+
+EventLoop::operator bool() const
+{
+	return looper;
 }
 
 }

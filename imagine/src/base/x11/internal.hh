@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/Screen.hh>
+#include <imagine/base/EventLoop.hh>
 
 #define BOOL X11BOOL
 #include <X11/keysym.h>
@@ -35,7 +36,7 @@ namespace Base
 	Window *windowForXWindow(::Window xWin);
 	int indexOfScreen(Screen &screen);
 	void toggleFullScreen(::Window xWin);
-	void initFrameTimer();
+	void initFrameTimer(EventLoop loop);
 	void deinitFrameTimer();
 	void frameTimerScheduleVSync();
 	void frameTimerCancel();

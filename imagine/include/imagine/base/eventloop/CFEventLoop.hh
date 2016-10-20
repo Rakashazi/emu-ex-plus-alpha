@@ -17,6 +17,7 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <imagine/base/eventLoopDefs.hh>
+#include <memory>
 
 namespace Base
 {
@@ -24,16 +25,37 @@ namespace Base
 static constexpr int UNUSED_EVENT = 0;
 static constexpr int POLLEV_IN = kCFFileDescriptorReadCallBack, POLLEV_OUT = kCFFileDescriptorWriteCallBack, POLLEV_ERR = UNUSED_EVENT, POLLEV_HUP = UNUSED_EVENT;
 
-struct CFEventLoopFileSource
+struct CFFDEventSourceInfo
 {
-  PollEventDelegate callback;
-  CFFileDescriptorRef fdRef = nullptr;
-  CFRunLoopSourceRef src = nullptr;
-  int fd_ = -1;
-
-	constexpr CFEventLoopFileSource() {}
+	PollEventDelegate callback{};
+	CFFileDescriptorRef fdRef{};
 };
 
-using EventLoopFileSourceImpl = CFEventLoopFileSource;
+class CFFDEventSource
+{
+public:
+	constexpr CFFDEventSource() {}
+	CFFDEventSource(int fd);
+
+protected:
+	std::unique_ptr<CFFDEventSourceInfo> info{};
+  CFRunLoopSourceRef src{};
+  CFRunLoopRef loop{};
+};
+
+using FDEventSourceImpl = CFFDEventSource;
+
+class CFEventLoop
+{
+public:
+	constexpr CFEventLoop() {}
+	constexpr CFEventLoop(CFRunLoopRef loop): loop{loop} {}
+	CFRunLoopRef nativeObject() { return loop; }
+
+protected:
+	CFRunLoopRef loop{};
+};
+
+using EventLoopImpl = CFEventLoop;
 
 }

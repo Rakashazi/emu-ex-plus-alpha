@@ -150,7 +150,7 @@ bool listenForDevices(BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDel
 							bta.setL2capService(0x13, false, {});
 							hidServiceActive = false;
 						},
-						8);
+						8, {});
 				}
 			);
 		}

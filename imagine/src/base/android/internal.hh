@@ -36,7 +36,6 @@ void initFrameTimer(JNIEnv *env, jobject activity);
 void removePostedNotifications();
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls);
 void handleIntent(JNIEnv *env, jobject activity);
-void initActivityLooper();
 bool isXperiaPlayDeviceStr(const char *str);
 
 static bool surfaceRotationIsStraight(SurfaceRotation o)

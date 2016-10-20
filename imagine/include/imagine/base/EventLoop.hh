@@ -22,8 +22,6 @@
 #include <imagine/base/eventloop/GlibEventLoop.hh>
 #elif defined __ANDROID__
 #include <imagine/base/eventloop/ALooperEventLoop.hh>
-#elif defined __linux
-#include <imagine/base/eventloop/EPollEventLoop.hh>
 #elif defined __APPLE__
 #include <imagine/base/eventloop/CFEventLoop.hh>
 #endif
@@ -31,21 +29,40 @@
 namespace Base
 {
 
-struct EventLoopFileSource : public EventLoopFileSourceImpl
+class EventLoop : public EventLoopImpl
 {
 public:
-	constexpr EventLoopFileSource() {}
-	void init(int fd, PollEventDelegate callback, uint events);
-	void init(int fd, PollEventDelegate callback)
-	{
-		init(fd, callback, POLLEV_IN);
-	}
-  #ifdef CONFIG_BASE_X11
-	void initX(int fd);
-  #endif
-	void setEvents(uint events);
+	using EventLoopImpl::EventLoopImpl;
+
+	constexpr EventLoop() {}
+	static EventLoop forThread();
+	static EventLoop makeForThread();
+	void run();
+	explicit operator bool() const;
+};
+
+struct FDEventSource : public FDEventSourceImpl
+{
+public:
+	using FDEventSourceImpl::FDEventSourceImpl;
+
+	constexpr FDEventSource() {}
+	FDEventSource(int fd);
+	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events);
+	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback):
+		FDEventSource{fd, loop, callback, POLLEV_IN}
+	{}
+	FDEventSource(FDEventSource &&o);
+	FDEventSource &operator=(FDEventSource o);
+	~FDEventSource();
+	static void swap(FDEventSource &a, FDEventSource &b);
+	static FDEventSource makeXServerAddedToEventLoop(int fd, EventLoop loop);
+	bool addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events);
+	void addXServerToEventLoop(EventLoop loop);
+	void modifyEvents(uint events);
+	void removeFromEventLoop();
+	bool hasEventLoop();
 	int fd() const;
-	void deinit();
 };
 
 }

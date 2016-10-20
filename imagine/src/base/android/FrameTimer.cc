@@ -19,7 +19,7 @@
 #include <sys/eventfd.h>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
-#include <imagine/base/GLContext.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
@@ -66,7 +66,7 @@ bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
 		return false;
 	logMsg("eventfd %d for frame timer", fd);
 	// this callback should behave as the "idle-handler" so input-related fds are processed in a timely manner
-	int ret = ALooper_addFd(activityLooper(), fd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
+	int ret = ALooper_addFd(EventLoop::forThread().nativeObject(), fd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
 		[](int fd, int, void *data)
 		{
 			auto &frameTimer = *((EventFDFrameTimer*)data);

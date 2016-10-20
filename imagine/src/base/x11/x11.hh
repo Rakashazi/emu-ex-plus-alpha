@@ -15,10 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 
 namespace Base
 {
-	CallResult initWindowSystem(EventLoopFileSource &eventSrc);
+	CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc);
 	void deinitWindowSystem();
 }

@@ -31,7 +31,8 @@ public:
 	bool armed = false;
 
 	constexpr CFTimer() {}
-	void callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime, CFTimeInterval repeatInterval, bool shouldReuseResources);
+	void callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime,
+		CFTimeInterval repeatInterval, CFRunLoopRef loop, bool shouldReuseResources);
 	void deinit();
 
 	explicit operator bool() const

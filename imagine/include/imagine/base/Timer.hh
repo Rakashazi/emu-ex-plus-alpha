@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/timerDefs.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/util/bits.h>
 
 #if defined __linux
@@ -37,31 +38,31 @@ public:
 		HINT_REUSE = IG::bit(0) // timer resources should't be de-allocated automatically after firing or from cancel()
 	};
 
-	constexpr Timer() {}
-	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, Flags flags);
-	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, Flags flags);
-	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS, Flags flags);
+	Timer() {}
+	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags);
+	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop, Flags flags);
+	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop, Flags flags);
 	void cancel();
 	void deinit();
 
 	// shortcuts with no Flags
-	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs)
+	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop)
 	{
-		callbackAfterNSec(callback, ns, repeatNs, HINT_NONE);
+		callbackAfterNSec(callback, ns, repeatNs, loop, HINT_NONE);
 	}
-	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs)
+	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop)
 	{
-		callbackAfterMSec(callback, ms, repeatMs, HINT_NONE);
+		callbackAfterMSec(callback, ms, repeatMs, loop, HINT_NONE);
 	}
-	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS)
+	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop)
 	{
-		callbackAfterSec(callback, s, repeatS, HINT_NONE);
+		callbackAfterSec(callback, s, repeatS, loop, HINT_NONE);
 	}
 
 	// shortcuts for one-shot non-repeating timers
-	void callbackAfterNSec(CallbackDelegate callback, int ns);
-	void callbackAfterMSec(CallbackDelegate callback, int ms);
-	void callbackAfterSec(CallbackDelegate callback, int s);
+	void callbackAfterNSec(CallbackDelegate callback, int ns, EventLoop loop);
+	void callbackAfterMSec(CallbackDelegate callback, int ms, EventLoop loop);
+	void callbackAfterSec(CallbackDelegate callback, int s, EventLoop loop);
 };
 
 }

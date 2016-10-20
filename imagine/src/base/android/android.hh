@@ -35,9 +35,6 @@ JNIEnv *jEnv(); // JNIEnv of activity thread
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
 
-// Activity thread ALooper
-ALooper *activityLooper();
-
 AAssetManager *activityAAssetManager();
 
 jobject newFontRenderer(JNIEnv *env);

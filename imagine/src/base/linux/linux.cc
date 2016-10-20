@@ -29,8 +29,6 @@ namespace Base
 {
 
 static FS::PathString appPath{};
-extern void runMainEventLoop();
-extern void initMainEventLoop();
 
 uint appActivityState() { return APP_RUNNING; }
 
@@ -147,16 +145,16 @@ int main(int argc, char** argv)
 	logger_init();
 	engineInit();
 	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
-	initMainEventLoop();
+	auto eventLoop = EventLoop::makeForThread();
 	#ifdef CONFIG_BASE_X11
-	EventLoopFileSource x11Src;
-	if(initWindowSystem(x11Src) != OK)
+	FDEventSource x11Src;
+	if(initWindowSystem(eventLoop, x11Src) != OK)
 		return -1;
 	#endif
 	#ifdef CONFIG_INPUT_EVDEV
-	Input::initEvdev();
+	Input::initEvdev(eventLoop);
 	#endif
 	onInit(argc, argv);
-	runMainEventLoop();
+	eventLoop.run();
 	return 0;
 }

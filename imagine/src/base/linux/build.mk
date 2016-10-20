@@ -26,8 +26,6 @@ ifeq ($(linuxEventLoop), glib)
  configDefs += CONFIG_BASE_GLIB
  SRC += base/common/eventloop/GlibEventLoop.cc
  include $(IMAGINE_PATH)/make/package/glib.mk
-else
- SRC += base/common/eventloop/EPollEventLoop.cc
 endif
 
 ifneq ($(SUBENV), pandora)

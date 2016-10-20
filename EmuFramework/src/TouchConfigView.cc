@@ -172,7 +172,7 @@ void OnScreenInputPlaceView::init()
 			logMsg("starting fade");
 			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 25);
 			screen()->addOnFrame(animate);
-		}, 2);
+		}, 2, {});
 }
 
 OnScreenInputPlaceView::~OnScreenInputPlaceView()

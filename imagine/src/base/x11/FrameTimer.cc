@@ -17,7 +17,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
@@ -41,7 +41,7 @@ namespace Base
 class FBDevFrameTimer
 {
 private:
-	Base::EventLoopFileSource fdSrc;
+	Base::FDEventSource fdSrc;
 	int fd = -1;
 	sem_t sem{};
 	bool requested = false;
@@ -49,7 +49,7 @@ private:
 
 public:
 	constexpr FBDevFrameTimer() {}
-	bool init();
+	bool init(EventLoop loop);
 	void deinit();
 	void scheduleVSync();
 	void cancel();
@@ -64,7 +64,7 @@ public:
 class SGIFrameTimer
 {
 private:
-	Base::EventLoopFileSource fdSrc;
+	Base::FDEventSource fdSrc;
 	int fd = -1;
 	sem_t sem{};
 	sem_t initSem{};
@@ -75,7 +75,7 @@ private:
 
 public:
 	constexpr SGIFrameTimer() {}
-	bool init();
+	bool init(EventLoop loop);
 	void deinit();
 	void scheduleVSync();
 	void cancel();
@@ -95,11 +95,11 @@ static DRMFrameTimer frameTimer{};
 static SGIFrameTimer frameTimer{};
 #endif
 
-void initFrameTimer()
+void initFrameTimer(EventLoop loop)
 {
 	if(frameTimer)
 		return;
-	if(!frameTimer.init())
+	if(!frameTimer.init(loop))
 	{
 		exit(1);
 	}
@@ -122,7 +122,7 @@ void frameTimerCancel()
 		frameTimer.cancel();
 }
 
-bool FBDevFrameTimer::init()
+bool FBDevFrameTimer::init(EventLoop loop)
 {
 	if(fd >= 0)
 		return true;
@@ -135,7 +135,7 @@ bool FBDevFrameTimer::init()
 	fd = eventfd(0, 0);
 	assert(fd != -1);
 	sem_init(&sem, 0, 0);
-	fdSrc.init(fd,
+	fdSrc = {fd, loop,
 		[this](int fd, int event)
 		{
 			bug_exit("TODO: Update to new GLDrawable behavior");
@@ -161,7 +161,7 @@ bool FBDevFrameTimer::init()
 				cancel();
 			}
 			return 1;
-		});
+		}};
 	IG::makeDetachedThread(
 		[this, fbdev]()
 		{
@@ -204,7 +204,7 @@ void FBDevFrameTimer::cancel()
 
 #if !defined CONFIG_MACHINE_PANDORA && !defined CONFIG_BASE_X11_EGL
 
-bool SGIFrameTimer::init()
+bool SGIFrameTimer::init(EventLoop loop)
 {
 	if(fd >= 0)
 		return true;

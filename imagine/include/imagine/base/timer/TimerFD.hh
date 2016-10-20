@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/timerDefs.hh>
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 #include <time.h>
 
 namespace Base
@@ -25,19 +25,17 @@ namespace Base
 class TimerFD
 {
 protected:
-	#if !defined __ANDROID__
-	EventLoopFileSource fdSrc;
-	#endif
-	CallbackDelegate callback;
+	FDEventSource fdSrc{};
+	CallbackDelegate callback{};
 	int fd = -1;
 	bool reuseResources = false; // whether to keep the timerfd open after firing
 	bool repeating = false;
 	bool armed = false;
 
-	bool arm(timespec ms, timespec repeatInterval, bool shouldReuseResources);
+	bool arm(timespec ms, timespec repeatInterval, EventLoop loop, bool shouldReuseResources);
 
 public:
-	constexpr TimerFD() {}
+	TimerFD() {}
 	void deinit();
 	void timerFired();
 

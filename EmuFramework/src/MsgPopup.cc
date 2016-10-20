@@ -60,7 +60,7 @@ void MsgPopup::postContent(int secs, bool error)
 	logMsg("%s", str.data());
 	text.compile(projP);
 	this->error = error;
-	unpostTimer.callbackAfterSec([this](){unpost();}, secs);
+	unpostTimer.callbackAfterSec([this](){unpost();}, secs, {});
 }
 
 void MsgPopup::post(const char *msg, int secs, bool error)

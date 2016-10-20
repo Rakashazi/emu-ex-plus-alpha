@@ -352,7 +352,7 @@ void endIdleByUserActivity()
 				{
 					jSetWinFlags(env, jBaseActivity, 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
 				}
-			}, 20);
+			}, 20, {});
 	}
 }
 
@@ -545,7 +545,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		{
 			inputQueue = queue;
 			logMsg("input queue created & attached");
-			AInputQueue_attachLooper(queue, activityLooper(), ALOOPER_POLL_CALLBACK,
+			AInputQueue_attachLooper(queue, EventLoop::forThread().nativeObject(), ALOOPER_POLL_CALLBACK,
 				[](int, int, void* data)
 				{
 					Input::processInput((AInputQueue*)data);
@@ -572,7 +572,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	if(Config::DEBUG_BUILD)
 		logMsg("called ANativeActivity_onCreate, thread ID %d", gettid());
 	aSDK = activity->sdkVersion;
-	initActivityLooper();
 	jVM = activity->vm;
 	assetManager = activity->assetManager;
 	jBaseActivity = activity->clazz;

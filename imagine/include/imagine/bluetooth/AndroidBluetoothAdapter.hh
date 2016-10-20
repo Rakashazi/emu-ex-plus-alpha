@@ -20,7 +20,7 @@
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
 #include <imagine/base/Base.hh>
-#include <imagine/base/EventLoopFileSource.hh>
+#include <imagine/base/EventLoop.hh>
 
 struct SocketStatusMessage;
 
@@ -69,7 +69,7 @@ public:
 private:
 	jobject socket{}, outStream{};
 	sem_t connectSem;
-	Base::EventLoopFileSource fdSrc;
+	Base::FDEventSource fdSrc;
 	int nativeFd = -1;
 	uint channel = 0;
 	bool isClosing = false;

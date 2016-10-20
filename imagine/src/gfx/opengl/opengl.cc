@@ -340,7 +340,7 @@ void autoReleaseShaderCompiler()
 			{
 				logMsg("automatically releasing shader compiler");
 				glReleaseShaderCompiler();
-			}, 1);
+			}, 1, {});
 	}
 	#endif
 }

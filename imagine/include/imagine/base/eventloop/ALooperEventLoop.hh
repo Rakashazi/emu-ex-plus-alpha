@@ -17,6 +17,7 @@
 
 #include <android/looper.h>
 #include <imagine/base/eventLoopDefs.hh>
+#include <memory>
 
 namespace Base
 {
@@ -24,14 +25,31 @@ namespace Base
 static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
 	POLLEV_ERR = ALOOPER_EVENT_ERROR, POLLEV_HUP = ALOOPER_EVENT_HANGUP;
 
-class ALooperEventLoopFileSource
+class ALooperFDEventSource
 {
 public:
-	PollEventDelegate callback;
-	int fd_ = -1;
+	constexpr ALooperFDEventSource() {}
+	constexpr ALooperFDEventSource(int fd): fd_{fd} {}
 
-	constexpr ALooperEventLoopFileSource() {}
+protected:
+	std::unique_ptr<PollEventDelegate> callback_{};
+	ALooper *looper{};
+	int fd_ = -1;
 };
-using EventLoopFileSourceImpl = ALooperEventLoopFileSource;
+
+using FDEventSourceImpl = ALooperFDEventSource;
+
+class ALooperEventLoop
+{
+public:
+	constexpr ALooperEventLoop() {}
+	constexpr ALooperEventLoop(ALooper *looper): looper{looper} {}
+	ALooper *nativeObject() { return looper; }
+
+protected:
+	ALooper *looper{};
+};
+
+using EventLoopImpl = ALooperEventLoop;
 
 }
