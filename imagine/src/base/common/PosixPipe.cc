@@ -30,6 +30,8 @@ void Pipe::init(EventLoop loop, Delegate del)
 	int res = pipe(msgPipe);
 	assert(res == 0);
 	this->del = del;
+	if(!loop)
+		loop = EventLoop::forThread();
 	fdSrc = {msgPipe[0], loop,
 		[this](int fd, int events)
 		{

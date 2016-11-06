@@ -105,6 +105,7 @@ public:
 	static const bool inputHasTriggerBtns;
 	static const bool inputHasRevBtnLayout;
 	static bool inputHasKeyboard;
+	static bool inputHasOptionsView;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
@@ -182,7 +183,7 @@ public:
 		bool turbo;
 		return translateInputAction(input, turbo);
 	}
-	static bool hasInputOptions();
+	static bool touchControlsApplicable();
 	static void stopSound();
 	static void startSound();
 	static void writeSound(const void *samples, uint framesToWrite);

@@ -829,7 +829,7 @@ TouchConfigView::TouchConfigView(Base::Window &win, const char *faceBtnName, con
 	{
 		item.emplace_back(&pointerInput);
 	}
-	if(EmuSystem::hasInputOptions())
+	if(EmuSystem::inputHasOptionsView)
 	{
 		item.emplace_back(&systemOptions);
 	}

@@ -21,11 +21,10 @@
 #include <emuframework/FilePicker.hh>
 
 extern bool touchControlsAreOn;
-bool touchControlsApplicable();
 
 void EmuInputView::draw()
 {
-	vController.draw(touchControlsAreOn && touchControlsApplicable(), ffKeyPushed || ffToggleActive);
+	vController.draw(touchControlsAreOn && EmuSystem::touchControlsApplicable(), ffKeyPushed || ffToggleActive);
 }
 
 void EmuInputView::place()
@@ -66,7 +65,7 @@ void EmuInputView::inputEvent(Input::Event e)
 			ffToggleActive ^= true;
 			updateFastforward();
 		}
-		else if((touchControlsAreOn && touchControlsApplicable())
+		else if((touchControlsAreOn && EmuSystem::touchControlsApplicable())
 			|| vController.isInKeyboardMode())
 		{
 			vController.applyInput(e);

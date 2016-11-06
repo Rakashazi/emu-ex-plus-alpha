@@ -7,6 +7,8 @@ CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -O3
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc \
+main/input.cc \
+main/options.cc \
 main/unzip.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc

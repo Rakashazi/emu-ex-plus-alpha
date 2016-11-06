@@ -278,7 +278,7 @@ void InputManagerView::loadItems()
 	item.clear();
 	item.emplace_back(&identDevice);
 	item.emplace_back(&generalOptions);
-	if(EmuSystem::hasInputOptions())
+	if(EmuSystem::inputHasOptionsView)
 	{
 		item.emplace_back(&systemOptions);
 	}

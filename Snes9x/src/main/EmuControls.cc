@@ -1,11 +1,11 @@
 #include <imagine/util/preprocessor/repeat.h>
 #include <emuframework/EmuInput.hh>
-#include "EmuConfig.hh"
 
 namespace EmuControls
 {
 
 const uint categories = 6;
+extern const uint gamepadKeys = 20;
 const uint systemTotalKeys = gameActionKeys + gamepadKeys*5;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player)

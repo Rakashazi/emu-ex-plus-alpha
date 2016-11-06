@@ -1,3 +1,5 @@
+#pragma once
+
 #include <imagine/util/ansiTypes.h>
 
 struct GBPalette

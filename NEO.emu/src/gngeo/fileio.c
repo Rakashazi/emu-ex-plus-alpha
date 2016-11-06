@@ -277,7 +277,7 @@ bool load_game_config(char *rom_name) {
 
 extern char romerror[1024];
 
-int init_game(char *rom_name) {
+int init_game(char *rom_name, char romerror[1024]) {
 	//logMsg("AAA Blitter %s effect %s\n",CF_STR(cf_get_item_by_name("blitter")),CF_STR(cf_get_item_by_name("effect")));
 
 	load_game_config(rom_name);
@@ -290,7 +290,7 @@ int init_game(char *rom_name) {
     //trans_pack_open(CF_STR(cf_get_item_by_name("transpack")));
 
     if (strstr(rom_name, ".gno") != NULL) {
-        if(dr_open_gno(rom_name) == false)
+        if(dr_open_gno(rom_name, romerror) == false)
         {
         	//sprintf(romerror, "Can't load %s", rom_name);
         	return false;
@@ -299,7 +299,7 @@ int init_game(char *rom_name) {
     } else {
 
         //open_rom(rom_name);
-	if (dr_load_game(rom_name) == false) {
+	if (dr_load_game(rom_name, romerror) == false) {
 #if defined(GP2X)
             gn_popup_error(" Error! :", "Couldn't load %s",
                     file_basename(rom_name));

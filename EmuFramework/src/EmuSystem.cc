@@ -43,6 +43,7 @@ uint EmuSystem::audioFramesPerVideoFrame = 0;
 EmuSystem::LoadGameCompleteDelegate EmuSystem::loadGameCompleteDel;
 Base::Timer EmuSystem::autoSaveStateTimer;
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
+[[gnu::weak]] bool EmuSystem::inputHasOptionsView = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 double EmuSystem::frameTimeNative = 1./60.;
@@ -514,3 +515,19 @@ int EmuSystem::loadGameFromFile(GenericIO file, const char *name)
 	}
 	return res;
 }
+
+[[gnu::weak]] void EmuSystem::initOptions() {}
+
+[[gnu::weak]] void EmuSystem::onOptionsLoaded() {}
+
+[[gnu::weak]] void EmuSystem::saveBackupMem() {}
+
+[[gnu::weak]] void EmuSystem::savePathChanged() {}
+
+[[gnu::weak]] uint EmuSystem::multiresVideoBaseX() { return 0; }
+
+[[gnu::weak]] uint EmuSystem::multiresVideoBaseY() { return 0; }
+
+[[gnu::weak]] bool EmuSystem::vidSysIsPAL() { return false; }
+
+[[gnu::weak]] bool EmuSystem::touchControlsApplicable() { return true; }

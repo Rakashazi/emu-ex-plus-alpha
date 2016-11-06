@@ -4,8 +4,14 @@
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
 
+namespace EmuControls
+{
+extern const uint gamepadKeys;
+}
+
 extern Byte1Option optionArcadeCard;
 extern FS::PathString sysCardPath;
+extern uint16 inputBuff[5];
 
 bool hasHuCardExtension(const char *name);
 

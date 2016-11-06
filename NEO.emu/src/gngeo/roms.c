@@ -142,8 +142,6 @@ int bankoffset_kof2000[64] = {
 };
 Uint8 scramblecode_kof2000[7] = {0xEC, 15, 14, 7, 3, 10, 5,};
 
-char romerror[1024];
-
 /* Actuall Code */
 
 /*
@@ -1206,7 +1204,7 @@ static int init_roms(GAME_ROMS *r) {
 	return 0;
 }
 
-static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file_crc, struct PKZIP *pz, char *rpath)
+static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file_crc, struct PKZIP *pz, char *rpath, char romerror[1024])
 {
 	/* First check in neogeo.zip */
 	r->bios_m68k.p = gn_unzip_file_malloc(pz, unibiosFilename, file_crc, &r->bios_m68k.size);
@@ -1229,7 +1227,7 @@ static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file
 	return true;
 }
 
-bool dr_load_bios(GAME_ROMS *r) {
+bool dr_load_bios(GAME_ROMS *r, char romerror[1024]) {
 	int i;
 	struct PKZIP *pz;
 	struct ZFILE *z;
@@ -1275,19 +1273,19 @@ bool dr_load_bios(GAME_ROMS *r) {
 
 	if (!(r->info.flags & HAS_CUSTOM_CPU_BIOS)) {
 		if (conf.system == SYS_UNIBIOS) {
-			if(!loadUnibios(r, "uni-bios_2_3.rom", 0x27664eb5, pz, rpath))
+			if(!loadUnibios(r, "uni-bios_2_3.rom", 0x27664eb5, pz, rpath, romerror))
 			{
 				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_3_0) {
-			if(!loadUnibios(r, "uni-bios_3_0.rom", 0xa97c89a9, pz, rpath))
+			if(!loadUnibios(r, "uni-bios_3_0.rom", 0xa97c89a9, pz, rpath, romerror))
 			{
 				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_3_1) {
-			if(!loadUnibios(r, "uni-bios_3_1.rom", 0x0c58093f, pz, rpath))
+			if(!loadUnibios(r, "uni-bios_3_1.rom", 0x0c58093f, pz, rpath, romerror))
 			{
 				free(fpath);
 				return false;
@@ -1368,7 +1366,7 @@ ROM_DEF *dr_check_zip(const char *filename) {
 	return drv;
 }
 
-int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name) {
+int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name, char romerror[1024]) {
 	//unzFile *gz,*gzp=NULL,*rdefz;
 	struct PKZIP *gz, *gzp = NULL;
 	ROM_DEF *drv;
@@ -1511,7 +1509,7 @@ int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name) {
 	/* Init rom and bios */
 	init_roms(r);
 	convert_all_tile(r);
-	return dr_load_bios(r);
+	return dr_load_bios(r, romerror);
 
 error1:
 	gn_terminate_pbar();
@@ -1525,7 +1523,7 @@ error1:
 	return false;
 }
 
-int dr_load_game(char *name) {
+int dr_load_game(char *name, char romerror[1024]) {
 	//GAME_ROMS rom;
 	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
 	int rc;
@@ -1535,7 +1533,7 @@ int dr_load_game(char *name) {
 	memory.bksw_offset = NULL;
 	need_decrypt = 1;
 
-	rc = dr_load_roms(&memory.rom, rpath, name);
+	rc = dr_load_roms(&memory.rom, rpath, name, romerror);
 	if (rc == false) {
 		return false;
 	}
@@ -1786,7 +1784,7 @@ int read_region(FILE *gno, GAME_ROMS *roms) {
 	return true;
 }
 
-int dr_open_gno(char *filename) {
+int dr_open_gno(char *filename, char romerror[1024]) {
 	FILE *gno;
 	char fid[9]; // = "gnodmpv1";
 	char name[9] = {0,};
@@ -1845,7 +1843,7 @@ int dr_open_gno(char *filename) {
 	/* Init rom and bios */
 	init_roms(r);
 	//convert_all_tile(r);
-	if(!dr_load_bios(r))
+	if(!dr_load_bios(r, romerror))
 		return false;
 
 	conf.game = memory.rom.info.name;

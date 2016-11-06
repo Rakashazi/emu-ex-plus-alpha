@@ -1,0 +1,124 @@
+/*  This file is part of NEO.emu.
+
+	MD.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MD.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <emuframework/EmuApp.hh>
+#include "internal.hh"
+
+extern "C"
+{
+	#include <gngeo/roms.h>
+	#include <gngeo/emu.h>
+}
+
+enum
+{
+	CFGKEY_LIST_ALL_GAMES = 275, CFGKEY_BIOS_TYPE = 276,
+	CFGKEY_MVS_COUNTRY = 277, CFGKEY_TIMER_INT = 278,
+	CFGKEY_CREATE_USE_CACHE = 279,
+	CFGKEY_NEOGEOKEY_TEST_SWITCH = 280, CFGKEY_STRICT_ROM_CHECKING = 281
+};
+
+static bool systemEnumIsValid(uint8 val)
+{
+	return val < SYS_MAX;
+}
+
+static bool countryEnumIsValid(uint8 val)
+{
+	return val < CTY_MAX;
+}
+
+const char *EmuSystem::configFilename = "NeoEmu.config";
+const AspectRatioInfo EmuSystem::aspectRatioInfo[]
+{
+		{"4:3 (Original)", 4, 3},
+		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
+};
+const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
+Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};
+Byte1Option optionMVSCountry{CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid};
+Byte1Option optionTimerInt{CFGKEY_TIMER_INT, 2};
+Byte1Option optionCreateAndUseCache{CFGKEY_CREATE_USE_CACHE, 0};
+Byte1Option optionStrictROMChecking{CFGKEY_STRICT_ROM_CHECKING, 0};
+
+void setTimerIntOption()
+{
+	switch(optionTimerInt)
+	{
+		bcase 0: conf.raster = 0;
+		bcase 1: conf.raster = 1;
+		bcase 2:
+			bool needsTimer = 0;
+			auto gameStr = EmuSystem::fullGameName().data();
+			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
+					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")
+					|| strstr(gameStr, "Spin Master")))
+				needsTimer = 1;
+			if(needsTimer) logMsg("auto enabled timer interrupt");
+			conf.raster = needsTimer;
+	}
+}
+
+void EmuSystem::initOptions()
+{
+	optionAutoSaveState.initDefault(0);
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	optionTouchCtrlSize.initDefault(700);
+	optionTouchCtrlBtnSpace.initDefault(100);
+	optionTouchCtrlBtnStagger.initDefault(5);
+	#endif
+}
+
+void EmuSystem::onOptionsLoaded()
+{
+	conf.system = (SYSTEM)optionBIOSType.val;
+	conf.country = (COUNTRY)optionMVSCountry.val;
+	// TODO: remove now that long names are correctly used
+	for(auto &e : recentGameList)
+	{
+		ROM_DEF *drv = dr_check_zip(e.path.data());
+		if(!drv)
+			continue;
+		logMsg("updating recent game name %s to %s", e.name.data(), drv->longname);
+		string_copy(e.name, drv->longname);
+		free(drv);
+	}
+}
+
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_LIST_ALL_GAMES: optionListAllGames.readFromIO(io, readSize);
+		bcase CFGKEY_BIOS_TYPE: optionBIOSType.readFromIO(io, readSize);
+		bcase CFGKEY_MVS_COUNTRY: optionMVSCountry.readFromIO(io, readSize);
+		bcase CFGKEY_TIMER_INT: optionTimerInt.readFromIO(io, readSize);
+		bcase CFGKEY_CREATE_USE_CACHE: optionCreateAndUseCache.readFromIO(io, readSize);
+		bcase CFGKEY_STRICT_ROM_CHECKING: optionStrictROMChecking.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeConfig(IO &io)
+{
+	optionListAllGames.writeWithKeyIfNotDefault(io);
+	optionBIOSType.writeWithKeyIfNotDefault(io);
+	optionMVSCountry.writeWithKeyIfNotDefault(io);
+	optionTimerInt.writeWithKeyIfNotDefault(io);
+	optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
+	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
+}

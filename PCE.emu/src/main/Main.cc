@@ -16,121 +16,16 @@
 #define LOGTAG "main"
 #include "MDFN.hh"
 #include <emuframework/EmuApp.hh>
-#include "../../../EmuFramework/include/emuframework/EmuAppInlines.hh"
-#include "EmuConfig.hh"
+#include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
 #include <imagine/util/ScopeGuard.hh>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
 
-using namespace IG;
-
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
-
-bool hasHuCardExtension(const char *name)
-{
-	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx");
-}
-
-static bool hasCDExtension(const char *name)
-{
-	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
-}
-
-static bool hasPCEWithCDExtension(const char *name)
-{
-	return hasHuCardExtension(name) || hasCDExtension(name);
-}
-
-Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
 FS::PathString sysCardPath{};
-static PathOption optionSysCardPath{CFGKEY_SYSCARD_PATH, sysCardPath, ""};
-
-const char *EmuSystem::inputFaceBtnName = "I/II";
-const char *EmuSystem::inputCenterBtnName = "Select/Run";
-const uint EmuSystem::inputFaceBtns = 6;
-const uint EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
-const char *EmuSystem::configFilename = "PceEmu.config";
-const uint EmuSystem::maxPlayers = 5;
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
-{
-		{"4:3 (Original)", 4, 3},
-		{"8:7", 8, 7},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-
-const char *EmuSystem::shortSystemName()
-{
-	return "PCE-TG16";
-}
-
-const char *EmuSystem::systemName()
-{
-	return "PC Engine (TurboGrafx-16)";
-}
-
-void EmuSystem::initOptions() {}
-
-void EmuSystem::onOptionsLoaded()
-{
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.activeFaceBtns = 2;
-	#endif
-}
-
-enum
-{
-	pceKeyIdxUp = EmuControls::systemKeyMapStart,
-	pceKeyIdxRight,
-	pceKeyIdxDown,
-	pceKeyIdxLeft,
-	pceKeyIdxLeftUp,
-	pceKeyIdxRightUp,
-	pceKeyIdxRightDown,
-	pceKeyIdxLeftDown,
-	pceKeyIdxSelect,
-	pceKeyIdxRun,
-	pceKeyIdxI,
-	pceKeyIdxII,
-	pceKeyIdxITurbo,
-	pceKeyIdxIITurbo,
-	pceKeyIdxIII,
-	pceKeyIdxIV,
-	pceKeyIdxV,
-	pceKeyIdxVI
-};
-
-#if defined(CONFIG_BASE_PS3)
-const char *ps3_productCode = "PCEE00000";
-#endif
-
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
-{
-	switch(key)
-	{
-		default: return 0;
-		bcase CFGKEY_ARCADE_CARD: optionArcadeCard.readFromIO(io, readSize);
-		bcase CFGKEY_SYSCARD_PATH: optionSysCardPath.readFromIO(io, readSize);
-		logMsg("syscard path %s", sysCardPath.data());
-	}
-	return 1;
-}
-
-void EmuSystem::writeConfig(IO &io)
-{
-	optionArcadeCard.writeWithKeyIfNotDefault(io);
-	optionSysCardPath.writeToIO(io);
-}
-
-EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
-
 static std::vector<CDIF *> CDInterfaces;
-
 static const MDFN_PixelFormat mPixFmtRGB565 { MDFN_COLORSPACE_RGB, 11, 5, 0, 16 };
 static const MDFN_PixelFormat mPixFmtRGBA8888 { MDFN_COLORSPACE_RGB, 0, 8, 16, 24 };
 static const MDFN_PixelFormat mPixFmtBGRA8888 { MDFN_COLORSPACE_RGB, 16, 8, 0, 24 };
@@ -149,14 +44,51 @@ using Pixel = uint32;
 static const MDFN_PixelFormat &mPixFmt = mPixFmtRGBA8888;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 #endif
-
 static const uint vidBufferX = 512, vidBufferY = 242;
 static const uint vidBufferXMax = 1024; // width when scaling multi-res content
 static Pixel pixBuff[vidBufferX*vidBufferY] __attribute__ ((aligned (8))) {0};
 static Pixel pixBuffScaled[vidBufferXMax*vidBufferY] __attribute__ ((aligned (8))) {0};
 static MDFN_Surface mSurface{pixBuff, vidBufferX, vidBufferY, vidBufferX, mPixFmt};
-static uint16 inputBuff[5] {0}; // 5 gamepad buffers
+uint16 inputBuff[5]{}; // 5 gamepad buffers
 static bool usingMultires = false;
+#if defined(CONFIG_BASE_PS3)
+const char *ps3_productCode = "PCEE00000";
+#endif
+
+bool hasHuCardExtension(const char *name)
+{
+	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx");
+}
+
+static bool hasCDExtension(const char *name)
+{
+	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
+}
+
+static bool hasPCEWithCDExtension(const char *name)
+{
+	return hasHuCardExtension(name) || hasCDExtension(name);
+}
+
+const char *EmuSystem::shortSystemName()
+{
+	return "PCE-TG16";
+}
+
+const char *EmuSystem::systemName()
+{
+	return "PC Engine (TurboGrafx-16)";
+}
+
+void EmuSystem::onOptionsLoaded()
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.gp.activeFaceBtns = 2;
+	#endif
+}
+
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
 void EmuSystem::saveAutoState()
 {
@@ -230,10 +162,7 @@ static void writeCDMD5()
 	memcpy(emuSys->MD5, LayoutMD5, 16);
 }
 
-bool EmuSystem::vidSysIsPAL() { return 0; }
 uint EmuSystem::multiresVideoBaseX() { return 512; }
-uint EmuSystem::multiresVideoBaseY() { return 0; }
-bool touchControlsApplicable() { return 1; }
 
 int EmuSystem::loadGame(const char *path)
 {
@@ -317,11 +246,6 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	configAudioPlayback();
 	unloadCD.cancel();
 	return 1;
-}
-
-void EmuSystem::clearInputBuffers()
-{
-	IG::fillData(inputBuff);
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -468,68 +392,6 @@ void MDFND_commitVideoFrame(const MDFN_FrameInfo &info)
 	updateAndDrawEmuVideo();
 }
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
-{
-	uint playerMask = player << 12;
-	map[SysVController::F_ELEM] = bit(0) | playerMask;
-	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
-	map[SysVController::F_ELEM+2] = bit(8) | playerMask;
-	map[SysVController::F_ELEM+3] = bit(9) | playerMask;
-	map[SysVController::F_ELEM+4] = bit(10) | playerMask;
-	map[SysVController::F_ELEM+5] = bit(11) | playerMask;
-
-	map[SysVController::C_ELEM] = bit(2) | playerMask;
-	map[SysVController::C_ELEM+1] = bit(3) | playerMask;
-
-	map[SysVController::D_ELEM] = bit(4) | bit(7) | playerMask;
-	map[SysVController::D_ELEM+1] = bit(4) | playerMask;
-	map[SysVController::D_ELEM+2] = bit(4) | bit(5) | playerMask;
-	map[SysVController::D_ELEM+3] = bit(7) | playerMask;
-	map[SysVController::D_ELEM+5] = bit(5) | playerMask;
-	map[SysVController::D_ELEM+6] = bit(6) | bit(7) | playerMask;
-	map[SysVController::D_ELEM+7] = bit(6) | playerMask;
-	map[SysVController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
-}
-
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
-{
-	turbo = 0;
-	assert(input >= pceKeyIdxUp);
-	uint player = (input - pceKeyIdxUp) / EmuControls::gamepadKeys;
-	uint playerMask = player << 12;
-	input -= EmuControls::gamepadKeys * player;
-	switch(input)
-	{
-		case pceKeyIdxUp: return bit(4) | playerMask;
-		case pceKeyIdxRight: return bit(5) | playerMask;
-		case pceKeyIdxDown: return bit(6) | playerMask;
-		case pceKeyIdxLeft: return bit(7) | playerMask;
-		case pceKeyIdxLeftUp: return bit(7) | bit(4) | playerMask;
-		case pceKeyIdxRightUp: return bit(5) | bit(4) | playerMask;
-		case pceKeyIdxRightDown: return bit(5) | bit(6) | playerMask;
-		case pceKeyIdxLeftDown: return bit(7) | bit(6) | playerMask;
-		case pceKeyIdxSelect: return bit(2) | playerMask;
-		case pceKeyIdxRun: return bit(3) | playerMask;
-		case pceKeyIdxITurbo: turbo = 1; // fall through to pceKeyIdxI
-		case pceKeyIdxI: return bit(0) | playerMask;
-		case pceKeyIdxIITurbo: turbo = 1; // fall through to pceKeyIdxII
-		case pceKeyIdxII: return bit(1) | playerMask;
-		case pceKeyIdxIII: return bit(8) | playerMask;
-		case pceKeyIdxIV: return bit(9) | playerMask;
-		case pceKeyIdxV: return bit(10) | playerMask;
-		case pceKeyIdxVI: return bit(11) | playerMask;
-		default: bug_branch("%d", input);
-	}
-	return 0;
-}
-
-void EmuSystem::handleInputAction(uint state, uint emuKey)
-{
-	uint player = emuKey >> 12;
-	assert(player < maxPlayers);
-	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)emuKey, state == Input::PUSHED);
-}
-
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	uint maxFrames = Audio::maxRate()/54;
@@ -587,10 +449,6 @@ std::system_error EmuSystem::loadState(int saveStateSlot)
 	}
 	return {{ENOENT, std::system_category()}};
 }
-
-void EmuSystem::savePathChanged() { }
-
-bool EmuSystem::hasInputOptions() { return true; }
 
 void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {

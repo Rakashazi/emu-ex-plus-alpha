@@ -65,6 +65,8 @@ apu.cpp
 
 SRC += \
 main/Main.cc \
+main/input.cc \
+main/options.cc \
 main/S9XApi.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \

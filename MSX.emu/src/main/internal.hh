@@ -43,3 +43,4 @@ bool insertDisk(const char *name, uint slot = 0);
 CallResult zipStartWrite(const char *fileName);
 CallResult zipEndWrite();
 const char *machineBasePathStr();
+void setupVKeyboardMap(uint boardType);

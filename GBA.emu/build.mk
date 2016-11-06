@@ -46,6 +46,8 @@ apu/Gb_Apu_State.cpp
 
 vbamPath := vbam
 SRC += main/Main.cc \
+main/options.cc \
+main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/VbamApi.cc \

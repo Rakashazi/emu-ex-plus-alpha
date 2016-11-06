@@ -14,14 +14,12 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppInlines.hh>
 #include <imagine/base/Pipe.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <emuframework/EmuApp.hh>
-#include <emuframework/EmuInput.hh>
-#include <emuframework/EmuAppInlines.hh>
-#include "EmuConfig.hh"
 #include "internal.hh"
 
 extern "C"
@@ -82,16 +80,21 @@ extern "C"
 }
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
-CLINK void main_frame();
+bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 static ROM_DEF *activeDrv{};
-
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+static uint16 screenBuff[352*256] __attribute__ ((aligned (8))){};
+static GN_Surface sdlSurf;
 static Base::Pipe guiPipe;
 static FS::PathString datafilePath{};
-
 static constexpr bool backgroundRomLoading = true;
 static bool loadThreadIsRunning = false;
+static const int FBResX = 352;
+static bool renderToScreen = 0;
 
 enum { MSG_LOAD_FAILED, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
+
+CLINK void main_frame();
 
 struct GUIMessage
 {
@@ -101,90 +104,6 @@ struct GUIMessage
 	uint8 shortArg = 0;
 	uint8 type = 0;
 };
-
-// controls
-
-enum
-{
-	neogeoKeyIdxUp = EmuControls::systemKeyMapStart,
-	neogeoKeyIdxRight,
-	neogeoKeyIdxDown,
-	neogeoKeyIdxLeft,
-	neogeoKeyIdxLeftUp,
-	neogeoKeyIdxRightUp,
-	neogeoKeyIdxRightDown,
-	neogeoKeyIdxLeftDown,
-	neogeoKeyIdxSelect,
-	neogeoKeyIdxStart,
-	neogeoKeyIdxA,
-	neogeoKeyIdxB,
-	neogeoKeyIdxX,
-	neogeoKeyIdxY,
-	neogeoKeyIdxATurbo,
-	neogeoKeyIdxBTurbo,
-	neogeoKeyIdxXTurbo,
-	neogeoKeyIdxYTurbo,
-	neogeoKeyIdxABC,
-	neogeoKeyIdxTestSwitch = EmuControls::systemKeyMapStart + EmuControls::joystickKeys*2
-};
-
-enum {
-	CFGKEY_LIST_ALL_GAMES = 275, CFGKEY_BIOS_TYPE = 276,
-	CFGKEY_MVS_COUNTRY = 277, CFGKEY_TIMER_INT = 278,
-	CFGKEY_CREATE_USE_CACHE = 279,
-	CFGKEY_NEOGEOKEY_TEST_SWITCH = 280, CFGKEY_STRICT_ROM_CHECKING = 281
-};
-
-static bool systemEnumIsValid(uint8 val)
-{
-	return val < SYS_MAX;
-}
-
-static bool countryEnumIsValid(uint8 val)
-{
-	return val < CTY_MAX;
-}
-
-Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
-Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};
-Byte1Option optionMVSCountry{CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid};
-Byte1Option optionTimerInt{CFGKEY_TIMER_INT, 2};
-Byte1Option optionCreateAndUseCache{CFGKEY_CREATE_USE_CACHE, 0};
-Byte1Option optionStrictROMChecking{CFGKEY_STRICT_ROM_CHECKING, 0};
-
-void setTimerIntOption()
-{
-	switch(optionTimerInt)
-	{
-		bcase 0: conf.raster = 0;
-		bcase 1: conf.raster = 1;
-		bcase 2:
-			bool needsTimer = 0;
-			auto gameStr = EmuSystem::fullGameName().data();
-			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
-					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")
-					|| strstr(gameStr, "Spin Master")))
-				needsTimer = 1;
-			if(needsTimer) logMsg("auto enabled timer interrupt");
-			conf.raster = needsTimer;
-	}
-}
-
-const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
-const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 4;
-const uint EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
-const char *EmuSystem::configFilename = "NeoEmu.config";
-const uint EmuSystem::maxPlayers = 2;
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
-{
-		{"4:3 (Original)", 4, 3},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 
 const char *EmuSystem::shortSystemName()
 {
@@ -196,62 +115,9 @@ const char *EmuSystem::systemName()
 	return "Neo Geo";
 }
 
-using namespace IG;
-
 CLINK int gn_strictROMChecking()
 {
 	return optionStrictROMChecking;
-}
-
-void EmuSystem::initOptions()
-{
-	optionAutoSaveState.initDefault(0);
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	optionTouchCtrlSize.initDefault(700);
-	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(5);
-	#endif
-}
-
-void EmuSystem::onOptionsLoaded()
-{
-	conf.system = (SYSTEM)optionBIOSType.val;
-	conf.country = (COUNTRY)optionMVSCountry.val;
-	// TODO: remove now that long names are correctly used
-	for(auto &e : recentGameList)
-	{
-		ROM_DEF *drv = dr_check_zip(e.path.data());
-		if(!drv)
-			continue;
-		logMsg("updating recent game name %s to %s", e.name.data(), drv->longname);
-		string_copy(e.name, drv->longname);
-		free(drv);
-	}
-}
-
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
-{
-	switch(key)
-	{
-		default: return 0;
-		bcase CFGKEY_LIST_ALL_GAMES: optionListAllGames.readFromIO(io, readSize);
-		bcase CFGKEY_BIOS_TYPE: optionBIOSType.readFromIO(io, readSize);
-		bcase CFGKEY_MVS_COUNTRY: optionMVSCountry.readFromIO(io, readSize);
-		bcase CFGKEY_TIMER_INT: optionTimerInt.readFromIO(io, readSize);
-		bcase CFGKEY_CREATE_USE_CACHE: optionCreateAndUseCache.readFromIO(io, readSize);
-		bcase CFGKEY_STRICT_ROM_CHECKING: optionStrictROMChecking.readFromIO(io, readSize);
-	}
-	return 1;
-}
-
-void EmuSystem::writeConfig(IO &io)
-{
-	optionListAllGames.writeWithKeyIfNotDefault(io);
-	optionBIOSType.writeWithKeyIfNotDefault(io);
-	optionMVSCountry.writeWithKeyIfNotDefault(io);
-	optionTimerInt.writeWithKeyIfNotDefault(io);
-	optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
-	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
 }
 
 static bool hasNeoGeoExtension(const char *name)
@@ -261,130 +127,6 @@ static bool hasNeoGeoExtension(const char *name)
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNeoGeoExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNeoGeoExtension;
-
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static uint16 screenBuff[352*256] __attribute__ ((aligned (8))) {0};
-static GN_Surface sdlSurf;
-
-namespace NGKey
-{
-	static const uint COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
-
-	START1 = bit(0), SELECT1 = bit(1),
-	START2 = bit(2), SELECT2 = bit(3),
-
-	UP = bit(0), DOWN = bit(1), LEFT = bit(2), RIGHT = bit(3),
-	A = bit(4), B = bit(5), C = bit(6), D = bit(7),
-
-	START_EMU_INPUT = bit(8),
-	SELECT_COIN_EMU_INPUT = bit(9),
-	SERVICE_EMU_INPUT = bit(10);
-}
-
-void updateVControllerMapping(uint player, SysVController::Map &map)
-{
-	using namespace NGKey;
-	uint playerMask = player << 11;
-	map[SysVController::F_ELEM] = A | playerMask;
-	map[SysVController::F_ELEM+1] = B | playerMask;
-	map[SysVController::F_ELEM+2] = C | playerMask;
-	map[SysVController::F_ELEM+3] = D | playerMask;
-
-	map[SysVController::C_ELEM] = SELECT_COIN_EMU_INPUT | playerMask;
-	map[SysVController::C_ELEM+1] = START_EMU_INPUT | playerMask;
-
-	map[SysVController::D_ELEM] = UP | LEFT | playerMask;
-	map[SysVController::D_ELEM+1] = UP | playerMask;
-	map[SysVController::D_ELEM+2] = UP | RIGHT | playerMask;
-	map[SysVController::D_ELEM+3] = LEFT | playerMask;
-	map[SysVController::D_ELEM+5] = RIGHT | playerMask;
-	map[SysVController::D_ELEM+6] = DOWN | LEFT | playerMask;
-	map[SysVController::D_ELEM+7] = DOWN | playerMask;
-	map[SysVController::D_ELEM+8] = DOWN | RIGHT | playerMask;
-}
-
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
-{
-	turbo = 0;
-	using namespace NGKey;
-	if(unlikely(input == neogeoKeyIdxTestSwitch))
-	{
-		return SERVICE_EMU_INPUT;
-	}
-	assert(input >= neogeoKeyIdxUp);
-	uint player = (input - neogeoKeyIdxUp) / EmuControls::joystickKeys;
-	uint playerMask = player << 11;
-	input -= EmuControls::joystickKeys * player;
-	switch(input)
-	{
-		case neogeoKeyIdxUp: return UP | playerMask;
-		case neogeoKeyIdxRight: return RIGHT | playerMask;
-		case neogeoKeyIdxDown: return DOWN | playerMask;
-		case neogeoKeyIdxLeft: return LEFT | playerMask;
-		case neogeoKeyIdxLeftUp: return LEFT | UP | playerMask;
-		case neogeoKeyIdxRightUp: return RIGHT | UP | playerMask;
-		case neogeoKeyIdxRightDown: return RIGHT | DOWN | playerMask;
-		case neogeoKeyIdxLeftDown: return LEFT | DOWN | playerMask;
-		case neogeoKeyIdxSelect: return SELECT_COIN_EMU_INPUT | playerMask;
-		case neogeoKeyIdxStart: return START_EMU_INPUT | playerMask;
-		case neogeoKeyIdxXTurbo: turbo = 1;
-		case neogeoKeyIdxX: return C | playerMask;
-		case neogeoKeyIdxYTurbo: turbo = 1;
-		case neogeoKeyIdxY: return D | playerMask;
-		case neogeoKeyIdxATurbo: turbo = 1;
-		case neogeoKeyIdxA: return A | playerMask;
-		case neogeoKeyIdxBTurbo: turbo = 1;
-		case neogeoKeyIdxB: return B | playerMask;
-		case neogeoKeyIdxABC: return A | B | C | playerMask;
-		default: bug_branch("%d", input);
-	}
-	return 0;
-}
-
-void EmuSystem::handleInputAction(uint state, uint emuKey)
-{
-	uint player = emuKey >> 11;
-
-	if(emuKey & 0xFF) // joystick
-	{
-		auto &p = player ? memory.intern_p2 : memory.intern_p1;
-		p = IG::setOrClearBits(p, (Uint8)(emuKey & 0xFF), state != Input::PUSHED);
-		return;
-	}
-
-	if(emuKey & NGKey::SELECT_COIN_EMU_INPUT)
-	{
-		if(conf.system == SYS_ARCADE)
-		{
-			uint bits = player ? NGKey::COIN2 : NGKey::COIN1;
-			memory.intern_coin = IG::setOrClearBits(memory.intern_coin, (Uint8)bits, state != Input::PUSHED);
-		}
-		else
-		{
-			// convert COIN to SELECT
-			uint bits = player ? NGKey::SELECT2 : NGKey::SELECT1;
-			memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, state != Input::PUSHED);
-		}
-		return;
-	}
-
-	if(emuKey & NGKey::START_EMU_INPUT)
-	{
-		uint bits = player ? NGKey::START2 : NGKey::START1;
-		memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, state != Input::PUSHED);
-		return;
-	}
-
-	if(emuKey & NGKey::SERVICE_EMU_INPUT)
-	{
-		if(state == Input::PUSHED)
-			conf.test_switch = 1; // Test Switch is reset to 0 after every frame
-		return;
-	}
-}
-
-static const int FBResX = 352;
-static bool renderToScreen = 0;
 
 void EmuSystem::reset(ResetMode mode)
 {
@@ -457,13 +199,6 @@ void EmuSystem::closeSystem()
 {
 	close_game();
 }
-
-bool EmuSystem::vidSysIsPAL() { return 0; }
-uint EmuSystem::multiresVideoBaseX() { return 0; }
-uint EmuSystem::multiresVideoBaseY() { return 0; }
-bool touchControlsApplicable() { return 1; }
-
-CLINK char romerror[1024];
 
 #ifdef USE_GENERATOR68K
 CLINK void swap_memory(Uint8 * mem, Uint32 length);
@@ -643,7 +378,9 @@ static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadG
 			bcase MSG_LOAD_FAILED:
 			{
 				modalViewController.pop();
-				popup.printf(4, 1, "%s", romerror);
+				char errorStr[1024];
+				pipe.read(errorStr, sizeof(errorStr));
+				popup.printf(4, 1, "%s", errorStr);
 				pipe.deinit();
 				return 0;
 			}
@@ -710,9 +447,10 @@ int EmuSystem::loadGame(const char *path)
 	if(optionCreateAndUseCache && FS::exists(gnoFilename))
 	{
 		logMsg("loading .gno file");
-		if(!init_game(gnoFilename.data()))
+		char errorStr[1024];
+		if(!init_game(gnoFilename.data(), errorStr))
 		{
-			popup.printf(4, 1, "%s", romerror);
+			popup.printf(4, 1, "%s", errorStr);
 			free(activeDrv); activeDrv = 0;
 			return 0;
 		}
@@ -725,7 +463,7 @@ int EmuSystem::loadGame(const char *path)
 				modalViewController.pop();
 			auto loadGameInBackgroundView = new LoadGameInBackgroundView{mainWin.win};
 			modalViewController.pushAndShow(*loadGameInBackgroundView, {});
-			guiPipe.init(
+			guiPipe.init({},
 				[loadGameInBackgroundView](Base::Pipe &pipe)
 				{
 					return onGUIMessageHandler(pipe, *loadGameInBackgroundView);
@@ -738,10 +476,12 @@ int EmuSystem::loadGame(const char *path)
 					string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), activeDrv->name);
 					loadThreadIsRunning = true;
 					auto loadThreadDone = IG::scopeGuard([](){ loadThreadIsRunning = false; });
-					if(!init_game(activeDrv->name))
+					char errorStr[1024];
+					if(!init_game(activeDrv->name, errorStr))
 					{
 						GUIMessage msg {MSG_LOAD_FAILED, 0, 0};
 						guiPipe.write(&msg, sizeof(msg));
+						guiPipe.write(errorStr, sizeof(errorStr));
 						EmuSystem::clearGamePaths();
 						free(activeDrv); activeDrv = 0;
 						return;
@@ -764,9 +504,10 @@ int EmuSystem::loadGame(const char *path)
 		}
 		else
 		{
-			if(!init_game(activeDrv->name))
+			char errorStr[1024];
+			if(!init_game(activeDrv->name, errorStr))
 			{
-				popup.printf(4, 1, "%s", romerror);
+				popup.printf(4, 1, "%s", errorStr);
 				free(activeDrv); activeDrv = 0;
 				return 0;
 			}
@@ -792,14 +533,6 @@ int EmuSystem::loadGame(const char *path)
 int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	return 0; // TODO
-}
-
-void EmuSystem::clearInputBuffers()
-{
-	memory.intern_coin = 0x7;
-	memory.intern_start = 0x8F;
-	memory.intern_p1 = 0xFF;
-	memory.intern_p2 = 0xFF;
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -841,10 +574,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		writeSound(play_buffer, audioFramesPerVideoFrame);
 	}
 }
-
-void EmuSystem::savePathChanged() { }
-
-bool EmuSystem::hasInputOptions() { return false; }
 
 void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {

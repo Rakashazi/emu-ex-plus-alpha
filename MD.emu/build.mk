@@ -118,6 +118,8 @@ else
 endif
 
 SRC += main/Main.cc \
+main/options.cc \
+main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/Cheats.cc \

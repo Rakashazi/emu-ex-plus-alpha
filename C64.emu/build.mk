@@ -16,6 +16,8 @@ else ifeq ($(ENV),ios)
 endif
 
 SRC += main/Main.cc \
+main/options.cc \
+main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/VicePlugin.cc \

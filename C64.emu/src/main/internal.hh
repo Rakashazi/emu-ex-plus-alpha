@@ -64,3 +64,4 @@ bool hasC64DiskExtension(const char *name);
 bool hasC64TapeExtension(const char *name);
 bool hasC64CartExtension(const char *name);
 int loadGame(const char *path, bool autoStartMedia);
+int optionModel(ViceSystem system);

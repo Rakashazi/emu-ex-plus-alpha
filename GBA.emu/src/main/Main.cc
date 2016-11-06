@@ -15,7 +15,6 @@
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
 #include "Cheats.hh"
@@ -34,23 +33,17 @@ bool CPUWriteBatteryFile(GBASys &gba, const char *);
 bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
+bool detectedRtcGame = 0;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
-const char *EmuSystem::inputFaceBtnName = "A/B";
-const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 4;
-const uint EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = true;
-const bool EmuSystem::inputHasRevBtnLayout = false;
-const char *EmuSystem::configFilename = "GbaEmu.config";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
-const uint EmuSystem::maxPlayers = 1;
-const AspectRatioInfo EmuSystem::aspectRatioInfo[]
-{
-		{"3:2 (Original)", 3, 2},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+
+EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
+	[](const char *name)
+	{
+		return string_hasDotExtension(name, "gba");
+	};
+EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
 const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
 {
@@ -72,151 +65,6 @@ const char *EmuSystem::systemName()
 	return "Game Boy Advance";
 }
 
-using namespace IG;
-
-// controls
-
-enum
-{
-	gbaKeyIdxUp = EmuControls::systemKeyMapStart,
-	gbaKeyIdxRight,
-	gbaKeyIdxDown,
-	gbaKeyIdxLeft,
-	gbaKeyIdxLeftUp,
-	gbaKeyIdxRightUp,
-	gbaKeyIdxRightDown,
-	gbaKeyIdxLeftDown,
-	gbaKeyIdxSelect,
-	gbaKeyIdxStart,
-	gbaKeyIdxA,
-	gbaKeyIdxB,
-	gbaKeyIdxL,
-	gbaKeyIdxR,
-	gbaKeyIdxATurbo,
-	gbaKeyIdxBTurbo,
-	gbaKeyIdxAB,
-	gbaKeyIdxRB,
-};
-
-namespace GbaKeyStatus
-{
-	static const uint A = bit(0), B = bit(1),
-			SELECT = bit(2), START = bit(3),
-			RIGHT = bit(4), LEFT = bit(5), UP = bit(6), DOWN = bit(7),
-			R = bit(8), L = bit(9);
-}
-
-static uint ptrInputToSysButton(int input)
-{
-	using namespace GbaKeyStatus;
-	switch(input)
-	{
-		case SysVController::F_ELEM: return A;
-		case SysVController::F_ELEM+1: return B;
-		case SysVController::F_ELEM+2: return L;
-		case SysVController::F_ELEM+3: return R;
-
-		case SysVController::C_ELEM: return SELECT;
-		case SysVController::C_ELEM+1: return START;
-
-		case SysVController::D_ELEM: return UP | LEFT;
-		case SysVController::D_ELEM+1: return UP;
-		case SysVController::D_ELEM+2: return UP | RIGHT;
-		case SysVController::D_ELEM+3: return LEFT;
-		case SysVController::D_ELEM+5: return RIGHT;
-		case SysVController::D_ELEM+6: return DOWN | LEFT;
-		case SysVController::D_ELEM+7: return DOWN;
-		case SysVController::D_ELEM+8: return DOWN | RIGHT;
-		default: bug_branch("%d", input); return 0;
-	}
-}
-
-void updateVControllerMapping(uint player, SysVController::Map &map)
-{
-	using namespace GbaKeyStatus;
-	map[SysVController::F_ELEM] = A;
-	map[SysVController::F_ELEM+1] = B;
-	map[SysVController::F_ELEM+2] = L;
-	map[SysVController::F_ELEM+3] = R;
-
-	map[SysVController::C_ELEM] = SELECT;
-	map[SysVController::C_ELEM+1] = START;
-
-	map[SysVController::D_ELEM] = UP | LEFT;
-	map[SysVController::D_ELEM+1] = UP;
-	map[SysVController::D_ELEM+2] = UP | RIGHT;
-	map[SysVController::D_ELEM+3] = LEFT;
-	map[SysVController::D_ELEM+5] = RIGHT;
-	map[SysVController::D_ELEM+6] = DOWN | LEFT;
-	map[SysVController::D_ELEM+7] = DOWN;
-	map[SysVController::D_ELEM+8] = DOWN | RIGHT;
-}
-
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
-{
-	using namespace GbaKeyStatus;
-	turbo = 0;
-	switch(input)
-	{
-		case gbaKeyIdxUp: return UP;
-		case gbaKeyIdxRight: return RIGHT;
-		case gbaKeyIdxDown: return DOWN;
-		case gbaKeyIdxLeft: return LEFT;
-		case gbaKeyIdxLeftUp: return UP | LEFT;
-		case gbaKeyIdxRightUp: return UP | RIGHT;
-		case gbaKeyIdxRightDown: return DOWN | RIGHT;
-		case gbaKeyIdxLeftDown: return DOWN | LEFT;
-		case gbaKeyIdxSelect: return SELECT;
-		case gbaKeyIdxStart: return START;
-		case gbaKeyIdxATurbo: turbo = 1;
-		case gbaKeyIdxA: return A;
-		case gbaKeyIdxBTurbo: turbo = 1;
-		case gbaKeyIdxB: return B;
-		case gbaKeyIdxL: return L;
-		case gbaKeyIdxR: return R;
-		case gbaKeyIdxAB: return A | B;
-		case gbaKeyIdxRB: return R | B;
-		default: bug_branch("%d", input);
-	}
-	return 0;
-}
-
-void EmuSystem::handleInputAction(uint state, uint emuKey)
-{
-	P1 = IG::setOrClearBits(P1, (uint16)emuKey, state != Input::PUSHED);
-}
-
-enum
-{
-	CFGKEY_RTC_EMULATION = 256
-};
-
-Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
-bool detectedRtcGame = 0;
-
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
-{
-	switch(key)
-	{
-		default: return 0;
-		bcase CFGKEY_RTC_EMULATION: optionRtcEmulation.readFromIO(io, readSize);
-	}
-	return 1;
-}
-
-void EmuSystem::writeConfig(IO &io)
-{
-	optionRtcEmulation.writeWithKeyIfNotDefault(io);
-}
-
-static bool hasGBAExtension(const char *name)
-{
-	return string_hasDotExtension(name, "gba");
-}
-
-EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasGBAExtension;
-EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasGBAExtension;
-
 #define USE_PIX_RGB565
 #ifdef USE_PIX_RGB565
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
@@ -231,10 +79,6 @@ int systemRedShift = 19;
 int systemGreenShift = 11;
 int systemBlueShift = 3;
 #endif
-
-void EmuSystem::initOptions() {}
-
-void EmuSystem::onOptionsLoaded() {}
 
 void EmuSystem::reset(ResetMode mode)
 {
@@ -297,12 +141,6 @@ void EmuSystem::saveBackupMem()
 		writeCheatFile();
 	}
 }
-
-bool EmuSystem::vidSysIsPAL() { return 0; }
-uint EmuSystem::multiresVideoBaseX() { return 0; }
-uint EmuSystem::multiresVideoBaseY() { return 0; }
-bool touchControlsApplicable() { return 1; }
-void EmuSystem::clearInputBuffers() { P1 = 0x03FF; }
 
 void EmuSystem::closeSystem()
 {
@@ -416,10 +254,6 @@ void EmuSystem::configAudioRate(double frameTime)
 	double rate = std::round(optionSoundRate * (59.73 * frameTime));
 	soundSetSampleRate(gGba, rate);
 }
-
-void EmuSystem::savePathChanged() { }
-
-bool EmuSystem::hasInputOptions() { return false; }
 
 void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {

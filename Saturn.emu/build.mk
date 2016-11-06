@@ -22,6 +22,8 @@ ifeq ($(ENV), linux)
 endif
 
 SRC += main/Main.cc \
+main/input.cc \
+main/options.cc \
 main/EmuMenuViews.cc \
 main/EmuControls.cc
 

@@ -1,0 +1,130 @@
+/*  This file is part of MD.emu.
+
+	MD.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MD.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <emuframework/EmuApp.hh>
+#include "internal.hh"
+#include "input.h"
+
+enum
+{
+	mdKeyIdxUp = EmuControls::systemKeyMapStart,
+	mdKeyIdxRight,
+	mdKeyIdxDown,
+	mdKeyIdxLeft,
+	mdKeyIdxLeftUp,
+	mdKeyIdxRightUp,
+	mdKeyIdxRightDown,
+	mdKeyIdxLeftDown,
+	mdKeyIdxMode,
+	mdKeyIdxStart,
+	mdKeyIdxA,
+	mdKeyIdxB,
+	mdKeyIdxC,
+	mdKeyIdxX,
+	mdKeyIdxY,
+	mdKeyIdxZ,
+	mdKeyIdxATurbo,
+	mdKeyIdxBTurbo,
+	mdKeyIdxCTurbo,
+	mdKeyIdxXTurbo,
+	mdKeyIdxYTurbo,
+	mdKeyIdxZTurbo
+};
+
+const char *EmuSystem::inputFaceBtnName = "A/B/C";
+const char *EmuSystem::inputCenterBtnName = "Mode/Start";
+const uint EmuSystem::inputFaceBtns = 6;
+const uint EmuSystem::inputCenterBtns = 2;
+const bool EmuSystem::inputHasTriggerBtns = false;
+const bool EmuSystem::inputHasRevBtnLayout = true;
+bool EmuSystem::inputHasOptionsView = true;
+const uint EmuSystem::maxPlayers = 4;
+uint playerIdxMap[4]{};
+
+void updateVControllerMapping(uint player, SysVController::Map &map)
+{
+	uint playerMask = player << 30;
+	map[SysVController::F_ELEM] = INPUT_A | playerMask;
+	map[SysVController::F_ELEM+1] = INPUT_B | playerMask;
+	map[SysVController::F_ELEM+2] = INPUT_C | playerMask;
+	map[SysVController::F_ELEM+3] = INPUT_X | playerMask;
+	map[SysVController::F_ELEM+4] = INPUT_Y | playerMask;
+	map[SysVController::F_ELEM+5] = INPUT_Z | playerMask;
+
+	map[SysVController::C_ELEM] = INPUT_MODE | playerMask;
+	map[SysVController::C_ELEM+1] = INPUT_START | playerMask;
+
+	map[SysVController::D_ELEM] = INPUT_UP | INPUT_LEFT | playerMask;
+	map[SysVController::D_ELEM+1] = INPUT_UP | playerMask;
+	map[SysVController::D_ELEM+2] = INPUT_UP | INPUT_RIGHT | playerMask;
+	map[SysVController::D_ELEM+3] = INPUT_LEFT | playerMask;
+	map[SysVController::D_ELEM+5] = INPUT_RIGHT | playerMask;
+	map[SysVController::D_ELEM+6] = INPUT_DOWN | INPUT_LEFT | playerMask;
+	map[SysVController::D_ELEM+7] = INPUT_DOWN | playerMask;
+	map[SysVController::D_ELEM+8] = INPUT_DOWN | INPUT_RIGHT | playerMask;
+}
+
+uint EmuSystem::translateInputAction(uint input, bool &turbo)
+{
+	turbo = 0;
+	assert(input >= mdKeyIdxUp);
+	uint player = (input - mdKeyIdxUp) / EmuControls::gamepadKeys;
+	uint playerMask = player << 30;
+	input -= EmuControls::gamepadKeys * player;
+	switch(input)
+	{
+		case mdKeyIdxUp: return INPUT_UP | playerMask;
+		case mdKeyIdxRight: return INPUT_RIGHT | playerMask;
+		case mdKeyIdxDown: return INPUT_DOWN | playerMask;
+		case mdKeyIdxLeft: return INPUT_LEFT | playerMask;
+		case mdKeyIdxLeftUp: return INPUT_LEFT | INPUT_UP | playerMask;
+		case mdKeyIdxRightUp: return INPUT_RIGHT | INPUT_UP | playerMask;
+		case mdKeyIdxRightDown: return INPUT_RIGHT | INPUT_DOWN | playerMask;
+		case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN | playerMask;
+		case mdKeyIdxMode: return INPUT_MODE | playerMask;
+		case mdKeyIdxStart: return INPUT_START | playerMask;
+		case mdKeyIdxATurbo: turbo = 1;
+		case mdKeyIdxA: return INPUT_A | playerMask;
+		case mdKeyIdxBTurbo: turbo = 1;
+		case mdKeyIdxB: return INPUT_B | playerMask;
+		case mdKeyIdxCTurbo: turbo = 1;
+		case mdKeyIdxC: return INPUT_C | playerMask;
+		case mdKeyIdxXTurbo: turbo = 1;
+		case mdKeyIdxX: return INPUT_X | playerMask;
+		case mdKeyIdxYTurbo: turbo = 1;
+		case mdKeyIdxY: return INPUT_Y | playerMask;
+		case mdKeyIdxZTurbo: turbo = 1;
+		case mdKeyIdxZ: return INPUT_Z | playerMask;
+		default: bug_branch("%d", input);
+	}
+	return 0;
+}
+
+void EmuSystem::handleInputAction(uint state, uint emuKey)
+{
+	uint player = emuKey >> 30; // player is encoded in upper 2 bits of input code
+	assert(player <= 4);
+	uint16 &padData = input.pad[playerIdxMap[player]];
+	padData = IG::setOrClearBits(padData, (uint16)emuKey, state == Input::PUSHED);
+}
+
+void EmuSystem::clearInputBuffers()
+{
+	IG::fillData(input.pad);
+	for(auto &analog : input.analog)
+	{
+		IG::fillData(analog);
+	}
+}

@@ -1,9 +1,7 @@
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include "EmuConfig.hh"
 #include "internal.hh"
 
 extern "C"
@@ -21,7 +19,8 @@ extern "C"
 }
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
-static PerPad_struct *pad[2];
+bool EmuSystem::handlesGenericIO = false;
+PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
 
@@ -108,19 +107,7 @@ static FS::PathString bupPath{};
 static char mpegPath[] = "";
 static char cartPath[] = "";
 
-SH2Interface_struct *SH2CoreList[]
-{
-	#ifdef SH2_DYNAREC
-	&SH2Dynarec,
-	#endif
-	&SH2Interpreter,
-	//&SH2DebugInterpreter,
-	nullptr
-};
-
-uint SH2Cores = IG::size(SH2CoreList) - 1;
-
-static const int defaultSH2CoreID =
+extern const int defaultSH2CoreID =
 #ifdef SH2_DYNAREC
 SH2CORE_DYNAREC;
 #else
@@ -170,57 +157,7 @@ M68K_struct *M68KCoreList[] =
 	nullptr
 };
 
-// controls
-
-enum
-{
-	ssKeyIdxUp = EmuControls::systemKeyMapStart,
-	ssKeyIdxRight,
-	ssKeyIdxDown,
-	ssKeyIdxLeft,
-	ssKeyIdxLeftUp,
-	ssKeyIdxRightUp,
-	ssKeyIdxRightDown,
-	ssKeyIdxLeftDown,
-	ssKeyIdxStart,
-	ssKeyIdxA,
-	ssKeyIdxB,
-	ssKeyIdxC,
-	ssKeyIdxX,
-	ssKeyIdxY,
-	ssKeyIdxZ,
-	ssKeyIdxL,
-	ssKeyIdxR,
-	ssKeyIdxATurbo,
-	ssKeyIdxBTurbo,
-	ssKeyIdxCTurbo,
-	ssKeyIdxXTurbo,
-	ssKeyIdxYTurbo,
-	ssKeyIdxZTurbo,
-	ssKeyIdxLastGamepad = ssKeyIdxZTurbo
-};
-
-enum {
-	CFGKEY_BIOS_PATH = 279, CFGKEY_SH2_CORE = 280
-};
-
-static bool OptionSH2CoreIsValid(uint8 val)
-{
-	for(const auto &coreI : SH2CoreList)
-	{
-		if(coreI->id == val)
-		{
-			logMsg("SH2 core option valid");
-			return true;
-		}
-	}
-	logMsg("SH2 core option not valid");
-	return false;
-}
-
 FS::PathString biosPath{};
-static PathOption optionBiosPath{CFGKEY_BIOS_PATH, biosPath, ""};
-Byte1Option optionSH2Core{CFGKEY_SH2_CORE, defaultSH2CoreID, false, OptionSH2CoreIsValid};
 
 yabauseinit_struct yinit
 {
@@ -245,22 +182,6 @@ yabauseinit_struct yinit
 	VIDEOFORMATTYPE_NTSC
 };
 
-const char *EmuSystem::inputFaceBtnName = "A-Z";
-const char *EmuSystem::inputCenterBtnName = "Start";
-const uint EmuSystem::inputFaceBtns = 8;
-const uint EmuSystem::inputCenterBtns = 1;
-const bool EmuSystem::inputHasTriggerBtns = true;
-const bool EmuSystem::inputHasRevBtnLayout = false;
-const char *EmuSystem::configFilename = "SaturnEmu.config";
-const uint EmuSystem::maxPlayers = 2;
-const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
-{
-		{"4:3 (Original)", 4, 3},
-		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
-};
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-bool EmuSystem::handlesGenericIO = false;
-
 const char *EmuSystem::shortSystemName()
 {
 	return "SS";
@@ -271,136 +192,10 @@ const char *EmuSystem::systemName()
 	return "Sega Saturn";
 }
 
-
-void EmuSystem::initOptions()
-{
-	optionNotificationIcon.initDefault(0);
-	optionNotificationIcon.isConst = true;
-	optionAutoSaveState.initDefault(0);
-	if(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS)
-		optionSound.initDefault(0);
-	optionSoundRate.initDefault(44100);
-	optionSoundRate.isConst = true;
-	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(3);
-	optionFrameRate.isConst = true;
-}
-
-void EmuSystem::onOptionsLoaded()
-{
-	yinit.sh2coretype = optionSH2Core;
-}
-
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
-{
-	switch(key)
-	{
-		default: return 0;
-		bcase CFGKEY_BIOS_PATH: optionBiosPath.readFromIO(io, readSize);
-		bcase CFGKEY_SH2_CORE: optionSH2Core.readFromIO(io, readSize);
-	}
-	return 1;
-}
-
-void EmuSystem::writeConfig(IO &io)
-{
-	optionBiosPath.writeToIO(io);
-	optionSH2Core.writeWithKeyIfNotDefault(io);
-}
-
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
-
-void updateVControllerMapping(uint player, SysVController::Map &map)
-{
-	uint playerOffset = player ? EmuControls::gamepadKeys : 0;
-	map[SysVController::F_ELEM] = ssKeyIdxA + playerOffset;
-	map[SysVController::F_ELEM+1] = ssKeyIdxB + playerOffset;
-	map[SysVController::F_ELEM+2] = ssKeyIdxC + playerOffset;
-	map[SysVController::F_ELEM+3] = ssKeyIdxX + playerOffset;
-	map[SysVController::F_ELEM+4] = ssKeyIdxY + playerOffset;
-	map[SysVController::F_ELEM+5] = ssKeyIdxZ + playerOffset;
-	map[SysVController::F_ELEM+6] = ssKeyIdxL + playerOffset;
-	map[SysVController::F_ELEM+7] = ssKeyIdxR + playerOffset;
-
-	map[SysVController::C_ELEM] = ssKeyIdxStart + playerOffset;
-
-	map[SysVController::D_ELEM] = ssKeyIdxLeftUp + playerOffset;
-	map[SysVController::D_ELEM+1] = ssKeyIdxUp + playerOffset;
-	map[SysVController::D_ELEM+2] = ssKeyIdxRightUp + playerOffset;
-	map[SysVController::D_ELEM+3] = ssKeyIdxLeft + playerOffset;
-	map[SysVController::D_ELEM+5] = ssKeyIdxRight + playerOffset;
-	map[SysVController::D_ELEM+6] = ssKeyIdxLeftDown + playerOffset;
-	map[SysVController::D_ELEM+7] = ssKeyIdxDown + playerOffset;
-	map[SysVController::D_ELEM+8] = ssKeyIdxRightDown + playerOffset;
-}
-
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
-{
-	turbo = 0;
-	switch(input)
-	{
-		case ssKeyIdxXTurbo:
-		case ssKeyIdxYTurbo:
-		case ssKeyIdxZTurbo:
-		case ssKeyIdxATurbo:
-		case ssKeyIdxBTurbo:
-		case ssKeyIdxCTurbo:
-		case ssKeyIdxXTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxYTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxZTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxATurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxBTurbo + EmuControls::gamepadKeys:
-		case ssKeyIdxCTurbo + EmuControls::gamepadKeys:
-			turbo = 1;
-		default: return input;
-	}
-}
-
-void EmuSystem::handleInputAction(uint state, uint emuKey)
-{
-	uint player = 0;
-	if(emuKey > ssKeyIdxLastGamepad)
-	{
-		player = 1;
-		emuKey -= EmuControls::gamepadKeys;
-	}
-	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
-	bool pushed = state == Input::PUSHED;
-	switch(emuKey)
-	{
-		bcase ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p);
-		bcase ssKeyIdxRight: if(pushed) PerPadRightPressed(p); else PerPadRightReleased(p);
-		bcase ssKeyIdxDown: if(pushed) PerPadDownPressed(p); else PerPadDownReleased(p);
-		bcase ssKeyIdxLeft: if(pushed) PerPadLeftPressed(p); else PerPadLeftReleased(p);
-		bcase ssKeyIdxLeftUp: if(pushed) { PerPadLeftPressed(p); PerPadUpPressed(p); }
-			else { PerPadLeftReleased(p); PerPadUpReleased(p); }
-		bcase ssKeyIdxRightUp: if(pushed) { PerPadRightPressed(p); PerPadUpPressed(p); }
-			else { PerPadRightReleased(p); PerPadUpReleased(p); }
-		bcase ssKeyIdxRightDown: if(pushed) { PerPadRightPressed(p); PerPadDownPressed(p); }
-			else { PerPadRightReleased(p); PerPadDownReleased(p); }
-		bcase ssKeyIdxLeftDown: if(pushed) { PerPadLeftPressed(p); PerPadDownPressed(p); }
-			else { PerPadLeftReleased(p); PerPadDownReleased(p); }
-		bcase ssKeyIdxStart: if(pushed) PerPadStartPressed(p); else PerPadStartReleased(p);
-		bcase ssKeyIdxXTurbo:
-		case ssKeyIdxX: if(pushed) PerPadXPressed(p); else PerPadXReleased(p);
-		bcase ssKeyIdxYTurbo:
-		case ssKeyIdxY: if(pushed) PerPadYPressed(p); else PerPadYReleased(p);
-		bcase ssKeyIdxZTurbo:
-		case ssKeyIdxZ: if(pushed) PerPadZPressed(p); else PerPadZReleased(p);
-		bcase ssKeyIdxATurbo:
-		case ssKeyIdxA: if(pushed) PerPadAPressed(p); else PerPadAReleased(p);
-		bcase ssKeyIdxBTurbo:
-		case ssKeyIdxB: if(pushed) PerPadBPressed(p); else PerPadBReleased(p);
-		bcase ssKeyIdxCTurbo:
-		case ssKeyIdxC: if(pushed) PerPadCPressed(p); else PerPadCReleased(p);
-		bcase ssKeyIdxL: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p);
-		bcase ssKeyIdxR: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p);
-		bdefault: bug_branch("%d", emuKey);
-	}
-}
 
 static int ssResX = 320, ssResY = 224;
 
@@ -526,11 +321,6 @@ void EmuSystem::closeSystem()
 	}
 }
 
-bool EmuSystem::vidSysIsPAL() { return 0; }
-uint EmuSystem::multiresVideoBaseX() { return 0; }
-uint EmuSystem::multiresVideoBaseY() { return 0; }
-bool touchControlsApplicable() { return 1; }
-
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame();
@@ -562,13 +352,6 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	return 0; // TODO
 }
 
-void EmuSystem::clearInputBuffers()
-{
-	PerPortReset();
-	pad[0] = PerPadAdd(&PORTDATA1);
-	pad[1] = PerPadAdd(&PORTDATA2);
-}
-
 void EmuSystem::configAudioRate(double frameTime)
 {
 	// TODO: use frameTime
@@ -582,10 +365,6 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	SNDImagine.UpdateAudio = renderAudio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
 	YabauseEmulate();
 }
-
-void EmuSystem::savePathChanged() { }
-
-bool EmuSystem::hasInputOptions() { return false; }
 
 void EmuSystem::onCustomizeNavView(EmuNavView &view)
 {

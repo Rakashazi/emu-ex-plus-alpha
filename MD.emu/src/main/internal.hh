@@ -3,6 +3,12 @@
 #include <emuframework/Option.hh>
 #include "genplus-config.h"
 
+namespace EmuControls
+{
+extern const uint gamepadKeys;
+}
+
+extern uint playerIdxMap[4];
 extern int8 mdInputPortDev[2];
 extern t_config config;
 extern bool usingMultiTap;
