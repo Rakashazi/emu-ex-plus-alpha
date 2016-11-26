@@ -19,6 +19,7 @@
 #include "internal.hh"
 #include "Cheats.hh"
 #include <vbam/gba/GBA.h>
+#include <vbam/gba/GBAGfx.h>
 #include <vbam/gba/Sound.h>
 #include <vbam/gba/RTC.h>
 #include <vbam/common/SoundDriver.h>
@@ -228,6 +229,17 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *)
 
 static void commitVideoFrame()
 {
+	auto img = emuVideo.startFrame();
+	IG::Pixmap framePix{{{240, 160}, IG::PIXEL_RGB565}, gGba.lcd.pix};
+	if(!directColorLookup)
+	{
+		img.pixmap().writeTransformed([](uint16 p){ return systemColorMap.map16[p]; }, framePix);
+	}
+	else
+	{
+		img.pixmap().write(framePix);
+	}
+	img.endFrame();
 	updateAndDrawEmuVideo();
 }
 
@@ -270,7 +282,7 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initPixmap((char*)gGba.lcd.pix, pixFmt, 240, 160);
+	emuVideo.initFormat(pixFmt);
 	utilUpdateSystemColorMaps(0);
 	return OK;
 }

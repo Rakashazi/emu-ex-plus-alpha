@@ -37,8 +37,6 @@ extern OSystem osystem;
 static StateManager stateManager{osystem};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
-static const uint vidBufferX = 160, vidBufferY = 320;
-alignas(8) static uInt16 pixBuff[vidBufferX*vidBufferY]{};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -144,7 +142,7 @@ static int loadGameCommon(const uint8 *buff, uint size)
 	osystem.makeConsole(cartridge, props);
 	auto &console = osystem.console();
 	settings.setValue("framerate", (int)console.getFramerate());
-	emuVideo.initImage(0, vidBufferX, console.tia().height());
+	emuVideo.initImage(0, console.tia().width(), console.tia().height());
 	console.initializeVideo();
 	console.initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
@@ -183,7 +181,10 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	tia.update();
 	if(renderGfx)
 	{
-		osystem.frameBuffer().render(pixBuff, tia);
+		emuVideo.initImage(0, tia.width(), tia.height());
+		auto img = emuVideo.startFrame();
+		osystem.frameBuffer().render(img.pixmap(), tia);
+		img.endFrame();
 		updateAndDrawEmuVideo();
 	}
 	auto frames = audioFramesPerVideoFrame;
@@ -259,6 +260,6 @@ CallResult EmuSystem::onInit()
 	Paddles::setMouseSensitivity(7);
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	emuVideo.initPixmap((char*)pixBuff, IG::PIXEL_FMT_RGB565, vidBufferX, vidBufferY);
+	emuVideo.initFormat(IG::PIXEL_FMT_RGB565);
 	return OK;
 }

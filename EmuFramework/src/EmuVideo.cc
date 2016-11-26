@@ -13,10 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EmuVideo"
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
+
 
 void EmuVideo::initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch)
 {
@@ -25,6 +27,11 @@ void EmuVideo::initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y,
 	else
 		vidPix = {{{(int)x, (int)y}, format}, pixBuff, {pitch, vidPix.BYTE_UNITS}};
 	this->pixBuff = pixBuff;
+}
+
+void EmuVideo::initFormat(IG::PixelFormat format)
+{
+	vidPix = {{{0, 0}, format}, nullptr};
 }
 
 void EmuVideo::reinitImage()
@@ -56,22 +63,39 @@ void EmuVideo::resizeImage(uint x, uint y, uint pitch)
 
 void EmuVideo::resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch)
 {
-	IG::Pixmap basePix;
-	if(pitch)
-		basePix = {{{(int)totalX, (int)totalY}, vidPix.format()}, pixBuff, {pitch, vidPix.BYTE_UNITS}};
+	if(pixBuff)
+	{
+		IG::Pixmap basePix;
+		if(pitch)
+			basePix = {{{(int)totalX, (int)totalY}, vidPix.format()}, pixBuff, {pitch, vidPix.BYTE_UNITS}};
+		else
+			basePix = {{{(int)totalX, (int)totalY}, vidPix.format()}, pixBuff};
+		vidPix = basePix.subPixmap({(int)xO, (int)yO}, {(int)x, (int)y});
+		if(!vidImg)
+		{
+			reinitImage();
+		}
+		else if(vidPix != vidImg.usedPixmapDesc())
+		{
+			vidImg.setFormat(vidPix, 1);
+		}
+		vidPixAlign = vidImg.bestAlignment(vidPix);
+		logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView, aligned to min %d bytes", xO, yO, x, y, totalX, totalY, vidPixAlign);
+	}
 	else
-		basePix = {{{(int)totalX, (int)totalY}, vidPix.format()}, pixBuff};
-	vidPix = basePix.subPixmap({(int)xO, (int)yO}, {(int)x, (int)y});
-	if(!vidImg)
 	{
-		reinitImage();
+		vidPix = {{{(int)x, (int)y}, vidPix.format()}, nullptr};
+		memPix = {};
+		if(!vidImg)
+		{
+			reinitImage();
+		}
+		else if(vidPix != vidImg.usedPixmapDesc())
+		{
+			vidImg.setFormat(vidPix, 1);
+		}
+		logMsg("resized to:%dx%d", x, y);
 	}
-	else if(vidPix != vidImg.usedPixmapDesc())
-	{
-		vidImg.setFormat(vidPix, 1);
-	}
-	vidPixAlign = vidImg.bestAlignment(vidPix);
-	logMsg("using %d:%d:%d:%d region of %d,%d pixmap for EmuView, aligned to min %d bytes", xO, yO, x, y, totalX, totalY, vidPixAlign);
 
 	// update all EmuVideoLayers
 	emuVideoLayer.resetImage();
@@ -97,11 +121,56 @@ void EmuVideo::initImage(bool force, uint xO, uint yO, uint x, uint y, uint tota
 
 void EmuVideo::updateImage()
 {
+	if(!vidPix)
+	{
+		//logMsg("skipping write");
+		return;
+	}
 	vidImg.write(0, vidPix, {}, vidPixAlign);
+}
+
+EmuVideoImage EmuVideo::startFrame()
+{
+	auto lockedTex = vidImg.lock(0);
+	if(!lockedTex)
+	{
+		if(!memPix)
+		{
+			logMsg("created backing memory pixmap");
+			memPix = {vidPix};
+			vidPixAlign = vidImg.bestAlignment(memPix);
+		}
+		return {*this, (IG::Pixmap)memPix};
+	}
+	return {*this, lockedTex};
+}
+
+void EmuVideo::writeFrame(Gfx::LockedTextureBuffer texBuff)
+{
+	if(screenshotNextFrame)
+	{
+		doScreenshot(texBuff.pixmap());
+	}
+	vidImg.unlock(texBuff);
+}
+
+void EmuVideo::writeFrame(IG::Pixmap pix)
+{
+	if(screenshotNextFrame)
+	{
+		doScreenshot(pix);
+	}
+	vidImg.write(0, pix, {}, vidImg.bestAlignment(pix));
 }
 
 void EmuVideo::takeGameScreenshot()
 {
+	screenshotNextFrame = true;
+}
+
+void EmuVideo::doScreenshot(IG::Pixmap pix)
+{
+	screenshotNextFrame = false;
 	FS::PathString path;
 	int screenshotNum = sprintScreenshotFilename(path);
 	if(screenshotNum == -1)
@@ -110,7 +179,7 @@ void EmuVideo::takeGameScreenshot()
 	}
 	else
 	{
-		if(!writeScreenshot(vidPix, path.data()))
+		if(!writeScreenshot(pix, path.data()))
 		{
 			popup.printf(2, 1, "Error writing screenshot #%d", screenshotNum);
 		}
@@ -128,4 +197,16 @@ bool EmuVideo::isExternalTexture()
 	#else
 	return false;
 	#endif
+}
+
+void EmuVideoImage::endFrame()
+{
+	if(texBuff)
+	{
+		emuVideo->writeFrame(texBuff);
+	}
+	else if(pix)
+	{
+		emuVideo->writeFrame(pix);
+	}
 }

@@ -69,11 +69,8 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 IG::Semaphore execSem{0}, execDoneSem{0};
-alignas(8) uint16 pix[1024*512]{};
 bool runningFrame = false, doAudio = false;
 static bool c64IsInit = false, c64FailedInit = false;
-uint c64VidX = 320, c64VidY = 200;
-uint c64VidActiveX = 0, c64VidActiveY = 0;
 FS::PathString firmwareBasePath{};
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 bool isPal = false;
@@ -614,36 +611,10 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	doAudio = renderAudio;
 	setCanvasSkipFrame(!processGfx);
 	execC64Frame();
-	if(unlikely(c64VidActiveX != c64VidX || c64VidActiveY != c64VidY))
-	{
-		logMsg("resizing pixmap to %d,%d", c64VidX, c64VidY);
-		c64VidActiveX = c64VidX;
-		c64VidActiveY = c64VidY;
-		if(optionCropNormalBorders && (c64VidY == 247 || c64VidY == 272))
-		{
-			logMsg("cropping borders");
-			// Crop all vertical borders on NTSC, leaving leftover side borders
-			int xBorderSize = 32, yBorderSize = 23;
-			int height = 200;
-			int startX = yBorderSize, startY = yBorderSize;
-			if(c64VidY == 272) // PAL
-			{
-				// Crop all horizontal borders on PAL, leaving leftover top/bottom borders
-				yBorderSize = 32;
-				height = 206;
-				startX = xBorderSize; startY = xBorderSize;
-			}
-			int width = 320+(xBorderSize*2 - startX*2);
-			int widthPadding = startX*2;
-			emuVideo.resizeImage(startX, startY, width, height, c64VidX, c64VidY);
-		}
-		else
-		{
-			emuVideo.resizeImage(c64VidX, c64VidY);
-		}
-	}
 	if(renderGfx)
 	{
+		emuVideo.initImage(0, canvasSrcPix.w(), canvasSrcPix.h());
+		emuVideo.writeFrame(canvasSrcPix);
 		updateAndDrawEmuVideo();
 	}
 	runningFrame = 0;
@@ -685,7 +656,7 @@ void EmuSystem::onMainWindowCreated(Base::Window &)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initPixmap((char*)pix, pixFmt, 320, 200);
+	emuVideo.initFormat(pixFmt);
 	IG::makeDetachedThread(
 		[]()
 		{

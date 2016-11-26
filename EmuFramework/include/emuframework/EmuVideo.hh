@@ -17,24 +17,69 @@
 
 #include <imagine/gfx/Texture.hh>
 
+class EmuVideo;
+
+class EmuVideoImage
+{
+public:
+	EmuVideoImage() {}
+	EmuVideoImage(EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
+		emuVideo{&vid}, texBuff{texBuff} {}
+	EmuVideoImage(EmuVideo &vid, IG::Pixmap pix):
+		emuVideo{&vid}, pix{pix} {}
+
+	IG::Pixmap pixmap() const
+	{
+		if(texBuff)
+			return texBuff.pixmap();
+		else
+			return pix;
+	}
+
+	explicit operator bool() const
+	{
+		return texBuff || pix;
+	}
+
+	void endFrame();
+
+private:
+	EmuVideo *emuVideo{};
+	Gfx::LockedTextureBuffer texBuff{};
+	IG::Pixmap pix{};
+};
+
 class EmuVideo
 {
 public:
 	Gfx::PixmapTexture vidImg{};
+	IG::MemPixmap memPix{};
+	bool screenshotNextFrame = false;
+
+	// TODO: remove old API members when all systems updated
 	IG::Pixmap vidPix{};
 	char *pixBuff{};
 	uint vidPixAlign = Gfx::Texture::MAX_ASSUME_ALIGN;
 
 public:
-	constexpr EmuVideo() {}
-	void initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch = 0);
+	EmuVideo() {}
+	void initFormat(IG::PixelFormat format);
 	void reinitImage();
-	void clearImage();
 	void resizeImage(uint x, uint y, uint pitch = 0);
-	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
 	void initImage(bool force, uint x, uint y, uint pitch = 0);
-	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
-	void updateImage();
+	EmuVideoImage startFrame();
+	void writeFrame(Gfx::LockedTextureBuffer texBuff);
+	void writeFrame(IG::Pixmap pix);
 	void takeGameScreenshot();
 	bool isExternalTexture();
+
+	// TODO: remove old API methods when all systems updated
+	void initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch = 0);
+	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
+	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
+	void clearImage();
+	void updateImage();
+
+protected:
+	void doScreenshot(IG::Pixmap pix);
 };

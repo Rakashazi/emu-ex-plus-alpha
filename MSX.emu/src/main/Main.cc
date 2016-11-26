@@ -61,9 +61,11 @@ static FS::FileString tapeName{};
 FS::FileString hdName[4]{};
 static const uint msxMaxResX = (256) * 2, msxResY = 224,
 	msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
-static uint msxResX = msxMaxResX/2;
+static int msxResX = msxMaxResX/2;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
+static char *srcPixData = (char*)&screenBuff[8 * msxResX];
+static IG::Pixmap srcPix{{{msxResX, msxResY}, pixFmt}, srcPixData};
 static bool doubleWidthFrame = false;
 static bool renderToScreen = false;
 
@@ -154,9 +156,10 @@ void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
 		logMsg("setting double width line %d, %d", y, val);
 		doubleWidthFrame = val;
 		msxResX = doubleWidthFrame ? msxMaxResX : msxMaxResX/2;
-		if(emuVideo.vidPix.w() != msxResX)
+		if(emuVideo.vidPix.w() != (uint)msxResX)
 		{
 			emuVideo.resizeImage(msxResX, msxResY);
+			srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
 		}
 	}
 }
@@ -598,6 +601,7 @@ static std::system_error loadBlueMSXState(const char *filename)
 	boardInfo.loadState();
 	saveStateDestroy();
 	emuVideo.initImage(0, msxResX, msxResY);
+	srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
 	return {{}};
 }
 
@@ -637,6 +641,7 @@ int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
 	emuVideo.initImage(0, msxResX, msxResY);
+	srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
 	setupGamePaths(path);
 
 	if(!machine && !initMachine(optionMachineName)) // make sure machine is allocated
@@ -788,6 +793,7 @@ static void commitVideoFrame()
 {
 	if(likely(renderToScreen))
 	{
+		emuVideo.writeFrame(srcPix);
 		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
@@ -888,7 +894,7 @@ CallResult EmuSystem::onInit()
 	mixer = mixerCreate();
 	assert(mixer);
 
-	emuVideo.initPixmap((char*)&screenBuff[8 * msxResX], pixFmt, msxResX, msxResY);
+	emuVideo.initFormat(pixFmt);
 
 	// Init general emu
 	langInit();

@@ -3463,15 +3463,7 @@ void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio)
             }
             if(ioMem.VCOUNT == 159 && likely(renderGfx))
             {
-            	if(likely(processGfx) && !directColorLookup)
-            	{
-            		for(int x = 0; x < 240*160; x++)
-            		{
-            			gba.lcd.pix[x] = systemColorMap.map16[gba.lcd.pix[x]];
-            		}
-            	}
-            	if(likely(renderGfx))
-            		systemDrawScreen();
+            	systemDrawScreen();
             }
             // entering H-Blank
             ioMem.DISPSTAT |= 2;

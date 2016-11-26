@@ -21,6 +21,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobe
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static int snesResX = 256, snesResY = 224;
 static bool renderToScreen = false;
+static IG::Pixmap srcPix{{{snesResX, snesResY}, pixFmt}, GFX.Screen};
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasResetModes = true;
 
@@ -76,6 +77,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 				emuVideo.resizeImage(snesResX, snesResY);
 			}
 		}
+		emuVideo.writeFrame(srcPix);
 		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
@@ -502,6 +504,6 @@ CallResult EmuSystem::onInit()
 	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
 
-	emuVideo.initPixmap((char*)GFX.Screen, pixFmt, snesResX, snesResY);
+	emuVideo.initFormat(pixFmt);
 	return OK;
 }

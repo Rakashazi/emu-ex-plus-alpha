@@ -25,6 +25,9 @@ constexpr bool is_floating_point_v = is_floating_point<T>::value;
 template<class T>
 constexpr bool is_unsigned_v = is_unsigned<T>::value;
 
+template<class T>
+constexpr bool is_arithmetic_v = is_arithmetic<T>::value;
+
 }
 
 namespace IG

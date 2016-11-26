@@ -90,7 +90,9 @@ static FS::PathString datafilePath{};
 static constexpr bool backgroundRomLoading = true;
 static bool loadThreadIsRunning = false;
 static const int FBResX = 352;
-static bool renderToScreen = 0;
+static bool renderToScreen = false;
+// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
+static IG::Pixmap srcPix{{{304, 224}, pixFmt}, (char*)screenBuff + (16*FBResX*2) + (24*2), {FBResX, IG::Pixmap::PIXEL_UNITS}};
 
 enum { MSG_LOAD_FAILED, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
 
@@ -427,7 +429,7 @@ static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadG
 int EmuSystem::loadGame(const char *path)
 {
 	closeGame(1);
-	emuVideo.initImage(0, 304, 224, FBResX*2);
+	emuVideo.initImage(0, 304, 224);
 	setupGamePaths(path);
 
 	{
@@ -551,6 +553,7 @@ CLINK void screen_update()
 	if(likely(renderToScreen))
 	{
 		//logMsg("screen render");
+		emuVideo.writeFrame(srcPix);
 		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
@@ -590,8 +593,7 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	// start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-	emuVideo.initPixmap((char*)screenBuff + (16*FBResX*2) + (24*2), pixFmt, 304, 224, FBResX*2);
+	emuVideo.initFormat(pixFmt);
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
 	visible_area.w = 304;//320;

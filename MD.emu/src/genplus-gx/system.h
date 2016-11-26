@@ -25,6 +25,7 @@
 #define _SYSTEM_H_
 
 #include "genplus-config.h"
+#include <emuframework/EmuVideo.hh>
 
 #ifndef NO_SYSTEM_PBC
 #define SYSTEM_PBC        0x00
@@ -41,9 +42,6 @@
 
 struct t_bitmap
 {
-  uint8 *data;      /* Bitmap data */
-  int height;       /* Bitmap height */
-  int pitch;        /* Width of bitmap in bytes */
   struct
   {
     int x;          /* X offset of viewport within bitmap */
@@ -93,7 +91,7 @@ extern void audio_set_equalizer(void);
 extern void system_init(void);
 extern void system_reset(void);
 extern void system_shutdown(void);
-extern void (*system_frame)(int do_skip, uint renderGfx);
+extern void (*system_frame)(int do_skip, uint renderGfx, EmuVideo &emuVideo);
 
 static bool emuSystemIs16Bit()
 {

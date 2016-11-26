@@ -100,7 +100,7 @@ class EmuVideoOptionView : public VideoOptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionCropNormalBorders = item.flipBoolValue(*this);
-			c64VidActiveX = 0; // force pixmap to update on next frame
+			resetCanvasSourcePixmap(activeCanvas);
 		}
 	};
 

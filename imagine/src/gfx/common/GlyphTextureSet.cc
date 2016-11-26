@@ -45,7 +45,7 @@ class GfxGlyphImage : public GfxImageSource
 public:
 	GfxGlyphImage(IG::GlyphImage glyphBuff): lockBuff{std::move(glyphBuff)} {}
 
-	std::error_code write(IG::Pixmap &out)
+	std::error_code write(IG::Pixmap out)
 	{
 		auto src = lockBuff.pixmap();
 		//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);

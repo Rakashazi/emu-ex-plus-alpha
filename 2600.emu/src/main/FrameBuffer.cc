@@ -72,25 +72,18 @@ void FrameBuffer::setPalette(const uInt32* palette)
 	}
 }
 
-void FrameBuffer::render(uInt16 *pixBuff, TIA &tia)
+void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 {
-	assert(tia.height() <= 320);
-	uint h = tia.height();
+	assumeExpr(pix.w() == tia.width());
+	assumeExpr(pix.h() == tia.height());
+	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.currentFrameBuffer()};
 	if(myUsePhosphor)
 	{
-		uint8* currentFrame = tia.currentFrameBuffer();
 		uint8* prevFrame = tia.previousFrameBuffer();
-		iterateTimes(160 * h, i)
-		{
-			pixBuff[i] = tiaPhosphorColorMap[currentFrame[i]][prevFrame[i]];
-		}
+		pix.writeTransformed([this, &prevFrame](uint8 p){ return tiaPhosphorColorMap[p][*prevFrame++]; }, framePix);
 	}
 	else
 	{
-		uint8* currentFrame = tia.currentFrameBuffer();
-		iterateTimes(160 * h, i)
-		{
-			pixBuff[i] = tiaColorMap[currentFrame[i]];
-		}
+		pix.writeTransformed([this](uint8 p){ return tiaColorMap[p]; }, framePix);
 	}
 }

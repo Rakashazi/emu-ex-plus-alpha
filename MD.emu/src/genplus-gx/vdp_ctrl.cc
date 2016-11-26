@@ -86,6 +86,8 @@ unsigned int (*vdp_68k_data_r)(void);
 unsigned int (*vdp_z80_data_r)(void);
 #endif
 
+IG::Pixmap gPixmap{};
+
 VDP vdp;
 
 /* Tables that define the playfield layout */
@@ -900,7 +902,7 @@ unsigned int vdp_z80_ctrl_r(unsigned int cycles)
     else if ((line >= 0) && (line < bitmap.viewport.h) && !(work_ram[0x1ffb] & cart.special))
     {
       /* Check sprites overflow & collision */
-      render_line(line);
+      render_line(line, gPixmap);
     }
   }
 
@@ -1211,7 +1213,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
           }
 
           /* Redraw entire line (Legend of Galahad, Lemmings 2, Formula One, Kawasaki Super Bike, Deadly Moves,...) */
-          render_line(v_counter);
+          render_line(v_counter, gPixmap);
 
 #ifdef LOGVDP
           error("Line redrawn (%d sprites) \n",object_count);
@@ -1239,7 +1241,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
 #endif
             if (d & 0x40)
             {
-              render_line(v_counter);
+              render_line(v_counter, gPixmap);
               blank_line(v_counter, 0, offset);
             }
             else
@@ -1421,7 +1423,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
       if ((v_counter < bitmap.viewport.h) && (reg[1] & 0x40) && (cycles <= (mcycles_vdp + 860)))
       {
         /* render entire line */
-        render_line(v_counter);
+        render_line(v_counter, gPixmap);
       }
       break;
     }
@@ -1442,7 +1444,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
 			if ((v_counter < bitmap.viewport.h) && (reg[1] & 0x40) && (cycles <= (mcycles_vdp + 860)))
 			{
 				/* render entire line */
-				render_line(v_counter);
+				render_line(v_counter, gPixmap);
 			}
       break;
     }
@@ -1456,7 +1458,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
 		  if ((v_counter < bitmap.viewport.h) && (reg[1] & 0x40) && (cycles <= (mcycles_vdp + 860)))
 		  {
 		 	  /* render entire line */
-	 		  render_line(v_counter);
+	 		  render_line(v_counter, gPixmap);
  		  }
 
       break;
@@ -1497,7 +1499,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
         if ((v_counter < bitmap.viewport.h) && (cycles <= (mcycles_vdp + 860)))
         {
           /* remap entire line */
-          remap_line(v_counter);
+          remap_line(v_counter, gPixmap);
         }
       }
       break;
@@ -1517,7 +1519,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
       if ((line > v_counter) && (line < bitmap.viewport.h) && !(work_ram[0x1ffb] & cart.special))
       {
         v_counter = line;
-        render_line(line);
+        render_line(line, gPixmap);
       }
 
       reg[8] = d;
@@ -1626,7 +1628,7 @@ static void vdp_reg_w(unsigned int r, unsigned int d, unsigned int cycles)
           bitmap.viewport.w = 256 + ((d & 1) << 6);
 
           /* Redraw entire line */
-          render_line(v_counter);
+          render_line(v_counter, gPixmap);
         }
         else
         {
@@ -1789,7 +1791,7 @@ static void vdp_bus_w(unsigned int data)
         {
         	//logMsg("CRAM modified during HBLANK");
           /* Remap current line */
-          remap_line(v_counter);
+          remap_line(v_counter, gPixmap);
         }
       }
       break;
@@ -1810,7 +1812,7 @@ static void vdp_bus_w(unsigned int data)
         {
         	//logMsg("VSRAM modified during HBLANK");
           /* Remap current line */
-          render_line(v_counter);
+          render_line(v_counter, gPixmap);
         }
       }
       break;

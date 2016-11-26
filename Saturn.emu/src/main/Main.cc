@@ -21,6 +21,7 @@ extern "C"
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
 PerPad_struct *pad[2];
+static IG::Pixmap srcPix{};
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
 
@@ -215,7 +216,7 @@ CLINK void YuiSwapBuffers()
 			ssResY = height;
 			emuVideo.resizeImage(ssResX, ssResY);
 		}
-
+		emuVideo.writeFrame(srcPix);
 		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
@@ -335,7 +336,8 @@ int EmuSystem::loadGame(const char *path)
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
-	emuVideo.initPixmap((char*)dispbuffer, pixFmt, ssResX, ssResY);
+	emuVideo.initFormat(pixFmt);
+	srcPix = {{{ssResX, ssResY}, pixFmt}, dispbuffer};
 	emuVideo.initImage(0, ssResX, ssResY);
 
 	PerPortReset();

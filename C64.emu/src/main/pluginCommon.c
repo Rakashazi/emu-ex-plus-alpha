@@ -386,7 +386,6 @@ void gfxoutput_shutdown(void) {}
 int video_arch_resources_init(void) { return 0; }
 void video_arch_resources_shutdown(void) {}
 char video_canvas_can_resize(video_canvas_t *canvas) { return 1; }
-void video_canvas_destroy(struct video_canvas_s *canvas) {}
 int ui_resources_init() { return 0; }
 int gfxoutput_resources_init() { return 0; }
 int signals_init(int do_core_dumps) { return 0; }

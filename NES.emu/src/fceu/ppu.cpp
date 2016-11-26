@@ -19,6 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <emuframework/EmuApp.hh>
+
 #include  "types.h"
 #include  "x6502.h"
 #include  "fceu.h"
@@ -1216,11 +1218,10 @@ static void Fixit1(void) {
 
 // native pixel buffer
 NATIVE_PIX_TYPE nativeCol[256];
-NATIVE_PIX_TYPE	nativePixBuff[nesPixX*nesVisiblePixY] __attribute__ ((aligned (8))) {0};
 static uint8 lineBuffer[272] __attribute__ ((aligned (4)));
 
 void MMC5_hb(int);     //Ugh ugh ugh.
-static void DoLine(void) {
+static void DoLine(IG::Pixmap pix) {
 	int x;
 	uint8 *target = lineBuffer;//XBuf+(scanline<<8);
 
@@ -1253,7 +1254,7 @@ static void DoLine(void) {
 		}
 		uint y =  scanline - 8;
 		assert(y*nesPixX < nesPixX*nesVisiblePixY);
-		NATIVE_PIX_TYPE *outLine = &nativePixBuff[(y*nesPixX)];
+		auto outLine = (NATIVE_PIX_TYPE*)pix.pixel({0, (int)y});
 		if((PPU[1] >> 5) == 0x7)
 		{
 			//for(x=63;x>=0;x--)
@@ -1805,15 +1806,20 @@ int FCEUPPU_Loop(int skip, bool commit) {
 		else {
 			int x, max, maxref;
 
+			auto img = emuVideo.startFrame();
+			auto pix = img.pixmap();
+
 			deemp = PPU[1] >> 5;
 			for (scanline = 0; scanline < 240; ) {      //scanline is incremented in  DoLine.  Evil. :/
 				deempcnt[deemp]++;
 				DEBUG(FCEUD_UpdatePPUView(scanline, 1));
-				DoLine();
+				DoLine(pix);
 			}
+
+			img.endFrame();
 			extern void FCEUD_commitVideo();
 			if(commit)
-				FCEUD_commitVideo();
+				updateAndDrawEmuVideo();
 			
 			if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 			for (x = 1, max = 0, maxref = 0; x < 7; x++) {

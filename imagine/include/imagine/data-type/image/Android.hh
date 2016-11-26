@@ -55,7 +55,7 @@ public:
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
 	void deinit();
-	std::error_code write(IG::Pixmap &dest) override;
+	std::error_code write(IG::Pixmap dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
 

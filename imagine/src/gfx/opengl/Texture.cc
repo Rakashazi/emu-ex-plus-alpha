@@ -517,12 +517,12 @@ void GLTextureSampler::setTexParams(GLenum target)
 
 DirectTextureStorage::~DirectTextureStorage() {}
 
-IG::Pixmap &LockedTextureBuffer::pixmap()
+IG::Pixmap LockedTextureBuffer::pixmap() const
 {
 	return pix;
 }
 
-IG::WindowRect LockedTextureBuffer::sourceDirtyRect()
+IG::WindowRect LockedTextureBuffer::sourceDirtyRect() const
 {
 	return srcDirtyRect;
 }
@@ -785,7 +785,6 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 	}
 	else
 	{
-		glcBindTexture(GL_TEXTURE_2D, texName_);
 		if((ptrsize)pixmap.pixel({}) % (ptrsize)assumeAlign != 0)
 		{
 			bug_exit("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
@@ -804,6 +803,7 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 		}
 		else if(useUnpackRowLength || !pixmap.isPadded())
 		{
+			glcBindTexture(GL_TEXTURE_2D, texName_);
 			glcPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
 			if(useUnpackRowLength)
 				glcPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
@@ -827,6 +827,7 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 			}
 			alignas(__BIGGEST_ALIGNMENT__) char tempPixData[pixmap.pixelBytes()];
 			IG::Pixmap tempPix{pixmap, tempPixData};
+			glcBindTexture(GL_TEXTURE_2D, texName_);
 			glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
 			tempPix.write(pixmap, {});
 			handleGLErrors();
@@ -931,6 +932,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff)
 		IG::WP destPos = {lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y};
 		//logDMsg("unmapped PBO");
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+		glcBindTexture(GL_TEXTURE_2D, texName_);
 		glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
 		glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 		GLenum format = makeGLFormat(pix.format());

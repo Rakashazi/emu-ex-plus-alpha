@@ -54,4 +54,3 @@ static const uint nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
 #endif
 
 extern NATIVE_PIX_TYPE nativeCol[256];
-extern NATIVE_PIX_TYPE nativePixBuff[nesPixX*nesVisiblePixY] __attribute__ ((aligned (8)));

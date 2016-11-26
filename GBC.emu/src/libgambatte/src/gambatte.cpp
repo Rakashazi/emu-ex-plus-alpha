@@ -57,7 +57,8 @@ GB::~GB() {
 }
 
 std::ptrdiff_t GB::runFor(gambatte::PixelType *const videoBuf, std::ptrdiff_t const pitch,
-                          gambatte::uint_least32_t *const soundBuf, std::size_t &samples, void (*videoFrameCallback)()) {
+                          gambatte::uint_least32_t *const soundBuf, std::size_t &samples,
+													DelegateFunc<void()> videoFrameCallback) {
 	if (!p_->cpu.loaded()) {
 		samples = 0;
 		return -1;
@@ -67,10 +68,7 @@ std::ptrdiff_t GB::runFor(gambatte::PixelType *const videoBuf, std::ptrdiff_t co
 	p_->cpu.setSoundBuffer(soundBuf);
 
 	long const cyclesSinceBlit = p_->cpu.runFor(samples * 2);
-	if(videoFrameCallback)
-	{
-		videoFrameCallback();
-	}
+	videoFrameCallback.callSafe();
 	samples = p_->cpu.fillSoundBuffer();
 	return cyclesSinceBlit >= 0
 	     ? static_cast<std::ptrdiff_t>(samples) - (cyclesSinceBlit >> 1)

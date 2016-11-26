@@ -41,10 +41,7 @@ t_config config{};
 uint config_ym2413_enabled = 1;
 int8 mdInputPortDev[2]{-1, -1};
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static const uint mdMaxResX = 320, mdMaxResY = 240;
-static int mdResX = 256, mdResY = 224;
-static uint16 nativePixBuff[mdMaxResX*mdMaxResY] __attribute__ ((aligned (8))){};
-t_bitmap bitmap{(uint8*)nativePixBuff, mdResY, mdResX * (int)pixFmt.bytesPerPixel()};
+t_bitmap bitmap{};
 bool usingMultiTap = false;
 static uint autoDetectedVidSysPAL = 0;
 
@@ -80,24 +77,11 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
-void commitVideoFrame()
-{
-	if(unlikely(bitmap.viewport.w != mdResX || bitmap.viewport.h != mdResY))
-	{
-		mdResX = bitmap.viewport.w;
-		mdResY = bitmap.viewport.h;
-		bitmap.pitch = mdResX * pixFmt.bytesPerPixel();
-		logMsg("mode change: %dx%d", mdResX, mdResY);
-		emuVideo.resizeImage(mdResX, mdResY);
-	}
-	updateAndDrawEmuVideo();
-}
-
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	//logMsg("frame start");
 	RAMCheatUpdate();
-	system_frame(!processGfx, renderGfx);
+	system_frame(!processGfx, renderGfx, emuVideo);
 
 	int16 audioBuff[snd.buffer_size * 2];
 	int frames = audio_update(audioBuff);
@@ -414,7 +398,6 @@ int EmuSystem::loadGame(const char *path)
 int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
 {
 	closeGame();
-	emuVideo.initImage(0, mdResX, mdResY);
 	setupGamePaths(path);
 	#ifndef NO_SCD
 	CDAccess *cd{};
@@ -635,6 +618,6 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, mdResX, mdResY);
+	emuVideo.initFormat(pixFmt);
 	return OK;
 }

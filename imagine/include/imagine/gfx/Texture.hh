@@ -196,8 +196,8 @@ class LockedTextureBuffer: public LockedTextureBufferImpl
 {
 public:
 	constexpr LockedTextureBuffer() {}
-	IG::Pixmap &pixmap();
-	IG::WindowRect sourceDirtyRect();
+	IG::Pixmap pixmap() const;
+	IG::WindowRect sourceDirtyRect() const;
 	explicit operator bool() const;
 };
 

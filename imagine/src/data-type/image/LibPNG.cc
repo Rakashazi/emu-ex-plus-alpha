@@ -350,7 +350,7 @@ std::error_code Png::readImage(IG::Pixmap &dest)
 	return {};
 }
 
-std::error_code PngFile::write(IG::Pixmap &dest)
+std::error_code PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));
 }

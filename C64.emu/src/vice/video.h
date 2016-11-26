@@ -234,7 +234,7 @@ extern VICE_API int video_canvas_set_palette(struct video_canvas_s *canvas,
 extern int video_canvas_palette_set(struct video_canvas_s *canvas,
                                     struct palette_s *palette);
 extern void video_canvas_create_set(struct video_canvas_s *canvas);
-extern void video_canvas_destroy(struct video_canvas_s *canvas);
+extern VICE_API void video_canvas_destroy(struct video_canvas_s *canvas);
 extern void video_canvas_map(struct video_canvas_s *canvas);
 extern void video_canvas_unmap(struct video_canvas_s *canvas);
 extern VICE_API void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas);

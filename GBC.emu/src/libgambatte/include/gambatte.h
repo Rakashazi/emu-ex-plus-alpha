@@ -25,6 +25,7 @@
 #include "file/file.h"
 #include <cstddef>
 #include <string>
+#include <imagine/util/DelegateFunc.hh>
 
 namespace gambatte {
 
@@ -84,7 +85,7 @@ public:
 	  */
 	std::ptrdiff_t runFor(gambatte::PixelType *videoBuf, std::ptrdiff_t pitch,
 	                      gambatte::uint_least32_t *audioBuf, std::size_t &samples,
-	                      void (*videoFrameCallback)());
+	                      DelegateFunc<void()> videoFrameCallback);
 
 	/**
 	  * Reset to initial state.

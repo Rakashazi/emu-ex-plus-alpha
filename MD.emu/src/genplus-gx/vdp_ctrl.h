@@ -100,6 +100,8 @@ unsigned int (*vdp_z80_data_r)(void);
 
 extern VDP vdp;
 
+extern IG::Pixmap gPixmap;
+
 static auto &reg = vdp.reg;
 static auto &sat = vdp.sat;
 static auto &vram = vdp.vram;

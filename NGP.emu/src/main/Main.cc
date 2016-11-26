@@ -28,6 +28,7 @@ uint32 frameskip_active = 0;
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static bool renderToScreen = false;
+static IG::Pixmap srcPix{{{ngpResX, ngpResY}, pixFmt}, cfb};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
@@ -200,6 +201,7 @@ void system_VBL(void)
 {
 	if(likely(renderToScreen))
 	{
+		emuVideo.writeFrame(srcPix);
 		updateAndDrawEmuVideo();
 		renderToScreen = 0;
 	}
@@ -308,7 +310,7 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 CallResult EmuSystem::onInit()
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuVideo.initPixmap((char*)cfb, pixFmt, ngpResX, ngpResY);
+	emuVideo.initFormat(pixFmt);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;

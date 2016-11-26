@@ -36,8 +36,6 @@ static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 #endif
 
-alignas(8) static gambatte::PixelType screenBuff[gbResX*gbResY]{};
-
 bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
@@ -239,17 +237,35 @@ void EmuSystem::configAudioRate(double frameTime)
 	}
 }
 
-static void commitVideoFrame()
-{
-	updateAndDrawEmuVideo();
-}
-
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 {
 	alignas(std::max_align_t) uint8 snd[(35112+2064)*4];
 	size_t samples = 35112;
-	int frameSample = gbEmu.runFor(processGfx ? screenBuff : nullptr, 160, (uint_least32_t*)snd, samples,
-		renderGfx ? commitVideoFrame : nullptr);
+	int frameSample;
+	DelegateFunc<void()> frameCallback{};
+	if(processGfx)
+	{
+		auto img = emuVideo.startFrame();
+		frameCallback =
+			[&img, renderGfx]()
+			{
+				img.endFrame();
+				if(renderGfx)
+				{
+					updateAndDrawEmuVideo();
+				}
+			};
+		frameSample = gbEmu.runFor((gambatte::PixelType*)img.pixmap().pixel({}), img.pixmap().pitchPixels(),
+			(uint_least32_t*)snd, samples, frameCallback);
+	}
+	else
+	{
+		if(renderGfx)
+		{
+			frameCallback = [&](){ updateAndDrawEmuVideo(); };
+		}
+		frameSample = gbEmu.runFor(nullptr, 160, (uint_least32_t*)snd, samples, frameCallback);
+	}
 	if(renderAudio)
 	{
 		if(frameSample == -1)
@@ -291,6 +307,6 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initPixmap((char*)screenBuff, pixFmt, gbResX, gbResY);
+	emuVideo.initFormat(pixFmt);
 	return OK;
 }

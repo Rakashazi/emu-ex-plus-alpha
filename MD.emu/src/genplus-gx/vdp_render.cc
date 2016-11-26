@@ -3707,9 +3707,6 @@ void render_init(void)
 
 void render_reset(void)
 {
-  /* Clear display bitmap */
-  memset(bitmap.data, 0, bitmap.pitch * bitmap.height);
-
   /* Clear line buffers */
   memset(linebuf, 0, sizeof(linebuf));
 
@@ -3725,7 +3722,7 @@ void render_reset(void)
 /* Line rendering functions                                                 */
 /*--------------------------------------------------------------------------*/
 
-void render_line(int line)
+void render_line(int line, IG::Pixmap pix)
 {
   int width = bitmap.viewport.w;
 
@@ -3772,16 +3769,17 @@ void render_line(int line)
   }
 
   /* Pixel color remapping */
-  remap_line(line);
+  if(pix)
+  	remap_line(line, pix);
 }
 
 void blank_line(int line, int offset, int width)
 {
   memset(&linebuf[0][0x20 + offset], 0x40, width);
-  remap_line(line);
+  //remap_line(line);
 }
 
-void remap_line(int line)
+void remap_line(int line, IG::Pixmap pix)
 {
   /* Line width */
   int x_offset = bitmap.viewport.x;
@@ -3796,16 +3794,19 @@ void remap_line(int line)
     line = (line << 1) + odd_frame;
   }
 
+  if(unlikely((uint)line >= pix.h() || (uint)bitmap.viewport.w != pix.w()))
+		return;
+
   /* Pixel line buffer */
   uint8 *src = &linebuf[0][0x20 - x_offset];
 
-#if defined(SUPPORT_8BPP_RENDER)
-    uint8 *dst =((uint8 *)&bitmap.data[(line * bitmap.pitch)]);
-#elif defined(SUPPORT_32BPP_RENDER)
-    uint32 *dst =((uint32 *)&bitmap.data[(line * bitmap.pitch)]);
-#else
-    uint16 *dst =((uint16 *)&bitmap.data[(line * bitmap.pitch)]);
-#endif
+  #if defined(SUPPORT_8BPP_RENDER)
+    uint8 *dst = (uint8*)pix.pixel({0, line});
+	#elif defined(SUPPORT_32BPP_RENDER)
+		uint32 *dst = (uint32*)pix.pixel({0, line});
+	#else
+		uint16 *dst = (uint16*)pix.pixel({0, line});
+	#endif
 	do
 	{
 		*dst++ = pixel[*src++];

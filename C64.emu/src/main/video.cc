@@ -31,6 +31,7 @@ extern "C"
 }
 
 struct video_canvas_s *activeCanvas{};
+IG::Pixmap canvasSrcPix{};
 double systemFrameRate = 60.0;
 
 void setCanvasSkipFrame(bool on)
@@ -98,27 +99,61 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	yi *= c->videoconfig->scaley;
 	h *= c->videoconfig->scaley;
 
-	w = std::min(w, c64VidX);
-	h = std::min(h, c64VidY);
+	w = std::min(w, c->pixmap->w());
+	h = std::min(h, c->pixmap->h());
 
-	plugin.video_canvas_render(c, (BYTE*)pix, w, h, xs, ys, xi, yi, emuVideo.vidPix.pitchBytes(), pixFmt.bitsPerPixel());
+	plugin.video_canvas_render(c, (BYTE*)c->pixmap->pixel({}), w, h, xs, ys, xi, yi, c->pixmap->pitchBytes(), pixFmt.bitsPerPixel());
+}
+
+void resetCanvasSourcePixmap(struct video_canvas_s *c)
+{
+	uint canvasW = c->pixmap->w();
+	uint canvasH = c->pixmap->h();
+	if(optionCropNormalBorders && (canvasH == 247 || canvasH == 272))
+	{
+		logMsg("cropping borders");
+		// Crop all vertical borders on NTSC, leaving leftover side borders
+		int xBorderSize = 32, yBorderSize = 23;
+		int height = 200;
+		int startX = yBorderSize, startY = yBorderSize;
+		if(canvasH == 272) // PAL
+		{
+			// Crop all horizontal borders on PAL, leaving leftover top/bottom borders
+			yBorderSize = 32;
+			height = 206;
+			startX = xBorderSize; startY = xBorderSize;
+		}
+		int width = 320+(xBorderSize*2 - startX*2);
+		int widthPadding = startX*2;
+		canvasSrcPix = c->pixmap->subPixmap({startX, startY}, {width, height});
+	}
+	else
+	{
+		canvasSrcPix = *c->pixmap;
+	}
 }
 
 void video_canvas_resize(struct video_canvas_s *c, char resize_canvas)
 {
-	c64VidX = c->draw_buffer->canvas_width;
-	c64VidY = c->draw_buffer->canvas_height;
-	c64VidX *= c->videoconfig->scalex;
-	c64VidY *= c->videoconfig->scaley;
-	logMsg("resized canvas to %d,%d, renderer %d", c64VidX, c64VidY, c->videoconfig->rendermode);
-	if(unlikely(!emuVideo.vidImg))
-	{
-		emuVideo.initImage(0, c64VidX, c64VidY);
-	}
+	int x = c->draw_buffer->canvas_width;
+	int y = c->draw_buffer->canvas_height;
+	x *= c->videoconfig->scalex;
+	y *= c->videoconfig->scaley;
+	logMsg("resized canvas to %d,%d, renderer %d", x, y, c->videoconfig->rendermode);
+	delete c->pixmap;
+	c->pixmap = new IG::MemPixmap{{{x, y}, pixFmt}};
+	resetCanvasSourcePixmap(c);
 }
 
 video_canvas_t *video_canvas_create(video_canvas_t *c, unsigned int *width, unsigned int *height, int mapped)
 {
 	logMsg("canvas create:0x%p renderer %d", c, c->videoconfig->rendermode);
 	return c;
+}
+
+void video_canvas_destroy(struct video_canvas_s *c)
+{
+	logMsg("canvas destroy:0x%p", c);
+	delete c->pixmap;
+	c->pixmap = nullptr;
 }

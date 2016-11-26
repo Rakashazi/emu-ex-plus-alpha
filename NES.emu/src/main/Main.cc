@@ -412,7 +412,7 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 CallResult EmuSystem::onInit()
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuVideo.initPixmap((char*)nativePixBuff, pixFmt, nesPixX, nesVisiblePixY);
+	emuVideo.initFormat(pixFmt);
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{
