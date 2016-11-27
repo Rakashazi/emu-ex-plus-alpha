@@ -1,9 +1,12 @@
-/*
+/** \file   src/screenshot.c
+ * \brief   Screenshot/video recording module
+ *
  * screenshot.c - Create a screenshot.
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
  *  Andreas Matthies <andreas.matthies@gmx.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -52,6 +55,11 @@ static char *reopen_recording_drivername;
 static struct video_canvas_s *reopen_recording_canvas;
 static char *reopen_filename;
 
+
+/** \brief  Initialize module
+ *
+ * \return  0 on success (always)
+ */
 int screenshot_init(void)
 {
     /* Setup logging system.  */
@@ -59,8 +67,25 @@ int screenshot_init(void)
     recording_driver = NULL;
     recording_canvas = NULL;
 
+    reopen_recording_drivername = NULL;
+    reopen_filename = NULL;
     return 0;
 }
+
+
+/** \brief  Clean up memory resources used by the module
+ */
+void screenshot_shutdown(void)
+{
+    if (reopen_recording_drivername != NULL) {
+        lib_free(reopen_recording_drivername);
+    }
+    if (reopen_filename != NULL) {
+        lib_free(reopen_filename);
+    }
+}
+
+
 
 /*-----------------------------------------------------------------------*/
 

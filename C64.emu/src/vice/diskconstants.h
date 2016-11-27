@@ -1,6 +1,13 @@
-/*
- * diskconstants.h - Disk constants.
+/** \file   src/diskconstants.h
  *
+ * \brief   Disk drive specifications
+ *
+ * For customized disks, the values must fit beteen the NUM_ and MAX_
+ * limits. Do not change the NUM_ values, as they define the standard
+ * disk geometry.
+ */
+
+/*
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
  *
@@ -27,62 +34,108 @@
 #ifndef VICE_DISKCONSTANTS_H
 #define VICE_DISKCONSTANTS_H
 
+
 /*
- * Disk Drive Specs
- * For customized disks, the values must fit beteen the NUM_ and MAX_
- * limits. Do not change the NUM_ values, as they define the standard
- * disk geometry.
+ * CBM 1541 constants
  */
 
-#define NUM_TRACKS_1541        35
-#define NUM_BLOCKS_1541        683      /* 664 free */
-#define EXT_TRACKS_1541        40
-#define EXT_BLOCKS_1541        768
-#define MAX_TRACKS_1541        42
-#define MAX_BLOCKS_1541        802
-#define DIR_TRACK_1541         18
-#define DIR_SECTOR_1541        1
-#define BAM_TRACK_1541         18
-#define BAM_SECTOR_1541        0
-#define BAM_NAME_1541          144
-#define BAM_ID_1541            162
-#define BAM_EXT_BIT_MAP_1541   192
+#define NUM_TRACKS_1541        35   /**< number of tracks on a standard 1541
+                                         floppy */
+#define NUM_BLOCKS_1541        683  /**< number of blocks on a standard 1541
+                                         floppy (664 free) */
+#define EXT_TRACKS_1541        40   /**< number of tracks in an extended 1541
+                                         floppy, used by SpeedDOS,
+                                             ProLogic DOS, etc */
+#define EXT_BLOCKS_1541        768  /**< number of blocks on an extended 1541
+                                         floppy */
+#define MAX_TRACKS_1541        42   /**< maximum number of accessible tracks for
+                                         a 1541 drive: not all 1541 drives can
+                                         do this */
+#define MAX_BLOCKS_1541        802  /**< maximum number of blocks for a 1541
+                                         floppy, using 42 tracks */
+#define DIR_TRACK_1541         18   /**< 1541 directory track number */
+#define DIR_SECTOR_1541        1    /**< 1541 directory sector number */
+#define BAM_TRACK_1541         18   /**< 1541 BAM track number */
+#define BAM_SECTOR_1541        0    /**< 1541 BAM sector number */
+#define BAM_NAME_1541          144  /**< offset in BAM of the disk name in
+                                         PETSCII, 16 bytes, padded with 0xa0 */
+#define BAM_ID_1541            162  /**< offset in BAM of the disk ID in
+                                         PETSCII, 2 bytes for standard DOS */
+#define BAM_EXT_BIT_MAP_1541   192  /**< BAM bitmap entries for tracks 36-40 for
+                                         extended floppies, only valid for
+                                         SpeedDOS */
 
-#define NUM_TRACKS_2040        35
-#define NUM_BLOCKS_2040        690      /* 670 free */
-#define MAX_TRACKS_2040        35
-#define MAX_BLOCKS_2040        690
-#define DIR_TRACK_2040         18
-#define DIR_SECTOR_2040        1
-#define BAM_TRACK_2040         18
-#define BAM_SECTOR_2040        0
-#define BAM_NAME_2040          144
-#define BAM_ID_2040            162
-#define BAM_EXT_BIT_MAP_2040   192
 
-#define NUM_TRACKS_1571        70
-#define NUM_BLOCKS_1571        1366     /* 1328 free */
-#define MAX_TRACKS_1571        70
-#define MAX_BLOCKS_1571        1366
-#define DIR_TRACK_1571         18
-#define DIR_SECTOR_1571        1
-#define BAM_TRACK_1571         18
-#define BAM_SECTOR_1571        0
-#define BAM_NAME_1571          144
-#define BAM_ID_1571            162
-#define BAM_EXT_BIT_MAP_1571   221
+/* CBM 2040 constants */
 
-#define NUM_TRACKS_1581        80
-#define NUM_SECTORS_1581       40       /* Logical sectors */
-#define NUM_BLOCKS_1581        3200     /* 3160 free */
-#define MAX_TRACKS_1581        83
-#define MAX_BLOCKS_1581        3320
-#define DIR_TRACK_1581         40
-#define DIR_SECTOR_1581        3
-#define BAM_TRACK_1581         40
-#define BAM_SECTOR_1581        0
-#define BAM_NAME_1581          4
-#define BAM_ID_1581            22
+#define NUM_TRACKS_2040        35   /**< number of tracks on a 2040 floppy */
+#define NUM_BLOCKS_2040        690  /**< number of blocks on a 2040 floppy
+                                         (670 free */
+#define MAX_TRACKS_2040        35   /**< maximum number of tracks on a 2040
+                                         floppy */
+#define MAX_BLOCKS_2040        690  /**< maximum number of blocks on a 2040
+                                         floppy */
+#define DIR_TRACK_2040         18   /**< directory track number */
+#define DIR_SECTOR_2040        1    /**< directory sector number */
+#define BAM_TRACK_2040         18   /**< BAM track number */
+#define BAM_SECTOR_2040        0    /**< BAM sector number */
+#define BAM_NAME_2040          144  /**< offset in BAM of the disk name in
+                                         PETSCII, 16 bytes, padded with 0xa0 */
+#define BAM_ID_2040            162  /**< offset in BAM of the disk ID in
+                                         PETSCII, 2 bytes */
+#define BAM_EXT_BIT_MAP_2040   192  /**< BAM bitmap entries for tracks 36-40 for
+                                         extended floppies (did these exist?) */
+
+
+/* CBM 1571 constants, these constants are for a double-sided 1571
+ *
+ * FIXME: constants for the second BAM at (53,0) are missing
+ */
+
+#define NUM_TRACKS_1571        70   /**< number of tracks on a 1571 floppy */
+#define NUM_BLOCKS_1571        1366 /**< number of blocks on a 1571 floppy
+                                         (1328 blocks free) */
+#define MAX_TRACKS_1571        70   /**< maximum number of tracks on a 1571
+                                         floppy */
+#define MAX_BLOCKS_1571        1366 /**< maximum number of blocks on a 1571
+                                         floppy */
+#define DIR_TRACK_1571         18   /**< directory track number */
+#define DIR_SECTOR_1571        1    /**< directory sector number */
+#define BAM_TRACK_1571         18   /**< BAM track number (side 1 BAM) */
+#define BAM_SECTOR_1571        0    /**< BAM sector number (side 1 BAM) */
+#define BAM_NAME_1571          144  /**< offset in BAM of the disk name in
+                                         PETSCII, 16 bytes, padded with 0xa0 */
+#define BAM_ID_1571            162  /**< offset in BAM of the disk ID in
+                                         PETSCII, 2 bytes */
+#define BAM_EXT_BIT_MAP_1571   221  /**< BAM bitmap entries for tracks 36-40 for
+                                         extended floppies (did these exist?) */
+
+
+/* CBM 1581 constants */
+
+#define NUM_TRACKS_1581        80   /**< number of tracks on a 1581 diskette */
+#define NUM_SECTORS_1581       40   /**< number of sectors per track */
+#define NUM_BLOCKS_1581        3200 /**< number of blocks on a 1581 diskette
+                                         (3160 blocks free) */
+#define MAX_TRACKS_1581        83   /**< maximum number of tracks on a 1581
+                                         diskette */
+#define MAX_BLOCKS_1581        3320 /**< maximum number of blocks on a 1581
+                                         diskette when using 83 tracks */
+#define DIR_TRACK_1581         40   /**< directory track number */
+#define DIR_SECTOR_1581        3    /**< directory sector number */
+#define BAM_TRACK_1581         40   /**< BAM track number */
+#define BAM_SECTOR_1581        0    /**< BAM first sector number (the BAM of a
+                                        1581 diskette is three sectors) */
+#define BAM_NAME_1581          4    /**< offset in BAM of disk name in PETSCII,
+                                         16 bytes, padded with 0xa0 */
+#define BAM_ID_1581            22   /**< offset in BAM of disk ID in PETSCII,
+                                         2 bytes */
+
+/* FIXME: I'm not really familiar with the following drives, so documentation
+ *        of these constants will have to wait.
+ */
+
+/* CBM 8050 constants */
 
 #define NUM_TRACKS_8050        77
 #define NUM_BLOCKS_8050        2083     /* 2052 free */

@@ -156,19 +156,6 @@ typedef struct cond_node_s cond_node_t;
 
 typedef void monitor_toggle_func_t(int value);
 
-struct cpuhistory_s {
-    WORD addr;
-    BYTE op;
-    BYTE p1;
-    BYTE p2;
-    BYTE reg_a;
-    BYTE reg_x;
-    BYTE reg_y;
-    BYTE reg_sp;
-    WORD reg_st;
-};
-typedef struct cpuhistory_s cpuhistory_t;
-
 /* Defines */
 #ifndef TRUE
 #define TRUE 1
@@ -221,18 +208,6 @@ typedef struct cpuhistory_s cpuhistory_t;
 #define reg_memspace(mr) (HI16_TO_LO16(mr))
 #define reg_regid(mr) (LO16(mr))
 
-#define CPUHISTORY_SIZE 4096
-
-#ifdef FEATURE_CPUMEMHISTORY
-#define MEMMAP_SIZE 0x10000
-#define MEMMAP_PICX 0x100
-#define MEMMAP_PICY 0x100
-#else
-#define MEMMAP_SIZE 1
-#define MEMMAP_PICX 1
-#define MEMMAP_PICY 1
-#endif
-
 /* Global variables */
 
 extern const char *_mon_space_strings[];
@@ -257,12 +232,6 @@ extern bool force_array[NUM_MEMSPACES];
 extern unsigned char data_buf[256];
 extern unsigned char data_mask_buf[256];
 extern unsigned int data_buf_len;
-extern cpuhistory_t cpuhistory[CPUHISTORY_SIZE];
-extern int cpuhistory_i;
-extern BYTE *mon_memmap;
-extern int mon_memmap_size;
-extern int mon_memmap_pic_x;
-extern int mon_memmap_pic_y;
 
 /* Function declarations */
 extern void mon_add_number_to_buffer(int number);
@@ -270,10 +239,6 @@ extern void mon_add_number_masked_to_buffer(int number, int mask);
 extern void mon_add_string_to_buffer(char *str);
 extern void mon_backtrace(void);
 extern void mon_cart_freeze(void);
-extern void mon_cpuhistory(int count);
-extern void mon_memmap_zap(void);
-extern void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr);
-extern void mon_memmap_save(const char* filename, int format);
 extern void mon_reset_machine(int type);
 extern void mon_resource_get(const char *name);
 extern void mon_resource_set(const char *name, const char* value);

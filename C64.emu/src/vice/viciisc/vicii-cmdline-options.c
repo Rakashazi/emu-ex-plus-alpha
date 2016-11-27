@@ -59,7 +59,7 @@ int border_set_func(const char *value, void *extra_param)
         vicii_resources.border_mode = VICII_NORMAL_BORDERS;
     }
 
-    machine_change_timing(video ^ VICII_BORDER_MODE(vicii_resources.border_mode));
+    machine_change_timing(video, vicii_resources.border_mode);
 
     return 0;
 }

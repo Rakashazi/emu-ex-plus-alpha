@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -50,8 +51,6 @@ BYTE pio1_read(WORD addr)
     /*  Correct clock */
     ted_handle_pending_alarms(0);
 
-    pio1_value = read_userport_pbx(0xff, pio1_value);
-
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
     if (drive_context[0]->drive->parallel_cable
         || drive_context[1]->drive->parallel_cable) {
@@ -59,6 +58,8 @@ BYTE pio1_read(WORD addr)
     } else {
         pio1_value = pio1_data;
     }
+
+    pio1_value = read_userport_pbx(0xff, pio1_value);
 
     if (tape_sense) {
         pio1_value &= ~4;

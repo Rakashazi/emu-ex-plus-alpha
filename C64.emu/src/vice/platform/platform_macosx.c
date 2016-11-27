@@ -29,10 +29,25 @@
 
 /* Tested and confirmed working on:
  * - ppc MacOSX 10.4
- * - i386 MacOSX 10.6
- * - i386 MacOSX 10.7
- * - x86_64 MacOSX 10.8
-*/
+ * - x86 MacOSX 10.4
+ * - x86 MacOSX 10.5
+ * - x86 MacOSX 10.6
+ * - x86 MacOSX 10.7
+ * - x86 MacOSX 10.8
+ * - x86 MacOSX 10.9
+ * - x86 MacOSX 10.10
+ * - x86 MacOSX 10.11
+ */
+
+/* Binary compatibility table:
+
+   running on |       | compiled for ->
+              v       | PPC OSX 10.1-10.4 | x86 OSX 10.4-10.6 | x86 OSX 10.7-10.11
+   -------------------------------------------------------------------------------
+   PPC OSX 10.1-10.4  | yes                | NO               | NO
+   x86 OSX 10.4-10.6  | yes (Rosetta)      | yes              | NO
+   x86 OSX 10.7-10.11 | NO                 | yes              | yes
+ */
 
 #include "vice.h"
 

@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -59,7 +60,7 @@ typedef struct pport_s pport_t;
 
 extern pport_t pport;
 
-extern void c64pla_config_changed(int tape_sense, int caps_sense, BYTE pullup);
+extern void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_sense, BYTE pullup);
 extern void c64pla_pport_reset(void);
 
 #endif

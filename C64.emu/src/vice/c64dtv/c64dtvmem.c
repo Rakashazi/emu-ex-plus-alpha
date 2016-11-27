@@ -186,7 +186,7 @@ void mem_pla_config_changed(void)
 {
     mem_config = (((~pport.dir | pport.data) & 0x7));
 
-    c64pla_config_changed(0, 1, 0x17);
+    c64pla_config_changed(0, 0, 0, 1, 0x17);
 
     if (watchpoints_active) {
         _mem_read_tab_ptr = mem_read_tab_watch;

@@ -546,7 +546,7 @@
                 tmp2 += 0x10;                                                            \
                 tmp += 6;                                                                \
             }                                                                            \
-            LOCAL_SET_OVERFLOW(~(reg_a ^ tmp_value) & (reg_a ^ tmp) & 0x80);             \
+            LOCAL_SET_OVERFLOW(~(reg_a ^ tmp_value) & (reg_a ^ tmp2) & 0x80);            \
             if (tmp2 > 0x90) {                                                           \
                 tmp2 += 0x60;                                                            \
             }                                                                            \
@@ -615,7 +615,15 @@
             CLK_ADD(CLK, CYCLES_1);                        \
             if (!tmp) {                                    \
                 dest_addr = reg_pc + (signed char)(value); \
-                OPCODE_DELAYS_INTERRUPT();                 \
+                                                           \
+                LOAD(reg_pc);                              \
+                CLK_ADD(CLK, CYCLES_1);                    \
+                if ((reg_pc ^ dest_addr) & 0xff00) {       \
+                    LOAD(reg_pc);                          \
+                    CLK_ADD(CLK, CYCLES_1);                \
+                } else {                                   \
+                    OPCODE_DELAYS_INTERRUPT();             \
+                }                                          \
                 JUMP(dest_addr & 0xffff);                  \
             }                                              \
         }                                                  \
@@ -642,7 +650,15 @@
                                                            \
             if (tmp) {                                     \
                 dest_addr = reg_pc + (signed char)(value); \
-                OPCODE_DELAYS_INTERRUPT();                 \
+                                                           \
+                LOAD(reg_pc);                              \
+                CLK_ADD(CLK, CYCLES_1);                    \
+                if ((reg_pc ^ dest_addr) & 0xff00) {       \
+                    LOAD(reg_pc);                          \
+                    CLK_ADD(CLK, CYCLES_1);                \
+                } else {                                   \
+                    OPCODE_DELAYS_INTERRUPT();             \
+                }                                          \
                 JUMP(dest_addr & 0xffff);                  \
             }                                              \
         }                                                  \
@@ -988,17 +1004,18 @@
         INC_PC(SIZE_3);         \
     } while (0)
 
+/* yes, this is strange but that's how it is */
 #define NOOP_5C()               \
     do {                        \
-        LOAD(p2);               \
+        LOAD(p2 | 0xff00);      \
         CLK_ADD(CLK, CYCLES_1); \
-        LOAD(reg_pc + 2);       \
+        LOAD(0xffff);           \
         CLK_ADD(CLK, CYCLES_1); \
-        LOAD(reg_pc + 2);       \
+        LOAD(0xffff);           \
         CLK_ADD(CLK, CYCLES_1); \
-        LOAD(reg_pc + 2);       \
+        LOAD(0xffff);           \
         CLK_ADD(CLK, CYCLES_1); \
-        LOAD(reg_pc + 2);       \
+        LOAD(0xffff);           \
         CLK_ADD(CLK, CYCLES_1); \
         INC_PC(SIZE_3);         \
     } while (0)
@@ -1179,30 +1196,25 @@
 
 #define SBC(value, clk_inc, pc_inc)                                               \
     do {                                                                          \
-        WORD src, tmp;                                                            \
+        WORD src, tmp, tmp2;                                                      \
                                                                                   \
         src = (WORD)(value);                                                      \
         CLK_ADD(CLK, (clk_inc));                                                  \
+        tmp = reg_a - src + LOCAL_CARRY() - 1;                                    \
+        LOCAL_SET_OVERFLOW(((reg_a ^ tmp) & 0x80) && ((reg_a ^ src) & 0x80));     \
         if (LOCAL_DECIMAL()) {                                                    \
-            tmp = reg_a - (src & 0xf) + LOCAL_CARRY() - 1;                        \
-            if ((tmp & 0xf) > (reg_a & 0xf)) {                                    \
-                tmp -= 6;                                                         \
-            }                                                                     \
-            tmp -= (src & 0xf0);                                                  \
-            if ((tmp & 0xf0) > (reg_a & 0xf0)) {                                  \
+            if (tmp > 0xff) {                                                     \
                 tmp -= 0x60;                                                      \
             }                                                                     \
-            LOCAL_SET_OVERFLOW(!(tmp > reg_a));                                   \
-            LOCAL_SET_CARRY(!(tmp > reg_a));                                      \
-            LOCAL_SET_NZ(tmp & 0xff);                                             \
+            tmp2 = (reg_a & 0xf) - (src & 0xf) + LOCAL_CARRY() - 1;               \
+            if (tmp2 > 0xff) {                                                    \
+                tmp -= 6;                                                         \
+            }                                                                     \
             LOAD(reg_pc + pc_inc - 1);                                            \
             CLK_ADD(CLK, CYCLES_1);                                               \
-        } else {                                                                  \
-            tmp = reg_a - src - ((LOCAL_CARRY()) ? 0 : 1);                        \
-            LOCAL_SET_NZ(tmp & 0xff);                                             \
-            LOCAL_SET_CARRY(tmp < 0x100);                                         \
-            LOCAL_SET_OVERFLOW(((reg_a ^ tmp) & 0x80) && ((reg_a ^ src) & 0x80)); \
         }                                                                         \
+        LOCAL_SET_CARRY(reg_a + LOCAL_CARRY() - 1 >= src);                        \
+        LOCAL_SET_NZ(tmp & 0xff);                                                 \
         reg_a = (BYTE)tmp;                                                        \
         INC_PC(pc_inc);                                                           \
     } while (0)
@@ -1710,7 +1722,7 @@ trap_skipped:
                 NOOP_ABS();
                 break;
 
-            case 0x5c:          /* NOP $nnnn + 4 (FIXME: correct ??) */
+            case 0x5c:          /* NOP broken */
                 NOOP_5C();
                 break;
 

@@ -46,6 +46,8 @@ extern BYTE via2_read(WORD addr);
 extern BYTE via2_peek(WORD addr);
 
 extern void via2_set_tape_sense(int v);
+extern void via2_set_tape_write_in(int v);
+extern void via2_set_tape_motor_in(int v);
 extern void via2_check_lightpen(void);
 
 #endif

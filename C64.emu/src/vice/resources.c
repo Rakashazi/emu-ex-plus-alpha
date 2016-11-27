@@ -293,6 +293,8 @@ int resources_register_string(const resource_string_t *r)
     const resource_string_t *sp;
     resource_ram_t *dp;
 
+    DBG(("resources_register_string name:'%s'\n", r->name ? r->name : "<empty/null>"));
+    
     sp = r;
     dp = resources + num_resources;
     while (sp->name != NULL) {
@@ -587,11 +589,11 @@ int resources_set_string(const char *name, const char *value)
 
 void resources_set_value_event(void *data, int size)
 {
-    const char *name;
-    const char *valueptr;
+    char *name;
+    char *valueptr;
     resource_ram_t *r;
 
-    name = (const char *)data;
+    name = data;
     valueptr = name + strlen(name) + 1;
     r = lookup(name);
     if (r->type == RES_INTEGER) {

@@ -132,7 +132,7 @@ static io_source_list_t *mach5_io1_list_item = NULL;
 static io_source_list_t *mach5_io2_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_MACH5, 1, 0, &mach5_io1_device, &mach5_io2_device, CARTRIDGE_MACH5
+    CARTRIDGE_NAME_MACH5, 0, 1, &mach5_io1_device, &mach5_io2_device, CARTRIDGE_MACH5
 };
 
 /* ---------------------------------------------------------------------*/

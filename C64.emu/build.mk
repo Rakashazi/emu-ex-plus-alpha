@@ -3,6 +3,8 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
+viceSrcPath := $(projectPath)/src/vice
+
 CFLAGS_WARN += -Werror-implicit-function-declaration
 
 ifeq ($(ENV),android)
@@ -31,39 +33,40 @@ CPPFLAGS += \
 -I$(projectPath)/src \
 -I$(projectPath)/src/config \
 -I$(projectPath)/src/vice \
--I$(projectPath)/src/vice/c64 \
--I$(projectPath)/src/vice/c64/cart \
--I$(projectPath)/src/vice/c128 \
--I$(projectPath)/src/vice/cbm2 \
--I$(projectPath)/src/vice/pet \
--I$(projectPath)/src/vice/plus4 \
--I$(projectPath)/src/vice/drive \
--I$(projectPath)/src/vice/lib/p64 \
--I$(projectPath)/src/vice/sid \
--I$(projectPath)/src/vice/tape \
--I$(projectPath)/src/vice/userport \
--I$(projectPath)/src/vice/video \
--I$(projectPath)/src/vice/drive/iec/c64exp \
--I$(projectPath)/src/vice/core \
--I$(projectPath)/src/vice/rtc \
--I$(projectPath)/src/vice/vdrive \
--I$(projectPath)/src/vice/imagecontents \
--I$(projectPath)/src/vice/monitor \
--I$(projectPath)/src/vice/platform \
--I$(projectPath)/src/vice/raster \
--I$(projectPath)/src/vice/c64dtv \
--I$(projectPath)/src/vice/vicii \
--I$(projectPath)/src/vice/viciisc \
--I$(projectPath)/src/vice/vdc \
--I$(projectPath)/src/vice/vic20 \
--I$(projectPath)/src/vice/vic20/cart \
--I$(projectPath)/src/vice/crtc \
--I$(projectPath)/src/vice/tapeport \
--I$(projectPath)/src/vice/joyport \
--I$(projectPath)/src/vice/samplerdrv \
--I$(projectPath)/src/vice/drive/iec \
--I$(projectPath)/src/vice/drive/ieee \
--I$(projectPath)/src/vice/drive/tcbm \
+-I$(viceSrcPath)/c64 \
+-I$(viceSrcPath)/c64/cart \
+-I$(viceSrcPath)/c128 \
+-I$(viceSrcPath)/cbm2 \
+-I$(viceSrcPath)/pet \
+-I$(viceSrcPath)/plus4 \
+-I$(viceSrcPath)/drive \
+-I$(viceSrcPath)/lib/p64 \
+-I$(viceSrcPath)/sid \
+-I$(viceSrcPath)/tape \
+-I$(viceSrcPath)/userport \
+-I$(viceSrcPath)/video \
+-I$(viceSrcPath)/drive/iec/c64exp \
+-I$(viceSrcPath)/core \
+-I$(viceSrcPath)/rtc \
+-I$(viceSrcPath)/vdrive \
+-I$(viceSrcPath)/imagecontents \
+-I$(viceSrcPath)/monitor \
+-I$(viceSrcPath)/platform \
+-I$(viceSrcPath)/raster \
+-I$(viceSrcPath)/c64dtv \
+-I$(viceSrcPath)/vicii \
+-I$(viceSrcPath)/viciisc \
+-I$(viceSrcPath)/vdc \
+-I$(viceSrcPath)/vic20 \
+-I$(viceSrcPath)/vic20/cart \
+-I$(viceSrcPath)/crtc \
+-I$(viceSrcPath)/tapeport \
+-I$(viceSrcPath)/joyport \
+-I$(viceSrcPath)/samplerdrv \
+-I$(viceSrcPath)/drive/iec \
+-I$(viceSrcPath)/drive/ieee \
+-I$(viceSrcPath)/drive/tcbm \
+-I$(viceSrcPath)/diag \
 -DSTDC_HEADERS=1 \
 -DHAVE_SYS_TYPES_H=1 \
 -DHAVE_SYS_STAT_H=1 \
@@ -75,7 +78,7 @@ CPPFLAGS += \
 -DHAVE_STDINT_H=1 \
 -DHAVE_UNISTD_H=1
 
-VPATH += $(projectPath)/src/vice
+VPATH += $(viceSrcPath)
 base_sources = \
 alarm.c \
 attach.c \
@@ -137,6 +140,7 @@ c64-generic.c \
 c64-midi.c \
 c64tpi.c \
 capture.c \
+clockport.c \
 comal80.c \
 cpmcart.c \
 daa.c \
@@ -160,6 +164,7 @@ freezeframe.c \
 freezemachine.c \
 funplay.c \
 gamekiller.c \
+gmod2.c \
 gs.c \
 ide64.c \
 isepic.c \
@@ -209,35 +214,14 @@ digimax.c \
 ds12c887rtc.c \
 georam.c \
 sfx_soundexpander.c \
-sfx_soundsampler.c \
-tfe.c
+sfx_soundsampler.c
 libc64commoncart_a_SOURCES := $(addprefix c64/cart/,$(libc64commoncart_a_SOURCES))
 
-libcrtc_a_SOURCES = \
-crtc-cmdline-options.c \
-crtc-color.c \
-crtc-draw.c \
-crtc-mem.c \
-crtc-resources.c \
-crtc-snapshot.c \
-crtc.c
-libcrtc_a_SOURCES := $(addprefix crtc/,$(libcrtc_a_SOURCES))
+libcrtc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/crtc/*)))
 
-libiecbus_a_SOURCES = \
-iecbus.c
-libiecbus_a_SOURCES := $(addprefix iecbus/,$(libiecbus_a_SOURCES))
+libiecbus_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/iecbus/*)))
 
-libserial_a_SOURCES = \
-fsdrive.c \
-serial-device.c \
-serial-iec-bus.c \
-serial-iec-device.c \
-serial-iec-lib.c \
-serial-iec.c \
-serial-realdevice.c \
-serial-trap.c \
-serial.c
-libserial_a_SOURCES := $(addprefix serial/,$(libserial_a_SOURCES))
+libserial_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/serial/*)))
 
 libc64_a_SOURCES = \
 c64-cmdline-options.c \
@@ -377,38 +361,9 @@ psid.c \
 reloc65.c
 libc64sc_a_SOURCES := $(addprefix c64/,$(libc64sc_a_SOURCES))
 
-libviciisc_a_SOURCES = \
-vicii-chip-model.c \
-vicii-cmdline-options.c \
-vicii-color.c \
-vicii-cycle.c \
-vicii-draw.c \
-vicii-draw-cycle.c \
-vicii-fetch.c \
-vicii-irq.c \
-vicii-lightpen.c \
-vicii-mem.c \
-vicii-phi1.c \
-vicii-resources.c \
-vicii-snapshot.c \
-vicii-timing.c \
-vicii.c
-libviciisc_a_SOURCES := $(addprefix viciisc/,$(libviciisc_a_SOURCES))
+libviciisc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/viciisc/*)))
 
-libscpu64_a_SOURCES = \
-scpu64-cmdline-options.c \
-scpu64-resources.c \
-scpu64-snapshot.c \
-scpu64.c \
-scpu64cpu.c \
-scpu64gluelogic.c \
-scpu64mem.c \
-scpu64memsnapshot.c \
-scpu64meminit.c \
-scpu64model.c \
-scpu64rom.c \
-scpu64stubs.c
-libscpu64_a_SOURCES := $(addprefix scpu64/,$(libscpu64_a_SOURCES))
+libscpu64_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/scpu64/*)))
 
 libc64c64dtv_a_SOURCES = \
 c64bus.c \
@@ -469,30 +424,7 @@ vicii-timing.c \
 vicii.c
 libviciidtv_a_SOURCES := $(addprefix vicii/,$(libviciidtv_a_SOURCES))
 
-libc128_a_SOURCES = \
-c128-cmdline-options.c \
-c128-resources.c \
-c128-snapshot.c \
-c128.c \
-c128cia1.c \
-c128cpu.c \
-c128drive.c \
-c128embedded.c \
-c128fastiec.c \
-c128mem.c \
-c128meminit.c \
-c128memlimit.c \
-c128memrom.c \
-c128memsnapshot.c \
-c128mmu.c \
-c128model.c \
-c128rom.c \
-c128romset.c \
-c128video.c \
-functionrom.c \
-z80.c \
-z80mem.c
-libc128_a_SOURCES := $(addprefix c128/,$(libc128_a_SOURCES))
+libc128_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/c128/*)))
 
 libc64c128_a_SOURCES = \
 c64bus.c \
@@ -513,55 +445,12 @@ c64sound.c \
 patchrom.c
 libc64c128_a_SOURCES := $(addprefix c64/,$(libc64c128_a_SOURCES))
 
-libvdc_a_SOURCES = \
-vdc-cmdline-options.c \
-vdc-color.c \
-vdc-draw.c \
-vdc-mem.c \
-vdc-resources.c \
-vdc-snapshot.c \
-vdc.c
-libvdc_a_SOURCES := $(addprefix vdc/,$(libvdc_a_SOURCES))
+libvdc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/vdc/*)))
 
-libvic20_a_SOURCES = \
-vic-cmdline-options.c \
-vic-color.c \
-vic-cycle.c \
-vic-draw.c \
-vic-mem.c \
-vic-resources.c \
-vic-snapshot.c \
-vic-timing.c \
-vic.c \
-vic20-cmdline-options.c \
-vic20-resources.c \
-vic20-snapshot.c \
-vic20.c \
-vic20bus.c \
-vic20cpu.c \
-vic20datasette.c \
-vic20drive.c \
-vic20embedded.c \
-vic20export.c \
-vic20iec.c \
-vic20ieeevia1.c \
-vic20ieeevia2.c \
-vic20io.c \
-vic20mem.c \
-vic20memrom.c \
-vic20memsnapshot.c \
-vic20model.c \
-vic20printer.c \
-vic20rom.c \
-vic20romset.c \
-vic20rsuser.c \
-vic20sound.c \
-vic20via1.c \
-vic20via2.c \
-vic20video.c
-libvic20_a_SOURCES := $(addprefix vic20/,$(libvic20_a_SOURCES))
+libvic20_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/vic20/*)))
 
 libvic20cart_a_SOURCES = \
+behrbonz.c \
 debugcart.c \
 finalexpansion.c \
 ioramcart.c \
@@ -580,87 +469,9 @@ libmascuerade_a_SOURCES = \
 mascuerade-stubs.c
 libmascuerade_a_SOURCES := $(addprefix vic20/cart/,$(libmascuerade_a_SOURCES))
 
-libpet_a_SOURCES = \
-6809.c \
-debugcart.c \
-petcpu.c \
-pet-cmdline-options.c \
-pet-resources.c \
-pet-sidcart.c \
-pet-snapshot.c \
-pet.c \
-petacia1.c \
-petbus.c \
-petcolour.c \
-petdatasette.c \
-petdrive.c \
-petdww.c \
-petembedded.c \
-pethre.c \
-petiec.c \
-petio.c \
-petmem.c \
-petmemsnapshot.c \
-petmodel.c \
-petpia1.c \
-petpia2.c \
-petprinter.c \
-petreu.c \
-petrom.c \
-petromset.c \
-petsound.c \
-petvia.c \
-petvideo.c
-libpet_a_SOURCES := $(addprefix pet/,$(libpet_a_SOURCES))
+libpet_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/pet/*)))
 
-libplus4_a_SOURCES = \
-debugcart.c \
-digiblaster.c \
-plus4-cmdline-options.c \
-plus4-resources.c \
-plus4-sidcart.c \
-plus4-snapshot.c \
-plus4.c \
-plus4acia.c \
-plus4bus.c \
-plus4cart.c \
-plus4cpu.c \
-plus4datasette.c \
-plus4drive.c \
-plus4embedded.c \
-plus4iec.c \
-plus4io.c \
-plus4mem.c \
-plus4memcsory256k.c \
-plus4memhacks.c \
-plus4memhannes256k.c \
-plus4memlimit.c \
-plus4memrom.c \
-plus4memsnapshot.c \
-plus4model.c \
-plus4parallel.c \
-plus4pio1.c \
-plus4pio2.c \
-plus4printer.c \
-plus4rom.c \
-plus4romset.c \
-plus4speech.c \
-plus4tcbm.c \
-plus4video.c \
-ted-badline.c \
-ted-cmdline-options.c \
-ted-color.c \
-ted-draw.c \
-ted-fetch.c \
-ted-irq.c \
-ted-mem.c \
-ted-resources.c \
-ted-snapshot.c \
-ted-sound.c \
-ted-timer.c \
-ted-timing.c \
-ted.c
-libplus4_a_SOURCES := $(addprefix plus4/,$(libplus4_a_SOURCES))
+libplus4_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/plus4/*)))
 
 libcbm2_a_SOURCES = \
 cbm2-cmdline-options.c \
@@ -718,148 +529,31 @@ cbm5x0video.c \
 debugcart.c
 libcbm5x0_a_SOURCES := $(addprefix cbm2/,$(libcbm5x0_a_SOURCES))
 
-libdrive_a_SOURCES = \
-drive-check.c \
-drive-cmdline-options.c \
-drive-overflow.c \
-drive-resources.c \
-drive-snapshot.c \
-drive-writeprotect.c \
-drive.c \
-drivecpu.c \
-drivecpu65c02.c \
-drivemem.c \
-driveimage.c \
-driverom.c \
-drivesync.c \
-drive-sound.c \
-rotation.c
-libdrive_a_SOURCES := $(addprefix drive/,$(libdrive_a_SOURCES))
+libdrive_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/*)))
 
-libdriveiec_a_SOURCES = \
-cia1571d.c \
-cia1581d.c \
-glue1571.c \
-iec-cmdline-options.c \
-iec-resources.c \
-iec.c \
-iecrom.c \
-memiec.c \
-via1d1541.c \
-wd1770.c \
-via4000.c \
-fdd.c \
-pc8477.c
-libdriveiec_a_SOURCES := $(addprefix drive/iec/,$(libdriveiec_a_SOURCES))
+libdriveiec_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/iec/*)))
 
-libdriveiecc64exp_a_SOURCES = \
-c64exp-cmdline-options.c \
-c64exp-resources.c \
-iec-c64exp.c \
-dolphindos3.c \
-profdos.c \
-supercard.c
-libdriveiecc64exp_a_SOURCES := $(addprefix drive/iec/c64exp/,$(libdriveiecc64exp_a_SOURCES))
+libdriveiecc64exp_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/iec/c64exp/*)))
 
-libdriveiecplus4exp_a_SOURCES = \
-iec-plus4exp.c \
-plus4exp-cmdline-options.c \
-plus4exp-resources.c
-libdriveiecplus4exp_a_SOURCES := $(addprefix drive/iec/plus4exp/,$(libdriveiecplus4exp_a_SOURCES))
+libdriveiecplus4exp_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/iec/plus4exp/*)))
 
-libdriveiec128dcr_a_SOURCES = \
-iec128dcr-cmdline-options.c \
-iec128dcr-resources.c \
-iec128dcr.c \
-iec128dcrrom.c
-libdriveiec128dcr_a_SOURCES := $(addprefix drive/iec128dcr/,$(libdriveiec128dcr_a_SOURCES))
+libdriveiec128dcr_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/iec128dcr/*)))
 
-libdriveiecieee_a_SOURCES = \
-iecieee.c \
-via2d.c
-libdriveiecieee_a_SOURCES := $(addprefix drive/iecieee/,$(libdriveiecieee_a_SOURCES))
+libdriveiecieee_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/iecieee/*)))
 
-libdriveieee_a_SOURCES = \
-fdc.c \
-ieee-cmdline-options.c \
-ieee-resources.c \
-ieee.c \
-ieeerom.c \
-memieee.c \
-riot1d.c \
-riot2d.c \
-via1d2031.c
-libdriveieee_a_SOURCES := $(addprefix drive/ieee/,$(libdriveieee_a_SOURCES))
+libdriveieee_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/ieee/*)))
 
-libdrivetcbm_a_SOURCES = \
-glue1551.c \
-mem1551.c \
-tcbm-cmdline-options.c \
-tcbm-resources.c \
-tcbm.c \
-tcbmrom.c \
-tpid.c
-libdrivetcbm_a_SOURCES := $(addprefix drive/tcbm/,$(libdrivetcbm_a_SOURCES))
+libdrivetcbm_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/drive/tcbm/*)))
 
-libp64_a_SOURCES = p64.c
-libp64_a_SOURCES := $(addprefix lib/p64/,$(libp64_a_SOURCES))
+libp64_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/lib/p64/*)))
 
-libimagecontents_a_SOURCES = \
-diskcontents-block.c \
-diskcontents-iec.c \
-diskcontents.c \
-imagecontents.c \
-tapecontents.c
-libimagecontents_a_SOURCES := $(addprefix imagecontents/,$(libimagecontents_a_SOURCES))
+libimagecontents_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/imagecontents/*)))
 
-libmonitor_a_SOURCES = \
-asm6502.c \
-asm6502dtv.c \
-asm6809.c \
-asmR65C02.c \
-asm65816.c \
-asmz80.c \
-mon_assemble6502.c \
-mon_assembleR65C02.c \
-mon_assemble65816.c \
-mon_assemble6809.c \
-mon_assemblez80.c \
-mon_breakpoint.c \
-mon_command.c \
-mon_disassemble.c \
-mon_drive.c \
-mon_file.c \
-mon_memory.c \
-mon_register.c \
-mon_register6502.c \
-mon_register6502dtv.c \
-mon_register6809.c \
-mon_registerR65C02.c \
-mon_register65816.c \
-mon_registerz80.c \
-mon_ui.c \
-mon_util.c \
-monitor.c \
-monitor_network.c \
-mon_parse.c \
-mon_lex.c
-libmonitor_a_SOURCES := $(addprefix monitor/,$(libmonitor_a_SOURCES))
+libmonitor_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/monitor/*)))
 
-libparallel_a_SOURCES = \
-parallel-trap.c \
-parallel.c
-libparallel_a_SOURCES := $(addprefix parallel/,$(libparallel_a_SOURCES))
+libparallel_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/parallel/*)))
 
-libvdrive_a_SOURCES = \
-vdrive-bam.c \
-vdrive-command.c \
-vdrive-dir.c \
-vdrive-iec.c \
-vdrive-internal.c \
-vdrive-rel.c \
-vdrive-snapshot.c \
-vdrive.c
-libvdrive_a_SOURCES := $(addprefix vdrive/,$(libvdrive_a_SOURCES))
+libvdrive_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/vdrive/*)))
 
 libsid_a_SOURCES = \
 fastsid.c \
@@ -874,90 +568,19 @@ EXTRA_libsid_a_SOURCES := $(addprefix sid/,$(EXTRA_libsid_a_SOURCES))
 
 libsid_a_SOURCES += $(EXTRA_libsid_a_SOURCES)
 
-libresid_a_SOURCES = \
-sid.cc \
-voice.cc \
-wave.cc \
-envelope.cc \
-filter.cc \
-dac.cc \
-extfilt.cc \
-pot.cc
-libresid_a_SOURCES := $(addprefix resid/,$(libresid_a_SOURCES))
+libresid_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid/*)))
 
-libresiddtv_a_SOURCES = \
-sid.cc \
-voice.cc \
-wave.cc \
-envelope.cc \
-filter.cc \
-extfilt.cc
-libresiddtv_a_SOURCES := $(addprefix resid-dtv/,$(libresiddtv_a_SOURCES))
+libresiddtv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid-dtv/*)))
 
-librtc_a_SOURCES = \
-bq4830y.c \
-ds12c887.c \
-ds1202_1302.c \
-ds1216e.c \
-ds1307.c \
-ds1602.c \
-pcf8583.c \
-rtc.c \
-rtc-58321a.c \
-rtc-72421.c
-librtc_a_SOURCES := $(addprefix rtc/,$(librtc_a_SOURCES))
+librtc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/rtc/*)))
 
-libtape_a_SOURCES = \
-t64.c \
-tap.c \
-tape-internal.c \
-tape-snapshot.c \
-tape.c \
-tapeimage.c
-libtape_a_SOURCES := $(addprefix tape/,$(libtape_a_SOURCES))
+libtape_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/tape/*)))
 
-libcore_a_SOURCES = \
-ciacore.c \
-ciatimer.c \
-cs8900.c \
-flash040core.c \
-fmopl.c \
-mc6821core.c \
-riotcore.c \
-ser-eeprom.c \
-spi-sdcard.c \
-t6721.c \
-tpicore.c \
-viacore.c \
-ata.c
-libcore_a_SOURCES := $(addprefix core/,$(libcore_a_SOURCES))
+libcore_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/core/*)))
 
-libuserport_a_SOURCES = \
-userport.c \
-userport_4bit_sampler.c \
-userport_8bss.c \
-userport_dac.c \
-userport_digimax.c \
-userport_joystick.c \
-userport_rtc_58321a.c \
-userport_rtc_ds1307.c
-libuserport_a_SOURCES := $(addprefix userport/,$(libuserport_a_SOURCES))
+libuserport_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/userport/*)))
 
-libraster_a_SOURCES = \
-raster-cache.c \
-raster-canvas.c \
-raster-changes.c \
-raster-cmdline-options.c \
-raster-line-changes-sprite.c \
-raster-line-changes.c \
-raster-line.c \
-raster-modes.c \
-raster-resources.c \
-raster-sprite.c \
-raster-sprite-status.c \
-raster-sprite-cache.c \
-raster.c
-libraster_a_SOURCES := $(addprefix raster/,$(libraster_a_SOURCES))
+libraster_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/raster/*)))
 
 libvideo_a_SOURCES = \
 render1x1.c \
@@ -977,79 +600,23 @@ video-sound.c \
 video-viewport.c
 libvideo_a_SOURCES := $(addprefix video/,$(libvideo_a_SOURCES))
 
-libfsdevice_a_SOURCES = \
-fsdevice-close.c \
-fsdevice-cmdline-options.c \
-fsdevice-flush.c \
-fsdevice-open.c \
-fsdevice-read.c \
-fsdevice-resources.c \
-fsdevice-write.c \
-fsdevice.c
-libfsdevice_a_SOURCES := $(addprefix fsdevice/,$(libfsdevice_a_SOURCES))
+libfsdevice_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/fsdevice/*)))
 
-libprinterdrv_a_SOURCES = \
-driver-select.c \
-drv-1520.c \
-drv-ascii.c \
-drv-mps803.c \
-drv-nl10.c \
-drv-raw.c \
-interface-serial.c \
-interface-userport.c \
-output-graphics.c \
-output-select.c \
-output-text.c \
-printer-serial.c \
-printer-userport.c \
-printer.c
-libprinterdrv_a_SOURCES := $(addprefix printerdrv/,$(libprinterdrv_a_SOURCES))
+libprinterdrv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/printerdrv/*)))
 
-librs232drv_a_SOURCES = \
-rs232drv.c \
-rsuser.c
-librs232drv_a_SOURCES := $(addprefix rs232drv/,$(librs232drv_a_SOURCES))
+librs232drv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/rs232drv/*)))
 
-libdiskimage_a_SOURCES = \
-diskimage.c \
-fsimage-check.c \
-fsimage-create.c \
-fsimage-dxx.c \
-fsimage-gcr.c \
-fsimage-p64.c \
-fsimage-probe.c \
-fsimage.c
-libdiskimage_a_SOURCES := $(addprefix diskimage/,$(libdiskimage_a_SOURCES))
+libdiag_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/diag/*)))
 
-libfileio_a_SOURCES = \
-cbmfile.c \
-fileio.c \
-p00.c
-libfileio_a_SOURCES := $(addprefix fileio/,$(libfileio_a_SOURCES))
+libdiskimage_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/diskimage/*)))
 
-libjoyport_a_SOURCES = \
-bbrtc.c \
-joyport.c \
-joystick.c \
-lightpen.c \
-mouse.c \
-paperclip64.c \
-sampler2bit.c \
-sampler4bit.c
-libjoyport_a_SOURCES := $(addprefix joyport/,$(libjoyport_a_SOURCES))
+libfileio_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/fileio/*)))
 
-libtapeport_a_SOURCES = \
-cp-clockf83.c \
-dtl-basic-dongle.c \
-sense-dongle.c \
-tapelog.c \
-tapeport.c
-libtapeport_a_SOURCES := $(addprefix tapeport/,$(libtapeport_a_SOURCES))
+libjoyport_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/joyport/*)))
 
-libsamplerdrv_a_SOURCES = \
-file_drv.c \
-sampler.c
-libsamplerdrv_a_SOURCES := $(addprefix samplerdrv/,$(libsamplerdrv_a_SOURCES))
+libtapeport_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/tapeport/*)))
+
+libsamplerdrv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/samplerdrv/*)))
 
 pluginNoTape_src = \
 main/pluginCommon.c \
@@ -1064,6 +631,7 @@ $(libcore_a_SOURCES) \
 $(libjoyport_a_SOURCES) \
 $(libsamplerdrv_a_SOURCES) \
 $(libdrivetcbm_a_SOURCES) \
+$(libdiag_a_SOURCES) \
 $(base_sources)
 
 plugin_src = \

@@ -40,8 +40,9 @@
  * VICE Fragment = CoreAudio Slice
  */
 
-//#include "config.h"
 #include "vice.h"
+
+#ifdef USE_COREAUDIO
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <CoreAudio/CoreAudio.h>
@@ -809,3 +810,4 @@ int sound_init_coreaudio_device(void)
 {
     return sound_register_device(&coreaudio_device);
 }
+#endif

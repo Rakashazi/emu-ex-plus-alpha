@@ -4,6 +4,7 @@
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
  *  Andreas Matthies <andreas.matthies@gmx.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -144,6 +145,9 @@ static tapeport_device_t datasette_device = {
     datasette_set_motor,
     datasette_toggle_write_bit,
     NULL, /* no sense out */
+    NULL, /* no read out */
+    NULL, /* no passthrough */
+    NULL, /* no passthrough */
     NULL, /* no passthrough */
     NULL  /* no passthrough */
 };

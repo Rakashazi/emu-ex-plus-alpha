@@ -64,7 +64,7 @@ static int valid_device(userport_device_t *device)
         return 0;
     }
 
-    if ((device->store_sp1 || device->read_sp2) && !userport_props.has_sp12) {
+    if ((device->store_sp1 || device->read_sp1 || device->store_sp2 || device->read_sp2) && !userport_props.has_sp12) {
         return 0;
     }
 
@@ -410,14 +410,69 @@ void set_userport_flag(BYTE val)
     }
 }
 
-void store_userport_sp1(void)
+void store_userport_sp1(BYTE val)
 {
     userport_device_list_t *current = userport_head.next;
 
     if (userport_active) {
         while (current) {
             if (current->device->store_sp1 != NULL) {
-                current->device->store_sp1();
+                current->device->store_sp1(val);
+            }
+            current = current->next;
+        }
+    }
+}
+
+BYTE read_userport_sp1(BYTE orig)
+{
+    BYTE mask = 0xff;
+    BYTE rm;
+    BYTE rv;
+    BYTE retval = 0xff;
+    int valid = 0;
+    userport_device_list_t *current = userport_head.next;
+
+    if (!userport_active) {
+        return orig;
+    }
+
+    /* set retval */
+    while (current) {
+        current->device->collision = 0;
+        if (current->device->read_sp1 != NULL) {
+            current->device->read_sp1();
+            rm = current->device->mask;
+            rm &= mask;
+            if (rm) {
+                rv = current->device->retval;
+                rv |= ~rm;
+                retval &= rv;
+                ++valid;
+            }
+        }
+        current = current->next;
+    }
+
+    if (valid > 1 && userport_collision_handling != USERPORT_COLLISION_METHOD_AND_WIRES) {
+        return userport_detect_collision(retval, mask);
+    }
+
+    if (!valid) {
+        return orig;
+    }
+
+    return retval;
+}
+
+void store_userport_sp2(BYTE val)
+{
+    userport_device_list_t *current = userport_head.next;
+
+    if (userport_active) {
+        while (current) {
+            if (current->device->store_sp2 != NULL) {
+                current->device->store_sp2(val);
             }
             current = current->next;
         }

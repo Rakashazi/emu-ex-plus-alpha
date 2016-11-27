@@ -1,7 +1,8 @@
 /*
- * memcmp.c - 8 bit clean memory compare.
+ * behrbonz.h -- VIC20 BehrBonz Cartridge emulation.
  *
  * Written by
+ *  groepaz <groepaz@gmx.net>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -23,22 +24,26 @@
  *
  */
 
+#ifndef VICE_BEHRBONZ_H
+#define VICE_BEHRBONZ_H
+
 #include <stdio.h>
-#include <string.h>
 
-int memcmp(const void *s1, const void *s2, size_t n)
-{
-    const char *p1 = (const char *)s1;
-    const char *p2 = (const char *)s2;
+#include "types.h"
 
-    while (n-- > 0) {
-        if (*p1 < *p2) {
-            return -1;
-        } else if (*p1 > *p2) {
-            return +1;
-        }
-        p1++, p2++;
-    }
+extern BYTE behrbonz_blk13_read(WORD addr);
+extern BYTE behrbonz_blk25_read(WORD addr);
 
-    return 0;
-}
+extern void behrbonz_init(void);
+extern void behrbonz_reset(void);
+
+extern void behrbonz_config_setup(BYTE *rawcart);
+extern int behrbonz_bin_attach(const char *filename);
+extern void behrbonz_detach(void);
+
+struct snapshot_s;
+
+extern int behrbonz_snapshot_write_module(struct snapshot_s *s);
+extern int behrbonz_snapshot_read_module(struct snapshot_s *s);
+
+#endif

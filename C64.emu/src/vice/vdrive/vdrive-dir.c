@@ -313,6 +313,32 @@ void vdrive_dir_no_a0_pads(BYTE *ptr, int l)
     }
 }
 
+int vdrive_dir_filetype(const char *name, int length)
+{
+    int filetype = CBMDOS_FT_DEL;
+    const char *ptr = name + length;
+
+    while (--ptr != name && *ptr != '=');
+
+    if (*ptr == '=') {
+        switch (*++ptr) {
+            case 'S':
+                filetype = CBMDOS_FT_SEQ;
+                break;
+            case 'P':
+                filetype = CBMDOS_FT_PRG;
+                break;
+            case 'U':
+                filetype = CBMDOS_FT_USR;
+                break;
+            case 'R':
+                filetype = CBMDOS_FT_REL;
+                break;
+        }
+    }
+    return filetype;
+}
+
 int vdrive_dir_next_directory(vdrive_t *vdrive, bufferinfo_t *b);
 
 int vdrive_dir_first_directory(vdrive_t *vdrive, const char *name,
@@ -335,6 +361,7 @@ int vdrive_dir_first_directory(vdrive_t *vdrive, const char *name,
         length = 1;
     }
 
+    filetype = vdrive_dir_filetype(name, length);
     vdrive_dir_find_first_slot(vdrive, name, length, filetype, &p->dir);
 
     /*

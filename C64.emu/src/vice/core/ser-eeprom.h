@@ -1,5 +1,5 @@
 /*
- * ser-eeprom.h
+ * ser-eeprom.h (M24C08)
  *
  * Written by
  *  Groepaz/Hitmen <groepaz@gmx.net>

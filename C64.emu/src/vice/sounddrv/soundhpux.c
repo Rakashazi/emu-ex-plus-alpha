@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+#if defined(HAVE_SYS_AUDIO_H)
+
 #include <stdio.h>
 
 #include <sys/ioctl.h>
@@ -151,3 +153,4 @@ int sound_init_hpux_device(void)
 {
     return sound_register_device(&hpux_device);
 }
+#endif

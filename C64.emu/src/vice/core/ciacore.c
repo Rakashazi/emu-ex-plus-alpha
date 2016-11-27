@@ -859,14 +859,19 @@ BYTE ciacore_peek(cia_context_t *cia_context, WORD addr)
     rclk = *(cia_context->clk_ptr) - READ_OFFSET;
 
     switch (addr) {
+        case CIA_PRA:           /* port A */
+            /* WARNING: this pin reads the voltage of the output pins, not
+               the ORA value. Value read might be different from what is
+               expected due to excessive load. */
+            return (cia_context->read_ciapa)(cia_context);
+            break;
         case CIA_PRB:           /* port B */
             /* WARNING: this pin reads the voltage of the output pins, not
                the ORA value. Value read might be different from what is
                expected due to excessive load. */
             byte = (cia_context->read_ciapb)(cia_context);
             /* (cia_context->pulse_ciapc)(rclk); */
-            if ((cia_context->c_cia[CIA_CRA] | cia_context->c_cia[CIA_CRB])
-                & 0x02) {
+            if ((cia_context->c_cia[CIA_CRA] | cia_context->c_cia[CIA_CRB]) & 0x02) {
                 if (cia_context->c_cia[CIA_CRA] & 0x02) {
                     cia_update_ta(cia_context, rclk);
                     byte &= 0xbf;
@@ -886,6 +891,26 @@ BYTE ciacore_peek(cia_context_t *cia_context, WORD addr)
             }
             return byte;
             break;
+        /* Timers */
+        case CIA_TAL:           /* timer A low */
+            cia_update_ta(cia_context, rclk);
+            return ciat_read_timer(cia_context->ta, rclk) & 0xff;
+            break;
+
+        case CIA_TAH:           /* timer A high */
+            cia_update_ta(cia_context, rclk);
+            return (ciat_read_timer(cia_context->ta, rclk) >> 8) & 0xff;
+            break;
+
+        case CIA_TBL:           /* timer B low */
+            cia_update_tb(cia_context, rclk);
+            return ciat_read_timer(cia_context->tb, rclk) & 0xff;
+            break;
+
+        case CIA_TBH:           /* timer B high */
+            cia_update_tb(cia_context, rclk);
+            return (ciat_read_timer(cia_context->tb, rclk) >> 8) & 0xff;
+            break;
 
         /*
          * TOD clock is latched by reading Hours, and released
@@ -896,12 +921,16 @@ BYTE ciacore_peek(cia_context_t *cia_context, WORD addr)
         case CIA_TOD_TEN: /* Time Of Day clock 1/10 s */
         case CIA_TOD_SEC: /* Time Of Day clock sec */
         case CIA_TOD_MIN: /* Time Of Day clock min */
-        case CIA_TOD_HR: /* Time Of Day clock hour */
-            if (!(cia_context->todlatched)) {
-                memcpy(cia_context->todlatch, cia_context->c_cia + CIA_TOD_TEN,
-                       sizeof(cia_context->todlatch));
+        case CIA_TOD_HR:  /* Time Of Day clock hour */
+            if (cia_context->todlatched) {
+                return cia_context->todlatch[addr - CIA_TOD_TEN];
             }
             return cia_context->c_cia[addr];
+
+        case CIA_SDR:           /* Serial Port Shift Register */
+            (cia_context->read_sdr)(cia_context);
+            return cia_context->c_cia[CIA_SDR];
+            break;
 
         /* Interrupts */
 
@@ -946,11 +975,18 @@ BYTE ciacore_peek(cia_context_t *cia_context, WORD addr)
 
                 return (t);
             }
-        default:
+        case CIA_CRA:           /* Control Register A */
+            cia_update_ta(cia_context, rclk);
+            return (cia_context->c_cia[CIA_CRA] & 0xfe) | ciat_is_running(cia_context->ta, rclk);
+            break;
+
+        case CIA_CRB:           /* Control Register B */
+            cia_update_tb(cia_context, rclk);
+            return (cia_context->c_cia[CIA_CRB] & 0xfe) | ciat_is_running(cia_context->tb, rclk);
             break;
     }                           /* switch */
 
-    return ciacore_read(cia_context, addr);
+    return (cia_context->c_cia[addr]);
 }
 
 /* ------------------------------------------------------------------------- */

@@ -6,6 +6,7 @@
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Teemu Rantanen <tvr@cs.hut.fi>
  *  Daniel Kahlin <daniel@kahlin.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -49,6 +50,7 @@
 #include "c64ui.h"
 #include "cia.h"
 #include "clkguard.h"
+#include "coplin_keypad.h"
 #include "debug.h"
 #include "debugcart.h"
 #include "diskimage.h"
@@ -82,6 +84,7 @@
 #include "ps2mouse.h"
 #include "resources.h"
 #include "rs232drv.h"
+#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -340,6 +343,14 @@ int machine_resources_init(void)
     }
     if (joyport_paperclip64_resources_init() < 0) {
         init_resource_fail("joyport paperclip64 dongle");
+        return -1;
+    }
+    if (joyport_coplin_keypad_resources_init() < 0) {
+        init_resource_fail("joyport coplin keypad");
+        return -1;
+    }
+    if (joyport_rushware_keypad_resources_init() < 0) {
+        init_resource_fail("joyport rushware keypad");
         return -1;
     }
     if (joystick_resources_init() < 0) {
@@ -630,10 +641,6 @@ int machine_specific_init(void)
     serial_trap_init(0xa4);
     serial_iec_bus_init();
 
-    if (!video_disabled_mode) {
-        joystick_init();
-    }
-
     gfxoutput_init();
 
     /* Initialize flash traps.  */
@@ -710,6 +717,10 @@ int machine_specific_init(void)
         c64dtvui_init();
     }
 
+    if (!video_disabled_mode) {
+        joystick_init();
+    }
+
     /* Initialize the C64DTV.  */
     c64dtv_init();
 
@@ -781,7 +792,9 @@ void machine_specific_shutdown(void)
 
     c64dtvmem_shutdown();
 
-    c64dtvui_shutdown();
+    if (!console_mode) {
+        c64dtvui_shutdown();
+    }
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -842,34 +855,8 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval)
+void machine_change_timing(int timeval, int border_mode)
 {
-    int border_mode;
-
-    switch (timeval) {
-        default:
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NORMAL_BORDERS);
-            border_mode = VICII_NORMAL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_FULL_BORDERS);
-            border_mode = VICII_FULL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_DEBUG_BORDERS);
-            border_mode = VICII_DEBUG_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NO_BORDERS);
-            border_mode = VICII_NO_BORDERS;
-            break;
-    }
-
     switch (timeval) {
         case MACHINE_SYNC_PAL:
             machine_timing.cycles_per_sec = C64_PAL_CYCLES_PER_SEC;

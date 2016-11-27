@@ -27,6 +27,8 @@
 
 #include "vice.h"
 
+#ifdef HAVE_OPENCBM
+
 #include <stdio.h>
 
 #include "log.h"
@@ -244,3 +246,4 @@ void realdevice_disable(void)
         }
     }
 }
+#endif

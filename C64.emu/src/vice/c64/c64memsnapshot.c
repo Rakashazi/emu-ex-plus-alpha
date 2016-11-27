@@ -110,6 +110,9 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
         return 0;
     }
 
+    /* get old value */
+    resources_get_int("VirtualDevices", &trapfl);
+
     /* Do not accept versions higher than current */
     if (major_version > SNAP_ROM_MAJOR || minor_version > SNAP_ROM_MINOR) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
@@ -117,7 +120,6 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
     }
 
     /* disable traps before loading the ROM */
-    resources_get_int("VirtualDevices", &trapfl);
     resources_set_int("VirtualDevices", 0);
 
     if (0
@@ -143,6 +145,7 @@ static int c64_snapshot_read_rom_module(snapshot_t *s)
 
 fail:
     snapshot_module_close(m);
+    /* restore old value */
     resources_set_int("VirtualDevices", trapfl);
     return -1;
 }

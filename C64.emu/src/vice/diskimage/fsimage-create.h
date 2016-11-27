@@ -1,3 +1,8 @@
+/** \file   src/diskimage/fsimage-create.h
+ *
+ * \brief   Create disk images on the host file system - header
+ */
+
 /*
  * fsimage-create.h - Create a disk image.
  *
@@ -29,6 +34,6 @@
 
 extern void fsimage_create_init(void);
 
-extern int fsimage_create(const char *name, unsigned int type);
+extern int  fsimage_create(const char *name, unsigned int type);
 
 #endif

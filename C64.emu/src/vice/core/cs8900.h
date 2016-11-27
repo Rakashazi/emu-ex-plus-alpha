@@ -24,9 +24,9 @@
  *
  */
 
-#ifndef HAVE_TFE
-  #error CS8900.H should not be included if HAVE_TFE is not defined!
-#endif /* #ifdef HAVE_TFE */
+#ifndef HAVE_PCAP
+  #error CS8900.H should not be included if HAVE_PCAP is not defined!
+#endif /* #ifdef HAVE_PCAP */
 
 #ifndef VICE_CS8900_H
 #define VICE_CS8900_H

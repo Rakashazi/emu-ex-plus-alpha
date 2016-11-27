@@ -44,6 +44,7 @@
 #include <sys/types.h>
 #endif
 
+#include "behrbonz.h"
 #include "c64acia.h"
 #include "cartridge.h"
 #include "cmdline.h"
@@ -67,10 +68,10 @@
 #include "sid-snapshot.h"
 #include "sidcart.h"
 #include "snapshot.h"
-#ifdef HAVE_TFE
+#ifdef HAVE_PCAP
 #define CARTRIDGE_INCLUDE_PRIVATE_API
 #define CARTRIDGE_INCLUDE_PUBLIC_API
-#include "tfe.h"
+#include "ethernetcart.h"
 #undef CARTRIDGE_INCLUDE_PRIVATE_API
 #undef CARTRIDGE_INCLUDE_PUBLIC_API
 #endif
@@ -128,6 +129,7 @@ static int set_cartridge_type(int val, void *param)
 {
     switch (val) {
         case CARTRIDGE_NONE:
+        case CARTRIDGE_VIC20_BEHRBONZ:
         case CARTRIDGE_VIC20_GENERIC:
         case CARTRIDGE_VIC20_MEGACART:
         case CARTRIDGE_VIC20_FINAL_EXPANSION:
@@ -197,8 +199,8 @@ int cartridge_resources_init(void)
         || vic_fp_resources_init() < 0
         || vic_um_resources_init() < 0
         || megacart_resources_init() < 0
-#ifdef HAVE_TFE
-        || tfe_resources_init() < 0
+#ifdef HAVE_PCAP
+        || ethernetcart_resources_init() < 0
 #endif
         || aciacart_resources_init() < 0
         || digimax_resources_init() < 0
@@ -218,8 +220,8 @@ void cartridge_resources_shutdown(void)
     megacart_resources_shutdown();
     finalexpansion_resources_shutdown();
     generic_resources_shutdown();
-#ifdef HAVE_TFE
-    tfe_resources_shutdown();
+#ifdef HAVE_PCAP
+    ethernetcart_resources_shutdown();
 #endif
     aciacart_resources_shutdown();
     digimax_resources_shutdown();
@@ -286,6 +288,11 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_EXT_ROM_B000_NAME,
       NULL, NULL },
+    { "-cartbb", CALL_FUNCTION, 1,
+      attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_BEHRBONZ, NULL, NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_NAME, IDCLS_SPECIFY_BEHRBONZ_ROM_NAME,
+      NULL, NULL },
     { "-cartgeneric", CALL_FUNCTION, 1,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_GENERIC, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -329,8 +336,8 @@ int cartridge_cmdline_options_init(void)
         || vic_fp_cmdline_options_init() < 0
         || vic_um_cmdline_options_init() < 0
         || megacart_cmdline_options_init() < 0
-#ifdef HAVE_TFE
-        || tfe_cmdline_options_init() < 0
+#ifdef HAVE_PCAP
+        || ethernetcart_cmdline_options_init() < 0
 #endif
         || aciacart_cmdline_options_init() < 0
         || digimax_cmdline_options_init() < 0
@@ -407,6 +414,9 @@ int cartridge_attach_image(int type, const char *filename)
     }
 
     switch (type) {
+        case CARTRIDGE_VIC20_BEHRBONZ:
+            ret = behrbonz_bin_attach(filename);
+            break;
         case CARTRIDGE_VIC20_GENERIC:
             ret = generic_bin_attach(type_orig, filename);
             break;
@@ -531,6 +541,11 @@ int vic20cart_snapshot_write_module(snapshot_t *s)
     /* Save individual cart data */
     for (i = 0; i < number_of_carts; i++) {
         switch (cart_ids[i]) {
+            case CARTRIDGE_VIC20_BEHRBONZ:
+                if (behrbonz_snapshot_write_module(s) < 0) {
+                    return -1;
+                }
+                break;
             case CARTRIDGE_VIC20_FINAL_EXPANSION:
                 if (finalexpansion_snapshot_write_module(s) < 0) {
                     return -1;
@@ -608,9 +623,9 @@ int vic20cart_snapshot_write_module(snapshot_t *s)
                     return -1;
                 }
                 break;
-#ifdef HAVE_TFE
+#ifdef HAVE_PCAP
             case CARTRIDGE_TFE:
-                if (tfe_snapshot_write_module(s) < 0) {
+                if (ethernetcart_snapshot_write_module(s) < 0) {
                     return -1;
                 }
                 break;
@@ -636,7 +651,7 @@ int vic20cart_snapshot_read_module(snapshot_t *s)
     snapshot_module_t *m;
     int new_cart_type, cartridge_reset;
     BYTE i;
-    BYTE number_of_carts;
+    BYTE number_of_carts = 0;
     int cart_ids[VIC20CART_DUMP_MAX_CARTS];
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
@@ -652,24 +667,32 @@ int vic20cart_snapshot_read_module(snapshot_t *s)
         goto fail;
     }
 
-    if (SMR_B(m, &number_of_carts) < 0) {
-        goto fail;
-    }
-
-    /* Not much to do if no carts in snapshot */
-    if (number_of_carts == 0) {
-        return snapshot_module_close(m);
-    }
-
-    if (number_of_carts > VIC20CART_DUMP_MAX_CARTS) {
-        DBG(("CART snapshot read: carts %i > max %i\n", number_of_carts, VIC20CART_DUMP_MAX_CARTS));
-        goto fail;
-    }
-
-    /* Read cart IDs */
-    for (i = 0; i < number_of_carts; i++) {
-        if (SMR_DW_INT(m, &cart_ids[i]) < 0) {
+    if (vminor < 1) {
+        /* FIXME: test if loading older snapshots with cartridge actually works */
+        if (new_cart_type != CARTRIDGE_NONE) {
+            number_of_carts = 1;
+            cart_ids[0] = new_cart_type;
+        }
+    } else {
+        if (SMR_B(m, &number_of_carts) < 0) {
             goto fail;
+        }
+
+        /* Not much to do if no carts in snapshot */
+        if (number_of_carts == 0) {
+            return snapshot_module_close(m);
+        }
+
+        if (number_of_carts > VIC20CART_DUMP_MAX_CARTS) {
+            DBG(("CART snapshot read: carts %i > max %i\n", number_of_carts, VIC20CART_DUMP_MAX_CARTS));
+            goto fail;
+        }
+
+        /* Read cart IDs */
+        for (i = 0; i < number_of_carts; i++) {
+            if (SMR_DW_INT(m, &cart_ids[i]) < 0) {
+                goto fail;
+            }
         }
     }
 
@@ -690,6 +713,11 @@ int vic20cart_snapshot_read_module(snapshot_t *s)
     /* Read individual cart data */
     for (i = 0; i < number_of_carts; i++) {
         switch (cart_ids[i]) {
+            case CARTRIDGE_VIC20_BEHRBONZ:
+                if (behrbonz_snapshot_read_module(s) < 0) {
+                    return -1;
+                }
+                break;
             case CARTRIDGE_VIC20_FINAL_EXPANSION:
                 if (finalexpansion_snapshot_read_module(s) < 0) {
                     return -1;
@@ -767,9 +795,9 @@ int vic20cart_snapshot_read_module(snapshot_t *s)
                     return -1;
                 }
                 break;
-#ifdef HAVE_TFE
+#ifdef HAVE_PCAP
             case CARTRIDGE_TFE:
-                if (tfe_snapshot_read_module(s) < 0) {
+                if (ethernetcart_snapshot_read_module(s) < 0) {
                     return -1;
                 }
                 break;

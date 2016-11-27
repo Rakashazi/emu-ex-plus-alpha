@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+#ifdef HAVE_PCAP
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +42,7 @@
 #include "cartridge.h"
 #include "cmdline.h"
 #include "crt.h"
+#include "cs8900io.h"
 #include "export.h"
 #include "lib.h"
 #include "log.h"
@@ -54,9 +57,6 @@
 
 #define CARTRIDGE_INCLUDE_PRIVATE_API
 #include "rrnetmk3.h"
-#ifdef HAVE_TFE
-#include "tfe.h"
-#endif
 #undef CARTRIDGE_INCLUDE_PRIVATE_API
 
 /*
@@ -109,6 +109,10 @@ static void rrnetmk3_io1_store(WORD addr, BYTE value);
 static BYTE rrnetmk3_io1_peek(WORD addr);
 static int rrnetmk3_dump(void);
 
+static BYTE rrnetmk3_cs8900_read(WORD io_address);
+static BYTE rrnetmk3_cs8900_peek(WORD io_address);
+static void rrnetmk3_cs8900_store(WORD io_address, BYTE byte);
+
 static io_source_t rrnetmk3_io1_device = {
     CARTRIDGE_NAME_RRNETMK3,
     IO_DETACH_RESOURCE,
@@ -124,27 +128,37 @@ static io_source_t rrnetmk3_io1_device = {
     0
 };
 
+static io_source_t rrnetmk3_cs8900_io1_device = {
+    CARTRIDGE_NAME_RRNETMK3,
+    IO_DETACH_RESOURCE,
+    "RRNETMK3",
+    0xde02, 0xde0f, 0x0f,
+    0,
+    rrnetmk3_cs8900_store,
+    rrnetmk3_cs8900_read,
+    rrnetmk3_cs8900_peek,
+    rrnetmk3_dump,
+    CARTRIDGE_RRNETMK3,
+    0,
+    0
+};
+
 static io_source_list_t *rrnetmk3_io1_list_item = NULL;
+static io_source_list_t *rrnetmk3_cs8900_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_RRNETMK3, 1, 0, &rrnetmk3_io1_device, NULL, CARTRIDGE_RRNETMK3
+    CARTRIDGE_NAME_RRNETMK3, 0, 1, &rrnetmk3_io1_device, NULL, CARTRIDGE_RRNETMK3
 };
 
 /* ---------------------------------------------------------------------*/
-
-/* FIXME: kludges required for the "clockport" */
-int rrnetmk3_cart_enabled(void)
-{
-    return rrnetmk3_enabled;
-}
 
 /* Resets the card */
 void rrnetmk3_reset(void)
 {
     rrnetmk3_biossel = rrnetmk3_hw_flashjumper; /* disable bios at reset when flash jumper is set */
-#ifdef HAVE_TFE
-    tfe_clockport_changed();
-#endif
+    if (rrnetmk3_enabled) {
+        cs8900io_reset();
+    }
     cart_config_changed_slotmain(CMODE_RAM, (BYTE)(rrnetmk3_biossel ? CMODE_RAM : CMODE_8KGAME), CMODE_READ);
 }
 
@@ -213,6 +227,45 @@ static BYTE rrnetmk3_io1_peek(WORD addr)
             return rrnetmk3_biossel;
     }
     return 0;
+}
+
+/* ---------------------------------------------------------------------*/
+
+static BYTE rrnetmk3_cs8900_read(WORD address)
+{
+    if (address < 0x02) {
+        rrnetmk3_cs8900_io1_device.io_source_valid = 0;
+        return 0;
+    }
+    rrnetmk3_cs8900_io1_device.io_source_valid = 1;
+    if (address > 0x0b) {
+        return rrnetmk3_bios[(0x1ff0 + address) + rrnetmk3_bios_offset];
+    }
+    address ^= 0x08;
+    return cs8900io_read(address);
+}
+
+static BYTE rrnetmk3_cs8900_peek(WORD address)
+{
+    if (address < 0x02) {
+        return 0;
+    }
+    if (address > 0x0b) {
+        return rrnetmk3_bios[(0x1ff0 + address) + rrnetmk3_bios_offset];
+    }
+    address ^= 0x08;
+
+    return cs8900io_read(address);
+}
+
+static void rrnetmk3_cs8900_store(WORD address, BYTE byte)
+{
+    if (address < 0x02) {
+        return;
+    }
+    address ^= 0x08;
+
+    cs8900io_store(address, byte);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -306,7 +359,6 @@ static const cmdline_option_t cmdline_options[] =
       NULL, NULL },
   { NULL }
 };
-
 int rrnetmk3_cmdline_options_init(void)
 {
     return cmdline_register_options(cmdline_options);
@@ -317,6 +369,7 @@ int rrnetmk3_cmdline_options_init(void)
 void rrnetmk3_init(void)
 {
     rrnetmk3_log = log_open("RRNETMK3");
+    cs8900io_init();
 }
 
 void rrnetmk3_config_setup(BYTE *rawcart)
@@ -334,11 +387,15 @@ static int rrnetmk3_common_attach(void)
         return -1;
     } else {
         LOG(("RRNETMK3: export registered"));
+        if (cs8900io_enable(CARTRIDGE_NAME_RRNETMK3) < 0) {
+            return -1;
+        }
         rrnetmk3_bios_changed = 0;
         rrnetmk3_enabled = 1;
         cart_set_port_exrom_slotmain(1);
         cart_port_config_changed_slotmain();
         rrnetmk3_io1_list_item = io_source_register(&rrnetmk3_io1_device);
+        rrnetmk3_cs8900_list_item = io_source_register(&rrnetmk3_cs8900_io1_device);
         rrnetmk3_reset();
     }
     return 0;
@@ -455,11 +512,16 @@ void rrnetmk3_detach(void)
     }
     cart_power_off();
     export_remove(&export_res);
+#ifdef HAVE_FTE
+    cs8900io_disable();
+#endif
     rrnetmk3_enabled = 0;
     cart_set_port_exrom_slotmain(0);
     cart_port_config_changed_slotmain();
     io_source_unregister(rrnetmk3_io1_list_item);
     rrnetmk3_io1_list_item = NULL;
+    io_source_unregister(rrnetmk3_cs8900_list_item);
+    rrnetmk3_cs8900_list_item = NULL;
     lib_free(rrnetmk3_bios_filename);
     rrnetmk3_bios_filename = NULL;
 }
@@ -524,3 +586,6 @@ int rrnetmk3_snapshot_read_module(snapshot_t *s)
     return 0;
 #endif
 }
+
+#endif
+

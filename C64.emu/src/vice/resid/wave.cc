@@ -93,6 +93,12 @@ WaveformGenerator::WaveformGenerator()
   sync_source = this;
 
   sid_model = MOS6581;
+
+  // Accumulator's even bits are high on powerup
+  accumulator = 0x555555;
+
+  tri_saw_pipeline = 0x555;
+
   reset();
 }
 
@@ -218,7 +224,7 @@ void WaveformGenerator::writeCONTROL_REG(reg8 control)
 
 reg8 WaveformGenerator::readOSC()
 {
-  return waveform_output >> 4;
+  return osc3 >> 4;
 }
 
 // ----------------------------------------------------------------------------
@@ -226,7 +232,7 @@ reg8 WaveformGenerator::readOSC()
 // ----------------------------------------------------------------------------
 void WaveformGenerator::reset()
 {
-  accumulator = 0;
+  // accumulator is not changed on reset
   freq = 0;
   pw = 0;
 
@@ -248,6 +254,7 @@ void WaveformGenerator::reset()
   shift_pipeline = 0;
 
   waveform_output = 0;
+  osc3 = 0;
   floating_output_ttl = 0;
 }
 

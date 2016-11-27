@@ -96,6 +96,7 @@
    amd64 | FreeBSD 10.2
    i386  | FreeBSD 10.3
    amd64 | FreeBSD 10.3
+   amd64 | FreeBSD 11.0
    i386  | NetBSD (emulation layer)
  */
 

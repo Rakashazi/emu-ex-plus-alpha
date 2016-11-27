@@ -61,7 +61,7 @@ static int set_border_mode(int val, void *param)
 
     if (vic_resources.border_mode != val) {
         vic_resources.border_mode = val;
-        machine_change_timing(sync ^ VIC_BORDER_MODE(vic_resources.border_mode));
+        machine_change_timing(sync, vic_resources.border_mode);
     }
     return 0;
 }

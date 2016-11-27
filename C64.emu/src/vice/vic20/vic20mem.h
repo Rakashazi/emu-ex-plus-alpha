@@ -4,6 +4,7 @@
  * Written by
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Daniel Kahlin <daniel@kahlin.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * Memory configuration handling by
  *  Alexander Lehmann <alex@mathematik.th-darmstadt.de>

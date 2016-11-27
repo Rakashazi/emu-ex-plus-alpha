@@ -112,6 +112,12 @@ int maincpu_ba_low_flags = 0;
 
 #endif /* WORDS_BIGENDIAN || !ALLOW_UNALIGNED_ACCESS */
 
+/* HACK: memmap updates for the reg_pc < bank_limit case */
+#ifdef FEATURE_CPUMEMHISTORY
+#define MEMMAP_UPDATE(addr) memmap_mem_update(addr, 0)
+#else
+#define MEMMAP_UPDATE(addr)
+#endif
 
 /* FETCH_OPCODE implementation(s) */
 #if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
@@ -120,6 +126,7 @@ int maincpu_ba_low_flags = 0;
         if (((int)reg_pc) < bank_limit) {                      \
             check_ba();                                        \
             o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff); \
+            MEMMAP_UPDATE(reg_pc);                             \
             SET_LAST_OPCODE(p0);                               \
             CLK_INC();                                         \
             check_ba();                                        \
@@ -147,6 +154,7 @@ int maincpu_ba_low_flags = 0;
         if (((int)reg_pc) < bank_limit) {                        \
             check_ba();                                          \
             (o).ins = *(bank_base + reg_pc);                     \
+            MEMMAP_UPDATE(reg_pc);                               \
             SET_LAST_OPCODE(p0);                                 \
             CLK_INC();                                           \
             check_ba();                                          \

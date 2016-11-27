@@ -4,6 +4,7 @@
  * Written by
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -49,6 +50,7 @@
 #include "cia.h"
 #include "clkguard.h"
 #include "cmdline.h"
+#include "coplin_keypad.h"
 #include "crtc.h"
 #include "datasette.h"
 #include "debug.h"
@@ -81,6 +83,7 @@
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
+#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -266,6 +269,14 @@ int machine_resources_init(void)
     }
     if (joyport_paperclip64_resources_init() < 0) {
         init_resource_fail("joyport paperclip64 dongle");
+        return -1;
+    }
+    if (joyport_coplin_keypad_resources_init() < 0) {
+        init_resource_fail("joyport coplin keypad");
+        return -1;
+    }
+    if (joyport_rushware_keypad_resources_init() < 0) {
+        init_resource_fail("joyport rushware keypad");
         return -1;
     }
     if (joystick_resources_init() < 0) {
@@ -622,10 +633,6 @@ int machine_specific_init(void)
         return -1;
     }
 
-    if (!video_disabled_mode) {
-        joystick_init();
-    }
-
     gfxoutput_init();
 
     rs232drv_init();
@@ -697,6 +704,10 @@ int machine_specific_init(void)
         cbm2ui_init();
     }
 
+    if (!video_disabled_mode) {
+        joystick_init();
+    }
+
     cbm2iec_init();
 
 #ifdef HAVE_MOUSE
@@ -766,7 +777,9 @@ void machine_specific_shutdown(void)
     mouse_shutdown();
 #endif
 
-    cbm2ui_shutdown();
+    if (!console_mode) {
+        cbm2ui_shutdown();
+    }
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -824,7 +837,7 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval)
+void machine_change_timing(int timeval, int border_mode)
 {
     /* log_message(LOG_DEFAULT, "machine_change_timing_c610 %d", timeval); */
 

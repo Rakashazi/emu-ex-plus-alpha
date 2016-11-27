@@ -6,6 +6,7 @@
  *  \author Kajtar Zsolt <soci@c64.rulez.org>
  *  \author Andreas Boose <viceteam@t-online.de>
  *  \author Ettore Perazzoli <ettore@comm2000.it>
+ *  \author Marco van den Heuvel <blackystardust68@yahoo.com>
  */
 
 /*

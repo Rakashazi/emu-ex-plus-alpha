@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef HAVE_RAWDRIVE
+
 #include "archdep.h"
 #include "blockdev.h"
 #include "cmdline.h"
@@ -47,16 +49,16 @@ static log_t rawimage_log = LOG_DEFAULT;
 static char *raw_drive_driver = NULL;
 
 
-void rawimage_name_set(disk_image_t *image, char *name)
+void rawimage_name_set(disk_image_t *image, const char *name)
 {
     rawimage_t *rawimage;
 
     rawimage = image->media.rawimage;
 
-    rawimage->name = name;
+    rawimage->name = lib_stralloc(name);
 }
 
-char *rawimage_name_get(const disk_image_t *image)
+const char *rawimage_name_get(const disk_image_t *image)
 {
     rawimage_t *rawimage;
 
@@ -67,7 +69,7 @@ char *rawimage_name_get(const disk_image_t *image)
 
 void rawimage_driver_name_set(disk_image_t *image)
 {
-    rawimage_name_set(image, lib_stralloc(raw_drive_driver));
+    rawimage_name_set(image, raw_drive_driver);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -96,7 +98,7 @@ void rawimage_media_destroy(disk_image_t *image)
 
 int rawimage_open(disk_image_t *image)
 {
-    char *name;
+    const char *name;
 
     image->type = DISK_IMAGE_TYPE_D81;
     image->tracks = 80;
@@ -185,3 +187,4 @@ int rawimage_cmdline_options_init()
 
     return blockdev_cmdline_options_init();
 }
+#endif

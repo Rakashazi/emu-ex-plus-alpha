@@ -65,6 +65,7 @@
 #include "mem.h"
 #include "mon_breakpoint.h"
 #include "mon_disassemble.h"
+#include "mon_memmap.h"
 #include "mon_memory.h"
 #include "asm.h"
 #include "mon_parse.h"
@@ -85,6 +86,19 @@
 #include "util.h"
 #include "vsync.h"
 
+#ifndef HAVE_STPCPY
+char *stpcpy(char *dest, const char *src)
+{
+    char *d = dest;
+    const char *s = src;
+
+    do {
+        *d++ = *s;
+    } while (*s++ != '\0');
+
+    return d - 1;
+}
+#endif
 
 int mon_stop_output;
 
@@ -797,234 +811,6 @@ void mon_backtrace(void)
     }
 }
 
-/* TODO move somewhere else */
-cpuhistory_t cpuhistory[CPUHISTORY_SIZE];
-int cpuhistory_i;
-
-void monitor_cpuhistory_store(unsigned int addr, unsigned int op,
-                              unsigned int p1, unsigned int p2,
-                              BYTE reg_a,
-                              BYTE reg_x,
-                              BYTE reg_y,
-                              BYTE reg_sp,
-                              unsigned int reg_st)
-{
-    ++cpuhistory_i;
-    cpuhistory_i &= (CPUHISTORY_SIZE - 1);
-    cpuhistory[cpuhistory_i].addr = addr;
-    cpuhistory[cpuhistory_i].op = op;
-    cpuhistory[cpuhistory_i].p1 = p1;
-    cpuhistory[cpuhistory_i].p2 = p2;
-    cpuhistory[cpuhistory_i].reg_a = reg_a;
-    cpuhistory[cpuhistory_i].reg_x = reg_x;
-    cpuhistory[cpuhistory_i].reg_y = reg_y;
-    cpuhistory[cpuhistory_i].reg_sp = reg_sp;
-    cpuhistory[cpuhistory_i].reg_st = reg_st;
-}
-
-/*#define TEST(x) ((x)!=0)*/
-
-void mon_cpuhistory(int count)
-{
-#ifdef FEATURE_CPUMEMHISTORY
-    BYTE op, p1, p2, p3 = 0;
-    MEMSPACE mem;
-    WORD loc, addr;
-    int hex_mode = 1;
-    const char *dis_inst;
-    unsigned opc_size;
-    int i, pos;
-
-    if ((count < 1) || (count > CPUHISTORY_SIZE)) {
-        count = CPUHISTORY_SIZE;
-    }
-
-    pos = (cpuhistory_i + 1 - count) & (CPUHISTORY_SIZE - 1);
-
-    for (i = 0; i < count; ++i) {
-        addr = cpuhistory[pos].addr;
-        op = cpuhistory[pos].op;
-        p1 = cpuhistory[pos].p1;
-        p2 = cpuhistory[pos].p2;
-
-        mem = addr_memspace(addr);
-        loc = addr_location(addr);
-
-        dis_inst = mon_disassemble_to_string_ex(mem, loc, op, p1, p2, p3, hex_mode,
-                                                &opc_size);
-
-        /* Print the disassembled instruction */
-        mon_out("%04x  %-30s - A:%02X X:%02X Y:%02X SP:%02x %c%c-%c%c%c%c%c\n",
-                loc, dis_inst,
-                cpuhistory[pos].reg_a, cpuhistory[pos].reg_x, cpuhistory[pos].reg_y, cpuhistory[pos].reg_sp,
-                ((cpuhistory[pos].reg_st & (1 << 7)) != 0) ? 'N' : ' ',
-                ((cpuhistory[pos].reg_st & (1 << 6)) != 0) ? 'V' : ' ',
-                ((cpuhistory[pos].reg_st & (1 << 4)) != 0) ? 'B' : ' ',
-                ((cpuhistory[pos].reg_st & (1 << 3)) != 0) ? 'D' : ' ',
-                ((cpuhistory[pos].reg_st & (1 << 2)) != 0) ? 'I' : ' ',
-                ((cpuhistory[pos].reg_st & (1 << 1)) != 0) ? 'Z' : ' ',
-                ((cpuhistory[pos].reg_st & (1 << 0)) != 0) ? 'C' : ' '
-                );
-
-        pos = (pos + 1) & (CPUHISTORY_SIZE - 1);
-    }
-#else
-    mon_out("Disabled. configure with --enable-memmap and recompile.\n");
-#endif
-}
-
-
-/* TODO move somewhere else */
-BYTE *mon_memmap;
-int mon_memmap_size;
-int mon_memmap_picx;
-int mon_memmap_picy;
-BYTE memmap_state;
-
-static void mon_memmap_init(void)
-{
-#ifdef FEATURE_CPUMEMHISTORY
-    mon_memmap_picx = 0x100;
-    if (machine_class == VICE_MACHINE_C64DTV) {
-        mon_memmap_picy = 0x2000;
-    } else {
-        mon_memmap_picy = 0x100;
-    }
-    mon_memmap_size = mon_memmap_picx * mon_memmap_picy;
-    mon_memmap = lib_malloc(mon_memmap_size);
-#else
-    mon_memmap = NULL;
-    mon_memmap_size = 0;
-    mon_memmap_picx = 0;
-    mon_memmap_picy = 0;
-#endif
-}
-
-void mon_memmap_zap(void)
-{
-#ifdef FEATURE_CPUMEMHISTORY
-    memset(mon_memmap, 0, mon_memmap_size);
-#else
-    mon_out("Disabled. configure with --enable-memmap and recompile.\n");
-#endif
-}
-
-void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr)
-{
-#ifdef FEATURE_CPUMEMHISTORY
-    unsigned int i;
-    BYTE b;
-
-    if (machine_class == VICE_MACHINE_C64DTV) {
-        mon_out("  addr: IO ROM RAM\n");
-    } else {
-        mon_out("addr: IO ROM RAM\n");
-    }
-
-    if (start_addr == BAD_ADDR) {
-        start_addr = 0;
-    }
-    if (end_addr == BAD_ADDR) {
-        end_addr = mon_memmap_size - 1;
-    }
-    if (start_addr > end_addr) {
-        start_addr = end_addr;
-    }
-
-    for (i = start_addr; i <= end_addr; ++i) {
-        b = mon_memmap[i];
-        if ((b & mask) != 0) {
-            if (machine_class == VICE_MACHINE_C64DTV) {
-                mon_out("%06x: %c%c %c%c%c %c%c%c\n", i,
-                        (b & MEMMAP_I_O_R) ? 'r' : '-',
-                        (b & MEMMAP_I_O_W) ? 'w' : '-',
-                        (b & MEMMAP_ROM_R) ? 'r' : '-',
-                        (b & MEMMAP_ROM_W) ? 'w' : '-',
-                        (b & MEMMAP_ROM_X) ? 'x' : '-',
-                        (b & MEMMAP_RAM_R) ? 'r' : '-',
-                        (b & MEMMAP_RAM_W) ? 'w' : '-',
-                        (b & MEMMAP_RAM_X) ? 'x' : '-');
-            } else {
-                mon_out("%04x: %c%c %c%c%c %c%c%c\n", i,
-                        (b & MEMMAP_I_O_R) ? 'r' : '-',
-                        (b & MEMMAP_I_O_W) ? 'w' : '-',
-                        (b & MEMMAP_ROM_R) ? 'r' : '-',
-                        (b & MEMMAP_ROM_W) ? 'w' : '-',
-                        (b & MEMMAP_ROM_X) ? 'x' : '-',
-                        (b & MEMMAP_RAM_R) ? 'r' : '-',
-                        (b & MEMMAP_RAM_W) ? 'w' : '-',
-                        (b & MEMMAP_RAM_X) ? 'x' : '-');
-            }
-        }
-    }
-#else
-    mon_out("Disabled. configure with --enable-memmap and recompile.\n");
-#endif
-}
-
-void monitor_memmap_store(unsigned int addr, unsigned int type)
-{
-    BYTE op = cpuhistory[cpuhistory_i].op;
-
-    if (inside_monitor) {
-        return;
-    }
-
-    /* Ignore reg_pc+2 reads on branches & JSR
-       and return address read on RTS */
-    if (type & (MEMMAP_ROM_R | MEMMAP_RAM_R)
-        && (((op & 0x1f) == 0x10) || (op == OP_JSR)
-            || ((op == OP_RTS) && ((addr > 0x1ff) || (addr < 0x100))))) {
-        return;
-    }
-
-    mon_memmap[addr & (mon_memmap_size - 1)] |= type;
-}
-
-#ifdef FEATURE_CPUMEMHISTORY
-BYTE mon_memmap_palette[256 * 3];
-
-void mon_memmap_make_palette(void)
-{
-    int i;
-    for (i = 0; i < 256; ++i) {
-        mon_memmap_palette[i * 3 + 0] = (i & (MEMMAP_RAM_W)) ? 0x80 : 0 + (i & (MEMMAP_ROM_W)) ? 0x60 : 0 + (i & (MEMMAP_I_O_W)) ? 0x1f : 0;
-        mon_memmap_palette[i * 3 + 1] = (i & (MEMMAP_RAM_X)) ? 0x80 : 0 + (i & (MEMMAP_ROM_X)) ? 0x60 : 0 + (i & (MEMMAP_I_O_W | MEMMAP_I_O_R)) ? 0x1f : 0;
-        mon_memmap_palette[i * 3 + 2] = (i & (MEMMAP_RAM_R)) ? 0x80 : 0 + (i & (MEMMAP_ROM_R)) ? 0x60 : 0 + (i & (MEMMAP_I_O_R)) ? 0x1f : 0;
-    }
-}
-#endif
-
-void mon_memmap_save(const char* filename, int format)
-{
-#ifdef FEATURE_CPUMEMHISTORY
-    const char* drvname;
-
-    switch (format) {
-        case 1:
-            drvname = "PCX";
-            break;
-        case 2:
-            drvname = "PNG";
-            break;
-        case 3:
-            drvname = "GIF";
-            break;
-        case 4:
-            drvname = "IFF";
-            break;
-        default:
-            drvname = "BMP";
-            break;
-    }
-    if (memmap_screenshot_save(drvname, filename, mon_memmap_picx, mon_memmap_picy, mon_memmap, mon_memmap_palette)) {
-        mon_out("Failed.\n");
-    }
-#else
-    mon_out("Disabled. configure with --enable-memmap and recompile.\n");
-#endif
-}
-
 void mon_screenshot_save(const char* filename, int format)
 {
     const char* drvname;
@@ -1271,7 +1057,6 @@ void monitor_init(monitor_interface_t *maincpu_interface_init,
     asm_mode = 0;
     next_or_step_stop = 0;
     recording = FALSE;
-    cpuhistory_i = 0;
 
     mon_ui_init();
 
@@ -1336,10 +1121,6 @@ void monitor_init(monitor_interface_t *maincpu_interface_init,
     }
 
     mon_memmap_init();
-#ifdef FEATURE_CPUMEMHISTORY
-    mon_memmap_zap();
-    mon_memmap_make_palette();
-#endif
 
     if (mon_init_break != -1) {
         mon_breakpoint_add_checkpoint((WORD)mon_init_break, BAD_ADDR, TRUE, e_exec, FALSE);
@@ -1374,9 +1155,7 @@ void monitor_shutdown(void)
         }
     }
 
-#ifdef FEATURE_CPUMEMHISTORY
-    lib_free(mon_memmap);
-#endif
+    mon_memmap_shutdown();
 }
 
 static int monitor_set_initial_breakpoint(const char *param, void *extra_param)
@@ -1854,7 +1633,7 @@ void mon_add_name_to_symbol_table(MON_ADDR addr, char *name)
 
     old_name = mon_symbol_table_lookup_name(mem, loc);
     old_addr = mon_symbol_table_lookup_addr(mem, name);
-    if (old_name && addr_location(old_addr) != addr) {
+    if (old_name && (MON_ADDR)addr_location(old_addr) != addr) {
         mon_out("Warning: label(s) for address $%04x already exist.\n", loc);
     }
     if (old_addr >= 0) {
@@ -2410,6 +2189,9 @@ static void monitor_open(void)
         return;
     }
 
+#ifdef FEATURE_CPUHISTORY
+    memmap_state |= MEMMAP_STATE_IN_MONITOR;
+#endif
     inside_monitor = TRUE;
     monitor_trap_triggered = FALSE;
     vsync_suspend_speed_eval();
@@ -2510,6 +2292,9 @@ static int monitor_process(char *cmd)
 
 static void monitor_close(int check)
 {
+#ifdef FEATURE_CPUHISTORY
+    memmap_state &= ~(MEMMAP_STATE_IN_MONITOR);
+#endif
     inside_monitor = FALSE;
     vsync_suspend_speed_eval();
 

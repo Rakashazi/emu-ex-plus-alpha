@@ -128,7 +128,7 @@ static io_source_list_t *gamekiller_io1_list_item = NULL;
 static io_source_list_t *gamekiller_io2_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_GAME_KILLER, 1, 1, &gamekiller_io1_device, &gamekiller_io2_device, CARTRIDGE_GAME_KILLER
+    CARTRIDGE_NAME_GAME_KILLER, 1, 0, &gamekiller_io1_device, &gamekiller_io2_device, CARTRIDGE_GAME_KILLER
 };
 
 /* ---------------------------------------------------------------------*/

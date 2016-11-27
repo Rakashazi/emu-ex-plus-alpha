@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -58,10 +59,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef __OS2__
-#include "snippets/dirport.h"
-#endif
 
 #ifdef __NeXT__
 #include <sys/dir.h>

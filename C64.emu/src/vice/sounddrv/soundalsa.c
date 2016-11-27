@@ -27,12 +27,19 @@
 
 #include "vice.h"
 
+#ifdef USE_ALSA
+
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
 #include "alsa/asoundlib.h"
 #include "debug.h"
 #include "log.h"
 #include "sound.h"
+
+/* NetBSD doesn't define ESTRPIPE, this fix I noticed in gstreamer code */
+#ifndef ESTRPIPE
+#define ESTRPIPE EPIPE
+#endif
 
 static snd_pcm_t *handle;
 static int alsa_bufsize;
@@ -247,3 +254,4 @@ int sound_init_alsa_device(void)
 {
     return sound_register_device(&alsa_device);
 }
+#endif

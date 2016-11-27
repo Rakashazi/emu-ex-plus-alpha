@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * NEOS & Amiga mouse and paddle support by
  *  Hannu Nuotio <hannu.nuotio@tut.fi>

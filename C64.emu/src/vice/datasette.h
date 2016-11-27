@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -61,6 +62,8 @@ extern void datasette_event_playback(CLOCK offset, void *data);
 /* Emulator specific functions.  */
 extern void machine_trigger_flux_change(unsigned int on);
 extern void machine_set_tape_sense(int sense);
+extern void machine_set_tape_write_in(int val);
+extern void machine_set_tape_motor_in(int val);
 
 extern void datasette_set_tape_sense(int sense);
 

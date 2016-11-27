@@ -73,35 +73,44 @@ CLOCK debug_clk;
 
 #ifdef FEATURE_CPUMEMHISTORY
 
+inline static void memmap_mem_update(unsigned int addr, int write)
+{
+    unsigned int type = MEMMAP_RAM_R;
+    unsigned int a_m = addr >> 8;
+
+    if (((a_m >= 0x90) && (a_m <= 0x93)) || ((addr >= 0x98) && (addr <= 0x9f))) {
+        type = MEMMAP_I_O_R;
+    } else if (((a_m >= 0x80) && (a_m <= 0x8f)) || (a_m >= 0xc0)) {
+        type = MEMMAP_ROM_R;
+    }
+
+    if (write) {
+        /* HACK: transform R to W */
+        type >>= 1;
+    } else {
+        if (memmap_state & MEMMAP_STATE_OPCODE) {
+            /* HACK: transform R to X */
+            type >>= 2;
+            memmap_state &= ~(MEMMAP_STATE_OPCODE);
+        } else if (memmap_state & MEMMAP_STATE_INSTR) {
+            /* ignore operand reads */
+            type = 0;
+        }
+    }
+
+    monitor_memmap_store(addr, type);
+
+}
+
 void memmap_mem_store(unsigned int addr, unsigned int value)
 {
-    if (((addr >= 0x9000) && (addr <= 0x93ff)) || ((addr >= 0x9800) && (addr <= 0x9fff))) {
-        monitor_memmap_store(addr, MEMMAP_I_O_W);
-    } else if (((addr >= 0x8000) && (addr <= 0x8fff)) || (addr >= 0xc000)) {
-        monitor_memmap_store(addr, MEMMAP_ROM_W);
-    } else {
-        monitor_memmap_store(addr, MEMMAP_RAM_W);
-    }
+    memmap_mem_update(addr, 1);
     (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value));
 }
 
-/* mark as read (no side effects) */
-void memmap_mark_read(unsigned int addr)
-{
-    if (((addr >= 0x9000) && (addr <= 0x93ff)) || ((addr >= 0x9800) && (addr <= 0x9fff))) {
-        monitor_memmap_store(addr, MEMMAP_I_O_R);
-    } else if (((addr >= 0x8000) && (addr <= 0x8fff)) || (addr >= 0xc000)) {
-        monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_ROM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_ROM_R);
-    } else {
-        monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_RAM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_RAM_R);
-    }
-    memmap_state &= ~(MEMMAP_STATE_OPCODE);
-}
-
-/* read byte and mark as read */
 BYTE memmap_mem_read(unsigned int addr)
 {
-    memmap_mark_read(addr);
+    memmap_mem_update(addr, 0);
     return (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr));
 }
 

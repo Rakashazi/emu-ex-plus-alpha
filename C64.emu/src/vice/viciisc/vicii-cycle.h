@@ -28,6 +28,7 @@
 #define VICE_VICII_CYCLE_H
 
 extern int vicii_cycle(void);
+extern int vicii_cycle_reu(void);
 extern void vicii_steal_cycles(void);
 
 #endif

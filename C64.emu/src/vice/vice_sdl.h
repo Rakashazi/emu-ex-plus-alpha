@@ -47,14 +47,12 @@
 #  include <SDL2/SDL.h>
 #  include <SDL2/SDL_keycode.h>
 #  ifdef INCLUDE_SDL_SYSWM_H
-#    include <SDL/SDL_syswm.h>
+#    include <SDL2/SDL_syswm.h>
 #  endif
 #  ifdef HAVE_SDLMAIN
 #    include <SDL2/SDL_main.h>
 #  endif
-#  ifdef HAVE_HWSCALE
-#    include <SDL/SDL_opengl.h>
-#  endif
+#  include <SDL2/SDL_opengl.h>
 #else
 #  ifdef USE_SDL_PREFIX
 #    include <SDL/SDL.h>
@@ -78,7 +76,10 @@
 #      include <SDL_main.h>
 #    endif
 #    ifdef HAVE_HWSCALE
-#      include <SDL_opengl.h>
+#      include <SDL_version.h>
+#      if (SDL_MAJOR_VERSION == 1)
+#        include <SDL_opengl.h>
+#      endif
 #    endif
 #  endif
 #endif

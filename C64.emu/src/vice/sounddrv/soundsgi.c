@@ -28,6 +28,8 @@
 
 #include <stdio.h>
 
+#ifdef USE_DMEDIA
+
 #include "sound.h"
 
 #if defined(HAVE_DMEDIA_AUDIO_H)
@@ -137,3 +139,4 @@ int sound_init_sgi_device(void)
 {
     return sound_register_device(&sgi_device);
 }
+#endif

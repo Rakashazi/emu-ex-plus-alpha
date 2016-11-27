@@ -66,7 +66,6 @@ extern int retroreplay_flush_image(void);
 extern void retroreplay_detach(void);
 
 extern int retroreplay_cart_enabled(void);
-extern int rr_clockport_enabled;
 
 extern int retroreplay_cmdline_options_init(void);
 extern int retroreplay_resources_init(void);

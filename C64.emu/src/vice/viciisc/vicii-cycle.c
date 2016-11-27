@@ -512,6 +512,15 @@ int vicii_cycle(void)
     return ba_low;
 }
 
+/* The REU can use an additional cycle at the point where the dma of sprite 0 is turned on */
+/* this is because of late setting of BA due to internal delays */
+/* The CPU can't use this cycle as it checks the state later */
+int vicii_cycle_reu(void)
+{
+    int check = vicii.raster_cycle == VICII_PAL_CYCLE(54) && (vicii.regs[0x15] & 1) && (vicii.regs[1] == (vicii.raster_line & 0xff)) && !(vicii.sprite_dma & 1);
+    return vicii_cycle() && !check;
+}
+
 /* Steal cycles from CPU  */
 void vicii_steal_cycles(void)
 {

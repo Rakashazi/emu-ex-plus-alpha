@@ -194,6 +194,10 @@
 #define PLATFORM_OS "OpenBSD 5.9"
 #endif
 
+#ifdef OpenBSD6_0
+#define PLATFORM_OS "OpenBSD 6.0"
+#endif
+
 #ifndef PLATFORM_OS
 #define PLATFORM_OS "OpenBSD"
 #endif

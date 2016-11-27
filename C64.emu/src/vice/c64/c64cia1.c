@@ -6,6 +6,7 @@
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -449,12 +450,13 @@ static void read_sdr(cia_context_t *cia_context)
     if (burst_mod == BURST_MOD_CIA1) {
         drive_cpu_execute_all(maincpu_clk);
     }
+    cia_context->c_cia[CIA_SDR] = read_userport_sp1(cia_context->c_cia[CIA_SDR]);
 }
 
 static void store_sdr(cia_context_t *cia_context, BYTE byte)
 {
     if ((cia1_cra & 0x59) == 0x51) {
-        store_userport_sp1();
+        store_userport_sp1(byte);
     }
 
     if (c64iec_active) {

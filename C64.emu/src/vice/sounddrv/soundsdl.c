@@ -28,6 +28,8 @@
 
 #include "vice.h"
 
+#ifdef USE_SDL_AUDIO
+
 #include "vice_sdl.h"
 
 #ifdef HAVE_UNISTD_H
@@ -318,3 +320,4 @@ int sound_init_sdl_device(void)
 {
     return sound_register_device(&sdl_device);
 }
+#endif

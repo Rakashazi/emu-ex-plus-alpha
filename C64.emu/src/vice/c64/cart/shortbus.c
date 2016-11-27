@@ -34,10 +34,13 @@
 
 #include "shortbus_digimax.h"
 
+#ifdef HAVE_PCAP
+#include "shortbus_etfe.h"
+#endif
+
 /* TODO */
 #if 0
 #include "shortbus_duart.h"
-#include "shortbus_etfe.h"
 #include "shortbus_eth64.h"
 #endif
 
@@ -47,13 +50,15 @@ int shortbus_resources_init(void)
         return -1;
     }
 
+#ifdef HAVE_PCAP
+    if (shortbus_etfe_resources_init() < 0) {
+        return -1;
+    }
+#endif
+
 /* TODO */
 #if 0
     if (shortbus_duart_resources_init() < 0) {
-        return -1;
-    }
-
-    if (shortbus_etfe_resources_init() < 0) {
         return -1;
     }
 
@@ -69,10 +74,13 @@ void shortbus_resources_shutdown(void)
 {
     shortbus_digimax_resources_shutdown();
 
+#ifdef HAVE_PCAP
+    shortbus_etfe_resources_shutdown();
+#endif
+
 /* TODO */
 #if 0
     shortbus_duart_resources_shutdown();
-    shortbus_etfe_resources_shutdown();
     shortbus_eth64_resources_shutdown();
 #endif
 
@@ -84,13 +92,15 @@ int shortbus_cmdline_options_init(void)
         return -1;
     }
 
+#ifdef HAVE_PCAP
+    if (shortbus_etfe_cmdline_options_init() < 0) {
+        return -1;
+    }
+#endif
+
 /* TODO */
 #if 0
     if (shortbus_duart_cmdline_options_init() < 0) {
-        return -1;
-    }
-
-    if (shortbus_etfe_cmdline_options_init() < 0) {
         return -1;
     }
 
@@ -106,10 +116,13 @@ extern void shortbus_unregister(void)
 {
     shortbus_digimax_unregister();
 
+#ifdef HAVE_PCAP
+    shortbus_etfe_unregister();
+#endif
+
 /* TODO */
 #if 0
     shortbus_duart_unregister();
-    shortbus_etfe_unregister();
     shortbus_eth64_unregister();
 #endif
 }
@@ -119,10 +132,13 @@ extern void shortbus_register(void)
 {
     shortbus_digimax_register();
 
+#ifdef HAVE_PCAP
+    shortbus_etfe_register();
+#endif
+
 /* TODO */
 #if 0
     shortbus_duart_register();
-    shortbus_etfe_register();
     shortbus_eth64_register();
 #endif
 }
@@ -131,10 +147,13 @@ void shortbus_reset(void)
 {
     shortbus_digimax_reset();
 
+#ifdef HAVE_PCAP
+    shortbus_etfe_reset();
+#endif
+
 /* TODO */
 #if 0
     shortbus_duart_reset();
-    shortbus_etfe_reset();
     shortbus_eth64_reset();
 #endif
 }
@@ -167,15 +186,18 @@ int shortbus_write_snapshot_module(snapshot_t *s)
         devices[0] = 1;
     }
 
+#ifdef HAVE_PCAP
+    if (shortbus_etfe_enabled()) {
+        ++active_devices;
+        devices[2] = 1;
+    }
+#endif
+
 /* TODO */
 #if 0
     if (shortbus_duart_enabled()) {
         ++active_devices;
         devices[1] = 1;
-    }
-    if (shortbus_etfe_enabled()) {
-        ++active_devices;
-        devices[2] = 1;
     }
     if (shortbus_eth64_enabled()) {
         ++active_devices;
@@ -207,15 +229,18 @@ int shortbus_write_snapshot_module(snapshot_t *s)
             }
         }
 
+#ifdef HAVE_PCAP
+        if (devices[2]) {
+            if (shortbus_etfe_write_snapshot_module(s) < 0) {
+                return -1;
+            }
+        }
+#endif
+
         /* TODO */
 #if 0
         if (devices[1]) {
             if (shortbus_duart_write_snapshot_module(s) < 0) {
-                return -1;
-            }
-        }
-        if (devices[2]) {
-            if (shortbus_etfe_write_snapshot_module(s) < 0) {
                 return -1;
             }
         }
@@ -267,15 +292,18 @@ int shortbus_read_snapshot_module(snapshot_t *s)
             }        
         }
 
+#ifdef HAVE_PCAP
+        if (devices[2]) {
+            if (shortbus_etfe_read_snapshot_module(s) < 0) {
+                return -1;
+            }        
+        }
+#endif
+
         /* TODO */
 #if 0
         if (devices[1]) {
             if (shortbus_duart_read_snapshot_module(s) < 0) {
-                return -1;
-            }        
-        }
-        if (devices[2]) {
-            if (shortbus_etfe_read_snapshot_module(s) < 0) {
                 return -1;
             }        
         }

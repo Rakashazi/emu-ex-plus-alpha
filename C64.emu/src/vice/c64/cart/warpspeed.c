@@ -135,7 +135,7 @@ static int warpspeed_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static const export_resource_t export_res_warpspeed = {
-    CARTRIDGE_NAME_WARPSPEED, 1, 0, &warpspeed_io1_device, &warpspeed_io2_device, CARTRIDGE_WARPSPEED
+    CARTRIDGE_NAME_WARPSPEED, 1, 1, &warpspeed_io1_device, &warpspeed_io2_device, CARTRIDGE_WARPSPEED
 };
 
 /* ---------------------------------------------------------------------*/

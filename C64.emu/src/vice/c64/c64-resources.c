@@ -211,7 +211,6 @@ static int set_kernal_revision(int val, void *param)
 static int set_sync_factor(int val, void *param)
 {
     int change_timing = 0;
-    int border_mode = VICII_BORDER_MODE(vicii_resources.border_mode);
 
     if (sync_factor != val) {
         change_timing = 1;
@@ -221,25 +220,25 @@ static int set_sync_factor(int val, void *param)
         case MACHINE_SYNC_PAL:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PAL ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_PAL, vicii_resources.border_mode);
             }
             break;
         case MACHINE_SYNC_NTSC:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSC ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_NTSC, vicii_resources.border_mode);
             }
             break;
         case MACHINE_SYNC_NTSCOLD:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSCOLD ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_NTSCOLD, vicii_resources.border_mode);
             }
             break;
         case MACHINE_SYNC_PALN:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PALN ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_PALN, vicii_resources.border_mode);
             }
             break;
         default:
@@ -267,11 +266,11 @@ static const resource_int_t resources_int[] = {
       &sync_factor, set_sync_factor, NULL },
     { "BoardType", 0, RES_EVENT_SAME, NULL,
       &board_type, set_board_type, NULL },
-    { "IECReset", 1, RES_EVENT_SAME, NULL,
+    { "IECReset", 0, RES_EVENT_SAME, NULL,
       &iec_reset, set_iec_reset, NULL },
-    { "CIA1Model", CIA_MODEL_6526, RES_EVENT_SAME, NULL,
+    { "CIA1Model", CIA_MODEL_6526A, RES_EVENT_SAME, NULL,
       &cia1_model, set_cia1_model, NULL },
-    { "CIA2Model", CIA_MODEL_6526, RES_EVENT_SAME, NULL,
+    { "CIA2Model", CIA_MODEL_6526A, RES_EVENT_SAME, NULL,
       &cia2_model, set_cia2_model, NULL },
     { "KernalRev", C64_KERNAL_REV3, RES_EVENT_SAME, NULL,
       &kernal_revision, set_kernal_revision, NULL },

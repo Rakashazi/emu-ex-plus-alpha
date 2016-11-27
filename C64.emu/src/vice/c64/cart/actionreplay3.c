@@ -227,7 +227,7 @@ void actionreplay3_config_setup(BYTE *rawcart)
 /* ---------------------------------------------------------------------*/
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_ACTION_REPLAY3, 1, 1, &actionreplay3_io1_device, &actionreplay3_io2_device, CARTRIDGE_ACTION_REPLAY3
+    CARTRIDGE_NAME_ACTION_REPLAY3, 0, 1, &actionreplay3_io1_device, &actionreplay3_io2_device, CARTRIDGE_ACTION_REPLAY3
 };
 
 static int actionreplay3_common_attach(void)

@@ -154,6 +154,10 @@
 #include <windows.h>
 #include <stdio.h>
 
+#if !defined(__CYGWIN32__) && !defined(__CYGWIN__) && defined(WIN32_COMPILE)
+#include <tchar.h>
+#endif
+
 #define VICE_DEBUG_H
 #include "lib.h"
 
@@ -788,6 +792,11 @@
 #define KEY_WOW64_32KEY 0x0200
 #endif
 
+#ifndef WIN32_UNICODE_SUPPORT
+#define _tcslen strlen
+#define _tcsncmp strncmp
+#endif
+
 typedef BOOL (WINAPI *VGPI)(DWORD, DWORD, DWORD, DWORD, PDWORD);
 typedef void (WINAPI *VGNSI)(LPSYSTEM_INFO);
 
@@ -1064,7 +1073,7 @@ typedef struct _VICE_OSVERSIONINFOEX {
     DWORD dwMinorVersion;
     DWORD dwBuildNumber;
     DWORD dwPlatformId;
-    CHAR szCSDVersion[128];
+    TCHAR szCSDVersion[128];
     WORD wServicePackMajor;
     WORD wServicePackMinor;
     WORD wSuiteMask;
@@ -1162,7 +1171,7 @@ static int IsReactOS(void)
     HKEY hKey;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\ReactOS", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\ReactOS"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
         RegCloseKey(hKey);
         return 1;
@@ -1175,21 +1184,24 @@ static void get_ReactOS_ver_string(char **retval)
     OSVERSIONINFO RosVersionInfo;
     unsigned RosVersionLen;
     LPTSTR RosVersion;
+    TCHAR PT[128];
 
     RosVersionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 
     memset(RosVersionInfo.szCSDVersion, 0, sizeof(RosVersionInfo.szCSDVersion));
     if (GetVersionEx(&RosVersionInfo)) {
-        RosVersion = RosVersionInfo.szCSDVersion + strlen(RosVersionInfo.szCSDVersion) + 1;
+        RosVersion = RosVersionInfo.szCSDVersion + _tcslen(RosVersionInfo.szCSDVersion) + 1;
         RosVersionLen = sizeof(RosVersionInfo.szCSDVersion) / sizeof(RosVersionInfo.szCSDVersion[0]) - (RosVersion - RosVersionInfo.szCSDVersion);
-        if (7 <= RosVersionLen && 0 == strncmp(RosVersion, "ReactOS", 7)) {
-            sprintf(*retval, "%s", RosVersion);
+        if (7 <= RosVersionLen && 0 == _tcsncmp(RosVersion, TEXT("ReactOS"), 7)) {
+            lib_sntprintf(PT, 128, TEXT("%s"), RosVersion);
         } else {
-            sprintf(*retval, "ReactOS %s", RosVersion);
+            lib_sntprintf(PT, 128, TEXT("ReactOS %s"), RosVersion);
         }
     } else {
-        sprintf(*retval, "ReactOS");
+        lib_sntprintf(PT, 128, TEXT("ReactOS"));
     }
+
+    lib_tcstostr(*retval, PT, 128);
 }
 
 static int IsWine(void)
@@ -1219,39 +1231,39 @@ static int IsHxDos(void)
 static char *get_win95_version(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    if (!strncmp(os_version_info.szCSDVersion, " A", 2)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT(" A"), 2)) {
         return "A";
     }
-    if (!strncmp(os_version_info.szCSDVersion, " B", 2)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT(" B"), 2)) {
         return "B";
     }
-    if (!strncmp(os_version_info.szCSDVersion, " C", 2)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT(" C"), 2)) {
         return "C";
     }
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return "";
     }
 
-    ret = RegQueryValueEx(hKey, "SubVersionNumber", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("SubVersionNumber"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return "";
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("a", PT) == 0) {
+    if (lstrcmpi(TEXT("a"), PT) == 0) {
         return "A";
     }
-    if (lstrcmpi("b", PT) == 0) {
+    if (lstrcmpi(TEXT("b"), PT) == 0) {
         return "B";
     }
-    if (lstrcmpi("c", PT) == 0) {
+    if (lstrcmpi(TEXT("c"), PT) == 0) {
         return "C";
     }
 
@@ -1260,13 +1272,13 @@ static char *get_win95_version(void)
 
 static char *get_win98_version(void)
 {
-    if (!strncmp(os_version_info.szCSDVersion, "A", 1)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("A"), 1)) {
         return " (Security)";
     }
-    if (!strncmp(os_version_info.szCSDVersion, " A", 2)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT(" A"), 2)) {
         return "SE";
     }
-    if (!strncmp(os_version_info.szCSDVersion, "B", 1)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("B"), 1)) {
         return "SE (Security)";
     }
     return "";
@@ -1302,37 +1314,37 @@ static int got_os = 0;
 static int get_product_type_from_reg(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ProductOptions", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\ProductOptions"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "ProductType", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("ProductType"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("WINNT", PT) == 0) {
+    if (lstrcmpi(TEXT("WINNT"), PT) == 0) {
         return 1;
     }
 
-    if (lstrcmpi("SERVERNT", PT) == 0 || lstrcmpi("LANMANNT", PT) == 0) {
-        ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\ProductOptions", 0, KEY_QUERY_VALUE, &hKey);
-        ret = RegQueryValueEx(hKey, "ProductSuite", NULL, NULL, NULL, NULL);
+    if (lstrcmpi(TEXT("SERVERNT"), PT) == 0 || lstrcmpi(TEXT("LANMANNT"), PT) == 0) {
+        ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\ProductOptions"), 0, KEY_QUERY_VALUE, &hKey);
+        ret = RegQueryValueEx(hKey, TEXT("ProductSuite"), NULL, NULL, NULL, NULL);
         if (ret == ERROR_SUCCESS) {
             RegCloseKey(hKey);
-            ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Terminal Server", 0, KEY_QUERY_VALUE, &hKey);
+            ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\Terminal Server"), 0, KEY_QUERY_VALUE, &hKey);
             if (ret == ERROR_SUCCESS) {
                 RegCloseKey(hKey);
                 return 4;
             }
-            ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\LicenseInfoSuites\\SmallBusiness", 0, KEY_QUERY_VALUE, &hKey);
+            ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Services\\LicenseInfoSuites\\SmallBusiness"), 0, KEY_QUERY_VALUE, &hKey);
             if (ret == ERROR_SUCCESS) {
                 RegCloseKey(hKey);
                 return 5;
@@ -1346,22 +1358,22 @@ static int get_product_type_from_reg(void)
 
 static int get_sp_from_reg(void)
 {
-    if (!strncmp(os_version_info.szCSDVersion, "Service Pack 1", 14)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("Service Pack 1"), 14)) {
         return 1;
     }
-    if (!strncmp(os_version_info.szCSDVersion, "Service Pack 2", 14)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("Service Pack 2"), 14)) {
         return 2;
     }
-    if (!strncmp(os_version_info.szCSDVersion, "Service Pack 3", 14)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("Service Pack 3"), 14)) {
         return 3;
     }
-    if (!strncmp(os_version_info.szCSDVersion, "Service Pack 4", 14)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("Service Pack 4"), 14)) {
         return 4;
     }
-    if (!strncmp(os_version_info.szCSDVersion, "Service Pack 5", 14)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("Service Pack 5"), 14)) {
         return 5;
     }
-    if (!strncmp(os_version_info.szCSDVersion, "Service Pack 6", 14)) {
+    if (!_tcsncmp(os_version_info.szCSDVersion, TEXT("Service Pack 6"), 14)) {
         return 6;
     }
     return 0;
@@ -1372,7 +1384,7 @@ static int sp_is_nt4_6a(void)
     HKEY hKey;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Hotfix\\Q246009", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Hotfix\\Q246009"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
         RegCloseKey(hKey);
         return 1;
@@ -1385,7 +1397,7 @@ static int is_pe_builder(void)
     HKEY hKey;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\PE Builder", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\PE Builder"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
         RegCloseKey(hKey);
         return 1;
@@ -1398,7 +1410,7 @@ static int is_flp(void)
     HKEY hKey;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\WPA\\Fundamentals", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\WPA\\Fundamentals"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
         RegCloseKey(hKey);
         return 1;
@@ -1411,7 +1423,7 @@ static int is_cluster(void)
     HKEY hKey;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\Compute Cluster", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Services\\Compute Cluster"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
         RegCloseKey(hKey);
         return 1;
@@ -1424,7 +1436,7 @@ static int is_thin_pc(void)
     HKEY hKey;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\ThinPC", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\ThinPC"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
         RegCloseKey(hKey);
         return 1;
@@ -1435,23 +1447,23 @@ static int is_thin_pc(void)
 static int is_embedded_2009(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\WindowsEmbedded\\ProductVersion", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SYSTEM\\CurrentControlSet\\Control\\WindowsEmbedded\\ProductVersion"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "FeaturePackVersion", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("FeaturePackVersion"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("Windows Embedded Standard 2009", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows Embedded Standard 2009"), PT) == 0) {
         return 1;
     }
     return 0;
@@ -1460,23 +1472,23 @@ static int is_embedded_2009(void)
 static int is_posready(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\POSReady", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\POSReady"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "Version", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("Version"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("2.0", PT) == 0) {
+    if (lstrcmpi(TEXT("2.0"), PT) == 0) {
         return 2;
     }
     return 1;
@@ -1486,23 +1498,23 @@ static int is_posready(void)
 static int is_windows8_embedded(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "ProductName", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("ProductName"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("Windows Embedded 8 Standard", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows Embedded 8 Standard"), PT) == 0) {
         return 1;
     }
     return 0;
@@ -1512,35 +1524,35 @@ static int is_windows8_embedded(void)
 static int is_storage_server(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "ProductName", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("ProductName"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("Windows Storage Server 2008 R2 Workgroup", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows Storage Server 2008 R2 Workgroup"), PT) == 0) {
         return 1;
     }
-    if (lstrcmpi("Windows Storage Server 2008 R2 Standard", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows Storage Server 2008 R2 Standard"), PT) == 0) {
         return 2;
     }
-    if (lstrcmpi("Windows Storage Server 2008 R2 Enterprise", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows Storage Server 2008 R2 Enterprise"), PT) == 0) {
         return 3;
     }
-    if (lstrcmpi("Windows (R) Storage Server 2008 Enterprise", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows (R) Storage Server 2008 Enterprise"), PT) == 0) {
         return 3;
     }
-    if (lstrcmpi("Windows (R) Storage Server 2008 Basic", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows (R) Storage Server 2008 Basic"), PT) == 0) {
         return 4;
     }
     return 0;
@@ -1554,26 +1566,26 @@ static int is_storage_server(void)
 static int IsWindows8plus(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "CurrentVersion", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("CurrentVersion"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("6.3", PT) == 0) {
+    if (lstrcmpi(TEXT("6.3"), PT) == 0) {
         return 1;
     }
-    if (lstrcmpi("10.0", PT) == 0) {
+    if (lstrcmpi(TEXT("10.0"), PT) == 0) {
         return 2;
     }
     return 0;
@@ -1589,32 +1601,32 @@ static int IsWindows8plus(void)
 static int get_windows_10_edition(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "ProductName", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("ProductName"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("Windows 10 Pro", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows 10 Pro"), PT) == 0) {
         return 2;
     }
-    if (lstrcmpi("Windows 10 Home", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows 10 Home"), PT) == 0) {
         return 1;
     }
-    if (lstrcmpi("Windows 10 Enterprise", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows 10 Enterprise"), PT) == 0) {
         return 3;
     }
-    if (lstrcmpi("Windows 10 Education", PT) == 0) {
+    if (lstrcmpi(TEXT("Windows 10 Education"), PT) == 0) {
         return 4;
     }
 
@@ -1629,19 +1641,19 @@ static int get_windows_10_edition(void)
 static int get_sbs_4x(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
     LONG retval = 0;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\BackOffice", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\BackOffice"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret == ERROR_SUCCESS) {
-        ret = RegQueryValueEx(hKey, "SuiteVersion", NULL, NULL, (LPBYTE)PT, &PTlen);
+        ret = RegQueryValueEx(hKey, TEXT("SuiteVersion"), NULL, NULL, (LPBYTE)PT, &PTlen);
         if ((ret == ERROR_SUCCESS) || (PTlen > 128)) {
-            if (lstrcmpi("4.5", PT) == 0) {
+            if (lstrcmpi(TEXT("4.5"), PT) == 0) {
                 retval = 2;
             }
-            if (lstrcmpi("4.0", PT) == 0) {
+            if (lstrcmpi(TEXT("4.0"), PT) == 0) {
                 retval = 1;
             }
         }
@@ -1649,22 +1661,22 @@ static int get_sbs_4x(void)
     }
 
     if (!retval) {
-        ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Small Business", 0, KEY_QUERY_VALUE, &hKey);
+        ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Small Business"), 0, KEY_QUERY_VALUE, &hKey);
         if (ret != ERROR_SUCCESS) {
             return 0;
         }
-        ret = RegQueryValueEx(hKey, "Version", NULL, NULL, (LPBYTE)PT, &PTlen);
+        ret = RegQueryValueEx(hKey, TEXT("Version"), NULL, NULL, (LPBYTE)PT, &PTlen);
         if (ret != ERROR_SUCCESS) {
             return 0;
         }
         RegCloseKey(hKey);
-        if (lstrcmpi("4.5", PT) == 0) {
+        if (lstrcmpi(TEXT("4.5"), PT) == 0) {
             retval = 2;
         }
-        if (lstrcmpi("4.0", PT) == 0) {
+        if (lstrcmpi(TEXT("4.0"), PT) == 0) {
             retval = 1;
         }
-        if (lstrcmpi("4.0a", PT) == 0) {
+        if (lstrcmpi(TEXT("4.0a"), PT) == 0) {
             retval = 1;
         }        
     }
@@ -1683,44 +1695,44 @@ static int get_sbs_4x(void)
 static int get_mce_version(void)
 {
     HKEY hKey;
-    char PT[128];
+    TCHAR PT[128];
     DWORD PTlen = 128;
     LONG ret;
 
-    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Media Center", 0, KEY_QUERY_VALUE, &hKey);
+    ret = RegOpenKeyEx3264(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Media Center"), 0, KEY_QUERY_VALUE, &hKey);
     if (ret != ERROR_SUCCESS) {
         return 0;
     }
 
-    ret = RegQueryValueEx(hKey, "Ident", NULL, NULL, (LPBYTE)PT, &PTlen);
+    ret = RegQueryValueEx(hKey, TEXT("Ident"), NULL, NULL, (LPBYTE)PT, &PTlen);
     if ((ret != ERROR_SUCCESS) || (PTlen > 128)) {
         return 0;
     }
 
     RegCloseKey(hKey);
 
-    if (lstrcmpi("2.7", PT) == 0) {
+    if (lstrcmpi(TEXT("2.7"), PT) == 0) {
         return 2;
     }
-    if (lstrcmpi("2.8", PT) == 0) {
+    if (lstrcmpi(TEXT("2.8"), PT) == 0) {
         return 2;
     }
-    if (lstrcmpi("3.0", PT) == 0) {
+    if (lstrcmpi(TEXT("3.0"), PT) == 0) {
         return 3;
     }
-    if (lstrcmpi("3.1", PT) == 0) {
+    if (lstrcmpi(TEXT("3.1"), PT) == 0) {
         return 4;
     }
-    if (lstrcmpi("4.0", PT) == 0) {
+    if (lstrcmpi(TEXT("4.0"), PT) == 0) {
         return 5;
     }
-    if (lstrcmpi("5.0", PT) == 0) {
+    if (lstrcmpi(TEXT("5.0"), PT) == 0) {
         return 0;
     }
-    if (lstrcmpi("5.1", PT) == 0) {
+    if (lstrcmpi(TEXT("5.1"), PT) == 0) {
         return 0;
     }
-    if (lstrcmpi("6.0", PT) == 0) {
+    if (lstrcmpi(TEXT("6.0"), PT) == 0) {
         return 0;
     }
     return 1;
@@ -1763,7 +1775,7 @@ char *platform_get_windows_runtime_os(void)
         }
 
         if (windows_versions[0].platformid == VER_PLATFORM_WIN32_NT) {
-            if (GetVersionEx((LPOSVERSIONINFOA)&os_version_ex_info)) {
+            if (GetVersionEx((LPOSVERSIONINFO)&os_version_ex_info)) {
                 if (os_version_ex_info.wProductType == VER_NT_DOMAIN_CONTROLLER) {
                     windows_versions[0].producttype = (BYTE)VER_NT_SERVER;
                 } else {

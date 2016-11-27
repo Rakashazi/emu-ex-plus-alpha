@@ -54,6 +54,8 @@ extern void pia1_store(WORD addr, BYTE value);
 extern BYTE pia1_read(WORD addr);
 extern BYTE pia1_peek(WORD addr);
 extern void pia1_set_tape_sense(int v);
+extern void pia1_set_tape_write_in(int v);
+extern void pia1_set_tape_motor_in(int v);
 
 extern int pia1_snapshot_read_module(struct snapshot_s *);
 extern int pia1_snapshot_write_module(struct snapshot_s *);

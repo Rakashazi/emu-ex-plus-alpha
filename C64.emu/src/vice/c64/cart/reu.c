@@ -245,6 +245,7 @@ struct reu_ba_s {
     int *cpu_ba;
     int cpu_ba_mask;
     int enabled;
+    int delay, last_cycle;
 };
 
 static struct reu_ba_s reu_ba = {
@@ -752,8 +753,22 @@ inline static void reu_clk_inc_pre(void)
     }
 }
 
-/*! \brief clock handling for x64sc */
+/*! \brief clock handling for x64sc reu write */
 inline static void reu_clk_inc_post(void)
+{
+    if (reu_ba.enabled) {
+        maincpu_clk++;
+        if (reu_ba.check()) reu_ba.delay++; else reu_ba.delay = 0;
+        reu_ba.last_cycle = (reu_ba.delay > 1);
+        if (reu_ba.last_cycle) {
+            reu_ba.steal();
+            reu_ba.delay = 0;
+        }
+    }
+}
+
+/*! \brief clock handling for x64sc reu read */
+inline static void reu_clk_inc_post2(void)
 {
     if (reu_ba.enabled) {
         maincpu_clk++;
@@ -1166,7 +1181,7 @@ static void reu_dma_host_to_reu(WORD host_addr, unsigned int reu_addr, int host_
         reu_clk_inc_pre();
         machine_handle_pending_alarms(0);
         value = mem_read(host_addr);
-        reu_clk_inc_post();
+        reu_clk_inc_post2();
         DEBUG_LOG(DEBUG_LEVEL_TRANSFER_LOW_LEVEL, (reu_log, "Transferring byte: %x from main $%04X to ext $%05X.", value, host_addr, reu_addr));
 
         store_to_reu(reu_addr, value);
@@ -1216,6 +1231,10 @@ static void reu_dma_reu_to_host(WORD host_addr, unsigned int reu_addr, int host_
         reu_addr = increment_reu_with_wrap_around(reu_addr, reu_step);
         len--;
     }
+    if (reu_ba.enabled && reu_ba.last_cycle) { /* extra cycle if ended while BA set */
+       machine_handle_pending_alarms(0);
+       reu_clk_inc_post2();
+    }
     DEBUG_LOG(DEBUG_LEVEL_REGISTER2, (reu_log, "END OF BLOCK"));
     reu_dma_update_regs(host_addr, reu_addr, ++len, REU_REG_R_STATUS_END_OF_BLOCK);
 }
@@ -1253,7 +1272,7 @@ static void reu_dma_swap(WORD host_addr, unsigned int reu_addr, int host_step, i
         reu_clk_inc_pre();
         machine_handle_pending_alarms(0);
         value_from_c64 = mem_read(host_addr);
-        reu_clk_inc_post();
+        reu_clk_inc_post2();
         DEBUG_LOG(DEBUG_LEVEL_TRANSFER_LOW_LEVEL, (reu_log, "Exchanging bytes: %x from main $%04X with %x from ext $%05X.", value_from_c64, host_addr, value_from_reu, reu_addr));
         store_to_reu(reu_addr, value_from_c64);
         mem_store(host_addr, value_from_reu);
@@ -1263,6 +1282,10 @@ static void reu_dma_swap(WORD host_addr, unsigned int reu_addr, int host_step, i
         host_addr = (host_addr + host_step) & 0xffff;
         reu_addr = increment_reu_with_wrap_around(reu_addr, reu_step);
         len--;
+    }
+    if (reu_ba.enabled && reu_ba.last_cycle) { /* extra cycle if ended while BA set */
+       machine_handle_pending_alarms(0);       /* likely needed, but not confirmed yet */
+       reu_clk_inc_post2();
     }
     DEBUG_LOG(DEBUG_LEVEL_REGISTER2, (reu_log, "END OF BLOCK"));
     reu_dma_update_regs(host_addr, reu_addr, ++len, REU_REG_R_STATUS_END_OF_BLOCK);
@@ -1309,7 +1332,7 @@ static void reu_dma_compare(WORD host_addr, unsigned int reu_addr, int host_step
         machine_handle_pending_alarms(0);
         value_from_reu = read_from_reu(reu_addr);
         value_from_c64 = mem_read(host_addr);
-        reu_clk_inc_post();
+        reu_clk_inc_post2();
         DEBUG_LOG(DEBUG_LEVEL_TRANSFER_LOW_LEVEL, (reu_log, "Comparing bytes: %x from main $%04X with %x from ext $%05X.", value_from_c64, host_addr, value_from_reu, reu_addr));
         reu_addr = increment_reu_with_wrap_around(reu_addr, reu_step);
         host_addr = (host_addr + host_step) & 0xffff;
@@ -1326,7 +1349,7 @@ static void reu_dma_compare(WORD host_addr, unsigned int reu_addr, int host_step
             if (len >= 1) {
                 reu_clk_inc_pre();
                 machine_handle_pending_alarms(0);
-                reu_clk_inc_post();
+                reu_clk_inc_post2();
             }
             break;
         }
@@ -1405,6 +1428,7 @@ void reu_dma(int immediate)
     if (reu_ba.enabled) {
         /* signal CPU that BA is pulled low */
         *(reu_ba.cpu_ba) |= reu_ba.cpu_ba_mask;
+        reu_ba.delay = 0; reu_ba.last_cycle = 0;
     } else {
         /* start the operation right away */
         reu_dma_start();

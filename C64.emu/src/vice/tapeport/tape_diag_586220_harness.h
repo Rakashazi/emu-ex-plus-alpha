@@ -1,8 +1,8 @@
 /*
- * version.h
+ * tape_diag_58220_harness.h: Tapeport part of the 586220 diagnostic harness emulation.
  *
  * Written by
- *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -24,19 +24,12 @@
  *
  */
 
-#ifndef VICE__VERSION_H__
-#define VICE__VERSION_H__
+#ifndef VICE_TAPE_DIAG_586220_HARNESS_H
+#define VICE_TAPE_DIAG_586220_HARNESS_H
 
-#ifndef VERSION
-#define VERSION "@VERSION@"
-#endif
+#include "types.h"
 
-#ifndef VERSION_RC_NUMBER
-#define VERSION_RC_NUMBER @VERSION_RC@
-#endif
-
-#ifndef PACKAGE
-#define PACKAGE "@PACKAGE@"
-#endif
+extern int tape_diag_586220_harness_resources_init(void);
+extern int tape_diag_586220_harness_cmdline_options_init(void);
 
 #endif

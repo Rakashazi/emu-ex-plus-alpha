@@ -301,6 +301,34 @@ void tapeport_set_sense_out_next(int flag, int id)
     }
 }
 
+void tapeport_set_read_out_next(int flag, int id)
+{
+    tapeport_device_list_t *current = &tapeport_head;
+    int end = 0;
+
+    if (id == tapeport_devices - 1) {
+        return;
+    }
+
+    if (tapeport_active) {
+        while (!end) {
+            if (current->device) {
+                if (current->device->id == id + 1) {
+                    if (current->device->set_read_out) {
+                        current->device->set_read_out(flag);
+                    }
+                    end = 1;
+                }
+            }
+            if (current->next) {
+                current = current->next;
+            } else {
+                end = 1;
+            }
+        }
+    }
+}
+
 void tapeport_reset(void)
 {
     tapeport_device_list_t *current = &tapeport_head;
@@ -368,6 +396,64 @@ void tapeport_set_tape_sense(int sense, int id)
                 if (current->device->id == id - 1) {
                     if (current->device->set_tape_sense_passthrough) {
                         current->device->set_tape_sense_passthrough(sense);
+                    }
+                }
+            }
+            if (current->next) {
+                current = current->next;
+            } else {
+                end = 1;
+            }
+        }
+    }
+}
+
+void tapeport_set_write_in(int val, int id)
+{
+    tapeport_device_list_t *current = &tapeport_head;
+    int end = 0;
+
+    if (!tapeport_active) {
+        return;
+    }
+
+    if (id == 0) {
+        machine_set_tape_write_in(val);
+    } else {
+        while (!end) {
+            if (current->device) {
+                if (current->device->id == id - 1) {
+                    if (current->device->set_tape_write_in_passthrough) {
+                        current->device->set_tape_write_in_passthrough(val);
+                    }
+                }
+            }
+            if (current->next) {
+                current = current->next;
+            } else {
+                end = 1;
+            }
+        }
+    }
+}
+
+void tapeport_set_motor_in(int val, int id)
+{
+    tapeport_device_list_t *current = &tapeport_head;
+    int end = 0;
+
+    if (!tapeport_active) {
+        return;
+    }
+
+    if (id == 0) {
+        machine_set_tape_motor_in(val);
+    } else {
+        while (!end) {
+            if (current->device) {
+                if (current->device->id == id - 1) {
+                    if (current->device->set_tape_motor_in_passthrough) {
+                        current->device->set_tape_motor_in_passthrough(val);
                     }
                 }
             }

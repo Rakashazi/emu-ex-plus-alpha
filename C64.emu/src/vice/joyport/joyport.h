@@ -60,8 +60,10 @@
 #define JOYPORT_ID_COPLIN_KEYPAD      21
 #define JOYPORT_ID_CARDCO_KEYPAD      22
 #define JOYPORT_ID_CX85_KEYPAD        23
+#define JOYPORT_ID_RUSHWARE_KEYPAD    24
+#define JOYPORT_ID_CX21_KEYPAD        25
 
-#define JOYPORT_MAX_DEVICES           24
+#define JOYPORT_MAX_DEVICES           26
 
 #define JOYPORT_RES_ID_NONE        0
 #define JOYPORT_RES_ID_MOUSE       1

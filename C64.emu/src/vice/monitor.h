@@ -212,23 +212,26 @@ extern monitor_cartridge_commands_t mon_cart_cmd;
 extern void monitor_cpuhistory_store(unsigned int addr, unsigned int op, unsigned int p1, unsigned int p2,
                                      BYTE reg_a, BYTE reg_x, BYTE reg_y,
                                      BYTE reg_sp, unsigned int reg_st);
+extern void monitor_cpuhistory_fix_p2(unsigned int p2);
 extern void monitor_memmap_store(unsigned int addr, unsigned int type);
 
 /* memmap defines */
-#define MEMMAP_I_O_R 0x80
-#define MEMMAP_I_O_W 0x40
-#define MEMMAP_ROM_R 0x20
-#define MEMMAP_ROM_W 0x10
-#define MEMMAP_ROM_X 0x08
-#define MEMMAP_RAM_R 0x04
-#define MEMMAP_RAM_W 0x02
-#define MEMMAP_RAM_X 0x01
+#define MEMMAP_I_O_R    (1 << 8)
+#define MEMMAP_I_O_W    (1 << 7)
+#define MEMMAP_I_O_X    (1 << 6)
+#define MEMMAP_ROM_R    (1 << 5)
+#define MEMMAP_ROM_W    (1 << 4)
+#define MEMMAP_ROM_X    (1 << 3)
+#define MEMMAP_RAM_R    (1 << 2)
+#define MEMMAP_RAM_W    (1 << 1)
+#define MEMMAP_RAM_X    (1 << 0)
 
 /* HACK to enable fetch/load separation */
 extern BYTE memmap_state;
-#define MEMMAP_STATE_IGNORE 0x04
-#define MEMMAP_STATE_INSTR  0x02
-#define MEMMAP_STATE_OPCODE 0x01
+#define MEMMAP_STATE_OPCODE     0x01
+#define MEMMAP_STATE_INSTR      0x02
+#define MEMMAP_STATE_IGNORE     0x04
+#define MEMMAP_STATE_IN_MONITOR 0x08
 
 /* strtoul replacement for sunos4 */
 #if defined(sun) || defined(__sun)

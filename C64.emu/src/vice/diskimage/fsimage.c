@@ -48,16 +48,27 @@
 static log_t fsimage_log = LOG_DEFAULT;
 
 
-void fsimage_name_set(disk_image_t *image, char *name)
+/** \brief  Set image name
+ *
+ * \param[in]   name    image name
+ */
+void fsimage_name_set(disk_image_t *image, const char *name)
 {
     fsimage_t *fsimage;
 
     fsimage = image->media.fsimage;
 
-    fsimage->name = name;
+    fsimage->name = lib_stralloc(name);
 }
 
-char *fsimage_name_get(const disk_image_t *image)
+
+/** \brief  Get image name
+ *
+ * \param[in]   image   disk image
+ *
+ * \return  image name
+ */
+const char *fsimage_name_get(const disk_image_t *image)
 {
     fsimage_t *fsimage;
 
@@ -66,6 +77,16 @@ char *fsimage_name_get(const disk_image_t *image)
     return fsimage->name;
 }
 
+
+/** \brief  Get file descriptor for \a image
+ *
+ * \param[in]   image   disk image
+ *
+ * \return  file descriptor
+ *
+ * XXX: \a image should not be const, since we return the a member we later use
+ *      to manipulate the image.
+ */
 void *fsimage_fd_get(const disk_image_t *image)
 {
     fsimage_t *fsimage;

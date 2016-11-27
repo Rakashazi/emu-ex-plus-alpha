@@ -147,7 +147,7 @@ static io_source_t funplay_device = {
 static io_source_list_t *funplay_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_FUNPLAY, 1, 1, &funplay_device, NULL, CARTRIDGE_FUNPLAY
+    CARTRIDGE_NAME_FUNPLAY, 0, 1, &funplay_device, NULL, CARTRIDGE_FUNPLAY
 };
 
 /* ---------------------------------------------------------------------*/

@@ -47,8 +47,8 @@ typedef struct fsimage_s {
 
 extern void fsimage_init(void);
 
-extern void fsimage_name_set(struct disk_image_s *image, char *name);
-extern char *fsimage_name_get(const struct disk_image_s *image);
+extern void fsimage_name_set(struct disk_image_s *image, const char *name);
+extern const char *fsimage_name_get(const struct disk_image_s *image);
 extern void *fsimage_fd_get(const disk_image_t *image);
 extern void fsimage_media_create(struct disk_image_s *image);
 extern void fsimage_media_destroy(struct disk_image_s *image);

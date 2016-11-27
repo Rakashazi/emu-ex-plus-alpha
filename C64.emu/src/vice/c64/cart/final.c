@@ -107,7 +107,7 @@ static io_source_list_t *final1_io1_list_item = NULL;
 static io_source_list_t *final1_io2_list_item = NULL;
 
 static const export_resource_t export_res_v1 = {
-    CARTRIDGE_NAME_FINAL_I, 1, 0, &final1_io1_device, &final1_io2_device, CARTRIDGE_FINAL_I
+    CARTRIDGE_NAME_FINAL_I, 1, 1, &final1_io1_device, &final1_io2_device, CARTRIDGE_FINAL_I
 };
 
 /* ---------------------------------------------------------------------*/

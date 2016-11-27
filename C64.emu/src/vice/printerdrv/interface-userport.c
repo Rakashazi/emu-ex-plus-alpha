@@ -4,6 +4,7 @@
  * Written by
  *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -75,6 +76,8 @@ static userport_device_t printer_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     NULL, /* NO sp2 read */
     "PrinterUserport",
     0xff,

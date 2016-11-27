@@ -469,7 +469,7 @@ void disk_image_init(void)
 {
 }
 
-char *disk_image_fsimage_name_get(const disk_image_t *image)
+const char *disk_image_fsimage_name_get(const disk_image_t *image)
 {
     return NULL;
 }
@@ -501,7 +501,7 @@ void disk_image_rawimage_driver_name_set(disk_image_t *image)
 {
 }
 
-void disk_image_fsimage_name_set(disk_image_t *image, char *name)
+void disk_image_fsimage_name_set(disk_image_t *image, const char *name)
 {
 }
 
@@ -524,7 +524,7 @@ int disk_image_read_sector(const disk_image_t *image, BYTE *buf, const disk_addr
     return 0;
 }
 
-char *disk_image_name_get(const disk_image_t *image)
+const char *disk_image_name_get(const disk_image_t *image)
 {
     return NULL;
 }
@@ -552,7 +552,7 @@ int disk_image_check_sector(const disk_image_t *image, unsigned int track, unsig
     return 0;
 }
 
-void disk_image_name_set(disk_image_t *image, char *name)
+void disk_image_name_set(disk_image_t *image, const char *name)
 {
 }
 

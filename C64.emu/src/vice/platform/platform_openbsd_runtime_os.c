@@ -72,6 +72,8 @@
    amd64  | OpenBSD 5.8
    i386   | OpenBSD 5.8
    i386   | OpenBSD 5.9
+   i386   | OpenBSD 6.0
+   amd64  | OpenBSD 6.0
  */
 
 #include "vice.h"
@@ -115,7 +117,6 @@ static char *GetModelSysCtl(void)
 char *platform_get_openbsd_runtime_cpu(void)
 {
     char *model = NULL;
-    size_t len = 0;
     char *loc1 = NULL;
     char *loc2 = NULL;
 

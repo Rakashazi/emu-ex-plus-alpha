@@ -1,3 +1,8 @@
+/** \file   src/diskimage/fsimage-create.c
+ *
+ * \brief   Create disk images on the host file system
+ */
+
 /*
  * fsimage-create.c - Create a disk image.
  *
@@ -44,8 +49,21 @@
 #include "p64.h"
 #include "cbmdos.h"
 
+
+/** \brief  Log instance for this module
+ */
 static log_t createdisk_log = LOG_DEFAULT;
 
+
+/** \brief  Create a Dxx disk image on the host file system
+ *
+ * This handles any 'normal'/non-GCR disk image supported by VICE. The only
+ * image contained inside a X64 that is supported is a D64.
+ *
+ * \param[in,out]   image   disk image
+ *
+ * \return  0 on success, < 0 on failure
+ */
 static int fsimage_create_dxx(disk_image_t *image)
 {
     unsigned int size, i, size2;
@@ -171,6 +189,13 @@ static int fsimage_create_dxx(disk_image_t *image)
     return rc;
 }
 
+
+/** \brief  Create a G64 disk image on the host file system
+ *
+ * \param[in,out]   image   disk image
+ *
+ * return   0 on success, < 0 on failure
+ */
 static int fsimage_create_gcr(disk_image_t *image)
 {
     BYTE gcr_header[12], gcr_track[NUM_MAX_BYTES_TRACK + 2], *gcrptr;
@@ -238,6 +263,13 @@ static int fsimage_create_gcr(disk_image_t *image)
     return 0;
 }
 
+
+/** \brief  Create a P64 disk image on the host file system
+ *
+ * \param[in,out]   image   disk image
+ *
+ * \return 0 on success, < 0 on failure
+ */
 static int fsimage_create_p64(disk_image_t *image)
 {
     TP64MemoryStream P64MemoryStreamInstance;
@@ -293,8 +325,15 @@ static int fsimage_create_p64(disk_image_t *image)
 }
 
 /*-----------------------------------------------------------------------*/
-/* Create a disk image.  */
 
+
+/** \brief  Create a disk image of type \a type called \a name on the host OS
+ *
+ * \param[in]   name    disk image name/path
+ * \param[in]   type    disk image type
+ *
+ * \return  0 on success, < 0 on failure
+ */
 int fsimage_create(const char *name, unsigned int type)
 {
     disk_image_t *image;
@@ -348,7 +387,13 @@ int fsimage_create(const char *name, unsigned int type)
     return rc;
 }
 
+
+/** \brief  Initialize module
+ *
+ * In this case: just open a log
+ */
 void fsimage_create_init(void)
 {
     createdisk_log = log_open("Disk Create");
 }
+

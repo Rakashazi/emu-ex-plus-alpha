@@ -73,6 +73,8 @@ static userport_device_t sampler_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp1 write */
     NULL, /* NO sp2 read */
     "Userport4bitSampler",
     0xff,

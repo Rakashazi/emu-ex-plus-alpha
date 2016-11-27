@@ -1,5 +1,6 @@
-/*
- * fsimage-check.c
+/** \file   src/diskimage/fsimage-check.c
+ *
+ * \brief   Validation functions for disk images
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
@@ -31,6 +32,19 @@
 #include "fsimage-check.h"
 
 
+/** \brief  Check if (\a track, \a sector) is valid for \a image
+ *
+ * Check if \a sector is a valid sector number for \a track in \a image. This
+ * function returns the offset in \a image in sectors for (\a track, \a sector)
+ * or -1 on error
+ *
+ * \param[in]   image   disk image
+ * \param[in]   track   track number
+ * \param[in]   sector  sector number
+ *
+ * \return  offset in sectors in \a image for (\a track, \a sector) or -1 on
+ *          error
+ */
 int fsimage_check_sector(const disk_image_t *image, unsigned int track,
                          unsigned int sector)
 {

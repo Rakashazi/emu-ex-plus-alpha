@@ -74,6 +74,7 @@ extern char *alloca();
 #include "mon_disassemble.h"
 #include "mon_drive.h"
 #include "mon_file.h"
+#include "mon_memmap.h"
 #include "mon_memory.h"
 #include "mon_register.h"
 #include "mon_util.h"

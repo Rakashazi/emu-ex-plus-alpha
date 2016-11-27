@@ -736,7 +736,7 @@ int expert_crt_save(const char *filename)
         return -1;
     }
 
-    fd = crt_create(filename, CARTRIDGE_EXPERT, 1, 1, STRING_EXPERT);
+    fd = crt_create(filename, CARTRIDGE_EXPERT, 1, 0, STRING_EXPERT);
 
     if (fd == NULL) {
         return -1;

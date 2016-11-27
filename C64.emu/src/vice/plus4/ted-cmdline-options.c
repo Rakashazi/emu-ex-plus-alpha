@@ -55,7 +55,7 @@ int border_set_func(const char *value, void *extra_param)
         ted_resources.border_mode = TED_NORMAL_BORDERS;
     }
 
-    machine_change_timing(video ^ TED_BORDER_MODE(ted_resources.border_mode));
+    machine_change_timing(video, ted_resources.border_mode);
 
     return 0;
 }

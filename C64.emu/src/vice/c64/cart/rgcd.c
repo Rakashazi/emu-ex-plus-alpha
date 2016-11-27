@@ -115,7 +115,7 @@ static io_source_t rgcd_device = {
 static io_source_list_t *rgcd_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_RGCD, 1, 1, &rgcd_device, NULL, CARTRIDGE_RGCD
+    CARTRIDGE_NAME_RGCD, 0, 1, &rgcd_device, NULL, CARTRIDGE_RGCD
 };
 
 /* ---------------------------------------------------------------------*/

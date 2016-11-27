@@ -112,8 +112,8 @@ typedef int intptr_t;
 #define UNREFERENCED_PARAMETER(x)
 #endif
 
-/* On Macs we need to define the __u_char */
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined (__DragonflyBSD__)
+/* On Macs and *BSD we need to define the __u_char */
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined (__DragonflyBSD__) || defined (__DragonFly__)
 typedef unsigned char __u_char;
 #endif
 

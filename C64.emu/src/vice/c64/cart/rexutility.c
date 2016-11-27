@@ -100,7 +100,7 @@ static io_source_t rex_device = {
 static io_source_list_t *rex_list_item = NULL;
 
 static const export_resource_t export_res_rex = {
-    CARTRIDGE_NAME_REX, 0, 0, NULL, &rex_device, CARTRIDGE_REX
+    CARTRIDGE_NAME_REX, 0, 1, NULL, &rex_device, CARTRIDGE_REX
 };
 
 /* ---------------------------------------------------------------------*/

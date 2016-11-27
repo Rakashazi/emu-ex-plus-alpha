@@ -155,7 +155,7 @@ static io_source_list_t *epyxfastload_io1_list_item = NULL;
 static io_source_list_t *epyxfastload_io2_list_item = NULL;
 
 static const export_resource_t export_res_epyx = {
-    CARTRIDGE_NAME_EPYX_FASTLOAD, 0, 0, &epyxfastload_io1_device, &epyxfastload_io2_device, CARTRIDGE_EPYX_FASTLOAD
+    CARTRIDGE_NAME_EPYX_FASTLOAD, 0, 1, &epyxfastload_io1_device, &epyxfastload_io2_device, CARTRIDGE_EPYX_FASTLOAD
 };
 
 /* ---------------------------------------------------------------------*/

@@ -27,10 +27,9 @@
  *
  */
 
-/* Don't use this sound driver for OpenBSD */
-#if !defined(__OpenBSD__)
-
 #include "vice.h"
+
+#if defined(HAVE_SYS_AUDIOIO_H) && !defined(__OpenBSD__)
 
 #include <stdio.h>
 #include <stdlib.h>

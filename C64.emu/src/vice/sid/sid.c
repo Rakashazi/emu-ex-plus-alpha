@@ -6,6 +6,7 @@
  *  Michael Schwendt <sidplay@geocities.com>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Dag Lem <resid@nimrod.no>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -471,9 +472,7 @@ int sid_sound_machine_cycle_based(void)
             return 0;
 #endif
 #ifdef HAVE_PARSID
-        case SID_ENGINE_PARSID_PORT1:
-        case SID_ENGINE_PARSID_PORT2:
-        case SID_ENGINE_PARSID_PORT3:
+        case SID_ENGINE_PARSID:
             return 0;
 #endif
 #ifdef HAVE_SSI2001
@@ -524,9 +523,7 @@ static void set_sound_func(void)
         }
 #endif
 #ifdef HAVE_PARSID
-        if (sid_engine_type == SID_ENGINE_PARSID_PORT1 ||
-            sid_engine_type == SID_ENGINE_PARSID_PORT2 ||
-            sid_engine_type == SID_ENGINE_PARSID_PORT3) {
+        if (sid_engine_type == SID_ENGINE_PARSID) {
             sid_read_func = parsid_read;
             sid_store_func = parsid_store;
             sid_dump_func = NULL; /* TODO: parsid dump */
@@ -580,26 +577,14 @@ int sid_engine_set(int engine)
     }
 #endif
 #ifdef HAVE_PARSID
-    if ((engine == SID_ENGINE_PARSID_PORT1 || engine == SID_ENGINE_PARSID_PORT2 || engine == SID_ENGINE_PARSID_PORT3)
+    if ((engine == SID_ENGINE_PARSID)
         && sid_engine_type != engine) {
-        if (engine == SID_ENGINE_PARSID_PORT1) {
-            if (parsid_open(1) < 0) {
-                return -1;
-            }
-        }
-        if (engine == SID_ENGINE_PARSID_PORT2) {
-            if (parsid_open(2) < 0) {
-                return -1;
-            }
-        }
-        if (engine == SID_ENGINE_PARSID_PORT3) {
-            if (parsid_open(3) < 0) {
-                return -1;
-            }
+        if (parsid_open() < 0) {
+            return -1;
         }
     }
-    if (engine != SID_ENGINE_PARSID_PORT1 && engine != SID_ENGINE_PARSID_PORT2 && engine != SID_ENGINE_PARSID_PORT3
-        && (sid_engine_type == SID_ENGINE_PARSID_PORT1 || sid_engine_type == SID_ENGINE_PARSID_PORT2 || sid_engine_type == SID_ENGINE_PARSID_PORT3)) {
+    if (engine != SID_ENGINE_PARSID
+        && sid_engine_type == SID_ENGINE_PARSID) {
         parsid_close();
     }
 #endif

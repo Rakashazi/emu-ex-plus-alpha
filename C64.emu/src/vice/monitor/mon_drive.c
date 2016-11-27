@@ -132,7 +132,7 @@ void mon_drive_execute_disk_cmd(char *cmd)
 
 void mon_drive_list(int drive_number)
 {
-    char *name;
+    const char *name;
     image_contents_t *listing;
     vdrive_t *vdrive;
 
@@ -176,3 +176,4 @@ void mon_drive_list(int drive_number)
         }
     }
 }
+

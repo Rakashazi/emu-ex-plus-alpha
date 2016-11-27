@@ -163,7 +163,7 @@ static io_source_t rexep256_device = {
 static io_source_list_t *rexep256_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_REX_EP256, 1, 0, NULL, &rexep256_device, CARTRIDGE_REX_EP256
+    CARTRIDGE_NAME_REX_EP256, 0, 1, NULL, &rexep256_device, CARTRIDGE_REX_EP256
 };
 
 /* ---------------------------------------------------------------------*/

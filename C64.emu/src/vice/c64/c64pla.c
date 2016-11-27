@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -43,7 +44,7 @@ static BYTE old_port_write_bit = 0xff;
 /* Tape sense line out status. */
 static BYTE old_port_sense_out = 0xff;
 
-void c64pla_config_changed(int tape_sense, int caps_sense, BYTE pullup)
+void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_sense, BYTE pullup)
 {
     pport.data_out = (pport.data_out & ~pport.dir) | (pport.data & pport.dir);
 
@@ -59,6 +60,14 @@ void c64pla_config_changed(int tape_sense, int caps_sense, BYTE pullup)
 
     if (tape_sense && !(pport.dir & 0x10)) {
         pport.data_read &= 0xef;
+    }
+
+    if (write_in && !(pport.dir & 0x08)) {
+        pport.data_read &= 0xf7;
+    }
+
+    if (motor_in && !(pport.dir & 0x20)) {
+        pport.data_read &= 0xdf;
     }
 
     if (((pport.dir & pport.data) & 0x20) != old_port_data_out) {

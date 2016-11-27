@@ -5,6 +5,7 @@
  *  Tibor Biczo <crown@mail.matav.hu>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Matthies <andreas.matthies@gmx.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -59,6 +60,7 @@
 #endif
 
 #include "lib.h"
+#include "log.h"
 #include "sound.h"
 #include "types.h"
 #include "uiapi.h"
@@ -80,7 +82,6 @@ HWND ui_get_main_hwnd(void)
 
 /* Debugging stuff.  */
 #if DEBUG_SOUND
-#include "log.h"
 static void sound_debug(const char *format, ...)
 {
     char tmp[1024];
@@ -297,8 +298,7 @@ static int dx_init(const char *param, int *speed, int *fragsize, int *fragnr,
         result = IDirectSound_SetCooperativeLevel(ds, ui_get_main_hwnd(),
                                                   DSSCL_EXCLUSIVE);
         if (result != DS_OK) {
-            ui_error("Cannot set cooperative level:\n%s",
-                     ds_error(result));
+            log_error(LOG_DEFAULT, "Cannot set cooperative level:\n%s", ds_error(result));
             return -1;
         }
     }

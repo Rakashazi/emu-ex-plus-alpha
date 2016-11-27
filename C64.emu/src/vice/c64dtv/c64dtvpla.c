@@ -36,7 +36,7 @@
 /* Processor port.  */
 pport_t pport;
 
-void c64pla_config_changed(int tape_sense, int caps_sense, BYTE pullup)
+void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_sense, BYTE pullup)
 {
     BYTE dir = pport.dir & 0x3f;
     BYTE data = pport.data & 0x0f;

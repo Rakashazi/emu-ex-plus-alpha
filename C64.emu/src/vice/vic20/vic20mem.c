@@ -5,6 +5,7 @@
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Daniel Kahlin <daniel@kahlin.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * Multiple memory configuration support originally by
  *  Alexander Lehmann <alex@mathematik.th-darmstadt.de>

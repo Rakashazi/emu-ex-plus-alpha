@@ -186,7 +186,7 @@ static int userport_joystick_oem_read_snapshot_module(snapshot_t *s);
 
 static void userport_joystick_hit_read_pbx(void);
 static void userport_joystick_hit_read_pa2(void);
-static void userport_joystick_hit_store_sp1(void);
+static void userport_joystick_hit_store_sp1(BYTE val);
 static void userport_joystick_hit_read_sp2(void);
 static int userport_joystick_hit_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_hit_read_snapshot_module(snapshot_t *s);
@@ -194,7 +194,7 @@ static int userport_joystick_hit_read_snapshot_module(snapshot_t *s);
 static void userport_joystick_kingsoft_read_pbx(void);
 static void userport_joystick_kingsoft_store_pbx(BYTE value);
 static void userport_joystick_kingsoft_read_pa2(void);
-static void userport_joystick_kingsoft_store_sp1(void);
+static void userport_joystick_kingsoft_store_sp1(BYTE val);
 static void userport_joystick_kingsoft_read_sp2(void);
 static int userport_joystick_kingsoft_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_kingsoft_read_snapshot_module(snapshot_t *s);
@@ -202,7 +202,7 @@ static int userport_joystick_kingsoft_read_snapshot_module(snapshot_t *s);
 static void userport_joystick_starbyte_read_pbx(void);
 static void userport_joystick_starbyte_store_pbx(BYTE value);
 static void userport_joystick_starbyte_read_pa2(void);
-static void userport_joystick_starbyte_store_sp1(void);
+static void userport_joystick_starbyte_store_sp1(BYTE val);
 static void userport_joystick_starbyte_read_sp2(void);
 static int userport_joystick_starbyte_write_snapshot_module(snapshot_t *s);
 static int userport_joystick_starbyte_read_snapshot_module(snapshot_t *s);
@@ -219,6 +219,8 @@ static userport_device_t cga_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     NULL, /* NO sp2 read */
     "UserportJoy",
     0xff,
@@ -245,6 +247,8 @@ static userport_device_t pet_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     NULL, /* NO sp2 read */
     "UserportJoy",
     0xff,
@@ -271,6 +275,8 @@ static userport_device_t hummer_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     NULL, /* NO sp2 read */
     "UserportJoy",
     0xff,
@@ -297,6 +303,8 @@ static userport_device_t oem_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     NULL, /* NO sp2 read */
     "UserportJoy",
     0xff,
@@ -323,6 +331,8 @@ static userport_device_t hit_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     userport_joystick_hit_store_sp1,
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     userport_joystick_hit_read_sp2,
     "UserportJoy",
     0xff,
@@ -349,6 +359,8 @@ static userport_device_t kingsoft_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     userport_joystick_kingsoft_store_sp1,
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     userport_joystick_kingsoft_read_sp2,
     "UserportJoy",
     0xff,
@@ -375,6 +387,8 @@ static userport_device_t starbyte_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     userport_joystick_starbyte_store_sp1,
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     userport_joystick_starbyte_read_sp2,
     "UserportJoy",
     0xff,
@@ -681,7 +695,7 @@ static void userport_joystick_hit_read_pa2(void)
 
 static BYTE hit_sp2_retval = 0xff;
 
-static void userport_joystick_hit_store_sp1(void)
+static void userport_joystick_hit_store_sp1(BYTE val)
 {
     hit_sp2_retval = ((~read_joyport_dig(JOYPORT_4)) & 0x10) ? 0 : 0xff;
 }
@@ -737,7 +751,7 @@ static void userport_joystick_kingsoft_read_pa2(void)
 
 static BYTE kingsoft_sp2_retval = 0xff;
 
-static void userport_joystick_kingsoft_store_sp1(void)
+static void userport_joystick_kingsoft_store_sp1(BYTE val)
 {
     kingsoft_sp2_retval = ((~read_joyport_dig(JOYPORT_4)) & 0x10) ? 0 : 0xff;
 }
@@ -794,7 +808,7 @@ static void userport_joystick_starbyte_read_pa2(void)
 
 static BYTE starbyte_sp2_retval = 0xff;
 
-static void userport_joystick_starbyte_store_sp1(void)
+static void userport_joystick_starbyte_store_sp1(BYTE val)
 {
     starbyte_sp2_retval = ((~read_joyport_dig(JOYPORT_3)) & 0x10) ? 0 : 0xff;
 }

@@ -106,7 +106,7 @@ static io_source_t dinamic_io1_device = {
 static io_source_list_t *dinamic_io1_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_DINAMIC, 1, 0, &dinamic_io1_device, NULL, CARTRIDGE_DINAMIC
+    CARTRIDGE_NAME_DINAMIC, 0, 1, &dinamic_io1_device, NULL, CARTRIDGE_DINAMIC
 };
 
 /* ---------------------------------------------------------------------*/

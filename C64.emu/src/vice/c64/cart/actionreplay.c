@@ -211,15 +211,20 @@ static void actionreplay_io2_store(WORD addr, BYTE value)
 
 static int actionreplay_dump(void)
 {
-    mon_out("$8000-$9FFF/$DF00-$DFFF: %s, ROM bank: %d, EXROM line: %s, GAME line: %s, cart state: %s\n",
-            (regvalue & 0x20) ? "RAM" : "ROM",
-            (regvalue & 0x18) >> 3,
+    mon_out("EXROM line: %s, GAME line: %s, Mode: %s\n",
             (regvalue & 2) ? "high" : "low",
             (regvalue & 1) ? "low" : "high",
-            (regvalue & 4) ? "disabled" : "enabled");
-    return 0;
+            cart_config_string((BYTE)(regvalue & 3)));
+    mon_out("ROM bank: %d, cart state: %s, reset freeze: %s\n",
+            (regvalue & 0x18) >> 3,
+            (regvalue & 4) ? "disabled" : "enabled",
+            (regvalue & 0x40) ? "yes" : "no");
+    /* FIXME: take system RAM and cart mode(s) into account here */
+    mon_out("$8000-$9FFF: %s\n", (export_ram) ? "RAM" : "ROM");
+    mon_out("$A000-$BFFF: %s\n", "ROM");
+    mon_out("$DF00-$DFFF: %s\n", (export_ram) ? "RAM" : "ROM");
+   return 0;
 }
-
 
 /* ---------------------------------------------------------------------*/
 

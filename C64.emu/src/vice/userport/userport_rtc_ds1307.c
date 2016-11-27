@@ -81,6 +81,8 @@ static userport_device_t rtc_device = {
     NULL, /* NO pa3 write */
     0, /* NO pc pin needed */
     NULL, /* NO sp1 write */
+    NULL, /* NO sp1 read */
+    NULL, /* NO sp2 write */
     NULL, /* NO sp2 read */
     "UserportRTC",
     0xff,

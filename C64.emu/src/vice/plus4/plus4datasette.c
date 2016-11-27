@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -38,4 +39,14 @@ void machine_trigger_flux_change(unsigned int on)
 void machine_set_tape_sense(int sense)
 {
     pio1_set_tape_sense(sense);
+}
+
+void machine_set_tape_write_in(int val)
+{
+    mem_proc_port_set_write_in(val);
+}
+
+void machine_set_tape_motor_in(int val)
+{
+    mem_proc_port_set_motor_in(val);
 }

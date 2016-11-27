@@ -42,6 +42,7 @@ extern void romh_store(WORD addr, BYTE value);
 extern void roml_no_ultimax_store(WORD addr, BYTE value);
 extern void raml_no_ultimax_store(WORD addr, BYTE value);
 extern void romh_no_ultimax_store(WORD addr, BYTE value);
+extern void ramh_no_ultimax_store(WORD addr, BYTE value);
 
 extern BYTE ultimax_1000_7fff_read(WORD addr);
 extern void ultimax_1000_7fff_store(WORD addr, BYTE value);

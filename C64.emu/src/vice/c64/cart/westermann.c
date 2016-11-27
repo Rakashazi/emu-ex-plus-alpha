@@ -76,7 +76,7 @@ static io_source_t westermann_device = {
 static io_source_list_t *westermann_list_item = NULL;
 
 static const export_resource_t export_res_westermann = {
-    CARTRIDGE_NAME_WESTERMANN, 1, 0, NULL, &westermann_device, CARTRIDGE_WESTERMANN
+    CARTRIDGE_NAME_WESTERMANN, 1, 1, NULL, &westermann_device, CARTRIDGE_WESTERMANN
 };
 
 /* ---------------------------------------------------------------------*/

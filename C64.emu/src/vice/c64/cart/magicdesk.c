@@ -113,7 +113,7 @@ static io_source_t magicdesk_device = {
 static io_source_list_t *magicdesk_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_MAGIC_DESK, 1, 1, &magicdesk_device, NULL, CARTRIDGE_MAGIC_DESK
+    CARTRIDGE_NAME_MAGIC_DESK, 0, 1, &magicdesk_device, NULL, CARTRIDGE_MAGIC_DESK
 };
 
 /* ---------------------------------------------------------------------*/

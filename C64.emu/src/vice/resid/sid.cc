@@ -58,6 +58,8 @@ SID::SID()
   bus_value = 0;
   bus_value_ttl = 0;
   write_pipeline = 0;
+
+  databus_ttl = 0;
 }
 
 
@@ -77,6 +79,18 @@ SID::~SID()
 void SID::set_chip_model(chip_model model)
 {
   sid_model = model;
+
+  /*
+    results from real C64 (testprogs/SID/bitfade/delayfrq0.prg):
+
+    (new SID) (250469/8580R5) (250469/8580R5)
+    delayfrq0    ~7a000        ~108000
+
+    (old SID) (250407/6581)
+    delayfrq0    ~01d00
+
+   */
+  databus_ttl = sid_model == MOS8580 ? 0xa2000 : 0x1d00;
 
   for (int i = 0; i < 3; i++) {
     voice[i].set_chip_model(model);
@@ -135,16 +149,23 @@ reg8 SID::read(reg8 offset)
 {
   switch (offset) {
   case 0x19:
-    return potx.readPOT();
+    bus_value = potx.readPOT();
+    bus_value_ttl = databus_ttl;
+    break;
   case 0x1a:
-    return poty.readPOT();
+    bus_value = poty.readPOT();
+    bus_value_ttl = databus_ttl;
+    break;
   case 0x1b:
-    return voice[2].wave.readOSC();
+    bus_value = voice[2].wave.readOSC();
+    bus_value_ttl = databus_ttl;
+    break;
   case 0x1c:
-    return voice[2].envelope.readENV();
-  default:
-    return bus_value;
+    bus_value = voice[2].envelope.readENV();
+    bus_value_ttl = databus_ttl;
+    break;
   }
+  return bus_value;
 }
 
 
@@ -157,24 +178,15 @@ void SID::write(reg8 offset, reg8 value)
 {
   write_address = offset;
   bus_value = value;
-  /*
-    results from real C64 (testprogs/SID/bitfade/delayfrq0.prg):
+  bus_value_ttl = databus_ttl;
 
-    (new SID) (250469/8580R5) (250469/8580R5)
-    delayfrq0    ~7a000        ~108000
-
-    (old SID) (250407/6581)
-    delayfrq0    ~01d00
-
-   */
-  if (sid_model == MOS8580) {
-    bus_value_ttl = 0xa2000;
-    // One cycle pipeline delay on the MOS8580; delay write.
+  if (unlikely(sampling == SAMPLE_FAST) && (sid_model == MOS8580)) {
+    // Fake one cycle pipeline delay on the MOS8580
+    // when using non cycle accurate emulation.
+    // This will make the SID detection method work.
     write_pipeline = 1;
   }
   else {
-    bus_value_ttl = 0x1d00;
-    // No pipeline delay on the MOS6581; write immediately.
     write();
   }
 }

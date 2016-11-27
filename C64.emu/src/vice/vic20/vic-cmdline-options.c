@@ -56,7 +56,7 @@ int border_set_func(const char *value, void *extra_param)
         vic_resources.border_mode = VIC_NORMAL_BORDERS;
     }
 
-    machine_change_timing(video ^ VIC_BORDER_MODE(vic_resources.border_mode));
+    machine_change_timing(video, vic_resources.border_mode);
 
     return 0;
 }

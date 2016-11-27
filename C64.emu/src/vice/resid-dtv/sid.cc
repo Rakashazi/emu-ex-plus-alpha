@@ -502,9 +502,12 @@ bool SID::set_sampling_parameters(double clock_freq, sampling_method method,
     fir_N |= 1;
 
     // Check whether the sample ring buffer would overfill.
+#if 0
+    // Both FIR_N (125) and RINGSIZE (4096) are constants, and so 125 > 4095 is ALWAYS false
     if (FIR_N > RINGSIZE - 1) {
       return false;
     }
+#endif
 
     /* Error is bound by 1.234 / L^2 */
     fir_RES = (int) (sqrt(1.234 * (1 << bits)) / f_cycles_per_sample + 0.5);

@@ -3,6 +3,7 @@
  *
  * Written by
  *  Marco van den heuvel <blackystardust68@yahoo.com>
+ *  groepaz <groepaz@gmx.net>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -68,6 +69,7 @@ static unsigned char chipbuffer[16];
 static int repair_mode = 0;
 static int input_padding = 0;
 static int quiet_mode = 0;
+static int omit_empty_banks = 1;
 
 static int load_input_file(char *filename);
 
@@ -123,65 +125,66 @@ static const cart_t cart_info[] = {
  *        don't forget to also update vice.texi accordingly */
 
     {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB | CARTRIDGE_SIZE_12KB | CARTRIDGE_SIZE_16KB, 0, 0, 0, 0, "Generic Cartridge", NULL, save_generic_crt},
-    {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY, "ar5", save_regular_crt}, /* this is NOT AR1, but 4.2,5,6 etc */
+    {0, 1, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY, "ar5", save_regular_crt}, /* this is NOT AR1, but 4.2,5,6 etc */
     {0, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_KCS_POWER, "kcs", save_2_blocks_crt},
-    {1, 1, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_256KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_FINAL_III, "fc3", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_SIMONS_BASIC, "simon", save_2_blocks_crt},
+    {0, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_256KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_FINAL_III, "fc3", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 2, 0, CARTRIDGE_NAME_SIMONS_BASIC, "simon", save_2_blocks_crt},
     {0, 0, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_128KB | CARTRIDGE_SIZE_256KB | CARTRIDGE_SIZE_512KB, 0x2000, 0, 0, 0, CARTRIDGE_NAME_OCEAN, "ocean", save_ocean_crt},
-    {1, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 2, CARTRIDGE_NAME_EXPERT, "expert", NULL},
-    {0, 0, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_FUNPLAY, "fp", save_funplay_crt},
+    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 2, CARTRIDGE_NAME_EXPERT, "expert", NULL},
+    {0, 1, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_FUNPLAY, "fp", save_funplay_crt},
     {0, 0, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_GAMES, "sg", save_regular_crt},
-    {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ATOMIC_POWER, "ap", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_EPYX_FASTLOAD, "epyx", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ATOMIC_POWER, "ap", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_EPYX_FASTLOAD, "epyx", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_WESTERMANN, "wl", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_REX, "ru", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_FINAL_I, "fc1", save_regular_crt},
-    {0, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_96KB | CARTRIDGE_SIZE_128KB, 0x2000, 0xe000, 0, 0, CARTRIDGE_NAME_MAGIC_FORMEL, "mf", save_regular_crt}, /* FIXME: 64k (v1), 96k (v2) and 128k (full) bins exist */
-    {1, 0, CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 64, 0, CARTRIDGE_NAME_GS, "gs", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_WARPSPEED, "ws", save_regular_crt},
-    {1, 0, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_DINAMIC, "din", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_20KB, 0, 0, 3, 0, CARTRIDGE_NAME_ZAXXON, "zaxxon", save_zaxxon_crt},
+    {0, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_FINAL_I, "fc1", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_96KB | CARTRIDGE_SIZE_128KB, 0x2000, 0xe000, 0, 0, CARTRIDGE_NAME_MAGIC_FORMEL, "mf", save_regular_crt}, /* FIXME: 64k (v1), 96k (v2) and 128k (full) bins exist */
+    {0, 1, CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 64, 0, CARTRIDGE_NAME_GS, "gs", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_WARPSPEED, "ws", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_DINAMIC, "din", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_20KB, 0, 0, 3, 0, CARTRIDGE_NAME_ZAXXON, "zaxxon", save_zaxxon_crt},
     {0, 1, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MAGIC_DESK, "md", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT_V5, "ss5", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_COMAL80, "comal", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT_V5, "ss5", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_COMAL80, "comal", save_regular_crt},
     {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_STRUCTURED_BASIC, "sb", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_ROSS, "ross", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_ROSS, "ross", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP64, "dep64", save_delaep64_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP7x8, "dep7x8", save_delaep7x8_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_DELA_EP256, "dep256", save_delaep256_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0, 0x8000, 0, 0, CARTRIDGE_NAME_REX_EP256, "rep256", save_rexep256_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MIKRO_ASSEMBLER, "mikro", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_24KB | CARTRIDGE_SIZE_32KB, 0x8000, 0x0000, 1, 0, CARTRIDGE_NAME_FINAL_PLUS, "fcp", save_fcplus_crt},
+    {1, 0, CARTRIDGE_SIZE_24KB | CARTRIDGE_SIZE_32KB, 0x8000, 0x0000, 1, 0, CARTRIDGE_NAME_FINAL_PLUS, "fcp", save_fcplus_crt},
     {0, 1, CARTRIDGE_SIZE_32KB, 0x2000, 0x8000, 4, 0, CARTRIDGE_NAME_ACTION_REPLAY4, "ar4", save_regular_crt},
     {1, 0, CARTRIDGE_SIZE_16KB, 0x2000, 0, 4, 0, CARTRIDGE_NAME_STARDOS, "star", save_stardos_crt},
     {1, 0, CARTRIDGE_SIZE_1024KB, 0x2000, 0, 128, 0, CARTRIDGE_NAME_EASYFLASH, "easy", save_easyflash_crt},
     {0, 0, 0, 0, 0, 0, 0, CARTRIDGE_NAME_EASYFLASH_XBANK, NULL, NULL}, /* TODO ?? */
-    {0, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_CAPTURE, "cap", save_regular_crt},
+    {1, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_CAPTURE, "cap", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY3, "ar3", save_regular_crt},
-    {0, 0, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_RETRO_REPLAY, "rr", save_regular_crt},
+    {0, 1, CARTRIDGE_SIZE_32KB | CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_RETRO_REPLAY, "rr", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_MMC64, "mmc64", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MMC_REPLAY, "mmcr", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_64KB | CARTRIDGE_SIZE_128KB | CARTRIDGE_SIZE_512KB, 0x4000, 0x8000, 0, 2, CARTRIDGE_NAME_IDE64, "ide64", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT, "ss4", save_regular_crt},
+    {0, 0, CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_SNAPSHOT, "ss4", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_4KB, 0x1000, 0x8000, 1, 0, CARTRIDGE_NAME_IEEE488, "ieee", save_regular_crt},
-    {0, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_GAME_KILLER, "gk", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_GAME_KILLER, "gk", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_256KB, 0x2000, 0x8000, 32, 0, CARTRIDGE_NAME_P64, "p64", save_regular_crt},
     {1, 0, CARTRIDGE_SIZE_8KB, 0x2000, 0xe000, 1, 0, CARTRIDGE_NAME_EXOS, "exos", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_FREEZE_FRAME, "ff", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB | CARTRIDGE_SIZE_32KB, 0x4000, 0x8000, 0, 0, CARTRIDGE_NAME_FREEZE_MACHINE, "fm", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_4KB, 0x1000, 0xe000, 1, 0, CARTRIDGE_NAME_SNAPSHOT64, "s64", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_SUPER_EXPLODE_V5, "se5", save_regular_crt},
-    {0, 1, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_MAGIC_VOICE, "mv", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_16KB, 0x4000, 0x8000, 1, 0, CARTRIDGE_NAME_MAGIC_VOICE, "mv", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_16KB, 0x2000, 0x8000, 2, 0, CARTRIDGE_NAME_ACTION_REPLAY2, "ar2", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_4KB | CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 0, 0, CARTRIDGE_NAME_MACH5, "mach5", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_DIASHOW_MAKER, "dsm", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_64KB, 0x4000, 0x8000, 4, 0, CARTRIDGE_NAME_PAGEFOX, "pf", save_regular_crt},
     {0, 0, CARTRIDGE_SIZE_24KB, 0x2000, 0x8000, 3, 0, CARTRIDGE_NAME_KINGSOFT, "ks", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_128KB, 0x2000, 0x8000, 16, 0, CARTRIDGE_NAME_SILVERROCK_128, "silver", save_regular_crt},
-    {0, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0xe000, 4, 0, CARTRIDGE_NAME_FORMEL64, "f64", save_regular_crt},
+    {1, 0, CARTRIDGE_SIZE_32KB, 0x2000, 0xe000, 4, 0, CARTRIDGE_NAME_FORMEL64, "f64", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_64KB, 0x2000, 0x8000, 8, 0, CARTRIDGE_NAME_RGCD, "rgcd", save_regular_crt},
     {0, 1, CARTRIDGE_SIZE_8KB, 0x2000, 0x8000, 1, 0, CARTRIDGE_NAME_RRNETMK3, "rrnet", save_regular_crt},
-    {1, 1, CARTRIDGE_SIZE_24KB, 0, 0, 3, 0, CARTRIDGE_NAME_EASYCALC, "ecr", save_easycalc_crt},
+    {0, 0, CARTRIDGE_SIZE_24KB, 0, 0, 3, 0, CARTRIDGE_NAME_EASYCALC, "ecr", save_easycalc_crt},
+    {0, 1, CARTRIDGE_SIZE_512KB, 0x2000, 0x8000, 64, 0, CARTRIDGE_NAME_GMOD2, "gmod2", save_regular_crt},
     {0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL}
 };
 
@@ -356,6 +359,7 @@ static void usage(void)
     printf("-f <name>    print info on file\n");
     printf("-r           repair mode (accept broken input files)\n");
     printf("-p           accept non padded binaries as input\n");
+    printf("-b           output all banks (do not optimize the .crt file)\n");
     printf("-t <type>    output cart type\n");
     printf("-i <name>    input filename\n");
     printf("-o <name>    output filename\n");
@@ -370,7 +374,7 @@ static void printbanks(char *name)
 {
     FILE *f;
     unsigned char b[0x10];
-    unsigned long len;
+    unsigned long len, filelen;
     unsigned long pos;
     unsigned int type, bank, start, size;
     char *typestr[4] = { "ROM", "RAM", "FLASH", "UNK" };
@@ -378,6 +382,9 @@ static void printbanks(char *name)
     unsigned long tsize;
 
     f = fopen(name, "rb");
+    fseek(f, 0, SEEK_END);
+    filelen = ftell(f);
+
     tsize = 0; numbanks = 0;
     if (f) {
         fseek(f, 0x40, SEEK_SET); /* skip crt header */
@@ -401,6 +408,10 @@ static void printbanks(char *name)
             if ((size + 0x10) > len) {
                 printf("  Error: data size exceeds chunk length\n");
             }
+            if (len > (filelen - pos)) {
+                printf("  Error: data size exceeds end of file\n");
+                break;
+            }
             pos += len;
             numbanks++;
             tsize += size;
@@ -415,6 +426,9 @@ static void printinfo(char *name)
     int crtid;
     char *idname, *modename;
     char cartname[0x20 + 1];
+    char *exrom_warning = NULL;
+    char *game_warning = NULL;
+
     if (load_input_file(name) < 0) {
         printf("Error: this file seems broken.\n\n");
     }
@@ -437,11 +451,23 @@ static void printinfo(char *name)
     } else {
         modename = "?";
     }
+    if (crtid && headerbuffer[0x18] != cart_info[crtid].exrom) {
+        exrom_warning = "Warning: exrom in crt image set incorrectly.\n";
+    }
+    if (crtid && headerbuffer[0x19] != cart_info[crtid].game) {
+        game_warning = "Warning: game in crt image set incorrectly.\n";
+    }
     memcpy(cartname, &headerbuffer[0x20], 0x20); cartname[0x20] = 0;
     printf("CRT Version: %d.%d\n", headerbuffer[0x14], headerbuffer[0x15]);
     printf("Name: %s\n", cartname);
     printf("Hardware ID: %d (%s)\n", crtid, idname);
     printf("Mode: exrom: %d game: %d (%s)\n", headerbuffer[0x18], headerbuffer[0x19], modename);
+    if (exrom_warning) {
+        printf("%s", exrom_warning);
+    }
+    if (game_warning) {
+        printf("%s", game_warning);
+    }
     printbanks(name);
     exit (0);
 }
@@ -457,12 +483,15 @@ static int checkflag(char *flg, char *arg)
 {
     int i;
 
-    switch (tolower(flg[1])) {
+    switch (tolower((int)(flg[1]))) {
         case 'f':
             printinfo(arg);
             return 2;
         case 'r':
             repair_mode = 1;
+            return 1;
+        case 'b':
+            omit_empty_banks = 0;
             return 1;
         case 'q':
             quiet_mode = 1;
@@ -888,7 +917,7 @@ static void save_easyflash_crt(unsigned int p1, unsigned int p2, unsigned int p3
 
     for (i = 0; i < 64; i++) {
         for (j = 0; j < 2; j++) {
-            if (check_empty_easyflash() == 1) {
+            if ((omit_empty_banks == 1) && (check_empty_easyflash() == 1)) {
                 loadfile_offset += 0x2000;
             } else {
                 if (write_chip_package(0x2000, i, (j == 0) ? 0x8000 : 0xa000, 2) < 0) {
@@ -912,7 +941,7 @@ static void save_ocean_crt(unsigned int p1, unsigned int p2, unsigned int p3, un
     if (loadfile_size != CARTRIDGE_SIZE_256KB) {
         save_regular_crt(0x2000, 0, 0x8000, 0, 0, 0);
     } else {
-        if (write_crt_header(0, 0) < 0) {
+        if (write_crt_header(1, 0) < 0) {
             cleanup();
             exit(1);
         }
@@ -994,7 +1023,7 @@ static void save_easycalc_crt(unsigned int p1, unsigned int p2, unsigned int p3,
 
 static void save_zaxxon_crt(unsigned int p1, unsigned int p2, unsigned int p3, unsigned int p4, unsigned char p5, unsigned char p6)
 {
-    if (write_crt_header(1, 1) < 0) {
+    if (write_crt_header(0, 0) < 0) {
         cleanup();
         exit(1);
     }

@@ -2,7 +2,7 @@
  * userport_4bit_sampler.h: Generic userport 4bit sampler emulation.
  *
  * Written by
- *  Marco van den Heuvel <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.

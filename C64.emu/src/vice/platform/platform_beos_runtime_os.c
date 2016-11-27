@@ -31,6 +31,7 @@
    - Haiku R1 Alpha3 x86
    - Haiku R1 Alpha4 x86
    - Haiku R1 Alpha4 amd64/x86_64
+   - Haiku Nightly hrev505610 x86 (2016-10-22)
 */
 
 /* Binary compatibility table:

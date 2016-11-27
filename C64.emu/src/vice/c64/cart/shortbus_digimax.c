@@ -191,7 +191,7 @@ void shortbus_digimax_reset(void)
 
 static const resource_int_t resources_int[] = {
     { "SBDIGIMAX", 0, RES_EVENT_STRICT, (resource_value_t)0,
-      &digimax_sound_chip.chip_enabled, set_shortbus_digimax_enabled, NULL },
+      &shortbus_digimax_expansion_active, set_shortbus_digimax_enabled, NULL },
     { "SBDIGIMAXbase", 0xde40, RES_EVENT_NO, NULL,
       &shortbus_digimax_address, set_shortbus_digimax_base, NULL },
     { NULL }

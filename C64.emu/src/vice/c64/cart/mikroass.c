@@ -99,7 +99,7 @@ static io_source_list_t *mikroass_io1_list_item = NULL;
 static io_source_list_t *mikroass_io2_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_MIKRO_ASSEMBLER, 1, 0, &mikroass_io1_device, &mikroass_io2_device, CARTRIDGE_MIKRO_ASSEMBLER
+    CARTRIDGE_NAME_MIKRO_ASSEMBLER, 0, 1, &mikroass_io1_device, &mikroass_io2_device, CARTRIDGE_MIKRO_ASSEMBLER
 };
 
 /* ---------------------------------------------------------------------*/

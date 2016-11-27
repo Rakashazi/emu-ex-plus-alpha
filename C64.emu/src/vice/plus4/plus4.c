@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -32,9 +33,13 @@
 #include "attach.h"
 #include "autostart.h"
 #include "bbrtc.h"
+#include "cardkey.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "clkguard.h"
+#include "coplin_keypad.h"
+#include "cx21.h"
+#include "cx85.h"
 #include "datasette.h"
 #include "debug.h"
 #include "debugcart.h"
@@ -78,6 +83,7 @@
 #include "plus4ui.h"
 #include "printer.h"
 #include "rs232drv.h"
+#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -427,6 +433,26 @@ int machine_resources_init(void)
         init_resource_fail("joyport paperclip64 dongle");
         return -1;
     }
+    if (joyport_coplin_keypad_resources_init() < 0) {
+        init_resource_fail("joyport coplin keypad");
+        return -1;
+    }
+    if (joyport_cx21_resources_init() < 0) {
+        init_resource_fail("joyport cx21 keypad");
+        return -1;
+    }
+    if (joyport_cx85_resources_init() < 0) {
+        init_resource_fail("joyport cx85 keypad");
+        return -1;
+    }
+    if (joyport_rushware_keypad_resources_init() < 0) {
+        init_resource_fail("joyport rushware keypad");
+        return -1;
+    }
+    if (joyport_cardkey_resources_init() < 0) {
+        init_resource_fail("joyport cardkey keypad");
+        return -1;
+    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -748,10 +774,6 @@ int machine_specific_init(void)
     /* Setup trap handling.  */
     traps_init();
 
-    if (!video_disabled_mode) {
-        joystick_init();
-    }
-
     gfxoutput_init();
 
 #ifdef HAVE_MOUSE
@@ -843,6 +865,10 @@ int machine_specific_init(void)
         plus4ui_init();
     }
 
+    if (!video_disabled_mode) {
+        joystick_init();
+    }
+
     cs256k_init();
 
     h256k_init();
@@ -912,7 +938,9 @@ void machine_specific_shutdown(void)
     mouse_shutdown();
 #endif
 
-    plus4ui_shutdown();
+    if (!console_mode) {
+        plus4ui_shutdown();
+    }
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -970,34 +998,8 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval)
+void machine_change_timing(int timeval, int border_mode)
 {
-    int border_mode;
-
-    switch (timeval) {
-        default:
-        case MACHINE_SYNC_PAL ^ TED_BORDER_MODE(TED_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ TED_BORDER_MODE(TED_NORMAL_BORDERS):
-            timeval ^= TED_BORDER_MODE(TED_NORMAL_BORDERS);
-            border_mode = TED_NORMAL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ TED_BORDER_MODE(TED_FULL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ TED_BORDER_MODE(TED_FULL_BORDERS):
-            timeval ^= TED_BORDER_MODE(TED_FULL_BORDERS);
-            border_mode = TED_FULL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ TED_BORDER_MODE(TED_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSC ^ TED_BORDER_MODE(TED_DEBUG_BORDERS):
-            timeval ^= TED_BORDER_MODE(TED_DEBUG_BORDERS);
-            border_mode = TED_DEBUG_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ TED_BORDER_MODE(TED_NO_BORDERS):
-        case MACHINE_SYNC_NTSC ^ TED_BORDER_MODE(TED_NO_BORDERS):
-            timeval ^= TED_BORDER_MODE(TED_NO_BORDERS);
-            border_mode = TED_NO_BORDERS;
-            break;
-    }
-
     switch (timeval) {
         case MACHINE_SYNC_PAL:
             machine_timing.cycles_per_sec = PLUS4_PAL_CYCLES_PER_SEC;

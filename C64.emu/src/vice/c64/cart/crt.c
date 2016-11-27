@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -66,6 +67,7 @@
 #include "freezemachine.h"
 #include "funplay.h"
 #include "gamekiller.h"
+#include "gmod2.h"
 #include "gs.h"
 #include "ide64.h"
 #include "isepic.h"
@@ -133,20 +135,20 @@ static FILE *crt_open(const char *filename, crt_header_t *header)
 
     do {
         if (fread(crt_header, sizeof(crt_header), 1, fd) < 1) {
-            log_error(LOG_DEFAULT, "could not read CRT header.\n");
+            log_error(LOG_DEFAULT, "could not read CRT header.");
             break;
         }
 
         if (memcmp(crt_header, CRT_HEADER, 16)) {
-            log_error(LOG_DEFAULT, "CRT header invalid.\n");
+            log_error(LOG_DEFAULT, "CRT header invalid.");
             break;
         }
 
         skip = util_be_buf_to_dword(&crt_header[0x10]);
 
         if (skip < sizeof(crt_header)) {
-            log_error(LOG_DEFAULT, "CRT header size is wrong (is 0x%02x, expected 0x%02lx).",
-                skip, sizeof(crt_header));
+            log_error(LOG_DEFAULT, "CRT header size is wrong (is 0x%02x, expected 0x%02x).",
+                (unsigned int)skip, (unsigned int)sizeof(crt_header));
             break; /* invalid header size */
         }
         skip -= sizeof(crt_header); /* without header */
@@ -413,6 +415,9 @@ int crt_attach(const char *filename, BYTE *rawcart)
         case CARTRIDGE_GAME_KILLER:
             rc = gamekiller_crt_attach(fd, rawcart);
             break;
+        case CARTRIDGE_GMOD2:
+            rc = gmod2_crt_attach(fd, rawcart, filename);
+            break;
         case CARTRIDGE_GS:
             rc = gs_crt_attach(fd, rawcart);
             break;
@@ -473,9 +478,11 @@ int crt_attach(const char *filename, BYTE *rawcart)
         case CARTRIDGE_RGCD:
             rc = rgcd_crt_attach(fd, rawcart);
             break;
+#ifdef HAVE_PCAP
         case CARTRIDGE_RRNETMK3:
             rc = rrnetmk3_crt_attach(fd, rawcart, filename);
             break;
+#endif
         case CARTRIDGE_ROSS:
             rc = ross_crt_attach(fd, rawcart);
             break;

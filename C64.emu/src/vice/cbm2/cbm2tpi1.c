@@ -75,10 +75,22 @@ static void restore_int(unsigned int int_num, int value)
 /* TPI resources. */
 
 static int tape1_sense = 0;
+static int tape1_write_in = 0;
+static int tape1_motor_in = 0;
 
 void tpi1_set_tape_sense(int v)
 {
     tape1_sense = v;
+}
+
+void tpi1_set_tape_write_in(int v)
+{
+    tape1_write_in = v;
+}
+
+void tpi1_set_tape_motor_in(int v)
+{
+    tape1_motor_in = v;
 }
 
 /*----------------------------------------------------------------------*/
@@ -196,8 +208,10 @@ static BYTE read_pb(tpi_context_t *tpi_context)
 {
     BYTE byte;
 
-    byte = 0x7f;
-    byte += tape1_sense ? 0x80 : 0;
+    byte = 0x1f;
+    byte |= tape1_sense ? 0x80 : 0;
+    byte |= tape1_motor_in ? 0x40 : 0;
+    byte |= tape1_write_in ? 0x20 : 0;
 
     byte = (byte & ~(tpi_context->c_tpi)[TPI_DDPB])
            | (tpi_context->c_tpi[TPI_PB] & tpi_context->c_tpi[TPI_DDPB]);

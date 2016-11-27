@@ -2,7 +2,6 @@
  * c64io.c - C64 io handling ($D000-$DFFF).
  *
  * Written by
- *  Andreas Boose <viceteam@t-online.de>
  *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.

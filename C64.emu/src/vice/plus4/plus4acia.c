@@ -5,6 +5,7 @@
  *  Andreas Boose <viceteam@t-online.de>
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Groepaz <groepaz@gmx.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.

@@ -34,20 +34,21 @@
 #define USERPORT_COLLISION_METHOD_DETACH_LAST   1
 #define USERPORT_COLLISION_METHOD_AND_WIRES     2
 
-#define USERPORT_DEVICE_PRINTER           0
-#define USERPORT_DEVICE_JOYSTICK_CGA      1
-#define USERPORT_DEVICE_JOYSTICK_PET      2
-#define USERPORT_DEVICE_JOYSTICK_HUMMER   3
-#define USERPORT_DEVICE_JOYSTICK_OEM      4
-#define USERPORT_DEVICE_JOYSTICK_HIT      5
-#define USERPORT_DEVICE_JOYSTICK_KINGSOFT 6
-#define USERPORT_DEVICE_JOYSTICK_STARBYTE 7
-#define USERPORT_DEVICE_DAC               8
-#define USERPORT_DEVICE_DIGIMAX           9
-#define USERPORT_DEVICE_4BIT_SAMPLER      10
-#define USERPORT_DEVICE_8BSS              11
-#define USERPORT_DEVICE_RTC_58321A        12
-#define USERPORT_DEVICE_RTC_DS1307        13
+#define USERPORT_DEVICE_PRINTER             0
+#define USERPORT_DEVICE_JOYSTICK_CGA        1
+#define USERPORT_DEVICE_JOYSTICK_PET        2
+#define USERPORT_DEVICE_JOYSTICK_HUMMER     3
+#define USERPORT_DEVICE_JOYSTICK_OEM        4
+#define USERPORT_DEVICE_JOYSTICK_HIT        5
+#define USERPORT_DEVICE_JOYSTICK_KINGSOFT   6
+#define USERPORT_DEVICE_JOYSTICK_STARBYTE   7
+#define USERPORT_DEVICE_DAC                 8
+#define USERPORT_DEVICE_DIGIMAX             9
+#define USERPORT_DEVICE_4BIT_SAMPLER        10
+#define USERPORT_DEVICE_8BSS                11
+#define USERPORT_DEVICE_RTC_58321A          12
+#define USERPORT_DEVICE_RTC_DS1307          13
+#define USERPORT_DEVICE_DIAG_586220_HARNESS 14
 
 typedef struct userport_device_s {
     /* ID of the device */
@@ -81,7 +82,13 @@ typedef struct userport_device_s {
     int needs_pc;
 
     /* Store sp1 pin */
-    void (*store_sp1)(void);
+    void (*store_sp1)(BYTE val);
+
+    /* Read sp1 pin */
+    void (*read_sp1)(void);
+
+    /* Store sp2 pin */
+    void (*store_sp2)(BYTE val);
 
     /* Read sp2 pin */
     void (*read_sp2)(void);
@@ -129,8 +136,10 @@ extern BYTE read_userport_pa3(BYTE orig);
 extern void store_userport_pa3(BYTE val);
 extern void set_userport_flag(BYTE val);
 extern BYTE read_userport_pc(BYTE orig);
-extern void store_userport_sp1(void);
+extern BYTE read_userport_sp1(BYTE orig);
+extern void store_userport_sp1(BYTE val);
 extern BYTE read_userport_sp2(BYTE orig);
+extern void store_userport_sp2(BYTE val);
 
 extern int userport_resources_init(void);
 extern void userport_resources_shutdown(void);

@@ -169,7 +169,7 @@ static io_source_t delaep64_device = {
 static io_source_list_t *delaep64_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_DELA_EP64, 1, 0, &delaep64_device, NULL, CARTRIDGE_DELA_EP64
+    CARTRIDGE_NAME_DELA_EP64, 0, 1, &delaep64_device, NULL, CARTRIDGE_DELA_EP64
 };
 
 /* ---------------------------------------------------------------------*/

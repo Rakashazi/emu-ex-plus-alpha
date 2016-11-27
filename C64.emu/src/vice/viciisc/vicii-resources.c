@@ -143,15 +143,19 @@ static const resource_int_t resources_int[] =
     { "VICIICheckSbColl", 1, RES_EVENT_SAME, NULL,
       &vicii_resources.sprite_background_collisions_enabled,
       set_sprite_background_collisions_enabled, NULL },
-    { "VICIIModel", VICII_MODEL_6569, RES_EVENT_NO, NULL,
-      &vicii_resources.model,
-      set_model, NULL },
     { "VICIIVSPBug", 0, RES_EVENT_SAME, NULL,
       &vicii_resources.vsp_bug_enabled,
       set_vsp_bug_enabled, NULL },
     { NULL }
 };
 
+static resource_int_t resources_int2[] =
+{
+    { "VICIIModel", VICII_MODEL_6569, RES_EVENT_NO, NULL,
+      &vicii_resources.model,
+      set_model, NULL },
+    { NULL }
+};
 
 int vicii_resources_init(void)
 {
@@ -175,9 +179,17 @@ int vicii_resources_init(void)
 
     vicii.video_chip_cap = &video_chip_cap;
 
+    if ((machine_class == VICE_MACHINE_C64SC) ||
+        (machine_class == VICE_MACHINE_SCPU64)){
+        resources_int2[0].factory_value = VICII_MODEL_8565;
+    }
+
     if (raster_resources_chip_init("VICII", &vicii.raster, &video_chip_cap) < 0) {
         return -1;
     }
 
+    if (resources_register_int(resources_int2) < 0) {
+        return -1;
+    }
     return resources_register_int(resources_int);
 }

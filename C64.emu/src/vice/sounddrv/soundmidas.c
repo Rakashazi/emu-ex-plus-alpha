@@ -28,6 +28,8 @@
 
 #include "vice.h"
 
+#if defined(__MSDOS__) && defined(USE_MIDAS_SOUND)
+
 #include <stdio.h>
 
 #include "sound.h"
@@ -165,3 +167,4 @@ int sound_init_midas_device(void)
 {
     return sound_register_device(&midas_device);
 }
+#endif

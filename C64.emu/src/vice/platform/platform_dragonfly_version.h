@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef VICE_PLATFORM_FREEBSD_VERSION_H
-#define VICE_PLATFORM_FREEBSD_VERSION_H
+#ifndef VICE_PLATFORM_DRAGONFLYBSD_VERSION_H
+#define VICE_PLATFORM_DRAGONFLYBSD_VERSION_H
 
 #include <sys/param.h>
 
@@ -172,8 +172,49 @@
 #    if (OPENSSL_VERSION_NUMBER==0x100010dfL)
 #      define PLATFORM_OS "DragonFly BSD 4.0.5"
 #    else
-#      define PLATFORM_OS "DragonFly BSD 4.0.1/4.0.2"
+#      if (OPENSSL_VERSION_NUMBER==0x100010efL)
+#        define PLATFORM_OS "DragonFly BSD 4.0.6"
+#      else
+#        define PLATFORM_OS "DragonFly BSD 4.0.1/4.0.2"
+#      endif
 #    endif
+#  endif
+#endif
+
+#if (__DragonFly_version==400200)
+#  include <openssl/opensslv.h>
+#  if (OPENSSL_VERSION_NUMBER==0x1000110fL)
+#    define PLATFORM_OS "DragonFly BSD 4.2.3/4.2.4"
+#  else
+#    define PLATFORM_OS "DragonFly BSD 4.2.0/4.2.1"
+#  endif
+#endif
+
+#if (__DragonFly_version==400400)
+#  include <openssl/opensslv.h>
+#  if (OPENSSL_VERSION_NUMBER==0x1000111fL)
+#    define PLATFORM_OS "DragonFly BSD 4.4.1"
+#  else
+#    if (OPENSSL_VERSION_NUMBER==0x1000112fL)
+#      define PLATFORM_OS "DragonFly BSD 4.4.2"
+#    else
+#      if (OPENSSL_VERSION_NUMBER==0x1000113fL)
+#        define PLATFORM_OS "DragonFly BSD 4.4.3"
+#      else
+#        define PLATFORM_OS "DragonFly BSD 4.4.0"
+#      endif
+#    endif
+#  endif
+#endif
+
+#if (__DragonFly_version==400600)
+#  include <openssl/opensslv.h>
+#  if (OPENSSL_VERSION_NUMBER==0x1000114fL)
+#    define PLATFORM_OS "DragonFly BSD 4.6.0"
+#  elif (OPENSSL_VERSION_NUMBER==0x1000115fL)
+#    define PLATFORM_OS "DragonFly BSD 4.6.1"
+#  else
+#    define PLATFORM_OS "DragonFly BSD 4.6.x"
 #  endif
 #endif
 
@@ -181,4 +222,4 @@
 #define PLATFORM_OS "DragonFly BSD"
 #endif
 
-#endif // VICE_PLATFORM_FREEBSD_VERSION_H
+#endif // VICE_PLATFORM_DRAGONFLYBSD_VERSION_H

@@ -104,6 +104,7 @@ int scpu64_snapshot_read(const char *name, int event_mode)
 
     if (major != SNAP_MAJOR || minor != SNAP_MINOR) {
         log_error(LOG_DEFAULT, "Snapshot version (%d.%d) not valid: expecting %d.%d.", major, minor, SNAP_MAJOR, SNAP_MINOR);
+        snapshot_set_error(SNAPSHOT_MODULE_INCOMPATIBLE);
         goto fail;
     }
 

@@ -1,3 +1,7 @@
+/** \file   src/cbmimage.h
+ * \brief   Generic image handling - header
+ */
+
 /*
  * cbmimage.h - Generic image handling.
  *

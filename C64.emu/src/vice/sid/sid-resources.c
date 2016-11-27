@@ -5,6 +5,7 @@
  *  Teemu Rantanen <tvr@cs.hut.fi>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -70,9 +71,6 @@ static int sid_engine;
 static int sid_hardsid_main;
 static int sid_hardsid_right;
 #endif
-#ifdef HAVE_PARSID
-int parsid_port = 0;
-#endif
 
 static int set_sid_engine(int set_engine, void *param)
 {
@@ -102,9 +100,7 @@ static int set_sid_engine(int set_engine, void *param)
         case SID_ENGINE_HARDSID:
 #endif
 #ifdef HAVE_PARSID
-        case SID_ENGINE_PARSID_PORT1:
-        case SID_ENGINE_PARSID_PORT2:
-        case SID_ENGINE_PARSID_PORT3:
+        case SID_ENGINE_PARSID:
 #endif
 #ifdef HAVE_SSI2001
         case SID_ENGINE_SSI2001:
@@ -119,18 +115,6 @@ static int set_sid_engine(int set_engine, void *param)
     }
 
     sid_engine = engine;
-
-#ifdef HAVE_PARSID
-    if (engine == SID_ENGINE_PARSID_PORT1) {
-        parsid_port = 1;
-    }
-    if (engine == SID_ENGINE_PARSID_PORT2) {
-        parsid_port = 2;
-    }
-    if (engine == SID_ENGINE_PARSID_PORT3) {
-        parsid_port = 3;
-    }
-#endif
 
 #ifdef SID_ENGINE_MODEL_DEBUG
     log_debug("SID engine set to %d", engine);
@@ -212,7 +196,10 @@ static int set_sid_model(int val, void *param)
             sid_model = SID_MODEL_DTVSID;
         } else
 #endif
-        if (machine_class == VICE_MACHINE_C128) {
+        if ((machine_class == VICE_MACHINE_C128) || 
+            (machine_class == VICE_MACHINE_C64) ||
+            (machine_class == VICE_MACHINE_C64SC) ||
+            (machine_class == VICE_MACHINE_SCPU64)){
             sid_model = SID_MODEL_8580;
         }
     }
@@ -316,7 +303,7 @@ static int set_sid_hardsid_right(int val, void *param)
 
 #if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static const resource_int_t resid_resources_int[] = {
-    { "SidResidSampling", SID_RESID_SAMPLING_FAST, RES_EVENT_NO, NULL,
+    { "SidResidSampling", SID_RESID_SAMPLING_RESAMPLING, RES_EVENT_NO, NULL,
       &sid_resid_sampling, set_sid_resid_sampling, NULL },
     { "SidResidPassband", 90, RES_EVENT_NO, NULL,
       &sid_resid_passband, set_sid_resid_passband, NULL },
@@ -415,9 +402,7 @@ static sid_engine_model_t sid_engine_models_hardsid[] = {
 
 #ifdef HAVE_PARSID
 static sid_engine_model_t sid_engine_models_parsid[] = {
-    { "ParSID on Port 1", SID_PARSID_PORT1 },
-    { "ParSID on Port 2", SID_PARSID_PORT2 },
-    { "ParSID on Port 3", SID_PARSID_PORT3 },
+    { "ParSID", SID_PARSID },
     { NULL, -1 }
 };
 #endif
@@ -468,7 +453,9 @@ sid_engine_model_t **sid_get_engine_model_list(void)
 #endif
 
 #ifdef HAVE_PARSID
-    add_sid_engine_models(sid_engine_models_parsid);
+    if (parsid_available()) {
+        add_sid_engine_models(sid_engine_models_parsid);
+    }
 #endif
 
 #ifdef HAVE_SSI2001
@@ -488,9 +475,7 @@ static int sid_check_engine_model(int engine, int model)
     switch (engine) {
         case SID_ENGINE_CATWEASELMKIII:
         case SID_ENGINE_HARDSID:
-        case SID_ENGINE_PARSID_PORT1:
-        case SID_ENGINE_PARSID_PORT2:
-        case SID_ENGINE_PARSID_PORT3:
+        case SID_ENGINE_PARSID:
         case SID_ENGINE_SSI2001:
             return 0;
         default:

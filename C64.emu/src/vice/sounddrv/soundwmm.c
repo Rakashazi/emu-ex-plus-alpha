@@ -32,6 +32,8 @@
 
 #include "vice.h"
 
+#if defined(WIN32_COMPILE) && !defined(__XBOX__)
+
 #include <stdio.h>
 
 #if __GNUC__>2 || (__GNUC__==2 && __GNUC_MINOR__>=91) || defined _MSC_VER || defined __WATCOMC__
@@ -558,3 +560,4 @@ int sound_init_wmm_device(void)
 {
     return sound_register_device(&wmm_device);
 }
+#endif

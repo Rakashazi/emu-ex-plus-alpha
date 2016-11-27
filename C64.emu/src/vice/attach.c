@@ -530,7 +530,7 @@ static int attach_disk_image(disk_image_t **imgptr, vdrive_t *floppy,
         case ATTACH_DEVICE_NONE:
         case ATTACH_DEVICE_VIRT:
         case ATTACH_DEVICE_FS:
-            disk_image_fsimage_name_set(&new_image, lib_stralloc(filename));
+            disk_image_fsimage_name_set(&new_image, filename);
             break;
         case ATTACH_DEVICE_RAW:
             disk_image_rawimage_driver_name_set(&new_image);

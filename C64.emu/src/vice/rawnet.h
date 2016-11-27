@@ -24,10 +24,10 @@
  *
  */
 
-#ifdef HAVE_TFE
+#ifdef HAVE_PCAP
 #else
-  #error RAWNET.H should not be included if HAVE_TFE is not defined!
-#endif /* #ifdef HAVE_TFE */
+  #error RAWNET.H should not be included if HAVE_PCAP is not defined!
+#endif /* #ifdef HAVE_PCAP */
 
 #ifndef VICE_RAWNET_H
 #define VICE_RAWNET_H
@@ -68,5 +68,6 @@ extern void rawnet_set_should_accept_func(int (*func)(unsigned char *, int, int 
 extern int rawnet_enumadapter_open(void);
 extern int rawnet_enumadapter(char **ppname, char **ppdescription);
 extern int rawnet_enumadapter_close(void);
+extern char *rawnet_get_standard_interface(void);
 
 #endif

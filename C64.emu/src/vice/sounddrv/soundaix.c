@@ -31,6 +31,8 @@
 
 #include "vice.h"
 
+#ifdef USE_AIX_AUDIO
+
 #include "lib.h"
 #include "sound.h"
 
@@ -173,3 +175,4 @@ int sound_init_aix_device(void)
 {
     return sound_register_device(&aix_device);
 }
+#endif

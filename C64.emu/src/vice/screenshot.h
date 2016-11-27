@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -108,6 +109,7 @@ typedef struct screenshot_s {
 
 /* Functions called by external emulator code.  */
 extern int screenshot_init(void);
+extern void screenshot_shutdown(void);
 extern int screenshot_save(const char *drvname, const char *filename,
                            struct video_canvas_s *canvas);
 extern int screenshot_record(void);

@@ -43,6 +43,10 @@
 /* (All have 8, except CBM-II that has 6) */
 #define KBD_COLS    8
 
+/* joystick port attached keypad */
+#define KBD_JOY_KEYPAD_ROWS 5
+#define KDB_JOY_KEYPAD_COLS 4
+
 /* index to select the current keymap ("KeymapIndex") */
 #define KBD_INDEX_SYM     0
 #define KBD_INDEX_POS     1
@@ -104,9 +108,13 @@ extern void keyboard_register_column4080_key(key_ctrl_column4080_func_t func);
 typedef void (*key_ctrl_caps_func_t)(void);
 extern void keyboard_register_caps_key(key_ctrl_caps_func_t func);
 
+typedef void (*key_joy_keypad_func_t)(int row, int col, int pressed);
+extern void keyboard_register_joy_keypad(key_joy_keypad_func_t func);
+
 typedef void (*keyboard_machine_func_t)(int *);
 extern void keyboard_register_machine(keyboard_machine_func_t func);
 
+extern void keyboard_register_machine(keyboard_machine_func_t func);
 extern void keyboard_alternative_set(int alternative);
 
 /* These ugly externs will go away sooner or later.  */

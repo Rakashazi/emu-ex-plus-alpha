@@ -626,7 +626,7 @@ static int vdrive_command_scratch(vdrive_t *vdrive, BYTE *name, int length)
     BYTE *slot;
     cbmdos_cmd_parse_t cmd_parse;
     vdrive_dir_context_t dir;
-    int deleted_files;
+    int deleted_files, filetype;
 
     /* XXX
      * Wrong name parser -- s0:file1,0:file2 means scratch
@@ -651,8 +651,10 @@ static int vdrive_command_scratch(vdrive_t *vdrive, BYTE *name, int length)
 /*#endif*/
         deleted_files = 0;
 
+	filetype = vdrive_dir_filetype(cmd_parse.parsecmd,
+				       cmd_parse.parselength);
         vdrive_dir_find_first_slot(vdrive, cmd_parse.parsecmd,
-                                   cmd_parse.parselength, 0, &dir);
+                                   cmd_parse.parselength, filetype, &dir);
 
         while ((slot = vdrive_dir_find_next_slot(&dir))) {
             vdrive_dir_remove_slot(&dir);

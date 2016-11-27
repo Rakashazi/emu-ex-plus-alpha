@@ -116,6 +116,9 @@ public:
   reg8 bus_value;
   cycle_count bus_value_ttl;
 
+  // The data bus TTL for the selected chip model
+  cycle_count databus_ttl;
+
   // Pipeline for writes on the MOS8580.
   cycle_count write_pipeline;
   reg8 write_address;

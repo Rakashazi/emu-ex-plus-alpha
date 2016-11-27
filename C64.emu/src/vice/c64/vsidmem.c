@@ -5,6 +5,7 @@
  *  Andreas Boose <viceteam@t-online.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  groepaz <groepaz@gmx.net>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -200,7 +201,7 @@ void mem_pla_config_changed(void)
 {
     mem_config = (((~pport.dir | pport.data) & 0x7) | (export.exrom << 3) | (export.game << 4));
 
-    c64pla_config_changed(tape_sense, 1, 0x17);
+    c64pla_config_changed(tape_sense, 0, 0, 1, 0x17);
 
     if (watchpoints_active) {
         _mem_read_tab_ptr = mem_read_tab_watch;

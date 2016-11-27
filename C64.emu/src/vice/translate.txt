@@ -622,6 +622,21 @@ IDGS_BBRTC
 /* joyport/paperclip64.c */
 IDGS_PAPERCLIP64_DONGLE
 
+/* joyport/coplin_keypad.c */
+IDGS_COPLIN_KEYPAD
+
+/* joyport/cx21.c */
+IDGS_CX21
+
+/* joyport/cx85.c */
+IDGS_CX85
+
+/* joyport/rushware_keypad.c */
+IDGS_RUSHWARE_KEYPAD
+
+/* joyport/cardkey.c */
+IDGS_CARDKEY
+
 /* lightpen.c */
 IDGS_LIGHTPEN_UP
 
@@ -672,6 +687,9 @@ IDGS_USERPORT_RTC58321A
 
 /* userport/userport_rtc_ds1307.c */
 IDGS_USERPORT_DS1307
+
+/* userport/userport_diag_586220_harness.c */
+IDGS_USERPORT_DIAG_586220_HARNESS
 
 /* tapeport/tapertc.c */
 IDGS_TAPE_RTC
@@ -775,6 +793,21 @@ IDGS_SNAPSHOT_HIGHER_VERSION
 /* snapshot.c */
 IDGS_INCOMPATIBLE_SNAPSHOT
 
+/* snapshot.c */
+IDGS_SNAPSHOT_VICE_VERSION
+
+/* snapshot.c */
+IDGS_SNAPSHOT_OLD_VICE_VERSION
+
+/* c64/cart/clockport-rrnet.c */
+IDGS_CLOCKPORT_RRNET_IN_USE_BY_S
+
+/* c64/cart/clockport-mp3at64.c */
+IDGS_CLOCKPORT_MP3AT64_IN_USE_BY_S
+
+/* c64/cart/cs8900io.c */
+IDGS_CS8900_IN_USE_BY_S
+
 /* tapeport/tapertc.c */
 IDCLS_ENABLE_TAPERTC
 
@@ -813,6 +846,9 @@ IDGS_DATASETTE
 
 /* tapeport/tapelog.c */
 IDGS_TAPE_LOG
+
+/* tapeport/tape_diag_586220_harness.c */
+IDGS_TAPE_DIAG_586220_HARNESS
 
 /* COMMAND-LINE STRING ID DEFINITIONS */
 
@@ -1186,6 +1222,12 @@ IDCLS_ENABLE_TAPELOG_LOG_TO_LOG
 /* tapeport/tapelog.c */
 IDCLS_SPECIFY_TAPELOG_NAME
 
+/* tapeport/tape_diag_586220_harness.c */
+IDCLS_ENABLE_TAPE_DIAG_586220_HARNESS
+
+/* tapeport/tape_diag_586220_harness.c */
+IDCLS_DISABLE_TAPE_DIAG_586220_HARNESS
+
 /* c64/cart/georam.c */
 IDCLS_ENABLE_GEORAM
 
@@ -1222,12 +1264,10 @@ IDCLS_SWAP_CART_IO
 /* c64/cart/georam.c */
 IDCLS_DONT_SWAP_CART_IO
 
-/* c64/cart/sfx_soundexpander.c, c64/cart/sfx_soundsampler.c,
-   c64/cart/tfe.c */
+/* c64/cart/sfx_soundexpander.c, c64/cart/sfx_soundsampler.c */
 IDCLS_MAP_CART_IO_2
 
-/* c64/cart/sfx_soundexpander.c, c64/cart/sfx_soundsampler.c,
-   c64/cart/tfe.c */
+/* c64/cart/sfx_soundexpander.c, c64/cart/sfx_soundsampler.c */
 IDCLS_MAP_CART_IO_3
 
 /* c64/psid.c */
@@ -1392,6 +1432,21 @@ IDCLS_ALLOW_WRITING_TO_MMC_REPLAY_IMAGE
 /* c64/cart/mmcreplay.c */
 IDCLS_DO_NOT_WRITE_TO_MMC_REPLAY_IMAGE
 
+/* c64/cart/gmod2.c */
+IDCLS_SELECT_GMOD2_EEPROM_IMAGE
+
+/* c64/cart/gmod2.c */
+IDCLS_GMOD2_EEPROM_WRITE_ENABLE
+
+/* c64/cart/gmod2.c */
+IDCLS_GMOD2_EEPROM_WRITE_DISABLE
+
+/* c64/cart/gmod2.c */
+IDCLS_ENABLE_SAVE_GMOD2_ROM_AT_EXIT
+
+/* c64/cart/gmod2.c */
+IDCLS_DISABLE_SAVE_GMOD2_ROM_AT_EXIT
+
 /* c64/cart/retroplay.c */
 IDCLS_ENABLE_SAVE_RR_ROM_AT_EXIT
 
@@ -1437,22 +1492,28 @@ IDCLS_DO_NOT_WRITE_TO_REU_IMAGE
 /* c64/cart/reu.c */
 IDCLS_REU_SIZE
 
-#ifdef HAVE_TFE
-/* c64/cart/tfe.c */
+#ifdef HAVE_PCAP
+/* c64/cart/ethernetcart.c */
 IDCLS_ENABLE_TFE
 
-/* c64/cart/tfe.c */
-IDCLS_DISABLE_TFE
+/* c64/cart/ethernetcart.c */
+IDCLS_ENABLE_RRNET
 
-/* c64/cart/tfe.c */
-IDCLS_TFE_INTERFACE
+/* c64/cart/ethernetcart.c */
+IDCLS_ENABLE_ETHERNETCART
 
-/* c64/cart/tfe.c */
-IDCLS_ENABLE_TFE_AS_RRNET
+/* c64/cart/ethernetcart.c */
+IDCLS_DISABLE_ETHERNETCART
 
-/* c64/cart/tfe.c */
-IDCLS_DISABLE_TFE_AS_RRNET
-#endif   /* HAVE_TFE */
+/* c64/cart/ethernetcart.c */
+IDCLS_ETHERNETCART_BASE
+
+/* c64/cart/ethernetcart.c */
+IDCLS_ETHERNETCART_MODE
+
+/* c64/cart/cs8900io.c */
+IDCLS_ETHERNET_INTERFACE
+#endif   /* HAVE_PCAP */
 
 /* c64/cart/c64cart.c */
 IDCLS_CART_ATTACH_DETACH_RESET
@@ -2517,6 +2578,9 @@ IDCLS_SPECIFY_EXT_ROM_A000_NAME
 /* vic20/cart/vic20cart.c */
 IDCLS_SPECIFY_EXT_ROM_B000_NAME
 
+/* vic20/cart/behrbonz.c */
+IDCLS_SPECIFY_BEHRBONZ_ROM_NAME
+
 /* vic20/cart/vic20cart.c */
 IDCLS_SPECIFY_GENERIC_ROM_NAME
 
@@ -3108,6 +3172,12 @@ IDCLS_ENABLE_USERPORT_RTC_DS1307_SAVE
 /* userport/userport_rtc_ds1307.c */
 IDCLS_DISABLE_USERPORT_RTC_DS1307_SAVE
 
+/* userport/userport_diag_586220_harness.c */
+IDCLS_ENABLE_USERPORT_DIAG_586220_HARNESS
+
+/* userport/userport_diag_586220_harness.c */
+IDCLS_DISABLE_USERPORT_DIAG_586220_HARNESS
+
 /* joyport/bbrtc.c */
 IDCLS_ENABLE_BBRTC_SAVE
 
@@ -3162,6 +3232,12 @@ IDCLS_ENABLE_SHORTBUS_DIGIMAX
 /* c64/cart/shortbus_digimax.c */
 IDCLS_DISABLE_SHORTBUS_DIGIMAX
 
+/* c64/cart/shortbus_etfe.c */
+IDCLS_ENABLE_SHORTBUS_ETFE
+
+/* c64/cart/shortbus_etfe.c */
+IDCLS_DISABLE_SHORTBUS_ETFE
+
 /* c64/cart/digimax.c */
 IDCLS_ENABLE_DIGIMAX
 
@@ -3173,6 +3249,9 @@ IDCLS_DIGIMAX_BASE
 
 /* c64/cart/shortbus_digimax.c */
 IDCLS_SHORTBUS_DIGIMAX_BASE
+
+/* c64/cart/shortbus_etfe.c */
+IDCLS_SHORTBUS_ETFE_BASE
 
 /* c64/cart/ds12c887rtc.c */
 IDCLS_ENABLE_DS12C887RTC
@@ -3194,6 +3273,9 @@ IDCLS_ENABLE_DS12C887RTC_SAVE
 
 /* c64/cart/ds12c887rtc.c */
 IDCLS_DISABLE_DS12C887RTC_SAVE
+
+/* c64/cart/rrnetmk3.c */
+IDCLS_CLOCKPORT_DEVICE
 
 /* c64/cart/sfx_soundexpander.c */
 IDCLS_ENABLE_SFX_SE

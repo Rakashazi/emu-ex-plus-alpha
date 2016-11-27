@@ -62,7 +62,7 @@ static int set_border_mode(int val, void *param)
 
     if (ted_resources.border_mode != val) {
         ted_resources.border_mode = val;
-        machine_change_timing(sync ^ TED_BORDER_MODE(ted_resources.border_mode));
+        machine_change_timing(sync, ted_resources.border_mode);
     }
     return 0;
 }

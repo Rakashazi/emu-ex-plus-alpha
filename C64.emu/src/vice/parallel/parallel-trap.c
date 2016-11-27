@@ -98,7 +98,7 @@ static int parallelcommand(void)
     switch (TrapSecondary & 0xf0) {
         case 0x60:
             /* Open Channel */
-            if (!p->isopen[channel] == 1) {
+            if (!p->isopen[channel]) {
                 p->isopen[channel] = 2;
                 st = (*(p->openf))(vdrive, NULL, 0, channel, NULL);
                 for (i = 0; i < SerialPtr; i++) {

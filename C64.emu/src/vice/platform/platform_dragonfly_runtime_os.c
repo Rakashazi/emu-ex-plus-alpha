@@ -95,6 +95,8 @@
    amd64 | DragonFly BSD 4.0.3
    amd64 | DragonFly BSD 4.0.4
    amd64 | DragonFly BSD 4.0.5
+   amd64 | DragonFly BSD 4.6.0
+   amd64 | DragonFly BSD 4.6.1
  */
 
 #include "vice.h"

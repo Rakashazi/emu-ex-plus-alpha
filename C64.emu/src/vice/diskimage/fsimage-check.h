@@ -1,5 +1,6 @@
-/*
- * fsimage-check.h
+/** \file   src/diskimage/fsimage-check.h
+ *
+ * \brief   Validation functions for disk images - header
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>

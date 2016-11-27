@@ -3,6 +3,7 @@
  *
  * Written by
  *  Mathias Roslund <vice.emu@amidog.se>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -27,6 +28,8 @@
 #include "vice.h"
 
 #include <stdio.h>
+
+#if defined(AMIGA_SUPPORT) && defined(HAVE_DEVICES_AHI_H)
 
 #include "sound.h"
 #include "ahi.h"
@@ -103,3 +106,4 @@ int sound_init_ahi_device(void)
 {
     return sound_register_device(&ahi_device);
 }
+#endif

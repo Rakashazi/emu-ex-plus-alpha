@@ -103,6 +103,8 @@ void export_dump(void)
             mon_out("%s\n", current->device->name);
             current = current->next;
         }
+        mon_out("Current GAME status: (%d) (%s)\n", !export.game, (export.game) ? "active" : "inactive");
+        mon_out("Current EXROM status: (%d) (%s)\n", !export.exrom, (export.exrom) ? "active" : "inactive");
     }
 }
 

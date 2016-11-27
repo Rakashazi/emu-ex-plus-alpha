@@ -65,7 +65,7 @@ static int set_border_mode(int val, void *param)
 
     if (vicii_resources.border_mode != val) {
         vicii_resources.border_mode = val;
-        machine_change_timing(sync ^ VICII_BORDER_MODE(vicii_resources.border_mode));
+        machine_change_timing(sync, vicii_resources.border_mode);
     }
     return 0;
 }

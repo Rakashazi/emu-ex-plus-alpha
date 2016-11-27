@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -272,6 +273,22 @@ void c64meminit(unsigned int base)
                 mem_read_tab_set(base + j, i, romh_read);
                 mem_read_base_set(base + j, i, NULL);
                 mem_set_write_hook(base + j, i, romh_no_ultimax_store);
+            }
+        }
+    }
+    /* Setup write Hook for when ROMH is NOT selected at $A000-$BFFF in 16K Game */
+    for (j = 24; j < 32; j++) {
+        if (!c64meminit_romh_config[j]) {
+            for (i = 0xa0; i <= 0xbf; i++) {
+                mem_set_write_hook(base + j, i, ramh_no_ultimax_store);
+            }
+        }
+    }
+    /* Setup write Hook for when ROMH is NOT selected at $a000-$bFFF when cart is off */
+    for (j = 0; j < 8; j++) {
+        if (!c64meminit_romh_config[j]) {
+            for (i = 0xa0; i <= 0xbf; i++) {
+                mem_set_write_hook(base + j, i, ramh_no_ultimax_store);
             }
         }
     }

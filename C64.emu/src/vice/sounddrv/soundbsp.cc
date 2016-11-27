@@ -27,6 +27,8 @@
 
 #include "vice.h"
 
+#ifdef BEOS_COMPILE
+
 #include <SoundPlayer.h>
 #include <stdio.h>
 #include <string.h>
@@ -225,3 +227,4 @@ int sound_init_bsp_device(void)
 {
     return sound_register_device(&bsp_device);
 }
+#endif

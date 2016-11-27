@@ -3,6 +3,7 @@
  *
  * Written by
  *  Teemu Rantanen <tvr@cs.hut.fi>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * Resource and cmdline code by
  *  Ettore Perazzoli <ettore@comm2000.it>
@@ -495,11 +496,7 @@ static int set_suspend_time(int val, void *param)
 static int set_speed_adjustment_setting(int val, void *param)
 {
     if (val == SOUND_ADJUST_DEFAULT) {
-        if (machine_class == VICE_MACHINE_VSID) {
-            speed_adjustment_setting = SOUND_ADJUST_EXACT;
-        } else {
-            speed_adjustment_setting = SOUND_ADJUST_FLEXIBLE;
-        }
+        speed_adjustment_setting = SOUND_ADJUST_EXACT;
     } else {
         switch (val) {
             case SOUND_ADJUST_FLEXIBLE:
@@ -1062,12 +1059,12 @@ int sound_open(void)
     #else
     fragsize = speed / ((rfsh_per_sec < 1.0) ? 1 : ((int)rfsh_per_sec))
                / fragment_divisor[fragment_size];
-    #endif
     if (pdev) {
         if (channels <= pdev->max_channels) {
             fragsize *= channels;
         }
     }
+    #endif
 
     for (i = 1; 1 << i < fragsize; i++) {
     }

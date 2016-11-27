@@ -6,6 +6,7 @@
  *
  * Written by
  *  Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * based on code from network.c written by
  *  Andreas Matthies <andreas.matthies@gmx.net>

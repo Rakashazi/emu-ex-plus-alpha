@@ -97,7 +97,6 @@
 #define ALLOW_UNALIGNED_ACCESS
 #endif
 
-
 /* Allow unaligned access for ARMv6 and newer, or ARMv7 and newer when on Android */
 #if __ARM_ARCH >= 6 && (!defined __ANDROID__ || __ARM_ARCH >= 7)
 #define ALLOW_UNALIGNED_ACCESS
@@ -147,6 +146,25 @@ typedef int ssize_t;
 /* T_() is just an indicator for new common text which needs
    to be added to the translate.* translation tables. */
 #define T_(String) (String)
+
+#if defined(WIN32_COMPILE) && (defined(UNICODE) || defined(_UNICODE))
+/* enable WinNT Unicode support in VICE. */
+#ifndef WIN32_UNICODE_SUPPORT
+#define WIN32_UNICODE_SUPPORT
+#endif
+#endif
+
+#ifdef WIN32_UNICODE_SUPPORT
+/* enable WinNT Unicode API calls. */
+#ifndef UNICODE
+#define UNICODE
+#endif
+
+/* enable Unicode support in tchar.h. */
+#ifndef _UNICODE
+#define _UNICODE
+#endif
+#endif
 
 #ifdef __OS2__
 int yyparse (void);

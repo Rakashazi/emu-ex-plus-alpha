@@ -7,6 +7,7 @@
  * Written by
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -49,6 +50,13 @@
 #include "log.h"
 #include "util.h"
 
+/* #define DBGUTIL */
+
+#ifdef DBGUTIL
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
 
 /* Malloc a new string whose contents concatenate the arguments until the
    first NULL pointer (max `_CONCAT_MAX_ARGS' arguments).  */
@@ -104,7 +112,7 @@ char *util_concat(const char *s, ...)
     }
 
 #endif
-
+    DBG(("util_concat %p - %s\n", newp, newp));
     return newp;
 }
 
@@ -189,6 +197,7 @@ int util_string_set(char **str, const char *new_value)
             strcpy(*str, new_value);
         }
     }
+    DBG(("util_string_set %p - %s\n", *str, *str));
     return 0;
 }
 

@@ -4,6 +4,7 @@
  * Written by
  *  Tim Newsham
  *  Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.

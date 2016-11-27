@@ -158,7 +158,7 @@ static int rs232_is_physical_device(int device)
 /* opens a rs232 window, returns handle to give to functions below. */
 int rs232_open(int device)
 {
-    int ret;
+    int ret = -1;
 
     assert(device < RS232_NUM_DEVICES);
 
@@ -172,8 +172,6 @@ int rs232_open(int device)
     } else {
 #ifdef HAVE_RS232NET
         ret = rs232net_open(device);
-#else
-        ret = -1;
 #endif
     }
     return ret;
@@ -207,6 +205,7 @@ int rs232_putc(int fd, BYTE b)
         return rs232net_putc(fd, b);
     }
 #endif
+    return -1;
 }
 
 /* gets a byte to the RS232 line, returns !=0 if byte received, byte in *b. */
@@ -222,6 +221,7 @@ int rs232_getc(int fd, BYTE * b)
         return rs232net_getc(fd, b);
     }
 #endif
+    return -1;
 }
 
 /* set the status lines of the RS232 device */
@@ -237,6 +237,7 @@ int rs232_set_status(int fd, enum rs232handshake_out status)
         return rs232net_set_status(fd, status);
     }
 #endif
+    return 0;
 }
 
 /* get the status lines of the RS232 device */
@@ -252,6 +253,7 @@ enum rs232handshake_in rs232_get_status(int fd)
         return rs232net_get_status(fd);
     }
 #endif
+    return 0;
 }
 
 /* set the bps rate of the physical device */

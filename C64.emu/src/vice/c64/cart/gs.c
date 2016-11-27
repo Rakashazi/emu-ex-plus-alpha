@@ -109,7 +109,7 @@ static io_source_t gs_device = {
 static io_source_list_t *gs_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_GS, 1, 1, &gs_device, NULL, CARTRIDGE_GS
+    CARTRIDGE_NAME_GS, 0, 1, &gs_device, NULL, CARTRIDGE_GS
 };
 
 /* ---------------------------------------------------------------------*/

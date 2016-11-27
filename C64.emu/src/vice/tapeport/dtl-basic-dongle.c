@@ -99,6 +99,9 @@ static tapeport_device_t dtlbasic_dongle_device = {
     NULL, /* no set motor */
     dtlbasic_write,
     dtlbasic_sense_out,
+    NULL, /* no read out */
+    NULL, /* no passthrough */
+    NULL, /* no passthrough */
     NULL, /* no passthrough */
     NULL  /* no passthrough */
 };

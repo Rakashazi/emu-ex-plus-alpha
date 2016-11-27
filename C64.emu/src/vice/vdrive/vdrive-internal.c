@@ -62,7 +62,7 @@ vdrive_t *vdrive_internal_open_fsimage(const char *name, unsigned int read_only)
 
     disk_image_media_create(image);
 
-    disk_image_name_set(image, lib_stralloc(name));
+    disk_image_name_set(image, name);
 
     if (disk_image_open(image) < 0) {
         disk_image_media_destroy(image);

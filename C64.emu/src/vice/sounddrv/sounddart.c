@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+#ifdef __OS2__
+
 #define INCL_DOSPROFILE
 #define INCL_DOSPROCESS
 #define INCL_DOSSEMAPHORES
@@ -724,4 +726,6 @@ typedef struct_MCI_MIX_BUFFER {
 } MCI_MIX_BUFFER;
 
 typedef MCI_MIX_BUFFER *PMCI_MIX_BUFFER
+#endif
+
 #endif

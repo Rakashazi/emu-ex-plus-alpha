@@ -325,7 +325,7 @@ static int convert_float_buffer(int size, int channels)
         memcpy(&f, c, sizeof(float));
         f *= 0x7fffffff;
         sample = (SDWORD)f;
-        sample_buffer1[i] = (sample >> 24) + 0x80;
+        sample_buffer1[i] = (BYTE)((sample >> 24) + 0x80);
         if (sound_audio_channels == 2 && channels == SAMPLER_OPEN_STEREO) {
             if (sound_audio_type == AUDIO_TYPE_FLOAT_BE) {
                 c[3] = file_buffer[file_pointer + (i * frame_size) + 4];
@@ -341,7 +341,7 @@ static int convert_float_buffer(int size, int channels)
             memcpy(&f, c, sizeof(float));
             f *= 0x7fffffff;
             sample = (SDWORD)f;
-            sample_buffer2[i] = (sample >> 24) + 0x80;
+            sample_buffer2[i] = (BYTE)((sample >> 24) + 0x80);
         }
     }
     lib_free(file_buffer);
@@ -392,7 +392,7 @@ static int convert_double_buffer(int size, int channels)
         memcpy(&f, c, sizeof(double));
         f *= 0x7fffffff;
         sample = (SDWORD)f;
-        sample_buffer1[i] = (sample >> 24) + 0x80;
+        sample_buffer1[i] = (BYTE)((sample >> 24) + 0x80);
         if (sound_audio_channels == 2 && channels == SAMPLER_OPEN_STEREO) {
             if (sound_audio_type == AUDIO_TYPE_FLOAT_BE) {
                 c[7] = file_buffer[file_pointer + (i * frame_size) + 8];
@@ -416,7 +416,7 @@ static int convert_double_buffer(int size, int channels)
             memcpy(&f, c, sizeof(double));
             f *= 0x7fffffff;
             sample = (SDWORD)f;
-            sample_buffer2[i] = (sample >> 24) + 0x80;
+            sample_buffer2[i] = (BYTE)((sample >> 24) + 0x80);
         }
     }
     lib_free(file_buffer);

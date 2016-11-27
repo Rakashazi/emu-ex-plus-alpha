@@ -1,5 +1,5 @@
 /*
- * cartio.h -- C64/C128/VIC20 I/O handling.
+ * cartio.h -- C64/C128/VIC20/CBM2/PET/PLUS4 I/O handling.
  *
  * Written by
  *  Marco van den Heuvel <blackystardust68@yahoo.com>

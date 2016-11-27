@@ -87,10 +87,23 @@ static void restore_int(via_context_t *via_context, unsigned int int_num, int va
 }
 
 static int tape_sense = 0;
+static int tape_write_in = 0;
+static int tape_motor_in = 0;
 
 void via2_set_tape_sense(int v)
 {
     tape_sense = v;
+}
+
+/* FIXME: find out how to set the write in and motor in lines */
+void via2_set_tape_write_in(int v)
+{
+    tape_write_in = v;
+}
+
+void via2_set_tape_motor_in(int v)
+{
+    tape_motor_in = v;
 }
 
 static void via2_internal_lightpen_check(BYTE pa)

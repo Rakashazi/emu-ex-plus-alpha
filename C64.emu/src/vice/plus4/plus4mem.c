@@ -4,6 +4,7 @@
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
  *  Tibor Biczo <crown@axelero.hu>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -166,6 +167,9 @@ static BYTE old_port_write_bit = 0xff;
 /* Tape read input.  */
 static BYTE tape_read = 0xff;
 
+static BYTE tape_write_in = 0xff;
+static BYTE tape_motor_in = 0xff;
+
 /* Current watchpoint state. 1 = watchpoints active, 0 = no watchpoints */
 static int watchpoints_active;
 
@@ -209,6 +213,18 @@ inline static BYTE mem_proc_port_read(WORD addr)
         input &= ~0x10;
     }
 
+    if (tape_write_in) {
+        input |= 0x02;
+    } else {
+        input &= ~0x02;
+    }
+
+    if (tape_motor_in) {
+        input |= 0x08;
+    } else {
+        input &= ~0x08;
+    }
+
     tmp = ((input & ~pport.dir) | (pport.data_out & pport.dir)) & 0xdf;
 
     return tmp;
@@ -218,6 +234,16 @@ void mem_proc_port_trigger_flux_change(unsigned int on)
 {
     /*printf("FLUXCHANGE\n");*/
     tape_read = on;
+}
+
+void mem_proc_port_set_write_in(int val)
+{
+    tape_write_in = val;
+}
+
+void mem_proc_port_set_motor_in(int val)
+{
+    tape_motor_in = val;
 }
 
 /* ------------------------------------------------------------------------- */

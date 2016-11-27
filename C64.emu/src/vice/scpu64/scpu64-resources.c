@@ -137,7 +137,6 @@ static int set_cia2_model(int val, void *param)
 static int set_sync_factor(int val, void *param)
 {
     int change_timing = 0;
-    int border_mode = VICII_BORDER_MODE(vicii_resources.border_mode);
 
     if (sync_factor != val) {
         change_timing = 1;
@@ -147,25 +146,25 @@ static int set_sync_factor(int val, void *param)
         case MACHINE_SYNC_PAL:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PAL ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_PAL, vicii_resources.border_mode);
             }
             break;
         case MACHINE_SYNC_NTSC:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSC ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_NTSC, vicii_resources.border_mode);
             }
             break;
         case MACHINE_SYNC_NTSCOLD:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSCOLD ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_NTSCOLD, vicii_resources.border_mode);
             }
             break;
         case MACHINE_SYNC_PALN:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PALN ^ border_mode);
+                machine_change_timing(MACHINE_SYNC_PALN, vicii_resources.border_mode);
             }
             break;
         default:
@@ -223,11 +222,11 @@ static const resource_string_t resources_string[] = {
 static const resource_int_t resources_int[] = {
     { "MachineVideoStandard", MACHINE_SYNC_PAL, RES_EVENT_SAME, NULL,
       &sync_factor, set_sync_factor, NULL },
-    { "IECReset", 1, RES_EVENT_SAME, NULL,
+    { "IECReset", 0, RES_EVENT_SAME, NULL,
       &iec_reset, set_iec_reset, NULL },
-    { "CIA1Model", CIA_MODEL_6526, RES_EVENT_SAME, NULL,
+    { "CIA1Model", CIA_MODEL_6526A, RES_EVENT_SAME, NULL,
       &cia1_model, set_cia1_model, NULL },
-    { "CIA2Model", CIA_MODEL_6526, RES_EVENT_SAME, NULL,
+    { "CIA2Model", CIA_MODEL_6526A, RES_EVENT_SAME, NULL,
       &cia2_model, set_cia2_model, NULL },
     { "SidStereoAddressStart", 0xde00, RES_EVENT_SAME, NULL,
       (int *)&sid_stereo_address_start, sid_set_sid_stereo_address, NULL },

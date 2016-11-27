@@ -30,6 +30,8 @@
 
 #include "vice.h"
 
+#if defined(__MSDOS__) && !defined(USE_MIDAS_SOUND)
+
 #include <stdio.h>
 #include <allegro.h>            /* Must come after <stdio.h>.  */
 #include <dpmi.h>
@@ -266,3 +268,4 @@ int sound_init_allegro_device(void)
     log_debug("Initializing Allegro sound device.\n");
     return sound_register_device(&allegro_device);
 }
+#endif

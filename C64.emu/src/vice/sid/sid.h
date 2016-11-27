@@ -6,6 +6,7 @@
  *
  * Written by
  *  Dag Lem <resid@nimrod.no>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -44,10 +45,8 @@ struct sid_snapshot_state_s;
 #define SID_ENGINE_RESID          1
 #define SID_ENGINE_CATWEASELMKIII 2
 #define SID_ENGINE_HARDSID        3
-#define SID_ENGINE_PARSID_PORT1   4
-#define SID_ENGINE_PARSID_PORT2   5
-#define SID_ENGINE_PARSID_PORT3   6
-#define SID_ENGINE_SSI2001        7
+#define SID_ENGINE_PARSID         4
+#define SID_ENGINE_SSI2001        5
 #define SID_ENGINE_DEFAULT       99
 
 #define SID_MODEL_6581           0
@@ -68,9 +67,7 @@ struct sid_snapshot_state_s;
 #define SID_RESID_DTVSID          ((SID_ENGINE_RESID << 8) | SID_MODEL_DTVSID)
 #define SID_CATWEASELMKIII        (SID_ENGINE_CATWEASELMKIII << 8)
 #define SID_HARDSID               (SID_ENGINE_HARDSID << 8)
-#define SID_PARSID_PORT1          (SID_ENGINE_PARSID_PORT1 << 8)
-#define SID_PARSID_PORT2          (SID_ENGINE_PARSID_PORT2 << 8)
-#define SID_PARSID_PORT3          (SID_ENGINE_PARSID_PORT3 << 8)
+#define SID_PARSID                (SID_ENGINE_PARSID << 8)
 #define SID_SSI2001               (SID_ENGINE_SSI2001 << 8)
 
 extern void machine_sid2_enable(int val);

@@ -1060,7 +1060,7 @@ static void reboot_for_autostart(const char *program_name, unsigned int mode,
     }
     DBG(("autostart_initial_delay_cycles: %d", autostart_initial_delay_cycles));
 
-    machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
+    machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 
     /* The autostartmode must be set AFTER the shutdown to make the autostart
        threadsafe for OS/2 */
@@ -1183,7 +1183,11 @@ int autostart_disk(const char *file_name, const char *program_name,
     /* Get program name first to avoid more than one file handle open on
        image.  */
     if (!program_name && program_number > 0) {
-        name = image_contents_filename_by_number(diskcontents_filesystem_read(file_name), program_number);
+        image_contents_t *contents = diskcontents_filesystem_read(file_name);
+        if (contents) {
+            name = image_contents_filename_by_number(contents, program_number);
+            image_contents_destroy(contents);
+        }
     } else {
         name = lib_stralloc(program_name ? program_name : "*");
     }

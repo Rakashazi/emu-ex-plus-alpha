@@ -143,7 +143,7 @@ static io_source_t delaep7x8_device = {
 static io_source_list_t *delaep7x8_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_DELA_EP7x8, 1, 0, &delaep7x8_device, NULL, CARTRIDGE_DELA_EP7x8
+    CARTRIDGE_NAME_DELA_EP7x8, 0, 1, &delaep7x8_device, NULL, CARTRIDGE_DELA_EP7x8
 };
 
 /* ---------------------------------------------------------------------*/

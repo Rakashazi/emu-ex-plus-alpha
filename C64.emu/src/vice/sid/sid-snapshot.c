@@ -853,7 +853,7 @@ static const char snap_module_name_extended1[] = "SIDEXTENDED";
 static const char snap_module_name_extended2[] = "SIDEXTENDED2";
 static const char snap_module_name_extended3[] = "SIDEXTENDED3";
 #define SNAP_MAJOR_EXTENDED 1
-#define SNAP_MINOR_EXTENDED 2
+#define SNAP_MINOR_EXTENDED 3
 
 static int sid_snapshot_write_module_extended(snapshot_t *s, int sidnr)
 {
@@ -906,9 +906,7 @@ static int sid_snapshot_write_module_extended(snapshot_t *s, int sidnr)
             break;
 #endif
 #ifdef HAVE_PARSID
-        case SID_ENGINE_PARSID_PORT1:
-        case SID_ENGINE_PARSID_PORT2:
-        case SID_ENGINE_PARSID_PORT3:
+        case SID_ENGINE_PARSID:
             if (sid_snapshot_write_parsid_module(m, sidnr) < 0) {
                 goto fail;
             }
@@ -981,6 +979,11 @@ static int sid_snapshot_read_module_extended(snapshot_t *s, int sidnr)
         return -1;
     }
 
+    if (!snapshot_version_at_least(major_version, minor_version, 1, 3)) {
+        snapshot_set_error(SNAPSHOT_MODULE_INCOMPATIBLE);
+        goto fail;
+    }
+
     /* Do not accept versions higher than current */
     if (major_version > SNAP_MAJOR_EXTENDED || minor_version > SNAP_MINOR_EXTENDED) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
@@ -1010,9 +1013,7 @@ static int sid_snapshot_read_module_extended(snapshot_t *s, int sidnr)
             break;
 #endif
 #ifdef HAVE_PARSID
-        case SID_ENGINE_PARSID_PORT1:
-        case SID_ENGINE_PARSID_PORT2:
-        case SID_ENGINE_PARSID_PORT3:
+        case SID_ENGINE_PARSID:
             if (sid_snapshot_read_parsid_module(m, sidnr) < 0) {
                 goto fail;
             }

@@ -190,47 +190,58 @@ inline static void check_ba(void)
 
 /* FIXME do proper ROM/RAM/IO tests */
 
-void memmap_mem_store(unsigned int addr, unsigned int value)
+inline static void memmap_mem_update(unsigned int addr, int write)
 {
-    if ((addr >= 0xd000) && (addr <= 0xdfff)) {
-        monitor_memmap_store(addr, MEMMAP_I_O_W);
+    unsigned int type = MEMMAP_RAM_R;
+
+    if (write) {
+        if ((addr >= 0xd000) && (addr <= 0xdfff)) {
+            type = MEMMAP_I_O_W;
+        } else {
+            type = MEMMAP_RAM_W;
+        }
     } else {
-        monitor_memmap_store(addr, MEMMAP_RAM_W);
+        switch (addr >> 12) {
+            case 0xa:
+            case 0xb:
+            case 0xe:
+            case 0xf:
+                if (pport.data_read & (1 << ((addr >> 14) & 1))) {
+                    type = MEMMAP_ROM_R;
+                } else {
+                    type = MEMMAP_RAM_R;
+                }
+                break;
+            case 0xd:
+                type = MEMMAP_I_O_R;
+                break;
+            default:
+                type = MEMMAP_RAM_R;
+                break;
+        }
+        if (memmap_state & MEMMAP_STATE_OPCODE) {
+            /* HACK: transform R to X */
+            type >>= 2;
+            memmap_state &= ~(MEMMAP_STATE_OPCODE);
+        } else if (memmap_state & MEMMAP_STATE_INSTR) {
+            /* ignore operand reads */
+            type = 0;
+        }
     }
-    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value));
+    monitor_memmap_store(addr, type);
 }
 
-/* mark as read (no side effects) */
-void memmap_mark_read(unsigned int addr)
+void memmap_mem_store(unsigned int addr, unsigned int value)
 {
-    switch (addr >> 12) {
-        case 0xa:
-        case 0xb:
-        case 0xe:
-        case 0xf:
-            memmap_state |= MEMMAP_STATE_IGNORE;
-            if (pport.data_read & (1 << ((addr >> 14) & 1))) {
-                monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_ROM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_ROM_R);
-            } else {
-                monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_RAM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_RAM_R);
-            }
-            memmap_state &= ~(MEMMAP_STATE_IGNORE);
-            break;
-        case 0xd:
-            monitor_memmap_store(addr, MEMMAP_I_O_R);
-            break;
-        default:
-            monitor_memmap_store(addr, (memmap_state & MEMMAP_STATE_OPCODE) ? MEMMAP_RAM_X : (memmap_state & MEMMAP_STATE_INSTR) ? 0 : MEMMAP_RAM_R);
-            break;
-    }
-    memmap_state &= ~(MEMMAP_STATE_OPCODE);
+    memmap_mem_update(addr, 1);
+    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value));
 }
 
 /* read byte, check BA and mark as read */
 BYTE memmap_mem_read(unsigned int addr)
 {
     check_ba();
-    memmap_mark_read(addr);
+    memmap_mem_update(addr, 0);
     return (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr));
 }
 

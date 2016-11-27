@@ -28,6 +28,8 @@
 
 #include "vice.h"
 
+#ifdef USE_ARTS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
@@ -181,3 +183,4 @@ int sound_init_arts_device(void)
 {
     return sound_register_device(&artsdrv_device);
 }
+#endif

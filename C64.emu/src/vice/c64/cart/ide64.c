@@ -7,6 +7,9 @@
  * Real-Time-Clock patches by
  *  Greg King <greg.king4@verizon.net>
  *
+ * Shortbus and clockport emulation by
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
+ *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -52,6 +55,7 @@
 #undef CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "cartio.h"
 #include "cartridge.h"
+#include "clockport.h"
 #include "cmdline.h"
 #include "crt.h"
 #include "ds1202_1302.h"
@@ -83,6 +87,8 @@
 #endif
 
 #define LATENCY_TIMER 4000
+
+static int ide64_enabled = 0;
 
 /* Current IDE64 bank */
 static int current_bank;
@@ -126,6 +132,14 @@ static int ft245_rxp, ft245_rxl, ft245_txp;
 static int settings_version;
 static int ide64_rtc_save;
 
+/* Current clockport device */
+static int clockport_device_id = CLOCKPORT_DEVICE_NONE;
+static clockport_device_t *clockport_device = NULL;
+
+static const char STRING_IDE64_CLOCKPORT[] = CARTRIDGE_NAME_IDE64 " Clockport";
+
+static char *clockport_device_names = NULL;
+
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
@@ -146,6 +160,9 @@ static BYTE ide64_ds1302_peek(WORD addr);
 static void ide64_romio_store(WORD addr, BYTE value);
 static BYTE ide64_romio_read(WORD addr);
 static BYTE ide64_romio_peek(WORD addr);
+static BYTE ide64_clockport_read(WORD io_address);
+static BYTE ide64_clockport_peek(WORD io_address);
+static void ide64_clockport_store(WORD io_address, BYTE byte);
 static int ide64_rtc_dump(void);
 
 static io_source_t ide64_idebus_device = {
@@ -223,19 +240,73 @@ static io_source_t ide64_rom_device = {
     0
 };
 
+static io_source_t ide64_clockport_device = {
+    CARTRIDGE_NAME_IDE64 "Clockport",
+    IO_DETACH_RESOURCE,
+    "IDE64ClockPort",
+    0xde00, 0xde0f, 0x0f,
+    0,
+    ide64_clockport_store,
+    ide64_clockport_read,
+    ide64_clockport_peek,
+    NULL, /* TODO: dump */
+    CARTRIDGE_IDE64,
+    0,
+    0
+};
+
 static io_source_list_t *ide64_idebus_list_item = NULL;
 static io_source_list_t *ide64_io_list_item = NULL;
 static io_source_list_t *ide64_ft245_list_item = NULL;
 static io_source_list_t *ide64_ds1302_list_item = NULL;
 static io_source_list_t *ide64_rom_list_item = NULL;
+static io_source_list_t *ide64_clockport_list_item = NULL;
 
-static const export_resource_t export_res[5] = {
+static const export_resource_t export_res[6] = {
     {CARTRIDGE_NAME_IDE64 " IDE", 1, 1, &ide64_idebus_device, NULL, CARTRIDGE_IDE64},
     {CARTRIDGE_NAME_IDE64 " I/O", 1, 1, &ide64_io_device, NULL, CARTRIDGE_IDE64},
     {CARTRIDGE_NAME_IDE64 " FT245", 1, 1, &ide64_ft245_device, NULL, CARTRIDGE_IDE64},
     {CARTRIDGE_NAME_IDE64 " DS1302", 1, 1, &ide64_ds1302_device, NULL, CARTRIDGE_IDE64},
     {CARTRIDGE_NAME_IDE64 " ROM", 1, 1, &ide64_rom_device, NULL, CARTRIDGE_IDE64},
+    {CARTRIDGE_NAME_IDE64 " ClockPort", 1, 1, &ide64_clockport_device, NULL, CARTRIDGE_IDE64},
 };
+
+static int clockport_activate(void)
+{
+    if (!ide64_enabled) {
+        return 0;
+    }
+
+    if (clockport_device) {
+        return 0;
+    }
+
+    if (clockport_device_id == CLOCKPORT_DEVICE_NONE) {
+        return 0;
+    }
+
+    clockport_device = clockport_open_device(clockport_device_id, (char *)STRING_IDE64_CLOCKPORT);
+    if (!clockport_device) {
+        return -1;
+    }
+    return 0;
+}
+
+static int clockport_deactivate(void)
+{
+    if (!ide64_enabled) {
+        return 0;
+    }
+
+    if (clockport_device_id == CLOCKPORT_DEVICE_NONE) {
+        return 0;
+    }
+
+    clockport_device->close(clockport_device);
+    clockport_device = NULL;
+
+    return 0;
+}
 
 static int ide64_register(void)
 {
@@ -245,8 +316,11 @@ static int ide64_register(void)
         return 0;
     }
 
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 6; i++) {
         if (settings_version < IDE64_VERSION_4_1 && i == 2) {
+            continue;
+        }
+        if (settings_version < IDE64_VERSION_4_1 && i == 5) {
             continue;
         }
         if (export_add(&export_res[i]) < 0) {
@@ -261,6 +335,16 @@ static int ide64_register(void)
     }
     ide64_ds1302_list_item = io_source_register(&ide64_ds1302_device);
     ide64_rom_list_item = io_source_register(&ide64_rom_device);
+    if (settings_version >= IDE64_VERSION_4_1) {
+        ide64_clockport_list_item = io_source_register(&ide64_clockport_device);
+    }
+
+    if (clockport_activate() < 0) {
+        return -1;
+    }
+
+    ide64_enabled = 1;
+
     return 0;
 }
 
@@ -272,8 +356,11 @@ static void ide64_unregister(void)
         return;
     }
 
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 6; i++) {
         if (settings_version < IDE64_VERSION_4_1 && i == 2) {
+            continue;
+        }
+        if (settings_version < IDE64_VERSION_4_1 && i == 5) {
             continue;
         }
         export_remove(&export_res[i]);
@@ -286,11 +373,19 @@ static void ide64_unregister(void)
     }
     io_source_unregister(ide64_ds1302_list_item);
     io_source_unregister(ide64_rom_list_item);
+    if (ide64_clockport_list_item) {
+        io_source_unregister(ide64_clockport_list_item);
+    }
     ide64_idebus_list_item = NULL;
     ide64_io_list_item = NULL;
     ide64_ft245_list_item = NULL;
     ide64_ds1302_list_item = NULL;
     ide64_rom_list_item = NULL;
+    ide64_clockport_list_item = NULL;
+
+    clockport_deactivate();
+
+    ide64_enabled = 0;
 }
 
 static void detect_ide64_image(struct drive_s *drive)
@@ -577,6 +672,33 @@ static int set_usbserver_address(const char *name, void *param)
 }
 #endif
 
+static int set_ide64_clockport_device(int val, void *param)
+{
+    if (val == clockport_device_id) {
+        return 0;
+    }
+
+    if (!ide64_enabled) {
+        clockport_device_id = val;
+        return 0;
+    }
+
+    if (clockport_device_id != CLOCKPORT_DEVICE_NONE) {
+        clockport_device->close(clockport_device);
+        clockport_device_id = CLOCKPORT_DEVICE_NONE;
+        clockport_device = NULL;
+    }
+
+    if (val != CLOCKPORT_DEVICE_NONE) {
+        clockport_device = clockport_open_device(val, (char *)STRING_IDE64_CLOCKPORT);
+        if (!clockport_device) {
+            return -1;
+        }
+        clockport_device_id = val;
+    }
+    return 0;
+}
+
 static const resource_string_t resources_string[] = {
     { "IDE64Image1", "ide.cfa", RES_EVENT_NO, NULL,
       &drives[0].filename, set_ide64_image_file, (void *)0 },
@@ -653,6 +775,8 @@ static const resource_int_t resources_int[] = {
     { "IDE64RTCSave", 0,
       RES_EVENT_NO, NULL,
       &ide64_rtc_save, ide64_set_rtc_save, NULL },
+    { "IDE64ClockPort", 0, RES_EVENT_NO, NULL,
+      &clockport_device_id, set_ide64_clockport_device, NULL },
     { NULL }
 };
 
@@ -699,6 +823,9 @@ int ide64_resources_shutdown(void)
 #endif
 
     shortbus_resources_shutdown();
+
+    lib_free(clockport_device_names);
+    clockport_device_names = NULL;
 
     return 0;
 }
@@ -859,18 +986,54 @@ static const cmdline_option_t cmdline_options[] = {
     { NULL }
 };
 
+static cmdline_option_t clockport_cmdline_options[] =
+{
+    { "-ide64clockportdevice", SET_RESOURCE, 1,
+      NULL, NULL, "IDE64ClockPort", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
+      IDCLS_P_DEVICE, IDCLS_CLOCKPORT_DEVICE,
+      NULL, NULL },
+    { NULL }
+};
+
 int ide64_cmdline_options_init(void)
 {
+    int i;
+    char *tmp;
+    char number[10];
+
     if (shortbus_cmdline_options_init() < 0) {
         return -1;
     }
 
-    return cmdline_register_options(cmdline_options);
+    if (cmdline_register_options(cmdline_options) < 0) {
+        return -1;
+    }
+
+    sprintf(number, "%d", clockport_supported_devices[0].id);
+
+    clockport_device_names = util_concat(". (", number, ": ", clockport_supported_devices[0].name, NULL);
+
+    for (i = 1; clockport_supported_devices[i].name; ++i) {
+        tmp = clockport_device_names;
+        sprintf(number, "%d", clockport_supported_devices[i].id);
+        clockport_device_names = util_concat(tmp, ", ", number, ": ", clockport_supported_devices[i].name, NULL);
+        lib_free(tmp);
+    }
+    tmp = clockport_device_names;
+    clockport_device_names = util_concat(tmp, ")", NULL);
+    lib_free(tmp);
+    clockport_cmdline_options[0].description = clockport_device_names;
+
+    return cmdline_register_options(clockport_cmdline_options);
 }
 
 void ide64_reset(void)
 {
     shortbus_reset();
+    if (ide64_enabled && clockport_device) {
+        clockport_device->reset(clockport_device->device_context);
+    }
 }
 
 static BYTE ide64_idebus_read(WORD addr)
@@ -987,7 +1150,8 @@ static void ide64_io_store(WORD addr, BYTE value)
 }
 
 #ifdef HAVE_NETWORK
-static void usb_receive(void) {
+static void usb_receive(void)
+{
     if (ft245_rxp >= ft245_rxl && usbserver_socket) {
         int reconnect = 2;
         if (!usbserver_asocket && vice_network_select_poll_one(usbserver_socket)) {
@@ -1016,7 +1180,8 @@ static void usb_receive(void) {
     }
 }
 
-static void usb_send(void) {
+static void usb_send(void)
+{
     if (ft245_txp && usbserver_socket) {
         int reconnect = 2;
         if (!usbserver_asocket && vice_network_select_poll_one(usbserver_socket)) {
@@ -1175,6 +1340,29 @@ static void ide64_ds1302_store(WORD addr, BYTE value)
     ds1202_1302_set_lines(ds1302_context, kill_port & 2u, 0u, 1u);
     ds1202_1302_set_lines(ds1302_context, kill_port & 2u, 1u, value & 1u);
     return;
+}
+
+static BYTE ide64_clockport_read(WORD address)
+{
+    if (clockport_device) {
+        return clockport_device->read(address, &ide64_clockport_device.io_source_valid, clockport_device->device_context);
+    }
+    return 0;
+}
+
+static BYTE ide64_clockport_peek(WORD address)
+{
+    if (clockport_device) {
+        return clockport_device->peek(address, clockport_device->device_context);
+    }
+    return 0;
+}
+
+static void ide64_clockport_store(WORD address, BYTE byte)
+{
+    if (clockport_device) {
+        clockport_device->store(address, byte, clockport_device->device_context);
+    }
 }
 
 static BYTE ide64_romio_read(WORD addr)

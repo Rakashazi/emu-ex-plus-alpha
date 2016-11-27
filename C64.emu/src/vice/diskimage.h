@@ -103,16 +103,16 @@ extern int disk_image_resources_init(void);
 extern int disk_image_cmdline_options_init(void);
 extern void disk_image_resources_shutdown(void);
 
-extern void disk_image_fsimage_name_set(disk_image_t *image, char *name);
-extern char *disk_image_fsimage_name_get(const disk_image_t *image);
+extern void disk_image_fsimage_name_set(disk_image_t *image, const char *name);
+extern const char *disk_image_fsimage_name_get(const disk_image_t *image);
 extern void *disk_image_fsimage_fd_get(const disk_image_t *image);
 extern int disk_image_fsimage_create(const char *name, unsigned int type);
 
-extern void disk_image_rawimage_name_set(disk_image_t *image, char *name);
+extern void disk_image_rawimage_name_set(disk_image_t *image, const char *name);
 extern void disk_image_rawimage_driver_name_set(disk_image_t *image);
 
-extern void disk_image_name_set(disk_image_t *image, char *name);
-extern char *disk_image_name_get(const disk_image_t *image);
+extern void disk_image_name_set(disk_image_t *image, const char *name);
+extern const char *disk_image_name_get(const disk_image_t *image);
 
 extern disk_image_t *disk_image_create(void);
 extern void disk_image_destroy(disk_image_t *image);

@@ -1,3 +1,10 @@
+/** \file   src/cbmimage.c
+ * \brief   Generic image handling
+ *
+ * Right now only contains a single function to create either a disk or a tape
+ * image file.
+ */
+
 /*
  * cbmimage.c - Generic image handling.
  *
@@ -30,6 +37,13 @@
 #include "tape.h"
 
 
+/** \brief  Create a disk or tape image file
+ *
+ * \param[in]   name    name of/path to image
+ * \param[in]   type    disk/tape image type enumerator
+ *
+ * \return  0 on success, < 0 on failure
+ */
 int cbmimage_create_image(const char *name, unsigned int type)
 {
     switch (type) {
@@ -40,3 +54,4 @@ int cbmimage_create_image(const char *name, unsigned int type)
     }
     return disk_image_fsimage_create(name, type);
 }
+

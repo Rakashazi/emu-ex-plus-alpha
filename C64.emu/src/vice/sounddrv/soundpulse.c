@@ -26,6 +26,8 @@
 
 #include "vice.h"
 
+#ifdef USE_PULSE
+
 #include "log.h"
 #include "sound.h"
 
@@ -123,3 +125,4 @@ int sound_init_pulse_device(void)
 {
     return sound_register_device(&pulsedrv_device);
 }
+#endif

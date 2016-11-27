@@ -6,6 +6,7 @@
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -59,8 +60,14 @@
 /* Flag for recording port A DDR changes (for c64gluelogic) */
 static int pa_ddr_change = 0;
 
+static BYTE cia2_cra = 0;
+
 void cia2_store(WORD addr, BYTE data)
 {
+    if ((addr & 0xf) == CIA_CRA) {
+        cia2_cra = data;
+    }
+
     if (((addr & 0xf) == CIA_DDRA) && (machine_context.cia2->c_cia[CIA_DDRA] != data)) {
         pa_ddr_change = 1;
     } else {
@@ -281,6 +288,10 @@ static void read_sdr(cia_context_t *cia_context)
 
 static void store_sdr(cia_context_t *cia_context, BYTE byte)
 {
+    if ((cia2_cra & 0x59) == 0x51) {
+        store_userport_sp2(byte);
+    }
+
     if (c64iec_active) {
         if (burst_mod == BURST_MOD_CIA2) {
             c64fastiec_fast_cpu_write((BYTE)byte);

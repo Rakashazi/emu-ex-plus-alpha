@@ -43,8 +43,8 @@ extern int rawimage_resources_init(void);
 extern int rawimage_cmdline_options_init(void);
 extern void rawimage_resources_shutdown(void);
 
-extern void rawimage_name_set(struct disk_image_s *image, char *name);
-extern char *rawimage_name_get(const struct disk_image_s *image);
+extern void rawimage_name_set(struct disk_image_s *image, const char *name);
+extern const char *rawimage_name_get(const struct disk_image_s *image);
 extern void rawimage_driver_name_set(struct disk_image_s *image);
 
 extern int rawimage_open(struct disk_image_s *image);

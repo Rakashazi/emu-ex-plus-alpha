@@ -25,10 +25,10 @@
  *
  */
 
-#ifdef HAVE_TFE
+#ifdef HAVE_PCAP
 #else
-  #error RAWNETARCH.H should not be included if HAVE_TFE is not defined!
-#endif /* #ifdef HAVE_TFE */
+  #error RAWNETARCH.H should not be included if HAVE_PCAP is not defined!
+#endif /* #ifdef HAVE_PCAP */
 
 #ifndef VICE_RAWNETARCH_H
 #define VICE_RAWNETARCH_H
@@ -60,5 +60,7 @@ extern int rawnet_arch_receive(BYTE *pbuffer, int *plen, int *phashed, int *phas
 extern int rawnet_arch_enumadapter_open(void);
 extern int rawnet_arch_enumadapter(char **ppname, char **ppdescription);
 extern int rawnet_arch_enumadapter_close(void);
+
+extern char *rawnet_arch_get_standard_interface(void);
 
 #endif

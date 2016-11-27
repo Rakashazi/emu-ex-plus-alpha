@@ -109,7 +109,7 @@ static io_source_t tpi_io2_device = {
 static io_source_list_t *tpi_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_IEEE488, 0, 0, NULL, &tpi_io2_device, CARTRIDGE_IEEE488
+    CARTRIDGE_NAME_IEEE488, 0, 1, NULL, &tpi_io2_device, CARTRIDGE_IEEE488
 };
 
 /* ---------------------------------------------------------------------*/

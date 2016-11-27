@@ -47,6 +47,10 @@
 #define DEFAULT_DEVICE SAMPLER_DEVICE_FILE
 #endif
 
+/* used to build a resource string via lib_stralloc() and util_concat() calls,
+ * gets free'd in sampler_resources_shutdown() */
+static char *cmdline_devices = NULL;
+
 static int current_sampler = DEFAULT_DEVICE;
 static int sampler_status = SAMPLER_CLOSED;
 
@@ -229,11 +233,14 @@ void sampler_resources_shutdown(void)
             devices[i].shutdown();
         }
     }
+    if (cmdline_devices != NULL) {
+        lib_free(cmdline_devices);
+        cmdline_devices = NULL;
+    }
 }
 
 /* ------------------------------------------------------------------------- */
 
-static char *cmdline_devices = NULL;
 
 static cmdline_option_t cmdline_options[] =
 {

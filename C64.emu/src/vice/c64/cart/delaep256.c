@@ -59,10 +59,10 @@
 
    The values for the (extra) eprom banks are:
 
-   eprom banks  1- 8 : $38-3F
-   eprom banks  9-16 : $28-2F
-   eprom banks 17-24 : $18-1F
-   eprom banks 25-32 : $08-0F
+   eprom banks  1- 8 : $38-$3F
+   eprom banks  9-16 : $28-$2F
+   eprom banks 17-24 : $18-$1F
+   eprom banks 25-32 : $08-$0F
 
    Setting bit 7 high will switch off EXROM.
 */
@@ -126,7 +126,7 @@ static io_source_t delaep256_device = {
 static io_source_list_t *delaep256_list_item = NULL;
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_DELA_EP256, 1, 0, &delaep256_device, NULL, CARTRIDGE_DELA_EP256
+    CARTRIDGE_NAME_DELA_EP256, 0, 1, &delaep256_device, NULL, CARTRIDGE_DELA_EP256
 };
 
 /* ---------------------------------------------------------------------*/

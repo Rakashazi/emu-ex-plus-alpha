@@ -163,6 +163,7 @@ BYTE pagefox_roml_read(WORD addr)
 /* ROML store - mapped to 8000 in ultimax mode */
 void pagefox_roml_store(WORD addr, BYTE value)
 {
+    /* printf("pagefox_roml_store chipselect: %d bankselect: %d %04x,%02x\n", chipselect, bankselect, addr, value); */
     if (chipselect == 2) {
         pagefox_ram[0x0000 + (addr & 0x1fff) + (bankselect << 14)] = value;
     }
@@ -179,6 +180,7 @@ BYTE pagefox_romh_read(WORD addr)
 
 void pagefox_romh_store(WORD addr, BYTE value)
 {
+    /* printf("pagefox_romh_store chipselect: %d bankselect: %d %04x,%02x\n", chipselect, bankselect, addr, value); */
     if (chipselect == 2) {
         pagefox_ram[0x2000 + (addr & 0x1fff) + (bankselect << 14)] = value;
     }

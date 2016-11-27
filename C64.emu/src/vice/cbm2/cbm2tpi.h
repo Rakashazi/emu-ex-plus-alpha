@@ -40,6 +40,8 @@ extern BYTE tpi1_read(WORD addr);
 extern BYTE tpi1_peek(WORD addr);
 
 extern void tpi1_set_tape_sense(int v);
+extern void tpi1_set_tape_write_in(int v);
+extern void tpi1_set_tape_motor_in(int v);
 
 extern void tpi2_setup_context(struct machine_context_s *machine_context);
 extern void tpi2_init(struct tpi_context_s *tpi_context);

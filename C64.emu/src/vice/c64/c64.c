@@ -5,6 +5,7 @@
  *  Andreas Boose <viceteam@t-online.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Teemu Rantanen <tvr@cs.hut.fi>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -52,10 +53,15 @@
 #include "c64mem.h"
 #include "c64memrom.h"
 #include "c64rsuser.h"
+#include "cardkey.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cia.h"
 #include "clkguard.h"
+#include "clockport-mp3at64.h"
+#include "coplin_keypad.h"
+#include "cx21.h"
+#include "cx85.h"
 #include "datasette.h"
 #include "debug.h"
 #include "diskimage.h"
@@ -92,6 +98,7 @@
 #include "resources.h"
 #include "rs232drv.h"
 #include "rsuser.h"
+#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -102,6 +109,7 @@
 #include "sid.h"
 #include "sound.h"
 #include "tape.h"
+#include "tape_diag_586220_harness.h"
 #include "tapeport.h"
 #include "translate.h"
 #include "traps.h"
@@ -110,6 +118,7 @@
 #include "userport_4bit_sampler.h"
 #include "userport_8bss.h"
 #include "userport_dac.h"
+#include "userport_diag_586220_harness.h"
 #include "userport_digimax.h"
 #include "userport_joystick.h"
 #include "userport_rtc_58321a.h"
@@ -531,6 +540,26 @@ int machine_resources_init(void)
         init_resource_fail("joyport paperclip64 dongle");
         return -1;
     }
+    if (joyport_coplin_keypad_resources_init() < 0) {
+        init_resource_fail("joyport coplin keypad");
+        return -1;
+    }
+    if (joyport_cx21_resources_init() < 0) {
+        init_resource_fail("joyport cx21 keypad");
+        return -1;
+    }
+    if (joyport_cx85_resources_init() < 0) {
+        init_resource_fail("joyport cx85 keypad");
+        return -1;
+    }
+    if (joyport_rushware_keypad_resources_init() < 0) {
+        init_resource_fail("joyport rushware keypad");
+        return -1;
+    }
+    if (joyport_cardkey_resources_init() < 0) {
+        init_resource_fail("joyport cardkey keypad");
+        return -1;
+    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -614,6 +643,10 @@ int machine_resources_init(void)
         init_resource_fail("tapeport");
         return -1;
     }
+    if (tape_diag_586220_harness_resources_init() < 0) {
+        init_resource_fail("tape diag 586220 harness");
+        return -1;
+    }
     if (datasette_resources_init() < 0) {
         init_resource_fail("datasette");
         return -1;
@@ -648,6 +681,10 @@ int machine_resources_init(void)
     }
     if (userport_8bss_resources_init() < 0) {
         init_resource_fail("userport 8bit stereo sampler");
+        return -1;
+    }
+    if (userport_diag_586220_harness_resources_init() < 0) {
+        init_resource_fail("userport diag 586220 harness");
         return -1;
     }
     if (cartio_resources_init() < 0) {
@@ -823,6 +860,10 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("tapeport");
         return -1;
     }
+    if (tape_diag_586220_harness_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("tape diag 586220 harness");
+        return -1;
+    }
     if (datasette_cmdline_options_init() < 0) {
         init_cmdline_options_fail("datasette");
         return -1;
@@ -857,6 +898,10 @@ int machine_cmdline_options_init(void)
     }
     if (userport_8bss_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport 8bit stereo sampler");
+        return -1;
+    }
+    if (userport_diag_586220_harness_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("userport diag 586220 harness");
         return -1;
     }
     if (cartio_cmdline_options_init() < 0) {
@@ -995,6 +1040,11 @@ int machine_specific_init(void)
     userport_dac_sound_chip_init();
     userport_digimax_sound_chip_init();
 
+    /* Initialize mp3@64 */
+#ifdef USE_MPG123
+    clockport_mp3at64_sound_chip_init();
+#endif
+
     drive_sound_init();
     video_sound_init();
 
@@ -1008,15 +1058,15 @@ int machine_specific_init(void)
     /* Initialize the C64-specific I/O */
     c64io_init();
 
-    if (!video_disabled_mode) {
-        joystick_init();
-    }
-
     gfxoutput_init();
 
     /* Initialize the C64-specific part of the UI.  */
     if (!console_mode) {
         c64_mem_ui_init();
+    }
+
+    if (!video_disabled_mode) {
+        joystick_init();
     }
 
     /* Initialize glue logic.  */
@@ -1133,7 +1183,9 @@ void machine_specific_shutdown(void)
 
     sid_cmdline_options_shutdown();
 
-    c64_mem_ui_shutdown();
+    if (!console_mode) {
+        c64_mem_ui_shutdown();
+    }
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -1192,42 +1244,8 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval)
+void machine_change_timing(int timeval, int border_mode)
 {
-    int border_mode;
-
-    switch (timeval) {
-        default:
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NORMAL_BORDERS);
-            border_mode = VICII_NORMAL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_FULL_BORDERS);
-            border_mode = VICII_FULL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_DEBUG_BORDERS);
-            border_mode = VICII_DEBUG_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_NTSCOLD ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_PALN ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NO_BORDERS);
-            border_mode = VICII_NO_BORDERS;
-            break;
-    }
-
     switch (timeval) {
         case MACHINE_SYNC_PAL:
             machine_timing.cycles_per_sec = C64_PAL_CYCLES_PER_SEC;

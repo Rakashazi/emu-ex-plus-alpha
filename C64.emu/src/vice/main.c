@@ -87,6 +87,15 @@ int console_mode = 0;
 int video_disabled_mode = 0;
 static int init_done = 0;
 
+
+/** \brief  Size of buffer used to write core team members' names to log/stdout
+ *
+ * 79 characters + 1 byte for '\0'. Assuming a terminal width of 80 characters,
+ * we can only use 79 when calling log_message() since that function adds a
+ * newline to its ouput.
+ */
+#define TERM_TMP_SIZE  80
+
 /* ------------------------------------------------------------------------- */
 
 /* This is the main program entry point.  Call this from `main()'.  */
@@ -94,8 +103,10 @@ int main_program(int argc, char **argv)
 {
     int i, n;
     char *program_name;
-    char *tmp;
     int ishelp = 0;
+    char term_tmp[TERM_TMP_SIZE];
+    size_t name_len;
+
 
     lib_init_rand();
 
@@ -222,23 +233,32 @@ int main_program(int argc, char **argv)
     log_message(LOG_DEFAULT, " ");
 
     log_message(LOG_DEFAULT, "Current VICE team members:");
-    tmp = lib_malloc(80);
-    n = 0; *tmp = 0;
-    for (i = 0; core_team[i].name; i++) {
-        n += strlen(core_team[i].name);
-        if (n > 74) {
-            log_message(LOG_DEFAULT, "%s", tmp);
-            n = 0; *tmp = 0;
+    n = 0; *term_tmp = 0;
+    for (i = 0; core_team[i].name != NULL; i++) {
+        name_len = strlen(core_team[i].name);
+        /* XXX: reject names that will never fit, for now */
+        if ((int)name_len + 3 > TERM_TMP_SIZE) {
+            log_warning(LOG_DEFAULT, "%s:%d: name '%s' too large for buffer",
+                    __FILE__, __LINE__, core_team[i].name);
+            break;  /* this will still write out whatever was in the buffer */
         }
-        strcat(tmp, core_team[i].name);
-        if (core_team[i + 1].name) {
-            strcat(tmp, ", ");
+
+        if (n + (int)name_len + 3 > TERM_TMP_SIZE) {    /* +3 for ", \0" */
+            log_message(LOG_DEFAULT, "%s", term_tmp);
+            strcpy(term_tmp, core_team[i].name);
+            n = (int)name_len;
         } else {
-            strcat(tmp, ".");
-            log_message(LOG_DEFAULT, "%s", tmp);
+            strcat(term_tmp, core_team[i].name);
+            n += (int)name_len;
+        }
+        if (core_team[i + 1].name == NULL) {
+            strcat(term_tmp, ".");
+        } else {
+            strcat(term_tmp, ", ");
+            n += 2;
         }
     }
-    lib_free(tmp);
+    log_message(LOG_DEFAULT, "%s", term_tmp);
 
     log_message(LOG_DEFAULT, " ");
     log_message(LOG_DEFAULT, "This is free software with ABSOLUTELY NO WARRANTY.");

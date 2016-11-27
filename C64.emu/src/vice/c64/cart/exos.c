@@ -56,7 +56,7 @@
 */
 
 static const export_resource_t export_res = {
-    CARTRIDGE_NAME_EXOS, 1, 1, NULL, NULL, CARTRIDGE_EXOS
+    CARTRIDGE_NAME_EXOS, 1, 0, NULL, NULL, CARTRIDGE_EXOS
 };
 
 /* ---------------------------------------------------------------------*/

@@ -53,12 +53,32 @@
 #include "types.h"
 #include "p64.h"
 
+
+/** \brief  Number of speed zones for a given floppy
+ */
+#define SPEED_ZONE_COUNT    4
+
+
+/** \brief  Log destination for module
+ */
 static log_t disk_image_log = LOG_DEFAULT;
 
 
 /*-----------------------------------------------------------------------*/
 /* Speed zones */
 
+/** \brief  Determine the speed zone for \a track in \a format
+ *
+ * The speed zone determines the number of sectors containing in a track for
+ * a given image type. Speed zone 0 is closest to the disk center (containing
+ * the smallest number of sectors for a speed zone), 3 is farthest away
+ * (containing the largest number of sectors for a speed zone).
+ *
+ * \param[in]   format  disk image type enumerator
+ * \param[in]   track   track number
+ *
+ * \return  speed zone (0-3)
+ */
 unsigned int disk_image_speed_map(unsigned int format, unsigned int track)
 {
     switch (format) {
@@ -91,10 +111,45 @@ unsigned int disk_image_speed_map(unsigned int format, unsigned int track)
 /*-----------------------------------------------------------------------*/
 /* Number of sectors per track */
 
-static const unsigned int sector_map_d64[4] = { 17, 18, 19, 21 };
-static const unsigned int sector_map_d67[4] = { 17, 18, 20, 21 };
-static const unsigned int sector_map_d80[4] = { 23, 25, 27, 29 };
+/** \brief  Sectors per speed zone for D64/D71 images
+ */
+static const unsigned int sector_map_d64[SPEED_ZONE_COUNT] = {
+    17, /* tracks 1-17, 36-52 (D71 only) */
+    18, /* tracks 18-24, 53-59 (D71 only)  */
+    19, /* track 25-30, 60-65 (D71 only) */
+    21  /* tracks 31-[35-40], 66-70 (D71 only) */
+};
 
+
+/** \brief  Sectors per speed zone for D67 images
+ */
+static const unsigned int sector_map_d67[SPEED_ZONE_COUNT] = {
+    17, /* tracks 1-17 */
+    18, /* tracks 18-24 */
+    20, /* track 25-30 */
+    21  /* tracks 31-[35-40} */
+};
+
+
+/** \brief  Sectors per speed zone for D80/D82 images
+ */
+static const unsigned int sector_map_d80[SPEED_ZONE_COUNT] = {
+    23, /* tracks 1-39, 78-116 (D82 only) */
+    25, /* tracks 40-53, 117-130 (D82 only) */
+    27, /* tracks 54-64, 131,141 (D82 only) */
+    29  /* tracks 65-77, 142-154 (D82 only) */
+};
+
+
+/** \brief  Get number of sectors for \a track in \a format
+ *
+ * Determines the number of sectors for a given track and disk image format.
+ *
+ * \param[in]   format  disk image type enumerator
+ * \param[in]   track   track number
+ *
+ * \return  number of sectors or 0 on error
+ */
 unsigned int disk_image_sector_per_track(unsigned int format,
                                          unsigned int track)
 {
@@ -121,23 +176,40 @@ unsigned int disk_image_sector_per_track(unsigned int format,
 /*-----------------------------------------------------------------------*/
 /* Bytes per track */
 
+/** \brief  Size of a raw (GCR) track in bytes in a D64 image per speed zone
+ */
 static const unsigned int raw_track_size_d64[4] = {
     6250, 6666, 7142, 7692
 };
+
+/** \brief  Size of a raw (GCR) track in bytes in a D80 image per speed zone
+ */
 static const unsigned int raw_track_size_d80[4] = {
     9375, 10000, 10714, 11538
 };
 
+
+/** \brief  Get the raw (GCR) track size
+ *
+ * \param[in]   format  disk image format enumerator
+ * \param[in]   track   track number
+ *
+ * \return  number of bytes for \a track
+ */
 unsigned int disk_image_raw_track_size(unsigned int format,
                                        unsigned int track)
 {
     switch (format) {
         case DISK_IMAGE_TYPE_D64:
-        case DISK_IMAGE_TYPE_X64:
+        case DISK_IMAGE_TYPE_X64:   /* FIXME: X64 can contain a lot of different
+                                              formats, not just D64 (BW) */
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_P64:
         case DISK_IMAGE_TYPE_D71:
-        case DISK_IMAGE_TYPE_D67:
+        case DISK_IMAGE_TYPE_D67:   /* XXX: D67 has 20 sectors per track for
+                                            speed zone 2, D64/D71 has 19 sectors
+                                            for that speed zone, so is this
+                                            correct? (BW) */
             return raw_track_size_d64[disk_image_speed_map(format, track)];
         case DISK_IMAGE_TYPE_D80:
         case DISK_IMAGE_TYPE_D82:
@@ -180,6 +252,15 @@ unsigned int disk_image_gap_size(unsigned int format, unsigned int track)
 
 /*-----------------------------------------------------------------------*/
 /* Check out of bound */
+
+/** \brief  Check if a (\a track, \a sector) is inside bounds for \a image
+ *
+ * \param[in]   image   disk image
+ * \param[in]   track   track number
+ * \param[in]   sector  sector number
+ *
+ * \return  bool
+ */
 int disk_image_check_sector(const disk_image_t *image, unsigned int track,
                             unsigned int sector)
 {
@@ -192,6 +273,12 @@ int disk_image_check_sector(const disk_image_t *image, unsigned int track,
 
 /*-----------------------------------------------------------------------*/
 
+/** \brief  Get image type identifier string for \a image
+ *
+ * \param[in]   image   disk image
+ *
+ * \return  disk image identifier (nul-terminated 3-char string)
+ */
 static const char *disk_image_type(const disk_image_t *image)
 {
     switch (image->type) {
@@ -211,6 +298,13 @@ static const char *disk_image_type(const disk_image_t *image)
     }
 }
 
+
+/** \brief  Log attachment of disk image
+ *
+ * \param[in]   image   disk image attached
+ * \param[in]   lognum  (unused)
+ * \param[in]   unit    unit the image is attached to
+ */
 void disk_image_attach_log(const disk_image_t *image, signed int lognum,
                            unsigned int unit)
 {
@@ -234,6 +328,13 @@ void disk_image_attach_log(const disk_image_t *image, signed int lognum,
     }
 }
 
+
+/** \brief  Log detachment of disk image
+ *
+ * \param[in]   image   disk image detached
+ * \param[in]   lognum  (unused)
+ * \param[in]   unit    unit the image is detached from
+ */
 void disk_image_detach_log(const disk_image_t *image, signed int lognum,
                            unsigned int unit)
 {
@@ -258,20 +359,40 @@ void disk_image_detach_log(const disk_image_t *image, signed int lognum,
 }
 /*-----------------------------------------------------------------------*/
 
-void disk_image_fsimage_name_set(disk_image_t *image, char *name)
+/** \brief  Set disk image name
+ *
+ * \param[in,out]   image   disk image
+ * \param[in]       name    disk image name
+ */
+void disk_image_fsimage_name_set(disk_image_t *image, const char *name)
 {
     fsimage_name_set(image, name);
 }
 
-char *disk_image_fsimage_name_get(const disk_image_t *image)
+
+/** \brief  Get disk image name
+ *
+ * \param[in]   image   disk image
+ *
+ * \return  disk image name
+ */
+const char *disk_image_fsimage_name_get(const disk_image_t *image)
 {
     return fsimage_name_get(image);
 }
 
+
+/** \brief  Get file descriptor for \a image
+ *
+ * \param[in]   image   disk image
+ *
+ * \return  file descriptor
+ */
 void *disk_image_fsimage_fd_get(const disk_image_t *image)
 {
     return fsimage_fd_get(image);
 }
+
 
 int disk_image_fsimage_create(const char *name, unsigned int type)
 {
@@ -280,7 +401,7 @@ int disk_image_fsimage_create(const char *name, unsigned int type)
 
 /*-----------------------------------------------------------------------*/
 
-void disk_image_rawimage_name_set(disk_image_t *image, char *name)
+void disk_image_rawimage_name_set(disk_image_t *image, const char *name)
 {
 #ifdef HAVE_RAWDRIVE
     rawimage_name_set(image, name);
@@ -296,7 +417,7 @@ void disk_image_rawimage_driver_name_set(disk_image_t *image)
 
 /*-----------------------------------------------------------------------*/
 
-void disk_image_name_set(disk_image_t *image, char *name)
+void disk_image_name_set(disk_image_t *image, const char *name)
 {
     switch (image->device) {
         case DISK_IMAGE_DEVICE_FS:
@@ -310,7 +431,7 @@ void disk_image_name_set(disk_image_t *image, char *name)
     }
 }
 
-char *disk_image_name_get(const disk_image_t *image)
+const char *disk_image_name_get(const disk_image_t *image)
 {
     switch (image->device) {
         case DISK_IMAGE_DEVICE_FS:

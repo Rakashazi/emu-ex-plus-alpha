@@ -38,7 +38,7 @@ static BYTE old_port_data_out = 0xff;
 /* Tape write line status.  */
 static BYTE old_port_write_bit = 0xff;
 
-void c64pla_config_changed(int tape_sense, int caps_sense, BYTE pullup)
+void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_sense, BYTE pullup)
 {
     pport.data_out = (pport.data_out & ~pport.dir) | (pport.data & pport.dir);
 

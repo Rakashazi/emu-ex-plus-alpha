@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.

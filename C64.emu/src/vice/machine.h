@@ -84,6 +84,7 @@ extern int video_disabled_mode;
 /* Initialize the machine's resources.  */
 extern int machine_common_resources_init(void);
 extern int machine_resources_init(void);
+extern void machine_common_resources_shutdown(void);
 extern void machine_resources_shutdown(void);
 
 /* Initialize the machine's command-line options.  */
@@ -153,7 +154,7 @@ extern int machine_sid2_check_range(unsigned int sid2_adr);
 extern int machine_sid3_check_range(unsigned int sid3_adr);
 
 /* Change the timing parameters of the maching (for example PAL/NTSC).  */
-extern void machine_change_timing(int timeval);
+extern void machine_change_timing(int timeval, int border_mode);
 
 /* Get screenshot data.  */
 struct screenshot_s;

@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -48,6 +49,26 @@ extern char *lib_msprintf(const char *fmt, ...);
 extern char *lib_mvsprintf(const char *fmt, va_list args);
 
 extern void lib_debug_check(void);
+
+#if defined(__CYGWIN32__) || defined(__CYGWIN__) || defined(WIN32_COMPILE)
+
+#ifdef WIN32_UNICODE_SUPPORT
+#include <wchar.h>
+
+extern size_t lib_tcstostr(char *str, const wchar_t *tcs, size_t len);
+extern size_t lib_strtotcs(wchar_t *tcs, const char *str, size_t len);
+
+extern int lib_swprintf(wchar_t *wcs, size_t len, const wchar_t *fmt, ...);
+#define lib_sntprintf lib_swprintf
+#else
+extern size_t lib_tcstostr(char *str, const char *tcs, size_t len);
+extern size_t lib_strtotcs(char *tcs, const char *str, size_t len);
+
+extern int lib_snprintf(char *str, size_t len, const char *fmt, ...);
+#define lib_sntprintf lib_snprintf
+#endif
+
+#endif /* CYGWIN or WIN32_COMPILE */
 
 #ifdef LIB_DEBUG_PINPOINT
 extern void *lib_malloc_pinpoint(size_t size, const char *name, unsigned int line);

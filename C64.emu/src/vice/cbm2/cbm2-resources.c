@@ -170,13 +170,13 @@ static int cbm6x0_set_sync_factor(int val, void *param)
         case MACHINE_SYNC_PAL:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_PAL);
+                machine_change_timing(MACHINE_SYNC_PAL, 0);
             }
             break;
         case MACHINE_SYNC_NTSC:
             sync_factor = val;
             if (change_timing) {
-                machine_change_timing(MACHINE_SYNC_NTSC);
+                machine_change_timing(MACHINE_SYNC_NTSC, 0);
             }
             break;
         default:

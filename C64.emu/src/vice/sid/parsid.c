@@ -24,6 +24,8 @@
  *
  */
 
+#include <string.h>
+
 #include "vice.h"
 
 #ifdef HAVE_PARSID
@@ -31,126 +33,115 @@
 #include "parsid.h"
 #include "types.h"
 
-/* control register bits */
-#define parsid_STROBE   0x01
-#define parsid_AUTOFEED 0x02
-#define parsid_nINIT    0x04
-#define parsid_SELECTIN 0x08
-#define parsid_PCD      0x20
+#define MAX_PAR_SID 3
 
-static BYTE sidbuf[0x20];
+static BYTE sidbuf[0x20 * MAX_PAR_SID];
 
-static BYTE parsid_ctrport;
-static int parsid_open_status = 0;
+static BYTE parsid_ctrport[MAX_PAR_SID];
+static int parsid_open_status = -1;
 
 /* chip control pin assignments */
-static void parsid_chip_select(void)
+static void parsid_chip_select(int chipno)
 {
-    parsid_ctrport |= parsid_STROBE;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] |= parsid_STROBE;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_chip_deselect(void)
+static void parsid_chip_deselect(int chipno)
 {
-    parsid_ctrport &= ~parsid_STROBE;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] &= ~parsid_STROBE;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_reset_start(void)
+static void parsid_reset_start(int chipno)
 {
-    parsid_ctrport |= parsid_SELECTIN;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] |= parsid_SELECTIN;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_reset_end(void)
+static void parsid_reset_end(int chipno)
 {
-    parsid_ctrport &= ~parsid_SELECTIN;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] &= ~parsid_SELECTIN;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_latch_open(void)
+static void parsid_latch_open(int chipno)
 {
-    parsid_ctrport &= ~parsid_AUTOFEED;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] &= ~parsid_AUTOFEED;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_latch_lock(void)
+static void parsid_latch_lock(int chipno)
 {
-    parsid_ctrport |= parsid_AUTOFEED;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] |= parsid_AUTOFEED;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_RW_write(void)
+static void parsid_RW_write(int chipno)
 {
-    parsid_ctrport &= ~parsid_nINIT;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] &= ~parsid_nINIT;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_RW_read(void)
+static void parsid_RW_read(int chipno)
 {
-    parsid_ctrport |= parsid_nINIT;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] |= parsid_nINIT;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
 /* parallel port direction control */
-static void parsid_port_write(void)
+static void parsid_port_write(int chipno)
 {
-    parsid_ctrport &= ~parsid_PCD;
-    parsid_drv_out_ctr(parsid_ctrport);
+    parsid_ctrport[chipno] &= ~parsid_PCD;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
-static void parsid_port_read(void)
+static void parsid_port_read(int chipno)
 {
-    parsid_ctrport |= parsid_PCD;
-    parsid_drv_out_ctr(parsid_ctrport);
-}
-
-int parsid_check_port(int port)
-{
-    int retval = parsid_drv_check_port(port);
-
-    if (!retval) {
-        parsid_ctrport = parsid_drv_in_ctr();
-    }
-    return retval;
+    parsid_ctrport[chipno] |= parsid_PCD;
+    parsid_drv_out_ctr(parsid_ctrport[chipno], chipno);
 }
 
 void parsid_reset(void)
 {
-    if (parsid_open_status) {
-        parsid_RW_write();
-        parsid_port_write();
-        parsid_chip_select();
-        parsid_latch_open();
-        parsid_drv_out_data(0);
-        parsid_reset_start();
-        parsid_drv_sleep(1);
-        parsid_reset_end();
-        parsid_latch_lock();
-        parsid_chip_deselect();
+    int i;
+
+    if (!parsid_open_status) {
+        for (i = 0; i < MAX_PAR_SID; ++i) {
+            parsid_RW_write(i);
+            parsid_port_write(i);
+            parsid_chip_select(i);
+            parsid_latch_open(i);
+            parsid_drv_out_data(0, i);
+            parsid_reset_start(i);
+            parsid_drv_sleep(1);
+            parsid_reset_end(i);
+            parsid_latch_lock(i);
+            parsid_chip_deselect(i);
+        }
     }
 }
 
-int parsid_open(int port)
+int parsid_open(void)
 {
-    if (!parsid_open_status) {
-        if (parsid_drv_init() < 0) {
-            return -1;
+    if (parsid_open_status) {
+        parsid_open_status = parsid_drv_open();
+        if (!parsid_open_status) {
+            parsid_reset();
+            parsid_ctrport[0] = parsid_drv_in_ctr(0);
+            parsid_ctrport[1] = parsid_drv_in_ctr(1);
+            parsid_ctrport[2] = parsid_drv_in_ctr(2);
+            memset(sidbuf, 0, sizeof(sidbuf));
         }
-        if (parsid_check_port(port) < 0) {
-            return -1;
-        }
-        parsid_reset();
-        parsid_open_status = 1;
     }
-    return 0;
+    return parsid_open_status;
 }
 
 int parsid_close(void)
 {
-    if (parsid_open_status) {
+    if (!parsid_open_status) {
         parsid_reset();
-        parsid_open_status = 0;
+        parsid_open_status = -1;
         return parsid_drv_close();
     }
     return 0;
@@ -160,37 +151,49 @@ int parsid_read(WORD addr, int chipno)
 {
     BYTE value = 0;
 
-    if (parsid_open_status) {
+    if (!parsid_open_status && chipno < MAX_PAR_SID) {
         /* use sidbuf[] for write-only registers */
         if (addr <= 0x18) {
-            return sidbuf[addr];
+            return sidbuf[addr + (chipno * 0x20)];
         }
-        parsid_drv_out_data((BYTE)(addr & 0x1f));
-        parsid_latch_open();
-        parsid_latch_lock();
-        parsid_port_read();
-        parsid_RW_read();
-        parsid_chip_select();
-        value = parsid_drv_in_data();
-        parsid_chip_deselect();
+        parsid_drv_out_data((BYTE)(addr & 0x1f), chipno);
+        parsid_latch_open(chipno);
+        parsid_latch_lock(chipno);
+        parsid_port_read(chipno);
+        parsid_RW_read(chipno);
+        parsid_chip_select(chipno);
+        value = parsid_drv_in_data(chipno);
+        parsid_chip_deselect(chipno);
+        parsid_port_write(chipno);
+        parsid_RW_write(chipno);
     }
     return (int)value;
 }
 
 void parsid_store(WORD addr, BYTE outval, int chipno)
 {
-    if (parsid_open_status) {
+    if (!parsid_open_status && chipno < MAX_PAR_SID) {
         /* write to sidbuf[] for write-only registers */
         if (addr <= 0x18) {
-            sidbuf[addr] = outval;
+            sidbuf[addr + (chipno * 0x20)] = outval;
         }
-        parsid_drv_out_data((BYTE)(addr & 0x1f));
-        parsid_latch_open();
-        parsid_latch_lock();
-        parsid_drv_out_data(outval);
-        parsid_chip_select();
-        parsid_chip_deselect();
+        parsid_drv_out_data((BYTE)(addr & 0x1f), chipno);
+        parsid_latch_open(chipno);
+        parsid_latch_lock(chipno);
+        parsid_drv_out_data(outval, chipno);
+        parsid_chip_select(chipno);
+        parsid_chip_deselect(chipno);
     }
+}
+
+int parsid_available(void)
+{
+    parsid_open();
+
+    if (!parsid_open_status) {
+        return parsid_drv_available();
+    }
+    return 0;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -199,20 +202,24 @@ void parsid_state_read(int chipno, struct sid_parsid_snapshot_state_s *sid_state
 {
     int i;
 
-    for (i = 0; i < 32; ++i) {
-        sid_state->regs[i] = sidbuf[i + (chipno * 0x20)];
+    if (chipno < MAX_PAR_SID) {
+        for (i = 0; i < 32; ++i) {
+            sid_state->regs[i] = sidbuf[i + (chipno * 0x20)];
+        }
+        sid_state->parsid_ctrport = parsid_ctrport[chipno];
     }
-    sid_state->parsid_ctrport = parsid_ctrport;
 }
 
 void parsid_state_write(int chipno, struct sid_parsid_snapshot_state_s *sid_state)
 {
     int i;
 
-    for (i = 0; i < 32; ++i) {
-        sidbuf[i + (chipno * 0x20)] = sid_state->regs[i];
-        parsid_store((WORD)i, sid_state->regs[i], chipno);
+    if (chipno < MAX_PAR_SID) {
+        for (i = 0; i < 32; ++i) {
+            sidbuf[i + (chipno * 0x20)] = sid_state->regs[i];
+            parsid_store((WORD)i, sid_state->regs[i], chipno);
+        }
+        parsid_ctrport[chipno] = sid_state->parsid_ctrport;
     }
-    parsid_ctrport = sid_state->parsid_ctrport;
 }
 #endif

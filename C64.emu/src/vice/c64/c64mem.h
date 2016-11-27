@@ -4,6 +4,7 @@
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -73,6 +74,8 @@ extern BYTE colorram_read(WORD addr);
 
 extern void mem_pla_config_changed(void);
 extern void mem_set_tape_sense(int sense);
+extern void mem_set_tape_write_in(int val);
+extern void mem_set_tape_motor_in(int val);
 
 extern BYTE mem_chargen_rom[C64_CHARGEN_ROM_SIZE];
 

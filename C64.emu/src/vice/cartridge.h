@@ -3,6 +3,7 @@
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -117,7 +118,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_MIDI_NAMESOFT      -111 /* c64-midi.c */
 #define CARTRIDGE_MIDI_MAPLIN        -112 /* c64-midi.c */
 #define CARTRIDGE_DS12C887RTC        -113 /* ds12c887rtc.c */
-#define CARTRIDGE_TFE                -116 /* tfe.c */
+#define CARTRIDGE_TFE                -116 /* ethernetcart.c */
 #define CARTRIDGE_TURBO232           -117 /* c64acia1.c */
 #define CARTRIDGE_SWIFTLINK          -118 /* c64acia1.c */
 #define CARTRIDGE_ACIA               -119 /* c64acia1.c */
@@ -205,8 +206,9 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_RGCD                 57 /* rgcd.c */
 #define CARTRIDGE_RRNETMK3             58 /* rrnetmk3.c */
 #define CARTRIDGE_EASYCALC             59 /* easycalc.c */
+#define CARTRIDGE_GMOD2                60 /* gmod2.c */
 
-#define CARTRIDGE_LAST                 59 /* cartconv: last cartridge in list */
+#define CARTRIDGE_LAST                 60 /* cartconv: last cartridge in list */
 
 /* list of canonical names for the c64 cartridges:
    note: often it is hard to determine "the" official name, let alone the way it
@@ -246,6 +248,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_EASYFLASH          "EasyFlash" /* see http://skoe.de/easyflash/ */
 #define CARTRIDGE_NAME_EASYFLASH_XBANK    "EasyFlash Xbank" /* see http://skoe.de/easyflash/ */
 #define CARTRIDGE_NAME_EPYX_FASTLOAD      "Epyx FastLoad" /* http://rr.pokefinder.org/wiki/Epyx_FastLoad */
+#define CARTRIDGE_NAME_ETHERNETCART       "Ethernet cartridge"
 #define CARTRIDGE_NAME_EXOS               "EXOS" /* http://rr.pokefinder.org/wiki/ExOS */
 #define CARTRIDGE_NAME_EXPERT             "Expert Cartridge" /* http://rr.pokefinder.org/wiki/Expert_Cartridge */
 #define CARTRIDGE_NAME_FINAL_I            "The Final Cartridge" /* http://rr.pokefinder.org/wiki/Final_Cartridge */
@@ -258,6 +261,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_FUNPLAY            "Fun Play" /* also: "Power Play" */ /* http://home.nomansland.biz/~zerqent/commodore_salg/CIMG2132.JPG */
 #define CARTRIDGE_NAME_GAME_KILLER        "Game Killer" /* http://rr.pokefinder.org/wiki/Game_Killer */
 #define CARTRIDGE_NAME_GEORAM             "GEO-RAM" /* http://www.retroport.de/Rex.html */
+#define CARTRIDGE_NAME_GMOD2              "GMod2" /* http://wiki.icomp.de/wiki/GMod2 */
 #define CARTRIDGE_NAME_IDE64              "IDE64" /* see http://www.ide64.org/ */
 #define CARTRIDGE_NAME_IEEE488            "IEEE-488 Interface"
 #define CARTRIDGE_NAME_ISEPIC             "ISEPIC" /* http://rr.pokefinder.org/wiki/Isepic */
@@ -321,6 +325,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_VIC20_UM              7   /* ultimem.c */
 #define CARTRIDGE_VIC20_IO2_RAM         8   /* ioramcart.c */
 #define CARTRIDGE_VIC20_IO3_RAM         9   /* ioramcart.c */
+#define CARTRIDGE_VIC20_BEHRBONZ       10   /* behrbonz.c */
 
 /*
  * VIC20 Generic cartridges
@@ -348,6 +353,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_VIC20_16KB_6000    0x8015
 
 /* list of canonical names for the VIC20 cartridges: */
+#define CARTRIDGE_VIC20_NAME_BEHRBONZ        "Behr Bonz"
 #define CARTRIDGE_VIC20_NAME_FINAL_EXPANSION "Final Expansion"
 #define CARTRIDGE_VIC20_NAME_MEGACART        "Mega-Cart" /* http://mega-cart.com/ */
 #define CARTRIDGE_VIC20_NAME_UM              "UltiMem"

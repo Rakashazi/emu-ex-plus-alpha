@@ -107,6 +107,14 @@ CLOCK maincpu_clk_limit = 0L;
 #endif /* WORDS_BIGENDIAN || !ALLOW_UNALIGNED_ACCESS */
 
 
+/* HACK: memmap updates for the reg_pc < bank_limit case */
+#ifdef FEATURE_CPUMEMHISTORY
+#define MEMMAP_UPDATE(addr) memmap_mem_update(addr, 0)
+#else
+#define MEMMAP_UPDATE(addr)
+#endif
+
+
 /* FETCH_OPCODE implementation(s) */
 /* FIXME: update last_read on "< bank_limit" case */
 #if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
@@ -114,6 +122,7 @@ CLOCK maincpu_clk_limit = 0L;
     do { \
         if (((int)reg_pc) < bank_limit) {                       \
             o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff);  \
+            MEMMAP_UPDATE(reg_pc);                              \
             CLK_INC();                                          \
             CLK_INC();                                          \
             if (fetch_tab[o & 0xff]) {                          \
@@ -136,6 +145,7 @@ CLOCK maincpu_clk_limit = 0L;
     do { \
         if (((int)reg_pc) < bank_limit) {                         \
             (o).ins = *(bank_base + reg_pc);                      \
+            MEMMAP_UPDATE(reg_pc);                                \
             CLK_INC();                                            \
             (o).op.op16 = *(bank_base + reg_pc + 1);              \
             CLK_INC();                                            \

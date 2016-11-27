@@ -4,6 +4,7 @@
  * Written by
  *  Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -34,6 +35,7 @@
 #include "attach.h"
 #include "autostart.h"
 #include "bbrtc.h"
+#include "cardkey.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cbm2-cmdline-options.h"
@@ -49,6 +51,9 @@
 #include "cia.h"
 #include "clkguard.h"
 #include "cmdline.h"
+#include "coplin_keypad.h"
+#include "cx21.h"
+#include "cx85.h"
 #include "datasette.h"
 #include "debug.h"
 #include "debugcart.h"
@@ -80,6 +85,7 @@
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
+#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -256,6 +262,26 @@ int machine_resources_init(void)
     }
     if (joyport_paperclip64_resources_init() < 0) {
         init_resource_fail("joyport paperclip64 dongle");
+        return -1;
+    }
+    if (joyport_coplin_keypad_resources_init() < 0) {
+        init_resource_fail("joyport coplin keypad");
+        return -1;
+    }
+    if (joyport_cx21_resources_init() < 0) {
+        init_resource_fail("joyport cx21 keypad");
+        return -1;
+    }
+    if (joyport_cx85_resources_init() < 0) {
+        init_resource_fail("joyport cx85 keypad");
+        return -1;
+    }
+    if (joyport_rushware_keypad_resources_init() < 0) {
+        init_resource_fail("joyport rushware keypad");
+        return -1;
+    }
+    if (joyport_cardkey_resources_init() < 0) {
+        init_resource_fail("joyport cardkey keypad");
         return -1;
     }
     if (joystick_resources_init() < 0) {
@@ -618,10 +644,6 @@ int machine_specific_init(void)
         return -1;
     }
 
-    if (!video_disabled_mode) {
-        joystick_init();
-    }
-
     gfxoutput_init();
 
 #ifdef HAVE_MOUSE
@@ -712,6 +734,10 @@ int machine_specific_init(void)
         cbm5x0ui_init();
     }
 
+    if (!video_disabled_mode) {
+        joystick_init();
+    }
+
     cbm2iec_init();
 
     machine_drive_stub();
@@ -778,7 +804,9 @@ void machine_specific_shutdown(void)
     /* close the video chip(s) */
     vicii_shutdown();
 
-    cbm5x0ui_shutdown();
+    if (!console_mode) {
+        cbm5x0ui_shutdown();
+    }
 }
 
 void machine_handle_pending_alarms(int num_write_cycles)
@@ -837,35 +865,9 @@ void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_c
     *half_cycle = (int)-1;
 }
 
-void machine_change_timing(int timeval)
+void machine_change_timing(int timeval, int border_mode)
 {
-    int border_mode;
-
     /* log_message(LOG_DEFAULT, "machine_change_timing_c500 %d", timeval); */
-
-    switch (timeval) {
-        default:
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NORMAL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NORMAL_BORDERS);
-            border_mode = VICII_NORMAL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_FULL_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_FULL_BORDERS);
-            border_mode = VICII_FULL_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_DEBUG_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_DEBUG_BORDERS);
-            border_mode = VICII_DEBUG_BORDERS;
-            break;
-        case MACHINE_SYNC_PAL ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-        case MACHINE_SYNC_NTSC ^ VICII_BORDER_MODE(VICII_NO_BORDERS):
-            timeval ^= VICII_BORDER_MODE(VICII_NO_BORDERS);
-            border_mode = VICII_NO_BORDERS;
-            break;
-    }
 
     switch (timeval) {
         case MACHINE_SYNC_PAL:

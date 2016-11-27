@@ -2,6 +2,7 @@
  * mouse.h - Common mouse handling
  *
  * Written by
+ *  Marco van den Heuvel <blackystardust68@yahoo.com>
  *  Andreas Boose <viceteam@t-online.de>
  *
  * NEOS and Amiga mouse support by

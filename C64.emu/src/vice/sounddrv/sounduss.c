@@ -30,9 +30,9 @@
    sound driver. For BSDI this uss sound driver should
    not be used either. */
 
-#if !defined(__FreeBSD__) && !defined(__bsdi__)
-
 #include "vice.h"
+
+#if defined(USE_OSS) && !defined(__FreeBSD__) && !defined(__bsdi__)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,8 +52,6 @@
 #include "debug.h"
 #include "log.h"
 #include "sound.h"
-
-#ifdef USE_OSS
 
 static int uss_fd = -1;
 static int uss_8bit = 0;
@@ -278,6 +276,4 @@ int sound_init_uss_device(void)
 {
     return sound_register_device(&uss_device);
 }
-#endif
-
 #endif

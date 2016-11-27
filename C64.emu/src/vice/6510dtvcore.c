@@ -1082,21 +1082,31 @@ be found that works for both.
         JUMP(dest_addr);                                             \
     } while (0)
 
-#define JSR()                                  \
-    do {                                       \
-        unsigned int tmp_addr;                 \
-        if (!SKIP_CYCLE) {                     \
-            STACK_PEEK();                      \
-            CLK_INC();                         \
-        }                                      \
-        INC_PC(2);                             \
-        PUSH(((reg_pc) >> 8) & 0xff);          \
-        CLK_INC();                             \
-        PUSH((reg_pc) & 0xff);                 \
-        CLK_INC();                             \
-        tmp_addr = (p1 | (LOAD(reg_pc) << 8)); \
-        CLK_INC();                             \
-        JUMP(tmp_addr);                        \
+/* HACK: fix JSR MSB in monitor CPU history */
+#ifdef FEATURE_CPUMEMHISTORY
+#define JSR_FIXUP_MSB(x)    monitor_cpuhistory_fix_p2(x)
+#else
+#define JSR_FIXUP_MSB(x)
+#endif
+
+#define JSR()                                     \
+    do {                                          \
+        BYTE addr_msb;                            \
+        WORD dest_addr;                           \
+        if (!SKIP_CYCLE) {                        \
+            STACK_PEEK();                         \
+            CLK_INC();                            \
+        }                                         \
+        INC_PC(2);                                \
+        PUSH(((reg_pc) >> 8) & 0xff);             \
+        CLK_INC();                                \
+        PUSH((reg_pc) & 0xff);                    \
+        CLK_INC();                                \
+        addr_msb = LOAD(reg_pc);                  \
+        JSR_FIXUP_MSB(addr_msb);                  \
+        dest_addr = (WORD)(p1 | (addr_msb << 8)); \
+        CLK_INC();                                \
+        JUMP(dest_addr);                          \
     } while (0)
 
 #define LAS()                                          \
@@ -1567,8 +1577,9 @@ static const BYTE fetch_tab[] = {
         FETCH_OPCODE(opcode);
 
 #ifdef FEATURE_CPUMEMHISTORY
-        memmap_mark_read(reg_pc);
-        /* FIXME JSR (0x20) hasn't load p2 yet. The earlier LOAD(reg_pc+2) hack can break stealing badly on x64sc. */
+        /* If reg_pc >= bank_limit  then JSR (0x20) hasn't load p2 yet.
+           The earlier LOAD(reg_pc+2) hack can break stealing badly on x64sc.
+           The fixing is now handled in JSR(). */
         monitor_cpuhistory_store(reg_pc, p0, p1, p2 >> 8, reg_a_read, reg_x, reg_y, reg_sp, LOCAL_STATUS());
         memmap_state &= ~(MEMMAP_STATE_INSTR | MEMMAP_STATE_OPCODE);
 #endif
