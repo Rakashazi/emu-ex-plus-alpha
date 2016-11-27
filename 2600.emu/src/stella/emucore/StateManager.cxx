@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.cxx 3144 2015-02-06 16:34:01Z stephena $
+// $Id: StateManager.cxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #include <sstream>
@@ -173,7 +173,7 @@ void StateManager::loadState(int slot)
 
     // Make sure the file can be opened in read-only mode
     Serializer in(buf.str(), true);
-    if(!in.valid())
+    if(!in)
     {
       buf.str("");
       buf << "Can't open/load from state file " << slot;
@@ -221,7 +221,7 @@ void StateManager::saveState(int slot)
 
     // Make sure the file can be opened for writing
     Serializer out(buf.str());
-    if(!out.valid())
+    if(!out)
     {
       buf.str("");
       buf << "Can't open/save to state file " << slot;
@@ -282,7 +282,7 @@ bool StateManager::loadState(Serializer& in)
     if(myOSystem.hasConsole())
     {
       // Make sure the file can be opened for reading
-      if(in.valid())
+      if(in)
       {
         // First test if we have a valid header and cart type
         // If so, do a complete state load using the Console
@@ -307,7 +307,7 @@ bool StateManager::saveState(Serializer& out)
     if(myOSystem.hasConsole())
     {
       // Make sure the file can be opened for writing
-      if(out.valid())
+      if(out)
       {
         // Add header so that if the state format changes in the future,
         // we'll know right away, without having to parse the rest of the file

@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.cxx 3144 2015-02-06 16:34:01Z stephena $
+// $Id: M6502.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #ifdef DEBUGGER_SUPPORT
@@ -49,6 +49,8 @@ M6502::M6502(const Settings& settings)
   : myExecutionStatus(0),
     mySystem(nullptr),
     mySettings(settings),
+    A(0), X(0), Y(0), SP(0), IR(0), PC(0),
+    N(false), V(false), B(false), D(false), I(false), notZ(false), C(false),
     myLastAccessWasRead(true),
     myNumberOfDistinctAccesses(0),
     myLastAddress(0),
@@ -67,11 +69,6 @@ M6502::M6502(const Settings& settings)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-M6502::~M6502()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6502::install(System& system)
 {
   // Remember which system I'm installed in
@@ -86,22 +83,22 @@ void M6502::reset()
 
   // Set registers to random or default values
   const string& cpurandom = mySettings.getString("cpurandom");
-  SP = BSPF_containsIgnoreCase(cpurandom, "S") ?
+  SP = BSPF::containsIgnoreCase(cpurandom, "S") ?
           mySystem->randGenerator().next() : 0xff;
-  A  = BSPF_containsIgnoreCase(cpurandom, "A") ?
+  A  = BSPF::containsIgnoreCase(cpurandom, "A") ?
           mySystem->randGenerator().next() : 0x00;
-  X  = BSPF_containsIgnoreCase(cpurandom, "X") ?
+  X  = BSPF::containsIgnoreCase(cpurandom, "X") ?
           mySystem->randGenerator().next() : 0x00;
-  Y  = BSPF_containsIgnoreCase(cpurandom, "Y") ?
+  Y  = BSPF::containsIgnoreCase(cpurandom, "Y") ?
           mySystem->randGenerator().next() : 0x00;
-  PS(BSPF_containsIgnoreCase(cpurandom, "P") ?
+  PS(BSPF::containsIgnoreCase(cpurandom, "P") ?
           mySystem->randGenerator().next() : 0x20);
 
   // Reset access flag
   myLastAccessWasRead = true;
 
   // Load PC from the reset vector
-  PC = (uInt16)mySystem->peek(0xfffc) | ((uInt16)mySystem->peek(0xfffd) << 8);
+  PC = uInt16(mySystem->peek(0xfffc)) | (uInt16(mySystem->peek(0xfffd)) << 8);
 
   myLastAddress = myLastPeekAddress = myLastPokeAddress = 0;
   myLastSrcAddressS = myLastSrcAddressA =
@@ -262,7 +259,7 @@ void M6502::interruptHandler()
     mySystem->poke(0x0100 + SP--, PS() & (~0x10));
     D = false;
     I = true;
-    PC = (uInt16)mySystem->peek(0xFFFE) | ((uInt16)mySystem->peek(0xFFFF) << 8);
+    PC = uInt16(mySystem->peek(0xFFFE)) | (uInt16(mySystem->peek(0xFFFF)) << 8);
   }
   else if(myExecutionStatus & NonmaskableInterruptBit)
   {
@@ -271,7 +268,7 @@ void M6502::interruptHandler()
     mySystem->poke(0x0100 + SP--, (PC - 1) & 0x00ff);
     mySystem->poke(0x0100 + SP--, PS() & (~0x10));
     D = false;
-    PC = (uInt16)mySystem->peek(0xFFFA) | ((uInt16)mySystem->peek(0xFFFB) << 8);
+    PC = uInt16(mySystem->peek(0xFFFA)) | (uInt16(mySystem->peek(0xFFFB)) << 8);
   }
 
   // Clear the interrupt bits in myExecutionStatus
@@ -386,7 +383,7 @@ uInt32 M6502::addCondBreak(Expression* e, const string& name)
 {
   myBreakConds.emplace_back(unique_ptr<Expression>(e));
   myBreakCondNames.push_back(name);
-  return (uInt32)myBreakConds.size() - 1;
+  return uInt32(myBreakConds.size() - 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

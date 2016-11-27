@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE0.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartE0.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "CartE0.hxx"
@@ -27,13 +25,8 @@ CartridgeE0::CartridgeE0(const uInt8* image, uInt32 size, const Settings& settin
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, BSPF_min(8192u, size));
+  memcpy(myImage, image, std::min(8192u, size));
   createCodeAccessBase(8192);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeE0::~CartridgeE0()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -123,7 +116,7 @@ bool CartridgeE0::poke(uInt16 address, uInt8)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeE0::segmentZero(uInt16 slice)
-{ 
+{
   if(bankLocked()) return;
 
   // Remember the new slice
@@ -145,7 +138,7 @@ void CartridgeE0::segmentZero(uInt16 slice)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeE0::segmentOne(uInt16 slice)
-{ 
+{
   if(bankLocked()) return;
 
   // Remember the new slice
@@ -166,7 +159,7 @@ void CartridgeE0::segmentOne(uInt16 slice)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeE0::segmentTwo(uInt16 slice)
-{ 
+{
   if(bankLocked()) return;
 
   // Remember the new slice
@@ -192,7 +185,7 @@ bool CartridgeE0::patch(uInt16 address, uInt8 value)
   address &= 0x0FFF;
   myImage[(myCurrentSlice[address >> 10] << 10) + (address & 0x03FF)] = value;
   return true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeE0::getImage(int& size) const

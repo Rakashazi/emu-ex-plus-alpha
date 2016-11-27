@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCTYTunes.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartCTYTunes.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECHETIRY_TUNES_HXX
@@ -27,7 +27,7 @@
 
 #define CHETIRY_TUNES_SIZE 7 * 4096
 
-static const uInt8 CartCTYTunes[CHETIRY_TUNES_SIZE] = {
+static constexpr uInt8 CartCTYTunes[CHETIRY_TUNES_SIZE] = {
   ///////////////////////////
   // Tune 1
   ///////////////////////////

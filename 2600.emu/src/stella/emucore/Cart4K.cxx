@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4K.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart4K.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "Cart4K.hxx"
@@ -27,13 +25,8 @@ Cartridge4K::Cartridge4K(const uInt8* image, uInt32 size, const Settings& settin
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, BSPF_min(4096u, size));
+  memcpy(myImage, image, std::min(4096u, size));
   createCodeAccessBase(4096);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge4K::~Cartridge4K()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -69,14 +62,14 @@ bool Cartridge4K::poke(uInt16, uInt8)
 {
   // This is ROM so poking has no effect :-)
   return false;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge4K::patch(uInt16 address, uInt8 value)
 {
   myImage[address & 0x0FFF] = value;
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge4K::getImage(int& size) const

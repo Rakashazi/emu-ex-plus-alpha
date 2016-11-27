@@ -8,22 +8,22 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: AtariVox.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: AtariVox.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef ATARIVOX_HXX
 #define ATARIVOX_HXX
 
 class SerialPort;
-class MT24LC256;
 
 #include "Control.hxx"
+#include "MT24LC256.hxx"
 
 /**
   Richard Hutchinson's AtariVox "controller": A speech synthesizer and
@@ -33,7 +33,7 @@ class MT24LC256;
   driver code.
 
   @author  B. Watson
-  @version $Id: AtariVox.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: AtariVox.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class AtariVox : public Controller
 {
@@ -53,11 +53,7 @@ class AtariVox : public Controller
     AtariVox(Jack jack, const Event& event, const System& system,
              const SerialPort& port, const string& portname,
              const string& eepromfile);
-
-    /**
-      Destructor
-    */
-    virtual ~AtariVox();
+    virtual ~AtariVox() = default;
 
   public:
     using Controller::read;
@@ -68,7 +64,7 @@ class AtariVox : public Controller
       @param pin The pin of the controller jack to read
       @return The state of the pin
     */
-    bool read(DigitalPin pin);
+    bool read(DigitalPin pin) override;
 
     /**
       Write the given value to the specified digital pin for this
@@ -78,22 +74,22 @@ class AtariVox : public Controller
       @param pin The pin of the controller jack to write to
       @param value The value to write to the pin
     */
-    void write(DigitalPin pin, bool value);
+    void write(DigitalPin pin, bool value) override;
 
     /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update() { }
+    void update() override { }
 
     /**
       Notification method invoked by the system right before the
       system resets its cycle counter to zero.  It may be necessary 
       to override this method for devices that remember cycle counts.
     */
-    void systemCyclesReset();
+    void systemCyclesReset() override;
 
-    string about() const;
+    string about() const override;
 
   private:
    void clockDataIn(bool value);
@@ -125,6 +121,14 @@ class AtariVox : public Controller
 
     // Holds information concerning serial port usage
     string myAboutString;
+
+  private:
+    // Following constructors and assignment operators not supported
+    AtariVox() = delete;
+    AtariVox(const AtariVox&) = delete;
+    AtariVox(AtariVox&&) = delete;
+    AtariVox& operator=(const AtariVox&) = delete;
+    AtariVox& operator=(AtariVox&&) = delete;
 };
 
 #endif

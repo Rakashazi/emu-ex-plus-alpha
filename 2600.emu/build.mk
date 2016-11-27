@@ -6,7 +6,9 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 CPPFLAGS += -I$(projectPath)/src \
 -DBSPF_UNIX \
 -DTHUMB_SUPPORT \
+-I$(projectPath)/src/stella/emucore \
 -I$(projectPath)/src/stella/common \
+-I$(projectPath)/src/stella/common/tv_filters \
 -I$(projectPath)/src/stella/gui
 
 stellaSrc := Console.cxx \
@@ -38,6 +40,7 @@ Joystick.cxx \
 Genesis.cxx \
 Cart2K.cxx \
 Cart3E.cxx \
+Cart3EPlus.cxx \
 Cart4A50.cxx \
 Cart3F.cxx \
 CartAR.cxx \
@@ -59,6 +62,7 @@ CartFE.cxx \
 CartMC.cxx \
 CartF0.cxx \
 CartCV.cxx \
+CartCVPlus.cxx \
 CartUA.cxx \
 Cart0840.cxx \
 CartSB.cxx \

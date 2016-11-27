@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TrackBall.cxx 3264 2016-01-25 21:16:04Z stephena $
 //============================================================================
 
 #include <cstdlib>
@@ -47,14 +47,9 @@ TrackBall::TrackBall(Jack jack, const Event& event, const System& system,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-TrackBall::~TrackBall()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 TrackBall::read()
 {
-  int scanline = ((System&)mySystem).tia().scanlines();
+  int scanline = mySystem.tia().scanlines();
 
   if(myScanCountV > scanline) myScanCountV = 0;
   if(myScanCountH > scanline) myScanCountH = 0;

@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartFA2.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartFA2.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "OSystem.hxx"
 #include "Serializer.hxx"
@@ -28,15 +26,15 @@
 CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const OSystem& osystem)
   : Cartridge(osystem.settings()),
     myOSystem(osystem),
+    mySize(28 * 1024),
     myRamAccessTimeout(0),
-    mySize(size)
+    myCurrentBank(0)
 {
   // 29/32K version of FA2 has valid data @ 1K - 29K
   if(size >= 29 * 1024)
-  {
     image += 1024;
-    mySize = 28 * 1024; 
-  }
+  else if(size < mySize)
+    mySize = size;
 
   // Copy the ROM image into my buffer
   memcpy(myImage, image, mySize);
@@ -45,21 +43,11 @@ CartridgeFA2::CartridgeFA2(const uInt8* image, uInt32 size, const OSystem& osyst
   // Remember startup bank
   myStartBank = 0;
 }
- 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeFA2::~CartridgeFA2()
-{
-}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeFA2::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 256; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 256);
+  initializeRAM(myRAM, 256);
 
   // Upon reset we switch to the startup bank
   bank(myStartBank);
@@ -80,7 +68,7 @@ void CartridgeFA2::install(System& system)
     access.codeAccessBase = &myCodeAccessBase[j & 0x00FF];
     mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
   }
- 
+
   // Set the page accessing method for the RAM reading pages
   access.directPokeBase = 0;
   access.type = System::PA_READ;
@@ -162,7 +150,7 @@ uInt8 CartridgeFA2::peek(uInt16 address)
       triggerReadFromWritePort(peekAddress);
       return myRAM[address] = value;
     }
-  }  
+  }
   else
     return myImage[(myCurrentBank << 12) + address];
 }
@@ -285,7 +273,7 @@ bool CartridgeFA2::patch(uInt16 address, uInt8 value)
     myImage[(myCurrentBank << 12) + address] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeFA2::getImage(int& size) const
@@ -371,7 +359,7 @@ uInt8 CartridgeFA2::ramReadWrite()
     // We go ahead and do the access now, and only return when a sufficient
     // amount of time has passed
     Serializer serializer(myFlashFile);
-    if(serializer.valid())
+    if(serializer)
     {
       if(myRAM[255] == 1)       // read
       {
@@ -423,7 +411,7 @@ uInt8 CartridgeFA2::ramReadWrite()
 void CartridgeFA2::flash(uInt8 operation)
 {
   Serializer serializer(myFlashFile);
-  if(serializer.valid())
+  if(serializer)
   {
     if(operation == 0)       // erase
     {

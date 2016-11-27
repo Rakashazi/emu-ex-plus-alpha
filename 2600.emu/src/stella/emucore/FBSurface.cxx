@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FBSurface.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: FBSurface.cxx 3304 2016-04-03 00:35:00Z stephena $
 //============================================================================
 
 #include "FrameBuffer.hxx"
@@ -37,14 +37,14 @@ FBSurface::FBSurface()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::readPixels(uInt8* buffer, uInt32 pitch, const GUI::Rect& rect) const
 {
-  uInt8* src = (uInt8*) myPixels + rect.y() * myPitch + rect.x();
+  uInt8* src = reinterpret_cast<uInt8*>(myPixels + rect.y() * myPitch + rect.x());
 
   if(rect.empty())
     memcpy(buffer, src, width() * height() * 4);
   else
   {
-    uInt32 w = BSPF_min(rect.width(), width());
-    uInt32 h = BSPF_min(rect.height(), height());
+    uInt32 w = std::min(rect.width(), width());
+    uInt32 h = std::min(rect.height(), height());
 
     // Copy 'height' lines of width 'pitch' (in bytes for both)
     uInt8* dst = buffer;
@@ -62,16 +62,16 @@ void FBSurface::hLine(uInt32 x, uInt32 y, uInt32 x2, uInt32 color)
 {
   uInt32* buffer = myPixels + y * myPitch + x;
   while(x++ <= x2)
-    *buffer++ = (uInt32) myPalette[color];
+    *buffer++ = uInt32(myPalette[color]);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::vLine(uInt32 x, uInt32 y, uInt32 y2, uInt32 color)
 {
-  uInt32* buffer = (uInt32*) myPixels + y * myPitch + x;
+  uInt32* buffer = static_cast<uInt32*>(myPixels + y * myPitch + x);
   while(y++ <= y2)
   {
-    *buffer = (uInt32) myPalette[color];
+    *buffer = uInt32(myPalette[color]);
     buffer += myPitch;
   }
 }
@@ -124,7 +124,7 @@ void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
 
     for(int x = 0; x < bbw; x++, mask >>= 1)
       if(ptr & mask)
-        buffer[x] = (uInt32) myPalette[color];
+        buffer[x] = uInt32(myPalette[color]);
 
     buffer += myPitch;
   }
@@ -141,7 +141,7 @@ void FBSurface::drawBitmap(uInt32* bitmap, uInt32 tx, uInt32 ty,
     uInt32 mask = 0xF0000000;
     for(uInt32 x = 0; x < 8; ++x, mask >>= 4)
       if(bitmap[y] & mask)
-        buffer[x] = (uInt32) myPalette[color];
+        buffer[x] = uInt32(myPalette[color]);
 
     buffer += myPitch;
   }
@@ -153,7 +153,7 @@ void FBSurface::drawPixels(uInt32* data, uInt32 tx, uInt32 ty, uInt32 numpixels)
   uInt32* buffer = myPixels + ty * myPitch + tx;
 
   for(uInt32 i = 0; i < numpixels; ++i)
-    *buffer++ = (uInt32) data[i];
+    *buffer++ = data[i];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

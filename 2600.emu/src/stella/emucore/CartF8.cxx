@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartF8.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartF8.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "CartF8.hxx"
@@ -25,10 +23,11 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeF8::CartridgeF8(const uInt8* image, uInt32 size, const string& md5,
                          const Settings& settings)
-  : Cartridge(settings)
+  : Cartridge(settings),
+    myCurrentBank(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, BSPF_min(8192u, size));
+  memcpy(myImage, image, std::min(8192u, size));
   createCodeAccessBase(8192);
 
   // Normally bank 1 is the reset bank, unless we're dealing with ROMs
@@ -38,13 +37,9 @@ CartridgeF8::CartridgeF8(const uInt8* image, uInt32 size, const string& md5,
      md5 == "75ea60884c05ba496473c23a58edf12f" ||  // 8-in-1 Yars Revenge
      md5 == "75ee371ccfc4f43e7d9b8f24e1266b55" ||  // Snow White
      md5 == "74c8a6f20f8adaa7e05183f796eda796" ||  // Tricade Demo
-     md5 == "9905f9f4706223dadee84f6867ede8e3")    // Challenge
+     md5 == "9905f9f4706223dadee84f6867ede8e3" ||  // Challenge
+     md5 == "3c7a7b3a0a7e6319b2fa0f923ef6c9af")    // Racer Prototype
     ? 0 : 1;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeF8::~CartridgeF8()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -114,7 +109,7 @@ bool CartridgeF8::poke(uInt16 address, uInt8)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeF8::bank(uInt16 bank)
-{ 
+{
   if(bankLocked()) return false;
 
   // Remember what bank we're in
@@ -159,7 +154,7 @@ bool CartridgeF8::patch(uInt16 address, uInt8 value)
 {
   myImage[(myCurrentBank << 12) + (address & 0x0FFF)] = value;
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeF8::getImage(int& size) const

@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Paddles.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Paddles.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
-
-#include <cassert>
 
 #include "Event.hxx"
 #include "Paddles.hxx"
@@ -198,8 +196,8 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
 
   // The following are independent of whether or not the port
   // is left or right
-  _MOUSE_SENSITIVITY = swapdir ? -abs(_MOUSE_SENSITIVITY) :
-                                  abs(_MOUSE_SENSITIVITY);
+  MOUSE_SENSITIVITY = swapdir ? -abs(MOUSE_SENSITIVITY) :
+                                 abs(MOUSE_SENSITIVITY);
   if(!swapaxis)
   {
     myAxisMouseMotion = Event::MouseAxisXValue;
@@ -224,15 +222,6 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
 
   myCharge[0] = myCharge[1] = TRIGRANGE / 2;
   myLastCharge[0] = myLastCharge[1] = 0;
-
-  // Paranoid mode: defaults for the global variables should be set
-  // before the first instance of this class is instantiated
-  assert(_DIGITAL_SENSITIVITY != -1 && _MOUSE_SENSITIVITY != -1);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Paddles::~Paddles()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -269,14 +258,12 @@ void Paddles::update()
   int sa_yaxis = myEvent.get(myP1AxisValue);
   if(abs(myLastAxisX - sa_xaxis) > 10)
   {
-    myAnalogPinValue[Nine] = (Int32)(1400000 *
-        (float)(32767 - (Int16)sa_xaxis) / 65536.0);
+    myAnalogPinValue[Nine] = Int32(1400000 * ((32767 - Int16(sa_xaxis)) / 65536.0));
     sa_changed = true;
   }
   if(abs(myLastAxisY - sa_yaxis) > 10)
   {
-    myAnalogPinValue[Five] = (Int32)(1400000 *
-        (float)(32767 - (Int16)sa_yaxis) / 65536.0);
+    myAnalogPinValue[Five] = Int32(1400000 * ((32767 - Int16(sa_yaxis)) / 65536.0));
     sa_changed = true;
   }
   myLastAxisX = sa_xaxis;
@@ -289,12 +276,9 @@ void Paddles::update()
   if(myMPaddleID > -1)
   {
     // We're in auto mode, where a single axis is used for one paddle only
-    myCharge[myMPaddleID] -=
-        ((myEvent.get(myAxisMouseMotion) >> 1) * _MOUSE_SENSITIVITY);
-    if(myCharge[myMPaddleID] < TRIGMIN)
-      myCharge[myMPaddleID] = TRIGMIN;
-    if(myCharge[myMPaddleID] > TRIGMAX)
-      myCharge[myMPaddleID] = TRIGMAX;
+    myCharge[myMPaddleID] = BSPF::clamp(myCharge[myMPaddleID] -
+        (myEvent.get(myAxisMouseMotion) * MOUSE_SENSITIVITY),
+        TRIGMIN, TRIGRANGE);
     if(myEvent.get(Event::MouseButtonLeftValue) ||
        myEvent.get(Event::MouseButtonRightValue))
       myDigitalPinState[ourButtonPin[myMPaddleID]] = false;
@@ -305,23 +289,17 @@ void Paddles::update()
     // mapped to a separate paddle
     if(myMPaddleIDX > -1)
     {
-      myCharge[myMPaddleIDX] -=
-          ((myEvent.get(Event::MouseAxisXValue) >> 1) * _MOUSE_SENSITIVITY);
-      if(myCharge[myMPaddleIDX] < TRIGMIN)
-        myCharge[myMPaddleIDX] = TRIGMIN;
-      if(myCharge[myMPaddleIDX] > TRIGMAX)
-        myCharge[myMPaddleIDX] = TRIGMAX;
+      myCharge[myMPaddleIDX] = BSPF::clamp(myCharge[myMPaddleIDX] -
+          (myEvent.get(Event::MouseAxisXValue) * MOUSE_SENSITIVITY),
+          TRIGMIN, TRIGRANGE);
       if(myEvent.get(Event::MouseButtonLeftValue))
         myDigitalPinState[ourButtonPin[myMPaddleIDX]] = false;
     }
     if(myMPaddleIDY > -1)
     {
-      myCharge[myMPaddleIDY] -=
-          ((myEvent.get(Event::MouseAxisYValue) >> 1) * _MOUSE_SENSITIVITY);
-      if(myCharge[myMPaddleIDY] < TRIGMIN)
-        myCharge[myMPaddleIDY] = TRIGMIN;
-      if(myCharge[myMPaddleIDY] > TRIGMAX)
-        myCharge[myMPaddleIDY] = TRIGMAX;
+      myCharge[myMPaddleIDY] = BSPF::clamp(myCharge[myMPaddleIDY] -
+          (myEvent.get(Event::MouseAxisYValue) * MOUSE_SENSITIVITY),
+          TRIGMIN, TRIGRANGE);
       if(myEvent.get(Event::MouseButtonRightValue))
         myDigitalPinState[ourButtonPin[myMPaddleIDY]] = false;
     }
@@ -332,14 +310,14 @@ void Paddles::update()
   if(myKeyRepeat0)
   {
     myPaddleRepeat0++;
-    if(myPaddleRepeat0 > _DIGITAL_SENSITIVITY)
-      myPaddleRepeat0 = _DIGITAL_DISTANCE;
+    if(myPaddleRepeat0 > DIGITAL_SENSITIVITY)
+      myPaddleRepeat0 = DIGITAL_DISTANCE;
   }
   if(myKeyRepeat1)
   {
     myPaddleRepeat1++;
-    if(myPaddleRepeat1 > _DIGITAL_SENSITIVITY)
-      myPaddleRepeat1 = _DIGITAL_DISTANCE;
+    if(myPaddleRepeat1 > DIGITAL_SENSITIVITY)
+      myPaddleRepeat1 = DIGITAL_DISTANCE;
   }
 
   myKeyRepeat0 = false;
@@ -354,7 +332,7 @@ void Paddles::update()
   if(myEvent.get(myP0IncEvent1) || myEvent.get(myP0IncEvent2))
   {
     myKeyRepeat0 = true;
-    if((myCharge[myAxisDigitalZero] + myPaddleRepeat0) < TRIGMAX)
+    if((myCharge[myAxisDigitalZero] + myPaddleRepeat0) < TRIGRANGE)
       myCharge[myAxisDigitalZero] += myPaddleRepeat0;
   }
   if(myEvent.get(myP1DecEvent1) || myEvent.get(myP1DecEvent2))
@@ -366,17 +344,17 @@ void Paddles::update()
   if(myEvent.get(myP1IncEvent1) || myEvent.get(myP1IncEvent2))
   {
     myKeyRepeat1 = true;
-    if((myCharge[myAxisDigitalOne] + myPaddleRepeat1) < TRIGMAX)
+    if((myCharge[myAxisDigitalOne] + myPaddleRepeat1) < TRIGRANGE)
       myCharge[myAxisDigitalOne] += myPaddleRepeat1;
   }
 
   // Only change state if the charge has actually changed
   if(myCharge[1] != myLastCharge[1])
     myAnalogPinValue[Five] =
-        (Int32)(1400000 * (myCharge[1] / float(TRIGRANGE)));
+        Int32(1400000 * (myCharge[1] / float(TRIGMAX)));
   if(myCharge[0] != myLastCharge[0])
     myAnalogPinValue[Nine] =
-        (Int32)(1400000 * (myCharge[0] / float(TRIGRANGE)));
+        Int32(1400000 * (myCharge[0] / float(TRIGMAX)));
 
   myLastCharge[1] = myCharge[1];
   myLastCharge[0] = myCharge[0];
@@ -419,26 +397,28 @@ bool Paddles::setMouseControl(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Paddles::setDigitalSensitivity(int sensitivity)
 {
-  if(sensitivity < 1)       sensitivity = 1;
-  else if(sensitivity > 10) sensitivity = 10;
-
-  _DIGITAL_SENSITIVITY = sensitivity;
-  _DIGITAL_DISTANCE = 20 + (sensitivity << 3);
+  DIGITAL_SENSITIVITY = BSPF::clamp(sensitivity, 1, MAX_DIGITAL_SENSE);
+  DIGITAL_DISTANCE = 20 + (DIGITAL_SENSITIVITY << 3);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Paddles::setMouseSensitivity(int sensitivity)
 {
-  if(sensitivity < 1)       sensitivity = 1;
-  else if(sensitivity > 15) sensitivity = 15;
-
-  _MOUSE_SENSITIVITY = sensitivity;
+  MOUSE_SENSITIVITY = BSPF::clamp(sensitivity, 1, MAX_MOUSE_SENSE);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int Paddles::_DIGITAL_SENSITIVITY = -1;
-int Paddles::_DIGITAL_DISTANCE = -1;
-int Paddles::_MOUSE_SENSITIVITY = -1;
+void Paddles::setPaddleRange(int range)
+{
+  range = BSPF::clamp(range, 1, 100);
+  TRIGRANGE = int(TRIGMAX * (range / 100.0));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int Paddles::TRIGRANGE = Paddles::TRIGMAX;
+int Paddles::DIGITAL_SENSITIVITY = -1;
+int Paddles::DIGITAL_DISTANCE = -1;
+int Paddles::MOUSE_SENSITIVITY = -1;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const Controller::DigitalPin Paddles::ourButtonPin[2] = { Four, Three };

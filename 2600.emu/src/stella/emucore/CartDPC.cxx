@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPC.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartDPC.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "CartDPC.hxx"
@@ -28,10 +26,11 @@ CartridgeDPC::CartridgeDPC(const uInt8* image, uInt32 size,
   : Cartridge(settings),
     mySize(size),
     mySystemCycles(0),
-    myFractionalClocks(0.0)
+    myFractionalClocks(0.0),
+    myCurrentBank(0)
 {
   // Make a copy of the entire image
-  memcpy(myImage, image, BSPF_min(size, 8192u + 2048u + 256u));
+  memcpy(myImage, image, std::min(size, 8192u + 2048u + 256u));
   createCodeAccessBase(8192);
 
   // Pointer to the program ROM (8K @ 0 byte offset)
@@ -52,11 +51,6 @@ CartridgeDPC::CartridgeDPC(const uInt8* image, uInt32 size,
 
   // Remember startup bank
   myStartBank = 1;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeDPC::~CartridgeDPC()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -96,7 +90,7 @@ inline void CartridgeDPC::clockRandomNumberGenerator()
 {
   // Table for computing the input bit of the random number generator's
   // shift register (it's the NOT of the EOR of four bits)
-  static const uInt8 f[16] = {
+  static constexpr uInt8 f[16] = {
     1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1
   };
 
@@ -118,8 +112,8 @@ inline void CartridgeDPC::updateMusicModeDataFetchers()
 
   // Calculate the number of DPC OSC clocks since the last update
   double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
-  Int32 wholeClocks = (Int32)clocks;
-  myFractionalClocks = clocks - (double)wholeClocks;
+  Int32 wholeClocks = Int32(clocks);
+  myFractionalClocks = clocks - double(wholeClocks);
 
   if(wholeClocks <= 0)
   {
@@ -133,7 +127,7 @@ inline void CartridgeDPC::updateMusicModeDataFetchers()
     if(myMusicMode[x - 5])
     {
       Int32 top = myTops[x] + 1;
-      Int32 newLow = (Int32)(myCounters[x] & 0x00ff);
+      Int32 newLow = Int32(myCounters[x] & 0x00ff);
 
       if(myTops[x] != 0)
       {
@@ -158,7 +152,7 @@ inline void CartridgeDPC::updateMusicModeDataFetchers()
         myFlags[x] = 0xff;
       }
 
-      myCounters[x] = (myCounters[x] & 0x0700) | (uInt16)newLow;
+      myCounters[x] = (myCounters[x] & 0x0700) | uInt16(newLow);
     }
   }
 }
@@ -208,7 +202,7 @@ uInt8 CartridgeDPC::peek(uInt16 address)
         // No, it's a music read
         else
         {
-          static const uInt8 musicAmplitudes[8] = {
+          static constexpr uInt8 musicAmplitudes[8] = {
               0x00, 0x04, 0x05, 0x09, 0x06, 0x0a, 0x0b, 0x0f
           };
 
@@ -246,7 +240,7 @@ uInt8 CartridgeDPC::peek(uInt16 address)
       {
         result = myDisplayImage[2047 - myCounters[index]] & myFlags[index];
         break;
-      } 
+      }
 
       // DFx flag
       case 0x07:
@@ -332,14 +326,14 @@ bool CartridgeDPC::poke(uInt16 address, uInt8 value)
           // Data fetcher is in music mode so its low counter value
           // should be loaded from the top register not the poked value
           myCounters[index] = (myCounters[index] & 0x0700) |
-              (uInt16)myTops[index];
+              uInt16(myTops[index]);
         }
         else
         {
           // Data fetcher is either not a music mode data fetcher or it
           // isn't in music mode so it's low counter value should be loaded
           // with the poked value
-          myCounters[index] = (myCounters[index] & 0x0700) | (uInt16)value;
+          myCounters[index] = (myCounters[index] & 0x0700) | uInt16(value);
         }
         break;
       }
@@ -347,7 +341,7 @@ bool CartridgeDPC::poke(uInt16 address, uInt8 value)
       // DFx counter high
       case 0x03:
       {
-        myCounters[index] = (((uInt16)value & 0x07) << 8) |
+        myCounters[index] = ((uInt16(value) & 0x07) << 8) |
             (myCounters[index] & 0x00ff);
 
         // Execute special code for music mode data fetchers
@@ -373,7 +367,7 @@ bool CartridgeDPC::poke(uInt16 address, uInt8 value)
       {
         break;
       }
-    } 
+    }
   }
   else
   {
@@ -399,7 +393,7 @@ bool CartridgeDPC::poke(uInt16 address, uInt8 value)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeDPC::bank(uInt16 bank)
-{ 
+{
   if(bankLocked()) return false;
 
   // Remember what bank we're in
@@ -452,7 +446,7 @@ bool CartridgeDPC::patch(uInt16 address, uInt8 value)
   }
   else
     return false;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeDPC::getImage(int& size) const
@@ -491,7 +485,7 @@ bool CartridgeDPC::save(Serializer& out) const
     out.putByte(myRandomNumber);
 
     out.putInt(mySystemCycles);
-    out.putInt((uInt32)(myFractionalClocks * 100000000.0));
+    out.putInt(uInt32(myFractionalClocks * 100000000.0));
   }
   catch(...)
   {
@@ -533,8 +527,8 @@ bool CartridgeDPC::load(Serializer& in)
     myRandomNumber = in.getByte();
 
     // Get system cycles and fractional clocks
-    mySystemCycles = (Int32)in.getInt();
-    myFractionalClocks = (double)in.getInt() / 100000000.0;
+    mySystemCycles = Int32(in.getInt());
+    myFractionalClocks = double(in.getInt()) / 100000000.0;
   }
   catch(...)
   {

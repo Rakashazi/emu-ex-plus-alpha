@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Base.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Base.cxx 3304 2016-04-03 00:35:00Z stephena $
 //============================================================================
 
 #include "Base.hxx"
@@ -44,6 +44,7 @@ string Base::toString(int value, Common::Base::Format outputBase)
   if(outputBase == Base::F_DEFAULT)
     outputBase = myDefaultBase;
 
+  // Note: generates warnings about 'nonliteral' format
   switch(outputBase)
   {
     case Base::F_2:     // base 2:  8 or 16 bits (depending on value)
@@ -64,32 +65,32 @@ string Base::toString(int value, Common::Base::Format outputBase)
 
     case Base::F_10:    // base 10: 3 or 5 bytes (depending on value)
       if(value < 0x100)
-        BSPF_snprintf(vToS_buf, 4, "%3d", value);
+        std::snprintf(vToS_buf, 4, "%3d", value);
       else
-        BSPF_snprintf(vToS_buf, 6, "%5d", value);
+        std::snprintf(vToS_buf, 6, "%5d", value);
       break;
 
     case Base::F_16_1:  // base 16: 1 byte wide
-      BSPF_snprintf(vToS_buf, 2, myFmt[0], value);
+      std::snprintf(vToS_buf, 2, myFmt[0], value);
       break;
     case Base::F_16_2:  // base 16: 2 bytes wide
-      BSPF_snprintf(vToS_buf, 3, myFmt[1], value);
+      std::snprintf(vToS_buf, 3, myFmt[1], value);
       break;
     case Base::F_16_4:  // base 16: 4 bytes wide
-      BSPF_snprintf(vToS_buf, 5, myFmt[2], value);
+      std::snprintf(vToS_buf, 5, myFmt[2], value);
       break;
     case Base::F_16_8:  // base 16: 8 bytes wide
-      BSPF_snprintf(vToS_buf, 9, myFmt[3], value);
+      std::snprintf(vToS_buf, 9, myFmt[3], value);
       break;
 
     case Base::F_16:    // base 16: 2, 4, 8 bytes (depending on value)
     default:
       if(value < 0x100)
-        BSPF_snprintf(vToS_buf, 3, myFmt[1], value);
+        std::snprintf(vToS_buf, 3, myFmt[1], value);
       else if(value < 0x10000)
-        BSPF_snprintf(vToS_buf, 5, myFmt[2], value);
+        std::snprintf(vToS_buf, 5, myFmt[2], value);
       else
-        BSPF_snprintf(vToS_buf, 9, myFmt[3], value);
+        std::snprintf(vToS_buf, 9, myFmt[3], value);
       break;
   }
 

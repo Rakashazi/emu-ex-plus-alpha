@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SerialPort.hxx 3142 2015-01-24 16:28:06Z stephena $
+// $Id: SerialPort.hxx 3244 2015-12-30 19:07:11Z stephena $
 //============================================================================
 
 #ifndef SERIALPORT_HXX
@@ -28,13 +28,13 @@
   and as such it always uses 19200, 8n1, no flow control.
 
   @author  Stephen Anthony
-  @version $Id: SerialPort.hxx 3142 2015-01-24 16:28:06Z stephena $
+  @version $Id: SerialPort.hxx 3244 2015-12-30 19:07:11Z stephena $
 */
 class SerialPort
 {
   public:
-    SerialPort() { }
-    virtual ~SerialPort() { }
+    SerialPort() = default;
+    virtual ~SerialPort() = default;
 
     /**
       Open the given serial port with the specified attributes.
@@ -65,6 +65,13 @@ class SerialPort
       Close a previously opened serial port.
     */
     virtual void closePort() { }
+
+  private:
+    // Following constructors and assignment operators not supported
+    SerialPort(const SerialPort&) = delete;
+    SerialPort(SerialPort&&) = delete;
+    SerialPort& operator=(const SerialPort&) = delete;
+    SerialPort& operator=(SerialPort&&) = delete;
 };
 
 #endif

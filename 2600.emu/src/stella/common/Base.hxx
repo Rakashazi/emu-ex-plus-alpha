@@ -8,19 +8,19 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Base.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Base.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef BASE_HXX
 #define BASE_HXX
 
-#include <ostream>
+#include <iostream>
 #include <iomanip>
 
 #include "bspf.hxx"
@@ -80,9 +80,6 @@ class Base
     static string toString(int value,
       Common::Base::Format outputBase = Common::Base::F_DEFAULT);
 
-  private:      // Make sure this class is never instantiated
-    Base() { }
-
   private:
     // Default format to use when none is specified
     static Format myDefaultBase;
@@ -95,6 +92,14 @@ class Base
     static const char* myLowerFmt[4];
     static const char* myUpperFmt[4];
     static const char** myFmt;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Base() = delete;
+    Base(const Base&) = delete;
+    Base(Base&&) = delete;
+    Base& operator=(const Base&) = delete;
+    Base& operator=(Base&&) = delete;
 };
 
 } // Namespace Common

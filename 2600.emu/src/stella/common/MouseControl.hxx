@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MouseControl.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: MouseControl.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef MOUSE_CONTROL_HXX
@@ -108,6 +108,14 @@ class MouseControl
 
     int myCurrentModeNum;
     vector<MouseMode> myModeList;
+
+  private:
+    // Following constructors and assignment operators not supported
+    MouseControl() = delete;
+    MouseControl(const MouseControl&) = delete;
+    MouseControl(MouseControl&&) = delete;
+    MouseControl& operator=(const MouseControl&) = delete;
+    MouseControl& operator=(MouseControl&&) = delete;
 };
 
 #endif

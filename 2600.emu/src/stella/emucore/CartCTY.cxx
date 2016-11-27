@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCTY.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartCTY.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "OSystem.hxx"
 #include "Serializer.hxx"
@@ -35,10 +33,11 @@ CartridgeCTY::CartridgeCTY(const uInt8* image, uInt32 size, const OSystem& osyst
     myRandomNumber(0x2B435044),
     myRamAccessTimeout(0),
     mySystemCycles(0),
-    myFractionalClocks(0.0)
+    myFractionalClocks(0.0),
+    myCurrentBank(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, BSPF_min(32768u, size));
+  memcpy(myImage, image, std::min(32768u, size));
   createCodeAccessBase(32768);
 
   // Point to the first tune
@@ -49,19 +48,9 @@ CartridgeCTY::CartridgeCTY(const uInt8* image, uInt32 size, const OSystem& osyst
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeCTY::~CartridgeCTY()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCTY::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 64; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 64);
+  initializeRAM(myRAM, 64);
 
   myRAM[0] = myRAM[1] = myRAM[2] = myRAM[3] = 0xFF;
 
@@ -241,7 +230,7 @@ bool CartridgeCTY::poke(uInt16 address, uInt8 value)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCTY::bank(uInt16 bank)
-{ 
+{
   if(bankLocked()) return false;
 
   // Remember what bank we're in
@@ -286,7 +275,7 @@ bool CartridgeCTY::patch(uInt16 address, uInt8 value)
     myImage[myCurrentBank + address] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeCTY::getImage(int& size) const
@@ -309,7 +298,7 @@ bool CartridgeCTY::save(Serializer& out) const
     out.putBool(myLDAimmediate);
     out.putInt(myRandomNumber);
     out.putInt(mySystemCycles);
-    out.putInt((uInt32)(myFractionalClocks * 100000000.0));
+    out.putInt(uInt32(myFractionalClocks * 100000000.0));
 
   }
   catch(...)
@@ -337,8 +326,8 @@ bool CartridgeCTY::load(Serializer& in)
     myCounter = in.getShort();
     myLDAimmediate = in.getBool();
     myRandomNumber = in.getInt();
-    mySystemCycles = (Int32)in.getInt();
-    myFractionalClocks = (double)in.getInt() / 100000000.0;
+    mySystemCycles = in.getInt();
+    myFractionalClocks = double(in.getInt()) / 100000000.0;
   }
   catch(...)
   {
@@ -450,7 +439,7 @@ void CartridgeCTY::loadTune(uInt8 index)
 void CartridgeCTY::loadScore(uInt8 index)
 {
   Serializer serializer(myEEPROMFile, true);
-  if(serializer.valid())
+  if(serializer)
   {
     uInt8 scoreRAM[256];
     try
@@ -470,7 +459,7 @@ void CartridgeCTY::loadScore(uInt8 index)
 void CartridgeCTY::saveScore(uInt8 index)
 {
   Serializer serializer(myEEPROMFile);
-  if(serializer.valid())
+  if(serializer)
   {
     // Load score RAM
     uInt8 scoreRAM[256];
@@ -495,7 +484,7 @@ void CartridgeCTY::saveScore(uInt8 index)
     catch(...)
     {
       // Maybe add logging here that save failed?
-      cerr << name() << ": ERROR saving score table " << (int)index << endl;
+      cerr << name() << ": ERROR saving score table " << int(index) << endl;
     }
   }
 }
@@ -504,7 +493,7 @@ void CartridgeCTY::saveScore(uInt8 index)
 void CartridgeCTY::wipeAllScores()
 {
   Serializer serializer(myEEPROMFile);
-  if(serializer.valid())
+  if(serializer)
   {
     // Erase score RAM
     uInt8 scoreRAM[256];
@@ -530,8 +519,8 @@ inline void CartridgeCTY::updateMusicModeDataFetchers()
 
   // Calculate the number of DPC OSC clocks since the last update
   double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
-  Int32 wholeClocks = (Int32)clocks;
-  myFractionalClocks = clocks - (double)wholeClocks;
+  Int32 wholeClocks = Int32(clocks);
+  myFractionalClocks = clocks - double(wholeClocks);
 
   if(wholeClocks <= 0)
     return;

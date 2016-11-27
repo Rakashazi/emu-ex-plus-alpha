@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CompuMate.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CompuMate.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef COMPUMATE_HXX
@@ -39,7 +39,7 @@
   It also allows to enable/disable the users actual keyboard when required.
 
   @author  Stephen Anthony
-  @version $Id: CompuMate.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: CompuMate.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CompuMate
 {
@@ -56,12 +56,7 @@ class CompuMate
       @param system   The system using this controller
     */
     CompuMate(const Console& console, const Event& event, const System& system);
-
-    /**
-      Destructor
-      Controllers are deleted outside this class
-    */
-    virtual ~CompuMate() { }
+    virtual ~CompuMate() = default;  // Controllers are deleted outside this class
 
     /**
       Return the left and right CompuMate controllers
@@ -109,11 +104,7 @@ class CompuMate
                   const System& system)
           : Controller(jack, event, system, Controller::CompuMate),
             myHandler(handler) { }
-
-        /**
-          Destructor
-        */
-        virtual ~CMControl() { }
+        virtual ~CMControl() = default;
 
       public:
         /**
@@ -123,20 +114,29 @@ class CompuMate
 
           @param value  The entire contents of the SWCHA register
         */
-        void controlWrite(uInt8) { if(myJack == Controller::Left) myHandler.update(); }
+        void controlWrite(uInt8) override {
+          if(myJack == Controller::Left) myHandler.update();
+        }
 
         /**
           Update the entire digital and analog pin state according to the
           events currently set.
         */
-        void update() { }
+        void update() override { }
 
       private:
         class CompuMate& myHandler;
+
+        // Following constructors and assignment operators not supported
+        CMControl() = delete;
+        CMControl(const CMControl&) = delete;
+        CMControl(CMControl&&) = delete;
+        CMControl& operator=(const CMControl&) = delete;
+        CMControl& operator=(CMControl&&) = delete;
     };
 
   private:
-    // Cart, Event and System objects
+    // Console and Event objects
     const Console& myConsole;
     const Event& myEvent;
 
@@ -152,6 +152,14 @@ class CompuMate
     // Array of keyboard key states when in the debugger (the normal keyboard
     // keys are ignored in such a case)
     bool myInternalKeyTable[KBDK_LAST];
+
+  private:
+    // Following constructors and assignment operators not supported
+    CompuMate() = delete;
+    CompuMate(const CompuMate&) = delete;
+    CompuMate(CompuMate&&) = delete;
+    CompuMate& operator=(const CompuMate&) = delete;
+    CompuMate& operator=(CompuMate&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Settings.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef SETTINGS_HXX
@@ -29,7 +29,7 @@ class OSystem;
   This class provides an interface for accessing frontend specific settings.
 
   @author  Stephen Anthony
-  @version $Id: Settings.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Settings.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class Settings
 {
@@ -40,11 +40,7 @@ class Settings
       Create a new settings abstract class
     */
     Settings(OSystem& osystem);
-
-    /**
-      Destructor
-    */
-    virtual ~Settings();
+    virtual ~Settings() = default;
 
   public:
     /**
@@ -104,11 +100,6 @@ class Settings
     */
     virtual void saveConfig();
 
-  private:
-    // Copy constructor and assignment operator not supported
-    Settings(const Settings&);
-    Settings& operator = (const Settings&);
-
     // Trim leading and following whitespace from a string
     static string trim(string& str)
     {
@@ -153,6 +144,14 @@ class Settings
     // Holds auxiliary key,value pairs that shouldn't be saved on
     // program exit.
     SettingsArray myExternalSettings;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Settings() = delete;
+    Settings(const Settings&) = delete;
+    Settings(Settings&&) = delete;
+    Settings& operator=(const Settings&) = delete;
+    Settings& operator=(Settings&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Genesis.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Genesis.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef GENESIS_HXX
@@ -43,18 +43,14 @@ class Genesis : public Controller
       @param system The system using this controller
     */
     Genesis(Jack jack, const Event& event, const System& system);
-
-    /**
-      Destructor
-    */
-    virtual ~Genesis();
+    virtual ~Genesis() = default;
 
   public:
     /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update();
+    void update() override;
 
     /**
       Determines how this controller will treat values received from the
@@ -73,7 +69,7 @@ class Genesis : public Controller
       @return  Whether the controller supports using the mouse
     */
     bool setMouseControl(
-      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid) override;
 
   private:
     // Pre-compute the events we care about based on given port
@@ -83,6 +79,14 @@ class Genesis : public Controller
 
     // Controller to emulate in normal mouse axis mode
     int myControlID;  
+
+  private:
+    // Following constructors and assignment operators not supported
+    Genesis() = delete;
+    Genesis(const Genesis&) = delete;
+    Genesis(Genesis&&) = delete;
+    Genesis& operator=(const Genesis&) = delete;
+    Genesis& operator=(Genesis&&) = delete;
 };
 
 #endif

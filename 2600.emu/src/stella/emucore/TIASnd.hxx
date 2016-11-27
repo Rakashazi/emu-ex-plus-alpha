@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TIASnd.hxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #ifndef TIASOUND_HXX
@@ -30,7 +30,7 @@
   Resampling can be done by passing in a different output frequency.
 
   @author  Bradford W. Mott, Stephen Anthony, z26 and MESS teams
-  @version $Id: TIASnd.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: TIASnd.hxx 3310 2016-08-18 18:44:57Z stephena $
 */
 class TIASound
 {
@@ -174,6 +174,13 @@ class TIASound
       implemented by using counters.
     */
     static const uInt8 Div31[POLY5_SIZE];
+
+  private:
+    // Following constructors and assignment operators not supported
+    TIASound(const TIASound&) = delete;
+    TIASound(TIASound&&) = delete;
+    TIASound& operator=(const TIASound&) = delete;
+    TIASound& operator=(TIASound&&) = delete;
 };
 
 #endif

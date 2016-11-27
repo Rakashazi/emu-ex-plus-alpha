@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FBSurface.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: FBSurface.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef FBSURFACE_HXX
@@ -52,20 +52,9 @@ enum FrameStyle {
 
 class FBSurface
 {
-//  friend class TIASurface;
-
   public:
-    /**
-      Creates a new FBSurface object
-
-      @param data  If non-null, the data values to use as a static surface
-    */
     FBSurface();
-
-    /**
-      Destructor
-    */
-    virtual ~FBSurface() { }
+    virtual ~FBSurface() = default;
 
     /**
       This method returns the surface pixel pointer and pitch, which are
@@ -155,9 +144,10 @@ class FBSurface
       data into a FrameBuffer surface.  The pixels must already be in the
       format used by the surface.
 
-      @param data     The data in uInt8 R/G/B format
-      @param row      The row of the surface the data should be placed in
-      @param rowbytes The number of bytes in row of 'data'
+      @param data      The data in uInt8 R/G/B format
+      @param x         The destination x-location to start drawing pixels
+      @param y         The destination y-location to start drawing pixels
+      @param numpixels The number of pixels to draw
     */
     virtual void drawPixels(uInt32* data, uInt32 x, uInt32 y, uInt32 numpixels);
 
@@ -193,14 +183,13 @@ class FBSurface
       This method should be called to draw the specified string.
 
       @param font   The font to draw the string with
-      @param str    The string to draw
+      @param s      The string to draw
       @param x      The x coordinate
       @param y      The y coordinate
       @param w      The width of the string area
-      @param h      The height of the string area
       @param color  The color of the text
       @param align  The alignment of the text in the string width area
-      @param deltax 
+      @param deltax FIXME
       @param useEllipsis  Whether to use '...' when the string is too long
     */
     virtual void drawString(
@@ -320,17 +309,19 @@ class FBSurface
 
     static void setPalette(const uInt32* palette) { myPalette = palette; }
 
-  private:
-    // Copy constructor and assignment operator not supported
-    FBSurface(const FBSurface&);
-    FBSurface& operator = (const FBSurface&);
-
   protected:
     static const uInt32* myPalette;
     uInt32* myPixels;
     uInt32 myPitch;
 
     Attributes myAttributes;
+
+  private:
+    // Following constructors and assignment operators not supported
+    FBSurface(const FBSurface&) = delete;
+    FBSurface(FBSurface&&) = delete;
+    FBSurface& operator=(const FBSurface&) = delete;
+    FBSurface& operator=(FBSurface&&) = delete;
 };
 
 #endif

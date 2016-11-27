@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Driving.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Driving.cxx 3300 2016-04-02 21:27:10Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -54,11 +54,6 @@ Driving::Driving(Jack jack, const Event& event, const System& system)
 
   // Analog pins are not connected
   myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Driving::~Driving()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -109,7 +104,7 @@ void Driving::update()
   // Only consider the lower-most bits (corresponding to pins 1 & 2)
   myCounter &= 0x0f;
   myGrayIndex = myCounter >> 2;
- 
+
   // Stelladaptor is the only controller that should set this
   int yaxis = myEvent.get(myYAxisValue);
 
@@ -129,7 +124,7 @@ void Driving::update()
   }
 
   // Gray codes for rotation
-  static const uInt8 graytable[] = { 0x03, 0x01, 0x00, 0x02 };
+  static constexpr uInt8 graytable[] = { 0x03, 0x01, 0x00, 0x02 };
 
   // Determine which bits are set
   uInt8 gray = graytable[myGrayIndex];

@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartWD.cxx 3136 2015-01-01 16:50:18Z stephena $
+// $Id: CartWD.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "TIA.hxx"
 #include "M6502.hxx"
@@ -28,7 +26,10 @@
 CartridgeWD::CartridgeWD(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    mySize(BSPF_min(8195u, size))
+    mySize(std::min(8195u, size)),
+    myCyclesAtBankswitchInit(0),
+    myPendingBank(0),
+    myCurrentBank(0)
 {
   // Copy the ROM image into my buffer
   memcpy(myImage, image, mySize);
@@ -39,19 +40,9 @@ CartridgeWD::CartridgeWD(const uInt8* image, uInt32 size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeWD::~CartridgeWD()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeWD::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 64; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 64);
+  initializeRAM(myRAM, 64);
 
   myCyclesAtBankswitchInit = 0;
   myPendingBank = 0xF0;  // one more than the allowable bank #
@@ -144,7 +135,7 @@ uInt8 CartridgeWD::peek(uInt16 address)
       return mySegment3[address & 0x03FF];
   }
 
-  return 0;  // We'll never reach this
+  return 0;  // Make the compiler happy; we'll never reach this
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -269,7 +260,7 @@ bool CartridgeWD::patch(uInt16 address, uInt8 value)
     mySegment3[(address & 0x03FF)] = value;
 
   return true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeWD::getImage(int& size) const

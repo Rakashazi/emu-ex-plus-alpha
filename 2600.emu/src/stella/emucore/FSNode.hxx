@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: FSNode.hxx 3302 2016-04-02 23:47:46Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -93,7 +93,13 @@ class FilesystemNode
      */
     explicit FilesystemNode(const string& path);
 
-    virtual ~FilesystemNode() { }
+    virtual ~FilesystemNode() = default;
+
+    /**
+     * Assignment operators.
+     */
+    FilesystemNode(const FilesystemNode&) = default;
+    FilesystemNode& operator=(const FilesystemNode&) = default;
 
     /**
      * Compare the name of this node to the name of another. Directories
@@ -104,7 +110,7 @@ class FilesystemNode
       if (isDirectory() != node.isDirectory())
         return isDirectory();
 
-      return BSPF_compareIgnoreCase(getName(), node.getName()) < 0;
+      return BSPF::compareIgnoreCase(getName(), node.getName()) < 0;
     }
 
     /**
@@ -113,7 +119,7 @@ class FilesystemNode
      */
     inline bool operator==(const FilesystemNode& node) const
     {
-      return BSPF_compareIgnoreCase(getName(), node.getName()) == 0;
+      return BSPF::compareIgnoreCase(getName(), node.getName()) == 0;
     }
 
     /**
@@ -229,14 +235,13 @@ class FilesystemNode
     /**
      * Read data (binary format) into the given buffer.
      *
-     * @param buffer  The buffer to containing the data
-     *                This will be allocated by the method, and must be
-     *                freed by the caller.
+     * @param buffer  The buffer to contain the data.
+     *
      * @return  The number of bytes read (0 in the case of failure)
      *          This method can throw exceptions, and should be used inside
      *          a try-catch block.
      */
-    virtual uInt32 read(uInt8*& buffer) const;
+    virtual uInt32 read(BytePtr& buffer) const;
 
     /**
      * The following methods are almost exactly the same as the various
@@ -273,8 +278,13 @@ class AbstractFSNode
 
   public:
     /**
-     * Destructor.
+     * Assignment operators.
      */
+    AbstractFSNode() = default;
+    AbstractFSNode(const AbstractFSNode&) = default;
+//    AbstractFSNode(AbstractFSNode&&) = default;
+    AbstractFSNode& operator=(const AbstractFSNode&) = default;
+//    AbstractFSNode& operator=(AbstractFSNode&&) = default;
     virtual ~AbstractFSNode() { }
 
     /*
@@ -380,7 +390,7 @@ class AbstractFSNode
      *          This method can throw exceptions, and should be used inside
      *          a try-catch block.
      */
-    virtual uInt32 read(uInt8*& buffer) const { return 0; }
+    virtual uInt32 read(BytePtr& buffer) const { return 0; }
 
     /**
      * The parent node of this directory.

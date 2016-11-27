@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Event.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Event.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef EVENT_HXX
@@ -25,7 +25,7 @@
 
 /**
   @author  Bradford W. Mott
-  @version $Id: Event.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Event.hxx 3239 2015-12-29 19:22:46Z stephena $
 */
 class Event
 {
@@ -42,6 +42,7 @@ class Event
       ConsoleLeftDiffA, ConsoleLeftDiffB,
       ConsoleRightDiffA, ConsoleRightDiffB,
       ConsoleSelect, ConsoleReset,
+      ConsoleLeftDiffToggle, ConsoleRightDiffToggle, ConsoleColorToggle,
 
       JoystickZeroUp, JoystickZeroDown, JoystickZeroLeft, JoystickZeroRight,
         JoystickZeroFire, JoystickZeroFire5, JoystickZeroFire9,
@@ -127,6 +128,13 @@ class Event
 
     // Array of keyboard key states
     bool myKeyTable[KBDK_LAST];
+
+  private:
+    // Following constructors and assignment operators not supported
+    Event(const Event&) = delete;
+    Event(Event&&) = delete;
+    Event& operator=(const Event&) = delete;
+    Event& operator=(Event&&) = delete;
 };
 
 #endif

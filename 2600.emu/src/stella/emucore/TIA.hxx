@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIA.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TIA.hxx 3311 2016-08-21 21:37:06Z stephena $
 //============================================================================
 
 #ifndef TIA_HXX
@@ -41,7 +41,7 @@ class Sound;
   be displayed on screen.
 
   @author  Bradford W. Mott
-  @version $Id: TIA.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: TIA.hxx 3311 2016-08-21 21:37:06Z stephena $
 */
 class TIA : public Device
 {
@@ -57,17 +57,13 @@ class TIA : public Device
       @param settings The settings object for this TIA device
     */
     TIA(Console& console, Sound& sound, Settings& settings);
- 
-    /**
-      Destructor
-    */
-    virtual ~TIA();
+    virtual ~TIA() = default;
 
   public:
     /**
       Reset device to its power-on state
     */
-    void reset();
+    void reset() override;
 
     /**
       Reset frame to current YStart/Height properties
@@ -79,7 +75,7 @@ class TIA : public Device
       system resets its cycle counter to zero.  It may be necessary
       to override this method for devices that remember cycle counts.
     */
-    void systemCyclesReset();
+    void systemCyclesReset() override;
 
     /**
       Install TIA in the specified system.  Invoked by the system
@@ -87,7 +83,7 @@ class TIA : public Device
 
       @param system The system the device should install itself in
     */
-    void install(System& system);
+    void install(System& system) override;
 
     /**
       Install TIA in the specified system and device.  Invoked by
@@ -106,7 +102,7 @@ class TIA : public Device
       @param out  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Load the current state of this device from the given Serializer.
@@ -114,7 +110,7 @@ class TIA : public Device
       @param in  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
     /**
       The following are very similar to save() and load(), except they
@@ -143,14 +139,14 @@ class TIA : public Device
 
       @return The name of the object
     */
-    string name() const { return "TIA"; }
+    string name() const override { return "TIA"; }
 
     /**
       Get the byte at the specified address
 
       @return The byte at the specified address
     */
-    uInt8 peek(uInt16 address);
+    uInt8 peek(uInt16 address) override;
 
     /**
       Change the byte at the specified address to the given value
@@ -160,7 +156,7 @@ class TIA : public Device
 
       @return  True if the poke changed the device address space, else false
     */
-    bool poke(uInt16 address, uInt8 value);
+    bool poke(uInt16 address, uInt8 value) override;
 
     /**
       This method should be called at an interval corresponding to the 
@@ -175,7 +171,7 @@ class TIA : public Device
       @return Pointer to the current frame buffer
     */
     uInt8* currentFrameBuffer() const
-      { return myCurrentFrameBuffer + myFramePointerOffset; }
+      { return myCurrentFrameBuffer.get() + myFramePointerOffset + myCurrentFrameJitter; }
 
     /**
       Answers the previous frame buffer
@@ -183,7 +179,7 @@ class TIA : public Device
       @return Pointer to the previous frame buffer
     */
     uInt8* previousFrameBuffer() const
-      { return myPreviousFrameBuffer + myFramePointerOffset; }
+      { return myPreviousFrameBuffer.get() + myFramePointerOffset; }
 
     /**
       Answers the width and height of the frame buffer
@@ -221,7 +217,7 @@ class TIA : public Device
       based on how many frames of out the total count are PAL frames.
     */
     bool isPAL() const
-      { return float(myPALFrameCounter) / myFrameCounter >= (25.0/60.0); }
+      { return double(myPALFrameCounter) / myFrameCounter >= (25.0/60.0); }
 
     /**
       Answers the current color clock we've gotten to on this scanline.
@@ -317,6 +313,18 @@ class TIA : public Device
     */
     bool driveUnusedPinsRandom(uInt8 mode = 2);
 
+    /**
+      Enables/disable/toggle 'scanline jittering' mode, and set the
+      recovery 'factor'.
+
+      @param mode  1/0 indicates on/off, otherwise flip from
+                   its current state
+
+      @return  Whether the mode was enabled or disabled
+    */
+    bool toggleJitter(uInt8 mode = 2);
+    void setJitterRecoveryFactor(Int32 f) { myJitterRecoveryFactor = f; }
+
 #ifdef DEBUGGER_SUPPORT
     /**
       This method should be called to update the TIA with a new scanline.
@@ -351,6 +359,9 @@ class TIA : public Device
       @param mode  Whether to enable or disable all collisions
     */
     void enableCollisions(bool mode);
+
+    // Reset all instance variables to the initial state
+    void initialize();
 
     // Update the current frame buffer to the specified color clock
     void updateFrame(Int32 clock);
@@ -397,10 +408,10 @@ class TIA : public Device
     Settings& mySettings;
 
     // Pointer to the current frame buffer
-    uInt8* myCurrentFrameBuffer;
+    BytePtr myCurrentFrameBuffer;
 
     // Pointer to the previous frame buffer
-    uInt8* myPreviousFrameBuffer;
+    BytePtr myPreviousFrameBuffer;
 
     // Pointer to the next pixel that will be drawn in the current frame buffer
     uInt8* myFramePointer;
@@ -615,11 +626,27 @@ class TIA : public Device
 
     // Whether TIA bits/collisions are currently enabled/disabled
     bool myBitsEnabled, myCollisionsEnabled;
+  
+    // Whether to enable jitter emulation
+    bool myJitterEnabled;
 
+    // Derived from the difference between the scanline counts of the
+    // current and prior frames.  If non-zero the next frame should jitter.
+    Int32 myNextFrameJitter;
+  
+    // Jitter amount for the current frame
+    Int32 myCurrentFrameJitter;
+
+    // Large jitter values will take multiple frames to recover from
+    Int32 myJitterRecovery, myJitterRecoveryFactor;
+  
   private:
-    // Copy constructor and assignment operator not supported
-    TIA(const TIA&);
-    TIA& operator = (const TIA&);
+    // Following constructors and assignment operators not supported
+    TIA() = delete;
+    TIA(const TIA&) = delete;
+    TIA(TIA&&) = delete;
+    TIA& operator=(const TIA&) = delete;
+    TIA& operator=(TIA&&) = delete;
 };
 
 #endif

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -17,8 +17,6 @@
 // $Id: CartSB.cxx,v 1.0 2007/10/11
 //============================================================================
 
-#include <cstring>
-
 #include "System.hxx"
 #include "CartSB.hxx"
 
@@ -26,24 +24,18 @@
 CartridgeSB::CartridgeSB(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    myImage(nullptr),
-    mySize(size)
+    mySize(size),
+    myCurrentBank(0)
 {
   // Allocate array for the ROM image
-  myImage = new uInt8[mySize];
+  myImage = make_ptr<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, mySize);
+  memcpy(myImage.get(), image, mySize);
   createCodeAccessBase(mySize);
 
   // Remember startup bank
   myStartBank = bankCount() - 1;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeSB::~CartridgeSB()
-{
-  delete[] myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -120,7 +112,7 @@ bool CartridgeSB::poke(uInt16 address, uInt8 value)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeSB::bank(uInt16 bank)
-{ 
+{
   if(bankLocked()) return false;
 
   // Remember what bank we're in
@@ -158,13 +150,13 @@ bool CartridgeSB::patch(uInt16 address, uInt8 value)
 {
   myImage[(myCurrentBank << 12) + (address & 0x0FFF)] = value;
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeSB::getImage(int& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

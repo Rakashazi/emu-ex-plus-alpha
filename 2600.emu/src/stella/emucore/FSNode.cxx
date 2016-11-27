@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: FSNode.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: FSNode.cxx 3302 2016-04-02 23:47:46Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -43,7 +43,7 @@ FilesystemNode::FilesystemNode(const string& p)
   AbstractFSNode* tmp = nullptr;
 
   // Is this potentially a ZIP archive?
-  if(BSPF_containsIgnoreCase(p, ".zip"))
+  if(BSPF::containsIgnoreCase(p, ".zip"))
     tmp = FilesystemNodeFactory::create(p, FilesystemNodeFactory::ZIP);
   else
     tmp = FilesystemNodeFactory::create(p, FilesystemNodeFactory::SYSTEM);
@@ -175,7 +175,7 @@ bool FilesystemNode::rename(const string& newfile)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 FilesystemNode::read(uInt8*& image) const
+uInt32 FilesystemNode::read(BytePtr& image) const
 {
   uInt32 size = 0;
 
@@ -185,23 +185,21 @@ uInt32 FilesystemNode::read(uInt8*& image) const
 
   // File must actually exist
   if(!(exists() && isReadable()))
-    throw "File not found/readable";
+    throw runtime_error("File not found/readable");
 
   // Otherwise, assume the file is either gzip'ed or not compressed at all
   gzFile f = gzopen(getPath().c_str(), "rb");
   if(f)
   {
-    image = new uInt8[512 * 1024];
-    size = gzread(f, image, 512 * 1024);
+    image = make_ptr<uInt8[]>(512 * 1024);
+    size = gzread(f, image.get(), 512 * 1024);
     gzclose(f);
 
     if(size == 0)
-    {
-      delete[] image;  image = nullptr;
-      throw "Zero-byte file";
-    }
+      throw runtime_error("Zero-byte file");
+
     return size;
   }
   else
-    throw "ZLIB open/read error";
+    throw runtime_error("ZLIB open/read error");
 }

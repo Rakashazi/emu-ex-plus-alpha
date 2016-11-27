@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Menu.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Menu.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef MENU_HXX
@@ -28,7 +28,7 @@ class OSystem;
   The base dialog for all configuration menus in Stella.
 
   @author  Stephen Anthony
-  @version $Id: Menu.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Menu.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class Menu : public DialogContainer
 {
@@ -37,11 +37,15 @@ class Menu : public DialogContainer
       Create a new menu stack
     */
     Menu(OSystem& osystem);
+    virtual ~Menu() = default;
 
-    /**
-      Destructor
-    */
-    virtual ~Menu();
+  private:
+    // Following constructors and assignment operators not supported
+    Menu() = delete;
+    Menu(const Menu&) = delete;
+    Menu(Menu&&) = delete;
+    Menu& operator=(const Menu&) = delete;
+    Menu& operator=(Menu&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: SaveKey.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: SaveKey.cxx 3254 2016-01-23 18:16:09Z stephena $
 //============================================================================
 
 #include "MT24LC256.hxx"
@@ -30,11 +30,6 @@ SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
 
   myDigitalPinState[One] = myDigitalPinState[Two] = true;
   myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-SaveKey::~SaveKey()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,7 +72,7 @@ void SaveKey::write(DigitalPin pin, bool value)
 
     default:
       break;
-  } 
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

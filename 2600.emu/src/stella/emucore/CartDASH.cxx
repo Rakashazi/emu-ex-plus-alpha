@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDASH.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartDASH.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "TIA.hxx"
@@ -26,14 +24,13 @@
 //  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeDASH::CartridgeDASH(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings),
-    mySize(size),
-    myImage(nullptr)
+    mySize(size)
 {
   // Allocate array for the ROM image
-  myImage = new uInt8[mySize];
+  myImage = make_ptr<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, mySize);
+  memcpy(myImage.get(), image, mySize);
   createCodeAccessBase(mySize + RAM_TOTAL_SIZE);
 
   // Remember startup bank (0 per spec, rather than last per 3E scheme).
@@ -42,24 +39,13 @@ CartridgeDASH::CartridgeDASH(const uInt8* image, uInt32 size, const Settings& se
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeDASH::~CartridgeDASH()
+void CartridgeDASH::reset()
 {
-  delete[] myImage;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDASH::reset() {
-
-  // Initialize RAM
-  if (mySettings.getBool("ramrandom"))
-    for (uInt32 i = 0; i < RAM_TOTAL_SIZE; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, RAM_TOTAL_SIZE);
+  initializeRAM(myRAM, RAM_TOTAL_SIZE);
 
   // Initialise bank values for all ROM/RAM access
   // This is used to reverse-lookup from address to bank location
-  for (uInt32 b = 0; b < 8; b++)
+  for(uInt32 b = 0; b < 8; b++)
   {
     bankInUse[b] = BANK_UNDEFINED;        // bank is undefined and inaccessible!
     segmentInUse[b/2] = BANK_UNDEFINED;
@@ -72,8 +58,8 @@ void CartridgeDASH::reset() {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDASH::install(System& system) {
-
+void CartridgeDASH::install(System& system)
+{
   mySystem = &system;
 
   System::PageAccess access(this, System::PA_READWRITE);
@@ -101,22 +87,23 @@ void CartridgeDASH::install(System& system) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 CartridgeDASH::peek(uInt16 address) {
-
+uInt8 CartridgeDASH::peek(uInt16 address)
+{
   uInt16 peekAddress = address;
   address &= 0x0FFF;    // restrict to 4K address range
 
   uInt8 value = 0;
   uInt32 bank = (address >> (ROM_BANK_TO_POWER - 1)) & 7;   // convert to 512 byte bank index (0-7)
-  uInt16 imageBank = bankInUse[bank];        			          // the ROM/RAM bank that's here
+  uInt16 imageBank = bankInUse[bank];                       // the ROM/RAM bank that's here
 
-  if (imageBank == BANK_UNDEFINED) {						// an uninitialised bank?
-
+  if (imageBank == BANK_UNDEFINED)            // an uninitialised bank?
+  {
     // accessing invalid bank, so return should be... random?
     value = mySystem->randGenerator().next();
 
-  } else if (imageBank & BITMASK_ROMRAM) {      // a RAM bank
-
+  }
+  else if (imageBank & BITMASK_ROMRAM)        // a RAM bank
+  {
     // Reading from the write port triggers an unwanted write
     value = mySystem->getDataBusState(0xFF);
 
@@ -137,8 +124,8 @@ uInt8 CartridgeDASH::peek(uInt16 address) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeDASH::poke(uInt16 address, uInt8 value) {
-
+bool CartridgeDASH::poke(uInt16 address, uInt8 value)
+{
   bool changed = false;
 
   // Check for write to the bank switch address. RAM/ROM and bank # are encoded in 'value'
@@ -160,8 +147,8 @@ bool CartridgeDASH::poke(uInt16 address, uInt8 value) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeDASH::bankRAM(uInt8 bank) {
-
+bool CartridgeDASH::bankRAM(uInt8 bank)
+{
   if (bankLocked())  // debugger can lock RAM
     return false;
 
@@ -176,8 +163,8 @@ bool CartridgeDASH::bankRAM(uInt8 bank) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDASH::bankRAMSlot(uInt16 bank) {
-
+void CartridgeDASH::bankRAMSlot(uInt16 bank)
+{
   uInt16 bankNumber = (bank >> BANK_BITS) & 3;  // which bank # we are switching TO (BITS D6,D7) to 512 byte block
   uInt16 currentBank = bank & BIT_BANK_MASK;    // Wrap around/restrict to valid range
   bool upper = bank & BITMASK_LOWERUPPER;       // is this the read or write port
@@ -187,35 +174,35 @@ void CartridgeDASH::bankRAMSlot(uInt16 bank) {
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
 
-  if (upper) {  // We're mapping the write port
-
-    bankInUse[bankNumber + 4] = (Int16) bank;
+  if(upper)    // We're mapping the write port
+  {
+    bankInUse[bankNumber + 4] = Int16(bank);
     access.type = System::PA_WRITE;
-
-  } else {      // We're mapping the read port
-
-    bankInUse[bankNumber] = (Int16) bank;
+  }
+  else         // We're mapping the read port
+  {
+    bankInUse[bankNumber] = Int16(bank);
     access.type = System::PA_READ;
-
   }
 
   uInt32 start = 0x1000 + (bankNumber << RAM_BANK_TO_POWER) + (upper ? RAM_WRITE_OFFSET : 0);
   uInt32 end = start + RAM_BANK_SIZE - 1;
 
-  for (uInt32 address = start; address <= end; address += (1 << System::PAGE_SHIFT)) {
+  for (uInt32 address = start; address <= end; address += (1 << System::PAGE_SHIFT))
+  {
     if(upper)
       access.directPokeBase = &myRAM[startCurrentBank + (address & (RAM_BANK_SIZE - 1))];
     else
       access.directPeekBase = &myRAM[startCurrentBank + (address & (RAM_BANK_SIZE - 1))];
+
     access.codeAccessBase = &myCodeAccessBase[mySize + startCurrentBank + (address & (RAM_BANK_SIZE - 1))];
     mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
   }
 }
 
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeDASH::bankROM(uInt8 bank) {
-
+bool CartridgeDASH::bankROM(uInt8 bank)
+{
   if (bankLocked())  // debugger can lock ROM
     return false;
 
@@ -232,13 +219,13 @@ bool CartridgeDASH::bankROM(uInt8 bank) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDASH::bankROMSlot(uInt16 bank) {
-
+void CartridgeDASH::bankROMSlot(uInt16 bank)
+{
   uInt16 bankNumber = (bank >> BANK_BITS) & 3;    // which bank # we are switching TO (BITS D6,D7)
   uInt16 currentBank = bank & BIT_BANK_MASK;      // Wrap around/restrict to valid range
   bool upper = bank & BITMASK_LOWERUPPER;         // is this the lower or upper 512b
 
-  bankInUse[bankNumber * 2 + (upper ? 1 : 0)] = (Int16) bank; // Record which bank switched in (as ROM)
+  bankInUse[bankNumber * 2 + (upper ? 1 : 0)] = Int16(bank); // Record which bank switched in (as ROM)
 
   uInt32 startCurrentBank = currentBank << ROM_BANK_TO_POWER;     // Effectively *1K
 
@@ -248,7 +235,8 @@ void CartridgeDASH::bankROMSlot(uInt16 bank) {
   uInt32 start = 0x1000 + (bankNumber << ROM_BANK_TO_POWER) + (upper ? ROM_BANK_SIZE / 2 : 0);
   uInt32 end = start + ROM_BANK_SIZE / 2 - 1;
 
-  for (uInt32 address = start; address <= end; address += (1 << System::PAGE_SHIFT)) {
+  for (uInt32 address = start; address <= end; address += (1 << System::PAGE_SHIFT))
+  {
     access.directPeekBase = &myImage[startCurrentBank + (address & (ROM_BANK_SIZE - 1))];
     access.codeAccessBase = &myCodeAccessBase[startCurrentBank + (address & (ROM_BANK_SIZE - 1))];
     mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
@@ -256,19 +244,19 @@ void CartridgeDASH::bankROMSlot(uInt16 bank) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDASH::initializeBankState() {
-
+void CartridgeDASH::initializeBankState()
+{
   // Switch in each 512b slot
-  for (uInt32 b = 0; b < 8; b++) {
-    if (bankInUse[b] == BANK_UNDEFINED) {
-
+  for(uInt32 b = 0; b < 8; b++)
+  {
+    if(bankInUse[b] == BANK_UNDEFINED)
+    {
       // All accesses point to peek/poke above
       System::PageAccess access(this, System::PA_READ);
       uInt32 start = 0x1000 + (b << RAM_BANK_TO_POWER);
       uInt32 end = start + RAM_BANK_SIZE - 1;
       for (uInt32 address = start; address <= end; address += (1 << System::PAGE_SHIFT))
         mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
-
     }
     else if (bankInUse[b] & BITMASK_ROMRAM)
       bankRAMSlot(bankInUse[b]);
@@ -278,7 +266,8 @@ void CartridgeDASH::initializeBankState() {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeDASH::patch(uInt16 address, uInt8 value) {
+bool CartridgeDASH::patch(uInt16 address, uInt8 value)
+{
 #if 0
   // Patch the cartridge ROM (for debugger)
 
@@ -314,20 +303,24 @@ bool CartridgeDASH::patch(uInt16 address, uInt8 value) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeDASH::getImage(int& size) const {
+const uInt8* CartridgeDASH::getImage(int& size) const
+{
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeDASH::save(Serializer& out) const {
-
-  try {
+bool CartridgeDASH::save(Serializer& out) const
+{
+  try
+  {
     out.putString(name());
     out.putShortArray(bankInUse, 8);
     out.putShortArray(segmentInUse, 4);
     out.putByteArray(myRAM, RAM_TOTAL_SIZE);
-  } catch (...) {
+  }
+  catch (...)
+  {
     cerr << "ERROR: CartridgeDASH::save" << endl;
     return false;
   }
@@ -335,15 +328,18 @@ bool CartridgeDASH::save(Serializer& out) const {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeDASH::load(Serializer& in) {
-
-  try {
+bool CartridgeDASH::load(Serializer& in)
+{
+  try
+  {
     if (in.getString() != name())
       return false;
     in.getShortArray(bankInUse, 8);
     in.getShortArray(segmentInUse, 4);
     in.getByteArray(myRAM, RAM_TOTAL_SIZE);
-  } catch (...) {
+  }
+  catch (...)
+  {
     cerr << "ERROR: CartridgeDASH::load" << endl;
     return false;
   }

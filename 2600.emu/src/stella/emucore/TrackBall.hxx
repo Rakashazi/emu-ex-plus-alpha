@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TrackBall.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TrackBall.hxx 3264 2016-01-25 21:16:04Z stephena $
 //============================================================================
 
 #ifndef TRACKBALL_HXX
@@ -36,7 +36,7 @@
     AmigaMouse:  Amiga Mouse
 
   @author  Stephen Anthony & z26 team
-  @version $Id: TrackBall.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: TrackBall.hxx 3264 2016-01-25 21:16:04Z stephena $
 */
 class TrackBall : public Controller
 {
@@ -50,11 +50,7 @@ class TrackBall : public Controller
       @param type   The type of trackball controller
     */
     TrackBall(Jack jack, const Event& event, const System& system, Type type);
-
-    /**
-      Destructor
-    */
-    virtual ~TrackBall();
+    virtual ~TrackBall() = default;
 
   public:
     using Controller::read;
@@ -65,13 +61,13 @@ class TrackBall : public Controller
 
       @return The state of all digital pins
     */
-    uInt8 read();
+    uInt8 read() override;
 
     /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update();
+    void update() override;
 
     /**
       Determines how this controller will treat values received from the
@@ -89,8 +85,8 @@ class TrackBall : public Controller
 
       @return  Whether the controller supports using the mouse
     */
-    bool setMouseControl(
-      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
+    bool setMouseControl(Controller::Type xtype, int xid,
+                         Controller::Type ytype, int yid) override;
 
   private:
     // Counter to iterate through the gray codes
@@ -111,7 +107,7 @@ class TrackBall : public Controller
     int myScanCountH, myScanCountV, myCountH, myCountV;
 
     // Whether to use the mouse to emulate this controller
-    int myMouseEnabled;  
+    int myMouseEnabled;
 
     // CX-22
     static const uInt32 ourTrakBallTableTB_H[2][2];
@@ -124,6 +120,14 @@ class TrackBall : public Controller
     // Amiga mouse
     static const uInt32 ourTrakBallTableAM_H[4];
     static const uInt32 ourTrakBallTableAM_V[4];
+
+  private:
+    // Following constructors and assignment operators not supported
+    TrackBall() = delete;
+    TrackBall(const TrackBall&) = delete;
+    TrackBall(TrackBall&&) = delete;
+    TrackBall& operator=(const TrackBall&) = delete;
+    TrackBall& operator=(TrackBall&&) = delete;
 };
 
 #endif

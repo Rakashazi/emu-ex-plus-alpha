@@ -8,26 +8,25 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartE7.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartE7.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "CartE7.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeE7::CartridgeE7(const uInt8* image, uInt32 size, const Settings& settings)
-  : Cartridge(settings)
+  : Cartridge(settings),
+    myCurrentRAM(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, BSPF_min(16384u, size));
+  memcpy(myImage, image, std::min(16384u, size));
   createCodeAccessBase(16384 + 2048);
 
   // Remember startup bank
@@ -35,19 +34,9 @@ CartridgeE7::CartridgeE7(const uInt8* image, uInt32 size, const Settings& settin
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeE7::~CartridgeE7()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeE7::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 2048; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 2048);
+  initializeRAM(myRAM, 2048);
 
   // Install some default banks for the RAM and first segment
   bankRAM(0);
@@ -187,7 +176,7 @@ void CartridgeE7::bankRAM(uInt16 bank)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeE7::bank(uInt16 slice)
-{ 
+{
   if(bankLocked()) return false;
 
   // Remember what bank we're in
@@ -273,7 +262,7 @@ bool CartridgeE7::patch(uInt16 address, uInt8 value)
     myImage[(myCurrentSlice[address >> 11] << 11) + (address & 0x07FF)] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeE7::getImage(int& size) const

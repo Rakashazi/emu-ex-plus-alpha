@@ -8,16 +8,17 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6532.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: M6532.cxx 3300 2016-04-02 21:27:10Z stephena $
 //============================================================================
 
 #include <cassert>
+#include <iostream>
 
 #include "Console.hxx"
 #include "Settings.hxx"
@@ -30,16 +31,14 @@
 M6532::M6532(const Console& console, const Settings& settings)
   : myConsole(console),
     mySettings(settings),
+    myTimer(0), myIntervalShift(0), myCyclesWhenTimerSet(0),
+    myDDRA(0), myDDRB(0), myOutA(0), myOutB(0),
+    myInterruptFlag(false),
     myTimerFlagValid(false),
     myEdgeDetectPositive(false)
 {
 }
- 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-M6532::~M6532()
-{
-}
- 
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::reset()
 {
@@ -285,7 +284,7 @@ bool M6532::poke(uInt16 addr, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::setTimerRegister(uInt8 value, uInt8 interval)
 {
-  static const uInt8 shift[] = { 0, 3, 6, 10 };
+  static constexpr uInt8 shift[] = { 0, 3, 6, 10 };
 
   myIntervalShift = shift[interval];
   myOutTimer[interval] = value;

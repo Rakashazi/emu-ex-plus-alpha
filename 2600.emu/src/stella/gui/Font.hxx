@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Font.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Font.hxx 3239 2015-12-29 19:22:46Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -71,6 +71,14 @@ class Font
 
   private:
     FontDesc myFontDesc;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Font() = delete;
+    Font(const Font&) = delete;
+    Font(Font&&) = delete;
+    Font& operator=(const Font&) = delete;
+    Font& operator=(Font&&) = delete;
 };
 
 }  // namespace GUI

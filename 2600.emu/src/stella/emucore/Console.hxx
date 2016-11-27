@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Console.hxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #ifndef CONSOLE_HXX
@@ -29,7 +29,6 @@ class M6532;
 class Cartridge;
 class CompuMate;
 class Debugger;
-class OSystem;
 
 #include "bspf.hxx"
 #include "Control.hxx"
@@ -37,7 +36,7 @@ class OSystem;
 #include "TIATables.hxx"
 #include "FrameBuffer.hxx"
 #include "Serializable.hxx"
-#include "EventHandler.hxx"
+#include "NTSCFilter.hxx"
 
 /**
   Contains detailed info about a console.
@@ -57,7 +56,7 @@ struct ConsoleInfo
   This class represents the entire game console.
 
   @author  Bradford W. Mott
-  @version $Id: Console.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Console.hxx 3310 2016-08-18 18:44:57Z stephena $
 */
 class Console : public Serializable
 {
@@ -70,8 +69,9 @@ class Console : public Serializable
       @param cart     The cartridge to use with this console
       @param props    The properties for the cartridge  
     */
-    Console(OSystem& osystem, Cartridge* cart, const Properties& props);
- 
+    Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
+            const Properties& props);
+
     /**
       Destructor
     */
@@ -134,7 +134,7 @@ class Console : public Serializable
       @param out The serializer device to save to.
       @return The result of the save.  True on success, false on failure.
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Loads the current state of this console class from the given Serializer.
@@ -142,19 +142,19 @@ class Console : public Serializable
       @param in The Serializer device to load from.
       @return The result of the load.  True on success, false on failure.
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
     /**
       Get a descriptor for this console class (used in error checking).
 
       @return The name of the object
     */
-    string name() const { return "Console"; }
+    string name() const override { return "Console"; }
 
     /**
       Set the properties to those given
 
-      @param The properties to use for the current game
+      @param props The properties to use for the current game
     */
     void setProperties(const Properties& props);
 
@@ -166,7 +166,7 @@ class Console : public Serializable
     /**
       Set up the console to use the debugger.
     */
-    void attachDebugger(class Debugger& dbg);
+    void attachDebugger(Debugger& dbg);
 
     /**
       Informs the Console of a change in EventHandler state.
@@ -280,6 +280,11 @@ class Console : public Serializable
     */
     void toggleFixedColors() const;
 
+    /**
+      Toggles the TIA 'scanline jitter' mode.
+    */
+    void toggleJitter() const;
+
   private:
     /**
       Sets various properties of the TIA (YStart, Height, etc) based on
@@ -313,10 +318,6 @@ class Console : public Serializable
 
     void toggleTIABit(TIABit bit, const string& bitname, bool show = true) const;
     void toggleTIACollision(TIABit bit, const string& bitname, bool show = true) const;
-
-    // Copy constructor and assignment operator not supported
-    Console(const Console&);
-    Console& operator = (const Console&);
 
   private:
     // Reference to the osystem object
@@ -383,6 +384,14 @@ class Console : public Serializable
     static uInt32 ourUserNTSCPalette[256];
     static uInt32 ourUserPALPalette[256];
     static uInt32 ourUserSECAMPalette[256];
+
+  private:
+    // Following constructors and assignment operators not supported
+    Console() = delete;
+    Console(const Console&) = delete;
+    Console(Console&&) = delete;
+    Console& operator=(const Console&) = delete;
+    Console& operator=(Console&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart.hxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_HXX
@@ -39,9 +39,9 @@ class GuiObject;
   game and handles any bankswitching performed by the cartridge.
   A 'bank' is defined as a 4K block that is visible in the
   0x1000-0x2000 area (or its mirrors).
- 
+
   @author  Bradford W. Mott
-  @version $Id: Cart.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Cart.hxx 3316 2016-08-24 23:57:07Z stephena $
 */
 class Cartridge : public Device
 {
@@ -60,9 +60,10 @@ class Cartridge : public Device
       @param settings The settings associated with the system
       @return   Pointer to the new cartridge object allocated on the heap
     */
-    static Cartridge* create(const uInt8* image, uInt32 size, string& md5,
-                             string& dtype, string& id,
-                             const OSystem& system, Settings& settings);
+    static unique_ptr<Cartridge>
+        create(const BytePtr& image, uInt32 size,
+               string& md5, string& dtype, string& id,
+               const OSystem& system, Settings& settings);
 
     /**
       Create a new cartridge
@@ -70,23 +71,19 @@ class Cartridge : public Device
       @param settings  A reference to the various settings (read-only)
     */
     Cartridge(const Settings& settings);
- 
-    /**
-      Destructor
-    */
-    virtual ~Cartridge();
+    virtual ~Cartridge() = default;
 
     /**
       Query some information about this cartridge.
     */
-    static const string& about() { return myAboutString; }
+    static constexpr string& about() { return myAboutString; }
 
     /**
       Save the internal (patched) ROM image.
 
       @param out  The output file stream to save the image
     */
-    bool save(ofstream& out);
+    bool saveROM(ofstream& out);
 
     /**
       Lock/unlock bankswitching capability.  The debugger will lock
@@ -171,29 +168,6 @@ class Cartridge : public Device
     virtual const uInt8* getImage(int& size) const = 0;
 
     /**
-      Save the current state of this device to the given Serializer.
-
-      @param out  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    virtual bool save(Serializer& out) const = 0;
-
-    /**
-      Load the current state of this device from the given Serializer.
-
-      @param in  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    virtual bool load(Serializer& in) = 0;
-
-    /**
-      Get a descriptor for the device name (used in error checking).
-
-      @return The name of the object
-    */
-    virtual string name() const = 0;
-
-    /**
       Informs the cartridge about the name of the ROM file used when
       creating this cart.
 
@@ -216,7 +190,7 @@ class Cartridge : public Device
       const char* type;
       const char* desc;
     };
-    enum { ourNumBSTypes = 45 };
+    enum { ourNumBSTypes = 48 };
     static BankswitchType ourBSList[ourNumBSTypes];
 
   protected:
@@ -235,6 +209,15 @@ class Cartridge : public Device
       @param size  The size of the code-access array to create
     */
     void createCodeAccessBase(uInt32 size);
+
+    /**
+      Fill the given RAM array with (possibly random) data.
+
+      @param arr  Pointer to the RAM array
+      @param size The size of the RAM array
+      @param val  If provided, the value to store in the RAM array
+    */
+    void initializeRAM(uInt8* arr, uInt32 size, uInt8 val = 0) const;
 
   private:
     /**
@@ -257,6 +240,7 @@ class Cartridge : public Device
 
       @param image  A pointer to the ROM image
       @param size   The size of the ROM image 
+
       @return The "best guess" for the cartridge type
     */
     static string autodetectType(const uInt8* image, uInt32 size);
@@ -302,6 +286,11 @@ class Cartridge : public Device
     static bool isProbably3E(const uInt8* image, uInt32 size);
 
     /**
+      Returns true if the image is probably a 3E+ bankswitching cartridge
+    */
+    static bool isProbably3EPlus(const uInt8* image, uInt32 size);
+
+    /**
       Returns true if the image is probably a 3F bankswitching cartridge
     */
     static bool isProbably3F(const uInt8* image, uInt32 size);
@@ -325,6 +314,11 @@ class Cartridge : public Device
       Returns true if the image is probably a CV bankswitching cartridge
     */
     static bool isProbablyCV(const uInt8* image, uInt32 size);
+
+    /**
+      Returns true if the image is probably a CV+ bankswitching cartridge
+    */
+    static bool isProbablyCVPlus(const uInt8* image, uInt32 size);
 
     /**
       Returns true if the image is probably a DASH bankswitching cartridge
@@ -403,7 +397,7 @@ class Cartridge : public Device
 
     // The array containing information about every byte of ROM indicating
     // whether it is used as code.
-    uInt8* myCodeAccessBase;
+    BytePtr myCodeAccessBase;
 
   private:
     // If myBankLocked is true, ignore attempts at bankswitching. This is used
@@ -413,9 +407,12 @@ class Cartridge : public Device
     // Contains info about this cartridge in string format
     static string myAboutString;
 
-    // Copy constructor and assignment operator not supported
-    Cartridge(const Cartridge&);
-    Cartridge& operator = (const Cartridge&);
+    // Following constructors and assignment operators not supported
+    Cartridge() = delete;
+    Cartridge(const Cartridge&) = delete;
+    Cartridge(Cartridge&&) = delete;
+    Cartridge& operator=(const Cartridge&) = delete;
+    Cartridge& operator=(Cartridge&&) = delete;
 };
 
 #endif

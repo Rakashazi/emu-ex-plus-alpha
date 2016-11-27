@@ -3,8 +3,11 @@
 #pragma once
 
 #include <stella/gui/Rect.hxx>
+#include "EventHandler.hxx"
 #include <imagine/pixmap/Pixmap.hh>
 
+class Console;
+class OSystem;
 class TIA;
 
 enum FBInitStatus {

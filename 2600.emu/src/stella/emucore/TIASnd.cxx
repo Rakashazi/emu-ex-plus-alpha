@@ -8,16 +8,17 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASnd.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TIASnd.cxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #include "System.hxx"
+#include "TIATables.hxx"
 #include "TIASnd.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -85,18 +86,18 @@ void TIASound::set(uInt16 address, uInt8 value)
   int chan = ~address & 0x1;
   switch(address)
   {
-    case 0x15:    // AUDC0
-    case 0x16:    // AUDC1
+    case TIARegister::AUDC0:
+    case TIARegister::AUDC1:
       myAUDC[chan] = value & 0x0f;
       break;
 
-    case 0x17:    // AUDF0
-    case 0x18:    // AUDF1
+    case TIARegister::AUDF0:
+    case TIARegister::AUDF1:
       myAUDF[chan] = value & 0x1f;
       break;
 
-    case 0x19:    // AUDV0
-    case 0x1a:    // AUDV1
+    case TIARegister::AUDV0:
+    case TIARegister::AUDV1:
       myAUDV[chan] = (value & 0x0f) << AUDV_SHIFT;
       break;
 
@@ -142,26 +143,13 @@ uInt8 TIASound::get(uInt16 address) const
 {
   switch(address)
   {
-    case 0x15:    // AUDC0
-      return myAUDC[0];
-
-    case 0x16:    // AUDC1
-      return myAUDC[1];
-
-    case 0x17:    // AUDF0
-      return myAUDF[0];
-
-    case 0x18:    // AUDF1
-      return myAUDF[1];
-
-    case 0x19:    // AUDV0
-      return myAUDV[0] >> AUDV_SHIFT;
-
-    case 0x1a:    // AUDV1
-      return myAUDV[1] >> AUDV_SHIFT;
-
-    default:
-      return 0;
+    case TIARegister::AUDC0:  return myAUDC[0];
+    case TIARegister::AUDC1:  return myAUDC[1];
+    case TIARegister::AUDF0:  return myAUDF[0];
+    case TIARegister::AUDF1:  return myAUDF[1];
+    case TIARegister::AUDV0:  return myAUDV[0] >> AUDV_SHIFT;
+    case TIARegister::AUDV1:  return myAUDV[1] >> AUDV_SHIFT;
+    default:                  return 0;
   }
 }
 

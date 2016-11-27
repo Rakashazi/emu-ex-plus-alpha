@@ -17,8 +17,6 @@
 #include <FrameBuffer.hxx>
 #include <stella/emucore/TIA.hxx>
 
-extern uint16 tiaColorMap[256], tiaPhosphorColorMap[256][256];
-
 void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
 {
 	popup.printf(3, false, "%s", message.c_str());

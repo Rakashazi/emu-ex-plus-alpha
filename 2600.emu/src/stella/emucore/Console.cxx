@@ -8,16 +8,17 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Console.cxx 3148 2015-03-15 17:36:46Z stephena $
+// $Id: Console.cxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #include <cassert>
+#include <iostream>
 #include <sstream>
 #include <fstream>
 
@@ -65,10 +66,12 @@
 #include "Console.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Console::Console(OSystem& osystem, Cartridge* cart, const Properties& props)
+Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
+                 const Properties& props)
   : myOSystem(osystem),
     myEvent(osystem.eventHandler().event()),
     myProperties(props),
+    myCart(std::move(cart)),
     myDisplayFormat(""),  // Unknown TV format @ start
     myFramerate(0.0),     // Unknown framerate @ start
     myCurrentFormat(0),   // Unknown format @ start
@@ -81,7 +84,6 @@ Console::Console(OSystem& osystem, Cartridge* cart, const Properties& props)
   my6502 = make_ptr<M6502>(myOSystem.settings());
   myRiot = make_ptr<M6532>(*this, myOSystem.settings());
   myTIA  = make_ptr<TIA>(*this, myOSystem.sound(), myOSystem.settings());
-  myCart = unique_ptr<Cartridge>(cart);
   mySwitches = make_ptr<Switches>(myEvent, myProperties);
 
   // Construct the system and components
@@ -288,7 +290,7 @@ void Console::togglePalette()
 {
   string palette, message;
   palette = myOSystem.settings().getString("palette");
- 
+
   if(palette == "standard")       // switch to z26
   {
     palette = "z26";
@@ -458,8 +460,8 @@ void Console::initializeAudio()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::fry() const
 {
-  for(int ZPmem = 0; ZPmem < 0x100; ZPmem += rand() % 4)
-    mySystem->poke(ZPmem, mySystem->peek(ZPmem) & (uInt8)rand() % 256);
+  for(int i = 0; i < 0x100; i += mySystem->randGenerator().next() % 4)
+    mySystem->poke(i, mySystem->peek(i) & mySystem->randGenerator().next());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -558,7 +560,7 @@ void Console::setTIAProperties()
     myConsoleInfo.InitialFrameRate = "50";
 
     // PAL ROMs normally need at least 250 lines
-    height = BSPF_max(height, 250u);
+    height = std::max(height, 250u);
   }
 
   // Make sure these values fit within the bounds of the desktop
@@ -567,7 +569,7 @@ void Console::setTIAProperties()
   if(height > dheight)
   {
     ystart += height - dheight;
-    ystart = BSPF_min(ystart, 64u);
+    ystart = std::min(ystart, 64u);
     height = dheight;
   }
   myTIA->setYStart(ystart);
@@ -617,7 +619,7 @@ void Console::setControllers(const string& rommd5)
   {
     leftC = make_ptr<Keyboard>(Controller::Left, myEvent, *mySystem);
   }
-  else if(BSPF_startsWithIgnoreCase(left, "PADDLES"))
+  else if(BSPF::startsWithIgnoreCase(left, "PADDLES"))
   {
     bool swapAxis = false, swapDir = false;
     if(left == "PADDLES_IAXIS")
@@ -656,7 +658,7 @@ void Console::setControllers(const string& rommd5)
   {
     leftC = make_ptr<Joystick>(Controller::Left, myEvent, *mySystem);
   }
- 
+
   // Construct right controller
   if(right == "BOOSTERGRIP")
   {
@@ -670,7 +672,7 @@ void Console::setControllers(const string& rommd5)
   {
     rightC = make_ptr<Keyboard>(Controller::Right, myEvent, *mySystem);
   }
-  else if(BSPF_startsWithIgnoreCase(right, "PADDLES"))
+  else if(BSPF::startsWithIgnoreCase(right, "PADDLES"))
   {
     bool swapAxis = false, swapDir = false;
     if(right == "PADDLES_IAXIS")
@@ -744,19 +746,18 @@ void Console::setControllers(const string& rommd5)
 void Console::loadUserPalette()
 {
   const string& palette = myOSystem.paletteFile();
-  ifstream in(palette.c_str(), ios::binary);
+  ifstream in(palette, std::ios::binary);
   if(!in)
     return;
 
   // Make sure the contains enough data for the NTSC, PAL and SECAM palettes
   // This means 128 colours each for NTSC and PAL, at 3 bytes per pixel
   // and 8 colours for SECAM at 3 bytes per pixel
-  in.seekg(0, ios::end);
-  streampos length = in.tellg();
-  in.seekg(0, ios::beg);
+  in.seekg(0, std::ios::end);
+  std::streampos length = in.tellg();
+  in.seekg(0, std::ios::beg);
   if(length < 128 * 3 * 2 + 8 * 3)
   {
-    in.close();
     cerr << "ERROR: invalid palette file " << palette << endl;
     return;
   }
@@ -766,22 +767,22 @@ void Console::loadUserPalette()
 
   for(int i = 0; i < 128; i++)  // NTSC palette
   {
-    in.read((char*)pixbuf, 3);
-    uInt32 pixel = ((int)pixbuf[0] << 16) + ((int)pixbuf[1] << 8) + (int)pixbuf[2];
+    in.read(reinterpret_cast<char*>(pixbuf), 3);
+    uInt32 pixel = (int(pixbuf[0]) << 16) + (int(pixbuf[1]) << 8) + int(pixbuf[2]);
     ourUserNTSCPalette[(i<<1)] = pixel;
   }
   for(int i = 0; i < 128; i++)  // PAL palette
   {
-    in.read((char*)pixbuf, 3);
-    uInt32 pixel = ((int)pixbuf[0] << 16) + ((int)pixbuf[1] << 8) + (int)pixbuf[2];
+    in.read(reinterpret_cast<char*>(pixbuf), 3);
+    uInt32 pixel = (int(pixbuf[0]) << 16) + (int(pixbuf[1]) << 8) + int(pixbuf[2]);
     ourUserPALPalette[(i<<1)] = pixel;
   }
 
   uInt32 secam[16];  // All 8 24-bit pixels, plus 8 colorloss pixels
   for(int i = 0; i < 8; i++)    // SECAM palette
   {
-    in.read((char*)pixbuf, 3);
-    uInt32 pixel = ((int)pixbuf[0] << 16) + ((int)pixbuf[1] << 8) + (int)pixbuf[2];
+    in.read(reinterpret_cast<char*>(pixbuf), 3);
+    uInt32 pixel = (int(pixbuf[0]) << 16) + (int(pixbuf[1]) << 8) + int(pixbuf[2]);
     secam[(i<<1)]   = pixel;
     secam[(i<<1)+1] = 0;
   }
@@ -793,7 +794,6 @@ void Console::loadUserPalette()
       *ptr++ = *s++;
   }
 
-  in.close();
   myUserPaletteDefined = true;
 }
 
@@ -827,9 +827,7 @@ void Console::generateColorLossPalette()
       uInt8 r = (pixel >> 16) & 0xff;
       uInt8 g = (pixel >> 8)  & 0xff;
       uInt8 b = (pixel >> 0)  & 0xff;
-      uInt8 sum = (uInt8) (((float)r * 0.2989) +
-                           ((float)g * 0.5870) +
-                           ((float)b * 0.1140));
+      uInt8 sum = uInt8((r * 0.2989) + (g * 0.5870) + (b * 0.1140));
       palette[i][(j<<1)+1] = (sum << 16) + (sum << 8) + sum;
     }
   }
@@ -891,6 +889,14 @@ void Console::toggleFixedColors() const
     myOSystem.frameBuffer().showMessage("Fixed debug colors enabled");
   else
     myOSystem.frameBuffer().showMessage("Fixed debug colors disabled");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::toggleJitter() const
+{
+  bool enabled = myTIA->toggleJitter();
+  string message = string("TV scanline jitter") + (enabled ? " enabled" : " disabled");
+  myOSystem.frameBuffer().showMessage(message);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Serializable.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Serializable.hxx 3244 2015-12-30 19:07:11Z stephena $
 //============================================================================
 
 #ifndef SERIALIZABLE_HXX
@@ -28,13 +28,13 @@
   method signatures as defined below.
 
   @author  Stephen Anthony
-  @version $Id: Serializable.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Serializable.hxx 3244 2015-12-30 19:07:11Z stephena $
 */
 class Serializable
 {
   public:
-    Serializable() { }
-    virtual ~Serializable() { }
+    Serializable() = default;
+    virtual ~Serializable() = default;
 
     /**
       Save the current state of the object to the given Serializer.
@@ -58,6 +58,13 @@ class Serializable
       @return The name of the object
     */
     virtual string name() const = 0;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Serializable(const Serializable&) = delete;
+    Serializable(Serializable&&) = delete;
+    Serializable& operator=(const Serializable&) = delete;
+    Serializable& operator=(Serializable&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Control.hxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #ifndef CONTROLLER_HXX
@@ -58,7 +58,7 @@ class System;
   of the controller from the perspective of the controller's jack.
 
   @author  Bradford W. Mott
-  @version $Id: Control.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Control.hxx 3299 2016-04-02 20:46:02Z stephena $
 */
 class Controller : public Serializable
 {
@@ -106,11 +106,7 @@ class Controller : public Serializable
     */
     Controller(Jack jack, const Event& event, const System& system,
                Type type);
- 
-    /**
-      Destructor
-    */
-    virtual ~Controller();
+    virtual ~Controller() = default;
 
     /**
       Returns the jack that this controller is plugged into.
@@ -155,7 +151,7 @@ class Controller : public Serializable
       @param pin The pin of the controller jack to write to
       @param value The value to write to the pin
     */
-    virtual void write(DigitalPin pin, bool value) { };
+    virtual void write(DigitalPin pin, bool value) { }
 
     /**
       Called after *all* digital pins have been written on Port A.
@@ -163,7 +159,7 @@ class Controller : public Serializable
 
       @param value  The entire contents of the SWCHA register
     */
-    virtual void controlWrite(uInt8 value) { };
+    virtual void controlWrite(uInt8 value) { }
 
     /**
       Update the entire digital and analog pin state according to the
@@ -176,7 +172,7 @@ class Controller : public Serializable
       system resets its cycle counter to zero.  It may be necessary 
       to override this method for controllers that remember cycle counts.
     */
-    virtual void systemCyclesReset() { };
+    virtual void systemCyclesReset() { }
 
     /**
       Determines how this controller will treat values received from the
@@ -201,7 +197,7 @@ class Controller : public Serializable
     /**
       Returns the name of this controller.
     */
-    virtual string name() const { return myName; }
+    virtual string name() const override { return myName; }
 
     /**
       Returns more detailed information about this controller.
@@ -227,7 +223,7 @@ class Controller : public Serializable
       @param out The serializer device to save to.
       @return The result of the save.  True on success, false on failure.
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Loads the current state of this controller from the given Serializer.
@@ -235,14 +231,14 @@ class Controller : public Serializable
       @param in The serializer device to load from.
       @return The result of the load.  True on success, false on failure.
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
   public:
     /// Constant which represents maximum resistance for analog pins
-    static const Int32 maximumResistance;
+    static constexpr Int32 maximumResistance = 0x7FFFFFFF;
 
     /// Constant which represents minimum resistance for analog pins
-    static const Int32 minimumResistance;
+    static constexpr Int32 minimumResistance = 0x00000000;
 
   protected:
     /// Specifies which jack the controller is plugged in
@@ -267,9 +263,12 @@ class Controller : public Serializable
     Int32 myAnalogPinValue[2];
 
   private:
-    // Copy constructor and assignment operator not supported
-    Controller(const Controller&);
-    Controller& operator = (const Controller&);
+    // Following constructors and assignment operators not supported
+    Controller() = delete;
+    Controller(const Controller&) = delete;
+    Controller(Controller&&) = delete;
+    Controller& operator=(const Controller&) = delete;
+    Controller& operator=(Controller&&) = delete;
 };
 
 #endif

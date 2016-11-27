@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMDM.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartMDM.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "CartMDM.hxx"
@@ -25,25 +23,19 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeMDM::CartridgeMDM(const uInt8* image, uInt32 size, const Settings& settings)
   : Cartridge(settings),
-    myImage(nullptr),
     mySize(size),
+    myCurrentBank(0),
     myBankingDisabled(false)
 {
   // Allocate array for the ROM image
-  myImage = new uInt8[mySize];
+  myImage = make_ptr<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, mySize);
+  memcpy(myImage.get(), image, mySize);
   createCodeAccessBase(mySize);
 
   // Remember startup bank
   myStartBank = 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeMDM::~CartridgeMDM()
-{
-  delete[] myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -71,7 +63,7 @@ void CartridgeMDM::install(System& system)
 
   // Set the page accessing methods for the hot spots
   System::PageAccess access(this, System::PA_READWRITE);
-  for(uInt32 i = 0x0800; i < 0x0FFF; i += (1 << System::PAGE_SHIFT))
+  for(uInt32 i = 0x0800; i < 0x0BFF; i += (1 << System::PAGE_SHIFT))
     mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
 
   // Install pages for bank 0
@@ -82,8 +74,8 @@ void CartridgeMDM::install(System& system)
 uInt8 CartridgeMDM::peek(uInt16 address)
 {
   // Because of the way we've set up accessing above, we can only
-  // get here when the addresses are from 0x800 - 0xFFF
-  if(address < 0xC00)
+  // get here when the addresses are from 0x800 - 0xBFF
+  if((address & 0x1C00) == 0x0800)
     bank(address & 0x0FF);
 
   int hotspot = ((address & 0x0F00) >> 8) - 8;
@@ -97,7 +89,7 @@ bool CartridgeMDM::poke(uInt16 address, uInt8 value)
   // about those below $1000
   if(!(address & 0x1000))
   {
-    if(address < 0xC00)
+    if((address & 0x1C00) == 0x0800)
       bank(address & 0x0FF);
 
     int hotspot = ((address & 0x0F00) >> 8) - 8;
@@ -109,7 +101,7 @@ bool CartridgeMDM::poke(uInt16 address, uInt8 value)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeMDM::bank(uInt16 bank)
-{ 
+{
   if(bankLocked() || myBankingDisabled) return false;
 
   // Remember what bank we're in
@@ -158,7 +150,7 @@ bool CartridgeMDM::patch(uInt16 address, uInt8 value)
 const uInt8* CartridgeMDM::getImage(int& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

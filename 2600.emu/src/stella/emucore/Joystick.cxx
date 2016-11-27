@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Joystick.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Joystick.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -48,11 +48,6 @@ Joystick::Joystick(Jack jack, const Event& event, const System& system)
 
   // Analog pins are never used by the joystick
   myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Joystick::~Joystick()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -141,8 +136,7 @@ bool Joystick::setMouseControl(
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Joystick::setDeadZone(int deadzone)
 {
-  if(deadzone < 0)  deadzone = 0;
-  if(deadzone > 29) deadzone = 29;
+  deadzone = BSPF::clamp(deadzone, 0, 29);
 
   _DEAD_ZONE = 3200 + deadzone * 1000;
 }

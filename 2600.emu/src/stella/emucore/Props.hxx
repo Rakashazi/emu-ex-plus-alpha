@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Props.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Props.hxx 3248 2016-01-16 00:13:52Z stephena $
 //============================================================================
 
 #ifndef PROPERTIES_HXX
@@ -56,7 +56,7 @@ enum PropertyType {
   if the property key is not found in the original property list.
 
   @author  Bradford W. Mott
-  @version $Id: Props.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Props.hxx 3248 2016-01-16 00:13:52Z stephena $
 */
 class Properties
 {
@@ -84,7 +84,9 @@ class Properties
       @param key  The key of the property to lookup
       @return     The value of the property 
     */
-    const string& get(PropertyType key) const;
+    const string& get(PropertyType key) const {
+      return key != LastPropType ? myProperties[key] : EmptyString;
+    }
 
     /**
       Set the value associated with key to the given value.
@@ -97,16 +99,18 @@ class Properties
     /**
       Load properties from the specified input stream
 
-      @param in The input stream to use
+      @param is  The input stream to use
+      @param p   The Properties object to write to
     */
-    void load(istream& in);
- 
+    friend istream& operator>>(istream& is, Properties& p);
+
     /**
       Save properties to the specified output stream
 
-      @param out The output stream to use
+      @param os  The output stream to use
+      @param p   The Properties object to read from
     */
-    void save(ostream& out) const;
+    friend ostream& operator<<(ostream& os, const Properties& p);
 
     /**
       Print the attributes of this properties object
@@ -118,7 +122,15 @@ class Properties
     */
     void setDefaults();
 
-  public:
+    /**
+      Overloaded equality operator(s)
+
+      @param properties The properties object to compare to
+      @return True if the properties are equal, else false
+    */
+    bool operator == (const Properties& properties) const;
+    bool operator != (const Properties& properties) const;
+
     /**
       Overloaded assignment operator
 

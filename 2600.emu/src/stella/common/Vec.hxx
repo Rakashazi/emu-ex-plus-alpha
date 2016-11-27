@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Vec.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Vec.hxx 3241 2015-12-29 21:41:53Z stephena $
 //============================================================================
 
 #ifndef VECTOR_OPS_HXX
@@ -24,19 +24,19 @@
 
 namespace Vec {
 
-template <class T>
+template<class T>
 void append(vector<T>& dst, const vector<T>& src)
 {
   dst.insert(dst.end(), src.begin(), src.end());
 }
 
-template <class T>
+template<class T>
 void insertAt(vector<T>& dst, uInt32 idx, const T& element)
 {
   dst.insert(dst.begin()+idx, element);
 }
 
-template <class T>
+template<class T>
 void removeAt(vector<T>& dst, uInt32 idx)
 {
   dst.erase(dst.begin()+idx);

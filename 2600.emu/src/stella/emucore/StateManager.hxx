@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: StateManager.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: StateManager.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef STATE_MANAGER_HXX
@@ -30,7 +30,7 @@ class OSystem;
   played back.
 
   @author  Stephen Anthony
-  @version $Id: StateManager.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: StateManager.hxx 3239 2015-12-29 19:22:46Z stephena $
 */
 class StateManager
 {
@@ -99,11 +99,6 @@ class StateManager
     void reset();
 
   private:
-    // Copy constructor and assignment operator not supported
-    StateManager(const StateManager&);
-    StateManager& operator = (const StateManager&);
-
-  private:
     enum Mode {
       kOffMode,
       kMoviePlaybackMode,
@@ -131,6 +126,14 @@ class StateManager
     // Serializer classes used to save/load the eventstream
     Serializer myMovieWriter;
     Serializer myMovieReader;
+
+  private:
+    // Following constructors and assignment operators not supported
+    StateManager() = delete;
+    StateManager(const StateManager&) = delete;
+    StateManager(StateManager&&) = delete;
+    StateManager& operator=(const StateManager&) = delete;
+    StateManager& operator=(StateManager&&) = delete;
 };
 
 #endif

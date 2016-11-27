@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4A50.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart4A50.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "M6532.hxx"
@@ -28,7 +26,15 @@
 Cartridge4A50::Cartridge4A50(const uInt8* image, uInt32 size,
                              const Settings& settings)
   : Cartridge(settings),
-    mySize(size)
+    mySize(size),
+    mySliceLow(0),
+    mySliceMiddle(0),
+    mySliceHigh(0),
+    myIsRomLow(true),
+    myIsRomMiddle(true),
+    myIsRomHigh(true),
+    myLastAddress(0),
+    myLastData(0)
 {
   // Copy the ROM image into my buffer
   // Supported file sizes are 32/64/128K, which are duplicated if necessary
@@ -49,19 +55,9 @@ Cartridge4A50::Cartridge4A50(const uInt8* image, uInt32 size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge4A50::~Cartridge4A50()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge4A50::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 32768; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 32768);
+  initializeRAM(myRAM, 32768);
 
   mySliceLow = mySliceMiddle = mySliceHigh = 0;
   myIsRomLow = myIsRomMiddle = myIsRomHigh = true;
@@ -193,7 +189,7 @@ bool Cartridge4A50::poke(uInt16 address, uInt8 value)
   myLastAddress = address & 0x1fff;
 
   return myBankChanged;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Cartridge4A50::getAccessFlags(uInt16 address) const
@@ -359,7 +355,7 @@ bool Cartridge4A50::patch(uInt16 address, uInt8 value)
     myImage[(address & 0xff) + 0x1ff00] = value;
   }
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge4A50::getImage(int& size) const

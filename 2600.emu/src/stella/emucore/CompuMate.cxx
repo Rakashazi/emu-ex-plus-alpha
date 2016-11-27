@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CompuMate.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CompuMate.cxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #include "Control.hxx"
@@ -25,7 +25,9 @@
 CompuMate::CompuMate(const Console& console, const Event& event,
                      const System& system)
   : myConsole(console),
-    myEvent(event)
+    myEvent(event),
+    myColumn(0),
+    myKeyTable(nullptr)
 {
   // These controller pointers will be retrieved by the Console, which will
   // also take ownership of them
@@ -74,7 +76,7 @@ void CompuMate::update()
   rp.myDigitalPinState[Controller::Three] = true;
   rp.myDigitalPinState[Controller::Four] = true;
 
-  switch(myColumn)
+  switch(myColumn)  // This is updated outside the class
   {
     case 0:
       if (myKeyTable[KBDK_7]) lp.myDigitalPinState[Controller::Six] = false;

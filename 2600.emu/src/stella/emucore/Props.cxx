@@ -8,19 +8,18 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Props.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Props.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #include <cctype>
 #include <algorithm>
 #include <sstream>
-#include <iostream>
 
 #include "bspf.hxx"
 #include "Props.hxx"
@@ -38,27 +37,18 @@ Properties::Properties(const Properties& properties)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const string& Properties::get(PropertyType key) const
-{
-  if(key >= 0 && key < LastPropType)
-    return myProperties[key];
-  else
-    return EmptyString;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Properties::set(PropertyType key, const string& value)
 {
-  if(key >= 0 && key < LastPropType)
+  if(key != LastPropType)
   {
     myProperties[key] = value;
+    if(BSPF::equalsIgnoreCase(myProperties[key], "AUTO-DETECT"))
+      myProperties[key] = "AUTO";
 
     switch(key)
     {
       case Cartridge_Type:
       case Display_Format:
-        if(BSPF_equalsIgnoreCase(myProperties[key], "AUTO-DETECT"))
-          myProperties[key] = "AUTO";
       case Cartridge_Sound:
       case Console_LeftDifficulty:
       case Console_RightDifficulty:
@@ -71,7 +61,7 @@ void Properties::set(PropertyType key, const string& value)
       case Display_Phosphor:
       {
         transform(myProperties[key].begin(), myProperties[key].end(),
-                  myProperties[key].begin(), (int(*)(int)) toupper);
+                  myProperties[key].begin(), ::toupper);
         break;
       }
 
@@ -92,52 +82,54 @@ void Properties::set(PropertyType key, const string& value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Properties::load(istream& in)
+istream& operator>>(istream& is, Properties& p)
 {
-  setDefaults();
+  p.setDefaults();
 
   // Loop reading properties
   string key, value;
   for(;;)
   {
     // Get the key associated with this property
-    key = readQuotedString(in);
+    key = p.readQuotedString(is);
 
     // Make sure the stream is still okay
-    if(!in)
-      return;
+    if(!is)
+      return is;
 
     // A null key signifies the end of the property list
     if(key == "")
       break;
 
     // Get the value associated with this property
-    value = readQuotedString(in);
+    value = p.readQuotedString(is);
 
     // Make sure the stream is still okay
-    if(!in)
-      return;
+    if(!is)
+      return is;
 
     // Set the property 
-    PropertyType type = getPropertyType(key);
-    set(type, value);
+    PropertyType type = Properties::getPropertyType(key);
+    p.set(type, value);
   }
+
+  return is;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Properties::save(ostream& out) const
+ostream& operator<<(ostream& os, const Properties& p)
 {
   // Write out each of the key and value pairs
   bool changed = false;
   for(int i = 0; i < LastPropType; ++i)
   {
     // Try to save some space by only saving the items that differ from default
-    if(myProperties[i] != ourDefaultProperties[i])
+    if(p.myProperties[i] != Properties::ourDefaultProperties[i])
     {
-      writeQuotedString(out, ourPropertyNames[i]);
-      out.put(' ');
-      writeQuotedString(out, myProperties[i]);
-      out.put('\n');
+      p.writeQuotedString(os, Properties::ourPropertyNames[i]);
+      os.put(' ');
+      p.writeQuotedString(os, p.myProperties[i]);
+      os.put('\n');
       changed = true;
     }
   }
@@ -145,23 +137,22 @@ void Properties::save(ostream& out) const
   if(changed)
   {
     // Put a trailing null string so we know when to stop reading
-    writeQuotedString(out, "");
-    out.put('\n');
-    out.put('\n');
+    p.writeQuotedString(os, "");
+    os.put('\n');
+    os.put('\n');
   }
+
+  return os;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Properties::readQuotedString(istream& in)
 {
-  char c;
-
   // Read characters until we see a quote
+  char c;
   while(in.get(c))
-  {
     if(c == '"')
       break;
-  }
 
   // Read characters until we see the close quote
   string s;
@@ -202,6 +193,22 @@ void Properties::writeQuotedString(ostream& out, const string& s)
       out.put(s[i]);
   }
   out.put('"');
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Properties::operator == (const Properties& properties) const
+{
+  for(int i = 0; i < LastPropType; ++i)
+    if(myProperties[i] != properties.myProperties[i])
+      return false;
+
+  return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Properties::operator != (const Properties& properties) const
+{
+  return !(*this == properties);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -264,7 +271,7 @@ PropertyType Properties::getPropertyType(const string& name)
 {
   for(int i = 0; i < LastPropType; ++i)
     if(ourPropertyNames[i] == name)
-      return (PropertyType)i;
+      return PropertyType(i);
 
   // Otherwise, indicate that the item wasn't found
   return LastPropType;

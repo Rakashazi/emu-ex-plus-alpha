@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASurface.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TIASurface.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef TIASURFACE_HXX
@@ -174,6 +174,14 @@ class TIASurface
 
     // Palette for phosphor rendering mode
     uInt32 myPhosphorPalette[256][256];
+
+  private:
+    // Following constructors and assignment operators not supported
+    TIASurface() = delete;
+    TIASurface(const TIASurface&) = delete;
+    TIASurface(TIASurface&&) = delete;
+    TIASurface& operator=(const TIASurface&) = delete;
+    TIASurface& operator=(TIASurface&&) = delete;
 };
 
 #endif

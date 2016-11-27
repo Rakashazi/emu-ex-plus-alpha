@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: PropsSet.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: PropsSet.hxx 3308 2016-05-24 16:55:45Z stephena $
 //============================================================================
 
 #ifndef PROPERTIES_SET_HXX
@@ -117,7 +117,7 @@ class PropertiesSet
     void print() const;
 
   private:
-    using PropsList = map<string, Properties>;
+    using PropsList = std::map<string, Properties>;
 
     // The properties read from an external 'stella.pro' file
     PropsList myExternalProps;
@@ -125,6 +125,14 @@ class PropertiesSet
     // The properties temporarily inserted by the program, which should
     // be discarded when the program ends
     PropsList myTempProps;
+
+  private:
+    // Following constructors and assignment operators not supported
+    PropertiesSet() = delete;
+    PropertiesSet(const PropertiesSet&) = delete;
+    PropertiesSet(PropertiesSet&&) = delete;
+    PropertiesSet& operator=(const PropertiesSet&) = delete;
+    PropertiesSet& operator=(PropertiesSet&&) = delete;
 };
 
 #endif

@@ -8,17 +8,16 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartMC.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartMC.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include <cassert>
-#include <cstring>
 
 #include "System.hxx"
 #include "CartMC.hxx"
@@ -47,19 +46,9 @@ CartridgeMC::CartridgeMC(const uInt8* image, uInt32 size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeMC::~CartridgeMC()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeMC::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 32768; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 32768);
+  initializeRAM(myRAM, 32768);
 
   myBankChanged = true;
 }
@@ -134,7 +123,7 @@ uInt8 CartridgeMC::peek(uInt16 address)
     if(block & 0x80)
     {
       // ROM access
-      return myImage[(uInt32)((block & 0x7F) << 10) + (address & 0x03FF)];
+      return myImage[uInt32((block & 0x7F) << 10) + (address & 0x03FF)];
     }
     else
     {
@@ -142,7 +131,7 @@ uInt8 CartridgeMC::peek(uInt16 address)
       if(address & 0x0200)
       {
         // Reading from the read port of the RAM block
-        return myRAM[(uInt32)((block & 0x3F) << 9) + (address & 0x01FF)];
+        return myRAM[uInt32((block & 0x3F) << 9) + (address & 0x01FF)];
       }
       else
       {
@@ -155,11 +144,11 @@ uInt8 CartridgeMC::peek(uInt16 address)
         else
         {
           triggerReadFromWritePort(peekAddress);
-          return myRAM[(uInt32)((block & 0x3F) << 9) + (address & 0x01FF)] = value;
+          return myRAM[uInt32((block & 0x3F) << 9) + (address & 0x01FF)] = value;
         }
       }
     }
-  }  
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -202,10 +191,10 @@ bool CartridgeMC::poke(uInt16 address, uInt8 value)
     if(!(block & 0x80) && !(address & 0x0200))
     {
       // Handle the write to RAM
-      myRAM[(uInt32)((block & 0x3F) << 9) + (address & 0x01FF)] = value;
+      myRAM[uInt32((block & 0x3F) << 9) + (address & 0x01FF)] = value;
       return true;
     }
-  }  
+  }
   return false;
 }
 
@@ -228,7 +217,7 @@ bool CartridgeMC::patch(uInt16 address, uInt8 value)
 {
   // TODO - add support for debugger
   return false;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeMC::getImage(int& size) const

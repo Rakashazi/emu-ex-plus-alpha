@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4A50.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart4A50.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE4A50_HXX
@@ -47,7 +47,7 @@ class System;
   have changed on every poke operation (for any RAM) or an actual bankswitch.
 
   @author  Eckhard Stolberg & Stephen Anthony
-  @version $Id: Cart4A50.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Cart4A50.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class Cartridge4A50 : public Cartridge
 {
@@ -62,17 +62,13 @@ class Cartridge4A50 : public Cartridge
       @param settings  A reference to the various settings (read-only)
     */
     Cartridge4A50(const uInt8* image, uInt32 size, const Settings& settings);
- 
-    /**
-      Destructor
-    */
-    virtual ~Cartridge4A50();
+    virtual ~Cartridge4A50() = default;
 
   public:
     /**
       Reset cartridge to its power-on state
     */
-    void reset();
+    void reset() override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -80,7 +76,7 @@ class Cartridge4A50 : public Cartridge
 
       @param system The system the device should install itself in
     */
-    void install(System& system);
+    void install(System& system) override;
 
     /**
       Patch the cartridge ROM.
@@ -89,7 +85,7 @@ class Cartridge4A50 : public Cartridge
       @param value    The value to place into the address
       @return    Success or failure of the patch operation
     */
-    bool patch(uInt16 address, uInt8 value);
+    bool patch(uInt16 address, uInt8 value) override;
 
     /**
       Access the internal ROM image for this cartridge.
@@ -97,7 +93,7 @@ class Cartridge4A50 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const;
+    const uInt8* getImage(int& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -105,7 +101,7 @@ class Cartridge4A50 : public Cartridge
       @param out  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Load the current state of this cart from the given Serializer.
@@ -113,14 +109,14 @@ class Cartridge4A50 : public Cartridge
       @param in  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
     /**
       Get a descriptor for the device name (used in error checking).
 
       @return The name of the object
     */
-    string name() const { return "Cartridge4A50"; }
+    string name() const override { return "Cartridge4A50"; }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -128,7 +124,7 @@ class Cartridge4A50 : public Cartridge
       of the cart.
     */
     CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
-        const GUI::Font& nfont, int x, int y, int w, int h)
+        const GUI::Font& nfont, int x, int y, int w, int h) override
     {
       return new Cartridge4A50Widget(boss, lfont, nfont, x, y, w, h, *this);
     }
@@ -140,7 +136,7 @@ class Cartridge4A50 : public Cartridge
 
       @return The byte at the specified address
     */
-    uInt8 peek(uInt16 address);
+    uInt8 peek(uInt16 address) override;
 
     /**
       Change the byte at the specified address to the given value
@@ -149,7 +145,7 @@ class Cartridge4A50 : public Cartridge
       @param value The value to be stored at the address
       @return  True if the poke changed the device address space, else false
     */
-    bool poke(uInt16 address, uInt8 value);
+    bool poke(uInt16 address, uInt8 value) override;
 
   private:
     /**
@@ -158,8 +154,8 @@ class Cartridge4A50 : public Cartridge
       @param address The address to modify
       @param flags A bitfield of DisasmType directives for the given address
     */
-    uInt8 getAccessFlags(uInt16 address) const;
-    void setAccessFlags(uInt16 address, uInt8 flags);
+    uInt8 getAccessFlags(uInt16 address) const override;
+    void setAccessFlags(uInt16 address, uInt8 flags) override;
 
     /**
       Check all possible hotspots
@@ -234,6 +230,14 @@ class Cartridge4A50 : public Cartridge
     // The previous address and data values (from peek and poke)
     uInt16 myLastAddress;
     uInt8 myLastData;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Cartridge4A50() = delete;
+    Cartridge4A50(const Cartridge4A50&) = delete;
+    Cartridge4A50(Cartridge4A50&&) = delete;
+    Cartridge4A50& operator=(const Cartridge4A50&) = delete;
+    Cartridge4A50& operator=(Cartridge4A50&&) = delete;
 };
 
 #endif

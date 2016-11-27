@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: AtariVox.cxx 3142 2015-01-24 16:28:06Z stephena $
+// $Id: AtariVox.cxx 3254 2016-01-23 18:16:09Z stephena $
 //============================================================================
 
 #include "MT24LC256.hxx"
@@ -27,7 +27,7 @@ AtariVox::AtariVox(Jack jack, const Event& event, const System& system,
                    const SerialPort& port, const string& portname,
                    const string& eepromfile)
   : Controller(jack, event, system, Controller::AtariVox),
-    mySerialPort((SerialPort&)port),
+    mySerialPort(const_cast<SerialPort&>(port)),
     myShiftCount(0),
     myShiftRegister(0),
     myLastDataWriteCycle(0)
@@ -43,11 +43,6 @@ AtariVox::AtariVox(Jack jack, const Event& event, const System& system,
   myDigitalPinState[Three] = myDigitalPinState[Four] = true;
 
   myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-AtariVox::~AtariVox()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -102,7 +97,7 @@ void AtariVox::write(DigitalPin pin, bool value)
 
     default:
       break;
-  } 
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -115,12 +110,7 @@ void AtariVox::clockDataIn(bool value)
 
   // If this is the first write this frame, or if it's been a long time
   // since the last write, start a new data byte.
-  if(cycle < myLastDataWriteCycle)
-  {
-    myShiftRegister = 0;
-    myShiftCount = 0;
-  }
-  else if(cycle > myLastDataWriteCycle + 1000)
+  if((cycle < myLastDataWriteCycle) || (cycle > myLastDataWriteCycle + 1000))
   {
     myShiftRegister = 0;
     myShiftCount = 0;
@@ -128,7 +118,7 @@ void AtariVox::clockDataIn(bool value)
 
   // If this is the first write this frame, or if it's been 62 cycles
   // since the last write, shift this bit into the current byte.
-  if(cycle < myLastDataWriteCycle || cycle >= myLastDataWriteCycle + 62)
+  if((cycle < myLastDataWriteCycle) || (cycle >= myLastDataWriteCycle + 62))
   {
     myShiftRegister >>= 1;
     myShiftRegister |= (value << 15);

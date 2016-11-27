@@ -13,8 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <stella/emucore/Console.hxx>
+
 #include "OSystem.hxx"
+#include <stella/emucore/Console.hxx>
 #include <emuframework/OptionView.hh>
 
 static constexpr uint TV_PHOSPHOR_AUTO = 2;

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Serializer.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Serializer.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef SERIALIZER_HXX
@@ -37,7 +37,7 @@
   method return.
 
   @author  Stephen Anthony
-  @version $Id: Serializer.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Serializer.hxx 3239 2015-12-29 19:22:46Z stephena $
 */
 class Serializer
 {
@@ -61,7 +61,7 @@ class Serializer
       Answers whether the serializer is currently initialized for reading
       and writing.
     */
-    bool valid() const;
+    explicit operator bool() const { return myStream != nullptr; }
 
     /**
       Resets the read/write location to the beginning of the stream.
@@ -189,7 +189,6 @@ class Serializer
   private:
     // The stream to send the serialized data to.
     unique_ptr<iostream> myStream;
-    bool myUseFilestream;
 
     enum {
       TruePattern  = 0xfe,
@@ -197,9 +196,11 @@ class Serializer
     };
 
   private:
-    // Copy constructor and assignment operator not supported
-    Serializer(const Serializer&);
-    Serializer& operator = (const Serializer&);
+    // Following constructors and assignment operators not supported
+    Serializer(const Serializer&) = delete;
+    Serializer(Serializer&&) = delete;
+    Serializer& operator=(const Serializer&) = delete;
+    Serializer& operator=(Serializer&&) = delete;
 };
 
 #endif

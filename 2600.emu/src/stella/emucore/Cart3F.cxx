@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3F.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart3F.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "TIA.hxx"
@@ -27,24 +25,18 @@
 Cartridge3F::Cartridge3F(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    myImage(nullptr),
-    mySize(size)
+    mySize(size),
+    myCurrentBank(0)
 {
   // Allocate array for the ROM image
-  myImage = new uInt8[mySize];
+  myImage = make_ptr<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, mySize);
+  memcpy(myImage.get(), image, mySize);
   createCodeAccessBase(mySize);
 
   // Remember startup bank
   myStartBank = 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge3F::~Cartridge3F()
-{
-  delete[] myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -103,9 +95,7 @@ bool Cartridge3F::poke(uInt16 address, uInt8 value)
 
   // Switch banks if necessary
   if(address <= 0x003F)
-  {
     bank(value);
-  }
 
   // Pass the poke through to the TIA. In a real Atari, both the cart and the
   // TIA see the address lines, and both react accordingly. In Stella, each
@@ -118,11 +108,12 @@ bool Cartridge3F::poke(uInt16 address, uInt8 value)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge3F::bank(uInt16 bank)
-{ 
-  if(bankLocked()) return false;
+{
+  if(bankLocked())
+    return false;
 
   // Make sure the bank they're asking for is reasonable
-  if(((uInt32)bank << 11) < mySize)
+  if((uInt32(bank) << 11) < mySize)
   {
     myCurrentBank = bank;
   }
@@ -172,13 +163,13 @@ bool Cartridge3F::patch(uInt16 address, uInt8 value)
     myImage[(address & 0x07FF) + mySize - 2048] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge3F::getImage(int& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

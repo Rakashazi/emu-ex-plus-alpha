@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3E.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart3E.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "TIA.hxx"
@@ -27,14 +25,14 @@
 Cartridge3E::Cartridge3E(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    myImage(nullptr),
-    mySize(size)
+    mySize(size),
+    myCurrentBank(0)
 {
   // Allocate array for the ROM image
-  myImage = new uInt8[mySize];
+  myImage = make_ptr<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, mySize);
+  memcpy(myImage.get(), image, mySize);
   createCodeAccessBase(mySize + 32768);
 
   // Remember startup bank
@@ -42,20 +40,9 @@ Cartridge3E::Cartridge3E(const uInt8* image, uInt32 size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge3E::~Cartridge3E()
-{
-  delete[] myImage;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge3E::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 32768; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 32768);
+  initializeRAM(myRAM, 32768);
 
   // We'll map the startup bank into the first segment upon reset
   bank(myStartBank);
@@ -150,13 +137,13 @@ bool Cartridge3E::poke(uInt16 address, uInt8 value)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge3E::bank(uInt16 bank)
-{ 
+{
   if(bankLocked()) return false;
 
   if(bank < 256)
   {
     // Make sure the bank they're asking for is reasonable
-    if(((uInt32)bank << 11) < uInt32(mySize))
+    if((uInt32(bank) << 11) < mySize)
     {
       myCurrentBank = bank;
     }
@@ -248,13 +235,13 @@ bool Cartridge3E::patch(uInt16 address, uInt8 value)
     myImage[(address & 0x07FF) + mySize - 2048] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge3E::getImage(int& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

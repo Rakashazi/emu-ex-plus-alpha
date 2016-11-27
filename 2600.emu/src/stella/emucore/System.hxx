@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: System.hxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #ifndef SYSTEM_HXX
@@ -51,7 +51,7 @@ class NullDevice;
   6507 based system and 65536 (2^16) bytes for a 6502 based system.
 
   @author  Bradford W. Mott
-  @version $Id: System.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: System.hxx 3299 2016-04-02 20:46:02Z stephena $
 */
 class System : public Serializable
 {
@@ -62,23 +62,19 @@ class System : public Serializable
     */
     System(const OSystem& osystem, M6502& m6502, M6532& m6532,
            TIA& mTIA, Cartridge& mCart);
-
-    /**
-      Destructor
-    */
-    virtual ~System();
+    virtual ~System() = default;
 
     // Mask to apply to an address before accessing memory
-    static const uInt16 ADDRESS_MASK = (1 << 13) - 1;
+    static constexpr uInt16 ADDRESS_MASK = (1 << 13) - 1;
 
     // Amount to shift an address by to determine what page it's on
-    static const uInt16 PAGE_SHIFT = 6;
+    static constexpr uInt16 PAGE_SHIFT = 6;
 
     // Mask to apply to an address to obtain its page offset
-    static const uInt16 PAGE_MASK = (1 << PAGE_SHIFT) - 1;
- 
+    static constexpr uInt16 PAGE_MASK = (1 << PAGE_SHIFT) - 1;
+
     // Number of pages in the system
-    static const uInt16 NUM_PAGES = 1 << (13 - PAGE_SHIFT);
+    static constexpr uInt16 NUM_PAGES = 1 << (13 - PAGE_SHIFT);
 
   public:
     /**
@@ -301,16 +297,16 @@ class System : public Serializable
 
       // Constructors
       PageAccess()
-        : directPeekBase(0),
-          directPokeBase(0),
-          codeAccessBase(0),
-          device(0),
+        : directPeekBase(nullptr),
+          directPokeBase(nullptr),
+          codeAccessBase(nullptr),
+          device(nullptr),
           type(System::PA_READ) { }
 
       PageAccess(Device* dev, PageAccessType access)
-        : directPeekBase(0),
-          directPokeBase(0),
-          codeAccessBase(0),
+        : directPeekBase(nullptr),
+          directPokeBase(nullptr),
+          codeAccessBase(nullptr),
           device(dev),
           type(access) { }
     };
@@ -321,7 +317,9 @@ class System : public Serializable
       @param page The page accessing methods should be set for
       @param access The accessing methods to be used by the page
     */
-    void setPageAccess(uInt16 page, const PageAccess& access);
+    void setPageAccess(uInt16 page, const PageAccess& access) {
+      myPageAccessTable[page] = access;
+    }
 
     /**
       Get the page accessing method for the specified page.
@@ -329,22 +327,28 @@ class System : public Serializable
       @param page The page to get accessing methods for
       @return The accessing methods used by the page
     */
-    const PageAccess& getPageAccess(uInt16 page) const;
- 
+    const PageAccess& getPageAccess(uInt16 page) const {
+      return myPageAccessTable[page];
+    }
+
     /**
       Get the page type for the given address.
 
       @param addr  The address contained in the page in questions
       @return  The type of page that contains the given address
     */
-    System::PageAccessType getPageAccessType(uInt16 addr) const;
+    System::PageAccessType getPageAccessType(uInt16 addr) const {
+      return myPageAccessTable[(addr & ADDRESS_MASK) >> PAGE_SHIFT].type;
+    }
 
     /**
       Mark the page containing this address as being dirty.
 
       @param addr  Determines the page that is dirty
     */
-    void setDirtyPage(uInt16 addr);
+    void setDirtyPage(uInt16 addr) {
+      myPageIsDirtyTable[(addr & ADDRESS_MASK) >> PAGE_SHIFT] = true;
+    }
 
     /**
       Answer whether any pages in given range of addresses have been
@@ -366,7 +370,7 @@ class System : public Serializable
       @param out  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Load the current state of this system from the given Serializer.
@@ -374,14 +378,14 @@ class System : public Serializable
       @param in  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
     /**
       Get a descriptor for the device name (used in error checking).
 
       @return The name of the object
     */
-    string name() const { return "System"; }
+    string name() const override { return "System"; }
 
   private:
     const OSystem& myOSystem;
@@ -424,9 +428,12 @@ class System : public Serializable
     bool mySystemInAutodetect;
 
   private:
-    // Copy constructor and assignment operator not supported
-    System(const System&);
-    System& operator = (const System&);
+    // Following constructors and assignment operators not supported
+    System() = delete;
+    System(const System&) = delete;
+    System(System&&) = delete;
+    System& operator=(const System&) = delete;
+    System& operator=(System&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Random.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Random.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef RANDOM_HXX
@@ -31,7 +31,7 @@
   linear congruential generator.
 
   @author  Bradford W. Mott
-  @version $Id: Random.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Random.hxx 3239 2015-12-29 19:22:46Z stephena $
 */
 class Random
 {
@@ -47,7 +47,7 @@ class Random
     */
     void initSeed()
     {
-      myValue = (uInt32) myOSystem.getTicks();
+      myValue = uInt32(myOSystem.getTicks());
     }
 
     /**
@@ -66,6 +66,14 @@ class Random
 
     // Indicates the next random number
     uInt32 myValue;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Random() = delete;
+    Random(const Random&) = delete;
+    Random(Random&&) = delete;
+    Random& operator=(const Random&) = delete;
+    Random& operator=(Random&&) = delete;
 };
 
 #endif

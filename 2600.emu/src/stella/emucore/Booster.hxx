@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Booster.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Booster.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef BOOSTERGRIP_HXX
@@ -29,7 +29,7 @@
   on it (a booster and a trigger).
 
   @author  Bradford W. Mott
-  @version $Id: Booster.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Booster.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class BoosterGrip : public Controller
 {
@@ -42,18 +42,14 @@ class BoosterGrip : public Controller
       @param system The system using this controller
     */
     BoosterGrip(Jack jack, const Event& event, const System& system);
-
-    /**
-      Destructor
-    */
-    virtual ~BoosterGrip();
+    virtual ~BoosterGrip() = default;
 
   public:
     /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update();
+    void update() override;
 
     /**
       Determines how this controller will treat values received from the
@@ -72,7 +68,7 @@ class BoosterGrip : public Controller
       @return  Whether the controller supports using the mouse
     */
     bool setMouseControl(
-      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid) override;
 
   private:
     // Pre-compute the events we care about based on given port
@@ -83,6 +79,14 @@ class BoosterGrip : public Controller
 
     // Controller to emulate in normal mouse axis mode
     int myControlID;  
+
+  private:
+    // Following constructors and assignment operators not supported
+    BoosterGrip() = delete;
+    BoosterGrip(const BoosterGrip&) = delete;
+    BoosterGrip(BoosterGrip&&) = delete;
+    BoosterGrip& operator=(const BoosterGrip&) = delete;
+    BoosterGrip& operator=(BoosterGrip&&) = delete;
 };
 
 #endif

@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartCV.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartCV.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "CartCV.hxx"
@@ -26,7 +24,6 @@
 CartridgeCV::CartridgeCV(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    myInitialRAM(nullptr),
     mySize(size)
 {
   if(mySize == 2048)
@@ -43,16 +40,10 @@ CartridgeCV::CartridgeCV(const uInt8* image, uInt32 size,
     memcpy(myImage, image + 2048, 2048);
 
     // Copy the RAM image into a buffer for use in reset()
-    myInitialRAM = new uInt8[1024];
-    memcpy(myInitialRAM, image, 1024);
+    myInitialRAM = make_ptr<uInt8[]>(1024);
+    memcpy(myInitialRAM.get(), image, 1024);
   }
   createCodeAccessBase(2048+1024);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeCV::~CartridgeCV()
-{
-  delete[] myInitialRAM;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -61,17 +52,10 @@ void CartridgeCV::reset()
   if(myInitialRAM)
   {
     // Copy the RAM image into my buffer
-    memcpy(myRAM, myInitialRAM, 1024);
+    memcpy(myRAM, myInitialRAM.get(), 1024);
   }
   else
-  {
-    // Initialize RAM
-    if(mySettings.getBool("ramrandom"))
-      for(uInt32 i = 0; i < 1024; ++i)
-        myRAM[i] = mySystem->randGenerator().next();
-    else
-      memset(myRAM, 0, 1024);
-  }
+    initializeRAM(myRAM, 1024);
 
   myBankChanged = true;
 }
@@ -128,11 +112,9 @@ uInt8 CartridgeCV::peek(uInt16 address)
       triggerReadFromWritePort(address);
       return myRAM[address & 0x03FF] = value;
     }
-  }  
+  }
   else
-  {
     return myImage[address & 0x07FF];
-  }  
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -161,7 +143,7 @@ bool CartridgeCV::patch(uInt16 address, uInt8 value)
     myImage[address & 0x07FF] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeCV::getImage(int& size) const

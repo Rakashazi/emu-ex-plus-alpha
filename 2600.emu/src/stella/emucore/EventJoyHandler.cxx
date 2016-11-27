@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: EventJoyHandler.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: EventJoyHandler.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #include <sstream>
@@ -137,31 +137,31 @@ bool EventHandler::StellaJoystick::setMap(const string& mapString)
 
   // Parse axis/button/hat values
   getValues(items[1], map);
-  if((int)map.size() == numAxes * 2 * kNumModes)
+  if(int(map.size()) == numAxes * 2 * kNumModes)
   {
     // Fill the axes table with events
     auto event = map.begin();
     for(int m = 0; m < kNumModes; ++m)
       for(int a = 0; a < numAxes; ++a)
         for(int k = 0; k < 2; ++k)
-          axisTable[a][k][m] = (Event::Type) *event++;
+          axisTable[a][k][m] = Event::Type(*event++);
   }
   getValues(items[2], map);
-  if((int)map.size() == numButtons * kNumModes)
+  if(int(map.size()) == numButtons * kNumModes)
   {
     auto event = map.begin();
     for(int m = 0; m < kNumModes; ++m)
       for(int b = 0; b < numButtons; ++b)
-        btnTable[b][m] = (Event::Type) *event++;
+        btnTable[b][m] = Event::Type(*event++);
   }
   getValues(items[3], map);
-  if((int)map.size() == numHats * 4 * kNumModes)
+  if(int(map.size()) == numHats * 4 * kNumModes)
   {
     auto event = map.begin();
     for(int m = 0; m < kNumModes; ++m)
       for(int h = 0; h < numHats; ++h)
         for(int k = 0; k < 4; ++k)
-          hatTable[h][k][m] = (Event::Type) *event++;
+          hatTable[h][k][m] = Event::Type(*event++);
   }
 
   return true;
@@ -290,7 +290,7 @@ bool EventHandler::JoystickHandler::add(StellaJoystick* stick)
   // Figure out what type of joystick this is
   bool specialAdaptor = false;
 
-  if(BSPF_containsIgnoreCase(stick->name, "2600-daptor"))
+  if(BSPF::containsIgnoreCase(stick->name, "2600-daptor"))
   {
     // 2600-daptorII devices have 3 axes and 12 buttons, and the value of the z-axis
     // determines how those 12 buttons are used (not all buttons are used in all modes)
@@ -305,7 +305,7 @@ bool EventHandler::JoystickHandler::add(StellaJoystick* stick)
 
     specialAdaptor = true;
   }
-  else if(BSPF_containsIgnoreCase(stick->name, "Stelladaptor"))
+  else if(BSPF::containsIgnoreCase(stick->name, "Stelladaptor"))
   {
     stick->name = "Stelladaptor";
     specialAdaptor = true;
@@ -317,13 +317,9 @@ bool EventHandler::JoystickHandler::add(StellaJoystick* stick)
     // we append ' #x', where 'x' increases consecutively
     int count = 0;
     for(const auto& i: myDatabase)
-    {
-      if(BSPF_startsWithIgnoreCase(i.first, stick->name) && i.second.joy)
-      {
+      if(BSPF::startsWithIgnoreCase(i.first, stick->name) && i.second.joy)
         ++count;
-        break;
-      }
-    }
+
     if(count > 0)
     {
       ostringstream name;
@@ -415,14 +411,14 @@ void EventHandler::JoystickHandler::mapStelladaptors(const string& saport)
   // in setupJoysticks take care of that
   int saCount = 0;
   int saOrder[2] = { 1, 2 };
-  if(BSPF_equalsIgnoreCase(saport, "rl"))
+  if(BSPF::equalsIgnoreCase(saport, "rl"))
   {
     saOrder[0] = 2; saOrder[1] = 1;
   }
 
   for(auto& stick: mySticks)
   {
-    if(BSPF_startsWithIgnoreCase(stick.second->name, "Stelladaptor"))
+    if(BSPF::startsWithIgnoreCase(stick.second->name, "Stelladaptor"))
     {
       if(saOrder[saCount] == 1)
       {
@@ -436,7 +432,7 @@ void EventHandler::JoystickHandler::mapStelladaptors(const string& saport)
       }
       saCount++;
     }
-    else if(BSPF_startsWithIgnoreCase(stick.second->name, "2600-daptor"))
+    else if(BSPF::startsWithIgnoreCase(stick.second->name, "2600-daptor"))
     {
       if(saOrder[saCount] == 1)
       {

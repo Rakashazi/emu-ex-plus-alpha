@@ -4,6 +4,9 @@
 
 #include <stella/emucore/Event.hxx>
 
+class Console;
+class OSystem;
+
 enum MouseButton {
 	EVENT_LBUTTONDOWN,
 	EVENT_LBUTTONUP,
@@ -52,7 +55,7 @@ public:
 	Event myEvent{};
 	bool myAllowAllDirectionsFlag = false;
 
-	EventHandler() {}
+	EventHandler(OSystem& osystem) {}
 	Event& event() { return myEvent; }
 	void allowAllDirections(bool allow) { myAllowAllDirectionsFlag = allow; }
 };

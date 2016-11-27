@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Control.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Control.cxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #include <cassert>
@@ -84,11 +84,6 @@ Controller::Controller(Jack jack, const Event& event, const System& system,
       myName = "CompuMate";
       break;
   }
-}
- 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Controller::~Controller()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -163,8 +158,8 @@ bool Controller::load(Serializer& in)
     myDigitalPinState[Six]   = in.getBool();
 
     // Input the analog pins
-    myAnalogPinValue[Five] = (Int32) in.getInt();
-    myAnalogPinValue[Nine] = (Int32) in.getInt();
+    myAnalogPinValue[Five] = in.getInt();
+    myAnalogPinValue[Nine] = in.getInt();
   }
   catch(...)
   {
@@ -173,9 +168,3 @@ bool Controller::load(Serializer& in)
   }
   return true;
 }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const Int32 Controller::maximumResistance = 0x7FFFFFFF;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const Int32 Controller::minimumResistance = 0x00000000;

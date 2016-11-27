@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartAR.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartAR.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "M6502.hxx"
 #include "System.hxx"
@@ -27,17 +25,23 @@
 CartridgeAR::CartridgeAR(const uInt8* image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
-    mySize(BSPF_max(size, 8448u)),
-    myLoadImages(nullptr)
+    mySize(std::max(size, 8448u)),
+    myWriteEnabled(false),
+    myPower(true),
+    myPowerRomCycle(0),
+    myDataHoldRegister(0),
+    myNumberOfDistinctAccesses(0),
+    myWritePending(false),
+    myCurrentBank(0)
 {
   // Create a load image buffer and copy the given image
-  myLoadImages = new uInt8[mySize];
+  myLoadImages = make_ptr<uInt8[]>(mySize);
   myNumberOfLoadImages = mySize / 8448;
-  memcpy(myLoadImages, image, size);
+  memcpy(myLoadImages.get(), image, size);
 
   // Add header if image doesn't include it
   if(size < 8448)
-    memcpy(myLoadImages+8192, ourDefaultHeader, 256);
+    memcpy(myLoadImages.get()+8192, ourDefaultHeader, 256);
 
   // We use System::PageAccess.codeAccessBase, but don't allow its use
   // through a pointer, since the AR scheme doesn't support bankswitching
@@ -49,29 +53,20 @@ CartridgeAR::CartridgeAR(const uInt8* image, uInt32 size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeAR::~CartridgeAR()
-{
-  delete[] myLoadImages;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeAR::reset()
 {
   // Initialize RAM
 #if 0  // TODO - figure out actual behaviour of the real cart
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 6 * 1024; ++i)
-      myImage[i] = mySystem->randGenerator().next();
-  else
+  initializeRAM(myImage, 6*1024);
 #endif
     memset(myImage, 0, 6 * 1024);
 
   // Initialize SC BIOS ROM
   initializeROM();
 
+  myWriteEnabled = false;
   myPower = true;
   myPowerRomCycle = mySystem->cycles();
-  myWriteEnabled = false;
 
   myDataHoldRegister = 0;
   myNumberOfDistinctAccesses = 0;
@@ -371,7 +366,7 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
     if(myLoadImages[(image * 8448) + 8192 + 5] == load)
     {
       // Copy the load's header
-      memcpy(myHeader, myLoadImages + (image * 8448) + 8192, 256);
+      memcpy(myHeader, myLoadImages.get() + (image * 8448) + 8192, 256);
 
       // Verify the load's header 
       if(checksum(myHeader, 8) != 0x55)
@@ -385,7 +380,7 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
       {
         uInt32 bank = myHeader[16 + j] & 0x03;
         uInt32 page = (myHeader[16 + j] >> 2) & 0x07;
-        uInt8* src = myLoadImages + (image * 8448) + (j * 256);
+        uInt8* src = myLoadImages.get() + (image * 8448) + (j * 256);
         uInt8 sum = checksum(src, 256) + myHeader[16 + j] + myHeader[64 + j];
 
         if(!invalidPageChecksumSeen && (sum != 0x55))
@@ -443,13 +438,13 @@ bool CartridgeAR::patch(uInt16 address, uInt8 value)
 {
   // TODO - add support for debugger
   return false;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* CartridgeAR::getImage(int& size) const
 {
   size = mySize;
-  return myLoadImages;
+  return myLoadImages.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -470,7 +465,7 @@ bool CartridgeAR::save(Serializer& out) const
 
     // All of the 8448 byte loads associated with the game 
     // Note that the size of this array is myNumberOfLoadImages * 8448
-    out.putByteArray(myLoadImages, myNumberOfLoadImages * 8448);
+    out.putByteArray(myLoadImages.get(), myNumberOfLoadImages * 8448);
 
     // Indicates how many 8448 loads there are
     out.putByte(myNumberOfLoadImages);
@@ -521,7 +516,7 @@ bool CartridgeAR::load(Serializer& in)
 
     // All of the 8448 byte loads associated with the game 
     // Note that the size of this array is myNumberOfLoadImages * 8448
-    in.getByteArray(myLoadImages, myNumberOfLoadImages * 8448);
+    in.getByteArray(myLoadImages.get(), myNumberOfLoadImages * 8448);
 
     // Indicates how many 8448 loads there are
     myNumberOfLoadImages = in.getByte();
@@ -533,7 +528,7 @@ bool CartridgeAR::load(Serializer& in)
     myPower = in.getBool();
 
     // Indicates when the power was last turned on
-    myPowerRomCycle = (Int32) in.getInt();
+    myPowerRomCycle = in.getInt();
 
     // Data hold register used for writing
     myDataHoldRegister = in.getByte();

@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: NullDev.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: NullDev.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef NULLDEVICE_HXX
@@ -29,22 +29,15 @@ class System;
   Class that represents a "null" device.  The basic idea is that a
   null device is installed in a 6502 based system anywhere there are
   holes in the address space (i.e. no real device attached). 
- 
+
   @author  Bradford W. Mott
-  @version $Id: NullDev.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: NullDev.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class NullDevice : public Device
 {
   public:
-    /**
-      Create a new null device
-    */
-    NullDevice() { }
-
-    /**
-      Destructor
-    */
-    virtual ~NullDevice() { }
+    NullDevice() = default;
+    virtual ~NullDevice() = default;
 
   public:
     /**
@@ -53,12 +46,12 @@ class NullDevice : public Device
 
       @param system The system the device should install itself in
     */
-    void install(System& system) { mySystem = &system; }
+    void install(System& system) override { mySystem = &system; }
 
     /**
       Reset device to its power-on state
     */
-    void reset() { }
+    void reset() override { }
 
     /**
       Save the current state of this device to the given Serializer.
@@ -66,7 +59,7 @@ class NullDevice : public Device
       @param out  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool save(Serializer& out) const { return true; }
+    bool save(Serializer& out) const override { return true; }
 
     /**
       Load the current state of this device from the given Serializer.
@@ -74,14 +67,14 @@ class NullDevice : public Device
       @param in  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool load(Serializer& in) { return true; }
+    bool load(Serializer& in) override { return true; }
 
     /**
       Get a descriptor for the device name (used in error checking).
 
       @return The name of the object
     */
-    string name() const { return "NullDevice"; }
+    string name() const override { return "NullDevice"; }
 
   public:
     /**
@@ -89,8 +82,8 @@ class NullDevice : public Device
 
       @return The byte at the specified address
     */
-    uInt8 peek(uInt16 address) { 
-      cerr << hex << "NullDevice: peek(" << address << ")\n";
+    uInt8 peek(uInt16 address) override { 
+      cerr << "NullDevice: peek(" << address << ")\n";
       return 0;
     }
 
@@ -102,10 +95,17 @@ class NullDevice : public Device
 
       @return  True if the poke changed the device address space, else false
     */
-    bool poke(uInt16 address, uInt8 value) {
-      cerr << hex << "NullDevice: poke(" << address << "," << value << ")\n";
+    bool poke(uInt16 address, uInt8 value) override {
+      cerr << "NullDevice: poke(" << address << "," << value << ")\n";
       return false;
     }
+
+  private:
+    // Following constructors and assignment operators not supported
+    NullDevice(const NullDevice&) = delete;
+    NullDevice(NullDevice&&) = delete;
+    NullDevice& operator=(const NullDevice&) = delete;
+    NullDevice& operator=(NullDevice&&) = delete;
 };
 
 #endif

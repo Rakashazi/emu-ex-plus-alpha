@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MT24LC256.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: MT24LC256.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef MT24LC256_HXX
@@ -31,7 +31,7 @@ class System;
   (aka Supercat) for the bulk of this code.
 
   @author  Stephen Anthony & J. Payson
-  @version $Id: MT24LC256.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: MT24LC256.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class MT24LC256
 {
@@ -43,15 +43,11 @@ class MT24LC256
       @param system   The system using the controller of this device
     */
     MT24LC256(const string& filename, const System& system);
- 
-    /**
-      Destructor
-    */
     ~MT24LC256();
 
   public:
     /** Read boolean data from the SDA line */
-    bool readSDA() const;
+    bool readSDA() const { return jpee_mdat && jpee_sdat; }
 
     /** Write boolean data to the SDA and SCL lines */
     void writeSDA(bool state);
@@ -114,9 +110,12 @@ class MT24LC256
     uInt8 jpee_packet[70];
 
   private:
-    // Copy constructor and assignment operator not supported
-    MT24LC256(const MT24LC256&);
-    MT24LC256& operator = (const MT24LC256&);
+    // Following constructors and assignment operators not supported
+    MT24LC256() = delete;
+    MT24LC256(const MT24LC256&) = delete;
+    MT24LC256(MT24LC256&&) = delete;
+    MT24LC256& operator=(const MT24LC256&) = delete;
+    MT24LC256& operator=(MT24LC256&&) = delete;
 };
 
 #endif

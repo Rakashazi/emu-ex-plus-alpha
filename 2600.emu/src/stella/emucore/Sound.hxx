@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Sound.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Sound.hxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #ifndef SOUND_HXX
@@ -30,7 +30,7 @@ class OSystem;
   It has no functionality whatsoever.
 
   @author Stephen Anthony
-  @version $Id: Sound.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Sound.hxx 3310 2016-08-18 18:44:57Z stephena $
 */
 class Sound : public Serializable
 {
@@ -40,11 +40,7 @@ class Sound : public Serializable
       using the object.
     */
     Sound(OSystem& osystem) : myOSystem(osystem) { }
-
-    /**
-      Destructor
-    */
-    virtual ~Sound() { };
+    virtual ~Sound() = default;
 
   public: 
     /**
@@ -130,6 +126,14 @@ class Sound : public Serializable
   protected:
     // The OSystem for this sound object
     OSystem& myOSystem;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Sound() = delete;
+    Sound(const Sound&) = delete;
+    Sound(Sound&&) = delete;
+    Sound& operator=(const Sound&) = delete;
+    Sound& operator=(Sound&&) = delete;
 };
 
 #endif

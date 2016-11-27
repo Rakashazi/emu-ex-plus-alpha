@@ -8,13 +8,13 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: M6502.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: M6502.hxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #ifndef M6502_HXX
@@ -45,7 +45,7 @@ class Settings;
   effects and for games which are very time sensitive.
 
   @author  Bradford W. Mott
-  @version $Id: M6502.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: M6502.hxx 3299 2016-04-02 20:46:02Z stephena $
 */
 class M6502 : public Serializable
 {
@@ -58,11 +58,7 @@ class M6502 : public Serializable
       Create a new 6502 microprocessor.
     */
     M6502(const Settings& settings);
-
-    /**
-      Destructor
-    */
-    virtual ~M6502();
+    virtual ~M6502() = default;
 
   public:
     /**
@@ -177,7 +173,7 @@ class M6502 : public Serializable
       @param out The serializer device to save to.
       @return The result of the save.  True on success, false on failure.
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Loads the current state of this device from the given Serializer.
@@ -185,14 +181,14 @@ class M6502 : public Serializable
       @param in The Serializer device to load from.
       @return The result of the load.  True on success, false on failure.
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
     /**
       Get a null terminated string which is the processor's name (i.e. "M6532")
 
       @return The name of the device
     */
-    string name() const { return "M6502"; }
+    string name() const override { return "M6502"; }
 
 #ifdef DEBUGGER_SUPPORT
   public:
@@ -273,21 +269,6 @@ class M6502 : public Serializable
     void interruptHandler();
 
   private:
-    uInt8 A;    // Accumulator
-    uInt8 X;    // X index register
-    uInt8 Y;    // Y index register
-    uInt8 SP;   // Stack Pointer
-    uInt8 IR;   // Instruction register
-    uInt16 PC;  // Program Counter
-
-    bool N;     // N flag for processor status register
-    bool V;     // V flag for processor status register
-    bool B;     // B flag for processor status register
-    bool D;     // D flag for processor status register
-    bool I;     // I flag for processor status register
-    bool notZ;  // Z flag complement for processor status register
-    bool C;     // C flag for processor status register
-
     /** 
       Bit fields used to indicate that certain conditions need to be 
       handled such as stopping execution, fatal errors, maskable interrupts 
@@ -307,6 +288,21 @@ class M6502 : public Serializable
 
     /// Reference to the settings
     const Settings& mySettings;
+
+    uInt8 A;    // Accumulator
+    uInt8 X;    // X index register
+    uInt8 Y;    // Y index register
+    uInt8 SP;   // Stack Pointer
+    uInt8 IR;   // Instruction register
+    uInt16 PC;  // Program Counter
+
+    bool N;     // N flag for processor status register
+    bool V;     // V flag for processor status register
+    bool B;     // B flag for processor status register
+    bool D;     // D flag for processor status register
+    bool I;     // I flag for processor status register
+    bool notZ;  // Z flag complement for processor status register
+    bool C;     // C flag for processor status register
 
     /// Indicates if the last memory access was a read or not
     bool myLastAccessWasRead;
@@ -333,7 +329,7 @@ class M6502 : public Serializable
     uInt16 myDataAddressForPoke;
 
     /// Indicates the number of system cycles per processor cycle 
-    static const uInt32 SYSTEM_CYCLES_PER_CPU = 1;
+    static constexpr uInt32 SYSTEM_CYCLES_PER_CPU = 1;
 
 #ifdef DEBUGGER_SUPPORT
     Int32 evalCondBreaks() {
@@ -342,7 +338,7 @@ class M6502 : public Serializable
           return i;
 
       return -1; // no break hit
-    };
+    }
 
     /// Pointer to the debugger for this processor or the null pointer
     Debugger* myDebugger;
@@ -361,6 +357,14 @@ class M6502 : public Serializable
     vector<unique_ptr<Expression>> myBreakConds;
     StringList myBreakCondNames;
 #endif  // DEBUGGER_SUPPORT
+
+  private:
+    // Following constructors and assignment operators not supported
+    M6502() = delete;
+    M6502(const M6502&) = delete;
+    M6502(M6502&&) = delete;
+    M6502& operator=(const M6502&) = delete;
+    M6502& operator=(M6502&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MindLink.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: MindLink.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef MINDLINK_HXX
@@ -38,7 +38,7 @@
   addressable by DigitalPin number.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: MindLink.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: MindLink.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class MindLink : public Controller
 {
@@ -51,11 +51,7 @@ class MindLink : public Controller
       @param system The system using this controller
     */
     MindLink(Jack jack, const Event& event, const System& system);
-
-    /**
-      Destructor
-    */
-    virtual ~MindLink();
+    virtual ~MindLink() = default;
 
   public:
     /**
@@ -66,20 +62,20 @@ class MindLink : public Controller
       @param pin The pin of the controller jack to write to
       @param value The value to write to the pin
     */
-    void write(DigitalPin pin, bool value) { myDigitalPinState[pin] = value; }
+    void write(DigitalPin pin, bool value) override { myDigitalPinState[pin] = value; }
 
     /**
       Called after *all* digital pins have been written on Port A.
 
       @param value  The entire contents of the SWCHA register
     */
-    void controlWrite(uInt8) { nextMindlinkBit(); }
+    void controlWrite(uInt8) override { nextMindlinkBit(); }
 
     /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update();
+    void update() override;
 
     /**
       Determines how this controller will treat values received from the
@@ -98,7 +94,7 @@ class MindLink : public Controller
       @return  Whether the controller supports using the mouse
     */
     bool setMouseControl(
-      Controller::Type xtype, int xid, Controller::Type ytype, int yid);
+      Controller::Type xtype, int xid, Controller::Type ytype, int yid) override;
 
   private:
     void nextMindlinkBit();
@@ -113,6 +109,14 @@ class MindLink : public Controller
 
     // Whether to use the mouse to emulate this controller
     int myMouseEnabled;  
+
+  private:
+    // Following constructors and assignment operators not supported
+    MindLink() = delete;
+    MindLink(const MindLink&) = delete;
+    MindLink(MindLink&&) = delete;
+    MindLink& operator=(const MindLink&) = delete;
+    MindLink& operator=(MindLink&&) = delete;
 };
 
 #endif

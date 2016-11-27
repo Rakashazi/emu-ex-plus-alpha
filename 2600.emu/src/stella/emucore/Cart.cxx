@@ -8,24 +8,21 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cassert>
-#include <cstring>
-#include <sstream>
 
 #include "bspf.hxx"
 #include "Cart.hxx"
 #include "Cart0840.hxx"
 #include "Cart2K.hxx"
 #include "Cart3E.hxx"
+#include "Cart3EPlus.hxx"
 #include "Cart3F.hxx"
 #include "Cart4A50.hxx"
 #include "Cart4K.hxx"
@@ -34,6 +31,7 @@
 #include "CartCM.hxx"
 #include "CartCTY.hxx"
 #include "CartCV.hxx"
+#include "CartCVPlus.hxx"
 #include "CartDASH.hxx"
 #include "CartDPC.hxx"
 #include "CartDPCPlus.hxx"
@@ -70,11 +68,15 @@
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
-     string& dtype, string& id, const OSystem& osystem, Settings& settings)
+unique_ptr<Cartridge> Cartridge::create(const BytePtr& img, uInt32 size,
+    string& md5, string& dtype, string& id,
+    const OSystem& osystem, Settings& settings)
 {
-  Cartridge* cartridge = nullptr;
+  unique_ptr<Cartridge> cartridge;
   string type = dtype;
+
+  // The cartridge hierarchy uses raw pointers ...
+  const uInt8* image = img.get();
 
   // Collect some info about the ROM
   ostringstream buf;
@@ -181,91 +183,89 @@ Cartridge* Cartridge::create(const uInt8* image, uInt32 size, string& md5,
 
   // We should know the cart's type by now so let's create it
   if(type == "0840")
-    cartridge = new Cartridge0840(image, size, settings);
+    cartridge = make_ptr<Cartridge0840>(image, size, settings);
   else if(type == "2K")
-    cartridge = new Cartridge2K(image, size, settings);
+    cartridge = make_ptr<Cartridge2K>(image, size, settings);
   else if(type == "3E")
-    cartridge = new Cartridge3E(image, size, settings);
+    cartridge = make_ptr<Cartridge3E>(image, size, settings);
+  else if(type == "3E+")
+    cartridge = make_ptr<Cartridge3EPlus>(image, size, settings);
   else if(type == "3F")
-    cartridge = new Cartridge3F(image, size, settings);
+    cartridge = make_ptr<Cartridge3F>(image, size, settings);
   else if(type == "4A50")
-    cartridge = new Cartridge4A50(image, size, settings);
+    cartridge = make_ptr<Cartridge4A50>(image, size, settings);
   else if(type == "4K")
-    cartridge = new Cartridge4K(image, size, settings);
+    cartridge = make_ptr<Cartridge4K>(image, size, settings);
   else if(type == "4KSC")
-    cartridge = new Cartridge4KSC(image, size, settings);
+    cartridge = make_ptr<Cartridge4KSC>(image, size, settings);
   else if(type == "AR")
-    cartridge = new CartridgeAR(image, size, settings);
+    cartridge = make_ptr<CartridgeAR>(image, size, settings);
   else if(type == "CM")
-    cartridge = new CartridgeCM(image, size, settings);
+    cartridge = make_ptr<CartridgeCM>(image, size, settings);
   else if(type == "CTY")
-    cartridge = new CartridgeCTY(image, size, osystem);
+    cartridge = make_ptr<CartridgeCTY>(image, size, osystem);
   else if(type == "CV")
-    cartridge = new CartridgeCV(image, size, settings);
+    cartridge = make_ptr<CartridgeCV>(image, size, settings);
+  else if(type == "CV+")
+    cartridge = make_ptr<CartridgeCVPlus>(image, size, settings);
   else if(type == "DASH")
-    cartridge = new CartridgeDASH(image, size, settings);
+    cartridge = make_ptr<CartridgeDASH>(image, size, settings);
   else if(type == "DPC")
-    cartridge = new CartridgeDPC(image, size, settings);
+    cartridge = make_ptr<CartridgeDPC>(image, size, settings);
   else if(type == "DPC+")
-    cartridge = new CartridgeDPCPlus(image, size, settings);
+    cartridge = make_ptr<CartridgeDPCPlus>(image, size, settings);
   else if(type == "E0")
-    cartridge = new CartridgeE0(image, size, settings);
+    cartridge = make_ptr<CartridgeE0>(image, size, settings);
   else if(type == "E7")
-    cartridge = new CartridgeE7(image, size, settings);
+    cartridge = make_ptr<CartridgeE7>(image, size, settings);
   else if(type == "EF")
-    cartridge = new CartridgeEF(image, size, settings);
+    cartridge = make_ptr<CartridgeEF>(image, size, settings);
   else if(type == "EFSC")
-    cartridge = new CartridgeEFSC(image, size, settings);
+    cartridge = make_ptr<CartridgeEFSC>(image, size, settings);
   else if(type == "BF")
-    cartridge = new CartridgeBF(image, size, settings);
+    cartridge = make_ptr<CartridgeBF>(image, size, settings);
   else if(type == "BFSC")
-    cartridge = new CartridgeBFSC(image, size, settings);
+    cartridge = make_ptr<CartridgeBFSC>(image, size, settings);
   else if(type == "DF")
-    cartridge = new CartridgeDF(image, size, settings);
+    cartridge = make_ptr<CartridgeDF>(image, size, settings);
   else if(type == "DFSC")
-    cartridge = new CartridgeDFSC(image, size, settings);
+    cartridge = make_ptr<CartridgeDFSC>(image, size, settings);
   else if(type == "F0" || type == "MB")
-    cartridge = new CartridgeF0(image, size, settings);
+    cartridge = make_ptr<CartridgeF0>(image, size, settings);
   else if(type == "F4")
-    cartridge = new CartridgeF4(image, size, settings);
+    cartridge = make_ptr<CartridgeF4>(image, size, settings);
   else if(type == "F4SC")
-    cartridge = new CartridgeF4SC(image, size, settings);
+    cartridge = make_ptr<CartridgeF4SC>(image, size, settings);
   else if(type == "F6")
-    cartridge = new CartridgeF6(image, size, settings);
+    cartridge = make_ptr<CartridgeF6>(image, size, settings);
   else if(type == "F6SC")
-    cartridge = new CartridgeF6SC(image, size, settings);
+    cartridge = make_ptr<CartridgeF6SC>(image, size, settings);
   else if(type == "F8")
-    cartridge = new CartridgeF8(image, size, md5, settings);
+    cartridge = make_ptr<CartridgeF8>(image, size, md5, settings);
   else if(type == "F8SC")
-    cartridge = new CartridgeF8SC(image, size, settings);
+    cartridge = make_ptr<CartridgeF8SC>(image, size, settings);
   else if(type == "FA" || type == "FASC")
-    cartridge = new CartridgeFA(image, size, settings);
+    cartridge = make_ptr<CartridgeFA>(image, size, settings);
   else if(type == "FA2")
-    cartridge = new CartridgeFA2(image, size, osystem);
+    cartridge = make_ptr<CartridgeFA2>(image, size, osystem);
   else if(type == "FE")
-    cartridge = new CartridgeFE(image, size, settings);
+    cartridge = make_ptr<CartridgeFE>(image, size, settings);
   else if(type == "MC")
-    cartridge = new CartridgeMC(image, size, settings);
+    cartridge = make_ptr<CartridgeMC>(image, size, settings);
   else if(type == "MDM")
-    cartridge = new CartridgeMDM(image, size, settings);
+    cartridge = make_ptr<CartridgeMDM>(image, size, settings);
   else if(type == "UA")
-    cartridge = new CartridgeUA(image, size, settings);
+    cartridge = make_ptr<CartridgeUA>(image, size, settings);
   else if(type == "SB")
-    cartridge = new CartridgeSB(image, size, settings);
+    cartridge = make_ptr<CartridgeSB>(image, size, settings);
   else if(type == "WD")
-    cartridge = new CartridgeWD(image, size, settings);
+    cartridge = make_ptr<CartridgeWD>(image, size, settings);
   else if(type == "X07")
-    cartridge = new CartridgeX07(image, size, settings);
+    cartridge = make_ptr<CartridgeX07>(image, size, settings);
   else if(dtype == "WRONG_SIZE")
-  {
-    string err = "Invalid cart size for type '" + type + "'";
-    throw err.c_str();
-  }
+    throw runtime_error("Invalid cart size for type '" + type + "'");
   else
-  {
-    string err = "Invalid cart type '" + type + "'";
-    throw err.c_str();
-  }
+    throw runtime_error("Invalid cart type '" + type + "'");
 
   if(size < 1024)
     buf << " (" << size << "B) ";
@@ -286,7 +286,7 @@ string Cartridge::createFromMultiCart(const uInt8*& image, uInt32& size,
   image += i*size;
 
   // We need a new md5 and name
-  md5 = MD5(image, size);
+  md5 = MD5::hash(image, size);
   ostringstream buf;
   buf << " [G" << (i+1) << "]";
   id = buf.str();
@@ -311,13 +311,7 @@ Cartridge::Cartridge(const Settings& settings)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge::~Cartridge()
-{
-  delete[] myCodeAccessBase;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Cartridge::save(ofstream& out)
+bool Cartridge::saveROM(ofstream& out)
 {
   int size = -1;
 
@@ -328,7 +322,7 @@ bool Cartridge::save(ofstream& out)
     return false;
   }
 
-  out.write((const char*)image, size);
+  out.write(reinterpret_cast<const char*>(image), size);
 
   return true;
 }
@@ -360,11 +354,21 @@ void Cartridge::triggerReadFromWritePort(uInt16 address)
 void Cartridge::createCodeAccessBase(uInt32 size)
 {
 #ifdef DEBUGGER_SUPPORT
-  myCodeAccessBase = new uInt8[size];
-  memset(myCodeAccessBase, CartDebug::ROW, size);
+  myCodeAccessBase = make_ptr<uInt8[]>(size);
+  memset(myCodeAccessBase.get(), CartDebug::ROW, size);
 #else
   myCodeAccessBase = nullptr;
 #endif
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Cartridge::initializeRAM(uInt8* arr, uInt32 size, uInt8 val) const
+{
+  if(mySettings.getBool("ramrandom"))
+    for(uInt32 i = 0; i < size; ++i)
+      arr[i] = mySystem->randGenerator().next();
+  else
+    memset(arr, val, size);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -373,7 +377,11 @@ string Cartridge::autodetectType(const uInt8* image, uInt32 size)
   // Guess type based on size
   const char* type = nullptr;
 
-  if((size % 8448) == 0 || size == 6144)
+  if(isProbablyCVPlus(image,size))
+  {
+    type = "CV+";
+  }
+  else if((size % 8448) == 0 || size == 6144)
   {
     type = "AR";
   }
@@ -526,9 +534,11 @@ string Cartridge::autodetectType(const uInt8* image, uInt32 size)
       type = "4K";  // Most common bankswitching type
   }
 
-  // Variable sized ROM formats are independent of image size and comes last
+  // Variable sized ROM formats are independent of image size and come last
   if(isProbablyDASH(image, size))
     type = "DASH";
+  else if(isProbably3EPlus(image, size))
+    type = "3E+";
   else if(isProbablyMDM(image, size))
     type = "MDM";
 
@@ -650,6 +660,14 @@ bool Cartridge::isProbably3E(const uInt8* image, uInt32 size)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Cartridge::isProbably3EPlus(const uInt8* image, uInt32 size)
+{
+  // 3E+ cart is identified key 'TJ3E' in the ROM
+  uInt8 signature[] = { 'T', 'J', '3', 'E' };
+  return searchForBytes(image, size, signature, 4, 1);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge::isProbably3F(const uInt8* image, uInt32 size)
 {
   // 3F cart bankswitching is triggered by storing the bank number
@@ -700,6 +718,16 @@ bool Cartridge::isProbablyCV(const uInt8* image, uInt32 size)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Cartridge::isProbablyCVPlus(const uInt8* image, uInt32)
+{
+  // CV+ cart is identified key 'commavidplus' @ $04 in the ROM
+  // We inspect only this area to speed up the search
+  uInt8 signature[12] = { 'c', 'o', 'm', 'm', 'a', 'v', 'i', 'd',
+                          'p', 'l', 'u', 's' };
+  return searchForBytes(image+4, 24, signature, 12, 1);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge::isProbablyDASH(const uInt8* image, uInt32 size)
 {
   // DASH cart is identified key 'TJAD' in the ROM
@@ -725,14 +753,14 @@ bool Cartridge::isProbablyE0(const uInt8* image, uInt32 size)
   // Thanks to "stella@casperkitty.com" for this advice
   // These signatures are attributed to the MESS project
   uInt8 signature[8][3] = {
-   { 0x8D, 0xE0, 0x1F },  // STA $1FE0
-   { 0x8D, 0xE0, 0x5F },  // STA $5FE0
-   { 0x8D, 0xE9, 0xFF },  // STA $FFE9
-   { 0x0C, 0xE0, 0x1F },  // NOP $1FE0
-   { 0xAD, 0xE0, 0x1F },  // LDA $1FE0
-   { 0xAD, 0xE9, 0xFF },  // LDA $FFE9
-   { 0xAD, 0xED, 0xFF },  // LDA $FFED
-   { 0xAD, 0xF3, 0xBF }   // LDA $BFF3
+    { 0x8D, 0xE0, 0x1F },  // STA $1FE0
+    { 0x8D, 0xE0, 0x5F },  // STA $5FE0
+    { 0x8D, 0xE9, 0xFF },  // STA $FFE9
+    { 0x0C, 0xE0, 0x1F },  // NOP $1FE0
+    { 0xAD, 0xE0, 0x1F },  // LDA $1FE0
+    { 0xAD, 0xE9, 0xFF },  // LDA $FFE9
+    { 0xAD, 0xED, 0xFF },  // LDA $FFED
+    { 0xAD, 0xF3, 0xBF }   // LDA $BFF3
   };
   for(uInt32 i = 0; i < 8; ++i)
     if(searchForBytes(image, size, signature[i], 3, 1))
@@ -751,13 +779,13 @@ bool Cartridge::isProbablyE7(const uInt8* image, uInt32 size)
   // Thanks to "stella@casperkitty.com" for this advice
   // These signatures are attributed to the MESS project
   uInt8 signature[7][3] = {
-   { 0xAD, 0xE2, 0xFF },  // LDA $FFE2
-   { 0xAD, 0xE5, 0xFF },  // LDA $FFE5
-   { 0xAD, 0xE5, 0x1F },  // LDA $1FE5
-   { 0xAD, 0xE7, 0x1F },  // LDA $1FE7
-   { 0x0C, 0xE7, 0x1F },  // NOP $1FE7
-   { 0x8D, 0xE7, 0xFF },  // STA $FFE7
-   { 0x8D, 0xE7, 0x1F }   // STA $1FE7
+    { 0xAD, 0xE2, 0xFF },  // LDA $FFE2
+    { 0xAD, 0xE5, 0xFF },  // LDA $FFE5
+    { 0xAD, 0xE5, 0x1F },  // LDA $1FE5
+    { 0xAD, 0xE7, 0x1F },  // LDA $1FE7
+    { 0x0C, 0xE7, 0x1F },  // NOP $1FE7
+    { 0x8D, 0xE7, 0xFF },  // STA $FFE7
+    { 0x8D, 0xE7, 0x1F }   // STA $1FE7
   };
   for(uInt32 i = 0; i < 7; ++i)
     if(searchForBytes(image, size, signature[i], 3, 1))
@@ -819,7 +847,7 @@ bool Cartridge::isProbablyBF(const uInt8* image, uInt32 size, const char*& type)
 {
   // BF carts store strings 'BFBF' and 'BFSC' starting at address $FFF8
   // This signature is attributed to "RevEng" of AtariAge
-  uInt8 bf[] = { 'B', 'F', 'B', 'F' };
+  uInt8 bf[]   = { 'B', 'F', 'B', 'F' };
   uInt8 bfsc[] = { 'B', 'F', 'S', 'C' };
   if(searchForBytes(image+size-8, 8, bf, 4, 1))
   {
@@ -841,7 +869,7 @@ bool Cartridge::isProbablyDF(const uInt8* image, uInt32 size, const char*& type)
 
   // BF carts store strings 'DFDF' and 'DFSC' starting at address $FFF8
   // This signature is attributed to "RevEng" of AtariAge
-  uInt8 df[] = { 'D', 'F', 'D', 'F' };
+  uInt8 df[]   = { 'D', 'F', 'D', 'F' };
   uInt8 dfsc[] = { 'D', 'F', 'S', 'C' };
   if(searchForBytes(image+size-8, 8, df, 4, 1))
   {
@@ -895,9 +923,9 @@ bool Cartridge::isProbablyFE(const uInt8* image, uInt32 size)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge::isProbablyMDM(const uInt8* image, uInt32 size)
 {
-  // MDM cart is identified key 'MDMC' in the first 4K of ROM
+  // MDM cart is identified key 'MDMC' in the first 8K of ROM
   uInt8 signature[] = { 'M', 'D', 'M', 'C' };
-  return searchForBytes(image, 4096, signature, 4, 1);
+  return searchForBytes(image, 8192, signature, 4, 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -954,7 +982,7 @@ bool Cartridge::isProbablyX07(const uInt8* image, uInt32 size)
 string Cartridge::myAboutString= "";
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge::BankswitchType Cartridge::ourBSList[] = {
+Cartridge::BankswitchType Cartridge::ourBSList[ourNumBSTypes] = {
   { "AUTO",     "Auto-detect"                   },
   { "0840",     "0840 (8K ECONObank)"           },
   { "2IN1",     "2IN1 Multicart (4-32K)"        },
@@ -966,6 +994,7 @@ Cartridge::BankswitchType Cartridge::ourBSList[] = {
   { "128IN1",   "128IN1 Multicart (256/512K)"   },
   { "2K",       "2K (64-2048 bytes Atari)"      },
   { "3E",       "3E (32K Tigervision)"          },
+  { "3E+",      "3E+ (TJ modified DASH)"        },
   { "3F",       "3F (512K Tigervision)"         },
   { "4A50",     "4A50 (64K 4A50 + ram)"         },
   { "4K",       "4K (4K Atari)"                 },
@@ -973,8 +1002,10 @@ Cartridge::BankswitchType Cartridge::ourBSList[] = {
   { "AR",       "AR (Supercharger)"             },
   { "BF",       "BF (CPUWIZ 256K)"              },
   { "BFSC",     "BFSC (CPUWIZ 256K + ram)"      },
-  { "CV",       "CV (Commavid extra ram)"       },
   { "CM",       "CM (SpectraVideo CompuMate)"   },
+  { "CTY",      "CTY (CDW - Chetiry)"           },
+  { "CV",       "CV (Commavid extra ram)"       },
+  { "CV+",      "CV+ (Extended Commavid)"       },
   { "DASH",     "DASH (Experimental)"           },
   { "DF",       "DF (CPUWIZ 128K)"              },
   { "DFSC",     "DFSC (CPUWIZ 128K + ram)"      },

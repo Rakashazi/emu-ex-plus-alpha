@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: KidVid.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: KidVid.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef KIDVID_HXX
@@ -36,7 +36,7 @@
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: KidVid.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: KidVid.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class KidVid : public Controller
 {
@@ -51,10 +51,6 @@ class KidVid : public Controller
     */
     KidVid(Jack jack, const Event& event, const System& system, 
            const string& md5sum);
-
-    /**
-      Destructor
-    */
     virtual ~KidVid();
 
   public:
@@ -62,7 +58,7 @@ class KidVid : public Controller
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    void update();
+    void update() override;
 
   private:
     // Open/close a WAV sample file
@@ -109,6 +105,14 @@ class KidVid : public Controller
 
     static const uInt8 ourSongPositions[44+38+42+62+80+62];
     static const uInt32 ourSongStart[104];
+
+  private:
+    // Following constructors and assignment operators not supported
+    KidVid() = delete;
+    KidVid(const KidVid&) = delete;
+    KidVid(KidVid&&) = delete;
+    KidVid& operator=(const KidVid&) = delete;
+    KidVid& operator=(KidVid&&) = delete;
 };
 
 #endif

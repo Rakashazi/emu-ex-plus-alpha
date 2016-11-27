@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Variant.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Variant.hxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #ifndef VARIANT_HXX
@@ -44,33 +44,32 @@ class Variant
     }
 
   public:
-    Variant() : data("") { }
+    Variant() { }
 
     Variant(const string& s) : data(s) { }
     Variant(const char* s) : data(s) { }
 
-    Variant(Int32 i) { buf().str(""); buf() << i; data = buf().str(); }
+    Variant(Int32 i)  { buf().str(""); buf() << i; data = buf().str(); }
     Variant(uInt32 i) { buf().str(""); buf() << i; data = buf().str(); }
-    Variant(float f) { buf().str(""); buf() << f; data = buf().str(); }
+    Variant(float f)  { buf().str(""); buf() << f; data = buf().str(); }
     Variant(double d) { buf().str(""); buf() << d; data = buf().str(); }
-    Variant(bool b) { buf().str(""); buf() << b; data = buf().str(); }
+    Variant(bool b)   { buf().str(""); buf() << b; data = buf().str(); }
     Variant(const GUI::Size& s) { buf().str(""); buf() << s; data = buf().str(); }
 
     // Conversion methods
-    const string& toString() const { return data; }
-    const char* toCString() const { return data.c_str(); }
-    Int32 toInt() const { return atoi(data.c_str()); }
-    float toFloat() const { return atof(data.c_str()); }
-    bool toBool() const { return data == "1" || data == "true"; }
-    const GUI::Size toSize() const { return GUI::Size(data); }
+    const string& toString() const { return data;                          }
+    const char* toCString() const  { return data.c_str();                  }
+    Int32 toInt() const      { return atoi(data.c_str());            }
+    float toFloat() const    { return float(atof(data.c_str()));     }
+    bool toBool() const      { return data == "1" || data == "true"; }
+    const GUI::Size toSize() const { return GUI::Size(data);               }
 
     // Comparison
-    bool operator==(const Variant& v) const { return data == v.data; };
-    bool operator!=(const Variant& v) const { return data != v.data; };
+    bool operator==(const Variant& v) const { return data == v.data; }
+    bool operator!=(const Variant& v) const { return data != v.data; }
 
     friend ostream& operator<<(ostream& os, const Variant& v) {
-      os << v.data;
-      return os;
+      return os << v.data;
     }
 };
 
@@ -78,7 +77,7 @@ class Variant
 static const Variant EmptyVariant;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-using VariantList = vector<pair<string,Variant>>;
+using VariantList = vector<std::pair<string,Variant>>;
 
 namespace VarList {
   inline void push_back(VariantList& list, const Variant& name,
@@ -86,7 +85,7 @@ namespace VarList {
   {
     list.emplace_back(name.toString(), tag);
   }
-};
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const VariantList EmptyVarList;

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart3E.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart3E.hxx 3311 2016-08-21 21:37:06Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE3E_HXX
@@ -61,7 +61,7 @@ class System;
   any problems. (Famous last words...)
 
   @author  B. Watson
-  @version $Id: Cart3E.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: Cart3E.hxx 3311 2016-08-21 21:37:06Z stephena $
 */
 
 class Cartridge3E : public Cartridge
@@ -77,17 +77,13 @@ class Cartridge3E : public Cartridge
       @param settings  A reference to the various settings (read-only)
     */
     Cartridge3E(const uInt8* image, uInt32 size, const Settings& settings);
- 
-    /**
-      Destructor
-    */
-    virtual ~Cartridge3E();
+    virtual ~Cartridge3E() = default;
 
   public:
     /**
       Reset device to its power-on state
     */
-    void reset();
+    void reset() override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -95,24 +91,24 @@ class Cartridge3E : public Cartridge
 
       @param system The system the device should install itself in
     */
-    void install(System& system);
+    void install(System& system) override;
 
     /**
       Install pages for the specified bank in the system.
 
       @param bank The bank that should be installed in the system
     */
-    bool bank(uInt16 bank);
+    bool bank(uInt16 bank) override;
 
     /**
       Get the current bank.
     */
-    uInt16 getBank() const;
+    uInt16 getBank() const override;
 
     /**
       Query the number of banks supported by the cartridge.
     */
-    uInt16 bankCount() const;
+    uInt16 bankCount() const override;
 
     /**
       Patch the cartridge ROM.
@@ -121,7 +117,7 @@ class Cartridge3E : public Cartridge
       @param value    The value to place into the address
       @return    Success or failure of the patch operation
     */
-    bool patch(uInt16 address, uInt8 value);
+    bool patch(uInt16 address, uInt8 value) override;
 
     /**
       Access the internal ROM image for this cartridge.
@@ -129,7 +125,7 @@ class Cartridge3E : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const;
+    const uInt8* getImage(int& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -137,7 +133,7 @@ class Cartridge3E : public Cartridge
       @param out  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool save(Serializer& out) const;
+    bool save(Serializer& out) const override;
 
     /**
       Load the current state of this cart from the given Serializer.
@@ -145,14 +141,14 @@ class Cartridge3E : public Cartridge
       @param in  The Serializer object to use
       @return  False on any errors, else true
     */
-    bool load(Serializer& in);
+    bool load(Serializer& in) override;
 
     /**
       Get a descriptor for the device name (used in error checking).
 
       @return The name of the object
     */
-    string name() const { return "Cartridge3E"; }
+    string name() const override { return "Cartridge3E"; }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -160,7 +156,7 @@ class Cartridge3E : public Cartridge
       of the cart.
     */
     CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
-        const GUI::Font& nfont, int x, int y, int w, int h)
+        const GUI::Font& nfont, int x, int y, int w, int h) override
     {
       return new Cartridge3EWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
@@ -172,7 +168,7 @@ class Cartridge3E : public Cartridge
 
       @return The byte at the specified address
     */
-    uInt8 peek(uInt16 address);
+    uInt8 peek(uInt16 address) override;
 
     /**
       Change the byte at the specified address to the given value
@@ -181,20 +177,28 @@ class Cartridge3E : public Cartridge
       @param value The value to be stored at the address
       @return  True if the poke changed the device address space, else false
     */
-    bool poke(uInt16 address, uInt8 value);
+    bool poke(uInt16 address, uInt8 value) override;
 
   private:
-    // Indicates which bank is currently active for the first segment
-    uInt16 myCurrentBank;
-
     // Pointer to a dynamically allocated ROM image of the cartridge
-    uInt8* myImage;
+    BytePtr myImage;
 
     // RAM contents. For now every ROM gets all 32K of potential RAM
     uInt8 myRAM[32 * 1024];
 
     // Size of the ROM image
     uInt32 mySize;
+
+    // Indicates which bank is currently active for the first segment
+    uInt16 myCurrentBank;
+
+  private:
+    // Following constructors and assignment operators not supported
+    Cartridge3E() = delete;
+    Cartridge3E(const Cartridge3E&) = delete;
+    Cartridge3E(Cartridge3E&&) = delete;
+    Cartridge3E& operator=(const Cartridge3E&) = delete;
+    Cartridge3E& operator=(Cartridge3E&&) = delete;
 };
 
 #endif

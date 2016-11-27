@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: KidVid.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: KidVid.cxx 3244 2015-12-30 19:07:11Z stephena $
 //============================================================================
 
 #include <cstdlib>
@@ -26,8 +26,16 @@ KidVid::KidVid(Jack jack, const Event& event, const System& system,
                const string& rommd5)
   : Controller(jack, event, system, Controller::KidVid),
     myEnabled(myJack == Right),
+    mySampleFile(nullptr),
+    mySharedSampleFile(nullptr),
     myFileOpened(false),
+    myTapeBusy(false),
+    myFilePointer(0),
     mySongCounter(0),
+    myBeep(false),
+    mySharedData(false),
+    mySampleByte(0),
+    myGame(0),
     myTape(0),
     myIdx(0),
     myBlock(0),
@@ -188,7 +196,7 @@ cerr << "opened file: " << kvNameTable[i] << endl;
       else
       {
 cerr << "opened file: " << "kvshared.wav" << endl;
-        fseek(mySampleFile, 45, SEEK_SET);
+//         fseek(mySampleFile, 45, SEEK_SET);
         myFileOpened = true;
       }
     }
@@ -223,10 +231,12 @@ void KidVid::setNextSong()
     mySharedData = (temp < 10);
     mySongCounter = ourSongStart[temp+1] - ourSongStart[temp];
 
+#if 0
     if(mySharedData)
-      fseek(mySharedSampleFile, ourSongStart[temp], SEEK_SET);
+      ; // fseek(mySharedSampleFile, ourSongStart[temp], SEEK_SET);
     else
-      fseek(mySampleFile, ourSongStart[temp], SEEK_SET);
+      ; // fseek(mySampleFile, ourSongStart[temp], SEEK_SET);
+#endif
 
     myFilePointer++;
     myTapeBusy = true;
@@ -242,10 +252,10 @@ void KidVid::setNextSong()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void KidVid::getNextSampleByte()
 {
-#if 1
-  static int oddeven = 0;
+//  static int oddeven = 0;
   if(mySongCounter == 0)
     mySampleByte = 0x80;
+#if 0
   else
   {
     oddeven = oddeven^1;

@@ -8,16 +8,17 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: System.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: System.cxx 3240 2015-12-29 21:28:10Z stephena $
 //============================================================================
 
 #include <cassert>
+#include <iostream>
 
 #include "Device.hxx"
 #include "M6502.hxx"
@@ -52,11 +53,6 @@ System::System(const OSystem& osystem, M6502& m6502, M6532& m6532,
 
   // Bus starts out unlocked (in other words, peek() changes myDataBusState)
   myDataBusLocked = false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-System::~System()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,39 +94,6 @@ void System::resetCycles()
 
   // Now, we reset cycle count to zero
   myCycles = 0;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void System::setPageAccess(uInt16 page, const PageAccess& access)
-{
-  // Make sure the page is within range
-  assert(page < NUM_PAGES);
-
-  // Make sure the access methods make sense
-  assert(access.device != 0);
-
-  myPageAccessTable[page] = access;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const System::PageAccess& System::getPageAccess(uInt16 page) const
-{
-  // Make sure the page is within range
-  assert(page < NUM_PAGES);
-
-  return myPageAccessTable[page];
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-System::PageAccessType System::getPageAccessType(uInt16 addr) const
-{
-  return myPageAccessTable[(addr & ADDRESS_MASK) >> PAGE_SHIFT].type;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void System::setDirtyPage(uInt16 addr)
-{
-  myPageIsDirtyTable[(addr & ADDRESS_MASK) >> PAGE_SHIFT] = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

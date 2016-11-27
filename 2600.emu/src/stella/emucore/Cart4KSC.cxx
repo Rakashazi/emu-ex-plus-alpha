@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart4KSC.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart4KSC.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "Cart4KSC.hxx"
@@ -27,24 +25,15 @@ Cartridge4KSC::Cartridge4KSC(const uInt8* image, uInt32 size, const Settings& se
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, BSPF_min(4096u, size));
+  memcpy(myImage, image, std::min(4096u, size));
   createCodeAccessBase(4096);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge4KSC::~Cartridge4KSC()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge4KSC::reset()
 {
-  // Initialize RAM
-  if(mySettings.getBool("ramrandom"))
-    for(uInt32 i = 0; i < 128; ++i)
-      myRAM[i] = mySystem->randGenerator().next();
-  else
-    memset(myRAM, 0, 128);
+  initializeRAM(myRAM, 128);
+
   myBankChanged = true;
 }
 
@@ -101,7 +90,7 @@ uInt8 Cartridge4KSC::peek(uInt16 address)
       triggerReadFromWritePort(peekAddress);
       return myRAM[address] = value;
     }
-  }  
+  }
   else
     return myImage[address & 0x0FFF];
 }
@@ -131,7 +120,7 @@ bool Cartridge4KSC::patch(uInt16 address, uInt8 value)
     myImage[address & 0xFFF] = value;
 
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge4KSC::getImage(int& size) const
@@ -146,7 +135,6 @@ bool Cartridge4KSC::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putShort(myCurrentBank);
     out.putByteArray(myRAM, 128);
   }
   catch(...)
@@ -166,7 +154,6 @@ bool Cartridge4KSC::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = in.getShort();
     in.getByteArray(myRAM, 128);
   }
   catch(...)
@@ -174,9 +161,6 @@ bool Cartridge4KSC::load(Serializer& in)
     cerr << "ERROR: Cartridge4KSC::load" << endl;
     return false;
   }
-
-  // Remember what bank we were in
-  bank(myCurrentBank);
 
   return true;
 }

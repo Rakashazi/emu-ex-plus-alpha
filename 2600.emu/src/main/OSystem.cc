@@ -28,7 +28,7 @@
 
 OSystem osystem{};
 static Random myRandom{osystem};
-static EventHandler myEventHandler{};
+static EventHandler myEventHandler{osystem};
 static SerialPort mySerialPort{};
 static FrameBuffer myFrameBuffer{};
 static PropertiesSet myPropSet{""};
@@ -75,20 +75,19 @@ SerialPort& OSystem::serialPort() const
 	return mySerialPort;
 }
 
-void OSystem::makeConsole(Cartridge* cart, const Properties& props)
+void OSystem::makeConsole(unique_ptr<Cartridge>& cart, const Properties& props)
 {
-	myConsole = new Console(*this, cart, props);
+	myConsole = std::make_unique<Console>(*this, cart, props);
 }
 
 void OSystem::deleteConsole()
 {
-	delete myConsole;
-	myConsole = nullptr;
+	myConsole = {};
 }
 
 std::string OSystem::stateDir() const
 {
-	return ".";
+	return EmuSystem::savePath();
 }
 
 std::string OSystem::nvramDir() const

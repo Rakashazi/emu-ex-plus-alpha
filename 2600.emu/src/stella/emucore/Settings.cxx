@@ -8,19 +8,18 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Settings.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Settings.cxx 3308 2016-05-24 16:55:45Z stephena $
 //============================================================================
 
 #include <cassert>
 #include <sstream>
 #include <fstream>
-#include <iostream>
 #include <algorithm>
 
 #include "bspf.hxx"
@@ -59,6 +58,8 @@ Settings::Settings(OSystem& osystem)
   setInternal("tv.filter", "0");
   setInternal("tv.scanlines", "25");
   setInternal("tv.scaninter", "true");
+  setInternal("tv.jitter", "false");
+  setInternal("tv.jitter_recovery", "10");
   // TV options when using 'custom' mode
   setInternal("tv.contrast", "0.0");
   setInternal("tv.brightness", "0.0");
@@ -85,9 +86,9 @@ Settings::Settings(OSystem& osystem)
   setInternal("joyallow4", "false");
   setInternal("usemouse", "analog");
   setInternal("grabmouse", "true");
-  setInternal("hidecursor", "false");
-  setInternal("dsense", "5");
-  setInternal("msense", "7");
+  setInternal("cursor", "2");
+  setInternal("dsense", "10");
+  setInternal("msense", "10");
   setInternal("saport", "lr");
   setInternal("ctrlcombo", "true");
 
@@ -156,17 +157,12 @@ Settings::Settings(OSystem& osystem)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Settings::~Settings()
-{
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Settings::loadConfig()
 {
   string line, key, value;
   string::size_type equalPos, garbage;
 
-  ifstream in(myOSystem.configFile().c_str());
+  ifstream in(myOSystem.configFile());
   if(!in || !in.is_open())
   {
     myOSystem.logMessage("ERROR: Couldn't load settings file", 0);
@@ -201,8 +197,6 @@ void Settings::loadConfig()
     if(int idx = getInternalPos(key) != -1)
       setInternal(key, value, idx, true);
   }
-
-  in.close();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -264,7 +258,7 @@ string Settings::loadCommandLine(int argc, char** argv)
       return key;
   }
 
-  return "";
+  return EmptyString;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -284,6 +278,9 @@ void Settings::validate()
   i = getInt("tv.filter");
   if(i < 0 || i > 5)  setInternal("tv.filter", "0");
 
+  i = getInt("tv.jitter_recovery");
+  if(i < 1 || i > 20)  setInternal("tv.jitter_recovery", "10");
+
 #ifdef SOUND_SUPPORT
   i = getInt("volume");
   if(i < 0 || i > 100)    setInternal("volume", "100");
@@ -296,16 +293,17 @@ void Settings::validate()
   if(i < 0)        setInternal("joydeadzone", "0");
   else if(i > 29)  setInternal("joydeadzone", "29");
 
-  if(i < 1)        setInternal("dsense", "1");
-  else if(i > 10)  setInternal("dsense", "10");
+  i = getInt("cursor");
+  if(i < 0 || i > 3)
+    setInternal("cursor", "2");
 
   i = getInt("dsense");
   if(i < 1)        setInternal("dsense", "1");
-  else if(i > 10)  setInternal("dsense", "10");
+  else if(i > 20)  setInternal("dsense", "10");
 
   i = getInt("msense");
   if(i < 1)        setInternal("msense", "1");
-  else if(i > 15)  setInternal("msense", "15");
+  else if(i > 20)  setInternal("msense", "15");
 
   i = getInt("ssinterval");
   if(i < 1)        setInternal("ssinterval", "2");
@@ -376,6 +374,8 @@ void Settings::usage() const
     << "  -tv.filter    <0-5>          Set TV effects off (0) or to specified mode (1-5)\n"
     << "  -tv.scanlines <0-100>        Set scanline intensity to percentage (0 disables completely)\n"
     << "  -tv.scaninter <1|0>          Enable interpolated (smooth) scanlines\n"
+    << "  -tv.jitter    <1|0>          Enable TV jitter effect\n"
+    << "  -tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
     << "  -tv.contrast    <value>      Set TV effects custom contrast to value 1.0 - 1.0\n"
     << "  -tv.brightness  <value>      Set TV effects custom brightness to value 1.0 - 1.0\n"
     << "  -tv.hue         <value>      Set TV effects custom hue to value 1.0 - 1.0\n"
@@ -396,9 +396,9 @@ void Settings::usage() const
     << "                 analog|\n"
     << "                 never>        Use mouse as a controller as specified by ROM properties in given mode(see manual)\n"
     << "  -grabmouse    <1|0>          Locks the mouse cursor in the TIA window\n"
-    << "  -hidecursor   <1|0>          Always hide the cursor, or show it when appropriate\n"
-    << "  -dsense       <number>       Sensitivity of digital emulated paddle movement (1-10)\n"
-    << "  -msense       <number>       Sensitivity of mouse emulated paddle movement (1-15)\n"
+    << "  -cursor       <0,1,2,3>      Set cursor state in UI/emulation modes\n"
+    << "  -dsense       <number>       Sensitivity of digital emulated paddle movement (1-20)\n"
+    << "  -msense       <number>       Sensitivity of mouse emulated paddle movement (1-20)\n"
     << "  -saport       <lr|rl>        How to assign virtual ports to multiple Stelladaptor/2600-daptors\n"
     << "  -ctrlcombo    <1|0>          Use key combos involving the Control key (Control-Q for quit may be disabled!)\n"
     << "  -autoslot     <1|0>          Automatically switch to next save slot when state saving\n"
@@ -472,7 +472,7 @@ void Settings::usage() const
     << "   -pp          <arg>          Sets the 'Display.Phosphor' property\n"
     << "   -ppblend     <arg>          Sets the 'Display.PPBlend' property\n"
   #endif
-    << endl << flush;
+    << endl << std::flush;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -515,7 +515,7 @@ void Settings::saveConfig()
   if(!settingsChanged)
     return;
 
-  ofstream out(myOSystem.configFile().c_str());
+  ofstream out(myOSystem.configFile());
   if(!out || !out.is_open())
   {
     myOSystem.logMessage("ERROR: Couldn't save settings file", 0);
@@ -540,8 +540,6 @@ void Settings::saveConfig()
   // Write out each of the key and value pairs
   for(const auto& s: myInternalSettings)
     out << s.key << " = " << s.value << endl;
-
-  out.close();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -570,7 +568,7 @@ int Settings::setInternal(const string& key, const Variant& value,
 {
   int idx = -1;
 
-  if(pos >= 0 && pos < (int)myInternalSettings.size() &&
+  if(pos >= 0 && pos < int(myInternalSettings.size()) &&
      myInternalSettings[pos].key == key)
   {
     idx = pos;
@@ -625,7 +623,7 @@ int Settings::setExternal(const string& key, const Variant& value,
 {
   int idx = -1;
 
-  if(pos >= 0 && pos < (int)myExternalSettings.size() &&
+  if(pos >= 0 && pos < int(myExternalSettings.size()) &&
      myExternalSettings[pos].key == key)
   {
     idx = pos;

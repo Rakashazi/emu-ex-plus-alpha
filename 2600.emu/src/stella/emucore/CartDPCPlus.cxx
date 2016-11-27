@@ -8,16 +8,14 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: CartDPCPlus.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: CartDPCPlus.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #ifdef DEBUGGER_SUPPORT
   #include "Debugger.hxx"
@@ -30,22 +28,22 @@
 CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
                                    const Settings& settings)
   : Cartridge(settings),
-    myImage(nullptr),
     myFastFetch(false),
     myLDAimmediate(false),
     myParameterPointer(0),
     mySystemCycles(0),
-    myFractionalClocks(0.0)
+    myFractionalClocks(0.0),
+    myCurrentBank(0)
 {
   // Store image, making sure it's at least 29KB
   uInt32 minsize = 4096 * 6 + 4096 + 1024 + 255;
-  mySize = BSPF_max(minsize, size);
-  myImage = new uInt8[mySize];
-  memcpy(myImage, image, size);
+  mySize = std::max(minsize, size);
+  myImage = make_ptr<uInt8[]>(mySize);
+  memcpy(myImage.get(), image, size);
   createCodeAccessBase(4096 * 6);
 
   // Pointer to the program ROM (24K @ 0 byte offset)
-  myProgramImage = myImage;
+  myProgramImage = myImage.get();
 
   // Pointer to the display RAM
   myDisplayImage = myDPCRAM + 0xC00;
@@ -61,19 +59,14 @@ CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
 #ifdef THUMB_SUPPORT
   // Create Thumbulator ARM emulator
   myThumbEmulator = make_ptr<Thumbulator>
-      ((uInt16*)(myProgramImage-0xC00), (uInt16*)myDPCRAM,
+      (reinterpret_cast<uInt16*>(myProgramImage-0xC00),
+       reinterpret_cast<uInt16*>(myDPCRAM),
        settings.getBool("thumb.trapfatal"));
 #endif
   setInitialState();
 
   // DPC+ always starts in bank 5
   myStartBank = 5;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeDPCPlus::~CartridgeDPCPlus()
-{
-  delete[] myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -143,7 +136,7 @@ inline void CartridgeDPCPlus::clockRandomNumberGenerator()
 inline void CartridgeDPCPlus::priorClockRandomNumberGenerator()
 {
   // Update random number generator (32-bit LFSR, reversed)
-  myRandomNumber = ((myRandomNumber & (1<<31)) ?
+  myRandomNumber = ((myRandomNumber & (1u<<31)) ?
     ((0x10adab1e^myRandomNumber) << 11) | ((0x10adab1e^myRandomNumber) >> 21) :
     (myRandomNumber << 11) | (myRandomNumber >> 21));
 }
@@ -157,8 +150,8 @@ inline void CartridgeDPCPlus::updateMusicModeDataFetchers()
 
   // Calculate the number of DPC OSC clocks since the last update
   double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
-  Int32 wholeClocks = (Int32)clocks;
-  myFractionalClocks = clocks - (double)wholeClocks;
+  Int32 wholeClocks = Int32(clocks);
+  myFractionalClocks = clocks - double(wholeClocks);
 
   if(wholeClocks <= 0)
   {
@@ -199,13 +192,13 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
       try {
         myThumbEmulator->run();
       }
-      catch(const string& error) {
+      catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
         {
       #ifdef DEBUGGER_SUPPORT
-          Debugger::debugger().startWithFatalError(error);
+          Debugger::debugger().startWithFatalError(e.what());
       #else
-          cout << error << endl;
+          cout << e.what() << endl;
       #endif
         }
       }
@@ -287,7 +280,7 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
                        myDisplayImage[(myMusicWaveforms[1] << 5) + (myMusicCounters[1] >> 27)] +
                        myDisplayImage[(myMusicWaveforms[2] << 5) + (myMusicCounters[2] >> 27)];
 
-            result = (uInt8)i;
+            result = uInt8(i);
             break;
           }
 
@@ -412,12 +405,12 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
     {
       //DFxFRACLOW - fractional data pointer low byte
       case 0x00:
-        myFractionalCounters[index] = (myFractionalCounters[index] & 0x0F0000) | ((uInt16)value << 8);
+        myFractionalCounters[index] = (myFractionalCounters[index] & 0x0F00FF) | (uInt16(value) << 8);
         break;
 
       // DFxFRACHI - fractional data pointer high byte
       case 0x01:
-        myFractionalCounters[index] = (((uInt16)value & 0x0F) << 16) | (myFractionalCounters[index] & 0x00ffff);
+        myFractionalCounters[index] = ((uInt16(value) & 0x0F) << 16) | (myFractionalCounters[index] & 0x00ffff);
         break;
 
       //DFxFRACINC - Fractional Increment amount
@@ -481,7 +474,7 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
       // DFxHI - data pointer high byte
       case 0x08:
       {
-        myCounters[index] = (((uInt16)value & 0x0F) << 8) | (myCounters[index] & 0x00ff);
+        myCounters[index] = ((uInt16(value) & 0x0F) << 8) | (myCounters[index] & 0x00ff);
         break;
       }
 
@@ -639,7 +632,7 @@ bool CartridgeDPCPlus::patch(uInt16 address, uInt8 value)
 const uInt8* CartridgeDPCPlus::getImage(int& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -690,7 +683,7 @@ bool CartridgeDPCPlus::save(Serializer& out) const
     out.putInt(myRandomNumber);
 
     out.putInt(mySystemCycles);
-    out.putInt((uInt32)(myFractionalClocks * 100000000.0));
+    out.putInt(uInt32(myFractionalClocks * 100000000.0));
   }
   catch(...)
   {
@@ -750,8 +743,8 @@ bool CartridgeDPCPlus::load(Serializer& in)
     myRandomNumber = in.getInt();
 
     // Get system cycles and fractional clocks
-    mySystemCycles = (Int32)in.getInt();
-    myFractionalClocks = (double)in.getInt() / 100000000.0;
+    mySystemCycles = in.getInt();
+    myFractionalClocks = double(in.getInt()) / 100000000.0;
   }
   catch(...)
   {

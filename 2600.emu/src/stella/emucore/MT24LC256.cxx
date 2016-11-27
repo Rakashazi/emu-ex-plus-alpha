@@ -8,18 +8,16 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: MT24LC256.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: MT24LC256.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
-#include <cassert>
 #include <cstdio>
-#include <cstring>
 #include <fstream>
 
 #include "System.hxx"
@@ -73,19 +71,17 @@ MT24LC256::MT24LC256(const string& filename, const System& system)
     jpee_ad_known(0)
 {
   // Load the data from an external file (if it exists)
-  ifstream in;
-  in.open(myDataFile.c_str(), ios_base::binary);
+  ifstream in(myDataFile, std::ios_base::binary);
   if(in.is_open())
   {
     // Get length of file; it must be 32768
-    in.seekg(0, ios::end);
-    if((int)in.tellg() == 32768)
+    in.seekg(0, std::ios::end);
+    if(uInt32(in.tellg()) == 32768u)
     {
-      in.seekg(0, ios::beg);
-      in.read((char*)myData, 32768);
+      in.seekg(0, std::ios::beg);
+      in.read(reinterpret_cast<char*>(myData), 32768);
       myDataFileExists = true;
     }
-    in.close();
   }
   else
     myDataFileExists = false;
@@ -93,27 +89,17 @@ MT24LC256::MT24LC256(const string& filename, const System& system)
   // Then initialize the I2C state
   jpee_init();
 }
- 
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MT24LC256::~MT24LC256()
 {
   // Save EEPROM data to external file only when necessary
   if(!myDataFileExists || myDataChanged)
   {
-    ofstream out;
-    out.open(myDataFile.c_str(), ios_base::binary);
+    ofstream out(myDataFile, std::ios_base::binary);
     if(out.is_open())
-    {
-      out.write((char*)myData, 32768);
-      out.close();
-    }
+      out.write(reinterpret_cast<char*>(myData), 32768);
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool MT24LC256::readSDA() const
-{
-  return jpee_mdat && jpee_sdat;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -270,7 +256,7 @@ void MT24LC256::jpee_clock_fall()
       {
         if (!jpee_pptr)
         {
-          jpee_packet[0] = (uInt8)jpee_nb;
+          jpee_packet[0] = uInt8(jpee_nb);
           if (jpee_smallmode && ((jpee_nb & 0xF0) == 0xA0))
           {
             jpee_packet[1] = (jpee_nb >> 1) & 7;
@@ -312,7 +298,7 @@ void MT24LC256::jpee_clock_fall()
       {
         if (!jpee_pptr)
         {
-          jpee_packet[0] = (uInt8)jpee_nb;
+          jpee_packet[0] = uInt8(jpee_nb);
           if (jpee_smallmode)
             jpee_pptr=2;
           else
@@ -321,7 +307,7 @@ void MT24LC256::jpee_clock_fall()
         else if (jpee_pptr < 70)
         {
           JPEE_LOG1("I2C_SENT(%02X)",jpee_nb & 0xFF);
-          jpee_packet[jpee_pptr++] = (uInt8)jpee_nb;
+          jpee_packet[jpee_pptr++] = uInt8(jpee_nb);
           jpee_address = (jpee_packet[1] << 8) | jpee_packet[2];
           if (jpee_pptr > 2)
             jpee_ad_known = 1;
@@ -382,7 +368,7 @@ bool MT24LC256::jpee_timercheck(int mode)
     if(myTimerActive)
     {
       uInt32 elapsed = mySystem.cycles() - myCyclesWhenTimerSet;
-      myTimerActive = elapsed < (uInt32)(5000000.0 / 838.0);
+      myTimerActive = elapsed < uInt32(5000000.0 / 838.0);
     }
     return myTimerActive;
   }

@@ -14,11 +14,10 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
+#undef HAVE_UNISTD_H
+// TODO: Stella includes can clash with PAGE_SHIFT & PAGE_MASK based on order
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
-// TODO: Stella includes can clash with PAGE_SHIFT & PAGE_MASK based on order
-#undef HAVE_UNISTD_H
-#include <stella/emucore/Console.hxx>
 #include <stella/emucore/Cart.hxx>
 #include <stella/emucore/Props.hxx>
 #include <stella/emucore/MD5.hxx>
@@ -117,9 +116,9 @@ bool EmuSystem::vidSysIsPAL()
 	return osystem.settings().getFloat("framerate") == 50.0;
 }
 
-static int loadGameCommon(const uint8 *buff, uint size)
+static int loadGameCommon(BytePtr &image, uint size)
 {
-	string md5 = MD5(buff, size);
+	string md5 = MD5::hash(image, size);
 	Properties props;
 	osystem.propSet().getMD5(md5, props);
 	defaultGameProps = props;
@@ -127,7 +126,7 @@ static int loadGameCommon(const uint8 *buff, uint size)
 	string cartId;
 	auto &settings = osystem.settings();
 	settings.setValue("romloadcount", 0);
-	auto cartridge = Cartridge::create(buff, size, md5, romType, cartId, osystem, settings);
+	auto cartridge = Cartridge::create(image, size, md5, romType, cartId, osystem, settings);
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
 	{
 		props.set(Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
@@ -160,9 +159,9 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *)
 {
 	closeGame();
 	setupGamePaths(path);
-	uint8 buff[MAX_ROM_SIZE];
-	uint32 size = io.read(buff, MAX_ROM_SIZE);
-	return loadGameCommon(buff, size);
+	BytePtr image = std::make_unique<uInt8[]>(MAX_ROM_SIZE);
+	uint32 size = io.read(image.get(), MAX_ROM_SIZE);
+	return loadGameCommon(image, size);
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -179,13 +178,14 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	console.switches().update();
 	auto &tia = console.tia();
 	tia.update();
-	if(renderGfx)
+	if(processGfx)
 	{
 		emuVideo.initImage(0, tia.width(), tia.height());
 		auto img = emuVideo.startFrame();
 		osystem.frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
-		updateAndDrawEmuVideo();
+		if(renderGfx)
+			updateAndDrawEmuVideo();
 	}
 	auto frames = audioFramesPerVideoFrame;
 	Int16 buff[frames * soundChannels];

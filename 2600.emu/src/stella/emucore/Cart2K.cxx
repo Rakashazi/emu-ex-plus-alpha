@@ -8,24 +8,21 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Cart2K.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Cart2K.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
-
-#include <cstring>
 
 #include "System.hxx"
 #include "Cart2K.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Cartridge2K::Cartridge2K(const uInt8* image, uInt32 size, const Settings& settings)
-  : Cartridge(settings),
-    myImage(nullptr)
+  : Cartridge(settings)
 {
   // Size can be a maximum of 2K
   if(size > 2048) size = 2048;
@@ -42,22 +39,16 @@ Cartridge2K::Cartridge2K(const uInt8* image, uInt32 size, const Settings& settin
     mySize = 64;
 
   // Initialize ROM with illegal 6502 opcode that causes a real 6502 to jam
-  myImage = new uInt8[mySize];
-  memset(myImage, 0x02, mySize);
+  myImage = make_ptr<uInt8[]>(mySize);
+  memset(myImage.get(), 0x02, mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, size);
+  memcpy(myImage.get(), image, size);
   createCodeAccessBase(mySize);
 
   // Set mask for accessing the image buffer
   // This is guaranteed to work, as mySize is a power of two
   myMask = mySize - 1;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge2K::~Cartridge2K()
-{
-  delete[] myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -92,20 +83,20 @@ bool Cartridge2K::poke(uInt16, uInt8)
 {
   // This is ROM so poking has no effect :-)
   return false;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge2K::patch(uInt16 address, uInt8 value)
 {
   myImage[address & myMask] = value;
   return myBankChanged = true;
-} 
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const uInt8* Cartridge2K::getImage(int& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.get();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

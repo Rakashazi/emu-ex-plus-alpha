@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: Keyboard.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: Keyboard.cxx 3240 2015-12-29 21:28:10Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -54,11 +54,6 @@ Keyboard::Keyboard(Jack jack, const Event& event, const System& system)
     myZeroEvent  = Event::KeyboardOne0;
     myPoundEvent = Event::KeyboardOnePound;
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Keyboard::~Keyboard()
-{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

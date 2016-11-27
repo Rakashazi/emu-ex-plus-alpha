@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: DialogContainer.hxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: DialogContainer.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef DIALOG_CONTAINER_HXX
@@ -37,7 +37,7 @@ class OSystem;
   a stack, and handles their events.
 
   @author  Stephen Anthony
-  @version $Id: DialogContainer.hxx 3131 2015-01-01 03:49:32Z stephena $
+  @version $Id: DialogContainer.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class DialogContainer
 {
@@ -49,10 +49,6 @@ class DialogContainer
       Create a new DialogContainer stack
     */
     DialogContainer(OSystem& osystem);
-
-    /**
-      Destructor
-    */
     virtual ~DialogContainer();
 
   public:
@@ -120,7 +116,7 @@ class DialogContainer
       Handle a joystick hat event.
 
       @param stick  The joystick number
-      @param axis   The joystick hat
+      @param hat    The joystick hat
       @param value  Value associated with given hat
     */
     void handleJoyHatEvent(int stick, int hat, JoyHat value);
@@ -212,6 +208,14 @@ class DialogContainer
       int count;   // How often was it already pressed?
       uInt64 time; // Time
     } myLastClick;
+
+  private:
+    // Following constructors and assignment operators not supported
+    DialogContainer() = delete;
+    DialogContainer(const DialogContainer&) = delete;
+    DialogContainer(DialogContainer&&) = delete;
+    DialogContainer& operator=(const DialogContainer&) = delete;
+    DialogContainer& operator=(DialogContainer&&) = delete;
 };
 
 #endif

@@ -8,13 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2015 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// $Id: TIASurface.cxx 3131 2015-01-01 03:49:32Z stephena $
+// $Id: TIASurface.cxx 3304 2016-04-03 00:35:00Z stephena $
 //============================================================================
 
 #include <cmath>
@@ -70,14 +70,14 @@ void TIASurface::initialize(const Console& console, const VideoMode& mode)
   bool p_enable = console.properties().get(Display_Phosphor) == "YES";
   int p_blend = atoi(console.properties().get(Display_PPBlend).c_str());
   enablePhosphor(p_enable, p_blend);
-  setNTSC((NTSCFilter::Preset)myOSystem.settings().getInt("tv.filter"), false);
+  setNTSC(NTSCFilter::Preset(myOSystem.settings().getInt("tv.filter")), false);
 
   // Scanline repeating is sensitive to non-integral vertical resolution,
   // so rounding is performed to eliminate it
   // This won't be 100% accurate, but non-integral scaling isn't 100%
   // accurate anyway
   mySLineSurface->setSrcSize(1, int(2 * float(mode.image.height()) /
-    floor(((float)mode.image.height() / myTIA->height()) + 0.5)));
+    floor((float(mode.image.height()) / myTIA->height()) + 0.5)));
 
 #if 0
 cerr << "INITIALIZE:\n"
@@ -109,9 +109,9 @@ void TIASurface::setPalette(const uInt32* tia_palette, const uInt32* rgb_palette
       uInt8 gj = (rgb_palette[j] >> 8) & 0xff;
       uInt8 bj = rgb_palette[j] & 0xff;
 
-      Uint8 r = (Uint8) getPhosphor(ri, rj);
-      Uint8 g = (Uint8) getPhosphor(gi, gj);
-      Uint8 b = (Uint8) getPhosphor(bi, bj);
+      uInt8 r = getPhosphor(ri, rj);
+      uInt8 g = getPhosphor(gi, gj);
+      uInt8 b = getPhosphor(bi, bj);
 
       myPhosphorPalette[i][j] = myFB.mapRGB(r, g, b);
     }
@@ -169,7 +169,7 @@ void TIASurface::setNTSC(NTSCFilter::Preset preset, bool show)
     const string& mode = myNTSCFilter.setPreset(preset);
     buf << "TV filtering (" << mode << " mode)";
   }
-  myOSystem.settings().setValue("tv.filter", (int)preset);
+  myOSystem.settings().setValue("tv.filter", int(preset));
 
   if(show) myFB.showMessage(buf.str());
 }
@@ -213,8 +213,8 @@ uInt32 TIASurface::enableScanlines(int relative, int absolute)
   FBSurface::Attributes& attr = mySLineSurface->attributes();
   if(relative == 0)  attr.blendalpha = absolute;
   else               attr.blendalpha += relative;
-  attr.blendalpha = BSPF_max(0u, attr.blendalpha);
-  attr.blendalpha = BSPF_min(100u, attr.blendalpha);
+  attr.blendalpha = std::max(0u, attr.blendalpha);
+  attr.blendalpha = std::min(100u, attr.blendalpha);
 
   mySLineSurface->applyAttributes();
   mySLineSurface->setDirty();
@@ -245,7 +245,7 @@ void TIASurface::enablePhosphor(bool enable, int blend)
 uInt8 TIASurface::getPhosphor(uInt8 c1, uInt8 c2) const
 {
   if(c2 > c1)
-    BSPF_swap(c1, c2);
+    std::swap(c1, c2);
 
   return ((c1 - c2) * myPhosphorBlend)/100 + c2;
 }
@@ -326,7 +326,7 @@ void TIASurface::render()
       {
         uInt32 pos = screenofsY;
         for(uInt32 x = 0; x < width; ++x)
-          buffer[pos++] = (uInt32) myPalette[currentFrame[bufofsY + x]];
+          buffer[pos++] = myPalette[currentFrame[bufofsY + x]];
 
         bufofsY    += width;
         screenofsY += pitch;
@@ -343,8 +343,7 @@ void TIASurface::render()
         for(uInt32 x = 0; x < width; ++x)
         {
           const uInt32 bufofs = bufofsY + x;
-          buffer[pos++] = (uInt32)
-            myPhosphorPalette[currentFrame[bufofs]][previousFrame[bufofs]];
+          buffer[pos++] = myPhosphorPalette[currentFrame[bufofs]][previousFrame[bufofs]];
         }
         bufofsY    += width;
         screenofsY += pitch;
