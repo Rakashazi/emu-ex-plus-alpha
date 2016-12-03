@@ -1,5 +1,3 @@
-#pragma once
-
 typedef struct {
 	uint8 r,g,b;
 } pal;

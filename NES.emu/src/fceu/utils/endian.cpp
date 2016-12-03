@@ -22,8 +22,8 @@
 /// \brief contains file I/O functions that write/read data LSB first.
 
 #include <stdio.h>
-/*#include <ostream>
-#include <fstream>*/
+#include <ostream>
+#include <fstream>
 #include "../types.h"
 #include "endian.h"
 #include "../emufile.h"
@@ -88,7 +88,7 @@ int write32le(uint32 b, FILE *fp)
 	return((fwrite(s,1,4,fp)<4)?0:4);
 }
 
-/*int write32le(uint32 b, std::ostream* os)
+int write32le(uint32 b, std::ostream* os)
 {
 	uint8 s[4];
 	s[0]=b;
@@ -112,7 +112,7 @@ int write64le(uint64 b, std::ostream* os)
 	s[7]=b>>56;
 	os->write((char*)&s,8);
 	return 8;
-}*/
+}
 
 
 ///reads a little endian 32bit value from the specified file
@@ -129,7 +129,7 @@ int read32le(uint32 *Bufo, FILE *fp)
 	return 1;
 }
 
-/*int read16le(uint16 *Bufo, std::istream *is)
+int read16le(uint16 *Bufo, std::istream *is)
 {
 	uint16 buf;
 	if(is->read((char*)&buf,2).gcount() != 2)
@@ -168,7 +168,7 @@ int read32le(uint32 *Bufo, std::istream *is)
 	*(uint32*)Bufo=((buf&0xFF)<<24)|((buf&0xFF00)<<8)|((buf&0xFF0000)>>8)|((buf&0xFF000000)>>24);
 #endif
 	return 1;
-}*/
+}
 
 ///reads a little endian 16bit value from the specified file
 int read16le(char *d, FILE *fp)

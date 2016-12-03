@@ -39,7 +39,7 @@ ifdef RELEASE
 endif
 
 ifndef RELEASE
- CFLAGS_CODEGEN += -ggdb
+ CFLAGS_CODEGEN += -g3
 endif
 
 ASMFLAGS += -O3

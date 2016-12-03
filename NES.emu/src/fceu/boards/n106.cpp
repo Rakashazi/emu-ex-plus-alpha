@@ -44,7 +44,7 @@ static uint8 gorko;
 
 static void NamcoSound(int Count);
 static void NamcoSoundHack(void);
-static void DoNamcoSound(FCEU_SoundSample *Wave, int Count);
+static void DoNamcoSound(int32 *Wave, int Count);
 static void DoNamcoSoundHQ(void);
 static void SyncHQ(int32 ts);
 
@@ -264,7 +264,7 @@ static void DoNamcoSoundHQ(void) {
 			lengo = LengthCache[P];
 
 			duff2 = FetchDuff(P, envelope);
-			for (V = CVBC << 1; V < SOUNDTS << 1; V++) {
+			for (V = CVBC << 1; V < (int)SOUNDTS << 1; V++) {
 				WaveHi[V >> 1] += duff2;
 				if (!vco) {
 					PlayIndex[P] += freq;
@@ -281,7 +281,7 @@ static void DoNamcoSoundHQ(void) {
 }
 
 
-static void DoNamcoSound(FCEU_SoundSample *Wave, int Count) {
+static void DoNamcoSound(int32 *Wave, int Count) {
 	int P, V;
 	for (P = 7; P >= 7 - ((IRAM[0x7F] >> 4) & 7); P--) {
 		if ((IRAM[0x44 + (P << 3)] & 0xE0) && (IRAM[0x47 + (P << 3)] & 0xF)) {

@@ -112,16 +112,6 @@ void EmuSystem::writeSound(const void *samples, uint framesToWrite)
 	}
 }
 
-void EmuSystem::commitSound(Audio::BufferContext buffer, uint frames)
-{
-	Audio::commitPlayBuffer(buffer, frames);
-	if(!Audio::isPlaying() && Audio::framesFree() <= (int)audioFramesPerVideoFrame)
-	{
-		logMsg("starting audio playback with %d frames free in buffer", Audio::framesFree());
-		Audio::resumePcm();
-	}
-}
-
 bool EmuSystem::stateExists(int slot)
 {
 	auto saveStr = sprintStateFilename(slot);

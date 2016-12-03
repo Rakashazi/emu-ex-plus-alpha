@@ -1,6 +1,5 @@
 #include "guid.h"
 #include <stdlib.h>
-#include <ctype.h>
 void FCEU_Guid::newGuid()
 {
 	for(int i=0;i<size;i++)

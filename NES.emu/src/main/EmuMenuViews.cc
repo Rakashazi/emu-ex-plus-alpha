@@ -3,6 +3,7 @@
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <fceu/fds.h>
+#include <fceu/sound.h>
 
 class EmuInputOptionView : public TableView
 {
@@ -66,15 +67,15 @@ public:
 
 class EmuVideoOptionView : public VideoOptionView
 {
-	TextMenuItem videoSystemItem[3]
+	TextMenuItem videoSystemItem[4]
 	{
 		{
 			"Auto",
 			[]()
 			{
 				optionVideoSystem = 0;
-				logMsg("using %s", autoDetectedVidSysPAL ? "PAL" : "NTSC");
-				FCEUI_SetVidSystem(autoDetectedVidSysPAL);
+				logMsg("Detected Region:%s", regionToStr(autoDetectedRegion));
+				FCEUI_SetRegion(autoDetectedRegion, false);
 				EmuSystem::configAudioPlayback();
 			}},
 		{
@@ -82,7 +83,7 @@ class EmuVideoOptionView : public VideoOptionView
 			[]()
 			{
 				optionVideoSystem = 1;
-				FCEUI_SetVidSystem(0);
+				FCEUI_SetRegion(0, false);
 				EmuSystem::configAudioPlayback();
 			}},
 		{
@@ -90,7 +91,16 @@ class EmuVideoOptionView : public VideoOptionView
 			[]()
 			{
 				optionVideoSystem = 2;
-				FCEUI_SetVidSystem(1);
+				FCEUI_SetRegion(1, false);
+				EmuSystem::configAudioPlayback();
+			}
+		},
+		{
+			"Dendy",
+			[]()
+			{
+				optionVideoSystem = 3;
+				FCEUI_SetRegion(2, false);
 				EmuSystem::configAudioPlayback();
 			}
 		},
@@ -99,8 +109,19 @@ class EmuVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
-		std::min((uint)optionVideoSystem, 3u),
+		optionVideoSystem,
 		videoSystemItem
+	};
+
+	BoolMenuItem spriteLimit
+	{
+		"Sprite Limit",
+		(bool)optionSpriteLimit,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionSpriteLimit = item.flipBoolValue(*this);
+			FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
+		}
 	};
 
 public:
@@ -108,6 +129,53 @@ public:
 	{
 		loadStockItems();
 		item.emplace_back(&videoSystem);
+		item.emplace_back(&spriteLimit);
+	}
+};
+
+class EmuAudioOptionView : public AudioOptionView
+{
+	static void setQuality(int quaility)
+	{
+		optionSoundQuality = quaility;
+		FCEUI_SetSoundQuality(quaility);
+	}
+
+	TextMenuItem qualityItem[3]
+	{
+		{
+			"Normal",
+			[]()
+			{
+				setQuality(0);
+			}},
+		{
+			"High",
+			[]()
+			{
+				setQuality(1);
+			}},
+		{
+			"Highest",
+			[]()
+			{
+				setQuality(2);
+			}
+		}
+	};
+
+	MultiChoiceMenuItem quality
+	{
+		"Emulation Quality",
+		optionSoundQuality,
+		qualityItem
+	};
+
+public:
+	EmuAudioOptionView(Base::Window &win): AudioOptionView{win, true}
+	{
+		loadStockItems();
+		item.emplace_back(&quality);
 	}
 };
 
@@ -292,7 +360,7 @@ View *EmuSystem::makeView(Base::Window &win, ViewID id)
 	{
 		case ViewID::MAIN_MENU: return new EmuMenuView(win);
 		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(win);
+		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(win);
 		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(win);
 		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
 		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);

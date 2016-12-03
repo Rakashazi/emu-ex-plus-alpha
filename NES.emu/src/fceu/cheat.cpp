@@ -249,7 +249,7 @@ void FCEU_LoadGameCheats(FILE *override)
 			if(sscanf(tbuf,"%04x%*[:]%02x%*[:]%02x",&addr,&val,&compare)!=3)
 				continue;
 			if (!(namebuf=(char *)FCEU_dmalloc(strlen(neo)+1)))
-				return;
+                return;
 			strcpy(namebuf,neo);
 		}
 		else
@@ -258,7 +258,7 @@ void FCEU_LoadGameCheats(FILE *override)
 			if(sscanf(tbuf,"%04x%*[:]%02x",&addr,&val)!=2)
 				continue;
 			if (!(namebuf=(char *)FCEU_dmalloc(strlen(neo)+1)))
-				return;
+                return;
 			strcpy(namebuf,neo);
 		}
 
@@ -385,7 +385,7 @@ int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int ty
 	}
 	savecheats=1;
 	RebuildSubCheats();
-	
+
 	return(1);
 }
 
@@ -936,12 +936,14 @@ void FCEUI_CheatSearchEnd(int type, uint8 v1, uint8 v2)
 
 int FCEU_CheatGetByte(uint32 A)
 {
- //  if(CheatRPtrs[A>>10])
- //   return CheatRPtrs[A>>10][A]; //adelikat-commenting this stuff out so that lua can see frozen addresses, I hope this doesn't bork stuff.
-   /*else*/ if(A < 0x10000)
-    return ARead[A](A);
-   else
-    return 0;
+	if(A < 0x10000) {
+		uint32 ret;
+		fceuindbg=1;
+		ret = ARead[A](A);
+		fceuindbg=0;
+		return ret;
+	} else
+		return 0;
 }
 
 void FCEU_CheatSetByte(uint32 A, uint8 V)
@@ -957,7 +959,7 @@ void UpdateFrozenList(void)
 	//The purpose of this function is to keep an up to date list of addresses that are currently frozen
 	//and make these accessible to other dialogs that deal with memory addresses such as
 	//memwatch, hex editor, ramfilter, etc.
-	
+
 	int x;
 	FrozenAddresses.clear();		//Clear vector and repopulate
 	for(x=0;x<numsubcheats;x++)

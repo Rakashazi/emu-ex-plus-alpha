@@ -4,11 +4,10 @@
 #include "types.h"
 #include "git.h"
 #include "file.h"
-#include "sound.h"
 
 #include <cstdio>
 #include <cstring>
-//#include <iosfwd>
+#include <iosfwd>
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
 inline FILE *FCEUD_UTF8fopen(const std::string &n, const char *mode) { return FCEUD_UTF8fopen(n.c_str(),mode); }
@@ -69,7 +68,7 @@ void FCEUI_NTSCSELTINT(void);
 void FCEUI_NTSCDEC(void);
 void FCEUI_NTSCINC(void);
 void FCEUI_GetNTSCTH(int *tint, int *hue);
-void FCEUI_SetNTSCTH(int n, int tint, int hue);
+void FCEUI_SetNTSCTH(bool en, int tint, int hue);
 
 void FCEUI_SetInput(int port, ESI type, void *ptr, int attrib);
 void FCEUI_SetInputFC(ESIFC type, void *ptr, int attrib);
@@ -100,7 +99,7 @@ void FCEUI_GetRenderPlanes(bool& sprites, bool& bg);
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode, bool silent = false);
 FCEUGI *FCEUI_LoadGameWithFile(FCEUFILE *file, const char *name, int OverwriteVidMode, bool silent = false);
 
-//same as FCEUI_LoadGame, except that it can load from a tempfile. 
+//same as FCEUI_LoadGame, except that it can load from a tempfile.
 //name is the logical path to open; archiveFilename is the archive which contains name
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silent = false);
 
@@ -122,6 +121,10 @@ void FCEUI_SetGameGenie(bool a);
 //Set video system a=0 NTSC, a=1 PAL
 void FCEUI_SetVidSystem(int a);
 
+//Set variables for NTSC(0) / PAL(1) / Dendy(2)
+//Dendy has PAL framerate and resolution, but ~NTSC timings, and has 50 dummy scanlines to force 50 fps
+void FCEUI_SetRegion(int region, int notify = 1);
+
 //Convenience function; returns currently emulated video system(0=NTSC, 1=PAL).
 int FCEUI_GetCurrentVidSystem(int *slstart, int *slend);
 
@@ -139,9 +142,7 @@ void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall);
 //Sets the base directory(save states, snapshots, etc. are saved in directories below this directory.
 void FCEUI_SetBaseDirectory(std::string const & dir);
 
-//Tells FCE Ultra to copy the palette data pointed to by pal and use it.
-//Data pointed to by pal needs to be 64*3 bytes in length.
-void FCEUI_SetPaletteArray(uint8 *pal);
+void FCEUI_SetUserPalette(uint8 *pal, int nEntries);
 
 //Sets up sound code to render sound at the specified rate, in samples
 //per second.  Only sample rates of 44100, 48000, and 96000 are currently supported.
@@ -181,7 +182,7 @@ void FCEUD_LuaRunFrom(void);
 int32 FCEUI_GetDesiredFPS(void);
 void FCEUI_SaveSnapshot(void);
 void FCEUI_SaveSnapshotAs(void);
-//void FCEU_DispMessage(const char *format, int disppos, ...);
+void FCEU_DispMessage(const char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
 int FCEUI_DecodePAR(const char *code, int *a, int *v, int *c, int *type);
@@ -205,8 +206,8 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 
 //.rom
 #define FCEUIOD_ROMS    0	//Roms
-#define FCEUIOD_NV      1	//NV = nonvolatile. save data.	
-#define FCEUIOD_STATES  2	//savestates	
+#define FCEUIOD_NV      1	//NV = nonvolatile. save data.
+#define FCEUIOD_STATES  2	//savestates
 #define FCEUIOD_FDSROM  3	//disksys.rom
 #define FCEUIOD_SNAPS   4	//screenshots
 #define FCEUIOD_CHEATS  5	//cheats

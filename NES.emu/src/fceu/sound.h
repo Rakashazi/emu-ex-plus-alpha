@@ -27,12 +27,12 @@ typedef struct {
 	   void (*Fill)(int Count);	/* Low quality ext sound. */
 
 	   /* NeoFill is for sound devices that are emulated in a more
-	      high-level manner(VRC7) in HQ mode.  Interestingly, 
+	      high-level manner(VRC7) in HQ mode.  Interestingly,
 	      this device has slightly better sound quality(updated more
 	      often) in lq mode than in high-quality mode.  Maybe that
      	      should be fixed. :)
 	   */
-           void (*NeoFill)(FCEU_SoundSample2 *Wave, int Count);
+           void (*NeoFill)(int32 *Wave, int Count);
 	   void (*HiFill)(void);
 	   void (*HiSync)(int32 ts);
 
@@ -46,12 +46,10 @@ extern int32 nesincsize;
 
 void SetSoundVariables(void);
 
-//int GetSoundBuffer(FCEU_SoundSample **W);
-int FlushEmulateSound(FCEU_SoundSample *WaveFinal);
-extern FCEU_SoundSample Wave[2048+512];
-//extern FCEU_SoundSample WaveFinal[2048+512];
-//extern FCEU_SoundSample *WaveFinal;
-extern FCEU_SoundSample2 WaveHi[40000];
+int GetSoundBuffer(int32 **W);
+int FlushEmulateSound(int32 *WaveFinal);
+extern int32 Wave[2048+512];
+extern int32 WaveHi[];
 extern uint32 soundtsinc;
 
 #ifdef WIN32
@@ -61,7 +59,8 @@ extern unsigned char *cdloggerdata;
 #endif
 
 extern uint32 soundtsoffs;
-#define SOUNDTS (timestamp + soundtsoffs)
+extern bool swapDuty;
+#define SOUNDTS (soundtimestamp + soundtsoffs)
 
 void SetNESSoundMap(void);
 void FrameSoundUpdate(void);

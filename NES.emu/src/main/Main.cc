@@ -24,6 +24,8 @@
 #include <fceu/fds.h>
 #include <fceu/input.h>
 #include <fceu/cheat.h>
+#include <fceu/video.h>
+#include <fceu/sound.h>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 bool EmuSystem::hasCheats = true;
@@ -31,13 +33,21 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 uint fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
-uint autoDetectedVidSysPAL = 0;
-#ifdef USE_PIX_RGB565
+uint autoDetectedRegion = 0;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-#else
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
-#endif
+static bool usingZapper = 0;
 const char *fceuReturnedError = {};
+static uint16 nativeCol[256]{};
+static const uint nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
+static uint8 XBufData[256 * 256 + 16]{};
+// Separate front & back buffers not needed for our video implementation
+uint8 *XBuf = XBufData;
+uint8 *XBackBuf = XBufData;
+uint8 *XDBuf{};
+uint8 *XDBackBuf{};
+int dendy = 0;
+bool paldeemphswap = false;
+bool swapDuty = false;
 
 bool hasFDSBIOSExtension(const char *name)
 {
@@ -170,11 +180,8 @@ void EmuSystem::closeSystem()
 
 void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 {
-	#ifdef USE_PIX_RGB565
+	// RGB565
 	nativeCol[index] = pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
-	#else
-	nativeCol[index] = pixFmt.desc().build(r, g, b, 0);
-	#endif
 	//logMsg("set palette %d %X", index, nativeCol[index]);
 }
 
@@ -186,7 +193,6 @@ void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
 	*b = palData[index][2];*/
 }
 
-static bool usingZapper = 0;
 static void cacheUsingZapper()
 {
 	assert(GameInfo);
@@ -227,7 +233,10 @@ void setupNESFourScore()
 		FCEUI_SetInputFourscore(0);
 }
 
-bool EmuSystem::vidSysIsPAL() { return PAL; }
+bool EmuSystem::vidSysIsPAL()
+{
+	return PAL || dendy;
+}
 
 void setupNESInputPorts()
 {
@@ -252,20 +261,47 @@ static int cheatCallback(char *name, uint32 a, uint8 v, int compare, int s, int 
 	return 1;
 }
 
-static int loadGameCommon()
+const char *regionToStr(int region)
 {
-	emuVideo.initImage(0, nesPixX, nesVisiblePixY);
-	autoDetectedVidSysPAL = PAL;
-	if((int)optionVideoSystem == 1)
+	switch(region)
 	{
-		FCEUI_SetVidSystem(0);
+		case 0: return "NTSC";
+		case 1: return "PAL";
+		case 2: return "Dendy";
 	}
-	else if((int)optionVideoSystem == 2)
+	return "Unknown";
+}
+
+static int regionFromName(const char *name)
+{
+	if(strstr(name, "(E)") || strstr(name, "(e)") || strstr(name, "(EU)")
+		|| strstr(name, "(Europe)") || strstr(name, "(PAL)")
+		|| strstr(name, "(F)") || strstr(name, "(f)")
+		|| strstr(name, "(G)") || strstr(name, "(g)")
+		|| strstr(name, "(I)") || strstr(name, "(i)"))
 	{
-		FCEUI_SetVidSystem(1);
+		return 1; // PAL
 	}
-	if(EmuSystem::vidSysIsPAL())
-		logMsg("using PAL timing");
+	else if(strstr(name, "(RU)") || strstr(name, "(ru)"))
+	{
+		return 2; // Dendy
+	}
+	return 0; // NTSC
+}
+
+static int loadGameCommon(int detectedRegion)
+{
+	emuVideo.initImage(false, nesPixX, nesVisiblePixY);
+	if((int)optionVideoSystem)
+	{
+		logMsg("Forced region:%s", regionToStr(optionVideoSystem - 1));
+		FCEUI_SetRegion(optionVideoSystem - 1, false);
+	}
+	else
+	{
+		logMsg("Detected region:%s", regionToStr(autoDetectedRegion));
+		FCEUI_SetRegion(detectedRegion, false);
+	}
 
 	FCEUI_ListCheats(cheatCallback, 0);
 	if(fceuCheats)
@@ -297,52 +333,52 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
-	FCEUI_SetVidSystem(0); // default to NTSC
-	if(!FCEUI_LoadGameWithFile(file, path, 1))
+	if(!FCEUI_LoadGameWithFile(file, path, 0))
 	{
 		popup.post("Error loading game", 1);
 		return 0;
 	}
-	return loadGameCommon();
+	autoDetectedRegion = regionFromName(FS::basename(path).data());
+	return loadGameCommon(autoDetectedRegion);
 }
 
 void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	double systemFrameRate = PAL ? 50. : 60.;
+	double systemFrameRate = vidSysIsPAL() ? 50.007 : 60.0988;
 	double rate = std::round(optionSoundRate * (systemFrameRate * frameTime));
 	FCEUI_Sound(rate);
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }
 
-#if 0
-void FCEUD_RenderPPULine(uint8 *line, uint y)
+void FCEUD_frameReady(uint8 *buf, bool display)
 {
-	if(y < 8 || y >= 224 + 8)
-		return;
-	y -= 8;
-	assert(y < nesVisiblePixY);
-	var_copy(outLine, &pixBuff[(y*nesPixX)]);
-	iterateTimes(vidPix.x/*-16*/, x)
-	{
-		outLine[x/*+8*/] = palData[line[x/*+8*/]];
-	}
-}
-#endif
-
-void FCEUD_commitVideo()
-{
-	updateAndDrawEmuVideo();
+	auto img = emuVideo.startFrame();
+	auto pix = img.pixmap();
+	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
+	auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});
+	pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
+	img.endFrame();
+	if(display)
+		updateAndDrawEmuVideo();
 }
 
-void FCEUD_emulateSound()
+void FCEUD_emulateSound(bool renderAudio)
 {
-	const uint maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+2;
-	int16 sound[maxAudioFrames];
+	const uint maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+32;
+	int32 sound[maxAudioFrames];
 	uint frames = FlushEmulateSound(sound);
-	assert(frames <= maxAudioFrames);
 	//logMsg("%d frames", frames);
-	EmuSystem::writeSound(sound, frames);
+	assert(frames <= maxAudioFrames);
+	if(renderAudio)
+	{
+		int16 sound16[maxAudioFrames];
+		iterateTimes(maxAudioFrames, i)
+		{
+			sound16[i] = sound[i];
+		}
+		EmuSystem::writeSound(sound16, frames);
+	}
 }
 
 void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
@@ -409,6 +445,12 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 		});
 }
 
+void EmuSystem::onOptionsLoaded()
+{
+	FCEUI_SetSoundQuality(optionSoundQuality);
+	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
+}
+
 CallResult EmuSystem::onInit()
 {
 	EmuSystem::pcmFormat.channels = 1;
@@ -418,6 +460,5 @@ CallResult EmuSystem::onInit()
 	{
 		bug_exit("error in FCEUI_Initialize");
 	}
-	//FCEUI_SetSoundQuality(2);
 	return OK;
 }

@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright (C) 2009-2010 DeSmuME team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -132,7 +132,7 @@ void EMUFILE::write64le(u64 val)
 
 size_t EMUFILE::read64le(u64 *Bufo)
 {
-	u64 buf;
+	u64 buf = 0;
 	if(fread((char*)&buf,8) != 8)
 		return 0;
 #ifndef LOCAL_BE
@@ -145,7 +145,7 @@ size_t EMUFILE::read64le(u64 *Bufo)
 
 u64 EMUFILE::read64le()
 {
-	u64 temp = 0;
+	u64 temp;
 	read64le(&temp);
 	return temp;
 }
@@ -173,7 +173,7 @@ size_t EMUFILE::read32le(s32* Bufo) { return read32le((u32*)Bufo); }
 
 size_t EMUFILE::read32le(u32* Bufo)
 {
-	u32 buf;
+	u32 buf = 0;
 	if(fread(&buf,4)<4)
 		return 0;
 #ifndef LOCAL_BE
@@ -186,7 +186,7 @@ size_t EMUFILE::read32le(u32* Bufo)
 
 u32 EMUFILE::read32le()
 {
-	u32 ret = 0;
+	u32 ret;
 	read32le(&ret);
 	return ret;
 }
@@ -212,7 +212,7 @@ size_t EMUFILE::read16le(s16* Bufo) { return read16le((u16*)Bufo); }
 
 size_t EMUFILE::read16le(u16* Bufo)
 {
-	u32 buf;
+	u32 buf = 0;
 	if(fread(&buf,2)<2)
 		return 0;
 #ifndef LOCAL_BE
@@ -225,7 +225,7 @@ size_t EMUFILE::read16le(u16* Bufo)
 
 u16 EMUFILE::read16le()
 {
-	u16 ret = 0;
+	u16 ret;
 	read16le(&ret);
 	return ret;
 }

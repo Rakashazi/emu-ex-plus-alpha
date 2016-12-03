@@ -21,10 +21,8 @@
 /*        Various macros for faster memory stuff
 		(at least that's the idea) 
 */
-#pragma once
 
-//#define FCEU_dwmemset(d,c,n) {int _x; for(_x=n-4;_x>=0;_x-=4) *(uint32 *)&(d)[_x]=c;}
-static void FCEU_dwmemset(uint8 *d, uint32 c, uint32 n) {int x; for(x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
+static void FCEU_dwmemset(uint8 *d, uint32 c, uint32 n) {for(int x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
 
 void *FCEU_malloc(uint32 size);
 void *FCEU_gmalloc(uint32 size);

@@ -13,6 +13,10 @@
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef unsigned char uint8 ;
 typedef signed char int8 ;
 
@@ -125,7 +129,11 @@ void OPLL_forceRefresh(OPLL *);
 uint32 OPLL_setMask(OPLL *, uint32 mask);
 uint32 OPLL_toggleMask(OPLL *, uint32 mask);
 
-template<class InSample>
-void OPLL_fillbuf(OPLL* opll, InSample *buf, int32 len, int shift);
+
+void OPLL_fillbuf(OPLL* opll, int32 *buf, int32 len, int shift);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,5 +1,3 @@
-#pragma once
-
 extern bool isFDS;
 void FDSSoundReset(void);
 

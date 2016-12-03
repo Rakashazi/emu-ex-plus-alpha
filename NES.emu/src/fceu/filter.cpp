@@ -19,7 +19,7 @@ static int32 coeffs[NCOEFFS];
 static uint32 mrindex;
 static uint32 mrratio;
 
-void SexyFilter2(FCEU_SoundSample *in, int32 count)
+void SexyFilter2(int32 *in, int32 count)
 {
  #ifdef moo
  static int64 acc=0;
@@ -48,8 +48,7 @@ void SexyFilter2(FCEU_SoundSample *in, int32 count)
  }
 }
 
-template<class InSample>
-void SexyFilter(InSample *in, FCEU_SoundSample *out, int32 count)
+void SexyFilter(int32 *in, int32 *out, int32 count)
 {
  static int64 acc1=0,acc2=0;
  int32 mul1,mul2,vmul;
@@ -63,29 +62,27 @@ void SexyFilter(InSample *in, FCEU_SoundSample *out, int32 count)
  else vmul*=2;			/* TODO:  Increase volume in low quality sound rendering code itself */
 
  while(count)
- {    
+ {
   int64 ino=(int64)*in*vmul;
   acc1+=((ino-acc1)*mul1)>>16;
   acc2+=((ino-acc1-acc2)*mul2)>>16;
   //printf("%d ",*in);
-  *in=0;  
-  {   
+  *in=0;
+  {
    int32 t=(acc1-ino+acc2)>>16;
    //if(t>32767 || t<-32768) printf("Flow: %d\n",t);
    if(t>32767) t=32767;
-   if(t<-32768) t=-32768;   
+   if(t<-32768) t=-32768;
    *out=t;
-  }  
-  in++;  
-  out++;  
-  count--; 
+  }
+  in++;
+  out++;
+  count--;
  }
 }
 
-template void SexyFilter(FCEU_SoundSample *in, FCEU_SoundSample *out, int32 count);
-
 /* Returns number of samples written to out. */
-/* leftover is set to the number of samples that need to be copied 
+/* leftover is set to the number of samples that need to be copied
    from the end of in to the beginning of in.
 */
 
@@ -96,11 +93,11 @@ template void SexyFilter(FCEU_SoundSample *in, FCEU_SoundSample *out, int32 coun
    code to be higher, or you *might* overflow the FIR code.
 */
 
-int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen, int32 *leftover, FCEU_SoundSample* WaveFinal)
+int32 NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftover)
 {
 	uint32 x;
 	uint32 max;
-	FCEU_SoundSample2 *outsave=out;
+	int32 *outsave=out;
 	int32 count=0;
 
 //	for(x=0;x<inlen;x++)
@@ -110,45 +107,43 @@ int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen
         max=(inlen-1)<<16;
 
 	if(FSettings.soundq==2)
-         for(x=mrindex;x<max;x+=mrratio)
-         {
-          int32 acc=0,acc2=0;
-          unsigned int c;
-          const FCEU_SoundSample2 *S;
-          const int32 *D;
-         
-          for(c=SQ2NCOEFFS,S=&in[(x>>16)-SQ2NCOEFFS],D=sq2coeffs;c;c--,D++)
-          {
-           acc+=(S[c]**D)>>6;
-           acc2+=(S[1+c]**D)>>6;
-          }
+        for(x=mrindex;x<max;x+=mrratio)
+        {
+			int32 acc=0,acc2=0;
+			unsigned int c;
+			int32 *S,*D;
 
-          acc=((int64)acc*(65536-(x&65535))+(int64)acc2*(x&65535))>>(16+11);
-          *out=acc;
-          out++;   
-          count++; 
-         }
+			for(c=SQ2NCOEFFS,S=&in[(x>>16)-SQ2NCOEFFS],D=sq2coeffs;c;c--,D++)
+			{
+				acc+=(S[c]**D)>>6;
+				acc2+=(S[1+c]**D)>>6;
+			}
+
+			acc=((int64)acc*(65536-(x&65535))+(int64)acc2*(x&65535))>>(16+11);
+			*out=acc;
+			out++;
+			count++;
+        }
 	else
-         for(x=mrindex;x<max;x+=mrratio)
-         {
-          int32 acc=0,acc2=0;
-          unsigned int c;
-          const FCEU_SoundSample2 *S;
-          const int32 *D;
- 
-          for(c=NCOEFFS,S=&in[(x>>16)-NCOEFFS],D=coeffs;c;c--,D++)
- 	  {
- 	   acc+=(S[c]**D)>>6;
- 	   acc2+=(S[1+c]**D)>>6;
- 	  }
- 
-          acc=((int64)acc*(65536-(x&65535))+(int64)acc2*(x&65535))>>(16+11);  
-          *out=acc;
-          out++;
-          count++;
-         }
+		for(x=mrindex;x<max;x+=mrratio)
+		{
+			int32 acc=0,acc2=0;
+			unsigned int c;
+			const int32 *S,*D;
 
-        mrindex=x-max;
+			for(c=NCOEFFS,S=&in[(x>>16)-NCOEFFS],D=coeffs;c;c--,D++)
+			{
+				acc+=(S[c]**D)>>6;
+				acc2+=(S[1+c]**D)>>6;
+			}
+
+			acc=((int64)acc*(65536-(x&65535))+(int64)acc2*(x&65535))>>(16+11);
+			*out=acc;
+			out++;
+			count++;
+		}
+
+	mrindex=x-max;
 
 	if(FSettings.soundq==2)
 	{
@@ -164,9 +159,9 @@ int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen
 	if(GameExpSound.NeoFill)
 	 GameExpSound.NeoFill(outsave,count);
 
-	SexyFilter(outsave,WaveFinal/*outsave*/,count);
+	SexyFilter(outsave,outsave,count);
 	if(FSettings.lowpass)
-	 SexyFilter2(WaveFinal/*outsave*/,count);
+	 SexyFilter2(outsave,count);
 	return(count);
 }
 

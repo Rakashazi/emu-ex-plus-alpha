@@ -87,8 +87,6 @@
     bit mask & shift operations.
 ------------------------------------------------------------------------ */
 
-#pragma once
-
 typedef unsigned long	UTF32;	/* at least 32 bits */
 typedef unsigned short	UTF16;	/* at least 16 bits */
 typedef unsigned char	UTF8;	/* typically 8 bits */

@@ -51,41 +51,58 @@ extern TMasterRomInfoParams MasterRomInfoParams;
 
 //mbg merge 7/19/06 changed to c++ decl format
 struct iNES_HEADER {
-    char ID[4]; /*NES^Z*/
-    uint8 ROM_size;
-    uint8 VROM_size;
-    uint8 ROM_type;
-    uint8 ROM_type2;
-    uint8 reserve[8];
+	char ID[4]; /*NES^Z*/
+	uint8 ROM_size;
+	uint8 VROM_size;
+	uint8 ROM_type;
+	uint8 ROM_type2;
+	uint8 ROM_type3;
+	uint8 Upper_ROM_VROM_size;
+	uint8 RAM_size;
+	uint8 VRAM_size;
+	uint8 TV_system;
+	uint8 VS_hardware;
+	uint8 reserved[2];
+
+	void clearFromByte7()
+	{
+		ROM_type2 = 0;
+		ROM_type3 = 0;
+		Upper_ROM_VROM_size = 0;
+		clearFromByte10();
+	}
+
+	void clearFromByte10()
+	{
+		RAM_size = 0;
+		VRAM_size = 0;
+		TV_system = 0;
+		VS_hardware = 0;
+		reserved[0] = 0;
+		reserved[1] = 0;
+	}
 
 	void cleanup()
 	{
 		if(!memcmp((char *)(this)+0x7,"DiskDude",8))
 		{
-			//memset((char *)(this)+0x7,0,0x9);
-			ROM_type2 = 0;
-			memset(reserve,0,sizeof(reserve));
+			clearFromByte7();
 		}
 
 		if(!memcmp((char *)(this)+0x7,"demiforce",9))
 		{
-			//memset((char *)(this)+0x7,0,0x9);
-			ROM_type2 = 0;
-			memset(reserve,0,sizeof(reserve));
+			clearFromByte7();
 		}
 
 		if(!memcmp((char *)(this)+0xA,"Ni03",4))
 		{
 			if(!memcmp((char *)(this)+0x7,"Dis",3))
 			{
-				//memset((char *)(this)+0x7,0,0x9);
-				ROM_type2 = 0;
-				memset(reserve,0,sizeof(reserve));
+				clearFromByte7();
 			}
 			else
 			{
-				//memset((char *)(this)+0xA,0,0x6);
-				memset(&reserve[2],0,6);
+				clearFromByte10();
 			}
 		}
 	}
@@ -119,6 +136,8 @@ void Mapper24_Init(CartInfo *);
 void Mapper25_Init(CartInfo *);
 void Mapper26_Init(CartInfo *);
 void Mapper28_Init(CartInfo *);
+void Mapper29_Init(CartInfo *);
+void Mapper31_Init(CartInfo *);
 void Mapper32_Init(CartInfo *);
 void Mapper33_Init(CartInfo *);
 void Mapper34_Init(CartInfo *);
@@ -180,6 +199,7 @@ void Mapper105_Init(CartInfo *);
 void Mapper106_Init(CartInfo *);
 void Mapper107_Init(CartInfo *);
 void Mapper108_Init(CartInfo *);
+void Mapper111_Init(CartInfo *);
 void Mapper112_Init(CartInfo *);
 void Mapper113_Init(CartInfo *);
 void Mapper114_Init(CartInfo *);

@@ -66,6 +66,11 @@ void connectNESInput(int port, ESI type)
 	}
 }
 
+void GetMouseData(uint32 (&d)[3])
+{
+	// TODO
+}
+
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {

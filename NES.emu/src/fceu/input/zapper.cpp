@@ -87,7 +87,7 @@ static INLINE int CheckColor(int w)
 {
 	FCEUPPU_LineUpdate();
 
-    /*if(newppu)
+    if(newppu)
     {
         int x = (int)ZD[w].mzx;
         int y = (int)ZD[w].mzy;
@@ -113,7 +113,7 @@ static INLINE int CheckColor(int w)
         }
 
         return ZD[w].zaphit?0:1;
-    }*/
+    }
 
 
     if((ZD[w].zaphit+100)>=(timestampbase+timestamp))

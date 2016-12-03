@@ -1,5 +1,3 @@
-#pragma once
-
 int InitNetplay(void);
 void NetplayUpdate(uint8 *joyp);
 extern int FCEUnetplay;

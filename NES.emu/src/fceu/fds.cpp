@@ -37,13 +37,13 @@
 #include <cstdlib>
 #include <cstring>
 
-//  TODO:  Add code to put a delay in between the time a disk is inserted
+//	TODO:  Add code to put a delay in between the time a disk is inserted
 //	and the when it can be successfully read/written to.  This should
 //	prevent writes to wrong places OR add code to prevent disk ejects
 //	when the virtual motor is on (mmm...virtual motor).
-extern int disableBatteryLoading; 
+extern int disableBatteryLoading;
 
-bool isFDS = false;	//flag for determining if a FDS game is loaded, movie.cpp needs this
+bool isFDS = false; //flag for determining if a FDS game is loaded, movie.cpp needs this
 
 static DECLFR(FDSRead4030);
 static DECLFR(FDSRead4031);
@@ -119,9 +119,9 @@ static void FDSInit(void) {
 	writeskip = DiskPtr = DiskSeekIRQ = 0;
 
 	setmirror(1);
-	setprg8(0xE000, 0);    // BIOS
-	setprg32r(1, 0x6000, 0);   // 32KB RAM
-	setchr8(0);     // 8KB CHR RAM
+	setprg8(0xE000, 0);			// BIOS
+	setprg32r(1, 0x6000, 0);	// 32KB RAM
+	setchr8(0);					// 8KB CHR RAM
 
 	MapIRQHook = FDSFix;
 	GameStateRestore = FDSStateRestore;
@@ -204,9 +204,8 @@ void FCEU_FDSSetDisk(uint8 side)
 	if(FCEU_FDSInserted())
 	{
 		FCEU_FDSInsert();
-		uint8 *gfx;
 		for(int i = 0; i < 60; i++)
-			FCEUI_Emulate(&gfx, /*0, &ssize,*/ 2, false); // wait 1 second in emu time for disk eject
+			FCEUI_Emulate(false, false, false); // wait 1 second in emu time for disk eject
 	}
 
 	while(SelectDisk != side)
@@ -363,10 +362,10 @@ static DECLFW(FDSSWrite) {
 	}
 	A -= 0x4080;
 	switch (A) {
-	case 0x0: 
+	case 0x0:
 	case 0x4:
 		if (V & 0x80)
-				  amplitude[(A & 0xF) >> 2] = V & 0x3F;
+			amplitude[(A & 0xF) >> 2] = V & 0x3F;
 		break;
 	case 0x7:
 		b17latch76 = 0;
@@ -471,7 +470,7 @@ static INLINE int32 FDSDoSound(void) {
 		fdso.envcount--;
 		if (fdso.envcount <= 0) {
 			fdso.envcount += SPSG[0xA] * 3;
-			DoEnv(); 
+			DoEnv();
 		}
 	}
 	if (fdso.count >= 32768) goto dogk;
@@ -514,7 +513,7 @@ static void RenderSoundHQ(void) {
 			t += t >> 1;
 			WaveHi[x] += t; //(t<<2)-(t<<1);
 		}
-		FBC = SOUNDTS;
+	FBC = SOUNDTS;
 }
 
 static void HQSync(int32 ts) {
@@ -667,7 +666,7 @@ static void PostSave(void) {
 		int b;
 		for (b = 0; b < 65500; b++)
 			diskdata[x][b] ^= diskdatao[x][b];
-	} 
+	}
 }
 
 int FDSLoad(const char *name, FCEUFILE *fp) {
@@ -689,7 +688,7 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
 	FDSBIOS = (uint8*)FCEU_gmalloc(FDSBIOSsize);
 	SetupCartPRGMapping(0, FDSBIOS, FDSBIOSsize, 0);
 
-	if (FCEUD_FDSReadBIOS(FDSBIOS, FDSBIOSsize) != FDSBIOSsize) {
+	if (FCEUD_FDSReadBIOS(FDSBIOS, FDSBIOSsize) != (int)FDSBIOSsize) {
 		if(FDSBIOS)
 			free(FDSBIOS);
 		FDSBIOS = NULL;
@@ -805,8 +804,7 @@ void FCEU_FDSWriteModifiedDisk() {
 	fclose(fp);
 }
 
-void FDSClose(void)
-{
+void FDSClose(void) {
 	isFDS = false;
 
 	FCEU_FDSWriteModifiedDisk();

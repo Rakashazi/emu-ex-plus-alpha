@@ -18,64 +18,66 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+// implementation of Subor Mouse
+// used in Educational Computer 2000
+
 #include <string.h>
 #include <stdlib.h>
 #include "share.h"
 
 typedef struct {
-  int32 mzx, mzy, mzxold, mzyold;
-  uint32 readbit;
-  uint32 data;
+	uint8 latch;
+	int32 dx,dy;
+	uint32 mb;
 } MOUSE;
 
 static MOUSE Mouse;
 
+// since this game only picks up 1 mickey per frame,
+// allow a single delta to spread out over a few frames
+// to make it easier to move.
+const int INERTIA = 32;
+
 static void StrobeMOUSE(int w)
 {
-  Mouse.readbit=0;
+	Mouse.latch = Mouse.mb & 0x03;
+
+	int32 dx = Mouse.dx;
+	int32 dy = Mouse.dy;
+
+	if      (dx > 0) { Mouse.latch |= (0x2 << 2); --Mouse.dx; }
+	else if (dx < 0) { Mouse.latch |= (0x3 << 2); ++Mouse.dx; }
+	if      (dy > 0) { Mouse.latch |= (0x2 << 4); --Mouse.dy; }
+	else if (dy < 0) { Mouse.latch |= (0x3 << 4); ++Mouse.dy; }
+
+	//FCEU_printf("Subor Mouse: %02X\n",Mouse.latch);
 }
 
 static uint8 ReadMOUSE(int w)
 {
-  uint8 ret=0;
-  if(Mouse.readbit>=8)
-    ret|=1;
-  else
-  {
-    ret|=(Mouse.data>>Mouse.readbit)&1;
-    if(!fceuindbg)
-      Mouse.readbit++;
-  }
-  return(ret);
+	uint8 result = Mouse.latch & 0x01;
+	Mouse.latch = (Mouse.latch >> 1) | 0x80;
+	return result;
 }
 
 static void UpdateMOUSE(int w, void *data, int arg)
 {
-  uint32 *ptr=(uint32*)data;
-  Mouse.data=0;
-  Mouse.mzxold=Mouse.mzx;
-  Mouse.mzyold=Mouse.mzy;
-  Mouse.mzx=ptr[0];
-  Mouse.mzy=ptr[1];
-  Mouse.data|=ptr[2];
-  if((Mouse.mzxold-Mouse.mzx)>0)
-    Mouse.data|=0x0C;
-  else if((Mouse.mzxold-Mouse.mzx)<0)
-    Mouse.data|=0x04;
-  if((Mouse.mzyold-Mouse.mzy)>0)
-    Mouse.data|=0x30;
-  else if((Mouse.mzyold-Mouse.mzy)<0)
-    Mouse.data|=0x10;
+	uint32 *ptr=(uint32*)data;
+	Mouse.dx += ptr[0]; ptr[0] = 0;
+	Mouse.dy += ptr[1]; ptr[1] = 0;
+	Mouse.mb = ptr[2];
+
+	if      (Mouse.dx >  INERTIA) Mouse.dx =  INERTIA;
+	else if (Mouse.dx < -INERTIA) Mouse.dx = -INERTIA;
+
+	if      (Mouse.dy >  INERTIA) Mouse.dy =  INERTIA;
+	else if (Mouse.dy < -INERTIA) Mouse.dy = -INERTIA;
 }
 
 static INPUTC MOUSEC={ReadMOUSE,0,StrobeMOUSE,UpdateMOUSE,0,0};
 
 INPUTC *FCEU_InitMouse(int w)
 {
-  Mouse.mzx=0;
-  Mouse.mzy=0;
-  Mouse.mzxold=0;
-  Mouse.mzyold=0;
-  Mouse.data=0;
-  return(&MOUSEC);
+	memset(&Mouse,0,sizeof(Mouse));
+	return(&MOUSEC);
 }

@@ -19,7 +19,7 @@
 #include "utils/guid.h"
 #include "utils/memory.h"
 #include "utils/xstring.h"
-//#include <sstream>
+#include <sstream>
 
 #ifdef CREATE_AVI
 #include "drivers/videolog/nesvideos-piece.h"
@@ -38,8 +38,8 @@ extern bool mustEngageTaseditor;
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
-//#include <iomanip>
-//#include <fstream>
+#include <iomanip>
+#include <fstream>
 #include <climits>
 #include <cstdarg>
 #include <zlib.h>
@@ -103,6 +103,7 @@ SFORMAT FCEUMOV_STATEINFO[]={
 char curMovieFilename[512] = {0};
 MovieData currMovieData;
 MovieData defaultMovieData;
+int currRerecordCount; // Keep the global value
 
 char lagcounterbuf[32] = {0};
 
@@ -345,7 +346,7 @@ void MovieRecord::dumpBinary(MovieData* md, EMUFILE* os, int index)
 
 void MovieRecord::dump(MovieData* md, EMUFILE* os, int index)
 {
-	// dump the misc commands
+	// dump the commands
 	//*os << '|' << setw(1) << (int)commands;
 	os->fputc('|');
 	putdec<uint8,3,false>(os, commands);	// "variable length decimal integer"
@@ -388,6 +389,7 @@ void MovieRecord::dump(MovieData* md, EMUFILE* os, int index)
 MovieData::MovieData()
 	: version(MOVIE_VERSION)
 	, emuVersion(FCEU_VERSION_NUMERIC)
+	, fds(false)
 	, palFlag(false)
 	, PPUflag(false)
 	, rerecordCount(0)
@@ -437,7 +439,7 @@ void MovieData::installValue(std::string& key, std::string& val)
 	else if(key == "binary")
 		installBool(val,binaryFlag);
 	else if(key == "comment")
-		comments.push_back(val);
+		comments.push_back(mbstowcs(val));
 	else if (key == "subtitle")
 		subtitles.push_back(val); //mbstowcs(val));
 	else if(key == "savestate")
@@ -475,7 +477,7 @@ int MovieData::dump(EMUFILE *os, bool binary)
 	os->fprintf("NewPPU %d\n" , PPUflag?1:0 );
 
 	for(uint32 i=0;i<comments.size();i++)
-		os->fprintf("comment %s\n" , comments[i].c_str() );
+		os->fprintf("comment %s\n" , wcstombs(comments[i]).c_str() );
 
 	for(uint32 i=0;i<subtitles.size();i++)
 		os->fprintf("subtitle %s\n" , subtitles[i].c_str() );
@@ -601,7 +603,7 @@ bool LoadFM2(MovieData& movieData, EMUFILE* fp, int size, bool stopAfterHeader)
 	// Non-TASEditor projects consume until EOF
 	movieData.loadFrameCount = -1;
 
-	int curr = fp->ftell();
+	std::ios::pos_type curr = fp->ftell();
 
 	if (!stopAfterHeader)
 	{
@@ -902,6 +904,8 @@ bool FCEUI_LoadMovie(const char *fname, bool _read_only, int _pauseframe)
 	pauseframe = _pauseframe;
 	movie_readonly = _read_only;
 	movieMode = MOVIEMODE_PLAY;
+	if (movieMode != MOVIEMODE_TASEDITOR)
+		currRerecordCount = currMovieData.rerecordCount;
 
 	if(movie_readonly)
 		FCEU_DispMessage("Replay started Read-Only.",0);
@@ -935,7 +939,7 @@ static void openRecordingMovie(const char* fname)
 #endif
 }
 
-#if 0
+
 //begin recording a new movie
 //TODO - BUG - the record-from-another-savestate doesnt work.
 void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
@@ -972,10 +976,12 @@ void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author)
 
 	movieMode = MOVIEMODE_RECORD;
 	movie_readonly = false;
+	if (movieMode != MOVIEMODE_TASEDITOR)
+		currRerecordCount = 0;
 
 	FCEU_DispMessage("Movie recording started.",0);
 }
-#endif
+
 
 //the main interaction point between the emulator and the movie system.
 //either dumps the current joystick state or loads one state from the movie
@@ -1060,7 +1066,7 @@ void FCEUMOV_AddInputState()
 			FCEU_DispMessage("Paused at specified movie frame",0);
 		}
 
-	} else if(movieMode == MOVIEMODE_RECORD)
+	} else if (movieMode == MOVIEMODE_RECORD)
 	{
 		MovieRecord mr;
 
@@ -1115,12 +1121,12 @@ void FCEU_DrawMovies(uint8 *XBuf)
 		char counterbuf[32] = {0};
 		int color = 0x20;
 		if(movieMode == MOVIEMODE_PLAY)
-			sprintf(counterbuf,"%d/%d",currFrameCounter,currMovieData.records.size());
+			sprintf(counterbuf,"%d/%d",currFrameCounter,(int)currMovieData.records.size());
 		else if(movieMode == MOVIEMODE_RECORD)
 			sprintf(counterbuf,"%d",currFrameCounter);
 		else if (movieMode == MOVIEMODE_FINISHED)
 		{
-			sprintf(counterbuf,"%d/%d (finished)",currFrameCounter,currMovieData.records.size());
+			sprintf(counterbuf,"%d/%d (finished)",currFrameCounter,(int)currMovieData.records.size());
 			color = 0x17; //Show red to get attention
 		} else if(movieMode == MOVIEMODE_TASEDITOR)
 		{
@@ -1210,7 +1216,7 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 	}
 
 	MovieData tempMovieData = MovieData();
-	int curr = is->ftell();
+	std::ios::pos_type curr = is->ftell();
 	if(!LoadFM2(tempMovieData, is, size, false)) {
 		is->fseek((uint32)curr+size,SEEK_SET);
 		extern bool FCEU_state_loading_old_format;
@@ -1373,7 +1379,7 @@ bool FCEUMOV_ReadState(EMUFILE* is, uint32 size)
 				if (!fullSaveStateLoads)
 					//we can only assume this here since we have checked that the frame counter is not greater than the movie data
 					tempMovieData.truncateAt(currFrameCounter);
-
+				
 				currMovieData = tempMovieData;
 				FCEUMOV_IncrementRerecordCount();
 				openRecordingMovie(curMovieFilename);
@@ -1406,10 +1412,18 @@ void FCEUMOV_IncrementRerecordCount()
 {
 #ifdef _S9XLUA_H
 	if(!FCEU_LuaRerecordCountSkip())
-		currMovieData.rerecordCount++;
+		if (movieMode != MOVIEMODE_TASEDITOR)
+			currRerecordCount++;
+		else
+			currMovieData.rerecordCount++;
 #else
-	currMovieData.rerecordCount++;
+	if (movieMode != MOVIEMODE_TASEDITOR)
+		currRerecordCount++;
+	else
+		currMovieData.rerecordCount++;
 #endif
+	if (movieMode != MOVIEMODE_TASEDITOR)
+		currMovieData.rerecordCount = currRerecordCount;
 }
 
 void FCEUI_MovieToggleFrameDisplay(void)
@@ -1589,7 +1603,6 @@ void LoadSubtitles(MovieData &moviedata)
 
 }
 
-#if 0
 //Every frame, this will be called to determine if a subtitle should be displayed, which one, and then to display it
 void ProcessSubtitles(void)
 {
@@ -1601,9 +1614,8 @@ void ProcessSubtitles(void)
 			FCEU_DisplaySubtitles("%s",subtitleMessages[i].c_str());
 	}
 }
-#endif
 
-void FCEU_DisplaySubtitles(char *format, ...)
+void FCEU_DisplaySubtitles(const char *format, ...)
 {
 	va_list ap;
 
@@ -1624,7 +1636,6 @@ void FCEUI_CreateMovieFile(std::string fn)
 	delete outf;											//clean up, delete file object
 }
 
-#if 0
 void FCEUI_MakeBackupMovie(bool dispMessage)
 {
 	//This function generates backup movie files
@@ -1681,4 +1692,4 @@ void FCEUI_MakeBackupMovie(bool dispMessage)
 			FCEUI_DispMessage("%s created",0,backupFn.c_str()); //Inform user of backup filename
 	}
 }
-#endif
+

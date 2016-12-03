@@ -32,14 +32,16 @@
 #include <cstring>
 X6502 X;
 uint32 timestamp;
+uint32 soundtimestamp;
 void (*MapIRQHook)(int a);
 
 #define ADDCYC(x) \
-{     \
+{                 \
  int __x=x;       \
  _tcount+=__x;    \
  _count-=__x*48;  \
  timestamp+=__x;  \
+ if(!overclocking) soundtimestamp+=__x; \
 }
 
 //normal memory read
@@ -57,11 +59,11 @@ static INLINE void WrMem(unsigned int A, uint8 V)
 	#endif
 }
 
-static INLINE uint8 RdRAM(unsigned int A) 
+static INLINE uint8 RdRAM(unsigned int A)
 {
   //bbit edited: this was changed so cheat substituion would work
   return(_DB=ARead[A](A));
-  // return(_DB=RAM[A]); 
+  // return(_DB=RAM[A]);
 }
 
 static INLINE void WrRAM(unsigned int A, uint8 V)
@@ -92,7 +94,7 @@ void X6502_DMW(uint32 A, uint8 V)
  uint8 VTMP=V;  \
  WrRAM(0x100+X.S,VTMP);  \
  X.S--;  \
-}       
+}
 
 #define POP() RdRAM(0x100+(++X.S))
 
@@ -195,7 +197,7 @@ static uint8 ZNTable[256];
      X.P|=l;  \
      X_ZNT(x);  \
 		}
-		 
+
 /* Icky icky thing for some undocumented instructions.  Can easily be
    broken if names of local variables are changed.
 */
@@ -334,7 +336,7 @@ static uint8 ZNTable[256];
 #define ST_IY(r)  {unsigned int A; GetIYWR(A); WrMem(A,r); break; }
 
 static uint8 CycTable[256] =
-{                             
+{
 /*0x00*/ 7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6,
 /*0x10*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
 /*0x20*/ 6,6,2,8,3,3,5,5,4,2,2,2,4,4,6,6,
@@ -369,7 +371,7 @@ void TriggerNMI(void)
 }
 
 void TriggerNMI2(void)
-{ 
+{
  _IRQlow|=FCEU_IQNMI2;
 }
 
@@ -408,7 +410,7 @@ void X6502_Power(void)
 {
  _count=_tcount=_IRQlow=_PC=_A=X.X=_Y=X.P=_PI=_DB=_jammed=0;
  X.S=0xFD;
- timestamp=0;
+ timestamp=soundtimestamp=0;
  X6502_Reset();
 }
 
@@ -420,7 +422,7 @@ void X6502_Run(int32 cycles)
    cycles*=16;    // 16*4=64
 
   _count+=cycles;
-static int test = 0; test++;
+extern int test; test++;
   while(_count>0)
   {
    int32 temp;
@@ -481,9 +483,9 @@ static int test = 0; test++;
    }
 
 	//will probably cause a major speed decrease on low-end systems
-	DEBUG( DebugCycle() );
+   DEBUG( DebugCycle() );
 
-	//IncrementInstructionsCounters();
+   //IncrementInstructionsCounters();
 
    _PI=X.P;
    b1=RdMem(_PC);
@@ -493,7 +495,9 @@ static int test = 0; test++;
    temp=_tcount;
    _tcount=0;
    if(MapIRQHook) MapIRQHook(temp);
-   FCEU_SoundCPUHook(temp);
+   
+   if (!overclocking)
+    FCEU_SoundCPUHook(temp);
    #ifdef _S9XLUA_H
    CallRegisteredLuaMemHook(_PC, 1, 0, LUAMEMHOOK_EXEC);
    #endif
@@ -532,7 +536,12 @@ void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi)
 
 //the opsize table is used to quickly grab the instruction sizes (in bytes)
 const uint8 opsize[256] = {
-/*0x00*/	1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,
+#ifdef BRK_3BYTE_HACK
+/*0x00*/	3, //BRK
+#else
+/*0x00*/	1, //BRK
+#endif
+/*0x01*/      2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,
 /*0x10*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
 /*0x20*/	3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,
 /*0x30*/	2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,
@@ -564,20 +573,58 @@ const uint8 opsize[256] = {
 //  8 = Zero Page,Y
 //
 const uint8 optype[256] = {
-/*0x00*/	0,1,0,0,0,2,2,0,0,0,0,0,0,3,3,0,
-/*0x10*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x20*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0x30*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x40*/	0,1,0,0,0,2,2,0,0,0,0,0,0,3,3,0,
-/*0x50*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x60*/	0,1,0,0,0,2,2,0,0,0,0,0,3,3,3,0,
-/*0x70*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0x80*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0x90*/	0,4,0,0,5,5,8,0,0,6,0,0,0,7,0,0,
-/*0xA0*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0xB0*/	0,4,0,0,5,5,8,0,0,6,0,0,7,7,6,0,
-/*0xC0*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0xD0*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0,
-/*0xE0*/	0,1,0,0,2,2,2,0,0,0,0,0,3,3,3,0,
-/*0xF0*/	0,4,0,0,0,5,5,0,0,6,0,0,0,7,7,0
+/*0x00*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0x10*/	0,4,0,3,5,5,5,5,0,6,0,6,7,7,7,7,
+/*0x20*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0x30*/	0,4,0,3,5,5,5,5,0,6,0,6,7,7,7,7,
+/*0x40*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0x50*/	0,4,0,3,5,5,5,5,0,6,0,6,7,7,7,7,
+/*0x60*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0x70*/	0,4,0,3,5,5,5,5,0,6,0,6,7,7,7,7,
+/*0x80*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0x90*/	0,4,0,3,5,5,8,8,0,6,0,6,7,7,6,6,
+/*0xA0*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0xB0*/	0,4,0,3,5,5,8,8,0,6,0,6,7,7,6,6,
+/*0xC0*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0xD0*/	0,4,0,3,5,5,5,5,0,6,0,6,7,7,7,7,
+/*0xE0*/	0,1,0,1,2,2,2,2,0,0,0,0,3,3,3,3,
+/*0xF0*/	0,4,0,3,5,5,5,5,0,6,0,6,7,7,7,7,
+};
+
+// the opwrite table aids in predicting the value written for any 6502 opcode
+//
+//  0 = No value written
+//  1 = Write from A
+//  2 = Write from X
+//  3 = Write from Y
+//  4 = Write from P
+//  5 = ASL (SLO)
+//  6 = LSR (SRE)
+//  7 = ROL (RLA)
+//  8 = ROR (RRA)
+//  9 = INC (ISC)
+// 10 = DEC (DCP)
+// 11 = (SAX)
+// 12 = (AHX)
+// 13 = (SHY)
+// 14 = (SHX)
+// 15 = (TAS)
+
+const uint8 opwrite[256] = {
+/*0x00*/	 0, 0, 0, 5, 0, 0, 5, 5, 4, 0, 0, 0, 0, 0, 5, 5,
+/*0x10*/	 0, 0, 0, 5, 0, 0, 5, 5, 0, 0, 0, 5, 0, 0, 5, 5,
+/*0x20*/	 0, 0, 0, 7, 0, 0, 7, 7, 0, 0, 7, 0, 0, 0, 7, 7,
+/*0x30*/	 0, 0, 0, 7, 0, 0, 7, 7, 0, 0, 0, 7, 0, 0, 7, 7,
+/*0x40*/	 0, 0, 0, 6, 0, 0, 6, 6, 1, 0, 6, 0, 0, 0, 6, 6,
+/*0x50*/	 0, 0, 0, 6, 0, 0, 6, 6, 0, 0, 0, 6, 0, 0, 6, 6,
+/*0x60*/	 0, 0, 0, 8, 0, 0, 8, 8, 0, 0, 8, 0, 0, 0, 8, 8,
+/*0x70*/	 0, 0, 0, 8, 0, 0, 8, 8, 0, 0, 0, 8, 0, 0, 8, 8,
+/*0x80*/	 0, 1, 0,11, 3, 1, 2,11, 0, 0, 0, 0, 3, 1, 2,11,
+/*0x90*/	 0, 1, 0,12, 3, 1, 2,11, 0, 1, 0,15,13, 1,14,12,
+/*0xA0*/	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+/*0xB0*/	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+/*0xC0*/	 0, 0, 0,10, 0, 0,10,10, 0, 0, 0, 0, 0, 0,10,10,
+/*0xD0*/	 0, 0, 0,10, 0, 0,10,10, 0, 0, 0,10, 0, 0,10,10,
+/*0xE0*/	 0, 0, 0, 9, 0, 0, 9, 9, 0, 0, 0, 0, 0, 0, 9, 9,
+/*0xF0*/	 0, 0, 0, 9, 0, 0, 9, 9, 0, 0, 0, 9, 0, 0, 9, 9,
 };

@@ -1,6 +1,3 @@
-#pragma once
-#include <assert.h>
-
 void DrawTextLineBG(uint8 *dest);
 void DrawMessage(bool beforeMovie);
 void FCEU_DrawRecordingStatus(uint8* XBuf);

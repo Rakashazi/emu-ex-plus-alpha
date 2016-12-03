@@ -31,6 +31,9 @@ extern const uint8 opsize[256];
 //the optype table is a quick way to grab the addressing mode for any 6502 opcode
 extern const uint8 optype[256];
 
+// the opwrite table aids in predicting the value written for any 6502 opcode
+extern const uint8 opwrite[256];
+
 //-----------
 //mbg 6/30/06 - some of this was removed to mimic XD
 //#ifdef FCEUDEF_DEBUGGER
@@ -47,8 +50,8 @@ void X6502_RunDebug(int32 cycles);
 //------------
 
 extern uint32 timestamp;
-
-
+extern uint32 soundtimestamp;
+extern int scanline;
 
 #define N_FLAG  0x80
 #define V_FLAG  0x40
@@ -61,7 +64,7 @@ extern uint32 timestamp;
 
 extern void (*MapIRQHook)(int a);
 
-#define NTSC_CPU 1789772.7272727272727272
+#define NTSC_CPU (dendy ? 1773447.467 : 1789772.7272727272727272)
 #define PAL_CPU  1662607.125
 
 #define FCEU_IQEXT      0x001

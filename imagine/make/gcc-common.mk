@@ -62,5 +62,9 @@ ifndef RELEASE
  ifndef compiler_noSanitizeAddress
   CFLAGS_CODEGEN += -fsanitize=address -fno-omit-frame-pointer
   LDFLAGS_SYSTEM += -fsanitize=address
+  # Disable debug section compression since it may prevent symbols from appearing in backtrace
+  COMPRESS_DEBUG_SECTIONS = none
  endif
 endif
+
+COMPRESS_DEBUG_SECTIONS ?= zlib

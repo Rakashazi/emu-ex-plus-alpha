@@ -23,7 +23,6 @@
 
 #include "xstring.h"
 #include <string>
-#include <ctype.h>
 
 ///Upper case routine. Returns number of characters modified
 int str_ucase(char *str) {
@@ -297,9 +296,9 @@ bool StringToBytes(const std::string& str, void* data, int len)
 			}
 			unsigned char outpacket[3] =
 			{
-				uchar((converted[0] << 2) | (converted[1] >> 4)),
-				uchar((converted[1] << 4) | (converted[2] >> 2)),
-				uchar((converted[2] << 6) | (converted[3]))
+				(unsigned char)((converted[0] << 2) | (converted[1] >> 4)),
+				(unsigned char)((converted[1] << 4) | (converted[2] >> 2)),
+				(unsigned char)((converted[2] << 6) | (converted[3]))
 			};
 			int outlen = (input[2] == '=') ? 1 : (input[3] == '=' ? 2 : 3);
 			if(outlen > len) outlen = len;
@@ -729,7 +728,6 @@ namespace UtfConverter
     }
 
 
-#if 0
     std::wstring FromUtf8(std::string& input) // string -> wstring
     {
         std::wstring result;
@@ -745,20 +743,19 @@ namespace UtfConverter
             SeqValue(result, input[pos]);
         return result;
     }
-#endif
 }
 #endif
 
-
-#if 0
+  
 //convert a std::string to std::wstring
 std::wstring mbstowcs(std::string str) // UTF8->UTF32
 {
-	try {
+	return UtfConverter::FromUtf8(str);
+	/*try {
 		return UtfConverter::FromUtf8(str);
 	} catch(std::exception) {
 		return L"(failed UTF-8 conversion)";
-	}
+	}*/
 }
 
 //convert a std::wstring to std::string
@@ -766,7 +763,6 @@ std::string wcstombs(std::wstring str) // UTF32->UTF8
 {
 	return UtfConverter::ToUtf8(str);
 }
-#endif
 
 
 //TODO - dont we already have another  function that can do this

@@ -1,6 +1,3 @@
-#pragma once
-
-int32 NeoFilterSound(FCEU_SoundSample2 *in, FCEU_SoundSample2 *out, uint32 inlen, int32 *leftover, FCEU_SoundSample* WaveFinal);
+int32 NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftover);
 void MakeFilters(int32 rate);
-template<class InSample>
-void SexyFilter(InSample *in, FCEU_SoundSample *out, int32 count);
+void SexyFilter(int32 *in, int32 *out, int32 count);

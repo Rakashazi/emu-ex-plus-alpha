@@ -1,5 +1,3 @@
-#pragma once
-
 #include "../types.h"
 #include "../input.h"
 #include "../fceu.h"

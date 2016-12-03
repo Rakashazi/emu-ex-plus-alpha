@@ -351,7 +351,7 @@ bool FCEU_OpenGenie(void)
 		if (!(GENIEROM = (uint8*)FCEU_malloc(4096 + 1024)))
 			return true;
 
-		auto fn = FCEU_MakeFName(FCEUMKF_GGROM, 0, 0);
+		std::string fn = FCEU_MakeFName(FCEUMKF_GGROM, 0, 0);
 		fp = FCEUD_UTF8fopen(fn.c_str(), "rb");
 		if (!fp)
 		{

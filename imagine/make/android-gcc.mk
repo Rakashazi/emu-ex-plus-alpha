@@ -97,7 +97,7 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
-LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=zlib,--icf=all,--as-needed
+LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed
 
 ifndef RELEASE
  CFLAGS_CODEGEN += -funwind-tables

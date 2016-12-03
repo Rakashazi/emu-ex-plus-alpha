@@ -63,6 +63,8 @@ static int iNES_Init(int num);
 
 static int MapperNo = 0;
 
+static int iNES2 = 0;
+
 static DECLFR(TrainerRead) {
 	return(trainerpoo[A & 0x1FF]);
 }
@@ -100,33 +102,33 @@ void iNESGI(GI h) { //bbit edited: removed static keyword
 		iNES_ExecPower();
 		break;
 	case GI_WRITESAVE:
-		{
-			FCEU_SaveGameSave(&iNESCart);
-		}
-		break;
+	{
+		FCEU_SaveGameSave(&iNESCart);
+	}
+	break;
 	case GI_CLOSE:
-		{
-			FCEU_SaveGameSave(&iNESCart);
-			if (iNESCart.Close)
-				iNESCart.Close();
-			if (ROM) {
-				free(ROM);
-				ROM = NULL;
-			}
-			if (VROM) {
-				free(VROM);
-				VROM = NULL;
-			}
-			if (trainerpoo) {
-				free(trainerpoo);
-				trainerpoo = NULL;
-			}
-			if (ExtraNTARAM) {
-				free(ExtraNTARAM);
-				ExtraNTARAM = NULL;
-			}
+	{
+		FCEU_SaveGameSave(&iNESCart);
+		if (iNESCart.Close)
+			iNESCart.Close();
+		if (ROM) {
+			free(ROM);
+			ROM = NULL;
 		}
-		break;
+		if (VROM) {
+			free(VROM);
+			VROM = NULL;
+		}
+		if (trainerpoo) {
+			free(trainerpoo);
+			trainerpoo = NULL;
+		}
+		if (ExtraNTARAM) {
+			free(ExtraNTARAM);
+			ExtraNTARAM = NULL;
+		}
+	}
+	break;
 	}
 }
 
@@ -288,46 +290,46 @@ static void CheckHInfo(void) {
 
 	static uint64 savie[] =
 	{
-			0xc04361e499748382LL,	/* AD&D Heroes of the Lance */
-			0xb72ee2337ced5792LL,	/* AD&D Hillsfar */
-			0x2b7103b7a27bd72fLL,	/* AD&D Pool of Radiance */
-			0x498c10dc463cfe95LL,	/* Battle Fleet */
-			0x854d7947a3177f57LL,	/* Crystalis */
-			0x4a1f5336b86851b6LL,	/* DW */
-			0xb0bcc02c843c1b79LL,	/* DW */
-			0x2dcf3a98c7937c22LL,	/* DW 2 */
-			0x98e55e09dfcc7533LL,	/* DW 4*/
-			0x733026b6b72f2470LL,	/* Dw 3 */
-			0x6917ffcaca2d8466LL,	/* Famista '90 */
-			0x8da46db592a1fcf4LL,	/* Faria */
-			0xedba17a2c4608d20LL,	/* Final Fantasy */
-			0x91a6846d3202e3d6LL,	/* Final Fantasy */
-			0x012df596e2b31174LL,	/* Final Fantasy 1+2 */
-			0xf6b359a720549ecdLL,	/* Final Fantasy 2 */
-			0x5a30da1d9b4af35dLL,	/* Final Fantasy 3 */
-			0xd63dcc68c2b20adcLL,	/* Final Fantasy J */
-			0x2ee3417ba8b69706LL,	/* Hydlide 3*/
-			0xebbce5a54cf3ecc0LL,	/* Justbreed */
-			0x6a858da551ba239eLL,	/* Kaijuu Monogatari */
-			0x2db8f5d16c10b925LL,	/* Kyonshiizu 2 */
-			0x04a31647de80fdabLL,	/* Legend of Zelda */
-			0x94b9484862a26cbaLL,	/* Legend of Zelda */
-			0xa40666740b7d22feLL,	/* Mindseeker */
-			0x82000965f04a71bbLL,	/* Mirai Shinwa Jarvas */
-			0x77b811b2760104b9LL,	/* Mouryou Senki Madara */
-			0x11b69122efe86e8cLL,	/* RPG Jinsei Game */
-			0x9aa1dc16c05e7de5LL,	/* Startropics */
-			0x1b084107d0878bd0LL,	/* Startropics 2*/
-			0xa70b495314f4d075LL,	/* Ys 3 */
-			0x836c0ff4f3e06e45LL,	/* Zelda 2 */
-			0						/* Abandon all hope if the game has 0 in the lower 64-bits of its MD5 hash */
+		0xc04361e499748382LL,	/* AD&D Heroes of the Lance */
+		0xb72ee2337ced5792LL,	/* AD&D Hillsfar */
+		0x2b7103b7a27bd72fLL,	/* AD&D Pool of Radiance */
+		0x498c10dc463cfe95LL,	/* Battle Fleet */
+		0x854d7947a3177f57LL,	/* Crystalis */
+		0x4a1f5336b86851b6LL,	/* DW */
+		0xb0bcc02c843c1b79LL,	/* DW */
+		0x2dcf3a98c7937c22LL,	/* DW 2 */
+		0x98e55e09dfcc7533LL,	/* DW 4*/
+		0x733026b6b72f2470LL,	/* Dw 3 */
+		0x6917ffcaca2d8466LL,	/* Famista '90 */
+		0x8da46db592a1fcf4LL,	/* Faria */
+		0xedba17a2c4608d20LL,	/* Final Fantasy */
+		0x91a6846d3202e3d6LL,	/* Final Fantasy */
+		0x012df596e2b31174LL,	/* Final Fantasy 1+2 */
+		0xf6b359a720549ecdLL,	/* Final Fantasy 2 */
+		0x5a30da1d9b4af35dLL,	/* Final Fantasy 3 */
+		0xd63dcc68c2b20adcLL,	/* Final Fantasy J */
+		0x2ee3417ba8b69706LL,	/* Hydlide 3*/
+		0xebbce5a54cf3ecc0LL,	/* Justbreed */
+		0x6a858da551ba239eLL,	/* Kaijuu Monogatari */
+		0x2db8f5d16c10b925LL,	/* Kyonshiizu 2 */
+		0x04a31647de80fdabLL,	/* Legend of Zelda */
+		0x94b9484862a26cbaLL,	/* Legend of Zelda */
+		0xa40666740b7d22feLL,	/* Mindseeker */
+		0x82000965f04a71bbLL,	/* Mirai Shinwa Jarvas */
+		0x77b811b2760104b9LL,	/* Mouryou Senki Madara */
+		0x11b69122efe86e8cLL,	/* RPG Jinsei Game */
+		0x9aa1dc16c05e7de5LL,	/* Startropics */
+		0x1b084107d0878bd0LL,	/* Startropics 2*/
+		0xa70b495314f4d075LL,	/* Ys 3 */
+		0x836c0ff4f3e06e45LL,	/* Zelda 2 */
+		0						/* Abandon all hope if the game has 0 in the lower 64-bits of its MD5 hash */
 	};
 
 	static struct CHINF moo[] =
 	{
 		#include "ines-correct.h"
 	};
-	int32 tofix = 0, x;
+	int32 tofix = 0, x, mask;
 	uint64 partialmd5 = 0;
 
 	for (x = 0; x < 8; x++)
@@ -361,9 +363,13 @@ static void CheckHInfo(void) {
 					VROM = NULL;
 					tofix |= 8;
 				}
-				if (MapperNo != (moo[x].mapper & 0xFF)) {
+				if (moo[x].mapper & 0x1000)
+					mask = 0xFFF;
+				else
+					mask = 0xFF;
+				if (MapperNo != (moo[x].mapper & mask)) {
 					tofix |= 1;
-					MapperNo = moo[x].mapper & 0xFF;
+					MapperNo = moo[x].mapper & mask;
 				}
 			}
 			if (moo[x].mirror >= 0) {
@@ -479,9 +485,9 @@ static BMAPPINGLocal bmap[] = {
 	{"Konami VRC6 Rev. B",	 26, Mapper26_Init},
 	{"CC-21 MI HUN CHE",	 27, UNLCC21_Init},		// Former dupe for VRC2/VRC4 mapper, redefined with crc to mihunche boards
 	{"",					 28, Mapper28_Init},
-//	{"",					 29, Mapper29_Init},
-//	{"",					 30, Mapper30_Init},
-//	{"",					 31, Mapper31_Init},
+	{"RET-CUFROM",			 29, Mapper29_Init},
+	{"UNROM 512",			 30, UNROM512_Init},
+	{"infiniteneslives-NSF", 31, Mapper31_Init},
 	{"IREM G-101",			 32, Mapper32_Init},
 	{"TC0190FMC/TC0350FMR",	 33, Mapper33_Init},
 	{"IREM I-IM/BNROM",		 34, Mapper34_Init},
@@ -539,7 +545,7 @@ static BMAPPINGLocal bmap[] = {
 	{"JALECO JF-13",		 86, Mapper86_Init},
 	{"74*139/74 DISCRETE",	 87, Mapper87_Init},
 	{"NAMCO 3433",			 88, Mapper88_Init},
-	{"SUNSOFT-3",			 89, Mapper89_Init},		// SUNSOFT-2 mapper
+	{"SUNSOFT-3",			 89, Mapper89_Init},	// SUNSOFT-2 mapper
 	{"HUMMER/JY BOARD",		 90, Mapper90_Init},
 	{"EARLY HUMMER/JY BOARD",91, Mapper91_Init},
 	{"JALECO JF-19",		 92, Mapper92_Init},
@@ -561,7 +567,7 @@ static BMAPPINGLocal bmap[] = {
 	{"FDS UNROM BOARD",		108, Mapper108_Init},
 //	{"",					109, Mapper109_Init},
 //	{"",					110, Mapper110_Init},
-//	{"",					111, Mapper111_Init},
+	{"Cheapocabra",			111, Mapper111_Init},
 	{"ASDER/NTDEC BOARD",	112, Mapper112_Init},
 	{"HACKER/SACHEN BOARD",	113, Mapper113_Init},
 	{"MMC3 SG PROT. A",		114, Mapper114_Init},
@@ -706,6 +712,21 @@ static BMAPPINGLocal bmap[] = {
 	{"DRAGON BALL PIRATE",	253, Mapper253_Init},
 	{"",					254, Mapper254_Init},
 //	{"",					255, Mapper255_Init},	// No good dumps for this mapper
+
+//-------- Mappers 256-511 is the Supplementary Multilingual Plane ----------
+//-------- Mappers 512-767 is the Supplementary Ideographic Plane -----------
+//-------- Mappers 3840-4095 are for rom dumps not publicly released --------
+
+//	An attempt to make working the UNIF BOARD ROMs in INES FORMAT
+//  I don't know if there a complete ines 2.0 mapper list exist, so if it does,
+//  just redefine these numbers to any others which isn't used before
+//  see the ines-correct.h files for the ROMs CHR list
+
+	{"ONE-BUS Systems",		256, UNLOneBus_Init},
+	{"PEC-586 Computer",	257, UNLPEC586Init},
+	{"158B Prot Board",		258, UNL158B_Init},
+	{"F-15 MMC3 Based",		259, BMCF15_Init},
+
 	{"",					0, NULL}
 };
 
@@ -722,32 +743,48 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	memset(&iNESCart, 0, sizeof(iNESCart));
 
+	iNES2 = ((head.ROM_type2 & 0x0C) == 0x08);
+	if(iNES2)
+	{
+		iNESCart.ines2 = true;
+		iNESCart.wram_size = (head.RAM_size & 0x0F)?(64 << (head.RAM_size & 0x0F)):0;
+		iNESCart.battery_wram_size = (head.RAM_size & 0xF0)?(64 << ((head.RAM_size & 0xF0)>>4)):0;
+		iNESCart.vram_size = (head.VRAM_size & 0x0F)?(64 << (head.VRAM_size & 0x0F)):0;
+		iNESCart.battery_vram_size = (head.VRAM_size & 0xF0)?(64 << ((head.VRAM_size & 0xF0)>>4)):0;
+		iNESCart.submapper = head.ROM_type3 >> 4;
+	}
+
 	MapperNo = (head.ROM_type >> 4);
 	MapperNo |= (head.ROM_type2 & 0xF0);
+	if(iNES2) MapperNo |= ((head.ROM_type3 & 0x0F) << 8);
+	
 	if (head.ROM_type & 8) {
 		Mirroring = 2;
 	} else
-	Mirroring = (head.ROM_type & 1);
+		Mirroring = (head.ROM_type & 1);
 
-	if (!head.ROM_size)
+	int not_round_size = head.ROM_size;
+	if(iNES2) not_round_size |= ((head.Upper_ROM_VROM_size & 0x0F) << 8);
+	
+	if (!head.ROM_size && !iNES2)
 		ROM_size = 256;
 	else
-		ROM_size = uppow2(head.ROM_size);
+		ROM_size = uppow2(not_round_size);
 
-	VROM_size = uppow2(head.VROM_size);
+	VROM_size = uppow2(head.VROM_size | (iNES2?((head.Upper_ROM_VROM_size & 0xF0)<<4):0));
 
-    int round = true;
-    for (int i = 0; i != sizeof(not_power2) / sizeof(not_power2[0]); ++i) {
-        //for games not to the power of 2, so we just read enough
-        //prg rom from it, but we have to keep ROM_size to the power of 2
-        //since PRGCartMapping wants ROM_size to be to the power of 2
-        //so instead if not to power of 2, we just use head.ROM_size when
-        //we use FCEU_read
-        if (not_power2[i] == MapperNo) {
-            round = false;
-            break;
-        }
-    }
+	int round = true;
+	for (int i = 0; i != sizeof(not_power2) / sizeof(not_power2[0]); ++i) {
+		//for games not to the power of 2, so we just read enough
+		//prg rom from it, but we have to keep ROM_size to the power of 2
+		//since PRGCartMapping wants ROM_size to be to the power of 2
+		//so instead if not to power of 2, we just use head.ROM_size when
+		//we use FCEU_read
+		if (not_power2[i] == MapperNo) {
+			round = false;
+			break;
+		}
+	}
 
 	if ((ROM = (uint8*)FCEU_malloc(ROM_size << 14)) == NULL)
 		return 0;
@@ -762,7 +799,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		memset(VROM, 0xFF, VROM_size << 13);
 	}
 
-	if (head.ROM_type & 4) {  /* Trainer */
+	if (head.ROM_type & 4) {	/* Trainer */
 		trainerpoo = (uint8*)FCEU_gmalloc(512);
 		FCEU_fread(trainerpoo, 512, 1, fp);
 	}
@@ -772,7 +809,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	SetupCartPRGMapping(0, ROM, ROM_size << 14, 0);
 
-	FCEU_fread(ROM, 0x4000, (round) ? ROM_size : head.ROM_size, fp);
+	FCEU_fread(ROM, 0x4000, (round) ? ROM_size : not_round_size, fp);
 
 	if (VROM_size)
 		FCEU_fread(VROM, 0x2000, VROM_size, fp);
@@ -791,7 +828,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	iNESCart.CRC32 = iNESGameCRC32;
 
-	FCEU_printf(" PRG ROM:  %3d x 16KiB\n", (round) ? ROM_size: head.ROM_size);
+	FCEU_printf(" PRG ROM:  %3d x 16KiB\n", (round) ? ROM_size: not_round_size);
 	FCEU_printf(" CHR ROM:  %3d x  8KiB\n", head.VROM_size);
 	FCEU_printf(" ROM CRC32:  0x%08lx\n", iNESGameCRC32);
 	{
@@ -816,6 +853,18 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	FCEU_printf(" Mirroring: %s\n", Mirroring == 2 ? "None (Four-screen)" : Mirroring ? "Vertical" : "Horizontal");
 	FCEU_printf(" Battery-backed: %s\n", (head.ROM_type & 2) ? "Yes" : "No");
 	FCEU_printf(" Trained: %s\n", (head.ROM_type & 4) ? "Yes" : "No");
+	if(iNES2) 
+	{
+		FCEU_printf(" NES2.0 Extensions\n");
+		FCEU_printf(" Sub Mapper #: %d\n", iNESCart.submapper);
+		FCEU_printf(" Total WRAM size: %d\n", iNESCart.wram_size + iNESCart.battery_wram_size);
+		FCEU_printf(" Total VRAM size: %d\n", iNESCart.vram_size + iNESCart.battery_vram_size);
+		if(head.ROM_type & 2)
+		{
+			FCEU_printf(" WRAM backked by battery: %d\n", iNESCart.battery_wram_size);
+			FCEU_printf(" VRAM backed by battery: %d\n", iNESCart.battery_vram_size);
+		}
+	}
 
 	SetInput();
 	CheckHInfo();
@@ -856,9 +905,9 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	// Extract Filename only. Should account for Windows/Unix this way.
 	if (strrchr(name, '/')) {
-	name = strrchr(name, '/') + 1;
+		name = strrchr(name, '/') + 1;
 	} else if (strrchr(name, '\\')) {
-	name = strrchr(name, '\\') + 1;
+		name = strrchr(name, '\\') + 1;
 	}
 
 	GameInterface = iNESGI;
@@ -868,7 +917,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	// guess if the settings should be PAL or NTSC from the ROM name
 	// TODO: MD5 check against a list of all known PAL games instead?
 	if (OverwriteVidMode) {
-		if (strstr(name, "(E)") || strstr(name, "(e)") || strstr(name, "(EU)")
+		if (strstr(name, "(E)") || strstr(name, "(e)")
 			|| strstr(name, "(Europe)") || strstr(name, "(PAL)")
 			|| strstr(name, "(F)") || strstr(name, "(f)")
 			|| strstr(name, "(G)") || strstr(name, "(g)")
@@ -882,45 +931,20 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 // bbit edited: the whole function below was added
 int iNesSave() {
-	FILE *fp;
 	char name[2048];
-
-	if (GameInfo->type != GIT_CART) return 0;
-	if (GameInterface != iNESGI) return 0;
 
 	strcpy(name, LoadedRomFName);
 	if (strcmp(name + strlen(name) - 4, ".nes") != 0) { //para edit
 		strcat(name, ".nes");
 	}
 
-	fp = fopen(name, "wb");
-	if (!fp)
-		return 0;
-
-	if (fwrite(&head, 1, 16, fp) != 16)
-	{
-		fclose(fp);
-		return 0;
-	}
-
-	if (head.ROM_type & 4)
-	{
-		/* Trainer */
-		fwrite(trainerpoo, 512, 1, fp);
-	}
-
-	fwrite(ROM, 0x4000, ROM_size, fp);
-
-	if (head.VROM_size)
-		fwrite(VROM, 0x2000, head.VROM_size, fp);
-
-	fclose(fp);
-	return 1;
+	return iNesSaveAs(name);
 }
 
 int iNesSaveAs(char* name)
 {
 	//adelikat: TODO: iNesSave() and this have pretty much the same code, outsource the common code to a single function
+	//caitsith2: done. iNesSave() now gets filename and calls iNesSaveAs with that filename.
 	FILE *fp;
 
 	if (GameInfo->type != GIT_CART) return 0;
@@ -970,17 +994,28 @@ static int iNES_Init(int num) {
 
 	if (GameInfo->type == GIT_VSUNI)
 		AddExState(FCEUVSUNI_STATEINFO, ~0, 0, 0);
-		
+
 	while (tmp->init) {
 		if (num == tmp->number) {
-			UNIFchrrama = 0; // need here for compatibility with UNIF mapper code
+			UNIFchrrama = 0;	// need here for compatibility with UNIF mapper code
 			if (!VROM_size) {
-				switch (num) {	// FIXME, mapper or game data base with the board parameters and ROM/RAM sizes
+				if(!iNESCart.ines2)
+				{
+					switch (num) {	// FIXME, mapper or game data base with the board parameters and ROM/RAM sizes
 					case 13:  CHRRAMSize = 16 * 1024; break;
 					case 6:
+					case 29:
+					case 30:
+					case 45:
 					case 96:  CHRRAMSize = 32 * 1024; break;
 					case 176: CHRRAMSize = 128 * 1024; break;
 					default:  CHRRAMSize = 8 * 1024; break;
+					}
+					iNESCart.vram_size = CHRRAMSize;
+				}
+				else
+				{
+					CHRRAMSize = iNESCart.battery_vram_size + iNESCart.vram_size;
 				}
 				if ((VROM = (uint8*)FCEU_dmalloc(CHRRAMSize)) == NULL) return 0;
 				FCEU_MemoryRand(VROM, CHRRAMSize);

@@ -1,15 +1,16 @@
-#pragma once
-
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
-int FCEUPPU_Loop(int skip, bool render);
+int FCEUPPU_Loop(int skip, bool display);
 
 void FCEUPPU_LineUpdate();
 void FCEUPPU_SetVideoSystem(int w);
 
 extern void (*PPU_hook)(uint32 A);
 extern void (*GameHBIRQHook)(void), (*GameHBIRQHook2)(void);
+
+int newppu_get_scanline();
+int newppu_get_dot();
 
 /* For cart.c and banksw.h, mostly */
 extern uint8 NTARAM[0x800], *vnapage[4];
@@ -18,6 +19,7 @@ extern uint8 PPUCHRRAM;
 
 void FCEUPPU_SaveState(void);
 void FCEUPPU_LoadState(int version);
+uint32 FCEUPPU_PeekAddress();
 uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr);
 void ppu_getScroll(int &xpos, int &ypos);
 
@@ -34,23 +36,13 @@ extern void (*FFCEUX_PPUWrite)(uint32 A, uint8 V);
 extern uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A);
 void FFCEUX_PPUWrite_Default(uint32 A, uint8 V);
 
-extern int scanline;
 extern int g_rasterpos;
 extern uint8 PPU[4];
+extern bool DMC_7bit;
+extern bool paldeemphswap;
 
 enum PPUPHASE {
 	PPUPHASE_VBL, PPUPHASE_BG, PPUPHASE_OBJ
 };
 
 extern PPUPHASE ppuphase;
-
-// native pixel buffer
-static const uint nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
-
-#ifdef USE_PIX_RGB565
-#define NATIVE_PIX_TYPE uint16
-#else
-#define NATIVE_PIX_TYPE uint32
-#endif
-
-extern NATIVE_PIX_TYPE nativeCol[256];

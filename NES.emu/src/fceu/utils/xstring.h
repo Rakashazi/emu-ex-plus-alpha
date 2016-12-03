@@ -17,12 +17,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#pragma once
 #include <string>
 #include <string.h>
 #include <stdlib.h>
 #include <vector>
-//#include <iostream>
+#include <iostream>
 
 #include "../types.h"
 #include "../emufile.h"
@@ -121,10 +120,8 @@ template<typename T, int DIGITS, bool PAD> void putdec(EMUFILE* os, T dec)
 
 std::string mass_replace(const std::string &source, const std::string &victim, const std::string &replacement);
 
-#if 0
 std::wstring mbstowcs(std::string str);
 std::string wcstombs(std::wstring str);
-#endif
 
 
 

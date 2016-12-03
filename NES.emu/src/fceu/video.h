@@ -7,8 +7,10 @@ int SaveSnapshot(char[]);
 void ResetScreenshotsCounter();
 uint32 GetScreenPixel(int x, int y, bool usebackup);
 int GetScreenPixelPalette(int x, int y, bool usebackup);
-//extern uint8 XBuf[256 * 240] __attribute__ ((aligned (4)));
-//extern uint8 *XBackBuf;
+extern uint8 *XBuf;
+extern uint8 *XBackBuf;
+extern uint8 *XDBuf;
+extern uint8 *XDBackBuf;
 extern int ClipSidesOffset;
 extern struct GUIMESSAGE
 {

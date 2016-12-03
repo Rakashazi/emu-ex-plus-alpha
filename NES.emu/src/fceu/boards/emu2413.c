@@ -51,7 +51,6 @@
 #include <string.h>
 #include <math.h>
 #include "emu2413.h"
-#include "sound.h"
 
 static const unsigned char default_inst[15][8] = {
 	/* VRC7 instruments, January 17, 2004 update -Xodnizel */
@@ -821,17 +820,13 @@ static INLINE int16 calc(OPLL * opll) {
 	return (int16)out;
 }
 
-template<class InSample>
-void OPLL_fillbuf(OPLL* opll, InSample *buf, int32 len, int shift) {
+void OPLL_fillbuf(OPLL* opll, int32 *buf, int32 len, int shift) {
 	while (len > 0) {
 		*buf += (calc(opll) + 32768) << shift;
 		buf++;
 		len--;
 	}
 }
-
-template void OPLL_fillbuf(OPLL* opll, FCEU_SoundSample *buf, int32 len, int shift);
-template void OPLL_fillbuf(OPLL* opll, FCEU_SoundSample2 *buf, int32 len, int shift);
 
 int16 OPLL_calc(OPLL * opll) {
 	if (!opll->quality)

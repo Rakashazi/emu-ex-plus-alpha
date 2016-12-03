@@ -8,7 +8,7 @@
 #include <vector>
 #include <map>
 #include <string>
-//#include <ostream>
+#include <ostream>
 #include <cstdlib>
 
 struct FCEUFILE;
@@ -20,7 +20,7 @@ enum EMOVIE_FLAG
 	//an ARCHAIC flag which means the movie was recorded from a soft reset.
 	//WHY would you do this?? do not create any new movies with this flag
 	MOVIE_FLAG_FROM_RESET = (1<<1),
-	
+
 	MOVIE_FLAG_PAL = (1<<2),
 
 	//movie was recorded from poweron. the alternative is from a savestate (or from reset)
@@ -43,7 +43,7 @@ typedef struct
 	MD5DATA md5_of_rom_used;
 	std::string name_of_rom_used;
 
-	std::vector<std::string> comments;
+	std::vector<std::wstring> comments;
 	std::vector<std::string> subtitles;
 } MOVIE_INFO;
 
@@ -103,7 +103,7 @@ class MovieRecord
 public:
 	MovieRecord();
 	ValueArray<uint8,4> joysticks;
-	
+
 	struct {
 		uint8 x,y,b,bogo;
 		uint64 zaphit;
@@ -148,14 +148,14 @@ public:
 	bool Compare(MovieRecord& compareRec);
 	void Clone(MovieRecord& sourceRec);
 	void clear();
-	
+
 	void parse(MovieData* md, EMUFILE* is);
 	bool parseBinary(MovieData* md, EMUFILE* is);
 	void dump(MovieData* md, EMUFILE* os, int index);
 	void dumpBinary(MovieData* md, EMUFILE* os, int index);
 	void parseJoy(EMUFILE* is, uint8& joystate);
 	void dumpJoy(EMUFILE* os, uint8 joystate);
-	
+
 	static const char mnemonics[8];
 
 private:
@@ -178,7 +178,7 @@ public:
 	std::string romFilename;
 	std::vector<uint8> savestate;
 	std::vector<MovieRecord> records;
-	std::vector<std::string> comments;
+	std::vector<std::wstring> comments;
 	std::vector<std::string> subtitles;
 	//this is the RERECORD COUNT. please rename variable.
 	int rerecordCount;
@@ -195,7 +195,7 @@ public:
 	bool fourscore;
 	//whether microphone is enabled
 	bool microphone;
-	
+
 	int getNumRecords() { return records.size(); }
 
 	class TDictionary : public std::map<std::string,std::string>
@@ -234,7 +234,7 @@ public:
 	void eraseRecords(int at, int frames = 1);
 	void insertEmpty(int at, int frames);
 	void cloneRegion(int at, int frames);
-	
+
 	static bool loadSavestateFrom(std::vector<uint8>* buf);
 	static void dumpSavestateTo(std::vector<uint8>* buf, int compressionLevel);
 
@@ -261,7 +261,7 @@ extern bool fullSaveStateLoads;
 //--------------------------------------------------
 void FCEUI_MakeBackupMovie(bool dispMessage);
 void FCEUI_CreateMovieFile(std::string fn);
-void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::string author);
+void FCEUI_SaveMovie(const char *fname, EMOVIE_FLAG flags, std::wstring author);
 bool FCEUI_LoadMovie(const char *fname, bool read_only, int _stopframe);
 void FCEUI_MoviePlayFromBeginning(void);
 void FCEUI_StopMovie(void);

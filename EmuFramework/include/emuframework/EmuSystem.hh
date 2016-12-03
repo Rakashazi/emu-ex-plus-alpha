@@ -187,7 +187,6 @@ public:
 	static void stopSound();
 	static void startSound();
 	static void writeSound(const void *samples, uint framesToWrite);
-	static void commitSound(Audio::BufferContext buffer, uint frames);
 	static uint advanceFramesWithTime(Base::FrameTimeBase time);
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);

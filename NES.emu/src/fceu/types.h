@@ -17,10 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- */  
+ */
 
 #ifndef __FCEU_TYPES
 #define __FCEU_TYPES
+
+//enables a hack designed for debugging dragon warrior 3 which treats BRK as a 3-byte opcode
+//#define BRK_3BYTE_HACK
+
+//enables a hack designed for debugging dragon warrior 3 which treats 0F and 1F NL files both as 1F
+//#define DW3_NL_0F_1F_HACK
 
 ///causes the code fragment argument to be compiled in if the build includes debugging
 #ifdef FCEUDEF_DEBUGGER
@@ -38,10 +44,10 @@ typedef signed short int16;
 typedef signed int int32;
 #define dup _dup
 #define stat _stat
-#define fstat _fstat
 #define mkdir _mkdir
 #define alloca _alloca
 #define snprintf _snprintf
+#define FCEUX_fstat _fstat
 #if _MSC_VER < 1500
 #define vsnprintf _vsnprintf
 #endif
@@ -68,19 +74,21 @@ typedef int32_t int32;
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
+
+#define FCEUX_fstat fstat
 #endif
 
 #ifdef __GNUC__
-#include <imagine/util/ansiTypes.h>
+#include <cstdint>
+ typedef uint64_t uint64;
  typedef uint64 u64;
-#ifndef INLINE
+ typedef int64_t int64;
  #define INLINE inline
-#endif
  #define GINLINE inline
 #elif MSVC
  typedef __int64 int64;
  typedef unsigned __int64 uint64;
- #define __restrict__ 
+ #define __restrict__
  #define INLINE __inline
  #define GINLINE			/* Can't declare a function INLINE
 					   and global in MSVC.  Bummer.
@@ -89,7 +97,7 @@ typedef uint32_t uint32;
 					   other than Windows/DOS targets?
 					*/
 
- #if _MSC_VER >= 1300 
+ #if _MSC_VER >= 1300
   #pragma warning(disable:4244) //warning C4244: '=' : conversion from 'uint32' to 'uint8', possible loss of data
   #pragma warning(disable:4996) //'strdup' was declared deprecated
 #endif
@@ -121,7 +129,7 @@ typedef uint32_t uint32;
 
 #else
 
-#error PSS_STYLE undefined or invalid; see "types.h" for possible values, and add as compile-time option.  
+#error PSS_STYLE undefined or invalid; see "types.h" for possible values, and add as compile-time option.
 
 #endif
 
@@ -134,8 +142,5 @@ typedef uint8 (*readfunc)(uint32 A);
 #endif
 
 #include "utils/endian.h"
-
-typedef int16_t FCEU_SoundSample;
-typedef int32_t FCEU_SoundSample2; // For HQ sound
 
 #endif

@@ -1,11 +1,20 @@
 #ifndef _FCEUH
 #define _FCEUH
 
-#include <imagine/fs/FS.hh>
+#include "types.h"
 
 extern int fceuindbg;
 extern int newppu;
 void ResetGameLoaded(void);
+
+//overclocking-related
+extern bool overclock_enabled;
+extern bool overclocking;
+extern bool skip_7bit_overclocking;
+extern int normalscanlines;
+extern int totalscanlines;
+extern int postrenderscanlines;
+extern int vblankscanlines;
 
 extern bool AutoResumePlay;
 extern char romNameWhenClosingEmulator[];
@@ -50,10 +59,11 @@ extern uint8 MMC5HackSPPage;
 
 #define GAME_MEM_BLOCK_SIZE 131072
 
-extern  uint8  RAM[0x800];            //shared memory modifications
+extern  uint8  *RAM;            //shared memory modifications
 extern int EmulationPaused;
 
 uint8 FCEU_ReadRomByte(uint32 i);
+void FCEU_WriteRomByte(uint32 i, uint8 value);
 
 extern readfunc ARead[0x10000];
 extern writefunc BWrite[0x10000];
@@ -75,6 +85,7 @@ extern FCEUGI *GameInfo;
 extern int GameAttributes;
 
 extern uint8 PAL;
+extern int dendy;
 
 //#include "driver.h"
 
@@ -104,11 +115,7 @@ struct FCEUS {
 	//this variable isn't used at all, snap is always name-based
 	//bool SnapName;
 	uint32 SndRate;
-#ifdef FCEU_NO_HQ_SOUND
-	static const int soundq = 0;
-#else
 	int soundq;
-#endif
 	int lowpass;
 };
 
@@ -125,25 +132,29 @@ void FCEU_printf(const char *format, ...);
 void FCEU_DispMessage(const char *format, int disppos, ...);
 void FCEU_DispMessageOnMovie(const char *format, ...);
 #else
-static void FCEU_PrintError(const char *format, ...) { }
-static void FCEU_printf(const char *format, ...) { }
-static void FCEU_DispMessage(const char *format, int disppos, ...) { }
-static void FCEU_DispMessageOnMovie(const char *format, ...) { }
+static void FCEU_PrintError(const char *format, ...) {}
+static void FCEU_printf(const char *format, ...) {}
+static void FCEU_DispMessage(const char *format, int disppos, ...) {}
+static void FCEU_DispMessageOnMovie(const char *format, ...) {}
 #endif
-extern const char *fceuReturnedError;
-extern FS::PathString fdsBiosPath;
 void FCEU_TogglePPU();
 
-void SetNESDeemph(uint8 d, int force);
+void SetNESDeemph_OldHacky(uint8 d, int force);
 void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor);
 void FCEU_PutImage(void);
 #ifdef FRAMESKIP
 void FCEU_PutImageDummy(void);
 #endif
 
+#ifdef WIN32
+extern void UpdateCheckedMenuItems();
+extern void PushCurrentVideoSettings();
+#endif
+
 extern uint8 Exit;
-extern uint8 pale;
+extern int default_palette_selection;
 extern uint8 vsdip;
+extern const char *fceuReturnedError;
 
 //#define FCEUDEF_DEBUGGER //mbg merge 7/17/06 - cleaning out conditional compiles
 
@@ -163,3 +174,4 @@ extern uint8 vsdip;
 #define EMULATIONPAUSED_FA 2
 
 #define FRAMEADVANCE_DELAY_DEFAULT 10
+

@@ -171,6 +171,8 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	}
 }
 
+void RefreshThrottleFPS() {}
+
 // for boards/transformer.cpp
 unsigned int *GetKeyboard(void)
 {
@@ -214,9 +216,6 @@ int debug_loggingCD = 0;
 int FCEUnetplay=0;
 int FCEUNET_SendCommand(uint8, uint32) { return 0; }
 void NetplayUpdate(uint8 *joyp) { }
-
-// from movie.cpp
-void FCEUI_MakeBackupMovie(bool dispMessage) { }
 
 // from fceu.cpp
 bool CheckFileExists(const char* filename)
