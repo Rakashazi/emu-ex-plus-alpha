@@ -5,14 +5,23 @@
 #include <sys/stat.h>
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4
-	#include <apu/apu.h>
-	#include <controls.h>
+#include <apu/apu.h>
+#include <controls.h>
 #else
-	#include <apu.h>
-	#include <soundux.h>
+#include <apu.h>
+#include <soundux.h>
 #endif
 #include <display.h>
 #include <memmap.h>
+
+#ifndef SNES9X_VERSION_1_4
+uint16 SSettings::DisplayColor = 0;
+bool8 SSettings::DisplayMovieFrame = 0;
+uint32 SSettings::SoundInputRate = 32000;
+const char	*SGFX::InfoString = nullptr;
+uint32	SGFX::InfoStringTimeout = 0;
+char	SGFX::FrameDisplayString[256]{};
+#endif
 
 void S9xMessage(int, int, const char *msg)
 {
@@ -40,49 +49,35 @@ void S9xPrintfError(const char* msg, ...)
 	va_end(args);
 }
 
-/*void S9xSetPalette (void)
-{
-	return;
-}*/
+void S9xSetPalette() {}
 
 #ifndef SNES9X_VERSION_1_4
 
-bool8 S9xContinueUpdate (int width, int height)
+bool8 S9xContinueUpdate(int width, int height)
 {
 	return (TRUE);
 }
 
-void S9xHandlePortCommand (s9xcommand_t cmd, int16 data1, int16 data2)
-{
-
-}
+void S9xHandlePortCommand(s9xcommand_t cmd, int16 data1, int16 data2) {}
 
 bool8 S9xOpenSoundDevice()
 {
 	return TRUE;
 }
 
-const char * S9xGetCrosshair (int idx)
+const char *S9xGetCrosshair(int idx)
 {
 	return nullptr;
 }
 
-void S9xDrawCrosshair (const char *crosshair, uint8 fgcolor, uint8 bgcolor, int16 x, int16 y)
-{
+void S9xDrawCrosshair(const char *crosshair, uint8 fgcolor, uint8 bgcolor, int16 x, int16 y) {}
 
-}
-
-void S9xSetSoundMute (bool8 mute)
-{
-
-}
-
-const char * S9xGetDirectory (enum s9x_getdirtype dirtype)
+const char * S9xGetDirectory(enum s9x_getdirtype dirtype)
 {
 	return EmuSystem::savePath();
 }
 
-const char * S9xGetFilenameInc (const char *ex, enum s9x_getdirtype dirtype)
+const char * S9xGetFilenameInc(const char *ex, enum s9x_getdirtype dirtype)
 {
 	bug_exit("S9xGetFilenameInc not used yet");
 	return nullptr;
@@ -101,7 +96,7 @@ extern "C" void S9xLoadSDD1Data()
 	Settings.SDD1Pack = TRUE;
 }
 
-const char *S9xGetFilenameInc (const char *e)
+const char *S9xGetFilenameInc(const char *e)
 {
 	assert(0); // not used yet
 	return 0;
@@ -143,9 +138,9 @@ extern "C" char* osd_GetPackDir()
 #endif
 
 #ifndef SNES9X_VERSION_1_4
-const char *S9xGetFilename (const char *ex, enum s9x_getdirtype dirtype)
+const char *S9xGetFilename(const char *ex, enum s9x_getdirtype dirtype)
 #else
-const char *S9xGetFilename (const char *ex)
+const char *S9xGetFilename(const char *ex)
 #endif
 {
 	static char	s[PATH_MAX + 1];
@@ -154,22 +149,22 @@ const char *S9xGetFilename (const char *ex)
 	return s;
 }
 
-bool S9xPollAxis (uint32 id, int16 *value)
+bool S9xPollAxis(uint32 id, int16 *value)
 {
 	return 0;
 }
 
-bool S9xPollPointer (uint32 id, int16 *x, int16 *y)
+bool S9xPollPointer(uint32 id, int16 *x, int16 *y)
 {
 	return 0;
 }
 
-void S9xExit (void)
+void S9xExit(void)
 {
 	bug_exit("should not be called");
 }
 
-void S9xToggleSoundChannel (int c)
+void S9xToggleSoundChannel(int c)
 {
 	static uint8	sound_switch = 255;
 
@@ -181,13 +176,13 @@ void S9xToggleSoundChannel (int c)
 	S9xSetSoundControl(sound_switch);
 }
 
-const char * S9xStringInput (const char *message)
+const char * S9xStringInput(const char *message)
 {
 	bug_exit("should not be called");
 	return 0;
 }
 
-void _splitpath (const char *path, char *drive, char *dir, char *fname, char *ext)
+void _splitpath(const char *path, char *drive, char *dir, char *fname, char *ext)
 {
 	*drive = 0;
 
@@ -228,7 +223,7 @@ void _splitpath (const char *path, char *drive, char *dir, char *fname, char *ex
 	}
 }
 
-void _makepath (char *path, const char *, const char *dir, const char *fname, const char *ext)
+void _makepath(char *path, const char *, const char *dir, const char *fname, const char *ext)
 {
 	if (dir && *dir)
 	{
@@ -247,17 +242,17 @@ void _makepath (char *path, const char *, const char *dir, const char *fname, co
 	}
 }
 
-const char * S9xChooseFilename (bool8 read_only)
+const char *S9xChooseFilename(bool8 read_only)
 {
 	return 0;
 }
 
-const char * S9xChooseMovieFilename (bool8 read_only)
+const char *S9xChooseMovieFilename(bool8 read_only)
 {
 	return 0;
 }
 
-const char * S9xBasename (const char *f)
+const char *S9xBasename(const char *f)
 {
 	const char	*p;
 
@@ -267,7 +262,7 @@ const char * S9xBasename (const char *f)
 	return (f);
 }
 
-bool8 S9xOpenSnapshotFile (const char *filename, bool8 read_only, STREAM *file)
+bool8 S9xOpenSnapshotFile(const char *filename, bool8 read_only, STREAM *file)
 {
 	if ((*file = OPEN_STREAM(filename, read_only ? "rb" : "wb")))
 		return (TRUE);
@@ -275,16 +270,17 @@ bool8 S9xOpenSnapshotFile (const char *filename, bool8 read_only, STREAM *file)
 	return (FALSE);
 }
 
-void S9xCloseSnapshotFile (STREAM file)
+void S9xCloseSnapshotFile(STREAM file)
 {
 	CLOSE_STREAM(file);
 }
 
 // from logger.h
-void S9xResetLogger (void) { }
+void S9xResetLogger() {}
 
 // from screenshot.h
-bool8 S9xDoScreenshot (int, int) { return 1; }
+bool8 S9xDoScreenshot(int, int) { return 1; }
 
 // from gfx.h
-void S9xDisplayMessages (uint16 *, int, int, int, int) { }
+void S9xSyncSpeed() {}
+bool8 S9xInitUpdate() { return 1; }

@@ -345,7 +345,9 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 void EmuSystem::configAudioRate(double frameTime)
 {
 	pcmFormat.rate = optionSoundRate;
-	double systemFrameRate = vidSysIsPAL() ? 50.007 : 60.0988;
+	const double ntscFrameRate = 21477272.0 / 357366.0;
+	const double palFrameRate = 21281370.0 / 425568.0;
+	double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
 	double rate = std::round(optionSoundRate * (systemFrameRate * frameTime));
 	FCEUI_Sound(rate);
 	logMsg("set NES audio rate %d", FSettings.SndRate);
@@ -443,12 +445,6 @@ void EmuSystem::onMainWindowCreated(Base::Window &win)
 			}
 			handleInputEvent(win, e);
 		});
-}
-
-void EmuSystem::onOptionsLoaded()
-{
-	FCEUI_SetSoundQuality(optionSoundQuality);
-	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
 }
 
 CallResult EmuSystem::onInit()

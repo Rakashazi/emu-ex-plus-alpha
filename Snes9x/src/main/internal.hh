@@ -12,6 +12,7 @@ extern const uint gamepadKeys;
 }
 
 extern Byte1Option optionMultitap;
+extern Byte1Option optionVideoSystem;
 #ifndef SNES9X_VERSION_1_4
 extern Byte1Option optionBlockInvalidVRAMAccess;
 #endif

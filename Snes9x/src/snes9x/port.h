@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,16 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   Specific ports contains the works of other authors. See headers in
@@ -305,7 +317,7 @@ void SetInfoDlgColor(unsigned char, unsigned char, unsigned char);
 #endif  // __WIN32_LIBSNES__
 #endif  // __WIN32__
 
-#ifdef __DJGPP
+#if defined(__DJGPP) || defined(__WIN32__)
 #define SLASH_STR	"\\"
 #define SLASH_CHAR	'\\'
 #else
@@ -326,7 +338,7 @@ void SetInfoDlgColor(unsigned char, unsigned char, unsigned char);
 #define TITLE "Snes9x"
 #endif
 
-#if defined(__i386__) || defined(__x86_64__) || defined(__alpha__) || defined(__MIPSEL__) || defined(_M_IX86) || defined(_M_X64) || defined(_XBOX1) || defined(__arm__) || defined(__aarch64__)
+#if defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__) || defined(__x86_64__) || defined(__alpha__) || defined(__MIPSEL__) || defined(_M_IX86) || defined(_M_X64) || defined(_XBOX1) || defined(__arm__) || defined(__aarch64__)
 #define LSB_FIRST
 #define FAST_LSB_WORD_ACCESS
 #else
@@ -334,12 +346,12 @@ void SetInfoDlgColor(unsigned char, unsigned char, unsigned char);
 #endif
 
 #ifdef FAST_LSB_WORD_ACCESS
-#define READ_WORD(s)		(*(uint16a *) (s))
-#define READ_3WORD(s)		(*(uint32a *) (s) & 0x00ffffff)
-#define READ_DWORD(s)		(*(uint32a *) (s))
-#define WRITE_WORD(s, d)	*(uint16a *) (s) = (d)
-#define WRITE_3WORD(s, d)	*(uint16a *) (s) = (uint16) (d), *((uint8 *) (s) + 2) = (uint8) ((d) >> 16)
-#define WRITE_DWORD(s, d)	*(uint32a *) (s) = (d)
+#define READ_WORD(s)		(*(uint16 *) (s))
+#define READ_3WORD(s)		(*(uint32 *) (s) & 0x00ffffff)
+#define READ_DWORD(s)		(*(uint32 *) (s))
+#define WRITE_WORD(s, d)	*(uint16 *) (s) = (d)
+#define WRITE_3WORD(s, d)	*(uint16 *) (s) = (uint16) (d), *((uint8 *) (s) + 2) = (uint8) ((d) >> 16)
+#define WRITE_DWORD(s, d)	*(uint32 *) (s) = (d)
 #else
 #define READ_WORD(s)		(*(uint8 *) (s) | (*((uint8 *) (s) + 1) << 8))
 #define READ_3WORD(s)		(*(uint8 *) (s) | (*((uint8 *) (s) + 1) << 8) | (*((uint8 *) (s) + 2) << 16))

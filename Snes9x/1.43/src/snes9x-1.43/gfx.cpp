@@ -98,6 +98,8 @@
 #include "cheats.h"
 #include "screenshot.h"
 
+#include <imagine/util/utility.h>
+
 #define M7 19
 #define M8 19
 

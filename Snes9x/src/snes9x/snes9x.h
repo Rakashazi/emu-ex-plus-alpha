@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,16 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   Specific ports contains the works of other authors. See headers in
@@ -180,7 +192,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.53"
+#define VERSION	"1.54.1"
 #endif
 
 #include "port.h"
@@ -346,7 +358,8 @@ struct STimings
 
 struct SSettings
 {
-	constexpr SSettings() { }
+	constexpr SSettings() {}
+
 #ifdef DEBUGGER
 	bool8	TraceDMA;
 	bool8	TraceHDMA;
@@ -369,6 +382,7 @@ struct SSettings
 	bool8	BS = 0;
 	bool8	BSXItself = 0;
 	bool8	BSXBootup = 0;
+	bool8	MSU1 = 0;
 	static const bool8	MouseMaster = 1;
 	static const bool8	SuperScopeMaster = 1;
 	static const bool8	JustifierMaster = 1;
@@ -382,21 +396,21 @@ struct SSettings
 	bool8	ForceInterleaved2 = 0;
 	bool8	ForceInterleaveGD24 = 0;
 	bool8	ForceNotInterleaved = 0;
-	static const bool8	ForcePAL = 1;
-	static const bool8	ForceNTSC = 1;
+	bool8	ForcePAL = 0;
+	bool8	ForceNTSC = 0;
 	bool8	PAL = 0;
 	bool8 IdentifyAsPAL = 0;
 	uint32	FrameTimePAL = 20000;
 	uint32	FrameTimeNTSC = 16667;
 	uint32	FrameTime = 0;
 
-	static const bool8	SoundSync = 0;
+	static const bool8	SoundSync = 1;
 	static const bool8	SixteenBitSound = 1;
 	uint32	SoundPlaybackRate = 44100;
-	static const uint32	SoundInputRate = 32000;
+	static uint32	SoundInputRate;
 	bool8	Stereo = 1;
 	static const bool8	ReverseStereo = 0;
-	static const bool8	Mute = 0;
+	bool8	Mute = 0;
 
 	static const bool8	SupportHiRes = 1;
 	static const bool8	Transparency = 1;
@@ -406,14 +420,14 @@ struct SSettings
 	static const bool8	DisplayFrameRate = 0;
 	static const bool8	DisplayWatchedAddresses = 0;
 	static const bool8	DisplayPressedKeys = 0;
-	static const bool8	DisplayMovieFrame = 0;
+	static bool8	DisplayMovieFrame;
 	static const bool8	AutoDisplayMessages = 0;
 	static const uint32	InitialInfoStringTimeout = 0;
-	//uint16	DisplayColor = 0;
+	static uint16	DisplayColor;
 
 	static const bool8	Multi = 0;
-	char	CartAName[PATH_MAX + 1] {0};
-	char	CartBName[PATH_MAX + 1] {0};
+	char	CartAName[PATH_MAX + 1]{};
+	char	CartBName[PATH_MAX + 1]{};
 
 	static const bool8	DisableGameSpecificHacks = 0;
 	bool8	BlockInvalidVRAMAccessMaster = 1;
@@ -433,7 +447,7 @@ struct SSettings
 
 	static const bool8	NetPlay = 0;
 	static const bool8	NetPlayServer = 0;
-	static constexpr char	ServerName[128] {0};
+	static constexpr char	ServerName[128]{};
 	static const int		Port = 0;
 
 	bool8	MovieTruncate = 0;
@@ -484,6 +498,5 @@ extern struct SSettings			Settings;
 extern struct SCPUState			CPU;
 extern struct STimings			Timings;
 extern struct SSNESGameFixes	SNESGameFixes;
-//extern char						String[513];
 
 #endif

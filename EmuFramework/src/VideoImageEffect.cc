@@ -252,6 +252,8 @@ void VideoImageEffect::updateProgramUniforms()
 
 void VideoImageEffect::setImageSize(IG::WP size)
 {
+	if(size == IG::WP{0, 0})
+		return;
 	if(inputImgSize == size)
 		return;
 	inputImgSize = size;

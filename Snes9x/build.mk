@@ -19,7 +19,7 @@ CPPFLAGS += \
 -DZLIB \
 -DUSE_OPENGL \
 -DPIXEL_FORMAT=RGB565
-#-DHAVE_MKSTEMP -DUSE_THREADS -DJMA_SUPPORT
+#-DHAVE_MKSTEMP -DUSE_THREADS
 
 snes9xSrc := \
 bsx.cpp \
@@ -44,6 +44,7 @@ gfx.cpp \
 globals.cpp \
 loadzip.cpp \
 memmap.cpp \
+msu1.cpp \
 movie.cpp \
 obc1.cpp \
 ppu.cpp \

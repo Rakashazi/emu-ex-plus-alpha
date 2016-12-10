@@ -4,7 +4,8 @@
 
 enum
 {
-	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277
+	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277,
+	CFGKEY_VIDEO_SYSTEM = 278
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -14,6 +15,7 @@ bool EmuSystem::hasBundledGames = true;
 const char *EmuSystem::configFilename = "Snes9xP.config";
 #endif
 Byte1Option optionMultitap{CFGKEY_MULTITAP, 0};
+Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
 #ifndef SNES9X_VERSION_1_4
 Byte1Option optionBlockInvalidVRAMAccess{CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1};
 #endif
@@ -47,6 +49,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 	{
 		default: return 0;
 		bcase CFGKEY_MULTITAP: optionMultitap.readFromIO(io, readSize);
+		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		#ifndef SNES9X_VERSION_1_4
 		bcase CFGKEY_BLOCK_INVALID_VRAM_ACCESS: optionBlockInvalidVRAMAccess.readFromIO(io, readSize);
 		#endif
@@ -57,6 +60,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 void EmuSystem::writeConfig(IO &io)
 {
 	optionMultitap.writeWithKeyIfNotDefault(io);
+	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	#ifndef SNES9X_VERSION_1_4
 	optionBlockInvalidVRAMAccess.writeWithKeyIfNotDefault(io);
 	#endif

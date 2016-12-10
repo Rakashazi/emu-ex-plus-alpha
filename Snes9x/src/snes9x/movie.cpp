@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,16 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   Specific ports contains the works of other authors. See headers in
@@ -248,7 +260,7 @@ static struct SMovie	Movie;
 
 static uint8	prevPortType[2];
 static int8		prevPortIDs[2][4];
-//static bool8	prevMouseMaster, prevSuperScopeMaster, prevJustifierMaster, prevMultiPlayer5Master;
+static bool8	prevMouseMaster, prevSuperScopeMaster, prevJustifierMaster, prevMultiPlayer5Master;
 
 static uint8	Read8 (uint8 *&);
 static uint16	Read16 (uint8 *&);
@@ -328,18 +340,18 @@ static void store_previous_settings (void)
 		prevPortType[i] = (uint8) pt;
 	}
 
-//	prevMouseMaster        = Settings.MouseMaster;
-//	prevSuperScopeMaster   = Settings.SuperScopeMaster;
-//	prevJustifierMaster    = Settings.JustifierMaster;
-//	prevMultiPlayer5Master = Settings.MultiPlayer5Master;
+	prevMouseMaster        = Settings.MouseMaster;
+	prevSuperScopeMaster   = Settings.SuperScopeMaster;
+	prevJustifierMaster    = Settings.JustifierMaster;
+	prevMultiPlayer5Master = Settings.MultiPlayer5Master;
 }
 
 static void restore_previous_settings (void)
 {
-//	Settings.MouseMaster        = prevMouseMaster;
-//	Settings.SuperScopeMaster   = prevSuperScopeMaster;
-//	Settings.JustifierMaster    = prevJustifierMaster;
-//	Settings.MultiPlayer5Master = prevMultiPlayer5Master;
+	//Settings.MouseMaster        = prevMouseMaster;
+	//Settings.SuperScopeMaster   = prevSuperScopeMaster;
+	//Settings.JustifierMaster    = prevJustifierMaster;
+	//Settings.MultiPlayer5Master = prevMultiPlayer5Master;
 
 	S9xSetController(0, (enum controllers) prevPortType[0], prevPortIDs[0][0], prevPortIDs[0][1], prevPortIDs[0][2], prevPortIDs[0][3]);
 	S9xSetController(1, (enum controllers) prevPortType[1], prevPortIDs[1][0], prevPortIDs[1][1], prevPortIDs[1][2], prevPortIDs[1][3]);
@@ -357,10 +369,10 @@ static void store_movie_settings (void)
 
 static void restore_movie_settings (void)
 {
-//	Settings.MouseMaster        = (Movie.PortType[0] == CTL_MOUSE      || Movie.PortType[1] == CTL_MOUSE);
-//	Settings.SuperScopeMaster   = (Movie.PortType[0] == CTL_SUPERSCOPE || Movie.PortType[1] == CTL_SUPERSCOPE);
-//	Settings.JustifierMaster    = (Movie.PortType[0] == CTL_JUSTIFIER  || Movie.PortType[1] == CTL_JUSTIFIER);
-//	Settings.MultiPlayer5Master = (Movie.PortType[0] == CTL_MP5        || Movie.PortType[1] == CTL_MP5);
+	//Settings.MouseMaster        = (Movie.PortType[0] == CTL_MOUSE      || Movie.PortType[1] == CTL_MOUSE);
+	//Settings.SuperScopeMaster   = (Movie.PortType[0] == CTL_SUPERSCOPE || Movie.PortType[1] == CTL_SUPERSCOPE);
+	//Settings.JustifierMaster    = (Movie.PortType[0] == CTL_JUSTIFIER  || Movie.PortType[1] == CTL_JUSTIFIER);
+	//Settings.MultiPlayer5Master = (Movie.PortType[0] == CTL_MP5        || Movie.PortType[1] == CTL_MP5);
 
 	S9xSetController(0, (enum controllers) Movie.PortType[0], Movie.PortIDs[0][0], Movie.PortIDs[0][1], Movie.PortIDs[0][2], Movie.PortIDs[0][3]);
 	S9xSetController(1, (enum controllers) Movie.PortType[1], Movie.PortIDs[1][0], Movie.PortIDs[1][1], Movie.PortIDs[1][2], Movie.PortIDs[1][3]);
@@ -795,7 +807,9 @@ int S9xMovieOpen (const char *filename, bool8 read_only)
 	restore_movie_settings();
 
 	lseek(fn, Movie.SaveStateOffset, SEEK_SET);
-	stream = REOPEN_STREAM(fn, "rb");
+
+    // reopen stream to access as gzipped data
+    stream = REOPEN_STREAM(fn, "rb");
 	if (!stream)
 		return (FILE_NOT_FOUND);
 
@@ -808,7 +822,11 @@ int S9xMovieOpen (const char *filename, bool8 read_only)
 	else
 		result = S9xUnfreezeFromStream(stream);
 
-	CLOSE_STREAM(stream);
+    // do not close stream but close FILE *
+    // (msvcrt will try to close all open FILE *handles on exit - if we do CLOSE_STREAM here
+    //  the underlying file will be closed by zlib, causing problems when msvcrt tries to do it)
+    delete stream;
+    fclose(fd);
 
 	if (result != SUCCESS)
 		return (result);
@@ -822,7 +840,10 @@ int S9xMovieOpen (const char *filename, bool8 read_only)
 	}
 
 	if (fseek(fd, Movie.ControllerDataOffset, SEEK_SET))
+	{
+		fclose(fd);
 		return (WRONG_FORMAT);
+	}
 
 	Movie.File           = fd;
 	Movie.BytesPerSample = bytes_per_sample();
@@ -970,7 +991,10 @@ int S9xMovieGetInfo (const char *filename, struct MovieInfo *info)
 
 	result = read_movie_header(fd, &local_movie);
 	if (result != SUCCESS)
+	{
+		fclose(fd);
 		return (result);
+	}
 
 	info->TimeCreated     = (time_t) local_movie.MovieId;
 	info->Version         = local_movie.Version;
@@ -1173,13 +1197,13 @@ void S9xMovieToggleRecState (void)
 
 void S9xMovieToggleFrameDisplay (void)
 {
-//	Settings.DisplayMovieFrame = !Settings.DisplayMovieFrame;
+	Settings.DisplayMovieFrame = !Settings.DisplayMovieFrame;
 	S9xReRefresh();
 }
 
 void S9xUpdateFrameCounter (int offset)
 {
-	/*extern bool8	pad_read;
+	extern bool8	pad_read;
 
 	offset++;
 
@@ -1198,5 +1222,5 @@ void S9xUpdateFrameCounter (int offset)
 	if (Settings.NetPlay)
 		sprintf(GFX.FrameDisplayString, "%s frame: %d", Settings.NetPlayServer ? "Server" : "Client",
 			max(0, (int) (NetPlay.FrameCount + offset)));
-#endif*/
+#endif
 }

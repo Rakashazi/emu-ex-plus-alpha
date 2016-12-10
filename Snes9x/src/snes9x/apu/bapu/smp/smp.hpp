@@ -58,9 +58,9 @@ public:
     union {
       uint16 ya;
 #ifndef __BIG_ENDIAN__
-      struct { uint8 a, y; };
+      struct { uint8 a, y; } B;
 #else
-      struct { uint8 y, a; };
+      struct { uint8 y, a; } B;
 #endif
     };
     uint8 x;
@@ -101,7 +101,7 @@ public:
   alwaysinline void op_io(unsigned clocks);
   debugvirtual alwaysinline uint8 op_read(uint16 addr);
   debugvirtual alwaysinline void op_write(uint16 addr, uint8 data);
-  debugvirtual alwaysinline void op_step() __attribute__ ((hot));
+  debugvirtual alwaysinline void op_step();
   static const unsigned cycle_count_table[256];
   uint64 cycle_table_cpu[256];
   unsigned cycle_table_dsp[256];

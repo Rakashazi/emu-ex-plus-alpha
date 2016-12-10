@@ -282,8 +282,7 @@ void S9xDoHBlankProcessing ()
 	CPU.NextEvent = -1;
 	ICPU.Scanline++;
 
-	//if (++CPU.V_Counter >= (Settings.PAL ? SNES_MAX_PAL_VCOUNTER : SNES_MAX_NTSC_VCOUNTER))
-	if (++CPU.V_Counter >= (SNES_MAX_NTSC_VCOUNTER))
+	if (++CPU.V_Counter >= (Settings.PAL ? SNES_MAX_PAL_VCOUNTER : SNES_MAX_NTSC_VCOUNTER))
 	{
 		CPU.V_Counter = 0;
 		Memory.FillRAM[0x213F]^=0x80;

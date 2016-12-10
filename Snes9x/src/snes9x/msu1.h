@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,19 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
+
+  MSU-1 code
+  (c) Copyright 2016         qwertymodo
 
 
   Specific ports contains the works of other authors. See headers in
@@ -175,14 +190,50 @@
   Nintendo Co., Limited and its subsidiary companies.
  ***********************************************************************************/
 
-//  JMA compressed file support
-//  (c) Copyright 2004-2006 NSRT Team (http://nsrt.edgeemu.com)
+#ifndef _MSU1_H_
+#define _MSU1_H_
+#include "snes9x.h"
 
+struct SMSU1
+{
+	uint8	MSU1_STATUS;
+	uint32	MSU1_DATA_SEEK;
+	uint32	MSU1_DATA_POS;
+	uint16	MSU1_TRACK_SEEK;
+	uint16	MSU1_CURRENT_TRACK;
+	uint32	MSU1_RESUME_TRACK;
+	uint8	MSU1_VOLUME;
+	uint8	MSU1_CONTROL;
+	uint32	MSU1_AUDIO_POS;
+	uint32	MSU1_RESUME_POS;
+};
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-size_t load_jma_file(const char *filename, unsigned char *buffer);
-#ifdef __cplusplus
-}
+enum SMSU1_FLAG {
+	Revision		= 0x02,	//max: 0x07
+	AudioResume		= 0x04,
+	AudioError		= 0x08,
+	AudioPlaying		= 0x10,
+	AudioRepeating		= 0x20,
+	AudioBusy		= 0x40,
+	DataBusy		= 0x80
+};
+
+enum SMSU1_CMD {
+	Play			= 0x01,
+	Repeat			= 0x02,
+	Resume			= 0x04
+};
+
+extern struct SMSU1	MSU1;
+
+void S9xResetMSU(void);
+void S9xMSU1Init(void);
+bool S9xMSU1ROMExists(void);
+void S9xMSU1Generate(int sample_count);
+uint8 S9xMSU1ReadPort(int port);
+void S9xMSU1WritePort(int port, uint8 byte);
+uint16 S9xMSU1Samples(void);
+void S9xMSU1SetOutput(int16 *out, int size);
+void S9xMSU1PostLoadState(void);
+
 #endif

@@ -97,8 +97,10 @@ struct SGFX{
     // Initialize these variables
     uint8  *Screen;
     static uint8 SubScreen[512*478*2] __attribute__ ((aligned (4))),
-    		ZBuffer[512*478] __attribute__ ((aligned (4))),
-    		SubZBuffer[512*478] __attribute__ ((aligned (4)));
+    		ZBufferStorage[512*478 + 16] __attribute__ ((aligned (4))),
+    		SubZBufferStorage[512*478 + 16] __attribute__ ((aligned (4)));
+    static uint8 *ZBuffer;
+    static uint8 *SubZBuffer;
     uint32 Pitch;
 
     // Setup in call to S9xGraphicsInit()
@@ -240,9 +242,9 @@ GFX.X2 [((((C1) & RGB_REMOVE_LOW_BITS_MASK) + \
 #endif
 
 #define COLOR_ADD1_2(C1, C2) \
-(((((C1) & RGB_REMOVE_LOW_BITS_MASK) + \
-          ((C2) & RGB_REMOVE_LOW_BITS_MASK)) >> 1) + \
-         ((C1) & (C2) & RGB_LOW_BITS_MASK) | ALPHA_BITS_MASK)
+	((((((C1) & RGB_REMOVE_LOW_BITS_MASK) + \
+	((C2) & RGB_REMOVE_LOW_BITS_MASK)) >> 1) + \
+	((C1) & (C2) & RGB_LOW_BITS_MASK)) | ALPHA_BITS_MASK)
 
 #if defined(OLD_COLOUR_BLENDING)
 #define COLOR_SUB(C1, C2) \

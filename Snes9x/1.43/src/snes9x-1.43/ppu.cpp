@@ -1377,7 +1377,7 @@ uint8 S9xGetPPU (uint16 Address)
 	    PPU.VBeamFlip = PPU.HBeamFlip = 0;
             //neviksti found a 2 and a 3 here. SNEeSe uses a 3.
             //XXX: field flags not emulated
-	    return ((Settings.PAL ? 0x10 : 0) | (Memory.FillRAM[0x213f] & 0xc0)| Model->_5C78) | (~PPU.OpenBus2 & 0x20);
+	    return ((Settings.IdentifyAsPAL ? 0x10 : 0) | (Memory.FillRAM[0x213f] & 0xc0)| Model->_5C78) | (~PPU.OpenBus2 & 0x20);
 
 	case 0x2140: case 0x2141: case 0x2142: case 0x2143:
 	case 0x2144: case 0x2145: case 0x2146: case 0x2147:

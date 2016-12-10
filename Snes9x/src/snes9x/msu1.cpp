@@ -157,6 +157,9 @@
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
+  MSU-1 code
+  (c) Copyright 2016         qwertymodo
+
 
   Specific ports contains the works of other authors. See headers in
   individual files.
@@ -187,13 +190,301 @@
   Nintendo Co., Limited and its subsidiary companies.
  ***********************************************************************************/
 
+#include "snes9x.h"
+#include "display.h"
+#include "msu1.h"
+#include "apu/bapu/dsp/blargg_endian.h"
+#include <fstream>
+#include <sys/stat.h>
 
-#ifndef _LOGGER_H_
-#define _LOGGER_H_
+std::ifstream dataFile, audioFile;
+uint32 audioLoopPos;
+uint32 partial_samples;
 
-void S9xResetLogger(void);
-void S9xCloseLogger(void);
-void S9xVideoLogger(void *, int, int, int, int);
-void S9xAudioLogger(void *, int);
+// Sample buffer
+int16 *bufPos, *bufBegin, *bufEnd;
 
-#endif
+bool AudioOpen()
+{
+	MSU1.MSU1_STATUS |= AudioError;
+
+	if (audioFile.is_open())
+		audioFile.close();
+
+	char ext[_MAX_EXT];
+	snprintf(ext, _MAX_EXT, "-%d.pcm", MSU1.MSU1_CURRENT_TRACK);
+
+	audioFile.clear();
+	audioFile.open(S9xGetFilename(ext, ROMFILENAME_DIR), std::ios::in | std::ios::binary);
+	if (audioFile.good())
+	{
+		if (audioFile.get() != 'M')
+			return false;
+		if (audioFile.get() != 'S')
+			return false;
+		if (audioFile.get() != 'U')
+			return false;
+		if (audioFile.get() != '1')
+			return false;
+
+		audioFile.read((char *)&audioLoopPos, 4);
+		audioLoopPos = GET_LE32(&audioLoopPos);
+		audioLoopPos <<= 2;
+		audioLoopPos += 8;
+
+		MSU1.MSU1_STATUS &= ~AudioError;
+		return true;
+	}
+
+	return false;
+}
+
+bool DataOpen()
+{
+	if (dataFile.is_open())
+		dataFile.close();
+
+	dataFile.clear();
+	dataFile.open(S9xGetFilename(".msu", ROMFILENAME_DIR), std::ios::in | std::ios::binary);
+	return dataFile.is_open();
+}
+
+void S9xResetMSU(void)
+{
+	MSU1.MSU1_STATUS		= 0;
+	MSU1.MSU1_DATA_SEEK		= 0;
+	MSU1.MSU1_DATA_POS		= 0;
+	MSU1.MSU1_TRACK_SEEK	= 0;
+	MSU1.MSU1_CURRENT_TRACK = 0;
+	MSU1.MSU1_RESUME_TRACK	= 0;
+	MSU1.MSU1_VOLUME		= 0;
+	MSU1.MSU1_CONTROL		= 0;
+	MSU1.MSU1_AUDIO_POS		= 0;
+	MSU1.MSU1_RESUME_POS	= 0;
+
+
+	bufPos				= 0;
+	bufBegin			= 0;
+	bufEnd				= 0;
+
+	partial_samples = 0;
+
+	if (dataFile.is_open())
+		dataFile.close();
+
+	if (audioFile.is_open())
+		audioFile.close();
+
+	Settings.MSU1 = S9xMSU1ROMExists();
+}
+
+void S9xMSU1Init(void)
+{
+	S9xResetMSU();
+	DataOpen();
+}
+
+bool S9xMSU1ROMExists(void)
+{
+	struct stat buf;
+	return (stat(S9xGetFilename(".msu", ROMFILENAME_DIR), &buf) == 0);
+}
+
+void S9xMSU1Generate(int sample_count)
+{
+	partial_samples += 44100 * sample_count;
+
+	while (((uintptr_t)bufPos < (uintptr_t)bufEnd) && (MSU1.MSU1_STATUS & AudioPlaying) && partial_samples > 32040)
+	{
+		if (audioFile.is_open())
+		{
+			int16 sample;
+			if (audioFile.read((char *)&sample, 2).good())
+			{
+				sample = (int16)((double)(int16)GET_LE16(&sample) * (double)MSU1.MSU1_VOLUME / 255.0);
+
+				*(bufPos++) = sample;
+				MSU1.MSU1_AUDIO_POS += 2;
+				partial_samples -= 32040;
+			}
+			else
+			if (audioFile.eof())
+			{
+				sample = (int16)((double)(int16)GET_LE16(&sample) * (double)MSU1.MSU1_VOLUME / 255.0);
+
+				*(bufPos++) = sample;
+				MSU1.MSU1_AUDIO_POS += 2;
+				partial_samples -= 32040;
+
+				if (MSU1.MSU1_STATUS & AudioRepeating)
+				{
+					audioFile.clear();
+					MSU1.MSU1_AUDIO_POS = audioLoopPos;
+					audioFile.seekg(MSU1.MSU1_AUDIO_POS);
+				}
+				else
+				{
+					MSU1.MSU1_STATUS &= ~(AudioPlaying | AudioRepeating);
+					audioFile.clear();
+					audioFile.seekg(8);
+					return;
+				}
+			}
+			else
+			{
+				MSU1.MSU1_STATUS &= ~(AudioPlaying | AudioRepeating);
+				return;
+			}
+		}
+		else
+		{
+			MSU1.MSU1_STATUS &= ~(AudioPlaying | AudioRepeating);
+			return;
+		}
+	}
+}
+
+
+uint8 S9xMSU1ReadPort(int port)
+{
+	switch (port)
+	{
+	case 0:
+		return MSU1.MSU1_STATUS;
+	case 1:
+		if (MSU1.MSU1_STATUS & DataBusy)
+			return 0;
+		if (dataFile.fail() || dataFile.bad() || dataFile.eof())
+			return 0;
+		MSU1.MSU1_DATA_POS++;
+		return dataFile.get();
+	case 2:
+		return 'S';
+	case 3:
+		return '-';
+	case 4:
+		return 'M';
+	case 5:
+		return 'S';
+	case 6:
+		return 'U';
+	case 7:
+		return '1';
+	}
+
+	return 0;
+}
+
+
+void S9xMSU1WritePort(int port, uint8 byte)
+{
+	switch (port)
+	{
+	case 0:
+		MSU1.MSU1_DATA_SEEK &= 0xFFFFFF00;
+		MSU1.MSU1_DATA_SEEK |= byte << 0;
+		break;
+	case 1:
+		MSU1.MSU1_DATA_SEEK &= 0xFFFF00FF;
+		MSU1.MSU1_DATA_SEEK |= byte << 8;
+		break;
+	case 2:
+		MSU1.MSU1_DATA_SEEK &= 0xFF00FFFF;
+		MSU1.MSU1_DATA_SEEK |= byte << 16;
+		break;
+	case 3:
+		MSU1.MSU1_DATA_SEEK &= 0x00FFFFFF;
+		MSU1.MSU1_DATA_SEEK |= byte << 24;
+		MSU1.MSU1_DATA_POS = MSU1.MSU1_DATA_SEEK;
+		if(dataFile.good())
+			dataFile.seekg(MSU1.MSU1_DATA_POS);
+		break;
+	case 4:
+		MSU1.MSU1_TRACK_SEEK &= 0xFF00;
+		MSU1.MSU1_TRACK_SEEK |= byte;
+		break;
+	case 5:
+		MSU1.MSU1_TRACK_SEEK &= 0x00FF;
+		MSU1.MSU1_TRACK_SEEK |= (byte << 8);
+		MSU1.MSU1_CURRENT_TRACK = MSU1.MSU1_TRACK_SEEK;
+
+		MSU1.MSU1_STATUS &= ~AudioPlaying;
+		MSU1.MSU1_STATUS &= ~AudioRepeating;
+
+		if (AudioOpen())
+		{
+			if (MSU1.MSU1_CURRENT_TRACK == MSU1.MSU1_RESUME_TRACK)
+			{
+				MSU1.MSU1_AUDIO_POS = MSU1.MSU1_RESUME_POS;
+				MSU1.MSU1_RESUME_POS = 0;
+				MSU1.MSU1_RESUME_TRACK = ~0;
+			}
+			else
+			{
+				MSU1.MSU1_AUDIO_POS = 8;
+			}
+
+			audioFile.seekg(MSU1.MSU1_AUDIO_POS);
+		}
+		break;
+	case 6:
+		MSU1.MSU1_VOLUME = byte;
+		break;
+	case 7:
+		if (MSU1.MSU1_STATUS & (AudioBusy | AudioError))
+			break;
+
+		MSU1.MSU1_STATUS = (MSU1.MSU1_STATUS & ~0x30) | ((byte & 0x03) << 4);
+
+		if ((byte & (Play | Resume)) == Resume)
+		{
+			MSU1.MSU1_RESUME_TRACK = MSU1.MSU1_CURRENT_TRACK;
+			MSU1.MSU1_RESUME_POS = MSU1.MSU1_AUDIO_POS;
+		}
+		break;
+	}
+}
+
+uint16 S9xMSU1Samples(void)
+{
+	return bufPos - bufBegin;
+}
+
+void S9xMSU1SetOutput(int16 * out, int size)
+{
+	bufPos = bufBegin = out;
+	bufEnd = out + size;
+}
+
+void S9xMSU1PostLoadState(void)
+{
+	if (DataOpen())
+	{
+		dataFile.seekg(MSU1.MSU1_DATA_POS);
+	}
+
+	if (MSU1.MSU1_STATUS & AudioPlaying)
+	{
+		if (AudioOpen())
+		{
+			audioFile.seekg(4);
+			audioFile.read((char *)&audioLoopPos, 4);
+			audioLoopPos = GET_LE32(&audioLoopPos);
+			audioLoopPos <<= 2;
+			audioLoopPos += 8;
+
+			audioFile.seekg(MSU1.MSU1_AUDIO_POS);
+		}
+		else
+		{
+			MSU1.MSU1_STATUS &= ~(AudioPlaying | AudioRepeating);
+			MSU1.MSU1_STATUS |= AudioError;
+		}
+	}
+
+	bufPos = 0;
+	bufBegin = 0;
+	bufEnd = 0;
+
+	partial_samples = 0;
+}

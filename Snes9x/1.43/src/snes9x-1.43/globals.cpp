@@ -113,7 +113,7 @@ struct Missing missing;
 
 struct SICPU ICPU;
 
-struct SCPUState CPU = { 0 };
+struct SCPUState CPU{};
 
 struct SRegisters Registers;
 
@@ -123,74 +123,7 @@ struct SIAPU IAPU __attribute__ ((aligned(4)));
 
 struct SAPURegisters APURegisters;
 
-struct SSettings Settings =
-{
-		0, // APUEnabled
-    0, // Shutdown
-    (int)SNES_CYCLES_PER_SCANLINE, // H_Max
-    (256 * (int)SNES_CYCLES_PER_SCANLINE) / SNES_HCOUNTER_MAX, // HBlankStart;
-
-		#ifdef NETPLAY_SUPPORT
-    0, // Paused
-    0, // ForcedPause
-    0, // StopEmulation
-		#endif
-
-		#ifdef DEBUGGER
-    0, // TraceDMA
-    0, // TraceHDMA
-    0, // TraceVRAM
-    0, // TraceUnknownRegisters
-    0, // TraceDSP
-		#endif
-
-    0, // ForcePAL
-    0, // ForceNTSC
-    0, // PAL;
-    Settings.FrameTimeNTSC, // FrameTime;
-
-    0, // ForceLoROM;
-    0, // ForceHiROM;
-    0, // ForceHeader;
-    0, // ForceNoHeader;
-    0, // ForceInterleaved;
-    0, // ForceInterleaved2;
-    0, // ForceNotInterleaved;
-
-    0, // ForceSuperFX;
-    0, // ForceNoSuperFX;
-    0, // ForceDSP1;
-    0, // ForceNoDSP1;
-    0, // ForceSA1;
-    0, // ForceNoSA1;
-    0, // ForceC4;
-    0, // ForceNoC4;
-    0, // ForceSDD1;
-    0, // ForceNoSDD1;
-    0, // MultiPlayer5;
-    0, // Mouse;
-    0, // SuperScope;
-    0, // SRTC;
-    0, // ControllerOption;
-
-    0, // MultiPlayer5Master;
-    0, // SuperScopeMaster;
-    0, // MouseMaster;
-    0, // SuperFX;
-    0, // DSP1Master;
-    0, // SA1;
-    0, // C4;
-    0, // SDD1;
-    0, // SPC7110;
-    0, // SPC7110RTC;
-    0, // OBC1;
-
-    44100, // SoundPlaybackRate;
-		#ifdef DEBUGGER
-    0, // TraceSoundDSP;
-		#endif
-    TRUE, // Stereo;
-};
+struct SSettings Settings{};
 
 struct SDSP1 DSP1;
 

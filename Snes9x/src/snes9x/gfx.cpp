@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,16 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   Specific ports contains the works of other authors. See headers in
@@ -214,7 +226,6 @@ static uint16 get_crosshair_color (uint8);
 bool8 S9xGraphicsInit (void)
 {
 	S9xInitTileRenderer();
-	//memset(BlackColourMap, 0, 256 * sizeof(uint16));
 
 #ifdef GFX_MULTI_FORMAT
 	if (GFX.BuildPixel == NULL)
@@ -331,11 +342,11 @@ void S9xStartScreenRefresh (void)
 		GFX.InterlaceFrame = !GFX.InterlaceFrame;
 		if (!GFX.DoInterlace || !GFX.InterlaceFrame)
 		{
-			/*if (!S9xInitUpdate())
+			if (!S9xInitUpdate())
 			{
 				IPPU.RenderThisFrame = FALSE;
 				return;
-			}*/
+			}
 
 			if (GFX.DoInterlace)
 				GFX.DoInterlace--;
@@ -419,7 +430,7 @@ void S9xEndScreenRefresh (void)
 			{
 				uint32 saved = PPU.CGDATA[0];
 				IPPU.ColorsChanged = FALSE;
-				//S9xSetPalette();
+				S9xSetPalette();
 				PPU.CGDATA[0] = saved;
 			}
 
@@ -476,12 +487,13 @@ void S9xEndScreenRefresh (void)
 
 void RenderLine (uint8 C)
 {
+	auto &LineData = GFX.LineData;
 	if (IPPU.RenderThisFrame)
 	{
-		GFX.LineData[C].BG[0].VOffset = PPU.BG[0].VOffset + 1;
-		GFX.LineData[C].BG[0].HOffset = PPU.BG[0].HOffset;
-		GFX.LineData[C].BG[1].VOffset = PPU.BG[1].VOffset + 1;
-		GFX.LineData[C].BG[1].HOffset = PPU.BG[1].HOffset;
+		LineData[C].BG[0].VOffset = PPU.BG[0].VOffset + 1;
+		LineData[C].BG[0].HOffset = PPU.BG[0].HOffset;
+		LineData[C].BG[1].VOffset = PPU.BG[1].VOffset + 1;
+		LineData[C].BG[1].HOffset = PPU.BG[1].HOffset;
 
 		if (PPU.BGMode == 7)
 		{
@@ -497,10 +509,10 @@ void RenderLine (uint8 C)
 		}
 		else
 		{
-			GFX.LineData[C].BG[2].VOffset = PPU.BG[2].VOffset + 1;
-			GFX.LineData[C].BG[2].HOffset = PPU.BG[2].HOffset;
-			GFX.LineData[C].BG[3].VOffset = PPU.BG[3].VOffset + 1;
-			GFX.LineData[C].BG[3].HOffset = PPU.BG[3].HOffset;
+			LineData[C].BG[2].VOffset = PPU.BG[2].VOffset + 1;
+			LineData[C].BG[2].HOffset = PPU.BG[2].HOffset;
+			LineData[C].BG[3].VOffset = PPU.BG[3].VOffset + 1;
+			LineData[C].BG[3].HOffset = PPU.BG[3].HOffset;
 		}
 
 		IPPU.CurrentLine = C + 1;
@@ -1067,6 +1079,7 @@ static void DrawBackground (int bg, uint8 Zh, uint8 Zl)
 
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
+	auto &LineData = GFX.LineData;
 
 	SC0 = (uint16 *) &Memory.VRAM[PPU.BG[bg].SCBase << 1];
 	SC1 = (PPU.BG[bg].SCSize & 1) ? SC0 + 1024 : SC0;
@@ -1106,13 +1119,13 @@ static void DrawBackground (int bg, uint8 Zh, uint8 Zl)
 		for (uint32 Y = GFX.StartY; Y <= GFX.EndY; Y += Lines)
 		{
 			uint32	Y2 = HiresInterlace ? Y * 2 + GFX.InterlaceFrame : Y;
-			uint32	VOffset = GFX.LineData[Y].BG[bg].VOffset + (HiresInterlace ? 1 : 0);
-			uint32	HOffset = GFX.LineData[Y].BG[bg].HOffset;
+			uint32	VOffset = LineData[Y].BG[bg].VOffset + (HiresInterlace ? 1 : 0);
+			uint32	HOffset = LineData[Y].BG[bg].HOffset;
 			int		VirtAlign = ((Y2 + VOffset) & 7) >> (HiresInterlace ? 1 : 0);
 
 			for (Lines = 1; Lines < GFX.LinesPerTile - VirtAlign; Lines++)
 			{
-				if ((VOffset != GFX.LineData[Y + Lines].BG[bg].VOffset) || (HOffset != GFX.LineData[Y + Lines].BG[bg].HOffset))
+				if ((VOffset != LineData[Y + Lines].BG[bg].VOffset) || (HOffset != LineData[Y + Lines].BG[bg].HOffset))
 					break;
 			}
 
@@ -1284,6 +1297,7 @@ static void DrawBackgroundMosaic (int bg, uint8 Zh, uint8 Zl)
 
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
+	auto &LineData = GFX.LineData;
 
 	SC0 = (uint16 *) &Memory.VRAM[PPU.BG[bg].SCBase << 1];
 	SC1 = (PPU.BG[bg].SCSize & 1) ? SC0 + 1024 : SC0;
@@ -1318,8 +1332,8 @@ static void DrawBackgroundMosaic (int bg, uint8 Zh, uint8 Zl)
 		for (uint32 Y = GFX.StartY - MosaicStart; Y <= GFX.EndY; Y += PPU.Mosaic)
 		{
 			uint32	Y2 = HiresInterlace ? Y * 2 : Y;
-			uint32	VOffset = GFX.LineData[Y].BG[bg].VOffset + (HiresInterlace ? 1 : 0);
-			uint32	HOffset = GFX.LineData[Y].BG[bg].HOffset;
+			uint32	VOffset = LineData[Y].BG[bg].VOffset + (HiresInterlace ? 1 : 0);
+			uint32	HOffset = LineData[Y].BG[bg].HOffset;
 
 			Lines = PPU.Mosaic - MosaicStart;
 			if (Y + MosaicStart + Lines > GFX.EndY)
@@ -1451,6 +1465,7 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
 	uint16	*BPS0, *BPS1, *BPS2, *BPS3;
+	auto &LineData = GFX.LineData;
 
 	BPS0 = (uint16 *) &Memory.VRAM[PPU.BG[2].SCBase << 1];
 	BPS1 = (PPU.BG[2].SCSize & 1) ? BPS0 + 1024 : BPS0;
@@ -1503,8 +1518,8 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 		for (uint32 Y = GFX.StartY; Y <= GFX.EndY; Y++)
 		{
 			uint32	Y2 = HiresInterlace ? Y * 2 + GFX.InterlaceFrame : Y;
-			uint32	VOff = GFX.LineData[Y].BG[2].VOffset - 1;
-			uint32	HOff = GFX.LineData[Y].BG[2].HOffset;
+			uint32	VOff = LineData[Y].BG[2].VOffset - 1;
+			uint32	HOff = LineData[Y].BG[2].HOffset;
 			uint32	HOffsetRow = VOff >> Offset2Shift;
 			uint32	VOffsetRow = (VOff + VOffOff) >> Offset2Shift;
 			uint16	*s, *s1, *s2;
@@ -1528,7 +1543,7 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 			uint32	Left  = GFX.Clip[bg].Left[clip];
 			uint32	Right = GFX.Clip[bg].Right[clip];
 			uint32	Offset = Left * PixWidth + Y * GFX.PPL;
-			uint32	LineHOffset = GFX.LineData[Y].BG[bg].HOffset;
+			uint32	LineHOffset = LineData[Y].BG[bg].HOffset;
 			bool8	left_edge = (Left < (8 - (LineHOffset & 7)));
 			uint32	Width = Right - Left;
 
@@ -1539,7 +1554,7 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 				if (left_edge)
 				{
 					// SNES cannot do OPT for leftmost tile column
-					VOffset = GFX.LineData[Y].BG[bg].VOffset;
+					VOffset = LineData[Y].BG[bg].VOffset;
 					HOffset = LineHOffset;
 					left_edge = FALSE;
 				}
@@ -1581,7 +1596,7 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 					if (VCellOffset & OffsetEnableMask)
 						VOffset = VCellOffset + 1;
 					else
-						VOffset = GFX.LineData[Y].BG[bg].VOffset;
+						VOffset = LineData[Y].BG[bg].VOffset;
 
 					if (HCellOffset & OffsetEnableMask)
 						HOffset = (HCellOffset & ~7) | (LineHOffset & 7);
@@ -1682,6 +1697,7 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
 	uint16	*BPS0, *BPS1, *BPS2, *BPS3;
+	auto &LineData = GFX.LineData;
 
 	BPS0 = (uint16 *) &Memory.VRAM[PPU.BG[2].SCBase << 1];
 	BPS1 = (PPU.BG[2].SCSize & 1) ? BPS0 + 1024 : BPS0;
@@ -1730,8 +1746,8 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 		for (uint32 Y = GFX.StartY - MosaicStart; Y <= GFX.EndY; Y += PPU.Mosaic)
 		{
 			uint32	Y2 = HiresInterlace ? Y * 2 : Y;
-			uint32	VOff = GFX.LineData[Y].BG[2].VOffset - 1;
-			uint32	HOff = GFX.LineData[Y].BG[2].HOffset;
+			uint32	VOff = LineData[Y].BG[2].VOffset - 1;
+			uint32	HOff = LineData[Y].BG[2].HOffset;
 
 			Lines = PPU.Mosaic - MosaicStart;
 			if (Y + MosaicStart + Lines > GFX.EndY)
@@ -1760,7 +1776,7 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 			uint32	Left =  GFX.Clip[bg].Left[clip];
 			uint32	Right = GFX.Clip[bg].Right[clip];
 			uint32	Offset = Left * PixWidth + (Y + MosaicStart) * GFX.PPL;
-			uint32	LineHOffset = GFX.LineData[Y].BG[bg].HOffset;
+			uint32	LineHOffset = LineData[Y].BG[bg].HOffset;
 			bool8	left_edge = (Left < (8 - (LineHOffset & 7)));
 			uint32	Width = Right - Left;
 
@@ -1771,7 +1787,7 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 				if (left_edge)
 				{
 					// SNES cannot do OPT for leftmost tile column
-					VOffset = GFX.LineData[Y].BG[bg].VOffset;
+					VOffset = LineData[Y].BG[bg].VOffset;
 					HOffset = LineHOffset;
 					left_edge = FALSE;
 				}
@@ -1813,7 +1829,7 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 					if (VCellOffset & OffsetEnableMask)
 						VOffset = VCellOffset + 1;
 					else
-						VOffset = GFX.LineData[Y].BG[bg].VOffset;
+						VOffset = LineData[Y].BG[bg].VOffset;
 
 					if (HCellOffset & OffsetEnableMask)
 						HOffset = (HCellOffset & ~7) | (LineHOffset & 7);
@@ -1942,7 +1958,7 @@ void S9xReRefresh (void)
 		S9xDeinitUpdate(IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight);
 }
 
-/*void S9xSetInfoString (const char *string)
+void S9xSetInfoString (const char *string)
 {
 	if (Settings.InitialInfoStringTimeout > 0)
 	{
@@ -2196,7 +2212,7 @@ void S9xDisplayMessages (uint16 *screen, int ppl, int width, int height, int sca
 
 	if (GFX.InfoString && *GFX.InfoString)
 		S9xDisplayString(GFX.InfoString, 5, 1, true);
-}*/
+}
 
 static uint16 get_crosshair_color (uint8 color)
 {

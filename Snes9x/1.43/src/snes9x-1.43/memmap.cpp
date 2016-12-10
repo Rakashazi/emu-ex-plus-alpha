@@ -1553,10 +1553,16 @@ void CMemory::InitROM (bool8 Interleaved)
     //now take a CRC32
     ROMCRC32 = caCRC32(ROM, CalculatedSize);
 
-	if (Settings.ForceNTSC)
+  Settings.IdentifyAsPAL = FALSE;
+	if (Settings.ForceNTSC && Settings.ForcePAL)
+	{
 		Settings.PAL = FALSE;
-    else if (Settings.ForcePAL)
-		Settings.PAL = TRUE;
+		Settings.IdentifyAsPAL = !Settings.BS && (ROMRegion >= 2) && (ROMRegion <= 12);
+	}
+	else if (Settings.ForceNTSC)
+		Settings.PAL = FALSE;
+  else if (Settings.ForcePAL)
+		Settings.PAL = Settings.IdentifyAsPAL = TRUE;
 	else
 	{
 		//Korea refers to South Korea, which uses NTSC
@@ -1567,7 +1573,7 @@ void CMemory::InitROM (bool8 Interleaved)
 			case 0:
 				Settings.PAL=FALSE;
 				break;
-			default: Settings.PAL=TRUE;
+			default: Settings.PAL = Settings.IdentifyAsPAL = TRUE;
 				break;
 		}
 	}

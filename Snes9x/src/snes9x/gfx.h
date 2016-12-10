@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,16 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   Specific ports contains the works of other authors. See headers in
@@ -203,8 +215,11 @@ struct SLineMatrixData
 struct SGFX
 {
 	uint16	*Screen;
-	static const uint32	Pitch = 1024;
-	static const uint32	ScreenSize = Pitch / 2 * SNES_HEIGHT_EXTENDED * (Settings.SupportHiRes ? 2 : 1);
+	/*uint16	*SubScreen;
+	uint8	*ZBuffer;
+	uint8	*SubZBuffer;*/
+	static const uint32	Pitch = MAX_SNES_WIDTH * 2;
+	static const uint32	ScreenSize = MAX_SNES_HEIGHT * Pitch;
 	uint16	*S;
 	uint8	*DB;
 	uint32	RealPPL;			// true PPL of Screen buffer
@@ -222,8 +237,6 @@ struct SGFX
 	bool8	ClipColors;
 	uint8	OBJWidths[128];
 	uint8	OBJVisibleTiles[128];
-	struct SLineData		LineData[240];
-	struct SLineMatrixData	LineMatrixData[240];
 
 	struct ClipData	*Clip;
 
@@ -259,10 +272,12 @@ struct SGFX
 	void	(*DrawMode7BG2Math) (uint32, uint32, int);
 	void	(*DrawMode7BG2Nomath) (uint32, uint32, int);
 
-	//const char	*InfoString;
-	//uint32	InfoStringTimeout;
-	//char	FrameDisplayString[256];
+	static const char	*InfoString;
+	static uint32	InfoStringTimeout;
+	static char	FrameDisplayString[256];
 
+	SLineData		LineData[240];
+	SLineMatrixData	LineMatrixData[240];
 	uint16	SubScreen[ScreenSize];
 	uint8	ZBuffer[ScreenSize];
 	uint8	SubZBuffer[ScreenSize];
@@ -297,7 +312,6 @@ struct SBG
 	bool8	DirectColourMode;
 };
 
-extern const uint16		BlackColourMap[256];
 extern uint16		DirectColourMaps[8][256];
 extern const uint8		mul_brightness[16][32];
 extern struct SBG	BG;

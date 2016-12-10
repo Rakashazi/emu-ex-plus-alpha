@@ -74,6 +74,69 @@ public:
 	{}
 };
 
+class EmuVideoOptionView : public VideoOptionView
+{
+	static void videoSystemChangedMessage()
+	{
+		if(EmuSystem::gameIsRunning())
+		{
+			popup.post("Change does not affect currently running game");
+		}
+	}
+
+	TextMenuItem videoSystemItem[4]
+	{
+		{
+			"Auto",
+			[]()
+			{
+				optionVideoSystem = 0;
+				Settings.ForceNTSC = Settings.ForcePAL = 0;
+				videoSystemChangedMessage();
+			}},
+		{
+			"NTSC",
+			[]()
+			{
+				optionVideoSystem = 1;
+				Settings.ForceNTSC = 1;
+				videoSystemChangedMessage();
+			}},
+		{
+			"PAL",
+			[]()
+			{
+				optionVideoSystem = 2;
+				Settings.ForcePAL = 1;
+				videoSystemChangedMessage();
+			}
+		},
+		{
+			"NTSC + PAL Spoof",
+			[]()
+			{
+				optionVideoSystem = 3;
+				Settings.ForceNTSC = Settings.ForcePAL = 1;
+				videoSystemChangedMessage();
+			}
+		},
+	};
+
+	MultiChoiceMenuItem videoSystem
+	{
+		"Video System",
+		optionVideoSystem,
+		videoSystemItem
+	};
+
+public:
+	EmuVideoOptionView(Base::Window &win): VideoOptionView{win, true}
+	{
+		loadStockItems();
+		item.emplace_back(&videoSystem);
+	}
+};
+
 class EmuSystemOptionView : public SystemOptionView
 {
 	#ifndef SNES9X_VERSION_1_4
@@ -104,7 +167,7 @@ View *EmuSystem::makeView(Base::Window &win, ViewID id)
 	switch(id)
 	{
 		case ViewID::MAIN_MENU: return new MenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(win);
+		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
 		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(win);
 		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(win);
 		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);

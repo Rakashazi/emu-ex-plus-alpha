@@ -22,8 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2011  BearOso,
+  (c) Copyright 2009 - 2016  BearOso,
                              OV2
+
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   BS-X C emulator code
@@ -118,6 +122,9 @@
   Sound emulator code used in 1.52+
   (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
 
+  S-SMP emulator code used in 1.54+
+  (c) Copyright 2016         byuu
+
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
 
@@ -131,7 +138,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2011  BearOso
+  (c) Copyright 2004 - 2016  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -139,11 +146,16 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2011  OV2
+  (c) Copyright 2009 - 2016  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
+
+  Libretro port
+  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+                             Daniel De Matteis
+                             (Under no circumstances will commercial rights be given)
 
 
   Specific ports contains the works of other authors. See headers in
@@ -176,10 +188,10 @@
  ***********************************************************************************/
 
 
-//#include <map>
-//#include <set>
-//#include <vector>
-//#include <string>
+#include <map>
+#include <set>
+#include <vector>
+#include <string>
 #include <algorithm>
 #include <assert.h>
 #include <ctype.h>
@@ -307,10 +319,10 @@ static struct
 	int8				pads[4];
 }	mp5[2];
 
-//static set<struct exemulti *>		exemultis;
-//static set<uint32>					pollmap[NUMCTLS + 1];
-//static map<uint32, s9xcommand_t>	keymap;
-//static vector<s9xcommand_t *>		multis;
+static set<struct exemulti *>		exemultis;
+static set<uint32>					pollmap[NUMCTLS + 1];
+static map<uint32, s9xcommand_t>	keymap;
+static vector<s9xcommand_t *>		multis;
 static uint8						turbo_time;
 static uint8						pseudobuttons[256];
 static bool8						FLAG_LATCH = FALSE;
@@ -462,7 +474,7 @@ static void do_polling (int);
 static void UpdatePolledMouse (int);
 
 
-/*static string& operator += (string &s, int i)
+static string& operator += (string &s, int i)
 {
 	snprintf(buf, sizeof(buf), "%d", i);
 	s.append(buf);
@@ -474,7 +486,7 @@ static string& operator += (string &s, double d)
 	snprintf(buf, sizeof(buf), "%g", d);
 	s.append(buf);
 	return (s);
-}*/
+}
 
 static void DisplayStateChange (const char *str, bool8 on)
 {
@@ -559,7 +571,7 @@ void S9xUnmapAllControls (void)
 {
 	S9xControlsReset();
 
-/*	keymap.clear();
+	/*keymap.clear();
 
 	for (int i = 0; i < (int) multis.size(); i++)
 		free(multis[i]);
@@ -958,7 +970,7 @@ void S9xReportControllers (void)
 	S9xMessage(S9X_INFO, S9X_CONFIG_INFO, mes);
 }
 
-/*char * S9xGetCommandName (s9xcommand_t command)
+char * S9xGetCommandName (s9xcommand_t command)
 {
 	string	s;
 	char	c;
@@ -1167,7 +1179,7 @@ void S9xReportControllers (void)
 	}
 
 	return (strdup(s.c_str()));
-}*/
+}
 
 static bool strless (const char *a, const char *b)
 {
@@ -1235,7 +1247,7 @@ static int get_threshold (const char **ss)
 	return (i);
 }
 
-/*s9xcommand_t S9xGetCommandT (const char *name)
+s9xcommand_t S9xGetCommandT (const char *name)
 {
 	s9xcommand_t	cmd;
 	int				i, j;
@@ -1548,7 +1560,7 @@ static int get_threshold (const char **ss)
 	{
 		if (multis.size() > 2147483640)
 		{
-			fprintf(stderr, "Too many multis!");
+			S9xPrintfError("Too many multis!");
 			return (cmd);
 		}
 
@@ -1564,7 +1576,7 @@ static int get_threshold (const char **ss)
 					j++;
 				if (++j > 2147483640)
 				{
-					fprintf(stderr, "Multi too long!");
+					S9xPrintfError("Multi too long!");
 					return (cmd);
 				}
 			}
@@ -1676,7 +1688,7 @@ s9xcommand_t S9xGetMapping (uint32 id)
 	}
 	else
 		return (keymap[id]);
-}*/
+}
 
 static const char * maptypename (int t)
 {
@@ -1713,7 +1725,7 @@ bool S9xMapButton (uint32 id, s9xcommand_t mapping, bool poll)
 
 	if (id == InvalidControlID)
 	{
-		fprintf(stderr, "Cannot map InvalidControlID\n");
+		S9xPrintfError("Cannot map InvalidControlID\n");
 		return (false);
 	}
 
@@ -1731,11 +1743,11 @@ bool S9xMapButton (uint32 id, s9xcommand_t mapping, bool poll)
 	t = maptype(S9xGetMapping(id).type);
 
 	if (t != MAP_NONE && t != MAP_BUTTON)
-		fprintf(stderr, "WARNING: Remapping ID 0x%08x from %s to button\n", id, maptypename(t));
+		S9xPrintfError("WARNING: Remapping ID 0x%08x from %s to button\n", id, maptypename(t));
 
 	if (id >= PseudoPointerBase)
 	{
-		fprintf(stderr, "ERROR: Refusing to map pseudo-pointer #%d as a button\n", id - PseudoPointerBase);
+		S9xPrintfError("ERROR: Refusing to map pseudo-pointer #%d as a button\n", id - PseudoPointerBase);
 		return (false);
 	}
 
@@ -1744,7 +1756,7 @@ bool S9xMapButton (uint32 id, s9xcommand_t mapping, bool poll)
 	if (poll)
 	{
 		if (id >= PseudoButtonBase)
-			fprintf(stderr, "INFO: Ignoring attempt to set pseudo-button #%d to polling\n", id - PseudoButtonBase);
+			S9xPrintfError("INFO: Ignoring attempt to set pseudo-button #%d to polling\n", id - PseudoButtonBase);
 		else
 		{
 			switch (mapping.type)
@@ -1795,7 +1807,7 @@ void S9xReportButton (uint32 id, bool pressed)
 
 	if (maptype(keymap[id].type) != MAP_BUTTON)
 	{
-		fprintf(stderr, "ERROR: S9xReportButton called on %s ID 0x%08x\n", maptypename(maptype(keymap[id].type)), id);
+		S9xPrintfError("ERROR: S9xReportButton called on %s ID 0x%08x\n", maptypename(maptype(keymap[id].type)), id);
 		return;
 	}
 
@@ -1814,7 +1826,7 @@ bool S9xMapPointer (uint32 id, s9xcommand_t mapping, bool poll)
 
 	if (id == InvalidControlID)
 	{
-		fprintf(stderr, "Cannot map InvalidControlID\n");
+		S9xPrintfError("Cannot map InvalidControlID\n");
 		return (false);
 	}
 
@@ -1832,11 +1844,11 @@ bool S9xMapPointer (uint32 id, s9xcommand_t mapping, bool poll)
 	t = maptype(S9xGetMapping(id).type);
 
 	if (t != MAP_NONE && t != MAP_POINTER)
-		fprintf(stderr, "WARNING: Remapping ID 0x%08x from %s to pointer\n", id, maptypename(t));
+		S9xPrintfError("WARNING: Remapping ID 0x%08x from %s to pointer\n", id, maptypename(t));
 
 	if (id < PseudoPointerBase && id >= PseudoButtonBase)
 	{
-		fprintf(stderr, "ERROR: Refusing to map pseudo-button #%d as a pointer\n", id - PseudoButtonBase);
+		S9xPrintfError("ERROR: Refusing to map pseudo-button #%d as a pointer\n", id - PseudoButtonBase);
 		return (false);
 	}
 
@@ -1844,31 +1856,31 @@ bool S9xMapPointer (uint32 id, s9xcommand_t mapping, bool poll)
 	{
 		if (mapping.pointer.aim_mouse0 && mouse[0].ID != InvalidControlID && mouse[0].ID != id)
 		{
-			fprintf(stderr, "ERROR: Rejecting attempt to control Mouse1 with two pointers\n");
+			S9xPrintfError("ERROR: Rejecting attempt to control Mouse1 with two pointers\n");
 			return (false);
 		}
 
 		if (mapping.pointer.aim_mouse1 && mouse[1].ID != InvalidControlID && mouse[1].ID != id)
 		{
-			fprintf(stderr, "ERROR: Rejecting attempt to control Mouse2 with two pointers\n");
+			S9xPrintfError("ERROR: Rejecting attempt to control Mouse2 with two pointers\n");
 			return (false);
 		}
 
 		if (mapping.pointer.aim_scope && superscope.ID != InvalidControlID && superscope.ID != id)
 		{
-			fprintf(stderr, "ERROR: Rejecting attempt to control SuperScope with two pointers\n");
+			S9xPrintfError("ERROR: Rejecting attempt to control SuperScope with two pointers\n");
 			return (false);
 		}
 
 		if (mapping.pointer.aim_justifier0 && justifier.ID[0] != InvalidControlID && justifier.ID[0] != id)
 		{
-			fprintf(stderr, "ERROR: Rejecting attempt to control Justifier1 with two pointers\n");
+			S9xPrintfError("ERROR: Rejecting attempt to control Justifier1 with two pointers\n");
 			return (false);
 		}
 
 		if (mapping.pointer.aim_justifier1 && justifier.ID[1] != InvalidControlID && justifier.ID[1] != id)
 		{
-			fprintf(stderr, "ERROR: Rejecting attempt to control Justifier2 with two pointers\n");
+			S9xPrintfError("ERROR: Rejecting attempt to control Justifier2 with two pointers\n");
 			return (false);
 		}
 	}
@@ -1878,7 +1890,7 @@ bool S9xMapPointer (uint32 id, s9xcommand_t mapping, bool poll)
 	if (poll)
 	{
 		if (id >= PseudoPointerBase)
-			fprintf(stderr, "INFO: Ignoring attempt to set pseudo-pointer #%d to polling\n", id - PseudoPointerBase);
+			S9xPrintfError("INFO: Ignoring attempt to set pseudo-pointer #%d to polling\n", id - PseudoPointerBase);
 		else
 		{
 			switch (mapping.type)
@@ -1922,7 +1934,7 @@ void S9xReportPointer (uint32 id, int16 x, int16 y)
 
 	if (maptype(keymap[id].type) != MAP_POINTER)
 	{
-		fprintf(stderr, "ERROR: S9xReportPointer called on %s ID 0x%08x\n", maptypename(maptype(keymap[id].type)), id);
+		S9xPrintfError("ERROR: S9xReportPointer called on %s ID 0x%08x\n", maptypename(maptype(keymap[id].type)), id);
 		return;
 	}
 
@@ -1935,7 +1947,7 @@ bool S9xMapAxis (uint32 id, s9xcommand_t mapping, bool poll)
 
 	if (id == InvalidControlID)
 	{
-		fprintf(stderr, "Cannot map InvalidControlID\n");
+		S9xPrintfError("Cannot map InvalidControlID\n");
 		return (false);
 	}
 
@@ -1953,11 +1965,11 @@ bool S9xMapAxis (uint32 id, s9xcommand_t mapping, bool poll)
 	t = maptype(S9xGetMapping(id).type);
 
 	if (t != MAP_NONE && t != MAP_AXIS)
-		fprintf(stderr, "WARNING: Remapping ID 0x%08x from %s to axis\n", id, maptypename(t));
+		S9xPrintfError("WARNING: Remapping ID 0x%08x from %s to axis\n", id, maptypename(t));
 
 	if (id >= PseudoPointerBase)
 	{
-		fprintf(stderr, "ERROR: Refusing to map pseudo-pointer #%d as an axis\n", id - PseudoPointerBase);
+		S9xPrintfError("ERROR: Refusing to map pseudo-pointer #%d as an axis\n", id - PseudoPointerBase);
 		return (false);
 	}
 
@@ -1999,7 +2011,7 @@ void S9xReportAxis (uint32 id, int16 value)
 
 	if (maptype(keymap[id].type) != MAP_AXIS)
 	{
-		fprintf(stderr, "ERROR: S9xReportAxis called on %s ID 0x%08x\n", maptypename(maptype(keymap[id].type)), id);
+		S9xPrintfError("ERROR: S9xReportAxis called on %s ID 0x%08x\n", maptypename(maptype(keymap[id].type)), id);
 		return;
 	}
 
@@ -2051,7 +2063,6 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 			{
 				uint16	r, s, t, st;
 
-				s = t = st = 0;
 				r = cmd.button.joypad.buttons;
 				st = r & joypad[cmd.button.joypad.idx].togglestick & joypad[cmd.button.joypad.idx].toggleturbo;
 				r ^= st;
@@ -2123,7 +2134,7 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 
 			if (data1)
 				mouse[cmd.button.mouse.idx].buttons |=  i;
-			else 
+			else
 				mouse[cmd.button.mouse.idx].buttons &= ~i;
 
 			return;
@@ -2180,7 +2191,7 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 		case S9xButtonCommand:
 			if (((enum command_numbers) cmd.button.command) >= LAST_COMMAND)
 			{
-				fprintf(stderr, "Unknown command %04x\n", cmd.button.command);
+				S9xPrintfError("Unknown command %04x\n", cmd.button.command);
 				return;
 			}
 
@@ -2743,14 +2754,14 @@ void S9xApplyCommand (s9xcommand_t cmd, int16 data1, int16 data2)
 			return;
 
 		default:
-			fprintf(stderr, "WARNING: Unknown command type %d\n", cmd.type);
+			S9xPrintfError("WARNING: Unknown command type %d\n", cmd.type);
 			return;
 	}
 }*/
 
 static void do_polling (int mp)
 {
-/*	set<uint32>::iterator	itr;
+	/*set<uint32>::iterator	itr;
 
 	if (S9xMoviePlaying())
 		return;
@@ -3298,9 +3309,9 @@ void S9xControlEOF (void)
 		}
 
 		S9xReportPointer(PseudoPointerBase + n, pseudopointer[n].x, pseudopointer[n].y);
-	}*/
+	}
 
-	/*set<struct exemulti *>::iterator	it, jt;
+	set<struct exemulti *>::iterator	it, jt;
 
 	for (it = exemultis.begin(); it != exemultis.end(); it++)
 	{
@@ -3325,7 +3336,7 @@ void S9xControlEOF (void)
 	pad_read      = false;
 }
 
-/*void S9xSetControllerCrosshair (enum crosscontrols ctl, int8 idx, const char *fg, const char *bg)
+void S9xSetControllerCrosshair (enum crosscontrols ctl, int8 idx, const char *fg, const char *bg)
 {
 	struct crosshair	*c;
 	int8				fgcolor = -1, bgcolor = -1;
@@ -3333,7 +3344,7 @@ void S9xControlEOF (void)
 
 	if (idx < -1 || idx > 31)
 	{
-		fprintf(stderr, "S9xSetControllerCrosshair() called with invalid index\n");
+		S9xPrintfError("S9xSetControllerCrosshair() called with invalid index\n");
 		return;
 	}
 
@@ -3345,7 +3356,7 @@ void S9xControlEOF (void)
 		case X_JUSTIFIER1:	c = &justifier.crosshair[0];	break;
 		case X_JUSTIFIER2:	c = &justifier.crosshair[1];	break;
 		default:
-			fprintf(stderr, "S9xSetControllerCrosshair() called with an invalid controller ID %d\n", ctl);
+			S9xPrintfError("S9xSetControllerCrosshair() called with an invalid controller ID %d\n", ctl);
 			return;
 	}
 
@@ -3371,7 +3382,7 @@ void S9xControlEOF (void)
 		fgcolor |= i;
 		if (i > 15 || fgcolor == 16)
 		{
-			fprintf(stderr, "S9xSetControllerCrosshair() called with invalid fgcolor\n");
+			S9xPrintfError("S9xSetControllerCrosshair() called with invalid fgcolor\n");
 			return;
 		}
 	}
@@ -3398,7 +3409,7 @@ void S9xControlEOF (void)
 		bgcolor |= i;
 		if (i > 15 || bgcolor == 16)
 		{
-			fprintf(stderr, "S9xSetControllerCrosshair() called with invalid bgcolor\n");
+			S9xPrintfError("S9xSetControllerCrosshair() called with invalid bgcolor\n");
 			return;
 		}
 	}
@@ -3434,7 +3445,7 @@ void S9xGetControllerCrosshair (enum crosscontrols ctl, int8 *idx, const char **
 		case X_JUSTIFIER1:	c = &justifier.crosshair[0];	break;
 		case X_JUSTIFIER2:	c = &justifier.crosshair[1];	break;
 		default:
-			fprintf(stderr, "S9xGetControllerCrosshair() called with an invalid controller ID %d\n", ctl);
+			S9xPrintfError("S9xGetControllerCrosshair() called with an invalid controller ID %d\n", ctl);
 			return;
 	}
 
@@ -3446,7 +3457,7 @@ void S9xGetControllerCrosshair (enum crosscontrols ctl, int8 *idx, const char **
 
 	if (bg)
 		*bg = color_names[c->bg];
-}*/
+}
 
 void S9xControlPreSaveState (struct SControlSnapshot *s)
 {

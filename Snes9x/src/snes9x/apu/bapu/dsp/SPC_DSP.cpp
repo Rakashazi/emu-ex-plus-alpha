@@ -1,5 +1,5 @@
 // snes_spc 0.9.0. http://www.slack.net/~ant/
-//#include <stdio.h>
+
 #include "SPC_DSP.h"
 
 #include "blargg_endian.h"

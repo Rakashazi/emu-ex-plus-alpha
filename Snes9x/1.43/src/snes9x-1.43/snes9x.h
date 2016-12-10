@@ -248,11 +248,11 @@ struct SCPUState{
 
 struct SSettings{
     /* CPU options */
-    bool8  APUEnabled;
-    bool8  Shutdown;
+    bool8  APUEnabled = 0;
+    bool8  Shutdown = 0;
     static const uint8  SoundSkipMethod = 0;
-    int   H_Max;
-    int   HBlankStart;
+    int   H_Max = (int)SNES_CYCLES_PER_SCANLINE;
+    int   HBlankStart = (256 * (int)SNES_CYCLES_PER_SCANLINE) / SNES_HCOUNTER_MAX;
     static const int   CyclesPercentage = 100;
     static const bool8  DisableIRQ = 0;
 
@@ -279,9 +279,10 @@ struct SSettings{
     bool8  ForcePAL;
     bool8  ForceNTSC;
     bool8  PAL;
+    bool8  IdentifyAsPAL;
     static const uint32 FrameTimePAL = 20000;
     static const uint32 FrameTimeNTSC = 16667;
-    uint32 FrameTime;
+    uint32 FrameTime = FrameTimeNTSC;
     //uint32 SkipFrames;
 
     /* ROM image options */
@@ -323,11 +324,11 @@ struct SSettings{
 	bool8  SPC7110RTC;
 	bool8  OBC1;
     /* Sound options */
-    uint32 SoundPlaybackRate;
+    uint32 SoundPlaybackRate = 44100;
 		#ifdef DEBUGGER
     bool8  TraceSoundDSP;
 		#endif
-    bool8  Stereo;
+    bool8  Stereo = 1;
     static const bool8  ReverseStereo = 0;
     static const bool8  SixteenBitSound = 1;
     //int    SoundBufferSize;
