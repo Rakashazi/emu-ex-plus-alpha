@@ -44,11 +44,13 @@ uint64 MDFN_GetSettingUI(const char *name)
 
 int64 MDFN_GetSettingI(const char *name)
 {
+	if(string_equal("filesys.state_comp_level", name))
+		return 6;
 	bug_exit("unhandled settingI %s", name);
 	return 0;
 }
 
-float MDFN_GetSettingF(const char *name)
+double MDFN_GetSettingF(const char *name)
 {
 	if(string_equal(PCE_MODULE".mouse_sensitivity", name))
 		return 0.50;
@@ -100,6 +102,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 	{
 		case MDFNMKF_STATE:
 		case MDFNMKF_SAV:
+		case MDFNMKF_SAVBACK:
 		{
 			assert(cd1);
 			std::string path(EmuSystem::savePath());

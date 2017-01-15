@@ -16,31 +16,27 @@ extern MDFNGI *MDFNGameInfo;
 
 #include "settings.h"
 
-#ifndef NDEBUG
-void MDFN_PrintError(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
-void MDFN_printf(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
-void MDFN_DispMessage(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
-#else
-#define MDFN_PrintError(format, ...) { }
-#define MDFN_printf(format, ...) { }
-#define MDFN_DispMessage(format, ...) { }
-#endif
+void MDFN_PrintError(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
+void MDFN_printf(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
+void MDFN_DispMessage(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
 
-void MDFN_DebugPrintReal(const char *file, const int line, const char *format, ...) MDFN_FORMATSTR(printf, 3, 4);
+void MDFN_DebugPrintReal(const char *file, const int line, const char *format, ...) MDFN_FORMATSTR(gnu_printf, 3, 4);
 
 #define MDFN_DebugPrint(format, ...) MDFN_DebugPrintReal(__FILE__, __LINE__, format, ## __VA_ARGS__)
 
 void MDFN_FlushGameCheats(int nosave);
 void MDFN_DoSimpleCommand(int cmd);
 void MDFN_QSimpleCommand(int cmd);
+bool MDFN_UntrustedSetMedia(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx);
+void MDFN_MediaSetNotification(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx);
 
 void MDFN_MidSync(EmulateSpecStruct *espec);
-
-void MDFND_commitVideoFrame(const MDFN_FrameInfo &info);
 void MDFN_MidLineUpdate(EmulateSpecStruct *espec, int y);
+void MDFND_commitVideoFrame(EmulateSpecStruct *espec);
 
 #include "state.h"
-int MDFN_RawInputStateAction(StateMem *sm, int load, int data_only);
+// MDFN_StateAction->(Emu Module)StateAction->MDFNSS_StateAction()
+void MDFN_StateAction(StateMem *sm, const unsigned load, const bool data_only);
 
 #include "mednafen-driver.h"
 

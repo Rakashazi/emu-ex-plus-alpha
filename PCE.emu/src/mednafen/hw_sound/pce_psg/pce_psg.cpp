@@ -1,5 +1,8 @@
 /* Mednafen - Multi-system Emulator
  *
+ *  Original skeleton write handler and PSG structure definition:
+ *   Copyright (C) 2001 Charles MacDonald
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -15,18 +18,44 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "mednafen/mednafen.h"
+#include <mednafen/mednafen.h>
 #include "pce_psg.h"
 
 #include <math.h>
 #include <string.h>
 #include <trio/trio.h>
 
+// Frequency cache cutoff optimization threshold (<= FREQC7M_COT)
+#define FREQC7M_COT	0x7 //0xA
+
 void PCE_PSG::SetVolume(double new_volume)
 {
- OutputVolume = new_volume;
+        for(int vl = 0; vl < 32; vl++)
+        {
+         double flub = 1.0 * new_volume * 8 / 6;
 
- Synth.volume(OutputVolume / 6);
+         if(vl)
+          flub /= pow(2, (double)1 / 4 * vl);                  // ~1.5dB reduction per increment of vl 
+
+	 if(vl == 0x1F)
+	  flub = 0;
+
+         for(int samp = 0; samp < 32; samp++)
+         {
+	  int eff_samp;
+
+	  if(revision == REVISION_HUC6280)
+	   eff_samp = samp * 2;
+	  else
+	   eff_samp = samp * 2 - 0x1F;
+
+	  dbtable[vl][samp] = (int32)(flub * eff_samp * 128); // * 256);
+	  dbtable_volonly[vl] = (int32)(flub * 65536);
+
+	  // dbtable[vl][samp] = (int32)(flub * eff_samp * 128);
+	  // dbtable_volonly[vl] = (int32)(flub * 65536);
+	 }
+	}
 }
 
 // Note: Changing the 0x1F(not that there should be) would require changing the channel pseudo-off volume check logic later on.
@@ -38,63 +67,89 @@ static const int scale_tab[] =
 
 #define CLOCK_LFSR(lfsr) { unsigned int newbit = ((lfsr >> 0) ^ (lfsr >> 1) ^ (lfsr >> 11) ^ (lfsr >> 12) ^ (lfsr >> 17)) & 1; lfsr = (lfsr >> 1) | (newbit << 17); }
 
+static const int16 Phase_Filter[2][7] =
+{
+ /*   0 */ {    35,   250,   579,   641,   425,   112,     6 }, //  2048
+ /*   1 */ {     6,   112,   425,   641,   579,   250,    35 }, //  2048
+};
+
+INLINE void PCE_PSG::UpdateOutputSub(const int32 timestamp, psg_channel *ch, const int32 samp0, const int32 samp1)
+{
+ int32 delta[2];
+
+ delta[0] = samp0 - ch->blip_prev_samp[0];
+ delta[1] = samp1 - ch->blip_prev_samp[1];
+
+ const int16* c = Phase_Filter[(timestamp >> 1) & 1];
+ const int32 l = (timestamp >> 2) & 0xFFFF;
+
+ HRBufs[0][l + 0] += delta[0] * c[0];
+ HRBufs[0][l + 1] += delta[0] * c[1];
+ HRBufs[0][l + 2] += delta[0] * c[2];
+ HRBufs[0][l + 3] += delta[0] * c[3];
+ HRBufs[0][l + 4] += delta[0] * c[4];
+ HRBufs[0][l + 5] += delta[0] * c[5];
+ HRBufs[0][l + 6] += delta[0] * c[6];
+
+ HRBufs[1][l + 0] += delta[1] * c[0];
+ HRBufs[1][l + 1] += delta[1] * c[1];
+ HRBufs[1][l + 2] += delta[1] * c[2];
+ HRBufs[1][l + 3] += delta[1] * c[3];
+ HRBufs[1][l + 4] += delta[1] * c[4];
+ HRBufs[1][l + 5] += delta[1] * c[5];
+ HRBufs[1][l + 6] += delta[1] * c[6];
+
+ ch->blip_prev_samp[0] = samp0;
+ ch->blip_prev_samp[1] = samp1;
+}
+
 void PCE_PSG::UpdateOutput_Norm(const int32 timestamp, psg_channel *ch)
 {
- int32 samp[2];
  int sv = ch->dda;
 
- samp[0] = dbtable[ch->vl[0]][sv];
- samp[1] = dbtable[ch->vl[1]][sv];
-
- Synth.offset(timestamp, samp[0] - ch->blip_prev_samp[0], sbuf[0]);
- Synth.offset(timestamp, samp[1] - ch->blip_prev_samp[1], sbuf[1]);
-
- ch->blip_prev_samp[0] = samp[0];
- ch->blip_prev_samp[1] = samp[1];
+ UpdateOutputSub(timestamp, ch, dbtable[ch->vl[0]][sv],
+ 				dbtable[ch->vl[1]][sv]);
 }
 
 void PCE_PSG::UpdateOutput_Noise(const int32 timestamp, psg_channel *ch)
 {
- int32 samp[2];
  int sv = ((ch->lfsr & 1) << 5) - (ch->lfsr & 1); //(ch->lfsr & 0x1) ? 0x1F : 0;
 
- samp[0] = dbtable[ch->vl[0]][sv];
- samp[1] = dbtable[ch->vl[1]][sv];
-
- Synth.offset(timestamp, samp[0] - ch->blip_prev_samp[0], sbuf[0]);
- Synth.offset(timestamp, samp[1] - ch->blip_prev_samp[1], sbuf[1]);
-
- ch->blip_prev_samp[0] = samp[0];
- ch->blip_prev_samp[1] = samp[1];
+ UpdateOutputSub(timestamp, ch, dbtable[ch->vl[0]][sv],
+				dbtable[ch->vl[1]][sv]);
 }
 
 void PCE_PSG::UpdateOutput_Off(const int32 timestamp, psg_channel *ch)
 {
- int32 samp[2];
-
- samp[0] = samp[1] = 0;
-
- Synth.offset_inline(timestamp, samp[0] - ch->blip_prev_samp[0], sbuf[0]);
- Synth.offset_inline(timestamp, samp[1] - ch->blip_prev_samp[1], sbuf[1]);
-
- ch->blip_prev_samp[0] = samp[0];
- ch->blip_prev_samp[1] = samp[1];
+ UpdateOutputSub(timestamp, ch, 0, 0);
 }
 
-
-void PCE_PSG::UpdateOutput_Accum(const int32 timestamp, psg_channel *ch)
+void PCE_PSG::UpdateOutput_Accum_HuC6280A(const int32 timestamp, psg_channel *ch)
 {
  int32 samp[2];
+
+ // 31(5-bit max) * 32 samples = 992
+ // 992 / 2 = 496
+ // 
+ // 8 + 5 = 13
+ // 13 - 12 = 1
 
  samp[0] = ((int32)dbtable_volonly[ch->vl[0]] * ((int32)ch->samp_accum - 496)) >> (8 + 5);
  samp[1] = ((int32)dbtable_volonly[ch->vl[1]] * ((int32)ch->samp_accum - 496)) >> (8 + 5);
 
- Synth.offset_inline(timestamp, samp[0] - ch->blip_prev_samp[0], sbuf[0]);
- Synth.offset_inline(timestamp, samp[1] - ch->blip_prev_samp[1], sbuf[1]);
-
- ch->blip_prev_samp[0] = samp[0];
- ch->blip_prev_samp[1] = samp[1];
+ UpdateOutputSub(timestamp, ch, samp[0], samp[1]);
 }
+
+void PCE_PSG::UpdateOutput_Accum_HuC6280(const int32 timestamp, psg_channel *ch)
+{
+ int32 samp[2];
+
+ samp[0] = ((int32)dbtable_volonly[ch->vl[0]] * (int32)ch->samp_accum) >> (8 + 5);
+ samp[1] = ((int32)dbtable_volonly[ch->vl[1]] * (int32)ch->samp_accum) >> (8 + 5);
+
+ UpdateOutputSub(timestamp, ch, samp[0], samp[1]);
+}
+
 
 // This function should always be called after RecalcFreqCache() (it's not called from RecalcFreqCache to avoid redundant code)
 void PCE_PSG::RecalcUOFunc(int chnum)
@@ -109,8 +164,8 @@ void PCE_PSG::RecalcUOFunc(int chnum)
   ch->UpdateOutput = &PCE_PSG::UpdateOutput_Noise;
  // If the control for the channel is in waveform play mode, and the (real) playback frequency is too high, and the channel is either not the LFO modulator channel or
  // if the LFO trigger bit(which halts the LFO modulator channel's waveform incrementing when set) is clear
- else if((ch->control & 0xC0) == 0x80 && ch->freq_cache <= 0xA && (chnum != 1 || !(lfoctrl & 0x80)) )
-  ch->UpdateOutput = &PCE_PSG::UpdateOutput_Accum;
+ else if((ch->control & 0xC0) == 0x80 && ch->freq_cache <= FREQC7M_COT && (chnum != 1 || !(lfoctrl & 0x80)) )
+  ch->UpdateOutput = UpdateOutput_Accum;
  else
   ch->UpdateOutput = &PCE_PSG::UpdateOutput_Norm;
 }
@@ -124,7 +179,7 @@ void PCE_PSG::RecalcFreqCache(int chnum)
  {
   const uint32 shift = (((lfoctrl & 0x3) - 1) << 1);
   uint8 la = channel[1].dda;
-  int32 tmp_freq = ((int32)ch->frequency + ((la - 0x10) << shift)) & 0xFFF;
+  uint32 tmp_freq = (ch->frequency + ((uint32)(la - 0x10) << shift)) & 0xFFF;
 
   ch->freq_cache = (tmp_freq ? tmp_freq : 4096) << 1;
  }
@@ -349,14 +404,27 @@ void PSG_SetRegister(const unsigned int id, const uint32 value)
 }
 #endif
 
-void PCE_PSG::init(Blip_Buffer *bb_l, Blip_Buffer *bb_r, int want_revision)
+PCE_PSG::PCE_PSG(int32* hr_l, int32* hr_r, int want_revision)
 {
-	//revision = want_revision;
+	//printf("Test: %u, %u\n", sizeof(psg_channel), (uint8*)&channel[0].balance - (uint8*)&channel[0].waveform[0]);
 
-	sbuf[0] = bb_l;
-	sbuf[1] = bb_r;
+	revision = want_revision;
+	switch(revision)
+	{
+	 default:
+		abort();
+		break;
 
-	SoundEnabled = (sbuf[0] && sbuf[1]);
+	 case REVISION_HUC6280:
+		UpdateOutput_Accum = &PCE_PSG::UpdateOutput_Accum_HuC6280;
+		break;
+
+	 case REVISION_HUC6280A:
+		UpdateOutput_Accum = &PCE_PSG::UpdateOutput_Accum_HuC6280A;
+		break;
+	}
+	HRBufs[0] = hr_l;
+	HRBufs[1] = hr_r;
 
 	lastts = 0;
 	for(int ch = 0; ch < 6; ch++)
@@ -366,38 +434,8 @@ void PCE_PSG::init(Blip_Buffer *bb_l, Blip_Buffer *bb_r, int want_revision)
 	 channel[ch].lastts = 0;
 	}
 
-	SetVolume(1.0);
-
-        for(int vl = 0; vl < 32; vl++)
-        {
-         double flub = 1;
-
-         if(vl)
-          flub /= pow(2, 1.0 / 4 * vl);                  // ~1.5dB reduction per increment of vl
-
-	 if(vl == 0x1F)
-	  flub = 0;
-
-         for(int samp = 0; samp < 32; samp++)
-         {
-	  int eff_samp;
-
-	  if(revision == REVISION_HUC6280)
-	   eff_samp = samp * 2;
-	  else
-	   eff_samp = samp * 2 - 0x1F;
-
-	  dbtable[vl][samp] = (int32)(flub * eff_samp * 128);
-	  dbtable_volonly[vl] = (int32)(flub * 65536);
-	 }
-	}
-
+	SetVolume(1.0);	// Will build dbtable in the process.
 	Power(0);
-}
-
-PCE_PSG::PCE_PSG(Blip_Buffer *bb_l, Blip_Buffer *bb_r, int want_revision)
-{
-	init(bb_l, bb_r, want_revision);
 }
 
 PCE_PSG::~PCE_PSG()
@@ -446,15 +484,7 @@ void PCE_PSG::Write(int32 timestamp, uint8 A, uint8 V)
 
         case 0x01: /* Global sound balance */
             globalbalance = V;
-
-	    if(REVISION_ENHANCED == revision)
-	    {
-	     for(int cht = 0; cht < 6; cht++)
-	      for(int lr = 0; lr < 2; lr++)
-	       channel[cht].vl[lr] = GetVL(cht, lr);	
-	    }
-	    else
-	     vol_pending = true;
+	    vol_pending = true;
             break;
 
         case 0x02: /* Channel frequency (LSB) */
@@ -496,28 +526,14 @@ void PCE_PSG::Write(int32 timestamp, uint8 A, uint8 V)
 	    RecalcFreqCache(select);
 	    RecalcUOFunc(select);
 
-            if(REVISION_ENHANCED == revision)
-            {
-	     ch->vl[0] = GetVL(select, 0);
-	     ch->vl[1] = GetVL(select, 1);
-	    }
-	    else
-	     vol_pending = true;
-
+	    vol_pending = true;
             break;
 
         case 0x05: /* Channel balance */
 	    if(select > 5) return; // no more than 6 channels, silly game.
             ch->balance = V;
 
-            if(REVISION_ENHANCED == revision)
-            {
-	     ch->vl[0] = GetVL(select, 0);
-	     ch->vl[1] = GetVL(select, 1);
-	    }
-	    else
-	     vol_pending = true;
-
+	    vol_pending = true;
             break;
 
         case 0x06: /* Channel waveform data */
@@ -539,12 +555,6 @@ void PCE_PSG::Write(int32 timestamp, uint8 A, uint8 V)
 	     // According to my tests(on SuperGrafx), writing to this channel
 	     // will update the waveform value cache/latch regardless of DDA mode being enabled.
              ch->dda = V;
-
-	     if(REVISION_ENHANCED == revision)
-	     {
-	      if(&PCE_PSG::UpdateOutput_Norm == ch->UpdateOutput)
- 	       UpdateOutput_Norm(timestamp, ch);
-	     }
 	    }
             break;
 
@@ -582,7 +592,7 @@ void PCE_PSG::Write(int32 timestamp, uint8 A, uint8 V)
 
 // Don't use INLINE, which has always_inline in it, due to gcc's inability to cope with the type of recursion
 // used in this function.
-inline void PCE_PSG::RunChannel(int chc, int32 timestamp, const bool LFO_On)
+void PCE_PSG::RunChannel(int chc, int32 timestamp, const bool LFO_On)
 {
  psg_channel *ch = &channel[chc];
  int32 running_timestamp = ch->lastts;
@@ -593,11 +603,7 @@ inline void PCE_PSG::RunChannel(int chc, int32 timestamp, const bool LFO_On)
  if(!run_time)
   return;
 
- //if(chc != 5)
- // return;
-
- if(REVISION_ENHANCED != revision)
-  (this->*ch->UpdateOutput)(running_timestamp, ch);
+ (this->*ch->UpdateOutput)(running_timestamp, ch);
 
  if(chc >= 4)
  {
@@ -630,7 +636,7 @@ inline void PCE_PSG::RunChannel(int chc, int32 timestamp, const bool LFO_On)
 
  ch->counter -= run_time;
 
- if(!LFO_On && ch->freq_cache <= 0xA)
+ if(!LFO_On && ch->freq_cache <= FREQC7M_COT)
  {
   if(ch->counter <= 0)
   {
@@ -656,7 +662,7 @@ inline void PCE_PSG::RunChannel(int chc, int32 timestamp, const bool LFO_On)
    RecalcFreqCache(0);
    RecalcUOFunc(0);
 
-   ch->counter += (ch->freq_cache <= 0xA) ? 0xA : ch->freq_cache;	// Not particularly accurate, but faster.
+   ch->counter += (ch->freq_cache <= FREQC7M_COT) ? FREQC7M_COT : ch->freq_cache;	// Not particularly accurate, but faster.
   }
   else
    ch->counter += ch->freq_cache;
@@ -675,35 +681,26 @@ void PCE_PSG::UpdateSubNonLFO(int32 timestamp)
   RunChannel(chc, timestamp, false);
 }
 
-//static int32 last_read;
-//static int32 last_apply;
-
 void PCE_PSG::Update(int32 timestamp)
 {
  int32 run_time = timestamp - lastts;
 
- if(!SoundEnabled)
-  return;
-
- if(REVISION_ENHANCED != revision)
+ if(vol_pending && !vol_update_counter && !vol_update_which)
  {
-  if(vol_pending && !vol_update_counter && !vol_update_which)
-  {
-   vol_update_counter = 1;
-   vol_pending = false;
-  }
+  vol_update_counter = 1;
+  vol_pending = false;
  }
 
  bool lfo_on = (bool)(lfoctrl & 0x03);
 
  if(lfo_on)
  {
-   if(!(channel[1].control & 0x80) || (lfoctrl & 0x80))
-   {
-     lfo_on = 0;
-     RecalcFreqCache(0);
-     RecalcUOFunc(0);
-   }
+  if(!(channel[1].control & 0x80) || (lfoctrl & 0x80))
+  {
+   lfo_on = 0;
+   RecalcFreqCache(0);
+   RecalcUOFunc(0);
+  }
  }
 
  int32 clocks = run_time;
@@ -713,11 +710,8 @@ void PCE_PSG::Update(int32 timestamp)
  {
   int32 chunk_clocks = clocks;
 
-  if(REVISION_ENHANCED != revision)
-  {
-   if(vol_update_counter > 0 && chunk_clocks > vol_update_counter)
-    chunk_clocks = vol_update_counter;
-  }
+  if(vol_update_counter > 0 && chunk_clocks > vol_update_counter)
+   chunk_clocks = vol_update_counter;
 
   running_timestamp += chunk_clocks;
   clocks -= chunk_clocks;
@@ -727,7 +721,7 @@ void PCE_PSG::Update(int32 timestamp)
   else
    UpdateSubNonLFO(running_timestamp);
 
-  if(REVISION_ENHANCED != revision && vol_update_counter > 0)
+  if(vol_update_counter > 0)
   {
    vol_update_counter -= chunk_clocks;
    if(!vol_update_counter)
@@ -771,12 +765,12 @@ void PCE_PSG::Update(int32 timestamp)
  }
 }
 
-void PCE_PSG::EndFrame(int32 timestamp)
+void PCE_PSG::ResetTS(int32 ts_base)
 {
- Update(timestamp);
- lastts = 0;
+ lastts = ts_base;
+
  for(int chc = 0; chc < 6; chc++)
-  channel[chc].lastts = 0;
+  channel[chc].lastts = ts_base;
 }
 
 void PCE_PSG::Power(const int32 timestamp)
@@ -785,7 +779,7 @@ void PCE_PSG::Power(const int32 timestamp)
  if(timestamp != lastts)
   Update(timestamp);
 
- memset(&channel, 0, sizeof(channel));
+ // Don't memset channel to 0, there's stuff like lastts and blip_prev_samp that shouldn't be altered on Power().
 
  select = 0;
  globalbalance = 0;
@@ -817,20 +811,19 @@ void PCE_PSG::Power(const int32 timestamp)
   if(ch >= 4)
   {
    RecalcNoiseFreqCache(ch);
-   channel[ch].noisecount = 1;
-   channel[ch].lfsr = 1;
   }
+  channel[ch].noisecount = 1;
+  channel[ch].lfsr = 1;
  }
 
  vol_pending = false;
  vol_update_counter = 0;
  vol_update_which = 0;
+ vol_update_vllatch = 0;
 }
 
-int PCE_PSG::StateAction(StateMem *sm, int load, int data_only)
+void PCE_PSG::StateAction(StateMem *sm, const unsigned load, const bool data_only)
 {
- int ret = 1;
-
  for(int ch = 0; ch < 6; ch++)
  {
   char tmpstr[5] = "SCHx";
@@ -852,7 +845,7 @@ int PCE_PSG::StateAction(StateMem *sm, int load, int data_only)
    SFEND
   };
   tmpstr[3] = '0' + ch;
-  ret &= MDFNSS_StateAction(sm, load, data_only, CH_StateRegs, tmpstr);
+  MDFNSS_StateAction(sm, load, data_only, CH_StateRegs, tmpstr);
  }
 
  SFORMAT PSG_StateRegs[] =
@@ -868,7 +861,7 @@ int PCE_PSG::StateAction(StateMem *sm, int load, int data_only)
   SFEND
  };
  
- ret &= MDFNSS_StateAction(sm, load, data_only, PSG_StateRegs, "PSG");
+ MDFNSS_StateAction(sm, load, data_only, PSG_StateRegs, "PSG");
 
  if(load)
  {
@@ -882,6 +875,10 @@ int PCE_PSG::StateAction(StateMem *sm, int load, int data_only)
 
   for(int ch = 0; ch < 6; ch++)
   {
+   channel[ch].waveform_index &= 0x1F;
+   channel[ch].frequency &= 0xFFF;
+   channel[ch].dda &= 0x1F;
+
    channel[ch].samp_accum = 0;
    for(int wi = 0; wi < 32; wi++)
    {
@@ -892,15 +889,15 @@ int PCE_PSG::StateAction(StateMem *sm, int load, int data_only)
    for(int lr = 0; lr < 2; lr++)
     channel[ch].vl[lr] &= 0x1F;
 
-   if(!channel[ch].noisecount && ch >= 4)
+   if(channel[ch].noisecount <= 0 && ch >= 4)
    {
-	   MDFN_printf("ch=%d, noisecount == 0\n", ch);
+    printf("ch=%d, noisecount <= 0\n", ch);
     channel[ch].noisecount = 1;
    }
 
    if(channel[ch].counter <= 0)
    {
-	   MDFN_printf("ch=%d, counter <= 0\n", ch);
+    printf("ch=%d, counter <= 0\n", ch);
     channel[ch].counter = 1;
    }
 
@@ -910,5 +907,4 @@ int PCE_PSG::StateAction(StateMem *sm, int load, int data_only)
    RecalcUOFunc(ch);
   }
  }
- return(ret); 
 }

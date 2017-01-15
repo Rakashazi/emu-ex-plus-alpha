@@ -9,20 +9,22 @@ namespace PCE_Fast
 {
 
 
-typedef struct __HuC6280
+struct HuC6280
 {
 	#ifdef HUC6280_CRAZY_VERSION
-        uint8 *PC, *PC_base;
+        uintptr_t PC, PC_base;
 	#else
 	uint16 PC;
 	#endif
 
         uint8 A,X,Y,S,P,mooPI;
+	uint8 IRQMask, IRQMaskDelay;
 	#ifdef HUC6280_LAZY_FLAGS
  	 uint32 ZNFlags;
 	#endif
 	uint8 MPR[9];		// 8, + 1 for PC overflow from $ffff to $10000
-	uint8 *FastPageR[9];
+	uint8 timer_status;
+	uintptr_t FastPageR[9];
 	uint8 *Page1;
 	//uint8 *PAGE1_W;
 	//const uint8 *PAGE1_R;
@@ -31,8 +33,6 @@ typedef struct __HuC6280
                                    And other junk hooked on for speed reasons.*/
 	int32 timestamp;
 
-	uint8 IRQMask, IRQMaskDelay;
-	uint8 timer_status;
 	int32 timer_value, timer_load;
         int32 timer_next_timestamp;
 
@@ -46,13 +46,20 @@ typedef struct __HuC6280
 	#define IBM_TIN 5
 
 	int32 previous_next_user_event;
-} HuC6280;
+
+	//
+	//
+	//
+	uint8 *FastMap[0x100];
+
+	readfunc PCERead[0x100];
+	writefunc PCEWrite[0x100];
+};
 
 void HuC6280_Run(int32 cycles);
 void HuC6280_ResetTS(void);
 
 extern HuC6280 HuCPU;
-extern uint8 *HuCPUFastMap[0x100];
 
 #define N_FLAG  0x80
 #define V_FLAG  0x40
@@ -75,10 +82,18 @@ void HuC6280_Init(void) MDFN_COLD;
 void HuC6280_Reset(void) MDFN_COLD;
 void HuC6280_Power(void) MDFN_COLD;
 
-void HuC6280_IRQBegin(int w);
-void HuC6280_IRQEnd(int w);
 
-int HuC6280_StateAction(StateMem *sm, int load, int data_only);
+static INLINE void HuC6280_IRQBegin(int w)
+{
+ HuCPU.IRQlow|=w;
+}
+
+static INLINE void HuC6280_IRQEnd(int w)
+{
+ HuCPU.IRQlow&=~w;
+}
+
+void HuC6280_StateAction(StateMem *sm, int load, int data_only);
 
 static INLINE void HuC6280_StealCycle(void)
 {

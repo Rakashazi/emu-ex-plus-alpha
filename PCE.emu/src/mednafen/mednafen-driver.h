@@ -63,6 +63,7 @@ void MDFND_MidSync(const EmulateSpecStruct *espec);
 struct MDFN_Thread;
 struct MDFN_Mutex;
 struct MDFN_Cond;	// mmm condiments
+struct MDFN_Sem;
 
 MDFN_Thread *MDFND_CreateThread(void* (*fn)(void *), void *data);
 void MDFND_WaitThread(MDFN_Thread *thread, int *status);
@@ -84,6 +85,14 @@ int MDFND_WaitCond(MDFN_Cond* cond, MDFN_Mutex* mutex);
 #define MDFND_COND_TIMEDOUT	1
 int MDFND_WaitCondTimeout(MDFN_Cond* cond, MDFN_Mutex* mutex, unsigned ms);
 
+
+MDFN_Sem* MDFND_CreateSem(void);
+void MDFND_DestroySem(MDFN_Sem* sem);
+
+int MDFND_WaitSem(MDFN_Sem* sem);
+#define MDFND_SEM_TIMEDOUT	1
+int MDFND_WaitSemTimeout(MDFN_Sem* sem, unsigned ms);
+int MDFND_PostSem(MDFN_Sem* sem);
 //
 // End threading support.
 //
@@ -94,29 +103,31 @@ void MDFNI_Power(void);
 /* path = path of game/file to load.  returns NULL on failure. */
 MDFNGI *MDFNI_LoadGame(const char *force_module, const char *path);
 
-/* If is_device is false, "devicename" should be treated as a path in the filesystem.  If is_device is true, then it should
-   be treated as a device name(which on some OSes may be the same as a path in the filesystem).
-
-   Additionally, if is_device is true, then devicename may be NULL to specify that the default CD drive device should be used.
-*/
-MDFNGI *MDFNI_LoadCD(const char *sysname, const char *devicename, const bool is_device);
+MDFNGI *MDFNI_LoadCD(const char *force_module, const char *path);	// Deprecated interface.
 
 // Call this function as early as possible, even before MDFNI_Initialize()
-bool MDFNI_InitializeModules(const std::vector<MDFNGI *> &ExternalSystems);
+bool MDFNI_InitializeModules(void);
 
 /* allocates memory.  0 on failure, 1 on success. */
 /* Also pass it the base directory to load the configuration file. */
 int MDFNI_Initialize(const char *basedir, const std::vector<MDFNSetting> &DriverSettings);
-
-/* Sets the base directory(save states, snapshots, etc. are saved in directories
-   below this directory. */
-void MDFNI_SetBaseDirectory(const char *dir);
 
 /* Call only when a game is loaded. */
 int MDFNI_NetplayStart(void);
 
 /* Emulates a frame. */
 void MDFNI_Emulate(EmulateSpecStruct *espec);
+
+#if 0
+/* Support function for scaling multiple-horizontal-resolution frames to a single width; mostly intended for unofficial ports.
+   The driver code really ought to handle multi-horizontal-resolution frames natively and properly itself, however.
+
+   WARNING: If you use this function, you'll need to create the video surface with a width of something like:
+	std::max<int32>(fb_width, lcm_width)
+   instead of just fb_width, otherwise you'll get memory corruption/crashes.
+*/
+void MDFNI_AutoScaleMRFrame(EmulateSpecStruct *espec);
+#endif
 
 /* Closes currently loaded game */
 void MDFNI_CloseGame(void);
@@ -136,18 +147,16 @@ uint32 MDFNI_CRC32(uint32 crc, uint8 *buf, uint32 len);
 // NES hackish function.  Should abstract in the future.
 int MDFNI_DatachSet(const uint8 *rcode);
 
-void MDFNI_DoRewind(void);
-
 void MDFNI_SetLayerEnableMask(uint64 mask);
 
-// Only call during startup or when the device on the specified port is changing/changed; do NOT call otherwise(such as on every frame),
-// as the call causes the destruction and recreation of the virtual device, which disrupts the game if it occurs in the middle of
-// the game's polling of the device.
-void MDFNI_SetInput(int port, const char *type, void *ptr, uint32 dsize);
 
-//int MDFNI_DiskInsert(int oride);
-//int MDFNI_DiskEject(void);
-//int MDFNI_DiskSelect(void);
+//TODO(need to work out how it'll interact with port device type settings):
+//void MDFNI_SetInput(uint32 port, uint32 type);
+//void MDFND_InputSetNotification(uint32 port, uint32 type, uint8* ptr);
+uint8* MDFNI_SetInput(const uint32 port, const uint32 type);
+
+bool MDFNI_SetMedia(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx = 0);
+void MDFND_MediaSetNotification(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx);
 
 // Arcade-support functions
 // We really need to reexamine how we should abstract this, considering the initial state of the DIP switches,
@@ -156,40 +165,7 @@ void MDFNI_ToggleDIP(int which);
 void MDFNI_InsertCoin(void);
 void MDFNI_ToggleDIPView(void);
 
-// Disk/Disc-based system support functions
-void MDFNI_DiskSelect(int which);
-void MDFNI_DiskSelect();
-void MDFNI_DiskInsert();
-void MDFNI_DiskEject();
-
-// New removable media interface(TODO!)
-//
-#if 0
-
-struct MediumInfoStruct
-{
- const char *name;		// More descriptive name, "Al Gore's Grand Adventure, Disk 1 of 7" ???
-				// (remember, Do utf8->utf32->utf8 for truncation for display)
- const char *set_member_name;	// "Disk 1 of 4, Side A", "Disk 3 of 4, Side B", "Disc 2 of 5" ???? (Disk M of N, where N is related to the number of entries
-				// in the structure???)
-};
-
-struct DriveInfoStruct
-{
- const char *name;
- const char *description;
- const MediumInfoStruct *possible_media;
- //bool
- //const char *eject_state_name;	// Like "Lid Open", or "Tray Ejected"
- //const char *insert_state_name;	// Like "
-};
-
- // Entry point
- DriveInfoStruct *Drives;
-
-void MDFNI_SetDriveMedium(unsigned drive_index, unsigned int medium_index, unsigned state_id);
-#endif
-
+bool MDFNI_EnableStateRewind(bool enable);
 
 bool MDFNI_StartAVRecord(const char *path, double SoundRate);
 void MDFNI_StopAVRecord(void);
@@ -198,6 +174,5 @@ bool MDFNI_StartWAVRecord(const char *path, double SoundRate);
 void MDFNI_StopWAVRecord(void);
 
 void MDFNI_DumpModulesDef(const char *fn);
-
 
 #endif

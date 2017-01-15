@@ -23,7 +23,6 @@
 	  case 2:
                 //if((vdc1_pixel & (amask << 2)) && !(vdc2_pixel & (amask << 2)) && !(vdc2_pixel & amask))
                 //        vdc1_pixel |= amask;
-		MDFN_printf("MOO");
 		// TODO: Verify that this is correct logic.
 		{
 		 const uint32 intermediate = ((vdc1_pixel ^ vdc2_pixel) & vdc1_pixel) >> 2;

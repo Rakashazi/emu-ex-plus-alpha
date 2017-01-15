@@ -3,10 +3,12 @@
 
 int InitNetplay(void);
 
-void NetplayUpdate(const char **, void *PortData[], uint32 PortLen[], int NumPorts);
-int NetplayStart(const char *PortDeviceCache[16], const uint32 PortDataLenCache[16]);
+void Netplay_Update(const uint32 PortDeviceCache[], uint8* const PortData[], const uint32 PortLen[]);
+void Netplay_PostProcess(const uint32 PortDevIdx[], uint8* const PortData[], const uint32 PortLen[]);
+
+int NetplayStart(const uint32 PortDeviceCache[16], const uint32 PortDataLenCache[16]);
 void NetplaySendState(void);
-bool NetplaySendCommand(uint8, uint32);
+bool NetplaySendCommand(uint8, uint32, const void* data = NULL);
 
 extern int MDFNnetplay;
 
@@ -66,6 +68,8 @@ extern int MDFNnetplay;
 #define MDFNNPCMD_NICKCHANGED	0xB8
 
 #define MDFNNPCMD_LIST		0xC0 // Server->client
+
+#define MDFNNPCMD_SET_MEDIA     	0xD0	// Client->server, and server->client
 
 #define MDFNNPCMD_CTRLR_TAKE_NOTIF	0xF0	// Server->client
 #define MDFNNPCMD_CTRLR_DROP_NOTIF	0xF1	// Server->client

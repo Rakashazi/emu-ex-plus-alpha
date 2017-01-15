@@ -1,14 +1,45 @@
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* Stream.h:
+**  Copyright (C) 2012-2016 Mednafen Team
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
 #ifndef __MDFN_STREAM_H
 #define __MDFN_STREAM_H
 
-// TODO/WIP
-
 // TODO?: BufferedStream, no virtual functions, yes inline functions, constructor takes a Stream* argument.
 
-#include "mednafen.h"
+#include <mednafen/types.h>
+
+#include "gettext.h"
+#define _(String) gettext (String)
+
 #include <errno.h>
 
 #include <stdio.h>	// For SEEK_* defines, which we will use in Stream out of FORCE OF HABIT.
+#include <string.h>
+
+#include <string>
+
+/*
+ The data read into the pointer passed to read*() functions should be considered undefined if the function throws
+ or propagates an exception.
+*/
 
 class Stream
 {
@@ -21,21 +52,37 @@ class Stream
  {
   ATTRIBUTE_READABLE = 	1U <<  0,
   ATTRIBUTE_WRITEABLE =	1U <<  1,
-  ATTRIBUTE_SEEKABLE =	1U <<  2,
-  ATTRIBUTE_SLOW_SEEK =	1U <<  3,
-  ATTRIBUTE_SLOW_SIZE =	1U <<  4
+  ATTRIBUTE_SEEKABLE =	1U <<  2,	// Indicates that Stream is capable of being seeked, regardless of how performant seeking is.
+
+  ATTRIBUTE_SLOW_SEEK =	1U <<  3,	// Indicates that seeking(particularly backwards) is slow, and should be avoided if at all possible.
+  ATTRIBUTE_SLOW_SIZE =	1U <<  4	// Indicates that size() is slow, and should be avoided if at all possible.
  };
  virtual uint64 attributes(void) = 0;
 
- virtual uint8 *map(void) = 0;	// Map the entirety of the stream data into the address space of the process, if possible, and return a pointer.
+ //
+ // Throw an exception if stream is not fast-seekable; exists to allow for class-specific generic but helpful
+ // error messages(such as perhaps "MeowZip file is missing a seek index.").
+ //
+ virtual void require_fast_seekable(void);
+
+ virtual uint8 *map(void) noexcept;
+				// Map the entirety of the stream data into the address space of the process, if possible, and return a pointer.
 				// (the returned pointer must be cached, and returned on any subsequent calls to map() without an unmap()
 				// in-between, to facilitate a sort of "feature-testing", to determine if an alternative like "MemoryStream"
 				// should be used).
 				//
 				// If the mapping fails for whatever reason, return NULL rather than throwing an exception.
 				//
+				// For code using this functionality, ensure usage of map_size() instead of size(), unless you're only using a specific derived
+				// class like MemoryStream() where the value returned by size() won't change unexpectedly due to outside factors.
 
- virtual void unmap(void) = 0;	// Unmap the stream data from the address space.  (Possibly invalidating the pointer returned from map()).
+ virtual uint64 map_size(void) noexcept;
+				// The size of the memory mapping area, point to which returned by map().
+				//
+				// Returns 0 on supported, or if no mapping currently exists.
+
+ virtual void unmap(void) noexcept;
+				// Unmap the stream data from the address space.  (Possibly invalidating the pointer returned from map()).
 				// (must automatically be called, if necessary, from the destructor).
 				//
 				// If the data can't be "unmapped" as such because it was never mmap()'d or similar in the first place(such as with MemoryStream),
@@ -44,13 +91,16 @@ class Stream
  virtual uint64 read(void *data, uint64 count, bool error_on_eos = true) = 0;
  virtual void write(const void *data, uint64 count) = 0;
 
+ virtual void truncate(uint64 length) = 0;	// Should have ftruncate()-like semantics; but avoid using it to extend files.
+
  virtual void seek(int64 offset, int whence = SEEK_SET) = 0;
  inline void rewind(void)
  {
   seek(0, SEEK_SET);
  }
- virtual int64 tell(void) = 0;
- virtual int64 size(void) = 0;
+ virtual uint64 tell(void) = 0;
+ virtual uint64 size(void) = 0;	// May implicitly call flush() if the stream is writeable.
+ virtual void flush(void) = 0;
  virtual void close(void) = 0;	// Flushes(in the case of writeable streams) and closes the stream.
 				// Necessary since this operation can fail(running out of disk space, for instance),
 				// and throw an exception in the destructor would be a Bad Idea(TM).
@@ -87,25 +137,29 @@ class Stream
   return ret;
  }
 
- template<typename T>
- INLINE void put_NE(T c)
- {
-  write(&c, sizeof(c));
- }
-
 
  template<typename T>
  INLINE T get_RE(void)
  {
   uint8 tmp[sizeof(T)];
-  T ret = 0;
+  union
+  {
+   T ret;
+   uint8 ret_u8[sizeof(T)];
+  };
 
   read(tmp, sizeof(tmp));
 
   for(unsigned i = 0; i < sizeof(T); i++)
-   ret |= (T)tmp[i] << (i * 8);
+   ret_u8[i] = tmp[sizeof(T) - 1 - i];
 
   return ret;
+ }
+
+ template<typename T>
+ INLINE void put_NE(T c)
+ {
+  write(&c, sizeof(c));
  }
 
  template<typename T>
@@ -159,6 +213,11 @@ class Stream
   #endif
  }
 
+ INLINE void put_string(const char* str)
+ {
+  write(str, strlen(str));
+ }
+
  // Reads a line into "str", overwriting its contents; returns the line-end char('\n' or '\r' or '\0'), or 256 on EOF and
  // data has been read into "str", and -1 on EOF when no data has been read into "str".
  // The line-end char won't be added to "str".
@@ -177,28 +236,26 @@ class Stream
  void put_string(const char *str);
  void put_string(const std::string &str);
 #endif
-};
 
-// StreamFilter takes ownership of the Stream pointer passed, and will delete it in its destructor.
-class StreamFilter : public Stream
-{
- public:
+ //
+ // Read until end-of-stream(or count), discarding any read data, and returns the amount of data "read".
+ //  (Useful for detecting and printing warnings about extra garbage data without needing to call size(),
+ //   which can be problematic for some types of Streams).
+ uint64 read_discard(uint64 count = ~(uint64)0);
 
- StreamFilter();
- StreamFilter(Stream *target_arg);
- virtual ~StreamFilter();
-
- virtual uint64 read(void *data, uint64 count, bool error_on_eos = true) = 0;
- virtual void write(const void *data, uint64 count) = 0;
- virtual void seek(int64 offset, int whence) = 0;
- virtual int64 tell(void) = 0;
- virtual int64 size(void) = 0;
- virtual void close(void) = 0;
-
- virtual Stream *steal(void);
-
- private:
- Stream *target_stream;
+ //
+ // Reads stream starting at the current stream position(as returned by tell()), into memory allocated with malloc() and realloc(), and
+ // sets *data_out to a pointer to the memory(which the caller will need to free() at some point).
+ //
+ // *data_out is only an output.
+ //
+ // If size_limit is/will be exceeded, an exception will be thrown, and *data_out will not be written to.
+ //
+ // Will return the amount of data read.
+ //
+ // If the returned value is 0, *data_out will still be a valid non-NULL pointer.
+ //
+ uint64 alloc_and_read(void** data_out, uint64 size_limit = ~(uint64)0);
 };
 
 #endif

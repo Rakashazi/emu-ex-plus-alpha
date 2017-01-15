@@ -2,10 +2,11 @@
 #define __MDFN_CDACCESS_IMAGE_H
 
 #include <map>
-#include <memory>
+#include <array>
 #include <imagine/io/FileIO.hh>
 
-class AudioReader;
+class Stream;
+class CDAFReader;
 
 struct CDRFILE_TRACK_INFO
 {
@@ -19,7 +20,7 @@ struct CDRFILE_TRACK_INFO
 
 	int32 postgap = 0;
 
-	int32 index[2]{};
+	int32 index[100]{};
 
 	int32 sectors = 0;	// Not including pregap sectors!
 	std::shared_ptr<FileIO> fp;
@@ -30,7 +31,7 @@ struct CDRFILE_TRACK_INFO
 
 	uint32 LastSamplePos = 0;
 
-	AudioReader *AReader{};
+	CDAFReader *AReader{};
 
 	constexpr CDRFILE_TRACK_INFO() {}
 };
@@ -66,19 +67,17 @@ class CDAccess_Image : public CDAccess
 {
  public:
 
- CDAccess_Image(const char *path, bool image_memcache);
+ CDAccess_Image(const std::string& path, bool image_memcache);
  ~CDAccess_Image() override;
 
  bool Read_Raw_Sector(uint8 *buf, int32 lba) override;
+ bool Fast_Read_Raw_PW_TSRE(uint8* pwbuf, int32 lba) const noexcept override;
+
  bool Read_Sector(uint8 *buf, int32 lba, uint32 size) override;
 
  void Read_TOC(CDUtility::TOC *toc) override;
 
- bool Is_Physical(void) throw() override;
-
- void Eject(bool eject_status) override;
-
- void HintReadSector(int32 lba, int32 count) override;
+ void HintReadSector(uint32 lba, int32 count) override;
  private:
 
  int32 NumTracks;
@@ -87,15 +86,20 @@ class CDAccess_Image : public CDAccess
  int32 total_sectors;
  uint8 disc_type;
  CDRFILE_TRACK_INFO Tracks[100]; // Track #0(HMM?) through 99
+ CDUtility::TOC toc;
+
+ std::map<uint32, std::array<uint8, 12>> SubQReplaceMap;
 
  std::string base_dir;
 
- void ImageOpen(const char *path, bool image_memcache);
- void ImageOpenBinary(const char *path, bool isIso);
+ void ImageOpen(const std::string& path, bool image_memcache);
+ void ImageOpenBinary(const std::string& path, bool isIso);
+ void LoadSBI(const std::string& sbi_path);
+ void GenerateTOC(void);
  void Cleanup(void);
 
  // MakeSubPQ will OR the simulated P and Q subchannel data into SubPWBuf.
- void MakeSubPQ(int32 lba, uint8 *SubPWBuf);
+ int32 MakeSubPQ(int32 lba, uint8 *SubPWBuf) const;
 
  void ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int tracknum, const std::string &filename, const char *binoffset, const char *msfoffset, const char *length, bool image_memcache, std::map<std::string, std::shared_ptr<FileIO>> &toc_streamcache);
  uint32 GetSectorCount(CDRFILE_TRACK_INFO *track);

@@ -20,6 +20,7 @@
 #include <mednafen/git.h>
 #include <mednafen/file.h>
 #include <mednafen/memory.h>
+#include <mednafen/MemoryStream.h>
 
 static bool hasKnownExtension(const char *name, const FileExtensionSpecStruct *extSpec)
 {
@@ -33,8 +34,7 @@ static bool hasKnownExtension(const char *name, const FileExtensionSpecStruct *e
 }
 
 MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose):
-	size(f_size), data((const uint8* const &)f_data),
-	ext((const char * const &)f_ext), fbase((const char * const &)f_fbase)
+	ext(f_ext), fbase(f_fbase)
 {
 	if(hasArchiveExtension(path))
 	{
@@ -50,9 +50,8 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 			if(hasKnownExtension(name, known_ext))
 			{
 				auto io = entry.moveIO();
-				f_size = io.size();
-				f_data = (uint8*)MDFN_malloc_T(f_size, "file read buffer");
-				if(io.read(f_data, f_size) != f_size)
+				str = std::make_unique<MemoryStream>(io.size(), true);
+				if(io.read(str->map(), str->map_size()) != (int)str->map_size())
 				{
 					throw MDFN_Error(0, "Error reading archive");
 				}
@@ -75,9 +74,8 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 		{
 			throw MDFN_Error(0, "Error opening file");
 		}
-		f_size = file.size();
-		f_data = (uint8*)MDFN_malloc_T(f_size, "file read buffer");
-		if(file.read(f_data, f_size) != f_size)
+		str = std::make_unique<MemoryStream>(file.size(), true);
+		if(file.read(str->map(), str->map_size()) != (int)str->map_size())
 		{
 			throw MDFN_Error(0, "Error reading file");
 		}
@@ -86,16 +84,10 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 	}
 }
 
-MDFNFILE::MDFNFILE(IO &io, const char *path, const char *purpose):
-	size(f_size), data((const uint8* const &)f_data),
-	ext((const char * const &)f_ext), fbase((const char * const &)f_fbase)
+MDFNFILE::MDFNFILE(std::unique_ptr<Stream> str, const char *path, const char *purpose):
+	ext(f_ext), fbase(f_fbase),
+	str{std::move(str)}
 {
-	f_size = io.size();
-	f_data = (uint8*)MDFN_malloc_T(f_size, "file read buffer");
-	if(io.read(f_data, f_size) != f_size)
-	{
-		throw MDFN_Error(0, "Error reading file");
-	}
 	auto extStr = strrchr(path, '.');
 	f_ext = strdup(extStr ? extStr + 1 : "");
 }

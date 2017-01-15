@@ -1,9 +1,7 @@
-#ifndef _MDFN_DRIVERH
-#define _MDFN_DRIVERH
+#ifndef __MDFN_DRIVER_H
+#define __MDFN_DRIVER_H
 
-#include "types.h"
-#include <stdio.h> // REMOVE ME eventually
-#include "git.h"
+#include "mednafen.h"
 #include "settings-driver.h"
 #include "mednafen-driver.h"
 #include "netplay-driver.h"

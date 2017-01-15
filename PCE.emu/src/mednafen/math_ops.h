@@ -1,6 +1,144 @@
 #ifndef __MDFN_MATH_OPS_H
 #define __MDFN_MATH_OPS_H
 
+//
+// Result is defined for all possible inputs(including 0).
+//
+static INLINE unsigned MDFN_lzcount32(uint32 v)
+{
+ #if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER)
+ return v ? __builtin_clz(v) : 32;
+ #elif defined(_MSC_VER)
+ unsigned long idx;
+
+ if(!v)
+  return 32;
+
+ _BitScanReverse(&idx, v);
+
+ return 31 - idx;
+ #else
+ unsigned ret = 0;
+
+ if(!v)
+  return(32);
+
+ if(!(v & 0xFFFF0000))
+ {
+  v <<= 16;
+  ret += 16;
+ }
+
+ if(!(v & 0xFF000000))
+ {
+  v <<= 8;
+  ret += 8;
+ }
+
+ if(!(v & 0xF0000000))
+ {
+  v <<= 4;
+  ret += 4;
+ }
+
+ if(!(v & 0xC0000000))
+ {
+  v <<= 2;
+  ret += 2;
+ }
+
+ if(!(v & 0x80000000))
+ {
+  v <<= 1;
+  ret += 1;
+ }
+
+ return(ret);
+ #endif
+}
+
+//
+// Result is defined for all possible inputs(including 0).
+//
+static INLINE unsigned MDFN_lzcount64(uint64 v)
+{
+ #if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER)
+ return v ? __builtin_clzll(v) : 64;
+ #elif defined(_MSC_VER) && defined(_WIN64)
+ unsigned long idx;
+
+ if(!v)
+  return 64;
+
+ _BitScanReverse64(&idx, v);
+
+ return 63 - idx;
+ #else
+ unsigned ret = 0;
+
+ if(!(v & 0xFFFFFFFFFFFFFFFFULL))
+  return(64);
+
+ if(!(v & 0xFFFFFFFF00000000ULL))
+ {
+  v <<= 32;
+  ret += 32;
+ }
+
+ if(!(v & 0xFFFF000000000000ULL))
+ {
+  v <<= 16;
+  ret += 16;
+ }
+
+ if(!(v & 0xFF00000000000000ULL))
+ {
+  v <<= 8;
+  ret += 8;
+ }
+
+ if(!(v & 0xF000000000000000ULL))
+ {
+  v <<= 4;
+  ret += 4;
+ }
+
+ if(!(v & 0xC000000000000000ULL))
+ {
+  v <<= 2;
+  ret += 2;
+ }
+
+ if(!(v & 0x8000000000000000ULL))
+ {
+  v <<= 1;
+  ret += 1;
+ }
+
+ return(ret);
+ #endif
+}
+
+static INLINE unsigned MDFN_tzcount16(uint16 a)
+{
+ #if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER)
+ if(!a)
+  return 16;
+
+ return __builtin_ctz(a);
+ #else
+ for(unsigned i = 0; i < 16; i++)
+ {
+  if(a & 1)
+   return i;
+
+  a >>= 1;
+ }
+ return 16;
+ #endif
+}
+
+
 // Source: http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
 // Rounds up to the nearest power of 2.
 static INLINE uint64 round_up_pow2(uint64 v)

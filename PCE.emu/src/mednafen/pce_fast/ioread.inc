@@ -1,6 +1,6 @@
  A &= 0x1FFF;
 
-#if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER) 
+#if HAVE_COMPUTED_GOTO
  const void * const IOReadHandlers[0x20] =
  {
   &&VDC_00, &&VDC_01, &&VDC_02, &&VDC_03,

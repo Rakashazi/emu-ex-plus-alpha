@@ -18,10 +18,7 @@
  Arcade Card emulation based on information provided by Ki and David Shadoff
 */
 
-#include "mednafen/mednafen.h"
-
-//#include "pce.h"
-//#include "huc.h"
+#include <mednafen/mednafen.h>
 #include "arcade_card.h"
 
 #include <errno.h>
@@ -294,7 +291,7 @@ void ArcadeCard::Power(void)
  ACRAMUsed = false;
 }
 
-int ArcadeCard::StateAction(StateMem *sm, int load, int data_only)
+void ArcadeCard::StateAction(StateMem *sm, const unsigned load, const bool data_only)
 {
  SFORMAT ACUsedRegs[] = 
  {
@@ -302,8 +299,7 @@ int ArcadeCard::StateAction(StateMem *sm, int load, int data_only)
   SFEND
  };
 
- if(!MDFNSS_StateAction(sm, load, data_only, ACUsedRegs, "ArcadeCardUsed"))
-  return(0);
+ MDFNSS_StateAction(sm, load, data_only, ACUsedRegs, "ArcadeCardUsed");
 
  SFORMAT ACStateRegs[] =
  {
@@ -325,10 +321,13 @@ int ArcadeCard::StateAction(StateMem *sm, int load, int data_only)
   SFARRAY(ACRAM, ACRAMUsed ? 0x200000 : 0x0),
   SFEND
  };
- int ret = MDFNSS_StateAction(sm, load, data_only, ACStateRegs, "ArcadeCard");
 
+ MDFNSS_StateAction(sm, load, data_only, ACStateRegs, "ArcadeCard");
 
- return(ret);
+ if(load)
+ {
+
+ }
 }
 
 

@@ -1,145 +1,114 @@
-#ifndef _STATE_H
-#define _STATE_H
-
-#include <zlib.h>
+#ifndef __MDFN_STATE_H
+#define __MDFN_STATE_H
 
 #include "video.h"
 #include "state-common.h"
+#include "Stream.h"
 
-void MDFNSS_GetStateInfo(const char *filename, StateStatusStruct *status);
+void MDFNSS_GetStateInfo(const std::string& path, StateStatusStruct* status);
 
-int MDFNSS_Save(const char *, const char *suffix, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const int32 *LineWidths = (int32*)NULL);
-int MDFNSS_Load(const char *, const char *suffix);
-int MDFNSS_SaveFP(gzFile fp, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const int32 *LineWidths = (int32*)NULL);
-int MDFNSS_LoadFP(gzFile fp);
-
-typedef struct
-{
-        uint8 *data;
-        uint32 loc;
-        uint32 len;
-
-        uint32 malloced;
-
-	uint32 initial_malloc; // A setting!
-} StateMem;
-
-// Eh, we abuse the smem_* in-memory stream code
-// in a few other places. :)
-int32 smem_read(StateMem *st, void *buffer, uint32 len);
-int32 smem_write(StateMem *st, void *buffer, uint32 len);
-int32 smem_putc(StateMem *st, int value);
-int32 smem_tell(StateMem *st);
-int32 smem_seek(StateMem *st, uint32 offset, int whence);
-int smem_write32le(StateMem *st, uint32 b);
-int smem_read32le(StateMem *st, uint32 *b);
-
-int MDFNSS_SaveSM(StateMem *st, int wantpreview_and_ts, int data_only, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const int32 *LineWidths = (int32*)NULL);
-int MDFNSS_LoadSM(StateMem *st, int haspreview, int data_only);
+struct StateMem;
+//
+// "st" should be MemoryStream, or FileStream if running in a memory-constrained system.  GZFileStream won't work properly due to 
+// the save state saving code relying on reverse-seeking.
+//
+// Pass 'true' for data_only to get faster and leaner save states, at the expense of cross-version and cross-platform compatibility(it's mainly intended for
+// realtime state rewinding).
+//
+// On entry, the position of 'st' IS permitted to be greater than 0.
+//
+// Assuming no errors, and data_only is 'false', the position of 'st' will be just beyond the end of the save state on return.
+//
+// throws exceptions on errors.
+//
+void MDFNSS_SaveSM(Stream *st, bool data_only = false, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const int32 *LineWidths = (int32*)NULL);
+void MDFNSS_LoadSM(Stream *st, bool data_only = false);
 
 void MDFNSS_CheckStates(void);
 
-// Flag for a single, >= 1 byte native-endian variable
-#define MDFNSTATE_RLSB            0x80000000
-
-// 32-bit native-endian elements
-#define MDFNSTATE_RLSB32          0x40000000
-
-// 16-bit native-endian elements
-#define MDFNSTATE_RLSB16          0x20000000
-
-// 64-bit native-endian elements
-#define MDFNSTATE_RLSB64          0x10000000
-
-#define MDFNSTATE_BOOL		  0x08000000
-
-
-//// Array of structures
-//#define MDFNSTATE_ARRAYOFS	  0x04000000
-
-typedef struct {
-           void *v;		// Pointer to the variable/array
-           uint32 size;		// Length, in bytes, of the data to be saved EXCEPT:
-				//  In the case of MDFNSTATE_BOOL, it is the number of bool elements to save(bool is not always 1-byte).
+struct SFORMAT
+{
+	enum
+	{
+	 FLAG_RLSB	= 0x80000000, // Flag for a single, >= 1 byte native-endian variable
+	 FLAG_RLSB32	= 0x40000000, // 32-bit native-endian elements	 
+	 FLAG_RLSB16	= 0x20000000, // 16-bit native-endian elements
+	 FLAG_RLSB64	= 0x10000000, // 64-bit native-endian elements
+	 FLAG_BOOL	= 0x08000000
+	};
+	void *v;		// Pointer to the variable/array
+	uint32 size;		// Length, in bytes, of the data to be saved EXCEPT:
+				//  In the case of SFORMAT::FLAG_BOOL, it is the number of bool elements to save(bool is not always 1-byte).
 				// If 0, the subchunk isn't saved.
-	   uint32 flags;	// Flags
-	   const char *name;	// Name
-	   //uint32 struct_size;	// Only used for MDFNSTATE_ARRAYOFS, sizeof(struct) that members of the linked SFORMAT struct are in.
-} SFORMAT;
+	uint32 flags;		// Flags
+	const char *name;	// Name
+};
 
-INLINE bool SF_IS_BOOL(bool *) { return(1); }
-INLINE bool SF_IS_BOOL(void *) { return(0); }
+static INLINE bool SF_IS_BOOL(bool *) { return(1); }
+static INLINE bool SF_IS_BOOL(void *) { return(0); }
 
-INLINE uint32 SF_FORCE_AB(bool *) { return(0); }
+static INLINE uint32 SF_FORCE_AB(bool *) { return(0); }
 
-INLINE uint32 SF_FORCE_A8(int8 *) { return(0); }
-INLINE uint32 SF_FORCE_A8(uint8 *) { return(0); }
+static INLINE uint32 SF_FORCE_A8(int8 *) { return(0); }
+static INLINE uint32 SF_FORCE_A8(uint8 *) { return(0); }
 
-INLINE uint32 SF_FORCE_A16(int16 *) { return(0); }
-INLINE uint32 SF_FORCE_A16(uint16 *) { return(0); }
+static INLINE uint32 SF_FORCE_A16(int16 *) { return(0); }
+static INLINE uint32 SF_FORCE_A16(uint16 *) { return(0); }
 
-INLINE uint32 SF_FORCE_A32(int32 *) { return(0); }
-INLINE uint32 SF_FORCE_A32(uint32 *) { return(0); }
+static INLINE uint32 SF_FORCE_A32(int32 *) { return(0); }
+static INLINE uint32 SF_FORCE_A32(uint32 *) { return(0); }
 
-INLINE uint32 SF_FORCE_A64(int64 *) { return(0); }
-INLINE uint32 SF_FORCE_A64(uint64 *) { return(0); }
+static INLINE uint32 SF_FORCE_A64(int64 *) { return(0); }
+static INLINE uint32 SF_FORCE_A64(uint64 *) { return(0); }
 
-INLINE uint32 SF_FORCE_D(double *) { return(0); }
+static INLINE uint32 SF_FORCE_D(double *) { return(0); }
 
-#define SFVARN(x, n) { &(x), SF_IS_BOOL(&(x)) ? 1U : (uint32)sizeof(x), MDFNSTATE_RLSB | (SF_IS_BOOL(&(x)) ? MDFNSTATE_BOOL : 0), n }
+template<typename T>
+static INLINE int SF_VAR_OK(const T*)
+{
+ static_assert(std::is_same<T, bool>::value || sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Bad save state variable.");
+ return 0;
+}
+
+#define SFVARN(x, n) { &(x), SF_IS_BOOL(&(x)) ? 1U : (uint32)sizeof(x), SFORMAT::FLAG_RLSB | (SF_IS_BOOL(&(x)) ? (uint32)SFORMAT::FLAG_BOOL : 0) | SF_VAR_OK(&(x)), n }
 #define SFVAR(x) SFVARN((x), #x)
 
 #define SFARRAYN(x, l, n) { (x), (uint32)(l), 0 | SF_FORCE_A8(x), n }
 #define SFARRAY(x, l) SFARRAYN((x), (l), #x)
 
-#define SFARRAYBN(x, l, n) { (x), (uint32)(l), MDFNSTATE_BOOL | SF_FORCE_AB(x), n }
+#define SFARRAYBN(x, l, n) { (x), (uint32)(l), SFORMAT::FLAG_BOOL | SF_FORCE_AB(x), n }
 #define SFARRAYB(x, l) SFARRAYBN((x), (l), #x)
 
-#define SFARRAY16N(x, l, n) { (x), (uint32)((l) * sizeof(uint16)), MDFNSTATE_RLSB16 | SF_FORCE_A16(x), n }
+#define SFARRAY16N(x, l, n) { (x), (uint32)((l) * sizeof(uint16)), SFORMAT::FLAG_RLSB16 | SF_FORCE_A16(x), n }
 #define SFARRAY16(x, l) SFARRAY16N((x), (l), #x)
 
-#define SFARRAY32N(x, l, n) { (x), (uint32)((l) * sizeof(uint32)), MDFNSTATE_RLSB32 | SF_FORCE_A32(x), n }
+#define SFARRAY32N(x, l, n) { (x), (uint32)((l) * sizeof(uint32)), SFORMAT::FLAG_RLSB32 | SF_FORCE_A32(x), n }
 #define SFARRAY32(x, l) SFARRAY32N((x), (l), #x)
 
-#define SFARRAY64N(x, l, n) { (x), (uint32)((l) * sizeof(uint64)), MDFNSTATE_RLSB64 | SF_FORCE_A64(x), n }
+#define SFARRAY64N(x, l, n) { (x), (uint32)((l) * sizeof(uint64)), SFORMAT::FLAG_RLSB64 | SF_FORCE_A64(x), n }
 #define SFARRAY64(x, l) SFARRAY64N((x), (l), #x)
 
 static_assert(sizeof(double) == 8, "sizeof(double) != 8");
 
-#define SFARRAYDN(x, l, n) { (x), (uint32)((l) * 8), MDFNSTATE_RLSB64 | SF_FORCE_D(x), n }
+#define SFARRAYDN(x, l, n) { (x), (uint32)((l) * 8), SFORMAT::FLAG_RLSB64 | SF_FORCE_D(x), n }
 #define SFARRAYD(x, l) SFARRAYDN((x), (l), #x)
 
 #define SFEND { 0, 0, 0, 0 }
 
-#include <vector>
-
-// State-Section Descriptor
-class SSDescriptor
-{
- public:
- SSDescriptor(SFORMAT *n_sf, const char *n_name, bool n_optional = 0)
- {
-  sf = n_sf;
-  name = n_name;
-  optional = n_optional;
- }
- ~SSDescriptor(void)
- {
-
- }
-
- SFORMAT *sf;
- const char *name;
- bool optional;
-};
-
-int MDFNSS_StateAction(StateMem *st, int load, int data_only, std::vector <SSDescriptor> &sections);
-int MDFNSS_StateAction(StateMem *st, int load, int data_only, SFORMAT *sf, const char *name, bool optional = 0);
-
-void MDFN_StateEvilFlushMovieLove(void);
-bool MDFN_StateEvilIsRunning(void);
-void MDFN_StateEvilBegin(void);
-void MDFN_StateEvilEnd(void);
-int MDFN_StateEvil(int);
+//
+// 'load' is 0 on save, and the version numeric contained in the save state on load.
+//
+// ALWAYS returns 'true' when 'load' is 0(saving), regardless of errors.
+//
+// When 'load' is non-zero:
+//	Normally returns true, but if the section was not found and optional was true, returns false.
+//
+// 	If an error occurs(such as memory allocation error, stream error, or section-missing error when optional == false), this function
+// 	marks deferred error status in *sm, and that call and all future calls with that particular *sm will return false.
+//
+// Does NOT throw exceptions, and must NOT throw exceptions, in order to make sure the emulation-module-specific loaded-variable sanitizing code
+// is run.
+//
+bool MDFNSS_StateAction(StateMem *sm, const unsigned load, const bool data_only, SFORMAT *sf, const char *name, const bool optional = false) noexcept;
 
 #endif

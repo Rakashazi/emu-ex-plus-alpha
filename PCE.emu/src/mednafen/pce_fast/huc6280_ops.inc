@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#define TEST_WEIRD_TFLAG(n) { if(HU_P & T_FLAG) MDFN_printf("RAWR" n); }
+#define TEST_WEIRD_TFLAG(n) { /*if(HU_P & T_FLAG) puts("RAWR" n);*/ }
 
 case 0x00:  /* BRK */
             IncPC();

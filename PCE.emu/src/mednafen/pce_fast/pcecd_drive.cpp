@@ -24,7 +24,7 @@
 
 namespace PCE_Fast
 {
-#define SCSIDBG(format, ...) { printf("SCSI: " format "\n",  ## __VA_ARGS__); }
+//#define SCSIDBG(format, ...) { printf("SCSI: " format "\n",  ## __VA_ARGS__); }
 //#define SCSIDBG(format, ...) { }
 
 using namespace CDUtility;
@@ -33,8 +33,10 @@ static uint32 CD_DATA_TRANSFER_RATE;
 static uint32 System_Clock;
 static void (*CDIRQCallback)(int);
 static void (*CDStuffSubchannels)(uint8, int);
-static Blip_Buffer *sbuf[2];
+static Blip_Buffer* sbuf;
+
 static CDIF *Cur_CDIF;
+static bool TrayOpen;
 
 // Internal operation to the SCSI CD unit.  Only pass 1 or 0 to these macros!
 #define SetIOP(mask, set)	{ cd_bus.signals &= ~mask; if(set) cd_bus.signals |= mask; }
@@ -85,7 +87,6 @@ typedef struct
  // Used for multiple sector CD reads.
  bool data_transfer_done;
 
- bool TrayOpen;
  bool DiscChanged;
 
  uint8 SubQBuf[4][0xC];		// One for each of the 4 most recent q-Modes.
@@ -142,8 +143,6 @@ static INLINE void MakeSense(uint8 target[18], uint8 key, uint8 asc, uint8 ascq,
  target[14] = fru;		// Field Replaceable Unit code
 }
 
-static void (*SCSILog)(const char *, const char *format, ...);
-
 static pcecd_drive_timestamp_t lastts;
 static int64 monotonic_timestamp;
 static int64 pce_lastsapsp_timestamp;
@@ -193,7 +192,7 @@ static void VirtualReset(void)
  cdda.PlayMode = PLAYMODE_SILENT;
  cdda.CDDAReadPos = 0;
  cdda.CDDAStatus = CDDASTATUS_STOPPED;
- cdda.CDDADiv = 0;
+ cdda.CDDADiv = 1;
 
  cdda.ScanMode = 0;
  cdda.scan_sec_end = 0;
@@ -210,7 +209,7 @@ void PCECD_Drive_Power(pcecd_drive_timestamp_t system_timestamp)
 
  cd.DiscChanged = false;
 
- if(Cur_CDIF && !cd.TrayOpen)
+ if(Cur_CDIF && !TrayOpen)
   Cur_CDIF->ReadTOC(&toc);
 
  CurrentPhase = PHASE_BUS_FREE;
@@ -257,7 +256,7 @@ static void GenSubQFromSubPW(void)
 
  if(!subq_check_checksum(SubQBuf))
  {
-  SCSIDBG("SubQ checksum error!");
+  //SCSIDBG("SubQ checksum error!");
  }
  else
  {
@@ -396,14 +395,14 @@ static void DoSimpleDataIn(const uint8 *data_in, uint32 len)
  ChangePhase(PHASE_DATA_IN);
 }
 
-void PCECD_Drive_SetDisc(bool tray_open, CDIF *cdif, bool no_emu_side_effects)
+void PCECD_Drive_SetDisc(bool new_tray_open, CDIF *cdif, bool no_emu_side_effects)
 {
  Cur_CDIF = cdif;
 
  // Closing the tray.
- if(cd.TrayOpen && !tray_open)
+ if(TrayOpen && !new_tray_open)
  {
-  cd.TrayOpen = false;
+  TrayOpen = false;
 
   if(cdif)
   {
@@ -417,15 +416,15 @@ void PCECD_Drive_SetDisc(bool tray_open, CDIF *cdif, bool no_emu_side_effects)
    }
   }
  }
- else if(!cd.TrayOpen && tray_open)	// Opening the tray
+ else if(!TrayOpen && new_tray_open)	// Opening the tray
  {
-  cd.TrayOpen = true;
+  TrayOpen = true;
  }
 }
 
 static void CommandCCError(int key, int asc = 0, int ascq = 0)
 {
- printf("CC Error: %02x %02x %02x\n", key, asc, ascq);
+ //printf("CC Error: %02x %02x %02x\n", key, asc, ascq);
 
  cd.key_pending = key;
  cd.asc_pending = asc;
@@ -454,23 +453,9 @@ static bool ValidateRawDataSector(uint8 *data, const uint32 lba)
 
 static void DoREADBase(uint32 sa, uint32 sc)
 {
- int track;
-
  if(sa > toc.tracks[100].lba) // Another one of those off-by-one PC-FX CD bugs.
  {
   CommandCCError(SENSEKEY_ILLEGAL_REQUEST, NSE_END_OF_VOLUME);
-  return;
- }
-
- if((track = toc.FindTrackByLBA(sa)) == 0)
- {
-  CommandCCError(SENSEKEY_ILLEGAL_REQUEST, NSE_END_OF_VOLUME);
-  return;
- }
-
- if(!(toc.tracks[track].control) & 0x4)
- {
-  CommandCCError(SENSEKEY_MEDIUM_ERROR, NSE_NOT_DATA_TRACK);
   return;
  }
 
@@ -481,20 +466,13 @@ static void DoREADBase(uint32 sa, uint32 sc)
   return;
  }
 
- if(SCSILog)
- {
-  int Track = toc.FindTrackByLBA(sa);
-  uint32 Offset = sa - toc.tracks[Track].lba; //Cur_CDIF->GetTrackStartPositionLBA(Track);
-  SCSILog("SCSI", "Read: start=0x%08x(track=%d, offs=0x%08x), cnt=0x%08x", sa, Track, Offset, sc);
- }
-
  SectorAddr = sa;
  SectorCount = sc;
  if(SectorCount)
  {
   Cur_CDIF->HintReadSector(sa);	//, sa + sc);
 
-  CDReadTimer = (uint64)1 * 2048 * System_Clock / CD_DATA_TRANSFER_RATE;
+  CDReadTimer = (uint64)3 * 2048 * System_Clock / CD_DATA_TRANSFER_RATE;
  }
  else
  {
@@ -539,7 +517,7 @@ static void DoREAD6(const uint8 *cdb)
  // TODO: confirm real PCE does this(PC-FX does at least).
  if(!sc)
  {
-  SCSIDBG("READ(6) with count == 0.\n");
+  //SCSIDBG("READ(6) with count == 0.\n");
   sc = 256;
  }
 
@@ -558,7 +536,7 @@ static void DoNEC_PCE_SAPSP(const uint8 *cdb)
  //printf("Set audio start: %02x %02x %02x %02x %02x %02x %02x\n", cdb[9], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6]);
  switch (cdb[9] & 0xc0)
  {
-  default:  SCSIDBG("Unknown SAPSP 9: %02x\n", cdb[9]);
+  default:  //SCSIDBG("Unknown SAPSP 9: %02x\n", cdb[9]);
   case 0x00:
    new_read_sec_start = (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
    break;
@@ -629,7 +607,7 @@ static void DoNEC_PCE_SAPEP(const uint8 *cdb)
 
  switch (cdb[9] & 0xc0)
  {
-  default: SCSIDBG("Unknown SAPEP 9: %02x\n", cdb[9]);
+  default: //SCSIDBG("Unknown SAPEP 9: %02x\n", cdb[9]);
 
   case 0x00:
    new_read_sec_end = (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
@@ -751,8 +729,8 @@ static void DoNEC_PCE_GETDIRINFO(const uint8 *cdb)
 
  switch(cdb[1])
  {
-  default: MDFN_DispMessage("Unknown GETDIRINFO Mode: %02x", cdb[1]);
-	   printf("Unknown GETDIRINFO Mode: %02x", cdb[1]);
+  default: //MDFN_DispMessage("Unknown GETDIRINFO Mode: %02x", cdb[1]);
+	   //printf("Unknown GETDIRINFO Mode: %02x", cdb[1]);
   case 0x0:
    data_in[0] = U8_to_BCD(toc.first_track);
    data_in[1] = U8_to_BCD(toc.last_track);
@@ -916,7 +894,7 @@ static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
      break;
     }
 
-    if(cd.TrayOpen)
+    if(TrayOpen || !Cur_CDIF)
     {
      cdda.CDDAStatus = CDDASTATUS_STOPPED;
 
@@ -969,10 +947,10 @@ static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
      CDStuffSubchannels(0x00, subindex);
    }
 
-   if(sbuf[0] && sbuf[1])
+   if(sbuf)
    {
-    cdda.CDDASynth.offset_inline(synthtime, sample[0] - cdda.last_sample[0], sbuf[0]);
-    cdda.CDDASynth.offset_inline(synthtime, sample[1] - cdda.last_sample[1], sbuf[1]);
+    cdda.CDDASynth.offset_inline(synthtime, sample[0] - cdda.last_sample[0], &sbuf[0]);
+    cdda.CDDASynth.offset_inline(synthtime, sample[1] - cdda.last_sample[1], &sbuf[1]);
    }
 
    cdda.last_sample[0] = sample[0];
@@ -1004,12 +982,16 @@ static INLINE void RunCDRead(uint32 system_timestamp, int32 run_time)
    {
     uint8 tmp_read_buf[2352 + 96];
 
-    if(cd.TrayOpen)
+    if(TrayOpen)
     {
      din.Flush();
      cd.data_transfer_done = FALSE;
 
      CommandCCError(SENSEKEY_NOT_READY, NSE_TRAY_OPEN);
+    }
+    else if(!Cur_CDIF)
+    {
+     CommandCCError(SENSEKEY_NOT_READY, NSE_NO_DISC);
     }
     else if(SectorAddr >= toc.tracks[100].lba)
     {
@@ -1112,37 +1094,17 @@ uint32 PCECD_Drive_Run(pcecd_drive_timestamp_t system_timestamp)
       while(cmd_info_ptr->pretty_name && cmd_info_ptr->cmd != cd.command_buffer[0])
        cmd_info_ptr++;
   
-      if(SCSILog)
-      {
-       char log_buffer[1024];
-       int lb_pos;
-
-       log_buffer[0] = 0;
-       
-       lb_pos = trio_snprintf(log_buffer, 1024, "Command: %02x, %s  ", cd.command_buffer[0], cmd_info_ptr->pretty_name ? cmd_info_ptr->pretty_name : "!!BAD COMMAND!!");
-
-       for(int i = 0; i < RequiredCDBLen[cd.command_buffer[0] >> 4]; i++)
-        lb_pos += trio_snprintf(log_buffer + lb_pos, 1024 - lb_pos, "%02x ", cd.command_buffer[i]);
-
-       SCSILog("SCSI", "%s", log_buffer);
-       //puts(log_buffer);
-      }
-
-
       if(cmd_info_ptr->pretty_name == NULL)	// Command not found!
       {
        CommandCCError(SENSEKEY_ILLEGAL_REQUEST, NSE_INVALID_COMMAND);
 
-       SCSIDBG("Bad Command: %02x\n", cd.command_buffer[0]);
-
-       if(SCSILog)
-        SCSILog("SCSI", "Bad Command: %02x", cd.command_buffer[0]);
+       //SCSIDBG("Bad Command: %02x\n", cd.command_buffer[0]);
 
        cd.command_buffer_pos = 0;
       }
       else
       {
-       if(cd.TrayOpen && (cmd_info_ptr->flags & SCF_REQUIRES_MEDIUM))
+       if(TrayOpen && (cmd_info_ptr->flags & SCF_REQUIRES_MEDIUM))
        {
 	CommandCCError(SENSEKEY_NOT_READY, NSE_TRAY_OPEN);
        }
@@ -1245,11 +1207,6 @@ uint32 PCECD_Drive_Run(pcecd_drive_timestamp_t system_timestamp)
  return(next_time);
 }
 
-void PCECD_Drive_SetLog(void (*logfunc)(const char *, const char *, ...))
-{
- SCSILog = logfunc;
-}
-
 void PCECD_Drive_SetTransferRate(uint32 TransferRate)
 {
  CD_DATA_TRANSFER_RATE = TransferRate;
@@ -1260,15 +1217,13 @@ void PCECD_Drive_Close(void)
 
 }
 
-void PCECD_Drive_Init(int cdda_time_div, Blip_Buffer *leftbuf, Blip_Buffer *rightbuf, uint32 TransferRate, uint32 SystemClock, void (*IRQFunc)(int), void (*SSCFunc)(uint8, int))
+void PCECD_Drive_Init(int cdda_time_div, Blip_Buffer* lrbufs, uint32 TransferRate, uint32 SystemClock, void (*IRQFunc)(int), void (*SSCFunc)(uint8, int))
 {
  Cur_CDIF = NULL;
- cd.TrayOpen = false;
+ TrayOpen = true;
 
  monotonic_timestamp = 0;
  lastts = 0;
-
- SCSILog = NULL;
 
  //din = new SimpleFIFO<uint8>(2048);
 
@@ -1277,8 +1232,7 @@ void PCECD_Drive_Init(int cdda_time_div, Blip_Buffer *leftbuf, Blip_Buffer *righ
  cdda.CDDAVolume = 65536;
  cdda.CDDASynth.volume(1.0f / 65536);
  cdda.CDDASynth.treble_eq(0);
- sbuf[0] = leftbuf;
- sbuf[1] = rightbuf;
+ sbuf = lrbufs;
 
  CD_DATA_TRANSFER_RATE = TransferRate;
  System_Clock = SystemClock;
@@ -1291,7 +1245,7 @@ void PCECD_Drive_SetCDDAVolume(unsigned vol)
  cdda.CDDAVolume = vol;
 }
 
-int PCECD_Drive_StateAction(StateMem * sm, int load, int data_only, const char *sname)
+void PCECD_Drive_StateAction(StateMem * sm, int load, int data_only, const char *sname)
 {
  SFORMAT StateRegs[] = 
  {
@@ -1318,7 +1272,6 @@ int PCECD_Drive_StateAction(StateMem * sm, int load, int data_only, const char *
   SFVARN(din.in_count, "din_in_count"),
   SFVARN(cd.data_transfer_done, "data_transfer_done"),
 
-  SFVARN(cd.TrayOpen, "TrayOpen"),
   SFVARN(cd.DiscChanged, "DiscChanged"),
 
   SFVAR(cdda.PlayMode),
@@ -1347,20 +1300,20 @@ int PCECD_Drive_StateAction(StateMem * sm, int load, int data_only, const char *
   SFEND
  };
 
- int ret = MDFNSS_StateAction(sm, load, data_only, StateRegs, sname);
+ MDFNSS_StateAction(sm, load, data_only, StateRegs, sname);
 
  if(load)
  {
-  din.in_count &= din.size - 1;
+  din.in_count %= din.size + 1;
   din.read_pos &= din.size - 1;
   din.write_pos = (din.read_pos + din.in_count) & (din.size - 1);
 
-  if(cdda.CDDADiv <= 0)
+  if(cdda.CDDADiv < 1)
    cdda.CDDADiv = 1;
+
+  cdda.CDDAReadPos %= 588 + 1;
   //printf("%d %d %d\n", din.in_count, din.read_pos, din.write_pos);
  }
-
- return (ret);
 }
 
 }

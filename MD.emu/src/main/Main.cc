@@ -407,7 +407,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 		FS::current_path(gamePath());
 		try
 		{
-			cd = cdaccess_open_image(fullGamePath(), false);
+			cd = CDAccess_Open(fullGamePath(), false);
 		}
 		catch(std::exception &e)
 		{

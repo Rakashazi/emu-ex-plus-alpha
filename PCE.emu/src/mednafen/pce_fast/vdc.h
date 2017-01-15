@@ -30,13 +30,11 @@ static const int VRAM_BGTileNoMask = VRAM_SizeMask / 16; //0x7FF;
 typedef struct
 {
         uint8 CR;
-
-        bool lc263;    // 263 line count if set, 262 if not
-        bool bw;       // Black and White
         uint8 dot_clock; // Dot Clock(5, 7, or 10 MHz = 0, 1, 2)
+        uint16 ctaddress;	// 9 bits
+
         uint16 color_table[0x200];
         uint32 color_table_cache[0x200];
-        uint16 ctaddress;
         unsigned int slstart, slend;
 } vce_t;
 
@@ -59,6 +57,8 @@ typedef struct
         int32 sat_dma_slcounter;
 
         uint8 select;
+        uint8 status;
+
         uint16 MAWR;    // Memory Address Write Register
         uint16 MARR;    // Memory Address Read Register
 
@@ -84,7 +84,6 @@ typedef struct
 
         uint16 read_buffer;
         uint8 write_latch;
-        uint8 status;
 
         uint16 DMAReadBuffer;
         bool DMAReadWrite;
@@ -94,8 +93,6 @@ typedef struct
 
         uint32 BG_YOffset;
         uint32 BG_XOffset;
-
-
 
         int SAT_Cache_Valid;          // 64 through 128, depending on the number of 32-pixel-wide sprites.
         SAT_Cache_t SAT_Cache[128];     //64];
@@ -108,13 +105,11 @@ typedef struct
         uint8 spr_tile_clean[1024];     //VRAM_Size / 64];
 } vdc_t;
 
-extern vdc_t *vdc_chips[2];
+extern vdc_t vdc_chips[2];
 extern int VDC_TotalChips;
 
-
-void VDC_SetPixelFormat(const MDFN_PixelFormat &format) MDFN_COLD;
-template <class Pixel>
-void VDC_RunFrame(MDFN_Surface *surface, MDFN_Rect *DisplayRect, MDFN_SubSurface *LineWidths, int skip, int &displayRects);
+void VDC_SetPixelFormat(const MDFN_PixelFormat &format, const uint8* CustomColorMap, const uint32 CustomColorMapLen) MDFN_COLD;
+void VDC_RunFrame(EmulateSpecStruct *espec, bool IsHES);
 void VDC_SetLayerEnableMask(uint64 mask);
 
 DECLFW(VDC_Write);
@@ -144,12 +139,12 @@ static INLINE uint8 VDC_Read(unsigned int A, bool SGX)
   }
   if(A & 0x8) return(0);
   chip = (A & 0x10) >> 4;
-  vdc = vdc_chips[chip];
+  vdc = &vdc_chips[chip];
   A &= 0x3;
  }
  else
  {
-  vdc = vdc_chips[0];
+  vdc = &vdc_chips[0];
   A &= 0x3;
  }
 
@@ -161,7 +156,7 @@ static INLINE uint8 VDC_Read(unsigned int A, bool SGX)
 
             if(SGX)
             {
-             if(!(vdc_chips[0]->status & 0x3F) && !(vdc_chips[1]->status & 0x3F))
+             if(!(vdc_chips[0].status & 0x3F) && !(vdc_chips[1].status & 0x3F))
               HuC6280_IRQEnd(MDFN_IQIRQ1);
             }
             else
@@ -201,12 +196,13 @@ static INLINE uint8 VDC_Read(unsigned int A, bool SGX)
 
 DECLFW(VCE_Write);
 
-void VDC_Init(int sgx) MDFN_COLD;
+void VDC_Init(const bool sgx) MDFN_COLD;
+void VDC_SetSettings(const bool nospritelimit, const bool correct_aspect) MDFN_COLD;
 void VDC_Close(void) MDFN_COLD;
 void VDC_Reset(void) MDFN_COLD;
 void VDC_Power(void) MDFN_COLD;
 
-int VDC_StateAction(StateMem *sm, int load, int data_only);
+void VDC_StateAction(StateMem *sm, int load, int data_only);
 
 };
 

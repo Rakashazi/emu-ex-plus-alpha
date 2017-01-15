@@ -1,11 +1,12 @@
 // Blip_Buffer 0.4.1. http://www.slack.net/~ant/
 
-#include <blip/Blip_Buffer.h>
+#include "Blip_Buffer.h"
 
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
@@ -148,6 +149,7 @@ void Blip_Buffer::bass_freq( int freq )
 		while ( (f >>= 1) && --shift ) { }
 	}
 	bass_shift_ = shift;
+	//printf("%d\n", bass_shift_);
 }
 
 void Blip_Buffer::end_frame( blip_time_t t )

@@ -2,7 +2,7 @@
 
 #include <mednafen/mednafen.h>
 #include <mednafen/general.h>
-#include <mednafen/md5.h>
+#include <mednafen/hash/md5.h>
 #include <mednafen/cdrom/cdromif.h>
 #include <mednafen/state-driver.h>
 

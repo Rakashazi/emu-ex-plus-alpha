@@ -1,15 +1,15 @@
-#ifndef _GIT_H
-#define _GIT_H
+#ifndef __MDFN_GIT_H
+#define __MDFN_GIT_H
 
 #include <string>
 
 #include "video.h"
 
-struct FileExtensionSpecStruct
+typedef struct
 {
  const char *extension; // Example ".nes"
  const char *description; // Example "iNES Format ROM Image"
-};
+} FileExtensionSpecStruct;
 
 #include "file.h"
 
@@ -33,10 +33,8 @@ typedef enum
 
 typedef enum
 {
- GMT_CART,	// Self-explanatory!
+ GMT_NONE = 0,
  GMT_ARCADE,	// VS Unisystem, PC-10...
- GMT_DISK,	// Famicom Disk System, mostly
- GMT_CDROM,	// PC Engine CD, PC-FX
  GMT_PLAYER	// Music player(NSF, HES, GSF)
 } GameMediumTypes;
 
@@ -51,68 +49,190 @@ typedef enum
 
 #endif
 
-typedef enum
+enum InputDeviceInputType : uint8
 {
  IDIT_BUTTON,		// 1-bit
  IDIT_BUTTON_CAN_RAPID, // 1-bit
+
+ IDIT_SWITCH,		// ceil(log2(n))-bit
+			// Current switch position(default 0).
+			// Persistent, and bidirectional communication(can be modified driver side, and Mednafen core and emulation module side)
+
+ IDIT_STATUS,		// ceil(log2(n))-bit
+			// emulation module->driver communication
 
  IDIT_X_AXIS,		// (mouse) 16-bits, signed - in-screen/window range: [0.0, nominal_width)
  IDIT_Y_AXIS,		// (mouse) 16-bits, signed - in-screen/window range: [0.0, nominal_height)
 
  IDIT_X_AXIS_REL,  // (mouse) 32-bits, signed
  IDIT_Y_AXIS_REL,  // (mouse) 32-bits, signed
+
  IDIT_BYTE_SPECIAL,
+
+ IDIT_RESET_BUTTON,	// 1-bit
 
  IDIT_BUTTON_ANALOG,	// 16-bits, 0 - 32767
 
  IDIT_RUMBLE,		// 16-bits, lower 8 bits are weak rumble(0-255), next 8 bits are strong rumble(0-255), 0=no rumble, 255=max rumble.  Somewhat subjective, too...
  	// It's a rather special case of game module->driver code communication.
-} InputDeviceInputType;
+};
+
 
 #define IDIT_BUTTON_ANALOG_FLAG_SQLR	0x00000001	// Denotes analog data that may need to be scaled to ensure a more squareish logical range(for emulated
 							// analog sticks).
+struct IDIIS_StatusState
+{
+	const char* ShortName;
+	const char* Name;
+	int32 Color;	// (msb)0RGB(lsb), -1 for unused.
+};
 
-typedef struct
+struct InputDeviceInputInfoStruct
 {
 	const char *SettingName;	// No spaces, shouldbe all a-z0-9 and _. Definitely no ~!
 	const char *Name;
-        const int ConfigOrder;          // Configuration order during in-game config process, -1 for no config.
-	const InputDeviceInputType Type;
+        int ConfigOrder;          // Configuration order during in-game config process, -1 for no config.
+	InputDeviceInputType Type;
 	const char *ExcludeName;	// SettingName of a button that can't be pressed at the same time as this button
 					// due to physical limitations.
 
 	const char *RotateName[3];	// 90, 180, 270
-	unsigned Flags;
-} InputDeviceInputInfoStruct;
+	uint8 Flags;
+	uint8 BitSize;
+	uint16 BitOffset;
 
-typedef struct
+	union
+	{
+         struct
+         {
+	  const char** SwitchPosName;	//
+	  uint32 SwitchNumPos;
+         };
+
+	 struct
+	 {
+	  const IDIIS_StatusState* StatusStates;
+	  uint32 StatusNumStates;
+	 };
+	};
+};
+
+struct IDIISG : public std::vector<InputDeviceInputInfoStruct>
+{
+ IDIISG();
+ IDIISG(std::initializer_list<InputDeviceInputInfoStruct> l);
+ uint32 InputByteSize;
+};
+
+extern const IDIISG IDII_Empty;
+
+#if 0
+template<bool CanRapid = false>
+struct IDIIS_Button : public InputDeviceInputInfoStruct
+{
+	IDIIS_Button(const char* sname, const char* name, int co, const char* en = NULL,
+			const char* Rotate90Name = NULL, const char* Rotate180Name = NULL, const char* Rotate270Name = NULL)
+	{
+	 SettingName = sname;
+	 Name = name;
+	 ConfigOrder = co;
+	 Type = (CanRapid ? IDIT_BUTTON_CAN_RAPID : IDIT_BUTTON);
+
+	 ExcludeName = en;
+	 RotateName[0] = Rotate90Name;
+	 RotateName[1] = Rotate180Name;
+	 RotateName[2] = Rotate270Name;
+	}
+};
+#endif
+
+struct IDIIS_Switch : public InputDeviceInputInfoStruct
+{
+	IDIIS_Switch(const char* sname, const char* name, int co, const char** spn, const uint32 spn_num)
+	{
+	 SettingName = sname;
+	 Name = name;
+	 ConfigOrder = co;
+	 Type = IDIT_SWITCH;
+
+	 ExcludeName = NULL;
+	 RotateName[0] = RotateName[1] = RotateName[2] = NULL;
+	 Flags = 0;
+	 SwitchPosName = spn;
+	 SwitchNumPos = spn_num;
+	}
+};
+
+struct IDIIS_Status : public InputDeviceInputInfoStruct
+{
+	IDIIS_Status(const char* sname, const char* name, const IDIIS_StatusState* ss, const uint32 ss_num)
+	{
+	 SettingName = sname;
+	 Name = name;
+	 ConfigOrder = -1;
+	 Type = IDIT_STATUS;
+
+	 ExcludeName = NULL;
+	 RotateName[0] = RotateName[1] = RotateName[2] = NULL;
+	 Flags = 0;
+	 StatusStates = ss;
+	 StatusNumStates = ss_num;
+	}
+};
+
+struct InputDeviceInfoStruct
 {
  const char *ShortName;
  const char *FullName;
  const char *Description;
 
- //struct InputPortInfoStruct *PortExpanderDeviceInfo;
- const void *PortExpanderDeviceInfo;	// DON'T USE, IT'S NOT IMPLEMENTED PROPERLY CURRENTLY.
- int NumInputs; // Usually just the number of buttons....OR if PortExpanderDeviceInfo is non-NULL, it's the number of input
-		// ports this port expander device provides.
- const InputDeviceInputInfoStruct *IDII;
-} InputDeviceInfoStruct;
+ const IDIISG& IDII;
+};
 
-typedef struct
+struct InputPortInfoStruct
 {
  const char *ShortName;
  const char *FullName;
- int NumTypes; // Number of unique input devices available for this input port
- InputDeviceInfoStruct *DeviceInfo;
+ const std::vector<InputDeviceInfoStruct> &DeviceInfo;
  const char *DefaultDevice;	// Default device for this port.
-} InputPortInfoStruct;
+};
 
-typedef struct
+struct MemoryPatch;
+
+struct CheatFormatStruct
 {
- int InputPorts;
- const InputPortInfoStruct *Types;
-} InputInfoStruct;
+ const char *FullName;		//"Game Genie", "GameShark", "Pro Action Catplay", etc.
+ const char *Description;	// Whatever?
 
+ bool (*DecodeCheat)(const std::string& cheat_string, MemoryPatch* patch);	// *patch should be left as initialized by MemoryPatch::MemoryPatch(), unless this is the
+										// second(or third or whatever) part of a multipart cheat.
+										//
+										// Will throw an std::exception(or derivative) on format error.
+										//
+										// Will return true if this is part of a multipart cheat.
+};
+
+extern const std::vector<CheatFormatStruct> CheatFormatInfo_Empty;
+
+struct CheatInfoStruct
+{
+ //
+ // InstallReadPatch and RemoveReadPatches should be non-NULL(even if only pointing to dummy functions) if the emulator module supports
+ // read-substitution and read-substitution-with-compare style(IE Game Genie-style) cheats.
+ //
+ // See also "SubCheats" global stuff in mempatcher.h.
+ //
+ void (*InstallReadPatch)(uint32 address, uint8 value, int compare); // Compare is >= 0 when utilized.
+ void (*RemoveReadPatches)(void);
+ uint8 (*MemRead)(uint32 addr);
+ void (*MemWrite)(uint32 addr, uint8 val);
+
+ const std::vector<CheatFormatStruct>& CheatFormatInfo;
+
+ bool BigEndian;	// UI default for cheat search and new cheats.
+};
+
+extern const CheatInfoStruct CheatInfo_Empty;
 
 // Miscellaneous system/simple commands(power, reset, dip switch toggles, coin insert, etc.)
 // (for DoSimpleCommand() )
@@ -141,32 +261,6 @@ enum
  MDFN_MSC_TOGGLE_DIP14,
  MDFN_MSC_TOGGLE_DIP15,
 
-
- // n of DISKn translates to is emulation module specific.
- MDFN_MSC_INSERT_DISK0 = 0x20,
- MDFN_MSC_INSERT_DISK1,
- MDFN_MSC_INSERT_DISK2,
- MDFN_MSC_INSERT_DISK3,
- MDFN_MSC_INSERT_DISK4,
- MDFN_MSC_INSERT_DISK5,
- MDFN_MSC_INSERT_DISK6,
- MDFN_MSC_INSERT_DISK7,
- MDFN_MSC_INSERT_DISK8,
- MDFN_MSC_INSERT_DISK9,
- MDFN_MSC_INSERT_DISK10,
- MDFN_MSC_INSERT_DISK11,
- MDFN_MSC_INSERT_DISK12,
- MDFN_MSC_INSERT_DISK13,
- MDFN_MSC_INSERT_DISK14,
- MDFN_MSC_INSERT_DISK15,
-
- MDFN_MSC_INSERT_DISK	= 0x30,
- MDFN_MSC_EJECT_DISK 	= 0x31,
-
- // This command should select the next disk or disk side in the set and use MDFN_DispMessage() to show which disk is selected.
- // (If it's only allowed while a disk is ejected, or not, is emulation module specific.
- MDFN_MSC_SELECT_DISK	= 0x32,
-
  MDFN_MSC__LAST = 0x3F	// WARNING: Increasing(or having the enum'd value of a command greater than this :b) this will necessitate a change to the netplay protocol.
 };
 
@@ -186,13 +280,23 @@ struct EmulateSpecStruct
 	// Set by the system emulation code every frame, to denote the horizontal and vertical offsets of the image, and the size
 	// of the image.  If the emulated system sets the elements of LineWidths, then the width(w) of this structure
 	// is ignored while drawing the image.
-	MDFN_Rect DisplayRect{0};
+	MDFN_Rect DisplayRect{};
 
-	// Pointer to an array of MDFN_Rect, number of elements = fb_height, set by the driver code.  Individual MDFN_Rect structs written
+	// Pointer to an array of int32, number of elements = fb_height, set by the driver code.  Individual elements written
 	// to by system emulation code.  If the emulated system doesn't support multiple screen widths per frame, or if you handle
 	// such a situation by outputting at a constant width-per-frame that is the least-common-multiple of the screen widths, then
 	// you can ignore this.  If you do wish to use this, you must set all elements every frame.
-	MDFN_SubSurface *subSurface = nullptr;
+	int32 *LineWidths{};
+
+	// Pointer to an array of uint8, 3 * CustomPaletteEntries.
+	// CustomPalette must be NULL and CustomPaletteEntries mujst be 0 if no custom palette is specified/available;
+	// otherwise, CustomPalette must be non-NULL and CustomPaletteEntries must be equal to a non-zero "num_entries" member of a CustomPalette_Spec
+	// entry of MDFNGI::CPInfo.
+	//
+	// Set and used internally, driver-side code needn't concern itself with this.
+	//
+	uint8 *CustomPalette{};
+	uint32 CustomPaletteNumEntries = 0;
 
 	// TODO
 	//bool *IsFMV;
@@ -271,6 +375,52 @@ typedef enum
 
 class CDIF;
 
+struct RMD_Media
+{
+ std::string Name;
+ unsigned MediaType;	// Index into RMD_Layout::MediaTypes
+ std::vector<std::string> Orientations;	// The vector may be empty.
+};
+
+struct RMD_MediaType
+{
+ std::string Name;
+};
+
+struct RMD_State
+{
+ std::string Name;
+
+ bool MediaPresent;
+ bool MediaUsable;	// Usually the same as MediaPresent.
+ bool MediaCanChange;
+};
+
+struct RMD_Drive
+{
+ std::string Name;
+
+ std::vector<RMD_State> PossibleStates;	// Ideally, only one state will have MediaPresent == true.
+ std::vector<unsigned> CompatibleMedia;	// Indexes into RMD_Layout::MediaTypes
+ unsigned MediaMtoPDelay;		// Recommended minimum delay, in milliseconds, between a MediaPresent == false state and a MediaPresent == true state; to be enforced
+					// by the media changing user interface.
+};
+
+struct RMD_Layout
+{
+ std::vector<RMD_Drive> Drives;
+ std::vector<RMD_MediaType> MediaTypes;
+ std::vector<RMD_Media> Media;
+};
+
+struct CustomPalette_Spec
+{
+ const char* description;
+ const char* name_override;
+
+ unsigned valid_entry_count[32];	// 0-terminated
+};
+
 typedef struct
 {
  /* Private functions to Mednafen.  Do not call directly
@@ -295,18 +445,14 @@ typedef struct
  #else
  void *Debugger;
  #endif
- InputInfoStruct *InputInfo;
+ const std::vector<InputPortInfoStruct> &PortInfo;
 
  //
- // Returns 1 on successful load.
  // throws exception on fatal error.
- //
- //  DEPRECATED: Return 0 on fatal error.
- //  DEPRECATED: Return -1 on unrecognized format.
  //
  // fp's stream position is guaranteed to be 0 when this function is called.
  //
- int (*Load)(MDFNFILE *fp);
+ void (*Load)(MDFNFILE *fp);
 
  //
  // Return true if the file is a recognized type, false if not.
@@ -319,7 +465,11 @@ typedef struct
  // (*CDInterfaces).size() is guaranteed to be >= 1.
  void (*LoadCD)(std::vector<CDIF *> *CDInterfaces);
  bool (*TestMagicCD)(std::vector<CDIF *> *CDInterfaces);
- 
+
+ //
+ // CloseGame() must only be called after a matching Load() or LoadCD() completes successfully.  Calling it before Load*(), or after Load*() throws an exception or
+ // returns error status, may cause undesirable effects such as nonvolatile memory save game file corruption.
+ //
  void (*CloseGame)(void);
 
  void (*SetLayerEnableMask)(uint64 mask);	// Video
@@ -328,26 +478,38 @@ typedef struct
  void (*SetChanEnableMask)(uint64 mask);	// Audio(TODO, placeholder)
  const char *ChanNames;
 
- //
- // InstallReadPatch and RemoveReadPatches should be non-NULL(even if only pointing to dummy functions) if the emulator module supports
- // read-substitution and read-substitution-with-compare style(IE Game Genie-style) cheats.
- //
- // See also "SubCheats" global stuff in mempatcher.h.
- //
- void (*InstallReadPatch)(uint32 address);
- void (*RemoveReadPatches)(void);
- uint8 (*MemRead)(uint32 addr);
+ const CustomPalette_Spec* CPInfo;	// Terminated by a { NULL, NULL } entry.  Effective maximum of 64 possible custom palettes(due to CPInfoActiveBF).
+ uint64 CPInfoActiveBF;			// 1 = 0, 2 = 1, 4 = 2, 8 = 3, etc. (to allow for future expansion for systems that might need
+					// multiple custom palette files, without having to go back and restructure this data).
+
+
+ const CheatInfoStruct& CheatInfo;
 
  bool SaveStateAltersState;	// true for bsnes and some libco-style emulators, false otherwise.
+
  // Main save state routine, called by the save state code in state.cpp.
  // When saving, load is set to 0.  When loading, load is set to the version field of the save state being loaded.
+ //
  // data_only is true when the save state data is temporary, such as being saved into memory for state rewinding.
- int (*StateAction)(StateMem *sm, int load, int data_only);
+ //
+ // IMPORTANT: Game module save state code should avoid dynamically allocating memory and doing other things that can throw exceptions, unless
+ // it's done in a manner that ensures that the variable sanitizing code will run after the call to MDFNSS_StateAction().
+ //
+ void (*StateAction)(StateMem *sm, const unsigned load, const bool data_only);
 
  void (*Emulate)(EmulateSpecStruct *espec);
- void (*SetInput)(int port, const char *type, void *ptr);
+ void (*TransformInput)(void);	// Called before Emulate, and within MDFN_MidSync(), to implement stuff like setting-controlled PC Engine SEL+RUN button exclusion in a way
+				// that won't cause desyncs with movies and netplay.
+
+ void (*SetInput)(unsigned port, const char *type, uint8* data);
+ bool (*SetMedia)(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx);
 
  void (*DoSimpleCommand)(int cmd);
+
+ // Called when netplay starts, or the controllers controlled by local players changes during
+ // an existing netplay session.  Called with ~(uint64)0 when netplay ends.
+ // (For future use in implementing portable console netplay)
+ void (*NPControlNotif)(uint64 c);
 
  const MDFNSetting *Settings;
 
@@ -358,9 +520,9 @@ typedef struct
  #define MDFN_MASTERCLOCK_FIXED(n)	((int64)((double)(n) * (1LL << 32)))
  int64 MasterClock;
 
-  // Nominal frames per second * 65536 * 256, truncated.
-  // May be deprecated in the future due to many systems having slight frame rate programmability.
-  uint32 fps;
+ // Nominal frames per second * 65536 * 256, truncated.
+ // May be deprecated in the future due to many systems having slight frame rate programmability.
+ uint32 fps;
 
  // multires is a hint that, if set, indicates that the system has fairly programmable video modes(particularly, the ability
  // to display multiple horizontal resolutions, such as the PCE, PC-FX, or Genesis).  In practice, it will cause the driver
@@ -392,19 +554,15 @@ typedef struct
 
  int rotated;
 
- uint8 *name;    /* Game name, UTF8 encoding */
+ std::string name;    /* Game name, UTF-8 encoding */
  uint8 MD5[16];
  uint8 GameSetMD5[16];	/* A unique ID for the game set this CD belongs to, only used in PC-FX emulation. */
  bool GameSetMD5Valid; /* True if GameSetMD5 is valid. */
 
-
- int soundrate;  /* For Ogg Vorbis expansion sound wacky support.  0 for default. */
-
  VideoSystems VideoSystem;
- GameMediumTypes GameType;
+ GameMediumTypes GameType;	// Deprecated.
 
- //int DiskLogicalCount;	// A single double-sided disk would be 2 here.
- //const char *DiskNames;	// Null-terminated.
+ RMD_Layout* RMD;
 
  const char *cspecial;  /* Special cart expansion: DIP switches, barcode reader, etc. */
 
@@ -412,5 +570,12 @@ typedef struct
 
  // For mouse relative motion.
  double mouse_sensitivity;
+
+
+ //
+ // For absolute coordinates(IDIT_X_AXIS and IDIT_Y_AXIS), usually mapped to a mouse(hence the naming).
+ //
+ float mouse_scale_x, mouse_scale_y;
+ float mouse_offs_x, mouse_offs_y;
 } MDFNGI;
 #endif

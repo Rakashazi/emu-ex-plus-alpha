@@ -188,12 +188,23 @@ int ValidateRawSector(unsigned char *frame, bool xaMode)
 
   if(!CheckEDC(frame, xaMode))
   {
-   lec_did_sth = simple_lec(frame);
-  }
-  /* Test internal sector checksum again */
+   unsigned char header[4];
 
+   if(xaMode)
+   {
+    memcpy(header, frame + 12, 4);
+    memset(frame + 12, 0, 4);
+   }
+
+   lec_did_sth = simple_lec(frame);
+
+   if(xaMode)
+    memcpy(frame + 12, header, 4);
+  }
+
+  /* Test internal sector checksum again */
   if(!CheckEDC(frame, xaMode))
-  {  
+  {
    /* EDC failure in RAW sector */
    return FALSE;
   }

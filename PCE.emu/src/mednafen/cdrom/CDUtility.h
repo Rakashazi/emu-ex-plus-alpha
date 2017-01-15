@@ -1,7 +1,7 @@
 #ifndef __MDFN_CDROM_CDUTILITY_H
 #define __MDFN_CDROM_CDUTILITY_H
 
-#include <cstring>
+#include "../types.h"
 
 namespace CDUtility
 {
@@ -34,6 +34,7 @@ namespace CDUtility
   uint8 adr;
   uint8 control;
   uint32 lba;
+  bool valid;	// valid/present; oh CD-i...
  };
 
  // SubQ control field flags.
@@ -54,12 +55,12 @@ namespace CDUtility
 
  struct TOC
  {
-  TOC()
+  INLINE TOC()
   {
    Clear();
   }
 
-  void Clear(void)
+  INLINE void Clear(void)
   {
    first_track = last_track = 0;
    disc_type = 0;
@@ -67,63 +68,61 @@ namespace CDUtility
    memset(tracks, 0, sizeof(tracks));	// FIXME if we change TOC_Track to non-POD type.
   }
 
-  int FindTrackByLBA(uint32 LBA)
+  INLINE int FindTrackByLBA(uint32 LBA) const
   {
-   for(int32 track = first_track; track <= (last_track + 1); track++)
+   int32 lvt = 0;
+
+   for(int32 track = 1; track <= 100; track++)
    {
-    if(track == (last_track + 1))
-    {
-     if(LBA < tracks[100].lba)
-      return(track - 1);
-    }
-    else
-    {
-     if(LBA < tracks[track].lba)
-      return(track - 1);
-    }
+    if(!tracks[track].valid)
+     continue;
+
+    if(LBA < tracks[track].lba)
+     break;
+
+    lvt = track;
    }
-   return(0);
+
+   return(lvt);
   }
 
   uint8 first_track;
   uint8 last_track;
   uint8 disc_type;
   TOC_Track tracks[100 + 1];  // [0] is unused, [100] is for the leadout track.
-                              // Also, for convenience, tracks[last_track + 1] will always refer
-                              // to the leadout track(even if last_track < 99, IE the leadout track details are duplicated).
  };
 
  //
  // Address conversion functions.
  //
- static uint32 AMSF_to_ABA(int32 m_a, int32 s_a, int32 f_a)
+ static INLINE uint32 AMSF_to_ABA(int32 m_a, int32 s_a, int32 f_a)
  {
   return(f_a + 75 * s_a + 75 * 60 * m_a);
  }
 
- static void ABA_to_AMSF(uint32 aba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
+ static INLINE void ABA_to_AMSF(uint32 aba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
  {
   *m_a = aba / 75 / 60;
   *s_a = (aba - *m_a * 75 * 60) / 75;
   *f_a = aba - (*m_a * 75 * 60) - (*s_a * 75);
  }
 
- static int32 ABA_to_LBA(uint32 aba)
+ static INLINE int32 ABA_to_LBA(uint32 aba)
  {
   return(aba - 150);
  }
 
- static uint32 LBA_to_ABA(int32 lba)
+ static INLINE uint32 LBA_to_ABA(int32 lba)
  {
   return(lba + 150);
  }
 
- static int32 AMSF_to_LBA(uint8 m_a, uint8 s_a, uint8 f_a)
+ static INLINE int32 AMSF_to_LBA(uint8 m_a, uint8 s_a, uint8 f_a)
  {
   return(ABA_to_LBA(AMSF_to_ABA(m_a, s_a, f_a)));
  }
 
- static void LBA_to_AMSF(int32 lba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
+ static INLINE void LBA_to_AMSF(int32 lba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
  {
   ABA_to_AMSF(LBA_to_ABA(lba), m_a, s_a, f_a);
  }
@@ -131,7 +130,7 @@ namespace CDUtility
  //
  // BCD conversion functions
  //
- static bool BCD_is_valid(uint8 bcd_number)
+ static INLINE bool BCD_is_valid(uint8 bcd_number)
  {
   if((bcd_number & 0xF0) >= 0xA0)
    return(false);
@@ -142,18 +141,18 @@ namespace CDUtility
   return(true);
  }
 
- static uint8 BCD_to_U8(uint8 bcd_number)
+ static INLINE uint8 BCD_to_U8(uint8 bcd_number)
  {
   return( ((bcd_number >> 4) * 10) + (bcd_number & 0x0F) );
  }
 
- static uint8 U8_to_BCD(uint8 num)
+ static INLINE uint8 U8_to_BCD(uint8 num)
  {
   return( ((num / 10) << 4) + (num % 10) );
  }
 
  // should always perform the conversion, even if the bcd number is invalid.
- static bool BCD_to_U8_check(uint8 bcd_number, uint8 *out_number)
+ static INLINE bool BCD_to_U8_check(uint8 bcd_number, uint8 *out_number)
  {
   *out_number = BCD_to_U8(bcd_number);
 
@@ -174,9 +173,19 @@ namespace CDUtility
  void encode_mode2_form2_sector(uint32 aba, uint8 *sector_data);	// 2324+8 bytes of user data at offset 16
 
 
+ // User data area pre-pause(MSF 00:00:00 through 00:01:74), lba -150 through -1
  // out_buf must be able to contain 2352+96 bytes.
- // "mode" is only used if(toc.tracks[100].control & 0x4)
- void synth_leadout_sector_lba(const uint8 mode, const TOC& toc, const int32 lba, uint8* out_buf);
+ // "mode" is not used if the area is to be encoded as audio.
+ // pass 0xFF for "mode" for "don't know", and to make guess based on the TOC.
+ void synth_udapp_sector_lba(uint8 mode, const TOC& toc, const int32 lba, int32 lba_subq_relative_offs, uint8* out_buf);
+ void subpw_synth_udapp_lba(const TOC& toc, const int32 lba, const int32 lba_subq_relative_offs, uint8* SubPWBuf);
+
+ // out_buf must be able to contain 2352+96 bytes.
+ // "mode" is not used if the area is to be encoded as audio.
+ // pass 0xFF for "mode" for "don't know", and to make guess based on the TOC.
+ void synth_leadout_sector_lba(uint8 mode, const TOC& toc, const int32 lba, uint8* out_buf);
+ void subpw_synth_leadout_lba(const TOC& toc, const int32 lba, uint8* SubPWBuf);
+
 
  //
  // User data error detection and correction
@@ -192,6 +201,9 @@ namespace CDUtility
  //  Returns "true" if errors weren't detected, or they were corrected succesfully.
  //  Returns "false" if errors couldn't be corrected.
  //  sector_data should contain 2352 bytes of raw sector data.
+ //
+ //  Note: mode 2 form 1 L-EC data can't correct errors in the 4-byte sector header(address + mode),
+ //  but the error(s) will still be detected by EDC.
  bool edc_lec_check_and_correct(uint8 *sector_data, bool xa);
 
  //

@@ -4,7 +4,7 @@
 #ifndef FIR_RESAMPLER_H
 #define FIR_RESAMPLER_H
 
-#include "blargg_common.h"
+#include "fir_blargg_common.h"
 #include <string.h>
 
 class Fir_Resampler_ {

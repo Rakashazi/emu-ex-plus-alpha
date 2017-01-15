@@ -1,34 +1,27 @@
 #pragma once
 
+#include <features.h>
+
 /* include/config.h.  Generated from config.h.in by configure.  */
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
-#ifdef CONFIG_BASE_PS3
-	/* Define if we are compiling for PPC architectures. */
-	#define ARCH_POWERPC 1
+/* Define if we are compiling for PPC architectures. */
+//#define ARCH_POWERPC 1
 
-	/* Define if we are compiling with AltiVec usage. */
-	#define ARCH_POWERPC_ALTIVEC 1
-#endif
+/* Define if we are compiling with AltiVec usage. */
+//#define ARCH_POWERPC_ALTIVEC 1
 
 #if defined(__x86_64__) || defined(__i386__)
 	/* Define if we are compiling for x86 architectures. */
 	#define ARCH_X86 1
 #endif
 
-#define BLIP_BUFFER_FAST 1
-
-/* Blip Buffer resample ratio accuracy. */
-#define BLIP_BUFFER_ACCURACY 26
-
-/* Blip Buffer maximum quality. */
-#define BLIP_MAX_QUALITY 32
-
-/* Blip Buffer phase bits count. */
-#define BLIP_PHASE_BITS 8
+#if defined(__x86_64__)
+	#define ARCH_X86_64 1
+#endif
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -49,18 +42,14 @@
    */
 #define HAVE_ALLOCA_H 1
 
-#ifndef CONFIG_BASE_PS3
-	/* Define to 1 if you have the `asprintf' function. */
-	#define HAVE_ASPRINTF 1
-#endif
+/* Define to 1 if you have the `asprintf' function. */
+#define HAVE_ASPRINTF 1
 
 /* Define to 1 if the compiler understands __builtin_expect. */
 #define HAVE_BUILTIN_EXPECT 1
 
-#ifndef CONFIG_BASE_PS3
-	/* Define to 1 if you have the `clock_gettime' function. */
-	#define HAVE_CLOCK_GETTIME 1
-#endif
+/* Define to 1 if you have the `clock_gettime' function. */
+#define HAVE_CLOCK_GETTIME 1
 
 /* Define to 1 if you have the `fcntl' function. */
 #define HAVE_FCNTL 1
@@ -81,15 +70,6 @@
    declares uintmax_t. */
 #define HAVE_INTTYPES_H_WITH_UINTMAX 1
 
-#if defined(CONFIG_BASE_PS3)
-	#define CONFIG_SUPPORT_32BPP
-#endif
-
-#ifdef CONFIG_BASE_X11
-	/* Define if we are compiling with libcdio support. */
-	//#define HAVE_LIBCDIO 1
-#endif
-
 /* Define if we are compiling with libsndfile support. */
 #define HAVE_LIBSNDFILE 1
 
@@ -102,10 +82,8 @@
 /* Define to 1 if the system has the type `long long int'. */
 #define HAVE_LONG_LONG_INT 1
 
-#ifndef CONFIG_BASE_PS3
-	/* Define to 1 if you have the `madvise' function. */
-	#define HAVE_MADVISE 1
-#endif
+/* Define to 1 if you have the `madvise' function. */
+#define HAVE_MADVISE 1
 
 /* Define to 1 if you have the `memcmp' function. */
 #define HAVE_MEMCMP 1
@@ -119,10 +97,8 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 
-#ifdef __x86_64__
-	/* Define to 1 if you have the `mempcpy' function. */
-	#define HAVE_MEMPCPY 1
-#endif
+/* Define to 1 if you have the `mempcpy' function. */
+#define HAVE_MEMPCPY 1
 
 /* Define to 1 if you have the `memset' function. */
 #define HAVE_MEMSET 1
@@ -130,13 +106,11 @@
 /* Define to 1 if you have the `mkdir' function. */
 #define HAVE_MKDIR 1
 
-#ifndef CONFIG_BASE_PS3
-	/* Define to 1 if you have a working `mmap' system call. */
-	#define HAVE_MMAP 1
+/* Define to 1 if you have a working `mmap' system call. */
+#define HAVE_MMAP 1
 
-	/* Define to 1 if you have the `munmap' function. */
-	#define HAVE_MUNMAP 1
-#endif
+/* Define to 1 if you have the `munmap' function. */
+#define HAVE_MUNMAP 1
 
 /* Define if your printf() function supports format strings with positions. */
 #define HAVE_POSIX_PRINTF 1
@@ -166,7 +140,7 @@
 /* Define to 1 if you have the `strerror' function. */
 #define HAVE_STRERROR 1
 
-#ifdef __x86_64__
+#if defined __GLIBC__
 	/* Define to 1 if you have the `strerror_r' function. */
 	#define HAVE_STRERROR_R 1
 #endif
@@ -208,16 +182,18 @@
 /* Define to 1 if you have the `_mkdir' function. */
 /* #undef HAVE__MKDIR */
 
-#ifndef CONFIG_BASE_PS3
-	/* Define on little-endian platforms. */
-	#define LSB_FIRST 1
+/* Define on little-endian platforms. */
+#ifdef ARCH_POWERPC
+ #define MSB_FIRST 1
+#else
+ #define LSB_FIRST 1
 #endif
 
 /* Mednafen version definition. */
-#define MEDNAFEN_VERSION "0.9.32.1"
+#define MEDNAFEN_VERSION "0.9.39.2"
 
 /* Mednafen version numeric. */
-#define MEDNAFEN_VERSION_NUMERIC 0x000916
+#define MEDNAFEN_VERSION_NUMERIC 0x00093902
 
 /* Define if config.h is present */
 #define MINILZO_HAVE_CONFIG_H 1
@@ -228,14 +204,9 @@
 /* Define to use fixed-point MPC decoder. */
 #define MPC_FIXED_POINT 1
 
-#ifndef CONFIG_BASE_PS3
+#ifdef LSB_FIRST
 	/* Define on little-endian platforms. */
 	#define MPC_LITTLE_ENDIAN 1
-#endif
-
-#ifdef CONFIG_BASE_PS3
-	/* Define on big-endian platforms. */
-	#define MSB_FIRST 1
 #endif
 
 /* Define if we are compiling with network play code. */
@@ -265,14 +236,11 @@
 /* Defines the filesystem path-separator type. */
 #define PSS_STYLE 1
 
-/* The size of `double', as computed by sizeof. */
-#define SIZEOF_DOUBLE 8
-
 /* The size of `int', as computed by sizeof. */
 #define SIZEOF_INT 4
 
 /* The size of `long', as computed by sizeof. */
-#ifdef __x86_64__
+#if defined __x86_64__ || defined __aarch64__
 	#define SIZEOF_LONG 8
 #else
 	#define SIZEOF_LONG 4
@@ -282,7 +250,7 @@
 #define SIZEOF_LONG_LONG 8
 
 /* The size of `ptrdiff_t', as computed by sizeof. */
-#ifdef __x86_64__
+#if defined __x86_64__ || defined __aarch64__
 	#define SIZEOF_PTRDIFF_T 8
 #else
 	#define SIZEOF_PTRDIFF_T 4
@@ -292,14 +260,14 @@
 #define SIZEOF_SHORT 2
 
 /* The size of `size_t', as computed by sizeof. */
-#ifdef __x86_64__
+#if defined __x86_64__ || defined __aarch64__
 	#define SIZEOF_SIZE_T 8
 #else
 	#define SIZEOF_SIZE_T 4
 #endif
 
 /* The size of `void *', as computed by sizeof. */
-#ifdef __x86_64__
+#if defined __x86_64__ || defined __aarch64__
 	#define SIZEOF_VOID_P 8
 #else
 	#define SIZEOF_VOID_P 4
@@ -380,18 +348,6 @@
 /* Define if we are compiling for Win32. */
 /* #undef WIN32 */
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
-/* #  undef WORDS_BIGENDIAN */
-# endif
-#endif
-
 /* Define to 1 if on MINIX. */
 /* #undef _MINIX */
 
@@ -421,34 +377,3 @@
 /* Define to unsigned long or unsigned long long if <stdint.h> and
    <inttypes.h> don't define. */
 /* #undef uintmax_t */
-
-
-#define __libc_lock_t                   gl_lock_t
-#define __libc_lock_define              gl_lock_define
-#define __libc_lock_define_initialized  gl_lock_define_initialized
-#define __libc_lock_init                gl_lock_init
-#define __libc_lock_lock                gl_lock_lock
-#define __libc_lock_unlock              gl_lock_unlock
-#define __libc_lock_recursive_t                   gl_recursive_lock_t
-#define __libc_lock_define_recursive              gl_recursive_lock_define
-#define __libc_lock_define_initialized_recursive  gl_recursive_lock_define_initialized
-#define __libc_lock_init_recursive                gl_recursive_lock_init
-#define __libc_lock_lock_recursive                gl_recursive_lock_lock
-#define __libc_lock_unlock_recursive              gl_recursive_lock_unlock
-#define glthread_in_use  libintl_thread_in_use
-#define glthread_lock_init     libintl_lock_init
-#define glthread_lock_lock     libintl_lock_lock
-#define glthread_lock_unlock   libintl_lock_unlock
-#define glthread_lock_destroy  libintl_lock_destroy
-#define glthread_rwlock_init     libintl_rwlock_init
-#define glthread_rwlock_rdlock   libintl_rwlock_rdlock
-#define glthread_rwlock_wrlock   libintl_rwlock_wrlock
-#define glthread_rwlock_unlock   libintl_rwlock_unlock
-#define glthread_rwlock_destroy  libintl_rwlock_destroy
-#define glthread_recursive_lock_init     libintl_recursive_lock_init
-#define glthread_recursive_lock_lock     libintl_recursive_lock_lock
-#define glthread_recursive_lock_unlock   libintl_recursive_lock_unlock
-#define glthread_recursive_lock_destroy  libintl_recursive_lock_destroy
-#define glthread_once                 libintl_once
-#define glthread_once_call            libintl_once_call
-#define glthread_once_singlethreaded  libintl_once_singlethreaded

@@ -1,32 +1,32 @@
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* surface.h:
+**  Copyright (C) 2009-2016 Mednafen Team
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
 #ifndef __MDFN_SURFACE_H
 #define __MDFN_SURFACE_H
 
-#include "../types.h"
+#include <mednafen/types.h>
 
-typedef struct
+struct MDFN_Rect
 {
  int32 x, y, w, h;
-} MDFN_Rect;
-
-struct MDFN_SubSurface
-{
- constexpr MDFN_SubSurface() {}
- constexpr MDFN_SubSurface(int32 w, int32 h):
-  w(w), h(h)
-  {}
- int32 w = 0, h = 0;
-};
-
-struct MDFN_FrameInfo
-{
-	constexpr MDFN_FrameInfo() {}
-	constexpr MDFN_FrameInfo(MDFN_Rect displayRect, MDFN_SubSurface *subSurface, int subSurfaces):
-	 displayRect(displayRect),
-	 subSurface(subSurface), subSurfaces(subSurfaces)
-	 {}
-	MDFN_Rect displayRect {0};
-	MDFN_SubSurface *subSurface = nullptr;
-	int subSurfaces = 0;
 };
 
 enum
@@ -36,62 +36,48 @@ enum
  //MDFN_COLORSPACE_YUV = 2, // TODO, maybe.
 };
 
-#define MDFN_PIXELFORMAT_SINGLE_BPP 16
+struct MDFN_PaletteEntry
+{
+ uint8 r, g, b;
+};
 
 class MDFN_PixelFormat
 {
  public:
 
- constexpr MDFN_PixelFormat() {}
- MDFN_PixelFormat(const unsigned int p_colorspace, const uint8 p_rs, const uint8 p_gs, const uint8 p_bs, const uint8 p_as):
-#ifndef MDFN_PIXELFORMAT_SINGLE_BPP
-	 bpp{32},
-#endif
-	 colorspace{p_colorspace},
-	 Rshift{p_rs},
-	 Gshift{p_gs},
-	 Bshift{p_bs},
-	 Ashift{p_as},
-	 Rprec{bpp == 32 ? 8 : 5},
-	 Gprec{bpp == 32 ? 8 : 6},
-	 Bprec{bpp == 32 ? 8 : 5},
-	 Aprec{bpp == 32 ? 8 : 0}
-	 {}
+ MDFN_PixelFormat();
+ MDFN_PixelFormat(const unsigned int p_colorspace, const uint8 p_rs, const uint8 p_gs, const uint8 p_bs, const uint8 p_as);
 
-#ifdef MDFN_PIXELFORMAT_SINGLE_BPP
- static constexpr unsigned int bpp = MDFN_PIXELFORMAT_SINGLE_BPP;
-#else
- unsigned int bpp = 0;	// 32 only for now(16 and 8 wip)
-#endif
- unsigned int colorspace = 0;
+ unsigned int bpp;	// 32 only for now(16 and 8 wip)
+ unsigned int colorspace;
 
  union
  {
-  uint8 Rshift = 0;  // Bit position of the lowest bit of the red component
+  uint8 Rshift;  // Bit position of the lowest bit of the red component
   uint8 Yshift;
  };
 
  union
  {
-  uint8 Gshift = 0;  // [...] green component
+  uint8 Gshift;  // [...] green component
   uint8 Ushift;
   uint8 Cbshift;
  };
 
  union
  {
-  uint8 Bshift = 0;  // [...] blue component
+  uint8 Bshift;  // [...] blue component
   uint8 Vshift;
   uint8 Crshift;
  };
 
- uint8 Ashift = 0;  // [...] alpha component.
+ uint8 Ashift;  // [...] alpha component.
 
  // For 16bpp, WIP
- uint8 Rprec = 0;
- uint8 Gprec = 0;
- uint8 Bprec = 0;
- uint8 Aprec = 0;
+ uint8 Rprec;
+ uint8 Gprec;
+ uint8 Bprec;
+ uint8 Aprec;
 
  // Creates a color value for the surface corresponding to the 8-bit R/G/B/A color passed.
  INLINE uint32 MakeColor(uint8 r, uint8 g, uint8 b, uint8 a = 0) const
@@ -126,6 +112,24 @@ class MDFN_PixelFormat
    else
     return((r << Rshift) | (g << Gshift) | (b << Bshift) | (a << Ashift));
   }
+ }
+
+ INLINE MDFN_PaletteEntry MakePColor(uint8 r, uint8 g, uint8 b) const
+ {
+  MDFN_PaletteEntry ret;
+
+  ret.r = ((r * ((1 << Rprec) - 1) + 127) / 255) << Rshift;
+  ret.g = ((g * ((1 << Gprec) - 1) + 127) / 255) << Gshift;
+  ret.b = ((b * ((1 << Bprec) - 1) + 127) / 255) << Bshift;
+
+  return ret;
+ }
+
+ INLINE void DecodePColor(const MDFN_PaletteEntry& pe, uint8 &r, uint8 &g, uint8 &b) const
+ {
+  r = ((pe.r >> Rshift) & ((1 << Rprec) - 1)) * 255 / ((1 << Rprec) - 1);
+  g = ((pe.g >> Gshift) & ((1 << Gprec) - 1)) * 255 / ((1 << Gprec) - 1);
+  b = ((pe.b >> Bshift) & ((1 << Bprec) - 1)) * 255 / ((1 << Bprec) - 1);
  }
 
  // Gets the R/G/B/A values for the passed 32-bit surface pixel value
@@ -191,11 +195,6 @@ class MDFN_PixelFormat
  }
 }; // MDFN_PixelFormat;
 
-struct MDFN_PaletteEntry
-{
- uint8 r, g, b;
-};
-
 // Supports 32-bit RGBA
 //  16-bit is WIP
 //   8-bit is even WIPier.
@@ -203,45 +202,55 @@ class MDFN_Surface //typedef struct
 {
  public:
 
- constexpr MDFN_Surface() {}
- constexpr MDFN_Surface(void *const p_pixels, const uint32 p_width, const uint32 p_height, const uint32 p_pitchinpix, const MDFN_PixelFormat &nf):
-	pixels(p_pixels),
-	w(p_width),
-	h(p_height),
-	pitchinpix(p_pitchinpix),
-	format(nf)
-  {}
+ MDFN_Surface();
+ MDFN_Surface(void *const p_pixels, const uint32 p_width, const uint32 p_height, const uint32 p_pitchinpix, const MDFN_PixelFormat &nf, const bool alloc_init_pixels = true);
 
- //~MDFN_Surface();
+ ~MDFN_Surface();
 
- static constexpr uint8 *pixels8 = nullptr;
- void *pixels = nullptr;
+ uint8* pixels8;
+ uint16* pixels16;
+ uint32* pixels;
+
+ private:
+ INLINE void pix_(uint8*& z) const { z = pixels8; }
+ INLINE void pix_(uint16*& z) const { z = pixels16; }
+ INLINE void pix_(uint32*& z) const { z = pixels; }
+ public:
 
  template<typename T>
- T* pix(void)
+ INLINE const T* pix(void) const
  {
-	 assert(sizeof(T)*8 == format.bpp);
-   return (T*)pixels;
+  T* ret;
+  pix_(ret);
+  return (const T*)ret;
  }
 
- static constexpr MDFN_PaletteEntry *palette = nullptr;
+ template<typename T>
+ INLINE T* pix(void)
+ {
+  T* ret;
+  pix_(ret);
+  return ret;
+ }
 
- static constexpr bool pixels_is_external = false;
+ MDFN_PaletteEntry *palette;
+
+ bool pixels_is_external;
 
  // w, h, and pitch32 should always be > 0
- int32 w = 0;
- int32 h = 0;
+ int32 w;
+ int32 h;
 
  union
  {
   int32 pitch32; // In pixels, not in bytes.
-  int32 pitchinpix = 0;	// New name, new code should use this.
+  int32 pitchinpix;	// New name, new code should use this.
  };
 
  MDFN_PixelFormat format;
 
- //void Fill(uint8 r, uint8 g, uint8 b, uint8 a);
- //void SetFormat(const MDFN_PixelFormat &new_format, bool convert);
+ void Fill(uint8 r, uint8 g, uint8 b, uint8 a);
+ void SetFormat(const MDFN_PixelFormat &new_format, bool convert);
 
  // Creates a 32-bit value for the surface corresponding to the R/G/B/A color passed.
  INLINE uint32 MakeColor(uint8 r, uint8 g, uint8 b, uint8 a = 0) const
@@ -261,8 +270,8 @@ class MDFN_Surface //typedef struct
 
   DecodeColor(value, r, g, b, dummy_a);
  }
- //private:
- //void Init(void *const p_pixels, const uint32 p_width, const uint32 p_height, const uint32 p_pitchinpix, const MDFN_PixelFormat &nf);
+ private:
+ void Init(void *const p_pixels, const uint32 p_width, const uint32 p_height, const uint32 p_pitchinpix, const MDFN_PixelFormat &nf, const bool alloc_init_pixels);
 };
 
 #endif

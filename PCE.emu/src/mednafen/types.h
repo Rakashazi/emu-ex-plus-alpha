@@ -9,20 +9,10 @@
 #include <assert.h>
 #include <inttypes.h>
 
-#if HAVE_MKDIR
- #if MKDIR_TAKES_ONE_ARG
-  #define MDFN_mkdir(a, b) mkdir(a)
- #else
-  #define MDFN_mkdir(a, b) mkdir(a, b)
- #endif
-#else
- #if HAVE__MKDIR
-  /* Plain Win32 */
-  #define MDFN_mkdir(a, b) _mkdir(a)
- #else
-  #error "Don't know how to create a directory on this system."
- #endif
-#endif
+#include <type_traits>
+#include <initializer_list>
+#include <memory>
+#include <algorithm>
 
 #include <imagine/util/ansiTypes.h>
 #include <imagine/util/builtins.h>
@@ -31,13 +21,36 @@
 #define HAVE_NATIVE64BIT 1
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER)
+ #define HAVE_COMPUTED_GOTO 1
+#endif
 
+/*#ifndef WIN32
+ #if defined(__PIC__) || defined(__pic__) || defined(__PIE__) || defined(__pie__)
+  #if defined(__386__) || defined(__i386__) || defined(__i386) || defined(_M_IX86) || defined(_M_I386) //|| (SIZEOF_VOID_P <= 4)
+   #error "Compiling with position-independent code generation enabled is not recommended, for performance reasons."
+  #else
+   #warning "Compiling with position-independent code generation enabled is not recommended, for performance reasons."
+  #endif
+ #endif
+#endif*/
+
+#ifdef __GNUC__
   #define MDFN_MAKE_GCCV(maj,min,pl) (((maj)*100*100) + ((min) * 100) + (pl))
   #define MDFN_GCC_VERSION	MDFN_MAKE_GCCV(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
 
   #define INLINE inline __attribute__((always_inline))
-  #define NO_INLINE //__attribute__((noinline))
+  #define NO_INLINE
+
+  #if MDFN_GCC_VERSION >= MDFN_MAKE_GCCV(4,5,0)
+   #define NO_CLONE __attribute__((noclone))
+  #else
+   #define NO_CLONE
+  #endif
+
+  #if MDFN_GCC_VERSION < MDFN_MAKE_GCCV(4,8,0)
+   #define alignas(n) __attribute__ ((aligned (n)))	// Kludge for 4.7.x, remove eventually when 4.8+ are not so new.
+  #endif
 
   //
   // Just avoid using fastcall with gcc before 4.1.0, as it(and similar regparm)
@@ -57,8 +70,12 @@
    #define MDFN_FASTCALL
   #endif
 
-  #define MDFN_ALIGN(n)	__attribute__ ((aligned (n)))
-  #define MDFN_FORMATSTR(a,b,c) __attribute__ ((format (a, b, c)));
+  #if !defined(__clang__) //|| ((__clang_major__ * 1000) + __clang_minor__) >= 3005
+   #define MDFN_FORMATSTR(a,b,c) __attribute__ ((format (a, b, c)))
+  #else
+   #define MDFN_FORMATSTR(a,b,c)
+  #endif
+
   #define MDFN_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
   #define MDFN_NOWARN_UNUSED __attribute__((unused))
 
@@ -67,23 +84,27 @@
 
  #if MDFN_GCC_VERSION >= MDFN_MAKE_GCCV(4,3,0)
   #define MDFN_COLD __attribute__((cold))
+  #define MDFN_HOT __attribute__((hot))
  #else
   #define MDFN_COLD
+  #define MDFN_HOT
  #endif
 
- #undef MDFN_MAKE_GCCV
- #undef MDFN_GCC_VERSION
+ #if MDFN_GCC_VERSION >= MDFN_MAKE_GCCV(4,7,0)
+  #define MDFN_ASSUME_ALIGNED(p, align) ((decltype(p))__builtin_assume_aligned((p), (align)))
+ #else
+  #define MDFN_ASSUME_ALIGNED(p, align) (p)
+ #endif
 #elif defined(_MSC_VER)
 
   #pragma message("Compiling with MSVC, untested")
 
   #define INLINE __forceinline
   #define NO_INLINE __declspec(noinline)
+  #define NO_CLONE
 
   #define MDFN_FASTCALL __fastcall
 
-  #define MDFN_ALIGN(n) __declspec(align(n))
-
   #define MDFN_FORMATSTR(a,b,c)
 
   #define MDFN_WARN_UNUSED_RESULT
@@ -94,15 +115,16 @@
   #define MDFN_LIKELY(n) ((n) != 0)
 
   #define MDFN_COLD
+  #define MDFN_HOT
+
+  #define MDFN_ASSUME_ALIGNED(p, align) (p)
 #else
-  #error "Not compiling with GCC nor MSVC"
   #define INLINE inline
   #define NO_INLINE
+  #define NO_CLONE
 
   #define MDFN_FASTCALL
 
-  #define MDFN_ALIGN(n)	// hence the #error.
-
   #define MDFN_FORMATSTR(a,b,c)
 
   #define MDFN_WARN_UNUSED_RESULT
@@ -113,45 +135,10 @@
   #define MDFN_LIKELY(n) ((n) != 0)
 
   #define MDFN_COLD
+  #define MDFN_HOT
+
+  #define MDFN_ASSUME_ALIGNED(p, align) (p)
 #endif
-
-
-typedef struct
-{
- union
- {
-  struct
-  {
-   #ifdef MSB_FIRST
-   uint8   High;
-   uint8   Low;
-   #else
-   uint8   Low;
-   uint8   High;
-   #endif
-  } Union8;
-  uint16 Val16;
- };
-} Uuint16;
-
-typedef struct
-{
- union
- {
-  struct
-  {
-   #ifdef MSB_FIRST
-   Uuint16   High;
-   Uuint16   Low;
-   #else
-   Uuint16   Low;
-   Uuint16   High;
-   #endif
-  } Union16;
-  uint32  Val32;
- };
-} Uuint32;
-
 
 #if PSS_STYLE==2
 
@@ -178,7 +165,6 @@ typedef struct
 typedef uint32   UTF32;  /* at least 32 bits */
 typedef uint16  UTF16;  /* at least 16 bits */
 typedef uint8   UTF8;   /* typically 8 bits */
-typedef unsigned char   Boolean; /* 0 or 1 */
 
 #ifndef FALSE
 #define FALSE 0
@@ -193,6 +179,8 @@ typedef unsigned char   Boolean; /* 0 or 1 */
 
 #if !defined(MSB_FIRST) && !defined(LSB_FIRST)
  #error "Define MSB_FIRST or LSB_FIRST!"
+#elif defined(MSB_FIRST) && defined(LSB_FIRST)
+ #error "Define only one of MSB_FIRST or LSB_FIRST, not both!"
 #endif
 
 #include "error.h"

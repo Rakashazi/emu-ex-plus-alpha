@@ -47,7 +47,7 @@ int ff_get_cpu_flags_x86(void)
     int family=0, model=0;
     union { int i[3]; char c[12]; } vendor;
 
-#if __i386__
+#if ARCH_X86_32
     x86_reg a, c;
     __asm__ volatile (
         /* See if CPUID instruction is supported ... */
@@ -118,13 +118,13 @@ int ff_get_cpu_flags_x86(void)
 
     if(max_ext_level >= 0x80000001){
         cpuid(0x80000001, eax, ebx, ecx, ext_caps);
-        if (ext_caps & (1<<31))
+        if (ext_caps & (1U<<31))
             rval |= CPUTEST_FLAG_3DNOW;
-        if (ext_caps & (1<<30))
+        if (ext_caps & (1U<<30))
             rval |= CPUTEST_FLAG_3DNOWEXT;
-        if (ext_caps & (1<<23))
+        if (ext_caps & (1U<<23))
             rval |= CPUTEST_FLAG_MMX;
-        if (ext_caps & (1<<22))
+        if (ext_caps & (1U<<22))
             rval |= CPUTEST_FLAG_MMX2;
 
         /* Allow for selectively disabling SSE2 functions on AMD processors

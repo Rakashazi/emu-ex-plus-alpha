@@ -18,7 +18,6 @@
 #include "mednafen.h"
 
 #include <string.h>
-#include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -30,279 +29,291 @@
 #include "video.h"
 #include "netplay.h"
 #include "movie.h"
+#include "state.h"
 
-static int current = 0;		// > 0 for recording, < 0 for playback
-static gzFile slots[10]={0};
+#include "FileStream.h"
+
+enum
+{
+ MOVIE_STOPPED = 0,
+ MOVIE_PLAYING = 1,
+ MOVIE_RECORDING = 2
+};
+
+static unsigned ActiveMovieMode = MOVIE_STOPPED;
+static int ActiveSlotNumber;	// Negative for no slot in use/fname specified directly.
+static FileStream* ActiveMovieStream = NULL;
 
 static int CurrentMovie = 0;
 static int RecentlySavedMovie = -1;
 static int MovieStatus[10];
-static StateMem RewindBuffer;
 
-bool MDFNMOV_IsPlaying(void)
+static void HandleMovieError(const std::exception &e)
 {
- if(current < 0) return(1);
- else return(0);
+ if(ActiveMovieStream)
+ {
+  delete ActiveMovieStream;
+  ActiveMovieStream = NULL;
+ }
+
+ if(ActiveSlotNumber >= 0)
+ {
+  MovieStatus[ActiveSlotNumber] = 0;
+
+  if(ActiveMovieMode == MOVIE_PLAYING)
+   MDFN_DispMessage(_("Movie %u playback failed."), ActiveSlotNumber);
+  else
+   MDFN_DispMessage(_("Movie %u recording failed."), ActiveSlotNumber);
+ }
+
+ MDFN_PrintError(_("Movie error: %s"), e.what());
+ ActiveMovieMode = MOVIE_STOPPED;
+ ActiveSlotNumber = -1;
 }
 
-bool MDFNMOV_IsRecording(void)
+bool MDFNMOV_IsPlaying(void) noexcept
 {
- if(current > 0) return(1);
- else return(0);
+ return(ActiveMovieMode == MOVIE_PLAYING);
 }
 
-static void StopRecording(void)
+bool MDFNMOV_IsRecording(void) noexcept
 {
- MDFNMOV_RecordState();
- if(MDFN_StateEvilIsRunning())
- {
-  MDFN_StateEvilFlushMovieLove();
- }
- gzclose(slots[current-1]);
- MovieStatus[current - 1] = 1;
- RecentlySavedMovie = current - 1;
- current=0;
- MDFN_DispMessage(_("Movie recording stopped."));
-
- if(RewindBuffer.data)
- {
-  //puts("Oops");
-  free(RewindBuffer.data);
-  RewindBuffer.data = NULL;
- }
+ return(ActiveMovieMode == MOVIE_RECORDING);
 }
 
 void MDFNI_SaveMovie(char *fname, const MDFN_Surface *surface, const MDFN_Rect *DisplayRect, const int32 *LineWidths)
 {
- gzFile fp;
-
- if(!MDFNGameInfo->StateAction)
-  return;
-
- if(MDFNnetplay && (MDFNGameInfo->SaveStateAltersState == true))
+ try
  {
-  char sb[256];
-  trio_snprintf(sb, sizeof(sb), _("Module %s is not compatible with manual movie save starting/stopping during netplay."), MDFNGameInfo->shortname);
-  MDFND_NetplayText((const uint8*)sb, false);
-  return;
+  if(!MDFNGameInfo->StateAction)
+  {
+   throw MDFN_Error(0, _("Module \"%s\" doesn't support save states."), MDFNGameInfo->shortname);
+  }
+
+  if(MDFNnetplay && (MDFNGameInfo->SaveStateAltersState == true))
+  {
+   throw MDFN_Error(0, _("Module %s is not compatible with manual movie save starting/stopping during netplay."), MDFNGameInfo->shortname);
+  }
+
+  if(ActiveMovieMode == MOVIE_PLAYING)	/* Can't interrupt playback.*/
+  {
+   throw MDFN_Error(0, _("Can't record movie during movie playback."));
+  }
+
+  if(ActiveMovieMode == MOVIE_RECORDING)	/* Stop saving. */
+  {
+   MDFNMOV_Stop();
+   return;  
+  }
+
+  ActiveMovieMode = MOVIE_RECORDING;
+  ActiveSlotNumber = fname ? -1 : CurrentMovie;
+
+  ActiveMovieStream = new FileStream(fname ? std::string(fname) : MDFN_MakeFName(MDFNMKF_MOVIE, CurrentMovie, 0), FileStream::MODE_WRITE);
+
+  //
+  // Save save state first.
+  //
+  MDFNSS_SaveSM(ActiveMovieStream, false, surface, DisplayRect, LineWidths);
+  ActiveMovieStream->flush(); 	    // Flush output so that previews will still work right while
+			    	    // the movie is being recorded.
+
+  MDFN_DispMessage(_("Movie recording started."));
+  MovieStatus[ActiveSlotNumber] = 1;
+  RecentlySavedMovie = ActiveSlotNumber;
  }
-
- if(current < 0)	/* Can't interrupt playback.*/
-  return;
-
- if(current > 0)	/* Stop saving. */
+ catch(std::exception &e)
  {
-  StopRecording();
-  return;  
+  HandleMovieError(e);
  }
-
- memset(&RewindBuffer, 0, sizeof(StateMem));
- RewindBuffer.initial_malloc = 16;
-
- current = CurrentMovie;
-
- if(fname)
-  fp = gzopen(fname, "wb3");
- else
- {
-  fp=gzopen(MDFN_MakeFName(MDFNMKF_MOVIE,CurrentMovie,0).c_str(),"wb3");
- }
-
- if(!fp) return;
-
- MDFNSS_SaveFP(fp, surface, DisplayRect, LineWidths);
- gzseek(fp, 0, SEEK_END);
- gzflush(fp, Z_SYNC_FLUSH); // Flush output so that previews will still work right while
-			    // the movie is being recorded.  Purely cosmetic. :)
- slots[current] = fp;
- current++;
- MDFN_DispMessage(_("Movie recording started."));
 }
 
-static void StopPlayback(void)
+void MDFNMOV_Stop(void) noexcept
 {
- if(RewindBuffer.data)
+ const unsigned PAMM = ActiveMovieMode;
+
+ if(ActiveMovieMode != MOVIE_STOPPED)
  {
-  RewindBuffer.data = NULL;
+  if(ActiveMovieMode == MOVIE_RECORDING)
+  {
+   MDFNMOV_RecordState();
+   //MovieStatus[current - 1] = 1;
+   //RecentlySavedMovie = current - 1;
+  }
+
+  if(ActiveMovieStream)
+  {
+   delete ActiveMovieStream;
+   ActiveMovieStream = NULL;
+  }
+
+  ActiveMovieMode = MOVIE_STOPPED;
+  ActiveSlotNumber = -1;
+
+  if(PAMM == MOVIE_PLAYING)
+   MDFN_DispMessage(_("Movie playback stopped."));
+  else if(PAMM == MOVIE_RECORDING)
+   MDFN_DispMessage(_("Movie recording stopped."));
  }
-
- gzclose(slots[-1 - current]);
- current=0;
- MDFN_DispMessage(_("Movie playback stopped."));
-}
-
-void MDFNMOV_Stop(void)
-{
- if(current < 0) StopPlayback();
- if(current > 0) StopRecording();
 }
 
 void MDFNI_LoadMovie(char *fname)
 {
- gzFile fp;
- //puts("KAO");
-
- if(current > 0)        /* Can't interrupt recording.*/
-  return;
-
- if(MDFNnetplay)	/* Playback is UNPOSSIBLE during netplay. */
+ try
  {
-  MDFN_DispMessage(_("Can't play movies during netplay."));
-  return;
- }
-
- if(current < 0)        /* Stop playback. */
- {
-  StopPlayback();
-  return;
- }
-
- if(fname)
-  fp = gzopen(fname, "rb");
- else
- {
-  fp=gzopen(MDFN_MakeFName(MDFNMKF_MOVIE,CurrentMovie,0).c_str(),"rb");
- }
-
- if(!fp) return;
-
- if(!MDFNSS_LoadFP(fp)) 
- {
-  MDFN_DispMessage(_("Error loading state portion of the movie."));
-  return;
- }
- current = CurrentMovie;
- slots[current] = fp;
-
- current = -1 - current;
- MovieStatus[CurrentMovie] = 1;
-
- MDFN_DispMessage(_("Movie playback started."));
-}
-
-// Donuts are a tasty treat and delicious with powdered sugar.
-void MDFNMOV_AddJoy(void *donutdata, uint32 donutlen)
-{
- gzFile fp;
-
- if(!current) return;	/* Not playback nor recording. */
- if(current < 0)	/* Playback */
- {
-  int t;
-
-  fp = slots[-1 - current];
-
-  while((t = gzgetc(fp)) >= 0 && t)
+  if(!MDFNGameInfo->StateAction)
   {
-   if(t == MDFNNPCMD_LOADSTATE)
-   {
-    uint32 len;
-    StateMem sm;
-    len = gzgetc(fp);
-    len |= gzgetc(fp) << 8;
-    len |= gzgetc(fp) << 16;
-    len |= gzgetc(fp) << 24;
-    if(len >= 5 * 1024 * 1024) // A sanity limit of 5MiB
-    {
-     StopPlayback();
-     return;
-    }
-    memset(&sm, 0, sizeof(StateMem));
-    sm.len = len;
-    sm.data = (uint8 *)malloc(len);
-    if(gzread(fp, sm.data, len) != len)
-    {
-     StopPlayback();
-     return;
-    }
-    if(!MDFNSS_LoadSM(&sm, 0, 0))
-    {
-     StopPlayback();
-     return;
-    }
-   }
-   else
-    MDFN_DoSimpleCommand(t);
-  }
-  if(t < 0)
-  {
-   StopPlayback();
-   return; 
+   throw MDFN_Error(0, _("Module \"%s\" doesn't support save states."), MDFNGameInfo->shortname);
   }
 
-  if(gzread(fp, donutdata, donutlen) != donutlen)
+  if(MDFNnetplay)
   {
-   StopPlayback();
-   return;
+   throw MDFN_Error(0, _("Can't play movies during netplay."));
   }
- }
- else			/* Recording */
- {
-  if(MDFN_StateEvilIsRunning())
+
+  if(ActiveMovieMode == MOVIE_RECORDING)	/* Can't interrupt recording. */
   {
-   smem_putc(&RewindBuffer, 0);
-   smem_write(&RewindBuffer, donutdata, donutlen);
+   throw MDFN_Error(0, _("Can't play movie during movie recording."));
   }
+
+  if(ActiveMovieMode == MOVIE_PLAYING)		/* Stop playback. */
+  {
+   MDFNMOV_Stop();
+   return;  
+  }
+
+  ActiveMovieMode = MOVIE_PLAYING;
+
+  if(fname)
+   ActiveSlotNumber = -1;
   else
   {
-   fp = slots[current - 1];
-   gzputc(fp, 0);
-   gzwrite(fp, donutdata, donutlen);
+   ActiveSlotNumber = CurrentMovie;
+   MovieStatus[CurrentMovie] = 1;
+  }
+
+  ActiveMovieStream = new FileStream(fname ? std::string(fname) : MDFN_MakeFName(MDFNMKF_MOVIE, CurrentMovie, 0), FileStream::MODE_READ);
+
+  //
+  //
+  //
+  MDFNSS_LoadSM(ActiveMovieStream, false);
+
+  MDFN_DispMessage(_("Movie playback started."));
+ }
+ catch(std::exception &e)
+ {
+  HandleMovieError(e);
+ }
+}
+
+void MDFNMOV_ProcessInput(uint8 *PortData[], uint32 PortLen[], int NumPorts) noexcept
+{
+ try
+ {
+  if(ActiveMovieMode == MOVIE_STOPPED)
+   return;	/* Not playback nor recording. */
+
+  if(ActiveMovieMode == MOVIE_PLAYING)	/* Playback */
+  {
+   int t;
+
+   while((t = ActiveMovieStream->get_char()) >= 0 && t)
+   {
+    if(t == MDFNNPCMD_LOADSTATE)
+     MDFNSS_LoadSM(ActiveMovieStream, false);
+    else if(t == MDFNNPCMD_SET_MEDIA)
+    {
+     uint8 buf[4 * 4];
+     ActiveMovieStream->read(buf, sizeof(buf));
+     MDFN_UntrustedSetMedia(MDFN_de32lsb(&buf[0]), MDFN_de32lsb(&buf[4]), MDFN_de32lsb(&buf[8]), MDFN_de32lsb(&buf[12]));
+    }
+    else
+     MDFN_DoSimpleCommand(t);
+   }
+
+   if(t < 0)	// EOF
+   {
+    MDFNMOV_Stop();
+    return; 
+   }
+
+   for(int p = 0; p < NumPorts; p++)
+   {
+    if(PortData[p])
+     ActiveMovieStream->read(PortData[p], PortLen[p]);
+   }
+  }
+  else			/* Recording */
+  {
+   ActiveMovieStream->put_u8(0);
+
+   for(int p = 0; p < NumPorts; p++)
+   {
+    if(PortData[p])
+     ActiveMovieStream->write(PortData[p], PortLen[p]);
+   }
   }
  }
-}
-
-void MDFNMOV_AddCommand(int cmd)
-{
- if(current <= 0) return;	/* Return if not recording a movie */
-
- if(MDFN_StateEvilIsRunning())
-  smem_putc(&RewindBuffer, 0);
- else
-  gzputc(slots[current - 1], cmd);  
-}
-
-void MDFNMOV_RecordState(void)
-{
- gzFile fp = slots[current - 1];
- StateMem sm;
-
- memset(&sm, 0, sizeof(StateMem));
- MDFNSS_SaveSM(&sm, 0, 0);
-
- if(MDFN_StateEvilIsRunning())
+ catch(std::exception &e)
  {
-  smem_putc(&RewindBuffer, MDFNNPCMD_LOADSTATE);
-  smem_putc(&RewindBuffer, sm.len & 0xFF);
-  smem_putc(&RewindBuffer, (sm.len >> 8) & 0xFF);
-  smem_putc(&RewindBuffer, (sm.len >> 16) & 0xFF);
-  smem_putc(&RewindBuffer, (sm.len >> 24) & 0xFF);
-  smem_write(&RewindBuffer, sm.data, sm.len);
+  HandleMovieError(e);
  }
- else
+}
+
+void MDFNMOV_AddCommand(uint8 cmd, uint32 data_len, uint8* data) noexcept
+{
+ // Return if not recording a movie
+ if(ActiveMovieMode != MOVIE_RECORDING)
+  return;
+
+ try
  {
-  gzputc(fp, MDFNNPCMD_LOADSTATE);
-  gzputc(fp, sm.len & 0xFF);
-  gzputc(fp, (sm.len >> 8) & 0xFF);
-  gzputc(fp, (sm.len >> 16) & 0xFF);
-  gzputc(fp, (sm.len >> 24) & 0xFF);
-  gzwrite(slots[current - 1], sm.data, sm.len);
+  ActiveMovieStream->put_u8(cmd);
+
+  if(data_len > 0)
+   ActiveMovieStream->write(data, data_len);
  }
- free(sm.data);
+ catch(std::exception &e)
+ {
+  HandleMovieError(e);
+ }
 }
 
-void MDFNMOV_ForceRecord(StateMem *sm)
+void MDFNMOV_RecordState(void) noexcept
 {
- //printf("Farced: %d\n", sm->len);
- gzwrite(slots[current - 1], sm->data, sm->len);
+ try
+ {
+  ActiveMovieStream->put_u8(MDFNNPCMD_LOADSTATE);
+  MDFNSS_SaveSM(ActiveMovieStream, false);
+ }
+ catch(std::exception &e)
+ {
+  HandleMovieError(e);
+ }
 }
 
-StateMem MDFNMOV_GrabRewindJoy(void)
+void MDFNMOV_StateAction(StateMem* sm, const unsigned load)
 {
- StateMem ret = RewindBuffer;
- memset(&RewindBuffer, 0, sizeof(StateMem));
- RewindBuffer.initial_malloc = 16;
- return(ret);
+ if(!ActiveMovieStream)
+  return;
+
+ uint64 fpos = ActiveMovieStream->tell();
+ SFORMAT StateRegs[] =
+ {
+  SFVAR(fpos),
+  SFEND
+ };
+
+ MDFNSS_StateAction(sm, load, true, StateRegs, "MEDNAFEN_MOVIE");
+
+ if(load)
+ {
+  ActiveMovieStream->seek(fpos, SEEK_SET);
+
+  if(ActiveMovieMode == MOVIE_RECORDING)
+   ActiveMovieStream->truncate(fpos);
+ }
 }
 
 void MDFNMOV_CheckMovies(void)
@@ -314,7 +325,7 @@ void MDFNMOV_CheckMovies(void)
          struct stat stat_buf;
 
          MovieStatus[ssel] = 0;
-         if(stat(MDFN_MakeFName(MDFNMKF_MOVIE, ssel, 0).c_str(), &stat_buf) == 0)
+         if(MDFN_stat(MDFN_MakeFName(MDFNMKF_MOVIE, ssel, 0).c_str(), &stat_buf) == 0)
          {
           MovieStatus[ssel] = 1;
           if(stat_buf.st_mtime > last_time)
@@ -340,14 +351,20 @@ void MDFNI_SelectMovie(int w)
  CurrentMovie = w;
  MDFN_ResetMessages();
 
- status = (StateStatusStruct*)MDFN_calloc(1, sizeof(StateStatusStruct), _("Movie status"));
+ status = new StateStatusStruct();
+ memset(status, 0, sizeof(StateStatusStruct));
 
  memcpy(status->status, MovieStatus, 10 * sizeof(int));
  status->current = CurrentMovie;
- status->current_movie = current;
+ status->current_movie = 0;
+ if(ActiveMovieMode == MOVIE_RECORDING)
+  status->current_movie = 1 + ActiveSlotNumber;
+ else if(ActiveMovieMode == MOVIE_PLAYING)
+  status->current_movie = -1 - ActiveSlotNumber;
+
  status->recently_saved = RecentlySavedMovie;
 
- MDFNSS_GetStateInfo(MDFN_MakeFName(MDFNMKF_MOVIE,CurrentMovie,NULL).c_str(), status);
+ MDFNSS_GetStateInfo(MDFN_MakeFName(MDFNMKF_MOVIE, CurrentMovie, NULL), status);
  MDFND_SetMovieStatus(status);
 }
 

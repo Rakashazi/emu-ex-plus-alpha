@@ -1,3 +1,24 @@
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* text.h:
+**  Copyright (C) 2007-2016 Mednafen Team
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
 #ifndef __MDFN_VIDEO_TEXT_H
 #define __MDFN_VIDEO_TEXT_H
 
@@ -5,10 +26,14 @@ enum
 {
  // If the order of these constants is changed, you must also update the array of FontDescriptor
  // in text.cpp.
- MDFN_FONT_9x18_18x18 = 0,
  MDFN_FONT_5x7,
- MDFN_FONT_4x5,
+ MDFN_FONT_6x9,
+
+// MDFN_FONT_6x10,
+
+ MDFN_FONT_6x12,
  MDFN_FONT_6x13_12x13,
+ MDFN_FONT_9x18_18x18,
 
  #ifdef WANT_INTERNAL_CJK
  MDFN_FONT_12x13,
@@ -18,16 +43,25 @@ enum
  _MDFN_FONT_COUNT
 };
 
-uint32 GetFontHeight(unsigned which_font);
+uint32 GetFontHeight(const unsigned fontid);
 
-uint32 GetTextPixLength(const UTF8 *msg, uint32 which_font = MDFN_FONT_9x18_18x18);
-uint32 GetTextPixLength(const UTF32 *msg, uint32 which_font = MDFN_FONT_9x18_18x18);
+uint32 GetTextPixLength(const char* text, uint32 fontid = MDFN_FONT_9x18_18x18);
+uint32 GetTextPixLength(const UTF32* text, uint32 fontid = MDFN_FONT_9x18_18x18);
 
-uint32 DrawTextTrans(uint32 *dest, int pitch, uint32 width, const UTF8 *textmsg, uint32 fgcolor, int centered, uint32 which_font = MDFN_FONT_9x18_18x18);
-uint32 DrawTextTrans(uint32 *dest, int pitch, uint32 width, const UTF32 *textmsg, uint32 fgcolor, int centered, uint32 which_font = MDFN_FONT_9x18_18x18);
+uint32 DrawText(MDFN_Surface* surf, int32 x, int32 y, const char* text, uint32 color, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
+uint32 DrawText(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const char* text, uint32 color, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
+uint32 DrawTextShadow(MDFN_Surface* surf, int32 x, int32 y, const char* text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
+uint32 DrawTextShadow(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const char* text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
 
+uint32 DrawText(MDFN_Surface* surf, int32 x, int32 y, const uint32* text, uint32 color, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
+uint32 DrawText(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const uint32* text, uint32 color, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
+uint32 DrawTextShadow(MDFN_Surface* surf, int32 x, int32 y, const uint32* text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
+uint32 DrawTextShadow(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const uint32* text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0);
 
-uint32 DrawTextTransShadow(uint32 *dest, int pitch, uint32 width, const UTF8 *textmsg, uint32 fgcolor, uint32 shadcolor,int centered, uint32 which_font = MDFN_FONT_9x18_18x18);
-uint32 DrawTextTransShadow(uint32 *dest, int pitch, uint32 width, const std::string &textmsg, uint32 fgcolor, uint32 shadcolor,int centered, uint32 which_font = MDFN_FONT_9x18_18x18);
+INLINE uint32 DrawText(MDFN_Surface* surf, int32 x, int32 y, const std::string& text, uint32 color, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0) { return DrawText(surf, x, y, text.c_str(), color, fontid, hcenterw); }
+INLINE uint32 DrawText(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const std::string& text, uint32 color, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0) { return DrawText(surf, crect, x, y, text.c_str(), color, fontid, hcenterw); }
+INLINE uint32 DrawTextShadow(MDFN_Surface* surf, int32 x, int32 y, const std::string& text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0) { return DrawTextShadow(surf, x, y, text.c_str(), color, shadcolor, fontid, hcenterw); }
+INLINE uint32 DrawTextShadow(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const std::string& text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0) { return DrawTextShadow(surf, crect, x, y, text.c_str(), color, shadcolor, fontid, hcenterw); }
+
 
 #endif

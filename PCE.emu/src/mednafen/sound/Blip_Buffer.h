@@ -2,7 +2,7 @@
 // Various changes and hacks for use in Mednafen.
 
 #ifdef __GNUC__
- #define blip_inline inline //__attribute__((always_inline))
+ #define blip_inline inline __attribute__((always_inline))
 #else
  #define blip_inline inline
 #endif
@@ -131,22 +131,25 @@ private:
 	#include <mednafen-config.h>
 #endif
 
+#define BLIP_BUFFER_ACCURACY 32
+#define BLIP_PHASE_BITS 8
+
 // Number of bits in resample ratio fraction. Higher values give a more accurate ratio
 // but reduce maximum buffer size.
-#ifndef BLIP_BUFFER_ACCURACY
-	#define BLIP_BUFFER_ACCURACY 16
-#endif
+//#ifndef BLIP_BUFFER_ACCURACY
+//	#define BLIP_BUFFER_ACCURACY 16
+//#endif
 
 // Number bits in phase offset. Fewer than 6 bits (64 phase offsets) results in
 // noticeable broadband noise when synthesizing high frequency square waves.
 // Affects size of Blip_Synth objects since they store the waveform directly.
-#ifndef BLIP_PHASE_BITS
-	#if BLIP_BUFFER_FAST
-		#define BLIP_PHASE_BITS 8
-	#else
-		#define BLIP_PHASE_BITS 6
-	#endif
-#endif
+//#ifndef BLIP_PHASE_BITS
+//	#if BLIP_BUFFER_FAST
+//		#define BLIP_PHASE_BITS 8
+//	#else
+//		#define BLIP_PHASE_BITS 6
+//	#endif
+//#endif
 
 	// Internal
 	typedef blip_u64 blip_resampled_time_t;

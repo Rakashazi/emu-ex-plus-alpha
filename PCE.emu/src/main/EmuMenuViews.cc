@@ -7,12 +7,12 @@ class EmuInputOptionView : public TableView
 	BoolMenuItem sixButtonPad
 	{
 		"6-button Gamepad",
-		PCE_Fast::AVPad6Enabled[0],
+		useSixButtonPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
-			PCE_Fast::AVPad6Enabled[0] = on;
-			PCE_Fast::AVPad6Enabled[1] = on;
+			useSixButtonPad = on;
+			EmuSystem::clearInputBuffers();
 			#ifdef CONFIG_VCONTROLS_GAMEPAD
 			vController.gp.activeFaceBtns = on ? 6 : 2;
 			EmuControls::setupVControllerVars();

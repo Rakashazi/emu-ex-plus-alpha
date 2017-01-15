@@ -64,8 +64,8 @@ GaloisTables* CreateGaloisTables(int32 gf_generator)
 
    if(b!=1) 
    {
-  	 //MDFN_PrintError("Failed to create the Galois field log tables!\n");
-    abort();
+    printf("Failed to create the Galois field log tables!\n");
+    exit(1);
    }
 
    /* we're even closed using infinity (makes things easier) */

@@ -21,10 +21,10 @@ void MDFND_NetworkClose(void);
 void MDFND_SendData(const void *data, uint32 len);	// thrown std::exception will be handled
 void MDFND_RecvData(void *data, uint32 len);		// thrown std::exception will be handled
 
-/* Display text received over the network. */
+/* Display netplay-related text. */
 /* NetEcho will be set to TRUE if the displayed text is a network
    echo of what we typed.
 */
-void MDFND_NetplayText(const uint8 *text, bool NetEcho);
+void MDFND_NetplayText(const char* text, bool NetEcho);
 
 int MDFND_NetworkConnect(void);

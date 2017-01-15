@@ -1,87 +1,68 @@
 #ifndef __MDFN_FILE_H
 #define __MDFN_FILE_H
 
+#include <mednafen/Stream.h>
+#include <mednafen/endian.h>
+
+#include <vector>
 #include <string>
 
-class Stream;
-class IO;
-struct FileExtensionSpecStruct;
-
-#define MDFNFILE_EC_NOTFOUND	1
-#define MDFNFILE_EC_OTHER	2
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 class MDFNFILE
 {
 	public:
 
-	MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = nullptr);
-	MDFNFILE(IO &io, const char *path, const char *purpose = nullptr);
+	MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
+	MDFNFILE(std::unique_ptr<Stream> str, const char *path, const char *purpose = nullptr);
 	~MDFNFILE();
 
         void ApplyIPS(Stream *);
 	void Close(void) throw();
 
-	const int64 &size;
-	const uint8 * const &data;
-  const char * const &ext;
-  const char * const &fbase;
+        const std::string &ext;		// For file-type determination.  Leading period has been removed, and A-Z chars have been converted to a-z.
+        const std::string &fbase;	// For region detection heuristics.
 
-	inline int64 Size(void)
+	inline uint64 size(void)
 	{
-	 return(f_size);
+	 return str->size();
 	}
 
-	inline const uint8 *Data(void)
+	INLINE void seek(int64 offset, int whence = SEEK_SET)
 	{
-	 return(f_data);
-	}
-	
-	uint64 fread(void *ptr, size_t size, size_t nmemb);
-	int fseek(int64 offset, int whence);
-
-	inline uint64 ftell(void)
-	{
-	 return(location);
+	 str->seek(offset, whence);
 	}
 
-	inline void rewind(void)
+	INLINE uint64 read(void* ptr, uint64 count, bool error_on_eos = true)
 	{
-	 location = 0;
+	 return str->read(ptr, count, error_on_eos);
 	}
 
-	int read32le(uint32 *Bufo);
-	int read16le(uint16 *Bufo);
-
-	inline int fgetc(void)
+	INLINE uint64 tell(void)
 	{
-	 if(location < f_size)
-	  return f_data[location++];
-
-	 return EOF;
+	 return str->tell();
 	}
 
-	inline int fisarchive(void)
+	INLINE void rewind(void)
 	{
-	 return(0);
+	 str->rewind();
 	}
 
-	char *fgets(char *s, int size);
+	INLINE Stream* stream(void)
+	{
+	 return str.get();
+	}
 
 	private:
 
-  uint8 *f_data{};
-  int64 f_size = 0;
-  char *f_ext{};
-	char *f_fbase{};
+	std::string f_ext;
+	std::string f_fbase;
 
-        int64 location = 0;
-
-	#ifdef HAVE_MMAP
-	bool is_mmap = false;
-	#endif
+	std::unique_ptr<Stream> str;
 
 	void Open(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
-	void MakeMemWrap(void *tz, int type);
 };
 
 class PtrLengthPair
@@ -99,12 +80,12 @@ class PtrLengthPair
 
  } 
 
- inline const void *GetData(void) const
+ INLINE const void *GetData(void) const
  {
   return(data);
  }
 
- inline uint64 GetLength(void) const
+ INLINE uint64 GetLength(void) const
  {
   return(length);
  }
@@ -114,14 +95,20 @@ class PtrLengthPair
  uint64 length;
 };
 
-#include <vector>
+// These functions should be used for data like non-volatile backup memory.
+bool MDFN_DumpToFile(const std::string& path, const void *data, const uint64 length, bool throw_on_error = false);
+bool MDFN_DumpToFile(const std::string& path, const std::vector<PtrLengthPair> &pearpairs, bool throw_on_error = false);
 
-// These functions should be used for data like save states and non-volatile backup memory.
-// Until(if, even) we add LoadFromFile functions, for reading the files these functions generate, just use gzopen(), gzread(), etc.
-// "compress" is set to the zlib compression level.  0 disables compression entirely, and dumps the file without a gzip header or footer.
-// (Note: There is a setting that will force compress to 0 in the internal DumpToFile logic, for hackers who don't want to ungzip save files.)
+void MDFN_BackupSavFile(const uint8 max_backup_count, const char* sav_ext);
 
-bool MDFN_DumpToFile(const char *filename, int compress, const void *data, const uint64 length);
-bool MDFN_DumpToFile(const char *filename, int compress, const std::vector<PtrLengthPair> &pearpairs);
+//
+// Helper function to open a file in read mode, so we can stop gzip-compressing our save-game files and not have to worry so much about games
+// that might write the gzip magic to the beginning of the save game memory area causing a problem.
+//
+std::unique_ptr<Stream> MDFN_AmbigGZOpenHelper(const std::string& path, std::vector<size_t> good_sizes);
 
+void MDFN_mkdir_T(const char* path);
+int MDFN_stat(const char*, struct stat*);
+int MDFN_unlink(const char* path);
+int MDFN_rename(const char* oldpath, const char* newpath);
 #endif

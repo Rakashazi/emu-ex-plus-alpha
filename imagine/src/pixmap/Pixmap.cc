@@ -90,6 +90,16 @@ bool Pixmap::isPadded() const
 	return w() != pitchPixels();
 }
 
+uint Pixmap::paddingPixels() const
+{
+	return pitchPixels() - w();
+}
+
+uint Pixmap::paddingBytes() const
+{
+	return pitchBytes() - format().pixelBytes(w());
+}
+
 void Pixmap::clear(IG::WP pos, IG::WP size)
 {
 	char *destData = pixel(pos);

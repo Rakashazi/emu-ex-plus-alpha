@@ -1,19 +1,23 @@
-/* Mednafen - Multi-system Emulator
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* error.cpp:
+**  Copyright (C) 2007-2016 Mednafen Team
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
 
 #include "mednafen.h"
 #include "error.h"
@@ -21,12 +25,12 @@
 #include <stdarg.h>
 #include <trio/trio.h>
 
-MDFN_Error::MDFN_Error() throw()
+MDFN_Error::MDFN_Error() noexcept
 {
  abort();
 }
 
-MDFN_Error::MDFN_Error(int errno_code_new, const char *format, ...) throw()
+MDFN_Error::MDFN_Error(int errno_code_new, const char *format, ...) noexcept
 {
  errno_code = errno_code_new;
 
@@ -45,7 +49,7 @@ MDFN_Error::MDFN_Error(const ErrnoHolder &enh)
 }
 
 
-MDFN_Error::~MDFN_Error() throw()
+MDFN_Error::~MDFN_Error() noexcept
 {
  if(error_message)
  {
@@ -54,7 +58,7 @@ MDFN_Error::~MDFN_Error() throw()
  }
 }
 
-MDFN_Error::MDFN_Error(const MDFN_Error &ze_error) throw()
+MDFN_Error::MDFN_Error(const MDFN_Error &ze_error) noexcept
 {
  if(ze_error.error_message)
   error_message = strdup(ze_error.error_message);
@@ -64,7 +68,7 @@ MDFN_Error::MDFN_Error(const MDFN_Error &ze_error) throw()
  errno_code = ze_error.errno_code;
 }
 
-MDFN_Error& MDFN_Error::operator=(const MDFN_Error &ze_error) throw()
+MDFN_Error& MDFN_Error::operator=(const MDFN_Error &ze_error) noexcept
 {
  char *new_error_message = ze_error.error_message ? strdup(ze_error.error_message) : NULL;
  int new_errno_code = ze_error.errno_code;
@@ -79,7 +83,7 @@ MDFN_Error& MDFN_Error::operator=(const MDFN_Error &ze_error) throw()
 }
 
 
-const char * MDFN_Error::what(void) const throw()
+const char * MDFN_Error::what(void) const noexcept
 {
  if(!error_message)
   return("Error allocating memory for the error message!");
@@ -87,12 +91,12 @@ const char * MDFN_Error::what(void) const throw()
  return(error_message);
 }
 
-int MDFN_Error::GetErrno(void) const throw()
+int MDFN_Error::GetErrno(void) const noexcept
 {
  return(errno_code);
 }
 
-static const char *srr_wrap(int ret, const char *local_strerror)
+static MDFN_NOWARN_UNUSED const char *srr_wrap(int ret, const char *local_strerror)
 {
  if(ret == -1)
   return("ERROR IN strerror_r()!!!");
@@ -100,7 +104,7 @@ static const char *srr_wrap(int ret, const char *local_strerror)
  return(local_strerror);
 }
 
-static const char *srr_wrap(const char *ret, const char *local_strerror)
+static MDFN_NOWARN_UNUSED const char *srr_wrap(const char *ret, const char *local_strerror)
 {
  if(ret == NULL)
   return("ERROR IN strerror_r()!!!");

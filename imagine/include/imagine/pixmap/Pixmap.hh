@@ -122,6 +122,8 @@ public:
 	uint pitchBytes() const;
 	uint bytes() const;
 	bool isPadded() const;
+	uint paddingPixels() const;
+	uint paddingBytes() const;
 
 protected:
 	void *data{};

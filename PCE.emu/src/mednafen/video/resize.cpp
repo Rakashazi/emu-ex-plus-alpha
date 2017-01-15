@@ -23,7 +23,7 @@
 #include <math.h>
 
 #define INT(x) ((int)(x))
-#define FRACT(x) ((double)(x) - floor((double)x))
+#define FRACT(x) ((x) - floor(x))
 
 #define READ_PIXEL(src_x, src_y, components)	\
 {	\
@@ -54,104 +54,102 @@
 
 bool MDFN_ResizeSurface(const MDFN_Surface *src, const MDFN_Rect *src_rect, const int32 *LineWidths, MDFN_Surface *dest, const MDFN_Rect *dest_rect)
 {
-#ifdef CONFIG_SUPPORT_32BPP
-	 double src_x_inc, src_y_inc;
-	 double src_x, src_y;
-	 uint32 *pixels = src->pixels;
-	 uint32 x_ip_limit, y_ip_limit;
+ double src_x_inc, src_y_inc;
+ double src_x, src_y;
+ uint32 *pixels = src->pixels;
+ uint32 x_ip_limit, y_ip_limit;
 
-	 //printf("%ld, %d %d, %d %d\n", (long)pixels, src_rect->w, dest_rect->w, src_rect->h, dest_rect->h);
+ //printf("%ld, %d %d, %d %d\n", (long)pixels, src_rect->w, dest_rect->w, src_rect->h, dest_rect->h);
 
-	 src_x_inc = (double)src_rect->w / dest_rect->w;
-	 src_y_inc = (double)src_rect->h / dest_rect->h;
+ src_x_inc = (double)src_rect->w / dest_rect->w;
+ src_y_inc = (double)src_rect->h / dest_rect->h;
 
-	 x_ip_limit = src_rect->x + src_rect->w;
-	 y_ip_limit = src_rect->y + src_rect->h;
+ x_ip_limit = src_rect->x + src_rect->w;
+ y_ip_limit = src_rect->y + src_rect->h;
 
-	 src_y = src_rect->y;
+ src_y = src_rect->y;
 
-	 for(int32 y = 0; y < dest_rect->h; y++)
-	 {
-	  uint32 *dest_pix = dest->pixels + dest_rect->x + (dest_rect->y + y) * dest->pitch32;
-	  bool ZeroDimensionSource = false;
+ for(int32 y = 0; y < dest_rect->h; y++)
+ {
+  uint32 *dest_pix = dest->pixels + dest_rect->x + (dest_rect->y + y) * dest->pitch32;
+  bool ZeroDimensionSource = false;
 
-	  if(src_rect->h == 0)
-	  {
-	   ZeroDimensionSource = true;
-	  }
-	  else
-	  {
-	   if(LineWidths)
-	   {
-	    src_x = LineWidths[INT(src_y)].x;
-	    src_x_inc = (double)LineWidths[INT(src_y)].w / dest_rect->w;
-	    x_ip_limit = LineWidths[INT(src_y)].x + LineWidths[INT(src_y)].w;
+  if(src_rect->h == 0)
+  {
+   ZeroDimensionSource = true;
+  }
+  else
+  {
+   src_x = src_rect->x;
 
-	    if(LineWidths[INT(src_y)].w == 0)
-	     ZeroDimensionSource = true;
-	   }
-	   else
-	   {
-	    src_x = src_rect->x;
+   if(LineWidths[0] != ~0)
+   {
+    src_x_inc = (double)LineWidths[INT(src_y)] / dest_rect->w;
+    x_ip_limit = src_rect->x + LineWidths[INT(src_y)];
 
-	    if(src_rect->w == 0)
-	     ZeroDimensionSource = true;
-	   }
-	  }
+    if(LineWidths[INT(src_y)] == 0)
+     ZeroDimensionSource = true;
+   }
+   else
+   {
+    if(src_rect->w == 0)
+     ZeroDimensionSource = true;
+   }
+  }
 
-	  if(ZeroDimensionSource)
-	  {
-	   puts("All Hail Lelouch!");
+  if(ZeroDimensionSource)
+  {
+   puts("All Hail Lelouch!");
 
-	   for(int32 x = 0; x < dest_rect->w; x++)
-	    dest_pix[x] = 0;
-	  }
-	  else for(int32 x = 0; x < dest_rect->w; x++)
-	  {
-	   double components[4] = {0, 0, 0, 0};
-	   double div_fib = 1;
+   for(int32 x = 0; x < dest_rect->w; x++)
+    dest_pix[x] = 0;
+  }
+  else for(int32 x = 0; x < dest_rect->w; x++)
+  {
+   double components[4] = {0, 0, 0, 0};
+   double div_fib = 1;
 
-	   //printf("%d %d, %d %d\n", (int)src_x, (int)src_y, x_ip_limit, y_ip_limit);
+   //printf("%d %d, %d %d\n", (int)src_x, (int)src_y, x_ip_limit, y_ip_limit);
 
-	   READ_PIXEL(src_x, src_y, components);
+   READ_PIXEL(src_x, src_y, components);
 
-	   if(INT(src_x_inc) > 1)
-	   {
-	    for(double subx = 1; subx < (INT(src_x_inc) - 1); subx++)
-	    {
-	     READ_PIXEL(INT(src_x) + subx, INT(src_y), components);
-	     div_fib++;
-	    }
+   if(INT(src_x_inc) > 1)
+   {
+    for(double subx = 1; subx < (INT(src_x_inc) - 1); subx++)
+    {
+     READ_PIXEL(INT(src_x) + subx, INT(src_y), components);
+     div_fib++;
+    }
 
-	    READ_PIXEL(src_x + src_x_inc - 1, src_y, components);
-	    div_fib++;
-	   }
+    READ_PIXEL(src_x + src_x_inc - 1, src_y, components);
+    div_fib++;
+   }
 
-	   if(INT(src_y_inc) > 1)
-	   {
-	    for(double suby = 1; suby < (INT(src_y_inc) - 1); suby++)
-	    {
-	     READ_PIXEL(INT(src_x), INT(src_y) + suby, components);
-	     div_fib++;
-	    }
+   if(INT(src_y_inc) > 1)
+   {
+    for(double suby = 1; suby < (INT(src_y_inc) - 1); suby++)
+    {
+     READ_PIXEL(INT(src_x), INT(src_y) + suby, components);
+     div_fib++;
+    }
 
-	    READ_PIXEL(src_x, src_y + src_y_inc - 1, components);
-	    div_fib++;
-	   }
+    READ_PIXEL(src_x, src_y + src_y_inc - 1, components);
+    div_fib++;
+   }
 
-	   for(unsigned int i = 0; i < 4; i++)
-	   {
-	    components[i] /= div_fib;
-	    if(components[i] < 0) components[i] = 0;
-	    if(components[i] > 255) components[i] = 255;
-	   }
+   for(unsigned int i = 0; i < 4; i++)
+   {
+    components[i] /= div_fib;
+    if(components[i] < 0) components[i] = 0;
+    if(components[i] > 255) components[i] = 255;
+   }
 
-	   dest_pix[x] = ((int)components[0] << 0) | ((int)components[1] << 8) | ((int)components[2] << 16) | ((int)components[3] << 24);
-	   src_x += src_x_inc;
-	  }
-	  src_y += src_y_inc;
+   dest_pix[x] = ((int)components[0] << 0) | ((int)components[1] << 8) | ((int)components[2] << 16) | ((int)components[3] << 24);
+   src_x += src_x_inc;
+  }
+  src_y += src_y_inc;
  }
 
-#endif
+
  return(TRUE);
 }
