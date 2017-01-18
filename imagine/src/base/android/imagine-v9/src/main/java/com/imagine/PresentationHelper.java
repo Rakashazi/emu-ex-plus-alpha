@@ -29,7 +29,7 @@ final class PresentationHelper extends Presentation
 	implements DialogInterface.OnDismissListener, SurfaceHolder.Callback2
 {
 	private static final String logTag = "Presentation";
-	private ContentView contentView;
+	private ContentViewV16Base contentView;
 	private native void onSurfaceCreated(long windowAddr, Surface surface);
 	private native void onSurfaceRedrawNeeded(long windowAddr);
 	private native void onSurfaceDestroyed(long windowAddr);
@@ -38,9 +38,12 @@ final class PresentationHelper extends Presentation
 	{
 		super(context, display);
 		setOnDismissListener(this);
-		contentView = new ContentView(context, windowAddr);
+		if(android.os.Build.VERSION.SDK_INT >= 24)
+			contentView = new ContentViewV24(context, windowAddr);
+		else
+			contentView = new ContentViewV16(context, windowAddr);
 	}
-	
+
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
 		//Log.i(logTag, "onCreate");

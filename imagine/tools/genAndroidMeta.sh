@@ -143,7 +143,7 @@ fi
 
 if [ ! "$targetSDK" ]
 then
-	targetSDK=24
+	targetSDK=25
 fi
 
 if [ ! $versionCode ]

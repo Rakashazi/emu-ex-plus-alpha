@@ -22,14 +22,14 @@ import android.util.Log;
 
 //For API level <= 9, FLAG_LAYOUT_INSET_DECOR will adjust the view rectangle to not overlap the system windows
 // For API level >= 10 and <= 15, use getGlobalVisibleRect since fitSystemWindows isn't called
-final class ContentLegacyView extends View
+final class ContentViewV9 extends View
 {
 	private static final String logTag = "ContentView";
 	private Rect contentRect = new Rect();
 	private Rect globalRect = new Rect(); // preallocate
 	private int windowWidth, windowHeight;
 
-	public ContentLegacyView(Context context)
+	public ContentViewV9(Context context)
 	{
 		super(context);
 	}

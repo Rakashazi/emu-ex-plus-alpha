@@ -45,8 +45,7 @@ static JavaInstMethod<void()> jRecycle{};
 jclass jBaseActivityCls{};
 jobject jBaseActivity{};
 uint appState = APP_PAUSED;
-bool aHasFocus = true;
-static AConfiguration *aConfig{};
+static bool aHasFocus = true;
 static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
 static JavaInstMethod<jobject()> jNewFontRenderer{};
@@ -379,15 +378,9 @@ void setSysUIStyle(uint flags)
 		return;
 	}
 	auto env = jEnv();
-	// Using SYSTEM_UI_FLAG_FULLSCREEN has an odd delay when
-	// combined with SYSTEM_UI_FLAG_HIDE_NAVIGATION, so we'll
-	// set the window flag even on Android 4.1+.
-	// TODO: Re-test on Android versions after 4.4 for any change
-	//if(androidSDK() < 16)
-	{
-		// handle status bar hiding via full-screen window flag
-		setStatusBarHidden(env, flags & SYS_UI_STYLE_HIDE_STATUS);
-	}
+	// always handle status bar hiding via full-screen window flag
+	// even on SDK level >= 11 so our custom view has the correct insets
+	setStatusBarHidden(env, flags & SYS_UI_STYLE_HIDE_STATUS);
 	if(androidSDK() >= 11)
 	{
 		constexpr uint SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
@@ -476,6 +469,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onConfigurationChanged =
 		[](ANativeActivity *activity)
 		{
+			auto aConfig = AConfiguration_new();
+			auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
 			AConfiguration_fromAssetManager(aConfig, activity->assetManager);
 			auto rotation = mainScreen().rotation(activity->env);
 			if(rotation != osRotation)
@@ -580,9 +575,12 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	activityInit(jEnv_, activity->clazz);
 	setNativeActivityCallbacks(activity);
 	Input::init();
-	aConfig = AConfiguration_new();
-	AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-	initConfig(aConfig);
+	{
+		auto aConfig = AConfiguration_new();
+		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
+		AConfiguration_fromAssetManager(aConfig, activity->assetManager);
+		initConfig(aConfig);
+	}
 	onInit(0, nullptr);
 	if(!Window::windows())
 	{

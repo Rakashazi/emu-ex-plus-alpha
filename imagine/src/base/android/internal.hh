@@ -25,7 +25,6 @@ extern JavaInstMethod<void(jint)> jSetWinFormat;
 extern JavaInstMethod<jint()> jWinFormat;
 extern JavaInstMethod<void(jint)> jSetRequestedOrientation;
 extern SurfaceRotation osRotation;
-extern bool aHasFocus;
 extern uint appState;
 extern AInputQueue *inputQueue;
 extern FrameTimer *frameTimer;

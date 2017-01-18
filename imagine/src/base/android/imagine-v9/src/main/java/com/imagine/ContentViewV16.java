@@ -23,24 +23,18 @@ import android.util.Log;
 
 //For API level >= 16, SYSTEM_UI_FLAG_LAYOUT_* always gives us a full screen view rectangle,
 // so use fitSystemWindows to get the area not overlapping the system windows
-final class ContentView extends View
+final class ContentViewV16 extends ContentViewV16Base
 {
-	private static final String logTag = "ContentView";
-	public long windowAddr;
-	private Rect contentRect = new Rect();
-	private Rect newContentRect = new Rect();
-	private int windowWidth, windowHeight;
-
-	public ContentView(Context context)
+	public ContentViewV16(Context context)
 	{
 		super(context);
-		((Activity)context).getWindow().getAttributes().systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+		((Activity)context).getWindow().getAttributes().systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+			| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	}
 	
-	public ContentView(Context context, long windowAddr)
+	public ContentViewV16(Context context, long windowAddr)
 	{
-		super(context);
-		this.windowAddr = windowAddr; 
+		super(context, windowAddr);
 	}
 	
 	@Override protected boolean fitSystemWindows(Rect insets)
@@ -52,12 +46,12 @@ final class ContentView extends View
 		int newWindowHeight = rootView.getHeight();
 		//Log.i(logTag, "system window insets: " + insets.left + "," + insets.top + " " + insets.right + "," + insets.bottom);
 		// adjust insets to become content rect
-		int visFlags = getWindowSystemUiVisibility();
-		boolean applyNavInsets = ((visFlags & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) ? true : false;
 		newContentRect.left = 0;
 		newContentRect.right = getWidth();
 		newContentRect.top = insets.top;
 		newContentRect.bottom = getHeight();
+		int visFlags = getWindowSystemUiVisibility();
+		boolean applyNavInsets = ((visFlags & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) ? true : false;
 		if(applyNavInsets)
 		{
 			newContentRect.left += insets.left;

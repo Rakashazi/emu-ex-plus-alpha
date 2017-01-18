@@ -9,7 +9,7 @@ all : android-apk
 
 android_minSDK ?= 9
 android_baseModuleSDK := 9
-android_targetSDK ?= 23
+android_targetSDK ?= 24
 
 android_metadata_soName ?= main
 android_makefileOpts += android_metadata_soName=$(android_metadata_soName)
