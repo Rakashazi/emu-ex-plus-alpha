@@ -40,7 +40,7 @@ void EmuEditCheatView::renamed(const char *str)
 	syncCheat(str);
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
 	name.t.setString(nameStr);
-	name.compile(projP);
+	name.compile(renderer(), projP);
 	refreshCheatViews();
 }
 
@@ -49,11 +49,11 @@ static bool isValidGGCodeLen(const char *str)
 	return strlen(str) == 6 || strlen(str) == 8;
 }
 
-EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	BaseEditCheatView
 	{
 		"",
-		win,
+		attach,
 		"",
 		[this](const TableView &)
 		{
@@ -98,8 +98,8 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -115,7 +115,7 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 						}
 						string_copy(addrStr, a ? str : "0");
 						syncCheat();
-						addr.compile(projP);
+						addr.compile(renderer(), projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -130,8 +130,8 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -147,7 +147,7 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 						}
 						string_copy(valueStr, a ? str : "0");
 						syncCheat();
-						value.compile(projP);
+						value.compile(renderer(), projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -162,8 +162,8 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 		compStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -186,7 +186,7 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 							compStr[0] = 0;
 						}
 						syncCheat();
-						comp.compile(projP);
+						comp.compile(renderer(), projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -201,8 +201,8 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 		ggCodeStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -216,7 +216,7 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
 						}
 						string_copy(ggCodeStr, str);
 						syncCheat();
-						ggCode.compile(projP);
+						ggCode.compile(renderer(), projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -266,16 +266,16 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(gotCheat ? name : "Corrupt Cheat",
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{window(), c};
+				auto &editCheatView = *new EmuEditCheatView{attachParams(), c};
 				viewStack.pushAndShow(editCheatView, e);
 			});
 	}
 }
 
-EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 2 + cheat.size();
@@ -295,8 +295,8 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 		"Add Game Genie Code",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input Game Genie code", getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input Game Genie code", getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -325,8 +325,8 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
 						view.dismiss();
-						auto &textInputView = *new CollectTextInputView{window()};
-						textInputView.init("Input description", getCollectTextCloseAsset());
+						auto &textInputView = *new CollectTextInputView{attachParams()};
+						textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
 						textInputView.onText() =
 							[](CollectTextInputView &view, const char *str)
 							{
@@ -359,8 +359,8 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 		"Add RAM Patch",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input description", getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 			[](CollectTextInputView &view, const char *str)
 			{
@@ -375,7 +375,7 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 					fceuCheats++;
 					FCEUI_ToggleCheat(fceuCheats-1);
 					logMsg("added new cheat, %d total", fceuCheats);
-					auto &editCheatView = *new EmuEditCheatView{view.window(), fceuCheats-1};
+					auto &editCheatView = *new EmuEditCheatView{view.attachParams(), fceuCheats-1};
 					view.dismiss();
 					refreshCheatViews();
 					viewStack.pushAndShow(editCheatView, {});
@@ -393,7 +393,7 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 	loadCheatItems();
 }
 
-EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 {
 	loadCheatItems();
 }

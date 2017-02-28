@@ -506,6 +506,11 @@ int EmuSystem::loadGameFromFile(GenericIO file, const char *name)
 	return res;
 }
 
+YesNoAlertView *EmuSystem::makeYesNoAlertView(const char *label, const char *choice1, const char *choice2)
+{
+	return new YesNoAlertView{{mainWin.win, emuVideo.r}, label, choice1, choice2};
+}
+
 [[gnu::weak]] void EmuSystem::initOptions() {}
 
 [[gnu::weak]] void EmuSystem::onOptionsLoaded() {}

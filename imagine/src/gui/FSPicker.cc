@@ -20,13 +20,13 @@
 #include <imagine/util/math/int.hh>
 #include <string>
 
-FSPicker::FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face):
-	View{win},
+	View{attach},
 	filter{filter},
-	tbl{win, text},
+	tbl{attach, text},
 	faceRes{face},
-	navV{face, singleDir ? nullptr : backRes, closeRes},
+	navV{attach.renderer, face, singleDir ? nullptr : backRes, closeRes},
 	singleDir{singleDir}
 {
 	msgText = {msgStr.data(), face};
@@ -68,8 +68,8 @@ void FSPicker::place()
 	tableFrame.y2 -= navV.viewRect().ySize();
 	tbl.setViewRect(tableFrame, projP);
 	tbl.place();
-	navV.place(projP);
-	msgText.compile(projP);
+	navV.place(renderer(), projP);
+	msgText.compile(renderer(), projP);
 }
 
 void FSPicker::changeDirByInput(const char *path, bool forcePathChange, Input::Event e)
@@ -142,6 +142,7 @@ void FSPicker::inputEvent(Input::Event e)
 
 void FSPicker::draw()
 {
+	auto &r = renderer();
 	if(dir.size())
 	{
 		tbl.draw();
@@ -149,14 +150,14 @@ void FSPicker::draw()
 	else
 	{
 		using namespace Gfx;
-		setColor(COLOR_WHITE);
-		texAlphaProgram.use(projP.makeTranslate());
+		r.setColor(COLOR_WHITE);
+		r.texAlphaProgram.use(r, projP.makeTranslate());
 		auto textRect = tbl.viewRect();
 		if(IG::isOdd(textRect.ySize()))
 			textRect.y2--;
-		msgText.draw(projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
+		msgText.draw(r, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
 	}
-	navV.draw(window(), projP);
+	navV.draw(r, window(), projP);
 }
 
 void FSPicker::onAddedToController(Input::Event e)

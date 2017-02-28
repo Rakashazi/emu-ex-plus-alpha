@@ -19,10 +19,10 @@
 #include <imagine/util/math/int.hh>
 #include <algorithm>
 
-TextTableView::TextTableView(Base::Window &win, uint itemsHint): TextTableView{"", win, itemsHint} {}
+TextTableView::TextTableView(ViewAttachParams attach, uint itemsHint): TextTableView{"", attach, itemsHint} {}
 
-TextTableView::TextTableView(const char *name, Base::Window &win, uint itemsHint):
-	TableView{name, win, textItem}
+TextTableView::TextTableView(const char *name, ViewAttachParams attach, uint itemsHint):
+	TableView{name, attach, textItem}
 {
 	textItem.reserve(itemsHint);
 }
@@ -57,13 +57,13 @@ void TextTableView::onAddedToController(Input::Event e)
 	}
 }
 
-void TextTableView::drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const
+void TextTableView::drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	if((int)i == activeItem)
-		setColor(0., .8, 1.);
+		r.setColor(0., .8, 1.);
 	else
-		setColor(COLOR_WHITE);
-	item.draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
+		r.setColor(COLOR_WHITE);
+	item.draw(r, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
 }
 

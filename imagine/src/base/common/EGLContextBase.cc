@@ -300,6 +300,11 @@ void EGLContextBase::deinit(EGLDisplay display)
 	}
 }
 
+NativeGLContext GLContext::nativeObject()
+{
+	return context;
+}
+
 // GLDisplay
 
 std::error_code EGLDisplayConnection::initDisplay(EGLDisplay display)

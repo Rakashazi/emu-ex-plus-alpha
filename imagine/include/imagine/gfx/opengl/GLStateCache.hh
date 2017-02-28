@@ -1,8 +1,8 @@
 #pragma once
 
 #include <imagine/config/env.hh>
+#include <imagine/gfx/defs.hh>
 #include <imagine/util/algorithm.h>
-#include "utils.h"
 
 #if !defined CONFIG_GFX_OPENGL_ES || CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 #define HAS_UNPACK_ROW_LENGTH

@@ -24,6 +24,7 @@
 class MsgPopup
 {
 private:
+	Gfx::Renderer *r{};
 	Gfx::Text text{};
 	Gfx::ProjectionPlane projP{};
 	Base::Timer unpostTimer{};
@@ -34,7 +35,7 @@ private:
 
 public:
 	MsgPopup() {}
-	void init();
+	void init(Gfx::Renderer &r);
 	void clear();
 	void place(const Gfx::ProjectionPlane &projP);
 	void unpost();

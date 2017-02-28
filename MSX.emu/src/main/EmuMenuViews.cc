@@ -155,7 +155,7 @@ private:
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			printInstallFirmwareFilesStr(installFirmwareFilesStr);
-			auto &ynAlertView = *new YesNoAlertView{window(), installFirmwareFilesStr};
+			auto &ynAlertView = *new YesNoAlertView{attachParams(), installFirmwareFilesStr};
 			ynAlertView.setOnYes(
 				[](TextMenuItem &, View &view, Input::Event e)
 				{
@@ -189,15 +189,15 @@ private:
 		machineFilePathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			machineFileSelector.init("System/BIOS Path", e);
+			machineFileSelector.init(renderer(), "System/BIOS Path", e);
 			machineFileSelector.onPathChange =
 				[this](const char *newPath)
 				{
 					printMachinePathMenuEntryStr(machineFilePathStr);
-					machineFilePath.compile(projP);
+					machineFilePath.compile(renderer(), projP);
 					machineBasePath = makeMachineBasePath(machineCustomPath);
 					reloadMachineItem();
-					msxMachine.compile(projP);
+					msxMachine.compile(renderer(), projP);
 					if(!strlen(newPath))
 					{
 						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
@@ -208,7 +208,7 @@ private:
 	};
 
 public:
-	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
+	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		reloadMachineItem();
@@ -266,12 +266,12 @@ public:
 	{
 		string_copy(hdName[slot], name);
 		updateHDText(slot);
-		hdSlot[slot].compile(projP);
+		hdSlot[slot].compile(renderer(), projP);
 	}
 
 	void addHDFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false,
+		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
@@ -293,7 +293,7 @@ public:
 			return;
 		if(strlen(hdName[slot].data()))
 		{
-			auto &multiChoiceView = *new TextTableView{"Hard Drive", window(), IG::size(insertEjectDiskMenuStr)};
+			auto &multiChoiceView = *new TextTableView{"Hard Drive", attachParams(), IG::size(insertEjectDiskMenuStr)};
 			multiChoiceView.appendItem(insertEjectDiskMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -337,13 +337,13 @@ public:
 	{
 		string_copy(cartName[slot], name);
 		updateROMText(slot);
-		romSlot[slot].compile(projP);
+		romSlot[slot].compile(renderer(), projP);
 		updateHDStatusFromCartSlot(slot);
 	}
 
 	void addROMFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false,
+		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
@@ -359,7 +359,7 @@ public:
 
 	void onSelectROM(Input::Event e, uint8 slot)
 	{
-		auto &multiChoiceView = *new TextTableView{"ROM Cartridge Slot", window(), 5};
+		auto &multiChoiceView = *new TextTableView{"ROM Cartridge Slot", attachParams(), 5};
 		multiChoiceView.appendItem("Insert File",
 			[this, slot](TextMenuItem &, View &, Input::Event e)
 			{
@@ -420,12 +420,12 @@ public:
 	{
 		string_copy(diskName[slot], name);
 		updateDiskText(slot);
-		diskSlot[slot].compile(projP);
+		diskSlot[slot].compile(renderer(), projP);
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false,
+		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
@@ -444,7 +444,7 @@ public:
 	{
 		if(strlen(diskName[slot].data()))
 		{
-			auto &multiChoiceView = *new TextTableView{"Disk Drive", window(), IG::size(insertEjectDiskMenuStr)};
+			auto &multiChoiceView = *new TextTableView{"Disk Drive", attachParams(), IG::size(insertEjectDiskMenuStr)};
 			multiChoiceView.appendItem(insertEjectDiskMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -477,11 +477,11 @@ public:
 	StaticArrayList<MenuItem*, 9> item{};
 
 public:
-	MsxIOControlView(Base::Window &win):
+	MsxIOControlView(ViewAttachParams attach):
 		TableView
 		{
 			"IO Control",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return item.size();
@@ -527,7 +527,7 @@ private:
 		{
 			if(item.active())
 			{
-				auto &msxIoMenu = *new MsxIOControlView{window()};
+				auto &msxIoMenu = *new MsxIOControlView{attachParams()};
 				viewStack.pushAndShow(msxIoMenu, e);
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
@@ -546,7 +546,7 @@ private:
 	}
 
 public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
 		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -559,15 +559,15 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
+		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
 		default: return nullptr;
 	}
 }

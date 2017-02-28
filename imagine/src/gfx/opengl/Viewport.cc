@@ -20,13 +20,9 @@
 namespace Gfx
 {
 
-static Viewport currViewport;
-static int discardFrameBuffer = 0;
-
-TextureSizeSupport textureSizeSupport;
-
-void setViewport(const Viewport &v)
+void Renderer::setViewport(const Viewport &v)
 {
+	verifyCurrentContext();
 	auto inGLFormat = v.inGLFormat();
 	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
 	assert(inGLFormat.x2 && inGLFormat.y2);
@@ -34,7 +30,7 @@ void setViewport(const Viewport &v)
 	currViewport = v;
 }
 
-const Viewport &viewport()
+const Viewport &Renderer::viewport()
 {
 	return currViewport;
 }

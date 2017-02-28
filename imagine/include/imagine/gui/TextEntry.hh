@@ -29,12 +29,12 @@ public:
 	Gfx::ProjectionPlane projP;
 
 	TextEntry() {}
-	CallResult init(const char *initText, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
+	CallResult init(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);
-	void inputEvent(Input::Event e);
-	void draw();
-	void place();
-	void place(IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
+	void inputEvent(Gfx::Renderer &r, Input::Event e);
+	void draw(Gfx::Renderer &r);
+	void place(Gfx::Renderer &r);
+	void place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
 };
 
 class CollectTextInputView : public View
@@ -55,7 +55,7 @@ public:
 	OnTextDelegate onTextD{};
 	OnTextDelegate &onText() { return onTextD; }
 
-	CollectTextInputView(Base::Window &win): View("Text Entry", win) {}
+	CollectTextInputView(ViewAttachParams attach): View("Text Entry", attach) {}
 	~CollectTextInputView() override;
 	void init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face = &View::defaultFace);
 	void init(const char *msgText, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face = &View::defaultFace)

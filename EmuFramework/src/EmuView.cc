@@ -28,7 +28,7 @@ void EmuView::draw()
 	}
 	if(EmuSystem::isActive() && inputView)
 	{
-		loadTransform(projP.makeTranslate());
+		renderer().loadTransform(projP.makeTranslate());
 		inputView->draw();
 	}
 }

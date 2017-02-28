@@ -19,12 +19,12 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 
-BaseAlertView::BaseAlertView(Base::Window &win, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
-	View{win},
+BaseAlertView::BaseAlertView(ViewAttachParams attach, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+	View{attach},
 	text{label, &View::defaultFace},
 	menu
 	{
-		win,
+		attach,
 		items,
 		item
 	}
@@ -38,7 +38,7 @@ void BaseAlertView::place()
 	using namespace Gfx;
 	int xSize = rect.xSize() * .8;
 	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95_gc;
-	text.compile(projP);
+	text.compile(renderer(), projP);
 
 	int menuYSize = menu.cells() * text.face->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5_gc)));
@@ -71,15 +71,16 @@ void BaseAlertView::inputEvent(Input::Event e)
 void BaseAlertView::draw()
 {
 	using namespace Gfx;
-	setBlendMode(BLEND_MODE_ALPHA);
-	noTexProgram.use(projP.makeTranslate());
-	setColor(.4, .4, .4, .8);
-	GeomRect::draw(labelFrame);
-	setColor(.1, .1, .1, .6);
-	GeomRect::draw(menu.viewRect(), projP);
-	setColor(COLOR_WHITE);
-	texAlphaReplaceProgram.use();
-	text.draw(labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
+	auto &r = renderer();
+	r.setBlendMode(BLEND_MODE_ALPHA);
+	r.noTexProgram.use(r, projP.makeTranslate());
+	r.setColor(.4, .4, .4, .8);
+	GeomRect::draw(r, labelFrame);
+	r.setColor(.1, .1, .1, .6);
+	GeomRect::draw(r, menu.viewRect(), projP);
+	r.setColor(COLOR_WHITE);
+	r.texAlphaReplaceProgram.use(r);
+	text.draw(r, labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
 	menu.draw();
@@ -96,8 +97,8 @@ void BaseAlertView::setLabel(const char *label)
 	text.setString(label);
 }
 
-AlertView::AlertView(Base::Window &win, const char *label, uint menuItems):
-	BaseAlertView{win, label, item},
+AlertView::AlertView(ViewAttachParams attach, const char *label, uint menuItems):
+	BaseAlertView{attach, label, item},
 	item{menuItems}
 {}
 
@@ -108,8 +109,8 @@ void AlertView::setItem(uint idx, const char *name, TextMenuItem::SelectDelegate
 	item[idx].setOnSelect(del);
 }
 
-YesNoAlertView::YesNoAlertView(Base::Window &win, const char *label, const char *choice1, const char *choice2):
-	BaseAlertView(win, label,
+YesNoAlertView::YesNoAlertView(ViewAttachParams attach, const char *label, const char *choice1, const char *choice2):
+	BaseAlertView(attach, label,
 		[](const TableView &)
 		{
 			return 2;

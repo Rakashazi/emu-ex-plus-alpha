@@ -26,7 +26,7 @@ void EmuVideoLayer::init()
 {
 	disp.init({});
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.vidPix.size());
+	vidImgEffect.setImageSize(video.renderer(), video.vidPix.size());
 	#endif
 }
 
@@ -46,7 +46,7 @@ void EmuVideoLayer::resetImage()
 	}
 	compileDefaultPrograms();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.vidPix.size());
+	vidImgEffect.setImageSize(video.renderer(), video.vidPix.size());
 	#endif
 	setLinearFilter(useLinearFilter);
 }
@@ -225,27 +225,28 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
+	auto &r = video.renderer();
 	if(EmuSystem::isStarted())
 	{
 		bool videoActive = true;
 		if(unlikely(!EmuSystem::isActive()))
 		{
-			setColor(.25, .25, .25);
+			r.setColor(.25, .25, .25);
 			videoActive = false;
 		}
 
-		setBlendMode(0);
+		r.setBlendMode(0);
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 		if(vidImgEffect.program())
 		{
-			auto prevViewport = Gfx::viewport();
-			setClipRect(false);
-			setProgram(vidImgEffect.program());
-			vidImgEffect.renderTarget().setCurrent();
-			Gfx::clear();
-			vidImgEffect.drawRenderTarget(video.vidImg);
-			RenderTarget::setDefaultCurrent();
-			Gfx::setViewport(prevViewport);
+			auto prevViewport = r.viewport();
+			r.setClipRect(false);
+			r.setProgram(vidImgEffect.program());
+			r.setRenderTarget(vidImgEffect.renderTarget());
+			r.clear();
+			vidImgEffect.drawRenderTarget(r, video.vidImg);
+			r.setRenderTarget({});
+			r.setViewport(prevViewport);
 			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		else
@@ -254,11 +255,11 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		if(useLinearFilter)
-			Gfx::TextureSampler::bindDefaultNoMipClampSampler();
+			Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
 		else
-			Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler();
-		disp.draw();
-		vidImgOverlay.draw();
+			Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler(r);
+		disp.draw(r);
+		vidImgOverlay.draw(r);
 	}
 }
 
@@ -270,23 +271,21 @@ void EmuVideoLayer::placeOverlay()
 void EmuVideoLayer::placeEffect()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.vidPix.size());
+	vidImgEffect.setImageSize(video.renderer(), video.vidPix.size());
 	#endif
 }
 
 void EmuVideoLayer::compileDefaultPrograms()
 {
-	auto compiled = disp.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
-	compiled |= disp.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
-	if(compiled)
-		Gfx::autoReleaseShaderCompiler();
+	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_REPLACE);
+	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
 void EmuVideoLayer::setEffect(uint effect)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	assert(video.vidImg);
-	vidImgEffect.setEffect(effect, video.isExternalTexture());
+	vidImgEffect.setEffect(video.renderer(), effect, video.isExternalTexture());
 	placeEffect();
 	resetImage();
 	#endif
@@ -296,7 +295,7 @@ void EmuVideoLayer::setLinearFilter(bool on)
 {
 	useLinearFilter = on;
 	if(useLinearFilter)
-		Gfx::TextureSampler::initDefaultNoMipClampSampler();
+		Gfx::TextureSampler::initDefaultNoMipClampSampler(video.renderer());
 	else
-		Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler();
+		Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler(video.renderer());
 }

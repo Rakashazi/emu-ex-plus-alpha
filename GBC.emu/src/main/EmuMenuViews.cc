@@ -18,7 +18,7 @@ class EmuAudioOptionView : public AudioOptionView
 	};
 
 public:
-	EmuAudioOptionView(Base::Window &win): AudioOptionView{win, true}
+	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		logMsg("%d resamplers", (int)ResamplerInfo::num());
@@ -90,7 +90,7 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(Base::Window &win): VideoOptionView{win, true}
+	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&gbPalette);
@@ -112,24 +112,24 @@ class EmuSystemOptionView : public SystemOptionView
 	};
 
 public:
-	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
+	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&reportAsGba);
 	}
 };
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new MenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
-		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(win);
-		case ViewID::LIST_CHEATS: return new EmuCheatsView(win);
+		case ViewID::MAIN_MENU: return new MenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
+		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;
 	}
 }

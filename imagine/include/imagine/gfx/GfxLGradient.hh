@@ -38,9 +38,9 @@ public:
 		g.deinit();
 	}
 
-	void draw()
+	void draw(Renderer &r)
 	{
-		g.draw();
+		g.draw(r);
 	}
 
 	void setColor(ColorComp r, ColorComp g, ColorComp b)

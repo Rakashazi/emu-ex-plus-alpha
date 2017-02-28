@@ -83,4 +83,6 @@ protected:
 	static void setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable win);
 };
 
+using NativeGLContext = EGLContext;
+
 }

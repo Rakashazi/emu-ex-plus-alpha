@@ -56,13 +56,13 @@ ButtonConfigSetView::~ButtonConfigSetView()
 
 void ButtonConfigSetView::place()
 {
-	text.compile(projP);
+	text.compile(renderer(), projP);
 
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
-		unbind.compile(projP);
-		cancel.compile(projP);
+		unbind.compile(renderer(), projP);
+		cancel.compile(renderer(), projP);
 
 		IG::WindowRect btnFrame;
 		btnFrame.setPosRel(viewFrame.pos(LB2DO), IG::makeEvenRoundedUp(projP.projectYSize(unbind.nominalHeight*2)), LB2DO);
@@ -109,10 +109,10 @@ void ButtonConfigSetView::inputEvent(Input::Event e)
 			{
 				popup.clear();
 				auto &rootIMView = this->rootIMView;
-				auto &win = window();
+				auto attach = attachParams();
 				dismiss();
 				viewStack.popTo(rootIMView);
-				auto &imdMenu = *new InputManagerDeviceView{win, rootIMView, inputDevConf[d->idx]};
+				auto &imdMenu = *new InputManagerDeviceView{attach, rootIMView, inputDevConf[d->idx]};
 				imdMenu.setName(rootIMView.inputDevNameStr[d->idx]);
 				rootIMView.pushAndShow(imdMenu, e);
 			}
@@ -132,29 +132,30 @@ void ButtonConfigSetView::inputEvent(Input::Event e)
 void ButtonConfigSetView::draw()
 {
 	using namespace Gfx;
-	setBlendMode(0);
-	noTexProgram.use(projP.makeTranslate());
-	setColor(.4, .4, .4, 1.);
-	GeomRect::draw(viewFrame, projP);
+	auto &r = renderer();
+	r.setBlendMode(0);
+	r.noTexProgram.use(r, projP.makeTranslate());
+	r.setColor(.4, .4, .4, 1.);
+	GeomRect::draw(r, viewFrame, projP);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
-		setColor(.2, .2, .2, 1.);
-		GeomRect::draw(unbindB, projP);
-		GeomRect::draw(cancelB, projP);
+		r.setColor(.2, .2, .2, 1.);
+		GeomRect::draw(r, unbindB, projP);
+		GeomRect::draw(r, cancelB, projP);
 	}
 	#endif
 
-	setColor(COLOR_WHITE);
-	texAlphaProgram.use();
+	r.setColor(COLOR_WHITE);
+	r.texAlphaProgram.use(r);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
-		unbind.draw(projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
-		cancel.draw(projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
+		unbind.draw(r, projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
+		cancel.draw(r, projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
 	}
 	#endif
-	text.draw(0, 0, C2DO, projP);
+	text.draw(r, 0, 0, C2DO, projP);
 }
 
 void ButtonConfigSetView::onAddedToController(Input::Event e)
@@ -171,12 +172,12 @@ void ButtonConfigSetView::onAddedToController(Input::Event e)
 	#endif
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
-	setColor(1., 1., 0.); // yellow
-	DualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
+	r.setColor(1., 1., 0.); // yellow
+	DualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
 }
 
 template <size_t S>
@@ -257,7 +258,7 @@ void ButtonConfigView::onSet(Input::Event e, int keyToSet)
 	keyEntry = e.button;
 	auto &b = btn[keyToSet];
 	b.str = makeKeyNameStr(e.button, devConf->dev->keyName(e.button));
-	b.item.t2.compile(projP);
+	b.item.t2.compile(renderer(), projP);
 	keyMapping.buildAll();
 }
 
@@ -287,11 +288,11 @@ ButtonConfigView::~ButtonConfigView()
 	delete[] btn;
 }
 
-ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMView_, const KeyCategory *cat_, InputDeviceConfig &devConf_):
+ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView_, const KeyCategory *cat_, InputDeviceConfig &devConf_):
 	TableView
 	{
 		cat_->name,
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 1 + cat->keys;
@@ -310,7 +311,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 		"Unbind All",
 		[this](TextMenuItem &t, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window(), "Really unbind all keys in this category?"};
+			auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really unbind all keys in this category?"};
 			ynAlertView.setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
@@ -322,7 +323,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 					iterateTimes(cat->keys, i)
 					{
 						string_copy(btn[i].str, devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
-						btn[i].item.t2.compile(projP);
+						btn[i].item.t2.compile(renderer(), projP);
 					}
 					keyMapping.buildAll();
 				});
@@ -344,7 +345,7 @@ ButtonConfigView::ButtonConfigView(Base::Window &win, InputManagerView &rootIMVi
 			[this, i](DualTextMenuItem &item, View &, Input::Event e)
 			{
 				auto keyToSet = i;
-				auto &btnSetView = *new ButtonConfigSetView{window(), rootIMView};
+				auto &btnSetView = *new ButtonConfigSetView{attachParams(), rootIMView};
 				btnSetView.init(*devConf->dev, btn[keyToSet].item.t.str,
 					[this, keyToSet](Input::Event e)
 					{

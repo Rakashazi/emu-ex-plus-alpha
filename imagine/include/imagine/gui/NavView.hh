@@ -36,9 +36,9 @@ public:
 	void setOnPushRightBtn(OnPushDelegate del);
 	void setOnPushMiddleBtn(OnPushDelegate del);
 	void setTitle(const char *title) { text.setString(title); }
-	virtual void place(const Gfx::ProjectionPlane &projP);
+	virtual void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
 	void inputEvent(Input::Event e);
-	virtual void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) = 0;
+	virtual void draw(Gfx::Renderer &r, const Base::Window &win, const Gfx::ProjectionPlane &projP) = 0;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;
 	IG::WindowRect &viewRect();
@@ -61,8 +61,8 @@ public:
 	bool centerTitle = true;
 	bool rotateLeftBtn = false;
 
-	BasicNavView(Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
-	void setBackImage(Gfx::PixmapTexture *img);
+	BasicNavView(Gfx::Renderer &r, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
+	void setBackImage(Gfx::Renderer &r, Gfx::PixmapTexture *img);
 	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops);
 
 	template <size_t S>
@@ -71,8 +71,8 @@ public:
 		setBackgroundGradient(gradStop, S);
 	}
 
-	void draw(const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
-	void place(const Gfx::ProjectionPlane &projP) override;
+	void draw(Gfx::Renderer &r, const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
+	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	void showLeftBtn(bool show) override;
 	void showRightBtn(bool show) override;
 

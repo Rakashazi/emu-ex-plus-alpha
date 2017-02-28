@@ -28,7 +28,7 @@ private:
 	IG::WindowRect rect{};
 
 public:
-	EmuInputView(Base::Window &win): View(win) {}
+	EmuInputView(ViewAttachParams attach): View(attach) {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void draw() override;

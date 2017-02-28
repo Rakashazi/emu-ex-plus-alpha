@@ -67,8 +67,8 @@ extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;
 #endif
 extern FS::PathString lastLoadPath;
 
-Gfx::PixmapTexture &getAsset(AssetID assetID);
-Gfx::PixmapTexture *getCollectTextCloseAsset();
+Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
+Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r);
 void handleInputEvent(Base::Window &win, Input::Event e);
 void handleOpenFileCommand(const char *filename);
 bool isMenuDismissKey(Input::Event e);
@@ -88,5 +88,6 @@ void updateAndDrawEmuVideo();
 void onMainMenuItemOptionChanged();
 void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 void setCPUNeedsLowLatency(bool needed);
+bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent);
 
 static constexpr const char *strftimeFormat = "%x  %r";

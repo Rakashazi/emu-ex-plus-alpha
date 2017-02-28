@@ -32,7 +32,7 @@ protected:
 	virtual void loadCheatItems() = 0;
 
 public:
-	BaseCheatsView(Base::Window &win);
+	BaseCheatsView(ViewAttachParams attach);
 	~BaseCheatsView() override;
 };
 
@@ -45,7 +45,7 @@ protected:
 	virtual void loadCheatItems() = 0;
 
 public:
-	BaseEditCheatListView(Base::Window &win, TableView::ItemsDelegate items, TableView::ItemDelegate item);
+	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item);
 	~BaseEditCheatListView() override;
 };
 
@@ -57,7 +57,7 @@ protected:
 	virtual void renamed(const char *str) = 0;
 
 public:
-	BaseEditCheatView(const char *name, Base::Window &win, const char *cheatName,
+	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,
 		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed);
 };
 

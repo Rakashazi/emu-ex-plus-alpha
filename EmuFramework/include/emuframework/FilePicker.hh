@@ -22,18 +22,18 @@
 class EmuFilePicker : public FSPicker
 {
 public:
-	EmuFilePicker(Base::Window &win, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir = false);
-	static EmuFilePicker *makeForBenchmarking(Base::Window &win, bool singleDir = false);
-	static EmuFilePicker *makeForLoading(Base::Window &win, bool singleDir = false);
+	EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir = false);
+	static EmuFilePicker *makeForBenchmarking(ViewAttachParams attach, bool singleDir = false);
+	static EmuFilePicker *makeForLoading(ViewAttachParams attach, bool singleDir = false);
 	void inputEvent(Input::Event e) override;
 };
 
 class GameFilePicker
 {
 public:
-	static void onSelectFile(const char* name, Input::Event e);
+	static void onSelectFile(Gfx::Renderer &r, const char* name, Input::Event e);
 };
 
 void loadGameComplete(bool tryAutoState, bool addToRecent);
-void loadGameCompleteFromFilePicker(uint result, Input::Event e);
+void loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e);
 bool hasArchiveExtension(const char *name);

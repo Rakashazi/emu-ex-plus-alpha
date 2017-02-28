@@ -21,13 +21,13 @@
 #include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
 
-void loadGameCompleteFromRecentItem(uint result, Input::Event e);
+void loadGameCompleteFromRecentItem(Gfx::Renderer &r, uint result, Input::Event e);
 
-BundledGamesView::BundledGamesView(Base::Window &win):
+BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	TableView
 	{
 		"Bundled Games",
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 1;
@@ -40,7 +40,7 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 {
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0] = {info.displayName,
-		[&info](TextMenuItem &t, View &, Input::Event ev)
+		[&info](TextMenuItem &t, View &view, Input::Event ev)
 		{
 			auto file = openAppAssetIO(info.assetName);
 			if(!file)
@@ -51,7 +51,7 @@ BundledGamesView::BundledGamesView(Base::Window &win):
 			int loadGameRes = EmuSystem::loadGameFromFile(GenericIO{std::move(file)}, info.assetName);
 			if(loadGameRes == 1)
 			{
-				loadGameCompleteFromRecentItem(1, ev); // has same behavior as if loading from recent item
+				loadGameCompleteFromRecentItem(view.renderer(), 1, ev); // has same behavior as if loading from recent item
 			}
 		}};
 }

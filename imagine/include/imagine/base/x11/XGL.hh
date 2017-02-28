@@ -123,6 +123,7 @@ struct GLBufferConfig
 
 using GLDisplayImpl = GLXDisplay;
 using GLDrawableImpl = GLXDrawable;
+using NativeGLContext = GLXContext;
 
 #endif
 

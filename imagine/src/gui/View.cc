@@ -50,13 +50,13 @@ void View::dismiss()
 	}
 }
 
-bool View::compileGfxPrograms()
+bool View::compileGfxPrograms(Gfx::Renderer &r)
 {
-	Gfx::TextureSampler::initDefaultNearestMipClampSampler();
-	auto compiled = Gfx::noTexProgram.compile();
+	Gfx::TextureSampler::initDefaultNearestMipClampSampler(r);
+	auto compiled = r.noTexProgram.compile(r);
 	// for text
-	compiled |= Gfx::texAlphaProgram.compile();
-	compiled |= Gfx::texAlphaReplaceProgram.compile();
+	compiled |= r.texAlphaProgram.compile(r);
+	compiled |= r.texAlphaReplaceProgram.compile(r);
 	return compiled;
 }
 
@@ -76,6 +76,17 @@ Base::Window &View::window()
 {
 	assert(win);
 	return *win;
+}
+
+Gfx::Renderer &View::renderer()
+{
+	assert(renderer_);
+	return *renderer_;
+}
+
+ViewAttachParams View::attachParams()
+{
+	return {*win, *renderer_};
 }
 
 Base::Screen *View::screen()

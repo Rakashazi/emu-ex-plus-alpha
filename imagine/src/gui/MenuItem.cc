@@ -17,34 +17,34 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/logger/logger.h>
 
-void BaseTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BaseTextMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
 	if(!active_)
 	{
 		// half-bright color
-		uint col = color();
-		setColor(ColorFormat.r(col)/2, ColorFormat.g(col)/2, ColorFormat.b(col)/2, ColorFormat.a(col));
+		uint col = r.color();
+		r.setColor(ColorFormat.r(col)/2, ColorFormat.g(col)/2, ColorFormat.b(col)/2, ColorFormat.a(col));
 	}
 
-	if(ColorFormat.a(color()) == 0xFF)
+	if(ColorFormat.a(r.color()) == 0xFF)
 	{
 		//logMsg("using replace program for non-alpha modulated text");
-		texAlphaReplaceProgram.use();
+		r.texAlphaReplaceProgram.use(r);
 	}
 	else
-		texAlphaProgram.use();
+		r.texAlphaProgram.use(r);
 
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else
 		xPos += TableView::globalXIndent;
-	t.draw(xPos, yPos, align, projP);
+	t.draw(r, xPos, yPos, align, projP);
 }
 
-void BaseTextMenuItem::compile(const Gfx::ProjectionPlane &projP)
+void BaseTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
-	t.compile(projP);
+	t.compile(r, projP);
 }
 
 int BaseTextMenuItem::ySize()
@@ -90,26 +90,26 @@ void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
 	selectD = onSelect;
 }
 
-void BaseDualTextMenuItem::compile(const Gfx::ProjectionPlane &projP)
+void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
-	BaseTextMenuItem::compile(projP);
+	BaseTextMenuItem::compile(r, projP);
 	if(t2.str)
 	{
-		t2.compile(projP);
+		t2.compile(r, projP);
 	}
 }
 
-void BaseDualTextMenuItem::draw2ndText(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BaseDualTextMenuItem::draw2ndText(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	Gfx::texAlphaProgram.use();
-	t2.draw((xPos + xSize) - TableView::globalXIndent, yPos, RC2DO, projP);
+	r.texAlphaProgram.use(r);
+	t2.draw(r, (xPos + xSize) - TableView::globalXIndent, yPos, RC2DO, projP);
 }
 
-void BaseDualTextMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BaseDualTextMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
 	if(t2.str)
-		BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
+		BaseDualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
 }
 
 BoolMenuItem::BoolMenuItem(const char *str, bool val, SelectDelegate selectDel):
@@ -138,7 +138,7 @@ bool BoolMenuItem::setBoolValue(bool val, View &view)
 	if(val != on)
 	{
 		setBoolValue(val);
-		t2.compile(view.projection());
+		t2.compile(view.renderer(), view.projection());
 		view.postDraw();
 		return true;
 	}
@@ -174,17 +174,16 @@ bool BoolMenuItem::flipBoolValue()
 	return on;
 }
 
-void BoolMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BoolMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	using namespace Gfx;
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
 	if(!onOffStyle) // custom strings
-		setColor(0., .8, 1.);
+		r.setColor(0., .8, 1.);
 	else if(on)
-		setColor(.27, 1., .27);
+		r.setColor(.27, 1., .27);
 	else
-		setColor(1., .27, .27);
-	draw2ndText(xPos, yPos, xSize, ySize, align, projP);
+		r.setColor(1., .27, .27);
+	draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
 }
 
 void BoolMenuItem::setOnSelect(SelectDelegate onSelect)
@@ -198,8 +197,8 @@ public:
 	int activeItem;
 	MultiChoiceMenuItem &src;
 
-	MenuItemTableView(const char *name, Base::Window &win, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
-		TableView{name, win, items, item},
+	MenuItemTableView(const char *name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
+		TableView{name, attach, items, item},
 		activeItem{active},
 		src{src}
 	{}
@@ -212,14 +211,13 @@ public:
 		}
 	}
 
-	void drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const override
+	void drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const override
 	{
-		using namespace Gfx;
 		if((int)i == activeItem)
-			setColor(0., .8, 1.);
+			r.setColor(0., .8, 1.);
 		else
-			setColor(COLOR_WHITE);
-		item.draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
+			r.setColor(Gfx::COLOR_WHITE);
+		item.draw(r, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
 	}
 
 	void onSelectElement(Input::Event e, uint i, MenuItem &item) override
@@ -267,22 +265,21 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, uint selected,
 	MultiChoiceMenuItem{str, nullptr, selected, items, item, {}}
 {}
 
-void MultiChoiceMenuItem::draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void MultiChoiceMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	using namespace Gfx;
-	BaseTextMenuItem::draw(xPos, yPos, xSize, ySize, align, projP);
-	//setColor(0., 1., 1.); // aqua
-	setColor(0., .8, 1.);
-	BaseDualTextMenuItem::draw2ndText(xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
+	//r.setColor(0., 1., 1.); // aqua
+	r.setColor(0., .8, 1.);
+	BaseDualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
 }
 
-void MultiChoiceMenuItem::compile(const Gfx::ProjectionPlane &projP)
+void MultiChoiceMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
 	if(selected_ < items_(*this))
 	{
 		setDisplayString(item_(*this, selected_).t.str);
 	}
-	BaseDualTextMenuItem::compile(projP);
+	BaseDualTextMenuItem::compile(r, projP);
 }
 
 uint MultiChoiceMenuItem::selected() const
@@ -298,7 +295,7 @@ uint MultiChoiceMenuItem::items() const
 bool MultiChoiceMenuItem::setSelected(uint idx, View &view)
 {
 	bool selectChanged = setSelected(idx);
-	t2.compile(view.projection());
+	t2.compile(view.renderer(), view.projection());
 	view.postDraw();
 	return selectChanged;
 }
@@ -343,12 +340,12 @@ void MultiChoiceMenuItem::setOnSelect(SelectDelegate onSelect)
 	selectD = onSelect;
 }
 
-TableView *MultiChoiceMenuItem::makeTableView(Base::Window &window)
+TableView *MultiChoiceMenuItem::makeTableView(ViewAttachParams attach)
 {
 	return new MenuItemTableView
 	{
 		t.str,
-		window,
+		attach,
 		selected_ < items_(*this) ? (int)selected_ : -1,
 		[this](const TableView &)
 		{
@@ -364,6 +361,6 @@ TableView *MultiChoiceMenuItem::makeTableView(Base::Window &window)
 
 void MultiChoiceMenuItem::defaultOnSelect(View &view, Input::Event e)
 {
-	auto &multiChoiceView = *makeTableView(view.window());
+	auto &multiChoiceView = *makeTableView(view.attachParams());
 	view.pushAndShow(multiChoiceView, e);
 }

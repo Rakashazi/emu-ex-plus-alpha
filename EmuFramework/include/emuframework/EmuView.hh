@@ -30,7 +30,7 @@ private:
 	IG::WindowRect rect{};
 
 public:
-	EmuView(Base::Window &win): View(win) {}
+	EmuView(ViewAttachParams attach): View(attach) {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	void draw() override;

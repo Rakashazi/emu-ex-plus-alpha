@@ -44,11 +44,11 @@ class EmuInputOptionView : public TableView
 	};
 
 public:
-	EmuInputOptionView(Base::Window &win):
+	EmuInputOptionView(ViewAttachParams attach):
 		TableView
 		{
 			"Input Options",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return 2;
@@ -125,7 +125,7 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(Base::Window &win): VideoOptionView{win, true}
+	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&videoSystem);
@@ -172,7 +172,7 @@ class EmuAudioOptionView : public AudioOptionView
 	};
 
 public:
-	EmuAudioOptionView(Base::Window &win): AudioOptionView{win, true}
+	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&quality);
@@ -193,9 +193,9 @@ class EmuSystemOptionView : public SystemOptionView
 				{
 					logMsg("set fds bios %s", ::fdsBiosPath.data());
 					printBiosMenuEntryStr(fdsBiosPathStr);
-					fdsBiosPath.compile(projP);
+					fdsBiosPath.compile(renderer(), projP);
 				},
-				hasFDSBIOSExtension, window()};
+				hasFDSBIOSExtension, attachParams()};
 			viewStack.pushAndShow(biosSelectMenu, e);
 		}
 	};
@@ -207,7 +207,7 @@ class EmuSystemOptionView : public SystemOptionView
 	}
 
 public:
-	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
+	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		printBiosMenuEntryStr(fdsBiosPathStr);
@@ -269,11 +269,11 @@ private:
 	};
 
 public:
-	FDSControlView(Base::Window &win):
+	FDSControlView(ViewAttachParams attach):
 		TableView
 		{
 			"FDS Control",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return 5;
@@ -311,7 +311,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
-				auto &fdsMenu = *new FDSControlView{window()};
+				auto &fdsMenu = *new FDSControlView{attachParams()};
 				pushAndShow(fdsMenu, e);
 			}
 			else
@@ -329,7 +329,7 @@ private:
 		else
 			sprintf(diskLabel, "FDS Control (Disk %d:%c)", (FCEU_FDSCurrentSide()>>1)+1, (FCEU_FDSCurrentSide() & 1)? 'B' : 'A');
 		fdsControl.t.setString(diskLabel);
-		fdsControl.compile(projP);
+		fdsControl.compile(renderer(), projP);
 	}
 
 	void reloadItems()
@@ -341,7 +341,7 @@ private:
 	}
 
 public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
 		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -354,18 +354,18 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(win);
-		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
-		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(win);
-		case ViewID::LIST_CHEATS: return new EmuCheatsView(win);
+		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
+		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
+		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;
 	}
 }

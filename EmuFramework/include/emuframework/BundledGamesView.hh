@@ -24,5 +24,5 @@ private:
 	TextMenuItem game[1]{};
 
 public:
-	BundledGamesView(Base::Window &win);
+	BundledGamesView(ViewAttachParams attach);
 };

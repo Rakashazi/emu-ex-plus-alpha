@@ -327,7 +327,7 @@ public:
 
 	uint pos = 0, max = 0;
 
-	LoadGameInBackgroundView(Base::Window &win): View(win) {}
+	LoadGameInBackgroundView(ViewAttachParams attach): View(attach) {}
 
 	void setMax(uint val)
 	{
@@ -341,7 +341,7 @@ public:
 
 	void place() override
 	{
-		text.compile(projP);
+		text.compile(renderer(), projP);
 	}
 
 	void inputEvent(Input::Event e) override { }
@@ -349,21 +349,22 @@ public:
 	void draw() override
 	{
 		using namespace Gfx;
-		projP.resetTransforms();
-		setBlendMode(0);
+		auto &r = renderer();
+		projP.resetTransforms(r);
+		r.setBlendMode(0);
 		if(max)
 		{
 			logMsg("drawing");
-			noTexProgram.use();
-			setColor(.0, .0, .75);
+			r.noTexProgram.use(r);
+			r.setColor(.0, .0, .75);
 			Gfx::GC barHeight = text.ySize*1.5;
 			auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
 				{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.w), barHeight});
-			GeomRect::draw(bar);
+			GeomRect::draw(r, bar);
 		}
-		texAlphaProgram.use();
-		setColor(COLOR_WHITE);
-		text.draw(0, 0, C2DO, projP);
+		r.texAlphaProgram.use(r);
+		r.setColor(COLOR_WHITE);
+		text.draw(r, 0, 0, C2DO, projP);
 	}
 
 	void onAddedToController(Input::Event e) override {}
@@ -463,7 +464,7 @@ int EmuSystem::loadGame(const char *path)
 		{
 			if(modalViewController.hasView())
 				modalViewController.pop();
-			auto loadGameInBackgroundView = new LoadGameInBackgroundView{mainWin.win};
+			auto loadGameInBackgroundView = new LoadGameInBackgroundView{{mainWin.win, emuVideo.r}};
 			modalViewController.pushAndShow(*loadGameInBackgroundView, {});
 			guiPipe.init({},
 				[loadGameInBackgroundView](Base::Pipe &pipe)

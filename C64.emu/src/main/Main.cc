@@ -534,8 +534,8 @@ int loadGame(const char *path, bool autoStartMedia)
 	}
 	if(c64FailedInit)
 	{
-		auto &ynAlertView = *new YesNoAlertView{mainWin.win,
-			"A previous system file load failed, you must restart the app to run any C64 software", "Exit Now", "Cancel"};
+		auto &ynAlertView = *EmuSystem::makeYesNoAlertView(
+			"A previous system file load failed, you must restart the app to run any C64 software", "Exit Now", "Cancel");
 		ynAlertView.setOnYes(
 			[](TextMenuItem &, View &, Input::Event e)
 			{

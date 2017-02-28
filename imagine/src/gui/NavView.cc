@@ -63,9 +63,9 @@ void NavView::inputEvent(Input::Event e)
 	}
 }
 
-void NavView::place(const Gfx::ProjectionPlane &projP)
+void NavView::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
-	text.compile(projP);
+	text.compile(r, projP);
 	//logMsg("setting textRect");
 	textRect.setPosRel(viewRect_.pos(LT2DO), viewRect_.size(), LT2DO);
 	leftBtn.setPosRel(viewRect_.pos(LT2DO), viewRect_.ySize(), LT2DO);
@@ -88,7 +88,7 @@ Gfx::GlyphTextureSet *NavView::titleFace()
 
 // BasicNavView
 
-BasicNavView::BasicNavView(Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes):
+BasicNavView::BasicNavView(Gfx::Renderer &r, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes):
 	NavView{face}
 {
 	leftSpr.init({-.5, -.5, .5, .5});
@@ -107,14 +107,14 @@ BasicNavView::BasicNavView(Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *backR
 		hasCloseBtn = true;
 	}
 	if(compiled)
-		Gfx::autoReleaseShaderCompiler();
+		r.autoReleaseShaderCompiler();
 }
 
-void BasicNavView::setBackImage(Gfx::PixmapTexture *img)
+void BasicNavView::setBackImage(Gfx::Renderer &r, Gfx::PixmapTexture *img)
 {
 	leftSpr.setImg(img);
 	if(leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
-		Gfx::autoReleaseShaderCompiler();
+		r.autoReleaseShaderCompiler();
 	hasBackBtn = leftSpr.image();
 }
 
@@ -125,62 +125,62 @@ void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop,
 	bg.setPos(gradientStops.get(), gradStops, {});
 }
 
-void BasicNavView::draw(const Base::Window &win, const Gfx::ProjectionPlane &projP)
+void BasicNavView::draw(Gfx::Renderer &r, const Base::Window &win, const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
 	if(bg)
 	{
-		setBlendMode(0);
-		noTexProgram.use(projP.makeTranslate());
-		bg.draw();
+		r.setBlendMode(0);
+		r.noTexProgram.use(r, projP.makeTranslate());
+		bg.draw(r);
 	}
-	setColor(COLOR_WHITE);
-	texAlphaReplaceProgram.use();
+	r.setColor(COLOR_WHITE);
+	r.texAlphaReplaceProgram.use(r);
 	if(centerTitle)
 	{
-		text.draw(projP.alignToPixel(projP.unProjectRect(viewRect_).pos(C2DO)), C2DO, projP);
+		text.draw(r, projP.alignToPixel(projP.unProjectRect(viewRect_).pos(C2DO)), C2DO, projP);
 	}
 	else
 	{
 		if(text.xSize > projP.unprojectXSize(textRect) - TableView::globalXIndent*2)
 		{
-			setClipRectBounds(win, textRect);
-			setClipRect(true);
-			text.draw(projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{TableView::globalXIndent, 0}), RC2DO, projP);
-			setClipRect(false);
+			r.setClipRectBounds(win, textRect);
+			r.setClipRect(true);
+			text.draw(r, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{TableView::globalXIndent, 0}), RC2DO, projP);
+			r.setClipRect(false);
 		}
 		else
 		{
-			text.draw(projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}), LC2DO, projP);
+			text.draw(r, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}), LC2DO, projP);
 		}
 	}
 	if(hasBackBtn)
 	{
 		assumeExpr(leftSpr.image());
-		setColor(COLOR_WHITE);
-		setBlendMode(BLEND_MODE_ALPHA);
-		TextureSampler::bindDefaultNearestMipClampSampler();
+		r.setColor(COLOR_WHITE);
+		r.setBlendMode(BLEND_MODE_ALPHA);
+		TextureSampler::bindDefaultNearestMipClampSampler(r);
 		auto trans = projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(angleFromDegree(90));
 		leftSpr.useDefaultProgram(IMG_MODE_MODULATE, trans);
-		leftSpr.draw();
+		leftSpr.draw(r);
 	}
 	if(hasCloseBtn)
 	{
 		assumeExpr(rightSpr.image());
-		setColor(COLOR_WHITE);
-		setBlendMode(BLEND_MODE_ALPHA);
-		TextureSampler::bindDefaultNearestMipClampSampler();
+		r.setColor(COLOR_WHITE);
+		r.setBlendMode(BLEND_MODE_ALPHA);
+		TextureSampler::bindDefaultNearestMipClampSampler(r);
 		rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
-		rightSpr.draw();
+		rightSpr.draw(r);
 	}
 }
 
-void BasicNavView::place(const Gfx::ProjectionPlane &projP)
+void BasicNavView::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
-	NavView::place(projP);
+	NavView::place(r, projP);
 	if(leftSpr.image())
 	{
 		auto rect = projP.unProjectRect(leftBtn);

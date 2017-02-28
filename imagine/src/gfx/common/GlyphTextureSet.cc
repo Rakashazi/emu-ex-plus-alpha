@@ -132,20 +132,20 @@ void GlyphTextureSet::freeCaches(uint32 purgeBits)
 	}
 }
 
-GlyphTextureSet::GlyphTextureSet(const char *path, IG::FontSettings set):
-		GlyphTextureSet(std::make_unique<IG::Font>(path), set)
+GlyphTextureSet::GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set):
+		GlyphTextureSet(r, std::make_unique<IG::Font>(path), set)
 {}
 
-GlyphTextureSet::GlyphTextureSet(GenericIO io, IG::FontSettings set):
-	GlyphTextureSet(std::make_unique<IG::Font>(std::move(io)), set)
+GlyphTextureSet::GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set):
+	GlyphTextureSet(r, std::make_unique<IG::Font>(std::move(io)), set)
 {}
 
-GlyphTextureSet::GlyphTextureSet(std::unique_ptr<IG::Font> font, IG::FontSettings set):
+GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set):
 	font{std::move(font)}
 {
 	if(set)
 	{
-		setFontSettings(set);
+		setFontSettings(r, set);
 	}
 	else
 	{
@@ -156,19 +156,19 @@ GlyphTextureSet::GlyphTextureSet(std::unique_ptr<IG::Font> font, IG::FontSetting
 	}
 }
 
-GlyphTextureSet GlyphTextureSet::makeSystem(IG::FontSettings set)
+GlyphTextureSet GlyphTextureSet::makeSystem(Renderer &r, IG::FontSettings set)
 {
-	return {std::make_unique<IG::Font>(IG::Font::makeSystem()), set};
+	return {r, std::make_unique<IG::Font>(IG::Font::makeSystem()), set};
 }
 
-GlyphTextureSet GlyphTextureSet::makeBoldSystem(IG::FontSettings set)
+GlyphTextureSet GlyphTextureSet::makeBoldSystem(Renderer &r, IG::FontSettings set)
 {
-	return {std::make_unique<IG::Font>(IG::Font::makeBoldSystem()), set};
+	return {r, std::make_unique<IG::Font>(IG::Font::makeBoldSystem()), set};
 }
 
-GlyphTextureSet GlyphTextureSet::makeFromAsset(const char *name, IG::FontSettings set)
+GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r, const char *name, IG::FontSettings set)
 {
-	return {openAppAssetIO(name), set};
+	return {r, openAppAssetIO(name), set};
 }
 
 GlyphTextureSet::GlyphTextureSet(GlyphTextureSet &&o)
@@ -214,18 +214,18 @@ uint GlyphTextureSet::nominalHeight() const
 	return nominalHeight_;
 }
 
-void GlyphTextureSet::calcNominalHeight()
+void GlyphTextureSet::calcNominalHeight(Renderer &r)
 {
 	//logMsg("calcNominalHeight");
-	GlyphEntry *mGly = glyphEntry('M');
-	GlyphEntry *gGly = glyphEntry('g');
+	GlyphEntry *mGly = glyphEntry(r, 'M');
+	GlyphEntry *gGly = glyphEntry(r, 'g');
 
 	assert(mGly && gGly);
 
 	nominalHeight_ = mGly->metrics.ySize + (gGly->metrics.ySize/2);
 }
 
-bool GlyphTextureSet::setFontSettings(IG::FontSettings set)
+bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 {
 	if(set.pixelWidth() < font->minUsablePixels())
 		set.setPixelWidth(font->minUsablePixels());
@@ -248,11 +248,11 @@ bool GlyphTextureSet::setFontSettings(IG::FontSettings set)
 	settings = set;
 	std::error_code ec{};
 	faceSize = font->makeSize(settings, ec);
-	calcNominalHeight();
+	calcNominalHeight(r);
 	return true;
 }
 
-std::error_code GlyphTextureSet::cacheChar(int c, int tableIdx)
+std::error_code GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 {
 	if(glyphTable[tableIdx].metrics.ySize == -1)
 	{
@@ -271,7 +271,7 @@ std::error_code GlyphTextureSet::cacheChar(int c, int tableIdx)
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = res.metrics;
 	auto img = GfxGlyphImage(std::move(res.image));
-	glyphTable[tableIdx].glyph.init(img, false);
+	glyphTable[tableIdx].glyph.init(r, img, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};
@@ -315,7 +315,7 @@ static std::error_code mapCharToTable(uint c, uint &tableIdx)
 }
 
 // TODO: update for unicode
-std::error_code GlyphTextureSet::precache(const char *string)
+std::error_code GlyphTextureSet::precache(Renderer &r, const char *string)
 {
 	assert(settings);
 	iterateTimes(strlen(string), i)
@@ -334,12 +334,12 @@ std::error_code GlyphTextureSet::precache(const char *string)
 			continue;
 		}
 		logMsg("precaching char %c", c);
-		cacheChar(c, tableIdx);
+		cacheChar(r, c, tableIdx);
 	}
 	return {};
 }
 
-GlyphEntry *GlyphTextureSet::glyphEntry(int c)
+GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c)
 {
 	assert(settings);
 	uint tableIdx;
@@ -349,7 +349,7 @@ GlyphEntry *GlyphTextureSet::glyphEntry(int c)
 	assert(tableIdx < glyphTableEntries);
 	if(!glyphTable[tableIdx].glyph)
 	{
-		auto ec = cacheChar(c, tableIdx);
+		auto ec = cacheChar(r, c, tableIdx);
 		if(ec)
 			return nullptr;
 		logMsg("char 0x%X was not in table, cached", c);

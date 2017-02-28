@@ -19,11 +19,11 @@
 
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
-BaseCheatsView::BaseCheatsView(Base::Window &win):
+BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	TableView
 	{
 		"Cheats",
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 1 + cheat.size();
@@ -41,7 +41,7 @@ BaseCheatsView::BaseCheatsView(Base::Window &win):
 		"Add/Edit",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &editCheatListView = *EmuSystem::makeView(window(), EmuSystem::ViewID::EDIT_CHEATS);
+			auto &editCheatListView = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::EDIT_CHEATS);
 			pushAndShow(editCheatListView, e);
 		}
 	},
@@ -65,12 +65,12 @@ BaseCheatsView::~BaseCheatsView()
 	onRefreshCheatsList.remove(&onRefreshCheats);
 }
 
-BaseEditCheatView::BaseEditCheatView(const char *viewName, Base::Window &win, const char *cheatName,
+BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams attach, const char *cheatName,
 	TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed):
 	TableView
 	{
 		viewName,
-		win,
+		attach,
 		items,
 		item
 	},
@@ -79,8 +79,8 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, Base::Window &win, co
 		cheatName,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 			[this](CollectTextInputView &view, const char *str)
 			{
@@ -88,7 +88,7 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, Base::Window &win, co
 				{
 					logMsg("setting cheat name %s", str);
 					renamed(str);
-					name.compile(projP);
+					name.compile(renderer(), projP);
 					window().postDraw();
 				}
 				view.dismiss();
@@ -104,11 +104,11 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, Base::Window &win, co
 	}
 {}
 
-BaseEditCheatListView::BaseEditCheatListView(Base::Window &win, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 	TableView
 	{
 		"Edit Cheats",
-		win,
+		attach,
 		items,
 		item
 	},

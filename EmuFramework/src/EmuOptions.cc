@@ -460,12 +460,12 @@ void setVControllerUseScaledCoordinates(bool on)
 	#endif
 }
 
-void setupFont()
+void setupFont(Gfx::Renderer &r)
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
-	View::defaultFace.setFontSettings(IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
-	View::defaultBoldFace.setFontSettings(IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
+	View::defaultFace.setFontSettings(r, IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
+	View::defaultBoldFace.setFontSettings(r, IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
 }
 
 #ifdef __ANDROID__

@@ -20,119 +20,31 @@
 #include <imagine/util/string.h>
 #include "private.hh"
 #include "utils.h"
-#include "GLStateCache.hh"
-
-#ifndef GL_KHR_debug
-typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void *);
-using GLDEBUGPROC = GLDEBUGPROCKHR;
-#define GL_DEBUG_OUTPUT_KHR 0x92E0
-#define GL_DEBUG_OUTPUT 0x92E0
-#endif
 
 namespace Gfx
 {
 
-GLint projectionUniform, modelViewUniform, textureUniform;
-
-bool useAnisotropicFiltering = false;
-
-static bool useMultisample = false;
-static bool forceNoMultisample = true;
-static bool forceNoMultisampleHint = false;
-
-#ifdef CONFIG_GFX_OPENGL_ES
-bool supportBGRPixels = false;
-static bool useBGRPixels = false;
-static bool forceNoBGRPixels = true;
-bool preferBGRA = false, preferBGR = false;
-#else
-static bool forceNoBGRPixels = true;
-bool supportBGRPixels = !forceNoBGRPixels;
-bool preferBGRA = !forceNoBGRPixels, preferBGR = !forceNoBGRPixels;
-#endif
-GLenum bgrInternalFormat = GL_BGRA;
-
-bool useFBOFuncs = false;
-#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
-GenerateMipmapsProto generateMipmaps = (GenerateMipmapsProto)glGenerateMipmap;
-#else
-GenerateMipmapsProto generateMipmaps{}; // set via extensions
-#endif
-
-bool useVBOFuncs = false;
-
-static GLuint streamVAO = 0;
-static GLuint streamVBO[6]{};
-static uint streamVBOIdx = 0;
-
-bool useTextureSwizzle = false;
-
-bool useUnpackRowLength = !Config::Gfx::OPENGL_ES;
-
-bool useSamplerObjects = !Config::Gfx::OPENGL_ES;
-#ifdef CONFIG_GFX_OPENGL_ES
-void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
-void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
-void (* GL_APIENTRY glBindSampler) (GLuint unit, GLuint sampler){};
-void (* GL_APIENTRY glSamplerParameteri) (GLuint sampler, GLenum pname, GLint param){};
-#endif
-
-GLenum luminanceFormat = GL_LUMINANCE;
-GLenum luminanceInternalFormat = GL_LUMINANCE8;
-GLenum luminanceAlphaFormat = GL_LUMINANCE_ALPHA;
-GLenum luminanceAlphaInternalFormat = GL_LUMINANCE8_ALPHA8;
-GLenum alphaFormat = GL_ALPHA;
-GLenum alphaInternalFormat = GL_ALPHA8;
-
-bool useImmutableTexStorage = false;
-#ifdef CONFIG_GFX_OPENGL_ES
-void (* GL_APIENTRY glTexStorage2D) (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height){};
-#endif
-
-bool usePBO = false;
-#ifdef CONFIG_GFX_OPENGL_ES
-GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
-using UnmapBufferProto = GLboolean (* GL_APIENTRY) (GLenum target);
-UnmapBufferProto glUnmapBuffer{};
-#endif
-
-bool useEGLImages = false;
-bool useExternalEGLImages = false;
-
-#ifdef CONFIG_GFX_OPENGL_ES
-void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
-static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
-#else
-void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
-static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
-#endif
-static bool useDebugOutput = false;
-
-bool shouldSpecifyDrawReadBuffers = false;
-#ifdef CONFIG_GFX_OPENGL_ES
-void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs){};
-void (* GL_APIENTRY glReadBuffer) (GLenum src){};
-#endif
-
-bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
-
-Base::GLBufferConfig gfxBufferConfig{};
-
-static void initVBOs()
+void GLRenderer::initVBOs()
 {
+	#ifndef CONFIG_GFX_OPENGL_ES
 	logMsg("making stream VBO");
 	glGenBuffers(IG::size(streamVBO), streamVBO);
+	#endif
 }
 
-GLuint getVBO()
+GLuint GLRenderer::getVBO()
 {
+	#ifndef CONFIG_GFX_OPENGL_ES
 	assert(streamVBO[streamVBOIdx]);
 	auto vbo = streamVBO[streamVBOIdx];
 	streamVBOIdx = (streamVBOIdx+1) % IG::size(streamVBO);
 	return vbo;
+	#else
+	return 0;
+	#endif
 }
 
-static Gfx::GC orientationToGC(uint o)
+Gfx::GC orientationToGC(uint o)
 {
 	using namespace Base;
 	switch(o)
@@ -145,82 +57,77 @@ static Gfx::GC orientationToGC(uint o)
 	}
 }
 
-static void setupAnisotropicFiltering()
+void GLRenderer::setupAnisotropicFiltering()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLfloat maximumAnisotropy;
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
 	logMsg("anisotropic filtering supported, max value: %f", (double)maximumAnisotropy);
-	useAnisotropicFiltering = 1;
+	support.hasAnisotropicFiltering = true;
 	#endif
 }
 
-static void setupMultisample()
+void GLRenderer::setupMultisample()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
 	logMsg("multisample antialiasing supported");
-	useMultisample = 1;
-	glcEnable(GL_MULTISAMPLE);
+	support.hasMultisample = true;
 	#endif
 }
 
-static void setupMultisampleHints()
+void GLRenderer::setupMultisampleHints()
 {
 	#if !defined CONFIG_GFX_OPENGL_ES && !defined __APPLE__
 	logMsg("multisample hints supported");
-	glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+	support.hasMultisampleHints = true;
+	//glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 	#endif
 }
 
-static void setupNonPow2Textures()
+void GLRenderer::setupNonPow2Textures()
 {
-	if(!Gfx::textureSizeSupport.nonPow2)
+	if(!support.textureSizeSupport.nonPow2)
 		logMsg("Non-Power-of-2 textures supported");
-	Gfx::textureSizeSupport.nonPow2 = true;
+	support.textureSizeSupport.nonPow2 = true;
 }
 
-static void setupNonPow2MipmapTextures()
+void GLRenderer::setupNonPow2MipmapTextures()
 {
-	if(!Gfx::textureSizeSupport.nonPow2CanMipmap)
+	if(!support.textureSizeSupport.nonPow2CanMipmap)
 		logMsg("Non-Power-of-2 textures with mipmaps supported");
-	Gfx::textureSizeSupport.nonPow2 = true;
-	Gfx::textureSizeSupport.nonPow2CanMipmap = true;
+	support.textureSizeSupport.nonPow2 = true;
+	support.textureSizeSupport.nonPow2CanMipmap = true;
 }
 
-static void setupNonPow2MipmapRepeatTextures()
+void GLRenderer::setupNonPow2MipmapRepeatTextures()
 {
-	if(!Gfx::textureSizeSupport.nonPow2CanRepeat)
+	if(!support.textureSizeSupport.nonPow2CanRepeat)
 		logMsg("Non-Power-of-2 textures with mipmaps & repeat modes supported");
-	Gfx::textureSizeSupport.nonPow2 = true;
-	Gfx::textureSizeSupport.nonPow2CanMipmap = true;
-	Gfx::textureSizeSupport.nonPow2CanRepeat = true;
+	support.textureSizeSupport.nonPow2 = true;
+	support.textureSizeSupport.nonPow2CanMipmap = true;
+	support.textureSizeSupport.nonPow2CanRepeat = true;
 }
 
 #ifdef CONFIG_GFX_OPENGL_ES
-static void setupBGRPixelSupport()
+void GLRenderer::setupBGRPixelSupport()
 {
-	supportBGRPixels = 1;
-	useBGRPixels = 1;
-
-	preferBGR = 1;
-	preferBGRA = 1;
-
-	logMsg("BGR pixel types are supported%s", bgrInternalFormat == GL_RGBA ? " (Apple version)" : "");
+	support.hasBGRPixels = true;
+	logMsg("BGR pixel types are supported%s", support.bgrInternalFormat == GL_RGBA ? " (Apple version)" : "");
 }
 #endif
 
-static void setupFBOFuncs()
+void GLRenderer::setupFBOFuncs(bool &useFBOFuncs)
 {
 	useFBOFuncs = true;
 	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
-	generateMipmaps = glGenerateMipmapOES;
+	support.generateMipmaps = glGenerateMipmapOES;
 	#elif !defined CONFIG_GFX_OPENGL_ES
-	generateMipmaps = glGenerateMipmap;
+	support.generateMipmaps = glGenerateMipmap;
 	#endif
 	logMsg("FBO functions are supported");
 }
 
-static void setupVAOFuncs()
+void GLRenderer::setupVAOFuncs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
 	logMsg("using VAOs");
@@ -229,69 +136,69 @@ static void setupVAOFuncs()
 	#endif
 }
 
-static void setupTextureSwizzle()
+void GLRenderer::setupTextureSwizzle()
 {
-	if(useTextureSwizzle)
+	if(support.hasTextureSwizzle)
 		return;
 	logMsg("using texture swizzling");
-	useTextureSwizzle = true;
+	support.hasTextureSwizzle = true;
 }
 
-static void setupImmutableTexStorage(bool extSuffix)
+void GLRenderer::setupImmutableTexStorage(bool extSuffix)
 {
-	if(useImmutableTexStorage)
+	if(support.hasImmutableTexStorage)
 		return;
 	logMsg("using immutable texture storage");
-	useImmutableTexStorage = true;
+	support.hasImmutableTexStorage = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	const char *procName = extSuffix ? "glTexStorage2DEXT" : "glTexStorage2D";
-	glTexStorage2D = (typeof(glTexStorage2D))Base::GLContext::procAddress(procName);
+	support.glTexStorage2D = (typeof(support.glTexStorage2D))Base::GLContext::procAddress(procName);
 	#endif
 }
 
-static void setupRGFormats()
+void GLRenderer::setupRGFormats()
 {
-	luminanceFormat = GL_RED;
-	luminanceInternalFormat = GL_R8;
-	luminanceAlphaFormat = GL_RG;
-	luminanceAlphaInternalFormat = GL_RG8;
-	alphaFormat = GL_RED;
-	alphaInternalFormat = GL_R8;
+	support.luminanceFormat = GL_RED;
+	support.luminanceInternalFormat = GL_R8;
+	support.luminanceAlphaFormat = GL_RG;
+	support.luminanceAlphaInternalFormat = GL_RG8;
+	support.alphaFormat = GL_RED;
+	support.alphaInternalFormat = GL_R8;
 }
 
-static void setupSamplerObjects()
+void GLRenderer::setupSamplerObjects()
 {
-	if(useSamplerObjects)
+	if(support.hasSamplerObjects)
 		return;
 	logMsg("using sampler objects");
-	useSamplerObjects = true;
+	support.hasSamplerObjects = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
-	glGenSamplers = (typeof(glGenSamplers))Base::GLContext::procAddress("glGenSamplers");
-	glDeleteSamplers = (typeof(glDeleteSamplers))Base::GLContext::procAddress("glDeleteSamplers");
-	glBindSampler = (typeof(glBindSampler))Base::GLContext::procAddress("glBindSampler");
-	glSamplerParameteri = (typeof(glSamplerParameteri))Base::GLContext::procAddress("glSamplerParameteri");
+	support.glGenSamplers = (typeof(support.glGenSamplers))Base::GLContext::procAddress("glGenSamplers");
+	support.glDeleteSamplers = (typeof(support.glDeleteSamplers))Base::GLContext::procAddress("glDeleteSamplers");
+	support.glBindSampler = (typeof(support.glBindSampler))Base::GLContext::procAddress("glBindSampler");
+	support.glSamplerParameteri = (typeof(support.glSamplerParameteri))Base::GLContext::procAddress("glSamplerParameteri");
 	#endif
 }
 
-static void setupPBO()
+void GLRenderer::setupPBO()
 {
-	if(usePBO)
+	if(support.hasPBOFuncs)
 		return;
 	logMsg("using PBOs");
-	usePBO = true;
+	support.hasPBOFuncs = true;
 	initTexturePBO();
 }
 
-static void setupSpecifyDrawReadBuffers()
+void GLRenderer::setupSpecifyDrawReadBuffers()
 {
-	shouldSpecifyDrawReadBuffers = true;
+	support.shouldSpecifyDrawReadBuffers = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
-	glDrawBuffers = (typeof(glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
-	glReadBuffer = (typeof(glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
+	support.glDrawBuffers = (typeof(support.glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
+	support.glReadBuffer = (typeof(support.glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
 	#endif
 }
 
-static void checkExtensionString(const char *extStr)
+void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 {
 	//logMsg("checking %s", extStr);
 	if(string_equal(extStr, "GL_ARB_texture_non_power_of_two")
@@ -302,7 +209,7 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
-		useDebugOutput = true;
+		support.hasDebugOutput = true;
 	}
 	#ifdef CONFIG_GFX_OPENGL_ES
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
@@ -320,39 +227,37 @@ static void checkExtensionString(const char *extStr)
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
 	{
 		logMsg("unpacking sub-images supported");
-		useUnpackRowLength = true;
+		support.hasUnpackRowLength = true;
 	}
 	else if(string_equal(extStr, "GL_APPLE_texture_format_BGRA8888"))
 	{
-		if(!forceNoBGRPixels)
-		{
-			bgrInternalFormat = GL_RGBA;
-			setupBGRPixelSupport();
-		}
+		support.bgrInternalFormat = GL_RGBA;
+		setupBGRPixelSupport();
 	}
 	else if(string_equal(extStr, "GL_EXT_texture_format_BGRA8888"))
 	{
-		if(!forceNoBGRPixels)
-			setupBGRPixelSupport();
+		setupBGRPixelSupport();
 	}
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && string_equal(extStr, "GL_OES_framebuffer_object"))
 	{
 		if(!useFBOFuncs)
-			setupFBOFuncs();
+			setupFBOFuncs(useFBOFuncs);
 	}
 	else if(string_equal(extStr, "GL_EXT_texture_storage"))
 	{
 		setupImmutableTexStorage(true);
 	}
-	else if(Config::envIsAndroid && string_equal(extStr, "GL_OES_EGL_image"))
+	#if __ANDROID__
+	else if(string_equal(extStr, "GL_OES_EGL_image"))
 	{
-		useEGLImages = true;
+		support.hasEGLImages = true;
 	}
-	else if(Config::envIsAndroid && Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 &&
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 &&
 		string_equal(extStr, "GL_OES_EGL_image_external"))
 	{
-		useExternalEGLImages = true;
+		support.hasExternalEGLImages = true;
 	}
+	#endif
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
 	{
 		setupPBO();
@@ -360,18 +265,18 @@ static void checkExtensionString(const char *extStr)
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
 	{
 		logMsg("supports map buffer range (NVIDIA)");
-		if(!glMapBufferRange)
-			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
-		if(!glUnmapBuffer)
-			glUnmapBuffer = (UnmapBufferProto)glUnmapBufferOES;
+		if(!support.glMapBufferRange)
+			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
+		if(!support.glUnmapBuffer)
+			support.glUnmapBuffer = (DrawContextSupport::UnmapBufferProto)glUnmapBufferOES;
 	}
 	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
 	{
 		logMsg("supports map buffer range");
-		if(!glMapBufferRange)
-			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
-		if(!glUnmapBuffer)
-			glUnmapBuffer = (UnmapBufferProto)glUnmapBufferOES;
+		if(!support.glMapBufferRange)
+			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
+		if(!support.glUnmapBuffer)
+			support.glUnmapBuffer = (DrawContextSupport::UnmapBufferProto)glUnmapBufferOES;
 	}
 	/*else if(string_equal(extStr, "GL_OES_mapbuffer"))
 	{
@@ -385,28 +290,26 @@ static void checkExtensionString(const char *extStr)
 	}
 	else if(string_equal(extStr, "GL_ARB_multisample"))
 	{
-		if(!forceNoMultisample && !useMultisample)
-			setupMultisample();
+		setupMultisample();
 	}
 	else if(string_equal(extStr, "GL_NV_multisample_filter_hint"))
 	{
-		if(!forceNoMultisample && !forceNoMultisampleHint)
-			setupMultisampleHints();
+		setupMultisampleHints();
 	}
 	else if(string_equal(extStr, "GL_EXT_framebuffer_object"))
 	{
 		#ifndef __APPLE__
 		if(!useFBOFuncs)
 		{
-			setupFBOFuncs();
-			generateMipmaps = glGenerateMipmapEXT;
+			setupFBOFuncs(useFBOFuncs);
+			support.generateMipmaps = glGenerateMipmapEXT;
 		}
 		#endif
 	}
 	else if(string_equal(extStr, "GL_ARB_framebuffer_object"))
 	{
 		if(!useFBOFuncs)
-			setupFBOFuncs();
+			setupFBOFuncs(useFBOFuncs);
 	}
 	else if(string_equal(extStr, "GL_ARB_texture_storage"))
 	{
@@ -419,15 +322,16 @@ static void checkExtensionString(const char *extStr)
 	#endif
 }
 
-static void checkFullExtensionString(const char *fullExtStr)
+void GLRenderer::checkFullExtensionString(const char *fullExtStr)
 {
 	char fullExtStrTemp[strlen(fullExtStr)+1];
 	strcpy(fullExtStrTemp, fullExtStr);
 	char *savePtr;
 	auto extStr = strtok_r(fullExtStrTemp, " ", &savePtr);
+	bool useFBOFuncs = false;
 	while(extStr)
 	{
-		checkExtensionString(extStr);
+		checkExtensionString(extStr, useFBOFuncs);
 		extStr = strtok_r(nullptr, " ", &savePtr);
 	}
 }
@@ -445,58 +349,22 @@ static int glVersionFromStr(const char *versionStr)
 	return 10 * major + minor;
 }
 
-CallResult init()
+Renderer::Renderer() {}
+
+Renderer::Renderer(IG::PixelFormat pixelFormat, std::system_error &err)
 {
-	return init(Base::Window::defaultPixelFormat());
-}
-
-CallResult init(IG::PixelFormat pixelFormat)
-{
-	logMsg("running init");
-
-	if(!Config::SYSTEM_ROTATES_WINDOWS)
-	{
-		Base::setOnDeviceOrientationChanged(
-			[](uint newO)
-			{
-				auto &win = Base::mainWindow();
-				auto oldWinO = win.softOrientation();
-				if(win.requestOrientationChange(newO))
-				{
-					Gfx::animateProjectionMatrixRotation(Gfx::orientationToGC(oldWinO), Gfx::orientationToGC(newO));
-				}
-			});
-	}
-	else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
-	{
-		Base::setOnSystemOrientationChanged(
-			[](uint oldO, uint newO) // TODO: parameters need proper type definitions in API
-			{
-				const Angle orientationDiffTable[4][4]
-				{
-					{0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90)},
-					{angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180)},
-					{angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90)},
-					{angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0},
-				};
-				auto rotAngle = orientationDiffTable[oldO][newO];
-				logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
-				Gfx::animateProjectionMatrixRotation(rotAngle, 0.);
-			});
-	}
-
 	{
 		std::error_code ec{};
 		glDpy = Base::GLDisplay::makeDefault(ec);
 		if(ec)
 		{
 			logErr("error getting GL display");
-			return INVALID_PARAMETER;
+			err = {{EINVAL, std::system_category()}, "error creating GL display"};
+			return;
 		}
 	}
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
-	int glVer = 0;
 	Base::GLBufferConfigAttributes glBuffAttr;
 	glBuffAttr.setPixelFormat(pixelFormat);
 	Base::GLContextAttributes glAttr;
@@ -538,7 +406,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		useFixedFunctionPipeline = false;
+		support.useFixedFunctionPipeline = false;
 		#endif
 		glAttr.setMajorVersion(3);
 		glAttr.setMinorVersion(3);
@@ -553,7 +421,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !gfxContext)
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		useFixedFunctionPipeline = true;
+		support.useFixedFunctionPipeline = true;
 		#endif
 		glAttr.setMajorVersion(1);
 		glAttr.setMinorVersion(3);
@@ -568,11 +436,17 @@ CallResult init(IG::PixelFormat pixelFormat)
 	#endif
 	if(!gfxContext)
 	{
-		bug_exit("can't create context");
-		return INVALID_PARAMETER;
+		err = {{EINVAL, std::system_category()}, "error creating GL context"};
+		return;
 	}
+	err = {{}};
+}
 
-	gfxContext.setCurrent(glDpy, gfxContext, {});
+Renderer::Renderer(std::system_error &err): Renderer(Base::Window::defaultPixelFormat(), err) {}
+
+void Renderer::configureRenderer()
+{
+	verifyCurrentContext();
 
 	if(checkGLErrorsVerbose)
 		logMsg("using verbose error checks");
@@ -580,18 +454,18 @@ CallResult init(IG::PixelFormat pixelFormat)
 		logMsg("using error checks");
 	
 	auto version = (const char*)glGetString(GL_VERSION);
-	assert(version);
+	assert(version);Renderer();
 	auto rendererName = (const char*)glGetString(GL_RENDERER);
 	logMsg("version: %s (%s)", version, rendererName);
-	
-	if(!glVer)
-		glVer = glVersionFromStr(version);
-	
+
+	int glVer = glVersionFromStr(version);
+
+	bool useFBOFuncs = false;
 	#ifndef CONFIG_GFX_OPENGL_ES
 	// core functionality
 	if(glVer >= 15)
 	{
-		useVBOFuncs = true;
+		support.hasVBOFuncs = true;
 	}
 	if(glVer >= 20)
 	{
@@ -604,7 +478,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 	}
 	if(glVer >= 30)
 	{
-		if(!useFixedFunctionPipeline)
+		if(!support.useFixedFunctionPipeline)
 		{
 			// must render via VAOs/VBOs in 3.1+ without compatibility context
 			setupVAOFuncs();
@@ -612,7 +486,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 			setupRGFormats();
 			setupSamplerObjects();
 		}
-		setupFBOFuncs();
+		setupFBOFuncs(useFBOFuncs);
 	}
 
 	// extension functionality
@@ -631,7 +505,7 @@ CallResult init(IG::PixelFormat pixelFormat)
 		}
 		iterateTimes(numExtensions, i)
 		{
-			checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i));
+			checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i), useFBOFuncs);
 		}
 	}
 	else
@@ -653,11 +527,11 @@ CallResult init(IG::PixelFormat pixelFormat)
 			setupNonPow2MipmapRepeatTextures();
 		else
 			setupNonPow2Textures();
-		setupFBOFuncs();
+		setupFBOFuncs(useFBOFuncs);
 		if(glVer >= 30)
 		{
-			glMapBufferRange = (typeof(glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
-			glUnmapBuffer = (typeof(glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
+			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
+			support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
 			setupImmutableTexStorage(false);
 			setupTextureSwizzle();
 			setupRGFormats();
@@ -665,8 +539,8 @@ CallResult init(IG::PixelFormat pixelFormat)
 			setupPBO();
 			if(!Config::envIsIOS)
 				setupSpecifyDrawReadBuffers();
-			useUnpackRowLength = true;
-			useLegacyGLSL = false;
+			support.hasUnpackRowLength = true;
+			support.useLegacyGLSL = false;
 		}
 	}
 
@@ -677,45 +551,59 @@ CallResult init(IG::PixelFormat pixelFormat)
 	checkFullExtensionString(extensions);
 	#endif // CONFIG_GFX_OPENGL_ES
 
-	if(useVBOFuncs)
+	if(support.hasVBOFuncs)
 		initVBOs();
 	setClearColor(0., 0., 0.);
-	//glShadeModel(GL_SMOOTH);
-	//glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	setVisibleGeomFace(FRONT_FACES);
 
 	GLint texSize;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-	textureSizeSupport.maxXSize = textureSizeSupport.maxYSize = texSize;
-	assert(textureSizeSupport.maxXSize > 0 && textureSizeSupport.maxYSize > 0);
+	support.textureSizeSupport.maxXSize = support.textureSizeSupport.maxYSize = texSize;
+	assert(support.textureSizeSupport.maxXSize > 0 && support.textureSizeSupport.maxYSize > 0);
 	logMsg("max texture size is %d", texSize);
 
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 		glcEnableClientState(GL_VERTEX_ARRAY);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!useFixedFunctionPipeline)
+	if(!support.useFixedFunctionPipeline)
 	{
 		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s before shaders", err); });
 		if(Config::DEBUG_BUILD)
 			logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-		initShaders();
+		initShaders(*this);
 	}
 	#endif
-	return OK;
+
+	support.isConfigured = true;
 }
 
-Base::WindowConfig makeWindowConfig()
+bool Renderer::isConfigured() const
 {
-	Base::WindowConfig config;
-	setWindowConfig(config);
-	return config;
+	return support.isConfigured;
 }
 
-void setWindowConfig(Base::WindowConfig &config)
+Renderer Renderer::makeConfiguredRenderer(IG::PixelFormat pixelFormat, std::system_error &err)
 {
+	auto renderer = Renderer{pixelFormat, err};
+	if(err.code())
+		return {};
+	renderer.bind();
+	renderer.configureRenderer();
+	return renderer;
+}
+
+Renderer Renderer::makeConfiguredRenderer(std::system_error &err)
+{
+	return makeConfiguredRenderer(Base::Window::defaultPixelFormat(), err);
+}
+
+Base::WindowConfig Renderer::addWindowConfig(Base::WindowConfig config)
+{
+	assert(isConfigured());
 	config.setFormat(gfxBufferConfig.windowFormat(glDpy));
+	return config;
 }
 
 static void updateSensorStateForWindowOrientations(Base::Window &win)
@@ -727,53 +615,51 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 	Base::setDeviceOrientationChangeSensor(IG::bitsSet(win.validSoftOrientations()) > 1);
 }
 
-void initWindow(Base::Window &win, Base::WindowConfig config)
+void Renderer::initWindow(Base::Window &win, Base::WindowConfig config)
 {
-	setWindowConfig(config);
-	win.init(config);
-	if(!Config::SYSTEM_ROTATES_WINDOWS && win == Base::mainWindow())
-		Gfx::setProjectionMatrixRotation(Gfx::orientationToGC(win.softOrientation()));
+	win.init(addWindowConfig(config));
 	updateSensorStateForWindowOrientations(win);
 }
 
-void setWindowValidOrientations(Base::Window &win, uint validO)
+void Renderer::setWindowValidOrientations(Base::Window &win, uint validO)
 {
 	if(win != Base::mainWindow())
 		return;
 	auto oldWinO = win.softOrientation();
 	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		Gfx::animateProjectionMatrixRotation(Gfx::orientationToGC(oldWinO), Gfx::orientationToGC(win.softOrientation()));
+		animateProjectionMatrixRotation(orientationToGC(oldWinO), orientationToGC(win.softOrientation()));
 	}
 	updateSensorStateForWindowOrientations(win);
 }
 
-void setDebugOutput(bool on)
+void Renderer::setDebugOutput(bool on)
 {
-	if(!useDebugOutput)
+	if(!support.hasDebugOutput)
 	{
 		return;
 	}
+	verifyCurrentContext();
 	if(!on)
 	{
-		glDisable(DEBUG_OUTPUT);
+		glDisable(support.DEBUG_OUTPUT);
 	}
 	else
 	{
-		if(!glDebugMessageCallback)
+		if(!support.glDebugMessageCallback)
 		{
 			auto glDebugMessageCallbackStr =
 					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
 			logMsg("enabling debug output with %s", glDebugMessageCallbackStr);
-			glDebugMessageCallback = (typeof(glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
-			glDebugMessageCallback(
+			support.glDebugMessageCallback = (typeof(support.glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
+			support.glDebugMessageCallback(
 				GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
 					GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 				{
 					logger_printfn(LOG_D, "GL Debug: %s", message);
 				}, nullptr);
 		}
-		glEnable(DEBUG_OUTPUT);
+		glEnable(support.DEBUG_OUTPUT);
 	}
 }
 

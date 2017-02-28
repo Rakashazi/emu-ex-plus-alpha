@@ -22,7 +22,7 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(Base::Window &win): VideoOptionView{win, true}
+	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&videoSystem);
@@ -43,7 +43,7 @@ class EmuAudioOptionView : public AudioOptionView
 	};
 
 public:
-	EmuAudioOptionView(Base::Window &win): AudioOptionView{win, true}
+	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&smsFM);
@@ -132,11 +132,11 @@ class EmuInputOptionView : public TableView
 	};
 
 public:
-	EmuInputOptionView(Base::Window &win):
+	EmuInputOptionView(ViewAttachParams attach):
 		TableView
 		{
 			"Input Options",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return 3;
@@ -162,7 +162,7 @@ class EmuSystemOptionView : public SystemOptionView
 		(bool)optionBigEndianSram,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{window(),
+			auto &ynAlertView = *new YesNoAlertView{attachParams(),
 				"Warning, this changes the format of SRAM saves files. "
 				"Turn on to make them compatible with other emulators like Gens. "
 				"Any SRAM loaded with the incorrect setting will be corrupted."};
@@ -249,9 +249,9 @@ class EmuSystemOptionView : public SystemOptionView
 				auto idx = regionCodeToIdx(region);
 				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region).data());
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
-				cdBiosPath[idx].compile(projP);
+				cdBiosPath[idx].compile(renderer(), projP);
 			},
-			hasMDExtension, window()};
+			hasMDExtension, attachParams()};
 		viewStack.pushAndShow(biosSelectMenu, e);
 	}
 
@@ -267,7 +267,7 @@ class EmuSystemOptionView : public SystemOptionView
 	#endif
 
 public:
-	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
+	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&bigEndianSram);
@@ -282,18 +282,18 @@ public:
 constexpr const char *EmuSystemOptionView::biosHeadingStr[3];
 #endif
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new MenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(win);
-		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
-		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(win);
-		case ViewID::LIST_CHEATS: return new EmuCheatsView(win);
+		case ViewID::MAIN_MENU: return new MenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
+		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
+		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;
 	}
 }

@@ -27,5 +27,5 @@ private:
 	TextMenuItem stateSlot[stateSlots]{};
 
 public:
-	StateSlotView(Base::Window &win);
+	StateSlotView(ViewAttachParams attach);
 };

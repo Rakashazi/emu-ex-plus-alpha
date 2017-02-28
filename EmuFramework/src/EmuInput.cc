@@ -22,11 +22,6 @@
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/InputManagerView.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <emuframework/VController.hh>
-SysVController vController;
-uint pointerInputPlayer = 0;
-#endif
 
 struct RelPtr  // for Android trackball
 {
@@ -59,11 +54,11 @@ static int vControllerPixelSize()
 }
 #endif
 
-void initVControls()
+void initVControls(Gfx::Renderer &r)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.dp.setDeadzone(vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
-	vController.gp.dp.setDiagonalSensitivity(optionTouchDpadDiagonalSensitivity / 1000.);
+	vController.gp.dp.setDeadzone(r, vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
+	vController.gp.dp.setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000.);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	#else
@@ -768,6 +763,7 @@ void updateAutoOnScreenControlVisible()
 
 void updateVControlImg()
 {
+	auto &r = vController.renderer;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	{
 		static Gfx::PixmapTexture overlayImg;
@@ -778,7 +774,7 @@ void updateVControlImg()
 		{
 			bug_exit("couldn't load overlay png");
 		}
-		overlayImg.init(png);
+		overlayImg.init(r, png);
 		vController.setImg(overlayImg);
 	}
 	#endif
@@ -791,8 +787,8 @@ void updateVControlImg()
 		{
 			bug_exit("couldn't load kb overlay png");
 		}
-		kbOverlayImg.init(png);
-		vController.kb.setImg(&kbOverlayImg);
+		kbOverlayImg.init(r, png);
+		vController.kb.setImg(r, &kbOverlayImg);
 	}
 }
 

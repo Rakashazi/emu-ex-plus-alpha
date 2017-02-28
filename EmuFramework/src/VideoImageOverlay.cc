@@ -56,7 +56,7 @@ alignas(8) static uint32 crtRgbPixmapBuff[] =
 };
 #undef CONV_COL
 
-void VideoImageOverlay::setEffect(uint effect)
+void VideoImageOverlay::setEffect(Gfx::Renderer &r, uint effect)
 {
 	this->effect = effect;
 	IG::Pixmap pix;
@@ -73,17 +73,14 @@ void VideoImageOverlay::setEffect(uint effect)
 			img.deinit();
 			return;
 	}
-	Gfx::TextureSampler::initDefaultNearestMipRepeatSampler();
+	Gfx::TextureSampler::initDefaultNearestMipRepeatSampler(r);
 	Gfx::TextureConfig texConf{pix};
 	texConf.setWillGenerateMipmaps(true);
-	img.init(texConf);
+	img.init(r, texConf);
 	img.write(0, pix, {});
 	img.generateMipmaps();
 	spr.init({}, &img, {});
-	if(spr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
-	{
-		Gfx::autoReleaseShaderCompiler();
-	}
+	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
@@ -110,15 +107,15 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 	}
 }
 
-void VideoImageOverlay::draw()
+void VideoImageOverlay::draw(Gfx::Renderer &r)
 {
 	using namespace Gfx;
 	if(spr.image())
 	{
-		TextureSampler::bindDefaultNearestMipRepeatSampler();
-		setColor(1., 1., 1., intensity);
-		setBlendMode(BLEND_MODE_ALPHA);
+		TextureSampler::bindDefaultNearestMipRepeatSampler(r);
+		r.setColor(1., 1., 1., intensity);
+		r.setBlendMode(BLEND_MODE_ALPHA);
 		spr.useDefaultProgram(IMG_MODE_MODULATE);
-		spr.draw();
+		spr.draw(r);
 	}
 }

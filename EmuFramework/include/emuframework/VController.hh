@@ -31,15 +31,15 @@ public:
 
 	constexpr VControllerDPad() {}
 	void init();
-	void setImg(Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
-	void draw() const;
-	void setBoundingAreaVisible(bool on);
+	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
+	void draw(Gfx::Renderer &r) const;
+	void setBoundingAreaVisible(Gfx::Renderer &r, bool on);
 	int getInput(int cx, int cy) const;
 	IG::WindowRect bounds() const;
 	void setPos(IG::Point2D<int> pos);
-	void setSize(uint sizeInPixels);
-	void setDeadzone(int newDeadzone);
-	void setDiagonalSensitivity(float newDiagonalSensitivity);
+	void setSize(Gfx::Renderer &r, uint sizeInPixels);
+	void setDeadzone(Gfx::Renderer &r, int newDeadzone);
+	void setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity);
 
 private:
 	Gfx::GCRect padBase{};
@@ -51,7 +51,7 @@ private:
 	bool visualizeBounds = 0;
 	int btnSizePixels = 0;
 
-	void updateBoundingAreaGfx();
+	void updateBoundingAreaGfx(Gfx::Renderer &r);
 };
 
 class VControllerKeyboard
@@ -66,10 +66,10 @@ public:
 
 	constexpr VControllerKeyboard() {}
 	void init();
-	void updateImg();
-	void setImg(Gfx::PixmapTexture *img);
+	void updateImg(Gfx::Renderer &r);
+	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
-	void draw() const;
+	void draw(Gfx::Renderer &r) const;
 	int getInput(int cx, int cy) const;
 };
 
@@ -91,11 +91,11 @@ public:
 
 	constexpr VControllerGamepad() {}
 	void init(float alpha);
-	void setBoundingAreaVisible(bool on);
+	void setBoundingAreaVisible(Gfx::Renderer &r, bool on);
 	bool boundingAreaVisible() const;
-	void setImg(Gfx::PixmapTexture &pics);
+	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics);
 	uint rowsForButtons(uint activeButtons);
-	void setBaseBtnSize(uint sizeInPixels);
+	void setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels);
 	IG::WindowRect centerBtnBounds() const;
 	void setCenterBtnPos(IG::Point2D<int> pos);
 	IG::WindowRect lTriggerBounds() const;
@@ -107,7 +107,7 @@ public:
 	void setFaceBtnPos(IG::Point2D<int> pos);
 	std::array<int, 2> getCenterBtnInput(int x, int y) const;
 	std::array<int, 2> getBtnInput(int x, int y) const;
-	void draw(bool showHidden) const;
+	void draw(Gfx::Renderer &r, bool showHidden) const;
 
 private:
 	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS]{};
@@ -128,6 +128,7 @@ public:
 	static constexpr uint TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
 	using Map = std::array<uint, D_ELEM+9>;
 	using KbMap = std::array<uint, 40>;
+	Gfx::Renderer &renderer;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	VControllerGamepad gp{};
 	#endif
@@ -151,7 +152,7 @@ public:
 
 	float alpha = 0;
 
-	constexpr VController() {}
+	constexpr VController(Gfx::Renderer &r): renderer{r} {}
 	Gfx::GC xMMSize(Gfx::GC mm) const;
 	Gfx::GC yMMSize(Gfx::GC mm) const;
 	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;

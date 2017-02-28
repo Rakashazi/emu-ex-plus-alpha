@@ -117,7 +117,7 @@ void ViewStack::place()
 	{
 		nav->setTitle(top().name());
 		nav->viewRect().setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))}, LT2DO);
-		nav->place(projP);
+		nav->place(top().renderer(), projP);
 		customViewRect.y += nav->viewRect().ySize();
 	}
 	top().setViewRect(customViewRect, projP);
@@ -137,7 +137,7 @@ void ViewStack::draw()
 {
 	top().draw();
 	if(navViewIsActive())
-		nav->draw(top().window(), projP);
+		nav->draw(top().renderer(), top().window(), projP);
 }
 
 void ViewStack::push(View &v, Input::Event e)

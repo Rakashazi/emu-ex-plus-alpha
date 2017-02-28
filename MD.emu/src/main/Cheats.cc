@@ -525,11 +525,11 @@ void EmuEditCheatView::renamed(const char *str)
 	cheatsModified = 1;
 }
 
-EmuEditCheatView::EmuEditCheatView(Base::Window &win, MdCheat &cheat_):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_):
 	BaseEditCheatView
 	{
 		"Edit Code",
-		win,
+		attach,
 		cheat_.name,
 		[this](const TableView &)
 		{
@@ -560,8 +560,8 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, MdCheat &cheat_):
 		cheat_.code,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -579,7 +579,7 @@ EmuEditCheatView::EmuEditCheatView(Base::Window &win, MdCheat &cheat_):
 
 						cheatsModified = 1;
 						updateCheats();
-						code.compile(projP);
+						code.compile(renderer(), projP);
 						window().postDraw();
 					}
 					view.dismiss();
@@ -603,17 +603,17 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(thisCheat.name,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{window(), cheatList[c]};
+				auto &editCheatView = *new EmuEditCheatView{attachParams(), cheatList[c]};
 				viewStack.pushAndShow(editCheatView, e);
 			});
 		++it;
 	}
 }
 
-EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 1 + cheat.size();
@@ -632,8 +632,8 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 		"Add Game Genie / Action Replay Code",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -659,8 +659,8 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 						cheatsModified = 1;
 						updateCheats();
 						view.dismiss();
-						auto &textInputView = *new CollectTextInputView{window()};
-						textInputView.init("Input description", getCollectTextCloseAsset());
+						auto &textInputView = *new CollectTextInputView{attachParams()};
+						textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
 						textInputView.onText() =
 							[](CollectTextInputView &view, const char *str)
 							{
@@ -692,7 +692,7 @@ EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
 	loadCheatItems();
 }
 
-EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 {
 	loadCheatItems();
 }

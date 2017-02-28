@@ -25,67 +25,20 @@
 #include <imagine/base/Base.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 
+#ifdef CONFIG_GFX_OPENGL
+#include <imagine/gfx/opengl/GLRenderer.hh>
+#endif
+
 namespace Gfx
 {
 
-// init & control
-[[gnu::cold]] CallResult init(IG::PixelFormat pixelFormat);
-[[gnu::cold]] CallResult init();
-Base::WindowConfig makeWindowConfig();
-void setWindowConfig(Base::WindowConfig &config);
-void initWindow(Base::Window &win, Base::WindowConfig config);
-void setWindowValidOrientations(Base::Window &win, uint validO);
-void updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceChange change);
-bool setCurrentDrawable(Drawable win);
-bool updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat);
-void deinitDrawable(Drawable &drawable);
-void presentDrawable(Drawable win);
-void finishPresentDrawable(Drawable win);
-bool bind(); // for callbacks using Gfx functions to verify context is bound, and that don't call setCurrentDrawable
-void finish();
-void setViewport(const Viewport &v);
-void setProjectionMatrix(const Mat4 &mat);
-void setProjectionMatrixRotation(Angle angle);
-void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
-const Mat4 &projectionMatrix();
-const Viewport &viewport();
+class RenderTarget;
 
 enum class Primitive
 {
 	TRIANGLE = TRIANGLE_IMPL,
 	TRIANGLE_STRIP = TRIANGLE_STRIP_IMPL
 };
-
-void bindTempVertexBuffer();
-void vertexBufferData(const void *v, uint size);
-void drawPrimitives(Primitive mode, uint start, uint count);
-void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count);
-
-extern bool preferBGRA, preferBGR;
-
-// render states
-
-class Program : public ProgramImpl
-{
-public:
-	constexpr Program() {}
-	bool init(Shader vShader, Shader fShader, bool hasColor, bool hasTex);
-	void deinit();
-	bool link();
-	int uniformLocation(const char *uniformName);
-};
-
-Shader makeShader(const char **src, uint srcCount, uint type);
-Shader makeShader(const char *src, uint type);
-Shader makeCompatShader(const char **src, uint srcCount, uint type);
-Shader makeCompatShader(const char *src, uint type);
-Shader makeDefaultVShader();
-void deleteShader(Shader shader);
-void setProgram(Program &program);
-void setProgram(Program &program, Mat4 modelMat);
-void uniformF(int uniformLocation, float v1, float v2);
-void releaseShaderCompiler();
-void autoReleaseShaderCompiler();
 
 enum class BlendFunc
 {
@@ -105,67 +58,136 @@ enum class BlendFunc
 	ONE_MINUS_CONSTANT_ALPHA = ONE_MINUS_CONSTANT_ALPHA_IMPL,
 };
 
-void setBlend(bool on);
-void setBlendFunc(BlendFunc s, BlendFunc d);
-
 enum { BLEND_MODE_OFF = 0, BLEND_MODE_ALPHA, BLEND_MODE_INTENSITY };
-void setBlendMode(uint mode);
 
 enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE, IMG_MODE_ADD };
 
 enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };
-void setBlendEquation(uint mode);
-
-void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a);
-
-void setDither(bool on);
-bool dither();
-
-void setZTest(bool on);
 
 enum { BOTH_FACES, FRONT_FACES, BACK_FACES };
-void setVisibleGeomFace(uint sides);
-
-void setClipRect(bool on);
-void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h);
-static void setClipRectBounds(const Base::Window &win, IG::WindowRect r)
-{
-	setClipRectBounds(win, r.x, r.y, r.xSize(), r.ySize());
-}
-
-void setZBlend(bool on);
-void setZBlendColor(ColorComp r, ColorComp g, ColorComp b);
-
-void clear();
-void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
-
-void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
-
-static void setColor(ColorComp i) { setColor(i, i, i, 1.); }
 
 enum GfxColorEnum { COLOR_WHITE, COLOR_BLACK };
-static void setColor(GfxColorEnum colConst)
-{
-	switch(colConst)
-	{
-		bcase COLOR_WHITE: setColor(1., 1., 1.);
-		bcase COLOR_BLACK: setColor(0., 0., 0.);
-	}
-}
-
-static constexpr auto ColorFormat = IG::PIXEL_DESC_RGBA8888;
-uint color();
-
-// transforms
 
 enum TransformTargetEnum { TARGET_WORLD, TARGET_TEXTURE };
-void setTransformTarget(TransformTargetEnum target);
 
-void loadTransform(Mat4 mat);
-void loadTranslate(GC x, GC y, GC z);
-void loadIdentTransform();
+static constexpr auto ColorFormat = IG::PIXEL_DESC_RGBA8888;
 
-void setCorrectnessChecks(bool on);
-void setDebugOutput(bool on);
+class Program : public ProgramImpl
+{
+public:
+	constexpr Program() {}
+	bool init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
+	void deinit();
+	bool link(Renderer &r);
+	int uniformLocation(const char *uniformName);
+};
+
+class Renderer : public RendererImpl
+{
+public:
+	// color replacement shaders
+	DefaultTexReplaceProgram texReplaceProgram{};
+	DefaultTexAlphaReplaceProgram texAlphaReplaceProgram{};
+	#ifdef __ANDROID__
+	DefaultTexExternalReplaceProgram texExternalReplaceProgram{};
+	#endif
+
+	// color modulation shaders
+	DefaultTexProgram texProgram{};
+	DefaultTexAlphaProgram texAlphaProgram{};
+	#ifdef __ANDROID__
+	DefaultTexExternalProgram texExternalProgram{};
+	#endif
+	DefaultColorProgram noTexProgram{};
+
+	Renderer();
+	Renderer(std::system_error &err);
+	Renderer(IG::PixelFormat pixelFormat, std::system_error &err);
+	static Renderer makeConfiguredRenderer(std::system_error &err);
+	static Renderer makeConfiguredRenderer(IG::PixelFormat pixelFormat, std::system_error &err);
+	void configureRenderer();
+	bool isConfigured() const;
+	void bind();
+	void unbind();
+	bool restoreBind();
+	Base::WindowConfig addWindowConfig(Base::WindowConfig config);
+	void updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceChange change);
+	bool setCurrentDrawable(Drawable win);
+	bool updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat);
+	void deinitDrawable(Drawable &drawable);
+	void presentDrawable(Drawable win);
+	void finishPresentDrawable(Drawable win);
+	void finish();
+	void initWindow(Base::Window &win, Base::WindowConfig config);
+	void setWindowValidOrientations(Base::Window &win, uint validO);
+	void setRenderTarget(const RenderTarget &target);
+
+	// render states
+
+	void setBlend(bool on);
+	void setBlendFunc(BlendFunc s, BlendFunc d);
+	void setBlendMode(uint mode);
+	void setBlendEquation(uint mode);
+	void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a);
+	void setZTest(bool on);
+	void setZBlend(bool on);
+	void setZBlendColor(ColorComp r, ColorComp g, ColorComp b);
+	void clear();
+	void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
+	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
+	void setColor(ColorComp i) { setColor(i, i, i, 1.); }
+	void setColor(GfxColorEnum colConst)
+	{
+		switch(colConst)
+		{
+			bcase COLOR_WHITE: setColor(1., 1., 1.);
+			bcase COLOR_BLACK: setColor(0., 0., 0.);
+		}
+	}
+	uint color();
+	void setImgMode(uint mode);
+	void setDither(bool on);
+	bool dither();
+	void setVisibleGeomFace(uint sides);
+	void setClipRect(bool on);
+	void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h);
+	void setClipRectBounds(const Base::Window &win, IG::WindowRect r)
+	{
+		setClipRectBounds(win, r.x, r.y, r.xSize(), r.ySize());
+	}
+	void setViewport(const Viewport &v);
+	const Viewport &viewport();
+	void vertexBufferData(const void *v, uint size);
+	void drawPrimitives(Primitive mode, uint start, uint count);
+	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count);
+
+	// transforms
+
+	void setTransformTarget(TransformTargetEnum target);
+	void loadTransform(Mat4 mat);
+	void loadTranslate(GC x, GC y, GC z);
+	void loadIdentTransform();
+	void setProjectionMatrix(const Mat4 &mat);
+	void setProjectionMatrixRotation(Angle angle);
+	void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
+	const Mat4 &projectionMatrix();
+
+	// shaders
+
+	Shader makeShader(const char **src, uint srcCount, uint type);
+	Shader makeShader(const char *src, uint type);
+	Shader makeCompatShader(const char **src, uint srcCount, uint type);
+	Shader makeCompatShader(const char *src, uint type);
+	Shader makeDefaultVShader();
+	void deleteShader(Shader shader);
+	void setProgram(Program &program);
+	void setProgram(Program &program, Mat4 modelMat);
+	void uniformF(int uniformLocation, float v1, float v2);
+	void releaseShaderCompiler();
+	void autoReleaseShaderCompiler();
+
+	void setCorrectnessChecks(bool on);
+	void setDebugOutput(bool on);
+};
 
 }

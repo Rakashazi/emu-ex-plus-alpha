@@ -34,7 +34,7 @@ public:
 		return init(x, xVals, y, S2, color);
 	}
 	void deinit();
-	void draw();
+	void draw(Renderer &r);
 	void setColorRGB(ColorComp r, ColorComp g, ColorComp b);
 	void setColorTranslucent(ColorComp a);
 	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i);

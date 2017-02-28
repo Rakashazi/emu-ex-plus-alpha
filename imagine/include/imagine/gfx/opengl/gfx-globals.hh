@@ -1,59 +1,17 @@
 #pragma once
 
 #include <imagine/config/defs.hh>
+#include "glIncludes.h"
+#include "defs.hh"
 #include <imagine/util/normalFloat.hh>
 #include <imagine/pixmap/PixelFormat.hh>
-#include <imagine/base/GLContext.hh>
-#include "glIncludes.h"
-
-#if defined __APPLE__ && !defined __ARM_ARCH_6K__
-#define CONFIG_GFX_MATH_GLKIT
-#else
-#define CONFIG_GFX_MATH_GLM
-#endif
-
 #include <imagine/gfx/Mat4.hh>
-
-namespace Config
-{
-	namespace Gfx
-	{
-	#if !defined CONFIG_BASE_MACOSX && \
-	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES)
-	#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = true;
-	#else
-	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = false;
-	#endif
-
-	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 2) || !defined CONFIG_GFX_OPENGL_ES
-	#define CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	static constexpr bool OPENGL_SHADER_PIPELINE = true;
-	#else
-	static constexpr bool OPENGL_SHADER_PIPELINE = false;
-	#endif
-
-	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE && !defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	#error "Configuration error, OPENGL_FIXED_FUNCTION_PIPELINE & OPENGL_SHADER_PIPELINE both unset"
-	#endif
-
-	#ifdef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-	static constexpr bool OPENGL_ES = true;
-	static constexpr int OPENGL_ES_MAJOR_VERSION = CONFIG_GFX_OPENGL_ES_MAJOR_VERSION;
-	#else
-	static constexpr bool OPENGL_ES = false;
-	#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 0
-	static constexpr int OPENGL_ES_MAJOR_VERSION = 0;
-	#endif
-
-	#ifdef __ANDROID__
-	#define CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	#endif
-	}
-}
+#include <imagine/base/GLContext.hh>
 
 namespace Gfx
 {
+class Renderer;
+
 using TransformCoordinate = float;
 using VertexPos = float;
 using Angle = float;
@@ -101,7 +59,7 @@ public:
 	static constexpr bool hasTexture = false;
 	static const uint textureOffset = 0;
 	template<class Vtx>
-	static void bindAttribs(const Vtx *v);
+	static void bindAttribs(Renderer &r, const Vtx *v);
 };
 
 class Vertex : public VertexInfo
@@ -184,9 +142,9 @@ public:
 
 public:
 	constexpr GLSLProgram() {}
-	bool init(Shader vShader, Shader fShader, bool hasColor, bool hasTex);
+	bool init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
 	void deinit();
-	bool link();
+	bool link(Renderer &r);
 	explicit operator bool() const
 	{
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -201,14 +159,14 @@ class TexProgram : public GLSLProgram
 {
 public:
 	constexpr TexProgram() {}
-	void init(GLuint vShader, GLuint fShader);
+	void init(Renderer &r, GLuint vShader, GLuint fShader);
 };
 
 class ColorProgram : public GLSLProgram
 {
 public:
 	constexpr ColorProgram() {}
-	void init(GLuint vShader, GLuint fShader);
+	void init(Renderer &r, GLuint vShader, GLuint fShader);
 };
 
 // default programs
@@ -217,20 +175,20 @@ class DefaultTexReplaceProgram : public TexProgram
 {
 public:
 	constexpr DefaultTexReplaceProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
 
 class DefaultTexProgram : public TexProgram
 {
 public:
 	constexpr DefaultTexProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
 
 class DefaultTexAlphaReplaceProgram : public TexProgram
@@ -238,10 +196,10 @@ class DefaultTexAlphaReplaceProgram : public TexProgram
 public:
 	DefaultTexProgram *impl{};
 	constexpr DefaultTexAlphaReplaceProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
 
 class DefaultTexAlphaProgram : public TexProgram
@@ -249,54 +207,41 @@ class DefaultTexAlphaProgram : public TexProgram
 public:
 	DefaultTexProgram *impl{};
 	constexpr DefaultTexAlphaProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
 
 class DefaultTexExternalReplaceProgram : public TexProgram
 {
 public:
 	constexpr DefaultTexExternalReplaceProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
 
 class DefaultTexExternalProgram : public TexProgram
 {
 public:
 	constexpr DefaultTexExternalProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
 
 class DefaultColorProgram : public ColorProgram
 {
 public:
 	constexpr DefaultColorProgram() {}
-	bool compile();
-	void use() { use(nullptr); }
-	void use(Mat4 modelMat) { use(&modelMat); }
-	void use(const Mat4 *modelMat);
+	bool compile(Renderer &r);
+	void use(Renderer &r) { use(r, nullptr); }
+	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
+	void use(Renderer &r, const Mat4 *modelMat);
 };
-
-// color replacement
-extern DefaultTexReplaceProgram texReplaceProgram;
-extern DefaultTexAlphaReplaceProgram texAlphaReplaceProgram;
-extern DefaultTexReplaceProgram &texIntensityAlphaReplaceProgram;
-extern DefaultTexExternalReplaceProgram texExternalReplaceProgram;
-
-// color modulation
-extern DefaultTexProgram texProgram;
-extern DefaultTexAlphaProgram texAlphaProgram;
-extern DefaultTexProgram &texIntensityAlphaProgram;
-extern DefaultTexExternalProgram texExternalProgram;
-extern DefaultColorProgram noTexProgram;
 
 using ProgramImpl = GLSLProgram;
 

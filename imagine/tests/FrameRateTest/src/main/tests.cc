@@ -40,11 +40,11 @@ std::array<char, 64> TestParams::makeTestName() const
 	return name;
 }
 
-void TestFramework::init(IG::Point2D<int> pixmapSize)
+void TestFramework::init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize)
 {
 	cpuStatsText = {cpuStatsStr.data(), &View::defaultFace};
 	frameStatsText = {frameStatsStr.data(), &View::defaultFace};
-	initTest(pixmapSize);
+	initTest(r, pixmapSize);
 }
 
 void TestFramework::deinit()
@@ -62,38 +62,38 @@ void TestFramework::setCPUUseText(const char *str)
 	string_printf(cpuUseStr, "CPU Load (System): %s", str);
 }
 
-void TestFramework::placeCPUStatsText()
+void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
 {
 	if(strlen(cpuStatsStr.data()))
 	{
-		cpuStatsText.compile(projP);
+		cpuStatsText.compile(r, projP);
 		cpuStatsRect = projP.bounds();
 		cpuStatsRect.y = (cpuStatsRect.y2 - cpuStatsText.nominalHeight * cpuStatsText.lines)
 			- cpuStatsText.nominalHeight * .5f; // adjust to top
 	}
 }
 
-void TestFramework::placeFrameStatsText()
+void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 {
 	if(strlen(frameStatsStr.data()))
 	{
-		frameStatsText.compile(projP);
+		frameStatsText.compile(r, projP);
 		frameStatsRect = projP.bounds();
 		frameStatsRect.y2 = (frameStatsRect.y + frameStatsText.nominalHeight * frameStatsText.lines)
 			+ cpuStatsText.nominalHeight * .5f; // adjust to bottom
 	}
 }
 
-void TestFramework::place(const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
+void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
 {
 	this->projP = projP;
 	frameStatsText.maxLineSize = projP.bounds().xSize();
-	placeCPUStatsText();
-	placeFrameStatsText();
+	placeCPUStatsText(r);
+	placeFrameStatsText(r);
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase timestamp)
+void TestFramework::frameUpdate(Gfx::Renderer &r, Base::Screen &screen, Base::FrameTimeBase timestamp)
 {
 	// CPU stats
 	bool updatedCPUStats = false;
@@ -113,7 +113,7 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase timest
 			strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
 			strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
 			strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "");
-		placeCPUStatsText();
+		placeCPUStatsText(r);
 	}
 
 	// frame stats
@@ -155,7 +155,7 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase timest
 			strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
 			strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
 			strlen(statsStr.data()) ? statsStr.data() : "");
-		placeFrameStatsText();
+		placeFrameStatsText(r);
 	}
 
 	// run frame
@@ -164,30 +164,30 @@ void TestFramework::frameUpdate(Base::Screen &screen, Base::FrameTimeBase timest
 	continuousFrames++;
 }
 
-void TestFramework::draw()
+void TestFramework::draw(Gfx::Renderer &r)
 {
 	using namespace Gfx;
-	drawTest();
+	drawTest(r);
 	if(strlen(cpuStatsStr.data()))
 	{
-		noTexProgram.use();
-		setBlendMode(BLEND_MODE_ALPHA);
-		setColor(0., 0., 0., .7);
-		GeomRect::draw(cpuStatsRect);
-		setColor(1., 1., 1., 1.);
-		texAlphaProgram.use();
-		cpuStatsText.draw(projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
+		r.noTexProgram.use(r);
+		r.setBlendMode(BLEND_MODE_ALPHA);
+		r.setColor(0., 0., 0., .7);
+		GeomRect::draw(r, cpuStatsRect);
+		r.setColor(1., 1., 1., 1.);
+		r.texAlphaProgram.use(r);
+		cpuStatsText.draw(r, projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
 	}
 	if(strlen(frameStatsStr.data()))
 	{
-		noTexProgram.use();
-		setBlendMode(BLEND_MODE_ALPHA);
-		setColor(0., 0., 0., .7);
-		GeomRect::draw(frameStatsRect);
-		setColor(1., 1., 1., 1.);
-		texAlphaProgram.use();
-		frameStatsText.draw(projP.alignXToPixel(frameStatsRect.x + TableView::globalXIndent),
+		r.noTexProgram.use(r);
+		r.setBlendMode(BLEND_MODE_ALPHA);
+		r.setColor(0., 0., 0., .7);
+		GeomRect::draw(r, frameStatsRect);
+		r.setColor(1., 1., 1., 1.);
+		r.texAlphaProgram.use(r);
+		frameStatsText.draw(r, projP.alignXToPixel(frameStatsRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(frameStatsRect.yCenter()), LC2DO, projP);
 	}
 }
@@ -204,32 +204,31 @@ void ClearTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameT
 	flash ^= true;
 }
 
-void ClearTest::drawTest()
+void ClearTest::drawTest(Gfx::Renderer &r)
 {
-	using namespace Gfx;
 	if(flash)
 	{
 		if(!droppedFrames)
-			setClearColor(.7, .7, .7);
+			r.setClearColor(.7, .7, .7);
 		else if(droppedFrames % 2 == 0)
-			setClearColor(.7, .7, .0);
+			r.setClearColor(.7, .7, .0);
 		else
-			setClearColor(.7, .0, .0);
+			r.setClearColor(.7, .0, .0);
 	}
 	else
 	{
-		setClearColor(0, 0, 0);
+		r.setClearColor(0, 0, 0);
 	}
-	Gfx::clear();
+	r.clear();
 }
 
-void DrawTest::initTest(IG::WP pixmapSize)
+void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 {
 	pixmap = {{pixmapSize, IG::PIXEL_FMT_RGB565}};
 	memset(pixmap.pixel({}), 0xFF, pixmap.pixelBytes());
 	Gfx::TextureConfig texConf{pixmap};
 	texConf.setWillWriteOften(true);
-	if(texture.init(texConf) != OK)
+	if(texture.init(r, texConf) != OK)
 	{
 		bug_exit("cannot init test texture");
 	}
@@ -237,7 +236,7 @@ void DrawTest::initTest(IG::WP pixmapSize)
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	sprite.init({}, texture);
-	Gfx::TextureSampler::initDefaultNoMipClampSampler();
+	Gfx::TextureSampler::initDefaultNoMipClampSampler(r);
 }
 
 void DrawTest::placeTest(const Gfx::GCRect &rect)
@@ -256,33 +255,33 @@ void DrawTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTi
 	flash ^= true;
 }
 
-void DrawTest::drawTest()
+void DrawTest::drawTest(Gfx::Renderer &r)
 {
 	using namespace Gfx;
-	Gfx::clear();
-	setBlendMode(Gfx::BLEND_MODE_OFF);
-	Gfx::TextureSampler::bindDefaultNoMipClampSampler();
+	r.clear();
+	r.setBlendMode(Gfx::BLEND_MODE_OFF);
+	Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
 	sprite.useDefaultProgram(IMG_MODE_MODULATE);
 	if(flash)
 	{
 		if(!droppedFrames)
-			setColor(.7, .7, .7, 1.);
+			r.setColor(.7, .7, .7, 1.);
 		else if(droppedFrames % 2 == 0)
-			setColor(.7, .7, .0, 1.);
+			r.setColor(.7, .7, .0, 1.);
 		else
-			setColor(.7, .0, .0, 1.);
+			r.setColor(.7, .0, .0, 1.);
 	}
 	else
-		setColor(0., 0., 0., 1.);
-	sprite.draw();
+		r.setColor(0., 0., 0., 1.);
+	sprite.draw(r);
 }
 
-void WriteTest::drawTest()
+void WriteTest::drawTest(Gfx::Renderer &r)
 {
 	using namespace Gfx;
-	Gfx::clear();
-	setBlendMode(Gfx::BLEND_MODE_OFF);
-	Gfx::TextureSampler::bindDefaultNoMipClampSampler();
+	r.clear();
+	r.setBlendMode(Gfx::BLEND_MODE_OFF);
+	Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
 	sprite.useDefaultProgram(IMG_MODE_REPLACE);
 	if(flash)
 	{
@@ -303,5 +302,5 @@ void WriteTest::drawTest()
 		memset(pixmap.pixel({}), 0, pixmap.pitchBytes() * pixmap.h());
 	}
 	texture.write(0, pixmap, {});
-	sprite.draw();
+	sprite.draw(r);
 }

@@ -85,11 +85,11 @@ public:
 
 	Mat4 makeTranslate(IG::Point2D<float> p) const;
 	Mat4 makeTranslate() const;
-	void loadTranslate(GC x, GC y) const { Gfx::loadTranslate(x, y, focal); }
-	void loadTranslate(GP p) const { loadTranslate(p.x, p.y); }
-	void resetTransforms() const
+	void loadTranslate(Gfx::Renderer &r, GC x, GC y) const { r.loadTranslate(x, y, focal); }
+	void loadTranslate(Gfx::Renderer &r, GP p) const { loadTranslate(r, p.x, p.y); }
+	void resetTransforms(Gfx::Renderer &r) const
 	{
-		loadTranslate(0., 0.);
+		loadTranslate(r, 0., 0.);
 	}
 };
 

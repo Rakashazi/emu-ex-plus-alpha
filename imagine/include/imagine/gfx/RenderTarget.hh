@@ -31,11 +31,10 @@ private:
 public:
 	void init();
 	void deinit();
-	void setFormat(IG::PixmapDesc pix);
+	void setFormat(Renderer &r, IG::PixmapDesc pix);
 	Texture &texture() { return tex; };
-	void setCurrent();
+	GLuint id() const { return fbo; }
 	explicit operator bool() const;
-	static void setDefaultCurrent();
 };
 
 }

@@ -24,6 +24,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
 #include <system_error>
@@ -123,7 +124,7 @@ public:
 	static CallResult onInit();
 	static void onMainWindowCreated(Base::Window &win);
 	static void onCustomizeNavView(EmuNavView &view);
-	static View *makeView(Base::Window &win, ViewID id);
+	static View *makeView(ViewAttachParams attach, ViewID id);
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static bool isPaused() { return state == State::PAUSED; }
@@ -163,6 +164,7 @@ public:
 	typedef DelegateFunc<void (uint result, Input::Event e)> LoadGameCompleteDelegate;
 	static LoadGameCompleteDelegate loadGameCompleteDel;
 	static LoadGameCompleteDelegate &onLoadGameComplete() { return loadGameCompleteDel; }
+	static YesNoAlertView *makeYesNoAlertView(const char *label, const char *choice1 = {}, const char *choice2 = {});
 	[[gnu::hot]] static void runFrame(bool renderGfx, bool processGfx, bool renderAudio);
 	static bool vidSysIsPAL();
 	static double frameTime();

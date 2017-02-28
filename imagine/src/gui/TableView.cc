@@ -26,12 +26,12 @@
 
 Gfx::GC TableView::globalXIndent{};
 
-TableView::TableView(Base::Window &win, ItemsDelegate items, ItemDelegate item):
-	ScrollView{win}, items{items}, item{item}
+TableView::TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
+	ScrollView{attach}, items{items}, item{item}
 {}
 
-TableView::TableView(const char *name, Base::Window &win, ItemsDelegate items, ItemDelegate item):
-	ScrollView{name, win}, items{items}, item{item}
+TableView::TableView(const char *name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
+	ScrollView{name, attach}, items{items}, item{item}
 {}
 
 void TableView::highlightCell(int idx)
@@ -57,6 +57,7 @@ void TableView::draw()
 	if(!cells_)
 		return;
 	using namespace Gfx;
+	auto &r = renderer();
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
 	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
@@ -72,7 +73,7 @@ void TableView::draw()
 
 	// draw separators
 	int yStart = y;
-	noTexProgram.use(projP.makeTranslate());
+	r.noTexProgram.use(r, projP.makeTranslate());
 	int selectedCellY = INT_MAX;
 	{
 		StaticArrayList<std::array<ColVertex, 4>, 80> vRect;
@@ -106,22 +107,22 @@ void TableView::draw()
 		}
 		if(vRect.size())
 		{
-			setBlendMode(0);
-			setColor(COLOR_WHITE);
-			drawQuads(&vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
+			r.setBlendMode(0);
+			r.setColor(COLOR_WHITE);
+			drawQuads(r, &vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
 		}
 	}
 
 	// draw scroll bar
-	ScrollView::drawScrollContent();
+	ScrollView::drawScrollContent(r);
 
 	// draw selected rectangle
 	if(selectedCellY != INT_MAX)
 	{
-		setBlendMode(BLEND_MODE_ALPHA);
-		setColor(.2, .71, .9, 1./3.);
+		r.setBlendMode(BLEND_MODE_ALPHA);
+		r.setColor(.2, .71, .9, 1./3.);
 		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {viewRect().xSize(), yCellSize-1});
-		GeomRect::draw(rect, projP);
+		GeomRect::draw(r, rect, projP);
 	}
 
 	// draw elements
@@ -129,7 +130,7 @@ void TableView::draw()
 	for(int i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});
-		drawElement(i, item(*this, i), projP.unProjectRect(rect));
+		drawElement(r, i, item(*this, i), projP.unProjectRect(rect));
 		y += yCellSize;
 	}
 }
@@ -140,7 +141,7 @@ void TableView::place()
 	iterateTimes(cells_, i)
 	{
 		//logMsg("compile item %d", i);
-		item(*this, i).compile(projP);
+		item(*this, i).compile(renderer(), projP);
 	}
 	if(cells_)
 	{
@@ -359,11 +360,11 @@ bool TableView::handleTableInput(Input::Event e)
 	return movedSelected;
 }
 
-void TableView::drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const
+void TableView::drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
-	setColor(COLOR_WHITE);
-	item.draw(rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
+	r.setColor(COLOR_WHITE);
+	item.draw(r, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
 }
 
 void TableView::onSelectElement(Input::Event e, uint i, MenuItem &item)

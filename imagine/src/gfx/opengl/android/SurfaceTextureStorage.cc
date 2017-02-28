@@ -15,18 +15,17 @@
 
 #define LOGTAG "SurfaceTexStorage"
 #include "SurfaceTextureStorage.hh"
-#include "../GLStateCache.hh"
 #include "../private.hh"
 #include "../../../base/android/android.hh"
 
 namespace Gfx
 {
 
-static void updateTexImage(JNIEnv *env, jobject surfaceTex, GLuint tex)
+static void updateTexImage(JNIEnv *env, jobject surfaceTex, Renderer &r, GLuint tex)
 {
 	Base::updateSurfaceTextureImage(env, surfaceTex);
 	// texture implicitly bound in updateTexImage()
-	glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = tex;
+	r.glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = tex;
 }
 
 SurfaceTextureStorage::~SurfaceTextureStorage()
@@ -50,15 +49,14 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 	}
 }
 
-CallResult SurfaceTextureStorage::init(GLuint tex)
+SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, std::system_error &err)
 {
 	using namespace Base;
-	if(!useExternalEGLImages)
+	if(!r.support.hasExternalEGLImages)
 	{
-		logMsg("can't init without OES_EGL_image_external extension");
-		return UNSUPPORTED_OPERATION;
+		err = {{EOPNOTSUPP, std::system_category()}, "can't init without OES_EGL_image_external extension"};
+		return;
 	}
-	*this = {};
 	auto env = jEnv();
 	auto localSurfaceTex = makeSurfaceTexture(env, tex, true);
 	if(!localSurfaceTex)
@@ -69,56 +67,51 @@ CallResult SurfaceTextureStorage::init(GLuint tex)
 	}
 	else
 	{
-		updateTexImage(env, localSurfaceTex, tex);
+		updateTexImage(env, localSurfaceTex, r, tex);
 		singleBuffered = true;
 	}
 	if(!localSurfaceTex)
 	{
-		logErr("SurfaceTexture ctor failed with texture:0x%X", tex);
-		*this = {};
-		return INVALID_PARAMETER;
+		err = {{EINVAL, std::system_category()}, "SurfaceTexture ctor failed"};
+		return;
 	}
 	logMsg("created%sSurfaceTexture with texture:0x%X",
 		singleBuffered ? " " : " buffered ", tex);
 	auto localSurface = makeSurface(env, localSurfaceTex);
 	if(!localSurface)
 	{
-		logErr("Surface ctor failed");
-		*this = {};
-		return INVALID_PARAMETER;
+		err = {{EINVAL, std::system_category()}, "Surface ctor failed"};
+		return;
 	}
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
 	if(!nativeWin)
 	{
-		logErr("ANativeWindow_fromSurface failed");
-		*this = {};
-		return INVALID_PARAMETER;
+		err = {{EINVAL, std::system_category()}, "ANativeWindow_fromSurface failed"};
+		return;
 	}
 	logMsg("native window:%p from Surface:%p", nativeWin, localSurface);
 	surfaceTex = env->NewGlobalRef(localSurfaceTex);
 	surface = env->NewGlobalRef(localSurface);
-	return OK;
+	err = {{}};
 }
 
-CallResult SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, GLuint tex)
+std::system_error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint tex)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
 	if(!winFormat)
 	{
-		logErr("pixel format not usable");
-		return INVALID_PARAMETER;
+		return {{EINVAL, std::system_category()}, "pixel format not usable"};
 	}
 	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0)
 	{
-		logErr("ANativeWindow_setBuffersGeometry failed");
-		return INVALID_PARAMETER;
+		return {{EINVAL, std::system_category()}, "ANativeWindow_setBuffersGeometry failed"};
 	}
 	bpp = desc.format().bytesPerPixel();
-	return OK;
+	return {{}};
 }
 
-SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(IG::WindowRect *dirtyRect)
+SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &, IG::WindowRect *dirtyRect)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -158,7 +151,7 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(IG::WindowRect *dirtyR
 	return buff;
 }
 
-void SurfaceTextureStorage::unlock(GLuint tex)
+void SurfaceTextureStorage::unlock(Renderer &r, GLuint tex)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -167,7 +160,7 @@ void SurfaceTextureStorage::unlock(GLuint tex)
 		return;
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
-	updateTexImage(jEnv(), surfaceTex, tex);
+	updateTexImage(jEnv(), surfaceTex, r, tex);
 }
 
 bool SurfaceTextureStorage::isRendererBlacklisted(const char *rendererStr)

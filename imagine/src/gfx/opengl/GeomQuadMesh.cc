@@ -76,12 +76,12 @@ void GeomQuadMesh::deinit()
 	}
 }
 
-void GeomQuadMesh::draw()
+void GeomQuadMesh::draw(Renderer &r)
 {
-	bindTempVertexBuffer();
-	vertexBufferData(v.arr, sizeof(ColVertex) * verts);
-	ColVertex::bindAttribs(v.arr);
-	drawPrimitiveElements(Primitive::TRIANGLE, i, idxs);
+	r.bindTempVertexBuffer();
+	r.vertexBufferData(v.arr, sizeof(ColVertex) * verts);
+	ColVertex::bindAttribs(r, v.arr);
+	r.drawPrimitiveElements(Primitive::TRIANGLE, i, idxs);
 }
 
 void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)

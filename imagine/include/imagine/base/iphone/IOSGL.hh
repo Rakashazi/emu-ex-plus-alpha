@@ -71,5 +71,6 @@ struct GLBufferConfig
 
 using GLDrawableImpl = EAGLViewDrawable;
 using GLContextImpl = IOSGLContext;
+using NativeGLContext = void *; // EAGLContext in ObjC
 
 }

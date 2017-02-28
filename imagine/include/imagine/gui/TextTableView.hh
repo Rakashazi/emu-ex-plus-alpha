@@ -26,8 +26,8 @@ class TextTableView : public TableView
 public:
 	int activeItem = -1;
 
-	TextTableView(Base::Window &win, uint itemsHint);
-	TextTableView(const char *name, Base::Window &win, uint itemsHint);
+	TextTableView(ViewAttachParams attach, uint itemsHint);
+	TextTableView(const char *name, ViewAttachParams attach, uint itemsHint);
 	void appendItem(const char *name, TextMenuItem::SelectDelegate del);
 	template<class C>
 	void appendItem(const char *name, C &&del) { appendItem(name, TextMenuItem::wrapSelectDelegate(del)); }
@@ -35,7 +35,7 @@ public:
 	TextMenuItem &item(uint idx);
 	void setItems(uint items);
 	void onAddedToController(Input::Event e) override;
-	void drawElement(uint i, MenuItem &item, Gfx::GCRect rect) const override;
+	void drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const override;
 
 protected:
 	std::vector<TextMenuItem> textItem{};

@@ -27,13 +27,13 @@ public:
 	bool redText{};
 
 	TestTableEntry(SelectDelegate selectDel): DualTextMenuItem{testStr.data(), nullptr, selectDel} {}
-	void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 };
 
 class TestPicker : public TableView
 {
 public:
-	TestPicker(Base::Window &win);
+	TestPicker(ViewAttachParams attach);
 	void setTests(const TestParams *testParams, uint tests);
 
 private:

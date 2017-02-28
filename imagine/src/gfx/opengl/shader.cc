@@ -21,9 +21,6 @@ namespace Gfx
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 
-GLSLProgram *currProgram{};
-static GLuint defaultVShader = 0;
-
 static const char *vShaderSrc =
 "in vec4 pos; "
 "in vec4 color; "
@@ -118,16 +115,18 @@ static const char *noTexFragShaderSrc =
 "}"
 ;
 
-GLuint makeProgram(GLuint vShader, GLuint fShader)
+GLuint GLRenderer::makeProgram(GLuint vShader, GLuint fShader)
 {
+	verifyCurrentContext();
 	auto program = glCreateProgram();
 	glAttachShader(program, vShader);
 	glAttachShader(program, fShader);
 	return program;
 }
 
-bool linkProgram(GLuint program)
+bool GLRenderer::linkProgram(GLuint program)
 {
+	verifyCurrentContext();
 	glLinkProgram(program);
 	GLint success;
 	glGetProgramiv(program, GL_LINK_STATUS, &success);
@@ -143,11 +142,11 @@ bool linkProgram(GLuint program)
 	return true;
 }
 
-bool GLSLProgram::init(Shader vShader, Shader fShader, bool hasColor, bool hasTex)
+bool GLSLProgram::init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
 {
 	if(program_)
 		deinit();
-	program_ = makeProgram(vShader, fShader);
+	program_ = r.makeProgram(vShader, fShader);
 	glBindAttribLocation(program_, VATTR_POS, "pos");
 	handleGLErrors([](GLenum, const char *err) { logErr("%s in glBindAttribLocation pos", err); });
 	if(hasColor)
@@ -175,17 +174,17 @@ void GLSLProgram::deinit()
 	}
 }
 
-bool GLSLProgram::link()
+bool GLSLProgram::link(Renderer &r)
 {
-	if(!linkProgram(program_))
+	if(!r.linkProgram(program_))
 		return false;
 	initUniforms();
 	return true;
 }
 
-bool Program::init(Shader vShader, Shader fShader, bool hasColor, bool hasTex)
+bool Program::init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
 {
-	return GLSLProgram::init(vShader, fShader, hasColor, hasTex);
+	return GLSLProgram::init(r, vShader, fShader, hasColor, hasTex);
 }
 
 void Program::deinit()
@@ -193,9 +192,9 @@ void Program::deinit()
 	GLSLProgram::deinit();
 }
 
-bool Program::link()
+bool Program::link(Renderer &r)
 {
-	return GLSLProgram::link();
+	return GLSLProgram::link(r);
 }
 
 int Program::uniformLocation(const char *uniformName)
@@ -214,20 +213,21 @@ void GLSLProgram::initUniforms()
 	handleGLErrors([](GLenum, const char *err) { logErr("%s in glGetUniformLocation modelview", err); });
 }
 
-void TexProgram::init(GLuint vShader, GLuint fShader)
+void TexProgram::init(Renderer &r, GLuint vShader, GLuint fShader)
 {
-	GLSLProgram::init(vShader, fShader, true, true);
-	link();
+	GLSLProgram::init(r, vShader, fShader, true, true);
+	link(r);
 }
 
-void ColorProgram::init(GLuint vShader, GLuint fShader)
+void ColorProgram::init(Renderer &r, GLuint vShader, GLuint fShader)
 {
-	GLSLProgram::init(vShader, fShader, true, false);
-	link();
+	GLSLProgram::init(r, vShader, fShader, true, false);
+	link(r);
 }
 
-static void setProgram(GLSLProgram &program, const Mat4 *modelMat)
+void GLRenderer::setProgram(GLSLProgram &program, bool updateModelViewTranform)
 {
+	verifyCurrentContext();
 	if(currProgram != &program)
 	{
 		//logMsg("setting program: %d", program.program());
@@ -235,31 +235,29 @@ static void setProgram(GLSLProgram &program, const Mat4 *modelMat)
 		glUseProgram(program.program());
 		currProgram = &program;
 		updateProgramProjectionTransform(program);
-		if(!modelMat)
+		if(updateModelViewTranform)
 			updateProgramModelViewTransform(program);
 		else
 		{
 			//logMsg("skipping model/view matrix sync");
 		}
 	}
-	if(modelMat)
-	{
-		loadTransform(*modelMat);
-	}
 }
 
-void setProgram(Program &program)
+void Renderer::setProgram(Program &program)
 {
-	setProgram((GLSLProgram&)program, nullptr);
+	GLRenderer::setProgram((GLSLProgram&)program, true);
 }
 
-void setProgram(Program &program, Mat4 modelMat)
+void Renderer::setProgram(Program &program, Mat4 modelMat)
 {
-	setProgram((GLSLProgram&)program, &modelMat);
+	GLRenderer::setProgram((GLSLProgram&)program, false);
+	loadTransform(modelMat);
 }
 
-Shader makeShader(const char **src, uint srcCount, uint type)
+Shader Renderer::makeShader(const char **src, uint srcCount, uint type)
 {
+	verifyCurrentContext();
 	auto shader = glCreateShader(type);
 	glShaderSource(shader, srcCount, src, nullptr);
 	glCompileShader(shader);
@@ -288,13 +286,13 @@ Shader makeShader(const char **src, uint srcCount, uint type)
 	return shader;
 }
 
-Shader makeShader(const char *src, uint type)
+Shader Renderer::makeShader(const char *src, uint type)
 {
 	const char *singleSrc[]{src};
 	return makeShader(singleSrc, 1, type);
 }
 
-Shader makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
+Shader Renderer::makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
 {
 	const uint srcCount = mainSrcCount + 2;
 	const char *src[srcCount];
@@ -315,7 +313,7 @@ Shader makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
 	{
 		"#define FRAGCOLOR_DEF out lowp vec4 FRAGCOLOR;\n"
 	};
-	bool legacyGLSL = useLegacyGLSL;
+	bool legacyGLSL = support.useLegacyGLSL;
 	src[0] = legacyGLSL ? "" : version;
 	if(type == GL_VERTEX_SHADER)
 		src[1] = legacyGLSL ? legacyVertDefs : "";
@@ -325,59 +323,61 @@ Shader makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
 	return makeShader(src, srcCount, type);
 }
 
-Shader makeCompatShader(const char *src, uint type)
+Shader Renderer::makeCompatShader(const char *src, uint type)
 {
 	const char *singleSrc[]{src};
 	return makeCompatShader(singleSrc, 1, type);
 }
 
-Shader makeDefaultVShader()
+Shader Renderer::makeDefaultVShader()
 {
 	if(!defaultVShader)
 		defaultVShader = makeCompatShader(vShaderSrc, GL_VERTEX_SHADER);
 	return defaultVShader;
 }
 
-void deleteShader(Shader shader)
+void Renderer::deleteShader(Shader shader)
 {
 	logMsg("deleting shader:%u", (uint)shader);
+	verifyCurrentContext();
 	assert(shader != defaultVShader);
 	glDeleteShader(shader);
 }
 
-void uniformF(int uniformLocation, float v1, float v2)
+void Renderer::uniformF(int uniformLocation, float v1, float v2)
 {
+	verifyCurrentContext();
 	glUniform2f(uniformLocation, v1, v2);
 }
 
-void initShaders()
+void initShaders(Renderer &r)
 {
-	setColor(COLOR_WHITE);
+	r.setColor(COLOR_WHITE);
 	glEnableVertexAttribArray(VATTR_POS);
 	handleGLErrors([](GLenum, const char *err) { logErr("%s in glEnableVertexAttribArray VATTR_POS", err); });
 }
 
 template <class T>
-static bool compileDefaultProgram(T &prog, const char **fragSrc, uint fragSrcCount)
+static bool compileDefaultProgram(Renderer &r, T &prog, const char **fragSrc, uint fragSrcCount)
 {
 	assert(fragSrc);
-	auto vShader = makeDefaultVShader();
+	auto vShader = r.makeDefaultVShader();
 	assert(vShader);
-	auto fShader = makeCompatShader(fragSrc, fragSrcCount, GL_FRAGMENT_SHADER);
+	auto fShader = r.makeCompatShader(fragSrc, fragSrcCount, GL_FRAGMENT_SHADER);
 	if(!fShader)
 	{
 		return false;
 	}
-	prog.init(vShader, fShader);
+	prog.init(r, vShader, fShader);
 	assert(prog.program());
 	return true;
 }
 
 template <class T>
-static bool compileDefaultProgram(T &prog, const char *fragSrc)
+static bool compileDefaultProgram(Renderer &r, T &prog, const char *fragSrc)
 {
 	const char *singleSrc[]{fragSrc};
-	return compileDefaultProgram(prog, singleSrc, 1);
+	return compileDefaultProgram(r, prog, singleSrc, 1);
 }
 
 #else
@@ -403,169 +403,174 @@ void deleteShader(Shader shader) {}
 
 #endif
 
-DefaultTexReplaceProgram texReplaceProgram;
-DefaultTexAlphaReplaceProgram texAlphaReplaceProgram;
-DefaultTexReplaceProgram &texIntensityAlphaReplaceProgram = texReplaceProgram;
-DefaultTexExternalReplaceProgram texExternalReplaceProgram;
-
-DefaultTexProgram texProgram;
-DefaultTexAlphaProgram texAlphaProgram;
-DefaultTexProgram &texIntensityAlphaProgram = texProgram;
-DefaultTexExternalProgram texExternalProgram;
-DefaultColorProgram noTexProgram;
-
-bool DefaultTexProgram::compile()
+bool DefaultTexProgram::compile(Renderer &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
 	logMsg("making texture program");
-	compileDefaultProgram(*this, texFragShaderSrc);
+	compileDefaultProgram(r, *this, texFragShaderSrc);
 	return true;
 	#else
 	return false;
 	#endif
 };
 
-void DefaultTexProgram::use(const Mat4 *modelMat)
+void DefaultTexProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
-		glcEnable(GL_TEXTURE_2D);
-		setImgMode(IMG_MODE_MODULATE);
+		r.glcEnable(GL_TEXTURE_2D);
+		r.setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
-			loadTransform(*modelMat);
+			r.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	setProgram(*this, modelMat);
+	if(modelMat)
+		r.setProgram(*(Program*)this, *modelMat);
+	else
+		r.setProgram(*(Program*)this);
 	#endif
 }
 
-bool DefaultTexReplaceProgram::compile()
+bool DefaultTexReplaceProgram::compile(Renderer &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
 	logMsg("making texture program (replace mode)");
-	compileDefaultProgram(*this, texReplaceFragShaderSrc);
+	compileDefaultProgram(r, *this, texReplaceFragShaderSrc);
 	return true;
 	#else
 	return false;
 	#endif
 };
 
-void DefaultTexReplaceProgram::use(const Mat4 *modelMat)
+void DefaultTexReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
-		glcEnable(GL_TEXTURE_2D);
-		setImgMode(IMG_MODE_REPLACE);
+		r.glcEnable(GL_TEXTURE_2D);
+		r.setImgMode(IMG_MODE_REPLACE);
 		if(modelMat)
-			loadTransform(*modelMat);
+			r.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	setProgram(*this, modelMat);
+	if(modelMat)
+		r.setProgram(*(Program*)this, *modelMat);
+	else
+		r.setProgram(*(Program*)this);
 	#endif
 }
 
-bool DefaultTexAlphaReplaceProgram::compile()
+bool DefaultTexAlphaReplaceProgram::compile(Renderer &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
-	if(useTextureSwizzle)
+	if(r.support.hasTextureSwizzle)
 	{
-		auto compiled = texProgram.compile();
-		impl = &texProgram;
+		auto compiled = r.texProgram.compile(r);
+		impl = &r.texProgram;
 		return compiled;
 	}
 	logMsg("making alpha-only texture program (replace mode)");
-	compileDefaultProgram(*this, texAlphaReplaceFragShaderSrc);
+	compileDefaultProgram(r, *this, texAlphaReplaceFragShaderSrc);
 	return true;
 	#else
 	return false;
 	#endif
 };
 
-void DefaultTexAlphaReplaceProgram::use(const Mat4 *modelMat)
+void DefaultTexAlphaReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
-		glcEnable(GL_TEXTURE_2D);
-		setImgMode(IMG_MODE_REPLACE);
+		r.glcEnable(GL_TEXTURE_2D);
+		r.setImgMode(IMG_MODE_REPLACE);
 		if(modelMat)
-			loadTransform(*modelMat);
+			r.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(impl)
-		impl->use(modelMat);
+		impl->use(r, modelMat);
 	else
-		setProgram(*this, modelMat);
+	{
+		if(modelMat)
+			r.setProgram(*(Program*)this, *modelMat);
+		else
+			r.setProgram(*(Program*)this);
+	}
 	#endif
 }
 
-bool DefaultTexAlphaProgram::compile()
+bool DefaultTexAlphaProgram::compile(Renderer &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
-	if(useTextureSwizzle)
+	if(r.support.hasTextureSwizzle)
 	{
-		auto compiled = texProgram.compile();
-		impl = &texProgram;
+		auto compiled = r.texProgram.compile(r);
+		impl = &r.texProgram;
 		return compiled;
 	}
 	logMsg("making alpha-only texture program");
-	compileDefaultProgram(*this, texAlphaFragShaderSrc);
+	compileDefaultProgram(r, *this, texAlphaFragShaderSrc);
 	return true;
 	#else
 	return false;
 	#endif
 };
 
-void DefaultTexAlphaProgram::use(const Mat4 *modelMat)
+void DefaultTexAlphaProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
-		glcEnable(GL_TEXTURE_2D);
-		setImgMode(IMG_MODE_MODULATE);
+		r.glcEnable(GL_TEXTURE_2D);
+		r.setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
-			loadTransform(*modelMat);
+			r.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(impl)
-		impl->use(modelMat);
+		impl->use(r, modelMat);
 	else
-		setProgram(*this, modelMat);
+	{
+		if(modelMat)
+			r.setProgram(*(Program*)this, *modelMat);
+		else
+			r.setProgram(*(Program*)this);
+	}
 	#endif
 }
 
-bool DefaultTexExternalReplaceProgram::compile()
+bool DefaultTexExternalReplaceProgram::compile(Renderer &r)
 {
 	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
 	assert(Base::androidSDK() >= 14);
 	logMsg("making external texture program (replace mode)");
-	compileDefaultProgram(*this, texExternalReplaceFragShaderSrc);
+	compileDefaultProgram(r, *this, texExternalReplaceFragShaderSrc);
 	if(!program())
 	{
 		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 		const char *fragSrc[]{"#define texture2D texture\n", texExternalReplaceFragShaderSrc};
-		compileDefaultProgram(*this, fragSrc, IG::size(fragSrc));
+		compileDefaultProgram(r, *this, fragSrc, IG::size(fragSrc));
 	}
 	return true;
 	#else
@@ -573,34 +578,37 @@ bool DefaultTexExternalReplaceProgram::compile()
 	#endif
 };
 
-void DefaultTexExternalReplaceProgram::use(const Mat4 *modelMat)
+void DefaultTexExternalReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
 		bug_exit("external texture program not supported");
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	setProgram(*this, modelMat);
+	if(modelMat)
+		r.setProgram(*(Program*)this, *modelMat);
+	else
+		r.setProgram(*(Program*)this);
 	#endif
 }
 
-bool DefaultTexExternalProgram::compile()
+bool DefaultTexExternalProgram::compile(Renderer &r)
 {
 	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
 	assert(Base::androidSDK() >= 14);
 	logMsg("making external texture program");
-	compileDefaultProgram(*this, texExternalFragShaderSrc);
+	compileDefaultProgram(r, *this, texExternalFragShaderSrc);
 	if(!program())
 	{
 		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 		const char *fragSrc[]{"#define texture2D texture\n", texExternalFragShaderSrc};
-		compileDefaultProgram(*this, fragSrc, IG::size(fragSrc));
+		compileDefaultProgram(r, *this, fragSrc, IG::size(fragSrc));
 	}
 	return true;
 	#else
@@ -608,47 +616,53 @@ bool DefaultTexExternalProgram::compile()
 	#endif
 };
 
-void DefaultTexExternalProgram::use(const Mat4 *modelMat)
+void DefaultTexExternalProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
 		bug_exit("external texture program not supported");
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	setProgram(*this, modelMat);
+	if(modelMat)
+		r.setProgram(*(Program*)this, *modelMat);
+	else
+		r.setProgram(*(Program*)this);
 	#endif
 }
 
-bool DefaultColorProgram::compile()
+bool DefaultColorProgram::compile(Renderer &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || useFixedFunctionPipeline)
+	if(program() || r.support.useFixedFunctionPipeline)
 		return false;
 	logMsg("making color shaded program");
-	compileDefaultProgram(*this, noTexFragShaderSrc);
+	compileDefaultProgram(r, *this, noTexFragShaderSrc);
 	return true;
 	#else
 	return false;
 	#endif
 };
 
-void DefaultColorProgram::use(const Mat4 *modelMat)
+void DefaultColorProgram::use(Renderer &r, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline)
 	{
-		glcDisable(GL_TEXTURE_2D);
-		setImgMode(IMG_MODE_MODULATE);
+		r.glcDisable(GL_TEXTURE_2D);
+		r.setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
-			loadTransform(*modelMat);
+			r.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	setProgram(*this, modelMat);
+	if(modelMat)
+		r.setProgram(*(Program*)this, *modelMat);
+	else
+		r.setProgram(*(Program*)this);
 	#endif
 }
 

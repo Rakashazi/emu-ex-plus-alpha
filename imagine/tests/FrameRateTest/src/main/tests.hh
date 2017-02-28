@@ -66,16 +66,16 @@ public:
 
 	constexpr TestFramework() {}
 	virtual ~TestFramework() {}
-	virtual void initTest(IG::Point2D<int> pixmapSize) {}
+	virtual void initTest(Gfx::Renderer &r, IG::Point2D<int> pixmapSize) {}
 	virtual void placeTest(const Gfx::GCRect &testRect) {}
 	virtual void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) = 0;
 	virtual void deinitTest() {}
-	virtual void drawTest() = 0;
-	void init(IG::Point2D<int> pixmapSize);
+	virtual void drawTest(Gfx::Renderer &r) = 0;
+	void init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize);
 	void deinit();
-	void place(const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
-	void frameUpdate(Base::Screen &screen, Base::FrameTimeBase timestamp);
-	void draw();
+	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
+	void frameUpdate(Gfx::Renderer &r, Base::Screen &screen, Base::FrameTimeBase timestamp);
+	void draw(Gfx::Renderer &r);
 	void finish(Base::FrameTimeBase frameTime);
 	void setCPUFreqText(const char *str);
 	void setCPUUseText(const char *str);
@@ -96,8 +96,8 @@ protected:
 	uint lostFrameProcessTime = 0;
 	uint lostFramePresentTime = 0;
 
-	void placeCPUStatsText();
-	void placeFrameStatsText();
+	void placeCPUStatsText(Gfx::Renderer &r);
+	void placeFrameStatsText(Gfx::Renderer &r);
 };
 
 class ClearTest : public TestFramework
@@ -109,7 +109,7 @@ public:
 	ClearTest() {}
 
 	void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) override;
-	void drawTest() override;
+	void drawTest(Gfx::Renderer &r) override;
 };
 
 class DrawTest : public TestFramework
@@ -123,11 +123,11 @@ protected:
 public:
 	DrawTest() {}
 
-	void initTest(IG::WP pixmapSize) override;
+	void initTest(Gfx::Renderer &r, IG::WP pixmapSize) override;
 	void placeTest(const Gfx::GCRect &rect) override;
 	void deinitTest() override;
 	void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) override;
-	void drawTest() override;
+	void drawTest(Gfx::Renderer &r) override;
 };
 
 class WriteTest : public DrawTest
@@ -135,8 +135,8 @@ class WriteTest : public DrawTest
 public:
 	WriteTest() {}
 
-	void drawTest() override;
+	void drawTest(Gfx::Renderer &r) override;
 };
 
-TestFramework *startTest(Base::Window &win, const TestParams &t);
+TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t);
 const char *testIDToStr(TestID id);

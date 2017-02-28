@@ -38,8 +38,8 @@ extern BluetoothAdapter *bta;
 class ResetAlertView : public BaseAlertView
 {
 public:
-	ResetAlertView(Base::Window &win, const char *label):
-		BaseAlertView(win, label,
+	ResetAlertView(ViewAttachParams attach, const char *label):
+		BaseAlertView(attach, label,
 			[this](const TableView &)
 			{
 				return 3;
@@ -160,13 +160,13 @@ static auto onScanStatus =
 		}
 	};
 
-static void handledFailedBTAdapterInit(Input::Event e)
+static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
 {
 	popup.postError("Unable to initialize Bluetooth adapter");
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	if(!FS::exists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 	{
-		auto &ynAlertView = *new YesNoAlertView{mainWin.win, "BTstack not found, open Cydia and install?"};
+		auto &ynAlertView = *new YesNoAlertView{attach, "BTstack not found, open Cydia and install?"};
 		ynAlertView.setOnYes(
 			[](TextMenuItem &, View &view, Input::Event)
 			{
@@ -190,7 +190,7 @@ void MenuView::onShow()
 	saveState.setActive(EmuSystem::gameIsRunning());
 	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot));
 	stateSlotText[12] = saveSlotChar(EmuSystem::saveStateSlot);
-	stateSlot.compile(projP);
+	stateSlot.compile(renderer(), projP);
 	screenshot.setActive(EmuSystem::gameIsRunning());
 	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	addLauncherIcon.setActive(EmuSystem::gameIsRunning());
@@ -246,14 +246,14 @@ void MenuView::loadStandardItems()
 	item.emplace_back(&exitApp);
 }
 
-MenuView::MenuView(Base::Window &win, bool customMenu):
-	TableView{appViewTitle(), win, item},
+MenuView::MenuView(ViewAttachParams attach, bool customMenu):
+	TableView{appViewTitle(), attach, item},
 	loadGame
 	{
 		"Load Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &fPicker = *EmuFilePicker::makeForLoading(window());
+			auto &fPicker = *EmuFilePicker::makeForLoading(attachParams());
 			pushAndShow(fPicker, e, false);
 		}
 	},
@@ -264,7 +264,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &cheatsMenu = *EmuSystem::makeView(window(), EmuSystem::ViewID::LIST_CHEATS);
+				auto &cheatsMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::LIST_CHEATS);
 				viewStack.pushAndShow(cheatsMenu, e);
 			}
 		}
@@ -278,12 +278,12 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 			{
 				if(EmuSystem::hasResetModes)
 				{
-					auto &resetAlertView = *new ResetAlertView{window(), "Really Reset?"};
+					auto &resetAlertView = *new ResetAlertView{attachParams(), "Really Reset?"};
 					modalViewController.pushAndShow(resetAlertView, e);
 				}
 				else
 				{
-					auto &ynAlertView = *new YesNoAlertView{window(), "Really Reset?"};
+					auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really Reset?"};
 					ynAlertView.setOnYes(
 						[](TextMenuItem &, View &view, Input::Event e)
 						{
@@ -303,7 +303,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		{
 			if(item.active() && EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *new YesNoAlertView{window(), "Really Load State?"};
+				auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really Load State?"};
 				ynAlertView.setOnYes(
 					[](TextMenuItem &, View &view, Input::Event e)
 					{
@@ -327,7 +327,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		{
 			if(recentGameList.size())
 			{
-				auto &rMenu = *new RecentGameView{window()};
+				auto &rMenu = *new RecentGameView{attachParams()};
 				pushAndShow(rMenu, e);
 			}
 		}
@@ -337,7 +337,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"Bundled Games",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &bMenu = *new BundledGamesView{window()};
+			auto &bMenu = *new BundledGamesView{attachParams()};
 			pushAndShow(bMenu, e);
 		}
 	},
@@ -364,7 +364,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 				}
 				else
 				{
-					auto &ynAlertView = *new YesNoAlertView{window(), "Really Overwrite State?"};
+					auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really Overwrite State?"};
 					ynAlertView.setOnYes(
 						[](TextMenuItem &, View &view, Input::Event e)
 						{
@@ -381,7 +381,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		stateSlotText,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ssMenu = *new StateSlotView{window()};
+			auto &ssMenu = *new StateSlotView{attachParams()};
 			pushAndShow(ssMenu, e);
 		}
 	},
@@ -392,7 +392,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"Options",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &oMenu = *new OptionCategoryView{window()};
+			auto &oMenu = *new OptionCategoryView{attachParams()};
 			pushAndShow(oMenu, e);
 		}
 	},
@@ -401,7 +401,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"On-screen Input Setup",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &tcMenu = *new TouchConfigView{window(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName};
+			auto &tcMenu = *new TouchConfigView{attachParams(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName};
 			pushAndShow(tcMenu, e);
 		}
 	},
@@ -410,7 +410,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"Key/Gamepad Input Setup",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &menu = *new InputManagerView{window()};
+			auto &menu = *new InputManagerView{attachParams()};
 			pushAndShow(menu, e);
 		}
 	},
@@ -419,7 +419,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"Benchmark Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			modalViewController.pushAndShow(*EmuFilePicker::makeForBenchmarking(window()), e);
+			modalViewController.pushAndShow(*EmuFilePicker::makeForBenchmarking(attachParams()), e);
 		}
 	},
 	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
@@ -435,9 +435,9 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 					// shortcuts to bundled games not yet supported
 					return;
 				}
-				auto &textInputView = *new CollectTextInputView{window()};
+				auto &textInputView = *new CollectTextInputView{attachParams()};
 				textInputView.init("Shortcut Name", EmuSystem::fullGameName().data(),
-						getCollectTextCloseAsset());
+						getCollectTextCloseAsset(renderer()));
 				textInputView.onText() =
 					[this](CollectTextInputView &view, const char *str)
 					{
@@ -477,7 +477,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 			}
 			else
 			{
-				handledFailedBTAdapterInit(e);
+				handledFailedBTAdapterInit(attachParams(), e);
 			}
 			postDraw();
 		}
@@ -490,7 +490,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 			if(Bluetooth::devsConnected())
 			{
 				string_printf(bluetoothDisconnectStr, "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
-				auto &ynAlertView = *new YesNoAlertView{window(), bluetoothDisconnectStr.data()};
+				auto &ynAlertView = *new YesNoAlertView{attachParams(), bluetoothDisconnectStr.data()};
 				ynAlertView.setOnYes(
 					[](TextMenuItem &, View &view, Input::Event e)
 					{
@@ -535,7 +535,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 			}
 			else
 			{
-				handledFailedBTAdapterInit(e);
+				handledFailedBTAdapterInit(attachParams(), e);
 			}
 			postDraw();
 		}
@@ -546,7 +546,7 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 		"About",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &credits = *new CreditsView{EmuSystem::creditsViewStr, window()};
+			auto &credits = *new CreditsView{EmuSystem::creditsViewStr, attachParams()};
 			pushAndShow(credits, e);
 		}
 	},
@@ -585,15 +585,15 @@ MenuView::MenuView(Base::Window &win, bool customMenu):
 	}
 }
 
-OptionCategoryView::OptionCategoryView(Base::Window &win):
-	TableView{"Options", win, subConfig},
+OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
+	TableView{"Options", attach, subConfig},
 	subConfig
 	{
 		{
 			"Video",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(window(), EmuSystem::ViewID::VIDEO_OPTIONS);
+				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::VIDEO_OPTIONS);
 				viewStack.pushAndShow(oCategoryMenu, e);
 			}
 		},
@@ -601,7 +601,7 @@ OptionCategoryView::OptionCategoryView(Base::Window &win):
 			"Audio",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(window(), EmuSystem::ViewID::AUDIO_OPTIONS);
+				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::AUDIO_OPTIONS);
 				viewStack.pushAndShow(oCategoryMenu, e);
 			}
 		},
@@ -609,7 +609,7 @@ OptionCategoryView::OptionCategoryView(Base::Window &win):
 			"System",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(window(), EmuSystem::ViewID::SYSTEM_OPTIONS);
+				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::SYSTEM_OPTIONS);
 				viewStack.pushAndShow(oCategoryMenu, e);
 			}
 		},
@@ -617,7 +617,7 @@ OptionCategoryView::OptionCategoryView(Base::Window &win):
 			"GUI",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(window(), EmuSystem::ViewID::GUI_OPTIONS);
+				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::GUI_OPTIONS);
 				viewStack.pushAndShow(oCategoryMenu, e);
 			}
 		}
@@ -634,38 +634,36 @@ static void loadGameCompleteConfirmNoAutoLoadState(Input::Event e)
 	loadGameComplete(0, 0);
 }
 
-bool showAutoStateConfirm(Input::Event e, bool addToRecent);
-
-void loadGameCompleteFromRecentItem(uint result, Input::Event e)
+void loadGameCompleteFromRecentItem(Gfx::Renderer &r, uint result, Input::Event e)
 {
 	if(!result)
 		return;
 
-	if(!showAutoStateConfirm(e, false))
+	if(!showAutoStateConfirm(r, e, false))
 	{
 		loadGameComplete(1, 0);
 	}
 }
 
-void RecentGameInfo::handleMenuSelection(TextMenuItem &, Input::Event e)
+void RecentGameInfo::handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e)
 {
 	EmuSystem::onLoadGameComplete() =
-		[](uint result, Input::Event e)
+		[&r](uint result, Input::Event e)
 		{
-			loadGameCompleteFromRecentItem(result, e);
+			loadGameCompleteFromRecentItem(r, result, e);
 		};
 	auto res = EmuSystem::loadGameFromPath(path);
 	if(res == 1)
 	{
-		loadGameCompleteFromRecentItem(1, e);
+		loadGameCompleteFromRecentItem(r, 1, e);
 	}
 }
 
-RecentGameView::RecentGameView(Base::Window &win):
+RecentGameView::RecentGameView(ViewAttachParams attach):
 	TableView
 	{
 		"Recent Games",
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 1 + recentGame.size();
@@ -690,9 +688,9 @@ RecentGameView::RecentGameView(Base::Window &win):
 	for(auto &e : recentGameList)
 	{
 		recentGame.emplace_back(e.name.data(),
-			[&e](TextMenuItem &t, View &, Input::Event ev)
+			[&e](TextMenuItem &t, View &view, Input::Event ev)
 			{
-				e.handleMenuSelection(t,ev);
+				e.handleMenuSelection(view.renderer(), t, ev);
 			});
 		recentGame.back().setActive(FS::exists(e.path.data()));
 	}

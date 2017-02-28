@@ -44,8 +44,8 @@ private:
 	bool pointerUIIsInit();
 
 public:
-	ButtonConfigSetView(Base::Window &win, InputManagerView &rootIMView):
-		View{win}, rootIMView{rootIMView}
+	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView):
+		View{attach}, rootIMView{rootIMView}
 	{}
 	~ButtonConfigSetView();
 	IG::WindowRect &viewRect() override { return viewFrame; }
@@ -62,7 +62,7 @@ private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
 		using DualTextMenuItem::DualTextMenuItem;
-		void draw(Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+		void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	};
 
 	InputManagerView &rootIMView;
@@ -86,7 +86,7 @@ private:
 	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
 
 public:
-	ButtonConfigView(Base::Window &win, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
+	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
 	~ButtonConfigView() override;
 	void inputEvent(Input::Event e) override;
 };

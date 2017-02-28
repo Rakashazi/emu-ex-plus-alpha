@@ -173,6 +173,7 @@ public:
 	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
 	static void finishPresent(GLDisplay display, GLDrawable drawable);
 	static bool bindAPI(API api);
+	NativeGLContext nativeObject();
 };
 
 }

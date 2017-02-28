@@ -169,4 +169,4 @@ extern Byte1Option optionShowBundledGames;
 extern PathOption optionFirmwarePath;
 
 void initOptions();
-void setupFont();
+void setupFont(Gfx::Renderer &r);

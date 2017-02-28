@@ -32,10 +32,10 @@ static constexpr float SCROLL_DECEL = 1. * 60.;
 // over scroll animation velocity scale
 static constexpr float OVER_SCROLL_VEL_SCALE = .2 * 60.;
 
-ScrollView::ScrollView(Base::Window &win): ScrollView{"", win} {}
+ScrollView::ScrollView(ViewAttachParams attach): ScrollView{"", attach} {}
 
-ScrollView::ScrollView(const char *name, Base::Window &win):
-	View{name, win},
+ScrollView::ScrollView(const char *name, ViewAttachParams attach):
+	View{name, attach},
 	animate
 	{
 		[this](Base::Screen::FrameParams params)
@@ -129,25 +129,25 @@ void ScrollView::setContentSize(IG::WP size)
 	scrollBarRect.y2 = std::max(10, (int)(viewFrame.ySize() * (viewFrame.ySize() / (Gfx::GC)contentSize.y)));
 }
 
-void ScrollView::drawScrollContent()
+void ScrollView::drawScrollContent(Gfx::Renderer &r)
 {
 	using namespace Gfx;
 	if(contentIsBiggerThanView && (allowScrollWholeArea_ || dragTracker.isDragging()))
 	{
-		noTexProgram.use(projP.makeTranslate());
-		setBlendMode(0);
+		r.noTexProgram.use(r, projP.makeTranslate());
+		r.setBlendMode(0);
 		if(scrollWholeArea_)
 		{
 			if(dragTracker.isDragging())
-				setColor(.8, .8, .8);
+				r.setColor(.8, .8, .8);
 			else
-				setColor(.5, .5, .5);
+				r.setColor(.5, .5, .5);
 		}
 		else
-			setColor(.5, .5, .5);
+			r.setColor(.5, .5, .5);
 		scrollBarRect.setYPos(
 			IG::scalePointRange((Gfx::GC)offset, 0_gc, Gfx::GC(offsetMax), (Gfx::GC)viewRect().y, Gfx::GC(viewRect().y2 - scrollBarRect.ySize())));
-		GeomRect::draw(scrollBarRect, projP);
+		GeomRect::draw(r, scrollBarRect, projP);
 	}
 }
 

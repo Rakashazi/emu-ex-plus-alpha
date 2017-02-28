@@ -29,7 +29,7 @@ public:
 	using OnIdentInputDelegate = DelegateFunc<void (Input::Event e)>;
 	OnIdentInputDelegate onIdentInput{};
 
-	IdentInputDeviceView(Base::Window &win): View(win) {}
+	IdentInputDeviceView(ViewAttachParams attach): View(attach) {}
 	~IdentInputDeviceView() override;
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init();
@@ -61,7 +61,7 @@ private:
 public:
 	char inputDevNameStr[Input::MAX_DEVS][80]{};
 
-	InputManagerView(Base::Window &win);
+	InputManagerView(ViewAttachParams attach);
 	~InputManagerView();
 	void onShow() override;
 };
@@ -94,7 +94,7 @@ private:
 	StaticArrayList<MenuItem*, 10> item{};
 
 public:
-	InputManagerOptionsView(Base::Window &win);
+	InputManagerOptionsView(ViewAttachParams attach);
 };
 
 class InputManagerDeviceView : public TableView
@@ -124,7 +124,7 @@ private:
 	void loadItems();
 
 public:
-	InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView, InputDeviceConfig &devConf);
+	InputManagerDeviceView(ViewAttachParams attach, InputManagerView &rootIMView, InputDeviceConfig &devConf);
 	void setPlayer(int playerVal);
 	void onShow() override;
 };

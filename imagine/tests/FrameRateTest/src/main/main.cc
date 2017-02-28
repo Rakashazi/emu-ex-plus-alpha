@@ -27,12 +27,13 @@
 
 static const uint framesToRun = 60*60;
 static Base::Window mainWin;
+static Gfx::Renderer renderer;
 static Gfx::Drawable drawable;
 static Gfx::ProjectionPlane projP;
 static Gfx::Mat4 projMat;
 static Gfx::GCRect testRect;
 static TestFramework *activeTest{};
-static TestPicker picker{mainWin};
+static TestPicker picker{{mainWin, renderer}};
 static TestParams testParam[] =
 {
 	{TEST_CLEAR},
@@ -44,7 +45,7 @@ static std::unique_ptr<Base::RootCpufreqParamSetter> cpuFreq{};
 static std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 #endif
 
-static void placeElements()
+static void placeElements(Gfx::Renderer &r)
 {
 	TableView::setDefaultXIndent(projP);
 	if(!activeTest)
@@ -54,7 +55,7 @@ static void placeElements()
 	}
 	else
 	{
-		activeTest->place(projP, testRect);
+		activeTest->place(r, projP, testRect);
 	}
 }
 
@@ -78,19 +79,18 @@ static void cleanupTest()
 	#endif
 }
 
-static void finishTest(Base::Window &win, Base::FrameTimeBase frameTime)
+static void finishTest(Base::Window &win, Gfx::Renderer &r, Base::FrameTimeBase frameTime)
 {
 	if(activeTest)
 	{
 		activeTest->finish(frameTime);
 	}
 	cleanupTest();
-	Gfx::setClearColor(0, 0, 0);
-	placeElements();
+	placeElements(r);
 	win.postDraw();
 }
 
-TestFramework *startTest(Base::Window &win, const TestParams &t)
+TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t)
 {
 	#ifdef __ANDROID__
 	if(cpuFreq)
@@ -108,26 +108,26 @@ TestFramework *startTest(Base::Window &win, const TestParams &t)
 		bcase TEST_WRITE:
 			activeTest = new WriteTest{};
 	}
-	activeTest->init(t.pixmapSize);
+	activeTest->init(r, t.pixmapSize);
 	win.postDraw();
 	Base::setIdleDisplayPowerSave(false);
 	Input::setKeyRepeat(false);
 	initCPUFreqStatus();
 	initCPULoadStatus();
-	placeElements();
+	placeElements(r);
 
 	win.screen()->addOnFrame(
 		[&win](Base::Screen::FrameParams params)
 		{
 			auto atOnFrame = IG::Time::now();
 			auto timestamp = params.timestamp();
-			Gfx::bind();
-			activeTest->frameUpdate(params.screen(), timestamp);
+			renderer.restoreBind();
+			activeTest->frameUpdate(renderer, params.screen(), timestamp);
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 			activeTest->lastFramePresentTime.frameTime = IG::Time::makeWithNSecs(Base::frameTimeBaseToNSecs(timestamp));
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{
-				finishTest(win, timestamp);
+				finishTest(win, renderer, timestamp);
 			}
 			else
 			{
@@ -148,12 +148,19 @@ void onInit(int argc, char** argv)
 		{
 			cleanupTest();
 			drawable.freeCaches();
-			Gfx::finish();
+			renderer.finish();
 		});
 
-	Gfx::init();
-	View::compileGfxPrograms();
-	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(IG::FontSettings{});
+	{
+		std::system_error err{{}};
+		renderer = Gfx::Renderer::makeConfiguredRenderer(err);
+		if(err.code())
+		{
+			bug_exit("error creating renderer: %s", err.what());
+		}
+	}
+	View::compileGfxPrograms(renderer);
+	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
 	WindowConfig winConf;
 
 	winConf.setOnSurfaceChange(
@@ -161,46 +168,47 @@ void onInit(int argc, char** argv)
 		{
 			if(change.resized())
 			{
-				Gfx::bind();
+				renderer.restoreBind();
 				auto viewport = Gfx::Viewport::makeFromWindow(win);
 				projMat = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.);
 				projP = Gfx::ProjectionPlane::makeWithMatrix(viewport, projMat);
 				testRect = projP.unProjectRect(viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO));
-				placeElements();
+				placeElements(renderer);
 			}
-			Gfx::updateDrawableForSurfaceChange(drawable, change);
+			renderer.updateDrawableForSurfaceChange(drawable, change);
 		});
 
 	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			Gfx::updateCurrentDrawable(drawable, win, params, projP.viewport, projMat);
+			renderer.updateCurrentDrawable(drawable, win, params, projP.viewport, projMat);
 			if(!activeTest)
 			{
-				Gfx::clear();
+				renderer.setClearColor(0, 0, 0);
+				renderer.clear();
 				picker.draw();
 			}
 			else
 			{
-				activeTest->draw();
+				activeTest->draw(renderer);
 			}
-			Gfx::setClipRect(false);
+			renderer.setClipRect(false);
 			if(activeTest)
 			{
 				activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
 			}
-			Gfx::presentDrawable(drawable);
+			renderer.presentDrawable(drawable);
 			if(activeTest)
 			{
 				activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
 			}
-			Gfx::finishPresentDrawable(drawable);
+			renderer.finishPresentDrawable(drawable);
 		});
 
 	winConf.setOnInputEvent(
 		[](Base::Window &, Input::Event e)
 		{
-			Gfx::bind();
+			renderer.restoreBind();
 			if(!activeTest)
 			{
 				if(e.pushed() && e.isDefaultCancelButton())
@@ -216,12 +224,12 @@ void onInit(int argc, char** argv)
 			}
 		});
 
-	Gfx::initWindow(mainWin, winConf);
+	renderer.initWindow(mainWin, winConf);
 	mainWin.setTitle("Frame Rate Test");
 	uint faceSize = mainWin.heightSMMInPixels(3.5);
-	View::defaultFace.setFontSettings(faceSize);
-	View::defaultFace.precacheAlphaNum();
-	View::defaultFace.precache(":.%()");
+	View::defaultFace.setFontSettings(renderer, faceSize);
+	View::defaultFace.precacheAlphaNum(renderer);
+	View::defaultFace.precache(renderer, ":.%()");
 	picker.setTests(testParam, IG::size(testParam));
 	mainWin.show();
 

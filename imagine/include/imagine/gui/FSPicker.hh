@@ -40,7 +40,7 @@ public:
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
 	static constexpr bool needsUpDirControl = !Config::envIsPS3;
 
-	FSPicker(Base::Window &win, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+	FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = &View::defaultFace);
 	void place() override;
 	void inputEvent(Input::Event e) override;

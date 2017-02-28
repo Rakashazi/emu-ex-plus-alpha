@@ -20,16 +20,20 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/ConfigFile.hh>
 #include <emuframework/EmuView.hh>
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+#include <emuframework/VController.hh>
+#endif
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/assume.h>
 #include <cmath>
 
+static Gfx::Renderer renderer;
 AppWindowData mainWin{}, extraWin{};
 bool menuViewIsActive = true;
-EmuView emuView{mainWin.win}, emuView2{extraWin.win};
-EmuVideo emuVideo{};
+EmuView emuView{{mainWin.win, renderer}}, emuView2{{extraWin.win, renderer}};
+EmuVideo emuVideo{renderer};
 EmuVideoLayer emuVideoLayer{emuVideo};
-EmuInputView emuInputView{mainWin.win};
+EmuInputView emuInputView{{mainWin.win, renderer}};
 AppWindowData *emuWin = &mainWin;
 ViewStack viewStack{};
 MsgPopup popup{};
@@ -44,6 +48,10 @@ std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 #endif
 static OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 FS::PathString lastLoadPath{};
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+SysVController vController{renderer};
+uint pointerInputPlayer = 0;
+#endif
 
 static const char *assetFilename[] =
 {
@@ -61,7 +69,7 @@ static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewpor
 static Gfx::Viewport makeViewport(const Base::Window &win);
 void mainInitWindowCommon(Base::Window &win);
 
-Gfx::PixmapTexture &getAsset(AssetID assetID)
+Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 {
 	assert(assetID < IG::size(assetFilename));
 	auto &res = assetBuffImg[assetID];
@@ -73,14 +81,14 @@ Gfx::PixmapTexture &getAsset(AssetID assetID)
 		{
 			bug_exit("couldn't load %s", assetFilename[assetID]);
 		}
-		res.init(png);
+		res.init(r, png);
 	}
 	return res;
 }
 
-Gfx::PixmapTexture *getCollectTextCloseAsset()
+Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r)
 {
-	return Config::envIsAndroid ? nullptr : &getAsset(ASSET_CLOSE);
+	return Config::envIsAndroid ? nullptr : &getAsset(r, ASSET_CLOSE);
 }
 
 void postDrawToEmuWindows()
@@ -88,21 +96,21 @@ void postDrawToEmuWindows()
 	emuWin->win.postDraw();
 }
 
-static void drawEmuVideo()
+static void drawEmuVideo(Gfx::Renderer &r)
 {
 	if(emuView.layer)
 		emuView.draw();
 	else if(emuView2.layer)
 		emuView2.draw();
 	popup.draw();
-	Gfx::setClipRect(false);
-	Gfx::presentDrawable(emuWin->drawable);
+	r.setClipRect(false);
+	r.presentDrawable(emuWin->drawable);
 }
 
 void updateAndDrawEmuVideo()
 {
 	emuVideo.updateImage();
-	drawEmuVideo();
+	drawEmuVideo(renderer);
 }
 
 void startViewportAnimation(AppWindowData &winData)
@@ -217,7 +225,7 @@ void closeGame(bool allowAutosaveState)
 	setCPUNeedsLowLatency(false);
 }
 
-static void drawEmuFrame()
+static void drawEmuFrame(Gfx::Renderer &r)
 {
 	if(EmuSystem::runFrameOnDraw)
 	{
@@ -227,7 +235,7 @@ static void drawEmuFrame()
 	}
 	else
 	{
-		drawEmuVideo();
+		drawEmuVideo(r);
 	}
 }
 
@@ -275,30 +283,30 @@ void setEmuViewOnExtraWindow(bool on)
 				if(change.resized())
 				{
 					logMsg("view resize for extra window");
-					Gfx::bind();
+					renderer.restoreBind();
 					updateProjection(extraWin, makeViewport(win));
 					emuView2.setViewRect(extraWin.viewport().bounds(), extraWin.projectionPlane);
 					emuView2.place();
 				}
-				Gfx::updateDrawableForSurfaceChange(extraWin.drawable, change);
+				renderer.updateDrawableForSurfaceChange(extraWin.drawable, change);
 			});
 
 		winConf.setOnDraw(
 			[](Base::Window &win, Base::Window::DrawParams params)
 			{
-				Gfx::updateCurrentDrawable(extraWin.drawable, win, params, extraWin.viewport(), extraWin.projectionMat);
-				Gfx::clear();
+				renderer.updateCurrentDrawable(extraWin.drawable, win, params, extraWin.viewport(), extraWin.projectionMat);
+				renderer.clear();
 				if(EmuSystem::isActive())
 				{
-					drawEmuFrame();
+					drawEmuFrame(renderer);
 				}
 				else
 				{
 					emuView2.draw();
-					Gfx::setClipRect(false);
-					Gfx::presentDrawable(extraWin.drawable);
+					renderer.setClipRect(false);
+					renderer.presentDrawable(extraWin.drawable);
 				}
-				Gfx::finishPresentDrawable(extraWin.drawable);
+				renderer.finishPresentDrawable(extraWin.drawable);
 			});
 
 		winConf.setOnInputEvent(
@@ -306,7 +314,7 @@ void setEmuViewOnExtraWindow(bool on)
 			{
 				if(!e.isPointer())
 				{
-					Gfx::bind();
+					renderer.restoreBind();
 					handleInputEvent(win, e);
 				}
 			});
@@ -314,7 +322,7 @@ void setEmuViewOnExtraWindow(bool on)
 		winConf.setOnFocusChange(
 			[](Base::Window &win, uint in)
 			{
-				Gfx::bind();
+				renderer.restoreBind();
 				extraWin.focused = in;
 				onFocusChange(in);
 			});
@@ -328,7 +336,7 @@ void setEmuViewOnExtraWindow(bool on)
 		winConf.setOnDismiss(
 			[](Base::Window &win)
 			{
-				Gfx::setCurrentDrawable({});
+				renderer.setCurrentDrawable({});
 				EmuSystem::resetFrameTime();
 				logMsg("setting emu view on main window");
 				emuWin = &mainWin;
@@ -343,7 +351,7 @@ void setEmuViewOnExtraWindow(bool on)
 				}
 			});
 
-		Gfx::initWindow(extraWin.win, winConf);
+		renderer.initWindow(extraWin.win, winConf);
 		extraWin.focused = true;
 		logMsg("init extra window");
 		emuWin = &extraWin;
@@ -390,7 +398,7 @@ void startGameFromMenu()
 	viewStack.navView()->showRightBtn(true);
 	emuInputView.resetInput();
 	//logMsg("touch control state: %d", touchControlsAreOn);
-	Gfx::setWindowValidOrientations(mainWin.win, optionGameOrientation);
+	renderer.setWindowValidOrientations(mainWin.win, optionGameOrientation);
 	commonInitInput();
 	popup.clear();
 	Input::setKeyRepeat(false);
@@ -413,7 +421,7 @@ void restoreMenuFromGame()
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	mainWin.win.screen()->setFrameInterval(1);
 	#endif
-	Gfx::setWindowValidOrientations(mainWin.win, optionMenuOrientation);
+	renderer.setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 	Input::setKeyRepeat(true);
 	Input::setHandleVolumeKeys(false);
 	if(!optionRememberLastMenu)
@@ -442,7 +450,7 @@ void mainInitCommon(int argc, char** argv)
 		[](bool focused)
 		{
 			AudioManager::startSession();
-			Gfx::bind();
+			renderer.restoreBind();
 			if(updateInputDevicesOnResume)
 			{
 				updateInputDevices();
@@ -463,7 +471,7 @@ void mainInitCommon(int argc, char** argv)
 	Base::setOnFreeCaches(
 		[]()
 		{
-			Gfx::bind();
+			renderer.restoreBind();
 			if(View::defaultFace)
 				View::defaultFace.freeCaches();
 			if(View::defaultBoldFace)
@@ -475,7 +483,7 @@ void mainInitCommon(int argc, char** argv)
 		{
 			Audio::closePcm();
 			AudioManager::endSession();
-			Gfx::bind();
+			renderer.restoreBind();
 			if(backgrounded)
 			{
 				pauseEmulation();
@@ -502,7 +510,7 @@ void mainInitCommon(int argc, char** argv)
 
 			mainWin.drawable.freeCaches();
 			extraWin.drawable.freeCaches();
-			Gfx::finish();
+			renderer.finish();
 
 			#ifdef CONFIG_BASE_IOS
 			//if(backgrounded)
@@ -534,7 +542,7 @@ void mainInitCommon(int argc, char** argv)
 
 			if(Base::appIsRunning())
 			{
-				Gfx::bind();
+				renderer.restoreBind();
 				updateInputDevices();
 				EmuControls::updateAutoOnScreenControlVisible();
 
@@ -567,7 +575,7 @@ void mainInitCommon(int argc, char** argv)
 		[](const char *filename)
 		{
 			logMsg("got IPC: %s", filename);
-			Gfx::bind();
+			renderer.restoreBind();
 			handleOpenFileCommand(filename);
 		});
 	initOptions();
@@ -579,20 +587,27 @@ void mainInitCommon(int argc, char** argv)
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 
-	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	Gfx::init((IG::PixelFormatID)optionWindowPixelFormat.val);
-	#else
-	Gfx::init();
-	#endif
+	{
+		std::system_error err{{}};
+		#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+		renderer = Gfx::Renderer::makeConfiguredRenderer((IG::PixelFormatID)optionWindowPixelFormat.val, err);
+		#else
+		renderer = Gfx::Renderer::makeConfiguredRenderer(err);
+		#endif
+		if(err.code())
+		{
+			bug_exit("error creating renderer: %s", err.what());
+		}
+	}
 
-	auto compiled = Gfx::texAlphaProgram.compile();
-	compiled |= Gfx::noTexProgram.compile();
-	compiled |= View::compileGfxPrograms();
+	auto compiled = renderer.texAlphaProgram.compile(renderer);
+	compiled |= renderer.noTexProgram.compile(renderer);
+	compiled |= View::compileGfxPrograms(renderer);
 	if(compiled)
-		Gfx::autoReleaseShaderCompiler();
+		renderer.autoReleaseShaderCompiler();
 	if(!optionDitherImage.isConst)
 	{
-		Gfx::setDither(optionDitherImage);
+		renderer.setDither(optionDitherImage);
 	}
 
 	#ifdef __ANDROID__
@@ -603,16 +618,16 @@ void mainInitCommon(int argc, char** argv)
 	{
 		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
 	}
-	if(!Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(optionAndroidTextureStorage)))
+	if(!Gfx::Texture::setAndroidStorageImpl(renderer, makeAndroidStorageImpl(optionAndroidTextureStorage)))
 	{
 		// try auto if the stored setting didn't work
 		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-		Gfx::Texture::setAndroidStorageImpl(makeAndroidStorageImpl(optionAndroidTextureStorage));
+		Gfx::Texture::setAndroidStorageImpl(renderer, makeAndroidStorageImpl(optionAndroidTextureStorage));
 	}
 	#endif
 
-	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(IG::FontSettings{});
-	View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(IG::FontSettings{});
+	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
+	View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{});
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(optionMOGAInputSystem)
@@ -624,18 +639,19 @@ void mainInitCommon(int argc, char** argv)
 	emuView.layer = &emuVideoLayer;
 	emuVideoLayer.init();
 	emuVideoLayer.setLinearFilter(optionImgFilter);
-	emuVideoLayer.vidImgOverlay.setEffect(optionOverlayEffect);
+	emuVideoLayer.vidImgOverlay.setEffect(renderer, optionOverlayEffect);
 	emuVideoLayer.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	emuVideoLayer.vidImgEffect.setBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
+	emuVideoLayer.vidImgEffect.setBitDepth(renderer, (IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
 	#endif
 
 	{
 		auto viewNav = std::make_unique<BasicNavView>
 		(
+			renderer,
 			&View::defaultFace,
-			&getAsset(ASSET_ARROW),
-			&getAsset(ASSET_GAME_ICON)
+			&getAsset(renderer, ASSET_ARROW),
+			&getAsset(renderer, ASSET_GAME_ICON)
 		);
 		viewNav->rotateLeftBtn = true;
 		viewNav->setOnPushLeftBtn(
@@ -662,14 +678,14 @@ void mainInitCommon(int argc, char** argv)
 	winConf.setOnInputEvent(
 		[](Base::Window &win, Input::Event e)
 		{
-			Gfx::bind();
+			renderer.restoreBind();
 			handleInputEvent(win, e);
 		});
 
 	winConf.setOnFocusChange(
 		[](Base::Window &win, uint in)
 		{
-			Gfx::bind();
+			renderer.restoreBind();
 			mainWin.focused = in;
 			onFocusChange(in);
 		});
@@ -678,7 +694,7 @@ void mainInitCommon(int argc, char** argv)
 		[](Base::Window &win, const char *filename)
 		{
 			logMsg("got DnD: %s", filename);
-			Gfx::bind();
+			renderer.restoreBind();
 			handleOpenFileCommand(filename);
 		});
 
@@ -687,28 +703,28 @@ void mainInitCommon(int argc, char** argv)
 		{
 			if(change.resized())
 			{
-				Gfx::bind();
+				renderer.restoreBind();
 				updateWindowViewport(mainWin, change);
 				emuView.setViewRect(mainWin.viewport().bounds(), mainWin.projectionPlane);
 				placeElements();
 			}
-			Gfx::updateDrawableForSurfaceChange(mainWin.drawable, change);
+			renderer.updateDrawableForSurfaceChange(mainWin.drawable, change);
 		});
 
 	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			Gfx::updateCurrentDrawable(mainWin.drawable, win, params, mainWin.viewport(), mainWin.projectionMat);
-			Gfx::clear();
+			renderer.updateCurrentDrawable(mainWin.drawable, win, params, mainWin.viewport(), mainWin.projectionMat);
+			renderer.clear();
 			if(EmuSystem::isActive())
 			{
 				if(emuView.layer)
-					drawEmuFrame();
+					drawEmuFrame(renderer);
 				else
 				{
 					emuView.draw();
-					Gfx::setClipRect(false);
-					Gfx::presentDrawable(mainWin.drawable);
+					renderer.setClipRect(false);
+					renderer.presentDrawable(mainWin.drawable);
 				}
 			}
 			else
@@ -719,10 +735,10 @@ void mainInitCommon(int argc, char** argv)
 				else if(menuViewIsActive)
 					viewStack.draw();
 				popup.draw();
-				Gfx::setClipRect(false);
-				Gfx::presentDrawable(mainWin.drawable);
+				renderer.setClipRect(false);
+				renderer.presentDrawable(mainWin.drawable);
 			}
-			Gfx::finishPresentDrawable(mainWin.drawable);
+			renderer.finishPresentDrawable(mainWin.drawable);
 		});
 
 	if(Base::usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&
@@ -730,7 +746,7 @@ void mainInitCommon(int argc, char** argv)
 	{
 		logMsg("requested external storage write permissions");
 	}
-	Gfx::initWindow(mainWin.win, winConf);
+	renderer.initWindow(mainWin.win, winConf);
 	mainInitWindowCommon(mainWin.win);
 	EmuSystem::onMainWindowCreated(mainWin.win);
 
@@ -760,13 +776,13 @@ void mainInitWindowCommon(Base::Window &win)
 
 	win.setTitle(appName());
 
-	setupFont();
-	popup.init();
+	setupFont(renderer);
+	popup.init(renderer);
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	initVControls();
+	initVControls(renderer);
 	EmuControls::updateVControlImg();
-	vController.menuBtnSpr.init({}, getAsset(ASSET_MENU));
-	vController.ffBtnSpr.init({}, getAsset(ASSET_FAST_FORWARD));
+	vController.menuBtnSpr.init({}, getAsset(renderer, ASSET_MENU));
+	vController.ffBtnSpr.init({}, getAsset(renderer, ASSET_FAST_FORWARD));
 	#endif
 
 	//logMsg("setting up view stack");
@@ -781,13 +797,13 @@ void mainInitWindowCommon(Base::Window &win)
 		};
 	viewStack.showNavView(optionTitleBar);
 	//logMsg("setting menu orientation");
-	Gfx::setWindowValidOrientations(win, optionMenuOrientation);
+	renderer.setWindowValidOrientations(win, optionMenuOrientation);
 	win.setAcceptDnd(1);
 
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
 	{
-		auto &ynAlertView = *new YesNoAlertView{win, "Warning: App has been modified by 3rd party, use at your own risk"};
+		auto &ynAlertView = *new YesNoAlertView{{win, renderer}, "Warning: App has been modified by 3rd party, use at your own risk"};
 		ynAlertView.setOnNo(
 			[](TextMenuItem &, View &view, Input::Event e)
 			{
@@ -798,7 +814,7 @@ void mainInitWindowCommon(Base::Window &win)
 	#endif
 
 	placeElements();
-	auto mMenu = EmuSystem::makeView(win, EmuSystem::ViewID::MAIN_MENU);
+	auto mMenu = EmuSystem::makeView({win, renderer}, EmuSystem::ViewID::MAIN_MENU);
 	viewStack.pushAndShow(*mMenu, Input::defaultEvent());
 
 	win.show();
@@ -860,7 +876,7 @@ void handleOpenFileCommand(const char *path)
 		restoreMenuFromGame();
 		viewStack.popToRoot();
 		string_copy(lastLoadPath, path);
-		auto &fPicker = *EmuFilePicker::makeForLoading(mainWin.win);
+		auto &fPicker = *EmuFilePicker::makeForLoading({mainWin.win, renderer});
 		viewStack.pushAndShow(fPicker, Input::defaultEvent(), false);
 		return;
 	}
@@ -874,7 +890,7 @@ void handleOpenFileCommand(const char *path)
 	viewStack.popToRoot();
 	if(modalViewController.hasView())
 		modalViewController.pop();
-	GameFilePicker::onSelectFile(path, Input::Event{});
+	GameFilePicker::onSelectFile(viewStack.top().renderer(), path, Input::Event{});
 }
 
 void placeEmuViews()

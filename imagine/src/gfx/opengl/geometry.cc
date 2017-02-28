@@ -37,46 +37,45 @@ static const GLenum GL_TEX_ARRAY_TYPE = GL_FLOAT;
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 template<class Vtx>
-static void setupVertexArrayPointers(const Vtx *v, int numV)
+static void setupVertexArrayPointers(Renderer &r, const Vtx *v, int numV)
 {
-	if(useVBOFuncs && v != 0) // turn off VBO when rendering from memory
+	if(r.support.hasVBOFuncs && v != 0) // turn off VBO when rendering from memory
 	{
 		//logMsg("un-binding VBO");
-		glcBindBuffer(GL_ARRAY_BUFFER, 0);
+		r.glcBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 	if(Vtx::hasTexture)
 	{
-		glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
+		r.glcEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		r.glcTexCoordPointer(2, GL_TEX_ARRAY_TYPE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
 		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
 		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
 	}
 	else
-		glcDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		r.glcDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
 	if(Vtx::hasColor)
 	{
-		glcEnableClientState(GL_COLOR_ARRAY);
-		glcColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
-		glState.colorState[0] = -1; //invalidate glColor state cache
+		r.glcEnableClientState(GL_COLOR_ARRAY);
+		r.glcColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
+		r.glState.colorState[0] = -1; //invalidate glColor state cache
 	}
 	else
-		glcDisableClientState(GL_COLOR_ARRAY);
+		r.glcDisableClientState(GL_COLOR_ARRAY);
 
-	glcVertexPointer(numV, GL_VERT_ARRAY_TYPE, sizeof(Vtx), (char*)v + Vtx::posOffset);
+	r.glcVertexPointer(numV, GL_VERT_ARRAY_TYPE, sizeof(Vtx), (char*)v + Vtx::posOffset);
 }
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static uint currentVtxArrayPointerID = 0;
 template<class Vtx>
-static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
+static void setupShaderVertexArrayPointers(Renderer &r, const Vtx *v, int numV)
 {
-	if(currentVtxArrayPointerID != Vtx::ID)
+	if(r.currentVtxArrayPointerID != Vtx::ID)
 	{
 		//logMsg("setting vertex array pointers for type: %d", Vtx::ID);
-		currentVtxArrayPointerID = Vtx::ID;
+		r.currentVtxArrayPointerID = Vtx::ID;
 		if(Vtx::hasTexture)
 			glEnableVertexAttribArray(VATTR_TEX_UV);
 		else
@@ -89,7 +88,7 @@ static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
 
 	if(Vtx::hasTexture)
 	{
-		glcVertexAttribPointer(VATTR_TEX_UV, 2, GL_TEX_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
+		r.glcVertexAttribPointer(VATTR_TEX_UV, 2, GL_TEX_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::textureOffset);
 		//glUniform1i(textureUniform, 0);
 		//logMsg("drawing u,v %f,%f", (float)TextureCoordinate(*((TextureCoordinatePOD*)texOffset)),
 		//		(float)TextureCoordinate(*((TextureCoordinatePOD*)(texOffset+4))));
@@ -97,52 +96,52 @@ static void setupShaderVertexArrayPointers(const Vtx *v, int numV)
 
 	if(Vtx::hasColor)
 	{
-		glcVertexAttribPointer(VATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
+		r.glcVertexAttribPointer(VATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vtx), (char*)v + Vtx::colorOffset);
 	}
 
-	glcVertexAttribPointer(VATTR_POS, numV, GL_VERT_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::posOffset);
+	r.glcVertexAttribPointer(VATTR_POS, numV, GL_VERT_ARRAY_TYPE, GL_FALSE, sizeof(Vtx), (char*)v + Vtx::posOffset);
 }
 #endif
 
 template<class Vtx>
-void VertexInfo::bindAttribs(const Vtx *v)
+void VertexInfo::bindAttribs(Renderer &r, const Vtx *v)
 {
-	if(useVBOFuncs)
+	if(r.support.hasVBOFuncs)
 		v = nullptr;
 	int numV = 2; // number of position elements
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
-		Gfx::setupVertexArrayPointers(v, numV);
+	if(r.support.useFixedFunctionPipeline)
+		Gfx::setupVertexArrayPointers(r, v, numV);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!useFixedFunctionPipeline)
-		Gfx::setupShaderVertexArrayPointers(v, numV);
+	if(!r.support.useFixedFunctionPipeline)
+		Gfx::setupShaderVertexArrayPointers(r, v, numV);
 	#endif
 }
 
-void bindTempVertexBuffer()
+void GLRenderer::bindTempVertexBuffer()
 {
-	if(useVBOFuncs)
+	if(support.hasVBOFuncs)
 	{
 		glcBindBuffer(GL_ARRAY_BUFFER, getVBO());
 	}
 }
 
-void vertexBufferData(const void *v, uint size)
+void Renderer::vertexBufferData(const void *v, uint size)
 {
-	if(useVBOFuncs)
+	if(support.hasVBOFuncs)
 	{
 		glBufferData(GL_ARRAY_BUFFER, size, v, GL_STREAM_DRAW);
 	}
 }
 
-void drawPrimitives(Primitive mode, uint start, uint count)
+void Renderer::drawPrimitives(Primitive mode, uint start, uint count)
 {
 	glDrawArrays((GLenum)mode, start, count);
 	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawArrays", err); });
 }
 
-void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count)
+void Renderer::drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count)
 {
 	glDrawElements((GLenum)mode, count, GL_UNSIGNED_SHORT, idx);
 	handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s in glDrawElements", err); });
@@ -208,10 +207,10 @@ static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint edges)
 	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
 }
 
-template void VertexInfo::bindAttribs<Vertex>(const Vertex *v);
-template void VertexInfo::bindAttribs<ColVertex>(const ColVertex *v);
-template void VertexInfo::bindAttribs<TexVertex>(const TexVertex *v);
-template void VertexInfo::bindAttribs<ColTexVertex>(const ColTexVertex *v);
+template void VertexInfo::bindAttribs<Vertex>(Renderer &r, const Vertex *v);
+template void VertexInfo::bindAttribs<ColVertex>(Renderer &r, const ColVertex *v);
+template void VertexInfo::bindAttribs<TexVertex>(Renderer &r, const TexVertex *v);
+template void VertexInfo::bindAttribs<ColTexVertex>(Renderer &r, const ColTexVertex *v);
 
 }
 

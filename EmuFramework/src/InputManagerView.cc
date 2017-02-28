@@ -37,7 +37,7 @@ IdentInputDeviceView::~IdentInputDeviceView()
 void IdentInputDeviceView::place()
 {
 	text.maxLineSize = projP.w * 0.95;
-	text.compile(projP);
+	text.compile(renderer(), projP);
 }
 
 void IdentInputDeviceView::inputEvent(Input::Event e)
@@ -57,13 +57,14 @@ void IdentInputDeviceView::inputEvent(Input::Event e)
 void IdentInputDeviceView::draw()
 {
 	using namespace Gfx;
-	setBlendMode(0);
-	noTexProgram.use(projP.makeTranslate());
-	setColor(.4, .4, .4, 1.);
-	GeomRect::draw(viewFrame, projP);
-	setColor(COLOR_WHITE);
-	texAlphaProgram.use();
-	text.draw(0, 0, C2DO, projP);
+	auto &r = renderer();
+	r.setBlendMode(0);
+	r.noTexProgram.use(r, projP.makeTranslate());
+	r.setColor(.4, .4, .4, 1.);
+	GeomRect::draw(r, viewFrame, projP);
+	r.setColor(COLOR_WHITE);
+	r.texAlphaProgram.use(r);
+	text.draw(r, 0, 0, C2DO, projP);
 }
 
 static void removeKeyConfFromAllDevices(const KeyConfig *conf)
@@ -88,8 +89,8 @@ static void printfDeviceNameWithNumber(char (&buffer)[S], const char *name, uint
 	string_printf(buffer, "%s%s", name, idStr);
 }
 
-InputManagerView::InputManagerView(Base::Window &win):
-	TableView{"Key/Gamepad Input Setup", win, item},
+InputManagerView::InputManagerView(ViewAttachParams attach):
+	TableView{"Key/Gamepad Input Setup", attach, item},
 	deleteDeviceConfig
 	{
 		"Delete Saved Device Settings",
@@ -105,7 +106,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 			{
 				printfDeviceNameWithNumber(deviceConfigStr[devs++], e.name, e.enumId);
 			}
-			auto &multiChoiceView = *new TextTableView{item.t.str, window(), devs};
+			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), devs};
 			iterateTimes(devs, i)
 			{
 				multiChoiceView.appendItem(deviceConfigStr[i],
@@ -113,7 +114,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					{
 						pop();
 						int deleteDeviceConfigIdx = i;
-						auto &ynAlertView = *new YesNoAlertView{window(), confirmDeleteDeviceSettingsStr};
+						auto &ynAlertView = *new YesNoAlertView{attachParams(), confirmDeleteDeviceSettingsStr};
 						ynAlertView.setOnYes(
 							[this, deleteDeviceConfigIdx](TextMenuItem &, View &view, Input::Event e)
 							{
@@ -158,7 +159,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 			{
 				profileStr[profiles++] = e.name;
 			}
-			auto &multiChoiceView = *new TextTableView{item.t.str, window(), profiles};
+			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), profiles};
 			iterateTimes(profiles, i)
 			{
 				multiChoiceView.appendItem(profileStr[i],
@@ -166,7 +167,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					{
 						pop();
 						int deleteProfileIdx = i;
-						auto &ynAlertView = *new YesNoAlertView{window(), confirmDeleteProfileStr};
+						auto &ynAlertView = *new YesNoAlertView{attachParams(), confirmDeleteProfileStr};
 						ynAlertView.setOnYes(
 							[this, deleteProfileIdx](TextMenuItem &, View &view, Input::Event e)
 							{
@@ -211,7 +212,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 		"Auto-detect Device To Setup",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &identView = *new IdentInputDeviceView{window()};
+			auto &identView = *new IdentInputDeviceView{attachParams()};
 			identView.init();
 			identView.onIdentInput =
 				[this](Input::Event e)
@@ -219,7 +220,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 					auto dev = e.device;
 					if(dev)
 					{
-						auto &imdMenu = *new InputManagerDeviceView{window(), *this, inputDevConf[dev->idx]};
+						auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[dev->idx]};
 						imdMenu.setName(inputDevNameStr[dev->idx]);
 						pushAndShow(imdMenu, e);
 					}
@@ -232,7 +233,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 		"General Options",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &optView = *new InputManagerOptionsView{window()};
+			auto &optView = *new InputManagerOptionsView{attachParams()};
 			pushAndShow(optView, e);
 		}
 	},
@@ -241,7 +242,7 @@ InputManagerView::InputManagerView(Base::Window &win):
 		"Emulated System Options",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &optView = *EmuSystem::makeView(window(), EmuSystem::ViewID::INPUT_OPTIONS);
+			auto &optView = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::INPUT_OPTIONS);
 			pushAndShow(optView, e);
 		}
 	},
@@ -298,7 +299,7 @@ void InputManagerView::loadItems()
 		inputDevName[devs] = {inputDevNameStr[devs],
 			[this, devs](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &imdMenu = *new InputManagerDeviceView{window(), *this, inputDevConf[devs]};
+				auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[devs]};
 				imdMenu.setName(inputDevNameStr[devs]);
 				pushAndShow(imdMenu, e);
 			}};
@@ -323,8 +324,8 @@ static void setBTScanSecs(int secs)
 }
 #endif
 
-InputManagerOptionsView::InputManagerOptionsView(Base::Window &win):
-	TableView{"General Input Options", win, item},
+InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
+	TableView{"General Input Options", attach, item},
 	#ifdef CONFIG_BASE_ANDROID
 	relativePointerDecelItem
 	{
@@ -529,11 +530,11 @@ public:
 
 	ProfileChangeDelegate onProfileChange{};
 
-	ProfileSelectMenu(Base::Window &win, Input::Device &dev, const char *selectedName):
+	ProfileSelectMenu(ViewAttachParams attach, Input::Device &dev, const char *selectedName):
 		TextTableView
 		{
 			"Key Profile",
-			win,
+			attach,
 			customKeyConfig.size() + MAX_DEFAULT_KEY_CONFIGS_PER_TYPE
 		}
 	{
@@ -583,8 +584,8 @@ static uint playerConfToMenuIdx(uint player)
 	}
 }
 
-InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerView &rootIMView_, InputDeviceConfig &devConfRef):
-	TableView{win, item},
+InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputManagerView &rootIMView_, InputDeviceConfig &devConfRef):
+	TableView{attach, item},
 	rootIMView{rootIMView_},
 	playerItem
 	{
@@ -613,7 +614,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 		profileStr,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &profileSelectMenu = *new ProfileSelectMenu{window(), *devConf->dev, devConf->keyConf().name};
+			auto &profileSelectMenu = *new ProfileSelectMenu{attachParams(), *devConf->dev, devConf->keyConf().name};
 			profileSelectMenu.onProfileChange =
 				[this](const KeyConfig &profile)
 				{
@@ -635,8 +636,8 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 				popup.post("Can't rename a built-in profile", 2, 0);
 				return;
 			}
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input name", devConf->keyConf().name, getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input name", devConf->keyConf().name, getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -669,14 +670,14 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 				popup.postError("No space left for new key profiles, please delete one");
 				return;
 			}
-			auto &ynAlertView = *new YesNoAlertView{window(),
+			auto &ynAlertView = *new YesNoAlertView{attachParams(),
 				"Create a new profile? All keys from the current profile will be copied over."};
 			ynAlertView.setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
-					auto &textInputView = *new CollectTextInputView{window()};
-					textInputView.init("Input name", "", getCollectTextCloseAsset());
+					auto &textInputView = *new CollectTextInputView{attachParams()};
+					textInputView.init("Input name", "", getCollectTextCloseAsset(renderer()));
 					textInputView.onText() =
 						[this](CollectTextInputView &view, const char *str)
 						{
@@ -714,7 +715,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 				popup.post("Can't delete a built-in profile", 2, 0);
 				return;
 			}
-			auto &ynAlertView = *new YesNoAlertView{window(), confirmDeleteProfileStr};
+			auto &ynAlertView = *new YesNoAlertView{attachParams(), confirmDeleteProfileStr};
 			ynAlertView.setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
@@ -746,7 +747,7 @@ InputManagerDeviceView::InputManagerDeviceView(Base::Window &win, InputManagerVi
 			#else
 			if(!item.boolValue())
 			{
-				auto &ynAlertView = *new YesNoAlertView{window(),
+				auto &ynAlertView = *new YesNoAlertView{attachParams(),
 					"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel"};
 				ynAlertView.setOnYes(
 					[this](TextMenuItem &, View &view, Input::Event e)
@@ -829,7 +830,7 @@ void InputManagerDeviceView::loadItems()
 		inputCategory[c] = {cat.name,
 			[this, c](TextMenuItem &item, View &, Input::Event e)
 			{
-				auto &bcMenu = *new ButtonConfigView{window(), rootIMView, &EmuControls::category[c], *this->devConf};
+				auto &bcMenu = *new ButtonConfigView{attachParams(), rootIMView, &EmuControls::category[c], *this->devConf};
 				pushAndShow(bcMenu, e);
 			}};
 		item.emplace_back(&inputCategory[c]);
@@ -863,7 +864,7 @@ void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
 	string_printf(profileStr, "Profile: %s", devConf->keyConf().name);
-	loadProfile.compile(projP);
+	loadProfile.compile(renderer(), projP);
 	bool keyConfIsMutable = devConf->mutableKeyConf();
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

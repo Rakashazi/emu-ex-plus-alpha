@@ -37,34 +37,16 @@ void RenderTarget::deinit()
 	tex.deinit();
 }
 
-void RenderTarget::setFormat(IG::PixmapDesc pix)
+void RenderTarget::setFormat(Renderer &r, IG::PixmapDesc pix)
 {
 	if(!tex)
-		tex.init({pix});
+		tex.init(r, {pix});
 	else
 		tex.setFormat(pix, 1);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.texName(), 0);
-	setDefaultCurrent();
+	r.setRenderTarget({});
 	logMsg("set texture:0x%X as FBO:0x%X target", tex.texName(), fbo);
-}
-
-void RenderTarget::setCurrent()
-{
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		bug_exit("FBO:0x%X incomplete", fbo);
-	}
-}
-
-void RenderTarget::setDefaultCurrent()
-{
-	#if defined __APPLE__ && TARGET_OS_IPHONE
-	Base::GLContext::setDrawable(glDpy, currWin);
-	#else
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	#endif
 }
 
 RenderTarget::operator bool() const

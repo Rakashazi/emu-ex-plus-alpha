@@ -21,6 +21,8 @@
 namespace Gfx
 {
 
+class Renderer;
+
 class GLTextureSampler
 {
 protected:
@@ -32,7 +34,7 @@ protected:
 
 public:
 	constexpr GLTextureSampler() {}
-	void setTexParams(GLenum target);
+	void setTexParams(Renderer &r, GLenum target);
 	GLuint name() const { return name_; }
 };
 
@@ -51,9 +53,9 @@ public:
 	};
 
 	virtual ~DirectTextureStorage() = 0;
-	virtual CallResult setFormat(IG::PixmapDesc desc, GLuint tex) = 0;
-	virtual Buffer lock(IG::WindowRect *dirtyRect) = 0;
-	virtual void unlock(GLuint tex) = 0;
+	virtual std::system_error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
+	virtual Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) = 0;
+	virtual void unlock(Renderer &r, GLuint tex) = 0;
 };
 
 class GLLockedTextureBuffer
@@ -105,18 +107,18 @@ protected:
 	static AndroidStorageImpl androidStorageImpl_;
 	#endif
 
-	static void setSwizzleForFormat(IG::PixelFormatID format, GLuint tex, GLenum target);
+	static void setSwizzleForFormat(Renderer &r, IG::PixelFormatID format, GLuint tex, GLenum target);
 
 public:
 	constexpr GLTexture() {}
 	GLuint texName() const;
 	#ifdef __ANDROID__
-	static bool setAndroidStorageImpl(AndroidStorageImpl impl);
-	static AndroidStorageImpl androidStorageImpl();
+	static bool setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl);
+	static AndroidStorageImpl androidStorageImpl(Renderer &r);
 	static bool isAndroidGraphicBufferStorageWhitelisted();
 	bool isExternal();
 	static const char *androidStorageImplStr(AndroidStorageImpl);
-	static const char *androidStorageImplStr();
+	static const char *androidStorageImplStr(Renderer &r);
 	#endif
 };
 

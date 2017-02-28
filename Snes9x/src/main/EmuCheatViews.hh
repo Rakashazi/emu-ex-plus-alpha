@@ -15,7 +15,7 @@ private:
 	void loadCheatItems() override;
 
 public:
-	EmuCheatsView(Base::Window &win);
+	EmuCheatsView(ViewAttachParams attach);
 };
 
 class EmuEditCheatListView : public BaseEditCheatListView
@@ -26,7 +26,7 @@ private:
 	void loadCheatItems() override;
 
 public:
-	EmuEditCheatListView(Base::Window &win);
+	EmuEditCheatListView(ViewAttachParams attach);
 };
 
 class EmuEditCheatView : public BaseEditCheatView
@@ -39,5 +39,5 @@ private:
 	void renamed(const char *str) override;
 
 public:
-	EmuEditCheatView(Base::Window &win, uint cheatIdx);
+	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx);
 };

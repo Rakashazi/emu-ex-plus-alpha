@@ -120,7 +120,7 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(Base::Window &win): VideoOptionView{win, true}
+	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&cropNormalBorders);
@@ -160,7 +160,7 @@ class EmuAudioOptionView : public AudioOptionView
 	}
 
 public:
-	EmuAudioOptionView(Base::Window &win): AudioOptionView{win, true}
+	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&sidEngine);
@@ -397,12 +397,12 @@ class EmuSystemOptionView : public SystemOptionView
 		systemFilePathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			systemFileSelector.init("System File Path", e);
+			systemFileSelector.init(renderer(), "System File Path", e);
 			systemFileSelector.onPathChange =
 				[this](const char *newPath)
 				{
 					printSysPathMenuEntryStr(systemFilePathStr);
-					systemFilePath.compile(projP);
+					systemFilePath.compile(renderer(), projP);
 					sysFilePath[0] = firmwareBasePath;
 					if(!strlen(newPath))
 					{
@@ -418,7 +418,7 @@ class EmuSystemOptionView : public SystemOptionView
 
 
 public:
-	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
+	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		printSysPathMenuEntryStr(systemFilePathStr);
@@ -457,12 +457,12 @@ public:
 	void onTapeMediaChange()
 	{
 		updateTapeText();
-		tapeSlot.compile(projP);
+		tapeSlot.compile(renderer(), projP);
 	}
 
 	void addTapeFilePickerView(Input::Event e)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false, hasC64TapeExtension, true};
+		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false, hasC64TapeExtension, true};
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -487,7 +487,7 @@ private:
 			auto name = plugin.tape_get_file_name();
 			if(name && strlen(name))
 			{
-				auto &multiChoiceView = *new TextTableView{"Tape Drive", window(), IG::size(insertEjectMenuStr)};
+				auto &multiChoiceView = *new TextTableView{"Tape Drive", attachParams(), IG::size(insertEjectMenuStr)};
 				multiChoiceView.appendItem(insertEjectMenuStr[0],
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
@@ -524,7 +524,7 @@ public:
 	void onROMMediaChange()
 	{
 		updateROMText();
-		romSlot.compile(projP);
+		romSlot.compile(renderer(), projP);
 	}
 
 	static int systemCartType(ViceSystem system)
@@ -543,7 +543,7 @@ public:
 
 	void addCartFilePickerView(Input::Event e)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false, hasC64CartExtension, true};
+		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false, hasC64CartExtension, true};
 		fPicker.setOnSelectFile(
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -566,7 +566,7 @@ private:
 			auto cartFilename = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
 			if(cartFilename && strlen(cartFilename))
 			{
-				auto &multiChoiceView = *new TextTableView{"Cartridge Slot", window(), IG::size(insertEjectMenuStr)};
+				auto &multiChoiceView = *new TextTableView{"Cartridge Slot", attachParams(), IG::size(insertEjectMenuStr)};
 				multiChoiceView.appendItem(insertEjectMenuStr[0],
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
@@ -602,12 +602,12 @@ private:
 	void onDiskMediaChange(int slot)
 	{
 		updateDiskText(slot);
-		diskSlot[slot].compile(projP);
+		diskSlot[slot].compile(renderer(), projP);
 	}
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{window(), EmuSystem::gamePath(), false, hasC64DiskExtension, true};
+		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false, hasC64DiskExtension, true};
 		fPicker.setOnSelectFile(
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -628,7 +628,7 @@ public:
 		auto name = plugin.file_system_get_disk_name(slot+8);
 		if(name && strlen(name))
 		{
-			auto &multiChoiceView = *new TextTableView{"Disk Drive", window(), IG::size(insertEjectMenuStr)};
+			auto &multiChoiceView = *new TextTableView{"Disk Drive", attachParams(), IG::size(insertEjectMenuStr)};
 			multiChoiceView.appendItem(insertEjectMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -890,11 +890,11 @@ private:
 	StaticArrayList<MenuItem*, 15> item{};
 
 public:
-	C64IOControlView(Base::Window &win):
+	C64IOControlView(ViewAttachParams attach):
 		TableView
 		{
 			"System & Media",
-			win,
+			attach,
 			item
 		}
 	{
@@ -949,7 +949,7 @@ class EmuMenuView : public MenuView
 		{
 			if(!item.active())
 				return;
-			auto &c64IoMenu = *new C64IOControlView{window()};
+			auto &c64IoMenu = *new C64IOControlView{attachParams()};
 			viewStack.pushAndShow(c64IoMenu, e);
 		}
 	};
@@ -970,7 +970,7 @@ class EmuMenuView : public MenuView
 					EmuSystem::loadGame(gamePath.data());
 					startGameFromMenu();
 				};
-			auto &multiChoiceView = *new TextTableView{item.t.str, window(), 4};
+			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), 4};
 			multiChoiceView.appendItem("1. NTSC & True Drive Emu",
 				[this]()
 				{
@@ -1027,7 +1027,7 @@ class EmuMenuView : public MenuView
 				if(hasSystem)
 					systems++;
 			}
-			auto &multiChoiceView = *new TextTableView{item.t.str, window(), systems};
+			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), systems};
 			iterateTimes(IG::size(systemPresent), i)
 			{
 				if(!systemPresent[i])
@@ -1039,7 +1039,7 @@ class EmuMenuView : public MenuView
 					{
 						optionViceSystem = i;
 						popAndShow();
-						auto &ynAlertView = *new YesNoAlertView{window(), "Changing systems needs app restart, exit now?"};
+						auto &ynAlertView = *new YesNoAlertView{attachParams(), "Changing systems needs app restart, exit now?"};
 						ynAlertView.setOnYes(
 							[](TextMenuItem &, View &, Input::Event e)
 							{
@@ -1059,8 +1059,8 @@ class EmuMenuView : public MenuView
 		"Start System With Blank Disk",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{window()};
-			textInputView.init("Input Disk Name", getCollectTextCloseAsset());
+			auto &textInputView = *new CollectTextInputView{attachParams()};
+			textInputView.init("Input Disk Name", getCollectTextCloseAsset(renderer()));
 			textInputView.onText() =
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -1072,7 +1072,7 @@ class EmuMenuView : public MenuView
 							return 1;
 						}
 						string_copy(newDiskName, str);
-						auto &fPicker = *new EmuFilePicker{window(), optionSavePath, true, {}};
+						auto &fPicker = *new EmuFilePicker{attachParams(), optionSavePath, true, {}};
 						fPicker.setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
@@ -1134,7 +1134,7 @@ class EmuMenuView : public MenuView
 	}
 
 public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
 		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -1149,15 +1149,15 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
+		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
 		default: return nullptr;
 	}
 }

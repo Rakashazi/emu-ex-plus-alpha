@@ -105,7 +105,7 @@ private:
 	};
 
 public:
-	EmuSystemOptionView(Base::Window &win): SystemOptionView{win, true}
+	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&bios);
@@ -129,7 +129,7 @@ class EmuGUIOptionView : public GUIOptionView
 	};
 
 public:
-	EmuGUIOptionView(Base::Window &win): GUIOptionView{win, true}
+	EmuGUIOptionView(ViewAttachParams attach): GUIOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&listAll);
@@ -453,17 +453,17 @@ private:
 
 	std::vector<GameMenuItem> item{};
 
-	static void loadGame(const RomListEntry &entry)
+	static void loadGame(const RomListEntry &entry, Gfx::Renderer &r)
 	{
 		EmuSystem::onLoadGameComplete() =
-			[](uint result, Input::Event e)
+			[&r](uint result, Input::Event e)
 			{
-				loadGameCompleteFromFilePicker(result, e);
+				loadGameCompleteFromFilePicker(r, result, e);
 			};
 		auto res = EmuSystem::loadGameFromPath(gameFilePath(entry.name));
 		if(res == 1)
 		{
-			loadGameCompleteFromFilePicker(1, Input::Event{});
+			loadGameCompleteFromFilePicker(r, 1, Input::Event{});
 		}
 		else if(res == 0)
 		{
@@ -472,11 +472,11 @@ private:
 	}
 
 public:
-	GameListView(Base::Window &win):
+	GameListView(ViewAttachParams attach):
 		TableView
 		{
 			"Game List",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return item.size();
@@ -506,19 +506,19 @@ public:
 						{
 							if(entry.bugs)
 							{
-								auto &ynAlertView = *new YesNoAlertView{window(),
+								auto &ynAlertView = *new YesNoAlertView{attachParams(),
 									"This game doesn't yet work properly, load anyway?"};
 								ynAlertView.setOnYes(
 									[&entry](TextMenuItem &, View &view, Input::Event e)
 									{
 										view.dismiss();
-										loadGame(entry);
+										loadGame(entry, view.renderer());
 									});
 								modalViewController.pushAndShow(ynAlertView, e);
 							}
 							else
 							{
-								loadGame(entry);
+								loadGame(entry, renderer());
 							}
 						}
 						else
@@ -575,11 +575,11 @@ class UnibiosSwitchesView : public TableView
 	}
 
 public:
-	UnibiosSwitchesView(Base::Window &win):
+	UnibiosSwitchesView(ViewAttachParams attach):
 		TableView
 		{
 			"Unibios Switches",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return 2;
@@ -612,7 +612,7 @@ private:
 		"Load Game From List",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &gameListMenu = *new GameListView{window()};
+			auto &gameListMenu = *new GameListView{attachParams()};
 			if(!gameListMenu.games())
 			{
 				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
@@ -632,7 +632,7 @@ private:
 			{
 				if(item.active())
 				{
-					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{window()};
+					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{attachParams()};
 					viewStack.pushAndShow(unibiosSwitchesMenu, e);
 				}
 				else
@@ -653,7 +653,7 @@ private:
 	}
 
 public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
 		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -667,15 +667,15 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
+		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
 		default: return nullptr;
 	}
 }

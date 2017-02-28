@@ -84,7 +84,7 @@ public:
 	void refreshTouchConfigMenu();
 
 public:
-	TouchConfigView(Base::Window &win, const char *faceBtnName, const char *centerBtnName);
+	TouchConfigView(ViewAttachParams attach, const char *faceBtnName, const char *centerBtnName);
 	void place() override;
 	void draw() override;
 };

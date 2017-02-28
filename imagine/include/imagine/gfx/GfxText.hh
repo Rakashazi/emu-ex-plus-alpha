@@ -57,11 +57,11 @@ public:
 	~Text();
 	void setString(const char *str);
 	void setFace(GlyphTextureSet *face);
-	void compile(const ProjectionPlane &projP);
-	void draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const;
-	void draw(GP p, _2DOrigin o, const ProjectionPlane &projP) const
+	void compile(Renderer &r, const ProjectionPlane &projP);
+	void draw(Renderer &r, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const;
+	void draw(Renderer &r, GP p, _2DOrigin o, const ProjectionPlane &projP) const
 	{
-		draw(p.x, p.y, o, projP);
+		draw(r, p.x, p.y, o, projP);
 	}
 };
 

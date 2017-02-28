@@ -27,16 +27,18 @@ struct GraphicBufferStorage: public DirectTextureStorage
 {
 	Base::GraphicBuffer gBuff{};
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
+	EGLDisplay eglDpy = EGL_NO_DISPLAY;
 	uint bpp = 0;
 	uint pitch = 0;
 	static bool testPassed;
 
-	GraphicBufferStorage() {}
+	GraphicBufferStorage(EGLDisplay eglDpy): eglDpy{eglDpy} {}
 	~GraphicBufferStorage() override;
-	CallResult init();
-	CallResult setFormat(IG::PixmapDesc desc, GLuint tex) override;
-	Buffer lock(IG::WindowRect *dirtyRect) override;
-	void unlock(GLuint tex) override;
+	std::system_error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) override;
+	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) override;
+	void unlock(Renderer &r, GLuint tex) override;
+	void resetImage();
+	void reset();
 	static bool isRendererWhitelisted(const char *rendererStr);
 };
 

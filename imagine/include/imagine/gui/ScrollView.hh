@@ -26,8 +26,8 @@
 class ScrollView : public View
 {
 public:
-	ScrollView(Base::Window &win);
-	ScrollView(const char *name, Base::Window &win);
+	ScrollView(ViewAttachParams attach);
+	ScrollView(const char *name, ViewAttachParams attach);
 	~ScrollView();
 	bool isDoingScrollGesture() const;
 	bool isOverScrolled() const;
@@ -50,7 +50,7 @@ protected:
 	bool allowScrollWholeArea_ = false;
 
 	void setContentSize(IG::WP size);
-	void drawScrollContent();
+	void drawScrollContent(Gfx::Renderer &r);
 	bool scrollInputEvent(Input::Event e);
 	void setScrollOffset(int o);
 	int scrollOffset() const;

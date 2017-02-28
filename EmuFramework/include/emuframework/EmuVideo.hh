@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
 
 class EmuVideo;
@@ -52,6 +53,7 @@ private:
 class EmuVideo
 {
 public:
+	Gfx::Renderer &r;
 	Gfx::PixmapTexture vidImg{};
 	IG::MemPixmap memPix{};
 	bool screenshotNextFrame = false;
@@ -62,7 +64,7 @@ public:
 	uint vidPixAlign = Gfx::Texture::MAX_ASSUME_ALIGN;
 
 public:
-	EmuVideo() {}
+	EmuVideo(Gfx::Renderer &r): r{r} {}
 	void initFormat(IG::PixelFormat format);
 	void reinitImage();
 	void resizeImage(uint x, uint y, uint pitch = 0);
@@ -72,6 +74,7 @@ public:
 	void writeFrame(IG::Pixmap pix);
 	void takeGameScreenshot();
 	bool isExternalTexture();
+	Gfx::Renderer &renderer() { return r; }
 
 	// TODO: remove old API methods when all systems updated
 	void initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch = 0);

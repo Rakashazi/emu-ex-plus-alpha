@@ -38,7 +38,7 @@ void EmuVideo::reinitImage()
 {
 	Gfx::TextureConfig conf{vidPix};
 	conf.setWillWriteOften(true);
-	vidImg.init(conf);
+	vidImg.init(r, conf);
 
 	// update all EmuVideoLayers
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE

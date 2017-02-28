@@ -56,12 +56,20 @@ public:
 	}
 
 	void setUVBounds(IG::Rect2<GTexC> uvBounds);
-	void draw() const;
+	void draw(Renderer &r) const;
 
 	bool compileDefaultProgram(uint mode)
 	{
 		if(img)
 			return img->compileDefaultProgram(mode);
+		else
+			return false;
+	}
+
+	bool compileDefaultProgramOneShot(uint mode)
+	{
+		if(img)
+			return img->compileDefaultProgramOneShot(mode);
 		else
 			return false;
 	}

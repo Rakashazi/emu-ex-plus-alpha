@@ -340,6 +340,11 @@ void *GLContext::procAddress(const char *funcName)
 	return (void*)glXGetProcAddress((const GLubyte*)funcName);
 }
 
+NativeGLContext GLContext::nativeObject()
+{
+	return context;
+}
+
 Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display)
 {
 	return fmt;

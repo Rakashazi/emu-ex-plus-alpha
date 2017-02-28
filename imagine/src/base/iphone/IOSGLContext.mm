@@ -216,6 +216,11 @@ void *GLContext::procAddress(const char *funcName)
 	return dlsym(RTLD_DEFAULT, funcName);
 }
 
+NativeGLContext GLContext::nativeObject()
+{
+	return context_;
+}
+
 Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay)
 {
 	return {};

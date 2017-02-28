@@ -53,7 +53,7 @@ class EmuVideoOptionView : public VideoOptionView
 	}
 
 public:
-	EmuVideoOptionView(Base::Window &win): VideoOptionView{win, true},
+	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true},
 	tvPhosphorItem
 	{
 		{"Off", []() { setTVPhosphor(0); }},
@@ -124,11 +124,11 @@ class VCSSwitchesView : public TableView
 	};
 
 public:
-	VCSSwitchesView(Base::Window &win):
+	VCSSwitchesView(ViewAttachParams attach):
 		TableView
 		{
 			"Switches",
-			win,
+			attach,
 			[this](const TableView &)
 			{
 				return 3;
@@ -165,7 +165,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &vcsSwitchesView = *new VCSSwitchesView{window()};
+				auto &vcsSwitchesView = *new VCSSwitchesView{attachParams()};
 				viewStack.pushAndShow(vcsSwitchesView, e);
 			}
 		}
@@ -180,7 +180,7 @@ private:
 	}
 
 public:
-	EmuMenuView(Base::Window &win): MenuView{win, true}
+	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
 		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -193,15 +193,15 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(Base::Window &win, ViewID id)
+View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(win);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(win);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(win);
-		case ViewID::SYSTEM_OPTIONS: return new SystemOptionView(win);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(win);
+		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new SystemOptionView(attach);
+		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
 		default: return nullptr;
 	}
 }

@@ -42,24 +42,24 @@ public:
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
 	GlyphTextureSet() {}
-	GlyphTextureSet(std::unique_ptr<IG::Font> font, IG::FontSettings set);
-	GlyphTextureSet(const char *path, IG::FontSettings set);
-	GlyphTextureSet(GenericIO io, IG::FontSettings set);
-	static GlyphTextureSet makeSystem(IG::FontSettings set);
-	static GlyphTextureSet makeBoldSystem(IG::FontSettings set);
-	static GlyphTextureSet makeFromAsset(const char *name, IG::FontSettings set);
+	GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set);
+	GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set);
+	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
+	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
+	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
+	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, IG::FontSettings set);
 	GlyphTextureSet(GlyphTextureSet &&o);
 	GlyphTextureSet &operator=(GlyphTextureSet o);
 	~GlyphTextureSet();
 	operator bool() const;
 	static void swap(GlyphTextureSet &a, GlyphTextureSet &b);
-	bool setFontSettings(IG::FontSettings set);
-	std::error_code precache(const char *string);
-	std::error_code precacheAlphaNum()
+	bool setFontSettings(Renderer &r, IG::FontSettings set);
+	std::error_code precache(Renderer &r, const char *string);
+	std::error_code precacheAlphaNum(Renderer &r)
 	{
-		return precache("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
-	GlyphEntry *glyphEntry(int c);
+	GlyphEntry *glyphEntry(Renderer &r, int c);
 	uint nominalHeight() const;
 	void freeCaches(uint32 rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
@@ -71,9 +71,9 @@ private:
 	uint nominalHeight_ = 0;
 	uint32 usedGlyphTableBits = 0;
 
-	void calcNominalHeight();
+	void calcNominalHeight(Renderer &r);
 	bool initGlyphTable();
-	std::error_code cacheChar(int c, int tableIdx);
+	std::error_code cacheChar(Renderer &r, int c, int tableIdx);
 };
 
 }

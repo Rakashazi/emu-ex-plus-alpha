@@ -15,25 +15,16 @@
 
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
-#include "GLStateCache.hh"
 #include "utils.h"
 #include "private.hh"
 
 namespace Gfx
 {
 
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-Mat4 modelMat, projectionMat;
-extern GLint projectionUniform, modelViewUniform;
-static uint modelMatAge = 0, projectionMatAge = 0;
-#endif
-Angle projectionMatRot = 0;
-Mat4 projectionMatPreTransformed;
-
-static void setGLProjectionMatrix(const Mat4 &mat)
+void GLRenderer::setGLProjectionMatrix(const Mat4 &mat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
 		glcMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(&mat[0][0]);
@@ -41,7 +32,7 @@ static void setGLProjectionMatrix(const Mat4 &mat)
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!useFixedFunctionPipeline)
+	if(!support.useFixedFunctionPipeline)
 	{
 		projectionMat = mat;
 		projectionMatAge++;
@@ -54,18 +45,19 @@ static void setGLProjectionMatrix(const Mat4 &mat)
 	#endif
 }
 
-void setProjectionMatrixRotation(Angle angle)
+void Renderer::setProjectionMatrixRotation(Angle angle)
 {
 	projectionMatRot = angle;
 }
 
-const Mat4 &projectionMatrix()
+const Mat4 &Renderer::projectionMatrix()
 {
 	return projectionMatPreTransformed;
 }
 
-void setProjectionMatrix(const Mat4 &mat)
+void Renderer::setProjectionMatrix(const Mat4 &mat)
 {
+	verifyCurrentContext();
 	projectionMatPreTransformed = mat;
 	if(projectionMatRot)
 	{
@@ -80,11 +72,11 @@ void setProjectionMatrix(const Mat4 &mat)
 	}
 }
 
-void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
+void Renderer::animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 {
-	Gfx::projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
+	projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
 	Base::mainScreen().addOnFrameOnce(
-		[](Base::Screen::FrameParams params)
+		[this](Base::Screen::FrameParams params)
 		{
 			using namespace Base;
 			//logMsg("animating rotation");
@@ -100,24 +92,26 @@ void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 		});
 }
 
-void setTransformTarget(TransformTargetEnum target)
+void Renderer::setTransformTarget(TransformTargetEnum target)
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 		glcMatrixMode(target == TARGET_TEXTURE ? GL_TEXTURE : GL_MODELVIEW);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!useFixedFunctionPipeline)
+	if(!support.useFixedFunctionPipeline)
 	{
 		bug_exit("TODO");
 	}
 	#endif
 }
 
-void loadTransform(Mat4 mat)
+void Renderer::loadTransform(Mat4 mat)
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
 		glLoadMatrixf(&mat[0][0]);
 		return;
@@ -143,8 +137,9 @@ void loadTransform(Mat4 mat)
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void updateProgramProjectionTransform(GLSLProgram &program)
+void GLRenderer::updateProgramProjectionTransform(GLSLProgram &program)
 {
+	verifyCurrentContext();
 	if(program.projectionUniformAge != projectionMatAge)
 	{
 		//logMsg("updating projection matrix for program %d (age was %d, now %d)", program.program(), program.projectionUniformAge, projectionMatAge);
@@ -154,8 +149,9 @@ void updateProgramProjectionTransform(GLSLProgram &program)
 	}
 }
 
-void updateProgramModelViewTransform(GLSLProgram &program)
+void GLRenderer::updateProgramModelViewTransform(GLSLProgram &program)
 {
+	verifyCurrentContext();
 	if(program.modelViewUniformAge != modelMatAge)
 	{
 		//logMsg("updating model/view matrix for program %d (age was %d, now %d)", program.program(), program.modelViewUniformAge, modelMatAge);
@@ -166,18 +162,18 @@ void updateProgramModelViewTransform(GLSLProgram &program)
 }
 #endif
 
-void loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
+void Renderer::loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
 {
 	loadTransform(Mat4::makeTranslate({x, y, z}));
 }
 
-void loadIdentTransform()
+void Renderer::loadIdentTransform()
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 		glLoadIdentity();
 	#endif
-	if(!useFixedFunctionPipeline)
+	if(!support.useFixedFunctionPipeline)
 		loadTransform({});
 }
 

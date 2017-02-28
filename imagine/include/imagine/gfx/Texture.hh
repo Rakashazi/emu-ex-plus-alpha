@@ -28,6 +28,8 @@
 namespace Gfx
 {
 
+class Renderer;
+
 class TextureSamplerConfig
 {
 private:
@@ -174,22 +176,22 @@ class TextureSampler: public TextureSamplerImpl
 {
 public:
 	constexpr TextureSampler() {}
-	CallResult init(TextureSamplerConfig config);
-	void deinit();
-	void bind();
+	CallResult init(Renderer &r, TextureSamplerConfig config);
+	void deinit(Renderer &r);
+	void bind(Renderer &r);
 	explicit operator bool() const;
-	static void initDefaultClampSampler();
-	static void initDefaultNearestMipClampSampler();
-	static void initDefaultNoMipClampSampler();
-	static void initDefaultNoLinearNoMipClampSampler();
-	static void initDefaultRepeatSampler();
-	static void initDefaultNearestMipRepeatSampler();
-	static void bindDefaultClampSampler();
-	static void bindDefaultNearestMipClampSampler();
-	static void bindDefaultNoMipClampSampler();
-	static void bindDefaultNoLinearNoMipClampSampler();
-	static void bindDefaultRepeatSampler();
-	static void bindDefaultNearestMipRepeatSampler();
+	static void initDefaultClampSampler(Renderer &r);
+	static void initDefaultNearestMipClampSampler(Renderer &r);
+	static void initDefaultNoMipClampSampler(Renderer &r);
+	static void initDefaultNoLinearNoMipClampSampler(Renderer &r);
+	static void initDefaultRepeatSampler(Renderer &r);
+	static void initDefaultNearestMipRepeatSampler(Renderer &r);
+	static void bindDefaultClampSampler(Renderer &r);
+	static void bindDefaultNearestMipClampSampler(Renderer &r);
+	static void bindDefaultNoMipClampSampler(Renderer &r);
+	static void bindDefaultNoLinearNoMipClampSampler(Renderer &r);
+	static void bindDefaultRepeatSampler(Renderer &r);
+	static void bindDefaultNearestMipRepeatSampler(Renderer &r);
 };
 
 class LockedTextureBuffer: public LockedTextureBufferImpl
@@ -207,18 +209,18 @@ public:
 	static constexpr uint MAX_ASSUME_ALIGN = 8;
 
 	constexpr Texture() {}
-	CallResult init(TextureConfig config);
-	CallResult init(GfxImageSource &img, bool makeMipmaps);
-	CallResult init(GfxImageSource &img)
+	CallResult init(Renderer &r, TextureConfig config);
+	CallResult init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
+	CallResult init(Renderer &r, GfxImageSource &img)
 	{
-		return init(img, true);
+		return init(r, img, true);
 	}
 	void deinit();
 	static uint bestAlignment(const IG::Pixmap &pixmap);
 	bool canUseMipmaps();
 	bool generateMipmaps();
 	uint levels() const;
-	CallResult setFormat(IG::PixmapDesc desc, uint levels);
+	std::system_error setFormat(IG::PixmapDesc desc, uint levels);
 	void bind();
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos);
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment);
@@ -229,23 +231,28 @@ public:
 	IG::WP size(uint level) const;
 	IG::PixmapDesc pixmapDesc() const;
 	bool compileDefaultProgram(uint mode);
+	bool compileDefaultProgramOneShot(uint mode);
 	void useDefaultProgram(uint mode, const Mat4 *modelMat) const;
 	void useDefaultProgram(uint mode) const { useDefaultProgram(mode, nullptr); }
 	void useDefaultProgram(uint mode, Mat4 modelMat) const { useDefaultProgram(mode, &modelMat); }
 	explicit operator bool() const;
+	Renderer &renderer();
+
+protected:
+	Renderer *r{};
 };
 
 class PixmapTexture: public Texture
 {
 public:
 	constexpr PixmapTexture() {}
-	CallResult init(TextureConfig config);
-	CallResult init(GfxImageSource &img, bool makeMipmaps);
-	CallResult init(GfxImageSource &img)
+	CallResult init(Renderer &r, TextureConfig config);
+	CallResult init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
+	CallResult init(Renderer &r, GfxImageSource &img)
 	{
-		return init(img, true);
+		return init(r, img, true);
 	}
-	CallResult setFormat(IG::PixmapDesc desc, uint levels);
+	std::system_error setFormat(IG::PixmapDesc desc, uint levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 

@@ -43,7 +43,7 @@ void Text::setFace(GlyphTextureSet *face)
 	this->face = face;
 }
 
-static GC xSizeOfChar(GlyphTextureSet *face, int c, GC spaceX, const ProjectionPlane &projP)
+static GC xSizeOfChar(Renderer &r, GlyphTextureSet *face, int c, GC spaceX, const ProjectionPlane &projP)
 {
 	assert(c != '\0');
 	if(c == ' ')
@@ -51,23 +51,23 @@ static GC xSizeOfChar(GlyphTextureSet *face, int c, GC spaceX, const ProjectionP
 	if(c == '\n')
 		return 0;
 
-	GlyphEntry *gly = face->glyphEntry(c);
+	GlyphEntry *gly = face->glyphEntry(r, c);
 	if(gly != NULL)
 		return projP.unprojectXSize(gly->metrics.xAdvance);
 	else
 		return 0;
 }
 
-void Text::compile(const ProjectionPlane &projP)
+void Text::compile(Renderer &r, const ProjectionPlane &projP)
 {
 	assert(face);
 	assert(str);
-	TextureSampler::initDefaultNoMipClampSampler();;
+	TextureSampler::initDefaultNoMipClampSampler(r);
 	//logMsg("compiling text %s", str);
 	
 	// TODO: move calc into Face class
-	GlyphEntry *mGly = face->glyphEntry('M');
-	GlyphEntry *gGly = face->glyphEntry('g');
+	GlyphEntry *mGly = face->glyphEntry(r, 'M');
+	GlyphEntry *gGly = face->glyphEntry(r, 'g');
 	
 	if(!mGly || !gGly)
 	{
@@ -94,7 +94,7 @@ void Text::compile(const ProjectionPlane &projP)
 	CallResult res;
 	while((res = string_convertCharCode(&s, c)) == OK)
 	{
-		auto cSize = xSizeOfChar(face, c, spaceSize, projP);
+		auto cSize = xSizeOfChar(r, face, c, spaceSize, projP);
 		charsInLine++;
 
 		// Is this the start of a text block?
@@ -160,18 +160,18 @@ void Text::compile(const ProjectionPlane &projP)
 	ySize = nominalHeight * (GC)lines;
 }
 
-void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const
+void Text::draw(Renderer &r, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const
 {
 	using namespace Gfx;
 	assert(face && str);
 	//o = LT2DO;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	//resetTransforms();
-	setBlendMode(BLEND_MODE_ALPHA);
-	TextureSampler::bindDefaultNoMipClampSampler();
+	r.setBlendMode(BLEND_MODE_ALPHA);
+	TextureSampler::bindDefaultNoMipClampSampler(r);
 	std::array<TexVertex, 4> vArr;
-	bindTempVertexBuffer();
-	TexVertex::bindAttribs(vArr.data());
+	r.bindTempVertexBuffer();
+	TexVertex::bindAttribs(r, vArr.data());
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
@@ -211,7 +211,7 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 				continue;
 			}
 
-			GlyphEntry *gly = face->glyphEntry(c);
+			GlyphEntry *gly = face->glyphEntry(r, c);
 			if(!gly)
 			{
 				//logMsg("no glyph for %X", c);
@@ -228,10 +228,10 @@ void Text::draw(GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) con
 			auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 			auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
 			vArr = makeTexVertArray({x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}, gly->glyph);
-			vertexBufferData(vArr.data(), sizeof(vArr));
+			r.vertexBufferData(vArr.data(), sizeof(vArr));
 			gly->glyph.bind();
 			//logMsg("drawing");
-			drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
+			r.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 			xPos += projP.unprojectXSize(gly->metrics.xAdvance);
 		}
 		yPos -= nominalHeight;

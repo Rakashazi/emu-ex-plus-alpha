@@ -69,5 +69,6 @@ struct GLBufferConfig
 
 using GLDrawableImpl = GLViewDrawable;
 using GLContextImpl = CocoaGLContext;
+using NativeGLContext = void *; // NSOpenGLContext in ObjC
 
 }

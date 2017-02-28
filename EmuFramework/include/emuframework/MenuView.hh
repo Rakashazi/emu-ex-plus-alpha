@@ -32,7 +32,7 @@ class OptionCategoryView : public TableView
 	TextMenuItem subConfig[4];
 
 public:
-	OptionCategoryView(Base::Window &win);
+	OptionCategoryView(ViewAttachParams attach);
 };
 
 class RecentGameView : public TableView
@@ -42,13 +42,13 @@ private:
 	TextMenuItem clear{};
 
 public:
-	RecentGameView(Base::Window &win);
+	RecentGameView(ViewAttachParams attach);
 };
 
 class MenuView : public TableView
 {
 public:
-	MenuView(Base::Window &win, bool customMenu = false);
+	MenuView(ViewAttachParams attach, bool customMenu = false);
 	void onShow() override;
 	void loadFileBrowserItems();
 	void loadStandardItems();

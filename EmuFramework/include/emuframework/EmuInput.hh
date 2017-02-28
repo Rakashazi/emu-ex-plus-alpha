@@ -229,7 +229,7 @@ extern bool vControllerLayoutPosChanged;
 void resetVControllerPositions();
 void resetVControllerOptions();
 void resetAllVControllerOptions();
-void initVControls();
+void initVControls(Gfx::Renderer &r);
 
 namespace EmuControls
 {

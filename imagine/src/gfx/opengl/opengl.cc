@@ -15,12 +15,11 @@
 
 #define LOGTAG "GfxOpenGL"
 #include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RenderTarget.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/base/Timer.hh>
 #include <imagine/base/GLContext.hh>
-#include "GLStateCache.hh"
 #include <imagine/util/Interpolator.hh>
 #include "private.hh"
 #include "utils.h"
@@ -36,23 +35,23 @@
 namespace Gfx
 {
 
-Base::GLDisplay glDpy{};
-Base::GLContext gfxContext{};
-Base::GLDrawable currWin{};
-GLStateCache glState;
-TimedInterpolator<Gfx::GC> projAngleM;
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
 static constexpr bool multipleContextsPerThread = Config::envIsAndroid;
+static constexpr bool useGLCache = true;
 
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-bool useFixedFunctionPipeline = true;
-#endif
-static ColorComp vColor[4]{}; // color when using shader pipeline
-static ColorComp texEnvColor[4]{}; // color when using shader pipeline
-static Base::Timer releaseShaderCompilerTimer;
+void GLRenderer::verifyCurrentContext()
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	auto currentCtx = Base::GLContext::current(glDpy);
+	if(unlikely(gfxContext != currentCtx))
+	{
+		bug_exit("expected GL context:%p but current is:%p", gfxContext.nativeObject(), currentCtx.nativeObject());
+	}
+}
 
-TextureRef newTex()
+TextureRef GLRenderer::newTex()
 {
 	GLuint ref;
 	glGenTextures(1, &ref);
@@ -60,14 +59,15 @@ TextureRef newTex()
 	return ref;
 }
 
-void deleteTex(TextureRef texRef)
+void GLRenderer::deleteTex(TextureRef texRef)
 {
 	//logMsg("deleting texture:0x%X", texRef);
 	glcDeleteTextures(1, &texRef);
 }
 
-void setZTest(bool on)
+void Renderer::setZTest(bool on)
 {
+	verifyCurrentContext();
 	if(on)
 	{
 		glcEnable(GL_DEPTH_TEST);
@@ -78,21 +78,24 @@ void setZTest(bool on)
 	}
 }
 
-void setBlend(bool on)
+void Renderer::setBlend(bool on)
 {
+	verifyCurrentContext();
 	if(on)
 		glcEnable(GL_BLEND);
 	else
 		glcDisable(GL_BLEND);
 }
 
-void setBlendFunc(BlendFunc s, BlendFunc d)
+void Renderer::setBlendFunc(BlendFunc s, BlendFunc d)
 {
+	verifyCurrentContext();
 	glcBlendFunc((GLenum)s, (GLenum)d);
 }
 
-void setBlendMode(uint mode)
+void Renderer::setBlendMode(uint mode)
 {
+	verifyCurrentContext();
 	switch(mode)
 	{
 		bcase BLEND_MODE_OFF:
@@ -107,8 +110,9 @@ void setBlendMode(uint mode)
 	}
 }
 
-void setBlendEquation(uint mode)
+void Renderer::setBlendEquation(uint mode)
 {
+	verifyCurrentContext();
 #if !defined CONFIG_GFX_OPENGL_ES \
 	|| (defined CONFIG_BASE_IOS || defined __ANDROID__)
 	glcBlendEquation(mode == BLEND_EQ_ADD ? GL_FUNC_ADD :
@@ -118,10 +122,11 @@ void setBlendEquation(uint mode)
 #endif
 }
 
-void setImgMode(uint mode)
+void Renderer::setImgMode(uint mode)
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
 		switch(mode)
 		{
@@ -136,10 +141,11 @@ void setImgMode(uint mode)
 	// TODO
 }
 
-void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+void Renderer::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
 		GLfloat col[4] {r, g, b, a};
 		glcTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, col);
@@ -152,10 +158,11 @@ void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 	texEnvColor[3] = a;
 }
 
-void setZBlend(uchar on)
+void Renderer::setZBlend(bool on)
 {
+	verifyCurrentContext();
 //	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-//	if(useFixedFunctionPipeline)
+//	if(support.useFixedFunctionPipeline)
 //	{
 //		if(on)
 //		{
@@ -176,38 +183,40 @@ void setZBlend(uchar on)
 //		}
 //	}
 //	#endif
-	if(!useFixedFunctionPipeline)
+	if(!support.useFixedFunctionPipeline)
 	{
 		bug_exit("TODO");
 	}
 }
 
-void setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
+void Renderer::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
 		GLfloat c[4] = {r, g, b, 1.0f};
 		glFogfv(GL_FOG_COLOR, c);
 	}
 	#endif
-	if(!useFixedFunctionPipeline)
+	if(!support.useFixedFunctionPipeline)
 	{
 		bug_exit("TODO");
 	}
 }
 
-void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+void Renderer::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
 		glcColor4f(r, g, b, a);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	// !useFixedFunctionPipeline
+	// !support.useFixedFunctionPipeline
 	if(vColor[0] == r && vColor[1] == g && vColor[2] == b && vColor[3] == a)
 		return;
 	vColor[0] = r;
@@ -219,20 +228,25 @@ void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 	#endif
 }
 
-uint color()
+uint Renderer::color()
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(useFixedFunctionPipeline)
+	if(support.useFixedFunctionPipeline)
 	{
-		return ColorFormat.build(glState.colorState[0], glState.colorState[1], glState.colorState[2], glState.colorState[3]);
+		return ColorFormat.build(glState.colorState[0],
+			glState.colorState[1],
+			glState.colorState[2],
+			glState.colorState[3]);
 	}
 	#endif
-	// !useFixedFunctionPipeline
+	// !support.useFixedFunctionPipeline
 	return ColorFormat.build((float)vColor[0], (float)vColor[1], (float)vColor[2], (float)vColor[3]);
 }
 
-void setVisibleGeomFace(uint faces)
+void Renderer::setVisibleGeomFace(uint faces)
 {
+	verifyCurrentContext();
 	if(faces == BOTH_FACES)
 	{
 		glcDisable(GL_CULL_FACE);
@@ -249,16 +263,18 @@ void setVisibleGeomFace(uint faces)
 	}
 }
 
-void setClipRect(bool on)
+void Renderer::setClipRect(bool on)
 {
+	verifyCurrentContext();
 	if(on)
 		glcEnable(GL_SCISSOR_TEST);
 	else
 		glcDisable(GL_SCISSOR_TEST);
 }
 
-void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
+void Renderer::setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
 {
+	verifyCurrentContext();
 	//logMsg("scissor before transform %d,%d size %d,%d", x, y, w, h);
 	// translate from view to window coordinates
 	if(!Config::SYSTEM_ROTATES_WINDOWS)
@@ -299,16 +315,18 @@ void setClipRectBounds(const Base::Window &win, int x, int y, int w, int h)
 	glScissor(x, y, w, h);
 }
 
-void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+void Renderer::setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
+	verifyCurrentContext();
 	//GLfloat c[4] = {r, g, b, a};
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
 	// TODO: add glClearColor to the state cache
 	glClearColor((float)r, (float)g, (float)b, (float)a);
 }
 
-void setDither(bool on)
+void Renderer::setDither(bool on)
 {
+	verifyCurrentContext();
 	if(on)
 		glcEnable(GL_DITHER);
 	else
@@ -318,44 +336,58 @@ void setDither(bool on)
 	}
 }
 
-bool dither()
+bool Renderer::dither()
 {
+	verifyCurrentContext();
 	return glcIsEnabled(GL_DITHER);
 }
 
-void releaseShaderCompiler()
+void Renderer::releaseShaderCompiler()
 {
+	verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	glReleaseShaderCompiler();
 	#endif
 }
 
-void autoReleaseShaderCompiler()
+void Renderer::autoReleaseShaderCompiler()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!releaseShaderCompilerTimer)
 	{
 		releaseShaderCompilerTimer.callbackAfterMSec(
-			[]()
+			[this]()
 			{
 				logMsg("automatically releasing shader compiler");
+				verifyCurrentContext();
 				glReleaseShaderCompiler();
 			}, 1, {});
 	}
 	#endif
 }
 
-static void discardTemporaryData()
+void GLRenderer::discardTemporaryData()
 {
 	discardTexturePBO();
 }
 
-void clear()
+void Renderer::clear()
 {
+	verifyCurrentContext();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-bool bind()
+void Renderer::bind()
+{
+	gfxContext.setCurrent(glDpy, gfxContext, currWin);
+}
+
+void Renderer::unbind()
+{
+	gfxContext.setCurrent(glDpy, {}, {});
+}
+
+bool Renderer::restoreBind()
 {
 	if(multipleContextsPerThread && gfxContext != Base::GLContext::current(glDpy))
 	{
@@ -366,11 +398,11 @@ bool bind()
 	return false;
 }
 
-void updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceChange change)
+void Renderer::updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceChange change)
 {
 	if(change.destroyed())
 	{
-		Gfx::deinitDrawable(drawable);
+		deinitDrawable(drawable);
 	}
 	else if(change.reset())
 	{
@@ -379,7 +411,7 @@ void updateDrawableForSurfaceChange(Drawable &drawable, Base::Window::SurfaceCha
 	}
 }
 
-bool setCurrentDrawable(Drawable win)
+bool Renderer::setCurrentDrawable(Drawable win)
 {
 	if(multipleContextsPerThread && gfxContext != Base::GLContext::current(glDpy))
 	{
@@ -393,19 +425,20 @@ bool setCurrentDrawable(Drawable win)
 		if(win == currWin)
 			return false;
 		gfxContext.setDrawable(glDpy, win, gfxContext);
-		if(shouldSpecifyDrawReadBuffers && win)
+		if(support.shouldSpecifyDrawReadBuffers && win)
 		{
 			//logMsg("specifying draw/read buffers");
+			verifyCurrentContext();
 			const GLenum back = Config::Gfx::OPENGL_ES_MAJOR_VERSION ? GL_BACK : GL_BACK_LEFT;
-			glDrawBuffers(1, &back);
-			glReadBuffer(GL_BACK);
+			support.glDrawBuffers(1, &back);
+			support.glReadBuffer(GL_BACK);
 		}
 		currWin = win;
 		return true;
 	}
 }
 
-bool updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat)
+bool Renderer::updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::DrawParams params, Viewport viewport, Mat4 projMat)
 {
 	if(!drawable)
 	{
@@ -420,31 +453,66 @@ bool updateCurrentDrawable(Drawable &drawable, Base::Window &win, Base::Window::
 	{
 		setViewport(viewport);
 		setProjectionMatrix(projMat);
+		if(win == Base::mainWindow())
+		{
+			if(!Config::SYSTEM_ROTATES_WINDOWS)
+			{
+				setProjectionMatrixRotation(orientationToGC(win.softOrientation()));
+				Base::setOnDeviceOrientationChanged(
+					[this, &win](uint newO)
+					{
+						auto oldWinO = win.softOrientation();
+						if(win.requestOrientationChange(newO))
+						{
+							animateProjectionMatrixRotation(orientationToGC(oldWinO), orientationToGC(newO));
+						}
+					});
+			}
+			else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
+			{
+				Base::setOnSystemOrientationChanged(
+					[this](uint oldO, uint newO) // TODO: parameters need proper type definitions in API
+					{
+						const Angle orientationDiffTable[4][4]
+						{
+							{0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90)},
+							{angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180)},
+							{angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90)},
+							{angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0},
+						};
+						auto rotAngle = orientationDiffTable[oldO][newO];
+						logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
+						animateProjectionMatrixRotation(rotAngle, 0.);
+					});
+			}
+		}
 		return true;
 	}
 	return false;
 }
 
-void deinitDrawable(Drawable &drawable)
+void Renderer::deinitDrawable(Drawable &drawable)
 {
 	if(currWin == drawable)
 		currWin = {};
 	glDpy.deleteDrawable(drawable);
 }
 
-void presentDrawable(Drawable win)
+void Renderer::presentDrawable(Drawable win)
 {
+	verifyCurrentContext();
 	discardTemporaryData();
 	gfxContext.present(glDpy, win, gfxContext);
 }
 
-void finishPresentDrawable(Drawable win)
+void Renderer::finishPresentDrawable(Drawable win)
 {
 	gfxContext.finishPresent(glDpy, win);
 }
 
-void finish()
+void Renderer::finish()
 {
+	verifyCurrentContext();
 	setCurrentDrawable({});
 	if(Config::envIsIOS)
 	{
@@ -452,7 +520,29 @@ void finish()
 	}
 }
 
-void setCorrectnessChecks(bool on)
+void Renderer::setRenderTarget(const RenderTarget &target)
+{
+	verifyCurrentContext();
+	auto id = target.id();
+	if(!id) // default frame buffer
+	{
+		#if defined __APPLE__ && TARGET_OS_IPHONE
+		Base::GLContext::setDrawable(glDpy, currWin);
+		#else
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		#endif
+	}
+	else
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, id);
+		if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		{
+			bug_exit("FBO:0x%X incomplete", id);
+		}
+	}
+}
+
+void Renderer::setCorrectnessChecks(bool on)
 {
 	if(on)
 	{
@@ -462,5 +552,71 @@ void setCorrectnessChecks(bool on)
 	checkGLErrors = on ? true : Config::DEBUG_BUILD;
 	checkGLErrorsVerbose = on;
 }
+
+#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+void GLRenderer::glcMatrixMode(GLenum mode)
+{ if(useGLCache) glState.matrixMode(mode); else glMatrixMode(mode); }
+#endif
+
+void GLRenderer::glcBindTexture(GLenum target, GLuint texture)
+{ if(useGLCache) glState.bindTexture(target, texture); else glBindTexture(target, texture); }
+void GLRenderer::glcDeleteTextures(GLsizei n, const GLuint *textures)
+{ if(useGLCache) glState.deleteTextures(n, textures); else glDeleteTextures(n, textures); }
+void GLRenderer::glcBlendFunc(GLenum sfactor, GLenum dfactor)
+{ if(useGLCache) glState.blendFunc(sfactor, dfactor); else glBlendFunc(sfactor, dfactor); }
+void GLRenderer::glcBlendEquation(GLenum mode)
+{ if(useGLCache) glState.blendEquation(mode); else glBlendEquation(mode); }
+void GLRenderer::glcEnable(GLenum cap)
+{ if(useGLCache) glState.enable(cap); else glEnable(cap); }
+void GLRenderer::glcDisable(GLenum cap)
+{ if(useGLCache) glState.disable(cap); else glDisable(cap); }
+
+GLboolean GLRenderer::glcIsEnabled(GLenum cap)
+{
+	if(useGLCache)
+		return glState.isEnabled(cap);
+	else
+		return glIsEnabled(cap);
+}
+
+#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+void GLRenderer::glcEnableClientState(GLenum cap)
+{ if(useGLCache) glState.enableClientState(cap); else glEnableClientState(cap); }
+void GLRenderer::glcDisableClientState(GLenum cap)
+{ if(useGLCache) glState.disableClientState(cap); else glDisableClientState(cap); }
+void GLRenderer::glcTexEnvi(GLenum target, GLenum pname, GLint param)
+{ if(useGLCache) glState.texEnvi(target, pname, param); else glTexEnvi(target, pname, param); }
+void GLRenderer::glcTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
+{ if(useGLCache) glState.texEnvfv(target, pname, params); else glTexEnvfv(target, pname, params); }
+void GLRenderer::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+	if(useGLCache)
+		glState.color4f(red, green, blue, alpha);
+	else
+	{
+		glColor4f(red, green, blue, alpha);
+		glState.colorState[0] = red; glState.colorState[1] = green; glState.colorState[2] = blue; glState.colorState[3] = alpha; // for color()
+	}
+}
+void GLRenderer::glcTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{ if(useGLCache) glState.texCoordPointer(size, type, stride, pointer); else glTexCoordPointer(size, type, stride, pointer); }
+void GLRenderer::glcColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{ if(useGLCache) glState.colorPointer(size, type, stride, pointer); else glColorPointer(size, type, stride, pointer); }
+void GLRenderer::glcVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{ if(useGLCache) glState.vertexPointer(size, type, stride, pointer); else glVertexPointer(size, type, stride, pointer); }
+#endif
+
+#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+void GLRenderer::glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer)
+{ if(useGLCache) glState.vertexAttribPointer(index, size, type, normalized, stride, pointer); else glVertexAttribPointer(index, size, type, normalized, stride, pointer); }
+#endif
+
+void GLRenderer::glcBindBuffer(GLenum target, GLuint buffer)
+{ if(useGLCache) glState.bindBuffer(target, buffer); else glBindBuffer(target, buffer); }
+void GLRenderer::glcDeleteBuffers(GLsizei n, const GLuint *buffers)
+{ if(useGLCache) glState.deleteBuffers(n, buffers); else glDeleteBuffers(n, buffers); }
+void GLRenderer::glcPixelStorei(GLenum pname, GLint param)
+{ if(useGLCache) glState.pixelStorei(pname, param); else glPixelStorei(pname, param); }
+
 
 }

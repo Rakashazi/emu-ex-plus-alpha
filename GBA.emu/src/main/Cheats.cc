@@ -12,14 +12,14 @@ void EmuEditCheatView::renamed(const char *str)
 	auto &cheat = cheatsList[idx];
 	string_copy(cheat.desc, str);
 	name.t.setString(cheat.desc);
-	name.compile(projP);
+	name.compile(renderer(), projP);
 }
 
-EmuEditCheatView::EmuEditCheatView(Base::Window &win, uint cheatIdx):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	BaseEditCheatView
 	{
 		"Edit Code",
-		win,
+		attach,
 		cheatsList[cheatIdx].desc,
 		[this](const TableView &)
 		{
@@ -65,7 +65,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(cheatsList[c].desc,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{window(), c};
+				auto &editCheatView = *new EmuEditCheatView{attachParams(), c};
 				viewStack.pushAndShow(editCheatView, e);
 			});
 	}
@@ -79,8 +79,8 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 		window().postDraw();
 		return;
 	}
-	auto &textInputView = *new CollectTextInputView{window()};
-	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", getCollectTextCloseAsset());
+	auto &textInputView = *new CollectTextInputView{attachParams()};
+	textInputView.init(isGSv3 ? "Input xxxxxxxx yyyyyyyy" : "Input xxxxxxxx yyyyyyyy (GS) or xxxxxxxx yyyy (AR)", getCollectTextCloseAsset(renderer()));
 	textInputView.onText() =
 		[this, isGSv3](CollectTextInputView &view, const char *str)
 		{
@@ -109,8 +109,8 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 				cheatsModified = true;
 				cheatsDisable(gGba.cpu, cheatsNumber-1);
 				view.dismiss();
-				auto &textInputView = *new CollectTextInputView{window()};
-				textInputView.init("Input description", getCollectTextCloseAsset());
+				auto &textInputView = *new CollectTextInputView{attachParams()};
+				textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
 				textInputView.onText() =
 					[](CollectTextInputView &view, const char *str)
 					{
@@ -138,10 +138,10 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 	modalViewController.pushAndShow(textInputView, {});
 }
 
-EmuEditCheatListView::EmuEditCheatListView(Base::Window &win):
+EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView
 	{
-		win,
+		attach,
 		[this](const TableView &)
 		{
 			return 2 + cheat.size();
@@ -197,7 +197,7 @@ void EmuCheatsView::loadCheatItems()
 	}
 }
 
-EmuCheatsView::EmuCheatsView(Base::Window &win): BaseCheatsView{win}
+EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 {
 	loadCheatItems();
 }
