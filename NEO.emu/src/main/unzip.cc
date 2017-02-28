@@ -18,6 +18,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
+#include <cstdlib>
 
 extern "C"
 {

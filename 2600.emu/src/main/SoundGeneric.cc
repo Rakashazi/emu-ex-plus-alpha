@@ -15,8 +15,13 @@
 
 #include "SoundGeneric.hh"
 #include <stella/emucore/Settings.hxx>
+// TODO: Some Stella types collide with MacTypes.h
+#define BytePtr BytePtrMac
+#define Debugger DebuggerMac
 #include <emuframework/EmuSystem.hh>
 #include <imagine/logger/logger.h>
+#undef BytePtr
+#undef Debugger
 
 void SoundGeneric::open()
 {

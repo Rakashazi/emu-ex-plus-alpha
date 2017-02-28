@@ -22,9 +22,14 @@
 #include <stella/emucore/SerialPort.hxx>
 #include <stella/emucore/Settings.hxx>
 #include "SoundGeneric.hh"
+// TODO: Some Stella types collide with MacTypes.h
+#define BytePtr BytePtrMac
+#define Debugger DebuggerMac
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuSystem.hh>
+#undef BytePtr
+#undef Debugger
 
 OSystem osystem{};
 static Random myRandom{osystem};

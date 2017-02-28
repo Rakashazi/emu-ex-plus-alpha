@@ -1007,3 +1007,5 @@
 /* #undef vfork */
 
 #define VICE_API __attribute__((visibility("default")))
+
+#define HAVE_STPCPY

@@ -21,6 +21,7 @@
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include "ziphelper.h"
+#include <cstdlib>
 
 static struct archive *writeArch{};
 

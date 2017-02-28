@@ -13,8 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
+// TODO: Some Stella types collide with MacTypes.h
+#define BytePtr BytePtrMac
+#define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
+#undef BytePtr
+#undef Debugger
 #undef HAVE_UNISTD_H
 #include "internal.hh"
 

@@ -14,10 +14,15 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#undef HAVE_UNISTD_H
 // TODO: Stella includes can clash with PAGE_SHIFT & PAGE_MASK based on order
+#undef HAVE_UNISTD_H
+// TODO: Some Stella types collide with MacTypes.h
+#define BytePtr BytePtrMac
+#define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#undef BytePtr
+#undef Debugger
 #include <stella/emucore/Cart.hxx>
 #include <stella/emucore/Props.hxx>
 #include <stella/emucore/MD5.hxx>

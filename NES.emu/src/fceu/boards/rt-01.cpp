@@ -25,6 +25,7 @@
  */
 
 #include "mapinc.h"
+#include <cstdlib>
 
 static DECLFR(UNLRT01Read) {
 //	u16 i, prot_areas[2][2] = {

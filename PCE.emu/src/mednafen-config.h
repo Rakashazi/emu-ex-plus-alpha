@@ -1,6 +1,8 @@
 #pragma once
 
+#if __has_include(<features.h>)
 #include <features.h>
+#endif
 
 /* include/config.h.  Generated from config.h.in by configure.  */
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */

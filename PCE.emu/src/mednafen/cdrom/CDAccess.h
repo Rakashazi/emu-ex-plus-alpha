@@ -2,6 +2,7 @@
 #define __MDFN_CDROMFILE_H
 
 #include <stdio.h>
+#include <string>
 #include <imagine/io/FileIO.hh>
 
 #include "CDUtility.h"
