@@ -5,7 +5,7 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 
 Download & install the Android SDK Manager
 
-Download & extract Android NDK Revision 13 from https://github.com/android-ndk/ndk/wiki. Perform any one of the following to tell the build system the location of the NDK directory:
+Download & extract Android NDK Revision 15 from https://github.com/android-ndk/ndk/wiki. Perform any one of the following to tell the build system the location of the NDK directory:
 
 1. Add the root NDK directory to your PATH environment as instructed in Google's docs
 2. Link or rename the root NDK directory to $(HOME)/android-ndk
@@ -39,5 +39,5 @@ ANDROID_BUILD_TOOLS_VERSION=24.0.1
 
 --------------------------------
 
-Copyright 2014-2016 by Robert Broglia
+Copyright 2014-2017 by Robert Broglia
 

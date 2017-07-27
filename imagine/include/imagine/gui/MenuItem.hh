@@ -80,50 +80,46 @@ public:
 	template<class FUNC>
 	void setOnSelect(FUNC &&onSelect) { setOnSelect(wrapSelectDelegate(onSelect)); }
 	SelectDelegate onSelect() const { return selectD; }
-	template<class FUNC,
-		ENABLE_IF_EXPR(std::is_same_v<bool, IG::functionTraitsRType<FUNC>>
-			&& IG::functionTraitsArity<FUNC> == 3)>
+	template<class FUNC>
 	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
 	{
-		return selectDel;
-	}
-	template<class FUNC,
-		ENABLE_IF_EXPR(std::is_same_v<void, IG::functionTraitsRType<FUNC>>
-			&& IG::functionTraitsArity<FUNC> == 3)>
-	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
-	{
-		// for void (TextMenuItem &, View &, Input::Event)
-		return
-			[=](TextMenuItem &item, View &parent, Input::Event e)
-			{
-				selectDel(item, parent, e);
-				return true;
-			};
-	}
-	template<class FUNC,
-		ENABLE_IF_EXPR(std::is_same_v<bool, IG::functionTraitsRType<FUNC>>
-			&& IG::functionTraitsArity<FUNC> == 0)>
-	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
-	{
-		// for bool ()
-		return
-			[=](TextMenuItem &item, View &parent, Input::Event e)
-			{
-				return selectDel();
-			};
-	}
-	template<class FUNC,
-		ENABLE_IF_EXPR(std::is_same_v<void, IG::functionTraitsRType<FUNC>>
-			&& IG::functionTraitsArity<FUNC> == 0)>
-	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
-	{
-		// for void ()
-		return
-			[=](TextMenuItem &item, View &parent, Input::Event e)
-			{
-				selectDel();
-				return true;
-			};
+		constexpr auto args = IG::functionTraitsArity<FUNC>;
+		constexpr auto returnsVoid = std::is_same<void, IG::functionTraitsRType<FUNC>>::value;
+		constexpr auto returnsBool = std::is_same<bool, IG::functionTraitsRType<FUNC>>::value;
+		if constexpr(returnsVoid && args == 3)
+		{
+			// for void (TextMenuItem &, View &, Input::Event)
+			return
+				[=](TextMenuItem &item, View &parent, Input::Event e)
+				{
+					selectDel(item, parent, e);
+					return true;
+				};
+		}
+		else if constexpr(returnsBool && args == 0)
+		{
+			// for bool ()
+			return
+				[=](TextMenuItem &item, View &parent, Input::Event e)
+				{
+					return selectDel();
+				};
+		}
+		else if constexpr(returnsVoid && args == 0)
+		{
+			// for void ()
+			return
+				[=](TextMenuItem &item, View &parent, Input::Event e)
+				{
+					selectDel();
+					return true;
+				};
+		}
+		else
+		{
+			// for bool (TextMenuItem &, View &, Input::Event)
+			return selectDel;
+		}
 	}
 
 protected:

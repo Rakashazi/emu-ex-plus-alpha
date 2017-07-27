@@ -196,7 +196,7 @@ class EmuSystemOptionView : public SystemOptionView
 					fdsBiosPath.compile(renderer(), projP);
 				},
 				hasFDSBIOSExtension, attachParams()};
-			viewStack.pushAndShow(biosSelectMenu, e);
+			pushAndShow(biosSelectMenu, e);
 		}
 	};
 
@@ -258,12 +258,12 @@ private:
 	TextMenuItem insertEject
 	{
 		"Eject",
-		[](TextMenuItem &, View &, Input::Event e)
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(FCEU_FDSInserted())
 			{
 				FCEU_FDSInsert();
-				viewStack.popAndShow();
+				popAndShow();
 			}
 		}
 	};
@@ -315,7 +315,7 @@ private:
 				pushAndShow(fdsMenu, e);
 			}
 			else
-				popup.post("Disk System not in use", 2);
+				EmuApp::postMessage(2, false, "Disk System not in use");
 		}
 	};
 
@@ -344,7 +344,7 @@ public:
 	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
-		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()

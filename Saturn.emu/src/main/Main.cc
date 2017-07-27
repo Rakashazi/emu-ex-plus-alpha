@@ -21,7 +21,6 @@ extern "C"
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
 PerPad_struct *pad[2];
-static IG::Pixmap srcPix{};
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
 
@@ -198,27 +197,20 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 
-static int ssResX = 320, ssResY = 224;
-
-static bool renderToScreen = 0;
+static EmuVideo *emuVideo{};
 
 CLINK void YuiSwapBuffers()
 {
 	//logMsg("YuiSwapBuffers");
-	if(likely(renderToScreen))
+	if(likely(emuVideo))
 	{
 		int height, width;
 		VIDCore->GetGlSize(&width, &height);
-		if(unlikely(ssResX != width || ssResY != height))
-		{
-			logMsg("resolution changed to %d,%d", width, height);
-			ssResX = width;
-			ssResY = height;
-			emuVideo.resizeImage(ssResX, ssResY);
-		}
-		emuVideo.writeFrame(srcPix);
-		updateAndDrawEmuVideo();
-		renderToScreen = 0;
+		IG::Pixmap srcPix = {{{width, height}, pixFmt}, dispbuffer};
+		emuVideo->setFormat(srcPix);
+		emuVideo->writeFrame(srcPix);
+		EmuApp::updateAndDrawEmuVideo();
+		emuVideo = {};
 	}
 	else
 	{
@@ -322,36 +314,23 @@ void EmuSystem::closeSystem()
 	}
 }
 
-int EmuSystem::loadGame(const char *path)
+EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 {
-	closeGame();
-	setupGamePaths(path);
-
 	string_printf(bupPath, "%s/bkram.bin", savePath());
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");
-		popup.postError("Error loading game");
-		return 0;
+		return makeError("Error loading game");
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
-	emuVideo.initFormat(pixFmt);
-	srcPix = {{{ssResX, ssResY}, pixFmt}, dispbuffer};
-	emuVideo.initImage(0, ssResX, ssResY);
 
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);
 	pad[1] = PerPadAdd(&PORTDATA2);
 	ScspSetFrameAccurate(1);
 
-	logMsg("finished loading game");
-	return 1;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
-{
-	return 0; // TODO
+	return {};
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -360,10 +339,10 @@ void EmuSystem::configAudioRate(double frameTime)
 	pcmFormat.rate = optionSoundRate;
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	if(renderGfx)
-		renderToScreen = 1;
+		emuVideo = &video;
 	SNDImagine.UpdateAudio = renderAudio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
 	YabauseEmulate();
 }

@@ -24,15 +24,17 @@
 namespace IG
 {
 
-template<class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
+template<class T>
 static constexpr T radians(T degrees)
 {
+	static_assert(std::is_floating_point<T>::value, "expected floating point parameter");
 	return degrees * (T)(M_PI / 180.0);
 }
 
-template<class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
+template<class T>
 static constexpr T degrees(T radians)
 {
+	static_assert(std::is_floating_point<T>::value, "expected floating point parameter");
 	return radians * (T)(180.0 / M_PI);
 }
 
@@ -86,16 +88,17 @@ constexpr static RET scaleDecToBits(T val, unsigned int bits)
 	return (T)makeFullBits<RET>(bits) * val;
 }
 
-template <class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
+template <class T>
 static constexpr T wrapMax(T x, T max)
 {
-	return (max + (x % max)) % max;
-}
-
-template <class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
-static constexpr T wrapMax(T x, T max)
-{
-	return std::fmod(max + std::fmod(x, max), max);
+	if constexpr(std::is_floating_point<T>::value)
+	{
+		return std::fmod(max + std::fmod(x, max), max);
+	}
+	else
+	{
+		return (max + (x % max)) % max;
+	}
 }
 
 template <class T>

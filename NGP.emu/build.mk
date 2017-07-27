@@ -18,6 +18,8 @@ CPPFLAGS += -DLSB_FIRST \
 -I$(projectPath)/src/$(NP_CORE)/TLCS-900h \
 -I$(projectPath)/src/$(NP_CORE)
 
+CXXFLAGS_WARN += -Wno-register
+
 NEOPOP_SRC += $(NP_CORE)/z80/Z80.cc \
 $(NP_CORE)/flash.cc \
 $(NP_CORE)/gfx_scanline_colour.cc \

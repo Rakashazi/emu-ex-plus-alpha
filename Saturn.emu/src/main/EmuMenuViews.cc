@@ -21,7 +21,7 @@ class EmuSystemOptionView : public SystemOptionView
 					biosPath.compile(renderer(), projP);
 				},
 				hasBIOSExtension, attachParams()};
-			viewStack.pushAndShow(biosSelectMenu, e);
+			pushAndShow(biosSelectMenu, e);
 		}
 	};
 

@@ -12,12 +12,7 @@ class EmuInputOptionView : public TableView
 		{
 			bool on = item.flipBoolValue(*this);
 			useSixButtonPad = on;
-			EmuSystem::clearInputBuffers();
-			#ifdef CONFIG_VCONTROLS_GAMEPAD
-			vController.gp.activeFaceBtns = on ? 6 : 2;
-			EmuControls::setupVControllerVars();
-			vController.place();
-			#endif
+			EmuControls::setActiveFaceButtons(on ? 6 : 2);
 		}
 	};
 
@@ -56,7 +51,7 @@ class EmuSystemOptionView : public SystemOptionView
 					sysCardPath.compile(renderer(), projP);
 				},
 				hasHuCardExtension, attachParams()};
-			viewStack.pushAndShow(biosSelectMenu, e);
+			pushAndShow(biosSelectMenu, e);
 		}
 	};
 

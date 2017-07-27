@@ -15,26 +15,33 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/View.hh>
-#include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuApp.hh>
+#include <imagine/base/Pipe.hh>
+#include <array>
 
-class EmuInputView : public View
+class EmuLoadProgressView : public View
 {
-public:
-	bool ffKeyPushed = false, ffToggleActive = false;
-
 private:
-	IG::WindowRect rect{};
-
-public:
-	EmuInputView(ViewAttachParams attach): View(attach) {}
+	Gfx::Text text{"Loading...", &View::defaultFace};
+	IG::WindowRect rect;
 	IG::WindowRect &viewRect() override { return rect; }
-	void place() override;
-	void draw() override;
-	void inputEvent(Input::Event e) override;
-	void onAddedToController(Input::Event e) override {}
-	void resetInput();
+	uint pos = 0, max = 0;
+	std::array<char, 128> str{};
 
-private:
-	void updateFastforward();
+public:
+	EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
+		View{attach}, originalEvent{e}, onComplete{onComplete} {}
+
+	void setMax(uint val);
+	void setPos(uint val);
+	void setLabel(const char *str);
+	void place() override;
+	void inputEvent(Input::Event e) override {}
+	void draw() override;
+	void onAddedToController(Input::Event e) override {}
+
+	// load context vars
+	Base::Pipe pipe;
+	Input::Event originalEvent{};
+	EmuApp::CreateSystemCompleteDelegate onComplete{};
 };

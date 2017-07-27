@@ -33,7 +33,7 @@ public:
 	PosixFileIO &operator=(PosixFileIO &&o);
 	operator IO*(){ return &io(); }
 	operator IO&(){ return io(); }
-	operator GenericIO();
+	GenericIO makeGeneric();
 	std::error_code open(const char *path, uint mode = 0);
 
 	std::error_code open(FS::PathString path, uint mode = 0)

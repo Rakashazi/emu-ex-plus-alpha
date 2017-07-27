@@ -548,7 +548,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_):
 		{
 			cheatList.remove(*cheat);
 			cheatsModified = 1;
-			refreshCheatViews();
+			EmuApp::refreshCheatViews();
 			updateCheats();
 			dismiss();
 			return true;
@@ -560,9 +560,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_):
 		cheat_.code,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -572,7 +570,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_):
 						if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
 						{
 							cheat->code[0]= 0;
-							popup.postError("Invalid code");
+							EmuApp::postMessage(true, "Invalid code");
 							window().postDraw();
 							return 1;
 						}
@@ -584,8 +582,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	cheat{&cheat_}
@@ -604,7 +601,7 @@ void EmuEditCheatListView::loadCheatItems()
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new EmuEditCheatView{attachParams(), cheatList[c]};
-				viewStack.pushAndShow(editCheatView, e);
+				pushAndShow(editCheatView, e);
 			});
 		++it;
 	}
@@ -632,16 +629,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add Game Genie / Action Replay Code",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init(emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(cheatList.isFull())
 						{
-							popup.postError("Cheat list is full");
+							EmuApp::postMessage(true, "Cheat list is full");
 							view.dismiss();
 							return 0;
 						}
@@ -650,7 +645,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						string_toUpper(c.code);
 						if(!decodeCheat(c.code, c.address, c.data, c.origData))
 						{
-							popup.postError("Invalid code");
+							EmuApp::postMessage(true, "Invalid code");
 							return 1;
 						}
 						string_copy(c.name, "Unnamed Cheat");
@@ -659,15 +654,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						cheatsModified = 1;
 						updateCheats();
 						view.dismiss();
-						auto &textInputView = *new CollectTextInputView{attachParams()};
-						textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
-						textInputView.onText() =
+						EmuApp::refreshCheatViews();
+						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									string_copy(cheatList.back().name, str);
-									refreshCheatViews();
+									EmuApp::refreshCheatViews();
 									view.dismiss();
 								}
 								else
@@ -675,17 +669,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 									view.dismiss();
 								}
 								return 0;
-							};
-						refreshCheatViews();
-						modalViewController.pushAndShow(textInputView, {});
+							});
 					}
 					else
 					{
 						view.dismiss();
 					}
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	}
 {

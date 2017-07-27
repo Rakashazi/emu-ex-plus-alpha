@@ -18,6 +18,8 @@ CPPFLAGS += -I$(projectPath)/src \
 -DFRAMESKIP \
 -I$(projectPath)/src/fceu
 
+CXXFLAGS_WARN += -Wno-register
+
 # fceux sources
 FCEUX_SRC := fceu/cart.cpp \
 fceu/cheat.cpp \

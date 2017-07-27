@@ -120,9 +120,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case gbaKeyIdxLeftDown: return DOWN | LEFT;
 		case gbaKeyIdxSelect: return SELECT;
 		case gbaKeyIdxStart: return START;
-		case gbaKeyIdxATurbo: turbo = 1;
+		case gbaKeyIdxATurbo: turbo = 1; [[fallthrough]];
 		case gbaKeyIdxA: return A;
-		case gbaKeyIdxBTurbo: turbo = 1;
+		case gbaKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case gbaKeyIdxB: return B;
 		case gbaKeyIdxL: return L;
 		case gbaKeyIdxR: return R;
@@ -138,7 +138,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	P1 = IG::setOrClearBits(P1, (uint16)emuKey, state != Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	P1 = 0x03FF;
 }

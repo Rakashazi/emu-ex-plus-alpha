@@ -57,7 +57,7 @@ void ArchiveIterator::init(const char *path, std::error_code &ec)
 		ec = fileEC;
 		return;
 	}
-	init(GenericIO{std::move(file)}, ec);
+	init(file.makeGeneric(), ec);
 }
 
 void ArchiveIterator::init(GenericIO io, std::error_code &result)

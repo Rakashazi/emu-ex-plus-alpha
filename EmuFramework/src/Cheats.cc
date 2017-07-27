@@ -79,22 +79,19 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 		cheatName,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input description", name.t.str, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
-			[this](CollectTextInputView &view, const char *str)
-			{
-				if(str)
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input description", name.t.str,
+				[this](CollectTextInputView &view, const char *str)
 				{
-					logMsg("setting cheat name %s", str);
-					renamed(str);
-					name.compile(renderer(), projP);
-					window().postDraw();
-				}
-				view.dismiss();
-				return 0;
-			};
-			modalViewController.pushAndShow(textInputView, e);
+					if(str)
+					{
+						logMsg("setting cheat name %s", str);
+						renamed(str);
+						name.compile(renderer(), projP);
+						window().postDraw();
+					}
+					view.dismiss();
+					return 0;
+				});
 		}
 	},
 	remove
@@ -132,7 +129,7 @@ BaseEditCheatListView::~BaseEditCheatListView()
 	onRefreshCheatsList.remove(&onRefreshCheats);
 }
 
-void refreshCheatViews()
+void EmuApp::refreshCheatViews()
 {
 	logMsg("calling refresh cheat delegates");
 	auto list = onRefreshCheatsList;

@@ -27,7 +27,8 @@ EmuVideo.cc \
 EmuInputView.cc \
 EmuVideoLayer.cc \
 Cheats.cc \
-Recent.cc
+Recent.cc \
+EmuLoadProgressView.cc
 
 ifeq ($(emuFramework_onScreenControls), 1)
  SRC += TouchConfigView.cc \

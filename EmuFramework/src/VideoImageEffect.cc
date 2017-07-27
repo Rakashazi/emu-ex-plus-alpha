@@ -16,6 +16,7 @@
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/io/FileIO.hh>
+#include "private.hh"
 
 static const VideoImageEffect::EffectDesc
 	hq2xDesc{"hq2x-v.txt", "hq2x-f.txt", {2, 2}};

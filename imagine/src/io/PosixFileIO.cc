@@ -46,7 +46,7 @@ PosixFileIO &PosixFileIO::operator=(PosixFileIO &&o)
 	return *this;
 }
 
-PosixFileIO::operator GenericIO()
+GenericIO PosixFileIO::makeGeneric()
 {
 	if(usingMapIO)
 		return GenericIO{bufferMapIO()};

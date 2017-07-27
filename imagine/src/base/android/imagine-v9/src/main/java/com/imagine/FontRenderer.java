@@ -32,7 +32,7 @@ final class FontRenderer
 		// metrics
 		char[] cStr = new char[2];
 		cStr[0] = (char)idx;
-		//Log.i(logTag, "active char " + activeChar + " x size: " + cXSize);*/
+		//Log.i(logTag, "glyph idx:" + idx);
 		Rect rect = new Rect();
 		paint.getTextBounds(cStr, 0, 1, rect);
 		int xSize = rect.right - rect.left;
@@ -42,7 +42,7 @@ final class FontRenderer
 		float[] w = new float[2];
 		paint.getTextWidths(cStr, 0, 1, w);
 		int advance = (int)w[0];
-		//Log.i(logTag, "active char " + (char)idx + " rect " + rect.left + ":" + rect.right + ":" + rect.top + ":" + rect.bottom);
+		//Log.i(logTag, "rect:" + rect.left + ":" + rect.right + ":" + rect.top + ":" + rect.bottom);
 		int cXSize = xSize;
 		int cYSize = ySize;
 		int left = rect.left;
@@ -57,7 +57,9 @@ final class FontRenderer
 		bitmap.eraseColor(Color.TRANSPARENT);
 		canvas.setBitmap(bitmap);
 		canvas.drawText(cStr, 0, 1, -left, cYSize - bottom, paint);
-		canvas.setBitmap(null);
+		// TODO: Android 2.3 throws exception when calling setBitmap(null)
+		// even though docs say this is legal
+		//canvas.setBitmap(null);
 		return bitmap;
 	}
 	

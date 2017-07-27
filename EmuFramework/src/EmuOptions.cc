@@ -19,6 +19,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/VController.hh>
+#include "private.hh"
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif
@@ -482,6 +483,25 @@ Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val)
 }
 #endif
 
+bool OptionRecentGames::isDefault() const
+{
+	return recentGameList.size() == 0;
+}
+
+bool OptionRecentGames::writeToIO(IO &io)
+{
+	logMsg("writing recent list");
+	std::error_code ec{};
+	io.writeVal(key, &ec);
+	for(auto &e : recentGameList)
+	{
+		uint len = strlen(e.path.data());
+		io.writeVal((uint16)len, &ec);
+		io.write(e.path.data(), len, &ec);
+	}
+	return true;
+}
+
 bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 {
 	int readSize = readSize_;
@@ -513,9 +533,7 @@ bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 			continue; // don't add empty paths
 		info.path[bytesRead] = 0;
 		readSize -= len;
-		auto basename = FS::basename(info.path);
-		auto dotpos = string_dotExtension(basename.data());
-		std::copy_n(basename.data(), dotpos ? dotpos - basename.data() : std::strlen(basename.data()), info.name.data());
+		info.name = EmuSystem::fullGameNameForPath(info.path.data());
 		//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
 		recentGameList.push_back(info);
 	}
@@ -526,4 +544,15 @@ bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 	}
 
 	return true;
+}
+
+uint OptionRecentGames::ioSize()
+{
+	uint strSizes = 0;
+	for(auto &e : recentGameList)
+	{
+		strSizes += 2;
+		strSizes += strlen(e.path.data());
+	}
+	return sizeof(key) + strSizes;
 }

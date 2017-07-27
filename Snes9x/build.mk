@@ -21,6 +21,8 @@ CPPFLAGS += \
 -DPIXEL_FORMAT=RGB565
 #-DHAVE_MKSTEMP -DUSE_THREADS
 
+CXXFLAGS_WARN += -Wno-register
+
 snes9xSrc := \
 bsx.cpp \
 c4.cpp \

@@ -27,13 +27,3 @@ public:
 	static EmuFilePicker *makeForLoading(ViewAttachParams attach, bool singleDir = false);
 	void inputEvent(Input::Event e) override;
 };
-
-class GameFilePicker
-{
-public:
-	static void onSelectFile(Gfx::Renderer &r, const char* name, Input::Event e);
-};
-
-void loadGameComplete(bool tryAutoState, bool addToRecent);
-void loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e);
-bool hasArchiveExtension(const char *name);

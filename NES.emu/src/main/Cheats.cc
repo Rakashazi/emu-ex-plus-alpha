@@ -41,7 +41,7 @@ void EmuEditCheatView::renamed(const char *str)
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
 	name.t.setString(nameStr);
 	name.compile(renderer(), projP);
-	refreshCheatViews();
+	EmuApp::refreshCheatViews();
 }
 
 static bool isValidGGCodeLen(const char *str)
@@ -87,7 +87,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 			assert(fceuCheats != 0);
 			FCEUI_DelCheat(idx);
 			fceuCheats--;
-			refreshCheatViews();
+			EmuApp::refreshCheatViews();
 			dismiss();
 			return true;
 		}
@@ -98,9 +98,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input 4-digit hex", addrStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 4-digit hex", addrStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -109,7 +107,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 						if(a > 0xFFFF)
 						{
 							logMsg("addr 0x%X too large", a);
-							popup.postError("Invalid input");
+							EmuApp::postMessage(true, "Invalid input");
 							window().postDraw();
 							return 1;
 						}
@@ -120,8 +118,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	value
@@ -130,9 +127,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex", valueStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -141,7 +136,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 						if(a > 0xFF)
 						{
 							logMsg("val 0x%X too large", a);
-							popup.postError("Invalid input");
+							EmuApp::postMessage(true, "Invalid input");
 							window().postDraw();
 							return 1;
 						}
@@ -152,8 +147,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	comp
@@ -162,9 +156,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		compStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input 2-digit hex or blank", compStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -175,7 +167,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 							if(a > 0xFF)
 							{
 								logMsg("val 0x%X too large", a);
-								popup.postError("Invalid input");
+								EmuApp::postMessage(true, "Invalid input");
 								window().postDraw();
 								return 1;
 							}
@@ -191,8 +183,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	ggCode
@@ -201,16 +192,14 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		ggCodeStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input Game Genie code", ggCodeStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input Game Genie code", ggCodeStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!isValidGGCodeLen(str))
 						{
-							popup.postError("Invalid, must be 6 or 8 digits");
+							EmuApp::postMessage(true, "Invalid, must be 6 or 8 digits");
 							window().postDraw();
 							return 1;
 						}
@@ -221,8 +210,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	idx{cheatIdx}
@@ -267,7 +255,7 @@ void EmuEditCheatListView::loadCheatItems()
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new EmuEditCheatView{attachParams(), c};
-				viewStack.pushAndShow(editCheatView, e);
+				pushAndShow(editCheatView, e);
 			});
 	}
 }
@@ -295,28 +283,26 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add Game Genie Code",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input Game Genie code", getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input Game Genie code", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!isValidGGCodeLen(str))
 						{
-							popup.postError("Invalid, must be 6 or 8 digits");
+							EmuApp::postMessage(true, "Invalid, must be 6 or 8 digits");
 							return 1;
 						}
 						{
 							int a, v, c;
 							if(!FCEUI_DecodeGG(str, &a, &v, &c))
 							{
-								popup.postError("Invalid code");
+								EmuApp::postMessage(true, "Invalid code");
 								return 1;
 							}
 							if(!FCEUI_AddCheat("Unnamed Cheat", a, v, c, 1))
 							{
-								popup.postError("Error adding cheat");
+								EmuApp::postMessage(true, "Error adding cheat");
 								view.dismiss();
 								return 0;
 							}
@@ -325,33 +311,29 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
 						view.dismiss();
-						auto &textInputView = *new CollectTextInputView{attachParams()};
-						textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
-						textInputView.onText() =
+						EmuApp::refreshCheatViews();
+						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									FCEUI_SetCheat(fceuCheats-1, str, UNCHANGED_VAL, UNCHANGED_VAL, UNCHANGED_VAL, -1, 1);
 									view.dismiss();
-									refreshCheatViews();
+									EmuApp::refreshCheatViews();
 								}
 								else
 								{
 									view.dismiss();
 								}
 								return 0;
-							};
-						refreshCheatViews();
-						modalViewController.pushAndShow(textInputView, {});
+							});
 					}
 					else
 					{
 						view.dismiss();
 					}
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	addRAM
@@ -359,34 +341,31 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add RAM Patch",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
-			[](CollectTextInputView &view, const char *str)
-			{
-				if(str)
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input description", "",
+				[this](CollectTextInputView &view, const char *str)
 				{
-					if(!FCEUI_AddCheat(str, 0, 0, -1, 0))
+					if(str)
 					{
-						logErr("error adding new cheat");
+						if(!FCEUI_AddCheat(str, 0, 0, -1, 0))
+						{
+							logErr("error adding new cheat");
+							view.dismiss();
+							return 0;
+						}
+						fceuCheats++;
+						FCEUI_ToggleCheat(fceuCheats-1);
+						logMsg("added new cheat, %d total", fceuCheats);
+						auto &editCheatView = *new EmuEditCheatView{view.attachParams(), fceuCheats-1};
 						view.dismiss();
-						return 0;
+						EmuApp::refreshCheatViews();
+						pushAndShow(editCheatView, {});
 					}
-					fceuCheats++;
-					FCEUI_ToggleCheat(fceuCheats-1);
-					logMsg("added new cheat, %d total", fceuCheats);
-					auto &editCheatView = *new EmuEditCheatView{view.attachParams(), fceuCheats-1};
-					view.dismiss();
-					refreshCheatViews();
-					viewStack.pushAndShow(editCheatView, {});
-				}
-				else
-				{
-					view.dismiss();
-				}
-				return 0;
-			};
-			modalViewController.pushAndShow(textInputView, e);
+					else
+					{
+						view.dismiss();
+					}
+					return 0;
+				});
 		}
 	}
 {
@@ -421,7 +400,7 @@ void EmuCheatsView::loadCheatItems()
 				if(!item.boolValue() && type && a == 0 && v == 0 && compare == -1)
 				{
 					// Don't turn on null Game Genie codes
-					popup.postError("Game Genie code isn't set", 2);
+					EmuApp::postMessage(true, "Game Genie code isn't set");
 					return;
 				}
 				item.flipBoolValue(*this);

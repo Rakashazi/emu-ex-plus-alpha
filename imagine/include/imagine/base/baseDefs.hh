@@ -50,16 +50,13 @@ constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
 #else
 using FrameTimeBase = uint64_t;
 
-template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
+template<class T>
 constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
 {
-	return (FrameTimeBase)s * (FrameTimeBase)1000000000;
-}
-
-template<class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
-constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
-{
-	return (double)s * (double)1000000000.;
+	if constexpr(std::is_floating_point<T>::value)
+			return (double)s * (double)1000000000.;
+	else
+		return (FrameTimeBase)s * (FrameTimeBase)1000000000;
 }
 
 constexpr static double frameTimeBaseToSecsDec(FrameTimeBase time)

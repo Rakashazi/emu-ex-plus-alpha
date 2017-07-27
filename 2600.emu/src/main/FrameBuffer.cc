@@ -24,7 +24,7 @@
 
 void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
 {
-	popup.printf(3, false, "%s", message.c_str());
+	EmuApp::printfMessage(3, false, "%s", message.c_str());
 }
 
 void FrameBuffer::enablePhosphor(bool enable, int blend)

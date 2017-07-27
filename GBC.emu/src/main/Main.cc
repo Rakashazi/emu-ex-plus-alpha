@@ -167,14 +167,29 @@ void EmuSystem::closeSystem()
 	gameBuiltinPalette = nullptr;
 }
 
-static int loadGameCommon(gambatte::LoadRes result)
+EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
+	gbEmu.setSaveDir(EmuSystem::savePath());
+	auto size = io.size();
+	auto mmapData = io.mmapConst();
+	gambatte::LoadRes result;
+	if(mmapData)
+	{
+		result = gbEmu.load(mmapData, size, gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	}
+	else
+	{
+		auto romData = std::make_unique<char[]>(size);
+		if(io.read(romData.get(), size) != (ssize_t)size)
+		{
+			return makeError("IO Error");
+		}
+		result = gbEmu.load(romData.get(), size, gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	}
 	if(result != gambatte::LOADRES_OK)
 	{
-		popup.printf(3, 1, "%s", gambatte::to_string(result).c_str());
-		return 0;
+		return makeError("%s", gambatte::to_string(result).c_str());
 	}
-	emuVideo.initImage(0, gbResX, gbResY);
 	if(!gbEmu.isCgb())
 	{
 		gameBuiltinPalette = findGbcTitlePal(gbEmu.romTitle().c_str());
@@ -182,43 +197,14 @@ static int loadGameCommon(gambatte::LoadRes result)
 			logMsg("game %s has built-in palette", gbEmu.romTitle().c_str());
 		applyGBPalette();
 	}
-
 	readCheatFile();
 	applyCheats();
-
-	logMsg("started emu");
-	return 1;
+	return {};
 }
 
-int EmuSystem::loadGame(const char *path)
+void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	bug_exit("should only use loadGameFromIO()");
-	return 0;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
-{
-	closeGame();
-	setupGamePaths(path);
-	gbEmu.setSaveDir(EmuSystem::savePath());
-	auto size = io.size();
-	auto mmapData = io.mmapConst();
-	gambatte::LoadRes result;
-	if(mmapData)
-	{
-		result = gbEmu.load(mmapData, size, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
-	}
-	else
-	{
-		auto romData = std::make_unique<char[]>(size);
-		if(io.read(romData.get(), size) != (ssize_t)size)
-		{
-			popup.printf(3, 1, "IO Error");
-			return 0;
-		}
-		result = gbEmu.load(romData.get(), size, origFilename, optionReportAsGba ? gbEmu.GBA_CGB : 0);
-	}
-	return loadGameCommon(result);
+	video.setFormat({{gbResX, gbResY}, pixFmt});
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -237,7 +223,7 @@ void EmuSystem::configAudioRate(double frameTime)
 	}
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	alignas(std::max_align_t) uint8 snd[(35112+2064)*4];
 	size_t samples = 35112;
@@ -245,14 +231,14 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	DelegateFunc<void()> frameCallback{};
 	if(processGfx)
 	{
-		auto img = emuVideo.startFrame();
+		auto img = video.startFrame();
 		frameCallback =
 			[&img, renderGfx]()
 			{
 				img.endFrame();
 				if(renderGfx)
 				{
-					updateAndDrawEmuVideo();
+					EmuApp::updateAndDrawEmuVideo();
 				}
 			};
 		frameSample = gbEmu.runFor((gambatte::PixelType*)img.pixmap().pixel({}), img.pixmap().pitchPixels(),
@@ -262,7 +248,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	{
 		if(renderGfx)
 		{
-			frameCallback = [&](){ updateAndDrawEmuVideo(); };
+			frameCallback = [&](){ EmuApp::updateAndDrawEmuVideo(); };
 		}
 		frameSample = gbEmu.runFor(nullptr, 160, (uint_least32_t*)snd, samples, frameCallback);
 	}
@@ -307,6 +293,5 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initFormat(pixFmt);
 	return OK;
 }

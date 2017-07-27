@@ -25,7 +25,7 @@ extern "C"
 
 CLINK FILE *zfile_fopen(const char *path, const char *mode)
 {
-	if(hasArchiveExtension(path))
+	if(EmuApp::hasArchiveExtension(path))
 	{
 		if(strchr(mode, 'w'))
 		{
@@ -43,7 +43,7 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 			logMsg("archive file entry:%s", name);
 			if(EmuSystem::defaultFsFilter(name))
 			{
-				return GenericIO{entry.moveIO().moveToMapIO()}.moveToFileStream(mode);
+				return entry.moveIO().moveToMapIO().makeGeneric().moveToFileStream(mode);
 			}
 		}
 		if(ec)

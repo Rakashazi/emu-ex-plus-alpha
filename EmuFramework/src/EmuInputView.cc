@@ -17,8 +17,10 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/gui/AlertView.hh>
 #include <emuframework/FilePicker.hh>
+#include "private.hh"
 
 extern bool touchControlsAreOn;
 
@@ -57,7 +59,7 @@ void EmuInputView::inputEvent(Input::Event e)
 		if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps({e.x, e.y}))
 		{
 			viewStack.top().clearSelection();
-			restoreMenuFromGame();
+			EmuApp::restoreMenuFromGame();
 			return;
 		}
 		else if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps({e.x, e.y}))
@@ -69,6 +71,11 @@ void EmuInputView::inputEvent(Input::Event e)
 			|| vController.isInKeyboardMode())
 		{
 			vController.applyInput(e);
+			EmuSystem::handlePointerInputEvent(e, emuVideoLayer.gameRect());
+		}
+		else if(EmuSystem::handlePointerInputEvent(e, emuVideoLayer.gameRect()))
+		{
+			//logMsg("game consumed pointer input event");
 		}
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		else if(!touchControlsAreOn && (uint)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
@@ -131,7 +138,7 @@ void EmuInputView::inputEvent(Input::Event e)
 					if(e.state == Input::PUSHED)
 					{
 						logMsg("open load game menu from key event");
-						restoreMenuFromGame();
+						EmuApp::restoreMenuFromGame();
 						viewStack.popToRoot();
 						auto &fPicker = *EmuFilePicker::makeForLoading(attachParams());
 						viewStack.pushAndShow(fPicker, e, false);
@@ -142,7 +149,7 @@ void EmuInputView::inputEvent(Input::Event e)
 					if(e.state == Input::PUSHED)
 					{
 						logMsg("open menu from key event");
-						restoreMenuFromGame();
+						EmuApp::restoreMenuFromGame();
 						return;
 					}
 
@@ -180,7 +187,7 @@ void EmuInputView::inputEvent(Input::Event e)
 									startGameFromMenu();
 								});
 							modalViewController.pushAndShow(ynAlertView, e);
-							restoreMenuFromGame();
+							EmuApp::restoreMenuFromGame();
 						}
 						return;
 					}
@@ -233,7 +240,7 @@ void EmuInputView::inputEvent(Input::Event e)
 								Base::exit();
 							});
 						modalViewController.pushAndShow(ynAlertView, e);
-						restoreMenuFromGame();
+						EmuApp::restoreMenuFromGame();
 						return;
 					}
 

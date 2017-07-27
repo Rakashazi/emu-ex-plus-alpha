@@ -17,10 +17,7 @@ extern Byte1Option optionVideoSystem;
 extern Byte1Option optionBlockInvalidVRAMAccess;
 #endif
 extern int snesInputPort;
-extern int snesPointerX, snesPointerY, snesPointerBtns, snesMouseClick;
 extern uint doubleClickFrames, rightClickFrames;
-extern Input::SingleDragTracker dragTracker;
-extern bool dragWithButton;
 
 #ifndef SNES9X_VERSION_1_4
 static const int SNES_AUTO_INPUT = 255;

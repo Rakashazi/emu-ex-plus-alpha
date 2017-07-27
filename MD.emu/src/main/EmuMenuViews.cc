@@ -60,10 +60,6 @@ class EmuInputOptionView : public TableView
 		{
 			option6BtnPad = item.flipBoolValue(*this);
 			setupMDInput();
-			#ifdef CONFIG_VCONTROLS_GAMEPAD
-			EmuControls::setupVControllerVars();
-			vController.place();
-			#endif
 		}
 	};
 
@@ -172,7 +168,7 @@ class EmuSystemOptionView : public SystemOptionView
 					view.dismiss();
 					optionBigEndianSram = item.flipBoolValue(*this);
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			EmuApp::pushAndShowModalView(ynAlertView, e);
 		}
 	};
 
@@ -252,7 +248,7 @@ class EmuSystemOptionView : public SystemOptionView
 				cdBiosPath[idx].compile(renderer(), projP);
 			},
 			hasMDExtension, attachParams()};
-		viewStack.pushAndShow(biosSelectMenu, e);
+		pushAndShow(biosSelectMenu, e);
 	}
 
 	void cdBiosPathInit()

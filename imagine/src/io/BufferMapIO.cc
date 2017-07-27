@@ -36,7 +36,7 @@ BufferMapIO &BufferMapIO::operator=(BufferMapIO &&o)
 	return *this;
 }
 
-BufferMapIO::operator GenericIO()
+GenericIO BufferMapIO::makeGeneric()
 {
 	return GenericIO{*this};
 }

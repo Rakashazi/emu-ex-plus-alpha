@@ -20,7 +20,6 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <emuframework/EmuSystem.hh>
 
 struct RecentGameInfo
 {
@@ -37,12 +36,3 @@ struct RecentGameInfo
 
 	void handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e);
 };
-
-extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
-
-void recent_addGame(const char *fullPath, const char *name);
-
-static void recent_addGame()
-{
-	recent_addGame(EmuSystem::fullGamePath(), EmuSystem::fullGameName().data());
-}

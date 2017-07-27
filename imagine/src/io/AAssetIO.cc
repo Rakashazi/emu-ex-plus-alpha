@@ -42,7 +42,7 @@ AAssetIO &AAssetIO::operator=(AAssetIO &&o)
 	return *this;
 }
 
-AAssetIO::operator GenericIO()
+GenericIO AAssetIO::makeGeneric()
 {
 	return GenericIO{*this};
 }

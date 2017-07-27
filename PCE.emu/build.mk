@@ -21,6 +21,8 @@ CPPFLAGS += -DHAVE_CONFIG_H \
 -I$(projectPath)/src/mednafen/hw_misc \
 -I$(projectPath)/src/mednafen/hw_sound
 
+CXXFLAGS_WARN += -Wno-register
+
 # mednafen sources
 SRC += mednafen/pce_fast/input.cpp \
 mednafen/pce_fast/vdc.cpp \

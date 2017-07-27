@@ -5,6 +5,8 @@
 
 #include "video.h"
 
+class EmuVideo;
+
 typedef struct
 {
  const char *extension; // Example ".nes"
@@ -312,6 +314,8 @@ struct EmulateSpecStruct
 
 	// Whether to call MDFND_commitVideoFrame upon drawing a frame. Set by the driver code.
 	bool commitVideo = false;
+
+	EmuVideo *video{};
 
 	//
 	// If sound is disabled, the driver code must set SoundRate to false, SoundBuf to NULL, SoundBufMaxSize to 0.

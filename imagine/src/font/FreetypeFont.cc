@@ -276,7 +276,7 @@ Font::Font(const char *name)
 		logMsg("unable to open file");
 		return;
 	}
-	loadIntoNextSlot(io);
+	loadIntoNextSlot(io.makeGeneric());
 }
 
 Font Font::makeSystem()
@@ -303,7 +303,7 @@ Font Font::makeBoldSystem()
 
 Font Font::makeFromAsset(const char *name)
 {
-	return {openAppAssetIO(name)};
+	return {openAppAssetIO(name).makeGeneric()};
 }
 
 Font::Font(Font &&o)
@@ -369,7 +369,7 @@ std::error_code FreetypeFont::loadIntoNextSlot(const char *name)
 		logMsg("unable to open file %s", name);
 		return {EINVAL, std::system_category()};
 	}
-	auto ec = loadIntoNextSlot(io);
+	auto ec = loadIntoNextSlot(io.makeGeneric());
 	if(ec)
 	{
 		return ec;

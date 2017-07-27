@@ -16,14 +16,9 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Option.hh>
+#include <emuframework/EmuSystem.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/Audio.hh>
-
-#if (defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA) || \
-	defined CONFIG_BASE_IOS || \
-	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
-#define CONFIG_VCONTROLS_GAMEPAD
-#endif
 
 template<int MAX, class T>
 bool optionIsValidWithMax(T val)

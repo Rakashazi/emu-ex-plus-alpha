@@ -35,7 +35,7 @@
 
 /* Global variables */
 //t_bitmap bitmap;
-t_snd snd;
+t_snd snd{44100, 60};
 uint32 mcycles_vdp;
 //uint32 Z80.cycleCount;
 //uint32 mcycles_68k;
@@ -49,6 +49,7 @@ static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo);
 static int pause_b;
 static EQSTATE eq;
 static int32 llp,rrp;
+static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
 /****************************************************************
  * Audio subsystem
@@ -489,7 +490,7 @@ static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo.initImage(false, bitmap.viewport.w, bitmap.viewport.h);
+  	emuVideo.setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
   	img = emuVideo.startFrame();
   	gPixmap = img.pixmap();
   }
@@ -568,7 +569,7 @@ static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   	gPixmap = {};
   }
   if(renderGfx)
-  	updateAndDrawEmuVideo();
+  	EmuApp::updateAndDrawEmuVideo();
 
   /* end of active display */
   v_counter = line;
@@ -887,7 +888,7 @@ static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo.initImage(false, bitmap.viewport.w, bitmap.viewport.h);
+  	emuVideo.setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
   	img = emuVideo.startFrame();
   }
 
@@ -950,7 +951,7 @@ static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   if(img)
   	img.endFrame();
   if(renderGfx)
-  	updateAndDrawEmuVideo();
+  	EmuApp::updateAndDrawEmuVideo();
 
   /* end of active display */
   v_counter = line;

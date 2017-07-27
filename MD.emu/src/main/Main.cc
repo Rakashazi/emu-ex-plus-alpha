@@ -40,7 +40,6 @@ bool EmuSystem::hasPALVideoSystem = true;
 t_config config{};
 uint config_ym2413_enabled = 1;
 int8 mdInputPortDev[2]{-1, -1};
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 t_bitmap bitmap{};
 bool usingMultiTap = false;
 static uint autoDetectedVidSysPAL = 0;
@@ -77,11 +76,11 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	//logMsg("frame start");
 	RAMCheatUpdate();
-	system_frame(!processGfx, renderGfx, emuVideo);
+	system_frame(!processGfx, renderGfx, video);
 
 	int16 audioBuff[snd.buffer_size * 2];
 	int frames = audio_update(audioBuff);
@@ -292,9 +291,7 @@ void setupMDInput()
 {
 	if(!EmuSystem::gameIsRunning())
 	{
-		#ifdef CONFIG_VCONTROLS_GAMEPAD
-		vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
-		#endif
+		EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 3);
 		return;
 	}
 
@@ -310,9 +307,7 @@ void setupMDInput()
 	{
 		setupSMSInput();
 		io_init();
-		#ifdef CONFIG_VCONTROLS_GAMEPAD
-		vController.gp.activeFaceBtns = 3;
-		#endif
+		EmuControls::setActiveFaceButtons(3);
 		return;
 	}
 
@@ -352,9 +347,7 @@ void setupMDInput()
 	}
 
 	io_init();
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
-	#endif
+	EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 3);
 }
 
 static uint detectISORegion(uint8 bootSector[0x800])
@@ -389,20 +382,12 @@ FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 	return path;
 }
 
-int EmuSystem::loadGame(const char *path)
+EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
-	bug_exit("should only use loadGameFromIO()");
-	return 0;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
-{
-	closeGame();
-	setupGamePaths(path);
 	#ifndef NO_SCD
 	CDAccess *cd{};
-	if(hasMDCDExtension(fullGamePath()) ||
-		(string_hasDotExtension(path, "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
+	if(hasMDCDExtension(gameFileName().data()) ||
+		(string_hasDotExtension(gameFileName().data(), "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
 	{
 		FS::current_path(gamePath());
 		try
@@ -411,8 +396,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 		}
 		catch(std::exception &e)
 		{
-			popup.printf(4, 1, "%s", e.what());
-			return 0;
+			return makeError("%s", e.what());
 		}
 
 		uint region = REGION_USA;
@@ -436,39 +420,34 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 		}
 		if(!strlen(biosPath))
 		{
-			popup.printf(4, 1, "Set a %s BIOS in the Options", biosName);
 			delete cd;
-			return 0;
+			return makeError("Set a %s BIOS in the Options", biosName);
 		}
 		FileIO io;
 		if(!load_rom(io, biosPath, nullptr))
 		{
-			popup.printf(4, 1, "Error loading BIOS: %s", biosPath);
 			delete cd;
-			return 0;
+			return makeError("Error loading BIOS: %s", biosPath);
 		}
 		if(!sCD.isActive)
 		{
-			popup.printf(4, 1, "Invalid BIOS: %s", biosPath);
 			delete cd;
-			return 0;
+			return makeError("Invalid BIOS: %s", biosPath);
 		}
 	}
 	else
 	#endif
-	if(hasMDExtension(origFilename)) // ROM
+	if(hasMDExtension(gameFileName().data())) // ROM
 	{
-		logMsg("loading ROM %s", path);
-		if(!load_rom(io, path, origFilename))
+		logMsg("loading ROM %s", fullGamePath());
+		if(!load_rom(io, fullGamePath(), gameFileName().data()))
 		{
-			popup.post("Error loading game", 1);
-			return 0;
+			return makeError("Error loading game");
 		}
 	}
 	else
 	{
-		popup.post("Invalid game", 1);
-		return 0;
+		return makeError("Invalid game");
 	}
 	autoDetectedVidSysPAL = vdp_pal;
 	if((int)optionVideoSystem == 1)
@@ -482,7 +461,6 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	if(vidSysIsPAL())
 		logMsg("using PAL timing");
 
-	configAudioPlayback();
 	system_init();
 	iterateTimes(2, i)
 	{
@@ -548,10 +526,9 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	{
 		if(Insert_CD(cd) != 0)
 		{
-			popup.post("Error loading CD", 1);
 			delete cd;
 			closeGame();
-			return 0;
+			return makeError("Error loading CD");
 		}
 	}
 	#endif
@@ -559,8 +536,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	readCheatFile();
 	applyCheats();
 
-	logMsg("started emu");
-	return 1;
+	return {};
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -585,39 +561,7 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onMainWindowCreated(Base::Window &win)
-{
-	win.setOnInputEvent(
-		[](Base::Window &win, Input::Event e)
-		{
-			if(EmuSystem::isActive())
-			{
-				int gunDevIdx = 4;
-				if(unlikely(e.isPointer() && input.dev[gunDevIdx] == DEVICE_LIGHTGUN))
-				{
-					if(emuVideoLayer.gameRect().overlaps({e.x, e.y}))
-					{
-						int xRel = e.x - emuVideoLayer.gameRect().x, yRel = e.y - emuVideoLayer.gameRect().y;
-						input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)emuVideoLayer.gameRect().xSize(), (float)bitmap.viewport.w);
-						input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)emuVideoLayer.gameRect().ySize(), (float)bitmap.viewport.h);
-					}
-					if(e.state == Input::PUSHED)
-					{
-						input.pad[gunDevIdx] |= INPUT_A;
-						logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
-					}
-					else if(e.state == Input::RELEASED)
-					{
-						input.pad[gunDevIdx] = IG::clearBits(input.pad[gunDevIdx], (uint16)INPUT_A);
-					}
-				}
-			}
-			handleInputEvent(win, e);
-		});
-}
-
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initFormat(pixFmt);
 	return OK;
 }

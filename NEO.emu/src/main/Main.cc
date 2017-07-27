@@ -81,31 +81,17 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
-static ROM_DEF *activeDrv{};
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16 screenBuff[352*256] __attribute__ ((aligned (8))){};
 static GN_Surface sdlSurf;
-static Base::Pipe guiPipe;
 static FS::PathString datafilePath{};
-static constexpr bool backgroundRomLoading = true;
-static bool loadThreadIsRunning = false;
 static const int FBResX = 352;
-static bool renderToScreen = false;
+static EmuVideo *emuVideo{};
 // start image on y 16, x 24, size 304x224, 48 pixel padding on the right
 static IG::Pixmap srcPix{{{304, 224}, pixFmt}, (char*)screenBuff + (16*FBResX*2) + (24*2), {FBResX, IG::Pixmap::PIXEL_UNITS}};
-
-enum { MSG_LOAD_FAILED, MSG_LOAD_OK, MSG_START_PROGRESS, MSG_UPDATE_PROGRESS };
+static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
 
 CLINK void main_frame();
-
-struct GUIMessage
-{
-	constexpr GUIMessage() {}
-	constexpr GUIMessage(uint8 type, uint8 shortArg, int intArg): intArg(intArg), shortArg(shortArg), type(type) {}
-	int intArg = 0;
-	uint8 shortArg = 0;
-	uint8 type = 0;
-};
 
 const char *EmuSystem::shortSystemName()
 {
@@ -231,36 +217,38 @@ static void reverseSwapCPUMemForDump(bool swappedBIOS)
 
 #endif
 
-static void loadGamePhase2()
-{
-	EmuSystem::setFullGameName(activeDrv->longname);
-	logMsg("set long game name: %s", EmuSystem::fullGameName().data());
-	free(activeDrv);
-	activeDrv = 0;
-
-	setTimerIntOption();
-
-	logMsg("finished loading game");
-}
-
 void gn_init_pbar(uint action,int size)
 {
 	using namespace Base;
 	logMsg("init pbar %d, %d", action, size);
-	if(loadThreadIsRunning)
+	if(onLoadProgress)
 	{
-		GUIMessage msg {MSG_START_PROGRESS, (uint8)action, size};
-		guiPipe.write(&msg, sizeof(msg));
+		const char *str = "";
+		switch(action)
+		{
+			bcase PBAR_ACTION_LOADROM:
+			{
+				// defaults to "Loading..."
+			}
+			bcase PBAR_ACTION_DECRYPT:
+			{
+				str = "Decrypting...";
+			}
+			bcase PBAR_ACTION_SAVEGNO:
+			{
+				str = "Building Cache...\n(may take a while)";
+			}
+		}
+		onLoadProgress(0, size, str);
 	}
 }
 void gn_update_pbar(int pos)
 {
 	using namespace Base;
 	logMsg("update pbar %d", pos);
-	if(loadThreadIsRunning)
+	if(onLoadProgress)
 	{
-		GUIMessage msg {MSG_UPDATE_PROGRESS, 0, pos};
-		guiPipe.write(&msg, sizeof(msg));
+		onLoadProgress(pos, 0, nullptr);
 	}
 }
 
@@ -318,224 +306,57 @@ CLINK void *res_load_data(const char *name)
 	return buffer;
 }
 
-class LoadGameInBackgroundView : public View
+EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate onLoadProgressFunc)
 {
-public:
-	Gfx::Text text{"Loading...", &View::defaultFace};
-	IG::WindowRect rect;
-	IG::WindowRect &viewRect() override { return rect; }
-
-	uint pos = 0, max = 0;
-
-	LoadGameInBackgroundView(ViewAttachParams attach): View(attach) {}
-
-	void setMax(uint val)
+	onLoadProgress = onLoadProgressFunc;
+	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });
+	ROM_DEF *drv = res_load_drv(gameName().data());
+	if(!drv)
 	{
-		max = val;
+		return makeError("This game isn't recognized");
 	}
-
-	void setPos(uint val)
-	{
-		pos = val;
-	}
-
-	void place() override
-	{
-		text.compile(renderer(), projP);
-	}
-
-	void inputEvent(Input::Event e) override { }
-
-	void draw() override
-	{
-		using namespace Gfx;
-		auto &r = renderer();
-		projP.resetTransforms(r);
-		r.setBlendMode(0);
-		if(max)
-		{
-			logMsg("drawing");
-			r.noTexProgram.use(r);
-			r.setColor(.0, .0, .75);
-			Gfx::GC barHeight = text.ySize*1.5;
-			auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
-				{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.w), barHeight});
-			GeomRect::draw(r, bar);
-		}
-		r.texAlphaProgram.use(r);
-		r.setColor(COLOR_WHITE);
-		text.draw(r, 0, 0, C2DO, projP);
-	}
-
-	void onAddedToController(Input::Event e) override {}
-};
-
-static int onGUIMessageHandler(Base::Pipe &pipe, LoadGameInBackgroundView &loadGameInBackgroundView)
-{
-	while(pipe.hasData())
-	{
-		GUIMessage msg;
-		pipe.read(&msg, sizeof(msg));
-		switch(msg.type)
-		{
-			bcase MSG_LOAD_FAILED:
-			{
-				modalViewController.pop();
-				char errorStr[1024];
-				pipe.read(errorStr, sizeof(errorStr));
-				popup.printf(4, 1, "%s", errorStr);
-				pipe.deinit();
-				return 0;
-			}
-			bcase MSG_LOAD_OK:
-			{
-				modalViewController.pop();
-				loadGamePhase2();
-				EmuSystem::onLoadGameComplete()(1, Input::Event{});
-				pipe.deinit();
-				return 0;
-			}
-			bcase MSG_START_PROGRESS:
-			{
-				switch(msg.shortArg)
-				{
-					bcase PBAR_ACTION_LOADROM:
-					{
-						// starts with "Loading..."
-					}
-					bcase PBAR_ACTION_DECRYPT:
-					{
-						loadGameInBackgroundView.text.setString("Decrypting...");
-					}
-					bcase PBAR_ACTION_SAVEGNO:
-					{
-						loadGameInBackgroundView.text.setString("Building Cache...\n(may take a while)");
-					}
-				}
-				loadGameInBackgroundView.setPos(0);
-				loadGameInBackgroundView.setMax(msg.intArg);
-				loadGameInBackgroundView.place();
-				mainWin.win.postDraw();
-			}
-			bcase MSG_UPDATE_PROGRESS:
-			{
-				loadGameInBackgroundView.setPos(msg.intArg);
-				mainWin.win.postDraw();
-			}
-		}
-	}
-	return 1;
-};
-
-int EmuSystem::loadGame(const char *path)
-{
-	closeGame(1);
-	emuVideo.initImage(0, 304, 224);
-	setupGamePaths(path);
-
-	{
-		ROM_DEF *drv = dr_check_zip(FS::basename(path).data());
-		if(!drv)
-		{
-			popup.postError("This game isn't recognized");
-			return 0;
-		}
-		activeDrv = drv;
-	}
-
-	logMsg("rom set %s, %s", activeDrv->name, activeDrv->longname);
+	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
+	logMsg("rom set %s, %s", drv->name, drv->longname);
 	FS::PathString gnoFilename{};
-	string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), activeDrv->name);
-
+	string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), drv->name);
 	if(optionCreateAndUseCache && FS::exists(gnoFilename))
 	{
 		logMsg("loading .gno file");
 		char errorStr[1024];
 		if(!init_game(gnoFilename.data(), errorStr))
 		{
-			popup.printf(4, 1, "%s", errorStr);
-			free(activeDrv); activeDrv = 0;
-			return 0;
+			return makeError("%s", errorStr);
 		}
 	}
 	else
 	{
-		if(backgroundRomLoading)
+		char errorStr[1024];
+		if(!init_game(drv->name, errorStr))
 		{
-			if(modalViewController.hasView())
-				modalViewController.pop();
-			auto loadGameInBackgroundView = new LoadGameInBackgroundView{{mainWin.win, emuVideo.r}};
-			modalViewController.pushAndShow(*loadGameInBackgroundView, {});
-			guiPipe.init({},
-				[loadGameInBackgroundView](Base::Pipe &pipe)
-				{
-					return onGUIMessageHandler(pipe, *loadGameInBackgroundView);
-				});
-			IG::makeDetachedThread(
-				[]()
-				{
-					using namespace Base;
-					FS::PathString gnoFilename{};
-					string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), activeDrv->name);
-					loadThreadIsRunning = true;
-					auto loadThreadDone = IG::scopeGuard([](){ loadThreadIsRunning = false; });
-					char errorStr[1024];
-					if(!init_game(activeDrv->name, errorStr))
-					{
-						GUIMessage msg {MSG_LOAD_FAILED, 0, 0};
-						guiPipe.write(&msg, sizeof(msg));
-						guiPipe.write(errorStr, sizeof(errorStr));
-						EmuSystem::clearGamePaths();
-						free(activeDrv); activeDrv = 0;
-						return;
-					}
-					if(optionCreateAndUseCache && !FS::exists(gnoFilename))
-					{
-						logMsg("%s doesn't exist, creating", gnoFilename.data());
-						#ifdef USE_GENERATOR68K
-						bool swappedBIOS = swapCPUMemForDump();
-						#endif
-						dr_save_gno(&memory.rom, gnoFilename.data());
-						#ifdef USE_GENERATOR68K
-						reverseSwapCPUMemForDump(swappedBIOS);
-						#endif
-					}
-					GUIMessage msg {MSG_LOAD_OK, 0, 0};
-					guiPipe.write(&msg, sizeof(msg));
-				});
-			return -1;
+			return makeError("%s", errorStr);
 		}
-		else
-		{
-			char errorStr[1024];
-			if(!init_game(activeDrv->name, errorStr))
-			{
-				popup.printf(4, 1, "%s", errorStr);
-				free(activeDrv); activeDrv = 0;
-				return 0;
-			}
 
-			if(optionCreateAndUseCache && !FS::exists(gnoFilename))
-			{
-				logMsg("%s doesn't exist, creating", gnoFilename.data());
-				#ifdef USE_GENERATOR68K
-				bool swappedBIOS = swapCPUMemForDump();
-				#endif
-				dr_save_gno(&memory.rom, gnoFilename.data());
-				#ifdef USE_GENERATOR68K
-				reverseSwapCPUMemForDump(swappedBIOS);
-				#endif
-			}
+		if(optionCreateAndUseCache && !FS::exists(gnoFilename))
+		{
+			logMsg("%s doesn't exist, creating", gnoFilename.data());
+			#ifdef USE_GENERATOR68K
+			bool swappedBIOS = swapCPUMemForDump();
+			#endif
+			dr_save_gno(&memory.rom, gnoFilename.data());
+			#ifdef USE_GENERATOR68K
+			reverseSwapCPUMemForDump(swappedBIOS);
+			#endif
 		}
 	}
-
-	loadGamePhase2();
-	return 1;
+	EmuSystem::setFullGameName(drv->longname);
+	logMsg("set long game name: %s", EmuSystem::fullGameName().data());
+	setTimerIntOption();
+	return {};
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
+void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	return 0; // TODO
+	video.setFormat(srcPix);
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -551,12 +372,12 @@ void EmuSystem::configAudioRate(double frameTime)
 
 CLINK void screen_update()
 {
-	if(likely(renderToScreen))
+	if(likely(emuVideo))
 	{
 		//logMsg("screen render");
-		emuVideo.writeFrame(srcPix);
-		updateAndDrawEmuVideo();
-		renderToScreen = 0;
+		emuVideo->writeFrame(srcPix);
+		EmuApp::updateAndDrawEmuVideo();
+		emuVideo = {};
 	}
 	else
 	{
@@ -564,10 +385,10 @@ CLINK void screen_update()
 	}
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	//logMsg("run frame %d", (int)processGfx);
-	renderToScreen = renderGfx;
+	emuVideo = &video;
 	skip_this_frame = !processGfx;
 	if(processGfx)
 		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
@@ -577,6 +398,16 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	{
 		writeSound(play_buffer, audioFramesPerVideoFrame);
 	}
+}
+
+FS::FileString EmuSystem::fullGameNameForPath(const char *path)
+{
+	auto gameName = fullGameNameForPathDefaultImpl(path);
+	ROM_DEF *drv = res_load_drv(gameName.data());
+	if(!drv)
+		return gameName;
+	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
+	return FS::makeFileString(drv->longname);
 }
 
 void EmuSystem::onCustomizeNavView(EmuNavView &view)
@@ -594,7 +425,6 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initFormat(pixFmt);
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
 	visible_area.w = 304;//320;

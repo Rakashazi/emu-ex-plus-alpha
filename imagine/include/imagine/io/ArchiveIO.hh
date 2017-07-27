@@ -56,7 +56,7 @@ public:
 	~ArchiveIO() override;
 	ArchiveIO(ArchiveIO &&o);
 	ArchiveIO &operator=(ArchiveIO &&o);
-	operator GenericIO();
+	GenericIO makeGeneric();
 	ArchiveEntry releaseArchive();
 	const char *name();
 	BufferMapIO moveToMapIO();

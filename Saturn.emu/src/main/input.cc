@@ -78,7 +78,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case ssKeyIdxATurbo + EmuControls::gamepadKeys:
 		case ssKeyIdxBTurbo + EmuControls::gamepadKeys:
 		case ssKeyIdxCTurbo + EmuControls::gamepadKeys:
-			turbo = 1;
+			turbo = 1; [[fallthrough]];
 		default: return input;
 	}
 }
@@ -126,7 +126,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	}
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	PerPortReset();
 	pad[0] = PerPadAdd(&PORTDATA1);

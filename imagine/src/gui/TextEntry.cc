@@ -110,7 +110,10 @@ CallResult TextEntry::init(const char *initText, Gfx::Renderer &r, Gfx::GlyphTex
 	return OK;
 }
 
-void CollectTextInputView::init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face)
+CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
+	Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
+	View(attach),
+	onTextD{onText}
 {
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl && closeRes)
@@ -123,7 +126,7 @@ void CollectTextInputView::init(const char *msgText, const char *initialContent,
 	message = {msgText, face};
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry.init(initialContent, renderer(), face, projP);
-	textEntry.setAcceptingInput(1);
+	textEntry.setAcceptingInput(true);
 	#else
 	Input::startSysTextInput(
 		[this](const char *str)

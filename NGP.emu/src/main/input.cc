@@ -75,9 +75,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case ngpKeyIdxRightDown: return ctrlRightBit | ctrlDownBit;
 		case ngpKeyIdxLeftDown: return ctrlLeftBit | ctrlDownBit;
 		case ngpKeyIdxOption: return ctrlOptionBit;
-		case ngpKeyIdxATurbo: turbo = 1;
+		case ngpKeyIdxATurbo: turbo = 1; [[fallthrough]];
 		case ngpKeyIdxA: return ctrlABit;
-		case ngpKeyIdxBTurbo: turbo = 1;
+		case ngpKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case ngpKeyIdxB: return ctrlBBit;
 		default: bug_branch("%d", input);
 	}
@@ -90,7 +90,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	ctrlBits = IG::setOrClearBits(ctrlBits, (uchar)emuKey, state == Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	ram[0x6F82] = 0;
 }

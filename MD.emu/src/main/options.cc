@@ -53,9 +53,7 @@ void EmuSystem::initOptions()
 
 void EmuSystem::onOptionsLoaded()
 {
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.activeFaceBtns = option6BtnPad ? 6 : 3;
-	#endif
+	EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 3);
 	config_ym2413_enabled = optionSmsFM;
 }
 

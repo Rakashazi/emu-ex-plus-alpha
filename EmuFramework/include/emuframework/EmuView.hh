@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
-#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
 

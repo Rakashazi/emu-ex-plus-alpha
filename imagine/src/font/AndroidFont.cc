@@ -82,6 +82,7 @@ Font Font::makeSystem()
 	Font font{};
 	if(unlikely(!renderer))
 	{
+		logMsg("making renderer");
 		renderer = Base::newFontRenderer(env);
 		setupResourceFontAndroidJni(env, renderer);
 		if(env->ExceptionCheck())

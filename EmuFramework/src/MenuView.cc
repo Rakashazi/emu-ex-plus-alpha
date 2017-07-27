@@ -27,6 +27,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
+#include "private.hh"
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
@@ -48,7 +49,7 @@ public:
 			{
 				switch(idx)
 				{
-					default: bug_branch("%d", idx);
+					default: bug_branch("%d", idx); [[fallthrough]];
 					case 0: return soft;
 					case 1: return hard;
 					case 2: return cancel;
@@ -435,10 +436,7 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 					// shortcuts to bundled games not yet supported
 					return;
 				}
-				auto &textInputView = *new CollectTextInputView{attachParams()};
-				textInputView.init("Shortcut Name", EmuSystem::fullGameName().data(),
-						getCollectTextCloseAsset(renderer()));
-				textInputView.onText() =
+				EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Shortcut Name", EmuSystem::fullGameName().data(),
 					[this](CollectTextInputView &view, const char *str)
 					{
 						if(str && strlen(str))
@@ -448,8 +446,7 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 						}
 						view.dismiss();
 						return 0;
-					};
-				modalViewController.pushAndShow(textInputView, e);
+					});
 			}
 			else
 			{
@@ -566,7 +563,7 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 			if(EmuSystem::gameIsRunning())
 			{
 				emuVideo.takeGameScreenshot();
-				EmuSystem::runFrame(false, true, false);
+				EmuSystem::runFrame(emuVideo, false, true, false);
 			}
 		}
 	}
@@ -575,7 +572,7 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 	{
 		loadFileBrowserItems();
 		loadStandardItems();
-		setOnMainMenuItemOptionChanged(
+		EmuApp::setOnMainMenuItemOptionChanged(
 			[this]()
 			{
 				item.clear();
@@ -647,16 +644,11 @@ void loadGameCompleteFromRecentItem(Gfx::Renderer &r, uint result, Input::Event 
 
 void RecentGameInfo::handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e)
 {
-	EmuSystem::onLoadGameComplete() =
+	EmuApp::createSystemWithMedia({}, path.data(), "", e,
 		[&r](uint result, Input::Event e)
 		{
 			loadGameCompleteFromRecentItem(r, result, e);
-		};
-	auto res = EmuSystem::loadGameFromPath(path);
-	if(res == 1)
-	{
-		loadGameCompleteFromRecentItem(r, 1, e);
-	}
+		});
 }
 
 RecentGameView::RecentGameView(ViewAttachParams attach):

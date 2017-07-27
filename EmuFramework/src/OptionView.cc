@@ -18,6 +18,7 @@
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <algorithm>
+#include "private.hh"
 
 using namespace IG;
 
@@ -123,8 +124,7 @@ static bool setAndroidTextureStorage(uint8 mode)
 				// texture may switch to external format so
 				// force effect shaders to re-compile
 				emuVideoLayer.setEffect(0);
-				emuVideo.reinitImage();
-				emuVideo.clearImage();
+				emuVideo.resetImage();
 				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 				emuVideoLayer.setEffect(optionImgEffect);
 				#endif
@@ -484,9 +484,9 @@ public:
 		multiChoiceView.appendItem("Set custom rate",
 			[this](TextMenuItem &, View &view, Input::Event e)
 			{
-				auto &textInputView = *new CollectTextInputView{view.attachParams()};
-				textInputView.init("Input decimal or fraction", "", getCollectTextCloseAsset(view.renderer()));
-				textInputView.onText() =
+				auto attach = view.attachParams();
+				view.popAndShow();
+				EmuApp::pushAndShowNewCollectTextInputView(attach, e, "Input decimal or fraction", "",
 					[this](CollectTextInputView &view, const char *str)
 					{
 						if(str)
@@ -509,9 +509,7 @@ public:
 						}
 						view.dismiss();
 						return 0;
-					};
-				view.popAndShow();
-				modalViewController.pushAndShow(textInputView, e);
+					});
 			});
 		if(includeFrameRateDetection)
 		{

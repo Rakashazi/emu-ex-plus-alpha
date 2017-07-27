@@ -17,15 +17,42 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuInput.hh>
 #include <emuframework/FilePicker.hh>
-#include <emuframework/ConfigFile.hh>
 #include <emuframework/EmuView.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <emuframework/VController.hh>
-#endif
+#include <emuframework/EmuLoadProgressView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/assume.h>
+#include <imagine/util/ScopeGuard.hh>
+#include <imagine/base/Pipe.hh>
+#include <imagine/thread/Thread.hh>
 #include <cmath>
+#include "private.hh"
+
+class AutoStateConfirmAlertView : public YesNoAlertView
+{
+	std::array<char, 96> msg{};
+
+public:
+	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr, bool addToRecent):
+		YesNoAlertView{attach, "", "Continue", "Restart Game"}
+	{
+		string_printf(msg, "Auto-save state exists from:\n%s", dateStr);
+		setLabel(msg.data());
+		setOnYes(
+			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			{
+				view.dismiss();
+				loadGameComplete(true, addToRecent);
+			});
+		setOnNo(
+			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			{
+				view.dismiss();
+				loadGameComplete(false, addToRecent);
+			});
+	}
+};
 
 static Gfx::Renderer renderer;
 AppWindowData mainWin{}, extraWin{};
@@ -46,7 +73,7 @@ BluetoothAdapter *bta{};
 #ifdef __ANDROID__
 std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 #endif
-static OnMainMenuOptionChanged onMainMenuOptionChanged_{};
+static EmuApp::OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 FS::PathString lastLoadPath{};
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 SysVController vController{renderer};
@@ -68,6 +95,7 @@ static Gfx::PixmapTexture assetBuffImg[IG::size(assetFilename)];
 static void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport);
 static Gfx::Viewport makeViewport(const Base::Window &win);
 void mainInitWindowCommon(Base::Window &win);
+void handleOpenFileCommand(const char *filename);
 
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 {
@@ -86,7 +114,7 @@ Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 	return res;
 }
 
-Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r)
+static Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r)
 {
 	return Config::envIsAndroid ? nullptr : &getAsset(r, ASSET_CLOSE);
 }
@@ -107,9 +135,8 @@ static void drawEmuVideo(Gfx::Renderer &r)
 	r.presentDrawable(emuWin->drawable);
 }
 
-void updateAndDrawEmuVideo()
+void EmuApp::updateAndDrawEmuVideo()
 {
-	emuVideo.updateImage();
 	drawEmuVideo(renderer);
 }
 
@@ -161,7 +188,7 @@ static Base::Screen::OnFrameDelegate onFrameUpdate
 			postDrawToEmuWindows();
 			iterateTimes((uint)optionFastForwardSpeed, i)
 			{
-				EmuSystem::runFrame(false, false, false);
+				EmuSystem::runFrame(emuVideo, false, false, false);
 			}
 		}
 		else
@@ -186,7 +213,7 @@ static Base::Screen::OnFrameDelegate onFrameUpdate
 					bool renderAudio = optionSound;
 					iterateTimes(framesToSkip, i)
 					{
-						EmuSystem::runFrame(false, false, renderAudio);
+						EmuSystem::runFrame(emuVideo, false, false, renderAudio);
 					}
 				}
 			}
@@ -220,9 +247,20 @@ static void pauseEmulation()
 
 void closeGame(bool allowAutosaveState)
 {
-	EmuSystem::closeGame();
+	EmuSystem::closeGame(allowAutosaveState);
 	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
 	setCPUNeedsLowLatency(false);
+}
+
+void EmuApp::exitGame(bool allowAutosaveState)
+{
+	closeGame(allowAutosaveState);
+	if(EmuSystem::isActive())
+	{
+		restoreMenuFromGame();
+	}
+	// leave any sub menus that may depending on running game state
+	popMenuToRoot();
 }
 
 static void drawEmuFrame(Gfx::Renderer &r)
@@ -230,7 +268,7 @@ static void drawEmuFrame(Gfx::Renderer &r)
 	if(EmuSystem::runFrameOnDraw)
 	{
 		bool renderAudio = optionSound;
-		EmuSystem::runFrame(true, true, renderAudio);
+		EmuSystem::runFrame(emuVideo, true, true, renderAudio);
 		EmuSystem::runFrameOnDraw = false;
 	}
 	else
@@ -412,7 +450,7 @@ void startGameFromMenu()
 	emuView2.place();
 }
 
-void restoreMenuFromGame()
+void EmuApp::restoreMenuFromGame()
 {
 	menuViewIsActive = 1;
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
@@ -786,7 +824,6 @@ void mainInitWindowCommon(Base::Window &win)
 	#endif
 
 	//logMsg("setting up view stack");
-	modalViewController.init(win);
 	modalViewController.onRemoveView() =
 		[]()
 		{
@@ -873,24 +910,24 @@ void handleOpenFileCommand(const char *path)
 	if(type == FS::file_type::directory)
 	{
 		logMsg("changing to dir %s from external command", path);
-		restoreMenuFromGame();
+		EmuApp::restoreMenuFromGame();
 		viewStack.popToRoot();
 		string_copy(lastLoadPath, path);
 		auto &fPicker = *EmuFilePicker::makeForLoading({mainWin.win, renderer});
 		viewStack.pushAndShow(fPicker, Input::defaultEvent(), false);
 		return;
 	}
-	if(type != FS::file_type::regular || (!hasArchiveExtension(path) && !EmuSystem::defaultFsFilter(path)))
+	if(type != FS::file_type::regular || (!EmuApp::hasArchiveExtension(path) && !EmuSystem::defaultFsFilter(path)))
 	{
 		logMsg("unrecognized file type");
 		return;
 	}
 	logMsg("opening file %s from external command", path);
-	restoreMenuFromGame();
+	EmuApp::restoreMenuFromGame();
 	viewStack.popToRoot();
 	if(modalViewController.hasView())
 		modalViewController.pop();
-	GameFilePicker::onSelectFile(viewStack.top().renderer(), path, Input::Event{});
+	onSelectFileFromPicker(viewStack.top().renderer(), path, Input::Event{});
 }
 
 void placeEmuViews()
@@ -938,9 +975,271 @@ void onMainMenuItemOptionChanged()
 	onMainMenuOptionChanged_.callSafe();
 }
 
-void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
+void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 {
 	onMainMenuOptionChanged_ = func;
+}
+
+void loadGameComplete(bool tryAutoState, bool addToRecent)
+{
+	if(tryAutoState)
+	{
+		EmuSystem::loadAutoState();
+		if(!EmuSystem::gameIsRunning())
+		{
+			logErr("game was closed while trying to load auto-state");
+			return;
+		}
+	}
+	if(addToRecent)
+		addRecentGame();
+	startGameFromMenu();
+}
+
+bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent)
+{
+	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
+	{
+		return 0;
+	}
+	auto saveStr = EmuSystem::sprintStateFilename(-1);
+	if(FS::exists(saveStr))
+	{
+		auto mTime = FS::status(saveStr).lastWriteTimeLocal();
+		char dateStr[64]{};
+		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
+		auto &ynAlertView = *new AutoStateConfirmAlertView{{mainWin.win, r}, dateStr, addToRecent};
+		modalViewController.pushAndShow(ynAlertView, e);
+		return 1;
+	}
+	return 0;
+}
+
+void EmuApp::loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e)
+{
+	if(!result)
+		return;
+
+	if(!showAutoStateConfirm(r, e, true))
+	{
+		loadGameComplete(1, 1);
+	}
+}
+
+void onSelectFileFromPicker(Gfx::Renderer &r, const char* name, Input::Event e)
+{
+	EmuApp::createSystemWithMedia({}, name, "", e,
+		[&r](uint result, Input::Event e)
+		{
+			EmuApp::loadGameCompleteFromFilePicker(r, result, e);
+		});
+}
+
+void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e)
+{
+	if(result)
+	{
+		logMsg("starting benchmark");
+		IG::Time time = EmuSystem::benchmark();
+		EmuSystem::closeGame(0);
+		logMsg("done in: %f", double(time));
+		popup.printf(2, 0, "%.2f fps", double(180.)/double(time));
+	}
+}
+
+bool EmuApp::hasArchiveExtension(const char *name)
+{
+	return string_hasDotExtension(name, "7z") ||
+		string_hasDotExtension(name, "rar") ||
+		string_hasDotExtension(name, "zip");
+}
+
+void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e, const char *msgText,
+	const char *initialContent, CollectTextInputView::OnTextDelegate onText)
+{
+	auto textInputView = new CollectTextInputView{attach, msgText, initialContent,
+		getCollectTextCloseAsset(attach.renderer), onText};
+	pushAndShowModalView(*textInputView, e);
+}
+
+void EmuApp::pushAndShowModalView(View &v, Input::Event e)
+{
+	modalViewController.pushAndShow(v, e);
+}
+
+void EmuApp::popModalViews()
+{
+	if(modalViewController.hasView())
+		modalViewController.pop();
+}
+
+void EmuApp::popMenuToRoot()
+{
+	viewStack.popToRoot();
+}
+
+void EmuApp::reloadGame()
+{
+	if(!EmuSystem::gameIsRunning())
+		return;
+	FS::PathString gamePath;
+	string_copy(gamePath, EmuSystem::fullGamePath());
+	EmuSystem::Error err{};
+	EmuSystem::createWithMedia({}, gamePath.data(), "", err, [](int pos, int max, const char *label){ return true; });
+	if(!err)
+	{
+		EmuSystem::prepareAudioVideo();
+		startGameFromMenu();
+	}
+}
+
+void EmuApp::printfMessage(uint secs, bool error, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
+	popup.vprintf(secs, error, format, args);
+}
+
+void EmuApp::postMessage(const char *msg)
+{
+	postMessage(false, msg);
+}
+
+void EmuApp::postMessage(bool error, const char *msg)
+{
+	postMessage(3, error, msg);
+}
+
+void EmuApp::postMessage(uint secs, bool error, const char *msg)
+{
+	popup.post(msg, secs, error);
+}
+
+void EmuApp::unpostMessage()
+{
+	popup.clear();
+}
+
+ViewAttachParams emuViewAttachParams()
+{
+	return {mainWin.win, emuVideo.r};
+}
+
+[[gnu::weak]] bool EmuApp::willCreateSystem(Input::Event) { return true; }
+
+void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, CreateSystemCompleteDelegate onComplete)
+{
+	popModalViews();
+	if(!EmuApp::willCreateSystem(e))
+	{
+		return;
+	}
+	auto loadProgressView = new EmuLoadProgressView{emuViewAttachParams(), e, onComplete};
+	pushAndShowModalView(*loadProgressView, e);
+	loadProgressView->pipe.init({},
+		[loadProgressView](Base::Pipe &pipe)
+		{
+			while(pipe.hasData())
+			{
+				EmuSystem::LoadProgressMessage msg{};
+				pipe.read(&msg, sizeof(msg));
+				switch(msg.progress)
+				{
+					case EmuSystem::LoadProgress::FAILED:
+					{
+						assumeExpr(msg.intArg3 > 0);
+						uint len = msg.intArg3;
+						char errorStr[len + 1];
+						pipe.read(errorStr, len);
+						errorStr[len] = 0;
+						pipe.deinit();
+						popModalViews();
+						popup.postError(errorStr, 4);
+						return 0;
+					}
+					case EmuSystem::LoadProgress::OK:
+					{
+						pipe.deinit();
+						auto onComplete = loadProgressView->onComplete;
+						auto originalEvent = loadProgressView->originalEvent;
+						popModalViews();
+						EmuSystem::prepareAudioVideo();
+						onComplete(1, originalEvent);
+						return 0;
+					}
+					case EmuSystem::LoadProgress::UPDATE:
+					{
+						loadProgressView->setPos(msg.intArg);
+						loadProgressView->setMax(msg.intArg2);
+						assumeExpr(msg.intArg3 >= -1);
+						switch(msg.intArg3)
+						{
+							bcase -1: // no string
+							{}
+							bcase 0: // default string
+							{
+								loadProgressView->setLabel("Loading...");
+							}
+							bdefault: // custom string
+							{
+								uint len = msg.intArg3;
+								char labelStr[len + 1];
+								pipe.read(labelStr, len);
+								labelStr[len] = 0;
+								loadProgressView->setLabel(labelStr);
+								logMsg("set custom string:%s", labelStr);
+							}
+						}
+						loadProgressView->place();
+						loadProgressView->postDraw();
+						return 1;
+					}
+					default:
+					{
+						logWarn("Unknown LoadProgressMessage value:%d", (int)msg.progress);
+						return 1;
+					}
+				}
+			}
+			return 1;
+		});
+	auto pathStr = FS::makePathString(path);
+	auto fileStr = FS::makeFileString(name);
+	auto ioPtr = io.release();
+	IG::makeDetachedThread(
+		[ioPtr, pathStr, fileStr, loadProgressView]()
+		{
+			logMsg("starting loader thread");
+			GenericIO io{std::unique_ptr<IO>(ioPtr)};
+			EmuSystem::Error err;
+			EmuSystem::createWithMedia(std::move(io), pathStr.data(), fileStr.data(), err,
+				[loadProgressView](int pos, int max, const char *label)
+				{
+					int len = label ? strlen(label) : -1;
+					EmuSystem::LoadProgressMessage msg{EmuSystem::LoadProgress::UPDATE, pos, max, len};
+					loadProgressView->pipe.write(&msg, sizeof(msg));
+					if(len > 0)
+					{
+						loadProgressView->pipe.write(label, len);
+					}
+					return true;
+				});
+			if(err)
+			{
+				auto errStr = err->what();
+				int len = strlen(errStr);
+				assert(len);
+				EmuSystem::LoadProgressMessage msg{EmuSystem::LoadProgress::FAILED, 0, 0, len};
+				loadProgressView->pipe.write(&msg, sizeof(msg));
+				loadProgressView->pipe.write(errStr, len);
+				logErr("loader thread failed");
+				return;
+			}
+			EmuSystem::LoadProgressMessage msg{EmuSystem::LoadProgress::OK, 0, 0, 0};
+			loadProgressView->pipe.write(&msg, sizeof(msg));
+			logMsg("loader thread finished");
+		});
 }
 
 namespace Base

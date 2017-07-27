@@ -31,7 +31,7 @@ public:
 	~PosixIO() override;
 	PosixIO(PosixIO &&o);
 	PosixIO &operator=(PosixIO &&o);
-	operator GenericIO();
+	GenericIO makeGeneric();
 	std::error_code open(const char *path, uint mode = 0);
 	std::error_code create(const char *path, uint mode = 0)
 	{

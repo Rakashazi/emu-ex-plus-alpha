@@ -93,9 +93,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case pceKeyIdxLeftDown: return bit(7) | bit(6) | playerMask;
 		case pceKeyIdxSelect: return bit(2) | playerMask;
 		case pceKeyIdxRun: return bit(3) | playerMask;
-		case pceKeyIdxITurbo: turbo = 1; // fall through to pceKeyIdxI
+		case pceKeyIdxITurbo: turbo = 1; [[fallthrough]];
 		case pceKeyIdxI: return bit(0) | playerMask;
-		case pceKeyIdxIITurbo: turbo = 1; // fall through to pceKeyIdxII
+		case pceKeyIdxIITurbo: turbo = 1; [[fallthrough]];
 		case pceKeyIdxII: return bit(1) | playerMask;
 		case pceKeyIdxIII: return bit(8) | playerMask;
 		case pceKeyIdxIV: return bit(9) | playerMask;
@@ -113,7 +113,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)emuKey, state == Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
 	if(useSixButtonPad)

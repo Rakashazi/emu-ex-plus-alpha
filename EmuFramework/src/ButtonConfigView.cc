@@ -18,6 +18,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/util/math/int.hh>
+#include "private.hh"
 
 #ifdef CONFIG_INPUT_POINTING_DEVICES
 bool ButtonConfigSetView::pointerUIIsInit()

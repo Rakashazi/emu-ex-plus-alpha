@@ -25,19 +25,28 @@ public:
 		bytesPerPixel_{bytesPerPixel}, name_{name}
 	{}
 
-	template<class T, ENABLE_IF_EXPR(std::is_integral_v<T>)>
-	constexpr uint build(T r, T g, T b, T a) const
+	template<class T>
+	constexpr uint build(T r_, T g_, T b_, T a_) const
 	{
+		uint r = 0, g = 0, b = 0, a = 0;
+		if constexpr(std::is_floating_point<T>::value)
+		{
+			r = IG::scaleDecToBits<uint>(r_, rBits);
+			g = IG::scaleDecToBits<uint>(g_, gBits);
+			b = IG::scaleDecToBits<uint>(b_, bBits);
+			a = IG::scaleDecToBits<uint>(a_, aBits);
+		}
+		else
+		{
+			r = (uint)r_;
+			g = (uint)g_;
+			b = (uint)b_;
+			a = (uint)a_;
+		}
 		return (rBits ? ((r & makeFullBits<uint>(rBits)) << rShift) : 0) |
 			(gBits ? ((g & makeFullBits<uint>(gBits)) << gShift) : 0) |
 			(bBits ? ((b & makeFullBits<uint>(bBits)) << bShift) : 0) |
 			(aBits ? ((a & makeFullBits<uint>(aBits)) << aShift) : 0);
-	}
-
-	template<class T, ENABLE_IF_EXPR(std::is_floating_point_v<T>)>
-	constexpr uint build(T r, T g, T b, T a) const
-	{
-		return build(IG::scaleDecToBits<uint>(r, rBits), IG::scaleDecToBits<uint>(g, gBits), IG::scaleDecToBits<uint>(b, bBits), IG::scaleDecToBits<uint>(a, aBits));
 	}
 
 	static constexpr uint component(uint pixel, uchar shift, uchar bits)

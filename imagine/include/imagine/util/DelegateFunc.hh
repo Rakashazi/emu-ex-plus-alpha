@@ -29,33 +29,31 @@ public:
 
 	constexpr DelegateFunc() {}
 
-	// construct from lambda
-	template<class T, DISABLE_IF_EXPR(std::is_convertible_v<T, R (*)(ARGS...)>)>
-	constexpr DelegateFunc(T const &lambda) :
+	template<class T>
+	constexpr DelegateFunc(T const &funcObj) :
 		exec
 		{
-			[](const Storage &lambda, ARGS... arguments) -> R
+			[](const Storage &funcObj, ARGS... arguments) -> R
 			{
-				return ((T*)lambda.data())->operator()(arguments...);
+				if constexpr(isCompatibleFreeFunc<T>())
+					return funcObj.func(arguments...);
+				else
+					return ((T*)funcObj.data())->operator()(arguments...);
 			}
 		}
 	{
-		static_assert(sizeof(T) <= STORAGE_SIZE, "Delegate too big for storage");
-		new (execData.mem) T(lambda);
-	}
-
-	// construct from free function
-	template <class T, ENABLE_IF_EXPR(std::is_convertible_v<T, R (*)(ARGS...)>)>
-	constexpr DelegateFunc(T const &func) :
-		exec
+		if constexpr(isCompatibleFreeFunc<T>())
 		{
-			[](const Storage &funcData, ARGS... arguments) -> R
-			{
-				return funcData.func(arguments...);
-			}
-		},
-		execData{func}
-	{}
+			// construct from free function
+			execData = Storage(funcObj);
+		}
+		else
+		{
+			// construct from lambda
+			static_assert(sizeof(T) <= STORAGE_SIZE, "Delegate too big for storage");
+			new (execData.mem) T(funcObj);
+		}
+	}
 
 	explicit operator bool() const
 	{
@@ -93,6 +91,12 @@ public:
 		if(exec)
 			return callCopy(in...);
 		return R();
+	}
+
+	template<class T>
+	static constexpr bool isCompatibleFreeFunc()
+	{
+		return std::is_convertible<T, R (*)(ARGS...)>::value;
 	}
 
 private:

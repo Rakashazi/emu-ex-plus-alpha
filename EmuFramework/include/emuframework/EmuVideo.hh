@@ -58,30 +58,17 @@ public:
 	IG::MemPixmap memPix{};
 	bool screenshotNextFrame = false;
 
-	// TODO: remove old API members when all systems updated
-	IG::Pixmap vidPix{};
-	char *pixBuff{};
-	uint vidPixAlign = Gfx::Texture::MAX_ASSUME_ALIGN;
-
 public:
 	EmuVideo(Gfx::Renderer &r): r{r} {}
-	void initFormat(IG::PixelFormat format);
-	void reinitImage();
-	void resizeImage(uint x, uint y, uint pitch = 0);
-	void initImage(bool force, uint x, uint y, uint pitch = 0);
+	void setFormat(IG::PixmapDesc desc);
+	void resetImage();
 	EmuVideoImage startFrame();
 	void writeFrame(Gfx::LockedTextureBuffer texBuff);
 	void writeFrame(IG::Pixmap pix);
 	void takeGameScreenshot();
 	bool isExternalTexture();
 	Gfx::Renderer &renderer() { return r; }
-
-	// TODO: remove old API methods when all systems updated
-	void initPixmap(char *pixBuff, IG::PixelFormat format, uint x, uint y, uint pitch = 0);
-	void resizeImage(uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
-	void initImage(bool force, uint xO, uint yO, uint x, uint y, uint totalX, uint totalY, uint pitch = 0);
-	void clearImage();
-	void updateImage();
+	IG::WP size() const;
 
 protected:
 	void doScreenshot(IG::Pixmap pix);

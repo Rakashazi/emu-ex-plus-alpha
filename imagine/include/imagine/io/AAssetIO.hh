@@ -30,7 +30,7 @@ public:
 	~AAssetIO() override;
 	AAssetIO(AAssetIO &&o);
 	AAssetIO &operator=(AAssetIO &&o);
-	operator GenericIO();
+	GenericIO makeGeneric();
 	std::error_code open(const char *name);
 
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;

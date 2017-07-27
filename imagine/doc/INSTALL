@@ -5,14 +5,15 @@ Building the Imagine SDK and applications is currently supported on Linux and Ma
 
 You need the following basic tools to start building Imagine. For platform-specific info, see the INSTALL-* file for that port.
 
-Linux: GCC 5.1 or newer, GNU Make, pkgconfig (install from your distro's package manager)
+Linux: GCC 7.1/Clang 4.9 or newer, GNU Make, pkgconfig (install from your distro's package manager)
 
-MacOS X: Xcode 7 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
+MacOS X: Xcode 8 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
 
 The following make variables are used by the build system:
 
 IMAGINE_PATH : Required, no default
  - The path to the root Imagine directory containing the "make/" subdirectory
+ - Example: IMAGINE_PATH=$HOME/projects/imagine
 
 IMAGINE_SDK_PATH : Optional, defaults to $(HOME)/imagine-sdk
  - When building Imagine itself, the default install path of the Imagine SDK headers & libs
@@ -41,5 +42,5 @@ To use the resulting Imagine SDK with pkg-config, add that port's "lib/pkgconfig
 
 --------------------------------
 
-Copyright 2014-2015 by Robert Broglia
+Copyright 2014-2017 by Robert Broglia
 

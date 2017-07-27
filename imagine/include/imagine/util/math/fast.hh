@@ -20,43 +20,50 @@
 namespace IG
 {
 
-// Method using Log Base 2 Approximation With One Extra Babylonian Steps
-// http://ilab.usc.edu/wiki/index.php/Fast_Square_Root
-static float sqrtFast(float x)
-{
-	union
-	{
-		int i;
-		float x;
-	} u;
-	u.x = x;
-	u.i = (1<<29) + (u.i >> 1) - (1<<22);
-
-	// One Babylonian Step
-	u.x = 0.5f * (u.x + x/u.x);
-
-	return u.x;
-}
-
-template <typename T, ENABLE_IF_EXPR(std::is_unsigned_v<T>)>
+template <typename T>
 static T sqrtFast(T remainder)
 {
-	T place = (T)1 << (sizeof(T) * 8 - 2); // calculated by precompiler = same runtime as: place = 0x40000000
-	while (place > remainder)
-		place /= 4; // optimized by complier as place >>= 2
-
-	T root = 0;
-	while (place)
+	if constexpr(std::is_same<float, T>::value)
 	{
-		if (remainder >= root+place)
+		// Method using Log Base 2 Approximation With One Extra Babylonian Steps
+		// http://ilab.usc.edu/wiki/index.php/Fast_Square_Root
+
+		union
 		{
-			remainder -= root+place;
-			root += place * 2;
-		}
-		root /= 2;
-		place /= 4;
+			int i;
+			float x;
+		} u;
+		u.x = x;
+		u.i = (1<<29) + (u.i >> 1) - (1<<22);
+
+		// One Babylonian Step
+		u.x = 0.5f * (u.x + x/u.x);
+
+		return u.x;
 	}
-	return root;
+	else if constexpr(std::is_unsigned<T>::value)
+	{
+		T place = (T)1 << (sizeof(T) * 8 - 2); // calculated by precompiler = same runtime as: place = 0x40000000
+		while (place > remainder)
+			place /= 4; // optimized by complier as place >>= 2
+
+		T root = 0;
+		while (place)
+		{
+			if (remainder >= root+place)
+			{
+				remainder -= root+place;
+				root += place * 2;
+			}
+			root /= 2;
+			place /= 4;
+		}
+		return root;
+	}
+	else
+	{
+		// error
+	}
 }
 
 }

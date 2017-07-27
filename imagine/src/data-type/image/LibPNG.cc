@@ -391,7 +391,7 @@ std::error_code PngFile::load(const char *name)
 	{
 		return ec;
 	}
-	return load(io);
+	return load(io.makeGeneric());
 }
 
 void PngFile::deinit()

@@ -1733,7 +1733,7 @@ void FCEUPPU_Power(void) {
 	BWrite[0x4014] = B4014;
 }
 
-int FCEUPPU_Loop(int skip, bool display) {
+int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 	if ((newppu) && (GameInfo->type != GIT_NSF)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
@@ -1850,8 +1850,7 @@ int FCEUPPU_Loop(int skip, bool display) {
 				}
 			}
 
-			extern void FCEUD_frameReady(uint8 *buf, bool display);
-			FCEUD_frameReady(XBuf, display);
+			onFrameReady(XBuf);
 
 			DMC_7bit = 0;
 
@@ -1882,7 +1881,7 @@ int FCEUPPU_Loop(int skip, bool display) {
 	}
 }
 
-int (*PPU_MASTER)(int skip, bool display) = FCEUPPU_Loop;
+int (*PPU_MASTER)(EmuVideoDelegate onFrameReady, int skip) = FCEUPPU_Loop;
 
 static uint16 TempAddrT, RefreshAddrT;
 

@@ -62,7 +62,8 @@ void setTimerIntOption()
 		bcase 1: conf.raster = 1;
 		bcase 2:
 			bool needsTimer = 0;
-			auto gameStr = EmuSystem::fullGameName().data();
+			auto gameName = EmuSystem::fullGameName();
+			auto gameStr = gameName.data();
 			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
 					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")
 					|| strstr(gameStr, "Spin Master")))
@@ -86,16 +87,6 @@ void EmuSystem::onOptionsLoaded()
 {
 	conf.system = (SYSTEM)optionBIOSType.val;
 	conf.country = (COUNTRY)optionMVSCountry.val;
-	// TODO: remove now that long names are correctly used
-	for(auto &e : recentGameList)
-	{
-		ROM_DEF *drv = dr_check_zip(e.path.data());
-		if(!drv)
-			continue;
-		logMsg("updating recent game name %s to %s", e.name.data(), drv->longname);
-		string_copy(e.name, drv->longname);
-		free(drv);
-	}
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

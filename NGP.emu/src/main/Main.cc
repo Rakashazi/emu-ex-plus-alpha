@@ -27,7 +27,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobe
 uint32 frameskip_active = 0;
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static bool renderToScreen = false;
+static EmuVideo *emuVideo{};
 static IG::Pixmap srcPix{{{ngpResX, ngpResY}, pixFmt}, cfb};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -161,29 +161,23 @@ static bool romLoad(IO &io)
 	return false;
 }
 
-int EmuSystem::loadGame(const char *path)
+EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
-	bug_exit("should only use loadGameFromIO()");
-	return 0;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
-{
-	closeGame(true);
-	emuVideo.initImage(false, ngpResX, ngpResY);
-	setupGamePaths(path);
 	if(!romLoad(io))
 	{
-		popup.postError("Error loading game");
-		return 0;
+		return EmuSystem::makeError("Error loading game");
 	}
 	rom_loaded();
 	logMsg("loaded NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
 	::reset();
 	rom_bootHacks();
-	return 1;
+	return {};
 }
 
+void EmuSystem::onPrepareVideo(EmuVideo &video)
+{
+	video.setFormat({{ngpResX, ngpResY}, pixFmt});
+}
 
 void EmuSystem::configAudioRate(double frameTime)
 {
@@ -199,18 +193,18 @@ void system_sound_chipreset(void)
 
 void system_VBL(void)
 {
-	if(likely(renderToScreen))
+	if(likely(emuVideo))
 	{
-		emuVideo.writeFrame(srcPix);
-		updateAndDrawEmuVideo();
-		renderToScreen = 0;
+		emuVideo->writeFrame(srcPix);
+		EmuApp::updateAndDrawEmuVideo();
+		emuVideo = {};
 	}
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	if(renderGfx)
-		renderToScreen = 1;
+		emuVideo = &video;
 	frameskip_active = processGfx ? 0 : 1;
 
 	#ifndef NEOPOP_DEBUG
@@ -310,7 +304,6 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 CallResult EmuSystem::onInit()
 {
 	EmuSystem::pcmFormat.channels = 1;
-	emuVideo.initFormat(pixFmt);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;

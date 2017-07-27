@@ -59,7 +59,7 @@ public:
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name)
 	{
-		return load(openAppAssetIO(name));
+		return load(openAppAssetIO(name).makeGeneric());
 	}
 	void deinit();
 	std::error_code write(IG::Pixmap dest) override;

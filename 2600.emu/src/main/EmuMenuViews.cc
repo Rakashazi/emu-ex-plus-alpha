@@ -171,7 +171,7 @@ private:
 			if(EmuSystem::gameIsRunning())
 			{
 				auto &vcsSwitchesView = *new VCSSwitchesView{attachParams()};
-				viewStack.pushAndShow(vcsSwitchesView, e);
+				pushAndShow(vcsSwitchesView, e);
 			}
 		}
 	};
@@ -188,7 +188,7 @@ public:
 	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
-		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow() override

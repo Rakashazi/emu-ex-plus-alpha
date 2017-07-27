@@ -36,10 +36,11 @@ const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasOptionsView = true;
 const uint EmuSystem::maxPlayers = 5;
-int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
+static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
+static int snesMouseX = 0, snesMouseY = 0;
 uint doubleClickFrames, rightClickFrames;
-Input::SingleDragTracker dragTracker{};
-bool dragWithButton = false; // true to start next mouse drag with a button held
+static Input::SingleDragTracker dragTracker{};
+static bool dragWithButton = false; // true to start next mouse drag with a button held
 #ifndef SNES9X_VERSION_1_4
 int snesInputPort = SNES_AUTO_INPUT;
 int snesActiveInputPort = SNES_JOYPAD;
@@ -56,8 +57,8 @@ CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
     	return 0;
 
     //logMsg("reading mouse %d: %d %d %d, prev %d %d", which1_0_to_1, snesPointerX, snesPointerY, snesPointerBtns, IPPU.PrevMouseX[which1_0_to_1], IPPU.PrevMouseY[which1_0_to_1]);
-    x = IG::scalePointRange((float)snesPointerX, (float)emuVideoLayer.gameRect().xSize(), (float)256.);
-    y = IG::scalePointRange((float)snesPointerY, (float)emuVideoLayer.gameRect().ySize(), (float)224.);
+    x = snesMouseX;
+    y = snesMouseY;
     buttons = snesPointerBtns;
 
     if(snesMouseClick)
@@ -146,13 +147,13 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case s9xKeyIdxLeftDown: return SNES_LEFT_MASK | SNES_DOWN_MASK | playerMask;
 		case s9xKeyIdxSelect: return SNES_SELECT_MASK | playerMask;
 		case s9xKeyIdxStart: return SNES_START_MASK | playerMask;
-		case s9xKeyIdxXTurbo: turbo = 1;
+		case s9xKeyIdxXTurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxX: return SNES_X_MASK | playerMask;
-		case s9xKeyIdxYTurbo: turbo = 1;
+		case s9xKeyIdxYTurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxY: return SNES_Y_MASK | playerMask;
-		case s9xKeyIdxATurbo: turbo = 1;
+		case s9xKeyIdxATurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxA: return SNES_A_MASK | playerMask;
-		case s9xKeyIdxBTurbo: turbo = 1;
+		case s9xKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case s9xKeyIdxB: return SNES_B_MASK | playerMask;
 		case s9xKeyIdxL: return SNES_TL_MASK | playerMask;
 		case s9xKeyIdxR: return SNES_TR_MASK | playerMask;
@@ -169,7 +170,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	padData = IG::setOrClearBits(padData, (uint16)(emuKey & 0xFFFF), state == Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &view)
 {
 	iterateTimes((uint)maxPlayers, p)
 	{
@@ -179,8 +180,8 @@ void EmuSystem::clearInputBuffers()
 	doubleClickFrames = 0;
 	dragWithButton = false;
 	dragTracker.finish();
-	dragTracker.setXDragStartDistance(mainWin.win.widthMMInPixels(1.));
-	dragTracker.setYDragStartDistance(mainWin.win.heightMMInPixels(1.));
+	dragTracker.setXDragStartDistance(view.window().widthMMInPixels(1.));
+	dragTracker.setYDragStartDistance(view.window().heightMMInPixels(1.));
 }
 
 void setupSNESInput()
@@ -317,4 +318,127 @@ void setupSNESInput()
 		}
 	}
 	#endif
+}
+
+bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
+{
+	switch(snesActiveInputPort)
+	{
+		case SNES_SUPERSCOPE:
+		{
+			if(e.released())
+			{
+				snesPointerBtns = 0;
+				#ifndef SNES9X_VERSION_1_4
+				*S9xGetSuperscopeBits() = 0;
+				#endif
+			}
+			if(gameRect.overlaps({e.x, e.y}))
+			{
+				int xRel = e.x - gameRect.x, yRel = e.y - gameRect.y;
+				snesPointerX = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
+				snesPointerY = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.);
+				//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);
+				if(e.pushed())
+				{
+					snesPointerBtns = 1;
+					#ifndef SNES9X_VERSION_1_4
+					*S9xGetSuperscopeBits() = 0x80;
+					#endif
+				}
+			}
+			else if(e.pushed())
+			{
+				snesPointerBtns = 2;
+				#ifndef SNES9X_VERSION_1_4
+				*S9xGetSuperscopeBits() = 0x40;
+				#endif
+			}
+
+			#ifndef SNES9X_VERSION_1_4
+			S9xGetSuperscopePosBits()[0] = snesPointerX;
+			S9xGetSuperscopePosBits()[1] = snesPointerY;
+			#endif
+
+			return true;
+		}
+
+		case SNES_MOUSE_SWAPPED:
+		{
+			dragTracker.inputEvent(e,
+				[&](Input::DragTrackerState)
+				{
+					rightClickFrames = 15;
+					if(doubleClickFrames) // check if in double-click time window
+					{
+						dragWithButton = 1;
+					}
+					else
+					{
+						dragWithButton = 0;
+						doubleClickFrames = 15;
+					}
+				},
+				[&](Input::DragTrackerState state, Input::DragTrackerState prevState)
+				{
+					if(!state.isDragging())
+						return;
+					if(!prevState.isDragging())
+					{
+						if(dragWithButton)
+						{
+							snesMouseClick = 0;
+							if(!rightClickFrames)
+							{
+								// in right-click time window
+								snesPointerBtns = 2;
+								logMsg("started drag with right-button");
+							}
+							else
+							{
+								snesPointerBtns = 1;
+								logMsg("started drag with left-button");
+							}
+						}
+						else
+						{
+							logMsg("started drag");
+						}
+					}
+					else
+					{
+						auto relPos = state.pos() - prevState.pos();
+						snesPointerX += relPos.x;
+						snesPointerY += relPos.y;
+					}
+				},
+				[&](Input::DragTrackerState state)
+				{
+					if(state.isDragging())
+					{
+						logMsg("stopped drag");
+						snesPointerBtns = 0;
+					}
+					else
+					{
+						if(!rightClickFrames)
+						{
+							logMsg("right clicking mouse");
+							snesPointerBtns = 2;
+							doubleClickFrames = 15; // allow extra time for a right-click & drag
+						}
+						else
+						{
+							logMsg("left clicking mouse");
+							snesPointerBtns = 1;
+						}
+						snesMouseClick = 3;
+					}
+				});
+			snesMouseX = IG::scalePointRange((float)snesPointerX, (float)gameRect.xSize(), (float)256.);
+			snesMouseY = IG::scalePointRange((float)snesPointerY, (float)gameRect.ySize(), (float)224.);
+			return true;
+		}
+	}
+	return false;
 }

@@ -17,8 +17,10 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/util/math/Point2D.hh>
 #include <algorithm>
+#include "private.hh"
 
 extern bool touchControlsAreOn;
 
@@ -26,7 +28,7 @@ void EmuVideoLayer::init()
 {
 	disp.init({});
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.vidPix.size());
+	vidImgEffect.setImageSize(video.renderer(), video.size());
 	#endif
 }
 
@@ -46,7 +48,7 @@ void EmuVideoLayer::resetImage()
 	}
 	compileDefaultPrograms();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.vidPix.size());
+	vidImgEffect.setImageSize(video.renderer(), video.size());
 	#endif
 	setLinearFilter(useLinearFilter);
 }
@@ -60,7 +62,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		if((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
 			uint scaleFactor;
-			uint gameX = video.vidPix.w(), gameY = video.vidPix.h();
+			uint gameX = video.size().x, gameY = video.size().y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
@@ -265,13 +267,13 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 
 void EmuVideoLayer::placeOverlay()
 {
-	vidImgOverlay.place(disp, video.vidPix.h());
+	vidImgOverlay.place(disp, video.size().y);
 }
 
 void EmuVideoLayer::placeEffect()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.vidPix.size());
+	vidImgEffect.setImageSize(video.renderer(), video.size());
 	#endif
 }
 

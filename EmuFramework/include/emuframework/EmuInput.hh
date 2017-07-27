@@ -292,5 +292,8 @@ void setupVControllerVars();
 void setOnScreenControls(bool on);
 void updateAutoOnScreenControlVisible();
 void updateVControlImg();
+void setActiveFaceButtons(uint btns);
+void updateKeyboardMapping();
+void toggleKeyboard();
 
 }

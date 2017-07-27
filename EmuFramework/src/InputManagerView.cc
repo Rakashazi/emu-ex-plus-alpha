@@ -16,8 +16,11 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/Base.hh>
+#include "private.hh"
+
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
 
@@ -636,9 +639,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 				popup.post("Can't rename a built-in profile", 2, 0);
 				return;
 			}
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input name", devConf->keyConf().name, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input name", devConf->keyConf().name,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str && strlen(str))
@@ -656,8 +657,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	newProfile
@@ -676,9 +676,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
-					auto &textInputView = *new CollectTextInputView{attachParams()};
-					textInputView.init("Input name", "", getCollectTextCloseAsset(renderer()));
-					textInputView.onText() =
+					EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input name", "",
 						[this](CollectTextInputView &view, const char *str)
 						{
 							if(str && strlen(str))
@@ -699,8 +697,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 							}
 							view.dismiss();
 							return 0;
-						};
-					modalViewController.pushAndShow(textInputView, e);
+						});
 				});
 			modalViewController.pushAndShow(ynAlertView, e);
 		}

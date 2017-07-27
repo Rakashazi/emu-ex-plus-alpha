@@ -19,7 +19,7 @@
 
 StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList{};
 
-void recent_addGame(const char *fullPath, const char *name)
+void addRecentGame(const char *fullPath, const char *name)
 {
 	if(!strlen(fullPath))
 		return;

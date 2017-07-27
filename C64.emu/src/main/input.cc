@@ -464,14 +464,14 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 						optionSwapJoystickPorts = 0;
 					else
 						optionSwapJoystickPorts = 1;
-					popup.post("Swapped Joystick Ports", 1);
+					EmuApp::postMessage(1, false, "Swapped Joystick Ports");
 				}
 				return;
 			}
 			case KBEX_TOGGLE_VKEYBOARD:
 			{
 				if(state == Input::PUSHED)
-					vController.toggleKeyboard();
+					EmuControls::toggleKeyboard();
 				return;
 			}
 			case KBEX_SHIFT_LOCK:
@@ -479,7 +479,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 				if(state == Input::PUSHED)
 				{
 					shiftLock ^= true;
-					vController.updateKeyboardMapping();
+					EmuControls::updateKeyboardMapping();
 				}
 				return;
 			}
@@ -508,7 +508,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	}
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	auto &keyarr = *plugin.keyarr;
 	auto &rev_keyarr = *plugin.rev_keyarr;

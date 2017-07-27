@@ -78,9 +78,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case gbcKeyIdxLeftDown: return InputGetter::LEFT | InputGetter::DOWN;
 		case gbcKeyIdxSelect: return InputGetter::SELECT;
 		case gbcKeyIdxStart: return InputGetter::START;
-		case gbcKeyIdxATurbo: turbo = 1;
+		case gbcKeyIdxATurbo: turbo = 1; [[fallthrough]];
 		case gbcKeyIdxA: return InputGetter::A;
-		case gbcKeyIdxBTurbo: turbo = 1;
+		case gbcKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case gbcKeyIdxB: return InputGetter::B;
 		default: bug_branch("%d", input);
 	}
@@ -92,7 +92,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	gbcInput.bits = IG::setOrClearBits(gbcInput.bits, emuKey, state == Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	gbcInput.bits = 0;
 }

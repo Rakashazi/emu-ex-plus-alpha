@@ -107,7 +107,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 bool FCEUI_Initialize();
 
 //Emulates a frame.
-void FCEUI_Emulate(bool renderGfx, int skip, bool renderAudio);
+void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, bool renderAudio);
 
 //Closes currently loaded game
 void FCEUI_CloseGame(void);

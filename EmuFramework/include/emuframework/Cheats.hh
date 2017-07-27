@@ -60,5 +60,3 @@ public:
 	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,
 		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed);
 };
-
-void refreshCheatViews();

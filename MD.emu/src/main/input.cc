@@ -16,6 +16,7 @@
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
 #include "input.h"
+#include "system.h"
 
 enum
 {
@@ -95,17 +96,17 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case mdKeyIdxLeftDown: return INPUT_LEFT | INPUT_DOWN | playerMask;
 		case mdKeyIdxMode: return INPUT_MODE | playerMask;
 		case mdKeyIdxStart: return INPUT_START | playerMask;
-		case mdKeyIdxATurbo: turbo = 1;
+		case mdKeyIdxATurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxA: return INPUT_A | playerMask;
-		case mdKeyIdxBTurbo: turbo = 1;
+		case mdKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxB: return INPUT_B | playerMask;
-		case mdKeyIdxCTurbo: turbo = 1;
+		case mdKeyIdxCTurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxC: return INPUT_C | playerMask;
-		case mdKeyIdxXTurbo: turbo = 1;
+		case mdKeyIdxXTurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxX: return INPUT_X | playerMask;
-		case mdKeyIdxYTurbo: turbo = 1;
+		case mdKeyIdxYTurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxY: return INPUT_Y | playerMask;
-		case mdKeyIdxZTurbo: turbo = 1;
+		case mdKeyIdxZTurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxZ: return INPUT_Z | playerMask;
 		default: bug_branch("%d", input);
 	}
@@ -120,7 +121,30 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	padData = IG::setOrClearBits(padData, (uint16)emuKey, state == Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
+{
+	const int gunDevIdx = 4;
+	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
+		return false;
+	if(gameRect.overlaps({e.x, e.y}))
+	{
+		int xRel = e.x - gameRect.x, yRel = e.y - gameRect.y;
+		input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)bitmap.viewport.w);
+		input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)bitmap.viewport.h);
+	}
+	if(e.pushed())
+	{
+		input.pad[gunDevIdx] |= INPUT_A;
+		logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
+	}
+	else if(e.released())
+	{
+		input.pad[gunDevIdx] = IG::clearBits(input.pad[gunDevIdx], (uint16)INPUT_A);
+	}
+	return true;
+}
+
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fillData(input.pad);
 	for(auto &analog : input.analog)

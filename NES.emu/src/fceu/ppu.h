@@ -1,7 +1,7 @@
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
-int FCEUPPU_Loop(int skip, bool display);
+int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip);
 
 void FCEUPPU_LineUpdate();
 void FCEUPPU_SetVideoSystem(int w);

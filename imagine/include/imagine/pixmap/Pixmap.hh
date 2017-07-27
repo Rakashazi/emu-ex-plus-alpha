@@ -74,11 +74,22 @@ public:
 	void write(const IG::Pixmap &pixmap);
 	void write(const IG::Pixmap &pixmap, IG::WP destPos);
 
-	template <class FUNC,
-		ENABLE_IF_EXPR(std::is_arithmetic_v<IG::functionTraitsRType<FUNC>>
-			&& IG::functionTraitsArity<FUNC> == 1)>
+	template <class FUNC>
+	static constexpr bool checkTransformFunc()
+	{
+		constexpr bool isValid = std::is_arithmetic<IG::functionTraitsRType<FUNC>>::value
+			&& IG::functionTraitsArity<FUNC> == 1;
+		static_assert(isValid, "Transform function must take 1 argument and return an arithmetic value");
+		return isValid;
+	}
+
+	template <class FUNC>
 	void writeTransformed(FUNC func, const IG::Pixmap &pixmap)
 	{
+		if constexpr(!checkTransformFunc<FUNC>())
+		{
+			return;
+		}
 		auto srcBytesPerPixel = pixmap.format().bytesPerPixel();
 		switch(format().bytesPerPixel())
 		{
@@ -106,12 +117,10 @@ public:
 		}
 	}
 
-	template <class FUNC,
-		ENABLE_IF_EXPR(std::is_arithmetic_v<IG::functionTraitsRType<FUNC>>
-			&& IG::functionTraitsArity<FUNC> == 1)>
+	template <class FUNC>
 	void writeTransformed(FUNC func, const IG::Pixmap &pixmap, IG::WP destPos)
 	{
-		subPixmap(func, destPos, size() - destPos).writeTransformed(pixmap);
+		subPixmap(destPos, size() - destPos).writeTransformed(func, pixmap);
 	}
 
 	void clear(IG::WP pos, IG::WP size);

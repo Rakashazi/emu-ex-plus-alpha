@@ -89,7 +89,7 @@ ArchiveIO &ArchiveIO::operator=(ArchiveIO &&o)
 	return *this;
 }
 
-ArchiveIO::operator GenericIO()
+GenericIO ArchiveIO::makeGeneric()
 {
 	return GenericIO{*this};
 }

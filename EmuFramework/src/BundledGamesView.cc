@@ -40,7 +40,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 {
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0] = {info.displayName,
-		[&info](TextMenuItem &t, View &view, Input::Event ev)
+		[&info, &r = attach.renderer](TextMenuItem &t, View &view, Input::Event e)
 		{
 			auto file = openAppAssetIO(info.assetName);
 			if(!file)
@@ -48,11 +48,11 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			int loadGameRes = EmuSystem::loadGameFromFile(GenericIO{std::move(file)}, info.assetName);
-			if(loadGameRes == 1)
-			{
-				loadGameCompleteFromRecentItem(view.renderer(), 1, ev); // has same behavior as if loading from recent item
-			}
+			EmuApp::createSystemWithMedia(file.makeGeneric(), "", info.assetName, e,
+				[&r](uint result, Input::Event e)
+				{
+					loadGameCompleteFromRecentItem(r, result, e); // has same behavior as if loading from recent item
+				});
 		}};
 }
 

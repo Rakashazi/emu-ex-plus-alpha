@@ -16,10 +16,12 @@
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuOptions.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/DragTracker.hh>
 #include <utility>
+#include "private.hh"
 
 static constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
 

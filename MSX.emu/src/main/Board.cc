@@ -3,7 +3,7 @@
 #include <imagine/logger/logger.h>
 #include <assert.h>
 #include <string.h>
-#include <emuframework/Option.hh>
+#include <emuframework/EmuOptions.hh>
 
 extern "C"
 {

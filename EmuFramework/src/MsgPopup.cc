@@ -17,7 +17,9 @@
 #include <emuframework/MsgPopup.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <string>
+#include "private.hh"
 
 using namespace Base;
 
@@ -89,8 +91,13 @@ void MsgPopup::printf(uint secs, bool error, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
+	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
+	vprintf(secs, error, format, args);
+}
+
+void MsgPopup::vprintf(uint secs, bool error, const char *format, va_list args)
+{
 	auto result = vsnprintf(str.data(), str.size(), format, args);
-	va_end(args);
 	postContent(secs, error);
 }
 

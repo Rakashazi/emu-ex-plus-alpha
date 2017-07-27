@@ -26,8 +26,6 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextTableView.hh>
-void onCloseModalPopWorkDir(Input::Event e);
-void chdirFromFilePath(const char *path);
 
 class VideoOptionView : public TableView
 {

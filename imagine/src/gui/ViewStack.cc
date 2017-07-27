@@ -84,8 +84,6 @@ void BasicViewController::draw()
 	view->draw();
 }
 
-void BasicViewController::init(const Base::Window &win) {}
-
 void ViewStack::setNavView(std::unique_ptr<NavView> nav)
 {
 	this->nav = std::move(nav);

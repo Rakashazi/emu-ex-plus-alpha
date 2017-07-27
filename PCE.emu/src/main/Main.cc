@@ -83,9 +83,7 @@ const char *EmuSystem::systemName()
 
 void EmuSystem::onOptionsLoaded()
 {
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.activeFaceBtns = 2;
-	#endif
+	EmuControls::setActiveFaceButtons(2);
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
@@ -165,16 +163,8 @@ static void writeCDMD5()
 
 uint EmuSystem::multiresVideoBaseX() { return 512; }
 
-int EmuSystem::loadGame(const char *path)
+EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
-	bug_exit("should only use loadGameFromIO()");
-	return 0;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename)
-{
-	closeGame();
-	setupGamePaths(path);
 	emuSys->name = EmuSystem::gameName().data();
 	auto unloadCD = IG::scopeGuard(
 		[]()
@@ -186,12 +176,11 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 				CDInterfaces.clear();
 			}
 		});
-	if(hasCDExtension(path))
+	if(hasCDExtension(gameFileName().data()))
 	{
 		if(!strlen(sysCardPath.data()) || !FS::exists(sysCardPath))
 		{
-			popup.printf(3, 1, "No System Card Set");
-			return 0;
+			return EmuSystem::makeError("No System Card Set");
 		}
 		CDInterfaces.reserve(1);
 		FS::current_path(gamePath());
@@ -204,8 +193,7 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 		}
 		catch(std::exception &e)
 		{
-			popup.printf(4, 1, "%s", e.what());
-			return 0;
+			return EmuSystem::makeError("%s", e.what());
 		}
 	}
 	else
@@ -215,13 +203,12 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 			auto size = io.size();
 			auto stream = std::make_unique<MemoryStream>(size, true);
 			io.read(stream->map(), stream->map_size());
-			MDFNFILE fp(std::move(stream), origFilename);
+			MDFNFILE fp(std::move(stream), gameFileName().data());
 			emuSys->Load(&fp);
 		}
 		catch(std::exception &e)
 		{
-			popup.printf(3, 1, "%s", e.what());
-			return 0;
+			return EmuSystem::makeError("%s", e.what());
 		}
 	}
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
@@ -229,7 +216,13 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 	{
 		emuSys->SetInput(i, "gamepad", (uint8*)&inputBuff[i]);
 	}
-	if(unlikely(!emuVideo.vidImg))
+	unloadCD.cancel();
+	return {};
+}
+
+void EmuSystem::onPrepareVideo(EmuVideo &video)
+{
+	if(unlikely(!video.vidImg))
 	{
 		logMsg("doing initial video setup for emulator");
 		EmulateSpecStruct espec;
@@ -237,9 +230,6 @@ int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *origFilename
 		espec.surface = &mSurface;
 		PCE_Fast::applyVideoFormat(&espec);
 	}
-	configAudioPlayback();
-	unloadCD.cancel();
-	return 1;
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -299,10 +289,11 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	IG::Pixmap srcPix = mSurfacePix.subPixmap(
 		{spec.DisplayRect.x, spec.DisplayRect.y},
 		{pixWidth, pixHeight});
+	auto &video = *espec->video;
 	if(multiResOutputWidth)
 	{
-		emuVideo.initImage(false, multiResOutputWidth, pixHeight);
-		auto img = emuVideo.startFrame();
+		video.setFormat({{multiResOutputWidth, pixHeight}, pixFmt});
+		auto img = video.startFrame();
 		auto destPixAddr = (Pixel*)img.pixmap().pixel({0,0});
 		auto lineWidth = spec.LineWidths + spec.DisplayRect.y;
 		if(multiResOutputWidth == 1024)
@@ -383,14 +374,14 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	}
 	else
 	{
-		emuVideo.initImage(false, pixWidth, pixHeight);
-		emuVideo.writeFrame(srcPix);
+		video.setFormat({{pixWidth, pixHeight}, pixFmt});
+		video.writeFrame(srcPix);
 	}
 	if(spec.commitVideo)
-		updateAndDrawEmuVideo();
+		EmuApp::updateAndDrawEmuVideo();
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	uint maxFrames = Audio::maxRate()/54;
 	int16 audioBuff[maxFrames*2];
@@ -406,6 +397,7 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 		}
 	}
 	espec.commitVideo = renderGfx;
+	espec.video = &video;
 	espec.skip = !processGfx;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
@@ -469,6 +461,5 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initFormat(pixFmt);
 	return OK;
 }

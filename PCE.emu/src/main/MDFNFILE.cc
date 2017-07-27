@@ -36,7 +36,7 @@ static bool hasKnownExtension(const char *name, const FileExtensionSpecStruct *e
 MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose):
 	ext(f_ext), fbase(f_fbase)
 {
-	if(hasArchiveExtension(path))
+	if(EmuApp::hasArchiveExtension(path))
 	{
 		std::error_code ec{};
 		for(auto &entry : FS::ArchiveIterator{path, ec})

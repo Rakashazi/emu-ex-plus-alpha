@@ -27,7 +27,7 @@
 #include <vbam/Util.h>
 
 void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &gba, bool renderGfx, bool processGfx, bool renderAudio);
+void CPULoop(GBASys &gba, EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio);
 void CPUCleanUp();
 bool CPUReadBatteryFile(GBASys &gba, const char *);
 bool CPUWriteBatteryFile(GBASys &gba, const char *);
@@ -153,7 +153,7 @@ void EmuSystem::closeSystem()
 	cheatsNumber = 0; // reset cheat list
 }
 
-static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
+static EmuSystem::Error applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
 {
 	auto patchStr = FS::makePathStringPrintf("%s/%s.ips", patchDir, romName);
 	if(FS::exists(patchStr.data()))
@@ -161,10 +161,9 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		logMsg("applying IPS patch: %s", patchStr.data());
 		if(!patchApplyIPS(patchStr.data(), &rom, &romSize))
 		{
-			popup.postError("Error applying IPS patch");
-			return false;
+			return EmuSystem::makeError("Error applying IPS patch");
 		}
-		return true;
+		return {};
 	}
 	string_printf(patchStr, "%s/%s.ups", patchDir, romName);
 	if(FS::exists(patchStr.data()))
@@ -172,10 +171,9 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		logMsg("applying UPS patch: %s", patchStr.data());
 		if(!patchApplyUPS(patchStr.data(), &rom, &romSize))
 		{
-			popup.postError("Error applying UPS patch");
-			return false;
+			return EmuSystem::makeError("Error applying UPS patch");
 		}
-		return true;
+		return {};
 	}
 	string_printf(patchStr, "%s/%s.ppf", patchDir, romName);
 	if(FS::exists(patchStr.data()))
@@ -183,53 +181,42 @@ static bool applyGamePatches(const char *patchDir, const char *romName, u8 *rom,
 		logMsg("applying UPS patch: %s", patchStr.data());
 		if(!patchApplyPPF(patchStr.data(), &rom, &romSize))
 		{
-			popup.postError("Error applying PPF patch");
-			return false;
+			return EmuSystem::makeError("Error applying PPF patch");
 		}
-		return true;
+		return {};
 	}
-	return true; // no patch found
+	return {}; // no patch found
 }
 
-static int loadGameCommon(int size)
+EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
+	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)
 	{
-		popup.postError("Error loading ROM");
-		return 0;
+		return EmuSystem::makeError("Error loading ROM");
 	}
-	emuVideo.initImage(0, 240, 160);
 	setGameSpecificSettings(gGba);
-	if(!applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size))
+	auto err = applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size);
+	if(err)
 	{
-		return 0;
+		return err;
 	}
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
 	auto saveStr = FS::makePathStringPrintf("%s/%s.sav", EmuSystem::savePath(), EmuSystem::gameName().data());
 	CPUReadBatteryFile(gGba, saveStr.data());
 	readCheatFile();
-	logMsg("started emu");
-	return 1;
+	return {};
 }
 
-int EmuSystem::loadGame(const char *path)
+void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	bug_exit("should only use loadGameFromIO()");
-	return 0;
+	video.setFormat({{240, 160}, pixFmt});
 }
 
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *)
+void systemDrawScreen(EmuVideo &video)
 {
-	closeGame();
-	setupGamePaths(path);
-	int size = CPULoadRomWithIO(gGba, io);
-	return loadGameCommon(size);
-}
-
-static void commitVideoFrame()
-{
-	auto img = emuVideo.startFrame();
+	auto img = video.startFrame();
 	IG::Pixmap framePix{{{240, 160}, IG::PIXEL_RGB565}, gGba.lcd.pix};
 	if(!directColorLookup)
 	{
@@ -240,12 +227,7 @@ static void commitVideoFrame()
 		img.pixmap().write(framePix);
 	}
 	img.endFrame();
-	updateAndDrawEmuVideo();
-}
-
-void systemDrawScreen()
-{
-	commitVideoFrame();
+	EmuApp::updateAndDrawEmuVideo();
 }
 
 void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
@@ -254,9 +236,9 @@ void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
 	EmuSystem::writeSound(finalWave, EmuSystem::pcmFormat.bytesToFrames(length));
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
-	CPULoop(gGba, renderGfx, processGfx, renderAudio);
+	CPULoop(gGba, video, renderGfx, processGfx, renderAudio);
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -282,7 +264,6 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 
 CallResult EmuSystem::onInit()
 {
-	emuVideo.initFormat(pixFmt);
 	utilUpdateSystemColorMaps(0);
 	return OK;
 }

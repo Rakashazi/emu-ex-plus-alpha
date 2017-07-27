@@ -39,7 +39,6 @@ public:
 	bool hasView() { return view; }
 	void inputEvent(Input::Event e);
 	void draw();
-	void init(const Base::Window &win);
 
 protected:
 	View *view{};

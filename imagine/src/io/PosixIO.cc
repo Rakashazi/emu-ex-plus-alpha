@@ -44,7 +44,7 @@ PosixIO &PosixIO::operator=(PosixIO &&o)
 	return *this;
 }
 
-PosixIO::operator GenericIO()
+GenericIO PosixIO::makeGeneric()
 {
 	return GenericIO{*this};
 }

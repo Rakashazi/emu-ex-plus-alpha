@@ -18,7 +18,6 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
-#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuVideo.hh>
 
 struct AppWindowData;

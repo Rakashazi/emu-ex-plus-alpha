@@ -18,76 +18,41 @@
 #include <memory>
 #include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/gui/NavView.hh>
-#include <imagine/gui/ViewStack.hh>
-#include <imagine/gfx/AnimatedViewport.hh>
+#include <imagine/gui/TextEntry.hh>
+#include <imagine/io/IO.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideo.hh>
-#include <emuframework/EmuVideoLayer.hh>
-#include <emuframework/MsgPopup.hh>
+#include <emuframework/EmuOptions.hh>
+#include <emuframework/EmuInput.hh>
 #include <emuframework/FileUtils.hh>
-#include <emuframework/InputManagerView.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <emuframework/TouchConfigView.hh>
-#endif
 
-enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
-
-struct AppWindowData
+class EmuApp
 {
-	Base::Window win{};
-	Gfx::Drawable drawable{};
-	Gfx::Viewport viewport() { return projectionPlane.viewport; }
-	Gfx::Mat4 projectionMat{};
-	Gfx::ProjectionPlane projectionPlane{};
-	Gfx::AnimatedViewport animatedViewport{};
-	bool focused = true;
+public:
+	using OnMainMenuOptionChanged = DelegateFunc<void()>;
+	using CreateSystemCompleteDelegate = DelegateFunc<void (uint result, Input::Event e)>;
 
-	constexpr AppWindowData() {};
+	static bool willCreateSystem(Input::Event e);
+	static void createSystemWithMedia(GenericIO io, const char *path, const char *name,
+		Input::Event e, CreateSystemCompleteDelegate onComplete);
+	static void exitGame(bool allowAutosaveState = true);
+	static void reloadGame();
+	static void updateAndDrawEmuVideo(); // TODO: systems should not directly draw EmuVideo
+	static void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e, const char *msgText,
+		const char *initialContent, CollectTextInputView::OnTextDelegate onText);
+	static void pushAndShowModalView(View &v, Input::Event e);
+	static void popModalViews();
+	static void popMenuToRoot();
+	static void restoreMenuFromGame();
+	static void loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e);
+	static bool hasArchiveExtension(const char *name);
+	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
+	static void refreshCheatViews();
+	[[gnu::format(printf, 3, 4)]]
+	static void printfMessage(uint secs, bool error, const char *format, ...);
+	static void postMessage(const char *msg);
+	static void postMessage(bool error, const char *msg);
+	static void postMessage(uint secs, bool error, const char *msg);
+	static void unpostMessage();
 };
-
-using OnMainMenuOptionChanged = DelegateFunc<void()>;
-
-extern AppWindowData mainWin, extraWin;
-extern AppWindowData *emuWin;
-extern EmuVideo emuVideo;
-extern EmuVideoLayer emuVideoLayer;
-extern ViewStack viewStack;
-extern BasicViewController modalViewController;
-extern MsgPopup popup;
-extern const char *launchGame;
-extern DelegateFunc<void ()> onUpdateInputDevices;
-extern bool menuViewIsActive;
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern SysVController vController;
-#endif
-#ifdef __ANDROID__
-extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;
-#endif
-extern FS::PathString lastLoadPath;
-
-Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
-Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r);
-void handleInputEvent(Base::Window &win, Input::Event e);
-void handleOpenFileCommand(const char *filename);
-bool isMenuDismissKey(Input::Event e);
-void startGameFromMenu();
-void restoreMenuFromGame();
-void closeGame(bool allowAutosaveState = true);
-void applyOSNavStyle(bool inGame);
-View *makeEditCheatListView(Base::Window &win);
-const char *appViewTitle();
-const char *appName();
-const char *appID();
-void setEmuViewOnExtraWindow(bool on);
-void placeEmuViews();
-void placeElements();
-void startViewportAnimation(AppWindowData &winData);
-void updateAndDrawEmuVideo();
-void onMainMenuItemOptionChanged();
-void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
-void setCPUNeedsLowLatency(bool needed);
-bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent);
-
-static constexpr const char *strftimeFormat = "%x  %r";

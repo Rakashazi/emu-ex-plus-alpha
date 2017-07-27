@@ -15,6 +15,7 @@
 
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuApp.hh>
+#include "private.hh"
 
 StateSlotView::StateSlotView(ViewAttachParams attach):
 	TableView

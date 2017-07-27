@@ -47,4 +47,5 @@ public:
 
 	[[gnu::format(printf, 4, 5)]]
 	void printf(uint secs, bool error, const char *format, ...);
+	void vprintf(uint secs, bool error, const char *format, va_list args);
 };

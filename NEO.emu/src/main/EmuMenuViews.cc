@@ -453,22 +453,13 @@ private:
 
 	std::vector<GameMenuItem> item{};
 
-	static void loadGame(const RomListEntry &entry, Gfx::Renderer &r)
+	static void loadGame(const RomListEntry &entry, Input::Event e, Gfx::Renderer &r)
 	{
-		EmuSystem::onLoadGameComplete() =
+		EmuApp::createSystemWithMedia({}, gameFilePath(entry.name).data(), "", e,
 			[&r](uint result, Input::Event e)
 			{
-				loadGameCompleteFromFilePicker(r, result, e);
-			};
-		auto res = EmuSystem::loadGameFromPath(gameFilePath(entry.name));
-		if(res == 1)
-		{
-			loadGameCompleteFromFilePicker(r, 1, Input::Event{});
-		}
-		else if(res == 0)
-		{
-			EmuSystem::clearGamePaths();
-		}
+				EmuApp::loadGameCompleteFromFilePicker(r, result, e);
+			});
 	}
 
 public:
@@ -512,18 +503,18 @@ public:
 									[&entry](TextMenuItem &, View &view, Input::Event e)
 									{
 										view.dismiss();
-										loadGame(entry, view.renderer());
+										loadGame(entry, e, view.renderer());
 									});
-								modalViewController.pushAndShow(ynAlertView, e);
+								EmuApp::pushAndShowModalView(ynAlertView, e);
 							}
 							else
 							{
-								loadGame(entry, renderer());
+								loadGame(entry, e, renderer());
 							}
 						}
 						else
 						{
-							popup.printf(3, 1, "%s not present", entry.name);
+							EmuApp::printfMessage(3, 1, "%s not present", entry.name);
 						}
 						return true;
 					});
@@ -615,11 +606,11 @@ private:
 			auto &gameListMenu = *new GameListView{attachParams()};
 			if(!gameListMenu.games())
 			{
-				popup.post("No games found, use \"Load Game\" command to browse to a directory with valid games.", 6, 1);
+				EmuApp::postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
 				delete &gameListMenu;
 				return;
 			}
-			viewStack.pushAndShow(gameListMenu, e);
+			pushAndShow(gameListMenu, e);
 		}
 	};
 
@@ -633,11 +624,11 @@ private:
 				if(item.active())
 				{
 					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{attachParams()};
-					viewStack.pushAndShow(unibiosSwitchesMenu, e);
+					pushAndShow(unibiosSwitchesMenu, e);
 				}
 				else
 				{
-					popup.post("Only used with Unibios");
+					EmuApp::postMessage("Only used with Unibios");
 				}
 			}
 		}
@@ -656,7 +647,7 @@ public:
 	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
-		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()

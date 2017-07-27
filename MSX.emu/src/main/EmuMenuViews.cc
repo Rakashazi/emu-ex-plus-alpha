@@ -21,7 +21,7 @@ void installFirmwareFiles()
 	FS::create_directory(machineBasePath, ec);
 	if(ec && ec.value() != (int)std::errc::file_exists)
 	{
-		popup.printf(4, 1, "Can't create directory:\n%s", machineBasePath.data());
+		EmuApp::printfMessage(4, 1, "Can't create directory:\n%s", machineBasePath.data());
 		return;
 	}
 
@@ -38,7 +38,7 @@ void installFirmwareFiles()
 		FS::create_directory(pathTemp, ec);
 		if(ec && ec.value() != (int)std::errc::file_exists)
 		{
-			popup.printf(4, 1, "Can't create directory:\n%s", pathTemp.data());
+			EmuApp::printfMessage(4, 1, "Can't create directory:\n%s", pathTemp.data());
 			return;
 		}
 	}
@@ -63,7 +63,7 @@ void installFirmwareFiles()
 		auto src = openAppAssetIO(e);
 		if(!src)
 		{
-			popup.printf(4, 1, "Can't open source file:\n %s", e);
+			EmuApp::printfMessage(4, 1, "Can't open source file:\n %s", e);
 			return;
 		}
 		auto e_i = &e - srcPath;
@@ -72,13 +72,13 @@ void installFirmwareFiles()
 		auto ec = writeIOToNewFile(src, pathTemp.data());
 		if(ec)
 		{
-			popup.printf(4, 1, "Can't write file:\n%s", e);
+			EmuApp::printfMessage(4, 1, "Can't write file:\n%s", e);
 			return;
 		}
 	}
 
 	string_copy(optionMachineNameStr, "MSX2 - C-BIOS");
-	popup.post("Installation OK");
+	EmuApp::postMessage("Installation OK");
 }
 
 class EmuSystemOptionView : public SystemOptionView
@@ -98,7 +98,7 @@ private:
 		{
 			if(!msxMachineItem.size())
 			{
-				popup.printf(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
+				EmuApp::printfMessage(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
 				return;
 			}
 			item.defaultOnSelect(view, e);
@@ -162,7 +162,7 @@ private:
 					view.dismiss();
 					installFirmwareFiles();
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			EmuApp::pushAndShowModalView(ynAlertView, e);
 		}
 	};
 
@@ -200,7 +200,7 @@ private:
 					msxMachine.compile(renderer(), projP);
 					if(!strlen(newPath))
 					{
-						popup.printf(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
+						EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
 					}
 				};
 			postDraw();
@@ -284,7 +284,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		modalViewController.pushAndShow(fPicker, e);
+		EmuApp::pushAndShowModalView(fPicker, e);
 	}
 
 	void onSelectHD(TextMenuItem &item, Input::Event e, uint8 slot)
@@ -308,7 +308,7 @@ public:
 					onHDMediaChange("", slot);
 					popAndShow();
 				});
-			viewStack.pushAndShow(multiChoiceView, e);
+			pushAndShow(multiChoiceView, e);
 		}
 		else
 		{
@@ -354,7 +354,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		modalViewController.pushAndShow(fPicker, e);
+		EmuApp::pushAndShowModalView(fPicker, e);
 	}
 
 	void onSelectROM(Input::Event e, uint8 slot)
@@ -393,13 +393,13 @@ public:
 			{
 				if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
-					popup.postError("Error loading Sunrise IDE device");
+					EmuApp::postMessage(true, "Error loading Sunrise IDE device");
 				}
 				else
 					onROMMediaChange("Sunrise IDE", slot);
 				popAndShow();
 			});
-		viewStack.pushAndShow(multiChoiceView, e);
+		pushAndShow(multiChoiceView, e);
 	}
 
 	TextMenuItem romSlot[2]
@@ -437,7 +437,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		modalViewController.pushAndShow(fPicker, e);
+		EmuApp::pushAndShowModalView(fPicker, e);
 	}
 
 	void onSelectDisk(Input::Event e, uint8 slot)
@@ -459,7 +459,7 @@ public:
 					onDiskMediaChange("", slot);
 					popAndShow();
 				});
-			viewStack.pushAndShow(multiChoiceView, e);
+			pushAndShow(multiChoiceView, e);
 		}
 		else
 		{
@@ -528,11 +528,11 @@ private:
 			if(item.active())
 			{
 				auto &msxIoMenu = *new MsxIOControlView{attachParams()};
-				viewStack.pushAndShow(msxIoMenu, e);
+				pushAndShow(msxIoMenu, e);
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
 			{
-				popup.post("Only used in MSX mode", 2);
+				EmuApp::postMessage(2, false, "Only used in MSX mode");
 			}
 		}
 	};
@@ -549,7 +549,7 @@ public:
 	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
 	{
 		reloadItems();
-		setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()

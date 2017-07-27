@@ -121,8 +121,10 @@ bool EmuSystem::vidSysIsPAL()
 	return osystem.settings().getFloat("framerate") == 50.0;
 }
 
-static int loadGameCommon(BytePtr &image, uint size)
+EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
+	BytePtr image = std::make_unique<uInt8[]>(MAX_ROM_SIZE);
+	uint32 size = io.read(image.get(), MAX_ROM_SIZE);
 	string md5 = MD5::hash(image, size);
 	Properties props;
 	osystem.propSet().getMD5(md5, props);
@@ -146,27 +148,10 @@ static int loadGameCommon(BytePtr &image, uint size)
 	osystem.makeConsole(cartridge, props);
 	auto &console = osystem.console();
 	settings.setValue("framerate", (int)console.getFramerate());
-	emuVideo.initImage(0, console.tia().width(), console.tia().height());
 	console.initializeVideo();
 	console.initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
-	EmuSystem::configAudioPlayback();
-	return 1;
-}
-
-int EmuSystem::loadGame(const char *path)
-{
-	bug_exit("should only use loadGameFromIO()");
-	return 0;
-}
-
-int EmuSystem::loadGameFromIO(IO &io, const char *path, const char *)
-{
-	closeGame();
-	setupGamePaths(path);
-	BytePtr image = std::make_unique<uInt8[]>(MAX_ROM_SIZE);
-	uint32 size = io.read(image.get(), MAX_ROM_SIZE);
-	return loadGameCommon(image, size);
+	return {};
 }
 
 void EmuSystem::configAudioRate(double frameTime)
@@ -175,7 +160,7 @@ void EmuSystem::configAudioRate(double frameTime)
 	osystem.soundGeneric().setFrameTime(osystem, optionSoundRate, frameTime);
 }
 
-void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
 {
 	auto &console = osystem.console();
 	console.leftController().update();
@@ -185,12 +170,12 @@ void EmuSystem::runFrame(bool renderGfx, bool processGfx, bool renderAudio)
 	tia.update();
 	if(processGfx)
 	{
-		emuVideo.initImage(0, tia.width(), tia.height());
-		auto img = emuVideo.startFrame();
+		video.setFormat({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
+		auto img = video.startFrame();
 		osystem.frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
 		if(renderGfx)
-			updateAndDrawEmuVideo();
+			EmuApp::updateAndDrawEmuVideo();
 	}
 	auto frames = audioFramesPerVideoFrame;
 	Int16 buff[frames * soundChannels];
@@ -265,6 +250,5 @@ CallResult EmuSystem::onInit()
 	Paddles::setMouseSensitivity(7);
 	EmuSystem::pcmFormat.channels = soundChannels;
 	EmuSystem::pcmFormat.sample = Audio::SampleFormats::getFromBits(sizeof(Int16)*8);
-	emuVideo.initFormat(IG::PIXEL_FMT_RGB565);
 	return OK;
 }

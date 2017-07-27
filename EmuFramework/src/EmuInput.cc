@@ -22,6 +22,7 @@
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/InputManagerView.hh>
+#include "private.hh"
 
 struct RelPtr  // for Android trackball
 {
@@ -790,6 +791,30 @@ void updateVControlImg()
 		kbOverlayImg.init(r, png);
 		vController.kb.setImg(r, &kbOverlayImg);
 	}
+}
+
+void setActiveFaceButtons(uint btns)
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.gp.activeFaceBtns = btns;
+	setupVControllerVars();
+	vController.place();
+	EmuSystem::clearInputBuffers(emuInputView);
+	#endif
+}
+
+void updateKeyboardMapping()
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.updateKeyboardMapping();
+	#endif
+}
+
+void toggleKeyboard()
+{
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	vController.toggleKeyboard();
+	#endif
 }
 
 }

@@ -17,6 +17,7 @@
 #include <emuframework/CreditsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/util/math/int.hh>
+#include "private.hh"
 
 CreditsView::CreditsView(const char *str, ViewAttachParams attach):
 	View{appViewTitle(), attach}, str(str)

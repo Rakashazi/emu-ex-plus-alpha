@@ -22,40 +22,7 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
 #include <string>
-
-class AutoStateConfirmAlertView : public YesNoAlertView
-{
-	std::array<char, 96> msg{};
-
-public:
-	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr, bool addToRecent):
-		YesNoAlertView{attach, "", "Continue", "Restart Game"}
-	{
-		string_printf(msg, "Auto-save state exists from:\n%s", dateStr);
-		setLabel(msg.data());
-		setOnYes(
-			[addToRecent](TextMenuItem &, View &view, Input::Event e)
-			{
-				view.dismiss();
-				loadGameComplete(true, addToRecent);
-			});
-		setOnNo(
-			[addToRecent](TextMenuItem &, View &view, Input::Event e)
-			{
-				view.dismiss();
-				loadGameComplete(false, addToRecent);
-			});
-	}
-};
-
-void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e);
-
-bool hasArchiveExtension(const char *name)
-{
-	return string_hasDotExtension(name, "7z") ||
-		string_hasDotExtension(name, "rar") ||
-		string_hasDotExtension(name, "zip");
-}
+#include "private.hh"
 
 EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir):
 	FSPicker
@@ -73,7 +40,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 			logMsg("%s %d", entry.name(), (int)entry.type());
 			if(!singleDir && entry.type() == FS::file_type::directory)
 				return true;
-			else if(!EmuSystem::handlesArchiveFiles && hasArchiveExtension(entry.name()))
+			else if(!EmuSystem::handlesArchiveFiles && EmuApp::hasArchiveExtension(entry.name()))
 				return true;
 			else if(filter)
 				return filter(entry.name());
@@ -117,16 +84,11 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, bool 
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
-			EmuSystem::onLoadGameComplete() =
+			EmuApp::createSystemWithMedia({}, name, "", e,
 				[](uint result, Input::Event e)
 				{
 					loadGameCompleteFromBenchmarkFilePicker(result, e);
-				};
-			auto res = EmuSystem::loadGameFromPath(picker.makePathString(name));
-			if(res == 1)
-			{
-				loadGameCompleteFromBenchmarkFilePicker(1, e);
-			}
+				});
 		});
 	return picker;
 }
@@ -142,81 +104,9 @@ EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, bool singl
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char *name, Input::Event e)
 		{
-			GameFilePicker::onSelectFile(picker.renderer(), picker.makePathString(name).data(), e);
+			onSelectFileFromPicker(picker.renderer(), picker.makePathString(name).data(), e);
 		});
 	return picker;
-}
-
-void loadGameComplete(bool tryAutoState, bool addToRecent)
-{
-	if(tryAutoState)
-	{
-		EmuSystem::loadAutoState();
-		if(!EmuSystem::gameIsRunning())
-		{
-			logErr("game was closed while trying to load auto-state");
-			return;
-		}
-	}
-	if(addToRecent)
-		recent_addGame();
-	startGameFromMenu();
-}
-
-bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent)
-{
-	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
-	{
-		return 0;
-	}
-	auto saveStr = EmuSystem::sprintStateFilename(-1);
-	if(FS::exists(saveStr))
-	{
-		auto mTime = FS::status(saveStr).lastWriteTimeLocal();
-		char dateStr[64]{};
-		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
-		auto &ynAlertView = *new AutoStateConfirmAlertView{{mainWin.win, r}, dateStr, addToRecent};
-		modalViewController.pushAndShow(ynAlertView, e);
-		return 1;
-	}
-	return 0;
-}
-
-void loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e)
-{
-	if(!result)
-		return;
-
-	if(!showAutoStateConfirm(r, e, true))
-	{
-		loadGameComplete(1, 1);
-	}
-}
-
-void GameFilePicker::onSelectFile(Gfx::Renderer &r, const char* name, Input::Event e)
-{
-	EmuSystem::onLoadGameComplete() =
-		[&r](uint result, Input::Event e)
-		{
-			loadGameCompleteFromFilePicker(r, result, e);
-		};
-	auto res = EmuSystem::loadGameFromPath(FS::makePathString(name));
-	if(res == 1)
-	{
-		loadGameCompleteFromFilePicker(r, 1, e);
-	}
-}
-
-void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e)
-{
-	if(result)
-	{
-		logMsg("starting benchmark");
-		IG::Time time = EmuSystem::benchmark();
-		EmuSystem::closeGame(0);
-		logMsg("done in: %f", double(time));
-		popup.printf(2, 0, "%.2f fps", double(180.)/double(time));
-	}
 }
 
 void EmuFilePicker::inputEvent(Input::Event e)
@@ -239,6 +129,5 @@ void EmuFilePicker::inputEvent(Input::Event e)
 			}
 		}
 	}
-
 	FSPicker::inputEvent(e);
 }

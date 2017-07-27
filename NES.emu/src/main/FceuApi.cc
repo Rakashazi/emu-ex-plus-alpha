@@ -128,7 +128,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 		fceuReturnedError = "No FDS BIOS set";
 		return -1;
 	}
-	if(hasArchiveExtension(fdsBiosPath.data()))
+	if(EmuApp::hasArchiveExtension(fdsBiosPath.data()))
 	{
 		std::error_code ec{};
 		for(auto &entry : FS::ArchiveIterator{fdsBiosPath, ec})

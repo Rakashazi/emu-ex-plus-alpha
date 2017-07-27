@@ -17,8 +17,8 @@
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <emuframework/EmuOptions.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <emuframework/EmuSystem.hh>
 
 class TouchConfigView : public TableView
 {

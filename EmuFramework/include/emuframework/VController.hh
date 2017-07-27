@@ -16,7 +16,6 @@
 #pragma once
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/base/Base.hh>
-#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/TurboInput.hh>
 #include <cmath>
@@ -190,6 +189,5 @@ private:
 };
 
 using SysVController = VController;
-extern SysVController vController;
 void updateVControllerMapping(uint player, SysVController::Map &map);
 void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map);

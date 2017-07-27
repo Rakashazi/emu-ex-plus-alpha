@@ -29,7 +29,7 @@ public:
 	~BufferMapIO() override;
 	BufferMapIO(BufferMapIO &&o);
 	BufferMapIO &operator=(BufferMapIO &&o);
-	operator GenericIO();
+	GenericIO makeGeneric();
 	std::error_code open(const void *buff, size_t size, OnCloseDelegate onClose);
 	std::error_code open(const void *buff, size_t size)
 	{

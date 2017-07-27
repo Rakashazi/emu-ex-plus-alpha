@@ -80,7 +80,7 @@ class EmuVideoOptionView : public VideoOptionView
 	{
 		if(EmuSystem::gameIsRunning())
 		{
-			popup.post("Change does not affect currently running game");
+			EmuApp::postMessage("Change does not affect currently running game");
 		}
 	}
 

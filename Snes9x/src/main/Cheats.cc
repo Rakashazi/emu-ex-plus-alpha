@@ -37,7 +37,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		[this](TextMenuItem &, View &, Input::Event)
 		{
 			S9xDeleteCheat(idx);
-			refreshCheatViews();
+			EmuApp::refreshCheatViews();
 			dismiss();
 			return true;
 		}
@@ -48,9 +48,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input 6-digit hex", addrStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 6-digit hex", addrStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -59,7 +57,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 						if(a > 0xFFFFFF)
 						{
 							logMsg("addr 0x%X too large", a);
-							popup.postError("Invalid input");
+							EmuApp::postMessage(true, "Invalid input");
 							window().postDraw();
 							return 1;
 						}
@@ -79,8 +77,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	value
@@ -89,9 +86,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input 2-digit hex", valueStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex", valueStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -99,7 +94,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 						uint a = strtoul(str, nullptr, 16);
 						if(a > 0xFF)
 						{
-							popup.postError("value must be <= FF");
+							EmuApp::postMessage(true, "value must be <= FF");
 							window().postDraw();
 							return 1;
 						}
@@ -119,8 +114,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	saved
@@ -129,9 +123,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		savedStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input 2-digit hex or blank", savedStr, getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -142,7 +134,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 							uint a = strtoul(str, nullptr, 16);
 							if(a > 0xFF)
 							{
-								popup.postError("value must be <= FF");
+								EmuApp::postMessage(true, "value must be <= FF");
 								window().postDraw();
 								return 1;
 							}
@@ -176,8 +168,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 					}
 					view.dismiss();
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	},
 	idx{cheatIdx}
@@ -203,7 +194,7 @@ void EmuEditCheatListView::loadCheatItems()
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				auto &editCheatView = *new EmuEditCheatView{attachParams(), c};
-				viewStack.pushAndShow(editCheatView, e);
+				pushAndShow(editCheatView, e);
 			});
 	}
 }
@@ -232,12 +223,11 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			if(Cheat.num_cheats == EmuCheats::MAX)
 			{
-				popup.postError("Too many cheats, delete some first");
+				EmuApp::postMessage(true, "Too many cheats, delete some first");
 				return;
 			}
-			auto &textInputView = *new CollectTextInputView{attachParams()};
-			textInputView.init("Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", getCollectTextCloseAsset(renderer()));
-			textInputView.onText() =
+			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e,
+				"Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -259,39 +249,35 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						}
 						else
 						{
-							popup.postError("Invalid format");
+							EmuApp::postMessage(true, "Invalid format");
 							return 1;
 						}
 						string_copy(Cheat.c[Cheat.num_cheats - 1].name, "Unnamed Cheat");
 						logMsg("added new cheat, %d total", Cheat.num_cheats);
 						view.dismiss();
-						auto &textInputView = *new CollectTextInputView{attachParams()};
-						textInputView.init("Input description", getCollectTextCloseAsset(renderer()));
-						textInputView.onText() =
+						EmuApp::refreshCheatViews();
+						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									string_copy(Cheat.c[Cheat.num_cheats - 1].name, str);
 									view.dismiss();
-									refreshCheatViews();
+									EmuApp::refreshCheatViews();
 								}
 								else
 								{
 									view.dismiss();
 								}
 								return 0;
-							};
-						refreshCheatViews();
-						modalViewController.pushAndShow(textInputView, {});
+							});
 					}
 					else
 					{
 						view.dismiss();
 					}
 					return 0;
-				};
-			modalViewController.pushAndShow(textInputView, e);
+				});
 		}
 	}
 {

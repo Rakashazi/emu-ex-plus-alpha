@@ -1,6 +1,8 @@
 #ifndef __FCEU_GIT
 #define __FCEU_GIT
 
+#include <imagine/util/DelegateFunc.hh>
+
 enum EGIT
 {
 	GIT_CART	= 0,  //Cart
@@ -140,5 +142,7 @@ struct FCEUGI
 	char* archiveFilename;
 	int archiveCount;
 };
+
+using EmuVideoDelegate = DelegateFunc<void (uint8 *buf)>;
 
 #endif

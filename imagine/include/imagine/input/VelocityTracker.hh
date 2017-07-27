@@ -27,7 +27,7 @@ template <class T, uint D>
 class IntegratingVelocityTracker
 {
 public:
-	static_assert(std::is_floating_point_v<T>, "IntegratingVelocityTracker needs floating point type");
+	static_assert(std::is_floating_point<T>::value, "IntegratingVelocityTracker needs floating point type");
 	using ValArray = std::array<T, D>;
 
 	constexpr IntegratingVelocityTracker() {}

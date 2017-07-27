@@ -665,7 +665,7 @@ void UpdateAutosave(void);
 ///Emulates a single frame.
 
 ///Skip may be passed in, if FRAMESKIP is #defined, to cause this to emulate more than one frame
-void FCEUI_Emulate(bool renderGfx, int skip, bool renderAudio) {
+void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, bool renderAudio) {
 	//skip initiates frame skip if 1, or frame skip and sound skip if 2
 	int r, ssize;
 
@@ -729,7 +729,7 @@ void FCEUI_Emulate(bool renderGfx, int skip, bool renderAudio) {
 #endif
 
 	if (geniestage != 1) FCEU_ApplyPeriodicCheats();
-	r = FCEUPPU_Loop(skip, renderGfx);
+	r = FCEUPPU_Loop(onFrameReady, skip);
 
 	extern void FCEUD_emulateSound(bool renderAudio);
 	FCEUD_emulateSound(renderAudio);

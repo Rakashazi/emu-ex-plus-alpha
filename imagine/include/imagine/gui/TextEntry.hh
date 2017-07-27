@@ -40,6 +40,22 @@ public:
 class CollectTextInputView : public View
 {
 public:
+	// returning non-zero keeps text entry active on Android
+	using OnTextDelegate = DelegateFunc<uint (CollectTextInputView &view, const char *str)>;
+
+	CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
+		Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace);
+	CollectTextInputView(ViewAttachParams attach, const char *msgText,
+		Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace):
+		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
+	~CollectTextInputView() override;
+	IG::WindowRect &viewRect() override { return rect; }
+	void place() override;
+	void inputEvent(Input::Event e) override;
+	void draw() override;
+	void onAddedToController(Input::Event e) override {}
+
+protected:
 	IG::WindowRect rect{};
 	IG::WindowRect cancelBtn{};
 	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
@@ -49,22 +65,5 @@ public:
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	TextEntry textEntry{};
 	#endif
-
-	// returning non-zero keeps text entry active on Android
-	using OnTextDelegate = DelegateFunc<uint (CollectTextInputView &view, const char *str)>;
 	OnTextDelegate onTextD{};
-	OnTextDelegate &onText() { return onTextD; }
-
-	CollectTextInputView(ViewAttachParams attach): View("Text Entry", attach) {}
-	~CollectTextInputView() override;
-	void init(const char *msgText, const char *initialContent, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face = &View::defaultFace);
-	void init(const char *msgText, Gfx::PixmapTexture *closeRes, Gfx::GlyphTextureSet *face = &View::defaultFace)
-	{
-		init(msgText, "", closeRes, face);
-	}
-	IG::WindowRect &viewRect() override { return rect; }
-	void place() override;
-	void inputEvent(Input::Event e) override;
-	void draw() override;
-	void onAddedToController(Input::Event e) override {}
 };

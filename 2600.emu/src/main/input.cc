@@ -62,7 +62,7 @@ const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 const uint EmuSystem::maxPlayers = 2;
 
-void EmuSystem::clearInputBuffers()
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	Event &ev = osystem.eventHandler().event();
 	ev.clear();
@@ -111,7 +111,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxRightUp: return Event::JoystickZeroRight | (Event::JoystickZeroUp << 8);
 		case vcsKeyIdxRightDown: return Event::JoystickZeroRight | (Event::JoystickZeroDown << 8);
 		case vcsKeyIdxLeftDown: return Event::JoystickZeroLeft | (Event::JoystickZeroDown << 8);
-		case vcsKeyIdxJSBtnTurbo: turbo = 1;
+		case vcsKeyIdxJSBtnTurbo: turbo = 1; [[fallthrough]];
 		case vcsKeyIdxJSBtn: return Event::JoystickZeroFire;
 
 		case vcsKeyIdxUp2: return Event::JoystickOneUp;
@@ -122,7 +122,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxRightUp2: return Event::JoystickOneRight | (Event::JoystickOneUp << 8);
 		case vcsKeyIdxRightDown2: return Event::JoystickOneRight | (Event::JoystickOneDown << 8);
 		case vcsKeyIdxLeftDown2: return Event::JoystickOneLeft | (Event::JoystickOneDown << 8);
-		case vcsKeyIdxJSBtnTurbo2: turbo = 1;
+		case vcsKeyIdxJSBtnTurbo2: turbo = 1; [[fallthrough]];
 		case vcsKeyIdxJSBtn2: return Event::JoystickOneFire;
 
 		case vcsKeyIdxSelect: return Event::ConsoleSelect;
@@ -152,21 +152,21 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			if(state != Input::PUSHED)
 				break;
 			p1DiffB ^= true;
-			popup.post(p1DiffB ? "P1 Difficulty -> B" : "P1 Difficulty -> A", 1);
+			EmuApp::postMessage(1, false, p1DiffB ? "P1 Difficulty -> B" : "P1 Difficulty -> A");
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
 		bcase Event::Combo2:
 			if(state != Input::PUSHED)
 				break;
 			p2DiffB ^= true;
-			popup.post(p2DiffB ? "P2 Difficulty -> B" : "P2 Difficulty -> A", 1);
+			EmuApp::postMessage(1, false, p2DiffB ? "P2 Difficulty -> B" : "P2 Difficulty -> A");
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
 		bcase Event::Combo3:
 			if(state != Input::PUSHED)
 				break;
 			vcsColor ^= true;
-			popup.post(vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W", 1);
+			EmuApp::postMessage(1, false, vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W");
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
 		bcase Event::JoystickZeroFire5: // TODO: add turbo support for on-screen controls to framework

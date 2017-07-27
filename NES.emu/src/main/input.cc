@@ -46,6 +46,7 @@ bool EmuSystem::inputHasOptionsView = true;
 const uint EmuSystem::maxPlayers = 4;
 static uint32 padData = 0;
 uint32 zapperData[3]{};
+bool usingZapper = false;
 
 void connectNESInput(int port, ESI type)
 {
@@ -124,9 +125,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case nesKeyIdxLeftDown: return bit(6) | bit(5) | playerMask;
 		case nesKeyIdxSelect: return bit(2) | playerMask;
 		case nesKeyIdxStart: return bit(3) | playerMask;
-		case nesKeyIdxATurbo: turbo = 1;
+		case nesKeyIdxATurbo: turbo = 1; [[fallthrough]];
 		case nesKeyIdxA: return bit(0) | playerMask;
-		case nesKeyIdxBTurbo: turbo = 1;
+		case nesKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case nesKeyIdxB: return bit(1) | playerMask;
 		case nesKeyIdxAB: return bit(0) | bit(1) | playerMask;
 		default: bug_branch("%d", input);
@@ -146,7 +147,38 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	padData = IG::setOrClearBits(padData, key << playerInputShift(player), state == Input::PUSHED);
 }
 
-void EmuSystem::clearInputBuffers()
+bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
+{
+	if(!usingZapper)
+		return false;
+	if(e.pushed())
+	{
+		zapperData[2] = 0;
+		if(gameRect.overlaps({e.x, e.y}))
+		{
+			int xRel = e.x - gameRect.x, yRel = e.y - gameRect.y;
+			int xNes = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
+			int yNes = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.) + 8;
+			logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
+			zapperData[0] = xNes;
+			zapperData[1] = yNes;
+			zapperData[2] |= 0x1;
+		}
+		else // off-screen shot
+		{
+			zapperData[0] = 0;
+			zapperData[1] = 0;
+			zapperData[2] |= 0x2;
+		}
+	}
+	else if(e.released())
+	{
+		zapperData[2] = 0;
+	}
+	return true;
+}
+
+void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	IG::fillData(zapperData);
 	padData = {};
