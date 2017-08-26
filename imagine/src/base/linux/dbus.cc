@@ -226,13 +226,58 @@ bool uniqueInstanceRunning(DBusConnection *bus, const char *name)
 namespace Base
 {
 
+static bool allowScreenSaver = true;
+static uint32_t screenSaverCookie = 0;
+
+void setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
+{
+	if(allowScreenSaver == wantsAllowScreenSaver)
+		return;
+	if(!initDBus())
+		return;
+	if(wantsAllowScreenSaver && screenSaverCookie)
+	{
+		auto message = dbus_message_new_method_call("org.freedesktop.ScreenSaver",
+			"/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver", "UnInhibit");
+		dbus_message_append_args(message, DBUS_TYPE_UINT32, &screenSaverCookie, DBUS_TYPE_INVALID);
+		dbus_connection_send(bus, message, nullptr);
+		dbus_message_unref(message);
+	}
+	else if(!wantsAllowScreenSaver)
+	{
+		auto message = dbus_message_new_method_call("org.freedesktop.ScreenSaver",
+			"/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver", "Inhibit");
+		const char *app = "Imagine app";
+		const char *reason = "App request";
+		dbus_message_append_args(message,
+			DBUS_TYPE_STRING, &app,
+			DBUS_TYPE_STRING, &reason,
+			DBUS_TYPE_INVALID);
+		auto reply = dbus_connection_send_with_reply_and_block(bus, message, 200, nullptr);
+		dbus_message_unref(message);
+		dbus_message_get_args(reply, nullptr, DBUS_TYPE_UINT32, &screenSaverCookie, DBUS_TYPE_INVALID);
+		dbus_message_unref(reply);
+		logMsg("Got screensaver inhibit cookie:%u", screenSaverCookie);
+	}
+	allowScreenSaver = wantsAllowScreenSaver;
+}
+
+void endIdleByUserActivity()
+{
+	if(!allowScreenSaver)
+		return;
+	if(!initDBus())
+		return;
+	auto message = dbus_message_new_method_call("org.freedesktop.ScreenSaver",
+		"/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver", "SimulateUserActivity");
+	dbus_connection_send(bus, message, nullptr);
+	dbus_message_unref(message);
+}
+
 void registerInstance(const char *name, int argc, char** argv)
 {
 	if(!initDBus())
-	{
-		logErr("can't init DBUS");
 		return;
-	}
 
 	if(!uniqueInstanceRunning(bus, name))
 	{
@@ -270,10 +315,7 @@ void setAcceptIPC(const char *name, bool on)
 {
 	assert(on);
 	if(!initDBus())
-	{
-		logErr("can't init DBUS");
 		return;
-	}
 
 	// listen to dbus events
 	if(setupDBusListener(name))

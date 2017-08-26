@@ -121,11 +121,11 @@ bool requestPermission(Permission p)
 	return false;
 }
 
+#ifndef CONFIG_BASE_DBUS
 void setIdleDisplayPowerSave(bool on) {}
 
 void endIdleByUserActivity() {}
 
-#ifndef CONFIG_BASE_DBUS
 void registerInstance(const char *appID, int argc, char** argv) {}
 
 void setAcceptIPC(const char *appID, bool on) {}
