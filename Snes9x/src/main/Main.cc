@@ -102,16 +102,6 @@ void EmuSystem::reset(ResetMode mode)
 	}
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'A';
-		case 0 ... 9: return 48 + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 #ifndef SNES9X_VERSION_1_4
 #define FREEZE_EXT "frz"
 #else
@@ -120,7 +110,7 @@ static char saveSlotChar(int slot)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotCharUpper(slot));
 }
 
 #undef FREEZE_EXT
@@ -135,31 +125,23 @@ static FS::PathString sprintCheatsFilename()
 	return FS::makePathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	if(!S9xFreezeGame(saveStr.data()))
-		return {EIO, std::system_category()};
+	if(!S9xFreezeGame(path))
+		return EmuSystem::makeFileWriteError();
 	else
 		return {};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FS::exists(saveStr.data()))
+	if(S9xUnfreezeGame(path))
 	{
-		logMsg("loading state %s", saveStr.data());
-		if(S9xUnfreezeGame(saveStr.data()))
-		{
-			IPPU.RenderThisFrame = TRUE;
-			return {{}};
-		}
-		else
-			return {{EIO, std::system_category()}};
+		IPPU.RenderThisFrame = TRUE;
+		return {};
 	}
-	return {{ENOENT, std::system_category()}};
+	else
+		return EmuSystem::makeFileReadError();
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -179,17 +161,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		else
 			logMsg("saving %d cheat(s)", Cheat.num_cheats);
 		S9xSaveCheatFile(cheatsStr.data());
-	}
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		if(!S9xFreezeGame(saveStr.data()))
-			logMsg("error saving state %s", saveStr.data());
 	}
 }
 
@@ -226,21 +197,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		bcase 2: Settings.ForcePAL = 1;
 		bcase 3: Settings.ForceNTSC = Settings.ForcePAL = 1;
 	}
-	bool success;
-	if(io.mmapConst())
+	auto buffView = io.constBufferView();
+	if(!buffView)
 	{
-		success = Memory.LoadROMMem((const uint8*)io.mmapConst(), size);
+		return makeFileReadError();
 	}
-	else
-	{
-		auto data = std::make_unique<uint8[]>(size);
-		if(!io.read(data.get(), size))
-		{
-			return makeError("IO Error loading game");
-		}
-		success = Memory.LoadROMMem(data.get(), size);
-	}
-	if(!success)
+	if(!Memory.LoadROMMem((const uint8*)buffView.data(), buffView.size()))
 	{
 		return makeError("Error loading game");
 	}
@@ -251,9 +213,8 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = optionSoundRate;
 	#ifndef SNES9X_VERSION_1_4
 	const double rateScaler = (32000./32040.5);
 	const double ntscFrameRate = rateScaler * (21477272. / 357366.);
@@ -263,7 +224,7 @@ void EmuSystem::configAudioRate(double frameTime)
 	const double palFrameRate = (21281370. / 425568.);
 	#endif
 	double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
-	Settings.SoundPlaybackRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
+	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime));
 	#ifndef SNES9X_VERSION_1_4
 	S9xUpdatePlaybackRate();
 	#else
@@ -336,7 +297,7 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	#endif
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -349,7 +310,7 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-CallResult EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit()
 {
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
 	#ifndef SNES9X_VERSION_1_4
@@ -369,5 +330,5 @@ CallResult EmuSystem::onInit()
 	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
 	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
-	return OK;
+	return {};
 }

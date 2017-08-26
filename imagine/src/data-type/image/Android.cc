@@ -55,7 +55,7 @@ PixelFormat BitmapFactoryImage::pixelFormat() const
 			if(info.format == ANDROID_BITMAP_FORMAT_NONE)
 				logWarn("format wasn't provided");
 			else
-				bug_exit("unhandled format");
+				logErr("unhandled format");
 			return PIXEL_FMT_RGBA8888;
 		}
 	}
@@ -112,7 +112,7 @@ bool BitmapFactoryImage::hasAlphaChannel()
 	return info.format == ANDROID_BITMAP_FORMAT_RGBA_8888 || info.format == ANDROID_BITMAP_FORMAT_RGBA_4444;
 }
 
-std::error_code BitmapFactoryImage::readImage(IG::Pixmap &dest)
+std::errc BitmapFactoryImage::readImage(IG::Pixmap &dest)
 {
 	assert(dest.format() == pixelFormat());
 	auto env = Base::jEnv();
@@ -135,7 +135,12 @@ void BitmapFactoryImage::freeImageData()
 	}
 }
 
-std::error_code PngFile::write(IG::Pixmap dest)
+BitmapFactoryImage::operator bool() const
+{
+	return (bool)bitmap;
+}
+
+std::errc PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));
 }
@@ -163,4 +168,9 @@ std::error_code PngFile::loadAsset(const char *name)
 void PngFile::deinit()
 {
 	png.freeImageData();
+}
+
+PngFile::operator bool() const
+{
+	return (bool)png;
 }

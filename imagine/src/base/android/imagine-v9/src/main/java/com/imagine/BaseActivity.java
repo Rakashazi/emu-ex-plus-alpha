@@ -548,4 +548,17 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		ActivityCompat.requestPermissions(this, new String[]{permission}, 0);
 		return false;
 	}
+	
+	void makeErrorPopup(String text)
+	{
+		TextView view = new TextView(this);
+		view.setText(text);
+		final PopupWindow win = new PopupWindow(view, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+		final View contentView = findViewById(android.R.id.content);
+		contentView.post(new Runnable() {
+			public void run() {
+				win.showAtLocation(contentView, Gravity.CENTER, 0, 0);
+			}
+		});
+	}
 }

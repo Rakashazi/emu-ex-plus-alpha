@@ -19,7 +19,7 @@
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 

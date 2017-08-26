@@ -47,19 +47,19 @@ GraphicBufferStorage::~GraphicBufferStorage()
 	resetImage();
 }
 
-std::system_error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex)
+Error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex)
 {
 	reset();
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int androidFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
 	if(!androidFormat)
 	{
-		return {{EINVAL, std::system_category()}, "pixel format not usable"};
+		return std::runtime_error("pixel format not usable");
 	}
 	if(!gBuff.reallocate(desc.w(), desc.h(), androidFormat,
 		GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE))
 	{
-		return {{EINVAL, std::system_category()}, "allocation failed"};
+		return std::runtime_error("allocation failed");
 	}
 	logMsg("native buffer:%p with stride:%d", gBuff.handle, gBuff.getStride());
 	const EGLint eglImgAttrs[]
@@ -72,7 +72,7 @@ std::system_error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc de
 	if(eglImg == EGL_NO_IMAGE_KHR)
 	{
 		reset();
-		return {{EINVAL, std::system_category()}, "error creating EGL image"};
+		return std::runtime_error("error creating EGL image");
 	}
 	r.glcBindTexture(GL_TEXTURE_2D, tex);
 	handleGLErrors();
@@ -80,11 +80,11 @@ std::system_error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc de
 	if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glEGLImageTargetTexture2DOES", err); }))
 	{
 		reset();
-		return {{EINVAL, std::system_category()}, "glEGLImageTargetTexture2DOES() failed"};
+		return std::runtime_error("glEGLImageTargetTexture2DOES() failed");
 	}
 	bpp = desc.format().bytesPerPixel();
 	pitch = gBuff.getStride() * desc.format().bytesPerPixel();
-	return {{}};
+	return {};
 }
 
 GraphicBufferStorage::Buffer GraphicBufferStorage::lock(Renderer &, IG::WindowRect *dirtyRect)

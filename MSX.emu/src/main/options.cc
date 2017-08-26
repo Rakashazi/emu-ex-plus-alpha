@@ -29,6 +29,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+int EmuSystem::forcedSoundRate = 44100;
 #define optionMachineNameDefault "MSX2"
 char optionMachineNameStr[128] = optionMachineNameDefault;
 PathOption optionMachineName{CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault};
@@ -58,14 +59,9 @@ void EmuSystem::writeConfig(IO &io)
 	optionFirmwarePath.writeToIO(io);
 }
 
-void EmuSystem::initOptions()
-{
-	optionSoundRate.initDefault(44100);
-	optionSoundRate.isConst = 1;
-}
-
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	machineBasePath = makeMachineBasePath(machineCustomPath);
 	fixFilePermissions(machineBasePath);
+	return {};
 }

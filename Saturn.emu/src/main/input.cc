@@ -122,7 +122,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		case ssKeyIdxC: if(pushed) PerPadCPressed(p); else PerPadCReleased(p);
 		bcase ssKeyIdxL: if(pushed) PerPadLTriggerPressed(p); else PerPadLTriggerReleased(p);
 		bcase ssKeyIdxR: if(pushed) PerPadRTriggerPressed(p); else PerPadRTriggerReleased(p);
-		bdefault: bug_branch("%d", emuKey);
+		bdefault: bug_unreachable("input == %d", emuKey);
 	}
 }
 

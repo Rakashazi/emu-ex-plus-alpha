@@ -79,7 +79,7 @@ const char * S9xGetDirectory(enum s9x_getdirtype dirtype)
 
 const char * S9xGetFilenameInc(const char *ex, enum s9x_getdirtype dirtype)
 {
-	bug_exit("S9xGetFilenameInc not used yet");
+	logErr("S9xGetFilenameInc not used yet");
 	return nullptr;
 }
 
@@ -161,7 +161,7 @@ bool S9xPollPointer(uint32 id, int16 *x, int16 *y)
 
 void S9xExit(void)
 {
-	bug_exit("should not be called");
+	bug_unreachable("should not be called");
 }
 
 void S9xToggleSoundChannel(int c)
@@ -178,7 +178,7 @@ void S9xToggleSoundChannel(int c)
 
 const char * S9xStringInput(const char *message)
 {
-	bug_exit("should not be called");
+	bug_unreachable("should not be called");
 	return 0;
 }
 

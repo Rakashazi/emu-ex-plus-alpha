@@ -15,6 +15,9 @@
 
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
+#include "IOUtils.hh"
+
+template class IOUtils<PosixFileIO>;
 
 PosixFileIO::PosixFileIO()
 {

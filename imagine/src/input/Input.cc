@@ -282,7 +282,7 @@ uint Event::mapNumKeys(uint map)
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 		case MAP_APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
 		#endif
-		default: bug_branch("%d", map); return 0;
+		default: bug_unreachable("map == %d", map); return 0;
 	}
 }
 

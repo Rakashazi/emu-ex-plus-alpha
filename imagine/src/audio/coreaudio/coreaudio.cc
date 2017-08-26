@@ -115,7 +115,7 @@ static void init()
 	auto err = AudioComponentInstanceNew(defaultOutput, &outputUnit);
 	if(!outputUnit)
 	{
-		bug_exit("error creating output unit: %d", (int)err);
+		bug_unreachable("error creating output unit: %d", (int)err);
 	}
 	AURenderCallbackStruct renderCallbackProp =
 	{
@@ -126,7 +126,7 @@ static void init()
 	    0, &renderCallbackProp, sizeof(renderCallbackProp));
 	if(err)
 	{
-		bug_exit("error setting callback: %d", (int)err);
+		bug_unreachable("error setting callback: %d", (int)err);
 	}
 }
 

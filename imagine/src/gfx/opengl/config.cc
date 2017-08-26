@@ -53,7 +53,7 @@ Gfx::GC orientationToGC(uint o)
 		case VIEW_ROTATE_90: return Gfx::angleFromDegree(-90.);
 		case VIEW_ROTATE_180: return Gfx::angleFromDegree(-180.);
 		case VIEW_ROTATE_270: return Gfx::angleFromDegree(90.);
-		default: bug_branch("%d", o); return 0.;
+		default: bug_unreachable("o == %d", o); return 0.;
 	}
 }
 
@@ -341,17 +341,17 @@ static int glVersionFromStr(const char *versionStr)
 	// skip to version number
 	while(!isdigit(*versionStr) && *versionStr != '\0')
 		versionStr++;
-	int major, minor;
+	int major = 1, minor = 0;
 	if(sscanf(versionStr, "%d.%d", &major, &minor) != 2)
 	{
-		bug_exit("unable to parse GL version string");
+		logErr("unable to parse GL version string");
 	}
 	return 10 * major + minor;
 }
 
 Renderer::Renderer() {}
 
-Renderer::Renderer(IG::PixelFormat pixelFormat, std::system_error &err)
+Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 {
 	{
 		std::error_code ec{};
@@ -359,7 +359,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, std::system_error &err)
 		if(ec)
 		{
 			logErr("error getting GL display");
-			err = {{EINVAL, std::system_category()}, "error creating GL display"};
+			err = std::runtime_error("error creating GL display");
 			return;
 		}
 	}
@@ -373,7 +373,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, std::system_error &err)
 	#ifdef CONFIG_GFX_OPENGL_ES
 	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
 	{
-		bug_exit("unable to bind GLES API");
+		logErr("unable to bind GLES API");
 	}
 	glAttr.setOpenGLESAPI(true);
 	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1)
@@ -401,7 +401,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, std::system_error &err)
 	#else
 	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_API))
 	{
-		bug_exit("unable to bind GL API");
+		logErr("unable to bind GL API");
 	}
 	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
 	{
@@ -436,13 +436,13 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, std::system_error &err)
 	#endif
 	if(!gfxContext)
 	{
-		err = {{EINVAL, std::system_category()}, "error creating GL context"};
+		err = std::runtime_error("error creating GL context");
 		return;
 	}
-	err = {{}};
+	err = {};
 }
 
-Renderer::Renderer(std::system_error &err): Renderer(Base::Window::defaultPixelFormat(), err) {}
+Renderer::Renderer(Error &err): Renderer(Base::Window::defaultPixelFormat(), err) {}
 
 void Renderer::configureRenderer()
 {
@@ -584,17 +584,17 @@ bool Renderer::isConfigured() const
 	return support.isConfigured;
 }
 
-Renderer Renderer::makeConfiguredRenderer(IG::PixelFormat pixelFormat, std::system_error &err)
+Renderer Renderer::makeConfiguredRenderer(IG::PixelFormat pixelFormat, Error &err)
 {
 	auto renderer = Renderer{pixelFormat, err};
-	if(err.code())
+	if(err)
 		return {};
 	renderer.bind();
 	renderer.configureRenderer();
 	return renderer;
 }
 
-Renderer Renderer::makeConfiguredRenderer(std::system_error &err)
+Renderer Renderer::makeConfiguredRenderer(Error &err)
 {
 	return makeConfiguredRenderer(Base::Window::defaultPixelFormat(), err);
 }

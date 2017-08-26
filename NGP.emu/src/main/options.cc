@@ -29,7 +29,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
-static Option<OptionMethodRef<template_ntype(language_english)>, uint8> optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
+static Option<OptionMethodRef<bool, language_english>, uint8> optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {

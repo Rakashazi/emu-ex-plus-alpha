@@ -126,14 +126,14 @@ Font::operator bool() const
 	return true;
 }
 
-Font::Glyph Font::glyph(int idx, FontSize &size, std::error_code &ec)
+Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 {
 	auto env = Base::jEnv();
 	GlyphMetrics metrics{};
 	auto lockedBitmap = jBitmap(env, renderer, idx, size.paint(), (jlong)&metrics);
 	if(!lockedBitmap)
 	{
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	ec = {};
@@ -151,27 +151,27 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::error_code &ec)
 	return {{pixmap, lockedBitmap}, metrics};
 }
 
-GlyphMetrics Font::metrics(int idx, FontSize &size, std::error_code &ec)
+GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 {
 	auto env = Base::jEnv();
 	GlyphMetrics metrics{};
 	jMetrics(env, renderer, idx, size.paint(), (jlong)&metrics);
 	if(!metrics.xSize)
 	{
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	ec = {};
 	return metrics;
 }
 
-FontSize Font::makeSize(FontSettings settings, std::error_code &ec)
+FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
 	auto env = Base::jEnv();
 	auto paint = jMakePaint(env, jFontRendererCls, settings.pixelHeight(), isBold);
 	if(!paint)
 	{
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	logMsg("allocated new size %dpx @ 0x%p", settings.pixelHeight(), paint);

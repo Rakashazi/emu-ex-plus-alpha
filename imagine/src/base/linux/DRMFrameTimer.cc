@@ -60,7 +60,7 @@ bool DRMFrameTimer::init(EventLoop loop)
 			auto err = drmHandleEvent(fd, &ctx);
 			if(err)
 			{
-				bug_exit("error in drmHandleEvent");
+				logErr("error in drmHandleEvent");
 			}
 			iterateTimes(Screen::screens(), i)
 			{
@@ -99,7 +99,7 @@ void DRMFrameTimer::scheduleVSync()
 	auto err = drmWaitVBlank(fd, &vbl);
 	if(err)
 	{
-		bug_exit("error in drmWaitVBlank");
+		logErr("error in drmWaitVBlank");
 	}
 }
 

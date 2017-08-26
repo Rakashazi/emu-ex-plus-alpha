@@ -45,24 +45,22 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 uint SH2Cores = IG::size(SH2CoreList) - 1;
+bool EmuApp::hasIcon = false;
+bool EmuApp::autoSaveStateDefault = false;
+bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS);
+int EmuSystem::forcedSoundRate = 44100;
+bool EmuSystem::constFrameRate = true;
 
 void EmuSystem::initOptions()
 {
-	optionNotificationIcon.initDefault(0);
-	optionNotificationIcon.isConst = true;
-	optionAutoSaveState.initDefault(0);
-	if(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS)
-		optionSound.initDefault(0);
-	optionSoundRate.initDefault(44100);
-	optionSoundRate.isConst = true;
-	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(3);
-	optionFrameRate.isConst = true;
+	EmuApp::setDefaultVControlsButtonSpacing(100);
+	EmuApp::setDefaultVControlsButtonStagger(3);
 }
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	yinit.sh2coretype = optionSH2Core;
+	return {};
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

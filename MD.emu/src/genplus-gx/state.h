@@ -24,6 +24,7 @@
 #define _STATE_H_
 
 #include <system_error>
+#include <emuframework/EmuSystem.hh>
 
 #ifndef NO_SCD
 #include <scd/scd.h>
@@ -42,7 +43,7 @@
   bufferptr+= size;
 
 /* Function prototypes */
-std::system_error state_load(const unsigned char *buffer);
+EmuSystem::Error state_load(const unsigned char *buffer);
 int state_save(unsigned char *buffer);
 
 #endif

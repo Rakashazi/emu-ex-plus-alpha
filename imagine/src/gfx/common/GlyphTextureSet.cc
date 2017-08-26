@@ -38,14 +38,14 @@ static const uint unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars
 
 static const uint glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
-static std::error_code mapCharToTable(uint c, uint &tableIdx);
+static std::errc mapCharToTable(uint c, uint &tableIdx);
 
 class GfxGlyphImage : public GfxImageSource
 {
 public:
 	GfxGlyphImage(IG::GlyphImage glyphBuff): lockBuff{std::move(glyphBuff)} {}
 
-	std::error_code write(IG::Pixmap out)
+	std::errc write(IG::Pixmap out) override
 	{
 		auto src = lockBuff.pixmap();
 		//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
@@ -59,14 +59,19 @@ public:
 		return {};
 	}
 
-	IG::Pixmap lockPixmap()
+	IG::Pixmap lockPixmap() override
 	{
 		return lockBuff.pixmap();
 	}
 
-	void unlockPixmap()
+	void unlockPixmap() override
 	{
 		lockBuff.unlock();
+	}
+
+	explicit operator bool() const override
+	{
+		return (bool)lockBuff;
 	}
 
 protected:
@@ -117,8 +122,7 @@ void GlyphTextureSet::freeCaches(uint32 purgeBits)
 			iterateTimesFromStart(2048, firstChar, c)
 			{
 				uint tableIdx;
-				auto ec = mapCharToTable(c, tableIdx);
-				if(ec)
+				if((bool)mapCharToTable(c, tableIdx))
 				{
 					//logMsg( "%c not a known drawable character, skipping", c);
 					continue;
@@ -151,7 +155,7 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG
 	{
 		if(!initGlyphTable())
 		{
-			bug_exit("couldn't allocate glyph table");
+			logErr("couldn't allocate glyph table");
 		}
 	}
 }
@@ -243,26 +247,26 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 	}
 	if(!initGlyphTable())
 	{
-		bug_exit("couldn't allocate glyph table");
+		logErr("couldn't allocate glyph table");
 	}
 	settings = set;
-	std::error_code ec{};
+	std::errc ec{};
 	faceSize = font->makeSize(settings, ec);
 	calcNominalHeight(r);
 	return true;
 }
 
-std::error_code GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
+std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 {
 	if(glyphTable[tableIdx].metrics.ySize == -1)
 	{
 		// failed to previously cache char
-		return {EINVAL, std::system_category()};
+		return std::errc::invalid_argument;
 	}
 	// make sure applySize() has been called on the font object first
-	std::error_code ec{};
+	std::errc ec{};
 	auto res = font->glyph(c, faceSize, ec);
-	if(ec)
+	if((bool)ec)
 	{
 		// mark failed attempt
 		glyphTable[tableIdx].metrics.ySize = -1;
@@ -277,7 +281,7 @@ std::error_code GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	return {};
 }
 
-static std::error_code mapCharToTable(uint c, uint &tableIdx)
+static std::errc mapCharToTable(uint c, uint &tableIdx)
 {
 	if(GlyphTextureSet::supportsUnicode)
 	{
@@ -296,11 +300,11 @@ static std::error_code mapCharToTable(uint c, uint &tableIdx)
 			}
 			else
 			{
-				return {EINVAL, std::system_category()};
+				return std::errc::invalid_argument;
 			}
 		}
 		else
-			return {EINVAL, std::system_category()};
+			return std::errc::invalid_argument;
 	}
 	else
 	{
@@ -310,20 +314,19 @@ static std::error_code mapCharToTable(uint c, uint &tableIdx)
 			return {};
 		}
 		else
-			return {EINVAL, std::system_category()};
+			return std::errc::invalid_argument;
 	}
 }
 
 // TODO: update for unicode
-std::error_code GlyphTextureSet::precache(Renderer &r, const char *string)
+std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
 {
 	assert(settings);
 	iterateTimes(strlen(string), i)
 	{
 		auto c = string[i];
 		uint tableIdx;
-		auto ec = mapCharToTable(c, tableIdx);
-		if(ec)
+		if((bool)mapCharToTable(c, tableIdx))
 		{
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
@@ -343,14 +346,12 @@ GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c)
 {
 	assert(settings);
 	uint tableIdx;
-	auto ec = mapCharToTable(c, tableIdx);
-	if(ec)
+	if((bool)mapCharToTable(c, tableIdx))
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);
 	if(!glyphTable[tableIdx].glyph)
 	{
-		auto ec = cacheChar(r, c, tableIdx);
-		if(ec)
+		if((bool)cacheChar(r, c, tableIdx))
 			return nullptr;
 		logMsg("char 0x%X was not in table, cached", c);
 	}

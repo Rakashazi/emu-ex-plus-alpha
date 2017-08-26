@@ -101,7 +101,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case pceKeyIdxIV: return bit(9) | playerMask;
 		case pceKeyIdxV: return bit(10) | playerMask;
 		case pceKeyIdxVI: return bit(11) | playerMask;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

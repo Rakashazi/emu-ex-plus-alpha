@@ -18,6 +18,8 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
+#include <stdexcept>
+#include <experimental/optional>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -32,6 +34,7 @@ using GTexC = TextureCoordinate;
 using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
+using Error = std::experimental::optional<std::runtime_error>;
 
 static constexpr GC operator"" _gc (long double n)
 {

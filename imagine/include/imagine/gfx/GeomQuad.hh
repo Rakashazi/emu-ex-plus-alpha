@@ -14,18 +14,18 @@ class QuadGeneric
 {
 public:
 	constexpr QuadGeneric() {}
-	CallResult init(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
+	void init(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
 	void deinit();
 	void setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
 	void draw(Renderer &r) const;
 
 	// as rectangle
-	CallResult init(GC x, GC y, GC x2, GC y2)
+	void init(GC x, GC y, GC x2, GC y2)
 	{
 		return init(x, y,  x, y2,  x2, y2,  x2, y);
 	}
 
-	CallResult init(const GCRect &d)
+	void init(const GCRect &d)
 	{
 		return init(d.x, d.y, d.x2, d.y2);
 	}

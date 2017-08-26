@@ -193,7 +193,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case msxKeyIdxToggleKb: return EC_KEYCOUNT;
 		case msxKeyIdxKbStart ... msxKeyIdxKbEnd :
 			return (input - msxKeyIdxKbStart) + 1;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

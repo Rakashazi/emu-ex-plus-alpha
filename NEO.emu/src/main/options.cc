@@ -47,6 +47,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+bool EmuApp::autoSaveStateDefault = false;
 Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
 Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};
 Byte1Option optionMVSCountry{CFGKEY_MVS_COUNTRY, CTY_USA, 0, countryEnumIsValid};
@@ -75,18 +76,16 @@ void setTimerIntOption()
 
 void EmuSystem::initOptions()
 {
-	optionAutoSaveState.initDefault(0);
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	optionTouchCtrlSize.initDefault(700);
-	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(5);
-	#endif
+	EmuApp::setDefaultVControlsButtonSize(700);
+	EmuApp::setDefaultVControlsButtonSpacing(100);
+	EmuApp::setDefaultVControlsButtonStagger(5);
 }
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	conf.system = (SYSTEM)optionBIOSType.val;
 	conf.country = (COUNTRY)optionMVSCountry.val;
+	return {};
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

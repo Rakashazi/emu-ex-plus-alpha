@@ -86,7 +86,7 @@ static const Device *deviceForInputId(int osId)
 		}
 	}
 	if(!vkbDevice)
-		bug_exit("device id %d doesn't exist", osId);
+		logErr("device id %d doesn't exist", osId);
 	return vkbDevice;
 }
 

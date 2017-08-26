@@ -91,8 +91,7 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 	GC textBlockSize = 0;
 	uint textBlockIdx = 0, currLineIdx = 0;
 	uint charIdx = 0, charsInLine = 0;
-	CallResult res;
-	while((res = string_convertCharCode(&s, c)) == OK)
+	while(!(bool)string_convertCharCode(&s, c))
 	{
 		auto cSize = xSizeOfChar(r, face, c, spaceSize, projP);
 		charsInLine++;
@@ -199,10 +198,10 @@ void Text::draw(Renderer &r, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlan
 		iterateTimes(charsToDraw, i)
 		{
 			uint c;
-			auto res = string_convertCharCode(&s, c);
-			if(res != OK)
+			if(auto err = string_convertCharCode(&s, c);
+				(bool)err)
 			{
-				logWarn("failed char conversion while drawing line %d, char %d, result %d", l, i, res);
+				logWarn("failed char conversion while drawing line %d, char %d, result %d", l, i, (int)err);
 				return;
 			}
 

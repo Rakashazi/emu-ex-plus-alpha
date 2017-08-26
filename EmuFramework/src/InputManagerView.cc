@@ -720,7 +720,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					auto conf = devConf->mutableKeyConf();
 					if(!conf)
 					{
-						bug_exit("confirmed deletion of a read-only key config, should never happen");
+						bug_unreachable("confirmed deletion of a read-only key config, should never happen");
 						return;
 					}
 					logMsg("deleting profile: %s", conf->name);

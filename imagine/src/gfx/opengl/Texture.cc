@@ -17,7 +17,7 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/mem/mem.h>
 #include "private.hh"
 #ifdef __ANDROID__
@@ -114,7 +114,7 @@ static GLenum makeGLDataType(IG::PixelFormatID format)
 		case PIXEL_ABGR1555:
 			return GL_UNSIGNED_SHORT_1_5_5_5_REV;
 		#endif
-		default: bug_branch("%d", format); return 0;
+		default: bug_unreachable("format == %d", format); return 0;
 	}
 }
 
@@ -147,7 +147,7 @@ static GLenum makeGLFormat(Renderer &r, IG::PixelFormatID format)
 			assert(r.support.hasBGRPixels);
 			return GL_BGRA;
 		#endif
-		default: bug_branch("%d", format); return 0;
+		default: bug_unreachable("format == %d", format); return 0;
 	}
 }
 
@@ -188,7 +188,7 @@ static int makeGLSizedInternalFormat(Renderer &r, IG::PixelFormatID format)
 			return r.support.luminanceAlphaInternalFormat;
 		case PIXEL_A8:
 			return r.support.alphaInternalFormat;
-		default: bug_branch("%d", format); return 0;
+		default: bug_unreachable("format == %d", format); return 0;
 	}
 }
 
@@ -230,7 +230,7 @@ static GLint makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
 		case MIP_FILTER_NONE: return linearFiltering ? GL_LINEAR : GL_NEAREST;
 		case MIP_FILTER_NEAREST: return linearFiltering ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
 		case MIP_FILTER_LINEAR: return linearFiltering ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
-		default: bug_branch("%d", (int)mipFiltering); return 0;
+		default: bug_unreachable("mipFiltering == %d", (int)mipFiltering); return 0;
 	}
 }
 
@@ -298,13 +298,15 @@ static bool supportsDirectStorage(Renderer &r)
 }
 
 template<class T>
-static CallResult initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, bool makeMipmaps)
+static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, bool makeMipmaps)
 {
 	auto imgPix = img.lockPixmap();
 	auto unlockImgPixmap = IG::scopeGuard([&](){ img.unlockPixmap(); });
-	auto result = texture.init(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
-	if(result != OK)
-		return result;
+	if(auto err = texture.init(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
+		err)
+	{
+		return err;
+	}
 	auto lockBuff = texture.lock(0);
 	if(lockBuff)
 	{
@@ -332,7 +334,7 @@ static CallResult initTextureCommon(Renderer &r, T &texture, GfxImageSource &img
 			//logDMsg("writing image to texture");
 			IG::MemPixmap texPix{imgPix};
 			if(!texPix)
-				return OUT_OF_MEMORY;
+				return std::runtime_error{"Out of memory"};
 			img.write(texPix);
 			texture.write(0, texPix, {});
 		}
@@ -340,10 +342,10 @@ static CallResult initTextureCommon(Renderer &r, T &texture, GfxImageSource &img
 	unlockImgPixmap();
 	if(makeMipmaps)
 		texture.generateMipmaps();
-	return OK;
+	return {};
 }
 
-CallResult TextureSampler::init(Renderer &r, TextureSamplerConfig config)
+void TextureSampler::init(Renderer &r, TextureSamplerConfig config)
 {
 	deinit(r);
 	magFilter = makeMagFilter(config.minLinearFilter());
@@ -368,7 +370,6 @@ CallResult TextureSampler::init(Renderer &r, TextureSamplerConfig config)
 		name_ = r.samplerNames;
 	}
 	logMsg("created sampler:0x%X", name_);
-	return OK;
 }
 
 void TextureSampler::deinit(Renderer &r)
@@ -524,7 +525,7 @@ void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uin
 	this->lockedLevel = lockedLevel;
 }
 
-CallResult Texture::init(Renderer &r, TextureConfig config)
+Error Texture::init(Renderer &r, TextureConfig config)
 {
 	deinit();
 	this->r = &r;
@@ -540,11 +541,11 @@ CallResult Texture::init(Renderer &r, TextureConfig config)
 			}
 			if(androidStorageImpl_ == ANDROID_SURFACE_TEXTURE)
 			{
-				std::system_error err{{}};
+				Error err{};
 				auto *surfaceTex = new SurfaceTextureStorage(r, texName_, err);
-				if(err.code())
+				if(err)
 				{
-					logWarn("SurfaceTexture error with texture:0x%X (%s)", texName_, err.what());
+					logWarn("SurfaceTexture error with texture:0x%X (%s)", texName_, err->what());
 					delete surfaceTex;
 				}
 				else
@@ -572,11 +573,10 @@ CallResult Texture::init(Renderer &r, TextureConfig config)
 		// all texture levels with glTexImage2D beforehand
 		config.setLevels(1);
 	}
-	setFormat(config.pixmapDesc(), config.levels());
-	return OK;
+	return setFormat(config.pixmapDesc(), config.levels());
 }
 
-CallResult Texture::init(Renderer &r, GfxImageSource &img, bool makeMipmaps)
+Error Texture::init(Renderer &r, GfxImageSource &img, bool makeMipmaps)
 {
 	return initTextureCommon(r, *this, img, makeMipmaps);
 }
@@ -631,10 +631,10 @@ uint Texture::levels() const
 	return levels_;
 }
 
-std::system_error Texture::setFormat(IG::PixmapDesc desc, uint levels)
+Error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 {
 	if(unlikely(!texName_))
-		return {{EINVAL, std::system_category()}, "texture not initialized"};
+		return std::runtime_error("texture not initialized");
 	assumeExpr(r);
 	if(directTex)
 	{
@@ -642,7 +642,7 @@ std::system_error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		if(pixDesc == desc)
 			logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
 		auto result = directTex->setFormat(*r, desc, texName_);
-		if(result.code())
+		if(result)
 			return result;
 	}
 	else
@@ -672,7 +672,7 @@ std::system_error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 			r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexStorage2D", err); }))
 			{
-				return {{EINVAL, std::system_category()}, "glTexStorage2D() failed"};
+				return std::runtime_error("glTexStorage2D() failed");
 			}
 		}
 		else
@@ -696,7 +696,7 @@ std::system_error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 				glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
 				if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexImage2D", err); }))
 				{
-					return {{EINVAL, std::system_category()}, "glTexImage2D() failed"};
+					return std::runtime_error("glTexImage2D() failed");
 				}
 				w = std::max(1u, (w / 2));
 				h = std::max(1u, (h / 2));
@@ -720,14 +720,14 @@ std::system_error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		type_ = typeForPixelFormat(desc.format());
 	#endif
 	setSwizzleForFormat(*r, desc.format(), texName_, target);
-	return {{}};
+	return {};
 }
 
 void Texture::bind()
 {
 	if(!texName_)
 	{
-		bug_exit("tried to bind uninitialized texture");
+		logErr("tried to bind uninitialized texture");
 		return;
 	}
 	assumeExpr(r);
@@ -759,7 +759,8 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 		assert(level == 0);
 		if(destPos != IG::WP{0, 0} || pixmap.w() != (uint)size(0).x || pixmap.h() != (uint)size(0).y)
 		{
-			bug_exit("partial write of direct texture unsupported, use lock()");
+			logErr("partial write of direct texture unsupported, use lock()");
+			return;
 		}
 		auto lockBuff = lock(0);
 		if(!lockBuff)
@@ -773,7 +774,7 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 	{
 		if((ptrsize)pixmap.pixel({}) % (ptrsize)assumeAlign != 0)
 		{
-			bug_exit("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
+			bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
 		}
 		GLenum format = makeGLFormat(*r, pixmap.format());
 		GLenum dataType = makeGLDataType(pixmap.format());
@@ -965,7 +966,7 @@ bool Texture::compileDefaultProgram(uint mode)
 				#ifdef __ANDROID__
 				case TEX_2D_EXTERNAL : return r->texExternalReplaceProgram.compile(*r);
 				#endif
-				default: bug_branch("%d", type_); return false;
+				default: bug_unreachable("type == %d", type_); return false;
 			}
 		bcase IMG_MODE_MODULATE:
 			switch(type_)
@@ -976,9 +977,9 @@ bool Texture::compileDefaultProgram(uint mode)
 				#ifdef __ANDROID__
 				case TEX_2D_EXTERNAL : return r->texExternalProgram.compile(*r);
 				#endif
-				default: bug_branch("%d", type_); return false;
+				default: bug_unreachable("type == %d", type_); return false;
 			}
-		bdefault: bug_branch("%d", type_); return false;
+		bdefault: bug_unreachable("type == %d", type_); return false;
 	}
 }
 
@@ -1032,35 +1033,41 @@ Renderer &Texture::renderer()
 	return *r;
 }
 
-CallResult PixmapTexture::init(Renderer &r, TextureConfig config)
+Error PixmapTexture::init(Renderer &r, TextureConfig config)
 {
 	if(config.willWriteOften() && config.levels() == 1 && supportsDirectStorage(r))
 	{
 		// try without changing size when using direct pixel storage
-		if(Texture::init(r, config) == OK)
+		if(auto err = Texture::init(r, config);
+			!err)
 		{
 			usedSize = config.pixmapDesc().size();
-			return OK;
+			return {};
 		}
 	}
 	auto origPixDesc = config.pixmapDesc();
 	config.setPixmapDesc(r.support.textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
-	auto result = Texture::init(r, config);
-	if(result != OK)
-		return result;
+	if(auto err = Texture::init(r, config);
+		err)
+	{
+		return err;
+	}
 	if(origPixDesc != config.pixmapDesc())
 		clear(0);
 	usedSize = origPixDesc.size();
 	updateUV({}, origPixDesc.size());
-	return OK;
+	return {};
 }
 
-CallResult PixmapTexture::init(Renderer &r, GfxImageSource &img, bool makeMipmaps)
+Error PixmapTexture::init(Renderer &r, GfxImageSource &img, bool makeMipmaps)
 {
-	return initTextureCommon(r, *this, img, makeMipmaps);
+	if(img)
+		return initTextureCommon(r, *this, img, makeMipmaps);
+	else
+		return init(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
 }
 
-std::system_error PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
+Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
 {
 	assumeExpr(r);
 	if(directTex)
@@ -1072,7 +1079,7 @@ std::system_error PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
 	{
 		IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 		auto result = Texture::setFormat(fullPixDesc, levels);
-		if(result.code())
+		if(result)
 		{
 			return result;
 		}
@@ -1080,7 +1087,7 @@ std::system_error PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
 			clear(0);
 		usedSize = desc.size();
 		updateUV({}, desc.size());
-		return {{}};
+		return {};
 	}
 }
 
@@ -1244,7 +1251,7 @@ bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
 			return true;
 		}
 		bdefault:
-			bug_branch("%d", (int)impl);
+			bug_unreachable("impl == %d", (int)impl);
 			return false;
 	}
 }

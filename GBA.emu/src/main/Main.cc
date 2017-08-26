@@ -87,48 +87,25 @@ void EmuSystem::reset(ResetMode mode)
 	CPUReset(gGba);
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'a';
-		case 0 ... 9: return 48 + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
 	return FS::makePathStringPrintf("%s/%s%c.sgm", statePath, gameName, saveSlotChar(slot));
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	if(CPUWriteState(gGba, saveStr.data()))
+	if(CPUWriteState(gGba, path))
 		return {};
 	else
-		return {EIO, std::system_category()};
+		return makeFileWriteError();
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(CPUReadState(gGba, saveStr.data()))
-		return {{}};
+	if(CPUReadState(gGba, path))
+		return {};
 	else
-		return {{EIO, std::system_category()}};
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		CPUWriteState(gGba, saveStr.data());
-	}
+		return makeFileReadError();
 }
 
 void EmuSystem::saveBackupMem()
@@ -193,11 +170,11 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)
 	{
-		return EmuSystem::makeError("Error loading ROM");
+		return makeFileReadError();
 	}
 	setGameSpecificSettings(gGba);
-	auto err = applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size);
-	if(err)
+	if(auto err = applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size);
+		err)
 	{
 		return err;
 	}
@@ -241,15 +218,14 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	CPULoop(gGba, video, renderGfx, processGfx, renderAudio);
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	logMsg("set audio rate %d", (int)optionSoundRate);
-	pcmFormat.rate = optionSoundRate;
-	double rate = std::round(optionSoundRate * (59.73 * frameTime));
-	soundSetSampleRate(gGba, rate);
+	logMsg("set audio rate %d", rate);
+	double mixRate = std::round(rate * (59.73 * frameTime));
+	soundSetSampleRate(gGba, mixRate);
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -262,8 +238,8 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-CallResult EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit()
 {
 	utilUpdateSystemColorMaps(0);
-	return OK;
+	return {};
 }

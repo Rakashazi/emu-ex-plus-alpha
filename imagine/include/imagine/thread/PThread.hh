@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <assert.h>
+#include <imagine/util/utility.h>
 #include <pthread.h>
 
 namespace IG
@@ -58,7 +58,7 @@ static pthread_t makePThread(F func)
 	}
 	if(res != 0)
 	{
-		bug_exit("error in pthread create");
+		bug_unreachable("error in pthread create");
 	}
 	return id;
 }

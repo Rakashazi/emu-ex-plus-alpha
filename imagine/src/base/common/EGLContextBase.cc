@@ -43,7 +43,7 @@ static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBuffer
 	switch(attr.pixelFormat().id())
 	{
 		bdefault:
-			bug_branch("%d", attr.pixelFormat().id());
+			bug_unreachable("format id == %d", attr.pixelFormat().id());
 		bcase PIXEL_NONE:
 			// don't set any color bits
 		bcase PIXEL_RGB565:
@@ -224,7 +224,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		logMsg("setting surface 0x%lX current", (long)surface);
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
-			bug_exit("error setting surface current");
+			logErr("error setting surface current");
 		}
 	}
 	else
@@ -237,7 +237,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 			assert(dummyPbuff != EGL_NO_SURFACE);
 			if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
 			{
-				bug_exit("error setting dummy pbuffer current");
+				logErr("error setting dummy pbuffer current");
 			}
 			eglDestroySurface(display, dummyPbuff);
 		}
@@ -246,7 +246,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 			logMsg("setting no surface current");
 			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
 			{
-				bug_exit("error setting no surface current");
+				logErr("error setting no surface current");
 			}
 		}
 	}
@@ -276,7 +276,7 @@ void EGLContextBase::swapBuffers(EGLDisplay display, GLDrawable &win)
 	assert(surface != EGL_NO_SURFACE);
 	if(eglSwapBuffers(display, surface) == EGL_FALSE)
 	{
-		bug_exit("error 0x%X swapping buffers for window: %p", eglGetError(), &win);
+		logErr("error 0x%X swapping buffers for window: %p", eglGetError(), &win);
 	}
 }
 

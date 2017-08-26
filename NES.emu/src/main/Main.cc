@@ -107,44 +107,35 @@ void EmuSystem::reset(ResetMode mode)
 		FCEUI_ResetNES();
 }
 
-static char saveSlotChar(int slot)
+static char saveSlotCharNES(int slot)
 {
 	switch(slot)
 	{
 		case -1: return 's';
-		case 0 ... 9: return 48 + slot;
-		default: bug_branch("%d", slot); return 0;
+		case 0 ... 9: return '0' + slot;
+		default: bug_unreachable("slot == %d", slot); return 0;
 	}
 }
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.fc%c", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.fc%c", statePath, gameName, saveSlotCharNES(slot));
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	if(!FCEUI_SaveState(saveStr.data()))
-		return {EIO, std::system_category()};
+	if(!FCEUI_SaveState(path))
+		return EmuSystem::makeFileWriteError();
 	else
 		return {};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FS::exists(saveStr))
-	{
-		logMsg("loading state %s", saveStr.data());
-		if(!FCEUI_LoadState(saveStr.data()))
-			return {{EIO, std::system_category()}};
-		else
-			return {{}};
-	}
+	if(!FCEUI_LoadState(path))
+		return EmuSystem::makeFileReadError();
 	else
-		return {{ENOENT, std::system_category()}};
+		return {};
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -158,16 +149,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		else
 			GameInterface(GI_WRITESAVE);
 		FCEU_FlushGameCheats(0, 0, false);
-	}
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		FCEUI_SaveState(saveStr.data());
 	}
 }
 
@@ -186,7 +167,7 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 
 void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
 {
-	bug_exit("called FCEUD_GetPalette()");
+	bug_unreachable("called FCEUD_GetPalette()");
 	/**r = palData[index][0];
 	*g = palData[index][1];
 	*b = palData[index][2];*/
@@ -214,7 +195,7 @@ static const char* fceuInputToStr(int input)
 		case SI_GAMEPAD: return "Gamepad";
 		case SI_ZAPPER: return "Zapper";
 		case SI_NONE: return "None";
-		default: bug_branch("%d", input); return 0;
+		default: bug_unreachable("input == %d", input); return 0;
 	}
 }
 
@@ -299,7 +280,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
-	if(!FCEUI_LoadGameWithFile(file, fullGamePath(), 0))
+	if(!FCEUI_LoadGameWithFile(file, originalGameFileName().data(), 0))
 	{
 		return EmuSystem::makeError("Error loading game");
 	}
@@ -329,14 +310,13 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{nesPixX, nesVisiblePixY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = optionSoundRate;
-	const double ntscFrameRate = 21477272.0 / 357366.0;
-	const double palFrameRate = 21281370.0 / 425568.0;
+	constexpr double ntscFrameRate = 21477272.0 / 357366.0;
+	constexpr double palFrameRate = 21281370.0 / 425568.0;
 	double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
-	double rate = std::round(optionSoundRate * (systemFrameRate * frameTime));
-	FCEUI_Sound(rate);
+	double mixRate = std::round(rate * (systemFrameRate * frameTime));
+	FCEUI_Sound(mixRate);
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }
 
@@ -381,7 +361,7 @@ void EmuSystem::savePathChanged()
 		setDirOverrides();
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -394,13 +374,13 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-CallResult EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit()
 {
 	EmuSystem::pcmFormat.channels = 1;
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{
-		bug_exit("error in FCEUI_Initialize");
+		return makeError("Error in FCEUI_Initialize");
 	}
-	return OK;
+	return {};
 }

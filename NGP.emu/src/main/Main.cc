@@ -55,45 +55,25 @@ void EmuSystem::reset(ResetMode mode)
 	::reset();
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'A';
-		case 0 ... 9: return '0' + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.ngs", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.ngs", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	if(!state_store(saveStr.data()))
-		return {EIO, std::system_category()};
+	if(!state_store(path))
+		return makeFileWriteError();
 	else
 		return {};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FS::exists(saveStr))
-	{
-		logMsg("loading state %s", saveStr.data());
-		if(!state_restore(saveStr.data()))
-			return {{EIO, std::system_category()}};
-		else
-		{
-			return {{}};
-		}
-	}
-	return {{ENOENT, std::system_category()}};
+	if(!state_restore(path))
+		return makeFileReadError();
+	else
+		return {};
 }
 
 bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLength)
@@ -126,17 +106,6 @@ void EmuSystem::saveBackupMem()
 {
 	logMsg("saving flash");
 	flash_commit();
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		logMsg("saving auto-state");
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		state_store(saveStr.data());
-	}
 }
 
 void EmuSystem::closeSystem()
@@ -179,11 +148,10 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{ngpResX, ngpResY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = optionSoundRate;
-	double rate = std::round(optionSoundRate * (60. * frameTime));
-	sound_init(rate);
+	double mixRate = std::round(rate * (60. * frameTime));
+	sound_init(mixRate);
 }
 
 void system_sound_chipreset(void)
@@ -288,7 +256,7 @@ void system_debug_clear(void) { }
 void gfx_buildColorConvMap();
 void gfx_buildMonoConvMap();
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -301,12 +269,12 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-CallResult EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit()
 {
 	EmuSystem::pcmFormat.channels = 1;
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;
 	bios_install();
-	return OK;
+	return {};
 }

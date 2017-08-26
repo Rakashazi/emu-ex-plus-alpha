@@ -17,7 +17,7 @@
 #include <imagine/base/android/RootCpufreqParamSetter.hh>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <cstdlib>
 #include <array>
 

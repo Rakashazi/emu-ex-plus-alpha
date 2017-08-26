@@ -402,7 +402,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 		case c64KeySpace : return KB_SPACE;
 		case c64KeyCtrlLock : return KBEX_CTRL_LOCK;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

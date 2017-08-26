@@ -73,7 +73,7 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-std::error_code Quartz2dImage::readImage(IG::Pixmap &dest)
+std::errc Quartz2dImage::readImage(IG::Pixmap &dest)
 {
 	assert(dest.format() == pixelFormat());
 	int height = this->height();
@@ -96,7 +96,12 @@ void Quartz2dImage::freeImageData()
 	}
 }
 
-std::error_code PngFile::write(IG::Pixmap dest)
+Quartz2dImage::operator bool() const
+{
+	return (bool)img;
+}
+
+std::errc PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));
 }
@@ -123,4 +128,9 @@ std::error_code PngFile::loadAsset(const char *name)
 void PngFile::deinit()
 {
 	png.freeImageData();
+}
+
+PngFile::operator bool() const
+{
+	return (bool)png;
 }

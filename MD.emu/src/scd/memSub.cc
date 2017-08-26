@@ -108,7 +108,7 @@ static uint subGateRegRead16(uint a)
 		}
 		case 0x68:
 		{
-			bug_exit("subcode address");
+			bug_unreachable("subcode address");
 			return 0;
 		}
 		default:
@@ -236,7 +236,7 @@ uint subGateRead8(uint address)
 			return data;
 		}
 	}
-	bug_exit("bad sub gate read8 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+	logWarn("bad sub gate read8 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
 }
 
@@ -266,7 +266,7 @@ uint subGateRead16(uint address)
 		return data;
 	}
 
-	bug_exit("bad sub gate read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+	logWarn("bad sub gate read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
 }
 
@@ -430,7 +430,7 @@ void subGateWrite8(uint address, uint data)
 			bcase 0x58 ... 0x67:
 				gfx_cd_write16(sCD.rot_comp, subAddr&~1, (data<<8)|data);
 			bdefault:
-				bug_exit("bad sub GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+				logWarn("bad sub GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 		}
 	}
 	else if ((address&0xff8000)==0xff0000)
@@ -449,7 +449,7 @@ void subGateWrite8(uint address, uint data)
 	}
 	else
 	{
-		bug_exit("bad sub GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+		logWarn("bad sub GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	}
 }
 
@@ -487,7 +487,7 @@ void subGateWrite16(uint address, uint data)
   }
 	else
 	{
-		bug_exit("bad sub GATE write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+		logWarn("bad sub GATE write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	}
 }
 
@@ -607,7 +607,7 @@ uint bramRead8(uint address)
 uint bramRead16(uint address)
 {
 	// TODO: test if BRAM is ever accessed in 16-bits
-	bug_exit("bram read16");
+	logWarn("bram read16");
 	uint a = (address>>1)&0x1fff;
 	uint d = bram[a++];
 	d|= bram[a] << 8;
@@ -625,7 +625,6 @@ void bramWrite8(uint address, uint data)
 void bramWrite16(uint address, uint data)
 {
 	// TODO: test if BRAM is ever accessed in 16-bits
-	bug_exit("bram write16");
 	logMsg("BRAM write16 %X = %X", address, data);
 	uint a = (address>>1)&0x1fff;
 	bram[a++] = data;
@@ -636,23 +635,23 @@ void bramWrite16(uint address, uint data)
 
 uint subUndefRead8(uint address)
 {
-	bug_exit("UNDEF read8 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+	logWarn("UNDEF read8 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
 }
 
 uint subUndefRead16(uint address)
 {
-	bug_exit("UNDEF read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+	logWarn("UNDEF read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
 }
 
 void subUndefWrite8(uint address, uint data)
 {
-	bug_exit("UNDEF write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+	logWarn("UNDEF write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 }
 
 void subUndefWrite16(uint address, uint data)
 {
-	bug_exit("UNDEF write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
+	logWarn("UNDEF write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 }
 

@@ -228,9 +228,11 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 	memset(pixmap.pixel({}), 0xFF, pixmap.pixelBytes());
 	Gfx::TextureConfig texConf{pixmap};
 	texConf.setWillWriteOften(true);
-	if(texture.init(r, texConf) != OK)
+	if(auto err = texture.init(r, texConf);
+		err)
 	{
-		bug_exit("cannot init test texture");
+		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture: %s", err->what());
+		return;
 	}
 	texture.write(0, pixmap, {});
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);

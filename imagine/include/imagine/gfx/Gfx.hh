@@ -101,10 +101,10 @@ public:
 	DefaultColorProgram noTexProgram{};
 
 	Renderer();
-	Renderer(std::system_error &err);
-	Renderer(IG::PixelFormat pixelFormat, std::system_error &err);
-	static Renderer makeConfiguredRenderer(std::system_error &err);
-	static Renderer makeConfiguredRenderer(IG::PixelFormat pixelFormat, std::system_error &err);
+	Renderer(Error &err);
+	Renderer(IG::PixelFormat pixelFormat, Error &err);
+	static Renderer makeConfiguredRenderer(Error &err);
+	static Renderer makeConfiguredRenderer(IG::PixelFormat pixelFormat, Error &err);
 	void configureRenderer();
 	bool isConfigured() const;
 	void bind();

@@ -152,11 +152,12 @@ void onInit(int argc, char** argv)
 		});
 
 	{
-		std::system_error err{{}};
+		Gfx::Error err{};
 		renderer = Gfx::Renderer::makeConfiguredRenderer(err);
-		if(err.code())
+		if(err)
 		{
-			bug_exit("error creating renderer: %s", err.what());
+			Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+			return;
 		}
 	}
 	View::compileGfxPrograms(renderer);

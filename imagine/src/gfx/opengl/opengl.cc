@@ -47,7 +47,7 @@ void GLRenderer::verifyCurrentContext()
 	auto currentCtx = Base::GLContext::current(glDpy);
 	if(unlikely(gfxContext != currentCtx))
 	{
-		bug_exit("expected GL context:%p but current is:%p", gfxContext.nativeObject(), currentCtx.nativeObject());
+		bug_unreachable("expected GL context:%p but current is:%p", gfxContext.nativeObject(), currentCtx.nativeObject());
 	}
 }
 
@@ -185,7 +185,7 @@ void Renderer::setZBlend(bool on)
 //	#endif
 	if(!support.useFixedFunctionPipeline)
 	{
-		bug_exit("TODO");
+		bug_unreachable("TODO");
 	}
 }
 
@@ -201,7 +201,7 @@ void Renderer::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
 	#endif
 	if(!support.useFixedFunctionPipeline)
 	{
-		bug_exit("TODO");
+		bug_unreachable("TODO");
 	}
 }
 
@@ -537,7 +537,7 @@ void Renderer::setRenderTarget(const RenderTarget &target)
 		glBindFramebuffer(GL_FRAMEBUFFER, id);
 		if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		{
-			bug_exit("FBO:0x%X incomplete", id);
+			logErr("FBO:0x%X incomplete", id);
 		}
 	}
 }

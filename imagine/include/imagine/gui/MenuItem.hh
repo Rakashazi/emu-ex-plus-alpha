@@ -80,8 +80,8 @@ public:
 	template<class FUNC>
 	void setOnSelect(FUNC &&onSelect) { setOnSelect(wrapSelectDelegate(onSelect)); }
 	SelectDelegate onSelect() const { return selectD; }
-	template<class FUNC>
-	static SelectDelegate wrapSelectDelegate(FUNC &selectDel)
+	template<class FUNC = SelectDelegate>
+	static SelectDelegate wrapSelectDelegate(FUNC selectDel)
 	{
 		constexpr auto args = IG::functionTraitsArity<FUNC>;
 		constexpr auto returnsVoid = std::is_same<void, IG::functionTraitsRType<FUNC>>::value;

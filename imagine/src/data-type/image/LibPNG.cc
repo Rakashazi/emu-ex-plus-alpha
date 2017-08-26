@@ -283,7 +283,7 @@ void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-std::error_code Png::readImage(IG::Pixmap &dest)
+std::errc Png::readImage(IG::Pixmap &dest)
 {
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
@@ -300,7 +300,7 @@ std::error_code Png::readImage(IG::Pixmap &dest)
 		png_structpp pngStructpAddr = &png;
 		png_infopp pngInfopAddr = &info;
 		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL);
-		return {ENOMEM, std::system_category()};
+		return std::errc::not_enough_memory;
 	}
 	setTransforms(dest.format(), transInfo);
 	
@@ -314,7 +314,7 @@ std::error_code Png::readImage(IG::Pixmap &dest)
 		if (setjmp(png_jmpbuf((png_structp)png)))
 		{
 			logErr("error reading image, jumped to setjmp");
-			return {EIO, std::system_category()};
+			return std::errc::io_error;
 		}
 
 		for (int i = 0; i < height; i++)
@@ -336,7 +336,7 @@ std::error_code Png::readImage(IG::Pixmap &dest)
 		if (setjmp(png_jmpbuf((png_structp)png)))
 		{
 			logErr("error reading image, jumped to setjmp");
-			return {EIO, std::system_category()};
+			return std::errc::io_error;
 		}
 
 		png_read_image(png, rowPtr);
@@ -350,7 +350,12 @@ std::error_code Png::readImage(IG::Pixmap &dest)
 	return {};
 }
 
-std::error_code PngFile::write(IG::Pixmap dest)
+Png::operator bool() const
+{
+	return info;
+}
+
+std::errc PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));
 }
@@ -397,4 +402,9 @@ std::error_code PngFile::load(const char *name)
 void PngFile::deinit()
 {
 	png.freeImageData();
+}
+
+PngFile::operator bool() const
+{
+	return (bool)png;
 }

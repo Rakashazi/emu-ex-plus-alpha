@@ -51,7 +51,7 @@ static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 			fmt.Bprec = 5;
 			fmt.Aprec = 8;
 		bdefault:
-			bug_branch("%d", pix.format().id());
+			bug_unreachable("format id == %d", pix.format().id());
 	}
 	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
 }
@@ -81,24 +81,14 @@ const char *EmuSystem::systemName()
 	return "PC Engine (TurboGrafx-16)";
 }
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	EmuControls::setActiveFaceButtons(2);
+	return {};
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, "ncq");
-		logMsg("saving autosave-state %s", statePath.c_str());
-		fixFilePermissions(statePath.c_str());
-		MDFNI_SaveState(statePath.c_str(), 0, 0, 0, 0);
-	}
-}
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
 {
@@ -110,19 +100,19 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	}
 }
 
-static char saveSlotChar(int slot)
+static char saveSlotCharPCE(int slot)
 {
 	switch(slot)
 	{
 		case -1: return 'q';
 		case 0 ... 9: return '0' + slot;
-		default: bug_branch("%d", slot); return 0;
+		default: bug_unreachable("slot == %d", slot); return 0;
 	}
 }
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotCharPCE(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -203,7 +193,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 			auto size = io.size();
 			auto stream = std::make_unique<MemoryStream>(size, true);
 			io.read(stream->map(), stream->map_size());
-			MDFNFILE fp(std::move(stream), gameFileName().data());
+			MDFNFILE fp(std::move(stream), originalGameFileName().data());
 			emuSys->Load(&fp);
 		}
 		catch(std::exception &e)
@@ -232,16 +222,15 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	}
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = optionSoundRate;
 	EmulateSpecStruct espec{};
 	const bool using263Lines = vce.CR & 0x04;
 	prevUsing263Lines = using263Lines;
 	const double rateWith263Lines = 7159090.90909090 / 455 / 263;
 	const double rateWith262Lines = 7159090.90909090 / 455 / 262;
 	double systemFrameRate = using263Lines ? rateWith263Lines : rateWith262Lines;
-	espec.SoundRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
+	espec.SoundRate = std::round(rate * (systemFrameRate * frameTime));
 	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, using263Lines);
 	PCE_Fast::applySoundFormat(&espec);
 }
@@ -306,7 +295,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 				switch(width)
 				{
 					bdefault:
-						bug_branch("%d", width);
+						bug_unreachable("width == %d", width);
 					bcase 256:
 					{
 						iterateTimes(256, w)
@@ -351,7 +340,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 				switch(width)
 				{
 					bdefault:
-						bug_branch("%d", width);
+						bug_unreachable("width == %d", width);
 					bcase 256:
 					{
 						iterateTimes(256, w)
@@ -417,36 +406,23 @@ void EmuSystem::reset(ResetMode mode)
 	PCE_Fast::PCE_Power();
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	char ext[]{"nc0"};
-	ext[2] = saveSlotChar(saveStateSlot);
-	std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, ext);
-	logMsg("saving state %s", statePath.c_str());
-	fixFilePermissions(statePath.c_str());
-	if(!MDFNI_SaveState(statePath.c_str(), 0, 0, 0, 0))
-		return {EIO, std::system_category()};
+	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
+		return makeFileWriteError();
 	else
 		return {};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	char ext[]{"nc0"};
-	ext[2] = saveSlotChar(saveStateSlot);
-	std::string statePath = MDFN_MakeFName(MDFNMKF_STATE, 0, ext);
-	if(FS::exists(statePath.c_str()))
-	{
-		logMsg("loading state %s", statePath.c_str());
-		if(!MDFNI_LoadState(statePath.c_str(), 0))
-			return {{EIO, std::system_category()}};
-		else
-			return {{}};
-	}
-	return {{ENOENT, std::system_category()}};
+	if(!MDFNI_LoadState(path, 0))
+		return makeFileReadError();
+	else
+		return {};
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -457,9 +433,4 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
-}
-
-CallResult EmuSystem::onInit()
-{
-	return OK;
 }

@@ -29,14 +29,14 @@ class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase() {}
-	CallResult init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds);
+	void init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds);
 
-	CallResult init(GCRect pos)
+	void init(GCRect pos)
 	{
 		return init(pos, (Texture*)nullptr, {});
 	}
 
-	CallResult init(GCRect pos, PixmapTexture &img)
+	void init(GCRect pos, PixmapTexture &img)
 	{
 		return init(pos, &img, img.uvBounds());
 	}

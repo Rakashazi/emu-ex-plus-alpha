@@ -176,7 +176,7 @@ class TextureSampler: public TextureSamplerImpl
 {
 public:
 	constexpr TextureSampler() {}
-	CallResult init(Renderer &r, TextureSamplerConfig config);
+	void init(Renderer &r, TextureSamplerConfig config);
 	void deinit(Renderer &r);
 	void bind(Renderer &r);
 	explicit operator bool() const;
@@ -209,9 +209,9 @@ public:
 	static constexpr uint MAX_ASSUME_ALIGN = 8;
 
 	constexpr Texture() {}
-	CallResult init(Renderer &r, TextureConfig config);
-	CallResult init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
-	CallResult init(Renderer &r, GfxImageSource &img)
+	Error init(Renderer &r, TextureConfig config);
+	Error init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
+	Error init(Renderer &r, GfxImageSource &img)
 	{
 		return init(r, img, true);
 	}
@@ -220,7 +220,7 @@ public:
 	bool canUseMipmaps();
 	bool generateMipmaps();
 	uint levels() const;
-	std::system_error setFormat(IG::PixmapDesc desc, uint levels);
+	Error setFormat(IG::PixmapDesc desc, uint levels);
 	void bind();
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos);
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment);
@@ -246,13 +246,13 @@ class PixmapTexture: public Texture
 {
 public:
 	constexpr PixmapTexture() {}
-	CallResult init(Renderer &r, TextureConfig config);
-	CallResult init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
-	CallResult init(Renderer &r, GfxImageSource &img)
+	Error init(Renderer &r, TextureConfig config);
+	Error init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
+	Error init(Renderer &r, GfxImageSource &img)
 	{
 		return init(r, img, true);
 	}
-	std::system_error setFormat(IG::PixmapDesc desc, uint levels);
+	Error setFormat(IG::PixmapDesc desc, uint levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 

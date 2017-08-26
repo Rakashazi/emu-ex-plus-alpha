@@ -16,6 +16,7 @@
 #define LOGTAG "Base"
 #include <sys/resource.h>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
@@ -27,6 +28,7 @@ static jobject vibrator{};
 static JavaInstMethod<void(jlong)> jVibrate{};
 static bool vibrationSystemIsInit = false;
 static JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{};
+static JavaInstMethod<void(jstring)> jMakeErrorPopup{};
 
 AndroidPropString androidBuildDevice()
 {
@@ -150,6 +152,18 @@ void UserActivityFaker::start()
 void UserActivityFaker::stop()
 {
 	jStop(jEnv(), inst);
+}
+
+void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+{
+	std::array<char, 512> msg{};
+	auto result = vsnprintf(msg.data(), msg.size(), format, args);
+	auto env = jEnv();
+	if(!jMakeErrorPopup)
+		jMakeErrorPopup.setup(env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V");
+	jMakeErrorPopup(env, jBaseActivity, env->NewStringUTF(msg.data()));
+	auto exitTimer = new Timer{};
+	exitTimer->callbackAfterSec([=]() { exit(exitVal); }, 3, EventLoop::forThread());
 }
 
 }

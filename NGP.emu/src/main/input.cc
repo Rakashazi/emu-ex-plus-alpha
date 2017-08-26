@@ -79,7 +79,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case ngpKeyIdxA: return ctrlABit;
 		case ngpKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case ngpKeyIdxB: return ctrlBBit;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

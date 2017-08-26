@@ -101,18 +101,19 @@ void TextEntry::place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::Projecti
 	place(r);
 }
 
-CallResult TextEntry::init(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP)
+TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP)
 {
 	string_copy(str, initText);
 	t = {str, face};
 	t.compile(r, projP);
-	acceptingInput = 0;
-	return OK;
 }
 
 CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
 	Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
-	View(attach),
+	View{attach},
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
+	textEntry{initialContent, attach.renderer, face, projP},
+	#endif
 	onTextD{onText}
 {
 	#ifndef CONFIG_BASE_ANDROID
@@ -125,7 +126,6 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	#endif
 	message = {msgText, face};
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textEntry.init(initialContent, renderer(), face, projP);
 	textEntry.setAcceptingInput(true);
 	#else
 	Input::startSysTextInput(

@@ -29,18 +29,17 @@ const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
 void EmuSystem::initOptions()
 {
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	optionTouchCtrlSize.initDefault(700);
-	optionTouchCtrlBtnSpace.initDefault(100);
-	optionTouchCtrlBtnStagger.initDefault(5); // original SNES layout
-	#endif
+	EmuApp::setDefaultVControlsButtonSize(700);
+	EmuApp::setDefaultVControlsButtonSpacing(100);
+	EmuApp::setDefaultVControlsButtonStagger(5); // original SNES layout
 }
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	#ifndef SNES9X_VERSION_1_4
 	Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
 	#endif
+	return {};
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

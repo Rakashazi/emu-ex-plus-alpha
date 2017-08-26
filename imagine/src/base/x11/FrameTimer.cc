@@ -138,7 +138,7 @@ bool FBDevFrameTimer::init(EventLoop loop)
 	fdSrc = {fd, loop,
 		[this](int fd, int event)
 		{
-			bug_exit("TODO: Update to new GLDrawable behavior");
+			bug_unreachable("TODO: Update to new GLDrawable behavior");
 			//GLContext::swapPresentedBuffers(mainWindow());
 			uint64_t timestamp;
 			auto ret = read(fd, &timestamp, sizeof(timestamp));
@@ -297,7 +297,7 @@ bool SGIFrameTimer::init(EventLoop loop)
 				unsigned int retraces = 0;
 				if(glXWaitVideoSyncSGI(1, 0, &retraces) != 0)
 				{
-					bug_exit("error in glXWaitVideoSyncSGI");
+					logErr("error in glXWaitVideoSyncSGI");
 				}
 				uint64_t timestamp = IG::Time::now().nSecs();
 				//logMsg("got vsync at time %lu", (long unsigned int)timestamp);

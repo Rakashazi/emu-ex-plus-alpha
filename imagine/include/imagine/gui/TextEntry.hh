@@ -28,8 +28,7 @@ public:
 	bool multiLine = false;
 	Gfx::ProjectionPlane projP;
 
-	TextEntry() {}
-	CallResult init(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
+	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);
 	void inputEvent(Gfx::Renderer &r, Input::Event e);
 	void draw(Gfx::Renderer &r);
@@ -63,7 +62,7 @@ protected:
 	#endif
 	Gfx::Text message{};
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	TextEntry textEntry{};
+	TextEntry textEntry;
 	#endif
 	OnTextDelegate onTextD{};
 };

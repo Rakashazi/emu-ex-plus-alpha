@@ -69,9 +69,9 @@ public:
 	operator bool() const;
 	static void swap(Font &a, Font &b);
 	int minUsablePixels() const;
-	Glyph glyph(int idx, FontSize &size, std::error_code &ec);
-	GlyphMetrics metrics(int idx, FontSize &size, std::error_code &ec);
-	FontSize makeSize(FontSettings settings, std::error_code &ec);
+	Glyph glyph(int idx, FontSize &size, std::errc &ec);
+	GlyphMetrics metrics(int idx, FontSize &size, std::errc &ec);
+	FontSize makeSize(FontSettings settings, std::errc &ec);
 };
 
 }

@@ -49,12 +49,12 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 	}
 }
 
-SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, std::system_error &err)
+SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, Error &err)
 {
 	using namespace Base;
 	if(!r.support.hasExternalEGLImages)
 	{
-		err = {{EOPNOTSUPP, std::system_category()}, "can't init without OES_EGL_image_external extension"};
+		err = std::runtime_error("can't init without OES_EGL_image_external extension");
 		return;
 	}
 	auto env = jEnv();
@@ -72,7 +72,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, std::syste
 	}
 	if(!localSurfaceTex)
 	{
-		err = {{EINVAL, std::system_category()}, "SurfaceTexture ctor failed"};
+		err = std::runtime_error("SurfaceTexture ctor failed");
 		return;
 	}
 	logMsg("created%sSurfaceTexture with texture:0x%X",
@@ -80,35 +80,35 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, std::syste
 	auto localSurface = makeSurface(env, localSurfaceTex);
 	if(!localSurface)
 	{
-		err = {{EINVAL, std::system_category()}, "Surface ctor failed"};
+		err = std::runtime_error("Surface ctor failed");
 		return;
 	}
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
 	if(!nativeWin)
 	{
-		err = {{EINVAL, std::system_category()}, "ANativeWindow_fromSurface failed"};
+		err = std::runtime_error("ANativeWindow_fromSurface failed");
 		return;
 	}
 	logMsg("native window:%p from Surface:%p", nativeWin, localSurface);
 	surfaceTex = env->NewGlobalRef(localSurfaceTex);
 	surface = env->NewGlobalRef(localSurface);
-	err = {{}};
+	err = {};
 }
 
-std::system_error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint tex)
+Error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint tex)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
 	if(!winFormat)
 	{
-		return {{EINVAL, std::system_category()}, "pixel format not usable"};
+		return std::runtime_error("pixel format not usable");
 	}
 	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0)
 	{
-		return {{EINVAL, std::system_category()}, "ANativeWindow_setBuffersGeometry failed"};
+		return std::runtime_error("ANativeWindow_setBuffersGeometry failed");
 	}
 	bpp = desc.format().bytesPerPixel();
-	return {{}};
+	return {};
 }
 
 SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &, IG::WindowRect *dirtyRect)

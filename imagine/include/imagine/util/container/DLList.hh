@@ -3,9 +3,9 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/iterator.hh>
 #include <imagine/util/operators.hh>
+#include <imagine/util/utility.h>
 #include <cstddef>
 #include <assert.h>
-#include <utility>
 #include <imagine/logger/logger.h>
 //#include <imagine/util/preprocessor/repeat.h>
 #include "containerUtils.hh"
@@ -346,7 +346,7 @@ public:
 	{
 		if(!add())
 		{
-			bug_exit("out of space in list");
+			bug_unreachable("out of space in list");
 		}
 		new(&front()) T(std::forward<ARGS>(args)...);
 	}
@@ -356,7 +356,7 @@ public:
 	{
 		if(!addToEnd())
 		{
-			bug_exit("out of space in list");
+			bug_unreachable("out of space in list");
 		}
 		new(&back()) T(std::forward<ARGS>(args)...);
 	}

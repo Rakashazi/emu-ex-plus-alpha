@@ -22,7 +22,7 @@ static int intAckS68k(M68KCPU &m68ki_cpu, int level)
 void scd_interruptSubCpu(uint irq)
 {
 	uint enabled = sCD.gate[0x33] & (1 << irq);
-	if(!enabled) { bug_exit("irq"); }
+	if(!enabled) { bug_unreachable("irq"); }
 	//logMsg("int %d, mask %X, enabled %d", irq, sCD.gate[0x33], enabled);
 	sCD.cpu.setIRQ(irq);
 }
@@ -37,7 +37,7 @@ void dumpPRG(const char *n)
 void handleBad68KIns()
 {
 	dumpPRG("s68kcode2.bin");
-	//bug_exit("");
+	//bug_unreachable("");
 }
 
 void m68kPCChange(M68KCPU &cpu, uint oldPC, uint PC)

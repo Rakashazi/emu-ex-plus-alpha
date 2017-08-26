@@ -17,7 +17,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include "windowPrivate.hh"

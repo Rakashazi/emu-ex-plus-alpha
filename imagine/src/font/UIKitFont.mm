@@ -55,7 +55,7 @@ static void renderTextIntoBuffer(NSString *str, void *buff, uint xSize, uint ySi
 	CGContextRelease(context);
 }
 
-static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool keepPixData, std::error_code &ec)
+static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool keepPixData, std::errc &ec)
 {
 	UniChar uniChar = idx;
 	auto str = [[NSString alloc] initWithCharacters:&uniChar length:1];
@@ -65,10 +65,10 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 	if(!size.width || !size.height)
 	{
 		logMsg("invalid char 0x%X size %f:%f", idx, size.width, size.height);
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
-	ec = {};
+	ec = (std::errc)0;
 	//logMsg("char %c size %f:%f", idx, size.width, size.height);
 	uint cXFullSize = size.width;
 	uint cYFullSize = size.height;
@@ -159,10 +159,10 @@ Font::operator bool() const
 	return true;
 }
 
-Font::Glyph Font::glyph(int idx, FontSize &size, std::error_code &ec)
+Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 {
 	auto glyphData = makeGlyphRenderData(idx, size, true, ec);
-	if(ec)
+	if((bool)ec)
 	{
 		return {};
 	}
@@ -178,24 +178,24 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::error_code &ec)
 	return {{pix, glyphData.pixData}, glyphData.metrics};
 }
 
-GlyphMetrics Font::metrics(int idx, FontSize &size, std::error_code &ec)
+GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 {
 	auto glyphData = makeGlyphRenderData(idx, size, false, ec);
-	if(ec)
+	if((bool)ec)
 	{
 		return {};
 	}
 	return glyphData.metrics;
 }
 
-FontSize Font::makeSize(FontSettings settings, std::error_code &ec)
+FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
 	if(settings.pixelHeight() <= 0)
 	{
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}	
-	ec = {};
+	ec = (std::errc)0;
 	if(isBold)
 		return {(void*)CFBridgingRetain([UIFont boldSystemFontOfSize:(CGFloat)settings.pixelHeight()])};
 	else

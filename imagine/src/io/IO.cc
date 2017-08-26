@@ -18,6 +18,10 @@
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
+#include "IOUtils.hh"
+
+template class IOUtils<IO>;
+template class IOUtils<GenericIO>;
 
 IO::~IO() {}
 

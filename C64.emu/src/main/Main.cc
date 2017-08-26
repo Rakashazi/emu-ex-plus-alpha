@@ -388,16 +388,6 @@ void EmuSystem::reset(ResetMode mode)
 	plugin.machine_trigger_reset(mode == RESET_HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'a';
-		case 0 ... 9: return 48 + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
 	return FS::makePathStringPrintf("%s/%s.%c.vsf", statePath, gameName, saveSlotChar(slot));
@@ -407,14 +397,14 @@ struct SnapshotTrapData
 {
 	constexpr SnapshotTrapData() {}
 	bool hasError = true;
-	FS::PathString pathStr{};
+	const char *pathStr{};
 };
 
 static void loadSnapshotTrap(WORD, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
-	logMsg("loading state: %s", snapData->pathStr.data());
-	if(plugin.machine_read_snapshot(snapData->pathStr.data(), 0) < 0)
+	logMsg("loading state: %s", snapData->pathStr);
+	if(plugin.machine_read_snapshot(snapData->pathStr, 0) < 0)
 		snapData->hasError = true;
 	else
 		snapData->hasError = false;
@@ -423,55 +413,38 @@ static void loadSnapshotTrap(WORD, void *data)
 static void saveSnapshotTrap(WORD, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
-	logMsg("saving state: %s", snapData->pathStr.data());
-	if(plugin.machine_write_snapshot(snapData->pathStr.data(), 1, 1, 0) < 0)
+	logMsg("saving state: %s", snapData->pathStr);
+	if(plugin.machine_write_snapshot(snapData->pathStr, 1, 1, 0) < 0)
 		snapData->hasError = true;
 	else
 		snapData->hasError = false;
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
 	SnapshotTrapData data;
-	data.pathStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(data.pathStr);
+	data.pathStr = path;
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	skipFrames(1); // execute cpu trap
-	return data.hasError ? std::error_code{EIO, std::system_category()} : std::error_code{};
+	return data.hasError ? makeFileWriteError() : Error{};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
 	plugin.resources_set_int("WarpMode", 0);
 	SnapshotTrapData data;
-	data.pathStr = sprintStateFilename(saveStateSlot);
+	data.pathStr = path;
 	skipFrames(1); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	skipFrames(1); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
-		return {{EIO, std::system_category()}};
+		return makeFileReadError();
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	skipFrames(1); // execute cpu trap
 	bool hasError = data.hasError;
 	isPal = sysIsPal();
-	return hasError ? std::system_error{{EIO, std::system_category()}} : std::system_error{{}};
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		SnapshotTrapData data;
-		data.pathStr = sprintStateFilename(-1);
-		fixFilePermissions(data.pathStr);
-		plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-		skipFrames(1); // execute cpu trap
-		if(data.hasError)
-		{
-			logErr("error writing auto-save state %s", data.pathStr.data());
-		}
-	}
+	return hasError ? makeFileReadError() : Error{};
 }
 
 void EmuSystem::saveBackupMem()
@@ -530,18 +503,13 @@ static bool initC64()
 	return true;
 }
 
-bool EmuApp::willCreateSystem(Input::Event e)
+bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 {
 	if(!c64FailedInit)
 		return true;
-	auto &ynAlertView = *EmuSystem::makeYesNoAlertView(
-		"A previous system file load failed, you must restart the app to run any C64 software", "Exit Now", "Cancel");
-	ynAlertView.setOnYes(
-		[](TextMenuItem &, View &, Input::Event e)
-		{
-			Base::exit();
-		});
-	pushAndShowModalView(ynAlertView, e);
+	pushAndShowNewYesNoAlertView(attach, e,
+		"A previous system file load failed, you must restart the app to run any C64 software",
+		"Exit Now", "Cancel", []() { Base::exit(); }, {});
 	return false;
 }
 
@@ -559,7 +527,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 		{
 			if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 			{
-				return EmuSystem::makeError("Error loading file");
+				return EmuSystem::makeFileReadError();
 			}
 		}
 		else
@@ -574,7 +542,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 		{
 			if(plugin.file_system_attach_disk(8, fullGamePath()) != 0)
 			{
-				return EmuSystem::makeError("Error loading file");
+				return EmuSystem::makeFileReadError();
 			}
 		}
 	}
@@ -614,11 +582,11 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	runningFrame = 0;
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	logMsg("set audio rate %d", (int)optionSoundRate);
-	pcmFormat.rate = optionSoundRate;
-	int mixRate = std::round(optionSoundRate * (systemFrameRate * frameTime));
+	logMsg("set audio rate %d", rate);
+	pcmFormat.rate = rate;
+	int mixRate = std::round(rate * (systemFrameRate * frameTime));
 	int currRate = 0;
 	plugin.resources_get_int("SoundSampleRate", &currRate);
 	if(currRate != mixRate)
@@ -627,7 +595,7 @@ void EmuSystem::configAudioRate(double frameTime)
 	}
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -640,7 +608,7 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onMainWindowCreated(Base::Window &)
+void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
 	sysFilePath[0] = firmwareBasePath;
 	EmuControls::updateKeyboardMapping();
@@ -648,7 +616,7 @@ void EmuSystem::onMainWindowCreated(Base::Window &)
 	plugin.resources_set_string("AutostartPrgDiskImage", "AutostartPrgDisk.d64");
 }
 
-CallResult EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit()
 {
 	IG::makeDetachedThread(
 		[]()
@@ -671,5 +639,5 @@ CallResult EmuSystem::onInit()
 	#endif
 
 	EmuSystem::pcmFormat.channels = 1;
-	return OK;
+	return {};
 }

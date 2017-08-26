@@ -83,9 +83,10 @@ void applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, pal.sp2[i]);
 }
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	gbEmu.setInputGetter(&gbcInput);
+	return {};
 }
 
 void EmuSystem::reset(ResetMode mode)
@@ -94,44 +95,25 @@ void EmuSystem::reset(ResetMode mode)
 	gbEmu.reset();
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'A';
-		case 0 ... 9: return '0' + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.gqs", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.gqs", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	logMsg("saving state %s", saveStr.data());
-	if(!gbEmu.saveState(/*screenBuff*/0, 160, saveStr.data()))
-		return {EIO, std::system_category()};
+	if(!gbEmu.saveState(/*screenBuff*/0, 160, path))
+		return makeFileWriteError();
 	else
 		return {};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FS::exists(saveStr.data()))
-	{
-		logMsg("loading state %s", saveStr.data());
-		if(!gbEmu.loadState(saveStr.data()))
-			return {{EIO, std::system_category()}};
-		else
-			return {{}};
-	}
-	return {{ENOENT, std::system_category()}};
+	if(!gbEmu.loadState(path))
+		return makeFileReadError();
+	else
+		return {};
 }
 
 void EmuSystem::saveBackupMem()
@@ -148,17 +130,6 @@ void EmuSystem::savePathChanged()
 		gbEmu.setSaveDir(savePath());
 }
 
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		logMsg("saving auto-state");
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		gbEmu.saveState(/*screenBuff*/0, 160, saveStr.data());
-	}
-}
-
 void EmuSystem::closeSystem()
 {
 	saveBackupMem();
@@ -170,23 +141,13 @@ void EmuSystem::closeSystem()
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
 	gbEmu.setSaveDir(EmuSystem::savePath());
-	auto size = io.size();
-	auto mmapData = io.mmapConst();
-	gambatte::LoadRes result;
-	if(mmapData)
+	auto buffView = io.constBufferView();
+	if(!buffView)
 	{
-		result = gbEmu.load(mmapData, size, gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+		return makeFileReadError();
 	}
-	else
-	{
-		auto romData = std::make_unique<char[]>(size);
-		if(io.read(romData.get(), size) != (ssize_t)size)
-		{
-			return makeError("IO Error");
-		}
-		result = gbEmu.load(romData.get(), size, gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
-	}
-	if(result != gambatte::LOADRES_OK)
+	if(auto result = gbEmu.load(buffView.data(), buffView.size(), gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+		result != gambatte::LOADRES_OK)
 	{
 		return makeError("%s", gambatte::to_string(result).c_str());
 	}
@@ -207,10 +168,9 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{gbResX, gbResY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = optionSoundRate;
-	long outputRate = std::round(optionSoundRate * (59.73 * frameTime));
+	long outputRate = std::round(rate * (59.73 * frameTime));
 	long inputRate = 2097152;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
@@ -278,7 +238,7 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	}
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -289,9 +249,4 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
-}
-
-CallResult EmuSystem::onInit()
-{
-	return OK;
 }

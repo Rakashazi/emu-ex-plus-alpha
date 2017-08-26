@@ -108,7 +108,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case mdKeyIdxY: return INPUT_Y | playerMask;
 		case mdKeyIdxZTurbo: turbo = 1; [[fallthrough]];
 		case mdKeyIdxZ: return INPUT_Z | playerMask;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

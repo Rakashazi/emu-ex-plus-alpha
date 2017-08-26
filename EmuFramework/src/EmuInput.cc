@@ -396,7 +396,7 @@ const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev, ui
 	auto conf = defaultConfigsForInputMap(dev.map(), size);
 	if(!conf)
 	{
-		bug_exit("device type %d missing default configs", dev.map());
+		bug_unreachable("device type %d missing default configs", dev.map());
 		return nullptr;
 	}
 	return conf;
@@ -511,7 +511,7 @@ KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(const char *name)
 {
 	if(!customKeyConfig.addToEnd())
 	{
-		bug_exit("should no be called with full key config list");
+		bug_unreachable("should not call with full key config list");
 		return nullptr;
 	}
 	auto &newConf = customKeyConfig.back();
@@ -770,10 +770,10 @@ void updateVControlImg()
 		static Gfx::PixmapTexture overlayImg;
 		PngFile png;
 		auto filename =	"overlays128.png";
-		auto ec = png.loadAsset(filename);
-		if(ec)
+		if(auto ec = png.loadAsset(filename);
+			ec)
 		{
-			bug_exit("couldn't load overlay png");
+			logErr("couldn't load overlay png");
 		}
 		overlayImg.init(r, png);
 		vController.setImg(overlayImg);
@@ -783,10 +783,10 @@ void updateVControlImg()
 	{
 		static Gfx::PixmapTexture kbOverlayImg;
 		PngFile png;
-		auto ec = png.loadAsset("kbOverlay.png");
-		if(ec)
+		if(auto ec = png.loadAsset("kbOverlay.png");
+			ec)
 		{
-			bug_exit("couldn't load kb overlay png");
+			logErr("couldn't load kb overlay png");
 		}
 		kbOverlayImg.init(r, png);
 		vController.kb.setImg(r, &kbOverlayImg);

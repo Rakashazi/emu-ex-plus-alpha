@@ -418,13 +418,14 @@ static const RomListEntry romlist[]
 
 static FS::PathString gameFilePath(const char *name)
 {
-	auto zipPath = FS::makePathStringPrintf("%s/%s.zip", optionLastLoadPath.val, name);
+	auto path = EmuApp::mediaSearchPath();
+	auto zipPath = FS::makePathStringPrintf("%s/%s.zip", path.data(), name);
 	if(FS::exists(zipPath))
 		return zipPath;
-	auto sZipPath = FS::makePathStringPrintf("%s/%s.7z", optionLastLoadPath.val, name);
+	auto sZipPath = FS::makePathStringPrintf("%s/%s.7z", path.data(), name);
 	if(FS::exists(sZipPath))
 		return sZipPath;
-	auto rarPath = FS::makePathStringPrintf("%s/%s.rar", optionLastLoadPath.val, name);
+	auto rarPath = FS::makePathStringPrintf("%s/%s.rar", path.data(), name);
 	if(FS::exists(rarPath))
 		return rarPath;
 	return {};

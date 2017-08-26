@@ -79,7 +79,7 @@ static uint ptrInputToSysButton(int input)
 		case SysVController::D_ELEM+6: return DOWN | LEFT;
 		case SysVController::D_ELEM+7: return DOWN;
 		case SysVController::D_ELEM+8: return DOWN | RIGHT;
-		default: bug_branch("%d", input); return 0;
+		default: bug_unreachable("input == %d", input); return 0;
 	}
 }
 
@@ -128,7 +128,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case gbaKeyIdxR: return R;
 		case gbaKeyIdxAB: return A | B;
 		case gbaKeyIdxRB: return R | B;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

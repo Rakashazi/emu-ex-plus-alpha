@@ -16,7 +16,7 @@ static GLenum textureTargetToGet(GLenum target)
 		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 		case GL_TEXTURE_EXTERNAL_OES: return GL_TEXTURE_BINDING_EXTERNAL_OES;
 		#endif
-		default: bug_branch("%d", target); return 0;
+		default: bug_unreachable("target == %d", target); return 0;
 	}
 }
 

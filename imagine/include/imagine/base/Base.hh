@@ -34,6 +34,9 @@ using namespace IG;
 // App exit
 void exit(int returnVal);
 static void exit() { exit(0); }
+[[gnu::format(printf, 2, 3)]]
+void exitWithErrorMessagePrintf(int exitVal, const char *format, ...);
+void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args);
 [[noreturn]] void abort();
 
 // Inter-process messages

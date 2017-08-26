@@ -450,12 +450,12 @@ static const char *getGngeoDir()
 #endif
 }
 
-static void make_stateName(char *game,int slot,char *st_name_out)
+static void make_stateName(const char *game,int slot,char *st_name_out)
 {
 	sprintf(st_name_out,"%s%s.%03d",getGngeoDir(),game,slot);
 }
 
-static gzFile open_state(/*char *game,int slot,*/char *st_name,int mode) {
+static gzFile open_state(/*char *game,int slot,*/const char *st_name,int mode) {
 	/*char *st_name;
 //    char *st_name_len;
 #ifdef EMBEDDED_FS
@@ -560,7 +560,7 @@ static void neogeo_mkstate(gzFile gzf,int mode) {
 	pd4990a_mkstate(gzf, mode);
 }
 
-int save_stateWithName(char *name) {
+int save_stateWithName(const char *name) {
 	gzFile gzf;
 
 	if ((gzf = open_state(name, STWRITE)) == NULL)
@@ -574,13 +574,13 @@ int save_stateWithName(char *name) {
 	return true;
 }
 
-int save_state(char *game,int slot) {
+int save_state(const char *game,int slot) {
 	char *st_name=(char*)alloca(strlen(getGngeoDir())+strlen(game)+5);
 	make_stateName(game,slot,st_name);
 	return save_stateWithName(st_name);
 }
 
-int load_stateWithName(char *name) {
+int load_stateWithName(const char *name) {
 	gzFile gzf;
 	/* Save pointers */
 	Uint8 *ng_lo = memory.ng_lo;
@@ -631,7 +631,7 @@ int load_stateWithName(char *name) {
 	return true;
 }
 
-int load_state(char *game,int slot) {
+int load_state(const char *game,int slot) {
 	char *st_name=(char*)alloca(strlen(getGngeoDir())+strlen(game)+5);
 	make_stateName(game,slot,st_name);
 	return load_stateWithName(st_name);

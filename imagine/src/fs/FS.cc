@@ -21,6 +21,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
+#include <imagine/util/utility.h>
 #include <libgen.h>
 #ifdef basename
 // libgen.h may define this macro and clash with FS::basename
@@ -78,7 +79,7 @@ PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 	FS::PathString realPath;
 	if(!realpath(FS::dirname(launchCmd).data(), realPath.data()))
 	{
-		bug_exit("error in realpath()");
+		logErr("error in realpath()");
 		return {};
 	}
 	return realPath;

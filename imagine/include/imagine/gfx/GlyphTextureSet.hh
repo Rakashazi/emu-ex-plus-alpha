@@ -54,8 +54,8 @@ public:
 	operator bool() const;
 	static void swap(GlyphTextureSet &a, GlyphTextureSet &b);
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
-	std::error_code precache(Renderer &r, const char *string);
-	std::error_code precacheAlphaNum(Renderer &r)
+	std::errc precache(Renderer &r, const char *string);
+	std::errc precacheAlphaNum(Renderer &r)
 	{
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
@@ -73,7 +73,7 @@ private:
 
 	void calcNominalHeight(Renderer &r);
 	bool initGlyphTable();
-	std::error_code cacheChar(Renderer &r, int c, int tableIdx);
+	std::errc cacheChar(Renderer &r, int c, int tableIdx);
 };
 
 }

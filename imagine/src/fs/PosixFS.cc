@@ -18,7 +18,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/util/string.h>
 #include <errno.h>
 

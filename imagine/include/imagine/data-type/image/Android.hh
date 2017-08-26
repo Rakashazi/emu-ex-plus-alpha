@@ -30,14 +30,14 @@ public:
 	constexpr BitmapFactoryImage() {}
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
-	std::error_code readImage(IG::Pixmap &dest);
-	static CallResult writeImage(const IG::Pixmap &pix, const char *name);
+	std::errc readImage(IG::Pixmap &dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
 	uint width();
 	uint height();
 	IG::PixelFormat pixelFormat() const;
+	explicit operator bool() const;
 
 private:
 	jobject bitmap{};
@@ -55,9 +55,10 @@ public:
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
 	void deinit();
-	std::error_code write(IG::Pixmap dest) override;
+	std::errc write(IG::Pixmap dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
+	explicit operator bool() const override;
 
 private:
 	BitmapFactoryImage png;

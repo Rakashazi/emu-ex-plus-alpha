@@ -279,7 +279,7 @@ static void updateQueue(uint written)
 				break;
 			if(!commitSLBuffer(ringBuffNextQueuePos, outputBufferBytes))
 			{
-				bug_exit("error in enqueue even though queue should have space");
+				logErr("error in enqueue even though queue should have space");
 			}
 			ringBuffNextQueuePos = rBuff.advanceAddr(ringBuffNextQueuePos, outputBufferBytes);
 			unqueuedBytes -= outputBufferBytes;

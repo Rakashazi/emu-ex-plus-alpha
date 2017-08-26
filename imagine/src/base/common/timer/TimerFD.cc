@@ -135,7 +135,7 @@ void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, E
 	long repeatLeftoverNs = repeatNs % 1000000000;
 	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, loop, flags & HINT_REUSE))
 	{
-		bug_exit("failed to setup timer, OS resources may be low or bad parameters present");
+		logErr("failed to setup timer, OS resources may be low or bad parameters present");
 	}
 }
 
@@ -150,7 +150,7 @@ void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, E
 	long repeatLeftoverNs = repeatLeftoverMs * 1000000;
 	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, loop, flags & HINT_REUSE))
 	{
-		bug_exit("failed to setup timer, OS resources may be low or bad parameters present");
+		logErr("failed to setup timer, OS resources may be low or bad parameters present");
 	}
 }
 
@@ -159,7 +159,7 @@ void Timer::callbackAfterSec(CallbackDelegate callback, int s, int repeatS, Even
 	this->callback = callback;
 	if(!arm({s, 0}, {repeatS, 0}, loop, flags & HINT_REUSE))
 	{
-		bug_exit("failed to setup timer, OS resources may be low or bad parameters present");
+		logErr("failed to setup timer, OS resources may be low or bad parameters present");
 	}
 }
 

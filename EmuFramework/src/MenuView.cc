@@ -49,7 +49,7 @@ public:
 			{
 				switch(idx)
 				{
-					default: bug_branch("%d", idx); [[fallthrough]];
+					default: bug_unreachable("idx == %d", idx); [[fallthrough]];
 					case 0: return soft;
 					case 1: return hard;
 					case 2: return cancel;
@@ -95,7 +95,7 @@ char saveSlotChar(int slot)
 	{
 		case -1: return 'a';
 		case 0 ... 9: return 48 + slot;
-		default: bug_branch("%d", slot); return 0;
+		default: bug_unreachable("slot == %d", slot); return 0;
 	}
 }
 
@@ -309,10 +309,10 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 					[](TextMenuItem &, View &view, Input::Event e)
 					{
 						view.dismiss();
-						auto err = EmuSystem::loadState();
-						if(err.code())
+						if(auto err = EmuApp::loadStateWithSlot(EmuSystem::saveStateSlot);
+							err)
 						{
-							popup.post("Load State: ", err, 4);
+							popup.printf(4, true, "Load State: %s", err->what());
 						}
 						else
 							startGameFromMenu();
@@ -352,9 +352,11 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 				static auto doSaveState =
 					[]()
 					{
-						auto ec = EmuSystem::saveState();
-						if(ec)
-							popup.post("Save State: ", ec);
+						if(auto err = EmuApp::saveStateWithSlot(EmuSystem::saveStateSlot);
+							err)
+						{
+							popup.printf(4, true, "Save State: %s", err->what());
+						}
 						else
 							startGameFromMenu();
 					};

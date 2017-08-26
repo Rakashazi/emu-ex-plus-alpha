@@ -22,7 +22,6 @@
 #include <imagine/audio/Audio.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuInput.hh>
-#include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextTableView.hh>

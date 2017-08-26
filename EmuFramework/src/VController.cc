@@ -947,7 +947,7 @@ IG::WindowRect VController::bounds(int elemIdx) const
 		case 4: return ffBound;
 		case 5: return gp.lTriggerBounds();
 		case 6: return gp.rTriggerBounds();
-		default: bug_branch("%d", elemIdx); return {0,0,0,0};
+		default: bug_unreachable("elemIdx == %d", elemIdx); return {0,0,0,0};
 	}
 	#else
 	switch(elemIdx)
@@ -957,7 +957,7 @@ IG::WindowRect VController::bounds(int elemIdx) const
 		case 2: return {0,0,0,0};
 		case 3: return menuBound;
 		case 4: return ffBound;
-		default: bug_branch("%d", elemIdx); return {0,0,0,0};
+		default: bug_unreachable("elemIdx == %d", elemIdx); return {0,0,0,0};
 	}
 	#endif
 }
@@ -974,7 +974,7 @@ void VController::setPos(int elemIdx, IG::Point2D<int> pos)
 		bcase 4: setFFBtnPos(pos);
 		bcase 5: gp.setLTriggerPos(pos);
 		bcase 6: gp.setRTriggerPos(pos);
-		bdefault: bug_branch("%d", elemIdx);
+		bdefault: bug_unreachable("elemIdx == %d", elemIdx);
 	}
 	#else
 	switch(elemIdx)
@@ -984,7 +984,7 @@ void VController::setPos(int elemIdx, IG::Point2D<int> pos)
 		bcase 2:
 		bcase 3: setMenuBtnPos(pos);
 		bcase 4: setFFBtnPos(pos);
-		bdefault: bug_branch("%d", elemIdx);
+		bdefault: bug_unreachable("elemIdx == %d", elemIdx);
 	}
 	#endif
 }
@@ -1001,7 +1001,7 @@ void VController::setState(int elemIdx, uint state)
 		bcase 4: ffBtnState = state;
 		bcase 5: gp.lTriggerState = state;
 		bcase 6: gp.rTriggerState = state;
-		bdefault: bug_branch("%d", elemIdx);
+		bdefault: bug_unreachable("elemIdx == %d", elemIdx);
 	}
 	#else
 	switch(elemIdx)
@@ -1011,7 +1011,7 @@ void VController::setState(int elemIdx, uint state)
 		bcase 2:
 		bcase 3: menuBtnState = state;
 		bcase 4: ffBtnState = state;
-		bdefault: bug_branch("%d", elemIdx);
+		bdefault: bug_unreachable("elemIdx == %d", elemIdx);
 	}
 	#endif
 }
@@ -1028,7 +1028,7 @@ uint VController::state(int elemIdx) const
 		case 4: return ffBtnState;
 		case 5: return gp.lTriggerState;
 		case 6: return gp.rTriggerState;
-		default: bug_branch("%d", elemIdx); return 0;
+		default: bug_unreachable("elemIdx == %d", elemIdx); return 0;
 	}
 	#else
 	switch(elemIdx)
@@ -1038,7 +1038,7 @@ uint VController::state(int elemIdx) const
 		case 2: return 0;
 		case 3: return menuBtnState;
 		case 4: return ffBtnState;
-		default: bug_branch("%d", elemIdx); return 0;
+		default: bug_unreachable("elemIdx == %d", elemIdx); return 0;
 	}
 	#endif
 }

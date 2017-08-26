@@ -15,6 +15,7 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuOptions.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <algorithm>

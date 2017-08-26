@@ -19,7 +19,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../../base/iphone/private.hh"
 #import <UIKit/UIImage.h>
 
-CallResult Quartz2dImage::writeImage(const IG::Pixmap &pix, const char *name)
+void Quartz2dImage::writeImage(const IG::Pixmap &pix, const char *name)
 {
 	auto provider = CGDataProviderCreateWithData(nullptr, pix.pixel({}), pix.bytes(), nullptr);
 	int bitsPerComponent = 8;
@@ -34,5 +34,4 @@ CallResult Quartz2dImage::writeImage(const IG::Pixmap &pix, const char *name)
 		auto pathStr = [[NSString alloc] initWithBytesNoCopy:(void*)name length:strlen(name) encoding:NSUTF8StringEncoding freeWhenDone:false];
 		[UIImagePNGRepresentation(uiImage) writeToFile:pathStr atomically:YES];
 	}
-	return OK;
 }

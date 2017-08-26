@@ -1,4 +1,5 @@
 #include <emuframework/EmuApp.hh>
+#include <imagine/input/DragTracker.hh>
 #include "internal.hh"
 #include <snes9x.h>
 #include <memmap.h>
@@ -157,7 +158,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case s9xKeyIdxB: return SNES_B_MASK | playerMask;
 		case s9xKeyIdxL: return SNES_TL_MASK | playerMask;
 		case s9xKeyIdxR: return SNES_TR_MASK | playerMask;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

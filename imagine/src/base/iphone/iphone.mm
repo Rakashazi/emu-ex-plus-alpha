@@ -294,7 +294,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	// TODO: use NSProcessInfo
 	onInit(0, nullptr);
 	if(!deviceWindow())
-		bug_exit("no main window created");
+		bug_unreachable("no main window created");
 	logMsg("exiting didFinishLaunchingWithOptions");
 	return YES;
 }
@@ -616,6 +616,14 @@ void addLauncherIcon(const char *name, const char *path) {}
 bool hasVibrator() { return false; }
 
 void vibrate(uint ms) {}
+
+void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+{
+	std::array<char, 512> msg{};
+	auto result = vsnprintf(msg.data(), msg.size(), format, args);
+	logErr("%s", msg.data());
+	exit(exitVal);
+}
 
 #ifdef CONFIG_BASE_IOS_SETUID
 

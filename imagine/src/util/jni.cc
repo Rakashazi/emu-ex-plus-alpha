@@ -15,12 +15,13 @@
 
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/utility.h>
 
 jmethodID getJNIStaticMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig)
 {
 	if(!cls)
 	{
-		bug_exit("class missing for java static method: %s (%s)", fName, sig);
+		bug_unreachable("class missing for java static method: %s (%s)", fName, sig);
 	}
 	auto method = env->GetStaticMethodID(cls, fName, sig);
 	if(!method)
@@ -34,7 +35,7 @@ jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char 
 {
 	if(!cls)
 	{
-		bug_exit("class missing for java method: %s (%s)", fName, sig);
+		bug_unreachable("class missing for java method: %s (%s)", fName, sig);
 	}
 	auto method = env->GetMethodID(cls, fName, sig);
 	if(!method)

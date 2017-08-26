@@ -34,7 +34,7 @@ struct GraphicBufferStorage: public DirectTextureStorage
 
 	GraphicBufferStorage(EGLDisplay eglDpy): eglDpy{eglDpy} {}
 	~GraphicBufferStorage() override;
-	std::system_error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) override;
+	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) override;
 	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) override;
 	void unlock(Renderer &r, GLuint tex) override;
 	void resetImage();

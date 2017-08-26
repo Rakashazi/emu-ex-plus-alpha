@@ -5,13 +5,12 @@ namespace Gfx
 {
 
 template<class Vtx>
-CallResult QuadGeneric<Vtx>::init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, Coordinate x3, Coordinate y3, Coordinate x4, Coordinate y4)
+void QuadGeneric<Vtx>::init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, Coordinate x3, Coordinate y3, Coordinate x4, Coordinate y4)
 {
 	v[0] = Vtx(x, y); //BL
 	v[1] = Vtx(x2, y2); //TL
 	v[2] = Vtx(x4, y4); //BR
 	v[3] = Vtx(x3, y3); //TR
-	return OK;
 }
 
 template<class Vtx>

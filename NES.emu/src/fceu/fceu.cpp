@@ -88,6 +88,8 @@ extern void RefreshThrottleFPS();
 #include <cstdarg>
 #include <ctime>
 
+#include <imagine/util/string.h>
+
 using namespace std;
 
 //-----------
@@ -471,7 +473,7 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 		goto endlseq;
 	if (UNIFLoad(fullname, fp))
 		goto endlseq;
-	if (FDSLoad(fullname, fp))
+	if (string_hasDotExtension(fullname, "fds") && FDSLoad(fullname, fp))
 		goto endlseq;
 
 	if (!silent)

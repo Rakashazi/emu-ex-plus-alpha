@@ -63,7 +63,22 @@ protected:
 class YesNoAlertView : public BaseAlertView
 {
 public:
-	YesNoAlertView(ViewAttachParams attach, const char *label, const char *choice1 = {}, const char *choice2 = {});
+	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
+		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
+	template<class C = TextMenuItem::SelectDelegate, class C2 = TextMenuItem::SelectDelegate>
+	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
+		C &&onYes, C2 &&onNo):
+			YesNoAlertView
+			{
+				attach,
+				label,
+				yesStr,
+				noStr,
+				TextMenuItem::wrapSelectDelegate(onYes),
+				TextMenuItem::wrapSelectDelegate(onNo)
+			} {}
+	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr = {}, const char *noStr = {}):
+		YesNoAlertView{attach, label, yesStr, noStr, {}, {}} {}
 	void setOnYes(TextMenuItem::SelectDelegate del);
 	template<class C>
 	void setOnYes(C &&del)
@@ -79,4 +94,5 @@ public:
 
 protected:
 	TextMenuItem yes, no;
+	TextMenuItem::SelectDelegate makeDefaultSelectDelegate();
 };

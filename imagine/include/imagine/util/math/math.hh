@@ -19,7 +19,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/typeTraits.hh>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 
 namespace IG
 {

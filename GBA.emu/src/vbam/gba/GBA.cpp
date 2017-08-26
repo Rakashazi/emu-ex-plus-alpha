@@ -2922,7 +2922,7 @@ void CPUInit(GBASys &gba, const char *biosFileName, bool useBiosFile)
   useBios = false;
 
   if(useBiosFile) {
-  	bug_exit("TODO");
+  	bug_unreachable("TODO");
   	#if 0
     int size = 0x4000;
     if(utilLoad(biosFileName,

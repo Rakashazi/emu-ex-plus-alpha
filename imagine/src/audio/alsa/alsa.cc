@@ -60,7 +60,7 @@ static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 		case SND_PCM_FORMAT_S8: return SampleFormats::s8;
 		case SND_PCM_FORMAT_U8: return SampleFormats::u8;
 		default:
-			bug_branch("%d", format);
+			bug_unreachable("format == %d", format);
 			return SampleFormats::none;
 	}
 }
@@ -72,7 +72,7 @@ static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
 		case 16 : return SND_PCM_FORMAT_S16;
 		case 8 : return format.isSigned ? SND_PCM_FORMAT_S8 : SND_PCM_FORMAT_U8;
 		default:
-			bug_branch("%d", format.toBits());
+			bug_unreachable("bits == %d", format.toBits());
 			return (snd_pcm_format_t)0;
 	}
 }

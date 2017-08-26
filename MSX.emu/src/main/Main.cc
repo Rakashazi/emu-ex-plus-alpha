@@ -444,31 +444,21 @@ void EmuSystem::reset(ResetMode mode)
 	insertMedia();
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'A';
-		case 0 ... 9: return '0' + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotCharUpper(slot));
 }
 
 static const char saveStateVersion[] = "blueMSX - state  v 8";
 extern int pendingInt;
 
-static std::error_code saveBlueMSXState(const char *filename)
+static EmuSystem::Error saveBlueMSXState(const char *filename)
 {
 	CallResult res = zipStartWrite(filename);
 	if(res != OK)
 	{
 		logErr("error creating zip:%s", filename);
-		return {EIO, std::system_category()};
+		return EmuSystem::makeFileWriteError();
 	}
 	saveStateCreateForWrite(filename);
 	int rv = zipSaveFile(filename, "version", 0, saveStateVersion, sizeof(saveStateVersion));
@@ -477,7 +467,7 @@ static std::error_code saveBlueMSXState(const char *filename)
 		saveStateDestroy();
 		zipEndWrite();
 		logErr("error writing to zip:%s", filename);
-		return {EIO, std::system_category()};
+		return EmuSystem::makeFileWriteError();
 	}
 
 	SaveState* state = saveStateOpenForWrite("board");
@@ -510,10 +500,9 @@ static std::error_code saveBlueMSXState(const char *filename)
 	return {};
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	return saveBlueMSXState(saveStr.data());
+	return saveBlueMSXState(path);
 }
 
 template <typename T>
@@ -527,7 +516,7 @@ static void saveStateGetFileString(SaveState* state, const char* tagName, T &des
 	}
 }
 
-static std::system_error loadBlueMSXState(const char *filename)
+static EmuSystem::Error loadBlueMSXState(const char *filename)
 {
 	logMsg("loading state %s", filename);
 
@@ -540,13 +529,13 @@ static std::system_error loadBlueMSXState(const char *filename)
 	if(!version)
 	{
 		saveStateDestroy();
-		return {{EIO, std::system_category()}};
+		return EmuSystem::makeFileReadError();
 	}
 	if(0 != strncmp(version, saveStateVersion, sizeof(saveStateVersion) - 1))
 	{
 		free(version);
 		saveStateDestroy();
-		return {{EILSEQ, std::system_category()}, "Incorrect state version"};
+		return EmuSystem::makeError("Incorrect state version");
 	}
 	free(version);
 
@@ -562,7 +551,7 @@ static std::system_error loadBlueMSXState(const char *filename)
 		saveStateDestroy();
 		string_copy(optionMachineNameStr, optionMachineNameStrOld); // restore old machine name
 		EmuApp::exitGame(false);
-		return {{EILSEQ, std::system_category()}, "Invalid data in file"};
+		return EmuSystem::makeError("Invalid data in file");
 	}
 
 	clearAllMediaNames();
@@ -582,23 +571,18 @@ static std::system_error loadBlueMSXState(const char *filename)
 	if(!insertMedia())
 	{
 		EmuApp::exitGame(false);
-		return {{EIO, std::system_category()}, "Error loading media"};
+		return EmuSystem::makeError("Error loading media");
 	}
 
 	boardInfo.loadState();
 	saveStateDestroy();
 	srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
-	return {{}};
+	return {};
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FS::exists(saveStr.data()))
-	{
-		return loadBlueMSXState(saveStr.data());
-	}
-	return {{ENOENT, std::system_category()}};
+	return loadBlueMSXState(path);
 }
 
 void EmuSystem::saveBackupMem()
@@ -606,15 +590,6 @@ void EmuSystem::saveBackupMem()
 	if(gameIsRunning())
 	{
 		// TODO: add BlueMSX API to flush volatile data
-	}
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		auto saveStr = sprintStateFilename(-1);
-		saveBlueMSXState(saveStr.data());
 	}
 }
 
@@ -735,18 +710,18 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = 44100; // TODO: not all sound chips handle non-44100Hz sample rate
-	uint rate = std::round(pcmFormat.rate * (59.924 * frameTime));
-	mixerSetSampleRate(mixer, rate);
+	assumeExpr(rate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
+	uint mixRate = std::round(rate * (59.924 * frameTime));
+	mixerSetSampleRate(mixer, mixRate);
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }
 
 static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
 {
 	//logMsg("called audio callback %d samples", count);
-	bug_exit("should never be called");
+	bug_unreachable("should never be called");
 	return 0;
 }
 
@@ -810,7 +785,7 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	}
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -823,23 +798,23 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onMainWindowCreated(Base::Window &win)
+void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
 	if(canInstallCBIOS && checkForMachineFolderOnStart &&
 		!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
 	{
-		auto &ynAlertView = *makeYesNoAlertView(installFirmwareFilesMessage);
-		ynAlertView.setOnYes(
-			[](TextMenuItem &, View &view, Input::Event e)
+		pushAndShowNewYesNoAlertView(attach, e,
+			installFirmwareFilesMessage,
+			"Yes", "No",
+			[](TextMenuItem &, View &view, Input::Event)
 			{
 				view.dismiss();
 				installFirmwareFiles();
-			});
-		EmuApp::pushAndShowModalView(ynAlertView, Input::defaultEvent());
+			}, {});
 	}
 };
 
-CallResult EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit()
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
@@ -911,5 +886,5 @@ CallResult EmuSystem::onInit()
 	mixerSetBoardFrequencyFixed(frequency);
 	mixerSetWriteCallback(mixer, 0, 0, 10000);
 
-	return OK;
+	return {};
 }

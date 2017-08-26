@@ -148,7 +148,7 @@ int indexOfScreen(Screen &screen)
 		if(*Screen::screen(i) == screen)
 			return i;
 	}
-	bug_exit("screen wasn't in list");
+	logErr("screen wasn't in list");
 	return 0;
 }
 

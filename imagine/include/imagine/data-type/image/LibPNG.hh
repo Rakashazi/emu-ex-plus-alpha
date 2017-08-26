@@ -31,13 +31,14 @@ class Png
 public:
 	constexpr Png() {}
 	std::error_code readHeader(GenericIO io);
-	std::error_code readImage(IG::Pixmap &dest);
+	std::errc readImage(IG::Pixmap &dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
 	uint width();
 	uint height();
 	IG::PixelFormat pixelFormat();
+	explicit operator bool() const;
 
 private:
 	png_structp png = nullptr;
@@ -62,9 +63,10 @@ public:
 		return load(openAppAssetIO(name).makeGeneric());
 	}
 	void deinit();
-	std::error_code write(IG::Pixmap dest) override;
+	std::errc write(IG::Pixmap dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
+	explicit operator bool() const override;
 
 private:
 	Png png;

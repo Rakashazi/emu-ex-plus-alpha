@@ -102,7 +102,7 @@ void Renderer::setTransformTarget(TransformTargetEnum target)
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!support.useFixedFunctionPipeline)
 	{
-		bug_exit("TODO");
+		bug_unreachable("TODO");
 	}
 	#endif
 }

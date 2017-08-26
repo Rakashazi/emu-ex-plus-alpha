@@ -86,14 +86,15 @@ Byte1Option optionSidEngine(CFGKEY_SID_ENGINE,
 Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
 PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
 	plugin = loadVicePlugin(currSystem);
 	if(!plugin)
 	{
-		bug_exit("error loading plugin");
+		return makeError("Error loading plugin for system %s", VicePlugin::systemName(currSystem));
 	}
+	return {};
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

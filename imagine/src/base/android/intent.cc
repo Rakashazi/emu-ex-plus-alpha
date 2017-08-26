@@ -31,22 +31,26 @@ static JavaInstMethod<jobject()> jIntentDataPath{};
 void addNotification(const char *onShow, const char *title, const char *message)
 {
 	logMsg("adding notificaion icon");
+	auto env = jEnv();
 	if(unlikely(!jAddNotification))
 	{
-		jAddNotification.setup(jEnv(), jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-		jRemoveNotification.setup(jEnv(), jBaseActivityCls, "removeNotification", "()V");
+		jAddNotification.setup(env, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	}
-	jAddNotification(jEnv(), jBaseActivity, jEnv()->NewStringUTF(onShow), jEnv()->NewStringUTF(title), jEnv()->NewStringUTF(message));
+	jAddNotification(env, jBaseActivity, env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
 }
 
 void removePostedNotifications()
 {
-	if(jRemoveNotification)
+	// check if notification functions were used at some point
+	// and remove the posted notification
+	if(!jAddNotification)
+		return;
+	auto env = jEnv();
+	if(unlikely(!jRemoveNotification))
 	{
-		// check if notification functions were used at some point
-		// and remove the posted notification
-		jRemoveNotification(jEnv(), jBaseActivity);
+		jRemoveNotification.setup(env, jBaseActivityCls, "removeNotification", "()V");
 	}
+	jRemoveNotification(env, jBaseActivity);
 }
 
 void addLauncherIcon(const char *name, const char *path)

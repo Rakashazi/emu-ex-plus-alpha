@@ -1,6 +1,8 @@
 #pragma once
 
 #include <imagine/io/IO.hh>
+#include <imagine/util/utility.h>
+#include <imagine/logger/logger.h>
 
 static bool isSeekModeValid(IO::SeekMode mode)
 {
@@ -26,6 +28,6 @@ static off_t transformOffsetToAbsolute(IO::SeekMode mode, off_t offset, off_t st
 		case SEEK_CUR:
 			return offset + currentPos;
 	}
-	bug_exit("bad offset mode: %d", (int)mode);
+	logErr("bad offset mode: %d", (int)mode);
 	return 0;
 }

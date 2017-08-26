@@ -105,16 +105,6 @@ void EmuSystem::reset(ResetMode mode)
 		gen_reset(0);
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'A';
-		case 0 ... 9: return '0' + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
 	return FS::makePathStringPrintf("%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
@@ -132,59 +122,53 @@ static FS::PathString sprintBRAMSaveFilename()
 
 static const uint maxSaveStateSize = STATE_SIZE+4;
 
-static std::error_code saveMDState(const char *path)
+static EmuSystem::Error saveMDState(const char *path)
 {
 	auto stateData = std::make_unique<uchar[]>(maxSaveStateSize);
 	if(!stateData)
-		return {ENOMEM, std::system_category()};
+		return EmuSystem::makeError("Out of memory");
 	logMsg("saving state data");
 	int size = state_save(stateData.get());
 	logMsg("writing to file");
-	auto ec = writeToNewFile(path, stateData.get(), size);
-	if(ec)
+	if(auto ec = writeToNewFile(path, stateData.get(), size);
+		ec)
 	{
-		logMsg("error writing state file");
-		return ec;
+		return EmuSystem::makeError(std::error_code{ec});
 	}
 	logMsg("wrote %d byte state", size);
 	return {};
 }
 
-static std::system_error loadMDState(const char *path)
+static EmuSystem::Error loadMDState(const char *path)
 {
 	FileIO f;
-	auto ec = f.open(path);
-	if(ec)
+	if(auto ec = f.open(path);
+		ec)
 	{
-		return {ec};
+		EmuSystem::makeError(std::error_code{ec});
 	}
 	auto stateData = (const uchar *)f.mmapConst();
 	if(!stateData)
 	{
-		return {{EIO, std::system_category()}};
+		return EmuSystem::makeFileReadError();
 	}
-	auto err = state_load(stateData);
-	if(err.code())
+	if(auto err = state_load(stateData);
+		err)
 	{
 		return err;
 	}
 	//sound_restore();
-	return {{}};
+	return {};
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	logMsg("saving state %s", saveStr.data());
-	return saveMDState(saveStr.data());
+	return saveMDState(path);
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	logMsg("loading state %s", saveStr.data());
-	return loadMDState(saveStr.data());
+	return loadMDState(path);
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -237,16 +221,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			logMsg("error creating sram file");
 	}
 	writeCheatFile();
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		saveMDState(saveStr.data());
-	}
 }
 
 void EmuSystem::closeSystem()
@@ -423,8 +397,8 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 			delete cd;
 			return makeError("Set a %s BIOS in the Options", biosName);
 		}
-		FileIO io;
-		if(!load_rom(io, biosPath, nullptr))
+		if(FileIO io;
+			!load_rom(io, biosPath, nullptr))
 		{
 			delete cd;
 			return makeError("Error loading BIOS: %s", biosPath);
@@ -437,17 +411,13 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	}
 	else
 	#endif
-	if(hasMDExtension(gameFileName().data())) // ROM
+	// ROM
 	{
 		logMsg("loading ROM %s", fullGamePath());
-		if(!load_rom(io, fullGamePath(), gameFileName().data()))
+		if(!load_rom(io, fullGamePath(), originalGameFileName().data()))
 		{
-			return makeError("Error loading game");
+			return makeFileReadError();
 		}
-	}
-	else
-	{
-		return makeError("Invalid game");
 	}
 	autoDetectedVidSysPAL = vdp_pal;
 	if((int)optionVideoSystem == 1)
@@ -539,16 +509,15 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	pcmFormat.rate = optionSoundRate;
-	audio_init(optionSoundRate, 1. / frameTime);
+	audio_init(rate, 1. / frameTime);
 	if(gameIsRunning())
 		sound_restore();
 	logMsg("md sound buffer size %d", snd.buffer_size);
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -559,9 +528,4 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
-}
-
-CallResult EmuSystem::onInit()
-{
-	return OK;
 }

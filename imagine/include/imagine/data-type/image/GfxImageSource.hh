@@ -22,7 +22,8 @@ class GfxImageSource
 public:
 	constexpr GfxImageSource() {}
 	virtual ~GfxImageSource() {}
-	virtual std::error_code write(IG::Pixmap dest) = 0;
+	virtual std::errc write(IG::Pixmap dest) = 0;
 	virtual IG::Pixmap lockPixmap() = 0;
 	virtual void unlockPixmap() = 0;
+	virtual explicit operator bool() const = 0;
 };

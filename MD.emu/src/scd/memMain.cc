@@ -52,8 +52,8 @@ uint mainGateRead8(uint address)
 			}
 			return d;
 		}
-		bcase 6: logMsg("read h-int 1"); bug_exit("TODO");
-		bcase 7: logMsg("read h-int 2"); bug_exit("TODO");
+		bcase 6: logMsg("read h-int 1"); bug_unreachable("TODO");
+		bcase 7: logMsg("read h-int 2"); bug_unreachable("TODO");
 		bcase 0xe:
 			//logMsg("M read M-Com flags 0x%X", sCD.gate[0xe]);
 			return sCD.gate[0xe];
@@ -111,7 +111,7 @@ uint mainGateRead8(uint address)
 			return sCD.gate[subAddr];
 		}
 		bdefault:
-			bug_exit("bad GATE read8 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
+			bug_unreachable("bad GATE read8 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
 		}
 		return 0;
 	}
@@ -138,13 +138,13 @@ uint mainGateRead16(uint address)
 				return d;
 			}
 			bcase 4:
-				bug_exit("gate reg 4");
+				bug_unreachable("gate reg 4");
 				return sCD.gate[4]<<8;
 			bcase 6:
 				//logMsg("read h-int");
 				return *(uint16a *)(cart.rom + 0x72);
 			bcase 8:
-				bug_exit("gate reg 8");
+				bug_unreachable("gate reg 8");
 				return Read_CDC_Host(0);
 			bcase 0xa:
 				logMsg("m68k FIXME: reserved read");
@@ -185,7 +185,7 @@ uint mainGateRead16(uint address)
 				return data;
 			}
 			bdefault:
-				bug_exit("bad GATE read16 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
+				bug_unreachable("bad GATE read16 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
 		}
 		return 0;
 	}
@@ -307,7 +307,7 @@ void mainGateWrite8(uint address, uint data)
 				//syncSubCpu(mm68k.cycleCount + 800);
 			}
 			bdefault:
-				bug_exit("bad GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (mm68k, M68K_REG_PC));
+				bug_unreachable("bad GATE write8 %08X = %02X (%08X)", address, data, m68k_get_reg (mm68k, M68K_REG_PC));
 		}
 	}
 	else
@@ -433,7 +433,7 @@ uint bcramRegRead8(uint address)
 	}
 	else
 	{
-		bug_exit("Bad read8 %X", address);
+		bug_unreachable("Bad read8 %X", address);
 		return 0;
 	}
 }
@@ -448,7 +448,7 @@ void bcramRegWrite8(uint address, uint data)
 	}
 	else
 	{
-		bug_exit("Bad write8 %X", address);
+		bug_unreachable("Bad write8 %X", address);
 	}
 }
 

@@ -159,9 +159,11 @@ void EmuInputView::inputEvent(Input::Event e)
 						static auto doSaveState =
 							[]()
 							{
-								auto ec = EmuSystem::saveState();
-								if(ec)
-									popup.post("Save State: ", ec);
+								if(auto err = EmuApp::saveStateWithSlot(EmuSystem::saveStateSlot);
+									err)
+								{
+									popup.printf(4, true, "Save State: %s", err->what());
+								}
 								else
 									popup.post("State Saved");
 							};
@@ -195,10 +197,10 @@ void EmuInputView::inputEvent(Input::Event e)
 					bcase guiKeyIdxLoadState:
 					if(e.state == Input::PUSHED)
 					{
-						auto err = EmuSystem::loadState();
-						if(err.code())
+						if(auto err = EmuApp::loadStateWithSlot(EmuSystem::saveStateSlot);
+							err)
 						{
-							popup.post("Load State: ", err);
+							popup.printf(4, true, "Load State: %s", err->what());
 						}
 						return;
 					}

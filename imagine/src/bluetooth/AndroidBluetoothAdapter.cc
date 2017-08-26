@@ -561,7 +561,10 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 			JNIEnv *env;
 			if(Base::jVM->AttachCurrentThread(&env, 0) != 0)
 			{
-				bug_exit("error attaching env to thread");
+				logErr("error attaching env to thread");
+				sem_post(&connectSem);
+				isConnecting = false;
+				return;
 			}
 			socket = AndroidBluetoothAdapter::defaultAdapter()->openSocket(env, addrStr, this->channel, isL2cap);
 			if(socket)

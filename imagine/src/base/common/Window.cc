@@ -310,7 +310,7 @@ bool Window::setValidOrientations(uint oMask)
 			return requestOrientationChange(VIEW_ROTATE_270);
 		else
 		{
-			bug_exit("bad orientation mask: 0x%X", oMask);
+			bug_unreachable("bad orientation mask: 0x%X", oMask);
 		}
 	}
 	return false;

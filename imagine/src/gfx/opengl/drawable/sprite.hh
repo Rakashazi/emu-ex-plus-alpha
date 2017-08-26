@@ -6,12 +6,11 @@ namespace Gfx
 {
 
 template<class BaseRect>
-CallResult SpriteBase<BaseRect>::init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds)
+void SpriteBase<BaseRect>::init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds)
 {
 	BaseRect::init(pos.x, pos.y, pos.x2, pos.y2);
 	setImg(img);
 	setUVBounds(uvBounds);
-	return OK;
 }
 
 template<class BaseRect>

@@ -96,7 +96,7 @@ static uint oldStateSizeAfterVDP(int exVersion, bool is64Bit)
   return size;
 }
 
-std::system_error state_load(const unsigned char *buffer)
+EmuSystem::Error state_load(const unsigned char *buffer)
 {
 	auto state = std::make_unique<unsigned char[]>(STATE_SIZE);
 
@@ -114,7 +114,7 @@ std::system_error state_load(const unsigned char *buffer)
 		if(result != Z_OK)
 		{
 			//logErr("error %d in uncompress loading state", result);
-			return {{ECANCELED, std::system_category()}, string_makePrintf<48>("Error %d during uncompress", result).data()};
+			return EmuSystem::makeError("Error %d during uncompress", result);
 		}
   }
 
@@ -124,13 +124,13 @@ std::system_error state_load(const unsigned char *buffer)
   version[16] = 0;
   if (strncmp(version,STATE_VERSION,11))
   {
-    return {{ECANCELED, std::system_category()}, "Missing header"};
+    return EmuSystem::makeError("Missing header");
   }
 
   /* version check (1.5.0 and above) */
   if ((version[11] < 0x31) || ((version[11] == 0x31) && (version[13] < 0x35)))
   {
-    return {{ECANCELED, std::system_category()}, "Version too old"};
+    return EmuSystem::makeError("Version too old");
   }
 
   uint exVersion = (version[15] >= 0x32) ? version[15] - 0x31 : 0;
@@ -217,7 +217,7 @@ std::system_error state_load(const unsigned char *buffer)
   		logErr("unexpected amount of bytes remaining in state:%d, should be %d or %d",
   			bytesLeft, bytesLeft32, bytesLeft64);
   		system_reset();
-  		return {{ECANCELED, std::system_category()}, "Can't determine if created on 32 or 64-bit system"};
+  		return EmuSystem::makeError("Can't determine if created on 32 or 64-bit system");
   	}
   	bufferptr += sound_context_load(&state[bufferptr], version, true, ptrSize);
   }
@@ -289,10 +289,10 @@ std::system_error state_load(const unsigned char *buffer)
 	if(bufferptr != outbytes)
 	{
 		system_reset();
-		return {{ECANCELED, std::system_category()}, string_makePrintf<80>("Expected %d size state but got %d", bufferptr, (int)outbytes).data()};
+		return EmuSystem::makeError("Expected %d size state but got %d", bufferptr, (int)outbytes);
 	}
 
-  return {{}};
+  return {};
 }
 
 int state_save(unsigned char *buffer)

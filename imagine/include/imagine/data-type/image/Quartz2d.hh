@@ -28,14 +28,15 @@ class Quartz2dImage
 public:
 	constexpr Quartz2dImage() {}
 	std::error_code load(const char *name);
-	std::error_code readImage(IG::Pixmap &dest);
-	static CallResult writeImage(const IG::Pixmap &pix, const char *name);
+	std::errc readImage(IG::Pixmap &dest);
+	static void writeImage(const IG::Pixmap &pix, const char *name);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
 	uint width();
 	uint height();
 	const IG::PixelFormat pixelFormat();
+	explicit operator bool() const;
 
 private:
 	CGImageRef img = nullptr;
@@ -52,9 +53,10 @@ public:
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
 	void deinit();
-	std::error_code write(IG::Pixmap dest) override;
+	std::errc write(IG::Pixmap dest) override;
 	IG::Pixmap lockPixmap() override;
 	void unlockPixmap() override;
+	explicit operator bool() const override;
 
 private:
 	Quartz2dImage png;

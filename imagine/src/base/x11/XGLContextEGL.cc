@@ -108,7 +108,7 @@ void GLContext::finishPresent(GLDisplay display, GLDrawable win)
 {
 	if(!swapBuffersIsAsync())
 	{
-		bug_exit("TODO: update for new GLDrawable behavior");
+		bug_unreachable("TODO: update for new GLDrawable behavior");
 	}
 }
 

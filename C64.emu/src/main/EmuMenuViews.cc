@@ -962,7 +962,6 @@ class EmuMenuView : public MenuView
 		{
 			if(!item.active())
 				return;
-			assert(EmuSystem::gameIsRunning());
 			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), 4};
 			multiChoiceView.appendItem("1. NTSC & True Drive Emu",
 				[this]()
@@ -1063,7 +1062,7 @@ class EmuMenuView : public MenuView
 							return 1;
 						}
 						string_copy(newDiskName, str);
-						auto &fPicker = *new EmuFilePicker{attachParams(), optionSavePath, true, {}};
+						auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::baseSavePath().data(), true, {}};
 						fPicker.setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{

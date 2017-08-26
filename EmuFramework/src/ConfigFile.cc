@@ -564,7 +564,7 @@ static void writeConfig2(IO &io)
 		}
 		if(bytes > 0xFFFF)
 		{
-			bug_exit("excessive key config size, should not happen");
+			bug_unreachable("excessive key config size, should not happen");
 		}
 		// write to config file
 		logMsg("saving %d key configs, %d bytes", customKeyConfig.size(), bytes);
@@ -622,7 +622,7 @@ static void writeConfig2(IO &io)
 		}
 		if(bytes > 0xFFFF)
 		{
-			bug_exit("excessive input device config size, should not happen");
+			bug_unreachable("excessive input device config size, should not happen");
 		}
 		// write to config file
 		logMsg("saving %d input device configs, %d bytes", savedInputDevList.size(), bytes);

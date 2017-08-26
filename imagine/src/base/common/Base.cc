@@ -23,6 +23,7 @@
 #include "basePrivate.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/util/system/pagesize.h>
+#include <imagine/util/ScopeGuard.hh>
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -119,7 +120,7 @@ const char *orientationToStr(uint o)
 		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270: return "0/90/270";
 		case VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270: return "0/90/180/270";
 		case VIEW_ROTATE_90 | VIEW_ROTATE_270: return "90/270";
-		default: bug_branch("%d", o); return "";
+		default: bug_unreachable("o == %d", o); return "";
 	}
 }
 
@@ -141,6 +142,14 @@ uint validateOrientationMask(uint oMask)
 FrameTimeBase timeSinceFrameTime(FrameTimeBase time)
 {
 	return frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - time;
+}
+
+void exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
+	exitWithErrorMessageVPrintf(exitVal, format, args);
 }
 
 }

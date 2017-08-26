@@ -61,7 +61,7 @@ public:
 
 struct FreetypeFaceData
 {
-	std::error_code openFont(GenericIO file);
+	std::errc openFont(GenericIO file);
 	FT_Face face{};
 	FT_StreamRec streamRec{};
 };
@@ -81,9 +81,9 @@ protected:
 	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f{};
 	bool isBold{};
 
-	std::error_code loadIntoNextSlot(GenericIO io);
-	std::error_code loadIntoNextSlot(const char *name);
-	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::error_code &ec);
+	std::errc loadIntoNextSlot(GenericIO io);
+	std::errc loadIntoNextSlot(const char *name);
+	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
 };
 
 using GlyphImageImpl = FreetypeGlyphImage;

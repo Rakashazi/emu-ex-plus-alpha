@@ -244,43 +244,25 @@ void EmuSystem::reset(ResetMode mode)
 	YabauseReset();
 }
 
-static char saveSlotChar(int slot)
-{
-	switch(slot)
-	{
-		case -1: return 'A';
-		case 0 ... 9: return 48 + slot;
-		default: bug_branch("%d", slot); return 0;
-	}
-}
-
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.yss", statePath, gameName, saveSlotChar(slot));
+	return FS::makePathStringPrintf("%s/%s.0%c.yss", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-std::error_code EmuSystem::saveState()
+EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	fixFilePermissions(saveStr);
-	if(YabSaveState(saveStr.data()) == 0)
+	if(YabSaveState(path) == 0)
 		return {};
 	else
-		return {EIO, std::system_category()};
+		return EmuSystem::makeFileWriteError();
 }
 
-std::system_error EmuSystem::loadState(int saveStateSlot)
+EmuSystem::Error EmuSystem::loadState(const char *path)
 {
-	auto saveStr = sprintStateFilename(saveStateSlot);
-	if(FS::exists(saveStr))
-	{
-		logMsg("loading state %s", saveStr.data());
-		if(YabLoadState(saveStr.data()) == 0)
-			return {{}};
-		else
-			return {{EIO, std::system_category()}};
-	}
-	return {{ENOENT, std::system_category()}};
+	if(YabLoadState(path) == 0)
+		return {};
+	else
+		return EmuSystem::makeFileReadError();
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -289,17 +271,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	{
 		logMsg("saving backup memory");
 		T123Save(BupRam, 0x10000, 1, bupPath.data());
-	}
-}
-
-void EmuSystem::saveAutoState()
-{
-	if(gameIsRunning() && optionAutoSaveState)
-	{
-		auto saveStr = sprintStateFilename(-1);
-		fixFilePermissions(saveStr);
-		if(YabSaveState(saveStr.data()) != 0)
-			logMsg("error saving state %s", saveStr.data());
 	}
 }
 
@@ -333,10 +304,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime)
+void EmuSystem::configAudioRate(double frameTime, int rate)
 {
 	// TODO: use frameTime
-	pcmFormat.rate = optionSoundRate;
 }
 
 void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
@@ -347,7 +317,7 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	YabauseEmulate();
 }
 
-void EmuSystem::onCustomizeNavView(EmuNavView &view)
+void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
 	{
@@ -359,9 +329,3 @@ void EmuSystem::onCustomizeNavView(EmuNavView &view)
 	};
 	view.setBackgroundGradient(navViewGrad);
 }
-
-CallResult EmuSystem::onInit()
-{
-	return OK;
-}
-

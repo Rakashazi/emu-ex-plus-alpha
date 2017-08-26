@@ -236,7 +236,7 @@ using Byte4Option = Option<OptionMethodVar<uint32>, uint32>;
 using Byte4s1Option = Option<OptionMethodVar<uint32>, uint8>;
 using DoubleOption = Option<OptionMethodVar<double>, double>;
 
-using OptionBackNavigation = Option<OptionMethodRef<template_ntype(View::needsBackControl)>, uint8>;
+using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, Input::swappedGamepadConfirm>, uint8>;
 
 bool vControllerUseScaledCoordinates();
@@ -350,3 +350,15 @@ struct OptionVControllerLayoutPosition : public OptionBase
 	bool readFromIO(IO &io, uint readSize_);
 	uint ioSize() override;
 };
+
+template<int MAX, class T>
+bool optionIsValidWithMax(T val)
+{
+	return val <= MAX;
+}
+
+template<int MIN, int MAX, class T>
+bool optionIsValidWithMinMax(T val)
+{
+	return val >= MIN && val <= MAX;
+}

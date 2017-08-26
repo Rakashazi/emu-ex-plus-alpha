@@ -41,7 +41,7 @@ GLuint *GLStateCache::getBindTextureState(GLenum target)
 		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 		GLTARGET_CASE(GL_TEXTURE_EXTERNAL_OES);
 		#endif
-	default: bug_branch("%d", target); return nullptr;
+	default: bug_unreachable("target == %d", target); return nullptr;
 	}
 	#undef GLTARGET_CASE
 }
@@ -71,7 +71,7 @@ void GLStateCache::bindTexture(GLenum target, GLuint texture)
 		{
 			if(texture != (GLuint)realTexture)
 			{
-				bug_exit("out of sync, expected %u but got %u, target %d", texture, realTexture, target);
+				bug_unreachable("out of sync, expected %u but got %u, target %d", texture, realTexture, target);
 			}
 		}
 	}
@@ -174,7 +174,7 @@ void GLStateCache::enable(GLenum cap)
 		{
 			if(!enabled)
 			{
-					bug_exit("state %d out of sync", cap);
+					bug_unreachable("state %d out of sync", cap);
 			}
 		}
 	}
@@ -209,7 +209,7 @@ void GLStateCache::disable(GLenum cap)
 		{
 			if(enabled)
 			{
-					bug_exit("state %d out of sync", cap);
+					bug_unreachable("state %d out of sync", cap);
 			}
 		}
 	}
@@ -285,7 +285,7 @@ void GLStateCache::enableClientState(GLenum cap)
 		{
 			if(!enabled)
 			{
-					bug_exit("state %d out of sync", cap);
+					bug_unreachable("state %d out of sync", cap);
 			}
 		}
 	}
@@ -319,7 +319,7 @@ void GLStateCache::disableClientState(GLenum cap)
 		{
 			if(enabled)
 			{
-					bug_exit("state %d out of sync", cap);
+					bug_unreachable("state %d out of sync", cap);
 			}
 		}
 	}

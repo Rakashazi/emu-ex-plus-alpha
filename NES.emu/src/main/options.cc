@@ -38,10 +38,11 @@ Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMa
 Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
 
-void EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
+	return {};
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

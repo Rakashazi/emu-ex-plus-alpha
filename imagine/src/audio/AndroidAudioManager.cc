@@ -15,7 +15,7 @@
 
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/util/jni.hh>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include "../base/android/android.hh"
 

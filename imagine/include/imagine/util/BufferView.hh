@@ -15,27 +15,40 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/Texture.hh>
-#include <android/native_window_jni.h>
+#include <memory>
 
-namespace Gfx
+namespace IG
 {
 
-class Renderer;
-
-struct SurfaceTextureStorage: public DirectTextureStorage
+template<class T>
+class BaseBufferView
 {
-	jobject surfaceTex{}, surface{};
-	ANativeWindow *nativeWin{};
-	uint bpp = 0;
-	bool singleBuffered = false;
+public:
+	BaseBufferView() {}
+	BaseBufferView(T *data, size_t size, void(*deleter)(T*)):
+		data_{data, deleter}, size_{size} {}
 
-	SurfaceTextureStorage(Renderer &r, GLuint tex, Error &err);
-	~SurfaceTextureStorage() override;
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) override;
-	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) override;
-	void unlock(Renderer &r, GLuint tex) override;
-	static bool isRendererBlacklisted(const char *rendererStr);
+	T *data()
+	{
+		return data_.get();
+	}
+
+	size_t size() const
+	{
+		return size_;
+	}
+
+	explicit operator bool() const
+	{
+		return data_.get();
+	}
+
+protected:
+	std::unique_ptr<T[], void(*)(T*)> data_{nullptr, [](T*){}};
+	size_t size_ = 0;
 };
+
+using BufferView = BaseBufferView<char>;
+using ConstBufferView = BaseBufferView<const char>;
 
 }

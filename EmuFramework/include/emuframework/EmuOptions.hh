@@ -20,18 +20,6 @@
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/Audio.hh>
 
-template<int MAX, class T>
-bool optionIsValidWithMax(T val)
-{
-	return val <= MAX;
-}
-
-template<int MIN, int MAX, class T>
-bool optionIsValidWithMinMax(T val)
-{
-	return val >= MIN && val <= MAX;
-}
-
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
@@ -148,8 +136,7 @@ extern Byte1Option optionFakeUserActivity;
 
 extern Byte1Option optionDitherImage;
 
-#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || defined CONFIG_BASE_IOS
-#define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 extern Byte1Option optionWindowPixelFormat;
 #endif
 

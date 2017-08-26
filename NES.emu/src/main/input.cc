@@ -130,7 +130,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case nesKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case nesKeyIdxB: return bit(1) | playerMask;
 		case nesKeyIdxAB: return bit(0) | bit(1) | playerMask;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

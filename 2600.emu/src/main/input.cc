@@ -134,7 +134,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 			return Event::KeyboardZero1 + (input - vcsKeyIdxKeyboard1Base);
 		case vcsKeyIdxKeyboard2Base ... vcsKeyIdxKeyboard2Base + 11:
 			return Event::KeyboardOne1 + (input - vcsKeyIdxKeyboard2Base);
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

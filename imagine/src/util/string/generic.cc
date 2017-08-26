@@ -17,10 +17,11 @@
 #include <imagine/util/string.h>
 #include <imagine/util/string/basename.h>
 #include <imagine/util/ansiTypes.h>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/util/utf.hh>
 #include <imagine/mem/mem.h>
 #include <assert.h>
+#include <system_error>
 
 #if defined __ANDROID__ || defined __APPLE__
 #define HAS_STRL_FUNCS
@@ -142,24 +143,24 @@ bool string_hasDotExtension(const char *s, const char *extension)
 	return string_equalNoCase(extPos, extension);
 }
 
-CallResult string_convertCharCode(const char** sourceStart, uint &c)
+std::errc string_convertCharCode(const char** sourceStart, uint &c)
 {
 	if(Config::UNICODE_CHARS)
 	{
 		switch(UTF::ConvertUTF8toUTF32((const uint8**)sourceStart, UTF::strictConversion, c))
 		{
-			case UTF::conversionOK: return OK;
-			case UTF::reachedNullChar: return OUT_OF_BOUNDS;
-			default: return INVALID_PARAMETER;
+			case UTF::conversionOK: return {};
+			case UTF::reachedNullChar: return std::errc::result_out_of_range;
+			default: return std::errc::invalid_argument;
 		}
 	}
 	else
 	{
 		c = **sourceStart;
 		if(c == '\0')
-			return OUT_OF_BOUNDS;
+			return std::errc::result_out_of_range;
 		*sourceStart += 1;
-		return OK;
+		return {};
 	}
 }
 

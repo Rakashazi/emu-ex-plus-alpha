@@ -4,9 +4,9 @@
 #include <utility>
 #include <cstddef>
 #endif
+#include <assert.h>
+#include <imagine/util/builtins.h>
 
-// make a copy of [var] named [name], automatically setting the type
-#define var_copy(name, val) typeof(val) name = val
 #define var_isConst(E) __builtin_constant_p(E)
 
 #define static_assertIsPod(type) static_assert(__is_pod(type), #type " isn't POD")
@@ -21,15 +21,22 @@
 #define PP_STRINGIFY(A) #A
 #define PP_STRINGIFY_EXP(A) PP_STRINGIFY(A)
 
+// Inform the compiler an expression must be true
+// or about unreachable locations to optimize accordingly.
+
+#ifdef NDEBUG
+#define assumeExpr(E) ((void)(__builtin_expect(!(E), 0) ? __builtin_unreachable(), 0 : 0))
+#define bug_unreachable(msg, ...) __builtin_unreachable()
+#else
+CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 2)));
+#define assumeExpr(E) assert(E)
+#define bug_unreachable(msg, ...) bug_doExit("bug: " msg " @" __FILE__ ", line:%d , func:%s", ## __VA_ARGS__, __LINE__, __PRETTY_FUNCTION__)
+#endif
+
 // logical xor
 #define lxor(a, b) ( !(a) != !(b) )
 
 #ifdef __cplusplus
-
-// Use when supplying template parameters with a [type] + [non-type] pair,
-// such as template<class T, T foo> class Bar { }, and avoid having to specify the type.
-// const int x = 1; Bar<template_ntype(x)> bar;
-#define template_ntype(var) typeof(var), var
 
 namespace IG
 {

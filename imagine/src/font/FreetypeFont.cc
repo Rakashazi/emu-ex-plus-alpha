@@ -117,7 +117,7 @@ static FS::PathString fontPathContainingChar(int c, int weight)
 namespace IG
 {
 
-static FT_Size makeFTSize(FT_Face face, int x, int y, std::error_code &ec)
+static FT_Size makeFTSize(FT_Face face, int x, int y, std::errc &ec)
 {
 	logMsg("creating new size object, %dx%d pixels", x, y);
 	FT_Size size{};
@@ -125,21 +125,21 @@ static FT_Size makeFTSize(FT_Face face, int x, int y, std::error_code &ec)
 	if(error)
 	{
 		logErr("error creating new size object");
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	error = FT_Activate_Size(size);
 	if(error)
 	{
 		logErr("error activating size object");
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	error = FT_Set_Pixel_Sizes(face, x, y);
 	if(error)
 	{
 		logErr("error occurred setting character pixel size");
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	ec = {};
@@ -148,19 +148,19 @@ static FT_Size makeFTSize(FT_Face face, int x, int y, std::error_code &ec)
 	return size;
 }
 
-static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Face face, int c, bool keepPixData, std::error_code &ec)
+static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Face face, int c, bool keepPixData, std::errc &ec)
 {
 	auto idx = FT_Get_Char_Index(face, c);
 	if(!idx)
 	{
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	auto error = FT_Load_Glyph(face, idx, FT_LOAD_RENDER);
 	if(error)
 	{
 		logErr("error occurred loading/rendering character 0x%X", c);
-		ec = {EINVAL, std::system_category()};
+		ec = std::errc::invalid_argument;
 		return {};
 	}
 	auto &glyph = face->glyph;
@@ -173,7 +173,7 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Face face, i
 		if(error)
 		{
 			logErr("error occurred converting character 0x%X", c);
-			ec = {EINVAL, std::system_category()};
+			ec = std::errc::invalid_argument;
 			return {};
 		}
 		assert(bitmap.num_grays == 2); // only handle 2 gray levels for now
@@ -208,17 +208,17 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Face face, i
 	return {metrics, bitmap};
 }
 
-std::error_code FreetypeFaceData::openFont(GenericIO file)
+std::errc FreetypeFaceData::openFont(GenericIO file)
 {
 	if(!file)
-		return {EINVAL, std::system_category()};
+		return std::errc::invalid_argument;
 	if(unlikely(!library))
 	{
 		auto error = FT_Init_FreeType(&library);
 		if(error)
 		{
 			logErr("error in FT_Init_FreeType");
-			return {EINVAL, std::system_category()};
+			return std::errc::invalid_argument;
 		}
 		/*FT_Int major, minor, patch;
 		FT_Library_Version(library, &major, &minor, &patch);
@@ -250,12 +250,12 @@ std::error_code FreetypeFaceData::openFont(GenericIO file)
 	if(error == FT_Err_Unknown_File_Format)
 	{
 		logErr("unknown font format");
-		return {EINVAL, std::system_category()};
+		return std::errc::invalid_argument;
 	}
 	else if(error)
 	{
 		logErr("error occurred opening the font");
-		return {EIO, std::system_category()};
+		return std::errc::io_error;
 	}
 	return {};
 }
@@ -343,13 +343,13 @@ Font::operator bool() const
 	return f.size();
 }
 
-std::error_code FreetypeFont::loadIntoNextSlot(GenericIO io)
+std::errc FreetypeFont::loadIntoNextSlot(GenericIO io)
 {
 	if(f.isFull())
-		return {ENOENT, std::system_category()};
+		return std::errc::no_space_on_device;
 	f.emplace_back();
 	auto ec = f.back().openFont(std::move(io));
-	if(ec)
+	if((bool)ec)
 	{
 		logErr("error reading font");
 		f.pop_back();
@@ -358,26 +358,26 @@ std::error_code FreetypeFont::loadIntoNextSlot(GenericIO io)
 	return {};
 }
 
-std::error_code FreetypeFont::loadIntoNextSlot(const char *name)
+std::errc FreetypeFont::loadIntoNextSlot(const char *name)
 {
 	if(f.isFull())
-		return {ENOENT, std::system_category()};
+		return std::errc::no_space_on_device;
 	FileIO io;
 	io.open(name);
 	if(!io)
 	{
 		logMsg("unable to open file %s", name);
-		return {EINVAL, std::system_category()};
+		return std::errc::invalid_argument;
 	}
-	auto ec = loadIntoNextSlot(io.makeGeneric());
-	if(ec)
+	if(auto ec = loadIntoNextSlot(io.makeGeneric());
+		(bool)ec)
 	{
 		return ec;
 	}
 	return {};
 }
 
-FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::error_code &ec)
+FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec)
 {
 	iterateTimes(f.size(), i)
 	{
@@ -388,12 +388,12 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		if(ftError)
 		{
 			logErr("error activating size object");
-			ec = {EINVAL, std::system_category()};
+			ec = std::errc::invalid_argument;
 			return {};
 		}
-		std::error_code ec;
+		std::errc ec;
 		auto data = makeGlyphRenderDataWithFace(font.face, idx, keepPixData, ec);
-		if(ec)
+		if((bool)ec)
 		{
 			logMsg("glyph 0x%X not found in slot %d", idx, i);
 			continue;
@@ -405,61 +405,61 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 	if(f.isFull())
 	{
 		logErr("no slots left");
-		ec = {ENOSPC, std::system_category()};
+		ec = std::errc::no_space_on_device;
 		return {};
 	}
 	auto fontPath = fontPathContainingChar(idx, isBold ? FC_WEIGHT_BOLD : FC_WEIGHT_MEDIUM);
 	if(!strlen(fontPath.data()))
 	{
 		logErr("no font file found for char %c (0x%X)", idx, idx);
-		ec = {ENOENT, std::system_category()};
+		ec = std::errc::no_such_file_or_directory;
 		return {};
 	}
 	uint newSlot = f.size();
 	ec = loadIntoNextSlot(fontPath.data());
-	if(ec)
+	if((bool)ec)
 		return {};
 	auto &font = f[newSlot];
 	fontSize.ftSize[newSlot] = makeFTSize(font.face, fontSize.settings.pixelWidth(), fontSize.settings.pixelHeight(), ec);
-	if(ec)
+	if((bool)ec)
 	{
 		logErr("couldn't allocate font size");
 		return {};
 	}
 	auto data = makeGlyphRenderDataWithFace(font.face, idx, keepPixData, ec);
-	if(ec)
+	if((bool)ec)
 	{
 		logMsg("glyph 0x%X still not found", idx);
 		return {};
 	}
 	return data;
 	#else
-	ec = {EINVAL, std::system_category()};
+	ec = std::errc::invalid_argument;
 	return {};
 	#endif
 }
 
-Font::Glyph Font::glyph(int idx, FontSize &size, std::error_code &ec)
+Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 {
 	auto data = makeGlyphRenderData(idx, size, true, ec);
-	if(ec)
+	if((bool)ec)
 	{
 		return {};
 	}
 	return {{data.bitmap}, data.metrics};
 }
 
-GlyphMetrics Font::metrics(int idx, FontSize &size, std::error_code &ec)
+GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 {
 	auto data = makeGlyphRenderData(idx, size, false, ec);
-	if(ec)
+	if((bool)ec)
 	{
 		return {};
 	}
 	return data.metrics;
 }
 
-FontSize Font::makeSize(FontSettings settings, std::error_code &ec)
+FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
 	FontSize size{settings};
 	// create FT_Size objects for slots in use
@@ -470,7 +470,7 @@ FontSize Font::makeSize(FontSettings settings, std::error_code &ec)
 			continue;
 		}
 		size.ftSize[i] = makeFTSize(f[i].face, settings.pixelWidth(), settings.pixelHeight(), ec);
-		if(ec)
+		if((bool)ec)
 		{
 			return {};
 		}

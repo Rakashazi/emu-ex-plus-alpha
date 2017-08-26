@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/bits.h>
+#include <imagine/util/BufferView.hh>
 #include <memory>
 #include <algorithm>
 #include <system_error>
@@ -38,41 +39,22 @@ template <class IO>
 class IOUtils
 {
 public:
-	ssize_t read(void *buff, size_t bytes) { return ((IO*)this)->read(buff, bytes, nullptr); }
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset) { return ((IO*)this)->readAtPos(buff, bytes, offset, nullptr); }
-	ssize_t write(const void *buff, size_t bytes) { return ((IO*)this)->write(buff, bytes, nullptr); }
-	off_t seek(off_t offset, IODefs::SeekMode mode) { return ((IO*)this)->seek(offset, mode, nullptr); }
-	off_t seekS(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_SET, ecOut); }
-	off_t seekE(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_END, ecOut); }
-	off_t seekC(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_CUR, ecOut); }
-	off_t seekS(off_t offset) { return ((IO*)this)->seek(offset, SEEK_SET); }
-	off_t seekE(off_t offset) { return ((IO*)this)->seek(offset, SEEK_END); }
-	off_t seekC(off_t offset) { return ((IO*)this)->seek(offset, SEEK_CUR); }
-
-	off_t tell(std::error_code *ecOut)
-	{
-		return ((IO*)this)->seekC(0, ecOut);
-	}
-
-	off_t tell() { return ((IO*)this)->tell(nullptr); }
-
-	std::error_code readAll(void *buff, size_t bytes)
-	{
-		std::error_code ec{};
-		auto bytesRead = ((IO*)this)->read(buff, bytes, &ec);
-		if(bytesRead != (ssize_t)bytes)
-			return !ec ? std::error_code{EINVAL, std::system_category()} : ec;
-		return {};
-	}
-
-	std::error_code writeAll(void *buff, size_t bytes)
-	{
-		std::error_code ec{};
-		auto bytesWritten = ((IO*)this)->write(buff, bytes, &ec);
-		if(bytesWritten != (ssize_t)bytes)
-			return !ec ? std::error_code{EINVAL, std::system_category()} : ec;
-		return {};
-	}
+	ssize_t read(void *buff, size_t bytes);
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
+	ssize_t write(const void *buff, size_t bytes);
+	off_t seek(off_t offset, IODefs::SeekMode mode);
+	off_t seekS(off_t offset, std::error_code *ecOut);
+	off_t seekE(off_t offset, std::error_code *ecOut);
+	off_t seekC(off_t offset, std::error_code *ecOut);
+	off_t seekS(off_t offset);
+	off_t seekE(off_t offset);
+	off_t seekC(off_t offset);
+	off_t tell(std::error_code *ecOut);
+	off_t tell();
+	std::error_code readAll(void *buff, size_t bytes);
+	std::error_code writeAll(void *buff, size_t bytes);
+	std::error_code writeToIO(IO &io);
+	IG::ConstBufferView constBufferView();
 
 	template <class T>
 	T readVal(std::error_code *ecOut)
@@ -101,28 +83,6 @@ public:
 			if(ecOut)
 				*ecOut = {EINVAL, std::system_category()};
 		}
-	}
-
-	std::error_code writeToIO(IO &io)
-	{
-		seekS(0);
-		ssize_t bytesToWrite = ((IO*)this)->size();
-		while(bytesToWrite)
-		{
-			char buff[4096];
-			ssize_t bytes = std::min((ssize_t)sizeof(buff), bytesToWrite);
-			auto ec = readAll(buff, bytes);
-			if(ec)
-			{
-				return ec;
-			}
-			if(io.write(buff, bytes) != bytes)
-			{
-				return {EINVAL, std::system_category()};
-			}
-			bytesToWrite -= bytes;
-		}
-		return {};
 	}
 };
 

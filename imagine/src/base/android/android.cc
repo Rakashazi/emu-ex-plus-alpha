@@ -27,7 +27,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
-#include <imagine/util/assume.h>
+#include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include "../common/windowPrivate.hh"
 #include "../common/basePrivate.hh"
@@ -245,7 +245,8 @@ static void activityInit(JNIEnv* env, jobject activity)
 					([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
 					{
 						auto win = windowAddr ? (Window*)windowAddr : deviceWindow();
-						win->setContentRect({x, y, x2, y2}, {winWidth, winHeight});
+						if(likely(win))
+							win->setContentRect({x, y, x2, y2}, {winWidth, winHeight});
 					})
 				}
 			};
@@ -508,6 +509,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onNativeWindowCreated =
 		[](ANativeActivity *activity, ANativeWindow *nWin)
 		{
+			if(unlikely(!deviceWindow()))
+				return;
 			if(Base::androidSDK() < 11)
 			{
 				// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
@@ -526,6 +529,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onNativeWindowDestroyed =
 		[](ANativeActivity *, ANativeWindow *)
 		{
+			if(unlikely(!deviceWindow()))
+				return;
 			deviceWindow()->setNativeWindow(nullptr);
 		};
 	// Note: Surface resizing handled by ContentView callback
@@ -533,6 +538,8 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onNativeWindowRedrawNeeded =
 		[](ANativeActivity *, ANativeWindow *)
 		{
+			if(unlikely(!deviceWindow()))
+				return;
 			androidWindowNeedsRedraw(*deviceWindow());
 		};
 	activity->callbacks->onInputQueueCreated =
@@ -582,8 +589,8 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 		initConfig(aConfig);
 	}
 	onInit(0, nullptr);
-	if(!Window::windows())
+	if(Config::DEBUG_BUILD && !Window::windows())
 	{
-		bug_exit("didn't create a window");
+		logWarn("didn't create a window");
 	}
 }

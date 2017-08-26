@@ -126,7 +126,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case neogeoKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case neogeoKeyIdxB: return B | playerMask;
 		case neogeoKeyIdxABC: return A | B | C | playerMask;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

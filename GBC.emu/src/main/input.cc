@@ -82,7 +82,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case gbcKeyIdxA: return InputGetter::A;
 		case gbcKeyIdxBTurbo: turbo = 1; [[fallthrough]];
 		case gbcKeyIdxB: return InputGetter::B;
-		default: bug_branch("%d", input);
+		default: bug_unreachable("input == %d", input);
 	}
 	return 0;
 }

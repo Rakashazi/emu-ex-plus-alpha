@@ -5,13 +5,13 @@
 #include <cstring>
 #include <cctype>
 #include <cstdarg>
+#include <system_error>
 #include <imagine/util/iterator.hh>
 #else
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
 #endif
-#include <imagine/config/imagineTypes.h>
 #include <imagine/util/builtins.h>
 
 BEGIN_C_DECLS
@@ -80,7 +80,7 @@ static std::array<char, S> string_makePrintf(const char *format, ...)
 	return str;
 }
 
-CallResult string_convertCharCode(const char** sourceStart, uint &c);
+std::errc string_convertCharCode(const char** sourceStart, uint &c);
 
 std::array<char, 2> string_fromChar(char c);
 

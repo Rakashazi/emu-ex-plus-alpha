@@ -132,7 +132,7 @@ std::error_code Window::init(const WindowConfig &config)
 	BaseWindow::init(config);
 	if(!Config::BASE_MULTI_WINDOW && windows())
 	{
-		bug_exit("no multi-window support");
+		bug_unreachable("no multi-window support");
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	screen_ = &config.screen();

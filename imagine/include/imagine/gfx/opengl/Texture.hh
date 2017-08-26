@@ -53,7 +53,7 @@ public:
 	};
 
 	virtual ~DirectTextureStorage() = 0;
-	virtual std::system_error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
+	virtual Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
 	virtual Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) = 0;
 	virtual void unlock(Renderer &r, GLuint tex) = 0;
 };

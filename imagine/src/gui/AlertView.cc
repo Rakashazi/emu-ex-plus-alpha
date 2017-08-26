@@ -109,7 +109,8 @@ void AlertView::setItem(uint idx, const char *name, TextMenuItem::SelectDelegate
 	item[idx].setOnSelect(del);
 }
 
-YesNoAlertView::YesNoAlertView(ViewAttachParams attach, const char *label, const char *choice1, const char *choice2):
+YesNoAlertView::YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
+	TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo):
 	BaseAlertView(attach, label,
 		[](const TableView &)
 		{
@@ -119,8 +120,8 @@ YesNoAlertView::YesNoAlertView(ViewAttachParams attach, const char *label, const
 		{
 			return idx == 0 ? yes : no;
 		}),
-	yes{choice1 ? choice1 : "Yes", [this]() { dismiss(); }},
-	no{choice2 ? choice2 : "No", [this]() { dismiss(); }}
+	yes{yesStr ? yesStr : "Yes", onYes ? onYes : makeDefaultSelectDelegate()},
+	no{noStr ? noStr : "No", onNo ? onNo : makeDefaultSelectDelegate()}
 {}
 
 void YesNoAlertView::setOnYes(TextMenuItem::SelectDelegate del)
@@ -131,4 +132,9 @@ void YesNoAlertView::setOnYes(TextMenuItem::SelectDelegate del)
 void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 {
 	no.setOnSelect(del);
+}
+
+TextMenuItem::SelectDelegate YesNoAlertView::makeDefaultSelectDelegate()
+{
+	return TextMenuItem::wrapSelectDelegate([this]() { dismiss(); });
 }

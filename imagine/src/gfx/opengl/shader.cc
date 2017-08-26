@@ -384,17 +384,17 @@ static bool compileDefaultProgram(Renderer &r, T &prog, const char *fragSrc)
 
 void uniformF(int uniformLocation, float v1, float v2)
 {
-	bug_exit("called uniformF() without shader support");
+	bug_unreachable("called uniformF() without shader support");
 }
 
 void setProgram(Program &program)
 {
-	bug_exit("called setProgram() without shader support");
+	bug_unreachable("called setProgram() without shader support");
 }
 
 void setProgram(Program &program, Mat4 modelMat)
 {
-	bug_exit("called setProgram() without shader support");
+	bug_unreachable("called setProgram() without shader support");
 }
 
 void Program::deinit() {}
@@ -583,7 +583,7 @@ void DefaultTexExternalReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(r.support.useFixedFunctionPipeline)
 	{
-		bug_exit("external texture program not supported");
+		bug_unreachable("external texture program not supported");
 		return;
 	}
 	#endif
@@ -621,7 +621,7 @@ void DefaultTexExternalProgram::use(Renderer &r, const Mat4 *modelMat)
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(r.support.useFixedFunctionPipeline)
 	{
-		bug_exit("external texture program not supported");
+		bug_unreachable("external texture program not supported");
 		return;
 	}
 	#endif

@@ -47,7 +47,7 @@ public:
 			case _2DORIGIN_CENTER_INVERSE_CARTESIAN: return "Center (Inverted)";
 			case _2DORIGIN_MAX: return "Max";
 			case _2DORIGIN_MAX_INVERSE_CARTESIAN: return "Max (Inverted)";
-			default: bug_branch("%d", value); return 0;
+			default: bug_unreachable("value == %d", value); return 0;
 		}
 	}
 
@@ -61,7 +61,7 @@ public:
 			case _2DORIGIN_CENTER_INVERSE_CARTESIAN: return 0;
 			case _2DORIGIN_MAX:
 			case _2DORIGIN_MAX_INVERSE_CARTESIAN: return 1;
-			default: bug_branch("%d", originValue); return 0;
+			default: bug_unreachable("value == %d", originValue); return 0;
 		}
 	}
 
@@ -145,7 +145,7 @@ public:
 			case _2DORIGIN_CENTER_INVERSE_CARTESIAN: return _2DORIGIN_CENTER;
 			case _2DORIGIN_MAX: return _2DORIGIN_MIN_INVERSE_CARTESIAN;
 			case _2DORIGIN_MAX_INVERSE_CARTESIAN: return _2DORIGIN_MIN;
-			default: bug_branch("%d", originValue); return 0;
+			default: bug_unreachable("value == %d", originValue); return 0;
 		}
 	}
 
@@ -184,7 +184,7 @@ public:
 			case _2DORIGIN_CENTER_INVERSE_CARTESIAN: return _2DORIGIN_CENTER_INVERSE_CARTESIAN;
 			case _2DORIGIN_MAX: return _2DORIGIN_MIN;
 			case _2DORIGIN_MAX_INVERSE_CARTESIAN: return _2DORIGIN_MIN_INVERSE_CARTESIAN;
-			default: bug_branch("%d", originValue); return 0;
+			default: bug_unreachable("value == %d", originValue); return 0;
 		}
 	}
 

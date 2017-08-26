@@ -353,6 +353,33 @@ void initOptions()
 		optionFrameRate.initDefault(60);
 	}
 
+	if(!EmuApp::autoSaveStateDefault)
+	{
+		optionAutoSaveState.initDefault(false);
+	}
+
+	if(!EmuApp::hasIcon)
+	{
+		optionNotificationIcon.initDefault(false);
+		optionNotificationIcon.isConst = true;
+	}
+
+	if(EmuSystem::forcedSoundRate)
+	{
+		optionSoundRate.initDefault(EmuSystem::forcedSoundRate);
+		optionSoundRate.isConst = true;
+	}
+
+	if(!EmuSystem::hasSound)
+	{
+		optionSound.initDefault(false);
+	}
+
+	if(EmuSystem::constFrameRate)
+	{
+		optionFrameRate.isConst = true;
+	}
+
 	EmuSystem::initOptions();
 
 	bool defaultToLargeControls = false;
