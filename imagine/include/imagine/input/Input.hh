@@ -45,17 +45,12 @@ IG::WindowRect sysTextInputRect();
 
 void setKeyRepeat(bool on);
 
-// Control if volume keys are used by the app or passed on to the OS
-void setHandleVolumeKeys(bool on);
-
 void showSoftInput();
 void hideSoftInput();
 bool softInputIsActive();
 
 void hideCursor();
 void showCursor();
-
-bool isVolumeKey(Key event);
 
 static constexpr uint MAX_DEVS = Config::envIsAndroid ? 24 : 16;
 extern StaticArrayList<Device*, MAX_DEVS> devList;
@@ -241,6 +236,8 @@ public:
 		return metaState & IG::bit(k);
 	}
 
+	bool isSystemFunction() const;
+
 	static const char *actionToStr(int action);
 	KeyString keyString() const;
 };
@@ -251,7 +248,7 @@ Event defaultEvent();
 
 bool keyInputIsPresent();
 
-void dispatchInputEvent(Event event);
+bool dispatchInputEvent(Event event);
 void startKeyRepeatTimer(Event event);
 void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();

@@ -35,7 +35,6 @@ namespace Input
 
 static int aHardKeyboardState = 0, aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS, aHasHardKeyboard = 0;
 static bool trackballNav = false;
-bool handleVolumeKeys = false;
 bool sendInputToIME = false;
 static constexpr uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
 static Base::Timer inputRescanCallback;
@@ -141,12 +140,6 @@ void changeInputConfig(AConfiguration *config)
 void setKeyRepeat(bool on)
 {
 	setAllowKeyRepeats(on);
-}
-
-void setHandleVolumeKeys(bool on)
-{
-	logMsg("set volume key use %s", on ? "On" : "Off");
-	handleVolumeKeys = on;
 }
 
 void setEventsUseOSInputMethod(bool on)

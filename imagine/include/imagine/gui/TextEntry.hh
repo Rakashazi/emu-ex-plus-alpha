@@ -30,7 +30,7 @@ public:
 
 	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);
-	void inputEvent(Gfx::Renderer &r, Input::Event e);
+	bool inputEvent(Gfx::Renderer &r, Input::Event e);
 	void draw(Gfx::Renderer &r);
 	void place(Gfx::Renderer &r);
 	void place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
@@ -50,7 +50,7 @@ public:
 	~CollectTextInputView() override;
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
-	void inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override {}
 

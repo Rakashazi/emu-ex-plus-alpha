@@ -148,7 +148,7 @@ public:
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init();
 	void place() override;
-	void inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override {}
 };
@@ -198,13 +198,16 @@ void OnScreenInputPlaceView::place()
 	text.compile(renderer(), projP);
 }
 
-void OnScreenInputPlaceView::inputEvent(Input::Event e)
+bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 {
 	if(!e.isPointer())
 	{
 		if(e.pushed())
+		{
 			dismiss();
-		return;
+			return true;
+		}
+		return false;
 	}
 	if(e.pushed() && !textFade.duration())
 	{
@@ -262,6 +265,7 @@ void OnScreenInputPlaceView::inputEvent(Input::Event e)
 				dismiss();
 			}
 		});
+	return true;
 }
 
 void OnScreenInputPlaceView::draw()

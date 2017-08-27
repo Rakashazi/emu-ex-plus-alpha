@@ -454,8 +454,6 @@ Event::KeyString Event::keyString() const
 	return str;
 }
 
-void setHandleVolumeKeys(bool on) {}
-
 void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }

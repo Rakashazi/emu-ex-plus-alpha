@@ -215,14 +215,17 @@ void onInit(int argc, char** argv)
 				if(e.pushed() && e.isDefaultCancelButton())
 				{
 					Base::exit();
+					return true;
 				}
-				picker.inputEvent(e);
+				return picker.inputEvent(e);
 			}
 			else if(e.pushed() && (e.isDefaultCancelButton() || Config::envIsIOS))
 			{
 				logMsg("canceled activeTest from input");
 				activeTest->shouldEndTest = true;
+				return true;
 			}
+			return false;
 		});
 
 	renderer.initWindow(mainWin, winConf);

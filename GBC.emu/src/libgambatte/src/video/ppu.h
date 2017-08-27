@@ -36,9 +36,7 @@ public:
 	void setBuf(PixelType *const buf, const int pitch)
 	{
 		buf_ = buf;
-	#ifndef GAMBATTE_CONST_FB_PITCH
 		pitch_ = pitch;
-	#endif
 		fbline_ = nullfbline();
 	}
 	void setFbline(unsigned ly) { fbline_ = buf_ ? buf_ + std::ptrdiff_t(ly) * pitch_ : nullfbline(); }
@@ -46,11 +44,7 @@ public:
 private:
 	PixelType *buf_;
 	PixelType *fbline_;
-	#ifdef GAMBATTE_CONST_FB_PITCH
-		static constexpr std::ptrdiff_t pitch_ = GAMBATTE_CONST_FB_PITCH;
-	#else
-		std::ptrdiff_t pitch_ = 0;
-	#endif
+	std::ptrdiff_t pitch_ = 0;
 
 
 	static PixelType nullfbline_[160];

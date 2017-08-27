@@ -294,4 +294,22 @@ const char *Event::actionToStr(int action)
 	}
 }
 
+
+bool Event::isSystemFunction() const
+{
+	if(!isKey())
+		return false;
+	#ifdef __linux__
+	switch(key())
+	{
+		default: return false;
+		case Keycode::VOL_UP:
+		case Keycode::VOL_DOWN:
+			return true;
+	}
+	#else
+	return false;
+	#endif
+}
+
 }

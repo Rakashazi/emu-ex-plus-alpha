@@ -43,7 +43,7 @@ public:
 	FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = &View::defaultFace);
 	void place() override;
-	void inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override;
 	void setOnChangePath(OnChangePathDelegate del);

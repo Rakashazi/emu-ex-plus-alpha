@@ -50,7 +50,7 @@ void EmuInputView::updateFastforward()
 	fastForwardActive = ffKeyPushed || ffToggleActive;
 }
 
-void EmuInputView::inputEvent(Input::Event e)
+bool EmuInputView::inputEvent(Input::Event e)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
@@ -60,7 +60,7 @@ void EmuInputView::inputEvent(Input::Event e)
 		{
 			viewStack.top().clearSelection();
 			EmuApp::restoreMenuFromGame();
-			return;
+			return true;
 		}
 		else if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps({e.x, e.y}))
 		{
@@ -88,7 +88,7 @@ void EmuInputView::inputEvent(Input::Event e)
 			placeEmuViews();
 		}
 		#endif
-		return;
+		return true;
 	}
 	#else
 	if(e.isPointer())
@@ -98,31 +98,27 @@ void EmuInputView::inputEvent(Input::Event e)
 			viewStack.top()->clearSelection();
 			restoreMenuFromGame();
 		}
-		return;
+		return true;
 	}
 	#endif
 	if(e.isRelativePointer())
 	{
 		processRelPtr(e);
+		return true;
 	}
 	else
 	{
-		#if defined CONFIG_ENV_WEBOS && CONFIG_ENV_WEBOS_OS <= 2
-		if(e.state == Input::PUSHED && e.button == Input::Keycode::ESCAPE)
-		{
-			restoreMenuFromGame();
-			return;
-		}
-		#endif
 		assert(e.device);
 		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device->idx][e.button];
 		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));
+		bool didAction = false;
 		iterateTimes(KeyMapping::maxKeyActions, i)
 		{
 			auto action = actionMap[i];
 			if(action != 0)
 			{
 				using namespace EmuControls;
+				didAction = true;
 				action--;
 
 				switch(action)
@@ -142,7 +138,7 @@ void EmuInputView::inputEvent(Input::Event e)
 						viewStack.popToRoot();
 						auto &fPicker = *EmuFilePicker::makeForLoading(attachParams());
 						viewStack.pushAndShow(fPicker, e, false);
-						return;
+						return true;
 					}
 
 					bcase guiKeyIdxMenu:
@@ -150,7 +146,7 @@ void EmuInputView::inputEvent(Input::Event e)
 					{
 						logMsg("open menu from key event");
 						EmuApp::restoreMenuFromGame();
-						return;
+						return true;
 					}
 
 					bcase guiKeyIdxSaveState:
@@ -191,7 +187,7 @@ void EmuInputView::inputEvent(Input::Event e)
 							modalViewController.pushAndShow(ynAlertView, e);
 							EmuApp::restoreMenuFromGame();
 						}
-						return;
+						return true;
 					}
 
 					bcase guiKeyIdxLoadState:
@@ -202,7 +198,7 @@ void EmuInputView::inputEvent(Input::Event e)
 						{
 							popup.printf(4, true, "Load State: %s", err->what());
 						}
-						return;
+						return true;
 					}
 
 					bcase guiKeyIdxDecStateSlot:
@@ -228,7 +224,7 @@ void EmuInputView::inputEvent(Input::Event e)
 					if(e.state == Input::PUSHED)
 					{
 						emuVideo.takeGameScreenshot();
-						return;
+						return true;
 					}
 
 					bcase guiKeyIdxExit:
@@ -243,7 +239,7 @@ void EmuInputView::inputEvent(Input::Event e)
 							});
 						modalViewController.pushAndShow(ynAlertView, e);
 						EmuApp::restoreMenuFromGame();
-						return;
+						return true;
 					}
 
 					bdefault:
@@ -270,5 +266,6 @@ void EmuInputView::inputEvent(Input::Event e)
 			else
 				break;
 		}
+		return didAction;
 	}
 }

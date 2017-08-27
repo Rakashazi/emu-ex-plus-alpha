@@ -62,8 +62,14 @@ std::error_code AAssetIO::open(const char *name)
 	if(buff)
 	{
 		auto size = AAsset_getLength(asset);
-		if(!AAsset_isAllocated(asset) && size > 4096 && madvise(buff, size, MADV_SEQUENTIAL) != 0)
-			logWarn("madvise failed");
+		if(!AAsset_isAllocated(asset) && size > 4096)
+		{
+			if(int err = madvise(buff, size, MADV_SEQUENTIAL);
+				err)
+			{
+				logWarn("madvise failed:%d", err);
+			}
+		}
 		mapIO.open(buff, size);
 		logMsg("mapped into memory");
 	}

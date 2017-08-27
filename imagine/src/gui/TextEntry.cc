@@ -32,16 +32,13 @@ void TextEntry::setAcceptingInput(bool on)
 	acceptingInput = on;
 }
 
-void TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
+bool TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
 {
 	if(e.isPointer() && e.pushed() && b.overlaps({e.x, e.y}))
 	{
-		{
-			setAcceptingInput(1);
-		}
-		return;
+		setAcceptingInput(true);
+		return true;
 	}
-
 	if(acceptingInput && e.pushed() && e.map == e.MAP_SYSTEM)
 	{
 		bool updateText = false;
@@ -64,8 +61,8 @@ void TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
 				{
 					if(keyStr[0] == '\r' || keyStr[0] == '\n')
 					{
-						setAcceptingInput(0);
-						return;
+						setAcceptingInput(false);
+						return true;
 					}
 				}
 				string_cat(str, keyStr.data());
@@ -79,7 +76,9 @@ void TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
 			t.compile(r, projP);
 			Base::mainWindow().postDraw();
 		}
+		return true;
 	}
+	return false;
 }
 
 void TextEntry::draw(Gfx::Renderer &r)
@@ -179,19 +178,19 @@ void CollectTextInputView::place()
 	#endif
 }
 
-void CollectTextInputView::inputEvent(Input::Event e)
+bool CollectTextInputView::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{
 		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps({e.x, e.y})))
 		{
 			dismiss();
-			return;
+			return true;
 		}
 	}
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	bool acceptingInput = textEntry.acceptingInput;
-	textEntry.inputEvent(renderer(), e);
+	bool handled = textEntry.inputEvent(renderer(), e);
 	if(!textEntry.acceptingInput && acceptingInput)
 	{
 		logMsg("calling on-text delegate");
@@ -200,7 +199,9 @@ void CollectTextInputView::inputEvent(Input::Event e)
 			textEntry.setAcceptingInput(1);
 		}
 	}
+	return handled;
 	#endif
+	return false;
 }
 
 void CollectTextInputView::draw()

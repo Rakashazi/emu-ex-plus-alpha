@@ -50,7 +50,7 @@ public:
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
 	void resetScroll();
-	void inputEvent(Input::Event event) override;
+	bool inputEvent(Input::Event event) override;
 	void clearSelection() override;
 	void onAddedToController(Input::Event e) override;
 	uint cells() { return items(*this); }
@@ -84,6 +84,6 @@ protected:
 	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
-	bool handleTableInput(Input::Event e);
+	bool handleTableInput(Input::Event e, bool movedSelected);
 	virtual void drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const;
 };

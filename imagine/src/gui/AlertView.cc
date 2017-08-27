@@ -55,17 +55,17 @@ void BaseAlertView::place()
 	menu.place();
 }
 
-void BaseAlertView::inputEvent(Input::Event e)
+bool BaseAlertView::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{
 		if(e.isDefaultCancelButton())
 		{
 			dismiss();
-			return;
+			return true;
 		}
 	}
-	menu.inputEvent(e);
+	return menu.inputEvent(e);
 }
 
 void BaseAlertView::draw()

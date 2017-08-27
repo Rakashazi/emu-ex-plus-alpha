@@ -285,7 +285,6 @@ static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 };
 #endif
 
-void setupVolKeysInGame();
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void setupVControllerVars();
 #endif

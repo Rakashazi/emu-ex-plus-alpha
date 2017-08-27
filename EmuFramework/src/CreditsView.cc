@@ -54,13 +54,15 @@ void CreditsView::place()
 	text.compile(renderer(), projP);
 }
 
-void CreditsView::inputEvent(Input::Event e)
+bool CreditsView::inputEvent(Input::Event e)
 {
 	if((e.isPointer() && rect.overlaps({e.x, e.y}) && e.state == Input::RELEASED)
-			|| (!e.isPointer() && e.state == Input::PUSHED))
+			|| (!e.isPointer() && !e.isSystemFunction() && e.state == Input::PUSHED))
 	{
 		dismiss();
+		return true;
 	}
+	return false;
 }
 
 CreditsView::~CreditsView()

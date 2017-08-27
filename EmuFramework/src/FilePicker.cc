@@ -109,25 +109,24 @@ EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, bool singl
 	return picker;
 }
 
-void EmuFilePicker::inputEvent(Input::Event e)
+bool EmuFilePicker::inputEvent(Input::Event e)
 {
 	if(e.state == Input::PUSHED)
 	{
 		if(e.isDefaultCancelButton())
 		{
 			onClose_.callCopy(*this, e);
-			return;
+			return true;
 		}
-
 		if(isMenuDismissKey(e))
 		{
 			if(EmuSystem::gameIsRunning())
 			{
 				dismiss();
 				startGameFromMenu();
-				return;
+				return true;
 			}
 		}
 	}
-	FSPicker::inputEvent(e);
+	return FSPicker::inputEvent(e);
 }

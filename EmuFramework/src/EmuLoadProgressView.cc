@@ -39,6 +39,11 @@ void EmuLoadProgressView::place()
 	text.compile(renderer(), projP);
 }
 
+bool EmuLoadProgressView::inputEvent(Input::Event e)
+{
+	return false;
+}
+
 void EmuLoadProgressView::draw()
 {
 	if(!strlen(str.data()))

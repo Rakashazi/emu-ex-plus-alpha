@@ -51,7 +51,7 @@ public:
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, SetDelegate onSet);
 	void place() override;
-	void inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override;
 };
@@ -88,5 +88,5 @@ private:
 public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
 	~ButtonConfigView() override;
-	void inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event e) override;
 };

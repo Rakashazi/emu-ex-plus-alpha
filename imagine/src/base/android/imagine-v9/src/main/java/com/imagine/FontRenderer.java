@@ -57,9 +57,10 @@ final class FontRenderer
 		bitmap.eraseColor(Color.TRANSPARENT);
 		canvas.setBitmap(bitmap);
 		canvas.drawText(cStr, 0, 1, -left, cYSize - bottom, paint);
-		// TODO: Android 2.3 throws exception when calling setBitmap(null)
-		// even though docs say this is legal
-		//canvas.setBitmap(null);
+		// Android 2.3's Canvas setBitmap() derefs parameter without null checking,  
+		// fixed in Android 4.0.3+
+		if(android.os.Build.VERSION.SDK_INT >= 15)
+			canvas.setBitmap(null);
 		return bitmap;
 	}
 	

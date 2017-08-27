@@ -27,13 +27,11 @@ static const char *confirmDeleteProfileStr = "Delete profile from the configurat
 void IdentInputDeviceView::init()
 {
 	text = {"Push a key on any input device enter its configuration menu", &View::defaultFace};
-	Input::setHandleVolumeKeys(true);
 	Input::setKeyRepeat(false);
 }
 
 IdentInputDeviceView::~IdentInputDeviceView()
 {
-	Input::setHandleVolumeKeys(false);
 	Input::setKeyRepeat(true);
 }
 
@@ -43,18 +41,21 @@ void IdentInputDeviceView::place()
 	text.compile(renderer(), projP);
 }
 
-void IdentInputDeviceView::inputEvent(Input::Event e)
+bool IdentInputDeviceView::inputEvent(Input::Event e)
 {
 	if(e.isPointer() && e.state == Input::RELEASED)
 	{
 		dismiss();
+		return true;
 	}
 	else if(!e.isPointer() && e.state == Input::PUSHED)
 	{
 		auto del = onIdentInput;
 		dismiss();
 		del(e);
+		return true;
 	}
+	return false;
 }
 
 void IdentInputDeviceView::draw()

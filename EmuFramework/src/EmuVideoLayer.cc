@@ -24,7 +24,8 @@
 
 extern bool touchControlsAreOn;
 
-void EmuVideoLayer::init()
+EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
+	video{video}
 {
 	disp.init({});
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -265,9 +266,24 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 	}
 }
 
+void EmuVideoLayer::setOverlay(uint effect)
+{
+	vidImgOverlay.setEffect(video.renderer(), effect);
+}
+
+void EmuVideoLayer::setOverlayIntensity(Gfx::GC intensity)
+{
+	vidImgOverlay.intensity = intensity;
+}
+
 void EmuVideoLayer::placeOverlay()
 {
 	vidImgOverlay.place(disp, video.size().y);
+}
+
+void EmuVideoLayer::setEffectBitDepth(uint bits)
+{
+	vidImgEffect.setBitDepth(video.renderer(), bits);
 }
 
 void EmuVideoLayer::placeEffect()

@@ -74,9 +74,9 @@ void BasicViewController::place()
 	view->place();
 }
 
-void BasicViewController::inputEvent(Input::Event e)
+bool BasicViewController::inputEvent(Input::Event e)
 {
-	view->inputEvent(e);
+	return view->inputEvent(e);
 }
 
 void BasicViewController::draw()
@@ -122,13 +122,13 @@ void ViewStack::place()
 	top().place();
 }
 
-void ViewStack::inputEvent(Input::Event e)
+bool ViewStack::inputEvent(Input::Event e)
 {
 	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps({e.x, e.y}))
 	{
-		nav->inputEvent(e);
+		return nav->inputEvent(e);
 	}
-	top().inputEvent(e);
+	return top().inputEvent(e);
 }
 
 void ViewStack::draw()

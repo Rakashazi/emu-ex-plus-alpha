@@ -36,7 +36,7 @@ public:
 	void setPos(uint val);
 	void setLabel(const char *str);
 	void place() override;
-	void inputEvent(Input::Event e) override {}
+	bool inputEvent(Input::Event e) override;
 	void draw() override;
 	void onAddedToController(Input::Event e) override {}
 

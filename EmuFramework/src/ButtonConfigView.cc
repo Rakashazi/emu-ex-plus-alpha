@@ -44,14 +44,12 @@ void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, SetDe
 	this->dev = &dev;
 	savedDev = nullptr;
 	string_copy(actionStr, actionName);
-	Input::setHandleVolumeKeys(true);
 	Input::setKeyRepeat(false);
 	onSetD = onSet;
 }
 
 ButtonConfigSetView::~ButtonConfigSetView()
 {
-	Input::setHandleVolumeKeys(false);
 	Input::setKeyRepeat(true);
 }
 
@@ -77,7 +75,7 @@ void ButtonConfigSetView::place()
 	#endif
 }
 
-void ButtonConfigSetView::inputEvent(Input::Event e)
+bool ButtonConfigSetView::inputEvent(Input::Event e)
 {
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.isPointer() && !pointerUIIsInit())
@@ -85,6 +83,7 @@ void ButtonConfigSetView::inputEvent(Input::Event e)
 		initPointerUI();
 		place();
 		postDraw();
+		return true;
 	}
 	else if(pointerUIIsInit() && e.isPointer() && e.state == Input::RELEASED)
 	{
@@ -93,11 +92,14 @@ void ButtonConfigSetView::inputEvent(Input::Event e)
 			logMsg("unbinding key");
 			onSetD(Input::Event());
 			dismiss();
+			return true;
 		}
 		else if(cancelB.overlaps({e.x, e.y}))
 		{
 			dismiss();
+			return true;
 		}
+		return false;
 	}
 	else
 	#endif
@@ -123,11 +125,13 @@ void ButtonConfigSetView::inputEvent(Input::Event e)
 				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", rootIMView.inputDevNameStr[d->idx]);
 				postDraw();
 			}
-			return;
+			return true;
 		}
 		onSetD(e);
 		dismiss();
+		return true;
 	}
+	return false;
 }
 
 void ButtonConfigSetView::draw()
@@ -263,7 +267,7 @@ void ButtonConfigView::onSet(Input::Event e, int keyToSet)
 	keyMapping.buildAll();
 }
 
-void ButtonConfigView::inputEvent(Input::Event e)
+bool ButtonConfigView::inputEvent(Input::Event e)
 {
 	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
 	{
@@ -276,10 +280,11 @@ void ButtonConfigView::inputEvent(Input::Event e)
 			onSet(Input::Event(), selected-1);
 			postDraw();
 		}
+		return true;
 	}
 	else
 	{
-		TableView::inputEvent(e);
+		return TableView::inputEvent(e);
 	}
 }
 

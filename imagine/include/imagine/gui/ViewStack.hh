@@ -37,7 +37,7 @@ public:
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool hasView() { return view; }
-	void inputEvent(Input::Event e);
+	bool inputEvent(Input::Event e);
 	void draw();
 
 protected:
@@ -55,7 +55,7 @@ public:
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
-	void inputEvent(Input::Event e);
+	bool inputEvent(Input::Event e);
 	void draw();
 	void push(View &v, Input::Event e);
 	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;

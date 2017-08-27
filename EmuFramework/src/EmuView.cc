@@ -19,6 +19,12 @@
 #include <emuframework/EmuApp.hh>
 #include <algorithm>
 
+EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuInputView *inputView):
+	View{attach},
+	layer{layer},
+	inputView{inputView}
+{}
+
 void EmuView::draw()
 {
 	using namespace Gfx;
@@ -45,10 +51,16 @@ void EmuView::place()
 	}
 }
 
-void EmuView::inputEvent(Input::Event e)
+bool EmuView::inputEvent(Input::Event e)
 {
 	if(inputView)
 	{
-		inputView->inputEvent(e);
+		return inputView->inputEvent(e);
 	}
+	return false;
+}
+
+void EmuView::swapLayers(EmuView &view)
+{
+	std::swap(layer, view.layer);
 }

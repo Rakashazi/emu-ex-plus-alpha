@@ -58,10 +58,11 @@ public:
 static Gfx::Renderer renderer;
 AppWindowData mainWin{}, extraWin{};
 bool menuViewIsActive = true;
-EmuView emuView{{mainWin.win, renderer}}, emuView2{{extraWin.win, renderer}};
 EmuVideo emuVideo{renderer};
 EmuVideoLayer emuVideoLayer{emuVideo};
 EmuInputView emuInputView{{mainWin.win, renderer}};
+EmuView emuView{{mainWin.win, renderer}, &emuVideoLayer, &emuInputView};
+EmuView emuView2{{extraWin.win, renderer}, nullptr, nullptr};
 AppWindowData *emuWin = &mainWin;
 ViewStack viewStack{};
 MsgPopup popup{};
@@ -130,9 +131,9 @@ void postDrawToEmuWindows()
 
 static void drawEmuVideo(Gfx::Renderer &r)
 {
-	if(emuView.layer)
+	if(emuView.hasLayer())
 		emuView.draw();
-	else if(emuView2.layer)
+	else if(emuView2.hasLayer())
 		emuView2.draw();
 	popup.draw();
 	r.setClipRect(false);
@@ -312,8 +313,9 @@ void setEmuViewOnExtraWindow(bool on)
 				if(!e.isPointer())
 				{
 					renderer.restoreBind();
-					handleInputEvent(win, e);
+					return handleInputEvent(win, e);
 				}
+				return false;
 			});
 
 		winConf.setOnFocusChange(
@@ -337,7 +339,7 @@ void setEmuViewOnExtraWindow(bool on)
 				EmuSystem::resetFrameTime();
 				logMsg("setting emu view on main window");
 				emuWin = &mainWin;
-				std::swap(emuView.layer, emuView2.layer);
+				emuView.swapLayers(emuView2);
 				emuView.place();
 				mainWin.win.postDraw();
 				if(EmuSystem::isActive() && mainWin.win.screen() != extraWin.win.screen())
@@ -358,7 +360,7 @@ void setEmuViewOnExtraWindow(bool on)
 			extraWin.win.screen()->addOnFrame(onFrameUpdate);
 			applyFrameRates();
 		}
-		std::swap(emuView.layer, emuView2.layer);
+		emuView.swapLayers(emuView2);
 		updateProjection(extraWin, makeViewport(extraWin.win));
 		extraWin.win.setTitle(appName());
 		extraWin.win.show();
@@ -399,7 +401,6 @@ void startGameFromMenu()
 	commonInitInput();
 	popup.clear();
 	Input::setKeyRepeat(false);
-	EmuControls::setupVolKeysInGame();
 	emuWin->win.screen()->setFrameRate(1. / EmuSystem::frameTime());
 	startEmulation();
 	mainWin.win.postDraw();
@@ -420,7 +421,6 @@ void EmuApp::restoreMenuFromGame()
 	#endif
 	renderer.setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 	Input::setKeyRepeat(true);
-	Input::setHandleVolumeKeys(false);
 	if(!optionRememberLastMenu)
 		viewStack.popToRoot();
 	mainWin.win.screen()->setFrameRate(Base::Screen::DISPLAY_RATE_DEFAULT);
@@ -515,14 +515,11 @@ void mainInitCommon(int argc, char** argv)
 	#endif
 	updateInputDevices();
 
-	emuView.inputView = &emuInputView;
-	emuView.layer = &emuVideoLayer;
-	emuVideoLayer.init();
 	emuVideoLayer.setLinearFilter(optionImgFilter);
-	emuVideoLayer.vidImgOverlay.setEffect(renderer, optionOverlayEffect);
-	emuVideoLayer.vidImgOverlay.intensity = optionOverlayEffectLevel/100.;
+	emuVideoLayer.setOverlay(optionOverlayEffect);
+	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	emuVideoLayer.vidImgEffect.setBitDepth(renderer, (IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
+	emuVideoLayer.setEffectBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
 	#endif
 
 	{
@@ -724,7 +721,7 @@ void mainInitCommon(int argc, char** argv)
 		[](Base::Window &win, Input::Event e)
 		{
 			renderer.restoreBind();
-			handleInputEvent(win, e);
+			return handleInputEvent(win, e);
 		});
 
 	winConf.setOnFocusChange(
@@ -763,7 +760,7 @@ void mainInitCommon(int argc, char** argv)
 			renderer.clear();
 			if(EmuSystem::isActive())
 			{
-				if(emuView.layer)
+				if(emuView.hasLayer())
 					drawEmuFrame(renderer);
 				else
 				{
@@ -865,7 +862,7 @@ void mainInitWindowCommon(Base::Window &win)
 	win.postDraw();
 }
 
-void handleInputEvent(Base::Window &win, Input::Event e)
+bool handleInputEvent(Base::Window &win, Input::Event e)
 {
 	if(e.isPointer())
 	{
@@ -877,10 +874,10 @@ void handleInputEvent(Base::Window &win, Input::Event e)
 	}
 	if(likely(EmuSystem::isActive()))
 	{
-		emuView.inputEvent(e);
+		return emuView.inputEvent(e);
 	}
 	else if(modalViewController.hasView())
-		modalViewController.inputEvent(e);
+		return modalViewController.inputEvent(e);
 	else if(menuViewIsActive)
 	{
 		if(e.state == Input::PUSHED && e.isDefaultCancelButton())
@@ -895,10 +892,11 @@ void handleInputEvent(Base::Window &win, Input::Event e)
 				else if(e.map == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux))
 				{
 					Base::exit();
-					return;
+					return true;
 				}
 			}
 			else viewStack.popAndShow();
+			return true;
 		}
 		if(e.state == Input::PUSHED && isMenuDismissKey(e))
 		{
@@ -906,9 +904,11 @@ void handleInputEvent(Base::Window &win, Input::Event e)
 			{
 				startGameFromMenu();
 			}
+			return true;
 		}
-		else viewStack.inputEvent(e);
+		else return viewStack.inputEvent(e);
 	}
+	return false;
 }
 
 void handleOpenFileCommand(const char *path)

@@ -163,9 +163,9 @@ bool keyInputIsPresent()
 	return Device::anyTypeBitsPresent(Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_GAMEPAD);
 }
 
-void dispatchInputEvent(Input::Event event)
+bool dispatchInputEvent(Input::Event event)
 {
-	Base::mainWindow().dispatchInputEvent(event);
+	return Base::mainWindow().dispatchInputEvent(event);
 }
 
 static Key keyToICadeOnKey(Key key)
@@ -284,15 +284,6 @@ uint Event::mapNumKeys(uint map)
 		#endif
 		default: bug_unreachable("map == %d", map); return 0;
 	}
-}
-
-bool isVolumeKey(Key event)
-{
-	#if defined __ANDROID__ || defined CONFIG_BASE_X11
-	return event == Keycode::VOL_UP || event == Keycode::VOL_DOWN;
-	#else
-	return false;
-	#endif
 }
 
 Event defaultEvent()

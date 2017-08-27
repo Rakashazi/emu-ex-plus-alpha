@@ -284,8 +284,6 @@ Time::operator IG::Time() const
 	return IG::Time::makeWithNSecs(nSecs());
 }
 
-void setHandleVolumeKeys(bool on) {}
-
 void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }

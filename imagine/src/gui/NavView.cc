@@ -38,7 +38,7 @@ void NavView::setOnPushMiddleBtn(OnPushDelegate del)
 	onPushMiddleBtn_ = del;
 }
 
-void NavView::inputEvent(Input::Event e)
+bool NavView::inputEvent(Input::Event e)
 {
 	assert(e.isPointer());
 	if(e.state == Input::PUSHED)
@@ -46,10 +46,12 @@ void NavView::inputEvent(Input::Event e)
 		if(hasCloseBtn && rightBtn.overlaps(e.pos()))
 		{
 			onPushRightBtn_.callCopySafe(e);
+			return true;
 		}
 		else if(hasBackBtn && leftBtn.overlaps(e.pos()))
 		{
 			onPushLeftBtn_.callCopySafe(e);
+			return true;
 		}
 		else
 		{
@@ -58,9 +60,11 @@ void NavView::inputEvent(Input::Event e)
 			if(centerBtnRect.overlaps(e.pos()))
 			{
 				onPushMiddleBtn_.callCopySafe(e);
+				return true;
 			}
 		}
 	}
+	return false;
 }
 
 void NavView::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)

@@ -37,7 +37,7 @@ public:
 	void setOnPushMiddleBtn(OnPushDelegate del);
 	void setTitle(const char *title) { text.setString(title); }
 	virtual void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
-	void inputEvent(Input::Event e);
+	bool inputEvent(Input::Event e);
 	virtual void draw(Gfx::Renderer &r, const Base::Window &win, const Gfx::ProjectionPlane &projP) = 0;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;

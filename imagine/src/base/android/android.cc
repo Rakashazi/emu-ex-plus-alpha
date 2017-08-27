@@ -102,11 +102,25 @@ FS::PathString documentsPath()
 	if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 	{
 		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
-		auto env = jEnv();
+		JNIEnv *env;
+		auto res = jVM->GetEnv((void**)&env, JNI_VERSION_1_6);
+		bool shouldDetach = false;
+		if(res != JNI_OK)
+		{
+			logMsg("attaching thread to JNI for documentsPath()");
+			if(jVM->AttachCurrentThread(&env, nullptr) != 0)
+			{
+				logErr("error attaching env to thread");
+				return {};
+			}
+			shouldDetach = true;
+		}
 		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
 		auto filesDirStr = (jstring)filesDir(env, jBaseActivity);
 		FS::PathString path{};
 		javaStringCopy(env, path, filesDirStr);
+		if(shouldDetach)
+			jVM->DetachCurrentThread();
 		return path;
 	}
 	else
@@ -115,11 +129,25 @@ FS::PathString documentsPath()
 
 FS::PathString storagePath()
 {
-	auto env = jEnv();
+	JNIEnv *env;
+	auto res = jVM->GetEnv((void**)&env, JNI_VERSION_1_6);
+	bool shouldDetach = false;
+	if(res != JNI_OK)
+	{
+		logMsg("attaching thread to JNI for storagePath()");
+		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
+		{
+			logErr("error attaching env to thread");
+			return {};
+		}
+		shouldDetach = true;
+	}
 	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
 	auto extStorageDirStr = (jstring)extStorageDir(env, jBaseActivityCls);
 	FS::PathString path{};
 	javaStringCopy(env, path, extStorageDirStr);
+	if(shouldDetach)
+		jVM->DetachCurrentThread();
 	return path;
 }
 

@@ -190,18 +190,24 @@ void TableView::resetScroll()
 	setScrollOffset(0);
 }
 
-void TableView::inputEvent(Input::Event e)
+bool TableView::inputEvent(Input::Event e)
 {
 	bool handleScroll = !onlyScrollIfNeeded || contentIsBiggerThanView;
 	if(handleScroll && scrollInputEvent(e))
 	{
 		selected = -1;
-		return;
+		return true;
 	}
-	if(handleTableInput(e) && handleScroll && !e.isPointer())
+	bool movedSelected = false;
+	if(handleTableInput(e, movedSelected))
 	{
-		scrollToFocusRect();
+		if(movedSelected && handleScroll && !e.isPointer())
+		{
+			scrollToFocusRect();
+		}
+		return true;
 	}
+	return false;
 }
 
 void TableView::clearSelection()
@@ -253,15 +259,12 @@ int TableView::prevSelectableElement(int start, int items)
 	return -1;
 }
 
-bool TableView::handleTableInput(Input::Event e)
+bool TableView::handleTableInput(Input::Event e, bool movedSelected)
 {
 	using namespace IG;
 	auto cells_ = items(*this);
 	if(!cells_)
 		return false;
-
-	bool movedSelected = false;
-
 	if(e.isPointer())
 	{
 		if(!pointIsInView(e.pos()) || e.button != Input::Pointer::LBUTTON)
@@ -297,6 +300,7 @@ bool TableView::handleTableInput(Input::Event e)
 				onSelectElement(e, i, it);
 			}
 		}
+		return true;
 	}
 	else // Key or Relative Pointer
 	{
@@ -314,6 +318,7 @@ bool TableView::handleTableInput(Input::Event e)
 			logMsg("up, selected %d", selected);
 			postDraw();
 			movedSelected = true;
+			return true;
 		}
 		else if((e.pushed() && e.isDefaultDownButton())
 			|| (e.isRelativePointer() && e.y > 0))
@@ -325,6 +330,7 @@ bool TableView::handleTableInput(Input::Event e)
 			logMsg("down, selected %d", selected);
 			postDraw();
 			movedSelected = true;
+			return true;
 		}
 		else if(e.pushed() && e.isDefaultConfirmButton())
 		{
@@ -334,6 +340,7 @@ bool TableView::handleTableInput(Input::Event e)
 				selectedIsActivated = true;
 				onSelectElement(e, selected, item(*this, selected));
 			}
+			return true;
 		}
 		else if(e.pushed() && e.isDefaultPageUpButton())
 		{
@@ -344,6 +351,7 @@ bool TableView::handleTableInput(Input::Event e)
 			logMsg("selected %d", selected);
 			postDraw();
 			movedSelected = true;
+			return true;
 		}
 		else if(e.pushed() && e.isDefaultPageDownButton())
 		{
@@ -354,10 +362,10 @@ bool TableView::handleTableInput(Input::Event e)
 			logMsg("selected %d", selected);
 			postDraw();
 			movedSelected = true;
+			return true;
 		}
 	}
-
-	return movedSelected;
+	return false;
 }
 
 void TableView::drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const

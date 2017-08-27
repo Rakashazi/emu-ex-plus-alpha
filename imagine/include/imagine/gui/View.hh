@@ -60,7 +60,7 @@ public:
 	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
 	virtual void draw() = 0;
-	virtual void inputEvent(Input::Event event) = 0;
+	virtual bool inputEvent(Input::Event event) = 0;
 	virtual void clearSelection() {} // de-select any items from previous input
 	virtual void onShow() {}
 	virtual void onAddedToController(Input::Event e) = 0;

@@ -83,7 +83,7 @@ void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e);
 void onSelectFileFromPicker(Gfx::Renderer &r, const char* name, Input::Event e);
 void startGameFromMenu();
 void closeGame(bool allowAutosaveState = true);
-void handleInputEvent(Base::Window &win, Input::Event e);
+bool handleInputEvent(Base::Window &win, Input::Event e);
 void loadGameComplete(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 ViewAttachParams emuViewAttachParams();

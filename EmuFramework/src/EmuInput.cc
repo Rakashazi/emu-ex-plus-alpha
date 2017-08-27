@@ -659,31 +659,6 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 	}
 }
 
-void setupVolKeysInGame()
-{
-	#if defined __ANDROID__
-	iterateTimes(inputDevConfs, i)
-	{
-		if(!inputDevConf[i].enabled ||
-			inputDevConf[i].dev->map() != Input::Event::MAP_SYSTEM ||
-			!inputDevConf[i].savedConf) // no default configs use volume keys
-		{
-			continue;
-		}
-		auto key = inputDevConf[i].keyConf().key();
-		iterateTimes(MAX_KEY_CONFIG_KEYS, k)
-		{
-			if(Input::isVolumeKey(key[k]))
-			{
-				logMsg("key config has volume keys");
-				Input::setHandleVolumeKeys(1);
-				return;
-			}
-		}
-	}
-	#endif
-}
-
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void setupVControllerVars()
 {

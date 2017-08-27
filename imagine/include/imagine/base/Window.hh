@@ -148,7 +148,7 @@ public:
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM);
 	bool updatePhysicalSizeWithCurrentSize();
 	bool hasSurface();
-	void dispatchInputEvent(Input::Event event);
+	bool dispatchInputEvent(Input::Event event);
 	void dispatchFocusChange(bool in);
 	void dispatchDragDrop(const char *filename);
 	void dispatchDismissRequest();

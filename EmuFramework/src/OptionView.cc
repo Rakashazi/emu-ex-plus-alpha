@@ -208,7 +208,7 @@ static void setImgEffect(uint val)
 static void setOverlayEffect(uint val)
 {
 	optionOverlayEffect = val;
-	emuVideoLayer.vidImgOverlay.setEffect(emuVideo.renderer(), val);
+	emuVideoLayer.setOverlay(val);
 	emuVideoLayer.placeOverlay();
 	emuWin->win.postDraw();
 }
@@ -216,7 +216,7 @@ static void setOverlayEffect(uint val)
 static void setOverlayEffectLevel(uint val)
 {
 	optionOverlayEffectLevel = val;
-	emuVideoLayer.vidImgOverlay.intensity = val/100.;
+	emuVideoLayer.setOverlayIntensity(val/100.);
 	emuWin->win.postDraw();
 }
 
@@ -226,7 +226,7 @@ static void setImgEffectPixelFormat(PixelFormatID format)
 	if(format == PIXEL_NONE)
 		popup.printf(3, false, "Set RGB565 mode via Auto");
 	optionImageEffectPixelFormat = format;
-	emuVideoLayer.vidImgEffect.setBitDepth(emuVideo.renderer(), format == PIXEL_RGBA8888 ? 32 : 16);
+	emuVideoLayer.setEffectBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
 	emuWin->win.postDraw();
 }
 #endif
@@ -357,13 +357,15 @@ public:
 		fpsText.compile(renderer(), projP);
 	}
 
-	void inputEvent(Input::Event e) override
+	bool inputEvent(Input::Event e) override
 	{
 		if(e.pushed() && e.isDefaultCancelButton())
 		{
 			logMsg("aborted detection");
 			popAndShow();
+			return true;
 		}
+		return false;
 	}
 
 	void draw() override
