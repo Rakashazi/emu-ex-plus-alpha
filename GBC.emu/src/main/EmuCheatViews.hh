@@ -5,7 +5,7 @@
 class EmuCheatsView : public BaseCheatsView
 {
 private:
-	void loadCheatItems() override;
+	void loadCheatItems() final;
 
 public:
 	EmuCheatsView(ViewAttachParams attach);
@@ -16,7 +16,7 @@ class EmuEditCheatListView : public BaseEditCheatListView
 private:
 	TextMenuItem addGGGS{};
 
-	void loadCheatItems() override;
+	void loadCheatItems() final;
 
 public:
 	EmuEditCheatListView(ViewAttachParams attach);
@@ -28,7 +28,7 @@ private:
 	DualTextMenuItem ggCode{};
 	GbcCheat *cheat{};
 
-	void renamed(const char *str) override;
+	void renamed(const char *str) final;
 
 public:
 	EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat);

@@ -14,6 +14,7 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include "internal.hh"
 #include <vbam/gba/GBA.h>
 

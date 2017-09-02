@@ -38,7 +38,7 @@ void DragTrackerState::finish()
 
 DragTrackerState DragTracker::state(int id) const
 {
-	auto s = std::find_if(state_.begin(), state_.end(), [id](DragTrackerState s){ return s.id() == id; });
+	auto s = std::find_if(state_.begin(), state_.end(), [id](const auto &s){ return s.id() == id; });
 	if(s == state_.end())
 	{
 		return {};

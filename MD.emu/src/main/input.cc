@@ -14,6 +14,7 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include "internal.hh"
 #include "input.h"
 #include "system.h"
@@ -126,16 +127,16 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 	const int gunDevIdx = 4;
 	if(input.dev[gunDevIdx] != DEVICE_LIGHTGUN)
 		return false;
-	if(gameRect.overlaps({e.x, e.y}))
+	if(gameRect.overlaps(e.pos()))
 	{
-		int xRel = e.x - gameRect.x, yRel = e.y - gameRect.y;
+		int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
 		input.analog[gunDevIdx][0] = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)bitmap.viewport.w);
 		input.analog[gunDevIdx][1] = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)bitmap.viewport.h);
 	}
 	if(e.pushed())
 	{
 		input.pad[gunDevIdx] |= INPUT_A;
-		logMsg("gun pushed @ %d,%d, on MD %d,%d", e.x, e.y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
+		logMsg("gun pushed @ %d,%d, on MD %d,%d", e.pos().x, e.pos().y, input.analog[gunDevIdx][0], input.analog[gunDevIdx][1]);
 	}
 	else if(e.released())
 	{

@@ -14,13 +14,69 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
+#include "private.hh"
 
 namespace Input
 {
 
+uint Event::deviceID() const
+{
+	return devId;
+}
+
+const char *Event::mapName()
+{
+	return mapName(map());
+}
+
+uint Event::map() const
+{
+	return map_;
+}
+
+void Event::setMap(uint map)
+{
+	map_ = map;
+}
+
+int Event::pointerID() const
+{
+	return pointerID_;
+}
+
+uint Event::state() const
+{
+	return state_;
+}
+
+bool Event::stateIsPointer() const
+{
+	return state() == MOVED || state() == EXIT_VIEW || state() == ENTER_VIEW;
+}
+
+bool Event::isPointer() const
+{
+	return Config::Input::POINTING_DEVICES && (map() == MAP_POINTER || stateIsPointer());
+}
+
+bool Event::isRelativePointer() const
+{
+	return Config::Input::RELATIVE_MOTION_DEVICES && state() == MOVED_RELATIVE;
+}
+
+bool Event::isTouch() const
+{
+	return Config::Input::TOUCH_DEVICES && pointerIsTouch;
+}
+
+bool Event::isKey() const
+{
+	return !isPointer() && !isRelativePointer();
+}
+
 bool Event::isDefaultConfirmButton(uint swapped) const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return swapped ? isDefaultCancelButton(0) :
@@ -38,7 +94,7 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 		case MAP_APPLE_GAME_CONTROLLER: return swapped ? isDefaultCancelButton(0) : sysKey_ == Keycode::GAME_A;
 		#endif
 		case MAP_SYSTEM:
-			switch(device->subtype())
+			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
@@ -55,9 +111,14 @@ bool Event::isDefaultConfirmButton(uint swapped) const
 	return false;
 }
 
+bool Event::isDefaultConfirmButton() const
+{
+	return isDefaultConfirmButton(swappedGamepadConfirm_);
+}
+
 bool Event::isDefaultCancelButton(uint swapped) const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return swapped ? isDefaultConfirmButton(0) :
@@ -78,7 +139,7 @@ bool Event::isDefaultCancelButton(uint swapped) const
 		case MAP_APPLE_GAME_CONTROLLER: return swapped ? isDefaultConfirmButton(0) : sysKey_ == Keycode::GAME_B;
 		#endif
 		case MAP_SYSTEM:
-			switch(device->subtype())
+			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
@@ -93,9 +154,14 @@ bool Event::isDefaultCancelButton(uint swapped) const
 	return false;
 }
 
+bool Event::isDefaultCancelButton() const
+{
+	return isDefaultCancelButton(swappedGamepadConfirm_);
+}
+
 bool Event::isDefaultLeftButton() const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
@@ -126,7 +192,7 @@ bool Event::isDefaultLeftButton() const
 
 bool Event::isDefaultRightButton() const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
@@ -157,7 +223,7 @@ bool Event::isDefaultRightButton() const
 
 bool Event::isDefaultUpButton() const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
@@ -188,7 +254,7 @@ bool Event::isDefaultUpButton() const
 
 bool Event::isDefaultDownButton() const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE:
@@ -219,7 +285,7 @@ bool Event::isDefaultDownButton() const
 
 bool Event::isDefaultPageUpButton() const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return button == Input::Wiimote::PLUS;
@@ -235,7 +301,7 @@ bool Event::isDefaultPageUpButton() const
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::L1;
 		#endif
 		case MAP_SYSTEM:
-			switch(device->subtype())
+			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
@@ -250,7 +316,7 @@ bool Event::isDefaultPageUpButton() const
 
 bool Event::isDefaultPageDownButton() const
 {
-	switch(map)
+	switch(map())
 	{
 		#ifdef CONFIG_BLUETOOTH
 		case MAP_WIIMOTE: return button == Input::Wiimote::MINUS;
@@ -266,7 +332,7 @@ bool Event::isDefaultPageDownButton() const
 		case MAP_APPLE_GAME_CONTROLLER: return button == Input::AppleGC::R1;
 		#endif
 		case MAP_SYSTEM:
-			switch(device->subtype())
+			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
 				case Device::SUBTYPE_PANDORA_HANDHELD:
@@ -277,6 +343,94 @@ bool Event::isDefaultPageDownButton() const
 				|| button == Input::Keycode::GAME_R1;
 	}
 	return false;
+}
+
+Key Event::key() const
+{
+	return sysKey_;
+}
+
+Key Event::mapKey() const
+{
+	return button;
+}
+
+#ifdef CONFIG_BASE_X11
+void Event::setX11RawKey(Key key)
+{
+	rawKey = key;
+}
+#endif
+
+bool Event::pushed() const
+{
+	return state() == PUSHED;
+}
+
+bool Event::pushed(Key key) const
+{
+	return pushed() && button == key;
+}
+
+bool Event::pushedKey(Key sysKey) const
+{
+	return pushed() && sysKey_ == sysKey;
+}
+
+bool Event::released() const
+{
+	return state() == RELEASED;
+}
+
+bool Event::released(Key key) const
+{
+	return released() && button == key;
+}
+
+bool Event::releasedKey(Key sysKey) const
+{
+	return released() && sysKey_ == sysKey;
+}
+
+bool Event::moved() const
+{
+	return state() == MOVED;
+}
+
+bool Event::isShiftPushed() const
+{
+	return metaState != 0;
+}
+
+IG::WP Event::pos() const
+{
+	return {x, y};
+}
+
+bool Event::isPointerPushed(Key k) const
+{
+	if(released() && button == k)
+		return false;
+	if(pushed(k))
+		return true;
+	return metaState & IG::bit(k);
+}
+
+bool Event::isSystemFunction() const
+{
+	if(!isKey())
+		return false;
+	#ifdef __linux__
+	switch(key())
+	{
+		default: return false;
+		case Keycode::VOL_UP:
+		case Keycode::VOL_DOWN:
+			return true;
+	}
+	#else
+	return false;
+	#endif
 }
 
 const char *Event::actionToStr(int action)
@@ -294,22 +448,14 @@ const char *Event::actionToStr(int action)
 	}
 }
 
-
-bool Event::isSystemFunction() const
+Time Event::time() const
 {
-	if(!isKey())
-		return false;
-	#ifdef __linux__
-	switch(key())
-	{
-		default: return false;
-		case Keycode::VOL_UP:
-		case Keycode::VOL_DOWN:
-			return true;
-	}
-	#else
-	return false;
-	#endif
+	return time_;
+}
+
+const Device *Event::device() const
+{
+	return device_;
 }
 
 }

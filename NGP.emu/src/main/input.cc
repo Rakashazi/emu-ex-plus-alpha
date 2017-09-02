@@ -15,6 +15,7 @@
 
 #include <neopop.h>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 
 enum
 {

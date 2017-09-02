@@ -338,7 +338,7 @@ void clearCheats()
 
 	//logMsg("reversing applied cheats");
   // disable cheats in reversed order in case the same address is used by multiple patches
-  for(auto &e : makeReverseRange(cheatList))
+  for(auto &e : IG::makeReverseRange(cheatList))
   {
     if(e.isApplied())
     {

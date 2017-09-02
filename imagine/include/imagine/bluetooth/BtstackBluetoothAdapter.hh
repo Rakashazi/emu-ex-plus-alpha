@@ -24,12 +24,12 @@ class BtstackBluetoothAdapter : public BluetoothAdapter
 public:
 	BtstackBluetoothAdapter() {}
 	static BtstackBluetoothAdapter *defaultAdapter();
-	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) override;
-	void cancelScan() override;
-	void close() override;
-	void setL2capService(uint psm, bool active, OnStatusDelegate onResult) override;
-	State state() override;
-	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
+	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
+	void cancelScan() final;
+	void close() final;
+	void setL2capService(uint psm, bool active, OnStatusDelegate onResult) final;
+	State state() final;
+	void setActiveState(bool on, OnStateChangeDelegate onStateChange) final;
 	void requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName);
 	void packetHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 	static void processCommands();
@@ -70,13 +70,13 @@ class BtstackBluetoothSocket : public BluetoothSocket
 {
 public:
 	constexpr BtstackBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
-	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
+	CallResult openL2cap(BluetoothAddr addr, uint psm) final;
+	CallResult openRfcomm(BluetoothAddr addr, uint channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	CallResult open(BluetoothPendingSocket &pending) override;
+	CallResult open(BluetoothPendingSocket &pending) final;
 	#endif
-	void close() override;
-	CallResult write(const void *data, size_t size) override;
+	void close() final;
+	CallResult write(const void *data, size_t size) final;
 	const void *pin(uint &size);
 	void setPin(const void *pin, uint size);
 	static BtstackBluetoothSocket *findSocket(const bd_addr_t addr, uint16_t ch);

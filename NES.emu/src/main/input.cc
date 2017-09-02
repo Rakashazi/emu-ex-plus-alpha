@@ -14,6 +14,7 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include "internal.hh"
 #include <fceu/fceu.h>
 
@@ -154,12 +155,12 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 	if(e.pushed())
 	{
 		zapperData[2] = 0;
-		if(gameRect.overlaps({e.x, e.y}))
+		if(gameRect.overlaps(e.pos()))
 		{
-			int xRel = e.x - gameRect.x, yRel = e.y - gameRect.y;
+			int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
 			int xNes = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
 			int yNes = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.) + 8;
-			logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.x, e.y, xNes, yNes);
+			logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.pos().x, e.pos().y, xNes, yNes);
 			zapperData[0] = xNes;
 			zapperData[1] = yNes;
 			zapperData[2] |= 0x1;

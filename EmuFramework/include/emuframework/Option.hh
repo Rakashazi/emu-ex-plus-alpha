@@ -237,7 +237,7 @@ using Byte4s1Option = Option<OptionMethodVar<uint32>, uint8>;
 using DoubleOption = Option<OptionMethodVar<double>, double>;
 
 using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8>;
-using OptionSwappedGamepadConfirm = Option<OptionMethodRef<bool, Input::swappedGamepadConfirm>, uint8>;
+using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8>;
 
 bool vControllerUseScaledCoordinates();
 void setVControllerUseScaledCoordinates(bool on);
@@ -345,10 +345,10 @@ struct OptionVControllerLayoutPosition : public OptionBase
 {
 	const uint16 key = CFGKEY_VCONTROLLER_LAYOUT_POS;
 
-	bool isDefault() const override;
-	bool writeToIO(IO &io) override;
+	bool isDefault() const final;
+	bool writeToIO(IO &io) final;
 	bool readFromIO(IO &io, uint readSize_);
-	uint ioSize() override;
+	uint ioSize() final;
 };
 
 template<int MAX, class T>

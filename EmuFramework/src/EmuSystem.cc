@@ -292,7 +292,6 @@ void EmuSystem::clearGamePaths()
 
 const char *EmuSystem::savePath()
 {
-	assert(strlen(gameSavePath_.data()));
 	return gameSavePath_.data();
 }
 

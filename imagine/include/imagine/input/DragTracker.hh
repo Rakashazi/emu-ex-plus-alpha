@@ -69,21 +69,21 @@ public:
 	{
 		if(!e.isPointer())
 			return false;
-		auto pID = e.pointerID;
-		switch(e.state)
+		auto pID = e.pointerID();
+		switch(e.state())
 		{
 			case Input::PUSHED:
 			{
-				if(state_.isFull() || e.button != Input::Pointer::LBUTTON)
+				if(state_.isFull() || e.mapKey() != Input::Pointer::LBUTTON)
 					return false;
-				DragTrackerState startState{e.pointerID, e.pos()};
+				DragTrackerState startState{e.pointerID(), e.pos()};
 				state_.push_back(startState);
 				onDown(startState);
 				return false;
 			}
 			case Input::MOVED:
 			{
-				auto s = std::find_if(state_.begin(), state_.end(), [pID](DragTrackerState s){ return s.id() == pID; });
+				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
 				if(s == state_.end())
 					return false;
 				auto prevState = *s;
@@ -93,7 +93,7 @@ public:
 			}
 			case Input::RELEASED:
 			{
-				auto s = std::find_if(state_.begin(), state_.end(), [pID](DragTrackerState s){ return s.id() == pID; });
+				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
 				if(s == state_.end())
 					return false;
 				auto finishState = *s;
@@ -125,12 +125,12 @@ public:
 	{
 		if(!e.isPointer())
 			return false;
-		auto pID = e.pointerID;
-		switch(e.state)
+		auto pID = e.pointerID();
+		switch(e.state())
 		{
 			case Input::PUSHED:
 			{
-				if(state_.isTracking() || e.button != Input::Pointer::LBUTTON)
+				if(state_.isTracking() || e.mapKey() != Input::Pointer::LBUTTON)
 					return false;
 				state_.start(pID, e.pos());
 				onDown(state_);

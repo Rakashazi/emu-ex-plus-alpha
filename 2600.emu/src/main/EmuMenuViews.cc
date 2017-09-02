@@ -151,7 +151,7 @@ public:
 		}
 	{}
 
-	void onShow() override
+	void onShow() final
 	{
 		diff1.setBoolValue(p1DiffB, *this);
 		diff2.setBoolValue(p2DiffB, *this);
@@ -191,7 +191,7 @@ public:
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
-	void onShow() override
+	void onShow() final
 	{
 		MenuView::onShow();
 		switches.setActive(EmuSystem::gameIsRunning());

@@ -209,7 +209,7 @@ void x11FDHandler()
 	}
 }
 
-void initXScreens()
+void initXScreens(Display *dpy)
 {
 	auto defaultScreenIdx = DefaultScreen(dpy);
 	static Screen main;
@@ -241,9 +241,9 @@ CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc)
 		logErr("couldn't open display");
 		return IO_ERROR;
 	}
-	initXScreens();
+	initXScreens(dpy);
 	initFrameTimer(loop);
-	Input::init();
+	Input::init(dpy);
 	eventSrc = FDEventSource::makeXServerAddedToEventLoop(ConnectionNumber(dpy), loop);
 	return OK;
 }

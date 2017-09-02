@@ -15,28 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <CoreGraphics/CGColorSpace.h>
-#include <imagine/base/iphone/config.h>
-#ifdef __OBJC__
-#import <UIKit/UIKit.h>
-#endif
+#include <imagine/bluetooth/sys.hh>
+#include <vector>
 
-namespace Base
-{
-
-extern CGColorSpaceRef grayColorSpace, rgbColorSpace;
-
-}
-
-namespace Input
-{
-
-void init();
-
-}
-
-#ifdef __OBJC__
-@interface ImagineUIViewController : UIViewController
-
-@end
-#endif
+extern std::vector<BluetoothInputDevice*> btInputDevList;

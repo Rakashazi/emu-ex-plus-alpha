@@ -47,16 +47,16 @@ class BluezBluetoothAdapter : public BluetoothAdapter
 {
 public:
 	static BluezBluetoothAdapter *defaultAdapter();
-	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) override;
-	void cancelScan() override;
-	void close() override;
+	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
+	void cancelScan() final;
+	void close() final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	void setL2capService(uint psm, bool active, OnStatusDelegate onResult) override;
-	//bool l2capServiceRegistered(uint psm) override;
+	void setL2capService(uint psm, bool active, OnStatusDelegate onResult) final;
+	//bool l2capServiceRegistered(uint psm) final;
 	#endif
 	void requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName);
-	State state() override;
-	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
+	State state() final;
+	void setActiveState(bool on, OnStateChangeDelegate onStateChange) final;
 
 private:
 	int devId = -1, socket = -1;
@@ -83,13 +83,13 @@ class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
 	BluezBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
-	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
+	CallResult openL2cap(BluetoothAddr addr, uint psm) final;
+	CallResult openRfcomm(BluetoothAddr addr, uint channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	CallResult open(BluetoothPendingSocket &socket) override;
+	CallResult open(BluetoothPendingSocket &socket) final;
 	#endif
-	void close() override;
-	CallResult write(const void *data, size_t size) override;
+	void close() final;
+	CallResult write(const void *data, size_t size) final;
 	int readPendingData(int events);
 
 private:

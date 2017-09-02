@@ -19,6 +19,7 @@
 #include <emuframework/EmuApp.hh>
 #include <imagine/util/math/int.hh>
 #include "private.hh"
+#include "privateInput.hh"
 
 #ifdef CONFIG_INPUT_POINTING_DEVICES
 bool ButtonConfigSetView::pointerUIIsInit()
@@ -85,16 +86,16 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 		postDraw();
 		return true;
 	}
-	else if(pointerUIIsInit() && e.isPointer() && e.state == Input::RELEASED)
+	else if(pointerUIIsInit() && e.isPointer() && e.released())
 	{
-		if(unbindB.overlaps({e.x, e.y}))
+		if(unbindB.overlaps(e.pos()))
 		{
 			logMsg("unbinding key");
 			onSetD(Input::Event());
 			dismiss();
 			return true;
 		}
-		else if(cancelB.overlaps({e.x, e.y}))
+		else if(cancelB.overlaps(e.pos()))
 		{
 			dismiss();
 			return true;
@@ -103,9 +104,9 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 	}
 	else
 	#endif
-	if(!e.isPointer() && e.state == Input::PUSHED)
+	if(!e.isPointer() && e.pushed())
 	{
-		auto d = e.device;
+		auto d = e.device();
 		if(d != dev)
 		{
 			if(d == savedDev)
@@ -116,13 +117,13 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 				dismiss();
 				viewStack.popTo(rootIMView);
 				auto &imdMenu = *new InputManagerDeviceView{attach, rootIMView, inputDevConf[d->idx]};
-				imdMenu.setName(rootIMView.inputDevNameStr[d->idx]);
+				imdMenu.setName(rootIMView.deviceName(d->idx));
 				rootIMView.pushAndShow(imdMenu, e);
 			}
 			else
 			{
 				savedDev = d;
-				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", rootIMView.inputDevNameStr[d->idx]);
+				popup.printf(7, 0, "You pushed a key from device:\n%s\nPush another from it to open its config menu", rootIMView.deviceName(d->idx));
 				postDraw();
 			}
 			return true;
@@ -188,12 +189,7 @@ void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, G
 template <size_t S>
 void uniqueCustomConfigName(char (&name)[S])
 {
-	if(customKeyConfig.isFull())
-	{
-		logWarn("custom key config list is full");
-		return;
-	}
-	iterateTimes(MAX_CUSTOM_KEY_CONFIGS, i)
+	iterateTimes(99, i) // Try up to "Custom 99"
 	{
 		string_printf(name, "Custom %d", i+1);
 		// Check if this name is free
@@ -220,19 +216,9 @@ static KeyConfig *mutableConfForDeviceConf(InputDeviceConfig &devConf)
 	if(!conf)
 	{
 		logMsg("current config not mutable, creating one");
-		if(customKeyConfig.isFull())
-		{
-			popup.postError("No space left for new key profiles, please delete one");
-			return nullptr;
-		}
 		char name[96];
 		uniqueCustomConfigName(name);
 		conf = devConf.setKeyConfCopiedFromExisting(name);
-		if(!conf)
-		{
-			popup.postError("Too many saved device settings, please delete one");
-			return nullptr;
-		}
 		popup.printf(3, 0, "Automatically created profile: %s", conf->name);
 	}
 	return conf;
@@ -259,10 +245,10 @@ void ButtonConfigView::onSet(Input::Event e, int keyToSet)
 		return;
 	auto &keyEntry = conf->key(*cat)[keyToSet];
 	logMsg("changing key mapping from %s (0x%X) to %s (0x%X)",
-			devConf->dev->keyName(keyEntry), keyEntry, devConf->dev->keyName(e.button), e.button);
-	keyEntry = e.button;
+			devConf->dev->keyName(keyEntry), keyEntry, devConf->dev->keyName(e.mapKey()), e.mapKey());
+	keyEntry = e.mapKey();
 	auto &b = btn[keyToSet];
-	b.str = makeKeyNameStr(e.button, devConf->dev->keyName(e.button));
+	b.str = makeKeyNameStr(e.mapKey(), devConf->dev->keyName(e.mapKey()));
 	b.item.t2.compile(renderer(), projP);
 	keyMapping.buildAll();
 }
@@ -271,8 +257,8 @@ bool ButtonConfigView::inputEvent(Input::Event e)
 {
 	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
 	{
-		auto durationSinceLastKeySet = leftKeyPushTime ? e.time - leftKeyPushTime : Input::Time{};
-		leftKeyPushTime = e.time;
+		auto durationSinceLastKeySet = leftKeyPushTime ? e.time() - leftKeyPushTime : Input::Time{};
+		leftKeyPushTime = e.time();
 		if(durationSinceLastKeySet && durationSinceLastKeySet <= Input::Time::makeWithMSecs(500))
 		{
 			// unset key

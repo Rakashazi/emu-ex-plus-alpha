@@ -45,7 +45,7 @@ class GfxGlyphImage : public GfxImageSource
 public:
 	GfxGlyphImage(IG::GlyphImage glyphBuff): lockBuff{std::move(glyphBuff)} {}
 
-	std::errc write(IG::Pixmap out) override
+	std::errc write(IG::Pixmap out) final
 	{
 		auto src = lockBuff.pixmap();
 		//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
@@ -59,17 +59,17 @@ public:
 		return {};
 	}
 
-	IG::Pixmap lockPixmap() override
+	IG::Pixmap lockPixmap() final
 	{
 		return lockBuff.pixmap();
 	}
 
-	void unlockPixmap() override
+	void unlockPixmap() final
 	{
 		lockBuff.unlock();
 	}
 
-	explicit operator bool() const override
+	explicit operator bool() const final
 	{
 		return (bool)lockBuff;
 	}

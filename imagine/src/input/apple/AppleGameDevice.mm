@@ -32,10 +32,9 @@ struct AppleGameDevice : public Device
 	GCController *gcController = nil;
 	uint joystickAxisAsDpadBits_ = 0;
 	bool pushState[AppleGC::COUNT]{};
-	char name[80]{};
 	
 	AppleGameDevice(GCController *gcController, uint enumId):
-		Device{enumId, Event::MAP_APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, name},
+		Device{enumId, Event::MAP_APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
 		gcController{gcController}
 	{
 		auto extGamepad = gcController.extendedGamepad;
@@ -58,8 +57,7 @@ struct AppleGameDevice : public Device
 				this->handleKey(AppleGC::PAUSE, Keycode::MENU, true, false);
 				this->handleKey(AppleGC::PAUSE, Keycode::MENU, false, false);
 			};
-		string_copy(name, [gcController.vendorName UTF8String]);
-		logMsg("controller %d with vendor: %s", devId, name);
+		logMsg("controller %d with vendor: %s", devId, name());
 	}
 	
 	template <class T>
@@ -201,27 +199,27 @@ struct AppleGameDevice : public Device
 		dispatchInputEvent(event);
 	}
 
-	void setJoystickAxisAsDpadBits(uint axisMask) override
+	void setJoystickAxisAsDpadBits(uint axisMask) final
 	{
 		joystickAxisAsDpadBits_ = axisMask;
 	}
 	
-	uint joystickAxisAsDpadBits() override
+	uint joystickAxisAsDpadBits() final
 	{
 		return joystickAxisAsDpadBits_;
 	}
 
-	uint joystickAxisBits() override
+	uint joystickAxisBits() final
 	{
 		return subtype_ == SUBTYPE_APPLE_EXTENDED_GAMEPAD ? (AXIS_BITS_STICK_1 | AXIS_BITS_STICK_2) : 0;
 	}
 
-	uint joystickAxisAsDpadBitsDefault() override
+	uint joystickAxisAsDpadBitsDefault() final
 	{
 		return AXIS_BITS_STICK_1;
 	}
 	
-	const char *keyName(Key k) const override
+	const char *keyName(Key k) const final
 	{
 		return appleGCButtonName(k);
 	}
@@ -232,12 +230,12 @@ struct AppleGameDevice : public Device
 	}
 };
 
-static StaticArrayList<AppleGameDevice*, 5> gcList;
+static std::vector<std::unique_ptr<AppleGameDevice>> gcList{};
 
 static uint findFreeDevId()
 {
 	uint id[5]{};
-	for(auto e : gcList)
+	for(auto &e : gcList)
 	{
 		if(e->enumId() < IG::size(id))
 			id[e->enumId()] = 1;
@@ -256,14 +254,14 @@ static AppleGameDevice *deviceForGCController(GCController *controller)
 	for(auto &e : gcList)
 	{
 		if(e->gcController == controller)
-			return e;
+			return e.get();
 	}
 	return nullptr;
 }
 
 static bool devListContainsController(GCController *controller)
 {
-	for(auto e : gcList)
+	for(auto &e : gcList)
 	{
 		if(e->gcController == controller)
 			return true;
@@ -273,15 +271,14 @@ static bool devListContainsController(GCController *controller)
 
 static void addController(GCController *controller, bool notify)
 {
-	assert(!gcList.isFull() && !Input::devList.isFull());
 	if(devListContainsController(controller))
 	{
 		logMsg("controller %p already in list", controller);
 		return;
 	}
 	logMsg("adding controller: %p", controller);
-	auto gc = new AppleGameDevice(controller, findFreeDevId());
-	gcList.push_back(gc);
+	gcList.emplace_back(std::make_unique<AppleGameDevice>(controller, findFreeDevId()));
+	auto &gc = gcList.back();
 	Input::addDevice(*gc);
 	if(notify)
 	{
@@ -293,16 +290,15 @@ static void removeController(GCController *controller)
 {
 	forEachInContainer(gcList, it)
 	{
-		auto dev = *it;
+		auto &dev = *it;
 		if(dev->gcController == controller)
 		{
 			logMsg("removing controller: %p", controller);
 			auto removedDev = *dev;
 			removeDevice(*dev);
 			it.erase();
-			logMsg("name: %s", removedDev.name);
+			logMsg("name: %s", removedDev.name());
 			onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
-			delete dev;
 			return;
 		}
 	}
@@ -320,12 +316,7 @@ void initAppleGameControllers()
 		queue:nil usingBlock:
 		^(NSNotification *note)
 		{
-			logMsg("game controller did connect");
-			if(gcList.isFull() || Input::devList.isFull())
-			{
-				logErr("No space left in device list");
-				return;
-			}
+			logMsg("game controller connected");
 			GCController *controller = note.object;
 			addController(controller, true);
 		}];
@@ -333,18 +324,13 @@ void initAppleGameControllers()
 		queue:nil usingBlock:
 		^(NSNotification *note)
 		{
-			logMsg("game controller did disconnect");
+			logMsg("game controller disconnected");
 			GCController *controller = note.object;
 			removeController(controller);
 		}];
 	for(GCController *controller in [GCController controllers])
 	{
 		logMsg("checking game controller: %p", controller);
-		if(gcList.isFull() || Input::devList.isFull())
-		{
-			logErr("No space left in device list");
-			return;
-		}
 		addController(controller, false);
 	}
 }

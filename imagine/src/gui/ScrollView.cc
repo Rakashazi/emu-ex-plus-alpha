@@ -161,7 +161,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 	{
 		auto prevOffset = offset;
 		auto vel = window().heightSMMInPixels(10.0);
-		offset += e.button == Input::Pointer::WHEEL_UP ? -vel : vel;
+		offset += e.mapKey() == Input::Pointer::WHEEL_UP ? -vel : vel;
 		offset = IG::clamp(offset, 0, offsetMax);
 		if(offset != prevOffset)
 			postDraw();
@@ -172,7 +172,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 		[&](Input::DragTrackerState)
 		{
 			stopScrollAnimation();
-			velTracker = {e.time, {(float)e.pos().y}};
+			velTracker = {e.time(), {(float)e.pos().y}};
 			scrollVel = 0;
 			onDragOffset = offset;
 			const auto viewFrame = viewRect();
@@ -188,7 +188,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 		},
 		[&](Input::DragTrackerState state, Input::DragTrackerState)
 		{
-			velTracker.update(e.time, {(float)e.pos().y});
+			velTracker.update(e.time(), {(float)e.pos().y});
 			if(state.isDragging())
 			{
 				auto prevOffset = offset;

@@ -55,10 +55,10 @@ public:
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
 	void deinit();
-	std::errc write(IG::Pixmap dest) override;
-	IG::Pixmap lockPixmap() override;
-	void unlockPixmap() override;
-	explicit operator bool() const override;
+	std::errc write(IG::Pixmap dest) final;
+	IG::Pixmap lockPixmap() final;
+	void unlockPixmap() final;
+	explicit operator bool() const final;
 
 private:
 	BitmapFactoryImage png;

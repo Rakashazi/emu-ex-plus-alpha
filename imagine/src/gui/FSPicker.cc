@@ -113,12 +113,12 @@ void FSPicker::setOnPathReadError(OnPathReadError del)
 
 bool FSPicker::inputEvent(Input::Event e)
 {
-	if(e.isDefaultCancelButton() && e.state == Input::PUSHED)
+	if(e.isDefaultCancelButton() && e.state() == Input::PUSHED)
 	{
 		onClose_.callCopy(*this, e);
 		return true;
 	}
-	if(!singleDir && e.state == Input::PUSHED && e.isDefaultLeftButton())
+	if(!singleDir && e.state() == Input::PUSHED && e.isDefaultLeftButton())
 	{
 		logMsg("going up a dir");
 		changeDirByInput(FS::dirname(currPath).data(), true, e);
@@ -129,7 +129,7 @@ bool FSPicker::inputEvent(Input::Event e)
 		changeDirByInput(Base::storagePath().data(), true, e);
 		return true;
 	}
-	else if(e.isPointer() && navV.viewRect().overlaps({e.x, e.y}) && !tbl.isDoingScrollGesture())
+	else if(e.isPointer() && navV.viewRect().overlaps(e.pos()) && !tbl.isDoingScrollGesture())
 	{
 		return navV.inputEvent(e);
 	}

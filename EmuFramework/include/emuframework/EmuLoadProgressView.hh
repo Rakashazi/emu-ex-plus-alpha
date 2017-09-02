@@ -24,7 +24,7 @@ class EmuLoadProgressView : public View
 private:
 	Gfx::Text text{"Loading...", &View::defaultFace};
 	IG::WindowRect rect;
-	IG::WindowRect &viewRect() override { return rect; }
+	IG::WindowRect &viewRect() final { return rect; }
 	uint pos = 0, max = 0;
 	std::array<char, 128> str{};
 
@@ -35,10 +35,10 @@ public:
 	void setMax(uint val);
 	void setPos(uint val);
 	void setLabel(const char *str);
-	void place() override;
-	bool inputEvent(Input::Event e) override;
-	void draw() override;
-	void onAddedToController(Input::Event e) override {}
+	void place() final;
+	bool inputEvent(Input::Event e) final;
+	void draw() final;
+	void onAddedToController(Input::Event e) final {}
 
 	// load context vars
 	Base::Pipe pipe;

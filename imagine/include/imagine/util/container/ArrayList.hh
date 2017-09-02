@@ -64,11 +64,7 @@ public:
 
 	bool remove(const T &val)
 	{
-		auto it = std::find(begin(), end(), val);
-		if(it == end())
-			return false;
-		erase(it);
-		return true;
+		return IG::removeFirst(*this, val);
 	}
 
 	// Iterators (STL API)

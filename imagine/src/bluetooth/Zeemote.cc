@@ -21,9 +21,9 @@
 #include <imagine/util/algorithm.h>
 #include <algorithm>
 #include "../input/private.hh"
+#include "private.hh"
 
-extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Zeemote::devList;
+std::vector<Zeemote*> Zeemote::devList;
 
 const uchar Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
 
@@ -106,8 +106,8 @@ void Zeemote::close()
 void Zeemote::removeFromSystem()
 {
 	close();
-	devList.remove(this);
-	if(btInputDevList.remove(this))
+	IG::removeFirst(devList, this);
+	if(IG::removeFirst(btInputDevList, this))
 	{
 		Input::removeDevice(*this);
 		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
@@ -120,13 +120,6 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("Zeemote opened successfully");
 		player = findFreeDevId();
-		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
-		{
-			logErr("No space left in BT input device list");
-			removeFromSystem();
-			delete this;
-			return 0;
-		}
 		devList.push_back(this);
 		btInputDevList.push_back(this);
 		devId = player;

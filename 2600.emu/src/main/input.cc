@@ -17,6 +17,7 @@
 #define BytePtr BytePtrMac
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #undef BytePtr
 #undef Debugger
 #include "internal.hh"

@@ -43,17 +43,16 @@ struct KeyboardDevice : public Device
 	bool iCadeMode_ = false;
 
 	KeyboardDevice(): Device{0, Event::MAP_SYSTEM,
-		Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC,
-		"Keyboard/iCade"}
+		Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Keyboard/iCade"}
 	{}
 
-	void setICadeMode(bool on) override
+	void setICadeMode(bool on) final
 	{
 		logMsg("set iCade mode %s", on ? "on" : "off");
 		iCadeMode_ = on;
 	}
 
-	bool iCadeMode() const override
+	bool iCadeMode() const final
 	{
 		return iCadeMode_;
 	}

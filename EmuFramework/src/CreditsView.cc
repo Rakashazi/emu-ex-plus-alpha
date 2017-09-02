@@ -56,8 +56,8 @@ void CreditsView::place()
 
 bool CreditsView::inputEvent(Input::Event e)
 {
-	if((e.isPointer() && rect.overlaps({e.x, e.y}) && e.state == Input::RELEASED)
-			|| (!e.isPointer() && !e.isSystemFunction() && e.state == Input::PUSHED))
+	if((e.isPointer() && rect.overlaps(e.pos()) && e.released())
+			|| (!e.isPointer() && !e.isSystemFunction() && e.pushed()))
 	{
 		dismiss();
 		return true;

@@ -28,11 +28,11 @@ private:
 
 public:
 	EmuInputView(ViewAttachParams attach): View(attach) {}
-	IG::WindowRect &viewRect() override { return rect; }
-	void place() override;
-	void draw() override;
-	bool inputEvent(Input::Event e) override;
-	void onAddedToController(Input::Event e) override {}
+	IG::WindowRect &viewRect() final { return rect; }
+	void place() final;
+	void draw() final;
+	bool inputEvent(Input::Event e) final;
+	void onAddedToController(Input::Event e) final {}
 	void resetInput();
 
 private:

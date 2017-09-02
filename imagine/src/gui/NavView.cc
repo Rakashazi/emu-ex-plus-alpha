@@ -41,7 +41,7 @@ void NavView::setOnPushMiddleBtn(OnPushDelegate del)
 bool NavView::inputEvent(Input::Event e)
 {
 	assert(e.isPointer());
-	if(e.state == Input::PUSHED)
+	if(e.state() == Input::PUSHED)
 	{
 		if(hasCloseBtn && rightBtn.overlaps(e.pos()))
 		{

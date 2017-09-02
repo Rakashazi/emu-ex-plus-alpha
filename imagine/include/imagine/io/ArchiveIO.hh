@@ -53,7 +53,7 @@ public:
 	ArchiveIO(ArchiveEntry entry):
 		entry{entry}
 	{}
-	~ArchiveIO() override;
+	~ArchiveIO() final;
 	ArchiveIO(ArchiveIO &&o);
 	ArchiveIO &operator=(ArchiveIO &&o);
 	GenericIO makeGeneric();
@@ -61,13 +61,13 @@ public:
 	const char *name();
 	BufferMapIO moveToMapIO();
 
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
-	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) override;
-	void close() override;
-	size_t size() override;
-	bool eof() override;
-	explicit operator bool() override;
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
+	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;
+	void close() final;
+	size_t size() final;
+	bool eof() final;
+	explicit operator bool() final;
 
 private:
 	ArchiveEntry entry{};

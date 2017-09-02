@@ -22,10 +22,16 @@
 namespace Input
 {
 
-static Base::Timer keyRepeatTimer;
-static Event keyRepeatEvent;
+static Base::Timer keyRepeatTimer{};
+static Event keyRepeatEvent{};
 static bool allowKeyRepeats_ = true;
-DeviceChangeDelegate onDeviceChange;
+DeviceChangeDelegate onDeviceChange{};
+DevicesEnumeratedDelegate onDevicesEnumerated{};
+std::vector<Device*> devList{};
+bool swappedGamepadConfirm_ = SWAPPED_GAMEPAD_CONFIRM_DEFAULT;
+static uint xPointerTransform_ = POINTER_NORMAL;
+static uint yPointerTransform_ = POINTER_NORMAL;
+static uint pointerAxis_ = POINTER_NORMAL;
 
 static constexpr Key iCadeMap[12]
 {
@@ -35,6 +41,11 @@ static constexpr Key iCadeMap[12]
 	Keycode::GAME_C, Keycode::GAME_Z,
 	Keycode::GAME_START, Keycode::GAME_SELECT
 };
+
+const std::vector<Device*> &deviceList()
+{
+	return devList;
+}
 
 void setAllowKeyRepeats(bool on)
 {
@@ -86,19 +97,17 @@ void deinitKeyRepeatTimer()
 	keyRepeatEvent = {};
 }
 
-StaticArrayList<Device*, MAX_DEVS> devList;
-
 void addDevice(Device &d)
 {
 	d.idx = devList.size();
-	devList.push_back(&d);
+	devList.emplace_back(&d);
 }
 
 void removeDevice(Device &d)
 {
 	logMsg("removing device: %s,%d", d.name(), d.enumId());
 	cancelKeyRepeatTimer();
-	devList.remove(&d);
+	IG::removeFirst(devList, &d);
 	indexDevices();
 }
 
@@ -113,21 +122,16 @@ void indexDevices()
 	}
 }
 
-bool swappedGamepadConfirm = SWAPPED_GAMEPAD_CONFIRM_DEFAULT;
-
-static uint xPointerTransform_ = POINTER_NORMAL;
 void xPointerTransform(uint mode)
 {
 	xPointerTransform_ = mode;
 }
 
-static uint yPointerTransform_ = POINTER_NORMAL;
 void yPointerTransform(uint mode)
 {
 	yPointerTransform_ = mode;
 }
 
-static uint pointerAxis_ = POINTER_NORMAL;
 void pointerAxis(uint mode)
 {
 	pointerAxis_ = mode;
@@ -238,6 +242,11 @@ void setOnDeviceChange(DeviceChangeDelegate del)
 	onDeviceChange = del;
 }
 
+void setOnDevicesEnumerated(DevicesEnumeratedDelegate del)
+{
+	onDevicesEnumerated = del;
+}
+
 const char *Event::mapName(uint map)
 {
 	switch(map)
@@ -289,7 +298,7 @@ uint Event::mapNumKeys(uint map)
 Event defaultEvent()
 {
 	Event e{};
-	e.map = keyInputIsPresent() ? Event::MAP_SYSTEM : Event::MAP_POINTER;
+	e.setMap(keyInputIsPresent() ? Event::MAP_SYSTEM : Event::MAP_POINTER);
 	return e;
 }
 
@@ -310,5 +319,15 @@ IG::WindowRect sysTextInputRect()
 	return {};
 }
 #endif
+
+void setSwappedGamepadConfirm(bool swapped)
+{
+	swappedGamepadConfirm_ = swapped;
+}
+
+bool swappedGamepadConfirm()
+{
+	return swappedGamepadConfirm_;
+}
 
 }

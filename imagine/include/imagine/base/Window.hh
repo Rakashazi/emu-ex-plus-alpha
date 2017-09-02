@@ -21,7 +21,6 @@
 #include <imagine/base/WindowConfig.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
 #include <imagine/input/Input.hh>

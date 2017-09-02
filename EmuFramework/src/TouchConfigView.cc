@@ -14,7 +14,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/TouchConfigView.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuOptions.hh>
 #include <imagine/gui/AlertView.hh>
@@ -22,6 +21,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <utility>
 #include "private.hh"
+#include "privateInput.hh"
 
 static constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
 
@@ -145,12 +145,12 @@ class OnScreenInputPlaceView : public View
 public:
 	OnScreenInputPlaceView(ViewAttachParams attach): View(attach) {}
 	~OnScreenInputPlaceView();
-	IG::WindowRect &viewRect() override { return viewFrame; }
+	IG::WindowRect &viewRect() final { return viewFrame; }
 	void init();
-	void place() override;
-	bool inputEvent(Input::Event e) override;
-	void draw() override;
-	void onAddedToController(Input::Event e) override {}
+	void place() final;
+	bool inputEvent(Input::Event e) final;
+	void draw() final;
+	void onAddedToController(Input::Event e) final {}
 };
 
 void OnScreenInputPlaceView::init()
@@ -216,7 +216,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 		textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
 		screen()->addOnFrame(animate);
 	}
-	auto &d = drag[e.devId];
+	auto &d = drag[e.deviceID()];
 	dragTracker.inputEvent(e,
 		[&](Input::DragTrackerState)
 		{

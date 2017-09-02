@@ -6,7 +6,10 @@
 namespace Input
 {
 
+extern std::vector<Device*> devList;
 extern DeviceChangeDelegate onDeviceChange;
+extern DevicesEnumeratedDelegate onDevicesEnumerated;
+extern bool swappedGamepadConfirm_;
 
 void setAllowKeyRepeats(bool on);
 bool allowKeyRepeats();

@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/bits.h>
+#include <string>
 
 namespace Input
 {
@@ -59,18 +60,20 @@ public:
 	struct Change
 	{
 		uint state;
-		enum { ADDED, REMOVED, SHOWN, HIDDEN, CONNECT_ERROR };
+		enum { ADDED, REMOVED, CHANGED, SHOWN, HIDDEN, CONNECT_ERROR };
 
 		constexpr Change(uint state): state(state) {}
 		bool added() const { return state == ADDED; }
 		bool removed() const { return state == REMOVED; }
+		bool changed() const { return state == CHANGED; }
 		bool shown() const { return state == SHOWN; }
 		bool hidden() const { return state == HIDDEN; }
 		bool hadConnectError() const { return state == CONNECT_ERROR; }
 	};
 
-	constexpr Device() {}
-	constexpr Device(uint devId, uint map, uint type, const char *name_): map_{map}, type_{type}, devId{devId}, name_{name_} {}
+	Device() {}
+	Device(uint devId, uint map, uint type, const char *name):
+		name_{name}, map_{map}, type_{type}, devId{devId} {}
 	virtual ~Device() {}
 
 	bool hasKeyboard() const
@@ -94,7 +97,7 @@ public:
 	}
 
 	uint enumId() const { return devId; }
-	const char *name() const { return name_; }
+	const char *name() const { return name_.c_str(); }
 	uint map() const;
 	uint typeBits() const;
 	uint subtype() const { return subtype_; }
@@ -117,14 +120,13 @@ public:
 	static bool anyTypeBitsPresent(uint typeBits);
 
 protected:
+	std::string name_{""};
 	uint map_ = 0;
 	uint type_ = 0;
 	uint devId = 0;
 public:
 	uint subtype_ = 0;
 	uint idx = 0;
-protected:
-	const char *name_{};
 };
 
 }

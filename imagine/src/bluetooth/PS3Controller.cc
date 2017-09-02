@@ -19,11 +19,11 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include "../input/private.hh"
+#include "private.hh"
 
 using namespace IG;
 
-extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> PS3Controller::devList;
+std::vector<PS3Controller*> PS3Controller::devList;
 
 static const uint CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_DIGITAL2 = 1;
 
@@ -161,13 +161,6 @@ uint PS3Controller::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("PS3 controller opened successfully");
 		player = findFreeDevId();
-		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
-		{
-			logErr("No space left in BT input device list");
-			removeFromSystem();
-			delete this;
-			return 1;
-		}
 		devList.push_back(this);
 		btInputDevList.push_back(this);
 		sendFeatureReport();
@@ -202,8 +195,8 @@ void PS3Controller::close()
 void PS3Controller::removeFromSystem()
 {
 	close();
-	devList.remove(this);
-	if(btInputDevList.remove(this))
+	IG::removeFirst(devList, this);
+	if(IG::removeFirst(btInputDevList, this))
 	{
 		removeDevice(*this);
 		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });

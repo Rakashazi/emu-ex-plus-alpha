@@ -14,13 +14,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuInputView.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuOptions.hh>
 #include <imagine/gui/AlertView.hh>
 #include <emuframework/FilePicker.hh>
 #include "private.hh"
+#include "privateInput.hh"
 
 extern bool touchControlsAreOn;
 
@@ -56,13 +56,13 @@ bool EmuInputView::inputEvent(Input::Event e)
 	if(e.isPointer())
 	{
 		auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
-		if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps({e.x, e.y}))
+		if(e.pushed() && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps(e.pos()))
 		{
 			viewStack.top().clearSelection();
 			EmuApp::restoreMenuFromGame();
 			return true;
 		}
-		else if(e.state == Input::PUSHED && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps({e.x, e.y}))
+		else if(e.pushed() && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps(e.pos()))
 		{
 			ffToggleActive ^= true;
 			updateFastforward();
@@ -80,7 +80,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		else if(!touchControlsAreOn && (uint)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
 			&& !vController.isInKeyboardMode()
-			&& e.isTouch() && e.state == Input::PUSHED
+			&& e.isTouch() && e.pushed()
 			)
 		{
 			logMsg("turning on on-screen controls from touch input");
@@ -108,8 +108,8 @@ bool EmuInputView::inputEvent(Input::Event e)
 	}
 	else
 	{
-		assert(e.device);
-		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device->idx][e.button];
+		assert(e.device());
+		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->idx][e.mapKey()];
 		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));
 		bool didAction = false;
 		iterateTimes(KeyMapping::maxKeyActions, i)
@@ -125,13 +125,13 @@ bool EmuInputView::inputEvent(Input::Event e)
 				{
 					bcase guiKeyIdxFastForward:
 					{
-						ffKeyPushed = e.state == Input::PUSHED;
+						ffKeyPushed = e.pushed();
 						updateFastforward();
 						logMsg("fast-forward key state: %d", ffKeyPushed);
 					}
 
 					bcase guiKeyIdxLoadGame:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						logMsg("open load game menu from key event");
 						EmuApp::restoreMenuFromGame();
@@ -142,7 +142,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					}
 
 					bcase guiKeyIdxMenu:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						logMsg("open menu from key event");
 						EmuApp::restoreMenuFromGame();
@@ -150,7 +150,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					}
 
 					bcase guiKeyIdxSaveState:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						static auto doSaveState =
 							[]()
@@ -191,7 +191,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					}
 
 					bcase guiKeyIdxLoadState:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						if(auto err = EmuApp::loadStateWithSlot(EmuSystem::saveStateSlot);
 							err)
@@ -202,7 +202,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					}
 
 					bcase guiKeyIdxDecStateSlot:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						EmuSystem::saveStateSlot--;
 						if(EmuSystem::saveStateSlot < -1)
@@ -211,7 +211,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					}
 
 					bcase guiKeyIdxIncStateSlot:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						auto prevSlot = EmuSystem::saveStateSlot;
 						EmuSystem::saveStateSlot++;
@@ -221,14 +221,14 @@ bool EmuInputView::inputEvent(Input::Event e)
 					}
 
 					bcase guiKeyIdxGameScreenshot:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						emuVideo.takeGameScreenshot();
 						return true;
 					}
 
 					bcase guiKeyIdxExit:
-					if(e.state == Input::PUSHED)
+					if(e.pushed())
 					{
 						logMsg("request exit from key event");
 						auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really Exit?"};
@@ -250,7 +250,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 						//logMsg("action %d -> %d, pushed %d", action, sysAction, e.state == Input::PUSHED);
 						if(turbo)
 						{
-							if(e.state == Input::PUSHED)
+							if(e.pushed())
 							{
 								turboActions.addEvent(sysAction);
 							}
@@ -259,7 +259,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 								turboActions.removeEvent(sysAction);
 							}
 						}
-						EmuSystem::handleInputAction(e.state, sysAction);
+						EmuSystem::handleInputAction(e.state(), sysAction);
 					}
 				}
 			}

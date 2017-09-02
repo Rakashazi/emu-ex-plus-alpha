@@ -17,7 +17,6 @@
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/bits.h>
-#include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -39,35 +38,32 @@ struct XIEventMaskData
 struct XInputDevice : public Device
 {
 	int id = -1;
-	char nameStr[80]{};
 	bool iCadeMode_ = false;
 
-	constexpr XInputDevice() {}
+	XInputDevice() {}
 
-	constexpr XInputDevice(uint typeBits, const char *name):
+	XInputDevice(uint typeBits, const char *name):
 		Device(0, Event::MAP_SYSTEM, typeBits, name)
 	{}
 
 	XInputDevice(const XIDeviceInfo &info, int enumId):
-		Device(enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEYBOARD, nameStr),
+		Device(enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEYBOARD, info.name),
 		id(info.deviceid)
-	{
-		string_copy(nameStr, info.name);
-	}
+	{}
 
-	void setICadeMode(bool on) override
+	void setICadeMode(bool on) final
 	{
 		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
 		iCadeMode_ = on;
 	}
 
-	bool iCadeMode() const override
+	bool iCadeMode() const final
 	{
 		return iCadeMode_;
 	}
 };
 
-static StaticArrayList<XInputDevice*, 16> xDevice;
+static std::vector<std::unique_ptr<XInputDevice>> xDevice;
 static Cursor blankCursor{};
 static Cursor normalCursor{};
 static uint numCursors = 0;
@@ -82,7 +78,7 @@ static const Device *deviceForInputId(int osId)
 	{
 		if(xDevice[i]->id == osId)
 		{
-			return xDevice[i];
+			return xDevice[i].get();
 		}
 	}
 	if(!vkbDevice)
@@ -218,8 +214,8 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
 		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
 	}
-	auto dev = new XInputDevice(xDevInfo, devId);
-	xDevice.push_back(dev);
+	xDevice.emplace_back(std::make_unique<XInputDevice>(xDevInfo, devId));
+	auto dev = xDevice.back().get();
 	addDevice(*dev);
 	if(Config::MACHINE_IS_PANDORA && (string_equal(xDevInfo.name, "gpio-keys")
 		|| string_equal(xDevInfo.name, "keypad")))
@@ -234,14 +230,13 @@ static void removeXInputDevice(int xDeviceId)
 {
 	forEachInContainer(xDevice, e)
 	{
-		auto dev = *e;
+		auto dev = e->get();
 		if(dev->id == xDeviceId)
 		{
 			auto removedDev = *dev;
 			removeDevice(*dev);
-			xDevice.erase(e);
+			xDevice.erase(e.it);
 			onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
-			delete dev;
 			return;
 		}
 	}
@@ -269,7 +264,7 @@ static Key keysymToKey(KeySym k)
 	return k <= 0xFFFF ? k : k & 0xEFFF;
 }
 
-void init()
+void init(Display *dpy)
 {
 	setupXInput2(dpy);
 
@@ -413,7 +408,7 @@ bool handleXI2GenericEvent(XEvent &event)
 					bool isShiftPushed = ievent.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);
 					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, time, dev};
-					ev.rawKey = ievent.detail;
+					ev.setX11RawKey(ievent.detail);
 					win.dispatchInputEvent(ev);
 				}
 			}

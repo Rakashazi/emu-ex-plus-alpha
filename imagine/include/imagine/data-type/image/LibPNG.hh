@@ -63,10 +63,10 @@ public:
 		return load(openAppAssetIO(name).makeGeneric());
 	}
 	void deinit();
-	std::errc write(IG::Pixmap dest) override;
-	IG::Pixmap lockPixmap() override;
-	void unlockPixmap() override;
-	explicit operator bool() const override;
+	std::errc write(IG::Pixmap dest) final;
+	IG::Pixmap lockPixmap() final;
+	void unlockPixmap() final;
+	explicit operator bool() const final;
 
 private:
 	Png png;

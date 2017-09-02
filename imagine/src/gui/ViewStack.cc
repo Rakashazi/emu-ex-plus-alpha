@@ -124,7 +124,7 @@ void ViewStack::place()
 
 bool ViewStack::inputEvent(Input::Event e)
 {
-	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps({e.x, e.y}))
+	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps(e.pos()))
 	{
 		return nav->inputEvent(e);
 	}

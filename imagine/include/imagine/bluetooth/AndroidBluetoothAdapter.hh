@@ -29,14 +29,14 @@ class AndroidBluetoothAdapter : public BluetoothAdapter
 public:
 	AndroidBluetoothAdapter() {}
 	static AndroidBluetoothAdapter *defaultAdapter();
-	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) override;
-	void cancelScan() override;
-	void close() override;
+	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
+	void cancelScan() final;
+	void close() final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	void setL2capService(uint psm, bool active) override;
+	void setL2capService(uint psm, bool active) final;
 	#endif
-	State state() override;
-	void setActiveState(bool on, OnStateChangeDelegate onStateChange) override;
+	State state() final;
+	void setActiveState(bool on, OnStateChangeDelegate onStateChange) final;
 	bool handleScanClass(uint classInt);
 	void handleScanName(JNIEnv *env, jstring name, jstring addr);
 	void handleScanStatus(int status);
@@ -57,13 +57,13 @@ class AndroidBluetoothSocket : public BluetoothSocket
 {
 public:
 	AndroidBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint psm) override;
-	CallResult openRfcomm(BluetoothAddr addr, uint channel) override;
+	CallResult openL2cap(BluetoothAddr addr, uint psm) final;
+	CallResult openRfcomm(BluetoothAddr addr, uint channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	CallResult open(BluetoothPendingSocket &socket) override;
+	CallResult open(BluetoothPendingSocket &socket) final;
 	#endif
-	void close() override;
-	CallResult write(const void *data, size_t size) override;
+	void close() final;
+	CallResult write(const void *data, size_t size) final;
 	void onStatusDelegateMessage(int arg);
 
 private:

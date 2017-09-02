@@ -4,6 +4,8 @@
 #include <imagine/base/Window.hh>
 #include <android/input.h>
 #include <android/configuration.h>
+#include <vector>
+#include <memory>
 
 namespace Base
 {
@@ -48,12 +50,11 @@ namespace Input
 {
 
 class AndroidInputDevice;
-extern Device *virtualDev;
-extern AndroidInputDevice genericKeyDev;
-static constexpr uint maxSysInputDevs = MAX_DEVS;
-extern StaticArrayList<AndroidInputDevice*, maxSysInputDevs> sysInputDev;
+extern const AndroidInputDevice *virtualDev;
+extern std::vector<std::unique_ptr<AndroidInputDevice>> sysInputDev;
 extern void (*processInput)(AInputQueue *inputQueue);
 
+void init(JNIEnv *env);
 void setEventsUseOSInputMethod(bool on);
 bool eventsUseOSInputMethod();
 void initInputConfig(AConfiguration* config);
@@ -66,6 +67,10 @@ void processInputWithHasEvents(AInputQueue *inputQueue);
 void onPauseMOGA(JNIEnv *env);
 void onResumeMOGA(JNIEnv *env, bool notify);
 bool hasGetAxisValue();
+void registerDeviceChangeListener();
+void unregisterDeviceChangeListener();
+bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify);
+bool removeInputDevice(int id, bool notify);
 
 }
 

@@ -14,11 +14,14 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/io/FileIO.hh>
+#include "privateInput.hh"
+
+static constexpr uint KEY_CONFIGS_HARD_LIMIT = 256;
+static constexpr uint INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
 
 static bool readKeyConfig(IO &io, uint16 &size)
 {
@@ -101,8 +104,13 @@ static bool readKeyConfig(IO &io, uint16 &size)
 		}
 
 		logMsg("read key config %s", keyConf.name);
-		if(!customKeyConfig.addToEnd(keyConf))
-			return false;
+		customKeyConfig.push_back(keyConf);
+
+		if(customKeyConfig.size() == KEY_CONFIGS_HARD_LIMIT)
+		{
+			logWarn("reached custom key config hard limit:%d", KEY_CONFIGS_HARD_LIMIT);
+			break;
+		}
 	}
 	return true;
 }
@@ -270,7 +278,7 @@ static bool readConfig2(IO &io)
 				if(size)
 				{
 					// skip leftover bytes
-					logWarn("%d bytes leftover reading key configs due to invalid data", size);
+					logWarn("%d bytes leftover reading key configs", size);
 				}
 			}
 			bcase CFGKEY_INPUT_DEVICE_CONFIGS:
@@ -380,13 +388,18 @@ static bool readConfig2(IO &io)
 					}
 
 					logMsg("read input device config %s, id %d", devConf.name, devConf.enumId);
-					if(!savedInputDevList.addToEnd(devConf))
+					savedInputDevList.push_back(devConf);
+
+					if(savedInputDevList.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
+					{
+						logWarn("reached input device config hard limit:%d", INPUT_DEVICE_CONFIGS_HARD_LIMIT);
 						break;
+					}
 				}
 				if(size)
 				{
 					// skip leftover bytes
-					logWarn("%d bytes leftover reading input device configs due to invalid data", size);
+					logWarn("%d bytes leftover reading input device configs", size);
 				}
 			}
 		}
@@ -524,8 +537,9 @@ static void writeConfig2(IO &io)
 
 	if(customKeyConfig.size())
 	{
-		bool writeCategory[MAX_CUSTOM_KEY_CONFIGS][EmuControls::categories];
-		uint8 writeCategories[MAX_CUSTOM_KEY_CONFIGS] {0};
+		bool writeCategory[customKeyConfig.size()][EmuControls::categories];
+		uint8 writeCategories[customKeyConfig.size()];
+		std::fill_n(writeCategories, customKeyConfig.size(), 0);
 		// compute total size
 		static_assert(sizeof(KeyConfig::name) <= 255, "key config name array is too large");
 		uint bytes = 2; // config key size
@@ -567,7 +581,7 @@ static void writeConfig2(IO &io)
 			bug_unreachable("excessive key config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d key configs, %d bytes", customKeyConfig.size(), bytes);
+		logMsg("saving %d key configs, %d bytes", (int)customKeyConfig.size(), bytes);
 		io.writeVal(uint16(bytes), &ec);
 		io.writeVal((uint16)CFGKEY_INPUT_KEY_CONFIGS, &ec);
 		io.writeVal((uint8)customKeyConfig.size(), &ec);
@@ -625,7 +639,7 @@ static void writeConfig2(IO &io)
 			bug_unreachable("excessive input device config size, should not happen");
 		}
 		// write to config file
-		logMsg("saving %d input device configs, %d bytes", savedInputDevList.size(), bytes);
+		logMsg("saving %d input device configs, %d bytes", (int)savedInputDevList.size(), bytes);
 		io.writeVal((uint16)bytes, &ec);
 		io.writeVal((uint16)CFGKEY_INPUT_DEVICE_CONFIGS, &ec);
 		io.writeVal((uint8)savedInputDevList.size(), &ec);

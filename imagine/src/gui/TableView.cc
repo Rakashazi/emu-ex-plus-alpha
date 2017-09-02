@@ -259,7 +259,7 @@ int TableView::prevSelectableElement(int start, int items)
 	return -1;
 }
 
-bool TableView::handleTableInput(Input::Event e, bool movedSelected)
+bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 {
 	using namespace IG;
 	auto cells_ = items(*this);
@@ -267,19 +267,19 @@ bool TableView::handleTableInput(Input::Event e, bool movedSelected)
 		return false;
 	if(e.isPointer())
 	{
-		if(!pointIsInView(e.pos()) || e.button != Input::Pointer::LBUTTON)
+		if(!pointIsInView(e.pos()) || e.mapKey() != Input::Pointer::LBUTTON)
 		{
 			//logMsg("cursor not in table");
 			return false;
 		}
-		int i = ((e.y + scrollOffset()) - viewRect().y) / yCellSize;
+		int i = ((e.pos().y + scrollOffset()) - viewRect().y) / yCellSize;
 		if(i < 0 || i >= cells_)
 		{
 			//logMsg("pushed outside of item bounds");
 			return false;
 		}
 		auto &it = item(*this, i);
-		if(e.state == Input::PUSHED)
+		if(e.state() == Input::PUSHED)
 		{
 			logMsg("input pushed on cell %d", i);
 			if(i >= 0 && i < cells_ && elementIsSelectable(it))
@@ -288,7 +288,7 @@ bool TableView::handleTableInput(Input::Event e, bool movedSelected)
 				postDraw();
 			}
 		}
-		else if(e.state == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
+		else if(e.state() == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
 		{
 			//logMsg("input released on cell %d", i);
 			if(i >= 0 && i < cells_ && selected == i && elementIsSelectable(it))
@@ -305,10 +305,10 @@ bool TableView::handleTableInput(Input::Event e, bool movedSelected)
 	else // Key or Relative Pointer
 	{
 		if(e.isRelativePointer())
-			logMsg("got rel pointer %d", e.y);
+			logMsg("got rel pointer %d", e.pos().y);
 
 		if((e.pushed() && e.isDefaultUpButton())
-			|| (e.isRelativePointer() && e.y < 0))
+			|| (e.isRelativePointer() && e.pos().y < 0))
 		{
 			//logMsg("move up %d", selected);
 			if(selected == -1)
@@ -321,7 +321,7 @@ bool TableView::handleTableInput(Input::Event e, bool movedSelected)
 			return true;
 		}
 		else if((e.pushed() && e.isDefaultDownButton())
-			|| (e.isRelativePointer() && e.y > 0))
+			|| (e.isRelativePointer() && e.pos().y > 0))
 		{
 			if(selected == -1)
 				selected = nextSelectableElement(0, cells_);

@@ -1126,7 +1126,7 @@ public:
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
-	void onShow() override
+	void onShow() final
 	{
 		MenuView::onShow();
 		c64IOControl.setActive(EmuSystem::gameIsRunning());

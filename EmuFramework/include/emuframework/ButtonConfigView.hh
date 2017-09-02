@@ -17,8 +17,10 @@
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <emuframework/EmuInput.hh>
+
 class InputManagerView;
+struct InputDeviceConfig;
+struct KeyCategory;
 
 class ButtonConfigSetView : public View
 {
@@ -48,12 +50,12 @@ public:
 		View{attach}, rootIMView{rootIMView}
 	{}
 	~ButtonConfigSetView();
-	IG::WindowRect &viewRect() override { return viewFrame; }
+	IG::WindowRect &viewRect() final { return viewFrame; }
 	void init(Input::Device &dev, const char *actionName, SetDelegate onSet);
-	void place() override;
-	bool inputEvent(Input::Event e) override;
-	void draw() override;
-	void onAddedToController(Input::Event e) override;
+	void place() final;
+	bool inputEvent(Input::Event e) final;
+	void draw() final;
+	void onAddedToController(Input::Event e) final;
 };
 
 class ButtonConfigView : public TableView
@@ -62,7 +64,7 @@ private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
 		using DualTextMenuItem::DualTextMenuItem;
-		void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+		void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
 	};
 
 	InputManagerView &rootIMView;
@@ -87,6 +89,6 @@ private:
 
 public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
-	~ButtonConfigView() override;
-	bool inputEvent(Input::Event e) override;
+	~ButtonConfigView() final;
+	bool inputEvent(Input::Event e) final;
 };

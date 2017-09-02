@@ -2,6 +2,9 @@
 
 #include <algorithm>
 
+namespace IG
+{
+
 template <class T>
 struct ReverseRange
 {
@@ -67,4 +70,16 @@ public:
 	operator Iterator() const { return it; }
 };
 
-#define forEachInContainer(container, it) for(ForEachIteratorWrapper<decltype(container)> it {container, (container).begin()}; it != (container).end(); ++it)
+#define forEachInContainer(container, it) for(IG::ForEachIteratorWrapper<decltype(container)> it {container, (container).begin()}; it != (container).end(); ++it)
+
+template <class C, class T>
+static bool removeFirst(C &c, const T &val)
+{
+	auto it = std::find(c.begin(), c.end(), val);
+	if(it == c.end())
+		return false;
+	c.erase(it);
+	return true;
+}
+
+}

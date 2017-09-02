@@ -33,10 +33,10 @@ struct GraphicBufferStorage: public DirectTextureStorage
 	static bool testPassed;
 
 	GraphicBufferStorage(EGLDisplay eglDpy): eglDpy{eglDpy} {}
-	~GraphicBufferStorage() override;
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) override;
-	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) override;
-	void unlock(Renderer &r, GLuint tex) override;
+	~GraphicBufferStorage() final;
+	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
+	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) final;
+	void unlock(Renderer &r, GLuint tex) final;
 	void resetImage();
 	void reset();
 	static bool isRendererWhitelisted(const char *rendererStr);

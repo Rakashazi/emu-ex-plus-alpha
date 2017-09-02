@@ -15,6 +15,7 @@
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
 #include "system.h"

@@ -39,7 +39,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 		iterateTimes(mapPix.h(), y)
 			iterateTimes(mapPix.w(), x)
 			{
-				int input = getInput(padArea.xPos(LT2DO) + x, padArea.yPos(LT2DO) + y);
+				int input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
 				//logMsg("got input %d", input);
 				*((uint16*)mapPix.pixel({(int)x, (int)y})) = input == -1 ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
 										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
@@ -139,11 +139,11 @@ void VControllerDPad::draw(Gfx::Renderer &r) const
 	}
 }
 
-int VControllerDPad::getInput(int cx, int cy) const
+int VControllerDPad::getInput(IG::WP c) const
 {
-	if(padArea.overlaps({cx, cy}))
+	if(padArea.overlaps(c))
 	{
-		int x = cx - padArea.xCenter(), y = cy - padArea.yCenter();
+		int x = c.x - padArea.xCenter(), y = c.y - padArea.yCenter();
 		int xDeadzone = deadzone, yDeadzone = deadzone;
 		if(std::abs(x) > deadzone)
 			yDeadzone += (std::abs(x) - deadzone)/diagonalSensitivity;
@@ -219,11 +219,11 @@ void VControllerKeyboard::draw(Gfx::Renderer &r) const
 	spr.draw(r);
 }
 
-int VControllerKeyboard::getInput(int cx, int cy) const
+int VControllerKeyboard::getInput(IG::WP c) const
 {
-	if(bound.overlaps({cx, cy}))
+	if(bound.overlaps(c))
 	{
-		int relX = cx - bound.x, relY = cy - bound.y;
+		int relX = c.x - bound.x, relY = c.y - bound.y;
 		uint row = relY/keyYSize;
 		uint col;
 		if((mode == 0 && row == 1) || row == 2)
@@ -511,13 +511,13 @@ void VControllerGamepad::setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels)
 	rTriggerBound = IG::makeWindowRectRel({0, 0}, {btnSizePixels, btnSizePixels});
 }
 
-std::array<int, 2> VControllerGamepad::getCenterBtnInput(int x, int y) const
+std::array<int, 2> VControllerGamepad::getCenterBtnInput(IG::WP pos) const
 {
 	std::array<int, 2> btnOut{-1, -1};
 	uint count = 0;
 	iterateTimes(EmuSystem::inputCenterBtns, i)
 	{
-		if(centerBtnBound[i].overlaps({x, y}))
+		if(centerBtnBound[i].overlaps(pos))
 		{
 			//logMsg("overlaps %d", (int)i);
 			btnOut[count] = i;
@@ -529,7 +529,7 @@ std::array<int, 2> VControllerGamepad::getCenterBtnInput(int x, int y) const
 	return btnOut;
 }
 
-std::array<int, 2> VControllerGamepad::getBtnInput(int x, int y) const
+std::array<int, 2> VControllerGamepad::getBtnInput(IG::WP pos) const
 {
 	std::array<int, 2> btnOut{-1, -1};
 	uint count = 0;
@@ -538,7 +538,7 @@ std::array<int, 2> VControllerGamepad::getBtnInput(int x, int y) const
 	{
 		iterateTimes(doSeparateTriggers ? EmuSystem::inputFaceBtns-2 : activeFaceBtns, i)
 		{
-			if(faceBtnBound[i].overlaps({x, y}))
+			if(faceBtnBound[i].overlaps(pos))
 			{
 				//logMsg("overlaps %d", (int)i);
 				btnOut[count] = i;
@@ -553,7 +553,7 @@ std::array<int, 2> VControllerGamepad::getBtnInput(int x, int y) const
 	{
 		if(lTriggerState)
 		{
-			if(faceBtnBound[lTriggerIdx()].overlaps({x, y}))
+			if(faceBtnBound[lTriggerIdx()].overlaps(pos))
 			{
 				btnOut[count] = lTriggerIdx();
 				count++;
@@ -563,7 +563,7 @@ std::array<int, 2> VControllerGamepad::getBtnInput(int x, int y) const
 		}
 		if(rTriggerState)
 		{
-			if(faceBtnBound[rTriggerIdx()].overlaps({x, y}))
+			if(faceBtnBound[rTriggerIdx()].overlaps(pos))
 			{
 				btnOut[count] = rTriggerIdx();
 				count++;
@@ -797,7 +797,7 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 {
 	if(isInKeyboardMode())
 	{
-		int kbChar = kb.getInput(e.x, e.y);
+		int kbChar = kb.getInput(e.pos());
 		if(kbChar == -1)
 			return {-1, -1};
 		if(kbChar == 30 && e.pushed())
@@ -821,7 +821,7 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if(gp.centerBtnsState != 0)
 	{
-		auto elem = gp.getCenterBtnInput(e.x, e.y);
+		auto elem = gp.getCenterBtnInput(e.pos());
 		if(elem[0] != -1)
 		{
 			return {C_ELEM + elem[0], elem[1] != -1 ? C_ELEM + elem[1] : -1};
@@ -829,7 +829,7 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 	}
 
 	{
-		auto elem = gp.getBtnInput(e.x, e.y);
+		auto elem = gp.getBtnInput(e.pos());
 		if(elem[0] != -1)
 		{
 			return {F_ELEM + elem[0], elem[1] != -1 ? F_ELEM + elem[1] : -1};
@@ -838,7 +838,7 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 
 	if(gp.dp.state != 0)
 	{
-		int elem = gp.dp.getInput(e.x, e.y);
+		int elem = gp.dp.getInput(e.pos());
 		if(elem != -1)
 		{
 			return {D_ELEM + elem, -1};
@@ -852,7 +852,7 @@ void VController::applyInput(Input::Event e)
 {
 	using namespace IG;
 	assert(e.isPointer());
-	auto &currElem = ptrElem[e.devId];
+	auto &currElem = ptrElem[e.deviceID()];
 	std::array<int, 2> elem{-1, -1};
 	if(e.isPointerPushed(Input::Pointer::LBUTTON)) // make sure the cursor isn't hovering
 		elem = findElementUnderPos(e);

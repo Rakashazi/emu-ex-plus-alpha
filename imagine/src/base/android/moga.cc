@@ -32,29 +32,59 @@ static jobject mogaHelper{};
 static JavaInstMethod<jobject()> jNewMOGAHelper{};
 static JavaInstMethod<jint(jint)> jMOGAGetState{};
 static JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
-static AndroidInputDevice mogaDev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK};
-static bool mogaConnected = false;
+static AndroidInputDevice *mogaDev{};
+
+static AndroidInputDevice makeMOGADevice(const char *name)
+{
+	AndroidInputDevice dev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name};
+	dev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
+	dev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
+	// set joystick axes
+	{
+		const uint8 stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
+		for(auto axisId : stickAxes)
+		{
+			//logMsg("joystick axis: %d", axisId);
+			auto size = 2.0f;
+			dev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
+				Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
+		}
+	}
+	// set trigger axes
+	{
+		const uint8 triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER };
+		for(auto axisId : triggerAxes)
+		{
+			//logMsg("trigger axis: %d", axisId);
+			// use unreachable lowLimit value so only highLimit is used
+			dev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
+				0, axisToKeycode(axisId), 0, axisToKeycode(axisId)});
+		}
+	}
+	dev.joystickAxisAsDpadBitsDefault_ = Device::AXIS_BITS_STICK_1;
+	dev.setJoystickAxisAsDpadBits(Device::AXIS_BITS_STICK_1);
+	return dev;
+}
 
 static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
 {
+	bool mogaConnected = mogaDev;
 	if(connected != mogaConnected)
 	{
 		if(connected)
 		{
 			logMsg("MOGA connected");
-			string_copy(mogaDev.nameStr, jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller");
-			addDevice(mogaDev);
-			if(notify)
-				onDeviceChange.callCopySafe(mogaDev, {Device::Change::ADDED});
+			const char *name = jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller";
+			sysInputDev.reserve(2);
+			addInputDevice(makeMOGADevice(name), false, notify);
+			mogaDev = sysInputDev.back().get();
 		}
 		else
 		{
 			logMsg("MOGA disconnected");
-			removeDevice(mogaDev);
-			if(notify)
-				onDeviceChange.callCopySafe(mogaDev, {Device::Change::REMOVED});
+			mogaDev = {};
+			removeInputDevice(0, notify);
 		}
-		mogaConnected = connected;
 	}
 }
 
@@ -75,13 +105,13 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			(void*)(void (*)(JNIEnv*, jobject, jint, jint, jlong))
 			([](JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong timestamp)
 			{
-				assert(mogaConnected);
+				assert(mogaDev);
 				//logMsg("MOGA key event: %d %d %d", action, keyCode, (int)time);
 				assert((uint)keyCode < Keycode::COUNT);
 				Base::endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = Time::makeWithNSecs(timestamp);
-				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, time, &mogaDev};
+				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, time, mogaDev};
 				startKeyRepeatTimer(event);
 				Base::mainWindow().dispatchInputEvent(event);
 			})
@@ -91,16 +121,16 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			(void*)(void (*)(JNIEnv*, jobject, jfloat, jfloat, jfloat, jfloat, jfloat, jfloat, jlong))
 			([](JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
 			{
-				assert(mogaConnected);
+				assert(mogaDev);
 				Base::endIdleByUserActivity();
 				auto time = Time::makeWithNSecs(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
-				mogaDev.axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
-				mogaDev.axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
-				mogaDev.axis[2].keyEmu.dispatch(z, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
-				mogaDev.axis[3].keyEmu.dispatch(rz, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
-				mogaDev.axis[4].keyEmu.dispatch(lTrigger, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
-				mogaDev.axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, time, mogaDev, Base::mainWindow());
+				mogaDev->axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
+				mogaDev->axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
+				mogaDev->axis[2].keyEmu.dispatch(z, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
+				mogaDev->axis[3].keyEmu.dispatch(rz, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
+				mogaDev->axis[4].keyEmu.dispatch(lTrigger, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
+				mogaDev->axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
 			})
 		},
 		{
@@ -117,33 +147,6 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		}
 	};
 	env->RegisterNatives(mogaHelperCls, method, IG::size(method));
-
-	mogaDev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
-	mogaDev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
-	// set joystick axes
-	{
-		const uint8 stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
-		for(auto axisId : stickAxes)
-		{
-			//logMsg("joystick axis: %d", axisId);
-			auto size = 2.0f;
-			mogaDev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
-				Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
-		}
-	}
-	// set trigger axes
-	{
-		const uint8 triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER };
-		for(auto axisId : triggerAxes)
-		{
-			//logMsg("trigger axis: %d", axisId);
-			// use unreachable lowLimit value so only highLimit is used
-			mogaDev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
-				0, axisToKeycode(axisId), 0, axisToKeycode(axisId)});
-		}
-	}
-	mogaDev.joystickAxisAsDpadBitsDefault_ = Device::AXIS_BITS_STICK_1;
-	mogaDev.setJoystickAxisAsDpadBits(Device::AXIS_BITS_STICK_1);
 }
 
 void initMOGA(bool notify)
@@ -175,13 +178,9 @@ void deinitMOGA()
 	auto env = Base::jEnv();
 	jMOGAExit(env, mogaHelper);
 	env->DeleteGlobalRef(mogaHelper);
-	mogaHelper = nullptr;
-	if(IG::contains(devList, &mogaDev))
-	{
-		mogaConnected = false;
-		removeDevice(mogaDev);
-		onDeviceChange.callCopySafe(mogaDev, { Device::Change::REMOVED });
-	}
+	mogaHelper = {};
+	removeInputDevice(0, true);
+	mogaDev = {};
 }
 
 bool mogaSystemIsActive()

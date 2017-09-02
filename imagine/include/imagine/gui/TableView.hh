@@ -84,6 +84,6 @@ protected:
 	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
-	bool handleTableInput(Input::Event e, bool movedSelected);
+	bool handleTableInput(Input::Event e, bool &movedSelected);
 	virtual void drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const;
 };

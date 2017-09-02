@@ -454,6 +454,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new IdleHelper();
 	}
 	
+	InputDeviceHelper inputDeviceHelper()
+	{
+		return new InputDeviceHelper();
+	}
+	
 	InputDeviceListenerHelper inputDeviceListenerHelper()
 	{
 		return new InputDeviceListenerHelper(this);

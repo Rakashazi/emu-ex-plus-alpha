@@ -111,7 +111,7 @@ EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, bool singl
 
 bool EmuFilePicker::inputEvent(Input::Event e)
 {
-	if(e.state == Input::PUSHED)
+	if(e.pushed())
 	{
 		if(e.isDefaultCancelButton())
 		{

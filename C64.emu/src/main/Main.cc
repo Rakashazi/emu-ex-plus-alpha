@@ -14,7 +14,8 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/thread/Semaphore.hh>

@@ -85,6 +85,6 @@ public:
 
 public:
 	TouchConfigView(ViewAttachParams attach, const char *faceBtnName, const char *centerBtnName);
-	void place() override;
-	void draw() override;
+	void place() final;
+	void draw() final;
 };

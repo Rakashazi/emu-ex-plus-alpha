@@ -26,7 +26,6 @@
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/Option.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/FileUtils.hh>
 
 class EmuApp

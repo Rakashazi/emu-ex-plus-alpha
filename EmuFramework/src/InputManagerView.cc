@@ -20,6 +20,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/Base.hh>
 #include "private.hh"
+#include "privateInput.hh"
 
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
@@ -43,12 +44,12 @@ void IdentInputDeviceView::place()
 
 bool IdentInputDeviceView::inputEvent(Input::Event e)
 {
-	if(e.isPointer() && e.state == Input::RELEASED)
+	if(e.isPointer() && e.released())
 	{
 		dismiss();
 		return true;
 	}
-	else if(!e.isPointer() && e.state == Input::PUSHED)
+	else if(!e.isPointer() && e.pushed())
 	{
 		auto del = onIdentInput;
 		dismiss();
@@ -84,13 +85,12 @@ static void removeKeyConfFromAllDevices(const KeyConfig *conf)
 	}
 }
 
-template <size_t S>
-static void printfDeviceNameWithNumber(char (&buffer)[S], const char *name, uint id)
+static InputManagerView::DeviceNameString makePrintfDeviceNameWithNumber(const char *name, uint id)
 {
 	char idStr[sizeof(" #00")] = "";
 	if(id)
 		string_printf(idStr, " #%d", id + 1);
-	string_printf(buffer, "%s%s", name, idStr);
+	return string_makePrintf<sizeof(InputManagerView::DeviceNameString)>("%s%s", name, idStr);
 }
 
 InputManagerView::InputManagerView(ViewAttachParams attach):
@@ -105,15 +105,17 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 				popup.post("No saved device settings");
 				return;
 			}
-			uint devs = 0;
+			uint devs = savedInputDevList.size();
+			deviceConfigStr.clear();
+			deviceConfigStr.reserve(devs);
 			for(auto &e : savedInputDevList)
 			{
-				printfDeviceNameWithNumber(deviceConfigStr[devs++], e.name, e.enumId);
+				deviceConfigStr.emplace_back(makePrintfDeviceNameWithNumber(e.name, e.enumId));
 			}
 			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), devs};
 			iterateTimes(devs, i)
 			{
-				multiChoiceView.appendItem(deviceConfigStr[i],
+				multiChoiceView.appendItem(deviceConfigStr[i].data(),
 					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						pop();
@@ -129,7 +131,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 									++it;
 								}
 								logMsg("deleting device settings for: %s,%d", it->name, it->enumId);
-								iterateTimes(inputDevConfs, i)
+								iterateTimes(inputDevConf.size(), i)
 								{
 									if(inputDevConf[i].savedConf == &(*it))
 									{
@@ -158,10 +160,12 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 				popup.post("No saved profiles");
 				return;
 			}
-			uint profiles = 0;
+			uint profiles = customKeyConfig.size();
+			profileStr.clear();
+			profileStr.reserve(profiles);
 			for(auto &e : customKeyConfig)
 			{
-				profileStr[profiles++] = e.name;
+				profileStr.emplace_back(e.name);
 			}
 			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), profiles};
 			iterateTimes(profiles, i)
@@ -200,9 +204,9 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			using namespace Input;
-			Input::devicesChanged();
+			Input::enumDevices();
 			uint devices = 0;
-			for(auto &e : Input::devList)
+			for(auto &e : Input::deviceList())
 			{
 				if(e->map() == Event::MAP_SYSTEM || e->map() == Event::MAP_ICADE)
 					devices++;
@@ -221,11 +225,11 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			identView.onIdentInput =
 				[this](Input::Event e)
 				{
-					auto dev = e.device;
+					auto dev = e.device();
 					if(dev)
 					{
 						auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[dev->idx]};
-						imdMenu.setName(inputDevNameStr[dev->idx]);
+						imdMenu.setName(inputDevName[dev->idx].t.str);
 						pushAndShow(imdMenu, e);
 					}
 				};
@@ -281,6 +285,7 @@ InputManagerView::~InputManagerView()
 void InputManagerView::loadItems()
 {
 	item.clear();
+	item.reserve(16);
 	item.emplace_back(&identDevice);
 	item.emplace_back(&generalOptions);
 	if(EmuSystem::inputHasOptionsView)
@@ -296,28 +301,34 @@ void InputManagerView::loadItems()
 	}
 	#endif
 	item.emplace_back(&deviceListHeading);
-	int devs = 0;
-	for(auto &e : Input::devList)
+	inputDevName.clear();
+	inputDevNameStr.clear();
+	inputDevName.reserve(Input::deviceList().size());
+	inputDevNameStr.reserve(Input::deviceList().size());
+	for(auto &e : Input::deviceList())
 	{
-		printfDeviceNameWithNumber(inputDevNameStr[devs], e->name(), e->enumId());
-		inputDevName[devs] = {inputDevNameStr[devs],
-			[this, devs](TextMenuItem &, View &, Input::Event e)
+		inputDevNameStr.emplace_back(makePrintfDeviceNameWithNumber(e->name(), e->enumId()));
+		inputDevName.emplace_back(inputDevNameStr.back().data(),
+			[this, idx = inputDevName.size()](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[devs]};
-				imdMenu.setName(inputDevNameStr[devs]);
+				auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[idx]};
+				imdMenu.setName(inputDevName[idx].t.str);
 				pushAndShow(imdMenu, e);
-			}};
-		item.emplace_back(&inputDevName[devs]);
-		devs++;
+			});
+		item.emplace_back(&inputDevName.back());
 	}
 }
-
 
 void InputManagerView::onShow()
 {
 	TableView::onShow();
 	deleteDeviceConfig.setActive(savedInputDevList.size());
 	deleteProfile.setActive(customKeyConfig.size());
+}
+
+const char *InputManagerView::deviceName(uint idx) const
+{
+	return inputDevName[idx].t.str;
 }
 
 #ifdef CONFIG_BLUETOOTH_SCAN_SECS
@@ -489,10 +500,10 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	altGamepadConfirm
 	{
 		"Swap Confirm/Cancel Keys",
-		Input::swappedGamepadConfirm,
+		Input::swappedGamepadConfirm(),
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			Input::swappedGamepadConfirm = item.flipBoolValue(*this);
+			Input::setSwappedGamepadConfirm(item.flipBoolValue(*this));
 		}
 	}
 {
@@ -539,7 +550,7 @@ public:
 		{
 			"Key Profile",
 			attach,
-			customKeyConfig.size() + MAX_DEFAULT_KEY_CONFIGS_PER_TYPE
+			(uint)customKeyConfig.size() + MAX_DEFAULT_KEY_CONFIGS_PER_TYPE
 		}
 	{
 		for(auto &conf : customKeyConfig)
@@ -666,11 +677,6 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 		"New Profile",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			if(customKeyConfig.isFull())
-			{
-				popup.postError("No space left for new key profiles, please delete one");
-				return;
-			}
 			auto &ynAlertView = *new YesNoAlertView{attachParams(),
 				"Create a new profile? All keys from the current profile will be copied over."};
 			ynAlertView.setOnYes(
@@ -687,13 +693,9 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 									popup.postError("Another profile is already using this name");
 									return 1;
 								}
-								if(devConf->setKeyConfCopiedFromExisting(str))
-								{
-									logMsg("created new profile %s", devConf->keyConf().name);
-									onShow();
-								}
-								else
-									popup.postError("Too many saved device settings, please delete one");
+								devConf->setKeyConfCopiedFromExisting(str);
+								logMsg("created new profile %s", devConf->keyConf().name);
+								onShow();
 								postDraw();
 							}
 							view.dismiss();

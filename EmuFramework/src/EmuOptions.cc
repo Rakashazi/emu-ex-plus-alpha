@@ -15,11 +15,11 @@
 
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/VController.hh>
 #include "private.hh"
+#include "privateInput.hh"
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif

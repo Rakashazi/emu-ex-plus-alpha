@@ -31,10 +31,10 @@ struct SurfaceTextureStorage: public DirectTextureStorage
 	bool singleBuffered = false;
 
 	SurfaceTextureStorage(Renderer &r, GLuint tex, Error &err);
-	~SurfaceTextureStorage() override;
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) override;
-	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) override;
-	void unlock(Renderer &r, GLuint tex) override;
+	~SurfaceTextureStorage() final;
+	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
+	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) final;
+	void unlock(Renderer &r, GLuint tex) final;
 	static bool isRendererBlacklisted(const char *rendererStr);
 };
 

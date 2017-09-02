@@ -25,5 +25,5 @@ public:
 	EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir = false);
 	static EmuFilePicker *makeForBenchmarking(ViewAttachParams attach, bool singleDir = false);
 	static EmuFilePicker *makeForLoading(ViewAttachParams attach, bool singleDir = false);
-	bool inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event e) final;
 };

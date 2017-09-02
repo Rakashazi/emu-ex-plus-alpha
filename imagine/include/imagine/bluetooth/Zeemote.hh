@@ -18,24 +18,24 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <vector>
 
 struct Zeemote : public BluetoothInputDevice, public Input::Device
 {
 public:
 	static const uchar btClass[3];
-	static StaticArrayList<Zeemote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+	static std::vector<Zeemote*> devList;
 
 	Zeemote(BluetoothAddr addr):
 		Device{0, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
 		addr{addr}
 	{}
-	CallResult open(BluetoothAdapter &adapter) override;
+	CallResult open(BluetoothAdapter &adapter) final;
 	void close();
-	void removeFromSystem() override;
+	void removeFromSystem() final;
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	bool dataHandler(const char *packet, size_t size);
-	const char *keyName(Input::Key k) const override;
+	const char *keyName(Input::Key k) const final;
 	static bool isSupportedClass(const uchar devClass[3]);
 
 private:

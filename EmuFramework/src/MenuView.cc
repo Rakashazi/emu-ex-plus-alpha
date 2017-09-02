@@ -22,7 +22,6 @@
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>

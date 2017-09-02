@@ -20,6 +20,7 @@
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
 #include "../input/private.hh"
+#include "private.hh"
 
 using namespace IG;
 
@@ -30,8 +31,7 @@ static const char ccDataBytes = 6;
 static const char nunchuckDataBytes = 6;
 static const char proDataBytes = 10;
 
-extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticArrayList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> Wiimote::devList;
+std::vector<Wiimote*> Wiimote::devList;
 
 namespace Input
 {
@@ -232,13 +232,6 @@ uint Wiimote::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("Wiimote opened successfully");
 		player = findFreeDevId();
-		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
-		{
-			logErr("No space left in BT input device list");
-			removeFromSystem();
-			delete this;
-			return 1;
-		}
 		devList.push_back(this);
 		btInputDevList.push_back(this);
 		setLEDs(player);
@@ -274,8 +267,8 @@ void Wiimote::close()
 void Wiimote::removeFromSystem()
 {
 	close();
-	devList.remove(this);
-	if(btInputDevList.remove(this))
+	IG::removeFirst(devList, this);
+	if(IG::removeFirst(btInputDevList, this))
 	{
 		if(extDevice.map())
 		{
@@ -437,13 +430,6 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 					if(memcmp(&packet[8], ccType, sizeof(ccType)) == 0)
 					{
 						logMsg("extension is CC");
-						if(Input::devList.isFull())
-						{
-							logMsg("ignoring CC because input list is full");
-							extension = EXT_UNKNOWN;
-							sendDataModeByExtension();
-							return 1;
-						}
 						extension = EXT_CC;
 						sendDataModeByExtension();
 						IG::fillData(prevExtData, 0xFF);

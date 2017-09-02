@@ -1,5 +1,6 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/MenuView.hh>
+#include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
 class EmuInputOptionView : public TableView

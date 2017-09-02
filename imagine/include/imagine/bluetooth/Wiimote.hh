@@ -18,25 +18,25 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <vector>
 
 class Wiimote : public BluetoothInputDevice, public Input::Device
 {
 public:
 	static const uchar btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
-	static StaticArrayList<Wiimote*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+	static std::vector<Wiimote*> devList;
 
 	Wiimote(BluetoothAddr addr):
 		Device{0, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
 		addr{addr}
 	{}
-	CallResult open(BluetoothAdapter &adapter) override;
+	CallResult open(BluetoothAdapter &adapter) final;
 	void close();
-	void removeFromSystem() override;
-	uint joystickAxisBits() override;
-	uint joystickAxisAsDpadBitsDefault() override;
-	void setJoystickAxisAsDpadBits(uint axisMask) override;
-	uint joystickAxisAsDpadBits() override { return joystickAxisAsDpadBits_; }
+	void removeFromSystem() final;
+	uint joystickAxisBits() final;
+	uint joystickAxisAsDpadBitsDefault() final;
+	void setJoystickAxisAsDpadBits(uint axisMask) final;
+	uint joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
 	bool dataHandler(const char *data, size_t size);
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	void requestStatus();
@@ -44,7 +44,7 @@ public:
 	void sendDataMode(uchar mode);
 	void writeReg(uchar offset, uchar val);
 	void readReg(uint offset, uchar size);
-	const char *keyName(Input::Key k) const override;
+	const char *keyName(Input::Key k) const final;
 	static bool isSupportedClass(const uchar devClass[3]);
 
 private:
@@ -61,8 +61,10 @@ private:
 
 	struct ExtDevice : public Device
 	{
-		using Device::Device;
-		const char *keyName(Input::Key k) const override;
+		ExtDevice() {}
+		ExtDevice(uint devId, uint map, uint type, const char *name):
+			Device{devId, map, type, name} {}
+		const char *keyName(Input::Key k) const final;
 	};
 	ExtDevice extDevice;
 

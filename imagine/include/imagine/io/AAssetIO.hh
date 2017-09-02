@@ -27,20 +27,20 @@ public:
 	using IOUtils::seek;
 
 	AAssetIO() {}
-	~AAssetIO() override;
+	~AAssetIO() final;
 	AAssetIO(AAssetIO &&o);
 	AAssetIO &operator=(AAssetIO &&o);
 	GenericIO makeGeneric();
 	std::error_code open(const char *name);
 
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
-	const char *mmapConst() override;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
-	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) override;
-	void close() override;
-	size_t size() override;
-	bool eof() override;
-	explicit operator bool() override;
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
+	const char *mmapConst() final;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
+	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;
+	void close() final;
+	size_t size() final;
+	bool eof() final;
+	explicit operator bool() final;
 
 public:
 	AAsset *asset{};

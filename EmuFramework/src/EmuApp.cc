@@ -17,7 +17,6 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuOptions.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuLoadProgressView.hh>
@@ -29,6 +28,7 @@
 #include <imagine/thread/Thread.hh>
 #include <cmath>
 #include "private.hh"
+#include "privateInput.hh"
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
@@ -67,7 +67,6 @@ AppWindowData *emuWin = &mainWin;
 ViewStack viewStack{};
 MsgPopup popup{};
 BasicViewController modalViewController{};
-static bool updateInputDevicesOnResume = false;
 DelegateFunc<void ()> onUpdateInputDevices{};
 Base::Screen::OnFrameDelegate onFrameUpdate{};
 #ifdef CONFIG_BLUETOOTH
@@ -555,12 +554,6 @@ void mainInitCommon(int argc, char** argv)
 		{
 			AudioManager::startSession();
 			renderer.restoreBind();
-			if(updateInputDevicesOnResume)
-			{
-				updateInputDevices();
-				EmuControls::updateAutoOnScreenControlVisible();
-				updateInputDevicesOnResume = false;
-			}
 			if(!menuViewIsActive && focused && EmuSystem::isPaused())
 			{
 				logMsg("resuming emulation due to app resume");
@@ -639,38 +632,39 @@ void mainInitCommon(int argc, char** argv)
 			}
 		});
 
+	Input::setOnDevicesEnumerated(
+		[]()
+		{
+			logMsg("input devs enumerated");
+			renderer.restoreBind();
+			updateInputDevices();
+			EmuControls::updateAutoOnScreenControlVisible();
+		});
+
 	Input::setOnDeviceChange(
 		[](const Input::Device &dev, Input::Device::Change change)
 		{
 			logMsg("got input dev change");
 
-			if(Base::appIsRunning())
-			{
-				renderer.restoreBind();
-				updateInputDevices();
-				EmuControls::updateAutoOnScreenControlVisible();
+			renderer.restoreBind();
+			updateInputDevices();
+			EmuControls::updateAutoOnScreenControlVisible();
 
-				if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
-				{
-					popup.printf(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
-					mainWin.win.postDraw();
-				}
-				else if(change.hadConnectError())
-				{
-					popup.printf(2, 1, "%s had a connection error", dev.name());
-					mainWin.win.postDraw();
-				}
-
-				#ifdef CONFIG_BLUETOOTH
-				if(viewStack.size() == 1) // update bluetooth items
-					viewStack.top().onShow();
-				#endif
-			}
-			else
+			if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
 			{
-				logMsg("delaying input device changes until app resumes");
-				updateInputDevicesOnResume = true;
+				popup.printf(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
+				mainWin.win.postDraw();
 			}
+			else if(change.hadConnectError())
+			{
+				popup.printf(2, 1, "%s had a connection error", dev.name());
+				mainWin.win.postDraw();
+			}
+
+			#ifdef CONFIG_BLUETOOTH
+			if(viewStack.size() == 1) // update bluetooth items
+				viewStack.top().onShow();
+			#endif
 		});
 
 	onFrameUpdate = [](Base::Screen::FrameParams params)
@@ -880,7 +874,7 @@ bool handleInputEvent(Base::Window &win, Input::Event e)
 		return modalViewController.inputEvent(e);
 	else if(menuViewIsActive)
 	{
-		if(e.state == Input::PUSHED && e.isDefaultCancelButton())
+		if(e.pushed() && e.isDefaultCancelButton())
 		{
 			if(viewStack.size() == 1)
 			{
@@ -889,7 +883,7 @@ bool handleInputEvent(Base::Window &win, Input::Event e)
 				{
 					startGameFromMenu();
 				}
-				else if(e.map == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux))
+				else if(e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux))
 				{
 					Base::exit();
 					return true;
@@ -898,7 +892,7 @@ bool handleInputEvent(Base::Window &win, Input::Event e)
 			else viewStack.popAndShow();
 			return true;
 		}
-		if(e.state == Input::PUSHED && isMenuDismissKey(e))
+		if(e.pushed() && isMenuDismissKey(e))
 		{
 			if(EmuSystem::gameIsRunning())
 			{

@@ -16,16 +16,20 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
-#ifdef CONFIG_BLUETOOTH
-#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
-#endif
-#include <emuframework/TurboInput.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/inGameActionKeys.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 #include <emuframework/VController.hh>
 #endif
-#include <imagine/util/container/DLList.hh>
+
+static constexpr uint MAX_INPUT_DEVICE_NAME_SIZE = 64;
+static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
+static constexpr uint MAX_KEY_CONFIG_KEYS = 256;
+static constexpr uint MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
+
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+extern uint pointerInputPlayer;
+#endif
 
 struct KeyCategory
 {
@@ -42,31 +46,6 @@ struct KeyCategory
 	bool isMultiplayer = false; // category appears when one input device is assigned multiple players
 };
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern uint pointerInputPlayer;
-#endif
-extern bool fastForwardActive;
-
-static const int guiKeyIdxLoadGame = 0;
-static const int guiKeyIdxMenu = 1;
-static const int guiKeyIdxSaveState = 2;
-static const int guiKeyIdxLoadState = 3;
-static const int guiKeyIdxDecStateSlot = 4;
-static const int guiKeyIdxIncStateSlot = 5;
-static const int guiKeyIdxFastForward = 6;
-static const int guiKeyIdxGameScreenshot = 7;
-static const int guiKeyIdxExit = 8;
-
-void processRelPtr(Input::Event e);
-void commonInitInput();
-void commonUpdateInput();
-extern TurboInput turboActions;
-
-static constexpr uint MAX_KEY_CONFIG_KEYS = 256;
-static constexpr uint MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
-static constexpr uint MAX_CUSTOM_KEY_CONFIGS = 10;
-static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
-
 struct KeyConfig
 {
 	uint map;
@@ -76,22 +55,10 @@ struct KeyConfig
 	using KeyArray = std::array<Key, MAX_KEY_CONFIG_KEYS>;
 	KeyArray key_;
 
-	bool operator ==(KeyConfig const& rhs) const
-	{
-		return string_equal(name, rhs.name);
-	}
-
-	Key *key(const KeyCategory &category)
-	{
-		assert(category.configOffset + category.keys <= MAX_KEY_CONFIG_KEYS);
-		return &key_[category.configOffset];
-	}
-
-	const Key *key(const KeyCategory &category) const
-	{
-		assert(category.configOffset + category.keys <= MAX_KEY_CONFIG_KEYS);
-		return &key_[category.configOffset];
-	}
+	void unbindCategory(const KeyCategory &category);
+	bool operator ==(KeyConfig const& rhs) const;
+	Key *key(const KeyCategory &category);
+	const Key *key(const KeyCategory &category) const;
 
 	const KeyArray &key() const
 	{
@@ -103,144 +70,23 @@ struct KeyConfig
 		return key_;
 	}
 
-	void unbindCategory(const KeyCategory &category)
-	{
-		std::fill_n(key(category), category.keys, 0);
-	}
-
 	static const KeyConfig *defaultConfigsForInputMap(uint map, uint &size);
 	static const KeyConfig &defaultConfigForDevice(const Input::Device &dev);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev, uint &size);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev);
 };
 
-extern StaticDLList<KeyConfig, MAX_CUSTOM_KEY_CONFIGS> customKeyConfig;
-
-static bool customKeyConfigsContainName(const char *name)
-{
-	for(auto &e : customKeyConfig)
-	{
-		if(string_equal(e.name, name))
-			return 1;
-	}
-	return 0;
-}
-
-static constexpr uint MAX_SAVED_INPUT_DEVICES = Input::MAX_DEVS;
-static constexpr uint MAX_INPUT_DEVICE_NAME_SIZE = 64;
-
-struct InputDeviceSavedConfig
-{
-	const KeyConfig *keyConf{};
-	uint enumId = 0;
-	uint8 player = 0;
-	bool enabled = true;
-	uint8 joystickAxisAsDpadBits = 0;
-	#ifdef CONFIG_INPUT_ICADE
-	bool iCadeMode = 0;
-	#endif
-	char name[MAX_INPUT_DEVICE_NAME_SIZE]{};
-
-	constexpr InputDeviceSavedConfig() {}
-
-	bool operator ==(InputDeviceSavedConfig const& rhs) const
-	{
-		return enumId == rhs.enumId && string_equal(name, rhs.name);
-	}
-
-	bool matchesDevice(const Input::Device &dev)
-	{
-		//logMsg("checking against device %s,%d", name, devId);
-		return dev.enumId() == enumId &&
-			string_equal(dev.name(), name);
-	}
-};
-
-extern StaticDLList<InputDeviceSavedConfig, MAX_SAVED_INPUT_DEVICES> savedInputDevList;
-
-struct InputDeviceConfig
-{
-	static constexpr uint PLAYER_MULTI = 0xFF;
-	uint8 player = 0;
-	bool enabled = 1;
-	Input::Device *dev{};
-	InputDeviceSavedConfig *savedConf{};
-
-	constexpr InputDeviceConfig() {}
-	void reset();
-	void deleteConf();
-	#ifdef CONFIG_INPUT_ICADE
-	bool setICadeMode(bool on);
-	bool iCadeMode();
-	#endif
-	uint joystickAxisAsDpadBits();
-	void setJoystickAxisAsDpadBits(uint axisMask);
-	const KeyConfig &keyConf();
-	bool setKeyConf(const KeyConfig &kConf);
-	void setDefaultKeyConf();
-	KeyConfig *mutableKeyConf();
-	KeyConfig *setKeyConfCopiedFromExisting(const char *name);
-	void save();
-	void setSavedConf(InputDeviceSavedConfig *savedConf);
-};
-
-extern uint inputDevConfs;
-extern InputDeviceConfig inputDevConf[Input::MAX_DEVS];
-
-struct KeyMapping
-{
-	static constexpr uint maxKeyActions = 4;
-	typedef uint8 Action;
-	typedef Action ActionGroup[maxKeyActions];
-	ActionGroup *inputDevActionTablePtr[Input::MAX_DEVS]{};
-
-	constexpr KeyMapping() {}
-	void buildAll();
-};
-
-extern KeyMapping keyMapping;
-
-void updateInputDevices();
-extern bool physicalControlsPresent;
-
-struct VControllerLayoutPosition
-{
-	enum { OFF = 0, SHOWN = 1, HIDDEN = 2 };
-	_2DOrigin origin{LT2DO};
-	uint state = OFF;
-	IG::Point2D<int> pos{};
-
-	constexpr VControllerLayoutPosition() {}
-	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos): origin(origin), pos(pos) {}
-	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos, uint state): origin(origin), state(state), pos(pos) {}
-};
-
-static const uint VCTRL_LAYOUT_DPAD_IDX = 0,
-	VCTRL_LAYOUT_CENTER_BTN_IDX = 1,
-	VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX = 2,
-	VCTRL_LAYOUT_MENU_IDX = 3,
-	VCTRL_LAYOUT_FF_IDX = 4,
-	VCTRL_LAYOUT_L_IDX = 5,
-	VCTRL_LAYOUT_R_IDX = 6;
-extern VControllerLayoutPosition vControllerLayoutPos[2][7];
-VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size);
-IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos);
-extern bool vControllerLayoutPosChanged;
-void resetVControllerPositions();
-void resetVControllerOptions();
-void resetAllVControllerOptions();
-void initVControls(Gfx::Renderer &r);
-
 namespace EmuControls
 {
 
 using namespace Input;
 
+static constexpr uint MAX_CATEGORIES = 8;
+
 // Defined in the emulation module
 extern const uint categories;
 extern const uint systemTotalKeys;
 
-static constexpr uint MAX_CATEGORIES = 8;
 extern const KeyCategory category[MAX_CATEGORIES];
 
 extern const KeyConfig defaultKeyProfile[];
@@ -257,10 +103,8 @@ extern const KeyConfig defaultZeemoteProfile[];
 extern const uint defaultZeemoteProfiles;
 extern const KeyConfig defaultAppleGCProfile[];
 extern const uint defaultAppleGCProfiles;
-#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH_SERVER
 extern const KeyConfig defaultPS3Profile[];
 extern const uint defaultPS3Profiles;
-#endif
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player);
 
@@ -285,12 +129,6 @@ static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 };
 #endif
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void setupVControllerVars();
-#endif
-void setOnScreenControls(bool on);
-void updateAutoOnScreenControlVisible();
-void updateVControlImg();
 void setActiveFaceButtons(uint btns);
 void updateKeyboardMapping();
 void toggleKeyboard();

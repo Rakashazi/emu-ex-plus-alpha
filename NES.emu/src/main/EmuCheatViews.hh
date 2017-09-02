@@ -11,7 +11,7 @@ static const uint MAX = 254;
 class EmuCheatsView : public BaseCheatsView
 {
 private:
-	void loadCheatItems() override;
+	void loadCheatItems() final;
 
 public:
 	EmuCheatsView(ViewAttachParams attach);
@@ -22,7 +22,7 @@ class EmuEditCheatListView : public BaseEditCheatListView
 private:
 	TextMenuItem addGG{}, addRAM{};
 
-	void loadCheatItems() override;
+	void loadCheatItems() final;
 
 public:
 	EmuEditCheatListView(ViewAttachParams attach);
@@ -38,7 +38,7 @@ private:
 	char addrStr[5]{}, valueStr[3]{}, compStr[3]{}, ggCodeStr[9]{};
 
 	void syncCheat(const char *newName = {});
-	void renamed(const char *str) override;
+	void renamed(const char *str) final;
 
 public:
 	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx);

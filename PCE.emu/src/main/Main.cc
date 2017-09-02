@@ -16,6 +16,7 @@
 #define LOGTAG "main"
 #include "MDFN.hh"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
 #include <imagine/util/ScopeGuard.hh>

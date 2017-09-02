@@ -27,7 +27,7 @@ public:
 	bool redText{};
 
 	TestTableEntry(SelectDelegate selectDel): DualTextMenuItem{testStr.data(), nullptr, selectDel} {}
-	void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
 };
 
 class TestPicker : public TableView

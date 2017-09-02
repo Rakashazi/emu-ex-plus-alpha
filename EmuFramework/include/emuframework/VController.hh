@@ -33,7 +33,7 @@ public:
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
 	void draw(Gfx::Renderer &r) const;
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on);
-	int getInput(int cx, int cy) const;
+	int getInput(IG::WP c) const;
 	IG::WindowRect bounds() const;
 	void setPos(IG::Point2D<int> pos);
 	void setSize(Gfx::Renderer &r, uint sizeInPixels);
@@ -69,7 +69,7 @@ public:
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
 	void draw(Gfx::Renderer &r) const;
-	int getInput(int cx, int cy) const;
+	int getInput(IG::WP c) const;
 };
 
 class VControllerGamepad
@@ -104,8 +104,8 @@ public:
 	void layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos);
 	IG::WindowRect faceBtnBounds() const;
 	void setFaceBtnPos(IG::Point2D<int> pos);
-	std::array<int, 2> getCenterBtnInput(int x, int y) const;
-	std::array<int, 2> getBtnInput(int x, int y) const;
+	std::array<int, 2> getCenterBtnInput(IG::WP pos) const;
+	std::array<int, 2> getBtnInput(IG::WP pos) const;
 	void draw(Gfx::Renderer &r, bool showHidden) const;
 
 private:

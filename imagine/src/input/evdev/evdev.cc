@@ -28,7 +28,7 @@
 #include <imagine/input/AxisKeyEmu.hh>
 #include "evdev.hh"
 #include "../private.hh"
-#include <imagine/util/container/ArrayList.hh>
+#include <vector>
 
 #define DEV_NODE_PATH "/dev/input"
 static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
@@ -120,8 +120,8 @@ static void removeFromSystem(int fd);
 
 struct EvdevInputDevice : public Device
 {
-	constexpr EvdevInputDevice() {}
-	EvdevInputDevice(int id, int fd, uint type):
+	EvdevInputDevice() {}
+	EvdevInputDevice(int id, int fd, uint type, const char *name):
 		Device{0, Event::MAP_SYSTEM, type, name},
 		id{id}, fd{fd}
 	{}
@@ -133,7 +133,6 @@ struct EvdevInputDevice : public Device
 		bool active = 0;
 	} axis[ABS_HAT3Y];
 	Base::FDEventSource fdSrc;
-	char name[80] {0};
 
 	void setEnumId(int id) { devId = id; }
 
@@ -245,7 +244,7 @@ struct EvdevInputDevice : public Device
 			{
 				if(unlikely(pollEvents & Base::POLLEV_ERR))
 				{
-					logMsg("error %d in input fd %d (%s)", errno, fd, name);
+					logMsg("error %d in input fd %d (%s)", errno, fd, name());
 					removeFromSystem(fd);
 					return 0;
 				}
@@ -261,7 +260,7 @@ struct EvdevInputDevice : public Device
 					}
 					if(len == -1 && errno != EAGAIN)
 					{
-						logMsg("error %d reading from input fd %d (%s)", errno, fd, name);
+						logMsg("error %d reading from input fd %d (%s)", errno, fd, name());
 						removeFromSystem(fd);
 						return 0;
 					}
@@ -278,7 +277,7 @@ struct EvdevInputDevice : public Device
 		onDeviceChange.callCopySafe(*this, { Device::Change::REMOVED });
 	}
 
-	void setJoystickAxisAsDpadBits(uint axisMask) override
+	void setJoystickAxisAsDpadBits(uint axisMask) final
 	{
 		Key jsKey[4] {Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS};
 		Key dpadKey[4] {Keycode::LEFT, Keycode::RIGHT, Keycode::UP, Keycode::DOWN};
@@ -289,25 +288,23 @@ struct EvdevInputDevice : public Device
 		axis[ABS_Y].keyEmu.highKey = axis[ABS_Y].keyEmu.highSysKey = setKey[3];
 	}
 
-	uint joystickAxisAsDpadBits() override
+	uint joystickAxisAsDpadBits() final
 	{
 		return axis[ABS_X].keyEmu.lowKey == Keycode::LEFT;
 	}
 };
 
-static StaticArrayList<EvdevInputDevice*, 16> evDevice;
+static std::vector<std::unique_ptr<EvdevInputDevice>> evDevice{};
 
 static void removeFromSystem(int fd)
 {
 	forEachInContainer(evDevice, e)
 	{
-		auto dev = *e;
+		auto &dev = *e;
 		if(dev->fd == fd)
 		{
 			dev->close();
-			delete dev;
-			evDevice.erase(e);
-			//e_it.removeElem();
+			evDevice.erase(e.it);
 			return;
 		}
 	}
@@ -368,13 +365,14 @@ static bool processDevNode(const char *path, int id, bool notify)
 		close(fd);
 		return false;
 	}
-	auto evDev = new EvdevInputDevice(id, fd, Device::TYPE_BIT_GAMEPAD);
-	evDevice.push_back(evDev);
-	if(ioctl(fd, EVIOCGNAME(sizeof(evDev->name)), evDev->name) < 0)
+	std::array<char, 80> nameStr{};
+	if(ioctl(fd, EVIOCGNAME(sizeof(nameStr)), nameStr.data()) < 0)
 	{
 		logWarn("unable to get device name");
-		string_copy(evDev->name, "Unknown");
+		string_copy(nameStr, "Unknown");
 	}
+	evDevice.emplace_back(std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data()));
+	auto &evDev = evDevice.back();
 	bool isJoystick = evDev->setupJoystickBits();
 
 	fd_setNonblock(fd, 1);
@@ -385,7 +383,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	{
 		if(e->map() != Event::MAP_SYSTEM)
 			continue;
-		if(string_equal(e->name(), evDev->name) && e->enumId() == devId)
+		if(string_equal(e->name(), evDev->name()) && e->enumId() == devId)
 			devId++;
 	}
 	evDev->setEnumId(devId);
@@ -463,11 +461,6 @@ void initEvdev(Base::EventLoop loop)
 	std::error_code err;
 	for(auto &entry : FS::directory_iterator{DEV_NODE_PATH, err})
 	{
-		if(evDevice.isFull())
-		{
-			logMsg("device list is full");
-			break;
-		}
 		auto filename = entry.name();
 		if(entry.type() != FS::file_type::character || !strstr(filename, "event"))
 			continue;

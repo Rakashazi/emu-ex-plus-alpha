@@ -44,6 +44,7 @@ namespace Base
 
 namespace Input
 {
+	void init(Display *dpy);
 	void initPerWindowData(::Window win);
 	void deinit();
 	// returns true if event is XI2, false otherwise

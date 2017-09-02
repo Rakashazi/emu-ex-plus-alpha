@@ -14,13 +14,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuVideoLayer.hh>
-#include <emuframework/EmuInput.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuOptions.hh>
 #include <imagine/util/math/Point2D.hh>
 #include <algorithm>
 #include "private.hh"
+#include "privateInput.hh"
 
 extern bool touchControlsAreOn;
 

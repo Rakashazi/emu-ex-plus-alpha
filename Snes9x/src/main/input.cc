@@ -1,4 +1,5 @@
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include <imagine/input/DragTracker.hh>
 #include "internal.hh"
 #include <snes9x.h>
@@ -334,9 +335,9 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 				*S9xGetSuperscopeBits() = 0;
 				#endif
 			}
-			if(gameRect.overlaps({e.x, e.y}))
+			if(gameRect.overlaps(e.pos()))
 			{
-				int xRel = e.x - gameRect.x, yRel = e.y - gameRect.y;
+				int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
 				snesPointerX = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
 				snesPointerY = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.);
 				//logMsg("mouse moved to @ %d,%d, on SNES %d,%d", e.x, e.y, snesPointerX, snesPointerY);

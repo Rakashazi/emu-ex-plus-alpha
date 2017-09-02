@@ -28,7 +28,7 @@ public:
 	using IOUtils::seek;
 
 	constexpr PosixIO() {}
-	~PosixIO() override;
+	~PosixIO() final;
 	PosixIO(PosixIO &&o);
 	PosixIO &operator=(PosixIO &&o);
 	GenericIO makeGeneric();
@@ -40,17 +40,17 @@ public:
 	}
 	int fd() const;
 
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) override;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
-	std::error_code truncate(off_t offset) override;
-	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) override;
-	void close() override;
-	void sync() override;
-	size_t size() override;
-	bool eof() override;
-	void advise(off_t offset, size_t bytes, Advice advice) override;
-	explicit operator bool() override;
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
+	std::error_code truncate(off_t offset) final;
+	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) final;
+	void close() final;
+	void sync() final;
+	size_t size() final;
+	bool eof() final;
+	void advise(off_t offset, size_t bytes, Advice advice) final;
+	explicit operator bool() final;
 
 protected:
 	int fd_ = -1;

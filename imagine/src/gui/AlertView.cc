@@ -57,7 +57,7 @@ void BaseAlertView::place()
 
 bool BaseAlertView::inputEvent(Input::Event e)
 {
-	if(e.state == Input::PUSHED)
+	if(e.state() == Input::PUSHED)
 	{
 		if(e.isDefaultCancelButton())
 		{

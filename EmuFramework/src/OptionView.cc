@@ -334,13 +334,13 @@ public:
 		fpsText.setString("Preparing to detect frame rate...");
 	}
 
-	~DetectFrameRateView() override
+	~DetectFrameRateView() final
 	{
 		setCPUNeedsLowLatency(false);
 		emuWin->win.screen()->removeOnFrame(detectFrameRate);
 	}
 
-	IG::WindowRect &viewRect() override { return viewFrame; }
+	IG::WindowRect &viewRect() final { return viewFrame; }
 
 	double totalFrameTimeSecs() const
 	{
@@ -352,12 +352,12 @@ public:
 		return totalFrameTimeSecs() / (double)totalFrames;
 	}
 
-	void place() override
+	void place() final
 	{
 		fpsText.compile(renderer(), projP);
 	}
 
-	bool inputEvent(Input::Event e) override
+	bool inputEvent(Input::Event e) final
 	{
 		if(e.pushed() && e.isDefaultCancelButton())
 		{
@@ -368,7 +368,7 @@ public:
 		return false;
 	}
 
-	void draw() override
+	void draw() final
 	{
 		using namespace Gfx;
 		auto &r = renderer();
@@ -378,7 +378,7 @@ public:
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}
 
-	void onAddedToController(Input::Event e) override
+	void onAddedToController(Input::Event e) final
 	{
 		setCPUNeedsLowLatency(true);
 		detectFrameRate =

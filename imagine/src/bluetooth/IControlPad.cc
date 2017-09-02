@@ -20,13 +20,13 @@
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
 #include "../input/private.hh"
+#include "private.hh"
 #include <algorithm>
 
 using namespace IG;
 using namespace Input;
 
-extern StaticArrayList<BluetoothInputDevice*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE * 2> btInputDevList;
-StaticArrayList<IControlPad*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> IControlPad::devList;
+std::vector<IControlPad*> IControlPad::devList;
 
 static const PackedInputAccess iCPDataAccess[] =
 {
@@ -156,8 +156,8 @@ void IControlPad::close()
 void IControlPad::removeFromSystem()
 {
 	close();
-	devList.remove(this);
-	if(btInputDevList.remove(this))
+	IG::removeFirst(devList, this);
+	if(IG::removeFirst(btInputDevList, this))
 	{
 		removeDevice(*this);
 		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
@@ -170,13 +170,6 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 	{
 		logMsg("iCP opened successfully");
 		player = findFreeDevId();
-		if(devList.isFull() || btInputDevList.isFull() || Input::devList.isFull())
-		{
-			logErr("No space left in BT input device list");
-			removeFromSystem();
-			delete this;
-			return 0;
-		}
 		devList.push_back(this);
 		btInputDevList.push_back(this);
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);

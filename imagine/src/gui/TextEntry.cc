@@ -34,16 +34,16 @@ void TextEntry::setAcceptingInput(bool on)
 
 bool TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
 {
-	if(e.isPointer() && e.pushed() && b.overlaps({e.x, e.y}))
+	if(e.isPointer() && e.pushed() && b.overlaps(e.pos()))
 	{
 		setAcceptingInput(true);
 		return true;
 	}
-	if(acceptingInput && e.pushed() && e.map == e.MAP_SYSTEM)
+	if(acceptingInput && e.pushed() && e.map() == e.MAP_SYSTEM)
 	{
 		bool updateText = false;
 
-		if(e.button == Input::Keycode::BACK_SPACE)
+		if(e.mapKey() == Input::Keycode::BACK_SPACE)
 		{
 			int len = strlen(str);
 			if(len > 0)
@@ -180,9 +180,9 @@ void CollectTextInputView::place()
 
 bool CollectTextInputView::inputEvent(Input::Event e)
 {
-	if(e.state == Input::PUSHED)
+	if(e.state() == Input::PUSHED)
 	{
-		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps({e.x, e.y})))
+		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps(e.pos())))
 		{
 			dismiss();
 			return true;

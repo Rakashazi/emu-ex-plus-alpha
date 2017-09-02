@@ -18,30 +18,30 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <vector>
 
 class PS3Controller : public BluetoothInputDevice, public Input::Device
 {
 public:
-	static StaticArrayList<PS3Controller*, Input::MAX_BLUETOOTH_DEVS_PER_TYPE> devList;
+	static std::vector<PS3Controller*> devList;
 
 	PS3Controller(BluetoothAddr addr):
 		Device{0, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
 		addr{addr}
 	{}
-	CallResult open(BluetoothAdapter &adapter) override;
+	CallResult open(BluetoothAdapter &adapter) final;
 	CallResult open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	CallResult open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	void close();
-	void removeFromSystem() override;
+	void removeFromSystem() final;
 	bool dataHandler(const char *data, size_t size);
 	uint statusHandler(BluetoothSocket &sock, uint status);
 	void setLEDs(uint player);
-	uint joystickAxisBits() override;
-	uint joystickAxisAsDpadBitsDefault() override;
-	void setJoystickAxisAsDpadBits(uint axisMask) override;
-	uint joystickAxisAsDpadBits() override { return joystickAxisAsDpadBits_; }
-	const char *keyName(Input::Key k) const override;
+	uint joystickAxisBits() final;
+	uint joystickAxisAsDpadBitsDefault() final;
+	void setJoystickAxisAsDpadBits(uint axisMask) final;
+	uint joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
+	const char *keyName(Input::Key k) const final;
 
 private:
 	uchar prevData[3]{};

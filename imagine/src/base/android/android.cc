@@ -461,6 +461,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onResumeMOGA(jEnv(), true);
 			#endif
+			Input::registerDeviceChangeListener();
 		};
 	//activity->callbacks->onSaveInstanceState = nullptr; // unused
 	activity->callbacks->onPause =
@@ -479,6 +480,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
 			Input::onPauseMOGA(activity->env);
 			#endif
+			Input::unregisterDeviceChangeListener();
 			Input::deinitKeyRepeatTimer();
 		};
 	activity->callbacks->onStop =
@@ -609,7 +611,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	filesDir = activity->internalDataPath;
 	activityInit(jEnv_, activity->clazz);
 	setNativeActivityCallbacks(activity);
-	Input::init();
+	Input::init(jEnv_);
 	{
 		auto aConfig = AConfiguration_new();
 		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });

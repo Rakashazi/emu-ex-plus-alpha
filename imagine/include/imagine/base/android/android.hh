@@ -63,7 +63,7 @@ namespace Input
 void initMOGA(bool notify);
 void deinitMOGA();
 bool mogaSystemIsActive();
-void devicesChanged();
+void enumDevices();
 bool hasTrackball();
 
 }
