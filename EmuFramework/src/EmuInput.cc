@@ -767,11 +767,6 @@ void toggleKeyboard()
 
 }
 
-void TurboInput::init()
-{
-	activeAction = {};
-}
-
 void TurboInput::addEvent(uint action)
 {
 	Action *slot = IG::findData_if(activeAction, [](Action a){ return a == 0; });

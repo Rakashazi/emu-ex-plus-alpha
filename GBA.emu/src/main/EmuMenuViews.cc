@@ -1,11 +1,11 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/RTC.h>
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 	TextMenuItem rtcItem[3]
 	{
@@ -38,22 +38,18 @@ class EmuSystemOptionView : public SystemOptionView
 	}
 
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&rtc);
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new MenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;

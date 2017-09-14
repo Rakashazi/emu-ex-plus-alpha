@@ -107,7 +107,7 @@ void ViewStack::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &pr
 
 void ViewStack::place()
 {
-	if(!size_)
+	if(!view.size())
 		return;
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
@@ -140,13 +140,9 @@ void ViewStack::draw()
 
 void ViewStack::push(View &v, Input::Event e)
 {
-	assert(size_ != IG::size(view));
 	v.setController(this, e);
-	view[size_] = &v;
-	viewNeedsNavView[size_] = true;
-	size_++;
-	logMsg("push view, %d in stack", size_);
-
+	view.emplace_back(std::unique_ptr<View>(&v), true);
+	logMsg("push view, %d in stack", (int)view.size());
 	if(nav)
 	{
 		showNavLeftBtn();
@@ -156,7 +152,7 @@ void ViewStack::push(View &v, Input::Event e)
 void ViewStack::pushAndShow(View &v, Input::Event e, bool needsNavView)
 {
 	push(v, e);
-	viewNeedsNavView[size_ - 1] = needsNavView;
+	view.back().needsNavView = needsNavView;
 	place();
 	v.show();
 	v.postDraw();
@@ -169,10 +165,9 @@ void ViewStack::pushAndShow(View &v, Input::Event e)
 
 void ViewStack::pop()
 {
-	assert(size_ > 1);
-	delete &top();
-	size_--;
-	logMsg("pop view, %d in stack", size_);
+	assert(view.size() > 1);
+	view.pop_back();
+	logMsg("pop view, %d in stack", (int)view.size());
 
 	if(nav)
 	{
@@ -191,7 +186,7 @@ void ViewStack::popAndShow()
 
 void ViewStack::popToRoot()
 {
-	while(size_ > 1)
+	while(view.size() > 1)
 		pop();
 	place();
 	top().show();
@@ -200,7 +195,7 @@ void ViewStack::popToRoot()
 
 void ViewStack::popTo(View &v)
 {
-	while(size_ > 1 && view[size_-1] != &v)
+	while(view.size() > 1 && &top() != &v)
 		pop();
 	place();
 	top().show();
@@ -214,21 +209,21 @@ void ViewStack::show()
 
 View &ViewStack::top() const
 {
-	assert(size_ != 0);
-	return *view[size_-1];
+	assert(view.size());
+	return *view.back().v;
 }
 
 View &ViewStack::viewAtIdx(uint idx) const
 {
-	assert(idx < size_);
-	return *view[idx];
+	assert(idx < view.size());
+	return *view[idx].v;
 }
 
 int ViewStack::viewIdx(View &v) const
 {
-	iterateTimes(size_, i)
+	iterateTimes(view.size(), i)
 	{
-		if(view[i] == &v)
+		if(view[i].v.get() == &v)
 			return i;
 	}
 	return -1;
@@ -245,7 +240,7 @@ void ViewStack::dismissView(View &v)
 	if(contains(v))
 	{
 		assert(viewIdx(v) != 0);
-		popTo(*view[viewIdx(v)-1]);
+		popTo(*view[viewIdx(v)-1].v);
 	}
 	else
 	{
@@ -267,19 +262,19 @@ void ViewStack::setShowNavViewBackButton(bool show)
 
 void ViewStack::showNavLeftBtn()
 {
-	nav->showLeftBtn(showNavBackBtn && size_ > 1);
+	nav->showLeftBtn(showNavBackBtn && view.size() > 1);
 }
 
 uint ViewStack::size() const
 {
-	return size_;
+	return view.size();
 }
 
 bool ViewStack::topNeedsNavView() const
 {
-	if(!size_)
+	if(!view.size())
 		return false;
-	return viewNeedsNavView[size_ - 1];
+	return view.back().needsNavView;
 }
 
 bool ViewStack::navViewIsActive() const

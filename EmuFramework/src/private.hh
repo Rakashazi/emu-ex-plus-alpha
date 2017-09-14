@@ -22,7 +22,10 @@
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
+#include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuSystem.hh>
 #include <emuframework/MsgPopup.hh>
 #include <emuframework/Recent.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -87,6 +90,7 @@ bool handleInputEvent(Base::Window &win, Input::Event e);
 void loadGameComplete(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 ViewAttachParams emuViewAttachParams();
+View *makeView(ViewAttachParams attach, EmuApp::ViewID id);
 
 static void addRecentGame()
 {

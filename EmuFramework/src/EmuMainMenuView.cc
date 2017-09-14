@@ -15,13 +15,14 @@
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
-#include <emuframework/MenuView.hh>
-#include <emuframework/Recent.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/RecentGameView.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
+#include <emuframework/OptionView.hh>
 #include <emuframework/EmuOptions.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
@@ -181,7 +182,7 @@ static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
 
 #endif
 
-void MenuView::onShow()
+void EmuMainMenuView::onShow()
 {
 	logMsg("refreshing main menu state");
 	recentGames.setActive(recentGameList.size());
@@ -200,7 +201,7 @@ void MenuView::onShow()
 	#endif
 }
 
-void MenuView::loadFileBrowserItems()
+void EmuMainMenuView::loadFileBrowserItems()
 {
 	item.emplace_back(&loadGame);
 	item.emplace_back(&recentGames);
@@ -210,7 +211,7 @@ void MenuView::loadFileBrowserItems()
 	}
 }
 
-void MenuView::loadStandardItems()
+void EmuMainMenuView::loadStandardItems()
 {
 	if(EmuSystem::hasCheats)
 	{
@@ -246,7 +247,7 @@ void MenuView::loadStandardItems()
 	item.emplace_back(&exitApp);
 }
 
-MenuView::MenuView(ViewAttachParams attach, bool customMenu):
+EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{appViewTitle(), attach, item},
 	loadGame
 	{
@@ -264,8 +265,8 @@ MenuView::MenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &cheatsMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::LIST_CHEATS);
-				viewStack.pushAndShow(cheatsMenu, e);
+				auto &cheatsMenu = *makeView(attachParams(), EmuApp::ViewID::LIST_CHEATS);
+				pushAndShow(cheatsMenu, e);
 			}
 		}
 	},
@@ -591,101 +592,51 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 			"Video",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::VIDEO_OPTIONS);
-				viewStack.pushAndShow(oCategoryMenu, e);
+				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS);
+				pushAndShow(oCategoryMenu, e);
 			}
 		},
 		{
 			"Audio",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::AUDIO_OPTIONS);
-				viewStack.pushAndShow(oCategoryMenu, e);
+				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS);
+				pushAndShow(oCategoryMenu, e);
 			}
 		},
 		{
 			"System",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::SYSTEM_OPTIONS);
-				viewStack.pushAndShow(oCategoryMenu, e);
+				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS);
+				pushAndShow(oCategoryMenu, e);
 			}
 		},
 		{
 			"GUI",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::GUI_OPTIONS);
-				viewStack.pushAndShow(oCategoryMenu, e);
+				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS);
+				pushAndShow(oCategoryMenu, e);
 			}
 		}
 	}
 {}
 
-static void loadGameCompleteConfirmYesAutoLoadState(Input::Event e)
+View *makeView(ViewAttachParams attach, EmuApp::ViewID id)
 {
-	loadGameComplete(1, 0);
-}
-
-static void loadGameCompleteConfirmNoAutoLoadState(Input::Event e)
-{
-	loadGameComplete(0, 0);
-}
-
-void loadGameCompleteFromRecentItem(Gfx::Renderer &r, uint result, Input::Event e)
-{
-	if(!result)
-		return;
-
-	if(!showAutoStateConfirm(r, e, false))
+	auto view = EmuApp::makeCustomView(attach, id);
+	if(view)
+		return view;
+	switch(id)
 	{
-		loadGameComplete(1, 0);
+		case EmuApp::ViewID::MAIN_MENU: return new EmuMainMenuView(attach);
+		case EmuApp::ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
+		case EmuApp::ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
+		case EmuApp::ViewID::SYSTEM_OPTIONS: return new SystemOptionView(attach);
+		case EmuApp::ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		default:
+			bug_unreachable("Tried to make non-existing view ID:%d", (int)id);
+			return nullptr;
 	}
-}
-
-void RecentGameInfo::handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e)
-{
-	EmuApp::createSystemWithMedia({}, path.data(), "", e,
-		[&r](uint result, Input::Event e)
-		{
-			loadGameCompleteFromRecentItem(r, result, e);
-		});
-}
-
-RecentGameView::RecentGameView(ViewAttachParams attach):
-	TableView
-	{
-		"Recent Games",
-		attach,
-		[this](const TableView &)
-		{
-			return 1 + recentGame.size();
-		},
-		[this](const TableView &, uint idx) -> MenuItem&
-		{
-			return idx < recentGame.size() ? recentGame[idx] : clear;
-		}
-	},
-	clear
-	{
-		"Clear List",
-		[this](TextMenuItem &t, View &, Input::Event e)
-		{
-			recentGameList.clear();
-			dismiss();
-		}
-	}
-{
-	name_ = appViewTitle();
-	recentGame.reserve(recentGameList.size());
-	for(auto &e : recentGameList)
-	{
-		recentGame.emplace_back(e.name.data(),
-			[&e](TextMenuItem &t, View &view, Input::Event ev)
-			{
-				e.handleMenuSelection(view.renderer(), t, ev);
-			});
-		recentGame.back().setActive(FS::exists(e.path.data()));
-	}
-	clear.setActive(recentGameList.size());
 }

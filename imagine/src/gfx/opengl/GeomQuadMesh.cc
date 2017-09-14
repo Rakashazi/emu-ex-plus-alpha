@@ -21,18 +21,17 @@
 namespace Gfx
 {
 
-void GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color)
+GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color)
 {
-	deinit();
 	if(xVals < 2 || yVals < 2)
 		return;
 	verts = xVals * yVals;
 	int quads = (xVals - 1) * (yVals - 1);
 	idxs = quads*6;
 	//logMsg("mesh with %d verts, %d idxs, %d quads", verts, idxs, quads);
-	auto mem = (char*)mem_alloc((sizeof(ColVertex) * verts) + (sizeof(VertexIndex) * idxs));
-	v = {(ColVertex*)mem, xVals};
-	i = (VertexIndex*)(mem + (sizeof(ColVertex) * verts));
+	vMem = std::make_unique<char[]>((sizeof(ColVertex) * verts) + (sizeof(VertexIndex) * idxs));
+	this->xVals = xVals;
+	i = (VertexIndex*)(vMem.get() + (sizeof(ColVertex) * verts));
 
 	/*ColVertex *currV = v;
 	iterateTimes(yVals, yIdx)
@@ -49,14 +48,14 @@ void GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y, uint
 		iterateTimes(xVals-1, xIdx)
 		{
 			// Triangle 1, LB LT RT
-			currI[0] = v.idxOf(yIdx, xIdx);
-			currI[1] = v.idxOf(yIdx, xIdx+1);
-			currI[2] = v.idxOf(yIdx+1, xIdx);
+			currI[0] = v().idxOf(yIdx, xIdx);
+			currI[1] = v().idxOf(yIdx, xIdx+1);
+			currI[2] = v().idxOf(yIdx+1, xIdx);
 
 			// Triangle 1, LB RT RB
-			currI[3] = v.idxOf(yIdx, xIdx+1);
-			currI[4] = v.idxOf(yIdx+1, xIdx+1);
-			currI[5] = v.idxOf(yIdx+1, xIdx);
+			currI[3] = v().idxOf(yIdx, xIdx+1);
+			currI[4] = v().idxOf(yIdx+1, xIdx+1);
+			currI[5] = v().idxOf(yIdx+1, xIdx);
 
 			//logMsg("quad %d %d,%d,%d %d,%d,%d", quads, currI[0], currI[1], currI[2], currI[3], currI[4], currI[5]);
 
@@ -65,21 +64,11 @@ void GeomQuadMesh::init(const VertexPos *x, uint xVals, const VertexPos *y, uint
 		}
 }
 
-void GeomQuadMesh::deinit()
-{
-	//logMsg("GeomQuadMesh::deinit()");
-	if(v.arr)
-	{
-		mem_free(v.arr);
-		v.arr = nullptr;
-	}
-}
-
 void GeomQuadMesh::draw(Renderer &r)
 {
 	r.bindTempVertexBuffer();
-	r.vertexBufferData(v.arr, sizeof(ColVertex) * verts);
-	ColVertex::bindAttribs(r, v.arr);
+	r.vertexBufferData(v().arr, sizeof(ColVertex) * verts);
+	ColVertex::bindAttribs(r, v().arr);
 	r.drawPrimitiveElements(Primitive::TRIANGLE, i, idxs);
 }
 
@@ -87,7 +76,7 @@ void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 {
 	iterateTimes(verts, i)
 	{
-		v[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v[i].color));
+		v()[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v()[i].color));
 	}
 }
 
@@ -95,34 +84,39 @@ void GeomQuadMesh::setColorTranslucent(ColorComp a)
 {
 	iterateTimes(verts, i)
 	{
-		v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), (uint)a);
+		v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint)a);
 	}
 }
 
 void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i)
 {
-	v[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v[i].color));
+	v()[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v()[i].color));
 }
 
 void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint i)
 {
 	// swap for tri strip
-	v[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v[i].color), VertexColorPixelFormat.g(v[i].color), VertexColorPixelFormat.b(v[i].color), (uint)a);
+	v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint)a);
 }
 
 void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)
 {
-	uint xVals = v.columns, yVals = verts/xVals;
-	ColVertex *currV = v;
+	uint yVals = verts/xVals;
+	ColVertex *currV = v();
 	iterateTimes(yVals, yIdx)
 		iterateTimes(xVals, xIdx)
 		{
 			currV->x = yIdx == 0 ? IG::scalePointRange((GC)xIdx, (GC)0, GC(xVals-1), x, x2)
-					: (currV-v.columns)->x;
+					: (currV-v().columns)->x;
 			currV->y = xIdx == 0 ? IG::scalePointRange((GC)yIdx, (GC)0, GC(yVals-1), y, y2)
 					: (currV-xIdx)->y;
 			currV++;
 		}
+}
+
+Mem2D<ColVertex> GeomQuadMesh::v() const
+{
+	return {(ColVertex*)vMem.get(), xVals};
 }
 
 }

@@ -17,13 +17,13 @@
 #define BytePtr BytePtrMac
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #undef BytePtr
 #undef Debugger
 #undef HAVE_UNISTD_H
 #include "internal.hh"
 
-class EmuVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView
 {
 	TextMenuItem tvPhosphorItem[3];
 	MultiChoiceMenuItem tvPhosphor;
@@ -58,7 +58,7 @@ class EmuVideoOptionView : public VideoOptionView
 	}
 
 public:
-	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true},
+	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true},
 	tvPhosphorItem
 	{
 		{"Off", []() { setTVPhosphor(0); }},
@@ -160,7 +160,7 @@ public:
 
 };
 
-class EmuMenuView : public MenuView
+class CustomMainMenuView : public EmuMainMenuView
 {
 private:
 	TextMenuItem switches
@@ -185,7 +185,7 @@ private:
 	}
 
 public:
-	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -193,20 +193,17 @@ public:
 
 	void onShow() final
 	{
-		MenuView::onShow();
+		EmuMainMenuView::onShow();
 		switches.setActive(EmuSystem::gameIsRunning());
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new SystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		default: return nullptr;
 	}
 }

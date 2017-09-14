@@ -1,10 +1,10 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include "internal.hh"
 
 static constexpr uint MAX_SH2_CORES = 4;
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 	char biosPathStr[256]{};
 
@@ -49,7 +49,7 @@ class EmuSystemOptionView : public SystemOptionView
 	};
 
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		if(SH2Cores > 1)
@@ -71,15 +71,11 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new MenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}
 }

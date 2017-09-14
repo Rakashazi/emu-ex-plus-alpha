@@ -1,5 +1,5 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <snes9x.h>
@@ -10,7 +10,7 @@ static constexpr bool HAS_NSRT = true;
 static constexpr bool HAS_NSRT = false;
 #endif
 
-class EmuInputOptionView : public TableView
+class CustomInputOptionView : public TableView
 {
 	BoolMenuItem multitap
 	{
@@ -53,7 +53,7 @@ class EmuInputOptionView : public TableView
 	};
 
 public:
-	EmuInputOptionView(ViewAttachParams attach):
+	CustomInputOptionView(ViewAttachParams attach):
 		TableView
 		{
 			"Input Options",
@@ -74,7 +74,7 @@ public:
 	{}
 };
 
-class EmuVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView
 {
 	static void videoSystemChangedMessage()
 	{
@@ -130,14 +130,14 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&videoSystem);
 	}
 };
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 	#ifndef SNES9X_VERSION_1_4
 	BoolMenuItem blockInvalidVRAMAccess
@@ -153,7 +153,7 @@ class EmuSystemOptionView : public SystemOptionView
 	#endif
 
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		#ifndef SNES9X_VERSION_1_4
@@ -162,16 +162,13 @@ public:
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new MenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
+		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;

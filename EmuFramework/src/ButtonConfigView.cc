@@ -39,14 +39,17 @@ void ButtonConfigSetView::initPointerUI()
 }
 #endif
 
-void ButtonConfigSetView::init(Input::Device &dev, const char *actionName, SetDelegate onSet)
+ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
+	InputManagerView &rootIMView, Input::Device &dev, const char *actionName,
+	SetDelegate onSet):
+		View{attach},
+		text{str.data(), &View::defaultFace},
+		onSetD{onSet},
+		dev{dev},
+		rootIMView{rootIMView}
 {
-	text = {str.data(), &View::defaultFace};
-	this->dev = &dev;
-	savedDev = nullptr;
 	string_copy(actionStr, actionName);
 	Input::setKeyRepeat(false);
-	onSetD = onSet;
 }
 
 ButtonConfigSetView::~ButtonConfigSetView()
@@ -107,7 +110,7 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 	if(!e.isPointer() && e.pushed())
 	{
 		auto d = e.device();
-		if(d != dev)
+		if(d != &dev)
 		{
 			if(d == savedDev)
 			{
@@ -337,13 +340,12 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 			[this, i](DualTextMenuItem &item, View &, Input::Event e)
 			{
 				auto keyToSet = i;
-				auto &btnSetView = *new ButtonConfigSetView{attachParams(), rootIMView};
-				btnSetView.init(*devConf->dev, btn[keyToSet].item.t.str,
+				auto &btnSetView = *new ButtonConfigSetView{attachParams(), rootIMView,
+					*devConf->dev, btn[keyToSet].item.t.str,
 					[this, keyToSet](Input::Event e)
 					{
 						onSet(e, keyToSet);
-					}
-				);
+					}};
 				modalViewController.pushAndShow(btnSetView, e);
 			});
 	}

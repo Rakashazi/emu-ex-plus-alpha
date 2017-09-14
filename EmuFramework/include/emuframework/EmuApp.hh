@@ -35,6 +35,18 @@ public:
 	using CreateSystemCompleteDelegate = DelegateFunc<void (uint result, Input::Event e)>;
 	using NavView = BasicNavView;
 
+	enum class ViewID
+	{
+		MAIN_MENU,
+		VIDEO_OPTIONS,
+		AUDIO_OPTIONS,
+		INPUT_OPTIONS,
+		SYSTEM_OPTIONS,
+		GUI_OPTIONS,
+		EDIT_CHEATS,
+		LIST_CHEATS,
+	};
+
 	static bool autoSaveStateDefault;
 	static bool hasIcon;
 
@@ -83,4 +95,7 @@ public:
 	static void setDefaultVControlsButtonSpacing(int spacing);
 	static void setDefaultVControlsButtonStagger(int stagger);
 	static FS::PathString mediaSearchPath();
+	static FS::PathString firmwareSearchPath();
+	static void setFirmwareSearchPath(const char *path);
+	static View *makeCustomView(ViewAttachParams attach, ViewID id);
 };

@@ -15,12 +15,17 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <emuframework/MenuView.hh>
+#include <imagine/gfx/GfxText.hh>
 #include <emuframework/EmuInput.hh>
 #include <vector>
 #include <array>
+#ifdef CONFIG_BLUETOOTH
+#include <imagine/bluetooth/sys.hh>
+#endif
 
 struct InputDeviceConfig;
 
@@ -33,10 +38,9 @@ public:
 	using OnIdentInputDelegate = DelegateFunc<void (Input::Event e)>;
 	OnIdentInputDelegate onIdentInput{};
 
-	IdentInputDeviceView(ViewAttachParams attach): View(attach) {}
+	IdentInputDeviceView(ViewAttachParams attach);
 	~IdentInputDeviceView() final;
 	IG::WindowRect &viewRect() final { return viewFrame; }
-	void init();
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw() final;

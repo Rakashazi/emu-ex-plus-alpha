@@ -15,7 +15,7 @@
 
 #include <imagine/gui/TextEntry.hh>
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include "internal.hh"
 #include "VicePlugin.hh"
 
@@ -92,7 +92,7 @@ static constexpr const char *driveTypeStr(int type)
 	return "?";
 }
 
-class EmuVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView
 {
 	BoolMenuItem cropNormalBorders
 	{
@@ -121,7 +121,7 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&cropNormalBorders);
@@ -129,7 +129,7 @@ public:
 	}
 };
 
-class EmuAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView
 {
 	TextMenuItem sidEngineItem[2]
 	{
@@ -161,14 +161,14 @@ class EmuAudioOptionView : public AudioOptionView
 	}
 
 public:
-	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&sidEngine);
 	}
 };
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 	BoolMenuItem autostartWarp
 	{
@@ -385,41 +385,40 @@ class EmuSystemOptionView : public SystemOptionView
 		defaultVIC20ModelItem
 	};
 
+	char systemFilePathStr[256]{};
+
+	TextMenuItem systemFilePath
+	{
+		systemFilePathStr,
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			pushAndShowFirmwarePathMenu("System File Path", e);
+			postDraw();
+		}
+	};
+
+	void onFirmwarePathChange(const char *path, Input::Event e) final
+	{
+		printSysPathMenuEntryStr(systemFilePathStr);
+		systemFilePath.compile(renderer(), projP);
+		sysFilePath[0] = firmwareBasePath;
+		if(!strlen(path))
+		{
+			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
+				EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", Base::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+			else
+				EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", Base::storagePath().data());
+		}
+	}
+
 	template <size_t S>
 	static void printSysPathMenuEntryStr(char (&str)[S])
 	{
 		string_printf(str, "System File Path: %s", strlen(firmwareBasePath.data()) ? FS::basename(firmwareBasePath).data() : "Default");
 	}
 
-	FirmwarePathSelector systemFileSelector;
-	char systemFilePathStr[256]{};
-	TextMenuItem systemFilePath
-	{
-		systemFilePathStr,
-		[this](TextMenuItem &, View &, Input::Event e)
-		{
-			systemFileSelector.init(renderer(), "System File Path", e);
-			systemFileSelector.onPathChange =
-				[this](const char *newPath)
-				{
-					printSysPathMenuEntryStr(systemFilePathStr);
-					systemFilePath.compile(renderer(), projP);
-					sysFilePath[0] = firmwareBasePath;
-					if(!strlen(newPath))
-					{
-						if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-							EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", Base::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
-						else
-							EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", Base::storagePath().data());
-					}
-				};
-			postDraw();
-		}
-	};
-
-
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		printSysPathMenuEntryStr(systemFilePathStr);
@@ -931,7 +930,7 @@ public:
 	}
 };
 
-class EmuMenuView : public MenuView
+class CustomMainMenuView : public EmuMainMenuView
 {
 	BoolMenuItem swapJoystickPorts
 	{
@@ -1120,7 +1119,7 @@ class EmuMenuView : public MenuView
 	}
 
 public:
-	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -1128,22 +1127,21 @@ public:
 
 	void onShow() final
 	{
-		MenuView::onShow();
+		EmuMainMenuView::onShow();
 		c64IOControl.setActive(EmuSystem::gameIsRunning());
 		quickSettings.setActive(EmuSystem::gameIsRunning());
 		swapJoystickPorts.setBoolValue(optionSwapJoystickPorts);
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}
 }

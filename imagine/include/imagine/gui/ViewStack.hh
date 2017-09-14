@@ -21,6 +21,7 @@
 #include <utility>
 #include <memory>
 #include <array>
+#include <vector>
 
 class BasicViewController : public ViewController
 {
@@ -75,13 +76,19 @@ public:
 	uint size() const;
 
 protected:
-	View *view[5]{};
+	struct ViewEntry
+	{
+		ViewEntry(std::unique_ptr<View> v, bool needsNavView):
+			v{std::move(v)}, needsNavView{needsNavView}
+		{}
+		std::unique_ptr<View> v;
+		bool needsNavView;
+	};
+	std::vector<ViewEntry> view{};
 	std::unique_ptr<NavView> nav{};
 	//ViewController *nextController{};
 	IG::WindowRect viewRect{}, customViewRect{};
 	Gfx::ProjectionPlane projP{};
-	uint size_ = 0;
-	std::array<bool, 5> viewNeedsNavView{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 

@@ -79,18 +79,6 @@ public:
 		ACTIVE
 	};
 
-	enum class ViewID
-	{
-		MAIN_MENU,
-		VIDEO_OPTIONS,
-		AUDIO_OPTIONS,
-		INPUT_OPTIONS,
-		SYSTEM_OPTIONS,
-		GUI_OPTIONS,
-		EDIT_CHEATS,
-		LIST_CHEATS,
-	};
-
 	enum class LoadProgress : uint8
 	{
 		UNSET,
@@ -156,7 +144,6 @@ public:
 	static const char *creditsViewStr;
 
 	static Error onInit();
-	static View *makeView(ViewAttachParams attach, ViewID id);
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static bool isPaused() { return state == State::PAUSED; }

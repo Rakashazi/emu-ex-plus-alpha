@@ -14,7 +14,7 @@
 	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include <imagine/util/bits.h>
 #include "internal.hh"
 
@@ -28,7 +28,7 @@ extern "C"
 	#include <gngeo/memory.h>
 }
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 private:
 	TextMenuItem timerItem[3]
@@ -105,7 +105,7 @@ private:
 	};
 
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&bios);
@@ -595,7 +595,7 @@ public:
 	}*/
 };
 
-class EmuMenuView : public MenuView
+class CustomMainMenuView : public EmuMainMenuView
 {
 private:
 
@@ -645,7 +645,7 @@ private:
 	}
 
 public:
-	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -653,21 +653,18 @@ public:
 
 	void onShow()
 	{
-		MenuView::onShow();
+		EmuMainMenuView::onShow();
 		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_1;
 		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}
 }

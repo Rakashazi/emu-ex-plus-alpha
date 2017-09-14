@@ -1,11 +1,11 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <fceu/fds.h>
 #include <fceu/sound.h>
 
-class EmuInputOptionView : public TableView
+class CustomInputOptionView : public TableView
 {
 	BoolMenuItem fourScore
 	{
@@ -44,7 +44,7 @@ class EmuInputOptionView : public TableView
 	};
 
 public:
-	EmuInputOptionView(ViewAttachParams attach):
+	CustomInputOptionView(ViewAttachParams attach):
 		TableView
 		{
 			"Input Options",
@@ -65,7 +65,7 @@ public:
 	{}
 };
 
-class EmuVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView
 {
 	TextMenuItem videoSystemItem[4]
 	{
@@ -125,7 +125,7 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&videoSystem);
@@ -133,7 +133,7 @@ public:
 	}
 };
 
-class EmuAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView
 {
 	static void setQuality(int quaility)
 	{
@@ -172,14 +172,14 @@ class EmuAudioOptionView : public AudioOptionView
 	};
 
 public:
-	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&quality);
 	}
 };
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 	char fdsBiosPathStr[256]{};
 
@@ -207,7 +207,7 @@ class EmuSystemOptionView : public SystemOptionView
 	}
 
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		printBiosMenuEntryStr(fdsBiosPathStr);
@@ -299,7 +299,7 @@ public:
 	}
 };
 
-class EmuMenuView : public MenuView
+class CustomMainMenuView : public EmuMainMenuView
 {
 private:
 	char diskLabel[sizeof("FDS Control (Disk 1:A)")]{};
@@ -341,7 +341,7 @@ private:
 	}
 
 public:
-	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -349,21 +349,20 @@ public:
 
 	void onShow()
 	{
-		MenuView::onShow();
+		EmuMainMenuView::onShow();
 		refreshFDSItem();
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
-		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
+		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;

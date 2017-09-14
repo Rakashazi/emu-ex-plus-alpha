@@ -1,5 +1,5 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/FilePicker.hh>
 #include "internal.hh"
 
@@ -81,7 +81,7 @@ void installFirmwareFiles()
 	EmuApp::postMessage("Installation OK");
 }
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 private:
 
@@ -182,33 +182,33 @@ private:
 		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
 	}
 
-	FirmwarePathSelector machineFileSelector;
 	char machineFilePathStr[256]{};
+
 	TextMenuItem machineFilePath
 	{
 		machineFilePathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			machineFileSelector.init(renderer(), "System/BIOS Path", e);
-			machineFileSelector.onPathChange =
-				[this](const char *newPath)
-				{
-					printMachinePathMenuEntryStr(machineFilePathStr);
-					machineFilePath.compile(renderer(), projP);
-					machineBasePath = makeMachineBasePath(machineCustomPath);
-					reloadMachineItem();
-					msxMachine.compile(renderer(), projP);
-					if(!strlen(newPath))
-					{
-						EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
-					}
-				};
+			pushAndShowFirmwarePathMenu("System/BIOS Path", e);
 			postDraw();
 		}
 	};
 
+	void onFirmwarePathChange(const char *path, Input::Event e) final
+	{
+		printMachinePathMenuEntryStr(machineFilePathStr);
+		machineFilePath.compile(renderer(), projP);
+		machineBasePath = makeMachineBasePath(machineCustomPath);
+		reloadMachineItem();
+		msxMachine.compile(renderer(), projP);
+		if(!strlen(path))
+		{
+			EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
+		}
+	}
+
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		reloadMachineItem();
@@ -517,7 +517,7 @@ const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
 const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
 const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
 
-class EmuMenuView : public MenuView
+class CustomMainMenuView : public EmuMainMenuView
 {
 private:
 	TextMenuItem msxIOControl
@@ -546,7 +546,7 @@ private:
 	}
 
 public:
-	EmuMenuView(ViewAttachParams attach): MenuView{attach, true}
+	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
@@ -554,20 +554,17 @@ public:
 
 	void onShow()
 	{
-		MenuView::onShow();
+		EmuMainMenuView::onShow();
 		msxIOControl.setActive(EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX);
 	}
 };
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new EmuMenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}
 }

@@ -38,7 +38,7 @@ private:
 	Gfx::Text unbind{}, cancel{};
 	#endif
 	SetDelegate onSetD{};
-	const Input::Device *dev{};
+	const Input::Device &dev;
 	const Input::Device *savedDev{};
 	InputManagerView &rootIMView;
 
@@ -46,12 +46,10 @@ private:
 	bool pointerUIIsInit();
 
 public:
-	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView):
-		View{attach}, rootIMView{rootIMView}
-	{}
+	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView,
+		Input::Device &dev, const char *actionName, SetDelegate onSet);
 	~ButtonConfigSetView();
 	IG::WindowRect &viewRect() final { return viewFrame; }
-	void init(Input::Device &dev, const char *actionName, SetDelegate onSet);
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw() final;

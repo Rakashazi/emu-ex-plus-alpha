@@ -65,7 +65,7 @@ EmuView emuView{{mainWin.win, renderer}, &emuVideoLayer, &emuInputView};
 EmuView emuView2{{extraWin.win, renderer}, nullptr, nullptr};
 AppWindowData *emuWin = &mainWin;
 ViewStack viewStack{};
-MsgPopup popup{};
+MsgPopup popup{renderer};
 BasicViewController modalViewController{};
 DelegateFunc<void ()> onUpdateInputDevices{};
 Base::Screen::OnFrameDelegate onFrameUpdate{};
@@ -202,6 +202,13 @@ static void pauseEmulation()
 	EmuSystem::pause();
 	emuWin->win.screen()->removeOnFrame(onFrameUpdate);
 	setCPUNeedsLowLatency(false);
+}
+
+static void suspendEmulation()
+{
+	pauseEmulation();
+	EmuApp::saveAutoState();
+	EmuSystem::saveBackupMem();
 }
 
 void closeGame(bool allowAutosaveState)
@@ -583,9 +590,7 @@ void mainInitCommon(int argc, char** argv)
 			renderer.restoreBind();
 			if(backgrounded)
 			{
-				pauseEmulation();
-				EmuApp::saveAutoState();
-				EmuSystem::saveBackupMem();
+				suspendEmulation();
 				Base::dispatchOnFreeCaches();
 				if(optionNotificationIcon)
 				{
@@ -813,7 +818,7 @@ void mainInitWindowCommon(Base::Window &win)
 	win.setTitle(appName());
 
 	setupFont(renderer);
-	popup.init(renderer);
+	popup.setFace(View::defaultFace);
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	initVControls(renderer);
 	EmuControls::updateVControlImg();
@@ -849,7 +854,7 @@ void mainInitWindowCommon(Base::Window &win)
 	#endif
 
 	placeElements();
-	auto mMenu = EmuSystem::makeView({win, renderer}, EmuSystem::ViewID::MAIN_MENU);
+	auto mMenu = makeView({win, renderer}, EmuApp::ViewID::MAIN_MENU);
 	viewStack.pushAndShow(*mMenu, Input::defaultEvent());
 
 	win.show();
@@ -1338,9 +1343,24 @@ FS::PathString EmuApp::mediaSearchPath()
 	return lastLoadPath;
 }
 
+FS::PathString EmuApp::firmwareSearchPath()
+{
+	return strlen(optionFirmwarePath) ? FS::makePathString(optionFirmwarePath) : lastLoadPath;
+}
+
+void EmuApp::setFirmwareSearchPath(const char *path)
+{
+	strncpy(optionFirmwarePath.val, path, sizeof(FS::PathString));
+}
+
 [[gnu::weak]] void EmuApp::onMainWindowCreated(ViewAttachParams, Input::Event) {}
 
 [[gnu::weak]] void EmuApp::onCustomizeNavView(EmuApp::NavView &) {}
+
+[[gnu::weak]] View *EmuApp::makeCustomView(ViewAttachParams attach, EmuApp::ViewID id)
+{
+	return nullptr;
+}
 
 namespace Base
 {

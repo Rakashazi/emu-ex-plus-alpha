@@ -23,13 +23,15 @@
 
 using namespace Base;
 
-void MsgPopup::init(Gfx::Renderer &renderer)
+MsgPopup::MsgPopup(Gfx::Renderer &renderer): r{renderer}
 {
-	//logMsg("init MsgPopup");
-	r = &renderer;
-	text = {nullptr, &View::defaultFace};
-	text.setString(str.data());
 	text.maxLines = 6;
+}
+
+void MsgPopup::setFace(Gfx::GlyphTextureSet &face)
+{
+	text.setFace(&face);
+	text.setString(str.data());
 }
 
 void MsgPopup::clear()
@@ -46,7 +48,7 @@ void MsgPopup::place(const Gfx::ProjectionPlane &projP)
 	this->projP = projP;
 	text.maxLineSize = projP.w;
 	if(strlen(str.data()))
-		text.compile(*r, projP);
+		text.compile(r, projP);
 }
 
 void MsgPopup::unpost()
@@ -61,7 +63,7 @@ void MsgPopup::postContent(int secs, bool error)
 	assert(strlen(str.data()));
 	mainWin.win.postDraw();
 	logMsg("%s", str.data());
-	text.compile(*r, projP);
+	text.compile(r, projP);
 	this->error = error;
 	unpostTimer.callbackAfterSec([this](){unpost();}, secs, {});
 }
@@ -106,12 +108,12 @@ void MsgPopup::draw()
 	using namespace Gfx;
 	if(strlen(str.data()))
 	{
-		r->noTexProgram.use(*r, projP.makeTranslate());
-		r->setBlendMode(BLEND_MODE_ALPHA);
+		r.noTexProgram.use(r, projP.makeTranslate());
+		r.setBlendMode(BLEND_MODE_ALPHA);
 		if(error)
-			r->setColor(1., 0, 0, .7);
+			r.setColor(1., 0, 0, .7);
 		else
-			r->setColor(0, 0, 1., .7);
+			r.setColor(0, 0, 1., .7);
 		Gfx::GCRect rect(-projP.wHalf(), -projP.hHalf(),
 				projP.wHalf(), -projP.hHalf() + (text.ySize * 1.5));
 		#if CONFIG_ENV_WEBOS_OS >= 3
@@ -122,9 +124,9 @@ void MsgPopup::draw()
 			rect.y2 = projP.hHalf;
 		}
 		#endif
-		GeomRect::draw(*r, rect);
-		r->setColor(1., 1., 1., 1.);
-		r->texAlphaProgram.use(*r);
-		text.draw(*r, 0, projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, projP);
+		GeomRect::draw(r, rect);
+		r.setColor(1., 1., 1., 1.);
+		r.texAlphaProgram.use(r);
+		text.draw(r, 0, projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, projP);
 	}
 }

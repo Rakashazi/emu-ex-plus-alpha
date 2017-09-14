@@ -14,8 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/Recent.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include "private.hh"
 
 StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList{};
 
@@ -38,4 +40,24 @@ void addRecentGame(const char *fullPath, const char *name)
 	{
 		logMsg("path: %s name: %s", e.path.data(), e.name.data());
 	}*/
+}
+
+void loadGameCompleteFromRecentItem(Gfx::Renderer &r, uint result, Input::Event e)
+{
+	if(!result)
+		return;
+
+	if(!showAutoStateConfirm(r, e, false))
+	{
+		loadGameComplete(1, 0);
+	}
+}
+
+void RecentGameInfo::handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e)
+{
+	EmuApp::createSystemWithMedia({}, path.data(), "", e,
+		[&r](uint result, Input::Event e)
+		{
+			loadGameCompleteFromRecentItem(r, result, e);
+		});
 }

@@ -16,6 +16,7 @@
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/TextEntry.hh>
+#include "private.hh"
 
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
 
@@ -41,7 +42,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		"Add/Edit",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &editCheatListView = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::EDIT_CHEATS);
+			auto &editCheatListView = *makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
 			pushAndShow(editCheatListView, e);
 		}
 	},

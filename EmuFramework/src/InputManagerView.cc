@@ -18,6 +18,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuOptions.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/TextTableView.hh>
 #include <imagine/base/Base.hh>
 #include "private.hh"
 #include "privateInput.hh"
@@ -25,9 +26,10 @@
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
 
-void IdentInputDeviceView::init()
+IdentInputDeviceView::IdentInputDeviceView(ViewAttachParams attach):
+	View(attach),
+	text{"Push a key on any input device enter its configuration menu", &View::defaultFace}
 {
-	text = {"Push a key on any input device enter its configuration menu", &View::defaultFace};
 	Input::setKeyRepeat(false);
 }
 
@@ -221,7 +223,6 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto &identView = *new IdentInputDeviceView{attachParams()};
-			identView.init();
 			identView.onIdentInput =
 				[this](Input::Event e)
 				{
@@ -250,7 +251,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		"Emulated System Options",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &optView = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::INPUT_OPTIONS);
+			auto &optView = *makeView(attachParams(), EmuApp::ViewID::INPUT_OPTIONS);
 			pushAndShow(optView, e);
 		}
 	},

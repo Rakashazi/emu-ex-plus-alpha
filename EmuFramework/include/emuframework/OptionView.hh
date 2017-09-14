@@ -25,6 +25,14 @@
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextTableView.hh>
 
+class OptionCategoryView : public TableView
+{
+	TextMenuItem subConfig[4];
+
+public:
+	OptionCategoryView(ViewAttachParams attach);
+};
+
 class VideoOptionView : public TableView
 {
 protected:
@@ -75,6 +83,9 @@ protected:
 	BoolMenuItem dither;
 	StaticArrayList<MenuItem*, 24> item{};
 
+	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
+	void onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);
+
 public:
 	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
 	void loadStockItems();
@@ -110,7 +121,6 @@ protected:
 	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
-	void savePathUpdated(const char *newPath);
 	char savePathStr[256]{};
 	TextMenuItem savePath;
 	BoolMenuItem checkSavePathWriteAccess;
@@ -123,6 +133,10 @@ protected:
 	BoolMenuItem fakeUserActivity;
 	#endif
 	StaticArrayList<MenuItem*, 24> item{};
+
+	void onSavePathChange(const char *path);
+	virtual void onFirmwarePathChange(const char *path, Input::Event e);
+	void pushAndShowFirmwarePathMenu(const char *name, Input::Event e);
 
 public:
 	SystemOptionView(ViewAttachParams attach, bool customMenu = false);
@@ -174,18 +188,4 @@ protected:
 	BiosChangeDelegate onBiosChangeD{};
 	FS::PathString *biosPathStr{};
 	EmuSystem::NameFilterFunc fsFilter{};
-
-	void onSelectFile(FS::PathString path, Input::Event e);
-};
-
-using PathChangeDelegate = DelegateFunc<void (const char *newPath)>;
-
-class FirmwarePathSelector
-{
-public:
-	PathChangeDelegate onPathChange;
-
-	constexpr FirmwarePathSelector() {}
-	void onClose(FSPicker &picker, Input::Event e);
-	void init(Gfx::Renderer &r, const char *name, Input::Event e);
 };

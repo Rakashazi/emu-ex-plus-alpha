@@ -19,6 +19,7 @@
 #include <emuframework/EmuOptions.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/math/space.hh>
 #include "private.hh"
 
 void VControllerDPad::init() {}

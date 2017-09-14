@@ -15,25 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <array>
-#include <imagine/logger/logger.h>
+#include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
+#include <vector>
 
-struct TurboInput
+class RecentGameView : public TableView
 {
-	struct Action
-	{
-		constexpr Action() {}
-		uint action = 0;
+private:
+	std::vector<TextMenuItem> recentGame{};
+	TextMenuItem clear{};
 
-		bool operator ==(uint rhs) const
-		{
-			return action == rhs;
-		}
-	};
-
-	std::array<Action, 5> activeAction{};
-
-	constexpr TurboInput() {}
-	void addEvent(uint action);
-	void removeEvent(uint action);
+public:
+	RecentGameView(ViewAttachParams attach);
 };

@@ -53,7 +53,8 @@ SRC += gfx/opengl/opengl.cc \
  gfx/common/ProjectionPlane.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
- gfx/common/AnimatedViewport.cc
+ gfx/common/AnimatedViewport.cc \
+ gfx/common/GfxLGradient.cc
  
 ifeq ($(ENV), ios)
  ifneq ($(SUBARCH), armv6)

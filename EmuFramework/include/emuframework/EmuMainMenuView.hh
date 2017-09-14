@@ -16,39 +16,17 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <emuframework/EmuSystem.hh>
-#include <emuframework/StateSlotView.hh>
-#include <imagine/gui/TextTableView.hh>
+#include <array>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
-#include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
-#include <emuframework/VController.hh>
-#include <array>
 
-class OptionCategoryView : public TableView
-{
-	TextMenuItem subConfig[4];
-
-public:
-	OptionCategoryView(ViewAttachParams attach);
-};
-
-class RecentGameView : public TableView
-{
-private:
-	std::vector<TextMenuItem> recentGame{};
-	TextMenuItem clear{};
-
-public:
-	RecentGameView(ViewAttachParams attach);
-};
-
-class MenuView : public TableView
+class EmuMainMenuView : public TableView
 {
 public:
-	MenuView(ViewAttachParams attach, bool customMenu = false);
+	EmuMainMenuView(ViewAttachParams attach, bool customMenu = false);
 	void onShow() override;
 	void loadFileBrowserItems();
 	void loadStandardItems();

@@ -1,11 +1,11 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/MenuView.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include "input.h"
 #include "io_ctrl.h"
 
-class EmuVideoOptionView : public VideoOptionView
+class CustomVideoOptionView : public VideoOptionView
 {
 	TextMenuItem videoSystemItem[3]
 	{
@@ -22,14 +22,14 @@ class EmuVideoOptionView : public VideoOptionView
 	};
 
 public:
-	EmuVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&videoSystem);
 	}
 };
 
-class EmuAudioOptionView : public AudioOptionView
+class CustomAudioOptionView : public AudioOptionView
 {
 	BoolMenuItem smsFM
 	{
@@ -43,14 +43,14 @@ class EmuAudioOptionView : public AudioOptionView
 	};
 
 public:
-	EmuAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&smsFM);
 	}
 };
 
-class EmuInputOptionView : public TableView
+class CustomInputOptionView : public TableView
 {
 	BoolMenuItem sixButtonPad
 	{
@@ -128,7 +128,7 @@ class EmuInputOptionView : public TableView
 	};
 
 public:
-	EmuInputOptionView(ViewAttachParams attach):
+	CustomInputOptionView(ViewAttachParams attach):
 		TableView
 		{
 			"Input Options",
@@ -150,7 +150,7 @@ public:
 	{}
 };
 
-class EmuSystemOptionView : public SystemOptionView
+class CustomSystemOptionView : public SystemOptionView
 {
 	BoolMenuItem bigEndianSram
 	{
@@ -263,7 +263,7 @@ class EmuSystemOptionView : public SystemOptionView
 	#endif
 
 public:
-	EmuSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
 		item.emplace_back(&bigEndianSram);
@@ -275,19 +275,17 @@ public:
 };
 
 #ifndef NO_SCD
-constexpr const char *EmuSystemOptionView::biosHeadingStr[3];
+constexpr const char *CustomSystemOptionView::biosHeadingStr[3];
 #endif
 
-View *EmuSystem::makeView(ViewAttachParams attach, ViewID id)
+View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new MenuView(attach);
-		case ViewID::VIDEO_OPTIONS: return new EmuVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new EmuAudioOptionView(attach);
-		case ViewID::INPUT_OPTIONS: return new EmuInputOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new EmuSystemOptionView(attach);
-		case ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
+		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
+		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;

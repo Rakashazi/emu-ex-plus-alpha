@@ -810,7 +810,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 		"Emulated System Options",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &optView = *EmuSystem::makeView(attachParams(), EmuSystem::ViewID::INPUT_OPTIONS);
+			auto &optView = *makeView(attachParams(), EmuApp::ViewID::INPUT_OPTIONS);
 			pushAndShow(optView, e);
 		}
 	},

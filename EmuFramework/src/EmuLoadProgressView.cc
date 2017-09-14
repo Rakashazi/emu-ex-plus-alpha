@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuLoadProgressView.hh>
+#include <imagine/util/math/space.hh>
 
 void EmuLoadProgressView::setMax(uint val)
 {
