@@ -164,16 +164,14 @@ void system_VBL(void)
 	if(likely(emuVideo))
 	{
 		emuVideo->writeFrame(srcPix);
-		EmuApp::updateAndDrawEmuVideo();
 		emuVideo = {};
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
-	if(renderGfx)
-		emuVideo = &video;
-	frameskip_active = processGfx ? 0 : 1;
+	emuVideo = video;
+	frameskip_active = video ? 0 : 1;
 
 	#ifndef NEOPOP_DEBUG
 	emulate();

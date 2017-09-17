@@ -191,23 +191,30 @@ bool PosixIO::eof()
 	return tell() >= (off_t)size();
 }
 
+#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
+static int adviceToFAdv(IO::Advice advice)
+{
+	switch(advice)
+	{
+		default: return POSIX_FADV_NORMAL;
+		case IO::Advice::SEQUENTIAL: return POSIX_FADV_NORMAL;
+		case IO::Advice::RANDOM: return POSIX_FADV_RANDOM;
+		case IO::Advice::WILLNEED: return POSIX_FADV_WILLNEED;
+	}
+}
+#endif
+
 void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
 {
 	#ifdef __APPLE__
-	if(advice == ADVICE_SEQUENTIAL)
+	if(advice == Advice::SEQUENTIAL || advice == Advice::WILLNEED)
 		fcntl(fd_, F_RDAHEAD, 1);
 	#else
 		#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
-		if(advice == ADVICE_SEQUENTIAL)
+		int fAdv =  adviceToFAdv(advice);
+		if(posix_fadvise(fd_, offset, bytes, fAdv) != 0)
 		{
-			posix_fadvise(fd_, offset, bytes, POSIX_FADV_SEQUENTIAL);
-		}
-		else if(advice == ADVICE_WILLNEED)
-		{
-			if(posix_fadvise(fd_, offset, bytes, POSIX_FADV_WILLNEED) != 0)
-			{
-				logMsg("advise will need offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
-			}
+			logMsg("fadvise for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
 		}
 		#endif
 	#endif
@@ -223,11 +230,16 @@ int PosixIO::fd() const
 	return fd_;
 }
 
-std::error_code openPosixMapIO(BufferMapIO &io, int fd)
+std::error_code openPosixMapIO(BufferMapIO &io, IO::AccessHint access, int fd)
 {
 	io.close();
 	off_t size = fd_size(fd);
-	void *data = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
+	int flags = MAP_SHARED;
+	#if defined __linux__
+	if(access == IO::AccessHint::ALL)
+		flags |= MAP_POPULATE;
+	#endif
+	void *data = mmap(nullptr, size, PROT_READ, flags, fd, 0);
 	if(data == MAP_FAILED)
 		return {errno, std::system_category()};
 	io.open((const char*)data, size,

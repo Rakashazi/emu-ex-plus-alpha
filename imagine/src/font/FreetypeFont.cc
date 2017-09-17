@@ -270,7 +270,7 @@ Font::Font(GenericIO io)
 Font::Font(const char *name)
 {
 	FileIO io;
-	io.open(name);
+	io.open(name, IO::AccessHint::ALL);
 	if(!io)
 	{
 		logMsg("unable to open file");
@@ -303,7 +303,7 @@ Font Font::makeBoldSystem()
 
 Font Font::makeFromAsset(const char *name)
 {
-	return {openAppAssetIO(name).makeGeneric()};
+	return {openAppAssetIO(name, IO::AccessHint::ALL).makeGeneric()};
 }
 
 Font::Font(Font &&o)
@@ -363,7 +363,7 @@ std::errc FreetypeFont::loadIntoNextSlot(const char *name)
 	if(f.isFull())
 		return std::errc::no_space_on_device;
 	FileIO io;
-	io.open(name);
+	io.open(name, IO::AccessHint::ALL);
 	if(!io)
 	{
 		logMsg("unable to open file %s", name);

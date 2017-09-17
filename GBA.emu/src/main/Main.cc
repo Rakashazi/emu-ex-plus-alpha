@@ -27,7 +27,7 @@
 #include <vbam/Util.h>
 
 void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &gba, EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio);
+void CPULoop(GBASys &gba, EmuVideo *video, bool renderAudio);
 void CPUCleanUp();
 bool CPUReadBatteryFile(GBASys &gba, const char *);
 bool CPUWriteBatteryFile(GBASys &gba, const char *);
@@ -204,7 +204,6 @@ void systemDrawScreen(EmuVideo &video)
 		img.pixmap().write(framePix);
 	}
 	img.endFrame();
-	EmuApp::updateAndDrawEmuVideo();
 }
 
 void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
@@ -213,9 +212,9 @@ void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
 	EmuSystem::writeSound(finalWave, EmuSystem::pcmFormat.bytesToFrames(length));
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
-	CPULoop(gGba, video, renderGfx, processGfx, renderAudio);
+	CPULoop(gGba, video, renderAudio);
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)

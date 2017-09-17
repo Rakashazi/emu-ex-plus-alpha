@@ -51,7 +51,7 @@ static void setReadSupport(struct archive *arch)
 void ArchiveIterator::init(const char *path, std::error_code &ec)
 {
 	FileIO file;
-	auto fileEC = file.open(path);
+	auto fileEC = file.open(path, IO::AccessHint::SEQUENTIAL);
 	if(fileEC)
 	{
 		ec = fileEC;

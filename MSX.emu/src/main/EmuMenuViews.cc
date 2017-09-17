@@ -60,7 +60,7 @@ void installFirmwareFiles()
 
 	for(auto &e : srcPath)
 	{
-		auto src = openAppAssetIO(e);
+		auto src = openAppAssetIO(e, IO::AccessHint::ALL);
 		if(!src)
 		{
 			EmuApp::printfMessage(4, 1, "Can't open source file:\n %s", e);

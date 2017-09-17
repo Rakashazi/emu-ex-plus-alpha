@@ -82,15 +82,16 @@ bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent);
 void onMainMenuItemOptionChanged();
 void placeEmuViews();
 void placeElements();
-void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e);
+void runBenchmarkOneShot();
 void onSelectFileFromPicker(Gfx::Renderer &r, const char* name, Input::Event e);
 void startGameFromMenu();
 void closeGame(bool allowAutosaveState = true);
 bool handleInputEvent(Base::Window &win, Input::Event e);
-void loadGameComplete(bool tryAutoState, bool addToRecent);
+void launchSystem(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 ViewAttachParams emuViewAttachParams();
 View *makeView(ViewAttachParams attach, EmuApp::ViewID id);
+void updateAndDrawEmuVideo();
 
 static void addRecentGame()
 {

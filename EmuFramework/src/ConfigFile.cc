@@ -682,7 +682,7 @@ void loadConfigFile()
 	else
 		string_printf(configFilePath, "%s/config", Base::documentsPath().data());
 	FileIO configFile;
-	auto ec = configFile.open(configFilePath.data());
+	auto ec = configFile.open(configFilePath.data(), IO::AccessHint::ALL);
 	if(ec)
 	{
 		logMsg("no config file");

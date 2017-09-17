@@ -115,7 +115,7 @@ static bool setAndroidTextureStorage(uint8 mode)
 	static auto resetVideo =
 		[]()
 		{
-			if(emuVideo.vidImg)
+			if(emuVideo.image())
 			{
 				// texture may switch to external format so
 				// force effect shaders to re-compile
@@ -192,7 +192,7 @@ static void setViewportZoom(int val)
 static void setImgEffect(uint val)
 {
 	optionImgEffect = val;
-	if(emuVideo.vidImg)
+	if(emuVideo.image())
 	{
 		emuVideoLayer.setEffect(val);
 		emuWin->win.postDraw();

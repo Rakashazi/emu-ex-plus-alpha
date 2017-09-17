@@ -156,7 +156,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	else
 	{
 		FileIO io{};
-		io.open(fdsBiosPath);
+		io.open(fdsBiosPath, IO::AccessHint::ALL);
 		if(!io)
 		{
 			fceuReturnedError = "Error opening FDS BIOS";

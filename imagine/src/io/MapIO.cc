@@ -88,6 +88,17 @@ MapIO::operator bool()
 	return data;
 }
 
+static int adviceToMAdv(IO::Advice advice)
+{
+	switch(advice)
+	{
+		default: return MADV_NORMAL;
+		case IO::Advice::SEQUENTIAL: return MADV_NORMAL;
+		case IO::Advice::RANDOM: return MADV_RANDOM;
+		case IO::Advice::WILLNEED: return MADV_WILLNEED;
+	}
+}
+
 #if defined __linux__ || defined __APPLE__
 void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 {
@@ -102,20 +113,10 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	void *pageSrcAddr = (void*)roundDownToPageSize((ptrsize)srcAddr);
 	bytes += (ptrsize)srcAddr - (ptrsize)pageSrcAddr; // add extra bytes from rounding down to page size
 
-	if(advice == ADVICE_SEQUENTIAL)
+	int mAdv = adviceToMAdv(advice);
+	if(madvise(pageSrcAddr, bytes, mAdv) != 0)
 	{
-		if(madvise(pageSrcAddr, bytes, MADV_SEQUENTIAL) != 0)
-		{
-			logWarn("advise sequential for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
-		}
-	}
-	else if(advice == ADVICE_WILLNEED)
-	{
-		//logMsg("advising will need offset 0x%X @ page %p with size %u", (uint)offset, pageSrcAddr, (uint)len);
-		if(madvise(pageSrcAddr, bytes, MADV_WILLNEED) != 0)
-		{
-			logWarn("advise will need for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
-		}
+		logWarn("madvise for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
 	}
 }
 #endif

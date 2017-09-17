@@ -58,8 +58,6 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
 
-void saveAutoStateFromTimer();
-
 void EmuSystem::cancelAutoSaveStateTimer()
 {
 	autoSaveStateTimer.deinit();
@@ -357,7 +355,7 @@ IG::Time EmuSystem::benchmark()
 	auto now = IG::Time::now();
 	iterateTimes(180, i)
 	{
-		runFrame(emuVideo, false, true, false);
+		runFrame(&emuVideo, false);
 	}
 	auto after = IG::Time::now();
 	return after-now;
@@ -369,7 +367,7 @@ void EmuSystem::skipFrames(uint frames)
 		return;
 	iterateTimes(frames, i)
 	{
-		runFrame(emuVideo, false, false, false);
+		runFrame(nullptr, false);
 	}
 }
 
@@ -481,7 +479,7 @@ EmuSystem::Error EmuSystem::loadGameFromPath(const char *pathStr, OnLoadProgress
 	}
 	logMsg("load from path:%s", path.data());
 	FileIO io{};
-	auto ec = io.open(path);
+	auto ec = io.open(path, IO::AccessHint::SEQUENTIAL);
 	if(ec)
 	{
 		return makeError("Error opening file: %s", ec.message().c_str());

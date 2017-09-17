@@ -77,11 +77,11 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	//logMsg("frame start");
 	RAMCheatUpdate();
-	system_frame(!processGfx, renderGfx, video);
+	system_frame(video);
 
 	int16 audioBuff[snd.buffer_size * 2];
 	int frames = audio_update(audioBuff);
@@ -143,7 +143,7 @@ static EmuSystem::Error saveMDState(const char *path)
 static EmuSystem::Error loadMDState(const char *path)
 {
 	FileIO f;
-	if(auto ec = f.open(path);
+	if(auto ec = f.open(path, IO::AccessHint::ALL);
 		ec)
 	{
 		EmuSystem::makeError(std::error_code{ec});
@@ -445,7 +445,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	{
 		auto saveStr = sprintBRAMSaveFilename();
 		FileIO bramFile;
-		bramFile.open(saveStr.data());
+		bramFile.open(saveStr.data(), IO::AccessHint::ALL);
 
 		if(!bramFile)
 		{

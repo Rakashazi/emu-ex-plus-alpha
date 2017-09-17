@@ -43,7 +43,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		for(const auto &path : searchPath)
 		{
 			FileIO file;
-			file.open(path->data());
+			file.open(path->data(), IO::AccessHint::ALL);
 			if(!file)
 				continue;
 			int fileSize = file.size();

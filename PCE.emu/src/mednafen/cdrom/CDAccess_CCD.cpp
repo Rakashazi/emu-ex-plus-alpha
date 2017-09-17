@@ -102,7 +102,7 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
 {
  //FileStream cf(path, FileStream::MODE_READ);
  FileIO cf;
- cf.open(path.c_str());
+ cf.open(path.c_str(), IO::AccessHint::ALL);
  if(!cf)
  {
 	throw MDFN_Error(0, "Error opening file \"%s\"", path.c_str());
@@ -262,7 +262,7 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
  {
   std::string image_path = MDFN_EvalFIP(dir_path, file_base + std::string(".") + std::string(img_extsd), true);
 
- 	img_stream.open(image_path.c_str());
+ 	img_stream.open(image_path.c_str(), IO::AccessHint::SEQUENTIAL);
  	if(!img_stream)
  	{
  	 throw MDFN_Error(0, "Error opening file \"%s\"", image_path.c_str());
@@ -284,7 +284,7 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
  {
   std::string sub_path = MDFN_EvalFIP(dir_path, file_base + std::string(".") + std::string(sub_extsd), true);
   FileIO sub_stream{};
- 	sub_stream.open(sub_path.c_str());
+ 	sub_stream.open(sub_path.c_str(), IO::AccessHint::ALL);
 
  	if(!sub_stream)
 	{
@@ -441,5 +441,5 @@ bool CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
 
 void CDAccess_CCD::HintReadSector(uint32 lba, int32 count)
 {
- img_stream.advise(lba * 2352, 2352 * count, IO::ADVICE_WILLNEED);
+ img_stream.advise(lba * 2352, 2352 * count, IO::Advice::WILLNEED);
 }

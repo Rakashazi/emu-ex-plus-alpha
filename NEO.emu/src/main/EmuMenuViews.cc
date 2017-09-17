@@ -457,9 +457,9 @@ private:
 	static void loadGame(const RomListEntry &entry, Input::Event e, Gfx::Renderer &r)
 	{
 		EmuApp::createSystemWithMedia({}, gameFilePath(entry.name).data(), "", e,
-			[&r](uint result, Input::Event e)
+			[&r](Input::Event e)
 			{
-				EmuApp::loadGameCompleteFromFilePicker(r, result, e);
+				EmuApp::launchSystemWithResumePrompt(r, e, true);
 			});
 	}
 

@@ -213,7 +213,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	if(unlikely(!video.vidImg))
+	if(unlikely(!video.image()))
 	{
 		logMsg("doing initial video setup for emulator");
 		EmulateSpecStruct espec;
@@ -367,11 +367,9 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 		video.setFormat({{pixWidth, pixHeight}, pixFmt});
 		video.writeFrame(srcPix);
 	}
-	if(spec.commitVideo)
-		EmuApp::updateAndDrawEmuVideo();
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	uint maxFrames = Audio::maxRate()/54;
 	int16 audioBuff[maxFrames*2];
@@ -386,9 +384,8 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 			configAudioPlayback();
 		}
 	}
-	espec.commitVideo = renderGfx;
-	espec.video = &video;
-	espec.skip = !processGfx;
+	espec.video = video;
+	espec.skip = !video;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
 	int32 lineWidth[242];

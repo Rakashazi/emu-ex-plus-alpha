@@ -69,7 +69,7 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 	else
 	{
 		FileIO file;
-		file.open(path);
+		file.open(path, IO::AccessHint::ALL);
 		if(!file)
 		{
 			throw MDFN_Error(0, "Error opening file");

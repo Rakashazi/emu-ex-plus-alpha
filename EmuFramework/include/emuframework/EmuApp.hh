@@ -32,7 +32,7 @@ class EmuApp
 {
 public:
 	using OnMainMenuOptionChanged = DelegateFunc<void()>;
-	using CreateSystemCompleteDelegate = DelegateFunc<void (uint result, Input::Event e)>;
+	using CreateSystemCompleteDelegate = DelegateFunc<void (Input::Event e)>;
 	using NavView = BasicNavView;
 
 	enum class ViewID
@@ -55,7 +55,6 @@ public:
 		Input::Event e, CreateSystemCompleteDelegate onComplete);
 	static void exitGame(bool allowAutosaveState = true);
 	static void reloadGame();
-	static void updateAndDrawEmuVideo(); // TODO: systems should not directly draw EmuVideo
 	static void onMainWindowCreated(ViewAttachParams attach, Input::Event e);
 	static void onCustomizeNavView(NavView &v);
 	static void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e,
@@ -75,7 +74,7 @@ public:
 	static void popModalViews();
 	static void popMenuToRoot();
 	static void restoreMenuFromGame();
-	static void loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e);
+	static void launchSystemWithResumePrompt(Gfx::Renderer &r, Input::Event e, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
 	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	static void refreshCheatViews();

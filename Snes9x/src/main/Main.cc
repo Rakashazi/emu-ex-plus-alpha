@@ -19,7 +19,6 @@
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static EmuVideo *emuVideo{};
-static bool renderToScreen = false;
 static const uint heightChangeFrameDelay = 4;
 static uint heightChangeFrames = heightChangeFrameDelay;
 bool EmuSystem::hasCheats = true;
@@ -81,11 +80,6 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	IG::Pixmap srcPix = {{{width, height}, pixFmt}, GFX.Screen};
 	emuVideo->setFormat(srcPix);
 	emuVideo->writeFrame(srcPix);
-	if(likely(renderToScreen))
-	{
-		EmuApp::updateAndDrawEmuVideo();
-		renderToScreen = false;
-	}
 	return 1;
 }
 
@@ -249,7 +243,7 @@ static void mixSamples(int frames, bool renderAudio)
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	if(unlikely(snesActiveInputPort != SNES_JOYPAD))
 	{
@@ -278,10 +272,8 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 		#endif
 	}
 
-	emuVideo = &video;
-	IPPU.RenderThisFrame = processGfx ? TRUE : FALSE;
-	if(renderGfx)
-		renderToScreen = 1;
+	emuVideo = video;
+	IPPU.RenderThisFrame = video ? TRUE : FALSE;
 	#ifndef SNES9X_VERSION_1_4
 	S9xSetSamplesAvailableCallback([](void *renderAudio)
 		{

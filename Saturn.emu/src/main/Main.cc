@@ -209,7 +209,6 @@ CLINK void YuiSwapBuffers()
 		IG::Pixmap srcPix = {{{width, height}, pixFmt}, dispbuffer};
 		emuVideo->setFormat(srcPix);
 		emuVideo->writeFrame(srcPix);
-		EmuApp::updateAndDrawEmuVideo();
 		emuVideo = {};
 	}
 	else
@@ -309,10 +308,9 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	// TODO: use frameTime
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
-	if(renderGfx)
-		emuVideo = &video;
+	emuVideo = video;
 	SNDImagine.UpdateAudio = renderAudio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
 	YabauseEmulate();
 }

@@ -45,7 +45,7 @@ void EmuVideoLayer::resetImage()
 	#endif
 	{
 		logMsg("drawing video texture directly");
-		disp.setImg(video.vidImg);
+		disp.setImg(video.image());
 	}
 	compileDefaultPrograms();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -247,7 +247,7 @@ void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
 			r.setProgram(vidImgEffect.program());
 			r.setRenderTarget(vidImgEffect.renderTarget());
 			r.clear();
-			vidImgEffect.drawRenderTarget(r, video.vidImg);
+			vidImgEffect.drawRenderTarget(r, video.image());
 			r.setRenderTarget({});
 			r.setViewport(prevViewport);
 			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
@@ -302,7 +302,7 @@ void EmuVideoLayer::compileDefaultPrograms()
 void EmuVideoLayer::setEffect(uint effect)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	assert(video.vidImg);
+	assert(video.image());
 	vidImgEffect.setEffect(video.renderer(), effect, video.isExternalTexture());
 	placeEffect();
 	resetImage();

@@ -60,7 +60,7 @@ public:
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name)
 	{
-		return load(openAppAssetIO(name).makeGeneric());
+		return load(openAppAssetIO(name, IO::AccessHint::ALL).makeGeneric());
 	}
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;

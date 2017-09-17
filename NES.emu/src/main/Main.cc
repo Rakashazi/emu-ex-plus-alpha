@@ -338,20 +338,19 @@ void FCEUD_emulateSound(bool renderAudio)
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	FCEUI_Emulate(
-		[&video, renderGfx](uint8 *buf)
+		[&video](uint8 *buf)
 		{
-			auto img = video.startFrame();
+			assumeExpr(video);
+			auto img = video->startFrame();
 			auto pix = img.pixmap();
 			IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
 			auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});
 			pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
 			img.endFrame();
-			if(renderGfx)
-				EmuApp::updateAndDrawEmuVideo();
-		}, processGfx ? 0 : 1, renderAudio);
+		}, video ? 0 : 1, renderAudio);
 	// FCEUI_Emulate calls FCEUD_emulateSound depending on parameters
 }
 

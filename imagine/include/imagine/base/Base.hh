@@ -90,7 +90,8 @@ void endIdleByUserActivity();
 // Permissions
 enum Permission
 {
-	WRITE_EXT_STORAGE
+	WRITE_EXT_STORAGE,
+	COARSE_LOCATION
 };
 
 bool usesPermission(Permission p);

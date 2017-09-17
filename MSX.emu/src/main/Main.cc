@@ -731,7 +731,6 @@ static void commitVideoFrame()
 	{
 		emuVideo->setFormat({{msxResX, msxResY}, pixFmt});
 		emuVideo->writeFrame(srcPix);
-		EmuApp::updateAndDrawEmuVideo();
 		emuVideo = {};
 	}
 }
@@ -743,10 +742,10 @@ void RefreshScreen(int screenMode)
 	boardInfo.stop(boardInfo.cpuRef);
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	// fast-forward during floppy access, but stop if access ends
-	if(unlikely(fdcActive && renderGfx))
+	if(unlikely(fdcActive && video))
 	{
 		iterateTimes(4, i)
 		{
@@ -756,7 +755,7 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 			if(useFrame)
 			{
 				logMsg("FDC activity ended while fast-forwarding");
-				emuVideo = &video;
+				emuVideo = video;
 				commitVideoFrame();
 			}
 			mixerSync(mixer);
@@ -771,8 +770,7 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	}
 
 	// regular frame update
-	if(renderGfx)
-		emuVideo = &video;
+	emuVideo = video;
 	boardInfo.run(boardInfo.cpuRef);
 	((R800*)boardInfo.cpuRef)->terminate = 0;
 	mixerSync(mixer);

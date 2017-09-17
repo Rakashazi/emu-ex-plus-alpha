@@ -27,9 +27,14 @@
 class IODefs
 {
 public:
-	enum Advice
+	enum class Advice
 	{
-		ADVICE_SEQUENTIAL, ADVICE_WILLNEED
+		NORMAL, SEQUENTIAL, RANDOM, WILLNEED
+	};
+
+	enum class AccessHint
+	{
+		NORMAL, SEQUENTIAL, RANDOM, ALL
 	};
 
 	using SeekMode = int;

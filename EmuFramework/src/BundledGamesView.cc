@@ -14,14 +14,12 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/BundledGamesView.hh>
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
-
-void loadGameCompleteFromRecentItem(Gfx::Renderer &r, uint result, Input::Event e);
 
 BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	TableView
@@ -42,16 +40,16 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	game[0] = {info.displayName,
 		[&info, &r = attach.renderer](TextMenuItem &t, View &view, Input::Event e)
 		{
-			auto file = openAppAssetIO(info.assetName);
+			auto file = openAppAssetIO(info.assetName, IO::AccessHint::ALL);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
 			EmuApp::createSystemWithMedia(file.makeGeneric(), "", info.assetName, e,
-				[&r](uint result, Input::Event e)
+				[&r](Input::Event e)
 				{
-					loadGameCompleteFromRecentItem(r, result, e); // has same behavior as if loading from recent item
+					EmuApp::launchSystemWithResumePrompt(r, e, false);
 				});
 		}};
 }

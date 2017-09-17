@@ -186,7 +186,7 @@ public:
 	static FS::PathString willLoadGameFromPath(FS::PathString path);
 	static Error loadGameFromPath(const char *path, OnLoadProgressDelegate onLoadProgress);
 	static Error loadGameFromFile(GenericIO io, const char *name, OnLoadProgressDelegate onLoadProgress);
-	[[gnu::hot]] static void runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio);
+	[[gnu::hot]] static void runFrame(EmuVideo *video, bool renderAudio);
 	static void skipFrames(uint frames);
 	static void onPrepareVideo(EmuVideo &video);
 	static bool vidSysIsPAL();

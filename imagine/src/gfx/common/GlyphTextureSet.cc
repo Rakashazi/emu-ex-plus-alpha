@@ -172,7 +172,7 @@ GlyphTextureSet GlyphTextureSet::makeBoldSystem(Renderer &r, IG::FontSettings se
 
 GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r, const char *name, IG::FontSettings set)
 {
-	return {r, openAppAssetIO(name).makeGeneric(), set};
+	return {r, openAppAssetIO(name, IO::AccessHint::ALL).makeGeneric(), set};
 }
 
 GlyphTextureSet::GlyphTextureSet(GlyphTextureSet &&o)

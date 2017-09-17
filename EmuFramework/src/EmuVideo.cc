@@ -77,6 +77,11 @@ void EmuVideo::writeFrame(Gfx::LockedTextureBuffer texBuff)
 		doScreenshot(texBuff.pixmap());
 	}
 	vidImg.unlock(texBuff);
+	if(renderNextFrame)
+	{
+		renderNextFrame = false;
+		updateAndDrawEmuVideo();
+	}
 }
 
 void EmuVideo::writeFrame(IG::Pixmap pix)
@@ -86,11 +91,21 @@ void EmuVideo::writeFrame(IG::Pixmap pix)
 		doScreenshot(pix);
 	}
 	vidImg.write(0, pix, {}, vidImg.bestAlignment(pix));
+	if(renderNextFrame)
+	{
+		renderNextFrame = false;
+		updateAndDrawEmuVideo();
+	}
 }
 
 void EmuVideo::takeGameScreenshot()
 {
 	screenshotNextFrame = true;
+}
+
+void EmuVideo::renderNextFrameToApp()
+{
+	renderNextFrame = true;
 }
 
 void EmuVideo::doScreenshot(IG::Pixmap pix)
@@ -122,6 +137,11 @@ bool EmuVideo::isExternalTexture()
 	#else
 	return false;
 	#endif
+}
+
+Gfx::PixmapTexture &EmuVideo::image()
+{
+	return vidImg;
 }
 
 void EmuVideoImage::endFrame()

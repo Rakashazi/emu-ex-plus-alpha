@@ -178,6 +178,7 @@ static jstring permissionToJString(JNIEnv *env, Permission p)
 	switch(p)
 	{
 		case Permission::WRITE_EXT_STORAGE: return env->NewStringUTF("android.permission.WRITE_EXTERNAL_STORAGE");
+		case Permission::COARSE_LOCATION: return env->NewStringUTF("android.permission.ACCESS_COARSE_LOCATION");
 		default: return nullptr;
 	}
 }

@@ -36,22 +36,26 @@ class AutoStateConfirmAlertView : public YesNoAlertView
 
 public:
 	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr, bool addToRecent):
-		YesNoAlertView{attach, "", "Continue", "Restart Game"}
+		YesNoAlertView
+		{
+			attach,
+			"",
+			"Continue",
+			"Restart Game",
+			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			{
+				view.dismiss();
+				launchSystem(true, addToRecent);
+			},
+			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			{
+				view.dismiss();
+				launchSystem(false, addToRecent);
+			}
+		}
 	{
 		string_printf(msg, "Auto-save state exists from:\n%s", dateStr);
 		setLabel(msg.data());
-		setOnYes(
-			[addToRecent](TextMenuItem &, View &view, Input::Event e)
-			{
-				view.dismiss();
-				loadGameComplete(true, addToRecent);
-			});
-		setOnNo(
-			[addToRecent](TextMenuItem &, View &view, Input::Event e)
-			{
-				view.dismiss();
-				loadGameComplete(false, addToRecent);
-			});
 	}
 };
 
@@ -139,7 +143,7 @@ static void drawEmuVideo(Gfx::Renderer &r)
 	r.presentDrawable(emuWin->drawable);
 }
 
-void EmuApp::updateAndDrawEmuVideo()
+void updateAndDrawEmuVideo()
 {
 	drawEmuVideo(renderer);
 }
@@ -234,7 +238,8 @@ static void drawEmuFrame(Gfx::Renderer &r)
 	if(EmuSystem::runFrameOnDraw)
 	{
 		bool renderAudio = optionSound;
-		EmuSystem::runFrame(emuVideo, true, true, renderAudio);
+		emuVideo.renderNextFrameToApp();
+		EmuSystem::runFrame(&emuVideo, renderAudio);
 		EmuSystem::runFrameOnDraw = false;
 	}
 	else
@@ -400,7 +405,6 @@ void startGameFromMenu()
 	#endif
 	logMsg("running game");
 	menuViewIsActive = 0;
-	viewStack.navView()->showRightBtn(true);
 	emuInputView.resetInput();
 	//logMsg("touch control state: %d", touchControlsAreOn);
 	renderer.setWindowValidOrientations(mainWin.win, optionGameOrientation);
@@ -679,10 +683,7 @@ void mainInitCommon(int argc, char** argv)
 			{
 				EmuSystem::runFrameOnDraw = true;
 				postDrawToEmuWindows();
-				iterateTimes((uint)optionFastForwardSpeed, i)
-				{
-					EmuSystem::runFrame(emuVideo, false, false, false);
-				}
+				EmuSystem::skipFrames((uint)optionFastForwardSpeed);
 			}
 			else
 			{
@@ -706,7 +707,7 @@ void mainInitCommon(int argc, char** argv)
 						bool renderAudio = optionSound;
 						iterateTimes(framesToSkip, i)
 						{
-							EmuSystem::runFrame(emuVideo, false, false, renderAudio);
+							EmuSystem::runFrame(nullptr, renderAudio);
 						}
 					}
 				}
@@ -986,7 +987,7 @@ void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 	onMainMenuOptionChanged_ = func;
 }
 
-void loadGameComplete(bool tryAutoState, bool addToRecent)
+void launchSystem(bool tryAutoState, bool addToRecent)
 {
 	if(tryAutoState)
 	{
@@ -1021,35 +1022,29 @@ bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent)
 	return 0;
 }
 
-void EmuApp::loadGameCompleteFromFilePicker(Gfx::Renderer &r, uint result, Input::Event e)
-{
-	if(!result)
-		return;
-
-	if(!showAutoStateConfirm(r, e, true))
-	{
-		loadGameComplete(1, 1);
-	}
-}
-
 void onSelectFileFromPicker(Gfx::Renderer &r, const char* name, Input::Event e)
 {
 	EmuApp::createSystemWithMedia({}, name, "", e,
-		[&r](uint result, Input::Event e)
+		[&r](Input::Event e)
 		{
-			EmuApp::loadGameCompleteFromFilePicker(r, result, e);
+			EmuApp::launchSystemWithResumePrompt(r, e, true);
 		});
 }
 
-void loadGameCompleteFromBenchmarkFilePicker(uint result, Input::Event e)
+void runBenchmarkOneShot()
 {
-	if(result)
+	logMsg("starting benchmark");
+	IG::Time time = EmuSystem::benchmark();
+	EmuSystem::closeGame(false);
+	logMsg("done in: %f", double(time));
+	popup.printf(2, 0, "%.2f fps", double(180.)/double(time));
+}
+
+void EmuApp::launchSystemWithResumePrompt(Gfx::Renderer &r, Input::Event e, bool addToRecent)
+{
+	if(!showAutoStateConfirm(r, e, addToRecent))
 	{
-		logMsg("starting benchmark");
-		IG::Time time = EmuSystem::benchmark();
-		EmuSystem::closeGame(0);
-		logMsg("done in: %f", double(time));
-		popup.printf(2, 0, "%.2f fps", double(180.)/double(time));
+		launchSystem(true, addToRecent);
 	}
 }
 
@@ -1136,7 +1131,7 @@ void EmuApp::unpostMessage()
 
 ViewAttachParams emuViewAttachParams()
 {
-	return {mainWin.win, emuVideo.r};
+	return {mainWin.win, emuVideo.renderer()};
 }
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
@@ -1178,7 +1173,8 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 						auto originalEvent = loadProgressView->originalEvent;
 						popModalViews();
 						EmuSystem::prepareAudioVideo();
-						onComplete(1, originalEvent);
+						viewStack.navView()->showRightBtn(true);
+						onComplete(originalEvent);
 						return 0;
 					}
 					case EmuSystem::LoadProgress::UPDATE:

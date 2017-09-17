@@ -85,9 +85,9 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, bool 
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
 			EmuApp::createSystemWithMedia({}, name, "", e,
-				[](uint result, Input::Event e)
+				[](Input::Event e)
 				{
-					loadGameCompleteFromBenchmarkFilePicker(result, e);
+					runBenchmarkOneShot();
 				});
 		});
 	return picker;

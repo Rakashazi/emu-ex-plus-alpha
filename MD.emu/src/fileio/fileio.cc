@@ -45,7 +45,7 @@ int loadArchive(void *buff, uint bytes, const char *path, FS::FileString &nameIn
 	else
 	{
 		FileIO file;
-		file.open(path);
+		file.open(path, IO::AccessHint::ALL);
 		if(!file)
 		{
 			return -1;

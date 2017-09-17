@@ -1310,7 +1310,7 @@ bool CPUImportEepromFile(GBASys &gba, const char *fileName)
 bool CPUReadBatteryFile(GBASys &gba, const char *fileName)
 {
 	FileIO file;
-	file.open(fileName);
+	file.open(fileName, IO::AccessHint::ALL);
   if(!file)
     return false;
 
@@ -3208,7 +3208,7 @@ void CPUInterrupt(GBASys &gba, ARM7TDMI &cpu)
 	gba.biosProtected[3] = 0xe5;
 }
 
-void CPULoop(GBASys &gba, EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void CPULoop(GBASys &gba, EmuVideo *video, bool renderAudio)
 {
 	auto cpu = gba.cpu;
 	auto &holdState = cpu.holdState;
@@ -3407,7 +3407,7 @@ void CPULoop(GBASys &gba, EmuVideo &video, bool renderGfx, bool processGfx, bool
             CPUCompareVCOUNT(cpu);
 
           } else {
-            if(processGfx)
+            if(video)
             {
             	/*if(trackOAM)
             	{
@@ -3461,9 +3461,9 @@ void CPULoop(GBASys &gba, EmuVideo &video, bool renderGfx, bool processGfx, bool
 				#endif
               }*/
             }
-            if(ioMem.VCOUNT == 159 && likely(renderGfx))
+            if(ioMem.VCOUNT == 159 && likely(video))
             {
-            	systemDrawScreen(video);
+            	systemDrawScreen(*video);
             }
             // entering H-Blank
             ioMem.DISPSTAT |= 2;

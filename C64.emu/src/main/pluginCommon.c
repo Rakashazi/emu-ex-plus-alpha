@@ -411,7 +411,25 @@ void video_render_1x2_init() {}
 void video_render_2x2_init() {}
 int cmdline_get_autostart_mode(void) { return AUTOSTART_MODE_NONE; }
 
-#define DUMMY_VIDEO_RENDER(func) void func(video_render_color_tables_t *color_tab, \
+#define DUMMY_VIDEO_RENDER(func) void func(const video_render_color_tables_t *color_tab, \
+const BYTE *src, BYTE *trg, \
+unsigned int width, const unsigned int height, \
+const unsigned int xs, const unsigned int ys, \
+const unsigned int xt, const unsigned int yt, \
+const unsigned int pitchs, \
+const unsigned int pitcht, \
+const unsigned int doublescan, \
+video_render_config_t *config) {}
+
+#define DUMMY_VIDEO_RENDER_SCALE2X(func) void func(const video_render_color_tables_t *color_tab, \
+const BYTE *src, BYTE *trg, \
+unsigned int width, const unsigned int height, \
+const unsigned int xs, const unsigned int ys, \
+const unsigned int xt, const unsigned int yt, \
+const unsigned int pitchs, \
+const unsigned int pitcht) {}
+
+#define DUMMY_VIDEO_RENDER_CRT(func) void func(video_render_color_tables_t *colortab, \
 const BYTE *src, BYTE *trg, \
 unsigned int width, const unsigned int height, \
 const unsigned int xs, const unsigned int ys, \
@@ -419,30 +437,30 @@ const unsigned int xt, const unsigned int yt, \
 const unsigned int pitchs, const unsigned int pitcht, \
 viewport_t *viewport, video_render_config_t *config) {}
 
-DUMMY_VIDEO_RENDER(render_16_2x4_crt)
-DUMMY_VIDEO_RENDER(render_32_scale2x)
-DUMMY_VIDEO_RENDER(render_32_2x4_04)
+DUMMY_VIDEO_RENDER(render_08_2x2_04)
+DUMMY_VIDEO_RENDER(render_16_2x2_04)
+DUMMY_VIDEO_RENDER(render_24_2x2_04)
 DUMMY_VIDEO_RENDER(render_32_2x2_04)
-DUMMY_VIDEO_RENDER(render_16_2x2_crt)
 DUMMY_VIDEO_RENDER(render_08_2x4_04)
-DUMMY_VIDEO_RENDER(render_08_scale2x)
-DUMMY_VIDEO_RENDER(render_32_2x4_crt)
-DUMMY_VIDEO_RENDER(render_24_2x4_crt)
-DUMMY_VIDEO_RENDER(render_24_scale2x)
-DUMMY_VIDEO_RENDER(render_16_scale2x)
 DUMMY_VIDEO_RENDER(render_16_2x4_04)
 DUMMY_VIDEO_RENDER(render_24_2x4_04)
-DUMMY_VIDEO_RENDER(render_08_2x2_04)
-DUMMY_VIDEO_RENDER(render_32_2x2_crt)
-DUMMY_VIDEO_RENDER(render_24_2x2_crt)
-DUMMY_VIDEO_RENDER(render_24_2x2_04)
-DUMMY_VIDEO_RENDER(render_16_2x2_04)
-DUMMY_VIDEO_RENDER(render_16_2x2_pal)
-DUMMY_VIDEO_RENDER(render_16_2x2_ntsc)
-DUMMY_VIDEO_RENDER(render_24_2x2_pal)
-DUMMY_VIDEO_RENDER(render_24_2x2_ntsc)
-DUMMY_VIDEO_RENDER(render_32_2x2_ntsc)
-DUMMY_VIDEO_RENDER(render_32_2x2_pal)
+DUMMY_VIDEO_RENDER(render_32_2x4_04)
+DUMMY_VIDEO_RENDER_SCALE2X(render_08_scale2x)
+DUMMY_VIDEO_RENDER_SCALE2X(render_16_scale2x)
+DUMMY_VIDEO_RENDER_SCALE2X(render_24_scale2x)
+DUMMY_VIDEO_RENDER_SCALE2X(render_32_scale2x)
+DUMMY_VIDEO_RENDER_CRT(render_16_2x2_crt)
+DUMMY_VIDEO_RENDER_CRT(render_24_2x2_crt)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x2_crt)
+DUMMY_VIDEO_RENDER_CRT(render_16_2x4_crt)
+DUMMY_VIDEO_RENDER_CRT(render_24_2x4_crt)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x4_crt)
+DUMMY_VIDEO_RENDER_CRT(render_16_2x2_ntsc)
+DUMMY_VIDEO_RENDER_CRT(render_16_2x2_pal)
+DUMMY_VIDEO_RENDER_CRT(render_24_2x2_ntsc)
+DUMMY_VIDEO_RENDER_CRT(render_24_2x2_pal)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x2_ntsc)
+DUMMY_VIDEO_RENDER_CRT(render_32_2x2_pal)
 
 int mousedrv_resources_init(mouse_func_t *funcs) { return 0; }
 int mousedrv_cmdline_options_init(void) { return 0; }

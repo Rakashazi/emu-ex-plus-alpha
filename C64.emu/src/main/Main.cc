@@ -557,11 +557,11 @@ static void execC64Frame()
 	execDoneSem.wait();
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	runningFrame = 1;
 	// "Warp" mode frame
-	if(unlikely(*plugin.warp_mode_enabled && renderGfx))
+	if(unlikely(*plugin.warp_mode_enabled && video))
 	{
 		setCanvasSkipFrame(true);
 		iterateTimes(8, i)
@@ -572,13 +572,12 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 
 	// Normal frame
 	doAudio = renderAudio;
-	setCanvasSkipFrame(!processGfx);
+	setCanvasSkipFrame(!video);
 	execC64Frame();
-	if(renderGfx)
+	if(video)
 	{
-		video.setFormat(canvasSrcPix);
-		video.writeFrame(canvasSrcPix);
-		EmuApp::updateAndDrawEmuVideo();
+		video->setFormat(canvasSrcPix);
+		video->writeFrame(canvasSrcPix);
 	}
 	runningFrame = 0;
 }

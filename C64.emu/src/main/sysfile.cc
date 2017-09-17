@@ -228,7 +228,7 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 			{
 				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
 				FileIO file;
-				file.open(fullPath.data());
+				file.open(fullPath.data(), IO::AccessHint::ALL);
 				if(!file)
 					continue;
 				//logMsg("loading system file: %s", complete_path);

@@ -348,7 +348,6 @@ CLINK void screen_update()
 	{
 		//logMsg("screen render");
 		emuVideo->writeFrame(srcPix);
-		EmuApp::updateAndDrawEmuVideo();
 		emuVideo = {};
 	}
 	else
@@ -357,12 +356,12 @@ CLINK void screen_update()
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	//logMsg("run frame %d", (int)processGfx);
-	emuVideo = &video;
-	skip_this_frame = !processGfx;
-	if(processGfx)
+	emuVideo = video;
+	skip_this_frame = !video;
+	if(video)
 		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
 	main_frame();
 	YM2610Update_stream(audioFramesPerVideoFrame);

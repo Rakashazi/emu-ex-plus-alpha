@@ -40,12 +40,12 @@ uint32 mcycles_vdp;
 //uint32 Z80.cycleCount;
 //uint32 mcycles_68k;
 uint8 system_hw;
-void (*system_frame)(int do_skip, uint renderGfx, EmuVideo &emuVideo);
+void (*system_frame)(EmuVideo *emuVideo);
 int (*audioUpdateFunc)(int16 *sb);
 
 template <bool hasSegaCD = 0>
-static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo);
-static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo);
+static void system_frame_md(EmuVideo *emuVideo);
+static void system_frame_sms(EmuVideo *emuVideo);
 static int pause_b;
 static EQSTATE eq;
 static int32 llp,rrp;
@@ -351,12 +351,14 @@ static void runM68k(uint cycles)
 	#endif
 }
 
-template void system_frame_md<0>(int do_skip, uint renderGfx, EmuVideo &emuVideo);
-template void system_frame_md<1>(int do_skip, uint renderGfx, EmuVideo &emuVideo);
+template void system_frame_md<0>(EmuVideo *emuVideo);
+template void system_frame_md<1>(EmuVideo *emuVideo);
 
 template <bool hasSegaCD>
-static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo)
+static void system_frame_md(EmuVideo *emuVideo)
 {
+	int do_skip = !emuVideo;
+
 	//logMsg("start frame");
   /* line counter */
   int line = 0;
@@ -490,8 +492,8 @@ static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo.setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
-  	img = emuVideo.startFrame();
+  	emuVideo->setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
+  	img = emuVideo->startFrame();
   	gPixmap = img.pixmap();
   }
 
@@ -568,8 +570,6 @@ static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   	img.endFrame();
   	gPixmap = {};
   }
-  if(renderGfx)
-  	EmuApp::updateAndDrawEmuVideo();
 
   /* end of active display */
   v_counter = line;
@@ -758,8 +758,10 @@ static void system_frame_md(int do_skip, uint renderGfx, EmuVideo &emuVideo)
 }
 
 
-static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo)
+static void system_frame_sms(EmuVideo *emuVideo)
 {
+	int do_skip = !emuVideo;
+
   /* line counter */
   int line = 0;
 
@@ -888,8 +890,8 @@ static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo.setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
-  	img = emuVideo.startFrame();
+  	emuVideo->setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
+  	img = emuVideo->startFrame();
   }
 
   /* Active Display */
@@ -950,8 +952,6 @@ static void system_frame_sms(int do_skip, uint renderGfx, EmuVideo &emuVideo)
 
   if(img)
   	img.endFrame();
-  if(renderGfx)
-  	EmuApp::updateAndDrawEmuVideo();
 
   /* end of active display */
   v_counter = line;

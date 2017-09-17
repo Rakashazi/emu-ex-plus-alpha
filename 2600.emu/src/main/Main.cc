@@ -142,7 +142,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	osystem.soundGeneric().setFrameTime(osystem, rate, frameTime);
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	auto &console = osystem.console();
 	console.leftController().update();
@@ -150,14 +150,12 @@ void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool 
 	console.switches().update();
 	auto &tia = console.tia();
 	tia.update();
-	if(processGfx)
+	if(video)
 	{
-		video.setFormat({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
-		auto img = video.startFrame();
+		video->setFormat({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
+		auto img = video->startFrame();
 		osystem.frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
-		if(renderGfx)
-			EmuApp::updateAndDrawEmuVideo();
 	}
 	auto frames = audioFramesPerVideoFrame;
 	Int16 buff[frames * soundChannels];

@@ -391,7 +391,7 @@ std::error_code PngFile::load(const char *name)
 		return {EINVAL, std::system_category()};
 	}
 	FileIO io;
-	auto ec = io.open(name);
+	auto ec = io.open(name, IO::AccessHint::ALL);
 	if(ec)
 	{
 		return ec;

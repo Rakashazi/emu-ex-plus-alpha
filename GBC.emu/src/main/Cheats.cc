@@ -91,7 +91,7 @@ void readCheatFile()
 {
 	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
 	FileIO file;
-	file.open(filename.data());
+	file.open(filename.data(), IO::AccessHint::ALL);
 	if(!file)
 	{
 		return;

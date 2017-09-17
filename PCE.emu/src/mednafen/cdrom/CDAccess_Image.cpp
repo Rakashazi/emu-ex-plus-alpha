@@ -225,7 +225,7 @@ void CDAccess_Image::ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int t
   efn = MDFN_EvalFIP(base_dir, filename);
 
   FileIO fp;
-  fp.open(efn.c_str());
+  fp.open(efn.c_str(), IO::AccessHint::SEQUENTIAL);
   if(!fp)
   {
   	throw MDFN_Error(0, "Error opening file \"%s\"", efn.c_str());
@@ -399,7 +399,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
 {
  //MemoryStream fp(new FileStream(path, FileStream::MODE_READ));
  FileIO fp;
- fp.open(path.c_str());
+ fp.open(path.c_str(), IO::AccessHint::ALL);
  if(!fp)
  {
 	throw MDFN_Error(0, "Error opening file \"%s\"", path.c_str());
@@ -672,7 +672,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
      std::string efn = MDFN_EvalFIP(base_dir, args[0]);
      //TmpTrack.fp = new FileStream(efn.c_str(), FileStream::MODE_READ);
      FileIO fp;
-     fp.open(efn.c_str());
+     fp.open(efn.c_str(), IO::AccessHint::SEQUENTIAL);
      if(!fp)
      {
      	throw MDFN_Error(0, "Error opening file \"%s\"", efn.c_str());
@@ -980,7 +980,7 @@ void CDAccess_Image::ImageOpenBinary(const std::string& path, bool isIso)
 	auto &track = Tracks[1];
 	track = {};
 	FileIO fp;
-	auto ec = fp.open(path.c_str());
+	auto ec = fp.open(path.c_str(), IO::AccessHint::SEQUENTIAL);
 	if(ec)
 	{
 		ErrnoHolder ene(ec.value());
@@ -1349,7 +1349,7 @@ void CDAccess_Image::HintReadSector(uint32 lba, int32 count)
 				if(ct->SubchannelMode)
 				 SeekPos += 96 * (lba - ct->LBA);
 
-				ct->fp->advise(SeekPos, 2352 * count, IO::ADVICE_WILLNEED);
+				ct->fp->advise(SeekPos, 2352 * count, IO::Advice::WILLNEED);
 			}
 		}
 	 }

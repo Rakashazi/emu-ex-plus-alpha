@@ -183,33 +183,25 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo &video, bool renderGfx, bool processGfx, bool renderAudio)
+void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	alignas(std::max_align_t) uint8 snd[(35112+2064)*4];
 	size_t samples = 35112;
 	int frameSample;
 	DelegateFunc<void()> frameCallback{};
-	if(processGfx)
+	if(video)
 	{
-		auto img = video.startFrame();
+		auto img = video->startFrame();
 		frameCallback =
-			[&img, renderGfx]()
+			[&img]()
 			{
 				img.endFrame();
-				if(renderGfx)
-				{
-					EmuApp::updateAndDrawEmuVideo();
-				}
 			};
 		frameSample = gbEmu.runFor((gambatte::PixelType*)img.pixmap().pixel({}), img.pixmap().pitchPixels(),
 			(uint_least32_t*)snd, samples, frameCallback);
 	}
 	else
 	{
-		if(renderGfx)
-		{
-			frameCallback = [&](){ EmuApp::updateAndDrawEmuVideo(); };
-		}
 		frameSample = gbEmu.runFor(nullptr, 160, (uint_least32_t*)snd, samples, frameCallback);
 	}
 	if(renderAudio)

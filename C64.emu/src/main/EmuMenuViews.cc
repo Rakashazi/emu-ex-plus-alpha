@@ -1087,9 +1087,9 @@ class CustomMainMenuView : public EmuMainMenuView
 								}
 								autostartOnLoad = false;
 								EmuApp::createSystemWithMedia({}, path.data(), "", e,
-									[this](uint result, Input::Event e)
+									[this](Input::Event e)
 									{
-										EmuApp::loadGameCompleteFromFilePicker(renderer(), result, e);
+										EmuApp::launchSystemWithResumePrompt(renderer(), e, true);
 									});
 							});
 						view.dismiss();

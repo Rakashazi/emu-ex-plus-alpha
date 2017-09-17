@@ -47,6 +47,9 @@ do
 		--permission-install-shortcut)
 			installShortcut=1
 		;;
+		--permission-coarse-location)
+			coarseLocation=1
+		;;
 		--xperia-play-optimized)
 			xperiaPlayOpt=1
 		;;
@@ -200,6 +203,11 @@ if [ $installShortcut ]
 then
 	echo '	<uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />' >> $outPath
 	#echo '	<uses-permission android:name="com.android.launcher.permission.UNINSTALL_SHORTCUT" />' >> $outPath
+fi
+
+if [ $coarseLocation ]
+then
+	echo '	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' >> $outPath
 fi
 
 echo '	<supports-screens android:largeScreens="true" android:xlargeScreens="true" />' >> $outPath

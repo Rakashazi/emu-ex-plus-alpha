@@ -47,31 +47,33 @@ GenericIO AAssetIO::makeGeneric()
 	return GenericIO{*this};
 }
 
-std::error_code AAssetIO::open(const char *name)
+static int accessHintToAAssetMode(IO::AccessHint advice)
+{
+	switch(advice)
+	{
+		default: return AASSET_MODE_UNKNOWN;
+		case IO::AccessHint::SEQUENTIAL: return AASSET_MODE_STREAMING;
+		case IO::AccessHint::RANDOM: return AASSET_MODE_RANDOM;
+		case IO::AccessHint::ALL: return AASSET_MODE_BUFFER;
+	}
+}
+
+std::error_code AAssetIO::open(const char *name, AccessHint access)
 {
 	logMsg("opening asset %s", name);
-	asset = AAssetManager_open(Base::activityAAssetManager(), name, AASSET_MODE_BUFFER);
+	auto mode = accessHintToAAssetMode(access);
+	asset = AAssetManager_open(Base::activityAAssetManager(), name, mode);
 	if(!asset)
 	{
 		logErr("error in AAssetManager_open");
 		return {EINVAL, std::system_category()};
 	}
-
-	// try to get a memory mapping
-	const void *buff = AAsset_getBuffer(asset);
-	if(buff)
+	switch(access)
 	{
-		auto size = AAsset_getLength(asset);
-		if(!AAsset_isAllocated(asset) && size > 4096)
-		{
-			if(int err = madvise(buff, size, MADV_SEQUENTIAL);
-				err)
-			{
-				logWarn("madvise failed:%d", err);
-			}
-		}
-		mapIO.open(buff, size);
-		logMsg("mapped into memory");
+		bdefault:
+		bcase IO::AccessHint::SEQUENTIAL:	advise(0, 0, IO::Advice::SEQUENTIAL);
+		bcase IO::AccessHint::RANDOM:	advise(0, 0, IO::Advice::RANDOM);
+		bcase IO::AccessHint::ALL:	advise(0, 0, IO::Advice::WILLNEED);
 	}
 	return {};
 }
@@ -92,7 +94,7 @@ ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 
 const char *AAssetIO::mmapConst()
 {
-	if(mapIO)
+	if(makeMapIO())
 		return mapIO.mmapConst();
 	else return nullptr;
 }
@@ -147,4 +149,24 @@ bool AAssetIO::eof()
 AAssetIO::operator bool()
 {
 	return asset;
+}
+
+void AAssetIO::advise(off_t offset, size_t bytes, Advice advice)
+{
+	if(!makeMapIO() || AAsset_isAllocated(asset))
+		return;
+	mapIO.advise(offset, bytes, advice);
+}
+
+bool AAssetIO::makeMapIO()
+{
+	if(mapIO)
+		return true;
+	const void *buff = AAsset_getBuffer(asset);
+	if(!buff)
+		return false;
+	auto size = AAsset_getLength(asset);
+	mapIO.open(buff, size);
+	logMsg("mapped into memory");
+	return true;
 }

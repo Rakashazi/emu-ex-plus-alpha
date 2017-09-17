@@ -565,7 +565,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			if(EmuSystem::gameIsRunning())
 			{
 				emuVideo.takeGameScreenshot();
-				EmuSystem::runFrame(emuVideo, false, true, false);
+				EmuSystem::runFrame(&emuVideo, false);
 			}
 		}
 	}

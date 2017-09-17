@@ -562,7 +562,7 @@ static void Emulate(EmulateSpecStruct *espec)
   }
  }*/
  VDC_RunFrame(espec, IsHES);
- if(!espec->skip)
+ if(espec->video)
 	 MDFND_commitVideoFrame(espec);
 
  if(PCE_IsCD)

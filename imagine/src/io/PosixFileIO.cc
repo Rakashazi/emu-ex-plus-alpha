@@ -57,7 +57,7 @@ GenericIO PosixFileIO::makeGeneric()
 		return GenericIO{posixIO()};
 }
 
-std::error_code PosixFileIO::open(const char *path, uint mode)
+std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint mode)
 {
 	close();
 	{
@@ -75,7 +75,7 @@ std::error_code PosixFileIO::open(const char *path, uint mode)
 	if(!(mode & IO::OPEN_WRITE))
 	{
 		BufferMapIO mappedFile;
-		auto ec = openPosixMapIO(mappedFile, posixIO().fd());
+		auto ec = openPosixMapIO(mappedFile, access, posixIO().fd());
 		if(!ec)
 		{
 			//logMsg("switched to mmap mode");
@@ -86,10 +86,15 @@ std::error_code PosixFileIO::open(const char *path, uint mode)
 	}
 
 	// setup advice if using read access
-	if((mode & IO::OPEN_READ) && size() > 4096)
+	if((mode & IO::OPEN_READ))
 	{
-		logMsg("set sequential advice for file");
-		advise(0, 0, IO::ADVICE_SEQUENTIAL);
+		switch(access)
+		{
+			bdefault:
+			bcase IO::AccessHint::SEQUENTIAL:	advise(0, 0, IO::Advice::SEQUENTIAL);
+			bcase IO::AccessHint::RANDOM:	advise(0, 0, IO::Advice::RANDOM);
+			bcase IO::AccessHint::ALL:	advise(0, 0, IO::Advice::WILLNEED);
+		}
 	}
 
 	return {};

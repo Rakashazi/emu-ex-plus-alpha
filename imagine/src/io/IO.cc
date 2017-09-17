@@ -199,13 +199,13 @@ GenericIO::operator bool()
 	return io && *io;
 }
 
-AssetIO openAppAssetIO(const char *name)
+AssetIO openAppAssetIO(const char *name, IO::AccessHint access)
 {
 	AssetIO io;
 	#ifdef __ANDROID__
-	io.open(name);
+	io.open(name, access);
 	#else
-	io.open(FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), name).data());
+	io.open(FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), name).data(), access);
 	#endif
 	return io;
 }
@@ -225,7 +225,7 @@ std::error_code writeToNewFile(const char *path, void *data, size_t size)
 ssize_t readFromFile(const char *path, void *data, size_t size)
 {
 	FileIO f;
-	f.open(path);
+	f.open(path, IO::AccessHint::SEQUENTIAL);
 	if(!f)
 		return -1;
 	auto readSize = f.read(data, size);

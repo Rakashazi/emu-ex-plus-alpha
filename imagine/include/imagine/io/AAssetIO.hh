@@ -31,7 +31,7 @@ public:
 	AAssetIO(AAssetIO &&o);
 	AAssetIO &operator=(AAssetIO &&o);
 	GenericIO makeGeneric();
-	std::error_code open(const char *name);
+	std::error_code open(const char *name, AccessHint access);
 
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	const char *mmapConst() final;
@@ -41,8 +41,11 @@ public:
 	size_t size() final;
 	bool eof() final;
 	explicit operator bool() final;
+	void advise(off_t offset, size_t bytes, Advice advice) final;
 
-public:
+protected:
 	AAsset *asset{};
 	BufferMapIO mapIO{};
+
+	bool makeMapIO();
 };

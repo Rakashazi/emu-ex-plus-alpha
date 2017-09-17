@@ -60,4 +60,4 @@ protected:
 	PosixIO &operator=(const PosixIO &) = default;
 };
 
-std::error_code openPosixMapIO(BufferMapIO &io, int fd);
+std::error_code openPosixMapIO(BufferMapIO &io, IO::AccessHint access, int fd);

@@ -312,9 +312,7 @@ struct EmulateSpecStruct
 	// Skip rendering this frame if true.  Set by the driver code.
 	int skip = 0;
 
-	// Whether to call MDFND_commitVideoFrame upon drawing a frame. Set by the driver code.
-	bool commitVideo = false;
-
+	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
 	EmuVideo *video{};
 
 	//
