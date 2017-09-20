@@ -1,0 +1,78 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.3'
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+apply plugin: 'android'
+
+android {
+    compileSdkVersion 24
+
+    // set ANDROID_BUILD_TOOLS_VERSION in ~/.gradle/gradle.properties, or use the default value in this file
+    if (project.hasProperty('ANDROID_BUILD_TOOLS_VERSION'))
+    {
+	    buildToolsVersion ANDROID_BUILD_TOOLS_VERSION
+	}
+	else
+	{
+		buildToolsVersion '26.0.1'
+	}
+
+    buildTypes {
+        release {
+	        shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
+        }
+    }
+    
+    lintOptions {
+    	abortOnError false
+	}
+	
+	sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+    }
+    
+    // set code signing variables in ~/.gradle/gradle.properties
+    signingConfigs {
+        release {
+            storeFile file(ANDROID_KEY_STORE)
+            storePassword ANDROID_KEY_STORE_PASSWORD
+            keyAlias ANDROID_KEY_ALIAS
+            keyPassword ANDROID_KEY_PASSWORD
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+    
+    defaultConfig {
+		project.ext.set("archivesBaseName", METADATA_PROJECT)
+	}
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+    compile "com.android.support:support-v4:23.3.+"
+}
+

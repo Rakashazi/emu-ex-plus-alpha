@@ -9,7 +9,6 @@ all : android-apk
 
 android_minSDK ?= 9
 android_baseModuleSDK := 9
-android_targetSDK ?= 24
 
 android_metadata_soName ?= main
 android_makefileOpts += android_metadata_soName=$(android_metadata_soName)
@@ -56,12 +55,6 @@ ifdef imagineLibExt
  android_makefileOpts += imagineLibExt=$(imagineLibExt)
 endif
 
-android_sdkToolsPath := $(shell dirname `which android`)
-
-ifeq ($(android_sdkToolsPath),)
- $(error couldn't find Android SDK Tools path, make sure the "android" executable is in your PATH)
-endif
-
 # metadata
 
 android_manifestXml := $(android_targetPath)/AndroidManifest.xml
@@ -72,17 +65,6 @@ $(android_manifestXml) : $(projectPath)/metadata/conf.mk $(metadata_confDeps)
 android-metadata : $(android_manifestXml)
 
 # project dir
-
-# user-specified ant.properties
-ifdef ANDROID_ANT_PROPERTIES
-
-android_antProperties := $(android_targetPath)/ant.properties
-
-$(android_antProperties) :
-	@mkdir -p $(@D)
-	ln -s $(ANDROID_ANT_PROPERTIES) $@
-
-endif
 
 ifdef LTO_MODE
  android_makefileOpts += LTO_MODE=$(LTO_MODE)
@@ -183,13 +165,6 @@ ifeq ($(wildcard $(android_imagineLib9SrcPath)),)
  $(error couldn't find $(android_imagineLib9SrcPath), make sure you've built and installed it with android-java.mk) 
 endif
 
-android_supportLib4SrcPath := $(android_sdkToolsPath)/../extras/android/support/v4/android-support-v4.jar
-android_supportLib4 := $(android_targetPath)/libs/android-support-v4.jar
-
-$(android_supportLib4) : | $(android_supportLib4SrcPath)
-	@mkdir -p $(@D)
-	ln -s $| $@
-
 android_styles21Xml := $(android_targetPath)/res/values-v21/styles.xml
 
 $(android_styles21Xml) :
@@ -240,26 +215,33 @@ $(android_stringsXml) : $(projectPath)/metadata/conf.mk
 	@mkdir -p $(@D)
 	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n\t<string name="app_name">$(android_metadata_name)</string>\n</resources>\n' > $@
 
-android_buildXml := $(android_targetPath)/build.xml
+gradleSrcPath = $(IMAGINE_PATH)/make/gradle
 
-$(android_buildXml) : | $(android_manifestXml) $(android_stringsXml) $(android_imagineLib9) \
-$(android_drawableIconPaths) $(android_assetsPath) $(android_antProperties) $(android_stylesXmlFiles) $(android_supportLib4)
-	android update project -p $(@D) -n $(android_metadata_project) -t android-$(android_targetSDK)
-	rm $(@D)/proguard-project.txt
+android_buildGradle := $(android_targetPath)/build.gradle
+
+$(android_buildGradle) : | $(android_manifestXml) $(android_stringsXml) $(android_imagineLib9) \
+$(android_drawableIconPaths) $(android_assetsPath) $(android_stylesXmlFiles)
+	cp $(gradleSrcPath)/gradlew $(gradleSrcPath)/app/build.gradle $(gradleSrcPath)/app/gradle.properties $(@D)
+	cp -r $(gradleSrcPath)/gradle $(@D)
+	echo METADATA_PROJECT=$(android_metadata_project) >> $(@D)/gradle.properties
 
 ifneq ($(wildcard $(android_resSrcPath)/proguard.cfg),)
-android_proguardConfPath := $(android_targetPath)/proguard.cfg
-$(android_proguardConfPath) : | $(android_buildXml)
-	@mkdir -p $(@D)
-	ln -rs $(android_resSrcPath)/proguard.cfg $@
+android_proguardConfSrcPath = $(android_resSrcPath)/proguard.cfg
+else
+android_proguardConfSrcPath = $(IMAGINE_PATH)/src/base/android/proguard/imagine.cfg
 endif
+
+android_proguardConfPath := $(android_targetPath)/proguard.cfg
+$(android_proguardConfPath) : | $(android_buildGradle)
+	@mkdir -p $(@D)
+	ln -rs $(android_proguardConfSrcPath) $@
 
 # native libs
 
 ifndef android_noArm
 
 android_armMakefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-arm.mk
-android_armSODir := $(android_targetPath)/libs/armeabi
+android_armSODir := $(android_targetPath)/src/main/jniLibs/armeabi
 android_armSO := $(android_armSODir)/lib$(android_soName).so
 android_armMakeArgs = -f $(android_armMakefile) $(android_makefileOpts) \
  targetDir=$(android_armSODir) buildName=$(android_buildName)-arm \
@@ -282,7 +264,7 @@ endif
 ifndef android_noArmv7
 
 android_armv7Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-armv7.mk
-android_armv7SODir := $(android_targetPath)/libs/armeabi-v7a
+android_armv7SODir := $(android_targetPath)/src/main/jniLibs/armeabi-v7a
 android_armv7SO := $(android_armv7SODir)/lib$(android_soName).so
 android_armv7MakeArgs = -f $(android_armv7Makefile) $(android_makefileOpts) \
  targetDir=$(android_armv7SODir) buildName=$(android_buildName)-armv7 \
@@ -305,7 +287,7 @@ endif
 ifndef android_noArm64
 
 android_arm64Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-arm64.mk
-android_arm64SODir := $(android_targetPath)/libs/arm64-v8a
+android_arm64SODir := $(android_targetPath)/src/main/jniLibs/arm64-v8a
 android_arm64SO := $(android_arm64SODir)/lib$(android_soName).so
 android_arm64MakeArgs = -f $(android_arm64Makefile) $(android_makefileOpts) \
  targetDir=$(android_arm64SODir) buildName=$(android_buildName)-arm64 \
@@ -328,7 +310,7 @@ endif
 ifndef android_noX86
 
 android_x86Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-x86.mk
-android_x86SODir := $(android_targetPath)/libs/x86
+android_x86SODir := $(android_targetPath)/src/main/jniLibs/x86
 android_x86SO := $(android_x86SODir)/lib$(android_soName).so
 android_x86MakeArgs = -f $(android_x86Makefile) $(android_makefileOpts) \
  targetDir=$(android_x86SODir) buildName=$(android_buildName)-x86 \
@@ -357,21 +339,26 @@ ifdef V
  antVerbose := -verbose
 endif
 
-android_projectDeps := $(android_buildXml) $(android_proguardConfPath)
+android_projectDeps := $(android_buildGradle) $(android_proguardConfPath)
 
-ifndef android_antTarget
- android_antTarget := release
+ifeq ($(android_buildTarget),debug)
+ android_buildTask := assembleDebug
+ android_installTask := installDebug
+else
+ android_buildTarget := release
+ android_buildTask := assembleRelease
+ android_installTask := installRelease
 endif
 
-android_apkPath := $(android_targetPath)/bin/$(android_metadata_project)-$(android_antTarget).apk
+android_apkPath := $(android_targetPath)/build/outputs/apk/$(android_metadata_project)-$(android_buildTarget).apk
 .PHONY: android-apk
 android-apk : $(android_projectDeps) $(android_soFiles)
-	cd $(android_targetPath) && ANT_OPTS=-Dimagine.path=$(IMAGINE_PATH) ant $(antVerbose) $(android_antTarget)
+	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_buildTask)
 $(android_apkPath) : android-apk
 
 .PHONY: android-install
-android-install : android-apk
-	adb install -r $(android_apkPath)
+android-install : $(android_projectDeps) $(android_soFiles)
+	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_installTask)
 
 .PHONY: android-install-only
 android-install-only :
@@ -384,15 +371,15 @@ android-ready :
 .PHONY: android-check
 android-check :
 	@echo "Checking compiled version of $(android_metadata_project) (SDK $(android_minSDK)) $(android_metadata_version)"
-	@strings $(android_targetPath)/libs/*/*.so | grep " $(android_metadata_version)"
+	@strings $(android_targetPath)/src/main/jniLibs/*/*.so | grep " $(android_metadata_version)"
 
 .PHONY: android-clean-project
 android-clean-project:
 	rm -rf $(android_targetPath)
 android_cleanTargets += android-clean-project
 
-.PHONY: android-clean
-android-clean: $(android_cleanTargets)
+.PHONY: clean
+clean: $(android_cleanTargets)
 
 .DEFAULT:
 ifndef android_noArm

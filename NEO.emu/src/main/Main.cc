@@ -228,7 +228,7 @@ void gn_update_pbar(int pos)
 static auto openGngeoDataIO(const char *filename)
 {
 	#ifdef __ANDROID__
-	return openAppAssetIO(filename);
+	return openAppAssetIO(filename, IO::AccessHint::ALL);
 	#else
 	return FS::fileFromArchive(datafilePath.data(), filename);
 	#endif

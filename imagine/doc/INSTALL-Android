@@ -3,11 +3,11 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 1. Tools and Environment Setup
 ==============================
 
-Download & install the Android SDK Manager
+Download & install Android Studio
 
-Download & extract Android NDK Revision 15 from https://github.com/android-ndk/ndk/wiki. Perform any one of the following to tell the build system the location of the NDK directory:
+Download & extract Android NDK Revision 15 from https://github.com/android-ndk/ndk/wiki or install it via Android Studio. Perform any one of the following to tell the build system the location of the NDK directory:
 
-1. Add the root NDK directory to your PATH environment as instructed in Google's docs
+1. Add the root NDK directory to your PATH environment
 2. Link or rename the root NDK directory to $(HOME)/android-ndk
 3. Define ANDROID_NDK_PATH as shown below to use a custom location.
 
@@ -24,7 +24,7 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-Install the SDK platform for Android 6.0 (API 23) and the Android Support Library v4 from the SDK Manager
+Install the SDK platform for Android 7.0 (API 24) and the Android Support Library from Android Studio's SDK Manager
 
 3. Building
 ===========
@@ -35,7 +35,14 @@ make -f android-java.mk install
 
 To specify the SDK build tools version used for compiling the Java portion, set ANDROID_BUILD_TOOLS_VERSION in ~/.gradle/gradle.properties. For example:
 
-ANDROID_BUILD_TOOLS_VERSION=24.0.1
+ANDROID_BUILD_TOOLS_VERSION=26.0.1
+
+To sign the release APK with your key, set the following variables in ~/.gradle/gradle.properties and fill in the appropriate values:
+
+ANDROID_KEY_ALIAS=myKey
+ANDROID_KEY_PASSWORD=myPassword
+ANDROID_KEY_STORE=/home/user/myKey.keystore
+ANDROID_KEY_STORE_PASSWORD=myPassword
 
 --------------------------------
 
