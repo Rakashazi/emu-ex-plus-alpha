@@ -62,7 +62,6 @@ void deinitDBus()
 {
 	if(!bus)
 		return;
-	dbus_connection_close(bus);
 	bus = nullptr;
 }
 
