@@ -62,7 +62,6 @@ void deinitDBus()
 {
 	if(!bus)
 		return;
-	dbus_connection_close(bus);
 	bus = nullptr;
 }
 
@@ -253,11 +252,21 @@ void setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 			DBUS_TYPE_STRING, &app,
 			DBUS_TYPE_STRING, &reason,
 			DBUS_TYPE_INVALID);
-		auto reply = dbus_connection_send_with_reply_and_block(bus, message, 200, nullptr);
+		DBusError error;
+		dbus_error_init (&error);
+		auto reply = dbus_connection_send_with_reply_and_block(bus, message, 200, &error);
 		dbus_message_unref(message);
-		dbus_message_get_args(reply, nullptr, DBUS_TYPE_UINT32, &screenSaverCookie, DBUS_TYPE_INVALID);
-		dbus_message_unref(reply);
-		logMsg("Got screensaver inhibit cookie:%u", screenSaverCookie);
+		if(reply!=nullptr)
+		{
+			dbus_message_get_args(reply, nullptr, DBUS_TYPE_UINT32, &screenSaverCookie, DBUS_TYPE_INVALID);
+			dbus_message_unref(reply);
+			logMsg("Got screensaver inhibit cookie:%u", screenSaverCookie);
+		}
+		else
+		{
+			logWarn("Failed to get screensaver inhibit cookie: %s", error.message);
+		}
+		dbus_error_free (&error);
 	}
 	allowScreenSaver = wantsAllowScreenSaver;
 }
