@@ -14,7 +14,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuView.hh>
-#include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <algorithm>
 

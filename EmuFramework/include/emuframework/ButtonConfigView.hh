@@ -81,8 +81,9 @@ private:
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
 	Input::Time leftKeyPushTime{};
+	std::array<char, 96> conflictStr{};
 
-	void onSet(Input::Event e, int keyToSet);
+	void onSet(Input::Key mapKey, int keyToSet);
 	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
 
 public:

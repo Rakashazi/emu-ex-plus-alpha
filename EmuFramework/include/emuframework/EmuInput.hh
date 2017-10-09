@@ -27,10 +27,6 @@ static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
 static constexpr uint MAX_KEY_CONFIG_KEYS = 256;
 static constexpr uint MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
 
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern uint pointerInputPlayer;
-#endif
-
 struct KeyCategory
 {
 	constexpr KeyCategory() {}

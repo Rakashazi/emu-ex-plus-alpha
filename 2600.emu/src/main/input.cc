@@ -173,15 +173,15 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		bcase Event::JoystickZeroFire5: // TODO: add turbo support for on-screen controls to framework
 			ev.set(Event::Type(Event::JoystickZeroFire), state == Input::PUSHED);
 			if(state == Input::PUSHED)
-				turboActions.addEvent(Event::JoystickZeroFire);
+				EmuApp::addTurboInputEvent(Event::JoystickZeroFire);
 			else
-				turboActions.removeEvent(Event::JoystickZeroFire);
+				EmuApp::removeTurboInputEvent(Event::JoystickZeroFire);
 		bcase Event::JoystickOneFire5: // TODO: add turbo support for on-screen controls to framework
 			ev.set(Event::Type(Event::JoystickOneFire), state == Input::PUSHED);
 			if(state == Input::PUSHED)
-				turboActions.addEvent(Event::JoystickOneFire);
+				EmuApp::addTurboInputEvent(Event::JoystickOneFire);
 			else
-				turboActions.removeEvent(Event::JoystickOneFire);
+				EmuApp::removeTurboInputEvent(Event::JoystickOneFire);
 		bcase Event::KeyboardZero1 ... Event::KeyboardOnePound:
 			ev.set(Event::Type(event1), state == Input::PUSHED);
 		bdefault:

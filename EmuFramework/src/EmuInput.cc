@@ -57,8 +57,9 @@ static int vControllerPixelSize()
 void initVControls(Gfx::Renderer &r)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.dp.setDeadzone(r, vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
-	vController.gp.dp.setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000.);
+	auto &gp = vController.gamePad();
+	gp.dPad().setDeadzone(r, vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
+	gp.dPad().setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000.);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	#else
@@ -407,6 +408,30 @@ const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
 
 // InputDeviceConfig
 
+template <size_t S>
+void uniqueCustomConfigName(char (&name)[S])
+{
+	iterateTimes(99, i) // Try up to "Custom 99"
+	{
+		string_printf(name, "Custom %d", i+1);
+		// Check if this name is free
+		logMsg("checking %s", name);
+		bool exists = 0;
+		for(auto &e : customKeyConfig)
+		{
+			logMsg("against %s", e.name);
+			if(string_equal(e.name, name))
+			{
+				exists = 1;
+				break;
+			}
+		}
+		if(!exists)
+			break;
+	}
+	logMsg("unique custom key config name: %s", name);
+}
+
 void InputDeviceConfig::deleteConf()
 {
 	if(savedConf)
@@ -490,6 +515,20 @@ KeyConfig *InputDeviceConfig::mutableKeyConf()
 	return nullptr;
 }
 
+KeyConfig *InputDeviceConfig::makeMutableKeyConf()
+{
+	auto conf = mutableKeyConf();
+	if(!conf)
+	{
+		logMsg("current config not mutable, creating one");
+		char name[96];
+		uniqueCustomConfigName(name);
+		conf = setKeyConfCopiedFromExisting(name);
+		popup.printf(3, 0, "Automatically created profile: %s", conf->name);
+	}
+	return conf;
+}
+
 KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(const char *name)
 {
 	customKeyConfig.emplace_back();
@@ -531,6 +570,18 @@ void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
 		dev->setICadeMode(savedConf->iCadeMode);
 		#endif
 	}
+}
+
+bool InputDeviceConfig::setKey(Input::Key mapKey, const KeyCategory &cat, int keyIdx)
+{
+	auto conf = makeMutableKeyConf();
+	if(!conf)
+		return false;
+	auto &keyEntry = conf->key(cat)[keyIdx];
+	logMsg("changing key mapping from %s (0x%X) to %s (0x%X)",
+			dev->keyName(keyEntry), keyEntry, dev->keyName(mapKey), mapKey);
+	keyEntry = mapKey;
+	return true;
 }
 
 // KeyMapping
@@ -638,37 +689,38 @@ void setupVControllerVars()
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	Gfx::GC btnSize = vControllerGCSize();
 	int btnSizePixels = vControllerPixelSize();
+	auto &gp = vController.gamePad();
 	logMsg("set on-screen button size: %f, %d pixels", (double)btnSize, btnSizePixels);
-	vController.gp.btnSpace = vController.xMMSize(int(optionTouchCtrlBtnSpace) / 100.);
-	vController.gp.btnSpacePixels = IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, int(optionTouchCtrlBtnSpace) / 100.));
-	vController.gp.btnRowShift = 0;
-	vController.gp.btnRowShiftPixels = 0;
-	vController.gp.btnExtraXSize = optionTouchCtrlExtraXBtnSize / 1000.;
-	vController.gp.btnExtraYSize = optionTouchCtrlExtraYBtnSize / 1000.;
-	vController.gp.btnExtraYSizeMultiRow = optionTouchCtrlExtraYBtnSizeMultiRow / 1000.;
-	vController.gp.triggersInline = optionTouchCtrlTriggerBtnPos;
+	gp.setSpacing(vController.xMMSize(int(optionTouchCtrlBtnSpace) / 100.));
+	gp.setSpacingPixels(IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, int(optionTouchCtrlBtnSpace) / 100.)));
+	gp.setRowShift(0);
+	gp.setRowShiftPixels(0);
+	gp.setExtraXSize(optionTouchCtrlExtraXBtnSize / 1000.);
+	gp.setExtraYSize(optionTouchCtrlExtraYBtnSize / 1000.);
+	gp.setExtraYSizeMultiRow(optionTouchCtrlExtraYBtnSizeMultiRow / 1000.);
+	gp.setTriggersInline(optionTouchCtrlTriggerBtnPos);
 	switch((int)optionTouchCtrlBtnStagger)
 	{
 		bcase 0:
-			vController.gp.btnStagger = btnSize * -.75;
-			vController.gp.btnStaggerPixels = btnSizePixels * -.75;
+			gp.setStagger(btnSize * -.75);
+			gp.setStaggerPixels(btnSizePixels * -.75);
 		bcase 1:
-			vController.gp.btnStagger = btnSize * -.5;
-			vController.gp.btnStaggerPixels = btnSizePixels * -.5;
+			gp.setStagger(btnSize * -.5);
+			gp.setStaggerPixels(btnSizePixels * -.5);
 		bcase 2:
-			vController.gp.btnStagger = 0;
-			vController.gp.btnStaggerPixels = 0;
+			gp.setStagger(0);
+			gp.setStaggerPixels(0);
 		bcase 3:
-			vController.gp.btnStagger = btnSize * .5;
-			vController.gp.btnStaggerPixels = btnSizePixels * .5;
+			gp.setStagger(btnSize * .5);
+			gp.setStaggerPixels(btnSizePixels * .5);
 		bcase 4:
-			vController.gp.btnStagger = btnSize * .75;
-			vController.gp.btnStaggerPixels = btnSizePixels * .75;
+			gp.setStagger(btnSize * .75);
+			gp.setStaggerPixels(btnSizePixels * .75);
 		bdefault:
-			vController.gp.btnStagger = btnSize + vController.gp.btnSpace;
-			vController.gp.btnStaggerPixels = btnSizePixels + vController.gp.btnSpacePixels;
-			vController.gp.btnRowShift = -(btnSize + vController.gp.btnSpace);
-			vController.gp.btnRowShiftPixels = -(btnSizePixels + vController.gp.btnSpacePixels);
+			gp.setStagger(btnSize + gp.spacing());
+			gp.setStaggerPixels(btnSizePixels + gp.spacingPixels());
+			gp.setRowShift(-(btnSize + gp.spacing()));
+			gp.setRowShiftPixels(-(btnSizePixels + gp.spacingPixels()));
 	}
 	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
@@ -712,7 +764,7 @@ void updateAutoOnScreenControlVisible()
 
 void updateVControlImg()
 {
-	auto &r = vController.renderer;
+	auto &r = vController.renderer();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	{
 		static Gfx::PixmapTexture overlayImg;
@@ -737,14 +789,14 @@ void updateVControlImg()
 			logErr("couldn't load kb overlay png");
 		}
 		kbOverlayImg.init(r, png);
-		vController.kb.setImg(r, &kbOverlayImg);
+		vController.setKeyboardImage(kbOverlayImg);
 	}
 }
 
 void setActiveFaceButtons(uint btns)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	vController.gp.activeFaceBtns = btns;
+	vController.gamePad().setActiveFaceButtons(btns);
 	setupVControllerVars();
 	vController.place();
 	EmuSystem::clearInputBuffers(emuInputView);

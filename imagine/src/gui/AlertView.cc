@@ -106,6 +106,7 @@ void AlertView::setItem(uint idx, const char *name, TextMenuItem::SelectDelegate
 {
 	assert(idx < item.size());
 	item[idx].t.setString(name);
+	item[idx].t.setFace(&View::defaultFace);
 	item[idx].setOnSelect(del);
 }
 

@@ -475,7 +475,7 @@ uint OptionVControllerLayoutPosition::ioSize()
 bool vControllerUseScaledCoordinates()
 {
 	#ifdef CONFIG_BASE_ANDROID
-	return vController.useScaledCoordinates;
+	return vController.usesScaledCoordinates();
 	#else
 	return false;
 	#endif
@@ -484,7 +484,7 @@ bool vControllerUseScaledCoordinates()
 void setVControllerUseScaledCoordinates(bool on)
 {
 	#ifdef CONFIG_BASE_ANDROID
-	vController.useScaledCoordinates = on;
+	vController.setUsesScaledCoordinates(on);
 	#endif
 }
 

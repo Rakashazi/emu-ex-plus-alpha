@@ -82,7 +82,7 @@ std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
 static EmuApp::OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 FS::PathString lastLoadPath{};
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-SysVController vController{renderer};
+SysVController vController{renderer, EmuSystem::inputFaceBtns};
 uint pointerInputPlayer = 0;
 #endif
 [[gnu::weak]] bool EmuApp::hasIcon = true;
@@ -823,8 +823,8 @@ void mainInitWindowCommon(Base::Window &win)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	initVControls(renderer);
 	EmuControls::updateVControlImg();
-	vController.menuBtnSpr.init({}, getAsset(renderer, ASSET_MENU));
-	vController.ffBtnSpr.init({}, getAsset(renderer, ASSET_FAST_FORWARD));
+	vController.setMenuImage(getAsset(renderer, ASSET_MENU));
+	vController.setFastForwardImage(getAsset(renderer, ASSET_FAST_FORWARD));
 	#endif
 
 	//logMsg("setting up view stack");
@@ -1356,6 +1356,16 @@ void EmuApp::setFirmwareSearchPath(const char *path)
 [[gnu::weak]] View *EmuApp::makeCustomView(ViewAttachParams attach, EmuApp::ViewID id)
 {
 	return nullptr;
+}
+
+void EmuApp::addTurboInputEvent(uint action)
+{
+	turboActions.addEvent(action);
+}
+
+void EmuApp::removeTurboInputEvent(uint action)
+{
+	turboActions.removeEvent(action);
 }
 
 namespace Base

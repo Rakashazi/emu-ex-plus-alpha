@@ -21,6 +21,26 @@
 #include "private.hh"
 #include "privateInput.hh"
 
+class KeyConflictAlertView : public AlertView
+{
+public:
+	struct Context
+	{
+		Input::Key mapKey;
+		uint keyToSet;
+		const KeyCategory *conflictCat{};
+		uint conflictKey;
+	};
+
+	Context ctx;
+
+	KeyConflictAlertView(ViewAttachParams attach, const char *label):
+		AlertView(attach, label, 3)
+	{
+		setItem(2, "Cancel", [](TextMenuItem &, View &view, Input::Event){ view.dismiss(); });
+	}
+};
+
 #ifdef CONFIG_INPUT_POINTING_DEVICES
 bool ButtonConfigSetView::pointerUIIsInit()
 {
@@ -94,8 +114,9 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 		if(unbindB.overlaps(e.pos()))
 		{
 			logMsg("unbinding key");
-			onSetD(Input::Event());
+			auto onSet = onSetD;
 			dismiss();
+			onSet(Input::Event());
 			return true;
 		}
 		else if(cancelB.overlaps(e.pos()))
@@ -131,8 +152,9 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 			}
 			return true;
 		}
-		onSetD(e);
+		auto onSet = onSetD;
 		dismiss();
+		onSet(e);
 		return true;
 	}
 	return false;
@@ -189,42 +211,26 @@ void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, G
 	DualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
 }
 
-template <size_t S>
-void uniqueCustomConfigName(char (&name)[S])
+static std::pair<const KeyCategory *, uint> findCategoryAndKeyInConfig(Input::Key key, InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
 {
-	iterateTimes(99, i) // Try up to "Custom 99"
+	iterateTimes(EmuControls::categories, c)
 	{
-		string_printf(name, "Custom %d", i+1);
-		// Check if this name is free
-		logMsg("checking %s", name);
-		bool exists = 0;
-		for(auto &e : customKeyConfig)
+		auto &cat = EmuControls::category[c];
+		auto keyPtr = devConf.keyConf().key(cat);
+		int skipIdx = -1;
+		if(skipCat && skipCat == &cat)
 		{
-			logMsg("against %s", e.name);
-			if(string_equal(e.name, name))
+			skipIdx = skipIdx_;
+		}
+		iterateTimes(cat.keys, k)
+		{
+			if((int)k != skipIdx && keyPtr[k] == key)
 			{
-				exists = 1;
-				break;
+				return {&cat, k};
 			}
 		}
-		if(!exists)
-			break;
 	}
-	logMsg("unique custom key config name: %s", name);
-}
-
-static KeyConfig *mutableConfForDeviceConf(InputDeviceConfig &devConf)
-{
-	auto conf = devConf.mutableKeyConf();
-	if(!conf)
-	{
-		logMsg("current config not mutable, creating one");
-		char name[96];
-		uniqueCustomConfigName(name);
-		conf = devConf.setKeyConfCopiedFromExisting(name);
-		popup.printf(3, 0, "Automatically created profile: %s", conf->name);
-	}
-	return conf;
+	return {};
 }
 
 ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, const char *name)
@@ -241,17 +247,12 @@ ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, co
 	return str;
 }
 
-void ButtonConfigView::onSet(Input::Event e, int keyToSet)
+void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 {
-	auto conf = mutableConfForDeviceConf(*devConf);
-	if(!conf)
+	if(!devConf->setKey(mapKey, *cat, keyToSet))
 		return;
-	auto &keyEntry = conf->key(*cat)[keyToSet];
-	logMsg("changing key mapping from %s (0x%X) to %s (0x%X)",
-			devConf->dev->keyName(keyEntry), keyEntry, devConf->dev->keyName(e.mapKey()), e.mapKey());
-	keyEntry = e.mapKey();
 	auto &b = btn[keyToSet];
-	b.str = makeKeyNameStr(e.mapKey(), devConf->dev->keyName(e.mapKey()));
+	b.str = makeKeyNameStr(mapKey, devConf->dev->keyName(mapKey));
 	b.item.t2.compile(renderer(), projP);
 	keyMapping.buildAll();
 }
@@ -266,7 +267,7 @@ bool ButtonConfigView::inputEvent(Input::Event e)
 		{
 			// unset key
 			leftKeyPushTime = {};
-			onSet(Input::Event(), selected-1);
+			onSet(0, selected-1);
 			postDraw();
 		}
 		return true;
@@ -311,7 +312,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
-					auto conf = mutableConfForDeviceConf(*devConf);
+					auto conf = devConf->makeMutableKeyConf();
 					if(!conf)
 						return;
 					conf->unbindCategory(*cat);
@@ -344,7 +345,41 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					*devConf->dev, btn[keyToSet].item.t.str,
 					[this, keyToSet](Input::Event e)
 					{
-						onSet(e, keyToSet);
+						auto mapKey = e.mapKey();
+						if(mapKey)
+						{
+							auto conflict = findCategoryAndKeyInConfig(mapKey, *devConf, cat, keyToSet);
+							auto conflictCat = std::get<const KeyCategory *>(conflict);
+							if(conflictCat)
+							{
+								// prompt to resolve key conflict
+								auto conflictKey = std::get<uint>(conflict);
+								string_printf(conflictStr, "Key \"%s\" already used for action \"%s\", unbind it before setting?",
+									devConf->dev->keyName(mapKey),
+									conflictCat->keyName[conflictKey]);
+								auto &alertView = *new KeyConflictAlertView{attachParams(), conflictStr.data()};
+								alertView.ctx = {mapKey, keyToSet, conflictCat, conflictKey};
+								alertView.setItem(0, "Yes",
+									[this, ctx = &alertView.ctx](TextMenuItem &, View &view, Input::Event)
+									{
+										if(ctx->conflictCat == this->cat)
+											onSet(0, ctx->conflictKey);
+										else
+											devConf->setKey(0, *ctx->conflictCat, ctx->conflictKey);
+										onSet(ctx->mapKey, ctx->keyToSet);
+										view.dismiss();
+									});
+								alertView.setItem(1, "No",
+									[this, ctx = &alertView.ctx](TextMenuItem &, View &view, Input::Event)
+									{
+										onSet(ctx->mapKey, ctx->keyToSet);
+										view.dismiss();
+									});
+								modalViewController.pushAndShow(alertView, e);
+								return;
+							}
+						}
+						onSet(mapKey, keyToSet);
 					}};
 				modalViewController.pushAndShow(btnSetView, e);
 			});

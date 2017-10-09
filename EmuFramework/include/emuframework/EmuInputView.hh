@@ -21,12 +21,6 @@
 class EmuInputView : public View
 {
 public:
-	bool ffKeyPushed = false, ffToggleActive = false;
-
-private:
-	IG::WindowRect rect{};
-
-public:
 	EmuInputView(ViewAttachParams attach): View(attach) {}
 	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
@@ -36,5 +30,8 @@ public:
 	void resetInput();
 
 private:
+	bool ffKeyPushed = false, ffToggleActive = false;
+	IG::WindowRect rect{};
+
 	void updateFastforward();
 };

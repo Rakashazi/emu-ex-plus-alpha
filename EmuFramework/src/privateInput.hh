@@ -80,9 +80,11 @@ struct InputDeviceConfig
 	void setKeyConf(const KeyConfig &kConf);
 	void setDefaultKeyConf();
 	KeyConfig *mutableKeyConf();
+	KeyConfig *makeMutableKeyConf();
 	KeyConfig *setKeyConfCopiedFromExisting(const char *name);
 	void save();
 	void setSavedConf(InputDeviceSavedConfig *savedConf);
+	bool setKey(Input::Key mapKey, const KeyCategory &cat, int keyIdx);
 };
 
 struct KeyMapping
@@ -135,6 +137,10 @@ extern std::vector<InputDeviceConfig> inputDevConf;
 extern KeyMapping keyMapping;
 extern bool physicalControlsPresent;
 extern VControllerLayoutPosition vControllerLayoutPos[2][7];
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+extern SysVController vController;
+extern uint pointerInputPlayer;
+#endif
 
 void processRelPtr(Input::Event e);
 void commonInitInput();

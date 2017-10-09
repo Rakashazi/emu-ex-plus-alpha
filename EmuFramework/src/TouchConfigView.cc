@@ -333,13 +333,13 @@ static void setSize(uint val)
 static void setDeadzone(uint val)
 {
 	optionTouchDpadDeadzone = val;
-	vController.gp.dp.setDeadzone(emuVideo.renderer(), vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
+	vController.gamePad().dPad().setDeadzone(emuVideo.renderer(), vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
 }
 
 static void setDiagonalSensitivity(uint val)
 {
 	optionTouchDpadDiagonalSensitivity = val;
-	vController.gp.dp.setDiagonalSensitivity(emuVideo.renderer(), optionTouchDpadDiagonalSensitivity / 1000.);
+	vController.gamePad().dPad().setDiagonalSensitivity(emuVideo.renderer(), optionTouchDpadDiagonalSensitivity / 1000.);
 }
 
 static void setButtonSpace(uint val)
@@ -388,7 +388,7 @@ static void setButtonState(uint state, uint btnIdx)
 static void setAlpha(uint val)
 {
 	optionTouchCtrlAlpha = val;
-	vController.alpha = (int)optionTouchCtrlAlpha / 255.0;
+	vController.setAlpha((int)optionTouchCtrlAlpha / 255.0);
 }
 
 void TouchConfigView::draw()

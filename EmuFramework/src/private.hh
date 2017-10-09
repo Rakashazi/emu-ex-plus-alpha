@@ -28,9 +28,6 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/MsgPopup.hh>
 #include <emuframework/Recent.hh>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-#include <emuframework/VController.hh>
-#endif
 
 enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
 
@@ -53,9 +50,6 @@ extern EmuVideoLayer emuVideoLayer;
 extern ViewStack viewStack;
 extern BasicViewController modalViewController;
 extern bool menuViewIsActive;
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern SysVController vController;
-#endif
 #ifdef __ANDROID__
 extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;
 #endif

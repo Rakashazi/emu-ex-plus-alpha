@@ -55,6 +55,11 @@ class AlertView : public BaseAlertView
 public:
 	AlertView(ViewAttachParams attach, const char *label, uint menuItems);
 	void setItem(uint idx, const char *name, TextMenuItem::SelectDelegate del);
+	template<class C>
+	void setItem(uint idx, const char *name, C &&del)
+	{
+		setItem(idx, name, TextMenuItem::wrapSelectDelegate(del));
+	}
 
 protected:
 	std::vector<TextMenuItem> item;

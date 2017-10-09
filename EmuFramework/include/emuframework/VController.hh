@@ -20,16 +20,10 @@
 #include <emuframework/TurboInput.hh>
 #include <cmath>
 
-extern TurboInput turboActions;
-
 class VControllerDPad
 {
 public:
-	Gfx::Sprite spr{};
-	uint state = 1;
-
 	constexpr VControllerDPad() {}
-	void init();
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
 	void draw(Gfx::Renderer &r) const;
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on);
@@ -39,8 +33,12 @@ public:
 	void setSize(Gfx::Renderer &r, uint sizeInPixels);
 	void setDeadzone(Gfx::Renderer &r, int newDeadzone);
 	void setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity);
+	uint state() const { return state_; }
+	void setState(uint state) { state_ = state; }
 
-private:
+protected:
+	Gfx::Sprite spr{};
+	uint state_ = 1;
 	Gfx::GCRect padBase{};
 	IG::WindowRect padBaseArea{}, padArea{};
 	int deadzone = 0;
@@ -56,20 +54,22 @@ private:
 class VControllerKeyboard
 {
 public:
-	Gfx::Sprite spr{};
-	IG::WindowRect bound{};
-	uint keyXSize = 0, keyYSize = 0;
-	static const uint cols = 10;
-	uint mode = 0;
-	Gfx::GTexC texXEnd = 0;
-
 	constexpr VControllerKeyboard() {}
-	void init();
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
 	void draw(Gfx::Renderer &r) const;
 	int getInput(IG::WP c) const;
+	int mode() const { return mode_; }
+	void setMode(Gfx::Renderer &r, int mode);
+
+protected:
+	Gfx::Sprite spr{};
+	IG::WindowRect bound{};
+	uint keyXSize = 0, keyYSize = 0;
+	static const uint cols = 10;
+	uint mode_ = 0;
+	Gfx::GTexC texXEnd = 0;
 };
 
 class VControllerGamepad
@@ -77,19 +77,8 @@ class VControllerGamepad
 public:
 	static constexpr uint MAX_CENTER_BTNS = 2;
 	static constexpr uint MAX_FACE_BTNS = 8;
-	VControllerDPad dp{};
-	int btnSpacePixels = 0, btnStaggerPixels = 0, btnRowShiftPixels = 0;
-	Gfx::GC btnSpace = 0, btnStagger = 0, btnRowShift = 0;//, btnAreaXOffset = 0;
-	Gfx::GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
-	uint centerBtnsState = 1;
-	uint lTriggerState = 1;
-	uint rTriggerState = 1;
-	uint faceBtnsState = 1;
-	uint activeFaceBtns = 0;
-	bool triggersInline = false;
 
-	constexpr VControllerGamepad() {}
-	void init(float alpha);
+	constexpr VControllerGamepad(uint faceButtons): activeFaceBtns{faceButtons} {}
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on);
 	bool boundingAreaVisible() const;
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics);
@@ -107,17 +96,51 @@ public:
 	std::array<int, 2> getCenterBtnInput(IG::WP pos) const;
 	std::array<int, 2> getBtnInput(IG::WP pos) const;
 	void draw(Gfx::Renderer &r, bool showHidden) const;
+	VControllerDPad &dPad() { return dp; }
+	const VControllerDPad &dPad() const { return dp; }
+	Gfx::GC spacing() const { return btnSpace; }
+	int spacingPixels() const { return btnSpacePixels; }
+	void setSpacing(Gfx::GC mm) { btnSpace = mm; }
+	void setSpacingPixels(int mm) { btnSpacePixels = mm; }
+	void setRowShift(Gfx::GC mm) { btnRowShift = mm; }
+	void setRowShiftPixels(int mm) { btnRowShiftPixels = mm; }
+	void setStagger(Gfx::GC mm) { btnStagger = mm; }
+	void setStaggerPixels(int mm) { btnStaggerPixels = mm; }
+	void setExtraXSize(Gfx::GC mm) { btnExtraXSize = mm; }
+	void setExtraYSize(Gfx::GC mm) { btnExtraYSize = mm; }
+	void setExtraYSizeMultiRow(Gfx::GC mm) { btnExtraYSizeMultiRow = mm; }
+	void setFaceButtonsState(uint state) { faceBtnsState = state; }
+	void setCenterButtonsState(uint state) { centerBtnsState = state; }
+	void setLTriggerState(uint state) { lTriggerState_ = state; }
+	void setRTriggerState(uint state) { rTriggerState_ = state; }
+	uint faceButtonsState() const { return faceBtnsState; }
+	uint centerButtonsState() const { return centerBtnsState; }
+	uint lTriggerState() const { return lTriggerState_; }
+	uint rTriggerState() const { return rTriggerState_; }
+	void setTriggersInline(bool on) { triggersInline_ = on; }
+	void setActiveFaceButtons(uint num) { activeFaceBtns = num; }
+	bool triggersInline() const { return triggersInline_; }
 
 private:
+	VControllerDPad dp{};
+	Gfx::GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
+	int btnSpacePixels = 0, btnStaggerPixels = 0, btnRowShiftPixels = 0;
+	Gfx::GC btnSpace = 0, btnStagger = 0, btnRowShift = 0;//, btnAreaXOffset = 0;
+	uint faceBtnsState = 1;
+	uint centerBtnsState = 1;
+	uint lTriggerState_ = 1;
+	uint rTriggerState_ = 1;
 	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS]{};
 	IG::WindowRect centerBtnsBound{};
 	IG::WindowRect faceBtnBound[MAX_FACE_BTNS]{};
 	IG::WindowRect faceBtnsBound{}, lTriggerBound{}, rTriggerBound{};
 	Gfx::Sprite centerBtnSpr[MAX_CENTER_BTNS]{};
 	Gfx::Sprite circleBtnSpr[MAX_FACE_BTNS]{};
-	bool showBoundingArea = false;
 	Gfx::GC btnSize = 0;
 	int btnSizePixels = 0;
+	uint activeFaceBtns = 0;
+	bool triggersInline_ = false;
+	bool showBoundingArea = false;
 };
 
 class VController
@@ -127,31 +150,12 @@ public:
 	static constexpr uint TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
 	using Map = std::array<uint, D_ELEM+9>;
 	using KbMap = std::array<uint, 40>;
-	Gfx::Renderer &renderer;
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	VControllerGamepad gp{};
-	#endif
-	VControllerKeyboard kb{};
 
-	// menu button
-	Gfx::Sprite menuBtnSpr{};
-	IG::WindowRect menuBound{};
-	uint menuBtnState = 1;
-
-	// fast-forward button
-	Gfx::Sprite ffBtnSpr{};
-	IG::WindowRect ffBound{};
-	uint ffBtnState = 1;
-
-	#ifdef CONFIG_BASE_ANDROID
-	bool useScaledCoordinates = true;
-	#else
-	static constexpr bool useScaledCoordinates = false;
-	#endif
-
-	float alpha = 0;
-
-	constexpr VController(Gfx::Renderer &r): renderer{r} {}
+	constexpr VController(Gfx::Renderer &r, uint faceButtons): renderer_{r}
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
+			,gp{faceButtons}
+		#endif
+		{}
 	Gfx::GC xMMSize(Gfx::GC mm) const;
 	Gfx::GC yMMSize(Gfx::GC mm) const;
 	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
@@ -169,7 +173,6 @@ public:
 	void init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	void place();
 	void toggleKeyboard();
-	std::array<int, 2> findElementUnderPos(Input::Event e);
 	void applyInput(Input::Event e);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden = false);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
@@ -180,12 +183,49 @@ public:
 	uint state(int elemIdx) const;
 	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	bool isInKeyboardMode() const;
+	void setMenuImage(Gfx::PixmapTexture &img);
+	void setFastForwardImage(Gfx::PixmapTexture &img);
+	void setKeyboardImage(Gfx::PixmapTexture &img);
+	bool menuHitTest(IG::WP pos);
+	bool fastForwardHitTest(IG::WP pos);
+	void setUsesScaledCoordinates(bool on);
+	bool usesScaledCoordinates();
+	void setAlpha(float val);
+	VControllerGamepad &gamePad();
+	Gfx::Renderer &renderer();
 
 private:
+	Gfx::Renderer &renderer_;
+
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	VControllerGamepad gp;
+	#endif
+	VControllerKeyboard kb{};
+
+	#ifdef CONFIG_BASE_ANDROID
+	bool useScaledCoordinates = true;
+	#else
+	static constexpr bool useScaledCoordinates = false;
+	#endif
+
+	float alpha = 0;
+
+	// menu button
+	Gfx::Sprite menuBtnSpr{};
+	IG::WindowRect menuBound{};
+	uint menuBtnState = 1;
+
+	// fast-forward button
+	Gfx::Sprite ffBtnSpr{};
+	IG::WindowRect ffBound{};
+	uint ffBtnState = 1;
+
 	std::array<std::array<int, 2>, Config::Input::MAX_POINTERS> ptrElem{};
 	Map map{};
 	uint kbMode = 0;
 	KbMap kbMap{};
+
+	std::array<int, 2> findElementUnderPos(Input::Event e);
 };
 
 using SysVController = VController;

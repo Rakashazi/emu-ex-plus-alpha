@@ -97,4 +97,6 @@ public:
 	static FS::PathString firmwareSearchPath();
 	static void setFirmwareSearchPath(const char *path);
 	static View *makeCustomView(ViewAttachParams attach, ViewID id);
+	static void addTurboInputEvent(uint action);
+	static void removeTurboInputEvent(uint action);
 };

@@ -55,14 +55,13 @@ bool EmuInputView::inputEvent(Input::Event e)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
 	{
-		auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
-		if(e.pushed() && layoutPos[VCTRL_LAYOUT_MENU_IDX].state != 0 && vController.menuBound.overlaps(e.pos()))
+		if(e.pushed() && vController.menuHitTest(e.pos()))
 		{
 			viewStack.top().clearSelection();
 			EmuApp::restoreMenuFromGame();
 			return true;
 		}
-		else if(e.pushed() && layoutPos[VCTRL_LAYOUT_FF_IDX].state != 0 && vController.ffBound.overlaps(e.pos()))
+		else if(e.pushed() && vController.fastForwardHitTest(e.pos()))
 		{
 			ffToggleActive ^= true;
 			updateFastforward();
