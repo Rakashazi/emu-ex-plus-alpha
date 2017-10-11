@@ -37,15 +37,15 @@ int get_line(IO &file, std::string &str)
  return(str.length() ? 256 : -1);
 }
 
-void MDFN_printf(const char *format, ...) throw()
-{
-	if(!logger_isEnabled())
-		return;
-	va_list args;
-	va_start( args, format );
-	logger_vprintf(LOG_M, format, args);
-	va_end( args );
-}
+//void MDFN_printf(const char *format, ...) throw()
+//{
+//    if(!logger_isEnabled())
+//        return;
+//    va_list args;
+//    va_start( args, format );
+//    logger_vprintf(LOG_M, format, args);
+//    va_end( args );
+//}
 
 void MDFN_PrintError(const char *format, ...) throw()
 {
@@ -57,15 +57,15 @@ void MDFN_PrintError(const char *format, ...) throw()
 	va_end( args );
 }
 
-void MDFN_DispMessage(const char *format, ...) throw()
-{
-	if(!logger_isEnabled())
-		return;
-	va_list args;
-	va_start( args, format );
-	logger_vprintf(LOG_M, format, args);
-	va_end( args );
-}
+//void MDFN_DispMessage(const char *format, ...) throw()
+//{
+//    if(!logger_isEnabled())
+//        return;
+//    va_list args;
+//    va_start( args, format );
+//    logger_vprintf(LOG_M, format, args);
+//    va_end( args );
+//}
 
 void MDFND_PrintError(const char *s)
 {

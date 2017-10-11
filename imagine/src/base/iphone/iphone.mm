@@ -546,7 +546,7 @@ FS::PathString documentsPath()
 		NSString *documentsDirectory = [paths firstObject];
 		if(documentsDirectory)
 			FS::makePathString([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
-		return {};
+		return {FS::makePathString([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding])};
 	}
 }
 

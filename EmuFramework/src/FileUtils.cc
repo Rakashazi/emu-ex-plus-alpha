@@ -16,6 +16,17 @@
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
+#include <ftw.h>
+
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+    {
+            int rv = remove(fpath);
+    
+            if (rv)
+                    perror(fpath);
+        
+                return rv;
+        }
 
 void fixFilePermissions(const char *path)
 {
@@ -32,7 +43,8 @@ void fixFilePermissions(const char *path)
 
 	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath().data(), path);
 	//logMsg("executing %s", execPath);
-	int err = system(execPath.data());
+	//int err = system(execPath.data());
+    int err = nftw(execPath.data(), unlink_cb, 64, FTW_DEPTH | FTW_PHYS) == -1;
 	if(err)
 	{
 		logWarn("error from fixMobilePermission helper: %d", err);
