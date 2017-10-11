@@ -31,11 +31,7 @@ endif
 ifneq ($(SUBENV), pandora)
  configDefs += CONFIG_BASE_DBUS
  SRC += base/linux/dbus.cc
- ifeq ($(linuxEventLoop), glib)
-  include $(IMAGINE_PATH)/make/package/dbus-glib.mk
- else
-  include $(IMAGINE_PATH)/make/package/dbus.mk
- endif
+ include $(IMAGINE_PATH)/make/package/gio.mk
 endif
 
 endif
