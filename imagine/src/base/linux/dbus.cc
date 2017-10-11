@@ -121,7 +121,7 @@ void setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 	{
 		g_dbus_connection_call(gbus,
 			"org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver",
-			"UnInhibit", g_variant_new("(u)", &screenSaverCookie),
+			"UnInhibit", g_variant_new("(u)", screenSaverCookie),
 			nullptr,
 			G_DBUS_CALL_FLAGS_NONE,
 			-1,
