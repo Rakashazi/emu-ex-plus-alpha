@@ -16,6 +16,14 @@
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
+#if defined CONFIG_BASE_IOS
+#include <spawn.h>
+#endif
+
+extern "C"
+{
+	extern char **environ;
+}
 
 void fixFilePermissions(const char *path)
 {
@@ -30,9 +38,12 @@ void fixFilePermissions(const char *path)
 	else
 		return;
 
-	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission '%s'", Base::assetPath().data(), path);
+	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission", Base::assetPath().data());
 	//logMsg("executing %s", execPath);
-	int err = system(execPath.data());
+	auto fixMobilePermissionStr = FS::makeFileString("fixMobilePermission");
+	auto pathStr = FS::makePathString(path);
+	char *argv[]{fixMobilePermissionStr.data(), pathStr.data(), nullptr};
+	int err = posix_spawn(nullptr, execPath.data(), nullptr, nullptr, argv, environ);
 	if(err)
 	{
 		logWarn("error from fixMobilePermission helper: %d", err);

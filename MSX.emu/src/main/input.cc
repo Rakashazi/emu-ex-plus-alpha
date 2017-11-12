@@ -91,6 +91,7 @@ const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasKeyboard = true;
 const uint EmuSystem::maxPlayers = 2;
+extern Machine *machine;
 
 static SysVController::KbMap kbToEventMap
 {
@@ -110,15 +111,7 @@ static SysVController::KbMap kbToEventMap2
 
 void setupVKeyboardMap(uint boardType)
 {
-	if(boardType == BOARD_COLECO)
-	{
-		uint playerShift = pointerInputPlayer ? 12 : 0;
-		iterateTimes(9, i) // 1 - 9
-			kbToEventMap2[10 + i] = EC_COLECO1_1 + i + playerShift;
-		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
-		kbToEventMap2[23] = EC_COLECO1_HASH + playerShift;
-	}
-	else
+	if(boardType != BOARD_COLECO)
 	{
 		iterateTimes(10, i) // 1 - 0
 			kbToEventMap2[10 + i] = EC_1 + i;
@@ -134,6 +127,14 @@ void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
+	if(machine && machine->board.type == BOARD_COLECO)
+	{
+		uint playerShift = player ? 12 : 0;
+		iterateTimes(9, i) // 1 - 9
+			kbToEventMap2[10 + i] = EC_COLECO1_1 + i + playerShift;
+		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
+		kbToEventMap2[23] = EC_COLECO1_HASH + playerShift;
+	}
 	map[SysVController::F_ELEM] = player ? EC_JOY2_BUTTON2 : EC_JOY1_BUTTON2;
 	map[SysVController::F_ELEM+1] = player ? EC_JOY2_BUTTON1 : EC_JOY1_BUTTON1;
 

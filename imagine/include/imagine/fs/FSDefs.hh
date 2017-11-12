@@ -89,4 +89,27 @@ public:
 
 using directory_entry = DirectoryEntryImpl;
 
+struct RootPathInfo
+{
+	size_t length = 0;
+	FS::FileString name{};
+
+	constexpr RootPathInfo() {}
+	constexpr RootPathInfo(FS::FileString name, size_t length):
+		length{length}, name{name}
+	{}
+};
+
+struct PathLocation
+{
+	RootPathInfo root{};
+	PathString path{};
+	FileString description{};
+
+	constexpr PathLocation() {}
+	constexpr PathLocation(PathString path, FileString description, RootPathInfo root):
+		root{root}, path{path}, description{description}
+	{}
+};
+
 }

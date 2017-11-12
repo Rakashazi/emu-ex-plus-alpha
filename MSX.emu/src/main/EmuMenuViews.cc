@@ -271,9 +271,8 @@ public:
 
 	void addHDFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false,
-			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), true};
-		fPicker.setOnSelectFile(
+		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
@@ -343,9 +342,8 @@ public:
 
 	void addROMFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false,
-			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM), true};
-		fPicker.setOnSelectFile(
+		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
 				if(insertROM(name, slot))
@@ -425,9 +423,8 @@ public:
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false,
-			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK), true};
-		fPicker.setOnSelectFile(
+		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
 				logMsg("inserting disk in slot %d", slot);

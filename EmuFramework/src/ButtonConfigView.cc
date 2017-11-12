@@ -323,7 +323,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					}
 					keyMapping.buildAll();
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			modalViewController.pushAndShow(ynAlertView, e, false);
 		}
 	}
 {
@@ -375,13 +375,13 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 										onSet(ctx->mapKey, ctx->keyToSet);
 										view.dismiss();
 									});
-								modalViewController.pushAndShow(alertView, e);
+								modalViewController.pushAndShow(alertView, e, false);
 								return;
 							}
 						}
 						onSet(mapKey, keyToSet);
 					}};
-				modalViewController.pushAndShow(btnSetView, e);
+				modalViewController.pushAndShow(btnSetView, e, false);
 			});
 	}
 }

@@ -462,8 +462,7 @@ public:
 
 	void addTapeFilePickerView(Input::Event e)
 	{
-		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false, hasC64TapeExtension, true};
-		fPicker.setOnSelectFile(
+		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64TapeExtension,
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto path = picker.makePathString(name);
@@ -543,8 +542,7 @@ public:
 
 	void addCartFilePickerView(Input::Event e)
 	{
-		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false, hasC64CartExtension, true};
-		fPicker.setOnSelectFile(
+		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64CartExtension,
 			[this](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto path = picker.makePathString(name);
@@ -607,8 +605,7 @@ private:
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::gamePath(), false, hasC64DiskExtension, true};
-		fPicker.setOnSelectFile(
+		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64DiskExtension,
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto path = picker.makePathString(name);
@@ -1061,7 +1058,7 @@ class CustomMainMenuView : public EmuMainMenuView
 							return 1;
 						}
 						string_copy(newDiskName, str);
-						auto &fPicker = *new EmuFilePicker{attachParams(), EmuSystem::baseSavePath().data(), true, {}};
+						auto &fPicker = *EmuFilePicker::makeForMediaCreation(attachParams(), Input::defaultEvent());
 						fPicker.setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{

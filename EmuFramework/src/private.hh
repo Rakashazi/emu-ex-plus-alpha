@@ -44,11 +44,23 @@ struct AppWindowData
 	constexpr AppWindowData() {};
 };
 
+class EmuMenuViewStack : public ViewStack
+{
+public:
+	bool inputEvent(Input::Event e) final;
+};
+
+class EmuModalViewStack : public ViewStack
+{
+public:
+	bool inputEvent(Input::Event e) final;
+};
+
 extern AppWindowData mainWin, extraWin;
 extern AppWindowData *emuWin;
 extern EmuVideoLayer emuVideoLayer;
-extern ViewStack viewStack;
-extern BasicViewController modalViewController;
+extern EmuMenuViewStack viewStack;
+extern EmuModalViewStack modalViewController;
 extern bool menuViewIsActive;
 #ifdef __ANDROID__
 extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;

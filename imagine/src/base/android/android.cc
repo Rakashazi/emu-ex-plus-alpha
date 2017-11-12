@@ -151,6 +151,20 @@ FS::PathString storagePath()
 	return path;
 }
 
+FS::PathLocation storagePathLocation()
+{
+	auto path = storagePath();
+	return {path, FS::makeFileString("Internal Media"), {FS::makeFileString("Media"), strlen(path.data())}};
+}
+
+std::vector<FS::PathLocation> rootFileLocations()
+{
+	return
+		{
+			storagePathLocation(),
+		};
+}
+
 FS::PathString libPath()
 {
 	auto env = jEnv();

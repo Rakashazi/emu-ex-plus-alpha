@@ -73,7 +73,7 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto startPath = strlen(biosPathStr->data()) ? FS::dirname(*biosPathStr) : lastLoadPath;
-			auto &fPicker = *new EmuFilePicker{attachParams(), startPath.data(), false, fsFilter};
+			auto &fPicker = *new EmuFilePicker{attachParams(), startPath.data(), false, fsFilter, {}, e};
 			fPicker.setOnSelectFile(
 				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
@@ -82,7 +82,7 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 					onBiosChangeD.callSafe();
 					popAndShow();
 				});
-			modalViewController.pushAndShow(fPicker, e);
+			modalViewController.pushAndShow(fPicker, e, false);
 		}
 	},
 	unset
@@ -562,7 +562,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		},
 		{
 			"Graphic Buffer",
-			[this](TextMenuItem &, View &view, Input::Event)
+			[this](TextMenuItem &, View &view, Input::Event e)
 			{
 				static auto setAndroidTextureStorageGraphicBuffer =
 					[]()
@@ -594,7 +594,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 								view.dismiss();
 							}
 						});
-					modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
+					modalViewController.pushAndShow(ynAlertView, e, false);
 					return false;
 				}
 				else
@@ -1035,7 +1035,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						}
 					};
 				popAndShow();
-				modalViewController.pushAndShow(frView, e);
+				modalViewController.pushAndShow(frView, e, false);
 			});
 	}
 	pushAndShow(multiChoiceView, e);
@@ -1194,7 +1194,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 				[this](TextMenuItem &, View &, Input::Event e)
 				{
 					auto startPath = strlen(optionSavePath) ? optionSavePath : optionLastLoadPath;
-					auto &fPicker = *new EmuFilePicker{attachParams(), startPath, true, {}};
+					auto &fPicker = *new EmuFilePicker{attachParams(), startPath, true, {}, {}, e};
 					fPicker.setOnClose(
 						[this](FSPicker &picker, Input::Event e)
 						{
@@ -1204,7 +1204,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 							picker.dismiss();
 							popAndShow();
 						});
-					modalViewController.pushAndShow(fPicker, e);
+					modalViewController.pushAndShow(fPicker, e, false);
 				});
 			multiChoiceView.appendItem("Same as Game",
 				[this]()
@@ -1341,7 +1341,7 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto startPath =  EmuApp::firmwareSearchPath();
-			auto &fPicker = *new EmuFilePicker{attachParams(), startPath.data(), true, {}};
+			auto &fPicker = *new EmuFilePicker{attachParams(), startPath.data(), true, {}, {}, e};
 			fPicker.setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{

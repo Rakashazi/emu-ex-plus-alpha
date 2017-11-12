@@ -135,7 +135,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 						logMsg("open load game menu from key event");
 						EmuApp::restoreMenuFromGame();
 						viewStack.popToRoot();
-						auto &fPicker = *EmuFilePicker::makeForLoading(attachParams());
+						auto &fPicker = *EmuFilePicker::makeForLoading(attachParams(), e);
 						pushAndShow(fPicker, e, false);
 						return true;
 					}
@@ -183,7 +183,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 									view.dismiss();
 									startGameFromMenu();
 								});
-							modalViewController.pushAndShow(ynAlertView, e);
+							modalViewController.pushAndShow(ynAlertView, e, false);
 							EmuApp::restoreMenuFromGame();
 						}
 						return true;
@@ -236,7 +236,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 							{
 								Base::exit();
 							});
-						modalViewController.pushAndShow(ynAlertView, e);
+						modalViewController.pushAndShow(ynAlertView, e, false);
 						EmuApp::restoreMenuFromGame();
 						return true;
 					}

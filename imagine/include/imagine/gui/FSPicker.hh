@@ -52,15 +52,23 @@ public:
 	void setOnPathReadError(OnPathReadError del);
 	void onLeftNavBtn(Input::Event e);
 	void onRightNavBtn(Input::Event e);
-	std::error_code setPath(const char *path, bool forcePathChange, Input::Event e);
-	std::error_code setPath(const char *path, bool forcePathChange);
-	std::error_code setPath(FS::PathString path, bool forcePathChange, Input::Event e)
+	std::error_code setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e);
+	std::error_code setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo);
+	std::error_code setPath(FS::PathString path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e)
 	{
-		return setPath(path.data(), forcePathChange, e);
+		return setPath(path.data(), forcePathChange, rootInfo, e);
 	}
-	std::error_code setPath(FS::PathString path, bool forcePathChange)
+	std::error_code setPath(FS::PathString path, bool forcePathChange, FS::RootPathInfo rootInfo)
 	{
-		return setPath(path.data(), forcePathChange);
+		return setPath(path.data(), forcePathChange, rootInfo);
+	}
+	std::error_code setPath(FS::PathLocation location, bool forcePathChange)
+	{
+		return setPath(location.path, forcePathChange, location.root);
+	}
+	std::error_code setPath(FS::PathLocation location, bool forcePathChange, Input::Event e)
+	{
+		return setPath(location.path, forcePathChange, location.root, e);
 	}
 	FS::PathString path() const;
 	IG::WindowRect &viewRect() override { return viewFrame; }
@@ -85,7 +93,10 @@ protected:
 	OnPathReadError onPathReadError_{};
 	std::vector<TextMenuItem> text{};
 	std::vector<FS::FileString> dir{};
+	std::vector<FS::PathLocation> rootLocation{};
+	FS::RootPathInfo root{};
 	FS::PathString currPath{};
+	FS::PathString rootedPath{};
 	IG::WindowRect viewFrame{};
 	Gfx::GlyphTextureSet *faceRes{};
 	BasicNavView navV;
@@ -93,5 +104,7 @@ protected:
 	Gfx::Text msgText{};
 	bool singleDir = false;
 
-	void changeDirByInput(const char *path, bool forcePathChange, Input::Event e);
+	void changeDirByInput(const char *path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e);
+	bool isAtRoot() const;
+	void pushFileLocationsView(Input::Event e);
 };

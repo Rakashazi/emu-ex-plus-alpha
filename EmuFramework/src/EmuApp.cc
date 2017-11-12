@@ -59,6 +59,50 @@ public:
 	}
 };
 
+bool EmuMenuViewStack::inputEvent(Input::Event e)
+{
+	if(e.pushed() && e.isDefaultCancelButton())
+	{
+		if(size() == 1)
+		{
+			//logMsg("cancel button at view stack root");
+			if(EmuSystem::gameIsRunning())
+			{
+				startGameFromMenu();
+			}
+			else if(e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux))
+			{
+				Base::exit();
+				return true;
+			}
+		}
+		else
+		{
+			popAndShow();
+		}
+		return true;
+	}
+	if(e.pushed() && isMenuDismissKey(e))
+	{
+		if(EmuSystem::gameIsRunning())
+		{
+			startGameFromMenu();
+		}
+		return true;
+	}
+	return ViewStack::inputEvent(e);
+}
+
+bool EmuModalViewStack::inputEvent(Input::Event e)
+{
+	if(e.pushed() && e.isDefaultCancelButton())
+	{
+		popAndShow();
+		return true;
+	}
+	return ViewStack::inputEvent(e);
+}
+
 static Gfx::Renderer renderer;
 AppWindowData mainWin{}, extraWin{};
 bool menuViewIsActive = true;
@@ -68,9 +112,9 @@ EmuInputView emuInputView{{mainWin.win, renderer}};
 EmuView emuView{{mainWin.win, renderer}, &emuVideoLayer, &emuInputView};
 EmuView emuView2{{extraWin.win, renderer}, nullptr, nullptr};
 AppWindowData *emuWin = &mainWin;
-ViewStack viewStack{};
 MsgPopup popup{renderer};
-BasicViewController modalViewController{};
+EmuMenuViewStack viewStack{};
+EmuModalViewStack modalViewController{};
 DelegateFunc<void ()> onUpdateInputDevices{};
 Base::Screen::OnFrameDelegate onFrameUpdate{};
 #ifdef CONFIG_BLUETOOTH
@@ -559,6 +603,24 @@ void mainInitCommon(int argc, char** argv)
 		EmuApp::onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
+	{
+		auto viewNav = std::make_unique<BasicNavView>
+		(
+			renderer,
+			&View::defaultFace,
+			&getAsset(renderer, ASSET_ARROW),
+			nullptr
+		);
+		viewNav->rotateLeftBtn = true;
+		viewNav->setOnPushLeftBtn(
+			[](Input::Event)
+			{
+				modalViewController.popAndShow();
+			});
+		modalViewController.setShowNavViewBackButton(View::needsBackControl);
+		EmuApp::onCustomizeNavView(*viewNav);
+		modalViewController.setNavView(std::move(viewNav));
+	}
 
 	Base::setOnResume(
 		[](bool focused)
@@ -772,7 +834,7 @@ void mainInitCommon(int argc, char** argv)
 			else
 			{
 				emuView.draw();
-				if(modalViewController.hasView())
+				if(modalViewController.size())
 					modalViewController.draw();
 				else if(menuViewIsActive)
 					viewStack.draw();
@@ -828,14 +890,15 @@ void mainInitWindowCommon(Base::Window &win)
 	#endif
 
 	//logMsg("setting up view stack");
-	modalViewController.onRemoveView() =
-		[]()
+	modalViewController.setOnRemoveView(
+		[](const ViewStack &controller, View &)
 		{
-			if(!menuViewIsActive)
+			if(controller.size() == 1 && !menuViewIsActive)
 			{
 				startGameFromMenu();
 			}
-		};
+		});
+	modalViewController.showNavView(optionTitleBar);
 	viewStack.showNavView(optionTitleBar);
 	//logMsg("setting menu orientation");
 	renderer.setWindowValidOrientations(win, optionMenuOrientation);
@@ -850,7 +913,7 @@ void mainInitWindowCommon(Base::Window &win)
 			{
 				Base::exit();
 			});
-		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent());
+		modalViewController.pushAndShow(ynAlertView, Input::defaultEvent(), false);
 	}
 	#endif
 
@@ -876,38 +939,10 @@ bool handleInputEvent(Base::Window &win, Input::Event e)
 	{
 		return emuView.inputEvent(e);
 	}
-	else if(modalViewController.hasView())
+	else if(modalViewController.size())
 		return modalViewController.inputEvent(e);
 	else if(menuViewIsActive)
-	{
-		if(e.pushed() && e.isDefaultCancelButton())
-		{
-			if(viewStack.size() == 1)
-			{
-				//logMsg("cancel button at view stack root");
-				if(EmuSystem::gameIsRunning())
-				{
-					startGameFromMenu();
-				}
-				else if(e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux))
-				{
-					Base::exit();
-					return true;
-				}
-			}
-			else viewStack.popAndShow();
-			return true;
-		}
-		if(e.pushed() && isMenuDismissKey(e))
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				startGameFromMenu();
-			}
-			return true;
-		}
-		else return viewStack.inputEvent(e);
-	}
+		return viewStack.inputEvent(e);
 	return false;
 }
 
@@ -920,7 +955,7 @@ void handleOpenFileCommand(const char *path)
 		EmuApp::restoreMenuFromGame();
 		viewStack.popToRoot();
 		string_copy(lastLoadPath, path);
-		auto &fPicker = *EmuFilePicker::makeForLoading({mainWin.win, renderer});
+		auto &fPicker = *EmuFilePicker::makeForLoading({mainWin.win, renderer}, Input::defaultEvent());
 		viewStack.pushAndShow(fPicker, Input::defaultEvent(), false);
 		return;
 	}
@@ -932,8 +967,7 @@ void handleOpenFileCommand(const char *path)
 	logMsg("opening file %s from external command", path);
 	EmuApp::restoreMenuFromGame();
 	viewStack.popToRoot();
-	if(modalViewController.hasView())
-		modalViewController.pop();
+	modalViewController.popAll();
 	onSelectFileFromPicker(viewStack.top().renderer(), path, Input::Event{});
 }
 
@@ -1016,7 +1050,7 @@ bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent)
 		char dateStr[64]{};
 		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
 		auto &ynAlertView = *new AutoStateConfirmAlertView{{mainWin.win, r}, dateStr, addToRecent};
-		modalViewController.pushAndShow(ynAlertView, e);
+		modalViewController.pushAndShow(ynAlertView, e, false);
 		return 1;
 	}
 	return 0;
@@ -1072,13 +1106,12 @@ void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event 
 
 void EmuApp::pushAndShowModalView(View &v, Input::Event e)
 {
-	modalViewController.pushAndShow(v, e);
+	modalViewController.pushAndShow(v, e, false);
 }
 
 void EmuApp::popModalViews()
 {
-	if(modalViewController.hasView())
-		modalViewController.pop();
+	modalViewController.popAll();
 }
 
 void EmuApp::popMenuToRoot()

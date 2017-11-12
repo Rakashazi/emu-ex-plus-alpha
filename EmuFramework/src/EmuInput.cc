@@ -289,7 +289,7 @@ bool isMenuDismissKey(Input::Event e)
 		dismissKey = Keycode::RCTRL;
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
 	{
-		if(modalViewController.hasView()) // make sure not performing text input
+		if(modalViewController.size()) // make sure not performing text input
 			return false;
 		dismissKey = Keycode::SPACE;
 	}

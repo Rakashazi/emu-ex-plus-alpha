@@ -175,7 +175,7 @@ static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
 				logMsg("launching Cydia");
 				Base::openURL("cydia://package/ch.ringwald.btstack");
 			});
-		modalViewController.pushAndShow(ynAlertView, e);
+		modalViewController.pushAndShow(ynAlertView, e, false);
 	}
 	#endif
 }
@@ -254,7 +254,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Load Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &fPicker = *EmuFilePicker::makeForLoading(attachParams());
+			auto &fPicker = *EmuFilePicker::makeForLoading(attachParams(), e);
 			pushAndShow(fPicker, e, false);
 		}
 	},
@@ -280,7 +280,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 				if(EmuSystem::hasResetModes)
 				{
 					auto &resetAlertView = *new ResetAlertView{attachParams(), "Really Reset?"};
-					modalViewController.pushAndShow(resetAlertView, e);
+					modalViewController.pushAndShow(resetAlertView, e, false);
 				}
 				else
 				{
@@ -292,7 +292,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 							EmuSystem::reset(EmuSystem::RESET_SOFT);
 							startGameFromMenu();
 						});
-					modalViewController.pushAndShow(ynAlertView, e);
+					modalViewController.pushAndShow(ynAlertView, e, false);
 				}
 			}
 		}
@@ -317,7 +317,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 						else
 							startGameFromMenu();
 					});
-				modalViewController.pushAndShow(ynAlertView, e);
+				modalViewController.pushAndShow(ynAlertView, e, false);
 			}
 		}
 	},
@@ -374,7 +374,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 							view.dismiss();
 							doSaveState();
 						});
-					modalViewController.pushAndShow(ynAlertView, e);
+					modalViewController.pushAndShow(ynAlertView, e, false);
 				}
 			}
 		}
@@ -422,7 +422,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Benchmark Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			modalViewController.pushAndShow(*EmuFilePicker::makeForBenchmarking(attachParams()), e);
+			modalViewController.pushAndShow(*EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
 		}
 	},
 	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
@@ -496,7 +496,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 						view.dismiss();
 						Bluetooth::closeBT(bta);
 					});
-				modalViewController.pushAndShow(ynAlertView, e);
+				modalViewController.pushAndShow(ynAlertView, e, false);
 			}
 		}
 	},

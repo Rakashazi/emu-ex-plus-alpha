@@ -22,8 +22,13 @@
 class EmuFilePicker : public FSPicker
 {
 public:
-	EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir = false);
-	static EmuFilePicker *makeForBenchmarking(ViewAttachParams attach, bool singleDir = false);
-	static EmuFilePicker *makeForLoading(ViewAttachParams attach, bool singleDir = false);
+	EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir,
+		EmuSystem::NameFilterFunc filter, FS::RootPathInfo rootInfo,
+		Input::Event e, bool singleDir = false);
+	static EmuFilePicker *makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir = false);
+	static EmuFilePicker *makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir = false);
+	static EmuFilePicker *makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path,
+		EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect);
+	static EmuFilePicker *makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir = false);
 	bool inputEvent(Input::Event e) final;
 };

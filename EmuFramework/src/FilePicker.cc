@@ -24,7 +24,9 @@
 #include <string>
 #include "private.hh"
 
-EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir, EmuSystem::NameFilterFunc filter, bool singleDir):
+EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir,
+	EmuSystem::NameFilterFunc filter, FS::RootPathInfo rootInfo,
+	Input::Event e, bool singleDir):
 	FSPicker
 	{
 		attach,
@@ -58,8 +60,8 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 			{
 				popup.printf(4, true, "Can't open last saved directory: %s", ec.message().c_str());
 			});
-		auto ec = setPath(startingPath, false);
-		if(!ec)
+		if(auto ec = setPath(startingPath, false, rootInfo, e);
+			!ec)
 		{
 			setDefaultPath = false;
 		}
@@ -70,12 +72,40 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 			popup.printf(3, true, "Can't open directory: %s", ec.message().c_str());
 		});
 	if(setDefaultPath)
-		setPath(Base::storagePath(), true);
+	{
+		setPath(Base::storagePathLocation(), true, e);
+	}
 }
 
-EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, bool singleDir)
+static FS::RootPathInfo nearestRootLocation(const char *path)
 {
-	auto picker = new EmuFilePicker{attach, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, singleDir};
+	if(!path)
+		return {};
+	auto location = Base::rootFileLocations();
+	const FS::PathLocation *nearestPtr{};
+	size_t lastMatchOffset = 0;
+	for(const auto &l : location)
+	{
+		auto subStr = strstr(path, l.path.data());
+		if(subStr != path)
+			continue;
+		auto matchOffset = (size_t)(&path[l.root.length] - path);
+		if(matchOffset > lastMatchOffset)
+		{
+			nearestPtr = &l;
+			lastMatchOffset = matchOffset;
+		}
+	}
+	if(!lastMatchOffset)
+		return {};
+	logMsg("found root location:%s with length:%d", nearestPtr->root.name.data(), (int)nearestPtr->root.length);
+	return {nearestPtr->root.name, nearestPtr->root.length};
+}
+
+EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
+{
+	auto rootInfo = nearestRootLocation(lastLoadPath.data());
+	auto picker = new EmuFilePicker{attach, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir};
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
@@ -93,9 +123,10 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, bool 
 	return picker;
 }
 
-EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, bool singleDir)
+EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto picker = new EmuFilePicker{attach, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, singleDir};
+	auto rootInfo = nearestRootLocation(lastLoadPath.data());
+	auto picker = new EmuFilePicker{attach, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir};
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
@@ -106,6 +137,22 @@ EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, bool singl
 		{
 			onSelectFileFromPicker(picker.renderer(), picker.makePathString(name).data(), e);
 		});
+	return picker;
+}
+
+EmuFilePicker *EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path,
+	EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
+{
+	auto picker = new EmuFilePicker{attach, path, false, filter,
+		{FS::makeFileString("Media Path"), strlen(path)}, e, true};
+	picker->setOnSelectFile(onSelect);
+	return picker;
+}
+
+EmuFilePicker *EmuFilePicker::makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir)
+{
+	auto rootInfo = nearestRootLocation(EmuSystem::baseSavePath().data());
+	auto picker = new EmuFilePicker{attach, EmuSystem::baseSavePath().data(), true, {}, rootInfo, e, singleDir};
 	return picker;
 }
 

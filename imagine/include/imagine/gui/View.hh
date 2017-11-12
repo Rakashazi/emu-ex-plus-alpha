@@ -32,6 +32,7 @@ public:
 	virtual void pop() = 0;
 	virtual void popAndShow() { pop(); };
 	virtual void dismissView(View &v) = 0;
+	virtual bool inputEvent(Input::Event e) = 0;
 };
 
 struct ViewAttachParams

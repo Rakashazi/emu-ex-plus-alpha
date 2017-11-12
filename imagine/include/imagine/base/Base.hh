@@ -26,6 +26,7 @@
 #elif defined __APPLE__ && TARGET_OS_IPHONE
 #include <imagine/base/iphone/public.hh>
 #endif
+#include <vector>
 
 namespace Base
 {
@@ -57,6 +58,8 @@ FS::PathString documentsPath();
 FS::PathString storagePath();
 FS::PathString libPath();
 bool documentsPathIsShared();
+FS::PathLocation storagePathLocation();
+std::vector<FS::PathLocation> rootFileLocations();
 
 // OS UI management (status & navigation bar)
 

@@ -124,6 +124,8 @@ void ViewStack::place()
 
 bool ViewStack::inputEvent(Input::Event e)
 {
+	if(!view.size())
+		return false;
 	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps(e.pos()))
 	{
 		return nav->inputEvent(e);
@@ -133,6 +135,8 @@ bool ViewStack::inputEvent(Input::Event e)
 
 void ViewStack::draw()
 {
+	if(!view.size())
+		return;
 	top().draw();
 	if(navViewIsActive())
 		nav->draw(top().renderer(), top().window(), projP);
@@ -165,32 +169,48 @@ void ViewStack::pushAndShow(View &v, Input::Event e)
 
 void ViewStack::pop()
 {
-	assert(view.size() > 1);
+	if(!view.size())
+		return;
+	onRemoveView_.callSafe(*this, top());
 	view.pop_back();
 	logMsg("pop view, %d in stack", (int)view.size());
-
 	if(nav)
 	{
 		showNavLeftBtn();
-		nav->setTitle(top().name());
+		if(view.size())
+			nav->setTitle(top().name());
 	}
+}
+
+void ViewStack::popViews(int num)
+{
+	auto win = view.size() ? &top().window() : nullptr;
+	iterateTimes(num, i)
+	{
+		pop();
+	}
+	if(win)
+		win->postDraw();
+	if(!view.size())
+		return;
+	place();
+	top().show();
 }
 
 void ViewStack::popAndShow()
 {
-	pop();
-	place();
-	top().show();
-	top().postDraw();
+	popViews(1);
 }
 
 void ViewStack::popToRoot()
 {
-	while(view.size() > 1)
-		pop();
-	place();
-	top().show();
-	top().postDraw();
+	if(view.size() > 1)
+		popViews(view.size() - 1);
+}
+
+void ViewStack::popAll()
+{
+	popViews(view.size());
 }
 
 void ViewStack::popTo(View &v)
@@ -204,18 +224,19 @@ void ViewStack::popTo(View &v)
 
 void ViewStack::show()
 {
-	top().show();
+	if(view.size())
+		top().show();
 }
 
 View &ViewStack::top() const
 {
-	assert(view.size());
+	assumeExpr(view.size());
 	return *view.back().v;
 }
 
 View &ViewStack::viewAtIdx(uint idx) const
 {
-	assert(idx < view.size());
+	assumeExpr(idx < view.size());
 	return *view[idx].v;
 }
 
@@ -237,14 +258,14 @@ bool ViewStack::contains(View &v) const
 void ViewStack::dismissView(View &v)
 {
 	//logMsg("dismissing view: %p", &v);
-	if(contains(v))
+	auto idx = viewIdx(v);
+	if(idx > 0)
 	{
-		assert(viewIdx(v) != 0);
-		popTo(*view[viewIdx(v)-1].v);
+		popTo(*view[idx-1].v);
 	}
 	else
 	{
-		pop();
+		popAndShow();
 	}
 }
 
@@ -280,4 +301,9 @@ bool ViewStack::topNeedsNavView() const
 bool ViewStack::navViewIsActive() const
 {
 	return nav && showNavView_ && topNeedsNavView();
+}
+
+void ViewStack::setOnRemoveView(RemoveViewDelegate del)
+{
+	onRemoveView_ = del;
 }

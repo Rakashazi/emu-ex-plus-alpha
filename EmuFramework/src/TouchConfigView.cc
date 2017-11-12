@@ -737,7 +737,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 		{
 			auto &onScreenInputPlace = *new OnScreenInputPlaceView{attachParams()};
 			onScreenInputPlace.init();
-			modalViewController.pushAndShow(onScreenInputPlace, e);
+			modalViewController.pushAndShow(onScreenInputPlace, e, false);
 		}
 	},
 	menuStateItem
@@ -785,7 +785,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			modalViewController.pushAndShow(ynAlertView, e, false);
 		}
 	},
 	resetAllControls
@@ -802,7 +802,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			modalViewController.pushAndShow(ynAlertView, e, false);
 		}
 	},
 	systemOptions

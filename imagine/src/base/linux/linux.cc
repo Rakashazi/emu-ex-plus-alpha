@@ -87,6 +87,25 @@ FS::PathString storagePath()
 	return appPath;
 }
 
+FS::PathLocation storagePathLocation()
+{
+	auto path = storagePath();
+	return {path, FS::makeFileString("Documents"), {FS::makeFileString("Documents"), strlen(path.data())}};
+}
+
+std::vector<FS::PathLocation> rootFileLocations()
+{
+	std::vector<FS::PathLocation> path;
+	path.reserve(1);
+	if(auto homeEnv = getenv("HOME");
+		homeEnv)
+	{
+		path.emplace_back(FS::makePathString(homeEnv), FS::makeFileString("Home"),
+			FS::RootPathInfo{FS::makeFileString("Home"), strlen(homeEnv)});
+	}
+	return path;
+}
+
 FS::PathString libPath()
 {
 	return appPath;

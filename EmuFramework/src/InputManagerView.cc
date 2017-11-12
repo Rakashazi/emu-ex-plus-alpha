@@ -146,7 +146,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								keyMapping.buildAll();
 								onShow();
 							});
-						modalViewController.pushAndShow(ynAlertView, e);
+						modalViewController.pushAndShow(ynAlertView, e, false);
 					});
 			}
 			pushAndShow(multiChoiceView, e);
@@ -193,7 +193,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								keyMapping.buildAll();
 								onShow();
 							});
-						modalViewController.pushAndShow(ynAlertView, e);
+						modalViewController.pushAndShow(ynAlertView, e, false);
 					});
 			}
 			pushAndShow(multiChoiceView, e);
@@ -234,7 +234,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 						pushAndShow(imdMenu, e);
 					}
 				};
-			modalViewController.pushAndShow(identView, e);
+			modalViewController.pushAndShow(identView, e, false);
 		}
 	},
 	generalOptions
@@ -264,8 +264,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 	onUpdateInputDevices =
 		[this]()
 		{
-			if(modalViewController.hasView())
-				modalViewController.pop();
+			modalViewController.popAll();
 			viewStack.popTo(*this);
 			auto selectedCell = selected;
 			loadItems();
@@ -703,7 +702,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 							return 0;
 						});
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			modalViewController.pushAndShow(ynAlertView, e, false);
 		}
 	},
 	deleteProfile
@@ -733,7 +732,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					onShow();
 					keyMapping.buildAll();
 				});
-			modalViewController.pushAndShow(ynAlertView, e);
+			modalViewController.pushAndShow(ynAlertView, e, false);
 		}
 	},
 	#if defined CONFIG_INPUT_ICADE
@@ -756,7 +755,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 						view.dismiss();
 						confirmICadeMode(e);
 					});
-				modalViewController.pushAndShow(ynAlertView, e);
+				modalViewController.pushAndShow(ynAlertView, e, false);
 			}
 			else
 				confirmICadeMode(e);

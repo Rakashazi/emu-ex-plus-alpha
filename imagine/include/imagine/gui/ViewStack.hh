@@ -38,7 +38,7 @@ public:
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool hasView() { return view; }
-	bool inputEvent(Input::Event e);
+	bool inputEvent(Input::Event e) override;
 	void draw();
 
 protected:
@@ -51,12 +51,14 @@ protected:
 class ViewStack : public ViewController
 {
 public:
+	using RemoveViewDelegate = DelegateFunc<void (const ViewStack &controller, View &view)>;
+
 	ViewStack() {}
 	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
-	bool inputEvent(Input::Event e);
+	bool inputEvent(Input::Event e) override;
 	void draw();
 	void push(View &v, Input::Event e);
 	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
@@ -64,6 +66,7 @@ public:
 	void pop() override;
 	void popAndShow() override;
 	void popToRoot();
+	void popAll();
 	void popTo(View &v);
 	void show();
 	View &top() const;
@@ -74,6 +77,7 @@ public:
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);
 	uint size() const;
+	void setOnRemoveView(RemoveViewDelegate del);
 
 protected:
 	struct ViewEntry
@@ -89,10 +93,12 @@ protected:
 	//ViewController *nextController{};
 	IG::WindowRect viewRect{}, customViewRect{};
 	Gfx::ProjectionPlane projP{};
+	RemoveViewDelegate onRemoveView_{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 
 	void showNavLeftBtn();
 	bool topNeedsNavView() const;
 	bool navViewIsActive() const;
+	void popViews(int num);
 };
