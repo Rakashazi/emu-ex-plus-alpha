@@ -3,7 +3,7 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 1. Tools and Environment Setup
 ==============================
 
-Download & install Android Studio
+Download & install Android Studio 3.0
 
 Download & extract Android NDK Revision 15 from https://github.com/android-ndk/ndk/wiki or install it via Android Studio. Perform any one of the following to tell the build system the location of the NDK directory:
 
@@ -32,10 +32,6 @@ Install the SDK platform for Android 7.0 (API 24) and the Android Support Librar
 In addition to the native library, build & install the Java portion of Imagine (imagine-v9.jar) using:
 
 make -f android-java.mk install
-
-To specify the SDK build tools version used for compiling the Java portion, set ANDROID_BUILD_TOOLS_VERSION in ~/.gradle/gradle.properties. For example:
-
-ANDROID_BUILD_TOOLS_VERSION=26.0.1
 
 To sign the release APK with your key, set the following variables in ~/.gradle/gradle.properties and fill in the appropriate values:
 

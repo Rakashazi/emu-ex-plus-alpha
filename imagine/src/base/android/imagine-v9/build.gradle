@@ -1,14 +1,16 @@
 buildscript {
     repositories {
+        google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
+        classpath 'com.android.tools.build:gradle:3.0.0'
     }
 }
 
 allprojects {
     repositories {
+        google()
         jcenter()
     }
 }
@@ -17,16 +19,6 @@ apply plugin: 'android-library'
 
 android {
     compileSdkVersion 24
-
-    // set ANDROID_BUILD_TOOLS_VERSION in ~/.gradle/gradle.properties, or use the default value in this file
-    if (project.hasProperty('ANDROID_BUILD_TOOLS_VERSION'))
-    {
-	    buildToolsVersion ANDROID_BUILD_TOOLS_VERSION
-	}
-	else
-	{
-		buildToolsVersion '25.0.2'
-	}
 
     buildTypes {
         release {
@@ -41,6 +33,6 @@ android {
 }
 
 dependencies {
-    compile "com.android.support:support-v4:23.3.+"
+    implementation "com.android.support:support-v4:23.3.+"
 }
 
