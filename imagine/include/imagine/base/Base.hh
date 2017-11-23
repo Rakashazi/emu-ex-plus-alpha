@@ -53,12 +53,12 @@ static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
 void openURL(const char *url);
 
 // file system paths
-FS::PathString assetPath();
-FS::PathString documentsPath();
-FS::PathString storagePath();
-FS::PathString libPath();
-bool documentsPathIsShared();
-FS::PathLocation storagePathLocation();
+FS::PathString assetPath(const char *appName);
+FS::PathString libPath(const char *appName);
+FS::PathString supportPath(const char *appName);
+FS::PathString cachePath(const char *appName);
+FS::PathString sharedStoragePath();
+FS::PathLocation sharedStoragePathLocation();
 std::vector<FS::PathLocation> rootFileLocations();
 
 // OS UI management (status & navigation bar)

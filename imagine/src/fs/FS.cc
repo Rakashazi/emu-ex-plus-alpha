@@ -137,4 +137,14 @@ FileStringCompareFunc fileStringNoCaseLexCompare()
 		};
 }
 
+int directoryItems(const char *path)
+{
+		uint items = 0;
+		for(auto &d : FS::directory_iterator(path))
+		{
+			items++;
+		}
+		return items;
+}
+
 }

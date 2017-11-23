@@ -58,9 +58,9 @@ public:
 	}
 	std::error_code load(GenericIO io);
 	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name)
+	std::error_code loadAsset(const char *name, const char *appName)
 	{
-		return load(openAppAssetIO(name, IO::AccessHint::ALL).makeGeneric());
+		return load(openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric());
 	}
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;

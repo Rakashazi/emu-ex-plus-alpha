@@ -60,7 +60,7 @@ void installFirmwareFiles()
 
 	for(auto &e : srcPath)
 	{
-		auto src = openAppAssetIO(e, IO::AccessHint::ALL);
+		auto src = EmuApp::openAppAssetIO(e, IO::AccessHint::ALL);
 		if(!src)
 		{
 			EmuApp::printfMessage(4, 1, "Can't open source file:\n %s", e);
@@ -203,7 +203,7 @@ private:
 		msxMachine.compile(renderer(), projP);
 		if(!strlen(path))
 		{
-			EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? Base::assetPath().data() : Base::storagePath().data());
+			EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? EmuApp::assetPath().data() : Base::sharedStoragePath().data());
 		}
 	}
 

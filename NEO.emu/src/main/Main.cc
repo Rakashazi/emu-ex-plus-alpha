@@ -228,7 +228,7 @@ void gn_update_pbar(int pos)
 static auto openGngeoDataIO(const char *filename)
 {
 	#ifdef __ANDROID__
-	return openAppAssetIO(filename, IO::AccessHint::ALL);
+	return EmuApp::openAppAssetIO(filename, IO::AccessHint::ALL);
 	#else
 	return FS::fileFromArchive(datafilePath.data(), filename);
 	#endif
@@ -408,7 +408,7 @@ EmuSystem::Error EmuSystem::onInit()
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		string_printf(datafilePath, "%s/gngeo_data.zip", Base::assetPath().data());
+		string_printf(datafilePath, "%s/gngeo_data.zip", EmuApp::assetPath().data());
 	}
 	return {};
 }

@@ -199,13 +199,13 @@ GenericIO::operator bool()
 	return io && *io;
 }
 
-AssetIO openAppAssetIO(const char *name, IO::AccessHint access)
+AssetIO openAppAssetIO(const char *name, IO::AccessHint access, const char *appName)
 {
 	AssetIO io;
 	#ifdef __ANDROID__
 	io.open(name, access);
 	#else
-	io.open(FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), name).data(), access);
+	io.open(FS::makePathStringPrintf("%s/%s", Base::assetPath(appName).data(), name).data(), access);
 	#endif
 	return io;
 }

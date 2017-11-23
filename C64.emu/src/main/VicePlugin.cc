@@ -19,6 +19,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/util/utility.h>
+#include <emuframework/EmuApp.hh>
 #include "VicePlugin.hh"
 
 extern "C"
@@ -70,7 +71,7 @@ static FS::PathString makePluginLibPath(const char *libName)
 {
 	if(unlikely(!std::strlen(libPath.data())))
 	{
-		libPath = Base::libPath();
+		libPath = EmuApp::libPath();
 	}
 	return FS::makePathStringPrintf("%s/%s", libPath.data(), libName);
 }

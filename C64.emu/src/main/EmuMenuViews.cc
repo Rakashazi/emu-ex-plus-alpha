@@ -405,9 +405,9 @@ class CustomSystemOptionView : public SystemOptionView
 		if(!strlen(path))
 		{
 			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-				EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", Base::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+				EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", EmuApp::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 			else
-				EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", Base::storagePath().data());
+				EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", Base::sharedStoragePath().data());
 		}
 	}
 

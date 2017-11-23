@@ -83,9 +83,9 @@ FS::PathString makeMachineBasePath(FS::PathString customPath)
 	if(!strlen(customPath.data()))
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		string_printf(outPath, "%s/MSX.emu", Base::assetPath().data());
+		string_printf(outPath, "%s/MSX.emu", EmuApp::assetPath().data());
 		#else
-		string_printf(outPath, "%s/MSX.emu", Base::storagePath().data());
+		string_printf(outPath, "%s/MSX.emu", Base::sharedStoragePath().data());
 		#endif
 	}
 	else

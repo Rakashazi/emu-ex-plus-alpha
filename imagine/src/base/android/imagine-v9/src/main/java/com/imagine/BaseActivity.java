@@ -170,6 +170,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return getFilesDir().getAbsolutePath();
 	}
 	
+	String cacheDir()
+	{
+		return getCacheDir().getAbsolutePath();
+	}
+	
 	static String extStorageDir()
 	{
 		return Environment.getExternalStorageDirectory().getAbsolutePath();

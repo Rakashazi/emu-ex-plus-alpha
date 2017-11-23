@@ -34,12 +34,12 @@ using AssetIO = AAssetIO;
 using AssetIO = FileIO;
 #endif
 
-AssetIO openAppAssetIO(const char *name, IO::AccessHint access);
+AssetIO openAppAssetIO(const char *name, IO::AccessHint access, const char *appName);
 
 template <size_t S>
-static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access)
+static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access, const char *appName)
 {
-	return openAppAssetIO(name.data(), access);
+	return openAppAssetIO(name.data(), access, appName);
 }
 
 std::error_code writeToNewFile(const char *path, void *data, size_t size);

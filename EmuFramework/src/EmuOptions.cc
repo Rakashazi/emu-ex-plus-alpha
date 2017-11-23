@@ -262,7 +262,7 @@ void initOptions()
 {
 	if(!strlen(lastLoadPath.data()))
 	{
-		lastLoadPath = Base::storagePath();
+		lastLoadPath = Base::sharedStoragePath();
 	}
 
 	optionSoundRate.initDefault(AudioManager::nativeFormat().rate);

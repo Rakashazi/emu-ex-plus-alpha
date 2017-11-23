@@ -676,14 +676,39 @@ static void writeConfig2(IO &io)
 
 void loadConfigFile()
 {
-	FS::PathString configFilePath;
-	if(Base::documentsPathIsShared())
-		string_printf(configFilePath, "%s/explusalpha.com/%s", Base::documentsPath().data(), EmuSystem::configFilename);
-	else
-		string_printf(configFilePath, "%s/config", Base::documentsPath().data());
+	auto configFilePath = FS::makePathStringPrintf("%s/config", EmuApp::supportPath().data());
+	// move config files from old locations
+	if(Config::envIsLinux)
+	{
+		auto oldConfigFilePath = FS::makePathStringPrintf("%s/config", EmuApp::assetPath().data());
+		if(FS::exists(oldConfigFilePath))
+		{
+			logMsg("moving config file from app path to support path");
+			FS::rename(oldConfigFilePath, configFilePath);
+		}
+	}
+	#ifdef CONFIG_BASE_IOS
+	if(Base::isSystemApp())
+	{
+		const char *oldConfigDir = "/User/Library/Preferences/explusalpha.com";
+		auto oldConfigFilePath = FS::makePathStringPrintf("%s/%s", oldConfigDir, EmuSystem::configFilename);
+		if(FS::exists(oldConfigFilePath))
+		{
+			logMsg("moving config file from prefs path to support path");
+			fixFilePermissions(oldConfigFilePath);
+			FS::rename(oldConfigFilePath, configFilePath);
+		}
+		if(!FS::directoryItems(oldConfigDir))
+		{
+			logMsg("removing old empty config directory");
+			fixFilePermissions(oldConfigDir);
+			FS::remove(oldConfigDir);
+		}
+	}
+	#endif
 	FileIO configFile;
-	auto ec = configFile.open(configFilePath.data(), IO::AccessHint::ALL);
-	if(ec)
+	if(auto ec = configFile.open(configFilePath.data(), IO::AccessHint::ALL);
+		ec)
 	{
 		logMsg("no config file");
 		return;
@@ -693,18 +718,10 @@ void loadConfigFile()
 
 void saveConfigFile()
 {
-	FS::PathString configFilePath;
-	if(Base::documentsPathIsShared())
+	auto configFilePath = FS::makePathStringPrintf("%s/config", EmuApp::supportPath().data());
+	if(Config::envIsIOS)
 	{
-		auto documentsPath = Base::documentsPath();
-		string_printf(configFilePath, "%s/explusalpha.com", documentsPath.data());
-		FS::create_directory(configFilePath);
-		fixFilePermissions(configFilePath);
-		string_printf(configFilePath, "%s/explusalpha.com/%s", documentsPath.data(), EmuSystem::configFilename);
-	}
-	else
-	{
-		string_printf(configFilePath, "%s/config", Base::documentsPath().data());
+		fixFilePermissions(EmuApp::supportPath().data());
 	}
 	FileIO configFile;
 	configFile.create(configFilePath.data());

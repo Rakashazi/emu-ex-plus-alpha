@@ -62,7 +62,7 @@ public:
 	Font(const char *name);
 	static Font makeSystem();
 	static Font makeBoldSystem();
-	static Font makeFromAsset(const char *name);
+	static Font makeFromAsset(const char *name, const char *appName);
 	Font(Font &&o);
 	Font &operator=(Font o);
 	~Font();

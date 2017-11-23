@@ -120,9 +120,9 @@ std::error_code PngFile::load(const char *name)
 	return png.load(name);
 }
 
-std::error_code PngFile::loadAsset(const char *name)
+std::error_code PngFile::loadAsset(const char *name, const char *appName)
 {
-	return load(FS::makePathStringPrintf("%s/%s", Base::assetPath().data(), name).data());
+	return load(FS::makePathStringPrintf("%s/%s", Base::assetPath(appName).data(), name).data());
 }
 
 void PngFile::deinit()

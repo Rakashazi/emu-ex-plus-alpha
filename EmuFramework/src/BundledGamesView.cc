@@ -40,7 +40,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	game[0] = {info.displayName,
 		[&info, &r = attach.renderer](TextMenuItem &t, View &view, Input::Event e)
 		{
-			auto file = openAppAssetIO(info.assetName, IO::AccessHint::ALL);
+			auto file = EmuApp::openAppAssetIO(info.assetName, IO::AccessHint::ALL);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);

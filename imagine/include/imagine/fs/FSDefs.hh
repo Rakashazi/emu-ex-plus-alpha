@@ -110,6 +110,11 @@ struct PathLocation
 	constexpr PathLocation(PathString path, FileString description, RootPathInfo root):
 		root{root}, path{path}, description{description}
 	{}
+
+	explicit operator bool()
+	{
+		return path[0];
+	}
 };
 
 }

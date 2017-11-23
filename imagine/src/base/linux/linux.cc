@@ -32,6 +32,8 @@ namespace Base
 
 static FS::PathString appPath{};
 
+constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
+
 uint appActivityState() { return APP_RUNNING; }
 
 static void cleanup()
@@ -59,17 +61,52 @@ void openURL(const char *url)
 	auto ret = system(FS::makePathStringPrintf("xdg-open %s", url).data());
 }
 
-FS::PathString assetPath()
+FS::PathString assetPath(const char *)
 {
 	return appPath;
 }
 
-FS::PathString documentsPath()
+FS::PathString supportPath(const char *appName)
 {
-	return appPath;
+	if(auto home = getenv("XDG_DATA_HOME");
+		home)
+	{
+		auto path = FS::makePathString(home, appName);
+		g_mkdir_with_parents(path.data(), defaultDirMode);
+		return path;
+	}
+	else if(auto home = getenv("HOME");
+		home)
+	{
+		auto path = FS::makePathStringPrintf("%s/.local/share/%s", home, appName);
+		g_mkdir_with_parents(path.data(), defaultDirMode);
+		return path;
+	}
+	logErr("XDG_DATA_HOME and HOME env variables not defined");
+	return {};
 }
 
-FS::PathString storagePath()
+FS::PathString cachePath(const char *appName)
+{
+	if(auto home = getenv("XDG_CACHE_HOME");
+		home)
+	{
+		auto path = FS::makePathString(home, appName);
+		g_mkdir_with_parents(path.data(), defaultDirMode);
+		return path;
+	}
+	else if(auto home = getenv("HOME");
+		home)
+	{
+		auto path = FS::makePathStringPrintf("%s/.cache/%s", home, appName);
+		g_mkdir_with_parents(path.data(), defaultDirMode);
+		return path;
+	}
+	logErr("XDG_DATA_HOME and HOME env variables not defined");
+	return {};
+}
+
+FS::PathString sharedStoragePath()
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -84,37 +121,37 @@ FS::PathString storagePath()
 		}
 		// fall back to appPath
 	}
-	return appPath;
+	if(auto home = getenv("HOME");
+		home)
+	{
+		return FS::makePathString(home);
+	}
+	logErr("HOME env variable not defined");
+	return {};
 }
 
-FS::PathLocation storagePathLocation()
+FS::PathLocation sharedStoragePathLocation()
 {
-	auto path = storagePath();
-	return {path, FS::makeFileString("Documents"), {FS::makeFileString("Documents"), strlen(path.data())}};
+	auto path = sharedStoragePath();
+	auto name = Config::MACHINE_IS_PANDORA ? FS::makeFileString("Media") : FS::makeFileString("Home");
+	return {path, name, {name, strlen(path.data())}};
 }
 
 std::vector<FS::PathLocation> rootFileLocations()
 {
 	std::vector<FS::PathLocation> path;
 	path.reserve(1);
-	if(auto homeEnv = getenv("HOME");
-		homeEnv)
+	if(auto loc = sharedStoragePathLocation();
+		loc)
 	{
-		path.emplace_back(FS::makePathString(homeEnv), FS::makeFileString("Home"),
-			FS::RootPathInfo{FS::makeFileString("Home"), strlen(homeEnv)});
+		path.emplace_back(loc);
 	}
 	return path;
 }
 
-FS::PathString libPath()
+FS::PathString libPath(const char *)
 {
 	return appPath;
-}
-
-bool documentsPathIsShared()
-{
-	// TODO
-	return false;
 }
 
 void setDeviceOrientationChangeSensor(bool on) {}

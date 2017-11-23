@@ -51,7 +51,7 @@ public:
 		deinit();
 	}
 	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name);
+	std::error_code loadAsset(const char *name, const char *appName);
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;
 	IG::Pixmap lockPixmap() final;

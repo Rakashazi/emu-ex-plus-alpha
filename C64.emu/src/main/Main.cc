@@ -483,9 +483,9 @@ static EmuSystem::Error c64FirmwareError()
 	return EmuSystem::makeError("System files missing, place C64, DRIVES, & PRINTER directories from VICE"
 		" in a path below, or set a custom path in options:\n"
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		"%s\n%s\n%s", Base::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+		"%s\n%s\n%s", EmuApp::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 		#else
-		"%s/C64.emu", Base::storagePath().data());
+		"%s/C64.emu", Base::sharedStoragePath().data());
 		#endif
 }
 
@@ -627,14 +627,14 @@ EmuSystem::Error EmuSystem::onInit()
 		});
 
 	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-	sysFilePath[1] = Base::assetPath();
-	sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", Base::assetPath().data());
+	sysFilePath[1] = EmuApp::assetPath();
+	sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", EmuApp::assetPath().data());
 	sysFilePath[3] = {"~/.local/share/C64.emu"};
 	sysFilePath[4] = {"/usr/share/games/vice"};
 	#else
 	{
-		sysFilePath[1] = FS::makePathStringPrintf("%s/C64.emu", Base::storagePath().data());
-		sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", Base::storagePath().data());
+		sysFilePath[1] = FS::makePathStringPrintf("%s/C64.emu", Base::sharedStoragePath().data());
+		sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", Base::sharedStoragePath().data());
 	}
 	#endif
 

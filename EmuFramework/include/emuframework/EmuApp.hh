@@ -99,4 +99,13 @@ public:
 	static View *makeCustomView(ViewAttachParams attach, ViewID id);
 	static void addTurboInputEvent(uint action);
 	static void removeTurboInputEvent(uint action);
+	static FS::PathString assetPath();
+	static FS::PathString libPath();
+	static FS::PathString supportPath();
+	static AssetIO openAppAssetIO(const char *name, IO::AccessHint access);
+	template <size_t S>
+	static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access)
+	{
+		return openAppAssetIO(name.data(), access);
+	}
 };

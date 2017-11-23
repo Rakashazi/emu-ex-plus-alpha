@@ -180,7 +180,9 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
 std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
 {
 	{
-		auto file = openAppAssetIO(FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename), IO::AccessHint::ALL);
+		auto file = EmuApp::openAppAssetIO(
+			FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename),
+			IO::AccessHint::ALL);
 		if(!file)
 		{
 			deinitProgram(r);
@@ -202,7 +204,9 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 		}
 	}
 	{
-		auto file = openAppAssetIO(FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename), IO::AccessHint::ALL);
+		auto file = EmuApp::openAppAssetIO(
+			FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename),
+			IO::AccessHint::ALL);
 		if(!file)
 		{
 			deinitProgram(r);

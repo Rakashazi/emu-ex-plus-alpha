@@ -205,7 +205,7 @@ FS::PathString EmuSystem::baseSavePath()
 	{
 		return savePath_;
 	}
-	return FS::makePathStringPrintf("%s/Game Data/%s", Base::storagePath().data(), shortSystemName());
+	return FS::makePathStringPrintf("%s/Game Data/%s", Base::sharedStoragePath().data(), shortSystemName());
 }
 
 static bool hasWriteAccessToDir(const char *path)
@@ -266,7 +266,7 @@ void EmuSystem::setGameSavePath(const char *path)
 void EmuSystem::makeDefaultSavePath()
 {
 	assert(strlen(gameName_.data()));
-	FS::PathString pathTemp = Base::storagePath();
+	FS::PathString pathTemp = Base::sharedStoragePath();
 	string_cat(pathTemp, "/Game Data");
 	FS::create_directory(pathTemp);
 	string_cat(pathTemp, "/");
@@ -298,7 +298,7 @@ const char *EmuSystem::defaultSavePath()
 	assert(strlen(gameName_.data()));
 	if(!strlen(defaultSavePath_.data()))
 	{
-		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::storagePath().data(), shortSystemName(), gameName_.data());
+		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", Base::sharedStoragePath().data(), shortSystemName(), gameName_.data());
 		logMsg("game default save path: %s", defaultSavePath_.data());
 	}
 	if(!FS::exists(defaultSavePath_.data()))
@@ -308,7 +308,7 @@ const char *EmuSystem::defaultSavePath()
 
 FS::PathString EmuSystem::baseDefaultGameSavePath()
 {
-	return FS::makePathStringPrintf("%s/Game Data/%s", Base::storagePath().data(), shortSystemName());
+	return FS::makePathStringPrintf("%s/Game Data/%s", Base::sharedStoragePath().data(), shortSystemName());
 }
 
 void EmuSystem::closeGame(bool allowAutosaveState)

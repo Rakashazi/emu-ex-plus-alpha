@@ -95,84 +95,87 @@ void abort()
 
 //void openURL(const char *url) { };
 
-FS::PathString assetPath() { return {}; }
-
-FS::PathString documentsPath()
-{
-	if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
-	{
-		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
-		JNIEnv *env;
-		auto res = jVM->GetEnv((void**)&env, JNI_VERSION_1_6);
-		bool shouldDetach = false;
-		if(res != JNI_OK)
-		{
-			logMsg("attaching thread to JNI for documentsPath()");
-			if(jVM->AttachCurrentThread(&env, nullptr) != 0)
-			{
-				logErr("error attaching env to thread");
-				return {};
-			}
-			shouldDetach = true;
-		}
-		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
-		auto filesDirStr = (jstring)filesDir(env, jBaseActivity);
-		FS::PathString path{};
-		javaStringCopy(env, path, filesDirStr);
-		if(shouldDetach)
-			jVM->DetachCurrentThread();
-		return path;
-	}
-	else
-		return FS::makePathString(filesDir);
-}
-
-FS::PathString storagePath()
+static std::pair<JNIEnv*, bool> jniEnvAndAttachThread(JavaVM *jVM)
 {
 	JNIEnv *env;
-	auto res = jVM->GetEnv((void**)&env, JNI_VERSION_1_6);
-	bool shouldDetach = false;
-	if(res != JNI_OK)
+	bool alreadyAttached = true;
+	if(jVM->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK)
 	{
-		logMsg("attaching thread to JNI for storagePath()");
+		logMsg("attaching thread to JNI");
+		alreadyAttached = false;
 		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
 		{
 			logErr("error attaching env to thread");
 			return {};
 		}
-		shouldDetach = true;
 	}
-	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
-	auto extStorageDirStr = (jstring)extStorageDir(env, jBaseActivityCls);
+	return {env, alreadyAttached};
+}
+
+static FS::PathString pathStringFromJString(JNIEnv *env, jstring jstr)
+{
 	FS::PathString path{};
-	javaStringCopy(env, path, extStorageDirStr);
-	if(shouldDetach)
-		jVM->DetachCurrentThread();
+	javaStringCopy(env, path, jstr);
 	return path;
 }
 
-FS::PathLocation storagePathLocation()
+FS::PathString assetPath(const char *) { return {}; }
+
+FS::PathString supportPath(const char *)
 {
-	auto path = storagePath();
-	return {path, FS::makeFileString("Internal Media"), {FS::makeFileString("Media"), strlen(path.data())}};
+	if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
+	{
+		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
+		auto [env, alreadyAttached] = jniEnvAndAttachThread(jVM);
+		if(!env)
+			return {};
+		auto detachJVM = IG::scopeGuard([](){ jVM->DetachCurrentThread(); }, !alreadyAttached);
+		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
+		return pathStringFromJString(env, (jstring)filesDir(env, jBaseActivity));
+	}
+	else
+		return FS::makePathString(filesDir);
+}
+
+FS::PathString cachePath(const char *)
+{
+	auto [env, alreadyAttached] = jniEnvAndAttachThread(jVM);
+	if(!env)
+		return {};
+	auto detachJVM = IG::scopeGuard([](){ jVM->DetachCurrentThread(); }, !alreadyAttached);
+	JavaClassMethod<jobject()> cacheDir{env, jBaseActivityCls, "cacheDir", "()Ljava/lang/String;"};
+	return pathStringFromJString(env, (jstring)cacheDir(env, jBaseActivityCls));
+}
+
+FS::PathString sharedStoragePath()
+{
+	auto [env, alreadyAttached] = jniEnvAndAttachThread(jVM);
+	if(!env)
+		return {};
+	auto detachJVM = IG::scopeGuard([](){ jVM->DetachCurrentThread(); }, !alreadyAttached);
+	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
+	return pathStringFromJString(env, (jstring)extStorageDir(env, jBaseActivityCls));
+}
+
+FS::PathLocation sharedStoragePathLocation()
+{
+	auto path = sharedStoragePath();
+	return {path, FS::makeFileString("Storage Media"), {FS::makeFileString("Media"), strlen(path.data())}};
 }
 
 std::vector<FS::PathLocation> rootFileLocations()
 {
 	return
 		{
-			storagePathLocation(),
+			sharedStoragePathLocation(),
 		};
 }
 
-FS::PathString libPath()
+FS::PathString libPath(const char *)
 {
 	auto env = jEnv();
 	JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
-	auto libDirStr = (jstring)libDir(env, jBaseActivity);
-	FS::PathString path{};
-	javaStringCopy(env, path, libDirStr);
-	return path;
+	return pathStringFromJString(env, (jstring)libDir(env, jBaseActivity));
 }
 
 FS::PathString mainSOPath()
@@ -180,12 +183,8 @@ FS::PathString mainSOPath()
 	auto env = jEnv();
 	JavaInstMethod<jobject()> soPath{env, jBaseActivityCls, "mainSOPath", "()Ljava/lang/String;"};
 	auto soPathStr = (jstring)soPath(env, jBaseActivity);
-	FS::PathString path{};
-	javaStringCopy(env, path, soPathStr);
-	return path;
+	return pathStringFromJString(env, (jstring)soPath(env, jBaseActivity));
 }
-
-bool documentsPathIsShared() { return false; }
 
 static jstring permissionToJString(JNIEnv *env, Permission p)
 {
@@ -298,8 +297,8 @@ static void activityInit(JNIEnv* env, jobject activity)
 
 		if(Config::DEBUG_BUILD)
 		{
-			logMsg("internal storage path: %s", documentsPath().data());
-			logMsg("external storage path: %s", storagePath().data());
+			logMsg("internal storage path: %s", supportPath({}).data());
+			logMsg("external storage path: %s", sharedStoragePath().data());
 		}
 
 		logger_init();

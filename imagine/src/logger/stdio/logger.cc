@@ -43,7 +43,7 @@ static FS::PathString externalLogPath()
 	if(Config::envIsIOS)
 		prefix = FS::makePathString("/var/mobile");
 	else if(Config::envIsAndroid)
-		prefix = Base::storagePath();
+		prefix = Base::sharedStoragePath();
 	else if(Config::envIsWebOS)
 		prefix = FS::makePathString("/media/internal");
 	string_printf(path, "%s/imagine.log", prefix.data());

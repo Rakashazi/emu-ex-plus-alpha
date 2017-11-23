@@ -301,9 +301,9 @@ Font Font::makeBoldSystem()
 	#endif
 }
 
-Font Font::makeFromAsset(const char *name)
+Font Font::makeFromAsset(const char *name, const char *appName)
 {
-	return {openAppAssetIO(name, IO::AccessHint::ALL).makeGeneric()};
+	return {openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric()};
 }
 
 Font::Font(Font &&o)

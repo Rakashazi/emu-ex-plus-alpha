@@ -73,7 +73,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 		});
 	if(setDefaultPath)
 	{
-		setPath(Base::storagePathLocation(), true, e);
+		setPath(Base::sharedStoragePathLocation(), true, e);
 	}
 }
 

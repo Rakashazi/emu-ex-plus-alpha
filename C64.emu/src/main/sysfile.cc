@@ -248,10 +248,5 @@ CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
 
 CLINK char *archdep_default_rtc_file_name(void)
 {
-	FS::PathString path{};
-	if(Base::documentsPathIsShared())
-		string_printf(path, "%s/explusalpha.com/vice.rtc", Base::documentsPath().data());
-	else
-		string_printf(path, "%s/vice.rtc", Base::documentsPath().data());
-	return strdup(path.data());
+	return strdup(FS::makePathString(EmuApp::supportPath().data(), "vice.rtc").data());
 }

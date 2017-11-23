@@ -534,52 +534,61 @@ void endIdleByUserActivity()
 	}
 }
 
-FS::PathString assetPath() { return appPath; }
-
-FS::PathString documentsPath()
+static FS::PathString makeSearchPath(NSSearchPathDirectory dir, NSSearchPathDomainMask domainMask, const char *appName = nullptr)
 {
-	if(isRunningAsSystemApp)
-		return {"/User/Library/Preferences"};
-	else
-	{
-		NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-		NSString *documentsDirectory = [paths firstObject];
-		if(documentsDirectory)
-			FS::makePathString([documentsDirectory cStringUsingEncoding: NSASCIIStringEncoding]);
+	NSArray *paths = NSSearchPathForDirectoriesInDomains(dir, domainMask, YES);
+	NSString *dirStr = [paths firstObject];
+	if(!dirStr)
 		return {};
+	NSFileManager *fm = [NSFileManager defaultManager];
+	if(appName)
+	{
+		dirStr = [dirStr stringByAppendingPathComponent:[NSString stringWithUTF8String:appName]];
 	}
+	[fm createDirectoryAtPath:dirStr withIntermediateDirectories:YES attributes:nil error:nil];
+	return FS::makePathString(dirStr.UTF8String);
 }
 
-FS::PathString storagePath()
+FS::PathString assetPath(const char *) { return appPath; }
+
+FS::PathString supportPath(const char *appName)
+{
+	return makeSearchPath(NSApplicationSupportDirectory, NSUserDomainMask, isRunningAsSystemApp ? appName : nullptr);
+}
+
+FS::PathString cachePath(const char *appName)
+{
+	return makeSearchPath(NSCachesDirectory, NSUserDomainMask, isRunningAsSystemApp ? appName : nullptr);
+}
+
+FS::PathString sharedStoragePath()
 {
 	if(isRunningAsSystemApp)
 		return {"/User/Media"};
 	else
-		return documentsPath();
+		return makeSearchPath(NSDocumentDirectory, NSUserDomainMask);
 }
 
-FS::PathLocation storagePathLocation()
+FS::PathLocation sharedStoragePathLocation()
 {
-	auto path = storagePath();
-	return {path, FS::makeFileString("Internal Media"), {FS::makeFileString("Media"), strlen(path.data())}};
+	auto path = sharedStoragePath();
+	if(isRunningAsSystemApp)
+		return {path, FS::makeFileString("Storage Media"), {FS::makeFileString("Media"), strlen(path.data())}};
+	else
+		return {path, FS::makeFileString("Documents"), {FS::makeFileString("Documents"), strlen(path.data())}};
 }
 
 std::vector<FS::PathLocation> rootFileLocations()
 {
 	return
 		{
-			storagePathLocation()
+			sharedStoragePathLocation()
 		};
 }
 
 FS::PathString libPath()
 {
 	return appPath;
-}
-
-bool documentsPathIsShared()
-{
-	return isRunningAsSystemApp;
 }
 
 bool deviceIsIPad()

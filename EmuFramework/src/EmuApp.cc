@@ -156,7 +156,7 @@ Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 	if(!res)
 	{
 		PngFile png;
-		if(auto ec = png.loadAsset(assetFilename[assetID]);
+		if(auto ec = png.loadAsset(assetFilename[assetID], appName());
 			ec)
 		{
 			logErr("couldn't load %s", assetFilename[assetID]);
@@ -1399,6 +1399,26 @@ void EmuApp::addTurboInputEvent(uint action)
 void EmuApp::removeTurboInputEvent(uint action)
 {
 	turboActions.removeEvent(action);
+}
+
+FS::PathString EmuApp::assetPath()
+{
+	return Base::assetPath(appName());
+}
+
+FS::PathString EmuApp::libPath()
+{
+	return Base::libPath(appName());
+}
+
+FS::PathString EmuApp::supportPath()
+{
+	return Base::supportPath(appName());
+}
+
+AssetIO EmuApp::openAppAssetIO(const char *name, IO::AccessHint access)
+{
+	return ::openAppAssetIO(name, access, appName());
 }
 
 namespace Base

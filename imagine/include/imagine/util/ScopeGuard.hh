@@ -14,9 +14,13 @@ class ScopeGuard
 public:
 	ScopeGuard() = delete;
 
-	constexpr ScopeGuard(F func):
+	constexpr ScopeGuard(F func, bool active):
 		func(std::move(func)),
-		active(true)
+		active(active)
+	{}
+
+	constexpr ScopeGuard(F func):
+		ScopeGuard(std::move(func), true)
 	{}
 
 	ScopeGuard(const ScopeGuard &) = delete;
@@ -50,9 +54,9 @@ public:
 };
 
 template<class F>
-ScopeGuard<F> scopeGuard(F func)
+ScopeGuard<F> scopeGuard(F func, bool active = true)
 {
-	return ScopeGuard<F>(std::move(func));
+	return ScopeGuard<F>(std::move(func), active);
 }
 
 }

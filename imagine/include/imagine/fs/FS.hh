@@ -216,4 +216,7 @@ using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileS
 
 FileStringCompareFunc fileStringNoCaseLexCompare();
 
+int directoryItems(const char *path);
+static int directoryItems(PathString path) { return directoryItems(path.data()); }
+
 };

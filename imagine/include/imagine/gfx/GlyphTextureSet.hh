@@ -47,7 +47,7 @@ public:
 	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
 	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
-	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, IG::FontSettings set);
+	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set);
 	GlyphTextureSet(GlyphTextureSet &&o);
 	GlyphTextureSet &operator=(GlyphTextureSet o);
 	~GlyphTextureSet();
