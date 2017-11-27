@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/system/pagesize.h>
-#if defined __linux__ && !defined __ANDROID__
+#if defined __linux__
 #include <unistd.h>
 #define USE_GETPAGESIZE
 #elif defined __APPLE__
@@ -30,7 +30,7 @@ static int pageSize_ = 0;
 __attribute__((constructor))
 void initPageSize()
 {
-	pageSize_ = getpagesize();
+	pageSize_ = sysconf(_SC_PAGESIZE);
 	assert(pageSize_);
 }
 #endif

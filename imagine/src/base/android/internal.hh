@@ -73,7 +73,3 @@ bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify);
 bool removeInputDevice(int id, bool notify);
 
 }
-
-#if __ANDROID_API__ < 12
-extern float (*AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index);
-#endif

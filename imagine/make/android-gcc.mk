@@ -7,9 +7,15 @@ ifeq ($(wildcard $(ANDROID_NDK_PATH)/platforms)),)
  $(error Invalid NDK path:$(ANDROID_NDK_PATH), add NDK directory to PATH, define ANDROID_NDK_PATH, or move NDK to the default path:$(defaultNDKPath)
 endif
 
-android_ndkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
+android_ndkSysroot := $(ANDROID_NDK_PATH)/sysroot
 
-VPATH += $(android_ndkSysroot)/usr/lib
+ifeq ($(android_ndkSDK), 9)
+ android_ndkLinkSysroot := $(IMAGINE_PATH)/bundle/android-$(android_ndkSDK)/arch-$(android_ndkArch)
+else
+ android_ndkLinkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
+endif
+
+VPATH += $(android_ndkLinkSysroot)/usr/lib
 
 ANDROID_GCC_VERSION ?= 4.9
 ANDROID_GCC_TOOLCHAIN_ROOT_DIR ?= $(CHOST)
@@ -81,16 +87,24 @@ ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
 
-CFLAGS_TARGET += $(android_cpuFlags) --sysroot=$(android_ndkSysroot) -no-canonical-prefixes
+CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
 CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ASMFLAGS += $(CFLAGS_TARGET) -Wa,--noexecstack
-LDFLAGS_SYSTEM += -no-canonical-prefixes \
+LDFLAGS_SYSTEM += --sysroot=$(android_ndkLinkSysroot) -no-canonical-prefixes \
 -Wl,--no-undefined,-z,noexecstack,-z,relro,-z,now
 linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
-CPPFLAGS += -DANDROID
+CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot) -isystem $(android_ndkSysroot)/usr/include/$(CHOST)
 LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed
+
+ifeq ($(android_ndkSDK), 9)
+ # SDK 9 no longer supported since NDK r16, pass 14 so unified headers compile
+ # and enable compatibilty work-arounds to maintain SDK 9 support
+ CPPFLAGS += -D__ANDROID_API__=14 -DANDROID_COMPAT_API
+else
+ CPPFLAGS += -D__ANDROID_API__=$(android_ndkSDK)
+endif
 
 ifndef RELEASE
  CFLAGS_CODEGEN += -funwind-tables

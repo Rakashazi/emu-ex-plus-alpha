@@ -5,7 +5,7 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 
 Download & install Android Studio 3.0
 
-Download & extract Android NDK Revision 15 from https://github.com/android-ndk/ndk/wiki or install it via Android Studio. Perform any one of the following to tell the build system the location of the NDK directory:
+Download & extract Android NDK Revision 16 from https://github.com/android-ndk/ndk/wiki or install it via Android Studio. Perform any one of the following to tell the build system the location of the NDK directory:
 
 1. Add the root NDK directory to your PATH environment
 2. Link or rename the root NDK directory to $(HOME)/android-ndk

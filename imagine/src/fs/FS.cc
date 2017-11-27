@@ -22,14 +22,10 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <imagine/util/utility.h>
-#include <libgen.h>
-#ifdef basename
-// libgen.h may define this macro and clash with FS::basename
-#undef basename
-#endif
 #ifdef CONFIG_USE_GNU_BASENAME
 #include <imagine/util/string/glibc.h>
 #endif
+#include "libgen.hh"
 
 namespace FS
 {
@@ -91,7 +87,7 @@ FileString basename(const char *path)
 	#ifdef CONFIG_USE_GNU_BASENAME
 	string_copy(name, gnu_basename(path));
 	#elif defined __ANDROID__
-	string_copy(name, ::basename(path));
+	string_copy(name, ::posixBasenameImpl(path));
 	#elif defined _WIN32
 	char namePart[_MAX_FNAME], extPart[_MAX_EXT];
 	_splitpath(path, nullptr, nullptr, namePart, extPart);
@@ -100,7 +96,7 @@ FileString basename(const char *path)
 	// standard version can modify input, and returns a pointer within it
 	// BSD version can modify input, but always returns its own allocated storage
 	PathString tempPath = makePathString(path);
-	string_copy(name, ::basename(tempPath.data()));
+	string_copy(name, ::posixBasenameImpl(tempPath.data()));
 	#endif
 	return name;
 }
@@ -109,7 +105,7 @@ PathString dirname(const char *path)
 {
 	PathString dir;
 	#if defined __ANDROID__
-	string_copy(dir, ::dirname(path));
+	string_copy(dir, ::posixDirnameImpl(path));
 	#elif defined _WIN32
 	char drivePart[_MAX_DRIVE], dirPart[_MAX_DIR];
 	_splitpath(path, drivePart, dirPart, nullptr, nullptr);
@@ -118,7 +114,7 @@ PathString dirname(const char *path)
 	// standard version can modify input, and returns a pointer within it
 	// BSD version can modify input, but always returns its own allocated storage
 	PathString tempPath = makePathString(path);
-	string_copy(dir, ::dirname(tempPath.data()));
+	string_copy(dir, ::posixDirnameImpl(tempPath.data()));
 	#endif
 	return dir;
 }

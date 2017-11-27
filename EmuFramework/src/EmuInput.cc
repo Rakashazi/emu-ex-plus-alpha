@@ -604,6 +604,7 @@ void KeyMapping::buildAll()
 		if(unlikely(!totalKeys))
 		{
 			logMsg("no keys in mapping");
+			inputDevActionTablePtr[0] = nullptr;
 			return;
 		}
 		logMsg("allocating key mapping with %d keys", totalKeys);

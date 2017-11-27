@@ -26,8 +26,14 @@
 #include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
 
-#if __ANDROID_API__ < 12
-float (*AMotionEvent_getAxisValue)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
+#ifdef ANDROID_COMPAT_API
+static float (*AMotionEvent_getAxisValueFunc)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
+
+CLINK float AMotionEvent_getAxisValue(const AInputEvent* motion_event, int32_t axis, size_t pointer_index)
+{
+	assumeExpr(AMotionEvent_getAxisValueFunc);
+	return AMotionEvent_getAxisValueFunc(motion_event, axis, pointer_index);
+}
 #endif
 
 namespace Input
@@ -121,8 +127,8 @@ bool hasXperiaPlayGamepad()
 
 bool hasGetAxisValue()
 {
-	#if __ANDROID_API__ < 12
-	return likely(AMotionEvent_getAxisValue);
+	#ifdef ANDROID_COMPAT_API
+	return likely(AMotionEvent_getAxisValueFunc);
 	#else
 	return true;
 	#endif
@@ -524,10 +530,10 @@ void enumDevices()
 
 void registerDeviceChangeListener()
 {
-	auto env = Base::jEnv();
-	enumDevices(env, true);
 	if(Base::androidSDK() < 12)
 		return;
+	auto env = Base::jEnv();
+	enumDevices(env, true);
 	if(usesInputDeviceListener())
 	{
 		logMsg("registering input device listener");
@@ -575,9 +581,9 @@ void init(JNIEnv *env)
 		auto env = Base::jEnv();
 		processInput = processInputWithGetEvent;
 
-		#if __ANDROID_API__ < 12
+		#ifdef ANDROID_COMPAT_API
 		// load AMotionEvent_getAxisValue dynamically
-		if(!(AMotionEvent_getAxisValue = (typeof(AMotionEvent_getAxisValue))dlsym(RTLD_DEFAULT, "AMotionEvent_getAxisValue")))
+		if(!(AMotionEvent_getAxisValueFunc = (typeof(AMotionEvent_getAxisValueFunc))dlsym(RTLD_DEFAULT, "AMotionEvent_getAxisValue")))
 		{
 			logWarn("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
 		}

@@ -228,7 +228,11 @@ bool hasHardwareNavButtons()
 
 uint androidSDK()
 {
+	#ifdef ANDROID_COMPAT_API
+	return std::max(9u, aSDK);
+	#else
 	return std::max((uint)__ANDROID_API__, aSDK);
+	#endif
 }
 
 void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)

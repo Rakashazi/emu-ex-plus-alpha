@@ -22,7 +22,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 
-#if __has_include(<sys/timerfd.h>)
+#if __has_include(<sys/timerfd.h>) && (!defined ANDROID || __ANDROID_API__ >= 19)
 #include <sys/timerfd.h>
 #else
 #include <time.h>

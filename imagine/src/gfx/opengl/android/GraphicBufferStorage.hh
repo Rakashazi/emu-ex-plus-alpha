@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define EGL_EGLEXT_PROTOTYPES
+#include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <imagine/gfx/Texture.hh>
 #include "../../../base/android/privateApi/GraphicBuffer.hh"

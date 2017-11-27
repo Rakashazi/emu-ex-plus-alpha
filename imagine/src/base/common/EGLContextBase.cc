@@ -16,6 +16,7 @@
 #define LOGTAG "EGL"
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EGLContextBase.hh>
+#include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <imagine/util/egl.hh>
 #ifdef __ANDROID__
