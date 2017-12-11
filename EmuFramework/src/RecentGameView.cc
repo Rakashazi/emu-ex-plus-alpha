@@ -41,7 +41,6 @@ RecentGameView::RecentGameView(ViewAttachParams attach):
 		}
 	}
 {
-	name_ = appViewTitle();
 	recentGame.reserve(recentGameList.size());
 	for(auto &e : recentGameList)
 	{

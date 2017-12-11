@@ -17,7 +17,7 @@
 #define BytePtr BytePtrMac
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #undef BytePtr
 #undef Debugger
 #undef HAVE_UNISTD_H
@@ -160,7 +160,7 @@ public:
 
 };
 
-class CustomMainMenuView : public EmuMainMenuView
+class CustomSystemActionsView : public EmuSystemActionsView
 {
 private:
 	TextMenuItem switches
@@ -179,21 +179,19 @@ private:
 	void reloadItems()
 	{
 		item.clear();
-		loadFileBrowserItems();
 		item.emplace_back(&switches);
 		loadStandardItems();
 	}
 
 public:
-	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
 	{
 		reloadItems();
-		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow() final
 	{
-		EmuMainMenuView::onShow();
+		EmuSystemActionsView::onShow();
 		switches.setActive(EmuSystem::gameIsRunning());
 	}
 };
@@ -202,7 +200,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		default: return nullptr;
 	}

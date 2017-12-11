@@ -59,6 +59,49 @@ public:
 	}
 };
 
+class ExitConfirmAlertView : public AlertView
+{
+public:
+	ExitConfirmAlertView(ViewAttachParams attach):
+		AlertView
+		{
+			attach,
+			"Really Exit? (Push Back/Escape again to confirm)",
+			EmuSystem::gameIsRunning() ? 3u : 2u
+		}
+	{
+		setItem(0, "Yes", [](){ Base::exit(); });
+		setItem(1, "No", [](TextMenuItem &, View &view, Input::Event){ view.dismiss(); });
+		if(item.size() == 3)
+		{
+			setItem(2, "Close Menu",
+				[](TextMenuItem &, View &view, Input::Event)
+				{
+					view.dismiss();
+					if(EmuSystem::gameIsRunning())
+					{
+						startGameFromMenu();
+					}
+				});
+		}
+	}
+
+	bool inputEvent(Input::Event e) final
+	{
+		if(e.pushed() && e.isDefaultCancelButton())
+		{
+			Base::exit();
+			return true;
+		}
+		return AlertView::inputEvent(e);
+	}
+};
+
+static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
+{
+	return e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
+}
+
 bool EmuMenuViewStack::inputEvent(Input::Event e)
 {
 	if(e.pushed() && e.isDefaultCancelButton())
@@ -66,15 +109,16 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 		if(size() == 1)
 		{
 			//logMsg("cancel button at view stack root");
-			if(EmuSystem::gameIsRunning())
+			if(EmuSystem::gameIsRunning() ||
+					(!EmuSystem::gameIsRunning() && !shouldExitFromViewRootWithoutPrompt(e)))
 			{
-				startGameFromMenu();
+				EmuApp::showExitAlert(top().attachParams(), e);
 			}
-			else if(e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux))
+			else
 			{
 				Base::exit();
-				return true;
 			}
+			return true;
 		}
 		else
 		{
@@ -95,12 +139,14 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 
 bool EmuModalViewStack::inputEvent(Input::Event e)
 {
+	if(ViewStack::inputEvent(e))
+		return true;
 	if(e.pushed() && e.isDefaultCancelButton())
 	{
 		popAndShow();
 		return true;
 	}
-	return ViewStack::inputEvent(e);
+	return false;
 }
 
 static Gfx::Renderer renderer;
@@ -466,7 +512,9 @@ void startGameFromMenu()
 
 void EmuApp::restoreMenuFromGame()
 {
-	menuViewIsActive = 1;
+	if(menuViewIsActive)
+		return;
+	menuViewIsActive = true;
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 	pauseEmulation();
@@ -475,13 +523,39 @@ void EmuApp::restoreMenuFromGame()
 	#endif
 	renderer.setWindowValidOrientations(mainWin.win, optionMenuOrientation);
 	Input::setKeyRepeat(true);
-	if(!optionRememberLastMenu)
-		viewStack.popToRoot();
 	mainWin.win.screen()->setFrameRate(Base::Screen::DISPLAY_RATE_DEFAULT);
 	mainWin.win.postDraw();
 	if(extraWin.win)
 		extraWin.win.postDraw();
 	viewStack.show();
+}
+
+void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e)
+{
+	EmuApp::restoreMenuFromGame();
+	if(!viewStack.contains("System Actions"))
+	{
+		auto aMenu = makeView(attach, EmuApp::ViewID::SYSTEM_ACTIONS);
+		viewStack.pushAndShow(*aMenu, e);
+	}
+}
+
+void EmuApp::showLastViewFromSystem(ViewAttachParams attach, Input::Event e)
+{
+	if(optionSystemActionsIsDefaultMenu)
+	{
+		showSystemActionsViewFromSystem(attach, e);
+	}
+	else
+	{
+		EmuApp::restoreMenuFromGame();
+	}
+}
+
+void EmuApp::showExitAlert(ViewAttachParams attach, Input::Event e)
+{
+	EmuApp::restoreMenuFromGame();
+	modalViewController.pushAndShow(*new ExitConfirmAlertView(attach), e, false);
 }
 
 static const char *parseCmdLineArgs(int argc, char** argv)
@@ -656,6 +730,7 @@ void mainInitCommon(int argc, char** argv)
 			renderer.restoreBind();
 			if(backgrounded)
 			{
+				EmuApp::restoreMenuFromGame();
 				suspendEmulation();
 				Base::dispatchOnFreeCaches();
 				if(optionNotificationIcon)
@@ -1130,6 +1205,7 @@ void EmuApp::reloadGame()
 	if(!err)
 	{
 		EmuSystem::prepareAudioVideo();
+		viewStack.navView()->showRightBtn(true);
 		startGameFromMenu();
 	}
 }

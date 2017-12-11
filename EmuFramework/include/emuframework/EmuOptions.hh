@@ -47,7 +47,7 @@ extern Byte1Option optionPauseUnfocused;
 extern Byte1Option optionNotificationIcon;
 extern Byte1Option optionTitleBar;
 extern OptionBackNavigation optionBackNavigation;
-extern Byte1Option optionRememberLastMenu;
+extern Byte1Option optionSystemActionsIsDefaultMenu;
 extern Byte1Option optionLowProfileOSNav;
 extern Byte1Option optionHideOSNav;
 extern Byte1Option optionIdleDisplayPowerSave;

@@ -72,7 +72,9 @@ public:
 	View &top() const;
 	View &viewAtIdx(uint idx) const;
 	int viewIdx(View &v) const;
+	int viewIdx(const char *name) const;
 	bool contains(View &v) const;
+	bool contains(const char *name) const;
 	void dismissView(View &v) override;
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);

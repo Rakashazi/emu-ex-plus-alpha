@@ -1,5 +1,5 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <fceu/fds.h>
@@ -299,7 +299,7 @@ public:
 	}
 };
 
-class CustomMainMenuView : public EmuMainMenuView
+class CustomSystemActionsView : public EmuSystemActionsView
 {
 private:
 	char diskLabel[sizeof("FDS Control (Disk 1:A)")]{};
@@ -335,21 +335,19 @@ private:
 	void reloadItems()
 	{
 		item.clear();
-		loadFileBrowserItems();
 		item.emplace_back(&fdsControl);
 		loadStandardItems();
 	}
 
 public:
-	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
 	{
 		reloadItems();
-		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()
 	{
-		EmuMainMenuView::onShow();
+		EmuSystemActionsView::onShow();
 		refreshFDSItem();
 	}
 };
@@ -358,7 +356,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
 		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);

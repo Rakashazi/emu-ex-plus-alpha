@@ -504,7 +504,7 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&backNav);
 	}
-	item.emplace_back(&rememberLastMenu);
+	item.emplace_back(&systemActionsIsDefaultMenu);
 	if(!optionFontSize.isConst)
 	{
 		item.emplace_back(&fontSize);
@@ -1565,13 +1565,14 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			placeElements();
 		}
 	},
-	rememberLastMenu
+	systemActionsIsDefaultMenu
 	{
-		"Remember Last Menu",
-		(bool)optionRememberLastMenu,
+		"Default Menu",
+		(bool)optionSystemActionsIsDefaultMenu,
+		"Last Used", "System Actions",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionRememberLastMenu = item.flipBoolValue(*this);
+			optionSystemActionsIsDefaultMenu = item.flipBoolValue(*this);
 		}
 	},
 	showBundledGames

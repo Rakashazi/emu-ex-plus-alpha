@@ -57,8 +57,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 	{
 		if(e.pushed() && vController.menuHitTest(e.pos()))
 		{
-			viewStack.top().clearSelection();
-			EmuApp::restoreMenuFromGame();
+			EmuApp::showLastViewFromSystem(attachParams(), e);
 			return true;
 		}
 		else if(e.pushed() && vController.fastForwardHitTest(e.pos()))
@@ -94,8 +93,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 	{
 		if(e.state == Input::PUSHED)
 		{
-			viewStack.top()->clearSelection();
-			restoreMenuFromGame();
+			EmuApp::showMenuViewFromSystem(attachParams(), e);
 		}
 		return true;
 	}
@@ -132,7 +130,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					bcase guiKeyIdxLoadGame:
 					if(e.pushed())
 					{
-						logMsg("open load game menu from key event");
+						logMsg("show load game view from key event");
 						EmuApp::restoreMenuFromGame();
 						viewStack.popToRoot();
 						auto &fPicker = *EmuFilePicker::makeForLoading(attachParams(), e);
@@ -143,8 +141,8 @@ bool EmuInputView::inputEvent(Input::Event e)
 					bcase guiKeyIdxMenu:
 					if(e.pushed())
 					{
-						logMsg("open menu from key event");
-						EmuApp::restoreMenuFromGame();
+						logMsg("show system actions view from key event");
+						EmuApp::showSystemActionsViewFromSystem(attachParams(), e);
 						return true;
 					}
 
@@ -229,15 +227,8 @@ bool EmuInputView::inputEvent(Input::Event e)
 					bcase guiKeyIdxExit:
 					if(e.pushed())
 					{
-						logMsg("request exit from key event");
-						auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really Exit?"};
-						ynAlertView.setOnYes(
-							[](TextMenuItem &, View &view, Input::Event e)
-							{
-								Base::exit();
-							});
-						modalViewController.pushAndShow(ynAlertView, e, false);
-						EmuApp::restoreMenuFromGame();
+						logMsg("show last view from key event");
+						EmuApp::showLastViewFromSystem(attachParams(), e);
 						return true;
 					}
 

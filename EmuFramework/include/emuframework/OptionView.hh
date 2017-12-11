@@ -159,7 +159,7 @@ protected:
 	BoolMenuItem idleDisplayPowerSave;
 	BoolMenuItem navView;
 	BoolMenuItem backNav;
-	BoolMenuItem rememberLastMenu;
+	BoolMenuItem systemActionsIsDefaultMenu;
 	BoolMenuItem showBundledGames;
 	BoolMenuItem showBluetoothScan;
 	TextHeadingMenuItem orientationHeading;

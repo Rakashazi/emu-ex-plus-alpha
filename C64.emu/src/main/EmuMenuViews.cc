@@ -15,6 +15,7 @@
 
 #include <imagine/gui/TextEntry.hh>
 #include <emuframework/OptionView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include "internal.hh"
 #include "VicePlugin.hh"
@@ -927,7 +928,7 @@ public:
 	}
 };
 
-class CustomMainMenuView : public EmuMainMenuView
+class CustomSystemActionsView : public EmuSystemActionsView
 {
 	BoolMenuItem swapJoystickPorts
 	{
@@ -999,6 +1000,32 @@ class CustomMainMenuView : public EmuMainMenuView
 		}
 	};
 
+	void reloadItems()
+	{
+		item.clear();
+		item.emplace_back(&c64IOControl);
+		item.emplace_back(&quickSettings);
+		item.emplace_back(&swapJoystickPorts);
+		loadStandardItems();
+	}
+
+public:
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	{
+		reloadItems();
+	}
+
+	void onShow() final
+	{
+		EmuSystemActionsView::onShow();
+		c64IOControl.setActive(EmuSystem::gameIsRunning());
+		quickSettings.setActive(EmuSystem::gameIsRunning());
+		swapJoystickPorts.setBoolValue(optionSwapJoystickPorts);
+	}
+};
+
+class CustomMainMenuView : public EmuMainMenuView
+{
 	std::array<char, 34> systemStr{};
 
 	TextMenuItem system
@@ -1107,9 +1134,6 @@ class CustomMainMenuView : public EmuMainMenuView
 		item.clear();
 		loadFileBrowserItems();
 		item.emplace_back(&startWithBlankDisk);
-		item.emplace_back(&c64IOControl);
-		item.emplace_back(&quickSettings);
-		item.emplace_back(&swapJoystickPorts);
 		string_printf(systemStr, "System: %s", VicePlugin::systemName(currSystem));
 		item.emplace_back(&system);
 		loadStandardItems();
@@ -1121,14 +1145,6 @@ public:
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
-
-	void onShow() final
-	{
-		EmuMainMenuView::onShow();
-		c64IOControl.setActive(EmuSystem::gameIsRunning());
-		quickSettings.setActive(EmuSystem::gameIsRunning());
-		swapJoystickPorts.setBoolValue(optionSwapJoystickPorts);
-	}
 };
 
 View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
@@ -1136,6 +1152,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	switch(id)
 	{
 		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
 		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);

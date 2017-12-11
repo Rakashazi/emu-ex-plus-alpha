@@ -25,14 +25,14 @@ typedef uint GameActionKeyArray[gameActionKeys];
 static const char *gameActionName[gameActionKeys] =
 {
 	"Load Game",
-	"Open Menu",
+	"Open System Actions",
 	"Save State",
 	"Load State",
 	"Decrement State Slot",
 	"Increment State Slot",
 	"Fast-forward",
-	"Game Screenshot",
-	"Exit",
+	"Take Screenshot",
+	"Open Menu",
 };
 
 }

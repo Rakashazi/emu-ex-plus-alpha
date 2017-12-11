@@ -13,6 +13,7 @@ ButtonConfigView.cc \
 VideoImageOverlay.cc \
 StateSlotView.cc \
 EmuMainMenuView.cc \
+EmuSystemActionsView.cc \
 EmuInput.cc \
 EmuOptions.cc \
 OptionView.cc \

@@ -18,40 +18,28 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <array>
-#ifdef CONFIG_BLUETOOTH
-#include <imagine/bluetooth/sys.hh>
-#endif
 
-class EmuMainMenuView : public TableView
+class EmuSystemActionsView : public TableView
 {
 public:
-	EmuMainMenuView(ViewAttachParams attach, bool customMenu = false);
+	EmuSystemActionsView(ViewAttachParams attach, bool customMenu = false);
 	void onShow() override;
-	void loadFileBrowserItems();
 	void loadStandardItems();
 
-	static const uint STANDARD_ITEMS = 14;
+	static const uint STANDARD_ITEMS = 8;
 	static const uint MAX_SYSTEM_ITEMS = 5;
 
 protected:
-	TextMenuItem loadGame;
-	TextMenuItem systemActions;
-	TextMenuItem recentGames;
-	TextMenuItem bundledGames;
-	TextMenuItem options;
-	TextMenuItem onScreenInputManager;
-	TextMenuItem inputManager;
-	TextMenuItem benchmark;
-	#ifdef CONFIG_BLUETOOTH
-	TextMenuItem scanWiimotes;
-	std::array<char, 64> bluetoothDisconnectStr{};
-	TextMenuItem bluetoothDisconnect;
+	TextMenuItem cheats;
+	TextMenuItem reset;
+	TextMenuItem loadState;
+	TextMenuItem saveState;
+	TextMenuItem stateSlot;
+	char stateSlotText[sizeof("State Slot (0)")]{};
+	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
+	TextMenuItem addLauncherIcon;
 	#endif
-	#ifdef CONFIG_BLUETOOTH_SERVER
-	TextMenuItem acceptPS3ControllerConnection;
-	#endif
-	TextMenuItem about;
-	TextMenuItem exitApp;
+	TextMenuItem screenshot;
+	TextMenuItem close;
 	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
 };

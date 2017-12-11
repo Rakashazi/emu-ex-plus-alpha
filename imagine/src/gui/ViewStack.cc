@@ -128,7 +128,10 @@ bool ViewStack::inputEvent(Input::Event e)
 		return false;
 	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps(e.pos()))
 	{
-		return nav->inputEvent(e);
+		if(nav->inputEvent(e))
+		{
+			return true;
+		}
 	}
 	return top().inputEvent(e);
 }
@@ -250,9 +253,24 @@ int ViewStack::viewIdx(View &v) const
 	return -1;
 }
 
+int ViewStack::viewIdx(const char *name) const
+{
+	iterateTimes(view.size(), i)
+	{
+		if(string_equal(view[i].v->name(), name))
+			return i;
+	}
+	return -1;
+}
+
 bool ViewStack::contains(View &v) const
 {
 	return viewIdx(v) != -1;
+}
+
+bool ViewStack::contains(const char *name) const
+{
+	return viewIdx(name) != -1;
 }
 
 void ViewStack::dismissView(View &v)

@@ -38,6 +38,7 @@ public:
 	enum class ViewID
 	{
 		MAIN_MENU,
+		SYSTEM_ACTIONS,
 		VIDEO_OPTIONS,
 		AUDIO_OPTIONS,
 		INPUT_OPTIONS,
@@ -74,6 +75,9 @@ public:
 	static void popModalViews();
 	static void popMenuToRoot();
 	static void restoreMenuFromGame();
+	static void showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e);
+	static void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
+	static void showExitAlert(ViewAttachParams attach, Input::Event e);
 	static void launchSystemWithResumePrompt(Gfx::Renderer &r, Input::Event e, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
 	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);

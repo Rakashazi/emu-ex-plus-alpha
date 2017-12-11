@@ -15,6 +15,7 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include <imagine/util/bits.h>
 #include "internal.hh"
 
@@ -595,26 +596,9 @@ public:
 	}*/
 };
 
-class CustomMainMenuView : public EmuMainMenuView
+class CustomSystemActionsView : public EmuSystemActionsView
 {
 private:
-
-	TextMenuItem gameList
-	{
-		"Load Game From List",
-		[this](TextMenuItem &, View &, Input::Event e)
-		{
-			auto &gameListMenu = *new GameListView{attachParams()};
-			if(!gameListMenu.games())
-			{
-				EmuApp::postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
-				delete &gameListMenu;
-				return;
-			}
-			pushAndShow(gameListMenu, e);
-		}
-	};
-
 	TextMenuItem unibiosSwitches
 	{
 		"Unibios Switches",
@@ -638,9 +622,48 @@ private:
 	void reloadItems()
 	{
 		item.clear();
+		item.emplace_back(&unibiosSwitches);
+		loadStandardItems();
+	}
+
+public:
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	{
+		reloadItems();
+	}
+
+	void onShow()
+	{
+		EmuSystemActionsView::onShow();
+		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_1;
+		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
+	}
+};
+
+class CustomMainMenuView : public EmuMainMenuView
+{
+private:
+	TextMenuItem gameList
+	{
+		"Load Game From List",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			auto &gameListMenu = *new GameListView{attachParams()};
+			if(!gameListMenu.games())
+			{
+				EmuApp::postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
+				delete &gameListMenu;
+				return;
+			}
+			pushAndShow(gameListMenu, e);
+		}
+	};
+
+	void reloadItems()
+	{
+		item.clear();
 		loadFileBrowserItems();
 		item.emplace_back(&gameList);
-		item.emplace_back(&unibiosSwitches);
 		loadStandardItems();
 	}
 
@@ -650,13 +673,6 @@ public:
 		reloadItems();
 		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
-
-	void onShow()
-	{
-		EmuMainMenuView::onShow();
-		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_1;
-		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
-	}
 };
 
 View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
@@ -664,6 +680,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	switch(id)
 	{
 		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}

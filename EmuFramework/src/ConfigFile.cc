@@ -224,7 +224,7 @@ static bool readConfig2(IO &io)
 			bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
 			bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
 			bcase CFGKEY_BACK_NAVIGATION: optionBackNavigation.readFromIO(io, size);
-			bcase CFGKEY_REMEMBER_LAST_MENU: optionRememberLastMenu.readFromIO(io, size);
+			bcase CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: optionSystemActionsIsDefaultMenu.readFromIO(io, size);
 			bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
 			bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
 			bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
@@ -482,7 +482,7 @@ static OptionBase *cfgFileOption[] =
 	#ifdef __ANDROID__
 	&optionBackNavigation,
 	#endif
-	&optionRememberLastMenu,
+	&optionSystemActionsIsDefaultMenu,
 	#if defined __ANDROID__
 	&optionLowProfileOSNav,
 	&optionHideOSNav,

@@ -1,5 +1,5 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
 #include "internal.hh"
 
@@ -514,7 +514,7 @@ const char *MsxIOControlView::romSlotPrefix[2] {"ROM1:", "ROM2:"};
 const char *MsxIOControlView::diskSlotPrefix[2] {"Disk1:", "Disk2:"};
 const char *MsxIOControlView::hdSlotPrefix[4] {"IDE1-M:", "IDE1-S:", "IDE2-M:", "IDE2-S:"};
 
-class CustomMainMenuView : public EmuMainMenuView
+class CustomSystemActionsView : public EmuSystemActionsView
 {
 private:
 	TextMenuItem msxIOControl
@@ -537,21 +537,19 @@ private:
 	void reloadItems()
 	{
 		item.clear();
-		loadFileBrowserItems();
 		item.emplace_back(&msxIOControl);
 		loadStandardItems();
 	}
 
 public:
-	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
 	{
 		reloadItems();
-		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 
 	void onShow()
 	{
-		EmuMainMenuView::onShow();
+		EmuSystemActionsView::onShow();
 		msxIOControl.setActive(EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX);
 	}
 };
@@ -560,7 +558,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}
