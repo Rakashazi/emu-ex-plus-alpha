@@ -253,7 +253,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					else
 					{
 						Key key = Keycode::ENTER;
-						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, time, nullptr});
+						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, 0, time, nullptr});
 					}
 					return true;
 				}
@@ -317,9 +317,9 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					}
 				};
 			auto devID = AInputEvent_getDeviceId(event);
+			auto repeatCount = AKeyEvent_getRepeatCount(event);
 			if(!allowKeyRepeats())
 			{
-				auto repeatCount = AKeyEvent_getRepeatCount(event);
 				if(keyWasRepeated(devID, mostRecentKeyEventDevID, repeatCount))
 				{
 					//logMsg("skipped repeat key event");
@@ -355,7 +355,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				cancelKeyRepeatTimer();
 				Key key = keyCode & 0x1ff;
-				return Base::mainWindow().dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, time, dev});
+				return Base::mainWindow().dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, repeatCount, time, dev});
 			}
 			return true;
 		}

@@ -233,7 +233,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
 					Base::endIdleByUserActivity();
-					Event event{player, Event::MAP_PS3PAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, time, this};
+					Event event{player, Event::MAP_PS3PAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}

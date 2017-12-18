@@ -650,52 +650,6 @@ void mainInitCommon(int argc, char** argv)
 	emuVideoLayer.setEffectBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
 	#endif
 
-	{
-		auto viewNav = std::make_unique<BasicNavView>
-		(
-			renderer,
-			&View::defaultFace,
-			&getAsset(renderer, ASSET_ARROW),
-			&getAsset(renderer, ASSET_GAME_ICON)
-		);
-		viewNav->rotateLeftBtn = true;
-		viewNav->setOnPushLeftBtn(
-			[](Input::Event)
-			{
-				viewStack.popAndShow();
-			});
-		viewNav->setOnPushRightBtn(
-			[](Input::Event)
-			{
-				if(EmuSystem::gameIsRunning())
-				{
-					startGameFromMenu();
-				}
-			});
-		viewNav->showRightBtn(false);
-		viewStack.setShowNavViewBackButton(View::needsBackControl);
-		EmuApp::onCustomizeNavView(*viewNav);
-		viewStack.setNavView(std::move(viewNav));
-	}
-	{
-		auto viewNav = std::make_unique<BasicNavView>
-		(
-			renderer,
-			&View::defaultFace,
-			&getAsset(renderer, ASSET_ARROW),
-			nullptr
-		);
-		viewNav->rotateLeftBtn = true;
-		viewNav->setOnPushLeftBtn(
-			[](Input::Event)
-			{
-				modalViewController.popAndShow();
-			});
-		modalViewController.setShowNavViewBackButton(View::needsBackControl);
-		EmuApp::onCustomizeNavView(*viewNav);
-		modalViewController.setNavView(std::move(viewNav));
-	}
-
 	Base::setOnResume(
 		[](bool focused)
 		{
@@ -926,8 +880,56 @@ void mainInitCommon(int argc, char** argv)
 		logMsg("requested external storage write permissions");
 	}
 	renderer.initWindow(mainWin.win, winConf);
+	ViewAttachParams viewAttach{mainWin.win, renderer};
+
+	{
+		auto viewNav = std::make_unique<BasicNavView>
+		(
+			viewAttach,
+			&View::defaultFace,
+			&getAsset(renderer, ASSET_ARROW),
+			&getAsset(renderer, ASSET_GAME_ICON)
+		);
+		viewNav->rotateLeftBtn = true;
+		viewNav->setOnPushLeftBtn(
+			[](Input::Event)
+			{
+				viewStack.popAndShow();
+			});
+		viewNav->setOnPushRightBtn(
+			[](Input::Event)
+			{
+				if(EmuSystem::gameIsRunning())
+				{
+					startGameFromMenu();
+				}
+			});
+		viewNav->showRightBtn(false);
+		viewStack.setShowNavViewBackButton(View::needsBackControl);
+		EmuApp::onCustomizeNavView(*viewNav);
+		viewStack.setNavView(std::move(viewNav));
+	}
+	{
+		auto viewNav = std::make_unique<BasicNavView>
+		(
+			viewAttach,
+			&View::defaultFace,
+			&getAsset(renderer, ASSET_ARROW),
+			nullptr
+		);
+		viewNav->rotateLeftBtn = true;
+		viewNav->setOnPushLeftBtn(
+			[](Input::Event)
+			{
+				modalViewController.popAndShow();
+			});
+		modalViewController.setShowNavViewBackButton(View::needsBackControl);
+		EmuApp::onCustomizeNavView(*viewNav);
+		modalViewController.setNavView(std::move(viewNav));
+	}
+
 	mainInitWindowCommon(mainWin.win);
-	EmuApp::onMainWindowCreated({mainWin.win, renderer}, Input::defaultEvent());
+	EmuApp::onMainWindowCreated(viewAttach, Input::defaultEvent());
 
 	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
 	{
@@ -1247,7 +1249,6 @@ ViewAttachParams emuViewAttachParams()
 
 void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, CreateSystemCompleteDelegate onComplete)
 {
-	popModalViews();
 	if(!EmuApp::willCreateSystem(emuViewAttachParams(), e))
 	{
 		return;

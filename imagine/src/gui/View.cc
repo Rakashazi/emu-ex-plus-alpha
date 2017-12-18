@@ -20,6 +20,18 @@ Gfx::GlyphTextureSet View::defaultFace{};
 Gfx::GlyphTextureSet View::defaultBoldFace{};
 bool View::needsBackControl = needsBackControlDefault;
 
+void ViewController::popAndShow()
+{
+	pop();
+};
+
+bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
+{
+	return false;
+};
+
+View::~View() {}
+
 void View::pushAndShow(View &v, Input::Event e, bool needsNavView)
 {
 	assert(controller);
@@ -59,6 +71,12 @@ bool View::compileGfxPrograms(Gfx::Renderer &r)
 	compiled |= r.texAlphaReplaceProgram.compile(r);
 	return compiled;
 }
+
+void View::clearSelection() {}
+
+void View::onShow() {}
+
+void View::setFocus(bool) {}
 
 void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
 {
@@ -107,6 +125,13 @@ void View::show()
 	onShow();
 	//logMsg("showed view");
 	postDraw();
+}
+
+bool View::moveFocusToNextView(Input::Event e, _2DOrigin direction)
+{
+	if(!controller)
+		return false;
+	return controller->moveFocusToNextView(e, direction);
 }
 
 void View::setController(ViewController *c, Input::Event e)

@@ -51,10 +51,11 @@ void TextTableView::setItems(uint items)
 
 void TextTableView::onAddedToController(Input::Event e)
 {
-	if(!e.isPointer())
+	if(activeItem != -1 && !e.isPointer())
 	{
 		selected = activeItem;
 	}
+	else TableView::onAddedToController(e);
 }
 
 void TextTableView::drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const

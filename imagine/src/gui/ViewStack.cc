@@ -16,6 +16,7 @@
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <utility>
 
 void BasicViewController::push(View &v, Input::Event e)
@@ -84,11 +85,12 @@ void BasicViewController::draw()
 	view->draw();
 }
 
-void ViewStack::setNavView(std::unique_ptr<NavView> nav)
+void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
-	this->nav = std::move(nav);
+	nav = std::move(navView);
 	if(nav)
 	{
+		nav->setController(this, Input::defaultEvent());
 		showNavLeftBtn();
 	}
 }
@@ -114,8 +116,9 @@ void ViewStack::place()
 	if(navViewIsActive())
 	{
 		nav->setTitle(top().name());
-		nav->viewRect().setPosRel({viewRect.x, viewRect.y}, {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))}, LT2DO);
-		nav->place(top().renderer(), projP);
+		auto navRect = IG::makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))});
+		nav->setViewRect(navRect, projP);
+		nav->place();
 		customViewRect.y += nav->viewRect().ySize();
 	}
 	top().setViewRect(customViewRect, projP);
@@ -126,14 +129,60 @@ bool ViewStack::inputEvent(Input::Event e)
 {
 	if(!view.size())
 		return false;
-	if(navViewIsActive() && e.isPointer() && nav->viewRect().overlaps(e.pos()))
+	if(e.isPointer())
 	{
-		if(nav->inputEvent(e))
+		if(navViewIsActive() && nav->viewRect().overlaps(e.pos()))
 		{
+			if(nav->inputEvent(e))
+			{
+				return true;
+			}
+		}
+		if(e.pushed())
+		{
+			navViewHasFocus = false;
+			nav->clearSelection();
+		}
+		return top().inputEvent(e);
+	}
+	else
+	{
+		if(navViewHasFocus)
+			return nav->inputEvent(e);
+		else
+			return top().inputEvent(e);
+	}
+}
+
+bool ViewStack::moveFocusToNextView(Input::Event e, _2DOrigin direction)
+{
+	if(changingViewFocus || !view.size() || !navViewIsActive())
+		return false;
+	if(!direction.onTop() && !direction.onBottom())
+		return false;
+	changingViewFocus = true;
+	auto endChangingViewFocus = IG::scopeGuard([this]() { changingViewFocus = false; });
+	if(navViewHasFocus)
+	{
+		if(top().inputEvent(e))
+		{
+			navViewHasFocus = false;
 			return true;
 		}
+		return false;
 	}
-	return top().inputEvent(e);
+	else
+	{
+		if(!nav->hasButtons())
+			return false;
+		if(nav->inputEvent(e))
+		{
+			top().setFocus(false);
+			navViewHasFocus = true;
+			return true;
+		}
+		return false;
+	}
 }
 
 void ViewStack::draw()
@@ -142,7 +191,7 @@ void ViewStack::draw()
 		return;
 	top().draw();
 	if(navViewIsActive())
-		nav->draw(top().renderer(), top().window(), projP);
+		nav->draw();
 }
 
 void ViewStack::push(View &v, Input::Event e)
@@ -153,6 +202,8 @@ void ViewStack::push(View &v, Input::Event e)
 	if(nav)
 	{
 		showNavLeftBtn();
+		navViewHasFocus = false;
+		nav->clearSelection();
 	}
 }
 
@@ -181,7 +232,11 @@ void ViewStack::pop()
 	{
 		showNavLeftBtn();
 		if(view.size())
+		{
 			nav->setTitle(top().name());
+			if(navViewHasFocus)
+				top().setFocus(false);
+		}
 	}
 }
 
@@ -302,6 +357,14 @@ void ViewStack::setShowNavViewBackButton(bool show)
 void ViewStack::showNavLeftBtn()
 {
 	nav->showLeftBtn(showNavBackBtn && view.size() > 1);
+	if(navViewHasFocus && !nav->hasButtons())
+	{
+		navViewHasFocus = false;
+		if(view.size())
+		{
+			top().setFocus(true);
+		}
+	}
 }
 
 uint ViewStack::size() const
@@ -324,4 +387,9 @@ bool ViewStack::navViewIsActive() const
 void ViewStack::setOnRemoveView(RemoveViewDelegate del)
 {
 	onRemoveView_ = del;
+}
+
+bool ViewStack::viewHasFocus() const
+{
+	return !navViewHasFocus;
 }

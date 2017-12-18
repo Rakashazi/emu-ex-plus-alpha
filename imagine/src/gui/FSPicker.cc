@@ -31,9 +31,6 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face):
 	View{attach},
 	filter{filter},
-	tbl{attach, text},
-	faceRes{face},
-	navV{attach.renderer, face, singleDir ? nullptr : backRes, closeRes},
 	singleDir{singleDir}
 {
 	msgText = {msgStr.data(), face};
@@ -45,19 +42,26 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 		{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
-	navV.setBackgroundGradient(fsNavViewGrad);
-	navV.centerTitle = false;
-	navV.setOnPushLeftBtn(
+	auto nav = std::make_unique<BasicNavView>
+		(
+			attach,
+			face,
+			singleDir ? nullptr : backRes,
+			closeRes
+		);
+	nav->setBackgroundGradient(fsNavViewGrad);
+	nav->centerTitle = false;
+	nav->setOnPushLeftBtn(
 		[this](Input::Event e)
 		{
 			onLeftNavBtn(e);
 		});
-	navV.setOnPushRightBtn(
+	nav->setOnPushRightBtn(
 		[this](Input::Event e)
 		{
 			onRightNavBtn(e);
 		});
-	navV.setOnPushMiddleBtn(
+	nav->setOnPushMiddleBtn(
 		[this](Input::Event e)
 		{
 			if(!this->singleDir)
@@ -65,17 +69,14 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 				pushFileLocationsView(e);
 			}
 		});
+	controller.setNavView(std::move(nav));
+	auto table = new TableView(attach, text);
+	controller.push(*table, Input::defaultEvent());
 }
 
 void FSPicker::place()
 {
-	navV.viewRect().setPosRel({viewFrame.x, viewFrame.y}, {viewFrame.xSize(), int(faceRes->nominalHeight() * 1.75)}, LT2DO);
-	IG::WindowRect tableFrame = viewFrame;
-	tableFrame.setYPos(navV.viewRect().yPos(LB2DO));
-	tableFrame.y2 -= navV.viewRect().ySize();
-	tbl.setViewRect(tableFrame, projP);
-	tbl.place();
-	navV.place(renderer(), projP);
+	controller.place(viewFrame, projP);
 	msgText.compile(renderer(), projP);
 }
 
@@ -105,7 +106,7 @@ void FSPicker::setOnClose(OnCloseDelegate del)
 
 void FSPicker::onLeftNavBtn(Input::Event e)
 {
-	changeDirByInput(FS::dirname(currPath).data(), root, true, e);
+	goUpDirectory(e);
 }
 
 void FSPicker::onRightNavBtn(Input::Event e)
@@ -120,31 +121,23 @@ void FSPicker::setOnPathReadError(OnPathReadError del)
 
 bool FSPicker::inputEvent(Input::Event e)
 {
-	if(e.isDefaultCancelButton() && e.state() == Input::PUSHED)
+	if(e.isDefaultCancelButton() && e.pushed())
 	{
-		onClose_.callCopy(*this, e);
+		onRightNavBtn(e);
 		return true;
 	}
-	if(!singleDir && e.state() == Input::PUSHED && e.isDefaultLeftButton())
+	else if(controller.viewHasFocus() && e.pushed() && e.isDefaultLeftButton())
 	{
-		logMsg("going up a dir");
-		changeDirByInput(FS::dirname(currPath).data(), root, true, e);
+		controller.moveFocusToNextView(e, CT2DO);
+		controller.top().setFocus(false);
 		return true;
 	}
-	else if(!singleDir && (e.pushedKey(Input::Keycode::GAME_B) || e.pushedKey(Input::Keycode::F1)))
+	else if(!isSingleDirectoryMode() && (e.pushedKey(Input::Keycode::GAME_B) || e.pushedKey(Input::Keycode::F1)))
 	{
 		pushFileLocationsView(e);
 		return true;
 	}
-	else if(e.isPointer() && navV.viewRect().overlaps(e.pos()) && !tbl.isDoingScrollGesture())
-	{
-		return navV.inputEvent(e);
-	}
-	else
-	{
-		return tbl.inputEvent(e);
-	}
-	return false;
+	return controller.inputEvent(e);
 }
 
 void FSPicker::draw()
@@ -152,24 +145,24 @@ void FSPicker::draw()
 	auto &r = renderer();
 	if(dir.size())
 	{
-		tbl.draw();
+		controller.top().draw();
 	}
 	else
 	{
 		using namespace Gfx;
 		r.setColor(COLOR_WHITE);
 		r.texAlphaProgram.use(r, projP.makeTranslate());
-		auto textRect = tbl.viewRect();
+		auto textRect = controller.top().viewRect();
 		if(IG::isOdd(textRect.ySize()))
 			textRect.y2--;
 		msgText.draw(r, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
 	}
-	navV.draw(r, window(), projP);
+	controller.navView()->draw();
 }
 
 void FSPicker::onAddedToController(Input::Event e)
 {
-	tbl.onAddedToController(e);
+	controller.top().onAddedToController(e);
 }
 
 std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e)
@@ -239,9 +232,9 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 			string_copy(msgStr, "Empty Directory");
 	}
 	if(!e.isPointer())
-		tbl.highlightCell(0);
+		static_cast<TableView*>(&controller.top())->highlightCell(0);
 	else
-		tbl.resetScroll();
+		static_cast<TableView*>(&controller.top())->resetScroll();
 	uint pathLen = strlen(path);
 	// verify root info
 	if(rootInfo.length &&
@@ -265,8 +258,8 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		root = {};
 		rootedPath = currPath;
 	}
-	navV.showLeftBtn(!isAtRoot());
-	navV.setTitle(rootedPath.data());
+	controller.top().setName(rootedPath.data());
+	controller.navView()->showLeftBtn(!isAtRoot());
 	onChangePath_.callSafe(*this, prevPath, e);
 	return {};
 }
@@ -281,9 +274,25 @@ FS::PathString FSPicker::path() const
 	return currPath;
 }
 
+void FSPicker::clearSelection()
+{
+	controller.top().clearSelection();
+}
+
 FS::PathString FSPicker::makePathString(const char *base) const
 {
 	return FS::makePathString(strlen(currPath.data()) > 1 ? currPath.data() : "", base);
+}
+
+bool FSPicker::isSingleDirectoryMode() const
+{
+	return singleDir;
+}
+
+void FSPicker::goUpDirectory(Input::Event e)
+{
+	clearSelection();
+	changeDirByInput(FS::dirname(currPath).data(), root, true, e);
 }
 
 bool FSPicker::isAtRoot() const

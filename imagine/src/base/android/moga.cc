@@ -111,7 +111,7 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				Base::endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = Time::makeWithNSecs(timestamp);
-				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, time, mogaDev};
+				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, time, mogaDev};
 				startKeyRepeatTimer(event);
 				Base::mainWindow().dispatchInputEvent(event);
 			})

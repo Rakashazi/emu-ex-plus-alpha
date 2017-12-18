@@ -262,7 +262,7 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint p
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, time, this};
+			Event event{player, Event::MAP_ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

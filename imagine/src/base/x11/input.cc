@@ -407,7 +407,7 @@ bool handleXI2GenericEvent(XEvent &event)
 				{
 					bool isShiftPushed = ievent.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);
-					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, time, dev};
+					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, repeated, time, dev};
 					ev.setX11RawKey(ievent.detail);
 					win.dispatchInputEvent(ev);
 				}

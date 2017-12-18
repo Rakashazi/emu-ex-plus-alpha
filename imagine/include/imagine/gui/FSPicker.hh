@@ -29,6 +29,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
+#include <imagine/gui/ViewStack.hh>
 
 class FSPicker : public View
 {
@@ -72,15 +73,14 @@ public:
 	}
 	FS::PathString path() const;
 	IG::WindowRect &viewRect() override { return viewFrame; }
-	void clearSelection() override
-	{
-		tbl.clearSelection();
-	}
+	void clearSelection() override;
 	FS::PathString makePathString(const char *base) const;
+	bool isSingleDirectoryMode() const;
+	void goUpDirectory(Input::Event e);
 
 protected:
 	FilterFunc filter{};
-	TableView tbl;
+	ViewStack controller{};
 	OnChangePathDelegate onChangePath_{};
 	OnSelectFileDelegate onSelectFile_{};
 	OnCloseDelegate onClose_
@@ -98,8 +98,6 @@ protected:
 	FS::PathString currPath{};
 	FS::PathString rootedPath{};
 	IG::WindowRect viewFrame{};
-	Gfx::GlyphTextureSet *faceRes{};
-	BasicNavView navV;
 	std::array<char, 48> msgStr{};
 	Gfx::Text msgText{};
 	bool singleDir = false;

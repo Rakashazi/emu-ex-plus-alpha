@@ -149,7 +149,7 @@ struct EvdevInputDevice : public Device
 				{
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
 					auto key = toSysKey(ev.code);
-					Event event{enumId(), Event::MAP_SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, time, this};
+					Event event{enumId(), Event::MAP_SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, 0, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}

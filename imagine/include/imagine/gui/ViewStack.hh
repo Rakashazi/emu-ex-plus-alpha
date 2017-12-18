@@ -59,6 +59,7 @@ public:
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool inputEvent(Input::Event e) override;
+	bool moveFocusToNextView(Input::Event e, _2DOrigin direction) override;
 	void draw();
 	void push(View &v, Input::Event e);
 	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
@@ -80,6 +81,7 @@ public:
 	void setShowNavViewBackButton(bool show);
 	uint size() const;
 	void setOnRemoveView(RemoveViewDelegate del);
+	bool viewHasFocus() const;
 
 protected:
 	struct ViewEntry
@@ -98,6 +100,8 @@ protected:
 	RemoveViewDelegate onRemoveView_{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
+	bool navViewHasFocus = false;
+	bool changingViewFocus = false;
 
 	void showNavLeftBtn();
 	bool topNeedsNavView() const;

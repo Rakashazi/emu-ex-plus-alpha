@@ -193,7 +193,7 @@ struct AppleGameDevice : public Device
 		auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
 		pushState[key] = pressed;
 		Base::endIdleByUserActivity();
-		Event event{enumId(), Event::MAP_APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, time, this};
+		Event event{enumId(), Event::MAP_APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, 0, time, this};
 		if(repeatable)
 			startKeyRepeatTimer(event);
 		dispatchInputEvent(event);

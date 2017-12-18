@@ -402,6 +402,16 @@ bool Event::isShiftPushed() const
 	return metaState != 0;
 }
 
+int Event::repeated() const
+{
+	return repeatCount;
+}
+
+void Event::setRepeatCount(int count)
+{
+	repeatCount = count;
+}
+
 IG::WP Event::pos() const
 {
 	return {x, y};

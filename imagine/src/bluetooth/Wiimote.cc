@@ -556,7 +556,7 @@ void Wiimote::processCoreButtons(const uchar *packet, Input::Time time, uint pla
 		{
 			//logMsg("%s %s @ wiimote %d", buttonName(Event::MAP_WIIMOTE, e.keyEvent), newState ? "pushed" : "released", player);
 			Base::endIdleByUserActivity();
-			Event event{(uint)player, Event::MAP_WIIMOTE, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, time, this};
+			Event event{(uint)player, Event::MAP_WIIMOTE, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -584,7 +584,7 @@ void Wiimote::processClassicButtons(const uchar *packet, Input::Time time, uint 
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wiimote cc", buttonName(Event::MAP_WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_WII_CC, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, time, &extDevice};
+			Event event{player, Event::MAP_WII_CC, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, 0, time, &extDevice};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -612,7 +612,7 @@ void Wiimote::processProButtons(const uchar *packet, Input::Time time, uint play
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wii u pro", buttonName(Event::MAP_WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_WII_CC, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, time, this};
+			Event event{player, Event::MAP_WII_CC, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -637,7 +637,7 @@ void Wiimote::processNunchukButtons(const uchar *packet, Input::Time time, uint 
 		{
 			//logMsg("%s %s @ wiimote nunchuk",buttonName(Event::MAP_WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_WIIMOTE, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, time, this};
+			Event event{player, Event::MAP_WIIMOTE, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

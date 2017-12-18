@@ -120,7 +120,10 @@ void TableView::draw()
 	if(selectedCellY != INT_MAX)
 	{
 		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(.2, .71, .9, 1./3.);
+		if(hasFocus)
+			r.setColor(.2, .71, .9, 1./3.);
+		else
+			r.setColor(.2 / 3., .71 / 3., .9 / 3., 1./3.);
 		auto rect = IG::makeWindowRectRel({x, selectedCellY}, {viewRect().xSize(), yCellSize-1});
 		GeomRect::draw(r, rect, projP);
 	}
@@ -162,6 +165,11 @@ void TableView::onAddedToController(Input::Event e)
 			return;
 		selected = nextSelectableElement(0, cells);
 	}
+}
+
+void TableView::setFocus(bool focused)
+{
+	hasFocus = focused;
 }
 
 void TableView::setScrollableIfNeeded(bool on)
@@ -264,7 +272,20 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 	using namespace IG;
 	auto cells_ = items(*this);
 	if(!cells_)
-		return false;
+	{
+		if(e.pushed() && e.isDefaultUpButton() && moveFocusToNextView(e, CT2DO))
+		{
+			return true;
+		}
+		else if(e.pushed() && e.isDefaultDownButton() && moveFocusToNextView(e, CB2DO))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 	if(e.isPointer())
 	{
 		if(!pointIsInView(e.pos()) || e.mapKey() != Input::Pointer::LBUTTON)
@@ -282,6 +303,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 		if(e.state() == Input::PUSHED)
 		{
 			logMsg("input pushed on cell %d", i);
+			hasFocus = true;
 			if(i >= 0 && i < cells_ && elementIsSelectable(it))
 			{
 				selected = i;
@@ -310,11 +332,37 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 		if((e.pushed() && e.isDefaultUpButton())
 			|| (e.isRelativePointer() && e.pos().y < 0))
 		{
+			if(!hasFocus)
+			{
+				logMsg("gained focus from key input");
+				hasFocus = true;
+				if(selected != -1)
+				{
+					postDraw();
+					return true;
+				}
+			}
 			//logMsg("move up %d", selected);
 			if(selected == -1)
 				selected = prevSelectableElement(cells_ - 1, cells_);
 			else
+			{
+				auto prevSelected = selected;
 				selected = prevSelectableElement(selected - 1, cells_);
+				if(selected > prevSelected)
+				{
+					if(e.repeated())
+					{
+						selected = prevSelected;
+						return true;
+					}
+					else if(moveFocusToNextView(e, CT2DO))
+					{
+						selected = -1;
+						return true;
+					}
+				}
+			}
 			logMsg("up, selected %d", selected);
 			postDraw();
 			movedSelected = true;
@@ -323,10 +371,36 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 		else if((e.pushed() && e.isDefaultDownButton())
 			|| (e.isRelativePointer() && e.pos().y > 0))
 		{
+			if(!hasFocus)
+			{
+				logMsg("gained focus from key input");
+				hasFocus = true;
+				if(selected != -1)
+				{
+					postDraw();
+					return true;
+				}
+			}
 			if(selected == -1)
 				selected = nextSelectableElement(0, cells_);
 			else
+			{
+				auto prevSelected = selected;
 				selected = nextSelectableElement(selected + 1, cells_);
+				if(selected < prevSelected)
+				{
+					if(e.repeated())
+					{
+						selected = prevSelected;
+						return true;
+					}
+					else if(moveFocusToNextView(e, CB2DO))
+					{
+						selected = -1;
+						return true;
+					}
+				}
+			}
 			logMsg("down, selected %d", selected);
 			postDraw();
 			movedSelected = true;

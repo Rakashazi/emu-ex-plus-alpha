@@ -53,6 +53,7 @@ public:
 	bool inputEvent(Input::Event event) override;
 	void clearSelection() override;
 	void onAddedToController(Input::Event e) override;
+	void setFocus(bool focused) override;
 	uint cells() { return items(*this); }
 	IG::WP cellSize() const { return {viewFrame.x, yCellSize}; }
 	void highlightCell(int idx);
@@ -70,6 +71,7 @@ public:
 protected:
 	bool onlyScrollIfNeeded = false;
 	bool selectedIsActivated = false;
+	bool hasFocus = true;
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;

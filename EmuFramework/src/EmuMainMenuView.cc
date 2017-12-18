@@ -291,7 +291,8 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Benchmark Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			modalViewController.pushAndShow(*EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
+			auto &fPicker = *EmuFilePicker::makeForBenchmarking(attachParams(), e);
+			pushAndShow(fPicker, e, false);
 		}
 	},
 	#ifdef CONFIG_BLUETOOTH

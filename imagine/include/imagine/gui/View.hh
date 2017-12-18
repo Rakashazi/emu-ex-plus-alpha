@@ -30,9 +30,10 @@ public:
 	constexpr ViewController() {}
 	virtual void pushAndShow(View &v, Input::Event e, bool needsNavView) = 0;
 	virtual void pop() = 0;
-	virtual void popAndShow() { pop(); };
+	virtual void popAndShow();
 	virtual void dismissView(View &v) = 0;
 	virtual bool inputEvent(Input::Event e) = 0;
+	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 };
 
 struct ViewAttachParams
@@ -52,7 +53,7 @@ public:
 	static const bool needsBackControlIsConst = Config::envIsPS3 || Config::envIsIOS || Config::envIsWebOS3;
 
 	constexpr View() {}
-	virtual ~View() {}
+	virtual ~View();
 	constexpr View(ViewAttachParams attach):
 		win{&attach.win}, renderer_{&attach.renderer} {}
 	constexpr View(const char *name, ViewAttachParams attach):
@@ -62,9 +63,10 @@ public:
 	virtual void place() = 0;
 	virtual void draw() = 0;
 	virtual bool inputEvent(Input::Event event) = 0;
-	virtual void clearSelection() {} // de-select any items from previous input
-	virtual void onShow() {}
+	virtual void clearSelection(); // de-select any items from previous input
+	virtual void onShow();
 	virtual void onAddedToController(Input::Event e) = 0;
+	virtual void setFocus(bool focused);
 
 	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
 	void postDraw();
@@ -81,6 +83,7 @@ public:
 	void pop();
 	void popAndShow();
 	void show();
+	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 	void setWindow(Base::Window *w) { win = w; }
 	void setController(ViewController *c, Input::Event e);
 	Gfx::ProjectionPlane projection() { return projP; }

@@ -232,7 +232,7 @@ void Zeemote::processBtnReport(const uchar *btnData, Input::Time time, uint play
 			uint code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, time, this};
+			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

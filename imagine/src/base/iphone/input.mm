@@ -220,7 +220,7 @@ void handleKeyEvent(UIEvent *event)
 	if(!keyDev.iCadeMode()
 		|| (keyDev.iCadeMode() && !processICadeKey(key, action, time, keyDev, *Base::deviceWindow())))
 	{
-		Base::deviceWindow()->dispatchInputEvent({0, Event::MAP_SYSTEM, key, key, action, 0, time, &keyDev});
+		Base::deviceWindow()->dispatchInputEvent({0, Event::MAP_SYSTEM, key, key, action, 0, 0, time, &keyDev});
 	}
 }
 

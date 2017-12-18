@@ -114,7 +114,7 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
-			EmuApp::createSystemWithMedia({}, name, "", e,
+			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e,
 				[](Input::Event e)
 				{
 					runBenchmarkOneShot();

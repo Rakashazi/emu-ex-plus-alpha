@@ -84,8 +84,8 @@ public:
 	constexpr Event(uint devId, uint map, Key button, uint metaState, uint state, int x, int y, int pointerID, bool pointerIsTouch, Time time, const Device *device)
 		: devId{devId}, map_{map}, button{button}, state_{state}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, time_{time}, device_{device}, pointerIsTouch{pointerIsTouch} {}
 
-	constexpr Event(uint devId, uint map, Key button, Key sysKey, uint state, uint metaState, Time time, const Device *device)
-		: devId{devId}, map_{map}, button{button}, sysKey_{sysKey}, state_{state}, metaState{metaState}, time_{time}, device_{device} {}
+	constexpr Event(uint devId, uint map, Key button, Key sysKey, uint state, uint metaState, int repeatCount, Time time, const Device *device)
+		: devId{devId}, map_{map}, button{button}, sysKey_{sysKey}, state_{state}, metaState{metaState}, repeatCount{repeatCount}, time_{time}, device_{device} {}
 
 	uint deviceID() const;
 	static const char *mapName(uint map);
@@ -123,6 +123,8 @@ public:
 	bool releasedKey(Key sysKey) const;
 	bool moved() const;
 	bool isShiftPushed() const;
+	int repeated() const;
+	void setRepeatCount(int count);
 	IG::WP pos() const;
 	bool isPointerPushed(Key k) const;
 	bool isSystemFunction() const;
@@ -141,6 +143,7 @@ protected:
 	int x = 0, y = 0;
 	int pointerID_ = 0;
 	uint metaState = 0;
+	int repeatCount = 0;
 	Time time_{};
 	const Device *device_{};
 	bool pointerIsTouch = false;

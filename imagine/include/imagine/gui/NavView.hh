@@ -24,25 +24,27 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/input/Input.hh>
+#include <imagine/gui/View.hh>
 
-class NavView
+class NavView : public View
 {
 public:
 	using OnPushDelegate = DelegateFunc<void (Input::Event e)>;
 
-	NavView(Gfx::GlyphTextureSet *face);
-	virtual ~NavView() {}
+	NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face);
 	void setOnPushLeftBtn(OnPushDelegate del);
 	void setOnPushRightBtn(OnPushDelegate del);
 	void setOnPushMiddleBtn(OnPushDelegate del);
 	void setTitle(const char *title) { text.setString(title); }
-	virtual void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
-	bool inputEvent(Input::Event e);
-	virtual void draw(Gfx::Renderer &r, const Base::Window &win, const Gfx::ProjectionPlane &projP) = 0;
+	void place() override;
+	bool inputEvent(Input::Event e) override;
+	void clearSelection() override;
+	void onAddedToController(Input::Event e) override;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;
-	IG::WindowRect &viewRect();
+	IG::WindowRect &viewRect() override;
 	Gfx::GlyphTextureSet *titleFace();
+	bool hasButtons() const;
 
 protected:
 	IG::WindowRect leftBtn{}, rightBtn{}, textRect{};
@@ -51,8 +53,12 @@ protected:
 	OnPushDelegate onPushLeftBtn_{};
 	OnPushDelegate onPushRightBtn_{};
 	OnPushDelegate onPushMiddleBtn_{};
+	int selected = -1;
 	bool hasBackBtn = false;
 	bool hasCloseBtn = false;
+
+	bool selectNextLeftButton();
+	bool selectNextRightButton();
 };
 
 class BasicNavView : public NavView
@@ -61,8 +67,8 @@ public:
 	bool centerTitle = true;
 	bool rotateLeftBtn = false;
 
-	BasicNavView(Gfx::Renderer &r, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
-	void setBackImage(Gfx::Renderer &r, Gfx::PixmapTexture *img);
+	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
+	void setBackImage(Gfx::PixmapTexture *img);
 	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops);
 
 	template <size_t S>
@@ -71,8 +77,8 @@ public:
 		setBackgroundGradient(gradStop, S);
 	}
 
-	void draw(Gfx::Renderer &r, const Base::Window &win, const Gfx::ProjectionPlane &projP) override;
-	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
+	void draw() override;
+	void place() override;
 	void showLeftBtn(bool show) override;
 	void showRightBtn(bool show) override;
 
