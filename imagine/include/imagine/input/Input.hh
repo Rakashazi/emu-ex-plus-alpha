@@ -108,6 +108,7 @@ public:
 	bool isDefaultRightButton() const;
 	bool isDefaultUpButton() const;
 	bool isDefaultDownButton() const;
+	bool isDefaultDirectionButton() const;
 	bool isDefaultPageUpButton() const;
 	bool isDefaultPageDownButton() const;
 	Key key() const;

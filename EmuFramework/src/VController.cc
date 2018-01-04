@@ -23,6 +23,9 @@
 #include "private.hh"
 #include "privateInput.hh"
 
+static constexpr uint TOGGLE_KEYBOARD = 65536;
+static constexpr uint CHANGE_KEYBOARD_MODE = 65537;
+
 void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight)
 {
 	using namespace Gfx;
@@ -199,12 +202,12 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset)
 	boundGC.setPos({0., mainWin.projectionPlane.bounds().y + yOffset}, CB2DO);
 	spr.setPos(boundGC);
 	bound = mainWin.projectionPlane.projectRect(boundGC);
-	keyXSize = (bound.xSize() / cols) + (bound.xSize() * (1./256.));
-	keyYSize = bound.ySize() / 4;
+	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1u);
+	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1u);
 	logMsg("key size %dx%d", keyXSize, keyYSize);
 }
 
-void VControllerKeyboard::draw(Gfx::Renderer &r) const
+void VControllerKeyboard::draw(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) const
 {
 	if(spr.image()->levels() > 1)
 		Gfx::TextureSampler::bindDefaultNearestMipClampSampler(r);
@@ -212,43 +215,256 @@ void VControllerKeyboard::draw(Gfx::Renderer &r) const
 		Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
 	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	spr.draw(r);
+	if(selected.x != -1)
+	{
+		r.setColor(.2, .71, .9, 1./3.);
+		r.noTexProgram.use(r, projP.makeTranslate());
+		IG::WindowRect rect{};
+		rect.x = bound.x + (selected.x * keyXSize);
+		rect.x2 = bound.x + ((selected.x2 + 1) * keyXSize);
+		rect.y = bound.y + (selected.y * keyYSize);
+		rect.y2 = rect.y + keyYSize;
+		Gfx::GeomRect::draw(r, rect, projP);
+	}
 }
 
 int VControllerKeyboard::getInput(IG::WP c) const
 {
-	if(bound.overlaps(c))
+	if(!bound.overlaps(c))
+		return -1;
+	int relX = c.x - bound.x, relY = c.y - bound.y;
+	uint row = std::min(relY/keyYSize, 3u);
+	uint col = std::min(relX/keyXSize, 19u);
+	uint idx = col + (row * VKEY_COLS);
+	logMsg("pointer %d,%d key @ %d,%d, idx %d", relX, relY, row, col, idx);
+	return idx;
+}
+
+int VControllerKeyboard::translateInput(uint idx) const
+{
+	assumeExpr(idx < VKEY_COLS * KEY_ROWS);
+	return table[0][idx];
+}
+
+bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, Input::Event e)
+{
+	if(selected.x == -1)
 	{
-		int relX = c.x - bound.x, relY = c.y - bound.y;
-		uint row = relY/keyYSize;
-		uint col;
-		if((mode_ == 0 && row == 1) || row == 2)
+		if(e.pushed() && (e.isDefaultConfirmButton() || e.isDefaultDirectionButton()))
 		{
-			relX -= keyXSize/2;
-			col = relX/keyXSize;
-			if(relX < 0)
-				col = 0;
-			else if(col > 8)
-				col = 8;
+			selectKey(0, 3);
+			return true;
 		}
 		else
 		{
-			if(row > 3)
-				row = 3;
-			col = relX/keyXSize;
-			if(col > 9)
-				col = 9;
+			return false;
 		}
-		uint idx = col + (row*cols);
-		logMsg("pointer %d,%d key @ %d,%d, idx %d", relX, relY, row, col, idx);
-		return idx;
 	}
-	return -1;
+	else if(e.isDefaultConfirmButton())
+	{
+		if(currentKey() == TOGGLE_KEYBOARD)
+		{
+			if(!e.pushed() || e.repeated())
+				return false;
+			logMsg("dismiss kb");
+			unselectKey();
+			v.toggleKeyboard();
+		}
+		else if(currentKey() == CHANGE_KEYBOARD_MODE)
+		{
+			if(!e.pushed() || e.repeated())
+				return false;
+			logMsg("switch kb mode");
+			setMode(r, mode() ^ true);
+			v.resetInput();
+		}
+		else if(e.pushed())
+		{
+			EmuSystem::handleInputAction(Input::PUSHED, currentKey());
+		}
+		else
+		{
+			EmuSystem::handleInputAction(Input::RELEASED, currentKey());
+		}
+		return true;
+	}
+	else if(!e.pushed())
+	{
+		return false;
+	}
+	else if(e.isDefaultLeftButton())
+	{
+		selectKeyRel(-1, 0);
+		return true;
+	}
+	else if(e.isDefaultRightButton())
+	{
+		selectKeyRel(1, 0);
+		return true;
+	}
+	else if(e.isDefaultUpButton())
+	{
+		selectKeyRel(0, -1);
+		return true;
+	}
+	else if(e.isDefaultDownButton())
+	{
+		selectKeyRel(0, 1);
+		return true;
+	}
+	return false;
+}
+
+void VControllerKeyboard::selectKey(uint x, uint y)
+{
+	if(x >= VKEY_COLS || y >= KEY_ROWS)
+	{
+		logErr("selected key:%dx%d out of range", x, y);
+	}
+	selected = {(int)x, (int)y, (int)x, (int)y};
+	extendKeySelection();
+}
+
+void VControllerKeyboard::selectKeyRel(int x, int y)
+{
+	if(x > 0)
+	{
+		selected.x2 = IG::wrapMinMax(selected.x2 + x, 0, (int)VKEY_COLS);
+		selected.x = selected.x2;
+	}
+	else if(x < 0)
+	{
+		selected.x = IG::wrapMinMax(selected.x + x, 0, (int)VKEY_COLS);
+		selected.x2 = selected.x;
+	}
+	if(y != 0)
+	{
+		selected.y = selected.y2 = IG::wrapMinMax(selected.y2 + y, 0, (int)KEY_ROWS);
+		selected.x2 = selected.x;
+	}
+	extendKeySelection();
+	if(!currentKey())
+	{
+		logMsg("skipping blank key index");
+		selectKeyRel(x, y);
+	}
+}
+
+void VControllerKeyboard::unselectKey()
+{
+	selected = {-1, -1, -1, -1};
+}
+
+void VControllerKeyboard::extendKeySelection()
+{
+	auto key = currentKey();
+	iterateTimes(selected.x, i)
+	{
+		if(table[selected.y][selected.x - 1] == key)
+			selected.x--;
+		else
+			break;
+	}
+	iterateTimes((VKEY_COLS - 1) - selected.x2, i)
+	{
+		if(table[selected.y][selected.x2 + 1] == key)
+			selected.x2++;
+		else
+			break;
+	}
+	logMsg("extended selection to:%d:%d", selected.x, selected.x2);
+}
+
+uint VControllerKeyboard::currentKey() const
+{
+	return table[selected.y][selected.x];
 }
 
 void VControllerKeyboard::setMode(Gfx::Renderer &r, int mode)
 {
 	mode_ = mode;
 	updateImg(r);
+	updateKeyboardMapping();
+}
+
+void VControllerKeyboard::applyMap(KbMap map)
+{
+	table = {};
+	// 1st row
+	auto *__restrict tablePtr = &table[0][0];
+	auto *__restrict mapPtr = &map[0];
+	iterateTimes(10, i)
+	{
+		tablePtr[0] = *mapPtr;
+		tablePtr[1] = *mapPtr;
+		tablePtr += 2;
+		mapPtr++;
+	}
+	// 2nd row
+	mapPtr = &map[10];
+	if(mode_ == 0)
+	{
+		tablePtr = &table[1][1];
+		iterateTimes(9, i)
+		{
+			tablePtr[0] = *mapPtr;
+			tablePtr[1] = *mapPtr;
+			tablePtr += 2;
+			mapPtr++;
+		}
+	}
+	else
+	{
+		tablePtr = &table[1][0];
+		iterateTimes(10, i)
+		{
+			tablePtr[0] = *mapPtr;
+			tablePtr[1] = *mapPtr;
+			tablePtr += 2;
+			mapPtr++;
+		}
+	}
+	// 3rd row
+	mapPtr = &map[20];
+	table[2][0] = table[2][1] = table[2][2] = *mapPtr;
+	mapPtr++;
+	tablePtr = &table[2][3];
+	iterateTimes(7, i)
+	{
+		tablePtr[0] = *mapPtr;
+		tablePtr[1] = *mapPtr;
+		tablePtr += 2;
+		mapPtr++;
+	}
+	table[2][17] = table[2][18] = table[2][19] = *mapPtr;
+	// 4th row
+	table[3][0] = table[3][1] = table[3][2] = TOGGLE_KEYBOARD;
+	table[3][3] = table[3][4] = table[3][5] = CHANGE_KEYBOARD_MODE;
+	tablePtr = &table[3][6];
+	mapPtr = &map[33];
+	iterateTimes(8, i)
+	{
+		*tablePtr++ = *mapPtr;
+	}
+	mapPtr += 4;
+	table[3][14] = table[3][15] = table[3][16] = *mapPtr;
+	mapPtr += 2;
+	table[3][17] = table[3][18] = table[3][19] = *mapPtr;
+
+	/*iterateTimes(table.size(), i)
+	{
+		logMsg("row:%d", i);
+		iterateTimes(table[0].size(), j)
+		{
+			logMsg("col:%d = %d", j, table[i][j]);
+		}
+	}*/
+}
+
+void VControllerKeyboard::updateKeyboardMapping()
+{
+	auto map = updateVControllerKeyboardMapping(mode());
+	applyMap(map);
 }
 
 void VControllerGamepad::setBoundingAreaVisible(Gfx::Renderer &r, bool on)
@@ -724,8 +940,7 @@ void VController::inputAction(uint action, uint vBtn)
 {
 	if(isInKeyboardMode())
 	{
-		assert(vBtn < IG::size(kbMap));
-		EmuSystem::handleInputAction(action, kbMap[vBtn]);
+		EmuSystem::handleInputAction(action, kb.translateInput(vBtn));
 	}
 	else
 	{
@@ -787,23 +1002,30 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 {
 	if(isInKeyboardMode())
 	{
-		int kbChar = kb.getInput(e.pos());
-		if(kbChar == -1)
-			return {-1, -1};
-		if(kbChar == 30 && e.pushed())
+		if(e.pushed())
 		{
+			kb.unselectKey();
+		}
+		int kbIdx = kb.getInput(e.pos());
+		if(kbIdx == -1)
+			return {-1, -1};
+		if(kb.translateInput(kbIdx) == TOGGLE_KEYBOARD)
+		{
+			if(!e.pushed())
+				return {-1, -1};
 			logMsg("dismiss kb");
 			toggleKeyboard();
 		}
-		else if((kbChar == 31 || kbChar == 32) && e.pushed())
+		else if(kb.translateInput(kbIdx) == CHANGE_KEYBOARD_MODE)
 		{
+			if(!e.pushed())
+				return {-1, -1};
 			logMsg("switch kb mode");
 			kb.setMode(renderer_, kb.mode() ^ true);
 			resetInput();
-			updateKeyboardMapping();
 		}
 		else
-			 return {kbChar, -1};
+			 return {kbIdx, -1};
 		return {-1, -1};
 	}
 
@@ -875,6 +1097,13 @@ void VController::applyInput(Input::Event e)
 	currElem = elem;
 }
 
+bool VController::keyInput(Input::Event e)
+{
+	if(!isInKeyboardMode())
+		return false;
+	return kb.keyInput(*this, renderer_, e);
+}
+
 void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden)
 {
 	draw(emuSystemControls, activeFF, showHidden, alpha);
@@ -890,23 +1119,25 @@ void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden, f
 	r.setColor(1., 1., 1., alpha);
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if(isInKeyboardMode())
-		kb.draw(r);
+		kb.draw(r, mainWin.projectionPlane);
 	else if(emuSystemControls)
 		gp.draw(r, showHidden);
 	#else
 	if(isInKeyboardMode())
-		kb.draw();
+		kb.draw(r, mainWin.projectionPlane);
 	#endif
 	//GeomRect::draw(menuBound);
 	//GeomRect::draw(ffBound);
 	if(menuBtnState == 1 || (showHidden && menuBtnState))
 	{
+		r.setColor(1., 1., 1., alpha);
 		TextureSampler::bindDefaultNearestMipClampSampler(r);
 		menuBtnSpr.useDefaultProgram(IMG_MODE_MODULATE);
 		menuBtnSpr.draw(r);
 	}
 	if(ffBtnState == 1 || (showHidden && ffBtnState))
 	{
+		r.setColor(1., 1., 1., alpha);
 		TextureSampler::bindDefaultNearestMipClampSampler(r);
 		ffBtnSpr.useDefaultProgram(IMG_MODE_MODULATE);
 		if(activeFF)
@@ -1044,10 +1275,10 @@ void VController::updateMapping(uint player)
 
 void VController::updateKeyboardMapping()
 {
-	updateVControllerKeyboardMapping(kb.mode(), kbMap);
+	kb.updateKeyboardMapping();
 }
 
-[[gnu::weak]] void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map) {}
+[[gnu::weak]] SysVController::KbMap updateVControllerKeyboardMapping(uint mode) { return {}; }
 
 void VController::setMenuImage(Gfx::PixmapTexture &img)
 {

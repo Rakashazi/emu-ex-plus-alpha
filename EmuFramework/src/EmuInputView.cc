@@ -105,6 +105,10 @@ bool EmuInputView::inputEvent(Input::Event e)
 	}
 	else
 	{
+		#ifdef CONFIG_VCONTROLS_GAMEPAD
+		if(vController.keyInput(e))
+			return true;
+		#endif
 		assert(e.device());
 		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->idx][e.mapKey()];
 		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));

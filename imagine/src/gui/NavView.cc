@@ -258,7 +258,6 @@ void BasicNavView::draw()
 	if((hasBackBtn && selected == 0)
 		|| (hasCloseBtn && selected == 1))
 	{
-		logMsg("selected:%d", selected);
 		r.setBlendMode(BLEND_MODE_ALPHA);
 		r.setColor(.2, .71, .9, 1./3.);
 		r.noTexProgram.use(r, projP.makeTranslate());

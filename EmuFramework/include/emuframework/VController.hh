@@ -20,6 +20,8 @@
 #include <emuframework/TurboInput.hh>
 #include <cmath>
 
+class VController;
+
 class VControllerDPad
 {
 public:
@@ -54,22 +56,38 @@ protected:
 class VControllerKeyboard
 {
 public:
+	static constexpr uint VKEY_COLS = 20;
+	static constexpr uint KEY_ROWS = 4;
+	static constexpr uint KEY_COLS = VKEY_COLS/2;
+	using KeyTable = std::array<std::array<uint, VKEY_COLS>, KEY_ROWS>;
+	using KbMap = std::array<uint, KEY_ROWS * KEY_COLS>;
+
 	constexpr VControllerKeyboard() {}
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
-	void draw(Gfx::Renderer &r) const;
+	void draw(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) const;
 	int getInput(IG::WP c) const;
+	int translateInput(uint idx) const;
+	bool keyInput(VController &v, Gfx::Renderer &r, Input::Event e);
+	void selectKey(uint x, uint y);
+	void selectKeyRel(int x, int y);
+	void unselectKey();
+	void extendKeySelection();
+	uint currentKey() const;
 	int mode() const { return mode_; }
 	void setMode(Gfx::Renderer &r, int mode);
+	void applyMap(KbMap map);
+	void updateKeyboardMapping();
 
 protected:
 	Gfx::Sprite spr{};
 	IG::WindowRect bound{};
 	uint keyXSize = 0, keyYSize = 0;
-	static const uint cols = 10;
 	uint mode_ = 0;
+	IG::WindowRect selected{-1, -1, -1, -1};
 	Gfx::GTexC texXEnd = 0;
+	KeyTable table{};
 };
 
 class VControllerGamepad
@@ -149,7 +167,7 @@ public:
 	static constexpr int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
 	static constexpr uint TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
 	using Map = std::array<uint, D_ELEM+9>;
-	using KbMap = std::array<uint, 40>;
+	using KbMap = VControllerKeyboard::KbMap;
 
 	constexpr VController(Gfx::Renderer &r, uint faceButtons): renderer_{r}
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
@@ -174,6 +192,7 @@ public:
 	void place();
 	void toggleKeyboard();
 	void applyInput(Input::Event e);
+	bool keyInput(Input::Event e);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden = false);
 	void draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
 	int numElements() const;
@@ -223,11 +242,10 @@ private:
 	std::array<std::array<int, 2>, Config::Input::MAX_POINTERS> ptrElem{};
 	Map map{};
 	uint kbMode = 0;
-	KbMap kbMap{};
 
 	std::array<int, 2> findElementUnderPos(Input::Event e);
 };
 
 using SysVController = VController;
 void updateVControllerMapping(uint player, SysVController::Map &map);
-void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map);
+SysVController::KbMap updateVControllerKeyboardMapping(uint mode);

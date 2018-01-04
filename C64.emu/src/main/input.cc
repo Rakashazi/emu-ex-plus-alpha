@@ -268,9 +268,9 @@ static const SysVController::KbMap kbToEventMap2Shifted
 	KB_NONE, KB_NONE, KB_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_PERIOD | SHIFT_BIT, KBEX_CTRL_LOCK, KB_RETURN
 };
 
-void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
+SysVController::KbMap updateVControllerKeyboardMapping(uint mode)
 {
-	map = mode ? (shiftLock ? kbToEventMap2Shifted : kbToEventMap2) : (shiftLock ? kbToEventMapShifted : kbToEventMap);
+	return mode ? (shiftLock ? kbToEventMap2Shifted : kbToEventMap2) : (shiftLock ? kbToEventMapShifted : kbToEventMap);
 }
 
 void updateVControllerMapping(uint player, SysVController::Map &map)

@@ -283,6 +283,11 @@ bool Event::isDefaultDownButton() const
 	return false;
 }
 
+bool Event::isDefaultDirectionButton() const
+{
+	return isDefaultLeftButton() || isDefaultRightButton() || isDefaultUpButton() || isDefaultDownButton();
+}
+
 bool Event::isDefaultPageUpButton() const
 {
 	switch(map())

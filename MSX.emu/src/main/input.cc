@@ -120,9 +120,9 @@ void setupVKeyboardMap(uint boardType)
 	EmuControls::updateKeyboardMapping();
 }
 
-void updateVControllerKeyboardMapping(uint mode, SysVController::KbMap &map)
+SysVController::KbMap updateVControllerKeyboardMapping(uint mode)
 {
-	map = mode ? kbToEventMap2 : kbToEventMap;
+	return mode ? kbToEventMap2 : kbToEventMap;
 }
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
