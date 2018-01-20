@@ -24,47 +24,34 @@ NavView::NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face):
 
 void NavView::setOnPushLeftBtn(OnPushDelegate del)
 {
-	onPushLeftBtn_ = del;
-}
-
-void NavView::setOnPushRightBtn(OnPushDelegate del)
-{
-	onPushRightBtn_ = del;
+	control[0].onPush = del;
 }
 
 void NavView::setOnPushMiddleBtn(OnPushDelegate del)
 {
-	onPushMiddleBtn_ = del;
+	control[1].onPush = del;
+	control[1].isActive = (bool)del;
+}
+
+void NavView::setOnPushRightBtn(OnPushDelegate del)
+{
+	control[2].onPush = del;
 }
 
 bool NavView::selectNextLeftButton()
 {
 	if(selected == -1)
-	{
-		if(hasBackBtn)
-		{
-			selected = 0;
-			postDraw();
-			return true;
-		}
-		else if(hasCloseBtn)
-		{
-			selected = 1;
-			postDraw();
-			return true;
-		}
-	}
-	else if(selected == 0 && hasCloseBtn)
-	{
 		selected = 1;
-		postDraw();
-		return true;
-	}
-	else if(selected == 1 && hasBackBtn)
+	int elem = IG::wrapMinMax(selected - 1, 0, controls);
+	iterateTimes(controls, i)
 	{
-		selected = 0;
-		postDraw();
-		return true;
+		if(control[elem].isActive)
+		{
+			selected = elem;
+			postDraw();
+			return true;
+		}
+		elem = IG::wrapMinMax(elem-1, 0, controls);
 	}
 	return false;
 }
@@ -72,31 +59,17 @@ bool NavView::selectNextLeftButton()
 bool NavView::selectNextRightButton()
 {
 	if(selected == -1)
+		selected = controls - 2;
+	int elem = IG::wrapMinMax(selected + 1, 0, controls);
+	iterateTimes(controls, i)
 	{
-		if(hasCloseBtn)
+		if(control[elem].isActive)
 		{
-			selected = 1;
+			selected = elem;
 			postDraw();
 			return true;
 		}
-		else if(hasBackBtn)
-		{
-			selected = 0;
-			postDraw();
-			return true;
-		}
-	}
-	else if(selected == 0 && hasCloseBtn)
-	{
-		selected = 1;
-		postDraw();
-		return true;
-	}
-	else if(selected == 1 && hasBackBtn)
-	{
-		selected = 0;
-		postDraw();
-		return true;
+		elem = IG::wrapMinMax(elem+1, 0, controls);
 	}
 	return false;
 }
@@ -134,36 +107,20 @@ bool NavView::inputEvent(Input::Event e)
 		{
 			return selectNextRightButton();
 		}
-		else if(e.isDefaultConfirmButton() && selected == 0 && hasBackBtn)
+		else if(e.isDefaultConfirmButton() && selected != -1 && control[selected].isActive)
 		{
-			onPushLeftBtn_.callCopySafe(e);
-			return true;
-		}
-		else if(e.isDefaultConfirmButton() && selected == 1 && hasCloseBtn)
-		{
-			onPushRightBtn_.callCopySafe(e);
+			control[selected].onPush.callCopySafe(e);
 			return true;
 		}
 	}
 	else if(e.state() == Input::PUSHED)
 	{
-		if(hasCloseBtn && rightBtn.overlaps(e.pos()))
+		for(auto &c : control)
 		{
-			onPushRightBtn_.callCopySafe(e);
-			return true;
-		}
-		else if(hasBackBtn && leftBtn.overlaps(e.pos()))
-		{
-			onPushLeftBtn_.callCopySafe(e);
-			return true;
-		}
-		else
-		{
-			auto centerBtnRect = textRect +
-				IG::WindowRect{textRect.xSize() / 4, 0, -textRect.xSize() / 4, -textRect.ySize() / 8};
-			if(centerBtnRect.overlaps(e.pos()))
+			if(c.isActive && c.rect.overlaps(e.pos()))
 			{
-				onPushMiddleBtn_.callCopySafe(e);
+				selected = -1;
+				c.onPush.callCopySafe(e);
 				return true;
 			}
 		}
@@ -174,14 +131,14 @@ bool NavView::inputEvent(Input::Event e)
 void NavView::place()
 {
 	text.compile(renderer(), projP);
-	//logMsg("setting textRect");
+	auto &textRect = control[1].rect;
 	textRect.setPosRel(viewRect_.pos(LT2DO), viewRect_.size(), LT2DO);
-	leftBtn.setPosRel(viewRect_.pos(LT2DO), viewRect_.ySize(), LT2DO);
-	if(hasBackBtn)
-		textRect.x += leftBtn.xSize();
-	rightBtn.setPosRel(viewRect_.pos(RT2DO), viewRect_.ySize(), RT2DO);
-	if(hasCloseBtn)
-		textRect.x2 -= rightBtn.xSize();
+	control[0].rect.setPosRel(viewRect_.pos(LT2DO), viewRect_.ySize(), LT2DO);
+	if(control[0].isActive)
+		textRect.x += control[0].rect.xSize();
+	control[2].rect.setPosRel(viewRect_.pos(RT2DO), viewRect_.ySize(), RT2DO);
+	if(control[2].isActive)
+		textRect.x2 -= control[2].rect.xSize();
 }
 
 void NavView::clearSelection()
@@ -203,7 +160,7 @@ Gfx::GlyphTextureSet *NavView::titleFace()
 
 bool NavView::hasButtons() const
 {
-	return hasBackBtn || hasCloseBtn;
+	return control[0].isActive || control[2].isActive;
 }
 
 // BasicNavView
@@ -218,13 +175,13 @@ BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, 
 	{
 		leftSpr.setImg(*backRes);
 		compiled |= backRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
-		hasBackBtn = true;
+		control[0].isActive = true;
 	}
 	if(closeRes)
 	{
 		rightSpr.setImg(*closeRes);
 		compiled |= closeRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
-		hasCloseBtn = true;
+		control[2].isActive = true;
 	}
 	if(compiled)
 		renderer().autoReleaseShaderCompiler();
@@ -235,7 +192,7 @@ void BasicNavView::setBackImage(Gfx::PixmapTexture *img)
 	leftSpr.setImg(img);
 	if(leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 		renderer().autoReleaseShaderCompiler();
-	hasBackBtn = leftSpr.image();
+	control[0].isActive = leftSpr.image();
 }
 
 void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops)
@@ -249,22 +206,19 @@ void BasicNavView::draw()
 {
 	using namespace Gfx;
 	auto &r = renderer();
+	auto const &textRect = control[1].rect;
 	if(bg)
 	{
 		r.setBlendMode(0);
 		r.noTexProgram.use(r, projP.makeTranslate());
 		bg.draw(r);
 	}
-	if((hasBackBtn && selected == 0)
-		|| (hasCloseBtn && selected == 1))
+	if(selected != -1 && control[selected].isActive)
 	{
 		r.setBlendMode(BLEND_MODE_ALPHA);
 		r.setColor(.2, .71, .9, 1./3.);
 		r.noTexProgram.use(r, projP.makeTranslate());
-		if(selected == 0)
-			GeomRect::draw(r, leftBtn, projP);
-		else if(selected == 1)
-			GeomRect::draw(r, rightBtn, projP);
+		GeomRect::draw(r, control[selected].rect, projP);
 	}
 	r.setColor(COLOR_WHITE);
 	r.texAlphaReplaceProgram.use(r);
@@ -286,25 +240,25 @@ void BasicNavView::draw()
 			text.draw(r, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}), LC2DO, projP);
 		}
 	}
-	if(hasBackBtn)
+	if(control[0].isActive)
 	{
 		assumeExpr(leftSpr.image());
 		r.setBlendMode(BLEND_MODE_ALPHA);
 		r.setColor(COLOR_WHITE);
 		TextureSampler::bindDefaultNearestMipClampSampler(r);
-		auto trans = projP.makeTranslate(projP.unProjectRect(leftBtn).pos(C2DO));
+		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(angleFromDegree(90));
 		leftSpr.useDefaultProgram(IMG_MODE_MODULATE, trans);
 		leftSpr.draw(r);
 	}
-	if(hasCloseBtn)
+	if(control[2].isActive)
 	{
 		assumeExpr(rightSpr.image());
 		r.setBlendMode(BLEND_MODE_ALPHA);
 		r.setColor(COLOR_WHITE);
 		TextureSampler::bindDefaultNearestMipClampSampler(r);
-		rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(rightBtn).pos(C2DO)));
+		rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
 		rightSpr.draw(r);
 	}
 }
@@ -316,13 +270,13 @@ void BasicNavView::place()
 	NavView::place();
 	if(leftSpr.image())
 	{
-		auto rect = projP.unProjectRect(leftBtn);
+		auto rect = projP.unProjectRect(control[0].rect);
 		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
 		leftSpr.setPos(scaledRect);
 	}
 	if(rightSpr.image())
 	{
-		auto rect = projP.unProjectRect(rightBtn);
+		auto rect = projP.unProjectRect(control[2].rect);
 		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
 		rightSpr.setPos(scaledRect);
 	}
@@ -331,11 +285,11 @@ void BasicNavView::place()
 
 void BasicNavView::showLeftBtn(bool show)
 {
-	hasBackBtn = show && leftSpr.image();
+	control[0].isActive = show && leftSpr.image();
 	if(!show && selected == 0)
 	{
-		if(hasCloseBtn)
-			selected = 1;
+		if(control[2].isActive)
+			selected = 2;
 		else
 			selected = -1;
 	}
@@ -343,10 +297,10 @@ void BasicNavView::showLeftBtn(bool show)
 
 void BasicNavView::showRightBtn(bool show)
 {
-	hasCloseBtn = show && rightSpr.image();
+	control[2].isActive = show && rightSpr.image();
 	if(!show && selected == 1)
 	{
-		if(hasBackBtn)
+		if(control[0].isActive)
 			selected = 0;
 		else
 			selected = -1;

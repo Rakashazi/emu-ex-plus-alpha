@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <array>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
@@ -47,15 +48,17 @@ public:
 	bool hasButtons() const;
 
 protected:
-	IG::WindowRect leftBtn{}, rightBtn{}, textRect{};
+	struct Control
+	{
+		IG::WindowRect rect{};
+		OnPushDelegate onPush{};
+		bool isActive = false;
+	};
+	static constexpr int controls = 3;
+	std::array<Control, controls> control{};
 	Gfx::Text text{};
 	IG::WindowRect viewRect_{};
-	OnPushDelegate onPushLeftBtn_{};
-	OnPushDelegate onPushRightBtn_{};
-	OnPushDelegate onPushMiddleBtn_{};
 	int selected = -1;
-	bool hasBackBtn = false;
-	bool hasCloseBtn = false;
 
 	bool selectNextLeftButton();
 	bool selectNextRightButton();

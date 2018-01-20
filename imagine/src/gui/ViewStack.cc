@@ -121,6 +121,10 @@ void ViewStack::place()
 		nav->place();
 		customViewRect.y += nav->viewRect().ySize();
 	}
+	else
+	{
+		navViewHasFocus = false;
+	}
 	top().setViewRect(customViewRect, projP);
 	top().place();
 }
