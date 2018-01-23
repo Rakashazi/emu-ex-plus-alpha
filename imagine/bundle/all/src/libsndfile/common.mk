@@ -4,13 +4,15 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libsndfileVer := 1.0.25
+libsndfileVer := 1.0.28
 libsndfileSrcDir := $(tempDir)/libsndfile-$(libsndfileVer)
 libsndfileSrcArchive := libsndfile-$(libsndfileVer).tar.gz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/src/.libs/libsndfile.a
 installIncludeDir := $(installDir)/include
+
+byteOrder := little
 
 all : $(outputLibFile)
 
@@ -27,11 +29,11 @@ $(libsndfileSrcDir)/configure : | $(libsndfileSrcArchive)
 	@echo "Extracting libsndfile..."
 	@mkdir -p $(libsndfileSrcDir)
 	tar -mxzf $| -C $(libsndfileSrcDir)/..
-	patch -d $(libsndfileSrcDir) -p1 < libsndfile-1.0.25-libm-pkgconf.patch
 	cp ../gnuconfig/config.* $(libsndfileSrcDir)/Cfg/
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libsndfile..."
+	ac_cv_c_byte_order=$(byteOrder) \
 	$(MAKE) -C $(<D)/src libsndfile.la
 
 $(makeFile) : $(libsndfileSrcDir)/configure
@@ -40,5 +42,6 @@ $(makeFile) : $(libsndfileSrcDir)/configure
 	cp $(libsndfileSrcDir)/src/*.def $(libsndfileSrcDir)/src/*.tpl $(@D)/src/
 	cp $(libsndfileSrcDir)/tests/*.def $(libsndfileSrcDir)/tests/*.tpl $(@D)/tests/
 	dir=`pwd` && cd $(@D) && $(toolchainEnvParams) CFLAGS="$(CPPFLAGS) $(CFLAGS)" LDFLAGS="$(LDFLAGS) $(LDLIBS)" \
+	ac_cv_c_byte_order=$(byteOrder) \
 	$(libsndfileSrcDir)/configure --prefix='$${pcfiledir}/../..' --disable-sqlite --disable-alsa --disable-external-libs \
 	--disable-octave --disable-shared --host=$(CHOST) PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG=pkg-config $(buildArg)

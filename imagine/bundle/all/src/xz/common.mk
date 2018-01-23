@@ -4,9 +4,9 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-xzVer := 5.2.2
+xzVer := 5.2.3
 xzSrcDir := $(tempDir)/xz-$(xzVer)
-xzSrcArchive := xz-$(xzVer).tar.gz
+xzSrcArchive := xz-$(xzVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/src/liblzma/.libs/liblzma.a
@@ -29,11 +29,12 @@ install : $(outputLibFile)
 $(xzSrcDir)/configure : | $(xzSrcArchive)
 	@echo "Extracting xz..."
 	@mkdir -p $(xzSrcDir)
-	tar -mxzf $| -C $(xzSrcDir)/..
+	tar -mxJf $| -C $(xzSrcDir)/..
 	cp ../gnuconfig/config.* $(xzSrcDir)/build-aux/
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building xz..."
+	ac_cv_c_bigendian=$(cpuIsBigEndian) \
 	$(MAKE) -C $(<D)
 
 $(makeFile) : $(xzSrcDir)/configure

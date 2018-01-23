@@ -4,9 +4,9 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libarchiveVer := 3.2.1
+libarchiveVer := 3.3.2
 libarchiveSrcDir := $(tempDir)/libarchive-$(libarchiveVer)
-libarchiveSrcArchive := libarchive-$(libarchiveVer).tar.xz
+libarchiveSrcArchive := libarchive-$(libarchiveVer).tar.gz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/.libs/libarchive.a
@@ -32,13 +32,12 @@ endif
 $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	@echo "Extracting libarchive..."
 	@mkdir -p $(libarchiveSrcDir)
-	tar -mxJf $| -C $(libarchiveSrcDir)/..
+	tar -mxzf $| -C $(libarchiveSrcDir)/..
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.0-entry-crc32.patch # adds ability to read file CRCs per entry
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.1-force-utf8-charset.patch # don't rely on nl_langinfo due to possibly unset locale and Android issues
-	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.1-acl-fix.patch
+	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.3.2-statfs-fix.patch # fix build on old Android API levels
 	cp $(libarchiveSrcDir)/contrib/android/include/android_lf.h $(libarchiveSrcDir)/libarchive/
 	cp ../gnuconfig/config.* $(libarchiveSrcDir)/build/autoconf/
-	cd $(libarchiveSrcDir) && build/autogen.sh
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libarchive..."
@@ -64,7 +63,6 @@ $(makeFile) : $(libarchiveSrcDir)/configure
 	--without-bz2lib \
 	--without-iconv \
 	--without-lz4 \
-	--without-lzmadec \
 	--without-lzo2 \
 	--without-nettle \
 	--without-openssl \

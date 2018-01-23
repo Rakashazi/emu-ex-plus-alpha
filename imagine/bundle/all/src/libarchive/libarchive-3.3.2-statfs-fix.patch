@@ -1,0 +1,12 @@
+diff -burp libarchive-3.3.2/libarchive/archive_read_disk_posix.c libarchive-3.3.2-patched/libarchive/archive_read_disk_posix.c
+--- libarchive-3.3.2/libarchive/archive_read_disk_posix.c	2017-02-25 12:37:08.000000000 -0500
++++ libarchive-3.3.2-patched/libarchive/archive_read_disk_posix.c	2018-01-21 17:26:43.963142913 -0500
+@@ -1800,7 +1800,7 @@ setup_current_filesystem(struct archive_
+ #if defined(HAVE_STATVFS)
+ 	if (svfs.f_flag & ST_NOATIME)
+ #else
+-	if (sfs.f_flag & ST_NOATIME)
++	if (sfs.f_flags & ST_NOATIME)
+ #endif
+ 		t->current_filesystem->noatime = 1;
+ 	else
