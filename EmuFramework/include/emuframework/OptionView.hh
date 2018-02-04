@@ -84,7 +84,7 @@ protected:
 	StaticArrayList<MenuItem*, 24> item{};
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
-	void onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);
+	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);
 
 public:
 	VideoOptionView(ViewAttachParams attach, bool customMenu = false);

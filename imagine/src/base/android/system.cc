@@ -167,3 +167,10 @@ void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 }
 
 }
+
+#ifdef ANDROID_COMPAT_API
+CLINK int ftruncate64(int fd, off64_t length)
+{
+	return ftruncate(fd, length);
+}
+#endif

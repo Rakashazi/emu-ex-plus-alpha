@@ -363,15 +363,28 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		Intent viewIntent = new Intent(this, BaseActivity.class);
 		viewIntent.setAction(Intent.ACTION_VIEW);
 		viewIntent.setData(Uri.parse("file://" + path));
-		Intent launcherIntent = new Intent();
-		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, viewIntent);
-		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, name);
-		final String EXTRA_SHORTCUT_DUPLICATE = "duplicate";
-		launcherIntent.putExtra(EXTRA_SHORTCUT_DUPLICATE, false);
 		int icon = getResources().getIdentifier("icon", "drawable", getPackageName());
-		launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(this, icon));
-		launcherIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
-		sendBroadcast(launcherIntent);
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+		{
+			ShortcutManager shortcutManager = getSystemService(ShortcutManager.class);
+			ShortcutInfo shortcutInfo = new ShortcutInfo.Builder(this, name)
+				.setShortLabel(name)
+				.setIcon(Icon.createWithResource(this, icon))
+				.setIntent(viewIntent)
+				.build();
+			shortcutManager.requestPinShortcut(shortcutInfo, null);
+		}
+		else
+		{
+			Intent launcherIntent = new Intent();
+			launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, viewIntent);
+			launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, name);
+			final String EXTRA_SHORTCUT_DUPLICATE = "duplicate";
+			launcherIntent.putExtra(EXTRA_SHORTCUT_DUPLICATE, false);
+			launcherIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(this, icon));
+			launcherIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
+			sendBroadcast(launcherIntent);
+		}
 	}
 	
 	@Override protected void onNewIntent(Intent intent)
@@ -488,6 +501,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	UserActivityFaker userActivityFaker()
 	{
 		return new UserActivityFaker();
+	}
+	
+	void setSustainedPerformanceMode(boolean on)
+	{
+		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+		{
+			getWindow().setSustainedPerformanceMode(on);
+		}
 	}
 	
 	Bitmap makeBitmap(int width, int height, int format)

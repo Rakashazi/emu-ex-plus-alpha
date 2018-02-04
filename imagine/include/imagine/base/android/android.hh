@@ -23,19 +23,6 @@
 namespace Base
 {
 
-class UserActivityFaker
-{
-	jobject inst{};
-	JavaInstMethod<void()> jStart{};
-	JavaInstMethod<void()> jStop{};
-
-public:
-	UserActivityFaker();
-	~UserActivityFaker();
-	void start();
-	void stop();
-};
-
 using AndroidPropString = std::array<char, 92>;
 
 uint androidSDK();
@@ -46,6 +33,7 @@ AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
 FS::PathString mainSOPath();
 void recycleBitmap(JNIEnv *env, jobject bitmap);
+void setSustainedPerformanceMode(bool on);
 
 }
 

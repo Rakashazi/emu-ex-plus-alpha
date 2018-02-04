@@ -166,9 +166,6 @@ Base::Screen::OnFrameDelegate onFrameUpdate{};
 #ifdef CONFIG_BLUETOOTH
 BluetoothAdapter *bta{};
 #endif
-#ifdef __ANDROID__
-std::unique_ptr<Base::UserActivityFaker> userActivityFaker{};
-#endif
 static EmuApp::OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 FS::PathString lastLoadPath{};
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -265,13 +262,7 @@ static void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceCh
 void setCPUNeedsLowLatency(bool needed)
 {
 	#ifdef __ANDROID__
-	if(userActivityFaker)
-	{
-		if(needed)
-			userActivityFaker->start();
-		else
-			userActivityFaker->stop();
-	}
+	Base::setSustainedPerformanceMode(needed);
 	#endif
 }
 
@@ -942,13 +933,6 @@ void mainInitCommon(int argc, char** argv)
 	{
 		handleOpenFileCommand(launchGame);
 	}
-
-	#ifdef __ANDROID__
-	if(optionFakeUserActivity)
-	{
-		userActivityFaker = std::make_unique<Base::UserActivityFaker>();
-	}
-	#endif
 }
 
 void mainInitWindowCommon(Base::Window &win)

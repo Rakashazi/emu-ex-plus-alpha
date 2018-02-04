@@ -481,7 +481,7 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
 	item.emplace_back(&processPriority);
-	if(!optionFakeUserActivity.isConst)
+	if(!optionSustainedPerformanceMode.isConst)
 		item.emplace_back(&fakeUserActivity);
 	#endif
 }
@@ -930,7 +930,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	}
 }
 
-void VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time)
+bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time)
 {
 	double wantedTime = time;
 	if(!time)
@@ -940,7 +940,7 @@ void VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double ti
 	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
 	{
 		popup.printf(4, true, "%.2fHz not in valid range", 1. / wantedTime);
-		return;
+		return false;
 	}
 	EmuSystem::configFrameTime();
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
@@ -955,6 +955,7 @@ void VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double ti
 		printFrameRatePALStr(frameRatePALStr);
 		frameRatePAL.compile(renderer(), projP);
 	}
+	return true;
 }
 
 void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e)
@@ -979,7 +980,8 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						"using the detected or default rate may give better results");
 				}
 			}
-			onFrameTimeChange(vidSys, 0);
+			if(onFrameTimeChange(vidSys, 0))
+				popAndShow();
 		});
 	multiChoiceView.appendItem("Set default rate",
 		[this, vidSys](TextMenuItem &, View &, Input::Event e)
@@ -1300,15 +1302,10 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	fakeUserActivity
 	{
 		"Prevent CPU Idling",
-		(bool)optionFakeUserActivity,
+		(bool)optionSustainedPerformanceMode,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			userActivityFaker.reset();
-			if(!item.boolValue())
-			{
-				userActivityFaker = std::make_unique<Base::UserActivityFaker>();
-			}
-			optionFakeUserActivity = item.flipBoolValue(*this);
+			optionSustainedPerformanceMode = item.flipBoolValue(*this);
 		}
 	}
 	#endif
@@ -1496,7 +1493,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	lowProfileOSNav
 	{
-		"Dim OS Navigation",
+		"Dim OS UI",
 		optionLowProfileOSNav,
 		lowProfileOSNavItem
 	},

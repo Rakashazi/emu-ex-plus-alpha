@@ -50,6 +50,7 @@ static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
 static JavaInstMethod<jobject()> jNewFontRenderer{};
 JavaInstMethod<void(jint)> jSetRequestedOrientation{};
+JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{};
 static const char *filesDir{};
 static uint aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
@@ -62,6 +63,7 @@ static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 AInputQueue *inputQueue{};
 static void *mainLibHandle{};
 static bool unloadNativeLibOnDestroy = false;
+static std::unique_ptr<UserActivityFaker> userActivityFaker{};
 
 // window
 JavaInstMethod<void(jint, jint)> jSetWinFlags{};
@@ -445,6 +447,36 @@ bool hasTranslucentSysUI()
 	return androidSDK() >= 19;
 }
 
+void setSustainedPerformanceMode(bool on)
+{
+	if(Base::androidSDK() < 16)
+		return;
+	else if(Base::androidSDK() < 24)
+	{
+		if(on)
+		{
+			if(!userActivityFaker)
+				userActivityFaker = std::make_unique<Base::UserActivityFaker>();
+			if(appState == APP_RUNNING)
+				userActivityFaker->start();
+			logMsg("enabled user activity faker");
+		}
+		else
+		{
+			userActivityFaker.reset();
+			logMsg("disabled user activity faker");
+		}
+	}
+	else
+	{
+		auto env = jEnv();
+		if(unlikely(!jSetSustainedPerformanceMode))
+			jSetSustainedPerformanceMode.setup(env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V");
+		logMsg("set sustained performance mode:%s", on ? "on" : "off");
+		jSetSustainedPerformanceMode(env, jBaseActivity, on);
+	}
+}
+
 static void setNativeActivityCallbacks(ANativeActivity* activity)
 {
 	activity->callbacks->onDestroy =
@@ -480,11 +512,15 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			Input::onResumeMOGA(jEnv(), true);
 			#endif
 			Input::registerDeviceChangeListener();
+			if(userActivityFaker)
+				userActivityFaker->start();
 		};
 	//activity->callbacks->onSaveInstanceState = nullptr; // unused
 	activity->callbacks->onPause =
 		[](ANativeActivity *activity)
 		{
+			if(userActivityFaker)
+				userActivityFaker->stop();
 			if(Base::androidSDK() < 11)
 			{
 				if(appIsRunning())

@@ -28,6 +28,19 @@ struct ANativeWindow;
 namespace Base
 {
 
+class UserActivityFaker
+{
+	jobject inst{};
+	JavaInstMethod<void()> jStart{};
+	JavaInstMethod<void()> jStop{};
+
+public:
+	UserActivityFaker();
+	~UserActivityFaker();
+	void start();
+	void stop();
+};
+
 extern JavaVM *jVM;
 JNIEnv *jEnv(); // JNIEnv of activity thread
 

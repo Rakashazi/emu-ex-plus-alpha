@@ -166,6 +166,7 @@ public:
 	void setupSamplerObjects();
 	void setupPBO();
 	void setupSpecifyDrawReadBuffers();
+	void setupUnmapBufferFunc();
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
 	void initTexturePBO();

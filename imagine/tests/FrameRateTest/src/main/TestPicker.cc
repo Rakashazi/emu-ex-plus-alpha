@@ -17,6 +17,12 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 
+TestTableEntry::TestTableEntry(SelectDelegate selectDel):
+	DualTextMenuItem{nullptr, nullptr, selectDel}
+{
+	t = {testStr.data(), &View::defaultFace};
+}
+
 void TestTableEntry::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);

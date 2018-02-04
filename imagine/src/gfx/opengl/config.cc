@@ -198,6 +198,28 @@ void GLRenderer::setupSpecifyDrawReadBuffers()
 	#endif
 }
 
+void GLRenderer::setupUnmapBufferFunc()
+{
+	if(!support.glUnmapBuffer)
+	{
+		if constexpr(Config::envIsAndroid || Config::envIsIOS)
+		{
+			support.glUnmapBuffer = (DrawContextSupport::UnmapBufferProto)glUnmapBufferOES;
+		}
+		else
+		{
+			if constexpr(Config::Gfx::OPENGL_ES)
+			{
+				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBufferOES");
+			}
+			else
+			{
+				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
+			}
+		}
+	}
+}
+
 void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 {
 	//logMsg("checking %s", extStr);
@@ -267,16 +289,14 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		logMsg("supports map buffer range (NVIDIA)");
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
-		if(!support.glUnmapBuffer)
-			support.glUnmapBuffer = (DrawContextSupport::UnmapBufferProto)glUnmapBufferOES;
+		setupUnmapBufferFunc();
 	}
 	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
 	{
 		logMsg("supports map buffer range");
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
-		if(!support.glUnmapBuffer)
-			support.glUnmapBuffer = (DrawContextSupport::UnmapBufferProto)glUnmapBufferOES;
+		setupUnmapBufferFunc();
 	}
 	/*else if(string_equal(extStr, "GL_OES_mapbuffer"))
 	{

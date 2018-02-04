@@ -227,7 +227,7 @@ OptionRecentGames optionRecentGames;
 Byte1Option optionAndroidTextureStorage{CFGKEY_ANDROID_TEXTURE_STORAGE, OPTION_ANDROID_TEXTURE_STORAGE_AUTO,
 	0, optionIsValidWithMax<OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE>};
 SByte1Option optionProcessPriority{CFGKEY_PROCESS_PRIORITY, -6, 0, optionIsValidWithMinMax<-17, 0>};
-Byte1Option optionFakeUserActivity{CFGKEY_FAKE_USER_ACTIVITY, 1, 0};
+Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 1, 0};
 #endif
 
 Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
@@ -338,8 +338,8 @@ void initOptions()
 	}
 	if(Base::androidSDK() < 16)
 	{
-		optionFakeUserActivity.initDefault(0);
-		optionFakeUserActivity.isConst = true;
+		optionSustainedPerformanceMode.initDefault(0);
+		optionSustainedPerformanceMode.isConst = true;
 	}
 	if(Base::androidSDK() < 11)
 	{

@@ -62,9 +62,6 @@ extern EmuVideoLayer emuVideoLayer;
 extern EmuMenuViewStack viewStack;
 extern EmuModalViewStack modalViewController;
 extern bool menuViewIsActive;
-#ifdef __ANDROID__
-extern std::unique_ptr<Base::UserActivityFaker> userActivityFaker;
-#endif
 extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern MsgPopup popup;

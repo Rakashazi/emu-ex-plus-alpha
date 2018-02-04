@@ -26,7 +26,7 @@ public:
 	std::array<char, 9> fpsStr{};
 	bool redText{};
 
-	TestTableEntry(SelectDelegate selectDel): DualTextMenuItem{testStr.data(), nullptr, selectDel} {}
+	TestTableEntry(SelectDelegate selectDel);
 	void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
 };
 

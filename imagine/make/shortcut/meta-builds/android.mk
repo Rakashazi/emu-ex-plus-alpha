@@ -130,8 +130,37 @@ $(android_drawableXxxhdpiIconPath) :
 	ln -rs $(resPath)/icons/icon-192.png $@
 endif
 
+ifneq ($(wildcard $(resPath)/icons/adaptive-icon-bg.png),)
+android_drawableIconV26Path := $(android_targetPath)/res/drawable-anydpi-v26/icon.xml
+$(android_drawableIconV26Path) :
+	@mkdir -p $(@D)
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n\t<background android:drawable="@mipmap/icon_bg" />\n\t<foreground android:drawable="@mipmap/icon_fg" />\n</adaptive-icon>' > $@
+
+android_drawableIconBgPath := $(android_targetPath)/res/mipmap-xhdpi/icon_bg.png
+$(android_drawableIconBgPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/adaptive-icon-bg.png $@
+
+android_mipmapXhdpiIconFgPath := $(android_targetPath)/res/mipmap-xhdpi/icon_fg.png
+$(android_mipmapXhdpiIconFgPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/adaptive-icon-fg-216.png $@
+
+android_mipmapXxhdpiIconFgPath := $(android_targetPath)/res/mipmap-xxhdpi/icon_fg.png
+$(android_mipmapXxhdpiIconFgPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/adaptive-icon-fg-324.png $@
+
+android_mipmapXxxhdpiIconFgPath := $(android_targetPath)/res/mipmap-xxxhdpi/icon_fg.png
+$(android_mipmapXxxhdpiIconFgPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/adaptive-icon-fg-432.png $@
+endif
+
 android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath) \
- $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath) $(android_drawableXxxhdpiIconPath)
+ $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath) $(android_drawableXxxhdpiIconPath) \
+ $(android_drawableIconV26Path) $(android_drawableIconBgPath) $(android_mipmapXhdpiIconFgPath) \
+ $(android_mipmapXxhdpiIconFgPath) $(android_mipmapXxxhdpiIconFgPath)
 
 ifdef android_ouyaBuild
  android_drawableXhdpiOuyaIconPath := $(android_targetPath)/res/drawable-xhdpi/ouya_icon.png
@@ -361,8 +390,8 @@ android-install : $(android_projectDeps) $(android_soFiles)
 	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_installTask)
 
 .PHONY: android-install-only
-android-install-only :
-	adb install -r $(android_apkPath)
+android-install-only : $(android_projectDeps)
+	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_installTask)
 
 .PHONY: android-ready
 android-ready : 
