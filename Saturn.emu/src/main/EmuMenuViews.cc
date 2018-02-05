@@ -36,7 +36,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem sh2Core
 	{
 		"SH2",
-		[]() -> uint
+		[]() -> int
 		{
 			iterateTimes(std::min(SH2Cores, MAX_SH2_CORES), i)
 			{

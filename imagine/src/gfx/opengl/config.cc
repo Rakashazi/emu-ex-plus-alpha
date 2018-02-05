@@ -200,6 +200,7 @@ void GLRenderer::setupSpecifyDrawReadBuffers()
 
 void GLRenderer::setupUnmapBufferFunc()
 {
+	#ifdef CONFIG_GFX_OPENGL_ES
 	if(!support.glUnmapBuffer)
 	{
 		if constexpr(Config::envIsAndroid || Config::envIsIOS)
@@ -218,6 +219,7 @@ void GLRenderer::setupUnmapBufferFunc()
 			}
 		}
 	}
+	#endif
 }
 
 void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)

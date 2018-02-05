@@ -476,7 +476,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	pointerInput
 	{
 		"Virtual Gamepad Player",
-		pointerInputPlayer,
+		(int)pointerInputPlayer,
 		[this](const MultiChoiceMenuItem &) -> int
 		{
 			return EmuSystem::maxPlayers;
@@ -503,7 +503,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	size
 	{
 		"Button Size",
-		(uint)findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, 0),
+		findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, 0),
 		sizeItem
 	},
 	deadzoneItem
@@ -515,7 +515,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	deadzone
 	{
 		"Deadzone",
-		(uint)findIdxInArrayOrDefault(touchDpadDeadzoneMenuVal, (uint)optionTouchDpadDeadzone, 0),
+		findIdxInArrayOrDefault(touchDpadDeadzoneMenuVal, (uint)optionTouchDpadDeadzone, 0),
 		deadzoneItem
 	},
 	diagonalSensitivityItem
@@ -529,7 +529,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	diagonalSensitivity
 	{
 		"Diagonal Sensitivity",
-		(uint)findIdxInArrayOrDefault(touchDpadDiagonalSensitivityMenuVal, (uint)optionTouchDpadDiagonalSensitivity, 0),
+		findIdxInArrayOrDefault(touchDpadDiagonalSensitivityMenuVal, (uint)optionTouchDpadDiagonalSensitivity, 0),
 		diagonalSensitivityItem
 	},
 	btnSpaceItem
@@ -542,7 +542,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	btnSpace
 	{
 		"Spacing",
-		(uint)findIdxInArrayOrDefault(touchCtrlBtnSpaceMenuVal, (uint)optionTouchCtrlBtnSpace, 0),
+		findIdxInArrayOrDefault(touchCtrlBtnSpaceMenuVal, (uint)optionTouchCtrlBtnSpace, 0),
 		btnSpaceItem
 	},
 	btnExtraXSizeItem
@@ -555,7 +555,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	btnExtraXSize
 	{
 		"H Overlap",
-		(uint)findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraXBtnSize, 0),
+		findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraXBtnSize, 0),
 		btnExtraXSizeItem
 	},
 	btnExtraYSizeMultiRowItem
@@ -570,7 +570,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	{
 		(EmuSystem::inputFaceBtns == 4 || (EmuSystem::inputFaceBtns >= 6 && EmuSystem::inputHasTriggerBtns))
 			? "V Overlap" : "V Overlap (2 rows)",
-		(uint)findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSizeMultiRow, 0),
+		findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSizeMultiRow, 0),
 		btnExtraYSizeMultiRowItem
 	},
 	btnExtraYSizeItem
@@ -583,7 +583,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	btnExtraYSize
 	{
 		"V Overlap",
-		(uint)findIdxInArrayOrDefault(touchCtrlExtraYBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSize, 0),
+		findIdxInArrayOrDefault(touchCtrlExtraYBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSize, 0),
 		btnExtraYSizeItem
 	},
 	triggerPos
@@ -608,7 +608,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	btnStagger
 	{
 		"Stagger",
-		optionTouchCtrlBtnStagger,
+		(int)optionTouchCtrlBtnStagger,
 		btnStaggerItem
 	},
 	dPadStateItem
@@ -620,7 +620,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	dPadState
 	{
 		"D-Pad",
-		layoutPosArr()[0].state,
+		(int)layoutPosArr()[0].state,
 		dPadStateItem
 	},
 	faceBtnStateItem
@@ -632,7 +632,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	faceBtnState
 	{
 		faceBtnName,
-		layoutPosArr()[2].state,
+		(int)layoutPosArr()[2].state,
 		faceBtnStateItem
 	},
 	centerBtnStateItem
@@ -644,7 +644,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	centerBtnState
 	{
 		centerBtnName,
-		layoutPosArr()[1].state,
+		(int)layoutPosArr()[1].state,
 		centerBtnStateItem
 	},
 	lTriggerStateItem
@@ -656,7 +656,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	lTriggerState
 	{
 		"L",
-		layoutPosArr()[5].state,
+		(int)layoutPosArr()[5].state,
 		lTriggerStateItem
 	},
 	rTriggerStateItem
@@ -668,7 +668,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	rTriggerState
 	{
 		"R",
-		layoutPosArr()[6].state,
+		(int)layoutPosArr()[6].state,
 		rTriggerStateItem
 	},
 	boundingBoxes
@@ -727,7 +727,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	alpha
 	{
 		"Blend Amount",
-		(uint)findIdxInArrayOrDefault(alphaMenuVal, optionTouchCtrlAlpha.val, 3),
+		findIdxInArrayOrDefault(alphaMenuVal, optionTouchCtrlAlpha.val, 3),
 		alphaItem
 	},
 	btnPlace
@@ -749,7 +749,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	menuState
 	{
 		"Open Menu Button",
-		layoutPosArr()[3].state,
+		(int)layoutPosArr()[3].state,
 		[](const MultiChoiceMenuItem &) -> int
 		{
 			return CAN_TURN_OFF_MENU_BTN ? 3 : 2; // iOS port doesn't use "off" value
@@ -768,7 +768,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	ffState
 	{
 		"Fast-forward Button",
-		layoutPosArr()[4].state,
+		(int)layoutPosArr()[4].state,
 		ffStateItem
 	},
 	resetControls

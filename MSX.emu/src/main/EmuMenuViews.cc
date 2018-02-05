@@ -91,7 +91,13 @@ private:
 	MultiChoiceMenuItem msxMachine
 	{
 		"Machine Type",
-		"None",
+		[](int idx) -> const char*
+		{
+			if(idx == -1)
+				return "None";
+			else
+				return nullptr;
+		},
 		0,
 		msxMachineItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
@@ -142,8 +148,7 @@ private:
 		}
 		else
 		{
-			msxMachine.setSelected(0);
-			msxMachine.setDisplayString("None");
+			msxMachine.setSelected(-1);
 		}
 	}
 

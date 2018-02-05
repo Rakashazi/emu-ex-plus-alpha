@@ -369,7 +369,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	relativePointerDecel
 	{
 		"Trackball Sensitivity",
-		[]() -> uint
+		[]()
 		{
 			if(optionRelPointerDecel == optionRelPointerDecelLow)
 				return 0;
@@ -471,7 +471,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	btScanSecs
 	{
 		"Scan Time",
-		[]() -> uint
+		[]()
 		{
 			switch(BluetoothAdapter::scanSecs)
 			{
@@ -614,7 +614,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	player
 	{
 		"Player",
-		playerConfToMenuIdx(devConfRef.player),
+		(int)playerConfToMenuIdx(devConfRef.player),
 		[](const MultiChoiceMenuItem &) -> uint
 		{
 			return EmuSystem::maxPlayers+1;

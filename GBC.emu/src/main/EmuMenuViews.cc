@@ -93,6 +93,7 @@ public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&gbPalette);
 		item.emplace_back(&useBuiltinGBPalette);
 		item.emplace_back(&fullSaturation);

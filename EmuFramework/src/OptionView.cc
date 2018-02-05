@@ -216,10 +216,13 @@ static void setOverlayEffectLevel(uint val)
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+static const char *autoImgEffectPixelFormatStr()
+{
+	return "RGB565";
+}
+
 static void setImgEffectPixelFormat(PixelFormatID format)
 {
-	if(format == PIXEL_NONE)
-		popup.printf(3, false, "Set RGB565 mode via Auto");
 	optionImageEffectPixelFormat = format;
 	emuVideoLayer.setEffectBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
 	emuWin->win.postDraw();
@@ -227,17 +230,14 @@ static void setImgEffectPixelFormat(PixelFormatID format)
 #endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+static const char *autoWindowPixelFormatStr()
+{
+	return Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
+}
+
 static void setWindowPixelFormat(PixelFormatID format)
 {
-	if(format == PIXEL_NONE)
-	{
-		popup.printf(3, false, "Set %s mode via Auto, restart app for option to take effect",
-			Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888");
-	}
-	else
-	{
-		popup.post("Restart app for option to take effect");
-	}
+	popup.post("Restart app for option to take effect");
 	optionWindowPixelFormat = format;
 }
 #endif
@@ -419,15 +419,22 @@ void VideoOptionView::loadStockItems()
 		printFrameRatePALStr(frameRatePALStr);
 		item.emplace_back(&frameRatePAL);
 	}
+	item.emplace_back(&visualsHeading);
 	item.emplace_back(&imgFilter);
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	item.emplace_back(&imgEffect);
 	#endif
 	item.emplace_back(&overlayEffect);
 	item.emplace_back(&overlayEffectLevel);
+	if(!optionDitherImage.isConst)
+	{
+		item.emplace_back(&dither);
+	}
+	item.emplace_back(&screenShapeHeading);
 	item.emplace_back(&zoom);
 	item.emplace_back(&viewportZoom);
 	item.emplace_back(&aspectRatio);
+	item.emplace_back(&advancedHeading);
 	#ifdef CONFIG_BASE_ANDROID
 	if(!Config::MACHINE_IS_OUYA)
 	{
@@ -440,10 +447,6 @@ void VideoOptionView::loadStockItems()
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	item.emplace_back(&windowPixelFormat);
 	#endif
-	if(!optionDitherImage.isConst)
-	{
-		item.emplace_back(&dither);
-	}
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	item.emplace_back(&secondDisplay);
 	#endif
@@ -550,7 +553,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_AUTO);
-				popup.printf(3, false, "Set %s mode via Auto", Gfx::Texture::androidStorageImplStr(renderer()));
 			}
 		},
 		{
@@ -619,6 +621,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	androidTextureStorage
 	{
 		"GPU Copy Mode",
+		[this](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				return Gfx::Texture::androidStorageImplStr(renderer());
+			}
+			else
+				return nullptr;
+		},
 		optionAndroidTextureStorage,
 		[items = Base::androidSDK() >= 14 ? 4u : 3u](const MultiChoiceMenuItem &) -> int
 		{
@@ -696,8 +707,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	zoom
 	{
-		"Zoom",
-		[]() -> uint
+		"Content Zoom",
+		[]()
 		{
 			switch(optionImageZoom.val)
 			{
@@ -721,8 +732,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	viewportZoom
 	{
-		"Screen Area",
-		[]() -> uint
+		"App Zoom",
+		[]()
 		{
 			switch(optionViewportZoom.val)
 			{
@@ -758,7 +769,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffect
 	{
 		"Image Effect",
-		[]() -> uint
+		[]()
 		{
 			switch(optionImgEffect)
 			{
@@ -783,7 +794,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffect
 	{
 		"Overlay Effect",
-		[]() -> uint
+		[]()
 		{
 			switch(optionOverlayEffect)
 			{
@@ -810,7 +821,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectLevel
 	{
 		"Overlay Effect Level",
-		[]() -> uint
+		[]()
 		{
 			switch(optionOverlayEffectLevel)
 			{
@@ -835,7 +846,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffectPixelFormat
 	{
 		"Effect Color Format",
-		[]() -> uint
+		[](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				return autoImgEffectPixelFormatStr();
+			}
+			else
+				return nullptr;
+		},
+		[]()
 		{
 			switch(optionImageEffectPixelFormat.val)
 			{
@@ -859,7 +879,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	windowPixelFormat
 	{
 		"Display Color Format",
-		[]() -> uint
+		[](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				return autoWindowPixelFormatStr();
+			}
+			else
+				return nullptr;
+		},
+		[]()
 		{
 			switch(optionWindowPixelFormat.val)
 			{
@@ -907,7 +936,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			optionDitherImage = item.flipBoolValue(*this);
 			renderer().setDither(optionDitherImage);
 		}
-	}
+	},
+	visualsHeading{"Visuals"},
+	screenShapeHeading{"Screen Shape"},
+	advancedHeading{"Advanced"},
+	systemSpecificHeading{"System-specific"}
 {
 	iterateTimes(EmuSystem::aspectRatioInfos, i)
 	{
@@ -1072,7 +1105,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	soundBuffers
 	{
 		"Buffer Size In Frames",
-		std::min((uint)optionSoundBuffers - (uint)OPTION_SOUND_BUFFERS_MIN, (uint)IG::size(soundBuffersItem) - 1u),
+		std::min((int)optionSoundBuffers - (int)OPTION_SOUND_BUFFERS_MIN, (int)IG::size(soundBuffersItem) - 1),
 		[this](const MultiChoiceMenuItem &) -> int
 		{
 			return IG::size(soundBuffersItem) - (OPTION_SOUND_BUFFERS_MIN - 2);
@@ -1093,7 +1126,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	audioRate
 	{
 		"Sound Rate",
-		[]() -> uint
+		[]()
 		{
 			switch(optionSoundRate)
 			{
@@ -1156,7 +1189,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	autoSaveState
 	{
 		"Auto-save State",
-		[]() -> uint
+		[]()
 		{
 			switch(optionAutoSaveState.val)
 			{
@@ -1247,7 +1280,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	fastForwardSpeed
 	{
 		"Fast Forward Speed",
-		[]() -> uint
+		[]() -> int
 		{
 			if(optionFastForwardSpeed >= MIN_FAST_FORWARD_SPEED && optionFastForwardSpeed <= 7)
 			{
@@ -1288,7 +1321,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	processPriority
 	{
 		"Process Priority",
-		[]() -> uint
+		[]()
 		{
 			switch(optionProcessPriority.val)
 			{
@@ -1396,7 +1429,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	fontSize
 	{
 		"Font Size",
-		[]() -> uint
+		[]()
 		{
 			switch(optionFontSize)
 			{
@@ -1609,9 +1642,9 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientation
 	{
 		"In Menu",
-		[]() -> uint
+		[]()
 		{
-			uint itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
+			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
 			switch(optionMenuOrientation)
 			{
 				default: return 0;
@@ -1636,9 +1669,9 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	gameOrientation
 	{
 		"In Game",
-		[]() -> uint
+		[]()
 		{
-			uint itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
+			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
 			switch(optionGameOrientation)
 			{
 				default: return 0;

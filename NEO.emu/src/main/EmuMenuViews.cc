@@ -42,7 +42,7 @@ private:
 	MultiChoiceMenuItem timer
 	{
 		"Emulate Timer",
-		std::min((uint)optionTimerInt, 2u),
+		std::min((int)optionTimerInt, 2),
 		timerItem
 	};
 
@@ -57,7 +57,7 @@ private:
 	MultiChoiceMenuItem region
 	{
 		"MVS Region",
-		std::min((uint)conf.country, 3u),
+		std::min((int)conf.country, 3),
 		regionItem
 	};
 
@@ -72,7 +72,7 @@ private:
 	MultiChoiceMenuItem bios
 	{
 		"BIOS Type",
-		[]() -> uint
+		[]()
 		{
 			switch(conf.system)
 			{
@@ -544,7 +544,7 @@ class UnibiosSwitchesView : public TableView
 	MultiChoiceMenuItem region
 	{
 		"Region",
-		(uint)memory.memcard[3] & 0x3,
+		(int)memory.memcard[3] & 0x3,
 		regionItem
 	};
 

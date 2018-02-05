@@ -29,7 +29,7 @@ class CustomInputOptionView : public TableView
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports",
-		[]() -> uint
+		[]()
 		{
 			if(nesInputPortDev[0] == SI_GAMEPAD && nesInputPortDev[1] == SI_GAMEPAD)
 				return 1;
@@ -128,6 +128,7 @@ public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&videoSystem);
 		item.emplace_back(&spriteLimit);
 	}

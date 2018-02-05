@@ -68,7 +68,7 @@ public:
 	tvPhosphor
 	{
 		"Simulate TV Phosphor",
-		std::min((uint)optionTVPhosphor, 2u),
+		std::min((int)optionTVPhosphor, 2),
 		tvPhosphorItem
 	},
 	videoSystemItem
@@ -89,6 +89,7 @@ public:
 	}
 	{
 		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&tvPhosphor);
 		item.emplace_back(&videoSystem);
 	}

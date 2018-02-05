@@ -17,7 +17,7 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
-		std::min((uint)optionVideoSystem, 3u),
+		std::min((int)optionVideoSystem, 3),
 		videoSystemItem
 	};
 
@@ -25,6 +25,7 @@ public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&videoSystem);
 	}
 };
@@ -113,7 +114,7 @@ class CustomInputOptionView : public TableView
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports",
-		[]() -> uint
+		[]()
 		{
 			if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MD_GAMEPAD)
 				return 1;
@@ -183,7 +184,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem region
 	{
 		"Game Region",
-		std::min((uint)config.region_detect, 4u),
+		std::min((int)config.region_detect, 4),
 		videoSystemItem
 	};
 

@@ -81,7 +81,11 @@ protected:
 	BoolMenuItem showOnSecondScreen;
 	#endif
 	BoolMenuItem dither;
-	StaticArrayList<MenuItem*, 24> item{};
+	TextHeadingMenuItem visualsHeading;
+	TextHeadingMenuItem screenShapeHeading;
+	TextHeadingMenuItem advancedHeading;
+	TextHeadingMenuItem systemSpecificHeading;
+	StaticArrayList<MenuItem*, 28> item{};
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);

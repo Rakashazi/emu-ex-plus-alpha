@@ -194,15 +194,16 @@ public:
 	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &item, View &parent, Input::Event e)>;
 	using ItemsDelegate = DelegateFunc<uint (const MultiChoiceMenuItem &item)>;
 	using ItemDelegate = DelegateFunc<TextMenuItem& (const MultiChoiceMenuItem &item, uint idx)>;
+	using SetDisplayStringDelegate = DelegateFunc<const char *(uint idx)>;
 
 	MultiChoiceMenuItem() {}
-	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
-	MultiChoiceMenuItem(const char *str, uint selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
-	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, ItemsDelegate items, ItemDelegate item);
-	MultiChoiceMenuItem(const char *str, uint selected, ItemsDelegate items, ItemDelegate item);
+	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
+	MultiChoiceMenuItem(const char *str, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
+	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, ItemsDelegate items, ItemDelegate item);
+	MultiChoiceMenuItem(const char *str, int selected, ItemsDelegate items, ItemDelegate item);
 	template <class C>
-	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, C &item, SelectDelegate selectDel):
-		MultiChoiceMenuItem{str, displayStr, selected,
+	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, C &item, SelectDelegate selectDel):
+		MultiChoiceMenuItem{str, onDisplayStr, selected,
 		[&item](const MultiChoiceMenuItem &) -> int
 		{
 			return IG::size(item);
@@ -214,34 +215,36 @@ public:
 		selectDel}
 	{}
 	template <class C>
-	MultiChoiceMenuItem(const char *str, uint selected, C &item, SelectDelegate selectDel):
-		MultiChoiceMenuItem{str, nullptr, selected, item, selectDel}
+	MultiChoiceMenuItem(const char *str, int selected, C &item, SelectDelegate selectDel):
+		MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, item, selectDel}
 	{}
 	template <class C>
-	MultiChoiceMenuItem(const char *str, const char *displayStr, uint selected, C &item):
-		MultiChoiceMenuItem{str, displayStr, selected, item, {}}
+	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, C &item):
+		MultiChoiceMenuItem{str, onDisplayStr, selected, item, {}}
 	{}
 	template <class C>
-	MultiChoiceMenuItem(const char *str, uint selected, C &item):
-		MultiChoiceMenuItem{str, nullptr, selected, item, {}}
+	MultiChoiceMenuItem(const char *str, int selected, C &item):
+		MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, item, {}}
 	{}
 	void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
-	uint selected() const;
+	int selected() const;
 	uint items() const;
-	bool setSelected(uint idx, View &view);
-	bool setSelected(uint idx);
+	bool setSelected(int idx, View &view);
+	bool setSelected(int idx);
 	int cycleSelected(int offset, View &view);
 	int cycleSelected(int offset);
 	bool select(View &parent, Input::Event e) override;
 	void setOnSelect(SelectDelegate onSelect);
-	void setDisplayString(const char *str);
 	TableView *makeTableView(ViewAttachParams attach);
 	void defaultOnSelect(View &view, Input::Event e);
 
 protected:
-	uint selected_ = 0;
+	int selected_ = 0;
 	SelectDelegate selectD{};
 	ItemsDelegate items_{};
 	ItemDelegate item_{};
+	SetDisplayStringDelegate onSetDisplayString{};
+
+	void setDisplayString(int idx);
 };

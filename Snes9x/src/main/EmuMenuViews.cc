@@ -36,7 +36,7 @@ class CustomInputOptionView : public TableView
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports",
-		[]() -> uint
+		[]()
 		{
 			constexpr int SNES_JOYPAD_MENU_IDX = HAS_NSRT ? 1 : 0;
 			constexpr int SNES_SUPERSCOPE_MENU_IDX = HAS_NSRT ? 2 : 1;
@@ -133,6 +133,7 @@ public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&videoSystem);
 	}
 };

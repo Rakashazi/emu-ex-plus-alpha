@@ -230,12 +230,12 @@ public:
 	}
 };
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, const char *displayStr,
-	uint selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr,
+	int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
 	BaseDualTextMenuItem
 	{
 		str,
-		displayStr
+		nullptr
 	},
 	selected_{selected},
 	selectD
@@ -247,22 +247,23 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, const char *displayStr
 			}
 	},
 	items_{items},
-	item_{item}
+	item_{item},
+	onSetDisplayString{onDisplayStr}
 {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, uint selected,
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, int selected,
 	ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
-	MultiChoiceMenuItem{str, nullptr, selected, items, item, selectDel}
+	MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, items, item, selectDel}
 {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, const char *displayStr,
-	uint selected, ItemsDelegate items, ItemDelegate item):
-	MultiChoiceMenuItem{str, displayStr, selected, items, item, {}}
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr,
+	int selected, ItemsDelegate items, ItemDelegate item):
+	MultiChoiceMenuItem{str, onDisplayStr, selected, items, item, {}}
 {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, uint selected,
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, int selected,
 	ItemsDelegate items, ItemDelegate item):
-	MultiChoiceMenuItem{str, nullptr, selected, items, item, {}}
+	MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, items, item, {}}
 {}
 
 void MultiChoiceMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
@@ -275,14 +276,11 @@ void MultiChoiceMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx
 
 void MultiChoiceMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
-	if(selected_ < items_(*this))
-	{
-		setDisplayString(item_(*this, selected_).t.str);
-	}
+	setDisplayString(selected_);
 	BaseDualTextMenuItem::compile(r, projP);
 }
 
-uint MultiChoiceMenuItem::selected() const
+int MultiChoiceMenuItem::selected() const
 {
 	return selected_;
 }
@@ -292,7 +290,7 @@ uint MultiChoiceMenuItem::items() const
 	return items_(*this);
 }
 
-bool MultiChoiceMenuItem::setSelected(uint idx, View &view)
+bool MultiChoiceMenuItem::setSelected(int idx, View &view)
 {
 	bool selectChanged = setSelected(idx);
 	t2.compile(view.renderer(), view.projection());
@@ -300,31 +298,39 @@ bool MultiChoiceMenuItem::setSelected(uint idx, View &view)
 	return selectChanged;
 }
 
-bool MultiChoiceMenuItem::setSelected(uint idx)
+bool MultiChoiceMenuItem::setSelected(int idx)
 {
 	bool selectChanged = selected_ != idx;
 	selected_ = idx;
-	if(selected_ < items_(*this))
-	{
-		setDisplayString(item_(*this, idx).t.str);
-	}
+	setDisplayString(idx);
 	return selectChanged;
 }
 
-void MultiChoiceMenuItem::setDisplayString(const char *str)
+void MultiChoiceMenuItem::setDisplayString(int idx)
 {
-	t2.setString(str);
+	if(const char *str = onSetDisplayString.callSafe(idx); str)
+	{
+		t2.setString(str);
+	}
+	else if((uint)idx < items_(*this))
+	{
+		t2.setString(item_(*this, idx).t.str);
+	}
+	else
+	{
+		t2.setString("");
+	}
 }
 
 int MultiChoiceMenuItem::cycleSelected(int offset, View &view)
 {
-	setSelected(IG::wrapMax(selected_ + offset, items()), view);
+	setSelected(IG::wrapMax(selected_ + offset, (int)items()), view);
 	return selected_;
 }
 
 int MultiChoiceMenuItem::cycleSelected(int offset)
 {
-	setSelected(IG::wrapMax(selected_ + offset, items()));
+	setSelected(IG::wrapMax(selected_ + offset, (int)items()));
 	return selected_;
 }
 
@@ -346,7 +352,7 @@ TableView *MultiChoiceMenuItem::makeTableView(ViewAttachParams attach)
 	{
 		t.str,
 		attach,
-		selected_ < items_(*this) ? (int)selected_ : -1,
+		(uint)selected_ < items_(*this) ? selected_ : -1,
 		[this](const TableView &)
 		{
 			return items_(*this);

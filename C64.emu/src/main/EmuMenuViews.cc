@@ -117,7 +117,7 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem borderMode
 	{
 		"Borders",
-		optionBorderMode >= IG::size(borderModeItem) ? VICII_NORMAL_BORDERS : (uint)optionBorderMode,
+		optionBorderMode >= IG::size(borderModeItem) ? VICII_NORMAL_BORDERS : (int)optionBorderMode,
 		borderModeItem
 	};
 
@@ -125,6 +125,7 @@ public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
 		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&cropNormalBorders);
 		item.emplace_back(&borderMode);
 	}
@@ -141,11 +142,11 @@ class CustomAudioOptionView : public AudioOptionView
 	MultiChoiceMenuItem sidEngine
 	{
 		"SID Engine",
-		[this]() -> uint
+		[this]()
 		{
-			uint engine = intResource("SidEngine");
+			int engine = intResource("SidEngine");
 			logMsg("current SID engine: %d", engine);
-			if(engine >= IG::size(sidEngineItem))
+			if((uint)engine >= IG::size(sidEngineItem))
 			{
 				return SID_ENGINE_FASTSID;
 			}
@@ -315,7 +316,7 @@ class CustomSystemOptionView : public SystemOptionView
 	MultiChoiceMenuItem defaultCBM2Model
 	{
 		"CBM-II 6x0 Model",
-		optionCBM2Model - 2u,
+		optionCBM2Model - 2,
 		defaultCBM2ModelItem
 	};
 
@@ -688,7 +689,7 @@ private:
 	MultiChoiceMenuItem model
 	{
 		"Model",
-		[]() -> uint
+		[]()
 		{
 			auto modelVal = sysModel();
 			auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
@@ -792,7 +793,7 @@ private:
 		}
 	};
 
-	static uint driveTypeMenuIdx(int type)
+	static int driveTypeMenuIdx(int type)
 	{
 		switch(type)
 		{
