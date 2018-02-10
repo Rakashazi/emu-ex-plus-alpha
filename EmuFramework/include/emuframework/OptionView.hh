@@ -27,7 +27,7 @@
 
 class OptionCategoryView : public TableView
 {
-	TextMenuItem subConfig[4];
+	TextMenuItem subConfig[5];
 
 public:
 	OptionCategoryView(ViewAttachParams attach);

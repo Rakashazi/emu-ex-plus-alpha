@@ -95,8 +95,6 @@ void abort()
 	::abort();
 }
 
-//void openURL(const char *url) { };
-
 static std::pair<JNIEnv*, bool> jniEnvAndAttachThread(JavaVM *jVM)
 {
 	JNIEnv *env;

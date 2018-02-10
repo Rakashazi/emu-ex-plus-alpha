@@ -5,7 +5,11 @@ metadata_pkgName = PceEmu
 metadata_supportedMIMETypes = application/zip
 metadata_supportedFileExtensions = pce cue ccd
 android_metadata_id = com.PceEmu
-metadata_id = com.explusalpha.PceEmu
+ifeq ($(ENV),android)
+ metadata_id = $(android_metadata_id)
+else
+ metadata_id = com.explusalpha.PceEmu
+endif
 metadata_vendor = Robert Broglia
 ps3_productid = PCEE00000
 ps3_contentid = EM0000-$(ps3_productid)_00-EXPLUSALPHATURBO

@@ -411,7 +411,13 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 }
 
 OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
-	TableView{"Options", attach, subConfig},
+	TableView
+	{
+		"Options",
+		attach,
+		[this](const TableView &) { return hasGooglePlayStoreFeatures() ? IG::size(subConfig) : IG::size(subConfig)-1; },
+		[this](const TableView &, uint idx) -> MenuItem& { return subConfig[idx]; }
+	},
 	subConfig
 	{
 		{
@@ -447,7 +453,19 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 			}
 		}
 	}
-{}
+{
+	if(hasGooglePlayStoreFeatures())
+	{
+		subConfig[IG::size(subConfig)-1] =
+		{
+			"Beta Testing Opt-in/out",
+			[this]()
+			{
+				Base::openURL(string_makePrintf<96>("https://play.google.com/apps/testing/%s", appID()).data());
+			}
+		};
+	}
+}
 
 View *makeView(ViewAttachParams attach, EmuApp::ViewID id)
 {

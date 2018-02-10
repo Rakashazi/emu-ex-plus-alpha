@@ -78,6 +78,7 @@ void applyOSNavStyle(bool inGame);
 const char *appViewTitle();
 const char *appName();
 const char *appID();
+bool hasGooglePlayStoreFeatures();
 void setCPUNeedsLowLatency(bool needed);
 void setEmuViewOnExtraWindow(bool on);
 void startViewportAnimation(AppWindowData &winData);

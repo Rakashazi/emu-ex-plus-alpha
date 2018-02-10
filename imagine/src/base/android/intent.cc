@@ -84,7 +84,9 @@ void handleIntent(JNIEnv *env, jobject activity)
 
 void openURL(const char *url)
 {
-	// TODO
+	auto env = jEnv();
+	JavaInstMethod<void(jstring)> jOpenURL{env, jBaseActivityCls, "openURL", "(Ljava/lang/String;)V"};
+	jOpenURL(env, jBaseActivity, env->NewStringUTF(url));
 }
 
 void registerInstance(const char *appID, int argc, char** argv) {}

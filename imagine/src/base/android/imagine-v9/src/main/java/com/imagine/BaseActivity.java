@@ -592,4 +592,13 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			}
 		});
 	}
+	
+	void openURL(String url)
+	{
+		Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+		if(intent.resolveActivity(getPackageManager()) != null)
+		{
+			startActivity(intent);
+		}
+	}
 }

@@ -29,7 +29,6 @@ static const int ACTION_VERSION_MOGAPRO = 1;
 static const int STATE_CONNECTION = 1;
 static const int STATE_SELECTED_VERSION = 4;
 static jobject mogaHelper{};
-static JavaInstMethod<jobject()> jNewMOGAHelper{};
 static JavaInstMethod<jint(jint)> jMOGAGetState{};
 static JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
 static AndroidInputDevice *mogaDev{};
@@ -154,8 +153,7 @@ void initMOGA(bool notify)
 	auto env = Base::jEnv();
 	if(mogaHelper)
 		return;
-	if(!jNewMOGAHelper)
-		jNewMOGAHelper.setup(env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;");
+	JavaInstMethod<jobject()> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;"};
 	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
 	if(env->ExceptionCheck())
 	{

@@ -27,8 +27,6 @@ namespace Base
 static jobject vibrator{};
 static JavaInstMethod<void(jlong)> jVibrate{};
 static bool vibrationSystemIsInit = false;
-static JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{};
-static JavaInstMethod<void(jstring)> jMakeErrorPopup{};
 
 AndroidPropString androidBuildDevice()
 {
@@ -73,8 +71,7 @@ bool apkSignatureIsConsistent()
 bool packageIsInstalled(const char *name)
 {
 	auto env = jEnv();
-	if(!jPackageIsInstalled)
-		jPackageIsInstalled.setup(env, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z");
+	JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{env, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z"};
 	return jPackageIsInstalled(env, jBaseActivity, env->NewStringUTF(name));
 }
 
@@ -159,8 +156,7 @@ void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 	std::array<char, 512> msg{};
 	auto result = vsnprintf(msg.data(), msg.size(), format, args);
 	auto env = jEnv();
-	if(!jMakeErrorPopup)
-		jMakeErrorPopup.setup(env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V");
+	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V"};
 	jMakeErrorPopup(env, jBaseActivity, env->NewStringUTF(msg.data()));
 	auto exitTimer = new Timer{};
 	exitTimer->callbackAfterSec([=]() { exit(exitVal); }, 3, EventLoop::forThread());

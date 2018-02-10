@@ -32,3 +32,12 @@ const char *appID()
 {
 	return CONFIG_APP_ID;
 }
+
+bool hasGooglePlayStoreFeatures()
+{
+	#if defined __ANDROID__ && defined CONFIG_GOOGLE_PLAY_STORE
+	return true;
+	#else
+	return false;
+	#endif
+}
