@@ -52,7 +52,6 @@ class HermiteResampler : public Resampler
         time_ratio (double ratio)
         {
             r_step = ratio;
-            clear ();
         }
 
         void

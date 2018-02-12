@@ -22,10 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2016  BearOso,
+  (c) Copyright 2009 - 2017  BearOso,
                              OV2
 
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2017         qwertymodo
+
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -138,7 +140,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2016  BearOso
+  (c) Copyright 2004 - 2017  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -146,14 +148,14 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2016  OV2
+  (c) Copyright 2009 - 2017  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
 
   Libretro port
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -194,6 +196,8 @@
 #define _MSU1_H_
 #include "snes9x.h"
 
+#define MSU1_REVISION 0x02
+
 struct SMSU1
 {
 	uint8	MSU1_STATUS;
@@ -209,8 +213,7 @@ struct SMSU1
 };
 
 enum SMSU1_FLAG {
-	Revision		= 0x02,	//max: 0x07
-	AudioResume		= 0x04,
+	Revision		= 0x07,	// bitmask, not the actual version number
 	AudioError		= 0x08,
 	AudioPlaying		= 0x10,
 	AudioRepeating		= 0x20,
@@ -228,12 +231,15 @@ extern struct SMSU1	MSU1;
 
 void S9xResetMSU(void);
 void S9xMSU1Init(void);
+void S9xMSU1DeInit(void);
 bool S9xMSU1ROMExists(void);
-void S9xMSU1Generate(int sample_count);
-uint8 S9xMSU1ReadPort(int port);
-void S9xMSU1WritePort(int port, uint8 byte);
-uint16 S9xMSU1Samples(void);
-void S9xMSU1SetOutput(int16 *out, int size);
+STREAM S9xMSU1OpenFile(const char *msu_ext, bool skip_unpacked = FALSE);
+void S9xMSU1Init(void);
+void S9xMSU1Generate(size_t sample_count);
+uint8 S9xMSU1ReadPort(uint8 port);
+void S9xMSU1WritePort(uint8 port, uint8 byte);
+size_t S9xMSU1Samples(void);
+void S9xMSU1SetOutput(int16 *out, size_t size);
 void S9xMSU1PostLoadState(void);
 
 #endif

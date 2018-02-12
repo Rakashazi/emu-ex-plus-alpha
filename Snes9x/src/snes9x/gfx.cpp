@@ -22,10 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2016  BearOso,
+  (c) Copyright 2009 - 2017  BearOso,
                              OV2
 
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2017         qwertymodo
+
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -138,7 +140,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2016  BearOso
+  (c) Copyright 2004 - 2017  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -146,14 +148,14 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2016  OV2
+  (c) Copyright 2009 - 2017  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
 
   Libretro port
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -244,9 +246,9 @@ bool8 S9xGraphicsInit (void)
 	//GFX.ZERO = (uint16 *) malloc(sizeof(uint16) * 0x10000);
 
 	//GFX.ScreenSize = GFX.Pitch / 2 * SNES_HEIGHT_EXTENDED * (Settings.SupportHiRes ? 2 : 1);
-	//GFX.SubScreen  = (uint16 *) malloc(GFX.ScreenSize * sizeof(uint16));
-	//GFX.ZBuffer    = (uint8 *)  malloc(GFX.ScreenSize);
-	//GFX.SubZBuffer = (uint8 *)  malloc(GFX.ScreenSize);
+	GFX.SubScreen  = (uint16 *) malloc(GFX.ScreenSize * sizeof(uint16));
+	GFX.ZBuffer    = (uint8 *)  malloc(GFX.ScreenSize);
+	GFX.SubZBuffer = (uint8 *)  malloc(GFX.ScreenSize);
 
 	if (!GFX.X2 || !GFX.ZERO || !GFX.SubScreen || !GFX.ZBuffer || !GFX.SubZBuffer)
 	{
@@ -319,9 +321,9 @@ void S9xGraphicsDeinit (void)
 {
 	//if (GFX.X2)         { free(GFX.X2);         GFX.X2         = NULL; }
 	//if (GFX.ZERO)       { free(GFX.ZERO);       GFX.ZERO       = NULL; }
-	//if (GFX.SubScreen)  { free(GFX.SubScreen);  GFX.SubScreen  = NULL; }
-	//if (GFX.ZBuffer)    { free(GFX.ZBuffer);    GFX.ZBuffer    = NULL; }
-	//if (GFX.SubZBuffer) { free(GFX.SubZBuffer); GFX.SubZBuffer = NULL; }
+	if (GFX.SubScreen)  { free(GFX.SubScreen);  GFX.SubScreen  = NULL; }
+	if (GFX.ZBuffer)    { free(GFX.ZBuffer);    GFX.ZBuffer    = NULL; }
+	if (GFX.SubZBuffer) { free(GFX.SubZBuffer); GFX.SubZBuffer = NULL; }
 }
 
 void S9xBuildDirectColourMaps (void)
@@ -337,9 +339,10 @@ void S9xBuildDirectColourMaps (void)
 
 void S9xStartScreenRefresh (void)
 {
+	GFX.InterlaceFrame = !GFX.InterlaceFrame;
+
 	if (IPPU.RenderThisFrame)
 	{
-		GFX.InterlaceFrame = !GFX.InterlaceFrame;
 		if (!GFX.DoInterlace || !GFX.InterlaceFrame)
 		{
 			if (!S9xInitUpdate())

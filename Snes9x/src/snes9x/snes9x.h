@@ -22,10 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2016  BearOso,
+  (c) Copyright 2009 - 2017  BearOso,
                              OV2
 
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2017         qwertymodo
+
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -138,7 +140,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2016  BearOso
+  (c) Copyright 2004 - 2017  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -146,14 +148,14 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2016  OV2
+  (c) Copyright 2009 - 2017  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
 
   Libretro port
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -192,7 +194,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.54.1"
+#define VERSION	"1.55"
 #endif
 
 #include "port.h"
@@ -411,6 +413,8 @@ struct SSettings
 	bool8	Stereo = 1;
 	static const bool8	ReverseStereo = 0;
 	bool8	Mute = 0;
+	static const bool8	DynamicRateControl = 0;
+	static const int32	DynamicRateLimit = 5; /* Multiplied by 1000 */
 
 	static const bool8	SupportHiRes = 1;
 	static const bool8	Transparency = 1;
@@ -462,6 +466,7 @@ struct SSettings
 
 	static const bool8	ApplyCheats = 1;
 	bool8	NoPatch = 0;
+	bool8	IgnorePatchChecksum = 0;
 	static const int32	AutoSaveDelay = 30;
 	static const bool8	DontSaveOopsSnapshot = 0;
 	static const bool8	UpAndDown = 0;

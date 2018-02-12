@@ -210,12 +210,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 void EmuSystem::configAudioRate(double frameTime, int rate)
 {
 	#ifndef SNES9X_VERSION_1_4
-	const double rateScaler = (32000./32040.5);
-	const double ntscFrameRate = rateScaler * (21477272. / 357366.);
-	const double palFrameRate = rateScaler * (21281370. / 425568.);
+	constexpr long double rateScaler = (32000./32040.5);
+	constexpr double ntscFrameRate = rateScaler * (21477272. / 357366.);
+	constexpr double palFrameRate = rateScaler * (21281370. / 425568.);
 	#else
-	const double ntscFrameRate = (21477272. / 357366.);
-	const double palFrameRate = (21281370. / 425568.);
+	constexpr double ntscFrameRate = (21477272. / 357366.);
+	constexpr double palFrameRate = (21281370. / 425568.);
 	#endif
 	double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
 	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime));

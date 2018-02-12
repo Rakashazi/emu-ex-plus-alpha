@@ -22,10 +22,12 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2016  BearOso,
+  (c) Copyright 2009 - 2017  BearOso,
                              OV2
 
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2017         qwertymodo
+
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -138,7 +140,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2016  BearOso
+  (c) Copyright 2004 - 2017  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -146,14 +148,14 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2016  OV2
+  (c) Copyright 2009 - 2017  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
   (c) Copyright 2001 - 2011  zones
 
   Libretro port
-  (c) Copyright 2011 - 2016  Hans-Kristian Arntzen,
+  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
                              Daniel De Matteis
                              (Under no circumstances will commercial rights be given)
 
@@ -2879,8 +2881,9 @@ void S9xSetJoypadLatch (bool latch)
 			switch (i = curcontrollers[n])
 			{
 				case MP5:
-					for (int j = 0, k = mp5[n].pads[j]; j < 4; k = mp5[n].pads[++j])
+					for (int j = 0, k; j < 4; ++j)
 					{
+						k = mp5[n].pads[j];
 						if (k == NONE)
 							continue;
 						do_polling(k);
@@ -3170,8 +3173,9 @@ void S9xControlEOF (void)
 		switch (i = curcontrollers[n])
 		{
 			case MP5:
-				for (j = 0, i = mp5[n].pads[j]; j < 4; i = mp5[n].pads[++j])
+				for (j = 0; j < 4; ++j)
 				{
+					i = mp5[n].pads[j];
 					if (i == NONE)
 						continue;
 
@@ -3372,8 +3376,9 @@ void S9xSetControllerCrosshair (enum crosscontrols ctl, int8 idx, const char *fg
 		for (i = 0; i < 16; i++)
 		{
 			for (j = 0; color_names[i][j] && fg[j] == color_names[i][j]; j++) ;
-				if (isalnum(fg[j]))
-					continue;
+
+			if (isalnum(fg[j]))
+				continue;
 
 			if (!color_names[i][j])
 				break;
@@ -3399,8 +3404,8 @@ void S9xSetControllerCrosshair (enum crosscontrols ctl, int8 idx, const char *fg
 		for (i = 0; i < 16; i++)
 		{
 			for (j = 0; color_names[i][j] && bg[j] == color_names[i][j]; j++) ;
-				if (isalnum(bg[j]))
-					continue;
+			if (isalnum(bg[j]))
+				continue;
 
 			if (!color_names[i][j])
 				break;
