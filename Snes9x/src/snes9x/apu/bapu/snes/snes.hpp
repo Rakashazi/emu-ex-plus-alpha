@@ -7,7 +7,7 @@
 
 #if defined(__GNUC__)
   #define inline        inline
-  #define alwaysinline  inline __attribute__((always_inline))
+  #define alwaysinline  inline
 #elif defined(_MSC_VER)
   #define inline        inline
   #define alwaysinline  inline __forceinline

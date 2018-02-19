@@ -1,6 +1,7 @@
 #define CYCLE_ACCURATE
 #define PSEUDO_CYCLE
 
+#include <imagine/util/utility.h>
 #include <snes/snes.hpp>
 
 #define SMP_CPP
@@ -42,7 +43,7 @@ void SMP::synchronize_dsp() {
 }
 
 void SMP::enter() {
-  while(clock < 0) op_step();
+  while(likely(clock < 0)) op_step();
 }
 
 void SMP::power() {

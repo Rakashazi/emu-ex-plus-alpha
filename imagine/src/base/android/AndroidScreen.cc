@@ -67,6 +67,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 					switch(change)
 					{
 						bcase 0:
+						{
 							for(auto s : screen_)
 							{
 								if(s->id == id)
@@ -75,20 +76,18 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 									break;
 								}
 							}
-							if(!screen_.isFull())
+							auto disp = jGetDisplay(env, thiz, id);
+							if(!disp)
 							{
-								auto disp = jGetDisplay(env, thiz, id);
-								if(!disp)
-								{
-									logWarn("display ID:%d was added but doesn't exist", (int)id);
-									break;
-								}
-								Screen *s = new Screen();
-								s->init(env, disp, nullptr, false);
-								Screen::addScreen(s);
-								if(Screen::onChange)
-									Screen::onChange(*s, {Screen::Change::ADDED});
+								logWarn("display ID:%d was added but doesn't exist", (int)id);
+								break;
 							}
+							Screen *s = new Screen();
+							s->init(env, disp, nullptr, false);
+							Screen::addScreen(s);
+							if(Screen::onChange)
+								Screen::onChange(*s, {Screen::Change::ADDED});
+						}
 						bcase 2:
 							logMsg("screen %d removed", id);
 							forEachInContainer(screen_, it)
@@ -117,8 +116,6 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		uint pDisplays = env->GetArrayLength(jPDisplay);
 		if(pDisplays)
 		{
-			if(pDisplays > screen_.freeSpace())
-				pDisplays = screen_.freeSpace();
 			logMsg("checking %d presentation display(s)", pDisplays);
 			iterateTimes(pDisplays, i)
 			{

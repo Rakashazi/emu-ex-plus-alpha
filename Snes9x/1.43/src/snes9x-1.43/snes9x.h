@@ -328,7 +328,7 @@ struct SSettings{
 		#ifdef DEBUGGER
     bool8  TraceSoundDSP;
 		#endif
-    bool8  Stereo = 1;
+    static const bool8  Stereo = 1;
     static const bool8  ReverseStereo = 0;
     static const bool8  SixteenBitSound = 1;
     //int    SoundBufferSize;

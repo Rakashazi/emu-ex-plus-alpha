@@ -27,6 +27,7 @@ extern "C"
 	#include "vic20model.h"
 	#include "vicii.h"
 	#include "sid/sid.h"
+	#include "sid/sid-resources.h"
 }
 
 enum
@@ -40,7 +41,7 @@ enum
 	CFGKEY_CBM2_MODEL = 268, CFGKEY_CBM5x0_MODEL = 269,
 	CFGKEY_PET_MODEL = 270, CFGKEY_PLUS4_MODEL = 271,
 	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273,
-	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274
+	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -76,13 +77,10 @@ Byte1Option optionPlus4Model(CFGKEY_PLUS4_MODEL, PLUS4MODEL_PLUS4_NTSC, false,
 Byte1Option optionVIC20Model(CFGKEY_VIC20_MODEL, VIC20MODEL_VIC20_NTSC, false,
 	optionIsValidWithMax<VIC20MODEL_NUM-1, uint8>);
 Byte1Option optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
-Byte1Option optionSidEngine(CFGKEY_SID_ENGINE,
-		#ifdef HAVE_RESID
-		SID_ENGINE_RESID
-		#else
-		SID_ENGINE_FASTSID
-		#endif
-	);
+Byte1Option optionSidEngine(CFGKEY_SID_ENGINE, SID_ENGINE_RESID, false,
+	optionIsValidWithMax<1, uint8>);
+Byte1Option optionReSidSampling(CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERPOLATION, false,
+	optionIsValidWithMax<3, uint8>);
 Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
 PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 
@@ -121,6 +119,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
 		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
 		bcase CFGKEY_SYSTEM_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
+		bcase CFGKEY_RESID_SAMPLING: optionReSidSampling.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -144,6 +143,7 @@ void EmuSystem::writeConfig(IO &io)
 	optionBorderMode.writeWithKeyIfNotDefault(io);
 	optionCropNormalBorders.writeWithKeyIfNotDefault(io);
 	optionSidEngine.writeWithKeyIfNotDefault(io);
+	optionReSidSampling.writeWithKeyIfNotDefault(io);
 	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
 	optionFirmwarePath.writeToIO(io);
 }

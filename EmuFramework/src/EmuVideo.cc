@@ -72,7 +72,7 @@ EmuVideoImage EmuVideo::startFrame()
 
 void EmuVideo::writeFrame(Gfx::LockedTextureBuffer texBuff)
 {
-	if(screenshotNextFrame)
+	if(unlikely(screenshotNextFrame))
 	{
 		doScreenshot(texBuff.pixmap());
 	}

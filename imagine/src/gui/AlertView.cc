@@ -43,7 +43,7 @@ void BaseAlertView::place()
 	int menuYSize = menu.cells() * text.face->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.ySize + (text.nominalHeight * .5_gc)));
 	IG::WindowRect viewFrame;
-	viewFrame.setPosRel({rect.xSize()/2, rect.ySize()/2},
+	viewFrame.setPosRel(rect.pos(C2DO),
 			{xSize, labelYSize + menuYSize}, C2DO);
 
 	labelFrame = projP.unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);

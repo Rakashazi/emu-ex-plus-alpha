@@ -189,6 +189,8 @@ const KeyConfig defaultKeyProfile[] =
 				Keycode::XperiaPlay::SQUARE,
 				Keycode::XperiaPlay::L1,
 				Keycode::XperiaPlay::R1,
+				Keycode::XperiaPlay::CIRCLE,
+				Keycode::XperiaPlay::TRIANGLE,
 			}
 		},
 		{

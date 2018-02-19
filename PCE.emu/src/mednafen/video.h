@@ -7,6 +7,5 @@
 
 void MDFN_ResetMessages(void);
 void MDFN_InitFontData(void);
-void MDFN_DispMessage(const char* format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
 
 #endif

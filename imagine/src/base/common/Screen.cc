@@ -26,7 +26,7 @@ namespace Base
 {
 
 #ifdef CONFIG_BASE_MULTI_SCREEN
-StaticArrayList<Screen*, 4> screen_;
+std::vector<Screen*> screen_;
 #else
 static Screen mainScreen_;
 #endif
@@ -165,7 +165,6 @@ Screen *Screen::screen(uint idx)
 void Screen::addScreen(Screen *s)
 {
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	assert(!screen_.isFull());
 	screen_.push_back(s);
 	#else
 	assert(!mainScreen_);

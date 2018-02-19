@@ -23,7 +23,7 @@ namespace Base
 {
 
 #ifdef CONFIG_BASE_MULTI_WINDOW
-StaticArrayList<Window*, 4> window_;
+std::vector<Window*> window_;
 #else
 Window *mainWin = nullptr;
 #endif
@@ -375,7 +375,7 @@ void Window::dismiss()
 	deinit();
 	*this = {};
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.remove(this);
+	IG::removeFirst(window_, this);
 	#else
 	mainWin = nullptr;
 	#endif

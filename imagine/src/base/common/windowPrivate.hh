@@ -1,13 +1,13 @@
 #pragma once
 
 #include <imagine/base/Window.hh>
-#include <imagine/util/container/ArrayList.hh>
+#include <vector>
 
 namespace Base
 {
 
 #ifdef CONFIG_BASE_MULTI_WINDOW
-extern StaticArrayList<Window*, 4> window_;
+extern std::vector<Window*> window_;
 #else
 extern Window *mainWin;
 #endif

@@ -35,12 +35,14 @@ extern Byte1Option optionPlus4Model;
 extern Byte1Option optionVIC20Model;
 extern Byte1Option optionBorderMode;
 extern Byte1Option optionSidEngine;
+extern Byte1Option optionReSidSampling;
 extern Byte1Option optionSwapJoystickPorts;
 extern PathOption optionFirmwarePath;
 
 int intResource(const char *name);
 void setBorderMode(int mode);
 void setSidEngine(int engine);
+void setReSidSampling(int sampling);
 void setDriveTrueEmulation(bool on);
 bool driveTrueEmulation();
 void setVirtualDeviceTraps(bool on);

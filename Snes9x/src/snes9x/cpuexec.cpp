@@ -190,6 +190,7 @@
  ***********************************************************************************/
 
 
+#include <imagine/util/utility.h>
 #include "snes9x.h"
 #include "memmap.h"
 #include "cpuops.h"
@@ -276,7 +277,7 @@ void S9xMainLoop2 (void)
 		}
 	#endif
 
-		if (CPU.Flags & SCAN_KEYS_FLAG)
+		if (unlikely(CPU.Flags & SCAN_KEYS_FLAG))
 			break;
 
 		register uint8				Op;

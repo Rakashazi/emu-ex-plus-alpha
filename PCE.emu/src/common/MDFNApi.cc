@@ -37,6 +37,7 @@ int get_line(IO &file, std::string &str)
  return(str.length() ? 256 : -1);
 }
 
+#ifndef NDEBUG
 void MDFN_printf(const char *format, ...) throw()
 {
 	if(!logger_isEnabled())
@@ -66,6 +67,7 @@ void MDFN_DispMessage(const char *format, ...) throw()
 	logger_vprintf(LOG_M, format, args);
 	va_end( args );
 }
+#endif
 
 void MDFND_PrintError(const char *s)
 {

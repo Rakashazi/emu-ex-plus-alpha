@@ -25,6 +25,7 @@ extern "C"
 	#include "cartridge.h"
 	#include "diskimage.h"
 	#include "sid/sid.h"
+	#include "sid/sid-resources.h"
 	#include "vicii.h"
 	#include "drive.h"
 }
@@ -155,11 +156,31 @@ class CustomAudioOptionView : public AudioOptionView
 		sidEngineItem
 	};
 
+	TextMenuItem reSidSamplingItem[4]
+	{
+		{"Fast", [](){ setReSidSampling_(SID_RESID_SAMPLING_FAST); }},
+		{"Interpolation", [](){ setReSidSampling_(SID_RESID_SAMPLING_INTERPOLATION); }},
+		{"Resampling", [](){ setReSidSampling_(SID_RESID_SAMPLING_RESAMPLING); }},
+		{"Fast Resampling", [](){ setReSidSampling_(SID_RESID_SAMPLING_FAST_RESAMPLING); }},
+	};
+
+	MultiChoiceMenuItem reSidSampling
+	{
+		"ReSID Sampling",
+		optionReSidSampling,
+		reSidSamplingItem
+	};
+
 	static void setSidEngine_(int val)
 	{
-		logMsg("setting SID engine: %d", val);
 		optionSidEngine = val;
 		setSidEngine(val);
+	}
+
+	static void setReSidSampling_(int val)
+	{
+		optionReSidSampling = val;
+		setReSidSampling(val);
 	}
 
 public:
@@ -167,6 +188,7 @@ public:
 	{
 		loadStockItems();
 		item.emplace_back(&sidEngine);
+		item.emplace_back(&reSidSampling);
 	}
 };
 
@@ -941,6 +963,16 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		}
 	};
 
+	BoolMenuItem warpMode
+	{
+		"Warp Mode",
+		(bool)*plugin.warp_mode_enabled,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			*plugin.warp_mode_enabled = item.flipBoolValue(*this);
+		}
+	};
+
 	TextMenuItem c64IOControl
 	{
 		"System & Media Control",
@@ -1007,6 +1039,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		item.emplace_back(&c64IOControl);
 		item.emplace_back(&quickSettings);
 		item.emplace_back(&swapJoystickPorts);
+		item.emplace_back(&warpMode);
 		loadStandardItems();
 	}
 
@@ -1022,6 +1055,7 @@ public:
 		c64IOControl.setActive(EmuSystem::gameIsRunning());
 		quickSettings.setActive(EmuSystem::gameIsRunning());
 		swapJoystickPorts.setBoolValue(optionSwapJoystickPorts);
+		warpMode.setBoolValue(*plugin.warp_mode_enabled);
 	}
 };
 

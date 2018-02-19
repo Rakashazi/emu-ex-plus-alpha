@@ -16,9 +16,11 @@ extern MDFNGI *MDFNGameInfo;
 
 #include "settings.h"
 
+#ifndef NDEBUG
 void MDFN_PrintError(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
-void MDFN_printf(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
-void MDFN_DispMessage(const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 1, 2);
+#else
+static void MDFN_PrintError(const char *format, ...) MDFN_FORMATSTR(gnu_printf, 1, 2) {}
+#endif
 
 void MDFN_DebugPrintReal(const char *file, const int line, const char *format, ...) MDFN_FORMATSTR(gnu_printf, 3, 4);
 

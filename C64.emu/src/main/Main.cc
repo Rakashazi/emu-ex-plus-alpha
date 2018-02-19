@@ -61,6 +61,7 @@ extern "C"
 	#include "tape.h"
 	#include "interrupt.h"
 	#include "sid/sid.h"
+	#include "sid/sid-resources.h"
 	#include "c64/cart/c64cartsystem.h"
 	#include "vicii.h"
 	#include "diskimage.h"
@@ -205,12 +206,24 @@ static int borderMode()
 
 void setSidEngine(int engine)
 {
+	logMsg("set SID engine %d", engine);
 	plugin.resources_set_int("SidEngine", engine);
 }
 
 static int sidEngine()
 {
 	return intResource("SidEngine");
+}
+
+void setReSidSampling(int sampling)
+{
+	logMsg("set ReSID sampling %d", sampling);
+	plugin.resources_set_int("SidResidSampling", sampling);
+}
+
+static int reSidSampling()
+{
+	return intResource("SidResidSampling");
 }
 
 void setDriveTrueEmulation(bool on)
@@ -334,6 +347,7 @@ void applyInitialOptionResources()
 	setAutostartTDE(optionAutostartTDE);
 	setBorderMode(optionBorderMode);
 	setSidEngine(optionSidEngine);
+	setReSidSampling(optionReSidSampling);
 	// default drive setup
 	setIntResourceToDefault("Drive8Type");
 	plugin.resources_set_int("Drive9Type", DRIVE_TYPE_NONE);
@@ -636,6 +650,16 @@ EmuSystem::Error EmuSystem::onInit()
 		sysFilePath[1] = FS::makePathStringPrintf("%s/C64.emu", Base::sharedStoragePath().data());
 		sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", Base::sharedStoragePath().data());
 	}
+	#endif
+
+	// higher quality ReSID sampling modes take orders of magnitude more CPU power,
+	// set some reasonable defaults based on CPU type
+	#if defined __x86_64__
+	optionReSidSampling.initDefault(SID_RESID_SAMPLING_RESAMPLING);
+	#elif defined __aarch64__
+	optionReSidSampling.initDefault(SID_RESID_SAMPLING_INTERPOLATION);
+	#else
+	optionReSidSampling.initDefault(SID_RESID_SAMPLING_FAST);
 	#endif
 
 	EmuSystem::pcmFormat.channels = 1;

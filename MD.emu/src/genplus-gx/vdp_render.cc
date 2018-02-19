@@ -330,63 +330,63 @@ static __inline__ void WRITE_LONG(void *address, uint32 data)
 #ifdef LSB_FIRST 
 #define DRAW_BG_COLUMN(ATTR, LINE, SRC_A, SRC_B) \
   GET_LSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_MSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #define DRAW_BG_COLUMN_IM2(ATTR, LINE, SRC_A, SRC_B) \
   GET_LSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_MSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #else
 #define DRAW_BG_COLUMN(ATTR, LINE, SRC_A, SRC_B) \
   GET_MSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_LSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #define DRAW_BG_COLUMN_IM2(ATTR, LINE, SRC_A, SRC_B) \
   GET_MSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_LSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32 *)(lb); \
+  SRC_A = *(uint32u *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #endif

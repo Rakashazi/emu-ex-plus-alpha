@@ -12,9 +12,9 @@ extern std::vector<MDFNGI *>MDFNSystems;
 /* Indent stdout newlines +- "indent" amount */
 void MDFN_indent(int indent);
 #ifndef NDEBUG
-void MDFN_printf(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
+void MDFN_printf(const char *format, ...) noexcept MDFN_FORMATSTR(printf, 1, 2);
 #else
-#define MDFN_printf(format, ...) { }
+static void MDFN_printf(const char *format, ...) MDFN_FORMATSTR(printf, 1, 2) {}
 #endif
 
 struct MDFN_AutoIndent
@@ -136,9 +136,9 @@ void MDFNI_CloseGame(void);
 void MDFNI_Kill(void);
 
 #ifndef NDEBUG
-void MDFN_DispMessage(const char *format, ...) throw() MDFN_FORMATSTR(printf, 1, 2);
+void MDFN_DispMessage(const char *format, ...) noexcept MDFN_FORMATSTR(printf, 1, 2);
 #else
-#define MDFN_DispMessage(format, ...) { }
+static void MDFN_DispMessage(const char *format, ...) MDFN_FORMATSTR(printf, 1, 2) {}
 #endif
 #define MDFNI_DispMessage MDFN_DispMessage
 
