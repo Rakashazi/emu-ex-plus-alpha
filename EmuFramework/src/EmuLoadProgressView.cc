@@ -42,7 +42,7 @@ void EmuLoadProgressView::place()
 
 bool EmuLoadProgressView::inputEvent(Input::Event e)
 {
-	return false;
+	return true;
 }
 
 void EmuLoadProgressView::draw()

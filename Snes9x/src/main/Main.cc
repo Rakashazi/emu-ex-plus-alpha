@@ -16,7 +16,7 @@
 #include <soundux.h>
 #endif
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2018\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static EmuVideo *emuVideo{};
 static const uint heightChangeFrameDelay = 4;

@@ -26,7 +26,7 @@
 #include <mednafen/pce_fast/pcecd_drive.h>
 #include <mednafen/MemoryStream.h>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2014\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2018\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 FS::PathString sysCardPath{};
 static std::vector<CDIF *> CDInterfaces;
 using Pixel = uint16;

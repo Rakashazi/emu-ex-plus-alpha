@@ -134,7 +134,7 @@ protected:
 	#if defined __ANDROID__
 	TextMenuItem processPriorityItem[3];
 	MultiChoiceMenuItem processPriority;
-	BoolMenuItem fakeUserActivity;
+	BoolMenuItem performanceMode;
 	#endif
 	StaticArrayList<MenuItem*, 24> item{};
 

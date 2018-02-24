@@ -379,7 +379,7 @@ else
  android_installTask := installRelease
 endif
 
-android_apkPath := $(android_targetPath)/build/outputs/apk/$(android_metadata_project)-$(android_buildTarget).apk
+android_apkPath := $(android_targetPath)/build/outputs/apk/release/$(android_metadata_project)-$(android_buildTarget).apk
 .PHONY: android-apk
 android-apk : $(android_projectDeps) $(android_soFiles)
 	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_buildTask)

@@ -349,7 +349,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 			{
 				auto prevSelected = selected;
 				selected = prevSelectableElement(selected - 1, cells_);
-				if(selected > prevSelected)
+				if(selected > prevSelected || cells_ == 1)
 				{
 					if(e.repeated())
 					{
@@ -387,7 +387,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 			{
 				auto prevSelected = selected;
 				selected = nextSelectableElement(selected + 1, cells_);
-				if(selected < prevSelected)
+				if(selected < prevSelected || cells_ == 1)
 				{
 					if(e.repeated())
 					{

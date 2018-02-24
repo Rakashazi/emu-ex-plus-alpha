@@ -1,4 +1,4 @@
-metadata_version = 1.5.34
+metadata_version = 1.5.35
 android_metadata_writeExtStore = 1
 android_metadata_bluetooth = 1
 android_metadata_vibrate = 1

@@ -485,7 +485,7 @@ void SystemOptionView::loadStockItems()
 	#ifdef __ANDROID__
 	item.emplace_back(&processPriority);
 	if(!optionSustainedPerformanceMode.isConst)
-		item.emplace_back(&fakeUserActivity);
+		item.emplace_back(&performanceMode);
 	#endif
 }
 
@@ -1332,10 +1332,11 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		}(),
 		processPriorityItem
 	},
-	fakeUserActivity
+	performanceMode
 	{
-		"Prevent CPU Idling",
+		"Performance Mode",
 		(bool)optionSustainedPerformanceMode,
+		"Normal", "Sustained",
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionSustainedPerformanceMode = item.flipBoolValue(*this);

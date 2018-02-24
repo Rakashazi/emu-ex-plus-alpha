@@ -259,7 +259,7 @@ void EmuSystem::setGameSavePath(const char *path)
 	fixFilePermissions(gameSavePath_);
 	if(reportNoWriteAccess)
 	{
-		popup.printf(4, true, "Save path lacks write access, using default:\n%s", gameSavePath_.data());
+		logWarn("Save path lacks write access, using default:\n%s", gameSavePath_.data());
 	}
 }
 
