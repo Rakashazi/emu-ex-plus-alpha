@@ -144,8 +144,10 @@ static void setFrameInterval(int interval)
 }
 #endif
 
-static void setAudioRate(uint rate)
+static void setAudioRate(int rate)
 {
+	if(rate > AudioManager::nativeFormat().rate)
+		return;
 	optionSoundRate = rate;
 	EmuSystem::configAudioPlayback();
 }
@@ -163,14 +165,11 @@ static void setGameOrientation(uint val)
 	logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
 }
 
-#ifdef CONFIG_AUDIO_LATENCY_HINT
 static void setSoundBuffers(int val)
 {
-	if(Audio::isOpen())
-		Audio::closePcm();
+	EmuSystem::closeSound();
 	optionSoundBuffers = val;
 }
-#endif
 
 static void setZoom(int val)
 {
@@ -461,16 +460,40 @@ void VideoOptionView::loadStockItems()
 void AudioOptionView::loadStockItems()
 {
 	item.emplace_back(&snd);
-	if(!optionSoundRate.isConst) { item.emplace_back(&audioRate); }
-	#ifdef CONFIG_AUDIO_LATENCY_HINT
+	if(!optionSoundRate.isConst)
+	{
+		audioRateItem.clear();
+		audioRateItem.emplace_back("Device Native",
+			[this](TextMenuItem &, View &parent, Input::Event)
+			{
+				setAudioRate(AudioManager::nativeFormat().rate);
+				updateAudioRateItem();
+				parent.dismiss();
+				return false;
+			});
+		audioRateItem.emplace_back("22KHz", [this]() { setAudioRate(22050); });
+		audioRateItem.emplace_back("32KHz", [this]() { setAudioRate(32000); });
+		audioRateItem.emplace_back("44KHz", [this]() { setAudioRate(44100); });
+		if(AudioManager::nativeFormat().rate >= 48000)
+			audioRateItem.emplace_back("48KHz", [this]() { setAudioRate(48000); });
+		item.emplace_back(&audioRate);
+		updateAudioRateItem();
+	}
 	item.emplace_back(&soundBuffers);
-	#endif
-	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-	item.emplace_back(&sndUnderrunCheck);
-	#endif
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	item.emplace_back(&audioSoloMix);
 	#endif
+}
+
+void AudioOptionView::updateAudioRateItem()
+{
+	switch(optionSoundRate)
+	{
+		bcase 22050: audioRate.setSelected(1);
+		bcase 32000: audioRate.setSelected(2);
+		bdefault: audioRate.setSelected(3); // 44100
+		bcase 48000: audioRate.setSelected(4);
+	}
 }
 
 void SystemOptionView::loadStockItems()
@@ -652,7 +675,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameInterval
 	{
 		"Target Frame Rate",
-		(uint)optionFrameInterval - 1u,
+		optionFrameInterval - 1,
 		frameIntervalItem
 	},
 	#endif
@@ -1086,10 +1109,9 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionSound = item.flipBoolValue(*this);
 			if(!optionSound)
-				Audio::closePcm();
+				EmuSystem::closeSound();
 		}
 	},
-	#ifdef CONFIG_AUDIO_LATENCY_HINT
 	soundBuffersItem
 	{
 		{"2", [this]() { setSoundBuffers(2); }},
@@ -1099,66 +1121,26 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{"6", [this]() { setSoundBuffers(6); }},
 		{"7", [this]() { setSoundBuffers(7); }},
 		{"8", [this]() { setSoundBuffers(8); }},
-		{"9", [this]() { setSoundBuffers(9); }},
-		{"10", [this]() { setSoundBuffers(10); }},
 	},
 	soundBuffers
 	{
 		"Buffer Size In Frames",
-		std::min((int)optionSoundBuffers - (int)OPTION_SOUND_BUFFERS_MIN, (int)IG::size(soundBuffersItem) - 1),
+		(int)optionSoundBuffers - 2,
 		[this](const MultiChoiceMenuItem &) -> int
 		{
-			return IG::size(soundBuffersItem) - (OPTION_SOUND_BUFFERS_MIN - 2);
+			return IG::size(soundBuffersItem);
 		},
 		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
 		{
-			return soundBuffersItem[idx + (OPTION_SOUND_BUFFERS_MIN - 2)];
+			return soundBuffersItem[idx];
 		}
-	},
-	#endif
-	audioRateItem
-	{
-		{"22KHz", [this]() { setAudioRate(22050); }},
-		{"32KHz", [this]() { setAudioRate(32000); }},
-		{"44KHz", [this]() { setAudioRate(44100); }},
-		{"48KHz", [this]() { setAudioRate(48000); }}
 	},
 	audioRate
 	{
 		"Sound Rate",
-		[]()
-		{
-			switch(optionSoundRate)
-			{
-				case 22050: return 0;
-				case 32000: return 1;
-				default:
-				case 44100: return 2;
-				case 48000: return 3;
-			}
-		}(),
-		[this](const MultiChoiceMenuItem &) -> int
-		{
-			return AudioManager::nativeFormat().rate >= 48000 ? 4u : 3u;
-		},
-		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
-		{
-			return audioRateItem[idx];
-		}
+		0,
+		audioRateItem
 	}
-	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-	,sndUnderrunCheck
-	{
-		"Strict Underrun Check",
-		(bool)optionSoundUnderrunCheck,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			if(Audio::isOpen())
-				Audio::closePcm();
-			optionSoundUnderrunCheck = item.flipBoolValue(*this);
-		}
-	}
-	#endif
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	,audioSoloMix
 	{

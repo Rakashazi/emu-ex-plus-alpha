@@ -49,15 +49,8 @@ Byte1Option optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
 Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
 Byte1Option optionSound(CFGKEY_SOUND, 1);
 
-#ifdef CONFIG_AUDIO_LATENCY_HINT
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	Config::envIsLinux ? 5 : Config::envIsIOS ? 5 : 8,
-	0, optionIsValidWithMinMax<OPTION_SOUND_BUFFERS_MIN, 12, uint8>);
-#endif
-
-#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck(CFGKEY_SOUND_UNDERRUN_CHECK, 1);
-#endif
+	5, 0, optionIsValidWithMinMax<2, 8, uint8>);
 
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
@@ -312,19 +305,11 @@ void initOptions()
 	{
 		optionVibrateOnPush.isConst = 1;
 	}
-	if(AudioManager::hasLowLatency()) // setup for low-latency
+	if(!AudioManager::hasLowLatency() || Base::androidSDK() < 21)
 	{
-		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-		optionSoundUnderrunCheck.initDefault(0);
-		#endif
+		// increase buffers if low-latency not supported,
+		// or is supported but using old OS versions
 		optionSoundBuffers.initDefault(6);
-	}
-	else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(Base::androidBuildDevice().data(), "roth")) // NVidia Shield
-	{
-		#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-		optionSoundUnderrunCheck.initDefault(0);
-		#endif
-		optionSoundBuffers.initDefault(4);
 	}
 	if(Base::androidSDK() < 17)
 	{

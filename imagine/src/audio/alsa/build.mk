@@ -1,10 +1,10 @@
-ifndef inc_audio
-inc_audio := 1
+ifndef inc_audio_alsa
+inc_audio_alsa := 1
 
 include $(IMAGINE_PATH)/make/package/alsa.mk
 
 configDefs += CONFIG_AUDIO CONFIG_AUDIO_ALSA
 
-SRC += audio/alsa/alsa.cc
+SRC += audio/OutputStream.cc audio/alsa/alsa.cc
 
 endif

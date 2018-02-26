@@ -19,10 +19,11 @@
 #include <emuframework/FileUtils.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/audio/Audio.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/ringbuffer/sys.hh>
 #include <algorithm>
 #include <string>
 #include "private.hh"
@@ -57,6 +58,30 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] bool EmuSystem::hasSound = true;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
+static std::unique_ptr<Audio::SysOutputStream> audioStream;
+static IG::SysRingBuffer rBuff{};
+static bool audioWriteActive = false;
+
+static int audioFramesFree()
+{
+	return EmuSystem::pcmFormat.bytesToFrames(rBuff.freeSpace());
+}
+
+template<typename T>
+static void simpleResample(T *dest, uint destFrames, const T *src, uint srcFrames)
+{
+	float ratio = (float)srcFrames/(float)destFrames;
+	iterateTimes(destFrames, i)
+	{
+		uint srcPos = round(i * ratio);
+		if(unlikely(srcPos > srcFrames))
+		{
+			logMsg("resample pos %u too high", srcPos);
+			srcPos = srcFrames-1;
+		}
+		dest[i] = src[srcPos];
+	}
+}
 
 void EmuSystem::cancelAutoSaveStateTimer()
 {
@@ -82,17 +107,54 @@ void EmuSystem::startSound()
 	assert(audioFramesPerVideoFrame);
 	if(optionSound)
 	{
-		if(!Audio::isOpen())
+		if(!audioStream)
 		{
-			#ifdef CONFIG_AUDIO_LATENCY_HINT
-			uint wantedLatency = std::round(optionSoundBuffers * (1000000. * frameTime()));
-			logMsg("requesting audio latency %dus", wantedLatency);
-			Audio::setHintOutputLatency(wantedLatency);
-			#endif
-			Audio::openPcm(pcmFormat);
+			audioStream = std::make_unique<Audio::SysOutputStream>();
 		}
-		else if(Audio::framesFree() <= (int)audioFramesPerVideoFrame)
-			Audio::resumePcm();
+		if(!audioStream->isOpen())
+		{
+			uint wantedLatency = std::round(optionSoundBuffers * (1000000. * frameTime()));
+			rBuff.init(pcmFormat.uSecsToBytes(wantedLatency));
+			logMsg("created audio buffer with %d frames", pcmFormat.bytesToFrames(rBuff.freeSpace()));
+			audioWriteActive = false;
+			audioStream->open(pcmFormat,
+				[](void *samples, uint bytes)
+				{
+					if(audioWriteActive)
+					{
+						uint bytesReady = rBuff.writtenSize();
+						if(bytesReady < bytes)
+						{
+							//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
+							audioWriteActive = false;
+							auto framesToWrite = pcmFormat.bytesToFrames(bytes);
+							switch(pcmFormat.channels)
+							{
+								bcase 1: simpleResample<int16>((int16*)samples, framesToWrite, (int16*)rBuff.readAddr(), bytesReady);
+								bcase 2: simpleResample<int32>((int32*)samples, framesToWrite, (int32*)rBuff.readAddr(), bytesReady);
+								bdefault: bug_unreachable("channels == %d", pcmFormat.channels);
+							}
+							rBuff.commitRead(bytesReady);
+						}
+						else
+						{
+							rBuff.read(samples, bytes);
+						}
+						return true;
+					}
+					else
+					{
+						std::fill_n((char*)samples, bytes, 0);
+						return false;
+					}
+				});
+			audioStream->play();
+		}
+		else
+		{
+			audioWriteActive = true;
+			audioStream->play();
+		}
 	}
 }
 
@@ -100,18 +162,52 @@ void EmuSystem::stopSound()
 {
 	if(optionSound)
 	{
-		//logMsg("stopping sound");
-		Audio::pausePcm();
+		if(audioStream)
+			audioStream->pause();
+	}
+}
+
+void EmuSystem::closeSound()
+{
+	if(audioStream)
+		audioStream->close();
+	rBuff.deinit();
+	audioWriteActive = false;
+}
+
+void EmuSystem::flushSound()
+{
+	if(optionSound)
+	{
+		if(audioStream)
+			audioStream->flush();
+		audioWriteActive = false;
 	}
 }
 
 void EmuSystem::writeSound(const void *samples, uint framesToWrite)
 {
-	Audio::writePcm(samples, framesToWrite);
-	if(!Audio::isPlaying() && Audio::framesFree() <= (int)audioFramesPerVideoFrame)
+	uint bytes = pcmFormat.framesToBytes(framesToWrite);
+	uint freeBytes = rBuff.freeSpace();
+	if(bytes <= freeBytes)
 	{
-		logMsg("starting audio playback with %d frames free in buffer", Audio::framesFree());
-		Audio::resumePcm();
+		rBuff.write(samples, bytes);
+	}
+	else
+	{
+		logMsg("overrun, only %d out of %d bytes free", freeBytes, bytes);
+		auto freeFrames = pcmFormat.bytesToFrames(freeBytes);
+		switch(pcmFormat.channels)
+		{
+			bcase 1: simpleResample<int16>((int16*)rBuff.writeAddr(), freeFrames, (int16*)samples, framesToWrite);
+			bcase 2: simpleResample<int32>((int32*)rBuff.writeAddr(), freeFrames, (int32*)samples, framesToWrite);
+			bdefault: bug_unreachable("channels == %d", pcmFormat.channels);
+		}
+		rBuff.commitWrite(freeBytes);
+	}
+	if(!audioWriteActive && audioFramesFree() <= (int)audioFramesPerVideoFrame)
+	{
+		audioWriteActive = true;
 	}
 }
 
@@ -315,8 +411,7 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 {
 	if(gameIsRunning())
 	{
-		if(Audio::isOpen())
-			Audio::clearPcm();
+		flushSound();
 		if(allowAutosaveState)
 			EmuApp::saveAutoState();
 		logMsg("closing game %s", gameName_.data());
@@ -384,10 +479,10 @@ void EmuSystem::configAudioPlayback()
 {
 	auto prevFormat = pcmFormat;
 	configFrameTime();
-	if(prevFormat != pcmFormat && Audio::isOpen())
+	if(prevFormat != pcmFormat)
 	{
-		logMsg("PCM format has changed, closing existing playback");
-		Audio::closePcm();
+		logMsg("audio format changed");
+		closeSound();
 	}
 }
 

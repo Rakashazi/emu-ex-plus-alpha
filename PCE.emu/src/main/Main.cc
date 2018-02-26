@@ -371,7 +371,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 
 void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
-	uint maxFrames = Audio::maxRate()/54;
+	uint maxFrames = 48000/54;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec{};
 	if(renderAudio)

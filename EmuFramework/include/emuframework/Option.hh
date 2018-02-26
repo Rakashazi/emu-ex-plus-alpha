@@ -21,7 +21,6 @@
 #include <imagine/gui/View.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string.h>
-#include <imagine/audio/Audio.hh>
 #include <imagine/logger/logger.h>
 
 struct OptionBase
@@ -243,9 +242,6 @@ bool vControllerUseScaledCoordinates();
 void setVControllerUseScaledCoordinates(bool on);
 using OptionTouchCtrlScaledCoordinates = Option<OptionMethodFunc<bool, vControllerUseScaledCoordinates, setVControllerUseScaledCoordinates>, uint8>;
 
-#ifdef CONFIG_AUDIO_OPENSL_ES
-using OptionAudioHintStrictUnderrunCheck = Option<OptionMethodFunc<bool, Audio::hintStrictUnderrunCheck, Audio::setHintStrictUnderrunCheck>, uint8>;
-#endif
 #ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8>;
 #endif

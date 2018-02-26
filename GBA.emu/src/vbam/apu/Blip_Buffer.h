@@ -4,15 +4,14 @@
 #ifndef BLIP_BUFFER_H
 #define BLIP_BUFFER_H
 
-	// internal
-	#include <limits.h>
-	#if INT_MAX < 0x7FFFFFFF || LONG_MAX == 0x7FFFFFFF
-		typedef long blip_long;
-		typedef unsigned long blip_ulong;
-	#else
-		typedef int blip_long;
-		typedef unsigned blip_ulong;
-	#endif
+#include <limits.h>
+#include <inttypes.h>
+
+// Internal
+typedef int32_t blip_long;
+typedef uint32_t blip_ulong;
+typedef int64_t blip_s64;
+typedef uint64_t blip_u64;
 
 // Time unit at source clock rate
 typedef blip_long blip_time_t;
@@ -105,7 +104,7 @@ public:
 	blip_ulong unsettled() const;
 	Blip_Buffer* clear_modified() { Blip_Buffer* b = modified_; modified_ = 0; return b; }
 	void remove_silence( long count );
-	typedef blip_ulong blip_resampled_time_t;
+	typedef blip_u64 blip_resampled_time_t;
 	blip_resampled_time_t resampled_duration( int t ) const     { return t * factor_; }
 	blip_resampled_time_t resampled_time( blip_time_t t ) const { return t * factor_ + offset_; }
 	blip_resampled_time_t clock_rate_factor( long clock_rate ) const;
@@ -123,7 +122,7 @@ private:
 	Blip_Buffer& operator = ( const Blip_Buffer& ) = delete;
 public:
 	typedef blip_long buf_t_;
-	blip_ulong factor_ = (blip_ulong)LONG_MAX;
+	blip_u64 factor_ = (blip_u64)ULLONG_MAX;
 	blip_resampled_time_t offset_ = 0;
 	buf_t_* buffer_ = nullptr;
 	blip_long buffer_size_ = 0;
@@ -145,7 +144,7 @@ private:
 // Number of bits in resample ratio fraction. Higher values give a more accurate ratio
 // but reduce maximum buffer size.
 #ifndef BLIP_BUFFER_ACCURACY
-	#define BLIP_BUFFER_ACCURACY 18
+	#define BLIP_BUFFER_ACCURACY 32
 #endif
 
 // Number bits in phase offset. Fewer than 6 bits (64 phase offsets) results in
@@ -160,7 +159,7 @@ private:
 #endif
 
 	// Internal
-	typedef blip_ulong blip_resampled_time_t;
+	typedef blip_u64 blip_resampled_time_t;
 	int const blip_widest_impulse_ = 16;
 	int const blip_buffer_extra_ = blip_widest_impulse_ + 2;
 	int const blip_res = 1 << BLIP_PHASE_BITS;

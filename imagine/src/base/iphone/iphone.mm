@@ -229,11 +229,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 			^(NSNotification *note)
 			{
 				logMsg("screen connected");
-				if(!screen_.freeSpace())
-				{
-					logWarn("max screens reached");
-					return;
-				}
 				UIScreen *screen = [note object];
 				for(auto s : screen_)
 				{
@@ -281,11 +276,6 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	for(UIScreen *screen in [UIScreen screens])
 	{
 		setupUIScreen(screen, Screen::screens());
-		if(!screen_.freeSpace())
-		{
-			logWarn("max screens reached");
-			break;
-		}
 	}
 	#else
 	mainScreen().init([UIScreen mainScreen]);

@@ -170,7 +170,7 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	long outputRate = std::round(rate * (59.73 * frameTime));
+	long outputRate = std::round(rate * (59.7275 * frameTime));
 	long inputRate = 2097152;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);
@@ -223,9 +223,9 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 			samples = 35112;
 		}
 		// video rendered in runFor()
-		short destBuff[(Audio::maxRate()/54)*2];
+		short destBuff[(48000/54)*2];
 		uint destFrames = resampler->resample(destBuff, (const short*)snd, samples);
-		assert(Audio::pcmFormat.framesToBytes(destFrames) <= sizeof(destBuff));
+		assert(destFrames * 4 <= sizeof(destBuff));
 		EmuSystem::writeSound(destBuff, destFrames);
 	}
 }

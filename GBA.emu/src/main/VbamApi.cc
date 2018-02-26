@@ -4,7 +4,6 @@
 #include <vbam/common/SoundDriver.h>
 #include <vbam/Util.h>
 #include <imagine/logger/logger.h>
-#include <imagine/audio/Audio.hh>
 #include "internal.hh"
 
 int systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;

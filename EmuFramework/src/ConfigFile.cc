@@ -250,12 +250,7 @@ static bool readConfig2(IO &io)
 				bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
 				#endif
 			#endif
-			#ifdef CONFIG_AUDIO_LATENCY_HINT
 			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
-			#endif
-			#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-			bcase CFGKEY_SOUND_UNDERRUN_CHECK: optionSoundUnderrunCheck.readFromIO(io, size);
-			#endif
 			#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
 			#endif
@@ -498,12 +493,7 @@ static OptionBase *cfgFileOption[] =
 		&optionBlueToothScanCache,
 		#endif
 	#endif
-	#ifdef CONFIG_AUDIO_LATENCY_HINT
 	&optionSoundBuffers,
-	#endif
-	#ifdef EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-	&optionSoundUnderrunCheck,
-	#endif
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	&optionAudioSoloMix,
 	#endif

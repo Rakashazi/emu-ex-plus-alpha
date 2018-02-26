@@ -464,7 +464,8 @@ static void remake_stereo_buffer(GBASys &gba)
 	// APU
 	//if ( !gb_apu )
 	{
-		reset_apu();
+		//reset_apu();
+		stereo_buffer.clear();
 	}
 
 	apply_muting(gba);

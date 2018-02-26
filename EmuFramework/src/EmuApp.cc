@@ -582,6 +582,8 @@ void mainInitCommon(int argc, char** argv)
 	}
 	AudioManager::setMusicVolumeControlHint();
 	AudioManager::startSession();
+	if((int)optionSoundRate > AudioManager::nativeFormat().rate)
+		optionSoundRate = AudioManager::nativeFormat().rate;
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 
@@ -670,7 +672,7 @@ void mainInitCommon(int argc, char** argv)
 	Base::setOnExit(
 		[](bool backgrounded)
 		{
-			Audio::closePcm();
+			EmuSystem::closeSound();
 			AudioManager::endSession();
 			renderer.restoreBind();
 			if(backgrounded)

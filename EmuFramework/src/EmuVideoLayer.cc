@@ -59,9 +59,9 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 	{
 		float viewportAspectRatio = viewportRect.xSize()/(float)viewportRect.ySize();
 		// compute the video rectangle in pixel coordinates
-		if((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if(((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
+			&& video.size().x)
 		{
-			uint scaleFactor;
 			uint gameX = video.size().x, gameY = video.size().y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
@@ -93,6 +93,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
 			}
 
+			uint scaleFactor;
 			if(gameAR > viewportAspectRatio)//Gfx::proj.aspectRatio)
 			{
 				scaleFactor = std::max(1U, viewportRect.xSize() / gameX);

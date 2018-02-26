@@ -201,6 +201,7 @@ static inline u32 CPUReadMemoryBase(ARM7TDMI &cpu, u32 address)
     if(cpuFlashEnabled | cpuSramEnabled)
       // no need to swap this
       return flashRead(address);
+    [[fallthrough]];
     // default
   default:
 unreadable:
@@ -378,6 +379,7 @@ static inline u32 CPUReadHalfWordBase(ARM7TDMI &cpu, u32 address)
     if(cpuFlashEnabled | cpuSramEnabled)
       // no need to swap this
       return flashRead(address);
+    [[fallthrough]];
     // default
   default:
 unreadable:
@@ -491,6 +493,7 @@ static inline u8 CPUReadByte(ARM7TDMI &cpu, u32 address)
     return systemGetSensorY() >> 8;
       }
     }
+    [[fallthrough]];
     // default
   default:
 unreadable:

@@ -1,5 +1,5 @@
-ifndef inc_audio
-inc_audio := 1
+ifndef inc_audio_pa
+inc_audio_pa := 1
 
 configDefs += CONFIG_AUDIO CONFIG_AUDIO_PULSEAUDIO
 
@@ -10,6 +10,6 @@ else
  include $(IMAGINE_PATH)/make/package/pulseaudio.mk
 endif
 
-SRC += audio/pulseaudio/pulseaudio.cc
+SRC += audio/OutputStream.cc audio/pulseaudio/pulseaudio.cc
 
 endif

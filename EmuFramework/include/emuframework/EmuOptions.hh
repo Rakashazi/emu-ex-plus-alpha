@@ -18,24 +18,12 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
-#include <imagine/audio/Audio.hh>
+#include <imagine/audio/AudioManager.hh>
 
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
-#ifdef CONFIG_AUDIO_LATENCY_HINT
-	#if defined CONFIG_AUDIO_ALSA || defined CONFIG_AUDIO_OPENSL_ES || defined CONFIG_AUDIO_PULSEAUDIO
-	// these backends may have additional buffering in the OS/driver
-	static constexpr uint OPTION_SOUND_BUFFERS_MIN = 2;
-	#else
-	static constexpr uint OPTION_SOUND_BUFFERS_MIN = 3;
-	#endif
 extern Byte1Option optionSoundBuffers;
-#endif
-#if defined CONFIG_AUDIO_OPENSL_ES && !defined CONFIG_MACHINE_OUYA
-#define EMU_FRAMEWORK_STRICT_UNDERRUN_CHECK_OPTION
-extern OptionAudioHintStrictUnderrunCheck optionSoundUnderrunCheck;
-#endif
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 using OptionAudioSoloMix = Option<OptionMethodFunc<bool, AudioManager::soloMix, AudioManager::setSoloMix>, uint8>;
 extern OptionAudioSoloMix optionAudioSoloMix;

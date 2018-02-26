@@ -14,91 +14,23 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "OpenSL"
-#include <imagine/audio/Audio.hh>
+#include <imagine/audio/opensl/OpenSLESOutputStream.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include "../../base/android/android.hh"
-#include <SLES/OpenSLES.h>
-#include <SLES/OpenSLES_Android.h>
-#include <imagine/util/ringbuffer/LinuxRingBuffer.hh>
-using RingBufferType = StaticLinuxRingBuffer<>;
 
 namespace Audio
 {
-PcmFormat pcmFormat{};
-static SLEngineItf slI{};
-static SLObjectItf outMix{}, player{};
-static SLPlayItf playerI{};
-static SLAndroidSimpleBufferQueueItf slBuffQI{};
-static uint wantedLatency = 100000;
-static uint outputBufferBytes = 0; // size in bytes per buffer to enqueue
-static bool isPlaying_ = false, strictUnderrunCheck = true;
-static bool reachedEndOfPlayback = false;
-static RingBufferType rBuff{};
-static uint unqueuedBytes = 0; // number of bytes in ring buffer that haven't been enqueued to SL yet
-static char *ringBuffNextQueuePos{};
 
-int maxRate()
+static uint defaultFramesPerBuffer()
 {
-	return 48000;
-}
-
-static bool isInit()
-{
-	return outMix;
-}
-
-void setHintOutputLatency(uint us)
-{
-	wantedLatency = us;
-}
-
-uint hintOutputLatency()
-{
-	return wantedLatency;
-}
-
-static bool commitSLBuffer(void *b, uint bytes)
-{
-	SLresult result = (*slBuffQI)->Enqueue(slBuffQI, b, bytes);
-	if(result != SL_RESULT_SUCCESS)
-	{
-		logWarn("Enqueue returned 0x%X", (uint)result);
-		return false;
-	}
-	return true;
-}
-
-// runs on internal OpenSL ES thread
-static void queueCallback(SLAndroidSimpleBufferQueueItf caller, void *)
-{
-	rBuff.commitRead(outputBufferBytes);
-}
-
-// runs on internal OpenSL ES thread
-static void playCallback(SLPlayItf caller, void *, SLuint32 event)
-{
-	//logMsg("play event %X", (int)event);
-	assert(event == SL_PLAYEVENT_HEADSTALLED || event == SL_PLAYEVENT_HEADATEND);
-	reachedEndOfPlayback = true;
-	if(!::Config::MACHINE_IS_OUYA) // prevent log spam
-		logMsg("got playback end event");
-}
-
-static uint bufferFramesForSampleRate(int rate)
-{
-	if(rate == AudioManager::nativeFormat().rate && AudioManager::nativeOutputFramesPerBuffer())
+	if(AudioManager::nativeOutputFramesPerBuffer())
 		return AudioManager::nativeOutputFramesPerBuffer();
-	else if(rate <= 22050)
-		return 256;
-	else if(rate <= 44100)
-		return 512;
-	else
-		return 1024;
+	return 192; // default used in Google Oboe library
 }
 
-static void init()
+OpenSLESOutputStream::OpenSLESOutputStream()
 {
 	logMsg("running init");
 
@@ -118,41 +50,38 @@ static void init()
 	assert(result == SL_RESULT_SUCCESS);
 }
 
-std::error_code openPcm(const PcmFormat &format)
+std::error_code OpenSLESOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
 {
 	if(player)
 	{
-		logWarn("called openPcm when pcm already on");
+		logWarn("stream already open");
 		return {};
 	}
-	if(unlikely(!isInit()))
-		init();
+	if(unlikely(!*this))
+	{
+		return {EINVAL, std::system_category()};
+	}
 	pcmFormat = format;
-
-	// setup ring buffer and related
-	uint outputBufferFrames = bufferFramesForSampleRate(format.rate);
-	outputBufferBytes = pcmFormat.framesToBytes(outputBufferFrames);
-	uint ringBufferSize = std::max(2u, IG::divRoundUp(pcmFormat.uSecsToBytes(wantedLatency), outputBufferBytes)) * outputBufferBytes;
-	uint outputBuffers = ringBufferSize / outputBufferBytes;
-	rBuff.init(ringBufferSize);
-	ringBuffNextQueuePos = rBuff.writeAddr();
-
-	logMsg("creating playback %dHz, %d channels", format.rate, format.channels);
-	logMsg("using %d buffers with %d frames", outputBuffers, outputBufferFrames);
+	onSamplesNeeded = onSamplesNeeded_;
+	uint bufferFrames = defaultFramesPerBuffer();
+	bufferBytes = pcmFormat.framesToBytes(bufferFrames);
+	buffer = new char[bufferBytes];
+	uint outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
+	logMsg("creating playback %dHz, %d channels, %u buffer frames", format.rate, format.channels, bufferFrames);
 	assert(format.sample.bits == 16);
-	SLDataLocator_AndroidSimpleBufferQueue buffQLoc = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers };
-	SLDataFormat_PCM slFormat =
+	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
+	SLDataFormat_PCM slFormat
 	{
 		SL_DATAFORMAT_PCM, (SLuint32)format.channels, (SLuint32)format.rate * 1000, // as milliHz
 		SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
 		format.channels == 1 ? SL_SPEAKER_FRONT_CENTER : SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
 		SL_BYTEORDER_LITTLEENDIAN
 	};
-	SLDataSource audioSrc = { &buffQLoc, &slFormat };
-	SLDataLocator_OutputMix outMixLoc = { SL_DATALOCATOR_OUTPUTMIX, outMix };
-	SLDataSink sink = { &outMixLoc, nullptr };
-	const SLInterfaceID ids[] = { SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME };
-	const SLboolean req[IG::size(ids)] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE };
+	SLDataSource audioSrc{&buffQLoc, &slFormat};
+	SLDataLocator_OutputMix outMixLoc{SL_DATALOCATOR_OUTPUTMIX, outMix};
+	SLDataSink sink{&outMixLoc, nullptr};
+	const SLInterfaceID ids[]{SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME};
+	const SLboolean req[IG::size(ids)]{SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE};
 	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, IG::size(ids), ids, req);
 	if(result != SL_RESULT_SUCCESS)
 	{
@@ -160,64 +89,43 @@ std::error_code openPcm(const PcmFormat &format)
 		player = nullptr;
 		return {EINVAL, std::system_category()};
 	}
-
 	result = (*player)->Realize(player, SL_BOOLEAN_FALSE);
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*player)->GetInterface(player, SL_IID_PLAY, &playerI);
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*player)->GetInterface(player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
-
-	result = (*slBuffQI)->RegisterCallback(slBuffQI, queueCallback, nullptr);
+	result = (*slBuffQI)->RegisterCallback(slBuffQI,
+		[](SLAndroidSimpleBufferQueueItf queue, void *thisPtr_)
+		{
+			auto thisPtr = static_cast<OpenSLESOutputStream*>(thisPtr_);
+			thisPtr->doBufferCallback(queue);
+		}, this);
 	assert(result == SL_RESULT_SUCCESS);
-	result = (*playerI)->RegisterCallback(playerI, playCallback, nullptr);
-	assert(result == SL_RESULT_SUCCESS);
-
-	uint playStateEvMask = SL_PLAYEVENT_HEADSTALLED;
-	if(strictUnderrunCheck)
-		playStateEvMask = SL_PLAYEVENT_HEADATEND;
-	(*playerI)->SetCallbackEventsMask(playerI, playStateEvMask);
-	(*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
-
-	logMsg("PCM opened");
+	logMsg("stream opened");
 	return {};
 }
 
-void closePcm()
+void OpenSLESOutputStream::play()
 {
-	if(player)
+	if(unlikely(!player))
+		return;
+	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
+	if(result == SL_RESULT_SUCCESS)
 	{
-		logMsg("closing pcm");
-		isPlaying_ = 0;
-		slBuffQI = nullptr;
-		(*player)->Destroy(player);
-		player = nullptr;
-		rBuff.deinit();
-		reachedEndOfPlayback = false;
-		unqueuedBytes = 0;
+		logMsg("started playback");
+		isPlaying_ = 1;
 	}
 	else
-		logMsg("called closePcm when pcm already off");
+		logErr("SetPlayState returned 0x%X", (uint)result);
+	if(!bufferQueued)
+	{
+		doBufferCallback(slBuffQI);
+		bufferQueued = true;
+	}
 }
 
-bool isOpen()
-{
-	return player;
-}
-
-bool isPlaying()
-{
-	return isPlaying_;
-}
-
-static uint buffersQueued()
-{
-	SLAndroidSimpleBufferQueueState state;
-	(*slBuffQI)->GetState(slBuffQI, &state);
-	return state.count;
-}
-
-void pausePcm()
+void OpenSLESOutputStream::pause()
 {
 	if(unlikely(!player) || !isPlaying_)
 		return;
@@ -226,123 +134,57 @@ void pausePcm()
 	isPlaying_ = 0;
 }
 
-void resumePcm()
+void OpenSLESOutputStream::close()
 {
-	if(unlikely(!player))
-		return;
-	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
-	if(result == SL_RESULT_SUCCESS)
+	if(player)
 	{
-		logMsg("started playback with %d buffers queued", (int)rBuff.writtenSize() / outputBufferBytes);
-		isPlaying_ = 1;
-		reachedEndOfPlayback = false;
+		logMsg("closing pcm");
+		isPlaying_ = false;
+		bufferQueued = false;
+		slBuffQI = nullptr;
+		(*player)->Destroy(player);
+		player = nullptr;
+		delete[] buffer;
+		buffer = nullptr;
 	}
 	else
-		logErr("SetPlayState returned 0x%X", (uint)result);
+		logMsg("called closePcm when pcm already off");
 }
 
-void clearPcm()
+void OpenSLESOutputStream::flush()
 {
 	if(unlikely(!isOpen()))
 		return;
 	logMsg("clearing queued samples");
-	pausePcm();
+	pause();
 	SLresult result = (*slBuffQI)->Clear(slBuffQI);
+	bufferQueued = false;
 	assert(result == SL_RESULT_SUCCESS);
-	rBuff.reset();
-	ringBuffNextQueuePos = rBuff.writeAddr();
-	unqueuedBytes = 0;
 }
 
-static bool checkXRun()
+bool OpenSLESOutputStream::isOpen()
 {
-	if(unlikely(reachedEndOfPlayback && isPlaying_))
-	{
-		if(!::Config::MACHINE_IS_OUYA) // prevent log spam
-			logMsg("xrun");
-		pausePcm();
-		return true;
-	}
-	return false;
+	return player;
 }
 
-static void updateQueue(uint written)
+bool OpenSLESOutputStream::isPlaying()
 {
-	unqueuedBytes += written;
-	uint toEnqueue = unqueuedBytes / outputBufferBytes;
-	//logMsg("wrote %d, to queue %d bytes (%d),", written, unqueuedBytes, toEnqueue);
-	if(toEnqueue)
-	{
-		iterateTimes(toEnqueue, i)
+	return isPlaying_;
+}
+
+OpenSLESOutputStream::operator bool() const
+{
+	return outMix;
+}
+
+void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue)
+{
+	onSamplesNeeded(buffer, bufferBytes);
+	if(SLresult result = (*queue)->Enqueue(queue, buffer, bufferBytes);
+			result != SL_RESULT_SUCCESS)
 		{
-			if(checkXRun())
-				break;
-			if(!commitSLBuffer(ringBuffNextQueuePos, outputBufferBytes))
-			{
-				logErr("error in enqueue even though queue should have space");
-			}
-			ringBuffNextQueuePos = rBuff.advanceAddr(ringBuffNextQueuePos, outputBufferBytes);
-			unqueuedBytes -= outputBufferBytes;
+			logWarn("Enqueue returned 0x%X", (uint)result);
 		}
-	}
-}
-
-int contiguousFramesFree()
-{
-	return pcmFormat.bytesToFrames(rBuff.freeContiguousSpace());
-}
-
-BufferContext getPlayBuffer(uint wantedFrames)
-{
-	// use contiguousFramesFree() since we may have a plain ring buffer without mirroring
-	if(unlikely(!isOpen() || !contiguousFramesFree()))
-		return {};
-	if((uint)contiguousFramesFree() < wantedFrames)
-	{
-		logDMsg("buffer has only %d/%d frames free", contiguousFramesFree(), wantedFrames);
-	}
-	return {rBuff.writeAddr(), std::min(wantedFrames, (uint)contiguousFramesFree())};
-}
-
-void commitPlayBuffer(BufferContext buffer, uint frames)
-{
-	assert(frames <= buffer.frames);
-	auto written = pcmFormat.framesToBytes(frames);
-	rBuff.commitWrite(written);
-	updateQueue(written);
-}
-
-void writePcm(const void *samples, uint framesToWrite)
-{
-	if(unlikely(!isOpen()))
-		return;
-	uint bytes = pcmFormat.framesToBytes(framesToWrite);
-	auto written = rBuff.write(samples, bytes);
-	if(written != bytes)
-	{
-		logMsg("overrun, wrote %d out of %d bytes", written, bytes);
-	}
-	updateQueue(written);
-}
-
-int frameDelay()
-{
-	return 0; // TODO
-}
-
-int framesFree()
-{
-	return pcmFormat.bytesToFrames(rBuff.freeSpace());
-}
-
-void setHintStrictUnderrunCheck(bool on)
-{
-	strictUnderrunCheck = on;
-}
-
-bool hintStrictUnderrunCheck()
-{
-	return strictUnderrunCheck;
 }
 
 }

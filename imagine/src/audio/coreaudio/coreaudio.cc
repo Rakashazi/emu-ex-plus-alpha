@@ -14,90 +14,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "CoreAudio"
-#include <imagine/audio/Audio.hh>
+#include <imagine/audio/coreaudio/CAOutputStream.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/ringbuffer/MachRingBuffer.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
-#include <AudioUnit/AudioUnit.h>
 #include <TargetConditionals.h>
 
 namespace Audio
 {
 
-PcmFormat pcmFormat;
-static uint wantedLatency = 100000;
-static AudioComponentInstance outputUnit{};
-static AudioStreamBasicDescription streamFormat;
-static bool isPlaying_ = false, isOpen_ = false, hadUnderrun = false;
-static StaticMachRingBuffer<> rBuff;
-
-int maxRate()
-{
-	return 48000;
-}
-
-static bool isInit()
-{
-	return outputUnit;
-}
-
-void setHintOutputLatency(uint us)
-{
-	wantedLatency = us;
-}
-
-uint hintOutputLatency()
-{
-	return wantedLatency;
-}
-
-static OSStatus outputCallback(void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
-		const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData)
-{
-	auto *buf = (char*)ioData->mBuffers[0].mData;
-	uint bytes = inNumberFrames * streamFormat.mBytesPerFrame;
-
-	if(unlikely(hadUnderrun))
-	{
-		*ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;
-		std::fill_n(buf, bytes, 0);
-		return 0;
-	}
-
-	uint read = rBuff.read(buf, bytes);
-	if(unlikely(read != bytes))
-	{
-		//logMsg("underrun, read %d out of %d bytes", read, bytes);
-		hadUnderrun = true;
-		uint padBytes = bytes - read;
-		//logMsg("padding %d bytes", padBytes);
-		std::fill_n(&buf[read], padBytes, 0);
-	}
-	return 0;
-}
-
-static std::error_code openUnit(AudioStreamBasicDescription &fmt, uint bufferSize)
-{
-	logMsg("creating unit %dHz %d channels", (int)fmt.mSampleRate, (int)fmt.mChannelsPerFrame);
-	if(!rBuff.init(bufferSize))
-	{
-		return {ENOMEM, std::system_category()};
-	}
-	auto err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
-			0, &fmt, sizeof(AudioStreamBasicDescription));
-	if(err)
-	{
-		logErr("error %d setting stream format", (int)err);
-		rBuff.deinit();
-		return {EINVAL, std::system_category()};
-	}
-	AudioUnitInitialize(outputUnit);
-	isOpen_ = true;
-	return {};
-}
-
-static void init()
+CAOutputStream::CAOutputStream()
 {
 	logMsg("setting up playback audio unit");
 	AudioComponentDescription defaultOutputDescription =
@@ -117,10 +43,21 @@ static void init()
 	{
 		bug_unreachable("error creating output unit: %d", (int)err);
 	}
-	AURenderCallbackStruct renderCallbackProp =
+	AURenderCallbackStruct renderCallbackProp
 	{
-		outputCallback,
-		//nullptr
+		[](void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
+			const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) -> OSStatus
+		{
+			auto thisPtr = static_cast<CAOutputStream*>(inRefCon);
+			auto *buff = (char*)ioData->mBuffers[0].mData;
+			uint bytes = inNumberFrames * thisPtr->streamFormat.mBytesPerFrame;
+			if(!thisPtr->onSamplesNeeded(buff, bytes))
+			{
+				*ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;
+			}
+			return 0;
+		},
+		this
 	};
 	err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,
 	    0, &renderCallbackProp, sizeof(renderCallbackProp));
@@ -130,15 +67,15 @@ static void init()
 	}
 }
 
-std::error_code openPcm(const PcmFormat &format)
+std::error_code CAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
 {
 	if(isOpen())
 	{
 		logWarn("audio unit already open");
 		return {};
 	}
-	if(unlikely(!isInit()))
-		init();
+	pcmFormat = format;
+	onSamplesNeeded = onSamplesNeeded_;
 	streamFormat.mSampleRate = format.rate;
 	streamFormat.mFormatID = kAudioFormatLinearPCM;
 	streamFormat.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked | kAudioFormatFlagsNativeEndian;
@@ -147,12 +84,41 @@ std::error_code openPcm(const PcmFormat &format)
 	streamFormat.mBytesPerFrame = format.framesToBytes(1);
 	streamFormat.mChannelsPerFrame = format.channels;
 	streamFormat.mBitsPerChannel = format.sample.bits == 16 ? 16 : 8;
-	pcmFormat = format;
-	uint bufferSize = format.uSecsToBytes(wantedLatency);
-	return openUnit(streamFormat, bufferSize);
+	logMsg("creating unit %dHz %d channels", (int)streamFormat.mSampleRate, (int)streamFormat.mChannelsPerFrame);
+	if(auto err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
+			0, &streamFormat, sizeof(AudioStreamBasicDescription));
+		err)
+	{
+		logErr("error %d setting stream format", (int)err);
+		return {EINVAL, std::system_category()};
+	}
+	AudioUnitInitialize(outputUnit);
+	isOpen_ = true;
+	return {};
 }
 
-void closePcm()
+void CAOutputStream::play()
+{
+	if(unlikely(!isOpen() || isPlaying_))
+		return;
+	if(auto err = AudioOutputUnitStart(outputUnit);
+		err)
+	{
+		logErr("error %d in AudioOutputUnitStart", (int)err);
+	}
+	else
+		isPlaying_ = true;
+}
+
+void CAOutputStream::pause()
+{
+	if(unlikely(!isOpen()))
+		return;
+	AudioOutputUnitStop(outputUnit);
+	isPlaying_ = false;
+}
+
+void CAOutputStream::close()
 {
 	if(!isOpen())
 	{
@@ -161,100 +127,32 @@ void closePcm()
 	}
 	AudioOutputUnitStop(outputUnit);
 	AudioUnitUninitialize(outputUnit);
-	rBuff.deinit();
 	isPlaying_ = false;
 	isOpen_ = false;
-	hadUnderrun = false;
 	logMsg("closed audio unit");
 }
 
-bool isOpen()
+void CAOutputStream::flush()
+{
+	if(unlikely(!isOpen()))
+		return;
+	// TODO
+	pause();
+}
+
+bool CAOutputStream::isOpen()
 {
 	return isOpen_;
 }
 
-bool isPlaying()
+bool CAOutputStream::isPlaying()
 {
-	return isPlaying_ && !hadUnderrun;
+	return isPlaying_;
 }
 
-void pausePcm()
+CAOutputStream::operator bool() const
 {
-	if(unlikely(!isOpen()))
-		return;
-	AudioOutputUnitStop(outputUnit);
-	isPlaying_ = false;
-	hadUnderrun = false;
-}
-
-void resumePcm()
-{
-	if(unlikely(!isOpen()))
-		return;
-	if(!isPlaying_ || hadUnderrun)
-	{
-		logMsg("playback starting with %u frames", (uint)(rBuff.writtenSize() / streamFormat.mBytesPerFrame));
-		hadUnderrun = false;
-		if(!isPlaying_)
-		{
-			auto err = AudioOutputUnitStart(outputUnit);
-			if(err)
-			{
-				logErr("error %d in AudioOutputUnitStart", (int)err);
-			}
-			else
-				isPlaying_ = true;
-		}
-	}
-}
-
-void clearPcm()
-{
-	if(unlikely(!isOpen()))
-		return;
-	logMsg("clearing queued samples");
-	pausePcm();
-	rBuff.reset();
-}
-
-void writePcm(const void *samples, uint framesToWrite)
-{
-	if(unlikely(!isOpen()))
-		return;
-
-	uint bytes = framesToWrite * streamFormat.mBytesPerFrame;
-	auto written = rBuff.write(samples, bytes);
-	if(written != bytes)
-	{
-		//logMsg("overrun, wrote %d out of %d bytes", written, bytes);
-	}
-}
-
-BufferContext getPlayBuffer(uint wantedFrames)
-{
-	if(unlikely(!isOpen()) || !framesFree())
-		return {};
-	if((uint)framesFree() < wantedFrames)
-	{
-		logDMsg("buffer has only %d/%d frames free", framesFree(), wantedFrames);
-	}
-	// will always have a contiguous block from mirrored pages
-	return {rBuff.writeAddr(), std::min(wantedFrames, (uint)framesFree())};
-}
-
-void commitPlayBuffer(BufferContext buffer, uint frames)
-{
-	assert(frames <= buffer.frames);
-	auto bytes = frames * streamFormat.mBytesPerFrame;
-	rBuff.commitWrite(bytes);
-}
-
-// TODO
-int frameDelay() { return 0; }
-
-int framesFree()
-{
-	return rBuff.freeSpace() / streamFormat.mBytesPerFrame;
+	return outputUnit;
 }
 
 }

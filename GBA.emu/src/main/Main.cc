@@ -219,8 +219,8 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	logMsg("set audio rate %d", rate);
-	double mixRate = std::round(rate * (59.73 * frameTime));
+	double mixRate = std::round(rate * (59.7275 * frameTime));
+	logMsg("set audio rate:%d, mix rate:%d", rate, (int)mixRate);
 	soundSetSampleRate(gGba, mixRate);
 }
 

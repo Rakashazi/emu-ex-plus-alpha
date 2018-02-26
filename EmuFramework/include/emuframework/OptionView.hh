@@ -19,11 +19,11 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/audio/Audio.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/audio/AudioManager.hh>
 
 class OptionCategoryView : public TableView
 {
@@ -99,19 +99,16 @@ class AudioOptionView : public TableView
 {
 protected:
 	BoolMenuItem snd;
-	#ifdef CONFIG_AUDIO_LATENCY_HINT
-	TextMenuItem soundBuffersItem[9];
+	TextMenuItem soundBuffersItem[7];
 	MultiChoiceMenuItem soundBuffers;
-	#endif
-	TextMenuItem audioRateItem[4];
+	StaticArrayList<TextMenuItem, 5> audioRateItem{};
 	MultiChoiceMenuItem audioRate;
-	#ifdef CONFIG_AUDIO_OPENSL_ES
-	BoolMenuItem sndUnderrunCheck;
-	#endif
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	BoolMenuItem audioSoloMix;
 	#endif
 	StaticArrayList<MenuItem*, 12> item{};
+
+	void updateAudioRateItem();
 
 public:
 	AudioOptionView(ViewAttachParams attach, bool customMenu = false);

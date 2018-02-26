@@ -17,7 +17,6 @@
 
 #include <imagine/io/IO.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/audio/Audio.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
@@ -212,6 +211,8 @@ public:
 	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
 	static void stopSound();
 	static void startSound();
+	static void closeSound();
+	static void flushSound();
 	static void writeSound(const void *samples, uint framesToWrite);
 	static uint advanceFramesWithTime(Base::FrameTimeBase time);
 	static void setupGamePaths(const char *filePath);

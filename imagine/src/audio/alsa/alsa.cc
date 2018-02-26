@@ -17,40 +17,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sched.h>
-#include <errno.h>
-#include <getopt.h>
-#include <alsa/asoundlib.h>
-#include <sys/time.h>
-#include <math.h>
-#include <imagine/audio/Audio.hh>
+#include <memory>
+#include <imagine/audio/alsa/ALSAOutputStream.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
+#include <imagine/util/ScopeGuard.hh>
+#include <imagine/thread/Thread.hh>
 #include "alsautils.h"
 
 namespace Audio
 {
-
-PcmFormat pcmFormat;
-static snd_pcm_t *pcmHnd{};
-static snd_pcm_uframes_t bufferSize, periodSize;
-static bool useMmap;
-static uint wantedLatency = 100000;
-
-int maxRate()
-{
-	return ::Config::MACHINE_IS_PANDORA ? 44100 : 48000;
-}
-
-void setHintOutputLatency(uint us)
-{
-	wantedLatency = us;
-}
-
-uint hintOutputLatency()
-{
-	return wantedLatency;
-}
 
 static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 {
@@ -77,37 +52,173 @@ static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
 	}
 }
 
-int frameDelay()
+static bool recoverPCM(snd_pcm_t *handle)
 {
-	if(unlikely(!isOpen()))
-		return 0;
-	snd_pcm_sframes_t delay;
-	snd_pcm_delay(pcmHnd, &delay);
-	return delay;
-}
-
-int framesFree()
-{
-	if(unlikely(!isOpen()))
-		return 0;
-	auto frames = snd_pcm_avail_update(pcmHnd);
-	if(frames < 0)
+	int state = snd_pcm_state(handle);
+	//logMsg("state:%d", state);
+	switch(state)
 	{
-		logWarn("error %d getting frames free", (int)frames);
-		frames = 0;
+		bcase SND_PCM_STATE_XRUN:
+			logMsg("recovering from xrun");
+			snd_pcm_recover(handle, -EPIPE, 0);
+			return true;
+		bcase SND_PCM_STATE_SUSPENDED:
+			logMsg("resuming PCM");
+			snd_pcm_resume(handle);
+			return true;
+		bcase SND_PCM_STATE_PREPARED:
+			return true;
+		bcase SND_PCM_STATE_SETUP:
+			return true;
 	}
-	return frames;
+	return false;
 }
 
-void pausePcm()
+
+ALSAOutputStream::ALSAOutputStream() {}
+
+std::error_code ALSAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
 {
-	if(unlikely(!isOpen()))
-		return;
-	logMsg("pausing playback");
-	snd_pcm_pause(pcmHnd, 1);
+	if(isOpen())
+	{
+		logMsg("already open");
+		return {};
+	}
+	pcmFormat = format;
+	onSamplesNeeded = onSamplesNeeded_;
+	const char* name = "default";
+	logMsg("Opening playback device: %s", name);
+	if(int err = snd_pcm_open(&pcmHnd, name, SND_PCM_STREAM_PLAYBACK, 0);
+		err < 0)
+	{
+		logErr("Playback open error: %s", snd_strerror(err));
+		return {EINVAL, std::system_category()};
+	}
+	auto closePcm = IG::scopeGuard([this](){ snd_pcm_close(pcmHnd); pcmHnd = 0; });
+	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
+	bool allowMmap = 1;
+	int err = -1;
+	if(allowMmap)
+	{
+		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+		if(err < 0)
+		{
+			logErr("failed opening in MMAP mode");
+		}
+	}
+	if(err < 0)
+	{
+		err = setupPcm(format, SND_PCM_ACCESS_RW_INTERLEAVED);
+		if(err < 0)
+		{
+			logErr("failed opening in normal mode");
+		}
+	}
+	//snd_pcm_dump(alsaHnd, output);
+	//logMsg("pcm state: %s", alsaPcmStateToString(snd_pcm_state(pcmHnd)));
+	if(err < 0)
+	{
+		return {EINVAL, std::system_category()};
+	}
+	closePcm.cancel();
+	IG::makeDetachedThread(
+		[this]()
+		{
+			int count = snd_pcm_poll_descriptors_count(pcmHnd);
+			auto ufds = std::make_unique<struct pollfd[]>(count);
+			snd_pcm_poll_descriptors(pcmHnd, ufds.get(), count);
+			auto waitForEvent =
+				[](snd_pcm_t *handle, struct pollfd *ufds, unsigned int count)
+				{
+					while(1)
+					{
+						poll(ufds, count, -1);
+						unsigned short revents = 0;
+						//logMsg("waiting for events");
+						snd_pcm_poll_descriptors_revents(handle, ufds, count, &revents);
+						if(revents & POLLERR)
+						{
+							logMsg("got POLLERR");
+							return -EIO;
+						}
+						if(revents & POLLOUT)
+						{
+							//logMsg("got POLLOUT");
+							return 0;
+						}
+						logMsg("got other events");
+					}
+				};
+			while(1)
+			{
+				if(int err = waitForEvent(pcmHnd, ufds.get(), count);
+					err < 0)
+				{
+					if(!recoverPCM(pcmHnd))
+					{
+						logErr("couldn't recover PCM");
+						return;
+					}
+					continue;
+				}
+				logMsg("state:%d", snd_pcm_state(pcmHnd));
+				if(useMmap)
+				{
+					snd_pcm_avail_update(pcmHnd);
+					auto framesToWrite = periodSize;
+					while(framesToWrite)
+					{
+						const snd_pcm_channel_area_t *areas{};
+						snd_pcm_uframes_t offset = 0;
+						snd_pcm_uframes_t frames = framesToWrite;
+						if(snd_pcm_mmap_begin(pcmHnd, &areas, &offset, &frames) < 0)
+						{
+							logErr("error in snd_pcm_mmap_begin");
+							if(!recoverPCM(pcmHnd))
+							{
+								logErr("couldn't recover PCM");
+								return;
+							}
+							break;
+						}
+						auto buff = (char*)areas->addr + offset * (areas->step / 8);
+						auto bytes = pcmFormat.framesToBytes(frames);
+						onSamplesNeeded(buff, bytes);
+						if(snd_pcm_mmap_commit(pcmHnd, offset, frames) < 0)
+						{
+							logErr("error in snd_pcm_mmap_begin");
+							if(!recoverPCM(pcmHnd))
+							{
+								logErr("couldn't recover PCM");
+								return;
+							}
+							break;
+						}
+						//logMsg("wrote %d frames with mmap", (int)frames);
+						framesToWrite -= frames;
+					}
+				}
+				else
+				{
+					auto bytes = pcmFormat.framesToBytes(periodSize);
+					char buff[bytes];
+					onSamplesNeeded(buff, bytes);
+					if(snd_pcm_writei(pcmHnd, buff, periodSize) < 0)
+					{
+						if(!recoverPCM(pcmHnd))
+						{
+							logErr("couldn't recover PCM");
+							return;
+						}
+					}
+					//logMsg("wrote %d frames", (int)periodSize);
+				}
+			}
+		});
+	return {};
 }
 
-void resumePcm()
+void ALSAOutputStream::play()
 {
 	if(unlikely(!isOpen()))
 		return;
@@ -127,155 +238,61 @@ void resumePcm()
 	}
 }
 
-void clearPcm()
+void ALSAOutputStream::pause()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logMsg("pausing playback");
+	snd_pcm_pause(pcmHnd, 1);
+}
+
+void ALSAOutputStream::close()
+{
+	if(unlikely(!isOpen()))
+		return;
+	logDMsg("closing pcm");
+	snd_pcm_close(pcmHnd);
+	pcmHnd = nullptr;
+}
+
+void ALSAOutputStream::flush()
 {
 	if(unlikely(!isOpen()))
 		return;
 	logMsg("clearing queued samples");
 	snd_pcm_drop(pcmHnd);
 	snd_pcm_prepare(pcmHnd);
+	snd_pcm_start(pcmHnd);
+	snd_pcm_pause(pcmHnd, 1);
 }
 
-class AlsaMmapContext : public BufferContext
+bool ALSAOutputStream::isOpen()
 {
-public:
-	const snd_pcm_channel_area_t *areas = nullptr;
-	snd_pcm_uframes_t offset = 0;
-	snd_pcm_t *pcmHnd = nullptr;
-
-	constexpr AlsaMmapContext() {}
-
-	CallResult begin(snd_pcm_t *pcmHnd, snd_pcm_uframes_t *frames)
-	{
-		this->pcmHnd = pcmHnd;
-		snd_pcm_uframes_t wantedFrames = *frames;
-		if(snd_pcm_mmap_begin(pcmHnd, &areas, &offset, frames) != 0)
-		{
-			logErr("error in snd_pcm_mmap_begin");
-			return INVALID_PARAMETER;
-		}
-		if(*frames == 0)
-		{
-			//logWarn("unexpected 0 samples returned for MMAP");
-			snd_pcm_mmap_commit(pcmHnd, offset, 0);
-			return INVALID_PARAMETER;
-		}
-
-		if(wantedFrames != *frames)
-		{
-			//logMsg("got %d frames out of %d from mmap", (int)*frames, (int)wantedFrames);
-		}
-		data = (char*)areas->addr + offset * (areas->step / 8);
-		this->frames = *frames;
-
-		return OK;
-	}
-
-	CallResult commitBytes(uint bytesWritten)
-	{
-		return commit(pcmFormat.bytesToFrames(bytesWritten));
-	}
-
-	CallResult commit(snd_pcm_uframes_t framesWritten)
-	{
-		auto ret = snd_pcm_mmap_commit(pcmHnd, offset, framesWritten);
-		if(ret < 0 || ret != (snd_pcm_sframes_t)framesWritten)
-		{
-			logMsg("error in snd_pcm_mmap_commit");
-			return INVALID_PARAMETER;
-		}
-		return OK;
-	}
-};
-
-void writePcm(const void *samples, uint framesToWrite)
-{
-	if(unlikely(!isOpen()))
-		return;
-
-	auto framesFreeOnHW = framesFree();
-
-	// verify PCM state
-	switch((int)snd_pcm_state(pcmHnd))
-	{
-		bcase SND_PCM_STATE_XRUN:
-			snd_pcm_recover(pcmHnd, -EPIPE, 0);
-			framesFreeOnHW = framesFree();
-			logMsg("recovered from xrun, %d frames free", framesFreeOnHW);
-		bcase SND_PCM_STATE_PAUSED:
-			logMsg("unpausing PCM");
-			snd_pcm_pause(pcmHnd, 0);
-		bcase SND_PCM_STATE_SUSPENDED:
-			logMsg("resuming PCM");
-			snd_pcm_resume(pcmHnd);
-	}
-
-	//logMsg("writing %d frames, %d free", framesToWrite, framesFreeOnHW);
-
-	/*{
-		static uint framesToWriteAvg = 0, writeCount = 0;
-		framesToWriteAvg += framesToWrite;
-		writeCount++;
-		if(writeCount == 120)
-		{
-			logMsg("avg frames: %f, %d free", framesToWriteAvg / (double)120., framesFree());
-			framesToWriteAvg = 0;
-			writeCount = 0;
-		}
-	}*/
-
-	if(framesFreeOnHW < (int)framesToWrite)
-	{
-		logWarn("sending %d frames but only %d free", framesToWrite, framesFreeOnHW);
-		framesToWrite = framesFreeOnHW;
-	}
-	snd_pcm_sframes_t written;
-	if(useMmap)
-	{
-		written = snd_pcm_mmap_writei(pcmHnd, samples, framesToWrite);
-		/*AlsaMmapContext ctx;
-		//logMsg("starting mmap loop");
-		auto samplePtr = (char*)samples;
-		for(snd_pcm_uframes_t frames; framesToWrite; framesToWrite -= frames)
-		{
-			frames = framesToWrite;
-			if(ctx.begin(pcmHnd, &frames) != OK)
-				return;
-			assert(frames <= framesToWrite);
-
-			memcpy(ctx.data, samples, pcmFormat.framesToBytes(frames));
-			samplePtr += pcmFormat.framesToBytes(frames);
-
-			if(ctx.commit(frames) != OK)
-				return;
-		}*/
-	}
-	else
-	{
-		written = snd_pcm_writei(pcmHnd, samples, framesToWrite);
-	}
-	if(written != (snd_pcm_sframes_t)framesToWrite)
-	{
-		if(written < 0)
-		{
-			logWarn("error writing %d frames: %s", framesToWrite, alsaPcmWriteErrorToString(written));
-		}
-		else
-			logWarn("only %ld of %d frames written", written, framesToWrite);
-	}
+	return pcmHnd;
 }
 
-static int setupPcm(const PcmFormat &format, snd_pcm_access_t access)
+bool ALSAOutputStream::isPlaying()
+{
+	return isOpen() && snd_pcm_state(pcmHnd) == SND_PCM_STATE_RUNNING;
+}
+
+ALSAOutputStream::operator bool() const
+{
+	return true;
+}
+
+int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access)
 {
 	int alsalibResample = 1;
-	int err;
-	if ((err = snd_pcm_set_params(pcmHnd,
+	constexpr uint wantedLatency = 20000;
+	if(int err = snd_pcm_set_params(pcmHnd,
 		pcmFormatToAlsa(format.sample),
 		access,
 		format.channels,
 		format.rate,
 		alsalibResample,
-		wantedLatency)) < 0)
+		wantedLatency);
+		err < 0)
 	{
 		logErr("Error setting pcm parameters: %s", snd_strerror(err));
 		return err;
@@ -286,7 +303,8 @@ static int setupPcm(const PcmFormat &format, snd_pcm_access_t access)
 	else
 		useMmap = false;
 
-	if((err = snd_pcm_get_params(pcmHnd, &bufferSize, &periodSize) < 0))
+	if(int err = snd_pcm_get_params(pcmHnd, &bufferSize, &periodSize);
+		err < 0)
 	{
 		logErr("Error getting pcm buffer/period size parameters");
 		return err;
@@ -296,101 +314,6 @@ static int setupPcm(const PcmFormat &format, snd_pcm_access_t access)
 		logMsg("buffer size %u, period size %u, mmap %d", (uint)bufferSize, (uint)periodSize, useMmap);
 		return 0;
 	}
-}
-
-static std::error_code openAlsaPcm(const PcmFormat &format)
-{
-	std::error_code ec{};
-	const char* name = "default";
-
-	logMsg("Opening playback device: %s", name);
-	
-	int err;
-	if ((err = snd_pcm_open(&pcmHnd, name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK)) < 0)
-	{
-		logErr("Playback open error: %s", snd_strerror(err));
-		return {EINVAL, std::system_category()};
-	}
-
-	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
-
-	bool allowMmap = 1;
-	bool setupPcmSuccess = 0;
-	if(allowMmap)
-	{
-		if((err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED)) < 0)
-		{
-			logErr("failed opening in MMAP mode");
-		}
-		else
-			setupPcmSuccess = 1;
-	}
-	if(!setupPcmSuccess && (err = setupPcm(format, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
-	{
-		logErr("failed opening in normal mode");
-	}
-	else
-		setupPcmSuccess = 1;
-	if(!setupPcmSuccess)
-	{
-		ec = {EINVAL, std::system_category()}; goto CLEANUP;
-	}
-
-	//snd_pcm_dump(alsaHnd, output);
-	//logMsg("pcm state: %s", alsaPcmStateToString(snd_pcm_state(pcmHnd)));
-
-	return {};
-
-	CLEANUP:
-
-	if(pcmHnd)
-	{
-		snd_pcm_close(pcmHnd);
-		pcmHnd = 0;
-	}
-	
-	return ec;
-}
-
-static void closeAlsaPcm()
-{
-	if(isOpen())
-	{
-		logDMsg("closing pcm");
-		snd_pcm_close(pcmHnd);
-		pcmHnd = nullptr;
-	}
-}
-
-std::error_code openPcm(const PcmFormat &format)
-{
-	if(isOpen())
-	{
-		logMsg("audio already open");
-		return {};
-	}
-	pcmFormat = format;
-	return openAlsaPcm(format);
-}
-
-void closePcm()
-{
-	if(!isOpen())
-	{
-		logMsg("audio already closed");
-		return;
-	}
-	closeAlsaPcm();
-}
-
-bool isOpen()
-{
-	return pcmHnd;
-}
-
-bool isPlaying()
-{
-	return isOpen() && snd_pcm_state(pcmHnd) == SND_PCM_STATE_RUNNING;
 }
 
 }
