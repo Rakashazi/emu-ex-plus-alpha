@@ -165,10 +165,22 @@ FS::PathLocation sharedStoragePathLocation()
 
 std::vector<FS::PathLocation> rootFileLocations()
 {
-	return
-		{
-			sharedStoragePathLocation(),
-		};
+	if(androidSDK() < 14)
+	{
+		return
+			{
+				sharedStoragePathLocation(),
+			};
+	}
+	else
+	{
+		FS::PathString storageDevicesPath{"/storage"};
+		return
+			{
+				sharedStoragePathLocation(),
+				{storageDevicesPath, FS::makeFileString("Storage Devices"), {FS::makeFileString("Storage"), strlen(storageDevicesPath.data())}}
+			};
+	}
 }
 
 FS::PathString libPath(const char *)
