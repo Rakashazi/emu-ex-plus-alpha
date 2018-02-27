@@ -646,7 +646,7 @@ static BMAPPINGLocal bmap[] = {
 	{"",					187, Mapper187_Init},
 	{"",					188, Mapper188_Init},
 	{"",					189, Mapper189_Init},
-//	{"",					190, Mapper190_Init},
+	{"",					190, Mapper190_Init},
 	{"",					191, Mapper191_Init},
 	{"TW MMC3+VRAM Rev. B",	192, Mapper192_Init},
 	{"NTDEC TC-112",		193, Mapper193_Init},	// War in the Gulf
@@ -726,6 +726,8 @@ static BMAPPINGLocal bmap[] = {
 	{"PEC-586 Computer",	257, UNLPEC586Init},
 	{"158B Prot Board",		258, UNL158B_Init},
 	{"F-15 MMC3 Based",		259, BMCF15_Init},
+	{"HP10xx/H20xx Boards",	260, BMCHPxx_Init},
+	{"810544-CA-1",		    261, BMC810544CA1_Init},
 
 	{"",					0, NULL}
 };
@@ -861,7 +863,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		FCEU_printf(" Total VRAM size: %d\n", iNESCart.vram_size + iNESCart.battery_vram_size);
 		if(head.ROM_type & 2)
 		{
-			FCEU_printf(" WRAM backked by battery: %d\n", iNESCart.battery_wram_size);
+			FCEU_printf(" WRAM backed by battery: %d\n", iNESCart.battery_wram_size);
 			FCEU_printf(" VRAM backed by battery: %d\n", iNESCart.battery_vram_size);
 		}
 	}
@@ -916,7 +918,9 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	// since apparently the iNES format doesn't store this information,
 	// guess if the settings should be PAL or NTSC from the ROM name
 	// TODO: MD5 check against a list of all known PAL games instead?
-	if (OverwriteVidMode) {
+	if (iNES2) {
+		FCEUI_SetVidSystem(((head.TV_system & 3) == 1) ? 1 : 0);
+	} else if (OverwriteVidMode) {
 		if (strstr(name, "(E)") || strstr(name, "(e)")
 			|| strstr(name, "(Europe)") || strstr(name, "(PAL)")
 			|| strstr(name, "(F)") || strstr(name, "(f)")
@@ -1021,8 +1025,18 @@ static int iNES_Init(int num) {
 				FCEU_MemoryRand(VROM, CHRRAMSize);
 
 				UNIFchrrama = VROM;
-				SetupCartCHRMapping(0, VROM, CHRRAMSize, 1);
-				AddExState(VROM, CHRRAMSize, 0, "CHRR");
+				if(CHRRAMSize == 0)
+				{
+					//probably a mistake.
+					//but (for chrram): "Use of $00 with no CHR ROM implies that the game is wired to map nametable memory in CHR space. The value $00 MUST NOT be used if a mapper isn't defined to allow this. "
+					//well, i'm not going to do that now. we'll save it for when it's needed
+					//"it's only mapper 218 and no other mappers"
+				}
+				else
+				{
+					SetupCartCHRMapping(0, VROM, CHRRAMSize, 1);
+					AddExState(VROM, CHRRAMSize, 0, "CHRR");
+				}
 			}
 			if (head.ROM_type & 8)
 				AddExState(ExtraNTARAM, 2048, 0, "EXNR");

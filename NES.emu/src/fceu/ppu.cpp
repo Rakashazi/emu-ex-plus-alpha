@@ -291,6 +291,11 @@ struct PPUREGS {
 
 int newppu_get_scanline() { return ppur.status.sl; }
 int newppu_get_dot() { return ppur.status.cycle; }
+void newppu_hacky_emergency_reset()
+{
+	if(ppur.status.end_cycle == 0)
+		ppur.reset();
+}
 
 static void makeppulut(void) {
 	int x;
@@ -353,7 +358,7 @@ uint8 vtoggle = 0;
 uint8 XOffset = 0;
 uint8 SpriteDMA = 0; // $4014 / Writing $xx copies 256 bytes by reading from $xx00-$xxFF and writing to $2004 (OAM data)
 
-uint32 TempAddr = 0, RefreshAddr = 0, DummyRead = 0;
+uint32 TempAddr = 0, RefreshAddr = 0, DummyRead = 0, NTRefreshAddr = 0;
 
 static int maxsprites = 8;
 
@@ -371,18 +376,7 @@ uint8 UPALRAM[0x03];//for 0x4/0x8/0xC addresses in palette, the ones in
 #define MMC5SPRVRAMADR(V)   &MMC5SPRVPage[(V) >> 10][(V)]
 #define VRAMADR(V)          &VPage[(V) >> 10][(V)]
 
-//mbg 8/6/08 - fix a bug relating to
-//"When in 8x8 sprite mode, only one set is used for both BG and sprites."
-//in mmc5 docs
-uint8 * MMC5BGVRAMADR(uint32 V) {
-	if (!Sprite16) {
-		extern uint8 mmc5ABMode;				/* A=0, B=1 */
-		if (mmc5ABMode == 0)
-			return MMC5SPRVRAMADR(V);
-		else
-			return &MMC5BGVPage[(V) >> 10][(V)];
-	} else return &MMC5BGVPage[(V) >> 10][(V)];
-}
+extern uint8* MMC5BGVRAMADR(uint32 A);
 
 //this duplicates logic which is embedded in the ppu rendering code
 //which figures out where to get CHR data from depending on various hack modes
@@ -449,10 +443,40 @@ int GetCHRAddress(int A) {
 	return -1;
 }
 
+int GetCHROffset(uint8 *ptr) {
+	int result = ptr - CHRptr[0];
+	if (cdloggerVideoDataSize) {
+		if ((result >= 0) && (result < (int)cdloggerVideoDataSize))
+			return result;
+	} else {
+		if ((result >= 0) && (result < 0x2000))
+			return result;
+	}
+	return -1;
+}
+
 #define RENDER_LOG(tmp) { \
 		if (debug_loggingCD) \
 		{ \
 			int addr = GetCHRAddress(tmp); \
+			if (addr != -1)	\
+			{ \
+				if (!(cdloggervdata[addr] & 1))	\
+				{ \
+					cdloggervdata[addr] |= 1; \
+					if(cdloggerVideoDataSize) { \
+						if (!(cdloggervdata[addr] & 2)) undefinedvromcount--; \
+						rendercount++; \
+					} \
+				} \
+			} \
+		} \
+}
+
+#define RENDER_LOGP(tmp) { \
+		if (debug_loggingCD) \
+		{ \
+			int addr = GetCHROffset(tmp); \
 			if (addr != -1)	\
 			{ \
 				if (!(cdloggervdata[addr] & 1))	\
@@ -497,7 +521,7 @@ void (*FFCEUX_PPUWrite)(uint32 A, uint8 V) = 0;
 
 #define CALL_PPUWRITE(A, V) (FFCEUX_PPUWrite ? FFCEUX_PPUWrite(A, V) : FFCEUX_PPUWrite_Default(A, V))
 
-//whether to use the new ppu (new PPU doesn't handle MMC5 extra nametables at all
+//whether to use the new ppu
 int newppu = 0;
 
 void ppu_getScroll(int &xpos, int &ypos) {
@@ -714,6 +738,8 @@ static DECLFR(A2007) {
 		RefreshAddr = ppur.get_2007access();
 		return ret;
 	} else {
+
+		//OLDPPU
 		FCEUPPU_LineUpdate();
 
 		if (tmp >= 0x3F00) {	// Palette RAM tied directly to the output data, without VRAM buffer
@@ -743,9 +769,14 @@ static DECLFR(A2007) {
 				if (PPU_hook) PPU_hook(tmp);
 				PPUGenLatch = VRAMBuffer;
 				if (tmp < 0x2000) {
+
 					if (debug_loggingCD)
 						LogAddress = GetCHRAddress(tmp);
-					VRAMBuffer = VPage[tmp >> 10][tmp];
+					if(MMC5Hack)
+						VRAMBuffer = *MMC5BGVRAMADR(tmp);
+					else
+						VRAMBuffer = VPage[tmp >> 10][tmp];
+
 				} else if (tmp < 0x3F00)
 					VRAMBuffer = vnapage[(tmp >> 10) & 0x3][tmp & 0x3FF];
 			}
@@ -1394,10 +1425,10 @@ static void FetchSpriteData(void) {
 						C = VRAMADR(vadr);
 
 					if (SpriteON)
-						RENDER_LOG(vadr);
+						RENDER_LOGP(C);
 					dst.ca[0] = C[0];
 					if (SpriteON)
-						RENDER_LOG(vadr + 8);
+						RENDER_LOGP(C + 8);
 					dst.ca[1] = C[8];
 					dst.x = spr->x;
 					dst.atr = spr->atr;
@@ -1446,14 +1477,14 @@ static void FetchSpriteData(void) {
 					else
 						C = VRAMADR(vadr);
 					if (SpriteON)
-						RENDER_LOG(vadr);
+						RENDER_LOGP(C);
 					dst.ca[0] = C[0];
 					if (ns < 8) {
 						PPU_hook(0x2000);
 						PPU_hook(vadr);
 					}
 					if (SpriteON)
-						RENDER_LOG(vadr + 8);
+						RENDER_LOGP(C + 8);
 					dst.ca[1] = C[8];
 					dst.x = spr->x;
 					dst.atr = spr->atr;
@@ -1977,7 +2008,7 @@ struct BGData {
 		uint8 nt, pecnt, at, pt[2];
 
 		INLINE void Read() {
-			RefreshAddr = ppur.get_ntread();
+			NTRefreshAddr = RefreshAddr = ppur.get_ntread();
 			if (PEC586Hack)
 				ppur.s = (RefreshAddr & 0x200) >> 9;
 			pecnt = (RefreshAddr & 1) << 3;
@@ -2131,7 +2162,10 @@ int FCEUX_PPU_Loop(int skip) {
 				DEBUG(FCEUD_UpdateNTView(scanline = yp, 1));
 			}
 
-			if (MMC5Hack) MMC5_hb(yp);
+			//hack to fix SDF ship intro screen with split. is it right?
+			//well, if we didnt do this, we'd be passing in a negative scanline, so that's a sign something is fishy..
+			if(sl != 0)
+				if (MMC5Hack) MMC5_hb(yp);
 
 
 			//twiddle the oam buffers
@@ -2365,6 +2399,14 @@ int FCEUX_PPU_Loop(int skip) {
 					//if (PPUON && GameHBIRQHook) {
 					if (GameHBIRQHook) {
 						GameHBIRQHook();
+					}
+				}
+
+				//blind attempt to replicate old ppu functionality
+				if(s == 2 && PPUON)
+				{
+					if (GameHBIRQHook2) {
+						GameHBIRQHook2();
 					}
 				}
 

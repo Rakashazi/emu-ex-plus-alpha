@@ -21,6 +21,7 @@
 #include "driver.h"
 #include "cheat.h"
 #include "x6502.h"
+#include "ppu.h"
 #include "utils/xstring.h"
 #include "utils/memory.h"
 #include "utils/crc32.h"
@@ -34,6 +35,7 @@
 #include "drivers/win/taseditor/markers.h"
 #include "drivers/win/taseditor/snapshot.h"
 #include "drivers/win/taseditor/taseditor_lua.h"
+#include "drivers/win/cdlogger.h"
 extern TASEDITOR_LUA taseditor_lua;
 #endif
 
@@ -397,6 +399,22 @@ static int emu_poweron(lua_State *L) {
 	return 0;
 }
 
+static int emu_debuggerloop(lua_State *L) {
+	#ifdef WIN32
+	extern void win_debuggerLoop();
+		win_debuggerLoop();
+	#endif
+	return 0;
+}
+
+static int emu_debuggerloopstep(lua_State *L) {
+	#ifdef WIN32
+	extern void win_debuggerLoopStep();
+		win_debuggerLoopStep();
+	#endif
+	return 0;
+}
+
 // emu.softreset()
 //
 // Executes a power cycle
@@ -484,12 +502,23 @@ static int emu_getdir(lua_State *L) {
 #endif
 }
 
+
+extern void ReloadRom(void);
+
 // emu.loadrom(string filename)
 //
 //  Loads the rom from the directory relative to the lua script or from the absolute path.
 //  If the rom can't e loaded, loads the most recent one.
 static int emu_loadrom(lua_State *L) {
 #ifdef WIN32
+	const char* str = lua_tostring(L,1);
+
+	//special case: reload rom
+	if(!str) {
+		ReloadRom();
+		return 0;
+	}
+
 	const char *nameo2 = luaL_checkstring(L,1);
 	char nameo[2048];
 	strncpy(nameo, nameo2, sizeof(nameo));
@@ -1297,6 +1326,22 @@ static int rom_readbytesigned(lua_State *L) {
 	return 1;
 }
 
+static int rom_readbyterange(lua_State *L) {
+	int range_start = luaL_checkinteger(L, 1);
+	int range_size = luaL_checkinteger(L, 2);
+	if (range_size < 0)
+		return 0;
+
+	char* buf = (char*)alloca(range_size);
+	for (int i = 0;i<range_size;i++) {
+		buf[i] = FCEU_ReadRomByte(range_start + i);
+	}
+
+	lua_pushlstring(L, buf, range_size);
+
+	return 1;
+}
+
 // doesn't keep backups to allow maximum speed (for automatic rom corruptors and stuff)
 // keeping them might be an option though, just need to use memview's ApplyPatch()
 // that'd also highlight the edits in hex editor
@@ -1319,12 +1364,12 @@ static int rom_gethash(lua_State *L) {
 }
 
 static int memory_readbyte(lua_State *L) {
-	lua_pushinteger(L, FCEU_CheatGetByte(luaL_checkinteger(L,1)));
+	lua_pushinteger(L, GetMem(luaL_checkinteger(L,1)));
 	return 1;
 }
 
 static int memory_readbytesigned(lua_State *L) {
-	signed char c = (signed char) FCEU_CheatGetByte(luaL_checkinteger(L,1));
+	signed char c = (signed char) GetMem(luaL_checkinteger(L,1));
 	lua_pushinteger(L, c);
 	return 1;
 }
@@ -1336,7 +1381,7 @@ static int GetWord(lua_State *L, bool isSigned)
 	uint16 addressHigh = addressLow + 1;
 	if (lua_type(L, 2) == LUA_TNUMBER)
 		addressHigh = luaL_checkinteger(L, 2);
-	uint16 result = FCEU_CheatGetByte(addressLow) | (FCEU_CheatGetByte(addressHigh) << 8);
+	uint16 result = GetMem(addressLow) | (GetMem(addressHigh) << 8);
 	return isSigned ? (int16)result : result;
 }
 
@@ -1365,10 +1410,31 @@ static int memory_readbyterange(lua_State *L) {
 
 	char* buf = (char*)alloca(range_size);
 	for(int i=0;i<range_size;i++) {
-		buf[i] = FCEU_CheatGetByte(range_start+i);
+		buf[i] = GetMem(range_start+i);
 	}
 
 	lua_pushlstring(L,buf,range_size);
+
+	return 1;
+}
+
+static int ppu_readbyte(lua_State *L) {
+	lua_pushinteger(L, FFCEUX_PPURead(luaL_checkinteger(L, 1)));
+	return 1;
+}
+
+static int ppu_readbyterange(lua_State *L) {
+	int range_start = luaL_checkinteger(L, 1);
+	int range_size = luaL_checkinteger(L, 2);
+	if (range_size < 0)
+		return 0;
+
+	char* buf = (char*)alloca(range_size);
+	for (int i = 0;i<range_size;i++) {
+		buf[i] = FFCEUX_PPURead(range_start + i);
+	}
+
+	lua_pushlstring(L, buf, range_size);
 
 	return 1;
 }
@@ -1410,7 +1476,7 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 		case LUA_TNIL: APPENDPRINT "nil" END break;
 		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
 		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
-		case LUA_TNUMBER: APPENDPRINT "%.12Lg",lua_tonumber(L,i) END break;
+		case LUA_TNUMBER: APPENDPRINT "%.12g",lua_tonumber(L,i) END break;
 		case LUA_TFUNCTION:
 			/*if((L->base + i-1)->value.gc->cl.c.isC)
 			{
@@ -4826,6 +4892,82 @@ static int taseditor_clearinputchanges(lua_State *L)
 	return 0;
 }
 
+// CDLog functions library
+
+static int cdl_loadcdlog(lua_State *L)
+{
+#ifdef WIN32
+	const char *nameo = luaL_checkstring(L, 1);
+	lua_pushinteger(L, LoadCDLog(nameo));
+#else
+	lua_pushinteger(L, 0);
+#endif
+	return 1;
+}
+
+static int cdl_loadfile(lua_State *L)
+{
+#ifdef WIN32
+	LoadCDLogFile();
+#endif
+	return 0;
+}
+
+static int cdl_savecdlogfile(lua_State *L)
+{
+#ifdef WIN32
+	SaveCDLogFile();
+#endif
+	return 0;
+}
+
+static int cdl_savecdlogfileas(lua_State *L)
+{
+#ifdef WIN32
+	const char *nameo = luaL_checkstring(L, 1);
+	RenameCDLog(nameo);
+	SaveCDLogFile();
+#endif
+	return 0;
+}
+
+static int cdl_docdlogger(lua_State *L)
+{
+#ifdef WIN32
+	lua_pushinteger(L, DoCDLogger());
+#else
+	lua_pushinteger(L, 0);
+#endif
+	return 1;
+}
+
+static int cdl_pausecdlogging(lua_State *L)
+{
+#ifdef WIN32
+	lua_pushinteger(L, PauseCDLogging());
+#else
+	lua_pushinteger(L, 0);
+#endif
+	return 1;
+}
+
+static int cdl_startcdlogging(lua_State *L)
+{
+#ifdef WIN32
+	StartCDLogging();
+#endif
+	return 0;
+}
+
+static int cdl_resetcdlog(lua_State *L)
+{
+#ifdef WIN32
+	ResetCDLog();
+#endif
+	return 0;
+}
+
+
 
 static int doPopup(lua_State *L, const char* deftype, const char* deficon) {
 	const char *str = luaL_checkstring(L, 1);
@@ -5412,6 +5554,8 @@ static int emu_exec_time(lua_State *L) { return 0; }
 static const struct luaL_reg emulib [] = {
 
 	{"poweron", emu_poweron},
+	{"debuggerloop", emu_debuggerloop},
+	{"debuggerloopstep", emu_debuggerloopstep},
 	{"softreset", emu_softreset},
 	{"speedmode", emu_speedmode},
 	{"frameadvance", emu_frameadvance},
@@ -5446,6 +5590,7 @@ static const struct luaL_reg romlib [] = {
 	{"readbytesigned", rom_readbytesigned},
 	// alternate naming scheme for unsigned
 	{"readbyteunsigned", rom_readbyte},
+	{"readbyterange", rom_readbyterange},
 	{"writebyte", rom_writebyte},
 	{"gethash", rom_gethash},
 	{NULL,NULL}
@@ -5473,6 +5618,14 @@ static const struct luaL_reg memorylib [] = {
 	{"register", memory_registerwrite},
 	{"registerrun", memory_registerexec},
 	{"registerexecute", memory_registerexec},
+
+	{NULL,NULL}
+};
+
+
+static const struct luaL_reg ppulib [] = {
+	{"readbyte", ppu_readbyte},
+	{"readbyterange", ppu_readbyterange},
 
 	{NULL,NULL}
 };
@@ -5632,6 +5785,21 @@ static const struct luaL_reg taseditorlib[] = {
 	{NULL,NULL}
 };
 
+static const struct luaL_reg cdloglib[] = {
+
+	{ "docdlogger", cdl_docdlogger },
+	{ "savecdlogfile", cdl_savecdlogfile },
+	{ "savecdlogfileas", cdl_savecdlogfileas },
+	{ "loadfile", cdl_loadfile },
+	{ "loadcdlog", cdl_loadcdlog },
+	{ "docdlogger", cdl_docdlogger },
+	{ "docdlogger", cdl_docdlogger },
+	{ "resetcdlog", cdl_resetcdlog },
+	{ "startcdlogging", cdl_startcdlogging },
+	{ "pausecdlogging", cdl_pausecdlogging },
+	{ NULL,NULL }
+};
+
 void CallExitFunction() {
 	if (!L)
 		return;
@@ -5759,6 +5927,7 @@ int FCEU_LoadLuaCode(const char *filename, const char *arg) {
 		luaL_register(L, "emu", emulib); // added for better cross-emulator compatibility
 		luaL_register(L, "FCEU", emulib); // kept for backward compatibility
 		luaL_register(L, "memory", memorylib);
+		luaL_register(L, "ppu", ppulib);
 		luaL_register(L, "rom", romlib);
 		luaL_register(L, "joypad", joypadlib);
 		luaL_register(L, "zapper", zapperlib);
@@ -5768,6 +5937,7 @@ int FCEU_LoadLuaCode(const char *filename, const char *arg) {
 		luaL_register(L, "gui", guilib);
 		luaL_register(L, "sound", soundlib);
 		luaL_register(L, "debugger", debuggerlib);
+		luaL_register(L, "cdlog", cdloglib);
 		luaL_register(L, "taseditor", taseditorlib);
 		luaL_register(L, "bit", bit_funcs); // LuaBitOp library
 		lua_settop(L, 0);		// clean the stack, because each call to luaL_register leaves a table on top

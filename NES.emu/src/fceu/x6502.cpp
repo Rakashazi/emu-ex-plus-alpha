@@ -406,6 +406,7 @@ void X6502_Init(void)
 	}
 }
 
+extern int StackAddrBackup;
 void X6502_Power(void)
 {
  _count=_tcount=_IRQlow=_PC=_A=X.X=_Y=X.P=_PI=_DB=_jammed=0;

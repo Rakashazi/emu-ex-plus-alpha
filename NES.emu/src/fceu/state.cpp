@@ -977,6 +977,9 @@ int FCEUI_LoadState(const char *fname, bool display_message)
 	}
 	if (FCEUSS_Load(fname, display_message))
 	{
+		//in case we're loading a savestate made with old ppu, we need to make sure ppur's regs used for dividing are ready to go
+		newppu_hacky_emergency_reset();
+
 		//mbg todo netplay
 #if 0 
 		if(FCEUnetplay)
