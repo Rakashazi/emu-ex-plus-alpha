@@ -801,7 +801,7 @@ static void wd1770_store(wd1770_t *drv, WORD addr, BYTE byte)
     switch (addr) {
         case WD_COMMAND:
             drv->cmd = byte;
-            for (i = 0; i < sizeof(wd_commands) / sizeof(wd_commands[0]); i++) {
+            for (i = 0; i < (int)(sizeof(wd_commands) / sizeof(wd_commands[0])); i++) {
                 if (wd_commands[i].command == (wd_cmd_t)(wd_commands[i].mask & byte)) {
                     break;
                 }

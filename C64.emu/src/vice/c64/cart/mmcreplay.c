@@ -2907,7 +2907,7 @@ static const resource_string_t resources_string[] = {
       &mmcr_card_filename, set_mmcr_card_filename, NULL },
     { "MMCREEPROMImage", "", RES_EVENT_NO, NULL,
       &mmcr_eeprom_filename, set_mmcr_eeprom_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -2923,7 +2923,7 @@ static const resource_int_t resources_int[] = {
       &mmcr_eeprom_rw, set_mmcr_eeprom_rw, NULL },
     { "MMCRClockPort", 0, RES_EVENT_NO, NULL,
       &clockport_device_id, set_mmcr_clockport_device, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int mmcreplay_resources_init(void)
@@ -2998,7 +2998,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_TYPE, IDCLS_SELECT_MMC_REPLAY_SD_TYPE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t clockport_cmdline_options[] =
@@ -3008,7 +3008,7 @@ static cmdline_option_t clockport_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_DEVICE, IDCLS_CLOCKPORT_DEVICE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int mmcreplay_cmdline_options_init(void)

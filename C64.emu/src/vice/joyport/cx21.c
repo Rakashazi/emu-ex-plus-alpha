@@ -63,20 +63,20 @@ The keypad connects a row to a column.
 
 The following logic is used:
 
-key	pin	pin	comments
----	---	---	--------
- 3	 1	 6	A0 <-> FIRE
- 2	 1	 9	A0 <-> POT AX
- 1	 1	 5	A0 <-> POT AY
- 6	 2	 6	A1 <-> FIRE
- 5	 2	 9	A1 <-> POT AX
- 4	 2	 5	A1 <-> POT AY
- 9	 3	 6	A2 <-> FIRE
- 8	 3	 9	A2 <-> POT AX
- 7	 3	 5	A2 <-> POT AY
- #	 4	 6	A3 <-> FIRE
- 0	 4	 9	A3 <-> POT AX
- *	 4	 5	A3 <-> POT AY
+key pin pin comments
+--- --- --- --------
+ 3   1   6  A0 <-> FIRE
+ 2   1   9  A0 <-> POT AX
+ 1   1   5  A0 <-> POT AY
+ 6   2   6  A1 <-> FIRE
+ 5   2   9  A1 <-> POT AX
+ 4   2   5  A1 <-> POT AY
+ 9   3   6  A2 <-> FIRE
+ 8   3   9  A2 <-> POT AX
+ 7   3   5  A2 <-> POT AY
+ #   4   6  A3 <-> FIRE
+ 0   4   9  A3 <-> POT AX
+ *   4   5  A3 <-> POT AY
  */
 
 #define KEYPAD_KEY_3      0
@@ -97,7 +97,7 @@ key	pin	pin	comments
 
 static int cx21_enabled = 0;
 
-static int keys[12];
+static unsigned int keys[12];
 static BYTE port = 0;
 
 /* ------------------------------------------------------------------------- */
@@ -109,7 +109,7 @@ static void handle_keys(int row, int col, int pressed)
         return;
     }
 
-    keys[(row * 3) + col - 1] = pressed;
+    keys[(row * 3) + col - 1] = (unsigned int)pressed;
 }
 #endif
 
@@ -169,12 +169,12 @@ static BYTE cx21_read_dig(int p)
 
     joyport_display_joyport(JOYPORT_ID_CX21_KEYPAD, (BYTE)retval);
 
-    return ~retval;
+    return (BYTE)~retval;
 }
 
 static void cx21_store_dig(BYTE val)
 {
-    port = ~val;
+    port = (BYTE)~val;
 }
 
 static BYTE cx21_read_potx(void)
@@ -248,8 +248,8 @@ static joyport_t joyport_cx21_device = {
     cx21_store_dig,
     cx21_read_potx,
     cx21_read_poty,
-    NULL,				/* no write snapshot */
-    NULL				/* no read snapshot */
+    NULL,               /* no write snapshot */
+    NULL                /* no read snapshot */
 };
 
 /* ------------------------------------------------------------------------- */

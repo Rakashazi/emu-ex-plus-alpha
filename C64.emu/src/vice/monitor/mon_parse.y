@@ -1055,6 +1055,7 @@ void parse_and_execute_line(char *input)
    temp_buf[i++] = '\0';
 
    make_buffer(temp_buf);
+   mon_clear_buffer();
    if ( (rc =yyparse()) != 0) {
        mon_out("ERROR -- ");
        switch(rc) {

@@ -132,7 +132,7 @@ static inline SWORD sound_audio_mix(int ch1, int ch2)
     }
 
     if ((ch1 > 0 && ch2 < 0) || (ch1 < 0 && ch2 > 0)) {
-        return (SWORD)ch1 + ch2;
+        return (SWORD)(ch1 + ch2);
     }
 
     if (ch1 > 0) {

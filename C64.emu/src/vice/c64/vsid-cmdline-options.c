@@ -80,58 +80,6 @@ static int set_video_standard(const char *param, void *extra_param)
     }
 }
 
-struct kernal_s {
-    const char *name;
-    int rev;
-};
-
-static struct kernal_s kernal_match[] = {
-    { "1", C64_KERNAL_REV1 },
-    { "2", C64_KERNAL_REV2 },
-    { "3", C64_KERNAL_REV3 },
-    { "67", C64_KERNAL_SX64 },
-    { "sx", C64_KERNAL_SX64 },
-    { "100", C64_KERNAL_4064 },
-    { "4064", C64_KERNAL_4064 },
-    { NULL, C64_KERNAL_UNKNOWN }
-};
-
-static int set_kernal_revision(const char *param, void *extra_param)
-{
-    WORD sum;                   /* ROM checksum */
-    int id;                     /* ROM identification number */
-    int rev = C64_KERNAL_UNKNOWN;
-    int i = 0;
-
-    if (!param) {
-        return -1;
-    }
-
-    do {
-        if (strcmp(kernal_match[i].name, param) == 0) {
-            rev = kernal_match[i].rev;
-        }
-        i++;
-    } while ((rev == C64_KERNAL_UNKNOWN) && (kernal_match[i].name != NULL));
-
-    if(!c64rom_isloaded()) {
-        kernal_revision = rev;
-        return 0;
-    }
-
-    if (c64rom_get_kernal_chksum_id(&sum, &id) < 0) {
-        id = C64_KERNAL_UNKNOWN;
-        kernal_revision = id;
-    } else {
-        if (patch_rom_idx(rev) >= 0) {
-            kernal_revision = rev;
-        } else {
-            kernal_revision = id;
-        }
-    }
-    return 0;
-}
-
 static const cmdline_option_t cmdline_options[] = {
     { "-pal", CALL_FUNCTION, 0,
       set_video_standard, (void *)MACHINE_SYNC_PAL, NULL, NULL,
@@ -153,27 +101,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_USE_PALN_SYNC_FACTOR,
       NULL, NULL },
-    { "-kernal", SET_RESOURCE, 1,
-      NULL, NULL, "KernalName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_KERNAL_ROM_NAME,
-      NULL, NULL },
-    { "-basic", SET_RESOURCE, 1,
-      NULL, NULL, "BasicName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_BASIC_ROM_NAME,
-      NULL, NULL },
-    { "-chargen", SET_RESOURCE, 1,
-      NULL, NULL, "ChargenName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
-      NULL, NULL },
-    { "-kernalrev", CALL_FUNCTION, 1,
-      set_kernal_revision, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_REVISION, IDCLS_PATCH_KERNAL_TO_REVISION,
-      NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c64_cmdline_options_init(void)

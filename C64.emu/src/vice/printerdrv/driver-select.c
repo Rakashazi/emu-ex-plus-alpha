@@ -143,13 +143,13 @@ static const resource_string_t resources_string[] = {
       (char **)&driver_select[1].drv_name, set_printer_driver, (void *)1 },
     { "Printer6Driver", "1520", RES_EVENT_NO, NULL,
       (char **)&driver_select[2].drv_name, set_printer_driver, (void *)2 },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_string_t resources_string_userport[] = {
     { "PrinterUserportDriver", "ascii", RES_EVENT_NO, NULL,
       (char **)&driver_select[3].drv_name, set_printer_driver, (void *)3 },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int driver_select_init_resources(void)
@@ -179,7 +179,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_PRT_DRIVER_6_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cmdline_options_userport[] =
@@ -189,7 +189,7 @@ static const cmdline_option_t cmdline_options_userport[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_PRT_DRIVER_USR_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int driver_select_init_cmdline_options(void)

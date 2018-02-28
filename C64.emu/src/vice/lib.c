@@ -62,16 +62,16 @@
 
 #ifdef DEBUG
 /* enable memory debugging */
-#define LIB_DEBUG
+# define LIB_DEBUG
 /* enable pinpointing of memory leaks, don't forget to enable in lib.h */
-#define LIB_DEBUG_PINPOINT
+# define LIB_DEBUG_PINPOINT
 /* warn on free(NULL) */
 /* #define LIB_DEBUG_WARN_FREE_NULL */
-#ifdef __GNUC__
-#define LIB_DEBUG_CALLER
-#define DEBUG_BT_MAXDEPTH 16
-#include <execinfo.h>
-#endif
+# ifdef HAVE_BT_SYMBOLS
+#  define LIB_DEBUG_CALLER
+#  define DEBUG_BT_MAXDEPTH 16
+#  include <execinfo.h>
+# endif
 #endif
 
 #ifdef LIB_DEBUG

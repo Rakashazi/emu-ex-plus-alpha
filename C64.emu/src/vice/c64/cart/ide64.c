@@ -712,7 +712,7 @@ static const resource_string_t resources_string[] = {
     { "IDE64USBServerAddress", "ip4://127.0.0.1:64245", RES_EVENT_NO, NULL,
       &settings_usbserver_address, set_usbserver_address, NULL },
 #endif
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -777,7 +777,7 @@ static const resource_int_t resources_int[] = {
       &ide64_rtc_save, ide64_set_rtc_save, NULL },
     { "IDE64ClockPort", 0, RES_EVENT_NO, NULL,
       &clockport_device_id, set_ide64_clockport_device, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int ide64_resources_init(void)
@@ -983,7 +983,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_IDE64_RTC_SAVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t clockport_cmdline_options[] =
@@ -993,7 +993,7 @@ static cmdline_option_t clockport_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_DEVICE, IDCLS_CLOCKPORT_DEVICE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int ide64_cmdline_options_init(void)

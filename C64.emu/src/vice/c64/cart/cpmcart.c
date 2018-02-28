@@ -97,7 +97,6 @@ static store_func_ptr_t cpmcart_mem_write_tab[0x101];
 static BYTE cpmcart_wrap_read(WORD addr)
 {
     DWORD address = ((DWORD)addr + 0x1000) & 0xffff;
-
     return cpmcart_mem_read_tab[addr >> 8]((WORD)address);
 }
 
@@ -147,7 +146,7 @@ static void cpmcart_mem_init(void)
     set_write_item(0xc7, c64io_d700_store);
 
     /* z80 $c800-$cbff -> c64 $d800-$dbff (VICII colorram) */
-    for (i = 0xd8; i <= 0xdb; ++i) {
+    for (i = 0xc8; i <= 0xcb; ++i) {
         set_read_item(i, colorram_read);
         set_write_item(i, colorram_store);
     }
@@ -249,7 +248,7 @@ static int set_cpmcart_enabled(int value, void *param)
 static const resource_int_t resources_int[] = {
     { "CPMCart", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &cpmcart_enabled, set_cpmcart_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int cpmcart_resources_init(void)
@@ -271,7 +270,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_CPM_CART,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int cpmcart_cmdline_options_init(void)

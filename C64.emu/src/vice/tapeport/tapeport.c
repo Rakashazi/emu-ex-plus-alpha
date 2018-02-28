@@ -500,7 +500,7 @@ static void tapeport_snapshot_unregister(tapeport_snapshot_list_t *s)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
 
 int tapeport_resources_init(void)
 {
@@ -534,6 +534,7 @@ void tapeport_resources_shutdown(void)
         tapeport_snapshot_unregister(c);
         c = tapeport_snapshot_head.next;
     }
+    tapelog_resources_shutdown();
 }
 
 int tapeport_cmdline_options_init(void)

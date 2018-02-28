@@ -514,7 +514,7 @@ static const resource_string_t resources_string[] = {
       &kernal64_rom_name, set_kernal64_rom_name, NULL },
     { "Basic64Name", "basic64", RES_EVENT_NO, NULL,
       &basic64_rom_name, set_basic64_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -532,7 +532,7 @@ static const resource_int_t resources_int[] = {
       (int *)&sid_triple_address_start, sid_set_sid_triple_address, NULL },
     { "C128FullBanks", 0, RES_EVENT_NO, NULL,
       (int *)&c128_full_banks, set_c128_full_banks, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 void c128_resources_update_cia_models(int model)

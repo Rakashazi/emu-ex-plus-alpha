@@ -258,13 +258,13 @@ static const resource_int_t resources_int[] = {
       &sfx_soundexpander_sound_chip.chip_enabled, set_sfx_soundexpander_enabled, NULL },
     { "SFXSoundExpanderChip", 3526, RES_EVENT_STRICT, (resource_value_t)3526,
       &sfx_soundexpander_chip, set_sfx_soundexpander_chip, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_mascuerade_int[] = {
     { "SFXSoundExpanderIOSwap", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &sfx_soundexpander_io_swap, set_sfx_soundexpander_io_swap, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int sfx_soundexpander_resources_init(void)
@@ -300,7 +300,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_TYPE, IDCLS_SET_YM_CHIP_TYPE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cmdline_mascuerade_options[] =
@@ -315,7 +315,7 @@ static const cmdline_option_t cmdline_mascuerade_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_MAP_CART_IO_3,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int sfx_soundexpander_cmdline_options_init(void)

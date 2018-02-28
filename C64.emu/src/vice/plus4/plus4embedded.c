@@ -39,21 +39,24 @@
 #include "machine.h"
 #include "plus4mem.h"
 
-#include "plus4_default_vpl.h"
-#include "c64_vice_vpl.h"
+#include "ted_yape_pal_vpl.h"
+#include "ted_yape_ntsc_vpl.h"
+#include "ted_colodore_ted_vpl.h"
+
 
 static embedded_t plus4files[] = {
     { "basic", PLUS4_BASIC_ROM_SIZE, PLUS4_BASIC_ROM_SIZE, PLUS4_BASIC_ROM_SIZE, NULL },
     { "kernal", PLUS4_KERNAL_ROM_SIZE, PLUS4_KERNAL_ROM_SIZE, PLUS4_KERNAL_ROM_SIZE, NULL },
     { "3plus1lo", PLUS4_BASIC_ROM_SIZE, PLUS4_BASIC_ROM_SIZE, PLUS4_BASIC_ROM_SIZE, NULL },
     { "3plus1hi", PLUS4_KERNAL_ROM_SIZE, PLUS4_KERNAL_ROM_SIZE, PLUS4_KERNAL_ROM_SIZE, NULL },
-    { NULL }
+    EMBEDDED_LIST_END
 };
 
 static embedded_palette_t palette_files[] = {
-    { "default", "default.vpl", 128, plus4_default_vpl },
-    { "vice", "vice.vpl", 16, c64_vice_vpl      },
-    { NULL }
+    { "yape-pal", "yape-pal.vpl", 128, ted_yape_pal_vpl },
+    { "yape-ntsc", "yape-ntsc.vpl", 128, ted_yape_ntsc_vpl },
+    { "colodore_ted", "colodore_ted.vpl", 128, ted_colodore_ted_vpl },
+    EMBEDDED_PALETTE_LIST_END
 };
 
 static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)

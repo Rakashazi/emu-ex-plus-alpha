@@ -151,7 +151,7 @@ typedef struct vdrive_s {
 /* Actually, serial-code errors ... */
 
 #define FLOPPY_COMMAND_OK       0
-#define FLOPPY_ERROR            (2)
+#define FLOPPY_ERROR            2
 
 
 /* Return values used around. */
@@ -171,6 +171,8 @@ typedef struct vdrive_s {
 #define FD_BADVAL       -11     /* Illegal value */
 #define FD_BADDEV       -12
 #define FD_BAD_TS       -13     /* Track or sector */
+#define FD_BAD_TRKNUM   -14     /* Illegal track number */
+#define FD_BAD_SECNUM   -15     /* Illegal sector number */
 
 
 #define CHK_NUM         0

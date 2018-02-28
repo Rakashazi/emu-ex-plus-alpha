@@ -1147,13 +1147,13 @@ static int set_magicvoice_filename(const char *name, void *param)
 static const resource_string_t resources_string[] = {
     { "MagicVoiceImage", "", RES_EVENT_NO, NULL,
       &magicvoice_filename, set_magicvoice_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "MagicVoiceCartridgeEnabled", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &magicvoice_sound_chip.chip_enabled, set_magicvoice_enabled, (void *)1 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int magicvoice_resources_init(void)
@@ -1189,7 +1189,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_MAGICVOICE,
       NULL, NULL },
-  { NULL }
+    CMDLINE_LIST_END
 };
 
 int magicvoice_cmdline_options_init(void)
@@ -1270,7 +1270,7 @@ int magicvoice_mmu_translate(unsigned int addr, BYTE **base, int *start, int *li
                 return CART_READ_THROUGH; /* "passthrough" */
             } else {
                 if (mv_romE000_enabled) {
-                    *base = mv_rom - 0xc000;
+                    *base = (BYTE *)(mv_rom - (BYTE *)0xc000);
                     *start = 0xe000;
                     *limit = 0xfffd;
                     return CART_READ_VALID;
@@ -1290,7 +1290,7 @@ int magicvoice_mmu_translate(unsigned int addr, BYTE **base, int *start, int *li
                 return CART_READ_THROUGH_NO_ULTIMAX; /* "passthrough" */
             } else {
                 if (mv_romA000_enabled) {
-                    *base = mv_rom - 0xa000;
+                    *base = (BYTE *)(mv_rom - (BYTE *)0xa000);
                     *start = 0xa000;
                     *limit = 0xbffd;
                     return CART_READ_VALID;

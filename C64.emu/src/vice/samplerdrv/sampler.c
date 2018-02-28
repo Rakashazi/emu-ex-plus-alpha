@@ -205,7 +205,7 @@ static const resource_int_t resources_int[] = {
       &current_sampler, set_sampler_device, NULL },
     { "SamplerGain", 100, RES_EVENT_NO, NULL,
       &sampler_gain, set_sampler_gain, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int sampler_resources_init(void)
@@ -237,6 +237,7 @@ void sampler_resources_shutdown(void)
         lib_free(cmdline_devices);
         cmdline_devices = NULL;
     }
+    fileaudio_shutdown();
 }
 
 /* ------------------------------------------------------------------------- */
@@ -254,7 +255,7 @@ static cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_GAIN, IDCLS_SAMPLER_GAIN_IN_PERCENT,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int sampler_cmdline_options_init(void)

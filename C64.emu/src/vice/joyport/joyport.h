@@ -62,8 +62,10 @@
 #define JOYPORT_ID_CX85_KEYPAD        23
 #define JOYPORT_ID_RUSHWARE_KEYPAD    24
 #define JOYPORT_ID_CX21_KEYPAD        25
+#define JOYPORT_ID_SCRIPT64_DONGLE    26
+#define JOYPORT_ID_VIZAWRITE64_DONGLE 27
 
-#define JOYPORT_MAX_DEVICES           26
+#define JOYPORT_MAX_DEVICES           28
 
 #define JOYPORT_RES_ID_NONE        0
 #define JOYPORT_RES_ID_MOUSE       1
@@ -71,6 +73,8 @@
 #define JOYPORT_RES_ID_KEYPAD      3
 #define JOYPORT_RES_ID_RTC         4
 #define JOYPORT_RES_ID_PAPERCLIP64 5
+#define JOYPORT_RES_ID_SCRIPT64    6
+#define JOYPORT_RES_ID_VIZAWRITE64 7
 
 #define JOYPORT_1    0	/* c64/c128/c64dtv/cbm5x0/plus4 control port 1, vic20 control port */
 #define JOYPORT_2    1	/* c64/c128/c64dtv/cbm5x0/plus4 control port 2 */

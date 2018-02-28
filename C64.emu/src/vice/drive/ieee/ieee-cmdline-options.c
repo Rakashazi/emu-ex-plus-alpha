@@ -60,7 +60,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_1001_DOS_ROM_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int ieee_cmdline_options_init(void)

@@ -2002,12 +2002,12 @@ inline static void _draw_8bpp_pixel_cell_bitmap_mode(BYTE *p, unsigned int xs,
 {
     BYTE *c_ptr, *countb_ptr, *dest_ptr;
     unsigned int i;
-/*
+#if 0
     BYTE *counta_ptr;
     counta_ptr = mem_ram
                  + (vicii.counta & 0x1fc000)
-                 + vicii.mem_counter; // TODO broken in last ~3 lines
-*/
+                 + vicii.mem_counter; /* TODO broken in last ~3 lines */
+#endif
     countb_ptr = mem_ram + (vicii.countb & 0x1fc000) + vicii.raster.ycounter * 8;
 
     dest_ptr = p + 8 * xs;

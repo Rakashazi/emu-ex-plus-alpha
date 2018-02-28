@@ -217,7 +217,7 @@ static const resource_string_t resources_string[] = {
       &c2lo_rom_name, set_c2lo_rom_name, NULL },
     { "c2hiName", "", RES_EVENT_NO, NULL,
       &c2hi_rom_name, set_c2hi_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -225,7 +225,7 @@ static const resource_int_t resources_int[] = {
       &sync_factor, set_sync_factor, NULL },
     { "RamSize", 64, RES_EVENT_SAME, NULL,
       &ram_size_plus4, set_ram_size_plus4, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int plus4_resources_init(void)

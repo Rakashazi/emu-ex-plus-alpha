@@ -60,6 +60,7 @@ static int set_video_cache_enabled(int val, void *param)
         /* HACK: some machines do not have a working video cache, so
                  disable it by default */
         if ((machine_class == VICE_MACHINE_C64DTV) ||
+            (machine_class == VICE_MACHINE_SCPU64) ||
             (machine_class == VICE_MACHINE_C64SC) ||
             (machine_class == VICE_MACHINE_PLUS4)) {
             val = 0;
@@ -115,7 +116,7 @@ int raster_resources_chip_init(const char *chipname, raster_t *raster,
         }
 
         for (i = 0; rname_chip[i] != NULL; i++) {
-            lib_free((char *)(resources_chip[i].name));
+            lib_free(resources_chip[i].name);
         }
     } else {
         set_video_cache_enabled(0, (void *)raster_resource_chip);

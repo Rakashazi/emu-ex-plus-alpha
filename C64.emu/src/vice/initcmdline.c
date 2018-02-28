@@ -262,7 +262,7 @@ static const cmdline_option_t common_cmdline_options[] = {
       IDCLS_UNUSED, IDCLS_CALL_EXCEPTION_HANDLER,
       NULL, NULL },
 #endif
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 /* These are the command-line options for the initialization sequence.  */
@@ -303,7 +303,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_ATTACH_AS_DISK_11,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int initcmdline_init(void)

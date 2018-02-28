@@ -296,13 +296,13 @@ static int set_flash_trap_trueflashfs(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "FSFlashDir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       &flash_trap_fsflashdir, set_flash_trap_fsflashdir, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "FlashTrueFS", 1, RES_EVENT_SAME, NULL,
       &flash_trap_trueflashfs, set_flash_trap_trueflashfs, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int flash_trap_resources_init(void)
@@ -336,7 +336,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_TRUE_FLASH_FS,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int flash_trap_cmdline_options_init(void)

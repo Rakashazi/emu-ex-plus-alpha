@@ -201,7 +201,7 @@ static BYTE mouse_get_1351_x(void)
 {
     if (_mouse_enabled) {
         mouse_poll();
-        return (last_mouse_x & 0x7f) + 0x40;
+        return (BYTE)((last_mouse_x & 0x7f) + 0x40);
     }
     return 0xff;
 }
@@ -210,7 +210,7 @@ static BYTE mouse_get_1351_y(void)
 {
     if (_mouse_enabled) {
         mouse_poll();
-        return (last_mouse_y & 0x7f) + 0x40;
+        return (BYTE)((last_mouse_y & 0x7f) + 0x40);
     }
     return 0xff;
 }
@@ -239,7 +239,7 @@ enum {
 
 void neos_mouse_set_machine_parameter(long clock_rate)
 {
-    neos_time_out_cycles = (clock_rate / 10000) * 2;
+    neos_time_out_cycles = (CLOCK)((clock_rate / 10000) * 2);
 }
 
 static void neos_get_new_movement(void)
@@ -248,10 +248,10 @@ static void neos_get_new_movement(void)
 
     new_x = (BYTE)(mousedrv_get_x() >> 1);
     new_y = (BYTE)(mousedrv_get_y() >> 1);
-    neos_x = neos_lastx - new_x;
+    neos_x = (BYTE)(neos_lastx - new_x);
     neos_lastx = new_x;
 
-    neos_y = new_y - neos_lasty;
+    neos_y = (BYTE)(new_y - neos_lasty);
     neos_lasty = new_y;
 }
 
@@ -280,6 +280,9 @@ void neos_mouse_store(BYTE val)
                 if ((val ^ neos_prev) & val & 16) {
                     ++neos_state;
                 }
+                break;
+            default:
+                /* NOP */
                 break;
         }
         neos_last_trigger = maincpu_clk;
@@ -369,8 +372,8 @@ BYTE mouse_poll(void)
     int diff_x, diff_y;
 
     /* get new mouse values */
-    new_x = mousedrv_get_x();
-    new_y = mousedrv_get_y();
+    new_x = (SWORD)mousedrv_get_x();
+    new_y = (SWORD)mousedrv_get_y();
     /* range of new_x and new_y are [0,63] */
     /* fetch now for both emu and os */
     os_now = mousedrv_get_timestamp();
@@ -405,7 +408,7 @@ BYTE mouse_poll(void)
         }
         emu_iv = (CLOCK)((float)os_iv * emu_units_per_os_units);
         if (emu_iv > (unsigned long)machine_get_cycles_per_frame() * 2) {
-            emu_iv = machine_get_cycles_per_frame() * 2;   /* move in not more than 2 frames */
+            emu_iv = (CLOCK)machine_get_cycles_per_frame() * 2;   /* move in not more than 2 frames */
         }
 #ifdef DEBUG_MOUSE
         log_message(mouse_log,
@@ -420,34 +423,34 @@ BYTE mouse_poll(void)
         if (diff_x != 0) {
             sx = diff_x >= 0 ? 1 : -1;
             /* lets calculate the interval between x-quad rotations */
-            update_x_emu_iv = emu_iv / abs(diff_x);
+            update_x_emu_iv = emu_iv / (CLOCK)abs(diff_x);
             /* and the emulated cpu cycle count when to do the first one */
             next_update_x_emu_ts = emu_now;
         } else {
             sx = 0;
-            update_x_emu_iv = update_limit;
+            update_x_emu_iv = (CLOCK)update_limit;
         }
         if (diff_y != 0) {
             sy = diff_y >= 0 ? -1 : 1;
             /* lets calculate the interval between y-quad rotations */
-            update_y_emu_iv = emu_iv / abs(diff_y);
+            update_y_emu_iv = (emu_iv / (CLOCK)abs(diff_y));
             /* and the emulated cpu cycle count when to do the first one */
             next_update_y_emu_ts = emu_now;
         } else {
             sy = 0;
-            update_y_emu_iv = update_limit;
+            update_y_emu_iv = (CLOCK)update_limit;
         }
         if (update_x_emu_iv < (unsigned int)update_limit) {
             if (update_x_emu_iv) {
-                update_y_emu_iv = update_y_emu_iv * update_limit / update_x_emu_iv;
+                update_y_emu_iv = update_y_emu_iv * (CLOCK)update_limit / update_x_emu_iv;
             }
-            update_x_emu_iv = update_limit;
+            update_x_emu_iv = (CLOCK)update_limit;
         }
         if (update_y_emu_iv < (unsigned int)update_limit) {
             if (update_y_emu_iv) {
-                update_x_emu_iv = update_x_emu_iv * update_limit / update_y_emu_iv;
+                update_x_emu_iv = update_x_emu_iv * (CLOCK)update_limit / update_y_emu_iv;
             }
-            update_y_emu_iv = update_limit;
+            update_y_emu_iv = (CLOCK)update_limit;
         }
 
 #ifdef DEBUG_MOUSE
@@ -463,7 +466,7 @@ BYTE mouse_poll(void)
         }
         emu_iv2 = (CLOCK)((float)os_iv2 * emu_units_per_os_units);
         if (emu_iv2 > (unsigned long)machine_get_cycles_per_second()) {
-            emu_iv2 = machine_get_cycles_per_second();   /* more than a second? */
+            emu_iv2 = (CLOCK)machine_get_cycles_per_second();   /* more than a second? */
         }
 
         /* update x-wheel until we're ahead */
@@ -491,13 +494,13 @@ BYTE mouse_poll(void)
 
         switch (mouse_type) {
             case MOUSE_TYPE_AMIGA:
-                polled_joyval = ((amiga_mouse_table[quadrature_x] << 1) | amiga_mouse_table[quadrature_y] | 0xf0);
+                polled_joyval = (BYTE)((amiga_mouse_table[quadrature_x] << 1) | amiga_mouse_table[quadrature_y] | 0xf0);
                 break;
             case MOUSE_TYPE_CX22:
-                polled_joyval = (((quadrature_y & 1) << 3) | ((sy > 0) << 2) | ((quadrature_x & 1) << 1) | (sx > 0) | 0xf0);
+                polled_joyval = (BYTE)(((quadrature_y & 1) << 3) | ((sy > 0) << 2) | ((quadrature_x & 1) << 1) | (sx > 0) | 0xf0);
                 break;
             case MOUSE_TYPE_ST:
-                polled_joyval = (st_mouse_table[quadrature_x] | (st_mouse_table[quadrature_y] << 2) | 0xf0);
+                polled_joyval =(BYTE)(st_mouse_table[quadrature_x] | (st_mouse_table[quadrature_y] << 2) | 0xf0);
                 break;
             default:
                 polled_joyval = 0xff;
@@ -516,7 +519,7 @@ BYTE micromys_mouse_read(void)
         up_down_pulse_end += 512 * 98; /* 50 ms counted from POT input (98 A/D cycles) */
     }
     if (up_down_counter & 1) {
-        return ~(4 << (up_down_counter < 0));
+        return (BYTE)(~(4 << (up_down_counter < 0)));
     }
     return 0xff;
 }
@@ -541,7 +544,7 @@ static SWORD paddle_old[] = {
 
 static inline BYTE mouse_paddle_update(BYTE paddle_v, SWORD *old_v, SWORD new_v)
 {
-    SWORD new_paddle = (SWORD)paddle_v + new_v - *old_v;
+    SWORD new_paddle = (SWORD)(paddle_v + new_v - *old_v);
     *old_v = new_v;
 
     if (new_paddle > 255) {
@@ -567,7 +570,7 @@ static BYTE mouse_get_paddle_x(void)
 {
     if (_mouse_enabled) {
         paddle_val[2] = mouse_paddle_update(paddle_val[2], &(paddle_old[2]), (SWORD)mousedrv_get_x());
-        return 0xff - paddle_val[2];
+        return (BYTE)(0xff - paddle_val[2]);
     }
     return 0xff;
 }
@@ -576,7 +579,7 @@ static BYTE mouse_get_paddle_y(void)
 {
     if (_mouse_enabled) {
         paddle_val[3] = mouse_paddle_update(paddle_val[3], &(paddle_old[3]), (SWORD)mousedrv_get_y());
-        return 0xff - paddle_val[3];
+        return (BYTE)(0xff - paddle_val[3]);
     }
     return 0xff;
 }
@@ -630,8 +633,10 @@ static int joyport_mouse_enable(int port, int val)
     int mt;
 
     mousedrv_mouse_changed();
-    latest_x = last_mouse_x = mousedrv_get_x();
-    latest_y = last_mouse_y = mousedrv_get_y();
+    latest_x = (SWORD)mousedrv_get_x();
+    last_mouse_x = latest_x;
+    latest_y = (SWORD)mousedrv_get_y();
+    last_mouse_y = latest_y;
     neos_lastx = (BYTE)(mousedrv_get_x() >> 1);
     neos_lasty = (BYTE)(mousedrv_get_y() >> 1);
     latest_os_ts = 0;
@@ -645,7 +650,7 @@ static int joyport_mouse_enable(int port, int val)
         return 0;
     }
 
-    mt = id_to_mt(val);    
+    mt = id_to_mt(val);
 
     if (mt == -1) {
         return -1;
@@ -666,7 +671,7 @@ static int joyport_mouse_enable(int port, int val)
 
 static BYTE joyport_mouse_value(int port)
 {
-    return _mouse_enabled ? ~mouse_digital_val : 0xff;
+    return _mouse_enabled ? (BYTE)~mouse_digital_val : 0xff;
 }
 
 /* Some prototypes are needed */
@@ -712,8 +717,8 @@ static BYTE joyport_mouse_neos_value(int port)
     BYTE retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (~mouse_digital_val) & neos_mouse_read();
-        if (retval != ~mouse_digital_val) {
+        retval = (BYTE)((~mouse_digital_val) & neos_mouse_read());
+        if (retval != (BYTE)~mouse_digital_val) {
             joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
         }
     }
@@ -739,7 +744,7 @@ static joyport_t mouse_neos_joyport_device = {
     joyport_mouse_neos_value,
     neos_mouse_store,
     joyport_mouse_neos_amiga_st_read_potx,
-    NULL,				/* no read pot y */
+    NULL,               /* no read pot y */
     mouse_neos_write_snapshot,
     mouse_neos_read_snapshot
 };
@@ -749,8 +754,8 @@ static BYTE joyport_mouse_poll_value(int port)
     BYTE retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (~mouse_digital_val) & mouse_poll();
-        if (retval != ~mouse_digital_val) {
+        retval = (BYTE)((~mouse_digital_val) & mouse_poll());
+        if (retval != (BYTE)~mouse_digital_val) {
             joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
         }
     }
@@ -774,7 +779,7 @@ static joyport_t mouse_amiga_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_mouse_enable,
     joyport_mouse_poll_value,
-    NULL,				/* no store digital */
+    NULL,               /* no store digital */
     joyport_mouse_neos_amiga_st_read_potx,
     joyport_mouse_amiga_st_read_poty,
     mouse_amiga_write_snapshot,
@@ -793,9 +798,9 @@ static joyport_t mouse_cx22_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_mouse_enable,
     joyport_mouse_poll_value,
-    NULL,				/* no store digital */
-    NULL,				/* no read pot x */
-    NULL,				/* no read pot y */
+    NULL,               /* no store digital */
+    NULL,               /* no read pot x */
+    NULL,               /* no read pot y */
     mouse_cx22_write_snapshot,
     mouse_cx22_read_snapshot
 };
@@ -812,7 +817,7 @@ static joyport_t mouse_st_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_mouse_enable,
     joyport_mouse_poll_value,
-    NULL,				/* no store digital */
+    NULL,               /* no store digital */
     joyport_mouse_neos_amiga_st_read_potx,
     joyport_mouse_amiga_st_read_poty,
     mouse_st_write_snapshot,
@@ -824,8 +829,8 @@ static BYTE joyport_mouse_smart_value(int port)
     BYTE retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (~mouse_digital_val) & smart_mouse_read();
-        if (retval != ~mouse_digital_val) {
+        retval = (BYTE)((~mouse_digital_val) & smart_mouse_read());
+        if (retval != (BYTE)~mouse_digital_val) {
             joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
         }
     }
@@ -856,8 +861,8 @@ static BYTE joyport_mouse_micromys_value(int port)
     BYTE retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (~mouse_digital_val) & micromys_mouse_read();
-        if (retval != ~mouse_digital_val) {
+        retval = (BYTE)((~mouse_digital_val) & micromys_mouse_read());
+        if (retval != (BYTE)~mouse_digital_val) {
             joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
         }
     }
@@ -876,7 +881,7 @@ static joyport_t mouse_micromys_joyport_device = {
     JOYPORT_POT_REQUIRED,
     joyport_mouse_enable,
     joyport_mouse_micromys_value,
-    NULL,				/* no store digital */
+    NULL,               /* no store digital */
     mouse_get_1351_x,
     mouse_get_1351_y,
     mouse_micromys_write_snapshot,
@@ -885,7 +890,7 @@ static joyport_t mouse_micromys_joyport_device = {
 
 static BYTE joyport_koalapad_pot_x(void)
 {
-    return _mouse_enabled ? 255 - mouse_get_paddle_x() : 0xff;
+    return _mouse_enabled ? (BYTE)(255 - mouse_get_paddle_x()) : 0xff;
 }
 
 /* Some prototypes are needed */
@@ -900,7 +905,7 @@ static joyport_t koalapad_joyport_device = {
     JOYPORT_POT_REQUIRED,
     joyport_mouse_enable,
     joyport_mouse_value,
-    NULL,				/* no store digital */
+    NULL,               /* no store digital */
     joyport_koalapad_pot_x,
     mouse_get_paddle_y,
     koalapad_write_snapshot,
@@ -947,8 +952,10 @@ static int set_mouse_enabled(int val, void *param)
 
     _mouse_enabled = val ? 1 : 0;
     mousedrv_mouse_changed();
-    latest_x = last_mouse_x = mousedrv_get_x();
-    latest_y = last_mouse_y = mousedrv_get_y();
+    latest_x = (SWORD)mousedrv_get_x();
+    last_mouse_x = latest_x;
+    latest_y = (SWORD)mousedrv_get_y();
+    last_mouse_y = latest_y;
     neos_lastx = (BYTE)(mousedrv_get_x() >> 1);
     neos_lasty = (BYTE)(mousedrv_get_y() >> 1);
     latest_os_ts = 0;
@@ -974,18 +981,18 @@ static int set_smart_mouse_rtc_save(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "Mouse", MOUSE_ENABLE_DEFAULT, RES_EVENT_SAME, NULL,
       &_mouse_enabled, set_mouse_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_extra_int[] = {
     { "SmartMouseRTCSave", 0, RES_EVENT_SAME, NULL,
       &ds1202_rtc_save, set_smart_mouse_rtc_save, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static mouse_func_t mouse_funcs =
 {
-    mouse_button_left,    
+    mouse_button_left,
     mouse_button_right,
     mouse_button_middle,
     mouse_button_up,
@@ -1019,7 +1026,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_MOUSE_GRAB,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cmdline_extra_option[] = {
@@ -1033,7 +1040,7 @@ static const cmdline_option_t cmdline_extra_option[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_SMART_MOUSE_RTC_SAVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int mouse_cmdline_options_init(void)
@@ -1051,8 +1058,8 @@ int mouse_cmdline_options_init(void)
 
 void mouse_init(void)
 {
-    emu_units_per_os_units = (float)machine_get_cycles_per_second() / vsyncarch_frequency();
-    update_limit = machine_get_cycles_per_frame() / 31 / 2;
+    emu_units_per_os_units = (float)(machine_get_cycles_per_second() / vsyncarch_frequency());
+    update_limit = (int)(machine_get_cycles_per_frame() / 31 / 2);
 #ifdef DEBUG_MOUSE
     mouse_log = log_open("Mouse");
     log_message(mouse_log, "cpu cycles / time unit %.5f",
@@ -1898,7 +1905,7 @@ static int mouse_smart_write_snapshot(struct snapshot_s *s, int port)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, mouse_smart_snap_module_name, MOUSE_SMART_VER_MAJOR, MOUSE_SMART_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }
@@ -1989,7 +1996,7 @@ static int mouse_micromys_write_snapshot(struct snapshot_s *s, int port)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, mouse_micromys_snap_module_name, MOUSE_MICROMYS_VER_MAJOR, MOUSE_MICROMYS_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

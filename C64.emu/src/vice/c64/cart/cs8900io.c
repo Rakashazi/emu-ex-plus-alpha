@@ -111,7 +111,8 @@ static int cs8900io_activate(void)
             case -2:
                 cs8900io_enabled = 0;
                 cs8900io_cannot_use = 1;
-                break;
+                ui_error("No PCAP library is installed, cannot use ethernet based devices.");
+                return -1;
         }
     } else {
         should_activate = 1;
@@ -289,13 +290,13 @@ static resource_string_t resources_string[] = {
     { "ETHERNET_INTERFACE",
       ARCHDEP_ETHERNET_DEFAULT_DEVICE, RES_EVENT_NO, NULL,
       &cs8900io_interface, set_cs8900io_interface, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "ETHERNET_DISABLED", 0, RES_EVENT_NO, NULL,
       &cs8900io_cannot_use, set_cs8900io_disabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int cs8900io_resources_init(void)
@@ -321,6 +322,11 @@ int cs8900io_resources_init(void)
 
 void cs8900io_resources_shutdown(void)
 {
+    /* clean up string allocated by resources_set_defaults() */
+    if (cs8900io_interface != NULL) {
+        lib_free(cs8900io_interface);
+        cs8900io_interface = NULL;
+    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -333,7 +339,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_ETHERNET_INTERFACE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int cs8900io_cmdline_options_init(void)

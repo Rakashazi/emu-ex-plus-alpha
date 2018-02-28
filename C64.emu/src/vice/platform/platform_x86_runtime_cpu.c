@@ -179,10 +179,36 @@ static x86_cpu_name_t x86_cpu_names[] = {
     { 0, 0, 0, NULL }
 };
 
+/* return cpu name if present */
+static char *get_x86_runtime_cpu_name(void)
+{
+/* makes certain binaries crash */
+#if 0
+    DWORD regax, regbx, regcx, regdx;
+    static char name_buf[49];
+    int i;
+
+    cpuid(0x80000000, regax, regbx, regcx, regdx);
+    if (regax >= 0x80000004) {
+        for (i = 0; i < 3; i++) {
+            cpuid(0x80000002 + i, regax, regbx, regcx, regdx);
+            memcpy(name_buf + (i * 16) + 0, &regax, 4);
+            memcpy(name_buf + (i * 16) + 4, &regbx, 4);
+            memcpy(name_buf + (i * 16) + 8, &regcx, 4);
+            memcpy(name_buf + (i * 16) + 12, &regdx, 4);
+        }
+        name_buf[48] = 0;
+        return name_buf;
+    }
+#endif
+    return NULL;
+}
+
 /* runtime cpu detection */
 char *platform_get_x86_runtime_cpu(void)
 {
     DWORD regax, regbx, regcx, regdx;
+    char *cpu_name;
     char type_buf[13];
     int hasCPUID;
     int found = 0;
@@ -190,7 +216,9 @@ char *platform_get_x86_runtime_cpu(void)
     int i;
 
     hasCPUID = has_cpuid();
-    if (hasCPUID) {
+    if (hasCPUID && (cpu_name = get_x86_runtime_cpu_name()) != NULL) {
+        return cpu_name;
+    } else if (hasCPUID) {
         cpuid(0, regax, regbx, regcx, regdx);
         memcpy(type_buf + 0, &regbx, 4);
         memcpy(type_buf + 4, &regdx, 4);

@@ -504,19 +504,19 @@ static int set_userport_joystick_type(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "UserportJoy", 0, RES_EVENT_NO, NULL,
       &userport_joystick_enable, set_userport_joystick_enable, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_int_type_plus4[] = {
     { "UserportJoyType", USERPORT_JOYSTICK_PET, RES_EVENT_NO, NULL,
       &userport_joystick_type, set_userport_joystick_type, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_int_type[] = {
     { "UserportJoyType", USERPORT_JOYSTICK_CGA, RES_EVENT_NO, NULL,
       &userport_joystick_type, set_userport_joystick_type, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int userport_joystick_resources_init(void)
@@ -556,7 +556,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_JOY,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cmdline_options_type[] =
@@ -566,7 +566,7 @@ static const cmdline_option_t cmdline_options_type[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_TYPE, IDCLS_SET_USERPORT_JOY_TYPE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int userport_joystick_cmdline_options_init(void)

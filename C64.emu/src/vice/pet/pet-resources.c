@@ -399,7 +399,7 @@ static const resource_string_t resources_string[] = {
       &petres.h6809romName[4], set_h6809_rom_name, (void *)4 },
     { "H6809RomFName", "", RES_EVENT_NO, NULL,
       &petres.h6809romName[5], set_h6809_rom_name, (void *)5 },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 /* caution: make sure the defaults match an actual PET model */
@@ -435,7 +435,7 @@ static const resource_int_t resources_int[] = {
       &pet_colour_type, set_pet_colour, NULL },
     { "PETColourBG", 0, RES_EVENT_SAME, NULL,
       &pet_colour_analog_bg, set_pet_colour_bg, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int pet_resources_init(void)

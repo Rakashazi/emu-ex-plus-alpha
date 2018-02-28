@@ -558,7 +558,7 @@ static const resource_int_t resources_int[] = {
     { "DtvBlitterLog", 0, RES_EVENT_NO, (resource_value_t)0,
       &blitter_log_enabled, set_blitter_log, NULL },
 #endif
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int c64dtvblitter_resources_init(void)
@@ -589,7 +589,7 @@ static const cmdline_option_t cmdline_options[] =
       IDCLS_UNUSED, IDCLS_DISABLE_DTV_BLITTER_LOG,
       NULL, NULL },
 #endif
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c64dtvblitter_cmdline_options_init(void)

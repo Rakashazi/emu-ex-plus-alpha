@@ -27,6 +27,7 @@
 #include "vice.h"
 
 #ifdef USE_LAMEMP3
+
 #include "lamelib.h"
 #include "sound.h"
 #include "types.h"
@@ -70,7 +71,7 @@ static int mp3_init(const char *param, int *speed, int *fragsize, int *fragnr, i
 
 static int mp3_write(SWORD *pbuf, size_t nr)
 {
-    unsigned int mp3_size;
+    int mp3_size;
     unsigned int i;
 
     for (i = 0; i < nr; i++) {
@@ -82,9 +83,10 @@ static int mp3_write(SWORD *pbuf, size_t nr)
         }
     }
 
-    mp3_size = vice_lame_encode_buffer_interleaved(gfp, pcm_buffer, (stereo == 1) ? nr / 2 : nr, mp3_buffer, MP3_BUFFER_SIZE);
+    mp3_size = vice_lame_encode_buffer_interleaved(gfp, pcm_buffer,
+            (int)((stereo == 1) ? nr / 2 : nr), mp3_buffer, MP3_BUFFER_SIZE);
     if (mp3_size != 0) {
-        if (mp3_size != fwrite(mp3_buffer, 1, mp3_size, mp3_fd)) {
+        if (mp3_size != (int)fwrite(mp3_buffer, 1, (size_t)mp3_size, mp3_fd)) {
             return 1;
         }
     }
@@ -97,7 +99,7 @@ static void mp3_close(void)
 
     mp3_size = vice_lame_encode_flush(gfp, mp3_buffer, MP3_BUFFER_SIZE);
 
-    if (fwrite(mp3_buffer, 1, mp3_size, mp3_fd) != mp3_size) {
+    if (fwrite(mp3_buffer, 1, (size_t)mp3_size, mp3_fd) != (size_t)mp3_size) {
         log_debug("ERROR mp3_close failed.");
     }
     fclose(mp3_fd);
@@ -133,4 +135,5 @@ int sound_init_mp3_device(void)
 
     return sound_register_device(&mp3_device);
 }
-#endif
+
+#endif /* ifdef USE_LAMEMP3 */

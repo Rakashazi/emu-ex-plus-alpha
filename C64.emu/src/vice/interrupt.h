@@ -150,7 +150,9 @@ inline static void interrupt_set_irq(interrupt_cpu_status_t *cs,
                cycles are stolen from the CPU.  */
 #ifdef DEBUG
             if (debug.maincpu_traceflg) {
-                log_debug("ICLK=%i  last_stolen_cycle=%d", cpu_clk, cs->last_stolen_cycles_clk);
+                log_debug("ICLK=%lu  last_stolen_cycle=%lu",
+                        (unsigned long)cpu_clk,
+                        (unsigned long)(cs->last_stolen_cycles_clk));
             }
 #endif
             cs->irq_delay_cycles = 0;
@@ -194,7 +196,9 @@ inline static void interrupt_set_nmi(interrupt_cpu_status_t *cs,
 
 #ifdef DEBUG
                 if (debug.maincpu_traceflg) {
-                    log_debug("ICLK=%i  last_stolen_cycle=%d", cpu_clk, cs->last_stolen_cycles_clk);
+                    log_debug("ICLK=%lu  last_stolen_cycle=%lu",
+                            (unsigned long)cpu_clk,
+                            (unsigned long)(cs->last_stolen_cycles_clk));
                 }
 #endif
                 /* This makes sure that NMI delay is correctly emulated when
@@ -215,7 +219,7 @@ inline static void interrupt_set_nmi(interrupt_cpu_status_t *cs,
             if (cs->nnmi > 0) {
                 cs->nnmi--;
                 cs->pending_int[int_num] =
-                    (cs->pending_int[int_num] & ~IK_NMI);
+                    (cs->pending_int[int_num] & (unsigned int)~IK_NMI);
 #if 0
                 /* It should not be possible to remove the NMI condition,
                    only interrupt_ack_nmi() should clear it.  */
@@ -237,8 +241,8 @@ inline static void interrupt_set_nmi(interrupt_cpu_status_t *cs,
 inline static void interrupt_set_int(interrupt_cpu_status_t *cs, int int_num,
                                      enum cpu_int value, CLOCK cpu_clk)
 {
-    interrupt_set_nmi(cs, int_num, (int)(value & IK_NMI), cpu_clk);
-    interrupt_set_irq(cs, int_num, (int)(value & IK_IRQ), cpu_clk);
+    interrupt_set_nmi(cs, (unsigned int)int_num, (int)(value & IK_NMI), cpu_clk);
+    interrupt_set_irq(cs, (unsigned int)int_num, (int)(value & IK_IRQ), cpu_clk);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -248,7 +252,7 @@ inline static void interrupt_set_int(interrupt_cpu_status_t *cs, int int_num,
 inline static void interrupt_ack_nmi(interrupt_cpu_status_t *cs)
 {
     cs->global_pending_int =
-        (cs->global_pending_int & ~IK_NMI);
+        (cs->global_pending_int & (unsigned int)~IK_NMI);
 
     if (cs->nmi_trap_func) {
         cs->nmi_trap_func();
@@ -258,7 +262,7 @@ inline static void interrupt_ack_nmi(interrupt_cpu_status_t *cs)
 inline static void interrupt_ack_irq(interrupt_cpu_status_t *cs)
 {
     cs->global_pending_int =
-        (cs->global_pending_int & ~IK_IRQPEND);
+        (cs->global_pending_int & (unsigned int)~IK_IRQPEND);
     cs->irq_pending_clk = CLOCK_MAX;
 }
 /* ------------------------------------------------------------------------- */

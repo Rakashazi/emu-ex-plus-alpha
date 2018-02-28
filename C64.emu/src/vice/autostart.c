@@ -288,7 +288,7 @@ static int set_autostart_prg_disk_image(const char *val, void *param)
 static resource_string_t resources_string[] = {
     { "AutostartPrgDiskImage", NULL, RES_EVENT_NO, NULL,
       &AutostartPrgDiskImage, set_autostart_prg_disk_image, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 /*! \brief integer resources used by autostart */
@@ -307,7 +307,7 @@ static const resource_int_t resources_int[] = {
       &AutostartDelay, set_autostart_delay, NULL },
     { "AutostartDelayRandom", 1, RES_EVENT_NO, (resource_value_t)0,
       &AutostartDelayRandom, set_autostart_delayrandom, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 /*! \brief initialize the resources
@@ -403,7 +403,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_AUTOSTART_RANDOM_DELAY,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 /*! \brief initialize the command-line options
@@ -538,7 +538,17 @@ static void check_rom_area(void)
         /* special case for auto-starters: ROM left. We also consider
          * BASIC area to be ROM, because it's responsible for writing "READY."
          */
-        if (machine_addr_in_ram(reg_pc)) {
+        /* FIXME: C128 is a special beast, as it would execute some stuff in system
+                  RAM - which this special case hack checks. a better check might
+                  be to look at the current bank too.
+                  without this check eg autostarting a prg file with autostartmode=
+                  "disk image" will fail. (exit from ROM at $some RAM address)
+        */
+        if (((machine_class == VICE_MACHINE_C128) && 
+             !((reg_pc >= 0x2a0) && (reg_pc <= 0x3af)) && 
+             !((reg_pc >= 0x4300) && (reg_pc <= 0x4fff)) && 
+             machine_addr_in_ram(reg_pc)) ||
+            ((machine_class != VICE_MACHINE_C128) && (machine_addr_in_ram(reg_pc)))) {
             log_message(autostart_log, "Left ROM for $%04x", reg_pc);
             disable_warp_if_was_requested();
             autostart_done();

@@ -44,14 +44,32 @@
 
 #include "vice.h"
 #include "diskimage.h"
-#include "diskimage/fsimage.h"
+#include "fsimage.h"
 #include "diskcontents.h"
+
+#include "version.h"
+
+#ifdef USE_SVN_REVISION
+# include "svnversion.h"
+#endif
 
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+/* apparently there are crappy C-libs out there that don't declare EXIT_SUCCESS
+ * or EXIT_FAILURE
+ */
+#ifndef EXIT_SUCCESS
+# define EXIT_SUCCESS 0
+#endif
+#ifndef EXIT_FAILURE
+# define EXIT_FAILURE 1
+#endif
+
 #include <string.h>
+#include <assert.h>
 
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
@@ -72,6 +90,7 @@
 #include "cmdline.h"
 #include "diskimage.h"
 #include "fileio.h"
+#include "fsimage-check.h"
 #include "gcr.h"
 #include "info.h"
 #include "imagecontents.h"
@@ -95,13 +114,43 @@
 
 /* #define DEBUG_DRIVE */
 
-#define MAXARG          256     /**< maximum number arguments to a command */
+#define MAXARG          256 + 5 /**< maximum number arguments to a command,
+                                     the +5 comes from the bpoke() command,
+                                     that one uses 5 args for its name,
+                                     unit, track, sector, offset. And another
+                                     max 256 for its data */
 
 
 #define DRIVE_COUNT     4       /**< number of virtual drives */
 
+
+#define RAW_BLOCK_SIZE  256     /**< size of a block/sector, including the
+                                     (track,sector) pointer */
+
+
+/** \brief  Number of bytes to display per line for the `block` command
+ *
+ * Normally, on 80 character terminals, 16 bytes is a decent number.
+ */
+#define BLOCK_CMD_WIDTH     16
+
+
+/** \brief  Minimum unit number for virtual drives
+ *
+ * This will probably always be 8, but using a symbolic constant is neater
+ */
+#define UNIT_MIN        8
+
+/** \brief  Maximum unit number for virtual drives
+ *
+ * This depends on the number of virtual devices, but most likely will never
+ * exceed 11.
+ */
+#define UNIT_MAX        (UNIT_MIN + DRIVE_COUNT - 1)
+
 #define C1541_VERSION_MAJOR     4   /**< c1541 major version number */
-#define C1541_VERSION_MINOR     0   /**< c1541 minor version number */
+#define C1541_VERSION_MINOR     1   /**< c1541 minor version number */
+
 
 /** \brief  Machine name
  */
@@ -140,16 +189,26 @@ static int interactive_mode = 0;
  * forward declaration of functions
  */
 
+/* helpers */
 static int check_drive_unit(int unit);
 static int check_drive_index(int index);
 static int check_drive_ready(int index);
-
+static int parse_track_sector(const char *trk_str, const char *sec_str,
+                              unsigned int *trk_num, unsigned int *sec_num);
+static int translate_fsimage_error(int err);
+static const char *image_format_name(unsigned int type);
 
 
 /* command handlers */
 static int attach_cmd(int nargs, char **args);
+static int bam_cmd(int nargs, char **args);
+static int bcopy_cmd(int nargs, char **args);
+static int bfill_cmd(int nargs, char **args);
 static int block_cmd(int nargs, char **args);
-static int check_drive(int dev, int mode);
+static int bpoke_cmd(int nargs, char **args);
+static int bread_cmd(int nargs, char **args);
+static int bwrite_cmd(int nargs, char **args);
+static int chain_cmd(int nargs, char **args);
 static int copy_cmd(int nargs, char **args);
 static int delete_cmd(int nargs, char **args);
 static int extract_cmd(int nargs, char **args);
@@ -165,16 +224,19 @@ static int raw_cmd(int nargs, char **args); /* @ */
 static int read_cmd(int nargs, char **args);
 static int read_geos_cmd(int nargs, char **args);
 static int rename_cmd(int nargs, char **args);
+static int silent_cmd(int narg, char **args);
 static int show_cmd(int nargs, char **args);
 static int tape_cmd(int nargs, char **args);
 static int unit_cmd(int nargs, char **args);
 static int unlynx_cmd(int nargs, char **args);
 static int validate_cmd(int nargs, char **args);
 static int verbose_cmd(int nargs, char **args);
+static int version_cmd(int nargs, char **args);
 static int write_cmd(int nargs, char **args);
 static int write_geos_cmd(int nargs, char **args);
 static int zcreate_cmd(int nargs, char **args);
 
+/* other functions */
 static int open_image(int dev, char *name, int create, int disktype);
 
 int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii);
@@ -273,11 +335,52 @@ const command_t command_list[] = {
       "Attach <diskimage> to <unit> (default unit is 8).",
       1, 2,
       attach_cmd },
+    { "bam",
+      "bam [<unit>] | <track-min> <track-max> [<unit>]",
+      "Show BAM of disk image, optionally limiting the dump to <track-min> - "
+      "<track-max>",
+      0, 3,
+      bam_cmd },
+    { "bcopy",
+      "bcopy <src-track> <src-sector> <dst-track> <dst-sector> [<src-unit> "
+      "[<dst-unit>]]",
+      "Copy a block to another block, optionally using different units. "
+      "If no unit\nis given, the current unit is used; if only one unit is "
+      "given, that unit\nis used for both source and destination.",
+      4, 6,
+      bcopy_cmd },
+    { "bfill",
+      "bfill <track> <sector> <value> [<unit>]",
+      "Fill a block with a single value.",
+      3, 4,
+      bfill_cmd },
     { "block",
-      "block <track> <sector> [<offset>] [<drive>]",
+      "block <track> <sector> [<offset>] [<unit>]",
       "Show specified disk block in hex form.",
       2, 4,
       block_cmd },
+    { "bpoke",
+      "poke [@<unit>:] <track> <sector> <offset> <data ...>",
+      "Poke <data> into block at (<track>,<sector>), starting at <offset>",
+      4, MAXARG,
+      bpoke_cmd },
+    { "bread",
+      "bread <filename> <track> <sector> [<unit>]",
+      "Read block data from (<track>,<sector>) and write as <filename> to "
+      "the host file system",
+      3, 4,
+      bread_cmd },
+    { "bwrite",
+      "bwrite <filename> <track> <sector> [<unit>]",
+      "Write block data to (<track>,<sector>) from <filename> at the host "
+      "file system",
+      3, 4,
+      bwrite_cmd },
+    { "chain",
+      "chain <track> <sector> [<unit>]",
+      "Follow and print block chain starting at (<track>,<sector>)",
+      2, 3,
+      chain_cmd },
     { "copy",
       "copy <source1> [<source2> ... <sourceN>] <destination>",
       "Copy `source1' ... `sourceN' into destination.  If N > 1, "
@@ -308,11 +411,11 @@ const command_t command_list[] = {
       "format <diskname,id> [<type> <imagename>] [<unit>]",
       "If <unit> is specified, format the disk in unit <unit>.\n"
       "If <type> and <imagename> are specified, create a new image named\n"
-      "<imagename>, attach it to unit 8 and format it.  <type> is a disk "
-      "image\ntype, and must be either `x64', `d64' (both VC1541/2031), "
-      "`g64' (VC1541/2031,\nbut in GCR coding), `d67' (2040 DOS1), "
-      "`d71' (VC1571), `d81' (VC1581), \n`d80' (CBM8050) or `d82' (CBM8250). "
-      "Otherwise, format the disk in \nthe current unit, if any.",
+      "<imagename>, attach it to unit 8 and format it.  <type> is a disk image\n"
+      "type, and must be either `x64', `d64' (both VC1541/2031), `g64' (VC1541/2031,\n"
+      "but in GCR coding), `d67' (2040 DOS1), `d71' (VC1571), `g71' (VC1571,\n"
+      "but in GCR coding), `d81' (VC1581), `d80' (CBM8050) or `d82' (CBM8250).\n"
+      "Otherwise, format the disk in the current unit, if any.",
       1, 4,
       format_cmd },
     { "geosread",
@@ -376,6 +479,11 @@ const command_t command_list[] = {
       "Rename <oldname> into <newname>.  The files must be on the same drive.",
       2, 2,
       rename_cmd },
+    { "silent",
+      "silent <off>",
+      "Disable all logging",
+      0, 1,
+      silent_cmd },
     { "show",
       "show [copying | warranty]",
       "Show conditions for redistributing copies of C1541 (`copying') or the\n"
@@ -398,6 +506,12 @@ const command_t command_list[] = {
       "(default\nis the current unit).",
       1, 2,
       unlynx_cmd },
+    { "unzip",
+      "unzip <d64name> <zipname> [<label,id>]",
+      "Create a D64 disk image out of a set of four Zipcoded files named\n"
+      "`1!<zipname>', `2!<zipname>', `3!<zipname>' and `4!<zipname>'.",
+      2, 3,
+      zcreate_cmd },
     { "validate",
       "validate [<unit>]",
       "Validate the disk in unit <unit>.  If <unit> is not specified, "
@@ -409,6 +523,11 @@ const command_t command_list[] = {
       "Enable verbose output. Use 'verbose off' to disable.",
       0, 1,
       verbose_cmd },
+    { "version",
+      "version",
+      "Display C1541 version",
+      0, 0,
+      version_cmd },
     { "write",
       "write <source> [<destination>]",
       "Write <source> from the file system into <destination> on a disk "
@@ -437,13 +556,15 @@ const command_t command_list[] = {
  *
  * \param[in]   prompt  prompt to display to the user
  *
- * \return  line read from stdout
+ * \return  line read from stdin
  */
 static char *read_line(const char *prompt)
 {
-    static char *line;
+    static char *line = NULL;
 
-    free(line);
+    if (line != NULL) {
+        free(line);
+    }
     line = readline(prompt);
     if (line != NULL && *line != 0) {
         add_history(line);
@@ -457,14 +578,14 @@ static char *read_line(const char *prompt)
  *
  * \param[in]   prompt  prompt to display to the user
  *
- * \return  line read from stdout
+ * \return  line read from stdin
  */
 static char *read_line(const char *prompt)
 {
     static char line[1024];
 
     /* Make sure there is a 0 at the end of the string */
-    line[sizeof(line) - 1] = 0; 
+    line[sizeof(line) - 1] = 0;
 
     fputs(prompt, stdout);
     fflush(stdout);
@@ -515,12 +636,12 @@ static int split_args(const char *line, int *nargs, char **args)
             case '\r':  /* fallthrough */
             case 0:
                 if (*s == 0 && in_quote) {
-                    fprintf(stderr, "Unbalanced quotes.\n");
+                    fprintf(stderr, "unbalanced quotes\n");
                     return -1;
                 }
                 if (!in_quote && !begin_of_arg) {
                     if (*nargs == MAXARG) {
-                        fprintf(stderr, "Too many arguments.\n");
+                        fprintf(stderr, "too many arguments\n");
                         return -1;
                     } else {
                         size_t len = (size_t)(d - tmp);
@@ -554,6 +675,19 @@ static int split_args(const char *line, int *nargs, char **args)
 
 /** \brief  Convert \a arg to int
  *
+ * This function accepts multiple bases, depending on the prefix of the arg.
+ *
+ * Basically it comes down to this (all resolve to 42 decimal)
+ *
+ * | prefix | base | example   |
+ * |:------:| ----:| --------- |
+ * | [none] | 10   | 042       |
+ * | %      | 2    | %101010   |
+ * | &      | 8    | &52       |
+ * | $      | 16   | $2a       |
+ * | 0[bB]  | 2    | 0b%101010 |
+ * | 0[xX]  | 16   | 0x2a      |
+ *
  * \param[in]   arg             string containing a possible integer literal
  * \param[out]  return_value    \a arg convert to int
  *
@@ -563,8 +697,41 @@ static int arg_to_int(const char *arg, int *return_value)
 {
     char *tailptr;
     int counter = 0;
+    int base = 10;
 
-    *return_value = (int)strtol(arg, &tailptr, 10);
+    if (arg == NULL || *arg == '\0') {
+        return -1;
+    }
+    /* determine base */
+    switch (*arg) {
+        case '%':
+            base = 2;
+            arg++;
+            break;
+        case '&':
+            base = 8;
+            arg++;
+            break;
+        case '$':
+            arg++;
+            base = 16;
+            break;
+        case '0':
+            arg++;
+            if (*arg == 'b' || *arg == 'B') {
+                base = 2;
+                arg++;
+            } else if (*arg == 'x' || *arg == 'X') {
+                base = 16;
+                arg++;
+            }
+            break;
+        default:
+            break;  /* base is already 10 */
+    }
+
+
+    *return_value = (int)strtol(arg, &tailptr, base);
 
     if (ioutil_errno(IOUTIL_ERRNO_ERANGE)) {
         return -1;
@@ -595,46 +762,76 @@ static void print_error_message(int errval)
             case FD_OK:
                 break;
             case FD_NOTREADY:
-                fprintf(stderr, "Drive not ready.\n");
+                fprintf(stderr, "drive not ready\n");
                 break;
             case FD_CHANGED:
-                fprintf(stderr, "Image file has changed on disk.\n");
+                fprintf(stderr, "image file has changed on disk\n");
                 break;
             case FD_NOTRD:
-                fprintf(stderr, "Cannot read file.\n");
+                fprintf(stderr, "cannot read file\n");
                 break;
             case FD_NOTWRT:
-                fprintf(stderr, "Cannot write file.\n");
+                fprintf(stderr, "cannot write file\n");
                 break;
             case FD_WRTERR:
-                fprintf(stderr, "Floppy write failed.\n");
+                fprintf(stderr, "floppy write failed\n");
                 break;
             case FD_RDERR:
-                fprintf(stderr, "Floppy read failed.\n");
+                fprintf(stderr, "floppy read failed\n");
                 break;
             case FD_INCOMP:
-                fprintf(stderr, "Incompatible DOS version.\n");
+                fprintf(stderr, "incompatible DOS version\n");
                 break;
             case FD_BADIMAGE:
-                fprintf(stderr, "Invalid image.\n");    /* Disk or tape */
+                fprintf(stderr, "invalid image\n"); /* Disk or tape */
                 break;
             case FD_BADNAME:
-                fprintf(stderr, "Invalid filename.\n");
+                fprintf(stderr, "invalid filename\n");
                 break;
             case FD_BADVAL:
-                fprintf(stderr, "Illegal value.\n");
+                fprintf(stderr, "illegal value\n");
                 break;
             case FD_BADDEV:
-                fprintf(stderr, "Illegal device number.\n");
+                fprintf(stderr, "illegal device number\n");
                 break;
             case FD_BAD_TS:
-                fprintf(stderr, "Inaccessible Track or Sector.\n");
+                fprintf(stderr, "inaccessible track or sector\n");
+                break;
+            case FD_BAD_TRKNUM:
+                fprintf(stderr, "illegal track number\n");
+                break;
+            case FD_BAD_SECNUM:
+                fprintf(stderr, "illegal sector number\n");
                 break;
             default:
-                fprintf(stderr, "Unknown error.\n");
+                fprintf(stderr, "<unknown error>\n");
         }
     }
 }
+
+
+/** \brief  Translate error codes from fsimage-check.c to FD_ error codes
+ *
+ * \param[in]   err error code from fsimage-check.c
+ *
+ * \return      translated error code
+ *
+ * \todo        Use this whenever disk_image_check_sector() is used. Now the
+ *              error code returned is usually FD_BAD_TS, which results in an
+ *              "Inaccesible track or sector" message, which is confusing.
+ */
+static int translate_fsimage_error(int err)
+{
+    switch (err) {
+        case FSIMAGE_BAD_TRKNUM:
+            return FD_BAD_TRKNUM;
+        case FSIMAGE_BAD_SECNUM:
+            return FD_BAD_SECNUM;
+        default:
+            return err;
+    }
+}
+
 
 /** \brief  Return code for lookup_command(): command not found
  */
@@ -677,6 +874,42 @@ static int lookup_command(const char *cmd)
 }
 
 
+/** \brief  Get image type name from type number
+ *
+ * \param[in]   type    on of the VDRIVE_FORMAT_TYPE constants
+ *
+ * \return  image type string or `NULL` when not found
+ *
+ * XXX:     Should probably be moved to vdrive somewhere
+ */
+static const char *image_format_name(unsigned int type)
+{
+    /* I use a switch here since the constants in vdrive.h are defines. Right
+     * now they could be an enum, but if someone decides to change the defines
+     * with gaps in them, a table-based lookup will fail badly */
+    switch (type) {
+        case VDRIVE_IMAGE_FORMAT_1541:
+            return "1541";
+        case VDRIVE_IMAGE_FORMAT_1571:
+            return "1571";
+        case VDRIVE_IMAGE_FORMAT_1581:
+            return "1581";
+        case VDRIVE_IMAGE_FORMAT_8050:
+            return "8050";
+        case VDRIVE_IMAGE_FORMAT_8250:
+            return "8250";
+        case VDRIVE_IMAGE_FORMAT_2040:
+            return "2040";
+        case VDRIVE_IMAGE_FORMAT_4000:
+            return "4000";
+        default:
+            return NULL;
+    }
+}
+
+
+
+
 /** \brief  Look up \a cmd and execute
  *
  * \param[in]   nargs   number of arguments in \a args
@@ -694,8 +927,8 @@ static int lookup_and_execute_command(int nargs, char **args)
         cp = &command_list[match];
         if (nargs - 1 < (int)(cp->min_args)
             || nargs - 1 > (int)(cp->max_args)) {
-            fprintf(stderr, "Wrong number of arguments.\n");
-            fprintf(stderr, "Syntax: %s\n", cp->syntax);
+            fprintf(stderr, "wrong number of arguments\n");
+            fprintf(stderr, "syntax: %s\n", cp->syntax);
             return -1;
         } else {
             int retval;
@@ -710,47 +943,14 @@ static int lookup_and_execute_command(int nargs, char **args)
         }
     } else {
         if (match == LOOKUP_AMBIGUOUS) {
-            fprintf(stderr, "Command `%s' is ambiguous.  Try `help'.\n",
+            fprintf(stderr, "command `%s' is ambiguous.  Try `help'\n",
                     args[0]);
         } else {
-            fprintf(stderr, "Command `%s' unrecognized.  Try `help'.\n",
+            fprintf(stderr, "command `%s' unrecognized.  Try `help'\n",
                     args[0]);
         }
         return -1;
     }
-}
-
-
-/** \brief  Get unit index (0-3) from \a name
- *
- * \param[in]   name        filename
- * \param[out]  unit_return drive unit index
- *
- * \return  pointer into \a name after the ':' or `NULL` on failure
- *
- * \todo    make both \a name and return value `const`
- *
- * FIXME:   this function needs to be rebuilt to reject @[num]: where `num` is
- *          not a valid unit number. prototype and behaviour should be more
- *          like strtold() (BW)
- */
-static char *extract_unit_from_file_name(char *name,
-                                         unsigned int *unit_return)
-{
-    static const char *specs[DRIVE_COUNT] = {
-        "@8:", "@9:", "@10:", "@11:"
-    };
-    unsigned int i;
-
-    for (i = 0; i < DRIVE_COUNT; i++) {
-        size_t len = strlen(specs[i]);
-        if (strncmp(specs[i], name, len) == 0) {
-            *unit_return = i;
-            return name + len;
-        }
-    }
-    *unit_return = -1;
-    return NULL;
 }
 
 
@@ -762,7 +962,7 @@ static char *extract_unit_from_file_name(char *name,
  * \return  unit number if successful, 0 if no '@<unit>:' was found, -1 if the
  *          parsed unit number is invalid
  */
-static int extract_unit_from_file_name_compyx(char *name, char **endptr)
+static int extract_unit_from_file_name(char *name, char **endptr)
 {
     long result;
 
@@ -776,7 +976,7 @@ static int extract_unit_from_file_name_compyx(char *name, char **endptr)
     if (*endptr != NULL && **endptr == ':') {
         /* got something */
         (*endptr)++;
-        if (check_drive_unit((int)result)) {
+        if (check_drive_unit((int)result) == FD_OK) {
             return (int)result;
         } else {
             return -1;
@@ -853,7 +1053,7 @@ static int open_disk_image(vdrive_t *vdrive, const char *name,
         lib_free(image->p64);
         disk_image_media_destroy(image);
         disk_image_destroy(image);
-        fprintf(stderr, "Cannot open file `%s'.\n", name);
+        fprintf(stderr, "cannot open file `%s'\n", name);
         return -1;
     }
 
@@ -876,7 +1076,7 @@ static void close_disk_image(vdrive_t *vdrive, int unit)
     image = vdrive->image;
 
     if (image != NULL) {
-        vdrive_detach_image(image, unit, vdrive);
+        vdrive_detach_image(image, (unsigned int)unit, vdrive);
         P64ImageDestroy((PP64Image)image->p64);
         lib_free(image->p64);
         if (image->device == DISK_IMAGE_DEVICE_REAL) {
@@ -886,7 +1086,7 @@ static void close_disk_image(vdrive_t *vdrive, int unit)
         disk_image_media_destroy(image);
         disk_image_destroy(image);
         vdrive->image = NULL;
-        /* also clean up buffer using by the vdrive */
+        /* also clean up buffer used by the vdrive */
         vdrive_device_shutdown(vdrive);
     }
 }
@@ -913,54 +1113,17 @@ static int open_image(int dev, char *name, int create, int disktype)
     }
 
     if (create) {
-        if (cbmimage_create_image(name, disktype) < 0) {
-            printf("Cannot create disk image.\n");
+        if (cbmimage_create_image(name, (unsigned int)disktype) < 0) {
+            printf("cannot create disk image\n");
             return -1;
         }
     }
 
-    if (open_disk_image(drives[dev], name, dev + 8) < 0) {
-        printf("Cannot open disk image.\n");
+    if (open_disk_image(drives[dev], name, (unsigned int)dev + UNIT_MIN) < 0) {
+        printf("cannot open disk image\n");
         return -1;
     }
     return 0;
-}
-
-
-/** \brief  Check \a dev for some limit
- *
- * \param[in]   dev     device number
- * \param[in]   flags   flags which determine the check(s)
- *
- * FIXME:   Only two things are checked, making the whole `flags` param
- *          rather pointless, not to mention 'flags' makes me think its a
- *          combination of bits indicating various tests. It's not.
- *          Functions using this function only check the return value for <0,
- *          and then return their own FD_FOO constant.
- *
- * \return  FD_BADDEV, FD_NOTREADY, FD_OK
- *
- * \deprecated
- */
-static int check_drive(int dev, int flags)
-{
-    vdrive_t *vdrive;
-
-    /* FIXME: this makes the dev number check return many false positives,
-     *        why not simply check dev without AND'ing? */
-    dev &= 7;
-
-    if (dev < 0 || dev >= DRIVE_COUNT) {
-        return FD_BADDEV;
-    }
-
-    vdrive = drives[dev & 3];
-
-    if (flags != CHK_NUM && (vdrive == NULL || vdrive->image == NULL)) {
-        return FD_NOTREADY;
-    }
-
-    return FD_OK;
 }
 
 
@@ -972,7 +1135,7 @@ static int check_drive(int dev, int flags)
  */
 static int check_drive_unit(int unit)
 {
-    return (unit >= 8 && unit < (DRIVE_COUNT + 8)) ? FD_OK : FD_BADDEV;
+    return (unit >= UNIT_MIN && unit <= UNIT_MAX) ? FD_OK : FD_BADDEV;
 }
 
 
@@ -1004,6 +1167,58 @@ static int check_drive_ready(int index)
         }
     }
     return status;
+}
+
+
+/** \brief  Parse \a trk_str and \a sec_str for track and sector numbers
+ *
+ * Parses its string arguments for track and sector numbers, no actual checking
+ * against an image is performed, so a track and sector of 100 will pass. Use
+ * drive_image_check_sector() to check if the track and sector are valid for
+ * a given image.
+ *
+ * \param[in]   trk_str string containing a track number
+ * \param[in]   sec_str string containing a sector number
+ * \param[out]  trk_num object to store track number
+ * \param[out]  sec_num object to store sector number
+ *
+ * \return  FD_OK on success, FD_BAD_TRKNUM or FD_BAD_SECNUM on failure
+ */
+static int parse_track_sector(const char *trk_str, const char *sec_str,
+                              unsigned int *trk_num, unsigned int *sec_num)
+{
+    int tmp;
+
+    if (arg_to_int(trk_str, &tmp) < 0 || tmp < 1) {
+        return FD_BAD_TRKNUM;
+    }
+    *trk_num = (unsigned int)tmp;
+    if (arg_to_int(sec_str, &tmp) < 0 || tmp < 0) {
+        return FD_BAD_SECNUM;
+    }
+    *sec_num = (unsigned int)tmp;
+    return FD_OK;
+}
+
+
+/** \brief  Parse \a s for a unit number
+ *
+ * Parses string \a s for a unit number, and checks if it's a valid unit
+ * number. No check if performed if the unit is actually ready (wouldn't make
+ * sense when creating/attaching to a unit)
+ *
+ * \param[in]   s   string to parse
+ *
+ * \return  unit number or FD_BADDEV on error
+ */
+static int parse_unit_number(const char *s)
+{
+    int u;
+
+    if (arg_to_int(s, &u) < 0 || check_drive_unit(u) < 0) {
+        return FD_BADDEV;
+    }
+    return u;
 }
 
 
@@ -1047,14 +1262,355 @@ static int attach_cmd(int nargs, char **args)
             if (check_drive_unit(dev) != FD_OK) {
                 return FD_BADDEV;
             }
-            dev -= 8;
+            dev -= UNIT_MIN;
             break;
+        default:
+            return FD_BADDEV;
     }
 
     archdep_expand_path(&path, args[1]);
-    open_disk_image(drives[dev], path, dev + 8);
+    open_disk_image(drives[dev], path, (unsigned int)dev + UNIT_MIN);
     lib_free(path);
     return FD_OK;
+}
+
+/** \brief  Maximum sector numbers to print in the sector header */
+#define BAM_SECTOR_HEADER_MAX_SECTORS   256
+/** \brief  Size of a sector number header line */
+#define BAM_SECTOR_HEADER_MAX_STRLEN   (BAM_SECTOR_HEADER_MAX_SECTORS + \
+        ((BAM_SECTOR_HEADER_MAX_SECTORS / 8) - 1))
+
+
+/** \brief  Print a sector numbers header for a BAM dump
+ *
+ * Prints a two line header with sector numbers, with a space between each
+ * block of eight sectors
+ *
+ * \param[in]   sectors number of sector number to print
+ */
+static void bam_print_sector_header(int sectors)
+{
+    char line1[BAM_SECTOR_HEADER_MAX_STRLEN + 1];
+    char line2[BAM_SECTOR_HEADER_MAX_STRLEN + 1];
+
+    int i = 0;
+    int p = 0;
+
+    assert(sectors < BAM_SECTOR_HEADER_MAX_SECTORS);
+
+    while (i < sectors && p < BAM_SECTOR_HEADER_MAX_STRLEN) {
+        line1[p] = (i / 10) + '0';
+        line2[p] = (i % 10) + '0';
+        i++;
+        p++;
+        if ((i % 8 == 0) && (i <sectors)) {
+            line1[p] = ' ';
+            line2[p] = ' ';
+            p++;
+        }
+    }
+    line1[p] = '\0';
+    line2[p] = '\0';
+
+    printf("    %s\n    %s\n", line1, line2);
+}
+
+
+/** \brief  Print BAM bitmap for tracks \a track_min to \a track_max inclusive
+ *
+ * \param[in]   vdrive      vdrive object
+ * \param[in]   track_min   starting track number
+ * \param[in]   track_max   last track number
+ *
+ * \return      FD_OK on success, < 0 on failure
+ */
+static int bam_print_tracks(vdrive_t *vdrive,
+                             unsigned int track_min,
+                             unsigned int track_max)
+{
+    unsigned int track;
+
+    for (track = track_min; track <= track_max; track++) {
+        unsigned int sectors = (unsigned int)vdrive_get_max_sectors(vdrive, track);
+        unsigned char *bitmap = vdrive_bam_get_track_entry(vdrive, track);
+        unsigned int s = 0;
+
+        if (bitmap == NULL) {
+            fprintf(stderr,
+                    "error: got NULL for bam entry for track %u\n",
+                    track);
+            return FD_BADVAL;
+        }
+
+        printf("%2u  ", track);
+        while (s < sectors) {
+            putchar(vdrive_bam_isset(bitmap, s) ? '.' : '*');
+            s++;
+            if ((s % 8 == 0) && (s < sectors)) {
+                putchar(' ');
+            }
+        }
+        putchar('\n');
+    }
+    return FD_OK;
+}
+
+
+/** \brief  Show BAM of an attached image
+ *
+ * Display a bitmap of used/free sectors for each track in the image
+ *
+ * Syntax: 
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ */
+static int bam_cmd(int nargs, char **args)
+{
+    int unit = drive_index + UNIT_MIN;
+    vdrive_t *vdrive;
+    int max_sectors;
+
+    unsigned int track_min = 0; /* 0 means first track in image */
+    unsigned int track_max = 0; /* 0 means last track in image */
+
+    int result = FD_OK;
+
+    /* get unit number, if provided by the user */
+    if (nargs == 2) {
+        unit = parse_unit_number(args[1]);
+        if (unit < 0) {
+            return unit;
+        }
+    } else if (nargs > 2) {
+        /* default unit, track-min and track-max */
+        result = parse_track_sector(args[1], args[2], &track_min, &track_max);
+        if (result < 0) {
+            return result;
+        }
+        if (nargs == 4) {
+            /* parse unit number */
+            unit = parse_unit_number(args[3]);
+            if (unit < 0) {
+                return unit;
+            }
+        }
+    }
+
+#if 0
+    printf("bam_cmd(): unit #%d\n", unit);
+#endif
+    /* get vdrive instance */
+    result = check_drive_ready(unit - UNIT_MIN);
+    if (result < 0) {
+        return result;
+    }
+    vdrive = drives[unit - UNIT_MIN];
+#if 0
+    printf("bam_cmd(): image format: %s\n", image_format_name(vdrive->image_format));
+    printf("bam_cmd(): BAM size: $%x\n", vdrive->bam_size);
+#endif
+
+    /* set track min and max */
+    if (track_min == 0) {
+        track_min = 1;
+    }
+    if (track_max == 0) {
+        track_max = vdrive->image->tracks;
+    }
+
+    if (track_min < 1 || track_max > vdrive->image->tracks) {
+        return FD_BAD_TRKNUM;
+    }
+    if (track_min > track_max) {
+        return FD_BADVAL;
+    }
+
+    /* print sector numbers header
+     * XXX: this assumes track 1 always has the maximum number of sectors for
+     *      an image */
+    max_sectors = vdrive_get_max_sectors(vdrive, 1);
+    if (max_sectors < 0) {
+        return FD_BADVAL;
+    }
+
+    /* print sector numbers header and the actual BAM bitmap per track */
+    bam_print_sector_header(max_sectors);
+    bam_print_tracks(vdrive, track_min, track_max);
+    return FD_OK;
+}
+
+
+/** \brief  Copy block to another block
+ *
+ * Copies a single block (sector) to another block, optionally between different
+ * units.
+ *
+ * Syntax: `bcopy <src_trk> <src_sec> <dst_trk> <dst_sec> [<src_unit> [<dst_unit>]]`
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success < 0 on failure
+ */
+static int bcopy_cmd(int nargs, char **args)
+{
+    unsigned char buffer[RAW_BLOCK_SIZE];
+    unsigned int src_trk;
+    unsigned int src_sec;
+    unsigned int dst_trk;
+    unsigned int dst_sec;
+    int src_unit = drive_index + UNIT_MIN;
+    int dst_unit = drive_index + UNIT_MIN;
+    vdrive_t *src_vdrive;
+    vdrive_t *dst_vdrive;
+    int err;
+
+    /* get source and destination blocks */
+    err = parse_track_sector(args[1], args[2], &src_trk, &src_sec);
+    if (err < 0) {
+        return err;
+    }
+    err = parse_track_sector(args[3], args[4], &dst_trk, &dst_sec);
+    if (err < 0) {
+        return err;
+    }
+
+    /* get optional unit numbers */
+    if (nargs > 5) {
+        if (arg_to_int(args[5], &src_unit) < 0
+                || check_drive_unit(src_unit) < 0) {
+            return FD_BADDEV;
+        }
+        if (nargs > 6) {
+            if (arg_to_int(args[6], &dst_unit) < 0
+                    || check_drive_unit(dst_unit) < 0) {
+                return FD_BADDEV;
+            }
+        } else {
+            dst_unit = src_unit;
+        }
+    }
+
+#if 0
+    printf("bcopy(): from #%d (%2u,%2u) to #%d (%2u,%2u)\n",
+            src_unit, src_trk, src_sec, dst_unit, dst_trk, dst_sec);
+#endif
+    /* don't do anything if source and dest are the same */
+    if ((src_unit == dst_unit) && (src_trk == dst_trk) && (src_sec == dst_sec)) {
+        return FD_OK;
+    }
+
+
+    /* check if the units are ready */
+    if (check_drive_ready(src_unit - UNIT_MIN) < 0
+            || check_drive_ready(dst_unit - UNIT_MIN) < 0) {
+        return FD_NOTREADY;
+    }
+
+    src_vdrive = drives[src_unit - UNIT_MIN];
+    dst_vdrive = drives[dst_unit - UNIT_MIN];
+
+    /* check unit(s) for valid track/sector) */
+    err = disk_image_check_sector(src_vdrive->image, src_trk, src_sec);
+    if (err < 0) {
+        return translate_fsimage_error(err);
+    }
+    if (dst_unit != src_unit) {
+        if (disk_image_check_sector(dst_vdrive->image, dst_trk, dst_sec) < 0) {
+            return translate_fsimage_error(err);
+        }
+    }
+
+    /* finally we can actually do what this command is supposed to do */
+    err = vdrive_read_sector(src_vdrive, buffer, src_trk, src_sec);
+    if (err < 0) {
+        return err;
+    }
+    err = vdrive_write_sector(dst_vdrive, buffer, dst_trk, dst_sec);
+    if (err < 0) {
+        return err;
+    }
+    return FD_OK;
+}
+
+
+/** \brief  Fill a block using a single value
+ *
+ * Syntax:  bfill <track> <sector> <value> [<unit>]
+ *
+ * \param   nargs   number of args (including the command name)
+ * \param   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ */
+static int bfill_cmd(int nargs, char **args)
+{
+    vdrive_t *vdrive;
+    int unit;
+    unsigned int track;
+    unsigned int sector;
+    int err;
+    int fill;
+    unsigned char buffer[RAW_BLOCK_SIZE];
+
+    /* get track and sector number */
+    err = parse_track_sector(args[1], args[2], &track, &sector);
+    if (err < 0) {
+        return err;
+    }
+
+    /* parse and check fill byte */
+    if (arg_to_int(args[3], &fill) < 0 || fill < 0 || fill > 255) {
+        return FD_BADVAL;
+    }
+
+    /* check for optional unit number */
+    if (nargs > 4) {
+        if (arg_to_int(args[4], &unit) < 0 || check_drive_unit(unit) < 0) {
+            return FD_BADDEV;
+        }
+    } else {
+        unit = drive_index + UNIT_MIN;  /* default to current unit */
+    }
+
+#if 0
+    /* debugging info: */
+    printf("bfill_cmd(): track %u, sector %u, fill $%02x, unit %d\n",
+            track, sector, (unsigned int)fill, unit);
+#endif
+
+    /* check that the drive is ready */
+    if (check_drive_ready(unit - UNIT_MIN) < 0) {
+        return FD_NOTREADY;
+    }
+
+    /* get the virtual drive */
+    vdrive = drives[unit - UNIT_MIN];
+
+    /* use this to get a meaningful error message for illegal track,sector
+     *
+     * XXX: checks sector properly, but lets track numbers larger than the
+     *      image's track count pass, leading to vdrive expanding the D64
+     *      attached. And the expansion goes wrong: if using (37,2), the
+     *      D64 becomes 179968 bytes: 36 full tracks, and three sectors (0-2)
+     *      in track 37, so somewhere in vdrive/diskimage/fsimage things go
+     *      a little bit wrong.
+     * */
+    err = disk_image_check_sector(vdrive->image, track, sector);
+    if (err < 0) {
+        return translate_fsimage_error(err);
+    }
+
+    /* fill and write the block (vdrive doesn't have a vdrive_fill_sector()
+     * function, so this will have to do */
+    memset(buffer, fill, RAW_BLOCK_SIZE);
+    /* should this still fail after al the checks, -1 is returned, which results
+     * in an "<unknown error>", which all we can do, -1 is returned for various
+     * error conditions */
+    return vdrive_write_sector(vdrive, buffer, track, sector);
 }
 
 
@@ -1071,23 +1627,29 @@ static int attach_cmd(int nargs, char **args)
  */
 static int block_cmd(int nargs, char **args)
 {
-    int drive, offset = 0;
-    int track, sector;
+    int drive;  /* index into the drives array */
+    int offset = 0;
+    unsigned int track;
+    unsigned int sector;
     vdrive_t *vdrive;
-    BYTE *buf, str[20], sector_data[256];
+    BYTE *buf, chrbuf[BLOCK_CMD_WIDTH + 1], sector_data[RAW_BLOCK_SIZE];
     int cnt;
+    int err;
 
     /* block <track> <sector> [offset] [<drive>] show disk blocks in hex form */
-    if (arg_to_int(args[1], &track) < 0 || arg_to_int(args[2], &sector) < 0) {
-        return FD_BAD_TS;
+    err = parse_track_sector(args[1], args[2], &track, &sector);
+    if (err != FD_OK) {
+        return err;
     }
 
     if (nargs >= 4) {
         if (arg_to_int(args[3], &offset) < 0) {
             return FD_BADVAL;
         }
-        if (offset < 0) {
-            fprintf(stderr, "Error: negative value for `offset` argument: %d\n",
+        if (offset < 0 || offset >= RAW_BLOCK_SIZE) {
+            fprintf(stderr,
+                    "error: invalid value for `offset` argument: %d, valid "
+                    "values are 0-255\n",
                     offset);
             return FD_BADVAL;
         }
@@ -1100,7 +1662,7 @@ static int block_cmd(int nargs, char **args)
         if (check_drive_unit(drive) < 0) {
             return FD_BADDEV;
         }
-        drive -= 8;
+        drive -= UNIT_MIN;
     } else {
         drive = drive_index;
     }
@@ -1117,7 +1679,7 @@ static int block_cmd(int nargs, char **args)
 
     /* Read one block */
     if (vdrive_read_sector(vdrive, sector_data, track, sector) != 0) {
-        fprintf(stderr, "Cannot read track %i sector %i.", track, sector);
+        fprintf(stderr, "cannot read track %i sector %i.", track, sector);
         return FD_RDERR;
     }
 
@@ -1125,43 +1687,355 @@ static int block_cmd(int nargs, char **args)
 
     /* Show block */
 
-    printf("<%2d: %2d %2d>\n", drive, track, sector);
-    str[16] = 0;
-    while (offset < 256) {
-        printf("> %02X ", offset & 255);
-        for (cnt = 0; cnt < 16; cnt++, offset++) {
-            printf(" %02X", buf[offset & 255]);
-            str[cnt] = (buf[offset & 255] < ' ' ?
-                        '.' : charset_p_toascii(buf[offset & 255], 0));
+    printf("<#%2d: %2d %2d>\n", drive + UNIT_MIN, track, sector);
+    while (offset < RAW_BLOCK_SIZE) {
+        printf("> %02X ", offset);
+        memset(chrbuf, '\0', BLOCK_CMD_WIDTH + 1);
+        for (cnt = 0; cnt < BLOCK_CMD_WIDTH && offset < RAW_BLOCK_SIZE;
+                cnt++, offset++) {
+            printf(" %02X", buf[offset]);
+            chrbuf[cnt] = (buf[offset] < ' ' ?
+                        '.' : charset_p_toascii(buf[offset], 0));
         }
-        printf("  ;%s\n", str);
+        /* fix indentation in case the last line is less than the max width */
+        while (cnt++ < BLOCK_CMD_WIDTH) {
+            printf("   ");
+        }
+        printf("  ;%s\n", chrbuf);
     }
     return FD_OK;
 }
 
+
+/** \brief 'poke' some data into a block
+ *
+ * Syntax: bpoke [unit-specifier] track sector data ...
+ *
+ * For example: `bpoke @11: 18 0 $90 $43 $4f $4d $50 $58 $59`, this will write
+ * 'compyx' to the disk name of a 1541 image attached at unit 11.
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK, or < 0 on failure
+ */
+static int bpoke_cmd(int nargs, char **args)
+{
+    vdrive_t *vdrive;
+    int unit;
+    unsigned int track;
+    unsigned int sector;
+    int offset;
+    int arg_idx = 1;
+    int err;
+    int i;
+    char *endptr;
+    unsigned char buffer[RAW_BLOCK_SIZE];
+
+    /* first check for a unit number (@<unit>:) */
+    unit = extract_unit_from_file_name(args[arg_idx], &endptr);
+    if (unit == 0) {
+        /* use current unit */
+        unit = drive_index + UNIT_MIN;
+    } else {
+        if (unit < 0) {
+            return FD_BADDEV;
+        }
+        arg_idx++;
+    }
+
+    err = parse_track_sector(args[arg_idx], args[arg_idx + 1], &track, &sector);
+    if (err < 0) {
+        return err;
+    }
+
+    if (arg_to_int(args[arg_idx + 2], &offset) < 0) {
+        return FD_BADVAL;
+    }
+#if 0
+    printf("bpoke_cmd(): unit #%d: (%2u,%2u), offset %d\n",
+            unit, track, sector, offset);
+#endif
+    arg_idx += 3;
+
+    /* check drive ready */
+    if (check_drive_ready(unit - UNIT_MIN) < 0) {
+        return FD_NOTREADY;
+    }
+
+    vdrive = drives[unit - UNIT_MIN];
+    err = disk_image_check_sector(vdrive->image, track, sector);
+    if (err < 0) {
+        return err;
+    }
+
+    /* get sector data */
+    err = vdrive_read_sector(vdrive, buffer, track, sector);
+    if (err < 0) {
+        return err;
+    }
+
+    i = offset;
+    while (i < RAW_BLOCK_SIZE && arg_idx < nargs) {
+        int b;
+        if (arg_to_int(args[arg_idx], &b) < 0) {
+            return FD_BADVAL;
+        }
+        buffer[i++] = (unsigned char)b;
+        arg_idx++;
+    }
+
+    /* write back block */
+    return vdrive_write_sector(vdrive, buffer, track, sector);
+}
+
+
+/** \brief  Read a block from an image and write it to the host file system
+ *
+ * Syntax: bread \<filename\> \<track\> \<sector\> [\<unit\>]
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ *
+ * \todo    Add tilde expansion on filename for *nix systems
+ */
+static int bread_cmd(int nargs, char **args)
+{
+    unsigned char buffer[RAW_BLOCK_SIZE];
+    unsigned int track;
+    unsigned int sector;
+    int unit = drive_index + UNIT_MIN;
+    vdrive_t *vdrive;
+    FILE *fd;
+    char *path;
+    int result;
+
+    /* get track & sector */
+    result = parse_track_sector(args[2], args[3], &track, &sector);
+    if (result < 0) {
+        return result;
+    }
+
+    /* get unit number, if specified */
+    if (nargs == 5) {
+        if (arg_to_int(args[4], &unit) < 0 || check_drive_unit(unit) < 0) {
+            return FD_BADDEV;
+        }
+    }
+
+    /* check drive ready */
+    if (check_drive_ready(unit - UNIT_MIN) < 0) {
+        return FD_NOTREADY;
+    }
+
+    vdrive = drives[unit - UNIT_MIN];
+
+    /* check track,sector */
+    result = disk_image_check_sector(vdrive->image, track, sector);
+    if (result < 0) {
+        return result;
+    }
+
+    /* copy sector to buffer */
+    if (vdrive_read_sector(vdrive, buffer, track, sector) != 0) {
+        fprintf(stderr, "cannot read track %i sector %i.", track, sector);
+        return FD_RDERR;
+    }
+
+    /* open file and try to write to it */
+    result = FD_OK;
+    archdep_expand_path(&path, args[1]);
+    fd = fopen(path, "wb");
+    if (fd == NULL) {
+        result = FD_WRTERR;
+    } else {
+        if (fwrite(buffer, 1, RAW_BLOCK_SIZE, fd) != RAW_BLOCK_SIZE) {
+            fclose(fd);
+            result = FD_WRTERR;
+        }
+        fclose(fd);
+    }
+    lib_free(path);
+
+    return result;
+}
+
+
+/** \brief Read a block from the host file system and write it to an image
+ *
+ * Syntax: bwrite \<filename\> \<track\> \<sector\> [\<unit\>]
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ *
+ * \todo    Add tilde expansion on filename for *nix systems
+ */
+static int bwrite_cmd(int nargs, char **args)
+{
+    unsigned char buffer[RAW_BLOCK_SIZE];
+    unsigned int track;
+    unsigned int sector;
+    int unit = drive_index + UNIT_MIN;
+    vdrive_t *vdrive;
+    FILE *fd;
+    char *path;
+    int result;
+
+    /* get track & sector */
+    result = parse_track_sector(args[2], args[3], &track, &sector);
+    if (result < 0) {
+        return result;
+    }
+
+    /* get unit number, if specified */
+    if (nargs == 5) {
+        if (arg_to_int(args[4], &unit) < 0 || check_drive_unit(unit) < 0) {
+            return FD_BADDEV;
+        }
+    }
+
+    /* check drive ready */
+    if (check_drive_ready(unit - UNIT_MIN) < 0) {
+        return FD_NOTREADY;
+    }
+
+    vdrive = drives[unit - UNIT_MIN];
+
+    /* check track,sector */
+    result = disk_image_check_sector(vdrive->image, track, sector);
+    if (result < 0) {
+        return result;
+    }
+
+    /* open file for reading */
+    result = FD_OK;
+    archdep_expand_path(&path, args[1]);
+    fd = fopen(path, "rb");
+    if (fd == NULL) {
+        result = FD_RDERR;
+    } else {
+        /* read data */
+        if (fread(buffer, 1, RAW_BLOCK_SIZE, fd) != RAW_BLOCK_SIZE) {
+            result = FD_RDERR;
+        }
+        fclose(fd);
+    }
+    if (result == FD_OK) {
+        /* write to image */
+        result = vdrive_write_sector(vdrive, buffer, track, sector);
+        if (result < 0) {
+            result = FD_WRTERR;
+        }
+    }
+
+    lib_free(path);
+
+    return result;
+}
+
+
+/** \brief  Follow and print a block chain
+ *
+ * \param[in]   nargs   number of arguments
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ *
+ * \todo    proper layout, it's a bit ugly now
+ */
+static int chain_cmd(int nargs, char **args)
+{
+    int unit = drive_index + UNIT_MIN;
+    unsigned int track;
+    unsigned int sector;
+    vdrive_t *vdrive;
+    int err;
+
+    /* parse track and sector number */
+    err = parse_track_sector(args[1], args[2], &track, &sector);
+    if (err != FD_OK) {
+        return err;
+    }
+
+    /* get drive index */
+    if (nargs == 4) {
+        if (arg_to_int(args[3], &unit) < 0) {
+            return FD_BADDEV;
+        }
+        if (check_drive_unit(unit) < 0) {
+            return FD_BADDEV;
+        }
+    }
+
+    /* check drive to see if it's ready */
+    if (check_drive_ready(unit - UNIT_MIN) < 0) {
+        return FD_NOTREADY;
+    }
+
+    /* now check if the (track,sector) is valid for the current image */
+    vdrive = drives[unit - UNIT_MIN];
+    if (disk_image_check_sector(vdrive->image, track, sector) < 0) {
+        return FD_BAD_TS;
+    }
+
+    /* XXX: needs check for circular pattern, or perhaps some counter that
+     *      checks the number of blocks against the maximum block size of the
+     *      largest image type.
+     */
+    do {
+        unsigned char buffer[RAW_BLOCK_SIZE];
+
+        printf("(%2u,%2u) -> ", track, sector);
+
+        /* read sector data */
+        err = vdrive_read_sector(vdrive, buffer, track, sector);
+        if (err < 0) {
+            return err;
+        }
+        track = buffer[0];
+        sector = buffer[1];
+    } while (track > 0);
+    printf("%u\n", sector);
+
+    return FD_OK;
+}
+
+
+/** \brief  Copy one or more files
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, or < 0 on failure
+ */
 static int copy_cmd(int nargs, char **args)
 {
-    const char *p;
+    char *p;
     char *dest_name_ascii, *dest_name_petscii;
-    unsigned int dest_unit, src_unit;
+    int dest_unit = drive_index + UNIT_MIN;
+    int src_unit = drive_index + UNIT_MIN;
     int i;
 
-    p = extract_unit_from_file_name(args[nargs - 1], &dest_unit);
-    if (p == NULL) {
+    dest_unit = extract_unit_from_file_name(args[nargs - 1], &p);
+    if (dest_unit <= 0) {
         if (nargs > 3) {
             fprintf(stderr,
-                    "The destination must be a drive if multiple sources are specified.\n");
+                    "the destination must be a drive if multiple sources are specified\n");
             return FD_BADDEV;
         }
         dest_name_ascii = lib_stralloc(args[nargs - 1]);
         dest_name_petscii = lib_stralloc(dest_name_ascii);
         charset_petconvstring((BYTE *)dest_name_petscii, 0);
-        dest_unit = drive_index;
+        dest_unit = drive_index + UNIT_MIN;
     } else {
         if (*p != 0) {
             if (nargs > 3) {
                 fprintf(stderr,
-                        "The destination must be a drive if multiple sources are specified.\n");
+                        "the destination must be a drive if multiple sources are specified\n");
                 return FD_BADDEV;
             }
             dest_name_ascii = lib_stralloc(p);
@@ -1174,31 +2048,34 @@ static int copy_cmd(int nargs, char **args)
 
     if (dest_name_ascii != NULL && !is_valid_cbm_file_name(dest_name_ascii)) {
         fprintf(stderr,
-                "`%s' is not a valid CBM DOS file name.\n", dest_name_ascii);
+                "`%s' is not a valid CBM DOS file name\n", dest_name_ascii);
         return FD_BADNAME;
     }
 
-    if (check_drive(dest_unit, CHK_RDY) < 0) {
+    if (check_drive_ready(dest_unit - UNIT_MIN) < 0) {
         return FD_NOTREADY;
     }
-
+#if 0
+    printf("src unit = %d, dest unit = %d\n", src_unit, dest_unit);
+#endif
     for (i = 1; i < nargs - 1; i++) {
         char *src_name_ascii, *src_name_petscii;
 
-        p = extract_unit_from_file_name(args[i], &src_unit);
-
-        if (p == NULL) {
+        src_unit = extract_unit_from_file_name(args[i], &p);
+        if (src_unit <= 0) {
             src_name_ascii = lib_stralloc(args[i]);
-            src_unit = drive_index;
+            src_unit = drive_index + UNIT_MIN;
         } else {
-            if (check_drive(src_unit, CHK_RDY) < 0) {
+            if (check_drive_ready(src_unit - UNIT_MIN) < 0) {
                 return FD_NOTREADY;
             }
             src_name_ascii = lib_stralloc(p);
         }
 
         if (!is_valid_cbm_file_name(src_name_ascii)) {
-            fprintf(stderr, "`%s' is not a valid CBM DOS file name: ignored.\n", src_name_ascii);
+            fprintf(stderr,
+                    "`%s' is not a valid CBM DOS file name: ignored\n",
+                    src_name_ascii);
             lib_free(src_name_ascii);
             continue;
         }
@@ -1206,9 +2083,9 @@ static int copy_cmd(int nargs, char **args)
         src_name_petscii = lib_stralloc(src_name_ascii);
         charset_petconvstring((BYTE *)src_name_petscii, 0);
 
-        if (vdrive_iec_open(drives[src_unit], (BYTE *)src_name_petscii,
-                            (int)strlen(src_name_petscii), 0, NULL)) {
-            fprintf(stderr, "Cannot read `%s'.\n", src_name_ascii);
+        if (vdrive_iec_open(drives[src_unit - UNIT_MIN], (BYTE *)src_name_petscii,
+                            (unsigned int)strlen(src_name_petscii), 0, NULL)) {
+            fprintf(stderr, "cannot read `%s'\n", src_name_ascii);
             if (dest_name_ascii != NULL) {
                 lib_free(dest_name_ascii);
                 lib_free(dest_name_petscii);
@@ -1220,44 +2097,47 @@ static int copy_cmd(int nargs, char **args)
         }
 
         if (dest_name_ascii != NULL) {
-            if (vdrive_iec_open(drives[dest_unit], (BYTE *)dest_name_petscii,
-                                (int)strlen(dest_name_petscii), 1, NULL)) {
-                fprintf(stderr, "Cannot write `%s'.\n", dest_name_petscii);
-                vdrive_iec_close(drives[src_unit], 0);
+            if (vdrive_iec_open(drives[dest_unit - UNIT_MIN],
+                        (BYTE *)dest_name_petscii,
+                                (unsigned int)strlen(dest_name_petscii), 1, NULL)) {
+                fprintf(stderr, "cannot write `%s'\n", dest_name_petscii);
+                vdrive_iec_close(drives[src_unit - UNIT_MIN], 0);
                 lib_free(dest_name_ascii);
                 lib_free(dest_name_petscii);
                 lib_free(src_name_ascii);
                 lib_free(src_name_petscii);
-                return FD_OK;
+                return FD_WRTERR;
             }
         } else {
-            if (vdrive_iec_open(drives[dest_unit], (BYTE *)src_name_petscii,
-                                (int)strlen(src_name_petscii), 1, NULL)) {
-                fprintf(stderr, "Cannot write `%s'.\n", src_name_petscii);
-                vdrive_iec_close(drives[src_unit], 0);
+            if (vdrive_iec_open(drives[dest_unit - UNIT_MIN],
+                        (BYTE *)src_name_petscii,
+                                (unsigned int)strlen(src_name_petscii), 1, NULL)) {
+                fprintf(stderr, "cannot write `%s'\n", src_name_petscii);
+                vdrive_iec_close(drives[src_unit - UNIT_MIN], 0);
                 lib_free(src_name_ascii);
                 lib_free(src_name_petscii);
-                return FD_OK;
+                return FD_WRTERR;
             }
         }
 
-        printf("Copying `%s'...\n", args[i]); /* FIXME */
+        printf("copying `%s' ...\n", args[i]); /* FIXME */
 
         {
             BYTE c;
             int status = 0;
 
             do {
-                status = vdrive_iec_read(drives[src_unit], ((BYTE *)&c), 0);
-                if (vdrive_iec_write(drives[dest_unit], ((BYTE)(c)), 1)) {
-                    fprintf(stderr, "No space on image ?\n");
+                status = vdrive_iec_read(drives[src_unit - UNIT_MIN],
+                        ((BYTE *)&c), 0);
+                if (vdrive_iec_write(drives[dest_unit - UNIT_MIN], ((BYTE)(c)), 1)) {
+                    fprintf(stderr, "no space on image ?\n");
                     break;
                 }
             } while (status == SERIAL_OK);
         }
 
-        vdrive_iec_close(drives[src_unit], 0);
-        vdrive_iec_close(drives[dest_unit], 1);
+        vdrive_iec_close(drives[src_unit - UNIT_MIN], 0);
+        vdrive_iec_close(drives[dest_unit - UNIT_MIN], 1);
 
         lib_free(src_name_ascii);
         lib_free(src_name_petscii);
@@ -1268,39 +2148,56 @@ static int copy_cmd(int nargs, char **args)
     return FD_OK;
 }
 
+
+/** \brief  Delete (scratch) file(s) from disk image(s)
+ *
+ * Delete one or more files. Each file can have a unit number (@\<unit>:) in
+ * front of it to indicate which unit to use.
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  0 on success, < 0 on failure
+ */
 static int delete_cmd(int nargs, char **args)
 {
-    int i = 1, status;
-
-    if (check_drive(drive_index, CHK_RDY) < 0) {
-        return FD_NOTREADY;
-    }
+    int i;
 
     for (i = 1; i < nargs; i++) {
-        unsigned int dnr;
+        int unit;   /* unit number */
+        int dnr;    /* index in drives array */
         char *p;
         char *name;
         char *command;
+        int status;
 
-        p = extract_unit_from_file_name(args[i], &dnr);
-
-        if (p == NULL) {
-            dnr = drive_index;
-            name = args[i];
-        } else {
-            name = p;
+        unit = extract_unit_from_file_name(args[i], &p);
+        if (unit < 0) {
+            /* illegal unit between '@' and ':' */
+            return FD_BADDEV;
         }
+        if (unit == 0) {
+            /* no '@<unit>:' found, use current device */
+            dnr = drive_index;
+        } else {
+            dnr = unit - UNIT_MIN;    /* set proper device index */
+        }
+        if (check_drive_ready(dnr) < 0) {
+            return FD_NOTREADY;
+        }
+        name = p;   /* update pointer to name */
+
 
         if (!is_valid_cbm_file_name(name)) {
             fprintf(stderr,
-                    "`%s' is not a valid CBM DOS file name: ignored.\n", name);
+                    "`%s' is not a valid CBM DOS file name: ignored\n", name);
             continue;
         }
 
         command = util_concat("s:", name, NULL);
         charset_petconvstring((BYTE *)command, 0);
 
-        printf("Deleting `%s' on unit %d.\n", name, dnr + 8);
+        printf("deleting `%s' on unit %d\n", name, unit);
 
         status = vdrive_command_execute(drives[dnr], (BYTE *)command,
                                         (unsigned int)strlen(command));
@@ -1334,33 +2231,31 @@ static void unix_filename(char *p)
 
 static int extract_cmd_common(int nargs, char **args, int geos)
 {
-    int dnr = 0, track, sector;
+    int dnr = 0;
+    unsigned int track, sector;
     vdrive_t *floppy;
     BYTE *buf, *str;
-    int err;
-    int channel = 2;
+    unsigned int channel = 2;
 
     if (nargs == 2) {
         if (arg_to_int(args[1], &dnr) < 0) {
             return FD_BADDEV;
         }
-        if (check_drive(dnr, CHK_NUM) < 0) {
+        if (check_drive_unit(dnr) < 0) {
             return FD_BADDEV;
         }
-        dnr -= 8;
+        dnr -= UNIT_MIN;
     }
 
-    err = check_drive(dnr, CHK_RDY);
-
-    if (err < 0) {
-        return err;
+    if (check_drive_ready(dnr) < 0) {
+        return FD_NOTREADY;
     }
 
-    floppy = drives[dnr & 3];
+    floppy = drives[dnr];
 
     if (vdrive_iec_open(floppy, (const BYTE *)"#", 1, channel, NULL)) {
-        fprintf(stderr, "Cannot open buffer #%d in unit %d.\n", channel,
-                dnr + 8);
+        fprintf(stderr, "cannot open buffer #%u in unit %d\n", channel,
+                dnr + UNIT_MIN);
         return FD_RDERR;
     }
 
@@ -1370,7 +2265,7 @@ static int extract_cmd_common(int nargs, char **args, int geos)
     while (1) {
         int i, res;
 
-        str = (BYTE *)lib_msprintf("B-R:%d 0 %d %d", channel, track, sector);
+        str = (BYTE *)lib_msprintf("B-R:%u 0 %u %u", channel, track, sector);
         res = vdrive_command_execute(floppy, str, (unsigned int)strlen((char *)str));
 
         lib_free(str);
@@ -1385,18 +2280,20 @@ static int extract_cmd_common(int nargs, char **args, int geos)
             BYTE file_type = buf[i + SLOT_TYPE_OFFSET];
 
             if (((file_type & 7) == CBMDOS_FT_SEQ
-                 || (file_type & 7) == CBMDOS_FT_PRG
-                 || (file_type & 7) == CBMDOS_FT_USR)
-                && (file_type & CBMDOS_FT_CLOSED)) {
-                int len;
+                        || (file_type & 7) == CBMDOS_FT_PRG
+                        || (file_type & 7) == CBMDOS_FT_USR)
+                    && (file_type & CBMDOS_FT_CLOSED)) {
                 BYTE *file_name = buf + i + SLOT_NAME_OFFSET;
-                BYTE c, name[17], cbm_name[17];
-                FILE *fd;
                 int status = 0;
+                BYTE c;
+                BYTE name[IMAGE_CONTENTS_FILE_NAME_LEN + 1];
+                BYTE cbm_name[IMAGE_CONTENTS_FILE_NAME_LEN + 1];
+                FILE *fd;
+                unsigned int len;
 
-                memset(name, 0, 17);
-                memset(cbm_name, 0, 17);
-                for (len = 0; len < 16; len++) {
+                memset(name, 0, sizeof(name));
+                memset(cbm_name, 0, sizeof(cbm_name));
+                for (len = 0; len < IMAGE_CONTENTS_FILE_NAME_LEN; len++) {
                     if (file_name[len] == 0xa0) {
                         break;
                     } else {
@@ -1410,12 +2307,13 @@ static int extract_cmd_common(int nargs, char **args, int geos)
                 unix_filename((char *)name); /* For now, convert '/' to '_'. */
                 if (vdrive_iec_open(floppy, cbm_name, len, 0, NULL)) {
                     fprintf(stderr,
-                            "Cannot open `%s' on unit %d.\n", name, dnr + 8);
+                            "cannot open `%s' on unit %d\n",
+                            name, dnr + UNIT_MIN);
                     continue;
                 }
                 fd = fopen((char *)name, MODE_WRITE);
                 if (fd == NULL) {
-                    fprintf(stderr, "Cannot create file `%s': %s.",
+                    fprintf(stderr, "cannot create file `%s': %s.",
                             name, strerror(errno));
                     vdrive_iec_close(floppy, 0);
                     continue;
@@ -1456,16 +2354,25 @@ static int extract_geos_cmd(int nargs, char **args)
     return extract_cmd_common(nargs, args, 1);
 }
 
+
+/** \brief  Format a virtual floppy
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, or < 0 on failure
+ */
 static int format_cmd(int nargs, char **args)
 {
     char *command;
     int disk_type;
-    int unit = -1;  /* index into the vdrive array, misnomer */
+    int dev = -1;   /* index into the drives array */
+    int unit;       /* unit number */
 
     switch (nargs) {
         case 2:
             /* format <diskname,id> */
-            unit = drive_index;
+            dev = drive_index;
             break;
         case 3:
             /* format <diskname,id> <unit> */
@@ -1473,7 +2380,7 @@ static int format_cmd(int nargs, char **args)
             if (arg_to_int(args[2], &unit) >= 0
                 && check_drive_unit(unit) >= 0) {
                 /* It's a valid unit number.  */
-                unit -= 8;
+                dev = unit -UNIT_MIN;
             } else {
                 return FD_BADDEV;
             }
@@ -1482,6 +2389,7 @@ static int format_cmd(int nargs, char **args)
         case 5:
             /* format <diskname,id> <type> <imagename> [<unit>] */
             /* Create a new image.  */
+            /* TODO: change into table lookup */
             *args[2] = util_tolower(*args[2]);
             if (strcmp(args[2], "d64") == 0) {
                 disk_type = DISK_IMAGE_TYPE_D64;
@@ -1497,6 +2405,8 @@ static int format_cmd(int nargs, char **args)
                 disk_type = DISK_IMAGE_TYPE_D82;
             } else if (strcmp(args[2], "g64") == 0) {
                 disk_type = DISK_IMAGE_TYPE_G64;
+            } else if (strcmp(args[2], "g71") == 0) {
+                disk_type = DISK_IMAGE_TYPE_G71;
             } else if (strcmp(args[2], "x64") == 0) {
                 disk_type = DISK_IMAGE_TYPE_X64;
             } else if (strcmp(args[2], "d1m") == 0) {
@@ -1511,14 +2421,14 @@ static int format_cmd(int nargs, char **args)
             if (nargs > 4) {
                 arg_to_int(args[4], &unit);
                 if (check_drive_unit(unit) >= 0) {
-                    unit -= 8;
+                    dev = unit - UNIT_MIN;
                 } else {
                     return FD_BADDEV;
                 }
             } else {
-                unit = 0;
+                dev = 0;
             }
-            if (open_image(unit, args[3], 1, disk_type) < 0) {
+            if (open_image(dev, args[3], 1, disk_type) < 0) {
                 return FD_BADIMAGE;
             }
             break;
@@ -1526,21 +2436,24 @@ static int format_cmd(int nargs, char **args)
             /* Shouldn't happen.  */
             return FD_BADVAL;
     }
+#if 0
     printf("Unit: %i\n", unit);
+#endif
     if (!strchr(args[1], ',')) {
-        fprintf(stderr, "There must be ID on the name.\n");
+        fprintf(stderr, "no ID given, use <name,id>\n");
         return FD_BADNAME;
     }
 
-    if (check_drive(unit, CHK_RDY) < 0) {
+    if (check_drive_ready(dev) < 0) {
         return FD_NOTREADY;
     }
 
     command = util_concat("n:", args[1], NULL);
     charset_petconvstring((BYTE *)command, 0);
 
-    printf("Formatting in unit %d...\n", unit + 8);
-    vdrive_command_execute(drives[unit], (BYTE *)command, (unsigned int)strlen(command));
+    printf("formatting in unit %d ...\n", dev + UNIT_MIN);
+    vdrive_command_execute(drives[dev], (BYTE *)command,
+            (unsigned int)strlen(command));
 
     lib_free(command);
     return FD_OK;
@@ -1560,7 +2473,7 @@ static int help_cmd(int nargs, char **args)
 
         match = lookup_command(args[1]);
         if (match < 0) {
-            fprintf(stderr, "Unknown command `%s'.\n", args[1]);
+            fprintf(stderr, "unknown command `%s'\n", args[1]);
         } else {
             printf("Syntax: %s\n%s\n",
                     command_list[match].syntax,
@@ -1593,7 +2506,7 @@ static int info_cmd(int nargs, char **args)
         if (check_drive_unit(unit) < 0) {
             return FD_BADDEV;
         }
-        dnr = unit - 8;
+        dnr = unit - UNIT_MIN;
     } else {
         dnr = drive_index;
     }
@@ -1603,31 +2516,10 @@ static int info_cmd(int nargs, char **args)
     }
 
     vdrive = drives[dnr];
-
-    switch (vdrive->image_format) {
-        case VDRIVE_IMAGE_FORMAT_1541:
-            format_name = "1541";
-            break;
-        case VDRIVE_IMAGE_FORMAT_1571:
-            format_name = "1571";
-            break;
-        case VDRIVE_IMAGE_FORMAT_1581:
-            format_name = "1581";
-            break;
-        case VDRIVE_IMAGE_FORMAT_8050:
-            format_name = "8050";
-            break;
-        case VDRIVE_IMAGE_FORMAT_8250:
-            format_name = "8250";
-            break;
-        case VDRIVE_IMAGE_FORMAT_2040:
-            format_name = "2040";
-            break;
-        case VDRIVE_IMAGE_FORMAT_4000:
-            format_name = "4000";
-            break;
-        default:
-            return FD_NOTREADY;
+    format_name = image_format_name(vdrive->image_format);
+    if (format_name == NULL) {
+        return FD_NOTREADY; /* not quite a proper error code, but it was already
+                               here in the code */
     }
 
     /* pretty useless (BW)
@@ -1778,7 +2670,7 @@ static int list_file_matches_pattern(const char *name,
     ftype = toupper((int)(type[1]));   /* P, S, D, R, U */
 
     /* pattern length */
-    plen = (strlen(pattern));
+    plen = (int)strlen(pattern);
 
     i = 0;
     /* check quotes */
@@ -1831,17 +2723,17 @@ static int list_cmd(int nargs, char **args)
     const char *name;
     char *type;
     image_contents_t *listing;
-    unsigned int dnr;
+    int dnr = drive_index;
     vdrive_t *vdrive;
-    int unit;
+    int unit = UNIT_MIN;
 
     if (nargs > 1) {
         /* use new version call untill all old calls are replaced */
-        unit = extract_unit_from_file_name_compyx(args[1], &pattern);
+        unit = extract_unit_from_file_name(args[1], &pattern);
         if (unit == 0) {
-            dnr = drive_index;
+            dnr = (int)drive_index;
         } else if (unit > 0) {
-            dnr = unit - 8;
+            dnr = (int)(unit - UNIT_MIN);
         } else {
             return FD_BADDEV;
         }
@@ -1863,7 +2755,7 @@ static int list_cmd(int nargs, char **args)
     vdrive = drives[dnr];
     name = disk_image_name_get(vdrive->image);
 
-    listing = diskcontents_read(name, dnr + 8);
+    listing = diskcontents_read(name, (unsigned int)(dnr + UNIT_MIN));
 
     if (listing != NULL) {
         char *string = image_contents_to_string(listing, 1);
@@ -1922,7 +2814,7 @@ static int name_cmd(int nargs, char **args)
         if (check_drive_unit(unit) < 0) {
             return FD_BADDEV;
         }
-        unit -= 8;
+        unit -= UNIT_MIN;
     } else {
         unit = drive_index;
     }
@@ -1941,14 +2833,14 @@ static int name_cmd(int nargs, char **args)
     }
 
     dst = &vdrive->bam[vdrive->bam_name];
-    for (i = 0; i < 16; i++) {
-        *dst++ = *name ? *name++ : 0xa0;
+    for (i = 0; i < IMAGE_CONTENTS_NAME_LEN; i++) {
+        *dst++ = (unsigned char)(*name ? *name++ : 0xa0);
     }
 
     if (id) {
         dst = &vdrive->bam[vdrive->bam_id];
-        for (i = 0; i < 5 && *id; i++) {
-            *dst++ = *id++;
+        for (i = 0; i < IMAGE_CONTENTS_ID_LEN && *id; i++) {
+            *dst++ = (unsigned char)(*id++);
         }
     }
 
@@ -1961,7 +2853,7 @@ static int quit_cmd(int nargs, char **args)
     int i;
 
     for (i = 0; i < DRIVE_COUNT; i++) {
-        close_disk_image(drives[i], i + 8);
+        close_disk_image(drives[i], i + UNIT_MIN);
     }
 
     exit(0);
@@ -1987,14 +2879,17 @@ static int verbose_cmd(int nargs, char **args)
     }
 }
 
-/** \brief  PETSCII filename length
- *
- * XXX: temporary to fix the use of integer literals in read_cmd() until I
- *      figure out which constant I should really use (there's quite a few
- *      define's for the filename length in VICE)
- */
-#define PETSCII_FILENAME_LEN    16
 
+/** \brief  Disable all logging
+ */
+static int silent_cmd(int nargs, char **args)
+{
+    if (nargs >= 2 && strcmp(args[1], "off") == 0) {
+        return log_set_silent(0);
+    } else {
+        return log_set_silent(1);
+    }
+}
 
 static int read_cmd(int nargs, char **args)
 {
@@ -2002,19 +2897,22 @@ static int read_cmd(int nargs, char **args)
     char *dest_name_ascii;
     char *actual_name;
     char *p;
-    unsigned int dnr;
+    int dnr;
+    int unit;
     FILE *outf = NULL;
     fileio_info_t *finfo = NULL;
     unsigned int format = FILEIO_FORMAT_RAW;
     BYTE c;
     int status = 0;
 
-    p = extract_unit_from_file_name(args[1], &dnr);
-    if (p == NULL) {
+    unit = extract_unit_from_file_name(args[1], &p);
+    if (unit <= 0) {
         dnr = drive_index;
+    } else {
+        dnr = unit - UNIT_MIN;
     }
 
-    if (check_drive(dnr, CHK_RDY) < 0) {
+    if (check_drive_ready(dnr) < 0) {
         return FD_NOTREADY;
     }
 
@@ -2030,7 +2928,7 @@ static int read_cmd(int nargs, char **args)
     }
 
     if (!is_valid_cbm_file_name(src_name_ascii)) {
-        fprintf(stderr, "`%s' is not a valid CBM DOS file name.\n",
+        fprintf(stderr, "`%s' is not a valid CBM DOS file name\n",
                 src_name_ascii);
         lib_free(src_name_ascii);
         return FD_BADNAME;
@@ -2040,9 +2938,9 @@ static int read_cmd(int nargs, char **args)
     charset_petconvstring((BYTE *)src_name_petscii, 0);
 
     if (vdrive_iec_open(drives[dnr], (BYTE *)src_name_petscii,
-                        (int)strlen(src_name_petscii), 0, NULL)) {
+                        (unsigned int)strlen(src_name_petscii), 0, NULL)) {
         fprintf(stderr,
-                "Cannot read `%s' on unit %d.\n", src_name_ascii, dnr + 8);
+                "cannot read `%s' on unit %d\n", src_name_ascii, dnr + 8);
         lib_free(src_name_ascii);
         lib_free(src_name_petscii);
         return FD_BADNAME;
@@ -2050,10 +2948,10 @@ static int read_cmd(int nargs, char **args)
 
     /* Get real filename from the disk file.  Slot must be defined by
        vdrive_iec_open().  */
-    actual_name = lib_malloc(PETSCII_FILENAME_LEN + 1);
+    actual_name = lib_malloc(IMAGE_CONTENTS_FILE_NAME_LEN + 1);
     memcpy(actual_name, drives[dnr]->buffers[0].slot + SLOT_NAME_OFFSET,
-            PETSCII_FILENAME_LEN);
-    actual_name[PETSCII_FILENAME_LEN] = 0;
+            IMAGE_CONTENTS_FILE_NAME_LEN);
+    actual_name[IMAGE_CONTENTS_FILE_NAME_LEN] = 0;
 
     if (nargs == 3) {
         if (strcmp(args[2], "-") == 0) {
@@ -2072,7 +2970,7 @@ static int read_cmd(int nargs, char **args)
         size_t l;
 
         dest_name_ascii = actual_name;
-        vdrive_dir_no_a0_pads((BYTE *)dest_name_ascii, 16);
+        vdrive_dir_no_a0_pads((BYTE *)dest_name_ascii, CBMDOS_SLOT_NAME_LENGTH);
         l = strlen(dest_name_ascii) - 1;
         while (dest_name_ascii[l] == ' ') {
             dest_name_ascii[l] = 0;
@@ -2087,7 +2985,7 @@ static int read_cmd(int nargs, char **args)
         outf = stdout;
     } else {
         if (finfo == NULL) {
-            fprintf(stderr, "Cannot create output file `%s': %s.\n",
+            fprintf(stderr, "cannot create output file `%s': %s\n",
                     dest_name_ascii, strerror(errno));
             vdrive_iec_close(drives[dnr], 0);
             lib_free(src_name_petscii);
@@ -2097,7 +2995,7 @@ static int read_cmd(int nargs, char **args)
         }
     }                           /* stdout */
 
-    printf("Reading file `%s' from unit %d.\n", src_name_ascii, dnr + 8);
+    printf("reading file `%s' from unit %d\n", src_name_ascii, dnr + UNIT_MIN);
 
     do {
         status = vdrive_iec_read(drives[dnr], &c, 0);
@@ -2138,7 +3036,7 @@ static int read_cmd(int nargs, char **args)
  */
 int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
 {
-    int n;
+    unsigned int n;
 
     /* Get TS of info block */
     BYTE infoTrk = drives[unit]->buffers[0].slot[SLOT_SIDE_TRACK];
@@ -2158,7 +3056,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
     BYTE block[256];
     BYTE vlirTrans[256];
 
-    int aktTrk, aktSec, vlirIdx, NoOfBlocks, NoOfChains, BytesInLastSector;
+    unsigned int aktTrk, aktSec, vlirIdx, NoOfBlocks, NoOfChains, BytesInLastSector;
 
     /* the first block in a cvt file is the directory entry padded with
        zeros */
@@ -2176,7 +3074,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
     /* read info block */
     if (vdrive_read_sector(drives[unit], infoBlock, infoTrk, infoSec) != 0) {
         fprintf(stderr,
-                "Cannot read input file info block `%s': %s.\n",
+                "cannot read input file info block `%s': %s\n",
                 src_name_ascii, strerror(errno));
         return FD_RDERR;
     }
@@ -2190,7 +3088,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
     /* read first data block or vlir block */
     if (vdrive_read_sector(drives[unit], vlirBlock, firstTrk, firstSec) != 0) {
         fprintf(stderr,
-                "Cannot read input file data `%s': %s.\n",
+                "cannot read input file data `%s': %s\n",
                 src_name_ascii, strerror(errno));
         return FD_RDERR;
     }
@@ -2216,7 +3114,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
         while (aktTrk != 0) {
             if (vdrive_read_sector(drives[unit], block, aktTrk, aktSec) != 0) {
                 fprintf(stderr,
-                        "Cannot read input file data block `%s': %s.\n",
+                        "cannot read input file data block `%s': %s\n",
                         src_name_ascii, strerror(errno));
                 return FD_RDERR;
             }
@@ -2270,7 +3168,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
 
                     if (vdrive_read_sector(drives[unit], block, aktTrk, aktSec) != 0) {
                         fprintf(stderr,
-                                "Cannot read input file data block `%s': %s.\n",
+                                "cannot read input file data block `%s': %s\n",
                                 src_name_ascii, strerror(errno));
                         return FD_RDERR;
                     }
@@ -2291,8 +3189,8 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
             if (NoOfBlocks != 0) {
                 /* Entries for empty or non existing entries
                  * in vlir block are the same in cvt and vlir files */
-                vlirTrans[vlirIdx] = NoOfBlocks;
-                vlirTrans[vlirIdx + 1] = BytesInLastSector;
+                vlirTrans[vlirIdx] = (unsigned char)NoOfBlocks;
+                vlirTrans[vlirIdx + 1] = (unsigned char)BytesInLastSector;
             }
 
             /* Prepare for next loop iteration */
@@ -2334,7 +3232,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
 #endif
                     if (vdrive_read_sector(drives[unit], block, aktTrk, aktSec) != 0) {
                         fprintf(stderr,
-                                "Cannot read input file data block `%s': %s.\n",
+                                "cannot read input file data block `%s': %s\n",
                                 src_name_ascii, strerror(errno));
                         return FD_RDERR;
                     }
@@ -2353,7 +3251,7 @@ int internal_read_geos_file(int unit, FILE* outf, char* src_name_ascii)
             }
         }
     } else {
-        fprintf(stderr, "Unknown GEOS-File structure\n");
+        fprintf(stderr, "unknown GEOS-File structure\n");
         return FD_RDERR;
     }
     return FD_OK;
@@ -2370,28 +3268,38 @@ static int read_geos_cmd(int nargs, char **args)
     char *dest_name_ascii;
     char *actual_name;
     char *p;
-    unsigned int unit;
     FILE *outf;
     int err_code;
+    int dev;
+    int unit;
 
-    p = extract_unit_from_file_name(args[1], &unit);
-    if (p == NULL) {
-        unit = drive_index;
+    unit = extract_unit_from_file_name(args[1], &p);
+    if (unit > 0) {
+        dev = unit - UNIT_MIN;
+    } else if (unit == 0) {
+        /* no @<unit>: found */
+        dev = drive_index;
+        unit = drive_index + UNIT_MIN;
+    } else {
+        /* -1, invalid unit number */
+        return FD_BADDEV;
     }
 
-    if (check_drive(unit, CHK_RDY) < 0) {
+    if (check_drive_ready(dev) < 0) {
         return FD_NOTREADY;
     }
 
-    if (p == NULL) {
-        src_name_ascii = lib_stralloc(args[1]);
+    if (p == NULL || *p == '\0') {
+        fprintf(stderr,
+                "missing filename\n");
+        return FD_BADNAME;
     } else {
         src_name_ascii = lib_stralloc(p);
     }
 
     if (!is_valid_cbm_file_name(src_name_ascii)) {
         fprintf(stderr,
-                "`%s' is not a valid CBM DOS file name.\n", src_name_ascii);
+                "`%s' is not a valid CBM DOS file name\n", src_name_ascii);
         lib_free(src_name_ascii);
         return FD_BADNAME;
     }
@@ -2399,10 +3307,10 @@ static int read_geos_cmd(int nargs, char **args)
     src_name_petscii = lib_stralloc(src_name_ascii);
     charset_petconvstring((BYTE *)src_name_petscii, 0);
 
-    if (vdrive_iec_open(drives[unit], (BYTE *)src_name_petscii,
-                        (int)strlen(src_name_petscii), 0, NULL)) {
+    if (vdrive_iec_open(drives[dev], (BYTE *)src_name_petscii,
+                        (unsigned int)strlen(src_name_petscii), 0, NULL)) {
         fprintf(stderr,
-                "Cannot read `%s' on unit %d.\n", src_name_ascii, unit + 8);
+                "cannot read `%s' on unit %d\n", src_name_ascii, unit);
         lib_free(src_name_ascii);
         lib_free(src_name_petscii);
         return FD_BADNAME;
@@ -2410,9 +3318,11 @@ static int read_geos_cmd(int nargs, char **args)
 
     /* Get real filename from the disk file.
        Slot must be defined by vdrive_iec_open().  */
-    actual_name = lib_malloc(17);  /* FIXME: Should be a #define.  */
-    memcpy(actual_name, drives[unit]->buffers[0].slot + SLOT_NAME_OFFSET, 16);
-    actual_name[16] = 0;
+    actual_name = lib_malloc(CBMDOS_SLOT_NAME_LENGTH + 1);
+    memcpy(actual_name,
+            drives[dev]->buffers[0].slot + SLOT_NAME_OFFSET,
+            CBMDOS_SLOT_NAME_LENGTH);
+    actual_name[CBMDOS_SLOT_NAME_LENGTH] = '\0';
 
     if (nargs == 3) {
         dest_name_ascii = args[2];
@@ -2420,7 +3330,7 @@ static int read_geos_cmd(int nargs, char **args)
         int l;
 
         dest_name_ascii = actual_name;
-        vdrive_dir_no_a0_pads((BYTE *) dest_name_ascii, 16);
+        vdrive_dir_no_a0_pads((BYTE *) dest_name_ascii, CBMDOS_SLOT_NAME_LENGTH);
         l = (int)strlen(dest_name_ascii) - 1;
         while (dest_name_ascii[l] == ' ') {
             dest_name_ascii[l] = 0;
@@ -2432,21 +3342,21 @@ static int read_geos_cmd(int nargs, char **args)
     outf = fopen(dest_name_ascii, MODE_WRITE);
     if (outf == NULL) {
         fprintf(stderr,
-                "Cannot create output file `%s': %s.\n",
+                "cannot create output file `%s': %s\n",
                 dest_name_ascii, strerror(errno));
-        vdrive_iec_close(drives[unit], 0);
+        vdrive_iec_close(drives[dev], 0);
         lib_free(src_name_petscii);
         lib_free(src_name_ascii);
         lib_free(actual_name);
         return FD_NOTWRT;
     }
 
-    printf("Reading file `%s' from unit %d.\n", src_name_ascii, unit + 8);
+    printf("reading file `%s' from unit %d\n", src_name_ascii, unit);
 
-    err_code = internal_read_geos_file(unit, outf, src_name_ascii);
+    err_code = internal_read_geos_file(dev, outf, src_name_ascii);
 
     fclose(outf);
-    vdrive_iec_close(drives[unit], 0);
+    vdrive_iec_close(drives[dev], 0);
 
     lib_free(src_name_petscii);
     lib_free(src_name_ascii);
@@ -2465,8 +3375,8 @@ static int fix_ts(int unit, unsigned int trk, unsigned int sec,
 {
     BYTE block[256];
     if (vdrive_read_sector(drives[unit], block, trk, sec) == 0) {
-        block[blk_offset] = next_trk;
-        block[blk_offset + 1] = next_sec;
+        block[blk_offset] = (unsigned char)next_trk;
+        block[blk_offset + 1] = (unsigned char)next_sec;
         if (vdrive_write_sector(drives[unit], block, trk, sec) == 0) {
             return 1;
         }
@@ -2490,7 +3400,7 @@ static int internal_write_geos_file(int unit, FILE* f)
     unsigned int lastTrk, lastSec;
     BYTE geosFileStruc;
     int c = 0;
-    int n;
+    unsigned int n;
     int bContinue;
     int numBlks, bytesInLastBlock;
 
@@ -2498,7 +3408,7 @@ static int internal_write_geos_file(int unit, FILE* f)
 
     for (n = 2; n < 256; n++) {
         c = fgetc(f);
-        dirBlock[n] = c;
+        dirBlock[n] = (unsigned char)c;
     }
 
     /* copy to the already created slot */
@@ -2515,31 +3425,31 @@ static int internal_write_geos_file(int unit, FILE* f)
     infoBlock[1] = 0xFF;
     for (n = 2; n < 256; n++) {
         c = fgetc(f);
-        infoBlock[n] = c;
+        infoBlock[n] = (unsigned char)c;
     }
 
     /* put it on disk */
 
     if (vdrive_bam_alloc_first_free_sector(drives[unit], &vlirTrk, &vlirSec) < 0) {
-        fprintf(stderr, "Disk full\n");
+        fprintf(stderr, "disk full\n");
         return FD_WRTERR;
     }
     if (vdrive_write_sector(drives[unit], infoBlock, vlirTrk, vlirSec) != 0) {
-        fprintf(stderr, "Disk full\n");
+        fprintf(stderr, "disk full\n");
         return FD_WRTERR;
     }
 
     /* and put the blk/sec in the dir entry */
 
-    drives[unit]->buffers[1].slot[SLOT_SIDE_TRACK] = vlirTrk;
-    drives[unit]->buffers[1].slot[SLOT_SIDE_SECTOR] = vlirSec;
+    drives[unit]->buffers[1].slot[SLOT_SIDE_TRACK] = (unsigned char)vlirTrk;
+    drives[unit]->buffers[1].slot[SLOT_SIDE_SECTOR] = (unsigned char)vlirSec;
 
     /* now read the first data block. if its a vlir-file its the vlir index
      * block
      * else its already a data block */
     for (n = 2; n < 256; n++) {
         c = fgetc(f);
-        vlirBlock[n] = c;
+        vlirBlock[n] = (unsigned char)c;
     }
 
     /* the vlir index block always has a NTS-chain of (0, FF) */
@@ -2552,19 +3462,19 @@ static int internal_write_geos_file(int unit, FILE* f)
     /* write the block */
 
     if (vdrive_bam_alloc_next_free_sector(drives[unit], &vlirTrk, &vlirSec) < 0) {
-        fprintf(stderr, "Disk full\n");
+        fprintf(stderr, "disk full\n");
         return FD_WRTERR;
     }
 
     if (vdrive_write_sector(drives[unit], vlirBlock, vlirTrk, vlirSec) != 0) {
-        fprintf(stderr, "Disk full\n");
+        fprintf(stderr, "disk full\n");
         return FD_WRTERR;
     }
 
     /* put the TS in the dir entry */
 
-    drives[unit]->buffers[1].slot[SLOT_FIRST_TRACK] = vlirTrk;
-    drives[unit]->buffers[1].slot[SLOT_FIRST_SECTOR] = vlirSec;
+    drives[unit]->buffers[1].slot[SLOT_FIRST_TRACK] = (unsigned char)vlirTrk;
+    drives[unit]->buffers[1].slot[SLOT_FIRST_SECTOR] = (unsigned char)vlirSec;
 
     if (geosFileStruc == GEOS_FILE_STRUC_SEQ) {
 #ifdef DEBUG_DRIVE
@@ -2586,34 +3496,34 @@ static int internal_write_geos_file(int unit, FILE* f)
                 c = fgetc(f);
                 if (c == EOF) {
                     block[0] = 0;
-                    block[1] = n - 1;
+                    block[1] = (unsigned char)(n - 1);
                     while (n < 256) {
                         block[n++] = 0x00;
                     }
                     bContinue = 0;
                     break;
                 }
-                block[n] = c;
+                block[n] = (unsigned char)c;
             }
 
             /* allocate it */
 
             if (vdrive_bam_alloc_next_free_sector(drives[unit], &aktTrk, &aktSec) < 0) {
-                fprintf(stderr, "Disk full\n");
+                fprintf(stderr, "disk full\n");
                 return FD_WRTERR;
             }
 
             /* write it to disk */
 
             if (vdrive_write_sector(drives[unit], block, aktTrk, aktSec) != 0) {
-                fprintf(stderr, "Disk full\n");
+                fprintf(stderr, "disk full\n");
                 return FD_WRTERR;
             }
 
             /* put the TS of the current block to the predecessor block */
 
             if (!fix_ts(unit, lastTrk, lastSec, aktTrk, aktSec, 0)) {
-                fprintf(stderr, "Internal error.\n");
+                fprintf(stderr, "internal error\n");    /* not clear at all */
                 return FD_WRTERR;
             }
             lastTrk = aktTrk;
@@ -2661,18 +3571,18 @@ static int internal_write_geos_file(int unit, FILE* f)
                             }
                             break;
                         } else {
-                            block[n] = c;
+                            block[n] = (unsigned char)c;
                         }
                     }
                     if (numBlks == 1) { /* last block */
                         block[0] = 0;
-                        block[1] = bytesInLastBlock;
+                        block[1] = (unsigned char)bytesInLastBlock;
                     }
 
                     /* allocate it */
 
                     if (vdrive_bam_alloc_next_free_sector(drives[unit], &aktTrk, &aktSec) < 0) {
-                        fprintf(stderr, "Disk full\n");
+                        fprintf(stderr, "disk full\n");
                         return FD_WRTERR;
                     }
 
@@ -2682,7 +3592,7 @@ static int internal_write_geos_file(int unit, FILE* f)
 #endif
 
                     if (vdrive_write_sector(drives[unit], block, aktTrk, aktSec) != 0) {
-                        fprintf(stderr, "Disk full\n");
+                        fprintf(stderr, "disk full\n");
                         return FD_WRTERR;
                     }
                     /*
@@ -2691,9 +3601,10 @@ static int internal_write_geos_file(int unit, FILE* f)
                      * index block at the correct offset.
                      */
                     if (!fix_ts(unit, lastTrk, lastSec, aktTrk, aktSec,
-                                lastTrk == vlirTrk && lastSec == vlirSec
-                                ? vlirIdx : 0)) {
-                        fprintf(stderr, "Internal error.\n");
+                                (unsigned int)(lastTrk == vlirTrk
+                                    && lastSec == vlirSec
+                                    ? vlirIdx : 0))) {
+                        fprintf(stderr, "internal error\n");
                         return FD_WRTERR;
                     }
                     lastTrk = aktTrk;
@@ -2715,7 +3626,8 @@ static int internal_write_geos_file(int unit, FILE* f)
  */
 static int write_geos_cmd(int nargs, char **args)
 {
-    int unit, erg;
+    int dev;
+    int erg;
     char *dest_name_ascii, *dest_name_petscii;
     FILE *f;
     BYTE* e;
@@ -2724,16 +3636,16 @@ static int write_geos_cmd(int nargs, char **args)
 
     /* geoswrite <source> */
     dest_name_ascii = NULL;
-    unit = drive_index;
+    dev = drive_index;
 
-    if (check_drive(unit, CHK_RDY) < 0) {
+    if (check_drive_ready(dev) < 0) {
         return FD_NOTREADY;
     }
 
     f = fopen(args[1], MODE_READ);
     if (f == NULL) {
         fprintf(stderr,
-                "Cannot read file `%s': %s.\n", args[1], strerror(errno));
+                "cannot read file `%s': %s\n", args[1], strerror(errno));
         return FD_NOTRD;
     }
 
@@ -2755,52 +3667,53 @@ static int write_geos_cmd(int nargs, char **args)
     dest_name_petscii = lib_stralloc(dest_name_ascii);
     charset_petconvstring((BYTE *)dest_name_petscii, 0);
 
-    if (vdrive_iec_open(drives[unit], (BYTE *)dest_name_petscii,
-                        (int)strlen(dest_name_petscii), 1, NULL)) {
-        fprintf(stderr, "Cannot open `%s' for writing on image.\n",
+    if (vdrive_iec_open(drives[dev], (BYTE *)dest_name_petscii,
+                        (unsigned int)strlen(dest_name_petscii), 1, NULL)) {
+        fprintf(stderr, "cannot open `%s' for writing on image\n",
                 dest_name_ascii);
         fclose(f);
         return FD_WRTERR;
     }
 
     /* the following function reuses the fresh created dir entry ... */
-    erg = internal_write_geos_file(unit, f);
+    erg = internal_write_geos_file(dev, f);
     fclose(f);
 
     /* Start: copied from vdrive_iec_close
      * The bam and directory entry must be copied to the disk. the code
      * from the vdrive routines does that thing.
      */
-    vdrive_dir_find_first_slot(drives[unit], dest_name_petscii,
+    vdrive_dir_find_first_slot(drives[dev], dest_name_petscii,
                                (int)strlen(dest_name_petscii), 0, &dir);
     e = vdrive_dir_find_next_slot(&dir);
 
     if (!e) {
-        drives[unit]->buffers[1].mode = BUFFER_NOT_IN_USE;
-        lib_free(drives[unit]->buffers[1].buffer);
-        drives[unit]->buffers[1].buffer = NULL;
+        drives[dev]->buffers[1].mode = BUFFER_NOT_IN_USE;
+        lib_free(drives[dev]->buffers[1].buffer);
+        drives[dev]->buffers[1].buffer = NULL;
 
-        vdrive_command_set_error(drives[unit], CBMDOS_IPE_DISK_FULL, 0, 0);
+        vdrive_command_set_error(drives[dev], CBMDOS_IPE_DISK_FULL, 0, 0);
         return SERIAL_ERROR;
     }
     /* The buffer MUST be mark as closed to avoid the vdrive functions
      * to add an empty block at the end of the file that was allocated
      * when the file was created!!!!
      */
-    drives[unit]->buffers[1].slot[SLOT_TYPE_OFFSET] |= 0x80; /* Closed */
+    drives[dev]->buffers[1].slot[SLOT_TYPE_OFFSET] |= 0x80; /* Closed */
 
     memcpy(&dir.buffer[dir.slot * 32 + 2],
-           drives[unit]->buffers[1].slot + 2,
+           drives[dev]->buffers[1].slot + 2,
            30);
 
 #ifdef DEBUG_DRIVE
-    log_debug("DEBUG: closing, write DIR slot (%d %d) and BAM.", dir.track, dir.sector);
+    log_debug("DEBUG: closing, write DIR slot (%d %d) and BAM.",
+            dir.track, dir.sector);
 #endif
-    vdrive_write_sector(drives[unit], dir.buffer, dir.track, dir.sector);
-    vdrive_bam_write_bam(drives[unit]);
-    drives[unit]->buffers[1].mode = BUFFER_NOT_IN_USE;
-    lib_free((char *)drives[unit]->buffers[1].buffer);
-    drives[unit]->buffers[1].buffer = NULL;
+    vdrive_write_sector(drives[dev], dir.buffer, dir.track, dir.sector);
+    vdrive_bam_write_bam(drives[dev]);
+    drives[dev]->buffers[1].mode = BUFFER_NOT_IN_USE;
+    lib_free((char *)drives[dev]->buffers[1].buffer);
+    drives[dev]->buffers[1].buffer = NULL;
 
     /* End: copied from vdrive_iec_close */
 
@@ -2810,62 +3723,81 @@ static int write_geos_cmd(int nargs, char **args)
     return erg;
 }
 
+
+/** \brief  Rename a file
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ */
 static int rename_cmd(int nargs, char **args)
 {
-    char *src_name, *dest_name;
-    unsigned int src_unit, dest_unit;
+    char *src_name;
+    char *dest_name;
+    int src_unit;
+    int dest_unit;
+    int dev;
     char *command;
     char *p;
+    int unit;
 
-    p = extract_unit_from_file_name(args[1], &src_unit);
-    if (p == NULL) {
-        src_unit = drive_index;
-        src_name = lib_stralloc(args[1]);
+    unit = extract_unit_from_file_name(args[1], &p);
+    if (unit > 0) {
+        src_unit = unit;
+    } else if (unit == 0) {
+        src_unit = drive_index + UNIT_MIN;
     } else {
-        src_name = lib_stralloc(p);
+        return FD_BADDEV;
     }
+    src_name = lib_stralloc(p);
 
-    p = extract_unit_from_file_name(args[2], &dest_unit);
-    if (p == NULL) {
-        dest_unit = drive_index;
-        dest_name = lib_stralloc(args[2]);
+
+    unit = extract_unit_from_file_name(args[2], &p);
+    if (unit > 0) {
+        dest_unit = unit;
+    } else if (unit == 0) {
+        dest_unit = drive_index + UNIT_MIN;
     } else {
-        dest_name = lib_stralloc(p);
+        return FD_BADDEV;
     }
+    dest_name = lib_stralloc(p);
+
+    dev = dest_unit - UNIT_MIN;
 
     if (dest_unit != src_unit) {
-        fprintf(stderr, "Source and destination must be on the same unit.\n");
+        fprintf(stderr, "source and destination must be on the same unit\n");
         lib_free(src_name);
         lib_free(dest_name);
         return FD_BADDEV;
     }
 
-    if (check_drive(dest_unit, CHK_RDY) < 0) {
+    if (check_drive_ready(dev) < 0) {
         lib_free(src_name);
         lib_free(dest_name);
         return FD_NOTREADY;
     }
 
     if (!is_valid_cbm_file_name(src_name)) {
-        fprintf(stderr, "`%s' is not a valid CBM DOS file name.\n", src_name);
+        fprintf(stderr, "`%s' is not a valid CBM DOS file name\n", src_name);
         lib_free(src_name);
         lib_free(dest_name);
         return FD_BADNAME;
     }
 
     if (!is_valid_cbm_file_name(dest_name)) {
-        fprintf(stderr, "`%s' is not a valid CBM DOS file name.\n", dest_name);
+        fprintf(stderr, "`%s' is not a valid CBM DOS file name\n", dest_name);
         lib_free(src_name);
         lib_free(dest_name);
         return FD_BADNAME;
     }
 
-    printf("Renaming `%s' to `%s'\n", src_name, dest_name);
+    printf("renaming `%s' to `%s'\n", src_name, dest_name);
 
     command = util_concat("r:", dest_name, "=", src_name, NULL);
     charset_petconvstring((BYTE *)command, 0);
 
-    vdrive_command_execute(drives[dest_unit],
+    vdrive_command_execute(drives[dev],
                            (BYTE *)command, (unsigned int)strlen(command));
 
     lib_free(command);
@@ -2892,21 +3824,27 @@ static int show_cmd(int nargs, char **args)
     } else if (strcasecmp(args[1], "warranty") == 0) {
         printf("%s", info_warranty_text);
     } else {
-        fprintf(stderr, "Use either `show copying' or `show warranty'.\n");
+        fprintf(stderr, "Use either `show copying' or `show warranty'\n");
         return FD_OK;           /* FIXME? */
     }
 
     return FD_OK;
 }
 
-/* Copy files from a  tape image.  */
+/** \brief  Copy files from a tape image to current drive unit
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ */
 static int tape_cmd(int nargs, char **args)
 {
     tape_image_t *tape_image;
     vdrive_t *drive;
     int count;
 
-    if (check_drive(drive_index, CHK_RDY) < 0) {
+    if (check_drive_ready(drive_index) < 0) {
         return FD_NOTREADY;
     }
 
@@ -2915,7 +3853,7 @@ static int tape_cmd(int nargs, char **args)
     tape_image = tape_internal_open_tape_image(args[1], 1);
 
     if (tape_image == NULL) {
-        fprintf(stderr, "Cannot read tape file `%s'.\n", args[1]);
+        fprintf(stderr, "cannot read tape file `%s'\n", args[1]);
         return FD_BADNAME;
     }
 
@@ -2964,23 +3902,23 @@ static int tape_cmd(int nargs, char **args)
 
             if (rec->type == 1 || rec->type == 3) {
                 if (vdrive_iec_open(drive, (BYTE *)dest_name_petscii,
-                                    (int)name_len, 1, NULL)) {
+                                    (unsigned int)name_len, 1, NULL)) {
                     fprintf(stderr,
-                            "Cannot open `%s' for writing on drive %d.\n",
+                            "cannot open `%s' for writing on drive %d\n",
                             dest_name_ascii, drive_index + 8);
                     lib_free(dest_name_petscii);
                     lib_free(dest_name_ascii);
                     continue;
                 }
 
-                fprintf(stderr, "Writing `%s' ($%04X - $%04X) to drive %d.\n",
+                fprintf(stderr, "writing `%s' ($%04X - $%04X) to drive %d\n",
                         dest_name_ascii, rec->start_addr, rec->end_addr,
                         drive_index + 8);
 
                 vdrive_iec_write(drive, ((BYTE)(rec->start_addr & 0xff)), 1);
                 vdrive_iec_write(drive, ((BYTE)(rec->start_addr >> 8)), 1);
 
-                file_size = rec->end_addr - rec->start_addr;
+                file_size = (WORD)(rec->end_addr - rec->start_addr);
 
                 buf = lib_calloc((size_t)file_size, 1);
 
@@ -2988,7 +3926,7 @@ static int tape_cmd(int nargs, char **args)
 
                 if (retval < 0 || retval != (int) file_size) {
                     fprintf(stderr,
-                            "Unexpected end of tape: file may be truncated.\n");
+                            "unexpected end of tape: file may be truncated\n");
                 }
 
                 for (i = 0; i < file_size; i++) {
@@ -3008,19 +3946,19 @@ static int tape_cmd(int nargs, char **args)
                 char *dest_name_plustype;
                 dest_name_plustype = util_concat(dest_name_petscii, ",S,W", NULL);
                 retval = vdrive_iec_open(drive, (BYTE *)dest_name_plustype,
-                                         (int)name_len + 4, 2, NULL);
+                                         (unsigned int)name_len + 4, 2, NULL);
                 lib_free(dest_name_plustype);
 
                 if (retval) {
                     fprintf(stderr,
-                            "Cannot open `%s' for writing on drive %d.\n",
+                            "cannot open `%s' for writing on drive %d\n",
                             dest_name_ascii, drive_index + 8);
                     lib_free(dest_name_petscii);
                     lib_free(dest_name_ascii);
                     continue;
                 }
 
-                fprintf(stderr, "Writing SEQ file `%s' to drive %d.\n",
+                fprintf(stderr, "writing SEQ file `%s' to drive %d\n",
                         dest_name_ascii, drive_index + 8);
 
                 do {
@@ -3028,7 +3966,7 @@ static int tape_cmd(int nargs, char **args)
 
                     if (retval < 0) {
                         fprintf(stderr,
-                                "Unexpected end of tape: file may be truncated.\n");
+                                "unexpected end of tape: file may be truncated\n");
                         break;
                     } else if (vdrive_iec_write(drives[drive_index], b, 2)) {
                         tape_internal_close_tape_image(tape_image);
@@ -3048,7 +3986,7 @@ static int tape_cmd(int nargs, char **args)
 
     tape_internal_close_tape_image(tape_image);
 
-    printf("\n%d files copied.\n", count);
+    printf("\n%d files copied\n", count);
 
     return FD_OK;
 }
@@ -3069,17 +4007,18 @@ static int unit_cmd(int nargs, char **args)
         return FD_BADDEV;
     }
 
-    drive_index = dev - 8;
+    drive_index = dev - UNIT_MIN;
     return FD_OK;
 }
 
 static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
 {
     long lbsize, bsize;
-    char cname[20], ftype;
+    char cname[20]; /* FIXME: remove magic number */
+    int ftype;
     BYTE val;
-    int cnt;
-    unsigned int len;
+    long cnt;
+    size_t len;
     char buff[256];
     cbmdos_cmd_parse_t cmd_parse;
 
@@ -3089,11 +4028,12 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
         /* Read CBM filename */
         cnt = 0;
         while (1) {
+            /* FIXME: using fread() to read a single byte? */
             if (fread(&val, 1, 1, f) != 1) {
                 return FD_RDERR;
             }
             if (val != 13 && cnt < 20 - 1) {
-                cname[cnt++] = val;
+                cname[cnt++] = (char)val;
             } else {
                 break;
             }
@@ -3107,7 +4047,7 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
                 return FD_RDERR;
             }
             if (val != 13) {
-                buff[cnt++] = val;
+                buff[cnt++] = (char)val;
             } else {
                 break;
             }
@@ -3115,7 +4055,7 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
         buff[cnt] = 0;
 
         if (util_string_to_long(buff, NULL, 10, &bsize) < 0) {
-            fprintf(stderr, "Invalid Lynx file.\n");
+            fprintf(stderr, "invalid Lynx file\n");
             return FD_RDERR;
         }
         /* Get the file type (P[RG], S[EQ], R[EL], U[SR]) */
@@ -3136,7 +4076,7 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
                 filetype = CBMDOS_FT_USR;
                 break;
             case 'R':
-                fprintf(stderr, "REL not supported.\n");
+                fprintf(stderr, "REL not supported\n");
                 return FD_RDERR;
             default:
                 filetype = CBMDOS_FT_PRG;
@@ -3148,7 +4088,7 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
                 return FD_RDERR;
             }
             if (val != 13) {
-                buff[cnt++] = val;
+                buff[cnt++] = (char)val;
             } else {
                 break;
             }
@@ -3156,24 +4096,24 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
         buff[cnt] = 0;
 
         if (util_string_to_long(buff, NULL, 10, &lbsize) < 0) {
-            fprintf(stderr, "Invalid Lynx file.\n");
+            fprintf(stderr, "invalid Lynx file\n");
             return FD_RDERR;
         }
         /* Calculate byte size of file */
         cnt = (bsize - 1) * 254 + lbsize - 1;
 
-        printf("Writing file '%s' to image.\n", cname);
+        printf("writing file '%s' to image\n", cname);
 
         cmd_parse.parsecmd = lib_stralloc(cname);
         cmd_parse.secondary = 1;
         cmd_parse.parselength = (unsigned int)strlen(cname);
         cmd_parse.readmode = CBMDOS_FAM_WRITE;
-        cmd_parse.filetype = filetype;
+        cmd_parse.filetype = (unsigned int)filetype;
 
         rc = vdrive_iec_open(vdrive, NULL, 0, 1, &cmd_parse);
 
         if (rc != SERIAL_OK) {
-            fprintf(stderr, "Error writing file %s.\n", cname);
+            fprintf(stderr, "error writing file %s\n", cname);
             break;
         }
 
@@ -3182,7 +4122,7 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
                 return FD_RDERR;
             }
             if (vdrive_iec_write(vdrive, val, 1)) {
-                fprintf(stderr, "No space on image ?\n");
+                fprintf(stderr, "no space on image ?\n");
                 break;
             }
             cnt--;
@@ -3191,7 +4131,7 @@ static int unlynx_loop(FILE *f, FILE *f2, vdrive_t *vdrive, long dentries)
 
         /* Adjust for the last block, but not for the last file */
         if (lbsize < 255 && dentries > 1) {
-            len = 254 + 1 - lbsize;
+            len = (size_t)(254 + 1 - lbsize);
             if (fread(buff, 1, len, f2) != len) {
                 return FD_RDERR;
             }
@@ -3232,7 +4172,7 @@ static int unlynx_cmd(int nargs, char **args)
         if (check_drive_unit(dev) < 0) {
             return FD_BADDEV;
         }
-        dev -= 8;
+        dev -= UNIT_MIN;
     }
 
     if (check_drive_ready(dev) < 0) {
@@ -3245,7 +4185,7 @@ static int unlynx_cmd(int nargs, char **args)
     f = fopen(path, MODE_READ);
 
     if (f == NULL) {
-        fprintf(stderr, "Cannot open `%s' for reading.\n", path);
+        fprintf(stderr, "cannot open `%s' for reading\n", path);
         lib_free(path);
         return FD_NOTRD;
     }
@@ -3277,7 +4217,7 @@ static int unlynx_cmd(int nargs, char **args)
             return FD_RDERR;
         }
         if (val != 13) {
-            buff[cnt++] = val;
+            buff[cnt++] = (char)val;
         } else {
             break;
         }
@@ -3286,7 +4226,7 @@ static int unlynx_cmd(int nargs, char **args)
     buff[cnt] = 0;
 
     if (util_string_to_long(buff, NULL, 10, &dirsize) < 0 || dirsize <= 0) {
-        fprintf(stderr, "Invalid Lynx file.\n");
+        fprintf(stderr, "invalid Lynx file\n");
         fclose(f);
         lib_free(path);
         return FD_RDERR;
@@ -3300,7 +4240,7 @@ static int unlynx_cmd(int nargs, char **args)
             return FD_RDERR;
         }
         if (val != 13 && cnt < 256 - 1) {
-            buff[cnt++] = val;
+            buff[cnt++] = (char)val;
         } else {
             break;
         }
@@ -3309,7 +4249,7 @@ static int unlynx_cmd(int nargs, char **args)
     buff[cnt] = 0;
 
     if (util_string_to_long(buff, NULL, 10, &dentries) < 0 || dentries <= 0) {
-        fprintf(stderr, "Invalid Lynx file.\n");
+        fprintf(stderr, "invalid Lynx file\n");
         fclose(f);
         lib_free(path);
         return FD_RDERR;
@@ -3319,7 +4259,7 @@ static int unlynx_cmd(int nargs, char **args)
     f2 = fopen(path, MODE_READ);
 
     if (f2 == NULL) {
-        fprintf(stderr, "Cannot open `%s' for reading.\n", path);
+        fprintf(stderr, "cannot open `%s' for reading\n", path);
         fclose(f);
         lib_free(path);
         return FD_NOTRD;
@@ -3358,7 +4298,7 @@ static int validate_cmd(int nargs, char **args)
         if (check_drive_unit(unit) < 0) {
             return FD_BADDEV;
         }
-        dnr = unit - 8;
+        dnr = unit - UNIT_MIN;
     }
 
     /* check if drive is ready */
@@ -3366,15 +4306,45 @@ static int validate_cmd(int nargs, char **args)
         return FD_NOTREADY;
     }
 
-    printf("Validating in unit %d...\n", dnr + 8);
+    printf("validating in unit %d ...\n", dnr + 8);
     vdrive_command_validate(drives[dnr]);
 
     return FD_OK;
 }
 
+
+/** \brief  Display version number
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK
+ */
+static int version_cmd(int nargs, char **args)
+{
+#ifdef USE_SVN_REVISION
+    printf("c1541 V%d.%d (VICE %s svn r%d)\n",
+            C1541_VERSION_MAJOR, C1541_VERSION_MINOR,
+            VERSION, VICE_SVN_REV_NUMBER);
+#else
+    printf("c1541 V%d.%d (VICE %s)\n",
+            C1541_VERSION_MAJOR, C1541_VERSION_MINOR, VERSION);
+#endif
+    return FD_OK;
+}
+
+
+/** \brief  Write a file from the host FS to a virtual device
+ *
+ * \param[in]   nargs   argument count
+ * \param[in]   args    argument list
+ *
+ * \return  FD_OK on success, < 0 on failure
+ */
 static int write_cmd(int nargs, char **args)
 {
-    unsigned int dnr;
+    int dnr;
+    int unit;
     char *dest_name;
     unsigned int dest_len;
     char *p;
@@ -3382,27 +4352,36 @@ static int write_cmd(int nargs, char **args)
 
     if (nargs == 3) {
         /* write <source> <dest> */
-        p = extract_unit_from_file_name(args[2], &dnr);
-        if (p == NULL) {
-            dnr = drive_index;
-            dest_name = lib_stralloc(args[2]);
-        } else {
-            if (*p != 0) {
-                dest_name = lib_stralloc(args[2]);
-            } else {
-                dest_name = NULL;
-            }
+
+        unit = extract_unit_from_file_name(args[2], &p);
+        if (unit == 0) {
+            unit = drive_index + UNIT_MIN;
+        } else if (unit < 0) {
+            printf("Got unit < 0\n");
+            return FD_BADDEV;
         }
+        if (p != NULL && *p != '\0') {
+            dest_name = lib_stralloc(p);
+        } else {
+            dest_name = NULL;
+        }
+
         if (dest_name != NULL) {
             charset_petconvstring((BYTE *)dest_name, 0);
         }
     } else {
         /* write <source> */
         dest_name = NULL;
-        dnr = drive_index;
+        unit = drive_index + UNIT_MIN;
     }
 
-    if (check_drive(dnr, CHK_RDY) < 0) {
+    dnr = unit - UNIT_MIN;
+
+    if (check_drive_index(dnr) < 0) {
+        printf("check_drive_index() failed\n");
+        return FD_BADDEV;
+    }
+    if (check_drive_ready(dnr) < 0) {
         return FD_NOTREADY;
     }
 
@@ -3411,7 +4390,7 @@ static int write_cmd(int nargs, char **args)
                         FILEIO_TYPE_PRG);
 
     if (finfo == NULL) {
-        fprintf(stderr, "Cannot read file `%s': %s.\n", args[1],
+        fprintf(stderr, "cannot read file `%s': %s\n", args[1],
                 strerror(errno));
         return FD_NOTRD;
     }
@@ -3423,8 +4402,9 @@ static int write_cmd(int nargs, char **args)
         dest_len = (unsigned int)strlen(dest_name);
     }
 
-    if (vdrive_iec_open(drives[dnr], (BYTE *)dest_name, (int)dest_len, 1, NULL)) {
-        fprintf(stderr, "Cannot open `%s' for writing on image.\n",
+    if (vdrive_iec_open(drives[dnr], (BYTE *)dest_name, (unsigned int)dest_len,
+                1, NULL)) {
+        fprintf(stderr, "cannot open `%s' for writing on image\n",
                 finfo->name);
         fileio_close(finfo);
         lib_free(dest_name);
@@ -3432,9 +4412,9 @@ static int write_cmd(int nargs, char **args)
     }
 
     if (dest_name == (char *)finfo->name) {
-        printf("Writing file `%s' to unit %d.\n", finfo->name, dnr + 8);
+        printf("writing file `%s' to unit %d\n", finfo->name, dnr + 8);
     } else {
-        printf("Writing file `%s' as `%s' to unit %d.\n", finfo->name,
+        printf("writing file `%s' as `%s' to unit %d\n", finfo->name,
                dest_name, dnr + 8);
     }
 
@@ -3446,7 +4426,7 @@ static int write_cmd(int nargs, char **args)
         }
 
         if (vdrive_iec_write(drives[dnr], c, 1)) {
-            fprintf(stderr, "No space on image?\n");
+            fprintf(stderr, "no space on image?\n");
             break;
         }
     }
@@ -3515,7 +4495,7 @@ static int zcreate_cmd(int nargs, char **args)
 
     oname = lib_malloc((size_t)ioutil_maxpathlen());
 
-    printf("Copying blocks to image.\n");
+    printf("copying blocks to image\n");
 
     for (track = 1; track <= 35; track++) {
         if (singlefilemode || track == 1) {
@@ -3526,7 +4506,7 @@ static int zcreate_cmd(int nargs, char **args)
                 strcat(oname, fname + 2);
                 fsfd = fopen(oname, MODE_READ);
                 if (fsfd != NULL) {
-                    printf("Reading zipfile on one-file mode\n");
+                    printf("reading zipfile on one-file mode\n");
                     singlefilemode = 1;
                     fseek(fsfd, 4, SEEK_SET);
                 }
@@ -3536,10 +4516,10 @@ static int zcreate_cmd(int nargs, char **args)
         }
         if (!singlefilemode) {
             switch (track) {
-                case 1:
-                case 9:
-                case 17:
-                case 26:
+                case 1:     /* fallthrough */
+                case 9:     /* fallthrough */
+                case 17:    /* fallthrough */
+                case 26:    /* fallthrough */
                     fname[0]++;
                     if (fsfd != NULL) {
                         fclose(fsfd);
@@ -3547,7 +4527,7 @@ static int zcreate_cmd(int nargs, char **args)
                     strcpy(oname, dirname);
                     strcat(oname, fname);
                     if ((fsfd = fopen(oname, MODE_READ)) == NULL) {
-                        fprintf(stderr, "Cannot open `%s'.\n", fname);
+                        fprintf(stderr, "cannot open `%s'\n", fname);
                         lib_free(fname);
                         lib_free(dirname);
                         lib_free(oname);
@@ -3555,12 +4535,14 @@ static int zcreate_cmd(int nargs, char **args)
                     }
                     fseek(fsfd, (track == 1) ? 4 : 2, SEEK_SET);
                     break;
+                default:
+                    break;
             }
         }
         for (count = 0;
              count < disk_image_sector_per_track(DISK_IMAGE_TYPE_D64, track);
              count++) {
-            err = zipcode_read_sector(fsfd, track, (int *)&sector,
+            err = zipcode_read_sector(fsfd, (int)track, (int *)&sector,
                                       (char *)sector_data);
             if (err) {
                 fclose(fsfd);
@@ -3615,12 +4597,19 @@ static int raw_cmd(int nargs, char **args)
 
 /* ------------------------------------------------------------------------- */
 
+/** \brief  Program driver
+ *
+ * \param[in]   argc    argument count
+ * \param[in]   argv    argument vector
+ *
+ * \return  EXIT_SUCCESS or EXIT_FAILURE
+ */
 int main(int argc, char **argv)
 {
     char *args[MAXARG];
     int nargs;
     int i;
-    int retval;
+    int retval = EXIT_SUCCESS;
 
     archdep_init(&argc, argv);
 
@@ -3639,15 +4628,13 @@ int main(int argc, char **argv)
         drives[i] = lib_calloc(1, sizeof *drives[i]);
     }
 
-    retval = 0;
-
     /* The first arguments without leading `-' are interpreted as disk images
        to attach.  */
     for (i = 1; i < argc && *argv[i] != '-'; i++) {
         if ((i - 1) == DRIVE_COUNT) {
-            fprintf(stderr, "Ignoring disk image `%s'.\n", argv[i]);
+            fprintf(stderr, "Ignoring disk image `%s'\n", argv[i]);
         } else {
-            open_disk_image(drives[i - 1], argv[i], i - 1 + 8);
+            open_disk_image(drives[i - 1], argv[i], (unsigned int)(i - 1 + 8));
         }
     }
 
@@ -3662,10 +4649,8 @@ int main(int argc, char **argv)
 #ifdef HAVE_READLINE_READLINE_H
         using_history();
 #endif
-
-        printf("C1541 Version %d.%02d.\n",
-               C1541_VERSION_MAJOR, C1541_VERSION_MINOR);
-        printf("Copyright 1995-2016 The VICE Development Team.\n"
+        version_cmd(0, NULL);
+        printf("Copyright 1995-2017 The VICE Development Team.\n"
                "C1541 is free software, covered by the GNU General Public License,"
                " and you are\n"
                "welcome to change it and/or distribute copies of it under certain"
@@ -3675,19 +4660,21 @@ int main(int argc, char **argv)
                " for details.\n");
 
         while (1) {
+            fflush(stderr);
             lib_free(buf);
             buf = lib_msprintf("c1541 #%d> ", drive_index | 8);
             line = read_line(buf);
 
             if (line == NULL) {
                 putchar('\n');
-                fflush(stdout), fflush(stderr);
+                fflush(stdout);
+                fflush(stderr);
                 break;
             }
 
             if (*line == '!') {
                 retval = system(line + 1);
-                printf("Exit code: %d.\n", retval);
+                printf("exit code: %d\n", retval);
             } else {
                 split_args(line, &nargs, args);
                 if (nargs > 0) {
@@ -3715,7 +4702,7 @@ int main(int argc, char **argv)
                 args[nargs++] = argv[i];
             }
             if (lookup_and_execute_command(nargs, args) < 0) {
-                retval = 1;
+                retval = EXIT_FAILURE;
                 break;
             }
         }
@@ -3794,7 +4781,7 @@ int machine_bus_device_attach(unsigned int device, const char *name,
 
 struct vdrive_s *file_system_get_vdrive(unsigned int unit)
 {
-    if (unit < 8 || unit > 11) {
+    if (unit < UNIT_MIN || unit > UNIT_MAX) {
         printf("Wrong unit for vdrive");
         return NULL;
     }

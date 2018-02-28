@@ -36,6 +36,12 @@
 
 static pa_simple *s = NULL;
 
+
+/* XXX: gcc's -pedantic will warn about these initializations being invalid for
+ *      C90, but PulseAudio uses C99 (it uses inttypes.h), so in this case
+ *      those warnings can be ignored. (BW)
+ */
+
 static pa_sample_spec ss = {
     .format = PA_SAMPLE_S16LE,
     .rate = (uint32_t) -1,
@@ -59,11 +65,11 @@ static int pulsedrv_init(const char *param, int *speed, int *fragsize, int *frag
 {
     int error = 0;
 
-    ss.rate = *speed;
-    ss.channels = *channels;
+    ss.rate = (uint32_t)*speed;
+    ss.channels = (uint8_t)*channels;
 
-    attr.fragsize = *fragsize * 2;
-    attr.tlength = *fragsize * *fragnr * 2;
+    attr.fragsize = (uint32_t)(*fragsize * 2);
+    attr.tlength = (uint32_t)(*fragsize * *fragnr * 2);
 
     s = pa_simple_new(NULL, "VICE", PA_STREAM_PLAYBACK, NULL, "playback", &ss, NULL, &attr, &error);
     if (s == NULL) {

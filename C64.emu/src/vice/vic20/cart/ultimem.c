@@ -693,7 +693,7 @@ static int set_vic_um_writeback(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "UltiMemWriteBack", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &vic_um_writeback, set_vic_um_writeback, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vic_um_resources_init(void)
@@ -717,7 +717,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_VIC_UM_ROM_WRITE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int vic_um_cmdline_options_init(void)

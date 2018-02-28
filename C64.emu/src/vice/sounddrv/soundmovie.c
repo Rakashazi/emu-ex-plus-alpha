@@ -83,9 +83,10 @@ static int soundmovie_write(SWORD *pbuf, size_t nr)
         if (samples_to_copy > (int)(nr - copied)) {
             samples_to_copy = (int)(nr - copied);
         }
-        memcpy(buffer->buffer + buffer->used, pbuf + copied, samples_to_copy * sizeof(SWORD));
+        memcpy(buffer->buffer + buffer->used, pbuf + copied,
+                (size_t)samples_to_copy * sizeof(SWORD));
         buffer->used += samples_to_copy;
-        copied += samples_to_copy;
+        copied += (size_t)samples_to_copy;
         if (buffer->used == buffer_size) {
             funcs->encode(buffer);
             buffer->used = 0;

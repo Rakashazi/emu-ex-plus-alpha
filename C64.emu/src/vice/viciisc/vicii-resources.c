@@ -146,7 +146,7 @@ static const resource_int_t resources_int[] =
     { "VICIIVSPBug", 0, RES_EVENT_SAME, NULL,
       &vicii_resources.vsp_bug_enabled,
       set_vsp_bug_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static resource_int_t resources_int2[] =
@@ -154,7 +154,7 @@ static resource_int_t resources_int2[] =
     { "VICIIModel", VICII_MODEL_6569, RES_EVENT_NO, NULL,
       &vicii_resources.model,
       set_model, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vicii_resources_init(void)

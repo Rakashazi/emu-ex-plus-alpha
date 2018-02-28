@@ -67,6 +67,12 @@ static int drive_check_image_format(unsigned int format, unsigned int dnr)
                 return -1;
             }
             break;
+        case DISK_IMAGE_TYPE_G71:
+            if ((drive->type != DRIVE_TYPE_1571)
+                && (drive->type != DRIVE_TYPE_1571CR)) {
+                return -1;
+            }
+            break;
         case DISK_IMAGE_TYPE_D67:
             /* New drives and 2031, 3040 and 4040 are only read compatible.  */
             if (drive->type != DRIVE_TYPE_1540
@@ -147,6 +153,7 @@ int drive_image_attach(disk_image_t *image, unsigned int unit)
         case DISK_IMAGE_TYPE_D67:
         case DISK_IMAGE_TYPE_D71:
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
         case DISK_IMAGE_TYPE_X64:
         case DISK_IMAGE_TYPE_P64:
             disk_image_attach_log(image, driveimage_log, unit);
@@ -169,8 +176,9 @@ int drive_image_attach(disk_image_t *image, unsigned int unit)
     } else {
         drive->GCR_image_loaded = 1;
     }
-    drive->complicated_image_loaded = (drive->image->type == DISK_IMAGE_TYPE_P64
-                                       || drive->image->type == DISK_IMAGE_TYPE_G64);
+    drive->complicated_image_loaded = ((drive->image->type == DISK_IMAGE_TYPE_P64)
+                                       || (drive->image->type == DISK_IMAGE_TYPE_G64)
+                                       || (drive->image->type == DISK_IMAGE_TYPE_G71));
     drive_set_half_track(drive->current_half_track, drive->side, drive);
     return 0;
 }
@@ -194,6 +202,7 @@ int drive_image_detach(disk_image_t *image, unsigned int unit)
             case DISK_IMAGE_TYPE_D67:
             case DISK_IMAGE_TYPE_D71:
             case DISK_IMAGE_TYPE_G64:
+            case DISK_IMAGE_TYPE_G71:
             case DISK_IMAGE_TYPE_P64:
             case DISK_IMAGE_TYPE_X64:
                 disk_image_detach_log(image, driveimage_log, unit);

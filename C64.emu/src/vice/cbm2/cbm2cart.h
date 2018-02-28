@@ -32,7 +32,7 @@
 /* Expansion port signals.  */
 
 typedef struct {
-	  BYTE exrom; /* exrom signal, 0 - active */
+    BYTE exrom; /* exrom signal, 0 - active */
     BYTE game;  /* game signal, 0 - active */
     BYTE ultimax_phi1; /* flag for vic-ii, ultimax mode in phi1 phase */
     BYTE ultimax_phi2; /* flag for vic-ii, ultimax mode in phi2 phase */

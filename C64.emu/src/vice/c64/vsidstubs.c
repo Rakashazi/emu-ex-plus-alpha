@@ -112,7 +112,7 @@ BYTE *ultimax_romh_phi2_ptr(WORD addr)
 }
 
 midi_interface_t midi_interface[] = {
-    { NULL }
+    MIDI_INFERFACE_LIST_END
 };
 
 /*******************************************************************************

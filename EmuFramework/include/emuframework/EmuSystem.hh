@@ -165,6 +165,7 @@ public:
 	static FS::FileString fullGameNameForPathDefaultImpl(const char *path);
 	static FS::FileString fullGameNameForPath(const char *path);
 	static FS::PathString baseSavePath();
+	static FS::PathString makeDefaultBaseSavePath();
 	static void makeDefaultSavePath();
 	static const char *defaultSavePath();
 	static const char *savePath();

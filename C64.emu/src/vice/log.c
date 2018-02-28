@@ -102,6 +102,14 @@ static int log_verbose_opt(const char *param, void *extra_param)
     return 0;
 }
 
+static int log_silent_opt(const char *param, void *extra_param)
+{
+    int silent = vice_ptr_to_int(extra_param);
+    log_enabled = ! silent;
+    return 0;
+}
+
+
 int log_set_verbose(int n)
 {
     if (n) {
@@ -110,6 +118,15 @@ int log_set_verbose(int n)
     return log_verbose_opt(NULL, (void*)0);
 }
 
+
+int log_set_silent(int n)
+{
+    log_enabled = !n;
+    return 0;
+}
+
+
+
 int log_verbose_init(int argc, char **argv)
 {
     int i;
@@ -117,8 +134,12 @@ int log_verbose_init(int argc, char **argv)
     if (argc > 1) {
         for (i = 1; i < argc; i++) {
             DBG(("log_verbose_init: %d %s\n", i, argv[i]));
-            if (!strcmp("-verbose", argv[i])) {
+            if (strcmp("-verbose", argv[i]) == 0) {
                 log_set_verbose(1);
+                break;
+            } else if (strcmp("-silent", argv[1]) == 0) {
+                log_enabled = 0;
+                break;
             }
         }
     }
@@ -129,7 +150,7 @@ int log_verbose_init(int argc, char **argv)
 static const resource_string_t resources_string[] = {
     { "LogFileName", "", RES_EVENT_NO, NULL,
       &log_file_name, set_log_file_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static int log_logfile_opt(const char *param, void *extra_param)
@@ -161,7 +182,12 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_ENABLE_VERBOSE_LOG_OUTPUT,
       NULL, NULL },
-    { NULL }
+    { "-silent", CALL_FUNCTION, 0,
+      log_silent_opt, (void*)1, NULL, NULL,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_LOG_OUTPUT,
+      NULL, NULL },
+    CMDLINE_LIST_END
 };
 
 int log_cmdline_options_init(void)

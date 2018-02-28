@@ -184,7 +184,7 @@ static const resource_string_t resources_string[] =
       &kernal_rom_name, set_kernal_rom_name, NULL },
     { "BasicName", "basic", RES_EVENT_NO, NULL,
       &basic_rom_name, set_basic_rom_name, NULL },
-    {NULL}
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] =
@@ -203,7 +203,7 @@ static const resource_int_t resources_int[] =
       &ram_block_5_enabled, set_ram_block_5_enabled, NULL },
     { "VFLImod", 0, RES_EVENT_SAME, NULL,
       &vflimod_enabled, set_vflimod_enabled, NULL },
-    {NULL}
+    RESOURCE_INT_LIST_END
 };
 
 int vic20_resources_init(void)

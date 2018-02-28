@@ -356,6 +356,7 @@ int vicii_color_update_palette(struct video_canvas_s *canvas)
     }
 
     switch (/* vicii_resources. */ model) {
+#if 1 /* comment out if you want pepto-style lumas for testing */
         case VICII_MODEL_6567R56A:      /* NTSC, 64 cycle, ? luma, "old" */
             cp = &vicii_palette_6567r56a;
             break;
@@ -377,6 +378,7 @@ int vicii_color_update_palette(struct video_canvas_s *canvas)
         case VICII_MODEL_8562:          /* NTSC, 65 cycle, 9 luma, "new" */
             cp = &vicii_palette; /* FIXME: measurement missing */
             break;
+#endif
         default:
             cp = &vicii_palette; /* FIXME */
             log_error(LOG_DEFAULT, "unknown VICII type.");

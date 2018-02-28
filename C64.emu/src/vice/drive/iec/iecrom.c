@@ -78,7 +78,7 @@ static unsigned int drive_rom1541ii_size;
 
 static int iecrom_do_1541_checksum(void)
 {
-    int i;
+    unsigned int i;
     unsigned long s;
 
     /* Calculate ROM checksum.  */
@@ -200,6 +200,9 @@ void iecrom_setup_image(drive_t *drive)
                 break;
             case DRIVE_TYPE_4000:
                 memcpy(drive->rom, drive_rom4000, DRIVE_ROM4000_SIZE);
+                break;
+            default:
+                /* NOP */
                 break;
         }
     }

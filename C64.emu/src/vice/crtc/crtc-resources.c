@@ -90,8 +90,7 @@ static const resource_int_t resources_int[] =
 {
     { "CrtcStretchVertical", 1, RES_EVENT_SAME, NULL,
       &crtc_stretchy, set_stretch, NULL },
-    { NULL, 0, 0, NULL,
-      NULL, NULL, NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int crtc_resources_init(void)

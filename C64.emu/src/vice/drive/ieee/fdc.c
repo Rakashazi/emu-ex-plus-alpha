@@ -816,6 +816,7 @@ int fdc_attach_image(disk_image_t *image, unsigned int unit)
             case DISK_IMAGE_TYPE_D64:
             case DISK_IMAGE_TYPE_D67:
             case DISK_IMAGE_TYPE_G64:
+            case DISK_IMAGE_TYPE_G71:
             case DISK_IMAGE_TYPE_P64:
             case DISK_IMAGE_TYPE_X64:
                 disk_image_attach_log(image, fdc_log, unit);
@@ -877,6 +878,7 @@ int fdc_detach_image(disk_image_t *image, unsigned int unit)
             case DISK_IMAGE_TYPE_D64:
             case DISK_IMAGE_TYPE_D67:
             case DISK_IMAGE_TYPE_G64:
+            case DISK_IMAGE_TYPE_G71:
             case DISK_IMAGE_TYPE_P64:
             case DISK_IMAGE_TYPE_X64:
                 disk_image_detach_log(image, fdc_log, unit);

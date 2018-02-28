@@ -269,13 +269,13 @@ static int set_c64_256k_base(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "C64_256Kfilename", "", RES_EVENT_NO, NULL,
       &c64_256k_filename, set_c64_256k_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "C64_256Kbase", 0xdf80, RES_EVENT_NO, NULL,
       &c64_256k_start, set_c64_256k_base, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int c64_256k_resources_init(void)
@@ -301,7 +301,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_C64_256K_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
@@ -311,7 +311,7 @@ static cmdline_option_t base_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_BASE_ADDRESS, IDCLS_C64_256K_BASE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c64_256k_cmdline_options_init(void)

@@ -731,7 +731,7 @@ static int set_finalexpansion_writeback(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "FinalExpansionWriteBack", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &finalexpansion_writeback, set_finalexpansion_writeback, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int finalexpansion_resources_init(void)
@@ -755,7 +755,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_FINALEXPANSION_WRITEBACK,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int finalexpansion_cmdline_options_init(void)

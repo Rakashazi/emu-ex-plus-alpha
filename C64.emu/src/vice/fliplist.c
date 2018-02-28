@@ -82,7 +82,7 @@ static int set_fliplist_file_name(const char *val, void *param)
 static resource_string_t resources_string[] = {
     { "FliplistName", NULL, RES_EVENT_NO, NULL,
       &fliplist_file_name, set_fliplist_file_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int fliplist_resources_init(void)
@@ -115,7 +115,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_FLIP_LIST_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int fliplist_cmdline_options_init(void)

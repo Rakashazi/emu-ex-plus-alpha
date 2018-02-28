@@ -30,5 +30,6 @@
 #include "types.h"
 
 extern void fileaudio_init(void);
+extern void fileaudio_shutdown(void);
 
 #endif

@@ -141,7 +141,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_CART_ROM_6000_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int cartridge_cmdline_options_init(void)
@@ -264,7 +264,7 @@ static const resource_string_t resources_string[] = {
       &cart_4_name, set_cart4_rom_name, NULL },
     { "Cart6Name", "", RES_EVENT_NO, NULL,
       &cart_6_name, set_cart6_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -282,7 +282,7 @@ static const resource_int_t resources_int[] = {
       &cart6_ram, set_cart6_ram, NULL },
     { "RamC", 0, RES_EVENT_NO, NULL,
       &cartC_ram, set_cartC_ram, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int cartridge_resources_init(void)
@@ -296,10 +296,18 @@ int cartridge_resources_init(void)
 
 void cartridge_resources_shutdown(void)
 {
-    lib_free(cart_1_name);
-    lib_free(cart_2_name);
-    lib_free(cart_4_name);
-    lib_free(cart_6_name);
+    if (cart_1_name != NULL) {
+        lib_free(cart_1_name);
+    }
+    if (cart_2_name != NULL) {
+        lib_free(cart_2_name);
+    }
+    if (cart_4_name != NULL) {
+        lib_free(cart_4_name);
+    }
+    if (cart_6_name != NULL) {
+        lib_free(cart_6_name);
+    }
 }
 
 /* ---------------------------------------------------------------------*/

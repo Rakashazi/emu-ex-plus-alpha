@@ -44,11 +44,6 @@
 
 #define ADDR_LIMIT(x) ((WORD)(addr_mask(x)))
 
-static void clear_buffer(void)
-{
-    data_buf_len = 0;
-}
-
 void mon_memory_move(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
 {
     unsigned int i, dst;
@@ -147,7 +142,7 @@ void mon_memory_fill(MON_ADDR start_addr, MON_ADDR end_addr,
         i++;
     }
 
-    clear_buffer();
+    mon_clear_buffer();
 }
 
 void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr,
@@ -177,7 +172,7 @@ void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr,
     /* Do compares */
     next_read = start + (WORD)data_buf_len;
 
-    for (i = 0; i < (len - data_buf_len); i++, next_read++) {
+    for (i = 0; i <= (len - data_buf_len); i++, next_read++) {
         int not_found = 0;
         unsigned int j;
         for (j = 0; j < data_buf_len; j++) {
@@ -196,7 +191,7 @@ void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr,
         buf[data_buf_len - 1] = mon_get_mem_val(mem, next_read);
     }
 
-    clear_buffer();
+    mon_clear_buffer();
     lib_free(buf);
 }
 

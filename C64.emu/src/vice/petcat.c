@@ -61,6 +61,10 @@
 
 #include "version.h"
 
+#ifdef USE_SVN_REVISION
+# include "svnversion.h"
+#endif
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -579,7 +583,7 @@ static basic_list_t basic_list[] = {
     { B_EVE,      46, 0xF9, 0x0801, 0, 0xCC, evekwcc,           "eve",       0, 0, 0, "Basic v2.0 with Eve Basic (C64)" },
     { B_TT64,     26, 0xF4, 0x5b01, 0, 0xDB, tt64kwdb,          "tt64",      0, 0, 0, "Basic v2.0 with The Tool 64 (C64)" },
     { B_HANDY,    22, 0xE1, 0x1801, 0, 0xCC, handykwcc,         "handy",     0, 0, 0, "Basic v2.0 with Handy Basic v1.0 (VIC20)" },
-    { -1,         -1, -1,   -1,     0, 0,    NULL,              NULL,        0, 0, 0, NULL }
+    { 0,          0,  0,    0,     0 , 0,    NULL,              NULL,        0, 0, 0, NULL }
 };
 
 #define NUM_VERSIONS ((sizeof(basic_list) / sizeof(basic_list[0])) - 1)
@@ -726,6 +730,13 @@ const char *d_ctrl1[0x20] = {
     "",              "",               "",           "",       "RED",    "RIGHT",  "GREEN",      "BLUE"
 };
 
+/* 0x00 - 0x1f Basic v3.5 (C16/Plus4) (extra {flon}{flof}{help}{dblu}{pink}{blgn}{lblu}{blu}{lgrn})*/
+static const char *e_ctrl1[0x20] = {
+    "",              "CTRL-A",         "CTRL-B",     "stop",   "CTRL-D", "wht",    "CTRL-F",     "CTRL-G",
+    "dish",          "ensh",           "\n",         "CTRL-K", "CTRL-L", "\n",     "swlc",       "CTRL-O",
+    "CTRL-P",        "down",           "rvon",       "home",   "del",    "CTRL-U", "CTRL-V",     "CTRL-W",
+    "CTRL-X",        "CTRL-Y",         "CTRL-Z",     "esc",    "red",    "rght",   "grn",        "dblu"
+};
 /* ------------------------------------------------------------------------- */
 
 /* 0x20 - 0x3f (petcat, tok64) */
@@ -775,6 +786,14 @@ const char *c_ctrl2[0x20] = {
     "F7",    "F2",          "F4",          "F6",         "F8",      "",            "",           "",
     "BLACK", "UP",          "RVSOFF",      "CLR",        "INST",    "BROWN",       "LIG.RED",    "GREY 1",
     "GREY 2","LIG.GREEN",   "LIG.BLUE",    "GREY 3",     "PURPLE",  "LEFT",        "YELLOW",     "CYAN",
+};
+
+/* 0x80 - 0x9f Basic v3.5 (C16/Plus4) (extra {flon}{flof}{help}{dblu}{pink}{blgn}{lblu}{blu}{lgrn})*/
+static const char *d_ctrl2[0x20] = {
+    "",     "orng",         "flon",         "",           "flof",    "f1",           "f3",         "f5",
+    "f7",   "f2",           "f4",          "f6",         "help",   "sret",         "swuc",       "",
+    "blk",  "up",           "rvof",        "clr",        "inst",   "brn",          "lred",       "pink",
+    "blgn", "lblu",         "blu",         "lgrn",       "pur",    "left",         "yel",        "cyn"
 };
 
 /* ------------------------------------------------------------------------- */
@@ -865,11 +884,12 @@ const char *kwfe71[] = {
 /* ------------------------------------------------------------------------- */
 
 static void usage(char *progname);
+static void petcat_version(void);
 static int parse_version(char *str);
 static void list_keywords(int version);
-static void pet_2_asc (int ctrls);
-static void asc_2_pet (int ctrls);
-static void _p_toascii(int c, int ctrls, int quote);
+static void pet_2_asc (int version, int ctrls);
+static void asc_2_pet (int version, int ctrls);
+static void _p_toascii(int c, int version, int ctrls, int quote);
 static int p_expand(int version, int addr, int ctrls);
 static void p_tokenize(int version, unsigned int addr, int ctrls);
 static unsigned char sstrcmp(unsigned char *line, const char **wordlist, int token, int maxitems);
@@ -893,9 +913,10 @@ int main(int argc, char **argv)
     char *progname, *outfilename = NULL;
     int c = 0;
 
-    long offset = 0;
+    unsigned long offset = 0;
     int wr_mode = 0, version = B_7;         /* best defaults */
-    int load_addr = 0, ctrls = -1, hdr = -1, show_words = 0;
+    unsigned int load_addr = 0;
+    int ctrls = -1, hdr = -1, show_words = 0;
     int fil = 0, outf = 0, overwrt = 0, textmode = 0;
     int flg = 0;                            /* files on stdin */
 
@@ -980,6 +1001,9 @@ int main(int argc, char **argv)
         } else if (!strcmp(argv[0], "-help") || !strncmp(argv[0], "-?", 2)) {  /* version ID */
             /* Fall to error for Usage */
 
+        } else if (strcmp(argv[0], "-version") == 0) {
+            petcat_version();
+            return EXIT_SUCCESS;
             /* Basic version */
         } else if (!strncmp(argv[0], "-w", 2) && !wr_mode) {
             version = parse_version((strlen(argv[0]) > 2 ? &argv[0][2] : NULL));
@@ -1096,7 +1120,7 @@ int main(int argc, char **argv)
 
         if (wr_mode) {
             if (textmode) {
-                asc_2_pet(ctrls);
+                asc_2_pet(version, ctrls);
             } else {
                 p_tokenize(version, load_addr, ctrls);
             }
@@ -1119,7 +1143,7 @@ int main(int argc, char **argv)
                     }
                 }
 
-                pet_2_asc(ctrls);
+                pet_2_asc(version, ctrls);
             } else {
                 load_addr = (getc(source) & 0xff);
                 load_addr |= (getc(source) & 0xff) << 8;
@@ -1127,7 +1151,7 @@ int main(int argc, char **argv)
                     fprintf(dest, "==%04x==\n", load_addr);
                 }
 
-                if (p_expand(version, load_addr, ctrls)) {
+                if (p_expand(version, (int)load_addr, ctrls)) {
                     fprintf(dest, "\n;*** Machine language part skipped. ***\n");
                 } else {   /* End of BASIC on stdin. Is there more ? */
                     if (!fil && (c = getc(source)) != EOF && ungetc(c, source) != EOF && c) {
@@ -1155,9 +1179,9 @@ int main(int argc, char **argv)
 
 /* ------------------------------------------------------------------------- */
 
-static int count_valid_option_elements(void)
+static unsigned int count_valid_option_elements(void)
 {
-    int i = 0;
+    unsigned int i = 0;
 
     while (basic_list[i].name) {
         ++i;
@@ -1167,17 +1191,20 @@ static int count_valid_option_elements(void)
 
 static int compare_elements(const void *op1, const void *op2)
 {
-    sorted_basic_t *p1 = (sorted_basic_t *)op1;
-    sorted_basic_t *p2 = (sorted_basic_t *)op2;
+    const sorted_basic_t *p1 = (const sorted_basic_t *)op1;
+    const sorted_basic_t *p2 = (const sorted_basic_t *)op2;
 
     return strcmp(p1->version_select, p2->version_select);
 }
 
-
+/* XXX: the multiple fprintf() statements are used to break up the string that
+ *      is longer than C90 is required to support (509 chars). very pedantic,
+ *      I know, but better safe than sorry. (BW)
+ */
 void usage(char *progname)
 {
-    int i = 0;
-    int amount;
+    unsigned int i = 0;
+    unsigned int amount;
     sorted_basic_t *sorted_option_elements;
 
     /* get the amount of valid options */
@@ -1212,7 +1239,8 @@ void usage(char *progname)
             "   -ic\t\tinterpret control codes case-insensitive\n"
             "   -qc\t\tconvert all non alphanumeric characters inside quotes into controlcodes\n"
             "   -d\t\toutput raw codes in decimal\n"
-            "   -h\t\twrite header <default if output is stdout>\n"
+            "   -h\t\twrite header <default if output is stdout>\n");
+    fprintf(stdout,
             "   -nh\t\tno header <default if output is a file>\n"
             "   -skip <n>\tSkip <n> bytes in the beginning of input file. Ignored on P00.\n"
             "   -text\tForce text mode\n"
@@ -1220,7 +1248,8 @@ void usage(char *progname)
             "   -w<version>\ttokenize using keywords on specified Basic version.\n"
             "   -k<version>\tlist all keywords for the specified Basic version\n"
             "   -k\t\tlist all Basic versions available.\n"
-            "   -l\t\tSpecify load address for program (in hex, no leading chars!).\n"
+            "   -l\t\tSpecify load address for program (in hex, no leading chars!).\n");
+    fprintf(stdout,
             "   -o <name>\tSpecify the output file name\n"
             "   -f\t\tForce overwritten the output file\n"
             "   \t\tThe default depends on the BASIC version.\n");
@@ -1239,7 +1268,8 @@ void usage(char *progname)
             "\t\tin outputfile.txt, using BASIC V2 only\n"
             "\tpetcat -wsimon -o outputfile.prg -- inputfile.txt\n"
             "\t\tTokenize, convert inputfile.txt to a PRG file\n"
-            "\t\tin outputfile.prg, using Simon's BASIC\n"
+            "\t\tin outputfile.prg, using Simon's BASIC\n");
+    fprintf(stdout,
             "\tpetcat -text -o outputfile.txt -- inputfile.seq\n"
             "\t\tConvert inputfile.seq to a Ascii text file\n"
             "\t\tin outputfile.txt.\n"
@@ -1247,6 +1277,21 @@ void usage(char *progname)
             "\t\tConvert inputfile.txt to a Petscii text SEQ file\n"
             "\t\tin outputfile.seq.\n");
 }
+
+
+/** \brief  Display version information
+ */
+static void petcat_version(void)
+{
+#ifdef USE_SVN_REVISION
+    printf("petcat V%0.2f PL %d (VICE %s svn r%d)\n",
+            PETCATVERSION, PETCATLEVEL, VERSION, VICE_SVN_REV_NUMBER);
+#else
+    printf("petcat V%0.2f PL %d (VICE %s)\n",
+            PETCATVERSION, PETCATLEVEL, VERSION);
+#endif
+}
+
 
 /* ------------------------------------------------------------------------- */
 /* Parse given version name and return its code, or -1 if not recognized. */
@@ -1272,9 +1317,9 @@ static int parse_version(char *str)
 
 static void list_keywords(int version)
 {
-    int n, max;
+    unsigned int n, max;
 
-    if (version <= 0 || version > NUM_VERSIONS) {
+    if (version <= 0 || (unsigned int)version > NUM_VERSIONS) {
         printf("\n  The following versions are supported on  %s V%4.2f\n\n", "petcat", (float)PETCATVERSION );
 
         for (n = 0; basic_list[n].name; n++) {
@@ -1359,6 +1404,8 @@ static void list_keywords(int version)
                     printf("%s\t", basic_list[version -1].tokens[n] /*, n + 0xcc*/);
                 }
                 break;
+            default:
+                break;
         }  /* switch */
     }
 
@@ -1373,12 +1420,12 @@ static void list_keywords(int version)
  */
 
 /* used in text mode */
-static void pet_2_asc(int ctrls)
+static void pet_2_asc(int version, int ctrls)
 {
     int c;
 
     while ((c = getc(source)) != EOF) {
-        _p_toascii(c, ctrls, 0);           /* convert character */
+        _p_toascii(c, version, ctrls, 0);           /* convert character */
     }      /* line */
 }
 
@@ -1416,7 +1463,7 @@ static void _p_fputc(int c, int p, int quote)
     fputc(c, dest);
 }
 
-static void _p_toascii(int c, int ctrls, int quote)
+static void _p_toascii(int c, int version, int ctrls, int quote)
 {
     /* fprintf(stderr, "<%02x:%d>", c, ctrls); */
     switch (c) {
@@ -1518,12 +1565,22 @@ static void _p_toascii(int c, int ctrls, int quote)
                     if ((c > 0x1f) && isprint(c)) {
                         _p_fputc(c, c, quote);
                     } else if (ctrls) {
-                        if ((c < 0x20) && *ctrl1[c]) {
-                            fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, ctrl1[c]);
-                        } else if ((c > 0x7f) && (c < 0xa0) && *ctrl2[c & 0x1f]) {
-                            fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, ctrl2[c & 0x1f]);
+                        if (version == B_35) {
+                            if ((c < 0x20) && *e_ctrl1[c]) {
+                                fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, e_ctrl1[c]);
+                            } else if ((c > 0x7f) && (c < 0xa0) && *d_ctrl2[c & 0x1f]) {
+                                fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, d_ctrl2[c & 0x1f]);
+                            } else {
+                                out_ctrl((unsigned char)(c & 0xff));
+                            }
                         } else {
-                            out_ctrl((unsigned char)(c & 0xff));
+                            if ((c < 0x20) && *ctrl1[c]) {
+                                fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, ctrl1[c]);
+                            } else if ((c > 0x7f) && (c < 0xa0) && *ctrl2[c & 0x1f]) {
+                                fprintf(dest, CLARIF_LP_ST "%s" CLARIF_RP_ST, ctrl2[c & 0x1f]);
+                            } else {
+                                out_ctrl((unsigned char)(c & 0xff));
+                            }
                         }
                     }  /* ctrls */
             }  /* switch */
@@ -1536,7 +1593,7 @@ static int _a_topetscii(int c, int ctrls)
         return 0x0d;
     } else if (c == 0x7e) {              /*  '~' is ASCII for 'pi' */
         return 0xff;
-    } else if ((c >= 0x5b) && (c <= 0x5f)) { /* iAN: '_' -> left arrow, no char value change */
+    } else if ((c >= 0x5b) && (c <= 0x5f)) { /* '_' -> left arrow, no char value change */
         return c;
     } else if ((c >= 0x60) && (c <= 0x7e)) {
         return c ^ 0x20;
@@ -1552,16 +1609,16 @@ static int scan_integer(const char *line, unsigned int *num, unsigned int *digit
 {
 #ifdef GEMDOS
     *digits = 0;
-    if (sscanf(line, "%d", num) == 1) {
+    if (sscanf(line, "%u", num) == 1) {
         while (isspace(*line) || isdigit(*line)) {
             line++;
             (*digits)++;
         }
-        return *digits;
+        return (int)*digits;
     }
 #else
-    if (sscanf(line, "%d%n", num, digits) == 1) {
-        return *digits;
+    if (sscanf(line, "%u%n", num, (int *)digits) == 1) {
+        return (int)*digits;
     }
 #endif
     return 0;
@@ -1579,7 +1636,7 @@ static int scan_integer(const char *line, unsigned int *num, unsigned int *digit
 static int p_expand(int version, int addr, int ctrls)
 {
     static char line[4];
-    unsigned int c = 0;
+    int c = 0;
     int quote, spnum, directory = 0;
     int sysflg = 0;
 
@@ -1722,7 +1779,7 @@ static int p_expand(int version, int addr, int ctrls)
                 continue;
             }
 
-            _p_toascii((int)c, ctrls, quote);  /* convert character */
+            _p_toascii((int)c, version, ctrls, quote);  /* convert character */
         } while ((c = getc(source)) != EOF && c);
         fprintf(dest, "\n");
     }      /* line */
@@ -1805,7 +1862,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         /* if we are already at the closing brace, then the previous
                            value wasnt the repeat count but an actual decimal charactercode */
                         if (*p == CLARIF_RP) {
-                            *p1++ = len; /* put charcode into output */
+                            *p1++ = (unsigned char)len; /* put charcode into output */
                             p2 = p + 1; /* skip the closing brace in input */
                             DBG(("controlcode was a decimal character code: {%d}\n", len));
                             continue;
@@ -1824,6 +1881,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         (
                             ((c = sstrcmp_codes(p, hexcodes, 0, 0x100)) != CODE_NONE) || /* 0x00-0xff */
 
+                            ((version == B_35) && ((c = sstrcmp_codes(p, e_ctrl1, 0, 0x20)) != CODE_NONE)) || /* 0x00-0x1f */
                             ((c = sstrcmp_codes(p, ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
                             ((c = sstrcmp_codes(p, a_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
                             ((c = sstrcmp_codes(p, b_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
@@ -1834,7 +1892,9 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                               ((c = sstrcmp_codes(p, a_cbmchars, 0, 0x20)) != CODE_NONE) /* 0x20-0x3f */
                               ) && (c += 0x20)) ||
 
-                            ((((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
+                            ((
+                              ((version == B_35) && ((c = sstrcmp_codes(p, d_ctrl2, 0, 0x20)) != CODE_NONE)) ||
+                              ((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
                               ((c = sstrcmp_codes(p, a_ctrl2, 0, 0x20)) != CODE_NONE) ||
                               ((c = sstrcmp_codes(p, b_ctrl2, 0, 0x20)) != CODE_NONE) ||
                               ((c = sstrcmp_codes(p, c_ctrl2, 0, 0x20)) != CODE_NONE)
@@ -1869,7 +1929,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
                         if (p[kwlen] == CLARIF_RP) {
                             for (; len-- > 0; ) {
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                             }
                             p2 = p + (++kwlen);
 
@@ -1895,7 +1955,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                        case B_SIMON:
                             if ((c = sstrcmp(p2, basic_list[version - 1].tokens, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0x64;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
@@ -1904,13 +1964,13 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         case B_10:
                             if ((c = sstrcmp(p2, kwfe, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0xfe;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
                             } else if ((c = sstrcmp(p2, kwce10, basic_list[version - 1].token_offset, NUM_KWCE)) != KW_NONE) {
                                 *p1++ = 0xce;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
@@ -1919,13 +1979,13 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         case B_71:
                             if ((c = sstrcmp(p2, kwfe71, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0xfe;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
                             } else if ((c = sstrcmp(p2, kwce, basic_list[version - 1].token_offset, NUM_KWCE)) != KW_NONE) {
                                 *p1++ = 0xce;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
@@ -1934,13 +1994,13 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         case B_7:
                             if ((c = sstrcmp(p2, kwfe, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0xfe;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
                             } else if ((c = sstrcmp(p2, kwce, basic_list[version - 1].token_offset, NUM_KWCE)) != KW_NONE) {
                                 *p1++ = 0xce;
-                                *p1++ = c;
+                                *p1++ = (unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
@@ -1949,11 +2009,13 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         case B_SXC:
                             if ((c = sstrcmp(p2, basic_list[version - 1].tokens, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                                 *p1++ = 0xfe;
-                                *p1++ = c;
+                                *p1++ =(unsigned char)c;
                                 p2 += kwlen;
                                 match++;
                                 match2++;
                             }
+                            break;
+                        default:
                             break;
                     }
                 }
@@ -1975,7 +2037,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
                     if ((ctmp = sstrcmp(p2, keyword, 0, max)) != KW_NONE) {
                         if ((version == B_35) || (ctmp != 0x4e)) {  /* Skip prefix */
-                            kwlentmp = kwlen;
+                            kwlentmp = (int)kwlen;
                             match++;
 
                             /* Check if the keyword is a REM or a DATA */
@@ -1988,6 +2050,8 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                                 case TOKEN_REM:
                                     rem_data_mode = 1;
                                     rem_data_endchar = '\0';
+                                    break;
+                                default:
                                     break;
                             }
                         }
@@ -2032,20 +2096,20 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
                         if ((c = sstrcmp(p2, basic_list[version - 1].tokens, basic_list[version - 1].token_offset, basic_list[version - 1].num_tokens)) != KW_NONE) {
                             if (match) {
                                 if ((int)kwlen >= kwlentmp) {
-                                    *p1++ = c + basic_list[version - 1].token_start;
+                                    *p1++ = (unsigned char)(c + basic_list[version - 1].token_start);
                                     p2 += kwlen;
                                 } else {
-                                    *p1++ = ctmp | 0x80;
+                                    *p1++ = (unsigned char)(ctmp | 0x80);
                                     p2 += kwlentmp;
                                 }
                             } else {
-                                *p1++ = c + basic_list[version - 1].token_start;
+                                *p1++ = (unsigned char)(c + basic_list[version - 1].token_start);
                                 p2 += kwlen;
                                 match++;
                             }
                         } else {
                             if (match) {
-                                *p1++ = ctmp | 0x80;
+                                *p1++ = (unsigned char)(ctmp | 0x80);
                                 p2 += kwlentmp;
                             }
                         }
@@ -2053,7 +2117,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
                    default:
                         if (match && !match2) {
-                            *p1++ = ctmp | 0x80;
+                            *p1++ = (unsigned char)(ctmp | 0x80);
                             p2 += kwlentmp;
                         }
                         break;
@@ -2063,7 +2127,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
             if (!match) {
                 /* convert character */
-                *p1++ = _a_topetscii(*p2 & 0xff, ctrls);
+                *p1++ = (unsigned char)(_a_topetscii(*p2 & 0xff, ctrls));
 
                 /* check if the REM/DATA mode has to be stopped: */
                 if (*p2 == rem_data_endchar) {
@@ -2079,7 +2143,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
         *p1 = 0;
         p3 = (unsigned char *)tokenizedline;
-        if ((len = (p1 - p3)) > 0) {
+        if ((len = (unsigned int)(p1 - p3)) > 0) {
             addr += (len + 5);
             fprintf(dest, "%c%c%c%c", addr & 255, (addr >> 8) & 255,
                     linum & 255, (linum >> 8) & 255);
@@ -2096,7 +2160,7 @@ static void p_tokenize(int version, unsigned int addr, int ctrls)
 
 /* ------------------------------------------------------------------------- */
 /* convert ascii (text) to petscii */
-static void asc_2_pet(int ctrls)
+static void asc_2_pet(int version, int ctrls)
 {
     static unsigned char line[MAX_INLINE_LEN + 1];
     int c, d;
@@ -2107,7 +2171,7 @@ static void asc_2_pet(int ctrls)
         /* control code evaluation */
         if (ctrls && (c == CLARIF_LP)) {
             unsigned char *p;
-            int pos;
+            long pos;
             pos = ftell(source);
             if (fread(line, 1, 0x20, source) < 1) {
                 break;
@@ -2123,7 +2187,7 @@ static void asc_2_pet(int ctrls)
                 /* if we are already at the closing brace, then the previous
                     value wasnt the repeat count but an actual decimal charactercode */
                 if (*p == CLARIF_RP) {
-                    fputc(len, dest); /* output character */
+                    fputc((int)len, dest); /* output character */
                     fseek(source, pos + kwlen + 1, SEEK_SET);
                     continue;
                 }
@@ -2141,6 +2205,7 @@ static void asc_2_pet(int ctrls)
                 (
                     ((c = sstrcmp_codes(p, hexcodes, 0, 0x100)) != CODE_NONE) || /* 0x00-0xff */
 
+                    ((version == B_35) && ((c = sstrcmp_codes(p, e_ctrl1, 0, 0x20)) != CODE_NONE)) || /* 0x00-0x1f */
                     ((c = sstrcmp_codes(p, ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
                     ((c = sstrcmp_codes(p, a_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
                     ((c = sstrcmp_codes(p, b_ctrl1, 0, 0x20)) != CODE_NONE) || /* 0x00-0x1f */
@@ -2151,7 +2216,9 @@ static void asc_2_pet(int ctrls)
                       ((c = sstrcmp_codes(p, a_cbmchars, 0, 0x20)) != CODE_NONE) /* 0x20-0x3f */
                         ) && (c += 0x20)) ||
 
-                    ((((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
+                    ((
+                      ((version == B_35) && ((c = sstrcmp_codes(p, d_ctrl2, 0, 0x20)) != CODE_NONE)) ||
+                      ((c = sstrcmp_codes(p, ctrl2, 0, 0x20)) != CODE_NONE) ||
                       ((c = sstrcmp_codes(p, a_ctrl2, 0, 0x20)) != CODE_NONE) ||
                       ((c = sstrcmp_codes(p, b_ctrl2, 0, 0x20)) != CODE_NONE) ||
                       ((c = sstrcmp_codes(p, c_ctrl2, 0, 0x20)) != CODE_NONE)
@@ -2213,13 +2280,13 @@ static void asc_2_pet(int ctrls)
 */
 static int sstrcmp_codes(unsigned char *line, const char **wordlist, int token, int maxitems)
 {
-    int j = 0;
+    unsigned int j = 0;
     const char *p, *q;
 
     kwlen = 1;
     /* search for keyword */
     for (; token < maxitems; token++) {
-        DBG(("compare '%s' vs  '%s' - %d %d\n", wordlist[token], line, j, kwlen));
+        DBG(("compare '%s' vs  '%s' - %u %u\n", wordlist[token], line, j, kwlen));
 
         if (codesnocase) {
             for (p = wordlist[token], q = (char *)line, j = 0;

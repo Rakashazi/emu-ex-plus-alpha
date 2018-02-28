@@ -259,7 +259,7 @@ static void vdrive_bam_clr(BYTE *bamp, unsigned int sector)
     return;
 }
 
-static int vdrive_bam_isset(BYTE *bamp, unsigned int sector)
+int vdrive_bam_isset(BYTE *bamp, unsigned int sector)
 {
     return bamp[1 + sector / 8] & (1 << (sector % 8));
 }
@@ -295,14 +295,30 @@ int vdrive_bam_allocate_chain(vdrive_t *vdrive, unsigned int t, unsigned int s)
     return CBMDOS_IPE_OK;
 }
 
-/*
-    FIXME: partition support
-*/
-static BYTE *vdrive_bam_calculate_track(vdrive_t *vdrive,
-                                        unsigned int track)
+/** \brief  Get pointer to the BAM entry for \a track in \a vdrive's image
+ *
+ * A CBMDOS BAM entry consists of a single byte indication the number of free
+ * sectors (unreliable since there's a lot of disks out there which set this
+ * to 0 to get a "0 blocks free."), followed by a bitmap of free/used sectors.
+ * The size of the bitmap depends on the image type, 1541 and 1571 have three
+ * bytes (enough for 21 sectors), while 1581 has 5 bytes (40 sectors).
+ *
+ * \param[in]   vdrive  vdrive object
+ * \param[in]   track   track number
+ *
+ * \return      pointer to BAM entry
+ *
+ *(  FIXME: partition support
+ */
+BYTE *vdrive_bam_get_track_entry(vdrive_t *vdrive, unsigned int track)
 {
     BYTE *bamp = NULL;
     BYTE *bam = vdrive->bam;
+
+    if (track == 0) {
+        log_error(LOG_ERR, "invalid track number: 0");
+        return NULL;
+    }
 
     switch (vdrive->image_format) {
         case VDRIVE_IMAGE_FORMAT_1541:
@@ -387,7 +403,7 @@ int vdrive_bam_allocate_sector(vdrive_t *vdrive,
         sector ^= 7;
     }
 
-    bamp = vdrive_bam_calculate_track(vdrive, track);
+    bamp = vdrive_bam_get_track_entry(vdrive, track);
     if (vdrive_bam_isset(bamp, sector)) {
         vdrive_bam_sector_free(vdrive, bamp, track, -1);
         vdrive_bam_clr(bamp, sector);
@@ -405,7 +421,7 @@ int vdrive_bam_free_sector(vdrive_t *vdrive, unsigned int track,
         sector ^= 7;
     }
 
-    bamp = vdrive_bam_calculate_track(vdrive, track);
+    bamp = vdrive_bam_get_track_entry(vdrive, track);
     if (!(vdrive_bam_isset(bamp, sector))) {
         vdrive_bam_set(bamp, sector);
         vdrive_bam_sector_free(vdrive, bamp, track, 1);
@@ -746,7 +762,7 @@ int vdrive_bam_write_bam(vdrive_t *vdrive)
             break;
         case VDRIVE_IMAGE_FORMAT_1571:
             err = vdrive_write_sector(vdrive, vdrive->bam, BAM_TRACK_1571, BAM_SECTOR_1571);
-            err |= vdrive_write_sector(vdrive, vdrive->bam + 256, BAM_TRACK_1571 + 35, BAM_SECTOR_1571);
+            err |= vdrive_write_sector(vdrive, vdrive->bam + 256, BAM_TRACK_1571 + (vdrive->num_tracks / 2), BAM_SECTOR_1571);
             break;
         case VDRIVE_IMAGE_FORMAT_1581:
             err = vdrive_write_sector(vdrive, vdrive->bam, BAM_TRACK_1581, BAM_SECTOR_1581);

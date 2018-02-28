@@ -55,25 +55,25 @@ void Voice::set_chip_model(chip_model model)
     // values until the correct value is found, e.g. with the following
     // program:
     //
-    //	lda #$08
-    //	sta $d412
-    //	lda #$0b
-    //	sta $d417
-    //	lda #$0f
-    //	sta $d418
-    //	lda #$f0
-    //	sta $d414
-    //	lda #$21
-    //	sta $d412
-    //	lda #$01
-    //	sta $d40e
+    //        lda #$08
+    //        sta $d412
+    //        lda #$0b
+    //        sta $d417
+    //        lda #$0f
+    //        sta $d418
+    //        lda #$f0
+    //        sta $d414
+    //        lda #$21
+    //        sta $d412
+    //        lda #$01
+    //        sta $d40e
     //
-    //	ldx #$00
-    //	lda #$38	; Tweak this to find the "zero" level
-    //l	cmp $d41b
-    //	bne l
-    //	stx $d40e	; Stop frequency counter - freeze waveform output
-    //	brk
+    //        ldx #$00
+    //        lda #$38        ; Tweak this to find the "zero" level
+    //l       cmp $d41b
+    //        bne l
+    //        stx $d40e        ; Stop frequency counter - freeze waveform output
+    //        brk
     //
     // The waveform output range is 0x000 to 0xfff, so the "zero"
     // level should ideally have been 0x800. In the measured chip, the

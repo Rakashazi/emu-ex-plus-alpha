@@ -40,6 +40,7 @@
 
 
 /* CRTC interface functions.
+   - bit 0 of the addr is wired to register-select of the chip
    FIXME: Several registers are not implemented.  */
 
 void crtc_store(WORD addr, BYTE value)
@@ -51,7 +52,8 @@ void crtc_store(WORD addr, BYTE value)
     addr &= 1;
 
     if (!addr) {
-        crtc.regno = value;
+        /* low on register-select permits writes to the address register */
+        crtc.regno = value & 0x1f;
         return;
     }
 
@@ -67,7 +69,7 @@ void crtc_store(WORD addr, BYTE value)
     crtc.regs[crtc.regno] = value;
 
     switch (crtc.regno) {
-        case 0:                 /* R00  Horizontal total (characters + 1) */
+        case CRTC_REG_HTOTAL:       /* R00  Horizontal total (characters + 1) */
             if (current_cycle > value) {
                 value = 255;
             }
@@ -77,7 +79,7 @@ void crtc_store(WORD addr, BYTE value)
             }
             break;
 
-        case 1:                 /* R01  Horizontal characters displayed */
+        case CRTC_REG_HDISP:        /* R01  Horizontal characters displayed */
             if (!(current_cycle < crtc.rl_visible)) {
                 break;
             }
@@ -96,37 +98,43 @@ void crtc_store(WORD addr, BYTE value)
             }
             break;
 
-        case 2:                 /* R02  Horizontal Sync Position */
+        case CRTC_REG_HSYNC:        /* R02  Horizontal Sync Position */
             if (current_cycle < crtc.rl_sync) {
                 /* FIXME: middle of pulse, adjust from reg. 3 */
                 crtc.rl_sync = value;
             }
             break;
-        case 3:                 /* R03  Horizontal/Vertical Sync widths */
+
+        case CRTC_REG_SYNCWIDTH:    /* R03  Horizontal/Vertical Sync widths */
             break;
 
-        case 7:                 /* R07  Vertical sync position */
+        case CRTC_REG_VTOTAL:       /* R04  Vertical total (character) rows */
+            crtc.regs[CRTC_REG_VTOTAL] &= 0x7f;
             break;
 
-        case 8:                 /* R08  unused: Interlace and Skew */
+        case CRTC_REG_VTOTALADJ:    /* R05  Vertical total line adjust */
+            crtc.regs[CRTC_REG_VTOTALADJ] &= 0x1f;
             break;
 
-        case 6:                 /* R06  Number of display lines on screen */
-            crtc.regs[6] &= 0x7f;
+        case CRTC_REG_VDISP:        /* R06  Number of display lines on screen */
+            crtc.regs[CRTC_REG_VDISP] &= 0x7f;
             break;
 
-        case 9:                 /* R09  Rasters between two display lines */
-            crtc.regs[9] &= 0x1f;
+        case CRTC_REG_VSYNC:        /* R07  Vertical sync position */
+            crtc.regs[CRTC_REG_VSYNC] &= 0x7f;
             break;
 
-        case 4:                 /* R04  Vertical total (character) rows */
+        case CRTC_REG_MODECTRL:     /* R08  unused: Interlace and Skew */
             break;
 
-        case 5:                 /* R05  Vertical total line adjust */
+        case CRTC_REG_SCANLINE:     /* R09  number of lines per character line, including spacing */
+            crtc.regs[CRTC_REG_SCANLINE] &= 0x1f;
             break;
 
-        case 10:                /* R10  Cursor (not implemented on the PET) */
-            value = ((value >> 5) & 0x03) ^ 0x01;
+        case CRTC_REG_CURSORSTART:  /* R10  Cursor start (not implemented on the PET) */
+            crtc.regs[CRTC_REG_CURSORSTART] &= 0x7f;
+            /* FIXME: set start line */
+            value = ((value >> 5) & 0x03) ^ 0x01; /* cursor mode */
             if (!(crtc.hw_cursor && (crtc.crsrmode != value))) {
                 break;
             }
@@ -136,10 +144,12 @@ void crtc_store(WORD addr, BYTE value)
             crtc.crsrcnt = 16;
             break;
 
-        case 11:                /* R11  Cursor (not implemented on the PET) */
+        case CRTC_REG_CURSOREND:    /* R11  Cursor end (not implemented on the PET) */
+            crtc.regs[CRTC_REG_CURSOREND] &= 0x7f;
+            /* FIXME: set end line */
             break;
 
-        case 12:                /* R12  Control register */
+        case CRTC_REG_DISPSTARTH:   /* R12  Control register */
             /* This is actually the upper 6 video RAM address bits.
              * But CBM decided that the two uppermost bits should be used
              * for control.
@@ -154,34 +164,41 @@ void crtc_store(WORD addr, BYTE value)
              * Bit 6: (no pin on the CRTC, video address is 14 bit only)
              * Bit 7: (no pin on the CRTC, video address is 14 bit only)
              */
+            /* FIXME: check if the above also applies to CBM2 and all the other PET models */
             /* The CRTC loads its internal counter when it starts a new
              * frame. At this point the address/mode changes are evaluated now.
              */
+            crtc.regs[CRTC_REG_DISPSTARTH] &= 0x3f;
             break;
 
-        case 13:                /* R13  Address of first character */
+        case CRTC_REG_DISPSTARTL:   /* R13  Address of first character */
             break;
+
+        case CRTC_REG_CURSORPOSH:   /* R14  Cursor location  HI -- unused */
+            crtc.regs[CRTC_REG_CURSORPOSH] &= 0x3f;
 #if 0
-        case 14:
             crsr_set_dirty();
             crsrpos = ((crsrpos & 0x00ff) | ((value << 8) & 0x3f00)) & addr_mask;
             crsrrel = crsrpos - scrpos;
             crsr_set_dirty();
+#endif
             break;
 
-        case 15:                /* R14-5 Cursor location HI/LO -- unused */
+        case CRTC_REG_CURSORPOSL:   /* R15  Cursor location  LO -- unused */
+#if 0
             crsr_set_dirty();
             crsrpos = ((crsrpos & 0x3f00) | (value & 0xff)) & addr_mask;
             crsrrel = crsrpos - scrpos;
             crsr_set_dirty();
-            break;
 #endif
-        case 16:
-        case 17:                /* R16-7 Light Pen HI/LO -- read only */
+            break;
+
+        case CRTC_REG_LPENH:        /* R16 Light Pen HI -- read only */
+        case CRTC_REG_LPENL:        /* R17 Light Pen LO -- read only */
             break;
 
         case 18:
-        case 19:                /* R18-9 Update address HI/LO (only 6545)  */
+        case 19:                    /* R18-9 Update address HI/LO (only 6545)  */
             break;
 
         default:
@@ -202,21 +219,20 @@ BYTE crtc_read(WORD addr)
      *             timings...)
      */
     if (!(addr & 1)) {
+        /* low on register-select permits reads from the status register */
+        /* FIXME: implement bit 7 and bit 6 */
         return crtc_offscreen() ? 32 : 0;
     }
 
     /* internal registers */
     switch (crtc.regno) {
-        case 14:
-        case 15:                      /* Cursor location HI/LO */
-            if (addr >= 64) {
-                /*log_debug("crtc_read: ERROR");*/
-                return 0;
-            }
-            return crtc.regs[addr];
+        case CRTC_REG_CURSORPOSH:
+        case CRTC_REG_CURSORPOSL:
+            return crtc.regs[crtc.regno];
 
-        case 16:
-        case 17:                      /* Light Pen X,Y */
+        case CRTC_REG_LPENH:
+        case CRTC_REG_LPENL:
+            /* FIXME: Light Pen X,Y */
             return 0xff;
 
         default:

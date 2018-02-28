@@ -299,6 +299,7 @@ static palette_info_t palettelist[] = {
     { "VICII", "Pepto (old PAL)",    "pepto-palold"},
     { "VICII", "Pepto (NTSC, Sony)", "pepto-ntsc-sony"},
     { "VICII", "Pepto (NTSC)",       "pepto-ntsc"},
+    { "VICII", "Colodore (PAL)",     "colodore"},
     { "VICII", "VICE",               "vice"},
     { "VICII", "C64HQ",              "c64hq"},
     { "VICII", "C64S",               "c64s"},
@@ -316,6 +317,7 @@ static palette_info_t palettelist[] = {
     /* data/VIC20/ */
     { "VIC",   "Mike (PAL)",         "mike-pal"}, /* default */
     { "VIC",   "Mike (NTSC)",        "mike-ntsc"},
+    { "VIC",   "Colodore (PAL)",     "colodore_vic"},
     { "VIC",   "VICE",               "vice"},
     /* data/CBM-II/ */
     /* data/PET/ */
@@ -323,7 +325,9 @@ static palette_info_t palettelist[] = {
     { "Crtc",  "Amber",              "amber"},
     { "Crtc",  "Black/White",        "white"},
     /* data/PLUS4/ */
-    { "TED",   "VICE",               "vice"}, /* default */
+    { "TED",   "YAPE (PAL)",         "yape-pal"}, /* default */
+    { "TED",   "YAPE (NTSC)",        "yape-ntsc"},
+    { "TED",   "Colodore (PAL)",     "colodore_ted"},
 
     { NULL, 0, 0 }
 };

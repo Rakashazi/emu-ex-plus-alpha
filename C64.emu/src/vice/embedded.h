@@ -61,4 +61,14 @@ typedef struct embedded_palette_s {
     unsigned char *palette;
 } embedded_palette_t;
 
+
+/** \brief  Proper terminator for embedded_t lists
+ */
+#define EMBEDDED_LIST_END { NULL, 0, 0, 0, NULL }
+
+/** \brief  Proper terminator for embedded_palette_t lists
+ */
+#define EMBEDDED_PALETTE_LIST_END { NULL, NULL, 0, NULL }
+
+
 #endif

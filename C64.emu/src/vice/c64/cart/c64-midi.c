@@ -55,7 +55,7 @@ midi_interface_t midi_interface[] = {
     { "Namesoft", 0xde00, 0, 2, 1, 3, 0xff, 1, 2, CARTRIDGE_MIDI_NAMESOFT },
     /* Electronics - Maplin magazine */
     { "Maplin", 0xdf00, 0, 0, 1, 1, 0xff, 2, 0, CARTRIDGE_MIDI_MAPLIN },
-    { NULL }
+    MIDI_INFERFACE_LIST_END
 };
 
 /* ---------------------------------------------------------------------*/
@@ -204,7 +204,7 @@ static const resource_int_t resources_int[] = {
       &midi_mode, midi_set_c64mode, NULL },
     { "MIDIEnable", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &midi_enabled, set_midi_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int c64_midi_resources_init(void)
@@ -224,7 +224,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_SPECIFY_C64_MIDI_TYPE,
       "<0-4>", NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c64_midi_cmdline_options_init(void)

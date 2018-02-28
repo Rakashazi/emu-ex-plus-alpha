@@ -140,7 +140,7 @@ static const cmdline_option_t sidengine_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_ENGINE_MODEL, IDCLS_SPECIFY_SID_ENGINE_MODEL,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 #ifdef HAVE_RESID
@@ -150,7 +150,7 @@ static const cmdline_option_t siddtvengine_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_ENGINE_MODEL, IDCLS_SPECIFY_SIDDTV_ENGINE_MODEL,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t resid_cmdline_options[] = {
@@ -174,7 +174,7 @@ static const cmdline_option_t resid_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NUMBER, IDCLS_RESID_FILTER_BIAS,
       NULL, NULL, },
-    { NULL }
+    CMDLINE_LIST_END
 };
 #endif
 
@@ -190,7 +190,7 @@ static const cmdline_option_t hardsid_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_DEVICE, IDCLS_HARDSID_RIGHT,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 #endif
 
@@ -210,7 +210,7 @@ static cmdline_option_t stereo_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_BASE_ADDRESS, IDCLS_SPECIFY_SID_3_ADDRESS,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t common_cmdline_options[] = {
@@ -224,7 +224,7 @@ static const cmdline_option_t common_cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_SID_FILTERS,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static char *generate_sid_address_range(void)

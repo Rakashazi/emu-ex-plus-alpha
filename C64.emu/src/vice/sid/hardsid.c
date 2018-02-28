@@ -139,4 +139,9 @@ void hardsid_state_write(int chipno, struct sid_hs_snapshot_state_s *sid_state)
         hardsid_drv_state_write(chipno, sid_state);
     }
 }
+#else
+int hardsid_available(void)
+{
+    return 0;
+}
 #endif

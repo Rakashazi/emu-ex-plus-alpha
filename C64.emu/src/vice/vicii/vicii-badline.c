@@ -159,13 +159,13 @@ inline static void line_becomes_bad(const int cycle)
         /* Remember we have done a DMA.  */
         vicii.memory_fetch_done = 2;
     } else if (cycle <= VICII_FETCH_CYCLE + VICII_SCREEN_TEXTCOLS + 6) {
-        /* Bad line has been generated after fetch interval, but
+        /* Bad line has been generated outside fetch interval, but
            before `vicii.raster.ycounter' is incremented.  */
 
         vicii.bad_line = 1;
 
         /* If in idle state, counter is not incremented.  */
-        if (vicii.idle_state) {
+        if (vicii.idle_state && cycle >= VICII_FETCH_CYCLE) {
             vicii.mem_counter_inc = 0;
         }
 
@@ -176,6 +176,8 @@ inline static void line_becomes_bad(const int cycle)
            Anyway, we cannot do it here as the `ycounter' handling
            must happen in as in idle state.  */
         vicii.force_display_state = 1;
+
+        if (cycle == VICII_FETCH_CYCLE + VICII_SCREEN_TEXTCOLS + 7) vicii.mem_counter_inc = 0;
     }
     vicii.ycounter_reset_checked = 1;
 }

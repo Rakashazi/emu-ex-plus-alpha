@@ -1755,7 +1755,7 @@ static int mem_dump_io(void *context, WORD addr)
         return viacore_dump(machine_context.via);
     } else if ((addr >= 0xe880) && (addr <= 0xe881)) {
         if (petres.crtc) {
-            return crtc_dump(&crtc);
+            return crtc_dump();
         }
     } else if (addr == 0xe888) {
 	return e888_dump();

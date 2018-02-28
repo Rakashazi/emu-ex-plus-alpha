@@ -180,6 +180,11 @@ static void mem_update_chargen(unsigned int chargen_high)
 
     old_chargen_rom_ptr = mem_chargen_rom_ptr;
 
+    /* invert line on international version, fixes bug #781 */
+    if (mem_machine_type == C128_MACHINE_INT) {
+        chargen_high = chargen_high ? 0 : 1;
+    }
+
     if (chargen_high) {
         mem_chargen_rom_ptr = mem_chargen_rom;
     } else {
@@ -239,6 +244,8 @@ void mem_update_config(int config)
 void mem_set_machine_type(unsigned type)
 {
     mem_machine_type = type;
+    caps_sense = 1;
+    mem_pla_config_changed();
 }
 
 /* Change the current video bank.  Call this routine only when the vbank
@@ -288,10 +295,14 @@ void mem_set_ram_config(BYTE value)
 
 void mem_pla_config_changed(void)
 {
+    /* NOTE: on the international/US version of the hardware, there is no DIN/ASCII key -
+             instead this key is caps lock */
     c64pla_config_changed(tape_sense, tape_write_in, tape_motor_in, caps_sense, 0x57);
 
     mmu_set_config64(((~pport.dir | pport.data) & 0x7) | (export.exrom << 3) | (export.game << 4));
 
+    /* on the international version, A8 of the chargen comes from the c64/c128 mode, not
+       from the status of the DIN/ASCII (capslock) key */
     if (mem_machine_type != C128_MACHINE_INT) {
         mem_update_chargen(pport.data_read & 0x40);
     }

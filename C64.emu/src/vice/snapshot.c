@@ -854,7 +854,7 @@ static void display_error_with_vice_version(char *text, char *filename)
         sprintf(vmessage, translate_text(IDGS_SNAPSHOT_VICE_VERSION),
                 snapshot_viceversion[0], snapshot_viceversion[1], snapshot_viceversion[2]);
         if (snapshot_vicerevision != 0) {
-            sprintf(message, " (r%d)", snapshot_vicerevision);
+            sprintf(message, " (r%d)", (int)snapshot_vicerevision);
             strcat(vmessage, message);
         }
     }

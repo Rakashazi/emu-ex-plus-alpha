@@ -136,7 +136,7 @@ int fsimage_p64_read_half_track(const disk_image_t *image, unsigned int half_tra
     track = half_track / 2;
 
     raw->data = lib_malloc(NUM_MAX_MEM_BYTES_TRACK);
-    raw->size = (P64PulseStreamConvertToGCRWithLogic(&P64Image->PulseStreams[half_track], (void*)raw->data, NUM_MAX_MEM_BYTES_TRACK, disk_image_speed_map(image->type, track)) + 7) >> 3;
+    raw->size = (P64PulseStreamConvertToGCRWithLogic(&P64Image->PulseStreams[0][half_track], (void*)raw->data, NUM_MAX_MEM_BYTES_TRACK, disk_image_speed_map(image->type, track)) + 7) >> 3;
 
     if (raw->size < 1) {
         raw->size = disk_image_raw_track_size(image->type, track);
@@ -173,7 +173,7 @@ int fsimage_p64_write_half_track(disk_image_t *image, unsigned int half_track,
         return 0;
     }
 
-    P64PulseStreamConvertFromGCR(&P64Image->PulseStreams[half_track], (void*)raw->data, raw->size << 3);
+    P64PulseStreamConvertFromGCR(&P64Image->PulseStreams[0][half_track], (void*)raw->data, raw->size << 3);
 
     return fsimage_write_p64_image(image);
 }
@@ -193,7 +193,7 @@ static int fsimage_p64_write_track(disk_image_t *image, unsigned int track,
         return -1;
     }
 
-    P64PulseStreamConvertFromGCR(&P64Image->PulseStreams[track << 1], (void*)gcr_track_start_ptr, gcr_track_size << 3);
+    P64PulseStreamConvertFromGCR(&P64Image->PulseStreams[0][track << 1], (void*)gcr_track_start_ptr, gcr_track_size << 3);
 
     return fsimage_write_p64_image(image);
 }

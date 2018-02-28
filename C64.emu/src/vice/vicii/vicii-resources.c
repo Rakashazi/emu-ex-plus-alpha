@@ -95,7 +95,7 @@ static const resource_int_t resources_int[] =
     { "VICIICheckSbColl", 1, RES_EVENT_SAME, NULL,
       &vicii_resources.sprite_background_collisions_enabled,
       set_sprite_background_collisions_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static int set_new_luminances(int val, void *param)
@@ -110,7 +110,7 @@ static const resource_int_t resources_int_dtv[] =
     { "VICIINewLuminances", 1, RES_EVENT_NO, NULL,
       &vicii_resources.new_luminances,
       set_new_luminances, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vicii_resources_init(void)

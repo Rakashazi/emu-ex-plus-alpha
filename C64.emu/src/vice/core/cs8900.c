@@ -1143,7 +1143,7 @@ static WORD cs8900_read_register(WORD ppaddress)
         regNum &= ~1;
 #ifdef CS8900_DEBUG_REGISTERS
 #ifdef CS8900_DEBUG_IGNORE_RXEVENT
-        if (regNum != 4) // do not show RXEVENT
+        if (regNum != 4) /* do not show RXEVENT */
 #endif
         log_message(cs8900_log, "Read  Status  Register %04x: %04x (reg=%02x)", ppaddress, value, regNum);
 #endif

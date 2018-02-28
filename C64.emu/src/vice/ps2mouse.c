@@ -472,7 +472,7 @@ static const resource_int_t resources_int[] = {
       &ps2mouse_enabled, set_ps2mouse_enable, NULL },
     { "Mouse", 0, RES_EVENT_SAME, NULL,
       &_mouse_ps2_enable, set_mouse_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const cmdline_option_t cmdline_options[] =
@@ -487,7 +487,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_PS2MOUSE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 /* ------------------------------------------------------------------------- */

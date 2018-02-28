@@ -56,6 +56,8 @@ struct midi_interface_s {
 };
 typedef struct midi_interface_s midi_interface_t;
 
+#define MIDI_INFERFACE_LIST_END { NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+
 extern midi_interface_t midi_interface[];
 
 extern int midi_enabled;

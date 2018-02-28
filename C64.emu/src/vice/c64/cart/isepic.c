@@ -359,7 +359,7 @@ static int set_isepic_filename(const char *name, void *param)
 static const resource_string_t resources_string[] = {
     { "Isepicfilename", "", RES_EVENT_NO, NULL,
       &isepic_filename, set_isepic_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -369,7 +369,7 @@ static const resource_int_t resources_int[] = {
       &isepic_switch, set_isepic_switch, NULL },
     { "IsepicImageWrite", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &isepic_write_image, set_isepic_rw, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int isepic_resources_init(void)
@@ -425,7 +425,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_ISEPIC_SWITCH,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int isepic_cmdline_options_init(void)

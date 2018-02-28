@@ -587,7 +587,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
 
     rptr = &rotation[dptr->mynumber];
 
-    P64PulseStream = &dptr->p64->PulseStreams[dptr->current_half_track];
+    P64PulseStream = &dptr->p64->PulseStreams[dptr->side][dptr->current_half_track];
 
     /* Reset if out of head position bounds */
     if ((P64PulseStream->UsedLast >= 0) &&

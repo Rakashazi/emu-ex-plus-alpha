@@ -40,7 +40,7 @@ static cmdline_option_t cmd_drive[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_TYPE, IDCLS_PAR_CABLE_PLUS4EXP_TYPE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int plus4exp_cmdline_options_init(void)
@@ -57,8 +57,8 @@ int plus4exp_cmdline_options_init(void)
         }
 
         for (i = 0; i < 1; i++) {
-            lib_free((char *)cmd_drive[i].name);
-            lib_free((char *)cmd_drive[i].resource_name);
+            lib_free(cmd_drive[i].name);
+            lib_free(cmd_drive[i].resource_name);
         }
     }
 

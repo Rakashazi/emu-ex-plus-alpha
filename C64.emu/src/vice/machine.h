@@ -49,11 +49,11 @@ extern const char machine_name[];
 #define VICE_MACHINE_VSID      10
 #define VICE_MACHINE_SCPU64    11
 
-/* Sync factors.  */
-#define MACHINE_SYNC_PAL     -1
-#define MACHINE_SYNC_NTSC    -2
-#define MACHINE_SYNC_NTSCOLD -3
-#define MACHINE_SYNC_PALN    -4
+/* Sync factors (changed to positive 2016-11-07, BW)  */
+#define MACHINE_SYNC_PAL     1
+#define MACHINE_SYNC_NTSC    2
+#define MACHINE_SYNC_NTSCOLD 3
+#define MACHINE_SYNC_PALN    4
 
 struct machine_timing_s {
     unsigned int cycles_per_line;
@@ -103,8 +103,8 @@ extern void machine_maincpu_init(void);
 /* Reset the machine.  */
 #define MACHINE_RESET_MODE_SOFT 0
 #define MACHINE_RESET_MODE_HARD 1
-extern VICE_API void machine_trigger_reset(const unsigned int reset_mode);
-extern void machine_reset(void);
+extern void machine_trigger_reset(const unsigned int reset_mode);
+extern VICE_API void machine_reset(void);
 extern void machine_specific_reset(void);
 extern void machine_reset_event_playback(CLOCK offset, void *data);
 

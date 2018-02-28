@@ -99,7 +99,7 @@ static int set_memory_hack(int value, void *param)
 static const resource_int_t resources_int[] = {
     { "MemoryHack", MEMORY_HACK_NONE, RES_EVENT_STRICT, (resource_value_t)0,
       &memory_hack, set_memory_hack, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int memory_hacks_resources_init(void)
@@ -116,7 +116,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_DEVICE, IDCLS_SET_C64_MEMORY_HACK,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int memory_hacks_cmdline_options_init(void)

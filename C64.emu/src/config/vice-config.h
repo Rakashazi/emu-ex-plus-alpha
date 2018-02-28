@@ -500,7 +500,7 @@
 #define HAVE_RESID /**/
 
 /* This version provides ReSID-DTV support. */
-//#define HAVE_RESID_DTV /**/
+#define HAVE_RESID_DTV /**/
 
 /* Define to 1 if you have the `rewinddir' function. */
 #define HAVE_REWINDDIR 1
@@ -573,6 +573,9 @@
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
+
+/* Define to 1 if you have the `stpcpy' function. */
+#define HAVE_STPCPY 1
 
 /* Define to 1 if you have the `strcasecmp' function. */
 #define HAVE_STRCASECMP 1
@@ -931,7 +934,7 @@
 //#define USE_XF86_VIDMODE_EXT /**/
 
 /* Version number of package */
-#define VERSION "2.4.28"
+#define VERSION "3.1"
 
 /* Win32 Version string. */
 #define VERSION_RC "$VERSION_RC"
@@ -1008,4 +1011,3 @@
 
 #define VICE_API __attribute__((visibility("default")))
 
-#define HAVE_STPCPY

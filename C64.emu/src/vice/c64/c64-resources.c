@@ -258,7 +258,7 @@ static const resource_string_t resources_string[] = {
     { "BasicName", "basic", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &basic_rom_name, set_basic_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -280,7 +280,7 @@ static const resource_int_t resources_int[] = {
       (int *)&sid_triple_address_start, sid_set_sid_triple_address, NULL },
     { "BurstMod", BURST_MOD_NONE, RES_EVENT_NO, NULL,
       &burst_mod, set_burst_mod, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 void c64_resources_update_cia_models(int model)

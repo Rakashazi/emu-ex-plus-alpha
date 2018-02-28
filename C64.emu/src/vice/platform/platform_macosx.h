@@ -33,11 +33,11 @@
 #include "AvailabilityMacros.h"
 
 /* determine compile-time OS */
-#ifdef MAC_OS_X_VERSION_10_12
+#if !defined(PLATFORM_OS) && defined MAC_OS_X_VERSION_10_12
 #define PLATFORM_OS "MacOS Sierra (10.12)"
 #endif
 
-#ifdef MAC_OS_X_VERSION_10_11
+#if !defined(PLATFORM_OS) && defined MAC_OS_X_VERSION_10_11
 #define PLATFORM_OS "Mac OS X 10.11 (El Capitan)"
 #endif
 

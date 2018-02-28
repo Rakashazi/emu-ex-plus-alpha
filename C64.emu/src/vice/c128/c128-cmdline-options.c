@@ -229,7 +229,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_C128_FULL_BANKS,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c128_cmdline_options_init(void)

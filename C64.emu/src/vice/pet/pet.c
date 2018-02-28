@@ -39,7 +39,6 @@
 #include "cartio.h"
 #include "clkguard.h"
 #include "cmdline.h"
-#include "coplin_keypad.h"
 #include "crtc-mem.h"
 #include "crtc.h"
 #include "datasette.h"
@@ -90,7 +89,6 @@
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
-#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -291,14 +289,6 @@ int machine_resources_init(void)
     }
     if (joyport_paperclip64_resources_init() < 0) {
         init_resource_fail("joyport paperclip64 dongle");
-        return -1;
-    }
-    if (joyport_coplin_keypad_resources_init() < 0) {
-        init_resource_fail("joyport coplin keypad");
-        return -1;
-    }
-    if (joyport_rushware_keypad_resources_init() < 0) {
-        init_resource_fail("joyport rushware keypad");
         return -1;
     }
     if (joystick_resources_init() < 0) {
@@ -887,12 +877,13 @@ void machine_change_timing(int timeval, int border_mode)
     debug_set_machine_parameter(machine_timing.cycles_per_line, machine_timing.screen_lines);
     drive_set_machine_parameter(machine_timing.cycles_per_sec);
 
-    /* Should these be called also?
-    //vsync_set_machine_parameter(machine_timing.rfsh_per_sec, machine_timing.cycles_per_sec);
+    /* Should these be called also? */
+#if 0
+    vsync_set_machine_parameter(machine_timing.rfsh_per_sec, machine_timing.cycles_per_sec);
     sound_set_machine_parameter(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
     clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
-    */
+#endif
 
     machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }

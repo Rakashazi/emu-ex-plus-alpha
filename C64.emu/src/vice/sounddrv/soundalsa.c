@@ -81,7 +81,8 @@ static int alsa_init(const char *param, int *speed, int *fragsize, int *fragnr, 
         goto fail;
     }
 
-    if ((err = snd_pcm_hw_params_set_channels(handle, hwparams, *channels)) < 0) {
+    if ((err = snd_pcm_hw_params_set_channels(handle, hwparams,
+                    (unsigned int)*channels)) < 0) {
         log_message(LOG_DEFAULT, "Channels count (%i) not available for playbacks: %s", *channels, snd_strerror(err));
         goto fail;
     }
@@ -92,30 +93,30 @@ static int alsa_init(const char *param, int *speed, int *fragsize, int *fragnr, 
         goto fail;
     }
     if (rate != (unsigned int)*speed) {
-        printf("Rate doesn't match (requested %iHz, got %iHz)", *speed, rate);
-        *speed = rate;
+        printf("Rate doesn't match (requested %iHz, got %uHz)", *speed, rate);
+        *speed = (int)rate;
     }
     /* calculate requested buffer size */
     alsa_bufsize = (*fragsize) * (*fragnr);
 
-    period_size = *fragsize;
+    period_size = (snd_pcm_uframes_t)*fragsize;
     dir = 0;
     if ((err = snd_pcm_hw_params_set_period_size_near(handle, hwparams, &period_size, &dir)) < 0) {
         log_message(LOG_DEFAULT, "Unable to set period size %li for playback: %s", period_size, snd_strerror(err));
         goto fail;
     }
-    *fragsize = period_size;
+    *fragsize = (int)period_size;
 
     /* number of periods according to the buffer size we wanted, nearest val */
     *fragnr = (alsa_bufsize + *fragsize / 2) / *fragsize;
 
-    periods = *fragnr;
+    periods = (unsigned int)*fragnr;
     dir = 0;
     if ((err = snd_pcm_hw_params_set_periods_near(handle, hwparams, &periods, &dir)) < 0) {
         log_message(LOG_DEFAULT, "Unable to set periods %i for playback: %s", periods, snd_strerror(err));
         goto fail;
     }
-    *fragnr = periods;
+    *fragnr = (int)periods;
 
     alsa_can_pause = snd_pcm_hw_params_can_pause(hwparams);
 
@@ -162,10 +163,10 @@ static int alsa_write(SWORD *pbuf, size_t nr)
 {
     int err;
 
-    nr /= alsa_channels;
+    nr /= (size_t)alsa_channels;
 
     while (nr > 0) {
-        err = snd_pcm_writei(handle, pbuf, nr);
+        err = (int)snd_pcm_writei(handle, pbuf, nr);
         if (err == -EAGAIN) {
             log_message(LOG_DEFAULT, "Write error: %s", snd_strerror(err));
             continue;
@@ -174,7 +175,7 @@ static int alsa_write(SWORD *pbuf, size_t nr)
             return 1;
         }
         pbuf += err * alsa_channels;
-        nr -= err;
+        nr -= (size_t)err;
     }
 
     return 0;
@@ -192,7 +193,7 @@ static int alsa_bufferspace(void)
     if (space < 0 || space > alsa_bufsize) {
         space = alsa_bufsize;
     }
-    return space;
+    return (int)space;
 }
 
 static void alsa_close(void)

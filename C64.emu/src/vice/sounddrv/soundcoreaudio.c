@@ -385,7 +385,7 @@ static OSStatus audio_render(AudioDeviceID device,
                              const AudioTimeStamp  * output_time,
                              void                  * client_data)
 {
-    // get the number of frames(=packets) in the output buffer
+    /* get the number of frames(=packets) in the output buffer */
     UInt32 bufferPacketSize = output_data->mBuffers[0].mDataByteSize / out_frame_byte_size;
 
     OSStatus result = AudioConverterFillComplexBuffer(converter,

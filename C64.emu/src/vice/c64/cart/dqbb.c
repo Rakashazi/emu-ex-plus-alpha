@@ -285,7 +285,7 @@ static int set_dqbb_image_write(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "DQBBfilename", "", RES_EVENT_NO, NULL,
       &dqbb_filename, set_dqbb_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -293,7 +293,7 @@ static const resource_int_t resources_int[] = {
       &dqbb_enabled, set_dqbb_enabled, NULL },
     { "DQBBImageWrite", 0, RES_EVENT_NO, NULL,
       &dqbb_write_image, set_dqbb_image_write, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int dqbb_resources_init(void)
@@ -340,7 +340,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_DQBB_IMAGE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int dqbb_cmdline_options_init(void)

@@ -92,7 +92,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_ITEM_NUMBER, IDCLS_SELECT_ITEM_FROM_ROMSET_ARCHIVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int romset_cmdline_options_init()

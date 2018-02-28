@@ -216,7 +216,7 @@ static const resource_string_t resources_string[] = {
     { "SCPU64Name", "scpu64", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &scpu64_rom_name, set_scpu64_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -240,7 +240,7 @@ static const resource_int_t resources_int[] = {
       &scpu64_jiffy_switch, set_jiffy_switch, NULL },
     { "SpeedSwitch", 1, RES_EVENT_STRICT, NULL,
       &scpu64_speed_switch, set_speed_switch, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 void scpu64_resources_update_cia_models(int model)

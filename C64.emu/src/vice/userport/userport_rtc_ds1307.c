@@ -143,7 +143,7 @@ static const resource_int_t resources_int[] = {
       &userport_rtc_ds1307_enabled, set_userport_rtc_enabled, NULL },
     { "UserportRTCDS1307Save", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &ds1307_rtc_save, set_userport_rtc_save, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int userport_rtc_ds1307_resources_init(void)
@@ -175,7 +175,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_RTC_DS1307_SAVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int userport_rtc_ds1307_cmdline_options_init(void)

@@ -497,7 +497,7 @@ static const resource_string_t resources_string[] =
       &cartridge_file_A, set_cartridge_file_A, NULL },
     { "GenericCartridgeFileB000", "", RES_EVENT_STRICT, (resource_value_t)"",
       &cartridge_file_B, set_cartridge_file_B, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int generic_resources_init(void)

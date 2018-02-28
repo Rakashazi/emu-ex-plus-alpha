@@ -65,8 +65,20 @@
 #define PLATFORM_OS "QNX 6.4.0"
 #endif
 
+#if (_NTO_VERSION==641)
+#define PLATFORM_OS "QNX 6.4.1"
+#endif
+ 
+#if (_NTO_VERSION==650)
+#define PLATFORM_OS "QNX 6.5"
+#endif
+
+#if (_NTO_VERSION==660)
+#define PLATFORM_OS "QNX 6.6"
+#endif
+
 #ifndef PLATFORM_OS
 #define PLATFORM_OS "QNX 6.x"
 #endif
 
-#endif // VICE_PLATFORM_QNX6_VERSION_H
+#endif /* VICE_PLATFORM_QNX6_VERSION_H */

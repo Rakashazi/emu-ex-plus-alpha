@@ -44,7 +44,7 @@ static int aiff_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     /* AIFF header. */
     BYTE header[54] = "FORMssssAIFFCOMM\0\0\0\022\0cffff\0\020\100rrr\0\0\0\0\0\0SSNDssss\0\0\0\0\0\0\0\0";
 
-    DWORD sample_rate = *speed;
+    DWORD sample_rate = (DWORD)*speed;
 
     if (sample_rate < 8000 || sample_rate > 48000) {
         return 1;
@@ -79,7 +79,7 @@ static int aiff_write(SWORD *pbuf, size_t nr)
 
     /* Swap bytes on little endian machines. */
     for (i = 0; i < nr; i++) {
-        pbuf[i] = (((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8);
+        pbuf[i] = (SWORD)((((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8));
     }
 #endif
 
@@ -90,7 +90,7 @@ static int aiff_write(SWORD *pbuf, size_t nr)
     /* Swap the bytes back just in case. */
 #ifndef WORDS_BIGENDIAN
     for (i = 0; i < nr; i++) {
-        pbuf[i] = (((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8);
+        pbuf[i] = (SWORD)((((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8));
     }
 #endif
 

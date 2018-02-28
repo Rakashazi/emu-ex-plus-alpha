@@ -84,5 +84,5 @@ extern lamelib_t lamelib;
 extern int lamelib_open(void);
 extern void lamelib_close(void);
 
-#endif
-#endif
+#endif  /* ifdef HAVE_STATIC_LAME */
+#endif  /* ifndef VICE_MP3LAME_H */

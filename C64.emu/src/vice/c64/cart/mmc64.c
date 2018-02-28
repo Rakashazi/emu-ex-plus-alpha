@@ -1122,7 +1122,7 @@ static const resource_string_t resources_string[] = {
       &mmc64_bios_filename, set_mmc64_bios_filename, NULL },
     { "MMC64imagefilename", "", RES_EVENT_NO, NULL,
       &mmc64_image_filename, set_mmc64_image_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -1140,7 +1140,7 @@ static const resource_int_t resources_int[] = {
       &mmc64_sd_type, set_mmc64_sd_type, NULL },
     { "MMC64ClockPort", 0, RES_EVENT_NO, NULL,
       &clockport_device_id, set_mmc64_clockport_device, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int mmc64_resources_init(void)
@@ -1226,7 +1226,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_TYPE, IDCLS_SPECIFY_MMC64_SD_TYPE,
       NULL, NULL },
-  { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t clockport_cmdline_options[] =
@@ -1236,7 +1236,7 @@ static cmdline_option_t clockport_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_DEVICE, IDCLS_CLOCKPORT_DEVICE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int mmc64_cmdline_options_init(void)

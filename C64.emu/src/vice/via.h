@@ -86,8 +86,8 @@ typedef struct via_context_s {
     int ifr;
     int ier;
     unsigned int tal;
-    BYTE t2cl; /* IF: T2 counter low */
-    BYTE t2ch; /* IF: T2 counter high */
+    BYTE t2cl; /* T2 counter low */
+    BYTE t2ch; /* T2 counter high */
     CLOCK tau;
     CLOCK tbu;
     CLOCK tai;
@@ -103,9 +103,10 @@ typedef struct via_context_s {
     BYTE ilb;
     int ca2_state;
     int cb2_state;
-    BYTE shift_state;          /* IF: state helper for shift register */
+    BYTE shift_state;          /* state helper for shift register */
     struct alarm_s *t1_alarm;
     struct alarm_s *t2_alarm;
+    struct alarm_s *sr_alarm;
     signed int log;            /* init to LOG_ERR */
 
     CLOCK read_clk;            /* init to 0 */
@@ -167,6 +168,7 @@ extern BYTE viacore_read(struct via_context_s *via_context,
 extern BYTE viacore_peek(struct via_context_s *via_context,
                          WORD addr);
 
+/* WARNING: this is a hack */
 extern void viacore_set_sr(via_context_t *via_context, BYTE data);
 
 extern int viacore_snapshot_write_module(struct via_context_s *via_context,

@@ -44,16 +44,17 @@
 #define CRTC_SATURATION   63.0f
 
 /* phase shift of all colors */
-#define CRTC_PHASE         0.0f
+#define CRTC_PHASE        -9.5f
 
 /* chroma angles in UV space */
 #define ANGLE_BLK          0.0f
 #define ANGLE_GRN       -135.0f
 
+/* FIXME: this is just hand tuned to look somewhat like P1 Phosphor (#41ff00) */
 static video_cbm_color_t crtc_colors[CRTC_NUM_COLORS] =
 {
     {   0.0f, ANGLE_BLK, -0, "Black"       },
-    { 192.0f, ANGLE_GRN,  1, "Green"       },
+    { 128.0f, ANGLE_GRN + 20.0f,  1, "Green"       },
 };
 
 static video_cbm_palette_t crtc_palette =

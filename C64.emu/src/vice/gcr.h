@@ -41,8 +41,8 @@
  * the G64 track size field is a 16-bit word */
 #define NUM_MAX_MEM_BYTES_TRACK 65536
 
-/* Number of tracks we emulate. 84 for 1541, 140 for 1571 */
-#define MAX_GCR_TRACKS 140
+/* Number of tracks we emulate. 84 for 1541, 168 for 1571 */
+#define MAX_GCR_TRACKS 168
 
 #define SECTOR_GCR_SIZE_WITH_HEADER 340
 

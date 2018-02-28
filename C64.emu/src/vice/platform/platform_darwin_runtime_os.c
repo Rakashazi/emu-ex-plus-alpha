@@ -177,7 +177,7 @@ char *platform_get_darwin_runtime_cpu(void)
         }
 
 #ifdef __ppc__
-        if (!stat("/usr/libexec/oah/translate", &st))
+        if (!stat("/usr/libexec/oah/translate", &st)) {
             tempfile = archdep_tmpnam();
             tempsystem = util_concat("uname -m >", tempfile, NULL);
             system(tempsystem);

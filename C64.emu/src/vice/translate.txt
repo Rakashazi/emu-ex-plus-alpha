@@ -625,6 +625,12 @@ IDGS_PAPERCLIP64_DONGLE
 /* joyport/coplin_keypad.c */
 IDGS_COPLIN_KEYPAD
 
+/* joyport/script64_dongle.c */
+IDGS_SCRIPT64_DONGLE
+
+/* joyport/vizawrite64_dongle.c */
+IDGS_VIZAWRITE64_DONGLE
+
 /* joyport/cx21.c */
 IDGS_CX21
 
@@ -2019,6 +2025,15 @@ IDCLS_DISABLE_SUPERCARD
 /* drive/iec/c64exp/c64exp-cmdline-options.c */
 IDCLS_SPECIFY_SUPERCARD_ROM_NAME
 
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_ENABLE_STARDOS
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_DISABLE_STARDOS
+
+/* drive/iec/c64exp/c64exp-cmdline-options.c */
+IDCLS_SPECIFY_STARDOS_ROM_NAME
+
 /* drive/iec/plus4exp/plus4exp-cmdline-options.c */
 IDCLS_PAR_CABLE_PLUS4EXP_TYPE
 
@@ -2941,6 +2956,9 @@ IDCLS_SPECIFY_LOG_FILE_NAME
 
 /* log.c */
 IDCLS_ENABLE_VERBOSE_LOG_OUTPUT
+
+/* log.c */
+IDCLS_DISABLE_LOG_OUTPUT
 
 /* mouse.c */
 IDCLS_ENABLE_MOUSE_GRAB

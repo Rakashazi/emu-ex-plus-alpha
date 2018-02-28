@@ -143,7 +143,7 @@ static int set_dtlbasic_dongle_enabled(int value, void *param)
 static const resource_int_t resources_int[] = {
     { "DTLBasicDongle", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &dtlbasic_dongle_enabled, set_dtlbasic_dongle_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int dtlbasic_dongle_resources_init(void)
@@ -165,7 +165,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DTL_BASIC_DONGLE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int dtlbasic_dongle_cmdline_options_init(void)

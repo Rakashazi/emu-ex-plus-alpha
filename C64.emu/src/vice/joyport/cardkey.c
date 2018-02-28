@@ -116,7 +116,7 @@ The PRESS (POT AY) line is used to indicate a key press.
 
 static int cardkey_enabled = 0;
 
-static int keys[16];
+static unsigned int keys[16];
 
 /* ------------------------------------------------------------------------- */
 
@@ -127,7 +127,7 @@ static void handle_keys(int row, int col, int pressed)
         return;
     }
 
-    keys[(row * 4) + col - 1] = pressed;
+    keys[(row * 4) + col - 1] = (unsigned int)pressed;
 }
 #endif
 
@@ -159,8 +159,8 @@ static int joyport_cardkey_enable(int port, int value)
 
 static BYTE cardkey_read_dig(int port)
 {
-    BYTE retval = 0;
-    BYTE tmp;
+    unsigned int retval = 0;
+    unsigned int tmp;
 
     /* KEY3 */
     tmp = keys[KEYPAD_KEY_0] |
@@ -213,7 +213,7 @@ static BYTE cardkey_read_dig(int port)
 
     joyport_display_joyport(JOYPORT_ID_CARDCO_KEYPAD, (BYTE)~retval);
 
-    return retval;
+    return (BYTE)retval;
 }
 
 static BYTE cardkey_read_pot(void)

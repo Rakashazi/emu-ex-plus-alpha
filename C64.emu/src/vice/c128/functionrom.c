@@ -186,7 +186,7 @@ static const resource_string_t resources_string[] =
     { "ExternalFunctionName", "", RES_EVENT_NO, NULL,
       &external_function_rom_name,
       set_external_function_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] =
@@ -203,7 +203,7 @@ static const resource_int_t resources_int[] =
     { "ExternalFunctionROMRTCSave", 0, RES_EVENT_NO, NULL,
       &external_function_rtc_save,
       set_external_function_rtc_save, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int functionrom_resources_init(void)
@@ -269,7 +269,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_EXT_FUNC_RTC_SAVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int functionrom_cmdline_options_init(void)

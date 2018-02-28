@@ -212,7 +212,6 @@ char *ioutil_current_dir(void)
     return p;
 }
 
-#ifndef DINGOO_NATIVE
 static int dirs_amount = 0;
 static int files_amount = 0;
 
@@ -333,7 +332,7 @@ static void ioutil_filldir(const char *path, ioutil_name_table_t *dirs, ioutil_n
                     lib_free(filename);
                     filename = NULL;
                 }
-#endif // DT_LNK
+#endif /* DT_LNK */
             } else {
                 files[file_count].name = lib_stralloc(dp->d_name);
                 file_count++;
@@ -386,7 +385,6 @@ ioutil_dir_t *ioutil_opendir(const char *path)
 
     return ioutil_dir;
 }
-#endif
 
 char *ioutil_readdir(ioutil_dir_t *ioutil_dir)
 {

@@ -196,7 +196,7 @@ static const resource_string_t resources_string[] = {
       &dos_rom_name_2000, set_dos_rom_name_2000, NULL },
     { "DosName4000", "dos4000", RES_EVENT_NO, NULL,
       &dos_rom_name_4000, set_dos_rom_name_4000, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static resource_int_t res_drive[] = {
@@ -210,7 +210,7 @@ static resource_int_t res_drive[] = {
       NULL, set_drive_ram8, NULL },
     { NULL, 0, RES_EVENT_SAME, NULL,
       NULL, set_drive_rama, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int iec_resources_init(void)
@@ -241,11 +241,11 @@ int iec_resources_init(void)
             return -1;
         }
 
-        lib_free((char *)(res_drive[0].name));
-        lib_free((char *)(res_drive[1].name));
-        lib_free((char *)(res_drive[2].name));
-        lib_free((char *)(res_drive[3].name));
-        lib_free((char *)(res_drive[4].name));
+        lib_free(res_drive[0].name);
+        lib_free(res_drive[1].name);
+        lib_free(res_drive[2].name);
+        lib_free(res_drive[3].name);
+        lib_free(res_drive[4].name);
     }
 
     if (resources_register_string(resources_string) < 0) {

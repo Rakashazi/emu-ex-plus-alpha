@@ -295,9 +295,6 @@ static vice_network_socket_t * vice_network_alloc_new_socket(SOCKET sockfd)
  *   If this function returns with an error, it is
  *   likely that all subsequent networking functions
  *   will fail.
- *
- * \todo
- *   Currently, archdep_network_shutdown() is never called!
  */
 static int socket_init(void)
 {

@@ -273,10 +273,14 @@
 #define PLATFORM_OS "NetBSD 7.0.2"
 #endif
 
+#if (__NetBSD_Version__==701000000)
+#define PLATFORM_OS "NetBSD 7.1"
+#endif
+
 #endif /* !PLATFORM_OS */
 
 #ifndef PLATFORM_OS
 #define PLATFORM_OS "NetBSD"
 #endif
 
-#endif // VICE_PLATFORM_NETBSD_VERSION_H
+#endif /* VICE_PLATFORM_NETBSD_VERSION_H */

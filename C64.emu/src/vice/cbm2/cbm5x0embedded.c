@@ -42,36 +42,46 @@
 #include "cbm2chargen500.h"
 #include "cbm2kernal500.h"
 
-#include "pet_amber_vpl.h"
-#include "c64_c64hq_vpl.h"
-#include "c64_c64s_vpl.h"
-#include "c64_ccs64_vpl.h"
-#include "c64_default_vpl.h"
-#include "c64_frodo_vpl.h"
-#include "c64_godot_vpl.h"
-#include "pet_green_vpl.h"
-#include "c64_pc64_vpl.h"
-#include "pet_white_vpl.h"
+#include "vicii_c64hq_vpl.h"
+#include "vicii_c64s_vpl.h"
+#include "vicii_ccs64_vpl.h"
+#include "vicii_community_colors_vpl.h"
+#include "vicii_deekay_vpl.h"
+#include "vicii_frodo_vpl.h"
+#include "vicii_godot_vpl.h"
+#include "vicii_pc64_vpl.h"
+#include "vicii_pepto_ntsc_vpl.h"
+#include "vicii_pepto_ntsc_sony_vpl.h"
+#include "vicii_pepto_pal_vpl.h"
+#include "vicii_pepto_palold_vpl.h"
+#include "vicii_ptoing_vpl.h"
+#include "vicii_rgb_vpl.h"
+#include "vicii_vice_vpl.h"
 
 static embedded_t cbm2files[] = {
     { "basic.500", 0x4000, 0x4000, 0x4000, cbm2basic500_embedded },
     { "chargen.500", 0x1000, 0x1000, 0x1000, cbm2chargen500_embedded },
     { "kernal.500", 0x2000, 0x2000, 0x2000, cbm2kernal500_embedded },
-    { NULL }
+    EMBEDDED_LIST_END
 };
 
 static embedded_palette_t palette_files[] = {
-    { "amber", "amber.vpl", 2, pet_amber_vpl   },
-    { "c64hq", "c64hq.vpl", 16, c64_c64hq_vpl   },
-    { "c64s", "c64s.vpl", 16, c64_c64s_vpl    },
-    { "ccs64", "ccs64.vpl", 16, c64_ccs64_vpl   },
-    { "default", "default.vpl", 16, c64_default_vpl },
-    { "frodo", "frodo.vpl", 16, c64_frodo_vpl   },
-    { "godot", "godot.vpl", 16, c64_godot_vpl   },
-    { "green", "green.vpl", 2, pet_green_vpl   },
-    { "pc64", "pc64.vpl", 16, c64_pc64_vpl    },
-    { "white", "white.vpl", 2, pet_white_vpl   },
-    { NULL }
+    { "c64hq", "c64hq.vpl", 16, vicii_c64hq_vpl },
+    { "c64s", "c64s.vpl", 16, vicii_c64s_vpl  },
+    { "ccs64", "ccs64.vpl", 16, vicii_ccs64_vpl },
+    { "community-colors", "community-colors.vpl", 16, vicii_community_colors_vpl },
+    { "deekay", "deekay.vpl", 16, vicii_deekay_vpl },
+    { "frodo", "frodo.vpl", 16, vicii_frodo_vpl },
+    { "godot", "godot.vpl", 16, vicii_godot_vpl },
+    { "pc64", "pc64.vpl", 16, vicii_pc64_vpl },
+    { "pepto-ntsc", "pepto-ntsc.vpl", 16, vicii_pepto_ntsc_vpl },
+    { "pepto-ntsc-sony", "pepto-ntsc-sony.vpl", 16, vicii_pepto_ntsc_sony_vpl },
+    { "pepto-pal", "pepto-pal.vpl", 16, vicii_pepto_pal_vpl },
+    { "pepto-palold", "pepto-palold.vpl", 16, vicii_pepto_palold_vpl },
+    { "ptoing", "ptoing.vpl", 16, vicii_ptoing_vpl },
+    { "rgb", "rgb.vpl", 16, vicii_rgb_vpl },
+    { "vice", "vice.vpl", 16, vicii_vice_vpl },
+    EMBEDDED_PALETTE_LIST_END
 };
 
 static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)

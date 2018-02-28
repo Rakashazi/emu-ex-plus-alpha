@@ -160,6 +160,9 @@ static int set_sidcart_enabled(int value, void *param)
             sidcart_disable();
         }
         sidcart_sound_chip.chip_enabled = val;
+#ifdef HAVE_RESID
+        sid_set_enable(val);
+#endif
         sound_state_changed = 1;
     }
     return 0;
@@ -200,11 +203,14 @@ static const resource_int_t sidcart_resources_int[] = {
       &sidcart_address, set_sid_address, NULL },
     { "SidClock", SIDCART_CLOCK_NATIVE, RES_EVENT_SAME, NULL,
       &sidcart_clock, set_sid_clock, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int sidcart_resources_init(void)
 {
+#ifdef HAVE_RESID
+    sid_set_enable(0);
+#endif
     if (sid_resources_init() < 0) {
         return -1;
     }
@@ -234,7 +240,7 @@ static const cmdline_option_t sidcart_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_CLOCK, IDCLS_PLUS4_SIDCART_CLOCK,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int sidcart_cmdline_options_init(void)

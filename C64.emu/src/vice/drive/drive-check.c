@@ -311,3 +311,18 @@ int drive_check_supercard(int drive_type)
     }
     return 0;
 }
+
+int drive_check_stardos(int drive_type)
+{
+    switch (drive_type) {
+    case DRIVE_TYPE_1540:
+    case DRIVE_TYPE_1541:
+    case DRIVE_TYPE_1541II:
+ /* FIXME: stardos apparently exists for 157x, needs more research */
+ /* case DRIVE_TYPE_1570:
+    case DRIVE_TYPE_1571:
+    case DRIVE_TYPE_1571CR: */
+        return 1;
+    }
+    return 0;
+}

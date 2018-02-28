@@ -234,6 +234,7 @@ extern unsigned char data_mask_buf[256];
 extern unsigned int data_buf_len;
 
 /* Function declarations */
+extern void mon_clear_buffer(void);
 extern void mon_add_number_to_buffer(int number);
 extern void mon_add_number_masked_to_buffer(int number, int mask);
 extern void mon_add_string_to_buffer(char *str);

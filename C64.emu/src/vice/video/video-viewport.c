@@ -153,7 +153,7 @@ void video_viewport_resize(video_canvas_t *canvas, char resize_canvas)
     if (!geometry->gfx_area_moves && first_line > (int)gfx_position->y) {
         first_line = (int)gfx_position->y;
     }
-    displayed_height = (real_gfx_height > (int)height) ? height : real_gfx_height;
+    displayed_height = (real_gfx_height > (int)height) ? (int)height : real_gfx_height;
     viewport->first_line = (unsigned int)first_line;
     viewport->y_offset = (unsigned int)y_offset;
     viewport->last_line = viewport->first_line + (unsigned int)displayed_height - 1;

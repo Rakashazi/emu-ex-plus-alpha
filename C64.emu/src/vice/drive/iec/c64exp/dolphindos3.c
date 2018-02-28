@@ -53,14 +53,14 @@ static mc6821_state my6821[DRIVE_NUM];
 
 static void dd3_set_pa(mc6821_state *ctx)
 {
-    unsigned int dnr = ((drive_context_t *)(ctx->p))->mynumber;
+    unsigned int dnr = (unsigned int)(((drive_context_t *)(ctx->p))->mynumber);
     parallel_cable_drive_write(DRIVE_PC_DD3, ctx->dataA, PARALLEL_WRITE, dnr);
     /* DBG(("DD3 (%d) 6821 PA WR %02x\n", dnr, ctx->dataA)); */
 }
 
 static BYTE dd3_get_pa(mc6821_state *ctx)
 {
-    unsigned int dnr = ((drive_context_t *)(ctx->p))->mynumber;
+    unsigned int dnr = (unsigned int)(((drive_context_t *)(ctx->p))->mynumber);
     BYTE data;
     int hs = 0;
 

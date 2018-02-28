@@ -127,4 +127,4 @@
 #  define FIND_X86_CPU
 #endif
 
-#endif // VICE_PLATFORM_AIX_VERSION_H
+#endif /* VICE_PLATFORM_AIX_VERSION_H */

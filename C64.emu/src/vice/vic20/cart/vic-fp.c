@@ -411,7 +411,7 @@ static int set_vic_fp_writeback(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "VicFlashPluginWriteBack", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &vic_fp_writeback, set_vic_fp_writeback, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vic_fp_resources_init(void)
@@ -435,7 +435,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_VICFP_ROM_WRITE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int vic_fp_cmdline_options_init(void)

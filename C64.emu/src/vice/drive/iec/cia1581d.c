@@ -87,7 +87,7 @@ static void cia_restore_int(cia_context_t *cia_context, int value)
 
     drive_context = (drive_context_t *)(cia_context->context);
 
-    interrupt_restore_irq(drive_context->cpu->int_status, cia_context->int_num, value);
+    interrupt_restore_irq(drive_context->cpu->int_status, (int)(cia_context->int_num), value);
 }
 
 /*************************************************************************
@@ -157,10 +157,11 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
             drive_bus = &(cia1581p->iecbus->drv_bus[cia1581p->number + 8]);
             drive_data = &(cia1581p->iecbus->drv_data[cia1581p->number + 8]);
 
-            *drive_data = ~byte;
-            *drive_bus = ((((*drive_data) << 3) & 0x40)
-                          | (((*drive_data) << 6)
-                             & (((*drive_data) | cia1581p->iecbus->cpu_bus) << 3) & 0x80));
+            *drive_data = (BYTE)~byte;
+            *drive_bus = (BYTE)(((((*drive_data) << 3) & 0x40)
+                        | (((*drive_data) << 6)
+                            & (((*drive_data)
+                                    | cia1581p->iecbus->cpu_bus) << 3) & 0x80)));
 
             cia1581p->iecbus->cpu_port = cia1581p->iecbus->cpu_bus;
             for (unit = 4; unit < 8 + DRIVE_NUM; unit++) {
@@ -168,10 +169,10 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
                     &= cia1581p->iecbus->drv_bus[unit];
             }
 
-            cia1581p->iecbus->drv_port
-                = (((cia1581p->iecbus->cpu_port >> 4) & 0x4)
-                   | (cia1581p->iecbus->cpu_port >> 7)
-                   | ((cia1581p->iecbus->cpu_bus << 3) & 0x80));
+            cia1581p->iecbus->drv_port =
+                (BYTE)((((cia1581p->iecbus->cpu_port >> 4) & 0x4)
+                            | (cia1581p->iecbus->cpu_port >> 7)
+                            | ((cia1581p->iecbus->cpu_bus << 3) & 0x80)));
         } else {
             iec_drive_write((BYTE)(~byte), cia1581p->number);
         }
@@ -189,14 +190,14 @@ static BYTE read_ciapa(cia_context_t *cia_context)
     cia1581p = (drivecia1581_context_t *)(cia_context->prv);
     drive_context = (drive_context_t *)(cia_context->context);
 
-    tmp = 8 * (cia1581p->number);
+    tmp = (BYTE)(8 * (cia1581p->number));
 
     if (!wd1770_disk_change(drive_context->wd1770)) {
         tmp |= 0x80;
     }
 
-    return (tmp & ~(cia_context->c_cia[CIA_DDRA]))
-           | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]);
+    return (BYTE)((tmp & ~(cia_context->c_cia[CIA_DDRA]))
+            | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]));
 }
 
 static BYTE read_ciapb(cia_context_t *cia_context)
@@ -210,12 +211,13 @@ static BYTE read_ciapb(cia_context_t *cia_context)
 
         drive_port = &(cia1581p->iecbus->drv_port);
 
-        return (((cia_context->c_cia[CIA_PRB] & 0x1a) | (*drive_port)) ^ 0x85)
-               | (cia1581p->drive->read_only ? 0 : 0x40);
+        return (BYTE)((((cia_context->c_cia[CIA_PRB] & 0x1a)
+                        | (*drive_port)) ^ 0x85)
+                | (cia1581p->drive->read_only ? 0 : 0x40));
     } else {
-        return (((cia_context->c_cia[CIA_PRB] & 0x1a)
-                 | iec_drive_read(cia1581p->number)) ^ 0x85)
-               | (cia1581p->drive->read_only ? 0 : 0x40);
+        return (BYTE)((((cia_context->c_cia[CIA_PRB] & 0x1a)
+                        | iec_drive_read(cia1581p->number)) ^ 0x85)
+                | (cia1581p->drive->read_only ? 0 : 0x40));
     }
 }
 
@@ -252,7 +254,7 @@ void cia1581_setup_context(drive_context_t *ctxptr)
 
     cia->prv = lib_malloc(sizeof(drivecia1581_context_t));
     cia1581p = (drivecia1581_context_t *)(cia->prv);
-    cia1581p->number = ctxptr->mynumber;
+    cia1581p->number = (unsigned int)(ctxptr->mynumber);
 
     cia->context = (void *)ctxptr;
 
@@ -292,7 +294,7 @@ void cia1581_setup_context(drive_context_t *ctxptr)
 void cia1581_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
 {
     cia_context->power_freq = powerfreq;
-    cia_context->ticks_per_sec = tickspersec;
+    cia_context->ticks_per_sec = (CLOCK)tickspersec;
     cia_context->todticks = tickspersec / powerfreq;
     cia_context->power_tickcounter = 0;
     cia_context->power_ticks = 0;

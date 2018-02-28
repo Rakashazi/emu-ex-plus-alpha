@@ -237,7 +237,7 @@ static int set_petreu_filename(const char *name, void *param)
 static const resource_string_t resources_string[] = {
     { "PETREUfilename", "", RES_EVENT_NO, NULL,
       &petreu_filename, set_petreu_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -245,7 +245,7 @@ static const resource_int_t resources_int[] = {
       &petreu_enabled, set_petreu_enabled, NULL },
     { "PETREUsize", 128, RES_EVENT_SAME, NULL,
       &petreu_size_kb, set_petreu_size, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int petreu_resources_init(void)
@@ -286,7 +286,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_SIZE_IN_KB, IDCLS_PETREU_SIZE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int petreu_cmdline_options_init(void)

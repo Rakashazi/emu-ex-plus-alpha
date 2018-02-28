@@ -510,8 +510,7 @@ double SID::I0(double x)
 // not overfilled.
 // ----------------------------------------------------------------------------
 bool SID::set_sampling_parameters(double clock_freq, sampling_method method,
-				  double sample_freq, double pass_freq,
-				  double filter_scale)
+                        double sample_freq, double pass_freq, double filter_scale)
 {
   // Check resampling constraints.
   if (method == SAMPLE_RESAMPLE || method == SAMPLE_RESAMPLE_FASTMEM)
@@ -526,7 +525,7 @@ bool SID::set_sampling_parameters(double clock_freq, sampling_method method,
     if (pass_freq < 0) {
       pass_freq = 20000;
       if (2*pass_freq/sample_freq >= 0.9) {
-	pass_freq = 0.9*sample_freq/2;
+        pass_freq = 0.9*sample_freq/2;
       }
     }
     // Check whether the FIR table would overfill.
@@ -634,12 +633,9 @@ bool SID::set_sampling_parameters(double clock_freq, sampling_method method,
       double jx = j - j_offset;
       double wt = wc*jx/f_cycles_per_sample;
       double temp = jx/(fir_N/2);
-      double Kaiser =
-	fabs(temp) <= 1 ? I0(beta*sqrt(1 - temp*temp))/I0beta : 0;
-      double sincwt =
-	fabs(wt) >= 1e-6 ? sin(wt)/wt : 1;
-      double val =
-	(1 << FIR_SHIFT)*filter_scale*f_samples_per_cycle*wc/pi*sincwt*Kaiser;
+      double Kaiser = fabs(temp) <= 1 ? I0(beta*sqrt(1 - temp*temp))/I0beta : 0;
+      double sincwt = fabs(wt) >= 1e-6 ? sin(wt)/wt : 1;
+      double val = (1 << FIR_SHIFT)*filter_scale*f_samples_per_cycle*wc/pi*sincwt*Kaiser;
       fir[fir_offset + j] = (short)round(val);
     }
   }
@@ -714,7 +710,7 @@ void SID::clock(cycle_count delta_t)
       // It is only necessary to clock on the MSB of an oscillator that is
       // a sync source and has freq != 0.
       if (likely(!(wave.sync_dest->sync && wave.freq))) {
-	continue;
+        continue;
       }
 
       reg16 freq = wave.freq;
@@ -722,15 +718,15 @@ void SID::clock(cycle_count delta_t)
 
       // Clock on MSB off if MSB is on, clock on MSB on if MSB is off.
       reg24 delta_accumulator =
-	(accumulator & 0x800000 ? 0x1000000 : 0x800000) - accumulator;
+        (accumulator & 0x800000 ? 0x1000000 : 0x800000) - accumulator;
 
       cycle_count delta_t_next = delta_accumulator/freq;
       if (likely(delta_accumulator%freq)) {
-	++delta_t_next;
+        ++delta_t_next;
       }
 
       if (unlikely(delta_t_next < delta_t_min)) {
-	delta_t_min = delta_t_next;
+        delta_t_min = delta_t_next;
       }
     }
 
@@ -753,8 +749,7 @@ void SID::clock(cycle_count delta_t)
   }
 
   // Clock filter.
-  filter.clock(delta_t,
-	       voice[0].output(), voice[1].output(), voice[2].output());
+  filter.clock(delta_t, voice[0].output(), voice[1].output(), voice[2].output());
 
   // Clock external filter.
   extfilt.clock(delta_t, filter.output());
@@ -794,8 +789,7 @@ int SID::clock(cycle_count& delta_t, short* buf, int n, int interleave)
 // ----------------------------------------------------------------------------
 // SID clocking with audio sampling - delta clocking picking nearest sample.
 // ----------------------------------------------------------------------------
-int SID::clock_fast(cycle_count& delta_t, short* buf, int n,
-		    int interleave)
+int SID::clock_fast(cycle_count& delta_t, short* buf, int n, int interleave)
 {
   int s;
 
@@ -831,8 +825,7 @@ int SID::clock_fast(cycle_count& delta_t, short* buf, int n,
 // external filter attenuates frequencies above 16kHz, thus reducing
 // sampling noise.
 // ----------------------------------------------------------------------------
-int SID::clock_interpolate(cycle_count& delta_t, short* buf, int n,
-			   int interleave)
+int SID::clock_interpolate(cycle_count& delta_t, short* buf, int n, int interleave)
 {
   int s;
 
@@ -847,8 +840,8 @@ int SID::clock_interpolate(cycle_count& delta_t, short* buf, int n,
     for (int i = delta_t_sample; i > 0; i--) {
       clock();
       if (unlikely(i <= 2)) {
-	sample_prev = sample_now;
-	sample_now = output();
+        sample_prev = sample_now;
+        sample_now = output();
       }
     }
 
@@ -903,8 +896,7 @@ int SID::clock_interpolate(cycle_count& delta_t, short* buf, int n,
 // NB! the result of right shifting negative numbers is really
 // implementation dependent in the C++ standard.
 // ----------------------------------------------------------------------------
-int SID::clock_resample(cycle_count& delta_t, short* buf, int n,
-			int interleave)
+int SID::clock_resample(cycle_count& delta_t, short* buf, int n, int interleave)
 {
   int s;
 
@@ -980,8 +972,7 @@ int SID::clock_resample(cycle_count& delta_t, short* buf, int n,
 // ----------------------------------------------------------------------------
 // SID clocking with audio sampling - cycle based with audio resampling.
 // ----------------------------------------------------------------------------
-int SID::clock_resample_fastmem(cycle_count& delta_t, short* buf, int n,
-				int interleave)
+int SID::clock_resample_fastmem(cycle_count& delta_t, short* buf, int n, int interleave)
 {
   int s;
 

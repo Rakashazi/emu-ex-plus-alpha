@@ -46,6 +46,8 @@ struct modtab_s {
 };
 typedef struct modtab_s modtab_t;
 
+#define MODTAB_LIST_END { NULL, 0, 0 }
+
 /* FIXME: add more/all models */
 static modtab_t modtab[] = {
     { "510", VICE_MACHINE_CBM5x0, CBM2MODEL_510_PAL },
@@ -55,7 +57,7 @@ static modtab_t modtab[] = {
     { "710", VICE_MACHINE_CBM6x0, CBM2MODEL_710_NTSC },
     { "720", VICE_MACHINE_CBM6x0, CBM2MODEL_720_NTSC },
     { "720+", VICE_MACHINE_CBM6x0, CBM2MODEL_720PLUS_NTSC },
-    { NULL }
+    MODTAB_LIST_END
 };
 
 static int cbm2_model = 1;
@@ -183,7 +185,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_MODEL, IDCLS_SET_CIA1_MODEL,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cbm2_cmdline_options[] = {
@@ -197,7 +199,7 @@ static const cmdline_option_t cbm2_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_RAMSIZE, IDCLS_SPECIFY_SIZE_OF_RAM_CBM2,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cbm5x0_cmdline_options[] = {
@@ -211,7 +213,7 @@ static const cmdline_option_t cbm5x0_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_RAMSIZE, IDCLS_SPECIFY_SIZE_OF_RAM,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int cbm2_cmdline_options_init(void)

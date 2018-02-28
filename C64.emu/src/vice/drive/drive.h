@@ -76,7 +76,7 @@
 /* max. half tracks */
 #define DRIVE_HALFTRACKS_1541   84
 /* FIXME: this constant is at some places used unconditionally for all 2-sided drives */
-#define DRIVE_HALFTRACKS_1571   70
+#define DRIVE_HALFTRACKS_1571   84
 
 /* Possible colors of the drive active LED.  */
 #define DRIVE_LED1_RED     0
@@ -265,6 +265,8 @@ typedef struct drive_s {
     int profdos;
     /* Is the Supercard+ extension enabled? */
     int supercard;
+    /* Is the StarDOS extension enabled? */
+    int stardos;
 
     /* RTC context */
     rtc_ds1216e_t *ds1216;
@@ -338,6 +340,7 @@ extern int drive_check_parallel_cable(int drive_type);
 extern int drive_check_extend_policy(int drive_type);
 extern int drive_check_profdos(int drive_type);
 extern int drive_check_supercard(int drive_type);
+extern int drive_check_stardos(int drive_type);
 
 extern int drive_num_leds(unsigned int dnr);
 

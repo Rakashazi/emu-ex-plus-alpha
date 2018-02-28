@@ -1197,7 +1197,7 @@ static const resource_string_t resources_string[] = {
       &event_start_snapshot, set_event_start_snapshot, NULL },
     { "EventEndSnapshot", EVENT_END_SNAPSHOT, RES_EVENT_NO, NULL,
       &event_end_snapshot, set_event_end_snapshot, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -1205,7 +1205,7 @@ static const resource_int_t resources_int[] = {
       &event_start_mode, set_event_start_mode, NULL },
     { "EventImageInclude", 1, RES_EVENT_NO, NULL,
       &event_image_include, set_event_image_include, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int event_resources_init(void)
@@ -1270,7 +1270,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_EVENT_IMAGE_INCLUDE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int event_cmdline_options_init(void)

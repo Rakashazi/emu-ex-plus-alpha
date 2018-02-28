@@ -41,7 +41,7 @@
 midi_interface_t midi_interface[] = {
     /* Electronics - Maplin magazine */
     { "Maplin", 0x9c00, 0, 0, 1, 1, 0xff, 2, 0, CARTRIDGE_MIDI_MAPLIN },
-    { NULL }
+    MIDI_INFERFACE_LIST_END
 };
 
 /* ---------------------------------------------------------------------*/
@@ -109,7 +109,7 @@ static const resource_int_t resources_int[] = {
     { "MIDIMode", MIDI_MODE_MAPLIN, RES_EVENT_NO, NULL,
       &midi_mode, midi_set_mode, NULL },
 #endif
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vic20_midi_resources_init(void)

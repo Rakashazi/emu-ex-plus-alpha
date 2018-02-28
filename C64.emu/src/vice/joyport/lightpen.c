@@ -239,7 +239,7 @@ static int joyport_lightpen_enable(int port, int val)
 
 static BYTE lightpen_digital_val(int port)
 {
-    return ~lightpen_value;
+    return (BYTE)~lightpen_value;
 }
 
 static BYTE lightpen_read_button_y(void)
@@ -260,7 +260,7 @@ static joyport_t lightpen_u_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_lightpen_enable,
     lightpen_digital_val,
-    NULL,				/* no store digital */
+    NULL,                       /* no store digital */
     lightpen_read_button_x,
     lightpen_read_button_y,
     lightpen_write_snapshot,
@@ -275,7 +275,7 @@ static joyport_t lightpen_l_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_lightpen_enable,
     lightpen_digital_val,
-    NULL,				/* no store digital */
+    NULL,                       /* no store digital */
     lightpen_read_button_x,
     lightpen_read_button_y,
     lightpen_write_snapshot,
@@ -290,7 +290,7 @@ static joyport_t lightpen_datel_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_lightpen_enable,
     lightpen_digital_val,
-    NULL,				/* no store digital */
+    NULL,                       /* no store digital */
     lightpen_read_button_x,
     lightpen_read_button_y,
     lightpen_write_snapshot,
@@ -305,7 +305,7 @@ static joyport_t magnum_light_phaser_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_lightpen_enable,
     lightpen_digital_val,
-    NULL,				/* no store digital */
+    NULL,                       /* no store digital */
     lightpen_read_button_x,
     lightpen_read_button_y,
     lightpen_write_snapshot,
@@ -320,7 +320,7 @@ static joyport_t stack_light_rifle_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_lightpen_enable,
     lightpen_digital_val,
-    NULL,				/* no store digital */
+    NULL,                       /* no store digital */
     lightpen_read_button_x,
     lightpen_read_button_y,
     lightpen_write_snapshot,
@@ -335,7 +335,7 @@ static joyport_t inkwell_lightpen_joyport_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_lightpen_enable,
     lightpen_digital_val,
-    NULL,				/* no store digital */
+    NULL,                       /* no store digital */
     lightpen_read_button_x,
     lightpen_read_button_y,
     lightpen_write_snapshot,
@@ -464,7 +464,7 @@ static int lightpen_write_snapshot(struct snapshot_s *s, int port)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }

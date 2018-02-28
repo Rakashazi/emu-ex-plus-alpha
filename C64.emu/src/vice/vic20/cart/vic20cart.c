@@ -179,15 +179,16 @@ static int set_cartridge_reset(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "CartridgeFile", "", RES_EVENT_NO, NULL,
       &cartridge_file, set_cartridge_file, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
+
 static const resource_int_t resources_int[] = {
     { "CartridgeType", CARTRIDGE_NONE,
       RES_EVENT_STRICT, (resource_value_t)CARTRIDGE_NONE,
       &cartridge_type, set_cartridge_type, NULL },
     { "CartridgeReset", 1, RES_EVENT_NO, NULL,
       &vic20cartridge_reset, set_cartridge_reset, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int cartridge_resources_init(void)
@@ -323,7 +324,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_CART,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int cartridge_cmdline_options_init(void)

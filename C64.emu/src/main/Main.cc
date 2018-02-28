@@ -540,6 +540,11 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	{
 		if(plugin.autostart_autodetect_)
 		{
+			if(string_hasDotExtension(fullGamePath(), "prg"))
+			{
+				// needed to store AutostartPrgDisk.d64
+				makeDefaultBaseSavePath();
+			}
 			if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 			{
 				return EmuSystem::makeFileReadError();
@@ -627,7 +632,8 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 	sysFilePath[0] = firmwareBasePath;
 	EmuControls::updateKeyboardMapping();
 	setSysModel(optionModel(currSystem));
-	plugin.resources_set_string("AutostartPrgDiskImage", "AutostartPrgDisk.d64");
+	plugin.resources_set_string("AutostartPrgDiskImage",
+		FS::makePathStringPrintf("%s/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath().data()).data());
 }
 
 EmuSystem::Error EmuSystem::onInit()

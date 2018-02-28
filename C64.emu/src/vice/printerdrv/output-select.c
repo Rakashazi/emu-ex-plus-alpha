@@ -81,13 +81,13 @@ static const resource_string_t resources_string[] = {
       (char **)&output_select[1].output_name, set_output_device, (void *)1 },
     { "Printer6Output", "text", RES_EVENT_NO, NULL,
       (char **)&output_select[2].output_name, set_output_device, (void *)2 },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_string_t resources_string_userport[] = {
     { "PrinterUserportOutput", "text", RES_EVENT_NO, NULL,
       (char **)&output_select[3].output_name, set_output_device, (void *)3 },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int output_select_init_resources(void)
@@ -117,7 +117,7 @@ static cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_NAME, IDCLS_SPECIFY_OUTPUT_DEVICE_6_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_userport[] =
@@ -127,7 +127,7 @@ static cmdline_option_t cmdline_options_userport[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_NAME, IDCLS_SPECIFY_OUTPUT_DEVICE_USR_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static char *printer_output_names = NULL;

@@ -25,7 +25,7 @@
  *
  */
 
-/* #define DEBUG_CMDLINE */
+/* #define VICE_DEBUG_CMDLINE */
 
 #include "vice.h"
 
@@ -42,7 +42,7 @@
 #include "uicmdline.h"
 #include "util.h"
 
-#ifdef DEBUG_CMDLINE
+#ifdef VICE_DEBUG_CMDLINE
 #define DBG(x)  printf x
 #else
 #define DBG(x)
@@ -145,6 +145,16 @@ static void cmdline_free(void)
 
 void cmdline_shutdown(void)
 {
+#ifdef VICE_DEBUG_CMDLINE
+    unsigned int i;
+
+    for (i = 0; i < num_options; i++) {
+        printf("CMDLINE\t%s\t%s\n",
+                (options + i)->name,
+                (options + i)->type == SET_RESOURCE ? (options + i)->resource_name : "(call-function)");
+
+    }
+#endif
     cmdline_free();
 
     lib_free(options);

@@ -63,7 +63,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VOLUME, IDCLS_SET_DRIVE_SOUND_VOLUME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmd_drive[] = {
@@ -92,7 +92,7 @@ static cmdline_option_t cmd_drive[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_WOBBLE, IDCLS_SET_DRIVE_WOBBLE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmd_drive_rtc[] = {
@@ -106,7 +106,7 @@ static cmdline_option_t cmd_drive_rtc[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DRIVE_RTC_SAVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 typedef struct machine_drives_s {
@@ -203,15 +203,15 @@ int drive_cmdline_options_init(void)
         }
 
         for (i = 0; i < 5; i++) {
-            lib_free((char *)cmd_drive[i].name);
-            lib_free((char *)cmd_drive[i].resource_name);
+            lib_free(cmd_drive[i].name);
+            lib_free(cmd_drive[i].resource_name);
         }
 
         if (has_iec) {
-            lib_free((char *)cmd_drive_rtc[0].name);
-            lib_free((char *)cmd_drive_rtc[0].resource_name);
-            lib_free((char *)cmd_drive_rtc[1].name);
-            lib_free((char *)cmd_drive_rtc[1].resource_name);
+            lib_free(cmd_drive_rtc[0].name);
+            lib_free(cmd_drive_rtc[0].resource_name);
+            lib_free(cmd_drive_rtc[1].name);
+            lib_free(cmd_drive_rtc[1].resource_name);
         }
     }
 

@@ -49,7 +49,7 @@ static cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_HWSCALE_POSSIBLE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 #endif
 
@@ -362,8 +362,8 @@ int video_cmdline_options_chip_init(const char *chipname,
         }
 
         for (i = 0; cname_chip_size[i * 3] != NULL; i++) {
-            lib_free((char *)cmdline_options_chip_size[i].name);
-            lib_free((char *)cmdline_options_chip_size[i].resource_name);
+            lib_free(cmdline_options_chip_size[i].name);
+            lib_free(cmdline_options_chip_size[i].resource_name);
         }
     }
 
@@ -381,8 +381,8 @@ int video_cmdline_options_chip_init(const char *chipname,
         }
 
         for (i = 0; cname_chip_scan[i * 3] != NULL; i++) {
-            lib_free((char *)cmdline_options_chip_scan[i].name);
-            lib_free((char *)cmdline_options_chip_scan[i].resource_name);
+            lib_free(cmdline_options_chip_scan[i].name);
+            lib_free(cmdline_options_chip_scan[i].resource_name);
         }
     }
 
@@ -399,8 +399,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_audioleak[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_audioleak[i].name);
-        lib_free((char *)cmdline_options_chip_audioleak[i].resource_name);
+        lib_free(cmdline_options_chip_audioleak[i].name);
+        lib_free(cmdline_options_chip_audioleak[i].resource_name);
     }
 
     if (video_chip_cap->hwscale_allowed) {
@@ -417,8 +417,8 @@ int video_cmdline_options_chip_init(const char *chipname,
         }
 
         for (i = 0; cname_chip_hwscale[i * 3] != NULL; i++) {
-            lib_free((char *)cmdline_options_chip_hwscale[i].name);
-            lib_free((char *)cmdline_options_chip_hwscale[i].resource_name);
+            lib_free(cmdline_options_chip_hwscale[i].name);
+            lib_free(cmdline_options_chip_hwscale[i].resource_name);
         }
     }
 
@@ -439,8 +439,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_render_filter[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_render_filter[i].name);
-        lib_free((char *)cmdline_options_chip_render_filter[i].resource_name);
+        lib_free(cmdline_options_chip_render_filter[i].name);
+        lib_free(cmdline_options_chip_render_filter[i].resource_name);
     }
 
     for (i = 0; cname_chip_internal_palette[i * 3] != NULL; i++) {
@@ -458,8 +458,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_internal_palette[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_internal_palette[i].name);
-        lib_free((char *)cmdline_options_chip_internal_palette[i].resource_name);
+        lib_free(cmdline_options_chip_internal_palette[i].name);
+        lib_free(cmdline_options_chip_internal_palette[i].resource_name);
     }
 
     for (i = 0; cname_chip_palette[i * 3] != NULL; i++) {
@@ -476,8 +476,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_palette[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_palette[i].name);
-        lib_free((char *)cmdline_options_chip_palette[i].resource_name);
+        lib_free(cmdline_options_chip_palette[i].name);
+        lib_free(cmdline_options_chip_palette[i].resource_name);
     }
 
     /* fullscreen options */
@@ -495,8 +495,8 @@ int video_cmdline_options_chip_init(const char *chipname,
         }
 
         for (i = 0; cname_chip_fullscreen[i * 3] != NULL; i++) {
-            lib_free((char *)cmdline_options_chip_fullscreen[i].name);
-            lib_free((char *)cmdline_options_chip_fullscreen[i].resource_name);
+            lib_free(cmdline_options_chip_fullscreen[i].name);
+            lib_free(cmdline_options_chip_fullscreen[i].resource_name);
         }
 
         for (j = 0; j < video_chip_cap->fullscreen.device_num; j++) {
@@ -517,8 +517,8 @@ int video_cmdline_options_chip_init(const char *chipname,
             }
 
             for (i = 0; cname_chip_fullscreen_mode[i * 3] != NULL; i++) {
-                lib_free((char *)cmdline_options_chip_fullscreen_mode[i].name);
-                lib_free((char *)cmdline_options_chip_fullscreen_mode[i].resource_name);
+                lib_free(cmdline_options_chip_fullscreen_mode[i].name);
+                lib_free(cmdline_options_chip_fullscreen_mode[i].resource_name);
             }
         }
     }
@@ -537,8 +537,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_colors[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_colors[i].name);
-        lib_free((char *)cmdline_options_chip_colors[i].resource_name);
+        lib_free(cmdline_options_chip_colors[i].name);
+        lib_free(cmdline_options_chip_colors[i].resource_name);
     }
 
     /* crt emulation */
@@ -556,8 +556,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_crtemu[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_crtemu[i].name);
-        lib_free((char *)cmdline_options_chip_crtemu[i].resource_name);
+        lib_free(cmdline_options_chip_crtemu[i].name);
+        lib_free(cmdline_options_chip_crtemu[i].resource_name);
     }
 
     for (i = 0; cname_chip_crtemu_palntsc[i * 3] != NULL; i++) {
@@ -573,8 +573,8 @@ int video_cmdline_options_chip_init(const char *chipname,
     }
 
     for (i = 0; cname_chip_crtemu_palntsc[i * 3] != NULL; i++) {
-        lib_free((char *)cmdline_options_chip_crtemu_palntsc[i].name);
-        lib_free((char *)cmdline_options_chip_crtemu_palntsc[i].resource_name);
+        lib_free(cmdline_options_chip_crtemu_palntsc[i].name);
+        lib_free(cmdline_options_chip_crtemu_palntsc[i].resource_name);
     }
 
     return 0;

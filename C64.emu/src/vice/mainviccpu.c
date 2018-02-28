@@ -44,6 +44,9 @@
 #include "traps.h"
 #include "types.h"
 
+#ifndef EXIT_FAILURE
+#define EXIT_FAILURE 1
+#endif
 
 /* MACHINE_STUFF should define/undef
 

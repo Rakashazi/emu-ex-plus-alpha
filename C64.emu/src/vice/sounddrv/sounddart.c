@@ -60,7 +60,7 @@ static HMTX hmtxOC;  /* Open, Close / not _really_ necessary */
 
 static log_t dlog = LOG_ERR;
 
-// --------------------------------------------------------------------------
+/* ------------------------------------------------------------------------- */
 
 #define MUTE_OFF   MCI_SET_ON
 #define MUTE_ON    MCI_SET_OFF
@@ -134,7 +134,7 @@ void mute(int state)
     }
 }
 
-// --------------------------------------------------------------------------
+/* ------------------------------------------------------------------------- */
 
 LONG APIENTRY DARTEvent (ULONG ulStatus, PMCI_MIX_BUFFER pBuffer, ULONG ulFlags)
 {

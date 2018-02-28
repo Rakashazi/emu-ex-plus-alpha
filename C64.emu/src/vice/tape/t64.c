@@ -558,8 +558,10 @@ t64_t *t64_open(const char *name, unsigned int *read_only)
     reported_size = new->file_records[i].end_addr -
         new->file_records[i].start_addr;
     actual_size = (WORD)(tapesize - new->file_records[i].contents);
-    /* warn and fix if sizes mismatch */
-    if (reported_size != actual_size) {
+    /* warn and fix if sizes mismatch (only adjust size if it would 'overrun'
+     * the T64's data, seems some T64's have extra unused data after the last
+     * file) */
+    if (reported_size > actual_size) {
             log_warning(LOG_DEFAULT,
                     "invalid file size for record %d in t64 image: $%04x, "
                     "should be $%04x, fixing",

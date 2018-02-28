@@ -925,8 +925,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_MODE, IDCLS_SET_EXPERT_MODE,
       NULL, NULL },
-
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int expert_cmdline_options_init(void)
@@ -939,7 +938,7 @@ int expert_cmdline_options_init(void)
 static const resource_string_t resources_string[] = {
     { "Expertfilename", "", RES_EVENT_NO, NULL,
       &expert_filename, set_expert_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -949,7 +948,7 @@ static const resource_int_t resources_int[] = {
       &cartmode, expert_mode_changed, NULL },
     { "ExpertImageWrite", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &expert_write_image, set_expert_rw, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int expert_resources_init(void)

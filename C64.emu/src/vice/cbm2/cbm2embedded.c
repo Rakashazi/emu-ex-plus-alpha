@@ -44,16 +44,9 @@
 #include "cbm2chargen700.h"
 #include "cbm2kernal.h"
 
-#include "pet_amber_vpl.h"
-#include "c64_c64hq_vpl.h"
-#include "c64_c64s_vpl.h"
-#include "c64_ccs64_vpl.h"
-#include "c64_default_vpl.h"
-#include "c64_frodo_vpl.h"
-#include "c64_godot_vpl.h"
-#include "pet_green_vpl.h"
-#include "c64_pc64_vpl.h"
-#include "pet_white_vpl.h"
+#include "crtc_amber_vpl.h"
+#include "crtc_green_vpl.h"
+#include "crtc_white_vpl.h"
 
 static embedded_t cbm2files[] = {
     { "basic.128", 0x4000, 0x4000, 0x4000, cbm2basic128_embedded },
@@ -61,21 +54,14 @@ static embedded_t cbm2files[] = {
     { "chargen.600", 0x1000, 0x1000, 0x1000, cbm2chargen600_embedded },
     { "chargen.700", 0x1000, 0x1000, 0x1000, cbm2chargen700_embedded },
     { "kernal", 0x2000, 0x2000, 0x2000, cbm2kernal_embedded },
-    { NULL }
+    EMBEDDED_LIST_END
 };
 
 static embedded_palette_t palette_files[] = {
-    { "amber", "amber.vpl", 2, pet_amber_vpl   },
-    { "c64hq", "c64hq.vpl", 16, c64_c64hq_vpl   },
-    { "c64s", "c64s.vpl", 16, c64_c64s_vpl    },
-    { "ccs64", "ccs64.vpl", 16, c64_ccs64_vpl   },
-    { "default", "default.vpl", 16, c64_default_vpl },
-    { "frodo", "frodo.vpl", 16, c64_frodo_vpl   },
-    { "godot", "godot.vpl", 16, c64_godot_vpl   },
-    { "green", "green.vpl", 2, pet_green_vpl   },
-    { "pc64", "pc64.vpl", 16, c64_pc64_vpl    },
-    { "white", "white.vpl", 2, pet_white_vpl   },
-    { NULL }
+    { "amber", "amber.vpl", 2, crtc_amber_vpl },
+    { "green", "green.vpl", 2, crtc_green_vpl },
+    { "white", "white.vpl", 2, crtc_white_vpl },
+    EMBEDDED_PALETTE_LIST_END
 };
 
 static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)

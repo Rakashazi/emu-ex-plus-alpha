@@ -103,7 +103,7 @@ static int set_kbdbuf_delay(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "KbdbufDelay", 0, RES_EVENT_NO, (resource_value_t)0,
       &KbdbufDelay, set_kbdbuf_delay, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 /*! \brief initialize the resources
@@ -194,7 +194,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_KEYBUF_DELAY,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int kbdbuf_cmdline_options_init(void)

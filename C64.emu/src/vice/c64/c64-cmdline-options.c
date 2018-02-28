@@ -288,7 +288,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_IEC_RESET,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c64_cmdline_options_init(void)

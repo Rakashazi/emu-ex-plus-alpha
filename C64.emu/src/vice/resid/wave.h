@@ -473,6 +473,12 @@ void WaveformGenerator::set_waveform_output()
         osc3 = waveform_output;
     }
 
+    if ((waveform & 0x2) && unlikely(waveform & 0xd) && (sid_model == MOS6581)) {
+        // In the 6581 the top bit of the accumulator may be driven low by combined waveforms
+        // when the sawtooth is selected
+        accumulator &= (waveform_output << 12) | 0x7fffff;
+    }
+
     if (unlikely(waveform > 0x8) && likely(!test) && likely(shift_pipeline != 1)) {
       // Combined waveforms write to the shift register.
       write_shift_register();
@@ -512,6 +518,11 @@ void WaveformGenerator::set_waveform_output(cycle_count delta_t)
       wave[ix] & (no_pulse | pulse_output) & no_noise_or_noise_output;
     // Triangle/Sawtooth output delay for the 8580 is not modeled
     osc3 = waveform_output;
+
+    if ((waveform & 0x2) && unlikely(waveform & 0xd) && (sid_model == MOS6581)) {
+        accumulator &= (waveform_output << 12) | 0x7fffff;
+    }
+
     if (unlikely(waveform > 0x8) && likely(!test)) {
       // Combined waveforms write to the shift register.
       // NB! Since cycles are skipped in delta_t clocking, writes will be

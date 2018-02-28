@@ -320,7 +320,7 @@ static const resource_int_t resources_int[] = {
       &ds12c887rtc_run_mode, set_ds12c887rtc_run_mode, NULL },
     { "DS12C887RTCSave", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &ds12c887rtc_save, set_ds12c887rtc_save, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int ds12c887rtc_resources_init(void)
@@ -370,7 +370,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DS12C887RTC_SAVE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
@@ -380,7 +380,7 @@ static cmdline_option_t base_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_BASE_ADDRESS, IDCLS_DS12C887RTC_BASE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int ds12c887rtc_cmdline_options_init(void)

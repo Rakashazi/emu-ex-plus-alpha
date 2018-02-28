@@ -84,7 +84,7 @@ typedef enum pc8477_cmd_e {
 
 enum pc8477_st0_e {
     PC8477_ST0_EC  = 0x10, /* Equipment check */
-    PC8477_ST0_SE  = 0x20, /* Seek end */
+    PC8477_ST0_SE  = 0x20  /* Seek end */
 };
 
 enum pc8477_st1_e {
@@ -93,7 +93,7 @@ enum pc8477_st1_e {
     PC8477_ST1_ND  = 0x04, /* No data */
     PC8477_ST1_OR  = 0x10, /* Overrun */
     PC8477_ST1_CE  = 0x20, /* CRC error */
-    PC8477_ST1_EOT = 0x80, /* End of track */
+    PC8477_ST1_EOT = 0x80  /* End of track */
 };
 
 enum pc8477_st2_e {
@@ -102,18 +102,18 @@ enum pc8477_st2_e {
     PC8477_ST2_SNS = 0x04, /* Scan not statisfied */
     PC8477_ST2_SEH = 0x08, /* Scan equal hit */
     PC8477_ST2_WT  = 0x10, /* Wrong track */
-    PC8477_ST2_CM  = 0x20, /* CRC error in data field */
+    PC8477_ST2_CM  = 0x20  /* CRC error in data field */
 };
 
 enum pc8477_st3_e {
     PC8477_ST3_TK0 = 0x10, /* Track 0 */
-    PC8477_ST3_WP  = 0x40, /* Write protect */
+    PC8477_ST3_WP  = 0x40  /* Write protect */
 };
 
 enum pc8477_flags_e {
     PC8477_FLAGS_DS  = 0x01,
     PC8477_FLAGS_HDS = 0x02,
-    PC8477_FLAGS_MOT = 0x04,
+    PC8477_FLAGS_MOT = 0x04
 };
 
 static const struct {
@@ -1000,7 +1000,7 @@ static void pc8477_store(pc8477_t *drv, WORD addr, BYTE byte)
                 case PC8477_WAIT:
                     drv->cmdp = 0;
                     drv->resp = 0;
-                    for (i = 0; i < sizeof(pc8477_commands) / sizeof(pc8477_commands[0]); i++) {
+                    for (i = 0; i < (int)(sizeof(pc8477_commands) / sizeof(pc8477_commands[0])); i++) {
                         if (pc8477_commands[i].command == (pc8477_cmd_t)(pc8477_commands[i].mask & byte)) {
                             break;
                         }

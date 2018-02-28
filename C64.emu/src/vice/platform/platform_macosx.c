@@ -57,6 +57,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __ppc__
 #include <sys/stat.h>
@@ -71,16 +73,36 @@
 static char os_cpu_str[MAX_OS_CPU_STR];
 static char os_version_str[MAX_OS_VERSION_STR];
 
+#ifdef MAC_OS_X_VERSION_10_12
+#define NO_GESTALT
+#endif
+
+#ifdef MAC_OS_X_VERSION_10_11
+#define NO_GESTALT
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_10)
+#define NO_GESTALT
+#endif
+
+#if !defined(PLATFORM_OS) && defined(MAC_OS_X_VERSION_10_9)
+#define NO_GESTALT
+#endif
+
 /* this code was taken from: http://www.cocoadev.com/index.pl?DeterminingOSVersion
    and ported to C
 */
 static void get_os_version(unsigned *major, unsigned *minor, unsigned *bugFix)
 {
+#ifndef NO_GESTALT
     OSErr err;
     SInt32 systemVersion, versionMajor, versionMinor, versionBugFix;
+
     if ((err = Gestalt(gestaltSystemVersion, &systemVersion)) != noErr) {
         goto fail;
     }
+
+
     if (systemVersion < 0x1040) {
         if (major) {
             *major = ((systemVersion & 0xF000) >> 12) * 10 +
@@ -114,6 +136,39 @@ static void get_os_version(unsigned *major, unsigned *minor, unsigned *bugFix)
     }
 
     return;
+#else
+    FILE *fp;
+    char num[15];
+    const char d[2] = ".";
+    char *token;
+
+    fp = popen("/usr/bin/defaults read /System/Library/CoreServices/SystemVersion.plist |/usr/bin/grep ProductVersion |/usr/bin/cut -c23-", "r");
+
+    if (fp == NULL) {
+        goto fail;
+    }
+
+    while (fgets(num, 15, fp) != NULL) {
+        num[(int)strlen(num)-3] = '\0';
+    }
+
+    pclose(fp);
+    token = strtok(num, d);
+
+    if (token != NULL) {
+        *major = strtoul(token, NULL, 0);
+        token = strtok(NULL, d);
+        if (token != NULL) {
+            *minor = strtoul(token, NULL, 0);
+            token = strtok(NULL, d);
+            if (token != NULL) {
+                *bugFix = strtoul(token, NULL, 0);
+            }
+        }
+    }
+
+    return;
+#endif
 
 fail:
     if (major) {

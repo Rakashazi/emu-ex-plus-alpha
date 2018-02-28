@@ -166,6 +166,12 @@
 #endif
 
 
+/* Sortix discovery */
+#ifdef __sortix__
+#  define PLATFORM_OS "Sortix"
+#endif
+
+
 /* AIX discovery */
 #ifdef _AIX
 #  include "platform_aix_version.h"

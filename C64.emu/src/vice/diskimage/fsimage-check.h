@@ -28,6 +28,16 @@
 #ifndef VICE_FSIMAGE_CHECK_H
 #define VICE_FSIMAGE_CHECK_H
 
+
+/** \brief  Error code for illegal track numbers
+ */
+#define FSIMAGE_BAD_TRKNUM  -2
+
+/** \brief  Error code for illegal sector numbers
+ */
+#define FSIMAGE_BAD_SECNUM  -3
+
+
 struct disk_image_s;
 
 extern int fsimage_check_sector(const struct disk_image_s *image, unsigned int track,

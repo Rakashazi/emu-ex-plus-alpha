@@ -30,6 +30,7 @@
 #include "types.h"
 
 extern int tapelog_resources_init(void);
+extern void tapelog_resources_shutdown(void);
 extern int tapelog_cmdline_options_init(void);
 
 #endif

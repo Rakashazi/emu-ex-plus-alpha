@@ -237,7 +237,7 @@ static const resource_int_t resources_int[] = {
       &easyflash_crt_write, set_easyflash_crt_write, NULL },
     { "EasyFlashOptimizeCRT", 1, RES_EVENT_STRICT, (resource_value_t)1,
       &easyflash_crt_optimize, set_easyflash_crt_optimize, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int easyflash_resources_init(void)
@@ -283,7 +283,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_EASYFLASH_CRT_OPTIMIZE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int easyflash_cmdline_options_init(void)

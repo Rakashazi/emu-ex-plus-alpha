@@ -452,7 +452,7 @@ static int set_ramcart_image_write(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "RAMCARTfilename", "", RES_EVENT_NO, NULL,
       &ramcart_filename, set_ramcart_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -464,7 +464,7 @@ static const resource_int_t resources_int[] = {
       &ramcart_size_kb, set_ramcart_size, NULL },
     { "RAMCARTImageWrite", 0, RES_EVENT_NO, NULL,
       &ramcart_write_image, set_ramcart_image_write, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int ramcart_resources_init(void)
@@ -526,7 +526,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_RAMCART_READ_WRITE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int ramcart_cmdline_options_init(void)

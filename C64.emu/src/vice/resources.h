@@ -54,7 +54,7 @@ struct event_list_state_s;
 
 struct resource_int_s {
     /* Resource name.  */
-    const char *name;
+    char *name;
 
     /* Factory default value.  */
     int factory_value;
@@ -77,11 +77,11 @@ struct resource_int_s {
 };
 typedef struct resource_int_s resource_int_t;
 
-#define RESOURCE_INT_LIST_END { NULL, 0, 0, NULL, NULL, NULL, NULL }
+#define RESOURCE_INT_LIST_END { NULL, 0, (resource_event_relevant_t)0, NULL, NULL, NULL, NULL }
 
 struct resource_string_s {
     /* Resource name.  */
-    const char *name;
+    char *name;
 
     /* Factory default value.  */
     const char *factory_value;
@@ -104,7 +104,7 @@ struct resource_string_s {
 };
 typedef struct resource_string_s resource_string_t;
 
-#define RESOURCE_STRING_LIST_END { NULL, NULL, 0, NULL, NULL, NULL, NULL }
+#define RESOURCE_STRING_LIST_END { NULL, NULL, (resource_event_relevant_t)0, NULL, NULL, NULL, NULL }
 
 /* do not use -1 here since that is reserved for generic/other errors */
 #define RESERR_FILE_NOT_FOUND       -2

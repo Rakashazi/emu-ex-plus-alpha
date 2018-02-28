@@ -512,15 +512,15 @@ void mem_initialize_memory(void)
         mem_read_tab[25][i] = chargen_read;
         mem_read_tab[26][i] = chargen_read;
         mem_read_tab[27][i] = chargen_read;
-        mem_read_base_tab[1][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[2][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[3][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[9][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[10][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[11][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[25][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[26][i] = mem_chargen_rom - 0xd000;
-        mem_read_base_tab[27][i] = mem_chargen_rom - 0xd000;
+        mem_read_base_tab[1][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[2][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[3][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[9][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[10][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[11][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[25][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[26][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
+        mem_read_base_tab[27][i] = (BYTE *)(mem_chargen_rom - (BYTE *)0xd000);
     }
 
     c64meminit(0);

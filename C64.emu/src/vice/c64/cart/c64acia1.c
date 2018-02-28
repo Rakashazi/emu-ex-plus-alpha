@@ -282,7 +282,7 @@ static const resource_int_t resources_i[] = {
       &acia.mode, acia_set_mode, NULL },
     { "Acia1Base", 0xffff, RES_EVENT_STRICT, int_to_void_ptr(0xffff),
       &acia_base, set_acia_base, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 #endif
 
@@ -354,7 +354,7 @@ static const cmdline_option_t cart_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_MODE, IDCLS_SET_ACIA_MODE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
@@ -364,7 +364,7 @@ static cmdline_option_t base_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_BASE_ADDRESS, IDCLS_SET_ACIA_BASE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 #endif
 

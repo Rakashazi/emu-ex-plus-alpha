@@ -75,7 +75,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_4000_DOS_ROM_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmd_drive[] = {
@@ -129,7 +129,7 @@ static cmdline_option_t cmd_drive[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DRIVE_RAM_A000,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int iec_cmdline_options_init(void)
@@ -173,8 +173,8 @@ int iec_cmdline_options_init(void)
         }
 
         for (i = 0; i < 10; i++) {
-            lib_free((char *)cmd_drive[i].name);
-            lib_free((char *)cmd_drive[i].resource_name);
+            lib_free(cmd_drive[i].name);
+            lib_free(cmd_drive[i].resource_name);
         }
     }
 

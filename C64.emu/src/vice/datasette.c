@@ -249,7 +249,7 @@ static const resource_int_t resources_int[] = {
     { "DatasetteTapeWobble", 10, RES_EVENT_SAME, NULL,
       &datasette_tape_wobble,
       set_datasette_tape_wobble, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int datasette_resources_init(void)
@@ -299,7 +299,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VALUE, IDCLS_SET_TAPE_WOBBLE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int datasette_cmdline_options_init(void)

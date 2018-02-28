@@ -121,7 +121,7 @@ The PRESS (POT AY) line is used to indicate a key press.
 
 static int cx85_enabled = 0;
 
-static int keys[20];
+static unsigned int keys[20];
 
 /* ------------------------------------------------------------------------- */
 
@@ -133,7 +133,7 @@ static void handle_keys(int row, int col, int pressed)
         return;
     }
 
-    keys[(row * 5) + col] = pressed;
+    keys[(row * 5) + col] = (unsigned int)pressed;
 }
 #endif
 
@@ -165,8 +165,8 @@ static int joyport_cx85_enable(int port, int value)
 
 static BYTE cx85_read_dig(int port)
 {
-    BYTE retval = 0;
-    BYTE tmp;
+    unsigned int retval = 0;
+    unsigned int tmp;
 
     /* KEY4 */
     tmp = !keys[KEYPAD_KEY_ESCAPE] << 4;
@@ -225,7 +225,7 @@ static BYTE cx85_read_dig(int port)
 
     joyport_display_joyport(JOYPORT_ID_CX85_KEYPAD, (BYTE)~retval);
 
-    return retval;
+    return (BYTE)retval;
 }
 
 static BYTE cx85_read_pot(void)
@@ -251,11 +251,11 @@ static joyport_t joyport_cx85_device = {
     JOYPORT_POT_REQUIRED,
     joyport_cx85_enable,
     cx85_read_dig,
-    NULL,				/* no digital store */
-    NULL,				/* no pot-x read */
+    NULL,               /* no digital store */
+    NULL,               /* no pot-x read */
     cx85_read_pot,
-    NULL,				/* no write snapshot */
-    NULL				/* no read snapshot */
+    NULL,               /* no write snapshot */
+    NULL                /* no read snapshot */
 };
 
 /* ------------------------------------------------------------------------- */

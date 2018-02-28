@@ -133,7 +133,7 @@ static const resource_string_t resources_string[] = {
     { "BasicName", "basic", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &basic_rom_name, set_basic_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -141,7 +141,7 @@ static const resource_int_t resources_int[] = {
       &sync_factor, set_sync_factor, NULL },
     { "HummerADC", 0, RES_EVENT_SAME, NULL,
       (int *)&c64dtv_hummer_adc_enabled, c64dtv_hummer_adc_set, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int c64dtv_resources_init(void)

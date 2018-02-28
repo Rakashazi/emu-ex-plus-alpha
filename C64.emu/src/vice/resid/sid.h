@@ -43,8 +43,8 @@ public:
   void adjust_filter_bias(double dac_bias);
   void enable_external_filter(bool enable);
   bool set_sampling_parameters(double clock_freq, sampling_method method,
-			       double sample_freq, double pass_freq = -1,
-			       double filter_scale = 0.97);
+  double sample_freq, double pass_freq = -1,
+  double filter_scale = 0.97);
   void adjust_sampling_frequency(double sample_freq);
 
   void clock();
@@ -99,11 +99,9 @@ public:
  protected:
   static double I0(double x);
   int clock_fast(cycle_count& delta_t, short* buf, int n, int interleave);
-  int clock_interpolate(cycle_count& delta_t, short* buf, int n,
-			int interleave);
+  int clock_interpolate(cycle_count& delta_t, short* buf, int n, int interleave);
   int clock_resample(cycle_count& delta_t, short* buf, int n, int interleave);
-  int clock_resample_fastmem(cycle_count& delta_t, short* buf, int n,
-			     int interleave);
+  int clock_resample_fastmem(cycle_count& delta_t, short* buf, int n, int interleave);
   void write();
 
   chip_model sid_model;

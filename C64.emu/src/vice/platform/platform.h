@@ -116,6 +116,15 @@ extern char *platform_get_sco_runtime_cpu(void);
 extern char *platform_get_skyos_runtime_os(void);
 extern char *platform_get_skyos_runtime_cpu(void);
 
+extern char *platform_get_sortix_runtime_os(void);
+extern char *platform_get_sortix_runtime_cpu(void);
+
+extern char *platform_get_qnx4_runtime_os(void);
+extern char *platform_get_qnx4_runtime_cpu(void);
+
+extern char *platform_get_qnx6_runtime_os(void);
+extern char *platform_get_qnx6_runtime_cpu(void);
+
 extern char *platform_get_minix_runtime_os(void);
 extern char *platform_get_minix_runtime_cpu(void);
 
@@ -201,6 +210,21 @@ extern char *platform_get_hurd_runtime_os(void);
 /* SkyOS */
 #ifdef __SKYOS__
 #define RUNTIME_OS_CALL platform_get_skyos_runtime_os
+#endif
+
+/* Sortix */
+#ifdef __sortix__
+#define RUNTIME_OS_CALL platform_get_sortix_runtime_os
+#endif
+
+/* QNX 4.x */
+#if defined(__QNX__) && !defined(__QNXNTO__)
+#define RUNTIME_OS_CALL platform_get_qnx4_runtime_os
+#endif
+
+/* QNX 6.x */
+#ifdef __QNXNTO__
+#define RUNTIME_OS_CALL platform_get_qnx6_runtime_os
 #endif
 
 /* SCO Unix/Openserver/Unixware */
@@ -296,6 +320,21 @@ extern char *platform_get_hurd_runtime_os(void);
 /* SkyOS */
 #ifdef __SKYOS__
 #define RUNTIME_CPU_CALL platform_get_skyos_runtime_cpu
+#endif
+
+/* Sortix */
+#ifdef __sortix__
+#define RUNTIME_CPU_CALL platform_get_sortix_runtime_cpu
+#endif
+
+/* QNX 4.x */
+#if defined(__QNX__) && !defined(__QNXNTO__)
+#define RUNTIME_CPU_CALL platform_get_qnx4_runtime_cpu
+#endif
+
+/* QNX 6.x */
+#ifdef __QNXNTO__
+#define RUNTIME_CPU_CALL platform_get_qnx6_runtime_cpu
 #endif
 
 /* Syllable */

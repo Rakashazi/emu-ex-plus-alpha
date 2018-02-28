@@ -251,7 +251,7 @@ static const resource_int_t resources_int[] = {
       &digimax_sound_chip.chip_enabled, set_digimax_enabled, NULL },
     { "DIGIMAXbase", 0xffff, RES_EVENT_NO, NULL,
       &digimax_address, set_digimax_base, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int digimax_resources_init(void)
@@ -280,7 +280,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_DIGIMAX,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
@@ -290,7 +290,7 @@ static cmdline_option_t base_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_BASE_ADDRESS, IDCLS_DIGIMAX_BASE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int digimax_cmdline_options_init(void)

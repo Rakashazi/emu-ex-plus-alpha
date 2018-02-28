@@ -111,8 +111,7 @@ static const resource_int_t resources_int[] =
       (int *)&vdc.revision, set_vdc_revision, NULL },
     { "VDCStretchVertical", 1, RES_EVENT_SAME, NULL,
       &vdc_resources.stretchy, set_stretch, NULL },
-    { NULL, 0, 0, NULL,
-      NULL, NULL, NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vdc_resources_init(void)

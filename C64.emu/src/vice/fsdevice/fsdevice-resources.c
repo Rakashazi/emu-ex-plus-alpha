@@ -83,7 +83,7 @@ static const resource_string_t resources_string[] = {
       (void *)&fsdevice_dir[2], set_fsdevice_dir, (void *)10 },
     { "FSDevice11Dir", FSDEVICE_DEFAULT_DIR, RES_EVENT_NO, NULL,
       (void *)&fsdevice_dir[3], set_fsdevice_dir, (void *)11 },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -123,7 +123,7 @@ static const resource_int_t resources_int[] = {
     { "FSDevice11HideCBMFiles", 0, RES_EVENT_NO, NULL,
       &fsdevice_hide_cbm_files_enabled[3],
       set_fsdevice_hide_cbm_files, (void *)11 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int fsdevice_resources_init(void)

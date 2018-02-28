@@ -181,11 +181,12 @@ fail:
 
 static int uss_write(SWORD *pbuf, size_t nr)
 {
-    int i, now;
+    size_t i;
+    ssize_t now;
     size_t total;
 
     if (uss_duplicate) {
-        for (i = 0; (size_t)i < nr; i++) {
+        for (i = 0; i < nr; i++) {
             buffer[i * 2] = pbuf[i];
             buffer[i * 2 + 1] = pbuf[i];
         }
@@ -194,8 +195,8 @@ static int uss_write(SWORD *pbuf, size_t nr)
     }
 
     if (uss_8bit) {
-        for (i = 0; (size_t)i < nr; i++) {
-            ((char *)buffer)[i] = pbuf[i] / 256 + 128;
+        for (i = 0; i < nr; i++) {
+            ((char *)buffer)[i] = (char)(pbuf[i] / 256 + 128);
         }
         pbuf = buffer;
         total = nr;
@@ -203,7 +204,7 @@ static int uss_write(SWORD *pbuf, size_t nr)
         total = nr * sizeof(SWORD);
     }
 
-    for (i = 0; (size_t)i < total; i += now) {
+    for (i = 0; i < total; i += (size_t)now) {
         now = write(uss_fd, (char *)pbuf + i, total - i);
         if (now <= 0) {
             if (now < 0) {

@@ -48,7 +48,7 @@ static int set_dos_rom_name_1551(const char *val, void *param)
 static const resource_string_t resources_string[] = {
     { "DosName1551", "dos1551", RES_EVENT_NO, NULL,
       &dos_rom_name_1551, set_dos_rom_name_1551, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int tcbm_resources_init(void)

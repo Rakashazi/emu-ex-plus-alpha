@@ -61,32 +61,32 @@ static void sdl_callback(void *userdata, Uint8 *stream, int len)
             *(short *)userdata = 0;
         }
         return;
-	}
+    }
 #endif
 
-    while (total < (int)(len / sizeof(SWORD))) {
+    while (total < (len / (int)sizeof(SWORD))) {
         amount = sdl_inptr - sdl_outptr;
         if (amount <= 0) {
             amount = sdl_len - sdl_outptr;
         }
 
-        if (amount + total > (int)(len / sizeof(SWORD))) {
-            amount = len / sizeof(SWORD) - total;
+        if (amount + total > (len / (int)sizeof(SWORD))) {
+            amount = len / (int)sizeof(SWORD) - total;
         }
 
         sdl_full = 0;
 
         if (!amount) {
-            memset(stream + total * sizeof(SWORD), 0, len - total * sizeof(SWORD));
+            memset(stream + total * (int)sizeof(SWORD), 0, (size_t)(len - total) * sizeof(SWORD));
 #ifdef ANDROID_COMPILE
             if (userdata) {
-                *(short *)userdata = len / sizeof(SWORD);
+                *(short *)userdata = (short)(len / (int)sizeof(SWORD));
             }
 #endif
             return;
         }
 
-        memcpy(stream + total * sizeof(SWORD), sdl_buf + sdl_outptr, amount * sizeof(SWORD));
+        memcpy(stream + total * (int)sizeof(SWORD), sdl_buf + sdl_outptr, (size_t)amount * sizeof(SWORD));
         total += amount;
         sdl_outptr += amount;
 
@@ -96,7 +96,7 @@ static void sdl_callback(void *userdata, Uint8 *stream, int len)
     }
 #ifdef ANDROID_COMPILE
     if (userdata) {
-        *(short *)userdata = total;
+        *(short *)userdata = (short)total;
     }
 #endif
 }
@@ -110,8 +110,8 @@ static int sdl_init(const char *param, int *speed,
     memset(&spec, 0, sizeof(spec));
     spec.freq = *speed;
     spec.format = AUDIO_S16;
-    spec.channels = *channels;
-    spec.samples = *fragsize * 2;
+    spec.channels = (Uint8)*channels;
+    spec.samples = (Uint16)(*fragsize * 2);
     spec.callback = sdl_callback;
 
     /* NOTE: on some backends the first (input/desired) spec passed to SDL_OpenAudio
@@ -141,7 +141,7 @@ static int sdl_init(const char *param, int *speed,
 
     sdl_len = sdl_spec.samples * nr;
     sdl_inptr = sdl_outptr = sdl_full = 0;
-    sdl_buf = lib_calloc(sdl_len, sizeof(SWORD));
+    sdl_buf = lib_calloc((size_t)sdl_len, sizeof(SWORD));
 
     if (!sdl_buf) {
         SDL_CloseAudio();
@@ -239,7 +239,7 @@ static int sdl_write(SWORD *pbuf, size_t nr)
         }
 
         if (total + amount > (int)nr) {
-            amount = nr - total;
+            amount = (int)nr - total;
         }
 
         if (amount <= 0) {
@@ -247,7 +247,7 @@ static int sdl_write(SWORD *pbuf, size_t nr)
             continue;
         }
 
-        memcpy(sdl_buf + sdl_inptr, pbuf + total, amount * sizeof(SWORD));
+        memcpy(sdl_buf + sdl_inptr, pbuf + total, (size_t)amount * sizeof(SWORD));
         sdl_inptr += amount;
         total += amount;
 

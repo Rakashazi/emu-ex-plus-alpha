@@ -131,7 +131,7 @@ static int set_glue_type(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "GlueLogic", GLUE_LOGIC_CUSTOM_IC, RES_EVENT_NO, NULL,
       &glue_logic_type, set_glue_type, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int scpu64_glue_resources_init(void)
@@ -145,7 +145,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_TYPE, IDCLS_SET_GLUE_LOGIC_TYPE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int scpu64_glue_cmdline_options_init(void)

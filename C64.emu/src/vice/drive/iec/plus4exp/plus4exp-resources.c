@@ -67,11 +67,10 @@ static int set_drive_parallel_cable(int val, void *param)
     return 0;
 }
 
-
 static resource_int_t res_drive[] = {
     { NULL, DRIVE_PC_NONE, RES_EVENT_SAME, NULL,
       NULL, set_drive_parallel_cable, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int plus4exp_resources_init(void)
@@ -90,7 +89,7 @@ int plus4exp_resources_init(void)
             return -1;
         }
 
-        lib_free((char *)(res_drive[0].name));
+        lib_free(res_drive[0].name);
     }
 
     return 0;

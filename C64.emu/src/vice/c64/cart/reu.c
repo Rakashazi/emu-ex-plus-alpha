@@ -480,7 +480,7 @@ static int set_reu_image_write(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "REUfilename", "", RES_EVENT_NO, NULL,
       &reu_filename, set_reu_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 /*! \brief integer resources used by the REU module */
@@ -492,7 +492,7 @@ static const resource_int_t resources_int[] = {
     /* keeping "enable" resource last prevents unnecessary (re)init when loading config file */
     { "REU", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &reu_enabled, set_reu_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 /*! \brief initialize the reu resources
@@ -552,7 +552,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_REU_IMAGE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 /*! \brief initialize the command-line options'

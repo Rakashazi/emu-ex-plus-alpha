@@ -133,4 +133,6 @@ extern sid_engine_model_t **sid_get_engine_model_list(void);
 extern int sid_set_engine_model(int engine, int model);
 extern void sid_sound_chip_init(void);
 
+extern void sid_set_enable(int value);
+
 #endif

@@ -38,6 +38,7 @@
 extern void crtc_store(WORD addr, BYTE value);
 extern BYTE crtc_read(WORD addr);
 extern BYTE crtc_peek(WORD addr);
+extern int crtc_dump(void);
 
 extern void crtc_set_char(int crom);
 

@@ -321,7 +321,7 @@ static const resource_int_t resources_int[] = {
       &rrnetmk3_hw_flashjumper, set_rrnetmk3_flashjumper, NULL },
     { "RRNETMK3_bios_write", 0, RES_EVENT_NO, NULL,
       &rrnetmk3_bios_write, set_rrnetmk3_bios_write, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int rrnetmk3_resources_init(void)
@@ -357,8 +357,9 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_RRNETMK3_UNSET_FLASH_JUMPER,
       NULL, NULL },
-  { NULL }
+    CMDLINE_LIST_END
 };
+
 int rrnetmk3_cmdline_options_init(void)
 {
     return cmdline_register_options(cmdline_options);

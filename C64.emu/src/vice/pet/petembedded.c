@@ -59,9 +59,9 @@
 #include "superpet_waterloo_e000.h"
 #include "superpet_waterloo_f000.h"
 
-#include "pet_amber_vpl.h"
-#include "pet_green_vpl.h"
-#include "pet_white_vpl.h"
+#include "crtc_amber_vpl.h"
+#include "crtc_green_vpl.h"
+#include "crtc_white_vpl.h"
 
 static embedded_t petfiles[] = {
     { "chargen", 0x800, 0x800, 0x800, petchargen_embedded },
@@ -84,14 +84,14 @@ static embedded_t petfiles[] = {
     { "waterloo-d000.901898-04.bin", 0x1000, 0x1000, 0x1000, superpet_waterloo_d000_embedded },
     { "waterloo-e000.901897-01.bin", 0x800, 0x800, 0x800, superpet_waterloo_e000_embedded },
     { "waterloo-f000.901898-05.bin", 0x1000, 0x1000, 0x1000, superpet_waterloo_f000_embedded },
-    { NULL }
+    EMBEDDED_LIST_END
 };
 
 static embedded_palette_t palette_files[] = {
-    { "amber", "amber.vpl", 2, pet_amber_vpl },
-    { "green", "green.vpl", 2, pet_green_vpl },
-    { "white", "white.vpl", 2, pet_white_vpl },
-    { NULL }
+    { "amber", "amber.vpl", 2, crtc_amber_vpl },
+    { "green", "green.vpl", 2, crtc_green_vpl },
+    { "white", "white.vpl", 2, crtc_white_vpl },
+    EMBEDDED_PALETTE_LIST_END
 };
 
 static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)

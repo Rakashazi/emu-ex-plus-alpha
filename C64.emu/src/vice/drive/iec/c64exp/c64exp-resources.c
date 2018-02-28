@@ -34,12 +34,14 @@
 #include "lib.h"
 #include "profdos.h"
 #include "resources.h"
+#include "stardos-exp.h"
 #include "supercard.h"
 #include "util.h"
 
 
 static char *profdos_1571_name = NULL;
 static char *supercard_name = NULL;
+static char *stardos_name = NULL;
 
 
 static void set_drive_ram(unsigned int dnr)
@@ -114,6 +116,24 @@ static int set_supercard_name(const char *val, void *param)
     return supercard_load(supercard_name);
 }
 
+static int set_drive_stardos(int val, void *param)
+{
+    drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
+
+    drive->stardos = val ? 1 : 0;
+
+    return 0;
+}
+
+static int set_stardos_name(const char *val, void *param)
+{
+    if (util_string_set(&stardos_name, val)) {
+        return 0;
+    }
+
+    return stardos_exp_load(stardos_name);
+}
+
 static resource_int_t res_drive[] = {
     { NULL, DRIVE_PC_NONE, RES_EVENT_SAME, NULL,
       NULL, set_drive_parallel_cable, NULL },
@@ -121,7 +141,9 @@ static resource_int_t res_drive[] = {
       NULL, set_drive_profdos, NULL },
     { NULL, 0, RES_EVENT_SAME, NULL,
       NULL, set_drive_supercard, NULL },
-    { NULL }
+    { NULL, 0, RES_EVENT_SAME, NULL,
+      NULL, set_drive_stardos, NULL },
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_string_t resources_string[] =
@@ -130,7 +152,9 @@ static const resource_string_t resources_string[] =
       &profdos_1571_name, set_profdos_1571_name, NULL },
     { "DriveSuperCardName", "", RES_EVENT_NO, NULL,
       &supercard_name, set_supercard_name, NULL },
-    { NULL }
+    { "DriveStarDosName", "", RES_EVENT_NO, NULL,
+      &supercard_name, set_stardos_name, NULL },
+    RESOURCE_STRING_LIST_END
 };
 
 int c64exp_resources_init(void)
@@ -150,14 +174,18 @@ int c64exp_resources_init(void)
         res_drive[2].name = lib_msprintf("Drive%iSuperCard", dnr + 8);
         res_drive[2].value_ptr = &(drive->supercard);
         res_drive[2].param = uint_to_void_ptr(dnr);
+        res_drive[3].name = lib_msprintf("Drive%iStarDos", dnr + 8);
+        res_drive[3].value_ptr = &(drive->stardos);
+        res_drive[3].param = uint_to_void_ptr(dnr);
 
         if (resources_register_int(res_drive) < 0) {
             return -1;
         }
 
-        lib_free((char *)(res_drive[0].name));
-        lib_free((char *)(res_drive[1].name));
-        lib_free((char *)(res_drive[2].name));
+        lib_free(res_drive[0].name);
+        lib_free(res_drive[1].name);
+        lib_free(res_drive[2].name);
+        lib_free(res_drive[3].name);
     }
 
     return resources_register_string(resources_string);
@@ -167,4 +195,5 @@ void c64exp_resources_shutdown(void)
 {
     lib_free(profdos_1571_name);
     lib_free(supercard_name);
+    lib_free(stardos_name);
 }

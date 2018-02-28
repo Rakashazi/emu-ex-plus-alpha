@@ -98,7 +98,7 @@ static int set_diagnostic_pin_enabled(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "DiagPin", 0, RES_EVENT_SAME, NULL,
       &diagnostic_pin_enabled, set_diagnostic_pin_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int pia1_resources_init(void)
@@ -118,7 +118,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_DIAG_PIN,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int pia1_cmdline_options_init(void)

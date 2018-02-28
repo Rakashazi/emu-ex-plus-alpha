@@ -235,9 +235,8 @@ static int drive_resources_type(int val, void *param)
 static resource_int_t res_drive_type[] = {
     { NULL, 0, RES_EVENT_SAME, NULL,
       NULL, drive_resources_type, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
-
 
 int drive_resources_type_init(unsigned int default_type)
 {
@@ -261,7 +260,7 @@ int drive_resources_type_init(unsigned int default_type)
             return -1;
         }
 
-        lib_free((char *)(res_drive_type[0].name));
+        lib_free(res_drive_type[0].name);
     }
 
     return 0;
@@ -339,7 +338,7 @@ static const resource_int_t resources_int[] = {
       &drive_sound_emulation, set_drive_sound_emulation, NULL },
     { "DriveSoundEmulationVolume", 1000, RES_EVENT_NO, (resource_value_t)1000,
       &drive_sound_emulation_volume, set_drive_sound_emulation_volume, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static resource_int_t res_drive[] = {
@@ -351,13 +350,13 @@ static resource_int_t res_drive[] = {
       NULL, set_drive_rpm, NULL },
     { NULL, 50, RES_EVENT_SAME, NULL,
       NULL, set_drive_rpm_wobble, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static resource_int_t res_drive_rtc[] = {
     { NULL, 0, RES_EVENT_NO, NULL,
       NULL, set_drive_rtc_save, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int drive_resources_init(void)
@@ -409,10 +408,10 @@ int drive_resources_init(void)
         }
 
         for (i = 0; i < 4; i++) {
-            lib_free((char *)(res_drive[i].name));
+            lib_free(res_drive[i].name);
         }
         if (has_iec) {
-            lib_free((char *)(res_drive_rtc[0].name));
+            lib_free(res_drive_rtc[0].name);
         }
     }
 

@@ -206,6 +206,7 @@ int fsimage_read_sector(const disk_image_t *image, BYTE *buf, const disk_addr_t 
         case DISK_IMAGE_TYPE_D4M:
             return fsimage_dxx_read_sector(image, buf, dadr);
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
             return fsimage_gcr_read_sector(image, buf, dadr);
         case DISK_IMAGE_TYPE_P64:
             return fsimage_p64_read_sector(image, buf, dadr);
@@ -245,6 +246,7 @@ int fsimage_write_sector(disk_image_t *image, const BYTE *buf,
             }
             break;
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
             if (fsimage_gcr_write_sector(image, buf, dadr) < 0) {
                 return -1;
             }

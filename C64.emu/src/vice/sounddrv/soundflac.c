@@ -65,9 +65,9 @@ static int flac_init(const char *param, int *speed, int *fragsize, int *fragnr, 
 
     ok &= FLAC__stream_encoder_set_verify(encoder, true);
     ok &= FLAC__stream_encoder_set_compression_level(encoder, 5);
-    ok &= FLAC__stream_encoder_set_channels(encoder, *channels);
+    ok &= FLAC__stream_encoder_set_channels(encoder, (unsigned int)*channels);
     ok &= FLAC__stream_encoder_set_bits_per_sample(encoder, 16);
-    ok &= FLAC__stream_encoder_set_sample_rate(encoder, *speed);
+    ok &= FLAC__stream_encoder_set_sample_rate(encoder, (unsigned int)*speed);
 
     if (ok) {
         if (
@@ -75,7 +75,7 @@ static int flac_init(const char *param, int *speed, int *fragsize, int *fragnr, 
             (metadata[1] = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PADDING)) == NULL ||
             !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "CREATOR", "VICE") ||
             !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, false) ||
-            !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "YEAR", "2016") ||
+            !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "YEAR", "2017") ||
             !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false)
         ) {
             ok = false;
@@ -112,7 +112,7 @@ static int flac_write(SWORD *pbuf, size_t nr)
 {
     FLAC__bool ok;
     unsigned int i;
-    unsigned int amount = (stereo == 1) ? nr / 2 : nr;
+    unsigned int amount = (unsigned int)((stereo == 1) ? nr / 2 : nr);
 
     for (i = 0; i < nr; ++i) {
         pcm_buffer[i] = (FLAC__int32)(pbuf[i]);
@@ -159,4 +159,6 @@ int sound_init_flac_device(void)
 {
     return sound_register_device(&flac_device);
 }
-#endif
+
+
+#endif  /* ifdef USE_FLAC */

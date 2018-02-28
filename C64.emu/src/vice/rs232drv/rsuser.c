@@ -185,7 +185,7 @@ static const resource_int_t resources_int[] = {
       &rsuser_baudrate, set_baudrate, NULL },
     { "RsUserDev", 0, RES_EVENT_NO, NULL,
       &rsuser_device, set_up_device, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int rsuser_resources_init(void)
@@ -214,7 +214,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_SPECIFY_RS232_DEVICE_USERPORT,
       "<0-3>", NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int rsuser_cmdline_options_init(void)

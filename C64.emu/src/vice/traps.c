@@ -96,7 +96,7 @@ static int set_traps_enabled(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "VirtualDevices", 0, RES_EVENT_SAME, NULL,
       &traps_enabled, set_traps_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int traps_resources_init(void)
@@ -119,7 +119,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_TRAPS_FAST_EMULATION,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int traps_cmdline_options_init(void)

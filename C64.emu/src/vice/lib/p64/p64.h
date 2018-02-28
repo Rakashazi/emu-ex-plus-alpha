@@ -109,13 +109,14 @@ typedef struct {
 
 typedef TP64PulseStream* PP64PulseStream;
 
-typedef TP64PulseStream TP64PulseStreams[(P64LastHalfTrack-0)+2];
+typedef TP64PulseStream TP64PulseStreams[2][(P64LastHalfTrack-0)+2];
 
 typedef TP64PulseStreams* PP64PulseStreams;
 
 typedef struct TP64Image {
 	TP64PulseStreams PulseStreams;
 	p64_uint32_t WriteProtected;
+	p64_int32_t noSides;
 } TP64Image;
 
 typedef TP64Image* PP64Image;

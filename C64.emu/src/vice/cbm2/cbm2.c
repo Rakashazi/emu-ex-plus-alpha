@@ -50,7 +50,6 @@
 #include "cia.h"
 #include "clkguard.h"
 #include "cmdline.h"
-#include "coplin_keypad.h"
 #include "crtc.h"
 #include "datasette.h"
 #include "debug.h"
@@ -83,7 +82,6 @@
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
-#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -271,14 +269,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport paperclip64 dongle");
         return -1;
     }
-    if (joyport_coplin_keypad_resources_init() < 0) {
-        init_resource_fail("joyport coplin keypad");
-        return -1;
-    }
-    if (joyport_rushware_keypad_resources_init() < 0) {
-        init_resource_fail("joyport rushware keypad");
-        return -1;
-    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -399,6 +389,7 @@ void machine_resources_shutdown(void)
     joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     debugcart_resources_shutdown();
+    cartridge_resources_shutdown();
 }
 
 /* CBM-II-specific command-line option initialization.  */

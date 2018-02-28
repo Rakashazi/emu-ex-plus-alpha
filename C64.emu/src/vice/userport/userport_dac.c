@@ -163,7 +163,7 @@ static int set_userport_dac_enabled(int value, void *param)
 static const resource_int_t resources_int[] = {
     { "UserportDAC", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &userport_dac_sound_chip.chip_enabled, set_userport_dac_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int userport_dac_resources_init(void)
@@ -185,7 +185,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_DAC,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int userport_dac_cmdline_options_init(void)

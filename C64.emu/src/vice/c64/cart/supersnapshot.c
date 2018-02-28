@@ -314,7 +314,7 @@ static int set_32k_enabled(int val, void *param)
 static const resource_int_t resources_int[] = {
     { "SSRamExpansion", 0, RES_EVENT_NO, NULL,
       &ss_32k_enabled, set_32k_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int supersnapshot_v5_resources_init(void)
@@ -340,7 +340,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_SS_RAM_EXPANSION,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int supersnapshot_v5_cmdline_options_init(void)

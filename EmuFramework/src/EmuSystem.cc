@@ -359,15 +359,21 @@ void EmuSystem::setGameSavePath(const char *path)
 	}
 }
 
-void EmuSystem::makeDefaultSavePath()
+FS::PathString EmuSystem::makeDefaultBaseSavePath()
 {
-	assert(strlen(gameName_.data()));
 	FS::PathString pathTemp = Base::sharedStoragePath();
 	string_cat(pathTemp, "/Game Data");
 	FS::create_directory(pathTemp);
 	string_cat(pathTemp, "/");
 	string_cat(pathTemp, shortSystemName());
 	FS::create_directory(pathTemp);
+	return pathTemp;
+}
+
+void EmuSystem::makeDefaultSavePath()
+{
+	assert(strlen(gameName_.data()));
+	auto pathTemp = makeDefaultBaseSavePath();
 	string_cat(pathTemp, "/");
 	string_cat(pathTemp, gameName_.data());
 	FS::create_directory(pathTemp);

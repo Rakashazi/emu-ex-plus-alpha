@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifndef RAND_MAX
 #include <limits.h>
@@ -954,11 +955,12 @@ static int keyboard_parse_keymap(const char *filename, int child)
 {
     FILE *fp;
     char *complete_path = NULL;
-    char buffer[1000];
+    char buffer[1024];
 
     DBG((">keyboard_parse_keymap(%s)\n", filename));
 
-    fp = sysfile_open(filename, &complete_path, MODE_READ_TEXT);
+    /* open in binary mode so the newline system doesn't matter */
+    fp = sysfile_open(filename, &complete_path, "rb");
 
     if (fp == NULL) {
         log_message(keyboard_log, "Error loading keymap `%s'->`%s'.", filename, complete_path ? complete_path : "<empty/null>");
@@ -972,12 +974,18 @@ static int keyboard_parse_keymap(const char *filename, int child)
         buffer[0] = 0;
         if (fgets(buffer, 999, fp)) {
             char *p;
+            long blen = (long)strlen(buffer);
 
-            if (strlen(buffer) == 0) {
+            if (blen == 0) {
                 break;
             }
 
-            buffer[strlen(buffer) - 1] = 0; /* remove newline */
+            /* remove trailing CR or/and LF */
+            blen--;
+            while (blen >= 0 && (buffer[blen] == '\n' || buffer[blen] == '\r')) {
+                buffer[blen--] = '\0';
+            }
+
             /* remove comments */
             if ((p = strchr(buffer, '#'))) {
                 *p = 0;
@@ -1494,9 +1502,9 @@ static int try_set_keymap_file(int atidx, int idx, int mapping, int type)
     util_string_set(&machine_keymap_file_list[atidx], name);
     DBG(("try_set_keymap_file calls sysfile_locate(%s)\n", name));
     if (sysfile_locate(name, &complete_path) != 0) {
+        DBG(("<try_set_keymap_file ERROR locating keymap `%s'.\n", name ? name : "(null)"));
         lib_free(name);
         lib_free(complete_path);
-        DBG(("<try_set_keymap_file ERROR locating keymap `%s'.\n", name ? name : "(null)"));
         return -1;
     }
     lib_free(name);
@@ -1590,7 +1598,7 @@ static const resource_string_t resources_string[] = {
       &machine_keymap_file_list[KBD_INDEX_USERSYM], keyboard_set_keymap_file, (void *)KBD_INDEX_USERSYM },
     { "KeymapUserPosFile", "", RES_EVENT_NO, NULL,
       &machine_keymap_file_list[KBD_INDEX_USERPOS], keyboard_set_keymap_file, (void *)KBD_INDEX_USERPOS },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -1600,7 +1608,7 @@ static const resource_int_t resources_int[] = {
       &machine_keyboard_type, keyboard_set_keyboard_type, NULL },
     { "KeyboardMapping", 0, RES_EVENT_NO, NULL,
       &machine_keyboard_mapping, keyboard_set_keyboard_mapping, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 /*--------------------------------------------------------------------------*/
@@ -1609,6 +1617,11 @@ int keyboard_resources_init(void)
 {
     int nsym, npos, mapping, idx, type;
     const char *name;
+
+    /* VSID doesn't have a keyboard */
+    if (machine_class == VICE_MACHINE_VSID) {
+        return 0;
+    }
 
     if (resources_register_string(resources_string) < 0) {
         return -1;
@@ -1679,6 +1692,10 @@ int keyboard_resources_init(void)
 
 void keyboard_resources_shutdown(void)
 {
+    /* VSID doesn't have a keyboard */
+    if (machine_class == VICE_MACHINE_VSID) {
+        return;
+    }
     lib_free(machine_keymap_file_list[KBD_INDEX_SYM]);
     lib_free(machine_keymap_file_list[KBD_INDEX_POS]);
     lib_free(machine_keymap_file_list[KBD_INDEX_USERSYM]);
@@ -1723,12 +1740,15 @@ static cmdline_option_t const cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_POS_KEYMAP_FILE_NAME,
       NULL, NULL },
-    { NULL}
+    CMDLINE_LIST_END
 };
 
 int keyboard_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    if (machine_class != VICE_MACHINE_VSID) {
+        return cmdline_register_options(cmdline_options);
+    }
+    return 0;
 }
 #endif  /* COMMON_KBD */
 

@@ -30,6 +30,9 @@
 
 #include "vice.h"
 
+#include "log.h"
+#include "machine.h"
+#include "resources.h"
 #include "vic-color.h"
 #include "vic.h"
 #include "victypes.h"
@@ -44,7 +47,7 @@
 
 /* phase shift of all colors */
 
-#define VIC_PHASE         -4.5f
+#define VIC_PHASE         -9.5f
 
 /* chroma angles in UV space */
 
@@ -62,7 +65,7 @@
     http://sourceforge.net/tracker/?func=detail&atid=1057619&aid=3542105&group_id=223021
 */
 
-static video_cbm_color_t vic_colors[VIC_NUM_COLORS] =
+static video_cbm_color_t vic_colors_pal[VIC_NUM_COLORS] =
 {
     {   0.0f, ANGLE_ORN, -0, "Black"       },
     { 256.0f, ANGLE_ORN, -0, "White"       },
@@ -82,10 +85,32 @@ static video_cbm_color_t vic_colors[VIC_NUM_COLORS] =
     { 234.0f, ANGLE_BLU, -1, "Light Yellow"}
 };
 
+/* FIXME: the following is hand-tuned to somehow match mikes/tokras palette. it
+          is not necessarily correct and should get backed up by measurements. */
+static video_cbm_color_t vic_colors_ntsc[VIC_NUM_COLORS] =
+{
+    {   0.0f, ANGLE_ORN, -0, "Black"       },
+    { 256.0f, ANGLE_ORN, -0, "White"       },
+    {  51.0f, ANGLE_RED,  1, "Red"         },
+    { 157.0f, ANGLE_RED, -1, "Cyan"        },
+    {  75.0f, ANGLE_GRN + 35.0f, -1, "Purple"      },
+    { 132.0f, ANGLE_GRN + 45.0f,  1, "Green"       },
+    {  47.0f, ANGLE_BLU,  1, "Blue"        },
+    { 183.0f, ANGLE_BLU, -1, "Yellow"      },
+    {  85.0f, ANGLE_ORN, -1, "Orange"      },
+    { 161.0f, ANGLE_ORN - 30.0f, -1, "Light Orange"},
+    { 144.0f, ANGLE_RED - 30.0f,  1, "Pink"        },
+    { 208.0f, ANGLE_RED, -1, "Light Cyan"  },
+    { 158.0f, ANGLE_GRN, -1, "Light Purple"},
+    { 191.0f, ANGLE_GRN + 30.0f,  1, "Light Green" },
+    { 129.0f, ANGLE_BLU,  1, "Light Blue"  },
+    { 234.0f, ANGLE_BLU, -1, "Light Yellow"}
+};
+
 static video_cbm_palette_t vic_palette =
 {
     VIC_NUM_COLORS,
-    vic_colors,
+    vic_colors_pal,
     VIC_SATURATION,
     VIC_PHASE,
     CBM_PALETTE_YUV
@@ -93,6 +118,25 @@ static video_cbm_palette_t vic_palette =
 
 int vic_color_update_palette(struct video_canvas_s *canvas)
 {
+    int sync;
+
+    if (resources_get_int("MachineVideoStandard", &sync) < 0) {
+        sync = MACHINE_SYNC_PAL;
+    }
+
+    switch (sync) {
+        case MACHINE_SYNC_PAL: /* VIC_MODEL_PALG */
+            vic_palette.entries = vic_colors_pal;
+            break;
+        case MACHINE_SYNC_NTSC: /* VIC_MODEL_NTSCM */
+            vic_palette.entries = vic_colors_ntsc;
+            break;
+        default:
+            vic_palette.entries = vic_colors_pal; /* FIXME */
+            log_error(LOG_DEFAULT, "unknown VIC type.");
+            break;
+    }
+
     video_color_palette_internal(canvas, &vic_palette);
     return 0;
 }

@@ -53,7 +53,7 @@ BYTE memmap_state = 0;
 
 /* Defines */
 
-#define CPUHISTORY_SIZE (1 << 8)
+#define CPUHISTORY_SIZE 4096
 
 #define MEMMAP_SIZE 0x10000
 #define MEMMAP_PICX 0x100

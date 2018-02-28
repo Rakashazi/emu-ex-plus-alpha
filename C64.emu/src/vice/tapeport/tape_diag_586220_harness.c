@@ -136,7 +136,7 @@ static int set_tape_diag_586220_harness_enabled(int value, void *param)
 static const resource_int_t resources_int[] = {
     { "TapeDiag586220Harness", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &tape_diag_586220_harness_enabled, set_tape_diag_586220_harness_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int tape_diag_586220_harness_resources_init(void)
@@ -158,7 +158,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_TAPE_DIAG_586220_HARNESS,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int tape_diag_586220_harness_cmdline_options_init(void)

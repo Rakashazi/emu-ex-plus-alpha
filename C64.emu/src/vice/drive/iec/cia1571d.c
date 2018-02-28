@@ -82,7 +82,7 @@ static void cia_restore_int(cia_context_t *cia_context, int value)
 
     drive_context = (drive_context_t *)(cia_context->context);
 
-    interrupt_restore_irq(drive_context->cpu->int_status, cia_context->int_num, value);
+    interrupt_restore_irq(drive_context->cpu->int_status, (int)(cia_context->int_num), value);
 }
 
 
@@ -137,8 +137,8 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 
 static BYTE read_ciapa(cia_context_t *cia_context)
 {
-    return (0xff & ~(cia_context->c_cia[CIA_DDRA]))
-           | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]);
+    return (BYTE)((0xff & ~(cia_context->c_cia[CIA_DDRA]))
+            | (cia_context->c_cia[CIA_PRA] & cia_context->c_cia[CIA_DDRA]));
 }
 
 static BYTE read_ciapb(cia_context_t *cia_context)
@@ -152,8 +152,8 @@ static BYTE read_ciapb(cia_context_t *cia_context)
         byte = parallel_cable_drive_read(ciap->drive->parallel_cable, 1);
     }
 
-    return (byte & ~(cia_context->c_cia[CIA_DDRB]))
-           | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]);
+    return (BYTE)((byte & ~(cia_context->c_cia[CIA_DDRB]))
+            | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]));
 }
 
 static void read_ciaicr(cia_context_t *cia_context)
@@ -189,7 +189,7 @@ void cia1571_setup_context(drive_context_t *ctxptr)
 
     cia->prv = lib_malloc(sizeof(drivecia1571_context_t));
     cia1571p = (drivecia1571_context_t *)(cia->prv);
-    cia1571p->number = ctxptr->mynumber;
+    cia1571p->number = (unsigned int)(ctxptr->mynumber);
 
     cia->context = (void *)ctxptr;
 
@@ -227,7 +227,7 @@ void cia1571_setup_context(drive_context_t *ctxptr)
 void cia1571_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
 {
     cia_context->power_freq = powerfreq;
-    cia_context->ticks_per_sec = tickspersec;
+    cia_context->ticks_per_sec = (unsigned int)tickspersec;
     cia_context->todticks = tickspersec / powerfreq;
     cia_context->power_tickcounter = 0;
     cia_context->power_ticks = 0;

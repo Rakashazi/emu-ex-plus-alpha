@@ -69,7 +69,7 @@ static int vorbis_init(const char *param, int *speed, int *fragsize, int *fragnr
     }
 
     vorbis_info_init(&vi);
-    ret = vorbis_encode_init_vbr(&vi, *channels, *speed, 0.1);
+    ret = vorbis_encode_init_vbr(&vi, *channels, *speed, 0.1f);
     if (ret) {
         vorbis_info_clear(&vi);
         return -1;
@@ -81,7 +81,7 @@ static int vorbis_init(const char *param, int *speed, int *fragsize, int *fragnr
     vorbis_analysis_init(&vd, &vi);
     vorbis_block_init(&vd, &vb);
 
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     ogg_stream_init(&os, rand());
 
     vorbis_analysis_headerout(&vd, &vc, &header, &header_comm, &header_code);
@@ -94,8 +94,8 @@ static int vorbis_init(const char *param, int *speed, int *fragsize, int *fragnr
         if (!result) {
             break;
         }
-        fwrite(og.header, 1, og.header_len, vorbis_fd);
-        fwrite(og.body, 1, og.body_len, vorbis_fd);
+        fwrite(og.header, 1, (size_t)(og.header_len), vorbis_fd);
+        fwrite(og.body, 1, (size_t)(og.body_len), vorbis_fd);
     }
 
     return 0;
@@ -104,12 +104,12 @@ static int vorbis_init(const char *param, int *speed, int *fragsize, int *fragnr
 static int vorbis_write(SWORD *pbuf, size_t nr)
 {
     float **buffer;
-    unsigned int i;
-    unsigned int amount = (stereo) ? nr / 2 : nr;
+    size_t i;
+    size_t amount = (stereo) ? nr / 2 : nr;
     int result;
     int eos = 0;
 
-    buffer = vorbis_analysis_buffer(&vd, amount);
+    buffer = vorbis_analysis_buffer(&vd, (int)amount);
     for (i = 0; i < amount; i++) {
         if (stereo == 1) {
             buffer[0][i]= pbuf[i * 2] / 32768.f;
@@ -119,7 +119,7 @@ static int vorbis_write(SWORD *pbuf, size_t nr)
         }
     }
 
-    vorbis_analysis_wrote(&vd, i);
+    vorbis_analysis_wrote(&vd, (int)i);
 
     while (vorbis_analysis_blockout(&vd, &vb) == 1) {
         vorbis_analysis(&vb, NULL);
@@ -131,8 +131,8 @@ static int vorbis_write(SWORD *pbuf, size_t nr)
                 if (!result) {
                     break;
                 }
-                fwrite(og.header, 1, og.header_len, vorbis_fd);
-                fwrite(og.body, 1, og.body_len, vorbis_fd);
+                fwrite(og.header, 1, (size_t)(og.header_len), vorbis_fd);
+                fwrite(og.body, 1, (size_t)(og.body_len), vorbis_fd);
                 if (ogg_page_eos(&og)) {
                     eos = 1;
                 }

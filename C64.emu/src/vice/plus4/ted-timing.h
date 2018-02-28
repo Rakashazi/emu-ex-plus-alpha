@@ -58,13 +58,8 @@
 #define TED_PAL_NO_BORDER_FIRST_DISPLAYED_LINE     59
 #define TED_PAL_NO_BORDER_LAST_DISPLAYED_LINE      258
 
-#ifdef DINGOO_NATIVE
-#define TED_PAL_NORMAL_FIRST_DISPLAYED_LINE        40      /* 0x113 in TED raster counter */
-#define TED_PAL_NORMAL_LAST_DISPLAYED_LINE         279     /* 0x0FA in TED raster counter */
-#else
 #define TED_PAL_NORMAL_FIRST_DISPLAYED_LINE        19      /* 0x113 in TED raster counter */
 #define TED_PAL_NORMAL_LAST_DISPLAYED_LINE         306     /* 0x0FA in TED raster counter */
-#endif
 
 #define TED_PAL_FULL_FIRST_DISPLAYED_LINE          11
 #define TED_PAL_FULL_LAST_DISPLAYED_LINE           308
@@ -79,13 +74,8 @@ NTSC display ranges:
 #define TED_NTSC_NO_BORDER_FIRST_DISPLAYED_LINE    37
 #define TED_NTSC_NO_BORDER_LAST_DISPLAYED_LINE     236
 
-#ifdef DINGOO_NATIVE
-#define TED_NTSC_NORMAL_FIRST_DISPLAYED_LINE       40
-#define TED_NTSC_NORMAL_LAST_DISPLAYED_LINE        279
-#else
 #define TED_NTSC_NORMAL_FIRST_DISPLAYED_LINE       19
 #define TED_NTSC_NORMAL_LAST_DISPLAYED_LINE        260
-#endif
 
 #define TED_NTSC_FULL_FIRST_DISPLAYED_LINE         11
 #define TED_NTSC_FULL_LAST_DISPLAYED_LINE          261

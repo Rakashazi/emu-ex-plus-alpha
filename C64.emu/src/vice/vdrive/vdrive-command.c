@@ -603,9 +603,16 @@ static int vdrive_command_rename(vdrive_t *vdrive, BYTE *dest, int length)
            cmd_parse_dst.parselength);
 
     /* FIXME: is this right? */
+
+    /* Doesn't look like it, does the rename command even allow specifying
+     * file types? And even if so, the closed bit should be set with '| 0x80'
+     * (BW 2017-02-04) */
+#if 0
+
     if (cmd_parse_dst.filetype) {
         slot[SLOT_TYPE_OFFSET] = cmd_parse_dst.filetype;
     }
+#endif
 
     /* Update the directory.  */
     if (vdrive_write_sector(vdrive, dir.buffer, dir.track, dir.sector) < 0) {

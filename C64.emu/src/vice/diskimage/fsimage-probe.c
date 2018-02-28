@@ -454,10 +454,6 @@ static int disk_image_check_for_gcr(disk_image_t *image)
         return 0;
     }
 
-    if (strncmp("GCR-1541", (char*)header, 8)) {
-        return 0;
-    }
-
     if (header[8] != 0) {
         log_error(disk_image_probe_log,
                   "Import GCR: Unknown GCR image version %i.",
@@ -487,7 +483,14 @@ static int disk_image_check_for_gcr(disk_image_t *image)
     }
 #endif
 
-    image->type = DISK_IMAGE_TYPE_G64;
+    if (!strncmp("GCR-1541", (char*)header, 8)) {
+        image->type = DISK_IMAGE_TYPE_G64;
+    } else if (!strncmp("GCR-1571", (char*)header, 8)) {
+        image->type = DISK_IMAGE_TYPE_G71;
+    } else {
+        return 0;
+    }
+
     image->tracks = header[9] / 2;
     image->max_half_tracks = header[9];
     disk_image_check_log(image, "GCR");

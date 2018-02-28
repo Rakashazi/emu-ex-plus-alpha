@@ -89,7 +89,7 @@ static const resource_int_t resources_int[] = {
       &iec_device_enabled[10], set_iec_device_enable, (void *)10 },
     { "IECDevice11", 0, RES_EVENT_SAME, NULL,
       &iec_device_enabled[11], set_iec_device_enable, (void *)11 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int serial_iec_device_resources_init(void)
@@ -178,7 +178,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_IEC_11,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int serial_iec_device_cmdline_options_init(void)

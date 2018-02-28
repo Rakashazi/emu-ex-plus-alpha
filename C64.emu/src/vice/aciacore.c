@@ -158,11 +158,11 @@ typedef struct acia_struct {
     enum rs232handshake_out rs232_status_lines;
 } acia_type;
 
-
-
 /******************************************************************/
 
-static acia_type acia = { NULL };
+static acia_type acia = { NULL, NULL, 0, 0, 0, 0, (enum acia_tx_state)0,
+                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          (enum cpu_int)0, 0, 0, (enum rs232handshake_out)0 };
 
 void acia_preinit(void)
 {
@@ -473,7 +473,7 @@ static int acia_set_mode(int new_mode, void *param)
 static const resource_int_t resources_int[] = {
     { MYACIA "Dev", MyDevice, RES_EVENT_NO, NULL,
       &acia.device, acia_set_device, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 /*! \brief initialize the ACIA resources
@@ -501,7 +501,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_SPECIFY_ACIA_RS232_DEVICE,
       "<0-3>", NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 /*! \brief initialize the command-line options

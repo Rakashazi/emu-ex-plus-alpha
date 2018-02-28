@@ -540,7 +540,7 @@ static const resource_string_t resources_string[] = {
       &recorddevice_name, set_recorddevice_name, NULL },
     { "SoundRecordDeviceArg", "", RES_EVENT_NO, NULL,
       &recorddevice_arg, set_recorddevice_arg, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -560,7 +560,7 @@ static const resource_int_t resources_int[] = {
       (void *)&volume, set_volume, NULL },
     { "SoundOutput", ARCHDEP_SOUND_OUTPUT_MODE, RES_EVENT_NO, NULL,
       (void *)&output_option, set_output_option, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int sound_resources_init(void)
@@ -630,7 +630,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_VOLUME, IDCLS_SOUND_VOLUME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t devs_cmdline_options[] = {
@@ -654,7 +654,7 @@ static cmdline_option_t devs_cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_ARGS, IDCLS_SPECIFY_REC_SOUND_DRIVER_PARAM,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int sound_cmdline_options_init(void)

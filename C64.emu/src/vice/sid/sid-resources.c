@@ -78,11 +78,7 @@ static int set_sid_engine(int set_engine, void *param)
 
     if (engine == SID_ENGINE_DEFAULT) {
 #ifdef HAVE_RESID
-        if (machine_class != VICE_MACHINE_VIC20) {
-            engine = SID_ENGINE_RESID;
-        } else {
-            engine = SID_ENGINE_FASTSID;
-        }
+        engine = SID_ENGINE_RESID;
 #else
         engine = SID_ENGINE_FASTSID;
 #endif
@@ -301,6 +297,27 @@ static int set_sid_hardsid_right(int val, void *param)
 }
 #endif
 
+#ifdef HAVE_RESID
+static int sid_enabled = 1;
+
+void sid_set_enable(int value)
+{
+    int val = value ? 1 : 0;
+
+    if (val == sid_enabled) {
+        return;
+    }
+
+    if (val) {
+        sid_engine_set(SID_ENGINE_FASTSID);
+    } else {
+        sid_engine_set(sid_engine);
+    }
+    sid_enabled = val;
+    sid_state_changed = 1;
+}
+#endif
+
 #if defined(HAVE_RESID) || defined(HAVE_RESID_DTV)
 static const resource_int_t resid_resources_int[] = {
     { "SidResidSampling", SID_RESID_SAMPLING_RESAMPLING, RES_EVENT_NO, NULL,
@@ -311,7 +328,7 @@ static const resource_int_t resid_resources_int[] = {
       &sid_resid_gain, set_sid_resid_gain, NULL },
     { "SidResidFilterBias", 500, RES_EVENT_NO, NULL,
       &sid_resid_filter_bias, set_sid_resid_filter_bias, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 #endif
 
@@ -329,13 +346,13 @@ static const resource_int_t common_resources_int[] = {
     { "SidHardSIDRight", 1, RES_EVENT_NO, NULL,
       &sid_hardsid_right, set_sid_hardsid_right, NULL },
 #endif
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t stereo_resources_int[] = {
     { "SidStereo", 0, RES_EVENT_SAME, NULL,
       &sid_stereo, set_sid_stereo, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int sid_common_resources_init(void)

@@ -983,7 +983,7 @@ static io_source_t crtc_device = {
     crtc_store,
     crtc_read,
     crtc_peek,
-    NULL, /* TODO: dump */
+    crtc_dump,
     0, /* dummy (not a cartridge) */
     IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
     0

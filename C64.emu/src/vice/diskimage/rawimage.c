@@ -154,7 +154,7 @@ static int set_raw_drive_driver(const char *val, void *param)
 static const resource_string_t resources_string[] = {
     { "RawDriveDriver", ARCHDEP_RAWDRIVE_DEFAULT, RES_EVENT_NO, NULL,
       &raw_drive_driver, set_raw_drive_driver, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int rawimage_resources_init(void)
@@ -176,7 +176,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SET_RAW_DRIVE_DEVICE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int rawimage_cmdline_options_init()

@@ -215,11 +215,11 @@ static joyport_t joyport_rushware_keypad_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_rushware_keypad_enable,
     rushware_keypad_read,
-    NULL,				/* no digital store */
-    NULL,				/* no pot-x read */
-    NULL,				/* no pot-y read */
-    NULL,				/* no write snapshot */
-    NULL				/* no read snapshot */
+    NULL,               /* no digital store */
+    NULL,               /* no pot-x read */
+    NULL,               /* no pot-y read */
+    NULL,               /* no write snapshot */
+    NULL                /* no read snapshot */
 };
 
 /* ------------------------------------------------------------------------- */

@@ -121,7 +121,7 @@ static const resource_string_t resources_string[] = {
       &server_name, set_server_name, NULL },
     { "NetworkServerBindAddress", "", RES_EVENT_NO, NULL,
       &server_bind_address, set_server_bind_address, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -129,7 +129,7 @@ static const resource_int_t resources_int[] = {
       &res_server_port, set_server_port, NULL },
     { "NetworkControl", NETWORK_CONTROL_DEFAULT, RES_EVENT_SAME, NULL,
       &network_control, set_network_control, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int network_resources_init(void)
@@ -220,7 +220,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_SET_NETPLAY_CONTROL,
       "<key,joy1,joy2,dev,rsrc>", NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int network_cmdline_options_init(void)

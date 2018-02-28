@@ -45,6 +45,7 @@ TAPEPORT | TAPELOG
 #include <string.h>
 
 #include "cmdline.h"
+#include "lib.h"
 #include "log.h"
 #include "maincpu.h"
 #include "resources.h"
@@ -255,13 +256,13 @@ static const resource_int_t resources_int[] = {
       &tapelog_enabled, set_tapelog_enabled, NULL },
     { "TapeLogDestination", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &tapelog_destination, set_tapelog_destination, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_string_t resources_string[] = {
     { "TapeLogfilename", "", RES_EVENT_NO, NULL,
       &tapelog_filename, set_tapelog_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int tapelog_resources_init(void)
@@ -274,6 +275,15 @@ int tapelog_resources_init(void)
 
     return resources_register_int(resources_int);
 }
+
+
+void tapelog_resources_shutdown(void)
+{
+    if (tapelog_filename != NULL) {
+        lib_free(tapelog_filename);
+    }
+}
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -304,7 +314,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_TAPELOG_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int tapelog_cmdline_options_init(void)

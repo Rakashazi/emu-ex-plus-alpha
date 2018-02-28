@@ -466,18 +466,18 @@ int patch_rom_idx(int rev)
     WORD a;
 
     if (c64rom_get_kernal_chksum_id(&sum, &curr) < 0) {
-        log_verbose("ROM not patched: Unknown Kernal image.  ID: %d ($%02X) Sum: %d ($%04X).", curr, curr, sum, sum);
-        return (-1);
+        log_error(LOG_DEFAULT, "ROM not patched: Unknown Kernal image.  ID: %d ($%02X) Sum: %d ($%04X).", curr, curr, sum, sum);
+        return -1;
     }
     log_verbose("Trying Kernal ROM patch: id:%d/sum:%d to id:%d.", curr, sum, rev);
 
     if (rev == curr) {
-        log_warning(LOG_DEFAULT, "ROM not patched: Already revision #%d.", curr);
-        return (0);
+        log_verbose("ROM not patched: Already revision #%d.", curr);
+        return 0;
     }
     if (rev < 0) {
-        log_verbose("ROM not patched: Unknown ID: %d ($%02X).", rev, rev);
-        return (-1);
+        log_error(LOG_DEFAULT, "ROM not patched: Unknown ID: %d ($%02X).", rev, rev);
+        return -1;
     }
 
     /* create index */
@@ -502,7 +502,7 @@ int patch_rom_idx(int rev)
             break;
         default:
             log_error(LOG_DEFAULT, "Cannot patch ROM to revision #%d.", rev);
-            return (-1);
+            return -1;
     }
 
     log_message(LOG_DEFAULT, "Installing ROM patch for revision #%d:", num);
@@ -520,5 +520,5 @@ int patch_rom_idx(int rev)
 
         i += (bytes * (PATCH_VERSIONS - rev));  /* skip patch */
     }
-    return (0);
+    return 0;
 }

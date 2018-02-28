@@ -42,8 +42,10 @@
 
 
 static log_t fsimage_gcr_log = LOG_ERR;
-static const BYTE gcr_image_header_expected[] =
+static const BYTE gcr_image_header_expected_1541[] =
     { 0x47, 0x43, 0x52, 0x2D, 0x31, 0x35, 0x34, 0x31, 0x00 };
+static const BYTE gcr_image_header_expected_1571[] =
+    { 0x47, 0x43, 0x52, 0x2D, 0x31, 0x35, 0x37, 0x31, 0x00 };
 
 /*-----------------------------------------------------------------------*/
 /* Intial GCR buffer setup.  */
@@ -80,7 +82,8 @@ static long fsimage_gcr_seek_half_track(fsimage_t *fsimage, unsigned int half_tr
         log_error(fsimage_gcr_log, "Could not read GCR disk image.");
         return -1;
     }
-    if (memcmp(gcr_image_header_expected, buf, sizeof(gcr_image_header_expected)) != 0) {
+    if ((memcmp(gcr_image_header_expected_1541, buf, sizeof(gcr_image_header_expected_1541)) != 0)
+        && (memcmp(gcr_image_header_expected_1571, buf, sizeof(gcr_image_header_expected_1571)) != 0)) {
         log_error(fsimage_gcr_log, "Unexpected GCR header found." );
         return -1;
     }

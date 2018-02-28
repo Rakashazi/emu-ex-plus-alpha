@@ -48,7 +48,7 @@ static int set_dos_rom_name_1571cr(const char *val, void *param)
 static const resource_string_t resources_string[] = {
     { "DosName1571cr", "d1571cr", RES_EVENT_NO, NULL,
       &dos_rom_name_1571cr, set_dos_rom_name_1571cr, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int iec128dcr_resources_init(void)

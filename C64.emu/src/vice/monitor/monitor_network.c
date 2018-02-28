@@ -485,14 +485,14 @@ static int set_server_address(const char *name, void *param)
 static const resource_string_t resources_string[] = {
     { "MonitorServerAddress", "ip4://127.0.0.1:6510", RES_EVENT_NO, NULL,
       &monitor_server_address, set_server_address, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 /*! \brief integer resources used by the network monitor module */
 static const resource_int_t resources_int[] = {
     { "MonitorServer", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &monitor_enabled, set_monitor_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 /*! \brief initialize the network monitor resources
@@ -539,7 +539,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_REMOTE_MONITOR_ADDRESS,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 /*! \brief initialize the command-line options'

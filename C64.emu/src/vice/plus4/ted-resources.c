@@ -72,7 +72,7 @@ static const resource_int_t resources_int[] =
     { "TEDBorderMode", TED_NORMAL_BORDERS, RES_EVENT_SAME, NULL,
       &ted_resources.border_mode,
       set_border_mode, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int ted_resources_init(void)
@@ -84,7 +84,7 @@ int ted_resources_init(void)
     video_chip_cap.dscan_allowed = ARCHDEP_TED_DSCAN;
     video_chip_cap.hwscale_allowed = ARCHDEP_TED_HWSCALE;
     video_chip_cap.scale2x_allowed = ARCHDEP_TED_DSIZE;
-    video_chip_cap.external_palette_name = "default";
+    video_chip_cap.external_palette_name = "yape-pal";
     video_chip_cap.double_buffering_allowed = ARCHDEP_TED_DBUF;
     video_chip_cap.single_mode.sizex = 1;
     video_chip_cap.single_mode.sizey = 1;

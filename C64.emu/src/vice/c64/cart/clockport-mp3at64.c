@@ -36,6 +36,9 @@
 
 #include "clockport.h"
 #include "lib.h"
+#ifdef MP3AT64_DEBUG
+#include "log.h"
+#endif
 #include "sound.h"
 #include "translate.h"
 #include "types.h"
@@ -218,10 +221,10 @@ static int clockport_mp3at64_sound_machine_init(sound_t *psid, int speed, int cy
 
 static void clockport_mp3at64_sound_machine_close(sound_t *psid)
 {
+    int i;
     mpg123_delete(mh);
     mpg123_exit();
     mh = NULL;
-    int i;
 
     for (i = 0; i < MP3_BUFFERS; ++i) {
         if (mp3_output_buffers[i]) {
@@ -321,6 +324,19 @@ static int mp3_sampels_per_frame[3][3] = {
     { 384, 1152,  576 }
 };
 
+static int mp3_get_layer(void)
+{
+    switch (mp3_input_frame_layer) {
+        case 3:
+            return 0;
+        case 2:
+            return 1;
+        case 1:
+            return 2;
+    }
+    return 0;
+}
+
 static int mp3_get_mpeg_version(void)
 {
     switch (mp3_input_frame_mpeg_version) {
@@ -336,7 +352,7 @@ static int mp3_get_mpeg_version(void)
 
 static int mp3_get_bitrate(void)
 {
-    return mp3_bitrates[mp3_input_bitrate][mp3_get_mpeg_version()][mp3_input_frame_layer];
+    return mp3_bitrates[mp3_input_bitrate][mp3_get_mpeg_version()][mp3_get_layer()];
 }
 
 static int mp3_get_sampling_rate(void)
@@ -350,7 +366,7 @@ static int mp3_get_sampling_rate(void)
 static int mp3_get_padding_size(void)
 {
     if (mp3_input_padding) {
-        return mp3_slot_sizes[mp3_input_frame_layer];
+        return mp3_slot_sizes[mp3_get_layer()];
     }
     return 0;
 }
@@ -365,7 +381,7 @@ static int mp3_get_channels(void)
 
 static int mp3_get_samples_per_frame(void)
 {
-    return mp3_sampels_per_frame[mp3_get_mpeg_version()][mp3_input_frame_layer];
+    return mp3_sampels_per_frame[mp3_get_mpeg_version()][mp3_get_layer()];
 }
 
 static int mp3_get_frame_size(void)
@@ -594,14 +610,13 @@ static void mp3at64_store_mp3_data(BYTE val)
                                     if (mp3_get_channels() != 2) {
                                         mp3_mono_to_stereo(block);
                                     }
-                                    if (mp3_get_channels() != 2) {
-                                        mp3_mono_to_stereo(block);
-                                    }
                                     if (mp3_get_sampling_rate() != mp3_output_rate) {
                                         mp3_resample(block, mp3_get_sampling_rate());
                                     }
                                 }
                             }
+                            mp3_input_pointer = 0;
+                            mp3_input_data_state = MP3_INPUT_STATE_IDLE;
                         }
                     }
                     break;
@@ -626,9 +641,15 @@ static void clockport_mp3at64_store(WORD address, BYTE val, void *context)
             mp3at64_store_mp3_data(val);
             break;
         case 5:
+#ifdef MP3AT64_DEBUG
+            log_warning(LOG_DEFAULT, "storing i2c data: %d", val);
+#endif
             mp3at64_set_i2c_data(val);
             break;
         case 6:
+#ifdef MP3AT64_DEBUG
+            log_warning(LOG_DEFAULT, "storing i2c clock: %d", val);
+#endif
             mp3at64_set_i2c_clock(val);
             break;
     }
@@ -718,6 +739,8 @@ clockport_device_t *clockport_mp3at64_open_device(char *owner)
     retval->device_context = NULL;
 
     mp3at64_reset();
+
+    clockport_mp3at64_sound_chip.chip_enabled = 1;
 
     return retval;
 }

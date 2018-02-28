@@ -201,7 +201,7 @@ static const resource_int_t resources_int[] = {
       &shortbus_etfe_expansion_active, set_shortbus_etfe_enabled, NULL },
     { "SBETFEbase", 0xde00, RES_EVENT_NO, NULL,
       &shortbus_etfe_address, set_shortbus_etfe_base, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int shortbus_etfe_resources_init(void)
@@ -238,7 +238,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_SHORTBUS_ETFE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
@@ -248,7 +248,7 @@ static cmdline_option_t base_cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_COMBO,
       IDCLS_P_BASE_ADDRESS, IDCLS_SHORTBUS_ETFE_BASE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int shortbus_etfe_cmdline_options_init(void)

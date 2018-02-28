@@ -171,7 +171,7 @@ static int set_digimax_enabled(int value, void *param)
 static const resource_int_t resources_int[] = {
     { "UserportDIGIMAX", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &digimax_sound_chip.chip_enabled, set_digimax_enabled, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int userport_digimax_resources_init(void)
@@ -195,7 +195,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_DIGIMAX,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int userport_digimax_cmdline_options_init(void)

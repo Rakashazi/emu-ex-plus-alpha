@@ -510,13 +510,13 @@ static int set_ieee488_filename(const char *name, void *param)
 static const resource_string_t resources_string[] = {
     { "IEEE488Image", "", RES_EVENT_NO, NULL,
       &ieee488_filename, set_ieee488_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "IEEE488", 0, RES_EVENT_SAME, NULL,
       &ieee488_enabled, set_ieee488_enabled, (void *)1 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int tpi_resources_init(void)
@@ -552,7 +552,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_IEEE488_INTERFACE_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int tpi_cmdline_options_init(void)

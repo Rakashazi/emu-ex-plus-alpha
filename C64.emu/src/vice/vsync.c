@@ -85,10 +85,6 @@ static int refresh_rate;
 /* "Warp mode".  If nonzero, attempt to run as fast as possible. */
 VICE_API int warp_mode_enabled;
 
-/* Dingoo overclocking mode */
-#ifdef DINGOO_NATIVE
-static int overclock_mode_enabled;
-#endif
 
 static int set_relative_speed(int val, void *param)
 {
@@ -120,17 +116,6 @@ static int set_warp_mode(int val, void *param)
     return 0;
 }
 
-/* FIXME: Why the hell is this here and not in archdep ? */
-#ifdef DINGOO_NATIVE
-static int set_overclock_mode(int val, void *param)
-{
-    overclock_mode_enabled = val ? 1 : 0;
-
-    set_overclock(val);
-
-    return 0;
-}
-#endif
 
 /* Vsync-related resources. */
 static const resource_int_t resources_int[] = {
@@ -141,16 +126,26 @@ static const resource_int_t resources_int[] = {
     { "WarpMode", 0, RES_EVENT_STRICT, (resource_value_t)0,
       /* FIXME: maybe RES_EVENT_NO */
       &warp_mode_enabled, set_warp_mode, NULL },
-#ifdef DINGOO_NATIVE
-    { "OverClock", 0, RES_EVENT_STRICT, (resource_value_t)1,
-      /* FIXME: maybe RES_EVENT_NO */
-      &overclock_mode_enabled, set_overclock_mode, NULL },
-#endif
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
+
+
+static const resource_int_t resources_int_vsid[] = {
+    { "Speed", 100, RES_EVENT_SAME, NULL,
+      &relative_speed, set_relative_speed, NULL },
+    { "WarpMode", 0, RES_EVENT_STRICT, (resource_value_t)0,
+      /* FIXME: maybe RES_EVENT_NO */
+      &warp_mode_enabled, set_warp_mode, NULL },
+    RESOURCE_INT_LIST_END
+};
+
+
 
 int vsync_resources_init(void)
 {
+    if (machine_class == VICE_MACHINE_VSID) {
+        return resources_register_int(resources_int_vsid);
+    }
     return resources_register_int(resources_int);
 }
 
@@ -178,11 +173,35 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_WARP_MODE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
+
+
+static const cmdline_option_t cmdline_options_vsid[] = {
+    { "-speed", SET_RESOURCE, 1,
+      NULL, NULL, "Speed", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID,
+      IDCLS_P_PERCENT, IDCLS_LIMIT_SPEED_TO_VALUE,
+      NULL, NULL },
+    { "-warp", SET_RESOURCE, 0,
+      NULL, NULL, "WarpMode", (resource_value_t)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_WARP_MODE,
+      NULL, NULL },
+    { "+warp", SET_RESOURCE, 0,
+      NULL, NULL, "WarpMode", (resource_value_t)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_WARP_MODE,
+      NULL, NULL },
+    CMDLINE_LIST_END
+};
+
 
 int vsync_cmdline_options_init(void)
 {
+    if (machine_class == VICE_MACHINE_VSID) {
+        return cmdline_register_options(cmdline_options_vsid);
+    }
     return cmdline_register_options(cmdline_options);
 }
 
@@ -559,11 +578,19 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
         avg_sdelay += sdelay;
     }
 
+    /* FIXME: This ifdef is a hack, chosen because it matches the others in
+    this file, and because the if inside it causes problems on some platforms.
+    At least win32, sdl-win32, and beos seem to be better without it.
+    More testing is needed. */
+#if (defined(HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
     /* if the frame was skipped, dont advance the time for the next frame, this
        helps with catching up when rendering falls behind */
     if ((frame_ticks > 0) && (skipped_redraw < 1)) {
         next_frame_start += frame_ticks;
     }
+#else
+    next_frame_start += frame_ticks;
+#endif
 
     vsyncarch_postsync();
 

@@ -35,7 +35,7 @@
 
 #include "vice.h"
 
-/* #define DBGRESOURCES */
+/* #define VICE_DEBUG_RESOURCES */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -56,7 +56,7 @@
 #include "util.h"
 #include "vice-event.h"
 
-#ifdef DBGRESOURCES
+#ifdef VICE_DEBUG_RESOURCES
 #define DBG(x)  printf x
 #else
 #define DBG(x)
@@ -294,7 +294,7 @@ int resources_register_string(const resource_string_t *r)
     resource_ram_t *dp;
 
     DBG(("resources_register_string name:'%s'\n", r->name ? r->name : "<empty/null>"));
-    
+
     sp = r;
     dp = resources + num_resources;
     while (sp->name != NULL) {
@@ -350,6 +350,9 @@ static void resources_free(void)
     }
 }
 
+
+/** \brief  Shutown resources
+ */
 void resources_shutdown(void)
 {
     resources_free();

@@ -94,7 +94,7 @@ static const resource_int_t resources_int[] = {
       &mmu_column4080_key, set_column4080_key, NULL },
     { "Go64Mode", 0, RES_EVENT_SAME, NULL,
       &force_c64_mode_res, set_force_c64_mode, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int mmu_resources_init(void)
@@ -123,7 +123,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_GO128_MODE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int mmu_cmdline_options_init(void)

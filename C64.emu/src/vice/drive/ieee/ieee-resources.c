@@ -101,7 +101,7 @@ static const resource_string_t resources_string[] = {
       &dos_rom_name_4040, set_dos_rom_name_4040, NULL },
     { "DosName1001", "dos1001", RES_EVENT_NO, NULL,
       &dos_rom_name_1001, set_dos_rom_name_1001, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int ieee_resources_init(void)

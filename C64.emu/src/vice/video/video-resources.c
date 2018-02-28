@@ -535,9 +535,9 @@ static const char *vname_chip_colors[] = { "ColorSaturation", "ColorContrast", "
 
 static resource_int_t resources_chip_colors[] =
 {
-    { NULL, 1250, RES_EVENT_NO, NULL,
+    { NULL, 1000, RES_EVENT_NO, NULL,
       NULL, set_color_saturation, NULL },
-    { NULL, 1250, RES_EVENT_NO, NULL,
+    { NULL, 1000, RES_EVENT_NO, NULL,
       NULL, set_color_contrast, NULL },
     { NULL, 1000, RES_EVENT_NO, NULL,
       NULL, set_color_brightness, NULL },
@@ -619,9 +619,9 @@ static resource_int_t resources_chip_crtemu[] =
       NULL, set_pal_scanlineshade, NULL },
     { NULL, 500, RES_EVENT_NO, NULL,
       NULL, set_pal_blur, NULL },
-    { NULL, 1125, RES_EVENT_NO, NULL,
+    { NULL, 1500, RES_EVENT_NO, NULL,
       NULL, set_pal_oddlinesphase, NULL },
-    { NULL, 875, RES_EVENT_NO, NULL,
+    { NULL, 500, RES_EVENT_NO, NULL,
       NULL, set_pal_oddlinesoffset, NULL },
     { NULL, 0, RES_EVENT_NO, NULL,
       NULL, set_audioleak, NULL },
@@ -688,7 +688,7 @@ int video_resources_chip_init(const char *chipname,
                 return -1;
             }
 
-            lib_free((char *)(resources_chip_scan[0].name));
+            lib_free(resources_chip_scan[0].name);
         } else {
             set_double_scan_enabled(0, (void *)*canvas);
         }
@@ -705,7 +705,7 @@ int video_resources_chip_init(const char *chipname,
                 return -1;
             }
 
-            lib_free((char *)(resources_chip_hwscale[0].name));
+            lib_free(resources_chip_hwscale[0].name);
         } else {
             set_hwscale_enabled(0, (void *)*canvas);
         }
@@ -725,7 +725,7 @@ int video_resources_chip_init(const char *chipname,
                 return -1;
             }
 
-            lib_free((char *)(resources_chip_size[0].name));
+            lib_free(resources_chip_size[0].name);
         } else {
             set_double_size_enabled(0, (void *)*canvas);
         }
@@ -763,9 +763,9 @@ int video_resources_chip_init(const char *chipname,
                 return -1;
             }
 
-            lib_free((char *)(resources_chip_fullscreen_int[0].name));
-            lib_free((char *)(resources_chip_fullscreen_int[1].name));
-            lib_free((char *)(resources_chip_fullscreen_string[0].name));
+            lib_free(resources_chip_fullscreen_int[0].name);
+            lib_free(resources_chip_fullscreen_int[1].name);
+            lib_free(resources_chip_fullscreen_string[0].name);
         } else {
             set_fullscreen_enabled(0, (void *)*canvas);
             set_fullscreen_statusbar(0, (void *)*canvas);
@@ -791,7 +791,7 @@ int video_resources_chip_init(const char *chipname,
                     return -1;
                 }
 
-                lib_free((char *)(resources_chip_fullscreen_mode[0].name));
+                lib_free(resources_chip_fullscreen_mode[0].name);
             } else {
                 set_fullscreen_mode(0, (void *)resource_chip_mode);
             }
@@ -822,8 +822,8 @@ int video_resources_chip_init(const char *chipname,
             return -1;
         }
 
-        lib_free((char *)(resources_chip_palette_string[0].name));
-        lib_free((char *)(resources_chip_palette_int[0].name));
+        lib_free(resources_chip_palette_string[0].name);
+        lib_free(resources_chip_palette_int[0].name);
     } else {
         set_palette_file_name(video_chip_cap->external_palette_name, (void *)*canvas);
         set_ext_palette(0, (void *)*canvas);
@@ -841,7 +841,7 @@ int video_resources_chip_init(const char *chipname,
                 return -1;
             }
 
-            lib_free((char *)(resources_chip_double_buffer[0].name));
+            lib_free(resources_chip_double_buffer[0].name);
         } else {
             set_double_buffer_enabled(0, (void *)*canvas);
         }
@@ -861,18 +861,33 @@ int video_resources_chip_init(const char *chipname,
         resources_chip_colors[3].value_ptr = &((*canvas)->videoconfig->video_resources.color_gamma);
         resources_chip_colors[4].value_ptr = &((*canvas)->videoconfig->video_resources.color_tint);
 
+        resources_chip_colors[0].factory_value = 1000; /* saturation */
+        resources_chip_colors[1].factory_value = 1000; /* contrast */
+        if (!strcmp(chipname, "VIC")) {
+            resources_chip_colors[0].factory_value = 1500; /* saturation */
+            resources_chip_colors[1].factory_value = 1250; /* contrast */
+        } else if (!strcmp(chipname, "VICII")) {
+            resources_chip_colors[0].factory_value = 1250; /* saturation */
+            resources_chip_colors[1].factory_value = 1250; /* contrast */
+        } else if (!strcmp(chipname, "TED")) {
+            resources_chip_colors[0].factory_value = 1250; /* saturation */
+        } else if (!strcmp(chipname, "Crtc")) {
+            resources_chip_colors[0].factory_value = 1750; /* saturation */
+            resources_chip_colors[1].factory_value = 1250; /* contrast */
+        }
+
         if (resources_register_int(resources_chip_colors) < 0) {
             return -1;
         }
 
         i = 0;
         while (vname_chip_colors[i]) {
-            lib_free((char *)(resources_chip_colors[i].name));
+            lib_free(resources_chip_colors[i].name);
             ++i;
         }
     } else {
-        set_color_saturation(1250, (void *)*canvas);
-        set_color_contrast(1250, (void *)*canvas);
+        set_color_saturation(1000, (void *)*canvas);
+        set_color_contrast(1000, (void *)*canvas);
         set_color_brightness(1000, (void *)*canvas);
         set_color_gamma(2200, (void *)*canvas);
         set_color_tint(1000, (void *)*canvas);
@@ -892,20 +907,33 @@ int video_resources_chip_init(const char *chipname,
         resources_chip_crtemu[3].value_ptr = &((*canvas)->videoconfig->video_resources.pal_oddlines_offset);
         resources_chip_crtemu[4].value_ptr = &((*canvas)->videoconfig->video_resources.audioleak);
 
+        resources_chip_crtemu[2].factory_value = 1000; /* oddlines phase */
+        resources_chip_crtemu[3].factory_value = 1000; /* oddlines offset */
+        if (!strcmp(chipname, "VIC")) {
+            resources_chip_crtemu[2].factory_value = 1125; /* oddlines phase */
+            resources_chip_crtemu[3].factory_value = 1125; /* oddlines offset */
+        } else if (!strcmp(chipname, "VICII")) {
+            resources_chip_crtemu[2].factory_value = 1250; /* oddlines phase */
+            resources_chip_crtemu[3].factory_value = 750; /* oddlines offset */
+        } else if (!strcmp(chipname, "TED")) {
+            resources_chip_crtemu[2].factory_value = 1250; /* oddlines phase */
+            resources_chip_crtemu[3].factory_value = 750; /* oddlines offset */
+        }
+
         if (resources_register_int(resources_chip_crtemu) < 0) {
             return -1;
         }
 
         i = 0;
         while (vname_chip_crtemu[i]) {
-            lib_free((char *)(resources_chip_crtemu[i].name));
+            lib_free(resources_chip_crtemu[i].name);
             ++i;
         }
     } else {
-        set_pal_scanlineshade(750, (void *)*canvas);
-        set_pal_blur(500, (void *)*canvas);
-        set_pal_oddlinesphase(1125, (void *)*canvas);
-        set_pal_oddlinesoffset(875, (void *)*canvas);
+        set_pal_scanlineshade(1000, (void *)*canvas);
+        set_pal_blur(0, (void *)*canvas);
+        set_pal_oddlinesphase(1000, (void *)*canvas);
+        set_pal_oddlinesoffset(1000, (void *)*canvas);
         set_audioleak(0, (void *)*canvas);
     }
 
@@ -920,7 +948,7 @@ int video_resources_chip_init(const char *chipname,
             return -1;
         }
 
-        lib_free((char *)(resources_chip_rendermode[0].name));
+        lib_free(resources_chip_rendermode[0].name);
     } else {
         set_chip_rendermode(VIDEO_FILTER_NONE, (void *)*canvas);
     }

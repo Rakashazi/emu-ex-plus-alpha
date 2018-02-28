@@ -163,6 +163,26 @@ struct crtc_s {
     struct video_chip_cap_s *video_chip_cap;
 };
 
+/* internal registers */
+#define CRTC_REG_HTOTAL         0x00    /* R0 total horizontal characters - 1 */
+#define CRTC_REG_HDISP          0x01    /* R1 displayed horizontal characters */
+#define CRTC_REG_HSYNC          0x02    /* R2 horizontal sync position */
+#define CRTC_REG_SYNCWIDTH      0x03    /* R3 horizontal sync width */
+#define CRTC_REG_VTOTAL         0x04    /* R4 total vertical characters - 1 */
+#define CRTC_REG_VTOTALADJ      0x05    /* R5 */
+#define CRTC_REG_VDISP          0x06    /* R6 displayed vertical characters */
+#define CRTC_REG_VSYNC          0x07    /* R7 vertical sync position */
+#define CRTC_REG_MODECTRL       0x08    /* R8 */
+#define CRTC_REG_SCANLINE       0x09    /* R9 scanlines per character row - 1, including spacing */
+#define CRTC_REG_CURSORSTART    0x0a    /* R10 */
+#define CRTC_REG_CURSOREND      0x0b    /* R11 */
+#define CRTC_REG_DISPSTARTH     0x0c    /* R12 */
+#define CRTC_REG_DISPSTARTL     0x0d    /* R13 */
+#define CRTC_REG_CURSORPOSH     0x0e    /* R14 cursor position */
+#define CRTC_REG_CURSORPOSL     0x0f    /* R15 */
+#define CRTC_REG_LPENH          0x10    /* R16 lightpen position */
+#define CRTC_REG_LPENL          0x11    /* R17 */
+
 typedef struct crtc_s crtc_t;
 
 extern crtc_t crtc;
@@ -180,7 +200,5 @@ extern crtc_t crtc;
    Prepend names with `_'?  */
 extern int crtc_load_palette(const char *name);
 extern void crtc_resize(void);
-
-extern int crtc_dump(struct crtc_s *crtc_context);
 
 #endif

@@ -74,7 +74,7 @@ static const resource_int_t resources_int[] = {
       &value_invert, set_value_invert, NULL },
     { "RAMInitPatternInvert", 0, RES_EVENT_SAME, NULL,
       &pattern_invert, set_pattern_invert, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int ram_resources_init(void)
@@ -101,7 +101,7 @@ static const cmdline_option_t cmdline_options[] = {
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NUM_OF_BYTES, IDCLS_LENGTH_BLOCK_SAME_PATTERN,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int ram_cmdline_options_init(void)

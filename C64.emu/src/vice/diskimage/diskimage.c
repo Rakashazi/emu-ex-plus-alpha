@@ -79,31 +79,46 @@ static log_t disk_image_log = LOG_DEFAULT;
  *
  * \return  speed zone (0-3)
  */
+
 unsigned int disk_image_speed_map(unsigned int format, unsigned int track)
 {
     switch (format) {
-        case DISK_IMAGE_TYPE_D71:
-            if (track > 35) {
-                track -= 35;
-            }
-        /* fall through */
+
+        /* single sided format, these are straight forward */
         case DISK_IMAGE_TYPE_D67:
         case DISK_IMAGE_TYPE_D64:
         case DISK_IMAGE_TYPE_X64:
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_P64:
             return (track < 31) + (track < 25) + (track < 18);
+        case DISK_IMAGE_TYPE_D80:
+            return (track < 65) + (track < 54) + (track < 40);
+
+        /* double sided formats - these need extra care */
         case DISK_IMAGE_TYPE_D82:
+            /* FIXME: what about 80 track D82s? */
             if (track > 77) {
                 track -= 77;
             }
-        /* fall through */
-        case DISK_IMAGE_TYPE_D80:
             return (track < 65) + (track < 54) + (track < 40);
+        case DISK_IMAGE_TYPE_D71:
+            /* FIXME: what about 40 track D71s? */
+            if (track > 35) {
+                track -= 35;
+            }
+            return (track < 31) + (track < 25) + (track < 18);
+        case DISK_IMAGE_TYPE_G71:
+            /* FIXME: is this correct? */
+            if (track > 42) {
+                track -= 42;
+            }
+            return (track < 31) + (track < 25) + (track < 18);
+
         default:
             log_message(disk_image_log,
                         "Unknown disk type %i. Cannot calculate zone speed",
                         format);
+            break;
     }
     return 0;
 }
@@ -159,6 +174,7 @@ unsigned int disk_image_sector_per_track(unsigned int format,
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_P64:
         case DISK_IMAGE_TYPE_D71:
+        case DISK_IMAGE_TYPE_G71:
             return sector_map_d64[disk_image_speed_map(format, track)];
         case DISK_IMAGE_TYPE_D67:
             return sector_map_d67[disk_image_speed_map(format, track)];
@@ -206,6 +222,7 @@ unsigned int disk_image_raw_track_size(unsigned int format,
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_P64:
         case DISK_IMAGE_TYPE_D71:
+        case DISK_IMAGE_TYPE_G71:
         case DISK_IMAGE_TYPE_D67:   /* XXX: D67 has 20 sectors per track for
                                             speed zone 2, D64/D71 has 19 sectors
                                             for that speed zone, so is this
@@ -237,6 +254,7 @@ unsigned int disk_image_gap_size(unsigned int format, unsigned int track)
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_P64:
         case DISK_IMAGE_TYPE_D71:
+        case DISK_IMAGE_TYPE_G71:
         case DISK_IMAGE_TYPE_D67:
             return gap_size_d64[disk_image_speed_map(format, track)];
         case DISK_IMAGE_TYPE_D80:
@@ -290,6 +308,7 @@ static const char *disk_image_type(const disk_image_t *image)
         case DISK_IMAGE_TYPE_P64: return "P64";
         case DISK_IMAGE_TYPE_X64: return "X64";
         case DISK_IMAGE_TYPE_D71: return "D71";
+        case DISK_IMAGE_TYPE_G71: return "G71";
         case DISK_IMAGE_TYPE_D81: return "D81";
         case DISK_IMAGE_TYPE_D1M: return "D1M";
         case DISK_IMAGE_TYPE_D2M: return "D2M";
@@ -640,6 +659,7 @@ int disk_image_write_half_track(disk_image_t *image, unsigned int half_track,
         case DISK_IMAGE_TYPE_P64:
             return fsimage_p64_write_half_track(image, half_track, raw);
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
             return fsimage_gcr_write_half_track(image, half_track, raw);
         default:
             return fsimage_dxx_write_half_track(image, half_track, raw);
@@ -652,6 +672,7 @@ int disk_image_read_image(const disk_image_t *image)
         case DISK_IMAGE_TYPE_P64:
             return fsimage_read_p64_image(image);
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
             return fsimage_read_gcr_image(image);
         default:
             return fsimage_read_dxx_image(image);

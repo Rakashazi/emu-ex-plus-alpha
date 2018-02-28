@@ -197,6 +197,8 @@ char *platform_get_ui(void)
     return "SDL2";
 #elif defined(USE_GNOMEUI)
     return "GTK+";
+#elif defined(USE_NATIVE_GTK3)
+    return "NATIVE GTK3";
 #elif defined(MACOSX_COCOA)
     return "COCOA";
 #elif defined(UNIX_COMPILE)

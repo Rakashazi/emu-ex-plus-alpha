@@ -262,4 +262,4 @@
 #define PLATFORM_OS "Solaris"
 #endif
 
-#endif // VICE_PLATFORM_SOLARIS_VERSION_H
+#endif  /* VICE_PLATFORM_SOLARIS_VERSION_H */

@@ -181,7 +181,7 @@ void store_joyport_dig(int port, BYTE val, BYTE mask)
 
     store_val = joyport_dig_stored[port];
 
-    store_val &= ~mask;
+    store_val &= (BYTE)~mask;
     store_val |= val;
 
     joyport_device[id].store_digital(store_val);
@@ -256,9 +256,9 @@ BYTE read_joyport_potx(void)
             return ret2;
         case 3:
             return ret1 & ret2;
+        default:
+            return 0xff;
     }
-
-    return 0xff;
 }
 
 BYTE read_joyport_poty(void)
@@ -304,9 +304,9 @@ BYTE read_joyport_poty(void)
             return ret2;
         case 3:
             return ret1 & ret2;
+        default:
+            return 0xff;
     }
-
-    return 0xff;
 }
 
 static int pot_present = -1;
@@ -407,7 +407,7 @@ joyport_desc_t *joyport_get_valid_devices(int port)
         }
     }
 
-    retval = lib_malloc((valid + 1) * sizeof(joyport_desc_t));
+    retval = lib_malloc(((size_t)valid + 1) * sizeof(joyport_desc_t));
     for (i = 0; i < JOYPORT_MAX_DEVICES; ++i) {
         if (joyport_device[i].name) {
             if (check_valid_lightpen(port, i) && check_valid_pot(port, i)) {
@@ -491,31 +491,31 @@ static int set_joyport_device(int val, void *param)
 static const resource_int_t resources_int_port1[] = {
     { "JoyPort1Device", JOYPORT_ID_JOYSTICK, RES_EVENT_NO, NULL,
       &joy_port[JOYPORT_1], set_joyport_device, (void *)JOYPORT_1 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_int_port2[] = {
     { "JoyPort2Device", JOYPORT_ID_JOYSTICK, RES_EVENT_NO, NULL,
       &joy_port[JOYPORT_2], set_joyport_device, (void *)JOYPORT_2 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_int_port3[] = {
     { "JoyPort3Device", JOYPORT_ID_JOYSTICK, RES_EVENT_NO, NULL,
       &joy_port[JOYPORT_3], set_joyport_device, (void *)JOYPORT_3 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_int_port4[] = {
     { "JoyPort4Device", JOYPORT_ID_JOYSTICK, RES_EVENT_NO, NULL,
       &joy_port[JOYPORT_4], set_joyport_device, (void *)JOYPORT_4 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 static const resource_int_t resources_int_port5[] = {
     { "JoyPort5Device", JOYPORT_ID_JOYSTICK, RES_EVENT_NO, NULL,
       &joy_port[JOYPORT_5], set_joyport_device, (void *)JOYPORT_5 },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int joyport_resources_init(void)
@@ -690,7 +690,7 @@ static cmdline_option_t cmdline_options_port1[] =
       USE_PARAM_ID, USE_DESCRIPTION_DYN,
       IDGS_DEVICE, JOYPORT_1,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_port2[] =
@@ -700,7 +700,7 @@ static cmdline_option_t cmdline_options_port2[] =
       USE_PARAM_ID, USE_DESCRIPTION_DYN,
       IDGS_DEVICE, JOYPORT_2,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_port3[] =
@@ -710,7 +710,7 @@ static cmdline_option_t cmdline_options_port3[] =
       USE_PARAM_ID, USE_DESCRIPTION_DYN,
       IDGS_DEVICE, JOYPORT_3,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_port4[] =
@@ -720,7 +720,7 @@ static cmdline_option_t cmdline_options_port4[] =
       USE_PARAM_ID, USE_DESCRIPTION_DYN,
       IDGS_DEVICE, JOYPORT_4,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_port5[] =
@@ -730,7 +730,7 @@ static cmdline_option_t cmdline_options_port5[] =
       USE_PARAM_ID, USE_DESCRIPTION_DYN,
       IDGS_DEVICE, JOYPORT_5,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int joyport_cmdline_options_init(void)

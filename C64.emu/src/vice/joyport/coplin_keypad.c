@@ -106,7 +106,7 @@ RETURN        011111111111     0    1    1    1    1
 
 static int coplin_keypad_enabled = 0;
 
-static int keys[12];
+static unsigned int keys[12];
 
 /* ------------------------------------------------------------------------- */
 
@@ -117,7 +117,7 @@ static void handle_keys(int row, int col, int pressed)
         return;
     }
 
-    keys[(row * 3) + col - 1] = pressed;
+    keys[(row * 3) + col - 1] = (unsigned int)pressed;
 }
 #endif
 
@@ -149,37 +149,37 @@ static int joyport_coplin_keypad_enable(int port, int value)
 
 static BYTE coplin_keypad_read(int port)
 {
-    BYTE retval = 0;
-    BYTE tmp;
+    unsigned int retval = 0;
+    unsigned int tmp;
 
     /* KEY4 */
     tmp = !keys[KEYPAD_KEY_R] << 4;
     retval |= tmp;
 
     /* KEY3 */
-    tmp = !keys[KEYPAD_KEY_6] & !keys[KEYPAD_KEY_9] & !keys[KEYPAD_KEY_3] & !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_5];
+    tmp = (unsigned int)(!keys[KEYPAD_KEY_6] & !keys[KEYPAD_KEY_9] & !keys[KEYPAD_KEY_3] & !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_5]);
     tmp <<= 3;
     retval |= tmp;
 
     /* KEY2 */
-    tmp = !keys[KEYPAD_KEY_4] & !keys[KEYPAD_KEY_7] & !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_5] & !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_1];
+    tmp = (unsigned int)(!keys[KEYPAD_KEY_4] & !keys[KEYPAD_KEY_7] & !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_5] & !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_1]);
     tmp <<= 2;
     retval |= tmp;
 
     /* KEY1 */
-    tmp = !keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_3] & !keys[KEYPAD_KEY_1] & !keys[KEYPAD_KEY_2];
+    tmp = (unsigned int)(!keys[KEYPAD_KEY_0] & !keys[KEYPAD_KEY_3] & !keys[KEYPAD_KEY_1] & !keys[KEYPAD_KEY_2]);
     tmp <<= 1;
     retval |= tmp;
 
     /* KEY0 */
-    tmp = !keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_9] & !keys[KEYPAD_KEY_7] & !keys[KEYPAD_KEY_8];
+    tmp = (unsigned int)(!keys[KEYPAD_KEY_P] & !keys[KEYPAD_KEY_9] & !keys[KEYPAD_KEY_7] & !keys[KEYPAD_KEY_8]);
     retval |= tmp;
 
     retval |= 0xe0;
 
     joyport_display_joyport(JOYPORT_ID_COPLIN_KEYPAD, (BYTE)~retval);
 
-    return retval;
+    return (BYTE)retval;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -192,11 +192,11 @@ static joyport_t joyport_coplin_keypad_device = {
     JOYPORT_POT_OPTIONAL,
     joyport_coplin_keypad_enable,
     coplin_keypad_read,
-    NULL,				/* no digital store */
-    NULL,				/* no pot-x read */
-    NULL,				/* no pot-y read */
-    NULL,				/* no write snapshot */
-    NULL				/* no read snapshot */
+    NULL,               /* no digital store */
+    NULL,               /* no pot-x read */
+    NULL,               /* no pot-y read */
+    NULL,               /* no write snapshot */
+    NULL                /* no read snapshot */
 };
 
 /* ------------------------------------------------------------------------- */

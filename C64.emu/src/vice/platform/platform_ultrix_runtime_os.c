@@ -29,6 +29,7 @@
    -------------------------
    mipsel | Ultrix 4.5
    mipsel | NetBSD (emulation layer)
+   vax    | Ultrix 4.5
  */
 
 #include "vice.h"

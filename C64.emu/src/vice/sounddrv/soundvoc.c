@@ -37,7 +37,7 @@
 
 static FILE *voc_fd = NULL;
 static int samples = 0;
-static int block_start = 0;
+static long block_start = 0;
 static int extra_block = 0;
 
 static int voc_init(const char *param, int *speed, int *fragsize, int *fragnr, int *channels)
@@ -45,7 +45,7 @@ static int voc_init(const char *param, int *speed, int *fragsize, int *fragnr, i
     /* VOC header. */
     BYTE header[26] = "Creative Voice File\032\032\0\024\001\037\021";
     BYTE block_header[16] = "\011sssrrrr\026c\004\0\0\0\0\0";
-    DWORD sample_rate = *speed;
+    DWORD sample_rate = (DWORD)*speed;
 
     voc_fd = fopen(param ? param : "vicesnd.voc", MODE_WRITE);
     if (!voc_fd) {
@@ -88,7 +88,7 @@ static int voc_write(SWORD *pbuf, size_t nr)
     }
     #endif
 
-    if ((samples + (nr * 2)) >= (VOC_MAX - 12)) {
+    if (((size_t)samples + (nr * 2)) >= (VOC_MAX - 12)) {
         if (extra_block == 0) {
             rlen[0] = (BYTE)(((samples * 2) + 12) & 0xff);
             rlen[1] = (BYTE)((((samples * 2) + 12) >> 8) & 0xff);

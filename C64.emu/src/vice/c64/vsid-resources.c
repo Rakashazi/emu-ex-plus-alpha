@@ -54,6 +54,8 @@
 #include "vicii.h"
 #include "c64fastiec.h"
 
+/* force  commit */
+
 #define KBD_INDEX_C64_SYM   0
 #define KBD_INDEX_C64_POS   1
 #define KBD_INDEX_C64_SYMDE 2
@@ -171,7 +173,7 @@ static const resource_string_t resources_string[] = {
     { "BasicName", "basic", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &basic_rom_name, set_basic_rom_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -183,7 +185,7 @@ static const resource_int_t resources_int[] = {
       (int *)&sid_stereo_address_start, sid_set_sid_stereo_address, NULL },
     { "SidTripleAddressStart", 0xdf00, RES_EVENT_SAME, NULL,
       (int *)&sid_triple_address_start, sid_set_sid_triple_address, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int c64_resources_init(void)

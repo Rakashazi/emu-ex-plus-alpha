@@ -49,6 +49,13 @@
 #include "p64.h"
 #include "cbmdos.h"
 
+/* #define DBGIMGCREATE */
+
+#ifdef DBGIMGCREATE
+#define DBG(x) printf x
+#else
+#define DBG(x)
+#endif
 
 /** \brief  Log instance for this module
  */
@@ -95,6 +102,7 @@ static int fsimage_create_dxx(disk_image_t *image)
             size = D82_FILE_SIZE;
             break;
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
             break;
         case DISK_IMAGE_TYPE_P64:
             break;
@@ -199,9 +207,9 @@ static int fsimage_create_dxx(disk_image_t *image)
 static int fsimage_create_gcr(disk_image_t *image)
 {
     BYTE gcr_header[12], gcr_track[NUM_MAX_BYTES_TRACK + 2], *gcrptr;
-    BYTE gcr_track_p[MAX_TRACKS_1541 * 2 * 4];
-    BYTE gcr_speed_p[MAX_TRACKS_1541 * 2 * 4];
-    unsigned int track, sector;
+    BYTE gcr_track_p[84 * 2 * 4];
+    BYTE gcr_speed_p[84 * 2 * 4];
+    unsigned int track, sector, num_tracks, max_tracks;
     fsimage_t *fsimage;
     gcr_header_t header;
     BYTE rawdata[256];
@@ -209,10 +217,20 @@ static int fsimage_create_gcr(disk_image_t *image)
 
     fsimage = image->media.fsimage;
 
-    strcpy((char *)gcr_header, "GCR-1541");
+    if (image->type == DISK_IMAGE_TYPE_G64) {
+        strcpy((char *)gcr_header, "GCR-1541");
+        num_tracks = NUM_TRACKS_1541;
+        max_tracks = MAX_TRACKS_1541;
+    } else if (image->type == DISK_IMAGE_TYPE_G71) {
+        strcpy((char *)gcr_header, "GCR-1571");
+        num_tracks = 84; /* FIXME: why is NUM_TRACKS_1571 different? */
+        max_tracks = 84; /* FIXME: why is MAX_TRACKS_1571 different? */
+    } else {
+        return -1;
+    }
 
     gcr_header[8] = 0;
-    gcr_header[9] = MAX_TRACKS_1541 * 2;
+    gcr_header[9] = max_tracks * 2;
     util_word_to_le_buf(&gcr_header[10], NUM_MAX_BYTES_TRACK);
 
     if (fwrite(gcr_header, sizeof(gcr_header), 1, fsimage->fd) < 1) {
@@ -220,18 +238,19 @@ static int fsimage_create_gcr(disk_image_t *image)
         return -1;
     }
 
-    memset(gcr_track_p, 0, sizeof(gcr_track_p));
-    memset(gcr_speed_p, 0, sizeof(gcr_speed_p));
-    for (track = 0; track < NUM_TRACKS_1541; track++) {
-        util_dword_to_le_buf(&gcr_track_p[track * 4 * 2], 12 + MAX_TRACKS_1541 * 16 + track * (NUM_MAX_BYTES_TRACK + 2));
+    memset(gcr_track_p, 0, (max_tracks * 2 * 4));
+    memset(gcr_speed_p, 0, (max_tracks * 2 * 4));
+    for (track = 0; track < num_tracks; track++) {
+        util_dword_to_le_buf(&gcr_track_p[track * 4 * 2], 12 + max_tracks * 16 + track * (NUM_MAX_BYTES_TRACK + 2));
         util_dword_to_le_buf(&gcr_speed_p[track * 4 * 2], disk_image_speed_map(image->type, track + 1));
     }
-
-    if (fwrite(gcr_track_p, sizeof(gcr_track_p), 1, fsimage->fd) < 1) {
+    /* write list of track offsets */
+    if (fwrite(gcr_track_p, (max_tracks * 2 * 4), 1, fsimage->fd) < 1) {
         log_error(createdisk_log, "Cannot write track header.");
         return -1;
     }
-    if (fwrite(gcr_speed_p, sizeof(gcr_speed_p), 1, fsimage->fd) < 1) {
+    /* write speed table */
+    if (fwrite(gcr_speed_p, (max_tracks * 2 * 4), 1, fsimage->fd) < 1) {
         log_error(createdisk_log, "Cannot write speed header.");
         return -1;
     }
@@ -239,22 +258,41 @@ static int fsimage_create_gcr(disk_image_t *image)
 
     header.id1 = 0xa0;
     header.id2 = 0xa0;
-    for (track = 1; track <= NUM_TRACKS_1541; track++) {
+    for (track = 1; track <= num_tracks; track++) {
         gap = disk_image_gap_size(image->type, track);
         gcrptr = gcr_track;
         util_word_to_le_buf(gcrptr, (WORD)disk_image_raw_track_size(image->type, track));
         gcrptr += 2;
         memset(gcrptr, 0x55, NUM_MAX_BYTES_TRACK);
-
-        header.track = track;
+        if (image->type == DISK_IMAGE_TYPE_G71) {
+            /* the DOS would normally not touch the tracks > 35, we format them
+               anyway and give them unique track numbers. This is NOT standard! */
+            if (track > 77) {
+                /* tracks 78 - 84 on side 2 get 78..84 */
+                header.track = track;
+            } else if (track > 42) {
+                /* tracks on side 2 start with 36 */
+                header.track = track - 7;
+            } else if (track > 35) {
+                /* tracks 36 - 42 on side 1 get 71..77 */
+                header.track = track + 35;
+            } else {
+                header.track = track;
+            }
+        } else {
+            header.track = track;
+        }
+        DBG(("track %d hdr track %d (%d) : ", track, header.track, disk_image_raw_track_size(image->type, track)));
+        /* encode one track */
         for (sector = 0;
              sector < disk_image_sector_per_track(image->type, track);
              sector++) {
+            DBG(("%d ", sector));
             header.sector = sector;
             gcr_convert_sector_to_GCR(rawdata, gcrptr, &header, 9, 5, CBMDOS_FDC_ERR_OK);
-
             gcrptr += SECTOR_GCR_SIZE_WITH_HEADER + 9 + gap + 5;
         }
+        DBG(("(gap: %d)\n", gap));
         if (fwrite((char *)gcr_track, sizeof(gcr_track), 1, fsimage->fd) < 1) {
             log_error(createdisk_log, "Cannot write track data.");
             return -1;
@@ -304,7 +342,7 @@ static int fsimage_create_p64(disk_image_t *image)
 
             gcrptr += SECTOR_GCR_SIZE_WITH_HEADER + 9 + gap + 5;
         }
-        P64PulseStreamConvertFromGCR(&P64Image.PulseStreams[track << 1], (void*)&gcr_track[0], disk_image_raw_track_size(image->type, track) << 3);
+        P64PulseStreamConvertFromGCR(&P64Image.PulseStreams[0][track << 1], (void*)&gcr_track[0], disk_image_raw_track_size(image->type, track) << 3);
     }
 
     P64MemoryStreamCreate(&P64MemoryStreamInstance);
@@ -373,6 +411,7 @@ int fsimage_create(const char *name, unsigned int type)
             rc = fsimage_create_dxx(image);
             break;
         case DISK_IMAGE_TYPE_G64:
+        case DISK_IMAGE_TYPE_G71:
             rc = fsimage_create_gcr(image);
             break;
         case DISK_IMAGE_TYPE_P64:

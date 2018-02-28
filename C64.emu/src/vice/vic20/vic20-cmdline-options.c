@@ -232,6 +232,18 @@ static cmdline_option_t const cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
       NULL, NULL },
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
+    { "-acia1", SET_RESOURCE, 0,
+      NULL, NULL, "Acia1Enable", (void *)1,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_ENABLE_DEXX_ACIA_RS232_EMU,
+      NULL, NULL },
+    { "+acia1", SET_RESOURCE, 0,
+      NULL, NULL, "Acia1Enable", (void *)0,
+      USE_PARAM_STRING, USE_DESCRIPTION_ID,
+      IDCLS_UNUSED, IDCLS_DISABLE_DEXX_ACIA_RS232_EMU,
+      NULL, NULL },
+#endif
     { "-memory", CALL_FUNCTION, 1,
       cmdline_memory, NULL, NULL, NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID,
@@ -252,7 +264,7 @@ static cmdline_option_t const cmdline_options[] =
       USE_PARAM_STRING, USE_DESCRIPTION_ID,
       IDCLS_UNUSED, IDCLS_DISABLE_VFLI_MOD,
       NULL, NULL },
-    { NULL}
+    CMDLINE_LIST_END
 };
 
 int vic20_cmdline_options_init(void)

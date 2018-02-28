@@ -35,7 +35,6 @@
 #include "attach.h"
 #include "autostart.h"
 #include "bbrtc.h"
-#include "cardkey.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cbm2-cmdline-options.h"
@@ -51,9 +50,6 @@
 #include "cia.h"
 #include "clkguard.h"
 #include "cmdline.h"
-#include "coplin_keypad.h"
-#include "cx21.h"
-#include "cx85.h"
 #include "datasette.h"
 #include "debug.h"
 #include "debugcart.h"
@@ -85,7 +81,6 @@
 #include "printer.h"
 #include "resources.h"
 #include "rs232drv.h"
-#include "rushware_keypad.h"
 #include "sampler.h"
 #include "sampler2bit.h"
 #include "sampler4bit.h"
@@ -264,26 +259,6 @@ int machine_resources_init(void)
         init_resource_fail("joyport paperclip64 dongle");
         return -1;
     }
-    if (joyport_coplin_keypad_resources_init() < 0) {
-        init_resource_fail("joyport coplin keypad");
-        return -1;
-    }
-    if (joyport_cx21_resources_init() < 0) {
-        init_resource_fail("joyport cx21 keypad");
-        return -1;
-    }
-    if (joyport_cx85_resources_init() < 0) {
-        init_resource_fail("joyport cx85 keypad");
-        return -1;
-    }
-    if (joyport_rushware_keypad_resources_init() < 0) {
-        init_resource_fail("joyport rushware keypad");
-        return -1;
-    }
-    if (joyport_cardkey_resources_init() < 0) {
-        init_resource_fail("joyport cardkey keypad");
-        return -1;
-    }
     if (joystick_resources_init() < 0) {
         init_resource_fail("joystick");
         return -1;
@@ -376,6 +351,7 @@ void machine_resources_shutdown(void)
     joyport_bbrtc_resources_shutdown();
     tapeport_resources_shutdown();
     debugcart_resources_shutdown();
+    cartridge_resources_shutdown();
 }
 
 /* CBM-II-specific command-line option initialization.  */

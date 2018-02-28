@@ -71,7 +71,7 @@ static const resource_int_t resources_int[] =
     { "VICBorderMode", VIC_NORMAL_BORDERS, RES_EVENT_SAME, NULL,
       &vic_resources.border_mode,
       set_border_mode, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int vic_resources_init(void)

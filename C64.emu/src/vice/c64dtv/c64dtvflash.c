@@ -595,7 +595,7 @@ static int set_flash_log(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "c64dtvromfilename", DTVROM_NAME_DEFAULT, RES_EVENT_NO, NULL,
       &c64dtvflash_filename, set_c64dtvflash_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
@@ -605,7 +605,7 @@ static const resource_int_t resources_int[] = {
     { "DtvFlashLog", 0, RES_EVENT_NO, (resource_value_t)0,
       &flash_log_enabled, set_flash_log, NULL },
 #endif
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int c64dtvflash_resources_init(void)
@@ -651,7 +651,7 @@ static const cmdline_option_t cmdline_options[] =
       IDCLS_UNUSED, IDCLS_DISABLE_DTV_FLASH_LOG,
       NULL, NULL },
 #endif
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int c64dtvflash_cmdline_options_init(void)

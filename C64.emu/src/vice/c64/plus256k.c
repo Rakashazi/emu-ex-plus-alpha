@@ -197,7 +197,7 @@ static int set_plus256k_filename(const char *name, void *param)
 static const resource_string_t resources_string[] = {
     { "PLUS256Kfilename", "", RES_EVENT_NO, NULL,
       &plus256k_filename, set_plus256k_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 int plus256k_resources_init(void)
@@ -219,7 +219,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_NAME, IDCLS_SPECIFY_PLUS256K_NAME,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int plus256k_cmdline_options_init(void)

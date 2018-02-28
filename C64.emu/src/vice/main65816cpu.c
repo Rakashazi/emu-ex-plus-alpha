@@ -45,6 +45,10 @@
 #include "types.h"
 #include "wdc65816.h"
 
+#ifndef EXIT_FAILURE
+#define EXIT_FAILURE 1
+#endif
+
 /* MACHINE_STUFF should define/undef
 
  - NEED_REG_PC

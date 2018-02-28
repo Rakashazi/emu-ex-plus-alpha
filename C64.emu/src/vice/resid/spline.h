@@ -129,8 +129,8 @@ namespace reSID
 // ----------------------------------------------------------------------------
 inline
 void cubic_coefficients(double x1, double y1, double x2, double y2,
-			double k1, double k2,
-			double& a, double& b, double& c, double& d)
+                double k1, double k2,
+                double& a, double& b, double& c, double& d)
 {
   double dx = x2 - x1, dy = y2 - y1;
 
@@ -146,8 +146,8 @@ void cubic_coefficients(double x1, double y1, double x2, double y2,
 template<class PointPlotter>
 inline
 void interpolate_brute_force(double x1, double y1, double x2, double y2,
-			     double k1, double k2,
-			     PointPlotter plot, double res)
+                                double k1, double k2,
+                                PointPlotter plot, double res)
 {
   double a, b, c, d;
   cubic_coefficients(x1, y1, x2, y2, k1, k2, a, b, c, d);
@@ -165,8 +165,8 @@ void interpolate_brute_force(double x1, double y1, double x2, double y2,
 template<class PointPlotter>
 inline
 void interpolate_forward_difference(double x1, double y1, double x2, double y2,
-				    double k1, double k2,
-				    PointPlotter plot, double res)
+                                    double k1, double k2,
+                                    PointPlotter plot, double res)
 {
   double a, b, c, d;
   cubic_coefficients(x1, y1, x2, y2, k1, k2, a, b, c, d);

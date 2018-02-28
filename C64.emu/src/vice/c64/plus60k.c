@@ -283,13 +283,13 @@ static int set_plus60k_base(int val, void *param)
 static const resource_string_t resources_string[] = {
     { "PLUS60Kfilename", "", RES_EVENT_NO, NULL,
       &plus60k_filename, set_plus60k_filename, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
 
 static const resource_int_t resources_int[] = {
     { "PLUS60Kbase", 0xd100, RES_EVENT_NO, NULL,
       &plus60k_base, set_plus60k_base, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int plus60k_resources_init(void)
@@ -320,7 +320,7 @@ static const cmdline_option_t cmdline_options[] =
       USE_PARAM_ID, USE_DESCRIPTION_ID,
       IDCLS_P_BASE_ADDRESS, IDCLS_PLUS60K_BASE,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
 };
 
 int plus60k_cmdline_options_init(void)

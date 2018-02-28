@@ -75,6 +75,10 @@
 #include "joy.h"
 #endif
 
+#ifndef EXIT_SUCCESS
+#define EXIT_SUCCESS 0
+#endif
+
 static int machine_init_was_called = 0;
 static int mem_initialized = 0;
 static int ignore_jam = 0;
@@ -301,7 +305,9 @@ void machine_shutdown(void)
 
     video_shutdown();
 
-    ui_shutdown();
+    if (!console_mode) {
+        ui_shutdown();
+    }
 
     sysfile_shutdown();
 
@@ -365,18 +371,21 @@ static int set_exit_screenshot_name(const char *val, void *param)
 static resource_string_t resources_string[] = {
     { "ExitScreenshotName", "", RES_EVENT_NO, NULL,
       &ExitScreenshotName, set_exit_screenshot_name, NULL },
-    { NULL }
+    RESOURCE_STRING_LIST_END
 };
+
 static const resource_int_t resources_int[] = {
     { "JAMAction", MACHINE_JAM_ACTION_DIALOG, RES_EVENT_SAME, NULL,
       &jam_action, set_jam_action, NULL },
-    { NULL }
+    RESOURCE_INT_LIST_END
 };
 
 int machine_common_resources_init(void)
 {
-    if (resources_register_string(resources_string) < 0) {
-        return -1;
+    if (machine_class != VICE_MACHINE_VSID) {
+        if (resources_register_string(resources_string) < 0) {
+           return -1;
+        }
     }
     return resources_register_int(resources_int);
 }
@@ -393,11 +402,23 @@ static const cmdline_option_t cmdline_options[] = {
     { "-exitscreenshot", SET_RESOURCE, 1, NULL, NULL, "ExitScreenshotName", NULL,
       USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_NAME, IDCLS_SET_EXIT_SCREENSHOT,
       NULL, NULL },
-    { NULL }
+    CMDLINE_LIST_END
+};
+
+
+static const cmdline_option_t cmdline_options_vsid[] = {
+    { "-jamaction", SET_RESOURCE, 1, NULL, NULL, "JAMAction", NULL,
+      USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_TYPE, IDCLS_SET_MACHINE_JAM_ACTION,
+      NULL, NULL },
+    CMDLINE_LIST_END
 };
 
 int machine_common_cmdline_options_init(void)
 {
-    return cmdline_register_options(cmdline_options);
+    if (machine_class != VICE_MACHINE_VSID) {
+        return cmdline_register_options(cmdline_options);
+    } else {
+        return cmdline_register_options(cmdline_options_vsid);
+    }
 }
 

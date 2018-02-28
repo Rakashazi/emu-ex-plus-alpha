@@ -76,8 +76,8 @@ int raster_cmdline_options_chip_init(const char *chipname,
         }
 
         for (i = 0; cname_chip[i * 3] != NULL; i++) {
-            lib_free((char *)cmdline_options_chip[i].name);
-            lib_free((char *)cmdline_options_chip[i].resource_name);
+            lib_free(cmdline_options_chip[i].name);
+            lib_free(cmdline_options_chip[i].resource_name);
         }
     }
 

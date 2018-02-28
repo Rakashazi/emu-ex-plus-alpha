@@ -34,11 +34,7 @@
 /* Cartridge RAM limit = 32kB (IDE64, ...) */
 #define C64CART_RAM_LIMIT (32 * 1024)
 /* maximum size of a full "all inclusive" cartridge image (16MB for REU) */
-#ifndef DINGOO_NATIVE
 #define C64CART_IMAGE_LIMIT (C64CART_ROM_LIMIT + (16 * 1024 * 1024))
-#else
-#define C64CART_IMAGE_LIMIT (C64CART_ROM_LIMIT + 1024 * 1024)
-#endif
 
 /* Expansion port signals.  */
 
