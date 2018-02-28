@@ -77,15 +77,16 @@ static bool recoverPCM(snd_pcm_t *handle)
 
 ALSAOutputStream::ALSAOutputStream() {}
 
-std::error_code ALSAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
+std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
 		logMsg("already open");
 		return {};
 	}
+	auto format = config.format();;
 	pcmFormat = format;
-	onSamplesNeeded = onSamplesNeeded_;
+	onSamplesNeeded = config.onSamplesNeeded();
 	const char* name = "default";
 	logMsg("Opening playback device: %s", name);
 	if(int err = snd_pcm_open(&pcmHnd, name, SND_PCM_STREAM_PLAYBACK, 0);
@@ -98,9 +99,10 @@ std::error_code ALSAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate
 	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
 	bool allowMmap = 1;
 	int err = -1;
+	uint wantedLatency = config.lowLatencyHint() ? 10000 : 20000;
 	if(allowMmap)
 	{
-		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED, wantedLatency);
 		if(err < 0)
 		{
 			logErr("failed opening in MMAP mode");
@@ -108,7 +110,7 @@ std::error_code ALSAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate
 	}
 	if(err < 0)
 	{
-		err = setupPcm(format, SND_PCM_ACCESS_RW_INTERLEAVED);
+		err = setupPcm(format, SND_PCM_ACCESS_RW_INTERLEAVED, wantedLatency);
 		if(err < 0)
 		{
 			logErr("failed opening in normal mode");
@@ -281,10 +283,9 @@ ALSAOutputStream::operator bool() const
 	return true;
 }
 
-int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access)
+int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, uint wantedLatency)
 {
 	int alsalibResample = 1;
-	constexpr uint wantedLatency = 20000;
 	if(int err = snd_pcm_set_params(pcmHnd,
 		pcmFormatToAlsa(format.sample),
 		access,

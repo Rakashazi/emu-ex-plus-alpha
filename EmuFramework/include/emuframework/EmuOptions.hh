@@ -24,6 +24,7 @@ extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
 extern Byte1Option optionSoundBuffers;
+extern Byte1Option optionLowLatencySoundHint;
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 using OptionAudioSoloMix = Option<OptionMethodFunc<bool, AudioManager::soloMix, AudioManager::setSoloMix>, uint8>;
 extern OptionAudioSoloMix optionAudioSoloMix;

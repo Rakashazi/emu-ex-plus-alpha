@@ -31,7 +31,7 @@ class PAOutputStream : public OutputStream
 {
 public:
 	PAOutputStream();
-	std::error_code open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded) final;
+	std::error_code open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;
 	void close() final;

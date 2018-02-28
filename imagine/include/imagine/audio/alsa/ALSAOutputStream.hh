@@ -26,7 +26,7 @@ class ALSAOutputStream : public OutputStream
 {
 public:
 	ALSAOutputStream();
-	std::error_code open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded) final;
+	std::error_code open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;
 	void close() final;
@@ -42,7 +42,7 @@ private:
 	snd_pcm_uframes_t bufferSize, periodSize;
 	bool useMmap;
 
-	int setupPcm(PcmFormat format, snd_pcm_access_t access);
+	int setupPcm(PcmFormat format, snd_pcm_access_t access, uint wantedLatency);
 };
 
 #ifndef CONFIG_AUDIO_PULSEAUDIO

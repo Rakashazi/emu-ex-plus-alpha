@@ -480,6 +480,7 @@ void AudioOptionView::loadStockItems()
 		updateAudioRateItem();
 	}
 	item.emplace_back(&soundBuffers);
+	item.emplace_back(&lowLatency);
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	item.emplace_back(&audioSoloMix);
 	#endif
@@ -1133,6 +1134,16 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
 		{
 			return soundBuffersItem[idx];
+		}
+	},
+	lowLatency
+	{
+		"Low Latency Mode",
+		(bool)optionLowLatencySoundHint,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionLowLatencySoundHint = item.flipBoolValue(*this);
+			EmuSystem::closeSound();
 		}
 	},
 	audioRate

@@ -18,6 +18,14 @@
 namespace Audio
 {
 
+PcmFormat OutputStreamConfig::format() const
+{
+	if(format_)
+		return format_;
+	else
+		return AudioManager::nativeFormat();
+}
+
 OutputStream::~OutputStream() {}
 
 }

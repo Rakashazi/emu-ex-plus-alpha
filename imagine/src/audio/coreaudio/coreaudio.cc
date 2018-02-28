@@ -67,15 +67,16 @@ CAOutputStream::CAOutputStream()
 	}
 }
 
-std::error_code CAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
+std::error_code CAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
 		logWarn("audio unit already open");
 		return {};
 	}
+	auto format = config.format();
 	pcmFormat = format;
-	onSamplesNeeded = onSamplesNeeded_;
+	onSamplesNeeded = config.onSamplesNeeded();
 	streamFormat.mSampleRate = format.rate;
 	streamFormat.mFormatID = kAudioFormatLinearPCM;
 	streamFormat.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked | kAudioFormatFlagsNativeEndian;

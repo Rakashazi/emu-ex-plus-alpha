@@ -27,7 +27,7 @@ class OpenSLESOutputStream : public OutputStream
 {
 public:
 	OpenSLESOutputStream();
-	std::error_code open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded) final;
+	std::error_code open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;
 	void close() final;
@@ -44,11 +44,13 @@ private:
 	OnSamplesNeededDelegate onSamplesNeeded{};
 	char *buffer{};
 	uint bufferBytes = 0;
+	uint buffers = 0;
+	uint bufferIdx = 0;
 	PcmFormat pcmFormat{};
 	bool isPlaying_ = false;
 	bool bufferQueued = false;
 
-	void doBufferCallback(SLAndroidSimpleBufferQueueItf queue);
+	void doBufferCallback(SLAndroidSimpleBufferQueueItf queue, void *buff);
 };
 
 using SysOutputStream = OpenSLESOutputStream;

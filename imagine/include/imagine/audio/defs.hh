@@ -18,18 +18,50 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/audio/PcmFormat.hh>
+#include <imagine/audio/AudioManager.hh>
 #include <system_error>
 
 namespace Audio
 {
 
+using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, uint bytes)>;
+
+class OutputStreamConfig
+{
+public:
+	constexpr OutputStreamConfig() {}
+	constexpr OutputStreamConfig(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded):
+		format_{format}, onSamplesNeeded_{onSamplesNeeded}
+		{}
+
+	PcmFormat format() const;
+
+	OnSamplesNeededDelegate onSamplesNeeded() const
+	{
+		return onSamplesNeeded_;
+	}
+
+	void setLowLatencyHint(bool on)
+	{
+		lowLatency = on;
+	}
+
+	bool lowLatencyHint() const
+	{
+		return lowLatency;
+	}
+
+protected:
+	PcmFormat format_{};
+	OnSamplesNeededDelegate onSamplesNeeded_{};
+	bool lowLatency = false;
+};
+
 class OutputStream
 {
 public:
-	using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, uint bytes)>;
-
 	virtual ~OutputStream();
-	virtual std::error_code open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded) = 0;
+	virtual std::error_code open(OutputStreamConfig config) = 0;
 	virtual void play() = 0;
 	virtual void pause() = 0;
 	virtual void close() = 0;

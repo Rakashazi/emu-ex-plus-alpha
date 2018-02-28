@@ -103,7 +103,7 @@ PAOutputStream::PAOutputStream()
 	freeMain.cancel();
 }
 
-std::error_code PAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
+std::error_code PAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
@@ -114,9 +114,10 @@ std::error_code PAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate o
 	{
 		return {EINVAL, std::system_category()};
 	}
+	auto format = config.format();
 	pcmFormat = format;
-	onSamplesNeeded = onSamplesNeeded_;
-	pa_sample_spec spec {(pa_sample_format_t)0};
+	onSamplesNeeded = config.onSamplesNeeded();
+	pa_sample_spec spec{};
 	spec.format = pcmFormatToPA(format.sample);
 	spec.rate = format.rate;
 	spec.channels = format.channels;
@@ -167,7 +168,7 @@ std::error_code PAOutputStream::open(PcmFormat format, OnSamplesNeededDelegate o
 				logWarn("error writing %d bytes", (int)bytes);
 			}
 		}, this);
-	constexpr uint wantedLatency = 20000;
+	const uint wantedLatency = config.lowLatencyHint() ? 10000 : 20000;
 	pa_buffer_attr bufferAttr{};
 	bufferAttr.maxlength = -1;
 	bufferAttr.tlength = format.uSecsToBytes(wantedLatency);

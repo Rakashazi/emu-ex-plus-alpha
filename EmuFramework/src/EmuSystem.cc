@@ -117,7 +117,9 @@ void EmuSystem::startSound()
 			rBuff.init(pcmFormat.uSecsToBytes(wantedLatency));
 			logMsg("created audio buffer with %d frames", pcmFormat.bytesToFrames(rBuff.freeSpace()));
 			audioWriteActive = false;
-			audioStream->open(pcmFormat,
+			Audio::OutputStreamConfig outputConf
+			{
+				pcmFormat,
 				[](void *samples, uint bytes)
 				{
 					if(audioWriteActive)
@@ -147,7 +149,10 @@ void EmuSystem::startSound()
 						std::fill_n((char*)samples, bytes, 0);
 						return false;
 					}
-				});
+				}
+			};
+			outputConf.setLowLatencyHint(optionLowLatencySoundHint);
+			audioStream->open(outputConf);
 			audioStream->play();
 		}
 		else

@@ -50,7 +50,7 @@ OpenSLESOutputStream::OpenSLESOutputStream()
 	assert(result == SL_RESULT_SUCCESS);
 }
 
-std::error_code OpenSLESOutputStream::open(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded_)
+std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 {
 	if(player)
 	{
@@ -61,13 +61,27 @@ std::error_code OpenSLESOutputStream::open(PcmFormat format, OnSamplesNeededDele
 	{
 		return {EINVAL, std::system_category()};
 	}
+	auto format = config.format();
 	pcmFormat = format;
-	onSamplesNeeded = onSamplesNeeded_;
-	uint bufferFrames = defaultFramesPerBuffer();
-	bufferBytes = pcmFormat.framesToBytes(bufferFrames);
-	buffer = new char[bufferBytes];
-	uint outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
-	logMsg("creating playback %dHz, %d channels, %u buffer frames", format.rate, format.channels, bufferFrames);
+	onSamplesNeeded = config.onSamplesNeeded();
+	uint outputBuffers;
+	if(config.lowLatencyHint())
+	{
+		// must create queue with 2 buffers on Android <= 4.2
+		// to get low-latency path, even though we only queue 1
+		outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
+		buffers = 1;
+		bufferBytes = format.framesToBytes(defaultFramesPerBuffer());
+	}
+	else
+	{
+		outputBuffers = 8;
+		buffers = outputBuffers;
+		const uint wantedLatency = 20000;
+		bufferBytes = format.uSecsToBytes(wantedLatency) / buffers;
+	}
+	buffer = new char[bufferBytes * buffers];
+	logMsg("creating playback %dHz, %d channels, %u buffer(s) of %u bytes", format.rate, format.channels, buffers, bufferBytes);
 	assert(format.sample.bits == 16);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
 	SLDataFormat_PCM slFormat
@@ -99,7 +113,9 @@ std::error_code OpenSLESOutputStream::open(PcmFormat format, OnSamplesNeededDele
 		[](SLAndroidSimpleBufferQueueItf queue, void *thisPtr_)
 		{
 			auto thisPtr = static_cast<OpenSLESOutputStream*>(thisPtr_);
-			thisPtr->doBufferCallback(queue);
+			thisPtr->doBufferCallback(queue,
+				thisPtr->buffer + (thisPtr->bufferIdx * thisPtr->bufferBytes));
+			thisPtr->bufferIdx = (thisPtr->bufferIdx + 1) % thisPtr->buffers;
 		}, this);
 	assert(result == SL_RESULT_SUCCESS);
 	logMsg("stream opened");
@@ -110,6 +126,14 @@ void OpenSLESOutputStream::play()
 {
 	if(unlikely(!player))
 		return;
+	if(!bufferQueued)
+	{
+		iterateTimes(buffers, i)
+		{
+			doBufferCallback(slBuffQI, buffer + (i * bufferBytes));
+		}
+		bufferQueued = true;
+	}
 	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
 	if(result == SL_RESULT_SUCCESS)
 	{
@@ -118,11 +142,6 @@ void OpenSLESOutputStream::play()
 	}
 	else
 		logErr("SetPlayState returned 0x%X", (uint)result);
-	if(!bufferQueued)
-	{
-		doBufferCallback(slBuffQI);
-		bufferQueued = true;
-	}
 }
 
 void OpenSLESOutputStream::pause()
@@ -140,12 +159,13 @@ void OpenSLESOutputStream::close()
 	{
 		logMsg("closing pcm");
 		isPlaying_ = false;
-		bufferQueued = false;
 		slBuffQI = nullptr;
 		(*player)->Destroy(player);
 		player = nullptr;
 		delete[] buffer;
 		buffer = nullptr;
+		bufferIdx = 0;
+		bufferQueued = false;
 	}
 	else
 		logMsg("called closePcm when pcm already off");
@@ -159,6 +179,7 @@ void OpenSLESOutputStream::flush()
 	pause();
 	SLresult result = (*slBuffQI)->Clear(slBuffQI);
 	bufferQueued = false;
+	bufferIdx = 0;
 	assert(result == SL_RESULT_SUCCESS);
 }
 
@@ -177,10 +198,10 @@ OpenSLESOutputStream::operator bool() const
 	return outMix;
 }
 
-void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue)
+void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue, void *buff)
 {
-	onSamplesNeeded(buffer, bufferBytes);
-	if(SLresult result = (*queue)->Enqueue(queue, buffer, bufferBytes);
+	onSamplesNeeded(buff, bufferBytes);
+	if(SLresult result = (*queue)->Enqueue(queue, buff, bufferBytes);
 			result != SL_RESULT_SUCCESS)
 		{
 			logWarn("Enqueue returned 0x%X", (uint)result);
