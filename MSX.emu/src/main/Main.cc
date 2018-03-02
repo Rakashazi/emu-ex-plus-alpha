@@ -744,32 +744,6 @@ void RefreshScreen(int screenMode)
 
 void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
-	// fast-forward during floppy access, but stop if access ends
-	if(unlikely(fdcActive && video))
-	{
-		iterateTimes(4, i)
-		{
-			boardInfo.run(boardInfo.cpuRef);
-			((R800*)boardInfo.cpuRef)->terminate = 0;
-			bool useFrame = !fdcActive;
-			if(useFrame)
-			{
-				logMsg("FDC activity ended while fast-forwarding");
-				emuVideo = video;
-				commitVideoFrame();
-			}
-			mixerSync(mixer);
-			UInt32 samples;
-			uchar *audio = (uchar*)mixerGetBuffer(mixer, &samples);
-			if(useFrame)
-			{
-				writeSound(audio, samples/2);
-				return; // done with frame for this update
-			}
-		}
-	}
-
-	// regular frame update
 	emuVideo = video;
 	boardInfo.run(boardInfo.cpuRef);
 	((R800*)boardInfo.cpuRef)->terminate = 0;
@@ -781,6 +755,12 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	{
 		writeSound(audio, samples/2);
 	}
+}
+
+bool EmuSystem::shouldFastForward()
+{
+	// fast-forward during floppy access
+	return fdcActive;
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

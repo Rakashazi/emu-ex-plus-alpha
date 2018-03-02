@@ -24,10 +24,12 @@
 #include <sys/syscall.h>
 #endif
 
-template <class COUNT = std::atomic_uint, class SIZE = unsigned int>
+template <class SIZE = unsigned int>
 class StaticLinuxRingBuffer
 {
 public:
+	using COUNT = std::atomic<SIZE>;
+
 	constexpr StaticLinuxRingBuffer() {}
 
 	bool init(SIZE size)
@@ -88,9 +90,14 @@ public:
 		return freeSpace();
 	}
 
-	SIZE writtenSize() const
+	SIZE size() const
 	{
 		return written;
+	}
+
+	SIZE capacity() const
+	{
+		return buffSize;
 	}
 
 	SIZE write(const void *buff, SIZE size)
@@ -167,14 +174,14 @@ private:
 	}
 };
 
-template <class COUNT = std::atomic_uint, class SIZE = unsigned int>
-class LinuxRingBuffer : public StaticLinuxRingBuffer<COUNT, SIZE>
+template <class SIZE = unsigned int>
+class LinuxRingBuffer : public StaticLinuxRingBuffer<SIZE>
 {
 public:
-	using StaticLinuxRingBuffer<COUNT, SIZE>::StaticLinuxRingBuffer;
+	using StaticLinuxRingBuffer<SIZE>::StaticLinuxRingBuffer;
 
 	~LinuxRingBuffer()
 	{
-		StaticLinuxRingBuffer<COUNT, SIZE>::deinit();
+		StaticLinuxRingBuffer<SIZE>::deinit();
 	}
 };

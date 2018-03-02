@@ -42,7 +42,10 @@ public:
 		TYPE_BIT_KEYBOARD = IG::bit(1),
 		TYPE_BIT_GAMEPAD = IG::bit(2),
 		TYPE_BIT_JOYSTICK = IG::bit(3),
-		TYPE_BIT_VIRTUAL = IG::bit(4);
+		TYPE_BIT_VIRTUAL = IG::bit(4),
+		TYPE_BIT_MOUSE = IG::bit(5),
+		TYPE_BIT_TOUCHSCREEN = IG::bit(6),
+		TYPE_BIT_POWER_BUTTON = IG::bit(7);
 
 	static constexpr uint
 		AXIS_BIT_X = IG::bit(0), AXIS_BIT_Y = IG::bit(1), AXIS_BIT_Z = IG::bit(2),
@@ -94,6 +97,16 @@ public:
 	bool isVirtual() const
 	{
 		return typeBits() & TYPE_BIT_VIRTUAL;
+	}
+
+	bool hasKeys() const
+	{
+		return hasKeyboard() || hasGamepad() || typeBits() & TYPE_BIT_KEY_MISC;
+	}
+
+	bool isPowerButton() const
+	{
+		return typeBits() & TYPE_BIT_POWER_BUTTON;
 	}
 
 	uint enumId() const { return devId; }

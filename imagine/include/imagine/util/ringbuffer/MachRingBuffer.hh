@@ -19,10 +19,12 @@
 #include <mach/mach.h>
 #include <mach/vm_map.h>
 
-template <class COUNT = std::atomic_uint, class SIZE = unsigned int>
+template <class SIZE = unsigned int>
 class StaticMachRingBuffer
 {
 public:
+	using COUNT = std::atomic<SIZE>;
+
 	constexpr StaticMachRingBuffer() {}
 
 	bool init(SIZE size)
@@ -95,9 +97,14 @@ public:
 		return freeSpace();
 	}
 
-	SIZE writtenSize() const
+	SIZE size() const
 	{
 		return written;
+	}
+
+	SIZE capacity() const
+	{
+		return buffSize;
 	}
 
 	SIZE write(const void *buff, SIZE size)
@@ -166,14 +173,14 @@ private:
 	}
 };
 
-template <class COUNT = std::atomic_uint, class SIZE = unsigned int>
-class MachRingBuffer : public StaticMachRingBuffer<COUNT, SIZE>
+template <class SIZE = unsigned int>
+class MachRingBuffer : public StaticMachRingBuffer<SIZE>
 {
 public:
-	using StaticMachRingBuffer<COUNT, SIZE>::StaticMachRingBuffer;
+	using StaticMachRingBuffer<SIZE>::StaticMachRingBuffer;
 
 	~MachRingBuffer()
 	{
-		StaticMachRingBuffer<COUNT, SIZE>::deinit();
+		StaticMachRingBuffer<SIZE>::deinit();
 	}
 };

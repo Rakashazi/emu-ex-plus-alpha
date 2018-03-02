@@ -168,7 +168,7 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 				logWarn("error writing %d bytes", (int)bytes);
 			}
 		}, this);
-	const uint wantedLatency = config.lowLatencyHint() ? 10000 : 20000;
+	const uint wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
 	pa_buffer_attr bufferAttr{};
 	bufferAttr.maxlength = -1;
 	bufferAttr.tlength = format.uSecsToBytes(wantedLatency);
@@ -191,9 +191,18 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 		return {EINVAL, std::system_category()};
 	}
 	auto serverAttr = pa_stream_get_buffer_attr(stream);
+	if(config.startPlaying())
+	{
+		// uncorked by default
+		isCorked = false;
+	}
+	else
+	{
+		pa_stream_cork(stream, 1, nullptr, nullptr);
+		isCorked = true;
+	}
 	unlockMainLoop();
 	assert(serverAttr);
-	isCorked = false;
 	logMsg("opened stream with target fill bytes: %d", serverAttr->tlength);
 	return {};
 }

@@ -187,7 +187,8 @@ public:
 	static Error loadGameFromPath(const char *path, OnLoadProgressDelegate onLoadProgress);
 	static Error loadGameFromFile(GenericIO io, const char *name, OnLoadProgressDelegate onLoadProgress);
 	[[gnu::hot]] static void runFrame(EmuVideo *video, bool renderAudio);
-	static void skipFrames(uint frames);
+	static void skipFrames(uint frames, bool renderAudio);
+	static bool shouldFastForward();
 	static void onPrepareVideo(EmuVideo &video);
 	static bool vidSysIsPAL();
 	static double frameTime();

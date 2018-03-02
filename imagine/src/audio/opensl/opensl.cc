@@ -64,24 +64,12 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	auto format = config.format();
 	pcmFormat = format;
 	onSamplesNeeded = config.onSamplesNeeded();
-	uint outputBuffers;
-	if(config.lowLatencyHint())
-	{
-		// must create queue with 2 buffers on Android <= 4.2
-		// to get low-latency path, even though we only queue 1
-		outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
-		buffers = 1;
-		bufferBytes = format.framesToBytes(defaultFramesPerBuffer());
-	}
-	else
-	{
-		outputBuffers = 8;
-		buffers = outputBuffers;
-		const uint wantedLatency = 20000;
-		bufferBytes = format.uSecsToBytes(wantedLatency) / buffers;
-	}
-	buffer = new char[bufferBytes * buffers];
-	logMsg("creating playback %dHz, %d channels, %u buffer(s) of %u bytes", format.rate, format.channels, buffers, bufferBytes);
+	// must create queue with 2 buffers on Android <= 4.2
+	// to get low-latency path, even though we only queue 1
+	uint outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
+	bufferBytes = format.framesToBytes(defaultFramesPerBuffer());
+	buffer = new char[bufferBytes];
+	logMsg("creating playback %dHz, %d channels, %u byte buffer", format.rate, format.channels, bufferBytes);
 	assert(format.sample.bits == 16);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
 	SLDataFormat_PCM slFormat
@@ -113,12 +101,12 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 		[](SLAndroidSimpleBufferQueueItf queue, void *thisPtr_)
 		{
 			auto thisPtr = static_cast<OpenSLESOutputStream*>(thisPtr_);
-			thisPtr->doBufferCallback(queue,
-				thisPtr->buffer + (thisPtr->bufferIdx * thisPtr->bufferBytes));
-			thisPtr->bufferIdx = (thisPtr->bufferIdx + 1) % thisPtr->buffers;
+			thisPtr->doBufferCallback(queue);
 		}, this);
 	assert(result == SL_RESULT_SUCCESS);
 	logMsg("stream opened");
+	if(config.startPlaying())
+		play();
 	return {};
 }
 
@@ -126,22 +114,21 @@ void OpenSLESOutputStream::play()
 {
 	if(unlikely(!player))
 		return;
-	if(!bufferQueued)
-	{
-		iterateTimes(buffers, i)
-		{
-			doBufferCallback(slBuffQI, buffer + (i * bufferBytes));
-		}
-		bufferQueued = true;
-	}
-	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
-	if(result == SL_RESULT_SUCCESS)
+	if(SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
+		result == SL_RESULT_SUCCESS)
 	{
 		logMsg("started playback");
 		isPlaying_ = 1;
+		if(!bufferQueued)
+		{
+			doBufferCallback(slBuffQI);
+			bufferQueued = true;
+		}
 	}
 	else
-		logErr("SetPlayState returned 0x%X", (uint)result);
+	{
+		logErr("SetPlayState(SL_PLAYSTATE_PLAYING) returned 0x%X", (uint)result);
+	}
 }
 
 void OpenSLESOutputStream::pause()
@@ -149,7 +136,11 @@ void OpenSLESOutputStream::pause()
 	if(unlikely(!player) || !isPlaying_)
 		return;
 	logMsg("pausing playback");
-	auto result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
+	if(SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
+		result != SL_RESULT_SUCCESS)
+	{
+		logWarn("SetPlayState(SL_PLAYSTATE_PAUSED) returned 0x%X", (uint)result);
+	}
 	isPlaying_ = 0;
 }
 
@@ -164,7 +155,6 @@ void OpenSLESOutputStream::close()
 		player = nullptr;
 		delete[] buffer;
 		buffer = nullptr;
-		bufferIdx = 0;
 		bufferQueued = false;
 	}
 	else
@@ -177,10 +167,12 @@ void OpenSLESOutputStream::flush()
 		return;
 	logMsg("clearing queued samples");
 	pause();
-	SLresult result = (*slBuffQI)->Clear(slBuffQI);
+	if(SLresult result = (*slBuffQI)->Clear(slBuffQI);
+		result != SL_RESULT_SUCCESS)
+	{
+		logWarn("Clear returned 0x%X", (uint)result);
+	}
 	bufferQueued = false;
-	bufferIdx = 0;
-	assert(result == SL_RESULT_SUCCESS);
 }
 
 bool OpenSLESOutputStream::isOpen()
@@ -198,10 +190,10 @@ OpenSLESOutputStream::operator bool() const
 	return outMix;
 }
 
-void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue, void *buff)
+void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue)
 {
-	onSamplesNeeded(buff, bufferBytes);
-	if(SLresult result = (*queue)->Enqueue(queue, buff, bufferBytes);
+	onSamplesNeeded(buffer, bufferBytes);
+	if(SLresult result = (*queue)->Enqueue(queue, buffer, bufferBytes);
 			result != SL_RESULT_SUCCESS)
 		{
 			logWarn("Enqueue returned 0x%X", (uint)result);

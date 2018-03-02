@@ -114,14 +114,14 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse)
+static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse, const Device *device)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	uint metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
-	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, nullptr});
+	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, device});
 }
 
-static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isMouse)
+static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isMouse, const Device *device)
 {
 	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
 	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
@@ -138,7 +138,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					auto &p = m[i];
 					p.id = pid;
 					p.isTouching = true;
-					dispatchTouch(i, PUSHED, p, pos, time, isMouse);
+					dispatchTouch(i, PUSHED, p, pos, time, isMouse, device);
 					break;
 				}
 			}
@@ -151,7 +151,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					//logMsg("touch up for %d from gesture end", p_i);
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isMouse);
+					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isMouse, device);
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
@@ -163,7 +163,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					auto &p = m[i];
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(i, RELEASED, p, pos, time, isMouse);
+					dispatchTouch(i, RELEASED, p, pos, time, isMouse, device);
 					break;
 				}
 			}
@@ -175,7 +175,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 				if(m[i].id == pid)
 				{
 					auto &p = m[i];
-					dispatchTouch(i, MOVED, p, pos, time, isMouse);
+					dispatchTouch(i, MOVED, p, pos, time, isMouse, device);
 					break;
 				}
 			}
@@ -205,6 +205,13 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
+					auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
+					if(unlikely(!dev))
+					{
+						if(Config::DEBUG_BUILD)
+							logWarn("discarding pointer input from unknown device ID: %d", AInputEvent_getDeviceId(event));
+						return false;
+					}
 					bool isMouse = isFromSource(source, AINPUT_SOURCE_MOUSE);
 					uint action = eventAction & AMOTION_EVENT_ACTION_MASK;
 					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
@@ -214,7 +221,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 								AMotionEvent_getX(event, 0),
 								AMotionEvent_getY(event, 0),
 								AMotionEvent_getPointerId(event, 0),
-								makeTimeFromMotionEvent(event), isMouse);
+								makeTimeFromMotionEvent(event), isMouse, dev);
 						return true;
 					}
 					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
@@ -234,7 +241,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 							AMotionEvent_getX(event, i),
 							AMotionEvent_getY(event, i),
 							AMotionEvent_getPointerId(event, i),
-							makeTimeFromMotionEvent(event), isMouse);
+							makeTimeFromMotionEvent(event), isMouse, dev);
 					}
 					return true;
 				}
@@ -262,7 +269,8 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
 					if(unlikely(!dev))
 					{
-						logWarn("discarding joystick input from unknown device ID: %d", AInputEvent_getDeviceId(event));
+						if(Config::DEBUG_BUILD)
+							logWarn("discarding joystick input from unknown device ID: %d", AInputEvent_getDeviceId(event));
 						return false;
 					}
 					auto enumID = dev->enumId();
@@ -298,7 +306,10 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 		bcase AINPUT_EVENT_TYPE_KEY:
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
-			//logMsg("key event, code: %d id: %d source: 0x%X repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), source, AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
+			if(Config::DEBUG_BUILD)
+			{
+				//logMsg("key event, code: %d id: %d repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
+			}
 			auto keyWasRepeated =
 				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
 				{

@@ -103,7 +103,10 @@ class CustomVideoOptionView : public VideoOptionView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionCropNormalBorders = item.flipBoolValue(*this);
-			resetCanvasSourcePixmap(activeCanvas);
+			if(EmuSystem::gameIsRunning())
+			{
+				resetCanvasSourcePixmap(activeCanvas);
+			}
 		}
 	};
 

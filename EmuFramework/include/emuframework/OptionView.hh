@@ -101,7 +101,7 @@ protected:
 	BoolMenuItem snd;
 	TextMenuItem soundBuffersItem[7];
 	MultiChoiceMenuItem soundBuffers;
-	BoolMenuItem lowLatency;
+	BoolMenuItem addSoundBuffersOnUnderrun;
 	StaticArrayList<TextMenuItem, 5> audioRateItem{};
 	MultiChoiceMenuItem audioRate;
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX

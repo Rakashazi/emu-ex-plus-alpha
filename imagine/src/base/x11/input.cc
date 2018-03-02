@@ -46,10 +46,23 @@ struct XInputDevice : public Device
 		Device(0, Event::MAP_SYSTEM, typeBits, name)
 	{}
 
-	XInputDevice(const XIDeviceInfo &info, int enumId):
-		Device(enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEYBOARD, info.name),
+	XInputDevice(const XIDeviceInfo &info, int enumId, bool isPointingDevice, bool isPowerButton):
+		Device(enumId, Event::MAP_SYSTEM, 0, info.name),
 		id(info.deviceid)
-	{}
+	{
+		if(isPointingDevice)
+		{
+			type_ = Device::TYPE_BIT_MOUSE;
+		}
+		else
+		{
+			type_ = Device::TYPE_BIT_KEYBOARD;
+			if(isPowerButton)
+			{
+				type_ |= Device::TYPE_BIT_POWER_BUTTON;
+			}
+		}
+	}
 
 	void setICadeMode(bool on) final
 	{
@@ -188,15 +201,14 @@ static int devIdToPointer(int id)
 	return 0;
 }
 
-static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
+static bool isPowerButtonName(const char *name)
 {
-	if(string_equal(xDevInfo.name, "Power Button")
-		|| (Config::MACHINE_IS_PANDORA && string_equal(xDevInfo.name, "power-button"))
-		|| string_equal(xDevInfo.name, "Virtual core XTEST keyboard"))
-	{
-		logMsg("skipping X key input device %d (%s)", xDevInfo.deviceid, xDevInfo.name);
-		return;
-	}
+	return strstr(name, "Power Button")
+		|| (Config::MACHINE_IS_PANDORA && strstr(name, "power-button"));
+}
+
+static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPointingDevice)
+{
 	for(auto &e : xDevice)
 	{
 		if(xDevInfo.deviceid == e->id)
@@ -214,7 +226,7 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify)
 		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
 	}
-	xDevice.emplace_back(std::make_unique<XInputDevice>(xDevInfo, devId));
+	xDevice.emplace_back(std::make_unique<XInputDevice>(xDevInfo, devId, isPointingDevice, isPowerButtonName(xDevInfo.name)));
 	auto dev = xDevice.back().get();
 	addDevice(*dev);
 	if(Config::MACHINE_IS_PANDORA && (string_equal(xDevInfo.name, "gpio-keys")
@@ -299,10 +311,11 @@ void init(Display *dpy)
 				logMsg("mapping X pointer %d (%s) as pointer %d", device[i].deviceid, device[i].name, Input::numCursors);
 				xPointerMapping[Input::numCursors] = device[i].deviceid;
 				Input::numCursors++;
+				addXInputDevice(device[i], false, true);
 			}
 			bcase XISlaveKeyboard:
 			{
-				addXInputDevice(device[i], false);
+				addXInputDevice(device[i], false, false);
 			}
 		}
 	}
@@ -329,10 +342,11 @@ static uint makePointerButtonState(XIButtonState state)
 	return byte1 | (byte2 << 8);
 }
 
-static void updatePointer(Base::Window &win, uint key, uint btnState, int p, uint action, int x, int y, Input::Time time)
+static void updatePointer(Base::Window &win, uint key, uint btnState, int p, uint action, int x, int y, Input::Time time, int sourceID)
 {
+	auto dev = deviceForInputId(sourceID);
 	auto pos = transformInputPos(win, {x, y});
-	win.dispatchInputEvent(Event{(uint)p, Event::MAP_POINTER, (Key)key, btnState, action, pos.x, pos.y, p, false, time, nullptr});
+	win.dispatchInputEvent(Event{(uint)p, Event::MAP_POINTER, (Key)key, btnState, action, pos.x, pos.y, p, false, time, dev});
 }
 
 bool handleXI2GenericEvent(XEvent &event)
@@ -365,7 +379,7 @@ bool handleXI2GenericEvent(XEvent &event)
 				{
 					if(device->use == XISlaveKeyboard)
 					{
-						Input::addXInputDevice(*device, true);
+						Input::addXInputDevice(*device, true, false);
 					}
 					XIFreeDeviceInfo(device);
 				}
@@ -417,15 +431,20 @@ bool handleXI2GenericEvent(XEvent &event)
 	switch(ievent.evtype)
 	{
 		bcase XI_ButtonPress:
-			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons),
+				devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_ButtonRelease:
-			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons),
+				devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Motion:
-			updatePointer(win, 0, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid), MOVED, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, 0, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid),
+				MOVED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Enter:
-			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW,
+				ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Leave:
-			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW, ievent.event_x, ievent.event_y, time);
+			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW,
+				ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_FocusIn:
 			win.dispatchFocusChange(true);
 		bcase XI_FocusOut:

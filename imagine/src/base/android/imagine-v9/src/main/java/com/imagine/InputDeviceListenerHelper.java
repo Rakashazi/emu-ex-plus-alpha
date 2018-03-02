@@ -26,7 +26,7 @@ final class InputDeviceListenerHelper
 {
 	private static final String logTag = "InputDeviceListenerHelper";
 	private static native void deviceChanged(int change, int devID,
-		InputDevice dev, String name, int src, int kbType);
+		InputDevice dev, String name, int src, int kbType, int jsAxisBits);
 	
 	private final class Listener implements InputManager.InputDeviceListener
 	{
@@ -36,7 +36,8 @@ final class InputDeviceListenerHelper
 			InputDevice dev = InputDevice.getDevice(id);
 			if(InputDeviceHelper.shouldHandleDevice(dev))
 			{
-				deviceChanged(DEVICE_ADDED, id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType());
+				deviceChanged(DEVICE_ADDED, id, dev, dev.getName(), dev.getSources(),
+					dev.getKeyboardType(), InputDeviceHelper.axisBits(dev));
 			}
 		}
 
@@ -46,14 +47,15 @@ final class InputDeviceListenerHelper
 			InputDevice dev = InputDevice.getDevice(id);
 			if(InputDeviceHelper.shouldHandleDevice(dev))
 			{
-				deviceChanged(DEVICE_CHANGED, id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType());
+				deviceChanged(DEVICE_CHANGED, id, dev, dev.getName(), dev.getSources(),
+					dev.getKeyboardType(), InputDeviceHelper.axisBits(dev));
 			}
 		}
 		
 		@Override public void onInputDeviceRemoved(int id)
 		{
 			//Log.i(logTag, "removed id: " + id);
-			deviceChanged(DEVICE_REMOVED, id, null, null, 0, 0);
+			deviceChanged(DEVICE_REMOVED, id, null, null, 0, 0, 0);
 		}
 	}
 

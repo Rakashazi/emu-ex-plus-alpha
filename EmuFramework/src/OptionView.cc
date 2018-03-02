@@ -480,7 +480,7 @@ void AudioOptionView::loadStockItems()
 		updateAudioRateItem();
 	}
 	item.emplace_back(&soundBuffers);
-	item.emplace_back(&lowLatency);
+	item.emplace_back(&addSoundBuffersOnUnderrun);
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	item.emplace_back(&audioSoloMix);
 	#endif
@@ -1136,14 +1136,13 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			return soundBuffersItem[idx];
 		}
 	},
-	lowLatency
+	addSoundBuffersOnUnderrun
 	{
-		"Low Latency Mode",
-		(bool)optionLowLatencySoundHint,
+		"Auto-increase Buffer Size",
+		(bool)optionAddSoundBuffersOnUnderrun,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			optionLowLatencySoundHint = item.flipBoolValue(*this);
-			EmuSystem::closeSound();
+			optionAddSoundBuffersOnUnderrun = item.flipBoolValue(*this);
 		}
 	},
 	audioRate

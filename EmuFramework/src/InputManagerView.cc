@@ -315,7 +315,14 @@ void InputManagerView::loadItems()
 				imdMenu.setName(inputDevName[idx].t.str);
 				pushAndShow(imdMenu, e);
 			});
-		item.emplace_back(&inputDevName.back());
+		if(e->hasKeys() && !e->isPowerButton())
+		{
+			item.emplace_back(&inputDevName.back());
+		}
+		else
+		{
+			logMsg("not adding device:%s to list", e->name());
+		}
 	}
 }
 

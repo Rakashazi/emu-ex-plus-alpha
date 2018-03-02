@@ -41,20 +41,31 @@ public:
 		return onSamplesNeeded_;
 	}
 
-	void setLowLatencyHint(bool on)
+	void setWantedLatencyHint(uint uSecs)
 	{
-		lowLatency = on;
+		wantedLatency = uSecs;
 	}
 
-	bool lowLatencyHint() const
+	uint wantedLatencyHint() const
 	{
-		return lowLatency;
+		return wantedLatency;
+	}
+
+	void setStartPlaying(bool on)
+	{
+		startPlaying_ = on;
+	}
+
+	bool startPlaying()
+	{
+		return startPlaying_;
 	}
 
 protected:
 	PcmFormat format_{};
 	OnSamplesNeededDelegate onSamplesNeeded_{};
-	bool lowLatency = false;
+	uint wantedLatency = 20000;
+	bool startPlaying_ = true;
 };
 
 class OutputStream

@@ -50,8 +50,8 @@ Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
 Byte1Option optionSound(CFGKEY_SOUND, 1);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	Config::envIsAndroid ? 8 : 5, 0, optionIsValidWithMinMax<2, 8, uint8>);
-Byte1Option optionLowLatencySoundHint(CFGKEY_LOW_LATENCY_SOUND_HINT, 1, 0);
+	5, 0, optionIsValidWithMinMax<2, 8, uint8>);
+Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
@@ -305,10 +305,6 @@ void initOptions()
 	if(!Base::hasVibrator())
 	{
 		optionVibrateOnPush.isConst = 1;
-	}
-	if(AudioManager::hasLowLatency() && Base::androidSDK() >= 24)
-	{
-		optionSoundBuffers.initDefault(5);
 	}
 	if(Base::androidSDK() < 17)
 	{

@@ -44,13 +44,11 @@ private:
 	OnSamplesNeededDelegate onSamplesNeeded{};
 	char *buffer{};
 	uint bufferBytes = 0;
-	uint buffers = 0;
-	uint bufferIdx = 0;
 	PcmFormat pcmFormat{};
 	bool isPlaying_ = false;
 	bool bufferQueued = false;
 
-	void doBufferCallback(SLAndroidSimpleBufferQueueItf queue, void *buff);
+	void doBufferCallback(SLAndroidSimpleBufferQueueItf queue);
 };
 
 using SysOutputStream = OpenSLESOutputStream;

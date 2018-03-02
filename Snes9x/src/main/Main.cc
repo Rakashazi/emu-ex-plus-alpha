@@ -175,7 +175,7 @@ uint EmuSystem::multiresVideoBaseY() { return 239; }
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
 	auto size = io.size();
-	if(size > CMemory::MAX_ROM_SIZE)
+	if(size > CMemory::MAX_ROM_SIZE + 512)
 	{
 		return makeError("ROM is too large");
 	}

@@ -251,7 +251,7 @@ static bool readConfig2(IO &io)
 				#endif
 			#endif
 			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
-			bcase CFGKEY_LOW_LATENCY_SOUND_HINT: optionLowLatencySoundHint.readFromIO(io, size);
+			bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
 			#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
 			#endif
@@ -495,7 +495,7 @@ static OptionBase *cfgFileOption[] =
 		#endif
 	#endif
 	&optionSoundBuffers,
-	&optionLowLatencySoundHint,
+	&optionAddSoundBuffersOnUnderrun,
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	&optionAudioSoloMix,
 	#endif

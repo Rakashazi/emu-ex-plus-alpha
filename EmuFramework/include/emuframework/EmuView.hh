@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
+#include <imagine/gfx/GfxText.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
 
@@ -30,9 +31,16 @@ public:
 	void onAddedToController(Input::Event e) final {}
 	bool hasLayer() const { return layer; }
 	void swapLayers(EmuView &view);
+	void updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
+	void clearAudioStats();
 
 private:
 	EmuVideoLayer *layer{};
 	EmuInputView *inputView{};
 	IG::WindowRect rect{};
+	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+	Gfx::Text audioStatsText{};
+	Gfx::GCRect audioStatsRect{};
+	std::array<char, 512> audioStatsStr{};
+	#endif
 };

@@ -19,10 +19,12 @@
 #include <atomic>
 #include <cstdlib>
 
-template <class COUNT = std::atomic_uint, class SIZE = unsigned int>
+template <class SIZE = unsigned int>
 class StaticRingBuffer
 {
 public:
+	using COUNT = std::atomic<SIZE>;
+
 	constexpr StaticRingBuffer() {}
 
 	bool init(SIZE size)
@@ -63,9 +65,14 @@ public:
 		return ((uintptr_t)buff + buffSize) - (uintptr_t)end;
 	}
 
-	SIZE writtenSize() const
+	SIZE size() const
 	{
 		return written;
+	}
+
+	SIZE capacity() const
+	{
+		return buffSize;
 	}
 
 	SIZE write(const void *buff, SIZE size)
@@ -150,14 +157,14 @@ private:
 	SIZE buffSize{};
 };
 
-template <class COUNT = std::atomic_uint, class SIZE = unsigned int>
-class RingBuffer : public StaticRingBuffer<COUNT, SIZE>
+template <class SIZE = unsigned int>
+class RingBuffer : public StaticRingBuffer<SIZE>
 {
 public:
-	using StaticRingBuffer<COUNT, SIZE>::StaticRingBuffer;
+	using StaticRingBuffer<SIZE>::StaticRingBuffer;
 
 	~RingBuffer()
 	{
-		StaticRingBuffer<COUNT, SIZE>::deinit();
+		StaticRingBuffer<SIZE>::deinit();
 	}
 };

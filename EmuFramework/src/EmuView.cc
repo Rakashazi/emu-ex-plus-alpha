@@ -35,6 +35,20 @@ void EmuView::draw()
 		renderer().loadTransform(projP.makeTranslate());
 		inputView->draw();
 	}
+	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+	if(strlen(audioStatsStr.data()))
+	{
+		auto &r = renderer();
+		r.noTexProgram.use(r);
+		r.setBlendMode(BLEND_MODE_ALPHA);
+		r.setColor(0., 0., 0., .7);
+		GeomRect::draw(r, audioStatsRect);
+		r.setColor(1., 1., 1., 1.);
+		r.texAlphaProgram.use(r);
+		audioStatsText.draw(r, projP.alignXToPixel(audioStatsRect.x + TableView::globalXIndent),
+			projP.alignYToPixel(audioStatsRect.yCenter()), LC2DO, projP);
+	}
+	#endif
 }
 
 void EmuView::place()
@@ -47,6 +61,15 @@ void EmuView::place()
 	{
 		inputView->place();
 	}
+	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+	if(strlen(audioStatsStr.data()))
+	{
+		audioStatsText.compile(renderer(), projP);
+		audioStatsRect = projP.bounds();
+		audioStatsRect.y2 = (audioStatsRect.y + audioStatsText.nominalHeight * audioStatsText.lines)
+			+ audioStatsText.nominalHeight * .5f; // adjust to bottom
+	}
+	#endif
 }
 
 bool EmuView::inputEvent(Input::Event e)
@@ -61,4 +84,24 @@ bool EmuView::inputEvent(Input::Event e)
 void EmuView::swapLayers(EmuView &view)
 {
 	std::swap(layer, view.layer);
+}
+
+void EmuView::updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames)
+{
+	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+	string_printf(audioStatsStr, "Underruns:%u\nOverruns:%u\nCallbacks per second:%u\nFrames per callback:%.2f\nTotal frames:%u",
+		underruns, overruns, callbacks, avgCallbackFrames, frames);
+	if(!audioStatsText.str)
+	{
+		audioStatsText = {audioStatsStr.data(), &View::defaultFace};
+	}
+	place();
+	#endif
+}
+
+void EmuView::clearAudioStats()
+{
+	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+	audioStatsStr = {};
+	#endif
 }

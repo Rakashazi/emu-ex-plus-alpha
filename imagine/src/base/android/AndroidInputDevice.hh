@@ -27,7 +27,6 @@ namespace Input
 	namespace AInputDevice
 	{
 
-	static JavaInstMethod<jobject(jint)> getMotionRange_;
 	static constexpr jint SOURCE_CLASS_BUTTON = 0x00000001, SOURCE_CLASS_POINTER = 0x00000002, SOURCE_CLASS_TRACKBALL = 0x00000004,
 			SOURCE_CLASS_POSITION = 0x00000008, SOURCE_CLASS_JOYSTICK = 0x00000010;
 	static constexpr jint SOURCE_KEYBOARD = 0x00000101, SOURCE_DPAD = 0x00000201, SOURCE_GAMEPAD = 0x00000401,
@@ -64,7 +63,7 @@ public:
 	{}
 
 	AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId, int osId, int src,
-		const char *name, int kbType);
+		const char *name, int kbType, int axisBits, bool isPowerButton);
 
 	bool operator ==(AndroidInputDevice const& rhs) const
 	{

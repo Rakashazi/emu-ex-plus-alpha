@@ -95,6 +95,8 @@ std::error_code CAOutputStream::open(OutputStreamConfig config)
 	}
 	AudioUnitInitialize(outputUnit);
 	isOpen_ = true;
+	if(config.startPlaying())
+		play();
 	return {};
 }
 

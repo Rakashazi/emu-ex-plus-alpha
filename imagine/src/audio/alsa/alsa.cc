@@ -99,7 +99,7 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
 	bool allowMmap = 1;
 	int err = -1;
-	uint wantedLatency = config.lowLatencyHint() ? 10000 : 20000;
+	uint wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
 	if(allowMmap)
 	{
 		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED, wantedLatency);
@@ -217,6 +217,8 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 				}
 			}
 		});
+	if(config.startPlaying())
+		play();
 	return {};
 }
 

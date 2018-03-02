@@ -17,12 +17,14 @@ package com.imagine;
 
 import android.util.*;
 import android.view.InputDevice;
+import android.view.MotionEvent;
 
 final class InputDeviceHelper
 {
 	private static final String logTag = "InputDeviceHelper";
 	private static native void deviceEnumerated(int devID,
-		InputDevice dev, String name, int src, int kbType);
+		InputDevice dev, String name, int src, int kbType,
+		int jsAxisBits, boolean isPowerButton);
 	
 	InputDeviceHelper() {}
 	
@@ -32,24 +34,51 @@ final class InputDeviceHelper
 		{
 			return false;
 		}
-		String name = dev.getName();
-		if(name == null || name.length() == 0)
+		if(dev.getName() == null)
 		{
 			//Log.e(logTag, "no name from device id:" + id);
 			return false;
 		}
-		int src = dev.getSources();
-		int hasKeys = src & InputDevice.SOURCE_CLASS_BUTTON;
-		if(hasKeys == 0)
-		{
-			return false;
-		}
-		// skip various devices that don't have useful functions
-		if(name.contains("pwrkey") || name.contains("pwrbutton")) // various power keys
-		{
-			return false;
-		}
 		return true;
+	}
+	
+	static boolean isPowerButtonName(String name)
+	{
+		if(name.contains("pwrkey") || name.contains("pwrbutton"))
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	static int axisBits(InputDevice dev)
+	{
+		if((dev.getSources() & InputDevice.SOURCE_JOYSTICK) != InputDevice.SOURCE_JOYSTICK)
+		{
+			return 0;
+		}
+		final int AXIS_BIT_X = 1 << 0, AXIS_BIT_Y = 1 << 1, AXIS_BIT_Z = 1 << 2,
+			AXIS_BIT_RX = 1 << 3, AXIS_BIT_RY = 1 << 4, AXIS_BIT_RZ = 1 << 5,
+			AXIS_BIT_HAT_X = 1 << 6, AXIS_BIT_HAT_Y = 1 << 7,
+			AXIS_BIT_LTRIGGER = 1 << 8, AXIS_BIT_RTRIGGER = 1 << 9,
+			AXIS_BIT_RUDDER = 1 << 10, AXIS_BIT_WHEEL = 1 << 11,
+			AXIS_BIT_GAS = 1 << 12, AXIS_BIT_BRAKE = 1 << 13;
+		int bits = 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_X) != null) ? AXIS_BIT_X : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_Y) != null) ? AXIS_BIT_Y : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_Z) != null) ? AXIS_BIT_Z : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_RX) != null) ? AXIS_BIT_RX : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_RY) != null) ? AXIS_BIT_RY : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_RZ) != null) ? AXIS_BIT_RZ : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_HAT_X) != null) ? AXIS_BIT_HAT_X : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_HAT_Y) != null) ? AXIS_BIT_HAT_Y : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_RUDDER) != null) ? AXIS_BIT_RUDDER : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_WHEEL) != null) ? AXIS_BIT_WHEEL : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_LTRIGGER) != null) ? AXIS_BIT_LTRIGGER : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_RTRIGGER) != null) ? AXIS_BIT_RTRIGGER : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_GAS) != null) ? AXIS_BIT_GAS : 0;
+		bits |= (dev.getMotionRange(MotionEvent.AXIS_BRAKE) != null) ? AXIS_BIT_BRAKE : 0;
+		return bits;
 	}
 
 	public static void enumInputDevices()
@@ -58,10 +87,10 @@ final class InputDeviceHelper
 		for(int id : idArr)
 		{
 			InputDevice dev = InputDevice.getDevice(id);
-			if(shouldHandleDevice(dev))
-			{
-				deviceEnumerated(id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType());
-			}
+			if(!shouldHandleDevice(dev))
+				continue;
+			deviceEnumerated(id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType(),
+				axisBits(dev), isPowerButtonName(dev.getName()));
 		}
 	}
 }

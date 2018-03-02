@@ -192,6 +192,16 @@ static Gfx::Viewport makeViewport(const Base::Window &win);
 void mainInitWindowCommon(Base::Window &win);
 void handleOpenFileCommand(const char *filename);
 
+void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames)
+{
+	emuView.updateAudioStats(underruns, overruns, callbacks, avgCallbackFrames, frames);
+}
+
+void clearEmuAudioStats()
+{
+	emuView.clearAudioStats();
+}
+
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 {
 	assumeExpr(assetID < IG::size(assetFilename));
@@ -763,11 +773,26 @@ void mainInitCommon(int argc, char** argv)
 	onFrameUpdate = [](Base::Screen::FrameParams params)
 		{
 			commonUpdateInput();
-			if(unlikely(fastForwardActive))
+			if(unlikely(fastForwardActive || EmuSystem::shouldFastForward()))
 			{
 				EmuSystem::runFrameOnDraw = true;
 				postDrawToEmuWindows();
-				EmuSystem::skipFrames((uint)optionFastForwardSpeed);
+				if(fastForwardActive)
+				{
+					EmuSystem::skipFrames((uint)optionFastForwardSpeed, true);
+				}
+				else
+				{
+					iterateTimes((uint)optionFastForwardSpeed, i)
+					{
+						EmuSystem::skipFrames(1, true);
+						if(!EmuSystem::shouldFastForward())
+						{
+							logMsg("fast-forward ended early after %d frame(s)", i);
+							break;
+						}
+					}
+				}
 			}
 			else
 			{

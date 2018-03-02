@@ -89,6 +89,11 @@ public:
 	{
 		return (rate * sample.toBytes() * channels) * secs;
 	}
+
+	float bytesToSecs(uint bytes) const
+	{
+		return (float)bytes / (rate * sample.toBytes() * channels);
+	}
 };
 
 }

@@ -96,6 +96,8 @@ Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 ViewAttachParams emuViewAttachParams();
 View *makeView(ViewAttachParams attach, EmuApp::ViewID id);
 void updateAndDrawEmuVideo();
+void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
+void clearEmuAudioStats();
 
 static void addRecentGame()
 {

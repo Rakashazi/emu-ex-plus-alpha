@@ -48,7 +48,6 @@ static constexpr uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Trig
 std::vector<std::unique_ptr<AndroidInputDevice>> sysInputDev{};
 static const AndroidInputDevice *builtinKeyboardDev{};
 const AndroidInputDevice *virtualDev{};
-static JavaInstMethod<jobject(jint)> jGetMotionRange{};
 static jclass inputDeviceHelperCls{};
 static JavaClassMethod<void()> jEnumDevices{};
 
@@ -189,13 +188,28 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 }
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
-	int osId, int src, const char *name, int kbType):
+	int osId, int src, const char *name, int kbType, int jsAxisBits, bool isPowerButton):
 	Device{enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEY_MISC, name},
 	osId{osId}
 {
 	if(osId == -1)
 	{
 		type_ |= Device::TYPE_BIT_VIRTUAL;
+	}
+	if(isPowerButton)
+	{
+		type_ |= Device::TYPE_BIT_POWER_BUTTON;
+	}
+	if(src & AInputDevice::SOURCE_CLASS_POINTER)
+	{
+		if(IG::isBitMaskSet(src, AInputDevice::SOURCE_TOUCHSCREEN))
+		{
+			type_ |= Device::TYPE_BIT_TOUCHSCREEN;
+		}
+		if(IG::isBitMaskSet(src, AInputDevice::SOURCE_MOUSE))
+		{
+			type_ |= Device::TYPE_BIT_MOUSE;
+		}
 	}
 	if(IG::isBitMaskSet(src, AInputDevice::SOURCE_GAMEPAD))
 	{
@@ -267,28 +281,26 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
 			logMsg("device looks like a generic gamepad");
 			subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
 		}
-
+		axisBits = jsAxisBits;
 		// check joystick axes
 		{
-			const uint8 stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
-					AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL };
-			const uint stickAxesBits[] { AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
-					AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL };
+			const uint8 stickAxes[]{AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
+					AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL};
+			const uint stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
+					AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL};
 			uint axisIdx = 0;
 			for(auto axisId : stickAxes)
 			{
-				auto range = jGetMotionRange(env, aDev, axisId);
-				if(!range)
+				bool hasAxis = jsAxisBits & stickAxesBits[axisIdx];
+				if(!hasAxis)
 				{
 					axisIdx++;
 					continue;
 				}
-				env->DeleteLocalRef(range);
 				logMsg("joystick axis: %d", axisId);
 				auto size = 2.0f;
 				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
 					Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
-				axisBits |= stickAxesBits[axisIdx];
 				if(axis.isFull())
 				{
 					logMsg("reached maximum joystick axes");
@@ -300,13 +312,17 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
 		// check trigger axes
 		if(!axis.isFull())
 		{
-			const uint8 triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE };
+			const uint8 triggerAxes[]{AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE};
+			const uint triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
+			uint axisIdx = 0;
 			for(auto axisId : triggerAxes)
 			{
-				auto range = jGetMotionRange(env, aDev, axisId);
-				if(!range)
+				bool hasAxis = jsAxisBits & triggerAxesBits[axisIdx];
+				if(!hasAxis)
+				{
+					axisIdx++;
 					continue;
-				env->DeleteLocalRef(range);
+				}
 				logMsg("trigger axis: %d", axisId);
 				// use unreachable lowLimit value so only highLimit is used
 				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
@@ -320,16 +336,6 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
 		}
 		joystickAxisAsDpadBitsDefault_ = axisBits & (AXIS_BITS_STICK_1 | AXIS_BITS_HAT); // default left analog and POV hat as dpad
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault_); // default left analog and POV hat as dpad
-		/*iterateTimes(48, i)
-		{
-			auto range = dev.getMotionRange(jEnv(), i);
-			if(!range)
-			{
-				continue;
-			}
-			jEnv()->DeleteLocalRef(range);
-			logMsg("has axis: %d", i);
-		}*/
 	}
 }
 
@@ -590,7 +596,6 @@ void init(JNIEnv *env)
 		#endif
 
 		auto inputDeviceCls = env->FindClass("android/view/InputDevice");
-		jGetMotionRange.setup(env, inputDeviceCls, "getMotionRange", "(I)Landroid/view/InputDevice$MotionRange;");
 		JavaInstMethod<jobject()> jInputDeviceHelper{env, Base::jBaseActivityCls, "inputDeviceHelper", "()Lcom/imagine/InputDeviceHelper;"};
 		auto inputDeviceHelper = jInputDeviceHelper(env, Base::jBaseActivity);
 		assert(inputDeviceHelper);
@@ -599,12 +604,13 @@ void init(JNIEnv *env)
 		JNINativeMethod method[]
 		{
 			{
-				"deviceEnumerated", "(ILandroid/view/InputDevice;Ljava/lang/String;II)V",
-				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jstring, jint, jint))
-				([](JNIEnv* env, jobject thiz, jint devID, jobject jDev, jstring jName, jint src, jint kbType)
+				"deviceEnumerated", "(ILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
+				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jstring, jint, jint, jint, jboolean))
+				([](JNIEnv* env, jobject thiz, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
 				{
 					const char *name = env->GetStringUTFChars(jName, nullptr);
-					AndroidInputDevice sysDev{env, jDev, nextEnumID(name), devID, src, name, kbType};
+					AndroidInputDevice sysDev{env, jDev, nextEnumID(name), devID, src,
+						name, kbType, jsAxisBits, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
 					addInputDevice(sysDev, false, false);
 					// check for special device IDs
@@ -636,10 +642,10 @@ void init(JNIEnv *env)
 			JNINativeMethod method[]
 			{
 				{
-					"deviceChanged", "(IILandroid/view/InputDevice;Ljava/lang/String;II)V",
-					(void*)(void (*)(JNIEnv*, jobject, jint, jint, jobject, jstring, jint, jint))
+					"deviceChanged", "(IILandroid/view/InputDevice;Ljava/lang/String;III)V",
+					(void*)(void (*)(JNIEnv*, jobject, jint, jint, jobject, jstring, jint, jint, jint))
 					([](JNIEnv* env, jobject thiz, jint change, jint devID, jobject jDev,
-							jstring jName, jint src, jint kbType)
+							jstring jName, jint src, jint kbType, jint jsAxisBits)
 					{
 						if(change == DEVICE_REMOVED) // remove
 						{
@@ -648,7 +654,8 @@ void init(JNIEnv *env)
 						else // add or update
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
-							AndroidInputDevice sysDev{env, jDev, nextEnumID(name), devID, src, name, kbType};
+							AndroidInputDevice sysDev{env, jDev, nextEnumID(name), devID,
+								src, name, kbType, jsAxisBits, false};
 							env->ReleaseStringUTFChars(jName, name);
 							addInputDevice(sysDev, change == DEVICE_CHANGED, true);
 						}
