@@ -1,10 +1,7 @@
 ifndef inc_main
 inc_main := 1
 
-ifneq ($(ENV), linux)
- # -O3 is faster with Snes9x
- CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -O3
-endif
+CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -Ofast
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
@@ -79,13 +76,6 @@ main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/Cheats.cc \
 $(addprefix $(snes9xPath)/,$(snes9xSrc))
-
-ifdef RELEASE
-# TODO: On Android, strong symbols will not override weak
-# ones in EmuFramework when Snes9x is not compiled with
-# LTO and Emuframework is. Possible linker bug?
-$(objDir)/main/Main.o $(objDir)/main/S9XApi.o $(objDir)/main/Cheats.o $(objDir)/main/EmuControls.o $(objDir)/main/EmuMenuViews.o : CXXFLAGS += -flto
-endif
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

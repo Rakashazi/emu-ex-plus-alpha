@@ -3,7 +3,7 @@ include $(buildSysPath)/setAndroidNDKPath.mk
 SUBARCH := armv7
 android_abi := armeabi-v7a
 clangTarget := armv7-none-linux-androideabi
-armv7CPUFlags ?= -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16
+armv7CPUFlags ?= -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16 -mtune=generic
 android_cpuFlags ?= $(armv7CPUFlags)
 LDFLAGS_SYSTEM += -Wl,--fix-cortex-a8
 android_armv7State ?= -mthumb

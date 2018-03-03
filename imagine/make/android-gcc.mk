@@ -96,7 +96,7 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot) -isystem $(android_ndkSysroot)/usr/include/$(CHOST)
-LDFLAGS_SYSTEM += -s -Wl,-O1,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed
+LDFLAGS_SYSTEM += -s -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed
 
 ifeq ($(android_ndkSDK), 9)
  # SDK 9 no longer supported since NDK r16, pass 14 so unified headers compile
