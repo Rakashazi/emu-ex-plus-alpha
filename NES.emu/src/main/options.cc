@@ -20,7 +20,8 @@ enum
 {
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
 	CFGKEY_VIDEO_SYSTEM = 272, CFGKEY_SPRITE_LIMIT = 273,
-	CFGKEY_SOUND_QUALITY = 274
+	CFGKEY_SOUND_QUALITY = 274, CFGKEY_INPUT_PORT_1 = 275,
+	CFGKEY_INPUT_PORT_2 = 276
 };
 
 const char *EmuSystem::configFilename = "NesEmu.config";
@@ -34,6 +35,8 @@ const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 FS::PathString fdsBiosPath{};
 PathOption optionFdsBiosPath{CFGKEY_FDS_BIOS_PATH, fdsBiosPath, ""};
 Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
+SByte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, -1, false, optionIsValidWithMinMax<-1, 2>};
+SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithMinMax<-1, 2>};
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
 Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
@@ -45,14 +48,52 @@ EmuSystem::Error EmuSystem::onOptionsLoaded()
 	return {};
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+void EmuSystem::onSessionOptionsLoaded()
+{
+	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
+	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
+}
+
+bool EmuSystem::resetSessionOptions()
+{
+	optionFourScore.reset();
+	setupNESFourScore();
+	optionVideoSystem.reset();
+	optionInputPort1.reset();
+	optionInputPort2.reset();
+	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
+	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
+	setupNESInputPorts();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
 		bcase CFGKEY_FOUR_SCORE: optionFourScore.readFromIO(io, readSize);
-		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
 		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
+		bcase CFGKEY_INPUT_PORT_1: optionInputPort1.readFromIO(io, readSize);
+		bcase CFGKEY_INPUT_PORT_2: optionInputPort2.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	optionFourScore.writeWithKeyIfNotDefault(io);
+	optionVideoSystem.writeWithKeyIfNotDefault(io);
+	optionInputPort1.writeWithKeyIfNotDefault(io);
+	optionInputPort2.writeWithKeyIfNotDefault(io);
+}
+
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
 		bcase CFGKEY_SPRITE_LIMIT: optionSpriteLimit.readFromIO(io, readSize);
 		bcase CFGKEY_SOUND_QUALITY: optionSoundQuality.readFromIO(io, readSize);
 		logMsg("fds bios path %s", fdsBiosPath.data());
@@ -62,8 +103,6 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(IO &io)
 {
-	optionFourScore.writeWithKeyIfNotDefault(io);
-	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	optionSpriteLimit.writeWithKeyIfNotDefault(io);
 	optionSoundQuality.writeWithKeyIfNotDefault(io);
 	optionFdsBiosPath.writeToIO(io);

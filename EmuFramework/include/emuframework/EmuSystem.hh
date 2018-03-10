@@ -124,7 +124,6 @@ public:
 	static const bool inputHasTriggerBtns;
 	static const bool inputHasRevBtnLayout;
 	static bool inputHasKeyboard;
-	static bool inputHasOptionsView;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
@@ -141,6 +140,7 @@ public:
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
+	static bool sessionOptionsSet;
 
 	static Error onInit();
 	static bool isActive() { return state == State::ACTIVE; }
@@ -180,6 +180,11 @@ public:
 	static Error onOptionsLoaded();
 	static void writeConfig(IO &io);
 	static bool readConfig(IO &io, uint key, uint readSize);
+	static bool resetSessionOptions();
+	static void sessionOptionSet();
+	static void onSessionOptionsLoaded();
+	static void writeSessionConfig(IO &io);
+	static bool readSessionConfig(IO &io, uint key, uint readSize);
 	static void createWithMedia(GenericIO io, const char *path, const char *name,
 		Error &err, OnLoadProgressDelegate onLoadProgress);
 	static Error loadGame(IO &io, OnLoadProgressDelegate onLoadProgress);

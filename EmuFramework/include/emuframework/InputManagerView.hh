@@ -67,7 +67,6 @@ private:
 	#endif
 	TextMenuItem identDevice{};
 	TextMenuItem generalOptions{};
-	TextMenuItem systemOptions{};
 	TextHeadingMenuItem deviceListHeading{};
 	std::vector<TextMenuItem> inputDevName{};
 	std::vector<DeviceNameString> inputDevNameStr{};

@@ -4,8 +4,11 @@
 #include "internal.hh"
 #include <fceu/fds.h>
 #include <fceu/sound.h>
+#include <fceu/fceu.h>
 
-class CustomInputOptionView : public TableView
+extern int pal_emulation;
+
+class ConsoleOptionView : public TableView
 {
 	BoolMenuItem fourScore
 	{
@@ -13,6 +16,7 @@ class CustomInputOptionView : public TableView
 		(bool)optionFourScore,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
+			EmuSystem::sessionOptionSet();
 			optionFourScore = item.flipBoolValue(*this);
 			setupNESFourScore();
 		}
@@ -20,10 +24,10 @@ class CustomInputOptionView : public TableView
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto", [](){ nesInputPortDev[0] = nesInputPortDev[1] = SI_UNSET; setupNESInputPorts(); }},
-		{"Gamepads", [](){ nesInputPortDev[0] = nesInputPortDev[1] = SI_GAMEPAD; setupNESInputPorts(); }},
-		{"Gun (2P, NES)", [](){ nesInputPortDev[0] = SI_GAMEPAD; nesInputPortDev[1] = SI_ZAPPER; setupNESInputPorts(); }},
-		{"Gun (1P, VS)", [](){ nesInputPortDev[0] = SI_ZAPPER; nesInputPortDev[1] = SI_GAMEPAD; setupNESInputPorts(); }},
+		{"Auto", [](){ setInputPorts(SI_UNSET, SI_UNSET); }},
+		{"Gamepads", [](){ setInputPorts(SI_GAMEPAD, SI_GAMEPAD); }},
+		{"Gun (2P, NES)", [](){ setInputPorts(SI_GAMEPAD, SI_ZAPPER); }},
+		{"Gun (1P, VS)", [](){ setInputPorts(SI_ZAPPER, SI_GAMEPAD); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
@@ -43,76 +47,76 @@ class CustomInputOptionView : public TableView
 		inputPortsItem
 	};
 
+	static void setInputPorts(ESI port1, ESI port2)
+	{
+		EmuSystem::sessionOptionSet();
+		optionInputPort1 = (int)port1;
+		optionInputPort2 = (int)port2;
+		nesInputPortDev[0] = port1;
+		nesInputPortDev[1] = port2;
+		setupNESInputPorts();
+	}
+
+	TextMenuItem videoSystemItem[4]
+	{
+		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(2, e); }},
+		{"Dendy", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(3, e); }},
+	};
+
+	MultiChoiceMenuItem videoSystem
+	{
+		"Video System",
+		[this](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				return dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC";
+			}
+			else
+				return nullptr;
+		},
+		optionVideoSystem,
+		videoSystemItem
+	};
+
+	void setVideoSystem(int val, Input::Event e)
+	{
+		EmuSystem::sessionOptionSet();
+		optionVideoSystem = val;
+		if(!val)
+		{
+			logMsg("Detected Region:%s", regionToStr(autoDetectedRegion));
+			FCEUI_SetRegion(autoDetectedRegion, false);
+		}
+		else
+		{
+			FCEUI_SetRegion(val - 1, false);
+		}
+		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+	}
+
+	std::array<MenuItem*, 3> menuItem
+	{
+		&inputPorts,
+		&fourScore,
+		&videoSystem
+	};
+
 public:
-	CustomInputOptionView(ViewAttachParams attach):
+	ConsoleOptionView(ViewAttachParams attach):
 		TableView
 		{
-			"Input Options",
+			"Console Options",
 			attach,
-			[this](const TableView &)
-			{
-				return 2;
-			},
-			[this](const TableView &, uint idx) -> MenuItem&
-			{
-				switch(idx)
-				{
-					case 0: return inputPorts;
-					default: return fourScore;
-				}
-			}
+			menuItem
 		}
 	{}
 };
 
 class CustomVideoOptionView : public VideoOptionView
 {
-	TextMenuItem videoSystemItem[4]
-	{
-		{
-			"Auto",
-			[]()
-			{
-				optionVideoSystem = 0;
-				logMsg("Detected Region:%s", regionToStr(autoDetectedRegion));
-				FCEUI_SetRegion(autoDetectedRegion, false);
-				EmuSystem::configAudioPlayback();
-			}},
-		{
-			"NTSC",
-			[]()
-			{
-				optionVideoSystem = 1;
-				FCEUI_SetRegion(0, false);
-				EmuSystem::configAudioPlayback();
-			}},
-		{
-			"PAL",
-			[]()
-			{
-				optionVideoSystem = 2;
-				FCEUI_SetRegion(1, false);
-				EmuSystem::configAudioPlayback();
-			}
-		},
-		{
-			"Dendy",
-			[]()
-			{
-				optionVideoSystem = 3;
-				FCEUI_SetRegion(2, false);
-				EmuSystem::configAudioPlayback();
-			}
-		},
-	};
-
-	MultiChoiceMenuItem videoSystem
-	{
-		"Video System",
-		optionVideoSystem,
-		videoSystemItem
-	};
-
 	BoolMenuItem spriteLimit
 	{
 		"Sprite Limit",
@@ -129,7 +133,6 @@ public:
 	{
 		loadStockItems();
 		item.emplace_back(&systemSpecificHeading);
-		item.emplace_back(&videoSystem);
 		item.emplace_back(&spriteLimit);
 	}
 };
@@ -144,25 +147,9 @@ class CustomAudioOptionView : public AudioOptionView
 
 	TextMenuItem qualityItem[3]
 	{
-		{
-			"Normal",
-			[]()
-			{
-				setQuality(0);
-			}},
-		{
-			"High",
-			[]()
-			{
-				setQuality(1);
-			}},
-		{
-			"Highest",
-			[]()
-			{
-				setQuality(2);
-			}
-		}
+		{"Normal", [](){ setQuality(0); }},
+		{"High", []() { setQuality(1); }},
+		{"Highest", []() { setQuality(2); }}
 	};
 
 	MultiChoiceMenuItem quality
@@ -333,17 +320,25 @@ private:
 		fdsControl.compile(renderer(), projP);
 	}
 
-	void reloadItems()
+	TextMenuItem options
 	{
-		item.clear();
-		item.emplace_back(&fdsControl);
-		loadStandardItems();
-	}
+		"Console Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &optionView = *new ConsoleOptionView{attachParams()};
+				pushAndShow(optionView, e);
+			}
+		}
+	};
 
 public:
 	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
 	{
-		reloadItems();
+		item.emplace_back(&fdsControl);
+		item.emplace_back(&options);
+		loadStandardItems();
 	}
 
 	void onShow()
@@ -360,7 +355,6 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
-		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
 		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);

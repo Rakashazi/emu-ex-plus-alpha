@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/VideoImageEffect.hh>
@@ -562,4 +562,48 @@ uint OptionRecentGames::ioSize()
 		strSizes += strlen(e.path.data());
 	}
 	return sizeof(key) + strSizes;
+}
+
+bool PathOption::writeToIO(IO &io)
+{
+	uint len = strlen(val);
+	if(len > strSize-1)
+	{
+		logErr("option string too long to write");
+		return 0;
+	}
+	else if(!len)
+	{
+		logMsg("skipping 0 length option string");
+		return 0;
+	}
+	std::error_code ec{};
+	io.writeVal((uint16)(2 + len), &ec);
+	io.writeVal((uint16)KEY, &ec);
+	io.write(val, len, &ec);
+	return true;
+}
+
+bool PathOption::readFromIO(IO &io, uint readSize)
+{
+	if(readSize > strSize-1)
+	{
+		logMsg("skipping %d byte string option value, max is %d", readSize, strSize-1);
+		return 0;
+	}
+
+	auto bytesRead = io.read(val, readSize);
+	if(bytesRead == -1)
+	{
+		logErr("error reading string option");
+		return 0;
+	}
+	val[bytesRead] = 0;
+	logMsg("read path option %s", val);
+	return 1;
+}
+
+uint PathOption::ioSize()
+{
+	return sizeof(KEY) + strlen(val);
 }

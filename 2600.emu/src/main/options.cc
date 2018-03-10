@@ -33,10 +33,18 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-Byte1Option optionTVPhosphor(CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO);
-Byte1Option optionVideoSystem(CFGKEY_VIDEO_SYSTEM, 0, 0, optionIsValidWithMax<6>);
+Byte1Option optionTVPhosphor{CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO, false, optionIsValidWithMax<2>};
+Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<6>};
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::resetSessionOptions()
+{
+	optionTVPhosphor.reset();
+	setRuntimeTVPhosphor(optionTVPhosphor);
+	optionVideoSystem.reset();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -47,7 +55,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void EmuSystem::writeSessionConfig(IO &io)
 {
 	optionTVPhosphor.writeWithKeyIfNotDefault(io);
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
@@ -64,5 +72,30 @@ const char *optionVideoSystemToStr()
 		case 5: return "PAL60";
 		case 6: return "SECAM60";
 		default: return "AUTO";
+	}
+}
+
+void setRuntimeTVPhosphor(int val)
+{
+	if(!EmuSystem::gameIsRunning() || !osystem.hasConsole())
+	{
+		return;
+	}
+	// change runtime phosphor value
+	bool usePhosphor = false;
+	if(val == TV_PHOSPHOR_AUTO)
+	{
+		usePhosphor = defaultGameProps.get(Display_Phosphor) == "YES";
+	}
+	else
+	{
+		usePhosphor = val;
+	}
+	bool phospherInUse = osystem.console().properties().get(Display_Phosphor) == "YES";
+	logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
+	if(usePhosphor != phospherInUse)
+	{
+		logMsg("toggling phoshpor on console");
+		osystem.console().togglePhosphor();
 	}
 }

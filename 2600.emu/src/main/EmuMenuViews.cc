@@ -23,76 +23,88 @@
 #undef HAVE_UNISTD_H
 #include "internal.hh"
 
-class CustomVideoOptionView : public VideoOptionView
+class ConsoleOptionView : public TableView
 {
-	TextMenuItem tvPhosphorItem[3];
-	MultiChoiceMenuItem tvPhosphor;
-	TextMenuItem videoSystemItem[7];
-	MultiChoiceMenuItem videoSystem;
-
-	static void setTVPhosphor(uint val)
-	{
-		optionTVPhosphor.val = val;
-		if(!EmuSystem::gameIsRunning())
-		{
-			return;
-		}
-
-		// change runtime phosphor value
-		bool usePhosphor = false;
-		if((int)optionTVPhosphor == TV_PHOSPHOR_AUTO)
-		{
-			usePhosphor = defaultGameProps.get(Display_Phosphor) == "YES";
-		}
-		else
-		{
-			usePhosphor = optionTVPhosphor;
-		}
-		bool phospherInUse = osystem.console().properties().get(Display_Phosphor) == "YES";
-		logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
-		if(usePhosphor != phospherInUse)
-		{
-			logMsg("toggling phoshpor on console");
-			osystem.console().togglePhosphor();
-		}
-	}
-
-public:
-	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true},
-	tvPhosphorItem
+	TextMenuItem tvPhosphorItem[3]
 	{
 		{"Off", []() { setTVPhosphor(0); }},
 		{"On", []() { setTVPhosphor(1); }},
 		{"Auto", []() { setTVPhosphor(TV_PHOSPHOR_AUTO); }},
-	},
-	tvPhosphor
+	};
+
+	MultiChoiceMenuItem tvPhosphor
 	{
 		"Simulate TV Phosphor",
-		std::min((int)optionTVPhosphor, 2),
+		[this](int idx) -> const char*
+		{
+			if(idx == 2)
+			{
+				bool phospherInUse = osystem.console().properties().get(Display_Phosphor) == "YES";
+				return phospherInUse ? "On" : "Off";
+			}
+			else
+				return nullptr;
+		},
+		optionTVPhosphor,
 		tvPhosphorItem
-	},
-	videoSystemItem
+	};
+
+	TextMenuItem videoSystemItem[7]
 	{
-		{"Auto", []() { optionVideoSystem = 0; }},
-		{"NTSC", []() { optionVideoSystem = 1; }},
-		{"PAL", []() { optionVideoSystem = 2; }},
-		{"SECAM", []() { optionVideoSystem = 3; }},
-		{"NTSC 50", []() { optionVideoSystem = 4; }},
-		{"PAL 60", []() { optionVideoSystem = 5; }},
-		{"SECAM 60", []() { optionVideoSystem = 6; }},
-	},
-	videoSystem
+		{"Auto", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(0, e); }},
+		{"NTSC", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(1, e); }},
+		{"PAL", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(2, e); }},
+		{"SECAM", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(3, e); }},
+		{"NTSC 50", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(4, e); }},
+		{"PAL 60", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(5, e); }},
+		{"SECAM 60", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(6, e); }},
+	};
+
+	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
+		[this](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				return osystem.console().about().DisplayFormat.c_str();
+			}
+			else
+				return nullptr;
+		},
 		optionVideoSystem,
 		videoSystemItem
-	}
+	};
+
+	static void setTVPhosphor(uint val)
 	{
-		loadStockItems();
-		item.emplace_back(&systemSpecificHeading);
-		item.emplace_back(&tvPhosphor);
-		item.emplace_back(&videoSystem);
+		EmuSystem::sessionOptionSet();
+		optionTVPhosphor = val;
+		setRuntimeTVPhosphor(val);
 	}
+
+	void setVideoSystem(int val, Input::Event e)
+	{
+		EmuSystem::sessionOptionSet();
+		optionVideoSystem = val;
+		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+	}
+
+	std::array<MenuItem*, 2> menuItem
+	{
+		&tvPhosphor,
+		&videoSystem
+	};
+
+public:
+	ConsoleOptionView(ViewAttachParams attach):
+		TableView
+		{
+			"Console Options",
+			attach,
+			menuItem
+		}
+	{}
 };
 
 class VCSSwitchesView : public TableView
@@ -129,26 +141,20 @@ class VCSSwitchesView : public TableView
 		}
 	};
 
+	std::array<MenuItem*, 3> menuItem
+	{
+		&diff1,
+		&diff2,
+		&color
+	};
+
 public:
 	VCSSwitchesView(ViewAttachParams attach):
 		TableView
 		{
 			"Switches",
 			attach,
-			[this](const TableView &)
-			{
-				return 3;
-			},
-			[this](const TableView &, uint idx) -> MenuItem&
-			{
-				MenuItem *item[]
-				{
-					&diff1,
-					&diff2,
-					&color
-				};
-				return *item[idx];
-			}
+			menuItem
 		}
 	{}
 
@@ -177,23 +183,25 @@ private:
 		}
 	};
 
-	void reloadItems()
+	TextMenuItem options
 	{
-		item.clear();
-		item.emplace_back(&switches);
-		loadStandardItems();
-	}
+		"Console Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &optionView = *new ConsoleOptionView{attachParams()};
+				pushAndShow(optionView, e);
+			}
+		}
+	};
 
 public:
 	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
 	{
-		reloadItems();
-	}
-
-	void onShow() final
-	{
-		EmuSystemActionsView::onShow();
-		switches.setActive(EmuSystem::gameIsRunning());
+		item.emplace_back(&switches);
+		item.emplace_back(&options);
+		loadStandardItems();
 	}
 };
 
@@ -202,7 +210,6 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		default: return nullptr;
 	}
 }

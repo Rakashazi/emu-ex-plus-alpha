@@ -44,13 +44,6 @@ extern "C"
 	#include "log.h"
 	#include "archdep.h"
 	#include "palette.h"
-	#include "c64model.h"
-	#include "c64dtvmodel.h"
-	#include "c128model.h"
-	#include "cbm2model.h"
-	#include "petmodel.h"
-	#include "plus4model.h"
-	#include "vic20model.h"
 	#include "keyboard.h"
 	#include "autostart.h"
 	#include "kbdbuf.h"
@@ -79,32 +72,6 @@ FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 bool isPal = false;
 VicePlugin plugin{};
 ViceSystem currSystem = VICE_SYSTEM_C64;
-static int defaultNTSCModel[]
-{
-	C64MODEL_C64_NTSC,
-	C64MODEL_C64_NTSC,
-	DTVMODEL_V3_NTSC,
-	C128MODEL_C128_NTSC,
-	C64MODEL_C64_NTSC,
-	CBM2MODEL_610_NTSC,
-	CBM2MODEL_510_NTSC,
-	PETMODEL_8032,
-	PLUS4MODEL_PLUS4_NTSC,
-	VIC20MODEL_VIC20_NTSC
-};
-static int defaultPALModel[]
-{
-	C64MODEL_C64_PAL,
-	C64MODEL_C64_PAL,
-	DTVMODEL_V3_PAL,
-	C128MODEL_C128_PAL,
-	C64MODEL_C64_NTSC,
-	CBM2MODEL_610_PAL,
-	CBM2MODEL_510_PAL,
-	PETMODEL_8032,
-	PLUS4MODEL_PLUS4_PAL,
-	VIC20MODEL_VIC20_PAL
-};
 
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -180,16 +147,6 @@ void setSysModel(int model)
 	}
 }
 
-void setDefaultNTSCModel()
-{
-	setSysModel(defaultNTSCModel[currSystem]);
-}
-
-void setDefaultPALModel()
-{
-	setSysModel(defaultPALModel[currSystem]);
-}
-
 void setBorderMode(int mode)
 {
 	if(!plugin.borderModeStr)
@@ -249,83 +206,46 @@ bool virtualDeviceTraps()
 void setDefaultC64Model(int model)
 {
 	optionC64Model = model;
-	if(!EmuSystem::gameIsRunning() &&
-		(currSystem == VICE_SYSTEM_C64 || currSystem == VICE_SYSTEM_C64SC))
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultDTVModel(int model)
 {
 	optionDTVModel = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_C64DTV)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultC128Model(int model)
 {
 	optionC128Model = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_C128)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultSuperCPUModel(int model)
 {
 	optionSuperCPUModel = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_SUPER_CPU)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultCBM2Model(int model)
 {
 	optionCBM2Model = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_CBM2)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultCBM5x0Model(int model)
 {
 	optionCBM5x0Model = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_CBM5X0)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultPETModel(int model)
 {
 	optionPETModel = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_PET)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultPlus4Model(int model)
 {
 	optionPlus4Model = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_PLUS4)
-	{
-		setSysModel(model);
-	}
 }
 
 void setDefaultVIC20Model(int model)
 {
 	optionVIC20Model = model;
-	if(!EmuSystem::gameIsRunning() && currSystem == VICE_SYSTEM_VIC20)
-	{
-		setSysModel(model);
-	}
 }
 
 static void setIntResourceToDefault(const char *name)
@@ -339,12 +259,26 @@ static void setIntResourceToDefault(const char *name)
 	plugin.resources_set_int(name, val);
 }
 
-void applyInitialOptionResources()
+void applySessionOptions()
 {
+	if((int)optionModel == -1)
+	{
+		logMsg("using default model");
+		setSysModel(optionDefaultModel(currSystem));
+	}
+	else
+	{
+		setSysModel(optionModel);
+	}
 	setVirtualDeviceTraps(optionVirtualDeviceTraps);
 	setDriveTrueEmulation(optionDriveTrueEmulation);
 	setAutostartWarp(optionAutostartWarp);
 	setAutostartTDE(optionAutostartTDE);
+}
+
+static void applyInitialOptionResources()
+{
+	applySessionOptions();
 	setBorderMode(optionBorderMode);
 	setSidEngine(optionSidEngine);
 	setReSidSampling(optionReSidSampling);
@@ -487,7 +421,6 @@ void EmuSystem::closeSystem()
 	plugin.file_system_detach_disk(10);
 	plugin.file_system_detach_disk(11);
 	plugin.cartridge_detach_image(-1);
-	setSysModel(optionModel(currSystem));
 	plugin.machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 	autostartOnLoad = true;
 }
@@ -625,7 +558,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
 	sysFilePath[0] = firmwareBasePath;
 	EmuControls::updateKeyboardMapping();
-	setSysModel(optionModel(currSystem));
+	setSysModel(optionDefaultModel(currSystem));
 	plugin.resources_set_string("AutostartPrgDiskImage",
 		FS::makePathStringPrintf("%s/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath().data()).data());
 }

@@ -52,7 +52,6 @@ const uint EmuSystem::inputFaceBtns = 6;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = true;
-bool EmuSystem::inputHasOptionsView = true;
 const uint EmuSystem::maxPlayers = 4;
 uint playerIdxMap[4]{};
 

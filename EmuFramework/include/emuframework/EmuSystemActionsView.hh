@@ -26,7 +26,7 @@ public:
 	void onShow() override;
 	void loadStandardItems();
 
-	static const uint STANDARD_ITEMS = 8;
+	static const uint STANDARD_ITEMS = 9;
 	static const uint MAX_SYSTEM_ITEMS = 5;
 
 protected:
@@ -40,6 +40,7 @@ protected:
 	TextMenuItem addLauncherIcon;
 	#endif
 	TextMenuItem screenshot;
+	TextMenuItem resetSessionOptions;
 	TextMenuItem close;
 	StaticArrayList<MenuItem*, STANDARD_ITEMS + MAX_SYSTEM_ITEMS> item{};
 };

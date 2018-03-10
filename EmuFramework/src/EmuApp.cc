@@ -16,7 +16,7 @@
 #include <imagine/data-type/image/sys.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuLoadProgressView.hh>
@@ -29,6 +29,7 @@
 #include <cmath>
 #include "private.hh"
 #include "privateInput.hh"
+#include "configFile.hh"
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
@@ -1223,6 +1224,21 @@ void EmuApp::reloadGame()
 	}
 }
 
+void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e)
+{
+	if(!EmuSystem::gameIsRunning())
+		return;
+	auto &ynAlertView = *new YesNoAlertView{attach,
+		"This option takes effect next time the system starts. Restart it now?"};
+	ynAlertView.setOnYes(
+		[](TextMenuItem &, View &view, Input::Event e)
+		{
+			view.dismiss();
+			reloadGame();
+		});
+	modalViewController.pushAndShow(ynAlertView, e, false);
+}
+
 void EmuApp::printfMessage(uint secs, bool error, const char *format, ...)
 {
 	va_list args;
@@ -1507,6 +1523,83 @@ FS::PathString EmuApp::supportPath()
 AssetIO EmuApp::openAppAssetIO(const char *name, IO::AccessHint access)
 {
 	return ::openAppAssetIO(name, access, appName());
+}
+
+static FS::PathString sessionConfigPath()
+{
+	return FS::makePathStringPrintf("%s/%s.config", EmuSystem::savePath(), EmuSystem::gameName().data());
+}
+
+bool EmuApp::hasSavedSessionOptions()
+{
+	return EmuSystem::sessionOptionsSet || FS::exists(sessionConfigPath());
+}
+
+void EmuApp::deleteSessionOptions()
+{
+	if(!hasSavedSessionOptions())
+	{
+		return;
+	}
+	EmuSystem::resetSessionOptions();
+	EmuSystem::sessionOptionsSet = false;
+	FS::remove(sessionConfigPath());
+}
+
+void EmuApp::saveSessionOptions()
+{
+	if(!EmuSystem::sessionOptionsSet)
+		return;
+	auto configFilePath = sessionConfigPath();
+	FileIO configFile;
+	if(auto ec = configFile.create(configFilePath.data());
+		ec)
+	{
+		logMsg("error creating session config file:%s", configFilePath.data());
+		return;
+	}
+	writeConfigHeader(configFile);
+	EmuSystem::writeSessionConfig(configFile);
+	EmuSystem::sessionOptionsSet = false;
+	if(configFile.size() == 1)
+	{
+		// delete file if only header was written
+		configFile.close();
+		FS::remove(configFilePath);
+		logMsg("deleted empty session config file:%s", configFilePath.data());
+	}
+	else
+	{
+		logMsg("wrote session config file:%s", configFilePath.data());
+	}
+}
+
+void EmuApp::loadSessionOptions()
+{
+	if(!EmuSystem::resetSessionOptions())
+		return;
+	auto configFilePath = sessionConfigPath();
+	FileIO configFile;
+	if(auto ec = configFile.open(configFilePath.data(), IO::AccessHint::ALL);
+		ec)
+	{
+		return;
+	}
+	readConfigKeys(configFile,
+		[](uint16 key, uint16 size, IO &io)
+		{
+			switch(key)
+			{
+				default:
+				{
+					if(!EmuSystem::readSessionConfig(io, key, size))
+					{
+						logMsg("skipping unknown key %u", (uint)key);
+					}
+				}
+			}
+		});
+	EmuSystem::onSessionOptionsLoaded();
 }
 
 namespace Base

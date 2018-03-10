@@ -88,6 +88,28 @@ EmuSystem::Error EmuSystem::onOptionsLoaded()
 	return {};
 }
 
+bool EmuSystem::resetSessionOptions()
+{
+	optionTimerInt.reset();
+	setTimerIntOption();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_TIMER_INT: optionTimerInt.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	optionTimerInt.writeWithKeyIfNotDefault(io);
+}
+
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
@@ -96,7 +118,6 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_LIST_ALL_GAMES: optionListAllGames.readFromIO(io, readSize);
 		bcase CFGKEY_BIOS_TYPE: optionBIOSType.readFromIO(io, readSize);
 		bcase CFGKEY_MVS_COUNTRY: optionMVSCountry.readFromIO(io, readSize);
-		bcase CFGKEY_TIMER_INT: optionTimerInt.readFromIO(io, readSize);
 		bcase CFGKEY_CREATE_USE_CACHE: optionCreateAndUseCache.readFromIO(io, readSize);
 		bcase CFGKEY_STRICT_ROM_CHECKING: optionStrictROMChecking.readFromIO(io, readSize);
 	}
@@ -108,7 +129,6 @@ void EmuSystem::writeConfig(IO &io)
 	optionListAllGames.writeWithKeyIfNotDefault(io);
 	optionBIOSType.writeWithKeyIfNotDefault(io);
 	optionMVSCountry.writeWithKeyIfNotDefault(io);
-	optionTimerInt.writeWithKeyIfNotDefault(io);
 	optionCreateAndUseCache.writeWithKeyIfNotDefault(io);
 	optionStrictROMChecking.writeWithKeyIfNotDefault(io);
 }

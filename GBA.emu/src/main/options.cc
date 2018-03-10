@@ -15,6 +15,8 @@
 
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
+#include <vbam/gba/GBA.h>
+#include <vbam/gba/RTC.h>
 
 enum
 {
@@ -30,7 +32,14 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::resetSessionOptions()
+{
+	optionRtcEmulation.reset();
+	setRTC(optionRtcEmulation);
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
@@ -40,7 +49,21 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 	return 1;
 }
 
-void EmuSystem::writeConfig(IO &io)
+void EmuSystem::writeSessionConfig(IO &io)
 {
 	optionRtcEmulation.writeWithKeyIfNotDefault(io);
+}
+
+void setRTC(uint mode)
+{
+	if(detectedRtcGame && mode == RTC_EMU_AUTO)
+	{
+		logMsg("automatically enabling RTC");
+		rtcEnable(true);
+	}
+	else
+	{
+		logMsg("%s RTC", mode == RTC_EMU_ON ? "enabled" : "disabled");
+		rtcEnable(mode == RTC_EMU_ON);
+	}
 }

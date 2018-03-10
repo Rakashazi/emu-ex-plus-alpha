@@ -1,16 +1,12 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <snes9x.h>
 
-#ifndef SNES9X_VERSION_1_4
-static constexpr bool HAS_NSRT = true;
-#else
-static constexpr bool HAS_NSRT = false;
-#endif
+static constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
 
-class CustomInputOptionView : public TableView
+class ConsoleOptionView : public TableView
 {
 	BoolMenuItem multitap
 	{
@@ -18,6 +14,7 @@ class CustomInputOptionView : public TableView
 		(bool)optionMultitap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
+			EmuSystem::sessionOptionSet();
 			optionMultitap = item.flipBoolValue(*this);
 			setupSNESInput();
 		}
@@ -26,11 +23,11 @@ class CustomInputOptionView : public TableView
 	TextMenuItem inputPortsItem[HAS_NSRT ? 4 : 3]
 	{
 		#ifndef SNES9X_VERSION_1_4
-		{"Auto (NSRT)", []() { snesInputPort = SNES_AUTO_INPUT; setupSNESInput(); }},
+		{"Auto (NSRT)", []() { setInputPorts(SNES_AUTO_INPUT); }},
 		#endif
-		{"Gamepads", []() { snesInputPort = SNES_JOYPAD; setupSNESInput(); }},
-		{"Superscope", []() { snesInputPort = SNES_SUPERSCOPE; setupSNESInput(); }},
-		{"Mouse", []() { snesInputPort = SNES_MOUSE_SWAPPED; setupSNESInput(); }},
+		{"Gamepads", []() { setInputPorts(SNES_JOYPAD); }},
+		{"Superscope", []() { setInputPorts(SNES_SUPERSCOPE); }},
+		{"Mouse", []() { setInputPorts(SNES_MOUSE_SWAPPED); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
@@ -52,74 +49,20 @@ class CustomInputOptionView : public TableView
 		inputPortsItem
 	};
 
-public:
-	CustomInputOptionView(ViewAttachParams attach):
-		TableView
-		{
-			"Input Options",
-			attach,
-			[this](const TableView &)
-			{
-				return 2;
-			},
-			[this](const TableView &, uint idx) -> MenuItem&
-			{
-				switch(idx)
-				{
-					case 0: return inputPorts;
-					default: return multitap;
-				}
-			}
-		}
-	{}
-};
-
-class CustomVideoOptionView : public VideoOptionView
-{
-	static void videoSystemChangedMessage()
+	static void setInputPorts(int val)
 	{
-		if(EmuSystem::gameIsRunning())
-		{
-			EmuApp::postMessage("Change does not affect currently running game");
-		}
+		EmuSystem::sessionOptionSet();
+		optionInputPort = val;
+		snesInputPort = val;
+		setupSNESInput();
 	}
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{
-			"Auto",
-			[]()
-			{
-				optionVideoSystem = 0;
-				Settings.ForceNTSC = Settings.ForcePAL = 0;
-				videoSystemChangedMessage();
-			}},
-		{
-			"NTSC",
-			[]()
-			{
-				optionVideoSystem = 1;
-				Settings.ForceNTSC = 1;
-				videoSystemChangedMessage();
-			}},
-		{
-			"PAL",
-			[]()
-			{
-				optionVideoSystem = 2;
-				Settings.ForcePAL = 1;
-				videoSystemChangedMessage();
-			}
-		},
-		{
-			"NTSC + PAL Spoof",
-			[]()
-			{
-				optionVideoSystem = 3;
-				Settings.ForceNTSC = Settings.ForcePAL = 1;
-				videoSystemChangedMessage();
-			}
-		},
+		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(2, e); }},
+		{"NTSC + PAL Spoof", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(3, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
@@ -129,17 +72,13 @@ class CustomVideoOptionView : public VideoOptionView
 		videoSystemItem
 	};
 
-public:
-	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	void setVideoSystem(int val, Input::Event e)
 	{
-		loadStockItems();
-		item.emplace_back(&systemSpecificHeading);
-		item.emplace_back(&videoSystem);
+		EmuSystem::sessionOptionSet();
+		optionVideoSystem = val;
+		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
 	}
-};
 
-class CustomSystemOptionView : public SystemOptionView
-{
 	#ifndef SNES9X_VERSION_1_4
 	BoolMenuItem blockInvalidVRAMAccess
 	{
@@ -147,19 +86,55 @@ class CustomSystemOptionView : public SystemOptionView
 		(bool)optionBlockInvalidVRAMAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
+			EmuSystem::sessionOptionSet();
 			optionBlockInvalidVRAMAccess = item.flipBoolValue(*this);
 			Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
 		}
 	};
 	#endif
 
-public:
-	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
+	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 3 : 4> menuItem
 	{
-		loadStockItems();
+		&inputPorts,
+		&multitap,
+		&videoSystem,
 		#ifndef SNES9X_VERSION_1_4
-		item.emplace_back(&blockInvalidVRAMAccess);
+		&blockInvalidVRAMAccess
 		#endif
+	};
+
+public:
+	ConsoleOptionView(ViewAttachParams attach):
+		TableView
+		{
+			"Console Options",
+			attach,
+			menuItem
+		}
+	{}
+};
+
+class CustomSystemActionsView : public EmuSystemActionsView
+{
+private:
+	TextMenuItem options
+	{
+		"Console Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &optionView = *new ConsoleOptionView{attachParams()};
+				pushAndShow(optionView, e);
+			}
+		}
+	};
+
+public:
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	{
+		item.emplace_back(&options);
+		loadStandardItems();
 	}
 };
 
@@ -167,9 +142,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
-		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
 		default: return nullptr;

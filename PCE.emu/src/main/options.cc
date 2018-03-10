@@ -14,11 +14,19 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInput.hh>
 #include "MDFN.hh"
 #include "internal.hh"
 
+enum
+{
+	CFGKEY_SYSCARD_PATH = 275, CFGKEY_ARCADE_CARD = 276,
+	CFGKEY_6_BTN_PAD = 277
+};
+
 const char *EmuSystem::configFilename = "PceEmu.config";
 Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
+Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
 static PathOption optionSysCardPath{CFGKEY_SYSCARD_PATH, sysCardPath, ""};
 
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -29,12 +37,41 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+void EmuSystem::onSessionOptionsLoaded()
+{
+	EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 2);
+}
+
+bool EmuSystem::resetSessionOptions()
+{
+	optionArcadeCard.reset();
+	option6BtnPad.reset();
+	onSessionOptionsLoaded();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
 		bcase CFGKEY_ARCADE_CARD: optionArcadeCard.readFromIO(io, readSize);
+		bcase CFGKEY_6_BTN_PAD: option6BtnPad.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	optionArcadeCard.writeWithKeyIfNotDefault(io);
+	option6BtnPad.writeWithKeyIfNotDefault(io);
+}
+
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
 		bcase CFGKEY_SYSCARD_PATH: optionSysCardPath.readFromIO(io, readSize);
 		logMsg("syscard path %s", sysCardPath.data());
 	}
@@ -43,6 +80,5 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(IO &io)
 {
-	optionArcadeCard.writeWithKeyIfNotDefault(io);
 	optionSysCardPath.writeToIO(io);
 }

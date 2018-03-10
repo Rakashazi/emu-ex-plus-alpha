@@ -37,16 +37,39 @@ Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
 Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8>
 optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
 
+bool EmuSystem::resetSessionOptions()
+{
+	optionUseBuiltinGBPalette.reset();
+	applyGBPalette();
+	optionReportAsGba.reset();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_USE_BUILTIN_GB_PAL: optionUseBuiltinGBPalette.readFromIO(io, readSize);
+		bcase CFGKEY_REPORT_AS_GBA: optionReportAsGba.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	optionUseBuiltinGBPalette.writeWithKeyIfNotDefault(io);
+	optionReportAsGba.writeWithKeyIfNotDefault(io);
+}
+
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
 		bcase CFGKEY_GB_PAL_IDX: optionGBPal.readFromIO(io, readSize);
-		bcase CFGKEY_REPORT_AS_GBA: optionReportAsGba.readFromIO(io, readSize);
 		bcase CFGKEY_FULL_GBC_SATURATION: optionFullGbcSaturation.readFromIO(io, readSize);
 		bcase CFGKEY_AUDIO_RESAMPLER: optionAudioResampler.readFromIO(io, readSize);
-		bcase CFGKEY_USE_BUILTIN_GB_PAL: optionUseBuiltinGBPalette.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -54,8 +77,6 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 void EmuSystem::writeConfig(IO &io)
 {
 	optionGBPal.writeWithKeyIfNotDefault(io);
-	optionReportAsGba.writeWithKeyIfNotDefault(io);
 	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 	optionAudioResampler.writeWithKeyIfNotDefault(io);
-	optionUseBuiltinGBPalette.writeWithKeyIfNotDefault(io);
 }

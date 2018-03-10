@@ -74,7 +74,6 @@ public:
 	MultiChoiceMenuItem ffState;
 	TextMenuItem resetControls;
 	TextMenuItem resetAllControls;
-	TextMenuItem systemOptions;
 	TextHeadingMenuItem btnTogglesHeading;
 	TextHeadingMenuItem dpadtHeading;
 	TextHeadingMenuItem faceBtnHeading;

@@ -23,7 +23,7 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
@@ -95,6 +95,7 @@ void EmuSystemActionsView::onShow()
 	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
 	addLauncherIcon.setActive(EmuSystem::gameIsRunning());
 	#endif
+	resetSessionOptions.setActive(EmuApp::hasSavedSessionOptions());
 	close.setActive(EmuSystem::gameIsRunning());
 }
 
@@ -113,6 +114,7 @@ void EmuSystemActionsView::loadStandardItems()
 	item.emplace_back(&addLauncherIcon);
 	#endif
 	item.emplace_back(&screenshot);
+	item.emplace_back(&resetSessionOptions);
 	item.emplace_back(&close);
 }
 
@@ -273,6 +275,25 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			}
 		}
 	},
+	resetSessionOptions
+	{
+		"Reset Saved Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(!EmuApp::hasSavedSessionOptions())
+				return;
+			auto &ynAlertView = *new YesNoAlertView{attachParams(),
+				"Reset saved options for the currently running system to defaults? Some options only take effect next time the system loads."};
+			ynAlertView.setOnYes(
+				[this](TextMenuItem &item, View &view, Input::Event)
+				{
+					resetSessionOptions.setActive(false);
+					view.dismiss();
+					EmuApp::deleteSessionOptions();
+				});
+			modalViewController.pushAndShow(ynAlertView, e, false);
+		}
+	},
 	close
 	{
 		"Close Game",
@@ -283,8 +304,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				[this](TextMenuItem &, View &view, Input::Event)
 				{
 					view.dismiss();
-					EmuSystem::closeGame(true);
-					popAndShow();
+					EmuSystem::closeGame(true); // pops any System Actions views in stack
 				});
 			modalViewController.pushAndShow(ynAlertView, e, false);
 		}

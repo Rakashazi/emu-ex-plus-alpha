@@ -44,7 +44,6 @@ const uint EmuSystem::inputFaceBtns = 2;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-bool EmuSystem::inputHasOptionsView = true;
 const uint EmuSystem::maxPlayers = 4;
 static uint32 padData = 0;
 uint32 zapperData[3]{};

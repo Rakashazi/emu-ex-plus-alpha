@@ -41,7 +41,8 @@ enum
 	CFGKEY_CBM2_MODEL = 268, CFGKEY_CBM5x0_MODEL = 269,
 	CFGKEY_PET_MODEL = 270, CFGKEY_PLUS4_MODEL = 271,
 	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273,
-	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275
+	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275,
+	CFGKEY_MODEL = 276
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -58,6 +59,8 @@ Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
 Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
 Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
 	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8>);
+SByte1Option optionModel(CFGKEY_MODEL, -1, false,
+	optionIsValidWithMinMax<-1, 50, int8>);
 Byte1Option optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC, false,
 	optionIsValidWithMax<C64MODEL_NUM-1, uint8>);
 Byte1Option optionDTVModel(CFGKEY_DTV_MODEL, DTVMODEL_V3_NTSC, false,
@@ -95,15 +98,62 @@ EmuSystem::Error EmuSystem::onOptionsLoaded()
 	return {};
 }
 
+void EmuSystem::onSessionOptionsLoaded()
+{
+	if(optionModel >= plugin.models)
+	{
+		optionModel.reset();
+	}
+	applySessionOptions();
+}
+
+bool EmuSystem::resetSessionOptions()
+{
+	optionModel.reset();
+	optionDriveTrueEmulation.reset();
+	optionVirtualDeviceTraps.reset();
+	optionAutostartWarp.reset();
+	optionAutostartTDE.reset();
+	optionSwapJoystickPorts.reset();
+	onSessionOptionsLoaded();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_MODEL:
+			optionModel.readFromIO(io, readSize);
+			if(optionModel >= plugin.models)
+			{
+				optionModel.reset();
+			}
+		bcase CFGKEY_DRIVE_TRUE_EMULATION: optionDriveTrueEmulation.readFromIO(io, readSize);
+		bcase CFGKEY_VIRTUAL_DEVICE_TRAPS: optionVirtualDeviceTraps.readFromIO(io, readSize);
+		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
+		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
+		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	optionModel.writeWithKeyIfNotDefault(io);
+	optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
+	optionVirtualDeviceTraps.writeWithKeyIfNotDefault(io);
+	optionAutostartWarp.writeWithKeyIfNotDefault(io);
+	optionAutostartTDE.writeWithKeyIfNotDefault(io);
+	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
+}
+
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_DRIVE_TRUE_EMULATION: optionDriveTrueEmulation.readFromIO(io, readSize);
-		bcase CFGKEY_VIRTUAL_DEVICE_TRAPS: optionVirtualDeviceTraps.readFromIO(io, readSize);
-		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
-		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
 		bcase CFGKEY_VICE_SYSTEM: optionViceSystem.readFromIO(io, readSize);
 		bcase CFGKEY_C64_MODEL: optionC64Model.readFromIO(io, readSize);
 		bcase CFGKEY_DTV_MODEL: optionDTVModel.readFromIO(io, readSize);
@@ -117,7 +167,6 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_BORDER_MODE: optionBorderMode.readFromIO(io, readSize);
 		bcase CFGKEY_CROP_NORMAL_BORDERS: optionCropNormalBorders.readFromIO(io, readSize);
 		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
-		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
 		bcase CFGKEY_SYSTEM_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
 		bcase CFGKEY_RESID_SAMPLING: optionReSidSampling.readFromIO(io, readSize);
 	}
@@ -126,10 +175,6 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(IO &io)
 {
-	optionDriveTrueEmulation.writeWithKeyIfNotDefault(io);
-	optionVirtualDeviceTraps.writeWithKeyIfNotDefault(io);
-	optionAutostartWarp.writeWithKeyIfNotDefault(io);
-	optionAutostartTDE.writeWithKeyIfNotDefault(io);
 	optionViceSystem.writeWithKeyIfNotDefault(io);
 	optionC64Model.writeWithKeyIfNotDefault(io);
 	optionDTVModel.writeWithKeyIfNotDefault(io);
@@ -144,11 +189,10 @@ void EmuSystem::writeConfig(IO &io)
 	optionCropNormalBorders.writeWithKeyIfNotDefault(io);
 	optionSidEngine.writeWithKeyIfNotDefault(io);
 	optionReSidSampling.writeWithKeyIfNotDefault(io);
-	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
 	optionFirmwarePath.writeToIO(io);
 }
 
-int optionModel(ViceSystem system)
+int optionDefaultModel(ViceSystem system)
 {
 	switch(system)
 	{

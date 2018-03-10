@@ -14,11 +14,12 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/io/FileIO.hh>
 #include "privateInput.hh"
+#include "configFile.hh"
 
 static constexpr uint KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr uint INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
@@ -110,300 +111,6 @@ static bool readKeyConfig(IO &io, uint16 &size)
 		{
 			logWarn("reached custom key config hard limit:%d", KEY_CONFIGS_HARD_LIMIT);
 			break;
-		}
-	}
-	return true;
-}
-
-static bool readConfig2(IO &io)
-{
-	auto blockSize = io.readVal<uint8>();
-	auto fileBytesLeft = io.size() - 1;
-
-	if(blockSize != 2)
-	{
-		logErr("can't read config with block size %d", blockSize);
-		return false;
-	}
-
-	while(!io.eof() && fileBytesLeft >= 2)
-	{
-		auto size = io.readVal<uint16>();
-		auto nextBlockPos = io.tell() + size;
-
-		if(!size)
-		{
-			logMsg("invalid 0 size block, skipping rest of config");
-			return false;
-		}
-
-		if(size > fileBytesLeft)
-		{
-			logErr("size of key exceeds rest of file, skipping rest of config");
-			return false;
-		}
-		fileBytesLeft -= size;
-
-		if(size < 3) // all blocks are at least a 2 byte key + 1 byte or more of data
-		{
-			logMsg("skipping %d byte block", size);
-			if(io.seekC(size) == -1)
-			{
-				logErr("unable to seek to next block, skipping rest of config");
-				return false;
-			}
-			continue;
-		}
-
-		auto key = io.readVal<uint16>();
-		size -= 2;
-
-		logMsg("got config key %u, size %u", key, size);
-		switch(key)
-		{
-			default:
-			{
-				if(!EmuSystem::readConfig(io, key, size))
-				{
-					logMsg("skipping unknown key %u", (uint)key);
-				}
-			}
-			bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
-			bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_ALPHA: optionTouchCtrlAlpha.readFromIO(io, size);
-			#ifdef CONFIG_VCONTROLS_GAMEPAD
-			bcase CFGKEY_TOUCH_CONTROL_DISPLAY: optionTouchCtrl.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_SIZE: optionTouchCtrlSize.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE: optionTouchCtrlBtnSpace.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER: optionTouchCtrlBtnStagger.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE: optionTouchDpadDeadzone.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS: optionTouchCtrlTriggerBtnPos.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY: optionTouchDpadDiagonalSensitivity.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE: optionTouchCtrlExtraXBtnSize.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE: optionTouchCtrlExtraYBtnSize.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: optionTouchCtrlBoundingBoxes.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: optionTouchCtrlShowOnTouch.readFromIO(io, size);
-				#ifdef __ANDROID__
-				bcase CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES: optionTouchCtrlScaledCoordinates.readFromIO(io, size);
-				#endif
-			#endif
-			bcase CFGKEY_VCONTROLLER_LAYOUT_POS: optionVControllerLayoutPos.readFromIO(io, size);
-			bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
-			bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
-			#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-			bcase CFGKEY_FRAME_INTERVAL: optionFrameInterval.readFromIO(io, size);
-			#endif
-			bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
-			bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
-			bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
-			#if defined(CONFIG_BASE_ANDROID)
-			bcase CFGKEY_DITHER_IMAGE: optionDitherImage.readFromIO(io, size);
-			#endif
-			bcase CFGKEY_LAST_DIR: optionLastLoadPath.readFromIO(io, size);
-			bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
-			bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
-			bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
-			bcase CFGKEY_GAME_IMG_FILTER: optionImgFilter.readFromIO(io, size);
-			bcase CFGKEY_GAME_ASPECT_RATIO: optionAspectRatio.readFromIO(io, size);
-			bcase CFGKEY_IMAGE_ZOOM: optionImageZoom.readFromIO(io, size);
-			bcase CFGKEY_VIEWPORT_ZOOM: optionViewportZoom.readFromIO(io, size);
-			#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
-			bcase CFGKEY_SHOW_ON_2ND_SCREEN: optionShowOnSecondScreen.readFromIO(io, size);
-			#endif
-			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-			bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
-			bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
-			#endif
-			bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
-			bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
-			bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
-			bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
-			bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
-			bcase CFGKEY_PAUSE_UNFOCUSED: optionPauseUnfocused.readFromIO(io, size);
-			bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
-			bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
-			bcase CFGKEY_BACK_NAVIGATION: optionBackNavigation.readFromIO(io, size);
-			bcase CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: optionSystemActionsIsDefaultMenu.readFromIO(io, size);
-			bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
-			bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
-			bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
-			bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
-			#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-			bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
-			#endif
-			#ifdef CONFIG_INPUT_ANDROID_MOGA
-			bcase CFGKEY_MOGA_INPUT_SYSTEM: optionMOGAInputSystem.readFromIO(io, size);
-			#endif
-			#if defined __ANDROID__
-			bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
-			bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
-			bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
-			bcase CFGKEY_ANDROID_TEXTURE_STORAGE: optionAndroidTextureStorage.readFromIO(io, size);
-			bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
-			bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);
-			#endif
-			#ifdef CONFIG_BLUETOOTH
-			bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
-			bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
-				#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-				bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
-				#endif
-			#endif
-			bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
-			bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
-			#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-			bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
-			#endif
-			bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
-			bcase CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS: optionCheckSavePathWriteAccess.readFromIO(io, size);
-			bcase CFGKEY_SHOW_BUNDLED_GAMES:
-			{
-				if(EmuSystem::hasBundledGames)
-					optionShowBundledGames.readFromIO(io, size);
-			}
-			#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-			bcase CFGKEY_WINDOW_PIXEL_FORMAT: optionWindowPixelFormat.readFromIO(io, size);
-			#endif
-			bcase CFGKEY_INPUT_KEY_CONFIGS:
-			{
-				if(!readKeyConfig(io, size))
-				{
-					logErr("error reading key configs from file");
-				}
-				if(size)
-				{
-					// skip leftover bytes
-					logWarn("%d bytes leftover reading key configs", size);
-				}
-			}
-			bcase CFGKEY_INPUT_DEVICE_CONFIGS:
-			{
-				auto confs = io.readVal<uint8>(); // TODO: unused currently, use to pre-allocate memory for configs
-				size--;
-				if(!size)
-					break;
-
-				while(size)
-				{
-					InputDeviceSavedConfig devConf;
-
-					devConf.enumId = io.readVal<uint8>();
-					size--;
-					if(!size)
-						break;
-					if(devConf.enumId > 32)
-					{
-						logWarn("unusually large device id %d, skipping rest of configs", devConf.enumId);
-						break;
-					}
-
-					devConf.enabled = io.readVal<uint8>();
-					size--;
-					if(!size)
-						break;
-
-					devConf.player = io.readVal<uint8>();
-					if(devConf.player != InputDeviceConfig::PLAYER_MULTI && devConf.player > EmuSystem::maxPlayers)
-					{
-						logWarn("player %d out of range", devConf.player);
-						devConf.player = 0;
-					}
-					size--;
-					if(!size)
-						break;
-
-					devConf.joystickAxisAsDpadBits = io.readVal<uint8>();
-					size--;
-					if(!size)
-						break;
-
-					#ifdef CONFIG_INPUT_ICADE
-					devConf.iCadeMode = io.readVal<uint8>();
-					size--;
-					if(!size)
-						break;
-					#endif
-
-					auto nameLen = io.readVal<uint8>();
-					size--;
-					if(size < nameLen)
-						break;
-
-					if(nameLen > sizeof(devConf.name)-1)
-						break;
-					io.read(devConf.name, nameLen);
-					size -= nameLen;
-					if(!size)
-						break;
-
-					auto keyConfMap = io.readVal<uint8>();
-					size--;
-
-					if(keyConfMap)
-					{
-						if(!size)
-							break;
-
-						auto keyConfNameLen = io.readVal<uint8>();
-						size--;
-						if(size < keyConfNameLen)
-							break;
-
-						if(keyConfNameLen > sizeof(devConf.name)-1)
-							break;
-						char keyConfName[sizeof(devConf.name)]{};
-						if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
-							break;
-						size -= keyConfNameLen;
-
-						for(auto &e : customKeyConfig)
-						{
-							if(e.map == keyConfMap && string_equal(e.name, keyConfName))
-							{
-								logMsg("found referenced custom key config %s while reading input device config", keyConfName);
-								devConf.keyConf = &e;
-								break;
-							}
-						}
-
-						if(!devConf.keyConf) // check built-in configs after user-defined ones
-						{
-							uint defaultConfs = 0;
-							auto defaultConf = KeyConfig::defaultConfigsForInputMap(keyConfMap, defaultConfs);
-							iterateTimes(defaultConfs, c)
-							{
-								if(string_equal(defaultConf[c].name, keyConfName))
-								{
-									logMsg("found referenced built-in key config %s while reading input device config", keyConfName);
-									devConf.keyConf = &defaultConf[c];
-									break;
-								}
-							}
-						}
-					}
-
-					logMsg("read input device config %s, id %d", devConf.name, devConf.enumId);
-					savedInputDevList.push_back(devConf);
-
-					if(savedInputDevList.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
-					{
-						logWarn("reached input device config hard limit:%d", INPUT_DEVICE_CONFIGS_HARD_LIMIT);
-						break;
-					}
-				}
-				if(size)
-				{
-					// skip leftover bytes
-					logWarn("%d bytes leftover reading input device configs", size);
-				}
-			}
-		}
-
-		if(io.seekS(nextBlockPos) == -1)
-		{
-			logErr("unable to seek to next block, skipping rest of config");
-			return false;
 		}
 	}
 	return true;
@@ -513,11 +220,9 @@ static void writeConfig2(IO &io)
 		logMsg("not writing config file");
 		return;
 	}
+	writeConfigHeader(io);
 
 	std::error_code ec{};
-	uint8 blockHeaderSize = 2;
-	io.writeVal(blockHeaderSize, &ec);
-
 	for(auto &e : cfgFileOption)
 	{
 		if(!e->isDefault())
@@ -705,7 +410,250 @@ void loadConfigFile()
 		logMsg("no config file");
 		return;
 	}
-	readConfig2(configFile);
+	readConfigKeys(configFile,
+		[](uint16 key, uint16 size, IO &io)
+		{
+			switch(key)
+			{
+				default:
+				{
+					if(!EmuSystem::readConfig(io, key, size))
+					{
+						logMsg("skipping unknown key %u", (uint)key);
+					}
+				}
+				bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
+				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_ALPHA: optionTouchCtrlAlpha.readFromIO(io, size);
+				#ifdef CONFIG_VCONTROLS_GAMEPAD
+				bcase CFGKEY_TOUCH_CONTROL_DISPLAY: optionTouchCtrl.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_SIZE: optionTouchCtrlSize.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE: optionTouchCtrlBtnSpace.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER: optionTouchCtrlBtnStagger.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE: optionTouchDpadDeadzone.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS: optionTouchCtrlTriggerBtnPos.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY: optionTouchDpadDiagonalSensitivity.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE: optionTouchCtrlExtraXBtnSize.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE: optionTouchCtrlExtraYBtnSize.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: optionTouchCtrlBoundingBoxes.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: optionTouchCtrlShowOnTouch.readFromIO(io, size);
+					#ifdef __ANDROID__
+					bcase CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES: optionTouchCtrlScaledCoordinates.readFromIO(io, size);
+					#endif
+				#endif
+				bcase CFGKEY_VCONTROLLER_LAYOUT_POS: optionVControllerLayoutPos.readFromIO(io, size);
+				bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
+				bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
+				#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+				bcase CFGKEY_FRAME_INTERVAL: optionFrameInterval.readFromIO(io, size);
+				#endif
+				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
+				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
+				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
+				#if defined(CONFIG_BASE_ANDROID)
+				bcase CFGKEY_DITHER_IMAGE: optionDitherImage.readFromIO(io, size);
+				#endif
+				bcase CFGKEY_LAST_DIR: optionLastLoadPath.readFromIO(io, size);
+				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
+				bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
+				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
+				bcase CFGKEY_GAME_IMG_FILTER: optionImgFilter.readFromIO(io, size);
+				bcase CFGKEY_GAME_ASPECT_RATIO: optionAspectRatio.readFromIO(io, size);
+				bcase CFGKEY_IMAGE_ZOOM: optionImageZoom.readFromIO(io, size);
+				bcase CFGKEY_VIEWPORT_ZOOM: optionViewportZoom.readFromIO(io, size);
+				#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
+				bcase CFGKEY_SHOW_ON_2ND_SCREEN: optionShowOnSecondScreen.readFromIO(io, size);
+				#endif
+				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+				bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
+				bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
+				#endif
+				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
+				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
+				bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
+				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
+				bcase CFGKEY_PAUSE_UNFOCUSED: optionPauseUnfocused.readFromIO(io, size);
+				bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
+				bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
+				bcase CFGKEY_BACK_NAVIGATION: optionBackNavigation.readFromIO(io, size);
+				bcase CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_MENU: optionSystemActionsIsDefaultMenu.readFromIO(io, size);
+				bcase CFGKEY_IDLE_DISPLAY_POWER_SAVE: optionIdleDisplayPowerSave.readFromIO(io, size);
+				bcase CFGKEY_HIDE_STATUS_BAR: optionHideStatusBar.readFromIO(io, size);
+				bcase CFGKEY_CONFIRM_OVERWRITE_STATE: optionConfirmOverwriteState.readFromIO(io, size);
+				bcase CFGKEY_FAST_FORWARD_SPEED: optionFastForwardSpeed.readFromIO(io, size);
+				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
+				bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
+				#endif
+				#ifdef CONFIG_INPUT_ANDROID_MOGA
+				bcase CFGKEY_MOGA_INPUT_SYSTEM: optionMOGAInputSystem.readFromIO(io, size);
+				#endif
+				#if defined __ANDROID__
+				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
+				bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
+				bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
+				bcase CFGKEY_ANDROID_TEXTURE_STORAGE: optionAndroidTextureStorage.readFromIO(io, size);
+				bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
+				bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);
+				#endif
+				#ifdef CONFIG_BLUETOOTH
+				bcase CFGKEY_KEEP_BLUETOOTH_ACTIVE: optionKeepBluetoothActive.readFromIO(io, size);
+				bcase CFGKEY_SHOW_BLUETOOTH_SCAN: optionShowBluetoothScan.readFromIO(io, size);
+					#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
+					bcase CFGKEY_BLUETOOTH_SCAN_CACHE: optionBlueToothScanCache.readFromIO(io, size);
+					#endif
+				#endif
+				bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
+				bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
+				#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
+				bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
+				#endif
+				bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
+				bcase CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS: optionCheckSavePathWriteAccess.readFromIO(io, size);
+				bcase CFGKEY_SHOW_BUNDLED_GAMES:
+				{
+					if(EmuSystem::hasBundledGames)
+						optionShowBundledGames.readFromIO(io, size);
+				}
+				#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+				bcase CFGKEY_WINDOW_PIXEL_FORMAT: optionWindowPixelFormat.readFromIO(io, size);
+				#endif
+				bcase CFGKEY_INPUT_KEY_CONFIGS:
+				{
+					if(!readKeyConfig(io, size))
+					{
+						logErr("error reading key configs from file");
+					}
+					if(size)
+					{
+						// skip leftover bytes
+						logWarn("%d bytes leftover reading key configs", size);
+					}
+				}
+				bcase CFGKEY_INPUT_DEVICE_CONFIGS:
+				{
+					auto confs = io.readVal<uint8>(); // TODO: unused currently, use to pre-allocate memory for configs
+					size--;
+					if(!size)
+						break;
+
+					while(size)
+					{
+						InputDeviceSavedConfig devConf;
+
+						devConf.enumId = io.readVal<uint8>();
+						size--;
+						if(!size)
+							break;
+						if(devConf.enumId > 32)
+						{
+							logWarn("unusually large device id %d, skipping rest of configs", devConf.enumId);
+							break;
+						}
+
+						devConf.enabled = io.readVal<uint8>();
+						size--;
+						if(!size)
+							break;
+
+						devConf.player = io.readVal<uint8>();
+						if(devConf.player != InputDeviceConfig::PLAYER_MULTI && devConf.player > EmuSystem::maxPlayers)
+						{
+							logWarn("player %d out of range", devConf.player);
+							devConf.player = 0;
+						}
+						size--;
+						if(!size)
+							break;
+
+						devConf.joystickAxisAsDpadBits = io.readVal<uint8>();
+						size--;
+						if(!size)
+							break;
+
+						#ifdef CONFIG_INPUT_ICADE
+						devConf.iCadeMode = io.readVal<uint8>();
+						size--;
+						if(!size)
+							break;
+						#endif
+
+						auto nameLen = io.readVal<uint8>();
+						size--;
+						if(size < nameLen)
+							break;
+
+						if(nameLen > sizeof(devConf.name)-1)
+							break;
+						io.read(devConf.name, nameLen);
+						size -= nameLen;
+						if(!size)
+							break;
+
+						auto keyConfMap = io.readVal<uint8>();
+						size--;
+
+						if(keyConfMap)
+						{
+							if(!size)
+								break;
+
+							auto keyConfNameLen = io.readVal<uint8>();
+							size--;
+							if(size < keyConfNameLen)
+								break;
+
+							if(keyConfNameLen > sizeof(devConf.name)-1)
+								break;
+							char keyConfName[sizeof(devConf.name)]{};
+							if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
+								break;
+							size -= keyConfNameLen;
+
+							for(auto &e : customKeyConfig)
+							{
+								if(e.map == keyConfMap && string_equal(e.name, keyConfName))
+								{
+									logMsg("found referenced custom key config %s while reading input device config", keyConfName);
+									devConf.keyConf = &e;
+									break;
+								}
+							}
+
+							if(!devConf.keyConf) // check built-in configs after user-defined ones
+							{
+								uint defaultConfs = 0;
+								auto defaultConf = KeyConfig::defaultConfigsForInputMap(keyConfMap, defaultConfs);
+								iterateTimes(defaultConfs, c)
+								{
+									if(string_equal(defaultConf[c].name, keyConfName))
+									{
+										logMsg("found referenced built-in key config %s while reading input device config", keyConfName);
+										devConf.keyConf = &defaultConf[c];
+										break;
+									}
+								}
+							}
+						}
+
+						logMsg("read input device config %s, id %d", devConf.name, devConf.enumId);
+						savedInputDevList.push_back(devConf);
+
+						if(savedInputDevList.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
+						{
+							logWarn("reached input device config hard limit:%d", INPUT_DEVICE_CONFIGS_HARD_LIMIT);
+							break;
+						}
+					}
+					if(size)
+					{
+						// skip leftover bytes
+						logWarn("%d bytes leftover reading input device configs", size);
+					}
+				}
+			}
+		});
 }
 
 void saveConfigFile()

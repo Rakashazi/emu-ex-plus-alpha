@@ -1,38 +1,71 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
-class CustomInputOptionView : public TableView
+class ConsoleOptionView : public TableView
 {
 	BoolMenuItem sixButtonPad
 	{
 		"6-button Gamepad",
-		useSixButtonPad,
+		(bool)option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
+			EmuSystem::sessionOptionSet();
 			bool on = item.flipBoolValue(*this);
-			useSixButtonPad = on;
+			option6BtnPad = on;
 			EmuControls::setActiveFaceButtons(on ? 6 : 2);
 		}
 	};
 
+	BoolMenuItem arcadeCard
+	{
+		"Arcade Card",
+		(bool)optionArcadeCard,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionArcadeCard = item.flipBoolValue(*this);
+			EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+		}
+	};
+
+	std::array<MenuItem*, 2> menuItem
+	{
+		&sixButtonPad,
+		&arcadeCard
+	};
+
 public:
-	CustomInputOptionView(ViewAttachParams attach):
+	ConsoleOptionView(ViewAttachParams attach):
 		TableView
 		{
-			"Input Options",
+			"Console Options",
 			attach,
-			[this](const TableView &)
-			{
-				return 1;
-			},
-			[this](const TableView &, uint idx) -> MenuItem&
-			{
-				return sixButtonPad;
-			}
+			menuItem
 		}
 	{}
+};
+
+class CustomSystemActionsView : public EmuSystemActionsView
+{
+private:
+	TextMenuItem options
+	{
+		"Console Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			auto &optionView = *new ConsoleOptionView{attachParams()};
+			pushAndShow(optionView, e);
+		}
+	};
+
+public:
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	{
+		item.emplace_back(&options);
+		loadStandardItems();
+	}
 };
 
 class CustomSystemOptionView : public SystemOptionView
@@ -62,21 +95,10 @@ class CustomSystemOptionView : public SystemOptionView
 		string_printf(str, "System Card: %s", strlen(::sysCardPath.data()) ? FS::basename(::sysCardPath).data() : "None set");
 	}
 
-	BoolMenuItem arcadeCard
-	{
-		"Arcade Card",
-		(bool)optionArcadeCard,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			optionArcadeCard = item.flipBoolValue(*this);
-		}
-	};
-
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		item.emplace_back(&arcadeCard);
 		printBiosMenuEntryStr(sysCardPathStr);
 		item.emplace_back(&sysCardPath);
 	}
@@ -86,7 +108,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		default: return nullptr;
 	}

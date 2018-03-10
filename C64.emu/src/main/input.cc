@@ -461,6 +461,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			{
 				if(state == Input::PUSHED)
 				{
+					EmuSystem::sessionOptionSet();
 					if(optionSwapJoystickPorts)
 						optionSwapJoystickPorts = 0;
 					else

@@ -16,7 +16,7 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/base/Base.hh>
@@ -246,15 +246,6 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			pushAndShow(optView, e);
 		}
 	},
-	systemOptions
-	{
-		"Emulated System Options",
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			auto &optView = *makeView(attachParams(), EmuApp::ViewID::INPUT_OPTIONS);
-			pushAndShow(optView, e);
-		}
-	},
 	deviceListHeading
 	{
 		"Individual Device Settings"
@@ -288,10 +279,6 @@ void InputManagerView::loadItems()
 	item.reserve(16);
 	item.emplace_back(&identDevice);
 	item.emplace_back(&generalOptions);
-	if(EmuSystem::inputHasOptionsView)
-	{
-		item.emplace_back(&systemOptions);
-	}
 	item.emplace_back(&deleteDeviceConfig);
 	item.emplace_back(&deleteProfile);
 	#ifdef CONFIG_BASE_ANDROID

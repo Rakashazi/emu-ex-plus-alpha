@@ -15,7 +15,7 @@
 
 #define LOGTAG "EmuVideo"
 #include <emuframework/EmuVideo.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
 #include "private.hh"

@@ -45,9 +45,7 @@ const uint EmuSystem::inputFaceBtns = 6;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-bool EmuSystem::inputHasOptionsView = true;
 const uint EmuSystem::maxPlayers = 5;
-bool useSixButtonPad = false;
 uint playerBit = 13;
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
@@ -117,7 +115,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
 	inputBuff = {};
-	if(useSixButtonPad)
+	if(option6BtnPad)
 	{
 		iterateTimes(2, i)
 			inputBuff[i] = IG::bit(12);

@@ -26,3 +26,4 @@ extern Properties defaultGameProps;
 extern bool p1DiffB, p2DiffB, vcsColor;
 
 const char *optionVideoSystemToStr();
+void setRuntimeTVPhosphor(int val);

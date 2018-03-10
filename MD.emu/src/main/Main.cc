@@ -42,7 +42,6 @@ t_config config{};
 uint config_ym2413_enabled = 1;
 int8 mdInputPortDev[2]{-1, -1};
 t_bitmap bitmap{};
-bool usingMultiTap = false;
 static uint autoDetectedVidSysPAL = 0;
 
 bool hasMDExtension(const char *name)
@@ -292,7 +291,7 @@ void setupMDInput()
 		playerIdxMap[2] = 5;
 		playerIdxMap[3] = 6;
 	}
-	else if(usingMultiTap)
+	else if(optionMultiTap)
 	{
 		input.system[0] = SYSTEM_TEAMPLAYER;
 		input.system[1] = 0;

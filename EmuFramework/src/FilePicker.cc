@@ -16,7 +16,7 @@
 #define LOGTAG "FilePicker"
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Recent.hh>
 #include <imagine/gui/FSPicker.hh>

@@ -41,7 +41,6 @@ public:
 		SYSTEM_ACTIONS,
 		VIDEO_OPTIONS,
 		AUDIO_OPTIONS,
-		INPUT_OPTIONS,
 		SYSTEM_OPTIONS,
 		GUI_OPTIONS,
 		EDIT_CHEATS,
@@ -56,6 +55,7 @@ public:
 		Input::Event e, CreateSystemCompleteDelegate onComplete);
 	static void exitGame(bool allowAutosaveState = true);
 	static void reloadGame();
+	static void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e);
 	static void onMainWindowCreated(ViewAttachParams attach, Input::Event e);
 	static void onCustomizeNavView(NavView &v);
 	static void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e,
@@ -112,4 +112,8 @@ public:
 	{
 		return openAppAssetIO(name.data(), access);
 	}
+	static void saveSessionOptions();
+	static void loadSessionOptions();
+	static bool hasSavedSessionOptions();
+	static void deleteSessionOptions();
 };

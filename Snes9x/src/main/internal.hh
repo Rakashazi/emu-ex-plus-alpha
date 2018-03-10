@@ -11,7 +11,14 @@ namespace EmuControls
 extern const uint gamepadKeys;
 }
 
+#ifdef SNES9X_VERSION_1_4
+static constexpr bool IS_SNES9X_VERSION_1_4 = true;
+#else
+static constexpr bool IS_SNES9X_VERSION_1_4 = false;
+#endif
+
 extern Byte1Option optionMultitap;
+extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;
 #ifndef SNES9X_VERSION_1_4
 extern Byte1Option optionBlockInvalidVRAMAccess;
@@ -20,7 +27,7 @@ extern int snesInputPort;
 extern uint doubleClickFrames, rightClickFrames;
 
 #ifndef SNES9X_VERSION_1_4
-static const int SNES_AUTO_INPUT = 255;
+static const int SNES_AUTO_INPUT = -1;
 static const int SNES_JOYPAD = CTL_JOYPAD;
 static const int SNES_MOUSE_SWAPPED = CTL_MOUSE;
 static const int SNES_SUPERSCOPE = CTL_SUPERSCOPE;

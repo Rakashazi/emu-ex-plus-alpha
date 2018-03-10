@@ -103,8 +103,8 @@ extern void machine_maincpu_init(void);
 /* Reset the machine.  */
 #define MACHINE_RESET_MODE_SOFT 0
 #define MACHINE_RESET_MODE_HARD 1
-extern void machine_trigger_reset(const unsigned int reset_mode);
-extern VICE_API void machine_reset(void);
+extern VICE_API void machine_trigger_reset(const unsigned int reset_mode);
+extern void machine_reset(void);
 extern void machine_specific_reset(void);
 extern void machine_reset_event_playback(CLOCK offset, void *data);
 

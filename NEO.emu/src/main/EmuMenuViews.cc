@@ -29,23 +29,57 @@ extern "C"
 	#include <gngeo/memory.h>
 }
 
-class CustomSystemOptionView : public SystemOptionView
+class ConsoleOptionView : public TableView
 {
-private:
 	TextMenuItem timerItem[3]
 	{
-		{"Off", [](){ optionTimerInt = 0; setTimerIntOption(); }},
-		{"On", [](){ optionTimerInt = 1; setTimerIntOption(); }},
-		{"Auto", [](){ optionTimerInt = 2; setTimerIntOption(); }},
+		{"Off", [](){ setTimerInt(0); }},
+		{"On", [](){ setTimerInt(1); }},
+		{"Auto", [](){ setTimerInt(2); }},
 	};
+
+	static void setTimerInt(int val)
+	{
+		EmuSystem::sessionOptionSet();
+		optionTimerInt = val;
+		setTimerIntOption();
+	}
 
 	MultiChoiceMenuItem timer
 	{
 		"Emulate Timer",
+		[this](int idx) -> const char*
+		{
+			if(idx == 2)
+			{
+				return conf.raster ? "On" : "Off";
+			}
+			else
+				return nullptr;
+		},
 		std::min((int)optionTimerInt, 2),
 		timerItem
 	};
 
+	std::array<MenuItem*, 1> menuItem
+	{
+		&timer
+	};
+
+public:
+	ConsoleOptionView(ViewAttachParams attach):
+		TableView
+		{
+			"Console Options",
+			attach,
+			menuItem
+		}
+	{}
+};
+
+class CustomSystemOptionView : public SystemOptionView
+{
+private:
 	TextMenuItem regionItem[4]
 	{
 		{"Japan", [](){ conf.country = CTY_JAPAN; optionMVSCountry = conf.country; }},
@@ -111,7 +145,6 @@ public:
 		loadStockItems();
 		item.emplace_back(&bios);
 		item.emplace_back(&region);
-		item.emplace_back(&timer);
 		item.emplace_back(&createAndUseCache);
 		item.emplace_back(&strictROMChecking);
 	}
@@ -619,17 +652,25 @@ private:
 		}
 	};
 
-	void reloadItems()
+	TextMenuItem options
 	{
-		item.clear();
-		item.emplace_back(&unibiosSwitches);
-		loadStandardItems();
-	}
+		"Console Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &optionView = *new ConsoleOptionView{attachParams()};
+				pushAndShow(optionView, e);
+			}
+		}
+	};
 
 public:
 	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
 	{
-		reloadItems();
+		item.emplace_back(&unibiosSwitches);
+		item.emplace_back(&options);
+		loadStandardItems();
 	}
 
 	void onShow()

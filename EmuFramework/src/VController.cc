@@ -16,7 +16,7 @@
 #define LOGTAG "VController"
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>

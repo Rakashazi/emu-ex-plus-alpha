@@ -28,6 +28,13 @@ extern "C"
 	#include "sid/sid-resources.h"
 	#include "vicii.h"
 	#include "drive.h"
+	#include "c64model.h"
+	#include "c64dtvmodel.h"
+	#include "c128model.h"
+	#include "cbm2model.h"
+	#include "petmodel.h"
+	#include "plus4model.h"
+	#include "vic20model.h"
 }
 
 static constexpr const char *driveMenuPrefix[4]
@@ -66,6 +73,40 @@ static constexpr int driveTypeVal[18]
 	DRIVE_TYPE_1001,
 	DRIVE_TYPE_8050,
 	DRIVE_TYPE_8250
+};
+
+static const char *insertEjectMenuStr[]
+{
+	"Insert File",
+	"Eject"
+};
+
+static int defaultNTSCModel[]
+{
+	C64MODEL_C64_NTSC,
+	C64MODEL_C64_NTSC,
+	DTVMODEL_V3_NTSC,
+	C128MODEL_C128_NTSC,
+	C64MODEL_C64_NTSC,
+	CBM2MODEL_610_NTSC,
+	CBM2MODEL_510_NTSC,
+	PETMODEL_8032,
+	PLUS4MODEL_PLUS4_NTSC,
+	VIC20MODEL_VIC20_NTSC
+};
+
+static int defaultPALModel[]
+{
+	C64MODEL_C64_PAL,
+	C64MODEL_C64_PAL,
+	DTVMODEL_V3_PAL,
+	C128MODEL_C128_PAL,
+	C64MODEL_C64_NTSC,
+	CBM2MODEL_610_PAL,
+	CBM2MODEL_510_PAL,
+	PETMODEL_8032,
+	PLUS4MODEL_PLUS4_PAL,
+	VIC20MODEL_VIC20_PAL
 };
 
 static constexpr const char *driveTypeStr(int type)
@@ -197,54 +238,9 @@ public:
 
 class CustomSystemOptionView : public SystemOptionView
 {
-	BoolMenuItem autostartWarp
-	{
-		"Autostart Fast-forward",
-		(bool)optionAutostartWarp,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			optionAutostartWarp = item.flipBoolValue(*this);
-			setAutostartWarp(optionAutostartWarp);
-		}
-	};
-
-	BoolMenuItem autostartTDE
-	{
-		"Autostart Handles TDE",
-		(bool)optionAutostartTDE,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			optionAutostartTDE = item.flipBoolValue(*this);
-			setAutostartTDE(optionAutostartTDE);		}
-	};
-
 	TextHeadingMenuItem defaultsHeading
 	{
 		"Default Boot Options"
-	};
-
-	BoolMenuItem trueDriveEmu
-	{
-		"True Drive Emulation (TDE)",
-		(bool)optionDriveTrueEmulation,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			optionDriveTrueEmulation = item.flipBoolValue(*this);
-			if(!optionDriveTrueEmulation && !optionVirtualDeviceTraps)
-			{
-				EmuApp::postMessage("Enable Virtual Device Traps to use disks without TDE");
-			}
-		}
-	};
-
-	BoolMenuItem virtualDeviceTraps
-	{
-		"Virtual Device Traps",
-		(bool)optionVirtualDeviceTraps,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			optionVirtualDeviceTraps = item.flipBoolValue(*this);
-		}
 	};
 
 	TextMenuItem defaultC64ModelItem[14]
@@ -450,11 +446,7 @@ public:
 		loadStockItems();
 		printSysPathMenuEntryStr(systemFilePathStr);
 		item.emplace_back(&systemFilePath);
-		item.emplace_back(&autostartTDE);
-		item.emplace_back(&autostartWarp);
 		item.emplace_back(&defaultsHeading);
-		item.emplace_back(&trueDriveEmu);
-		item.emplace_back(&virtualDeviceTraps);
 		item.emplace_back(&defaultC64Model);
 		item.emplace_back(&defaultDTVModel);
 		item.emplace_back(&defaultC128Model);
@@ -466,8 +458,6 @@ public:
 		item.emplace_back(&defaultVIC20Model);
 	}
 };
-
-static const char *insertEjectMenuStr[] { "Insert File", "Eject" };
 
 class C64IOControlView : public TableView
 {
@@ -685,48 +675,6 @@ private:
 		{diskSlotStr[3], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 3); }},
 	};
 
-	BoolMenuItem trueDriveEmu
-	{
-		"True Drive Emulation (TDE)",
-		driveTrueEmulation(),
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			setDriveTrueEmulation(item.flipBoolValue(*this));
-			if(!driveTrueEmulation() && !virtualDeviceTraps())
-			{
-				EmuApp::postMessage("Enable Virtual Device Traps to use disks without TDE");
-			}
-		}
-	};
-
-	BoolMenuItem virtualDeviceTraps_
-	{
-		"Virtual Device Traps",
-		virtualDeviceTraps(),
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			setVirtualDeviceTraps(item.flipBoolValue(*this));
-		}
-	};
-
-	std::vector<TextMenuItem> modelItem{};
-
-	MultiChoiceMenuItem model
-	{
-		"Model",
-		[]()
-		{
-			auto modelVal = sysModel();
-			auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
-			if(modelVal < baseVal || modelVal >= plugin.models + baseVal)
-			{
-				return baseVal;
-			}
-			return modelVal;
-		}(),
-		modelItem
-	};
-
 	bool setDriveType(bool isActive, uint slot, int type)
 	{
 		assumeExpr(slot < 4);
@@ -909,9 +857,8 @@ private:
 	};
 
 	TextHeadingMenuItem mediaOptions{"Media Options"};
-	TextHeadingMenuItem systemOptions{"System Options"};
 
-	StaticArrayList<MenuItem*, 15> item{};
+	StaticArrayList<MenuItem*, 11> item{};
 
 public:
 	C64IOControlView(ViewAttachParams attach):
@@ -922,14 +869,6 @@ public:
 			item
 		}
 	{
-		modelItem.reserve(plugin.models);
-		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
-		iterateTimes(plugin.models, i)
-		{
-			int val = baseVal + i;
-			modelItem.emplace_back(plugin.modelStr[i], [val](){ setSysModel(val); });
-		}
-
 		if(plugin.cartridge_attach_image_)
 		{
 			updateROMText();
@@ -947,25 +886,181 @@ public:
 		item.emplace_back(&drive9Type);
 		item.emplace_back(&drive10Type);
 		item.emplace_back(&drive11Type);
-		item.emplace_back(&trueDriveEmu);
-		item.emplace_back(&virtualDeviceTraps_);
-		item.emplace_back(&systemOptions);
-		item.emplace_back(&model);
 	}
 };
 
-class CustomSystemActionsView : public EmuSystemActionsView
+class MachineOptionView : public TableView
 {
+	std::vector<TextMenuItem> modelItem{};
+
+	MultiChoiceMenuItem model
+	{
+		"Model",
+		[]()
+		{
+			auto modelVal = sysModel();
+			auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
+			if(modelVal < baseVal || modelVal >= plugin.models + baseVal)
+			{
+				return baseVal;
+			}
+			return modelVal;
+		}(),
+		modelItem
+	};
+
 	BoolMenuItem swapJoystickPorts
 	{
 		"Swap Joystick Ports",
 		(bool)optionSwapJoystickPorts,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
+			EmuSystem::sessionOptionSet();
 			optionSwapJoystickPorts = item.flipBoolValue(*this);
 		}
 	};
 
+	BoolMenuItem autostartWarp
+	{
+		"Autostart Fast-forward",
+		(bool)optionAutostartWarp,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionAutostartWarp = item.flipBoolValue(*this);
+			setAutostartWarp(optionAutostartWarp);
+		}
+	};
+
+	BoolMenuItem autostartTDE
+	{
+		"Autostart Handles TDE",
+		(bool)optionAutostartTDE,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionAutostartTDE = item.flipBoolValue(*this);
+			setAutostartTDE(optionAutostartTDE);		}
+	};
+
+	BoolMenuItem trueDriveEmu
+	{
+		"True Drive Emulation (TDE)",
+		(bool)optionDriveTrueEmulation,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionDriveTrueEmulation = item.flipBoolValue(*this);
+			setDriveTrueEmulation(optionDriveTrueEmulation);
+			if(!optionDriveTrueEmulation && !optionVirtualDeviceTraps)
+			{
+				EmuApp::postMessage("Enable Virtual Device Traps to use disks without TDE");
+			}
+		}
+	};
+
+	BoolMenuItem virtualDeviceTraps
+	{
+		"Virtual Device Traps",
+		(bool)optionVirtualDeviceTraps,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionVirtualDeviceTraps = item.flipBoolValue(*this);
+			setVirtualDeviceTraps(optionVirtualDeviceTraps);
+		}
+	};
+
+	TextMenuItem quickSettings
+	{
+		"Apply Quick Settings & Restart",
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			if(!item.active())
+				return;
+			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), 4};
+			multiChoiceView.appendItem("NTSC w/ True Drive Emu",
+				[this]()
+				{
+					popAndShow();
+					EmuSystem::sessionOptionSet();
+					optionVirtualDeviceTraps = 0;
+					optionDriveTrueEmulation = 1;
+					optionModel = defaultNTSCModel[currSystem];
+					EmuApp::reloadGame();
+				});
+			multiChoiceView.appendItem("NTSC",
+				[this]()
+				{
+					popAndShow();
+					EmuSystem::sessionOptionSet();
+					optionVirtualDeviceTraps = 1;
+					optionDriveTrueEmulation = 0;
+					optionModel = defaultNTSCModel[currSystem];
+					EmuApp::reloadGame();
+				});
+			multiChoiceView.appendItem("PAL w/ True Drive Emu",
+				[this]()
+				{
+					popAndShow();
+					EmuSystem::sessionOptionSet();
+					optionVirtualDeviceTraps = 0;
+					optionDriveTrueEmulation = 1;
+					optionModel = defaultPALModel[currSystem];
+					EmuApp::reloadGame();
+				});
+			multiChoiceView.appendItem("PAL",
+				[this]()
+				{
+					popAndShow();
+					EmuSystem::sessionOptionSet();
+					optionVirtualDeviceTraps = 1;
+					optionDriveTrueEmulation = 0;
+					optionModel = defaultPALModel[currSystem];
+					EmuApp::reloadGame();
+				});
+			pushAndShow(multiChoiceView, e);
+		}
+	};
+
+	std::array<MenuItem*, 7> menuItem
+	{
+		&quickSettings,
+		&model,
+		&swapJoystickPorts,
+		&trueDriveEmu,
+		&autostartTDE,
+		&autostartWarp,
+		&virtualDeviceTraps
+	};
+
+public:
+	MachineOptionView(ViewAttachParams attach):
+		TableView
+		{
+			"Machine Options",
+			attach,
+			menuItem
+		}
+	{
+		modelItem.reserve(plugin.models);
+		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
+		iterateTimes(plugin.models, i)
+		{
+			int val = baseVal + i;
+			modelItem.emplace_back(plugin.modelStr[i],
+				[val]()
+				{
+					EmuSystem::sessionOptionSet();
+					optionModel = val;
+					setSysModel(val);
+				});
+		}
+	}
+};
+
+class CustomSystemActionsView : public EmuSystemActionsView
+{
 	BoolMenuItem warpMode
 	{
 		"Warp Mode",
@@ -978,7 +1073,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 
 	TextMenuItem c64IOControl
 	{
-		"System & Media Control",
+		"Media Control",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -988,51 +1083,16 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		}
 	};
 
-	TextMenuItem quickSettings
+	TextMenuItem options
 	{
-		"Apply Runtime Settings & Autostart",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		"Machine Options",
+		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			if(!item.active())
-				return;
-			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), 4};
-			multiChoiceView.appendItem("1. NTSC & True Drive Emu",
-				[this]()
-				{
-					popAndShow();
-					EmuApp::reloadGame();
-					setVirtualDeviceTraps(false);
-					setDriveTrueEmulation(true);
-					setDefaultNTSCModel();
-				});
-			multiChoiceView.appendItem("2. NTSC",
-				[this]()
-				{
-					popAndShow();
-					EmuApp::reloadGame();
-					setVirtualDeviceTraps(true);
-					setDriveTrueEmulation(false);
-					setDefaultNTSCModel();
-				});
-			multiChoiceView.appendItem("3. PAL & True Drive Emu",
-				[this]()
-				{
-					popAndShow();
-					EmuApp::reloadGame();
-					setVirtualDeviceTraps(false);
-					setDriveTrueEmulation(true);
-					setDefaultPALModel();
-				});
-			multiChoiceView.appendItem("4. PAL",
-				[this]()
-				{
-					popAndShow();
-					EmuApp::reloadGame();
-					setVirtualDeviceTraps(true);
-					setDriveTrueEmulation(false);
-					setDefaultPALModel();
-				});
-			pushAndShow(multiChoiceView, e);
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &optionView = *new MachineOptionView{attachParams()};
+				pushAndShow(optionView, e);
+			}
 		}
 	};
 
@@ -1040,8 +1100,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 	{
 		item.clear();
 		item.emplace_back(&c64IOControl);
-		item.emplace_back(&quickSettings);
-		item.emplace_back(&swapJoystickPorts);
+		item.emplace_back(&options);
 		item.emplace_back(&warpMode);
 		loadStandardItems();
 	}
@@ -1056,8 +1115,7 @@ public:
 	{
 		EmuSystemActionsView::onShow();
 		c64IOControl.setActive(EmuSystem::gameIsRunning());
-		quickSettings.setActive(EmuSystem::gameIsRunning());
-		swapJoystickPorts.setBoolValue(optionSwapJoystickPorts);
+		options.setActive(EmuSystem::gameIsRunning());
 		warpMode.setBoolValue(*plugin.warp_mode_enabled);
 	}
 };

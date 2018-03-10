@@ -10,9 +10,9 @@ extern const uint gamepadKeys;
 }
 
 extern Byte1Option optionArcadeCard;
+extern Byte1Option option6BtnPad;
 extern FS::PathString sysCardPath;
 extern std::array<uint16, 5> inputBuff;
-extern bool useSixButtonPad;
 
 bool hasHuCardExtension(const char *name);
 

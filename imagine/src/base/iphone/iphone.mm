@@ -576,7 +576,7 @@ std::vector<FS::PathLocation> rootFileLocations()
 		};
 }
 
-FS::PathString libPath()
+FS::PathString libPath(const char *)
 {
 	return appPath;
 }

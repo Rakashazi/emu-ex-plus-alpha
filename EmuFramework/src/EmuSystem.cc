@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FileUtils.hh>
 #include <emuframework/FilePicker.hh>
@@ -63,7 +63,6 @@ Audio::PcmFormat EmuSystem::pcmFormat = {44100, Audio::SampleFormats::s16, 2};
 uint EmuSystem::audioFramesPerVideoFrame = 0;
 Base::Timer EmuSystem::autoSaveStateTimer;
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
-[[gnu::weak]] bool EmuSystem::inputHasOptionsView = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 double EmuSystem::frameTimeNative = 1./60.;
@@ -75,6 +74,7 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] bool EmuSystem::hasSound = true;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
+bool EmuSystem::sessionOptionsSet = false;
 static std::unique_ptr<Audio::SysOutputStream> audioStream;
 static IG::SysRingBuffer rBuff{};
 enum class AudioWriteState
@@ -519,10 +519,16 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 		flushSound();
 		if(allowAutosaveState)
 			EmuApp::saveAutoState();
+		EmuApp::saveSessionOptions();
 		logMsg("closing game %s", gameName_.data());
 		closeSystem();
 		cancelAutoSaveStateTimer();
 		viewStack.navView()->showRightBtn(false);
+		if(int idx = viewStack.viewIdx("System Actions");
+			idx > 0)
+		{
+			viewStack.popTo(viewStack.viewAtIdx(idx - 1));
+		}
 		state = State::OFF;
 	}
 	clearGamePaths();
@@ -657,6 +663,7 @@ static void closeAndSetupNew(const char *path)
 {
 	EmuSystem::closeGame();
 	EmuSystem::setupGamePaths(path);
+	EmuApp::loadSessionOptions();
 }
 
 void EmuSystem::createWithMedia(GenericIO io, const char *path, const char *name, Error &err, OnLoadProgressDelegate onLoadProgress)
@@ -799,6 +806,13 @@ char EmuSystem::saveSlotCharUpper(int slot)
 	}
 }
 
+void EmuSystem::sessionOptionSet()
+{
+	if(!gameIsRunning())
+		return;
+	sessionOptionsSet = true;
+}
+
 [[gnu::weak]] EmuSystem::Error EmuSystem::onInit() { return {}; }
 
 [[gnu::weak]] void EmuSystem::initOptions() {}
@@ -827,3 +841,15 @@ char EmuSystem::saveSlotCharUpper(int slot)
 }
 
 [[gnu::weak]] bool EmuSystem::shouldFastForward() { return false; }
+
+[[gnu::weak]] void EmuSystem::writeConfig(IO &io) {}
+
+[[gnu::weak]] bool EmuSystem::readConfig(IO &io, uint key, uint readSize) { return false; }
+
+[[gnu::weak]] bool EmuSystem::resetSessionOptions() { return false; }
+
+[[gnu::weak]] void EmuSystem::onSessionOptionsLoaded() {}
+
+[[gnu::weak]] void EmuSystem::writeSessionConfig(IO &io) {}
+
+[[gnu::weak]] bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize) { return false; }

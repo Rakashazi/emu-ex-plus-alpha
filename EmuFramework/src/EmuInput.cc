@@ -18,7 +18,7 @@
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/mem/mem.h>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/InputManagerView.hh>
 #include "private.hh"

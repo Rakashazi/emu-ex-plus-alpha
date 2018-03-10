@@ -367,13 +367,13 @@ void Console::togglePhosphor()
   {
     myProperties.set(Display_Phosphor, "No");
     enable = false;
-    myOSystem.frameBuffer().showMessage("Phosphor effect disabled");
+    //myOSystem.frameBuffer().showMessage("Phosphor effect disabled");
   }
   else
   {
     myProperties.set(Display_Phosphor, "Yes");
     enable = true;
-    myOSystem.frameBuffer().showMessage("Phosphor effect enabled");
+    //myOSystem.frameBuffer().showMessage("Phosphor effect enabled");
   }
 
   myOSystem.frameBuffer().tiaSurface().enablePhosphor(enable, blend);

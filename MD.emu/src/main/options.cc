@@ -23,6 +23,8 @@ enum
 	CFGKEY_6_BTN_PAD = 280, CFGKEY_MD_CD_BIOS_USA_PATH = 281,
 	CFGKEY_MD_CD_BIOS_JPN_PATH = 282, CFGKEY_MD_CD_BIOS_EUR_PATH = 283,
 	CFGKEY_MD_REGION = 284, CFGKEY_VIDEO_SYSTEM = 285,
+	CFGKEY_INPUT_PORT_1 = 286, CFGKEY_INPUT_PORT_2 = 287,
+	CFGKEY_MULTITAP = 288
 };
 
 const char *EmuSystem::configFilename = "MdEmu.config";
@@ -35,14 +37,17 @@ const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
 Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
 Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
-Byte1Option optionRegion{CFGKEY_MD_REGION, 0};
+Byte1Option optionMultiTap{CFGKEY_MULTITAP, 0};
+SByte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, -1, false, optionIsValidWithMinMax<-1, 4>};
+SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithMinMax<-1, 4>};
+Byte1Option optionRegion{CFGKEY_MD_REGION, 0, false, optionIsValidWithMax<4>};
 #ifndef NO_SCD
 FS::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
 PathOption optionCDBiosUsaPath{CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, ""};
 PathOption optionCDBiosJpnPath{CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, ""};
 PathOption optionCDBiosEurPath{CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, ""};
 #endif
-Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0};
+Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<2>};
 
 void EmuSystem::initOptions()
 {
@@ -52,9 +57,53 @@ void EmuSystem::initOptions()
 
 EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
-	EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 3);
 	config_ym2413_enabled = optionSmsFM;
 	return {};
+}
+
+void EmuSystem::onSessionOptionsLoaded()
+{
+	config.region_detect = optionRegion;
+	mdInputPortDev[0] = optionInputPort1;
+	mdInputPortDev[1] = optionInputPort2;
+	setupMDInput();
+}
+
+bool EmuSystem::resetSessionOptions()
+{
+	option6BtnPad.reset();
+	optionRegion.reset();
+	optionVideoSystem.reset();
+	optionInputPort1.reset();
+	optionInputPort2.reset();
+	optionMultiTap.reset();
+	onSessionOptionsLoaded();
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_6_BTN_PAD: option6BtnPad.readFromIO(io, readSize);
+		bcase CFGKEY_MD_REGION: optionRegion.readFromIO(io, readSize);
+		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
+		bcase CFGKEY_INPUT_PORT_1: optionInputPort1.readFromIO(io, readSize);
+		bcase CFGKEY_INPUT_PORT_2: optionInputPort2.readFromIO(io, readSize);
+		bcase CFGKEY_MULTITAP: optionMultiTap.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	option6BtnPad.writeWithKeyIfNotDefault(io);
+	optionRegion.writeWithKeyIfNotDefault(io);
+	optionVideoSystem.writeWithKeyIfNotDefault(io);
+	optionInputPort1.writeWithKeyIfNotDefault(io);
+	optionInputPort2.writeWithKeyIfNotDefault(io);
+	optionMultiTap.writeWithKeyIfNotDefault(io);
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
@@ -63,23 +112,11 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 	{
 		bcase CFGKEY_BIG_ENDIAN_SRAM: optionBigEndianSram.readFromIO(io, readSize);
 		bcase CFGKEY_SMS_FM: optionSmsFM.readFromIO(io, readSize);
-		bcase CFGKEY_6_BTN_PAD: option6BtnPad.readFromIO(io, readSize);
 		#ifndef NO_SCD
 		bcase CFGKEY_MD_CD_BIOS_USA_PATH: optionCDBiosUsaPath.readFromIO(io, readSize);
 		bcase CFGKEY_MD_CD_BIOS_JPN_PATH: optionCDBiosJpnPath.readFromIO(io, readSize);
 		bcase CFGKEY_MD_CD_BIOS_EUR_PATH: optionCDBiosEurPath.readFromIO(io, readSize);
 		#endif
-		bcase CFGKEY_MD_REGION:
-		{
-			optionRegion.readFromIO(io, readSize);
-			if(optionRegion < 4)
-			{
-				config.region_detect = optionRegion;
-			}
-			else
-				optionRegion = 0;
-		}
-		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		bdefault: return 0;
 	}
 	return 1;
@@ -89,12 +126,10 @@ void EmuSystem::writeConfig(IO &io)
 {
 	optionBigEndianSram.writeWithKeyIfNotDefault(io);
 	optionSmsFM.writeWithKeyIfNotDefault(io);
-	option6BtnPad.writeWithKeyIfNotDefault(io);
-	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	#ifndef NO_SCD
 	optionCDBiosUsaPath.writeToIO(io);
 	optionCDBiosJpnPath.writeToIO(io);
 	optionCDBiosEurPath.writeToIO(io);
 	#endif
-	optionRegion.writeWithKeyIfNotDefault(io);
+
 }

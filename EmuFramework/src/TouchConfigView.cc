@@ -15,7 +15,7 @@
 
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/DragTracker.hh>
@@ -805,15 +805,6 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 			modalViewController.pushAndShow(ynAlertView, e, false);
 		}
 	},
-	systemOptions
-	{
-		"Emulated System Options",
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			auto &optView = *makeView(attachParams(), EmuApp::ViewID::INPUT_OPTIONS);
-			pushAndShow(optView, e);
-		}
-	},
 	btnTogglesHeading
 	{
 		"Individual Button Toggles"
@@ -836,10 +827,6 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	if(EmuSystem::maxPlayers > 1)
 	{
 		item.emplace_back(&pointerInput);
-	}
-	if(EmuSystem::inputHasOptionsView)
-	{
-		item.emplace_back(&systemOptions);
 	}
 	item.emplace_back(&size);
 	#endif

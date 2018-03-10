@@ -15,7 +15,7 @@
 
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/EmuOptions.hh>
+#include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
 #include <algorithm>
 #include "private.hh"

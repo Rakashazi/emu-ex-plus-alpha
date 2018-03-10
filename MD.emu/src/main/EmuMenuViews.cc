@@ -1,32 +1,176 @@
 #include <emuframework/OptionView.hh>
-#include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include "input.h"
 #include "io_ctrl.h"
+#include "vdp_ctrl.h"
 
-class CustomVideoOptionView : public VideoOptionView
+class ConsoleOptionView : public TableView
 {
+	BoolMenuItem sixButtonPad
+	{
+		"6-button Gamepad",
+		(bool)option6BtnPad,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			option6BtnPad = item.flipBoolValue(*this);
+			setupMDInput();
+		}
+	};
+
+	BoolMenuItem multitap
+	{
+		"4-Player Adapter",
+		(bool)optionMultiTap,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			optionMultiTap = item.flipBoolValue(*this);
+			setupMDInput();
+		}
+	};
+
+	TextMenuItem inputPortsItem[4]
+	{
+		{"Auto", [](){ setInputPorts(-1, -1); }},
+		{"Gamepads",[]() { setInputPorts(SYSTEM_MD_GAMEPAD, SYSTEM_MD_GAMEPAD); }},
+		{"Menacer", []() { setInputPorts(SYSTEM_MD_GAMEPAD, SYSTEM_MENACER); }},
+		{"Justifier", []() { setInputPorts(SYSTEM_MD_GAMEPAD, SYSTEM_JUSTIFIER); }},
+	};
+
+	MultiChoiceMenuItem inputPorts
+	{
+		"Input Ports",
+		[]()
+		{
+			if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MD_GAMEPAD)
+				return 1;
+			else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MENACER)
+				return 2;
+			else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_JUSTIFIER)
+				return 3;
+			else
+				return 0;
+		}(),
+		inputPortsItem
+	};
+
+	static void setInputPorts(int port1, int port2)
+	{
+		EmuSystem::sessionOptionSet();
+		optionInputPort1 = mdInputPortDev[0] = port1;
+		optionInputPort2 = mdInputPortDev[1] = port2;
+		setupMDInput();
+	}
+
 	TextMenuItem videoSystemItem[3]
 	{
-		{"Auto", [](){ optionVideoSystem = 0; }},
-		{"NTSC", [](){ optionVideoSystem = 1; }},
-		{"PAL", [](){ optionVideoSystem = 2; }},
+		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(2, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
-		std::min((int)optionVideoSystem, 3),
+		[this](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				return vdp_pal ? "PAL" : "NTSC";
+			}
+			else
+				return nullptr;
+		},
+		optionVideoSystem,
 		videoSystemItem
 	};
 
-public:
-	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	void setVideoSystem(int val, Input::Event e)
 	{
-		loadStockItems();
-		item.emplace_back(&systemSpecificHeading);
-		item.emplace_back(&videoSystem);
+		EmuSystem::sessionOptionSet();
+		optionVideoSystem = val;
+		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+	}
+
+	TextMenuItem regionItem[4]
+	{
+		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ setRegion(0, e); }},
+		{"USA", [this](TextMenuItem &, View &, Input::Event e){ setRegion(1, e); }},
+		{"Europe", [this](TextMenuItem &, View &, Input::Event e){ setRegion(2, e); }},
+		{"Japan", [this](TextMenuItem &, View &, Input::Event e){ setRegion(3, e); }},
+	};
+
+	MultiChoiceMenuItem region
+	{
+		"Game Region",
+		[this](int idx) -> const char*
+		{
+			if(idx == 0)
+			{
+				switch(region_code)
+				{
+					case REGION_USA: return "USA";
+					case REGION_EUROPE: return "Europe";
+					default: return "Japan";
+				}
+			}
+			else
+				return nullptr;
+		},
+		std::min((int)config.region_detect, 4),
+		regionItem
+	};
+
+	void setRegion(int val, Input::Event e)
+	{
+		EmuSystem::sessionOptionSet();
+		optionRegion = val;
+		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+	}
+
+	std::array<MenuItem*, 5> menuItem
+	{
+		&inputPorts,
+		&sixButtonPad,
+		&multitap,
+		&videoSystem,
+		&region
+	};
+
+public:
+	ConsoleOptionView(ViewAttachParams attach):
+		TableView
+		{
+			"Console Options",
+			attach,
+			menuItem
+		}
+	{}
+};
+
+class CustomSystemActionsView : public EmuSystemActionsView
+{
+private:
+	TextMenuItem options
+	{
+		"Console Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				auto &optionView = *new ConsoleOptionView{attachParams()};
+				pushAndShow(optionView, e);
+			}
+		}
+	};
+
+public:
+	CustomSystemActionsView(ViewAttachParams attach): EmuSystemActionsView{attach, true}
+	{
+		item.emplace_back(&options);
+		loadStandardItems();
 	}
 };
 
@@ -51,106 +195,6 @@ public:
 	}
 };
 
-class CustomInputOptionView : public TableView
-{
-	BoolMenuItem sixButtonPad
-	{
-		"6-button Gamepad",
-		(bool)option6BtnPad,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			option6BtnPad = item.flipBoolValue(*this);
-			setupMDInput();
-		}
-	};
-
-	BoolMenuItem multitap
-	{
-		"4-Player Adapter",
-		(bool)usingMultiTap,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			usingMultiTap = item.flipBoolValue(*this);
-			setupMDInput();
-		}
-	};
-
-	TextMenuItem inputPortsItem[4]
-	{
-		{
-			"Auto",
-			[]()
-			{
-				mdInputPortDev[0] = mdInputPortDev[1] = -1;
-				setupMDInput();
-			}
-		},
-		{
-			"Gamepads",
-			[]()
-			{
-				mdInputPortDev[0] = mdInputPortDev[1] = SYSTEM_MD_GAMEPAD;
-				setupMDInput();
-			}
-		},
-		{
-			"Menacer",
-			[]()
-			{
-				mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_MENACER;
-				setupMDInput();
-			}
-		},
-		{
-			"Justifier",
-			[]()
-			{
-				mdInputPortDev[0] = SYSTEM_MD_GAMEPAD; mdInputPortDev[1] = SYSTEM_JUSTIFIER;
-				setupMDInput();
-			}
-		},
-	};
-
-	MultiChoiceMenuItem inputPorts
-	{
-		"Input Ports",
-		[]()
-		{
-			if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MD_GAMEPAD)
-				return 1;
-			else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_MENACER)
-				return 2;
-			else if(mdInputPortDev[0] == SYSTEM_MD_GAMEPAD && mdInputPortDev[1] == SYSTEM_JUSTIFIER)
-				return 3;
-			else
-				return 0;
-		}(),
-		inputPortsItem
-	};
-
-public:
-	CustomInputOptionView(ViewAttachParams attach):
-		TableView
-		{
-			"Input Options",
-			attach,
-			[this](const TableView &)
-			{
-				return 3;
-			},
-			[this](const TableView &, uint idx) -> MenuItem&
-			{
-				switch(idx)
-				{
-					case 0: return inputPorts;
-					case 1: return sixButtonPad;
-					default: return multitap;
-				}
-			}
-		}
-	{}
-};
-
 class CustomSystemOptionView : public SystemOptionView
 {
 	BoolMenuItem bigEndianSram
@@ -171,21 +215,6 @@ class CustomSystemOptionView : public SystemOptionView
 				});
 			EmuApp::pushAndShowModalView(ynAlertView, e);
 		}
-	};
-
-	TextMenuItem videoSystemItem[4]
-	{
-		{"Auto", [](){ optionRegion = 0; config.region_detect = 0; }},
-		{"USA", [](){ optionRegion = 1; config.region_detect = 1; }},
-		{"Europe", [](){ optionRegion = 2; config.region_detect = 2; }},
-		{"Japan", [](){ optionRegion = 3; config.region_detect = 3; }},
-	};
-
-	MultiChoiceMenuItem region
-	{
-		"Game Region",
-		std::min((int)config.region_detect, 4),
-		videoSystemItem
 	};
 
 	#ifndef NO_SCD
@@ -268,7 +297,6 @@ public:
 	{
 		loadStockItems();
 		item.emplace_back(&bigEndianSram);
-		item.emplace_back(&region);
 		#ifndef NO_SCD
 		cdBiosPathInit();
 		#endif
@@ -283,9 +311,8 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
-		case ViewID::INPUT_OPTIONS: return new CustomInputOptionView(attach);
+		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
 		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
 		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);

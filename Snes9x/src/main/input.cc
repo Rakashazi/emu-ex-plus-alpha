@@ -37,7 +37,6 @@ const uint EmuSystem::inputFaceBtns = 6;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-bool EmuSystem::inputHasOptionsView = true;
 const uint EmuSystem::maxPlayers = 5;
 static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
 static int snesMouseX = 0, snesMouseY = 0;
