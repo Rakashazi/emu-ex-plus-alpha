@@ -1,24 +1,19 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Serializer.cxx 3308 2016-05-24 16:55:45Z stephena $
 //============================================================================
-
-#include <fstream>
-#include <sstream>
 
 #include "FSNode.hxx"
 #include "Serializer.hxx"
@@ -35,12 +30,12 @@ Serializer::Serializer(const string& filename, bool readonly)
     //FilesystemNode node(filename);
     //if(node.isFile() && node.isReadable())
     {
-      unique_ptr<fstream> str = make_ptr<fstream>(filename, ios::in | ios::binary);
+      unique_ptr<fstream> str = make_unique<fstream>(filename, ios::in | ios::binary);
       if(str && str->is_open())
       {
         myStream = std::move(str);
         myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
-        reset();
+        rewind();
       }
     }
   }
@@ -56,12 +51,12 @@ Serializer::Serializer(const string& filename, bool readonly)
     fstream temp(filename, ios::out | ios::app);
     temp.close();
 
-    unique_ptr<fstream> str = make_ptr<fstream>(filename, ios::in | ios::out | ios::binary);
+    unique_ptr<fstream> str = make_unique<fstream>(filename, ios::in | ios::out | ios::binary);
     if(str && str->is_open())
     {
       myStream = std::move(str);
       myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
-      reset();
+      rewind();
     }
   }
 }
@@ -70,20 +65,20 @@ Serializer::Serializer(const string& filename, bool readonly)
 Serializer::Serializer()
   : myStream(nullptr)
 {
-  myStream = make_ptr<stringstream>(ios::in | ios::out | ios::binary);
-  
+  myStream = make_unique<stringstream>(ios::in | ios::out | ios::binary);
+
   // For some reason, Windows and possibly OSX needs to store something in
   // the stream before it is used for the first time
   if(myStream)
   {
     myStream->exceptions( ios_base::failbit | ios_base::badbit | ios_base::eofbit );
     putBool(true);
-    reset();
+    rewind();
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::reset()
+void Serializer::rewind()
 {
   myStream->clear();
   myStream->seekg(ios_base::beg);
@@ -133,6 +128,24 @@ uInt32 Serializer::getInt() const
 void Serializer::getIntArray(uInt32* array, uInt32 size) const
 {
   myStream->read(reinterpret_cast<char*>(array), sizeof(uInt32)*size);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt64 Serializer::getLong() const
+{
+  uInt64 val = 0;
+  myStream->read(reinterpret_cast<char*>(&val), sizeof(uInt64));
+
+  return val;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+double Serializer::getDouble() const
+{
+  double val = 0.0;
+  myStream->read(reinterpret_cast<char*>(&val), sizeof(double));
+
+  return val;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -186,6 +199,18 @@ void Serializer::putInt(uInt32 value)
 void Serializer::putIntArray(const uInt32* array, uInt32 size)
 {
   myStream->write(reinterpret_cast<const char*>(array), sizeof(uInt32)*size);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::putLong(uInt64 value)
+{
+  myStream->write(reinterpret_cast<char*>(&value), sizeof(uInt64));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Serializer::putDouble(double value)
+{
+  myStream->write(reinterpret_cast<char*>(&value), sizeof(double));
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

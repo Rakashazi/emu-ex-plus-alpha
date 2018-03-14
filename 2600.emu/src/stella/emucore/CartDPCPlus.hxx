@@ -8,22 +8,19 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartDPCPlus.hxx 3311 2016-08-21 21:37:06Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_DPC_PLUS_HXX
 #define CARTRIDGE_DPC_PLUS_HXX
 
 class System;
-#ifdef THUMB_SUPPORT
-  #include "Thumbulator.hxx"
-#endif
+
+#include "Thumbulator.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "CartDPCPlusWidget.hxx"
 #endif
@@ -36,12 +33,14 @@ class System;
   program banks, a 4K display bank, 1K frequency table and the DPC chip.
   DPC chip access is mapped to $1000 - $1080 ($1000 - $103F is read port,
   $1040 - $107F is write port).
+  Program banks are accessible by read/write to $1FF6 - $1FFB.
+
+  FIXME: THIS NEEDS TO BE UPDATED
 
   For complete details on the DPC chip see David P. Crane's United States
   Patent Number 4,644,495.
 
-  @author  Darrell Spice Jr, Fred Quimby, Stephen Anthony, Bradford W. Mott
-  @version $Id: CartDPCPlus.hxx 3311 2016-08-21 21:37:06Z stephena $
+  @authors  Darrell Spice Jr, Fred Quimby, Stephen Anthony, Bradford W. Mott
 */
 class CartridgeDPCPlus : public Cartridge
 {
@@ -56,7 +55,7 @@ class CartridgeDPCPlus : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeDPCPlus(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeDPCPlus(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeDPCPlus() = default;
 
   public:
@@ -66,11 +65,13 @@ class CartridgeDPCPlus : public Cartridge
     void reset() override;
 
     /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary
-      to override this method for devices that remember cycle counts.
+      Notification method invoked by the system when the console type
+      has changed.  We need this to inform the Thumbulator that the
+      timing has changed.
+
+      @param timing  Enum representing the new console type
     */
-    void systemCyclesReset() override;
+    void consoleChanged(ConsoleTiming timing) override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -112,7 +113,7 @@ class CartridgeDPCPlus : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -167,35 +168,35 @@ class CartridgeDPCPlus : public Cartridge
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
-    /** 
+    /**
       Sets the initial state of the DPC pointers and RAM
     */
     void setInitialState();
 
-    /** 
+    /**
       Clocks the random number generator to move it to its next state
     */
     void clockRandomNumberGenerator();
-  
-    /** 
+
+    /**
       Clocks the random number generator to move it to its prior state
     */
     void priorClockRandomNumberGenerator();
 
-    /** 
+    /**
       Updates any data fetchers in music mode based on the number of
       CPU cycles which have passed since the last update.
     */
     void updateMusicModeDataFetchers();
 
-    /** 
+    /**
       Call Special Functions
     */
     void callFunction(uInt8 value);
 
   private:
     // The ROM image and size
-    BytePtr myImage;
+    uInt8 myImage[32768];
     uInt32 mySize;
 
     // Pointer to the 24K program ROM image of the cartridge
@@ -210,10 +211,8 @@ class CartridgeDPCPlus : public Cartridge
     //   1K Frequency Data
     uInt8 myDPCRAM[8192];
 
-#ifdef THUMB_SUPPORT
     // Pointer to the Thumb ARM emulator object
     unique_ptr<Thumbulator> myThumbEmulator;
-#endif
 
     // Pointer to the 1K frequency table
     uInt8* myFrequencyImage;
@@ -226,7 +225,7 @@ class CartridgeDPCPlus : public Cartridge
 
     // The counter registers for the data fetchers
     uInt16 myCounters[8];
-  
+
     // The counter registers for the fractional data fetchers
     uInt32 myFractionalCounters[8];
 
@@ -235,7 +234,7 @@ class CartridgeDPCPlus : public Cartridge
 
     // The Fast Fetcher Enabled flag
     bool myFastFetch;
-  
+
     // Flags that last byte peeked was A9 (LDA #)
     bool myLDAimmediate;
 
@@ -250,22 +249,25 @@ class CartridgeDPCPlus : public Cartridge
 
     // The music frequency
     uInt32 myMusicFrequencies[3];
-  
+
     // The music waveforms
     uInt16 myMusicWaveforms[3];
-  
+
     // The random number generator register
     uInt32 myRandomNumber;
 
-    // System cycle count when the last update to music data fetchers occurred
-    Int32 mySystemCycles;
+    // System cycle count from when the last update to music data fetchers occurred
+    uInt64 myAudioCycles;
+
+    // System cycle count when the last Thumbulator::run() occurred
+    uInt64 myARMCycles;
 
     // Fractional DPC music OSC clocks unused during the last update
     double myFractionalClocks;
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
-  
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
+
   private:
     // Following constructors and assignment operators not supported
     CartridgeDPCPlus() = delete;

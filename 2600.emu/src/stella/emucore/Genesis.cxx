@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Genesis.cxx 3240 2015-12-29 21:28:10Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -44,10 +42,7 @@ Genesis::Genesis(Jack jack, const Event& event, const System& system)
     myFire2Event   = Event::JoystickOneFire5;
   }
 
-  // Analog pin 9 is not connected to this controller at all
-  // Analog pin 5 corresponds to button 'C' on the gamepad, and corresponds
-  // to the 'booster' button on a BoosterGrip controller
-  myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
+  updateAnalogPin(Five, minimumResistance);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -63,8 +58,10 @@ void Genesis::update()
   // The Genesis has one more button (C) that can be read by the 2600
   // However, it seems to work opposite to the BoosterGrip controller,
   // in that the logic is inverted
-  myAnalogPinValue[Five] = (myEvent.get(myFire2Event) == 0) ?
-                            minimumResistance : maximumResistance;
+  updateAnalogPin(
+    Five,
+    (myEvent.get(myFire2Event) == 0) ? minimumResistance : maximumResistance
+  );
 
   // Mouse motion and button events
   if(myControlID > -1)
@@ -95,7 +92,7 @@ void Genesis::update()
     if(myEvent.get(Event::MouseButtonLeftValue))
       myDigitalPinState[Six] = false;
     if(myEvent.get(Event::MouseButtonRightValue))
-      myAnalogPinValue[Five] = maximumResistance;
+      updateAnalogPin(Five, maximumResistance);
   }
 }
 

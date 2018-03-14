@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CompuMate.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef COMPUMATE_HXX
@@ -39,12 +37,9 @@
   It also allows to enable/disable the users actual keyboard when required.
 
   @author  Stephen Anthony
-  @version $Id: CompuMate.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CompuMate
 {
-  friend class CartridgeCM;
-
   public:
     /**
       Create a new CompuMate handler for both left and right ports.
@@ -80,6 +75,9 @@ class CompuMate
     */
     void enableKeyHandling(bool enable);
 
+    /** Needed for communication with CartCM class */
+    uInt8& column() { return myColumn; }
+
   private:
     /**
       Called by the controller(s) when all pins have been written
@@ -111,8 +109,6 @@ class CompuMate
           Called after *all* digital pins have been written on Port A.
           Only update on the left controller; the right controller will
           happen at the same cycle and is redundant.
-
-          @param value  The entire contents of the SWCHA register
         */
         void controlWrite(uInt8) override {
           if(myJack == Controller::Left) myHandler.update();

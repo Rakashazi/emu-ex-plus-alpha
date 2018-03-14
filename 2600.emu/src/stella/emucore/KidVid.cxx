@@ -1,24 +1,23 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: KidVid.cxx 3244 2015-12-30 19:07:11Z stephena $
 //============================================================================
 
 #include <cstdlib>
 
+#include "Event.hxx"
 #include "KidVid.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,10 +47,6 @@ KidVid::KidVid(Jack jack, const Event& event, const System& system,
     myGame = KVSMURFS;    // Smurfs Save the Day
   else
     myEnabled = false;
-
-  // Analog pins are never used by the KidVid controller
-  // (at least not in this implementation)
-  myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -119,7 +114,7 @@ cerr << "myTape = " << myTape << endl;
   if((myTape != 0) && ((IOPortA & 0x01) == 0x01) && !myTapeBusy)
   {
     IOPortA = (IOPortA & 0xf7) | (((ourKVData[myIdx >> 3] << (myIdx & 0x07)) & 0x80) >> 4);
-		
+
     // increase to next bit
     myIdx++;
     myBlockIdx--;
@@ -143,7 +138,7 @@ cerr << "myTape = " << myTape << endl;
         }
         else
         {
-          if(myBlock >= ourKVBlocks[myTape + 2 - 1])				
+          if(myBlock >= ourKVBlocks[myTape + 2 - 1])
             myIdx = 42 * 8; //KVData80-KVData=42
           else
           {
@@ -167,7 +162,7 @@ cerr << "myTape = " << myTape << endl;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void KidVid::openSampleFile()
 {
-  static const char* kvNameTable[6] = {
+  static const char* const kvNameTable[6] = {
     "kvs3.wav", "kvs1.wav", "kvs2.wav", "kvb3.wav", "kvb1.wav", "kvb2.wav"
   };
   static uInt32 StartSong[6] = {
@@ -184,11 +179,11 @@ void KidVid::openSampleFile()
     if(myTape == 4) i -= 3;
 
     mySampleFile = fopen(kvNameTable[i], "rb");
-    if(mySampleFile != NULL)
+    if(mySampleFile != nullptr)
     {
 cerr << "opened file: " << kvNameTable[i] << endl;
       mySharedSampleFile = fopen("kvshared.wav", "rb");
-      if(mySharedSampleFile == NULL)
+      if(mySharedSampleFile == nullptr)
       {
         fclose(mySampleFile);
         myFileOpened = false;

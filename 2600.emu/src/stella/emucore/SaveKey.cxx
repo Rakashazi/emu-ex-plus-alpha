@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: SaveKey.cxx 3254 2016-01-23 18:16:09Z stephena $
 //============================================================================
 
 #include "MT24LC256.hxx"
@@ -23,13 +21,24 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
-                 const string& eepromfile)
-  : Controller(jack, event, system, Controller::SaveKey)
+                 const string& eepromfile, Type type)
+  : Controller(jack, event, system, type)
 {
-  myEEPROM = make_ptr<MT24LC256>(eepromfile, system);
+  myEEPROM = make_unique<MT24LC256>(eepromfile, system);
 
   myDigitalPinState[One] = myDigitalPinState[Two] = true;
-  myAnalogPinValue[Five] = myAnalogPinValue[Nine] = maximumResistance;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
+                 const string& eepromfile)
+  : SaveKey(jack, event, system, eepromfile, Controller::SaveKey)
+{
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SaveKey::~SaveKey()
+{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,9 +85,31 @@ void SaveKey::write(DigitalPin pin, bool value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void SaveKey::systemCyclesReset()
+void SaveKey::reset()
 {
-  // The EEPROM keeps track of cycle counts, and needs to know when the
-  // cycles are reset
-  myEEPROM->systemCyclesReset();
+  myEEPROM->systemReset();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void SaveKey::close()
+{
+  myEEPROM.reset();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void SaveKey::eraseAll()
+{
+  myEEPROM->eraseAll();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void SaveKey::eraseCurrent()
+{
+  myEEPROM->eraseCurrent();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool SaveKey::isPageUsed(const uInt32 page) const
+{
+  return myEEPROM->isPageUsed(page);
 }

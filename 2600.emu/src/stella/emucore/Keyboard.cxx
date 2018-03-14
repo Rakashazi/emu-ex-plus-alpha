@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Keyboard.cxx 3240 2015-12-29 21:28:10Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -63,32 +61,39 @@ void Keyboard::write(DigitalPin pin, bool value)
 
   // Set defaults
   myDigitalPinState[Six] = true;
-  myAnalogPinValue[Five] = minimumResistance;
-  myAnalogPinValue[Nine] = minimumResistance;
+  Int32 resistanceFive = MIN_RESISTANCE;
+  Int32 resistanceNine = MIN_RESISTANCE;
 
   // Now scan the rows and columns
   if(!myDigitalPinState[Four])
   {
     myDigitalPinState[Six] = (myEvent.get(myPoundEvent) == 0);
-    if(myEvent.get(myZeroEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
-    if(myEvent.get(myStarEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
+    if(myEvent.get(myZeroEvent) != 0) resistanceFive = maximumResistance;
+    if(myEvent.get(myStarEvent) != 0) resistanceNine = maximumResistance;
   }
   if(!myDigitalPinState[Three])
   {
     myDigitalPinState[Six] = (myEvent.get(myNineEvent) == 0);
-    if(myEvent.get(myEightEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
-    if(myEvent.get(mySevenEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
+    if(myEvent.get(myEightEvent) != 0) resistanceFive = maximumResistance;
+    if(myEvent.get(mySevenEvent) != 0) resistanceNine = maximumResistance;
   }
   if(!myDigitalPinState[Two])
   {
     myDigitalPinState[Six] = (myEvent.get(mySixEvent) == 0);
-    if(myEvent.get(myFiveEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
-    if(myEvent.get(myFourEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
+    if(myEvent.get(myFiveEvent) != 0) resistanceFive = maximumResistance;
+    if(myEvent.get(myFourEvent) != 0) resistanceNine = maximumResistance;
   }
   if(!myDigitalPinState[One])
   {
     myDigitalPinState[Six] = (myEvent.get(myThreeEvent) == 0);
-    if(myEvent.get(myTwoEvent) != 0) myAnalogPinValue[Five] = maximumResistance;
-    if(myEvent.get(myOneEvent) != 0) myAnalogPinValue[Nine] = maximumResistance;
+    if(myEvent.get(myTwoEvent) != 0) resistanceFive = maximumResistance;
+    if(myEvent.get(myOneEvent) != 0) resistanceNine = maximumResistance;
   }
+
+  if (resistanceFive != read(Five)) {
+    updateAnalogPin(Five, resistanceFive);
+  }
+
+  if (resistanceNine != read(Nine))
+    updateAnalogPin(Nine, resistanceNine);
 }

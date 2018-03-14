@@ -3,26 +3,25 @@
 #pragma once
 
 #include <stella/gui/Rect.hxx>
-#include "EventHandler.hxx"
+#include <stella/emucore/tia/TIAConstants.hxx>
+#include <stella/emucore/FrameBufferConstants.hxx>
+#include <stella/emucore/EventHandlerConstants.hxx>
 #include <imagine/pixmap/Pixmap.hh>
+#include <array>
 
 class Console;
 class OSystem;
 class TIA;
 
-enum FBInitStatus {
-	kSuccess,
-	kFailComplete,
-	kFailTooLarge,
-	kFailNotSupported,
-};
-
 class FrameBuffer
 {
 public:
+	uInt16 tiaColorMap16[256]{};
+	uInt32 tiaColorMap32[256]{};
+	uInt8 myPhosphorPalette[256][256]{};
+	std::array<uInt8, 160 * TIAConstants::frameBufferHeight> prevFramebuffer;
+	float myPhosphorPercent = 0.80f;
 	bool myUsePhosphor = false;
-	int myPhosphorBlend = 77;
-	uInt16 tiaColorMap[256]{}, tiaPhosphorColorMap[256][256]{};
 
 	FrameBuffer() {}
 
@@ -36,7 +35,7 @@ public:
 	// no-op, EmuFramework manages window
 	FBInitStatus createDisplay(const string& title, uInt32 width, uInt32 height)
 	{
-		return kSuccess;
+		return FBInitStatus::Success;
 	}
 
 	// no-op
@@ -63,9 +62,10 @@ public:
 										uInt32 color = 0);
 
 	/**
-		Enable/disable phosphor effect.
+		Enable/disable/query phosphor effect.
 	*/
-	void enablePhosphor(bool enable, int blend);
+	void enablePhosphor(bool enable, int blend = -1);
+	bool phosphorEnabled() const { return myUsePhosphor; }
 
 	/**
 		Used to calculate an averaged color for the 'phosphor' effect.
@@ -75,5 +75,9 @@ public:
 
 		@return  Averaged value of the two colors
 	*/
-	uInt8 getPhosphor(uInt8 c1, uInt8 c2) const;
+	uInt8 getPhosphor(const uInt8 c1, uInt8 c2) const;
+
+	uInt32 getRGBPhosphor(const uInt32 c, const uInt32 p) const;
+
+	void clear() {}
 };

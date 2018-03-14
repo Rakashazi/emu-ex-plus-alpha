@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Base.cxx 3304 2016-04-03 00:35:00Z stephena $
 //============================================================================
 
 #include "Base.hxx"
@@ -70,11 +68,21 @@ string Base::toString(int value, Common::Base::Format outputBase)
         std::snprintf(vToS_buf, 6, "%5d", value);
       break;
 
+    case Base::F_10_2:  // base 10: 2 digits
+      std::snprintf(vToS_buf, 3, "%02d", value);
+      break;
+
     case Base::F_16_1:  // base 16: 1 byte wide
       std::snprintf(vToS_buf, 2, myFmt[0], value);
       break;
     case Base::F_16_2:  // base 16: 2 bytes wide
       std::snprintf(vToS_buf, 3, myFmt[1], value);
+      break;
+    case Base::F_16_2_2:
+      std::snprintf(vToS_buf, 6, "%02X.%02X", value >> 8, value & 0xff );
+      break;
+    case Base::F_16_3_2:
+      std::snprintf(vToS_buf, 7, "%03X.%02X", value >> 8, value & 0xff );
       break;
     case Base::F_16_4:  // base 16: 4 bytes wide
       std::snprintf(vToS_buf, 5, myFmt[2], value);
@@ -104,12 +112,12 @@ Base::Format Base::myDefaultBase = Base::F_16;
 std::ios_base::fmtflags Base::myHexflags = std::ios_base::hex;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const char* Base::myLowerFmt[4] = {
+const char* const Base::myLowerFmt[4] = {
   "%1x", "%02x", "%04x", "%08x"
 };
-const char* Base::myUpperFmt[4] = {
+const char* const Base::myUpperFmt[4] = {
   "%1X", "%02X", "%04X", "%08X"
 };
-const char** Base::myFmt = Base::myLowerFmt;
+const char* const* Base::myFmt = Base::myLowerFmt;
 
 } // Namespace Common

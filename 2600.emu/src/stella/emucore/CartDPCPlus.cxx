@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartDPCPlus.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #ifdef DEBUGGER_SUPPORT
@@ -23,27 +21,30 @@
 #include "System.hxx"
 #include "Thumbulator.hxx"
 #include "CartDPCPlus.hxx"
+#include "TIA.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
+CartridgeDPCPlus::CartridgeDPCPlus(const BytePtr& image, uInt32 size,
                                    const Settings& settings)
   : Cartridge(settings),
     myFastFetch(false),
     myLDAimmediate(false),
     myParameterPointer(0),
-    mySystemCycles(0),
+    myAudioCycles(0),
+    myARMCycles(0),
     myFractionalClocks(0.0),
-    myCurrentBank(0)
+    myBankOffset(0)
 {
-  // Store image, making sure it's at least 29KB
-  uInt32 minsize = 4096 * 6 + 4096 + 1024 + 255;
-  mySize = std::max(minsize, size);
-  myImage = make_ptr<uInt8[]>(mySize);
-  memcpy(myImage.get(), image, size);
+  // Image is always 32K, but in the case of ROM > 29K, the image is
+  // copied to the end of the buffer
+  mySize = std::min(size, 32768u);
+  if(mySize < 32768u)
+    memset(myImage, 0, 32768);
+  memcpy(myImage + (32768u - mySize), image.get(), size);
   createCodeAccessBase(4096 * 6);
 
-  // Pointer to the program ROM (24K @ 0 byte offset)
-  myProgramImage = myImage.get();
+  // Pointer to the program ROM (24K @ 3072 byte offset; ignore first 3K)
+  myProgramImage = myImage + 0xC00;
 
   // Pointer to the display RAM
   myDisplayImage = myDPCRAM + 0xC00;
@@ -51,18 +52,14 @@ CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
   // Pointer to the Frequency RAM
   myFrequencyImage = myDisplayImage + 0x1000;
 
-  // If the image is larger than 29K, we assume any excess at the
-  // beginning is ARM code, and skip over it
-  if(size > 29 * 1024)
-    myProgramImage += (size - 29 * 1024);
-
-#ifdef THUMB_SUPPORT
   // Create Thumbulator ARM emulator
-  myThumbEmulator = make_ptr<Thumbulator>
-      (reinterpret_cast<uInt16*>(myProgramImage-0xC00),
+  myThumbEmulator = make_unique<Thumbulator>
+      (reinterpret_cast<uInt16*>(myImage),
        reinterpret_cast<uInt16*>(myDPCRAM),
-       settings.getBool("thumb.trapfatal"));
-#endif
+       settings.getBool("thumb.trapfatal"),
+       Thumbulator::ConfigureFor::DPCplus,
+       this);
+
   setInitialState();
 
   // DPC+ always starts in bank 5
@@ -72,8 +69,7 @@ CartridgeDPCPlus::CartridgeDPCPlus(const uInt8* image, uInt32 size,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeDPCPlus::reset()
 {
-  // Update cycles to the current system cycles
-  mySystemCycles = mySystem->cycles();
+  myAudioCycles = myARMCycles = 0;
   myFractionalClocks = 0.0;
 
   setInitialState();
@@ -93,7 +89,7 @@ void CartridgeDPCPlus::setInitialState()
 
   // Initialize the DPC data fetcher registers
   for(int i = 0; i < 8; ++i)
-    myTops[i] = myBottoms[i] = myCounters[i] = myFractionalIncrements[i] = 
+    myTops[i] = myBottoms[i] = myCounters[i] = myFractionalIncrements[i] =
     myFractionalCounters[i] = 0;
 
   // Set waveforms to first waveform entry
@@ -104,10 +100,9 @@ void CartridgeDPCPlus::setInitialState()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeDPCPlus::systemCyclesReset()
+void CartridgeDPCPlus::consoleChanged(ConsoleTiming timing)
 {
-  // Adjust the cycle counter so that it reflects the new value
-  mySystemCycles -= mySystem->cycles();
+  myThumbEmulator->setConsoleTiming(timing);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -117,8 +112,8 @@ void CartridgeDPCPlus::install(System& system)
 
   // Map all of the accesses to call peek and poke
   System::PageAccess access(this, System::PA_READ);
-  for(uInt32 i = 0x1000; i < 0x1080; i += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+  for(uInt16 addr = 0x1000; addr < 0x1080; addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 
   // Install pages for the startup bank
   bank(myStartBank);
@@ -145,24 +140,18 @@ inline void CartridgeDPCPlus::priorClockRandomNumberGenerator()
 inline void CartridgeDPCPlus::updateMusicModeDataFetchers()
 {
   // Calculate the number of cycles since the last update
-  Int32 cycles = mySystem->cycles() - mySystemCycles;
-  mySystemCycles = mySystem->cycles();
+  uInt32 cycles = uInt32(mySystem->cycles() - myAudioCycles);
+  myAudioCycles = mySystem->cycles();
 
-  // Calculate the number of DPC OSC clocks since the last update
+  // Calculate the number of DPC+ OSC clocks since the last update
   double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
-  Int32 wholeClocks = Int32(clocks);
+  uInt32 wholeClocks = uInt32(clocks);
   myFractionalClocks = clocks - double(wholeClocks);
 
-  if(wholeClocks <= 0)
-  {
-    return;
-  }
-
   // Let's update counters and flags of the music mode data fetchers
-  for(int x = 0; x <= 2; ++x)
-  {
-    myMusicCounters[x] += myMusicFrequencies[x];
-  }
+  if(wholeClocks > 0)
+    for(int x = 0; x <= 2; ++x)
+      myMusicCounters[x] += myMusicFrequencies[x] * wholeClocks;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -185,12 +174,15 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
         myDisplayImage[myCounters[myParameter[2]]+i] = myParameter[0];
       myParameterPointer = 0;
       break;
-  #ifdef THUMB_SUPPORT
-    case 254:
-    case 255:
       // Call user written ARM code (most likely be C compiled for ARM)
+    case 254: // call with IRQ driven audio, no special handling needed at this
+              // time for Stella as ARM code "runs in zero 6507 cycles".
+    case 255: // call without IRQ driven audio
       try {
-        myThumbEmulator->run();
+        Int32 cycles = Int32(mySystem->cycles() - myARMCycles);
+        myARMCycles = mySystem->cycles();
+
+        myThumbEmulator->run(cycles);
       }
       catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
@@ -203,7 +195,6 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
         }
       }
       break;
-  #endif
     // reserved
   }
 }
@@ -213,7 +204,7 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
 {
   address &= 0x0FFF;
 
-  uInt8 peekvalue = myProgramImage[(myCurrentBank << 12) + address];
+  uInt8 peekvalue = myProgramImage[myBankOffset + address];
   uInt8 flag;
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
@@ -238,9 +229,9 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
     uInt32 index = address & 0x07;
     uInt32 function = (address >> 3) & 0x07;
 
-    // Update flag for selected data fetcher  
+    // Update flag for selected data fetcher
     flag = (((myTops[index]-(myCounters[index] & 0x00ff)) & 0xFF) > ((myTops[index]-myBottoms[index]) & 0xFF)) ? 0xFF : 0;
-    
+
     switch(function)
     {
       case 0x00:
@@ -585,18 +576,16 @@ bool CartridgeDPCPlus::bank(uInt16 bank)
   if(bankLocked()) return false;
 
   // Remember what bank we're in
-  myCurrentBank = bank;
-  uInt16 offset = myCurrentBank << 12;
+  myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
 
   // Map Program ROM image into the system
-  for(uInt32 address = 0x1080; address < 0x2000;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1080; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
 }
@@ -604,7 +593,7 @@ bool CartridgeDPCPlus::bank(uInt16 bank)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeDPCPlus::getBank() const
 {
-  return myCurrentBank;
+  return myBankOffset >> 12;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -621,7 +610,7 @@ bool CartridgeDPCPlus::patch(uInt16 address, uInt8 value)
   // For now, we ignore attempts to patch the DPC address space
   if(address >= 0x0080)
   {
-    myProgramImage[(myCurrentBank << 12) + (address & 0x0FFF)] = value;
+    myProgramImage[myBankOffset + (address & 0x0FFF)] = value;
     return myBankChanged = true;
   }
   else
@@ -629,10 +618,10 @@ bool CartridgeDPCPlus::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeDPCPlus::getImage(int& size) const
+const uInt8* CartridgeDPCPlus::getImage(uInt32& size) const
 {
   size = mySize;
-  return myImage.get();
+  return myImage + (32768u - mySize);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -643,7 +632,7 @@ bool CartridgeDPCPlus::save(Serializer& out) const
     out.putString(name());
 
     // Indicates which bank is currently active
-    out.putShort(myCurrentBank);
+    out.putShort(myBankOffset);
 
     // Harmony RAM
     out.putByteArray(myDPCRAM, 8192);
@@ -682,8 +671,12 @@ bool CartridgeDPCPlus::save(Serializer& out) const
     // The random number generator register
     out.putInt(myRandomNumber);
 
-    out.putInt(mySystemCycles);
-    out.putInt(uInt32(myFractionalClocks * 100000000.0));
+    // Get system cycles and fractional clocks
+    out.putLong(myAudioCycles);
+    out.putDouble(myFractionalClocks);
+
+    // Clock info for Thumbulator
+    out.putLong(myARMCycles);
   }
   catch(...)
   {
@@ -703,7 +696,7 @@ bool CartridgeDPCPlus::load(Serializer& in)
       return false;
 
     // Indicates which bank is currently active
-    myCurrentBank = in.getShort();
+    myBankOffset = in.getShort();
 
     // Harmony RAM
     in.getByteArray(myDPCRAM, 8192);
@@ -742,9 +735,12 @@ bool CartridgeDPCPlus::load(Serializer& in)
     // The random number generator register
     myRandomNumber = in.getInt();
 
-    // Get system cycles and fractional clocks
-    mySystemCycles = in.getInt();
-    myFractionalClocks = double(in.getInt()) / 100000000.0;
+    // Get audio cycles and fractional clocks
+    myAudioCycles = in.getLong();
+    myFractionalClocks = in.getDouble();
+
+    // Clock info for Thumbulator
+    myARMCycles = in.getLong();
   }
   catch(...)
   {
@@ -753,7 +749,7 @@ bool CartridgeDPCPlus::load(Serializer& in)
   }
 
   // Now, go to the current bank
-  bank(myCurrentBank);
+  bank(myBankOffset >> 12);
 
   return true;
 }

@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Switches.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef SWITCHES_HXX
@@ -22,6 +20,7 @@
 
 class Event;
 class Properties;
+class Settings;
 
 #include "Serializable.hxx"
 #include "bspf.hxx"
@@ -30,7 +29,6 @@ class Properties;
   This class represents the console switches of the game console.
 
   @author  Bradford W. Mott
-  @version $Id: Switches.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class Switches : public Serializable
 {
@@ -42,23 +40,25 @@ class Switches : public Serializable
   public:
     /**
       Create a new set of switches using the specified events and
-      properties
+      properties.
 
       @param event The event object to use for events
+      @param props The ROM properties to use for the currently enabled ROM
+      @param settings The settings used by the system
     */
-    Switches(const Event& event, const Properties& properties);
+    Switches(const Event& event, const Properties& props, const Settings& settings);
     virtual ~Switches() = default;
 
   public:
     /**
-      Get the value of the console switches
+      Get the value of the console switches.
 
       @return The 8 bits which represent the state of the console switches
     */
     uInt8 read() const { return mySwitches; }
 
     /**
-      Update the switches variable
+      Update the switches variable.
     */
     void update();
 
@@ -106,12 +106,22 @@ class Switches : public Serializable
     */
     bool rightDifficultyA() const { return mySwitches & 0x80; }
 
+    /**
+      Toggle between 2600 and 7800 mode depending on settings.
+
+      @return  True if 7800 mode enabled, else false
+    */
+    bool toggle7800Mode(const Settings& settings);
+
   private:
     // Reference to the event object to use
     const Event& myEvent;
 
     // State of the console switches
     uInt8 mySwitches;
+
+    // Are we in 7800 or 2600 mode?
+    bool myIs7800;
 
   private:
     // Following constructors and assignment operators not supported

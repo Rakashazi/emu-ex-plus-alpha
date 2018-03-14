@@ -2,7 +2,7 @@
 
 #include <stella/emucore/TIASnd.hxx>
 #include <stella/emucore/Sound.hxx>
-#include "OSystem.hxx"
+#include <OSystem.hxx>
 
 // Based on the Stella SDL sound class
 
@@ -11,7 +11,7 @@ class SoundGeneric : public Sound
 	TIASound myTIASound;
 
 	// Indicates the cycle when a sound register was last set
-	Int32 myLastRegisterSetCycle;
+	uInt64 myLastRegisterSetCycle;
 
 	// Struct to hold information regarding a TIA sound register write
 	struct RegWrite
@@ -94,8 +94,6 @@ public:
 
 	void setEnabled(bool enable) {}
 
-	void adjustCycleCounter(Int32 amount);
-
 	void setChannels(uInt32 channels) {}
 
 	void setFrameRate(float framerate) {}
@@ -115,7 +113,7 @@ public:
 
 	void reset();
 
-	void set(uInt16 addr, uInt8 value, Int32 cycle);
+	void set(uInt16 addr, uInt8 value, uInt64 cycle) final;
 
 	void setVolume(Int32 percent) {}
 

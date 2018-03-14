@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Thumbulator.hxx 3290 2016-02-27 19:58:20Z stephena $
 //============================================================================
 
 //============================================================================
@@ -24,12 +22,20 @@
 // Code is public domain and used with the author's consent
 //============================================================================
 
-#ifdef THUMB_SUPPORT
-
 #ifndef THUMBULATOR_HXX
 #define THUMBULATOR_HXX
 
+class Cartridge;
+
+// FIXME - This code has many instances of shifting into signed integers
+//         Perhaps the int's should be changed to uInt32
+#ifdef __clang__
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wshift-sign-overflow"
+#endif
+
 #include "bspf.hxx"
+#include "Console.hxx"
 
 #define ROMADDMASK 0x7FFF
 #define RAMADDMASK 0x1FFF
@@ -45,7 +51,17 @@
 class Thumbulator
 {
   public:
-    Thumbulator(const uInt16* rom, uInt16* ram, bool traponfatal);
+    // control cartridge specific features of the Thumbulator class,
+    // such as the start location for calling custom code
+    enum ConfigureFor {
+      BUS,      // cartridges of type BUS
+      CDF,      // cartridges of type CDF
+      CDF1,     // cartridges of type CDF version 1
+      DPCplus   // cartridges of type DPC+
+    };
+
+    Thumbulator(const uInt16* rom, uInt16* ram, bool traponfatal,
+                Thumbulator::ConfigureFor configurefor, Cartridge* cartridge);
 
     /**
       Run the ARM code, and return when finished.  A runtime_error exception is
@@ -56,6 +72,7 @@ class Thumbulator
                otherwise an empty string
     */
     string run();
+    string run(uInt32 cycles);
 
     /**
       Normally when a fatal error is encountered, the ARM emulation
@@ -71,6 +88,13 @@ class Thumbulator
     */
     static void trapFatalErrors(bool enable) { trapOnFatal = enable; }
 
+    /**
+      Inform the Thumbulator class about the console currently in use,
+      which is used to accurately determine how many 6507 cycles have
+      passed while ARM code is being executed.
+    */
+    void setConsoleTiming(ConsoleTiming timing);
+
   private:
     uInt32 read_register(uInt32 reg);
     void write_register(uInt32 reg, uInt32 data);
@@ -78,8 +102,10 @@ class Thumbulator
     uInt32 fetch32(uInt32 addr);
     uInt32 read16(uInt32 addr);
     uInt32 read32(uInt32 addr);
+    bool isProtected(uInt32 addr);
     void write16(uInt32 addr, uInt32 data);
     void write32(uInt32 addr, uInt32 data);
+    void updateTimer(uInt32 cycles);
 
     void do_zflag(uInt32 x);
     void do_nflag(uInt32 x);
@@ -109,9 +135,20 @@ class Thumbulator
     uInt32 systick_ctrl, systick_reload, systick_count, systick_calibrate;
     uInt64 instructions, fetches, reads, writes, systick_ints;
 
+    // For emulation of LPC2103's timer 1, used for NTSC/PAL/SECAM detection.
+    // Register names from documentation:
+    // http://www.nxp.com/documents/user_manual/UM10161.pdf
+    uInt32 T1TCR;  // Timer 1 Timer Control Register
+    uInt32 T1TC;   // Timer 1 Timer Counter
+    double timing_factor;
+
     ostringstream statusMsg;
 
     static bool trapOnFatal;
+
+    ConfigureFor configuration;
+
+    Cartridge* myCartridge;
 
   private:
     // Following constructors and assignment operators not supported
@@ -123,5 +160,3 @@ class Thumbulator
 };
 
 #endif  // THUMBULATOR_HXX
-
-#endif

@@ -21,7 +21,51 @@
 #undef BytePtr
 #undef Debugger
 #undef HAVE_UNISTD_H
+#ifdef Success
+#undef Success // conflict with macro in X11 headers
+#endif
 #include "internal.hh"
+
+class CustomVideoOptionView : public VideoOptionView
+{
+	TextMenuItem tvPhosphorBlendItem[4]
+	{
+		{"70%", []() { setTVPhosphorBlend(70); }},
+		{"80%", []() { setTVPhosphorBlend(80); }},
+		{"90%", []() { setTVPhosphorBlend(90); }},
+		{"100%", []() { setTVPhosphorBlend(100); }},
+	};
+
+	MultiChoiceMenuItem tvPhosphorBlend
+	{
+		"TV Phosphor Blending",
+		[]()
+		{
+			switch(optionTVPhosphorBlend)
+			{
+				case 70: return 0;
+				default: return 1;
+				case 90: return 2;
+				case 100: return 3;
+			}
+		}(),
+		tvPhosphorBlendItem
+	};
+
+	static void setTVPhosphorBlend(uint val)
+	{
+		optionTVPhosphorBlend = val;
+		setRuntimeTVPhosphor(optionTVPhosphor, val);
+	}
+
+public:
+	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&systemSpecificHeading);
+		item.emplace_back(&tvPhosphorBlend);
+	}
+};
 
 class ConsoleOptionView : public TableView
 {
@@ -39,7 +83,7 @@ class ConsoleOptionView : public TableView
 		{
 			if(idx == 2)
 			{
-				bool phospherInUse = osystem.console().properties().get(Display_Phosphor) == "YES";
+				bool phospherInUse = osystem->console().properties().get(Display_Phosphor) == "YES";
 				return phospherInUse ? "On" : "Off";
 			}
 			else
@@ -67,7 +111,7 @@ class ConsoleOptionView : public TableView
 		{
 			if(idx == 0)
 			{
-				return osystem.console().about().DisplayFormat.c_str();
+				return osystem->console().about().DisplayFormat.c_str();
 			}
 			else
 				return nullptr;
@@ -80,7 +124,7 @@ class ConsoleOptionView : public TableView
 	{
 		EmuSystem::sessionOptionSet();
 		optionTVPhosphor = val;
-		setRuntimeTVPhosphor(val);
+		setRuntimeTVPhosphor(val, optionTVPhosphorBlend);
 	}
 
 	void setVideoSystem(int val, Input::Event e)
@@ -209,6 +253,7 @@ View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
+		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
 		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
 		default: return nullptr;
 	}

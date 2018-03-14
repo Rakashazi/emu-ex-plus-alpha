@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Props.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #include <cctype>
@@ -68,10 +66,8 @@ void Properties::set(PropertyType key, const string& value)
       case Display_PPBlend:
       {
         int blend = atoi(myProperties[key].c_str());
-        if(blend < 0 || blend > 100) blend = 77;
-        ostringstream buf;
-        buf << blend;
-        myProperties[key] = buf.str();
+        if(blend < 1 || blend > 100)
+          myProperties[key] = ourDefaultProperties[key];
         break;
       }
 
@@ -108,7 +104,7 @@ istream& operator>>(istream& is, Properties& p)
     if(!is)
       return is;
 
-    // Set the property 
+    // Set the property
     PropertyType type = Properties::getPropertyType(key);
     p.set(type, value);
   }
@@ -196,7 +192,7 @@ void Properties::writeQuotedString(ostream& out, const string& s)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Properties::operator == (const Properties& properties) const
+bool Properties::operator==(const Properties& properties) const
 {
   for(int i = 0; i < LastPropType; ++i)
     if(myProperties[i] != properties.myProperties[i])
@@ -206,13 +202,13 @@ bool Properties::operator == (const Properties& properties) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Properties::operator != (const Properties& properties) const
+bool Properties::operator!=(const Properties& properties) const
 {
   return !(*this == properties);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Properties& Properties::operator = (const Properties& properties)
+Properties& Properties::operator=(const Properties& properties)
 {
   // Do the assignment only if this isn't a self assignment
   if(this != &properties)
@@ -222,6 +218,12 @@ Properties& Properties::operator = (const Properties& properties)
   }
 
   return *this;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Properties::setDefault(PropertyType key, const string& value)
+{
+  ourDefaultProperties[key] = value;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -305,7 +307,7 @@ void Properties::printHeader()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const char* Properties::ourDefaultProperties[LastPropType] = {
+string Properties::ourDefaultProperties[LastPropType] = {
   "",          // Cartridge.MD5
   "",          // Cartridge.Manufacturer
   "",          // Cartridge.ModelNo
@@ -323,14 +325,14 @@ const char* Properties::ourDefaultProperties[LastPropType] = {
   "NO",        // Controller.SwapPaddles
   "AUTO",      // Controller.MouseAxis
   "AUTO",      // Display.Format
-  "34",        // Display.YStart
-  "210",       // Display.Height
+  "0",         // Display.YStart
+  "0",         // Display.Height
   "NO",        // Display.Phosphor
-  "77"         // Display.PPBlend
+  "0"          // Display.PPBlend
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const char* Properties::ourPropertyNames[LastPropType] = {
+const char* const Properties::ourPropertyNames[LastPropType] = {
   "Cartridge.MD5",
   "Cartridge.Manufacturer",
   "Cartridge.ModelNo",

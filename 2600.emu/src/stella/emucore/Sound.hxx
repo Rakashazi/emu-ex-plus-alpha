@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Sound.hxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #ifndef SOUND_HXX
@@ -30,7 +28,6 @@ class OSystem;
   It has no functionality whatsoever.
 
   @author Stephen Anthony
-  @version $Id: Sound.hxx 3310 2016-08-18 18:44:57Z stephena $
 */
 class Sound : public Serializable
 {
@@ -42,21 +39,13 @@ class Sound : public Serializable
     Sound(OSystem& osystem) : myOSystem(osystem) { }
     virtual ~Sound() = default;
 
-  public: 
+  public:
     /**
       Enables/disables the sound subsystem.
 
       @param enable  Either true or false, to enable or disable the sound system
     */
     virtual void setEnabled(bool enable) = 0;
-
-    /**
-      The system cycle counter is being adjusting by the specified amount.  Any
-      members using the system cycle counter should be adjusted as needed.
-
-      @param amount The amount the cycle counter is being adjusted by
-    */
-    virtual void adjustCycleCounter(Int32 amount) = 0;
 
     /**
       Sets the number of channels (mono or stereo sound).
@@ -104,7 +93,7 @@ class Sound : public Serializable
       @param value The value to save into the register
       @param cycle The system cycle at which the register is being updated
     */
-    virtual void set(uInt16 addr, uInt8 value, Int32 cycle) = 0;
+    virtual void set(uInt16 addr, uInt8 value, uInt64 cycle) = 0;
 
     /**
       Sets the volume of the sound device to the specified level.  The

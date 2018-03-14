@@ -1,26 +1,23 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Driving.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef DRIVING_HXX
 #define DRIVING_HXX
 
-#include "bspf.hxx"
 #include "Control.hxx"
 #include "Event.hxx"
 
@@ -28,13 +25,12 @@
   The standard Atari 2600 Indy 500 driving controller.
 
   @author  Bradford W. Mott
-  @version $Id: Driving.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class Driving : public Controller
 {
   public:
     /**
-      Create a new Indy 500 driving controller plugged into 
+      Create a new Indy 500 driving controller plugged into
       the specified jack
 
       @param jack   The jack the controller is plugged into

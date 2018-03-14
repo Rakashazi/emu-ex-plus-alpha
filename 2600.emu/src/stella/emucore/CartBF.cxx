@@ -8,25 +8,24 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartBF.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
 #include "CartBF.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeBF::CartridgeBF(const uInt8* image, uInt32 size, const Settings& settings)
+CartridgeBF::CartridgeBF(const BytePtr& image, uInt32 size,
+                         const Settings& settings)
   : Cartridge(settings),
-    myCurrentBank(0)
+    myBankOffset(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, std::min(262144u, size));
+  memcpy(myImage, image.get(), std::min(262144u, size));
   createCodeAccessBase(262144);
 
   // Remember startup bank
@@ -52,18 +51,22 @@ void CartridgeBF::install(System& system)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeBF::peek(uInt16 address)
 {
+  // Due to the way addressing is set up, we will only get here if the
+  // address is in the hotspot range ($1F80 - $1FFF)
   address &= 0x0FFF;
 
   // Switch banks if necessary
   if((address >= 0x0F80) && (address <= 0x0FBF))
     bank(address - 0x0F80);
 
-  return myImage[(myCurrentBank << 12) + address];
+  return myImage[myBankOffset + address];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeBF::poke(uInt16 address, uInt8)
 {
+  // Due to the way addressing is set up, we will only get here if the
+  // address is in the hotspot range ($1F80 - $1FFF)
   address &= 0x0FFF;
 
   // Switch banks if necessary
@@ -79,26 +82,25 @@ bool CartridgeBF::bank(uInt16 bank)
   if(bankLocked()) return false;
 
   // Remember what bank we're in
-  myCurrentBank = bank;
-  uInt32 offset = myCurrentBank << 12;
+  myBankOffset = bank << 12;
 
   System::PageAccess access(this, System::PA_READ);
 
   // Set the page accessing methods for the hot spots
-  for(uInt32 i = (0x1F80 & ~System::PAGE_MASK); i < 0x2000;
-      i += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = (0x1F80 & ~System::PAGE_MASK); addr < 0x2000;
+      addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (i & 0x0FFF)];
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
 
   // Setup the page access methods for the current bank
-  for(uInt32 address = 0x1000; address < (0x1F80U & ~System::PAGE_MASK);
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < (0x1F80U & ~System::PAGE_MASK);
+      addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
 }
@@ -106,7 +108,7 @@ bool CartridgeBF::bank(uInt16 bank)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeBF::getBank() const
 {
-  return myCurrentBank;
+  return myBankOffset >> 12;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,14 +120,14 @@ uInt16 CartridgeBF::bankCount() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeBF::patch(uInt16 address, uInt8 value)
 {
-  myImage[(myCurrentBank << 12) + (address & 0x0FFF)] = value;
+  myImage[myBankOffset + (address & 0x0FFF)] = value;
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeBF::getImage(int& size) const
+const uInt8* CartridgeBF::getImage(uInt32& size) const
 {
-  size = 262144;
+  size = 64 * 4096;
   return myImage;
 }
 
@@ -135,7 +137,7 @@ bool CartridgeBF::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putShort(myCurrentBank);
+    out.putInt(myBankOffset);
   }
   catch(...)
   {
@@ -154,7 +156,7 @@ bool CartridgeBF::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = in.getShort();
+    myBankOffset = in.getInt();
   }
   catch(...)
   {
@@ -163,7 +165,7 @@ bool CartridgeBF::load(Serializer& in)
   }
 
   // Remember what bank we were in
-  bank(myCurrentBank);
+  bank(myBankOffset >> 12);
 
   return true;
 }

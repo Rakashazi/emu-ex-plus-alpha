@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: DialogContainer.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef DIALOG_CONTAINER_HXX
@@ -22,22 +20,22 @@
 
 class Dialog;
 class OSystem;
+class EventHandler;
 
-#include "EventHandler.hxx"
+#include "EventHandlerConstants.hxx"
+#include "StellaKeys.hxx"
 #include "Stack.hxx"
 #include "bspf.hxx"
-
 
 /**
   The base class for groups of dialog boxes.  Each dialog box has a
   parent.  In most cases, the parent is itself a dialog box, but in the
   case of the lower-most dialog box, this class is its parent.
-  
+
   This class keeps track of its children (dialog boxes), organizes them into
   a stack, and handles their events.
 
   @author  Stephen Anthony
-  @version $Id: DialogContainer.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class DialogContainer
 {
@@ -79,20 +77,20 @@ class DialogContainer
     /**
       Handle a mouse motion event.
 
-      @param x      The x location
-      @param y      The y location
-      @param button The currently pressed button
+      @param x  The x location
+      @param y  The y location
     */
-    void handleMouseMotionEvent(int x, int y, int button);
+    void handleMouseMotionEvent(int x, int y);
 
     /**
       Handle a mouse button event.
 
-      @param b     The mouse button
-      @param x     The x location
-      @param y     The y location
+      @param b        The mouse button
+      @param pressed  Whether the button was pressed (true) or released (false)
+      @param x        The x location
+      @param y        The y location
     */
-    void handleMouseButtonEvent(MouseButton b, int x, int y);
+    void handleMouseButtonEvent(MouseButton b, bool pressed, int x, int y);
 
     /**
       Handle a joystick button event.
@@ -136,6 +134,14 @@ class DialogContainer
     */
     const Dialog* baseDialog() const { return myBaseDialog; }
 
+    /**
+      Inform the container that it should resize according to the current
+      screen dimensions.  We make this virtual, since the container may or
+      may not choose to do a resize, and even if it does, *how* it does it
+      is determined by the specific container.
+    */
+    virtual void requestResize() { }
+
   private:
     void reset();
 
@@ -175,10 +181,10 @@ class DialogContainer
     struct {
       int x;
       int y;
-      int button;
+      MouseButton b;
     } myCurrentMouseDown;
     uInt64 myClickRepeatTime;
-	
+
     // For continuous 'joy button down' events
     struct {
       int stick;
@@ -198,7 +204,7 @@ class DialogContainer
     struct {
       int stick;
       int hat;
-      int value;
+      JoyHat value;
     } myCurrentHatDown;
     uInt64 myHatRepeatTime;
 

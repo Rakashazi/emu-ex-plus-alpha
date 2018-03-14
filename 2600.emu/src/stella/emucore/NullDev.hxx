@@ -8,13 +8,11 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: NullDev.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef NULLDEVICE_HXX
@@ -28,10 +26,9 @@ class System;
 /**
   Class that represents a "null" device.  The basic idea is that a
   null device is installed in a 6502 based system anywhere there are
-  holes in the address space (i.e. no real device attached). 
+  holes in the address space (i.e. no real device attached).
 
   @author  Bradford W. Mott
-  @version $Id: NullDev.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class NullDevice : public Device
 {
@@ -82,7 +79,7 @@ class NullDevice : public Device
 
       @return The byte at the specified address
     */
-    uInt8 peek(uInt16 address) override { 
+    uInt8 peek(uInt16 address) override {
       cerr << "NullDevice: peek(" << address << ")\n";
       return 0;
     }

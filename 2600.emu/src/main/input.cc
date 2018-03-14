@@ -20,7 +20,11 @@
 #include <emuframework/EmuInput.hh>
 #undef BytePtr
 #undef Debugger
+#ifdef Success
+#undef Success // conflict with macro in X11 headers
+#endif
 #include "internal.hh"
+#include <EventHandler.hxx>
 
 enum
 {
@@ -65,7 +69,7 @@ const uint EmuSystem::maxPlayers = 2;
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
-	Event &ev = osystem.eventHandler().event();
+	Event &ev = osystem->eventHandler().event();
 	ev.clear();
 
 	ev.set(Event::ConsoleLeftDiffB, p1DiffB);
@@ -142,7 +146,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	auto &ev = osystem.eventHandler().event();
+	auto &ev = osystem->eventHandler().event();
 	uint event1 = emuKey & 0xFF;
 
 	//logMsg("got key %d", emuKey);

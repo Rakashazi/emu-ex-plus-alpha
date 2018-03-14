@@ -8,25 +8,24 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartEFSC.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
 #include "CartEFSC.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeEFSC::CartridgeEFSC(const uInt8* image, uInt32 size, const Settings& settings)
+CartridgeEFSC::CartridgeEFSC(const BytePtr& image, uInt32 size,
+                             const Settings& settings)
   : Cartridge(settings),
-    myCurrentBank(0)
+    myBankOffset(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, std::min(65536u, size));
+  memcpy(myImage, image.get(), std::min(65536u, size));
   createCodeAccessBase(65536);
 
   // Remember startup bank
@@ -51,21 +50,21 @@ void CartridgeEFSC::install(System& system)
 
   // Set the page accessing method for the RAM writing pages
   access.type = System::PA_WRITE;
-  for(uInt32 j = 0x1000; j < 0x1080; j += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < 0x1080; addr += System::PAGE_SIZE)
   {
-    access.directPokeBase = &myRAM[j & 0x007F];
-    access.codeAccessBase = &myCodeAccessBase[j & 0x007F];
-    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
+    access.directPokeBase = &myRAM[addr & 0x007F];
+    access.codeAccessBase = &myCodeAccessBase[addr & 0x007F];
+    mySystem->setPageAccess(addr, access);
   }
 
   // Set the page accessing method for the RAM reading pages
-  access.directPokeBase = 0;
+  access.directPokeBase = nullptr;
   access.type = System::PA_READ;
-  for(uInt32 k = 0x1080; k < 0x1100; k += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1080; addr < 0x1100; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myRAM[k & 0x007F];
-    access.codeAccessBase = &myCodeAccessBase[0x80 + (k & 0x007F)];
-    mySystem->setPageAccess(k >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myRAM[addr & 0x007F];
+    access.codeAccessBase = &myCodeAccessBase[0x80 + (addr & 0x007F)];
+    mySystem->setPageAccess(addr, access);
   }
 
   // Install pages for the startup bank
@@ -96,7 +95,7 @@ uInt8 CartridgeEFSC::peek(uInt16 address)
     }
   }
   else
-    return myImage[(myCurrentBank << 12) + address];
+    return myImage[myBankOffset + address];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -120,26 +119,25 @@ bool CartridgeEFSC::bank(uInt16 bank)
   if(bankLocked()) return false;
 
   // Remember what bank we're in
-  myCurrentBank = bank;
-  uInt16 offset = myCurrentBank << 12;
+  myBankOffset = bank << 12;
 
   System::PageAccess access(this, System::PA_READ);
 
   // Set the page accessing methods for the hot spots
-  for(uInt32 i = (0x1FE0 & ~System::PAGE_MASK); i < 0x2000;
-      i += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = (0x1FE0 & ~System::PAGE_MASK); addr < 0x2000;
+      addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (i & 0x0FFF)];
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
 
   // Setup the page access methods for the current bank
-  for(uInt32 address = 0x1100; address < (0x1FE0U & ~System::PAGE_MASK);
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1100; addr < (0x1FE0U & ~System::PAGE_MASK);
+      addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
 }
@@ -147,7 +145,7 @@ bool CartridgeEFSC::bank(uInt16 bank)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeEFSC::getBank() const
 {
-  return myCurrentBank;
+  return myBankOffset >> 12;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -169,13 +167,13 @@ bool CartridgeEFSC::patch(uInt16 address, uInt8 value)
     myRAM[address & 0x007F] = value;
   }
   else
-    myImage[(myCurrentBank << 12) + address] = value;
+    myImage[myBankOffset + address] = value;
 
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeEFSC::getImage(int& size) const
+const uInt8* CartridgeEFSC::getImage(uInt32& size) const
 {
   size = 65536;
   return myImage;
@@ -187,7 +185,7 @@ bool CartridgeEFSC::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putShort(myCurrentBank);
+    out.putShort(myBankOffset);
     out.putByteArray(myRAM, 128);
   }
   catch(...)
@@ -207,7 +205,7 @@ bool CartridgeEFSC::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = in.getShort();
+    myBankOffset = in.getShort();
     in.getByteArray(myRAM, 128);
   }
   catch(...)
@@ -217,7 +215,7 @@ bool CartridgeEFSC::load(Serializer& in)
   }
 
   // Remember what bank we were in
-  bank(myCurrentBank);
+  bank(myBankOffset >> 12);
 
   return true;
 }

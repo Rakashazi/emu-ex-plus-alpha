@@ -1,31 +1,30 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartE0.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
 #include "CartE0.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeE0::CartridgeE0(const uInt8* image, uInt32 size, const Settings& settings)
+CartridgeE0::CartridgeE0(const BytePtr& image, uInt32 size,
+                         const Settings& settings)
   : Cartridge(settings)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, std::min(8192u, size));
+  memcpy(myImage, image.get(), std::min(8192u, size));
   createCodeAccessBase(8192);
 }
 
@@ -33,9 +32,19 @@ CartridgeE0::CartridgeE0(const uInt8* image, uInt32 size, const Settings& settin
 void CartridgeE0::reset()
 {
   // Setup segments to some default slices
-  segmentZero(4);
-  segmentOne(5);
-  segmentTwo(6);
+  if(randomStartBank())
+  {
+    segmentZero(mySystem->randGenerator().next() % 8);
+    segmentOne(mySystem->randGenerator().next() % 8);
+    segmentTwo(mySystem->randGenerator().next() % 8);
+  }
+  else
+  {
+    segmentZero(4);
+    segmentOne(5);
+    segmentTwo(6);
+  }
+  myCurrentSlice[3] = 7; // fixed
 
   myBankChanged = true;
 }
@@ -48,27 +57,21 @@ void CartridgeE0::install(System& system)
   System::PageAccess access(this, System::PA_READ);
 
   // Set the page acessing methods for the first part of the last segment
-  for(uInt32 i = 0x1C00; i < (0x1FE0U & ~System::PAGE_MASK);
-      i += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1C00; addr < (0x1FE0U & ~System::PAGE_MASK);
+      addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[7168 + (i & 0x03FF)];
-    access.codeAccessBase = &myCodeAccessBase[7168 + (i & 0x03FF)];
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[7168 + (addr & 0x03FF)];
+    access.codeAccessBase = &myCodeAccessBase[7168 + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
-  myCurrentSlice[3] = 7;
 
   // Set the page accessing methods for the hot spots in the last segment
-  access.directPeekBase = 0;
+  access.directPeekBase = nullptr;
   access.codeAccessBase = &myCodeAccessBase[8128];
   access.type = System::PA_READ;
-  for(uInt32 j = (0x1FE0 & ~System::PAGE_MASK); j < 0x2000;
-      j += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(j >> System::PAGE_SHIFT, access);
-
-  // Install some default slices for the other segments
-  segmentZero(4);
-  segmentOne(5);
-  segmentTwo(6);
+  for(uInt16 addr = (0x1FE0 & ~System::PAGE_MASK); addr < 0x2000;
+      addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -126,12 +129,11 @@ void CartridgeE0::segmentZero(uInt16 slice)
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1000; address < 0x1400;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < 0x1400; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x03FF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[offset + (addr & 0x03FF)];
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myBankChanged = true;
 }
@@ -148,11 +150,11 @@ void CartridgeE0::segmentOne(uInt16 slice)
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1400; address < 0x1800; address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x03FF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[offset + (addr & 0x03FF)];
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myBankChanged = true;
 }
@@ -169,12 +171,11 @@ void CartridgeE0::segmentTwo(uInt16 slice)
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1800; address < 0x1C00;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1800; addr < 0x1C00; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x03FF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[offset + (addr & 0x03FF)];
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myBankChanged = true;
 }
@@ -188,7 +189,7 @@ bool CartridgeE0::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeE0::getImage(int& size) const
+const uInt8* CartridgeE0::getImage(uInt32& size) const
 {
   size = 8192;
   return myImage;

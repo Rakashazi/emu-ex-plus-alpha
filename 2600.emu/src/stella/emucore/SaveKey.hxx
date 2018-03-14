@@ -1,27 +1,26 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: SaveKey.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef SAVEKEY_HXX
 #define SAVEKEY_HXX
 
+class MT24LC256;
+
 #include "Control.hxx"
-#include "MT24LC256.hxx"
 
 /**
   Richard Hutchinson's SaveKey "controller", consisting of a 32KB EEPROM
@@ -31,12 +30,9 @@
   driver code.
 
   @author  Stephen Anthony
-  @version $Id: SaveKey.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class SaveKey : public Controller
 {
-  friend class SaveKeyWidget;
-
   public:
     /**
       Create a new SaveKey controller plugged into the specified jack
@@ -48,7 +44,15 @@ class SaveKey : public Controller
     */
     SaveKey(Jack jack, const Event& event, const System& system,
             const string& eepromfile);
-    virtual ~SaveKey() = default;
+    virtual ~SaveKey();
+
+  protected:
+    /**
+      Delegating constructor currently used by both this class and classes
+      that inherit from SaveKey (currently, AtariVox)
+    */
+    SaveKey(Jack jack, const Event& event, const System& system,
+            const string& eepromfile, Type type);
 
   public:
     using Controller::read;
@@ -78,11 +82,25 @@ class SaveKey : public Controller
     void update() override { }
 
     /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary 
-      to override this method for devices that remember cycle counts.
+      Notification method invoked by the system after its reset method has
+      been called.  It may be necessary to override this method for
+      controllers that need to know a reset has occurred.
     */
-    void systemCyclesReset() override;
+    void reset() override;
+
+    /**
+      Force the EEPROM object to cleanup
+    */
+    void close() override;
+
+    /** Erase entire EEPROM to known state ($FF) */
+    void eraseAll();
+
+    /** Erase the pages used by the current ROM to known state ($FF) */
+    void eraseCurrent();
+
+    /** Returns true if the page is used by the current ROM */
+    bool isPageUsed(const uInt32 page) const;
 
   private:
     // The EEPROM used in the SaveKey

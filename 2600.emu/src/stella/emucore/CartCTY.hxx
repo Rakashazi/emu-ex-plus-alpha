@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartCTY.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECHETIRY_HXX
@@ -29,6 +27,8 @@ class System;
 #endif
 
 /**
+  FIXME: This scheme is not yet fully implemented.
+
   The 'Chetiry' bankswitch scheme was developed by Chris D. Walton for a
   Tetris clone game by the same name.  It makes use of a Harmony cart,
   whereby ARM code in bank 0 is executed to implement the bankswitch scheme.
@@ -88,7 +88,7 @@ class System;
 
   DPC+:
     The music functionality is quite similar to the DPC+ scheme.
-    
+
     Fast Fetcher
       The music frequency value is fetched using a fast fetcher operation.
       This operation is aliased to the instruction "LDA #$F2". Whenever this
@@ -108,7 +108,6 @@ class System;
       non-zero value.
 
   @author  Stephen Anthony and Chris D. Walton
-  @version $Id: CartCTY.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeCTY : public Cartridge
 {
@@ -122,7 +121,7 @@ class CartridgeCTY : public Cartridge
       @param size      The size of the ROM image
       @param osystem   A reference to the OSystem currently in use
     */
-    CartridgeCTY(const uInt8* image, uInt32 size, const OSystem& osystem);
+    CartridgeCTY(const BytePtr& image, uInt32 size, const OSystem& osystem);
     virtual ~CartridgeCTY() = default;
 
   public:
@@ -130,13 +129,6 @@ class CartridgeCTY : public Cartridge
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary
-      to override this method for devices that remember cycle counts.
-    */
-    void systemCyclesReset() override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -178,7 +170,7 @@ class CartridgeCTY : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -258,7 +250,7 @@ class CartridgeCTY : public Cartridge
     void saveScore(uInt8 index);
     void wipeAllScores();
 
-    /** 
+    /**
       Updates any data fetchers in music mode based on the number of
       CPU cycles which have passed since the last update.
     */
@@ -300,14 +292,14 @@ class CartridgeCTY : public Cartridge
     // of internal RAM to Harmony cart EEPROM
     string myEEPROMFile;
 
-    // System cycle count when the last update to music data fetchers occurred
-    Int32 mySystemCycles;
+    // System cycle count from when the last update to music data fetchers occurred
+    uInt64 myAudioCycles;
 
     // Fractional DPC music OSC clocks unused during the last update
     double myFractionalClocks;
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
 
   private:
     // Following constructors and assignment operators not supported

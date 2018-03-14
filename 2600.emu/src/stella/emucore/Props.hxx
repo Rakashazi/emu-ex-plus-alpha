@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Props.hxx 3248 2016-01-16 00:13:52Z stephena $
 //============================================================================
 
 #ifndef PROPERTIES_HXX
@@ -48,15 +46,14 @@ enum PropertyType {
 };
 
 /**
-  This class represents objects which maintain a collection of 
+  This class represents objects which maintain a collection of
   properties.  A property is a key and its corresponding value.
 
   A properties object can contain a reference to another properties
-  object as its "defaults"; this second properties object is searched 
+  object as its "defaults"; this second properties object is searched
   if the property key is not found in the original property list.
 
   @author  Bradford W. Mott
-  @version $Id: Props.hxx 3248 2016-01-16 00:13:52Z stephena $
 */
 class Properties
 {
@@ -64,7 +61,7 @@ class Properties
 
   public:
     /**
-      Creates an empty properties object with the specified defaults.  The 
+      Creates an empty properties object with the specified defaults.  The
       new properties object does not claim ownership of the defaults.
     */
     Properties();
@@ -82,7 +79,7 @@ class Properties
       not exist then the empty string is returned.
 
       @param key  The key of the property to lookup
-      @return     The value of the property 
+      @return     The value of the property
     */
     const string& get(PropertyType key) const {
       return key != LastPropType ? myProperties[key] : EmptyString;
@@ -139,10 +136,18 @@ class Properties
     */
     Properties& operator = (const Properties& properties);
 
+    /**
+      Set the default value associated with key to the given value.
+
+      @param key      The key of the property to set
+      @param value    The value to assign to the property
+    */
+    static void setDefault(PropertyType key, const string& value);
+
   private:
     /**
       Helper function to perform a deep copy of the specified
-      properties.  Assumes that old properties have already been 
+      properties.  Assumes that old properties have already been
       freed.
 
       @param properties The properties object to copy myself from
@@ -155,30 +160,30 @@ class Properties
 
       @param in The input stream to use
       @return The string inside the quotes
-    */ 
+    */
     static string readQuotedString(istream& in);
-     
+
     /**
-      Write the specified string to the given output stream as a 
+      Write the specified string to the given output stream as a
       quoted string.
 
       @param out The output stream to use
       @param s The string to output
-    */ 
+    */
     static void writeQuotedString(ostream& out, const string& s);
 
     /**
       Get the property type associated with the named property
 
       @param name  The PropertyType key associated with the given string
-    */ 
+    */
     static PropertyType getPropertyType(const string& name);
 
     /**
       When printing each collection of ROM properties, it is useful to
       see which columns correspond to the output fields; this method
       provides that output.
-    */ 
+    */
     static void printHeader();
 
   private:
@@ -186,10 +191,10 @@ class Properties
     string myProperties[LastPropType];
 
     // List of default properties to use when none have been provided
-    static const char* ourDefaultProperties[LastPropType];
+    static string ourDefaultProperties[LastPropType];
 
     // The text strings associated with each property type
-    static const char* ourPropertyNames[LastPropType];
+    static const char* const ourPropertyNames[LastPropType];
 };
 
 #endif

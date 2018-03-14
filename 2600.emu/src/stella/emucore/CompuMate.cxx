@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CompuMate.cxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #include "Control.hxx"
@@ -31,13 +29,15 @@ CompuMate::CompuMate(const Console& console, const Event& event,
 {
   // These controller pointers will be retrieved by the Console, which will
   // also take ownership of them
-  myLeftController  = make_ptr<CMControl>(*this, Controller::Left, event, system);
-  myRightController = make_ptr<CMControl>(*this, Controller::Right, event, system);
+  myLeftController  = make_unique<CMControl>(*this, Controller::Left, event, system);
+  myRightController = make_unique<CMControl>(*this, Controller::Right, event, system);
 
-  myLeftController->myAnalogPinValue[Controller::Nine] = Controller::maximumResistance;
-  myLeftController->myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-  myRightController->myAnalogPinValue[Controller::Nine] = Controller::minimumResistance;
-  myRightController->myAnalogPinValue[Controller::Five] = Controller::maximumResistance;
+  myLeftController->updateAnalogPin(Controller::Nine, Controller::maximumResistance);
+  myLeftController->updateAnalogPin(Controller::Five, Controller::minimumResistance);
+  myRightController->updateAnalogPin(Controller::Nine, Controller::minimumResistance);
+  myRightController->updateAnalogPin(Controller::Five, Controller::maximumResistance);
+
+  enableKeyHandling(false);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,7 +76,7 @@ void CompuMate::update()
   rp.myDigitalPinState[Controller::Three] = true;
   rp.myDigitalPinState[Controller::Four] = true;
 
-  switch(myColumn)  // This is updated outside the class
+  switch(myColumn)  // This is updated inside CartCM class
   {
     case 0:
       if (myKeyTable[KBDK_7]) lp.myDigitalPinState[Controller::Six] = false;
@@ -195,5 +195,15 @@ void CompuMate::update()
       break;
     default:
       break;
+  }
+
+  if (lp.myOnAnalogPinUpdateCallback) {
+    lp.myOnAnalogPinUpdateCallback(Controller::Five);
+    lp.myOnAnalogPinUpdateCallback(Controller::Nine);
+  }
+
+  if (rp.myOnAnalogPinUpdateCallback) {
+    rp.myOnAnalogPinUpdateCallback(Controller::Five);
+    rp.myOnAnalogPinUpdateCallback(Controller::Nine);
   }
 }

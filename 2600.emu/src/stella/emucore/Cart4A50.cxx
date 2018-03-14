@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Cart4A50.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
@@ -23,7 +21,7 @@
 #include "Cart4A50.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge4A50::Cartridge4A50(const uInt8* image, uInt32 size,
+Cartridge4A50::Cartridge4A50(const BytePtr& image, uInt32 size,
                              const Settings& settings)
   : Cartridge(settings),
     mySize(size),
@@ -42,7 +40,7 @@ Cartridge4A50::Cartridge4A50(const uInt8* image, uInt32 size,
   else if(size < 131072)  size = 65536;
   else                    size = 131072;
   for(uInt32 slice = 0; slice < 131072 / size; ++slice)
-    memcpy(myImage + (slice*size), image, size);
+    memcpy(myImage + (slice*size), image.get(), size);
 
   // We use System::PageAccess.codeAccessBase, but don't allow its use
   // through a pointer, since the address space of 4A50 carts can change
@@ -75,13 +73,13 @@ void Cartridge4A50::install(System& system)
 
   // Map all of the accesses to call peek and poke (We don't yet indicate RAM areas)
   System::PageAccess access(this, System::PA_READ);
-  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+  for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 
   // Mirror all access in TIA and RIOT; by doing so we're taking responsibility
   // for that address space in peek and poke below.
-  mySystem->tia().install(system, *this);
-  mySystem->m6532().install(system, *this);
+  mySystem->tia().installDelegate(system, *this);
+  mySystem->m6532().installDelegate(system, *this);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -358,7 +356,7 @@ bool Cartridge4A50::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* Cartridge4A50::getImage(int& size) const
+const uInt8* Cartridge4A50::getImage(uInt32& size) const
 {
   size = mySize;
   return myImage;

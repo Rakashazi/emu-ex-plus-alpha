@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartE0.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEE0_HXX
@@ -29,20 +27,19 @@ class System;
 #endif
 
 /**
-  This is the cartridge class for Parker Brothers' 8K games.  In 
-  this bankswitching scheme the 2600's 4K cartridge address space 
+  This is the cartridge class for Parker Brothers' 8K games.  In
+  this bankswitching scheme the 2600's 4K cartridge address space
   is broken into four 1K segments.  The desired 1K slice of the
-  ROM is selected by accessing 1FE0 to 1FE7 for the first 1K.
-  1FE8 to 1FEF selects the slice for the second 1K, and 1FF0 to 
-  1FF7 selects the slice for the third 1K.  The last 1K segment 
+  ROM is selected by accessing $1FE0 to $1FE7 for the first 1K.
+  $1FE8 to $1FEF selects the slice for the second 1K, and $1FF0 to
+  $1FF7 selects the slice for the third 1K.  The last 1K segment
   always points to the last 1K of the ROM image.
-  
+
   Because of the complexity of this scheme, the cart reports having
   only one actual bank, in which pieces of it can be swapped out in
   many different ways.
 
   @author  Bradford W. Mott
-  @version $Id: CartE0.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeE0 : public Cartridge
 {
@@ -56,7 +53,7 @@ class CartridgeE0 : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeE0(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeE0(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeE0() = default;
 
   public:
@@ -88,7 +85,7 @@ class CartridgeE0 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.

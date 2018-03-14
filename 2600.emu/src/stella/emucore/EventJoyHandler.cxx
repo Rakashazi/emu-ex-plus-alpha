@@ -8,16 +8,13 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: EventJoyHandler.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
-#include <sstream>
 #include <map>
 
 #include "OSystem.hxx"
@@ -140,7 +137,7 @@ bool EventHandler::StellaJoystick::setMap(const string& mapString)
   if(int(map.size()) == numAxes * 2 * kNumModes)
   {
     // Fill the axes table with events
-    auto event = map.begin();
+    auto event = map.cbegin();
     for(int m = 0; m < kNumModes; ++m)
       for(int a = 0; a < numAxes; ++a)
         for(int k = 0; k < 2; ++k)
@@ -149,7 +146,7 @@ bool EventHandler::StellaJoystick::setMap(const string& mapString)
   getValues(items[2], map);
   if(int(map.size()) == numButtons * kNumModes)
   {
-    auto event = map.begin();
+    auto event = map.cbegin();
     for(int m = 0; m < kNumModes; ++m)
       for(int b = 0; b < numButtons; ++b)
         btnTable[b][m] = Event::Type(*event++);
@@ -157,7 +154,7 @@ bool EventHandler::StellaJoystick::setMap(const string& mapString)
   getValues(items[3], map);
   if(int(map.size()) == numHats * 4 * kNumModes)
   {
-    auto event = map.begin();
+    auto event = map.cbegin();
     for(int m = 0; m < kNumModes; ++m)
       for(int h = 0; h < numHats; ++h)
         for(int k = 0; k < 4; ++k)
@@ -252,7 +249,7 @@ EventHandler::JoystickHandler::JoystickHandler(OSystem& system)
       if(joyname.length() != 0)
       {
         StickInfo info(joymap);
-        myDatabase.insert(make_pair(joyname, info));
+        myDatabase.emplace(joyname, info);
       }
     }
   }
@@ -345,7 +342,7 @@ bool EventHandler::JoystickHandler::add(StellaJoystick* stick)
   else    // adding for the first time
   {
     StickInfo info("", stick);
-    myDatabase.insert(make_pair(stick->name, info));
+    myDatabase.emplace(stick->name, info);
     setStickDefaultMapping(stick->ID, Event::NoType, kEmulationMode);
     setStickDefaultMapping(stick->ID, Event::NoType, kMenuMode);
   }
@@ -475,7 +472,7 @@ void EventHandler::JoystickHandler::setStickDefaultMapping(int stick,
     if(eraseAll || b_event == event)
       handler.addJoyButtonMapping(b_event, mode, b_stick, b_button, false);
   };
-  auto setDefaultHat = [&](int h_stick, int h_hat, int h_dir, Event::Type h_event)
+  auto setDefaultHat = [&](int h_stick, int h_hat, JoyHat h_dir, Event::Type h_event)
   {
     if(eraseAll || h_event == event)
       handler.addJoyHatMapping(h_event, mode, h_stick, h_hat, h_dir, false);
@@ -495,11 +492,11 @@ void EventHandler::JoystickHandler::setStickDefaultMapping(int stick,
         // Left joystick (assume joystick zero, button zero)
         setDefaultBtn( 0, 0, Event::JoystickZeroFire );
         // Left joystick left/right directions (assume joystick zero and hat 0)
-        setDefaultHat( 0, 0, EVENT_HATLEFT,  Event::JoystickZeroLeft  );
-        setDefaultHat( 0, 0, EVENT_HATRIGHT, Event::JoystickZeroRight );
+        setDefaultHat( 0, 0, JoyHat::LEFT,  Event::JoystickZeroLeft  );
+        setDefaultHat( 0, 0, JoyHat::RIGHT, Event::JoystickZeroRight );
         // Left joystick up/down directions (assume joystick zero and hat 0)
-        setDefaultHat( 0, 0, EVENT_HATUP,    Event::JoystickZeroUp    );
-        setDefaultHat( 0, 0, EVENT_HATDOWN,  Event::JoystickZeroDown  );
+        setDefaultHat( 0, 0, JoyHat::UP,    Event::JoystickZeroUp    );
+        setDefaultHat( 0, 0, JoyHat::DOWN,  Event::JoystickZeroDown  );
       }
       else if(stick == 1)
       {
@@ -512,11 +509,11 @@ void EventHandler::JoystickHandler::setStickDefaultMapping(int stick,
         // Right joystick (assume joystick one, button zero)
         setDefaultBtn( 1, 0, Event::JoystickOneFire );
         // Right joystick left/right directions (assume joystick one and hat 0)
-        setDefaultHat( 1, 0, EVENT_HATLEFT,  Event::JoystickOneLeft  );
-        setDefaultHat( 1, 0, EVENT_HATRIGHT, Event::JoystickOneRight );
+        setDefaultHat( 1, 0, JoyHat::LEFT,  Event::JoystickOneLeft  );
+        setDefaultHat( 1, 0, JoyHat::RIGHT, Event::JoystickOneRight );
         // Right joystick up/down directions (assume joystick one and hat 0)
-        setDefaultHat( 1, 0, EVENT_HATUP,    Event::JoystickOneUp    );
-        setDefaultHat( 1, 0, EVENT_HATDOWN,  Event::JoystickOneDown  );
+        setDefaultHat( 1, 0, JoyHat::UP,    Event::JoystickOneUp    );
+        setDefaultHat( 1, 0, JoyHat::DOWN,  Event::JoystickOneDown  );
       }
       break;
 
@@ -531,10 +528,10 @@ void EventHandler::JoystickHandler::setStickDefaultMapping(int stick,
         // Left joystick (assume joystick zero, button zero)
         setDefaultBtn( 0, 0, Event::UISelect );
 
-        setDefaultHat( 0, 0, EVENT_HATLEFT,  Event::UILeft  );
-        setDefaultHat( 0, 0, EVENT_HATRIGHT, Event::UIRight );
-        setDefaultHat( 0, 0, EVENT_HATUP,    Event::UIUp    );
-        setDefaultHat( 0, 0, EVENT_HATDOWN,  Event::UIDown  );
+        setDefaultHat( 0, 0, JoyHat::LEFT,  Event::UILeft  );
+        setDefaultHat( 0, 0, JoyHat::RIGHT, Event::UIRight );
+        setDefaultHat( 0, 0, JoyHat::UP,    Event::UIUp    );
+        setDefaultHat( 0, 0, JoyHat::DOWN,  Event::UIDown  );
       }
       break;
 

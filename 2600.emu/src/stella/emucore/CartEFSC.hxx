@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartEFSC.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEEFSC_HXX
@@ -32,12 +30,9 @@ class System;
   Cartridge class used for Homestar Runner by Paul Slocum.
   There are 16 4K banks (total of 64K ROM) with 128 bytes of RAM.
   Accessing $1FE0 - $1FEF switches to each bank.
-
-  This interpretation is based on analysis of the z26 assembly code,
-  as this scheme doesn't seem to be documented anywhere.
+  RAM read port is $1080 - $10FF, write port is $1000 - $107F.
 
   @author  Stephen Anthony
-  @version $Id: CartEFSC.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeEFSC : public Cartridge
 {
@@ -51,7 +46,7 @@ class CartridgeEFSC : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeEFSC(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeEFSC(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeEFSC() = default;
 
   public:
@@ -100,7 +95,7 @@ class CartridgeEFSC : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -161,8 +156,8 @@ class CartridgeEFSC : public Cartridge
     // The 128 bytes of RAM
     uInt8 myRAM[128];
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
 
   private:
     // Following constructors and assignment operators not supported

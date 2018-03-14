@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: FSNode.cxx 3302 2016-04-02 23:47:46Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -32,7 +30,7 @@ FilesystemNode::FilesystemNode()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FilesystemNode::FilesystemNode(AbstractFSNode *realNode) 
+FilesystemNode::FilesystemNode(AbstractFSNode *realNode)
   : _realNode(realNode)
 {
 }
@@ -125,17 +123,17 @@ string FilesystemNode::getShortPathWithExt(const string& ext) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FilesystemNode::hasParent() const
 {
-  return _realNode ? (_realNode->getParent() != 0) : false;
+  return _realNode ? (_realNode->getParent() != nullptr) : false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FilesystemNode FilesystemNode::getParent() const
 {
-  if (_realNode == 0)
+  if (_realNode == nullptr)
     return *this;
 
   AbstractFSNode* node = _realNode->getParent();
-  return (node == 0) ? *this : FilesystemNode(node);
+  return node ? FilesystemNode(node) : *this;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -191,7 +189,7 @@ uInt32 FilesystemNode::read(BytePtr& image) const
   gzFile f = gzopen(getPath().c_str(), "rb");
   if(f)
   {
-    image = make_ptr<uInt8[]>(512 * 1024);
+    image = make_unique<uInt8[]>(512 * 1024);
     size = gzread(f, image.get(), 512 * 1024);
     gzclose(f);
 

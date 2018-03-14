@@ -23,22 +23,26 @@
 #include <emuframework/EmuAppInlines.hh>
 #undef BytePtr
 #undef Debugger
+#ifdef Success
+#undef Success // conflict with macro in X11 headers
+#endif
 #include <stella/emucore/Cart.hxx>
+#include <stella/emucore/CartDetector.hxx>
 #include <stella/emucore/Props.hxx>
 #include <stella/emucore/MD5.hxx>
 #include <stella/emucore/Sound.hxx>
 #include <stella/emucore/SerialPort.hxx>
-#include <stella/emucore/TIA.hxx>
+#include <stella/emucore/tia/TIA.hxx>
 #include <stella/emucore/Switches.hxx>
-#include <stella/emucore/StateManager.hxx>
+#include <stella/common/StateManager.hxx>
 #include <stella/emucore/PropsSet.hxx>
 #include <stella/emucore/Paddles.hxx>
+#include <EventHandler.hxx>
 #include "SoundGeneric.hh"
 #include "internal.hh"
 
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
-extern OSystem osystem;
-static StateManager stateManager{osystem};
+std::unique_ptr<OSystem> osystem{};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2018\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella.sourceforge.net";
@@ -78,13 +82,12 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *savePath, co
 
 void EmuSystem::closeSystem()
 {
-	osystem.deleteConsole();
+	osystem->deleteConsole();
 }
 
 static void updateSwitchValues()
 {
-	//assert(osystem.myConsole);
-	auto switches = osystem.console().switches().read();
+	auto switches = osystem->console().switches().read();
 	logMsg("updating switch values to %X", switches);
 	p1DiffB = !(switches & 0x40);
 	p2DiffB = !(switches & 0x80);
@@ -93,7 +96,7 @@ static void updateSwitchValues()
 
 bool EmuSystem::vidSysIsPAL()
 {
-	return osystem.settings().getFloat("framerate") == 50.0;
+	return osystem->settings().getFloat("framerate") == 50.0;
 }
 
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
@@ -110,26 +113,24 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	}
 	string md5 = MD5::hash(image, size);
 	Properties props;
-	osystem.propSet().getMD5(md5, props);
+	osystem->propSet().getMD5(md5, props);
 	defaultGameProps = props;
 	string romType = props.get(Cartridge_Type);
-	string cartId;
-	auto &settings = osystem.settings();
+	auto &settings = osystem->settings();
 	settings.setValue("romloadcount", 0);
-	auto cartridge = Cartridge::create(image, size, md5, romType, cartId, osystem, settings);
+	auto cartridge = CartDetector::create(image, size, md5, romType, *osystem);
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
 	{
 		props.set(Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
 	}
-	osystem.frameBuffer().enablePhosphor(props.get(Display_Phosphor) == "YES",
-		atoi(props.get(Display_PPBlend).c_str()));
+	osystem->frameBuffer().enablePhosphor(props.get(Display_Phosphor) == "YES", optionTVPhosphorBlend);
 	if((int)optionVideoSystem) // not auto
 	{
 		logMsg("forcing video system to: %s", optionVideoSystemToStr());
 		props.set(Display_Format, optionVideoSystemToStr());
 	}
-	osystem.makeConsole(cartridge, props);
-	auto &console = osystem.console();
+	osystem->makeConsole(cartridge, props);
+	auto &console = osystem->console();
 	settings.setValue("framerate", (int)console.getFramerate());
 	console.initializeVideo();
 	console.initializeAudio();
@@ -139,12 +140,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	osystem.soundGeneric().setFrameTime(osystem, rate, frameTime);
+	osystem->soundGeneric().setFrameTime(*osystem, rate, frameTime);
 }
 
 void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
-	auto &console = osystem.console();
+	auto &console = osystem->console();
 	console.leftController().update();
 	console.rightController().update();
 	console.switches().update();
@@ -154,12 +155,12 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	{
 		video->setFormat({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
 		auto img = video->startFrame();
-		osystem.frameBuffer().render(img.pixmap(), tia);
+		osystem->frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
 	}
 	auto frames = audioFramesPerVideoFrame;
 	Int16 buff[frames * soundChannels];
-	uint writtenFrames = osystem.soundGeneric().processAudio(buff, frames);
+	uint writtenFrames = osystem->soundGeneric().processAudio(buff, frames);
 	if(renderAudio)
 		writeSound(buff, writtenFrames);
 }
@@ -169,15 +170,15 @@ void EmuSystem::reset(ResetMode mode)
 	assert(gameIsRunning());
 	if(mode == RESET_HARD)
 	{
-		osystem.console().system().reset();
+		osystem->console().system().reset();
 	}
 	else
 	{
-		Event &ev = osystem.eventHandler().event();
+		Event &ev = osystem->eventHandler().event();
 		ev.clear();
 		ev.set(Event::ConsoleReset, 1);
-		osystem.console().switches().update();
-		TIA& tia = osystem.console().tia();
+		osystem->console().switches().update();
+		TIA& tia = osystem->console().tia();
 		tia.update();
 		ev.set(Event::ConsoleReset, 0);
 	}
@@ -186,7 +187,7 @@ void EmuSystem::reset(ResetMode mode)
 EmuSystem::Error EmuSystem::saveState(const char *path)
 {
 	Serializer state(string(path), 0);
-	if(!stateManager.saveState(state))
+	if(!osystem->state().saveState(state))
 	{
 		return makeFileWriteError();
 	}
@@ -196,7 +197,7 @@ EmuSystem::Error EmuSystem::saveState(const char *path)
 EmuSystem::Error EmuSystem::loadState(const char *path)
 {
 	Serializer state(string(path), 1);
-	if(!stateManager.loadState(state))
+	if(!osystem->state().loadState(state))
 	{
 		return makeFileReadError();
 	}
@@ -219,7 +220,8 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 EmuSystem::Error EmuSystem::onInit()
 {
-	osystem.settings().setValue("framerate", 60); // set to avoid auto-frame calculation
+	osystem = make_unique<OSystem>();
+	osystem->settings().setValue("framerate", 60); // set to avoid auto-frame calculation
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
 	EmuSystem::pcmFormat.channels = soundChannels;

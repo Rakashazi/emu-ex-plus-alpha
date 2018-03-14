@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Console.hxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #ifndef CONSOLE_HXX
@@ -33,10 +31,12 @@ class Debugger;
 #include "bspf.hxx"
 #include "Control.hxx"
 #include "Props.hxx"
-#include "TIATables.hxx"
+#include "TIAConstants.hxx"
 #include "FrameBuffer.hxx"
 #include "Serializable.hxx"
+#include "EventHandlerConstants.hxx"
 #include "NTSCFilter.hxx"
+#include "frame-manager/AbstractFrameManager.hxx"
 
 /**
   Contains detailed info about a console.
@@ -53,10 +53,19 @@ struct ConsoleInfo
 };
 
 /**
+  Contains timing information about the specified console.
+*/
+enum class ConsoleTiming
+{
+  ntsc,  // console with CPU running at 1.193182 MHz, NTSC colours
+  pal,   // console with CPU running at 1.182298 MHz, PAL colours
+  secam  // console with CPU running at 1.187500 MHz, SECAM colours
+};
+
+/**
   This class represents the entire game console.
 
   @author  Bradford W. Mott
-  @version $Id: Console.hxx 3310 2016-08-18 18:44:57Z stephena $
 */
 class Console : public Serializable
 {
@@ -67,7 +76,7 @@ class Console : public Serializable
 
       @param osystem  The OSystem object to use
       @param cart     The cartridge to use with this console
-      @param props    The properties for the cartridge  
+      @param props    The properties for the cartridge
     */
     Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
             const Properties& props);
@@ -164,6 +173,11 @@ class Console : public Serializable
     const ConsoleInfo& about() const { return myConsoleInfo; }
 
     /**
+      Timing information for this console.
+    */
+    ConsoleTiming timing() const { return myConsoleTiming; }
+
+    /**
       Set up the console to use the debugger.
     */
     void attachDebugger(Debugger& dbg);
@@ -171,7 +185,7 @@ class Console : public Serializable
     /**
       Informs the Console of a change in EventHandler state.
     */
-    void stateChanged(EventHandler::State state);
+    void stateChanged(EventHandlerState state);
 
   public:
     /**
@@ -199,10 +213,17 @@ class Console : public Serializable
     void togglePhosphor();
 
     /**
+      Change the "Display.PPBlend" variable.
+
+      @param direction +1 indicates increase, -1 indicates decrease.
+    */
+    void changePhosphor(int direction);
+
+    /**
       Toggles the PAL color-loss effect.
     */
     void toggleColorLoss();
-    void toggleColorLoss(bool state);
+    void enableColorLoss(bool state);
 
     /**
       Initialize the video subsystem wrt this class.
@@ -261,7 +282,6 @@ class Console : public Serializable
     void toggleM1Bit() const { toggleTIABit(M1Bit, "M1"); }
     void toggleBLBit() const { toggleTIABit(BLBit, "BL"); }
     void togglePFBit() const { toggleTIABit(PFBit, "PF"); }
-    void toggleHMOVE() const;
     void toggleBits() const;
 
     /**
@@ -287,6 +307,16 @@ class Console : public Serializable
 
   private:
     /**
+     * Dry-run the emulation and detect the frame layout (PAL / NTSC).
+     */
+    void autodetectFrameLayout();
+
+    /**
+     * Dryrun the emulation and detect ystart (the first visible scanline).
+     */
+    void autodetectYStart();
+
+    /**
       Sets various properties of the TIA (YStart, Height, etc) based on
       the current display format.
     */
@@ -296,6 +326,12 @@ class Console : public Serializable
       Adds the left and right controllers to the console.
     */
     void setControllers(const string& rommd5);
+
+    /**
+      Selects the left or right controller depending on ROM properties
+    */
+    unique_ptr<Controller> getControllerPort(const string& rommd5,
+        const string& controllerName, Controller::Jack port);
 
     /**
       Loads a user-defined palette file (from OSystem::paletteFile), filling the
@@ -329,7 +365,7 @@ class Console : public Serializable
     // Properties for the game
     Properties myProperties;
 
-    // Pointer to the 6502 based system being emulated 
+    // Pointer to the 6502 based system being emulated
     unique_ptr<System> mySystem;
 
     // Pointer to the M6502 CPU
@@ -339,8 +375,11 @@ class Console : public Serializable
     // A RIOT of my own! (...with apologies to The Clash...)
     unique_ptr<M6532> myRiot;
 
-    // Pointer to the TIA object 
+    // Pointer to the TIA object
     unique_ptr<TIA> myTIA;
+
+    // The frame manager instance that is used during emulation.
+    unique_ptr<AbstractFrameManager> myFrameManager;
 
     // Pointer to the Cartridge (the debugger needs it)
     unique_ptr<Cartridge> myCart;
@@ -363,12 +402,18 @@ class Console : public Serializable
     // Display format currently in use
     uInt32 myCurrentFormat;
 
+    // Autodetected ystart.
+    uInt32 myAutodetectedYstart;
+
     // Indicates whether an external palette was found and
     // successfully loaded
     bool myUserPaletteDefined;
 
     // Contains detailed info about this console
     ConsoleInfo myConsoleInfo;
+
+    // Contains timing information for this console
+    ConsoleTiming myConsoleTiming;
 
     // Table of RGB values for NTSC, PAL and SECAM
     static uInt32 ourNTSCPalette[256];

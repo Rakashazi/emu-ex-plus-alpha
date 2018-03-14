@@ -1,29 +1,29 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: M6532.cxx 3300 2016-04-02 21:27:10Z stephena $
 //============================================================================
 
 #include <cassert>
-#include <iostream>
 
 #include "Console.hxx"
 #include "Settings.hxx"
 #include "Switches.hxx"
 #include "System.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "CartDebug.hxx"
+#endif
 
 #include "M6532.hxx"
 
@@ -31,10 +31,11 @@
 M6532::M6532(const Console& console, const Settings& settings)
   : myConsole(console),
     mySettings(settings),
-    myTimer(0), myIntervalShift(0), myCyclesWhenTimerSet(0),
+    myTimer(0), mySubTimer(0), myDivider(1),
+    myTimerWrapped(false), myWrappedThisCycle(false),
+    mySetTimerCycle(0), myLastCycle(0),
     myDDRA(0), myDDRB(0), myOutA(0), myOutB(0),
     myInterruptFlag(false),
-    myTimerFlagValid(false),
     myEdgeDetectPositive(false)
 {
 }
@@ -42,18 +43,35 @@ M6532::M6532(const Console& console, const Settings& settings)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::reset()
 {
+  static constexpr uInt8 RAM_7800[128] = {
+    0xA9, 0x00, 0xAA, 0x85, 0x01, 0x95, 0x03, 0xE8, 0xE0, 0x2A, 0xD0, 0xF9, 0x85, 0x02, 0xA9, 0x04,
+    0xEA, 0x30, 0x23, 0xA2, 0x04, 0xCA, 0x10, 0xFD, 0x9A, 0x8D, 0x10, 0x01, 0x20, 0xCB, 0x04, 0x20,
+    0xCB, 0x04, 0x85, 0x11, 0x85, 0x1B, 0x85, 0x1C, 0x85, 0x0F, 0xEA, 0x85, 0x02, 0xA9, 0x00, 0xEA,
+    0x30, 0x04, 0x24, 0x03, 0x30, 0x09, 0xA9, 0x02, 0x85, 0x09, 0x8D, 0x12, 0xF1, 0xD0, 0x1E, 0x24,
+    0x02, 0x30, 0x0C, 0xA9, 0x02, 0x85, 0x06, 0x8D, 0x18, 0xF1, 0x8D, 0x60, 0xF4, 0xD0, 0x0E, 0x85,
+    0x2C, 0xA9, 0x08, 0x85, 0x1B, 0x20, 0xCB, 0x04, 0xEA, 0x24, 0x02, 0x30, 0xD9, 0xA9, 0xFD, 0x85,
+    0x08, 0x6C, 0xFC, 0xFF, 0xEA, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+  };
+
   // Initialize the 128 bytes of memory
-  if(mySettings.getBool("ramrandom"))
+  bool devSettings = mySettings.getBool("dev.settings");
+  if(mySettings.getString(devSettings ? "dev.console" : "plr.console") == "7800")
+    for(uInt32 t = 0; t < 128; ++t)
+      myRAM[t] = RAM_7800[t];
+  else if(mySettings.getBool(devSettings ? "dev.ramrandom" : "plr.ramrandom"))
     for(uInt32 t = 0; t < 128; ++t)
       myRAM[t] = mySystem->randGenerator().next();
   else
     memset(myRAM, 0, 128);
 
-  // The timer absolutely cannot be initialized to zero; some games will
-  // loop or hang (notably Solaris and H.E.R.O.)
-  myTimer = (0xff - (mySystem->randGenerator().next() % 0xfe)) << 10;
-  myIntervalShift = 10;
-  myCyclesWhenTimerSet = 0;
+  myTimer = mySystem->randGenerator().next() & 0xff;
+  myDivider = 1024;
+  mySubTimer = 0;
+  myTimerWrapped = false;
+  myWrappedThisCycle = false;
+
+  mySetTimerCycle = myLastCycle = 0;
 
   // Zero the I/O registers
   myDDRA = myDDRB = myOutA = myOutB = 0x00;
@@ -63,22 +81,17 @@ void M6532::reset()
 
   // Zero the interrupt flag register and mark D7 as invalid
   myInterruptFlag = 0x00;
-  myTimerFlagValid = false;
 
   // Edge-detect set to negative (high to low)
   myEdgeDetectPositive = false;
-}
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6532::systemCyclesReset()
-{
-  // System cycles are being reset to zero so we need to adjust
-  // the cycle count we remembered when the timer was last set
-  myCyclesWhenTimerSet -= mySystem->cycles();
+  // Let the controllers know about the reset
+  myConsole.leftController().reset();
+  myConsole.rightController().reset();
 
-  // We should also inform any 'smart' controllers as well
-  myConsole.leftController().systemCyclesReset();
-  myConsole.rightController().systemCyclesReset();
+#ifdef DEBUGGER_SUPPORT
+  createAccessBases();
+#endif // DEBUGGER_SUPPORT
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -105,37 +118,81 @@ void M6532::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6532::install(System& system)
+void M6532::updateEmulation()
 {
-  install(system, *this);
+  uInt32 cycles = uInt32(mySystem->cycles() - myLastCycle);
+  uInt32 subTimer = mySubTimer;
+
+  // Guard against further state changes if the debugger alread forwarded emulation
+  // state (in particular myWrappedThisCycle)
+  if (cycles == 0) return;
+
+  myWrappedThisCycle = false;
+  mySubTimer = (cycles + mySubTimer) % myDivider;
+
+  if(!myTimerWrapped)
+  {
+    uInt32 timerTicks = (cycles + subTimer) / myDivider;
+
+    if(timerTicks > myTimer)
+    {
+      cycles -= ((myTimer + 1) * myDivider - subTimer);
+      myWrappedThisCycle = cycles == 0;
+      myTimer = 0xFF;
+      myTimerWrapped = true;
+      myInterruptFlag |= TimerBit;
+    }
+    else
+    {
+      myTimer -= timerTicks;
+      cycles = 0;
+    }
+  }
+
+  if(myTimerWrapped)
+    myTimer = (myTimer - cycles) & 0xFF;
+
+  myLastCycle = mySystem->cycles();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6532::install(System& system, Device& device)
+void M6532::install(System& system)
+{
+  installDelegate(system, *this);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6532::installDelegate(System& system, Device& device)
 {
   // Remember which system I'm installed in
   mySystem = &system;
-  
+
   // All accesses are to the given device
   System::PageAccess access(&device, System::PA_READWRITE);
 
-  // We're installing in a 2600 system
-  for(int address = 0; address < 8192; address += (1 << System::PAGE_SHIFT))
-    if((address & 0x1080) == 0x0080)
-      mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+  // Map all peek/poke to mirrors of RIOT address space to this class
+  // That is, all mirrors of ZP RAM ($80 - $FF) and IO ($280 - $29F) in the
+  // lower 4K of the 2600 address space are mapped here
+  // The two types of addresses are differentiated in peek/poke as follows:
+  //    (addr & 0x0200) == 0x0200 is IO     (A9 is 1)
+  //    (addr & 0x0300) == 0x0100 is Stack  (A8 is 1, A9 is 0)
+  //    (addr & 0x0300) == 0x0000 is ZP RAM (A8 is 0, A9 is 0)
+  for (uInt16 addr = 0; addr < 0x1000; addr += System::PAGE_SIZE)
+    if ((addr & 0x0080) == 0x0080) {
+      mySystem->setPageAccess(addr, access);
+    }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 M6532::peek(uInt16 addr)
 {
-  // Access RAM directly.  Originally, accesses to RAM could bypass
-  // this method and its pages could be installed directly into the
-  // system.  However, certain cartridges (notably 4A50) can mirror
-  // the RAM address space, making it necessary to chain accesses.
-  if((addr & 0x1080) == 0x0080 && (addr & 0x0200) == 0x0000)
-  {
+  updateEmulation();
+
+  // A9 distinguishes I/O registers from ZP RAM
+  // A9 = 1 is read from I/O
+  // A9 = 0 is read from RAM
+  if((addr & 0x0200) == 0x0000)
     return myRAM[addr & 0x007f];
-  }
 
   switch(addr & 0x07)
   {
@@ -151,7 +208,7 @@ uInt8 M6532::peek(uInt16 addr)
       return (myOutA | ~myDDRA) & value;
     }
 
-    case 0x01:    // SWACNT - Port A Data Direction Register 
+    case 0x01:    // SWACNT - Port A Data Direction Register
     {
       return myDDRA;
     }
@@ -170,42 +227,14 @@ uInt8 M6532::peek(uInt16 addr)
     case 0x06:
     {
       // Timer Flag is always cleared when accessing INTIM
-      myInterruptFlag &= ~TimerBit;
-
-      // Get number of clocks since timer was set
-      Int32 timer = timerClocks();
-
-      // Note that this constant comes from z26, and corresponds to
-      // 256 intervals of T1024T (ie, the maximum that the timer should hold)
-      // I'm not sure why this is required, but quite a few ROMs fail
-      // if we just check >= 0.
-      if(!(timer & 0x40000))
-      {
-        // Return at 'divide by TIMxT' interval rate
-        return (timer >> myIntervalShift) & 0xff;
-      }
-      else
-      {
-        // Return at 'divide by 1' rate
-        uInt8 divByOne = timer & 0xff;
-
-        // Timer flag has been updated; don't update it again on TIMINT read
-        if(divByOne != 0 && divByOne != 255)
-          myTimerFlagValid = true;
-
-        return divByOne;
-      }
+      if (!myWrappedThisCycle) myInterruptFlag &= ~TimerBit;
+      myTimerWrapped = false;
+      return myTimer;
     }
 
     case 0x05:    // TIMINT/INSTAT - Interrupt Flag
     case 0x07:
     {
-      // Update timer flag if it is invalid and timer has expired
-      if(!myTimerFlagValid && timerClocks() < 0)
-      {
-        myInterruptFlag |= TimerBit;
-        myTimerFlagValid = true;
-      }
       // PA7 Flag is always cleared after accessing TIMINT
       uInt8 result = myInterruptFlag;
       myInterruptFlag &= ~PA7Bit;
@@ -213,7 +242,7 @@ uInt8 M6532::peek(uInt16 addr)
     }
 
     default:
-    {    
+    {
 #ifdef DEBUG_ACCESSES
       cerr << "BAD M6532 Peek: " << hex << addr << endl;
 #endif
@@ -225,11 +254,12 @@ uInt8 M6532::peek(uInt16 addr)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool M6532::poke(uInt16 addr, uInt8 value)
 {
-  // Access RAM directly.  Originally, accesses to RAM could bypass
-  // this method and its pages could be installed directly into the
-  // system.  However, certain cartridges (notably 4A50) can mirror
-  // the RAM address space, making it necessary to chain accesses.
-  if((addr & 0x1080) == 0x0080 && (addr & 0x0200) == 0x0000)
+  updateEmulation();
+
+  // A9 distinguishes I/O registers from ZP RAM
+  // A9 = 1 is write to I/O
+  // A9 = 0 is write to RAM
+  if((addr & 0x0200) == 0x0000)
   {
     myRAM[addr & 0x007f] = value;
     return true;
@@ -258,7 +288,7 @@ bool M6532::poke(uInt16 addr, uInt8 value)
         break;
       }
 
-      case 1:     // SWACNT - Port A Data Direction Register 
+      case 1:     // SWACNT - Port A Data Direction Register
       {
         myDDRA = value;
         setPinState(false);
@@ -271,7 +301,7 @@ bool M6532::poke(uInt16 addr, uInt8 value)
         break;
       }
 
-      case 3:     // SWBCNT - Port B Data Direction Register 
+      case 3:     // SWBCNT - Port B Data Direction Register
       {
         myDDRB = value;
         break;
@@ -284,16 +314,19 @@ bool M6532::poke(uInt16 addr, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::setTimerRegister(uInt8 value, uInt8 interval)
 {
-  static constexpr uInt8 shift[] = { 0, 3, 6, 10 };
+  static constexpr uInt32 divider[] = { 1, 8, 64, 1024 };
 
-  myIntervalShift = shift[interval];
+  myDivider = divider[interval];
   myOutTimer[interval] = value;
-  myTimer = value << myIntervalShift;
-  myCyclesWhenTimerSet = mySystem->cycles();
+
+  myTimer = value;
+  mySubTimer = myDivider - 1;
+  myTimerWrapped = false;
 
   // Interrupt timer flag is cleared (and invalid) when writing to the timer
   myInterruptFlag &= ~TimerBit;
-  myTimerFlagValid = false;
+
+  mySetTimerCycle = mySystem->cycles();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -340,8 +373,12 @@ bool M6532::save(Serializer& out) const
     out.putByteArray(myRAM, 128);
 
     out.putInt(myTimer);
-    out.putInt(myIntervalShift);
-    out.putInt(myCyclesWhenTimerSet);
+    out.putInt(mySubTimer);
+    out.putInt(myDivider);
+    out.putBool(myTimerWrapped);
+    out.putBool(myWrappedThisCycle);
+    out.putLong(myLastCycle);
+    out.putLong(mySetTimerCycle);
 
     out.putByte(myDDRA);
     out.putByte(myDDRB);
@@ -349,7 +386,6 @@ bool M6532::save(Serializer& out) const
     out.putByte(myOutB);
 
     out.putByte(myInterruptFlag);
-    out.putBool(myTimerFlagValid);
     out.putBool(myEdgeDetectPositive);
     out.putByteArray(myOutTimer, 4);
   }
@@ -373,8 +409,12 @@ bool M6532::load(Serializer& in)
     in.getByteArray(myRAM, 128);
 
     myTimer = in.getInt();
-    myIntervalShift = in.getInt();
-    myCyclesWhenTimerSet = in.getInt();
+    mySubTimer = in.getInt();
+    myDivider = in.getInt();
+    myTimerWrapped = in.getBool();
+    myWrappedThisCycle = in.getBool();
+    myLastCycle = in.getLong();
+    mySetTimerCycle = in.getLong();
 
     myDDRA = in.getByte();
     myDDRB = in.getByte();
@@ -382,7 +422,6 @@ bool M6532::load(Serializer& in)
     myOutB = in.getByte();
 
     myInterruptFlag = in.getByte();
-    myTimerFlagValid = in.getBool();
     myEdgeDetectPositive = in.getBool();
     in.getByteArray(myOutTimer, 4);
   }
@@ -396,44 +435,81 @@ bool M6532::load(Serializer& in)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 M6532::intim() const
+uInt8 M6532::intim()
 {
-  // This method is documented in ::peek(0x284), and exists so that the
-  // debugger can read INTIM without changing the state of the system
+  updateEmulation();
 
-  // Get number of clocks since timer was set
-  Int32 timer = timerClocks();  
-  if(!(timer & 0x40000))
-    return (timer >> myIntervalShift) & 0xff;
-  else
-    return timer & 0xff;
+  return myTimer;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 M6532::timint() const
+uInt8 M6532::timint()
 {
-  // This method is documented in ::peek(0x285), and exists so that the
-  // debugger can read TIMINT without changing the state of the system
+  updateEmulation();
 
-  // Update timer flag if it is invalid and timer has expired
-  uInt8 interrupt = myInterruptFlag;
-  if(timerClocks() < 0)
-    interrupt |= TimerBit;
-
-  return interrupt;
+  return myInterruptFlag;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Int32 M6532::intimClocks() const
+Int32 M6532::intimClocks()
 {
+  updateEmulation();
+
   // This method is similar to intim(), except instead of giving the actual
   // INTIM value, it will give the current number of clocks between one
   // INTIM value and the next
 
-  // Get number of clocks since timer was set
-  Int32 timer = timerClocks();  
-  if(!(timer & 0x40000))
-    return timerClocks() & ((1 << myIntervalShift) - 1);
-  else
-    return timer & 0xff;
+  return myTimerWrapped ? 1 : (myDivider - mySubTimer);
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt32 M6532::timerClocks() const
+{
+  return uInt32(mySystem->cycles() - mySetTimerCycle);
+}
+
+#ifdef DEBUGGER_SUPPORT
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6532::createAccessBases()
+{
+  myRAMAccessBase = make_unique<uInt8[]>(RAM_SIZE);
+  memset(myRAMAccessBase.get(), CartDebug::NONE, RAM_SIZE);
+  myStackAccessBase = make_unique<uInt8[]>(STACK_SIZE);
+  memset(myStackAccessBase.get(), CartDebug::NONE, STACK_SIZE);
+  myIOAccessBase = make_unique<uInt8[]>(IO_SIZE);
+  memset(myIOAccessBase.get(), CartDebug::NONE, IO_SIZE);
+
+  myZPAccessDelay = make_unique<uInt8[]>(RAM_SIZE);
+  memset(myZPAccessDelay.get(), ZP_DELAY, RAM_SIZE);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 M6532::getAccessFlags(uInt16 address) const
+{
+  if (address & IO_BIT)
+    return myIOAccessBase[address & IO_MASK];
+  else if (address & STACK_BIT)
+    return myStackAccessBase[address & STACK_MASK];
+  else
+    return myRAMAccessBase[address & RAM_MASK];
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6532::setAccessFlags(uInt16 address, uInt8 flags)
+{
+  // ignore none flag
+  if (flags != CartDebug::NONE) {
+    if (address & IO_BIT)
+      myIOAccessBase[address & IO_MASK] |= flags;
+    else {
+      // the first access, either by direct RAM or stack access is assumed as initialization
+      if (myZPAccessDelay[address & RAM_MASK])
+        myZPAccessDelay[address & RAM_MASK]--;
+      else if (address & STACK_BIT)
+        myStackAccessBase[address & STACK_MASK] |= flags;
+      else
+        myRAMAccessBase[address & RAM_MASK] |= flags;
+    }
+  }
+}
+#endif // DEBUGGER_SUPPORT

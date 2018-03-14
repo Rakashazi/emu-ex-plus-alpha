@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Control.hxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #ifndef CONTROLLER_HXX
@@ -24,12 +22,14 @@ class Controller;
 class Event;
 class System;
 
+#include <functional>
+
 #include "Serializable.hxx"
 #include "bspf.hxx"
 
 /**
-  A controller is a device that plugs into either the left or right 
-  controller jack of the Video Computer System (VCS).  The pins of 
+  A controller is a device that plugs into either the left or right
+  controller jack of the Video Computer System (VCS).  The pins of
   the controller jacks are mapped as follows:
 
                            -------------
@@ -58,7 +58,6 @@ class System;
   of the controller from the perspective of the controller's jack.
 
   @author  Bradford W. Mott
-  @version $Id: Control.hxx 3299 2016-04-02 20:46:02Z stephena $
 */
 class Controller : public Serializable
 {
@@ -90,10 +89,15 @@ class Controller : public Serializable
     */
     enum Type
     {
-      BoosterGrip, Driving, Keyboard, Paddles, Joystick,
-      TrackBall22, TrackBall80, AmigaMouse, AtariVox, SaveKey,
-      KidVid, Genesis, MindLink, CompuMate
+      AmigaMouse, AtariMouse, AtariVox, BoosterGrip, CompuMate,
+      Driving, Genesis, Joystick, Keyboard, KidVid, MindLink,
+      Paddles, SaveKey, TrakBall
     };
+
+    /**
+      Callback type for analog pin updates
+    */
+    using onAnalogPinUpdateCallback = std::function<void(AnalogPin)>;
 
   public:
     /**
@@ -135,7 +139,7 @@ class Controller : public Serializable
     virtual bool read(DigitalPin pin);
 
     /**
-      Read the resistance at the specified analog pin for this controller.  
+      Read the resistance at the specified analog pin for this controller.
       The returned value is the resistance measured in ohms.
 
       @param pin The pin of the controller jack to read
@@ -144,8 +148,8 @@ class Controller : public Serializable
     virtual Int32 read(AnalogPin pin);
 
     /**
-      Write the given value to the specified digital pin for this 
-      controller.  Writing is only allowed to the pins associated 
+      Write the given value to the specified digital pin for this
+      controller.  Writing is only allowed to the pins associated
       with the PIA.  Therefore you cannot write to pin six.
 
       @param pin The pin of the controller jack to write to
@@ -168,11 +172,18 @@ class Controller : public Serializable
     virtual void update() = 0;
 
     /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary 
-      to override this method for controllers that remember cycle counts.
+      Notification method invoked by the system after its reset method has
+      been called.  It may be necessary to override this method for
+      controllers that need to know a reset has occurred.
     */
-    virtual void systemCyclesReset() { }
+    virtual void reset() { }
+
+    /**
+      Notification method invoked by the system indicating that the
+      console is about to be destroyed.  It may be necessary to override
+      this method for controllers that need cleanup before exiting.
+    */
+    virtual void close() { }
 
     /**
       Determines how this controller will treat values received from the
@@ -195,15 +206,13 @@ class Controller : public Serializable
     { return false; }
 
     /**
-      Returns the name of this controller.
-    */
-    virtual string name() const override { return myName; }
-
-    /**
       Returns more detailed information about this controller.
     */
-    virtual string about() const
-    { return name() + " in " + (myJack == Left ? "left port" : "right port"); }
+    virtual string about(bool swappedPorts) const
+    {
+      return name() + " in " + ((myJack == Left) ^ swappedPorts ?
+          "left port" : "right port");
+    }
 
     /**
       The following two functions are used by the debugger to set
@@ -233,12 +242,27 @@ class Controller : public Serializable
     */
     bool load(Serializer& in) override;
 
+    /**
+      Returns the name of this controller.
+    */
+    string name() const override { return myName; }
+
+    /**
+      Inject a callback to be notified on analog pin updates.
+    */
+    void setOnAnalogPinUpdateCallback(onAnalogPinUpdateCallback callback) {
+      myOnAnalogPinUpdateCallback = callback;
+    }
+
   public:
     /// Constant which represents maximum resistance for analog pins
     static constexpr Int32 maximumResistance = 0x7FFFFFFF;
 
     /// Constant which represents minimum resistance for analog pins
     static constexpr Int32 minimumResistance = 0x00000000;
+
+  protected:
+    void updateAnalogPin(AnalogPin, Int32 value);
 
   protected:
     /// Specifies which jack the controller is plugged in
@@ -259,6 +283,10 @@ class Controller : public Serializable
     /// The boolean value on each digital pin
     bool myDigitalPinState[5];
 
+    /// The callback that is dispatched whenver an analog pin has changed
+    onAnalogPinUpdateCallback myOnAnalogPinUpdateCallback;
+
+  private:
     /// The analog value on each analog pin
     Int32 myAnalogPinValue[2];
 

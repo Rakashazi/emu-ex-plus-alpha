@@ -1,27 +1,26 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Cart2K.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
 #include "Cart2K.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge2K::Cartridge2K(const uInt8* image, uInt32 size, const Settings& settings)
+Cartridge2K::Cartridge2K(const BytePtr& image, uInt32 size,
+                         const Settings& settings)
   : Cartridge(settings)
 {
   // Size can be a maximum of 2K
@@ -32,18 +31,15 @@ Cartridge2K::Cartridge2K(const uInt8* image, uInt32 size, const Settings& settin
   while(mySize < size)
     mySize <<= 1;
 
-  // The smallest addressable area by Stella is 64 bytes
-  // This should really be read from the System, but for now I'm going
-  // to cheat a little and hard-code it to 64 (aka 2^6)
-  if(mySize < 64)
-    mySize = 64;
+  // We can't use a size smaller than the minimum page size in Stella
+  mySize = std::max<uInt32>(mySize, System::PAGE_SIZE);
 
   // Initialize ROM with illegal 6502 opcode that causes a real 6502 to jam
-  myImage = make_ptr<uInt8[]>(mySize);
+  myImage = make_unique<uInt8[]>(mySize);
   memset(myImage.get(), 0x02, mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image, size);
+  memcpy(myImage.get(), image.get(), size);
   createCodeAccessBase(mySize);
 
   // Set mask for accessing the image buffer
@@ -63,26 +59,15 @@ void Cartridge2K::install(System& system)
   mySystem = &system;
 
   // Map ROM image into the system
+  // Note that we don't need our own peek/poke methods, since the mapping
+  // takes care of the entire address space
   System::PageAccess access(this, System::PA_READ);
-  for(uInt32 address = 0x1000; address < 0x2000; address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[address & myMask];
-    access.codeAccessBase = &myCodeAccessBase[address & myMask];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[addr & myMask];
+    access.codeAccessBase = &myCodeAccessBase[addr & myMask];
+    mySystem->setPageAccess(addr, access);
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 Cartridge2K::peek(uInt16 address)
-{
-  return myImage[address & myMask];
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Cartridge2K::poke(uInt16, uInt8)
-{
-  // This is ROM so poking has no effect :-)
-  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,7 +78,7 @@ bool Cartridge2K::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* Cartridge2K::getImage(int& size) const
+const uInt8* Cartridge2K::getImage(uInt32& size) const
 {
   size = mySize;
   return myImage.get();

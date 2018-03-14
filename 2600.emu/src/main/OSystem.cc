@@ -18,6 +18,7 @@
 #include <EventHandler.hxx>
 #include <stella/emucore/Console.hxx>
 #include <stella/emucore/PropsSet.hxx>
+#include <stella/common/StateManager.hxx>
 #include <stella/emucore/Random.hxx>
 #include <stella/emucore/SerialPort.hxx>
 #include <stella/emucore/Settings.hxx>
@@ -31,53 +32,61 @@
 #undef BytePtr
 #undef Debugger
 
-OSystem osystem{};
-static Random myRandom{osystem};
-static EventHandler myEventHandler{osystem};
-static SerialPort mySerialPort{};
-static FrameBuffer myFrameBuffer{};
-static PropertiesSet myPropSet{""};
-static Settings mySettings{osystem};
-static SoundGeneric mySound{osystem};
+OSystem::OSystem()
+{
+	mySettings = std::make_unique<Settings>(*this);
+	myRandom = std::make_unique<Random>(*this);
+	myFrameBuffer = std::make_unique<FrameBuffer>();
+	myEventHandler = std::make_unique<EventHandler>(*this);
+	myPropSet = std::make_unique<PropertiesSet>("");
+	myStateManager = std::make_unique<StateManager>(*this);
+	mySerialPort = std::make_unique<SerialPort>();
+	mySound = std::make_unique<SoundGeneric>(*this);
+}
 
 EventHandler& OSystem::eventHandler() const
 {
-	return myEventHandler;
+	return *myEventHandler;
 }
 
 Random& OSystem::random() const
 {
-	return myRandom;
+	return *myRandom;
 }
 
 FrameBuffer& OSystem::frameBuffer() const
 {
-	return myFrameBuffer;
+	return *myFrameBuffer;
 }
 
 Sound& OSystem::sound() const
 {
-	return mySound;
+	return *mySound;
 }
 
 SoundGeneric& OSystem::soundGeneric() const
 {
-	return mySound;
+	return *mySound;
 }
 
 Settings& OSystem::settings() const
 {
-	return mySettings;
+	return *mySettings;
 }
 
 PropertiesSet& OSystem::propSet() const
 {
-	return myPropSet;
+	return *myPropSet;
 }
 
 SerialPort& OSystem::serialPort() const
 {
-	return mySerialPort;
+	return *mySerialPort;
+}
+
+StateManager& OSystem::state() const
+{
+	return *myStateManager;
 }
 
 void OSystem::makeConsole(unique_ptr<Cartridge>& cart, const Properties& props)

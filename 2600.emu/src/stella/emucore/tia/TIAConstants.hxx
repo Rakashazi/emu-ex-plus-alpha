@@ -1,26 +1,32 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: TIATables.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
-#ifndef TIA_TABLES_HXX
-#define TIA_TABLES_HXX
+#ifndef TIA_CONSTANTS_HXX
+#define TIA_CONSTANTS_HXX
 
 #include "bspf.hxx"
+
+namespace TIAConstants {
+
+  constexpr uInt32 frameBufferHeight = 320;
+  constexpr uInt32 minYStart = 1, maxYStart = 64;
+  constexpr uInt32 minViewableHeight = 210, maxViewableHeight = 256;
+  constexpr uInt32 initialGarbageFrames = 10;
+}
 
 enum TIABit {
   P0Bit       = 0x01,  // Bit for Player 0
@@ -44,23 +50,23 @@ enum TIAColor {
   HBLANKColor = 7   // Color index for HMove blank area
 };
 
-enum CollisionBit
+enum class CollisionBit
 {
-  Cx_M0P1 = 1 << 0,   // Missle0 - Player1   collision
-  Cx_M0P0 = 1 << 1,   // Missle0 - Player0   collision
-  Cx_M1P0 = 1 << 2,   // Missle1 - Player0   collision
-  Cx_M1P1 = 1 << 3,   // Missle1 - Player1   collision
-  Cx_P0PF = 1 << 4,   // Player0 - Playfield collision
-  Cx_P0BL = 1 << 5,   // Player0 - Ball      collision
-  Cx_P1PF = 1 << 6,   // Player1 - Playfield collision
-  Cx_P1BL = 1 << 7,   // Player1 - Ball      collision
-  Cx_M0PF = 1 << 8,   // Missle0 - Playfield collision
-  Cx_M0BL = 1 << 9,   // Missle0 - Ball      collision
-  Cx_M1PF = 1 << 10,  // Missle1 - Playfield collision
-  Cx_M1BL = 1 << 11,  // Missle1 - Ball      collision
-  Cx_BLPF = 1 << 12,  // Ball - Playfield    collision
-  Cx_P0P1 = 1 << 13,  // Player0 - Player1   collision
-  Cx_M0M1 = 1 << 14   // Missle0 - Missle1   collision
+  M0P1 = 1 << 0,   // Missle0 - Player1   collision
+  M0P0 = 1 << 1,   // Missle0 - Player0   collision
+  M1P0 = 1 << 2,   // Missle1 - Player0   collision
+  M1P1 = 1 << 3,   // Missle1 - Player1   collision
+  P0PF = 1 << 4,   // Player0 - Playfield collision
+  P0BL = 1 << 5,   // Player0 - Ball      collision
+  P1PF = 1 << 6,   // Player1 - Playfield collision
+  P1BL = 1 << 7,   // Player1 - Ball      collision
+  M0PF = 1 << 8,   // Missle0 - Playfield collision
+  M0BL = 1 << 9,   // Missle0 - Ball      collision
+  M1PF = 1 << 10,  // Missle1 - Playfield collision
+  M1BL = 1 << 11,  // Missle1 - Ball      collision
+  BLPF = 1 << 12,  // Ball - Playfield    collision
+  P0P1 = 1 << 13,  // Player0 - Player1   collision
+  M0M1 = 1 << 14   // Missle0 - Missle1   collision
 };
 
 // TIA Write/Read register names
@@ -127,95 +133,4 @@ enum TIARegister {
   INPT5   = 0x0d   // Read P2 joystick trigger: D7
 };
 
-/**
-  The TIA class uses some static tables that aren't dependent on the actual
-  TIA state.  For code organization, it's better to place that functionality
-  here.
-
-  @author  Stephen Anthony
-  @version $Id: TIATables.hxx 3239 2015-12-29 19:22:46Z stephena $
-*/
-class TIATables
-{
-  public:
-    /**
-      Compute all static tables used by the TIA
-    */
-    static void computeAllTables();
-
-    // Player mask table
-    // [suppress mode][nusiz][pixel]
-    static uInt8 PxMask[2][8][320];
-
-    // Missle mask table (entries are true or false)
-    // [number][size][pixel]
-    // There are actually only 4 possible size combinations on a real system
-    // The fifth size is used for simulating the starfield effect in
-    // Cosmic Ark and Stay Frosty
-    static uInt8 MxMask[8][5][320];
-
-    // Ball mask table (entries are true or false)
-    // [size][pixel]
-    static uInt8 BLMask[4][320];
-
-    // Playfield mask table for reflected and non-reflected playfields
-    // [reflect, pixel]
-    static uInt32 PFMask[2][160];
-
-    // A mask table which can be used when an object is disabled
-    static uInt8 DisabledMask[640];
-
-    // Used to set the collision register to the correct value
-    static uInt16 CollisionMask[64];
-
-    // Indicates the update delay associated with poking at a TIA address
-    static const Int16 PokeDelay[64];
-
-#if 0
-    // Used to convert value written in a motion register into 
-    // its internal representation
-    static const Int32 CompleteMotion[76][16];
-#endif
-
-    // Indicates if HMOVE blanks should occur for the corresponding cycle
-    static const bool HMOVEBlankEnableCycles[76];
-
-    // Used to reflect a players graphics
-    static uInt8 GRPReflect[256];
-
-    // Indicates if player is being reset during delay, display or other times
-    // [nusiz][old pixel][new pixel]
-    static Int8 PxPosResetWhen[8][160][160];
-
-  private:
-    // Compute the collision decode table
-    static void buildCollisionMaskTable();
-
-    // Compute the player mask table
-    static void buildPxMaskTable();
-
-    // Compute the missle mask table
-    static void buildMxMaskTable();
-
-    // Compute the ball mask table
-    static void buildBLMaskTable();
-
-    // Compute playfield mask table
-    static void buildPFMaskTable();
-
-    // Compute the player reflect table
-    static void buildGRPReflectTable();
-
-    // Compute the player position reset when table
-    static void buildPxPosResetWhenTable();
-
-  private:
-    // Following constructors and assignment operators not supported
-    TIATables() = delete;
-    TIATables(const TIATables&) = delete;
-    TIATables(TIATables&&) = delete;
-    TIATables& operator=(const TIATables&) = delete;
-    TIATables& operator=(TIATables&&) = delete;
-};
-
-#endif
+#endif // TIA_CONSTANTS_HXX

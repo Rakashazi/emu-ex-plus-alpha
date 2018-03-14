@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartCTY.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "OSystem.hxx"
@@ -24,7 +22,8 @@
 #include "CartCTY.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeCTY::CartridgeCTY(const uInt8* image, uInt32 size, const OSystem& osystem)
+CartridgeCTY::CartridgeCTY(const BytePtr& image, uInt32 size,
+                           const OSystem& osystem)
   : Cartridge(osystem.settings()),
     myOSystem(osystem),
     myOperationType(0),
@@ -32,12 +31,12 @@ CartridgeCTY::CartridgeCTY(const uInt8* image, uInt32 size, const OSystem& osyst
     myLDAimmediate(false),
     myRandomNumber(0x2B435044),
     myRamAccessTimeout(0),
-    mySystemCycles(0),
+    myAudioCycles(0),
     myFractionalClocks(0.0),
-    myCurrentBank(0)
+    myBankOffset(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, std::min(32768u, size));
+  memcpy(myImage, image.get(), std::min(32768u, size));
   createCodeAccessBase(32768);
 
   // Point to the first tune
@@ -54,19 +53,11 @@ void CartridgeCTY::reset()
 
   myRAM[0] = myRAM[1] = myRAM[2] = myRAM[3] = 0xFF;
 
-  // Update cycles to the current system cycles
-  mySystemCycles = mySystem->cycles();
+  myAudioCycles = 0;
   myFractionalClocks = 0.0;
 
   // Upon reset we switch to the startup bank
   bank(myStartBank);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeCTY::systemCyclesReset()
-{
-  // Adjust the cycle counter so that it reflects the new value
-  mySystemCycles -= mySystem->cycles();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,8 +67,8 @@ void CartridgeCTY::install(System& system)
 
   // Map all RAM accesses to call peek and poke
   System::PageAccess access(this, System::PA_READ);
-  for(uInt32 i = 0x1000; i < 0x1080; i += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+  for(uInt16 addr = 0x1000; addr < 0x1080; addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 
   // Install pages for the startup bank
   bank(myStartBank);
@@ -88,7 +79,7 @@ uInt8 CartridgeCTY::peek(uInt16 address)
 {
   uInt16 peekAddress = address;
   address &= 0x0FFF;
-  uInt8 peekValue = myImage[myCurrentBank + address];
+  uInt8 peekValue = myImage[myBankOffset + address];
 
   // In debugger/bank-locked mode, we ignore all hotspots and in general
   // anything that can change the internal state of the cart
@@ -234,15 +225,14 @@ bool CartridgeCTY::bank(uInt16 bank)
   if(bankLocked()) return false;
 
   // Remember what bank we're in
-  myCurrentBank = bank << 12;
+  myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
-  for(uInt32 address = 0x1080; address < 0x2000;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1080; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[myCurrentBank + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
 }
@@ -250,7 +240,7 @@ bool CartridgeCTY::bank(uInt16 bank)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeCTY::getBank() const
 {
-  return myCurrentBank >> 12;
+  return myBankOffset >> 12;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -272,13 +262,13 @@ bool CartridgeCTY::patch(uInt16 address, uInt8 value)
     myRAM[address & 0x003F] = value;
   }
   else
-    myImage[myCurrentBank + address] = value;
+    myImage[myBankOffset + address] = value;
 
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeCTY::getImage(int& size) const
+const uInt8* CartridgeCTY::getImage(uInt32& size) const
 {
   size = 32768;
   return myImage;
@@ -297,8 +287,8 @@ bool CartridgeCTY::save(Serializer& out) const
     out.putShort(myCounter);
     out.putBool(myLDAimmediate);
     out.putInt(myRandomNumber);
-    out.putInt(mySystemCycles);
-    out.putInt(uInt32(myFractionalClocks * 100000000.0));
+    out.putLong(myAudioCycles);
+    out.putDouble(myFractionalClocks);
 
   }
   catch(...)
@@ -326,8 +316,8 @@ bool CartridgeCTY::load(Serializer& in)
     myCounter = in.getShort();
     myLDAimmediate = in.getBool();
     myRandomNumber = in.getInt();
-    mySystemCycles = in.getInt();
-    myFractionalClocks = double(in.getInt()) / 100000000.0;
+    myAudioCycles = in.getLong();
+    myFractionalClocks = in.getDouble();
   }
   catch(...)
   {
@@ -404,7 +394,7 @@ uInt8 CartridgeCTY::ramReadWrite()
         break;
     }
     // Bit 6 is 1, busy
-    return myImage[myCurrentBank + 0xFF4] | 0x40;
+    return myImage[myBankOffset + 0xFF4] | 0x40;
   }
   else
   {
@@ -415,11 +405,11 @@ uInt8 CartridgeCTY::ramReadWrite()
       myRAM[0] = 0;            // Successful operation
 
       // Bit 6 is 0, ready/success
-      return myImage[myCurrentBank + 0xFF4] & ~0x40;
+      return myImage[myBankOffset + 0xFF4] & ~0x40;
     }
     else
       // Bit 6 is 1, busy
-      return myImage[myCurrentBank + 0xFF4] | 0x40;
+      return myImage[myBankOffset + 0xFF4] | 0x40;
   }
 }
 
@@ -476,7 +466,7 @@ void CartridgeCTY::saveScore(uInt8 index)
     memcpy(scoreRAM + (index << 6) + 4, myRAM+4, 60);
 
     // Save score RAM
-    serializer.reset();
+    serializer.rewind();
     try
     {
       serializer.putByteArray(scoreRAM, 256);
@@ -514,20 +504,16 @@ void CartridgeCTY::wipeAllScores()
 inline void CartridgeCTY::updateMusicModeDataFetchers()
 {
   // Calculate the number of cycles since the last update
-  Int32 cycles = mySystem->cycles() - mySystemCycles;
-  mySystemCycles = mySystem->cycles();
+  uInt32 cycles = uInt32(mySystem->cycles() - myAudioCycles);
+  myAudioCycles = mySystem->cycles();
 
-  // Calculate the number of DPC OSC clocks since the last update
+  // Calculate the number of CTY OSC clocks since the last update
   double clocks = ((20000.0 * cycles) / 1193191.66666667) + myFractionalClocks;
-  Int32 wholeClocks = Int32(clocks);
+  uInt32 wholeClocks = uInt32(clocks);
   myFractionalClocks = clocks - double(wholeClocks);
 
-  if(wholeClocks <= 0)
-    return;
-
   // Let's update counters and flags of the music mode data fetchers
-  for(int x = 0; x <= 2; ++x)
-  {
-//    myMusicCounters[x] += myMusicFrequencies[x];
-  }
+  if(wholeClocks > 0)
+    for(int x = 0; x <= 2; ++x)
+      ; //myMusicCounters[x] += myMusicFrequencies[x] * wholeClocks;
 }

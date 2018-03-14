@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartCV.hxx 3311 2016-08-21 21:37:06Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECV_HXX
@@ -36,7 +34,6 @@ class System;
   $F800-$FFFF ROM
 
   @author  Eckhard Stolberg
-  @version $Id: CartCV.hxx 3311 2016-08-21 21:37:06Z stephena $
 */
 class CartridgeCV : public Cartridge
 {
@@ -50,7 +47,7 @@ class CartridgeCV : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeCV(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeCV(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeCV() = default;
 
   public:
@@ -82,7 +79,7 @@ class CartridgeCV : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -126,15 +123,6 @@ class CartridgeCV : public Cartridge
       @return The byte at the specified address
     */
     uInt8 peek(uInt16 address) override;
-
-    /**
-      Change the byte at the specified address to the given value
-
-      @param address The address where the value should be stored
-      @param value The value to be stored at the address
-      @return  True if the poke changed the device address space, else false
-    */
-    bool poke(uInt16 address, uInt8 value) override;
 
   private:
     // Pointer to the initial RAM data from the cart

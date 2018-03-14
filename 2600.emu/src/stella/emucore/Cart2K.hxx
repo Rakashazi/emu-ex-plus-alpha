@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Cart2K.hxx 3311 2016-08-21 21:37:06Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE2K_HXX
@@ -29,12 +27,13 @@ class System;
 #endif
 
 /**
-  This is the standard Atari 2K cartridge.  These cartridges 
-  are not bankswitched, however, the data repeats twice in the 
-  2600's 4K cartridge addressing space.
+  This is the standard Atari 2K cartridge.  These cartridges are not
+  bankswitched, however, the data repeats twice in the 2600's 4K cartridge
+  addressing space.  For 'Sub2K' ROMs (ROMs less than 2K in size), the
+  data repeats in intervals based on the size of the ROM (which will
+  always be a power of 2).
 
-  @author  Bradford W. Mott
-  @version $Id: Cart2K.hxx 3311 2016-08-21 21:37:06Z stephena $
+  @author  Stephen Anthony
 */
 class Cartridge2K : public Cartridge
 {
@@ -48,7 +47,7 @@ class Cartridge2K : public Cartridge
       @param size      The size of the ROM image (<= 2048 bytes)
       @param settings  A reference to the various settings (read-only)
     */
-    Cartridge2K(const uInt8* image, uInt32 size, const Settings& settings);
+    Cartridge2K(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~Cartridge2K() = default;
 
   public:
@@ -80,7 +79,7 @@ class Cartridge2K : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -116,23 +115,6 @@ class Cartridge2K : public Cartridge
       return new Cartridge2KWidget(boss, lfont, nfont, x, y, w, h, *this);
     }
   #endif
-
-  public:
-    /**
-      Get the byte at the specified address
-
-      @return The byte at the specified address
-    */
-    uInt8 peek(uInt16 address) override;
-
-    /**
-      Change the byte at the specified address to the given value
-
-      @param address The address where the value should be stored
-      @param value The value to be stored at the address
-      @return  True if the poke changed the device address space, else false
-    */
-    bool poke(uInt16 address, uInt8 value) override;
 
   private:
     // Pointer to a dynamically allocated ROM image of the cartridge

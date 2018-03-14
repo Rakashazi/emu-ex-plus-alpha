@@ -8,23 +8,21 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: MouseControl.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef MOUSE_CONTROL_HXX
 #define MOUSE_CONTROL_HXX
 
 class Console;
+class Controller;
 class Properties;
 
 #include "bspf.hxx"
-#include "Control.hxx"
 
 /**
   The mouse can control various virtual 'controllers' in many different

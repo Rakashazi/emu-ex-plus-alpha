@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartX07.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
@@ -23,12 +21,13 @@
 #include "CartX07.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeX07::CartridgeX07(const uInt8* image, uInt32 size, const Settings& settings)
+CartridgeX07::CartridgeX07(const BytePtr& image, uInt32 size,
+                           const Settings& settings)
   : Cartridge(settings),
     myCurrentBank(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, std::min(65536u, size));
+  memcpy(myImage, image.get(), std::min(65536u, size));
   createCodeAccessBase(65536);
 
   // Remember startup bank
@@ -51,8 +50,8 @@ void CartridgeX07::install(System& system)
   // The hotspots use almost all addresses below 0x1000, so we simply grab them
   // all and forward the TIA/RIOT calls from the peek and poke methods.
   System::PageAccess access(this, System::PA_READWRITE);
-  for(uInt32 i = 0x00; i < 0x1000; i += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+  for(uInt16 addr = 0x00; addr < 0x1000; addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 
   // Install pages for the startup bank
   bank(myStartBank);
@@ -116,12 +115,11 @@ bool CartridgeX07::bank(uInt16 bank)
   System::PageAccess access(this, System::PA_READ);
 
   // Map ROM image into the system
-  for(uInt32 address = 0x1000; address < 0x2000;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[offset + (addr & 0x0FFF)];
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
 }
@@ -146,7 +144,7 @@ bool CartridgeX07::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeX07::getImage(int& size) const
+const uInt8* CartridgeX07::getImage(uInt32& size) const
 {
   size = 65536;
   return myImage;

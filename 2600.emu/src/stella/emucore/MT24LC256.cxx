@@ -1,26 +1,26 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: MT24LC256.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include <cstdio>
-#include <fstream>
 
 #include "System.hxx"
+
+#include "Settings.hxx"
+
 #include "MT24LC256.hxx"
 
 #define DEBUG_EEPROM 0
@@ -76,10 +76,10 @@ MT24LC256::MT24LC256(const string& filename, const System& system)
   {
     // Get length of file; it must be 32768
     in.seekg(0, std::ios::end);
-    if(uInt32(in.tellg()) == 32768u)
+    if(uInt32(in.tellg()) == FLASH_SIZE)
     {
       in.seekg(0, std::ios::beg);
-      in.read(reinterpret_cast<char*>(myData), 32768);
+      in.read(reinterpret_cast<char*>(myData), FLASH_SIZE);
       myDataFileExists = true;
     }
   }
@@ -98,7 +98,7 @@ MT24LC256::~MT24LC256()
   {
     ofstream out(myDataFile, std::ios_base::binary);
     if(out.is_open())
-      out.write(reinterpret_cast<char*>(myData), 32768);
+      out.write(reinterpret_cast<char*>(myData), FLASH_SIZE);
   }
 }
 
@@ -147,21 +147,41 @@ void MT24LC256::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void MT24LC256::erase()
+void MT24LC256::systemReset()
 {
-  memset(myData, 0xff, 32768);
+  myCyclesWhenSDASet = myCyclesWhenSCLSet = myCyclesWhenTimerSet =
+    mySystem.cycles();
+
+  memset(myPageHit, false, sizeof(myPageHit));
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void MT24LC256::eraseAll()
+{
+  memset(myData, INIT_VALUE, FLASH_SIZE);
   myDataChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void MT24LC256::systemCyclesReset()
+void MT24LC256::eraseCurrent()
 {
-  // System cycles are being reset to zero so we need to adjust
-  // the cycle counts we remembered
-  uInt32 cycles = mySystem.cycles();
-  myCyclesWhenSDASet -= cycles;
-  myCyclesWhenSCLSet -= cycles;
-  myCyclesWhenTimerSet -= cycles;
+  for(uInt32 page = 0; page < PAGE_NUM; page++)
+  {
+    if(myPageHit[page])
+    {
+      memset(myData + page * PAGE_SIZE, INIT_VALUE, PAGE_SIZE);
+      myDataChanged = true;
+    }
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool MT24LC256::isPageUsed(uInt32 page) const
+{
+  if(page < PAGE_NUM)
+    return myPageHit[page];
+  else
+    return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -170,12 +190,12 @@ void MT24LC256::jpee_init()
   jpee_sdat = 1;
   jpee_address = 0;
   jpee_state=0;
-  jpee_sizemask = 32767;
-  jpee_pagemask = 63;
+  jpee_sizemask = FLASH_SIZE - 1;
+  jpee_pagemask = PAGE_SIZE - 1;
   jpee_smallmode = 0;
   jpee_logmode = -1;
   if(!myDataFileExists)
-    memset(myData, 0xff, 32768);
+    memset(myData, INIT_VALUE, FLASH_SIZE);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -232,6 +252,10 @@ void MT24LC256::jpee_data_stop()
     for (int i=3; i<jpee_pptr; i++)
     {
       myDataChanged = true;
+      myPageHit[jpee_address / PAGE_SIZE] = true;
+      bool devSettings = mySystem.oSystem().settings().getBool("dev.settings");
+      if(mySystem.oSystem().settings().getBool(devSettings ? "dev.eepromaccess" : "plr.eepromaccess"))
+        mySystem.oSystem().frameBuffer().showMessage("AtariVox/SaveKey EEPROM write");
       myData[(jpee_address++) & jpee_sizemask] = jpee_packet[i];
       if (!(jpee_address & jpee_pagemask))
         break;  /* Writes can't cross page boundary! */
@@ -328,8 +352,16 @@ void MT24LC256::jpee_clock_fall()
         break;
       }
       jpee_state=3;
+      myPageHit[jpee_address / PAGE_SIZE] = true;
+
+      {
+        bool devSettings = mySystem.oSystem().settings().getBool("dev.settings");
+        if(mySystem.oSystem().settings().getBool(devSettings ? "dev.eepromaccess" : "plr.eepromaccess"))
+          mySystem.oSystem().frameBuffer().showMessage("AtariVox/SaveKey EEPROM read");
+      }
       jpee_nb = (myData[jpee_address & jpee_sizemask] << 1) | 1;  /* Fall through */
       JPEE_LOG2("I2C_READ(%04X=%02X)",jpee_address,jpee_nb/2);
+      [[fallthrough]];
 
     case 3:
       jpee_sdat = !!(jpee_nb & 256);
@@ -367,7 +399,7 @@ bool MT24LC256::jpee_timercheck(int mode)
   {
     if(myTimerActive)
     {
-      uInt32 elapsed = mySystem.cycles() - myCyclesWhenTimerSet;
+      uInt32 elapsed = uInt32(mySystem.cycles() - myCyclesWhenTimerSet);
       myTimerActive = elapsed < uInt32(5000000.0 / 838.0);
     }
     return myTimerActive;

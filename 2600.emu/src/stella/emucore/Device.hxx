@@ -8,13 +8,11 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Device.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef DEVICE_HXX
@@ -22,6 +20,7 @@
 
 class System;
 
+#include "Console.hxx"
 #include "Serializable.hxx"
 #include "bspf.hxx"
 
@@ -30,7 +29,6 @@ class System;
   based system.
 
   @author  Bradford W. Mott
-  @version $Id: Device.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class Device : public Serializable
 {
@@ -49,11 +47,13 @@ class Device : public Serializable
     virtual void reset() = 0;
 
     /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary 
-      to override this method for devices that remember cycle counts.
+      Notification method invoked by the system when the console type
+      has changed.  It may be necessary to override this method for
+      devices that want to know about console changes.
+
+      @param timing  Enum representing the new console type
     */
-    virtual void systemCyclesReset() { }
+    virtual void consoleChanged(ConsoleTiming timing) { }
 
     /**
       Install device in the specified system.  Invoked by the system
@@ -92,7 +92,7 @@ class Device : public Serializable
 
       @return The byte at the specified address
     */
-    virtual uInt8 peek(uInt16 address) = 0;
+    virtual uInt8 peek(uInt16 address) { return 0; }
 
     /**
       Change the byte at the specified address to the given value
@@ -102,7 +102,7 @@ class Device : public Serializable
 
       @return  True if the poke changed the device address space, else false
     */
-    virtual bool poke(uInt16 address, uInt8 value) = 0;
+    virtual bool poke(uInt16 address, uInt8 value) { return false; }
 
     /**
       Query the given address for its disassembly flags
@@ -110,6 +110,7 @@ class Device : public Serializable
       @param address The address to modify
     */
     virtual uInt8 getAccessFlags(uInt16 address) const { return 0; }
+
     /**
       Change the given address type to use the given disassembly flags
 

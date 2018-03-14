@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Thumbulator.cxx 3308 2016-05-24 16:55:45Z stephena $
 //============================================================================
 
 //============================================================================
@@ -24,10 +22,9 @@
 // Code is public domain and used with the author's consent
 //============================================================================
 
-#ifdef THUMB_SUPPORT
-
 #include "bspf.hxx"
 #include "Base.hxx"
+#include "Cart.hxx"
 #include "Thumbulator.hxx"
 using Common::Base;
 
@@ -56,10 +53,16 @@ using Common::Base;
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, bool traponfatal)
+Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, bool traponfatal,
+                         Thumbulator::ConfigureFor configurefor, Cartridge* cartridge)
   : rom(rom_ptr),
-    ram(ram_ptr)
+    ram(ram_ptr),
+    T1TCR(0),
+    T1TC(0),
+    configuration(configurefor),
+    myCartridge(cartridge)
 {
+  setConsoleTiming(ConsoleTiming::ntsc);
   trapFatalErrors(traponfatal);
   reset();
 }
@@ -82,6 +85,36 @@ string Thumbulator::run()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Thumbulator::setConsoleTiming(ConsoleTiming timing)
+{
+  // this sets how many ticks of the Harmony/Melody clock
+  // will occur per tick of the 6507 clock
+  constexpr double NTSC   = 70.0 / 1.193182;  // NTSC  6507 clock rate
+  constexpr double PAL    = 70.0 / 1.182298;  // PAL   6507 clock rate
+  constexpr double SECAM  = 70.0 / 1.187500;  // SECAM 6507 clock rate
+
+  switch(timing)
+  {
+    case ConsoleTiming::ntsc:   timing_factor = NTSC;   break;
+    case ConsoleTiming::secam:  timing_factor = SECAM;  break;
+    case ConsoleTiming::pal:    timing_factor = PAL;    break;
+  }
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Thumbulator::updateTimer(uInt32 cycles)
+{
+  if (T1TCR & 1) // bit 0 controls timer on/off
+    T1TC += uInt32(cycles * timing_factor);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string Thumbulator::run(uInt32 cycles)
+{
+  updateTimer(cycles);
+  return run();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 inline int Thumbulator::fatalError(const char* opcode, uInt32 v1, const char* msg)
 {
   statusMsg << "Thumb ARM emulation fatal error: " << endl
@@ -94,7 +127,7 @@ inline int Thumbulator::fatalError(const char* opcode, uInt32 v1, const char* ms
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 inline int Thumbulator::fatalError(const char* opcode, uInt32 v1, uInt32 v2,
-                                    const char* msg)
+                                   const char* msg)
 {
   statusMsg << "Thumb ARM emulation fatal error: " << endl
             << opcode << "(" << Base::HEX8 << v1 << "," << v2 << "), " << msg << endl;
@@ -175,6 +208,7 @@ uInt32 Thumbulator::fetch32(uInt32 addr)
         if(addr == 0x0000003C) return data;
         fatalError("fetch32", addr, "abort");
       }
+      [[fallthrough]];
 
     case 0x40000000: //RAM
       data = read32(addr);
@@ -189,8 +223,9 @@ void Thumbulator::write16(uInt32 addr, uInt32 data)
 {
   if((addr > 0x40001fff) && (addr < 0x50000000))
     fatalError("write16", addr, "abort - out of range");
-  else if((addr > 0x40000028) && (addr < 0x40000c00))
-    fatalError("write16", addr, "to bankswitch code area");
+
+  if (isProtected(addr)) fatalError("write16", addr, "to driver area");
+
   if(addr & 1)
     fatalError("write16", addr, "abort - misaligned");
 
@@ -223,6 +258,7 @@ void Thumbulator::write32(uInt32 addr, uInt32 data)
   if(addr & 3)
     fatalError("write32", addr, "abort - misaligned");
 
+  if (isProtected(addr)) fatalError("write32", addr, "to driver area");
   DO_DBUG(statusMsg << "write32(" << Base::HEX8 << addr << "," << Base::HEX8 << data << ")" << endl);
 
   switch(addr & 0xF0000000)
@@ -236,6 +272,14 @@ void Thumbulator::write32(uInt32 addr, uInt32 data)
       {
         case 0xE0000000:
           DO_DISS(statusMsg << "uart: [" << char(data&0xFF) << "]" << endl);
+          break;
+
+        case 0xE0008004:  // T1TCR - Timer 1 Control Register
+          T1TCR = data;
+          break;
+
+        case 0xE0008008:  // T1TC - Timer 1 Counter
+          T1TC = data;
           break;
 
         case 0xE000E010:
@@ -281,13 +325,36 @@ void Thumbulator::write32(uInt32 addr, uInt32 data)
           return;
       }
       return;
-      
+
     case 0x40000000: //RAM
       write16(addr+0, (data >>  0) & 0xFFFF);
       write16(addr+2, (data >> 16) & 0xFFFF);
       return;
   }
   fatalError("write32", addr, data, "abort");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Thumbulator::isProtected(uInt32 addr)
+{
+  if (addr < 0x40000000) return false;
+  addr -= 0x40000000;
+
+  switch (configuration) {
+    case ConfigureFor::DPCplus:
+      return (addr < 0x0c00) && (addr > 0x0028);
+
+    case ConfigureFor::CDF:
+      return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x06e0) && (addr < (0x0e60 + 284)));
+
+    case ConfigureFor::CDF1:
+      return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x00a0) && (addr < (0x00a0 + 284)));
+
+    case ConfigureFor::BUS:
+      return  (addr < 0x06d8) && (addr > 0x0028);
+  }
+
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -350,6 +417,14 @@ uInt32 Thumbulator::read32(uInt32 addr)
     {
       switch(addr)
       {
+        case 0xE0008004:  // T1TCR - Timer 1 Control Register
+          data = T1TCR;
+          return data;
+
+        case 0xE0008008:  // T1TC - Timer 1 Counter
+          data = T1TC;
+          return data;
+
         case 0xE000E010:
           data = systick_ctrl;
           systick_ctrl &= (~0x00010000);
@@ -458,7 +533,7 @@ int Thumbulator::execute()
 
   pc = read_register(15);
 
-#if 0  // FIXME SA - not sure if this should be enabled
+#if 0
   if(handler_mode)
   {
     if((pc & 0xF0000000) == 0xF0000000)
@@ -988,14 +1063,218 @@ int Thumbulator::execute()
     //fprintf(stderr,"bx r%u 0x%X 0x%X\n",rm,rc,pc);
     if(rc & 1)
     {
+      // branch to odd address denotes 16 bit ARM code
       rc &= ~1;
       write_register(15, rc);
       return 0;
     }
     else
     {
-      //fprintf(stderr,"cannot branch to arm 0x%08X 0x%04X\n",pc,inst);
-      // fxq: or maybe this one??
+      // branch to even address denotes 32 bit ARM code, which the Thumbulator
+      // class does not support. So capture relavent information and hand it
+      // off to the Cartridge class for it to handle.
+
+      bool handled = false;
+
+      switch(configuration)
+      {
+        case ConfigureFor::BUS:
+          // this subroutine interface is used in the BUS driver,
+          // it starts at address 0x000006d8
+          // _SetNote:
+          //   ldr     r4, =NoteStore
+          //   bx      r4   // bx instruction at 0x000006da
+          // _ResetWave:
+          //   ldr     r4, =ResetWaveStore
+          //   bx      r4   // bx instruction at 0x000006de
+          // _GetWavePtr:
+          //   ldr     r4, =WavePtrFetch
+          //   bx      r4   // bx instruction at 0x000006e2
+          // _SetWaveSize:
+          //   ldr     r4, =WaveSizeStore
+          //   bx      r4   // bx instruction at 0x000006e6
+
+          // address to test for is + 4 due to pipelining
+
+#define BUS_SetNote     (0x000006da + 4)
+#define BUS_ResetWave   (0x000006de + 4)
+#define BUS_GetWavePtr  (0x000006e2 + 4)
+#define BUS_SetWaveSize (0x000006e6 + 4)
+
+          if      (pc == BUS_SetNote)
+          {
+            myCartridge->thumbCallback(0, read_register(2), read_register(3));
+            handled = true;
+          }
+          else if (pc == BUS_ResetWave)
+          {
+            myCartridge->thumbCallback(1, read_register(2), 0);
+            handled = true;
+          }
+          else if (pc == BUS_GetWavePtr)
+          {
+            write_register(2, myCartridge->thumbCallback(2, read_register(2), 0));
+            handled = true;
+          }
+          else if (pc == BUS_SetWaveSize)
+          {
+            myCartridge->thumbCallback(3, read_register(2), read_register(3));
+            handled = true;
+          }
+          else if (pc == 0x0000083a)
+          {
+            // exiting Custom ARM code, returning to BUS Driver control
+          }
+          else
+          {
+#if 0  // uncomment this for testing
+            uInt32 r0 = read_register(0);
+            uInt32 r1 = read_register(1);
+            uInt32 r2 = read_register(2);
+            uInt32 r3 = read_register(3);
+            uInt32 r4 = read_register(4);
+#endif
+            myCartridge->thumbCallback(255, 0, 0);
+          }
+
+          break;
+
+        case ConfigureFor::CDF:
+          // this subroutine interface is used in the CDF driver,
+          // it starts at address 0x000006e0
+          // _SetNote:
+          //   ldr     r4, =NoteStore
+          //   bx      r4   // bx instruction at 0x000006e2
+          // _ResetWave:
+          //   ldr     r4, =ResetWaveStore
+          //   bx      r4   // bx instruction at 0x000006e6
+          // _GetWavePtr:
+          //   ldr     r4, =WavePtrFetch
+          //   bx      r4   // bx instruction at 0x000006ea
+          // _SetWaveSize:
+          //   ldr     r4, =WaveSizeStore
+          //   bx      r4   // bx instruction at 0x000006ee
+
+          // address to test for is + 4 due to pipelining
+
+        #define CDF_SetNote     (0x000006e2 + 4)
+        #define CDF_ResetWave   (0x000006e6 + 4)
+        #define CDF_GetWavePtr  (0x000006ea + 4)
+        #define CDF_SetWaveSize (0x000006ee + 4)
+
+          if      (pc == CDF_SetNote)
+          {
+            myCartridge->thumbCallback(0, read_register(2), read_register(3));
+            handled = true;
+          }
+          else if (pc == CDF_ResetWave)
+          {
+            myCartridge->thumbCallback(1, read_register(2), 0);
+            handled = true;
+          }
+          else if (pc == CDF_GetWavePtr)
+          {
+            write_register(2, myCartridge->thumbCallback(2, read_register(2), 0));
+            handled = true;
+          }
+          else if (pc == CDF_SetWaveSize)
+          {
+            myCartridge->thumbCallback(3, read_register(2), read_register(3));
+            handled = true;
+          }
+          else if (pc == 0x0000083a)
+          {
+            // exiting Custom ARM code, returning to BUS Driver control
+          }
+          else
+          {
+          #if 0  // uncomment this for testing
+            uInt32 r0 = read_register(0);
+            uInt32 r1 = read_register(1);
+            uInt32 r2 = read_register(2);
+            uInt32 r3 = read_register(3);
+            uInt32 r4 = read_register(4);
+          #endif
+            myCartridge->thumbCallback(255, 0, 0);
+          }
+
+          break;
+
+        case ConfigureFor::CDF1:
+          // this subroutine interface is used in the CDF driver,
+          // it starts at address 0x00000750
+          // _SetNote:
+          //   ldr     r4, =NoteStore
+          //   bx      r4   // bx instruction at 0x000006e2
+          // _ResetWave:
+          //   ldr     r4, =ResetWaveStore
+          //   bx      r4   // bx instruction at 0x000006e6
+          // _GetWavePtr:
+          //   ldr     r4, =WavePtrFetch
+          //   bx      r4   // bx instruction at 0x000006ea
+          // _SetWaveSize:
+          //   ldr     r4, =WaveSizeStore
+          //   bx      r4   // bx instruction at 0x000006ee
+
+          // address to test for is + 4 due to pipelining
+
+#define CDF1_SetNote     (0x00000752 + 4)
+#define CDF1_ResetWave   (0x00000756 + 4)
+#define CDF1_GetWavePtr  (0x0000075a + 4)
+#define CDF1_SetWaveSize (0x0000075e + 4)
+
+          if      (pc == CDF1_SetNote)
+          {
+            myCartridge->thumbCallback(0, read_register(2), read_register(3));
+            handled = true;
+          }
+          else if (pc == CDF1_ResetWave)
+          {
+            myCartridge->thumbCallback(1, read_register(2), 0);
+            handled = true;
+          }
+          else if (pc == CDF1_GetWavePtr)
+          {
+            write_register(2, myCartridge->thumbCallback(2, read_register(2), 0));
+            handled = true;
+          }
+          else if (pc == CDF1_SetWaveSize)
+          {
+            myCartridge->thumbCallback(3, read_register(2), read_register(3));
+            handled = true;
+          }
+          else if (pc == 0x0000083a)
+          {
+            // exiting Custom ARM code, returning to BUS Driver control
+          }
+          else
+          {
+#if 0  // uncomment this for testing
+            uInt32 r0 = read_register(0);
+            uInt32 r1 = read_register(1);
+            uInt32 r2 = read_register(2);
+            uInt32 r3 = read_register(3);
+            uInt32 r4 = read_register(4);
+#endif
+            myCartridge->thumbCallback(255, 0, 0);
+          }
+
+          break;
+
+        case ConfigureFor::DPCplus:
+          // no 32-bit subroutines in DPC+
+          break;
+      }
+
+      if (handled)
+      {
+        rc = read_register(14); // lr
+        rc += 2;
+        rc &= ~1;
+        write_register(15, rc);
+        return 0;
+      }
+
       return 1;
     }
   }
@@ -2044,8 +2323,23 @@ int Thumbulator::reset()
 {
   std::fill(reg_norm, reg_norm+12, 0);
   reg_norm[13] = 0x40001FB4;
-  reg_norm[14] = 0x00000C00;
-  reg_norm[15] = 0x00000C0B;
+
+  switch(configuration)
+  {
+    // future 2K Harmony/Melody drivers will most likely use these settings
+    case ConfigureFor::BUS:
+    case ConfigureFor::CDF:
+    case ConfigureFor::CDF1:
+      reg_norm[14] = 0x00000800; // Link Register
+      reg_norm[15] = 0x0000080B; // Program Counter
+      break;
+
+    // future 3K Harmony/Melody drivers will most likely use these settings
+    case ConfigureFor::DPCplus:
+      reg_norm[14] = 0x00000C00; // Link Register
+      reg_norm[15] = 0x00000C0B; // Program Counter
+      break;
+  }
 
   cpsr = mamcr = 0;
   handler_mode = false;
@@ -2065,5 +2359,3 @@ int Thumbulator::reset()
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Thumbulator::trapOnFatal = true;
-
-#endif

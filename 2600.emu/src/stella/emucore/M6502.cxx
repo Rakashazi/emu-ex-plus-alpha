@@ -8,13 +8,11 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: M6502.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #ifdef DEBUGGER_SUPPORT
@@ -22,26 +20,32 @@
   #include "Expression.hxx"
   #include "CartDebug.hxx"
   #include "PackedBitArray.hxx"
+  #include "TIA.hxx"
+  #include "Base.hxx"
+  #include "M6532.hxx"
 
   // Flags for disassembly types
   #define DISASM_CODE  CartDebug::CODE
-  #define DISASM_GFX   CartDebug::GFX
-  #define DISASM_PGFX  CartDebug::PGFX
+//   #define DISASM_GFX   CartDebug::GFX  // TODO - uncomment when needed
+//   #define DISASM_PGFX  CartDebug::PGFX // TODO - uncomment when needed
   #define DISASM_DATA  CartDebug::DATA
-  #define DISASM_ROW   CartDebug::ROW
+//   #define DISASM_ROW   CartDebug::ROW  // TODO - uncomment when needed
+  #define DISASM_WRITE CartDebug::WRITE
   #define DISASM_NONE  0
 #else
   // Flags for disassembly types
   #define DISASM_CODE  0
-  #define DISASM_GFX   0
-  #define DISASM_PGFX  0
+//   #define DISASM_GFX   0   // TODO - uncomment when needed
+//   #define DISASM_PGFX  0   // TODO - uncomment when needed
   #define DISASM_DATA  0
-  #define DISASM_ROW   0
+//   #define DISASM_ROW   0   // TODO - uncomment when needed
   #define DISASM_NONE  0
+  #define DISASM_WRITE 0
 #endif
 #include "Settings.hxx"
 #include "Vec.hxx"
 
+#include "System.hxx"
 #include "M6502.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,20 +55,26 @@ M6502::M6502(const Settings& settings)
     mySettings(settings),
     A(0), X(0), Y(0), SP(0), IR(0), PC(0),
     N(false), V(false), B(false), D(false), I(false), notZ(false), C(false),
-    myLastAccessWasRead(true),
+    icycles(0),
     myNumberOfDistinctAccesses(0),
     myLastAddress(0),
     myLastPeekAddress(0),
     myLastPokeAddress(0),
+    myLastPeekBaseAddress(0),
+    myLastPokeBaseAddress(0),
     myLastSrcAddressS(-1),
     myLastSrcAddressA(-1),
     myLastSrcAddressX(-1),
     myLastSrcAddressY(-1),
-    myDataAddressForPoke(0)
+    myDataAddressForPoke(0),
+    myOnHaltCallback(nullptr),
+    myHaltRequested(false),
+    myGhostReadsTrap(true),
+    myStepStateByInstruction(false)
 {
 #ifdef DEBUGGER_SUPPORT
   myDebugger = nullptr;
-  myJustHitTrapFlag = false;
+  myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
 #endif
 }
 
@@ -82,9 +92,10 @@ void M6502::reset()
   myExecutionStatus = 0;
 
   // Set registers to random or default values
-  const string& cpurandom = mySettings.getString("cpurandom");
+  bool devSettings = mySettings.getBool("dev.settings");
+  const string& cpurandom = mySettings.getString(devSettings ? "dev.cpurandom" : "plr.cpurandom");
   SP = BSPF::containsIgnoreCase(cpurandom, "S") ?
-          mySystem->randGenerator().next() : 0xff;
+          mySystem->randGenerator().next() : 0xfd;
   A  = BSPF::containsIgnoreCase(cpurandom, "A") ?
           mySystem->randGenerator().next() : 0x00;
   X  = BSPF::containsIgnoreCase(cpurandom, "X") ?
@@ -94,21 +105,25 @@ void M6502::reset()
   PS(BSPF::containsIgnoreCase(cpurandom, "P") ?
           mySystem->randGenerator().next() : 0x20);
 
-  // Reset access flag
-  myLastAccessWasRead = true;
+  icycles = 0;
 
   // Load PC from the reset vector
   PC = uInt16(mySystem->peek(0xfffc)) | (uInt16(mySystem->peek(0xfffd)) << 8);
 
-  myLastAddress = myLastPeekAddress = myLastPokeAddress = 0;
+  myLastAddress = myLastPeekAddress = myLastPokeAddress = myLastPeekBaseAddress = myLastPokeBaseAddress;
   myLastSrcAddressS = myLastSrcAddressA =
     myLastSrcAddressX = myLastSrcAddressY = -1;
   myDataAddressForPoke = 0;
+
+  myHaltRequested = false;
+  myGhostReadsTrap = mySettings.getBool("dbg.ghostreadstrap");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 inline uInt8 M6502::peek(uInt16 address, uInt8 flags)
 {
+  handleHalt();
+
   ////////////////////////////////////////////////
   // TODO - move this logic directly into CartAR
   if(address != myLastAddress)
@@ -118,24 +133,33 @@ inline uInt8 M6502::peek(uInt16 address, uInt8 flags)
   }
   ////////////////////////////////////////////////
   mySystem->incrementCycles(SYSTEM_CYCLES_PER_CPU);
+  icycles += SYSTEM_CYCLES_PER_CPU;
+  uInt8 result = mySystem->peek(address, flags);
+  myLastPeekAddress = address;
 
 #ifdef DEBUGGER_SUPPORT
-  if(myReadTraps.isInitialized() && myReadTraps.isSet(address))
+  if(myReadTraps.isInitialized() && myReadTraps.isSet(address)
+     && (myGhostReadsTrap || flags != DISASM_NONE))
   {
-    myJustHitTrapFlag = true;
-    myHitTrapInfo.message = "RTrap: ";
-    myHitTrapInfo.address = address;
+    myLastPeekBaseAddress = myDebugger->getBaseAddress(myLastPeekAddress, true); // mirror handling
+    int cond = evalCondTraps();
+    if(cond > -1)
+    {
+      myJustHitReadTrapFlag = true;
+      stringstream msg;
+      msg << "RTrap" << (flags == DISASM_NONE ? "G[" : "[") << Common::Base::HEX2 << cond << "]"
+        << (myTrapCondNames[cond].empty() ? ": " : "If: {" + myTrapCondNames[cond] + "} ");
+      myHitTrapInfo.message = msg.str();
+      myHitTrapInfo.address = address;
+    }
   }
 #endif  // DEBUGGER_SUPPORT
 
-  uInt8 result = mySystem->peek(address, flags);
-  myLastAccessWasRead = true;
-  myLastPeekAddress = address;
   return result;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-inline void M6502::poke(uInt16 address, uInt8 value)
+inline void M6502::poke(uInt16 address, uInt8 value, uInt8 flags)
 {
   ////////////////////////////////////////////////
   // TODO - move this logic directly into CartAR
@@ -146,38 +170,96 @@ inline void M6502::poke(uInt16 address, uInt8 value)
   }
   ////////////////////////////////////////////////
   mySystem->incrementCycles(SYSTEM_CYCLES_PER_CPU);
+  icycles += SYSTEM_CYCLES_PER_CPU;
+  mySystem->poke(address, value, flags);
+  myLastPokeAddress = address;
 
 #ifdef DEBUGGER_SUPPORT
   if(myWriteTraps.isInitialized() && myWriteTraps.isSet(address))
   {
-    myJustHitTrapFlag = true;
-    myHitTrapInfo.message = "WTrap: ";
-    myHitTrapInfo.address = address;
+    myLastPokeBaseAddress = myDebugger->getBaseAddress(myLastPokeAddress, false); // mirror handling
+    int cond = evalCondTraps();
+    if(cond > -1)
+    {
+      myJustHitWriteTrapFlag = true;
+      stringstream msg;
+      msg << "WTrap[" << Common::Base::HEX2 << cond << "]" << (myTrapCondNames[cond].empty() ? ": " : "If: {" + myTrapCondNames[cond] + "} ");
+      myHitTrapInfo.message = msg.str();
+      myHitTrapInfo.address = address;
+    }
   }
 #endif  // DEBUGGER_SUPPORT
+}
 
-  mySystem->poke(address, value);
-  myLastAccessWasRead = false;
-  myLastPokeAddress = address;
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6502::requestHalt()
+{
+  if (!myOnHaltCallback) throw runtime_error("onHaltCallback not configured");
+  myHaltRequested = true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+inline void M6502::handleHalt()
+{
+  if (myHaltRequested) {
+    myOnHaltCallback();
+    myHaltRequested = false;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6502::updateStepStateByInstruction()
+{
+  // Currently only used in debugger mode
+#ifdef DEBUGGER_SUPPORT
+  myStepStateByInstruction = myCondBreaks.size() || myCondSaveStates.size() || myTrapConds.size();
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool M6502::execute(uInt32 number)
 {
+  const bool status = _execute(number);
+
+#ifdef DEBUGGER_SUPPORT
+  // Debugger hack: this ensures that stepping a "STA WSYNC" will actually end at the
+  // beginning of the next line (otherwise, the next instruction would be stepped in order for
+  // the halt to take effect). This is safe because as we know that the next cycle will be a read
+  // cycle anyway.
+  handleHalt();
+
+  // Make sure that the hardware state matches the current system clock. This is necessary
+  // to maintain a consistent state for the debugger after stepping.
+  mySystem->tia().updateEmulation();
+  mySystem->m6532().updateEmulation();
+#endif
+
+  return status;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+inline bool M6502::_execute(uInt32 number)
+{
   // Clear all of the execution status bits except for the fatal error bit
   myExecutionStatus &= FatalErrorBit;
+
+#ifdef DEBUGGER_SUPPORT
+  TIA& tia = mySystem->tia();
+  M6532& riot = mySystem->m6532();
+#endif
 
   // Loop until execution is stopped or a fatal error occurs
   for(;;)
   {
     for(; !myExecutionStatus && (number != 0); --number)
     {
-#ifdef DEBUGGER_SUPPORT
-      if(myJustHitTrapFlag)
+  #ifdef DEBUGGER_SUPPORT
+      if(myJustHitReadTrapFlag || myJustHitWriteTrapFlag)
       {
-        if(myDebugger && myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address))
+        bool read = myJustHitReadTrapFlag;
+        myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
+        if(myDebugger && myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address, read))
         {
-          myJustHitTrapFlag = false;
           return true;
         }
       }
@@ -189,11 +271,20 @@ bool M6502::execute(uInt32 number)
       int cond = evalCondBreaks();
       if(cond > -1)
       {
-        string buf = "CBP: " + myBreakCondNames[cond];
-        if(myDebugger && myDebugger->start(buf))
+        stringstream msg;
+        msg << "CBP[" << Common::Base::HEX2 << cond << "]: " << myCondBreakNames[cond];
+        if(myDebugger && myDebugger->start(msg.str()))
           return true;
       }
-#endif  // DEBUGGER_SUPPORT
+
+      cond = evalCondSaveStates();
+      if(cond > -1)
+      {
+        stringstream msg;
+        msg << "conditional savestate [" << Common::Base::HEX2 << cond << "]";
+        myDebugger->addState(msg.str());
+      }
+  #endif  // DEBUGGER_SUPPORT
 
       uInt16 operandAddress = 0, intermediateAddress = 0;
       uInt8 operand = 0;
@@ -201,6 +292,7 @@ bool M6502::execute(uInt32 number)
       // Reset the peek/poke address pointers
       myLastPeekAddress = myLastPokeAddress = myDataAddressForPoke = 0;
 
+      icycles = 0;
       // Fetch instruction at the program counter
       IR = peek(PC++, DISASM_CODE);  // This address represents a code section
 
@@ -214,10 +306,21 @@ bool M6502::execute(uInt32 number)
           // Oops, illegal instruction executed so set fatal error flag
           myExecutionStatus |= FatalErrorBit;
       }
+
+  #ifdef DEBUGGER_SUPPORT
+      if(myStepStateByInstruction)
+      {
+        // Check out M6502::execute for an explanation.
+        handleHalt();
+
+        tia.updateEmulation();
+        riot.updateEmulation();
+      }
+  #endif
     }
 
     // See if we need to handle an interrupt
-    if((myExecutionStatus & MaskableInterruptBit) || 
+    if((myExecutionStatus & MaskableInterruptBit) ||
         (myExecutionStatus & NonmaskableInterruptBit))
     {
       // Yes, so handle the interrupt
@@ -312,6 +415,10 @@ bool M6502::save(Serializer& out) const
     out.putInt(myLastSrcAddressA);
     out.putInt(myLastSrcAddressX);
     out.putInt(myLastSrcAddressY);
+
+    out.putBool(myHaltRequested);
+    out.putBool(myStepStateByInstruction);
+    out.putBool(myGhostReadsTrap);
   }
   catch(...)
   {
@@ -360,6 +467,10 @@ bool M6502::load(Serializer& in)
     myLastSrcAddressA = in.getInt();
     myLastSrcAddressX = in.getInt();
     myLastSrcAddressY = in.getInt();
+
+    myHaltRequested = in.getBool();
+    myStepStateByInstruction = in.getBool();
+    myGhostReadsTrap = in.getBool();
   }
   catch(...)
   {
@@ -381,31 +492,123 @@ void M6502::attach(Debugger& debugger)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 M6502::addCondBreak(Expression* e, const string& name)
 {
-  myBreakConds.emplace_back(unique_ptr<Expression>(e));
-  myBreakCondNames.push_back(name);
-  return uInt32(myBreakConds.size() - 1);
+  myCondBreaks.emplace_back(e);
+  myCondBreakNames.push_back(name);
+
+  updateStepStateByInstruction();
+
+  return uInt32(myCondBreaks.size() - 1);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::delCondBreak(uInt32 brk)
+bool M6502::delCondBreak(uInt32 idx)
 {
-  if(brk < myBreakConds.size())
+  if(idx < myCondBreaks.size())
   {
-    Vec::removeAt(myBreakConds, brk);
-    Vec::removeAt(myBreakCondNames, brk);
+    Vec::removeAt(myCondBreaks, idx);
+    Vec::removeAt(myCondBreakNames, idx);
+
+    updateStepStateByInstruction();
+
+    return true;
   }
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6502::clearCondBreaks()
 {
-  myBreakConds.clear();
-  myBreakCondNames.clear();
+  myCondBreaks.clear();
+  myCondBreakNames.clear();
+
+  updateStepStateByInstruction();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const StringList& M6502::getCondBreakNames() const
 {
-  return myBreakCondNames;
+  return myCondBreakNames;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt32 M6502::addCondSaveState(Expression* e, const string& name)
+{
+  myCondSaveStates.emplace_back(e);
+  myCondSaveStateNames.push_back(name);
+
+  updateStepStateByInstruction();
+
+  return uInt32(myCondSaveStates.size() - 1);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool M6502::delCondSaveState(uInt32 idx)
+{
+  if(idx < myCondSaveStates.size())
+  {
+    Vec::removeAt(myCondSaveStates, idx);
+    Vec::removeAt(myCondSaveStateNames, idx);
+
+    updateStepStateByInstruction();
+
+    return true;
+  }
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6502::clearCondSaveStates()
+{
+  myCondSaveStates.clear();
+  myCondSaveStateNames.clear();
+
+  updateStepStateByInstruction();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const StringList& M6502::getCondSaveStateNames() const
+{
+  return myCondSaveStateNames;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt32 M6502::addCondTrap(Expression* e, const string& name)
+{
+  myTrapConds.emplace_back(e);
+  myTrapCondNames.push_back(name);
+
+  updateStepStateByInstruction();
+
+  return uInt32(myTrapConds.size() - 1);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool M6502::delCondTrap(uInt32 brk)
+{
+  if(brk < myTrapConds.size())
+  {
+    Vec::removeAt(myTrapConds, brk);
+    Vec::removeAt(myTrapCondNames, brk);
+
+    updateStepStateByInstruction();
+
+    return true;
+  }
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6502::clearCondTraps()
+{
+  myTrapConds.clear();
+  myTrapCondNames.clear();
+
+  updateStepStateByInstruction();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+const StringList& M6502::getCondTrapNames() const
+{
+  return myTrapCondNames;
 }
 #endif  // DEBUGGER_SUPPORT

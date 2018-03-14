@@ -1,26 +1,21 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Settings.cxx 3308 2016-05-24 16:55:45Z stephena $
 //============================================================================
 
 #include <cassert>
-#include <sstream>
-#include <fstream>
-#include <algorithm>
 
 #include "bspf.hxx"
 
@@ -39,27 +34,28 @@ Settings::Settings(OSystem& osystem)
 {
   // Video-related options
   setInternal("video", "");
+  setInternal("framerate", "0");
   setInternal("vsync", "true");
   setInternal("fullscreen", "false");
   setInternal("center", "false");
   setInternal("palette", "standard");
-  setInternal("colorloss", "true");
   setInternal("timing", "sleep");
   setInternal("uimessages", "true");
 
   // TIA specific options
-  setInternal("tia.zoom", "2");
+  setInternal("tia.zoom", "3");
   setInternal("tia.inter", "false");
-  setInternal("tia.aspectn", "90");
-  setInternal("tia.aspectp", "100");
+  setInternal("tia.aspectn", "91");
+  setInternal("tia.aspectp", "109");
   setInternal("tia.fsfill", "false");
+  setInternal("tia.dbgcolors", "roygpb");
 
   // TV filtering options
   setInternal("tv.filter", "0");
+  setInternal("tv.phosphor", "byrom");
+  setInternal("tv.phosblend", "50");
   setInternal("tv.scanlines", "25");
   setInternal("tv.scaninter", "true");
-  setInternal("tv.jitter", "false");
-  setInternal("tv.jitter_recovery", "10");
   // TV options when using 'custom' mode
   setInternal("tv.contrast", "0.0");
   setInternal("tv.brightness", "0.0");
@@ -89,6 +85,7 @@ Settings::Settings(OSystem& osystem)
   setInternal("cursor", "2");
   setInternal("dsense", "10");
   setInternal("msense", "10");
+  setInternal("tsense", "10");
   setInternal("saport", "lr");
   setInternal("ctrlcombo", "true");
 
@@ -111,10 +108,10 @@ Settings::Settings(OSystem& osystem)
 
   // ROM browser options
   setInternal("exitlauncher", "false");
-  setInternal("launcherres", GUI::Size(640, 480));
+  setInternal("launcherres", GUI::Size(900, 600));
   setInternal("launcherfont", "medium");
   setInternal("launcherexts", "allroms");
-  setInternal("romviewer", "0");
+  setInternal("romviewer", "1");
   setInternal("lastrom", "");
 
   // UI-related options
@@ -131,29 +128,64 @@ Settings::Settings(OSystem& osystem)
   setInternal("autoslot", "false");
   setInternal("loglevel", "1");
   setInternal("logtoconsole", "0");
-  setInternal("tiadriven", "false");
-  setInternal("cpurandom", "");
-  setInternal("ramrandom", "true");
   setInternal("avoxport", "");
-  setInternal("stats", "false");
-  setInternal("fastscbios", "false");
+  setInternal("fastscbios", "true");
+  setInternal("threads", "false");
   setExternal("romloadcount", "0");
   setExternal("maxres", "");
 
 #ifdef DEBUGGER_SUPPORT
   // Debugger/disassembly options
+  setInternal("dbg.fontsize", "medium");
   setInternal("dbg.fontstyle", "0");
-  setInternal("dbg.uhex", "true");
+  setInternal("dbg.uhex", "false");
+  setInternal("dbg.ghostreadstrap", "true");
   setInternal("dis.resolve", "true");
   setInternal("dis.gfxformat", "2");
   setInternal("dis.showaddr", "true");
   setInternal("dis.relocate", "false");
 #endif
 
-#ifdef DTHUMB_SUPPORT
+  // player settings
+  setInternal("plr.stats", "false");
+  setInternal("plr.bankrandom", "false");
+  setInternal("plr.ramrandom", "false");
+  setInternal("plr.cpurandom", "");
+  setInternal("plr.colorloss", "false");
+  setInternal("plr.tv.jitter", "true");
+  setInternal("plr.tv.jitter_recovery", "10");
+  setInternal("plr.debugcolors", "false");
+  setInternal("plr.tiadriven", "false");
+  setInternal("plr.console", "2600"); // 7800
+  setInternal("plr.timemachine", false);
+  setInternal("plr.tm.size", 100);
+  setInternal("plr.tm.uncompressed", 30);
+  setInternal("plr.tm.interval", "30f"); // = 0.5 seconds
+  setInternal("plr.tm.horizon", "10m"); // = ~10 minutes
   // Thumb ARM emulation options
-  setInternal("thumb.trapfatal", "true");
-#endif
+  setInternal("plr.thumb.trapfatal", "false");
+  setInternal("plr.eepromaccess", "false");
+
+  // developer settings
+  setInternal("dev.settings", "false");
+  setInternal("dev.stats", "true");
+  setInternal("dev.bankrandom", "true");
+  setInternal("dev.ramrandom", "true");
+  setInternal("dev.cpurandom", "SAXYP");
+  setInternal("dev.colorloss", "true");
+  setInternal("dev.tv.jitter", "true");
+  setInternal("dev.tv.jitter_recovery", "2");
+  setInternal("dev.debugcolors", "false");
+  setInternal("dev.tiadriven", "true");
+  setInternal("dev.console", "2600"); // 7800
+  setInternal("dev.timemachine", true);
+  setInternal("dev.tm.size", 100);
+  setInternal("dev.tm.uncompressed", 60);
+  setInternal("dev.tm.interval", "1f"); // = 1 frame
+  setInternal("dev.tm.horizon", "10s"); // = ~10 seconds
+  // Thumb ARM emulation options
+  setInternal("dev.thumb.trapfatal", "true");
+  setInternal("dev.eepromaccess", "true");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -239,7 +271,7 @@ string Settings::loadCommandLine(int argc, char** argv)
       buf.str("");
       buf << "  key = '" << key << "', value = '" << value << "'";
 
-      // Settings read from the commandline must not be saved to 
+      // Settings read from the commandline must not be saved to
       // the rc-file, unless they were previously set
       if(int idx = getInternalPos(key) != -1)
       {
@@ -275,15 +307,60 @@ void Settings::validate()
   i = getInt("tia.aspectp");
   if(i < 80 || i > 120)  setInternal("tia.aspectp", "100");
 
+  s = getString("tia.dbgcolors");
+  sort(s.begin(), s.end());
+  if(s != "bgopry")  setInternal("tia.dbgcolors", "roygpb");
+
+  s = getString("tv.phosphor");
+  if(s != "always" && s != "byrom")  setInternal("tv.phosphor", "byrom");
+
+  i = getInt("tv.phosblend");
+  if(i < 0 || i > 100)  setInternal("tv.phosblend", "50");
+
   i = getInt("tv.filter");
   if(i < 0 || i > 5)  setInternal("tv.filter", "0");
 
-  i = getInt("tv.jitter_recovery");
-  if(i < 1 || i > 20)  setInternal("tv.jitter_recovery", "10");
+  i = getInt("dev.tv.jitter_recovery");
+  if(i < 1 || i > 20) setInternal("dev.tv.jitter_recovery", "2");
+
+  int size = getInt("dev.tm.size");
+  if(size < 20 || size > 1000)
+  {
+    setInternal("dev.tm.size", 20);
+    size = 20;
+  }
+
+  i = getInt("dev.tm.uncompressed");
+  if(i < 0 || i > size) setInternal("dev.tm.uncompressed", size);
+
+  /*i = getInt("dev.tm.interval");
+  if(i < 0 || i > 5) setInternal("dev.tm.interval", 0);
+
+  i = getInt("dev.tm.horizon");
+  if(i < 0 || i > 6) setInternal("dev.tm.horizon", 1);*/
+
+  i = getInt("plr.tv.jitter_recovery");
+  if(i < 1 || i > 20) setInternal("plr.tv.jitter_recovery", "10");
+
+  size = getInt("plr.tm.size");
+  if(size < 20 || size > 1000)
+  {
+    setInternal("plr.tm.size", 20);
+    size = 20;
+  }
+
+  i = getInt("plr.tm.uncompressed");
+  if(i < 0 || i > size) setInternal("plr.tm.uncompressed", size);
+
+  /*i = getInt("plr.tm.interval");
+  if(i < 0 || i > 5) setInternal("plr.tm.interval", 3);
+
+  i = getInt("plr.tm.horizon");
+  if(i < 0 || i > 6) setInternal("plr.tm.horizon", 5);*/
 
 #ifdef SOUND_SUPPORT
   i = getInt("volume");
-  if(i < 0 || i > 100)    setInternal("volume", "100");
+  if(i < 0 || i > 100)  setInternal("volume", "100");
   i = getInt("freq");
   if(!(i == 11025 || i == 22050 || i == 31400 || i == 44100 || i == 48000))
     setInternal("freq", "31400");
@@ -298,12 +375,16 @@ void Settings::validate()
     setInternal("cursor", "2");
 
   i = getInt("dsense");
-  if(i < 1)        setInternal("dsense", "1");
-  else if(i > 20)  setInternal("dsense", "10");
+  if(i < 1 || i > 20)
+    setInternal("dsense", "10");
 
   i = getInt("msense");
-  if(i < 1)        setInternal("msense", "1");
-  else if(i > 20)  setInternal("msense", "15");
+  if(i < 1 || i > 20)
+    setInternal("msense", "10");
+
+  i = getInt("tsense");
+  if(i < 1 || i > 20)
+    setInternal("tsense", "10");
 
   i = getInt("ssinterval");
   if(i < 1)        setInternal("ssinterval", "2");
@@ -316,6 +397,10 @@ void Settings::validate()
   s = getString("launcherfont");
   if(s != "small" && s != "medium" && s != "large")
     setInternal("launcherfont", "medium");
+
+  s = getString("dbg.fontsize");
+  if(s != "small" && s != "medium" && s != "large")
+    setInternal("dbg.fontsize", "medium");
 
   i = getInt("romviewer");
   if(i < 0)       setInternal("romviewer", "0");
@@ -353,7 +438,6 @@ void Settings::usage() const
     << "  -palette      <standard|     Use the specified color palette\n"
     << "                 z26|\n"
     << "                 user>\n"
-    << "  -colorloss    <1|0>          Enable PAL color-loss effect\n"
     << "  -framerate    <number>       Display the given number of frames per second (0 to auto-calculate)\n"
     << "  -timing       <sleep|busy>   Use the given type of wait between frames\n"
     << "  -uimessages   <1|0>          Show onscreen UI messages for different events\n"
@@ -365,17 +449,18 @@ void Settings::usage() const
     << "  -volume       <number>       Set the volume (0 - 100)\n"
     << endl
   #endif
-    << "  -tia.zoom     <zoom>         Use the specified zoom level (windowed mode) for TIA image\n"
-    << "  -tia.inter    <1|0>          Enable interpolated (smooth) scaling for TIA image\n"
-    << "  -tia.aspectn  <number>       Scale TIA width by the given percentage in NTSC mode\n"
-    << "  -tia.aspectp  <number>       Scale TIA width by the given percentage in PAL mode\n"
-    << "  -tia.fsfill   <1|0>          Stretch TIA image to fill fullscreen mode\n"
+    << "  -tia.zoom      <zoom>         Use the specified zoom level (windowed mode) for TIA image\n"
+    << "  -tia.inter     <1|0>          Enable interpolated (smooth) scaling for TIA image\n"
+    << "  -tia.aspectn   <number>       Scale TIA width by the given percentage in NTSC mode\n"
+    << "  -tia.aspectp   <number>       Scale TIA width by the given percentage in PAL mode\n"
+    << "  -tia.fsfill    <1|0>          Stretch TIA image to fill fullscreen mode\n"
+    << "  -tia.dbgcolors <string>       Debug colors to use for each object (see manual for description)\n"
     << endl
     << "  -tv.filter    <0-5>          Set TV effects off (0) or to specified mode (1-5)\n"
+    << "  -tv.phosphor  <always|byrom> When to use phosphor mode\n"
+    << "  -tv.phosblend <0-100>        Set default blend level in phosphor mode\n"
     << "  -tv.scanlines <0-100>        Set scanline intensity to percentage (0 disables completely)\n"
     << "  -tv.scaninter <1|0>          Enable interpolated (smooth) scanlines\n"
-    << "  -tv.jitter    <1|0>          Enable TV jitter effect\n"
-    << "  -tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
     << "  -tv.contrast    <value>      Set TV effects custom contrast to value 1.0 - 1.0\n"
     << "  -tv.brightness  <value>      Set TV effects custom brightness to value 1.0 - 1.0\n"
     << "  -tv.hue         <value>      Set TV effects custom hue to value 1.0 - 1.0\n"
@@ -399,11 +484,12 @@ void Settings::usage() const
     << "  -cursor       <0,1,2,3>      Set cursor state in UI/emulation modes\n"
     << "  -dsense       <number>       Sensitivity of digital emulated paddle movement (1-20)\n"
     << "  -msense       <number>       Sensitivity of mouse emulated paddle movement (1-20)\n"
+    << "  -tsense       <number>       Sensitivity of mouse emulated trackball movement (1-20)\n"
     << "  -saport       <lr|rl>        How to assign virtual ports to multiple Stelladaptor/2600-daptors\n"
     << "  -ctrlcombo    <1|0>          Use key combos involving the Control key (Control-Q for quit may be disabled!)\n"
     << "  -autoslot     <1|0>          Automatically switch to next save slot when state saving\n"
-    << "  -stats        <1|0>          Overlay console info during emulation\n"
     << "  -fastscbios   <1|0>          Disable Supercharger BIOS progress loading bars\n"
+    << "  -threads      <1|0>          Whether to using multi-threading during emulation\n"
     << "  -snapsavedir  <path>         The directory to save snapshot files to\n"
     << "  -snaploaddir  <path>         The directory to load snapshot files from\n"
     << "  -snapname     <int|rom>      Name snapshots according to internal database or ROM\n"
@@ -435,9 +521,6 @@ void Settings::usage() const
     << "  -holdselect                  Start the emulator with the Game Select switch held down\n"
     << "  -holdjoy0     <U,D,L,R,F>    Start the emulator with the left joystick direction/fire button held down\n"
     << "  -holdjoy1     <U,D,L,R,F>    Start the emulator with the right joystick direction/fire button held down\n"
-    << "  -tiadriven    <1|0>          Drive unused TIA pins randomly on a read/peek\n"
-    << "  -cpurandom    <1|0>          Randomize the contents of CPU registers on reset\n"
-    << "  -ramrandom    <1|0>          Randomize the contents of RAM on reset\n"
     << "  -maxres       <WxH>          Used by developers to force the maximum size of the application window\n"
     << "  -help                        Show the text you're now reading\n"
   #ifdef DEBUGGER_SUPPORT
@@ -450,10 +533,14 @@ void Settings::usage() const
     << "   -dis.showaddr  <1|0>        Show opcode addresses in disassembler\n"
     << "   -dis.relocate  <1|0>        Relocate calls out of address range in disassembler\n"
     << endl
-    << "   -dbg.res       <WxH>        The resolution to use in debugger mode\n"
-    << "   -dbg.fontstyle <0-3>        Font style to use in debugger window (bold vs. normal)\n"
-    << "   -break         <address>    Set a breakpoint at 'address'\n"
-    << "   -debug                      Start in debugger mode\n"
+    << "   -dbg.res       <WxH>          The resolution to use in debugger mode\n"
+    << "   -dbg.fontsize  <small|medium| Font size to use in debugger window\n"
+    << "                  large>\n"
+    << "   -dbg.fontstyle <0-3>          Font style to use in debugger window (bold vs. normal)\n"
+    << "   -dbg.ghostreadstrap <1|0>     Debugger traps on 'ghost' reads\n"
+    << "   -dbg.uhex      <0|1>          lower-/uppercase HEX display\n"
+    << "   -break         <address>      Set a breakpoint at 'address'\n"
+    << "   -debug                        Start in debugger mode\n"
     << endl
     << "   -bs          <arg>          Sets the 'Cartridge.Type' (bankswitch) property\n"
     << "   -type        <arg>          Same as using -bs\n"
@@ -471,7 +558,39 @@ void Settings::usage() const
     << "   -height      <arg>          Sets the 'Display.Height' property\n"
     << "   -pp          <arg>          Sets the 'Display.Phosphor' property\n"
     << "   -ppblend     <arg>          Sets the 'Display.PPBlend' property\n"
+    << endl
   #endif
+
+    << " Various development related parameters for player settings mode\n"
+    << endl
+    << "  -dev.settings     <1|0>          Select developer (1) or player (0) settings mode\n"
+    << endl
+    << "  -plr.stats        <1|0>          Overlay console info during emulation\n"
+    << "  -plr.console      <2600|7800>    Select console for B/W and Pause key handling and RAM initialization\n"
+    << "  -plr.bankrandom   <1|0>          Randomize the startup bank on reset\n"
+    << "  -plr.ramrandom    <1|0>          Randomize the contents of RAM on reset\n"
+    << "  -plr.cpurandom    <1|0>          Randomize the contents of CPU registers on reset\n"
+    << "  -plr.debugcolors  <1|0>          Enable debug colors\n"
+    << "  -plr.colorloss    <1|0>          Enable PAL color-loss effect\n"
+    << "  -plr.tv.jitter    <1|0>          Enable TV jitter effect\n"
+    << "  -plr.tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
+    << "  -plr.tiadriven    <1|0>          Drive unused TIA pins randomly on a read/peek\n"
+    << "  -plr.thumb.trapfatal <1|0>       Determines whether errors in ARM emulation throw an exception\n"
+    << "  -plr.eepromaccess <1|0>          Enable messages for AtariVox/SaveKey access messages\n"
+    << endl
+    << " The same parameters but for developer settings mode\n"
+    << "  -dev.stats        <1|0>          Overlay console info during emulation\n"
+    << "  -dev.console      <2600|7800>    Select console for B/W and Pause key handling and RAM initialization\n"
+    << "  -dev.bankrandom   <1|0>          Randomize the startup bank on reset\n"
+    << "  -dev.ramrandom    <1|0>          Randomize the contents of RAM on reset\n"
+    << "  -dev.cpurandom    <1|0>          Randomize the contents of CPU registers on reset\n"
+    << "  -dev.debugcolors  <1|0>          Enable debug colors\n"
+    << "  -dev.colorloss    <1|0>          Enable PAL color-loss effect\n"
+    << "  -dev.tv.jitter    <1|0>          Enable TV jitter effect\n"
+    << "  -dev.tv.jitter_recovery <1-20>   Set recovery time for TV jitter effect\n"
+    << "  -dev.tiadriven    <1|0>          Drive unused TIA pins randomly on a read/peek\n"
+    << "  -dev.thumb.trapfatal <1|0>       Determines whether errors in ARM emulation throw an exception\n"
+    << "  -dev.eepromaccess <1|0>          Enable messages for AtariVox/SaveKey access messages\n"
     << endl << std::flush;
 }
 
@@ -530,7 +649,7 @@ void Settings::saveConfig()
       << ";  Format MUST be as follows:" << endl
       << ";    command = value" << endl
       << ";" << endl
-      << ";  Commmands are the same as those specified on the commandline," << endl
+      << ";  Commands are the same as those specified on the commandline," << endl
       << ";  without the '-' character." << endl
       << ";" << endl
       << ";  Values are the same as those allowed on the commandline." << endl
@@ -599,9 +718,7 @@ int Settings::setInternal(const string& key, const Variant& value,
   }
   else
   {
-    Setting setting;
-    setting.key   = key;
-    setting.value = value;
+    Setting setting(key, value);
     if(useAsInitial) setting.initialValue = value;
 
     myInternalSettings.push_back(setting);
@@ -653,9 +770,7 @@ int Settings::setExternal(const string& key, const Variant& value,
   }
   else
   {
-    Setting setting;
-    setting.key   = key;
-    setting.value = value;
+    Setting setting(key, value);
     if(useAsInitial) setting.initialValue = value;
 
     myExternalSettings.push_back(setting);

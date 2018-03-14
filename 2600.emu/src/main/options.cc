@@ -19,11 +19,15 @@
 #include <emuframework/EmuApp.hh>
 #undef BytePtr
 #undef Debugger
+#ifdef Success
+#undef Success // conflict with macro in X11 headers
+#endif
 #include "internal.hh"
 
 enum
 {
 	CFGKEY_2600_TV_PHOSPHOR = 270, CFGKEY_VIDEO_SYSTEM = 271,
+	CFGKEY_2600_TV_PHOSPHOR_BLEND = 272
 };
 
 const char *EmuSystem::configFilename = "2600emu.config";
@@ -34,12 +38,13 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 };
 const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionTVPhosphor{CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO, false, optionIsValidWithMax<2>};
+Byte1Option optionTVPhosphorBlend{CFGKEY_2600_TV_PHOSPHOR_BLEND, 80, false, optionIsValidWithMax<100>};
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<6>};
 
 bool EmuSystem::resetSessionOptions()
 {
 	optionTVPhosphor.reset();
-	setRuntimeTVPhosphor(optionTVPhosphor);
+	setRuntimeTVPhosphor(optionTVPhosphor, optionTVPhosphorBlend);
 	optionVideoSystem.reset();
 	return true;
 }
@@ -58,7 +63,23 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 void EmuSystem::writeSessionConfig(IO &io)
 {
 	optionTVPhosphor.writeWithKeyIfNotDefault(io);
+	optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
+}
+
+bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_2600_TV_PHOSPHOR_BLEND: optionTVPhosphorBlend.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeConfig(IO &io)
+{
+	optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
 }
 
 const char *optionVideoSystemToStr()
@@ -75,9 +96,9 @@ const char *optionVideoSystemToStr()
 	}
 }
 
-void setRuntimeTVPhosphor(int val)
+void setRuntimeTVPhosphor(int val, int blend)
 {
-	if(!EmuSystem::gameIsRunning() || !osystem.hasConsole())
+	if(!EmuSystem::gameIsRunning() || !osystem->hasConsole())
 	{
 		return;
 	}
@@ -91,11 +112,16 @@ void setRuntimeTVPhosphor(int val)
 	{
 		usePhosphor = val;
 	}
-	bool phospherInUse = osystem.console().properties().get(Display_Phosphor) == "YES";
 	logMsg("Phosphor effect %s", usePhosphor ? "on" : "off");
-	if(usePhosphor != phospherInUse)
+	auto props = osystem->console().properties();
+	if(usePhosphor)
 	{
-		logMsg("toggling phoshpor on console");
-		osystem.console().togglePhosphor();
+		props.set(Display_Phosphor, "Yes");
 	}
+	else
+	{
+		props.set(Display_Phosphor, "No");
+	}
+	osystem->console().setProperties(props);
+	osystem->frameBuffer().tiaSurface().enablePhosphor(usePhosphor, blend);
 }

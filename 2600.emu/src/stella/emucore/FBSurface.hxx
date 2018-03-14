@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: FBSurface.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef FBSURFACE_HXX
@@ -23,9 +21,13 @@
 class FrameBuffer;
 class TIASurface;
 
+namespace GUI {
+  class Font;
+  struct Rect;
+}
+
+#include "FrameBufferConstants.hxx"
 #include "bspf.hxx"
-#include "Font.hxx"
-#include "Rect.hxx"
 
 /**
   This class is basically a thin wrapper around the video toolkit 'surface'
@@ -37,19 +39,6 @@ class TIASurface;
 
   @author  Stephen Anthony
 */
-
-// Text alignment modes for drawString()
-enum TextAlignment {
-  kTextAlignLeft,
-  kTextAlignCenter,
-  kTextAlignRight
-};
-// Line types for drawing rectangular frames
-enum FrameStyle {
-  kSolidLine,
-  kDashLine
-};
-
 class FBSurface
 {
   public:
@@ -82,6 +71,26 @@ class FBSurface
     //        marked as 'virtual' so that child classes can choose to
     //        implement them more efficiently.
     //////////////////////////////////////////////////////////////////////////
+
+    /**
+      This method should be called to draw a single pixel.
+
+      @param x      The x coordinate
+      @param y      The y coordinate
+      @param color  The color of the line
+    */
+    virtual void pixel(uInt32 x, uInt32 y, uInt32 color);
+
+    /**
+      This method should be called to draw a line.
+
+      @param x      The first x coordinate
+      @param y      The first y coordinate
+      @param x2     The second x coordinate
+      @param y2     The second y coordinate
+      @param color  The color of the line
+    */
+    virtual void line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color);
 
     /**
       This method should be called to draw a horizontal line.
@@ -125,7 +134,7 @@ class FBSurface
       @param color  The color of the character
     */
     virtual void drawChar(const GUI::Font& font, uInt8 c, uInt32 x, uInt32 y,
-                          uInt32 color);
+                          uInt32 color, uInt32 shadowColor = 0);
 
     /**
       This method should be called to draw the bitmap image.
@@ -138,6 +147,19 @@ class FBSurface
     */
     virtual void drawBitmap(uInt32* bitmap, uInt32 x, uInt32 y, uInt32 color,
                             uInt32 h = 8);
+
+    /**
+      This method should be called to draw the bitmap image.
+
+      @param bitmap The data to draw
+      @param x      The x coordinate
+      @param y      The y coordinate
+      @param color  The color of the bitmap
+      @param w      The width of the data image
+      @param h      The height of the data image
+    */
+    virtual void drawBitmap(uInt32* bitmap, uInt32 x, uInt32 y, uInt32 color,
+                            uInt32 w, uInt32 h);
 
     /**
       This method should be called to convert and copy a given row of pixel
@@ -177,7 +199,7 @@ class FBSurface
       @param style  The 'FrameStyle' to use for the surrounding frame
     */
     virtual void frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
-                           uInt32 color, FrameStyle style = kSolidLine);
+                           uInt32 color, FrameStyle style = FrameStyle::Solid);
 
     /**
       This method should be called to draw the specified string.
@@ -194,8 +216,8 @@ class FBSurface
     */
     virtual void drawString(
         const GUI::Font& font, const string& s, int x, int y, int w,
-        uInt32 color, TextAlignment align = kTextAlignLeft,
-        int deltax = 0, bool useEllipsis = true);
+        uInt32 color, TextAlign align = TextAlign::Left,
+        int deltax = 0, bool useEllipsis = true, uInt32 shadowColor = 0);
 
     /**
       This method should be called to indicate that the surface has been

@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartWD.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "TIA.hxx"
@@ -23,7 +21,7 @@
 #include "CartWD.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeWD::CartridgeWD(const uInt8* image, uInt32 size,
+CartridgeWD::CartridgeWD(const BytePtr& image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
     mySize(std::min(8195u, size)),
@@ -32,7 +30,7 @@ CartridgeWD::CartridgeWD(const uInt8* image, uInt32 size,
     myCurrentBank(0)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image, mySize);
+  memcpy(myImage, image.get(), mySize);
   createCodeAccessBase(8192);
 
   // Remember startup bank
@@ -58,25 +56,25 @@ void CartridgeWD::install(System& system)
 
   // Set the page accessing method for the RAM reading pages
   System::PageAccess read(this, System::PA_READ);
-  for(uInt32 k = 0x1000; k < 0x1040; k += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < 0x1040; addr += System::PAGE_SIZE)
   {
-    read.directPeekBase = &myRAM[k & 0x003F];
-    read.codeAccessBase = &myCodeAccessBase[k & 0x003F];
-    mySystem->setPageAccess(k >> System::PAGE_SHIFT, read);
+    read.directPeekBase = &myRAM[addr & 0x003F];
+    read.codeAccessBase = &myCodeAccessBase[addr & 0x003F];
+    mySystem->setPageAccess(addr, read);
   }
 
   // Set the page accessing method for the RAM writing pages
   System::PageAccess write(this, System::PA_WRITE);
-  for(uInt32 j = 0x1040; j < 0x1080; j += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1040; addr < 0x1080; addr += System::PAGE_SIZE)
   {
-    write.directPokeBase = &myRAM[j & 0x003F];
-    write.codeAccessBase = &myCodeAccessBase[j & 0x003F];
-    mySystem->setPageAccess(j >> System::PAGE_SHIFT, write);
+    write.directPokeBase = &myRAM[addr & 0x003F];
+    write.codeAccessBase = &myCodeAccessBase[addr & 0x003F];
+    mySystem->setPageAccess(addr, write);
   }
 
   // Mirror all access in TIA; by doing so we're taking responsibility
   // for that address space in peek and poke below.
-  mySystem->tia().install(system, *this);
+  mySystem->tia().installDelegate(system, *this);
 
   // Setup segments to some default slices
   bank(myStartBank);
@@ -134,8 +132,6 @@ uInt8 CartridgeWD::peek(uInt16 address)
     else
       return mySegment3[address & 0x03FF];
   }
-
-  return 0;  // Make the compiler happy; we'll never reach this
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -144,7 +140,7 @@ bool CartridgeWD::poke(uInt16 address, uInt8 value)
   // Only TIA writes will reach here
   if(!(address & 0x1000))
     return mySystem->tia().poke(address, value);
-  else  
+  else
     return false;
 }
 
@@ -170,11 +166,10 @@ void CartridgeWD::segmentZero(uInt8 slice)
   System::PageAccess access(this, System::PA_READ);
 
   // Skip first 128 bytes; it is always RAM
-  for(uInt32 address = 0x1080; address < 0x1400;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1080; addr < 0x1400; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myOffset[0] = offset;
 }
@@ -185,11 +180,10 @@ void CartridgeWD::segmentOne(uInt8 slice)
   uInt16 offset = slice << 10;
   System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1400; address < 0x1800;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myOffset[1] = offset;
 }
@@ -200,11 +194,10 @@ void CartridgeWD::segmentTwo(uInt8 slice)
   uInt16 offset = slice << 10;
   System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1800; address < 0x1C00;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1800; addr < 0x1C00; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myOffset[2] = offset;
 }
@@ -226,11 +219,10 @@ void CartridgeWD::segmentThree(uInt8 slice, bool map3bytes)
 
   System::PageAccess access(this, System::PA_READ);
 
-  for(uInt32 address = 0x1C00; address < 0x2000;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1C00; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x03FF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x03FF)];
+    mySystem->setPageAccess(addr, access);
   }
   myOffset[3] = offset;
 }
@@ -263,7 +255,7 @@ bool CartridgeWD::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeWD::getImage(int& size) const
+const uInt8* CartridgeWD::getImage(uInt32& size) const
 {
   size = mySize;
   return myImage;
@@ -277,7 +269,7 @@ bool CartridgeWD::save(Serializer& out) const
     out.putString(name());
     out.putShort(myCurrentBank);
     out.putByteArray(myRAM, 64);
-    out.putInt(myCyclesAtBankswitchInit);
+    out.putLong(myCyclesAtBankswitchInit);
     out.putShort(myPendingBank);
   }
   catch(...)
@@ -299,7 +291,7 @@ bool CartridgeWD::load(Serializer& in)
 
     myCurrentBank = in.getShort();
     in.getByteArray(myRAM, 64);
-    myCyclesAtBankswitchInit = in.getInt();
+    myCyclesAtBankswitchInit = in.getLong();
     myPendingBank = in.getShort();
 
     bank(myCurrentBank);

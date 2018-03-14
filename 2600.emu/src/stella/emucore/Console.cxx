@@ -1,26 +1,22 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Console.cxx 3310 2016-08-18 18:44:57Z stephena $
 //============================================================================
 
 #include <cassert>
-#include <iostream>
-#include <sstream>
-#include <fstream>
+#include <stdexcept>
 
 #include "AtariVox.hxx"
 #include "Booster.hxx"
@@ -38,22 +34,30 @@
 #include "CompuMate.hxx"
 #include "M6502.hxx"
 #include "M6532.hxx"
+#include "TIA.hxx"
 #include "Paddles.hxx"
 #include "Props.hxx"
 #include "PropsSet.hxx"
 #include "SaveKey.hxx"
-#include "Settings.hxx" 
+#include "Settings.hxx"
 #include "Sound.hxx"
 #include "Switches.hxx"
 #include "System.hxx"
-#include "TIA.hxx"
-#include "TrackBall.hxx"
+#include "AmigaMouse.hxx"
+#include "AtariMouse.hxx"
+#include "TrakBall.hxx"
 #include "FrameBuffer.hxx"
+#include "TIASurface.hxx"
 #include "OSystem.hxx"
 #include "Menu.hxx"
 #include "CommandMenu.hxx"
 #include "Serializable.hxx"
 #include "Version.hxx"
+#include "TIAConstants.hxx"
+#include "FrameLayout.hxx"
+#include "frame-manager/FrameManager.hxx"
+#include "frame-manager/FrameLayoutDetector.hxx"
+#include "frame-manager/YStartDetector.hxx"
 
 #ifdef DEBUGGER_SUPPORT
   #include "Debugger.hxx"
@@ -65,6 +69,10 @@
 
 #include "Console.hxx"
 
+namespace {
+  constexpr uInt8 YSTART_EXTRA = 2;
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
                  const Properties& props)
@@ -74,27 +82,32 @@ Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
     myCart(std::move(cart)),
     myDisplayFormat(""),  // Unknown TV format @ start
     myFramerate(0.0),     // Unknown framerate @ start
-    myCurrentFormat(0),   // Unknown format @ start
-    myUserPaletteDefined(false)
+    myCurrentFormat(0),   // Unknown format @ start,
+    myAutodetectedYstart(0),
+    myUserPaletteDefined(false),
+    myConsoleTiming(ConsoleTiming::ntsc)
 {
   // Load user-defined palette for this ROM
   loadUserPalette();
 
   // Create subsystems for the console
-  my6502 = make_ptr<M6502>(myOSystem.settings());
-  myRiot = make_ptr<M6532>(*this, myOSystem.settings());
-  myTIA  = make_ptr<TIA>(*this, myOSystem.sound(), myOSystem.settings());
-  mySwitches = make_ptr<Switches>(myEvent, myProperties);
+  my6502 = make_unique<M6502>(myOSystem.settings());
+  myRiot = make_unique<M6532>(*this, myOSystem.settings());
+  myTIA  = make_unique<TIA>(*this, myOSystem.sound(), myOSystem.settings());
+  myFrameManager = make_unique<FrameManager>();
+  mySwitches = make_unique<Switches>(myEvent, myProperties, myOSystem.settings());
+
+  myTIA->setFrameManager(myFrameManager.get());
 
   // Construct the system and components
-  mySystem = make_ptr<System>(osystem, *my6502, *myRiot, *myTIA, *myCart);
+  mySystem = make_unique<System>(osystem, *my6502, *myRiot, *myTIA, *myCart);
 
   // The real controllers for this console will be added later
   // For now, we just add dummy joystick controllers, since autodetection
   // runs the emulation for a while, and this may interfere with 'smart'
   // controllers such as the AVox and SaveKey
-  myLeftControl  = make_ptr<Joystick>(Controller::Left, myEvent, *mySystem);
-  myRightControl = make_ptr<Joystick>(Controller::Right, myEvent, *mySystem);
+  myLeftControl  = make_unique<Joystick>(Controller::Left, myEvent, *mySystem);
+  myRightControl = make_unique<Joystick>(Controller::Right, myEvent, *mySystem);
 
   // We can only initialize after all the devices/components have been created
   mySystem->initialize();
@@ -102,27 +115,31 @@ Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
   // Auto-detect NTSC/PAL mode if it's requested
   string autodetected = "";
   myDisplayFormat = myProperties.get(Display_Format);
+
+  // Add the real controllers for this system
+  // This must be done before the debugger is initialized
+  const string& md5 = myProperties.get(Cartridge_MD5);
+  setControllers(md5);
+
+  // Mute audio and clear framebuffer while autodetection runs
+  myOSystem.sound().mute(1);
+  myOSystem.frameBuffer().clear();
+
   if(myDisplayFormat == "AUTO" || myOSystem.settings().getBool("rominfo"))
   {
-    // Run the TIA, looking for PAL scanline patterns
-    // We turn off the SuperCharger progress bars, otherwise the SC BIOS
-    // will take over 250 frames!
-    // The 'fastscbios' option must be changed before the system is reset
-    bool fastscbios = myOSystem.settings().getBool("fastscbios");
-    myOSystem.settings().setValue("fastscbios", true);
-    mySystem->reset(true);  // autodetect in reset enabled
-    for(int i = 0; i < 60; ++i)
-      myTIA->update();
-    myDisplayFormat = myTIA->isPAL() ? "PAL" : "NTSC";
+    autodetectFrameLayout();
+
     if(myProperties.get(Display_Format) == "AUTO")
     {
       autodetected = "*";
       myCurrentFormat = 0;
     }
-
-    // Don't forget to reset the SC progress bars again
-    myOSystem.settings().setValue("fastscbios", fastscbios);
   }
+
+  if (atoi(myProperties.get(Display_YStart).c_str()) == 0) {
+    autodetectYStart();
+  }
+
   myConsoleInfo.DisplayFormat = myDisplayFormat + autodetected;
 
   // Set up the correct properties used when toggling format
@@ -131,23 +148,38 @@ Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
   //   properties (60Hz, 262 scanlines, etc), but likely result in flicker
   // The TIA will self-adjust the framerate if necessary
   setTIAProperties();
-  if(myDisplayFormat == "NTSC")         myCurrentFormat = 1;
-  else if(myDisplayFormat == "PAL")     myCurrentFormat = 2;
-  else if(myDisplayFormat == "SECAM")   myCurrentFormat = 3;
-  else if(myDisplayFormat == "NTSC50")  myCurrentFormat = 4;
-  else if(myDisplayFormat == "PAL60")   myCurrentFormat = 5;
-  else if(myDisplayFormat == "SECAM60") myCurrentFormat = 6;
+  if(myDisplayFormat == "NTSC")
+  {
+    myCurrentFormat = 1;
+    myConsoleTiming = ConsoleTiming::ntsc;
+  }
+  else if(myDisplayFormat == "PAL")
+  {
+    myCurrentFormat = 2;
+    myConsoleTiming = ConsoleTiming::pal;
+  }
+  else if(myDisplayFormat == "SECAM")
+  {
+    myCurrentFormat = 3;
+    myConsoleTiming = ConsoleTiming::secam;
+  }
+  else if(myDisplayFormat == "NTSC50")
+  {
+    myCurrentFormat = 4;
+    myConsoleTiming = ConsoleTiming::ntsc;
+  }
+  else if(myDisplayFormat == "PAL60")
+  {
+    myCurrentFormat = 5;
+    myConsoleTiming = ConsoleTiming::pal;
+  }
+  else if(myDisplayFormat == "SECAM60")
+  {
+    myCurrentFormat = 6;
+    myConsoleTiming = ConsoleTiming::secam;
+  }
 
-  // Add the real controllers for this system
-  // This must be done before the debugger is initialized
-  const string& md5 = myProperties.get(Cartridge_MD5);
-  setControllers(md5);
-
-  // Bumper Bash always requires all 4 directions
-  // Other ROMs can use it if the setting is enabled
-  bool joyallow4 = md5 == "aa1c41f86ec44c0a44eb64c332ce08af" ||
-                   md5 == "1bf503c724001b09be79c515ecfcbd03" ||
-                   myOSystem.settings().getBool("joyallow4");
+  bool joyallow4 = myOSystem.settings().getBool("joyallow4");
   myOSystem.eventHandler().allowAllDirections(joyallow4);
 
   // Reset the system to its power-on state
@@ -156,16 +188,71 @@ Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
   // Finally, add remaining info about the console
   myConsoleInfo.CartName   = myProperties.get(Cartridge_Name);
   myConsoleInfo.CartMD5    = myProperties.get(Cartridge_MD5);
-  myConsoleInfo.Control0   = myLeftControl->about();
-  myConsoleInfo.Control1   = myRightControl->about();
+  bool swappedPorts = properties().get(Console_SwapPorts) == "YES";
+  myConsoleInfo.Control0   = myLeftControl->about(swappedPorts);
+  myConsoleInfo.Control1   = myRightControl->about(swappedPorts);
   myConsoleInfo.BankSwitch = myCart->about();
 
   myCart->setRomName(myConsoleInfo.CartName);
+
+  // Let the other devices know about the new console
+  mySystem->consoleChanged(myConsoleTiming);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Console::~Console()
 {
+  // Some smart controllers need to be informed that the console is going away
+  myLeftControl->close();
+  myRightControl->close();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::autodetectFrameLayout()
+{
+  // Run the TIA, looking for PAL scanline patterns
+  // We turn off the SuperCharger progress bars, otherwise the SC BIOS
+  // will take over 250 frames!
+  // The 'fastscbios' option must be changed before the system is reset
+  bool fastscbios = myOSystem.settings().getBool("fastscbios");
+  myOSystem.settings().setValue("fastscbios", true);
+
+  FrameLayoutDetector frameLayoutDetector;
+  myTIA->setFrameManager(&frameLayoutDetector);
+  mySystem->reset(true);
+
+  for(int i = 0; i < 60; ++i) myTIA->update();
+
+  myTIA->setFrameManager(myFrameManager.get());
+
+  myDisplayFormat = frameLayoutDetector.detectedLayout() == FrameLayout::pal ? "PAL" : "NTSC";
+
+  // Don't forget to reset the SC progress bars again
+  myOSystem.settings().setValue("fastscbios", fastscbios);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::autodetectYStart()
+{
+  // We turn off the SuperCharger progress bars, otherwise the SC BIOS
+  // will take over 250 frames!
+  // The 'fastscbios' option must be changed before the system is reset
+  bool fastscbios = myOSystem.settings().getBool("fastscbios");
+  myOSystem.settings().setValue("fastscbios", true);
+
+  YStartDetector ystartDetector;
+  ystartDetector.setLayout(myDisplayFormat == "PAL" ? FrameLayout::pal : FrameLayout::ntsc);
+  myTIA->setFrameManager(&ystartDetector);
+  mySystem->reset(true);
+
+  for (int i = 0; i < 80; i++) myTIA->update();
+
+  myTIA->setFrameManager(myFrameManager.get());
+
+  myAutodetectedYstart = ystartDetector.detectedYStart() - YSTART_EXTRA;
+
+  // Don't forget to reset the SC progress bars again
+  myOSystem.settings().setValue("fastscbios", fastscbios);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -228,32 +315,40 @@ void Console::toggleFormat(int direction)
   {
     case 0:  // auto-detect
       myTIA->update();
-      myDisplayFormat = myTIA->isPAL() ? "PAL" : "NTSC";
+      myDisplayFormat = myTIA->frameLayout() == FrameLayout::pal ? "PAL" : "NTSC";
       message = "Auto-detect mode: " + myDisplayFormat;
       saveformat = "AUTO";
+      myConsoleTiming = myTIA->frameLayout() == FrameLayout::pal ?
+          ConsoleTiming::pal : ConsoleTiming::ntsc;
       break;
     case 1:
-      saveformat = myDisplayFormat  = "NTSC";
+      saveformat = myDisplayFormat = "NTSC";
+      myConsoleTiming = ConsoleTiming::ntsc;
       message = "NTSC mode";
       break;
     case 2:
-      saveformat = myDisplayFormat  = "PAL";
+      saveformat = myDisplayFormat = "PAL";
+      myConsoleTiming = ConsoleTiming::pal;
       message = "PAL mode";
       break;
     case 3:
-      saveformat = myDisplayFormat  = "SECAM";
+      saveformat = myDisplayFormat = "SECAM";
+      myConsoleTiming = ConsoleTiming::secam;
       message = "SECAM mode";
       break;
     case 4:
-      saveformat = myDisplayFormat  = "NTSC50";
+      saveformat = myDisplayFormat = "NTSC50";
+      myConsoleTiming = ConsoleTiming::ntsc;
       message = "NTSC50 mode";
       break;
     case 5:
-      saveformat = myDisplayFormat  = "PAL60";
+      saveformat = myDisplayFormat = "PAL60";
+      myConsoleTiming = ConsoleTiming::pal;
       message = "PAL60 mode";
       break;
     case 6:
-      saveformat = myDisplayFormat  = "SECAM60";
+      saveformat = myDisplayFormat = "SECAM60";
+      myConsoleTiming = ConsoleTiming::secam;
       message = "SECAM60 mode";
       break;
   }
@@ -265,22 +360,31 @@ void Console::toggleFormat(int direction)
   initializeVideo();  // takes care of refreshing the screen
 
   myOSystem.frameBuffer().showMessage(message);
+
+  // Let the other devices know about the console change
+  mySystem->consoleChanged(myConsoleTiming);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::toggleColorLoss()
 {
-  bool colorloss = !myOSystem.settings().getBool("colorloss");
-  myOSystem.settings().setValue("colorloss", colorloss);
-  myTIA->enableColorLoss(colorloss);
+  bool colorloss = !myTIA->colorLossEnabled();
+  if(myTIA->enableColorLoss(colorloss))
+  {
+    myOSystem.settings().setValue(
+      myOSystem.settings().getBool("dev.settings") ? "dev.colorloss" : "plr.colorloss", colorloss);
 
-  string message = string("PAL color-loss ") +
-                   (colorloss ? "enabled" : "disabled");
-  myOSystem.frameBuffer().showMessage(message);
+    string message = string("PAL color-loss ") +
+                     (colorloss ? "enabled" : "disabled");
+    myOSystem.frameBuffer().showMessage(message);
+  }
+  else
+    myOSystem.frameBuffer().showMessage(
+      "PAL color-loss not available in non PAL modes");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Console::toggleColorLoss(bool state)
+void Console::enableColorLoss(bool state)
 {
   myTIA->enableColorLoss(state);
 }
@@ -360,23 +464,58 @@ void Console::setPalette(const string& type)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::togglePhosphor()
 {
-  const string& phosphor = myProperties.get(Display_Phosphor);
-  int blend = atoi(myProperties.get(Display_PPBlend).c_str());
-  bool enable;
-  if(phosphor == "YES")
+  if(myOSystem.frameBuffer().tiaSurface().phosphorEnabled())
   {
     myProperties.set(Display_Phosphor, "No");
-    enable = false;
-    //myOSystem.frameBuffer().showMessage("Phosphor effect disabled");
+    myOSystem.frameBuffer().tiaSurface().enablePhosphor(false);
+    myOSystem.frameBuffer().showMessage("Phosphor effect disabled");
   }
   else
   {
     myProperties.set(Display_Phosphor, "Yes");
-    enable = true;
-    //myOSystem.frameBuffer().showMessage("Phosphor effect enabled");
+    myOSystem.frameBuffer().tiaSurface().enablePhosphor(true);
+    myOSystem.frameBuffer().showMessage("Phosphor effect enabled");
   }
+}
 
-  myOSystem.frameBuffer().tiaSurface().enablePhosphor(enable, blend);
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Console::changePhosphor(int direction)
+{
+  int blend = atoi(myProperties.get(Display_PPBlend).c_str());
+
+  if(myOSystem.frameBuffer().tiaSurface().phosphorEnabled())
+  {
+    if(direction == +1)       // increase blend
+    {
+      if(blend >= 100)
+      {
+        myOSystem.frameBuffer().showMessage("Phosphor blend at maximum");
+        return;
+      }
+      else
+        blend = std::min(blend+2, 100);
+    }
+    else if(direction == -1)  // decrease blend
+    {
+      if(blend <= 2)
+      {
+        myOSystem.frameBuffer().showMessage("Phosphor blend at minimum");
+        return;
+      }
+      else
+        blend = std::max(blend-2, 0);
+    }
+    else
+      return;
+
+    ostringstream val;
+    val << blend;
+    myProperties.set(Display_PPBlend, val.str());
+    myOSystem.frameBuffer().showMessage("Phosphor blend " + val.str());
+    myOSystem.frameBuffer().tiaSurface().enablePhosphor(true, blend);
+  }
+  else
+    myOSystem.frameBuffer().showMessage("Phosphor effect disabled");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -388,22 +527,23 @@ void Console::setProperties(const Properties& props)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FBInitStatus Console::initializeVideo(bool full)
 {
-  setPalette(myOSystem.settings().getString("palette"));
-
-  FBInitStatus fbstatus = kSuccess;
+  FBInitStatus fbstatus = FBInitStatus::Success;
 
   if(full)
   {
+    bool devSettings = myOSystem.settings().getBool("dev.settings");
     const string& title = string("Stella ") + STELLA_VERSION +
                    ": \"" + myProperties.get(Cartridge_Name) + "\"";
     fbstatus = myOSystem.frameBuffer().createDisplay(title,
                  myTIA->width() << 1, myTIA->height());
-    if(fbstatus != kSuccess)
+    if(fbstatus != FBInitStatus::Success)
       return fbstatus;
 
-    myOSystem.frameBuffer().showFrameStats(myOSystem.settings().getBool("stats"));
+    myOSystem.frameBuffer().showFrameStats(
+      myOSystem.settings().getBool(devSettings ? "dev.stats" : "plr.stats"));
     generateColorLossPalette();
   }
+  setPalette(myOSystem.settings().getString("palette"));
 
   // Set the correct framerate based on the format of the ROM
   // This can be overridden by changing the framerate in the
@@ -471,7 +611,7 @@ void Console::changeYStart(int direction)
 
   if(direction == +1)       // increase YStart
   {
-    if(ystart >= 64)
+    if(ystart >= TIAConstants::maxYStart)
     {
       myOSystem.frameBuffer().showMessage("YStart at maximum");
       return;
@@ -480,23 +620,42 @@ void Console::changeYStart(int direction)
   }
   else if(direction == -1)  // decrease YStart
   {
-    if(ystart == 0)
+    if (ystart == TIAConstants::minYStart && myAutodetectedYstart == 0) {
+      myOSystem.frameBuffer().showMessage("Autodetected YStart not available");
+      return;
+    }
+
+    if(ystart == TIAConstants::minYStart-1 && myAutodetectedYstart > 0)
     {
       myOSystem.frameBuffer().showMessage("YStart at minimum");
       return;
     }
+
     ystart--;
   }
   else
     return;
 
-  myTIA->setYStart(ystart);
-  myTIA->frameReset();
-
   ostringstream val;
   val << ystart;
-  myOSystem.frameBuffer().showMessage("YStart " + val.str());
+  if(ystart == TIAConstants::minYStart-1)
+    myOSystem.frameBuffer().showMessage("YStart autodetected");
+  else
+  {
+    if(myAutodetectedYstart > 0 && myAutodetectedYstart == ystart)
+    {
+      // We've reached the auto-detect value, so reset
+      myOSystem.frameBuffer().showMessage("YStart " + val.str() + " (Auto)");
+      val.str("");
+      val << TIAConstants::minYStart-1;
+    }
+    else
+      myOSystem.frameBuffer().showMessage("YStart " + val.str());
+  }
+
   myProperties.set(Display_YStart, val.str());
+  myTIA->setYStart(ystart);
+  myTIA->frameReset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -508,7 +667,7 @@ void Console::changeHeight(int direction)
   if(direction == +1)       // increase Height
   {
     height++;
-    if(height > 256 || height > dheight)
+    if(height > TIAConstants::maxViewableHeight || height > dheight)
     {
       myOSystem.frameBuffer().showMessage("Height at maximum");
       return;
@@ -517,11 +676,7 @@ void Console::changeHeight(int direction)
   else if(direction == -1)  // decrease Height
   {
     height--;
-    if(height < 210)
-    {
-      myOSystem.frameBuffer().showMessage("Height at minimum");
-      return;
-    }
+    if(height < TIAConstants::minViewableHeight) height = 0;
   }
   else
     return;
@@ -539,12 +694,12 @@ void Console::changeHeight(int direction)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::setTIAProperties()
 {
-  // TODO - query these values directly from the TIA if value is 'AUTO'
   uInt32 ystart = atoi(myProperties.get(Display_YStart).c_str());
-  if(ystart > 64) ystart = 64;
+  if(ystart != 0)
+    ystart = BSPF::clamp(ystart, TIAConstants::minYStart, TIAConstants::maxYStart);
   uInt32 height = atoi(myProperties.get(Display_Height).c_str());
-  if(height < 210)      height = 210;
-  else if(height > 256) height = 256;
+  if(height != 0)
+    height = BSPF::clamp(height, TIAConstants::minViewableHeight, TIAConstants::maxViewableHeight);
 
   if(myDisplayFormat == "NTSC" || myDisplayFormat == "PAL60" ||
      myDisplayFormat == "SECAM60")
@@ -552,6 +707,7 @@ void Console::setTIAProperties()
     // Assume we've got ~262 scanlines (NTSC-like format)
     myFramerate = 60.0;
     myConsoleInfo.InitialFrameRate = "60";
+    myTIA->setLayout(FrameLayout::ntsc);
   }
   else
   {
@@ -560,32 +716,21 @@ void Console::setTIAProperties()
     myConsoleInfo.InitialFrameRate = "50";
 
     // PAL ROMs normally need at least 250 lines
-    height = std::max(height, 250u);
+    if (height != 0) height = std::max(height, 250u);
+
+    myTIA->setLayout(FrameLayout::pal);
   }
 
-  // Make sure these values fit within the bounds of the desktop
-  // If not, attempt to center vertically
-  uInt32 dheight = myOSystem.frameBuffer().desktopSize().h;
-  if(height > dheight)
-  {
-    ystart += height - dheight;
-    ystart = std::min(ystart, 64u);
-    height = dheight;
-  }
-  myTIA->setYStart(ystart);
+  myTIA->setYStart(ystart != 0 ? ystart : myAutodetectedYstart);
   myTIA->setHeight(height);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::setControllers(const string& rommd5)
 {
-  // Setup the controllers based on properties
-  const string& left  = myProperties.get(Controller_Left);
-  const string& right = myProperties.get(Controller_Right);
-
-  // Check for CompuMate controllers; they are special in that a handler
-  // creates them for us, and also that they must be used in both ports
-  if(left == "COMPUMATE" || right == "COMPUMATE")
+  // Check for CompuMate scheme; it is special in that a handler creates both
+  // controllers for us, and associates them with the bankswitching class
+  if(myCart->detectedType() == "CM")
   {
     myCMHandler = make_shared<CompuMate>(*this, myEvent, *mySystem);
 
@@ -598,148 +743,112 @@ void Console::setControllers(const string& rommd5)
 
     myLeftControl  = std::move(myCMHandler->leftController());
     myRightControl = std::move(myCMHandler->rightController());
-    return;
-  }
-
-  unique_ptr<Controller> leftC, rightC;
-
-  // Also check if we should swap the paddles plugged into a jack
-  bool swapPaddles = myProperties.get(Controller_SwapPaddles) == "YES";
-
-  // Construct left controller
-  if(left == "BOOSTERGRIP")
-  {
-    leftC = make_ptr<BoosterGrip>(Controller::Left, myEvent, *mySystem);
-  }
-  else if(left == "DRIVING")
-  {
-    leftC = make_ptr<Driving>(Controller::Left, myEvent, *mySystem);
-  }
-  else if((left == "KEYBOARD") || (left == "KEYPAD"))
-  {
-    leftC = make_ptr<Keyboard>(Controller::Left, myEvent, *mySystem);
-  }
-  else if(BSPF::startsWithIgnoreCase(left, "PADDLES"))
-  {
-    bool swapAxis = false, swapDir = false;
-    if(left == "PADDLES_IAXIS")
-      swapAxis = true;
-    else if(left == "PADDLES_IDIR")
-      swapDir = true;
-    else if(left == "PADDLES_IAXDR")
-      swapAxis = swapDir = true;
-    leftC = make_ptr<Paddles>(Controller::Left, myEvent, *mySystem,
-                              swapPaddles, swapAxis, swapDir);
-  }
-  else if(left == "TRACKBALL22")
-  {
-    leftC = make_ptr<TrackBall>(Controller::Left, myEvent, *mySystem,
-                                Controller::TrackBall22);
-  }
-  else if(left == "TRACKBALL80")
-  {
-    leftC = make_ptr<TrackBall>(Controller::Left, myEvent, *mySystem,
-                                Controller::TrackBall80);
-  }
-  else if(left == "AMIGAMOUSE")
-  {
-    leftC = make_ptr<TrackBall>(Controller::Left, myEvent, *mySystem,
-                                Controller::AmigaMouse);
-  }
-  else if(left == "GENESIS")
-  {
-    leftC = make_ptr<Genesis>(Controller::Left, myEvent, *mySystem);
-  }
-  else if(left == "MINDLINK")
-  {
-    leftC = make_ptr<MindLink>(Controller::Left, myEvent, *mySystem);
   }
   else
   {
-    leftC = make_ptr<Joystick>(Controller::Left, myEvent, *mySystem);
+    // Setup the controllers based on properties
+    const string& left  = myProperties.get(Controller_Left);
+    const string& right = myProperties.get(Controller_Right);
+
+    unique_ptr<Controller> leftC = getControllerPort(rommd5, left, Controller::Left),
+      rightC = getControllerPort(rommd5, right, Controller::Right);
+
+    // Swap the ports if necessary
+    if(myProperties.get(Console_SwapPorts) == "NO")
+    {
+      myLeftControl = std::move(leftC);
+      myRightControl = std::move(rightC);
+    }
+    else
+    {
+      myLeftControl = std::move(rightC);
+      myRightControl = std::move(leftC);
+    }
   }
 
-  // Construct right controller
-  if(right == "BOOSTERGRIP")
+  myTIA->bindToControllers();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+unique_ptr<Controller> Console::getControllerPort(const string& rommd5,
+    const string& controllerName, Controller::Jack port)
+{
+  unique_ptr<Controller> controller = std::move(myLeftControl);
+
+  if(controllerName == "JOYSTICK")
   {
-    rightC = make_ptr<BoosterGrip>(Controller::Right, myEvent, *mySystem);
+    // Already created in c'tor
+    // We save some time by not looking at all the other types
+    if(!controller)
+      controller = make_unique<Joystick>(port, myEvent, *mySystem);
   }
-  else if(right == "DRIVING")
+  else if(controllerName == "BOOSTERGRIP")
   {
-    rightC = make_ptr<Driving>(Controller::Right, myEvent, *mySystem);
+    controller = make_unique<BoosterGrip>(port, myEvent, *mySystem);
   }
-  else if((right == "KEYBOARD") || (right == "KEYPAD"))
+  else if(controllerName == "DRIVING")
   {
-    rightC = make_ptr<Keyboard>(Controller::Right, myEvent, *mySystem);
+    controller = make_unique<Driving>(port, myEvent, *mySystem);
   }
-  else if(BSPF::startsWithIgnoreCase(right, "PADDLES"))
+  else if((controllerName == "KEYBOARD") || (controllerName == "KEYPAD"))
   {
+    controller = make_unique<Keyboard>(port, myEvent, *mySystem);
+  }
+  else if(BSPF::startsWithIgnoreCase(controllerName, "PADDLES"))
+  {
+    // Also check if we should swap the paddles plugged into a jack
+    bool swapPaddles = myProperties.get(Controller_SwapPaddles) == "YES";
     bool swapAxis = false, swapDir = false;
-    if(right == "PADDLES_IAXIS")
+    if(controllerName == "PADDLES_IAXIS")
       swapAxis = true;
-    else if(right == "PADDLES_IDIR")
+    else if(controllerName == "PADDLES_IDIR")
       swapDir = true;
-    else if(right == "PADDLES_IAXDR")
+    else if(controllerName == "PADDLES_IAXDR")
       swapAxis = swapDir = true;
-    rightC = make_ptr<Paddles>(Controller::Right, myEvent, *mySystem,
-                               swapPaddles, swapAxis, swapDir);
+    controller = make_unique<Paddles>(port, myEvent, *mySystem,
+                                      swapPaddles, swapAxis, swapDir);
   }
-  else if(right == "TRACKBALL22")
+  else if(controllerName == "AMIGAMOUSE")
   {
-    rightC = make_ptr<TrackBall>(Controller::Left, myEvent, *mySystem,
-                                 Controller::TrackBall22);
+    controller = make_unique<AmigaMouse>(port, myEvent, *mySystem);
   }
-  else if(right == "TRACKBALL80")
+  else if(controllerName == "ATARIMOUSE")
   {
-    rightC = make_ptr<TrackBall>(Controller::Left, myEvent, *mySystem,
-                                 Controller::TrackBall80);
+    controller = make_unique<AtariMouse>(port, myEvent, *mySystem);
   }
-  else if(right == "AMIGAMOUSE")
+  else if(controllerName == "TRAKBALL")
   {
-    rightC = make_ptr<TrackBall>(Controller::Left, myEvent, *mySystem,
-                                 Controller::AmigaMouse);
+    controller = make_unique<TrakBall>(port, myEvent, *mySystem);
   }
-  else if(right == "ATARIVOX")
+  else if(controllerName == "ATARIVOX")
   {
     const string& nvramfile = myOSystem.nvramDir() + "atarivox_eeprom.dat";
-    rightC = make_ptr<AtariVox>(Controller::Right, myEvent,
-                   *mySystem, myOSystem.serialPort(),
-                   myOSystem.settings().getString("avoxport"), nvramfile);
+    controller = make_unique<AtariVox>(port, myEvent,
+        *mySystem, myOSystem.serialPort(),
+        myOSystem.settings().getString("avoxport"), nvramfile);
   }
-  else if(right == "SAVEKEY")
+  else if(controllerName == "SAVEKEY")
   {
     const string& nvramfile = myOSystem.nvramDir() + "savekey_eeprom.dat";
-    rightC = make_ptr<SaveKey>(Controller::Right, myEvent, *mySystem,
-                               nvramfile);
+    controller = make_unique<SaveKey>(port, myEvent, *mySystem,
+                                      nvramfile);
   }
-  else if(right == "GENESIS")
+  else if(controllerName == "GENESIS")
   {
-    rightC = make_ptr<Genesis>(Controller::Right, myEvent, *mySystem);
+    controller = make_unique<Genesis>(port, myEvent, *mySystem);
   }
-  else if(right == "KIDVID")
+  else if(controllerName == "KIDVID")
   {
-    rightC = make_ptr<KidVid>(Controller::Right, myEvent, *mySystem, rommd5);
+    controller = make_unique<KidVid>(port, myEvent, *mySystem, rommd5);
   }
-  else if(right == "MINDLINK")
+  else if(controllerName == "MINDLINK")
   {
-    rightC = make_ptr<MindLink>(Controller::Right, myEvent, *mySystem);
+    controller = make_unique<MindLink>(port, myEvent, *mySystem);
   }
-  else
-  {
-    rightC = make_ptr<Joystick>(Controller::Right, myEvent, *mySystem);
-  }
+  else  // What else can we do?
+    controller = make_unique<Joystick>(port, myEvent, *mySystem);
 
-  // Swap the ports if necessary
-  if(myProperties.get(Console_SwapPorts) == "NO")
-  {
-    myLeftControl  = std::move(leftC);
-    myRightControl = std::move(rightC);
-  }
-  else
-  {
-    myLeftControl  = std::move(rightC);
-    myRightControl = std::move(leftC);
-  }
+  return controller;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -805,7 +914,7 @@ void Console::generateColorLossPalette()
   uInt32* palette[9] = {
     &ourNTSCPalette[0],    &ourPALPalette[0],    &ourSECAMPalette[0],
     &ourNTSCPaletteZ26[0], &ourPALPaletteZ26[0], &ourSECAMPaletteZ26[0],
-    0, 0, 0
+    nullptr, nullptr, nullptr
   };
   if(myUserPaletteDefined)
   {
@@ -816,7 +925,7 @@ void Console::generateColorLossPalette()
 
   for(int i = 0; i < 9; ++i)
   {
-    if(palette[i] == 0)
+    if(palette[i] == nullptr)
       continue;
 
     // Fill the odd numbered palette entries with gray values (calculated
@@ -874,15 +983,6 @@ void Console::toggleCollisions() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Console::toggleHMOVE() const
-{
-  if(myTIA->toggleHMOVEBlank())
-    myOSystem.frameBuffer().showMessage("HMOVE blanking enabled");
-  else
-    myOSystem.frameBuffer().showMessage("HMOVE blanking disabled");
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::toggleFixedColors() const
 {
   if(myTIA->toggleFixedColors())
@@ -909,11 +1009,11 @@ void Console::attachDebugger(Debugger& dbg)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Console::stateChanged(EventHandler::State state)
+void Console::stateChanged(EventHandlerState state)
 {
   // For now, only the CompuMate cares about state changes
   if(myCMHandler)
-    myCMHandler->enableKeyHandling(state == EventHandler::S_EMULATE);
+    myCMHandler->enableKeyHandling(state == EventHandlerState::EMULATION);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -990,37 +1090,37 @@ uInt32 Console::ourPALPalette[256] = {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 Console::ourSECAMPalette[256] = {
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0, 
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff50ff, 0,
   0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0
 };
 
@@ -1058,8 +1158,8 @@ uInt32 Console::ourNTSCPaletteZ26[256] = {
   0x84963c, 0, 0x98aa50, 0, 0xacbe64, 0, 0xc0d278, 0,
   0x463e00, 0, 0x5a5205, 0, 0x6e6619, 0, 0x827a2d, 0,
   0x968e41, 0, 0xaaa255, 0, 0xbeb669, 0, 0xd2ca7d, 0
-}; 
-  
+};
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 Console::ourPALPaletteZ26[256] = {
   0x000000, 0, 0x4c4c4c, 0, 0x606060, 0, 0x747474, 0,
@@ -1094,41 +1194,41 @@ uInt32 Console::ourPALPaletteZ26[256] = {
   0x888888, 0, 0x9c9c9c, 0, 0xb0b0b0, 0, 0xc4c4c4, 0,
   0x000000, 0, 0x4c4c4c, 0, 0x606060, 0, 0x747474, 0,
   0x888888, 0, 0x9c9c9c, 0, 0xb0b0b0, 0, 0xc4c4c4, 0
-}; 
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 Console::ourSECAMPaletteZ26[256] = {
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
-  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0, 
-  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0, 
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
+  0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0,
+  0x000000, 0, 0x2121ff, 0, 0xf03c79, 0, 0xff3cff, 0,
   0x7fff00, 0, 0x7fffff, 0, 0xffff3f, 0, 0xffffff, 0
 };
 

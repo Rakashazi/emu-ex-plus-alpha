@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartDF.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEDF_HXX
@@ -34,7 +32,6 @@ class System;
   Accessing $1FC0 - $1FDF switches to each bank.
 
   @author  Mike Saarna
-  @version $Id: CartDF.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeDF : public Cartridge
 {
@@ -48,7 +45,7 @@ class CartridgeDF : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeDF(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeDF(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeDF() = default;
 
   public:
@@ -97,7 +94,7 @@ class CartridgeDF : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -155,8 +152,8 @@ class CartridgeDF : public Cartridge
     // The 128K ROM image of the cartridge
     uInt8 myImage[32 * 4096];
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt32 myBankOffset;
 
 private:
     // Following constructors and assignment operators not supported

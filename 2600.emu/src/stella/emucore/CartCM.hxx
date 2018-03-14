@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartCM.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGECM_HXX
@@ -30,9 +28,12 @@ class System;
 #endif
 
 /**
+  FIXME: This scheme is not yet fully implemented.  In particular, loading
+         from and saving to the cassette is completely missing.
+
   Cartridge class used for SpectraVideo CompuMate bankswitched games.
 
-  This is more than just a cartridge mapper - it's also a "computer" add-on.  
+  This is more than just a cartridge mapper - it's also a "computer" add-on.
   There's two 8K EPROMs soldered on top of each other.  There's two short
   wires with DB-9's on them which you plug into the two controller ports.
   A 42 or so key membrane keyboard with audio in and audio out, and 2K of RAM.
@@ -77,24 +78,24 @@ class System;
     0     1     2     3     4     5     6     7     8     9
   +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
   | 7 | | 6 | | 8 | | 2 | | 3 | | 0 | | 9 | | 5 | | 1 | | 4 |  0
-  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ 
-  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ 
+  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
+  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
   | U | | Y | | I | | W | | E | | P | | O | | T | | Q | | R |  1
   +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+     Row
   +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
   | J | | H | | K | | S | | D | |ent| | L | | G | | A | | F |  2
-  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ 
+  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
   +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
   | M | | N | | < | | X | | C | |spc| | > | | B | | Z | | V |  3
-  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ 
+  +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+
 
   Function and Shift are separate keys that are read by 2 of the paddle inputs.
   These two buttons pull the specific paddle input low when pressed.
 
-  Because the inputs are inverted, a low indicates a pressed button, and a high 
+  Because the inputs are inverted, a low indicates a pressed button, and a high
   is an unpressed one.
 
-  The audio input/output are designed to drive a tape player.  The audio output is 
+  The audio input/output are designed to drive a tape player.  The audio output is
   buffered through an inverter and 2 resistors and a capacitor to reduce the level
   to feed it into the tape player.
 
@@ -105,7 +106,6 @@ class System;
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: CartCM.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeCM : public Cartridge
 {
@@ -119,7 +119,7 @@ class CartridgeCM : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeCM(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeCM(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeCM() = default;
 
   public:
@@ -168,7 +168,7 @@ class CartridgeCM : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -225,7 +225,7 @@ class CartridgeCM : public Cartridge
     /**
       Inform the cartridge about the parent CompuMate controller
     */
-    void setCompuMate(shared_ptr<CompuMate> cmate) { myCompuMate = cmate; }
+    void setCompuMate(shared_ptr<CompuMate>& cmate) { myCompuMate = cmate; }
 
     /**
       Get the current keyboard column
@@ -247,8 +247,8 @@ class CartridgeCM : public Cartridge
     // Current copy of SWCHA (controls ROM/RAM accesses)
     uInt8 mySWCHA;
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
 
 private:
     // Following constructors and assignment operators not supported

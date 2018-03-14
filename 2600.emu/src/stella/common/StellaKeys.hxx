@@ -8,19 +8,17 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: StellaKeys.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef STELLA_KEYS_HXX
 #define STELLA_KEYS_HXX
 
-#include <SDL.h>
+#include "SDL_lib.hxx"
 
 /**
   This class implements a thin wrapper around the SDL keysym enumerations,
@@ -412,6 +410,29 @@ enum StellaMod
     KBDM_SHIFT = (KBDM_LSHIFT|KBDM_RSHIFT),
     KBDM_ALT = (KBDM_LALT|KBDM_RALT),
     KBDM_GUI = (KBDM_LGUI|KBDM_RGUI)
+};
+
+// Test if specified modifier is pressed
+namespace StellaModTest
+{
+  inline bool isAlt(int mod)
+  {
+#if defined(BSPF_MAC_OSX) || defined(OSX_KEYS)
+    return (mod & KBDM_GUI);
+#else
+    return (mod & KBDM_ALT);
+#endif
+  }
+
+  inline bool isControl(int mod)
+  {
+    return (mod & KBDM_CTRL);
+  }
+
+  inline bool isShift(int mod)
+  {
+    return (mod & KBDM_SHIFT);
+  }
 };
 
 #endif /* StellaKeys */

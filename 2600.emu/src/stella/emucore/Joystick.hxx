@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Joystick.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef JOYSTICK_HXX
@@ -28,7 +26,6 @@
   The standard Atari 2600 joystick controller.
 
   @author  Bradford W. Mott
-  @version $Id: Joystick.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class Joystick : public Controller
 {
@@ -84,7 +81,7 @@ class Joystick : public Controller
                 myXAxisValue, myYAxisValue, myFireEvent;
 
     // Controller to emulate in normal mouse axis mode
-    int myControlID;  
+    int myControlID;
 
     static int _DEAD_ZONE;
 

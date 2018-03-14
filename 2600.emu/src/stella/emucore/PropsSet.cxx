@@ -1,31 +1,26 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: PropsSet.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
-#include <fstream>
-#include <sstream>
 #include <map>
 
 #include "bspf.hxx"
-
+#include "FSNode.hxx"
 #include "DefProps.hxx"
 #include "Props.hxx"
-
 #include "PropsSet.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -171,7 +166,7 @@ void PropertiesSet::insert(const Properties& properties, bool save)
   {
     // Remove old item and insert again
     list.erase(ret.first);
-    list.insert(make_pair(md5, properties));
+    list.emplace(md5, properties);
   }
 }
 
@@ -207,7 +202,7 @@ void PropertiesSet::print() const
       if(DefProps[i][p][0] != 0)
         properties.set(PropertyType(p), DefProps[i][p]);
 
-    list.insert(make_pair(DefProps[i][Cartridge_MD5], properties));
+    list.emplace(DefProps[i][Cartridge_MD5], properties);
   }
 
   // Now, print the resulting list

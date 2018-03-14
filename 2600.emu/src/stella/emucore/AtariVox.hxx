@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: AtariVox.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef ATARIVOX_HXX
@@ -23,7 +21,7 @@
 class SerialPort;
 
 #include "Control.hxx"
-#include "MT24LC256.hxx"
+#include "SaveKey.hxx"
 
 /**
   Richard Hutchinson's AtariVox "controller": A speech synthesizer and
@@ -33,12 +31,9 @@ class SerialPort;
   driver code.
 
   @author  B. Watson
-  @version $Id: AtariVox.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
-class AtariVox : public Controller
+class AtariVox : public SaveKey
 {
-  friend class AtariVoxWidget;
-
   public:
     /**
       Create a new AtariVox controller plugged into the specified jack
@@ -83,26 +78,22 @@ class AtariVox : public Controller
     void update() override { }
 
     /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary 
-      to override this method for devices that remember cycle counts.
+      Notification method invoked by the system after its reset method has
+      been called.  It may be necessary to override this method for
+      controllers that need to know a reset has occurred.
     */
-    void systemCyclesReset() override;
+    void reset() override;
 
-    string about() const override;
+    string about(bool swappedPorts) const override { return Controller::about(swappedPorts) + myAboutString; }
 
   private:
    void clockDataIn(bool value);
-   void shiftIn(bool value);
 
   private:
     // Instance of an real serial port on the system
     // Assuming there's a real AtariVox attached, we can send SpeakJet
     // bytes directly to it
     SerialPort& mySerialPort;
-
-    // The EEPROM used in the AtariVox
-    unique_ptr<MT24LC256> myEEPROM;
 
     // How many bits have been shifted into the shift register?
     uInt8 myShiftCount;
@@ -117,7 +108,7 @@ class AtariVox : public Controller
     // The real SpeakJet chip reads data at 19200 bits/sec. Alex's
     // driver code sends data at 62 CPU cycles per bit, which is
     // "close enough".
-    uInt32 myLastDataWriteCycle;
+    uInt64 myLastDataWriteCycle;
 
     // Holds information concerning serial port usage
     string myAboutString;

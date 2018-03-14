@@ -38,16 +38,18 @@ class Sound;
 class StateManager;
 class VideoDialog;
 
-#include "bspf.hxx"
+#include <stella/common/bspf.hxx>
 #undef HAVE_UNISTD_H
 #include "Console.hxx"
+#include <stella/emucore/FrameBufferConstants.hxx>
+#include <stella/emucore/EventHandlerConstants.hxx>
 
 class OSystem
 {
   friend class EventHandler;
 
   public:
-    OSystem() {}
+    OSystem();
 
     /**
       Get the event handler of the system
@@ -110,6 +112,13 @@ class OSystem
       @return The serial port object
     */
     SerialPort& serialPort() const;
+
+    /**
+      Get the state manager of the system.
+
+      @return The statemanager object
+    */
+    StateManager& state() const;
 
 #ifdef DEBUGGER_SUPPORT
     /**
@@ -192,4 +201,13 @@ class OSystem
   protected:
     // Pointer to the (currently defined) Console object
     std::unique_ptr<Console> myConsole{};
+
+    std::unique_ptr<StateManager> myStateManager;
+    std::unique_ptr<Random> myRandom;
+		std::unique_ptr<EventHandler> myEventHandler;
+		std::unique_ptr<SerialPort> mySerialPort;
+		std::unique_ptr<FrameBuffer> myFrameBuffer;
+		std::unique_ptr<PropertiesSet> myPropSet;
+		std::unique_ptr<Settings> mySettings;
+		std::unique_ptr<SoundGeneric> mySound;
 };

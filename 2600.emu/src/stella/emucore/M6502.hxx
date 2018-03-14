@@ -8,17 +8,20 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: M6502.hxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #ifndef M6502_HXX
 #define M6502_HXX
+
+#include <functional>
+
+class Settings;
+class System;
 
 #ifdef DEBUGGER_SUPPORT
   class Debugger;
@@ -26,12 +29,10 @@
 
   #include "Expression.hxx"
   #include "PackedBitArray.hxx"
+  #include "TrapArray.hxx"
 #endif
 
-class Settings;
-
 #include "bspf.hxx"
-#include "System.hxx"
 #include "Serializable.hxx"
 
 /**
@@ -39,19 +40,22 @@ class Settings;
   This class provides a high compatibility 6502 microprocessor emulator.
 
   The memory accesses and cycle counts it generates are valid at the
-  sub-instruction level and "false" reads are generated (such as the ones 
+  sub-instruction level and "false" reads are generated (such as the ones
   produced by the Indirect,X addressing when it crosses a page boundary).
   This provides provides better compatibility for hardware that has side
   effects and for games which are very time sensitive.
 
   @author  Bradford W. Mott
-  @version $Id: M6502.hxx 3299 2016-04-02 20:46:02Z stephena $
 */
 class M6502 : public Serializable
 {
   // The 6502 and Cart debugger classes are friends who need special access
   friend class CartDebug;
   friend class CpuDebug;
+
+  public:
+
+    using onHaltCallback = std::function<void()>;
 
   public:
     /**
@@ -70,7 +74,7 @@ class M6502 : public Serializable
     void install(System& system);
 
     /**
-      Reset the processor to its power-on state.  This method should not 
+      Reset the processor to its power-on state.  This method should not
       be invoked until the entire 6502 system is constructed and installed
       since it involves reading the reset vector from memory.
     */
@@ -87,6 +91,21 @@ class M6502 : public Serializable
     void nmi() { myExecutionStatus |= NonmaskableInterruptBit; }
 
     /**
+      Set the callback for handling a halt condition
+    */
+    void setOnHaltCallback(onHaltCallback callback) { myOnHaltCallback = callback; }
+
+    /**
+      RDY pulled low --- halt on next read.
+    */
+    void requestHalt();
+
+    /**
+      Pull RDY high again before the callback was triggered.
+    */
+    void clearHaltRequest() { myHaltRequested = false; }
+
+    /**
       Execute instructions until the specified number of instructions
       is executed, someone stops execution, or an error occurs.  Answers
       true iff execution stops normally.
@@ -97,8 +116,8 @@ class M6502 : public Serializable
     bool execute(uInt32 number);
 
     /**
-      Tell the processor to stop executing instructions.  Invoking this 
-      method while the processor is executing instructions will stop 
+      Tell the processor to stop executing instructions.  Invoking this
+      method while the processor is executing instructions will stop
       execution as soon as possible.
     */
     void stop() { myExecutionStatus |= StopExecutionBit; }
@@ -110,7 +129,7 @@ class M6502 : public Serializable
       @return true iff a fatal error has occured
     */
     bool fatalError() const { return myExecutionStatus & FatalErrorBit; }
-  
+
     /**
       Get the 16-bit value of the Program Counter register.
 
@@ -119,13 +138,6 @@ class M6502 : public Serializable
     uInt16 getPC() const { return PC; }
 
     /**
-      Answer true iff the last memory access was a read.
-
-      @return true iff last access was a read
-    */ 
-    bool lastAccessWasRead() const { return myLastAccessWasRead; }
-
-    /**                                                                    
       Return the last address that was part of a read/peek.  Note that
       reads which are part of a write are not considered here, unless
       they're not the same as the last write address.  This eliminates
@@ -139,7 +151,21 @@ class M6502 : public Serializable
         myLastPeekAddress;
     }
 
-    /**                                                                    
+    /**
+      Return the last address that was part of a read/peek.
+
+      @return The address of the last read
+    */
+    uInt16 lastReadBaseAddress() const { return myLastPeekBaseAddress; }
+
+    /**
+      Return the last address that was part of a write/poke.
+
+      @return The address of the last write
+    */
+    uInt16 lastWriteBaseAddress() const { return myLastPokeBaseAddress; }
+
+    /**
       Return the source of the address that was used for a write/poke.
       Note that this isn't the same as the address that is poked, but
       is instead the address of the *data* that is poked (if any).
@@ -148,7 +174,7 @@ class M6502 : public Serializable
     */
     uInt16 lastDataAddressForPoke() const { return myDataAddressForPoke; }
 
-    /**                                                                    
+    /**
       Return the last data address used as part of a peek operation for
       the S/A/X/Y registers.  Note that if an address wasn't used (as in
       immediate mode), then the address is -1.
@@ -196,13 +222,28 @@ class M6502 : public Serializable
     void attach(Debugger& debugger);
 
     PackedBitArray& breakPoints() { return myBreakPoints; }
-    PackedBitArray& readTraps()   { return myReadTraps;   }
-    PackedBitArray& writeTraps()  { return myWriteTraps;  }
+    TrapArray& readTraps() { return myReadTraps; }
+    TrapArray& writeTraps() { return myWriteTraps; }
 
+    // methods for 'breakif' handling
     uInt32 addCondBreak(Expression* e, const string& name);
-    void delCondBreak(uInt32 brk);
+    bool delCondBreak(uInt32 idx);
     void clearCondBreaks();
     const StringList& getCondBreakNames() const;
+
+    // methods for 'savestateif' handling
+    uInt32 addCondSaveState(Expression* e, const string& name);
+    bool delCondSaveState(uInt32 idx);
+    void clearCondSaveStates();
+    const StringList& getCondSaveStateNames() const;
+
+    // methods for 'trapif' handling
+    uInt32 addCondTrap(Expression* e, const string& name);
+    bool delCondTrap(uInt32 brk);
+    void clearCondTraps();
+    const StringList& getCondTrapNames() const;
+
+    void setGhostReadsTrap(bool enable) { myGhostReadsTrap = enable; }
 #endif  // DEBUGGER_SUPPORT
 
   private:
@@ -227,7 +268,7 @@ class M6502 : public Serializable
       @param address  The address where the value should be stored
       @param value    The value to be stored at the address
     */
-    void poke(uInt16 address, uInt8 value);
+    void poke(uInt16 address, uInt8 value, uInt8 flags = 0);
 
     /**
       Get the 8-bit value of the Processor Status register.
@@ -268,13 +309,30 @@ class M6502 : public Serializable
     */
     void interruptHandler();
 
+    /**
+      Check whether halt was requested (RDY low) and notify
+    */
+    void handleHalt();
+
+    /**
+      Check whether we are required to update hardware (TIA + RIOT) in lockstep
+      with the CPU and update the flag accordingly.
+    */
+    void updateStepStateByInstruction();
+
+    /**
+      This is the actual dispatch function that does the grunt work. M6502::execute
+      wraps it and makes sure that any pending halt is processed before returning.
+    */
+    bool _execute(uInt32 number);
+
   private:
-    /** 
-      Bit fields used to indicate that certain conditions need to be 
-      handled such as stopping execution, fatal errors, maskable interrupts 
+    /**
+      Bit fields used to indicate that certain conditions need to be
+      handled such as stopping execution, fatal errors, maskable interrupts
       and non-maskable interrupts (in myExecutionStatus)
     */
-    enum 
+    enum
     {
       StopExecutionBit = 0x01,
       FatalErrorBit = 0x02,
@@ -282,7 +340,7 @@ class M6502 : public Serializable
       NonmaskableInterruptBit = 0x08
     };
     uInt8 myExecutionStatus;
-  
+
     /// Pointer to the system the processor is installed in or the null pointer
     System* mySystem;
 
@@ -304,8 +362,7 @@ class M6502 : public Serializable
     bool notZ;  // Z flag complement for processor status register
     bool C;     // C flag for processor status register
 
-    /// Indicates if the last memory access was a read or not
-    bool myLastAccessWasRead;
+    uInt8 icycles; // cycles of last instruction
 
     /// Indicates the numer of distinct memory accesses
     uInt32 myNumberOfDistinctAccesses;
@@ -316,6 +373,9 @@ class M6502 : public Serializable
     /// Indicates the last address which was accessed specifically
     /// by a peek or poke command
     uInt16 myLastPeekAddress, myLastPokeAddress;
+    /// Indicates the last base (= non-mirrored) address which was
+    /// accessed specifically by a peek or poke command
+    uInt16 myLastPeekBaseAddress, myLastPokeBaseAddress;
 
     /// Indicates the last address used to access data by a peek command
     /// for the CPU registers (S/A/X/Y)
@@ -328,35 +388,76 @@ class M6502 : public Serializable
     /// is set to zero
     uInt16 myDataAddressForPoke;
 
-    /// Indicates the number of system cycles per processor cycle 
+    /// Indicates the number of system cycles per processor cycle
     static constexpr uInt32 SYSTEM_CYCLES_PER_CPU = 1;
 
+    /// Called when the processor enters halt state
+    onHaltCallback myOnHaltCallback;
+
+    /// Indicates whether RDY was pulled low
+    bool myHaltRequested;
+
 #ifdef DEBUGGER_SUPPORT
+    enum CondAction
+    {
+      breakAction,
+      saveStateAction
+    };
+
     Int32 evalCondBreaks() {
-      for(uInt32 i = 0; i < myBreakConds.size(); i++)
-        if(myBreakConds[i]->evaluate())
+      for(uInt32 i = 0; i < myCondBreaks.size(); i++)
+        if(myCondBreaks[i]->evaluate())
           return i;
 
       return -1; // no break hit
+    }
+
+    Int32 evalCondSaveStates()
+    {
+      for(uInt32 i = 0; i < myCondSaveStates.size(); i++)
+        if(myCondSaveStates[i]->evaluate())
+          return i;
+
+      return -1; // no save state point hit
+    }
+
+    Int32 evalCondTraps()
+    {
+      for(uInt32 i = 0; i < myTrapConds.size(); i++)
+        if(myTrapConds[i]->evaluate())
+          return i;
+
+      return -1; // no trapif hit
     }
 
     /// Pointer to the debugger for this processor or the null pointer
     Debugger* myDebugger;
 
     // Addresses for which the specified action should occur
-    PackedBitArray myBreakPoints, myReadTraps, myWriteTraps;
+    PackedBitArray myBreakPoints;// , myReadTraps, myWriteTraps, myReadTrapIfs, myWriteTrapIfs;
+    TrapArray myReadTraps, myWriteTraps;
 
     // Did we just now hit a trap?
-    bool myJustHitTrapFlag;
+    bool myJustHitReadTrapFlag;
+    bool myJustHitWriteTrapFlag;
     struct HitTrapInfo {
       string message;
       int address;
     };
     HitTrapInfo myHitTrapInfo;
 
-    vector<unique_ptr<Expression>> myBreakConds;
-    StringList myBreakCondNames;
+    vector<unique_ptr<Expression>> myCondBreaks;
+    StringList myCondBreakNames;
+    vector<unique_ptr<Expression>> myCondSaveStates;
+    StringList myCondSaveStateNames;
+    vector<unique_ptr<Expression>> myTrapConds;
+    StringList myTrapCondNames;
 #endif  // DEBUGGER_SUPPORT
+
+    // These are both used only by the debugger, but since they're included
+    // in save states, they cannot be conditionally compiled
+    bool myGhostReadsTrap;    // trap on ghost reads
+    bool myStepStateByInstruction;
 
   private:
     // Following constructors and assignment operators not supported

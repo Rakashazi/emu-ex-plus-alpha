@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Cart4KSC.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE4KSC_HXX
@@ -30,6 +28,7 @@ class System;
 
 /**
   Cartridge class used for 4K games with 128 bytes of RAM.
+  RAM read port is $1080 - $10FF, write port is $1000 - $107F.
 */
 
 class Cartridge4KSC : public Cartridge
@@ -44,7 +43,7 @@ class Cartridge4KSC : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    Cartridge4KSC(const uInt8* image, uInt32 size, const Settings& settings);
+    Cartridge4KSC(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~Cartridge4KSC() = default;
 
   public:
@@ -76,7 +75,7 @@ class Cartridge4KSC : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -121,17 +120,8 @@ class Cartridge4KSC : public Cartridge
     */
     uInt8 peek(uInt16 address) override;
 
-    /**
-      Change the byte at the specified address to the given value
-
-      @param address The address where the value should be stored
-      @param value   The value to be stored at the address
-      @return  True if the poke changed the device address space, else false
-    */
-    bool poke(uInt16 address, uInt8 value) override;
-
   private:
-    // The 8K ROM image of the cartridge
+    // The 4K ROM image of the cartridge
     uInt8 myImage[4096];
 
     // The 128 bytes of RAM

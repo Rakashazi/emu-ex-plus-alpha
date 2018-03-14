@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: MT24LC256.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef MT24LC256_HXX
@@ -25,13 +23,16 @@ class System;
 
 #include "bspf.hxx"
 
+#ifdef PAGE_SIZE
+#undef PAGE_SIZE
+#endif
+
 /**
   Emulates a Microchip Technology Inc. 24LC256, a 32KB Serial Electrically
   Erasable PROM accessed using the I2C protocol.  Thanks to J. Payson
   (aka Supercat) for the bulk of this code.
 
   @author  Stephen Anthony & J. Payson
-  @version $Id: MT24LC256.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class MT24LC256
 {
@@ -45,7 +46,14 @@ class MT24LC256
     MT24LC256(const string& filename, const System& system);
     ~MT24LC256();
 
+  private:
+    // Sizes of the EEPROM
+    static constexpr uInt32 FLASH_SIZE = 32 * 1024;
+
   public:
+    static constexpr uInt32 PAGE_SIZE = 64;
+    static constexpr uInt32 PAGE_NUM = FLASH_SIZE / PAGE_SIZE;
+
     /** Read boolean data from the SDA line */
     bool readSDA() const { return jpee_mdat && jpee_sdat; }
 
@@ -53,15 +61,17 @@ class MT24LC256
     void writeSDA(bool state);
     void writeSCL(bool state);
 
-    /** Erase entire EEPROM to known state ($FF) */
-    void erase();
+    /** Called when the system is being reset */
+    void systemReset();
 
-    /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary 
-      to override this method for devices that remember cycle counts.
-    */
-    void systemCyclesReset();
+    /** Erase entire EEPROM to known state ($FF) */
+    void eraseAll();
+
+    /** Erase the pages used by the current ROM to known state ($FF) */
+    void eraseCurrent();
+
+    /** Returns true if the page is used by the current ROM */
+    bool isPageUsed(uInt32 page) const;
 
   private:
     // I2C access code provided by Supercat
@@ -75,11 +85,17 @@ class MT24LC256
     void update();
 
   private:
+    // Inital state value of flash EEPROM
+    static constexpr uInt8 INIT_VALUE = 0xff;
+
     // The system of the parent controller
     const System& mySystem;
 
     // The EEPROM data
-    uInt8 myData[32768];
+    uInt8 myData[FLASH_SIZE];
+
+    // Track which pages are used
+    bool myPageHit[PAGE_NUM];
 
     // Cached state of the SDA and SCL pins on the last write
     bool mySDA, mySCL;
@@ -88,10 +104,10 @@ class MT24LC256
     bool myTimerActive;
 
     // Indicates when the timer was set
-    uInt32 myCyclesWhenTimerSet;
+    uInt64 myCyclesWhenTimerSet;
 
     // Indicates when the SDA and SCL pins were set/written
-    uInt32 myCyclesWhenSDASet, myCyclesWhenSCLSet;
+    uInt64 myCyclesWhenSDASet, myCyclesWhenSCLSet;
 
     // The file containing the EEPROM data
     string myDataFile;

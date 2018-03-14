@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartF8SC.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEF8SC_HXX
@@ -29,11 +27,11 @@ class System;
 #endif
 
 /**
-  Cartridge class used for Atari's 8K bankswitched games with
-  128 bytes of RAM.  There are two 4K banks.
+  Cartridge class used for Atari's 8K bankswitched games with 128 bytes of
+  RAM.  There are two 4K banks, accessible by read/write to $1FF8 - $1FF9.
+  RAM read port is $1080 - $10FF, write port is $1000 - $107F.
 
   @author  Bradford W. Mott
-  @version $Id: CartF8SC.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeF8SC : public Cartridge
 {
@@ -47,7 +45,7 @@ class CartridgeF8SC : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeF8SC(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeF8SC(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeF8SC() = default;
 
   public:
@@ -96,7 +94,7 @@ class CartridgeF8SC : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -157,8 +155,8 @@ class CartridgeF8SC : public Cartridge
     // The 128 bytes of RAM
     uInt8 myRAM[128];
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
 
   private:
     // Following constructors and assignment operators not supported

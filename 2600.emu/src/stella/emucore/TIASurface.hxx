@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: TIASurface.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef TIASURFACE_HXX
@@ -27,9 +25,12 @@ class FrameBuffer;
 class FBSurface;
 class VideoMode;
 
+#include <thread>
+
 #include "Rect.hxx"
 #include "NTSCFilter.hxx"
 #include "bspf.hxx"
+#include "TIAConstants.hxx"
 
 /**
   This class is basically a wrapper around all things related to rendering
@@ -69,13 +70,13 @@ class TIASurface
     /**
       Get the TIA base surface for use in saving to a PNG image.
     */
-    const FBSurface& baseSurface(GUI::Rect& rect);
+    const FBSurface& baseSurface(GUI::Rect& rect) const;
 
     /**
       Get the TIA pixel associated with the given TIA buffer index,
       shifting by the given offset (for greyscale values).
     */
-    uInt32 pixel(uInt32 idx, uInt8 shift = 0) const;
+    uInt32 pixel(uInt32 idx, uInt8 shift = 0);
 
     /**
       Get the NTSCFilter object associated with the framebuffer
@@ -108,9 +109,10 @@ class TIASurface
     void enableScanlineInterpolation(bool enable);
 
     /**
-      Enable/disable phosphor effect.
+      Enable/disable/query phosphor effect.
     */
-    void enablePhosphor(bool enable, int blend);
+    void enablePhosphor(bool enable, int blend = -1);
+    bool phosphorEnabled() const { return myUsePhosphor; }
 
     /**
       Used to calculate an averaged color for the 'phosphor' effect.
@@ -120,19 +122,39 @@ class TIASurface
 
       @return  Averaged value of the two colors
     */
-    uInt8 getPhosphor(uInt8 c1, uInt8 c2) const;
+    inline uInt8 getPhosphor(const uInt8 c1, uInt8 c2) const {
+      // Use maximum of current and decayed previous values
+      c2 = uInt8(c2 * myPhosphorPercent);
+      if(c1 > c2)  return c1; // raise (assumed immediate)
+      else         return c2; // decay
+    }
+
+    /**
+      Used to calculate an averaged color for the 'phosphor' effect.
+
+      @param c  RGB Color 1 (current frame)
+      @param cp RGB Color 2 (previous frame)
+
+      @return  Averaged value of the two RGB colors
+    */
+    uInt32 getRGBPhosphor(const uInt32 c, const uInt32 cp) const;
 
     /**
       Enable/disable/query NTSC filtering effects.
     */
     void enableNTSC(bool enable);
-    bool ntscEnabled() const { return myFilterType & 0x10; }
+    bool ntscEnabled() const { return uInt8(myFilter) & 0x10; }
     string effectsInfo() const;
 
     /**
       This method should be called to draw the TIA image(s) to the screen.
     */
     void render();
+
+    /**
+      This method renders the current frame again.
+    */
+    void reRender();
 
   private:
     OSystem& myOSystem;
@@ -143,37 +165,43 @@ class TIASurface
 
     // Enumeration created such that phosphor off/on is in LSB,
     // and Blargg off/on is in MSB
-    enum FilterType {
-      kNormal         = 0x00,
-      kPhosphor       = 0x01,
-      kBlarggNormal   = 0x10,
-      kBlarggPhosphor = 0x11
+    enum class Filter: uInt8 {
+      Normal         = 0x00,
+      Phosphor       = 0x01,
+      BlarggNormal   = 0x10,
+      BlarggPhosphor = 0x11
     };
-    FilterType myFilterType;
+    Filter myFilter;
 
-    enum TIAConstants {
+    enum {
       kTIAW  = 160,
-      kTIAH  = 320,
+      kTIAH  = TIAConstants::frameBufferHeight,
       kScanH = kTIAH*2
     };
 
     // NTSC object to use in TIA rendering mode
     NTSCFilter myNTSCFilter;
 
-    // Use phosphor effect (aka no flicker on 30Hz screens)
+    /////////////////////////////////////////////////////////////
+    // Phosphor mode items (aka reduced flicker on 30Hz screens)
+    // RGB frame buffer
+    uInt32 myRGBFramebuffer[AtariNTSC::outWidth(kTIAW) * kTIAH];
+
+    // Use phosphor effect
     bool myUsePhosphor;
 
     // Amount to blend when using phosphor effect
-    int myPhosphorBlend;
+    float myPhosphorPercent;
+
+    // Precalculated averaged phosphor colors
+    uInt8 myPhosphorPalette[256][256];
+    /////////////////////////////////////////////////////////////
 
     // Use scanlines in TIA rendering mode
     bool myScanlinesEnabled;
 
     // Palette for normal TIA rendering mode
     const uInt32* myPalette;
-
-    // Palette for phosphor rendering mode
-    uInt32 myPhosphorPalette[256][256];
 
   private:
     // Following constructors and assignment operators not supported

@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: M6532.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef M6532_HXX
@@ -22,11 +20,11 @@
 
 class Console;
 class RiotDebug;
+class System;
 class Settings;
 
 #include "bspf.hxx"
 #include "Device.hxx"
-#include "System.hxx"
 
 /**
   This class models the M6532 RAM-I/O-Timer (aka RIOT) chip in the 2600
@@ -37,7 +35,6 @@ class Settings;
     - A1 to enable/disable interrupt from PA7 to IRQ
 
   @author  Bradford W. Mott and Stephen Anthony
-  @version $Id: M6532.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class M6532 : public Device
 {
@@ -64,13 +61,6 @@ class M6532 : public Device
     void reset() override;
 
     /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary
-      to override this method for devices that remember cycle counts.
-    */
-    void systemCyclesReset() override;
-
-    /**
       Update the entire digital and analog pin state of ports A and B.
     */
     void update();
@@ -92,7 +82,7 @@ class M6532 : public Device
       @param system The system the device should install itself in
       @param device The device responsible for this address space
     */
-    void install(System& system, Device& device);
+    void installDelegate(System& system, Device& device);
 
     /**
       Save the current state of this device to the given Serializer.
@@ -135,9 +125,12 @@ class M6532 : public Device
     */
     bool poke(uInt16 address, uInt8 value) override;
 
+    /**
+     * Update RIOT state to the current timestamp.
+     */
+    void updateEmulation();
+
   private:
-    Int32 timerClocks() const
-      { return myTimer - (mySystem->cycles() - myCyclesWhenTimerSet); }
 
     void setTimerRegister(uInt8 data, uInt8 interval);
     void setPinState(bool shcha);
@@ -145,9 +138,28 @@ class M6532 : public Device
     // The following are used by the debugger to read INTIM/TIMINT
     // We need separate methods to do this, so the state of the system
     // isn't changed
-    uInt8 intim() const;
-    uInt8 timint() const;
-    Int32 intimClocks() const;
+    uInt8 intim();
+    uInt8 timint();
+    Int32 intimClocks();
+    uInt32 timerClocks() const;
+
+  #ifdef DEBUGGER_SUPPORT
+    void createAccessBases();
+
+    /**
+      Query the given address type for the associated disassembly flags.
+
+      @param address  The address to query
+    */
+    uInt8 getAccessFlags(uInt16 address) const override;
+    /**
+      Change the given address to use the given disassembly flags.
+
+      @param address  The address to modify
+      @param flags    A bitfield of DisasmType directives for the given address
+    */
+    void setAccessFlags(uInt16 address, uInt8 flags) override;
+  #endif // DEBUGGER_SUPPORT
 
   private:
     // Accessible bits in the interrupt flag register
@@ -167,13 +179,23 @@ class M6532 : public Device
     uInt8 myRAM[128];
 
     // Current value of the timer
-    uInt32 myTimer;
+    uInt8 myTimer;
 
-    // Log base 2 of the number of cycles in a timer interval
-    uInt32 myIntervalShift;
+    // Current number of clocks "queued" for the divider
+    uInt32 mySubTimer;
 
-    // Indicates the number of cycles when the timer was last set
-    Int32 myCyclesWhenTimerSet;
+    // The divider
+    uInt32 myDivider;
+
+    // Has the timer wrapped?
+    bool myTimerWrapped;
+    bool myWrappedThisCycle;
+
+    // Cycle when the timer set. Debugging only.
+    uInt64 mySetTimerCycle;
+
+    // Last cycle considered in emu updates
+    uInt64 myLastCycle;
 
     // Data Direction Register for Port A
     uInt8 myDDRA;
@@ -190,16 +212,28 @@ class M6532 : public Device
     // Interrupt Flag Register
     uInt8 myInterruptFlag;
 
-    // Whether the timer flag (as currently set) can be used
-    // If it isn't valid, it will be updated as required
-    bool myTimerFlagValid;
-
     // Used to determine whether an active transition on PA7 has occurred
     // True is positive edge-detect, false is negative edge-detect
     bool myEdgeDetectPositive;
 
     // Last value written to the timer registers
     uInt8 myOutTimer[4];
+
+#ifdef DEBUGGER_SUPPORT
+    // The arrays containing information about every byte of RIOT
+    // indicating whether and how (RW) it is used.
+    BytePtr myRAMAccessBase;
+    BytePtr myStackAccessBase;
+    BytePtr myIOAccessBase;
+    // The array used to skip the first ZP access tracking
+    BytePtr myZPAccessDelay;
+
+    static constexpr uInt16
+      RAM_SIZE = 0x80, RAM_MASK = RAM_SIZE - 1,
+      STACK_SIZE = RAM_SIZE, STACK_MASK = RAM_MASK, STACK_BIT = 0x100,
+      IO_SIZE = 0x20, IO_MASK = IO_SIZE - 1, IO_BIT = 0x200,
+      ZP_DELAY = 1;
+#endif // DEBUGGER_SUPPORT
 
   private:
     // Following constructors and assignment operators not supported

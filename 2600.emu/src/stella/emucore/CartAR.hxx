@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartAR.hxx 3311 2016-08-21 21:37:06Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEAR_HXX
@@ -29,16 +27,17 @@ class System;
 #endif
 
 /**
-  This is the cartridge class for Arcadia (aka Starpath) Supercharger 
-  games.  Christopher Salomon provided most of the technical details 
+  FIXME: This scheme needs to be be described in more detail.
+
+  This is the cartridge class for Arcadia (aka Starpath) Supercharger
+  games.  Christopher Salomon provided most of the technical details
   used in creating this class.  A good description of the Supercharger
   is provided in the Cuttle Cart's manual.
 
-  The Supercharger has four 2K banks.  There are three banks of RAM 
+  The Supercharger has four 2K banks.  There are three banks of RAM
   and one bank of ROM.  All 6K of the RAM can be read and written.
 
   @author  Bradford W. Mott
-  @version $Id: CartAR.hxx 3311 2016-08-21 21:37:06Z stephena $
 */
 class CartridgeAR : public Cartridge
 {
@@ -52,7 +51,7 @@ class CartridgeAR : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeAR(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeAR(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeAR() = default;
 
   public:
@@ -60,13 +59,6 @@ class CartridgeAR : public Cartridge
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary
-      to override this method for devices that remember cycle counts.
-    */
-    void systemCyclesReset() override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -108,7 +100,7 @@ class CartridgeAR : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -164,12 +156,17 @@ class CartridgeAR : public Cartridge
 
   private:
     /**
-      Query/change the given address type to use the given disassembly flags
+      Query the given address type for the associated disassembly flags.
 
-      @param address The address to modify
-      @param flags A bitfield of DisasmType directives for the given address
+      @param address  The address to query
     */
     uInt8 getAccessFlags(uInt16 address) const override;
+    /**
+      Change the given address to use the given disassembly flags.
+
+      @param address  The address to modify
+      @param flags    A bitfield of DisasmType directives for the given address
+    */
     void setAccessFlags(uInt16 address, uInt8 flags) override;
 
     // Handle a change to the bank configuration
@@ -197,7 +194,7 @@ class CartridgeAR : public Cartridge
     // Size of the ROM image
     uInt32 mySize;
 
-    // All of the 8448 byte loads associated with the game 
+    // All of the 8448 byte loads associated with the game
     BytePtr myLoadImages;
 
     // Indicates how many 8448 loads there are
@@ -208,9 +205,6 @@ class CartridgeAR : public Cartridge
 
     // Indicates if the ROM's power is on or off
     bool myPower;
-
-    // Indicates when the power was last turned on
-    Int32 myPowerRomCycle;
 
     // Data hold register used for writing
     uInt8 myDataHoldRegister;

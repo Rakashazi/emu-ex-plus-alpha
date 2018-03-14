@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Paddles.hxx 3300 2016-04-02 21:27:10Z stephena $
 //============================================================================
 
 #ifndef PADDLES_HXX
@@ -28,7 +26,6 @@
   The standard Atari 2600 pair of paddle controllers.
 
   @author  Bradford W. Mott
-  @version $Id: Paddles.hxx 3300 2016-04-02 21:27:10Z stephena $
 */
 class Paddles : public Controller
 {
@@ -102,10 +99,12 @@ class Paddles : public Controller
       range of movement).  Note that this specfically does not apply to
       Stelladaptor-like devices, which uses an absolute value range.
 
-      @param sensitivity  Value from 1 to 100, representing the percentage
-                          of the range to use
+      @param range  Value from 1 to 100, representing the percentage
+                    of the range to use
     */
     static void setPaddleRange(int range);
+
+    static constexpr double MAX_RESISTANCE = 1400000.0;
 
   private:
     // Pre-compute the events we care about based on given port
@@ -128,12 +127,12 @@ class Paddles : public Controller
 
     // Range of values over which digital and mouse movement is scaled
     // to paddle resistance
-    static const int TRIGMIN = 1;
-    static const int TRIGMAX = 4096;
+    static constexpr int TRIGMIN = 1;
+    static constexpr int TRIGMAX = 4096;
     static int TRIGRANGE;  // This one is variable for the upper range
 
-    static const int MAX_DIGITAL_SENSE = 20;
-    static const int MAX_MOUSE_SENSE = 20;
+    static constexpr int MAX_DIGITAL_SENSE = 20;
+    static constexpr int MAX_MOUSE_SENSE = 20;
     static int DIGITAL_SENSITIVITY, DIGITAL_DISTANCE;
     static int MOUSE_SENSITIVITY;
 

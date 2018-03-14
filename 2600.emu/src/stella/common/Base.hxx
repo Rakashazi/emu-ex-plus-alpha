@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Base.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef BASE_HXX
@@ -44,9 +42,12 @@ class Base
       F_16,      // base 16: 2, 4, 8 bytes (depending on value)
       F_16_1,    // base 16: 1 byte wide
       F_16_2,    // base 16: 2 bytes wide
+      F_16_2_2,  // base 16: fractional value shown as xx.xx
+      F_16_3_2,  // base 16: fractional value shown as xxx.xx
       F_16_4,    // base 16: 4 bytes wide
       F_16_8,    // base 16: 8 bytes wide
       F_10,      // base 10: 3 or 5 bytes (depending on value)
+      F_10_2,    // base 10: 2 digits
       F_2,       // base 2:  8 or 16 bits (depending on value)
       F_2_8,     // base 2:  1 byte (8 bits) wide
       F_2_16,    // base 2:  2 bytes (16 bits) wide
@@ -62,10 +63,19 @@ class Base
     static void setHexUppercase(bool enable);
     static bool hexUppercase() { return myHexflags & std::ios_base::uppercase; }
 
-    /** Output HEX digits in 1/2/4 byte format */
+    /** Output HEX digits in 0.5/1/2/4 byte format */
+    static inline std::ostream& HEX1(std::ostream& os) {
+      os.flags(myHexflags);
+      return os << std::setw(1);
+    }
     static inline std::ostream& HEX2(std::ostream& os) {
       os.flags(myHexflags);
       return os << std::setw(2) << std::setfill('0');
+    }
+    static inline std::ostream& HEX3(std::ostream& os)
+    {
+      os.flags(myHexflags);
+      return os << std::setw(3) << std::setfill('0');
     }
     static inline std::ostream& HEX4(std::ostream& os) {
       os.flags(myHexflags);
@@ -89,9 +99,10 @@ class Base
 
     // Format specifiers to use for sprintf (eventually we may convert
     // to C++ streams
-    static const char* myLowerFmt[4];
-    static const char* myUpperFmt[4];
-    static const char** myFmt;
+    static ostringstream buf;
+    static const char* const myLowerFmt[4];
+    static const char* const myUpperFmt[4];
+    static const char* const* myFmt;
 
   private:
     // Following constructors and assignment operators not supported

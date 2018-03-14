@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: KidVid.hxx 3301 2016-04-02 22:52:29Z stephena $
 //============================================================================
 
 #ifndef KIDVID_HXX
@@ -22,9 +20,10 @@
 
 #include <cstdio>
 
+class Event;
+
 #include "bspf.hxx"
 #include "Control.hxx"
-#include "Event.hxx"
 
 /**
   The KidVid Voice Module, created by Coleco.  This class emulates the
@@ -36,7 +35,6 @@
   This code was heavily borrowed from z26.
 
   @author  Stephen Anthony & z26 team
-  @version $Id: KidVid.hxx 3301 2016-04-02 22:52:29Z stephena $
 */
 class KidVid : public Controller
 {
@@ -49,7 +47,7 @@ class KidVid : public Controller
       @param system The system using this controller
       @param md5sum The md5 of the ROM using this controller
     */
-    KidVid(Jack jack, const Event& event, const System& system, 
+    KidVid(Jack jack, const Event& event, const System& system,
            const string& md5sum);
     virtual ~KidVid();
 

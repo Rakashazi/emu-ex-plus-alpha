@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartX07.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEX07_HXX
@@ -35,7 +33,7 @@ class System;
   This bankswitching method has 16 4K banks that can be accessed at
   addresses $1000 to $1FFF. The bankswitching hotspots are all below
   $1000. X07 uses two types of hotspots:
-  
+
   0 1xxx nnnn 1101 -- Switch to bank nnnn
   0 0xxx 0nxx xxxx -- If in bank 111x, switch to bank 111n.
                       In any other bank, do not switch.
@@ -43,7 +41,6 @@ class System;
   Note that the latter will hit on almost any TIA access.
 
   @author  Eckhard Stolberg
-  @version $Id: CartX07.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeX07 : public Cartridge
 {
@@ -57,7 +54,7 @@ class CartridgeX07 : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeX07(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeX07(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeX07() = default;
 
   public:
@@ -106,7 +103,7 @@ class CartridgeX07 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.

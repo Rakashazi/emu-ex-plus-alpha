@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Cart4A50.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE4A50_HXX
@@ -30,9 +28,9 @@ class System;
 
 /**
   Bankswitching method as defined/created by John Payson (aka Supercat),
-  documented at http://www.casperkitty.com/stella/cartfmt.htm.
+  documented at https://stella-emu.github.io/4A50.html.
 
-  In this bankswitching scheme the 2600's 4K cartridge address space 
+  In this bankswitching scheme the 2600's 4K cartridge address space
   is broken into four segments.  The first 2K segment accesses any 2K
   region of RAM, or of the first 32K of ROM.  The second 1.5K segment
   accesses the first 1.5K of any 2K region of RAM, or of the last 32K
@@ -46,8 +44,13 @@ class System;
   for the ROM address space to change that we just consider the bank to
   have changed on every poke operation (for any RAM) or an actual bankswitch.
 
+  NOTE: This scheme hasn't been fully implemented, and may never be (there
+        is only one test ROM, and it hasn't been extended any further).
+        In particular, the following functionality is missing:
+          - hires helper functions
+          - 1E00 page wrap
+
   @author  Eckhard Stolberg & Stephen Anthony
-  @version $Id: Cart4A50.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class Cartridge4A50 : public Cartridge
 {
@@ -61,7 +64,7 @@ class Cartridge4A50 : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    Cartridge4A50(const uInt8* image, uInt32 size, const Settings& settings);
+    Cartridge4A50(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~Cartridge4A50() = default;
 
   public:
@@ -93,7 +96,7 @@ class Cartridge4A50 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -149,12 +152,17 @@ class Cartridge4A50 : public Cartridge
 
   private:
     /**
-      Query/change the given address type to use the given disassembly flags
+      Query the given address type for the associated disassembly flags.
 
-      @param address The address to modify
-      @param flags A bitfield of DisasmType directives for the given address
+      @param address  The address to query
     */
     uInt8 getAccessFlags(uInt16 address) const override;
+    /**
+      Change the given address to use the given disassembly flags.
+
+      @param address  The address to modify
+      @param flags    A bitfield of DisasmType directives for the given address
+    */
     void setAccessFlags(uInt16 address, uInt8 flags) override;
 
     /**

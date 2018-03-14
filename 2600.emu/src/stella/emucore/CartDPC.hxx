@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartDPC.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGE_DPC_HXX
@@ -29,7 +27,7 @@ class System;
 #endif
 
 /**
-  Cartridge class used for Pitfall II.  There are two 4K program banks, a 
+  Cartridge class used for Pitfall II.  There are two 4K program banks, a
   2K display bank, and the DPC chip.  The bankswitching itself is the same
   as F8 scheme (hotspots at $1FF8 and $1FF9).  DPC chip access is mapped to
   $1000 - $1080 ($1000 - $103F is read port, $1040 - $107F is write port).
@@ -38,7 +36,6 @@ class System;
   Patent Number 4,644,495.
 
   @author  Bradford W. Mott
-  @version $Id: CartDPC.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeDPC : public Cartridge
 {
@@ -52,7 +49,7 @@ class CartridgeDPC : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeDPC(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeDPC(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeDPC() = default;
 
   public:
@@ -60,13 +57,6 @@ class CartridgeDPC : public Cartridge
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Notification method invoked by the system right before the
-      system resets its cycle counter to zero.  It may be necessary
-      to override this method for devices that remember cycle counts.
-    */
-    void systemCyclesReset() override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -108,7 +98,7 @@ class CartridgeDPC : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -163,12 +153,12 @@ class CartridgeDPC : public Cartridge
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
-    /** 
+    /**
       Clocks the random number generator to move it to its next state
     */
     void clockRandomNumberGenerator();
 
-    /** 
+    /**
       Updates any data fetchers in music mode based on the number of
       CPU cycles which have passed since the last update.
     */
@@ -205,14 +195,14 @@ class CartridgeDPC : public Cartridge
     // The random number generator register
     uInt8 myRandomNumber;
 
-    // System cycle count when the last update to music data fetchers occurred
-    Int32 mySystemCycles;
+    // System cycle count from when the last update to music data fetchers occurred
+    uInt64 myAudioCycles;
 
     // Fractional DPC music OSC clocks unused during the last update
     double myFractionalClocks;
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
 
   private:
     // Following constructors and assignment operators not supported

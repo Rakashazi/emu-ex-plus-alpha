@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Paddles.cxx 3302 2016-04-02 23:47:46Z stephena $
 //============================================================================
 
 #include "Event.hxx"
@@ -28,6 +26,11 @@ Paddles::Paddles(Jack jack, const Event& event, const System& system,
     myMPaddleIDX(-1),
     myMPaddleIDY(-1)
 {
+  // We must start with minimum resistance; see commit
+  // 38b452e1a047a0dca38c5bcce7c271d40f76736e for more information
+  updateAnalogPin(Five, minimumResistance);
+  updateAnalogPin(Nine, minimumResistance);
+
   // The following logic reflects that mapping paddles to different
   // devices can be extremely complex
   // As well, while many paddle games have horizontal movement of
@@ -258,12 +261,12 @@ void Paddles::update()
   int sa_yaxis = myEvent.get(myP1AxisValue);
   if(abs(myLastAxisX - sa_xaxis) > 10)
   {
-    myAnalogPinValue[Nine] = Int32(1400000 * ((32767 - Int16(sa_xaxis)) / 65536.0));
+    updateAnalogPin(Nine, Int32(MAX_RESISTANCE * ((32767 - Int16(sa_xaxis)) / 65536.0)));
     sa_changed = true;
   }
   if(abs(myLastAxisY - sa_yaxis) > 10)
   {
-    myAnalogPinValue[Five] = Int32(1400000 * ((32767 - Int16(sa_yaxis)) / 65536.0));
+    updateAnalogPin(Five, Int32(MAX_RESISTANCE * ((32767 - Int16(sa_yaxis)) / 65536.0)));
     sa_changed = true;
   }
   myLastAxisX = sa_xaxis;
@@ -350,11 +353,9 @@ void Paddles::update()
 
   // Only change state if the charge has actually changed
   if(myCharge[1] != myLastCharge[1])
-    myAnalogPinValue[Five] =
-        Int32(1400000 * (myCharge[1] / float(TRIGMAX)));
+    updateAnalogPin(Five, Int32(MAX_RESISTANCE * (myCharge[1] / float(TRIGMAX))));
   if(myCharge[0] != myLastCharge[0])
-    myAnalogPinValue[Nine] =
-        Int32(1400000 * (myCharge[0] / float(TRIGMAX)));
+    updateAnalogPin(Nine, Int32(MAX_RESISTANCE * (myCharge[0] / float(TRIGMAX))));
 
   myLastCharge[1] = myCharge[1];
   myLastCharge[0] = myCharge[0];

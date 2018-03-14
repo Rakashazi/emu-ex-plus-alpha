@@ -8,13 +8,11 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: System.hxx 3299 2016-04-02 20:46:02Z stephena $
 //============================================================================
 
 #ifndef SYSTEM_HXX
@@ -40,6 +38,10 @@ class NullDevice;
 #undef PAGE_MASK
 #endif
 
+#ifdef PAGE_SIZE
+#undef PAGE_SIZE
+#endif
+
 /**
   This class represents a system consisting of a 6502 microprocessor
   and a set of devices.  The devices are mapped into an addressing
@@ -47,11 +49,10 @@ class NullDevice;
   into 2^m byte pages (1 <= m <= n), where a page is the smallest unit
   a device can use when installing itself in the system.
 
-  In general the addressing space will be 8192 (2^13) bytes for a 
+  In general the addressing space will be 8192 (2^13) bytes for a
   6507 based system and 65536 (2^16) bytes for a 6502 based system.
 
   @author  Bradford W. Mott
-  @version $Id: System.hxx 3299 2016-04-02 20:46:02Z stephena $
 */
 class System : public Serializable
 {
@@ -70,8 +71,11 @@ class System : public Serializable
     // Amount to shift an address by to determine what page it's on
     static constexpr uInt16 PAGE_SHIFT = 6;
 
+    // Size of a page
+    static constexpr uInt16 PAGE_SIZE = (1 << PAGE_SHIFT);
+
     // Mask to apply to an address to obtain its page offset
-    static constexpr uInt16 PAGE_MASK = (1 << PAGE_SHIFT) - 1;
+    static constexpr uInt16 PAGE_MASK = PAGE_SIZE - 1;
 
     // Number of pages in the system
     static constexpr uInt16 NUM_PAGES = 1 << (13 - PAGE_SHIFT);
@@ -96,6 +100,13 @@ class System : public Serializable
     void reset(bool autodetect = false);
 
   public:
+    /**
+      Answer the OSystem attached to the system.
+
+      @return The attached OSystem
+    */
+    const OSystem& oSystem() const { return myOSystem; }
+
     /**
       Answer the 6502 microprocessor attached to the system.  If a
       processor has not been attached calling this function will fail.
@@ -127,8 +138,8 @@ class System : public Serializable
     Random& randGenerator() const { return myOSystem.random(); }
 
     /**
-      Get the null device associated with the system.  Every system 
-      has a null device associated with it that's used by pages which 
+      Get the null device associated with the system.  Every system
+      has a null device associated with it that's used by pages which
       aren't mapped to "real" devices.
 
       @return The null device associated with the system
@@ -137,12 +148,12 @@ class System : public Serializable
 
   public:
     /**
-      Get the number of system cycles which have passed since the last
-      time cycles were reset or the system was reset.
+      Get the number of system cycles which have passed since the
+      system was created.
 
       @return The number of system cycles which have passed
     */
-    uInt32 cycles() const { return myCycles; }
+    uInt64 cycles() const { return myCycles; }
 
     /**
       Increment the system cycles by the specified number of cycles.
@@ -152,12 +163,9 @@ class System : public Serializable
     void incrementCycles(uInt32 amount) { myCycles += amount; }
 
     /**
-      Reset the system cycle count to zero.  The first thing that
-      happens is that all devices are notified of the reset by invoking 
-      their systemCyclesReset method then the system cycle count is 
-      reset to zero.
+      Informs all attached devices that the console type has changed.
     */
-    void resetCycles();
+    void consoleChanged(ConsoleTiming timing);
 
     /**
       Answers whether the system is currently in device autodetect mode.
@@ -170,7 +178,7 @@ class System : public Serializable
       state is the last data that was accessed by the system.
 
       @return  The data bus state
-    */  
+    */
     uInt8 getDataBusState() const { return myDataBusState; }
 
     /**
@@ -187,8 +195,8 @@ class System : public Serializable
       @param zmask  The bits which are in Z-state
       @param hmask  The bits which should always be driven high
       @return  The data bus state
-    */  
-    uInt8 getDataBusState(uInt8 zmask, uInt8 hmask = 0x00)
+    */
+    uInt8 getDataBusState(uInt8 zmask, uInt8 hmask = 0x00) const
     {
       // For the pins that are floating, randomly decide which are high or low
       // Otherwise, they're specifically driven high
@@ -221,7 +229,7 @@ class System : public Serializable
       @param address  The address where the value should be stored
       @param value    The value to be stored at the address
     */
-    void poke(uInt16 address, uInt8 value);
+    void poke(uInt16 address, uInt8 value, uInt8 flags = 0);
 
     /**
       Lock/unlock the data bus. When the bus is locked, peek() and
@@ -261,7 +269,7 @@ class System : public Serializable
       /**
         Pointer to a block of memory or the null pointer.  The null pointer
         indicates that the device's peek method should be invoked for reads
-        to this page, while other values are the base address of an array 
+        to this page, while other values are the base address of an array
         to directly access for reads to this page.
       */
       uInt8* directPeekBase;
@@ -269,7 +277,7 @@ class System : public Serializable
       /**
         Pointer to a block of memory or the null pointer.  The null pointer
         indicates that the device's poke method should be invoked for writes
-        to this page, while other values are the base address of an array 
+        to this page, while other values are the base address of an array
         to directly access for pokes to this page.
       */
       uInt8* directPokeBase;
@@ -284,7 +292,7 @@ class System : public Serializable
       uInt8* codeAccessBase;
 
       /**
-        Pointer to the device associated with this page or to the system's 
+        Pointer to the device associated with this page or to the system's
         null device if the page hasn't been mapped to a device.
       */
       Device* device;
@@ -312,23 +320,23 @@ class System : public Serializable
     };
 
     /**
-      Set the page accessing method for the specified page.
+      Set the page accessing method for the specified address.
 
-      @param page The page accessing methods should be set for
+      @param addr   The address/page accessing methods should be set for
       @param access The accessing methods to be used by the page
     */
-    void setPageAccess(uInt16 page, const PageAccess& access) {
-      myPageAccessTable[page] = access;
+    void setPageAccess(uInt16 addr, const PageAccess& access) {
+      myPageAccessTable[(addr & ADDRESS_MASK) >> PAGE_SHIFT] = access;
     }
 
     /**
-      Get the page accessing method for the specified page.
+      Get the page accessing method for the specified address.
 
-      @param page The page to get accessing methods for
+      @param addr  The address/page to get accessing methods for
       @return The accessing methods used by the page
     */
-    const PageAccess& getPageAccess(uInt16 page) const {
-      return myPageAccessTable[page];
+    const PageAccess& getPageAccess(uInt16 addr) const {
+      return myPageAccessTable[(addr & ADDRESS_MASK) >> PAGE_SHIFT];
     }
 
     /**
@@ -402,11 +410,11 @@ class System : public Serializable
     // Cartridge device attached to the system
     Cartridge& myCart;
 
-    // Number of system cycles executed since the last reset
-    uInt32 myCycles;
+    // Number of system cycles executed since last reset
+    uInt64 myCycles;
 
     // Null device to use for page which are not installed
-    NullDevice myNullDevice; 
+    NullDevice myNullDevice;
 
     // The list of PageAccess structures
     PageAccess myPageAccessTable[NUM_PAGES];

@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Font.hxx 3239 2015-12-29 19:22:46Z stephena $
 //
 //   Based on code from ScummVM - Scumm Interpreter
 //   Copyright (C) 2002-2004 The ScummVM project
@@ -37,7 +35,7 @@ struct BBX
 /* based on The Microwindows Project http://microwindows.org */
 struct FontDesc
 {
-  const char*   name;                   /* font name */
+  const char* const name;               /* font name */
   int           maxwidth;               /* max width in pixels */
   int           height;                 /* height in pixels */
   int           fbbw, fbbh, fbbx, fbby;	/* max bounding box */
@@ -58,7 +56,7 @@ class Font
 {
   public:
     Font(FontDesc desc);
-	
+
     const FontDesc& desc() const { return myFontDesc; }
 
     int getFontHeight() const { return myFontDesc.height; }

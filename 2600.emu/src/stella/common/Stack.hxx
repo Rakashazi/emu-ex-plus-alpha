@@ -1,20 +1,18 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: Stack.hxx 3245 2015-12-30 20:26:56Z stephena $
 //============================================================================
 
 #ifndef STACK_HXX
@@ -22,6 +20,8 @@
 
 #include <array>
 #include <functional>
+
+#include "bspf.hxx"
 
 /**
  * Simple fixed size stack class.
@@ -47,6 +47,15 @@ class FixedStack
     void push(const T& x) { _stack[_size++] = x; }
     T pop() { return std::move(_stack[--_size]); }
     uInt32 size() const { return _size; }
+
+    void replace(const T& oldItem, const T& newItem) {
+      for(uInt32 i = 0; i < _size; ++i) {
+        if(_stack[i] == oldItem) {
+          _stack[i] = newItem;
+          return;
+        }
+      }
+    }
 
     // Apply the given function to every item in the stack
     // We do it this way so the stack API can be preserved,

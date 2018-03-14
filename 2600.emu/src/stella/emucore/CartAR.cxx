@@ -8,13 +8,11 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartAR.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "M6502.hxx"
@@ -22,22 +20,21 @@
 #include "CartAR.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeAR::CartridgeAR(const uInt8* image, uInt32 size,
+CartridgeAR::CartridgeAR(const BytePtr& image, uInt32 size,
                          const Settings& settings)
   : Cartridge(settings),
     mySize(std::max(size, 8448u)),
     myWriteEnabled(false),
     myPower(true),
-    myPowerRomCycle(0),
     myDataHoldRegister(0),
     myNumberOfDistinctAccesses(0),
     myWritePending(false),
     myCurrentBank(0)
 {
   // Create a load image buffer and copy the given image
-  myLoadImages = make_ptr<uInt8[]>(mySize);
+  myLoadImages = make_unique<uInt8[]>(mySize);
   myNumberOfLoadImages = mySize / 8448;
-  memcpy(myLoadImages.get(), image, size);
+  memcpy(myLoadImages.get(), image.get(), size);
 
   // Add header if image doesn't include it
   if(size < 8448)
@@ -66,7 +63,6 @@ void CartridgeAR::reset()
 
   myWriteEnabled = false;
   myPower = true;
-  myPowerRomCycle = mySystem->cycles();
 
   myDataHoldRegister = 0;
   myNumberOfDistinctAccesses = 0;
@@ -77,21 +73,14 @@ void CartridgeAR::reset()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeAR::systemCyclesReset()
-{
-  // Adjust cycle values
-  myPowerRomCycle -= mySystem->cycles();
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeAR::install(System& system)
 {
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke (we don't yet indicate RAM areas)
   System::PageAccess access(this, System::PA_READ);
-  for(uInt32 i = 0x1000; i < 0x2000; i += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+  for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 
   bankConfiguration(0);
 }
@@ -118,7 +107,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
 
   // Cancel any pending write if more than 5 distinct accesses have occurred
   // TODO: Modify to handle when the distinct counter wraps around...
-  if(myWritePending && 
+  if(myWritePending &&
       (mySystem->m6502().distinctAccesses() > myNumberOfDistinctAccesses + 5))
   {
     myWritePending = false;
@@ -139,7 +128,7 @@ uInt8 CartridgeAR::peek(uInt16 addr)
     bankConfiguration(myDataHoldRegister);
   }
   // Handle poke if writing enabled
-  else if(myWriteEnabled && myWritePending && 
+  else if(myWriteEnabled && myWritePending &&
       (mySystem->m6502().distinctAccesses() == (myNumberOfDistinctAccesses + 5)))
   {
     if((addr & 0x0800) == 0)
@@ -165,7 +154,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
 
   // Cancel any pending write if more than 5 distinct accesses have occurred
   // TODO: Modify to handle when the distinct counter wraps around...
-  if(myWritePending && 
+  if(myWritePending &&
       (mySystem->m6502().distinctAccesses() > myNumberOfDistinctAccesses + 5))
   {
     myWritePending = false;
@@ -186,7 +175,7 @@ bool CartridgeAR::poke(uInt16 addr, uInt8)
     bankConfiguration(myDataHoldRegister);
   }
   // Handle poke if writing enabled
-  else if(myWriteEnabled && myWritePending && 
+  else if(myWriteEnabled && myWritePending &&
       (mySystem->m6502().distinctAccesses() == (myNumberOfDistinctAccesses + 5)))
   {
     if((addr & 0x0800) == 0)
@@ -234,7 +223,7 @@ bool CartridgeAR::bankConfiguration(uInt8 configuration)
   //  101wp     1            ROM
   //  110wp     2            1      as used in Killer Satellites
   //  111wp     1            2      as we use for 2k/4k ROM cloning
-  // 
+  //
   //  w = Write Enable (1 = enabled; accesses to $F000-$F0FF cause writes
   //    to happen.  0 = disabled, and the cart acts like ROM.)
   //  p = ROM Power (0 = enabled, 1 = off.)  Only power the ROM if you're
@@ -244,11 +233,6 @@ bool CartridgeAR::bankConfiguration(uInt8 configuration)
 
   // Handle ROM power configuration
   myPower = !(configuration & 0x01);
-
-  if(myPower)
-  {
-    myPowerRomCycle = mySystem->cycles();
-  }
 
   myWriteEnabled = configuration & 0x02;
 
@@ -368,7 +352,7 @@ void CartridgeAR::loadIntoRAM(uInt8 load)
       // Copy the load's header
       memcpy(myHeader, myLoadImages.get() + (image * 8448) + 8192, 256);
 
-      // Verify the load's header 
+      // Verify the load's header
       if(checksum(myHeader, 8) != 0x55)
       {
         cerr << "WARNING: The Supercharger header checksum is invalid...\n";
@@ -441,7 +425,7 @@ bool CartridgeAR::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeAR::getImage(int& size) const
+const uInt8* CartridgeAR::getImage(uInt32& size) const
 {
   size = mySize;
   return myLoadImages.get();
@@ -463,7 +447,7 @@ bool CartridgeAR::save(Serializer& out) const
     // The 256 byte header for the current 8448 byte load
     out.putByteArray(myHeader, 256);
 
-    // All of the 8448 byte loads associated with the game 
+    // All of the 8448 byte loads associated with the game
     // Note that the size of this array is myNumberOfLoadImages * 8448
     out.putByteArray(myLoadImages.get(), myNumberOfLoadImages * 8448);
 
@@ -475,9 +459,6 @@ bool CartridgeAR::save(Serializer& out) const
 
     // Indicates if the ROM's power is on or off
     out.putBool(myPower);
-
-    // Indicates when the power was last turned on
-    out.putInt(myPowerRomCycle);
 
     // Data hold register used for writing
     out.putByte(myDataHoldRegister);
@@ -514,7 +495,7 @@ bool CartridgeAR::load(Serializer& in)
     // The 256 byte header for the current 8448 byte load
     in.getByteArray(myHeader, 256);
 
-    // All of the 8448 byte loads associated with the game 
+    // All of the 8448 byte loads associated with the game
     // Note that the size of this array is myNumberOfLoadImages * 8448
     in.getByteArray(myLoadImages.get(), myNumberOfLoadImages * 8448);
 
@@ -526,9 +507,6 @@ bool CartridgeAR::load(Serializer& in)
 
     // Indicates if the ROM's power is on or off
     myPower = in.getBool();
-
-    // Indicates when the power was last turned on
-    myPowerRomCycle = in.getInt();
 
     // Data hold register used for writing
     myDataHoldRegister = in.getByte();

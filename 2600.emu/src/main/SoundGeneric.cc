@@ -128,11 +128,6 @@ unsigned int SoundGeneric::processAudio(Int16* stream, unsigned int maxLength)
 	return length;
 }
 
-void SoundGeneric::adjustCycleCounter(Int32 amount)
-{
-	myLastRegisterSetCycle += amount;
-}
-
 void SoundGeneric::reset()
 {
 	myLastRegisterSetCycle = 0;
@@ -140,7 +135,7 @@ void SoundGeneric::reset()
 	myRegWriteQueue.clear();
 }
 
-void SoundGeneric::set(uInt16 addr, uInt8 value, Int32 cycle)
+void SoundGeneric::set(uInt16 addr, uInt8 value, uInt64 cycle)
 {
 	// First, calculate how many seconds would have past since the last
 	// register write on a real 2600

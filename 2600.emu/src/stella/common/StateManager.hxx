@@ -1,26 +1,25 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: StateManager.hxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
 #ifndef STATE_MANAGER_HXX
 #define STATE_MANAGER_HXX
 
 class OSystem;
+class RewindManager;
 
 #include "Serializer.hxx"
 
@@ -30,46 +29,90 @@ class OSystem;
   played back.
 
   @author  Stephen Anthony
-  @version $Id: StateManager.hxx 3239 2015-12-29 19:22:46Z stephena $
 */
 class StateManager
 {
   public:
+    enum class Mode {
+      Off,
+      TimeMachine,
+      MovieRecord,
+      MoviePlayback
+    };
+
     /**
-      Create a new statemananger class
+      Create a new statemananger class.
     */
     StateManager(OSystem& osystem);
+    ~StateManager();
 
   public:
     /**
-      Answers whether the manager is in record or playback mode
+      Answers whether the manager is in record or playback mode.
     */
-    bool isActive() const { return myActiveMode != kOffMode; }
+    Mode mode() const { return myActiveMode; }
 
-    bool toggleRecordMode();
-    bool toggleRewindMode();
+#if 0
+    /**
+      Toggle movie recording mode (FIXME - currently disabled)
+    */
+    void toggleRecordMode();
+#endif
 
     /**
-      Updates the state of the system based on the currently active mode
+      Toggle state rewind recording mode; this uses the RewindManager
+      for its functionality.
+    */
+    void toggleTimeMachine();
+
+    /**
+      Sets state rewind recording mode; this uses the RewindManager
+      for its functionality.
+    */
+    void setRewindMode(Mode mode) { myActiveMode = mode; }
+
+    /**
+      Optionally adds one extra state when entering the Time Machine dialog;
+      this uses the RewindManager for its functionality.
+    */
+    bool addExtraState(const string& message);
+
+    /**
+      Rewinds states; this uses the RewindManager for its functionality.
+    */
+    bool rewindStates(uInt32 numStates = 1);
+
+    /**
+      Unwinds states; this uses the RewindManager for its functionality.
+    */
+    bool unwindStates(uInt32 numStates = 1);
+
+    /**
+      Rewinds/unwinds states; this uses the RewindManager for its functionality.
+    */
+    bool windStates(uInt32 numStates, bool unwind);
+
+    /**
+      Updates the state of the system based on the currently active mode.
     */
     void update();
 
     /**
-      Load a state into the current system
+      Load a state into the current system.
 
       @param slot  The state 'slot' to load state from
     */
     void loadState(int slot = -1);
 
     /**
-      Save the current state from the system
+      Save the current state from the system.
 
       @param slot  The state 'slot' to save into
     */
     void saveState(int slot = -1);
 
     /**
-      Switches to the next higher state slot (circular queue style)
+      Switches to the next higher state slot (circular queue style).
     */
     void changeState();
 
@@ -94,19 +137,16 @@ class StateManager
     bool saveState(Serializer& out);
 
     /**
-      Resets manager to defaults
+      Resets manager to defaults.
     */
     void reset();
 
-  private:
-    enum Mode {
-      kOffMode,
-      kMoviePlaybackMode,
-      kMovieRecordMode,
-      kRewindPlaybackMode,
-      kRewindRecordMode
-    };
+    /**
+      The rewind facility for the state manager
+    */
+    RewindManager& rewindManager() const { return *myRewindManager; }
 
+  private:
     enum {
       kVersion = 001
     };
@@ -126,6 +166,9 @@ class StateManager
     // Serializer classes used to save/load the eventstream
     Serializer myMovieWriter;
     Serializer myMovieReader;
+
+    // Stored savestates to be later rewound
+    unique_ptr<RewindManager> myRewindManager;
 
   private:
     // Following constructors and assignment operators not supported

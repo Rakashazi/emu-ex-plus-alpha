@@ -1,23 +1,19 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: StateManager.cxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
-
-#include <sstream>
 
 #include "OSystem.hxx"
 #include "Settings.hxx"
@@ -27,25 +23,32 @@
 #include "Switches.hxx"
 #include "System.hxx"
 #include "Serializable.hxx"
+#include "RewindManager.hxx"
 
 #include "StateManager.hxx"
 
-#define STATE_HEADER "03090100state"
-#define MOVIE_HEADER "03030000movie"
+#define STATE_HEADER "05010000state"
+// #define MOVIE_HEADER "03030000movie"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 StateManager::StateManager(OSystem& osystem)
   : myOSystem(osystem),
     myCurrentSlot(0),
-    myActiveMode(kOffMode)
+    myActiveMode(Mode::Off)
 {
+  myRewindManager = make_unique<RewindManager>(myOSystem, *this);
   reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool StateManager::toggleRecordMode()
+StateManager::~StateManager()
 {
+}
+
 #if 0
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void StateManager::toggleRecordMode()
+{
   if(myActiveMode != kMovieRecordMode)  // Turn on movie record mode
   {
     myActiveMode = kOffMode;
@@ -82,15 +85,8 @@ bool StateManager::toggleRecordMode()
   }
 
   return myActiveMode == kMovieRecordMode;
-#endif
-  return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool StateManager::toggleRewindMode()
-{
-  // FIXME - For now, I'm going to use this to activate movie playback
-#if 0
+////////////////////////////////////////////////////////
+// FIXME - For now, I'm going to use this to activate movie playback
   // Close the writer, since we're about to re-open in read mode
   myMovieWriter.close();
 
@@ -129,34 +125,79 @@ bool StateManager::toggleRewindMode()
     myMovieReader.close();
     return false;
   }
-
-  return myActiveMode == kMoviePlaybackMode;
+}
 #endif
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void StateManager::toggleTimeMachine()
+{
+  bool devSettings = myOSystem.settings().getBool("dev.settings");
+
+  myActiveMode = myActiveMode == Mode::TimeMachine ? Mode::Off : Mode::TimeMachine;
+  if(myActiveMode == Mode::TimeMachine)
+    myOSystem.frameBuffer().showMessage("Time Machine enabled");
+  else
+    myOSystem.frameBuffer().showMessage("Time Machine disabled");
+  myOSystem.settings().setValue(devSettings ? "dev.timemachine" : "plr.timemachine", myActiveMode == Mode::TimeMachine);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool StateManager::addExtraState(const string& message)
+{
+  if(myActiveMode == Mode::TimeMachine)
+  {
+    RewindManager& r = myOSystem.state().rewindManager();
+    return r.addState(message);
+  }
   return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool StateManager::rewindStates(uInt32 numStates)
+{
+  RewindManager& r = myOSystem.state().rewindManager();
+  return r.rewindStates(numStates);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool StateManager::unwindStates(uInt32 numStates)
+{
+  RewindManager& r = myOSystem.state().rewindManager();
+  return r.unwindStates(numStates);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool StateManager::windStates(uInt32 numStates, bool unwind)
+{
+  RewindManager& r = myOSystem.state().rewindManager();
+  return r.windStates(numStates, unwind);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void StateManager::update()
 {
-#if 0
   switch(myActiveMode)
   {
-    case kMovieRecordMode:
+    case Mode::TimeMachine:
+      myRewindManager->addState("Time Machine", true);
+      break;
+
+#if 0
+    case Mode::MovieRecord:
       myOSystem.console().controller(Controller::Left).save(myMovieWriter);
       myOSystem.console().controller(Controller::Right).save(myMovieWriter);
       myOSystem.console().switches().save(myMovieWriter);
       break;
 
-    case kMoviePlaybackMode:
+    case Mode::MoviePlayback:
       myOSystem.console().controller(Controller::Left).load(myMovieReader);
       myOSystem.console().controller(Controller::Right).load(myMovieReader);
       myOSystem.console().switches().load(myMovieReader);
       break;
-
+#endif
     default:
       break;
   }
-#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -332,6 +373,10 @@ bool StateManager::saveState(Serializer& out)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void StateManager::reset()
 {
+  myRewindManager->clear();
+  myActiveMode = myOSystem.settings().getBool(
+    myOSystem.settings().getBool("dev.settings") ? "dev.timemachine" : "plr.timemachine") ? Mode::TimeMachine : Mode::Off;
+
 #if 0
   myCurrentSlot = 0;
 

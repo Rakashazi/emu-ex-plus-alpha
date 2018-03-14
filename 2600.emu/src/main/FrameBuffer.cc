@@ -19,8 +19,11 @@
 #include <emuframework/EmuApp.hh>
 #undef BytePtr
 #undef Debugger
+#ifdef Success
+#undef Success // conflict with macro in X11 headers
+#endif
 #include <FrameBuffer.hxx>
-#include <stella/emucore/TIA.hxx>
+#include <stella/emucore/tia/TIA.hxx>
 
 void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
 {
@@ -30,15 +33,26 @@ void FrameBuffer::showMessage(const string& message, int position, bool force, u
 void FrameBuffer::enablePhosphor(bool enable, int blend)
 {
 	myUsePhosphor = enable;
-	myPhosphorBlend = blend;
+	if(blend >= 0)
+	{
+		myPhosphorPercent = std::max(blend, 1) / 100.0;
+  	logMsg("phosphor blend:%d (%.2f%%)", blend, myPhosphorPercent);
+	}
+	if(enable)
+  {
+    for(Int16 c = 255; c >= 0; c--)
+      for(Int16 p = 255; p >= 0; p--)
+        myPhosphorPalette[c][p] = getPhosphor(c, p);
+  }
+	prevFramebuffer = {};
 }
 
 uint8 FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
 {
-  if(c2 > c1)
-    std::swap(c1, c2);
-
-  return ((c1 - c2) * myPhosphorBlend)/100 + c2;
+	// Use maximum of current and decayed previous values
+	c2 = uInt8(c2 * myPhosphorPercent);
+	if(c1 > c2)  return c1; // raise (assumed immediate)
+	else         return c2; // decay
 }
 
 void FrameBuffer::setPalette(const uInt32* palette)
@@ -49,44 +63,43 @@ void FrameBuffer::setPalette(const uInt32* palette)
 		uint8 r = (palette[i] >> 16) & 0xff;
 		uint8 g = (palette[i] >> 8) & 0xff;
 		uint8 b = palette[i] & 0xff;
-
-		// TODO: RGB 565
-		tiaColorMap[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
+		tiaColorMap16[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
+		tiaColorMap32[i] = IG::PIXEL_DESC_ARGB8888.build((int)r, (int)g, (int)b, 0);
 	}
+}
 
-	iterateTimes(256, i)
-	{
-		iterateTimes(256, j)
-		{
-			uint8 ri = (palette[i] >> 16) & 0xff;
-			uint8 gi = (palette[i] >> 8) & 0xff;
-			uint8 bi = palette[i] & 0xff;
-			uint8 rj = (palette[j] >> 16) & 0xff;
-			uint8 gj = (palette[j] >> 8) & 0xff;
-			uint8 bj = palette[j] & 0xff;
+uInt32 FrameBuffer::getRGBPhosphor(const uInt32 c, const uInt32 p) const
+{
+  #define TO_RGB(color, red, green, blue) \
+    const uInt8 red = color >> 16; const uInt8 green = color >> 8; const uInt8 blue = color;
 
-			uint8 r = getPhosphor(ri, rj);
-			uint8 g = getPhosphor(gi, gj);
-			uint8 b = getPhosphor(bi, bj);
+  TO_RGB(c, rc, gc, bc);
+  TO_RGB(p, rp, gp, bp);
 
-			// TODO: RGB 565
-			tiaPhosphorColorMap[i][j] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
-		}
-	}
+  // Mix current calculated frame with previous displayed frame
+  const uInt8 rn = myPhosphorPalette[rc][rp];
+  const uInt8 gn = myPhosphorPalette[gc][gp];
+  const uInt8 bn = myPhosphorPalette[bc][bp];
+
+  return IG::PIXEL_DESC_RGB565.build(rn >> 3, gn >> 2, bn >> 3, 0);
 }
 
 void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 {
 	assumeExpr(pix.w() == tia.width());
 	assumeExpr(pix.h() == tia.height());
-	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.currentFrameBuffer()};
+	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
 	if(myUsePhosphor)
 	{
-		uint8* prevFrame = tia.previousFrameBuffer();
-		pix.writeTransformed([this, &prevFrame](uint8 p){ return tiaPhosphorColorMap[p][*prevFrame++]; }, framePix);
+		uint8* prevFrame = prevFramebuffer.data();
+		pix.writeTransformed([this, &prevFrame](uint8 p)
+			{
+				return getRGBPhosphor(tiaColorMap32[p], tiaColorMap32[*prevFrame++]);
+			}, framePix);
+		memcpy(prevFramebuffer.data(), tia.frameBuffer(), sizeof(prevFramebuffer));
 	}
 	else
 	{
-		pix.writeTransformed([this](uint8 p){ return tiaColorMap[p]; }, framePix);
+		pix.writeTransformed([this](uint8 p){ return tiaColorMap16[p]; }, framePix);
 	}
 }

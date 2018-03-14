@@ -1,39 +1,36 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartUA.hxx 3258 2016-01-23 22:56:16Z stephena $
 //============================================================================
 
 #ifndef CARTRIDGEUA_HXX
 #define CARTRIDGEUA_HXX
 
-class System;
-
 #include "bspf.hxx"
 #include "Cart.hxx"
+#include "System.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "CartUAWidget.hxx"
 #endif
 
 /**
   Cartridge class used for UA Limited's 8K bankswitched games.  There
-  are two 4K banks.
+  are two 4K banks, which are switched by accessing $0220 (bank 0) and
+  $0240 (bank 1).
 
   @author  Bradford W. Mott
-  @version $Id: CartUA.hxx 3258 2016-01-23 22:56:16Z stephena $
 */
 class CartridgeUA : public Cartridge
 {
@@ -47,7 +44,7 @@ class CartridgeUA : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeUA(const uInt8* image, uInt32 size, const Settings& settings);
+    CartridgeUA(const BytePtr& image, uInt32 size, const Settings& settings);
     virtual ~CartridgeUA() = default;
 
   public:
@@ -96,7 +93,7 @@ class CartridgeUA : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(int& size) const override;
+    const uInt8* getImage(uInt32& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -153,12 +150,12 @@ class CartridgeUA : public Cartridge
   private:
     // The 8K ROM image of the cartridge
     uInt8 myImage[8192];
-   
+
     // Previous Device's page access
     System::PageAccess myHotSpotPageAccess;
 
-    // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    // Indicates the offset into the ROM image (aligns to current bank)
+    uInt16 myBankOffset;
 
   private:
     // Following constructors and assignment operators not supported

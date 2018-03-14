@@ -1,37 +1,36 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: CartMDM.cxx 3316 2016-08-24 23:57:07Z stephena $
 //============================================================================
 
 #include "System.hxx"
 #include "CartMDM.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeMDM::CartridgeMDM(const uInt8* image, uInt32 size, const Settings& settings)
+CartridgeMDM::CartridgeMDM(const BytePtr& image, uInt32 size,
+                           const Settings& settings)
   : Cartridge(settings),
     mySize(size),
-    myCurrentBank(0),
+    myBankOffset(0),
     myBankingDisabled(false)
 {
   // Allocate array for the ROM image
-  myImage = make_ptr<uInt8[]>(mySize);
+  myImage = make_unique<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image, mySize);
+  memcpy(myImage.get(), image.get(), mySize);
   createCodeAccessBase(mySize);
 
   // Remember startup bank
@@ -52,19 +51,19 @@ void CartridgeMDM::install(System& system)
 
   // Get the page accessing methods for the hot spots since they overlap
   // areas within the TIA we'll need to forward requests to the TIA
-  myHotSpotPageAccess[0] = mySystem->getPageAccess(0x0800 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[1] = mySystem->getPageAccess(0x0900 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[2] = mySystem->getPageAccess(0x0A00 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[3] = mySystem->getPageAccess(0x0B00 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[4] = mySystem->getPageAccess(0x0C00 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[5] = mySystem->getPageAccess(0x0D00 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[6] = mySystem->getPageAccess(0x0E00 >> System::PAGE_SHIFT);
-  myHotSpotPageAccess[7] = mySystem->getPageAccess(0x0F00 >> System::PAGE_SHIFT);
+  myHotSpotPageAccess[0] = mySystem->getPageAccess(0x0800);
+  myHotSpotPageAccess[1] = mySystem->getPageAccess(0x0900);
+  myHotSpotPageAccess[2] = mySystem->getPageAccess(0x0A00);
+  myHotSpotPageAccess[3] = mySystem->getPageAccess(0x0B00);
+  myHotSpotPageAccess[4] = mySystem->getPageAccess(0x0C00);
+  myHotSpotPageAccess[5] = mySystem->getPageAccess(0x0D00);
+  myHotSpotPageAccess[6] = mySystem->getPageAccess(0x0E00);
+  myHotSpotPageAccess[7] = mySystem->getPageAccess(0x0F00);
 
   // Set the page accessing methods for the hot spots
   System::PageAccess access(this, System::PA_READWRITE);
-  for(uInt32 i = 0x0800; i < 0x0BFF; i += (1 << System::PAGE_SHIFT))
-    mySystem->setPageAccess(i >> System::PAGE_SHIFT, access);
+  for(uInt16 addr = 0x0800; addr < 0x0BFF; addr += System::PAGE_SIZE)
+    mySystem->setPageAccess(addr, access);
 
   // Install pages for bank 0
   bank(myStartBank);
@@ -106,19 +105,17 @@ bool CartridgeMDM::bank(uInt16 bank)
 
   // Remember what bank we're in
   // Wrap around to a valid bank number if necessary
-  myCurrentBank = bank % bankCount();
-  uInt32 offset = myCurrentBank << 12;
+  myBankOffset = (bank % bankCount()) << 12;
 
   // Setup the page access methods for the current bank
   System::PageAccess access(this, System::PA_READ);
 
   // Map ROM image into the system
-  for(uInt32 address = 0x1000; address < 0x2000;
-      address += (1 << System::PAGE_SHIFT))
+  for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.directPeekBase = &myImage[offset + (address & 0x0FFF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (address & 0x0FFF)];
-    mySystem->setPageAccess(address >> System::PAGE_SHIFT, access);
+    access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
+    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    mySystem->setPageAccess(addr, access);
   }
 
   // Accesses above bank 127 disable further bankswitching; we're only
@@ -130,7 +127,7 @@ bool CartridgeMDM::bank(uInt16 bank)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeMDM::getBank() const
 {
-  return myCurrentBank;
+  return myBankOffset >> 12;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -142,12 +139,12 @@ uInt16 CartridgeMDM::bankCount() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeMDM::patch(uInt16 address, uInt8 value)
 {
-  myImage[(myCurrentBank << 12) + (address & 0x0FFF)] = value;
+  myImage[myBankOffset + (address & 0x0FFF)] = value;
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeMDM::getImage(int& size) const
+const uInt8* CartridgeMDM::getImage(uInt32& size) const
 {
   size = mySize;
   return myImage.get();
@@ -159,7 +156,7 @@ bool CartridgeMDM::save(Serializer& out) const
   try
   {
     out.putString(name());
-    out.putShort(myCurrentBank);
+    out.putInt(myBankOffset);
   }
   catch(...)
   {
@@ -178,7 +175,7 @@ bool CartridgeMDM::load(Serializer& in)
     if(in.getString() != name())
       return false;
 
-    myCurrentBank = in.getShort();
+    myBankOffset = in.getInt();
   }
   catch(...)
   {
@@ -187,7 +184,7 @@ bool CartridgeMDM::load(Serializer& in)
   }
 
   // Remember what bank we were in
-  bank(myCurrentBank);
+  bank(myBankOffset >> 12);
 
   return true;
 }

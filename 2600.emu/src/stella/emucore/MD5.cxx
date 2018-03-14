@@ -1,29 +1,28 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
-// This file is derived from the RSA Data Security, Inc. MD5 Message-Digest 
+// This file is derived from the RSA Data Security, Inc. MD5 Message-Digest
 // Algorithm.  See the header below for copyright information.
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: MD5.cxx 3239 2015-12-29 19:22:46Z stephena $
 //============================================================================
 
+#include "FSNode.hxx"
 #include "MD5.hxx"
 
 /*
-  Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All 
+  Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
   rights reserved.
 
   License to copy and use this software is granted provided that it
@@ -135,7 +134,7 @@ static void MD5Init(MD5_CTX* context)
 // MD5 block update operation. Continues an MD5 message-digest
 // operation, processing another message block, and updating the
 // context.
-static void MD5Update(MD5_CTX* context, const uInt8* input, 
+static void MD5Update(MD5_CTX* context, const uInt8* input,
     uInt32 inputLen)
 {
   uInt32 i, index, partLen;

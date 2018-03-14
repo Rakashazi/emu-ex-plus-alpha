@@ -1,22 +1,24 @@
 //============================================================================
 //
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
+//   SSSS    tt          lll  lll
+//  SS  SS   tt           ll   ll
+//  SS     tttttt  eeee   ll   ll   aaaa
 //   SSSS    tt   ee  ee  ll   ll      aa
 //      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2016 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: FBSurface.cxx 3304 2016-04-03 00:35:00Z stephena $
 //============================================================================
 
+#include <cmath>
+
+#include "Font.hxx"
+#include "Rect.hxx"
 #include "FrameBuffer.hxx"
 #include "FBSurface.hxx"
 
@@ -58,6 +60,73 @@ void FBSurface::readPixels(uInt8* buffer, uInt32 pitch, const GUI::Rect& rect) c
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void FBSurface::pixel(uInt32 x, uInt32 y, uInt32 color)
+{
+  uInt32* buffer = myPixels + y * myPitch + x;
+
+  *buffer = uInt32(myPalette[color]);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void FBSurface::line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color)
+{
+  // draw line using Bresenham algorithm
+  Int32 dx = (x2 - x);
+  Int32 dy = (y2 - y);
+
+  if(abs(dx) >= abs(dy))
+  {
+    // x is major axis
+    if(dx < 0)
+    {
+      uInt32 tx = x; x = x2; x2 = tx;
+      uInt32 ty = y; y = y2; y2 = ty;
+      dx = -dx;
+      dy = -dy;
+    }
+    Int32 yd = dy > 0 ? 1 : -1;
+    dy = abs(dy);
+    Int32 err = dx / 2;
+    // now draw the line
+    for(; x <= x2; ++x)
+    {
+      pixel(x, y, color);
+      err -= dy;
+      if(err < 0)
+      {
+        err += dx;
+        y += yd;
+      }
+    }
+  }
+  else
+  {
+    // y is major axis
+    if(dy < 0)
+    {
+      uInt32 tx = x; x = x2; x2 = tx;
+      uInt32 ty = y; y = y2; y2 = ty;
+      dx = -dx;
+      dy = -dy;
+    }
+    Int32 xd = dx > 0 ? 1 : -1;
+    dx = abs(dx);
+    Int32 err = dy / 2;
+    // now draw the line
+    for(; y <= y2; ++y)
+    {
+      pixel(x, y, color);
+      err -= dx;
+      if(err < 0)
+      {
+        err += dy;
+        x += xd;
+      }
+    }
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::hLine(uInt32 x, uInt32 y, uInt32 x2, uInt32 color)
 {
   uInt32* buffer = myPixels + y * myPitch + x;
@@ -85,8 +154,15 @@ void FBSurface::fillRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h, uInt32 color)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
-                         uInt32 tx, uInt32 ty, uInt32 color)
+                         uInt32 tx, uInt32 ty, uInt32 color, uInt32 shadowColor)
 {
+  if(shadowColor != 0)
+  {
+    drawChar(font, chr, tx + 1, ty + 0, shadowColor);
+    drawChar(font, chr, tx + 0, ty + 1, shadowColor);
+    drawChar(font, chr, tx + 1, ty + 1, shadowColor);
+  }
+
   const FontDesc& desc = font.desc();
 
   // If this character is not included in the font, use the default char.
@@ -134,12 +210,19 @@ void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
 void FBSurface::drawBitmap(uInt32* bitmap, uInt32 tx, uInt32 ty,
                            uInt32 color, uInt32 h)
 {
+  drawBitmap(bitmap, tx, ty, color, h, h);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void FBSurface::drawBitmap(uInt32* bitmap, uInt32 tx, uInt32 ty,
+                           uInt32 color, uInt32 w, uInt32 h)
+{
   uInt32* buffer = myPixels + ty * myPitch + tx;
 
   for(uInt32 y = 0; y < h; ++y)
   {
-    uInt32 mask = 0xF0000000;
-    for(uInt32 x = 0; x < 8; ++x, mask >>= 4)
+    uInt32 mask = 1 << (w - 1);
+    for(uInt32 x = 0; x < w; ++x, mask >>= 1)
       if(bitmap[y] & mask)
         buffer[x] = uInt32(myPalette[color]);
 
@@ -177,16 +260,17 @@ void FBSurface::frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
 {
   switch(style)
   {
-    case kSolidLine:
+    case FrameStyle::Solid:
       hLine(x,         y,         x + w - 1, color);
       hLine(x,         y + h - 1, x + w - 1, color);
       vLine(x,         y,         y + h - 1, color);
       vLine(x + w - 1, y,         y + h - 1, color);
       break;
 
-    case kDashLine:
+    case FrameStyle::Dashed:
       uInt32 i, skip, lwidth = 1;
 
+#ifndef FLAT_UI
       for(i = x, skip = 1; i < x+w-1; i=i+lwidth+1, ++skip)
       {
         if(skip % 2)
@@ -203,6 +287,18 @@ void FBSurface::frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
           vLine(x + w - 1, i, i + lwidth, color);
         }
       }
+#else
+      for(i = x; i < x + w; i += 2)
+      {
+        hLine(i, y, i, color);
+        hLine(i, y + h - 1, i, color);
+      }
+      for(i = y; i < y + h; i += 2)
+      {
+        vLine(x, i, i, color);
+        vLine(x + w - 1, i, i, color);
+      }
+#endif
       break;
   }
 }
@@ -210,64 +306,44 @@ void FBSurface::frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::drawString(const GUI::Font& font, const string& s,
                            int x, int y, int w,
-                           uInt32 color, TextAlignment align,
-                           int deltax, bool useEllipsis)
+                           uInt32 color, TextAlign align,
+                           int deltax, bool useEllipsis, uInt32 shadowColor)
 {
+  const string ELLIPSIS = "\x1d"; // "..."
   const int leftX = x, rightX = x + w;
   uInt32 i;
   int width = font.getStringWidth(s);
   string str;
-	
+
   if(useEllipsis && width > w)
   {
     // String is too wide. So we shorten it "intelligently", by replacing
     // parts of it by an ellipsis ("..."). There are three possibilities
     // for this: replace the start, the end, or the middle of the string.
-    // What is best really depends on the context; but unless we want to
-    // make this configurable, replacing the middle probably is a good
-    // compromise.
-    const int ellipsisWidth = font.getStringWidth("...");
-		
-    // SLOW algorithm to remove enough of the middle. But it is good enough for now.
-    const int halfWidth = (w - ellipsisWidth) / 2;
-    int w2 = 0;
-		
+    // What is best really depends on the context; but most applications
+    // replace the end. So we use that too.
+    int w2 = font.getStringWidth(ELLIPSIS);
+
+    // SLOW algorithm to find the acceptable length. But it is good enough for now.
     for(i = 0; i < s.size(); ++i)
     {
       int charWidth = font.getCharWidth(s[i]);
-      if(w2 + charWidth > halfWidth)
+      if(w2 + charWidth > w)
         break;
 
       w2 += charWidth;
       str += s[i];
     }
-
-    // At this point we know that the first 'i' chars are together 'w2'
-    // pixels wide. We took the first i-1, and add "..." to them.
-    str += "...";
-		
-    // The original string is width wide. Of those we already skipped past
-    // w2 pixels, which means (width - w2) remain.
-    // The new str is (w2+ellipsisWidth) wide, so we can accomodate about
-    // (w - (w2+ellipsisWidth)) more pixels.
-    // Thus we skip ((width - w2) - (w - (w2+ellipsisWidth))) =
-    // (width + ellipsisWidth - w)
-    int skip = width + ellipsisWidth - w;
-    for(; i < s.size() && skip > 0; ++i)
-      skip -= font.getCharWidth(s[i]);
-
-    // Append the remaining chars, if any
-    for(; i < s.size(); ++i)
-      str += s[i];
+    str += ELLIPSIS;
 
     width = font.getStringWidth(str);
   }
   else
     str = s;
 
-  if(align == kTextAlignCenter)
+  if(align == TextAlign::Center)
     x = x + (w - width - 1)/2;
-  else if(align == kTextAlignRight)
+  else if(align == TextAlign::Right)
     x = x + w - width;
 
   x += deltax;
@@ -277,7 +353,7 @@ void FBSurface::drawString(const GUI::Font& font, const string& s,
     if(x+w > rightX)
       break;
     if(x >= leftX)
-      drawChar(font, str[i], x, y, color);
+      drawChar(font, str[i], x, y, color, shadowColor);
 
     x += w;
   }
