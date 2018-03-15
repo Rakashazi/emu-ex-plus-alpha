@@ -14,10 +14,6 @@ ifdef android_ouyaBuild
  android_buildPrefix := android-ouya
 endif
 
-ifneq ($(filter arm, $(android_arch)),)
- armTarget := $(android_buildPrefix)-arm$(targetExt)
- targets += $(armTarget)
-endif
 ifneq ($(filter armv7, $(android_arch)),)
  armv7Target := $(android_buildPrefix)-armv7$(targetExt)
  targets += $(armv7Target)

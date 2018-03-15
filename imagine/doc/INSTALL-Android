@@ -18,7 +18,7 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-Install the SDK platform for Android 8.0 (API 26), Android NDK Revision 16, and the Android Support Library from Android Studio's SDK tools menu
+Install the SDK platform for Android 8.0 (API 26), Android NDK Revision 17, and the Android Support Library from Android Studio's SDK tools menu
 
 3. Building
 ===========

@@ -36,9 +36,6 @@ endif
 
 android_buildName ?= $(firstMakefileName:.mk=)
 
-ifeq ($(filter arm, $(android_arch)),)
- android_noArm := 1
-endif
 ifeq ($(filter armv7, $(android_arch)),)
  android_noArmv7 := 1
 endif
@@ -267,29 +264,6 @@ $(android_proguardConfPath) : | $(android_buildGradle)
 
 # native libs
 
-ifndef android_noArm
-
-android_armMakefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-arm.mk
-android_armSODir := $(android_targetPath)/src/main/jniLibs/armeabi
-android_armSO := $(android_armSODir)/lib$(android_soName).so
-android_armMakeArgs = -f $(android_armMakefile) $(android_makefileOpts) \
- targetDir=$(android_armSODir) buildName=$(android_buildName)-arm \
- projectPath=$(projectPath)
-.PHONY: android-arm
-android-arm :
-	@echo "Building ARM Shared Object"
-	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs)
-$(android_armSO) : android-arm
-
-.PHONY: android-arm-clean
-android-arm-clean :
-	@echo "Cleaning ARM Build"
-	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs) clean
-android_cleanTargets += android-arm-clean
-android_soFiles += $(android_armSO)
-
-endif
-
 ifndef android_noArmv7
 
 android_armv7Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-armv7.mk
@@ -411,9 +385,6 @@ android_cleanTargets += android-clean-project
 clean: $(android_cleanTargets)
 
 .DEFAULT:
-ifndef android_noArm
-	$(PRINT_CMD)$(MAKE) $(android_armMakeArgs) $@
-endif
 ifndef android_noArmv7
 	$(PRINT_CMD)$(MAKE) $(android_armv7MakeArgs) $@
 endif

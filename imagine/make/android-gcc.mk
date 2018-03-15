@@ -34,17 +34,10 @@ endif
 config_compiler ?= clang
 
 ifeq ($(origin CC), default)
- ifeq ($(config_compiler),clang)
-  CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
-  CXX := $(CC)++
-  AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
-  RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar s
- else
-  CC := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-gcc
-  CXX := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-g++
-  AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-gcc-ar
-  RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ranlib
- endif
+ CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
+ CXX := $(CC)++
+ AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
+ RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar s
  STRIP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-strip
  OBJDUMP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-objdump
  toolchainEnvParams += RANLIB="$(RANLIB)" STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
@@ -59,25 +52,26 @@ endif
 
 CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O2
 compiler_noSanitizeAddress := 1
-ifeq ($(config_compiler),clang)
- include $(buildSysPath)/clang.mk
- CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
- CFLAGS_CODEGEN += -fno-integrated-as
- ASMFLAGS += -fno-integrated-as
-else
- include $(buildSysPath)/gcc.mk
- CFLAGS_CODEGEN += -Wa,--noexecstack
- LDLIBS_SYSTEM += -lc -lgcc
+
+ifneq ($(config_compiler),clang)
+ $(error config_compiler must be set to clang)
 endif
+
+include $(buildSysPath)/clang.mk
+CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
+CFLAGS_CODEGEN += -fno-integrated-as
+ASMFLAGS += -fno-integrated-as
 
 # libc++
 android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libs
 android_stdcxxLibName := libc++_static.a
 android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)
 android_stdcxxLib := $(android_stdcxxLibArchPath)/$(android_stdcxxLibName) \
-$(android_stdcxxLibArchPath)/libc++abi.a \
-$(android_stdcxxLibArchPath)/libandroid_support.a
-ifeq ($(ARCH), arm)
+$(android_stdcxxLibArchPath)/libc++abi.a
+ifneq ($(wildcard $(android_stdcxxLibArchPath)/libandroid_support.a),)
+ android_stdcxxLib += $(android_stdcxxLibArchPath)/libandroid_support.a
+endif
+ifneq ($(wildcard $(android_stdcxxLibArchPath)/libunwind.a),)
  android_stdcxxLib += $(android_stdcxxLibArchPath)/libunwind.a
 endif
 
