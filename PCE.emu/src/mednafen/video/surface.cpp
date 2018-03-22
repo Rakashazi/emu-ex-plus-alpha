@@ -21,7 +21,6 @@
 
 #include <mednafen/mednafen.h>
 #include "surface.h"
-#include <math.h>
 
 MDFN_PixelFormat::MDFN_PixelFormat()
 {
@@ -57,8 +56,6 @@ MDFN_PixelFormat::MDFN_PixelFormat(const unsigned int p_colorspace, const uint8 
 
 MDFN_Surface::MDFN_Surface()
 {
- memset(&format, 0, sizeof(format));
-
  pixels = NULL;
  pixels8 = NULL;
  pixels16 = NULL;
@@ -82,7 +79,7 @@ void MDFN_Surface::Resize(const uint32 p_width, const uint32 p_height, const uin
  uint64 new_asize = ((uint64)p_pitchinpix * (format.bpp >> 3)) * p_height;
 
  if(!(ptr = realloc(ptr, new_asize)))
-  throw MDFN_Error(ErrnoHolder(errno));
+  throw MDFN_Error(ErrnoHolder(ENOMEM));
 
  if(new_asize > old_asize)
   memset((uint8*)ptr + old_asize, 0x00, new_asize - old_asize);
@@ -146,9 +143,7 @@ void MDFN_Surface::Init(void *const p_pixels, const uint32 p_width, const uint32
 
   if(!rpix)
   {
-   ErrnoHolder ene(errno);
-
-   throw(MDFN_Error(ene.Errno(), "%s", ene.StrError()));
+   throw MDFN_Error(ErrnoHolder(ENOMEM));
   }
  }
 
@@ -156,12 +151,12 @@ void MDFN_Surface::Init(void *const p_pixels, const uint32 p_width, const uint32
  {
   if(!(palette = (MDFN_PaletteEntry*) calloc(sizeof(MDFN_PaletteEntry), 256)))
   {
-   ErrnoHolder ene(errno);
+   ErrnoHolder ene(ENOMEM);
 
    if(!pixels_is_external)
     free(rpix);
 
-   throw(MDFN_Error(ene.Errno(), "%s", ene.StrError()));
+   throw MDFN_Error(ErrnoHolder(ENOMEM));
   }
  }
 
@@ -347,28 +342,25 @@ void MDFN_Surface::SetFormat(const MDFN_PixelFormat &nf, bool convert)
   convert = false;
  }
 
- if(convert)
+ if(convert && format != nf)
  {
+  //puts("Convert");
   if(format.bpp == 16)
   {
    // We should assert that surface->pixels is non-NULL even if we don't need to convert the surface, to catch more insidious bugs.
    assert(pixels16);
 
-   if(memcmp(&format, &nf, sizeof(MDFN_PixelFormat)))
+   for(int y = 0; y < h; y++)
    {
-    //puts("Converting");
-    for(int y = 0; y < h; y++)
+    uint16 *row = &pixels16[y * pitchinpix];
+
+    for(int x = 0; x < w; x++)
     {
-     uint16 *row = &pixels16[y * pitchinpix];
+     uint32 c = row[x];
+     int r, g, b, a;
 
-     for(int x = 0; x < w; x++)
-     {
-      uint32 c = row[x];
-      int r, g, b, a;
-
-      DecodeColor(c, r, g, b, a);
-      row[x] = nf.MakeColor(r, g, b, a);
-     }
+     DecodeColor(c, r, g, b, a);
+     row[x] = nf.MakeColor(r, g, b, a);
     }
    }
   }
@@ -377,21 +369,17 @@ void MDFN_Surface::SetFormat(const MDFN_PixelFormat &nf, bool convert)
    // We should assert that surface->pixels is non-NULL even if we don't need to convert the surface, to catch more insidious bugs.
    assert(pixels);
 
-   if(memcmp(&format, &nf, sizeof(MDFN_PixelFormat)))
+   for(int y = 0; y < h; y++)
    {
-    //puts("Converting");
-    for(int y = 0; y < h; y++)
+    uint32 *row = &pixels[y * pitchinpix];
+
+    for(int x = 0; x < w; x++)
     {
-     uint32 *row = &pixels[y * pitchinpix];
+     uint32 c = row[x];
+     int r, g, b, a;
 
-     for(int x = 0; x < w; x++)
-     {
-      uint32 c = row[x];
-      int r, g, b, a;
-
-      DecodeColor(c, r, g, b, a);
-      row[x] = nf.MakeColor(r, g, b, a);
-     }
+     DecodeColor(c, r, g, b, a);
+     row[x] = nf.MakeColor(r, g, b, a);
     }
    }
   }

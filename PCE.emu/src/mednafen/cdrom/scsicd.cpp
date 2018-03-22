@@ -16,8 +16,6 @@
  */
 
 #include <mednafen/mednafen.h>
-#include <math.h>
-#include <algorithm>
 #include <trio/trio.h>
 #include "scsicd.h"
 #include "cdromif.h"
@@ -89,7 +87,7 @@ typedef struct
  uint8 command_buffer_pos;
  uint8 command_size_left;
 
- // FALSE if not all pending data is in the FIFO, TRUE if it is.
+ // false if not all pending data is in the FIFO, true if it is.
  // Used for multiple sector CD reads.
  bool data_transfer_done;
 
@@ -462,8 +460,8 @@ static void SendStatusAndMessage(uint8 status, uint8 message)
 
  cd.message_pending = message;
 
- cd.status_sent = FALSE;
- cd.message_sent = FALSE;
+ cd.status_sent = false;
+ cd.message_sent = false;
 
  if(WhichSystem == SCSICD_PCE)
  {
@@ -530,8 +528,7 @@ static bool ValidateRawDataSector(uint8 *data, const uint32 lba)
 {
  if(!Cur_CDIF->ValidateRawSector(data))
  {
-  MDFN_DispMessage(_("Uncorrectable data at sector %d"), lba);
-  MDFN_PrintError(_("Uncorrectable data at sector %d"), lba);
+  MDFN_Notify(MDFN_NOTICE_WARNING, _("Uncorrectable error(s) in sector %d."), lba);
 
   din->Flush();
   cd.data_transfer_done = false;
@@ -2505,7 +2502,7 @@ static INLINE void RunCDDA(uint32 system_timestamp, int32 run_time)
       cdda.CDDAStatus = CDDASTATUS_STOPPED;
 
       #if 0
-      cd.data_transfer_done = FALSE;
+      cd.data_transfer_done = false;
       cd.key_pending = SENSEKEY_NOT_READY;
       cd.asc_pending = ASC_MEDIUM_NOT_PRESENT;
       cd.ascq_pending = 0x00;
@@ -2743,7 +2740,7 @@ static INLINE void RunCDRead(uint32 system_timestamp, int32 run_time)
     if(TrayOpen)
     {
      din->Flush();
-     cd.data_transfer_done = FALSE;
+     cd.data_transfer_done = false;
 
      CommandCCError(SENSEKEY_NOT_READY, NSE_TRAY_OPEN);
     }
@@ -2757,7 +2754,7 @@ static INLINE void RunCDRead(uint32 system_timestamp, int32 run_time)
     }
     else if(!Cur_CDIF->ReadRawSector(tmp_read_buf, SectorAddr))	//, SectorAddr + SectorCount))
     {
-     cd.data_transfer_done = FALSE;
+     cd.data_transfer_done = false;
 
      CommandCCError(SENSEKEY_ILLEGAL_REQUEST);
     }
@@ -2782,12 +2779,12 @@ static INLINE void RunCDRead(uint32 system_timestamp, int32 run_time)
 
      if(SectorCount)
      {
-      cd.data_transfer_done = FALSE;
+      cd.data_transfer_done = false;
       CDReadTimer += (uint64) 1 * 2048 * System_Clock / CD_DATA_TRANSFER_RATE;
      }
      else
      {
-      cd.data_transfer_done = TRUE;
+      cd.data_transfer_done = true;
      }
     }
    }				// end else to if(!Cur_CDIF->ReadSector
@@ -2855,7 +2852,7 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
     {
      //printf("Command Phase Byte I->T: %02x, %d\n", cd_bus.DB, cd.command_buffer_pos);
      cd.command_buffer[cd.command_buffer_pos++] = cd_bus.DB;
-     SetREQ(FALSE);
+     SetREQ(false);
     }
 
     if(!REQ_signal && !ACK_signal && cd.command_buffer_pos)	// Received at least one byte, what should we do?
@@ -2943,7 +2940,7 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
       }
      } // end if(cd.command_buffer_pos == RequiredCDBLen[cd.command_buffer[0] >> 4])
      else			// Otherwise, get more data for the command!
-      SetREQ(TRUE);
+      SetREQ(true);
     }
     break;
 
@@ -2952,7 +2949,7 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
     {
      //printf("DATAOUT-SCSIIN: %d %02x\n", cd.data_out_pos, cd_bus.DB);
      cd.data_out[cd.data_out_pos++] = cd_bus.DB;
-     SetREQ(FALSE);
+     SetREQ(false);
     }
     else if(!REQ_signal && !ACK_signal && cd.data_out_pos)
     {
@@ -2966,7 +2963,7 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
        SendStatusAndMessage(STATUS_GOOD, 0x00);
      }
      else
-      SetREQ(TRUE);
+      SetREQ(true);
     }
     break;
 
@@ -2975,7 +2972,7 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
    //printf("%d %d, %02x\n", REQ_signal, ACK_signal, cd_bus.DB);
    if(REQ_signal && ACK_signal)
    {
-    SetREQ(FALSE);
+    SetREQ(false);
 
     // ABORT message is 0x06, but the code isn't set up to be able to recover from a MESSAGE OUT phase back to the previous phase, so we treat any message as an ABORT.
     // Real tests are needed on the PC-FX to determine its behavior.
@@ -3000,14 +2997,14 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
   case PHASE_STATUS:
     if(REQ_signal && ACK_signal)
     {
-     SetREQ(FALSE);
-     cd.status_sent = TRUE;
+     SetREQ(false);
+     cd.status_sent = true;
     }
 
     if(!REQ_signal && !ACK_signal && cd.status_sent)
     {
      // Status sent, so get ready to send the message!
-     cd.status_sent = FALSE;
+     cd.status_sent = false;
      cd_bus.DB = cd.message_pending;
 
      ChangePhase(PHASE_MESSAGE_IN);
@@ -3025,33 +3022,33 @@ uint32 SCSICD_Run(scsicd_timestamp_t system_timestamp)
       if(cd.data_transfer_done)
       {
        SendStatusAndMessage(STATUS_GOOD, 0x00);
-       cd.data_transfer_done = FALSE;
+       cd.data_transfer_done = false;
        CDIRQCallback(SCSICD_IRQ_DATA_TRANSFER_DONE);
       }
      }
      else
      {
       cd_bus.DB = din->ReadByte();
-      SetREQ(TRUE);
+      SetREQ(true);
      }
     }
     if(REQ_signal && ACK_signal)
     {
      //puts("REQ and ACK true");
-     SetREQ(FALSE);
+     SetREQ(false);
     }
     break;
 
   case PHASE_MESSAGE_IN:
    if(REQ_signal && ACK_signal)
    {
-    SetREQ(FALSE);
-    cd.message_sent = TRUE;
+    SetREQ(false);
+    cd.message_sent = true;
    }
 
    if(!REQ_signal && !ACK_signal && cd.message_sent)
    {
-    cd.message_sent = FALSE;
+    cd.message_sent = false;
     ChangePhase(PHASE_BUS_FREE);
    }
    break;
@@ -3164,24 +3161,24 @@ void SCSICD_StateAction(StateMem* sm, const unsigned load, const bool data_only,
   SFVARN(cd.ascq_pending, "ascq_pending"),
   SFVARN(cd.fru_pending, "fru_pending"),
 
-  SFARRAYN(cd.command_buffer, 256, "command_buffer"),
+  SFPTR8N(cd.command_buffer, 256, "command_buffer"),
   SFVARN(cd.command_buffer_pos, "command_buffer_pos"),
   SFVARN(cd.command_size_left, "command_size_left"),
 
   // Don't save the FIFO's write position, it will be reconstructed from read_pos and in_count
-  SFARRAYN(&din->data[0], din->data.size(), "din_fifo"),
+  SFPTR8N(&din->data[0], din->data.size(), "din_fifo"),
   SFVARN(din->read_pos, "din_read_pos"),
   SFVARN(din->in_count, "din_in_count"),
   SFVARN(cd.data_transfer_done, "data_transfer_done"),
 
-  SFARRAYN(cd.data_out, sizeof(cd.data_out), "data_out"),
+  SFPTR8N(cd.data_out, sizeof(cd.data_out), "data_out"),
   SFVARN(cd.data_out_pos, "data_out_pos"),
   SFVARN(cd.data_out_want, "data_out_want"),
 
   SFVARN(cd.DiscChanged, "DiscChanged"),
 
   SFVAR(cdda.PlayMode),
-  SFARRAY16(cdda.CDDASectorBuffer, 1176),
+  SFPTR16(cdda.CDDASectorBuffer, 1176),
   SFVAR(cdda.CDDAReadPos),
   SFVAR(cdda.CDDAStatus),
   SFVAR(cdda.CDDADiv),
@@ -3197,17 +3194,17 @@ void SCSICD_StateAction(StateMem* sm, const unsigned load, const bool data_only,
   SFVAR(cdda.scan_sec_end),
 
   SFVAR(cdda.OversamplePos),
-  SFARRAY16(&cdda.sr[0], sizeof(cdda.sr) / sizeof(cdda.sr[0])),
-  SFARRAY16(&cdda.OversampleBuffer[0][0], sizeof(cdda.OversampleBuffer) / sizeof(cdda.OversampleBuffer[0][0])),
+  SFPTR16(&cdda.sr[0], sizeof(cdda.sr) / sizeof(cdda.sr[0])),
+  SFVARN(cdda.OversampleBuffer, "&cdda.OversampleBuffer[0][0]"),
 
   SFVAR(cdda.DeemphState[0][0]),
   SFVAR(cdda.DeemphState[0][1]),
   SFVAR(cdda.DeemphState[1][0]),
   SFVAR(cdda.DeemphState[1][1]),
 
-  SFARRAYN(&cd.SubQBuf[0][0], sizeof(cd.SubQBuf), "SubQBufs"),
-  SFARRAYN(cd.SubQBuf_Last, sizeof(cd.SubQBuf_Last), "SubQBufLast"),
-  SFARRAYN(cd.SubPWBuf, sizeof(cd.SubPWBuf), "SubPWBuf"),
+  SFVARN(cd.SubQBuf, "SubQBufs"),
+  SFVARN(cd.SubQBuf_Last, "SubQBufLast"),
+  SFVARN(cd.SubPWBuf, "SubPWBuf"),
 
   SFVAR(monotonic_timestamp),
   SFVAR(pce_lastsapsp_timestamp),
@@ -3215,11 +3212,11 @@ void SCSICD_StateAction(StateMem* sm, const unsigned load, const bool data_only,
   //
   //
   //
-  SFARRAY(ModePages[0].current_value, ModePages[0].param_length),
-  SFARRAY(ModePages[1].current_value, ModePages[1].param_length),
-  SFARRAY(ModePages[2].current_value, ModePages[2].param_length),
-  SFARRAY(ModePages[3].current_value, ModePages[3].param_length),
-  SFARRAY(ModePages[4].current_value, ModePages[4].param_length),
+  SFPTR8(ModePages[0].current_value, ModePages[0].param_length),
+  SFPTR8(ModePages[1].current_value, ModePages[1].param_length),
+  SFPTR8(ModePages[2].current_value, ModePages[2].param_length),
+  SFPTR8(ModePages[3].current_value, ModePages[3].param_length),
+  SFPTR8(ModePages[4].current_value, ModePages[4].param_length),
   SFEND
  };
 

@@ -16,22 +16,17 @@
  */
 
 /*
- The ugly kludges with the strcasecmp(MDFNGameInfo->shortname, "psx") are to work around the mess created by our
+ The ugly kludges with the MDFN_strazicmp(MDFNGameInfo->shortname, "psx") are to work around the mess created by our
  flawed game ID generation code(the PS1 game library is enormous, and many games only have one track, leading to many collisions);
  TODO: a more permanent, system-agnostic solution to the problem.
 */
 
 #include "mednafen.h"
 
-#include <string.h>
-#include <ctype.h>
 #include <trio/trio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <vector>
 
 #include "general.h"
-#include "string/trim.h"
+#include <mednafen/string/string.h>
 #include <mednafen/hash/md5.h>
 #include "mempatcher.h"
 #include "FileStream.h"
@@ -71,7 +66,7 @@ static std::vector<RAMInfoS> RAMInfo;
 
 static INLINE uint8 ReadU8(uint32 addr)
 {
- addr %= (PageSize * NumPages);
+ addr %= (uint64)PageSize * NumPages;
  //
  //
  //
@@ -91,7 +86,7 @@ static INLINE uint8 ReadU8(uint32 addr)
 
 static INLINE void WriteU8(uint32 addr, const uint8 val)
 {
- addr %= (PageSize * NumPages);
+ addr %= (uint64)PageSize * NumPages;
  //
  //
  //
@@ -130,7 +125,7 @@ static std::vector<CHEATF> cheats;
 static bool savecheats;
 static uint32 resultsbytelen = 1;
 static bool resultsbigendian = 0;
-static bool CheatsActive = TRUE;
+static bool CheatsActive = true;
 
 bool SubCheatsOn = 0;
 std::vector<SUBCHEAT> SubCheats[8];
@@ -240,7 +235,7 @@ static bool SeekToOurSection(Stream* fp)
   if(linebuf.size() >= 1 && linebuf[0] == '[')
   {
    if(!strncmp(linebuf.c_str() + 1, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), 32) &&
-	(strcasecmp(MDFNGameInfo->shortname, "psx") || linebuf.size() < 36 || !compat0938_name.size() || linebuf[34] != ' ' || !strcmp(linebuf.c_str() + 35, compat0938_name.c_str())))
+	(MDFN_strazicmp(MDFNGameInfo->shortname, "psx") || linebuf.size() < 36 || !compat0938_name.size() || linebuf[34] != ' ' || !strcmp(linebuf.c_str() + 35, compat0938_name.c_str())))
     return(true);
   }
  }
@@ -255,7 +250,7 @@ void MDFN_LoadGameCheats(Stream* override)
 
  //
  compat0938_name = MDFNGameInfo->name;
- if(!strcasecmp(MDFNGameInfo->shortname, "psx"))
+ if(!MDFN_strazicmp(MDFNGameInfo->shortname, "psx"))
  {
   for(auto& c : compat0938_name)
    if((int8)c < 0x20)	// (int8) here, not (uint8)
@@ -498,7 +493,7 @@ static void WriteCheats(void)
     if(linebuf.size() >= 1 && linebuf[0] == '[' && !insection)
     {
      if(!strncmp((char *)linebuf.c_str() + 1, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), 32) &&
-	(strcasecmp(MDFNGameInfo->shortname, "psx") || linebuf.size() < 36 || !compat0938_name.size() || linebuf[34] != ' ' || !strcmp(linebuf.c_str() + 35, compat0938_name.c_str())))
+	(MDFN_strazicmp(MDFNGameInfo->shortname, "psx") || linebuf.size() < 36 || !compat0938_name.size() || linebuf[34] != ' ' || !strcmp(linebuf.c_str() + 35, compat0938_name.c_str())))
      {
       insection = 1;
 
@@ -537,10 +532,19 @@ static void WriteCheats(void)
 
   tmp_fp->close();
 
-  if(MDFN_rename(tmp_fn.c_str(), fn.c_str()) != 0 && errno == EACCES)	// For Windows especially; see http://msdn.microsoft.com/en-us/library/zw5t957f.aspx
+  try
   {
-   MDFN_unlink(fn.c_str());
    MDFN_rename(tmp_fn.c_str(), fn.c_str());
+  }
+  catch(MDFN_Error &e)
+  {
+   if(e.GetErrno() == EACCES || e.GetErrno() == EEXIST) // For MS Windows
+   {
+    MDFN_unlink(fn.c_str());
+    MDFN_rename(tmp_fn.c_str(), fn.c_str());
+   }
+   else
+    throw;
   }
  }
 }
@@ -556,7 +560,7 @@ void MDFN_FlushGameCheats(int nosave)
   }
   catch(std::exception &e)
   {
-   MDFN_PrintError("%s", e.what());
+   MDFND_OutputNotice(MDFN_NOTICE_ERROR, e.what());
   }
  }
 
@@ -864,7 +868,7 @@ static INLINE void Read_CCV_RAMV(const uint32 A, const unsigned len, const bool 
 
  for(unsigned x = 0; x < len; x++)
  {
-  const uint32 cur_addr = (A + x) % (NumPages * PageSize);
+  const uint32 cur_addr = (A + x) % ((uint64)NumPages * PageSize);
   const uint32 cur_page = cur_addr / PageSize;
   const uint32 cur_offs = cur_addr % PageSize;
 
@@ -1000,7 +1004,7 @@ static void SettingChanged(const char *name)
 }
 
 
-MDFNSetting MDFNMP_Settings[] =
+extern const MDFNSetting MDFNMP_Settings[] =
 {
  { "cheats", MDFNSF_NOFLAGS, "Enable cheats.", NULL, MDFNST_BOOL, "1", NULL, NULL, NULL, SettingChanged },
  { NULL}

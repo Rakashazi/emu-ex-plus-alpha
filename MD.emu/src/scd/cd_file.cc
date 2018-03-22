@@ -38,7 +38,13 @@ int Load_ISO(CDAccess *cd)
 		if(i+1 > toc.last_track)
 			break;
 		auto lba = toc.tracks[i+1].lba;
-		auto length = toc.tracks[i+2].lba - lba;
+		auto nextTrackLBA = toc.tracks[i+2].lba;
+		if(!nextTrackLBA)
+		{
+			// leadout track
+			nextTrackLBA = toc.tracks[100].lba;
+		}
+		auto length = nextTrackLBA - lba;
 		CDUtility::LBA_to_AMSF(toc.tracks[i+1].lba, &sCD.TOC.Tracks[i].MSF.M, &sCD.TOC.Tracks[i].MSF.S, &sCD.TOC.Tracks[i].MSF.F);
 		sCD.TOC.Tracks[i].ftype = toc.tracks[i+1].control ? TYPE_ISO : TYPE_MP3;
 		sCD.TOC.Tracks[i].Length = length;

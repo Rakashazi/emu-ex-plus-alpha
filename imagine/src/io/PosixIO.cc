@@ -197,7 +197,7 @@ static int adviceToFAdv(IO::Advice advice)
 	switch(advice)
 	{
 		default: return POSIX_FADV_NORMAL;
-		case IO::Advice::SEQUENTIAL: return POSIX_FADV_NORMAL;
+		case IO::Advice::SEQUENTIAL: return POSIX_FADV_SEQUENTIAL;
 		case IO::Advice::RANDOM: return POSIX_FADV_RANDOM;
 		case IO::Advice::WILLNEED: return POSIX_FADV_WILLNEED;
 	}

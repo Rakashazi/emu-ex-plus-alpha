@@ -50,7 +50,7 @@ class CDIF
  // Utility/Wrapped functions
  // Reads mode 1 and mode2 form 1 sectors(2048 bytes per sector returned)
  // Will return the type(1, 2) of the first sector read to the buffer supplied, 0 on error
- int ReadSector(uint8* buf, int32 lba, uint32 sector_count, bool suppress_uncorrectable_message = false);
+ int ReadSector(uint8* buf, int32 lba, uint32 sector_count);
 
  // For Mode 1, or Mode 2 Form 1.
  // No reference counting or whatever is done, so if you destroy the CDIF object before you destroy the returned Stream, things will go BOOM.

@@ -19,29 +19,27 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <imagine/io/FileIO.hh>
 #include <mednafen/FileStream.h>
 #include <mednafen/MemoryStream.h>
 
 #include "CDAccess.h"
-
-#include <vector>
 
 class CDAccess_CCD : public CDAccess
 {
  public:
 
  CDAccess_CCD(const std::string& path, bool image_memcache);
- ~CDAccess_CCD();
+ ~CDAccess_CCD() final;
 
- bool Read_Raw_Sector(uint8 *buf, int32 lba) override;
- bool Read_Sector(uint8 *buf, int32 lba, uint32 size) override;
+ int Read_Raw_Sector(uint8 *buf, int32 lba) final;
 
- virtual bool Fast_Read_Raw_PW_TSRE(uint8* pwbuf, int32 lba) const noexcept override;
+ bool Fast_Read_Raw_PW_TSRE(uint8* pwbuf, int32 lba) const noexcept final;
 
- void Read_TOC(CDUtility::TOC *toc) override;
+ void Read_TOC(CDUtility::TOC *toc) final;
 
- void HintReadSector(uint32 lba, int32 count) override;
+ void HintReadSector(uint32 lba, int32 count) final;
+
+ int Read_Sector(uint8 *buf, int32 lba, uint32 size) final;
 
  private:
 
@@ -50,7 +48,7 @@ class CDAccess_CCD : public CDAccess
 
  void CheckSubQSanity(void);
 
- FileIO img_stream;
+ FileStreamIOWrapper img_stream;
  std::unique_ptr<uint8[]> sub_data;
 
  size_t img_numsectors;

@@ -9,7 +9,7 @@ namespace CDUtility
  // It will also be called automatically if needed for the first time a function in this namespace that requires
  // the initialization function to be called is called, for potential
  // usage in constructors of statically-declared objects.
- void CDUtility_Init(void);
+ void CDUtility_Init(void) MDFN_COLD;
 
  // Quick definitions here:
  //

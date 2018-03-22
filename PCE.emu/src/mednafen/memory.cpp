@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* memory.cpp:
-**  Copyright (C) 2014-2016 Mednafen Team
+**  Copyright (C) 2014-2017 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -20,15 +20,11 @@
 */
 
 #include "mednafen.h"
-
-#include <stdlib.h>
-#include <errno.h>
-
 #include "memory.h"
 
 void MDFN_FastMemXOR(void* dest, const void* src, size_t count)
 {
- const unsigned alch = ((unsigned long long)dest | (unsigned long long)src);
+ const unsigned alch = ((uintptr_t)dest | (uintptr_t)src);
 
  uint8* pd = (uint8*)dest;
  const uint8* sd = (const uint8*)src;

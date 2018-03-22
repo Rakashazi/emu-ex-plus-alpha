@@ -21,7 +21,6 @@
 
 #include <mednafen/mednafen.h>
 #include "okiadpcm.h"
-#include <math.h>
 
 const int OKIADPCM_StepSizes[49] =
 {

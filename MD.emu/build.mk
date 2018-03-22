@@ -95,12 +95,15 @@ ifdef hasSCD
  -DHAVE_LIBSNDFILE \
  -DPSS_STYLE=1
  SRC += MDFNApi.cc \
+ FileStreamIOWrapper.cc \
  error.cpp \
  endian.cpp \
  general.cpp \
  FileStream.cpp \
  Stream.cpp \
  cdrom/CDAFReader.cpp \
+ cdrom/CDAFReader_SF.cpp \
+ cdrom/CDAFReader_Vorbis.cpp \
  cdrom/lec.cpp \
  cdrom/recover-raw.cpp \
  cdrom/galois.cpp \
@@ -109,7 +112,7 @@ ifdef hasSCD
  cdrom/CDUtility.cpp \
  cdrom/CDAccess_Image.cpp \
  cdrom/CDAccess.cpp \
- string/trim.cpp
+ string/string.cpp
 
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk

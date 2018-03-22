@@ -22,10 +22,6 @@
 #ifndef __MDFN_ERROR_H
 #define __MDFN_ERROR_H
 
-#include <errno.h>
-#include <string.h>
-#include <exception>
-
 #ifdef __cplusplus
 
 class ErrnoHolder;
@@ -33,15 +29,15 @@ class MDFN_Error : public std::exception
 {
  public:
 
- MDFN_Error() noexcept;
+ MDFN_Error() noexcept MDFN_COLD;
 
- MDFN_Error(int errno_code_new, const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 3, 4);
- MDFN_Error(const ErrnoHolder &enh);
+ MDFN_Error(int errno_code_new, const char *format, ...) noexcept MDFN_FORMATSTR(gnu_printf, 3, 4) MDFN_COLD;
+ MDFN_Error(const ErrnoHolder &enh) MDFN_COLD;
 
- ~MDFN_Error() noexcept;
+ ~MDFN_Error() noexcept MDFN_COLD;
 
- MDFN_Error(const MDFN_Error &ze_error) noexcept;
- MDFN_Error & operator=(const MDFN_Error &ze_error) noexcept;
+ MDFN_Error(const MDFN_Error &ze_error) noexcept MDFN_COLD;
+ MDFN_Error & operator=(const MDFN_Error &ze_error) noexcept MDFN_COLD;
 
  virtual const char *what(void) const noexcept;
  int GetErrno(void) const noexcept;
@@ -51,6 +47,8 @@ class MDFN_Error : public std::exception
  int errno_code;
  char *error_message;
 };
+
+//#define DEFMDFNERROR(name, en) struct Error_##name : public MDFN_Error { template<typename ...Z> INLINE Error_##name(Z... args) : MDFN_Error(en, args...) { } }
 
 class ErrnoHolder
 {

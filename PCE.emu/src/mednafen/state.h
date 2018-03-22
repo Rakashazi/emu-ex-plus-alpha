@@ -1,3 +1,24 @@
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* state.h:
+**  Copyright (C) 2005-2017 Mednafen Team
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
 #ifndef __MDFN_STATE_H
 #define __MDFN_STATE_H
 
@@ -28,72 +49,121 @@ void MDFNSS_CheckStates(void);
 
 struct SFORMAT
 {
-	enum
-	{
-	 FLAG_RLSB	= 0x80000000, // Flag for a single, >= 1 byte native-endian variable
-	 FLAG_RLSB32	= 0x40000000, // 32-bit native-endian elements	 
-	 FLAG_RLSB16	= 0x20000000, // 16-bit native-endian elements
-	 FLAG_RLSB64	= 0x10000000, // 64-bit native-endian elements
-	 FLAG_BOOL	= 0x08000000
-	};
-	void *v;		// Pointer to the variable/array
+	const char* name;	// Name;
+	void* data;		// Pointer to the variable/array
 	uint32 size;		// Length, in bytes, of the data to be saved EXCEPT:
-				//  In the case of SFORMAT::FLAG_BOOL, it is the number of bool elements to save(bool is not always 1-byte).
+				//  In the case of 'bool' it is the number of bool elements to save(bool is not always 1-byte).
 				// If 0, the subchunk isn't saved.
-	uint32 flags;		// Flags
-	const char *name;	// Name
+	uint32 type;		// Type/element size; 0(bool), 1, 2, 4, 8
+	uint32 repcount;
+	uint32 repstride;
 };
 
-static INLINE bool SF_IS_BOOL(bool *) { return(1); }
-static INLINE bool SF_IS_BOOL(void *) { return(0); }
+static INLINE int8* SF_FORCE_A8(int8* p) { return p; }
+static INLINE uint8* SF_FORCE_A8(uint8* p) { return p; }
 
-static INLINE uint32 SF_FORCE_AB(bool *) { return(0); }
+static INLINE int16* SF_FORCE_A16(int16* p) { return p; }
+static INLINE uint16* SF_FORCE_A16(uint16* p) { return p; }
 
-static INLINE uint32 SF_FORCE_A8(int8 *) { return(0); }
-static INLINE uint32 SF_FORCE_A8(uint8 *) { return(0); }
+static INLINE int32* SF_FORCE_A32(int32* p) { return p; }
+static INLINE uint32* SF_FORCE_A32(uint32* p) { return p; }
 
-static INLINE uint32 SF_FORCE_A16(int16 *) { return(0); }
-static INLINE uint32 SF_FORCE_A16(uint16 *) { return(0); }
-
-static INLINE uint32 SF_FORCE_A32(int32 *) { return(0); }
-static INLINE uint32 SF_FORCE_A32(uint32 *) { return(0); }
-
-static INLINE uint32 SF_FORCE_A64(int64 *) { return(0); }
-static INLINE uint32 SF_FORCE_A64(uint64 *) { return(0); }
-
-static INLINE uint32 SF_FORCE_D(double *) { return(0); }
+static INLINE int64* SF_FORCE_A64(int64* p) { return p; }
+static INLINE uint64* SF_FORCE_A64(uint64* p) { return p; }
 
 template<typename T>
-static INLINE int SF_VAR_OK(const T*)
+static INLINE void SF_FORCE_ANY(typename std::enable_if<!std::is_enum<T>::value>::type* = nullptr)
 {
- static_assert(std::is_same<T, bool>::value || sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8, "Bad save state variable.");
- return 0;
+ static_assert(	std::is_same<T, bool>::value ||
+		std::is_same<T, int8>::value || std::is_same<T, uint8>::value ||
+		std::is_same<T, int16>::value || std::is_same<T, uint16>::value ||
+		std::is_same<T, int32>::value || std::is_same<T, uint32>::value || std::is_same<T, float>::value ||
+		std::is_same<T, int64>::value || std::is_same<T, uint64>::value || std::is_same<T, double>::value, "Unsupported type");
 }
 
-#define SFVARN(x, n) { &(x), SF_IS_BOOL(&(x)) ? 1U : (uint32)sizeof(x), SFORMAT::FLAG_RLSB | (SF_IS_BOOL(&(x)) ? (uint32)SFORMAT::FLAG_BOOL : 0) | SF_VAR_OK(&(x)), n }
-#define SFVAR(x) SFVARN((x), #x)
+template<typename T>
+static INLINE void SF_FORCE_ANY(typename std::enable_if<std::is_enum<T>::value>::type* = nullptr)
+{
+ SF_FORCE_ANY<typename std::underlying_type<T>::type>();
+}
 
-#define SFARRAYN(x, l, n) { (x), (uint32)(l), 0 | SF_FORCE_A8(x), n }
-#define SFARRAY(x, l) SFARRAYN((x), (l), #x)
+template<typename IT>
+static INLINE SFORMAT SFBASE_(IT* const iv, uint32 icount, const uint32 totalcount, const size_t repstride, void* repbase, const char* const name)
+{
+ typedef typename std::remove_all_extents<IT>::type T;
+ uint32 count = icount * (sizeof(IT) / sizeof(T));
+ SF_FORCE_ANY<T>();
+ //
+ //
+ SFORMAT ret;
 
-#define SFARRAYBN(x, l, n) { (x), (uint32)(l), SFORMAT::FLAG_BOOL | SF_FORCE_AB(x), n }
-#define SFARRAYB(x, l) SFARRAYBN((x), (l), #x)
+ ret.data = iv ? (char*)repbase + ((char*)iv - (char*)repbase) : nullptr;
+ ret.name = name;
+ ret.repcount = totalcount - 1;
+ ret.repstride = repstride;
+ if(std::is_same<T, bool>::value)
+ {
+  ret.size = count;
+  ret.type = 0;
+ }
+ else
+ {
+  ret.size = sizeof(T) * count;
+  ret.type = sizeof(T);
+ }
 
-#define SFARRAY16N(x, l, n) { (x), (uint32)((l) * sizeof(uint16)), SFORMAT::FLAG_RLSB16 | SF_FORCE_A16(x), n }
-#define SFARRAY16(x, l) SFARRAY16N((x), (l), #x)
+ return ret;
+}
 
-#define SFARRAY32N(x, l, n) { (x), (uint32)((l) * sizeof(uint32)), SFORMAT::FLAG_RLSB32 | SF_FORCE_A32(x), n }
-#define SFARRAY32(x, l) SFARRAY32N((x), (l), #x)
+/*
+ Probably a bad idea unless we prevent derived classes.
 
-#define SFARRAY64N(x, l, n) { (x), (uint32)((l) * sizeof(uint64)), SFORMAT::FLAG_RLSB64 | SF_FORCE_A64(x), n }
-#define SFARRAY64(x, l) SFARRAY64N((x), (l), #x)
+template<typename IT>
+static INLINE SFORMAT SFBASE_(std::array<IT, N>* iv, uint32 icount, const uint32 totalcount, const size_t repstride, void* repbase, const char* const name)
+{
+ return SFBASE_(iv->data(), icount * N, totalcount, repstride, repbase, name);
+}
+*/
+
+template<typename T>
+static INLINE SFORMAT SFBASE_(T* const v, const uint32 count, const char* const name)
+{
+ return SFBASE_(v, count, 1, 0, v, name);
+}
+
+#define SFVARN(x, ...)	SFBASE_(&(x), 1, __VA_ARGS__)
+
+#define SFVAR1_(x)	   SFVARN((x), #x)
+#define SFVAR4_(x, tc, rs, rb) SFVARN((x), tc, rs, rb, #x)
+#define SFVAR_(a, b, c, d, e, ...)	e
+#define SFVAR(...) 	SFVAR_(__VA_ARGS__, SFVAR4_, SFVAR3_, SFVAR2_, SFVAR1_, SFVAR0_)(__VA_ARGS__)
 
 static_assert(sizeof(double) == 8, "sizeof(double) != 8");
 
-#define SFARRAYDN(x, l, n) { (x), (uint32)((l) * 8), SFORMAT::FLAG_RLSB64 | SF_FORCE_D(x), n }
-#define SFARRAYD(x, l) SFARRAYDN((x), (l), #x)
+#define SFPTR8N(x, ...)		SFBASE_(SF_FORCE_A8(x), __VA_ARGS__)
+#define SFPTR8(x, ...)		SFBASE_(SF_FORCE_A8(x), __VA_ARGS__, #x)
 
-#define SFEND { 0, 0, 0, 0 }
+#define SFPTRBN(x, ...)		SFBASE_<bool>((x), __VA_ARGS__)
+#define SFPTRB(x, ...)		SFBASE_<bool>((x), __VA_ARGS__, #x)
+
+#define SFPTR16N(x, ...)	SFBASE_(SF_FORCE_A16(x), __VA_ARGS__)
+#define SFPTR16(x, ...)		SFBASE_(SF_FORCE_A16(x), __VA_ARGS__, #x)
+
+#define SFPTR32N(x, ...)	SFBASE_(SF_FORCE_A32(x), __VA_ARGS__)
+#define SFPTR32(x, ...)		SFBASE_(SF_FORCE_A32(x), __VA_ARGS__, #x)
+
+#define SFPTR64N(x, ...)	SFBASE_(SF_FORCE_A64(x), __VA_ARGS__)
+#define SFPTR64(x, ...)		SFBASE_(SF_FORCE_A64(x), __VA_ARGS__, #x)
+
+#define SFPTRFN(x, ...)		SFBASE_<float>((x), __VA_ARGS__)
+#define SFPTRF(x, ...)		SFBASE_<float>((x), __VA_ARGS__, #x)
+
+#define SFPTRDN(x, ...)		SFBASE_<double>((x), __VA_ARGS__)
+#define SFPTRD(x, ...)		SFBASE_<double>((x), __VA_ARGS__, #x)
+
+#define SFLINK(x) { nullptr, (x), ~0U, 0, 0, 0 }
+
+#define SFEND { nullptr, nullptr, 0, 0, 0, 0 }
 
 //
 // 'load' is 0 on save, and the version numeric contained in the save state on load.
@@ -109,6 +179,6 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8");
 // Does NOT throw exceptions, and must NOT throw exceptions, in order to make sure the emulation-module-specific loaded-variable sanitizing code
 // is run.
 //
-bool MDFNSS_StateAction(StateMem *sm, const unsigned load, const bool data_only, SFORMAT *sf, const char *name, const bool optional = false) noexcept;
+bool MDFNSS_StateAction(StateMem *sm, const unsigned load, const bool data_only, const SFORMAT *sf, const char *name, const bool optional = false) noexcept;
 
 #endif

@@ -12,6 +12,7 @@ main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 common/MDFNApi.cc \
+common/FileStreamIOWrapper.cc \
 main/PCEFast.cc \
 main/MDFNFILE.cc
 
@@ -29,7 +30,6 @@ mednafen/pce_fast/vdc.cpp \
 mednafen/pce_fast/huc6280.cpp \
 mednafen/pce_fast/pce.cpp \
 mednafen/pce_fast/huc.cpp \
-mednafen/pce_fast/tsushin.cpp \
 mednafen/pce_fast/pcecd.cpp \
 mednafen/pce_fast/pcecd_drive.cpp \
 mednafen/pce_fast/psg.cpp
@@ -49,6 +49,8 @@ mednafen/cputest/cputest.c \
 mednafen/sound/okiadpcm.cpp \
 mednafen/sound/Blip_Buffer.cpp \
 mednafen/cdrom/CDAFReader.cpp \
+mednafen/cdrom/CDAFReader_SF.cpp \
+mednafen/cdrom/CDAFReader_Vorbis.cpp \
 mednafen/cdrom/galois.cpp \
 mednafen/cdrom/recover-raw.cpp \
 mednafen/cdrom/CDAccess.cpp \
@@ -64,9 +66,8 @@ mednafen/hw_misc/arcade_card/arcade_card.cpp \
 mednafen/hw_sound/pce_psg/pce_psg.cpp \
 mednafen/video/resize.cpp \
 mednafen/video/surface.cpp \
-mednafen/string/trim.cpp \
 mednafen/compress/GZFileStream.cpp \
-mednafen/compress/minilzo.c \
+mednafen/string/string.cpp \
 mednafen/hash/md5.cpp
 
 SRC += $(MDFN_SRC)

@@ -17,7 +17,6 @@
 
 #include "mednafen.h"
 
-#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -61,12 +60,12 @@ static void HandleMovieError(const std::exception &e)
   MovieStatus[ActiveSlotNumber] = 0;
 
   if(ActiveMovieMode == MOVIE_PLAYING)
-   MDFN_DispMessage(_("Movie %u playback failed."), ActiveSlotNumber);
+   MDFN_Notify(MDFN_NOTICE_ERROR, _("Movie %u playback failed."), ActiveSlotNumber);
   else
-   MDFN_DispMessage(_("Movie %u recording failed."), ActiveSlotNumber);
+   MDFN_Notify(MDFN_NOTICE_ERROR, _("Movie %u recording failed."), ActiveSlotNumber);
  }
 
- MDFN_PrintError(_("Movie error: %s"), e.what());
+ MDFN_Notify(MDFN_NOTICE_ERROR, _("Movie error: %s"), e.what());
  ActiveMovieMode = MOVIE_STOPPED;
  ActiveSlotNumber = -1;
 }
@@ -118,7 +117,7 @@ void MDFNI_SaveMovie(char *fname, const MDFN_Surface *surface, const MDFN_Rect *
   ActiveMovieStream->flush(); 	    // Flush output so that previews will still work right while
 			    	    // the movie is being recorded.
 
-  MDFN_DispMessage(_("Movie recording started."));
+  MDFN_Notify(MDFN_NOTICE_STATUS, _("Movie recording started."));
   MovieStatus[ActiveSlotNumber] = 1;
   RecentlySavedMovie = ActiveSlotNumber;
  }
@@ -151,9 +150,9 @@ void MDFNMOV_Stop(void) noexcept
   ActiveSlotNumber = -1;
 
   if(PAMM == MOVIE_PLAYING)
-   MDFN_DispMessage(_("Movie playback stopped."));
+   MDFN_Notify(MDFN_NOTICE_STATUS, _("Movie playback stopped."));
   else if(PAMM == MOVIE_RECORDING)
-   MDFN_DispMessage(_("Movie recording stopped."));
+   MDFN_Notify(MDFN_NOTICE_STATUS, _("Movie recording stopped."));
  }
 }
 
@@ -199,7 +198,7 @@ void MDFNI_LoadMovie(char *fname)
   //
   MDFNSS_LoadSM(ActiveMovieStream, false);
 
-  MDFN_DispMessage(_("Movie playback started."));
+  MDFN_Notify(MDFN_NOTICE_STATUS, _("Movie playback started."));
  }
  catch(std::exception &e)
  {
@@ -349,7 +348,6 @@ void MDFNI_SelectMovie(int w)
  MDFNI_SelectState(-1);
 
  CurrentMovie = w;
- MDFN_ResetMessages();
 
  status = new StateStatusStruct();
  memset(status, 0, sizeof(StateStatusStruct));

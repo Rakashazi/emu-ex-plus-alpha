@@ -24,12 +24,25 @@
 
 #include "Stream.h"
 
-#include <stdio.h>
-#include <string>
-
 class FileStream : public Stream
 {
  public:
+
+ // Convenience function so we don't need so many try { } catch { } for ENOENT
+ static INLINE FileStream* open(const std::string& path, const int mode, const int do_lock = false)
+ {
+  try
+  {
+   return new FileStream(path, mode, do_lock);
+  }
+  catch(MDFN_Error& e)
+  {
+   if(e.GetErrno() == ENOENT)
+    return nullptr;
+
+   throw;
+  }
+ }
 
  enum
  {
@@ -44,7 +57,7 @@ class FileStream : public Stream
   MODE_WRITE_INPLACE,	// Like MODE_WRITE, but won't truncate the file if it already exists.
  };
 
- FileStream(const std::string& path, const int mode, const bool do_lock = false);
+ FileStream(const std::string& path, const int mode, const int do_lock = false);
  virtual ~FileStream() override;
 
  virtual uint64 attributes(void) override;
@@ -98,7 +111,7 @@ class FileStream : public Stream
  int prev_was_write;	// -1 for no state, 0 for last op was read, 1 for last op was write(used for MODE_READ_WRITE)
 
  //
- void lock(void);
+ void lock(bool nb);
  void unlock(void);
 };
 

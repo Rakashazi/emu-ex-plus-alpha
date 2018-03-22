@@ -17,14 +17,10 @@
 
 #include "mednafen.h"
 
-#include <string.h>
-#include <stdarg.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <string>
 #include <map>
 #include <trio/trio.h>
 
@@ -32,6 +28,7 @@
 #include "state.h"
 
 #include <mednafen/hash/md5.h>
+#include <mednafen/string/string.h>
 
 using namespace std;
 
@@ -42,7 +39,7 @@ static string FileBaseDirectory;
 
 void MDFN_SetBaseDirectory(const std::string& dir)
 {
- BaseDirectory = string(dir);
+ BaseDirectory = dir;
 }
 
 std::string MDFN_GetBaseDirectory(void)
@@ -113,6 +110,11 @@ void MDFN_CheckFIROPSafe(const std::string &path)
  // in some OS.
  std::string unsafe_reason;
 
+#ifdef WIN32
+ if(!UTF8_validate(path, true))
+  unsafe_reason += _("Invalid UTF-8. ");
+#endif
+
  if(path.find('\0') != string::npos)
   unsafe_reason += _("Contains null(0). ");
 
@@ -134,12 +136,11 @@ void MDFN_CheckFIROPSafe(const std::string &path)
  // http://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html
  //
  {
-  // TODO(after implementing Win32 unicode support): COM/LPT ¹,²,³
   static const char* dev_names[] = 
   {
    "CON", "PRN", "AUX", "CLOCK$", "NUL", "CONIN$", "CONOUT$",
-   "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-   "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+   "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "COM¹", "COM²", "COM³",
+   "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9", "LPT¹", "LPT²", "LPT³",
    NULL
   };
   //
@@ -148,7 +149,7 @@ void MDFN_CheckFIROPSafe(const std::string &path)
   {
    size_t lssl = strlen(*ls);
 
-   if(!strncasecmp(*ls, pcs, lssl))
+   if(!MDFN_strazicmp(*ls, pcs, lssl))
    {
     if(pcs[lssl] == 0 || pcs[lssl] == ':' || pcs[lssl] == '.' || pcs[lssl] == ' ')
     {
@@ -338,7 +339,7 @@ static void CreateMissingDirs(const std::string& path)
 #if 0
 std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 {
- char tmp_path[4096];
+ std::string ret;
  char numtmp[64];
  struct stat tmpstat;
  string eff_dir;
@@ -376,14 +377,11 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
  }
 
 
-
-
  //printf("%s\n", EvalPathFS(std::string("%f.%m.sav"), fmap).c_str());
 
  switch(type)
  {
-  default: tmp_path[0] = 0;
-	   break;
+  default: break;
 
   case MDFNMKF_MOVIE:
   case MDFNMKF_STATE:
@@ -495,85 +493,83 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 
   case MDFNMKF_CHEAT_TMP:
   case MDFNMKF_CHEAT:
-		    {
-		     std::string overpath = MDFN_GetSettingS("filesys.path_cheat");
+		{
+		 std::string basepath = MDFN_GetSettingS("filesys.path_cheat");
 
-		     if(IsAbsolutePath(overpath))
-                      trio_snprintf(tmp_path, 4096, "%s" PSS "%s.%scht",overpath.c_str(), MDFNGameInfo->shortname, (type == MDFNMKF_CHEAT_TMP) ? "tmp" : "");
-                     else
-                      trio_snprintf(tmp_path, 4096, "%s" PSS "%s" PSS "%s.%scht", BaseDirectory.c_str(), overpath.c_str(), MDFNGameInfo->shortname, (type == MDFNMKF_CHEAT_TMP) ? "tmp" : "");
-		    }
-                    break;
+		 if(!IsAbsolutePath(basepath))
+		  basepath = BaseDirectory + PSS + basepath;
 
-  case MDFNMKF_AUX: if(IsAbsolutePath(cd1))
-		     trio_snprintf(tmp_path, 4096, "%s", (char *)cd1);
-		    else
-		     trio_snprintf(tmp_path, 4096, "%s" PSS "%s", FileBaseDirectory.c_str(), (char *)cd1);
-		    break;
+		 ret = basepath + PSS + MDFNGameInfo->shortname + "." + ((type == MDFNMKF_CHEAT_TMP) ? "tmpcht" : "cht");
+		}
+		break;
 
-  case MDFNMKF_IPS:  trio_snprintf(tmp_path, 4096, "%s" PSS "%s%s.ips", FileBaseDirectory.c_str(), FileBase.c_str(), FileExt.c_str());
-                     break;
+  case MDFNMKF_AUX:
+		if(IsAbsolutePath(cd1))
+		 ret = cd1;
+		else
+		 ret = FileBaseDirectory + PSS + cd1;
+		break;
+
+  case MDFNMKF_IPS:
+		ret = FileBaseDirectory + PSS + FileBase + FileExt + ".ips";
+		break;
 
   case MDFNMKF_FIRMWARE:
-		    {
-		     std::string overpath = MDFN_GetSettingS("filesys.path_firmware");
+		if(IsAbsolutePath(cd1))
+		 ret = cd1;
+		else
+		{
+		 std::string overpath = MDFN_GetSettingS("filesys.path_firmware");
 
-		     if(IsAbsolutePath(cd1))
-		     {
-		      trio_snprintf(tmp_path, 4096, "%s", cd1);
-		     }
-		     else
-		     {
-		      if(IsAbsolutePath(overpath))
-                       trio_snprintf(tmp_path, 4096, "%s" PSS "%s",overpath.c_str(), cd1);
-                      else
-		      {
-                       trio_snprintf(tmp_path, 4096, "%s" PSS "%s" PSS "%s", BaseDirectory.c_str(), overpath.c_str(), cd1);
+		 if(IsAbsolutePath(overpath))
+                  ret = overpath + PSS + cd1;
+                 else
+		 {
+		  ret = BaseDirectory + PSS + overpath + PSS + cd1;
 
-		       // For backwards-compatibility with < 0.9.0
-		       if(MDFN_stat(tmp_path,&tmpstat) == -1)
-                        trio_snprintf(tmp_path, 4096, "%s" PSS "%s", BaseDirectory.c_str(), cd1);
-		      }
-		     }
-		    }
-		    break;
+		  // For backwards-compatibility with < 0.9.0
+		  if(MDFN_stat(ret.c_str(),&tmpstat) == -1)
+                   ret = BaseDirectory + PSS + cd1;
+		 }
+		}
+		break;
 
   case MDFNMKF_PALETTE:
-		      {
-		       std::string overpath = MDFN_GetSettingS("filesys.path_palette");
+		{
+		 std::string overpath = MDFN_GetSettingS("filesys.path_palette");
 
-		       if(IsAbsolutePath(overpath))
-		        eff_dir = overpath;
-		       else
-			eff_dir = std::string(BaseDirectory) + std::string(PSS) + overpath;
+		 if(IsAbsolutePath(overpath))
+		  eff_dir = overpath;
+		 else
+		  eff_dir = BaseDirectory + PSS + overpath;
 
-                       trio_snprintf(tmp_path, 4096, "%s" PSS "%s.pal", eff_dir.c_str(), FileBase.c_str());
+		 ret = eff_dir + PSS + FileBase + ".pal";
 
-                       if(MDFN_stat(tmp_path,&tmpstat) == -1 && errno == ENOENT)
-		       {
-                        trio_snprintf(tmp_path, 4096, "%s" PSS "%s.%s.pal", eff_dir.c_str(), FileBase.c_str(), md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str());
+		 if(MDFN_stat(ret.c_str(),&tmpstat) == -1 && errno == ENOENT)
+		 {
+		  ret = eff_dir + PSS + FileBase + "." + md5_context::asciistr(MDFNGameInfo->MD5, 0) + ".pal";
 
-		        if(MDFN_stat(tmp_path, &tmpstat) == -1 && errno == ENOENT)
-			 trio_snprintf(tmp_path, 4096, "%s" PSS "%s.pal", eff_dir.c_str(), cd1 ? cd1 : MDFNGameInfo->shortname);
-		       }
-		      }
-                      break;
+		  if(MDFN_stat(ret.c_str(), &tmpstat) == -1 && errno == ENOENT)
+		   ret = eff_dir + PSS + (cd1 ? cd1 : MDFNGameInfo->shortname) + ".pal";
+		 }
+		}
+		break;
 
   case MDFNMKF_PGCONFIG:
-		      {
-		       std::string overpath = MDFN_GetSettingS("filesys.path_pgconfig");
+		{
+		 std::string overpath = MDFN_GetSettingS("filesys.path_pgconfig");
 
-		       if(IsAbsolutePath(overpath))
-		        eff_dir = overpath;
-		       else
-			eff_dir = std::string(BaseDirectory) + std::string(PSS) + overpath;
+		 if(IsAbsolutePath(overpath))
+		  eff_dir = overpath;
+		 else
+		  eff_dir = std::string(BaseDirectory) + std::string(PSS) + overpath;
 
-                       trio_snprintf(tmp_path, 4096, "%s" PSS "%s.%s.cfg", eff_dir.c_str(), FileBase.c_str(), MDFNGameInfo->shortname);
-		      }
-                      break;
-
+		 ret = eff_dir + PSS + FileBase + "." + MDFNGameInfo->shortname + ".cfg";
+		}
+		break;
  }
- return(tmp_path);
+
+ return ret;
 }
 
 void GetFileBase(const char *f)

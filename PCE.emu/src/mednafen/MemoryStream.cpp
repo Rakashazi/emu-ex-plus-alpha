@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* MemoryStream.cpp:
-**  Copyright (C) 2012-2016 Mednafen Team
+**  Copyright (C) 2012-2018 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -20,8 +20,12 @@
 */
 
 #include "MemoryStream.h"
-#include <mednafen/math_ops.h>
-#include <stdlib.h>
+
+#ifdef WIN32
+// For mswin_utf8_convert_kludge()
+#include <mednafen/string/string.h>
+#include <windows.h>
+#endif
 
 /*
  TODO:	Copy and assignment constructor fixes.
@@ -34,7 +38,7 @@ MemoryStream::MemoryStream() : data_buffer(NULL), data_buffer_size(0), data_buff
  data_buffer_size = 0;
  data_buffer_alloced = 64;
  if(!(data_buffer = (uint8*)realloc(data_buffer, data_buffer_alloced)))
-  throw MDFN_Error(ErrnoHolder(errno));
+  throw MDFN_Error(ErrnoHolder(ENOMEM));
 }
 
 MemoryStream::MemoryStream(uint64 alloc_hint, int alloc_hint_is_size) : data_buffer(NULL), data_buffer_size(0), data_buffer_alloced(0), position(0)
@@ -56,7 +60,7 @@ MemoryStream::MemoryStream(uint64 alloc_hint, int alloc_hint_is_size) : data_buf
  data_buffer_alloced = std::max<uint64>(data_buffer_alloced, 1);
 
  if(!(data_buffer = (uint8*)realloc(data_buffer, data_buffer_alloced)))
-  throw MDFN_Error(ErrnoHolder(errno));
+  throw MDFN_Error(ErrnoHolder(ENOMEM));
 
  if(alloc_hint_is_size > 0)
   memset(data_buffer, 0, data_buffer_size);
@@ -93,7 +97,7 @@ MemoryStream::MemoryStream(const MemoryStream &zs)
  data_buffer_size = zs.data_buffer_size;
  data_buffer_alloced = zs.data_buffer_alloced;
  if(!(data_buffer = (uint8*)malloc(data_buffer_alloced)))
-  throw MDFN_Error(ErrnoHolder(errno));
+  throw MDFN_Error(ErrnoHolder(ENOMEM));
 
  memcpy(data_buffer, zs.data_buffer, data_buffer_size);
 
@@ -115,7 +119,7 @@ MemoryStream & MemoryStream::operator=(const MemoryStream &zs)
   data_buffer_alloced = zs.data_buffer_alloced;
 
   if(!(data_buffer = (uint8*)malloc(data_buffer_alloced)))
-   throw MDFN_Error(ErrnoHolder(errno));
+   throw MDFN_Error(ENOMEM);
 
   memcpy(data_buffer, zs.data_buffer, data_buffer_size);
 
@@ -173,7 +177,7 @@ INLINE void MemoryStream::grow_if_necessary(uint64 new_required_size, uint64 hol
     throw MDFN_Error(ErrnoHolder(ENOMEM));
 
    if(!(new_data_buffer = (uint8*)realloc(data_buffer, new_required_alloced)))
-    throw MDFN_Error(ErrnoHolder(errno));
+    throw MDFN_Error(ErrnoHolder(ENOMEM));
 
    //
    // Assign all in one go after the realloc() so we don't leave our object in an inconsistent state if the realloc() fails.
@@ -335,3 +339,29 @@ int MemoryStream::get_line(std::string &str)
  return(str.length() ? 256 : -1);
 }
 
+
+void MemoryStream::mswin_utf8_convert_kludge(void)
+{
+#ifdef WIN32
+ if(!UTF8_validate(map_size(), (char*)map(), true) && map_size() <= INT_MAX)
+ {
+  int req;
+
+  if((req = MultiByteToWideChar(CP_ACP, 0, (char*)map(), map_size(), NULL, 0)) > 0)
+  {
+   std::unique_ptr<char16_t[]> ws(new char16_t[req]);
+
+   if(MultiByteToWideChar(CP_ACP, 0, (char*)map(), map_size(), (wchar_t*)ws.get(), req) == req)
+   {
+    size_t fpnr = 0;
+
+    if(UTF16_to_UTF8(ws.get(), req, (char*)map(), &fpnr, true))
+    {
+     truncate(fpnr);
+     UTF16_to_UTF8(ws.get(), req, (char*)map(), &fpnr, true);
+    }
+   }
+  }
+ }
+#endif
+}

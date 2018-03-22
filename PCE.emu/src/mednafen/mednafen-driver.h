@@ -1,22 +1,12 @@
 #ifndef __MDFN_MEDNAFEN_DRIVER_H
 #define __MDFN_MEDNAFEN_DRIVER_H
 
-#include <stdio.h>
-#include <vector>
-#include <string>
-
 #include "settings-common.h"
 
 extern std::vector<MDFNGI *>MDFNSystems;
 
 /* Indent stdout newlines +- "indent" amount */
 void MDFN_indent(int indent);
-#ifndef NDEBUG
-void MDFN_printf(const char *format, ...) noexcept MDFN_FORMATSTR(printf, 1, 2);
-#else
-static void MDFN_printf(const char *format, ...) MDFN_FORMATSTR(printf, 1, 2) {}
-#endif
-
 struct MDFN_AutoIndent
 {
  INLINE MDFN_AutoIndent() : indented(0) { }
@@ -28,14 +18,11 @@ struct MDFN_AutoIndent
  int indented;
 };
 
-#define MDFNI_printf MDFN_printf
+// MDFN_NOTICE_ERROR may block(e.g. for user confirmation), other notice types should be as non-blocking as possible.
+void MDFND_OutputNotice(MDFN_NoticeType t, const char* s) noexcept;
 
-/* Displays an error.  Can block or not. */
-void MDFND_PrintError(const char *s);
-void MDFND_Message(const char *s);
-
-uint32 MDFND_GetTime(void);
-void MDFND_Sleep(uint32 ms);
+// Output from MDFN_printf(); fairly verbose informational messages.
+void MDFND_OutputInfo(const char* s) noexcept;
 
 // Synchronize virtual time to actual time using members of espec:
 //
@@ -50,6 +37,9 @@ void MDFND_Sleep(uint32 ms);
 // If you do not understand how to implement this function, you can leave it empty at first, but know that doing so
 // will subtly break at least one PC Engine game(Takeda Shingen), and raise input latency on some other PC Engine games.
 void MDFND_MidSync(const EmulateSpecStruct *espec);
+
+// Called from inside blocking loops on unreliable resources(e.g. netplay).
+bool MDFND_CheckNeedExit(void);
 
 //
 // Begin threading support.
@@ -100,20 +90,24 @@ int MDFND_PostSem(MDFN_Sem* sem);
 void MDFNI_Reset(void);
 void MDFNI_Power(void);
 
-/* path = path of game/file to load.  returns NULL on failure. */
-MDFNGI *MDFNI_LoadGame(const char *force_module, const char *path);
 
-MDFNGI *MDFNI_LoadCD(const char *force_module, const char *path);	// Deprecated interface.
+// path = path of game/file to load.
+// Returns NULL on error.
+MDFNGI *MDFNI_LoadGame(const char *force_module, const char *path, bool force_cd = false) MDFN_COLD;
 
 // Call this function as early as possible, even before MDFNI_Initialize()
-bool MDFNI_InitializeModules(void);
+bool MDFNI_InitializeModules(void) MDFN_COLD;
+
+// Call once, after MDFNI_Initialize()
+// returns -1 if settings file didn't exist, 0 on error, and 1 on success
+int MDFNI_LoadSettings(const char* path);
+
+// Call at least once right before MDFNI_Kill()
+bool MDFNI_SaveSettings(const char* path);
 
 /* allocates memory.  0 on failure, 1 on success. */
 /* Also pass it the base directory to load the configuration file. */
-int MDFNI_Initialize(const char *basedir, const std::vector<MDFNSetting> &DriverSettings);
-
-/* Call only when a game is loaded. */
-int MDFNI_NetplayStart(void);
+int MDFNI_Initialize(const char *basedir, const std::vector<MDFNSetting> &DriverSettings) MDFN_COLD;
 
 /* Emulates a frame. */
 void MDFNI_Emulate(EmulateSpecStruct *espec);
@@ -130,19 +124,10 @@ void MDFNI_AutoScaleMRFrame(EmulateSpecStruct *espec);
 #endif
 
 /* Closes currently loaded game */
-void MDFNI_CloseGame(void);
+void MDFNI_CloseGame(void) MDFN_COLD;
 
 /* Deallocates all allocated memory.  Call after MDFNI_Emulate() returns. */
-void MDFNI_Kill(void);
-
-#ifndef NDEBUG
-void MDFN_DispMessage(const char *format, ...) noexcept MDFN_FORMATSTR(printf, 1, 2);
-#else
-static void MDFN_DispMessage(const char *format, ...) MDFN_FORMATSTR(printf, 1, 2) {}
-#endif
-#define MDFNI_DispMessage MDFN_DispMessage
-
-uint32 MDFNI_CRC32(uint32 crc, uint8 *buf, uint32 len);
+void MDFNI_Kill(void) MDFN_COLD;
 
 // NES hackish function.  Should abstract in the future.
 int MDFNI_DatachSet(const uint8 *rcode);
@@ -167,12 +152,12 @@ void MDFNI_ToggleDIPView(void);
 
 bool MDFNI_EnableStateRewind(bool enable);
 
-bool MDFNI_StartAVRecord(const char *path, double SoundRate);
-void MDFNI_StopAVRecord(void);
+bool MDFNI_StartAVRecord(const char *path, double SoundRate) MDFN_COLD;
+void MDFNI_StopAVRecord(void) MDFN_COLD;
 
-bool MDFNI_StartWAVRecord(const char *path, double SoundRate);
-void MDFNI_StopWAVRecord(void);
+bool MDFNI_StartWAVRecord(const char *path, double SoundRate) MDFN_COLD;
+void MDFNI_StopWAVRecord(void) MDFN_COLD;
 
-void MDFNI_DumpModulesDef(const char *fn);
+void MDFNI_DumpModulesDef(const char *fn) MDFN_COLD;
 
 #endif

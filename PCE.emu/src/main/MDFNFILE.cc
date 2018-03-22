@@ -91,8 +91,3 @@ MDFNFILE::MDFNFILE(std::unique_ptr<Stream> str, const char *path, const char *pu
 	auto extStr = strrchr(path, '.');
 	f_ext = strdup(extStr ? extStr + 1 : "");
 }
-
-MDFNFILE::~MDFNFILE()
-{
-	Close();
-}

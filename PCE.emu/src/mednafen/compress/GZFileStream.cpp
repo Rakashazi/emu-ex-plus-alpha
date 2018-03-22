@@ -23,43 +23,85 @@
 #include "GZFileStream.h"
 
 #include <trio/trio.h>
-#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 
 #include <zlib.h>
 
 GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int level) : OpenedMode(mode)
 {
+ char zmode[16];
+ int open_flags;
+ int tmpfd;
+ auto perm_mode = S_IRUSR | S_IWUSR;
+
  path_save = path;
 
- // Clear errno to 0 so can we detect internal zlib errors.
- errno = 0;
+ #if defined(S_IRGRP)
+ perm_mode |= S_IRGRP;
+ #endif
+
+ #if defined(S_IROTH) 
+ perm_mode |= S_IROTH;
+ #endif
+
  if(mode == MODE::READ)
-  gzp = gzopen(path.c_str(), "rb");
+ {
+  open_flags = O_RDONLY;
+  trio_snprintf(zmode, sizeof(zmode), "rb");
+ }
  else if(mode == MODE::WRITE)
  {
-  char tmp[16];
-
+  open_flags = O_WRONLY | O_CREAT | O_TRUNC;
+  
   if(level >= 0)
-   trio_snprintf(tmp, sizeof(tmp), "wb%u", level);
+   trio_snprintf(zmode, sizeof(zmode), "wb%u", level);
   else
-   trio_snprintf(tmp, sizeof(tmp), "wbT");
-
-  gzp = gzopen(path.c_str(), tmp);
+   trio_snprintf(zmode, sizeof(zmode), "wbT");
  }
  else
   abort();
+
+ #ifdef O_BINARY
+  open_flags |= O_BINARY;
+ #elif defined(_O_BINARY)
+  open_flags |= _O_BINARY;
+ #endif
+
+ #ifdef WIN32
+ {
+  bool invalid_utf8;
+  std::u16string u16path = UTF8_to_UTF16(path, &invalid_utf8, true);
+
+  if(invalid_utf8)
+   throw MDFN_Error(EINVAL, _("Error opening file \"%s\": %s"), path_save.c_str(), _("Invalid UTF-8 in path."));
+
+  tmpfd = ::_wopen((const wchar_t*)u16path.c_str(), open_flags, perm_mode);
+ }
+ #else
+ tmpfd = ::open(path.c_str(), open_flags, perm_mode);
+ #endif
+
+ if(tmpfd == -1)
+ {
+  ErrnoHolder ene(errno);
+
+  throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path_save.c_str(), ene.StrError());
+ }
+
+ // Clear errno to 0 so can we detect internal zlib errors.
+ errno = 0;
+ gzp = gzdopen(tmpfd, zmode);
 
  if(!gzp)
  {
   ErrnoHolder ene(errno);
 
-  throw(MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path_save.c_str(), (ene.Errno() == 0) ? _("zlib error") : ene.StrError()));
+  ::close(tmpfd);
+
+  throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path_save.c_str(), (ene.Errno() == 0) ? _("zlib error") : ene.StrError());
  }
 }
 
@@ -71,7 +113,7 @@ GZFileStream::~GZFileStream()
  }
  catch(std::exception &e)
  {
-  MDFND_PrintError(e.what());
+  MDFND_OutputNotice(MDFN_NOTICE_ERROR, e.what());
  }
 }
 

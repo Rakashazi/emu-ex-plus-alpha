@@ -30,16 +30,16 @@ extern pcecd_drive_bus_t cd_bus; // Don't access this structure directly by name
 #define PCECD_Drive_kingACK_mask	0x040
 #define PCECD_Drive_kingSEL_mask	0x100
 
-#define BSY_signal ((const bool)(cd_bus.signals & PCECD_Drive_BSY_mask))
-#define ACK_signal ((const bool)(cd_bus.signals & PCECD_Drive_kingACK_mask))
-#define RST_signal ((const bool)(cd_bus.signals & PCECD_Drive_kingRST_mask))
-#define MSG_signal ((const bool)(cd_bus.signals & PCECD_Drive_MSG_mask))
-#define SEL_signal ((const bool)(cd_bus.signals & PCECD_Drive_kingSEL_mask))
-#define REQ_signal ((const bool)(cd_bus.signals & PCECD_Drive_REQ_mask))
-#define IO_signal ((const bool)(cd_bus.signals & PCECD_Drive_IO_mask))
-#define CD_signal ((const bool)(cd_bus.signals & PCECD_Drive_CD_mask))
+#define BSY_signal ((bool)(cd_bus.signals & PCECD_Drive_BSY_mask))
+#define ACK_signal ((bool)(cd_bus.signals & PCECD_Drive_kingACK_mask))
+#define RST_signal ((bool)(cd_bus.signals & PCECD_Drive_kingRST_mask))
+#define MSG_signal ((bool)(cd_bus.signals & PCECD_Drive_MSG_mask))
+#define SEL_signal ((bool)(cd_bus.signals & PCECD_Drive_kingSEL_mask))
+#define REQ_signal ((bool)(cd_bus.signals & PCECD_Drive_REQ_mask))
+#define IO_signal ((bool)(cd_bus.signals & PCECD_Drive_IO_mask))
+#define CD_signal ((bool)(cd_bus.signals & PCECD_Drive_CD_mask))
 
-#define DB_signal ((const uint8)cd_bus.DB)
+#define DB_signal ((uint8)cd_bus.DB)
 
 #define PCECD_Drive_GetDB() DB_signal
 #define PCECD_Drive_GetBSY() BSY_signal
@@ -54,15 +54,15 @@ extern pcecd_drive_bus_t cd_bus; // Don't access this structure directly by name
 #define PCECD_Drive_GetSEL() SEL_signal
 
 void PCECD_Drive_Power(pcecd_drive_timestamp_t system_timestamp) MDFN_COLD;
-void PCECD_Drive_SetDB(uint8 data);
+MDFN_FASTCALL void PCECD_Drive_SetDB(uint8 data);
 
 // These PCECD_Drive_Set* functions are kind of misnomers, at least in comparison to the PCECD_Drive_Get* functions...
 // They will set/clear the bits corresponding to the KING's side of the bus.
-void PCECD_Drive_SetACK(bool set);
-void PCECD_Drive_SetSEL(bool set);
-void PCECD_Drive_SetRST(bool set);
+MDFN_FASTCALL void PCECD_Drive_SetACK(bool set);
+MDFN_FASTCALL void PCECD_Drive_SetSEL(bool set);
+MDFN_FASTCALL void PCECD_Drive_SetRST(bool set);
 
-uint32 PCECD_Drive_Run(pcecd_drive_timestamp_t);
+MDFN_FASTCALL uint32 PCECD_Drive_Run(pcecd_drive_timestamp_t);
 void PCECD_Drive_ResetTS(void);
 
 enum

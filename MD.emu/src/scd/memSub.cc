@@ -2,6 +2,7 @@
 #include "pcm.h"
 #include "mem.hh"
 #include <imagine/logger/logger.h>
+#include <imagine/util/utility.h>
 
 #define READ_FONT_DATA(basemask) \
 { \

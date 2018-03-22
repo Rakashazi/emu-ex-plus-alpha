@@ -25,7 +25,6 @@
 #include "error.h"
 
 #include <new>
-#include <stdlib.h>
 
 // "Array" is a bit of a misnomer, but it helps avoid confusion with memset() semantics hopefully.
 static INLINE void MDFN_FastArraySet(uint64* const dst, const uint64 value, const size_t count)
@@ -200,7 +199,7 @@ class PODFastVector
 
    if(tmp == NULL)
    {
-    throw MDFN_Error(ErrnoHolder(errno));
+    throw MDFN_Error(ErrnoHolder(ENOMEM));
    }
 
    data = (T*)tmp;

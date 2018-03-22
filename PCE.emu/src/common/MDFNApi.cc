@@ -4,6 +4,7 @@
 #include <mednafen/state-driver.h>
 #include <mednafen/movie.h>
 #include <mednafen/cputest/cputest.h>
+#include <mednafen/MemoryStream.h>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/thread/Thread.hh>
@@ -20,25 +21,8 @@ struct MDFN_Thread : public IG::thread
 struct MDFN_Mutex : public std::mutex {};
 struct MDFN_Cond : public std::condition_variable {};
 
-int get_line(IO &file, std::string &str)
-{
- uint8 c;
-
- str.clear();	// or str.resize(0)??
-
- while(!file.readAll(&c, sizeof(c)))
- {
-  if(c == '\r' || c == '\n' || c == 0)
-   return(c);
-
-  str.push_back(c);
- }
-
- return(str.length() ? 256 : -1);
-}
-
 #ifndef NDEBUG
-void MDFN_printf(const char *format, ...) throw()
+void MDFN_printf(const char *format, ...) noexcept
 {
 	if(!logger_isEnabled())
 		return;
@@ -48,7 +32,7 @@ void MDFN_printf(const char *format, ...) throw()
 	va_end( args );
 }
 
-void MDFN_PrintError(const char *format, ...) throw()
+void MDFN_Notify(MDFN_NoticeType t, const char* format, ...) noexcept
 {
 	if(!logger_isEnabled())
 		return;
@@ -57,23 +41,13 @@ void MDFN_PrintError(const char *format, ...) throw()
 	logger_vprintf(LOG_E, format, args);
 	va_end( args );
 }
-
-void MDFN_DispMessage(const char *format, ...) throw()
-{
-	if(!logger_isEnabled())
-		return;
-	va_list args;
-	va_start( args, format );
-	logger_vprintf(LOG_M, format, args);
-	va_end( args );
-}
 #endif
 
-void MDFND_PrintError(const char *s)
+void MDFND_OutputNotice(MDFN_NoticeType t, const char* s) noexcept
 {
 	if(!logger_isEnabled())
 		return;
-	MDFN_PrintError("%s", s);
+	MDFN_Notify(t, "%s", s);
 }
 
 int MDFN_SavePNGSnapshot(const char *fname, const MDFN_Surface *src, const MDFN_Rect *rect, const MDFN_Rect *LineWidths)
@@ -162,9 +136,6 @@ void MDFND_SetStateStatus(StateStatusStruct *status) noexcept {}
 void NetplaySendState(void) { }
 void MDFND_NetplayText(const char *text, bool NetEcho) {}
 
-int Player_Init(int tsongs, UTF8 *album, UTF8 *artist, UTF8 *copyright, UTF8 **snames) { return 1; }
-void Player_Draw(const MDFN_Surface *surface, MDFN_Rect *dr, int CurrentSong, int16 *samples, int32 sampcount) { }
-
 int MDFNnetplay=0;
 
 void MDFN_StateAction(StateMem *sm, const unsigned load, const bool data_only)
@@ -187,3 +158,18 @@ int ff_get_cpu_flags_x86(void)
 	return flags;
 }
 #endif
+
+bool Stream::isMemoryStream() { return false; }
+
+bool MemoryStream::isMemoryStream() { return true; }
+
+namespace Time
+{
+
+int64 EpochTime(void)
+{
+ time_t ret = time(nullptr);
+ return (int64)ret;
+}
+
+}

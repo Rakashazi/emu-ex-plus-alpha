@@ -5,7 +5,6 @@
 #include "video/primitives.h"
 #include "video/text.h"
 
-void MDFN_ResetMessages(void);
-void MDFN_InitFontData(void);
+void MDFN_InitFontData(void) MDFN_COLD;
 
 #endif

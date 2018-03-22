@@ -285,7 +285,7 @@ uint32 PCE_PSG::GetRegister(const unsigned int id, char *special, const uint32 s
 	break;
 
   case PSG_GSREG_CH0_LFSR:
-	value = channel[ch].lfsr & 0x7FFF;
+	value = channel[ch].lfsr & 0x3FFFF;
 	break;
  }
  return(value);
@@ -351,7 +351,7 @@ void PCE_PSG::SetRegister(const unsigned int id, const uint32 value)
 	break;
 
   case PSG_GSREG_CH0_LFSR:
-	channel[ch].lfsr = value & 0x7FFF;
+	channel[ch].lfsr = value & 0x3FFFF;
 	break;
  }
 }
@@ -835,13 +835,13 @@ void PCE_PSG::StateAction(StateMem *sm, const unsigned load, const bool data_onl
    SFVARN(pt->frequency, "frequency"),
    SFVARN(pt->control, "control"),
    SFVARN(pt->balance, "balance"),
-   SFARRAYN(pt->waveform, 32, "waveform"),
+   SFVARN(pt->waveform, "waveform"),
    SFVARN(pt->waveform_index, "waveform_index"),
    SFVARN(pt->dda, "dda"),
    SFVARN(pt->noisectrl, "noisectrl"),
    SFVARN(pt->noisecount, "noisecount"),
    SFVARN(pt->lfsr, "lfsr"),
-   SFARRAY32N(pt->vl, 2, "vl"), // TODO
+   SFVARN(pt->vl, "vl"), // TODO
    SFEND
   };
   tmpstr[3] = '0' + ch;
@@ -857,6 +857,7 @@ void PCE_PSG::StateAction(StateMem *sm, const unsigned load, const bool data_onl
 
   SFVAR(vol_update_counter),
   SFVAR(vol_update_which),
+  SFVAR(vol_update_vllatch),
   SFVAR(vol_pending),
   SFEND
  };

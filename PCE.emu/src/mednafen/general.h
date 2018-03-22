@@ -1,8 +1,5 @@
-#ifndef _GENERAL_H
-#define _GENERAL_H
-
-#include <string>
-#include <imagine/io/IO.hh>
+#ifndef __MDFN_GENERAL_H
+#define __MDFN_GENERAL_H
 
 #if 0
 class FilePathMaker
@@ -57,5 +54,4 @@ void MDFN_GetFilePathComponents(const std::string &file_path, std::string *dir_p
 
 std::string MDFN_EvalFIP(const std::string &dir_path, const std::string &rel_path, bool skip_safety_check = false);
 
-int get_line(IO &file, std::string &str);
 #endif

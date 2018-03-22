@@ -22,7 +22,6 @@
 */
 
 #include "pce.h"
-#include <errno.h>
 #include "pcecd.h"
 #include <mednafen/hw_misc/arcade_card/arcade_card.h>
 #include <mednafen/hash/md5.h>
@@ -159,11 +158,11 @@ uint32 HuC_Load(MDFNFILE* fp)
   }
 
   uint64 m_len = (len + 8191)&~8191;
-  bool sf2_mapper = FALSE;
+  bool sf2_mapper = false;
 
   if(m_len >= sf2_threshold)
   {
-   sf2_mapper = TRUE;
+   sf2_mapper = true;
 
    if(m_len != sf2_required_size)
     m_len = sf2_required_size;
@@ -240,7 +239,7 @@ uint32 HuC_Load(MDFNFILE* fp)
    memset(SaveRAM, 0x00, 2048);
    memcpy(SaveRAM, BRAM_Init_String, 8);    // So users don't have to manually intialize the file cabinet
                                             // in the CD BIOS screen.
-
+   
    LoadSaveMemory(MDFN_MakeFName(MDFNMKF_SAV, 0, "sav"), SaveRAM, 2048);
 
    HuCPU.PCEWrite[0xF7] = SaveRAMWrite;
@@ -307,7 +306,7 @@ void HuC_LoadCD(const std::string& bios_path)
   PCE_IsCD = 1;
   PCE_InitCD();
 
-  MDFN_printf(_("Arcade Card Emulation:  %s\n"), PCE_ACEnabled ? _("Enabled") : _("Disabled"));
+  MDFN_printf(_("Arcade Card Emulation:  %s\n"), PCE_ACEnabled ? _("Enabled") : _("Disabled")); 
   for(int x = 0; x < 0x40; x++)
   {
    HuCPU.FastMap[x] = &ROMSpace[x * 8192];
@@ -355,9 +354,9 @@ void HuC_StateAction(StateMem *sm, int load, int data_only)
 {
  SFORMAT StateRegs[] = 
  {
-  SFARRAY(ROMSpace + 0x40 * 8192, IsPopulous ? 32768 : 0),
-  SFARRAY(SaveRAM, IsPopulous ? 0 : 2048),
-  SFARRAY(ROMSpace + 0x68 * 8192, PCE_IsCD ? 262144 : 0),
+  SFPTR8(ROMSpace + 0x40 * 8192, IsPopulous ? 32768 : 0),
+  SFPTR8(SaveRAM, IsPopulous ? 0 : 2048),
+  SFPTR8(ROMSpace + 0x68 * 8192, PCE_IsCD ? 262144 : 0),
   SFVAR(HuCSF2Latch),
   SFEND
  };

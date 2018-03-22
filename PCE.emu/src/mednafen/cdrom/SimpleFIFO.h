@@ -1,11 +1,6 @@
 #ifndef __MDFN_SIMPLEFIFO_H
 #define __MDFN_SIMPLEFIFO_H
 
-#include <vector>
-#include <assert.h>
-
-#include "../math_ops.h"
-
 template<typename T>
 class SimpleFIFO
 {

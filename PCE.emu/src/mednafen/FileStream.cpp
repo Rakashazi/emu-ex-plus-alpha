@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* FileStream.cpp:
-**  Copyright (C) 2010-2016 Mednafen Team
+**  Copyright (C) 2010-2017 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -28,13 +28,10 @@
 #include <mednafen/mednafen.h>
 
 #include <trio/trio.h>
-#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -90,7 +87,7 @@
  #endif
 #endif
 
-FileStream::FileStream(const std::string& path, const int mode, const bool do_lock) : OpenedMode(mode), mapping(NULL), mapping_size(0), locked(false), prev_was_write(-1)
+FileStream::FileStream(const std::string& path, const int mode, const int do_lock) : OpenedMode(mode), mapping(NULL), mapping_size(0), locked(false), prev_was_write(-1)
 {
  const char* fpom;
  int open_flags;
@@ -140,7 +137,21 @@ FileStream::FileStream(const std::string& path, const int mode, const bool do_lo
  perm_mode |= S_IROTH;
  #endif
 
- int tmpfd = ::open(path.c_str(), open_flags, perm_mode);
+ int tmpfd;
+ #ifdef WIN32
+ {
+  bool invalid_utf8;
+  std::u16string u16path = UTF8_to_UTF16(path, &invalid_utf8, true);
+
+  if(invalid_utf8)
+   throw MDFN_Error(EINVAL, _("Error opening file \"%s\": %s"), path_save.c_str(), _("Invalid UTF-8 in path."));
+
+  tmpfd = ::_wopen((const wchar_t*)u16path.c_str(), open_flags, perm_mode);
+ }
+ #else
+ tmpfd = ::open(path.c_str(), open_flags, perm_mode);
+ #endif
+
  if(tmpfd == -1)
  {
   ErrnoHolder ene(errno);
@@ -162,7 +173,7 @@ FileStream::FileStream(const std::string& path, const int mode, const bool do_lo
  {
   try 
   {
-   lock();
+   lock(do_lock < 0);
   }
   catch(...)
   {
@@ -193,7 +204,7 @@ FileStream::~FileStream()
  }
  catch(std::exception &e)
  {
-  MDFND_PrintError(e.what());
+  MDFND_OutputNotice(MDFN_NOTICE_ERROR, e.what());
  }
 }
 
@@ -381,7 +392,7 @@ uint64 FileStream::size(void)
  return (std::make_unsigned<decltype(buf.st_size)>::type)buf.st_size;
 }
 
-void FileStream::lock(void)
+void FileStream::lock(bool nb)
 {
  if(locked)
   return;
@@ -392,12 +403,14 @@ void FileStream::lock(void)
  memset(&olp, 0, sizeof(OVERLAPPED));
  olp.Offset = ~(DWORD)0;
  olp.OffsetHigh = ~(DWORD)0;
- if(!LockFileEx((HANDLE)_get_osfhandle(fileno(fp)), LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &olp))
+ if(!LockFileEx((HANDLE)_get_osfhandle(fileno(fp)), LOCKFILE_EXCLUSIVE_LOCK | (nb ? LOCKFILE_FAIL_IMMEDIATELY : 0), 0, 1, 0, &olp))
  {
-  throw MDFN_Error(0, _("Error locking opened file \"%s\": 0x%08x"), path_save.c_str(), (unsigned)GetLastError());
+  uint32 ec = GetLastError();
+
+  throw MDFN_Error((ec == ERROR_LOCK_VIOLATION) ? EWOULDBLOCK : 0, _("Error locking opened file \"%s\": 0x%08x"), path_save.c_str(), (unsigned)ec);
  }
  #else
- if(flock(fileno(fp), LOCK_EX) == -1)
+ if(flock(fileno(fp), LOCK_EX | (nb ? LOCK_NB : 0)) == -1)
  {
   ErrnoHolder ene(errno);
 

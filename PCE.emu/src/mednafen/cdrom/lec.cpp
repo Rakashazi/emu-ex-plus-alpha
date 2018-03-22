@@ -672,7 +672,7 @@ int main(int argc, char **argv)
     }
 
     if (memcmp(buffer1, buffer2, 2352) != 0) {
-    	MDFN_printf("Verify error at lba %ld\n", lba);
+      printf("Verify error at lba %ld\n", lba);
     }
 
     lec_scramble(buffer2);

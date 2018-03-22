@@ -1,11 +1,29 @@
-#ifndef __MDFN_CDROMFILE_H
-#define __MDFN_CDROMFILE_H
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* CDAccess.h:
+**  Copyright (C) 2011-2017 Mednafen Team
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
 
-#include <stdio.h>
-#include <string>
-#include <imagine/io/FileIO.hh>
+#ifndef __MDFN_CDROM_CDACCESS_H
+#define __MDFN_CDROM_CDACCESS_H
 
 #include "CDUtility.h"
+#include <string>
 
 class CDAccess
 {
@@ -14,9 +32,7 @@ class CDAccess
  CDAccess();
  virtual ~CDAccess();
 
- virtual bool Read_Sector(uint8 *buf, int32 lba, uint32 size) = 0;
-
- virtual bool Read_Raw_Sector(uint8 *buf, int32 lba) = 0;
+ virtual int Read_Raw_Sector(uint8 *buf, int32 lba) = 0;
 
  // Returns false if the read wouldn't be "fast"(i.e. reading from a disk),
  // or if the read can't be done in a thread-safe re-entrant manner.
@@ -27,6 +43,8 @@ class CDAccess
  virtual void Read_TOC(CDUtility::TOC *toc) = 0;
 
  virtual void HintReadSector(uint32 lba, int32 count) = 0;
+
+ virtual int Read_Sector(uint8 *buf, int32 lba, uint32 size) = 0;
 
  private:
  CDAccess(const CDAccess&);	// No copy constructor.

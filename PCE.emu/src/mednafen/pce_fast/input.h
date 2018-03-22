@@ -4,7 +4,7 @@
 namespace PCE_Fast
 {
 
-void PCEINPUT_Init(void);
+void PCEINPUT_Init(void) MDFN_COLD;
 void PCEINPUT_SettingChanged(const char *name);
 void PCEINPUT_SetInput(unsigned port, const char *type, uint8 *ptr);
 uint8 INPUT_Read(unsigned int A);

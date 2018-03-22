@@ -2,10 +2,6 @@
 #define __MDFN_FILE_H
 
 #include <mednafen/Stream.h>
-#include <mednafen/endian.h>
-
-#include <vector>
-#include <string>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -63,6 +59,9 @@ class MDFNFILE
 	std::unique_ptr<Stream> str;
 
 	void Open(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
+
+	MDFNFILE(const MDFNFILE&);
+	MDFNFILE& operator=(const MDFNFILE&);
 };
 
 class PtrLengthPair
@@ -109,6 +108,6 @@ std::unique_ptr<Stream> MDFN_AmbigGZOpenHelper(const std::string& path, std::vec
 
 void MDFN_mkdir_T(const char* path);
 int MDFN_stat(const char*, struct stat*);
-int MDFN_unlink(const char* path);
-int MDFN_rename(const char* oldpath, const char* newpath);
+void MDFN_unlink(const char* path);
+void MDFN_rename(const char* oldpath, const char* newpath);
 #endif

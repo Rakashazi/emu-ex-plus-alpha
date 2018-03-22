@@ -1,7 +1,7 @@
 #ifndef __MDFN_PNG_H
 #define __MDFN_PNG_H
 
-#include "../video.h"
+#include <mednafen/video.h>
 #include <mednafen/FileStream.h>
 
 class PNGWrite

@@ -2,16 +2,14 @@
 #define __MDFN_CDACCESS_IMAGE_H
 
 #include <map>
-#include <array>
-#include <imagine/io/FileIO.hh>
 
-class Stream;
+class FileStreamIOWrapper;
 class CDAFReader;
 
 struct CDRFILE_TRACK_INFO
 {
   int32 LBA = 0;
-
+	
 	uint32 DIFormat = 0;
 	uint8 subq_control = 0;
 
@@ -23,7 +21,7 @@ struct CDRFILE_TRACK_INFO
 	int32 index[100]{};
 
 	int32 sectors = 0;	// Not including pregap sectors!
-	std::shared_ptr<FileIO> fp;
+  std::shared_ptr<FileStreamIOWrapper> fp{};
 	bool FirstFileInstance = 0;
 	bool RawAudioMSBFirst = 0;
 	long FileOffset = 0;
@@ -32,8 +30,6 @@ struct CDRFILE_TRACK_INFO
 	uint32 LastSamplePos = 0;
 
 	CDAFReader *AReader{};
-
-	constexpr CDRFILE_TRACK_INFO() {}
 };
 #if 0
 struct Medium_Chunk
@@ -68,25 +64,27 @@ class CDAccess_Image : public CDAccess
  public:
 
  CDAccess_Image(const std::string& path, bool image_memcache);
- ~CDAccess_Image() override;
+ ~CDAccess_Image() final;
 
- bool Read_Raw_Sector(uint8 *buf, int32 lba) override;
- bool Fast_Read_Raw_PW_TSRE(uint8* pwbuf, int32 lba) const noexcept override;
+ int Read_Raw_Sector(uint8 *buf, int32 lba) final;
 
- bool Read_Sector(uint8 *buf, int32 lba, uint32 size) override;
+ bool Fast_Read_Raw_PW_TSRE(uint8* pwbuf, int32 lba) const noexcept final;
 
- void Read_TOC(CDUtility::TOC *toc) override;
+ void Read_TOC(CDUtility::TOC *toc) final;
 
- void HintReadSector(uint32 lba, int32 count) override;
+ void HintReadSector(uint32 lba, int32 count) final;
+
+ int Read_Sector(uint8 *buf, int32 lba, uint32 size) final;
+
  private:
 
- int32 NumTracks;
- int32 FirstTrack;
- int32 LastTrack;
- int32 total_sectors;
- uint8 disc_type;
- CDRFILE_TRACK_INFO Tracks[100]; // Track #0(HMM?) through 99
- CDUtility::TOC toc;
+ int32 NumTracks = 0;
+ int32 FirstTrack = 0;
+ int32 LastTrack = 0;
+ int32 total_sectors = 0;
+ uint8 disc_type = 0;
+ CDRFILE_TRACK_INFO Tracks[100]{}; // Track #0(HMM?) through 99
+ CDUtility::TOC toc{};
 
  std::map<uint32, std::array<uint8, 12>> SubQReplaceMap;
 
@@ -101,7 +99,7 @@ class CDAccess_Image : public CDAccess
  // MakeSubPQ will OR the simulated P and Q subchannel data into SubPWBuf.
  int32 MakeSubPQ(int32 lba, uint8 *SubPWBuf) const;
 
- void ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int tracknum, const std::string &filename, const char *binoffset, const char *msfoffset, const char *length, bool image_memcache, std::map<std::string, std::shared_ptr<FileIO>> &toc_streamcache);
+ void ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int tracknum, const std::string &filename, const char *binoffset, const char *msfoffset, const char *length, bool image_memcache, std::map<std::string, std::shared_ptr<FileStreamIOWrapper>> &toc_streamcache);
  uint32 GetSectorCount(CDRFILE_TRACK_INFO *track);
 };
 

@@ -22,19 +22,14 @@
 #ifndef __MDFN_STREAM_H
 #define __MDFN_STREAM_H
 
+#include <common/FileStreamIOWrapper.hh>
+
 // TODO?: BufferedStream, no virtual functions, yes inline functions, constructor takes a Stream* argument.
 
 #include <mednafen/types.h>
 
 #include "gettext.h"
 #define _(String) gettext (String)
-
-#include <errno.h>
-
-#include <stdio.h>	// For SEEK_* defines, which we will use in Stream out of FORCE OF HABIT.
-#include <string.h>
-
-#include <string>
 
 /*
  The data read into the pointer passed to read*() functions should be considered undefined if the function throws
@@ -108,6 +103,8 @@ class Stream
 				// Manually calling this function isn't strictly necessary, but recommended when the
 				// stream is writeable; it will be called automatically from the destructor, with any
 				// exceptions thrown caught and logged.
+
+ virtual bool isMemoryStream();
 
  //
  // Utility functions(TODO):
@@ -237,6 +234,9 @@ class Stream
  void put_string(const std::string &str);
 #endif
 
+ bool read_utf8_bom(void);
+ void write_utf8_bom(void);
+
  //
  // Read until end-of-stream(or count), discarding any read data, and returns the amount of data "read".
  //  (Useful for detecting and printing warnings about extra garbage data without needing to call size(),
@@ -257,5 +257,31 @@ class Stream
  //
  uint64 alloc_and_read(void** data_out, uint64 size_limit = ~(uint64)0);
 };
+
+//
+//
+//
+/*
+class StreamPosFilter final : public Stream
+{
+ public:
+ StreamPosFilter(std::shared_ptr<Stream> s_);
+
+ virtual uint64 read(void *data, uint64 count, bool error_on_eos = true) override;
+ virtual void write(const void *data, uint64 count) override;
+ virtual void seek(int64 offset, int whence) override;
+ virtual uint64 tell(void) override;
+ virtual uint64 size(void) override;
+ virtual void close(void) override;
+ virtual uint64 attributes(void) override;
+ virtual void truncate(uint64 length) override;
+ virtual void flush(void) override;
+
+ private:
+
+ uint64 pos;
+ std::shared_ptr<Stream> s;
+};
+*/
 
 #endif

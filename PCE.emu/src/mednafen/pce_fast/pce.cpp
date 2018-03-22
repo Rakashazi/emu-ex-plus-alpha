@@ -65,17 +65,17 @@ static DECLFW(PCENullWrite)
 
 static DECLFR(BaseRAMReadSGX)
 {
- return((BaseRAM - (0xF8 * 8192))[A]);
+ return BaseRAM[(size_t)A - (0xF8 * 8192)];
 }
 
 static DECLFW(BaseRAMWriteSGX)
 {
- (BaseRAM - (0xF8 * 8192))[A] = V;
+ BaseRAM[(size_t)A - (0xF8 * 8192)] = V;
 }
 
 static DECLFR(BaseRAMRead)
 {
- return((BaseRAM - (0xF8 * 8192))[A]);
+ return BaseRAM[(size_t)A - (0xF8 * 8192)];
 }
 
 static DECLFR(BaseRAMRead_Mirrored)
@@ -85,7 +85,7 @@ static DECLFR(BaseRAMRead_Mirrored)
 
 static DECLFW(BaseRAMWrite)
 {
- (BaseRAM - (0xF8 * 8192))[A] = V;
+ BaseRAM[(size_t)A - (0xF8 * 8192)] = V;
 }
 
 static DECLFW(BaseRAMWrite_Mirrored)
@@ -130,21 +130,21 @@ static DECLFW(IOWrite)
 	       break;
 
   case 4: PCEIODataBuffer = V; INPUT_Write(A, V); break;
-	case 5: PCEIODataBuffer = V; HuC6280_IRQStatusWrite(A, V); break;
-	case 6:
-	       if(!PCE_IsCD)
-		break;
+  case 5: PCEIODataBuffer = V; HuC6280_IRQStatusWrite(A, V); break;
+  case 6: 
+	  if(!PCE_IsCD)
+	   break;
 
-	       if((A & 0x1E00) == 0x1A00)
-	       {
-		if(arcade_card)
-		 arcade_card->Write(A & 0x1FFF, V);
-	       }
-	       else
-	       {
-	         PCECD_Write(HuCPU.timestamp * 3, A, V);
-	       }
-	       break;
+	  if((A & 0x1E00) == 0x1A00)
+	  {
+	   if(arcade_card)
+	    arcade_card->Write(A & 0x1FFF, V);
+	  }
+	  else
+	  {
+	   PCECD_Write(HuCPU.timestamp * 3, A, V);
+	  }
+	  break;
 
   case 7: break;	// Expansion.
  }
@@ -220,7 +220,7 @@ static const struct
 {
  uint32 crc;
  const char* name;
-} sgx_table[] =
+} sgx_table[] = 
 {
 	{ 0xbebfe042, "Darius Plus", },
 	{ 0x4c2126b0, "Aldynes" },
@@ -397,7 +397,7 @@ static MDFN_COLD bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
  uint8 sector_buffer[2048];
  CDIF *cdiface = (*CDInterfaces)[0];
  CDUtility::TOC toc;
- bool ret = FALSE;
+ bool ret = false;
 
  memset(sector_buffer, 0, sizeof(sector_buffer));
 
@@ -407,16 +407,16 @@ static MDFN_COLD bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
  {
   if(toc.tracks[track].control & 0x4)
   {
-   cdiface->ReadSector(sector_buffer, toc.tracks[track].lba, 1);
+   if(cdiface->ReadSector(sector_buffer, toc.tracks[track].lba, 1) != 0x1)
+    break;
 
    if(!memcmp((char*)sector_buffer, (char *)magic_test, 0x20))
-    ret = TRUE;
+    ret = true;
 
    // PCE CD BIOS apparently only looks at the first data track.
    break;
   }
  }
-
 
  // If it's a PC-FX CD(Battle Heat), return false.
  // This is very kludgy.
@@ -424,24 +424,25 @@ static MDFN_COLD bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
  {
   if(toc.tracks[track].control & 0x4)
   {
-   cdiface->ReadSector(sector_buffer, toc.tracks[track].lba, 1);
-   if(!strncmp("PC-FX:Hu_CD-ROM", (char*)sector_buffer, strlen("PC-FX:Hu_CD-ROM")))
+   if(cdiface->ReadSector(sector_buffer, toc.tracks[track].lba, 1) == 0x1)
    {
-    return(false);
+    if(!strncmp("PC-FX:Hu_CD-ROM", (char*)sector_buffer, strlen("PC-FX:Hu_CD-ROM")))
+    {
+     return false;
+    }
    }
   }
  }
-
 
  // Now, test for the Games Express CD games.  The GE BIOS seems to always look at sector 0x10, but only if the first track is a
  // data track.
  if(toc.first_track == 1 && (toc.tracks[1].control & 0x4))
  {
-	if(cdiface->ReadSector(sector_buffer, 0x10, 1))
+  if(cdiface->ReadSector(sector_buffer, 0x10, 1) == 0x1)
   {
    if(!memcmp((char *)sector_buffer + 0x8, "HACKER CD ROM SYSTEM", 0x14))
    {
-    ret = TRUE;
+    ret = true;
    }
   }
  }
@@ -449,28 +450,55 @@ static MDFN_COLD bool TestMagicCD(std::vector<CDIF *> *CDInterfaces)
  return(ret);
 }
 
+static MDFN_COLD bool DetectSGXCD(std::vector<CDIF*>* CDInterfaces)
+{
+ CDIF *cdiface = (*CDInterfaces)[0];
+ CDUtility::TOC toc;
+ uint8 sector_buffer[2048];
+ bool ret = false;
+
+ memset(sector_buffer, 0, sizeof(sector_buffer));
+
+ cdiface->ReadTOC(&toc);
+
+ // Check all data tracks for the 16-byte magic(4D 65 64 6E 61 66 65 6E 74 AB 90 19 42 62 7D E6) at offset 0x86A(assuming mode 1 sectors).
+ for(int32 track = toc.first_track; track <= toc.last_track; track++)
+ {
+  if(toc.tracks[track].control & 0x4)
+  {
+   if(cdiface->ReadSector(sector_buffer, toc.tracks[track].lba + 1, 1) != 0x1)
+    continue;
+
+   if(MDFN_de64msb(&sector_buffer[0x6A]) == 0x4D65646E6166656EULL && MDFN_de64msb(&sector_buffer[0x6A + 8]) == 0x74AB901942627DE6ULL)
+    ret = true;
+  }
+ }
+
+ return ret;
+}
+
 static MDFN_COLD void LoadCD(std::vector<CDIF *> *CDInterfaces)
 {
  try
  {
-	 std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios"));
+  std::string bios_path = MDFN_MakeFName(MDFNMKF_FIRMWARE, 0, MDFN_GetSettingS("pce_fast.cdbios"));
 
-	 //IsHES = 0;
-	 IsSGX = 0;
+  //IsHES = 0;
+  IsSGX = DetectSGXCD(CDInterfaces);
 
-	 LoadCommonPre();
+  LoadCommonPre();
 
-	 HuC_LoadCD(bios_path.c_str());
+  HuC_LoadCD(bios_path.c_str());
 
-	 cdifs = CDInterfaces;
-	 PCECD_Drive_SetDisc(true, NULL, true);
+  cdifs = CDInterfaces;
+  PCECD_Drive_SetDisc(true, NULL, true);
 
-	 LoadCommon();
+  LoadCommon();
  }
  catch(...)
  {
-	 Cleanup();
-	 throw;
+  Cleanup();
+  throw;
  }
 }
 
@@ -514,7 +542,7 @@ static void Emulate(EmulateSpecStruct *espec)
   nf.Gshift = 5;
   nf.Bshift = 0;
   nf.Ashift = 16;
-
+  
   nf.Rprec = 5;
   nf.Gprec = 6;
   nf.Bprec = 5;
@@ -549,10 +577,10 @@ static void Emulate(EmulateSpecStruct *espec)
  firstcat = false;
 #endif
 
- /*if(unlikely(espec->VideoFormatChanged))
-  VDC_SetPixelFormat(espec->surface->format); //.Rshift, espec->surface->format.Gshift, espec->surface->format.Bshift);
+ if(espec->VideoFormatChanged)
+  VDC_SetPixelFormat(espec->surface->format, espec->CustomPalette, espec->CustomPaletteNumEntries); //.Rshift, espec->surface->format.Gshift, espec->surface->format.Bshift);
 
- if(unlikely(espec->SoundFormatChanged))
+ if(espec->SoundFormatChanged)
  {
   for(int y = 0; y < 2; y++)
   {
@@ -560,10 +588,10 @@ static void Emulate(EmulateSpecStruct *espec)
    sbuf[y].clock_rate((long)(PCE_MASTER_CLOCK / 3));
    sbuf[y].bass_freq(10);
   }
- }*/
+ }
  VDC_RunFrame(espec, IsHES);
  if(espec->video)
-	 MDFND_commitVideoFrame(espec);
+	MDFND_commitVideoFrame(espec);
 
  if(PCE_IsCD)
  {
@@ -598,7 +626,7 @@ static void StateAction(StateMem *sm, const unsigned load, const bool data_only)
 {
  SFORMAT StateRegs[] =
  {
-  SFARRAY(BaseRAM, IsSGX? 32768 : 8192),
+  SFPTR8(BaseRAM, IsSGX? 32768 : 8192),
   SFVAR(PCEIODataBuffer),
   SFEND
  };
@@ -675,7 +703,7 @@ static void DoSimpleCommand(int cmd)
  }
 }
 
-static const MDFNSetting PCESettings[] =
+static const MDFNSetting PCESettings[] = 
 {
   { "pce_fast.correct_aspect", MDFNSF_CAT_VIDEO, gettext_noop("Correct the aspect ratio."), NULL, MDFNST_BOOL, "1" },
   { "pce_fast.slstart", MDFNSF_NOFLAGS, gettext_noop("First rendered scanline."), NULL, MDFNST_UINT, "4", "0", "239" },
@@ -688,7 +716,7 @@ static const MDFNSetting PCESettings[] =
   { "pce_fast.cdspeed", MDFNSF_EMU_STATE | MDFNSF_UNTRUSTED_SAFE, gettext_noop("CD-ROM data transfer speed multiplier."), NULL, MDFNST_UINT, "1", "1", "100" },
   { "pce_fast.nospritelimit", MDFNSF_NOFLAGS, gettext_noop("Remove 16-sprites-per-scanline hardware limit."), NULL, MDFNST_BOOL, "0" },
 
-  { "pce_fast.cdbios", MDFNSF_EMU_STATE, gettext_noop("Path to the CD BIOS"), NULL, MDFNST_STRING, "syscard3.pce" },
+  { "pce_fast.cdbios", MDFNSF_EMU_STATE | MDFNSF_CAT_PATH, gettext_noop("Path to the CD BIOS"), NULL, MDFNST_STRING, "syscard3.pce" },
 
   { "pce_fast.adpcmlp", MDFNSF_NOFLAGS, gettext_noop("Enable dynamic ADPCM lowpass filter."), NULL, MDFNST_BOOL, "0" },
   { "pce_fast.cdpsgvolume", MDFNSF_NOFLAGS, gettext_noop("PSG volume when playing a CD game."), NULL, MDFNST_UINT, "100", "0", "200" },
@@ -712,7 +740,7 @@ static const FileExtensionSpecStruct KnownExtensions[] =
 
 static const CustomPalette_Spec CPInfo[] =
 {
- { gettext_noop("PCE/TG16 9-bit RGB"), NULL, { 512, 1024, 0 } },
+ { gettext_noop("PCE/TG16 9-bit GRB.  If only 512 triplets are present, the remaining 512 greyscale colors will be calculated automatically."), NULL, { 512, 1024, 0 } },
 
  { NULL, NULL }
 };
@@ -780,3 +808,4 @@ MDFNGI EmulatedPCE_Fast =
 
  2,     // Number of output sound channels
 };
+

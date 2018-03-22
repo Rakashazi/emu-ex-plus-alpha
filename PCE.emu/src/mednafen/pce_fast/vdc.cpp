@@ -24,7 +24,6 @@
 #include "pcecd.h"
 #include <mednafen/cputest/cputest.h>
 #include <trio/trio.h>
-#include <math.h>
 
 namespace PCE_Fast
 {
@@ -1000,11 +999,7 @@ static void MixBGSPR(const uint32 count, const uint8*  __restrict__ bg_linebuf, 
  bg_linebuf += count;
  spr_linebuf += count;
  target += count;
- #if SIZEOF_VOID_P == 8
- uint64 x = -(uint64)count;
- #else
- uint32 x = -count;
- #endif
+ size_t x = -(size_t)count;
 
  #ifdef __x86_64__
  if(1)
@@ -1014,11 +1009,7 @@ static void MixBGSPR(const uint32 count, const uint8*  __restrict__ bg_linebuf, 
  {
   do
   {
-#if SIZEOF_VOID_P == 8
-   uint64 pixel = bg_linebuf[x];
-#else
-   uint32 pixel = bg_linebuf[x];
-#endif
+   size_t pixel = bg_linebuf[x];
    uint32 spr_pixel = spr_linebuf[x];
 
    asm volatile(
@@ -1657,7 +1648,7 @@ void VDC_StateAction(StateMem *sm, int load, int data_only)
   SFVARN(vce.CR, "VCECR"),
   SFVARN(vce.dot_clock, "dot clock"),
   SFVARN(vce.ctaddress, "ctaddress"),
-  SFARRAY16N(vce.color_table, 0x200, "color_table"),
+  SFPTR16N(vce.color_table, 0x200, "color_table"),
   SFEND
  };
 
@@ -1677,8 +1668,8 @@ void VDC_StateAction(StateMem *sm, int load, int data_only)
   SFORMAT VPC_StateRegs[] =
   {
    SFVARN(vpc.st_mode, "st_mode"),
-   SFARRAYN(vpc.priority, 2, "priority"),
-   SFARRAY16N(vpc.winwidths, 2, "winwidths"),
+   SFPTR8N(vpc.priority, 2, "priority"),
+   SFPTR16N(vpc.winwidths, 2, "winwidths"),
    SFEND
   };
   MDFNSS_StateAction(sm, load, data_only, VPC_StateRegs, "VPC");
@@ -1720,9 +1711,9 @@ void VDC_StateAction(StateMem *sm, int load, int data_only)
         SFVARN(vdc->write_latch, "write_latch"),
         SFVARN(vdc->status, "status"),
 
-        SFARRAY16N(vdc->SAT, 0x100, "SAT"),
+        SFPTR16N(vdc->SAT, 0x100, "SAT"),
 
-        SFARRAY16N(vdc->VRAM, VRAM_Size, "VRAM"),
+        SFPTR16N(vdc->VRAM, VRAM_Size, "VRAM"),
         SFVARN(vdc->DMAReadBuffer, "DMAReadBuffer"),
         SFVARN(vdc->DMAReadWrite, "DMAReadWrite"),
         SFVARN(vdc->DMARunning, "DMARunning"),

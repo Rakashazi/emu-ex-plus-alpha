@@ -18,8 +18,6 @@
 #include "pce.h"
 #include "input.h"
 #include "huc.h"
-#include <mednafen/endian.h>
-#include <imagine/util/utility.h>
 
 namespace PCE_Fast
 {
@@ -60,9 +58,9 @@ void PCEINPUT_SetInput(unsigned port, const char *type, uint8 *ptr)
 {
  assert(port < 5);
 
- if(!strcasecmp(type, "gamepad"))
+ if(!strcmp(type, "gamepad"))
   InputTypes[port] = 1;
- else if(!strcasecmp(type, "mouse"))
+ else if(!strcmp(type, "mouse"))
   InputTypes[port] = 2;
  else
   InputTypes[port] = 0;
@@ -99,9 +97,9 @@ void INPUT_Frame(void)
   }
   else if(InputTypes[x] == 2)
   {
-   mouse_x[x] += (int32)MDFN_de32lsb(data_ptr[x] + 0);
-   mouse_y[x] += (int32)MDFN_de32lsb(data_ptr[x] + 4);
-   pce_mouse_button[x] = *(uint8 *)(data_ptr[x] + 8);
+   mouse_x[x] += (int16)MDFN_de16lsb(data_ptr[x] + 0);
+   mouse_y[x] += (int16)MDFN_de16lsb(data_ptr[x] + 2);
+   pce_mouse_button[x] = *(uint8 *)(data_ptr[x] + 4);
   }
  }
 }
@@ -163,11 +161,7 @@ uint8 INPUT_Read(unsigned int A)
    }
    else
    {
-    if(pce_mouse_button[tmp_ri] & 1)
-     ret ^= 0x3; //pce_mouse_button[tmp_ri];
-
-    if(pce_mouse_button[tmp_ri] & 0x2)
-     ret ^= 0x8;
+    ret ^= pce_mouse_button[tmp_ri] & 0xF;
    }
   }
   else
@@ -222,7 +216,7 @@ void INPUT_StateAction(StateMem *sm, int load, int data_only)
 {
  SFORMAT StateRegs[] =
  {
-  SFARRAYB(AVPad6Which, 5),
+  SFVAR(AVPad6Which),
   
   SFVARN(mouse_last_meow[0], "mlm_0"),
   SFVARN(mouse_last_meow[1], "mlm_1"),
@@ -230,13 +224,13 @@ void INPUT_StateAction(StateMem *sm, int load, int data_only)
   SFVARN(mouse_last_meow[3], "mlm_3"),
   SFVARN(mouse_last_meow[4], "mlm_4"),
 
-  SFARRAY32(mouse_x, 5),
-  SFARRAY32(mouse_y, 5),
-  SFARRAY16(mouse_rel, 5),
-  SFARRAY(pce_mouse_button, 5),
-  SFARRAY(mouse_index, 5),
+  SFVAR(mouse_x),
+  SFVAR(mouse_y),
+  SFVAR(mouse_rel),
+  SFVAR(pce_mouse_button),
+  SFVAR(mouse_index),
 
-  SFARRAY16(pce_jp_data, 5),
+  SFVAR(pce_jp_data),
   SFVAR(sel),
   SFVAR(read_index),
   SFEND
@@ -245,35 +239,37 @@ void INPUT_StateAction(StateMem *sm, int load, int data_only)
  MDFNSS_StateAction(sm, load, data_only, StateRegs, "JOY");
 }
 
-static const char* ModeSwitchPositions[] =
+static const IDIIS_SwitchPos ModeSwitchPositions[] =
 {
- gettext_noop("2-button"),
- gettext_noop("6-button"),
+ { "2", gettext_noop("2-button"), gettext_noop("Basic 2-button controller mode, compatible with practically all games.") },
+ { "6", gettext_noop("6-button"), gettext_noop("6-button controller mode, only for compatible games(incompatible games will behave in a quite loopy manner).") },
 };
 
 static const IDIISG GamepadIDII =
 {
- { "i", "I", 12, IDIT_BUTTON_CAN_RAPID, NULL },
- { "ii", "II", 11, IDIT_BUTTON_CAN_RAPID, NULL },
- { "select", "SELECT", 4, IDIT_BUTTON, NULL },
- { "run", "RUN", 5, IDIT_BUTTON, NULL },
- { "up", "UP ↑", 0, IDIT_BUTTON, "down" },
- { "right", "RIGHT →", 3, IDIT_BUTTON, "left" },
- { "down", "DOWN ↓", 1, IDIT_BUTTON, "up" },
- { "left", "LEFT ←", 2, IDIT_BUTTON, "right" },
- { "iii", "III", 10, IDIT_BUTTON, NULL },
- { "iv", "IV", 7, IDIT_BUTTON, NULL },
- { "v", "V", 8, IDIT_BUTTON, NULL },
- { "vi", "VI", 9, IDIT_BUTTON, NULL },
- IDIIS_Switch("mode_select", "Mode", 6, ModeSwitchPositions, sizeof(ModeSwitchPositions) / sizeof(ModeSwitchPositions[0])),
+ IDIIS_ButtonCR("i", "I", 12),
+ IDIIS_ButtonCR("ii", "II", 11),
+ IDIIS_Button("select", "SELECT", 4),
+ IDIIS_Button("run", "RUN", 5),
+ IDIIS_Button("up", "UP ↑", 0, "down"),
+ IDIIS_Button("right", "RIGHT →", 3, "left"),
+ IDIIS_Button("down", "DOWN ↓", 1, "up"),
+ IDIIS_Button("left", "LEFT ←", 2, "right"),
+ IDIIS_Button("iii", "III", 10),
+ IDIIS_Button("iv", "IV", 7),
+ IDIIS_Button("v", "V", 8),
+ IDIIS_Button("vi", "VI", 9),
+ IDIIS_Switch("mode_select", "Mode", 6, ModeSwitchPositions),
 };
 
 static const IDIISG MouseIDII =
 {
- { "x_axis", "X Axis", -1, IDIT_X_AXIS_REL },
- { "y_axis", "Y Axis", -1, IDIT_Y_AXIS_REL },
- { "left", "Left Button", 0, IDIT_BUTTON, NULL },
- { "right", "Right Button", 1, IDIT_BUTTON, NULL },
+ IDIIS_AxisRel("motion", "Motion",/**/ "left", "Left",/**/ "right", "Right", 0),
+ IDIIS_AxisRel("motion", "Motion",/**/ "up", "Up",/**/ "down", "Down", 1),
+ IDIIS_Button("right", "Right Button", 5),
+ IDIIS_Button("left", "Left Button", 4),
+ IDIIS_Button("select", "SELECT", 2),
+ IDIIS_Button("run", "RUN", 3),
 };
 
 static const std::vector<InputDeviceInfoStruct> InputDeviceInfo =

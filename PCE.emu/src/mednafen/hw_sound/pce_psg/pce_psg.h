@@ -126,12 +126,12 @@ class PCE_PSG
 	};
 
 
-        PCE_PSG(int32* hr_l, int32* hr_r, int want_revision);
-        ~PCE_PSG();
+        PCE_PSG(int32* hr_l, int32* hr_r, int want_revision) MDFN_COLD;
+        ~PCE_PSG() MDFN_COLD;
 
 	void StateAction(StateMem *sm, const unsigned load, const bool data_only);
 
-        void Power(const int32 timestamp);
+        void Power(const int32 timestamp) MDFN_COLD;
         void Write(int32 timestamp, uint8 A, uint8 V);
 
 	void SetVolume(double new_volume);

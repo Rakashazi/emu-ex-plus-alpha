@@ -93,7 +93,7 @@ static int adviceToMAdv(IO::Advice advice)
 	switch(advice)
 	{
 		default: return MADV_NORMAL;
-		case IO::Advice::SEQUENTIAL: return MADV_NORMAL;
+		case IO::Advice::SEQUENTIAL: return MADV_SEQUENTIAL;
 		case IO::Advice::RANDOM: return MADV_RANDOM;
 		case IO::Advice::WILLNEED: return MADV_WILLNEED;
 	}

@@ -17,6 +17,7 @@
 
 #include "pce.h"
 #include "vdc.h"
+#include <imagine/util/utility.h>
 
 namespace PCE_Fast
 {
@@ -622,10 +623,6 @@ void HuC6280_Run(int32 cycles)
 	{
          next_event = (next_user_event < HuCPU.timer_next_timestamp) ? next_user_event : HuCPU.timer_next_timestamp;
 
-   assert(HuCPU.in_block_move <= IBM_TIN);
-   static void *jumpFunc[] = { 0, &&continue_the_TIA, &&continue_the_TAI,
-   	&&continue_the_TDD, &&continue_the_TII, &&continue_the_TIN };
-   goto *jumpFunc[HuCPU.in_block_move];
 	 switch(HuCPU.in_block_move)
 	 {
 	  case IBM_TIA: goto continue_the_TIA;
@@ -633,6 +630,7 @@ void HuC6280_Run(int32 cycles)
 	  case IBM_TDD: goto continue_the_TDD;
 	  case IBM_TII: goto continue_the_TII;
 	  case IBM_TIN:	goto continue_the_TIN;
+	  default: bug_unreachable("HuCPU.in_block_move:%d", HuCPU.in_block_move);
 	 }
 	}
 
@@ -748,7 +746,7 @@ void HuC6280_StateAction(StateMem *sm, int load, int data_only)
 
   SFVARN(HuCPU.IRQMask, "IRQMask"),
   SFVARN(HuCPU.IRQMaskDelay, "IRQMaskDelay"),
-  SFARRAYN(HuCPU.MPR, 8, "MPR"),
+  SFPTR8N(HuCPU.MPR, 8, "MPR"),
   SFVARN(HuCPU.timer_status, "timer_status"),
   SFVARN(HuCPU.timer_value, "timer_value"),
   SFVARN(HuCPU.timer_load, "timer_load"),
