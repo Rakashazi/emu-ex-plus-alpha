@@ -301,8 +301,12 @@ void setmirrorw(int a, int b, int c, int d) {
 	vnapage[3] = NTARAM + d * 0x400;
 }
 
-void setmirror(int t) {
-	FCEUPPU_LineUpdate();
+#ifdef __aarch64__
+// TODO: Bad code generated when compiling with -02 or higher
+[[clang::optnone]]
+#endif
+static void doMirror(int t, int mirrorhard)
+{
 	if (!mirrorhard) {
 		switch (t) {
 		case MI_H:
@@ -320,6 +324,11 @@ void setmirror(int t) {
 		}
 		PPUNTARAM = 0xF;
 	}
+}
+
+void setmirror(int t) {
+	FCEUPPU_LineUpdate();
+	doMirror(t, mirrorhard);
 }
 
 void SetupCartMirroring(int m, int hard, uint8 *extra) {

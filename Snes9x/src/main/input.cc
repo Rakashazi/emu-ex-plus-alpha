@@ -51,7 +51,14 @@ int snesInputPort = SNES_JOYPAD;
 static uint16 joypadData[5]{};
 #endif
 
-bool EmuSystem::touchControlsApplicable() { return snesActiveInputPort == SNES_JOYPAD; }
+bool EmuSystem::touchControlsApplicable()
+{
+	#ifndef SNES9X_VERSION_1_4
+	return snesActiveInputPort == SNES_JOYPAD;
+	#else
+	return IPPU.Controller == SNES_JOYPAD || IPPU.Controller == SNES_MULTIPLAYER5;
+	#endif
+}
 
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
 {

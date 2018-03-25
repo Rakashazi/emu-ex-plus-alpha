@@ -1,11 +1,6 @@
 ifndef inc_main
 inc_main := 1
 
-ifneq ($(ENV), linux)
- # -O3 is faster with Snes9x
- CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -O3
-endif
-
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 snes9xPath := snes9x-1.43

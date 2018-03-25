@@ -2590,7 +2590,7 @@ void CMemory::SuperFXROMMap ()
 			BlockIsROM [i + 0x400] = BlockIsROM [i + 0xc00] = TRUE;
 		}
     }
-	
+
     // Banks 7e->7f, RAM
     for (c = 0; c < 16; c++)
     {
@@ -2601,15 +2601,17 @@ void CMemory::SuperFXROMMap ()
 		BlockIsROM [c + 0x7e0] = FALSE;
 		BlockIsROM [c + 0x7f0] = FALSE;
     }
-	
+
     // Banks 70->71, S-RAM
     for (c = 0; c < 32; c++)
     {
-		Map [c + 0x700] = ::SRAM + (((c >> 4) & 1) << 16);
+    // TODO: causes "LLVM ERROR: Type mismatch in constant table!" when compiling with Clang 6
+    // on x86 if accessing SRAM via global variable
+		Map [c + 0x700] = SRAM + (((c >> 4) & 1) << 16);
 		BlockIsRAM [c + 0x700] = TRUE;
 		BlockIsROM [c + 0x700] = FALSE;
     }
-	
+
     // Replicate the first 2Mb of the ROM at ROM + 2MB such that each 32K
     // block is repeated twice in each 64K block.
     for (c = 0; c < 64; c++)
@@ -2617,7 +2619,7 @@ void CMemory::SuperFXROMMap ()
 		memmove (&ROM [0x200000 + c * 0x10000], &ROM [c * 0x8000], 0x8000);
 		memmove (&ROM [0x208000 + c * 0x10000], &ROM [c * 0x8000], 0x8000);
     }
-	
+
     WriteProtectROM ();
 }
 
@@ -2817,7 +2819,7 @@ void CMemory::SufamiTurboLoROMMap ()
 			BlockIsROM [c + 0xe00] = FALSE;
 		}
     }
-	
+
     // Banks 7e->7f, RAM
     for (c = 0; c < 16; c++)
     {

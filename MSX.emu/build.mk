@@ -1,9 +1,6 @@
 ifndef inc_main
 inc_main := 1
 
-# -O3 is faster with MSX.emu
-CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -O3
-
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 SRC += main/Main.cc \

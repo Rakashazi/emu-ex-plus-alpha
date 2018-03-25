@@ -1,8 +1,6 @@
 ifndef inc_main
 inc_main := 1
 
-CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT = -Ofast
-
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 snes9xPath := snes9x
