@@ -71,7 +71,7 @@ bool BluezBluetoothAdapter::openDefault()
 	}
 
 	{
-		statusPipe.init({},
+		statusPipe.addToEventLoop({},
 			[this](Base::Pipe &pipe)
 			{
 				while(statusPipe.hasData())
@@ -111,7 +111,7 @@ void BluezBluetoothAdapter::close()
 		::close(socket);
 		socket = -1;
 	}
-	statusPipe.deinit();
+	statusPipe.removeFromEventLoop();
 }
 
 BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter()
@@ -322,11 +322,11 @@ void BluezBluetoothAdapter::setL2capService(uint psm, bool active, OnStatusDeleg
 				logErr("failed accepting connection");
 				BluetoothPendingSocket error;
 				onIncomingL2capConnectionD(*this, error);
-				return 1;
+				return true;
 			}
 			logMsg("for PSM 0x%X, fd %d", pending.addr.l2_psm, pending.fd);
 			onIncomingL2capConnectionD(*this, pending);
-			return 1;
+			return true;
 		}};
 	//Base::addPollEvent(serverFd, serverList.back().onConnect, Base::POLLEV_IN);
 	onResult(*this, 1, 0);
@@ -390,7 +390,7 @@ int BluezBluetoothSocket::readPendingData(int events)
 			logMsg("socket %d disconnected", fd);
 			onStatusD(*this, STATUS_READ_ERROR);
 		}
-		return 0;
+		return false;
 	}
 	else if(events & Base::POLLEV_IN)
 	{
@@ -404,7 +404,7 @@ int BluezBluetoothSocket::readPendingData(int events)
 			{
 				logMsg("error %d reading packet from socket %d", len == -1 ? errno : 0, fd);
 				onStatusD(*this, STATUS_READ_ERROR);
-				return 0;
+				return false;
 			}
 			//logMsg("read %d bytes from socket %d", len, fd);
 			if(!onDataD(buff, len))
@@ -420,7 +420,7 @@ int BluezBluetoothSocket::readPendingData(int events)
 			fdSrc.removeFromEventLoop();
 	}
 
-	return 1;
+	return true;
 }
 
 void BluezBluetoothSocket::setupFDEvents(int events)

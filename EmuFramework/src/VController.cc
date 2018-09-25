@@ -48,7 +48,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r)
 										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
 										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
 			}
-		mapImg.init(r, {mapPix});
+		mapImg = r.makePixmapTexture({mapPix});
 		mapImg.write(0, mapPix, {});
 		mapSpr.init({}, mapImg);
 		mapSpr.setPos(padArea, mainWin.projectionPlane);
@@ -129,16 +129,16 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on)
 	}
 }
 
-void VControllerDPad::draw(Gfx::Renderer &r) const
+void VControllerDPad::draw(Gfx::RendererCommands &cmds) const
 {
-	Gfx::TextureSampler::bindDefaultNearestMipClampSampler(r);
-	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
-	spr.draw(r);
+	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+	spr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+	spr.draw(cmds);
 
 	if(visualizeBounds)
 	{
-		mapSpr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
-		mapSpr.draw(r);
+		mapSpr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+		mapSpr.draw(cmds);
 	}
 }
 
@@ -207,24 +207,24 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset)
 	logMsg("key size %dx%d", keyXSize, keyYSize);
 }
 
-void VControllerKeyboard::draw(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) const
+void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP) const
 {
 	if(spr.image()->levels() > 1)
-		Gfx::TextureSampler::bindDefaultNearestMipClampSampler(r);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
 	else
-		Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
-	spr.useDefaultProgram(Gfx::IMG_MODE_MODULATE);
-	spr.draw(r);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	spr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+	spr.draw(cmds);
 	if(selected.x != -1)
 	{
-		r.setColor(.2, .71, .9, 1./3.);
-		r.noTexProgram.use(r, projP.makeTranslate());
+		cmds.setColor(.2, .71, .9, 1./3.);
+		cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX, projP.makeTranslate());
 		IG::WindowRect rect{};
 		rect.x = bound.x + (selected.x * keyXSize);
 		rect.x2 = bound.x + ((selected.x2 + 1) * keyXSize);
 		rect.y = bound.y + (selected.y * keyYSize);
 		rect.y2 = rect.y + keyYSize;
-		Gfx::GeomRect::draw(r, rect, projP);
+		Gfx::GeomRect::draw(cmds, rect, projP);
 	}
 }
 
@@ -786,76 +786,76 @@ std::array<int, 2> VControllerGamepad::getBtnInput(IG::WP pos) const
 	return btnOut;
 }
 
-void VControllerGamepad::draw(Gfx::Renderer &r, bool showHidden) const
+void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden) const
 {
 	using namespace Gfx;
 	if(dp.state() == 1 || (showHidden && dp.state()))
 	{
-		dp.draw(r);
+		dp.draw(cmds);
 	}
 
 	if(faceBtnsState == 1 || (showHidden && faceBtnsState))
 	{
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
 		if(showBoundingArea)
 		{
-			r.noTexProgram.use(r);
+			cmds.setCommonProgram(CommonProgram::NO_TEX);
 			iterateTimes((EmuSystem::inputHasTriggerBtns && !triggersInline_) ? EmuSystem::inputFaceBtns-2 : activeFaceBtns, i)
 			{
-				GeomRect::draw(r, faceBtnBound[i], mainWin.projectionPlane);
+				GeomRect::draw(cmds, faceBtnBound[i], mainWin.projectionPlane);
 			}
 		}
-		circleBtnSpr[0].useDefaultProgram(Gfx::IMG_MODE_MODULATE);
+		circleBtnSpr[0].setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
 		//GeomRect::draw(faceBtnsBound);
 		iterateTimes((EmuSystem::inputHasTriggerBtns && !triggersInline_) ? EmuSystem::inputFaceBtns-2 : activeFaceBtns, i)
 		{
-			circleBtnSpr[i].draw(r);
+			circleBtnSpr[i].draw(cmds);
 		}
 	}
 
 	if(EmuSystem::inputHasTriggerBtns && !triggersInline_)
 	{
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
 		if(showBoundingArea)
 		{
 			if(lTriggerState_ == 1 || (showHidden && lTriggerState_))
 			{
-				r.noTexProgram.use(r);
-				GeomRect::draw(r, faceBtnBound[lTriggerIdx()], mainWin.projectionPlane);
+				cmds.setCommonProgram(CommonProgram::NO_TEX);
+				GeomRect::draw(cmds, faceBtnBound[lTriggerIdx()], mainWin.projectionPlane);
 			}
 			if(rTriggerState_ == 1 || (showHidden && rTriggerState_))
 			{
-				r.noTexProgram.use(r);
-				GeomRect::draw(r, faceBtnBound[rTriggerIdx()], mainWin.projectionPlane);
+				cmds.setCommonProgram(CommonProgram::NO_TEX);
+				GeomRect::draw(cmds, faceBtnBound[rTriggerIdx()], mainWin.projectionPlane);
 			}
 		}
 		if(lTriggerState_ == 1 || (showHidden && lTriggerState_))
 		{
-			circleBtnSpr[lTriggerIdx()].useDefaultProgram(Gfx::IMG_MODE_MODULATE);
-			circleBtnSpr[lTriggerIdx()].draw(r);
+			circleBtnSpr[lTriggerIdx()].setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+			circleBtnSpr[lTriggerIdx()].draw(cmds);
 		}
 		if(rTriggerState_ == 1 || (showHidden && rTriggerState_))
 		{
-			circleBtnSpr[rTriggerIdx()].useDefaultProgram(Gfx::IMG_MODE_MODULATE);
-			circleBtnSpr[rTriggerIdx()].draw(r);
+			circleBtnSpr[rTriggerIdx()].setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
+			circleBtnSpr[rTriggerIdx()].draw(cmds);
 		}
 	}
 
 	if(centerBtnsState == 1 || (showHidden && centerBtnsState))
 	{
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
 		if(showBoundingArea)
 		{
-			r.noTexProgram.use(r);
+			cmds.setCommonProgram(CommonProgram::NO_TEX);
 			iterateTimes(EmuSystem::inputCenterBtns, i)
 			{
-				GeomRect::draw(r, centerBtnBound[i], mainWin.projectionPlane);
+				GeomRect::draw(cmds, centerBtnBound[i], mainWin.projectionPlane);
 			}
 		}
-		centerBtnSpr[0].useDefaultProgram(Gfx::IMG_MODE_MODULATE);
+		centerBtnSpr[0].setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
 		iterateTimes(EmuSystem::inputCenterBtns, i)
 		{
-			centerBtnSpr[i].draw(r);
+			centerBtnSpr[i].draw(cmds);
 		}
 	}
 }
@@ -1104,45 +1104,44 @@ bool VController::keyInput(Input::Event e)
 	return kb.keyInput(*this, renderer_, e);
 }
 
-void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden)
+void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden)
 {
-	draw(emuSystemControls, activeFF, showHidden, alpha);
+	draw(cmds, emuSystemControls, activeFF, showHidden, alpha);
 }
 
-void VController::draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha)
+void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden, float alpha)
 {
 	using namespace Gfx;
 	if(unlikely(alpha == 0.))
 		return;
-	auto &r = renderer_;
-	r.setBlendMode(BLEND_MODE_ALPHA);
-	r.setColor(1., 1., 1., alpha);
+	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	cmds.setColor(1., 1., 1., alpha);
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if(isInKeyboardMode())
-		kb.draw(r, mainWin.projectionPlane);
+		kb.draw(cmds, mainWin.projectionPlane);
 	else if(emuSystemControls)
-		gp.draw(r, showHidden);
+		gp.draw(cmds, showHidden);
 	#else
 	if(isInKeyboardMode())
-		kb.draw(r, mainWin.projectionPlane);
+		kb.draw(cmds, mainWin.projectionPlane);
 	#endif
 	//GeomRect::draw(menuBound);
 	//GeomRect::draw(ffBound);
 	if(menuBtnState == 1 || (showHidden && menuBtnState))
 	{
-		r.setColor(1., 1., 1., alpha);
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
-		menuBtnSpr.useDefaultProgram(IMG_MODE_MODULATE);
-		menuBtnSpr.draw(r);
+		cmds.setColor(1., 1., 1., alpha);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		menuBtnSpr.setCommonProgram(cmds, IMG_MODE_MODULATE);
+		menuBtnSpr.draw(cmds);
 	}
 	if(ffBtnState == 1 || (showHidden && ffBtnState))
 	{
-		r.setColor(1., 1., 1., alpha);
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
-		ffBtnSpr.useDefaultProgram(IMG_MODE_MODULATE);
+		cmds.setColor(1., 1., 1., alpha);
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		ffBtnSpr.setCommonProgram(cmds, IMG_MODE_MODULATE);
 		if(activeFF)
-			r.setColor(1., 0., 0., alpha);
-		ffBtnSpr.draw(r);
+			cmds.setColor(1., 0., 0., alpha);
+		ffBtnSpr.draw(cmds);
 	}
 }
 
@@ -1324,10 +1323,13 @@ void VController::setAlpha(float val)
 	alpha = val;
 }
 
+#ifdef CONFIG_VCONTROLS_GAMEPAD
 VControllerGamepad &VController::gamePad()
 {
 	return gp;
 }
+#endif
+
 Gfx::Renderer &VController::renderer()
 {
 	return renderer_;

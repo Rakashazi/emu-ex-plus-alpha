@@ -4,3 +4,4 @@ __asm__(".symver __pow_finite,pow@GLIBC_2.4");
 __asm__(".symver __log_finite,log@GLIBC_2.4");
 __asm__(".symver __log10_finite,log10@GLIBC_2.4");
 __asm__(".symver __fmod_finite,fmod@GLIBC_2.4");
+__asm__(".symver powf,powf@GLIBC_2.4");

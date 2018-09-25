@@ -39,7 +39,8 @@ public:
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	bool inputEvent(Input::Event e) override;
-	void draw() override;
+	void prepareDraw() override;
+	void draw(Gfx::RendererCommands &cmds) override;
 	void onAddedToController(Input::Event e) override;
 	void setLabel(const char *label);
 

@@ -85,11 +85,8 @@ static const char *glImageFormatToString(int format)
 }
 
 template <class FUNC>
-static bool handleGLErrors(FUNC callback)
+static bool handleGLErrors2(FUNC callback)
 {
-	if(!Gfx::checkGLErrors)
-		return false;
-
 	bool gotError = false;
 	GLenum error;
 	while((error = glGetError()) != GL_NO_ERROR)
@@ -100,9 +97,9 @@ static bool handleGLErrors(FUNC callback)
 	return gotError;
 }
 
-static bool handleGLErrors()
+static bool handleGLErrors2()
 {
-	return handleGLErrors(
+	return handleGLErrors2(
 		[](GLenum, const char *errorStr)
 		{
 			logWarn("clearing error: %s", errorStr);
@@ -110,16 +107,49 @@ static bool handleGLErrors()
 }
 
 template <class FUNC>
-static bool handleGLErrorsVerbose(FUNC callback)
+static bool runGLCheckedAlways(FUNC func, const char *label = nullptr)
 {
-	if(!Gfx::checkGLErrorsVerbose)
-		return false;
-	return handleGLErrors(callback);
+	handleGLErrors2();
+	func();
+	return !handleGLErrors2(
+		[label](GLenum, const char *err)
+		{
+			if(label)
+			{
+				logErr("%s in %s", err, label);
+			}
+			else
+			{
+				logErr("%s", err);
+			}
+		});
 }
 
-static bool handleGLErrorsVerbose()
+template <class FUNC>
+static bool runGLChecked(FUNC func, const char *label = nullptr)
+{
+	if(!Gfx::checkGLErrors)
+	{
+		func();
+		return true;
+	}
+	return runGLCheckedAlways(func, label);
+}
+
+template <class FUNC>
+static bool runGLCheckedVerbose(FUNC func, const char *label = nullptr)
 {
 	if(!Gfx::checkGLErrorsVerbose)
-		return false;
-	return handleGLErrors();
+	{
+		func();
+		return true;
+	}
+	return runGLChecked(func, label);
+}
+
+static GLuint makeGLTexture()
+{
+	GLuint tex;
+	glGenTextures(1, &tex);
+	return tex;
 }

@@ -24,8 +24,8 @@
 #include <imagine/gui/View.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
+#include <optional>
 #include <stdexcept>
-#include <experimental/optional>
 #include <emuframework/EmuVideo.hh>
 
 #ifdef ENV_NOTE
@@ -100,7 +100,7 @@ public:
 
 	using OnLoadProgressDelegate = DelegateFunc<bool(int pos, int max, const char *label)>;
 
-	using Error = std::experimental::optional<std::runtime_error>;
+	using Error = std::optional<std::runtime_error>;
 	using NameFilterFunc = bool(*)(const char *name);
 	static State state;
 	static FS::PathString savePath_;
@@ -109,7 +109,6 @@ public:
 	static Base::FrameTimeBase startFrameTime;
 	static Base::FrameTimeBase timePerVideoFrame;
 	static uint emuFrameNow;
-	static bool runFrameOnDraw;
 	static Audio::PcmFormat pcmFormat;
 	static uint audioFramesPerVideoFrame;
 	static uint aspectRatioX, aspectRatioY;

@@ -103,9 +103,9 @@ bool requestPermission(Permission p);
 // App Callbacks
 
 using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
-using ResumeDelegate = DelegateFunc<void (bool focused)>;
+using ResumeDelegate = DelegateFunc<bool (bool focused)>;
 using FreeCachesDelegate = DelegateFunc<void ()>;
-using ExitDelegate = DelegateFunc<void (bool backgrounded)>;
+using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (uint newOrientation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (uint oldOrientation, uint newOrientation)>;
 
@@ -115,9 +115,10 @@ void dispatchOnInterProcessMessage(const char *filename);
 const InterProcessMessageDelegate &onInterProcessMessage();
 
 // Called when app returns from backgrounded state
-void setOnResume(ResumeDelegate del);
+bool addOnResume(ResumeDelegate del, int priority = 0);
+bool removeOnResume(ResumeDelegate del);
+bool containsOnResume(ResumeDelegate del);
 void dispatchOnResume(bool focused);
-const ResumeDelegate &onResume();
 
 // Called when OS needs app to free any cached data
 void setOnFreeCaches(FreeCachesDelegate del);
@@ -126,9 +127,10 @@ const FreeCachesDelegate &onFreeCaches();
 
 // Called when app will finish execution
 // If backgrounded == true, app may eventually resume execution
-void setOnExit(ExitDelegate del);
+bool addOnExit(ExitDelegate del, int priority = 0);
+bool removeOnExit(ExitDelegate del);
+bool containsOnExit(ExitDelegate del);
 void dispatchOnExit(bool backgrounded);
-const ExitDelegate &onExit();
 
 // Called when device changes orientation and the sensor is enabled
 void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del);

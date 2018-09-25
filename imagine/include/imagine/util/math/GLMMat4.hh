@@ -59,6 +59,11 @@ public:
 
 	GLMMat4 invert() const;
 
+	GLMMat4 mult(GLMMat4 mat) const
+	{
+		return m * mat.m;
+	}
+
 	GLMVec4 mult(GLMVec4 vec) const
 	{
 		return m * vec.v;

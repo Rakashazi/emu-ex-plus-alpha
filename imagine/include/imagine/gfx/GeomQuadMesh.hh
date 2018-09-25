@@ -23,7 +23,7 @@ public:
 	template <size_t S2>
 	GeomQuadMesh(const VertexPos *x, uint xVals, const VertexPos (&y)[S2], VertexColor color = 0):
 		GeomQuadMesh(x, xVals, y, S2, color) {}
-	void draw(Renderer &r);
+	void draw(RendererCommands &r);
 	void setColorRGB(ColorComp r, ColorComp g, ColorComp b);
 	void setColorTranslucent(ColorComp a);
 	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i);

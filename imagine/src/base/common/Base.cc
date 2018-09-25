@@ -24,6 +24,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/DelegateFuncSet.hh>
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
@@ -37,9 +38,9 @@ namespace Base
 const char copyright[] = "Imagine is Copyright 2010-2018 Robert Broglia";
 
 static InterProcessMessageDelegate onInterProcessMessage_;
-static ResumeDelegate onResume_;
+static DelegateFuncSet<ResumeDelegate> onResume_;
 static FreeCachesDelegate onFreeCaches_;
-static ExitDelegate onExit_;
+static DelegateFuncSet<ExitDelegate> onExit_;
 
 void engineInit()
 {
@@ -53,9 +54,19 @@ void setOnInterProcessMessage(InterProcessMessageDelegate del)
 	onInterProcessMessage_ = del;
 }
 
-void setOnResume(ResumeDelegate del)
+bool addOnResume(ResumeDelegate del, int priority)
 {
-	onResume_ = del;
+	return onResume_.add(del, priority);
+}
+
+bool removeOnResume(ResumeDelegate del)
+{
+	return onResume_.remove(del);
+}
+
+bool containsOnResume(ResumeDelegate del)
+{
+	return onResume_.contains(del);
 }
 
 void setOnFreeCaches(FreeCachesDelegate del)
@@ -63,9 +74,19 @@ void setOnFreeCaches(FreeCachesDelegate del)
 	onFreeCaches_ = del;
 }
 
-void setOnExit(ExitDelegate del)
+bool addOnExit(ExitDelegate del, int priority)
 {
-	onExit_ = del;
+	return onExit_.add(del, priority);
+}
+
+bool removeOnExit(ExitDelegate del)
+{
+	return onExit_.remove(del);
+}
+
+bool containsOnExit(ExitDelegate del)
+{
+	return onExit_.contains(del);
 }
 
 void dispatchOnInterProcessMessage(const char *filename)
@@ -75,7 +96,7 @@ void dispatchOnInterProcessMessage(const char *filename)
 
 void dispatchOnResume(bool focused)
 {
-	onResume_.callCopySafe(focused);
+	onResume_.runAll([&](ResumeDelegate del){ return del(focused); });
 }
 
 void dispatchOnFreeCaches()
@@ -85,7 +106,7 @@ void dispatchOnFreeCaches()
 
 void dispatchOnExit(bool backgrounded)
 {
-	onExit_.callCopySafe(backgrounded);
+	onExit_.runAll([&](ExitDelegate del){ return del(backgrounded); });
 }
 
 const InterProcessMessageDelegate &onInterProcessMessage()
@@ -93,19 +114,9 @@ const InterProcessMessageDelegate &onInterProcessMessage()
 	return onInterProcessMessage_;
 }
 
-const ResumeDelegate &onResume()
-{
-	return onResume_;
-}
-
 const FreeCachesDelegate &onFreeCaches()
 {
 	return onFreeCaches_;
-}
-
-const ExitDelegate &onExit()
-{
-	return onExit_;
 }
 
 const char *orientationToStr(uint o)

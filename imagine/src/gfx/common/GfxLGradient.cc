@@ -20,9 +20,9 @@
 namespace Gfx
 {
 
-void LGradient::draw(Renderer &r)
+void LGradient::draw(RendererCommands &cmds)
 {
-	g.draw(r);
+	g.draw(cmds);
 }
 
 void LGradient::setColor(ColorComp r, ColorComp g, ColorComp b)

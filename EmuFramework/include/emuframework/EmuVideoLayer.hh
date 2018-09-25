@@ -27,7 +27,7 @@ class EmuVideoLayer
 public:
 	EmuVideoLayer(EmuVideo &video);
 	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, bool onScreenControlsOverlay);
-	void draw(const Gfx::ProjectionPlane &projP);
+	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setOverlay(uint effect);
 	void setOverlayIntensity(Gfx::GC intensity);
 	void placeOverlay();

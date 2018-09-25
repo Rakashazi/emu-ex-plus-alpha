@@ -27,26 +27,27 @@ CreditsView::CreditsView(const char *str, ViewAttachParams attach):
 	animate =
 		[this](Base::Screen::FrameParams params)
 		{
-			window().postDraw();
-			if(fade.update(1))
-			{
-				params.readdOnFrame();
-			}
+			postDraw();
+			return fade.update(1);
 		};
 	screen()->addOnFrame(animate);
 	place();
 }
 
-void CreditsView::draw()
+void CreditsView::prepareDraw()
+{
+	text.makeGlyphs(renderer());
+}
+
+void CreditsView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
-	r.setColor(1., 1., 1., fade.now());
-	r.texAlphaProgram.use(r, projP.makeTranslate());
+	cmds.setColor(1., 1., 1., fade.now());
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 	auto textRect = rect;
 	if(IG::isOdd(textRect.ySize()))
 		textRect.y2--;
-	text.draw(r, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
+	text.draw(cmds, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
 }
 
 void CreditsView::place()

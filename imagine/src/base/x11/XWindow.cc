@@ -13,13 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "XWindow"
+#define LOGTAG "Window"
 #include "../common/windowPrivate.hh"
 #include "internal.hh"
 #include "xlibutils.h"
 #include "xdnd.hh"
 #include <imagine/logger/logger.h>
-#include <imagine/base/GLContext.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 
@@ -28,7 +27,7 @@ namespace Base
 
 PixelFormat Window::defaultPixelFormat()
 {
-	return PIXEL_FMT_RGBA8888;
+	return Config::MACHINE_IS_PANDORA ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
 
 void Window::setAcceptDnd(bool on)
@@ -207,7 +206,7 @@ std::error_code Window::init(const WindowConfig &config)
 		deinit();
 		return {EINVAL, std::system_category()};
 	}
-	logMsg("created window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
+	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
 	Input::initPerWindowData(xWin);
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -259,8 +258,6 @@ void deinitWindowSystem()
 {
 	logMsg("shutting down window system");
 	deinitFrameTimer();
-	GLContext::current({dpy}).deinit({dpy});
-	GLContext::setCurrent({dpy}, {}, {});
 	iterateTimes(Window::windows(), i)
 	{
 		Window::window(i)->deinit();

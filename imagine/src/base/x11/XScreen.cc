@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "XScreen"
+#define LOGTAG "Screen"
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
@@ -29,35 +29,43 @@ void XScreen::init(::Screen *xScreen)
 	this->xScreen = xScreen;
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
-	auto screenRes = XRRGetScreenResourcesCurrent(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
-	auto primaryOutput = XRRGetOutputPrimary(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
-	auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
-	auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
-	iterateTimes(screenRes->nmode, i)
+	if(Config::MACHINE_IS_PANDORA)
 	{
-		auto &modeInfo = screenRes->modes[i];
-		if(modeInfo.id == crtcInfo->mode)
-		{
-			if(modeInfo.hTotal && modeInfo.vTotal)
-			{
-				frameTime_ = ((double)modeInfo.hTotal * (double)modeInfo.vTotal) / (double)modeInfo.dotClock;
-			}
-			else
-			{
-				logWarn("unknown display time");
-				frameTime_ = 1. / 60.;
-				reliableFrameTime = false;
-			}
-			break;
-		}
+		// TODO: read actual frame rate value
+		frameTime_ = 1. / 60.;
 	}
-	XRRFreeCrtcInfo(crtcInfo);
-	XRRFreeOutputInfo(outputInfo);
-	XRRFreeScreenResources(screenRes);
-	assert(frameTime_);
-	logMsg("X screen: 0x%p %dx%d (%dx%dmm) %.2fHz", xScreen,
+	else
+	{
+		auto screenRes = XRRGetScreenResourcesCurrent(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
+		auto primaryOutput = XRRGetOutputPrimary(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
+		auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
+		auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
+		iterateTimes(screenRes->nmode, i)
+		{
+			auto &modeInfo = screenRes->modes[i];
+			if(modeInfo.id == crtcInfo->mode)
+			{
+				if(modeInfo.hTotal && modeInfo.vTotal)
+				{
+					frameTime_ = ((double)modeInfo.hTotal * (double)modeInfo.vTotal) / (double)modeInfo.dotClock;
+				}
+				else
+				{
+					logWarn("unknown display time");
+					frameTime_ = 1. / 60.;
+					reliableFrameTime = false;
+				}
+				break;
+			}
+		}
+		XRRFreeCrtcInfo(crtcInfo);
+		XRRFreeOutputInfo(outputInfo);
+		XRRFreeScreenResources(screenRes);
+		assert(frameTime_);
+	}
+	logMsg("screen: %p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM,
-		frameTime_);
+		1./ frameTime_);
 }
 
 void Screen::deinit() {}

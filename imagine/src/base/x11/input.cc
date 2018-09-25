@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "Input"
 #include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>

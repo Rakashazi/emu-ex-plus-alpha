@@ -23,6 +23,11 @@
 #include <array>
 #include <vector>
 
+namespace Gfx
+{
+class RendererTask;
+}
+
 class BasicViewController : public ViewController
 {
 public:
@@ -39,7 +44,7 @@ public:
 	void place();
 	bool hasView() { return view; }
 	bool inputEvent(Input::Event e) override;
-	void draw();
+	void draw(Gfx::RendererCommands &cmds);
 
 protected:
 	View *view{};
@@ -60,7 +65,8 @@ public:
 	void place();
 	bool inputEvent(Input::Event e) override;
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction) override;
-	void draw();
+	void prepareDraw();
+	void draw(Gfx::RendererCommands &cmds);
 	void push(View &v, Input::Event e);
 	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
 	void pushAndShow(View &v, Input::Event e);
@@ -82,6 +88,8 @@ public:
 	uint size() const;
 	void setOnRemoveView(RemoveViewDelegate del);
 	bool viewHasFocus() const;
+	void setRendererTask(Gfx::RendererTask *rTask);
+	Gfx::RendererTask *rendererTask() override;
 
 protected:
 	struct ViewEntry
@@ -98,6 +106,7 @@ protected:
 	IG::WindowRect viewRect{}, customViewRect{};
 	Gfx::ProjectionPlane projP{};
 	RemoveViewDelegate onRemoveView_{};
+	Gfx::RendererTask *rendererTask_{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;
@@ -107,4 +116,5 @@ protected:
 	bool topNeedsNavView() const;
 	bool navViewIsActive() const;
 	void popViews(int num);
+	void haltDrawing();
 };

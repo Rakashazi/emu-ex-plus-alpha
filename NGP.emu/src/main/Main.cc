@@ -163,7 +163,7 @@ void system_VBL(void)
 {
 	if(likely(emuVideo))
 	{
-		emuVideo->writeFrame(srcPix);
+		emuVideo->startFrame(srcPix);
 		emuVideo = {};
 	}
 }

@@ -98,7 +98,7 @@ void VideoImageEffect::deinit(Gfx::Renderer &r)
 
 void VideoImageEffect::deinitProgram(Gfx::Renderer &r)
 {
-	prog.deinit();
+	prog.deinit(r);
 	if(vShader)
 	{
 		r.deleteShader(vShader);
@@ -118,12 +118,15 @@ uint VideoImageEffect::effect()
 
 void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r)
 {
-	if(!renderTarget_)
+	if(!renderTargetScale.x)
 		return;
 	renderTargetImgSize.x = inputImgSize.x * renderTargetScale.x;
 	renderTargetImgSize.y = inputImgSize.y * renderTargetScale.y;
 	IG::PixmapDesc renderPix{renderTargetImgSize, useRGB565RenderTarget ? IG::PIXEL_RGB565 : IG::PIXEL_RGBA8888};
-	renderTarget_.setFormat(r, renderPix);
+	if(!renderTarget_)
+		renderTarget_ = r.makeTexture({renderPix});
+	else
+		renderTarget_.setFormat(renderPix, 1);
 	Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler(r);
 }
 
@@ -160,7 +163,6 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
 	}
 
 	renderTargetScale = desc->scale;
-	renderTarget_.init();
 	initRenderTargetTexture(r);
 	auto err = compileEffect(r, *desc, isExternalTex, false);
 	if(err.code())
@@ -236,9 +238,9 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 		r.autoReleaseShaderCompiler();
 		return {{EINVAL, std::system_category()}, "GPU rejected shader (link error)"};
 	}
-	srcTexelDeltaU = prog.uniformLocation("srcTexelDelta");
-	srcTexelHalfDeltaU = prog.uniformLocation("srcTexelHalfDelta");
-	srcPixelsU = prog.uniformLocation("srcPixels");
+	srcTexelDeltaU = prog.uniformLocation(r, "srcTexelDelta");
+	srcTexelHalfDeltaU = prog.uniformLocation(r, "srcTexelHalfDelta");
+	srcPixelsU = prog.uniformLocation(r, "srcPixels");
 	updateProgramUniforms(r);
 	r.autoReleaseShaderCompiler();
 	return {{}};
@@ -246,13 +248,12 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 
 void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)
 {
-	r.setProgram(prog);
 	if(srcTexelDeltaU != -1)
-		r.uniformF(srcTexelDeltaU, 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
+		r.uniformF(prog, srcTexelDeltaU, 1.0f / (float)inputImgSize.x, 1.0f / (float)inputImgSize.y);
 	if(srcTexelHalfDeltaU != -1)
-		r.uniformF(srcTexelHalfDeltaU, 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
+		r.uniformF(prog, srcTexelHalfDeltaU, 0.5f * (1.0f / (float)inputImgSize.x), 0.5f * (1.0f / (float)inputImgSize.y));
 	if(srcPixelsU != -1)
-		r.uniformF(srcPixelsU, inputImgSize.x, inputImgSize.y);
+		r.uniformF(prog, srcPixelsU, inputImgSize.x, inputImgSize.y);
 }
 
 void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size)
@@ -264,8 +265,7 @@ void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size)
 	inputImgSize = size;
 	if(program())
 		updateProgramUniforms(r);
-	if(renderTarget_)
-		initRenderTargetTexture(r);
+	initRenderTargetTexture(r);
 }
 
 void VideoImageEffect::setBitDepth(Gfx::Renderer &r, uint bitDepth)
@@ -279,17 +279,17 @@ Gfx::Program &VideoImageEffect::program()
 	return prog;
 }
 
-Gfx::RenderTarget &VideoImageEffect::renderTarget()
+Gfx::Texture &VideoImageEffect::renderTarget()
 {
 	return renderTarget_;
 }
 
-void VideoImageEffect::drawRenderTarget(Gfx::Renderer &r, Gfx::PixmapTexture &img)
+void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::PixmapTexture &img)
 {
 	auto viewport = Gfx::Viewport::makeFromRect({0, 0, (int)renderTargetImgSize.x, (int)renderTargetImgSize.y});
-	r.setViewport(viewport);
-	Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler(r);
+	cmds.setViewport(viewport);
+	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 	Gfx::Sprite spr;
 	spr.init({-1., -1., 1., 1.}, &img, {0., 1., 1., 0.});
-	spr.draw(r);
+	spr.draw(cmds);
 }

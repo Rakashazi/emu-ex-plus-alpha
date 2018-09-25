@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
+#include <imagine/time/Time.hh>
 
 namespace Base
 {
@@ -76,6 +77,16 @@ constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
 }
 #endif
 
+static FrameTimeBase frameTimeBaseFromTime(IG::Time time)
+{
+	return frameTimeBaseFromNSecs(time.nSecs());
+}
+
+static IG::Time frameTimeBaseToTime(FrameTimeBase time)
+{
+	return IG::Time::makeWithNSecs(frameTimeBaseToNSecs(time));
+}
+
 FrameTimeBase timeSinceFrameTime(FrameTimeBase time);
 
 // orientation
@@ -87,4 +98,8 @@ static constexpr uint VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | VIEW_ROT
 const char *orientationToStr(uint o);
 bool orientationIsSideways(uint o);
 uint validateOrientationMask(uint oMask);
+
+#if defined CONFIG_BASE_X11 || defined __ANDROID__
+#define CONFIG_BASE_GLAPI_EGL
+#endif
 }

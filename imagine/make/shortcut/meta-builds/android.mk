@@ -179,8 +179,8 @@ $(android_drawableTVBannerPath) :
 	ln -rs $(resPath)/icons/tv-banner.png $@
 endif
 
-android_imagineLib9SrcPath := $(IMAGINE_SDK_PATH)/android-java/imagine-v9.jar
-android_imagineLib9 := $(android_targetPath)/libs/imagine-v9.jar
+android_imagineLib9SrcPath := $(IMAGINE_SDK_PATH)/android-java/imagine-v9.aar
+android_imagineLib9 := $(android_targetPath)/libs/imagine-v9.aar
 
 $(android_imagineLib9) : | $(android_imagineLib9SrcPath)
 	@mkdir -p $(@D)

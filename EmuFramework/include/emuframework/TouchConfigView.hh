@@ -85,5 +85,5 @@ public:
 public:
 	TouchConfigView(ViewAttachParams attach, const char *faceBtnName, const char *centerBtnName);
 	void place() final;
-	void draw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 };

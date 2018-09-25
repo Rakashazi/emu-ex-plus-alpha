@@ -26,7 +26,8 @@ public:
 	EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuInputView *inputView);
 	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
-	void draw() final;
+	void prepareDraw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
 	void onAddedToController(Input::Event e) final {}
 	bool hasLayer() const { return layer; }

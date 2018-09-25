@@ -79,7 +79,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	}
 	IG::Pixmap srcPix = {{{width, height}, pixFmt}, GFX.Screen};
 	emuVideo->setFormat(srcPix);
-	emuVideo->writeFrame(srcPix);
+	emuVideo->startFrame(srcPix);
 	return 1;
 }
 

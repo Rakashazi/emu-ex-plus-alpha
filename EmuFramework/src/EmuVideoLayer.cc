@@ -38,7 +38,7 @@ void EmuVideoLayer::resetImage()
 	if(vidImgEffect.renderTarget())
 	{
 		logMsg("drawing video via render target");
-		disp.setImg(&vidImgEffect.renderTarget().texture());
+		disp.setImg(&vidImgEffect.renderTarget());
 	}
 	else
 	#endif
@@ -225,44 +225,45 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 	placeEffect();
 }
 
-void EmuVideoLayer::draw(const Gfx::ProjectionPlane &projP)
+void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP)
 {
 	using namespace Gfx;
-	auto &r = video.renderer();
 	if(EmuSystem::isStarted())
 	{
 		bool videoActive = true;
 		if(unlikely(!EmuSystem::isActive()))
 		{
-			r.setColor(.25, .25, .25);
+			cmds.setColor(.25, .25, .25);
 			videoActive = false;
 		}
 
-		r.setBlendMode(0);
+		cmds.setBlendMode(0);
 		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 		if(vidImgEffect.program())
 		{
-			auto prevViewport = r.viewport();
-			r.setClipRect(false);
-			r.setProgram(vidImgEffect.program());
-			r.setRenderTarget(vidImgEffect.renderTarget());
-			r.clear();
-			vidImgEffect.drawRenderTarget(r, video.image());
-			r.setRenderTarget({});
-			r.setViewport(prevViewport);
-			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+			auto prevViewport = cmds.viewport();
+			cmds.setClipTest(false);
+			cmds.setProgram(vidImgEffect.program());
+			cmds.setRenderTarget(vidImgEffect.renderTarget());
+			cmds.setDither(false);
+			cmds.clear();
+			vidImgEffect.drawRenderTarget(cmds, video.image());
+			cmds.setDefaultRenderTarget();
+			cmds.setDither(true);
+			cmds.setViewport(prevViewport);
+			disp.setCommonProgram(cmds, videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		else
 		#endif
 		{
-			disp.useDefaultProgram(videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+			disp.setCommonProgram(cmds, videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		if(useLinearFilter)
-			Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
+			cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 		else
-			Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler(r);
-		disp.draw(r);
-		vidImgOverlay.draw(r);
+			cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+		disp.draw(cmds);
+		vidImgOverlay.draw(cmds);
 	}
 }
 

@@ -17,6 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/CustomEvent.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
 
@@ -81,9 +83,11 @@ public:
 	struct DrawParams
 	{
 		bool wasResized_ = false;
+		bool needsSync_ = false;
 
 		constexpr DrawParams() {}
 		bool wasResized() const { return wasResized_; }
+		bool needsSync() const { return needsSync_; }
 	};
 
 	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, SurfaceChange change)>;
@@ -105,7 +109,7 @@ protected:
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	Screen *screen_ = nullptr;
 	#endif
-	bool drawPosted = false;
+	bool drawNeeded = false;
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 
@@ -120,15 +124,15 @@ protected:
 	#endif
 
 protected:
-	SurfaceChangeDelegate onSurfaceChange;
-	DrawDelegate onDraw;
-	InputEventDelegate onInputEvent;
-	FocusChangeDelegate onFocusChange;
-	DragDropDelegate onDragDrop;
-	DismissRequestDelegate onDismissRequest;
-	DismissDelegate onDismiss;
-	// used to post the window's screen when a draw is requested
-	Screen::OnFrameDelegate onFrame;
+	SurfaceChangeDelegate onSurfaceChange{};
+	DrawDelegate onDraw{};
+	InputEventDelegate onInputEvent{};
+	FocusChangeDelegate onFocusChange{};
+	DragDropDelegate onDragDrop{};
+	DismissRequestDelegate onDismissRequest{};
+	DismissDelegate onDismiss{};
+	Base::ExitDelegate onExit{};
+	Base::CustomEvent drawEvent{};
 
 	void setOnSurfaceChange(SurfaceChangeDelegate del);
 	void setOnDraw(DrawDelegate del);

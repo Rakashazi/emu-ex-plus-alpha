@@ -19,6 +19,7 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/typeTraits.hh>
 
 namespace IG
 {

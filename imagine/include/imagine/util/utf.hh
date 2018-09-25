@@ -83,8 +83,8 @@ static bool isLegalUTF8(const uint8 *source, int length) {
 	    case 0xED: if (a > 0x9F) return false; break;
 	    case 0xF0: if (a < 0x90) return false; break;
 	    case 0xF4: if (a > 0x8F) return false; break;
-	    default:   if (a < 0x80) return false; [[fallthrough]];
-	}
+	    default:   if (a < 0x80) return false;
+	} [[fallthrough]];
 
     case 1: if (*source >= 0x80 && *source < 0xC2) return false;
     }

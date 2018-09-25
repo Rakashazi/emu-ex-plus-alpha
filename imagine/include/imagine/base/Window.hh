@@ -44,7 +44,8 @@ public:
 	bool needsDraw();
 	void postDraw();
 	void unpostDraw();
-	void dispatchOnDraw();
+	void drawNow(bool needsSync = false);
+	void dispatchOnDraw(bool needsSync = false);
 	Screen *screen();
 	static uint windows();
 	static Window *window(uint idx);
@@ -157,6 +158,7 @@ private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
 	void dispatchSurfaceChange();
+	void draw(bool needsSync = false);
 };
 
 Window &mainWindow();

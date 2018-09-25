@@ -22,7 +22,7 @@
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 	#import <OpenGLES/ES1/gl.h>
 	#import <OpenGLES/ES1/glext.h>
-	using GLchar = char;
+	typedef char GLchar;
 	#else
 	#import <OpenGLES/ES2/gl.h>
 	#import <OpenGLES/ES2/glext.h>
@@ -45,15 +45,11 @@
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 	#include <GLES/gl.h>
 	#include <GLES/glext.h>
-		#ifdef CONFIG_MACHINE_PANDORA
-		using GLchar = char;
-		#endif
 	#else
 	#include <GLES2/gl2.h>
 	#include <GLES2/gl2ext.h>
 		#ifdef CONFIG_MACHINE_PANDORA
 		#include <GLES2/gl2extimg.h> // missing extensions
-		using GLchar = char;
 		#endif
 	#endif
 #undef GL_GLEXT_PROTOTYPES
@@ -62,6 +58,15 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #undef GL_GLEXT_PROTOTYPES
+#endif
+
+#ifdef CONFIG_MACHINE_PANDORA
+// missing types & symbols
+typedef char GLchar;
+typedef struct __GLsync *GLsync;
+typedef uint64_t GLuint64;
+typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,GLenum severity,GLsizei length,const GLchar *message,const void *userParam);
+#define GL_DEBUG_OUTPUT_KHR 0x92E0
 #endif
 
 // Symbol Re-mapping

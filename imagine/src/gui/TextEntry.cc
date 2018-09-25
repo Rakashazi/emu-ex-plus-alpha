@@ -81,11 +81,16 @@ bool TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
 	return false;
 }
 
-void TextEntry::draw(Gfx::Renderer &r)
+void TextEntry::prepareDraw(Gfx::Renderer &r)
+{
+	t.makeGlyphs(r);
+}
+
+void TextEntry::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	r.texAlphaProgram.use(r);
-	t.draw(r, projP.unProjectRect(b).pos(LC2DO) + GP{TableView::globalXIndent, 0}, LC2DO, projP);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO) + GP{TableView::globalXIndent, 0}, LC2DO, projP);
 }
 
 void TextEntry::place(Gfx::Renderer &r)
@@ -130,7 +135,6 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	Input::startSysTextInput(
 		[this](const char *str)
 		{
-			renderer().restoreBind();
 			if(!str)
 			{
 				logMsg("text collection canceled by external source");
@@ -204,31 +208,38 @@ bool CollectTextInputView::inputEvent(Input::Event e)
 	return false;
 }
 
-void CollectTextInputView::draw()
+void CollectTextInputView::prepareDraw()
+{
+	message.makeGlyphs(renderer());
+	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
+	textEntry.prepareDraw(renderer());
+	#endif
+}
+
+void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
 	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.image())
 	{
-		r.setColor(COLOR_WHITE);
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
-		cancelSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(cancelBtn).pos(C2DO)));
-		cancelSpr.draw(r);
+		cmds.setColor(COLOR_WHITE);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(cancelBtn).pos(C2DO)));
+		cancelSpr.draw(cmds);
 	}
 	#endif
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	r.setColor(0.25);
-	r.noTexProgram.use(r, projP.makeTranslate());
-	GeomRect::draw(r, textEntry.b, projP);
-	r.setColor(COLOR_WHITE);
-	textEntry.draw(r);
-	r.texAlphaProgram.use(r);
-	message.draw(r, 0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
+	cmds.setColor(0.25);
+	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	GeomRect::draw(cmds, textEntry.b, projP);
+	cmds.setColor(COLOR_WHITE);
+	textEntry.draw(cmds);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	message.draw(cmds, 0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
 	#else
-	r.setColor(COLOR_WHITE);
-	r.texAlphaProgram.use(r, projP.makeTranslate());
-	message.draw(r, 0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
+	cmds.setColor(COLOR_WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
 	#endif
 }

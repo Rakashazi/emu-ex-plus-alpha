@@ -58,13 +58,13 @@ void TextTableView::onAddedToController(Input::Event e)
 	else TableView::onAddedToController(e);
 }
 
-void TextTableView::drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const
+void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	if((int)i == activeItem)
-		r.setColor(0., .8, 1.);
+		cmds.setColor(0., .8, 1.);
 	else
-		r.setColor(COLOR_WHITE);
-	item.draw(r, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
+		cmds.setColor(COLOR_WHITE);
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
 }
 

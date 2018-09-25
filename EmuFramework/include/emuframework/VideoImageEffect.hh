@@ -17,7 +17,6 @@
 
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/RenderTarget.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <system_error>
 
@@ -39,7 +38,7 @@ private:
 	int srcTexelHalfDeltaU{};
 	int srcPixelsU{};
 	uint effect_ = NO_EFFECT;
-	Gfx::RenderTarget renderTarget_{};
+	Gfx::Texture renderTarget_{};
 	IG::WP renderTargetScale{};
 	IG::WP renderTargetImgSize{};
 	IG::WP inputImgSize{1, 1};
@@ -68,7 +67,7 @@ public:
 	void setImageSize(Gfx::Renderer &r, IG::WP size);
 	void setBitDepth(Gfx::Renderer &r, uint bitDepth);
 	Gfx::Program &program();
-	Gfx::RenderTarget &renderTarget();
-	void drawRenderTarget(Gfx::Renderer &r, Gfx::PixmapTexture &img);
+	Gfx::Texture &renderTarget();
+	void drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::PixmapTexture &img);
 	void deinit(Gfx::Renderer &r);
 };

@@ -22,6 +22,7 @@ SRC += base/iphone/iphone.mm \
  base/common/timer/CFTimer.cc \
  base/common/PosixPipe.cc \
  base/common/eventloop/CFEventLoop.cc \
+ base/common/eventloop/CFCustomEvent.cc \
  util/string/apple.mm
 
 endif

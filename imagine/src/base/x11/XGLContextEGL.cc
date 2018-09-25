@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EGL"
-#include <GLES/gl.h> // for glFlush()
 #include <imagine/base/GLContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
@@ -25,17 +24,19 @@ namespace Base
 
 // GLDisplay
 
-GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+GLDisplay GLDisplay::getDefault()
 {
-	auto display = eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy);
-	ec = initDisplay(display);
-	return {display};
+	return {eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy)};
 }
 
 // GLContext
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
-	XGLContext{display.eglDisplay(), attr, config, ec}
+	XGLContext{display.eglDisplay(), attr, config, EGL_NO_CONTEXT, ec}
+{}
+
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec):
+	XGLContext{display.eglDisplay(), attr, config, shareContext.nativeObject(), ec}
 {}
 
 void GLContext::deinit(GLDisplay display)
@@ -80,17 +81,10 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	if(swapBuffersIsAsync())
+	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
+	if(swapBuffersIsAsync() && swapTime > 16000000)
 	{
-		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
-		if(swapTime > 16000000)
-		{
-			logWarn("buffer swap took %lldns", (long long)swapTime);
-		}
-	}
-	else
-	{
-		glFlush();
+		logWarn("buffer swap took %lldns", (long long)swapTime);
 	}
 }
 
@@ -102,14 +96,6 @@ void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurre
 bool XGLContext::swapBuffersIsAsync()
 {
 	return !Config::MACHINE_IS_PANDORA;
-}
-
-void GLContext::finishPresent(GLDisplay display, GLDrawable win)
-{
-	if(!swapBuffersIsAsync())
-	{
-		bug_unreachable("TODO: update for new GLDrawable behavior");
-	}
 }
 
 bool GLContext::bindAPI(API api)

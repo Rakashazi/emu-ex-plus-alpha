@@ -91,6 +91,8 @@ public:
 
 	GLKitMat4 invert() const;
 
+	GLKitMat4 mult(GLKitMat4 mat) const;
+
 	GLKitVec4 mult(GLKitVec4 vec) const;
 
 	GLKitVec3 project(IG::Rect2<int> viewport, GLKitVec3 obj) const;

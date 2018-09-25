@@ -163,7 +163,7 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 					}
 					continue;
 				}
-				logMsg("state:%d", snd_pcm_state(pcmHnd));
+				//logMsg("state:%d", snd_pcm_state(pcmHnd));
 				if(useMmap)
 				{
 					snd_pcm_avail_update(pcmHnd);

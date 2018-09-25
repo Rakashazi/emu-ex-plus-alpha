@@ -518,7 +518,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	if(video)
 	{
 		video->setFormat(canvasSrcPix);
-		video->writeFrame(canvasSrcPix);
+		video->startFrame(canvasSrcPix);
 	}
 	runningFrame = 0;
 }

@@ -93,7 +93,7 @@ void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, c
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Gfx::Renderer &r, Base::Screen &screen, Base::FrameTimeBase timestamp)
+void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Screen &screen, Base::FrameTimeBase timestamp)
 {
 	// CPU stats
 	bool updatedCPUStats = false;
@@ -113,7 +113,7 @@ void TestFramework::frameUpdate(Gfx::Renderer &r, Base::Screen &screen, Base::Fr
 			strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
 			strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
 			strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "");
-		placeCPUStatsText(r);
+		placeCPUStatsText(rTask.renderer());
 	}
 
 	// frame stats
@@ -155,39 +155,48 @@ void TestFramework::frameUpdate(Gfx::Renderer &r, Base::Screen &screen, Base::Fr
 			strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
 			strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
 			strlen(statsStr.data()) ? statsStr.data() : "");
-		placeFrameStatsText(r);
+		placeFrameStatsText(rTask.renderer());
 	}
 
 	// run frame
-	frameUpdateTest(screen, timestamp);
+	frameUpdateTest(rTask, screen, timestamp);
 	frames++;
 	continuousFrames++;
 }
 
-void TestFramework::draw(Gfx::Renderer &r)
+void TestFramework::prepareDraw(Gfx::Renderer &r)
+{
+	cpuStatsText.makeGlyphs(r);
+	frameStatsText.makeGlyphs(r);
+}
+
+void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
 	using namespace Gfx;
-	drawTest(r);
+	cmds.loadTransform(projP.makeTranslate());
+	drawTest(cmds, bounds);
+	return;
+	cmds.setClipTest(false);
 	if(strlen(cpuStatsStr.data()))
 	{
-		r.noTexProgram.use(r);
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(0., 0., 0., .7);
-		GeomRect::draw(r, cpuStatsRect);
-		r.setColor(1., 1., 1., 1.);
-		r.texAlphaProgram.use(r);
-		cpuStatsText.draw(r, projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
+		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setColor(0., 0., 0., .7);
+		GeomRect::draw(cmds, cpuStatsRect);
+		cmds.setColor(1., 1., 1., 1.);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		cpuStatsText.draw(cmds, projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
 	}
 	if(strlen(frameStatsStr.data()))
 	{
-		r.noTexProgram.use(r);
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(0., 0., 0., .7);
-		GeomRect::draw(r, frameStatsRect);
-		r.setColor(1., 1., 1., 1.);
-		r.texAlphaProgram.use(r);
-		frameStatsText.draw(r, projP.alignXToPixel(frameStatsRect.x + TableView::globalXIndent),
+		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setColor(0., 0., 0., .7);
+		GeomRect::draw(cmds, frameStatsRect);
+		cmds.setColor(1., 1., 1., 1.);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		frameStatsText.draw(cmds, projP.alignXToPixel(frameStatsRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(frameStatsRect.yCenter()), LC2DO, projP);
 	}
 }
@@ -199,27 +208,27 @@ void TestFramework::finish(Base::FrameTimeBase frameTime)
 		onTestFinished(*this);
 }
 
-void ClearTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime)
+void ClearTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTimeBase)
 {
 	flash ^= true;
 }
 
-void ClearTest::drawTest(Gfx::Renderer &r)
+void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 {
 	if(flash)
 	{
 		if(!droppedFrames)
-			r.setClearColor(.7, .7, .7);
+			cmds.setClearColor(.7, .7, .7);
 		else if(droppedFrames % 2 == 0)
-			r.setClearColor(.7, .7, .0);
+			cmds.setClearColor(.7, .7, .0);
 		else
-			r.setClearColor(.7, .0, .0);
+			cmds.setClearColor(.7, .0, .0);
 	}
 	else
 	{
-		r.setClearColor(0, 0, 0);
+		cmds.setClearColor(0, 0, 0);
 	}
-	r.clear();
+	cmds.clear();
 }
 
 void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
@@ -228,10 +237,10 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 	memset(pixmap.pixel({}), 0xFF, pixmap.pixelBytes());
 	Gfx::TextureConfig texConf{pixmap};
 	texConf.setWillWriteOften(true);
-	if(auto err = texture.init(r, texConf);
-		err)
+	texture = r.makePixmapTexture(texConf);
+	if(!texture)
 	{
-		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture: %s", err->what());
+		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture");
 		return;
 	}
 	texture.write(0, pixmap, {});
@@ -252,39 +261,36 @@ void DrawTest::deinitTest()
 	texture.deinit();
 }
 
-void DrawTest::frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime)
+void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTimeBase)
 {
 	flash ^= true;
 }
 
-void DrawTest::drawTest(Gfx::Renderer &r)
+void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
-	using namespace Gfx;
-	r.clear();
-	r.setBlendMode(Gfx::BLEND_MODE_OFF);
-	Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
-	sprite.useDefaultProgram(IMG_MODE_MODULATE);
+	cmds.clear();
+	cmds.setClipTest(true);
+	cmds.setClipRect(bounds);
+	cmds.setBlendMode(Gfx::BLEND_MODE_OFF);
+	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
 	if(flash)
 	{
 		if(!droppedFrames)
-			r.setColor(.7, .7, .7, 1.);
+			cmds.setColor(.7, .7, .7, 1.);
 		else if(droppedFrames % 2 == 0)
-			r.setColor(.7, .7, .0, 1.);
+			cmds.setColor(.7, .7, .0, 1.);
 		else
-			r.setColor(.7, .0, .0, 1.);
+			cmds.setColor(.7, .0, .0, 1.);
 	}
 	else
-		r.setColor(0., 0., 0., 1.);
-	sprite.draw(r);
+		cmds.setColor(0., 0., 0., 1.);
+	sprite.draw(cmds);
 }
 
-void WriteTest::drawTest(Gfx::Renderer &r)
+void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime)
 {
-	using namespace Gfx;
-	r.clear();
-	r.setBlendMode(Gfx::BLEND_MODE_OFF);
-	Gfx::TextureSampler::bindDefaultNoMipClampSampler(r);
-	sprite.useDefaultProgram(IMG_MODE_REPLACE);
+	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
 	if(flash)
 	{
 		uint writeColor;
@@ -303,6 +309,18 @@ void WriteTest::drawTest(Gfx::Renderer &r)
 	{
 		memset(pixmap.pixel({}), 0, pixmap.pitchBytes() * pixmap.h());
 	}
+	if(texture.needsExclusiveLock())
+		rendererTask.haltDrawing();
 	texture.write(0, pixmap, {});
-	sprite.draw(r);
+}
+
+void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
+{
+	cmds.clear();
+	cmds.setClipTest(true);
+	cmds.setClipRect(bounds);
+	cmds.setBlendMode(Gfx::BLEND_MODE_OFF);
+	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_REPLACE);
+	sprite.draw(cmds);
 }

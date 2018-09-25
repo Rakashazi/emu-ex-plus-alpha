@@ -29,12 +29,12 @@ void QuadGeneric<Vtx>::setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC 
 }
 
 template<class Vtx>
-void QuadGeneric<Vtx>::draw(Renderer &r) const
+void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
 {
-	r.bindTempVertexBuffer();
-	r.vertexBufferData(v.data(), sizeof(v));
-	Vtx::bindAttribs(r, v.data());
-	r.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
+	cmds.bindTempVertexBuffer();
+	cmds.vertexBufferData(v.data(), sizeof(v));
+	Vtx::bindAttribs(cmds, v.data());
+	cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 }
 
 template class QuadGeneric<Vertex>;

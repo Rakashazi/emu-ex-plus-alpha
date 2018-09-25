@@ -7,7 +7,7 @@ You need the following basic tools to start building Imagine. For platform-speci
 
 Linux: GCC 7.1/Clang 4.9 or newer, GNU Make, pkgconfig (install from your distro's package manager)
 
-MacOS X: Xcode 8 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
+MacOS X: Xcode 10 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
 
 The following make variables are used by the build system:
 

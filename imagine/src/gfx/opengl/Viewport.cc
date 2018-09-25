@@ -20,21 +20,6 @@
 namespace Gfx
 {
 
-void Renderer::setViewport(const Viewport &v)
-{
-	verifyCurrentContext();
-	auto inGLFormat = v.inGLFormat();
-	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
-	assert(inGLFormat.x2 && inGLFormat.y2);
-	glViewport(inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
-	currViewport = v;
-}
-
-const Viewport &Renderer::viewport()
-{
-	return currViewport;
-}
-
 Viewport Viewport::makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &fullRealRect, const IG::WindowRect &rect)
 {
 	Viewport v;

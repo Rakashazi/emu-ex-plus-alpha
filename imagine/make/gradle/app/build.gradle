@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.2.0'
     }
 }
 
@@ -64,7 +64,7 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: '*.jar')
+    implementation fileTree(dir: 'libs', include: '*.aar')
     implementation "com.android.support:support-v4:23.3.+"
 }
 

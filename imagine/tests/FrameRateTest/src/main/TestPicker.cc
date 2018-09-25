@@ -23,16 +23,16 @@ TestTableEntry::TestTableEntry(SelectDelegate selectDel):
 	t = {testStr.data(), &View::defaultFace};
 }
 
-void TestTableEntry::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
 	if(t2.str)
 	{
 		if(redText)
-			r.setColor(1., 0., 0.);
+			cmds.setColor(1., 0., 0.);
 		else
-			r.setColor(1., 1., 1.);
-		draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
+			cmds.setColor(1., 1., 1.);
+		draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 	}
 }
 

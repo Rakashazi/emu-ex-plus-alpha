@@ -36,6 +36,8 @@ public:
 	thread(thread&& other);
 	template<class Function>
 	explicit thread(Function&& f) : ThreadImpl{f} {}
+	template<class Function>
+	explicit thread(Function&& f, bool detached) : ThreadImpl{f, detached} {}
 	thread(const thread&) = delete;
 	bool joinable() const;
 	id get_id() const;
@@ -53,8 +55,7 @@ thread::id get_id();
 template<class Func>
 static void makeDetachedThread(Func&& f)
 {
-	thread t{f};
-	t.detach();
+	thread t{f, true};
 }
 
 }

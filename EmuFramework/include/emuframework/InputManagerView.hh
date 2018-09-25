@@ -43,7 +43,7 @@ public:
 	IG::WindowRect &viewRect() final { return viewFrame; }
 	void place() final;
 	bool inputEvent(Input::Event e) final;
-	void draw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 	void onAddedToController(Input::Event e) final {}
 };
 

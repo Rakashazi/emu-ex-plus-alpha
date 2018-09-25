@@ -17,29 +17,34 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/logger/logger.h>
 
-void BaseTextMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
+{
+	t.makeGlyphs(r);
+}
+
+void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
 	if(!active_)
 	{
 		// half-bright color
-		uint col = r.color();
-		r.setColor(ColorFormat.r(col)/2, ColorFormat.g(col)/2, ColorFormat.b(col)/2, ColorFormat.a(col));
+		uint col = cmds.color();
+		cmds.setColor(ColorFormat.r(col)/2, ColorFormat.g(col)/2, ColorFormat.b(col)/2, ColorFormat.a(col));
 	}
 
-	if(ColorFormat.a(r.color()) == 0xFF)
+	if(ColorFormat.a(cmds.color()) == 0xFF)
 	{
 		//logMsg("using replace program for non-alpha modulated text");
-		r.texAlphaReplaceProgram.use(r);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
 	}
 	else
-		r.texAlphaProgram.use(r);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else
 		xPos += TableView::globalXIndent;
-	t.draw(r, xPos, yPos, align, projP);
+	t.draw(cmds, xPos, yPos, align, projP);
 }
 
 void BaseTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
@@ -99,17 +104,23 @@ void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane 
 	}
 }
 
-void BaseDualTextMenuItem::draw2ndText(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
 {
-	r.texAlphaProgram.use(r);
-	t2.draw(r, (xPos + xSize) - TableView::globalXIndent, yPos, RC2DO, projP);
+	BaseTextMenuItem::prepareDraw(r);
+	t2.makeGlyphs(r);
 }
 
-void BaseDualTextMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
+	cmds.setCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+	t2.draw(cmds, (xPos + xSize) - TableView::globalXIndent, yPos, RC2DO, projP);
+}
+
+void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+{
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
 	if(t2.str)
-		BaseDualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
+		BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 }
 
 BoolMenuItem::BoolMenuItem(const char *str, bool val, SelectDelegate selectDel):
@@ -174,16 +185,16 @@ bool BoolMenuItem::flipBoolValue()
 	return on;
 }
 
-void BoolMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void BoolMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
 	if(!onOffStyle) // custom strings
-		r.setColor(0., .8, 1.);
+		cmds.setColor(0., .8, 1.);
 	else if(on)
-		r.setColor(.27, 1., .27);
+		cmds.setColor(.27, 1., .27);
 	else
-		r.setColor(1., .27, .27);
-	draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
+		cmds.setColor(1., .27, .27);
+	draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 }
 
 void BoolMenuItem::setOnSelect(SelectDelegate onSelect)
@@ -211,13 +222,13 @@ public:
 		}
 	}
 
-	void drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const override
+	void drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const override
 	{
 		if((int)i == activeItem)
-			r.setColor(0., .8, 1.);
+			cmds.setColor(0., .8, 1.);
 		else
-			r.setColor(Gfx::COLOR_WHITE);
-		item.draw(r, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
+			cmds.setColor(Gfx::COLOR_WHITE);
+		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
 	}
 
 	void onSelectElement(Input::Event e, uint i, MenuItem &item) override
@@ -266,12 +277,12 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, int selected,
 	MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, items, item, {}}
 {}
 
-void MultiChoiceMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void MultiChoiceMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
-	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
 	//r.setColor(0., 1., 1.); // aqua
-	r.setColor(0., .8, 1.);
-	BaseDualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
+	cmds.setColor(0., .8, 1.);
+	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 }
 
 void MultiChoiceMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)

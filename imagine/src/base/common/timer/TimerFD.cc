@@ -27,6 +27,9 @@
 #else
 #include <time.h>
 #include <sys/syscall.h>
+#include <linux/fcntl.h>
+
+#define TFD_NONBLOCK O_NONBLOCK
 
 static int timerfd_create(clockid_t clock_id, int flags)
 {
@@ -50,7 +53,7 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 	bool rearm = false;
 	if(fd == -1)
 	{
-		fd = timerfd_create(CLOCK_MONOTONIC, 0);
+		fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
 		if(fd == -1)
 		{
 			logErr("error creating timerfd");
@@ -58,12 +61,12 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 		}
 		if(!loop)
 			loop = EventLoop::forThread();
-		//logMsg("created timerfd: %d", fd);
+		//logMsg("made timerfd: %d", fd);
 		fdSrc = {fd, loop,
 			[this](int fd, int events)
 			{
 				timerFired();
-				return 1;
+				return true;
 			}};
 	}
 	else
@@ -108,22 +111,18 @@ void Timer::deinit()
 
 void TimerFD::timerFired()
 {
-	logMsg("callback ready for fd:%d", fd);
+	//logMsg("callback ready for fd:%d", fd);
 	if(unlikely(!armed))
 	{
 		logMsg("disarmed after fd became ready");
 		return;
 	}
+	uint64_t timesFired;
+	int bytes = ::read(fd, &timesFired, 8);
 	armed = repeating; // disarm timer if non-repeating, can be re-armed in callback()
 	callback();
 	if(!armed && !reuseResources)
 		deinit();
-	else if(fd >= 0)
-	{
-		uint64_t timesFired;
-		int bytes = ::read(fd, &timesFired, 8);
-		assert(bytes != -1);
-	}
 }
 
 void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags)

@@ -45,24 +45,23 @@ bool EmuLoadProgressView::inputEvent(Input::Event e)
 	return true;
 }
 
-void EmuLoadProgressView::draw()
+void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 {
 	if(!strlen(str.data()))
 		return;
 	using namespace Gfx;
-	auto &r = renderer();
-	projP.resetTransforms(r);
-	r.setBlendMode(0);
+	projP.resetTransforms(cmds);
+	cmds.setBlendMode(0);
 	if(max)
 	{
-		r.noTexProgram.use(r);
-		r.setColor(.0, .0, .75);
+		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		cmds.setColor(.0, .0, .75);
 		Gfx::GC barHeight = text.ySize*1.5;
 		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
 			{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.w), barHeight});
-		GeomRect::draw(r, bar);
+		GeomRect::draw(cmds, bar);
 	}
-	r.texAlphaProgram.use(r);
-	r.setColor(COLOR_WHITE);
-	text.draw(r, 0, 0, C2DO, projP);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	cmds.setColor(COLOR_WHITE);
+	text.draw(cmds, 0, 0, C2DO, projP);
 }

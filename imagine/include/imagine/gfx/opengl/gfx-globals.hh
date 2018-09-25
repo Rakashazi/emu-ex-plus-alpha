@@ -11,6 +11,7 @@
 namespace Gfx
 {
 class Renderer;
+class RendererCommands;
 
 using TransformCoordinate = float;
 using VertexPos = float;
@@ -59,7 +60,7 @@ public:
 	static constexpr bool hasTexture = false;
 	static const uint textureOffset = 0;
 	template<class Vtx>
-	static void bindAttribs(Renderer &r, const Vtx *v);
+	static void bindAttribs(RendererCommands &cmds, const Vtx *v);
 };
 
 class Vertex : public VertexInfo
@@ -118,6 +119,15 @@ public:
 	static constexpr uint ID = 4;
 };
 
+class ClipRect
+{
+public:
+	IG::WindowRect rect{};
+
+	constexpr ClipRect() {};
+	constexpr ClipRect(int x, int y, int w, int h): rect{x, y, w, h} {}
+};
+
 using Shader = GLuint;
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 enum { SHADER_VERTEX = GL_VERTEX_SHADER, SHADER_FRAGMENT = GL_FRAGMENT_SHADER };
@@ -132,18 +142,17 @@ protected:
 	GLuint program_ = 0;
 
 public:
-	GLint projectionUniform = -1, modelViewUniform = -1;
-	uint projectionUniformAge = 0, modelViewUniformAge = 0;
+	GLint modelViewProjectionUniform = -1;
 
 	GLuint program() { return program_; }
 
-	void initUniforms();
+	void initUniforms(Renderer &r);
 	#endif
 
 public:
 	constexpr GLSLProgram() {}
 	bool init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
-	void deinit();
+	void deinit(Renderer &r);
 	bool link(Renderer &r);
 	explicit operator bool() const
 	{
@@ -176,9 +185,9 @@ class DefaultTexReplaceProgram : public TexProgram
 public:
 	constexpr DefaultTexReplaceProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 class DefaultTexProgram : public TexProgram
@@ -186,9 +195,9 @@ class DefaultTexProgram : public TexProgram
 public:
 	constexpr DefaultTexProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 class DefaultTexAlphaReplaceProgram : public TexProgram
@@ -197,9 +206,9 @@ public:
 	DefaultTexProgram *impl{};
 	constexpr DefaultTexAlphaReplaceProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 class DefaultTexAlphaProgram : public TexProgram
@@ -208,9 +217,9 @@ public:
 	DefaultTexProgram *impl{};
 	constexpr DefaultTexAlphaProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 class DefaultTexExternalReplaceProgram : public TexProgram
@@ -218,9 +227,9 @@ class DefaultTexExternalReplaceProgram : public TexProgram
 public:
 	constexpr DefaultTexExternalReplaceProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 class DefaultTexExternalProgram : public TexProgram
@@ -228,9 +237,9 @@ class DefaultTexExternalProgram : public TexProgram
 public:
 	constexpr DefaultTexExternalProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 class DefaultColorProgram : public ColorProgram
@@ -238,9 +247,9 @@ class DefaultColorProgram : public ColorProgram
 public:
 	constexpr DefaultColorProgram() {}
 	bool compile(Renderer &r);
-	void use(Renderer &r) { use(r, nullptr); }
-	void use(Renderer &r, Mat4 modelMat) { use(r, &modelMat); }
-	void use(Renderer &r, const Mat4 *modelMat);
+	void use(RendererCommands &cmds) { use(cmds, nullptr); }
+	void use(RendererCommands &cmds, Mat4 modelMat) { use(cmds, &modelMat); }
+	void use(RendererCommands &cmds, const Mat4 *modelMat);
 };
 
 using ProgramImpl = GLSLProgram;

@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "GLTexture"
 #include <algorithm>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
@@ -54,6 +55,20 @@ using namespace IG;
 
 namespace Gfx
 {
+
+Texture::Texture(Texture &&o)
+{
+	*this = o;
+	o.texName_ = 0;
+}
+
+Texture &Texture::operator=(Texture &&o)
+{
+	deinit();
+	*this = o;
+	o.texName_ = 0;
+	return *this;
+}
 
 #ifdef __ANDROID__
 // set to actual implementation when androidStorageImpl() or setAndroidStorageImpl() is called
@@ -207,18 +222,22 @@ static uint typeForPixelFormat(PixelFormatID format)
 
 static void setTexParameteriImpl(GLenum target, GLenum pname, GLint param, const char *pnameStr)
 {
-	glTexParameteri(target, pname, param);
-	if(handleGLErrorsVerbose([pnameStr](GLenum, const char *err) { logErr("%s in glTexParameteri with %s", err, pnameStr); }))
-		logWarn("error in glTexParameteri with param %d", (int)param);
+	runGLCheckedVerbose(
+		[&]()
+		{
+			glTexParameteri(target, pname, param);
+		}, "glTexParameteri()");
 }
 
 #define setTexParameteri(target, pname, param) setTexParameteriImpl(target, pname, param, #pname);
 
 static void setSamplerParameteriImpl(Renderer &r, GLuint sampler, GLenum pname, GLint param, const char *pnameStr)
 {
-	r.support.glSamplerParameteri(sampler, pname, param);
-	if(handleGLErrorsVerbose([pnameStr](GLenum, const char *err) { logErr("%s in glSamplerParameteri with %s", err, pnameStr); }))
-		logWarn("error in glSamplerParameteri with param %d", (int)param);
+	runGLCheckedVerbose(
+		[&]()
+		{
+			r.support.glSamplerParameteri(sampler, pname, param);
+		}, "glSamplerParameteri()");
 }
 
 #define setSamplerParameteri(r, sampler, pname, param) setSamplerParameteriImpl(r, sampler, pname, param, #pname);
@@ -251,41 +270,11 @@ static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeM
 	return config;
 }
 
-static LockedTextureBuffer makeLockedTextureBuffer(IG::Pixmap pix, IG::WindowRect srcDirtyBounds, uint lockedLevel)
+static LockedTextureBuffer makeLockedTextureBuffer(IG::Pixmap pix, IG::WindowRect srcDirtyBounds, uint lockedLevel, GLuint pbo = 0)
 {
 	LockedTextureBuffer lockBuff;
-	lockBuff.set(pix, srcDirtyBounds, lockedLevel);
+	lockBuff.set(pix, srcDirtyBounds, lockedLevel, pbo);
 	return lockBuff;
-}
-
-static GLuint getTexturePBO(Renderer &r)
-{
-	assert(r.texturePBO[r.texturePBOIdx]);
-	r.usedTexturePBOs = std::min(r.usedTexturePBOs + 1, (uint)IG::size(r.texturePBO));
-	auto pbo = r.texturePBO[r.texturePBOIdx];
-	r.texturePBOIdx = (r.texturePBOIdx+1) % IG::size(r.texturePBO);
-	return pbo;
-}
-
-void GLRenderer::initTexturePBO()
-{
-	if(unlikely(support.hasPBOFuncs && !texturePBO[0]))
-	{
-		glGenBuffers(IG::size(texturePBO), texturePBO);
-	}
-}
-
-void GLRenderer::discardTexturePBO()
-{
-	if(!usedTexturePBOs)
-		return;
-	logDMsg("discarding %u temporary PBO(s)", usedTexturePBOs);
-	iterateTimes(usedTexturePBOs, i)
-	{
-		glcBindBuffer(GL_PIXEL_UNPACK_BUFFER, texturePBO[i]);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER, 0, nullptr, GL_STREAM_DRAW);
-	}
-	usedTexturePBOs = 0;
 }
 
 static bool supportsDirectStorage(Renderer &r)
@@ -302,7 +291,7 @@ static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, boo
 {
 	auto imgPix = img.lockPixmap();
 	auto unlockImgPixmap = IG::scopeGuard([&](){ img.unlockPixmap(); });
-	if(auto err = texture.init(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
+	if(auto err = texture.init2(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
 		err)
 	{
 		return err;
@@ -345,7 +334,7 @@ static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, boo
 	return {};
 }
 
-void TextureSampler::init(Renderer &r, TextureSamplerConfig config)
+void TextureSampler::init2(Renderer &r, TextureSamplerConfig config)
 {
 	deinit(r);
 	magFilter = makeMagFilter(config.minLinearFilter());
@@ -354,15 +343,19 @@ void TextureSampler::init(Renderer &r, TextureSamplerConfig config)
 	yWrapMode_ = makeWrapMode(config.yWrapMode());
 	if(r.support.hasSamplerObjects)
 	{
-		r.support.glGenSamplers(1, &name_);
-		if(magFilter != GL_LINEAR) // GL_LINEAR is the default
-			setSamplerParameteri(r, name_, GL_TEXTURE_MAG_FILTER, magFilter);
-		if(minFilter != GL_NEAREST_MIPMAP_LINEAR) // GL_NEAREST_MIPMAP_LINEAR is the default
-			setSamplerParameteri(r, name_, GL_TEXTURE_MIN_FILTER, minFilter);
-		if(xWrapMode_ != GL_REPEAT) // GL_REPEAT is the default
-			setSamplerParameteri(r, name_, GL_TEXTURE_WRAP_S, xWrapMode_);
-		if(yWrapMode_ != GL_REPEAT) // GL_REPEAT​​ is the default
-			setSamplerParameteri(r, name_, GL_TEXTURE_WRAP_T, yWrapMode_);
+		r.runGLTaskSync(
+			[this, &r]()
+			{
+				r.support.glGenSamplers(1, &name_);
+				if(magFilter != GL_LINEAR) // GL_LINEAR is the default
+					setSamplerParameteri(r, name_, GL_TEXTURE_MAG_FILTER, magFilter);
+				if(minFilter != GL_NEAREST_MIPMAP_LINEAR) // GL_NEAREST_MIPMAP_LINEAR is the default
+					setSamplerParameteri(r, name_, GL_TEXTURE_MIN_FILTER, minFilter);
+				if(xWrapMode_ != GL_REPEAT) // GL_REPEAT is the default
+					setSamplerParameteri(r, name_, GL_TEXTURE_WRAP_S, xWrapMode_);
+				if(yWrapMode_ != GL_REPEAT) // GL_REPEAT​​ is the default
+					setSamplerParameteri(r, name_, GL_TEXTURE_WRAP_T, yWrapMode_);
+			});
 	}
 	else
 	{
@@ -376,19 +369,13 @@ void TextureSampler::deinit(Renderer &r)
 {
 	if(r.support.hasSamplerObjects && name_)
 	{
-		r.support.glDeleteSamplers(1, &name_);
+		r.runGLTaskSync(
+			[this, &r]()
+			{
+				r.support.glDeleteSamplers(1, &name_);
+			});
 	}
 	*this = {};
-}
-
-void TextureSampler::bind(Renderer &r)
-{
-	if(r.support.hasSamplerObjects && r.currSampler.name() != name_)
-	{
-		//logMsg("bind sampler:0x%X", (int)name_);
-		r.support.glBindSampler(0, name_);
-	}
-	r.currSampler = *this;
 }
 
 TextureSampler::operator bool() const
@@ -400,7 +387,7 @@ void TextureSampler::initDefaultClampSampler(Renderer &r)
 {
 	if(!r.defaultClampSampler)
 	{
-		r.defaultClampSampler.init(r, {});
+		r.defaultClampSampler = r.makeTextureSampler({});
 	}
 }
 
@@ -410,7 +397,7 @@ void TextureSampler::initDefaultNearestMipClampSampler(Renderer &r)
 	{
 		TextureSamplerConfig conf;
 		conf.setMipFilter(MIP_FILTER_NEAREST);
-		r.defaultNearestMipClampSampler.init(r, conf);
+		r.defaultNearestMipClampSampler = r.makeTextureSampler(conf);
 	}
 }
 
@@ -420,7 +407,7 @@ void TextureSampler::initDefaultNoMipClampSampler(Renderer &r)
 	{
 		TextureSamplerConfig conf;
 		conf.setMipFilter(MIP_FILTER_NONE);
-		r.defaultNoMipClampSampler.init(r, conf);
+		r.defaultNoMipClampSampler = r.makeTextureSampler(conf);
 	}
 }
 
@@ -431,7 +418,7 @@ void TextureSampler::initDefaultNoLinearNoMipClampSampler(Renderer &r)
 		TextureSamplerConfig conf;
 		conf.setLinearFilter(false);
 		conf.setMipFilter(MIP_FILTER_NONE);
-		r.defaultNoLinearNoMipClampSampler.init(r, conf);
+		r.defaultNoLinearNoMipClampSampler = r.makeTextureSampler(conf);
 	}
 }
 
@@ -441,7 +428,7 @@ void TextureSampler::initDefaultRepeatSampler(Renderer &r)
 	{
 		TextureSamplerConfig conf;
 		conf.setWrapMode(WRAP_REPEAT);
-		r.defaultRepeatSampler.init(r, conf);
+		r.defaultRepeatSampler = r.makeTextureSampler(conf);
 	}
 }
 
@@ -452,44 +439,44 @@ void TextureSampler::initDefaultNearestMipRepeatSampler(Renderer &r)
 		TextureSamplerConfig conf;
 		conf.setMipFilter(MIP_FILTER_NEAREST);
 		conf.setWrapMode(WRAP_REPEAT);
-		r.defaultNearestMipRepeatSampler.init(r, conf);
+		r.defaultNearestMipRepeatSampler = r.makeTextureSampler(conf);
 	}
 }
 
-void TextureSampler::bindDefaultClampSampler(Renderer &r)
+void TextureSampler::bindDefaultClampSampler(RendererCommands &cmds)
 {
-	assert(r.defaultClampSampler);
-	r.defaultClampSampler.bind(r);
+	assert(cmds.renderer().defaultClampSampler);
+	cmds.setTextureSampler(cmds.renderer().defaultClampSampler);
 }
 
-void TextureSampler::bindDefaultNearestMipClampSampler(Renderer &r)
+void TextureSampler::bindDefaultNearestMipClampSampler(RendererCommands &cmds)
 {
-	assert(r.defaultNearestMipClampSampler);
-	r.defaultNearestMipClampSampler.bind(r);
+	assert(cmds.renderer().defaultNearestMipClampSampler);
+	cmds.setTextureSampler(cmds.renderer().defaultNearestMipClampSampler);
 }
 
-void TextureSampler::bindDefaultNoMipClampSampler(Renderer &r)
+void TextureSampler::bindDefaultNoMipClampSampler(RendererCommands &cmds)
 {
-	assert(r.defaultNoMipClampSampler);
-	r.defaultNoMipClampSampler.bind(r);
+	assert(cmds.renderer().defaultNoMipClampSampler);
+	cmds.setTextureSampler(cmds.renderer().defaultNoMipClampSampler);
 }
 
-void TextureSampler::bindDefaultNoLinearNoMipClampSampler(Renderer &r)
+void TextureSampler::bindDefaultNoLinearNoMipClampSampler(RendererCommands &cmds)
 {
-	assert(r.defaultNoLinearNoMipClampSampler);
-	r.defaultNoLinearNoMipClampSampler.bind(r);
+	assert(cmds.renderer().defaultNoLinearNoMipClampSampler);
+	cmds.setTextureSampler(cmds.renderer().defaultNoLinearNoMipClampSampler);
 }
 
-void TextureSampler::bindDefaultRepeatSampler(Renderer &r)
+void TextureSampler::bindDefaultRepeatSampler(RendererCommands &cmds)
 {
-	assert(r.defaultRepeatSampler);
-	r.defaultRepeatSampler.bind(r);
+	assert(cmds.renderer().defaultRepeatSampler);
+	cmds.setTextureSampler(cmds.renderer().defaultRepeatSampler);
 }
 
-void TextureSampler::bindDefaultNearestMipRepeatSampler(Renderer &r)
+void TextureSampler::bindDefaultNearestMipRepeatSampler(RendererCommands &cmds)
 {
-	assert(r.defaultNearestMipRepeatSampler);
-	r.defaultNearestMipRepeatSampler.bind(r);
+	assert(cmds.renderer().defaultNearestMipRepeatSampler);
+	cmds.setTextureSampler(cmds.renderer().defaultNearestMipRepeatSampler);
 }
 
 void GLTextureSampler::setTexParams(Renderer &r, GLenum target)
@@ -518,18 +505,32 @@ LockedTextureBuffer::operator bool() const
 	return (bool)pix;
 }
 
-void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel)
+void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel, GLuint pbo)
 {
 	this->pix = pix;
 	this->srcDirtyRect = srcDirtyRect;
 	this->lockedLevel = lockedLevel;
+	this->pbo = pbo;
 }
 
-Error Texture::init(Renderer &r, TextureConfig config)
+void GLLockedTextureBuffer::deletePBO()
+{
+	if(!pbo)
+		return;
+	//logDMsg("deleting temporary PBO:%u", pbo);
+	glDeleteBuffers(1, &pbo);
+	pbo = 0;
+}
+
+Error Texture::init2(Renderer &r, TextureConfig config)
 {
 	deinit();
 	this->r = &r;
-	texName_ = r.newTex();
+	r.runGLTaskSync(
+		[this]()
+		{
+			texName_ = makeGLTexture();
+		});
 	if(config.willWriteOften())
 	{
 		#ifdef __ANDROID__
@@ -542,7 +543,7 @@ Error Texture::init(Renderer &r, TextureConfig config)
 			if(androidStorageImpl_ == ANDROID_SURFACE_TEXTURE)
 			{
 				Error err{};
-				auto *surfaceTex = new SurfaceTextureStorage(r, texName_, err);
+				auto *surfaceTex = new SurfaceTextureStorage(r, texName_, true, err);
 				if(err)
 				{
 					logWarn("SurfaceTexture error with texture:0x%X (%s)", texName_, err->what());
@@ -556,14 +557,18 @@ Error Texture::init(Renderer &r, TextureConfig config)
 			}
 			else if(androidStorageImpl_ == ANDROID_GRAPHIC_BUFFER)
 			{
-				auto *gbTex = new GraphicBufferStorage(r.glDpy.eglDisplay());
+				auto *gbTex = new GraphicBufferStorage();
 				directTex = gbTex;
 			}
 		}
 		#endif
 		if(!directTex && r.support.hasPBOFuncs)
 		{
-			glGenBuffers(1, &ownPBO);
+			r.runGLTaskSync(
+				[this]()
+				{
+					glGenBuffers(1, &ownPBO);
+				});
 			logMsg("made dedicated PBO:0x%X for texture", ownPBO);
 		}
 	}
@@ -576,27 +581,31 @@ Error Texture::init(Renderer &r, TextureConfig config)
 	return setFormat(config.pixmapDesc(), config.levels());
 }
 
-Error Texture::init(Renderer &r, GfxImageSource &img, bool makeMipmaps)
+Error Texture::init2(Renderer &r, GfxImageSource &img, bool makeMipmaps)
 {
 	return initTextureCommon(r, *this, img, makeMipmaps);
 }
 
 void Texture::deinit()
 {
-	if(texName_)
-	{
-		logMsg("deinit texture:0x%X", texName_);
-		assumeExpr(r);
-		delete directTex;
-		r->deleteTex(texName_);
-	}
-	if(ownPBO)
-	{
-		logMsg("deleting PBO:0x%X", ownPBO);
-		assumeExpr(r);
-		r->glcDeleteBuffers(1, &ownPBO);
-	}
-	*this = {};
+	if(!texName_)
+		return;
+	logMsg("deinit texture:0x%X", texName_);
+	assumeExpr(r);
+	r->waitPendingGLTasks();
+	delete directTex;
+	r->runGLTaskSync(
+		[this]()
+		{
+			glDeleteTextures(1, &texName_);
+			texName_ = 0;
+			if(ownPBO)
+			{
+				logMsg("deleting PBO:0x%X", ownPBO);
+				glDeleteBuffers(1, &ownPBO);
+				ownPBO = 0;
+			}
+		});
 }
 
 uint Texture::bestAlignment(const IG::Pixmap &p)
@@ -604,10 +613,30 @@ uint Texture::bestAlignment(const IG::Pixmap &p)
 	return unpackAlignForAddrAndPitch(p.pixel({}), p.pitchBytes());
 }
 
-bool Texture::canUseMipmaps()
+bool GLTexture::canUseMipmaps(Renderer &r) const
+{
+	return !directTex && r.support.textureSizeSupport.supportsMipmaps(pixDesc.w(), pixDesc.h());
+}
+
+bool Texture::canUseMipmaps() const
 {
 	assumeExpr(r);
-	return !directTex && r->support.textureSizeSupport.supportsMipmaps(pixDesc.w(), pixDesc.h());
+	return GLTexture::canUseMipmaps(*r);
+}
+
+bool GLTexture::generateMipmapsAsCurrent(Renderer &r)
+{
+	assert(canUseMipmaps(r));
+	r.verifyCurrentResourceContext();
+	r.verifyCurrentTexture2D(texName_);
+	logMsg("generating mipmaps for texture:0x%X", texName_);
+	r.support.generateMipmaps(GL_TEXTURE_2D);
+	if(!r.support.hasImmutableTexStorage)
+	{
+		// all possible levels generated by glGenerateMipmap
+		levels_ = fls(pixDesc.w() | pixDesc.h());
+	}
+	return true;
 }
 
 bool Texture::generateMipmaps()
@@ -615,14 +644,13 @@ bool Texture::generateMipmaps()
 	if(!canUseMipmaps())
 		return false;
 	assumeExpr(r);
-	logMsg("generating mipmaps for texture:0x%X", texName_);
-	r->glcBindTexture(GL_TEXTURE_2D, texName_);
-	r->support.generateMipmaps(GL_TEXTURE_2D);
-	if(!r->support.hasImmutableTexStorage)
-	{
-		// all possible levels generated by glGenerateMipmap
-		levels_ = fls(pixDesc.w() | pixDesc.h());
-	}
+	r->resourceUpdate = true;
+	r->runGLTaskSync(
+		[this]()
+		{
+			glBindTexture(GL_TEXTURE_2D, texName_);
+			generateMipmapsAsCurrent(*r);
+		});
 	return true;
 }
 
@@ -656,59 +684,61 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 		{
 			levels = 1;
 		}
-		if(r->support.hasImmutableTexStorage)
-		{
-			if(levels_) // texture format was previously set
+		r->runGLTaskSync(
+			[this, desc, levels]()
 			{
-				sampler = 0;
-				r->deleteTex(texName_);
-				texName_ = r->newTex();
-			}
-			r->glcBindTexture(GL_TEXTURE_2D, texName_);
-			auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
-			logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
-				texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
-			handleGLErrors();
-			r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
-			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexStorage2D", err); }))
-			{
-				return std::runtime_error("glTexStorage2D() failed");
-			}
-		}
-		else
-		{
-			if(unlikely(levels_ && levels != levels_)) // texture format was previously set
-			{
-				sampler = 0;
-				r->deleteTex(texName_);
-				texName_ = r->newTex();
-			}
-			r->glcBindTexture(GL_TEXTURE_2D, texName_);
-			auto format = makeGLFormat(*r, desc.format());
-			auto dataType = makeGLDataType(desc.format());
-			auto internalFormat = makeGLInternalFormat(*r, desc.format());
-			logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
-				texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
-			handleGLErrors();
-			uint w = desc.w(), h = desc.h();
-			iterateTimes(levels, i)
-			{
-				glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
-				if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexImage2D", err); }))
+				if(r->support.hasImmutableTexStorage)
 				{
-					return std::runtime_error("glTexImage2D() failed");
+					if(levels_) // texture format was previously set
+					{
+						sampler = 0;
+						glDeleteTextures(1, &texName_);
+						texName_ = makeGLTexture();
+					}
+					glBindTexture(GL_TEXTURE_2D, texName_);
+					auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
+					logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
+						texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
+					runGLChecked(
+						[&]()
+						{
+							r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
+						}, "glTexStorage2D()");
 				}
-				w = std::max(1u, (w / 2));
-				h = std::max(1u, (h / 2));
-			}
-		}
-		if(ownPBO)
-		{
-			uint buffSize = desc.pixelBytes();
-			r->glcBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
-			glBufferData(GL_PIXEL_UNPACK_BUFFER, buffSize, nullptr, GL_STREAM_DRAW);
-			logMsg("allocated PBO buffer bytes:%u", buffSize);
-		}
+				else
+				{
+					if(unlikely(levels_ && levels != levels_)) // texture format was previously set
+					{
+						sampler = 0;
+						glDeleteTextures(1, &texName_);
+						texName_ = makeGLTexture();
+					}
+					glBindTexture(GL_TEXTURE_2D, texName_);
+					auto format = makeGLFormat(*r, desc.format());
+					auto dataType = makeGLDataType(desc.format());
+					auto internalFormat = makeGLInternalFormat(*r, desc.format());
+					logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
+						texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
+					uint w = desc.w(), h = desc.h();
+					iterateTimes(levels, i)
+					{
+						runGLChecked(
+							[&]()
+							{
+								glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
+							}, "glTexImage2D()");
+						w = std::max(1u, (w / 2));
+						h = std::max(1u, (h / 2));
+					}
+				}
+				if(ownPBO)
+				{
+					uint buffSize = desc.pixelBytes();
+					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
+					glBufferData(GL_PIXEL_UNPACK_BUFFER, buffSize, nullptr, GL_STREAM_DRAW);
+					logMsg("allocated PBO buffer bytes:%u", buffSize);
+				}
+			});
 	}
 	assert(levels);
 	levels_ = levels;
@@ -723,20 +753,19 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 	return {};
 }
 
-void Texture::bind()
+void GLTexture::bindTex(RendererCommands &cmds, TextureSampler &bindSampler)
 {
 	if(!texName_)
 	{
 		logErr("tried to bind uninitialized texture");
 		return;
 	}
-	assumeExpr(r);
-	r->glcBindTexture(target, texName_);
-	if(!r->support.hasSamplerObjects && r->currSampler.name() != sampler)
+	cmds.glcBindTexture(target, texName_);
+	if(!cmds.renderer().support.hasSamplerObjects && bindSampler.name() != sampler)
 	{
-		logMsg("setting sampler:0x%X for texture:0x%X", (int)r->currSampler.name(), texName_);
-		sampler = r->currSampler.name();
-		r->currSampler.setTexParams(*r, target);
+		logMsg("setting sampler:0x%X for texture:0x%X", (int)bindSampler.name(), texName_);
+		sampler = bindSampler.name();
+		bindSampler.setTexParams(cmds.renderer(), target);
 	}
 }
 
@@ -752,6 +781,7 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 	assumeExpr(destPos.x + pixmap.w() <= (uint)size(level).x);
 	assumeExpr(destPos.y + pixmap.h() <= (uint)size(level).y);
 	assumeExpr(pixmap.format() == pixDesc.format());
+	r->resourceUpdate = true;
 	if(!assumeAlign)
 		assumeAlign = unpackAlignForAddrAndPitch(pixmap.pixel({}), pixmap.pitchBytes());
 	if(directTex)
@@ -790,17 +820,20 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 		}
 		else if(r->support.hasUnpackRowLength || !pixmap.isPadded())
 		{
-			r->glcBindTexture(GL_TEXTURE_2D, texName_);
-			r->glcPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
-			if(r->support.hasUnpackRowLength)
-				r->glcPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
-			handleGLErrors();
-			glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-				pixmap.w(), pixmap.h(), format, dataType, pixmap.pixel({}));
-			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
-			{
-				return;
-			}
+			r->runGLTaskSync(
+				[this, level, &pixmap, destPos, assumeAlign, format, dataType]()
+				{
+					glBindTexture(GL_TEXTURE_2D, texName_);
+					glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
+					if(r->support.hasUnpackRowLength)
+						glPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
+					runGLCheckedVerbose(
+						[&]()
+						{
+							glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
+								pixmap.w(), pixmap.h(), format, dataType, pixmap.pixel({}));
+						}, "glTexSubImage2D()");
+				});
 		}
 		else
 		{
@@ -814,16 +847,19 @@ void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint a
 			}
 			alignas(__BIGGEST_ALIGNMENT__) char tempPixData[pixmap.pixelBytes()];
 			IG::Pixmap tempPix{pixmap, tempPixData};
-			r->glcBindTexture(GL_TEXTURE_2D, texName_);
-			r->glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
 			tempPix.write(pixmap, {});
-			handleGLErrors();
-			glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-				tempPix.w(), tempPix.h(), format, dataType, tempPix.pixel({}));
-			if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
-			{
-				return;
-			}
+			r->runGLTaskSync(
+				[this, level, &tempPix, destPos, assumeAlign, format, dataType]()
+				{
+					glBindTexture(GL_TEXTURE_2D, texName_);
+					glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
+					runGLCheckedVerbose(
+						[&]()
+						{
+							glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
+								tempPix.w(), tempPix.h(), format, dataType, tempPix.pixel({}));
+						}, "glTexSubImage2D()");
+				});
 		}
 	}
 }
@@ -883,29 +919,34 @@ LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
 	}
 	else if(r->support.hasPBOFuncs)
 	{
-		uint rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
 		void *data;
-		if(ownPBO)
-		{
-			r->glcBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
-			data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-			//logDMsg("mapped own PBO at addr:%p", data);
-		}
-		else
-		{
-			GLuint pbo = getTexturePBO(*r);
-			r->glcBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-			glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
-			data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-			//logDMsg("mapped global PBO at addr:%p", data);
-		}
+		GLuint pbo = 0;
+		r->runGLTaskSync(
+			[this, &data, &pbo, rect]()
+			{
+				uint rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
+				if(ownPBO)
+				{
+					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
+					data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+					//logDMsg("mapped own PBO at addr:%p", data);
+				}
+				else
+				{
+					glGenBuffers(1, &pbo);
+					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+					glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
+					data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+					//logDMsg("mapped global PBO at addr:%p", data);
+				}
+			});
 		if(!data)
 		{
 			logErr("error mapping buffer");
 			return {};
 		}
 		IG::Pixmap pix{{rect.size(), pixDesc.format()}, data};
-		return makeLockedTextureBuffer(pix, rect, level);
+		return makeLockedTextureBuffer(pix, rect, level, pbo);
 	}
 	else
 		return {}; // lock() not supported
@@ -914,27 +955,40 @@ LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
 void Texture::unlock(LockedTextureBuffer lockBuff)
 {
 	assumeExpr(r);
+	r->resourceUpdate = true;
 	if(directTex)
 		directTex->unlock(*r, texName_);
 	else if(r->support.hasPBOFuncs)
 	{
-		auto pix = lockBuff.pixmap();
-		IG::WP destPos = {lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y};
-		//logDMsg("unmapped PBO");
-		r->support.glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-		r->glcBindTexture(GL_TEXTURE_2D, texName_);
-		r->glcPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
-		r->glcPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-		GLenum format = makeGLFormat(*r, pix.format());
-		GLenum dataType = makeGLDataType(pix.format());
-		handleGLErrors();
-		glTexSubImage2D(GL_TEXTURE_2D, lockBuff.level(), destPos.x, destPos.y,
-			pix.w(), pix.h(), format, dataType, nullptr);
-		if(handleGLErrors([](GLenum, const char *err) { logErr("%s in glTexSubImage2D", err); }))
-		{
-			return;
-		}
+		r->runGLTaskSync(
+			[this, &lockBuff]()
+			{
+				auto pix = lockBuff.pixmap();
+				IG::WP destPos = {lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y};
+				//logDMsg("unmapped PBO");
+				r->support.glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+				glBindTexture(GL_TEXTURE_2D, texName_);
+				glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
+				glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+				GLenum format = makeGLFormat(*r, pix.format());
+				GLenum dataType = makeGLDataType(pix.format());
+				runGLCheckedVerbose(
+					[&]()
+					{
+						glTexSubImage2D(GL_TEXTURE_2D, lockBuff.level(), destPos.x, destPos.y,
+							pix.w(), pix.h(), format, dataType, nullptr);
+					}, "glTexSubImage2D()");
+				lockBuff.deletePBO();
+			});
 	}
+}
+
+bool Texture::needsExclusiveLock() const
+{
+	if(directTex)
+		return directTex->isSingleBuffered();
+	else
+		return false;
 }
 
 IG::WP Texture::size(uint level) const
@@ -955,6 +1009,7 @@ IG::PixmapDesc Texture::pixmapDesc() const
 
 bool Texture::compileDefaultProgram(uint mode)
 {
+	assumeExpr(r);
 	switch(mode)
 	{
 		bcase IMG_MODE_REPLACE:
@@ -992,7 +1047,7 @@ bool Texture::compileDefaultProgramOneShot(uint mode)
 	return compiled;
 }
 
-void Texture::useDefaultProgram(uint mode, const Mat4 *modelMat) const
+void Texture::useDefaultProgram(RendererCommands &cmds, uint mode, const Mat4 *modelMat) const
 {
 	#ifndef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	const uint type_ = TEX_2D_4;
@@ -1002,21 +1057,21 @@ void Texture::useDefaultProgram(uint mode, const Mat4 *modelMat) const
 		bcase IMG_MODE_REPLACE:
 			switch(type_)
 			{
-				bcase TEX_2D_1 : r->texAlphaReplaceProgram.use(*r, modelMat);
-				bcase TEX_2D_2 : r->texReplaceProgram.use(*r, modelMat);
-				bcase TEX_2D_4 : r->texReplaceProgram.use(*r, modelMat);
+				bcase TEX_2D_1 : r->texAlphaReplaceProgram.use(cmds, modelMat);
+				bcase TEX_2D_2 : r->texReplaceProgram.use(cmds, modelMat);
+				bcase TEX_2D_4 : r->texReplaceProgram.use(cmds, modelMat);
 				#ifdef __ANDROID__
-				bcase TEX_2D_EXTERNAL : r->texExternalReplaceProgram.use(*r, modelMat);
+				bcase TEX_2D_EXTERNAL : r->texExternalReplaceProgram.use(cmds, modelMat);
 				#endif
 			}
 		bcase IMG_MODE_MODULATE:
 			switch(type_)
 			{
-				bcase TEX_2D_1 : r->texAlphaProgram.use(*r, modelMat);
-				bcase TEX_2D_2 : r->texProgram.use(*r, modelMat);
-				bcase TEX_2D_4 : r->texProgram.use(*r, modelMat);
+				bcase TEX_2D_1 : r->texAlphaProgram.use(cmds, modelMat);
+				bcase TEX_2D_2 : r->texProgram.use(cmds, modelMat);
+				bcase TEX_2D_4 : r->texProgram.use(cmds, modelMat);
 				#ifdef __ANDROID__
-				bcase TEX_2D_EXTERNAL : r->texExternalProgram.use(*r, modelMat);
+				bcase TEX_2D_EXTERNAL : r->texExternalProgram.use(cmds, modelMat);
 				#endif
 			}
 	}
@@ -1033,12 +1088,12 @@ Renderer &Texture::renderer()
 	return *r;
 }
 
-Error PixmapTexture::init(Renderer &r, TextureConfig config)
+Error PixmapTexture::init2(Renderer &r, TextureConfig config)
 {
 	if(config.willWriteOften() && config.levels() == 1 && supportsDirectStorage(r))
 	{
 		// try without changing size when using direct pixel storage
-		if(auto err = Texture::init(r, config);
+		if(auto err = Texture::init2(r, config);
 			!err)
 		{
 			usedSize = config.pixmapDesc().size();
@@ -1047,7 +1102,7 @@ Error PixmapTexture::init(Renderer &r, TextureConfig config)
 	}
 	auto origPixDesc = config.pixmapDesc();
 	config.setPixmapDesc(r.support.textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
-	if(auto err = Texture::init(r, config);
+	if(auto err = Texture::init2(r, config);
 		err)
 	{
 		return err;
@@ -1059,12 +1114,12 @@ Error PixmapTexture::init(Renderer &r, TextureConfig config)
 	return {};
 }
 
-Error PixmapTexture::init(Renderer &r, GfxImageSource &img, bool makeMipmaps)
+Error PixmapTexture::init2(Renderer &r, GfxImageSource &img, bool makeMipmaps)
 {
 	if(img)
 		return initTextureCommon(r, *this, img, makeMipmaps);
 	else
-		return init(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
+		return init2(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
 }
 
 Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
@@ -1121,23 +1176,27 @@ void GLTexture::setSwizzleForFormat(Renderer &r, PixelFormatID format, GLuint te
 		return;
 	if(r.support.hasTextureSwizzle && target == GL_TEXTURE_2D)
 	{
-		r.glcBindTexture(GL_TEXTURE_2D, tex);
-		const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
-		const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
-		const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
-		#ifdef CONFIG_GFX_OPENGL_ES
-		auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
-				: (format == PIXEL_A8) ? swizzleMaskA8
-				: swizzleMaskRGBA;
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
-		#else
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
-				: (format == PIXEL_A8) ? swizzleMaskA8
-				: swizzleMaskRGBA);
-		#endif
+		r.runGLTask(
+			[&r, format, tex]()
+			{
+				r.verifyCurrentTexture2D(tex);
+				const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
+				const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
+				const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
+				#ifdef CONFIG_GFX_OPENGL_ES
+				auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
+						: (format == PIXEL_A8) ? swizzleMaskA8
+						: swizzleMaskRGBA;
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
+				#else
+				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
+						: (format == PIXEL_A8) ? swizzleMaskA8
+						: swizzleMaskRGBA);
+				#endif
+			});
 	}
 	#endif
 }
@@ -1152,6 +1211,17 @@ GLTexture::AndroidStorageImpl GLTexture::androidStorageImpl(Renderer &r)
 	return androidStorageImpl_;
 }
 
+static const char *rendererGLStr(Renderer &r)
+{
+	const char *str;
+	r.runGLTaskSync(
+		[&str]()
+		{
+			str = (const char*)glGetString(GL_RENDERER);
+		});
+	return str;
+}
+
 bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
 {
 	switch(impl)
@@ -1160,7 +1230,7 @@ bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
 		{
 			logMsg("auto-detecting Android storage implementation");
 			androidStorageImpl_ = ANDROID_NONE;
-			if(GraphicBufferStorage::isRendererWhitelisted((const char*)glGetString(GL_RENDERER)))
+			if(GraphicBufferStorage::isRendererWhitelisted(rendererGLStr(r)))
 			{
 				// use GraphicBuffer if whitelisted
 				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;
@@ -1185,7 +1255,7 @@ bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
 		}
 		bcase ANDROID_GRAPHIC_BUFFER:
 		{
-			auto rendererStr = (const char*)glGetString(GL_RENDERER);
+			auto rendererStr = rendererGLStr(r);
 			if(Config::ARM_ARCH == 7 && r.support.useLegacyGLSL && strstr(rendererStr, "Tegra"))
 			{
 				logMsg("not using GraphicBuffer due to app lockup on Tegra 4 and older");
@@ -1256,9 +1326,9 @@ bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
 	}
 }
 
-bool GLTexture::isAndroidGraphicBufferStorageWhitelisted()
+bool GLTexture::isAndroidGraphicBufferStorageWhitelisted(Renderer &r)
 {
-	return GraphicBufferStorage::isRendererWhitelisted((const char*)glGetString(GL_RENDERER));
+	return GraphicBufferStorage::isRendererWhitelisted(rendererGLStr(r));
 }
 
 bool GLTexture::isExternal()

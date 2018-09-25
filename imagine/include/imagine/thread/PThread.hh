@@ -23,10 +23,14 @@ namespace IG
 {
 
 template<class F>
-static pthread_t makePThread(F func)
+static pthread_t makePThread(F func, bool detached)
 {
 	int res;
 	pthread_t id;
+	pthread_attr_t attrs;
+	pthread_attr_init(&attrs);
+	if(detached)
+		pthread_attr_setdetachstate(&attrs, PTHREAD_CREATE_DETACHED);
 	if(sizeof(F) <= sizeof(void*))
 	{
 		// inline function object data into the void* parameter
@@ -36,7 +40,7 @@ static pthread_t makePThread(F func)
 			void *voidPtr;
 		};
 		FuncData funcData{func};
-		res = pthread_create(&id, nullptr,
+		res = pthread_create(&id, &attrs,
 			[](void *arg) -> void*
 			{
 				((FuncData*)(&arg))->func();
@@ -46,7 +50,7 @@ static pthread_t makePThread(F func)
 	else
 	{
 		void *funcPtr = new F(func);
-		res = pthread_create(&id, nullptr,
+		res = pthread_create(&id, &attrs,
 			[](void *arg) -> void*
 			{
 				auto funcPtr = (F*)arg;
@@ -56,6 +60,9 @@ static pthread_t makePThread(F func)
 				return nullptr;
 			}, funcPtr);
 	}
+	pthread_attr_destroy(&attrs);
+	if(detached)
+		id = {};
 	if(res != 0)
 	{
 		bug_unreachable("error in pthread create");
@@ -70,10 +77,17 @@ protected:
 
 public:
 	constexpr PThread() {}
+
 	template<class Func>
 	explicit PThread(Func&& f)
 	{
-		id_ = makePThread(f);
+		id_ = makePThread(f, false);
+	}
+
+	template<class Func>
+	explicit PThread(Func&& f, bool detached)
+	{
+		id_ = makePThread(f, detached);
 	}
 };
 

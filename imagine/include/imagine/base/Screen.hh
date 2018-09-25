@@ -19,8 +19,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/DelegateFuncSet.hh>
 
 namespace Config
 {
@@ -62,13 +61,12 @@ public:
 	struct FrameParams;
 
 	using ChangeDelegate = DelegateFunc<void (const Screen &screen, Change change)>;
-	using OnFrameDelegate = DelegateFunc<void (FrameParams params)>;
+	using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
 	struct FrameParams
 	{
 		Screen &screen_;
 		FrameTimeBase timestamp_;
-		OnFrameDelegate onFrame_;
 
 		Screen &screen() const { return screen_; }
 		FrameTimeBase timestamp() const { return timestamp_; }
@@ -78,8 +76,6 @@ public:
 			return lastTimestamp ? timestamp_ - lastTimestamp : 0;
 		}
 		uint elapsedFrames() const { return screen_.elapsedFrames(timestamp_); }
-		OnFrameDelegate onFrame() const { return onFrame_; }
-		void readdOnFrame() { screen_.addOnFrame(onFrame_); }
 	};
 
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
@@ -93,8 +89,7 @@ public:
 	int height();
 	bool isPosted();
 	static bool screensArePosted();
-	void addOnFrame(OnFrameDelegate del);
-	bool addOnFrameOnce(OnFrameDelegate del);
+	bool addOnFrame(OnFrameDelegate del, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate del);
 	bool containsOnFrame(OnFrameDelegate del);
 	uint onFrameDelegates();
@@ -130,7 +125,7 @@ private:
 	// for debug frame stats
 	uint continuousFrames{};
 	#endif
-	StaticArrayList<OnFrameDelegate, 8> onFrameDelegate;
+	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 
 	void runOnFrameDelegates(FrameTimeBase timestamp);
 	void postFrame();

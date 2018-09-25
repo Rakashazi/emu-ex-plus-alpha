@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "ResFontAndroid"
+#define LOGTAG "AndroidFont"
 #include <imagine/font/Font.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/jni.hh>
@@ -66,8 +66,8 @@ static void setupResourceFontAndroidJni(JNIEnv *env, jobject renderer)
 				metrics.xOffset = xOff;
 				metrics.yOffset = yOff;
 				metrics.xAdvance = xAdv;
-				logMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
-					metrics.xOffset, metrics.yOffset, metrics.xAdvance);
+				/*logDMsg("char metrics: size %dx%d offset %dx%d advance %d", metrics.xSize, metrics.ySize,
+					metrics.xOffset, metrics.yOffset, metrics.xAdvance);*/
 			})
 		},
 	};
@@ -78,7 +78,7 @@ Font::Font() {}
 
 Font Font::makeSystem()
 {
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	Font font{};
 	if(unlikely(!renderer))
 	{
@@ -128,7 +128,7 @@ Font::operator bool() const
 
 Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 {
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	GlyphMetrics metrics{};
 	auto lockedBitmap = jBitmap(env, renderer, idx, size.paint(), (jlong)&metrics);
 	if(!lockedBitmap)
@@ -153,7 +153,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 
 GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 {
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	GlyphMetrics metrics{};
 	jMetrics(env, renderer, idx, size.paint(), (jlong)&metrics);
 	if(!metrics.xSize)
@@ -167,7 +167,7 @@ GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 
 FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	auto paint = jMakePaint(env, jFontRendererCls, settings.pixelHeight(), isBold);
 	if(!paint)
 	{
@@ -194,7 +194,7 @@ AndroidFontSize::~AndroidFontSize()
 {
 	if(!paint_)
 		return;
-	Base::jEnv()->DeleteGlobalRef(paint_);
+	Base::jEnvForThread()->DeleteGlobalRef(paint_);
 }
 
 void AndroidFontSize::swap(AndroidFontSize &a, AndroidFontSize &b)
@@ -223,7 +223,7 @@ void GlyphImage::unlock()
 {
 	if(!aBitmap)
 		return;
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	AndroidBitmap_unlockPixels(env, aBitmap);
 	Base::recycleBitmap(env, aBitmap);
 	env->DeleteLocalRef(aBitmap);

@@ -160,33 +160,32 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 	return false;
 }
 
-void ButtonConfigSetView::draw()
+void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
-	r.setBlendMode(0);
-	r.noTexProgram.use(r, projP.makeTranslate());
-	r.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(r, viewFrame, projP);
+	cmds.setBlendMode(0);
+	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	cmds.setColor(.4, .4, .4, 1.);
+	GeomRect::draw(cmds, viewFrame, projP);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
-		r.setColor(.2, .2, .2, 1.);
-		GeomRect::draw(r, unbindB, projP);
-		GeomRect::draw(r, cancelB, projP);
+		cmds.setColor(.2, .2, .2, 1.);
+		GeomRect::draw(cmds, unbindB, projP);
+		GeomRect::draw(cmds, cancelB, projP);
 	}
 	#endif
 
-	r.setColor(COLOR_WHITE);
-	r.texAlphaProgram.use(r);
+	cmds.setColor(COLOR_WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{
-		unbind.draw(r, projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
-		cancel.draw(r, projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
+		unbind.draw(cmds, projP.unProjectRect(unbindB).pos(C2DO), C2DO, projP);
+		cancel.draw(cmds, projP.unProjectRect(cancelB).pos(C2DO), C2DO, projP);
 	}
 	#endif
-	text.draw(r, 0, 0, C2DO, projP);
+	text.draw(cmds, 0, 0, C2DO, projP);
 }
 
 void ButtonConfigSetView::onAddedToController(Input::Event e)
@@ -203,12 +202,12 @@ void ButtonConfigSetView::onAddedToController(Input::Event e)
 	#endif
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	using namespace Gfx;
-	BaseTextMenuItem::draw(r, xPos, yPos, xSize, ySize, align, projP);
-	r.setColor(1., 1., 0.); // yellow
-	DualTextMenuItem::draw2ndText(r, xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
+	cmds.setColor(1., 1., 0.); // yellow
+	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 }
 
 static std::pair<const KeyCategory *, uint> findCategoryAndKeyInConfig(Input::Key key, InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)

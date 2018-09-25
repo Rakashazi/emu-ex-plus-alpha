@@ -59,7 +59,7 @@ public:
 	{
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
-	GlyphEntry *glyphEntry(Renderer &r, int c);
+	GlyphEntry *glyphEntry(Renderer &r, int c, bool allowCache = true);
 	uint nominalHeight() const;
 	void freeCaches(uint32 rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }

@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
-#define LOGTAG "ResFontUIKit"
+#define LOGTAG "UIKitFont"
 #include <imagine/font/Font.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>

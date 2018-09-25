@@ -18,8 +18,9 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/DelegateFunc.hh>
+#include <optional>
 #include <stdexcept>
-#include <experimental/optional>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -28,13 +29,17 @@
 namespace Gfx
 {
 
+class RendererDrawTask;
+
 using GC = TransformCoordinate;
 using Coordinate = TransformCoordinate;
 using GTexC = TextureCoordinate;
 using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
-using Error = std::experimental::optional<std::runtime_error>;
+using Error = std::optional<std::runtime_error>;
+using DrawDelegate = DelegateFunc<void(Drawable drawable, const Base::Window &win, RendererDrawTask task)>;
+using DrawFinishedDelegate = DelegateFunc<bool(uint channel)>;
 
 static constexpr GC operator"" _gc (long double n)
 {

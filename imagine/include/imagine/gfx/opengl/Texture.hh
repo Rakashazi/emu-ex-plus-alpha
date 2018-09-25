@@ -22,6 +22,7 @@ namespace Gfx
 {
 
 class Renderer;
+class TextureSampler;
 
 class GLTextureSampler
 {
@@ -56,6 +57,7 @@ public:
 	virtual Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
 	virtual Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) = 0;
 	virtual void unlock(Renderer &r, GLuint tex) = 0;
+	virtual bool isSingleBuffered() const = 0;
 };
 
 class GLLockedTextureBuffer
@@ -64,11 +66,13 @@ protected:
 	IG::Pixmap pix;
 	IG::WindowRect srcDirtyRect;
 	uint lockedLevel = 0;
+	GLuint pbo = 0;
 
 public:
 	constexpr GLLockedTextureBuffer() {}
-	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel);
+	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel, GLuint pbo);
 	uint level() const { return lockedLevel; }
+	void deletePBO();
 };
 
 using LockedTextureBufferImpl = GLLockedTextureBuffer;
@@ -115,11 +119,14 @@ public:
 	#ifdef __ANDROID__
 	static bool setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl);
 	static AndroidStorageImpl androidStorageImpl(Renderer &r);
-	static bool isAndroidGraphicBufferStorageWhitelisted();
+	static bool isAndroidGraphicBufferStorageWhitelisted(Renderer &r);
 	bool isExternal();
 	static const char *androidStorageImplStr(AndroidStorageImpl);
 	static const char *androidStorageImplStr(Renderer &r);
 	#endif
+	void bindTex(RendererCommands &cmds, TextureSampler &sampler);
+	bool generateMipmapsAsCurrent(Renderer &r);
+	bool canUseMipmaps(Renderer &r) const;
 };
 
 using TextureImpl = GLTexture;

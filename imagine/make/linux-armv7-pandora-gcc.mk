@@ -26,7 +26,7 @@ compiler_noSanitizeAddress := 1
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 
-CFLAGS_WARN += -Wdouble-promotion
+CFLAGS_WARN += -Wno-register
 # fix warning from old DBUS & libpng headers
 CXXFLAGS_LANG += -Wno-literal-suffix
 

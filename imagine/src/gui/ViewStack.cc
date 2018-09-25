@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "ViewStack"
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
@@ -80,13 +81,14 @@ bool BasicViewController::inputEvent(Input::Event e)
 	return view->inputEvent(e);
 }
 
-void BasicViewController::draw()
+void BasicViewController::draw(Gfx::RendererCommands &cmds)
 {
-	view->draw();
+	view->draw(cmds);
 }
 
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
+	haltDrawing();
 	nav = std::move(navView);
 	if(nav)
 	{
@@ -111,6 +113,7 @@ void ViewStack::place()
 {
 	if(!view.size())
 		return;
+	haltDrawing();
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
 	if(navViewIsActive())
@@ -189,18 +192,28 @@ bool ViewStack::moveFocusToNextView(Input::Event e, _2DOrigin direction)
 	}
 }
 
-void ViewStack::draw()
+void ViewStack::prepareDraw()
 {
 	if(!view.size())
 		return;
-	top().draw();
+	top().prepareDraw();
 	if(navViewIsActive())
-		nav->draw();
+		nav->prepareDraw();
+}
+
+void ViewStack::draw(Gfx::RendererCommands &cmds)
+{
+	if(!view.size())
+		return;
+	top().draw(cmds);
+	if(navViewIsActive())
+		nav->draw(cmds);
 }
 
 void ViewStack::push(View &v, Input::Event e)
 {
 	v.setController(this, e);
+	haltDrawing();
 	view.emplace_back(std::unique_ptr<View>(&v), true);
 	logMsg("push view, %d in stack", (int)view.size());
 	if(nav)
@@ -229,6 +242,7 @@ void ViewStack::pop()
 {
 	if(!view.size())
 		return;
+	haltDrawing();
 	onRemoveView_.callSafe(*this, top());
 	view.pop_back();
 	logMsg("pop view, %d in stack", (int)view.size());
@@ -396,4 +410,21 @@ void ViewStack::setOnRemoveView(RemoveViewDelegate del)
 bool ViewStack::viewHasFocus() const
 {
 	return !navViewHasFocus;
+}
+
+void ViewStack::setRendererTask(Gfx::RendererTask *rTask)
+{
+	rendererTask_ = rTask;
+}
+
+Gfx::RendererTask *ViewStack::rendererTask()
+{
+	return rendererTask_;
+}
+
+void ViewStack::haltDrawing()
+{
+	if(!rendererTask_)
+		return;
+	rendererTask_->haltDrawing();
 }

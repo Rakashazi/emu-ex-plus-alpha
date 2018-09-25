@@ -128,6 +128,9 @@ bool imageEffectPixelFormatIsValid(uint8 val)
 Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid);
 #endif
 
+Byte1Option optionGPUMultiThreading{CFGKEY_GPU_MULTITHREADING, 0, 0,
+	optionIsValidWithMax<(int)Gfx::Renderer::ThreadMode::MULTI>};
+
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
 		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
@@ -224,8 +227,6 @@ SByte1Option optionProcessPriority{CFGKEY_PROCESS_PRIORITY, -6, 0, optionIsValid
 Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 1, 0};
 #endif
 
-Byte1Option optionDitherImage(CFGKEY_DITHER_IMAGE, 1, !Config::envIsAndroid);
-
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 bool windowPixelFormatIsValid(uint8 val)
 {
@@ -289,12 +290,6 @@ void initOptions()
 	if(Base::androidSDK() >= 11)
 	{
 		optionNotificationIcon.initDefault(0);
-		// don't change dither setting on Android 3.0+
-		optionDitherImage.isConst = 1;
-	}
-	else
-	{
-		optionDitherImage.initDefault(0);
 	}
 	if(Base::androidSDK() < 12)
 	{

@@ -58,6 +58,18 @@ static GC xSizeOfChar(Renderer &r, GlyphTextureSet *face, int c, GC spaceX, cons
 		return 0;
 }
 
+void Text::makeGlyphs(Renderer &r)
+{
+	if(unlikely(!face || !str))
+		return;
+	const char *s = str;
+	uint c = 0;
+	while(!(bool)string_convertCharCode(&s, c))
+	{
+		face->glyphEntry(r, c);
+	}
+}
+
 void Text::compile(Renderer &r, const ProjectionPlane &projP)
 {
 	assert(face);
@@ -159,18 +171,17 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 	ySize = nominalHeight * (GC)lines;
 }
 
-void Text::draw(Renderer &r, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const
+void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const
 {
 	using namespace Gfx;
 	assert(face && str);
 	//o = LT2DO;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
-	//resetTransforms();
-	r.setBlendMode(BLEND_MODE_ALPHA);
-	TextureSampler::bindDefaultNoMipClampSampler(r);
+	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	cmds.setCommonTextureSampler(CommonTextureSampler::NO_MIP_CLAMP);
 	std::array<TexVertex, 4> vArr;
-	r.bindTempVertexBuffer();
-	TexVertex::bindAttribs(r, vArr.data());
+	cmds.bindTempVertexBuffer();
+	TexVertex::bindAttribs(cmds, vArr.data());
 	_2DOrigin align = o;
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
@@ -210,7 +221,7 @@ void Text::draw(Renderer &r, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlan
 				continue;
 			}
 
-			GlyphEntry *gly = face->glyphEntry(r, c);
+			GlyphEntry *gly = face->glyphEntry(cmds.renderer(), c, false);
 			if(!gly)
 			{
 				//logMsg("no glyph for %X", c);
@@ -227,17 +238,20 @@ void Text::draw(Renderer &r, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlan
 			auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 			auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
 			vArr = makeTexVertArray({x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}, gly->glyph);
-			r.vertexBufferData(vArr.data(), sizeof(vArr));
-			gly->glyph.bind();
+			cmds.vertexBufferData(vArr.data(), sizeof(vArr));
+			cmds.setTexture(gly->glyph);
 			//logMsg("drawing");
-			r.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
+			cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 			xPos += projP.unprojectXSize(gly->metrics.xAdvance);
 		}
 		yPos -= nominalHeight;
 		yPos = projP.alignYToPixel(yPos);
 		totalCharsDrawn += charsToDraw;
 	}
-	assert(totalCharsDrawn <= chars);
+	if(totalCharsDrawn < chars)
+	{
+		logWarn("only rendered %d/%d chars", totalCharsDrawn, chars);
+	}
 }
 
 }

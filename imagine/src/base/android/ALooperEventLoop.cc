@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EventLoop"
 #include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
 
@@ -22,8 +23,7 @@ namespace Base
 static int pollEventCallback(int fd, int events, void *data)
 {
 	auto &callback = *((PollEventDelegate*)data);
-	callback(fd, events);
-	return 1;
+	return callback(fd, events);
 }
 
 FDEventSource::FDEventSource(int fd):
@@ -92,6 +92,11 @@ void FDEventSource::removeFromEventLoop()
 	}
 }
 
+void FDEventSource::setCallback(PollEventDelegate callback)
+{
+	callback_ = std::make_unique<PollEventDelegate>(callback);
+}
+
 bool FDEventSource::hasEventLoop()
 {
 	return looper;
@@ -114,9 +119,14 @@ EventLoop EventLoop::makeForThread()
 
 void EventLoop::run()
 {
-	logMsg("running event loop:%p", looper);
+	logMsg("running ALooper:%p", looper);
 	ALooper_pollAll(-1, nullptr, nullptr, nullptr);
 	logMsg("event loop:%p finished", looper);
+}
+
+void EventLoop::stop()
+{
+	ALooper_wake(looper);
 }
 
 EventLoop::operator bool() const

@@ -27,7 +27,7 @@ class VControllerDPad
 public:
 	constexpr VControllerDPad() {}
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
-	void draw(Gfx::Renderer &r) const;
+	void draw(Gfx::RendererCommands &cmds) const;
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on);
 	int getInput(IG::WP c) const;
 	IG::WindowRect bounds() const;
@@ -66,7 +66,7 @@ public:
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset);
-	void draw(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) const;
+	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP) const;
 	int getInput(IG::WP c) const;
 	int translateInput(uint idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, Input::Event e);
@@ -113,7 +113,7 @@ public:
 	void setFaceBtnPos(IG::Point2D<int> pos);
 	std::array<int, 2> getCenterBtnInput(IG::WP pos) const;
 	std::array<int, 2> getBtnInput(IG::WP pos) const;
-	void draw(Gfx::Renderer &r, bool showHidden) const;
+	void draw(Gfx::RendererCommands &cmds, bool showHidden) const;
 	VControllerDPad &dPad() { return dp; }
 	const VControllerDPad &dPad() const { return dp; }
 	Gfx::GC spacing() const { return btnSpace; }
@@ -193,8 +193,8 @@ public:
 	void toggleKeyboard();
 	void applyInput(Input::Event e);
 	bool keyInput(Input::Event e);
-	void draw(bool emuSystemControls, bool activeFF, bool showHidden = false);
-	void draw(bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
+	void draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden = false);
+	void draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
 	int numElements() const;
 	IG::WindowRect bounds(int elemIdx) const;
 	void setPos(int elemIdx, IG::Point2D<int> pos);

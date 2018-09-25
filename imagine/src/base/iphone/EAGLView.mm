@@ -29,19 +29,10 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <OpenGLES/ES2/gl.h>
 #else
 #import <OpenGLES/ES1/glext.h>
-#define glGenFramebuffers glGenFramebuffersOES
-#define glGenRenderbuffers glGenRenderbuffersOES
-#define glDeleteFramebuffers glDeleteFramebuffersOES
-#define glDeleteRenderbuffers glDeleteRenderbuffersOES
-#define glBindFramebuffer glBindFramebufferOES
-#define glBindFramebuffer glBindFramebufferOES
 #define glFramebufferRenderbuffer glFramebufferRenderbufferOES
-#define glRenderbufferStorage glRenderbufferStorageOES
-#define glGetRenderbufferParameteriv glGetRenderbufferParameterivOES
 #define glCheckFramebufferStatus glCheckFramebufferStatusOES
 #endif
-
-static const int USE_DEPTH_BUFFER = 0;
+#include "../../gfx/opengl/utils.h"
 
 namespace Input
 {
@@ -55,45 +46,37 @@ static uint numCursors = Config::Input::MAX_POINTERS;
 
 }
 
-static GLuint currentGLFramebuffer()
+namespace Base
 {
-	GLint fb;
-	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fb);
-	return fb;
+
+EAGLViewMakeRenderbufferDelegate makeRenderbuffer{};
+EAGLViewDeleteRenderbufferDelegate deleteRenderbuffer{};
+
 }
 
-static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *layer,
-	GLuint &framebuffer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer)
+static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer)
 {
-	glGenFramebuffers(1, &framebuffer);
-	logMsg("creating layer framebuffer: %u", framebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-	// make the color renderbuffer
-	glGenRenderbuffers(1, &colorRenderbuffer);
+	assert(Base::GLContext::current({}));
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
-	[context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer];
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderbuffer);
-	GLint backingWidth, backingHeight;
-	glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &backingWidth);
-	glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &backingHeight);
-
-	if(USE_DEPTH_BUFFER)
+	runGLChecked([&]()
 	{
-		glGenRenderbuffers(1, &depthRenderbuffer);
-		glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, backingWidth, backingHeight);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderbuffer);
+	}, "glFramebufferRenderbuffer(colorRenderbuffer)");
+	runGLChecked([&]()
+	{
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
-	}
-
+	}, "glFramebufferRenderbuffer(depthRenderbuffer)");
 	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
 		logErr("failed to make complete framebuffer object %x", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 	}
-	return {backingWidth, backingHeight};
 }
 
 @implementation EAGLView
+{
+	GLuint _colorRenderbuffer;
+	GLuint _depthRenderbuffer;
+}
 
 + (Class)layerClass
 {
@@ -134,40 +117,29 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 
 - (void)bindDrawable
 {
-	if(!framebuffer)
+	if(!_colorRenderbuffer)
 	{
-		makeLayerGLDrawable([EAGLContext currentContext], (CAEAGLLayer*)self.layer,
-			framebuffer, colorRenderbuffer, depthRenderbuffer);
-		glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
+		logErr("trying to bind view without renderbuffer");
+		return;
 	}
-	else
-	{
-		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-		glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
-	}
+	bindGLRenderbuffer(_colorRenderbuffer, _depthRenderbuffer);
 }
 
 - (void)deleteDrawable
 {
-	if(!framebuffer)
+	if(!_colorRenderbuffer)
 	{
 		return; // already deinit
 	}
-	logMsg("deleting layer framebuffer: %u", framebuffer);
-	glDeleteFramebuffers(1, &framebuffer);
-	framebuffer = 0;
-	glDeleteRenderbuffers(1, &colorRenderbuffer);
-	colorRenderbuffer = 0;
-	if(depthRenderbuffer)
-	{
-		glDeleteRenderbuffers(1, &depthRenderbuffer);
-		depthRenderbuffer = 0;
-	}
+	logMsg("deleting layer renderbuffer: %u", _colorRenderbuffer);
+	assumeExpr(Base::deleteRenderbuffer);
+	Base::deleteRenderbuffer(_colorRenderbuffer, _depthRenderbuffer);
+	_colorRenderbuffer = 0;
+	_depthRenderbuffer = 0;
 }
 
 - (void)dealloc
 {
-	assert(Base::GLContext::current({}));
 	[self deleteDrawable];
 }
 
@@ -190,18 +162,11 @@ static IG::Point2D<int> makeLayerGLDrawable(EAGLContext *context,  CAEAGLLayer *
 - (void)layoutSubviews
 {
 	logMsg("in layoutSubviews");
-	using namespace Base;
-	assert(GLContext::current({}));
-	[self deleteDrawable];
-	auto size = makeLayerGLDrawable([EAGLContext currentContext], (CAEAGLLayer*)self.layer,
-		framebuffer, colorRenderbuffer, depthRenderbuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
-	iterateTimes(Window::windows(), i)
-	{
-		Window::window(i)->resetSurface();
-	}
+	assumeExpr(Base::makeRenderbuffer);
+	auto size = Base::makeRenderbuffer((__bridge void*)self.layer, _colorRenderbuffer, _depthRenderbuffer);
 	auto &win = *Base::windowForUIWindow(self.window);
-	updateWindowSizeAndContentRect(win, size.x, size.y, sharedApp);
+	win.resetSurface();
+	updateWindowSizeAndContentRect(win, size.x, size.y, Base::sharedApp);
 	win.postDraw();
 	//logMsg("exiting layoutSubviews");
 }

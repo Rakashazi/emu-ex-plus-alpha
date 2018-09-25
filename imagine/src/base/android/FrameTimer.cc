@@ -25,23 +25,12 @@
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
+#include "../common/SimpleFrameTimer.hh"
 
 namespace Base
 {
 
-class EventFDFrameTimer : public FrameTimer
-{
-public:
-	int fd = -1;
-	uint idle = 1;
-	bool requested = false;
-
-	bool init(JNIEnv *env, jobject activity);
-	void scheduleVSync();
-	void cancel();
-};
-
-class FrameworkFrameTimer : public FrameTimer
+class ChoreographerFrameTimer : public FrameTimer
 {
 public:
 	JavaInstMethod<void()> jPostFrame{}, jUnpostFrame{};
@@ -53,202 +42,84 @@ public:
 	void cancel();
 };
 
-static EventFDFrameTimer eventFDFrameTimer;
-static FrameworkFrameTimer frameworkFrameTimer;
-FrameTimer *frameTimer = &frameworkFrameTimer;
+std::unique_ptr<FrameTimer> frameTimer{};
 
-bool EventFDFrameTimer::init(JNIEnv *env, jobject activity)
+bool ChoreographerFrameTimer::init(JNIEnv *env, jobject activity)
 {
-	if(fd >= 0)
-		return true;
-	fd = eventfd(0, 0);
-	if(unlikely(fd == -1))
+	if(Base::androidSDK() < 16)
+	{
 		return false;
-	logMsg("eventfd %d for frame timer", fd);
-	// this callback should behave as the "idle-handler" so input-related fds are processed in a timely manner
-	int ret = ALooper_addFd(EventLoop::forThread().nativeObject(), fd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
-		[](int fd, int, void *data)
+	}
+	//logMsg("using Choreographer for display updates");
+	JavaInstMethod<jobject(jlong)> jNewChoreographerHelper{env, jBaseActivityCls, "newChoreographerHelper", "(J)Lcom/imagine/ChoreographerHelper;"};
+	frameHelper = jNewChoreographerHelper(env, activity, (jlong)this);
+	assert(frameHelper);
+	frameHelper = env->NewGlobalRef(frameHelper);
+	auto choreographerHelperCls = env->GetObjectClass(frameHelper);
+	jPostFrame.setup(env, choreographerHelperCls, "postFrame", "()V");
+	jUnpostFrame.setup(env, choreographerHelperCls, "unpostFrame", "()V");
+	JNINativeMethod method[]
+	{
 		{
-			auto &frameTimer = *((EventFDFrameTimer*)data);
-			if(frameTimer.idle)
+			"onFrame", "(JJ)Z",
+			(void*)(jboolean (*)(JNIEnv*, jobject, jlong, jlong))
+			([](JNIEnv* env, jobject thiz, jlong thisPtr, jlong frameTimeNanos)
 			{
-				//logMsg("idled");
-				frameTimer.idle--;
-				return 1;
-			}
-			else
-			{
-				// "idle" every other call so other fds are processed
-				// to avoid a frame of input lag
-				frameTimer.idle = 1;
-			}
-			if(likely(inputQueue) && AInputQueue_hasEvents(inputQueue) == 1)
-			{
-				// some devices may delay reporting input events (stock rom on R800i for example),
-				// check for any before rendering frame to avoid extra latency
-				Input::processInput(inputQueue);
-			}
-
-			auto &screen = mainScreen();
-			assert(screen.isPosted());
-			assert(screen.currFrameTimestamp);
-			// force window draw so buffers swap and currFrameTimestamp is updated after vsync
-			deviceWindow()->setNeedsDraw(true);
-			screen.frameUpdate(screen.currFrameTimestamp);
-			screen.prevFrameTimestamp = screen.currFrameTimestamp;
-			if(screen.isPosted())
-			{
-				screen.currFrameTimestamp = IG::Time::now().nSecs();
-			}
-			else
-			{
-				frameTimer.cancel();
-			}
-			return 1;
-		}, this);
-	assert(ret == 1);
+				mainScreen().startDebugFrameStats(frameTimeNanos);
+				auto choreographerFrameTimer = (ChoreographerFrameTimer*)thisPtr;
+				choreographerFrameTimer->requested = false; // Choreographer callbacks are one-shot
+				bool screenWasReallyPosted = false;
+				iterateTimes(Screen::screens(), i)
+				{
+					auto s = Screen::screen(i);
+					if(s->isPosted())
+					{
+						screenWasReallyPosted = true;
+						s->frameUpdate(frameTimeNanos);
+						s->prevFrameTimestamp = frameTimeNanos;
+					}
+				}
+				assert(screenWasReallyPosted);
+				mainScreen().endDebugFrameStats();
+				return (jboolean)0;
+			})
+		}
+	};
+	env->RegisterNatives(choreographerHelperCls, method, IG::size(method));
 	return true;
 }
 
-void EventFDFrameTimer::scheduleVSync()
-{
-	assert(fd != -1);
-	if(requested)
-		return;
-	requested = true;
-	uint64_t post = 1;
-	auto ret = write(fd, &post, sizeof(post));
-	assert(ret == sizeof(post));
-}
-
-void EventFDFrameTimer::cancel()
-{
-	assert(fd != -1);
-	if(!requested)
-		return;
-	requested = false;
-	idle = 1; // force handler to idle since it could already be signaled by epoll
-	uint64_t post;
-	auto ret = read(fd, &post, sizeof(post));
-	assert(ret == sizeof(post));
-}
-
-bool FrameworkFrameTimer::init(JNIEnv *env, jobject activity)
-{
-	if(Base::androidSDK() >= 16) // Choreographer
-	{
-		//logMsg("using Choreographer for display updates");
-		JavaInstMethod<jobject()> jNewChoreographerHelper{env, jBaseActivityCls, "newChoreographerHelper", "()Lcom/imagine/ChoreographerHelper;"};
-		frameHelper = jNewChoreographerHelper(env, activity);
-		assert(frameHelper);
-		frameHelper = env->NewGlobalRef(frameHelper);
-		auto choreographerHelperCls = env->GetObjectClass(frameHelper);
-		jPostFrame.setup(env, choreographerHelperCls, "postFrame", "()V");
-		jUnpostFrame.setup(env, choreographerHelperCls, "unpostFrame", "()V");
-		JNINativeMethod method[] =
-		{
-			{
-				"onFrame", "(J)Z",
-				(void*)(jboolean (*)(JNIEnv*, jobject, jlong))
-				([](JNIEnv* env, jobject thiz, jlong frameTimeNanos)
-				{
-					mainScreen().startDebugFrameStats(frameTimeNanos);
-					frameworkFrameTimer.requested = false; // Choreographer callbacks are one-shot
-					bool screenWasReallyPosted = false;
-					iterateTimes(Screen::screens(), i)
-					{
-						auto s = Screen::screen(i);
-						if(s->isPosted())
-						{
-							screenWasReallyPosted = true;
-							s->frameUpdate(frameTimeNanos);
-							s->prevFrameTimestamp = frameTimeNanos;
-						}
-					}
-					assert(screenWasReallyPosted);
-					mainScreen().endDebugFrameStats();
-					return (jboolean)0;
-				})
-			}
-		};
-		env->RegisterNatives(choreographerHelperCls, method, IG::size(method));
-	}
-	else // MessageQueue.IdleHandler
-	{
-		logWarn("error creating eventfd: %d (%s), falling back to idle handler", errno, strerror(errno));
-		JavaInstMethod<jobject()> jNewIdleHelper{env, jBaseActivityCls, "newIdleHelper", "()Lcom/imagine/BaseActivity$IdleHelper;"};
-		frameHelper = jNewIdleHelper(env, activity);
-		assert(frameHelper);
-		frameHelper = env->NewGlobalRef(frameHelper);
-		auto idleHelperCls = env->GetObjectClass(frameHelper);
-		jPostFrame.setup(env, idleHelperCls, "postFrame", "()V");
-		jUnpostFrame.setup(env, idleHelperCls, "unpostFrame", "()V");
-		JNINativeMethod method[]
-		{
-			{
-				"onFrame", "()Z",
-				(void*)(jboolean (*)(JNIEnv*, jobject))
-				([](JNIEnv* env, jobject thiz)
-				{
-					auto &screen = mainScreen();
-					assert(screen.isPosted());
-					// force window draw so buffers swap and currFrameTimestamp is updated after vsync
-					deviceWindow()->setNeedsDraw(true);
-					screen.frameUpdate(screen.currFrameTimestamp);
-					screen.prevFrameTimestamp = screen.currFrameTimestamp;
-					if(screen.isPosted())
-					{
-						screen.currFrameTimestamp = IG::Time::now().nSecs();
-						return (jboolean)true;
-					}
-					else
-					{
-						frameworkFrameTimer.requested = false;
-						return (jboolean)false;
-					}
-				})
-			}
-		};
-		env->RegisterNatives(idleHelperCls, method, IG::size(method));
-	}
-	return true;
-}
-
-void FrameworkFrameTimer::scheduleVSync()
+void ChoreographerFrameTimer::scheduleVSync()
 {
 	assert(frameHelper);
 	if(requested)
 		return;
 	requested = true;
-	jPostFrame(jEnv(), frameHelper);
+	jPostFrame(jEnvForThread(), frameHelper);
 }
 
-void FrameworkFrameTimer::cancel()
+void ChoreographerFrameTimer::cancel()
 {
 	assert(frameHelper);
 	if(!requested)
 		return;
 	requested = false;
-	jUnpostFrame(jEnv(), frameHelper);
+	jUnpostFrame(jEnvForThread(), frameHelper);
 }
 
 void initFrameTimer(JNIEnv *env, jobject activity)
 {
 	if(Base::androidSDK() < 16)
 	{
-		// use eventfd if OS supports it
-		if(eventFDFrameTimer.init(env, activity))
-		{
-			frameTimer = &eventFDFrameTimer;
-			return;
-		}
-		// fallback to MessageQueue.IdleHandler
-		frameworkFrameTimer.init(env, activity);
+		auto timer = std::make_unique<SimpleFrameTimer>();
+		timer->init(Base::EventLoop::forThread());
+		frameTimer = std::move(timer);
 	}
 	else
 	{
-		// use Choreographer
-		frameworkFrameTimer.init(env, activity);
+		auto timer = std::make_unique<ChoreographerFrameTimer>();
+		timer->init(env, activity);
+		frameTimer = std::move(timer);
 	}
 }
 

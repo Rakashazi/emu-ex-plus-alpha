@@ -18,13 +18,10 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/iphone/config.h>
 
-@interface EAGLView : UIView
-{
-@private
-	GLuint framebuffer;
-	GLuint colorRenderbuffer;
-	GLuint depthRenderbuffer;
-}
+@interface EAGLView : UIView {}
+
+@property(readonly) GLuint colorRenderbuffer;
+@property(readonly) GLuint depthRenderbuffer;
 
 - (id)initWithFrame:(CGRect)frame;
 - (void)setDrawableColorFormat:(NSString * const)format;

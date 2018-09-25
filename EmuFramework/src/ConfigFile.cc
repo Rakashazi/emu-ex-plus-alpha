@@ -133,6 +133,7 @@ static OptionBase *cfgFileOption[] =
 	&optionImgEffect,
 	&optionImageEffectPixelFormat,
 	#endif
+	&optionGPUMultiThreading,
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
 	#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
@@ -189,7 +190,6 @@ static OptionBase *cfgFileOption[] =
 	#if defined __ANDROID__
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
-	&optionDitherImage,
 	&optionAndroidTextureStorage,
 	&optionProcessPriority,
 	&optionSustainedPerformanceMode,
@@ -451,9 +451,6 @@ void loadConfigFile()
 				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
-				#if defined(CONFIG_BASE_ANDROID)
-				bcase CFGKEY_DITHER_IMAGE: optionDitherImage.readFromIO(io, size);
-				#endif
 				bcase CFGKEY_LAST_DIR: optionLastLoadPath.readFromIO(io, size);
 				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 				bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
@@ -469,6 +466,7 @@ void loadConfigFile()
 				bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
 				bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
 				#endif
+				bcase CFGKEY_GPU_MULTITHREADING: optionGPUMultiThreading.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);

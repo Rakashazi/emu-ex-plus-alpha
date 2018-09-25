@@ -16,11 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#ifdef CONFIG_BASE_X11_EGL
 #include <imagine/base/EGLContextBase.hh>
-#else
-#include <imagine/base/x11/glxIncludes.h>
-#endif
 #include <imagine/base/WindowConfig.hh>
 
 namespace Base
@@ -28,8 +24,6 @@ namespace Base
 
 class GLDisplay;
 class GLDrawable;
-
-#ifdef CONFIG_BASE_X11_EGL
 
 class XGLContext : public EGLContextBase
 {
@@ -68,64 +62,6 @@ struct GLBufferConfig : public EGLBufferConfig
 
 using GLDisplayImpl = EGLDisplayConnection;
 using GLDrawableImpl = EGLDrawable;
-
-#else
-
-class GLXDisplay
-{
-public:
-	constexpr GLXDisplay() {}
-	constexpr GLXDisplay(::Display *display): display{display} {}
-	::Display *xDisplay() { return display; }
-
-protected:
-	::Display *display{};
-};
-
-class GLXDrawable
-{
-public:
-	constexpr GLXDrawable() {}
-	constexpr GLXDrawable(::GLXDrawable drawable): drawable_{drawable} {}
-	::GLXDrawable drawable() { return drawable_; }
-
-protected:
-	::GLXDrawable drawable_{};
-};
-
-class XGLContext
-{
-protected:
-	GLXContext context{};
-
-public:
-	constexpr XGLContext() {}
-	static void swapPresentedBuffers(GLDrawable &win);
-};
-
-struct GLBufferConfig
-{
-	GLXFBConfig glConfig{};
-	NativeWindowFormat fmt;
-
-	constexpr GLBufferConfig(GLXFBConfig config):
-		glConfig{config}
-		{}
-	constexpr GLBufferConfig() {}
-
-	explicit operator bool() const
-	{
-		return fmt.visual;
-	}
-
-	Base::NativeWindowFormat windowFormat(GLDisplay display);
-};
-
-using GLDisplayImpl = GLXDisplay;
-using GLDrawableImpl = GLXDrawable;
-using NativeGLContext = GLXContext;
-
-#endif
 
 using GLContextImpl = XGLContext;
 

@@ -1,10 +1,12 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
+CHOST := $(shell cc -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+buildArg := --build=$(shell cc -dumpmachine)
 endif
 
-libXextVer := 1.3.2
+buildArg += xorg_cv_malloc0_returns_null=yes
+
+libXextVer := 1.3.3
 libXextSrcDir := libXext-$(libXextVer)
 libXextSrcArchive := libXext-$(libXextVer).tar.bz2
 

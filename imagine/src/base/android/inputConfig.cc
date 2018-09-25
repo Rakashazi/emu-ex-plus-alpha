@@ -409,11 +409,11 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 		{
 			if(hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_YES || hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_SOFT)
 			{
-				logMsg("keyboard present, but not in use");
+				logDMsg("keyboard present, but not in use");
 			}
 			else
 			{
-				logMsg("keyboard present");
+				//logDMsg("keyboard present");
 				return true;
 			}
 		}
@@ -423,7 +423,7 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 	if(Config::MACHINE_IS_GENERIC_ARMV7 && hasXperiaPlayGamepad() &&
 		(typeBits & TYPE_BIT_GAMEPAD) && hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
 	{
-		logMsg("Xperia-play gamepad in use");
+		logDMsg("Xperia-play gamepad in use");
 		return true;
 	}
 
@@ -433,7 +433,7 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
 				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
 		{
-			logMsg("device idx %d has bits 0x%X", e.idx, typeBits);
+			logDMsg("device idx %d has bits 0x%X", e.idx, typeBits);
 			return true;
 		}
 	}
@@ -531,14 +531,14 @@ static void enumDevices(JNIEnv* env, bool notify)
 
 void enumDevices()
 {
-	enumDevices(Base::jEnv(), true);
+	enumDevices(Base::jEnvForThread(), true);
 }
 
 void registerDeviceChangeListener()
 {
 	if(Base::androidSDK() < 12)
 		return;
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	enumDevices(env, true);
 	if(usesInputDeviceListener())
 	{
@@ -566,7 +566,7 @@ void unregisterDeviceChangeListener()
 	if(usesInputDeviceListener())
 	{
 		logMsg("unregistering input device listener");
-		jUnregister(Base::jEnv(), inputDeviceListenerHelper);
+		jUnregister(Base::jEnvForThread(), inputDeviceListenerHelper);
 	}
 	else
 	{
@@ -584,7 +584,7 @@ void init(JNIEnv *env)
 {
 	if(Base::androidSDK() >= 12)
 	{
-		auto env = Base::jEnv();
+		auto env = Base::jEnvForThread();
 		processInput = processInputWithGetEvent;
 
 		#ifdef ANDROID_COMPAT_API
@@ -687,7 +687,7 @@ void init(JNIEnv *env)
 							inputRescanCallback.callbackAfterMSec(
 								[]()
 								{
-									enumDevices(Base::jEnv(), true);
+									enumDevices(Base::jEnvForThread(), true);
 								}, 250, {});
 						}
 					}

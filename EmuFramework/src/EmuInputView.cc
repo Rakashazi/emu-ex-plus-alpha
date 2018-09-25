@@ -24,9 +24,9 @@
 
 extern bool touchControlsAreOn;
 
-void EmuInputView::draw()
+void EmuInputView::draw(Gfx::RendererCommands &cmds)
 {
-	vController.draw(touchControlsAreOn && EmuSystem::touchControlsApplicable(), ffKeyPushed || ffToggleActive);
+	vController.draw(cmds, touchControlsAreOn && EmuSystem::touchControlsApplicable(), ffKeyPushed || ffToggleActive);
 }
 
 void EmuInputView::place()

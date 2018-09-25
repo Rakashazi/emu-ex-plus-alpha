@@ -13,10 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "ResFace"
+#define LOGTAG "GlyphTexture"
 
 #include <imagine/util/bits.h>
 #include <imagine/gfx/GlyphTextureSet.hh>
+#include <imagine/gfx/Gfx.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/mem/mem.h>
 
@@ -275,7 +276,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = res.metrics;
 	auto img = GfxGlyphImage(std::move(res.image));
-	glyphTable[tableIdx].glyph.init(r, img, false);
+	glyphTable[tableIdx].glyph = r.makePixmapTexture(img, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};
@@ -336,13 +337,13 @@ std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
 			//logMsg( "%c already cached", c);
 			continue;
 		}
-		logMsg("precaching char %c", c);
+		logMsg("making glyph:%c (0x%X)", c, c);
 		cacheChar(r, c, tableIdx);
 	}
 	return {};
 }
 
-GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c)
+GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 {
 	assert(settings);
 	uint tableIdx;
@@ -351,9 +352,14 @@ GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c)
 	assert(tableIdx < glyphTableEntries);
 	if(!glyphTable[tableIdx].glyph)
 	{
+		if(!allowCache)
+		{
+			logErr("cannot make glyph:%c (0x%X) during draw operation", c, c);
+			return nullptr;
+		}
 		if((bool)cacheChar(r, c, tableIdx))
 			return nullptr;
-		logMsg("char 0x%X was not in table, cached", c);
+		//logMsg("glyph:%c (0x%X) was not in table", c, c);
 	}
 	return &glyphTable[tableIdx];
 }

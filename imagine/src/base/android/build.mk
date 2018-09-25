@@ -23,8 +23,10 @@ base/android/RootCpufreqParamSetter.cc \
 base/android/privateApi/libhardware.c \
 base/android/privateApi/GraphicBuffer.cc \
 base/common/timer/TimerFD.cc \
+base/common/eventloop/FDCustomEvent.cc \
 base/common/PosixPipe.cc \
 base/common/EGLContextBase.cc \
+base/common/SimpleFrameTimer.cc \
 util/jni.cc
 
 LDLIBS += -landroid

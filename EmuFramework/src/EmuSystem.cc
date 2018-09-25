@@ -57,7 +57,6 @@ FS::FileString EmuSystem::originalGameName_{};
 Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 Base::FrameTimeBase EmuSystem::timePerVideoFrame = 0;
 uint EmuSystem::emuFrameNow = 0;
-bool EmuSystem::runFrameOnDraw = false;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = {44100, Audio::SampleFormats::s16, 2};
 uint EmuSystem::audioFramesPerVideoFrame = 0;
@@ -125,10 +124,10 @@ static uint audioFramesWritten()
 
 static bool shouldStartAudioWrites()
 {
-	// audio starts when at least 1 video frame worth of data is written
+	// audio starts when at least 90% of a video frame worth of data is written
 	// and there are <= 2 video frames worth of free space left in buffer
 	return audioFramesFree() <= EmuSystem::audioFramesPerVideoFrame * 2
-			&& audioFramesWritten() >= EmuSystem::audioFramesPerVideoFrame;
+			&& audioFramesWritten() >= EmuSystem::audioFramesPerVideoFrame * 0.9;
 }
 
 template<typename T>
@@ -180,8 +179,12 @@ void EmuSystem::startSound()
 		if(!audioStream->isOpen())
 		{
 			uint wantedLatency = std::round(optionSoundBuffers * (1000000. * frameTime()));
-			rBuff.init(pcmFormat.uSecsToBytes(wantedLatency));
-			logMsg("created audio buffer with %d frames (%uus)", pcmFormat.bytesToFrames(rBuff.freeSpace()), wantedLatency);
+			auto buffSize = pcmFormat.uSecsToBytes(wantedLatency);
+			if(buffSize != rBuff.capacity())
+			{
+				rBuff.init(buffSize);
+				logMsg("created audio buffer with %d frames (%uus)", pcmFormat.bytesToFrames(rBuff.freeSpace()), wantedLatency);
+			}
 			audioWriteState = AudioWriteState::BUFFER;
 			Audio::OutputStreamConfig outputConf
 			{
@@ -228,6 +231,7 @@ void EmuSystem::startSound()
 			startAudioStats();
 			if(shouldStartAudioWrites())
 			{
+				logMsg("resuming audio writes with buffer fill %u/%u bytes", rBuff.size(), rBuff.capacity());
 				audioWriteState = AudioWriteState::ACTIVE;
 			}
 			else
@@ -244,17 +248,16 @@ void EmuSystem::stopSound()
 	if(optionSound)
 	{
 		stopAudioStats();
+		audioWriteState = AudioWriteState::BUFFER;
 		if(audioStream)
-			audioStream->pause();
+			audioStream->close();
+		rBuff.reset();
 	}
 }
 
 void EmuSystem::closeSound()
 {
-	stopAudioStats();
-	audioWriteState = AudioWriteState::BUFFER;
-	if(audioStream)
-		audioStream->close();
+	stopSound();
 	rBuff.deinit();
 }
 
@@ -266,6 +269,7 @@ void EmuSystem::flushSound()
 		audioWriteState = AudioWriteState::BUFFER;
 		if(audioStream)
 			audioStream->flush();
+		rBuff.reset();
 	}
 }
 

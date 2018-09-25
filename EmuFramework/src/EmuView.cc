@@ -23,29 +23,35 @@ EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuInputView *in
 	inputView{inputView}
 {}
 
-void EmuView::draw()
+void EmuView::prepareDraw()
+{
+	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+	audioStatsText.makeGlyphs(renderer());
+	#endif
+}
+
+void EmuView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
 	if(layer)
 	{
-		layer->draw(projP);
+		layer->draw(cmds, projP);
 	}
 	if(EmuSystem::isActive() && inputView)
 	{
-		renderer().loadTransform(projP.makeTranslate());
-		inputView->draw();
+		cmds.loadTransform(projP.makeTranslate());
+		inputView->draw(cmds);
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	if(strlen(audioStatsStr.data()))
 	{
-		auto &r = renderer();
-		r.noTexProgram.use(r);
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(0., 0., 0., .7);
-		GeomRect::draw(r, audioStatsRect);
-		r.setColor(1., 1., 1., 1.);
-		r.texAlphaProgram.use(r);
-		audioStatsText.draw(r, projP.alignXToPixel(audioStatsRect.x + TableView::globalXIndent),
+		cmds.setCommonProgram(CommonProgram::NO_TEX);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setColor(0., 0., 0., .7);
+		GeomRect::draw(cmds, audioStatsRect);
+		cmds.setColor(1., 1., 1., 1.);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		audioStatsText.draw(cmds, projP.alignXToPixel(audioStatsRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(audioStatsRect.yCenter()), LC2DO, projP);
 	}
 	#endif

@@ -730,7 +730,7 @@ static void commitVideoFrame()
 	if(likely(emuVideo))
 	{
 		emuVideo->setFormat({{msxResX, msxResY}, pixFmt});
-		emuVideo->writeFrame(srcPix);
+		emuVideo->startFrame(srcPix);
 		emuVideo = {};
 	}
 }

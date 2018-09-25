@@ -76,7 +76,7 @@ static void abandonAudioFocus(JNIEnv* env)
 static void setAudioManagerProperties()
 {
 	using namespace Base;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	setupAudioManagerJNI(env);
 	jclass jAudioManagerCls = env->GetObjectClass(audioManager);
 	JavaInstMethod<jobject(jstring)> jGetProperty{env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;"};
@@ -157,9 +157,9 @@ void setSoloMix(bool newSoloMix)
 		{
 			// update the current audio focus
 			if(newSoloMix)
-				requestAudioFocus(Base::jEnv());
+				requestAudioFocus(Base::jEnvForThread());
 			else
-				abandonAudioFocus(Base::jEnv());
+				abandonAudioFocus(Base::jEnvForThread());
 		}
 	}
 }
@@ -172,7 +172,7 @@ bool soloMix()
 void setMusicVolumeControlHint()
 {
 	using namespace Base;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<void(jint)> jSetVolumeControlStream{env, jBaseActivityCls, "setVolumeControlStream", "(I)V"};
 	jSetVolumeControlStream(env, jBaseActivity, 3);
 }
@@ -184,7 +184,7 @@ void startSession()
 	sessionActive = true;
 	if(soloMix_)
 	{
-		requestAudioFocus(Base::jEnv());
+		requestAudioFocus(Base::jEnvForThread());
 	}
 }
 
@@ -195,7 +195,7 @@ void endSession()
 	sessionActive = false;
 	if(soloMix_)
 	{
-		abandonAudioFocus(Base::jEnv());
+		abandonAudioFocus(Base::jEnvForThread());
 	}
 }
 

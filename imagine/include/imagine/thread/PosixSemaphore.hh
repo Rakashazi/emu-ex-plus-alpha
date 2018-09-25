@@ -25,6 +25,8 @@ class PosixSemaphore
 {
 protected:
 	sem_t sem{};
+
+	void deinit();
 };
 
 using SemaphoreImpl = PosixSemaphore;

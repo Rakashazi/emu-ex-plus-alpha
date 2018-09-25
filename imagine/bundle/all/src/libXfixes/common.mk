@@ -1,10 +1,10 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
+CHOST := $(shell cc -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+buildArg := --build=$(shell cc -dumpmachine)
 endif
 
-libXfixesVer := 5.0.1
+libXfixesVer := 5.0.3
 libXfixesSrcDir := libXfixes-$(libXfixesVer)
 libXfixesSrcArchive := libXfixes-$(libXfixesVer).tar.bz2
 

@@ -57,10 +57,10 @@ public:
 	void setFormat(IG::PixmapDesc desc);
 	void resetImage();
 	EmuVideoImage startFrame();
-	void writeFrame(Gfx::LockedTextureBuffer texBuff);
-	void writeFrame(IG::Pixmap pix);
+	void startFrame(IG::Pixmap pix);
+	void finishFrame(Gfx::LockedTextureBuffer texBuff);
+	void finishFrame(IG::Pixmap pix);
 	void takeGameScreenshot();
-	void renderNextFrameToApp();
 	bool isExternalTexture();
 	Gfx::PixmapTexture &image();
 	Gfx::Renderer &renderer() { return r; }
@@ -71,7 +71,6 @@ protected:
 	Gfx::PixmapTexture vidImg{};
 	IG::MemPixmap memPix{};
 	bool screenshotNextFrame = false;
-	bool renderNextFrame = false;
 
 	void doScreenshot(IG::Pixmap pix);
 };

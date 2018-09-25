@@ -1,10 +1,12 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
+CHOST := $(shell cc -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+buildArg := --build=$(shell cc -dumpmachine)
 endif
 
-libXiVer := 1.7.2
+buildArg += xorg_cv_malloc0_returns_null=yes
+
+libXiVer := 1.7.9
 libXiSrcDir := libXi-$(libXiVer)
 libXiSrcArchive := libXi-$(libXiVer).tar.bz2
 

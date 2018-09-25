@@ -52,6 +52,7 @@ public:
 	constexpr EGLDisplayConnection(EGLDisplay display): display{display} {}
 	EGLDisplay eglDisplay() { return display; }
 	static std::error_code initDisplay(EGLDisplay display);
+	const char *queryExtensions();
 
 protected:
 	EGLDisplay display{};
@@ -72,7 +73,7 @@ class EGLContextBase
 {
 public:
 	constexpr EGLContextBase() {}
-	EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, std::error_code &ec);
+	EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, std::error_code &ec);
 	static void swapBuffers(EGLDisplay display, GLDrawable &win);
 
 protected:

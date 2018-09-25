@@ -46,7 +46,6 @@ public:
 	IG::Point2D<int> pos;
 	Colormap colormap{};
 	#endif
-	bool presented = false;
 
 	constexpr XWindow() {}
 

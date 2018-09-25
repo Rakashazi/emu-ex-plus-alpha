@@ -17,7 +17,7 @@ public:
 	void init(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
 	void deinit();
 	void setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
-	void draw(Renderer &r) const;
+	void draw(RendererCommands &r) const;
 
 	// as rectangle
 	void init(GC x, GC y, GC x2, GC y2)
@@ -56,16 +56,16 @@ public:
 		setPos(x, y, x+xSize, y+ySize);
 	}
 
-	static void draw(Renderer &r, const IG::WindowRect &b, const ProjectionPlane &proj)
+	static void draw(RendererCommands &cmds, const IG::WindowRect &b, const ProjectionPlane &proj)
 	{
-		draw(r, proj.unProjectRect(b));
+		draw(cmds, proj.unProjectRect(b));
 	}
 
-	static void draw(Renderer &r, const GCRect &d)
+	static void draw(RendererCommands &cmds, const GCRect &d)
 	{
 		QuadGeneric<Vtx> rect;
 		rect.init(d);
-		rect.draw(r);
+		rect.draw(cmds);
 	}
 
 protected:
@@ -105,12 +105,12 @@ std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);
 std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx);
 
 template<class Vtx>
-static void drawQuads(Renderer &r, std::array<Vtx, 4> *quad, uint quads, std::array<VertexIndex, 6> *quadIdx, uint quadIdxs)
+static void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint quads, std::array<VertexIndex, 6> *quadIdx, uint quadIdxs)
 {
-	r.bindTempVertexBuffer();
-	r.vertexBufferData(quad[0].data(), sizeof(quad[0]) * quads);
-	Vtx::bindAttribs(r, quad[0].data());
-	r.drawPrimitiveElements(Primitive::TRIANGLE, quadIdx[0].data(), quadIdxs * 6);
+	cmds.bindTempVertexBuffer();
+	cmds.vertexBufferData(quad[0].data(), sizeof(quad[0]) * quads);
+	Vtx::bindAttribs(cmds, quad[0].data());
+	cmds.drawPrimitiveElements(Primitive::TRIANGLE, quadIdx[0].data(), quadIdxs * 6);
 }
 
 }

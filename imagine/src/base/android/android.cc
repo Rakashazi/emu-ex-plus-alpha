@@ -25,6 +25,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/utility.h>
@@ -37,8 +38,8 @@
 namespace Base
 {
 
-JavaVM* jVM{};
-static JNIEnv* jEnv_{};
+static JavaVM* jVM{};
+static pthread_key_t jEnvKey{};
 static JavaInstMethod<void()> jRecycle{};
 
 // activity
@@ -85,7 +86,7 @@ void exit(int returnVal)
 {
 	// TODO: return exit value as activity result
 	appState = APP_EXITING;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<void()> jFinish{env, jBaseActivityCls, "finish", "()V"};
 	jFinish(env, jBaseActivity);
 }
@@ -93,23 +94,6 @@ void exit(int returnVal)
 void abort()
 {
 	::abort();
-}
-
-static std::pair<JNIEnv*, bool> jniEnvAndAttachThread(JavaVM *jVM)
-{
-	JNIEnv *env;
-	bool alreadyAttached = true;
-	if(jVM->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK)
-	{
-		logMsg("attaching thread to JNI");
-		alreadyAttached = false;
-		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
-		{
-			logErr("error attaching env to thread");
-			return {};
-		}
-	}
-	return {env, alreadyAttached};
 }
 
 static FS::PathString pathStringFromJString(JNIEnv *env, jstring jstr)
@@ -126,10 +110,7 @@ FS::PathString supportPath(const char *)
 	if(Base::androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 	{
 		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
-		auto [env, alreadyAttached] = jniEnvAndAttachThread(jVM);
-		if(!env)
-			return {};
-		auto detachJVM = IG::scopeGuard([](){ jVM->DetachCurrentThread(); }, !alreadyAttached);
+		auto env = jEnvForThread();
 		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
 		return pathStringFromJString(env, (jstring)filesDir(env, jBaseActivity));
 	}
@@ -139,20 +120,14 @@ FS::PathString supportPath(const char *)
 
 FS::PathString cachePath(const char *)
 {
-	auto [env, alreadyAttached] = jniEnvAndAttachThread(jVM);
-	if(!env)
-		return {};
-	auto detachJVM = IG::scopeGuard([](){ jVM->DetachCurrentThread(); }, !alreadyAttached);
+	auto env = jEnvForThread();
 	JavaClassMethod<jobject()> cacheDir{env, jBaseActivityCls, "cacheDir", "()Ljava/lang/String;"};
 	return pathStringFromJString(env, (jstring)cacheDir(env, jBaseActivityCls));
 }
 
 FS::PathString sharedStoragePath()
 {
-	auto [env, alreadyAttached] = jniEnvAndAttachThread(jVM);
-	if(!env)
-		return {};
-	auto detachJVM = IG::scopeGuard([](){ jVM->DetachCurrentThread(); }, !alreadyAttached);
+	auto env = jEnvForThread();
 	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
 	return pathStringFromJString(env, (jstring)extStorageDir(env, jBaseActivityCls));
 }
@@ -185,14 +160,14 @@ std::vector<FS::PathLocation> rootFileLocations()
 
 FS::PathString libPath(const char *)
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
 	return pathStringFromJString(env, (jstring)libDir(env, jBaseActivity));
 }
 
 FS::PathString mainSOPath()
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<jobject()> soPath{env, jBaseActivityCls, "mainSOPath", "()Ljava/lang/String;"};
 	auto soPathStr = (jstring)soPath(env, jBaseActivity);
 	return pathStringFromJString(env, (jstring)soPath(env, jBaseActivity));
@@ -219,7 +194,7 @@ bool requestPermission(Permission p)
 {
 	if(Base::androidSDK() < 23)
 		return false;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	auto permissionJStr = permissionToJString(env, p);
 	if(!permissionJStr)
 		return false;
@@ -379,11 +354,30 @@ static void activityInit(JNIEnv* env, jobject activity)
 	}
 }
 
-JNIEnv* jEnv() { assert(jEnv_); return jEnv_; }
+JNIEnv* jEnvForThread()
+{
+	auto env = (JNIEnv*)pthread_getspecific(jEnvKey);
+	if(unlikely(!env))
+	{
+		if(Config::DEBUG_BUILD)
+		{
+			logDMsg("attaching JNI thread:0x%llx", (long long)IG::this_thread::get_id());
+		}
+		assumeExpr(jVM);
+		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
+		{
+			logErr("error attaching JNI thread");
+			return nullptr;
+		}
+		pthread_setspecific(jEnvKey, env);
+	}
+	assumeExpr(env);
+	return env;
+}
 
 void setIdleDisplayPowerSave(bool on)
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	jint keepOn = !on;
 	auto keepsScreenOn = userActivityCallback ? false : (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
 	if(keepOn != keepsScreenOn)
@@ -399,7 +393,7 @@ void endIdleByUserActivity()
 	if(!keepScreenOn)
 	{
 		//logMsg("signaling user activity to the OS");
-		auto env = jEnv();
+		auto env = jEnvForThread();
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(env, jBaseActivity, AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
@@ -436,7 +430,7 @@ void setSysUIStyle(uint flags)
 	{
 		return;
 	}
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	// always handle status bar hiding via full-screen window flag
 	// even on SDK level >= 11 so our custom view has the correct insets
 	setStatusBarHidden(env, flags & SYS_UI_STYLE_HIDE_STATUS);
@@ -479,7 +473,7 @@ void setSustainedPerformanceMode(bool on)
 	}
 	else
 	{
-		auto env = jEnv();
+		auto env = jEnvForThread();
 		if(unlikely(!jSetSustainedPerformanceMode))
 			jSetSustainedPerformanceMode.setup(env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V");
 		logMsg("set sustained performance mode:%s", on ? "on" : "off");
@@ -493,6 +487,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		[](ANativeActivity *)
 		{
 			removePostedNotifications();
+			jVM = {}; // clear VM pointer to let Android framework detach main thread
 			if(mainLibHandle)
 			{
 				logMsg("closing main lib:%p", mainLibHandle);
@@ -519,7 +514,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			logMsg("app resumed");
 			appState = APP_RUNNING;
 			#ifdef CONFIG_INPUT_ANDROID_MOGA
-			Input::onResumeMOGA(jEnv(), true);
+			Input::onResumeMOGA(jEnvForThread(), true);
 			#endif
 			Input::registerDeviceChangeListener();
 			if(userActivityFaker)
@@ -634,13 +629,13 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		{
 			if(unlikely(!deviceWindow()))
 				return;
-			androidWindowNeedsRedraw(*deviceWindow());
+			androidWindowNeedsRedraw(*deviceWindow(), true);
 		};
 	activity->callbacks->onInputQueueCreated =
 		[](ANativeActivity *, AInputQueue *queue)
 		{
 			inputQueue = queue;
-			logMsg("input queue created & attached");
+			logMsg("made & attached input queue");
 			AInputQueue_attachLooper(queue, EventLoop::forThread().nativeObject(), ALOOPER_POLL_CALLBACK,
 				[](int, int, void* data)
 				{
@@ -671,11 +666,22 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 	jVM = activity->vm;
 	assetManager = activity->assetManager;
 	jBaseActivity = activity->clazz;
-	jEnv_ = activity->env;
+	pthread_key_create(&jEnvKey,
+		[](void *)
+		{
+			if(!jVM)
+				return;
+			if(Config::DEBUG_BUILD)
+			{
+				logDMsg("detaching JNI thread:0x%llx", (long long)IG::this_thread::get_id());
+			}
+			jVM->DetachCurrentThread();
+		});
+	pthread_setspecific(jEnvKey, activity->env);
 	filesDir = activity->internalDataPath;
-	activityInit(jEnv_, activity->clazz);
+	activityInit(activity->env, activity->clazz);
 	setNativeActivityCallbacks(activity);
-	Input::init(jEnv_);
+	Input::init(activity->env);
 	{
 		auto aConfig = AConfiguration_new();
 		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });

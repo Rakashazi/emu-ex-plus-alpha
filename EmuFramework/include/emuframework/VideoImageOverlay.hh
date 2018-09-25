@@ -39,5 +39,5 @@ public:
 	constexpr	VideoImageOverlay() {}
 	void setEffect(Gfx::Renderer &r, uint effect);
 	void place(const Gfx::Sprite &disp, uint lines);
-	void draw(Gfx::Renderer &r);
+	void draw(Gfx::RendererCommands &cmds);
 };

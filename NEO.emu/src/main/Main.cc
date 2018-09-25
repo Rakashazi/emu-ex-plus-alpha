@@ -347,7 +347,7 @@ CLINK void screen_update()
 	if(likely(emuVideo))
 	{
 		//logMsg("screen render");
-		emuVideo->writeFrame(srcPix);
+		emuVideo->startFrame(srcPix);
 		emuVideo = {};
 	}
 	else

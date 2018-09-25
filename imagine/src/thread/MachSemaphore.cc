@@ -25,10 +25,23 @@ Semaphore::Semaphore(unsigned int startValue)
 	assert(ret == KERN_SUCCESS);
 }
 
+Semaphore::Semaphore(Semaphore &&o)
+{
+	sem = o.sem;
+	o.sem = {};
+}
+
+Semaphore &Semaphore::operator=(Semaphore &&o)
+{
+	deinit();
+	sem = o.sem;
+	o.sem = {};
+	return *this;
+}
+
 Semaphore::~Semaphore()
 {
-	auto ret = semaphore_destroy(mach_task_self(), sem);
-	assert(ret == KERN_SUCCESS);
+	deinit();
 }
 
 void Semaphore::wait()
@@ -39,6 +52,15 @@ void Semaphore::wait()
 void Semaphore::notify()
 {
 	semaphore_signal(sem);
+}
+
+void MachSemaphore::deinit()
+{
+	if(!sem)
+		return;
+	auto ret = semaphore_destroy(mach_task_self(), sem);
+	assert(ret == KERN_SUCCESS);
+	sem = {};
 }
 
 }

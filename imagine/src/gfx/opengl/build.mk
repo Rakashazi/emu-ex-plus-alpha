@@ -44,12 +44,15 @@ SRC += gfx/opengl/opengl.cc \
  gfx/opengl/transforms.cc \
  gfx/opengl/config.cc \
  gfx/opengl/shader.cc \
+ gfx/opengl/GLMainTask.cc \
  gfx/opengl/GLStateCache.cc \
- gfx/opengl/RenderTarget.cc \
+ gfx/opengl/RendererTask.cc \
  gfx/opengl/Texture.cc \
  gfx/opengl/geometry.cc \
  gfx/opengl/GeomQuadMesh.cc \
  gfx/opengl/Viewport.cc \
+ gfx/opengl/resource.cc \
+ gfx/opengl/RendererCommands.cc \
  gfx/common/ProjectionPlane.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
@@ -57,6 +60,7 @@ SRC += gfx/opengl/opengl.cc \
  gfx/common/GfxLGradient.cc
  
 ifeq ($(ENV), ios)
+ SRC +=  gfx/opengl/ios/drawable.mm
  ifneq ($(SUBARCH), armv6)
   include $(imagineSrcDir)/util/math/GLKit.mk
  else

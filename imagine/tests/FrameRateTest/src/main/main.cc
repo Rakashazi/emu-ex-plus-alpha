@@ -25,16 +25,18 @@
 #include <imagine/base/android/RootCpufreqParamSetter.hh>
 #endif
 
-static const uint framesToRun = 60*60;
+static constexpr uint framesToRun = 60*60;
 static Base::Window mainWin;
 static Gfx::Renderer renderer;
-static Gfx::Drawable drawable;
+static Gfx::RendererTask rendererTask{renderer};
+static Gfx::DrawableHolder drawableHolder;
 static Gfx::ProjectionPlane projP;
 static Gfx::Mat4 projMat;
+static IG::WindowRect testRectWin;
 static Gfx::GCRect testRect;
 static TestFramework *activeTest{};
-static TestPicker picker{{mainWin, renderer}};
-static TestParams testParam[] =
+static std::unique_ptr<TestPicker> picker;
+static TestParams testParam[]
 {
 	{TEST_CLEAR},
 	{TEST_DRAW, {320, 224}},
@@ -49,8 +51,8 @@ static void placeElements(Gfx::Renderer &r)
 	TableView::setDefaultXIndent(projP);
 	if(!activeTest)
 	{
-		picker.setViewRect(projP.viewport.bounds(), projP);
-		picker.place();
+		picker->setViewRect(projP.viewport.bounds(), projP);
+		picker->place();
 	}
 	else
 	{
@@ -60,6 +62,7 @@ static void placeElements(Gfx::Renderer &r)
 
 static void cleanupTest()
 {
+	rendererTask.haltDrawing();
 	if(activeTest)
 	{
 		activeTest->deinit();
@@ -106,7 +109,6 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 			activeTest = new WriteTest{};
 	}
 	activeTest->init(r, t.pixmapSize);
-	win.postDraw();
 	Base::setIdleDisplayPowerSave(false);
 	Input::setKeyRepeat(false);
 	initCPUFreqStatus();
@@ -116,20 +118,23 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 	win.screen()->addOnFrame(
 		[&win](Base::Screen::FrameParams params)
 		{
+			if(unlikely(!activeTest))
+				return false;
 			auto atOnFrame = IG::Time::now();
 			auto timestamp = params.timestamp();
-			renderer.restoreBind();
-			activeTest->frameUpdate(renderer, params.screen(), timestamp);
+			rendererTask.haltDrawing();
+			activeTest->frameUpdate(rendererTask, params.screen(), timestamp);
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
-			activeTest->lastFramePresentTime.frameTime = IG::Time::makeWithNSecs(Base::frameTimeBaseToNSecs(timestamp));
+			activeTest->lastFramePresentTime.frameTime = Base::frameTimeBaseToTime(timestamp);
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{
 				finishTest(win, renderer, timestamp);
+				return false;
 			}
 			else
 			{
 				win.postDraw();
-				params.readdOnFrame();
+				return true;
 			}
 		});
 	return activeTest;
@@ -140,23 +145,33 @@ namespace Base
 
 void onInit(int argc, char** argv)
 {
-	Base::setOnExit(
+	Base::addOnExit(
 		[](bool backgrounded)
 		{
+			if(activeTest)
+			{
+				auto time = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
+				activeTest->finish(time);
+			}
 			cleanupTest();
-			drawable.freeCaches();
-			renderer.finish();
+			View::defaultFace.freeCaches();
+			if(!backgrounded)
+			{
+				picker.reset();
+			}
+			return true;
 		});
 
 	{
 		Gfx::Error err{};
-		renderer = Gfx::Renderer::makeConfiguredRenderer(err);
+		renderer = Gfx::Renderer::makeConfiguredRenderer(Gfx::Renderer::ThreadMode::AUTO, err);
 		if(err)
 		{
 			Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
 			return;
 		}
 	}
+	rendererTask.start();
 	View::compileGfxPrograms(renderer);
 	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
 	WindowConfig winConf;
@@ -164,49 +179,62 @@ void onInit(int argc, char** argv)
 	winConf.setOnSurfaceChange(
 		[](Base::Window &win, Base::Window::SurfaceChange change)
 		{
+			rendererTask.updateDrawableForSurfaceChange(drawableHolder, change);
 			if(change.resized())
 			{
-				renderer.restoreBind();
 				auto viewport = Gfx::Viewport::makeFromWindow(win);
 				projMat = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.);
 				projP = Gfx::ProjectionPlane::makeWithMatrix(viewport, projMat);
-				testRect = projP.unProjectRect(viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO));
+				testRectWin = viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO);
+				testRect = projP.unProjectRect(testRectWin);
 				placeElements(renderer);
 			}
-			renderer.updateDrawableForSurfaceChange(drawable, change);
 		});
 
 	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			renderer.updateCurrentDrawable(drawable, win, params, projP.viewport, projMat);
 			if(!activeTest)
 			{
-				renderer.setClearColor(0, 0, 0);
-				renderer.clear();
-				picker.draw();
+				picker->prepareDraw();
 			}
 			else
 			{
-				activeTest->draw(renderer);
+				activeTest->prepareDraw(renderer);
 			}
-			renderer.setClipRect(false);
-			if(activeTest)
-			{
-				activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
-			}
-			renderer.presentDrawable(drawable);
-			if(activeTest)
-			{
-				activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
-			}
-			renderer.finishPresentDrawable(drawable);
+			auto fence = renderer.addResourceSyncFence();
+			rendererTask.draw(drawableHolder, win, params,
+				[fence](Gfx::Drawable &drawable, const Base::Window &win, Gfx::RendererDrawTask task)
+				{
+					auto cmds = task.makeRendererCommands(drawable, projP.viewport, projMat);
+					cmds.setClipTest(false);
+					if(!activeTest)
+					{
+						cmds.setClearColor(0, 0, 0);
+						cmds.clear();
+						task.waitSync(fence);
+						picker->draw(cmds);
+					}
+					else
+					{
+						task.waitSync(fence);
+						activeTest->draw(cmds, renderer.makeClipRect(win, testRectWin));
+					}
+					if(activeTest)
+					{
+						activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
+					}
+					cmds.present();
+					if(activeTest)
+					{
+						activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
+					}
+				});
 		});
 
 	winConf.setOnInputEvent(
 		[](Base::Window &, Input::Event e)
 		{
-			renderer.restoreBind();
 			if(!activeTest)
 			{
 				if(e.pushed() && e.isDefaultCancelButton())
@@ -214,7 +242,7 @@ void onInit(int argc, char** argv)
 					Base::exit();
 					return true;
 				}
-				return picker.inputEvent(e);
+				return picker->inputEvent(e);
 			}
 			else if(e.pushed() && (e.isDefaultCancelButton() || Config::envIsIOS))
 			{
@@ -231,7 +259,8 @@ void onInit(int argc, char** argv)
 	View::defaultFace.setFontSettings(renderer, faceSize);
 	View::defaultFace.precacheAlphaNum(renderer);
 	View::defaultFace.precache(renderer, ":.%()");
-	picker.setTests(testParam, IG::size(testParam));
+	picker = std::make_unique<TestPicker>(ViewAttachParams{mainWin, renderer});
+	picker->setTests(testParam, IG::size(testParam));
 	mainWin.show();
 
 	#ifdef __ANDROID__

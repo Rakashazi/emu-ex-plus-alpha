@@ -134,6 +134,7 @@ public:
 
 	constexpr GLDrawable() {}
 	void freeCaches();
+	void restoreCaches();
 	explicit operator bool() const;
 	bool operator ==(GLDrawable const &rhs) const;
 };
@@ -144,12 +145,14 @@ public:
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
+	static GLDisplay getDefault();
 	static GLDisplay makeDefault(std::error_code &ec);
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
 	GLDrawable makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec);
 	bool deleteDrawable(GLDrawable &drawable);
+	void logInfo();
 };
 
 class GLContext : public GLContextImpl, public NotEquals<GLContext>
@@ -160,18 +163,19 @@ public:
 
 	constexpr GLContext() {}
 	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec);
+	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec);
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
 	void deinit(GLDisplay display);
 	static GLBufferConfig makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
 	static GLContext current(GLDisplay display);
+	static bool isCurrentDrawable(GLDisplay display, GLDrawable drawable);
 	static void *procAddress(const char *funcName);
 	static void setCurrent(GLDisplay display, GLContext context, GLDrawable drawable);
 	static void setDrawable(GLDisplay display, GLDrawable drawable);
 	static void setDrawable(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
 	static void present(GLDisplay display, GLDrawable drawable);
 	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
-	static void finishPresent(GLDisplay display, GLDrawable drawable);
 	static bool bindAPI(API api);
 	NativeGLContext nativeObject();
 };

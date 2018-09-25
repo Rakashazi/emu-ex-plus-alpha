@@ -38,6 +38,29 @@ static const char* eglSurfaceTypeToStr(EGLint type)
 	return "unknown";
 }
 
+static const char* eglRenderableTypeToStr(EGLint type)
+{
+	switch(type & 0xF)
+	{
+		case EGL_OPENGL_BIT: return "GL";
+		case EGL_OPENGL_ES_BIT: return "ES";
+		case EGL_OPENGL_ES2_BIT: return "ES2";
+		case EGL_OPENVG_BIT: return "VG";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT: return "GL|ES";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES2_BIT: return "GL|ES2";
+		case EGL_OPENGL_BIT|EGL_OPENVG_BIT: return "GL|VG";
+		case EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT: return "ES|ES2";
+		case EGL_OPENGL_ES_BIT|EGL_OPENVG_BIT: return "ES|VG";
+		case EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "ES2|VG";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT: return "GL|ES|ES2";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENVG_BIT: return "GL|ES|VG";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "GL|ES2|VG";
+		case EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "ES|ES2|VG";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "GL|ES|ES2|VG";
+	}
+	return "unknown";
+}
+
 static const char* eglConfigCaveatToStr(EGLint cav)
 {
 	switch(cav)
@@ -52,7 +75,7 @@ static const char* eglConfigCaveatToStr(EGLint cav)
 static void printEGLConf(EGLDisplay display, EGLConfig config)
 {
 	EGLint buffSize, redSize, greenSize, blueSize, alphaSize, cav, depthSize, stencilSize, nID, nRend,
-		sType, minSwap, maxSwap, sampleBuff;
+		sType, minSwap, maxSwap, sampleBuff, renderType;
 	eglGetConfigAttrib(display, config, EGL_BUFFER_SIZE, &buffSize);
 	eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
 	eglGetConfigAttrib(display, config, EGL_GREEN_SIZE, &greenSize);
@@ -64,13 +87,15 @@ static void printEGLConf(EGLDisplay display, EGLConfig config)
 	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &nID);
 	eglGetConfigAttrib(display, config, EGL_NATIVE_RENDERABLE, &nRend);
 	eglGetConfigAttrib(display, config, EGL_SURFACE_TYPE, &sType);
+	eglGetConfigAttrib(display, config, EGL_RENDERABLE_TYPE, &renderType);
 	eglGetConfigAttrib(display, config, EGL_MIN_SWAP_INTERVAL, &minSwap);
 	eglGetConfigAttrib(display, config, EGL_MAX_SWAP_INTERVAL, &maxSwap);
 	eglGetConfigAttrib(display, config, EGL_SAMPLE_BUFFERS, &sampleBuff);
-	logMsg("config %d %d:%d:%d:%d cav:%s(0x%X) d:%d sten:%d nid:%d nrend:%d stype:%s(0x%X) sampleBuff:%d swap:%d-%d",
+	logMsg("config %d %d:%d:%d:%d cav:%s(0x%X) d:%d sten:%d nid:%d nrend:%d stype:%s(0x%X) rtype:%s(0x%X) sampleBuff:%d swap:%d-%d",
 			buffSize, redSize, greenSize, blueSize, alphaSize,
 			eglConfigCaveatToStr(cav), cav, depthSize, stencilSize,
-			nID, nRend, eglSurfaceTypeToStr(sType), sType, sampleBuff,
+			nID, nRend,eglSurfaceTypeToStr(sType), sType,
+			eglRenderableTypeToStr(renderType), renderType, sampleBuff,
 			minSwap, maxSwap);
 }
 

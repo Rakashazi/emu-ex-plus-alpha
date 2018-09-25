@@ -64,6 +64,8 @@ jobject makeSurfaceTexture(JNIEnv *env, jint texName)
 
 jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode)
 {
+	if(!singleBufferMode)
+		return makeSurfaceTexture(env, texName);
 	if(androidSDK() < 19)
 		return nullptr;
 	initSurfaceTextureJNI(env);

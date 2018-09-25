@@ -31,7 +31,7 @@ static JavaInstMethod<jobject()> jIntentDataPath{};
 void addNotification(const char *onShow, const char *title, const char *message)
 {
 	logMsg("adding notificaion icon");
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	if(unlikely(!jAddNotification))
 	{
 		jAddNotification.setup(env, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
@@ -45,7 +45,7 @@ void removePostedNotifications()
 	// and remove the posted notification
 	if(!jAddNotification)
 		return;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	if(unlikely(!jRemoveNotification))
 	{
 		jRemoveNotification.setup(env, jBaseActivityCls, "removeNotification", "()V");
@@ -56,11 +56,12 @@ void removePostedNotifications()
 void addLauncherIcon(const char *name, const char *path)
 {
 	logMsg("adding launcher icon: %s, for path: %s", name, path);
+	auto env = jEnvForThread();
 	if(unlikely(!jAddViewShortcut))
 	{
-		jAddViewShortcut.setup(jEnv(), jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V");
+		jAddViewShortcut.setup(env, jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V");
 	}
-	jAddViewShortcut(jEnv(), jBaseActivity, jEnv()->NewStringUTF(name), jEnv()->NewStringUTF(path));
+	jAddViewShortcut(env, jBaseActivity, env->NewStringUTF(name), env->NewStringUTF(path));
 }
 
 void handleIntent(JNIEnv *env, jobject activity)
@@ -84,7 +85,7 @@ void handleIntent(JNIEnv *env, jobject activity)
 
 void openURL(const char *url)
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<void(jstring)> jOpenURL{env, jBaseActivityCls, "openURL", "(Ljava/lang/String;)V"};
 	jOpenURL(env, jBaseActivity, env->NewStringUTF(url));
 }

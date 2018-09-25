@@ -72,7 +72,20 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	setOnInputEvent(config.onInputEvent());
 	setOnDismissRequest(config.onDismissRequest());
 	setOnDismiss(config.onDismiss());
-	onFrame = [this](Screen::FrameParams){};
+	onExit =
+		[this](bool backgrounded)
+		{
+			drawEvent.cancel();
+			return false;
+		};
+	Base::addOnExit(onExit);
+	drawEvent.setEventLoop({});
+	drawEvent.setCallback(
+		[this]()
+		{
+			//logDMsg("running window draw event");
+			static_cast<Window*>(this)->dispatchOnDraw();
+		});
 }
 
 void BaseWindow::initDefaultValidSoftOrientations()
@@ -140,35 +153,40 @@ Screen *Window::screen()
 
 void Window::setNeedsDraw(bool needsDraw)
 {
-	if(needsDraw && !drawPosted && hasSurface())
+	if(needsDraw && !drawNeeded && hasSurface())
 	{
-		//logMsg("posting window");
-		drawPosted = true;
-		if(!screen()->runningOnFrameDelegates())
-			screen()->addOnFrame(onFrame);
+		//logDMsg("window:%p needs draw", this);
+		drawNeeded = true;
 	}
-	else if(!needsDraw && drawPosted)
+	else if(!needsDraw && drawNeeded)
 	{
-		//logMsg("un-posting window");
-		drawPosted = false;
-		if(!screen()->runningOnFrameDelegates())
-			screen()->removeOnFrame(onFrame);
+		//logDMsg("window:%p cancelled draw", this);
+		drawNeeded = false;
 	}
 }
 
 bool Window::needsDraw()
 {
-	return drawPosted;
+	return drawNeeded;
 }
 
 void Window::postDraw()
 {
 	setNeedsDraw(true);
+	if(!drawNeeded)
+		return;
+	drawEvent.notify();
 }
 
 void Window::unpostDraw()
 {
 	setNeedsDraw(false);
+	drawEvent.cancel();
+}
+
+void Window::drawNow(bool needsSync)
+{
+	draw(needsSync);
 }
 
 void Window::setNeedsCustomViewportResize(bool needsResize)
@@ -176,11 +194,11 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 	if(needsResize)
 	{
 		surfaceChange.addCustomViewportResized();
-		setNeedsDraw(true);
 	}
 	else
+	{
 		surfaceChange.removeCustomViewportResized();
-
+	}
 }
 
 bool Window::dispatchInputEvent(Input::Event event)
@@ -208,12 +226,18 @@ void Window::dispatchSurfaceChange()
 	onSurfaceChange.callCopy(*this, IG::moveAndClear(surfaceChange));
 }
 
-void Window::dispatchOnDraw()
+void Window::dispatchOnDraw(bool needsSync)
 {
 	if(!needsDraw())
 		return;
-	setNeedsDraw(false);
+	drawNeeded = false;
+	draw();
+}
+
+void Window::draw(bool needsSync)
+{
 	DrawParams params;
+	params.needsSync_ = needsSync;
 	if(unlikely(surfaceChange.flags))
 	{
 		dispatchSurfaceChange();
@@ -370,8 +394,8 @@ Window *Window::window(uint idx)
 void Window::dismiss()
 {
 	onDismiss(*this);
-	if(screen())
-		screen()->removeOnFrame(onFrame);
+	Base::removeOnExit(onExit);
+	drawEvent.deinit();
 	deinit();
 	*this = {};
 	#ifdef CONFIG_BASE_MULTI_WINDOW

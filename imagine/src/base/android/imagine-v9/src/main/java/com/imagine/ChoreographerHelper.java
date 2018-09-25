@@ -28,14 +28,20 @@ final class ChoreographerHelper
 	{
 		@Override public void doFrame(long frameTimeNanos)
 		{
-			onFrame(frameTimeNanos);
+			onFrame(timerAddr, frameTimeNanos);
 		}
 	}
 
 	private static final String logTag = "ChoreographerHelper";
-	private native boolean onFrame(long frameTimeNanos);
+	private native boolean onFrame(long timerAddr, long frameTimeNanos);
 	private final Choreographer choreographer = Choreographer.getInstance();
 	private final Callback callback = new Callback();
+	private long timerAddr;
+	
+	ChoreographerHelper(long timerAddr)
+	{
+		this.timerAddr = timerAddr;
+	}
 
 	void postFrame()
 	{

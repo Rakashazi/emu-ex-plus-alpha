@@ -30,6 +30,11 @@ bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 	return false;
 };
 
+Gfx::RendererTask *ViewController::rendererTask()
+{
+	return nullptr;
+}
+
 View::~View() {}
 
 void View::pushAndShow(View &v, Input::Event e, bool needsNavView)
@@ -76,6 +81,8 @@ void View::clearSelection() {}
 
 void View::onShow() {}
 
+void View::prepareDraw() {}
+
 void View::setFocus(bool) {}
 
 void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
@@ -110,6 +117,15 @@ ViewAttachParams View::attachParams()
 Base::Screen *View::screen()
 {
 	return win ? win->screen() : nullptr;
+}
+
+Gfx::RendererTask *View::rendererTask()
+{
+	if(!controller)
+	{
+		return nullptr;
+	}
+	return controller->rendererTask();
 }
 
 void View::setNeedsBackControl(bool on)

@@ -231,10 +231,6 @@ void initXScreens(Display *dpy)
 
 CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc)
 {
-	#ifndef CONFIG_BASE_X11_EGL
-	// needed to call glXWaitVideoSyncSGI in separate thread
-	XInitThreads();
-	#endif
 	dpy = XOpenDisplay(0);
 	if(!dpy)
 	{

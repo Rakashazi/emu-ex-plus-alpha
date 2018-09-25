@@ -68,22 +68,27 @@ bool BaseAlertView::inputEvent(Input::Event e)
 	return menu.inputEvent(e);
 }
 
-void BaseAlertView::draw()
+void BaseAlertView::prepareDraw()
+{
+	text.makeGlyphs(renderer());
+	menu.prepareDraw();
+}
+
+void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
-	r.setBlendMode(BLEND_MODE_ALPHA);
-	r.noTexProgram.use(r, projP.makeTranslate());
-	r.setColor(.4, .4, .4, .8);
-	GeomRect::draw(r, labelFrame);
-	r.setColor(.1, .1, .1, .6);
-	GeomRect::draw(r, menu.viewRect(), projP);
-	r.setColor(COLOR_WHITE);
-	r.texAlphaReplaceProgram.use(r);
-	text.draw(r, labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
+	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	cmds.setColor(.4, .4, .4, .8);
+	GeomRect::draw(cmds, labelFrame);
+	cmds.setColor(.1, .1, .1, .6);
+	GeomRect::draw(cmds, menu.viewRect(), projP);
+	cmds.setColor(COLOR_WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
+	text.draw(cmds, labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());
-	menu.draw();
+	menu.draw(cmds);
 	//setClipRect(0);
 }
 

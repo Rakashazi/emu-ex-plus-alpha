@@ -64,7 +64,7 @@ PixelFormat BitmapFactoryImage::pixelFormat() const
 std::error_code BitmapFactoryImage::load(const char *name)
 {
 	freeImageData();
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	if(!jBitmapFactory)
 	{
 		jBitmapFactory = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/BitmapFactory"));
@@ -87,7 +87,7 @@ std::error_code BitmapFactoryImage::loadAsset(const char *name)
 {
 	freeImageData();
 	logMsg("loading PNG asset: %s", name);
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	using namespace Base;
 	if(!jDecodeAsset)
 	{
@@ -115,7 +115,7 @@ bool BitmapFactoryImage::hasAlphaChannel()
 std::errc BitmapFactoryImage::readImage(IG::Pixmap &dest)
 {
 	assert(dest.format() == pixelFormat());
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	void *buff;
 	AndroidBitmap_lockPixels(env, bitmap, &buff);
 	IG::Pixmap src{{{(int)info.width, (int)info.height}, pixelFormat()}, buff, {info.stride, IG::Pixmap::BYTE_UNITS}};
@@ -128,7 +128,7 @@ void BitmapFactoryImage::freeImageData()
 {
 	if(bitmap)
 	{
-		auto env = Base::jEnv();
+		auto env = Base::jEnvForThread();
 		Base::recycleBitmap(env, bitmap);
 		env->DeleteGlobalRef(bitmap);
 		bitmap = nullptr;

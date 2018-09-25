@@ -21,26 +21,20 @@
 namespace Gfx
 {
 
-void GLRenderer::setGLProjectionMatrix(const Mat4 &mat)
+void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(support.useFixedFunctionPipeline)
 	{
-		glcMatrixMode(GL_PROJECTION);
+		cmds.glcMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(&mat[0][0]);
-		glcMatrixMode(GL_MODELVIEW);
+		cmds.glcMatrixMode(GL_MODELVIEW);
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!support.useFixedFunctionPipeline)
 	{
-		projectionMat = mat;
-		projectionMatAge++;
-		if(likely(currProgram))
-		{
-			glUniformMatrix4fv(currProgram->projectionUniform, 1, GL_FALSE, &mat[0][0]);
-			currProgram->projectionUniformAge = projectionMatAge;
-		}
+		cmds.projectionMat = mat;
 	}
 	#endif
 }
@@ -50,130 +44,83 @@ void Renderer::setProjectionMatrixRotation(Angle angle)
 	projectionMatRot = angle;
 }
 
-const Mat4 &Renderer::projectionMatrix()
+void RendererCommands::setProjectionMatrix(const Mat4 &mat)
 {
-	return projectionMatPreTransformed;
-}
-
-void Renderer::setProjectionMatrix(const Mat4 &mat)
-{
-	verifyCurrentContext();
-	projectionMatPreTransformed = mat;
-	if(projectionMatRot)
+	if(renderer().projectionMatRot)
 	{
-		logMsg("rotated projection matrix by %f degrees", (double)IG::degrees(projectionMatRot));
-		auto rotatedMat = mat.rollRotate(projectionMatRot);
-		setGLProjectionMatrix(rotatedMat);
+		logMsg("rotated projection matrix by %f degrees", (double)IG::degrees(renderer().projectionMatRot));
+		auto rotatedMat = mat.rollRotate(renderer().projectionMatRot);
+		renderer().setGLProjectionMatrix(*this, rotatedMat);
 	}
 	else
 	{
 		//logMsg("no rotation");
-		setGLProjectionMatrix(mat);
+		renderer().setGLProjectionMatrix(*this, mat);
 	}
 }
 
 void Renderer::animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 {
 	projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
-	Base::mainScreen().addOnFrameOnce(
+	Base::mainScreen().addOnFrame(
 		[this](Base::Screen::FrameParams params)
 		{
 			using namespace Base;
 			//logMsg("animating rotation");
-			bind();
 			projAngleM.update(1);
 			setProjectionMatrixRotation(projAngleM.now());
-			setProjectionMatrix(projectionMatrix());
 			mainWindow().setNeedsDraw(true);
-			if(!projAngleM.isComplete())
-			{
-				params.readdOnFrame();
-			}
+			return !projAngleM.isComplete();
 		});
 }
 
-void Renderer::setTransformTarget(TransformTargetEnum target)
+void RendererCommands::setTransformTarget(TransformTargetEnum target)
 {
-	verifyCurrentContext();
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(support.useFixedFunctionPipeline)
+	if(renderer().support.useFixedFunctionPipeline)
 		glcMatrixMode(target == TARGET_TEXTURE ? GL_TEXTURE : GL_MODELVIEW);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!support.useFixedFunctionPipeline)
+	if(!renderer().support.useFixedFunctionPipeline)
 	{
 		bug_unreachable("TODO");
 	}
 	#endif
 }
 
-void Renderer::loadTransform(Mat4 mat)
+void RendererCommands::loadTransform(Mat4 mat)
 {
-	verifyCurrentContext();
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(support.useFixedFunctionPipeline)
+	if(renderer().support.useFixedFunctionPipeline)
 	{
 		glLoadMatrixf(&mat[0][0]);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(modelMat != mat)
+	modelMat = mat;
+	if(likely(currProgram))
 	{
-		modelMat = mat;
-		modelMatAge++;
-		//logMsg("transform matrix updated, age %d", modelMatAge);
-	}
-	else
-	{
-		//logMsg("transform matrix matches, skipped age update");
-	}
-	if(likely(currProgram) && currProgram->modelViewUniformAge != modelMatAge)
-	{
-		glUniformMatrix4fv(currProgram->modelViewUniform, 1, GL_FALSE, &mat[0][0]);
-		currProgram->modelViewUniformAge = modelMatAge;
+		auto mvpMat = projectionMat.mult(mat);
+		glUniformMatrix4fv(currProgram->modelViewProjectionUniform, 1, GL_FALSE, &mvpMat[0][0]);
 	}
 	#endif
 }
 
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-void GLRenderer::updateProgramProjectionTransform(GLSLProgram &program)
-{
-	verifyCurrentContext();
-	if(program.projectionUniformAge != projectionMatAge)
-	{
-		//logMsg("updating projection matrix for program %d (age was %d, now %d)", program.program(), program.projectionUniformAge, projectionMatAge);
-		if(likely(program.projectionUniform != -1))
-			glUniformMatrix4fv(program.projectionUniform, 1, GL_FALSE, &projectionMat[0][0]);
-		program.projectionUniformAge = projectionMatAge;
-	}
-}
-
-void GLRenderer::updateProgramModelViewTransform(GLSLProgram &program)
-{
-	verifyCurrentContext();
-	if(program.modelViewUniformAge != modelMatAge)
-	{
-		//logMsg("updating model/view matrix for program %d (age was %d, now %d)", program.program(), program.modelViewUniformAge, modelMatAge);
-		if(likely(program.modelViewUniform != -1))
-			glUniformMatrix4fv(program.modelViewUniform, 1, GL_FALSE, &modelMat[0][0]);
-		program.modelViewUniformAge = modelMatAge;
-	}
-}
-#endif
-
-void Renderer::loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
+void RendererCommands::loadTranslate(TransformCoordinate x, TransformCoordinate y, TransformCoordinate z)
 {
 	loadTransform(Mat4::makeTranslate({x, y, z}));
 }
 
-void Renderer::loadIdentTransform()
+void RendererCommands::loadIdentTransform()
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(support.useFixedFunctionPipeline)
+	if(renderer().support.useFixedFunctionPipeline)
 		glLoadIdentity();
 	#endif
-	if(!support.useFixedFunctionPipeline)
+	if(!renderer().support.useFixedFunctionPipeline)
 		loadTransform({});
 }
 

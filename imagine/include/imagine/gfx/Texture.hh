@@ -29,6 +29,7 @@ namespace Gfx
 {
 
 class Renderer;
+class RendererCommands;
 
 class TextureSamplerConfig
 {
@@ -176,9 +177,8 @@ class TextureSampler: public TextureSamplerImpl
 {
 public:
 	constexpr TextureSampler() {}
-	void init(Renderer &r, TextureSamplerConfig config);
+	void init2(Renderer &r, TextureSamplerConfig config);
 	void deinit(Renderer &r);
-	void bind(Renderer &r);
 	explicit operator bool() const;
 	static void initDefaultClampSampler(Renderer &r);
 	static void initDefaultNearestMipClampSampler(Renderer &r);
@@ -186,12 +186,12 @@ public:
 	static void initDefaultNoLinearNoMipClampSampler(Renderer &r);
 	static void initDefaultRepeatSampler(Renderer &r);
 	static void initDefaultNearestMipRepeatSampler(Renderer &r);
-	static void bindDefaultClampSampler(Renderer &r);
-	static void bindDefaultNearestMipClampSampler(Renderer &r);
-	static void bindDefaultNoMipClampSampler(Renderer &r);
-	static void bindDefaultNoLinearNoMipClampSampler(Renderer &r);
-	static void bindDefaultRepeatSampler(Renderer &r);
-	static void bindDefaultNearestMipRepeatSampler(Renderer &r);
+	static void bindDefaultClampSampler(RendererCommands &cmds);
+	static void bindDefaultNearestMipClampSampler(RendererCommands &cmds);
+	static void bindDefaultNoMipClampSampler(RendererCommands &cmds);
+	static void bindDefaultNoLinearNoMipClampSampler(RendererCommands &cmds);
+	static void bindDefaultRepeatSampler(RendererCommands &cmds);
+	static void bindDefaultNearestMipRepeatSampler(RendererCommands &cmds);
 };
 
 class LockedTextureBuffer: public LockedTextureBufferImpl
@@ -209,49 +209,47 @@ public:
 	static constexpr uint MAX_ASSUME_ALIGN = 8;
 
 	constexpr Texture() {}
-	Error init(Renderer &r, TextureConfig config);
-	Error init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
-	Error init(Renderer &r, GfxImageSource &img)
-	{
-		return init(r, img, true);
-	}
+	Texture(Texture &&o);
+	Texture &operator=(Texture &&o);
+	Error init2(Renderer &r, TextureConfig config);
+	Error init2(Renderer &r, GfxImageSource &img, bool makeMipmaps);
 	void deinit();
 	static uint bestAlignment(const IG::Pixmap &pixmap);
-	bool canUseMipmaps();
+	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint levels() const;
 	Error setFormat(IG::PixmapDesc desc, uint levels);
-	void bind();
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos);
 	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment);
 	void clear(uint level);
 	LockedTextureBuffer lock(uint level);
 	LockedTextureBuffer lock(uint level, IG::WindowRect rect);
 	void unlock(LockedTextureBuffer lockBuff);
+	bool needsExclusiveLock() const;
 	IG::WP size(uint level) const;
 	IG::PixmapDesc pixmapDesc() const;
 	bool compileDefaultProgram(uint mode);
 	bool compileDefaultProgramOneShot(uint mode);
-	void useDefaultProgram(uint mode, const Mat4 *modelMat) const;
-	void useDefaultProgram(uint mode) const { useDefaultProgram(mode, nullptr); }
-	void useDefaultProgram(uint mode, Mat4 modelMat) const { useDefaultProgram(mode, &modelMat); }
+	void useDefaultProgram(RendererCommands &cmds, uint mode, const Mat4 *modelMat) const;
+	void useDefaultProgram(RendererCommands &cmds, uint mode) const { useDefaultProgram(cmds, mode, nullptr); }
+	void useDefaultProgram(RendererCommands &cmds, uint mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
 	explicit operator bool() const;
 	Renderer &renderer();
 
 protected:
 	Renderer *r{};
+
+	// no copying outside of class
+	Texture(const Texture &) = default;
+	Texture &operator=(const Texture &) = default;
 };
 
 class PixmapTexture: public Texture
 {
 public:
 	constexpr PixmapTexture() {}
-	Error init(Renderer &r, TextureConfig config);
-	Error init(Renderer &r, GfxImageSource &img, bool makeMipmaps);
-	Error init(Renderer &r, GfxImageSource &img)
-	{
-		return init(r, img, true);
-	}
+	Error init2(Renderer &r, TextureConfig config);
+	Error init2(Renderer &r, GfxImageSource &img, bool makeMipmaps);
 	Error setFormat(IG::PixmapDesc desc, uint levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;

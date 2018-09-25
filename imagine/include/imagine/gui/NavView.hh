@@ -37,6 +37,7 @@ public:
 	void setOnPushRightBtn(OnPushDelegate del);
 	void setOnPushMiddleBtn(OnPushDelegate del);
 	void setTitle(const char *title) { text.setString(title); }
+	void prepareDraw() override;
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void clearSelection() override;
@@ -80,7 +81,7 @@ public:
 		setBackgroundGradient(gradStop, S);
 	}
 
-	void draw() override;
+	void draw(Gfx::RendererCommands &cmds) override;
 	void place() override;
 	void showLeftBtn(bool show) override;
 	void showRightBtn(bool show) override;

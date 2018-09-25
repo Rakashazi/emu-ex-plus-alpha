@@ -49,13 +49,15 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 				d.update(1);
 			}
 			win->setNeedsCustomViewportResize(true);
-			if(!animator[0].isComplete())
+			win->postDraw();
+			if(animator[0].isComplete())
 			{
-				param.readdOnFrame();
+				animate = {};
+				return false;
 			}
 			else
 			{
-				animate = {};
+				return true;
 			}
 		};
 	w.screen()->addOnFrame(animate);

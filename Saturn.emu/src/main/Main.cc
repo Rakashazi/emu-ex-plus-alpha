@@ -208,7 +208,7 @@ CLINK void YuiSwapBuffers()
 		VIDCore->GetGlSize(&width, &height);
 		IG::Pixmap srcPix = {{{width, height}, pixFmt}, dispbuffer};
 		emuVideo->setFormat(srcPix);
-		emuVideo->writeFrame(srcPix);
+		emuVideo->startFrame(srcPix);
 		emuVideo = {};
 	}
 	else

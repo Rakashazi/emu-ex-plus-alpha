@@ -39,6 +39,11 @@ GLKitMat4 GLKitMat4::invert() const
 	return mat;
 }
 
+GLKitMat4 GLKitMat4::mult(GLKitMat4 mat) const
+{
+	return GLKMatrix4Multiply(m, mat.m);
+}
+
 GLKitVec4 GLKitMat4::mult(GLKitVec4 vec) const
 {
 	return GLKMatrix4MultiplyVector4(m, vec.v);

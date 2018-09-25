@@ -1,7 +1,7 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
+CHOST := $(shell cc -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+buildArg := --build=$(shell cc -dumpmachine)
 endif
 
 inputprotoVer := 2.3

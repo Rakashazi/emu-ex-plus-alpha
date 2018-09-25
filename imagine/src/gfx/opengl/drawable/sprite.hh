@@ -41,12 +41,12 @@ void SpriteBase<BaseRect>::deinit()
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::draw(Renderer &r) const
+void SpriteBase<BaseRect>::draw(RendererCommands &cmds) const
 {
 	if(likely(img))
 	{
-		img->bind();
-		BaseRect::draw(r);
+		cmds.setTexture(*img);
+		BaseRect::draw(cmds);
 	}
 }
 

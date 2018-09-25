@@ -41,8 +41,7 @@ public:
 	void stop();
 };
 
-extern JavaVM *jVM;
-JNIEnv *jEnv(); // JNIEnv of activity thread
+JNIEnv *jEnvForThread();
 
 // BaseActivity JNI
 extern jclass jBaseActivityCls;

@@ -50,42 +50,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 		| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	
-	private final class IdleHelper implements MessageQueue.IdleHandler
-	{
-		private final MessageQueue msgQueue = Looper.myQueue();
-		private final Handler handler = new Handler();
-		private native boolean onFrame();
-
-		void postFrame()
-		{
-			msgQueue.addIdleHandler(this);
-			handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to run in case of no pending msgs
-			//Log.i(logTag, "start idle handler");
-		}
-		
-		void unpostFrame()
-		{
-			//Log.i(logTag, "stop idle handler");
-			msgQueue.removeIdleHandler(this);
-		}
-
-		@Override public boolean queueIdle()
-		{
-			//Log.i(logTag, "in idle handler");
-			if(onFrame())
-			{
-				//Log.i(logTag, "will re-run");
-				handler.sendMessageAtFrontOfQueue(Message.obtain()); // force idle handler to re-run in case of no pending msgs
-				return true;
-			}
-			else
-			{
-				//Log.i(logTag, "won't re-run");
-				return false;
-			}
-		}
-	}
-	
 	boolean hasPermanentMenuKey()
 	{
 		if(android.os.Build.VERSION.SDK_INT < 14) return true;
@@ -462,14 +426,9 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new FontRenderer();
 	}
 	
-	ChoreographerHelper newChoreographerHelper()
+	ChoreographerHelper newChoreographerHelper(long timerAddr)
 	{
-		return new ChoreographerHelper();
-	}
-	
-	IdleHelper newIdleHelper()
-	{
-		return new IdleHelper();
+		return new ChoreographerHelper(timerAddr);
 	}
 	
 	InputDeviceHelper inputDeviceHelper()

@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "GLShader"
 #include <imagine/gfx/Gfx.hh>
 #include "private.hh"
 
@@ -27,12 +28,11 @@ static const char *vShaderSrc =
 "in vec2 texUV; "
 "out vec4 colorOut; "
 "out vec2 texUVOut; "
-"uniform mat4 modelview; "
-"uniform mat4 proj; "
+"uniform mat4 modelviewproj; "
 "void main() { "
 	"colorOut = color; "
 	"texUVOut = texUV; "
-	"gl_Position = (proj * modelview) * pos; "
+	"gl_Position = modelviewproj * pos; "
 "}"
 ;
 
@@ -115,19 +115,21 @@ static const char *noTexFragShaderSrc =
 "}"
 ;
 
-GLuint GLRenderer::makeProgram(GLuint vShader, GLuint fShader)
+static GLuint makeGLProgram(GLuint vShader, GLuint fShader)
 {
-	verifyCurrentContext();
 	auto program = glCreateProgram();
 	glAttachShader(program, vShader);
 	glAttachShader(program, fShader);
 	return program;
 }
 
-bool GLRenderer::linkProgram(GLuint program)
+static bool linkGLProgram(GLuint program)
 {
-	verifyCurrentContext();
-	glLinkProgram(program);
+	runGLChecked(
+		[&]()
+		{
+			glLinkProgram(program);
+		}, "glLinkProgram()");
 	GLint success;
 	glGetProgramiv(program, GL_LINK_STATUS, &success);
 	if(Config::DEBUG_BUILD)
@@ -145,40 +147,63 @@ bool GLRenderer::linkProgram(GLuint program)
 bool GLSLProgram::init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
 {
 	if(program_)
-		deinit();
-	program_ = r.makeProgram(vShader, fShader);
-	glBindAttribLocation(program_, VATTR_POS, "pos");
-	handleGLErrors([](GLenum, const char *err) { logErr("%s in glBindAttribLocation pos", err); });
-	if(hasColor)
-	{
-		glBindAttribLocation(program_, VATTR_COLOR, "color");
-		handleGLErrors([](GLenum, const char *err) { logErr("%s in glBindAttribLocation color", err); });
-	}
-	if(hasTex)
-	{
-		glBindAttribLocation(program_, VATTR_TEX_UV, "texUV");
-		handleGLErrors([](GLenum, const char *err) { logErr("%s in glBindAttribLocation texUV", err); });
-	}
+		deinit(r);
+	r.runGLTaskSync(
+		[this, vShader, fShader, hasColor, hasTex]()
+		{
+			program_ = makeGLProgram(vShader, fShader);
+			runGLChecked(
+				[&]()
+				{
+					glBindAttribLocation(program_, VATTR_POS, "pos");
+				}, "glBindAttribLocation(..., pos)");
+			if(hasColor)
+			{
+				runGLChecked(
+					[&]()
+					{
+						glBindAttribLocation(program_, VATTR_COLOR, "color");
+					}, "glBindAttribLocation(..., color)");
+			}
+			if(hasTex)
+			{
+				runGLChecked(
+					[&]()
+					{
+						glBindAttribLocation(program_, VATTR_TEX_UV, "texUV");
+					}, "glBindAttribLocation(..., texUV)");
+			}
+		});
 	return program_;
 }
 
-void GLSLProgram::deinit()
+void GLSLProgram::deinit(Renderer &r)
 {
 	if(program_)
 	{
-		logMsg("deleting program %d", (int)program_);
-		glDeleteProgram(program_);
-		projectionUniformAge = -1;
-		modelViewUniformAge = -1;
-		program_ = 0;
+		r.runGLTaskSync(
+			[this]()
+			{
+				logMsg("deleting program %d", (int)program_);
+				runGLChecked(
+					[&]()
+					{
+						glDeleteProgram(program_);
+					}, "glDeleteProgram()");
+				program_ = 0;
+			});
 	}
 }
 
 bool GLSLProgram::link(Renderer &r)
 {
-	if(!r.linkProgram(program_))
-		return false;
-	initUniforms();
+	bool success;
+	r.runGLTaskSync(
+		[this, &success]()
+		{
+			success = linkGLProgram(program_);
+		});
+	initUniforms(r);
 	return true;
 }
 
@@ -187,9 +212,9 @@ bool Program::init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, b
 	return GLSLProgram::init(r, vShader, fShader, hasColor, hasTex);
 }
 
-void Program::deinit()
+void Program::deinit(Renderer &r)
 {
-	GLSLProgram::deinit();
+	GLSLProgram::deinit(r);
 }
 
 bool Program::link(Renderer &r)
@@ -197,20 +222,31 @@ bool Program::link(Renderer &r)
 	return GLSLProgram::link(r);
 }
 
-int Program::uniformLocation(const char *uniformName)
+int Program::uniformLocation(Renderer &r, const char *uniformName)
 {
-	auto loc = glGetUniformLocation(program_, uniformName);
-	handleGLErrors([](GLenum, const char *err) { logErr("%s in glGetUniformLocation proj", err); });
+	GLint loc;
+	r.runGLTaskSync(
+		[this, &loc, uniformName]()
+		{
+			runGLChecked([&]()
+			{
+				loc = glGetUniformLocation(program_, uniformName);
+			}, "glGetUniformLocation()");
+		});
 	return loc;
 }
 
-void GLSLProgram::initUniforms()
+void GLSLProgram::initUniforms(Renderer &r)
 {
 	assert(program_);
-	projectionUniform = glGetUniformLocation(program_, "proj");
-	handleGLErrors([](GLenum, const char *err) { logErr("%s in glGetUniformLocation proj", err); });
-	modelViewUniform = glGetUniformLocation(program_, "modelview");
-	handleGLErrors([](GLenum, const char *err) { logErr("%s in glGetUniformLocation modelview", err); });
+	r.runGLTaskSync(
+		[this]()
+		{
+			runGLChecked([&]()
+			{
+				modelViewProjectionUniform = glGetUniformLocation(program_, "modelviewproj");
+			}, "glGetUniformLocation(modelviewproj)");
+		});
 }
 
 void TexProgram::init(Renderer &r, GLuint vShader, GLuint fShader)
@@ -225,64 +261,59 @@ void ColorProgram::init(Renderer &r, GLuint vShader, GLuint fShader)
 	link(r);
 }
 
-void GLRenderer::setProgram(GLSLProgram &program, bool updateModelViewTranform)
+static void setGLProgram(GLuint program)
 {
-	verifyCurrentContext();
-	if(currProgram != &program)
+	runGLCheckedVerbose([&]()
 	{
-		//logMsg("setting program: %d", program.program());
-		assert(program.program());
-		glUseProgram(program.program());
-		currProgram = &program;
-		updateProgramProjectionTransform(program);
-		if(updateModelViewTranform)
-			updateProgramModelViewTransform(program);
-		else
-		{
-			//logMsg("skipping model/view matrix sync");
-		}
-	}
+		glUseProgram(program);
+	}, "glUseProgram()");
 }
 
-void Renderer::setProgram(Program &program)
+void GLRenderer::setProgram(GLSLProgram &program)
 {
-	GLRenderer::setProgram((GLSLProgram&)program, true);
-}
-
-void Renderer::setProgram(Program &program, Mat4 modelMat)
-{
-	GLRenderer::setProgram((GLSLProgram&)program, false);
-	loadTransform(modelMat);
+	//logMsg("setting program: %d", program.program());
+	verifyCurrentResourceContext();
+	GLuint p = program.program();
+	assert(p);
+	setGLProgram(p);
 }
 
 Shader Renderer::makeShader(const char **src, uint srcCount, uint type)
 {
-	verifyCurrentContext();
-	auto shader = glCreateShader(type);
-	glShaderSource(shader, srcCount, src, nullptr);
-	glCompileShader(shader);
-	GLint success;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-	if(Config::DEBUG_BUILD)
-	{
-		GLchar messages[4096];
-		glGetShaderInfoLog(shader, sizeof(messages), nullptr, messages);
-		if(strlen(messages))
-			logDMsg("shader info log: %s", messages);
-	}
-	if(success == GL_FALSE)
-	{
-		if(Config::DEBUG_BUILD)
+	GLuint shader;
+	runGLTaskSync(
+		[this, &shader, src, srcCount, type]()
 		{
-			logErr("failed shader source:");
-			iterateTimes(srcCount, i)
+			shader = glCreateShader(type);
+			glShaderSource(shader, srcCount, src, nullptr);
+			glCompileShader(shader);
+			GLint success;
+			glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+			if(Config::DEBUG_BUILD)
 			{
-				logger_printfn(LOG_E, "[part %u]", i);
-				logger_printfn(LOG_E, "%s", src[i]);
+				GLchar messages[4096];
+				glGetShaderInfoLog(shader, sizeof(messages), nullptr, messages);
+				if(strlen(messages))
+					logDMsg("shader info log: %s", messages);
 			}
-		}
-		return 0;
-	}
+			if(success == GL_FALSE)
+			{
+				if(Config::DEBUG_BUILD)
+				{
+					logErr("failed shader source:");
+					iterateTimes(srcCount, i)
+					{
+						logger_printfn(LOG_E, "[part %u]", i);
+						logger_printfn(LOG_E, "%s", src[i]);
+					}
+				}
+				shader = 0;
+			}
+			else
+			{
+				resourceUpdate = true;
+			}
+		});
 	return shader;
 }
 
@@ -339,22 +370,27 @@ Shader Renderer::makeDefaultVShader()
 void Renderer::deleteShader(Shader shader)
 {
 	logMsg("deleting shader:%u", (uint)shader);
-	verifyCurrentContext();
 	assert(shader != defaultVShader);
-	glDeleteShader(shader);
+	runGLTask(
+		[shader]()
+		{
+			glDeleteShader(shader);
+		});
 }
 
-void Renderer::uniformF(int uniformLocation, float v1, float v2)
+void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v2)
 {
-	verifyCurrentContext();
-	glUniform2f(uniformLocation, v1, v2);
-}
-
-void initShaders(Renderer &r)
-{
-	r.setColor(COLOR_WHITE);
-	glEnableVertexAttribArray(VATTR_POS);
-	handleGLErrors([](GLenum, const char *err) { logErr("%s in glEnableVertexAttribArray VATTR_POS", err); });
+	auto p = program.program();
+	runGLTask(
+		[p, uniformLocation, v1, v2]()
+		{
+			setGLProgram(p);
+			runGLCheckedVerbose([&]()
+			{
+				glUniform2f(uniformLocation, v1, v2);
+			}, "glUniform2f()");
+		});
+	resourceUpdate = true;
 }
 
 template <class T>
@@ -416,23 +452,23 @@ bool DefaultTexProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultTexProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
-		r.glcEnable(GL_TEXTURE_2D);
-		r.setImgMode(IMG_MODE_MODULATE);
+		cmds.glcEnable(GL_TEXTURE_2D);
+		cmds.setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
-			r.loadTransform(*modelMat);
+			cmds.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(modelMat)
-		r.setProgram(*(Program*)this, *modelMat);
+		cmds.setProgram(*(Program*)this, *modelMat);
 	else
-		r.setProgram(*(Program*)this);
+		cmds.setProgram(*(Program*)this);
 	#endif
 }
 
@@ -449,23 +485,23 @@ bool DefaultTexReplaceProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultTexReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
-		r.glcEnable(GL_TEXTURE_2D);
-		r.setImgMode(IMG_MODE_REPLACE);
+		cmds.glcEnable(GL_TEXTURE_2D);
+		cmds.setImgMode(IMG_MODE_REPLACE);
 		if(modelMat)
-			r.loadTransform(*modelMat);
+			cmds.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(modelMat)
-		r.setProgram(*(Program*)this, *modelMat);
+		cmds.setProgram(*(Program*)this, *modelMat);
 	else
-		r.setProgram(*(Program*)this);
+		cmds.setProgram(*(Program*)this);
 	#endif
 }
 
@@ -488,27 +524,27 @@ bool DefaultTexAlphaReplaceProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexAlphaReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultTexAlphaReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
-		r.glcEnable(GL_TEXTURE_2D);
-		r.setImgMode(IMG_MODE_REPLACE);
+		cmds.glcEnable(GL_TEXTURE_2D);
+		cmds.setImgMode(IMG_MODE_REPLACE);
 		if(modelMat)
-			r.loadTransform(*modelMat);
+			cmds.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(impl)
-		impl->use(r, modelMat);
+		impl->use(cmds, modelMat);
 	else
 	{
 		if(modelMat)
-			r.setProgram(*(Program*)this, *modelMat);
+			cmds.setProgram(*(Program*)this, *modelMat);
 		else
-			r.setProgram(*(Program*)this);
+			cmds.setProgram(*(Program*)this);
 	}
 	#endif
 }
@@ -532,27 +568,27 @@ bool DefaultTexAlphaProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexAlphaProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultTexAlphaProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
-		r.glcEnable(GL_TEXTURE_2D);
-		r.setImgMode(IMG_MODE_MODULATE);
+		cmds.glcEnable(GL_TEXTURE_2D);
+		cmds.setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
-			r.loadTransform(*modelMat);
+			cmds.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(impl)
-		impl->use(r, modelMat);
+		impl->use(cmds, modelMat);
 	else
 	{
 		if(modelMat)
-			r.setProgram(*(Program*)this, *modelMat);
+			cmds.setProgram(*(Program*)this, *modelMat);
 		else
-			r.setProgram(*(Program*)this);
+			cmds.setProgram(*(Program*)this);
 	}
 	#endif
 }
@@ -578,10 +614,10 @@ bool DefaultTexExternalReplaceProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexExternalReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultTexExternalReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
 		bug_unreachable("external texture program not supported");
 		return;
@@ -589,9 +625,9 @@ void DefaultTexExternalReplaceProgram::use(Renderer &r, const Mat4 *modelMat)
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(modelMat)
-		r.setProgram(*(Program*)this, *modelMat);
+		cmds.setProgram(*(Program*)this, *modelMat);
 	else
-		r.setProgram(*(Program*)this);
+		cmds.setProgram(*(Program*)this);
 	#endif
 }
 
@@ -616,10 +652,10 @@ bool DefaultTexExternalProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexExternalProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultTexExternalProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
 		bug_unreachable("external texture program not supported");
 		return;
@@ -627,9 +663,9 @@ void DefaultTexExternalProgram::use(Renderer &r, const Mat4 *modelMat)
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(modelMat)
-		r.setProgram(*(Program*)this, *modelMat);
+		cmds.setProgram(*(Program*)this, *modelMat);
 	else
-		r.setProgram(*(Program*)this);
+		cmds.setProgram(*(Program*)this);
 	#endif
 }
 
@@ -646,23 +682,23 @@ bool DefaultColorProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultColorProgram::use(Renderer &r, const Mat4 *modelMat)
+void DefaultColorProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(cmds.renderer().support.useFixedFunctionPipeline)
 	{
-		r.glcDisable(GL_TEXTURE_2D);
-		r.setImgMode(IMG_MODE_MODULATE);
+		cmds.glcDisable(GL_TEXTURE_2D);
+		cmds.setImgMode(IMG_MODE_MODULATE);
 		if(modelMat)
-			r.loadTransform(*modelMat);
+			cmds.loadTransform(*modelMat);
 		return;
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(modelMat)
-		r.setProgram(*(Program*)this, *modelMat);
+		cmds.setProgram(*(Program*)this, *modelMat);
 	else
-		r.setProgram(*(Program*)this);
+		cmds.setProgram(*(Program*)this);
 	#endif
 }
 

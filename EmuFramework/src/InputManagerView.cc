@@ -61,17 +61,16 @@ bool IdentInputDeviceView::inputEvent(Input::Event e)
 	return false;
 }
 
-void IdentInputDeviceView::draw()
+void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
-	r.setBlendMode(0);
-	r.noTexProgram.use(r, projP.makeTranslate());
-	r.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(r, viewFrame, projP);
-	r.setColor(COLOR_WHITE);
-	r.texAlphaProgram.use(r);
-	text.draw(r, 0, 0, C2DO, projP);
+	cmds.setBlendMode(0);
+	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+	cmds.setColor(.4, .4, .4, 1.);
+	GeomRect::draw(cmds, viewFrame, projP);
+	cmds.setColor(COLOR_WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+	text.draw(cmds, 0, 0, C2DO, projP);
 }
 
 static void removeKeyConfFromAllDevices(const KeyConfig *conf)

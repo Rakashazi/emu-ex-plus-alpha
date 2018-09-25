@@ -50,7 +50,7 @@ protected:
 	bool allowScrollWholeArea_ = false;
 
 	void setContentSize(IG::WP size);
-	void drawScrollContent(Gfx::Renderer &r);
+	void drawScrollContent(Gfx::RendererCommands &cmds);
 	bool scrollInputEvent(Input::Event e);
 	void setScrollOffset(int o);
 	int scrollOffset() const;

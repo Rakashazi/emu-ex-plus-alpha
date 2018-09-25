@@ -30,7 +30,7 @@ static bool vibrationSystemIsInit = false;
 
 AndroidPropString androidBuildDevice()
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaClassMethod<jobject()> jDevName{env, jBaseActivityCls, "devName", "()Ljava/lang/String;"};
 	auto devName = (jstring)jDevName(env, jBaseActivityCls);
 	AndroidPropString str{};
@@ -61,7 +61,7 @@ bool apkSignatureIsConsistent()
 	bool sigMatchesAPK = true;
 	#ifdef ANDROID_APK_SIGNATURE_HASH
 	JavaInstMethod<jint()> jSigHash;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	jSigHash.setup(env, jBaseActivityCls, "sigHash", "()I");
 	sigMatchesAPK = jSigHash(env, jBaseActivity) == ANDROID_APK_SIGNATURE_HASH;
 	#endif
@@ -70,7 +70,7 @@ bool apkSignatureIsConsistent()
 
 bool packageIsInstalled(const char *name)
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{env, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z"};
 	return jPackageIsInstalled(env, jBaseActivity, env->NewStringUTF(name));
 }
@@ -97,7 +97,7 @@ bool hasVibrator()
 {
 	if(Config::MACHINE_IS_OUYA)
 		return false;
-	initVibration(jEnv());
+	initVibration(jEnvForThread());
 	return vibrator;
 }
 
@@ -105,11 +105,12 @@ void vibrate(uint ms)
 {
 	if(Config::MACHINE_IS_OUYA)
 		return;
-	initVibration(jEnv());
+	auto env = jEnvForThread();
+	initVibration(env);
 	if(unlikely(!vibrator))
 		return;
 	//logDMsg("vibrating for %u ms", ms);
-	jVibrate(jEnv(), vibrator, (jlong)ms);
+	jVibrate(env, vibrator, (jlong)ms);
 }
 
 void setDeviceOrientationChangedSensor(bool)
@@ -124,7 +125,7 @@ void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)
 
 UserActivityFaker::UserActivityFaker()
 {
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<jobject()> jUserActivityFaker{env,
 		jBaseActivityCls, "userActivityFaker", "()Lcom/imagine/UserActivityFaker;"};
 	auto userActivityFaker = jUserActivityFaker(env, jBaseActivity);
@@ -138,24 +139,24 @@ UserActivityFaker::UserActivityFaker()
 UserActivityFaker::~UserActivityFaker()
 {
 	stop();
-	jEnv()->DeleteGlobalRef(inst);
+	jEnvForThread()->DeleteGlobalRef(inst);
 }
 
 void UserActivityFaker::start()
 {
-	jStart(jEnv(), inst);
+	jStart(jEnvForThread(), inst);
 }
 
 void UserActivityFaker::stop()
 {
-	jStop(jEnv(), inst);
+	jStop(jEnvForThread(), inst);
 }
 
 void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 {
 	std::array<char, 512> msg{};
 	auto result = vsnprintf(msg.data(), msg.size(), format, args);
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V"};
 	jMakeErrorPopup(env, jBaseActivity, env->NewStringUTF(msg.data()));
 	auto exitTimer = new Timer{};

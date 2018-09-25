@@ -56,7 +56,7 @@ public:
 	}
 
 	void setUVBounds(IG::Rect2<GTexC> uvBounds);
-	void draw(Renderer &r) const;
+	void draw(RendererCommands &r) const;
 
 	bool compileDefaultProgram(uint mode)
 	{
@@ -74,14 +74,14 @@ public:
 			return false;
 	}
 
-	void useDefaultProgram(uint mode, const Mat4 *modelMat) const
+	void setCommonProgram(RendererCommands &cmds, uint mode, const Mat4 *modelMat) const
 	{
 		if(img)
-			img->useDefaultProgram(mode, modelMat);
+			img->useDefaultProgram(cmds, mode, modelMat);
 	}
 
-	void useDefaultProgram(uint mode) const { useDefaultProgram(mode, nullptr); }
-	void useDefaultProgram(uint mode, Mat4 modelMat) const { useDefaultProgram(mode, &modelMat); }
+	void setCommonProgram(RendererCommands &cmds, uint mode) const { setCommonProgram(cmds, mode, nullptr); }
+	void setCommonProgram(RendererCommands &cmds, uint mode, Mat4 modelMat) const { setCommonProgram(cmds, mode, &modelMat); }
 	Texture *image() { return img; }
 	const Texture *image() const { return img; }
 

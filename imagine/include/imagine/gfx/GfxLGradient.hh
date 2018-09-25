@@ -33,7 +33,7 @@ class LGradient
 public:
 	LGradient() {}
 
-	void draw(Renderer &r);
+	void draw(RendererCommands &r);
 	void setColor(ColorComp r, ColorComp g, ColorComp b);
 	void setTranslucent(ColorComp a);
 	void setColorStop(ColorComp r, ColorComp g, ColorComp b, uint i);

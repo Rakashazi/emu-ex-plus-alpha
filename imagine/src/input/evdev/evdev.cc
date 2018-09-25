@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "InputEvdev"
+#define LOGTAG "Evdev"
 #include <linux/input.h>
 #include <sys/inotify.h>
 #include <unistd.h>

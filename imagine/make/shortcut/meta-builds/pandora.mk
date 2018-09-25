@@ -19,8 +19,6 @@ pandora_deviceExecPath := $(pandora_deviceExecInstallPath)/$(pnd_metadata_exec)
 pandora_devicePNDInstallPath := /media/mmcblk0p4/pandora/apps
 pandora_makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/linux-armv7-pandora.mk
 pandora_execPath := $(pandora_targetPNDPath)/$(pnd_metadata_exec)
-pandora_imagineLibPath ?= $(IMAGINE_PATH)/lib/pandora
-pandora_imagineIncludePath ?= $(IMAGINE_PATH)/build/pandora/gen
 pandora_pndDeps = $(pandora_exec)
 
 ifdef LTO_MODE

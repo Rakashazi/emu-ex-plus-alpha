@@ -85,6 +85,43 @@ static void printToLogLineBuffer(const char* msg, va_list args)
 	vsnprintf(logLineBuffer + strlen(logLineBuffer), sizeof(logLineBuffer) - strlen(logLineBuffer), msg, args);
 }
 
+static int severityToLogLevel(LoggerSeverity severity)
+{
+	#ifdef __ANDROID__
+	switch(severity)
+	{
+		case LOGGER_DEBUG_MESSAGE: return ANDROID_LOG_DEBUG;
+		default: [[fallthrough]];
+		case LOGGER_MESSAGE: return ANDROID_LOG_INFO;
+		case LOGGER_WARNING: return ANDROID_LOG_WARN;
+		case LOGGER_ERROR: return ANDROID_LOG_ERROR;
+	}
+	#elif defined __APPLE__
+	switch(severity)
+	{
+		case LOGGER_DEBUG_MESSAGE: return ASL_LEVEL_DEBUG;
+		default: [[fallthrough]];
+		case LOGGER_MESSAGE: return ASL_LEVEL_INFO;
+		case LOGGER_WARNING: return ASL_LEVEL_WARNING;
+		case LOGGER_ERROR: return ASL_LEVEL_ERR;
+	}
+	#else
+	return 0;
+	#endif
+}
+
+static const char *severityToColorCode(LoggerSeverity severity)
+{
+	switch(severity)
+	{
+		case LOGGER_DEBUG_MESSAGE: return "\033[1;36m";
+		default: [[fallthrough]];
+		case LOGGER_MESSAGE: return "\033[0m";
+		case LOGGER_WARNING: return "\033[1;33m";
+		case LOGGER_ERROR: return "\033[1;31m";
+	}
+}
+
 void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 {
 	if(!logEnabled)
@@ -110,21 +147,22 @@ void logger_vprintf(LoggerSeverity severity, const char* msg, va_list args)
 	if(strlen(logLineBuffer))
 	{
 		printToLogLineBuffer(msg, args);
-		__android_log_write(ANDROID_LOG_INFO, "imagine", logLineBuffer);
+		__android_log_write(severityToLogLevel(severity), "imagine", logLineBuffer);
 		logLineBuffer[0] = 0;
 	}
 	else
-		__android_log_vprint(ANDROID_LOG_INFO, "imagine", msg, args);
+		__android_log_vprint(severityToLogLevel(severity), "imagine", msg, args);
 	#elif defined __APPLE__
 	if(strlen(logLineBuffer))
 	{
 		printToLogLineBuffer(msg, args);
-		asl_log(nullptr, nullptr, ASL_LEVEL_NOTICE, "%s", logLineBuffer);
+		asl_log(nullptr, nullptr, severityToLogLevel(severity), "%s", logLineBuffer);
 		logLineBuffer[0] = 0;
 	}
 	else
-		asl_vlog(nullptr, nullptr, ASL_LEVEL_NOTICE, msg, args);
+		asl_vlog(nullptr, nullptr, severityToLogLevel(severity), msg, args);
 	#else
+	fprintf(stderr, "%s", severityToColorCode(severity));
 	vfprintf(stderr, msg, args);
 	#endif
 }

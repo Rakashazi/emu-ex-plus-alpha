@@ -32,7 +32,8 @@ public:
 	CreditsView(const char *str, ViewAttachParams attach);
 	~CreditsView();
 	IG::WindowRect &viewRect() final { return rect; }
-	void draw() final;
+	void prepareDraw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void onAddedToController(Input::Event e) final {}

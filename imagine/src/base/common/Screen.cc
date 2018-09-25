@@ -45,27 +45,16 @@ Screen &mainScreen()
 	return *Screen::screen(0);
 }
 
-void Screen::addOnFrame(OnFrameDelegate del)
+bool Screen::addOnFrame(OnFrameDelegate del, int priority)
 {
-	assert(onFrameDelegate.freeSpace());
-	onFrameDelegate.push_back(del);
 	postFrame();
-}
-
-bool Screen::addOnFrameOnce(OnFrameDelegate del)
-{
-	if(!containsOnFrame(del))
-	{
-		addOnFrame(del);
-		return true;
-	}
-	return false;
+	return onFrameDelegate.add(del, priority);
 }
 
 bool Screen::removeOnFrame(OnFrameDelegate del)
 {
 	bool removed = onFrameDelegate.remove(del);
-	if(onFrameDelegate.empty())
+	if(!onFrameDelegate.size())
 	{
 		unpostFrame();
 	}
@@ -74,19 +63,16 @@ bool Screen::removeOnFrame(OnFrameDelegate del)
 
 bool Screen::containsOnFrame(OnFrameDelegate del)
 {
-	return IG::contains(onFrameDelegate, del);
+	return onFrameDelegate.contains(del);
 }
 
 void Screen::runOnFrameDelegates(FrameTimeBase timestamp)
 {
-	if(onFrameDelegate.empty())
-		return;
-	//logMsg("running %d onFrame delegates", onFrameDelegate.size());
-	auto thisFrameDelegate = onFrameDelegate;
-	onFrameDelegate.clear();
-	for(auto &delegate : thisFrameDelegate)
+	onFrameDelegate.runAll([&](OnFrameDelegate del){ return del({*this, timestamp}); });
+	if(onFrameDelegate.size())
 	{
-		delegate({*this, timestamp, delegate});
+		//logDMsg("posting next frame");
+		postFrame();
 	}
 }
 
@@ -113,15 +99,6 @@ void Screen::frameUpdate(FrameTimeBase timestamp)
 	inFrameHandler = true;
 	runOnFrameDelegates(timestamp);
 	inFrameHandler = false;
-	iterateTimes(Window::windows(), i)
-	{
-		auto &w = *Window::window(i);
-		if(Config::BASE_MULTI_SCREEN && w.screen() != this)
-		{
-			continue;
-		}
-		w.dispatchOnDraw();
-	}
 	//logMsg("%s", isPosted() ? "drawing next frame" : "stopping at this frame");
 }
 
@@ -131,7 +108,7 @@ void Screen::setActive(bool active)
 	{
 		logMsg("screen:%p activated", this);
 		isActive = true;
-		if(!onFrameDelegate.empty())
+		if(onFrameDelegate.size())
 			postFrame();
 	}
 	else if(!active && isActive)

@@ -55,27 +55,27 @@ public:
 		return frames * sample.toBytes() * channels;
 	}
 
-	float framesToMSecs(uint frames) const
+	double framesToMSecs(uint frames) const
 	{
-		return ((float)frames / rate) * 1000.;
+		return ((double)frames / rate) * 1000.;
 	}
 
-	float framesToUSecs(uint frames) const
+	double framesToUSecs(uint frames) const
 	{
-		return ((float)frames / rate) * 1000000.;
+		return ((double)frames / rate) * 1000000.;
 	}
 
-	uint mSecsToFrames(float mSecs) const
+	uint mSecsToFrames(double mSecs) const
 	{
-		return std::ceil((mSecs / 1000.f) * rate);
+		return std::ceil((mSecs / 1000.) * rate);
 	}
 
-	uint uSecsToFrames(float uSecs) const
+	uint uSecsToFrames(double uSecs) const
 	{
-		return std::ceil((uSecs / 1000000.f) * rate);
+		return std::ceil((uSecs / 1000000.) * rate);
 	}
 
-	uint uSecsToBytes(float uSecs) const
+	uint uSecsToBytes(double uSecs) const
 	{
 		return framesToBytes(uSecsToFrames(uSecs));
 	}
@@ -90,9 +90,9 @@ public:
 		return (rate * sample.toBytes() * channels) * secs;
 	}
 
-	float bytesToSecs(uint bytes) const
+	double bytesToSecs(uint bytes) const
 	{
-		return (float)bytes / (rate * sample.toBytes() * channels);
+		return (double)bytes / (rate * sample.toBytes() * channels);
 	}
 };
 

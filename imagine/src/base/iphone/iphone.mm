@@ -284,7 +284,7 @@ static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
 	// TODO: use NSProcessInfo
 	onInit(0, nullptr);
 	if(!deviceWindow())
-		bug_unreachable("no main window created");
+		bug_unreachable("no main window exists");
 	logMsg("exiting didFinishLaunchingWithOptions");
 	return YES;
 }

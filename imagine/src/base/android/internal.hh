@@ -16,12 +16,7 @@ enum SurfaceRotation : int
 	SURFACE_ROTATION_180 = 2, SURFACE_ROTATION_270 = 3
 };
 
-class FrameTimer
-{
-public:
-	virtual void scheduleVSync() = 0;
-	virtual void cancel() = 0;
-};
+class FrameTimer;
 
 extern JavaInstMethod<void(jint)> jSetWinFormat;
 extern JavaInstMethod<jint()> jWinFormat;
@@ -29,10 +24,10 @@ extern JavaInstMethod<void(jint)> jSetRequestedOrientation;
 extern SurfaceRotation osRotation;
 extern uint appState;
 extern AInputQueue *inputQueue;
-extern FrameTimer *frameTimer;
+extern std::unique_ptr<FrameTimer> frameTimer;
 
 Window *deviceWindow();
-void androidWindowNeedsRedraw(Window &win);
+void androidWindowNeedsRedraw(Window &win, bool sync = true);
 void initFrameTimer(JNIEnv *env, jobject activity);
 void removePostedNotifications();
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls);

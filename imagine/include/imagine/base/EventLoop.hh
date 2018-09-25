@@ -38,6 +38,7 @@ public:
 	static EventLoop forThread();
 	static EventLoop makeForThread();
 	void run();
+	void stop();
 	explicit operator bool() const;
 };
 
@@ -61,6 +62,7 @@ public:
 	void addXServerToEventLoop(EventLoop loop);
 	void modifyEvents(uint events);
 	void removeFromEventLoop();
+	void setCallback(PollEventDelegate callback);
 	bool hasEventLoop();
 	int fd() const;
 };

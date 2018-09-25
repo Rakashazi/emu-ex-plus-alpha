@@ -45,7 +45,8 @@ public:
 			[&item](const TableView &, uint idx) -> MenuItem& { return derefMenuItem(IG::data(item)[idx]); }
 		} {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
-	void draw() override;
+	void prepareDraw() override;
+	void draw(Gfx::RendererCommands &cmds) override;
 	void place() override;
 	void setScrollableIfNeeded(bool yes);
 	void scrollToFocusRect();
@@ -87,5 +88,5 @@ protected:
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(Input::Event e, bool &movedSelected);
-	virtual void drawElement(Gfx::Renderer &r, uint i, MenuItem &item, Gfx::GCRect rect) const;
+	virtual void drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const;
 };

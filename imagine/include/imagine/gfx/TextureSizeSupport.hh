@@ -23,7 +23,7 @@ public:
 		return {makeSupportedSize(desc.size()), desc.format()};
 	}
 
-	IG::WP makeSupportedSize(IG::WP size)
+	IG::WP makeSupportedSize(IG::WP size) const
 	{
 		using namespace IG;
 		IG::WP supportedSize;
@@ -47,7 +47,7 @@ public:
 		return supportedSize;
 	}
 
-	bool supportsMipmaps(uint imageX, uint imageY)
+	bool supportsMipmaps(uint imageX, uint imageY) const
 	{
 		return imageX && imageY &&
 			(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));

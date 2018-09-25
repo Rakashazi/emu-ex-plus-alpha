@@ -16,6 +16,7 @@
 #define LOGTAG "EventLoop"
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -23,6 +24,8 @@
 
 namespace Base
 {
+
+static __thread bool loopRunning;
 
 #ifdef CONFIG_BASE_X11
 extern void x11FDHandler();
@@ -79,7 +82,7 @@ bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, u
 		{
 			auto s = (GSource2*)source;
 			auto pollFD = (GPollFD*)userData;
-			//logMsg("events for source:%p", source);
+			//logMsg("events for source:%p in thread 0x%llx", source, (long long)IG::this_thread::get_id());
 			return (gboolean)s->callback(pollFD->fd, g_source_query_unix_fd(source, pollFD));
 		},
 		nullptr
@@ -130,6 +133,11 @@ void FDEventSource::removeFromEventLoop()
 	}
 }
 
+void FDEventSource::setCallback(PollEventDelegate callback)
+{
+	source->callback = callback;
+}
+
 bool FDEventSource::hasEventLoop()
 {
 	return source;
@@ -155,7 +163,7 @@ bool GlibFDEventSource::makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 		return false;
 	}
 	this->source = source;
-	logMsg("added fd:%d to main context:%p", fd_, ctx);
+	logMsg("added fd:%d to GMainContext:%p", fd_, ctx);
 	return true;
 }
 
@@ -166,20 +174,42 @@ EventLoop EventLoop::forThread()
 
 EventLoop EventLoop::makeForThread()
 {
-	return forThread();
+	auto defaultCtx = g_main_context_get_thread_default();
+	if(defaultCtx)
+		return defaultCtx;
+	defaultCtx = g_main_context_new();
+	if(Config::DEBUG_BUILD)
+	{
+		logMsg("made GMainContext:%p for thread:0x%llx", defaultCtx, (long long)IG::this_thread::get_id());
+	}
+	g_main_context_push_thread_default(defaultCtx);
+	g_main_context_unref(defaultCtx);
+	return defaultCtx;
 }
 
 void EventLoop::run()
 {
-	logMsg("running event loop:%p", mainContext);
-	auto mainLoop = g_main_loop_new(mainContext, false);
-	g_main_loop_run(mainLoop);
-	logMsg("event loop:%p finished", mainContext);
+	logMsg("running GMainContext:%p", mainContext);
+	loopRunning = true;
+	while(loopRunning)
+	{
+		if(g_main_context_iteration(mainContext, true))
+		{
+			//logDMsg("handled events for event loop:%p", mainContext);
+		}
+	}
+	logMsg("GMainContext:%p finished", mainContext);
+}
+
+void EventLoop::stop()
+{
+	loopRunning = false;
+	g_main_context_wakeup(mainContext);
 }
 
 EventLoop::operator bool() const
 {
-	return contextIsSet;
+	return mainContext;
 }
 
 }

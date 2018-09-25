@@ -52,7 +52,7 @@ public:
 	IG::WindowRect &viewRect() final { return viewFrame; }
 	void place() final;
 	bool inputEvent(Input::Event e) final;
-	void draw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 	void onAddedToController(Input::Event e) final;
 };
 
@@ -62,7 +62,7 @@ private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
 		using DualTextMenuItem::DualTextMenuItem;
-		void draw(Gfx::Renderer &r, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
+		void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
 	};
 
 	InputManagerView &rootIMView;

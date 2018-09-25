@@ -71,7 +71,7 @@ PathString makePathString(const char *dir, const char *file)
 
 PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 {
-	logMsg("getting app path from launch command: %s", launchCmd);
+	logMsg("app path from launch command:%s", launchCmd);
 	FS::PathString realPath;
 	if(!realpath(FS::dirname(launchCmd).data(), realPath.data()))
 	{

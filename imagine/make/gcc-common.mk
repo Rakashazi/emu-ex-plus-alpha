@@ -7,7 +7,7 @@ CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -Ofast
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= $(CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT) $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT)
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden
 CFLAGS_LANG = -std=gnu99 -fno-common
-CXXFLAGS_LANG = -std=gnu++1z $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
+CXXFLAGS_LANG = -std=gnu++17 $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
 
 ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain patches

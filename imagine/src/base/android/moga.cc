@@ -150,7 +150,7 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 
 void initMOGA(bool notify)
 {
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	if(mogaHelper)
 		return;
 	JavaInstMethod<jobject()> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;"};
@@ -173,7 +173,7 @@ void deinitMOGA()
 	if(!mogaHelper)
 		return;
 	logMsg("deinit MOGA input system");
-	auto env = Base::jEnv();
+	auto env = Base::jEnvForThread();
 	jMOGAExit(env, mogaHelper);
 	env->DeleteGlobalRef(mogaHelper);
 	mogaHelper = {};

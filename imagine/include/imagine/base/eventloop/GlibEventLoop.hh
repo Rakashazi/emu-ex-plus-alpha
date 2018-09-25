@@ -2,7 +2,6 @@
 
 #include <glib.h>
 #include <imagine/base/eventLoopDefs.hh>
-#include <system_error>
 
 namespace Base
 {
@@ -34,12 +33,11 @@ class GlibEventLoop
 {
 public:
 	constexpr GlibEventLoop() {}
-	constexpr GlibEventLoop(GMainContext *ctx): mainContext{ctx}, contextIsSet{true} {}
+	constexpr GlibEventLoop(GMainContext *ctx): mainContext{ctx} {}
 	GMainContext *nativeObject() { return mainContext; }
 
 protected:
 	GMainContext *mainContext{};
-	bool contextIsSet = false;
 };
 
 using EventLoopImpl = GlibEventLoop;

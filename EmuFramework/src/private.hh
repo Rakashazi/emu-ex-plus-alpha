@@ -34,7 +34,7 @@ enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_ME
 struct AppWindowData
 {
 	Base::Window win{};
-	Gfx::Drawable drawable{};
+	Gfx::DrawableHolder drawableHolder{};
 	Gfx::Viewport viewport() { return projectionPlane.viewport; }
 	Gfx::Mat4 projectionMat{};
 	Gfx::ProjectionPlane projectionPlane{};
@@ -59,6 +59,7 @@ public:
 extern AppWindowData mainWin, extraWin;
 extern AppWindowData *emuWin;
 extern EmuVideoLayer emuVideoLayer;
+extern Gfx::RendererTask rendererTask;
 extern EmuMenuViewStack viewStack;
 extern EmuModalViewStack modalViewController;
 extern bool menuViewIsActive;
@@ -95,7 +96,7 @@ void launchSystem(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 ViewAttachParams emuViewAttachParams();
 View *makeView(ViewAttachParams attach, EmuApp::ViewID id);
-void updateAndDrawEmuVideo();
+void updateAndDrawEmuVideo(Gfx::RendererCommands &cmds);
 void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
 void clearEmuAudioStats();
 

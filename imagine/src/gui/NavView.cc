@@ -128,6 +128,11 @@ bool NavView::inputEvent(Input::Event e)
 	return false;
 }
 
+void NavView::prepareDraw()
+{
+	text.makeGlyphs(renderer());
+}
+
 void NavView::place()
 {
 	text.compile(renderer(), projP);
@@ -202,64 +207,63 @@ void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop,
 	bg.setPos(gradientStops.get(), gradStops, {});
 }
 
-void BasicNavView::draw()
+void BasicNavView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
 	auto const &textRect = control[1].rect;
 	if(bg)
 	{
-		r.setBlendMode(0);
-		r.noTexProgram.use(r, projP.makeTranslate());
-		bg.draw(r);
+		cmds.setBlendMode(0);
+		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		bg.draw(cmds);
 	}
 	if(selected != -1 && control[selected].isActive)
 	{
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(.2, .71, .9, 1./3.);
-		r.noTexProgram.use(r, projP.makeTranslate());
-		GeomRect::draw(r, control[selected].rect, projP);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setColor(.2, .71, .9, 1./3.);
+		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		GeomRect::draw(cmds, control[selected].rect, projP);
 	}
-	r.setColor(COLOR_WHITE);
-	r.texAlphaReplaceProgram.use(r);
+	cmds.setColor(COLOR_WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
 	if(centerTitle)
 	{
-		text.draw(r, projP.alignToPixel(projP.unProjectRect(viewRect_).pos(C2DO)), C2DO, projP);
+		text.draw(cmds, projP.alignToPixel(projP.unProjectRect(viewRect_).pos(C2DO)), C2DO, projP);
 	}
 	else
 	{
 		if(text.xSize > projP.unprojectXSize(textRect) - TableView::globalXIndent*2)
 		{
-			r.setClipRectBounds(window(), textRect);
-			r.setClipRect(true);
-			text.draw(r, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{TableView::globalXIndent, 0}), RC2DO, projP);
-			r.setClipRect(false);
+			cmds.setClipRect(renderer().makeClipRect(window(), textRect));
+			cmds.setClipTest(true);
+			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{TableView::globalXIndent, 0}), RC2DO, projP);
+			cmds.setClipTest(false);
 		}
 		else
 		{
-			text.draw(r, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}), LC2DO, projP);
+			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}), LC2DO, projP);
 		}
 	}
 	if(control[0].isActive)
 	{
 		assumeExpr(leftSpr.image());
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(COLOR_WHITE);
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setColor(COLOR_WHITE);
+		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(angleFromDegree(90));
-		leftSpr.useDefaultProgram(IMG_MODE_MODULATE, trans);
-		leftSpr.draw(r);
+		leftSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, trans);
+		leftSpr.draw(cmds);
 	}
 	if(control[2].isActive)
 	{
 		assumeExpr(rightSpr.image());
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		r.setColor(COLOR_WHITE);
-		TextureSampler::bindDefaultNearestMipClampSampler(r);
-		rightSpr.useDefaultProgram(IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
-		rightSpr.draw(r);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setColor(COLOR_WHITE);
+		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
+		rightSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
+		rightSpr.draw(cmds);
 	}
 }
 

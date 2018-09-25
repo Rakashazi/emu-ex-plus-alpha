@@ -32,6 +32,11 @@ GLDisplay GLDisplay::makeDefault(std::error_code &ec)
 	return {};
 }
 
+GLDisplay GLDisplay::getDefault()
+{
+	return {};
+}
+
 GLDisplay::operator bool() const
 {
 	return true;
@@ -41,6 +46,8 @@ bool GLDisplay::operator ==(GLDisplay const &rhs) const
 {
 	return true;
 }
+
+void GLDisplay::logInfo() {}
 
 bool GLDisplay::deinit()
 {
@@ -86,7 +93,17 @@ bool GLDisplay::deleteDrawable(GLDrawable &drawable)
 void GLDrawable::freeCaches()
 {
 	if(glView_)
+	{
 		[glView() deleteDrawable];
+	}
+}
+
+void GLDrawable::restoreCaches()
+{
+	if(glView_)
+	{
+		[glView() layoutSubviews];
+	}
 }
 
 GLDrawable::operator bool() const
@@ -99,26 +116,35 @@ bool GLDrawable::operator ==(GLDrawable const &rhs) const
 	return glView_ == rhs.glView_;
 }
 
+bool GLContext::isCurrentDrawable(GLDisplay display, GLDrawable drawable)
+{
+	GLint renderBuffer = 0;
+	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
+	return drawable.glView().colorRenderbuffer == (GLuint)renderBuffer;
+}
+
 // GLContext
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec)
+static EAGLRenderingAPI majorVersionToAPI(uint version)
+{
+	switch(version)
+	{
+		case 1: return kEAGLRenderingAPIOpenGLES1;
+		case 2: return kEAGLRenderingAPIOpenGLES2;
+		case 3: return kEAGLRenderingAPIOpenGLES3;
+		default:
+			logErr("unsupported OpenGL ES major version:%u", version);
+			return kEAGLRenderingAPIOpenGLES2;
+	}
+}
+
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec)
 {
 	assert(attr.openGLESAPI());
-	logMsg("making context with version: %d.%d", attr.majorVersion(), attr.minorVersion());
-	EAGLContext *newContext = nil;
-	switch(attr.majorVersion())
-	{
-		bcase 1:
-			newContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
-		bcase 2:
-			newContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-		#if !defined __ARM_ARCH_6K__
-		bcase 3:
-			newContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
-		#endif
-		bdefault:
-			logErr("unsupported OpenGL ES major version:%d", attr.majorVersion());
-	}
+	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion());
+	EAGLSharegroup *sharegroup = [shareContext.context() sharegroup];
+	logMsg("making context with version: %d.%d sharegroup:%p", attr.majorVersion(), attr.minorVersion(), sharegroup);
+	EAGLContext *newContext = [[EAGLContext alloc] initWithAPI:api sharegroup:sharegroup];
 	if(!newContext)
 	{
 		logErr("error creating context");
@@ -128,6 +154,10 @@ GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig
 	context_ = (void*)CFBridgingRetain(newContext);
 	ec = {};
 }
+
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
+	GLContext{display, attr, config, {}, ec}
+{}
 
 GLBufferConfig GLContext::makeBufferConfig(GLDisplay, GLContextAttributes, GLBufferConfigAttributes attr)
 {
@@ -159,6 +189,7 @@ void GLContext::setDrawable(GLDisplay, GLDrawable win)
 {
 	if(win)
 	{
+		logMsg("setting view:%p current", win.glView());
 		[win.glView() bindDrawable];
 	}
 }
@@ -185,8 +216,6 @@ void GLContext::present(GLDisplay, GLDrawable win, GLContext cachedCurrentContex
 	[cachedCurrentContext.context() presentRenderbuffer:GL_RENDERBUFFER];
 }
 
-void GLContext::finishPresent(GLDisplay, GLDrawable win) {}
-
 GLContext::operator bool() const
 {
 	return context_;
@@ -201,6 +230,15 @@ void GLContext::deinit(GLDisplay)
 {
 	if(context_)
 	{
+		if(context() == [EAGLContext currentContext])
+		{
+			logMsg("deinit current context:%p", context_);
+			[EAGLContext setCurrentContext:nil];
+		}
+		else
+		{
+			logMsg("deinit context:%p", context_);
+		}
 		CFRelease(context_);
 		context_ = nil;
 	}

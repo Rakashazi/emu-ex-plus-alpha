@@ -24,6 +24,8 @@
 #import <imagine/base/iphone/EAGLView.hh>
 #endif
 
+#define CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
+
 namespace Base
 {
 
@@ -72,5 +74,10 @@ struct GLBufferConfig
 using GLDrawableImpl = EAGLViewDrawable;
 using GLContextImpl = IOSGLContext;
 using NativeGLContext = void *; // EAGLContext in ObjC
+using EAGLViewMakeRenderbufferDelegate = DelegateFunc<IG::Point2D<int>(void *, GLuint &, GLuint &)>;
+using EAGLViewDeleteRenderbufferDelegate = DelegateFunc<void(GLuint colorRenderbuffer, GLuint depthRenderbuffer)>;
+
+extern EAGLViewMakeRenderbufferDelegate makeRenderbuffer;
+extern EAGLViewDeleteRenderbufferDelegate deleteRenderbuffer;
 
 }

@@ -34,6 +34,7 @@ public:
 	virtual void dismissView(View &v) = 0;
 	virtual bool inputEvent(Input::Event e) = 0;
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
+	virtual Gfx::RendererTask *rendererTask();
 };
 
 struct ViewAttachParams
@@ -61,7 +62,8 @@ public:
 
 	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
-	virtual void draw() = 0;
+	virtual void prepareDraw();
+	virtual void draw(Gfx::RendererCommands &cmds) = 0;
 	virtual bool inputEvent(Input::Event event) = 0;
 	virtual void clearSelection(); // de-select any items from previous input
 	virtual void onShow();
@@ -74,6 +76,7 @@ public:
 	Gfx::Renderer &renderer();
 	ViewAttachParams attachParams();
 	Base::Screen *screen();
+	Gfx::RendererTask *rendererTask();
 	const char *name() { return name_; }
 	void setName(const char *name) { name_ = name; }
 	static void setNeedsBackControl(bool on);

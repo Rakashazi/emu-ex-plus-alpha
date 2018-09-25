@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,26 +13,44 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/gfx/Texture.hh>
 
 namespace Gfx
 {
 
-class RenderTarget
+Texture Renderer::makeTexture(TextureConfig config)
 {
-private:
-	GLuint fbo = 0;
-	Texture tex;
+	Texture t;
+	t.init2(*this, config);
+	return t;
+}
 
-public:
-	void init();
-	void deinit();
-	void setFormat(Renderer &r, IG::PixmapDesc pix);
-	Texture &texture() { return tex; };
-	GLuint id() const { return fbo; }
-	explicit operator bool() const;
-};
+Texture Renderer::makeTexture(GfxImageSource &img, bool makeMipmaps)
+{
+	Texture t;
+	t.init2(*this, img, makeMipmaps);
+	return t;
+}
+
+PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
+{
+	PixmapTexture t;
+	t.init2(*this, config);
+	return t;
+}
+
+PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, bool makeMipmaps)
+{
+	PixmapTexture t;
+	t.init2(*this, img, makeMipmaps);
+	return t;
+}
+
+TextureSampler Renderer::makeTextureSampler(TextureSamplerConfig config)
+{
+	TextureSampler s;
+	s.init2(*this, config);
+	return s;
+}
 
 }

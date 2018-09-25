@@ -21,6 +21,7 @@
 namespace Base
 {
 
-using PollEventDelegate = DelegateFunc<int (int fd, int event)>;
+using PollEventDelegate = DelegateFunc<bool (int fd, int event)>;
+using CustomEventDelegate = DelegateFunc<void ()>;
 
 }

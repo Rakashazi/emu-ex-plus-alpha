@@ -63,7 +63,7 @@ void initVControls(Gfx::Renderer &r)
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	#endif
 
 	if(!vControllerLayoutPosChanged) // setup default positions if not provided in config file
@@ -726,7 +726,7 @@ void setupVControllerVars()
 	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace->nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
 	#endif
 
 	auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
@@ -776,7 +776,7 @@ void updateVControlImg()
 		{
 			logErr("couldn't load overlay png");
 		}
-		overlayImg.init(r, png);
+		overlayImg = r.makePixmapTexture(png);
 		vController.setImg(overlayImg);
 	}
 	#endif
@@ -789,7 +789,7 @@ void updateVControlImg()
 		{
 			logErr("couldn't load kb overlay png");
 		}
-		kbOverlayImg.init(r, png);
+		kbOverlayImg = r.makePixmapTexture(png);
 		vController.setKeyboardImage(kbOverlayImg);
 	}
 }

@@ -79,7 +79,7 @@ void registerXdndAtoms(Display *dpy)
 	//logMsg("%d atoms, last %s", atoms, xdndAtomStr[atoms-1]);
 	if(!XInternAtoms(dpy, strPtr, atoms, False, xdndAtom))
 	{
-		logWarn("XDND atoms could not be created, drag & drop may not function");
+		logWarn("error making XDND atoms, drag & drop may not function");
 	}
 }
 

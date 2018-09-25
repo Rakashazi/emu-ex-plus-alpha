@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "Pipe"
 #include <imagine/base/Pipe.hh>
 #include <imagine/util/fd-utils.h>
 #include <cstring>
@@ -20,38 +21,75 @@
 namespace Base
 {
 
-void Pipe::init(EventLoop loop, Delegate del)
+Pipe::Pipe()
 {
-	if(msgPipe[0] != -1)
-	{
-		logMsg("pipe already init");
-		return;
-	}
-	int res = pipe(msgPipe);
+	int res = pipe(msgPipe.data());
 	assert(res == 0);
-	this->del = del;
-	if(!loop)
-		loop = EventLoop::forThread();
-	fdSrc = {msgPipe[0], loop,
-		[this](int fd, int events)
-		{
-			assert(this->del);
-			this->del(*this);
-			return 1;
-		}};
-	logMsg("init pipe with fd: %d %d", msgPipe[0], msgPipe[1]);
+	logMsg("opened pipe fds:%d %d", msgPipe[0], msgPipe[1]);
+}
+
+Pipe::~Pipe()
+{
+	deinit();
 }
 
 void Pipe::deinit()
 {
 	if(msgPipe[0] != -1)
 	{
-		fdSrc.removeFromEventLoop();
+		if(fdSrc.hasEventLoop())
+		{
+			removeFromEventLoop();
+		}
 		close(msgPipe[0]);
 		close(msgPipe[1]);
-		logMsg("deinit pipe with fd: %d %d", msgPipe[0], msgPipe[1]);
-		msgPipe[0] = -1;
-		msgPipe[1] = -1;
+		logMsg("closed pipe fds:%d %d", msgPipe[0], msgPipe[1]);
+	}
+}
+
+Pipe::Pipe(Pipe &&o)
+{
+	moveObject(o);
+}
+
+Pipe &Pipe::operator=(Pipe &&o)
+{
+	deinit();
+	moveObject(o);
+	return *this;
+}
+
+void Pipe::moveObject(Pipe &o)
+{
+	msgPipe = o.msgPipe;
+	o.fdSrc.setCallback([this](int fd, int events){ return this->del(*this); });
+	fdSrc = std::move(o.fdSrc);
+	del = o.del;
+	o.msgPipe[0] = -1;
+}
+
+void Pipe::addToEventLoop(EventLoop loop, Delegate del)
+{
+	if(msgPipe[0] == -1)
+	{
+		logMsg("can't add null pipe to event loop");
+		return;
+	}
+	this->del = del;
+	if(!loop)
+		loop = EventLoop::forThread();
+	fdSrc = {msgPipe[0], loop,
+		[this](int fd, int events)
+		{
+			return this->del(*this);
+		}};
+}
+
+void Pipe::removeFromEventLoop()
+{
+	if(msgPipe[0] != -1)
+	{
+		fdSrc.removeFromEventLoop();
 	}
 }
 
@@ -67,14 +105,19 @@ bool Pipe::write(const void *data, uint size)
 
 bool Pipe::read(void *data, uint size)
 {
-	if(fd_bytesReadable(msgPipe[0]))
+	if(::read(msgPipe[0], data, size) == -1)
 	{
-		if(::read(msgPipe[0], data, size) == -1)
-		{
-			logErr("error reading from pipe");
-			return false;
-		}
-		return true;
+		logErr("error reading from pipe");
+		return false;
+	}
+	return true;
+}
+
+bool Pipe::tryRead(void *data, uint size)
+{
+	if(hasData())
+	{
+		return read(data, size);
 	}
 	else
 	{
@@ -86,6 +129,11 @@ bool Pipe::read(void *data, uint size)
 bool Pipe::hasData()
 {
 	return fd_bytesReadable(msgPipe[0]);
+}
+
+Pipe::operator bool() const
+{
+	return msgPipe[0] != -1;
 }
 
 }

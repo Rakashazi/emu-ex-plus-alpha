@@ -1,10 +1,10 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
+CHOST := $(shell cc -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+buildArg := --build=$(shell cc -dumpmachine)
 endif
 
-xextprotoVer := 7.2.1
+xextprotoVer := 7.3.0
 xextprotoSrcDir := xextproto-$(xextprotoVer)
 xextprotoSrcArchive := xextproto-$(xextprotoVer).tar.bz2
 

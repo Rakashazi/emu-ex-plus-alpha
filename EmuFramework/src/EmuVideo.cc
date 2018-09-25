@@ -38,10 +38,11 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	{
 		Gfx::TextureConfig conf{desc};
 		conf.setWillWriteOften(true);
-		vidImg.init(r, conf);
+		vidImg = r.makePixmapTexture(conf);
 	}
 	else
 	{
+		rendererTask.haltDrawing();
 		vidImg.setFormat(desc, 1);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
@@ -57,6 +58,8 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 
 EmuVideoImage EmuVideo::startFrame()
 {
+	if(vidImg.needsExclusiveLock())
+		rendererTask.haltDrawing();
 	auto lockedTex = vidImg.lock(0);
 	if(!lockedTex)
 	{
@@ -70,42 +73,34 @@ EmuVideoImage EmuVideo::startFrame()
 	return {*this, lockedTex};
 }
 
-void EmuVideo::writeFrame(Gfx::LockedTextureBuffer texBuff)
+void EmuVideo::startFrame(IG::Pixmap pix)
+{
+	if(vidImg.needsExclusiveLock())
+		rendererTask.haltDrawing();
+	finishFrame(pix);
+}
+
+void EmuVideo::finishFrame(Gfx::LockedTextureBuffer texBuff)
 {
 	if(unlikely(screenshotNextFrame))
 	{
 		doScreenshot(texBuff.pixmap());
 	}
 	vidImg.unlock(texBuff);
-	if(renderNextFrame)
-	{
-		renderNextFrame = false;
-		updateAndDrawEmuVideo();
-	}
 }
 
-void EmuVideo::writeFrame(IG::Pixmap pix)
+void EmuVideo::finishFrame(IG::Pixmap pix)
 {
-	if(screenshotNextFrame)
+	if(unlikely(screenshotNextFrame))
 	{
 		doScreenshot(pix);
 	}
 	vidImg.write(0, pix, {}, vidImg.bestAlignment(pix));
-	if(renderNextFrame)
-	{
-		renderNextFrame = false;
-		updateAndDrawEmuVideo();
-	}
 }
 
 void EmuVideo::takeGameScreenshot()
 {
 	screenshotNextFrame = true;
-}
-
-void EmuVideo::renderNextFrameToApp()
-{
-	renderNextFrame = true;
 }
 
 void EmuVideo::doScreenshot(IG::Pixmap pix)
@@ -148,11 +143,11 @@ void EmuVideoImage::endFrame()
 {
 	if(texBuff)
 	{
-		emuVideo->writeFrame(texBuff);
+		emuVideo->finishFrame(texBuff);
 	}
 	else if(pix)
 	{
-		emuVideo->writeFrame(pix);
+		emuVideo->finishFrame(pix);
 	}
 }
 

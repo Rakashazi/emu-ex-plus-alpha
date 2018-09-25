@@ -1,10 +1,10 @@
 ifndef CHOST
-CHOST := $(shell $(CC) -dumpmachine)
+CHOST := $(shell cc -dumpmachine)
 else
-buildArg := --build=$(shell $(CC) -dumpmachine)
+buildArg := --build=$(shell cc -dumpmachine)
 endif
 
-libxcbVer := 1.9.1
+libxcbVer := 1.13
 libxcbSrcDir := libxcb-$(libxcbVer)
 libxcbSrcArchive := libxcb-$(libxcbVer).tar.bz2
 

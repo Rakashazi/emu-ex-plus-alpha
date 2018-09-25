@@ -15,22 +15,21 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <assert.h>
 #include <new>
 #include <cstdint>
-#include <imagine/util/typeTraits.hh>
+#include <cstring>
+#include <type_traits>
+#include <imagine/util/utility.h>
 
-template <typename T> class DelegateFunc {};
+template <size_t, typename, typename ...> class DelegateFunc2;
 
-template <typename R, typename ...ARGS> class DelegateFunc<R(ARGS...)>
+template <size_t STORAGE_SIZE, typename R, typename ...ARGS> class DelegateFunc2<STORAGE_SIZE, R(ARGS...)>
 {
 public:
-	static constexpr int STORAGE_SIZE = sizeof(uintptr_t)*2;
-
-	constexpr DelegateFunc() {}
+	constexpr DelegateFunc2() {}
 
 	template<class T>
-	constexpr DelegateFunc(T const &funcObj) :
+	constexpr DelegateFunc2(T const &funcObj) :
 		exec
 		{
 			[](const Storage &funcObj, ARGS... arguments) -> R
@@ -62,13 +61,13 @@ public:
 
 	R operator()(ARGS ... in) const
 	{
-		assert(exec);
+		assumeExpr(exec);
 		return exec(execData, in...);
 	}
 
-	bool operator ==(DelegateFunc const &rhs) const
+	bool operator ==(DelegateFunc2 const &rhs) const
 	{
-		return memcmp(this, &rhs, sizeof(DelegateFunc)) == 0;
+		return std::memcmp(this, &rhs, sizeof(DelegateFunc2)) == 0;
 	}
 
 	R callCopy(ARGS ... in) const
@@ -115,3 +114,6 @@ private:
 	R (*exec)(const Storage &, ARGS...){};
 	Storage execData;
 };
+
+template <typename R, typename ...ARGS>
+using DelegateFunc = DelegateFunc2<sizeof(uintptr_t)*2, R, ARGS...>;

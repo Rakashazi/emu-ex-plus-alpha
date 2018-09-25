@@ -21,13 +21,6 @@
 namespace Gfx
 {
 
-static void updateTexImage(JNIEnv *env, jobject surfaceTex, Renderer &r, GLuint tex)
-{
-	Base::updateSurfaceTextureImage(env, surfaceTex);
-	// texture implicitly bound in updateTexImage()
-	r.glState.bindTextureState.GL_TEXTURE_EXTERNAL_OES_state = tex;
-}
-
 SurfaceTextureStorage::~SurfaceTextureStorage()
 {
 	using namespace Base;
@@ -36,7 +29,7 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 		logMsg("deinit SurfaceTexture, releasing window:%p", nativeWin);
 		ANativeWindow_release(nativeWin);
 	}
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	if(surface)
 	{
 		releaseSurface(env, surface);
@@ -49,7 +42,7 @@ SurfaceTextureStorage::~SurfaceTextureStorage()
 	}
 }
 
-SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, Error &err)
+SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, bool makeSingleBuffered, Error &err)
 {
 	using namespace Base;
 	if(!r.support.hasExternalEGLImages)
@@ -57,25 +50,22 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, Error &err
 		err = std::runtime_error("can't init without OES_EGL_image_external extension");
 		return;
 	}
-	auto env = jEnv();
-	auto localSurfaceTex = makeSurfaceTexture(env, tex, true);
-	if(!localSurfaceTex)
+	auto env = jEnvForThread();
+	jobject localSurfaceTex{};
+	singleBuffered = makeSingleBuffered;
+	localSurfaceTex = makeSurfaceTexture(env, tex, makeSingleBuffered);
+	if(!localSurfaceTex && makeSingleBuffered)
 	{
-		// fallback to buffered mode
-		localSurfaceTex = makeSurfaceTexture(env, tex);
+		// fall back to buffered mode
+		localSurfaceTex = makeSurfaceTexture(env, tex, false);
 		singleBuffered = false;
-	}
-	else
-	{
-		updateTexImage(env, localSurfaceTex, r, tex);
-		singleBuffered = true;
 	}
 	if(!localSurfaceTex)
 	{
 		err = std::runtime_error("SurfaceTexture ctor failed");
 		return;
 	}
-	logMsg("created%sSurfaceTexture with texture:0x%X",
+	logMsg("made%sSurfaceTexture with texture:0x%X",
 		singleBuffered ? " " : " buffered ", tex);
 	auto localSurface = makeSurface(env, localSurfaceTex);
 	if(!localSurface)
@@ -89,7 +79,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, Error &err
 		err = std::runtime_error("ANativeWindow_fromSurface failed");
 		return;
 	}
-	logMsg("native window:%p from Surface:%p", nativeWin, localSurface);
+	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
 	surfaceTex = env->NewGlobalRef(localSurfaceTex);
 	surface = env->NewGlobalRef(localSurface);
 	err = {};
@@ -111,7 +101,7 @@ Error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint t
 	return {};
 }
 
-SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &, IG::WindowRect *dirtyRect)
+SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r, IG::WindowRect *dirtyRect)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -121,7 +111,11 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &, IG::Window
 	}
 	if(singleBuffered)
 	{
-		releaseSurfaceTextureImage(jEnv(), surfaceTex);
+		r.runGLTaskSync(
+			[this]()
+			{
+				releaseSurfaceTextureImage(jEnvForThread(), surfaceTex);
+			});
 	}
 	ANativeWindow_Buffer winBuffer;
 	ARect aRect;
@@ -160,7 +154,16 @@ void SurfaceTextureStorage::unlock(Renderer &r, GLuint tex)
 		return;
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
-	updateTexImage(jEnv(), surfaceTex, r, tex);
+	r.runGLTask(
+		[this]()
+		{
+			Base::updateSurfaceTextureImage(Base::jEnvForThread(), surfaceTex);
+		});
+}
+
+bool SurfaceTextureStorage::isSingleBuffered() const
+{
+	return singleBuffered;
 }
 
 bool SurfaceTextureStorage::isRendererBlacklisted(const char *rendererStr)

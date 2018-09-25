@@ -23,9 +23,23 @@ Semaphore::Semaphore(unsigned int startValue)
 	sem_init(&sem, 0, startValue);
 }
 
+Semaphore::Semaphore(Semaphore &&o)
+{
+	sem = o.sem;
+	o.sem = {};
+}
+
+Semaphore &Semaphore::operator=(Semaphore &&o)
+{
+	deinit();
+	sem = o.sem;
+	o.sem = {};
+	return *this;
+}
+
 Semaphore::~Semaphore()
 {
-	sem_destroy(&sem);
+	deinit();
 }
 
 void Semaphore::wait()
@@ -36,6 +50,11 @@ void Semaphore::wait()
 void Semaphore::notify()
 {
 	sem_post(&sem);
+}
+
+void PosixSemaphore::deinit()
+{
+	sem_destroy(&sem);
 }
 
 }

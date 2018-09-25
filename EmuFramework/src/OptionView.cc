@@ -241,6 +241,12 @@ static void setWindowPixelFormat(PixelFormatID format)
 }
 #endif
 
+static void setGPUMultiThreading(Gfx::Renderer::ThreadMode mode)
+{
+	popup.post("Restart app for option to take effect");
+	optionGPUMultiThreading = (int)mode;
+}
+
 static void setFontSize(uint val)
 {
 	optionFontSize = val;
@@ -311,13 +317,12 @@ public:
 		return false;
 	}
 
-	void draw() final
+	void draw(Gfx::RendererCommands &cmds) final
 	{
 		using namespace Gfx;
-		auto &r = renderer();
-		r.setColor(1., 1., 1., 1.);
-		r.texAlphaProgram.use(r, projP.makeTranslate());
-		fpsText.draw(r, projP.alignXToPixel(projP.bounds().xCenter()),
+		cmds.setColor(1., 1., 1., 1.);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+		fpsText.draw(cmds, projP.alignXToPixel(projP.bounds().xCenter()),
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}
 
@@ -353,7 +358,7 @@ public:
 											avgFrameTimeDiff, totalFrameTimeSecs(), avgFrameTimeSecs, totalFrames);
 										onDetectFrameTime(avgFrameTimeSecs);
 										popAndShow();
-										return;
+										return false;
 									}
 									else
 										lastAverageFrameTimeSecs = averageFrameTimeSecs();
@@ -371,17 +376,19 @@ public:
 									totalFrameTimeSecs(), averageFrameTimeSecs(), totalFrames);
 								onDetectFrameTime(0);
 								popAndShow();
+								return false;
 							}
 							else
 							{
-								params.readdOnFrame();
+								return true;
 							}
 						};
 					params.screen().addOnFrame(detectFrameRate);
+					return false;
 				}
 				else
 				{
-					params.readdOnFrame();
+					return true;
 				}
 			};
 		emuWin->win.screen()->addOnFrame(detectFrameRate);
@@ -425,10 +432,6 @@ void VideoOptionView::loadStockItems()
 	#endif
 	item.emplace_back(&overlayEffect);
 	item.emplace_back(&overlayEffectLevel);
-	if(!optionDitherImage.isConst)
-	{
-		item.emplace_back(&dither);
-	}
 	item.emplace_back(&screenShapeHeading);
 	item.emplace_back(&zoom);
 	item.emplace_back(&viewportZoom);
@@ -446,6 +449,7 @@ void VideoOptionView::loadStockItems()
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	item.emplace_back(&windowPixelFormat);
 	#endif
+	item.emplace_back(&gpuMultithreading);
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	item.emplace_back(&secondDisplay);
 	#endif
@@ -600,7 +604,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						}
 						return true;
 					};
-				if(!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted())
+				if(!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted(renderer()))
 				{
 					auto &ynAlertView = *new YesNoAlertView{view.attachParams(),
 						"Setting Graphic Buffer improves performance but may hang or crash "
@@ -951,15 +955,34 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		}
 	},
 	#endif
-	dither
+	gpuMultithreadingItem
 	{
-		"Dither Image",
-		(bool)optionDitherImage,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		{"Auto", [this]() { setGPUMultiThreading(Gfx::Renderer::ThreadMode::AUTO); }},
+		{"Off", [this]() { setGPUMultiThreading(Gfx::Renderer::ThreadMode::SINGLE); }},
+		{"On", [this]() { setGPUMultiThreading(Gfx::Renderer::ThreadMode::MULTI); }},
+	},
+	gpuMultithreading
+	{
+		"Render Multithreading",
+		[this](int idx) -> const char*
 		{
-			optionDitherImage = item.flipBoolValue(*this);
-			renderer().setDither(optionDitherImage);
-		}
+			if(idx == 0)
+			{
+				return renderer().threadMode() == Gfx::Renderer::ThreadMode::MULTI ? "On" : "Off";
+			}
+			else
+				return nullptr;
+		},
+		[]()
+		{
+			switch(optionGPUMultiThreading.val)
+			{
+				default: return 0;
+				case (int)Gfx::Renderer::ThreadMode::SINGLE: return 1;
+				case (int)Gfx::Renderer::ThreadMode::MULTI: return 2;
+			}
+		}(),
+		gpuMultithreadingItem
 	},
 	visualsHeading{"Visuals"},
 	screenShapeHeading{"Screen Shape"},

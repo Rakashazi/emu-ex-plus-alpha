@@ -29,9 +29,11 @@ CFFDEventSource::CFFDEventSource(int fd)
 			//logMsg("got fd events: 0x%X", (int)callbackEventTypes);
 			auto &info = *((CFFDEventSourceInfo*)info_);
 			auto fd = CFFileDescriptorGetNativeDescriptor(fdRef);
-			info.callback(fd, callbackEventTypes);
-			if(info.fdRef) // re-enable callbacks if fd is still open
-				CFFileDescriptorEnableCallBacks(fdRef, callbackEventTypes);
+			if(info.callback(fd, callbackEventTypes))
+			{
+				if(info.fdRef) // re-enable callbacks if fd is still open
+					CFFileDescriptorEnableCallBacks(fdRef, callbackEventTypes);
+			}
 		}, &ctx);
 }
 
@@ -115,6 +117,11 @@ void FDEventSource::removeFromEventLoop()
 	}
 }
 
+void FDEventSource::setCallback(PollEventDelegate callback)
+{
+	info->callback = callback;
+}
+
 bool FDEventSource::hasEventLoop()
 {
 	return loop;
@@ -140,6 +147,11 @@ void EventLoop::run()
 	logMsg("running event loop:%p", loop);
 	CFRunLoopRun();
 	logMsg("event loop:%p finished", loop);
+}
+
+void EventLoop::stop()
+{
+	CFRunLoopStop(loop);
 }
 
 EventLoop::operator bool() const

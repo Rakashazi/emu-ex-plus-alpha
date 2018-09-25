@@ -24,6 +24,7 @@
 #include "internal.hh"
 #include "android.hh"
 #include "../common/screenPrivate.hh"
+#include "../common/SimpleFrameTimer.hh"
 
 namespace Base
 {
@@ -225,7 +226,7 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 void Screen::deinit()
 {
 	unpostFrame();
-	jEnv()->DeleteGlobalRef(aDisplay);
+	jEnvForThread()->DeleteGlobalRef(aDisplay);
 	*this = {};
 }
 
@@ -273,8 +274,6 @@ void Screen::postFrame()
 	frameTimer->scheduleVSync();
 	if(!inFrameHandler)
 	{
-		if(Base::androidSDK() < 16)
-			currFrameTimestamp = IG::Time::now().nSecs();
 		prevFrameTimestamp = 0;
 	}
 }
@@ -313,7 +312,7 @@ std::vector<double> Screen::supportedFrameRates()
 		rateVec.reserve(1);
 		rateVec.emplace_back(frameRate());
 	}
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	if(unlikely(!jGetSupportedRefreshRates))
 	{
 		jclass jDisplayCls = env->GetObjectClass(aDisplay);

@@ -80,7 +80,8 @@ protected:
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 	BoolMenuItem showOnSecondScreen;
 	#endif
-	BoolMenuItem dither;
+	TextMenuItem gpuMultithreadingItem[3];
+	MultiChoiceMenuItem gpuMultithreading;
 	TextHeadingMenuItem visualsHeading;
 	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem advancedHeading;

@@ -149,7 +149,7 @@ public:
 	void init();
 	void place() final;
 	bool inputEvent(Input::Event e) final;
-	void draw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 	void onAddedToController(Input::Event e) final {}
 };
 
@@ -161,12 +161,9 @@ void OnScreenInputPlaceView::init()
 	animate =
 		[this](Base::Screen::FrameParams params)
 		{
-			window().postDraw();
+			postDraw();
 			//logMsg("updating fade");
-			if(textFade.update(1))
-			{
-				params.readdOnFrame();
-			}
+			return textFade.update(1);
 		};
 	animationStartTimer.callbackAfterSec(
 		[this]()
@@ -268,29 +265,28 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 	return true;
 }
 
-void OnScreenInputPlaceView::draw()
+void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
-	projP.resetTransforms(r);
-	vController.draw(true, false, true, .75);
-	r.setColor(.5, .5, .5);
-	r.noTexProgram.use(r, projP.makeTranslate());
+	projP.resetTransforms(cmds);
+	vController.draw(cmds, true, false, true, .75);
+	cmds.setColor(.5, .5, .5);
+	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	Gfx::GC lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(r, Gfx::GCRect{-projP.wHalf(), -lineSize/(Gfx::GC)2.,
+	GeomRect::draw(cmds, Gfx::GCRect{-projP.wHalf(), -lineSize/(Gfx::GC)2.,
 		projP.wHalf(), lineSize/(Gfx::GC)2.});
 	lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(r, Gfx::GCRect{-lineSize/(Gfx::GC)2., -projP.hHalf(),
+	GeomRect::draw(cmds, Gfx::GCRect{-lineSize/(Gfx::GC)2., -projP.hHalf(),
 		lineSize/(Gfx::GC)2., projP.hHalf()});
 
 	if(textFade.now() != 0.)
 	{
-		r.setColor(0., 0., 0., textFade.now()/2.);
-		GeomRect::draw(r, Gfx::makeGCRectRel({-text.xSize/(Gfx::GC)2. - text.spaceSize, -text.ySize/(Gfx::GC)2. - text.spaceSize},
+		cmds.setColor(0., 0., 0., textFade.now()/2.);
+		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.xSize/(Gfx::GC)2. - text.spaceSize, -text.ySize/(Gfx::GC)2. - text.spaceSize},
 			{text.xSize + text.spaceSize*(Gfx::GC)2., text.ySize + text.spaceSize*(Gfx::GC)2.}));
-		r.setColor(1., 1., 1., textFade.now());
-		r.texAlphaProgram.use(r);
-		text.draw(r, projP.unProjectRect(viewFrame).pos(C2DO), C2DO, projP);
+		cmds.setColor(1., 1., 1., textFade.now());
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		text.draw(cmds, projP.unProjectRect(viewFrame).pos(C2DO), C2DO, projP);
 	}
 }
 
@@ -376,6 +372,7 @@ static void setButtonStagger(uint val)
 	EmuControls::setupVControllerVars();
 	vController.place();
 }
+#endif
 
 static void setButtonState(uint state, uint btnIdx)
 {
@@ -383,7 +380,6 @@ static void setButtonState(uint state, uint btnIdx)
 	vControllerLayoutPosChanged = true;
 	EmuControls::setupVControllerVars();
 }
-#endif
 
 static void setAlpha(uint val)
 {
@@ -391,13 +387,12 @@ static void setAlpha(uint val)
 	vController.setAlpha((int)optionTouchCtrlAlpha / 255.0);
 }
 
-void TouchConfigView::draw()
+void TouchConfigView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	auto &r = renderer();
-	projP.resetTransforms(r);
-	vController.draw(true, false, true, .75);
-	TableView::draw();
+	projP.resetTransforms(cmds);
+	vController.draw(cmds, true, false, true, .75);
+	TableView::draw(cmds);
 }
 
 void TouchConfigView::place()

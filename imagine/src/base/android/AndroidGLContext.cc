@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EGL"
-#include <GLES/gl.h> // for glFlush()
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/android/android.hh>
@@ -26,11 +25,9 @@ namespace Base
 
 // GLDisplay
 
-GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+GLDisplay GLDisplay::getDefault()
 {
-	auto display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-	ec = initDisplay(display);
-	return {display};
+	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 }
 
 // GLContext
@@ -51,7 +48,11 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 }
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
-	AndroidGLContext{display.eglDisplay(), attr, config, ec}
+	AndroidGLContext{display.eglDisplay(), attr, config, EGL_NO_CONTEXT, ec}
+{}
+
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec):
+	AndroidGLContext{display.eglDisplay(), attr, config, shareContext.nativeObject(), ec}
 {}
 
 void GLContext::deinit(GLDisplay display)
@@ -66,32 +67,17 @@ void GLContext::setCurrent(GLDisplay display, GLContext c, GLDrawable win)
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	if(swapBuffersIsAsync())
+	// check if buffer swap blocks even though triple-buffering is used
+	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
+	if(swapBuffersIsAsync() && swapTime > 16000000)
 	{
-		// check if buffer swap blocks even though triple-buffering is used
-		auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
-		if(swapTime > 16000000)
-		{
-			logWarn("buffer swap took %lldns", (long long)swapTime);
-		}
-	}
-	else
-	{
-		glFlush();
+		logWarn("buffer swap took %lldns", (long long)swapTime);
 	}
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
 	present(display, win);
-}
-
-void GLContext::finishPresent(GLDisplay display, GLDrawable win)
-{
-	if(!swapBuffersIsAsync())
-	{
-		EGLContextBase::swapBuffers(display.eglDisplay(), win);
-	}
 }
 
 bool AndroidGLContext::swapBuffersIsAsync()

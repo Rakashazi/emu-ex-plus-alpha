@@ -365,7 +365,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	else
 	{
 		video.setFormat({{pixWidth, pixHeight}, pixFmt});
-		video.writeFrame(srcPix);
+		video.startFrame(srcPix);
 	}
 }
 

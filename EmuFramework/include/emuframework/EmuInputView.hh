@@ -24,7 +24,7 @@ public:
 	EmuInputView(ViewAttachParams attach): View(attach) {}
 	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
-	void draw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
 	void onAddedToController(Input::Event e) final {}
 	void resetInput();

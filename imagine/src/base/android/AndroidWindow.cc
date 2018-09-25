@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "AndroidWindow"
+#define LOGTAG "Window"
 #include "../common/windowPrivate.hh"
 #include "../common/screenPrivate.hh"
 #include "android.hh"
@@ -61,7 +61,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				androidWindowNeedsRedraw(win);
+				androidWindowNeedsRedraw(win, true);
 			})
 		},
 		{
@@ -110,7 +110,7 @@ bool Window::setValidOrientations(uint oMask)
 		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
 		bcase VIEW_ROTATE_ALL: toSet = 10; // SCREEN_ORIENTATION_FULL_SENSOR
 	}
-	jSetRequestedOrientation(jEnv(), jBaseActivity, toSet);
+	jSetRequestedOrientation(jEnvForThread(), jBaseActivity, toSet);
 	return true;
 }
 
@@ -145,7 +145,7 @@ std::error_code Window::init(const WindowConfig &config)
 	{
 		logMsg("making presentation window");
 		assert(screen() != Screen::screen(0));
-		auto env = jEnv();
+		auto env = jEnvForThread();
 		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->aDisplay, (jlong)this));
 		initPresentationJNI(env, jDialog);
 		jPresentationShow(env, jDialog);
@@ -162,7 +162,7 @@ std::error_code Window::init(const WindowConfig &config)
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
 		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
-		auto env = jEnv();
+		auto env = jEnvForThread();
 		if(Config::DEBUG_BUILD)
 			logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(env, jBaseActivity));
 		jSetWinFormat(env, jBaseActivity, pixelFormat);
@@ -186,7 +186,7 @@ void Window::deinit()
 			ANativeWindow_release(nWin);
 		}
 		setNativeWindow(nullptr);
-		auto env = jEnv();
+		auto env = jEnvForThread();
 		jPresentationDeinit(env, jDialog);
 		env->DeleteGlobalRef(jDialog);
 	}
@@ -240,19 +240,22 @@ int AndroidWindow::nativePixelFormat()
 	return pixelFormat;
 }
 
-void androidWindowNeedsRedraw(Window &win)
+void androidWindowNeedsRedraw(Window &win, bool sync)
 {
 	logMsg("window surface redraw needed");
 	win.setNeedsDraw(true);
-	win.dispatchOnDraw();
-	// On some OS versions like CM7 on the HP Touchpad,
-	// the very next frame is rendered incorrectly
-	// (as if the window still has its previous size).
-	// A similar issue occurs on the stock AT&T Xperia Play
-	// when sliding the phone open from sleep with the
-	// screen previously in portrait.
-	// Post another window draw to work-around this
-	win.postDraw();
+	win.dispatchOnDraw(sync);
+	if(sync)
+	{
+		// On some OS versions like CM7 on the HP Touchpad,
+		// the very next frame is rendered incorrectly
+		// (as if the window still has its previous size).
+		// A similar issue occurs on the stock AT&T Xperia Play
+		// when sliding the phone open from sleep with the
+		// screen previously in portrait.
+		// Post another window draw to work-around this
+		win.postDraw();
+	}
 }
 
 void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D<int> &winSize)

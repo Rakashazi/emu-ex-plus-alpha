@@ -68,14 +68,15 @@ public:
 	virtual ~TestFramework() {}
 	virtual void initTest(Gfx::Renderer &r, IG::Point2D<int> pixmapSize) {}
 	virtual void placeTest(const Gfx::GCRect &testRect) {}
-	virtual void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) = 0;
+	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime) = 0;
 	virtual void deinitTest() {}
-	virtual void drawTest(Gfx::Renderer &r) = 0;
+	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	void init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize);
 	void deinit();
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
-	void frameUpdate(Gfx::Renderer &r, Base::Screen &screen, Base::FrameTimeBase timestamp);
-	void draw(Gfx::Renderer &r);
+	void frameUpdate(Gfx::RendererTask &rTask, Base::Screen &screen, Base::FrameTimeBase timestamp);
+	void prepareDraw(Gfx::Renderer &r);
+	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds);
 	void finish(Base::FrameTimeBase frameTime);
 	void setCPUFreqText(const char *str);
 	void setCPUUseText(const char *str);
@@ -108,8 +109,8 @@ protected:
 public:
 	ClearTest() {}
 
-	void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) override;
-	void drawTest(Gfx::Renderer &r) override;
+	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime) override;
+	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
 class DrawTest : public TestFramework
@@ -126,8 +127,8 @@ public:
 	void initTest(Gfx::Renderer &r, IG::WP pixmapSize) override;
 	void placeTest(const Gfx::GCRect &rect) override;
 	void deinitTest() override;
-	void frameUpdateTest(Base::Screen &screen, Base::FrameTimeBase frameTime) override;
-	void drawTest(Gfx::Renderer &r) override;
+	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime) override;
+	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
 class WriteTest : public DrawTest
@@ -135,7 +136,8 @@ class WriteTest : public DrawTest
 public:
 	WriteTest() {}
 
-	void drawTest(Gfx::Renderer &r) override;
+	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime) override;
+	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
 TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t);

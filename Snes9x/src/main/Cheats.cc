@@ -18,7 +18,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	{
 		"Edit Address/Values",
 		attach,
-		Cheat.c[idx].name,
+		Cheat.c[cheatIdx].name,
 		[this](const TableView &)
 		{
 			return 5;

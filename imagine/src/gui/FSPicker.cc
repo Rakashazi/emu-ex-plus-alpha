@@ -72,6 +72,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 	controller.setNavView(std::move(nav));
 	auto table = new TableView(attach, text);
 	controller.push(*table, Input::defaultEvent());
+	controller.setRendererTask(rendererTask());
 }
 
 void FSPicker::place()
@@ -140,24 +141,36 @@ bool FSPicker::inputEvent(Input::Event e)
 	return controller.inputEvent(e);
 }
 
-void FSPicker::draw()
+void FSPicker::prepareDraw()
 {
-	auto &r = renderer();
 	if(dir.size())
 	{
-		controller.top().draw();
+		controller.top().prepareDraw();
+	}
+	else
+	{
+		msgText.makeGlyphs(renderer());
+	}
+	controller.navView()->prepareDraw();
+}
+
+void FSPicker::draw(Gfx::RendererCommands &cmds)
+{
+	if(dir.size())
+	{
+		controller.top().draw(cmds);
 	}
 	else
 	{
 		using namespace Gfx;
-		r.setColor(COLOR_WHITE);
-		r.texAlphaProgram.use(r, projP.makeTranslate());
+		cmds.setColor(COLOR_WHITE);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 		auto textRect = controller.top().viewRect();
 		if(IG::isOdd(textRect.ySize()))
 			textRect.y2--;
-		msgText.draw(r, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
+		msgText.draw(cmds, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
 	}
-	controller.navView()->draw();
+	controller.navView()->draw(cmds);
 }
 
 void FSPicker::onAddedToController(Input::Event e)

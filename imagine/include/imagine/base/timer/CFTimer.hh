@@ -24,8 +24,8 @@ namespace Base
 class CFTimer
 {
 public:
-	CFRunLoopTimerRef timer = nullptr;
-	CallbackDelegate callback;
+	CFRunLoopTimerRef timer{};
+	CallbackDelegate callback{};
 	CFTimeInterval repeat = 0;
 	bool reuseResources = false; // whether to keep the CFRunLoopTimer in run-loop after firing
 	bool armed = false;

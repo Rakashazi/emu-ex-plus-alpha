@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "GLRenderer"
 #include <assert.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
@@ -20,29 +21,65 @@
 #include <imagine/util/string.h>
 #include "private.hh"
 #include "utils.h"
+#ifdef __ANDROID__
+#include "../../base/android/android.hh"
+#endif
+
+#if defined CONFIG_BASE_GLAPI_EGL && defined CONFIG_GFX_OPENGL_ES
+#define CAN_USE_EGL_SYNC
+	#if __ANDROID_API__ < 18 || defined CONFIG_MACHINE_PANDORA
+	#define EGL_SYNC_NEEDS_PROC_ADDR
+	#endif
+#endif
+
+#ifdef CAN_USE_EGL_SYNC
+#define EGL_EGLEXT_PROTOTYPES
+#include <EGL/eglext.h>
+	#ifdef CONFIG_MACHINE_PANDORA
+	using EGLSyncKHR = void*;
+	using EGLTimeKHR = uint64_t;
+	#endif
+#ifndef EGL_TIMEOUT_EXPIRED
+#define EGL_TIMEOUT_EXPIRED 0x30F5
+#endif
+#ifndef EGL_CONDITION_SATISFIED
+#define EGL_CONDITION_SATISFIED 0x30F6
+#endif
+#ifndef EGL_SYNC_FENCE
+#define EGL_SYNC_FENCE 0x30F9
+#endif
+#ifndef EGL_FOREVER
+#define EGL_FOREVER 0xFFFFFFFFFFFFFFFFull
+#endif
+#define EGLSync EGLSyncKHR
+#define EGLTime EGLTimeKHR
+	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
+	static EGLSync (EGLAPIENTRY *eglCreateSync)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list){};
+	static EGLBoolean (EGLAPIENTRY *eglDestroySync)(EGLDisplay dpy, EGLSync sync){};
+	static EGLint (EGLAPIENTRY *eglClientWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout){};
+	static EGLint (EGLAPIENTRY *eglWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags){};
+	#else
+	#define eglCreateSync eglCreateSyncKHR
+	#define eglDestroySync eglDestroySyncKHR
+	#define eglClientWaitSync eglClientWaitSyncKHR
+	#define eglWaitSync eglWaitSyncKHR
+	#endif
+#endif
+
+#ifndef GL_TIMEOUT_EXPIRED
+#define GL_TIMEOUT_EXPIRED 0x911B
+#endif
+
+#ifndef GL_CONDITION_SATISFIED
+#define GL_CONDITION_SATISFIED 0x911C
+#endif
 
 namespace Gfx
 {
 
-void GLRenderer::initVBOs()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	logMsg("making stream VBO");
-	glGenBuffers(IG::size(streamVBO), streamVBO);
-	#endif
-}
+static constexpr int ON_EXIT_PRIORITY = 200;
 
-GLuint GLRenderer::getVBO()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	assert(streamVBO[streamVBOIdx]);
-	auto vbo = streamVBO[streamVBOIdx];
-	streamVBOIdx = (streamVBOIdx+1) % IG::size(streamVBO);
-	return vbo;
-	#else
-	return 0;
-	#endif
-}
+static constexpr bool CAN_USE_OPENGL_ES_3 = !Config::MACHINE_IS_PANDORA;
 
 Gfx::GC orientationToGC(uint o)
 {
@@ -131,8 +168,7 @@ void GLRenderer::setupVAOFuncs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
 	logMsg("using VAOs");
-	glGenVertexArrays(1, &streamVAO);
-	glBindVertexArray(streamVAO);
+	useStreamVAO = true;
 	#endif
 }
 
@@ -186,15 +222,107 @@ void GLRenderer::setupPBO()
 		return;
 	logMsg("using PBOs");
 	support.hasPBOFuncs = true;
-	initTexturePBO();
 }
+
+void GLRenderer::setupFenceSync()
+{
+	if(support.hasSyncFences())
+		return;
+	logMsg("using sync fences");
+	#ifdef CONFIG_GFX_OPENGL_ES
+	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSync");
+	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSync");
+	support.glWaitSync = (typeof(support.glWaitSync))Base::GLContext::procAddress("glWaitSync");
+	#else
+	support.hasFenceSync = true;
+	#endif
+}
+
+#ifdef CONFIG_GFX_OPENGL_ES
+void GLRenderer::setupAppleFenceSync()
+{
+	if(support.hasSyncFences())
+		return;
+	logMsg("Using sync fences (Apple version)");
+	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSyncAPPLE");
+	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSyncAPPLE");
+	support.glWaitSync = (typeof(support.glWaitSync))Base::GLContext::procAddress("glWaitSyncAPPLE");
+}
+#endif
+
+#ifdef CAN_USE_EGL_SYNC
+void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
+{
+	if(support.hasSyncFences())
+		return;
+	logMsg("Using sync fences (EGL version)%s", supportsServerSync ? "" : ", only client sync supported");
+	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
+	eglCreateSync = (typeof(eglCreateSync))Base::GLContext::procAddress("eglCreateSyncKHR");
+	eglDestroySync = (typeof(eglDestroySync))Base::GLContext::procAddress("eglDestroySyncKHR");
+	if(supportsServerSync)
+		eglWaitSync = (typeof(eglWaitSync))Base::GLContext::procAddress("eglWaitSyncKHR");
+	else
+		eglClientWaitSync = (typeof(eglClientWaitSync))Base::GLContext::procAddress("eglClientWaitSyncKHR");
+	#endif
+	// wrap EGL sync in terms of ARB sync
+	support.glFenceSync =
+		[](GLenum condition, GLbitfield flags)
+		{
+			return (GLsync)eglCreateSync(Base::GLDisplay::getDefault().eglDisplay(), EGL_SYNC_FENCE, nullptr);
+		};
+	support.glDeleteSync =
+		[](GLsync sync)
+		{
+			eglDestroySync(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync);
+		};
+	if(supportsServerSync)
+	{
+		support.glWaitSync =
+		[](GLsync sync, GLbitfield flags, GLuint64 timeout)
+		{
+			if(eglWaitSync(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0) == GL_FALSE)
+			{
+				logErr("error waiting for sync object:%p", sync);
+			}
+		};
+	}
+	else
+	{
+		support.glWaitSync =
+			[](GLsync sync, GLbitfield flags, GLuint64 timeout)
+			{
+				if(eglClientWaitSync(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0, timeout) == GL_FALSE)
+				{
+					logErr("error waiting for sync object:%p", sync);
+				}
+			};
+	}
+}
+#endif
 
 void GLRenderer::setupSpecifyDrawReadBuffers()
 {
-	support.shouldSpecifyDrawReadBuffers = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	support.glDrawBuffers = (typeof(support.glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
 	support.glReadBuffer = (typeof(support.glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
+	#endif
+}
+
+bool DrawContextSupport::hasDrawReadBuffers() const
+{
+	#ifdef CONFIG_GFX_OPENGL_ES
+	return glDrawBuffers;
+	#else
+	return true;
+	#endif
+}
+
+bool DrawContextSupport::hasSyncFences() const
+{
+	#ifdef CONFIG_GFX_OPENGL_ES
+	return glFenceSync;
+	#else
+	return hasFenceSync;
 	#endif
 }
 
@@ -231,10 +359,12 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		// allows mipmaps and repeat modes
 		setupNonPow2MipmapRepeatTextures();
 	}
-	else if((!Config::envIsIOS && !Config::envIsMacOSX) && Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
+	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
+	else if(Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
 		support.hasDebugOutput = true;
 	}
+	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
 		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
@@ -271,7 +401,13 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		setupImmutableTexStorage(true);
 	}
-	#if __ANDROID__
+	#if defined __ANDROID__ || defined __APPLE__
+	else if(string_equal(extStr, "GL_APPLE_sync"))
+	{
+		setupAppleFenceSync();
+	}
+	#endif
+	#if defined __ANDROID__
 	else if(string_equal(extStr, "GL_OES_EGL_image"))
 	{
 		support.hasEGLImages = true;
@@ -341,6 +477,10 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		setupPBO();
 	}
+	else if(string_equal(extStr, "GL_ARB_sync"))
+	{
+		setupFenceSync();
+	}
 	#endif
 }
 
@@ -371,54 +511,95 @@ static int glVersionFromStr(const char *versionStr)
 	return 10 * major + minor;
 }
 
+static Base::GLContextAttributes makeGLContextAttributes(uint majorVersion, uint minorVersion)
+{
+	Base::GLContextAttributes glAttr;
+	if(Config::DEBUG_BUILD)
+		glAttr.setDebug(true);
+	glAttr.setMajorVersion(majorVersion);
+	#ifdef CONFIG_GFX_OPENGL_ES
+	glAttr.setOpenGLESAPI(true);
+	#else
+	glAttr.setMinorVersion(minorVersion);
+	#endif
+	return glAttr;
+}
+
+Base::GLContextAttributes GLRenderer::makeKnownGLContextAttributes()
+{
+	#ifdef CONFIG_GFX_OPENGL_ES
+	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1)
+	{
+		return makeGLContextAttributes(1, 0);
+	}
+	else
+	{
+		assert(glMajorVer);
+		return makeGLContextAttributes(glMajorVer, 0);
+	}
+	#else
+	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
+	{
+		return makeGLContextAttributes(3, 3);
+	}
+	else
+	{
+		return makeGLContextAttributes(1, 3);
+	}
+	#endif
+}
+
 Renderer::Renderer() {}
 
 Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 {
+	Base::GLDisplay dpy{};
 	{
 		std::error_code ec{};
-		glDpy = Base::GLDisplay::makeDefault(ec);
+		dpy = Base::GLDisplay::makeDefault(ec);
 		if(ec)
 		{
 			logErr("error getting GL display");
 			err = std::runtime_error("error creating GL display");
 			return;
 		}
+		glDpy = dpy;
+		dpy.logInfo();
+		#ifdef CONFIG_GFX_OPENGL_ES
+		if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
+		{
+			logErr("unable to bind GLES API");
+		}
+		#endif
 	}
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
 	Base::GLBufferConfigAttributes glBuffAttr;
 	glBuffAttr.setPixelFormat(pixelFormat);
-	Base::GLContextAttributes glAttr;
-	if(Config::DEBUG_BUILD)
-		glAttr.setDebug(true);
-	#ifdef CONFIG_GFX_OPENGL_ES
-	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
+	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	auto glAttr = makeGLContextAttributes(1, 0);
+	gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+	std::error_code ec{};
+	gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+	if(CAN_USE_OPENGL_ES_3)
 	{
-		logErr("unable to bind GLES API");
-	}
-	glAttr.setOpenGLESAPI(true);
-	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1)
-	{
-		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
-		std::error_code ec{};
-		gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
-	}
-	else
-	{
-		glAttr.setMajorVersion(3);
-		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		auto glAttr = makeGLContextAttributes(3, 0);
+		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		std::error_code ec{};
 		if(gfxBufferConfig)
 		{
-			gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
+			gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+			glMajorVer = glAttr.majorVersion();
 		}
-		if(!gfxContext)
-		{
-			glAttr.setMajorVersion(2);
-			gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
-			gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
-		}
+	}
+	if(!gfxResourceContext) // fall back to OpenGL ES 2.0
+	{
+		auto glAttr = makeGLContextAttributes(2, 0);
+		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		std::error_code ec{};
+		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+		glMajorVer = glAttr.majorVersion();
 	}
 	#else
 	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_API))
@@ -430,174 +611,199 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		support.useFixedFunctionPipeline = false;
 		#endif
-		glAttr.setMajorVersion(3);
-		glAttr.setMinorVersion(3);
-		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		auto glAttr = makeGLContextAttributes(3, 3);
+		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		std::error_code ec{};
-		gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
-		if(!gfxContext)
+		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+		if(!gfxResourceContext)
 		{
 			logMsg("3.3 context not supported");
 		}
 	}
-	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !gfxContext)
+	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !gfxResourceContext)
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		support.useFixedFunctionPipeline = true;
 		#endif
-		glAttr.setMajorVersion(1);
-		glAttr.setMinorVersion(3);
-		gfxBufferConfig = gfxContext.makeBufferConfig(glDpy, glAttr, glBuffAttr);
+		auto glAttr = makeGLContextAttributes(1, 3);
+		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		std::error_code ec{};
-		gfxContext = {glDpy, glAttr, gfxBufferConfig, ec};
-		if(!gfxContext)
+		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+		if(!gfxResourceContext)
 		{
 			logMsg("1.3 context not supported");
 		}
 	}
 	#endif
-	if(!gfxContext)
+	if(!gfxResourceContext)
 	{
 		err = std::runtime_error("error creating GL context");
 		return;
 	}
 	err = {};
+	mainTask = std::make_unique<GLMainTask>();
+	mainTask->start(gfxResourceContext);
 }
 
 Renderer::Renderer(Error &err): Renderer(Base::Window::defaultPixelFormat(), err) {}
 
-void Renderer::configureRenderer()
+void Renderer::configureRenderer(ThreadMode threadMode)
 {
-	verifyCurrentContext();
-
-	if(checkGLErrorsVerbose)
-		logMsg("using verbose error checks");
-	else if(checkGLErrors)
-		logMsg("using error checks");
-	
-	auto version = (const char*)glGetString(GL_VERSION);
-	assert(version);Renderer();
-	auto rendererName = (const char*)glGetString(GL_RENDERER);
-	logMsg("version: %s (%s)", version, rendererName);
-
-	int glVer = glVersionFromStr(version);
-
-	bool useFBOFuncs = false;
-	#ifndef CONFIG_GFX_OPENGL_ES
-	// core functionality
-	if(glVer >= 15)
-	{
-		support.hasVBOFuncs = true;
-	}
-	if(glVer >= 20)
-	{
-		setupNonPow2MipmapRepeatTextures();
-		setupSpecifyDrawReadBuffers();
-	}
-	if(glVer >= 21)
-	{
-		setupPBO();
-	}
-	if(glVer >= 30)
-	{
-		if(!support.useFixedFunctionPipeline)
+	runGLTaskSync(
+		[this]()
 		{
-			// must render via VAOs/VBOs in 3.1+ without compatibility context
-			setupVAOFuncs();
-			setupTextureSwizzle();
-			setupRGFormats();
-			setupSamplerObjects();
-		}
-		setupFBOFuncs(useFBOFuncs);
-	}
+			auto version = (const char*)glGetString(GL_VERSION);
+			assert(version);
+			auto rendererName = (const char*)glGetString(GL_RENDERER);
+			logMsg("version: %s (%s)", version, rendererName);
 
-	// extension functionality
-	if(glVer >= 30)
-	{
-		GLint numExtensions;
-		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
-		if(Config::DEBUG_BUILD)
-		{
-			logMsgNoBreak("extensions: ");
-			iterateTimes(numExtensions, i)
+			int glVer = glVersionFromStr(version);
+
+			bool useFBOFuncs = false;
+			#ifndef CONFIG_GFX_OPENGL_ES
+			// core functionality
+			if(glVer >= 15)
 			{
-				logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
+				support.hasVBOFuncs = true;
 			}
-			logger_printf(LOG_M, "\n");
-		}
-		iterateTimes(numExtensions, i)
-		{
-			checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i), useFBOFuncs);
-		}
+			if(glVer >= 20)
+			{
+				setupNonPow2MipmapRepeatTextures();
+				setupSpecifyDrawReadBuffers();
+			}
+			if(glVer >= 21)
+			{
+				setupPBO();
+			}
+			if(glVer >= 30)
+			{
+				if(!support.useFixedFunctionPipeline)
+				{
+					// must render via VAOs/VBOs in 3.1+ without compatibility context
+					setupVAOFuncs();
+					setupTextureSwizzle();
+					setupRGFormats();
+					setupSamplerObjects();
+				}
+				setupFBOFuncs(useFBOFuncs);
+			}
+			if(glVer >= 32)
+			{
+				setupFenceSync();
+			}
+
+			// extension functionality
+			if(glVer >= 30)
+			{
+				GLint numExtensions;
+				glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+				if(Config::DEBUG_BUILD)
+				{
+					logMsgNoBreak("extensions: ");
+					iterateTimes(numExtensions, i)
+					{
+						logger_printf(LOG_M, "%s ", (const char*)glGetStringi(GL_EXTENSIONS, i));
+					}
+					logger_printf(LOG_M, "\n");
+				}
+				iterateTimes(numExtensions, i)
+				{
+					checkExtensionString((const char*)glGetStringi(GL_EXTENSIONS, i), useFBOFuncs);
+				}
+			}
+			else
+			{
+				auto extensions = (const char*)glGetString(GL_EXTENSIONS);
+				assert(extensions);
+				logMsg("extensions: %s", extensions);
+				checkFullExtensionString(extensions);
+			}
+			#else
+			// core functionality
+			if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && glVer >= 11)
+			{
+				// safe to use VBOs
+			}
+			if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1)
+			{
+				if(glVer >= 30)
+					setupNonPow2MipmapRepeatTextures();
+				else
+					setupNonPow2Textures();
+				setupFBOFuncs(useFBOFuncs);
+				if(glVer >= 30)
+				{
+					support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
+					support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
+					setupImmutableTexStorage(false);
+					setupTextureSwizzle();
+					setupRGFormats();
+					setupSamplerObjects();
+					setupPBO();
+					setupFenceSync();
+					if(!Config::envIsIOS)
+						setupSpecifyDrawReadBuffers();
+					support.hasUnpackRowLength = true;
+					support.useLegacyGLSL = false;
+				}
+			}
+
+			#ifdef CAN_USE_EGL_SYNC
+			// check for fence sync via EGL extensions
+			bool checkFenceSync = glVer < 30
+					&& !Config::MACHINE_IS_PANDORA; // TODO: driver waits for full timeout even if commands complete,
+																					// possibly broken glFlush() behavior?
+			if(checkFenceSync)
+			{
+				auto extStr = glDpy.queryExtensions();
+				if(strstr(extStr, "EGL_KHR_fence_sync"))
+				{
+					auto supportsServerSync = strstr(extStr, "EGL_KHR_wait_sync");
+					setupEGLFenceSync(supportsServerSync);
+				}
+			}
+			#endif
+
+			// extension functionality
+			auto extensions = (const char*)glGetString(GL_EXTENSIONS);
+			assert(extensions);
+			logMsg("extensions: %s", extensions);
+			checkFullExtensionString(extensions);
+			#endif // CONFIG_GFX_OPENGL_ES
+
+			GLint texSize;
+			glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
+			support.textureSizeSupport.maxXSize = support.textureSizeSupport.maxYSize = texSize;
+			assert(support.textureSizeSupport.maxXSize > 0 && support.textureSizeSupport.maxYSize > 0);
+			logMsg("max texture size is %d", texSize);
+
+			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+			if(!support.useFixedFunctionPipeline)
+			{
+				if(Config::DEBUG_BUILD)
+					logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+			}
+			#endif
+		});
+
+	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)
+	{
+		setCorrectnessChecks(true);
+		setDebugOutput(true);
+	}
+
+	if(threadMode == ThreadMode::AUTO)
+	{
+		useSeparateDrawContext = support.hasSyncFences();
+		if(!useSeparateDrawContext)
+			logMsg("disabling separate draw context by default");
 	}
 	else
 	{
-		auto extensions = (const char*)glGetString(GL_EXTENSIONS);
-		assert(extensions);
-		logMsg("extensions: %s", extensions);
-		checkFullExtensionString(extensions);
+		useSeparateDrawContext = threadMode == ThreadMode::MULTI;
+		if(!useSeparateDrawContext)
+			logMsg("disabling separate draw context");
 	}
-	#else
-	// core functionality
-	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && glVer >= 11)
-	{
-		// safe to use VBOs
-	}
-	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1)
-	{
-		if(glVer >= 30)
-			setupNonPow2MipmapRepeatTextures();
-		else
-			setupNonPow2Textures();
-		setupFBOFuncs(useFBOFuncs);
-		if(glVer >= 30)
-		{
-			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
-			support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
-			setupImmutableTexStorage(false);
-			setupTextureSwizzle();
-			setupRGFormats();
-			setupSamplerObjects();
-			setupPBO();
-			if(!Config::envIsIOS)
-				setupSpecifyDrawReadBuffers();
-			support.hasUnpackRowLength = true;
-			support.useLegacyGLSL = false;
-		}
-	}
-
-	// extension functionality
-	auto extensions = (const char*)glGetString(GL_EXTENSIONS);
-	assert(extensions);
-	logMsg("extensions: %s", extensions);
-	checkFullExtensionString(extensions);
-	#endif // CONFIG_GFX_OPENGL_ES
-
-	if(support.hasVBOFuncs)
-		initVBOs();
-	setClearColor(0., 0., 0.);
-	setVisibleGeomFace(FRONT_FACES);
-
-	GLint texSize;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-	support.textureSizeSupport.maxXSize = support.textureSizeSupport.maxYSize = texSize;
-	assert(support.textureSizeSupport.maxXSize > 0 && support.textureSizeSupport.maxYSize > 0);
-	logMsg("max texture size is %d", texSize);
-
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(support.useFixedFunctionPipeline)
-		glcEnableClientState(GL_VERTEX_ARRAY);
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!support.useFixedFunctionPipeline)
-	{
-		handleGLErrorsVerbose([](GLenum, const char *err) { logErr("%s before shaders", err); });
-		if(Config::DEBUG_BUILD)
-			logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-		initShaders(*this);
-	}
-	#endif
-
 	support.isConfigured = true;
 }
 
@@ -606,19 +812,28 @@ bool Renderer::isConfigured() const
 	return support.isConfigured;
 }
 
-Renderer Renderer::makeConfiguredRenderer(IG::PixelFormat pixelFormat, Error &err)
+Renderer Renderer::makeConfiguredRenderer(ThreadMode threadMode, IG::PixelFormat pixelFormat, Error &err)
 {
 	auto renderer = Renderer{pixelFormat, err};
 	if(err)
 		return {};
-	renderer.bind();
-	renderer.configureRenderer();
+	renderer.configureRenderer(threadMode);
 	return renderer;
+}
+
+Renderer Renderer::makeConfiguredRenderer(ThreadMode threadMode, Error &err)
+{
+	return makeConfiguredRenderer(threadMode, Base::Window::defaultPixelFormat(), err);
 }
 
 Renderer Renderer::makeConfiguredRenderer(Error &err)
 {
-	return makeConfiguredRenderer(Base::Window::defaultPixelFormat(), err);
+	return makeConfiguredRenderer(Gfx::Renderer::ThreadMode::AUTO, err);
+}
+
+Renderer::ThreadMode Renderer::threadMode() const
+{
+	return useSeparateDrawContext ? ThreadMode::MULTI : ThreadMode::SINGLE;
 }
 
 Base::WindowConfig Renderer::addWindowConfig(Base::WindowConfig config)
@@ -655,34 +870,35 @@ void Renderer::setWindowValidOrientations(Base::Window &win, uint validO)
 	updateSensorStateForWindowOrientations(win);
 }
 
-void Renderer::setDebugOutput(bool on)
+void GLRenderer::addOnExitHandler()
 {
-	if(!support.hasDebugOutput)
-	{
+	if(onExit)
 		return;
-	}
-	verifyCurrentContext();
-	if(!on)
-	{
-		glDisable(support.DEBUG_OUTPUT);
-	}
-	else
-	{
-		if(!support.glDebugMessageCallback)
+	onExit =
+		[this](bool backgrounded)
 		{
-			auto glDebugMessageCallbackStr =
-					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
-			logMsg("enabling debug output with %s", glDebugMessageCallbackStr);
-			support.glDebugMessageCallback = (typeof(support.glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
-			support.glDebugMessageCallback(
-				GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
-					GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
-				{
-					logger_printfn(LOG_D, "GL Debug: %s", message);
-				}, nullptr);
-		}
-		glEnable(support.DEBUG_OUTPUT);
-	}
+			if(backgrounded)
+			{
+				runGLTaskSync(
+					[]()
+					{
+						glFinish();
+					});
+			}
+			else
+			{
+				if(!gfxResourceContext)
+					return true;
+				mainTask->stop();
+				gfxResourceContext.deinit(glDpy);
+				glDpy.deinit();
+				#ifndef NDEBUG
+				contextDestroyed = true;
+				#endif
+			}
+			return true;
+		};
+	Base::addOnExit(onExit, ON_EXIT_PRIORITY);
 }
 
 }

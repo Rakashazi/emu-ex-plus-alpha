@@ -42,6 +42,7 @@ jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char 
 	{
 		logErr("java method not found: %s (%s)", fName, sig);
 	}
+	//logDMsg("%s = %p", fName, method);
 	return method;
 }
 
@@ -56,6 +57,7 @@ void callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
 template<>
 jobject callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args)
 {
+	//logMsg("calling object method:%p", method);
 	return env->CallObjectMethodV(obj, method, args);
 }
 

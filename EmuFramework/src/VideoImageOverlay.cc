@@ -76,7 +76,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, uint effect)
 	Gfx::TextureSampler::initDefaultNearestMipRepeatSampler(r);
 	Gfx::TextureConfig texConf{pix};
 	texConf.setWillGenerateMipmaps(true);
-	img.init(r, texConf);
+	img = r.makeTexture(texConf);
 	img.write(0, pix, {});
 	img.generateMipmaps();
 	spr.init({}, &img, {});
@@ -107,15 +107,15 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 	}
 }
 
-void VideoImageOverlay::draw(Gfx::Renderer &r)
+void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
 	if(spr.image())
 	{
-		TextureSampler::bindDefaultNearestMipRepeatSampler(r);
-		r.setColor(1., 1., 1., intensity);
-		r.setBlendMode(BLEND_MODE_ALPHA);
-		spr.useDefaultProgram(IMG_MODE_MODULATE);
-		spr.draw(r);
+		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_REPEAT);
+		cmds.setColor(1., 1., 1., intensity);
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
+		spr.setCommonProgram(cmds, IMG_MODE_MODULATE);
+		spr.draw(cmds);
 	}
 }

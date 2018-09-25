@@ -103,17 +103,22 @@ void MsgPopup::vprintf(uint secs, bool error, const char *format, va_list args)
 	postContent(secs, error);
 }
 
-void MsgPopup::draw()
+void MsgPopup::prepareDraw()
+{
+	text.makeGlyphs(r);
+}
+
+void MsgPopup::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
 	if(strlen(str.data()))
 	{
-		r.noTexProgram.use(r, projP.makeTranslate());
-		r.setBlendMode(BLEND_MODE_ALPHA);
+		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+		cmds.setBlendMode(BLEND_MODE_ALPHA);
 		if(error)
-			r.setColor(1., 0, 0, .7);
+			cmds.setColor(1., 0, 0, .7);
 		else
-			r.setColor(0, 0, 1., .7);
+			cmds.setColor(0, 0, 1., .7);
 		Gfx::GCRect rect(-projP.wHalf(), -projP.hHalf(),
 				projP.wHalf(), -projP.hHalf() + (text.ySize * 1.5));
 		#if CONFIG_ENV_WEBOS_OS >= 3
@@ -124,9 +129,9 @@ void MsgPopup::draw()
 			rect.y2 = projP.hHalf;
 		}
 		#endif
-		GeomRect::draw(r, rect);
-		r.setColor(1., 1., 1., 1.);
-		r.texAlphaProgram.use(r);
-		text.draw(r, 0, projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, projP);
+		GeomRect::draw(cmds, rect);
+		cmds.setColor(1., 1., 1., 1.);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+		text.draw(cmds, 0, projP.alignYToPixel(rect.y + (text.ySize * 1.5)/2.), C2DO, projP);
 	}
 }

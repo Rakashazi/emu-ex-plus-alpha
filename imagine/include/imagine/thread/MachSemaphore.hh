@@ -27,6 +27,8 @@ class MachSemaphore
 {
 protected:
 	semaphore_t sem{};
+
+	void deinit();
 };
 
 using SemaphoreImpl = MachSemaphore;

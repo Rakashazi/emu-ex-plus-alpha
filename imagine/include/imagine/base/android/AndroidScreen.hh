@@ -32,7 +32,6 @@ public:
 	float densityDPI{};
 	float refreshRate_{};
 	int width_{}, height_{};
-	FrameTimeBase currFrameTimestamp{}; // only used if Choreographer class isn't present
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	int id{};
 	#else

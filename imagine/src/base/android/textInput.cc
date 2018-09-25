@@ -52,7 +52,7 @@ static void setupTextInputJni(JNIEnv* env)
 uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
 {
 	using namespace Base;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	setupTextInputJni(env);
 	logMsg("starting system text input");
 	setEventsUseOSInputMethod(true);
@@ -65,7 +65,7 @@ uint startSysTextInput(InputTextDelegate callback, const char *initialText, cons
 void cancelSysTextInput()
 {
 	using namespace Base;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	setupTextInputJni(env);
 	vKeyboardTextDelegate = {};
 	jFinishSysTextInput(env, jBaseActivity, 1);
@@ -74,7 +74,7 @@ void cancelSysTextInput()
 void finishSysTextInput()
 {
 	using namespace Base;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	setupTextInputJni(env);
 	jFinishSysTextInput(env, jBaseActivity, 0);
 }
@@ -82,7 +82,7 @@ void finishSysTextInput()
 void placeSysTextInput(IG::WindowRect rect)
 {
 	using namespace Base;
-	auto env = jEnv();
+	auto env = jEnvForThread();
 	setupTextInputJni(env);
 	textRect = rect;
 	logMsg("placing text edit box at %d,%d with size %d,%d", rect.x, rect.y, rect.xSize(), rect.ySize());

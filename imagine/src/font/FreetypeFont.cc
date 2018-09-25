@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "ResFontFreetype"
+#define LOGTAG "FreetypeFont"
 #include <imagine/font/Font.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>

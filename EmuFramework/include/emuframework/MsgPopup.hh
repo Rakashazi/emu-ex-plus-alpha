@@ -45,7 +45,8 @@ public:
 	void postError(const char *msg, int secs = 3);
 	void post(const char *prefix, const std::system_error &err, int secs = 3);
 	void post(const char *prefix, std::error_code ec, int secs = 3);
-	void draw();
+	void prepareDraw();
+	void draw(Gfx::RendererCommands &cmds);
 
 	[[gnu::format(printf, 4, 5)]]
 	void printf(uint secs, bool error, const char *format, ...);
