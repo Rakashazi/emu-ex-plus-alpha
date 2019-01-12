@@ -1,194 +1,8 @@
-/***********************************************************************************
-  Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
-
-  (c) Copyright 1996 - 2002  Gary Henderson (gary.henderson@ntlworld.com),
-                             Jerremy Koot (jkoot@snes9x.com)
-
-  (c) Copyright 2002 - 2004  Matthew Kendora
-
-  (c) Copyright 2002 - 2005  Peter Bortas (peter@bortas.org)
-
-  (c) Copyright 2004 - 2005  Joel Yliluoma (http://iki.fi/bisqwit/)
-
-  (c) Copyright 2001 - 2006  John Weidman (jweidman@slip.net)
-
-  (c) Copyright 2002 - 2006  funkyass (funkyass@spam.shaw.ca),
-                             Kris Bleakley (codeviolation@hotmail.com)
-
-  (c) Copyright 2002 - 2010  Brad Jorsch (anomie@users.sourceforge.net),
-                             Nach (n-a-c-h@users.sourceforge.net),
-
-  (c) Copyright 2002 - 2011  zones (kasumitokoduck@yahoo.com)
-
-  (c) Copyright 2006 - 2007  nitsuja
-
-  (c) Copyright 2009 - 2017  BearOso,
-                             OV2
-
-  (c) Copyright 2017         qwertymodo
-
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  BS-X C emulator code
-  (c) Copyright 2005 - 2006  Dreamer Nom,
-                             zones
-
-  C4 x86 assembler and some C emulation code
-  (c) Copyright 2000 - 2003  _Demo_ (_demo_@zsnes.com),
-                             Nach,
-                             zsKnight (zsknight@zsnes.com)
-
-  C4 C++ code
-  (c) Copyright 2003 - 2006  Brad Jorsch,
-                             Nach
-
-  DSP-1 emulator code
-  (c) Copyright 1998 - 2006  _Demo_,
-                             Andreas Naive (andreasnaive@gmail.com),
-                             Gary Henderson,
-                             Ivar (ivar@snes9x.com),
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora,
-                             Nach,
-                             neviksti (neviksti@hotmail.com)
-
-  DSP-2 emulator code
-  (c) Copyright 2003         John Weidman,
-                             Kris Bleakley,
-                             Lord Nightmare (lord_nightmare@users.sourceforge.net),
-                             Matthew Kendora,
-                             neviksti
-
-  DSP-3 emulator code
-  (c) Copyright 2003 - 2006  John Weidman,
-                             Kris Bleakley,
-                             Lancer,
-                             z80 gaiden
-
-  DSP-4 emulator code
-  (c) Copyright 2004 - 2006  Dreamer Nom,
-                             John Weidman,
-                             Kris Bleakley,
-                             Nach,
-                             z80 gaiden
-
-  OBC1 emulator code
-  (c) Copyright 2001 - 2004  zsKnight,
-                             pagefault (pagefault@zsnes.com),
-                             Kris Bleakley
-                             Ported from x86 assembler to C by sanmaiwashi
-
-  SPC7110 and RTC C++ emulator code used in 1.39-1.51
-  (c) Copyright 2002         Matthew Kendora with research by
-                             zsKnight,
-                             John Weidman,
-                             Dark Force
-
-  SPC7110 and RTC C++ emulator code used in 1.52+
-  (c) Copyright 2009         byuu,
-                             neviksti
-
-  S-DD1 C emulator code
-  (c) Copyright 2003         Brad Jorsch with research by
-                             Andreas Naive,
-                             John Weidman
-
-  S-RTC C emulator code
-  (c) Copyright 2001 - 2006  byuu,
-                             John Weidman
-
-  ST010 C++ emulator code
-  (c) Copyright 2003         Feather,
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora
-
-  Super FX x86 assembler emulator code
-  (c) Copyright 1998 - 2003  _Demo_,
-                             pagefault,
-                             zsKnight
-
-  Super FX C emulator code
-  (c) Copyright 1997 - 1999  Ivar,
-                             Gary Henderson,
-                             John Weidman
-
-  Sound emulator code used in 1.5-1.51
-  (c) Copyright 1998 - 2003  Brad Martin
-  (c) Copyright 1998 - 2006  Charles Bilyue'
-
-  Sound emulator code used in 1.52+
-  (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
-
-  S-SMP emulator code used in 1.54+
-  (c) Copyright 2016         byuu
-
-  SH assembler code partly based on x86 assembler code
-  (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
-
-  2xSaI filter
-  (c) Copyright 1999 - 2001  Derek Liauw Kie Fa
-
-  HQ2x, HQ3x, HQ4x filters
-  (c) Copyright 2003         Maxim Stepin (maxim@hiend3d.com)
-
-  NTSC filter
-  (c) Copyright 2006 - 2007  Shay Green
-
-  GTK+ GUI code
-  (c) Copyright 2004 - 2017  BearOso
-
-  Win32 GUI code
-  (c) Copyright 2003 - 2006  blip,
-                             funkyass,
-                             Matthew Kendora,
-                             Nach,
-                             nitsuja
-  (c) Copyright 2009 - 2017  OV2
-
-  Mac OS GUI code
-  (c) Copyright 1998 - 2001  John Stiles
-  (c) Copyright 2001 - 2011  zones
-
-  Libretro port
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  Specific ports contains the works of other authors. See headers in
-  individual files.
-
-
-  Snes9x homepage: http://www.snes9x.com/
-
-  Permission to use, copy, modify and/or distribute Snes9x in both binary
-  and source form, for non-commercial purposes, is hereby granted without
-  fee, providing that this license information and copyright notice appear
-  with all copies and any derived work.
-
-  This software is provided 'as-is', without any express or implied
-  warranty. In no event shall the authors be held liable for any damages
-  arising from the use of this software or it's derivatives.
-
-  Snes9x is freeware for PERSONAL USE only. Commercial users should
-  seek permission of the copyright holders first. Commercial use includes,
-  but is not limited to, charging money for Snes9x or software derived from
-  Snes9x, including Snes9x or derivatives in commercial game bundles, and/or
-  using Snes9x as a promotion for your commercial product.
-
-  The copyright holders request that bug fixes and improvements to the code
-  should be forwarded to them so everyone can benefit from the modifications
-  in future versions.
-
-  Super NES and Super Nintendo Entertainment System are trademarks of
-  Nintendo Co., Limited and its subsidiary companies.
- ***********************************************************************************/
-
+/*****************************************************************************\
+     Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
+                This file is licensed under the Snes9x License.
+   For further information, consult the LICENSE file in the root directory.
+\*****************************************************************************/
 
 #include "snes9x.h"
 #include "ppu.h"
@@ -202,10 +16,13 @@
 #include "display.h"
 
 extern struct SCheatData		Cheat;
+extern struct SLineData			LineData[240];
+extern struct SLineMatrixData	LineMatrixData[240];
 
 void S9xComputeClipWindows (void);
 
 static int	font_width = 8, font_height = 9;
+void (*S9xCustomDisplayString) (const char *, int, int, bool, int) = NULL;
 
 static void SetupOBJ (void);
 static void DrawOBJS (int);
@@ -221,6 +38,7 @@ static inline void DrawBackgroundMode7 (int, void (*DrawMath) (uint32, uint32, i
 static inline void DrawBackdrop (void);
 static inline void RenderScreen (bool8);
 static uint16 get_crosshair_color (uint8);
+static void S9xDisplayStringType (const char *, int, int, bool, int);
 
 #define TILE_PLUS(t, x)	(((t) & 0xfc00) | ((t + x) & 0x3ff))
 
@@ -228,6 +46,7 @@ static uint16 get_crosshair_color (uint8);
 bool8 S9xGraphicsInit (void)
 {
 	S9xInitTileRenderer();
+	memset(BlackColourMap, 0, 256 * sizeof(uint16));
 
 #ifdef GFX_MULTI_FORMAT
 	if (GFX.BuildPixel == NULL)
@@ -238,14 +57,14 @@ bool8 S9xGraphicsInit (void)
 	GFX.InterlaceFrame = 0;
 	GFX.RealPPL = GFX.Pitch >> 1;
 	IPPU.OBJChanged = TRUE;
-	IPPU.DirectColourMapsNeedRebuild = TRUE;
 	Settings.BG_Forced = 0;
 	S9xFixColourBrightness();
+	S9xBuildDirectColourMaps();
 
-	//GFX.X2   = (uint16 *) malloc(sizeof(uint16) * 0x10000);
-	//GFX.ZERO = (uint16 *) malloc(sizeof(uint16) * 0x10000);
+	GFX.X2   = (uint16 *) malloc(sizeof(uint16) * 0x10000);
+	GFX.ZERO = (uint16 *) malloc(sizeof(uint16) * 0x10000);
 
-	//GFX.ScreenSize = GFX.Pitch / 2 * SNES_HEIGHT_EXTENDED * (Settings.SupportHiRes ? 2 : 1);
+	GFX.ScreenSize = GFX.Pitch / 2 * SNES_HEIGHT_EXTENDED * (Settings.SupportHiRes ? 2 : 1);
 	GFX.SubScreen  = (uint16 *) malloc(GFX.ScreenSize * sizeof(uint16));
 	GFX.ZBuffer    = (uint8 *)  malloc(GFX.ScreenSize);
 	GFX.SubZBuffer = (uint8 *)  malloc(GFX.ScreenSize);
@@ -319,11 +138,53 @@ bool8 S9xGraphicsInit (void)
 
 void S9xGraphicsDeinit (void)
 {
-	//if (GFX.X2)         { free(GFX.X2);         GFX.X2         = NULL; }
-	//if (GFX.ZERO)       { free(GFX.ZERO);       GFX.ZERO       = NULL; }
+	if (GFX.X2)         { free(GFX.X2);         GFX.X2         = NULL; }
+	if (GFX.ZERO)       { free(GFX.ZERO);       GFX.ZERO       = NULL; }
 	if (GFX.SubScreen)  { free(GFX.SubScreen);  GFX.SubScreen  = NULL; }
 	if (GFX.ZBuffer)    { free(GFX.ZBuffer);    GFX.ZBuffer    = NULL; }
 	if (GFX.SubZBuffer) { free(GFX.SubZBuffer); GFX.SubZBuffer = NULL; }
+}
+
+void S9xGraphicsScreenResize (void)
+{
+	IPPU.MaxBrightness = PPU.Brightness;
+
+	IPPU.Interlace    = Memory.FillRAM[0x2133] & 1;
+	IPPU.InterlaceOBJ = Memory.FillRAM[0x2133] & 2;
+	IPPU.PseudoHires = Memory.FillRAM[0x2133] & 8;
+		
+	if (Settings.SupportHiRes && (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires))
+	{
+		GFX.RealPPL = GFX.Pitch >> 1;
+		IPPU.DoubleWidthPixels = TRUE;
+		IPPU.RenderedScreenWidth = SNES_WIDTH << 1;
+	}
+	else
+	{
+		#ifdef USE_OPENGL
+		if (Settings.OpenGLEnable)
+			GFX.RealPPL = SNES_WIDTH;
+		else
+		#endif
+			GFX.RealPPL = GFX.Pitch >> 1;
+
+		IPPU.DoubleWidthPixels = FALSE;
+		IPPU.RenderedScreenWidth = SNES_WIDTH;
+	}
+
+	if (Settings.SupportHiRes && IPPU.Interlace)
+	{
+		GFX.PPL = GFX.RealPPL << 1;
+		IPPU.DoubleHeightPixels = TRUE;
+		IPPU.RenderedScreenHeight = PPU.ScreenHeight << 1;
+		GFX.DoInterlace++;
+	}
+	else
+	{
+		GFX.PPL = GFX.RealPPL;
+		IPPU.DoubleHeightPixels = FALSE;
+		IPPU.RenderedScreenHeight = PPU.ScreenHeight;
+	}	
 }
 
 void S9xBuildDirectColourMaps (void)
@@ -333,8 +194,6 @@ void S9xBuildDirectColourMaps (void)
 	for (uint32 p = 0; p < 8; p++)
 		for (uint32 c = 0; c < 256; c++)
 			DirectColourMaps[p][c] = BUILD_PIXEL(IPPU.XB[((c & 7) << 2) | ((p & 1) << 1)], IPPU.XB[((c & 0x38) >> 1) | (p & 2)], IPPU.XB[((c & 0xc0) >> 3) | (p & 4)]);
-
-	IPPU.DirectColourMapsNeedRebuild = FALSE;
 }
 
 void S9xStartScreenRefresh (void)
@@ -354,43 +213,7 @@ void S9xStartScreenRefresh (void)
 			if (GFX.DoInterlace)
 				GFX.DoInterlace--;
 
-			IPPU.MaxBrightness = PPU.Brightness;
-
-			IPPU.Interlace    = Memory.FillRAM[0x2133] & 1;
-			IPPU.InterlaceOBJ = Memory.FillRAM[0x2133] & 2;
-			IPPU.PseudoHires  = Memory.FillRAM[0x2133] & 8;
-
-			if (Settings.SupportHiRes && (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires))
-			{
-				GFX.RealPPL = GFX.Pitch >> 1;
-				IPPU.DoubleWidthPixels = TRUE;
-				IPPU.RenderedScreenWidth = SNES_WIDTH << 1;
-			}
-			else
-			{
-			#ifdef USE_OPENGL
-				if (Settings.OpenGLEnable)
-					GFX.RealPPL = SNES_WIDTH;
-				else
-			#endif
-					GFX.RealPPL = GFX.Pitch >> 1;
-				IPPU.DoubleWidthPixels = FALSE;
-				IPPU.RenderedScreenWidth = SNES_WIDTH;
-			}
-
-			if (Settings.SupportHiRes && IPPU.Interlace)
-			{
-				GFX.PPL = GFX.RealPPL << 1;
-				IPPU.DoubleHeightPixels = TRUE;
-				IPPU.RenderedScreenHeight = PPU.ScreenHeight << 1;
-				GFX.DoInterlace++;
-			}
-			else
-			{
-				GFX.PPL = GFX.RealPPL;
-				IPPU.DoubleHeightPixels = FALSE;
-				IPPU.RenderedScreenHeight = PPU.ScreenHeight;
-			}
+			S9xGraphicsScreenResize();
 
 			IPPU.RenderedFramesCount++;
 		}
@@ -410,8 +233,8 @@ void S9xStartScreenRefresh (void)
 		IPPU.FrameCount = 0;
 	}
 
-	/*if (GFX.InfoStringTimeout > 0 && --GFX.InfoStringTimeout == 0)
-		GFX.InfoString = NULL;*/
+	if (GFX.InfoStringTimeout > 0 && --GFX.InfoStringTimeout == 0)
+		GFX.InfoString = NULL;
 
 	IPPU.TotalEmulatedFrames++;
 }
@@ -451,7 +274,7 @@ void S9xEndScreenRefresh (void)
 	else
 		S9xControlEOF();
 
-	S9xApplyCheats();
+	S9xUpdateCheatsInMemory ();
 
 #ifdef DEBUGGER
 	if (CPU.Flags & FRAME_ADVANCE_FLAG)
@@ -490,7 +313,6 @@ void S9xEndScreenRefresh (void)
 
 void RenderLine (uint8 C)
 {
-	auto &LineData = GFX.LineData;
 	if (IPPU.RenderThisFrame)
 	{
 		LineData[C].BG[0].VOffset = PPU.BG[0].VOffset + 1;
@@ -500,7 +322,7 @@ void RenderLine (uint8 C)
 
 		if (PPU.BGMode == 7)
 		{
-			struct SLineMatrixData *p = &GFX.LineMatrixData[C];
+			struct SLineMatrixData *p = &LineMatrixData[C];
 			p->MatrixA = PPU.MatrixA;
 			p->MatrixB = PPU.MatrixB;
 			p->MatrixC = PPU.MatrixC;
@@ -685,7 +507,7 @@ void S9xUpdateScreen (void)
 		{
 			if (!IPPU.DoubleWidthPixels && (PPU.BGMode == 5 || PPU.BGMode == 6 || IPPU.PseudoHires))
 			{
-			#ifdef USE_OPENGL
+				#ifdef USE_OPENGL
 				if (Settings.OpenGLEnable && GFX.RealPPL == 256)
 				{
 					// Have to back out of the speed up hack where the low res.
@@ -693,29 +515,27 @@ void S9xUpdateScreen (void)
 					// ignoring the true, larger size of the buffer.
 					GFX.RealPPL = GFX.Pitch >> 1;
 
-					for (register int32 y = (int32) GFX.StartY - 1; y >= 0; y--)
+					for (int32 y = (int32) GFX.StartY - 1; y >= 0; y--)
 					{
-						register uint16	*p = GFX.Screen + y * GFX.PPL     + 255;
-						register uint16	*q = GFX.Screen + y * GFX.RealPPL + 510;
+						uint16	*p = GFX.Screen + y * GFX.PPL     + 255;
+						uint16	*q = GFX.Screen + y * GFX.RealPPL + 510;
 
-						for (register int x = 255; x >= 0; x--, p--, q -= 2)
+						for (int x = 255; x >= 0; x--, p--, q -= 2)
 							*q = *(q + 1) = *p;
 					}
 
 					GFX.PPL = GFX.RealPPL; // = GFX.Pitch >> 1 above
 				}
 				else
-			#endif
+				#endif
+				// Have to back out of the regular speed hack
+				for (uint32 y = 0; y < GFX.StartY; y++)
 				{
-					// Have to back out of the regular speed hack
-					for (register uint32 y = 0; y < GFX.StartY; y++)
-					{
-						register uint16	*p = GFX.Screen + y * GFX.PPL + 255;
-						register uint16	*q = GFX.Screen + y * GFX.PPL + 510;
+					uint16	*p = GFX.Screen + y * GFX.PPL + 255;
+					uint16	*q = GFX.Screen + y * GFX.PPL + 510;
 
-						for (register int x = 255; x >= 0; x--, p--, q -= 2)
-							*q = *(q + 1) = *p;
-					}
+					for (int x = 255; x >= 0; x--, p--, q -= 2)
+						*q = *(q + 1) = *p;
 				}
 
 				IPPU.DoubleWidthPixels = TRUE;
@@ -729,8 +549,8 @@ void S9xUpdateScreen (void)
 				GFX.PPL = GFX.RealPPL << 1;
 				GFX.DoInterlace = 2;
 
-				for (register int32 y = (int32) GFX.StartY - 1; y >= 0; y--)
-					memmove(GFX.Screen + y * GFX.PPL, GFX.Screen + y * GFX.RealPPL, IPPU.RenderedScreenWidth * sizeof(uint16));
+				for (int32 y = (int32) GFX.StartY - 2; y >= 0; y--)
+					memmove(GFX.Screen + (y + 1) * GFX.PPL, GFX.Screen + y * GFX.RealPPL, GFX.PPL * sizeof(uint16));
 			}
 		}
 
@@ -828,7 +648,7 @@ static void SetupOBJ (void)
 		for (int i = 0; i < SNES_HEIGHT_EXTENDED; i++)
 		{
 			GFX.OBJLines[i].RTOFlags = 0;
-			GFX.OBJLines[i].Tiles = 34;
+			GFX.OBJLines[i].Tiles = Settings.MaxSpriteTilesPerLine;
 			for (int j = 0; j < 32; j++)
 				GFX.OBJLines[i].OBJ[j].Sprite = -1;
 		}
@@ -899,8 +719,14 @@ static void SetupOBJ (void)
 	else // evil FirstSprite+Y case
 	{
 		// First, find out which sprites are on which lines
-		uint8	OBJOnLine[SNES_HEIGHT_EXTENDED][128];
-		memset(OBJOnLine, 0, sizeof(OBJOnLine));
+		uint8 OBJOnLine[SNES_HEIGHT_EXTENDED][128];
+		// memset(OBJOnLine, 0, sizeof(OBJOnLine));
+		/* Hold on here, that's a lot of bytes to initialise at once!
+		 * So we only initialise them per line, as needed. [Neb]
+		 * Bonus: We can quickly avoid looping if a line has no OBJs.
+		 */
+        bool8 AnyOBJOnLine[SNES_HEIGHT_EXTENDED];
+        memset(AnyOBJOnLine, FALSE, sizeof(AnyOBJOnLine)); // better
 
 		for (S = 0; S < 128; S++)
 		{
@@ -934,6 +760,11 @@ static void SetupOBJ (void)
 					if (Y >= SNES_HEIGHT_EXTENDED)
 						continue;
 
+					if (!AnyOBJOnLine[Y]) {
+						memset(OBJOnLine[Y], 0, sizeof(OBJOnLine[Y]));
+						AnyOBJOnLine[Y] = TRUE;
+					}
+
 					if (PPU.OBJ[S].VFlip)
 						// Yes, Width not Height. It so happens that the
 						// sprites with H=2*W flip as two WxW sprites.
@@ -949,31 +780,34 @@ static void SetupOBJ (void)
 		for (int Y = 0; Y < SNES_HEIGHT_EXTENDED; Y++)
 		{
 			GFX.OBJLines[Y].RTOFlags = Y ? GFX.OBJLines[Y - 1].RTOFlags : 0;
-			GFX.OBJLines[Y].Tiles = 34;
+			GFX.OBJLines[Y].Tiles = Settings.MaxSpriteTilesPerLine;
 
 			uint8	FirstSprite = (PPU.FirstSprite + Y) & 0x7f;
 			S = FirstSprite;
 			j = 0;
 
-			do
+			if (AnyOBJOnLine[Y])
 			{
-				if (OBJOnLine[Y][S])
+				do
 				{
-					if (j >= 32)
+					if (OBJOnLine[Y][S])
 					{
-						GFX.OBJLines[Y].RTOFlags |= 0x40;
-						break;
+						if (j >= 32)
+						{
+							GFX.OBJLines[Y].RTOFlags |= 0x40;
+							break;
+						}
+
+						GFX.OBJLines[Y].Tiles -= GFX.OBJVisibleTiles[S];
+						if (GFX.OBJLines[Y].Tiles < 0)
+							GFX.OBJLines[Y].RTOFlags |= 0x80;
+						GFX.OBJLines[Y].OBJ[j].Sprite = S;
+						GFX.OBJLines[Y].OBJ[j++].Line = OBJOnLine[Y][S] & ~0x80;
 					}
 
-					GFX.OBJLines[Y].Tiles -= GFX.OBJVisibleTiles[S];
-					if (GFX.OBJLines[Y].Tiles < 0)
-						GFX.OBJLines[Y].RTOFlags |= 0x80;
-					GFX.OBJLines[Y].OBJ[j].Sprite = S;
-					GFX.OBJLines[Y].OBJ[j++].Line = OBJOnLine[Y][S] & ~0x80;
-				}
-
-				S = (S + 1) & 0x7f;
-			} while (S != FirstSprite);
+					S = (S + 1) & 0x7f;
+				} while (S != FirstSprite);
+			}
 
 			if (j < 32)
 				GFX.OBJLines[Y].OBJ[j].Sprite = -1;
@@ -983,6 +817,10 @@ static void SetupOBJ (void)
 	IPPU.OBJChanged = FALSE;
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC push_options
+#pragma GCC optimize ("no-tree-vrp")
+#endif
 static void DrawOBJS (int D)
 {
 	void (*DrawTile) (uint32, uint32, uint32, uint32) = NULL;
@@ -1075,6 +913,9 @@ static void DrawOBJS (int D)
 		}
 	}
 }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC pop_options
+#endif
 
 static void DrawBackground (int bg, uint8 Zh, uint8 Zl)
 {
@@ -1082,7 +923,6 @@ static void DrawBackground (int bg, uint8 Zh, uint8 Zl)
 
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
-	auto &LineData = GFX.LineData;
 
 	SC0 = (uint16 *) &Memory.VRAM[PPU.BG[bg].SCBase << 1];
 	SC1 = (PPU.BG[bg].SCSize & 1) ? SC0 + 1024 : SC0;
@@ -1300,7 +1140,6 @@ static void DrawBackgroundMosaic (int bg, uint8 Zh, uint8 Zl)
 
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
-	auto &LineData = GFX.LineData;
 
 	SC0 = (uint16 *) &Memory.VRAM[PPU.BG[bg].SCBase << 1];
 	SC1 = (PPU.BG[bg].SCSize & 1) ? SC0 + 1024 : SC0;
@@ -1335,8 +1174,8 @@ static void DrawBackgroundMosaic (int bg, uint8 Zh, uint8 Zl)
 		for (uint32 Y = GFX.StartY - MosaicStart; Y <= GFX.EndY; Y += PPU.Mosaic)
 		{
 			uint32	Y2 = HiresInterlace ? Y * 2 : Y;
-			uint32	VOffset = LineData[Y].BG[bg].VOffset + (HiresInterlace ? 1 : 0);
-			uint32	HOffset = LineData[Y].BG[bg].HOffset;
+			uint32	VOffset = LineData[Y + MosaicStart].BG[bg].VOffset + (HiresInterlace ? 1 : 0);
+			uint32	HOffset = LineData[Y + MosaicStart].BG[bg].HOffset;
 
 			Lines = PPU.Mosaic - MosaicStart;
 			if (Y + MosaicStart + Lines > GFX.EndY)
@@ -1468,7 +1307,6 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
 	uint16	*BPS0, *BPS1, *BPS2, *BPS3;
-	auto &LineData = GFX.LineData;
 
 	BPS0 = (uint16 *) &Memory.VRAM[PPU.BG[2].SCBase << 1];
 	BPS1 = (PPU.BG[2].SCSize & 1) ? BPS0 + 1024 : BPS0;
@@ -1500,7 +1338,6 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 	int	PixWidth = IPPU.DoubleWidthPixels ? 2 : 1;
 	bool8	HiresInterlace = IPPU.Interlace && IPPU.DoubleWidthPixels;
 
-	void (*DrawTile) (uint32, uint32, uint32, uint32);
 	void (*DrawClippedTile) (uint32, uint32, uint32, uint32, uint32, uint32);
 
 	for (int clip = 0; clip < GFX.Clip[bg].Count; clip++)
@@ -1509,12 +1346,10 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 
 		if (BG.EnableMath && (GFX.Clip[bg].DrawMode[clip] & 2))
 		{
-			DrawTile = GFX.DrawTileMath;
 			DrawClippedTile = GFX.DrawClippedTileMath;
 		}
 		else
 		{
-			DrawTile = GFX.DrawTileNomath;
 			DrawClippedTile = GFX.DrawClippedTileNomath;
 		}
 
@@ -1546,8 +1381,8 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 			uint32	Left  = GFX.Clip[bg].Left[clip];
 			uint32	Right = GFX.Clip[bg].Right[clip];
 			uint32	Offset = Left * PixWidth + Y * GFX.PPL;
-			uint32	LineHOffset = LineData[Y].BG[bg].HOffset;
-			bool8	left_edge = (Left < (8 - (LineHOffset & 7)));
+			uint32	HScroll = LineData[Y].BG[bg].HOffset;
+			bool8	left_edge = (Left < (8 - (HScroll & 7)));
 			uint32	Width = Right - Left;
 
 			while (Left < Right)
@@ -1558,12 +1393,12 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 				{
 					// SNES cannot do OPT for leftmost tile column
 					VOffset = LineData[Y].BG[bg].VOffset;
-					HOffset = LineHOffset;
+					HOffset = HScroll;
 					left_edge = FALSE;
 				}
 				else
 				{
-					int	HOffTile = ((HOff + Left - 1) & Offset2Mask) >> 3;
+					int HOffTile = ((HOff + Left - 1) & Offset2Mask) >> 3;
 
 					if (BG.OffsetSizeH == 8)
 					{
@@ -1602,9 +1437,9 @@ static void DrawBackgroundOffset (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 						VOffset = LineData[Y].BG[bg].VOffset;
 
 					if (HCellOffset & OffsetEnableMask)
-						HOffset = (HCellOffset & ~7) | (LineHOffset & 7);
+						HOffset = (HCellOffset & ~7) | (HScroll & 7);
 					else
-						HOffset = LineHOffset;
+						HOffset = HScroll;
 				}
 
 				if (HiresInterlace)
@@ -1700,7 +1535,6 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 	uint32	Tile;
 	uint16	*SC0, *SC1, *SC2, *SC3;
 	uint16	*BPS0, *BPS1, *BPS2, *BPS3;
-	auto &LineData = GFX.LineData;
 
 	BPS0 = (uint16 *) &Memory.VRAM[PPU.BG[2].SCBase << 1];
 	BPS1 = (PPU.BG[2].SCSize & 1) ? BPS0 + 1024 : BPS0;
@@ -1727,7 +1561,6 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 	int	Lines;
 	int	OffsetMask   = (BG.TileSizeH   == 16) ? 0x3ff : 0x1ff;
 	int	OffsetShift  = (BG.TileSizeV   == 16) ? 4 : 3;
-	int	Offset2Mask  = (BG.OffsetSizeH == 16) ? 0x3ff : 0x1ff;
 	int	Offset2Shift = (BG.OffsetSizeV == 16) ? 4 : 3;
 	int	OffsetEnableMask = 0x2000 << bg;
 	int	PixWidth = IPPU.DoubleWidthPixels ? 2 : 1;
@@ -1749,8 +1582,8 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 		for (uint32 Y = GFX.StartY - MosaicStart; Y <= GFX.EndY; Y += PPU.Mosaic)
 		{
 			uint32	Y2 = HiresInterlace ? Y * 2 : Y;
-			uint32	VOff = LineData[Y].BG[2].VOffset - 1;
-			uint32	HOff = LineData[Y].BG[2].HOffset;
+			uint32	VOff = LineData[Y + MosaicStart].BG[2].VOffset - 1;
+			uint32	HOff = LineData[Y + MosaicStart].BG[2].HOffset;
 
 			Lines = PPU.Mosaic - MosaicStart;
 			if (Y + MosaicStart + Lines > GFX.EndY)
@@ -1779,24 +1612,22 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 			uint32	Left =  GFX.Clip[bg].Left[clip];
 			uint32	Right = GFX.Clip[bg].Right[clip];
 			uint32	Offset = Left * PixWidth + (Y + MosaicStart) * GFX.PPL;
-			uint32	LineHOffset = LineData[Y].BG[bg].HOffset;
-			bool8	left_edge = (Left < (8 - (LineHOffset & 7)));
+			uint32	HScroll = LineData[Y + MosaicStart].BG[bg].HOffset;
 			uint32	Width = Right - Left;
 
 			while (Left < Right)
 			{
 				uint32	VOffset, HOffset;
 
-				if (left_edge)
+				if (Left < (8 - (HScroll & 7)))
 				{
 					// SNES cannot do OPT for leftmost tile column
-					VOffset = LineData[Y].BG[bg].VOffset;
-					HOffset = LineHOffset;
-					left_edge = FALSE;
+					VOffset = LineData[Y + MosaicStart].BG[bg].VOffset;
+					HOffset = HScroll;
 				}
 				else
 				{
-					int	HOffTile = ((HOff + Left - 1) & Offset2Mask) >> 3;
+					int HOffTile = (((Left + (HScroll & 7)) - 8) + (HOff & ~7)) >> 3;
 
 					if (BG.OffsetSizeH == 8)
 					{
@@ -1832,12 +1663,12 @@ static void DrawBackgroundOffsetMosaic (int bg, uint8 Zh, uint8 Zl, int VOffOff)
 					if (VCellOffset & OffsetEnableMask)
 						VOffset = VCellOffset + 1;
 					else
-						VOffset = LineData[Y].BG[bg].VOffset;
+						VOffset = LineData[Y + MosaicStart].BG[bg].VOffset;
 
 					if (HCellOffset & OffsetEnableMask)
-						HOffset = (HCellOffset & ~7) | (LineHOffset & 7);
+						HOffset = (HCellOffset & ~7) | (HScroll & 7);
 					else
-						HOffset = LineHOffset;
+						HOffset = HScroll;
 				}
 
 				if (HiresInterlace)
@@ -1995,6 +1826,12 @@ void S9xDisplayChar (uint16 *s, uint8 c)
 
 static void DisplayStringFromBottom (const char *string, int linesFromBottom, int pixelsFromLeft, bool allowWrap)
 {
+	if (S9xCustomDisplayString)
+	{
+		S9xCustomDisplayString (string, linesFromBottom, pixelsFromLeft, allowWrap, S9X_NO_INFO);
+		return;
+	}
+
 	if (linesFromBottom <= 0)
 		linesFromBottom = 1;
 
@@ -2024,6 +1861,17 @@ static void DisplayStringFromBottom (const char *string, int linesFromBottom, in
 		S9xDisplayChar(dst, string[i]);
 		dst += font_width - 1;
 	}
+}
+
+static void S9xDisplayStringType (const char *string, int linesFromBottom, int pixelsFromLeft, bool allowWrap, int type)
+{
+    if (S9xCustomDisplayString)
+    {
+            S9xCustomDisplayString (string, linesFromBottom, pixelsFromLeft, allowWrap, type);
+            return;
+    }
+
+    S9xDisplayString (string, linesFromBottom, pixelsFromLeft, allowWrap);
 }
 
 static void DisplayFrameRate (void)
@@ -2056,8 +1904,8 @@ static void DisplayFrameRate (void)
 
 static void DisplayPressedKeys (void)
 {
-	static char	KeyMap[]   = { '0', '1', '2', 'R', 'L', 'X', 'A', '>', '<', 'v', '^', 'S', 's', 'Y', 'B' };
-	static int	KeyOrder[] = { 8, 10, 7, 9, 0, 6, 14, 13, 5, 1, 4, 3, 2, 11, 12 }; // < ^ > v   A B Y X  L R  S s
+	static unsigned char	KeyMap[]   = { '0', '1', '2', 'R', 'L', 'X', 'A', 225, 224, 227, 226, 'S', 's', 'Y', 'B' };
+	static int		KeyOrder[] = { 8, 10, 7, 9, 0, 6, 14, 13, 5, 1, 4, 3, 2, 11, 12 }; // < ^ > v   A B Y X  L R  S s
 
 	enum controllers	controller;
     int					line = Settings.DisplayMovieFrame && S9xMovieActive() ? 2 : 1;
@@ -2072,52 +1920,55 @@ static void DisplayPressedKeys (void)
 		{
 			case CTL_MOUSE:
 			{
-				uint8 buf[5], *p = buf;
-				MovieGetMouse(port, buf);
-				int16 x = READ_WORD(p);
-				int16 y = READ_WORD(p + 2);
+				uint8 buf[5];
+				if (!MovieGetMouse(port, buf))
+					break;
+				int16 x = READ_WORD(buf);
+				int16 y = READ_WORD(buf + 2);
 				uint8 buttons = buf[4];
-				sprintf(string, "#%d %d: (%03d,%03d) %c%c", port, ids[0], x, y,
+				sprintf(string, "#%d %d: (%03d,%03d) %c%c", port + 1, ids[0] + 1, x, y,
 						(buttons & 0x40) ? 'L' : ' ', (buttons & 0x80) ? 'R' : ' ');
-				S9xDisplayString(string, line++, 1, false);
+				S9xDisplayStringType(string, line++, 1, false, S9X_PRESSED_KEYS_INFO);
 				break;
 			}
 
 			case CTL_SUPERSCOPE:
 			{
-				uint8 buf[6], *p = buf;
-				MovieGetScope(port, buf);
-				int16 x = READ_WORD(p);
-				int16 y = READ_WORD(p + 2);
+				uint8 buf[6];
+				if (!MovieGetScope(port, buf))
+					break;
+				int16 x = READ_WORD(buf);
+				int16 y = READ_WORD(buf + 2);
 				uint8 buttons = buf[4];
-				sprintf(string, "#%d %d: (%03d,%03d) %c%c%c%c", port, ids[0], x, y,
+				sprintf(string, "#%d %d: (%03d,%03d) %c%c%c%c", port + 1, ids[0] + 1, x, y,
 						(buttons & 0x80) ? 'F' : ' ', (buttons & 0x40) ? 'C' : ' ',
 						(buttons & 0x20) ? 'T' : ' ', (buttons & 0x10) ? 'P' : ' ');
-				S9xDisplayString(string, line++, 1, false);
+				S9xDisplayStringType(string, line++, 1, false, S9X_PRESSED_KEYS_INFO);
 				break;
 			}
 
 			case CTL_JUSTIFIER:
 			{
-				uint8 buf[11], *p = buf;
-				MovieGetJustifier(port, buf);
-				int16 x1 = READ_WORD(p);
-				int16 x2 = READ_WORD(p + 2);
-				int16 y1 = READ_WORD(p + 4);
-				int16 y2 = READ_WORD(p + 6);
+				uint8 buf[11];
+				if (!MovieGetJustifier(port, buf))
+					break;
+				int16 x1 = READ_WORD(buf);
+				int16 x2 = READ_WORD(buf + 2);
+				int16 y1 = READ_WORD(buf + 4);
+				int16 y2 = READ_WORD(buf + 6);
 				uint8 buttons = buf[8];
 				bool8 offscreen1 = buf[9];
 				bool8 offscreen2 = buf[10];
-				sprintf(string, "#%d %d: (%03d,%03d) %c%c%c / (%03d,%03d) %c%c%c", port, ids[0],
+				sprintf(string, "#%d %d: (%03d,%03d) %c%c%c / (%03d,%03d) %c%c%c", port + 1, ids[0] + 1,
 						x1, y1, (buttons & 0x80) ? 'T' : ' ', (buttons & 0x20) ? 'S' : ' ', offscreen1 ? 'O' : ' ',
 						x2, y2, (buttons & 0x40) ? 'T' : ' ', (buttons & 0x10) ? 'S' : ' ', offscreen2 ? 'O' : ' ');
-				S9xDisplayString(string, line++, 1, false);
+				S9xDisplayStringType(string, line++, 1, false, S9X_PRESSED_KEYS_INFO);
 				break;
 			}
 
 			case CTL_JOYPAD:
 			{
-				sprintf(string, "#%d %d:                  ", port, ids[0]);
+				sprintf(string, "#%d %d:                  ", port + 1, ids[0] + 1);
 				uint16 pad = MovieGetJoypad(ids[0]);
 				for (int i = 0; i < 15; i++)
 				{
@@ -2126,7 +1977,7 @@ static void DisplayPressedKeys (void)
 					string[6 + i]= (pad & mask) ? KeyMap[j] : ' ';
 				}
 
-				S9xDisplayString(string, line++, 1, false);
+				S9xDisplayStringType(string, line++, 1, false, S9X_PRESSED_KEYS_INFO);
 				break;
 			}
 
@@ -2136,7 +1987,7 @@ static void DisplayPressedKeys (void)
 				{
 					if (ids[n] != -1)
 					{
-						sprintf(string, "#%d %d:                  ", port, ids[n]);
+						sprintf(string, "#%d %d:                  ", port + 1, ids[n] + 1);
 						uint16 pad = MovieGetJoypad(ids[n]);
 						for (int i = 0; i < 15; i++)
 						{
@@ -2145,17 +1996,32 @@ static void DisplayPressedKeys (void)
 							string[6 + i]= (pad & mask) ? KeyMap[j] : ' ';
 						}
 
-						S9xDisplayString(string, line++, 1, false);
+						S9xDisplayStringType(string, line++, 1, false, S9X_PRESSED_KEYS_INFO);
 					}
 				}
 
 				break;
 			}
 
+			case CTL_MACSRIFLE:
+			{
+				/*
+				uint8 buf[6], *p = buf;
+				MovieGetScope(port, buf);
+				int16 x = READ_WORD(p);
+				int16 y = READ_WORD(p + 2);
+				uint8 buttons = buf[4];
+				sprintf(string, "#%d %d: (%03d,%03d) %c%c%c%c", port, ids[0], x, y,
+						(buttons & 0x80) ? 'F' : ' ', (buttons & 0x40) ? 'C' : ' ',
+						(buttons & 0x20) ? 'T' : ' ', (buttons & 0x10) ? 'P' : ' ');
+				S9xDisplayString(string, line++, 1, false);
+				*/
+				break;
+			}
+
 			case CTL_NONE:
 			{
-				sprintf(string, "#%d -", port);
-				S9xDisplayString(string, line++, 1, false);
+				// Display Nothing
 				break;
 			}
 		}
@@ -2242,7 +2108,7 @@ static uint16 get_crosshair_color (uint8 color)
 	return (0);
 }
 
-/*void S9xDrawCrosshair (const char *crosshair, uint8 fgcolor, uint8 bgcolor, int16 x, int16 y)
+void S9xDrawCrosshair (const char *crosshair, uint8 fgcolor, uint8 bgcolor, int16 x, int16 y)
 {
 	if (!crosshair)
 		return;
@@ -2292,7 +2158,7 @@ static uint16 get_crosshair_color (uint8 color)
 				*s = (bgcolor & 0x10) ? COLOR_ADD1_2(*s, bg) : bg;
 		}
 	}
-}*/
+}
 
 #ifdef GFX_MULTI_FORMAT
 
