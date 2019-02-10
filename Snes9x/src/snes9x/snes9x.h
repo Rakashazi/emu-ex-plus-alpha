@@ -1,200 +1,14 @@
-/***********************************************************************************
-  Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
-
-  (c) Copyright 1996 - 2002  Gary Henderson (gary.henderson@ntlworld.com),
-                             Jerremy Koot (jkoot@snes9x.com)
-
-  (c) Copyright 2002 - 2004  Matthew Kendora
-
-  (c) Copyright 2002 - 2005  Peter Bortas (peter@bortas.org)
-
-  (c) Copyright 2004 - 2005  Joel Yliluoma (http://iki.fi/bisqwit/)
-
-  (c) Copyright 2001 - 2006  John Weidman (jweidman@slip.net)
-
-  (c) Copyright 2002 - 2006  funkyass (funkyass@spam.shaw.ca),
-                             Kris Bleakley (codeviolation@hotmail.com)
-
-  (c) Copyright 2002 - 2010  Brad Jorsch (anomie@users.sourceforge.net),
-                             Nach (n-a-c-h@users.sourceforge.net),
-
-  (c) Copyright 2002 - 2011  zones (kasumitokoduck@yahoo.com)
-
-  (c) Copyright 2006 - 2007  nitsuja
-
-  (c) Copyright 2009 - 2017  BearOso,
-                             OV2
-
-  (c) Copyright 2017         qwertymodo
-
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  BS-X C emulator code
-  (c) Copyright 2005 - 2006  Dreamer Nom,
-                             zones
-
-  C4 x86 assembler and some C emulation code
-  (c) Copyright 2000 - 2003  _Demo_ (_demo_@zsnes.com),
-                             Nach,
-                             zsKnight (zsknight@zsnes.com)
-
-  C4 C++ code
-  (c) Copyright 2003 - 2006  Brad Jorsch,
-                             Nach
-
-  DSP-1 emulator code
-  (c) Copyright 1998 - 2006  _Demo_,
-                             Andreas Naive (andreasnaive@gmail.com),
-                             Gary Henderson,
-                             Ivar (ivar@snes9x.com),
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora,
-                             Nach,
-                             neviksti (neviksti@hotmail.com)
-
-  DSP-2 emulator code
-  (c) Copyright 2003         John Weidman,
-                             Kris Bleakley,
-                             Lord Nightmare (lord_nightmare@users.sourceforge.net),
-                             Matthew Kendora,
-                             neviksti
-
-  DSP-3 emulator code
-  (c) Copyright 2003 - 2006  John Weidman,
-                             Kris Bleakley,
-                             Lancer,
-                             z80 gaiden
-
-  DSP-4 emulator code
-  (c) Copyright 2004 - 2006  Dreamer Nom,
-                             John Weidman,
-                             Kris Bleakley,
-                             Nach,
-                             z80 gaiden
-
-  OBC1 emulator code
-  (c) Copyright 2001 - 2004  zsKnight,
-                             pagefault (pagefault@zsnes.com),
-                             Kris Bleakley
-                             Ported from x86 assembler to C by sanmaiwashi
-
-  SPC7110 and RTC C++ emulator code used in 1.39-1.51
-  (c) Copyright 2002         Matthew Kendora with research by
-                             zsKnight,
-                             John Weidman,
-                             Dark Force
-
-  SPC7110 and RTC C++ emulator code used in 1.52+
-  (c) Copyright 2009         byuu,
-                             neviksti
-
-  S-DD1 C emulator code
-  (c) Copyright 2003         Brad Jorsch with research by
-                             Andreas Naive,
-                             John Weidman
-
-  S-RTC C emulator code
-  (c) Copyright 2001 - 2006  byuu,
-                             John Weidman
-
-  ST010 C++ emulator code
-  (c) Copyright 2003         Feather,
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora
-
-  Super FX x86 assembler emulator code
-  (c) Copyright 1998 - 2003  _Demo_,
-                             pagefault,
-                             zsKnight
-
-  Super FX C emulator code
-  (c) Copyright 1997 - 1999  Ivar,
-                             Gary Henderson,
-                             John Weidman
-
-  Sound emulator code used in 1.5-1.51
-  (c) Copyright 1998 - 2003  Brad Martin
-  (c) Copyright 1998 - 2006  Charles Bilyue'
-
-  Sound emulator code used in 1.52+
-  (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
-
-  S-SMP emulator code used in 1.54+
-  (c) Copyright 2016         byuu
-
-  SH assembler code partly based on x86 assembler code
-  (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
-
-  2xSaI filter
-  (c) Copyright 1999 - 2001  Derek Liauw Kie Fa
-
-  HQ2x, HQ3x, HQ4x filters
-  (c) Copyright 2003         Maxim Stepin (maxim@hiend3d.com)
-
-  NTSC filter
-  (c) Copyright 2006 - 2007  Shay Green
-
-  GTK+ GUI code
-  (c) Copyright 2004 - 2017  BearOso
-
-  Win32 GUI code
-  (c) Copyright 2003 - 2006  blip,
-                             funkyass,
-                             Matthew Kendora,
-                             Nach,
-                             nitsuja
-  (c) Copyright 2009 - 2017  OV2
-
-  Mac OS GUI code
-  (c) Copyright 1998 - 2001  John Stiles
-  (c) Copyright 2001 - 2011  zones
-
-  Libretro port
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  Specific ports contains the works of other authors. See headers in
-  individual files.
-
-
-  Snes9x homepage: http://www.snes9x.com/
-
-  Permission to use, copy, modify and/or distribute Snes9x in both binary
-  and source form, for non-commercial purposes, is hereby granted without
-  fee, providing that this license information and copyright notice appear
-  with all copies and any derived work.
-
-  This software is provided 'as-is', without any express or implied
-  warranty. In no event shall the authors be held liable for any damages
-  arising from the use of this software or it's derivatives.
-
-  Snes9x is freeware for PERSONAL USE only. Commercial users should
-  seek permission of the copyright holders first. Commercial use includes,
-  but is not limited to, charging money for Snes9x or software derived from
-  Snes9x, including Snes9x or derivatives in commercial game bundles, and/or
-  using Snes9x as a promotion for your commercial product.
-
-  The copyright holders request that bug fixes and improvements to the code
-  should be forwarded to them so everyone can benefit from the modifications
-  in future versions.
-
-  Super NES and Super Nintendo Entertainment System are trademarks of
-  Nintendo Co., Limited and its subsidiary companies.
- ***********************************************************************************/
-
+/*****************************************************************************\
+     Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
+                This file is licensed under the Snes9x License.
+   For further information, consult the LICENSE file in the root directory.
+\*****************************************************************************/
 
 #ifndef _SNES9X_H_
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.55"
+#define VERSION	"1.60"
 #endif
 
 #include "port.h"
@@ -254,9 +68,15 @@
 #define SNES_MAX_PAL_VCOUNTER		312
 #define SNES_HCOUNTER_MAX			341
 
+#ifndef ALLOW_CPU_OVERCLOCK
 #define ONE_CYCLE					6
 #define SLOW_ONE_CYCLE				8
 #define TWO_CYCLES					12
+#else
+#define ONE_CYCLE      (Settings.OneClockCycle)
+#define SLOW_ONE_CYCLE (Settings.OneSlowClockCycle)
+#define TWO_CYCLES     (Settings.TwoClockCycles)
+#endif
 #define	ONE_DOT_CYCLE				4
 
 #define SNES_CYCLES_PER_SCANLINE	(SNES_HCOUNTER_MAX * ONE_DOT_CYCLE)
@@ -270,7 +90,7 @@
 #define	SNES_HDMA_START_HC			1106					// FIXME: not true
 #define	SNES_HBLANK_END_HC			4						// H=1
 #define	SNES_HDMA_INIT_HC			20						// FIXME: not true
-#define	SNES_RENDER_START_HC		(48 * ONE_DOT_CYCLE)	// FIXME: Snes9x renders a line at a time.
+#define	SNES_RENDER_START_HC		(128 * ONE_DOT_CYCLE)	// FIXME: Snes9x renders a line at a time.
 
 #define SNES_TR_MASK		(1 <<  4)
 #define SNES_TL_MASK		(1 <<  5)
@@ -303,7 +123,7 @@ struct SCPUState
 	int32	PrevCycles;
 	int32	V_Counter;
 	uint8	*PCBase;
-	bool8	NMILine;
+	bool8	NMIPending;
 	bool8	IRQLine;
 	bool8	IRQTransition;
 	bool8	IRQLastState;
@@ -336,6 +156,14 @@ enum
 	HC_WRAM_REFRESH_EVENT = 6
 };
 
+enum
+{
+	IRQ_NONE        = 0x0,
+	IRQ_SET_FLAG    = 0x1,
+	IRQ_CLEAR_FLAG  = 0x2,
+	IRQ_TRIGGER_NMI = 0x4
+};
+
 struct STimings
 {
 	int32	H_Max_Master;
@@ -347,15 +175,17 @@ struct STimings
 	int32	HDMAInit;
 	int32	HDMAStart;
 	int32	NMITriggerPos;
+	int32	NextIRQTimer;
 	int32	IRQTriggerCycles;
 	int32	WRAMRefreshPos;
 	int32	RenderPos;
 	bool8	InterlaceField;
 	int32	DMACPUSync;		// The cycles to synchronize DMA and CPU. Snes9x cannot emulate correctly.
 	int32	NMIDMADelay;	// The delay of NMI trigger after DMA transfers. Snes9x cannot emulate correctly.
-	int32	IRQPendCount;	// This value is just a hack.
+	int32	IRQFlagChanging;	// This value is just a hack.
 	int32	APUSpeedup;
 	bool8	APUAllowTimeOverflow;
+	int32	SuperFX2CoreSpeed;	// Make the SuperFX2 Core Speed adjustable
 };
 
 struct SSettings
@@ -369,6 +199,7 @@ struct SSettings
 	bool8	TraceUnknownRegisters;
 	bool8	TraceDSP;
 	bool8	TraceHCEvent;
+	bool8	TraceSMP;
 #endif
 
 	bool8	SuperFX = 0;
@@ -389,6 +220,7 @@ struct SSettings
 	static const bool8	SuperScopeMaster = 1;
 	static const bool8	JustifierMaster = 1;
 	static const bool8	MultiPlayer5Master = 1;
+	static const bool8	MacsRifleMaster = 1;
 
 	bool8	ForceLoROM = 0;
 	bool8	ForceHiROM = 0;
@@ -415,12 +247,14 @@ struct SSettings
 	bool8	Mute = 0;
 	static const bool8	DynamicRateControl = 0;
 	static const int32	DynamicRateLimit = 5; /* Multiplied by 1000 */
+	static int32	InterpolationMethod;
 
 	static const bool8	SupportHiRes = 1;
 	static const bool8	Transparency = 1;
 	uint8	BG_Forced = 0;
 	static const bool8	DisableGraphicWindows = 0;
 
+	static const bool8	DisplayTime = 0;
 	static const bool8	DisplayFrameRate = 0;
 	static const bool8	DisplayWatchedAddresses = 0;
 	static const bool8	DisplayPressedKeys = 0;
@@ -428,6 +262,7 @@ struct SSettings
 	static const bool8	AutoDisplayMessages = 0;
 	static const uint32	InitialInfoStringTimeout = 0;
 	static uint16	DisplayColor;
+	static bool8	BilinearFilter;
 
 	static const bool8	Multi = 0;
 	char	CartAName[PATH_MAX + 1]{};
@@ -448,6 +283,7 @@ struct SSettings
 	static const bool8	TurboMode = 0;
 	static const uint32	HighSpeedSeek = 0;
 	static const bool8	FrameAdvance = 0;
+	static const bool8	Rewinding = 0;
 
 	static const bool8	NetPlay = 0;
 	static const bool8	NetPlayServer = 0;
@@ -463,15 +299,26 @@ struct SSettings
 	static const bool8	TakeScreenshot = 0;
 	static const int8	StretchScreenshots = 0;
 	static const bool8	SnapshotScreenshots = 0;
+	static char    InitialSnapshotFilename[PATH_MAX + 1];
+	bool8	FastSavestates = 0;
 
 	static const bool8	ApplyCheats = 1;
 	bool8	NoPatch = 0;
 	bool8	IgnorePatchChecksum = 0;
+	bool8	IsPatched = 0;
 	static const int32	AutoSaveDelay = 30;
 	static const bool8	DontSaveOopsSnapshot = 0;
 	static const bool8	UpAndDown = 0;
 
 	static const bool8	OpenGLEnable = 1;
+	
+	static bool8	SeparateEchoBuffer;	
+	static uint32	SuperFXClockMultiplier;
+	static int	OverclockMode;
+	static int	OneClockCycle;
+	static int	OneSlowClockCycle;
+	static int	TwoClockCycles;
+	static int	MaxSpriteTilesPerLine;
 };
 
 struct SSNESGameFixes
@@ -503,5 +350,6 @@ extern struct SSettings			Settings;
 extern struct SCPUState			CPU;
 extern struct STimings			Timings;
 extern struct SSNESGameFixes	SNESGameFixes;
+extern char						String[513];
 
 #endif

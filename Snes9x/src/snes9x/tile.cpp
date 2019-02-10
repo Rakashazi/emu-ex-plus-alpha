@@ -1,194 +1,8 @@
-/***********************************************************************************
-  Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
-
-  (c) Copyright 1996 - 2002  Gary Henderson (gary.henderson@ntlworld.com),
-                             Jerremy Koot (jkoot@snes9x.com)
-
-  (c) Copyright 2002 - 2004  Matthew Kendora
-
-  (c) Copyright 2002 - 2005  Peter Bortas (peter@bortas.org)
-
-  (c) Copyright 2004 - 2005  Joel Yliluoma (http://iki.fi/bisqwit/)
-
-  (c) Copyright 2001 - 2006  John Weidman (jweidman@slip.net)
-
-  (c) Copyright 2002 - 2006  funkyass (funkyass@spam.shaw.ca),
-                             Kris Bleakley (codeviolation@hotmail.com)
-
-  (c) Copyright 2002 - 2010  Brad Jorsch (anomie@users.sourceforge.net),
-                             Nach (n-a-c-h@users.sourceforge.net),
-
-  (c) Copyright 2002 - 2011  zones (kasumitokoduck@yahoo.com)
-
-  (c) Copyright 2006 - 2007  nitsuja
-
-  (c) Copyright 2009 - 2017  BearOso,
-                             OV2
-
-  (c) Copyright 2017         qwertymodo
-
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  BS-X C emulator code
-  (c) Copyright 2005 - 2006  Dreamer Nom,
-                             zones
-
-  C4 x86 assembler and some C emulation code
-  (c) Copyright 2000 - 2003  _Demo_ (_demo_@zsnes.com),
-                             Nach,
-                             zsKnight (zsknight@zsnes.com)
-
-  C4 C++ code
-  (c) Copyright 2003 - 2006  Brad Jorsch,
-                             Nach
-
-  DSP-1 emulator code
-  (c) Copyright 1998 - 2006  _Demo_,
-                             Andreas Naive (andreasnaive@gmail.com),
-                             Gary Henderson,
-                             Ivar (ivar@snes9x.com),
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora,
-                             Nach,
-                             neviksti (neviksti@hotmail.com)
-
-  DSP-2 emulator code
-  (c) Copyright 2003         John Weidman,
-                             Kris Bleakley,
-                             Lord Nightmare (lord_nightmare@users.sourceforge.net),
-                             Matthew Kendora,
-                             neviksti
-
-  DSP-3 emulator code
-  (c) Copyright 2003 - 2006  John Weidman,
-                             Kris Bleakley,
-                             Lancer,
-                             z80 gaiden
-
-  DSP-4 emulator code
-  (c) Copyright 2004 - 2006  Dreamer Nom,
-                             John Weidman,
-                             Kris Bleakley,
-                             Nach,
-                             z80 gaiden
-
-  OBC1 emulator code
-  (c) Copyright 2001 - 2004  zsKnight,
-                             pagefault (pagefault@zsnes.com),
-                             Kris Bleakley
-                             Ported from x86 assembler to C by sanmaiwashi
-
-  SPC7110 and RTC C++ emulator code used in 1.39-1.51
-  (c) Copyright 2002         Matthew Kendora with research by
-                             zsKnight,
-                             John Weidman,
-                             Dark Force
-
-  SPC7110 and RTC C++ emulator code used in 1.52+
-  (c) Copyright 2009         byuu,
-                             neviksti
-
-  S-DD1 C emulator code
-  (c) Copyright 2003         Brad Jorsch with research by
-                             Andreas Naive,
-                             John Weidman
-
-  S-RTC C emulator code
-  (c) Copyright 2001 - 2006  byuu,
-                             John Weidman
-
-  ST010 C++ emulator code
-  (c) Copyright 2003         Feather,
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora
-
-  Super FX x86 assembler emulator code
-  (c) Copyright 1998 - 2003  _Demo_,
-                             pagefault,
-                             zsKnight
-
-  Super FX C emulator code
-  (c) Copyright 1997 - 1999  Ivar,
-                             Gary Henderson,
-                             John Weidman
-
-  Sound emulator code used in 1.5-1.51
-  (c) Copyright 1998 - 2003  Brad Martin
-  (c) Copyright 1998 - 2006  Charles Bilyue'
-
-  Sound emulator code used in 1.52+
-  (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
-
-  S-SMP emulator code used in 1.54+
-  (c) Copyright 2016         byuu
-
-  SH assembler code partly based on x86 assembler code
-  (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
-
-  2xSaI filter
-  (c) Copyright 1999 - 2001  Derek Liauw Kie Fa
-
-  HQ2x, HQ3x, HQ4x filters
-  (c) Copyright 2003         Maxim Stepin (maxim@hiend3d.com)
-
-  NTSC filter
-  (c) Copyright 2006 - 2007  Shay Green
-
-  GTK+ GUI code
-  (c) Copyright 2004 - 2017  BearOso
-
-  Win32 GUI code
-  (c) Copyright 2003 - 2006  blip,
-                             funkyass,
-                             Matthew Kendora,
-                             Nach,
-                             nitsuja
-  (c) Copyright 2009 - 2017  OV2
-
-  Mac OS GUI code
-  (c) Copyright 1998 - 2001  John Stiles
-  (c) Copyright 2001 - 2011  zones
-
-  Libretro port
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  Specific ports contains the works of other authors. See headers in
-  individual files.
-
-
-  Snes9x homepage: http://www.snes9x.com/
-
-  Permission to use, copy, modify and/or distribute Snes9x in both binary
-  and source form, for non-commercial purposes, is hereby granted without
-  fee, providing that this license information and copyright notice appear
-  with all copies and any derived work.
-
-  This software is provided 'as-is', without any express or implied
-  warranty. In no event shall the authors be held liable for any damages
-  arising from the use of this software or it's derivatives.
-
-  Snes9x is freeware for PERSONAL USE only. Commercial users should
-  seek permission of the copyright holders first. Commercial use includes,
-  but is not limited to, charging money for Snes9x or software derived from
-  Snes9x, including Snes9x or derivatives in commercial game bundles, and/or
-  using Snes9x as a promotion for your commercial product.
-
-  The copyright holders request that bug fixes and improvements to the code
-  should be forwarded to them so everyone can benefit from the modifications
-  in future versions.
-
-  Super NES and Super Nintendo Entertainment System are trademarks of
-  Nintendo Co., Limited and its subsidiary companies.
- ***********************************************************************************/
-
+/*****************************************************************************\
+     Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
+                This file is licensed under the Snes9x License.
+   For further information, consult the LICENSE file in the root directory.
+\*****************************************************************************/
 
 // This file includes itself multiple times.
 // The other option would be to have 4 files, where A includes B, and B includes C 3 times, and C includes D 5 times.
@@ -206,15 +20,14 @@
 static uint32	pixbit[8][16];
 static uint8	hrbit_odd[256];
 static uint8	hrbit_even[256];
-static const uint16	BlackColourMap[256]{};
 
 void S9xInitTileRenderer (void)
 {
-	register int	i;
+	int	i;
 
 	for (i = 0; i < 16; i++)
 	{
-		register uint32	b = 0;
+		uint32	b = 0;
 
 	#ifdef LSB_FIRST
 		if (i & 8)
@@ -242,8 +55,8 @@ void S9xInitTileRenderer (void)
 
 	for (i = 0; i < 256; i++)
 	{
-		register uint8	m = 0;
-		register uint8	s = 0;
+		uint8	m = 0;
+		uint8	s = 0;
 
 		if (i & 0x80)
 			s |= 8;
@@ -279,7 +92,7 @@ void S9xInitTileRenderer (void)
 
 static uint8 ConvertTile2 (uint8 *pCache, uint32 TileAddr, uint32)
 {
-	register uint8	*tp      = &Memory.VRAM[TileAddr];
+	uint8	*tp      = &Memory.VRAM[TileAddr];
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -288,7 +101,7 @@ static uint8 ConvertTile2 (uint8 *pCache, uint32 TileAddr, uint32)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -302,7 +115,7 @@ static uint8 ConvertTile2 (uint8 *pCache, uint32 TileAddr, uint32)
 
 static uint8 ConvertTile4 (uint8 *pCache, uint32 TileAddr, uint32)
 {
-	register uint8	*tp      = &Memory.VRAM[TileAddr];
+	uint8	*tp      = &Memory.VRAM[TileAddr];
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -311,7 +124,7 @@ static uint8 ConvertTile4 (uint8 *pCache, uint32 TileAddr, uint32)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -327,7 +140,7 @@ static uint8 ConvertTile4 (uint8 *pCache, uint32 TileAddr, uint32)
 
 static uint8 ConvertTile8 (uint8 *pCache, uint32 TileAddr, uint32)
 {
-	register uint8	*tp      = &Memory.VRAM[TileAddr];
+	uint8	*tp      = &Memory.VRAM[TileAddr];
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -336,7 +149,7 @@ static uint8 ConvertTile8 (uint8 *pCache, uint32 TileAddr, uint32)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -364,7 +177,7 @@ static uint8 ConvertTile8 (uint8 *pCache, uint32 TileAddr, uint32)
 
 static uint8 ConvertTile2h_odd (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 {
-	register uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
+	uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -378,7 +191,7 @@ static uint8 ConvertTile2h_odd (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -392,7 +205,7 @@ static uint8 ConvertTile2h_odd (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 
 static uint8 ConvertTile4h_odd (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 {
-	register uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
+	uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -406,7 +219,7 @@ static uint8 ConvertTile4h_odd (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -430,7 +243,7 @@ static uint8 ConvertTile4h_odd (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 
 static uint8 ConvertTile2h_even (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 {
-	register uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
+	uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -444,7 +257,7 @@ static uint8 ConvertTile2h_even (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -458,7 +271,7 @@ static uint8 ConvertTile2h_even (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 
 static uint8 ConvertTile4h_even (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 {
-	register uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
+	uint8	*tp1     = &Memory.VRAM[TileAddr], *tp2;
 	uint32			*p       = (uint32 *) pCache;
 	uint32			non_zero = 0;
 	uint8			line;
@@ -472,7 +285,7 @@ static uint8 ConvertTile4h_even (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 	{
 		uint32			p1 = 0;
 		uint32			p2 = 0;
-		register uint8	pix;
+		uint8	pix;
 
 		DOBIT( 0, 0);
 		DOBIT( 1, 1);
@@ -489,7 +302,6 @@ static uint8 ConvertTile4h_even (uint8 *pCache, uint32 TileAddr, uint32 Tile)
 #undef DOBIT
 
 // First-level include: Get all the renderers.
-
 #include "tile.cpp"
 
 // Functions to select which converter and renderer to use.
@@ -587,6 +399,14 @@ void S9xSelectTileRenderers (int BGMode, bool8 sub, bool8 obj)
 			if (Memory.FillRAM[0x2130] & 2)
 				i++;
 		}
+		if (IPPU.MaxBrightness != 0xf)
+		{
+			if (i == 1)
+				i = 7;
+			else if (i == 3)
+				i = 8;
+		}
+
 	}
 
 	GFX.DrawTileMath        = DT[i];
@@ -717,8 +537,6 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 #define SELECT_PALETTE() \
 	if (BG.DirectColourMode) \
 	{ \
-		if (IPPU.DirectColourMapsNeedRebuild) \
-			S9xBuildDirectColourMaps(); \
 		GFX.RealScreenColors = DirectColourMaps[(Tile >> 10) & 7]; \
 	} \
 	else \
@@ -753,8 +571,8 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #define DRAW_TILE() \
 	uint8			*pCache; \
-	register int32	l; \
-	register uint8	*bp, Pix; \
+	int32	l; \
+	uint8	*bp, Pix; \
 	\
 	GET_CACHED_TILE(); \
 	if (IS_BLANK_TILE()) \
@@ -764,67 +582,47 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	if (!(Tile & (V_FLIP | H_FLIP))) \
 	{ \
 		bp = pCache + BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp += 8 * PITCH, Offset += GFX.PPL) \
 		{ \
-			DRAW_PIXEL(0, Pix = bp[0]); \
-			DRAW_PIXEL(1, Pix = bp[1]); \
-			DRAW_PIXEL(2, Pix = bp[2]); \
-			DRAW_PIXEL(3, Pix = bp[3]); \
-			DRAW_PIXEL(4, Pix = bp[4]); \
-			DRAW_PIXEL(5, Pix = bp[5]); \
-			DRAW_PIXEL(6, Pix = bp[6]); \
-			DRAW_PIXEL(7, Pix = bp[7]); \
+			for (int x = 0; x < 8; x++) { \
+				DRAW_PIXEL(x, Pix = bp[x]); \
+			} \
 		} \
 	} \
 	else \
 	if (!(Tile & V_FLIP)) \
 	{ \
 		bp = pCache + BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp += 8 * PITCH, Offset += GFX.PPL) \
 		{ \
-			DRAW_PIXEL(0, Pix = bp[7]); \
-			DRAW_PIXEL(1, Pix = bp[6]); \
-			DRAW_PIXEL(2, Pix = bp[5]); \
-			DRAW_PIXEL(3, Pix = bp[4]); \
-			DRAW_PIXEL(4, Pix = bp[3]); \
-			DRAW_PIXEL(5, Pix = bp[2]); \
-			DRAW_PIXEL(6, Pix = bp[1]); \
-			DRAW_PIXEL(7, Pix = bp[0]); \
+			for (int x = 0; x < 8; x++) { \
+				DRAW_PIXEL(x, Pix = bp[7 - x]); \
+			} \
 		} \
 	} \
 	else \
 	if (!(Tile & H_FLIP)) \
 	{ \
 		bp = pCache + 56 - BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp -= 8 * PITCH, Offset += GFX.PPL) \
 		{ \
-			DRAW_PIXEL(0, Pix = bp[0]); \
-			DRAW_PIXEL(1, Pix = bp[1]); \
-			DRAW_PIXEL(2, Pix = bp[2]); \
-			DRAW_PIXEL(3, Pix = bp[3]); \
-			DRAW_PIXEL(4, Pix = bp[4]); \
-			DRAW_PIXEL(5, Pix = bp[5]); \
-			DRAW_PIXEL(6, Pix = bp[6]); \
-			DRAW_PIXEL(7, Pix = bp[7]); \
+			for (int x = 0; x < 8; x++) { \
+				DRAW_PIXEL(x, Pix = bp[x]); \
+			} \
 		} \
 	} \
 	else \
 	{ \
 		bp = pCache + 56 - BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp -= 8 * PITCH, Offset += GFX.PPL) \
 		{ \
-			DRAW_PIXEL(0, Pix = bp[7]); \
-			DRAW_PIXEL(1, Pix = bp[6]); \
-			DRAW_PIXEL(2, Pix = bp[5]); \
-			DRAW_PIXEL(3, Pix = bp[4]); \
-			DRAW_PIXEL(4, Pix = bp[3]); \
-			DRAW_PIXEL(5, Pix = bp[2]); \
-			DRAW_PIXEL(6, Pix = bp[1]); \
-			DRAW_PIXEL(7, Pix = bp[0]); \
+			for (int x = 0; x < 8; x++) { \
+				DRAW_PIXEL(x, Pix = bp[7 - x]); \
+			} \
 		} \
 	}
 
@@ -848,8 +646,8 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #define DRAW_TILE() \
 	uint8			*pCache; \
-	register int32	l; \
-	register uint8	*bp, Pix, w; \
+	int32	l; \
+	uint8	*bp, Pix, w; \
 	\
 	GET_CACHED_TILE(); \
 	if (IS_BLANK_TILE()) \
@@ -859,7 +657,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	if (!(Tile & (V_FLIP | H_FLIP))) \
 	{ \
 		bp = pCache + BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp += 8 * PITCH, Offset += GFX.PPL) \
 		{ \
 			w = Width; \
@@ -880,7 +678,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	if (!(Tile & V_FLIP)) \
 	{ \
 		bp = pCache + BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp += 8 * PITCH, Offset += GFX.PPL) \
 		{ \
 			w = Width; \
@@ -901,7 +699,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	if (!(Tile & H_FLIP)) \
 	{ \
 		bp = pCache + 56 - BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp -= 8 * PITCH, Offset += GFX.PPL) \
 		{ \
 			w = Width; \
@@ -921,7 +719,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	else \
 	{ \
 		bp = pCache + 56 - BPSTART; \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, bp -= 8 * PITCH, Offset += GFX.PPL) \
 		{ \
 			w = Width; \
@@ -960,8 +758,8 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #define DRAW_TILE() \
 	uint8			*pCache; \
-	register int32	l, w; \
-	register uint8	Pix; \
+	int32	l, w; \
+	uint8	Pix; \
 	\
 	GET_CACHED_TILE(); \
 	if (IS_BLANK_TILE()) \
@@ -978,7 +776,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	\
 	if (Pix) \
 	{ \
-		uint32 OffsetInLine = Offset % GFX.RealPPL; \
+		OFFSET_IN_LINE; \
 		for (l = LineCount; l > 0; l--, Offset += GFX.PPL) \
 		{ \
 			for (w = Width - 1; w >= 0; w--) \
@@ -1010,12 +808,12 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 #define Pix				0
 
 #define DRAW_TILE() \
-	register uint32	l, x; \
+	uint32	l, x; \
 	\
 	GFX.RealScreenColors = IPPU.ScreenColors; \
 	GFX.ScreenColors = GFX.ClipColors ? BlackColourMap : GFX.RealScreenColors; \
 	\
-	uint32 OffsetInLine = Offset % GFX.RealPPL; \
+	OFFSET_IN_LINE; \
 	for (l = GFX.StartY; l <= GFX.EndY; l++, Offset += GFX.PPL) \
 	{ \
 		for (x = Left; x < Right; x++) \
@@ -1047,6 +845,8 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #define CLIP_10_BIT_SIGNED(a)	(((a) & 0x2000) ? ((a) | ~0x3ff) : ((a) & 0x3ff))
 
+extern struct SLineMatrixData	LineMatrixData[240];
+
 #define NO_INTERLACE	1
 #define Z1				(D + 7)
 #define Z2				(D + 7)
@@ -1059,8 +859,6 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	\
 	if (DCMODE) \
 	{ \
-		if (IPPU.DirectColourMapsNeedRebuild) \
-			S9xBuildDirectColourMaps(); \
 		GFX.RealScreenColors = DirectColourMaps[0]; \
 	} \
 	else \
@@ -1072,9 +870,9 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	int	startx; \
 	\
 	uint32	Offset = GFX.StartY * GFX.PPL; \
-	struct SLineMatrixData	*l = &GFX.LineMatrixData[GFX.StartY]; \
+	struct SLineMatrixData	*l = &LineMatrixData[GFX.StartY]; \
 	\
-	uint32 OffsetInLine = Offset % GFX.RealPPL; \
+	OFFSET_IN_LINE; \
 	for (uint32 Line = GFX.StartY; Line <= GFX.EndY; Line++, Offset += GFX.PPL, l++) \
 	{ \
 		int	yy, starty; \
@@ -1157,8 +955,6 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	\
 	if (DCMODE) \
 	{ \
-		if (IPPU.DirectColourMapsNeedRebuild) \
-			S9xBuildDirectColourMaps(); \
 		GFX.RealScreenColors = DirectColourMaps[0]; \
 	} \
 	else \
@@ -1188,9 +984,9 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 	} \
 	\
 	uint32	Offset = StartY * GFX.PPL; \
-	struct SLineMatrixData	*l = &GFX.LineMatrixData[StartY]; \
+	struct SLineMatrixData	*l = &LineMatrixData[StartY]; \
 	\
-	uint32 OffsetInLine = Offset % GFX.RealPPL; \
+	OFFSET_IN_LINE; \
 	for (uint32 Line = StartY; Line <= GFX.EndY; Line += VMosaic, Offset += VMosaic * GFX.PPL, l += VMosaic) \
 	{ \
 		if (Line + VMosaic > GFX.EndY) \
@@ -1366,6 +1162,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 // The 1x1 pixel plotter, for speedhacking modes.
 
+#define OFFSET_IN_LINE
 #define DRAW_PIXEL(N, M) \
 	if (Z1 > GFX.DB[Offset + N] && (M)) \
 	{ \
@@ -1400,6 +1197,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #undef NAME2
 #undef DRAW_PIXEL
+#undef OFFSET_IN_LINE
 
 // Hires pixel plotter, this combines the main and subscreen pixels as appropriate to render hires or pseudo-hires images.
 // Use it only on the main screen, subscreen should use Normal2x1 instead.
@@ -1416,12 +1214,13 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 		GFX.S[Offset + 2 * N + 1] = MATH(GFX.ScreenColors[Pix], GFX.SubScreen[Offset + 2 * N], GFX.SubZBuffer[Offset + 2 * N]); \
 		if ((OffsetInLine + 2 * N ) != (SNES_WIDTH - 1) << 1) \
 			GFX.S[Offset + 2 * N + 2] = MATH((GFX.ClipColors ? 0 : GFX.SubScreen[Offset + 2 * N + 2]), GFX.RealScreenColors[Pix], GFX.SubZBuffer[Offset + 2 * N]); \
-		if ((OffsetInLine + 2 * N) == 0) \
+		if ((OffsetInLine + 2 * N) == 0 || (OffsetInLine + 2 * N) == GFX.RealPPL) \
 			GFX.S[Offset + 2 * N] = MATH((GFX.ClipColors ? 0 : GFX.SubScreen[Offset + 2 * N]), GFX.RealScreenColors[Pix], GFX.SubZBuffer[Offset + 2 * N]); \
 		GFX.DB[Offset + 2 * N] = GFX.DB[Offset + 2 * N + 1] = Z2; \
 	}
 
-
+#define OFFSET_IN_LINE \
+	uint32 OffsetInLine = Offset % GFX.RealPPL;
 #define DRAW_PIXEL(N, M)	DRAW_PIXEL_H2x1(N, M)
 #define NAME2				Hires
 
@@ -1431,6 +1230,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #undef NAME2
 #undef DRAW_PIXEL
+#undef OFFSET_IN_LINE
 
 // Interlace: Only draw every other line, so we'll redefine BPSTART and PITCH to do so.
 // Otherwise, it's the same as Normal2x1/Hires2x1.
@@ -1443,6 +1243,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #ifndef NO_INTERLACE
 
+#define OFFSET_IN_LINE
 #define DRAW_PIXEL(N, M)	DRAW_PIXEL_N2x1(N, M)
 #define NAME2				Interlace
 
@@ -1452,7 +1253,10 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #undef NAME2
 #undef DRAW_PIXEL
+#undef OFFSET_IN_LINE
 
+#define OFFSET_IN_LINE \
+	uint32 OffsetInLine = Offset % GFX.RealPPL;
 #define DRAW_PIXEL(N, M)	DRAW_PIXEL_H2x1(N, M)
 #define NAME2				HiresInterlace
 
@@ -1462,6 +1266,7 @@ void S9xSelectTileConverter (int depth, bool8 hires, bool8 sub, bool8 mosaic)
 
 #undef NAME2
 #undef DRAW_PIXEL
+#undef OFFSET_IN_LINE
 
 #endif
 
@@ -1489,6 +1294,13 @@ static void MAKENAME(NAME1, Add_, NAME2) (ARGS)
 #undef MATH
 }
 
+static void MAKENAME(NAME1, Add_Brightness_, NAME2) (ARGS)
+{
+#define MATH(A, B, C)	REGMATH(ADD_BRIGHTNESS, A, B, C)
+	DRAW_TILE();
+#undef MATH
+}
+
 static void MAKENAME(NAME1, AddF1_2_, NAME2) (ARGS)
 {
 #define MATH(A, B, C)	MATHF1_2(ADD, A, B, C)
@@ -1499,6 +1311,13 @@ static void MAKENAME(NAME1, AddF1_2_, NAME2) (ARGS)
 static void MAKENAME(NAME1, AddS1_2_, NAME2) (ARGS)
 {
 #define MATH(A, B, C)	MATHS1_2(ADD, A, B, C)
+	DRAW_TILE();
+#undef MATH
+}
+
+static void MAKENAME(NAME1, AddS1_2_Brightness_, NAME2) (ARGS)
+{
+#define MATH(A, B, C)	MATHS1_2(ADD_BRIGHTNESS, A, B, C)
 	DRAW_TILE();
 #undef MATH
 }
@@ -1524,7 +1343,7 @@ static void MAKENAME(NAME1, SubS1_2_, NAME2) (ARGS)
 #undef MATH
 }
 
-static void (*MAKENAME(Renderers_, NAME1, NAME2)[7]) (ARGS) =
+static void (*MAKENAME(Renderers_, NAME1, NAME2)[9]) (ARGS) =
 {
 	MAKENAME(NAME1, _, NAME2),
 	MAKENAME(NAME1, Add_, NAME2),
@@ -1532,7 +1351,9 @@ static void (*MAKENAME(Renderers_, NAME1, NAME2)[7]) (ARGS) =
 	MAKENAME(NAME1, AddS1_2_, NAME2),
 	MAKENAME(NAME1, Sub_, NAME2),
 	MAKENAME(NAME1, SubF1_2_, NAME2),
-	MAKENAME(NAME1, SubS1_2_, NAME2)
+	MAKENAME(NAME1, SubS1_2_, NAME2),
+	MAKENAME(NAME1, Add_Brightness_, NAME2),
+	MAKENAME(NAME1, AddS1_2_Brightness_, NAME2)
 };
 
 #undef MAKENAME

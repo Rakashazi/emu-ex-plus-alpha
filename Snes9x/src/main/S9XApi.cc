@@ -18,6 +18,14 @@
 uint16 SSettings::DisplayColor = 0;
 bool8 SSettings::DisplayMovieFrame = 0;
 uint32 SSettings::SoundInputRate = 32000;
+int32 SSettings::InterpolationMethod = DSP_INTERPOLATION_GAUSSIAN;
+bool8 SSettings::SeparateEchoBuffer = false;
+uint32 SSettings::SuperFXClockMultiplier = 100;
+int	SSettings::OverclockMode = 0;
+int	SSettings::OneClockCycle = 6;
+int	SSettings::OneSlowClockCycle = 8;
+int	SSettings::TwoClockCycles = 12;
+int	SSettings::MaxSpriteTilesPerLine = 34;
 const char	*SGFX::InfoString = nullptr;
 uint32	SGFX::InfoStringTimeout = 0;
 char	SGFX::FrameDisplayString[256]{};
