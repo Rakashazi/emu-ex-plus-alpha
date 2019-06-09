@@ -1,194 +1,8 @@
-/***********************************************************************************
-  Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
-
-  (c) Copyright 1996 - 2002  Gary Henderson (gary.henderson@ntlworld.com),
-                             Jerremy Koot (jkoot@snes9x.com)
-
-  (c) Copyright 2002 - 2004  Matthew Kendora
-
-  (c) Copyright 2002 - 2005  Peter Bortas (peter@bortas.org)
-
-  (c) Copyright 2004 - 2005  Joel Yliluoma (http://iki.fi/bisqwit/)
-
-  (c) Copyright 2001 - 2006  John Weidman (jweidman@slip.net)
-
-  (c) Copyright 2002 - 2006  funkyass (funkyass@spam.shaw.ca),
-                             Kris Bleakley (codeviolation@hotmail.com)
-
-  (c) Copyright 2002 - 2010  Brad Jorsch (anomie@users.sourceforge.net),
-                             Nach (n-a-c-h@users.sourceforge.net),
-
-  (c) Copyright 2002 - 2011  zones (kasumitokoduck@yahoo.com)
-
-  (c) Copyright 2006 - 2007  nitsuja
-
-  (c) Copyright 2009 - 2017  BearOso,
-                             OV2
-
-  (c) Copyright 2017         qwertymodo
-
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  BS-X C emulator code
-  (c) Copyright 2005 - 2006  Dreamer Nom,
-                             zones
-
-  C4 x86 assembler and some C emulation code
-  (c) Copyright 2000 - 2003  _Demo_ (_demo_@zsnes.com),
-                             Nach,
-                             zsKnight (zsknight@zsnes.com)
-
-  C4 C++ code
-  (c) Copyright 2003 - 2006  Brad Jorsch,
-                             Nach
-
-  DSP-1 emulator code
-  (c) Copyright 1998 - 2006  _Demo_,
-                             Andreas Naive (andreasnaive@gmail.com),
-                             Gary Henderson,
-                             Ivar (ivar@snes9x.com),
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora,
-                             Nach,
-                             neviksti (neviksti@hotmail.com)
-
-  DSP-2 emulator code
-  (c) Copyright 2003         John Weidman,
-                             Kris Bleakley,
-                             Lord Nightmare (lord_nightmare@users.sourceforge.net),
-                             Matthew Kendora,
-                             neviksti
-
-  DSP-3 emulator code
-  (c) Copyright 2003 - 2006  John Weidman,
-                             Kris Bleakley,
-                             Lancer,
-                             z80 gaiden
-
-  DSP-4 emulator code
-  (c) Copyright 2004 - 2006  Dreamer Nom,
-                             John Weidman,
-                             Kris Bleakley,
-                             Nach,
-                             z80 gaiden
-
-  OBC1 emulator code
-  (c) Copyright 2001 - 2004  zsKnight,
-                             pagefault (pagefault@zsnes.com),
-                             Kris Bleakley
-                             Ported from x86 assembler to C by sanmaiwashi
-
-  SPC7110 and RTC C++ emulator code used in 1.39-1.51
-  (c) Copyright 2002         Matthew Kendora with research by
-                             zsKnight,
-                             John Weidman,
-                             Dark Force
-
-  SPC7110 and RTC C++ emulator code used in 1.52+
-  (c) Copyright 2009         byuu,
-                             neviksti
-
-  S-DD1 C emulator code
-  (c) Copyright 2003         Brad Jorsch with research by
-                             Andreas Naive,
-                             John Weidman
-
-  S-RTC C emulator code
-  (c) Copyright 2001 - 2006  byuu,
-                             John Weidman
-
-  ST010 C++ emulator code
-  (c) Copyright 2003         Feather,
-                             John Weidman,
-                             Kris Bleakley,
-                             Matthew Kendora
-
-  Super FX x86 assembler emulator code
-  (c) Copyright 1998 - 2003  _Demo_,
-                             pagefault,
-                             zsKnight
-
-  Super FX C emulator code
-  (c) Copyright 1997 - 1999  Ivar,
-                             Gary Henderson,
-                             John Weidman
-
-  Sound emulator code used in 1.5-1.51
-  (c) Copyright 1998 - 2003  Brad Martin
-  (c) Copyright 1998 - 2006  Charles Bilyue'
-
-  Sound emulator code used in 1.52+
-  (c) Copyright 2004 - 2007  Shay Green (gblargg@gmail.com)
-
-  S-SMP emulator code used in 1.54+
-  (c) Copyright 2016         byuu
-
-  SH assembler code partly based on x86 assembler code
-  (c) Copyright 2002 - 2004  Marcus Comstedt (marcus@mc.pp.se)
-
-  2xSaI filter
-  (c) Copyright 1999 - 2001  Derek Liauw Kie Fa
-
-  HQ2x, HQ3x, HQ4x filters
-  (c) Copyright 2003         Maxim Stepin (maxim@hiend3d.com)
-
-  NTSC filter
-  (c) Copyright 2006 - 2007  Shay Green
-
-  GTK+ GUI code
-  (c) Copyright 2004 - 2017  BearOso
-
-  Win32 GUI code
-  (c) Copyright 2003 - 2006  blip,
-                             funkyass,
-                             Matthew Kendora,
-                             Nach,
-                             nitsuja
-  (c) Copyright 2009 - 2017  OV2
-
-  Mac OS GUI code
-  (c) Copyright 1998 - 2001  John Stiles
-  (c) Copyright 2001 - 2011  zones
-
-  Libretro port
-  (c) Copyright 2011 - 2017  Hans-Kristian Arntzen,
-                             Daniel De Matteis
-                             (Under no circumstances will commercial rights be given)
-
-
-  Specific ports contains the works of other authors. See headers in
-  individual files.
-
-
-  Snes9x homepage: http://www.snes9x.com/
-
-  Permission to use, copy, modify and/or distribute Snes9x in both binary
-  and source form, for non-commercial purposes, is hereby granted without
-  fee, providing that this license information and copyright notice appear
-  with all copies and any derived work.
-
-  This software is provided 'as-is', without any express or implied
-  warranty. In no event shall the authors be held liable for any damages
-  arising from the use of this software or it's derivatives.
-
-  Snes9x is freeware for PERSONAL USE only. Commercial users should
-  seek permission of the copyright holders first. Commercial use includes,
-  but is not limited to, charging money for Snes9x or software derived from
-  Snes9x, including Snes9x or derivatives in commercial game bundles, and/or
-  using Snes9x as a promotion for your commercial product.
-
-  The copyright holders request that bug fixes and improvements to the code
-  should be forwarded to them so everyone can benefit from the modifications
-  in future versions.
-
-  Super NES and Super Nintendo Entertainment System are trademarks of
-  Nintendo Co., Limited and its subsidiary companies.
- ***********************************************************************************/
-
+/*****************************************************************************\
+     Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
+                This file is licensed under the Snes9x License.
+   For further information, consult the LICENSE file in the root directory.
+\*****************************************************************************/
 
 #ifdef DEBUGGER
 
@@ -201,6 +15,8 @@
 #include "display.h"
 #include "debug.h"
 #include "missing.h"
+
+#include "apu/bapu/snes/snes.hpp"
 
 extern SDMA	DMA[8];
 extern FILE	*apu_trace;
@@ -259,7 +75,7 @@ static const char	*HelpMessage[] =
 //	"ai                     - Shou APU vectors",
 //	"a                      - Show APU status",
 //	"x                      - Show Sound DSP status",
-//	"A                      - Toggle APU instruction tracing to aputrace.log",
+	"A                      - Toggle APU instruction tracing to trace.log",
 //	"B                      - Toggle sound DSP register tracing to aputrace.log",
 //	"C                      - Dump sound sample addresses",
 //	"ad [Address]           - Dump APU RAM from PC or [Address]",
@@ -341,7 +157,6 @@ static uint8 debug_sa1_op_print (char *, uint8, uint16);
 static void debug_line_print (const char *);
 static int debug_get_number (char *, uint16 *);
 static short debug_get_start_address (char *, uint8 *, uint32 *);
-static void debug_process_command (char *);
 static void debug_print_window (uint8 *);
 static const char * debug_clip_fn (int);
 static void debug_whats_used (void);
@@ -887,7 +702,7 @@ static uint8 debug_cpu_op_print (char *Line, uint8 Bank, uint16 Address)
 			break;
 	}
 
-	sprintf(Line, "%-44s A:%04X X:%04X Y:%04X D:%04X DB:%02X S:%04X P:%c%c%c%c%c%c%c%c%c HC:%04ld VC:%03ld FC:%02d %03x",
+	sprintf(Line, "%-44s A:%04X X:%04X Y:%04X D:%04X DB:%02X S:%04X P:%c%c%c%c%c%c%c%c%c HC:%04ld VC:%03ld FC:%02d %c%c%c %c%c%c %c%c HT:%d VT:%d C:%d",
 	        Line, Registers.A.W, Registers.X.W, Registers.Y.W,
 	        Registers.D.W, Registers.DB, Registers.S.W,
 	        CheckEmulation() ? 'E' : 'e',
@@ -902,7 +717,13 @@ static uint8 debug_cpu_op_print (char *Line, uint8 Bank, uint16 Address)
 	        (long) CPU.Cycles,
 	        (long) CPU.V_Counter,
 	        IPPU.FrameCount,
-	        (CPU.IRQExternal ? 0x100 : 0) | (PPU.HTimerEnabled ? 0x10 : 0) | (PPU.VTimerEnabled ? 0x01 : 0));
+	        CPU.IRQExternal ?  'E' : ' ', PPU.HTimerEnabled ? 'H' : ' ', PPU.VTimerEnabled ? 'V' : ' ',
+	        CPU.NMIPending ? 'N' : '.',
+	        Memory.FillRAM[0x4200] & 0x80 ? 'n' : '.',
+	        Memory.FillRAM[0x4210] & 0x80 ? '+' : '.',
+	        CPU.IRQTransition ? 'T' : ' ',
+	        CPU.IRQLine ? 'L' : ' ',
+	        PPU.HTimerPosition, PPU.VTimerPosition, Timings.NextIRQTimer);
 
 	return (Size);
 }
@@ -1317,7 +1138,7 @@ static uint8 debug_sa1_op_print (char *Line, uint8 Bank, uint16 Address)
 			break;
 	}
 
-	sprintf(Line, "%-44s A:%04X X:%04X Y:%04X D:%04X DB:%02X S:%04X P:%c%c%c%c%c%c%c%c%c HC:%04ld VC:%03ld FC:%02d",
+	sprintf(Line, "%-44s A:%04X X:%04X Y:%04X D:%04X DB:%02X S:%04X P:%c%c%c%c%c%c%c%c%c HC:%04ld VC:%03ld FC:%02d %c%c",
 	        Line, SA1Registers.A.W, SA1Registers.X.W, SA1Registers.Y.W,
 	        SA1Registers.D.W, SA1Registers.DB, SA1Registers.S.W,
 	        SA1CheckEmulation() ? 'E' : 'e',
@@ -1331,7 +1152,9 @@ static uint8 debug_sa1_op_print (char *Line, uint8 Bank, uint16 Address)
 	        SA1CheckCarry() ? 'C' : 'c',
 	        (long) CPU.Cycles,
 	        (long) CPU.V_Counter,
-	        IPPU.FrameCount);
+	        IPPU.FrameCount,
+	        CPU.NMIPending ? 'P' : ' ',
+	        Memory.FillRAM[0x4210] & 0x80 ? 'N' : ' ');
 
 	return (Size);
 }
@@ -1367,7 +1190,7 @@ static short debug_get_start_address (char *Line, uint8 *Bank, uint32 *Address)
 	return (1);
 }
 
-static void debug_process_command (char *Line)
+void S9xDebugProcessCommand(char *Line)
 {
 	uint8	Bank = Registers.PB;
 	uint32	Address = Registers.PCw;
@@ -1581,8 +1404,11 @@ static void debug_process_command (char *Line)
 	}
 
 	// TODO: reactivate once APU debugger works again
-	/*if (*Line == 'A')
-		spc_core->debug_toggle_trace();*/
+	if (*Line == 'A')
+	{
+		Settings.TraceSMP = !Settings.TraceSMP;
+		printf("SMP tracing %s\n", Settings.TraceSMP ? "enabled" : "disabled");
+	}
 
 /*
 	if (*Line == 'B')
@@ -1643,20 +1469,16 @@ static void debug_process_command (char *Line)
 		}
 
 		*Line = 0;
-	}
+	}*/
+
+
 
 	if (*Line == 'a')
 	{
-		printf("APU in-ports : %02X %02X %02X %02X\n", IAPU.RAM[0xF4], IAPU.RAM[0xF5], IAPU.RAM[0xF6], IAPU.RAM[0xF7]);
-		printf("APU out-ports: %02X %02X %02X %02X\n", APU.OutPorts[0], APU.OutPorts[1], APU.OutPorts[2], APU.OutPorts[3]);
-		printf("ROM/RAM switch: %s\n", (IAPU.RAM[0xf1] & 0x80) ? "ROM" : "RAM");
-
-		for (int i = 0; i < 3; i++)
-			if (APU.TimerEnabled[i])
-				printf("Timer%d enabled, Value: 0x%03X, 4-bit: 0x%02X, Target: 0x%03X\n",
-				       i, APU.Timer[i], IAPU.RAM[0xfd + i], APU.TimerTarget[i]);
+		printf("S-CPU-side ports S-CPU writes these, S-SMP reads: %02X %02X %02X %02X\n", SNES::cpu.port_read(0), SNES::cpu.port_read(1), SNES::cpu.port_read(2), SNES::cpu.port_read(3));
+		printf("S-SMP-side ports S-SMP writes these, S-CPU reads: %02X %02X %02X %02X\n", SNES::smp.port_read(0), SNES::smp.port_read(1), SNES::smp.port_read(2), SNES::smp.port_read(3));
 	}
-
+/*
 	if (*Line == 'P')
 	{
 		Settings.TraceDSP = !Settings.TraceDSP;
@@ -2553,7 +2375,7 @@ void S9xDoDebug (void)
 	S9xTextMode();
 
 	strcpy(Line, "r");
-	debug_process_command(Line);
+	S9xDebugProcessCommand(Line);
 
 	while (CPU.Flags & DEBUG_MODE_FLAG)
 	{
@@ -2567,7 +2389,7 @@ void S9xDoDebug (void)
 		Line[strlen(Line) - 1] = 0;
 
 		Cycles = CPU.Cycles;
-		debug_process_command(Line);
+		S9xDebugProcessCommand(Line);
 		CPU.Cycles = Cycles;
 	}
 

@@ -277,7 +277,6 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	#ifndef SNES9X_VERSION_1_4
 	S9xSetSamplesAvailableCallback([](void *renderAudio)
 		{
-			S9xFinalizeSamples();
 			int samples = S9xGetSampleCount();
 			mixSamples(samples / 2, renderAudio);
 		}, (void*)renderAudio);
@@ -315,7 +314,7 @@ EmuSystem::Error EmuSystem::onInit()
 	S9xInitAPU();
 	assert(Settings.Stereo == TRUE);
 	#ifndef SNES9X_VERSION_1_4
-	S9xInitSound(16, 0);
+	S9xInitSound(16);
 	S9xUnmapAllControls();
 	#else
 	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);

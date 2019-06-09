@@ -54,16 +54,19 @@ seta.cpp \
 seta010.cpp \
 seta011.cpp \
 seta018.cpp \
+sha256.cpp \
 snapshot.cpp \
 spc7110.cpp \
 srtc.cpp \
 tile.cpp \
+tileimpl-h2x1.cpp \
+tileimpl-n1x1.cpp \
+tileimpl-n2x1.cpp \
 apu/apu.cpp \
 apu/bapu/dsp/sdsp.cpp \
-apu/bapu/dsp/SPC_DSP.cpp \
 apu/bapu/smp/smp.cpp \
 apu/bapu/smp/smp_state.cpp
-# conffile.cpp crosshairs.cpp logger.cpp screenshot.cpp snes9x.cpp
+# conffile.cpp crosshairs.cpp logger.cpp screenshot.cpp snes9x.cpp SPC_DSP.cpp statemanager.cpp
 
 SRC += \
 main/Main.cc \
