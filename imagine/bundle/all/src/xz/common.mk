@@ -4,7 +4,7 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-xzVer := 5.2.3
+xzVer := 5.2.4
 xzSrcDir := $(tempDir)/xz-$(xzVer)
 xzSrcArchive := xz-$(xzVer).tar.xz
 
@@ -31,6 +31,7 @@ $(xzSrcDir)/configure : | $(xzSrcArchive)
 	@mkdir -p $(xzSrcDir)
 	tar -mxJf $| -C $(xzSrcDir)/..
 	cp ../gnuconfig/config.* $(xzSrcDir)/build-aux/
+	autoreconf -vfi $(xzSrcDir)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building xz..."

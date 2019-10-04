@@ -42,8 +42,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		"Add/Edit",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &editCheatListView = *makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
-			pushAndShow(editCheatListView, e);
+			pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::EDIT_CHEATS), e);
 		}
 	},
 	onRefreshCheats
@@ -87,7 +86,10 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 					{
 						logMsg("setting cheat name %s", str);
 						renamed(str);
-						name.compile(renderer(), projP);
+						{
+							auto lock = makeControllerMutexLock();
+							name.compile(renderer(), projP);
+						}
 						window().postDraw();
 					}
 					view.dismiss();

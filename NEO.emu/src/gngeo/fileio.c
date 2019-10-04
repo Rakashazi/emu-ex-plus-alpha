@@ -148,7 +148,7 @@ void open_nvram(char *name) {
     const char *gngeo_dir = get_gngeo_dir();
 #endif
     int f;
-    int len = strlen(name) + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
+    int len = strlen(name) + 1 + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
     sprintf(filename, "%s/%s.nv", gngeo_dir, name);
@@ -172,7 +172,7 @@ void open_memcard(char *name) {
     const char *gngeo_dir = get_gngeo_dir();
 #endif
     FILE *f;
-    int len = strlen("memcard") + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
+    int len = strlen("memcard") + 1 + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
     sprintf(filename, "%s/%s", gngeo_dir, "memcard");
@@ -193,7 +193,7 @@ void save_nvram(char *name) {
     const char *gngeo_dir = get_gngeo_dir();
 #endif
     FILE *f;
-    int len = strlen(name) + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
+    int len = strlen(name) + 1 + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
 
     //strlen(name) + strlen(getenv("HOME")) + strlen("/.gngeo/") + 4;
     int i;
@@ -223,7 +223,7 @@ void save_memcard(char *name) {
     const char *gngeo_dir = get_gngeo_dir();
 #endif
     FILE *f;
-    int len = strlen("memcard") + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
+    int len = strlen("memcard") + 1 + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
 
     filename = (char *) alloca(len);
     sprintf(filename, "%s/%s", gngeo_dir, "memcard");

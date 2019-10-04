@@ -1,6 +1,5 @@
 #include <imagine/gui/TextEntry.hh>
 #include <emuframework/Cheats.hh>
-#include <emuframework/MsgPopup.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <gba/Cheats.h>
@@ -65,8 +64,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(cheatsList[c].desc,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{attachParams(), c};
-				pushAndShow(editCheatView, e);
+				pushAndShow(makeView<EmuEditCheatView>(c), e);
 			});
 	}
 }

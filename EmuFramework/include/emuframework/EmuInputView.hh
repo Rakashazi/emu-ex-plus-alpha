@@ -18,20 +18,25 @@
 #include <imagine/gui/View.hh>
 #include <emuframework/EmuVideo.hh>
 
+class VController;
+
 class EmuInputView : public View
 {
 public:
-	EmuInputView(ViewAttachParams attach): View(attach) {}
+	EmuInputView(ViewAttachParams attach, VController &vCtrl);
 	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
-	void onAddedToController(Input::Event e) final {}
 	void resetInput();
+	void setTouchControlsOn(bool on);
+	bool touchControlsAreOn() const;
 
 private:
-	bool ffKeyPushed = false, ffToggleActive = false;
+	VController &vController;
 	IG::WindowRect rect{};
+	bool touchControlsOn = false;
+	bool ffKeyPushed = false, ffToggleActive = false;
 
 	void updateFastforward();
 };

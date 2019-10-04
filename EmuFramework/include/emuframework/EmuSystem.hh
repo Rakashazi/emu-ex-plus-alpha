@@ -92,6 +92,7 @@ public:
 		constexpr LoadProgressMessage() {}
 		constexpr LoadProgressMessage(LoadProgress progress, int intArg, int intArg2, int intArg3):
 			intArg{intArg}, intArg2{intArg2}, intArg3{intArg3}, progress{progress} {}
+		explicit operator bool() const { return progress != LoadProgress::UNSET; }
 		int intArg{};
 		int intArg2{};
 		int intArg3{};
@@ -236,7 +237,7 @@ public:
 	static void pause();
 	static void start();
 	static void closeSystem();
-	static void closeGame(bool allowAutosaveState = 1);
+	static void closeRuntimeSystem(bool allowAutosaveState = 1);
 	[[gnu::format(printf, 1, 2)]]
 	static Error makeError(const char *msg, ...);
 	static Error makeError(std::error_code ec);

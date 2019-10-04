@@ -282,7 +282,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	auto &video = *espec->video;
 	if(multiResOutputWidth)
 	{
-		video.setFormat({{multiResOutputWidth, pixHeight}, pixFmt});
+		video.setFormatLocked({{multiResOutputWidth, pixHeight}, pixFmt});
 		auto img = video.startFrame();
 		auto destPixAddr = (Pixel*)img.pixmap().pixel({0,0});
 		auto lineWidth = spec.LineWidths + spec.DisplayRect.y;
@@ -364,7 +364,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	}
 	else
 	{
-		video.setFormat({{pixWidth, pixHeight}, pixFmt});
+		video.setFormatLocked({{pixWidth, pixHeight}, pixFmt});
 		video.startFrame(srcPix);
 	}
 }

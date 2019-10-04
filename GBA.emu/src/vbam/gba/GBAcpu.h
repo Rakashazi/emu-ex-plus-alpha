@@ -1,8 +1,8 @@
 #ifndef GBACPU_H
 #define GBACPU_H
 
-extern int armExecute(ARM7TDMI &cpu) ATTRS(hot);
-extern int thumbExecute(ARM7TDMI &cpu) ATTRS(hot);
+extern int armExecute(ARM7TDMI &cpu) __attribute__((hot));
+extern int thumbExecute(ARM7TDMI &cpu) __attribute__((hot));
 
 #ifdef __GNUC__
 /*#ifndef __APPLE__
@@ -11,7 +11,7 @@ extern int thumbExecute(ARM7TDMI &cpu) ATTRS(hot);
 # define INSN_REGPARM //nothing
 #endif*/
 //ATTRS(always_inline) inline
-#define INSN_REGPARM ATTRS(hot) inline
+#define INSN_REGPARM __attribute__((hot)) inline
 # define LIKELY(x) __builtin_expect(!!(x),1)
 # define UNLIKELY(x) __builtin_expect(!!(x),0)
 #else

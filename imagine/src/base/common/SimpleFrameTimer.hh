@@ -1,3 +1,5 @@
+#pragma once
+
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -28,16 +30,9 @@ public:
 
 class SimpleFrameTimer : public FrameTimer
 {
-private:
-	Timer timer{};
-	EventLoop eventLoop{};
-	bool requested = false;
-	bool cancelled = false;
-
 public:
-	SimpleFrameTimer() {}
-	bool init(EventLoop loop);
-	void deinit();
+	SimpleFrameTimer(EventLoop loop);
+	~SimpleFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;
 
@@ -45,6 +40,12 @@ public:
 	{
 		return (bool)eventLoop;
 	}
+
+protected:
+	Timer timer{};
+	EventLoop eventLoop{};
+	bool requested = false;
+	bool cancelled = false;
 };
 
 }

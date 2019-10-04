@@ -20,6 +20,11 @@ Gfx::GlyphTextureSet View::defaultFace{};
 Gfx::GlyphTextureSet View::defaultBoldFace{};
 bool View::needsBackControl = needsBackControlDefault;
 
+void ViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e)
+{
+	pushAndShow(std::move(v), e, true);
+}
+
 void ViewController::popAndShow()
 {
 	pop();
@@ -30,28 +35,28 @@ bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 	return false;
 };
 
-Gfx::RendererTask *ViewController::rendererTask()
+std::mutex &ViewController::mutex()
 {
-	return nullptr;
+	return mutex_;
 }
 
 View::~View() {}
 
-void View::pushAndShow(View &v, Input::Event e, bool needsNavView)
+void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
-	assert(controller);
-	controller->pushAndShow(v, e, needsNavView);
+	assumeExpr(controller);
+	controller->pushAndShow(std::move(v), e, needsNavView);
 }
 
 void View::pop()
 {
-	assert(controller);
+	assumeExpr(controller);
 	controller->pop();
 }
 
 void View::popAndShow()
 {
-	assert(controller);
+	assumeExpr(controller);
 	controller->popAndShow();
 }
 
@@ -81,6 +86,8 @@ void View::clearSelection() {}
 
 void View::onShow() {}
 
+void View::onAddedToController(Input::Event e) {}
+
 void View::prepareDraw() {}
 
 void View::setFocus(bool) {}
@@ -97,35 +104,26 @@ void View::postDraw()
 		win->postDraw();
 }
 
-Base::Window &View::window()
+Base::Window &View::window() const
 {
 	assert(win);
 	return *win;
 }
 
-Gfx::Renderer &View::renderer()
+Gfx::Renderer &View::renderer() const
 {
 	assert(renderer_);
 	return *renderer_;
 }
 
-ViewAttachParams View::attachParams()
+ViewAttachParams View::attachParams() const
 {
 	return {*win, *renderer_};
 }
 
-Base::Screen *View::screen()
+Base::Screen *View::screen() const
 {
 	return win ? win->screen() : nullptr;
-}
-
-Gfx::RendererTask *View::rendererTask()
-{
-	if(!controller)
-	{
-		return nullptr;
-	}
-	return controller->rendererTask();
 }
 
 void View::setNeedsBackControl(bool on)
@@ -162,4 +160,14 @@ void View::setController(ViewController *c, Input::Event e)
 bool View::pointIsInView(IG::WP pos)
 {
 	return viewRect().overlaps(pos);
+}
+
+std::optional<std::scoped_lock<std::mutex>> View::makeControllerMutexLock()
+{
+	if(controller)
+	{
+		return std::optional<std::scoped_lock<std::mutex>>{controller->mutex()};
+	}
+	else
+		return {};
 }

@@ -29,6 +29,7 @@
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "private.hh"
+#include "privateInput.hh"
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
@@ -63,7 +64,7 @@ public:
 			{
 				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_SOFT);
-				startGameFromMenu();
+				emuViewController.showEmulation();
 			}
 		},
 		hard
@@ -73,7 +74,7 @@ public:
 			{
 				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_HARD);
-				startGameFromMenu();
+				emuViewController.showEmulation();
 			}
 		},
 		cancel
@@ -113,60 +114,60 @@ static auto onScanStatus =
 			{
 				if(Config::envIsIOS)
 				{
-					popup.postError("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
+					EmuApp::postErrorMessage("BTstack power on failed, make sure the iOS Bluetooth stack is not active");
 				}
 			}
 			bcase BluetoothAdapter::SCAN_FAILED:
 			{
-				popup.postError("Scan failed");
+				EmuApp::postErrorMessage("Scan failed");
 			}
 			bcase BluetoothAdapter::SCAN_NO_DEVS:
 			{
-				popup.post("No devices found");
+				EmuApp::postMessage("No devices found");
 			}
 			bcase BluetoothAdapter::SCAN_PROCESSING:
 			{
-				popup.printf(2, 0, "Checking %d device(s)...", arg);
+				EmuApp::printfMessage(2, 0, "Checking %d device(s)...", arg);
 			}
 			bcase BluetoothAdapter::SCAN_NAME_FAILED:
 			{
-				popup.postError("Failed reading a device name");
+				EmuApp::postErrorMessage("Failed reading a device name");
 			}
 			bcase BluetoothAdapter::SCAN_COMPLETE:
 			{
 				int devs = Bluetooth::pendingDevs();
 				if(devs)
 				{
-					popup.printf(2, 0, "Connecting to %d device(s)...", devs);
+					EmuApp::printfMessage(2, 0, "Connecting to %d device(s)...", devs);
 					Bluetooth::connectPendingDevs(bta);
 				}
 				else
 				{
-					popup.post("Scan complete, no recognized devices");
+					EmuApp::postMessage("Scan complete, no recognized devices");
 				}
 			}
 			/*bcase BluetoothAdapter::SOCKET_OPEN_FAILED:
 			{
-				popup.postError("Failed opening a Bluetooth connection");
+				EmuApp::postErrorMessage("Failed opening a Bluetooth connection");
 			}*/
 		}
 	};
 
 static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
 {
-	popup.postError("Unable to initialize Bluetooth adapter");
+	EmuApp::postErrorMessage("Unable to initialize Bluetooth adapter");
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	if(!FS::exists("/var/lib/dpkg/info/ch.ringwald.btstack.list"))
 	{
-		auto &ynAlertView = *new YesNoAlertView{attach, "BTstack not found, open Cydia and install?"};
-		ynAlertView.setOnYes(
+		auto ynAlertView = std::make_unique<YesNoAlertView>(attach, "BTstack not found, open Cydia and install?");
+		ynAlertView->setOnYes(
 			[](TextMenuItem &, View &view, Input::Event)
 			{
 				view.dismiss();
 				logMsg("launching Cydia");
 				Base::openURL("cydia://package/ch.ringwald.btstack");
 			});
-		modalViewController.pushAndShow(ynAlertView, e, false);
+		emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 	}
 	#endif
 }
@@ -224,8 +225,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Load Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &fPicker = *EmuFilePicker::makeForLoading(attachParams(), e);
-			pushAndShow(fPicker, e, false);
+			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
 		}
 	},
 	systemActions
@@ -235,7 +235,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
-			pushAndShow(*makeView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
+			pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::SYSTEM_ACTIONS), e);
 		}
 	},
 	recentGames
@@ -245,8 +245,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(recentGameList.size())
 			{
-				auto &rMenu = *new RecentGameView{attachParams()};
-				pushAndShow(rMenu, e);
+				pushAndShow(makeView<RecentGameView>(), e);
 			}
 		}
 	},
@@ -255,8 +254,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Bundled Games",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &bMenu = *new BundledGamesView{attachParams()};
-			pushAndShow(bMenu, e);
+			pushAndShow(makeView<BundledGamesView>(), e);
 		}
 	},
 	options
@@ -264,8 +262,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Options",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &oMenu = *new OptionCategoryView{attachParams()};
-			pushAndShow(oMenu, e);
+			pushAndShow(makeView<OptionCategoryView>(), e);
 		}
 	},
 	onScreenInputManager
@@ -273,8 +270,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"On-screen Input Setup",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &tcMenu = *new TouchConfigView{attachParams(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName};
-			pushAndShow(tcMenu, e);
+			pushAndShow(makeView<TouchConfigView>(vController, EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName), e);
 		}
 	},
 	inputManager
@@ -282,8 +278,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Key/Gamepad Input Setup",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &menu = *new InputManagerView{attachParams()};
-			pushAndShow(menu, e);
+			pushAndShow(makeView<InputManagerView>(), e);
 		}
 	},
 	benchmark
@@ -291,8 +286,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Benchmark Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &fPicker = *EmuFilePicker::makeForBenchmarking(attachParams(), e);
-			pushAndShow(fPicker, e, false);
+			pushAndShow(EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
 		}
 	},
 	#ifdef CONFIG_BLUETOOTH
@@ -305,11 +299,11 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			{
 				if(Bluetooth::scanForDevices(*bta, onScanStatus))
 				{
-					popup.post("Starting Scan...\n(see website for device-specific help)", 4);
+					EmuApp::postMessage(4, "Starting Scan...\n(see website for device-specific help)");
 				}
 				else
 				{
-					popup.post("Still scanning", 1);
+					EmuApp::postMessage(1, "Still scanning");
 				}
 			}
 			else
@@ -327,14 +321,14 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			if(Bluetooth::devsConnected())
 			{
 				string_printf(bluetoothDisconnectStr, "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
-				auto &ynAlertView = *new YesNoAlertView{attachParams(), bluetoothDisconnectStr.data()};
-				ynAlertView.setOnYes(
+				auto ynAlertView = makeView<YesNoAlertView>(bluetoothDisconnectStr.data());
+				ynAlertView->setOnYes(
 					[](TextMenuItem &, View &view, Input::Event e)
 					{
 						view.dismiss();
 						Bluetooth::closeBT(bta);
 					});
-				modalViewController.pushAndShow(ynAlertView, e, false);
+				emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 			}
 		}
 	},
@@ -347,7 +341,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(initBTAdapter())
 			{
-				popup.post("Prepare to push the PS button", 4);
+				EmuApp::postMessage(4, "Prepare to push the PS button");
 				auto startedScan = Bluetooth::listenForDevices(*bta,
 					[this](BluetoothAdapter &bta, uint status, int arg)
 					{
@@ -355,19 +349,21 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 						{
 							bcase BluetoothAdapter::INIT_FAILED:
 							{
-								popup.postError(Config::envIsLinux ? "Unable to register server, make sure this executable has cap_net_bind_service enabled and bluetoothd isn't running" :
-									"Bluetooth setup failed", Config::envIsLinux ? 8 : 2);
+								EmuApp::postErrorMessage(Config::envIsLinux ? 8 : 2,
+									Config::envIsLinux ?
+										"Unable to register server, make sure this executable has cap_net_bind_service enabled and bluetoothd isn't running" :
+										"Bluetooth setup failed");
 							}
 							bcase BluetoothAdapter::SCAN_COMPLETE:
 							{
-								popup.post("Push the PS button on your controller\n(see website for pairing help)", 4);
+								EmuApp::postMessage(4, "Push the PS button on your controller\n(see website for pairing help)");
 							}
 							bdefault: onScanStatus(bta, status, arg);
 						}
 					});
 				if(!startedScan)
 				{
-					popup.post("Still scanning", 1);
+					EmuApp::postMessage(1, "Still scanning");
 				}
 			}
 			else
@@ -383,8 +379,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"About",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &credits = *new CreditsView{EmuSystem::creditsViewStr, attachParams()};
-			pushAndShow(credits, e);
+			pushAndShow(makeViewWithName<CreditsView>(EmuSystem::creditsViewStr), e);
 		}
 	},
 	exitApp
@@ -403,6 +398,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		EmuApp::setOnMainMenuItemOptionChanged(
 			[this]()
 			{
+				auto lock = makeControllerMutexLock();
 				item.clear();
 				loadFileBrowserItems();
 				loadStandardItems();
@@ -424,32 +420,28 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 			"Video",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS);
-				pushAndShow(oCategoryMenu, e);
+				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS), e);
 			}
 		},
 		{
 			"Audio",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS);
-				pushAndShow(oCategoryMenu, e);
+				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
 			}
 		},
 		{
 			"System",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS);
-				pushAndShow(oCategoryMenu, e);
+				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
 			}
 		},
 		{
 			"GUI",
 			[this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &oCategoryMenu = *makeView(attachParams(), EmuApp::ViewID::GUI_OPTIONS);
-				pushAndShow(oCategoryMenu, e);
+				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
 			}
 		}
 	}
@@ -467,19 +459,19 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	}
 }
 
-View *makeView(ViewAttachParams attach, EmuApp::ViewID id)
+std::unique_ptr<View> makeEmuView(ViewAttachParams attach, EmuApp::ViewID id)
 {
 	auto view = EmuApp::makeCustomView(attach, id);
 	if(view)
 		return view;
 	switch(id)
 	{
-		case EmuApp::ViewID::MAIN_MENU: return new EmuMainMenuView(attach);
-		case EmuApp::ViewID::SYSTEM_ACTIONS: return new EmuSystemActionsView(attach);
-		case EmuApp::ViewID::VIDEO_OPTIONS: return new VideoOptionView(attach);
-		case EmuApp::ViewID::AUDIO_OPTIONS: return new AudioOptionView(attach);
-		case EmuApp::ViewID::SYSTEM_OPTIONS: return new SystemOptionView(attach);
-		case EmuApp::ViewID::GUI_OPTIONS: return new GUIOptionView(attach);
+		case EmuApp::ViewID::MAIN_MENU: return std::make_unique<EmuMainMenuView>(attach);
+		case EmuApp::ViewID::SYSTEM_ACTIONS: return std::make_unique<EmuSystemActionsView>(attach);
+		case EmuApp::ViewID::VIDEO_OPTIONS: return std::make_unique<VideoOptionView>(attach);
+		case EmuApp::ViewID::AUDIO_OPTIONS: return std::make_unique<AudioOptionView>(attach);
+		case EmuApp::ViewID::SYSTEM_OPTIONS: return std::make_unique<SystemOptionView>(attach);
+		case EmuApp::ViewID::GUI_OPTIONS: return std::make_unique<GUIOptionView>(attach);
 		default:
 			bug_unreachable("Tried to make non-existing view ID:%d", (int)id);
 			return nullptr;

@@ -372,7 +372,7 @@ void initOptions()
 
 bool OptionVControllerLayoutPosition::isDefault() const
 {
-	return !vControllerLayoutPosChanged;
+	return !vController.layoutPositionChanged();
 }
 
 bool OptionVControllerLayoutPosition::writeToIO(IO &io)
@@ -380,7 +380,7 @@ bool OptionVControllerLayoutPosition::writeToIO(IO &io)
 	logMsg("writing vcontroller positions");
 	std::error_code ec{};
 	io.writeVal(key, &ec);
-	for(auto &posArr : vControllerLayoutPos)
+	for(auto &posArr : vController.layoutPosition())
 	{
 		for(auto &e : posArr)
 		{
@@ -402,7 +402,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 {
 	int readSize = readSize_;
 
-	for(auto &posArr : vControllerLayoutPos)
+	for(auto &posArr : vController.layoutPosition())
 	{
 		for(auto &e : posArr)
 		{
@@ -428,7 +428,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 				e.state = state;
 			e.pos.x = io.readVal<int32>();
 			e.pos.y = io.readVal<int32>();
-			vControllerLayoutPosChanged = true;
+			vController.setLayoutPositionChanged();
 			readSize -= sizeofVControllerLayoutPositionEntry();
 		}
 	}
@@ -443,7 +443,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 
 uint OptionVControllerLayoutPosition::ioSize()
 {
-	uint positions = IG::size(vControllerLayoutPos[0]) * IG::size(vControllerLayoutPos);
+	uint positions = IG::size(vController.layoutPosition()[0]) * IG::size(vController.layoutPosition());
 	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
 }
 
@@ -463,12 +463,12 @@ void setVControllerUseScaledCoordinates(bool on)
 	#endif
 }
 
-void setupFont(Gfx::Renderer &r)
+void setupFont(Gfx::Renderer &r, Base::Window &win)
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
-	View::defaultFace.setFontSettings(r, IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
-	View::defaultBoldFace.setFontSettings(r, IG::FontSettings(mainWin.win.heightSMMInPixels(size)));
+	View::defaultFace.setFontSettings(r, IG::FontSettings(win.heightSMMInPixels(size)));
+	View::defaultBoldFace.setFontSettings(r, IG::FontSettings(win.heightSMMInPixels(size)));
 }
 
 #ifdef __ANDROID__

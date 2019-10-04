@@ -59,6 +59,7 @@ private:
 	BaseWindow::DragDropDelegate onDragDrop_;
 	BaseWindow::DismissRequestDelegate onDismissRequest_;
 	BaseWindow::DismissDelegate onDismiss_;
+	void *customData_{};
 
 public:
 	constexpr WindowConfig() {}
@@ -201,6 +202,16 @@ public:
 	BaseWindow::DismissDelegate onDismiss() const
 	{
 		return onDismiss_;
+	}
+
+	void setCustomData(void *data)
+	{
+		customData_ = data;
+	}
+
+	void *customData() const
+	{
+		return customData_;
 	}
 };
 

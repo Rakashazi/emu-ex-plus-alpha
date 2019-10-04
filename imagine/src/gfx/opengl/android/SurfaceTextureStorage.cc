@@ -161,11 +161,6 @@ void SurfaceTextureStorage::unlock(Renderer &r, GLuint tex)
 		});
 }
 
-bool SurfaceTextureStorage::isSingleBuffered() const
-{
-	return singleBuffered;
-}
-
 bool SurfaceTextureStorage::isRendererBlacklisted(const char *rendererStr)
 {
 	return false;

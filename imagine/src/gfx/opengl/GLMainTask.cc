@@ -31,8 +31,8 @@ void GLMainTask::start(Base::GLContext context)
 {
 	if(started)
 		return;
-	IG::makeDetachedThread(
-		[this, context]()
+	IG::makeDetachedThreadSync(
+		[this, context](auto &sem)
 		{
 			auto glDpy = Base::GLDisplay::getDefault();
 			#ifdef CONFIG_GFX_OPENGL_ES
@@ -43,99 +43,70 @@ void GLMainTask::start(Base::GLContext context)
 			#endif
 			context.setCurrent(glDpy, context, {});
 			auto eventLoop = Base::EventLoop::makeForThread();
-			commandPipe.addToEventLoop(eventLoop,
-				[this, glDpy](Base::Pipe &pipe)
+			commandPort.addToEventLoop(eventLoop,
+				[this, glDpy](auto msgs)
 				{
-					auto msg = pipe.readNoErr<CommandMessage>();
-					switch(msg.command)
+					for(auto msg = msgs.get(); msg; msg = msgs.get())
 					{
-						bcase Command::RUN_FUNC:
+						switch(msg.command)
 						{
-							TaskContext ctx{};
-							msg.args.run.func(ctx);
-							if(msg.writeReply)
+							bcase Command::RUN_FUNC:
 							{
-								assert(!msg.args.run.semAddr);
-								//logDMsg("sending command complete reply");
-								replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
+								TaskContext ctx{};
+								msg.args.run.func(ctx);
+								if(msg.semAddr)
+								{
+									//logDMsg("notifying semaphore:%p", msg.semAddr);
+									msg.semAddr->notify();
+								}
 							}
-							else if(msg.args.run.semAddr)
+							bcase Command::EXIT:
 							{
-								//logDMsg("notifying semaphore:%p", msg.args.run.semAddr);
-								msg.args.run.semAddr->notify();
+								Base::GLContext::setCurrent(glDpy, {}, {});
+								Base::EventLoop::forThread().stop();
+								if(msg.semAddr)
+									msg.semAddr->notify();
+								return false;
 							}
-						}
-						bcase Command::EXIT:
-						{
-							Base::GLContext::setCurrent(glDpy, {}, {});
-							Base::EventLoop::forThread().stop();
-							return false;
-						}
-						bdefault:
-						{
-							logWarn("unknown ThreadCommandMessage value:%d", (int)msg.command);
+							bdefault:
+							{
+								logWarn("unknown ThreadCommandMessage value:%d", (int)msg.command);
+							}
 						}
 					}
 					return true;
 				});
-			{
-				replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
-			}
+			sem.notify();
 			logMsg("starting main GL thread event loop");
 			eventLoop.run();
 			logMsg("main GL thread exit");
-			commandPipe.removeFromEventLoop();
-			{
-				replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
-			}
+			commandPort.removeFromEventLoop();
 		});
 	started = true;
-	waitForCommandFinished();
 }
 
-void GLMainTask::runFunc(FuncDelegate del, bool writeReply, IG::Semaphore *semAddr)
+void GLMainTask::runFunc(FuncDelegate del, IG::Semaphore *semAddr)
 {
 	assert(started);
-	commandPipe.write(CommandMessage{Command::RUN_FUNC, del, writeReply, semAddr});
+	commandPort.send({Command::RUN_FUNC, del, semAddr});
 }
 
-void GLMainTask::runFuncSync(FuncDelegate del, bool writeReply, IG::Semaphore *semAddr)
+void GLMainTask::runFuncSync(FuncDelegate del)
 {
-	runFunc(del, writeReply, semAddr);
-	if(semAddr)
-	{
-		//logDMsg("waiting for semaphore:%p", semAddr);
-		assert(!writeReply);
-		semAddr->wait();
-	}
-	else
-	{
-		waitForCommandFinished();
-	}
+	IG::Semaphore sem{0};
+	runFunc(del, &sem);
+	//logDMsg("waiting for semaphore:%p", &sem);
+	sem.wait();
 }
 
 void GLMainTask::stop()
 {
 	if(!started)
 		return;
-	commandPipe.write(CommandMessage{Command::EXIT});
-	waitForCommandFinished();
+	IG::Semaphore sem{0};
+	commandPort.send({Command::EXIT, &sem});
+	sem.wait();
 	started = false;
-}
-
-void GLMainTask::waitForCommandFinished()
-{
-	assert(started);
-	//logDMsg("waiting for command complete reply");
-	ReplyMessage msg{};
-	while(replyPipe.read(&msg, sizeof(msg)))
-	{
-		if(msg.reply == Reply::COMMAND_FINISHED)
-		{
-			//logDMsg("got reply");
-			return;
-		}
-	}
 }
 
 }

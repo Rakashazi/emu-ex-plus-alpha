@@ -28,11 +28,11 @@ void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC y
 	if(!active_)
 	{
 		// half-bright color
-		uint col = cmds.color();
-		cmds.setColor(ColorFormat.r(col)/2, ColorFormat.g(col)/2, ColorFormat.b(col)/2, ColorFormat.a(col));
+		auto col = cmds.color();
+		cmds.setColor(col[0]/2.f, col[1]/2.f, col[2]/2.f, col[3]);
 	}
 
-	if(ColorFormat.a(cmds.color()) == 0xFF)
+	if(cmds.color()[3] == 1.f)
 	{
 		//logMsg("using replace program for non-alpha modulated text");
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
@@ -357,10 +357,10 @@ void MultiChoiceMenuItem::setOnSelect(SelectDelegate onSelect)
 	selectD = onSelect;
 }
 
-TableView *MultiChoiceMenuItem::makeTableView(ViewAttachParams attach)
+std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams attach)
 {
-	return new MenuItemTableView
-	{
+	return std::make_unique<MenuItemTableView>
+	(
 		t.str,
 		attach,
 		(uint)selected_ < items_(*this) ? selected_ : -1,
@@ -373,11 +373,10 @@ TableView *MultiChoiceMenuItem::makeTableView(ViewAttachParams attach)
 			return item_(*this, idx);
 		},
 		*this
-	};
+	);
 }
 
 void MultiChoiceMenuItem::defaultOnSelect(View &view, Input::Event e)
 {
-	auto &multiChoiceView = *makeTableView(view.attachParams());
-	view.pushAndShow(multiChoiceView, e);
+	view.pushAndShow(makeTableView(view.attachParams()), e);
 }

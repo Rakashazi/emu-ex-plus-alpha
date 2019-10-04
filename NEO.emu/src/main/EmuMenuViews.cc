@@ -488,12 +488,12 @@ private:
 
 	std::vector<GameMenuItem> item{};
 
-	static void loadGame(const RomListEntry &entry, Input::Event e, Gfx::Renderer &r)
+	static void loadGame(const RomListEntry &entry, Input::Event e)
 	{
 		EmuApp::createSystemWithMedia({}, gameFilePath(entry.name).data(), "", e,
-			[&r](Input::Event e)
+			[](Input::Event e)
 			{
-				EmuApp::launchSystemWithResumePrompt(r, e, true);
+				EmuApp::launchSystemWithResumePrompt(e, true);
 			});
 	}
 
@@ -532,19 +532,19 @@ public:
 						{
 							if(entry.bugs)
 							{
-								auto &ynAlertView = *new YesNoAlertView{attachParams(),
-									"This game doesn't yet work properly, load anyway?"};
-								ynAlertView.setOnYes(
+								auto ynAlertView = makeView<YesNoAlertView>(
+									"This game doesn't yet work properly, load anyway?");
+								ynAlertView->setOnYes(
 									[&entry](TextMenuItem &, View &view, Input::Event e)
 									{
 										view.dismiss();
-										loadGame(entry, e, view.renderer());
+										loadGame(entry, e);
 									});
-								EmuApp::pushAndShowModalView(ynAlertView, e);
+								EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 							}
 							else
 							{
-								loadGame(entry, e, renderer());
+								loadGame(entry, e);
 							}
 						}
 						else
@@ -641,8 +641,7 @@ private:
 			{
 				if(item.active())
 				{
-					auto &unibiosSwitchesMenu = *new UnibiosSwitchesView{attachParams()};
-					pushAndShow(unibiosSwitchesMenu, e);
+					pushAndShow(makeView<UnibiosSwitchesView>(), e);
 				}
 				else
 				{
@@ -659,8 +658,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &optionView = *new ConsoleOptionView{attachParams()};
-				pushAndShow(optionView, e);
+				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}
 		}
 	};
@@ -689,14 +687,13 @@ private:
 		"Load Game From List",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &gameListMenu = *new GameListView{attachParams()};
-			if(!gameListMenu.games())
+			auto gameListMenu = makeView<GameListView>();
+			if(!gameListMenu->games())
 			{
 				EmuApp::postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
-				delete &gameListMenu;
 				return;
 			}
-			pushAndShow(gameListMenu, e);
+			pushAndShow(std::move(gameListMenu), e);
 		}
 	};
 
@@ -716,13 +713,13 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::MAIN_MENU: return new CustomMainMenuView(attach);
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
+		case ViewID::MAIN_MENU: return std::make_unique<CustomMainMenuView>(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
 }

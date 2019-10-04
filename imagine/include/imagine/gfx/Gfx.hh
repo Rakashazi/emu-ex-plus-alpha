@@ -25,6 +25,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/pixmap/PixelFormat.hh>
+#include <array>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLRenderer.hh>
@@ -100,8 +101,6 @@ enum class CommonTextureSampler
 	NEAREST_MIP_REPEAT
 };
 
-static constexpr auto ColorFormat = IG::PIXEL_DESC_RGBA8888;
-
 class Program : public ProgramImpl
 {
 public:
@@ -128,12 +127,13 @@ class RendererTask : public RendererTaskImpl
 public:
 	RendererTask(Renderer &r);
 	void start(uint channels = 0);
+	void pause();
 	void stop();
 	void draw(DrawableHolder &drawable, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del, uint channel = 0);
 	bool addOnDrawFinished(DrawFinishedDelegate del, int priority = 0);
 	bool removeOnDrawFinished(DrawFinishedDelegate del);
-	void haltDrawing();
 	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
+	Base::FrameTimeBase lastDrawTimestamp() const;
 	Renderer &renderer() const;
 
 private:
@@ -147,7 +147,7 @@ public:
 
 	RendererCommands makeRendererCommands(Drawable drawable, Viewport viewport, Mat4 projMat);
 	void waitSync(SyncFence fence);
-	void verifyCurrentContext();
+	void verifyCurrentContext() const;
 	Renderer &renderer() const;
 };
 
@@ -185,7 +185,7 @@ public:
 			bcase COLOR_BLACK: setColor(0., 0., 0.);
 		}
 	}
-	uint color();
+	std::array<ColorComp, 4> color() const;
 	void setImgMode(uint mode);
 	void setDither(bool on);
 	bool dither();
@@ -267,7 +267,9 @@ public:
 	bool isConfigured() const;
 	Base::WindowConfig addWindowConfig(Base::WindowConfig config);
 	ThreadMode threadMode() const;
+	bool supportsThreadMode() const;
 	SyncFence addResourceSyncFence();
+	void flush();
 	void initWindow(Base::Window &win, Base::WindowConfig config);
 	void setWindowValidOrientations(Base::Window &win, uint validO);
 	void setProjectionMatrixRotation(Angle angle);

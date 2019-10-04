@@ -93,7 +93,7 @@ public:
 	void texEnvi(GLenum target, GLenum pname, GLint param);
 	GLfloat GL_TEXTURE_ENV_GL_TEXTURE_ENV_COLOR_state[4] = { 0, 0, 0, 0 };
 	void texEnvfv(GLenum target, GLenum pname, const GLfloat *params);
-	GLfloat colorState[4] = { 1, 1, 1, 1 };
+	std::array<GLfloat, 4> colorState{1, 1, 1, 1};
 	void color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 	#endif
 };

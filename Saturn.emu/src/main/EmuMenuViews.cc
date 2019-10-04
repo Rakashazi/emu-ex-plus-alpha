@@ -13,15 +13,15 @@ class CustomSystemOptionView : public SystemOptionView
 		biosPathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"BIOS", &::biosPath,
+			pushAndShow(
+				makeViewWithName<BiosSelectMenu>("BIOS", &::biosPath,
 				[this]()
 				{
 					logMsg("set bios %s", ::biosPath.data());
 					printBiosMenuEntryStr(biosPathStr);
 					biosPath.compile(renderer(), projP);
 				},
-				hasBIOSExtension, attachParams()};
-			pushAndShow(biosSelectMenu, e);
+				hasBIOSExtension), e);
 		}
 	};
 
@@ -71,11 +71,11 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
 }

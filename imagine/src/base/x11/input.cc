@@ -22,6 +22,7 @@
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include "xlibutils.h"
+#include "x11.hh"
 #include "internal.hh"
 #include "../../input/private.hh"
 
@@ -472,6 +473,11 @@ Event::KeyString Event::keyString() const
 void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }
+
+void flushEvents()
+{
+	Base::x11FDHandler();
+}
 
 }
 

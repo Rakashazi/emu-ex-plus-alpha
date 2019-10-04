@@ -14,14 +14,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
 #include <algorithm>
 #include "private.hh"
 #include "privateInput.hh"
-
-extern bool touchControlsAreOn;
 
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video}
@@ -53,7 +52,7 @@ void EmuVideoLayer::resetImage()
 	setLinearFilter(useLinearFilter);
 }
 
-void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, bool onScreenControlsOverlay)
+void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView)
 {
 	if(EmuSystem::gameIsRunning())
 	{
@@ -157,9 +156,9 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		Gfx::GC yOffset = 0;
 		int yOffsetPixels = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(onScreenControlsOverlay && viewportAspectRatio < 1. && touchControlsAreOn && EmuSystem::touchControlsApplicable())
+		if(inputView && viewportAspectRatio < 1. && inputView->touchControlsAreOn() && EmuSystem::touchControlsApplicable())
 		{
-			auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
+			auto &layoutPos = vController.layoutPosition()[inputView->window().isPortrait() ? 1 : 0];
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
 				logMsg("moving game rect to bottom");
@@ -230,11 +229,11 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	using namespace Gfx;
 	if(EmuSystem::isStarted())
 	{
-		bool videoActive = true;
-		if(unlikely(!EmuSystem::isActive()))
+		bool replaceMode = true;
+		if(unlikely(brightness != 1.f))
 		{
-			cmds.setColor(.25, .25, .25);
-			videoActive = false;
+			cmds.setColor(brightness, brightness, brightness);
+			replaceMode = false;
 		}
 
 		cmds.setBlendMode(0);
@@ -251,12 +250,12 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 			cmds.setDefaultRenderTarget();
 			cmds.setDither(true);
 			cmds.setViewport(prevViewport);
-			disp.setCommonProgram(cmds, videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+			disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		else
 		#endif
 		{
-			disp.setCommonProgram(cmds, videoActive ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+			disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 		}
 		if(useLinearFilter)
 			cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
@@ -317,4 +316,9 @@ void EmuVideoLayer::setLinearFilter(bool on)
 		Gfx::TextureSampler::initDefaultNoMipClampSampler(video.renderer());
 	else
 		Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler(video.renderer());
+}
+
+void EmuVideoLayer::setBrightness(float b)
+{
+	brightness = b;
 }

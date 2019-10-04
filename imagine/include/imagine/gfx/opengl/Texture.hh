@@ -57,7 +57,6 @@ public:
 	virtual Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
 	virtual Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) = 0;
 	virtual void unlock(Renderer &r, GLuint tex) = 0;
-	virtual bool isSingleBuffered() const = 0;
 };
 
 class GLLockedTextureBuffer
@@ -66,13 +65,13 @@ protected:
 	IG::Pixmap pix;
 	IG::WindowRect srcDirtyRect;
 	uint lockedLevel = 0;
-	GLuint pbo = 0;
+	GLuint pbo_ = 0;
 
 public:
 	constexpr GLLockedTextureBuffer() {}
 	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel, GLuint pbo);
 	uint level() const { return lockedLevel; }
-	void deletePBO();
+	GLuint pbo() const { return pbo_; };
 };
 
 using LockedTextureBufferImpl = GLLockedTextureBuffer;
@@ -125,7 +124,6 @@ public:
 	static const char *androidStorageImplStr(Renderer &r);
 	#endif
 	void bindTex(RendererCommands &cmds, TextureSampler &sampler);
-	bool generateMipmapsAsCurrent(Renderer &r);
 	bool canUseMipmaps(Renderer &r) const;
 };
 

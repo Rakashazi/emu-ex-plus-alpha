@@ -20,37 +20,33 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <utility>
 
-void BasicViewController::push(View &v, Input::Event e)
+void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
 {
 	if(view)
 	{
 		logMsg("removing existing view from basic view controller");
 		pop();
 	}
-	v.setController(this, e);
-	view = &v;
+	assumeExpr(v);
+	v->setController(this, e);
+	view = std::move(v);
 	logMsg("push view in basic view controller");
 }
 
-void BasicViewController::pushAndShow(View &v, Input::Event e, bool needsNavView)
+void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
-	push(v, e);
+	push(std::move(v), e);
 	place();
-	v.show();
-	v.postDraw();
-}
-
-void BasicViewController::pushAndShow(View &v, Input::Event e)
-{
-	pushAndShow(v, e, true);
+	view->show();
+	view->postDraw();
 }
 
 void BasicViewController::pop()
 {
 	assert(view);
+	auto lock = std::scoped_lock(mutex_);
 	view->postDraw();
-	delete view;
-	view = nullptr;
+	view.reset();
 	if(removeViewDel)
 		removeViewDel();
 }
@@ -72,6 +68,7 @@ void BasicViewController::place()
 	if(!view)
 		return;
 	assert(viewRect.xSize() && viewRect.ySize());
+	auto lock = std::scoped_lock(mutex_);
 	view->setViewRect(viewRect, projP);
 	view->place();
 }
@@ -83,12 +80,13 @@ bool BasicViewController::inputEvent(Input::Event e)
 
 void BasicViewController::draw(Gfx::RendererCommands &cmds)
 {
+	auto lock = std::scoped_lock(mutex_);
 	view->draw(cmds);
 }
 
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
-	haltDrawing();
+	auto lock = std::scoped_lock(mutex_);
 	nav = std::move(navView);
 	if(nav)
 	{
@@ -113,7 +111,7 @@ void ViewStack::place()
 {
 	if(!view.size())
 		return;
-	haltDrawing();
+	auto lock = std::scoped_lock(mutex_);
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
 	if(navViewIsActive())
@@ -203,6 +201,7 @@ void ViewStack::prepareDraw()
 
 void ViewStack::draw(Gfx::RendererCommands &cmds)
 {
+	auto lock = std::scoped_lock(mutex_);
 	if(!view.size())
 		return;
 	top().draw(cmds);
@@ -210,11 +209,12 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 		nav->draw(cmds);
 }
 
-void ViewStack::push(View &v, Input::Event e)
+void ViewStack::push(std::unique_ptr<View> v, Input::Event e)
 {
-	v.setController(this, e);
-	haltDrawing();
-	view.emplace_back(std::unique_ptr<View>(&v), true);
+	assumeExpr(v);
+	v->setController(this, e);
+	auto lock = std::scoped_lock(mutex_);
+	view.emplace_back(std::move(v), true);
 	logMsg("push view, %d in stack", (int)view.size());
 	if(nav)
 	{
@@ -224,25 +224,20 @@ void ViewStack::push(View &v, Input::Event e)
 	}
 }
 
-void ViewStack::pushAndShow(View &v, Input::Event e, bool needsNavView)
+void ViewStack::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
-	push(v, e);
+	push(std::move(v), e);
 	view.back().needsNavView = needsNavView;
 	place();
-	v.show();
-	v.postDraw();
-}
-
-void ViewStack::pushAndShow(View &v, Input::Event e)
-{
-	pushAndShow(v, e, true);
+	top().show();
+	top().postDraw();
 }
 
 void ViewStack::pop()
 {
 	if(!view.size())
 		return;
-	haltDrawing();
+	auto lock = std::scoped_lock(mutex_);
 	onRemoveView_.callSafe(*this, top());
 	view.pop_back();
 	logMsg("pop view, %d in stack", (int)view.size());
@@ -410,21 +405,4 @@ void ViewStack::setOnRemoveView(RemoveViewDelegate del)
 bool ViewStack::viewHasFocus() const
 {
 	return !navViewHasFocus;
-}
-
-void ViewStack::setRendererTask(Gfx::RendererTask *rTask)
-{
-	rendererTask_ = rTask;
-}
-
-Gfx::RendererTask *ViewStack::rendererTask()
-{
-	return rendererTask_;
-}
-
-void ViewStack::haltDrawing()
-{
-	if(!rendererTask_)
-		return;
-	rendererTask_->haltDrawing();
 }

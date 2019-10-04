@@ -1,3 +1,5 @@
+#pragma once
+
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -13,32 +15,31 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoop.hh>
+#include "../common/SimpleFrameTimer.hh"
 #include <semaphore.h>
 
 namespace Base
 {
 
-class FBDevFrameTimer
+class FBDevFrameTimer : public FrameTimer
 {
-private:
-	Base::FDEventSource fdSrc;
-	int fd = -1;
-	sem_t sem{};
-	bool requested = false;
-	bool cancelled = false;
-
 public:
-	constexpr FBDevFrameTimer() {}
-	bool init(EventLoop loop);
-	void deinit();
-	void scheduleVSync();
-	void cancel();
+	FBDevFrameTimer(EventLoop loop);
+	~FBDevFrameTimer() final;
+	void scheduleVSync() final;
+	void cancel() final;
 
 	explicit operator bool() const
 	{
 		return fd >= 0;
 	}
+
+private:
+	Base::FDEventSource fdSrc;
+	sem_t sem{};
+	int fd = -1;
+	bool requested = false;
+	bool cancelled = false;
 };
 
 }

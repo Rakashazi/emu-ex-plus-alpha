@@ -492,7 +492,7 @@ static void system_frame_md(EmuVideo *emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo->setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
+  	emuVideo->setFormatLocked({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
   	img = emuVideo->startFrame();
   	gPixmap = img.pixmap();
   }
@@ -890,7 +890,7 @@ static void system_frame_sms(EmuVideo *emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo->setFormat({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
+  	emuVideo->setFormatLocked({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
   	img = emuVideo->startFrame();
   }
 

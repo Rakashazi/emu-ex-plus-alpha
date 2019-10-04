@@ -14,10 +14,10 @@ extern uint loggerVerbosity;
 
 typedef uint LoggerSeverity;
 
-CLINK void logger_init() ATTRS(cold);
+CLINK void logger_init() __attribute__((cold));
 CLINK void logger_setEnabled(bool enable);
 CLINK bool logger_isEnabled();
-CLINK void logger_printf(LoggerSeverity severity, const char* msg, ...) __attribute__ ((format (printf, 2, 3)));
+CLINK void logger_printf(LoggerSeverity severity, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 CLINK void logger_vprintf(LoggerSeverity severity, const char* msg, va_list arg);
 
 

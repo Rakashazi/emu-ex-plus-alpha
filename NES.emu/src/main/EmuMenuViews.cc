@@ -176,15 +176,15 @@ class CustomSystemOptionView : public SystemOptionView
 		fdsBiosPathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"Disk System BIOS", &::fdsBiosPath,
+			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath,
 				[this]()
 				{
 					logMsg("set fds bios %s", ::fdsBiosPath.data());
 					printBiosMenuEntryStr(fdsBiosPathStr);
 					fdsBiosPath.compile(renderer(), projP);
 				},
-				hasFDSBIOSExtension, attachParams()};
-			pushAndShow(biosSelectMenu, e);
+				hasFDSBIOSExtension);
+			pushAndShow(std::move(biosSelectMenu), e);
 		}
 	};
 
@@ -290,7 +290,7 @@ public:
 class CustomSystemActionsView : public EmuSystemActionsView
 {
 private:
-	char diskLabel[sizeof("FDS Control (Disk 1:A)")]{};
+	char diskLabel[sizeof("FDS Control (Disk 1:A)")+2]{};
 
 	TextMenuItem fdsControl
 	{
@@ -299,8 +299,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
 			{
-				auto &fdsMenu = *new FDSControlView{attachParams()};
-				pushAndShow(fdsMenu, e);
+				pushAndShow(makeView<FDSControlView>(), e);
 			}
 			else
 				EmuApp::postMessage(2, false, "Disk System not in use");
@@ -327,8 +326,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &optionView = *new ConsoleOptionView{attachParams()};
-				pushAndShow(optionView, e);
+				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}
 		}
 	};
@@ -348,16 +346,16 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
-		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
-		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
+		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
 }

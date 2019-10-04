@@ -160,14 +160,14 @@ private:
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			printInstallFirmwareFilesStr(installFirmwareFilesStr);
-			auto &ynAlertView = *new YesNoAlertView{attachParams(), installFirmwareFilesStr};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>(installFirmwareFilesStr);
+			ynAlertView->setOnYes(
 				[](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
 					installFirmwareFiles();
 				});
-			EmuApp::pushAndShowModalView(ynAlertView, e);
+			EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 		}
 	};
 
@@ -276,7 +276,7 @@ public:
 
 	void addHDFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -288,7 +288,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		EmuApp::pushAndShowModalView(fPicker, e);
+		EmuApp::pushAndShowModalView(std::move(fPicker), e);
 	}
 
 	void onSelectHD(TextMenuItem &item, Input::Event e, uint8 slot)
@@ -297,22 +297,22 @@ public:
 			return;
 		if(strlen(hdName[slot].data()))
 		{
-			auto &multiChoiceView = *new TextTableView{"Hard Drive", attachParams(), IG::size(insertEjectDiskMenuStr)};
-			multiChoiceView.appendItem(insertEjectDiskMenuStr[0],
+			auto multiChoiceView = makeViewWithName<TextTableView>("Hard Drive", IG::size(insertEjectDiskMenuStr));
+			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
 					addHDFilePickerView(e, slot);
 					postDraw();
 					popAndShow();
 				});
-			multiChoiceView.appendItem(insertEjectDiskMenuStr[1],
+			multiChoiceView->appendItem(insertEjectDiskMenuStr[1],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
 					diskChange(diskGetHdDriveId(slot / 2, slot % 2), 0, 0);
 					onHDMediaChange("", slot);
 					popAndShow();
 				});
-			pushAndShow(multiChoiceView, e);
+			pushAndShow(std::move(multiChoiceView), e);
 		}
 		else
 		{
@@ -347,7 +347,7 @@ public:
 
 	void addROMFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -357,41 +357,41 @@ public:
 				}
 				picker.dismiss();
 			});
-		EmuApp::pushAndShowModalView(fPicker, e);
+		EmuApp::pushAndShowModalView(std::move(fPicker), e);
 	}
 
 	void onSelectROM(Input::Event e, uint8 slot)
 	{
-		auto &multiChoiceView = *new TextTableView{"ROM Cartridge Slot", attachParams(), 5};
-		multiChoiceView.appendItem("Insert File",
+		auto multiChoiceView = makeViewWithName<TextTableView>("ROM Cartridge Slot", 5);
+		multiChoiceView->appendItem("Insert File",
 			[this, slot](TextMenuItem &, View &, Input::Event e)
 			{
 				addROMFilePickerView(e, slot);
 				postDraw();
 				popAndShow();
 			});
-		multiChoiceView.appendItem("Eject",
+		multiChoiceView->appendItem("Eject",
 			[this, slot](TextMenuItem &, View &, Input::Event e)
 			{
 				boardChangeCartridge(slot, ROM_UNKNOWN, 0, 0);
 				onROMMediaChange("", slot);
 				popAndShow();
 			});
-		multiChoiceView.appendItem("Insert SCC",
+		multiChoiceView->appendItem("Insert SCC",
 			[this, slot](TextMenuItem &, View &, Input::Event e)
 			{
 				boardChangeCartridge(slot, ROM_SCC, "", 0);
 				onROMMediaChange("SCC", slot);
 				popAndShow();
 			});
-		multiChoiceView.appendItem("Insert SCC+",
+		multiChoiceView->appendItem("Insert SCC+",
 			[this, slot](TextMenuItem &, View &, Input::Event e)
 			{
 				boardChangeCartridge(slot, ROM_SCCPLUS, "", 0);
 				onROMMediaChange("SCC+", slot);
 				popAndShow();
 			});
-		multiChoiceView.appendItem("Insert Sunrise IDE",
+		multiChoiceView->appendItem("Insert Sunrise IDE",
 			[this, slot](TextMenuItem &, View &, Input::Event e)
 			{
 				if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
@@ -402,7 +402,7 @@ public:
 					onROMMediaChange("Sunrise IDE", slot);
 				popAndShow();
 			});
-		pushAndShow(multiChoiceView, e);
+		pushAndShow(std::move(multiChoiceView), e);
 	}
 
 	TextMenuItem romSlot[2]
@@ -428,7 +428,7 @@ public:
 
 	void addDiskFilePickerView(Input::Event e, uint8 slot)
 	{
-		auto &fPicker = *EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -439,29 +439,29 @@ public:
 				}
 				picker.dismiss();
 			});
-		EmuApp::pushAndShowModalView(fPicker, e);
+		EmuApp::pushAndShowModalView(std::move(fPicker), e);
 	}
 
 	void onSelectDisk(Input::Event e, uint8 slot)
 	{
 		if(strlen(diskName[slot].data()))
 		{
-			auto &multiChoiceView = *new TextTableView{"Disk Drive", attachParams(), IG::size(insertEjectDiskMenuStr)};
-			multiChoiceView.appendItem(insertEjectDiskMenuStr[0],
+			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", IG::size(insertEjectDiskMenuStr));
+			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
 					addDiskFilePickerView(e, slot);
 					postDraw();
 					popAndShow();
 				});
-			multiChoiceView.appendItem(insertEjectDiskMenuStr[1],
+			multiChoiceView->appendItem(insertEjectDiskMenuStr[1],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
 					diskChange(slot, 0, 0);
 					onDiskMediaChange("", slot);
 					popAndShow();
 				});
-			pushAndShow(multiChoiceView, e);
+			pushAndShow(std::move(multiChoiceView), e);
 		}
 		else
 		{
@@ -529,8 +529,7 @@ private:
 		{
 			if(item.active())
 			{
-				auto &msxIoMenu = *new MsxIOControlView{attachParams()};
-				pushAndShow(msxIoMenu, e);
+				pushAndShow(makeView<MsxIOControlView>(), e);
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
 			{
@@ -559,12 +558,12 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
 }

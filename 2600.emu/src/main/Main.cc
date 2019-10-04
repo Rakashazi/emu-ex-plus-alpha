@@ -153,7 +153,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	tia.update();
 	if(video)
 	{
-		video->setFormat({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
+		video->setFormatLocked({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
 		auto img = video->startFrame();
 		osystem->frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();

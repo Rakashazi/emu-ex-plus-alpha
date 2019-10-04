@@ -26,6 +26,7 @@ using namespace IG;
 
 #if defined __APPLE__ && TARGET_OS_IPHONE
 using FrameTimeBase = double;
+using FrameTimeBaseDiff = FrameTimeBase;
 
 template<class T>
 constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
@@ -50,6 +51,7 @@ constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
 }
 #else
 using FrameTimeBase = uint64_t;
+using FrameTimeBaseDiff = int64_t;
 
 template<class T>
 constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
@@ -65,6 +67,11 @@ constexpr static double frameTimeBaseToSecsDec(FrameTimeBase time)
 	return (double)time / (double)1000000000.;
 }
 
+constexpr static double frameTimeBaseToSecsDec(FrameTimeBaseDiff time)
+{
+	return (double)time / (double)1000000000.;
+}
+
 template<class T>
 constexpr static FrameTimeBase frameTimeBaseFromNSecs(T ns)
 {
@@ -72,6 +79,11 @@ constexpr static FrameTimeBase frameTimeBaseFromNSecs(T ns)
 }
 
 constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
+{
+	return time;
+}
+
+constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBaseDiff time)
 {
 	return time;
 }

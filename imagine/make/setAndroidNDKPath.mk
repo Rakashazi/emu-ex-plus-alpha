@@ -1,7 +1,17 @@
 ifneq ($(ANDROID_SDK_ROOT),)
- studioNDKPath := $(ANDROID_SDK_ROOT)/ndk-bundle
+ studioNDKBasePath := $(ANDROID_SDK_ROOT)
 else ifneq ($(ANDROID_HOME),)
- studioNDKPath := $(ANDROID_HOME)/ndk-bundle
+ studioNDKBasePath := $(ANDROID_HOME)
+endif
+
+ifneq ($(studioNDKBasePath),)
+ # check for side-by-side NDK
+ ifneq ($(wildcard $(studioNDKBasePath)/ndk)),)
+  # choose the newest NDK version
+  studioNDKPath := $(lastword $(sort $(wildcard $(studioNDKBasePath)/ndk/*)))
+ else
+  studioNDKPath := $(studioNDKBasePath)/ndk-bundle
+ endif
 endif
 
 ANDROID_NDK_PATH ?= $(studioNDKPath)

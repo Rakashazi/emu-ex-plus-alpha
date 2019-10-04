@@ -17,16 +17,16 @@
 BEGIN_C_DECLS
 
 int char_hexToInt(char c);
-const char *string_dotExtension(const char *s) ATTRS(nonnull);
-bool string_hasDotExtension(const char *s, const char *extension) ATTRS(nonnull);
-void string_toUpper(char *s) ATTRS(nonnull);
-bool string_equalNoCase(const char *s1, const char *s2) ATTRS(nonnull);
-bool string_equal(const char *s1, const char *s2) ATTRS(nonnull);
-size_t string_cat(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
+const char *string_dotExtension(const char *s) __attribute__((nonnull));
+bool string_hasDotExtension(const char *s, const char *extension) __attribute__((nonnull));
+void string_toUpper(char *s) __attribute__((nonnull));
+bool string_equalNoCase(const char *s1, const char *s2) __attribute__((nonnull));
+bool string_equal(const char *s1, const char *s2) __attribute__((nonnull));
+size_t string_cat(char *dest, const char *src, size_t destSize) __attribute__((nonnull));
 
 // copies at most destSize-1 chars from src until null byte or dest size is reached
 // dest is always null terminated
-size_t string_copy(char *dest, const char *src, size_t destSize) ATTRS(nonnull);
+size_t string_copy(char *dest, const char *src, size_t destSize) __attribute__((nonnull));
 
 END_C_DECLS
 

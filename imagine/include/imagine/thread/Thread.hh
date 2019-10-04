@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/thread/Semaphore.hh>
 
 #ifdef _WIN32
 #include <imagine/thread/Win32Thread.hh>
@@ -56,6 +57,14 @@ template<class Func>
 static void makeDetachedThread(Func&& f)
 {
 	thread t{f, true};
+}
+
+template<class Func>
+static void makeDetachedThreadSync(Func&& f)
+{
+	Semaphore sem{0};
+	thread t{[=, &sem](){f(sem);}, true};
+	sem.wait();
 }
 
 }

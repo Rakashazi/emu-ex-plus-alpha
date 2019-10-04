@@ -480,7 +480,7 @@ void m68k_pulse_reset(M68KCPU &m68ki_cpu);
 //int m68k_execute(int num_cycles);
 
 /* run until global cycle count is reached */
-void m68k_run(M68KCPU &m68ki_cpu, unsigned int cycles) ATTRS(hot);
+void m68k_run(M68KCPU &m68ki_cpu, unsigned int cycles) __attribute__((hot));
 
 /* These functions let you read/write/modify the number of cycles left to run
  * while m68k_execute() is running.

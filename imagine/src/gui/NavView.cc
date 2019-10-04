@@ -113,7 +113,7 @@ bool NavView::inputEvent(Input::Event e)
 			return true;
 		}
 	}
-	else if(e.state() == Input::PUSHED)
+	else if(e.pushed())
 	{
 		for(auto &c : control)
 		{

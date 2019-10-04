@@ -662,6 +662,20 @@ bool setUIDEffective()
 
 }
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
+void *operator new(unsigned long size, std::align_val_t align)
+{
+	void *ptr{};
+	::posix_memalign(&ptr, (size_t)align, size);
+	return ptr;
+}
+
+void operator delete(void* ptr, std::align_val_t align)
+{
+	::free(ptr);
+}
+#endif
+
 int main(int argc, char *argv[])
 {
 	using namespace Base;

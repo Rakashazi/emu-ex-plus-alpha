@@ -188,7 +188,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormat({{240, 160}, pixFmt});
+	video.setFormatLocked({{240, 160}, pixFmt});
 }
 
 void systemDrawScreen(EmuVideo &video)

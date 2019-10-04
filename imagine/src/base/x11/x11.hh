@@ -21,4 +21,6 @@ namespace Base
 {
 	CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc);
 	void deinitWindowSystem();
+	void x11FDHandler();
+	bool x11FDPending();
 }

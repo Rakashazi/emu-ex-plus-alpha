@@ -307,7 +307,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormat({{nesPixX, nesVisiblePixY}, pixFmt});
+	video.setFormatLocked({{nesPixX, nesVisiblePixY}, pixFmt});
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)

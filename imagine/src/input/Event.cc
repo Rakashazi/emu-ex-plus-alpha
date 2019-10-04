@@ -397,6 +397,16 @@ bool Event::releasedKey(Key sysKey) const
 	return released() && sysKey_ == sysKey;
 }
 
+bool Event::canceled() const
+{
+	return state() == CANCELED;
+}
+
+bool Event::isOff() const
+{
+	return released() || canceled();
+}
+
 bool Event::moved() const
 {
 	return state() == MOVED;

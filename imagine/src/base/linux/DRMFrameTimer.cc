@@ -15,6 +15,7 @@
 
 #define LOGTAG "FrameTimer"
 #include <imagine/base/Screen.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "DRMFrameTimer.hh"
 #include <xf86drm.h>
@@ -24,10 +25,8 @@
 namespace Base
 {
 
-bool DRMFrameTimer::init(EventLoop loop)
+DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 {
-	if(fd >= 0)
-		return true;
 	const char *drmCardPath = getenv("KMSDEVICE");
 	if(!drmCardPath)
 		drmCardPath = "/dev/dri/card0";
@@ -36,7 +35,7 @@ bool DRMFrameTimer::init(EventLoop loop)
 	if(fd == -1)
 	{
 		logErr("error creating frame timer, DRM/DRI access is required");
-		return false;
+		return;
 	}
 	fdSrc = {fd, loop,
 		[this](int fd, int event)
@@ -62,6 +61,7 @@ bool DRMFrameTimer::init(EventLoop loop)
 			{
 				logErr("error in drmHandleEvent");
 			}
+			Input::flushEvents();
 			iterateTimes(Screen::screens(), i)
 			{
 				auto s = Screen::screen(i);
@@ -73,16 +73,14 @@ bool DRMFrameTimer::init(EventLoop loop)
 			}
 			return 1;
 		}};
-	return true;
 }
 
-void DRMFrameTimer::deinit()
+DRMFrameTimer::~DRMFrameTimer()
 {
 	if(fd < 0)
 		return;
 	fdSrc.removeFromEventLoop();
 	close(fd);
-	fd = -1;
 }
 
 void DRMFrameTimer::scheduleVSync()

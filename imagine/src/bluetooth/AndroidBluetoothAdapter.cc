@@ -16,6 +16,7 @@
 #define LOGTAG "AndroidBT"
 #include <imagine/bluetooth/AndroidBluetoothAdapter.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/jni.hh>
 #include <errno.h>

@@ -55,8 +55,7 @@ private:
 		"Console Options",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &optionView = *new ConsoleOptionView{attachParams()};
-			pushAndShow(optionView, e);
+			pushAndShow(makeView<ConsoleOptionView>(), e);
 		}
 	};
 
@@ -77,15 +76,15 @@ class CustomSystemOptionView : public SystemOptionView
 		sysCardPathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &biosSelectMenu = *new BiosSelectMenu{"System Card", &::sysCardPath,
+			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &::sysCardPath,
 				[this]()
 				{
 					logMsg("set bios %s", ::sysCardPath.data());
 					printBiosMenuEntryStr(sysCardPathStr);
 					sysCardPath.compile(renderer(), projP);
 				},
-				hasHuCardExtension, attachParams()};
-			pushAndShow(biosSelectMenu, e);
+				hasHuCardExtension);
+			pushAndShow(std::move(biosSelectMenu), e);
 		}
 	};
 
@@ -104,12 +103,12 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
 }

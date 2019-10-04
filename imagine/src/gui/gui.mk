@@ -13,6 +13,7 @@ gui/NavView.cc \
 gui/ScrollView.cc \
 gui/TableView.cc \
 gui/TextEntry.cc \
+gui/ToastView.cc \
 gui/View.cc \
 gui/ViewStack.cc
 

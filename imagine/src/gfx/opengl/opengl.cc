@@ -133,26 +133,24 @@ SyncFence Renderer::addResourceSyncFence()
 	resourceUpdate = false;
 	if(!useSeparateDrawContext)
 		return {}; // no-op
-	if(support.hasSyncFences())
-	{
-		GLsync sync;
-		runGLTaskSync(
-			[this, &sync]()
-			{
-				sync = support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-				glFlush();
-			});
-		return sync;
-	}
-	else
-	{
-		runGLTask(
-			[]()
-			{
-				glFlush();
-			});
-		return {true};
-	}
+	assert(support.hasSyncFences());
+	GLsync sync;
+	runGLTaskSync(
+		[this, &sync]()
+		{
+			sync = support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			glFlush();
+		});
+	return sync;
+}
+
+void Renderer::flush()
+{
+	runGLTask(
+		[]()
+		{
+			glFlush();
+		});
 }
 
 void Renderer::setCorrectnessChecks(bool on)
@@ -365,12 +363,12 @@ void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GL
 
 void GLRenderer::runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr)
 {
-	mainTask->runFunc(del, false, semAddr);
+	mainTask->runFunc(del, semAddr);
 }
 
-void GLRenderer::runGLTaskSync2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr)
+void GLRenderer::runGLTaskSync2(GLMainTask::FuncDelegate del)
 {
-	mainTask->runFuncSync(del, !semAddr, semAddr);
+	mainTask->runFuncSync(del);
 }
 
 void GLRenderer::waitPendingGLTasks()

@@ -16,6 +16,7 @@
 #define LOGTAG "FrameTimer"
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "SimpleFrameTimer.hh"
 
@@ -24,13 +25,12 @@ namespace Base
 
 FrameTimer::~FrameTimer() {}
 
-bool SimpleFrameTimer::init(EventLoop loop)
+SimpleFrameTimer::SimpleFrameTimer(EventLoop loop)
 {
 	eventLoop = loop;
-	return true;
 }
 
-void SimpleFrameTimer::deinit()
+SimpleFrameTimer::~SimpleFrameTimer()
 {
 	timer.deinit();
 }
@@ -59,6 +59,7 @@ void SimpleFrameTimer::scheduleVSync()
 				return; // frame request was cancelled
 			}
 			uint64_t timestamp = IG::Time::now().nSecs();
+			Input::flushEvents();
 			auto s = Screen::screen(0);
 			if(s->isPosted())
 			{

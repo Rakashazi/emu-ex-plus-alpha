@@ -231,7 +231,7 @@ void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, Colo
 	rTask->verifyCurrentContext();
 	//GLfloat c[4] = {r, g, b, a};
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
-	glClearColor((float)r, (float)g, (float)b, (float)a);
+	glClearColor(r, g, b, a);
 }
 
 void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
@@ -257,20 +257,17 @@ void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp
 	#endif
 }
 
-uint RendererCommands::color()
+std::array<ColorComp, 4> RendererCommands::color() const
 {
 	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
-		return ColorFormat.build(glState.colorState[0],
-			glState.colorState[1],
-			glState.colorState[2],
-			glState.colorState[3]);
+		return glState.colorState;
 	}
 	#endif
 	// !support.useFixedFunctionPipeline
-	return ColorFormat.build((float)vColor[0], (float)vColor[1], (float)vColor[2], (float)vColor[3]);
+	return vColor;
 }
 
 void RendererCommands::setImgMode(uint mode)

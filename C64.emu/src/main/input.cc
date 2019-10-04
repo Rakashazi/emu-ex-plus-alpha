@@ -502,6 +502,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 		if(unlikely((emuKey & 0xFF) == 0xFF))
 		{
 			logMsg("pushed restore key");
+			EmuApp::syncEmulationThread();
 			plugin.machine_set_restore_key(state == Input::PUSHED);
 			return;
 		}

@@ -29,7 +29,7 @@ void EmuVideo::resetImage()
 
 void EmuVideo::setFormat(IG::PixmapDesc desc)
 {
-	if(vidImg && desc == vidImg.usedPixmapDesc())
+	if(formatIsEqual(desc))
 	{
 		return; // no change to format
 	}
@@ -42,7 +42,6 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	}
 	else
 	{
-		rendererTask.haltDrawing();
 		vidImg.setFormat(desc, 1);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
@@ -53,13 +52,21 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	emuVideoLayer.resetImage();
 	#endif
 	if((uint)optionImageZoom > 100)
-		placeEmuViews();
+		emuViewController.placeEmuViews();
+}
+
+void EmuVideo::setFormatLocked(IG::PixmapDesc desc)
+{
+	if(formatIsEqual(desc))
+	{
+		return; // no change to format
+	}
+	auto lock = std::scoped_lock(emuViewController.mutex());
+	setFormat(desc);
 }
 
 EmuVideoImage EmuVideo::startFrame()
 {
-	if(vidImg.needsExclusiveLock())
-		rendererTask.haltDrawing();
 	auto lockedTex = vidImg.lock(0);
 	if(!lockedTex)
 	{
@@ -75,9 +82,13 @@ EmuVideoImage EmuVideo::startFrame()
 
 void EmuVideo::startFrame(IG::Pixmap pix)
 {
-	if(vidImg.needsExclusiveLock())
-		rendererTask.haltDrawing();
 	finishFrame(pix);
+}
+
+static void dispatchFinishFrame(Gfx::Renderer &r)
+{
+	r.flush();
+	emuViewController.postDrawToEmuWindows();
 }
 
 void EmuVideo::finishFrame(Gfx::LockedTextureBuffer texBuff)
@@ -87,6 +98,7 @@ void EmuVideo::finishFrame(Gfx::LockedTextureBuffer texBuff)
 		doScreenshot(texBuff.pixmap());
 	}
 	vidImg.unlock(texBuff);
+	dispatchFinishFrame(r);
 }
 
 void EmuVideo::finishFrame(IG::Pixmap pix)
@@ -95,7 +107,15 @@ void EmuVideo::finishFrame(IG::Pixmap pix)
 	{
 		doScreenshot(pix);
 	}
-	vidImg.write(0, pix, {}, vidImg.bestAlignment(pix));
+	vidImg.write(0, pix, {}, Gfx::Texture::COMMIT_FLAG_ASYNC);
+	dispatchFinishFrame(r);
+}
+
+void EmuVideo::clear()
+{
+	if(!vidImg)
+		return;
+	vidImg.clear(0);
 }
 
 void EmuVideo::takeGameScreenshot()
@@ -110,18 +130,13 @@ void EmuVideo::doScreenshot(IG::Pixmap pix)
 	int screenshotNum = sprintScreenshotFilename(path);
 	if(screenshotNum == -1)
 	{
-		popup.postError("Too many screenshots");
+		EmuApp::postErrorMessage("Too many screenshots");
 	}
 	else
 	{
-		if(!writeScreenshot(pix, path.data()))
-		{
-			popup.printf(2, 1, "Error writing screenshot #%d", screenshotNum);
-		}
-		else
-		{
-			popup.printf(2, 0, "Wrote screenshot #%d", screenshotNum);
-		}
+		auto success = writeScreenshot(pix, path.data());
+		EmuApp::printfMessage(2, !success, "%s%d",
+			success ? "Wrote screenshot #" : "Error writing screenshot #", screenshotNum);
 	}
 }
 
@@ -157,4 +172,9 @@ IG::WP EmuVideo::size() const
 		return {};
 	else
 		return vidImg.usedPixmapDesc().size();
+}
+
+bool EmuVideo::formatIsEqual(IG::PixmapDesc desc) const
+{
+	return vidImg && desc == vidImg.usedPixmapDesc();
 }

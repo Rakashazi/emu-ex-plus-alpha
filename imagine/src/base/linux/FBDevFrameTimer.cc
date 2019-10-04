@@ -29,27 +29,25 @@
 namespace Base
 {
 
-bool FBDevFrameTimer::init(EventLoop loop)
+FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 {
-	if(fd >= 0)
-		return true;
 	int fbdev = open("/dev/fb0", O_RDONLY);
 	if(fbdev == -1)
 	{
 		logErr("error creating frame timer, fbdev access is required");
-		return false;
+		return;
 	}
 	fd = eventfd(0, 0);
 	if(fd == -1)
 	{
 		logErr("error creating eventfd");
-		return false;
+		return;
 	}
 	sem_init(&sem, 0, 0);
 	fdSrc = {fd, loop,
 		[this](int fd, int event)
 		{
-			uint64_t timestamp;
+			eventfd_t timestamp;
 			auto ret = read(fd, &timestamp, sizeof(timestamp));
 			assert(ret == sizeof(timestamp));
 			//logDMsg("read frame timestamp:%lu", (long unsigned int)timestamp);
@@ -83,17 +81,16 @@ bool FBDevFrameTimer::init(EventLoop loop)
 				//logMsg("waiting for vsync");
 				int arg = 0;
 				ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
-				uint64_t timestamp = IG::Time::now().nSecs();
+				eventfd_t timestamp = IG::Time::now().nSecs();
 				//logMsg("got vsync at time %lu", (long unsigned int)timestamp);
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));
 			}
 		}
 	);
-	return true;
 }
 
-void FBDevFrameTimer::deinit()
+FBDevFrameTimer::~FBDevFrameTimer()
 {
 	// TODO
 }

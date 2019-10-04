@@ -30,8 +30,8 @@ CFLAGS_WARN += -Wno-register
 # fix warning from old DBUS & libpng headers
 CXXFLAGS_LANG += -Wno-literal-suffix
 
-CFLAGS_CODEGEN += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
-LDFLAGS_SYSTEM += -march=armv7-a -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+CFLAGS_CODEGEN += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
+LDFLAGS_SYSTEM += -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 
 pandoraSDKSysroot := $(PNDSDK)/usr
 PKG_CONFIG_PATH := $(PKG_CONFIG_PATH):$(pandoraSDKSysroot)/lib/pkgconfig

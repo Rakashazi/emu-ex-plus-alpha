@@ -17,10 +17,9 @@
 #include <emuframework/EmuApp.hh>
 #include <algorithm>
 
-EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuInputView *inputView):
+EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer):
 	View{attach},
-	layer{layer},
-	inputView{inputView}
+	layer{layer}
 {}
 
 void EmuView::prepareDraw()
@@ -36,11 +35,6 @@ void EmuView::draw(Gfx::RendererCommands &cmds)
 	if(layer)
 	{
 		layer->draw(cmds, projP);
-	}
-	if(EmuSystem::isActive() && inputView)
-	{
-		cmds.loadTransform(projP.makeTranslate());
-		inputView->draw(cmds);
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	if(strlen(audioStatsStr.data()))
@@ -63,10 +57,6 @@ void EmuView::place()
 	{
 		layer->place(viewRect(), projP, inputView);
 	}
-	if(inputView)
-	{
-		inputView->place();
-	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	if(strlen(audioStatsStr.data()))
 	{
@@ -80,16 +70,12 @@ void EmuView::place()
 
 bool EmuView::inputEvent(Input::Event e)
 {
-	if(inputView)
-	{
-		return inputView->inputEvent(e);
-	}
 	return false;
 }
 
-void EmuView::swapLayers(EmuView &view)
+void EmuView::setLayoutInputView(EmuInputView *view)
 {
-	std::swap(layer, view.layer);
+	inputView = view;
 }
 
 void EmuView::updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames)

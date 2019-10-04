@@ -1,6 +1,5 @@
 #include <imagine/gui/TextEntry.hh>
 #include <emuframework/Cheats.hh>
-#include <emuframework/MsgPopup.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <main/Cheats.hh>
@@ -280,8 +279,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(thisCheat.name,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{attachParams(), cheatList[c]};
-				pushAndShow(editCheatView, e);
+				pushAndShow(makeView<EmuEditCheatView>(cheatList[c]), e);
 			});
 		++it;
 	}

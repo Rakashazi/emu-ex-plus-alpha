@@ -287,6 +287,8 @@ void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }
 
+void flushEvents() {}
+
 void init()
 {
 	addDevice(keyDev);

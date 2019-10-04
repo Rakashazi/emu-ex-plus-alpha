@@ -20,9 +20,12 @@
 #include <imagine/gui/TextTableView.hh>
 #include <emuframework/EmuSystem.hh>
 
+class VController;
+
 class TouchConfigView : public TableView
 {
 public:
+	VController &vController;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	TextMenuItem touchCtrlItem[3];
 	MultiChoiceMenuItem touchCtrl;
@@ -83,7 +86,7 @@ public:
 	void refreshTouchConfigMenu();
 
 public:
-	TouchConfigView(ViewAttachParams attach, const char *faceBtnName, const char *centerBtnName);
+	TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName);
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 };

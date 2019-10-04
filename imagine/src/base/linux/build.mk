@@ -3,6 +3,7 @@ inc_base := 1
 
 include $(imagineSrcDir)/base/Base.mk
 include $(imagineSrcDir)/input/build.mk
+include $(imagineSrcDir)/util/fdUtils.mk
 
 LDLIBS += -lpthread
 

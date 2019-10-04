@@ -34,5 +34,5 @@ struct RecentGameInfo
 		return string_equal(path.data(), rhs.path.data());
 	}
 
-	void handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e);
+	void handleMenuSelection(TextMenuItem &, Input::Event e);
 };

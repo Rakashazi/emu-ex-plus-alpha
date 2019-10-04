@@ -21,16 +21,14 @@
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <glib-unix.h>
+#ifdef CONFIG_BASE_X11
+#include "../../x11/x11.hh"
+#endif
 
 namespace Base
 {
 
 static __thread bool loopRunning;
-
-#ifdef CONFIG_BASE_X11
-extern void x11FDHandler();
-extern bool x11FDPending();
-#endif
 
 FDEventSource::FDEventSource(int fd):
 	GlibFDEventSource{fd}

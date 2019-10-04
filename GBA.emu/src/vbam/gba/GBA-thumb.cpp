@@ -42,7 +42,7 @@
 #define busPrefetch cpu.busPrefetch
 #define busPrefetchEnable cpu.busPrefetchEnable
 
-static inline ATTRS(always_inline) int calcTicksFromOldPC(ARM7TDMI &cpu, u32 oldArmNextPC)
+static inline __attribute__((always_inline)) int calcTicksFromOldPC(ARM7TDMI &cpu, u32 oldArmNextPC)
 {
 	return codeTicksAccessSeq16(cpu, oldArmNextPC) + 1;
 }
@@ -97,7 +97,7 @@ static INSN_REGPARM int thumbBreakpoint(ARM7TDMI &cpu, u32 opcode, u32 oldArmNex
 
 // C core
 #ifndef ADDCARRY
-static inline ATTRS(always_inline) void ADDCARRY_func(bool &cFlag, const u32 a, const u32 b, const u32 c)
+static inline __attribute__((always_inline)) void ADDCARRY_func(bool &cFlag, const u32 a, const u32 b, const u32 c)
 {
 	/*cFlag = (NEG(a) & NEG(b)) |
 	            (NEG(a) & POS(c)) |
@@ -108,7 +108,7 @@ static inline ATTRS(always_inline) void ADDCARRY_func(bool &cFlag, const u32 a, 
  #define ADDCARRY(a, b, c) ADDCARRY_func(C_FLAG, a, b, c);
 #endif
 #ifndef ADDOVERFLOW
-static inline ATTRS(always_inline) void ADDOVERFLOW_func(bool &vFlag, const u32 a, const u32 b, const u32 c)
+static inline __attribute__((always_inline)) void ADDOVERFLOW_func(bool &vFlag, const u32 a, const u32 b, const u32 c)
 {
 	vFlag = (NEG(a) & NEG(b) & POS(c)) |
 	            (POS(a) & POS(b) & NEG(c));
@@ -116,7 +116,7 @@ static inline ATTRS(always_inline) void ADDOVERFLOW_func(bool &vFlag, const u32 
  #define ADDOVERFLOW(a, b, c) ADDOVERFLOW_func(V_FLAG, a, b, c);
 #endif
 #ifndef SUBCARRY
-static inline ATTRS(always_inline) void SUBCARRY_func(bool &cFlag, const u32 a, const u32 b, const u32 c)
+static inline __attribute__((always_inline)) void SUBCARRY_func(bool &cFlag, const u32 a, const u32 b, const u32 c)
 {
 	cFlag = (NEG(a) & POS(b)) |
 	            (NEG(a) & POS(c)) |
@@ -125,7 +125,7 @@ static inline ATTRS(always_inline) void SUBCARRY_func(bool &cFlag, const u32 a, 
  #define SUBCARRY(a, b, c) SUBCARRY_func(C_FLAG, a, b, c);
 #endif
 #ifndef SUBOVERFLOW
-static inline ATTRS(always_inline) void SUBOVERFLOW_func(bool &vFlag, const u32 a, const u32 b, const u32 c)
+static inline __attribute__((always_inline)) void SUBOVERFLOW_func(bool &vFlag, const u32 a, const u32 b, const u32 c)
 {
 	vFlag = (NEG(a) & POS(b) & POS(c)) |\
       (POS(a) & NEG(b) & NEG(c));
@@ -133,7 +133,7 @@ static inline ATTRS(always_inline) void SUBOVERFLOW_func(bool &vFlag, const u32 
  #define SUBOVERFLOW(a, b, c) SUBOVERFLOW_func(V_FLAG, a, b, c);
 #endif
 #ifndef ADD_RD_RS_RN
-static inline ATTRS(always_inline) void ADD_RD_RS_RN_func(ARM7TDMI &cpu, const u32 source, const u32 dest, const u32 N)
+static inline __attribute__((always_inline)) void ADD_RD_RS_RN_func(ARM7TDMI &cpu, const u32 source, const u32 dest, const u32 N)
 {
 	u32 lhs = reg[source].I;
 	u32 rhs = reg[N].I;
@@ -147,7 +147,7 @@ static inline ATTRS(always_inline) void ADD_RD_RS_RN_func(ARM7TDMI &cpu, const u
  #define ADD_RD_RS_RN(N) ADD_RD_RS_RN_func(cpu, source, dest, N);
 #endif
 #ifndef ADD_RD_RS_O3
-static inline ATTRS(always_inline) void ADD_RD_RS_O3_func(ARM7TDMI &cpu, const u32 source, const u32 dest, const u32 N)
+static inline __attribute__((always_inline)) void ADD_RD_RS_O3_func(ARM7TDMI &cpu, const u32 source, const u32 dest, const u32 N)
 {
 	u32 lhs = reg[source].I;
 	u32 rhs = N;
@@ -164,7 +164,7 @@ static inline ATTRS(always_inline) void ADD_RD_RS_O3_func(ARM7TDMI &cpu, const u
 # define ADD_RD_RS_O3_0 ADD_RD_RS_O3
 #endif
 #ifndef ADD_RN_O8
-static inline ATTRS(always_inline) void ADD_RN_O8_func(ARM7TDMI &cpu, const u32 opcode, const u32 d)
+static inline __attribute__((always_inline)) void ADD_RN_O8_func(ARM7TDMI &cpu, const u32 opcode, const u32 d)
 {
 	u32 lhs = reg[(d)].I;
 	u32 rhs = (opcode & 255);
@@ -1134,7 +1134,7 @@ static INSN_REGPARM int thumbB0(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC)
 
 // Push and pop ///////////////////////////////////////////////////////////
 
-static inline ATTRS(always_inline) int PUSH_REG_func(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC,
+static inline __attribute__((always_inline)) int PUSH_REG_func(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC,
 		int &count, u32 &address, const u32 val, const u32 r)
 {
 	if (opcode & (val)) {
@@ -1157,7 +1157,7 @@ static inline ATTRS(always_inline) int PUSH_REG_func(ARM7TDMI &cpu, u32 opcode, 
 #define PUSH_REG(val, r) \
 PUSH_REG_func(cpu, opcode, clockTicks, count, address, val, r);
 
-static inline ATTRS(always_inline) int POP_REG_func(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC,
+static inline __attribute__((always_inline)) int POP_REG_func(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC,
 		int &count, u32 &address, const u32 val, const u32 r)
 {
 	if (opcode & (val)) {
@@ -1284,7 +1284,7 @@ static INSN_REGPARM int thumbBD(ARM7TDMI &cpu, u32 opcode, u32 oldArmNextPC)
 // Load/store multiple ////////////////////////////////////////////////////
 
 // TODO: ticks not actually used from THUMB_STM_REG & HUMB_LDM_REG
-static inline ATTRS(always_inline) int THUMB_STM_REG_func(ARM7TDMI &cpu, u32 opcode,
+static inline __attribute__((always_inline)) int THUMB_STM_REG_func(ARM7TDMI &cpu, u32 opcode,
 		int &count, u32 &address, const u32 temp, const u32 val, const u32 r, const u32 b)
 {
 	if(opcode & (val)) {
@@ -1306,7 +1306,7 @@ static inline ATTRS(always_inline) int THUMB_STM_REG_func(ARM7TDMI &cpu, u32 opc
 #define THUMB_STM_REG(val,r,b) \
 THUMB_STM_REG_func(cpu, opcode, count, address, temp, val, r, b);
 
-static inline ATTRS(always_inline) int THUMB_LDM_REG_func(ARM7TDMI &cpu, u32 opcode,
+static inline __attribute__((always_inline)) int THUMB_LDM_REG_func(ARM7TDMI &cpu, u32 opcode,
 		int &count, u32 &address, const u32 val, const u32 r)
 {
 	if(opcode & (val)) {

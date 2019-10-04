@@ -36,5 +36,4 @@ public:
 	void draw(Gfx::RendererCommands &cmds) final;
 	void place() final;
 	bool inputEvent(Input::Event e) final;
-	void onAddedToController(Input::Event e) final {}
 };

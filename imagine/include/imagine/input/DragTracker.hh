@@ -92,6 +92,7 @@ public:
 				return s->isDragging();
 			}
 			case Input::RELEASED:
+			case Input::CANCELED:
 			{
 				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
 				if(s == state_.end())
@@ -146,6 +147,7 @@ public:
 				return state_.isDragging();
 			}
 			case Input::RELEASED:
+			case Input::CANCELED:
 			{
 				if(!state_.isTracking(pID))
 					return false;

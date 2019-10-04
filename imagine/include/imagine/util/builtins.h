@@ -19,7 +19,4 @@
 // Make symbol remain visible after linking
 #define LVISIBLE __attribute__((visibility("default")))
 
-// Shortcut for GCC attributes
-#define ATTRS(...) __attribute__((__VA_ARGS__))
-
 #define INITFIRST __attribute__((init_priority(101)))

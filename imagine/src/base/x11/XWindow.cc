@@ -57,7 +57,7 @@ void Window::setTitle(const char *name)
 	}
 }
 
-bool Window::hasSurface()
+bool Window::hasSurface() const
 {
 	return true;
 }
@@ -281,7 +281,7 @@ bool Window::systemAnimatesRotation()
 	return false;
 }
 
-NativeWindow Window::nativeObject()
+NativeWindow Window::nativeObject() const
 {
 	return xWin;
 }

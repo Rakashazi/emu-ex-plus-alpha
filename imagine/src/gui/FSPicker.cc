@@ -42,9 +42,8 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 		{ .97, Gfx::VertexColorPixelFormat.build(.35 * .4, .35 * .4, .35 * .4, 1.) },
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
-	auto nav = std::make_unique<BasicNavView>
+	auto nav = makeView<BasicNavView>
 		(
-			attach,
 			face,
 			singleDir ? nullptr : backRes,
 			closeRes
@@ -70,9 +69,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 			}
 		});
 	controller.setNavView(std::move(nav));
-	auto table = new TableView(attach, text);
-	controller.push(*table, Input::defaultEvent());
-	controller.setRendererTask(rendererTask());
+	controller.push(makeView<TableView>(text), Input::defaultEvent());
 }
 
 void FSPicker::place()
@@ -206,6 +203,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		}
 	}
 	std::sort(dir.begin(), dir.end(), FS::fileStringNoCaseLexCompare());
+	auto lock = makeControllerMutexLock();
 	text.clear();
 	if(dir.size())
 	{
@@ -325,20 +323,20 @@ bool FSPicker::isAtRoot() const
 void FSPicker::pushFileLocationsView(Input::Event e)
 {
 	rootLocation = Base::rootFileLocations();
-	auto &view = *new TextTableView("File Locations", attachParams(), rootLocation.size() + 1);
+	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + 1);
 	for(auto &loc : rootLocation)
 	{
-		view.appendItem(loc.description.data(), [this, &loc](TextMenuItem &, View &, Input::Event e)
+		view->appendItem(loc.description.data(), [this, &loc](TextMenuItem &, View &, Input::Event e)
 			{
 				auto pathLen = strlen(loc.path.data());
 				changeDirByInput(loc.path.data(), loc.root, true, e);
 				popAndShow();
 			});
 	}
-	view.appendItem("Root Filesystem", [this](TextMenuItem &, View &, Input::Event e)
+	view->appendItem("Root Filesystem", [this](TextMenuItem &, View &, Input::Event e)
 		{
 			changeDirByInput("/", {}, true, e);
 			popAndShow();
 		});
-	pushAndShow(view, e);
+	pushAndShow(std::move(view), e);
 }

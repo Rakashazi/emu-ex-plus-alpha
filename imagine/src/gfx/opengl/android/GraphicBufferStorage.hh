@@ -37,7 +37,6 @@ struct GraphicBufferStorage: public DirectTextureStorage
 	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
 	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) final;
 	void unlock(Renderer &r, GLuint tex) final;
-	bool isSingleBuffered() const final;
 	void resetImage(EGLDisplay dpy);
 	void reset(EGLDisplay dpy);
 	static bool isRendererWhitelisted(const char *rendererStr);

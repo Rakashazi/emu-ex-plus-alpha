@@ -41,9 +41,9 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 		[this](Base::Screen::FrameParams params)
 		{
 			auto frames = std::max(params.elapsedFrames(), 1u);
+			auto prevOffset = offset;
 			if(scrollVel) // scrolling deceleration
 			{
-				postDraw();
 				auto prevSignBit = std::signbit(scrollVel);
 				scrollVel += scrollAccel * frames;
 				if(std::signbit(scrollVel) != prevSignBit) // stop when velocity overflows
@@ -54,12 +54,15 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 				if(isOverScrolled())
 					scrollVel = 0;
 				if(scrollVel || isOverScrolled())
+				{
+					if(offset != prevOffset)
+						postDraw();
 					return true;
+				}
 			}
 			else if(isOverScrolled())
 			{
 				//logMsg("animating over-scroll");
-				postDraw();
 				int clip = offset < 0 ? 0 : offsetMax;
 				int sign = offset < 0 ? 1 : -1;
 				iterateTimes(frames, i)
@@ -75,9 +78,13 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 				}
 				else
 				{
+					if(offset != prevOffset)
+						postDraw();
 					return true;
 				}
 			}
+			if(offset != prevOffset)
+				postDraw();
 			return false;
 		}
 	}
@@ -228,7 +235,10 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 			{
 				screen()->addOnFrame(animate);
 			}
-			postDraw(); // scroll bar visual update on input release
+			else
+			{
+				postDraw(); // scroll bar visual update on input release
+			}
 		});
 	return isDragging;
 }

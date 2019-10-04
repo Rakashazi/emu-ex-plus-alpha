@@ -60,7 +60,7 @@ public:
 	};
 	struct FrameParams;
 
-	using ChangeDelegate = DelegateFunc<void (const Screen &screen, Change change)>;
+	using ChangeDelegate = DelegateFunc<void (Screen &screen, Change change)>;
 	using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
 	struct FrameParams
@@ -70,7 +70,7 @@ public:
 
 		Screen &screen() const { return screen_; }
 		FrameTimeBase timestamp() const { return timestamp_; }
-		FrameTimeBase timestampDiff() const
+		FrameTimeBaseDiff timestampDiff() const
 		{
 			auto lastTimestamp = screen_.lastFrameTimestamp();
 			return lastTimestamp ? timestamp_ - lastTimestamp : 0;
@@ -103,6 +103,7 @@ public:
   std::vector<double> supportedFrameRates();
 	void setFrameInterval(uint interval);
 	static bool supportsFrameInterval();
+	static bool supportsTimestamps();
 
 	// for internal use
 	FrameTimeBase prevFrameTimestamp{};

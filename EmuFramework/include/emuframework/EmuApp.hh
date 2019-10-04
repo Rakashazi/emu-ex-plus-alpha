@@ -71,14 +71,13 @@ public:
 		pushAndShowNewYesNoAlertView(attach, e, label, yesStr, noStr,
 			TextMenuItem::wrapSelectDelegate(onYes), TextMenuItem::wrapSelectDelegate(onNo));
 	}
-	static void pushAndShowModalView(View &v, Input::Event e);
+	static void pushAndShowModalView(std::unique_ptr<View> v, Input::Event e);
 	static void popModalViews();
 	static void popMenuToRoot();
-	static void restoreMenuFromGame();
 	static void showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e);
 	static void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
 	static void showExitAlert(ViewAttachParams attach, Input::Event e);
-	static void launchSystemWithResumePrompt(Gfx::Renderer &r, Input::Event e, bool addToRecent);
+	static void launchSystemWithResumePrompt(Input::Event e, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
 	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	static void refreshCheatViews();
@@ -87,6 +86,8 @@ public:
 	static void postMessage(const char *msg);
 	static void postMessage(bool error, const char *msg);
 	static void postMessage(uint secs, bool error, const char *msg);
+	static void postErrorMessage(const char *msg);
+	static void postErrorMessage(uint secs, const char *msg);
 	static void unpostMessage();
 	static void saveAutoState();
 	static bool loadAutoState();
@@ -100,7 +101,7 @@ public:
 	static FS::PathString mediaSearchPath();
 	static FS::PathString firmwareSearchPath();
 	static void setFirmwareSearchPath(const char *path);
-	static View *makeCustomView(ViewAttachParams attach, ViewID id);
+	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	static void addTurboInputEvent(uint action);
 	static void removeTurboInputEvent(uint action);
 	static FS::PathString assetPath();
@@ -116,4 +117,5 @@ public:
 	static void loadSessionOptions();
 	static bool hasSavedSessionOptions();
 	static void deleteSessionOptions();
+	static void syncEmulationThread();
 };

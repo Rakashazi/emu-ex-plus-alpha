@@ -16,6 +16,7 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "ios.hh"
 
@@ -44,6 +45,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 - (void)onFrame
 {
+	Input::flushEvents();
 	auto &screen = *screen_;
 	auto timestamp = screen.displayLink().timestamp;
 	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
@@ -123,6 +125,11 @@ void Screen::setFrameInterval(uint interval)
 }
 
 bool Screen::supportsFrameInterval()
+{
+	return true;
+}
+
+bool Screen::supportsTimestamps()
 {
 	return true;
 }

@@ -62,7 +62,7 @@ static void placeElements(Gfx::Renderer &r)
 
 static void cleanupTest()
 {
-	rendererTask.haltDrawing();
+	rendererTask.pause();
 	if(activeTest)
 	{
 		activeTest->deinit();
@@ -122,7 +122,6 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 				return false;
 			auto atOnFrame = IG::Time::now();
 			auto timestamp = params.timestamp();
-			rendererTask.haltDrawing();
 			activeTest->frameUpdate(rendererTask, params.screen(), timestamp);
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 			activeTest->lastFramePresentTime.frameTime = Base::frameTimeBaseToTime(timestamp);

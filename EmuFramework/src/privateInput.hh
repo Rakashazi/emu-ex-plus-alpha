@@ -98,20 +98,6 @@ struct KeyMapping
 	void buildAll();
 };
 
-struct VControllerLayoutPosition
-{
-	enum { OFF = 0, SHOWN = 1, HIDDEN = 2 };
-	_2DOrigin origin{LT2DO};
-	uint state = OFF;
-	IG::Point2D<int> pos{};
-
-	constexpr VControllerLayoutPosition() {}
-	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos): origin(origin), pos(pos) {}
-	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos, uint state): origin(origin), state(state), pos(pos) {}
-};
-
-extern bool fastForwardActive;
-
 static const int guiKeyIdxLoadGame = 0;
 static const int guiKeyIdxMenu = 1;
 static const int guiKeyIdxSaveState = 2;
@@ -135,8 +121,6 @@ extern std::list<KeyConfig> customKeyConfig;
 extern std::list<InputDeviceSavedConfig> savedInputDevList;
 extern std::vector<InputDeviceConfig> inputDevConf;
 extern KeyMapping keyMapping;
-extern bool physicalControlsPresent;
-extern VControllerLayoutPosition vControllerLayoutPos[2][7];
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 extern uint pointerInputPlayer;
@@ -157,9 +141,8 @@ static bool customKeyConfigsContainName(const char *name)
 	return 0;
 }
 
-VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size);
-IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos);
-extern bool vControllerLayoutPosChanged;
+VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size, IG::WindowRect viewBounds);
+IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewport viewport);
 void resetVControllerPositions();
 void resetVControllerOptions();
 void resetAllVControllerOptions();
@@ -171,8 +154,6 @@ namespace EmuControls
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void setupVControllerVars();
 #endif
-void setOnScreenControls(bool on);
-void updateAutoOnScreenControlVisible();
 void updateVControlImg();
 
 }

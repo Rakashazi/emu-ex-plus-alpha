@@ -4,6 +4,7 @@ inc_base := 1
 include $(imagineSrcDir)/base/Base.mk
 include $(imagineSrcDir)/input/build.mk
 include $(IMAGINE_PATH)/make/package/egl.mk
+include $(imagineSrcDir)/util/fdUtils.mk
 
 configDefs += CONFIG_BASE_ANDROID
 

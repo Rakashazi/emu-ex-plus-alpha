@@ -38,10 +38,9 @@ public:
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	void onAddedToController(Input::Event e) final {}
 
 	// load context vars
-	Base::Pipe pipe;
+	Base::MessagePort<EmuSystem::LoadProgressMessage> msgPort;
 	Input::Event originalEvent{};
 	EmuApp::CreateSystemCompleteDelegate onComplete{};
 };

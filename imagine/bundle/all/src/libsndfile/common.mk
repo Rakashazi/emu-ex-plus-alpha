@@ -30,6 +30,7 @@ $(libsndfileSrcDir)/configure : | $(libsndfileSrcArchive)
 	@mkdir -p $(libsndfileSrcDir)
 	tar -mxzf $| -C $(libsndfileSrcDir)/..
 	cp ../gnuconfig/config.* $(libsndfileSrcDir)/Cfg/
+	autoreconf -vfi $(libsndfileSrcDir)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libsndfile..."

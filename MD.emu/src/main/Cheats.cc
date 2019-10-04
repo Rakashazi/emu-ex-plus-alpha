@@ -20,7 +20,6 @@
 #include <imagine/logger/logger.h>
 #include <main/Cheats.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/MsgPopup.hh>
 #include "EmuCheatViews.hh"
 #include "system.h"
 #include "z80.h"
@@ -600,8 +599,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(thisCheat.name,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{attachParams(), cheatList[c]};
-				pushAndShow(editCheatView, e);
+				pushAndShow(makeView<EmuEditCheatView>(cheatList[c]), e);
 			});
 		++it;
 	}

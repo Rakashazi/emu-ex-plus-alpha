@@ -48,8 +48,8 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 	return desc;
 }
 
-BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
-	EmuSystem::NameFilterFunc fsFilter_, ViewAttachParams attach):
+BiosSelectMenu::BiosSelectMenu(const char *name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
+	EmuSystem::NameFilterFunc fsFilter_):
 	TableView
 	{
 		name,
@@ -73,8 +73,8 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto startPath = strlen(biosPathStr->data()) ? FS::dirname(*biosPathStr) : lastLoadPath;
-			auto &fPicker = *new EmuFilePicker{attachParams(), startPath.data(), false, fsFilter, {}, e};
-			fPicker.setOnSelectFile(
+			auto fPicker = makeView<EmuFilePicker>(startPath.data(), false, fsFilter, FS::RootPathInfo{}, e);
+			fPicker->setOnSelectFile(
 				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
 					*biosPathStr = picker.makePathString(name);
@@ -82,7 +82,7 @@ BiosSelectMenu::BiosSelectMenu(const char *name, FS::PathString *biosPathStr_, B
 					onBiosChangeD.callSafe();
 					popAndShow();
 				});
-			modalViewController.pushAndShow(fPicker, e, false);
+			emuViewController.pushAndShowModal(std::move(fPicker), e, false);
 		}
 	},
 	unset
@@ -119,6 +119,7 @@ static bool setAndroidTextureStorage(uint8 mode)
 			{
 				// texture may switch to external format so
 				// force effect shaders to re-compile
+				auto lock = std::scoped_lock(emuViewController.mutex());
 				emuVideoLayer.setEffect(0);
 				emuVideo.resetImage();
 				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -152,10 +153,10 @@ static void setAudioRate(int rate)
 	EmuSystem::configAudioPlayback();
 }
 
-static void setMenuOrientation(uint val)
+static void setMenuOrientation(uint val, Base::Window &win)
 {
 	optionMenuOrientation = val;
-	emuVideo.renderer().setWindowValidOrientations(mainWin.win, optionMenuOrientation);
+	emuVideo.renderer().setWindowValidOrientations(win, optionMenuOrientation);
 	logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 }
 
@@ -175,16 +176,15 @@ static void setZoom(int val)
 {
 	optionImageZoom = val;
 	logMsg("set image zoom: %d", int(optionImageZoom));
-	placeEmuViews();
-	emuWin->win.postDraw();
+	emuViewController.placeEmuViews();
+	emuViewController.postDrawToEmuWindows();
 }
 
 static void setViewportZoom(int val)
 {
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
-	startViewportAnimation(mainWin);
-	mainWin.win.postDraw();
+	emuViewController.startMainViewportAnimation();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -194,7 +194,7 @@ static void setImgEffect(uint val)
 	if(emuVideo.image())
 	{
 		emuVideoLayer.setEffect(val);
-		emuWin->win.postDraw();
+		emuViewController.postDrawToEmuWindows();
 	}
 }
 #endif
@@ -204,14 +204,14 @@ static void setOverlayEffect(uint val)
 	optionOverlayEffect = val;
 	emuVideoLayer.setOverlay(val);
 	emuVideoLayer.placeOverlay();
-	emuWin->win.postDraw();
+	emuViewController.postDrawToEmuWindows();
 }
 
 static void setOverlayEffectLevel(uint val)
 {
 	optionOverlayEffectLevel = val;
 	emuVideoLayer.setOverlayIntensity(val/100.);
-	emuWin->win.postDraw();
+	emuViewController.postDrawToEmuWindows();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -224,7 +224,7 @@ static void setImgEffectPixelFormat(PixelFormatID format)
 {
 	optionImageEffectPixelFormat = format;
 	emuVideoLayer.setEffectBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
-	emuWin->win.postDraw();
+	emuViewController.postDrawToEmuWindows();
 }
 #endif
 
@@ -236,22 +236,22 @@ static const char *autoWindowPixelFormatStr()
 
 static void setWindowPixelFormat(PixelFormatID format)
 {
-	popup.post("Restart app for option to take effect");
+	EmuApp::postMessage("Restart app for option to take effect");
 	optionWindowPixelFormat = format;
 }
 #endif
 
 static void setGPUMultiThreading(Gfx::Renderer::ThreadMode mode)
 {
-	popup.post("Restart app for option to take effect");
+	EmuApp::postMessage("Restart app for option to take effect");
 	optionGPUMultiThreading = (int)mode;
 }
 
-static void setFontSize(uint val)
+static void setFontSize(uint val, Base::Window &win)
 {
 	optionFontSize = val;
-	setupFont(emuVideo.renderer());
-	placeElements();
+	setupFont(emuVideo.renderer(), win);
+	emuViewController.placeElements();
 }
 
 template <size_t S>
@@ -268,15 +268,17 @@ public:
 	using DetectFrameRateDelegate = DelegateFunc<void (double frameRate)>;
 	DetectFrameRateDelegate onDetectFrameTime;
 	Base::Screen::OnFrameDelegate detectFrameRate;
+	Gfx::DrawFinishedDelegate detectFrameDrawRate;
 	Base::FrameTimeBase totalFrameTime{};
 	Gfx::Text fpsText;
-	double lastAverageFrameTimeSecs = 0;
-	uint totalFrames = 0;
+	uint allTotalFrames = 0;
 	uint callbacks = 0;
 	std::array<char, 32> fpsStr{};
+	std::vector<Base::FrameTimeBaseDiff> frameTimeSample{};
+	Gfx::RendererTask &rendererTask;
 
-	DetectFrameRateView(ViewAttachParams attach): View(attach),
-		fpsText{nullptr, &View::defaultFace}
+	DetectFrameRateView(ViewAttachParams attach, Gfx::RendererTask &rendererTask): View(attach),
+		fpsText{nullptr, &View::defaultFace}, rendererTask{rendererTask}
 	{
 		View::defaultFace.precacheAlphaNum(attach.renderer);
 		View::defaultFace.precache(attach.renderer, ".");
@@ -286,20 +288,10 @@ public:
 	~DetectFrameRateView() final
 	{
 		setCPUNeedsLowLatency(false);
-		emuWin->win.screen()->removeOnFrame(detectFrameRate);
+		emuViewController.emuWindowScreen()->removeOnFrame(detectFrameRate);
 	}
 
 	IG::WindowRect &viewRect() final { return viewFrame; }
-
-	double totalFrameTimeSecs() const
-	{
-		return Base::frameTimeBaseToSecsDec(totalFrameTime);
-	}
-
-	double averageFrameTimeSecs() const
-	{
-		return totalFrameTimeSecs() / (double)totalFrames;
-	}
 
 	void place() final
 	{
@@ -326,72 +318,129 @@ public:
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}
 
+	bool runFrameTimeDetection(Base::FrameTimeBaseDiff timestampDiff, double slack)
+	{
+		postDraw();
+		const uint framesToTime = frameTimeSample.capacity() * 10;
+		allTotalFrames++;
+		frameTimeSample.emplace_back(timestampDiff);
+		if(frameTimeSample.size() == frameTimeSample.capacity())
+		{
+			bool stableFrameTime = true;
+			Base::FrameTimeBaseDiff frameTimeTotal{};
+			{
+				Base::FrameTimeBaseDiff lastFrameTime{};
+				for(auto frameTime : frameTimeSample)
+				{
+					frameTimeTotal += frameTime;
+					if(!stableFrameTime)
+						continue;
+					double frameTimeDiffSecs =
+						std::abs(Base::frameTimeBaseToSecsDec(lastFrameTime - frameTime));
+					if(frameTime < 0.001 || (lastFrameTime && frameTimeDiffSecs > slack))
+					{
+						logMsg("frame times differed by:%f", frameTimeDiffSecs);
+						stableFrameTime = false;
+					}
+					lastFrameTime = frameTime;
+				}
+			}
+			double frameTimeTotalSecs = Base::frameTimeBaseToSecsDec(frameTimeTotal);
+			double detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
+			{
+				auto lock = makeControllerMutexLock();
+				if(detectedFrameTime)
+					string_printf(fpsStr, "%.2ffps", 1. / detectedFrameTime);
+				else
+					string_printf(fpsStr, "0fps");
+				fpsText.setString(fpsStr.data());
+				fpsText.compile(renderer(), projP);
+			}
+			if(stableFrameTime)
+			{
+				logMsg("found frame time:%f", detectedFrameTime);
+				onDetectFrameTime(detectedFrameTime);
+				popAndShow();
+				return false;
+			}
+			frameTimeSample.erase(frameTimeSample.cbegin());
+		}
+		else
+		{
+			//logMsg("waiting for capacity:%zd/%zd", frameTimeSample.size(), frameTimeSample.capacity());
+		}
+		if(allTotalFrames >= framesToTime)
+		{
+			onDetectFrameTime(0);
+			popAndShow();
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+
 	void onAddedToController(Input::Event e) final
 	{
+		auto screen = emuViewController.emuWindowScreen();
+		assumeExpr(screen);
+		frameTimeSample.reserve(std::round(screen->frameRate() * 2.));
+		if(screen->supportsTimestamps())
+		{
+			logMsg("detecting via frame timestamps");
+			detectFrameRate =
+				[this](Base::Screen::FrameParams params)
+				{
+					postDraw();
+					const uint callbacksToSkip = 8;
+					callbacks++;
+					if(callbacks >= callbacksToSkip)
+					{
+						detectFrameRate =
+							[this](Base::Screen::FrameParams params)
+							{
+								return runFrameTimeDetection(params.timestampDiff(), 0.00001);
+							};
+						params.screen().addOnFrame(detectFrameRate);
+						return false;
+					}
+					else
+					{
+						return true;
+					}
+				};
+			screen->addOnFrame(detectFrameRate);
+		}
+		else
+		{
+			logMsg("detecting via draw finished timestamps");
+			detectFrameDrawRate =
+				[this](Gfx::DrawFinishedParams params)
+				{
+					postDraw();
+					const uint callbacksToSkip = 10;
+					callbacks++;
+					if(callbacks >= callbacksToSkip)
+					{
+						detectFrameDrawRate =
+							[this](Gfx::DrawFinishedParams params)
+							{
+								return runFrameTimeDetection(params.timestampDiff(), 0.001);
+							};
+						params.rendererTask().addOnDrawFinished(detectFrameDrawRate);
+						postDraw();
+						return false;
+					}
+					else
+					{
+						return true;
+					}
+				};
+			rendererTask.addOnDrawFinished(detectFrameDrawRate);
+			postDraw();
+		}
 		setCPUNeedsLowLatency(true);
-		detectFrameRate =
-			[this](Base::Screen::FrameParams params)
-			{
-				postDraw();
-				const uint callbacksToSkip = 30;
-				callbacks++;
-				if(callbacks >= callbacksToSkip)
-				{
-					detectFrameRate =
-						[this](Base::Screen::FrameParams params)
-						{
-							postDraw();
-							const uint framesToTime = 120 * 10;
-							totalFrameTime += params.timestampDiff();
-							totalFrames++;
-							if(totalFrames % 120 == 0)
-							{
-								if(!lastAverageFrameTimeSecs)
-									lastAverageFrameTimeSecs = averageFrameTimeSecs();
-								else
-								{
-									double avgFrameTimeSecs = averageFrameTimeSecs();
-									double avgFrameTimeDiff = std::abs(lastAverageFrameTimeSecs - avgFrameTimeSecs);
-									if(avgFrameTimeDiff < 0.00001)
-									{
-										logMsg("finished with diff %.8f, total frame time: %.2f, average %.6f over %u frames",
-											avgFrameTimeDiff, totalFrameTimeSecs(), avgFrameTimeSecs, totalFrames);
-										onDetectFrameTime(avgFrameTimeSecs);
-										popAndShow();
-										return false;
-									}
-									else
-										lastAverageFrameTimeSecs = averageFrameTimeSecs();
-								}
-								if(totalFrames % 60 == 0)
-								{
-									string_printf(fpsStr, "%.2ffps", 1. / averageFrameTimeSecs());
-									fpsText.setString(fpsStr.data());
-									fpsText.compile(renderer(), projP);
-								}
-							}
-							if(totalFrames >= framesToTime)
-							{
-								logErr("unstable frame rate over frame time: %.2f, average %.6f over %u frames",
-									totalFrameTimeSecs(), averageFrameTimeSecs(), totalFrames);
-								onDetectFrameTime(0);
-								popAndShow();
-								return false;
-							}
-							else
-							{
-								return true;
-							}
-						};
-					params.screen().addOnFrame(detectFrameRate);
-					return false;
-				}
-				else
-				{
-					return true;
-				}
-			};
-		emuWin->win.screen()->addOnFrame(detectFrameRate);
 	}
 };
 
@@ -449,7 +498,8 @@ void VideoOptionView::loadStockItems()
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	item.emplace_back(&windowPixelFormat);
 	#endif
-	item.emplace_back(&gpuMultithreading);
+	if(renderer().supportsThreadMode())
+		item.emplace_back(&gpuMultithreading);
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	item.emplace_back(&secondDisplay);
 	#endif
@@ -592,25 +642,25 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		},
 		{
 			"Graphic Buffer",
-			[this](TextMenuItem &, View &view, Input::Event e)
+			[this](TextMenuItem &, View &, Input::Event e)
 			{
 				static auto setAndroidTextureStorageGraphicBuffer =
 					[]()
 					{
 						if(!setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER))
 						{
-							popup.postError("Not supported on this GPU");
+							EmuApp::postErrorMessage("Not supported on this GPU");
 							return false;
 						}
 						return true;
 					};
 				if(!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted(renderer()))
 				{
-					auto &ynAlertView = *new YesNoAlertView{view.attachParams(),
+					auto ynAlertView = makeView<YesNoAlertView>(
 						"Setting Graphic Buffer improves performance but may hang or crash "
 						"the app depending on your device or GPU",
-						"OK", "Cancel"};
-					ynAlertView.setOnYes(
+						"OK", "Cancel");
+					ynAlertView->setOnYes(
 						[this](TextMenuItem &, View &view, Input::Event e)
 						{
 							if(setAndroidTextureStorageGraphicBuffer())
@@ -624,7 +674,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 								view.dismiss();
 							}
 						});
-					modalViewController.pushAndShow(ynAlertView, e, false);
+					emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 					return false;
 				}
 				else
@@ -639,7 +689,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				if(!setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE))
 				{
-					popup.postError("Not supported on this GPU");
+					EmuApp::postErrorMessage("Not supported on this GPU");
 					return false;
 				}
 				return true;
@@ -783,7 +833,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionImgFilter.val = item.flipBoolValue(*this);
 			emuVideoLayer.setLinearFilter(optionImgFilter);
-			emuWin->win.postDraw();
+			emuViewController.postDrawToEmuWindows();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -937,7 +987,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		false,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			setEmuViewOnExtraWindow(item.flipBoolValue(*this));
+			emuViewController.setEmuViewOnExtraWindow(item.flipBoolValue(*this), *Base::Screen::screen(0));
 		}
 	},
 	#endif
@@ -951,7 +1001,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(Base::Screen::screens() > 1)
-				setEmuViewOnExtraWindow(optionShowOnSecondScreen);
+				emuViewController.setEmuViewOnExtraWindow(optionShowOnSecondScreen, *Base::Screen::screen(1));
 		}
 	},
 	#endif
@@ -996,8 +1046,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			{
 				optionAspectRatio.val = EmuSystem::aspectRatioInfo[i].aspect;
 				logMsg("set aspect ratio: %u:%u", optionAspectRatio.val.x, optionAspectRatio.val.y);
-				placeEmuViews();
-				emuWin->win.postDraw();
+				emuViewController.placeEmuViews();
+				emuViewController.postDrawToEmuWindows();
 			}};
 		if(optionAspectRatio == EmuSystem::aspectRatioInfo[i].aspect)
 		{
@@ -1015,11 +1065,11 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double ti
 	double wantedTime = time;
 	if(!time)
 	{
-		wantedTime = emuWin->win.screen()->frameTime();
+		wantedTime = emuViewController.emuWindowScreen()->frameTime();
 	}
 	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
 	{
-		popup.printf(4, true, "%.2fHz not in valid range", 1. / wantedTime);
+		EmuApp::printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime);
 		return false;
 	}
 	EmuSystem::configFrameTime();
@@ -1041,35 +1091,35 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double ti
 void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e)
 {
 	const bool includeFrameRateDetection = !Config::envIsIOS;
-	auto &multiChoiceView = *new TextTableView{"Frame Rate", attachParams(), includeFrameRateDetection ? 4 : 3};
-	multiChoiceView.appendItem("Set with screen's reported rate",
+	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
+	multiChoiceView->appendItem("Set with screen's reported rate",
 		[this, vidSys](TextMenuItem &, View &, Input::Event e)
 		{
-			if(!emuWin->win.screen()->frameRateIsReliable())
+			if(!emuViewController.emuWindowScreen()->frameRateIsReliable())
 			{
 				#ifdef __ANDROID__
 				if(Base::androidSDK() <= 10)
 				{
-					popup.postError("Many Android 2.3 devices mis-report their refresh rate, "
+					EmuApp::postErrorMessage("Many Android 2.3 devices mis-report their refresh rate, "
 						"using the detected or default rate may give better results");
 				}
 				else
 				#endif
 				{
-					popup.postError("Reported rate potentially unreliable, "
+					EmuApp::postErrorMessage("Reported rate potentially unreliable, "
 						"using the detected or default rate may give better results");
 				}
 			}
 			if(onFrameTimeChange(vidSys, 0))
 				popAndShow();
 		});
-	multiChoiceView.appendItem("Set default rate",
+	multiChoiceView->appendItem("Set default rate",
 		[this, vidSys](TextMenuItem &, View &, Input::Event e)
 		{
 			onFrameTimeChange(vidSys, EmuSystem::defaultFrameTime(vidSys));
 			popAndShow();
 		});
-	multiChoiceView.appendItem("Set custom rate",
+	multiChoiceView->appendItem("Set custom rate",
 		[this, vidSys](TextMenuItem &, View &, Input::Event e)
 		{
 			popAndShow();
@@ -1090,7 +1140,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						}
 						else
 						{
-							popup.postError("Invalid input");
+							EmuApp::postErrorMessage("Invalid input");
 							return 1;
 						}
 					}
@@ -1100,11 +1150,11 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 		});
 	if(includeFrameRateDetection)
 	{
-		multiChoiceView.appendItem("Detect screen's rate and set",
+		multiChoiceView->appendItem("Detect screen's rate and set",
 			[this, vidSys](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &frView = *new DetectFrameRateView{attachParams()};
-				frView.onDetectFrameTime =
+				auto frView = makeView<DetectFrameRateView>(emuViewController.rendererTask());
+				frView->onDetectFrameTime =
 					[this, vidSys](double frameTime)
 					{
 						if(frameTime)
@@ -1113,14 +1163,14 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						}
 						else
 						{
-							popup.postError("Detected rate too unstable to use");
+							EmuApp::postErrorMessage("Detected rate too unstable to use");
 						}
 					};
 				popAndShow();
-				modalViewController.pushAndShow(frView, e, false);
+				emuViewController.pushAndShowModal(std::move(frView), e, false);
 			});
 	}
-	pushAndShow(multiChoiceView, e);
+	pushAndShow(std::move(multiChoiceView), e);
 }
 
 AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
@@ -1239,13 +1289,14 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		savePathStr,
 		[this](TextMenuItem &, View &view, Input::Event e)
 		{
-			auto &multiChoiceView = *new TextTableView{"Save Path", attachParams(), 3};
-			multiChoiceView.appendItem("Set Custom Path",
+			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
+			multiChoiceView->appendItem("Set Custom Path",
 				[this](TextMenuItem &, View &, Input::Event e)
 				{
 					auto startPath = strlen(optionSavePath) ? optionSavePath : optionLastLoadPath;
-					auto &fPicker = *new EmuFilePicker{attachParams(), startPath, true, {}, {}, e};
-					fPicker.setOnClose(
+					auto fPicker = makeView<EmuFilePicker>(startPath, true,
+						EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
+					fPicker->setOnClose(
 						[this](FSPicker &picker, Input::Event e)
 						{
 							EmuSystem::savePath_ = picker.path();
@@ -1254,23 +1305,23 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 							picker.dismiss();
 							popAndShow();
 						});
-					modalViewController.pushAndShow(fPicker, e, false);
+					emuViewController.pushAndShowModal(std::move(fPicker), e, false);
 				});
-			multiChoiceView.appendItem("Same as Game",
+			multiChoiceView->appendItem("Same as Game",
 				[this]()
 				{
 					popAndShow();
 					strcpy(optionSavePath, "");
 					onSavePathChange("");
 				});
-			multiChoiceView.appendItem("Default",
+			multiChoiceView->appendItem("Default",
 				[this]()
 				{
 					popAndShow();
 					strcpy(optionSavePath, optionSavePathDefaultToken);
 					onSavePathChange(optionSavePathDefaultToken);
 				});
-			pushAndShow(multiChoiceView, e);
+			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();
 		}
 	},
@@ -1370,7 +1421,7 @@ void SystemOptionView::onSavePathChange(const char *path)
 	if(string_equal(path, optionSavePathDefaultToken))
 	{
 		auto defaultPath = EmuSystem::baseDefaultGameSavePath();
-		popup.printf(4, false, "Default Save Path:\n%s", defaultPath.data());
+		EmuApp::printfMessage(4, false, "Default Save Path:\n%s", defaultPath.data());
 	}
 	printPathMenuEntryStr(optionSavePath, savePathStr);
 	savePath.compile(renderer(), projP);
@@ -1382,13 +1433,14 @@ void SystemOptionView::onFirmwarePathChange(const char *path, Input::Event e) {}
 
 void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Event e)
 {
-	auto &multiChoiceView = *new TextTableView{name, attachParams(), 2};
-	multiChoiceView.appendItem("Set Custom Path",
+	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), 2);
+	multiChoiceView->appendItem("Set Custom Path",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto startPath =  EmuApp::firmwareSearchPath();
-			auto &fPicker = *new EmuFilePicker{attachParams(), startPath.data(), true, {}, {}, e};
-			fPicker.setOnClose(
+			auto fPicker = makeView<EmuFilePicker>(startPath.data(), true,
+				EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
+			fPicker->setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{
 					auto path = picker.path();
@@ -1398,16 +1450,16 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 					picker.dismiss();
 				});
 			popAndShow();
-			EmuApp::pushAndShowModalView(fPicker, e);
+			EmuApp::pushAndShowModalView(std::move(fPicker), e);
 		});
-	multiChoiceView.appendItem("Default",
+	multiChoiceView->appendItem("Default",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			popAndShow();
 			EmuApp::setFirmwareSearchPath("");
 			onFirmwarePathChange("", e);
 		});
-	pushAndShow(multiChoiceView, e);
+	pushAndShow(std::move(multiChoiceView), e);
 }
 
 GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
@@ -1423,24 +1475,24 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSizeItem
 	{
-		{"2", [this](){ setFontSize(2000); }},
-		{"2.5", [this]() { setFontSize(2500); }},
-		{"3", [this]() { setFontSize(3000); }},
-		{"3.5", [this]() { setFontSize(3500); }},
-		{"4", [this]() { setFontSize(4000); }},
-		{"4.5", [this]() { setFontSize(4500); }},
-		{"5", [this]() { setFontSize(5000); }},
-		{"5.5", [this]() { setFontSize(5500); }},
-		{"6", [this]() { setFontSize(6000); }},
-		{"6.5", [this]() { setFontSize(6500); }},
-		{"7", [this]() { setFontSize(7000); }},
-		{"7.5", [this]() { setFontSize(7500); }},
-		{"8", [this]() { setFontSize(8000); }},
-		{"8.5", [this]() { setFontSize(8500); }},
-		{"9", [this]() { setFontSize(9000); }},
-		{"9.5", [this]() { setFontSize(9500); }},
-		{"10", [this]() { setFontSize(10000); }},
-		{"10.5", [this]() { setFontSize(10500); }},
+		{"2", [this](){ setFontSize(2000, window()); }},
+		{"2.5", [this]() { setFontSize(2500, window()); }},
+		{"3", [this]() { setFontSize(3000, window()); }},
+		{"3.5", [this]() { setFontSize(3500, window()); }},
+		{"4", [this]() { setFontSize(4000, window()); }},
+		{"4.5", [this]() { setFontSize(4500, window()); }},
+		{"5", [this]() { setFontSize(5000, window()); }},
+		{"5.5", [this]() { setFontSize(5500, window()); }},
+		{"6", [this]() { setFontSize(6000, window()); }},
+		{"6.5", [this]() { setFontSize(6500, window()); }},
+		{"7", [this]() { setFontSize(7000, window()); }},
+		{"7.5", [this]() { setFontSize(7500, window()); }},
+		{"8", [this]() { setFontSize(8000, window()); }},
+		{"8.5", [this]() { setFontSize(8500, window()); }},
+		{"9", [this]() { setFontSize(9000, window()); }},
+		{"9.5", [this]() { setFontSize(9500, window()); }},
+		{"10", [this]() { setFontSize(10000, window()); }},
+		{"10.5", [this]() { setFontSize(10500, window()); }},
 	},
 	fontSize
 	{
@@ -1596,8 +1648,8 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			optionTitleBar = item.flipBoolValue(*this);
-			viewStack.showNavView(optionTitleBar);
-			placeElements();
+			emuViewController.showNavView(optionTitleBar);
+			emuViewController.placeElements();
 		}
 	},
 	backNav
@@ -1607,8 +1659,8 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			View::setNeedsBackControl(item.flipBoolValue(*this));
-			viewStack.setShowNavViewBackButton(View::needsBackControl);
-			placeElements();
+			emuViewController.setShowNavViewBackButton(View::needsBackControl);
+			emuViewController.placeElements();
 		}
 	},
 	systemActionsIsDefaultMenu
@@ -1648,12 +1700,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", [](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO); }},
+		{"Auto", [this](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO, window()); }},
 		#endif
-		{landscapeName, [](){ setMenuOrientation(Base::VIEW_ROTATE_90); }},
-		{landscape2Name, [](){ setMenuOrientation(Base::VIEW_ROTATE_270); }},
-		{portraitName, [](){ setMenuOrientation(Base::VIEW_ROTATE_0); }},
-		{portrait2Name, [](){ setMenuOrientation(Base::VIEW_ROTATE_180); }},
+		{landscapeName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_90, window()); }},
+		{landscape2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_270, window()); }},
+		{portraitName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_0, window()); }},
+		{portrait2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_180, window()); }},
 	},
 	menuOrientation
 	{

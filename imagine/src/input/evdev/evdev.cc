@@ -26,6 +26,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/logger/logger.h>
 #include "evdev.hh"
 #include "../private.hh"
 #include <vector>

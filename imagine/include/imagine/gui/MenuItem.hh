@@ -240,7 +240,7 @@ public:
 	int cycleSelected(int offset);
 	bool select(View &parent, Input::Event e) override;
 	void setOnSelect(SelectDelegate onSelect);
-	TableView *makeTableView(ViewAttachParams attach);
+	std::unique_ptr<TableView> makeTableView(ViewAttachParams attach);
 	void defaultOnSelect(View &view, Input::Event e);
 
 protected:

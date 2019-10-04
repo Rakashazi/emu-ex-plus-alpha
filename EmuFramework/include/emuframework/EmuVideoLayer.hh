@@ -21,12 +21,13 @@
 #include <emuframework/EmuVideo.hh>
 
 struct AppWindowData;
+class EmuInputView;
 
 class EmuVideoLayer
 {
 public:
 	EmuVideoLayer(EmuVideo &video);
-	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, bool onScreenControlsOverlay);
+	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setOverlay(uint effect);
 	void setOverlayIntensity(Gfx::GC intensity);
@@ -36,6 +37,7 @@ public:
 	void placeEffect();
 	void setLinearFilter(bool on);
 	void resetImage();
+	void setBrightness(float b);
 
 	const IG::WindowRect &gameRect() const
 	{
@@ -51,6 +53,7 @@ private:
 	Gfx::Sprite disp{};
 	IG::WindowRect gameRect_{};
 	Gfx::GCRect gameRectG{};
+	float brightness = 1.f;
 	bool useLinearFilter = true;
 
 	void compileDefaultPrograms();

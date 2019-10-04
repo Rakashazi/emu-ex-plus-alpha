@@ -329,7 +329,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate onLoadProgress
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormat(srcPix);
+	video.setFormatLocked(srcPix);
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)

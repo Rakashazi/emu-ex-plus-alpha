@@ -29,16 +29,17 @@ class Pipe
 public:
 	using Delegate = DelegateFunc<int (Pipe &pipe)>;
 
-	Pipe();
+	Pipe(uint preferredSize = 0);
 	~Pipe();
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
 	void addToEventLoop(EventLoop loop, Delegate del);
 	void removeFromEventLoop();
 	bool read(void *data, uint size);
-	bool tryRead(void *data, uint size);
 	bool write(const void *data, uint size);
 	bool hasData();
+	void setPreferredSize(int size);
+	void setReadNonBlocking(bool on);
 	explicit operator bool() const;
 
 	template <class T>
@@ -66,7 +67,7 @@ public:
 		return write(&obj, sizeof(obj));
 	}
 
-private:
+protected:
 	std::array<int, 2> msgPipe{-1, -1};
 	FDEventSource fdSrc{};
 	Delegate del{};

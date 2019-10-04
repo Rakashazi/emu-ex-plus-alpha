@@ -5,9 +5,9 @@ ifneq ($(filter linux ios android webos,$(ENV)),)
 endif
 
 SRC += CreditsView.cc \
-MsgPopup.cc \
 FilePicker.cc \
 EmuSystem.cc \
+EmuSystemTask.cc \
 Screenshot.cc \
 ButtonConfigView.cc \
 VideoImageOverlay.cc \
@@ -18,6 +18,7 @@ EmuInput.cc \
 EmuOptions.cc \
 OptionView.cc \
 EmuView.cc \
+EmuViewController.cc \
 ConfigFile.cc \
 InputManagerView.cc \
 FileUtils.cc \

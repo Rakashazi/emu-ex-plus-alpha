@@ -19,6 +19,7 @@
 #include "android.hh"
 #include "internal.hh"
 #include <imagine/util/fd-utils.h>
+#include <imagine/logger/logger.h>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
 #include <android/looper.h>
@@ -203,7 +204,7 @@ IG::WindowRect Window::contentBounds() const
 	return contentRect;
 }
 
-bool Window::hasSurface()
+bool Window::hasSurface() const
 {
 	return nWin;
 }
@@ -230,7 +231,7 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 	ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
 }
 
-NativeWindow Window::nativeObject()
+NativeWindow Window::nativeObject() const
 {
 	return nWin;
 }

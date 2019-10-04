@@ -143,7 +143,7 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_UP:
-		//case AMOTION_EVENT_ACTION_CANCEL: // calling code always uses AMOTION_EVENT_ACTION_UP
+		case AMOTION_EVENT_ACTION_CANCEL:
 			for(auto &p : m)
 			{
 				if(p.isTouching)
@@ -151,7 +151,8 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					//logMsg("touch up for %d from gesture end", p_i);
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(&p - m, RELEASED, p, {x, y}, time, isMouse, device);
+					auto touchAction = action == AMOTION_EVENT_ACTION_UP ? RELEASED : CANCELED;
+					dispatchTouch(&p - m, touchAction, p, {x, y}, time, isMouse, device);
 				}
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
@@ -217,7 +218,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
 					{
 						// touch gesture ended
-						processTouchEvent(AMOTION_EVENT_ACTION_UP,
+						processTouchEvent(action,
 								AMotionEvent_getX(event, 0),
 								AMotionEvent_getY(event, 0),
 								AMotionEvent_getPointerId(event, 0),
@@ -459,6 +460,11 @@ static const char* aInputSourceToStr(uint source)
 		case AINPUT_SOURCE_ANY: return "Any";
 		default:  return "Unhandled value";
 	}
+}
+
+void flushEvents()
+{
+	processInput(Base::inputQueue);
 }
 
 Time Time::makeWithNSecs(uint64_t nsecs)

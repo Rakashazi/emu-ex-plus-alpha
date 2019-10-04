@@ -36,11 +36,6 @@ std::vector<InputDeviceConfig> inputDevConf{};
 std::list<InputDeviceSavedConfig> savedInputDevList{};
 std::list<KeyConfig> customKeyConfig{};
 KeyMapping keyMapping{};
-bool physicalControlsPresent = false;
-bool touchControlsAreOn = false;
-VControllerLayoutPosition vControllerLayoutPos[2][7];
-bool vControllerLayoutPosChanged = false;
-bool fastForwardActive = false;
 
 #ifdef CONFIG_VCONTROLS_GAMEPAD
 static Gfx::GC vControllerGCSize()
@@ -48,31 +43,32 @@ static Gfx::GC vControllerGCSize()
 	return vController.xMMSize(int(optionTouchCtrlSize) / 100.);
 }
 
-static int vControllerPixelSize()
+static int vControllerPixelSize(const Base::Window &win)
 {
-	return IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, int(optionTouchCtrlSize) / 100.));
+	return IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, int(optionTouchCtrlSize) / 100.));
 }
 #endif
 
 void initVControls(Gfx::Renderer &r)
 {
+	auto &winData = vController.windowData();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	auto &gp = vController.gamePad();
-	gp.dPad().setDeadzone(r, vController.xMMSizeToPixel(mainWin.win, int(optionTouchDpadDeadzone) / 100.));
-	gp.dPad().setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000.);
+	gp.dPad().setDeadzone(r, vController.xMMSizeToPixel(winData.win, int(optionTouchDpadDeadzone) / 100.), vController.windowData());
+	gp.dPad().setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000., vController.windowData());
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
-	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(winData.win), View::defaultFace.nominalHeight()*1.75, winData.projectionPlane);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(winData.win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projectionPlane);
 	#endif
 
-	if(!vControllerLayoutPosChanged) // setup default positions if not provided in config file
+	if(!vController.layoutPositionChanged()) // setup default positions if not provided in config file
 		resetVControllerPositions();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if((int)optionTouchCtrl == 2)
-		EmuControls::updateAutoOnScreenControlVisible();
+		emuViewController.updateAutoOnScreenControlVisible();
 	else
-		EmuControls::setOnScreenControls(optionTouchCtrl);
+		emuViewController.setOnScreenControls(optionTouchCtrl);
 	#endif
 	vController.updateMapping(0);
 }
@@ -80,7 +76,7 @@ void initVControls(Gfx::Renderer &r)
 void resetVControllerPositions()
 {
 	logMsg("resetting on-screen controls to default positions & states");
-	auto &win = mainWin.win;
+	auto &win = vController.windowData().win;
 	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !Base::hasHardwareNavButtons()) || Config::envIsWebOS3)
 		? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
 	uint initMenuState = ((Config::envIsWebOS && !Config::envIsWebOS3) || (Config::envIsAndroid && Base::hasHardwareNavButtons()))
@@ -91,13 +87,13 @@ void resetVControllerPositions()
 	uint initGamepadState = VControllerLayoutPosition::OFF;
 	#endif
 	bool isLandscape = true;
-	for(auto &e : vControllerLayoutPos)
+	for(auto &e : vController.layoutPosition())
 	{
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		int xOffset = isLandscape ? vController.xMMSizeToPixel(win, 2.) : vController.xMMSizeToPixel(win, .5);
-		e[VCTRL_LAYOUT_DPAD_IDX] = {LB2DO, {xOffset + vController.bounds(0).xSize()/2, (int)(-vControllerPixelSize()) - vController.bounds(0).ySize()/2}, initGamepadState};
+		e[VCTRL_LAYOUT_DPAD_IDX] = {LB2DO, {xOffset + vController.bounds(0).xSize()/2, (int)(-vControllerPixelSize(win)) - vController.bounds(0).ySize()/2}, initGamepadState};
 		e[VCTRL_LAYOUT_CENTER_BTN_IDX] = {CB2DO, {0, 0}, initGamepadState};
-		e[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX] = {RB2DO, {-xOffset - vController.bounds(2).xSize()/2, (int)(-vControllerPixelSize()) - vController.bounds(2).ySize()/2}, initGamepadState};
+		e[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX] = {RB2DO, {-xOffset - vController.bounds(2).xSize()/2, (int)(-vControllerPixelSize(win)) - vController.bounds(2).ySize()/2}, initGamepadState};
 		#endif
 		e[VCTRL_LAYOUT_MENU_IDX] = {RT2DO, {0, 0}, initMenuState};
 		e[VCTRL_LAYOUT_FF_IDX] = {LT2DO, {0, 0}, initFastForwardState};
@@ -112,7 +108,7 @@ void resetVControllerPositions()
 		#endif
 		isLandscape = false;
 	};
-	vControllerLayoutPosChanged = false;
+	vController.setLayoutPositionChanged(false);
 }
 
 void resetVControllerOptions()
@@ -145,17 +141,15 @@ void resetAllVControllerOptions()
 	#endif
 	resetVControllerOptions();
 	optionTouchCtrlAlpha.reset();
-	EmuControls::updateAutoOnScreenControlVisible();
+	emuViewController.updateAutoOnScreenControlVisible();
 	vController.updateMapping(pointerInputPlayer);
 }
 
-VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size)
+VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size, IG::WindowRect viewBounds)
 {
-	auto &win = mainWin.win;
 	IG::WindowRect bound { pos.x - size.x/2, pos.y - size.y/2, pos.x + size.x/2, pos.y + size.y/2 };
 
-	const auto &viewport = mainWin.viewport();
-	const auto &rect = viewport.bounds();
+	const auto &rect = viewBounds;
 	IG::WindowRect ltQuadrantRect{rect.x, rect.y, rect.xCenter(), rect.yCenter()};
 	IG::WindowRect rtQuadrantRect{rect.xCenter(), rect.y, rect.x2, rect.yCenter()};
 	IG::WindowRect lbQuadrantRect{rect.x, rect.yCenter(), rect.xCenter(), rect.y2};
@@ -175,15 +169,14 @@ VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::
 	else if(lbQuadrant) origin = LB2DO;
 	else if(rbQuadrant) origin = RB2DO;
 
-	int x = (origin.xScaler() == 0) ? pos.x - viewport.width()/2 :
-		(origin.xScaler() == 1) ? pos.x - viewport.width() : pos.x;
-	int y = LT2DO.adjustY(pos.y, (int)viewport.height(), origin);
+	int x = (origin.xScaler() == 0) ? pos.x - rect.xSize()/2 :
+		(origin.xScaler() == 1) ? pos.x - rect.xSize() : pos.x;
+	int y = LT2DO.adjustY(pos.y, rect.ySize(), origin);
 	return {origin, {x, y}};
 }
 
-IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos)
+IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewport viewport)
 {
-	const auto &viewport = mainWin.viewport();
 	int x = (lPos.origin.xScaler() == 0) ? lPos.pos.x + viewport.width()/2 :
 		(lPos.origin.xScaler() == 1) ? lPos.pos.x + viewport.width() : lPos.pos.x;
 	int y = lPos.origin.adjustY(lPos.pos.y, (int)viewport.height(), LT2DO);
@@ -230,34 +223,35 @@ void commonInitInput()
 {
 	relPtr = {};
 	turboActions = {};
-	fastForwardActive = false;
+	emuSystemTask.setFastForwardActive(false);
 }
 
-void commonUpdateInput()
+void TurboInput::update()
 {
-	using namespace IG;
 	static const uint turboFrames = 4;
-	static uint turboClock = 0;
 
-	for(auto e : turboActions.activeAction)
+	for(auto e : activeAction)
 	{
 		if(e.action)
 		{
-			if(turboClock == 0)
+			if(clock == 0)
 			{
 				//logMsg("turbo push for player %d, action %d", e.player, e.action);
 				EmuSystem::handleInputAction(Input::PUSHED, e.action);
 			}
-			else if(turboClock == turboFrames/2)
+			else if(clock == turboFrames/2)
 			{
 				//logMsg("turbo release for player %d, action %d", e.player, e.action);
 				EmuSystem::handleInputAction(Input::RELEASED, e.action);
 			}
 		}
 	}
-	turboClock++;
-	if(turboClock == turboFrames) turboClock = 0;
+	clock++;
+	if(clock == turboFrames) clock = 0;
+}
 
+void commonUpdateInput()
+{
 #ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
 	auto applyRelPointerDecel =
 		[](int val)
@@ -289,7 +283,7 @@ bool isMenuDismissKey(Input::Event e)
 		dismissKey = Keycode::RCTRL;
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
 	{
-		if(modalViewController.size()) // make sure not performing text input
+		if(emuViewController.hasModalView()) // make sure not performing text input
 			return false;
 		dismissKey = Keycode::SPACE;
 	}
@@ -314,11 +308,7 @@ void updateInputDevices()
 		}
 		i++;
 	}
-	physicalControlsPresent = Input::keyInputIsPresent();
-	if(physicalControlsPresent)
-	{
-		logMsg("Physical controls are present");
-	}
+	emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
 	onUpdateInputDevices.callCopySafe();
 	keyMapping.buildAll();
 }
@@ -524,7 +514,7 @@ KeyConfig *InputDeviceConfig::makeMutableKeyConf()
 		char name[96];
 		uniqueCustomConfigName(name);
 		conf = setKeyConfCopiedFromExisting(name);
-		popup.printf(3, 0, "Automatically created profile: %s", conf->name);
+		EmuApp::printfMessage(3, false, "Automatically created profile: %s", conf->name);
 	}
 	return conf;
 }
@@ -687,13 +677,14 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 void setupVControllerVars()
 {
+	auto &winData = vController.windowData();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	Gfx::GC btnSize = vControllerGCSize();
-	int btnSizePixels = vControllerPixelSize();
+	int btnSizePixels = vControllerPixelSize(winData.win);
 	auto &gp = vController.gamePad();
 	logMsg("set on-screen button size: %f, %d pixels", (double)btnSize, btnSizePixels);
 	gp.setSpacing(vController.xMMSize(int(optionTouchCtrlBtnSpace) / 100.));
-	gp.setSpacingPixels(IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, int(optionTouchCtrlBtnSpace) / 100.)));
+	gp.setSpacingPixels(IG::makeEvenRoundedUp(vController.xMMSizeToPixel(winData.win, int(optionTouchCtrlBtnSpace) / 100.)));
 	gp.setRowShift(0);
 	gp.setRowShiftPixels(0);
 	gp.setExtraXSize(optionTouchCtrlExtraXBtnSize / 1000.);
@@ -723,45 +714,20 @@ void setupVControllerVars()
 			gp.setRowShift(-(btnSize + gp.spacing()));
 			gp.setRowShiftPixels(-(btnSizePixels + gp.spacingPixels()));
 	}
-	vController.setBaseBtnSize(vControllerPixelSize(), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.setBaseBtnSize(vControllerPixelSize(winData.win), View::defaultFace.nominalHeight()*1.75, winData.projectionPlane);
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(mainWin.win, 8.5)), View::defaultFace.nominalHeight()*1.75, mainWin.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(winData.win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projectionPlane);
 	#endif
 
-	auto &layoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
+	auto &layoutPos = vController.layoutPosition()[winData.viewport().isPortrait() ? 1 : 0];
 	iterateTimes(vController.numElements(), i)
 	{
-		vController.setPos(i, vControllerLayoutToPixelPos(layoutPos[i]));
+		vController.setPos(i, vControllerLayoutToPixelPos(layoutPos[i], winData.viewport()));
 		vController.setState(i, layoutPos[i].state);
 	}
 }
 #endif
-
-void setOnScreenControls(bool on)
-{
-	touchControlsAreOn = on;
-	placeEmuViews();
-}
-
-void updateAutoOnScreenControlVisible()
-{
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	if((uint)optionTouchCtrl == 2)
-	{
-		if(touchControlsAreOn && physicalControlsPresent)
-		{
-			logMsg("auto-turning off on-screen controls");
-			setOnScreenControls(0);
-		}
-		else if(!touchControlsAreOn && !physicalControlsPresent)
-		{
-			logMsg("auto-turning on on-screen controls");
-			setOnScreenControls(1);
-		}
-	}
-	#endif
-}
 
 void updateVControlImg()
 {
@@ -800,7 +766,7 @@ void setActiveFaceButtons(uint btns)
 	vController.gamePad().setActiveFaceButtons(btns);
 	setupVControllerVars();
 	vController.place();
-	EmuSystem::clearInputBuffers(emuInputView);
+	EmuSystem::clearInputBuffers(emuViewController.inputView());
 	#endif
 }
 

@@ -28,6 +28,7 @@
 #include <string>
 #include <atomic>
 #include "private.hh"
+#include "privateInput.hh"
 
 struct AudioStats
 {
@@ -162,6 +163,7 @@ void EmuSystem::startAutoSaveStateTimer()
 			[]()
 			{
 				logMsg("auto-save state timer fired");
+				EmuApp::syncEmulationThread();
 				EmuApp::saveAutoState();
 			}, secs, secs, {});
 	}
@@ -516,7 +518,7 @@ FS::PathString EmuSystem::baseDefaultGameSavePath()
 	return FS::makePathStringPrintf("%s/Game Data/%s", Base::sharedStoragePath().data(), shortSystemName());
 }
 
-void EmuSystem::closeGame(bool allowAutosaveState)
+void EmuSystem::closeRuntimeSystem(bool allowAutosaveState)
 {
 	if(gameIsRunning())
 	{
@@ -527,12 +529,6 @@ void EmuSystem::closeGame(bool allowAutosaveState)
 		logMsg("closing game %s", gameName_.data());
 		closeSystem();
 		cancelAutoSaveStateTimer();
-		viewStack.navView()->showRightBtn(false);
-		if(int idx = viewStack.viewIdx("System Actions");
-			idx > 0)
-		{
-			viewStack.popTo(viewStack.viewAtIdx(idx - 1));
-		}
 		state = State::OFF;
 	}
 	clearGamePaths();
@@ -554,7 +550,7 @@ void EmuSystem::pause()
 void EmuSystem::start()
 {
 	state = State::ACTIVE;
-	clearInputBuffers(emuInputView);
+	clearInputBuffers(emuViewController.inputView());
 	resetFrameTime();
 	startSound();
 	startAutoSaveStateTimer();
@@ -580,6 +576,7 @@ void EmuSystem::skipFrames(uint frames, bool renderAudio)
 	iterateTimes(frames, i)
 	{
 		bool renderAudioThisFrame = renderAudio && audioFramesWritten() <= EmuSystem::audioFramesPerVideoFrame;
+		turboActions.update();
 		runFrame(nullptr, renderAudioThisFrame);
 	}
 }
@@ -665,7 +662,7 @@ void EmuSystem::prepareAudioVideo()
 
 static void closeAndSetupNew(const char *path)
 {
-	EmuSystem::closeGame();
+	emuViewController.closeSystem();
 	EmuSystem::setupGamePaths(path);
 	EmuApp::loadSessionOptions();
 }
@@ -726,12 +723,12 @@ EmuSystem::Error EmuSystem::loadGameFromFile(GenericIO file, const char *name, O
 		}
 		if(ec)
 		{
-			//popup.printf(3, true, "Error opening archive: %s", ec.message().c_str());
+			//EmuApp::printfMessage(3, true, "Error opening archive: %s", ec.message().c_str());
 			return makeError("Error opening archive: %s", ec.message().c_str());
 		}
 		if(!io)
 		{
-			//popup.postError("No recognized file extensions in archive");
+			//EmuApp::postErrorMessage("No recognized file extensions in archive");
 			return makeError("No recognized file extensions in archive");
 		}
 		closeAndSetupNew(name);

@@ -103,7 +103,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		{
 			if(!savedInputDevList.size())
 			{
-				popup.post("No saved device settings");
+				EmuApp::postMessage("No saved device settings");
 				return;
 			}
 			uint devs = savedInputDevList.size();
@@ -113,16 +113,16 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			{
 				deviceConfigStr.emplace_back(makePrintfDeviceNameWithNumber(e.name, e.enumId));
 			}
-			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), devs};
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, devs);
 			iterateTimes(devs, i)
 			{
-				multiChoiceView.appendItem(deviceConfigStr[i].data(),
+				multiChoiceView->appendItem(deviceConfigStr[i].data(),
 					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						pop();
 						int deleteDeviceConfigIdx = i;
-						auto &ynAlertView = *new YesNoAlertView{attachParams(), confirmDeleteDeviceSettingsStr};
-						ynAlertView.setOnYes(
+						auto ynAlertView = makeView<YesNoAlertView>(confirmDeleteDeviceSettingsStr);
+						ynAlertView->setOnYes(
 							[this, deleteDeviceConfigIdx](TextMenuItem &, View &view, Input::Event e)
 							{
 								view.dismiss();
@@ -145,10 +145,10 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								keyMapping.buildAll();
 								onShow();
 							});
-						modalViewController.pushAndShow(ynAlertView, e, false);
+						emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 					});
 			}
-			pushAndShow(multiChoiceView, e);
+			pushAndShow(std::move(multiChoiceView), e);
 		}
 	},
 	deleteProfile
@@ -158,7 +158,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		{
 			if(!customKeyConfig.size())
 			{
-				popup.post("No saved profiles");
+				EmuApp::postMessage("No saved profiles");
 				return;
 			}
 			uint profiles = customKeyConfig.size();
@@ -168,16 +168,16 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			{
 				profileStr.emplace_back(e.name);
 			}
-			auto &multiChoiceView = *new TextTableView{item.t.str, attachParams(), profiles};
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, profiles);
 			iterateTimes(profiles, i)
 			{
-				multiChoiceView.appendItem(profileStr[i],
+				multiChoiceView->appendItem(profileStr[i],
 					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
 						pop();
 						int deleteProfileIdx = i;
-						auto &ynAlertView = *new YesNoAlertView{attachParams(), confirmDeleteProfileStr};
-						ynAlertView.setOnYes(
+						auto ynAlertView = makeView<YesNoAlertView>(confirmDeleteProfileStr);
+						ynAlertView->setOnYes(
 							[this, deleteProfileIdx](TextMenuItem &, View &view, Input::Event e)
 							{
 								view.dismiss();
@@ -192,10 +192,10 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								keyMapping.buildAll();
 								onShow();
 							});
-						modalViewController.pushAndShow(ynAlertView, e, false);
+						emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 					});
 			}
-			pushAndShow(multiChoiceView, e);
+			pushAndShow(std::move(multiChoiceView), e);
 		}
 	},
 	#ifdef CONFIG_BASE_ANDROID
@@ -212,7 +212,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 				if(e->map() == Event::MAP_SYSTEM || e->map() == Event::MAP_ICADE)
 					devices++;
 			}
-			popup.printf(2, 0, "%d OS devices present", devices);
+			EmuApp::printfMessage(2, false, "%d OS devices present", devices);
 		}
 	},
 	#endif
@@ -221,19 +221,19 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		"Auto-detect Device To Setup",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &identView = *new IdentInputDeviceView{attachParams()};
-			identView.onIdentInput =
+			auto identView = makeView<IdentInputDeviceView>();
+			identView->onIdentInput =
 				[this](Input::Event e)
 				{
 					auto dev = e.device();
 					if(dev)
 					{
-						auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[dev->idx]};
-						imdMenu.setName(inputDevName[dev->idx].t.str);
-						pushAndShow(imdMenu, e);
+						auto imdMenu = makeView<InputManagerDeviceView>(*this, inputDevConf[dev->idx]);
+						imdMenu->setName(inputDevName[dev->idx].t.str);
+						pushAndShow(std::move(imdMenu), e);
 					}
 				};
-			modalViewController.pushAndShow(identView, e, false);
+			emuViewController.pushAndShowModal(std::move(identView), e, false);
 		}
 	},
 	generalOptions
@@ -241,8 +241,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		"General Options",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &optView = *new InputManagerOptionsView{attachParams()};
-			pushAndShow(optView, e);
+			pushAndShow(makeView<InputManagerOptionsView>(), e);
 		}
 	},
 	deviceListHeading
@@ -254,9 +253,9 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 	onUpdateInputDevices =
 		[this]()
 		{
-			modalViewController.popAll();
-			viewStack.popTo(*this);
+			emuViewController.popTo(*this);
 			auto selectedCell = selected;
+			auto lock = makeControllerMutexLock();
 			loadItems();
 			highlightCell(selectedCell);
 			place();
@@ -297,9 +296,9 @@ void InputManagerView::loadItems()
 		inputDevName.emplace_back(inputDevNameStr.back().data(),
 			[this, idx = inputDevName.size()](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &imdMenu = *new InputManagerDeviceView{attachParams(), *this, inputDevConf[idx]};
-				imdMenu.setName(inputDevName[idx].t.str);
-				pushAndShow(imdMenu, e);
+				auto imdMenu = makeView<InputManagerDeviceView>(*this, inputDevConf[idx]);
+				imdMenu->setName(inputDevName[idx].t.str);
+				pushAndShow(std::move(imdMenu), e);
 			});
 		if(e->hasKeys() && !e->isPowerButton())
 		{
@@ -384,8 +383,8 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 		{
 			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
 			{
-				popup.post("Install the MOGA Pivot app from Google Play to use your MOGA Pocket. "
-					"For MOGA Pro or newer, set switch to mode B and pair in the Android Bluetooth settings app instead.", 8);
+				EmuApp::postMessage(8, "Install the MOGA Pivot app from Google Play to use your MOGA Pocket. "
+					"For MOGA Pro or newer, set switch to mode B and pair in the Android Bluetooth settings app instead.");
 				return;
 			}
 			optionMOGAInputSystem = item.flipBoolValue(*this);
@@ -622,8 +621,8 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 		profileStr,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &profileSelectMenu = *new ProfileSelectMenu{attachParams(), *devConf->dev, devConf->keyConf().name};
-			profileSelectMenu.onProfileChange =
+			auto profileSelectMenu = makeView<ProfileSelectMenu>(*devConf->dev, devConf->keyConf().name);
+			profileSelectMenu->onProfileChange =
 				[this](const KeyConfig &profile)
 				{
 					logMsg("set key profile %s", profile.name);
@@ -631,7 +630,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					onShow();
 					keyMapping.buildAll();
 				};
-			pushAndShow(profileSelectMenu, e);
+			pushAndShow(std::move(profileSelectMenu), e);
 		}
 	},
 	renameProfile
@@ -641,7 +640,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 		{
 			if(!devConf->mutableKeyConf())
 			{
-				popup.post("Can't rename a built-in profile", 2, 0);
+				EmuApp::postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
 			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input name", devConf->keyConf().name,
@@ -651,7 +650,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					{
 						if(customKeyConfigsContainName(str))
 						{
-							popup.postError("Another profile is already using this name");
+							EmuApp::postErrorMessage("Another profile is already using this name");
 							postDraw();
 							return 1;
 						}
@@ -670,9 +669,9 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 		"New Profile",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{attachParams(),
-				"Create a new profile? All keys from the current profile will be copied over."};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>(
+				"Create a new profile? All keys from the current profile will be copied over.");
+			ynAlertView->setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
@@ -683,7 +682,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 							{
 								if(customKeyConfigsContainName(str))
 								{
-									popup.postError("Another profile is already using this name");
+									EmuApp::postErrorMessage("Another profile is already using this name");
 									return 1;
 								}
 								devConf->setKeyConfCopiedFromExisting(str);
@@ -695,7 +694,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 							return 0;
 						});
 				});
-			modalViewController.pushAndShow(ynAlertView, e, false);
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	},
 	deleteProfile
@@ -705,11 +704,11 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 		{
 			if(!devConf->mutableKeyConf())
 			{
-				popup.post("Can't delete a built-in profile", 2, 0);
+				EmuApp::postMessage(2, "Can't delete a built-in profile");
 				return;
 			}
-			auto &ynAlertView = *new YesNoAlertView{attachParams(), confirmDeleteProfileStr};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>(confirmDeleteProfileStr);
+			ynAlertView->setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
@@ -725,7 +724,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					onShow();
 					keyMapping.buildAll();
 				});
-			modalViewController.pushAndShow(ynAlertView, e, false);
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	},
 	#if defined CONFIG_INPUT_ICADE
@@ -740,15 +739,15 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 			#else
 			if(!item.boolValue())
 			{
-				auto &ynAlertView = *new YesNoAlertView{attachParams(),
-					"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel"};
-				ynAlertView.setOnYes(
+				auto ynAlertView = makeView<YesNoAlertView>(
+					"This mode allows input from an iCade-compatible Bluetooth device, don't enable if this isn't an iCade", "Enable", "Cancel");
+				ynAlertView->setOnYes(
 					[this](TextMenuItem &, View &view, Input::Event e)
 					{
 						view.dismiss();
 						confirmICadeMode(e);
 					});
-				modalViewController.pushAndShow(ynAlertView, e, false);
+				emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 			}
 			else
 				confirmICadeMode(e);
@@ -823,8 +822,7 @@ void InputManagerDeviceView::loadItems()
 		inputCategory[c] = {cat.name,
 			[this, c](TextMenuItem &item, View &, Input::Event e)
 			{
-				auto &bcMenu = *new ButtonConfigView{attachParams(), rootIMView, &EmuControls::category[c], *this->devConf};
-				pushAndShow(bcMenu, e);
+				pushAndShow(makeView<ButtonConfigView>(rootIMView, &EmuControls::category[c], *this->devConf), e);
 			}};
 		item.emplace_back(&inputCategory[c]);
 		inputCategories++;
@@ -868,8 +866,8 @@ void InputManagerDeviceView::confirmICadeMode(Input::Event e)
 {
 	devConf->setICadeMode(iCadeMode.flipBoolValue(*this));
 	onShow();
-	physicalControlsPresent = Input::keyInputIsPresent();
-	EmuControls::updateAutoOnScreenControlVisible();
+	emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
+	emuViewController.updateAutoOnScreenControlVisible();
 	keyMapping.buildAll();
 }
 #endif
@@ -880,13 +878,16 @@ void InputManagerDeviceView::setPlayer(int playerVal)
 		(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player == InputDeviceConfig::PLAYER_MULTI);
 	devConf->player = playerVal;
 	devConf->save();
-	if(changingMultiplayer)
 	{
-		loadItems();
-		place();
-		show();
+		auto lock = makeControllerMutexLock();
+		if(changingMultiplayer)
+		{
+			loadItems();
+			place();
+			show();
+		}
+		else
+			onShow();
 	}
-	else
-		onShow();
 	keyMapping.buildAll();
 }

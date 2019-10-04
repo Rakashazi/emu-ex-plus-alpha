@@ -46,11 +46,17 @@ public:
 	void unpostDraw();
 	void drawNow(bool needsSync = false);
 	void dispatchOnDraw(bool needsSync = false);
-	Screen *screen();
+	Screen *screen() const;
 	static uint windows();
 	static Window *window(uint idx);
 	static PixelFormat defaultPixelFormat();
-	NativeWindow nativeObject();
+	NativeWindow nativeObject() const;
+	void setCustomData(void *data);
+	template<class T>
+	T *customData() const
+	{
+		return static_cast<T*>(customDataPtr);
+	}
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target
@@ -72,67 +78,30 @@ public:
 	// Called when the window is dismissed
 	void setOnDismiss(DismissDelegate del);
 
-	int realWidth() const { return orientationIsSideways(softOrientation()) ? h : w; }
-	int realHeight() const { return orientationIsSideways(softOrientation()) ? w : h; }
-	int width() const { return w; }
-	int height() const { return h; }
-	IG::Point2D<int> realSize() const { return {realWidth(), realHeight()}; }
-	IG::Point2D<int> size() const { return {width(), height()}; }
-
-	float widthMM() const
-	{
-		assert(wMM);
-		return wMM;
-	}
-
-	float heightMM() const
-	{
-		assert(hMM);
-		return hMM;
-	}
-
+	int realWidth() const;
+	int realHeight() const;
+	int width() const;
+	int height() const;
+	IG::Point2D<int> realSize() const;
+	IG::Point2D<int> size() const;
+	bool isPortrait() const;
+	bool isLandscape() const;
+	float widthMM() const;
+	float heightMM() const;
 	#ifdef __ANDROID__
-	float widthSMM() const
-	{
-		assert(wSMM);
-		return wSMM;
-	}
-
-	float heightSMM() const
-	{
-		assert(hSMM);
-		return hSMM;
-	}
+	float widthSMM() const;
+	float heightSMM() const;
 	#endif
-
-	int widthMMInPixels(float mm) const
-	{
-		return std::round(mm * (mmToPixelXScaler));
-	}
-
-	int heightMMInPixels(float mm) const
-	{
-		return std::round(mm * (mmToPixelYScaler));
-	}
-
+	int widthMMInPixels(float mm) const;
+	int heightMMInPixels(float mm) const;
 	#ifdef __ANDROID__
-	int widthSMMInPixels(float mm) const
-	{
-		return std::round(mm * (smmToPixelXScaler));
-	}
-	int heightSMMInPixels(float mm) const
-	{
-		return std::round(mm * (smmToPixelYScaler));
-	}
+	int widthSMMInPixels(float mm) const;
+	int heightSMMInPixels(float mm) const;
 	#else
-	int widthSMMInPixels(float mm) const { return widthMMInPixels(mm); }
-	int heightSMMInPixels(float mm) const { return heightMMInPixels(mm); }
+	int widthSMMInPixels(float mm) const;
+	int heightSMMInPixels(float mm) const;
 	#endif
-
-	IG::WindowRect bounds() const
-	{
-		return {0, 0, width(), height()};
-	}
+	IG::WindowRect bounds() const;
 
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
@@ -147,7 +116,7 @@ public:
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM);
 	bool updatePhysicalSizeWithCurrentSize();
-	bool hasSurface();
+	bool hasSurface() const;
 	bool dispatchInputEvent(Input::Event event);
 	void dispatchFocusChange(bool in);
 	void dispatchDragDrop(const char *filename);

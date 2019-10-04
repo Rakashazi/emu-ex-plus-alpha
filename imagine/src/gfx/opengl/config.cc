@@ -54,15 +54,15 @@
 #define EGLSync EGLSyncKHR
 #define EGLTime EGLTimeKHR
 	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
-	static EGLSync (EGLAPIENTRY *eglCreateSync)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list){};
-	static EGLBoolean (EGLAPIENTRY *eglDestroySync)(EGLDisplay dpy, EGLSync sync){};
-	static EGLint (EGLAPIENTRY *eglClientWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout){};
-	static EGLint (EGLAPIENTRY *eglWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags){};
+	static EGLSync (EGLAPIENTRY *eglCreateSyncFunc)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list){};
+	static EGLBoolean (EGLAPIENTRY *eglDestroySyncFunc)(EGLDisplay dpy, EGLSync sync){};
+	static EGLint (EGLAPIENTRY *eglClientWaitSyncFunc)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout){};
+	static EGLint (EGLAPIENTRY *eglWaitSyncFunc)(EGLDisplay dpy, EGLSync sync, EGLint flags){};
 	#else
-	#define eglCreateSync eglCreateSyncKHR
-	#define eglDestroySync eglDestroySyncKHR
-	#define eglClientWaitSync eglClientWaitSyncKHR
-	#define eglWaitSync eglWaitSyncKHR
+	#define eglCreateSyncFunc eglCreateSyncKHR
+	#define eglDestroySyncFunc eglDestroySyncKHR
+	#define eglClientWaitSyncFunc eglClientWaitSyncKHR
+	#define eglWaitSyncFunc eglWaitSyncKHR
 	#endif
 #endif
 
@@ -257,30 +257,30 @@ void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
 		return;
 	logMsg("Using sync fences (EGL version)%s", supportsServerSync ? "" : ", only client sync supported");
 	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
-	eglCreateSync = (typeof(eglCreateSync))Base::GLContext::procAddress("eglCreateSyncKHR");
-	eglDestroySync = (typeof(eglDestroySync))Base::GLContext::procAddress("eglDestroySyncKHR");
+	eglCreateSyncFunc = (typeof(eglCreateSyncFunc))Base::GLContext::procAddress("eglCreateSyncKHR");
+	eglDestroySyncFunc = (typeof(eglDestroySyncFunc))Base::GLContext::procAddress("eglDestroySyncKHR");
 	if(supportsServerSync)
-		eglWaitSync = (typeof(eglWaitSync))Base::GLContext::procAddress("eglWaitSyncKHR");
+		eglWaitSyncFunc = (typeof(eglWaitSyncFunc))Base::GLContext::procAddress("eglWaitSyncKHR");
 	else
-		eglClientWaitSync = (typeof(eglClientWaitSync))Base::GLContext::procAddress("eglClientWaitSyncKHR");
+		eglClientWaitSyncFunc = (typeof(eglClientWaitSyncFunc))Base::GLContext::procAddress("eglClientWaitSyncKHR");
 	#endif
 	// wrap EGL sync in terms of ARB sync
 	support.glFenceSync =
 		[](GLenum condition, GLbitfield flags)
 		{
-			return (GLsync)eglCreateSync(Base::GLDisplay::getDefault().eglDisplay(), EGL_SYNC_FENCE, nullptr);
+			return (GLsync)eglCreateSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), EGL_SYNC_FENCE, nullptr);
 		};
 	support.glDeleteSync =
 		[](GLsync sync)
 		{
-			eglDestroySync(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync);
+			eglDestroySyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync);
 		};
 	if(supportsServerSync)
 	{
 		support.glWaitSync =
 		[](GLsync sync, GLbitfield flags, GLuint64 timeout)
 		{
-			if(eglWaitSync(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0) == GL_FALSE)
+			if(eglWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0) == GL_FALSE)
 			{
 				logErr("error waiting for sync object:%p", sync);
 			}
@@ -291,7 +291,7 @@ void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
 		support.glWaitSync =
 			[](GLsync sync, GLbitfield flags, GLuint64 timeout)
 			{
-				if(eglClientWaitSync(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0, timeout) == GL_FALSE)
+				if(eglClientWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0, timeout) == GL_FALSE)
 				{
 					logErr("error waiting for sync object:%p", sync);
 				}
@@ -792,18 +792,18 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 		setDebugOutput(true);
 	}
 
+	if(!support.hasSyncFences())
+		threadMode = ThreadMode::SINGLE;
 	if(threadMode == ThreadMode::AUTO)
 	{
 		useSeparateDrawContext = support.hasSyncFences();
-		if(!useSeparateDrawContext)
-			logMsg("disabling separate draw context by default");
 	}
 	else
 	{
 		useSeparateDrawContext = threadMode == ThreadMode::MULTI;
-		if(!useSeparateDrawContext)
-			logMsg("disabling separate draw context");
 	}
+	if(useSeparateDrawContext)
+		logMsg("using separate draw context");
 	support.isConfigured = true;
 }
 
@@ -834,6 +834,11 @@ Renderer Renderer::makeConfiguredRenderer(Error &err)
 Renderer::ThreadMode Renderer::threadMode() const
 {
 	return useSeparateDrawContext ? ThreadMode::MULTI : ThreadMode::SINGLE;
+}
+
+bool Renderer::supportsThreadMode() const
+{
+	return support.hasSyncFences();
 }
 
 Base::WindowConfig Renderer::addWindowConfig(Base::WindowConfig config)

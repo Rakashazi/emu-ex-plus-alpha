@@ -38,6 +38,7 @@ $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.3.2-statfs-fix.patch # fix build on old Android API levels
 	cp $(libarchiveSrcDir)/contrib/android/include/android_lf.h $(libarchiveSrcDir)/libarchive/
 	cp ../gnuconfig/config.* $(libarchiveSrcDir)/build/autoconf/
+	autoreconf -vfi $(libarchiveSrcDir)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libarchive..."

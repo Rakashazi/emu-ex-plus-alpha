@@ -254,4 +254,10 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const Pro
 	}
 }
 
+GC Text::fullHeight() const
+{
+	using namespace Gfx;
+	return ySize + (nominalHeight * .5_gc);
+}
+
 }

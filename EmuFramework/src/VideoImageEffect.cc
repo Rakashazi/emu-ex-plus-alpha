@@ -171,7 +171,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
 		if(fallbackErr.code())
 		{
 			// print error from original compile if fallback effect not found
-			popup.printf(3, true, "%s", err.code().value() == ENOENT ? err.what() : fallbackErr.what());
+			EmuApp::printfMessage(3, true, "%s", err.code().value() == ENOENT ? err.what() : fallbackErr.what());
 			deinit(r);
 			return;
 		}

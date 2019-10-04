@@ -74,18 +74,18 @@ Error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint t
 		reset(dpy);
 		return std::runtime_error("error creating EGL image");
 	}
-	bool error = false;
+	bool success = false;
 	r.runGLTaskSync(
-		[this, tex, &error]()
+		[this, tex, &success]()
 		{
 			glBindTexture(GL_TEXTURE_2D, tex);
-			error = runGLCheckedAlways(
+			success = runGLCheckedAlways(
 				[&]()
 				{
 					glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
 				}, "glEGLImageTargetTexture2DOES()");
 		});
-	if(error)
+	if(!success)
 	{
 		reset(dpy);
 		return std::runtime_error("glEGLImageTargetTexture2DOES() failed");
@@ -121,11 +121,6 @@ void GraphicBufferStorage::unlock(Renderer &, GLuint tex)
 {
 	assert(gBuff.handle);
 	gBuff.unlock();
-}
-
-bool GraphicBufferStorage::isSingleBuffered() const
-{
-	return true;
 }
 
 bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)

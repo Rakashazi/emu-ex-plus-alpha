@@ -7,17 +7,17 @@
 #include <imagine/util/builtins.h>
 //#include <imagine/logger/logger.h>
 
-CLINK void mem_init() ATTRS(cold);
-CLINK void* mem_alloc(size_t size) ATTRS(malloc, alloc_size(1));
-CLINK void* mem_calloc(size_t nelem, size_t size) ATTRS(malloc, alloc_size(1,2));
-CLINK void* mem_realloc(void* buffer, size_t newSize) ATTRS(alloc_size(2));
+CLINK void mem_init() __attribute__((cold));
+CLINK void* mem_alloc(size_t size) __attribute__((malloc, alloc_size(1)));
+CLINK void* mem_calloc(size_t nelem, size_t size) __attribute__((malloc, alloc_size(1,2)));
+CLINK void* mem_realloc(void* buffer, size_t newSize) __attribute__((alloc_size(2)));
 CLINK void mem_free(void* buffer);
 
 static void mem_freeSafe(void* buffer) { if(buffer != NULL) mem_free(buffer); }
 
 #ifdef __cplusplus
 
-static void* mem_calloc(size_t size) ATTRS(malloc, alloc_size(1));
+[[gnu::malloc, gnu::alloc_size(1)]] static void* mem_calloc(size_t size);
 static void* mem_calloc(size_t size) { return mem_calloc(1, size); }
 
 #include <new>

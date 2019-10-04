@@ -99,6 +99,7 @@ void BaseWindow::init(const WindowConfig &config)
 {
 	initDelegates(config);
 	initDefaultValidSoftOrientations();
+	customDataPtr = config.customData();
 }
 
 void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
@@ -142,7 +143,7 @@ Window &mainWindow()
 	return *Window::window(0);
 }
 
-Screen *Window::screen()
+Screen *Window::screen() const
 {
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	return screen_;
@@ -403,6 +404,88 @@ void Window::dismiss()
 	#else
 	mainWin = nullptr;
 	#endif
+}
+
+void Window::setCustomData(void *data)
+{
+	customDataPtr = data;
+}
+
+int Window::realWidth() const { return orientationIsSideways(softOrientation()) ? h : w; }
+
+int Window::realHeight() const { return orientationIsSideways(softOrientation()) ? w : h; }
+
+int Window::width() const { return w; }
+
+int Window::height() const { return h; }
+
+IG::Point2D<int> Window::realSize() const { return {realWidth(), realHeight()}; }
+
+IG::Point2D<int> Window::size() const { return {width(), height()}; }
+
+bool Window::isPortrait() const
+{
+	return width() < height();
+}
+
+bool Window::isLandscape() const
+{
+	return !isPortrait();
+}
+
+float Window::widthMM() const
+{
+	assert(wMM);
+	return wMM;
+}
+
+float Window::heightMM() const
+{
+	assert(hMM);
+	return hMM;
+}
+
+#ifdef __ANDROID__
+float Window::widthSMM() const
+{
+	assert(wSMM);
+	return wSMM;
+}
+
+float Window::heightSMM() const
+{
+	assert(hSMM);
+	return hSMM;
+}
+#endif
+
+int Window::widthMMInPixels(float mm) const
+{
+	return std::round(mm * (mmToPixelXScaler));
+}
+
+int Window::heightMMInPixels(float mm) const
+{
+	return std::round(mm * (mmToPixelYScaler));
+}
+
+#ifdef __ANDROID__
+int Window::widthSMMInPixels(float mm) const
+{
+	return std::round(mm * (smmToPixelXScaler));
+}
+int Window::heightSMMInPixels(float mm) const
+{
+	return std::round(mm * (smmToPixelYScaler));
+}
+#else
+int Window::widthSMMInPixels(float mm) const { return widthMMInPixels(mm); }
+int Window::heightSMMInPixels(float mm) const { return heightMMInPixels(mm); }
+#endif
+
+IG::WindowRect Window::bounds() const
+{
+	return {0, 0, width(), height()};
 }
 
 }

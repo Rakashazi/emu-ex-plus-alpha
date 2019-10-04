@@ -497,7 +497,6 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		if(Insert_CD(cd) != 0)
 		{
 			delete cd;
-			closeGame();
 			return makeError("Error loading CD");
 		}
 	}

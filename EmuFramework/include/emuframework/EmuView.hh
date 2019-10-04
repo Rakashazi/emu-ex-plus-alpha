@@ -23,15 +23,14 @@
 class EmuView : public View
 {
 public:
-	EmuView(ViewAttachParams attach, EmuVideoLayer *layer, EmuInputView *inputView);
+	EmuView(ViewAttachParams attach, EmuVideoLayer *layer);
 	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
-	void onAddedToController(Input::Event e) final {}
 	bool hasLayer() const { return layer; }
-	void swapLayers(EmuView &view);
+	void setLayoutInputView(EmuInputView *view);
 	void updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
 	void clearAudioStats();
 

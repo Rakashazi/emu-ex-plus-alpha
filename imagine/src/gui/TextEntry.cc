@@ -32,7 +32,7 @@ void TextEntry::setAcceptingInput(bool on)
 	acceptingInput = on;
 }
 
-bool TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
+bool TextEntry::inputEvent(View &parentView, Input::Event e)
 {
 	if(e.isPointer() && e.pushed() && b.overlaps(e.pos()))
 	{
@@ -72,8 +72,9 @@ bool TextEntry::inputEvent(Gfx::Renderer &r, Input::Event e)
 
 		if(updateText)
 		{
+			auto lock = parentView.makeControllerMutexLock();
 			t.setString(str);
-			t.compile(r, projP);
+			t.compile(parentView.renderer(), projP);
 			Base::mainWindow().postDraw();
 		}
 		return true;
@@ -194,7 +195,7 @@ bool CollectTextInputView::inputEvent(Input::Event e)
 	}
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	bool acceptingInput = textEntry.acceptingInput;
-	bool handled = textEntry.inputEvent(renderer(), e);
+	bool handled = textEntry.inputEvent(*this, e);
 	if(!textEntry.acceptingInput && acceptingInput)
 	{
 		logMsg("calling on-text delegate");

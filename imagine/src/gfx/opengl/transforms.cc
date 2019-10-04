@@ -69,7 +69,7 @@ void Renderer::animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 			//logMsg("animating rotation");
 			projAngleM.update(1);
 			setProjectionMatrixRotation(projAngleM.now());
-			mainWindow().setNeedsDraw(true);
+			mainWindow().postDraw();
 			return !projAngleM.isComplete();
 		});
 }

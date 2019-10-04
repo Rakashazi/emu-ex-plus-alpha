@@ -38,6 +38,10 @@ void XScreen::init(::Screen *xScreen)
 	{
 		auto screenRes = XRRGetScreenResourcesCurrent(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
 		auto primaryOutput = XRRGetOutputPrimary(DisplayOfScreen(xScreen), RootWindowOfScreen(xScreen));
+		if(!primaryOutput)
+		{
+			primaryOutput = screenRes->outputs[0];
+		}
 		auto outputInfo = XRRGetOutputInfo(DisplayOfScreen(xScreen), screenRes, primaryOutput);
 		auto crtcInfo = XRRGetCrtcInfo(DisplayOfScreen(xScreen), screenRes, outputInfo->crtc);
 		iterateTimes(screenRes->nmode, i)
@@ -147,6 +151,11 @@ void Screen::setFrameInterval(uint interval)
 bool Screen::supportsFrameInterval()
 {
 	return false;
+}
+
+bool Screen::supportsTimestamps()
+{
+	return true;
 }
 
 int indexOfScreen(Screen &screen)

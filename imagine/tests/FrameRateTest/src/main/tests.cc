@@ -309,8 +309,6 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 	{
 		memset(pixmap.pixel({}), 0, pixmap.pitchBytes() * pixmap.h());
 	}
-	if(texture.needsExclusiveLock())
-		rendererTask.haltDrawing();
 	texture.write(0, pixmap, {});
 }
 

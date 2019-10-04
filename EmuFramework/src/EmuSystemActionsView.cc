@@ -55,7 +55,7 @@ public:
 			{
 				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_SOFT);
-				startGameFromMenu();
+				emuViewController.showEmulation();
 			}
 		},
 		hard
@@ -65,7 +65,7 @@ public:
 			{
 				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_HARD);
-				startGameFromMenu();
+				emuViewController.showEmulation();
 			}
 		},
 		cancel
@@ -127,8 +127,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &cheatsMenu = *makeView(attachParams(), EmuApp::ViewID::LIST_CHEATS);
-				pushAndShow(cheatsMenu, e);
+				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::LIST_CHEATS), e);
 			}
 		}
 	},
@@ -141,20 +140,19 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			{
 				if(EmuSystem::hasResetModes)
 				{
-					auto &resetAlertView = *new ResetAlertView{attachParams(), "Really reset?"};
-					modalViewController.pushAndShow(resetAlertView, e, false);
+					emuViewController.pushAndShowModal(makeView<ResetAlertView>("Really reset?"), e, false);
 				}
 				else
 				{
-					auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really reset?"};
-					ynAlertView.setOnYes(
+					auto ynAlertView = makeView<YesNoAlertView>("Really reset?");
+					ynAlertView->setOnYes(
 						[](TextMenuItem &, View &view, Input::Event e)
 						{
 							view.dismiss();
 							EmuSystem::reset(EmuSystem::RESET_SOFT);
-							startGameFromMenu();
+							emuViewController.showEmulation();
 						});
-					modalViewController.pushAndShow(ynAlertView, e, false);
+					emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 				}
 			}
 		}
@@ -166,20 +164,20 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(item.active() && EmuSystem::gameIsRunning())
 			{
-				auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really load state?"};
-				ynAlertView.setOnYes(
+				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really load state?");
+				ynAlertView->setOnYes(
 					[](TextMenuItem &, View &view, Input::Event e)
 					{
 						view.dismiss();
 						if(auto err = EmuApp::loadStateWithSlot(EmuSystem::saveStateSlot);
 							err)
 						{
-							popup.printf(4, true, "Load State: %s", err->what());
+							EmuApp::printfMessage(4, true, "Load State: %s", err->what());
 						}
 						else
-							startGameFromMenu();
+							emuViewController.showEmulation();
 					});
-				modalViewController.pushAndShow(ynAlertView, e, false);
+				emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 			}
 		}
 	},
@@ -196,10 +194,10 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						if(auto err = EmuApp::saveStateWithSlot(EmuSystem::saveStateSlot);
 							err)
 						{
-							popup.printf(4, true, "Save State: %s", err->what());
+							EmuApp::printfMessage(4, true, "Save State: %s", err->what());
 						}
 						else
-							startGameFromMenu();
+							emuViewController.showEmulation();
 					};
 
 				if(EmuSystem::shouldOverwriteExistingState())
@@ -208,14 +206,14 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				}
 				else
 				{
-					auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really overwrite state?"};
-					ynAlertView.setOnYes(
+					auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really overwrite state?");
+					ynAlertView->setOnYes(
 						[](TextMenuItem &, View &view, Input::Event e)
 						{
 							view.dismiss();
 							doSaveState();
 						});
-					modalViewController.pushAndShow(ynAlertView, e, false);
+					emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 				}
 			}
 		}
@@ -225,8 +223,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		stateSlotText,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ssMenu = *new StateSlotView{attachParams()};
-			pushAndShow(ssMenu, e);
+			pushAndShow(makeView<StateSlotView>(), e);
 		}
 	},
 	stateSlotText // Can't init with string literal due to GCC bug #43453
@@ -250,7 +247,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						if(str && strlen(str))
 						{
 							Base::addLauncherIcon(str, EmuSystem::fullGamePath());
-							popup.printf(2, false, "Added shortcut:\n%s", str);
+							EmuApp::printfMessage(2, false, "Added shortcut:\n%s", str);
 						}
 						view.dismiss();
 						return 0;
@@ -258,7 +255,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			}
 			else
 			{
-				popup.post("Load a game first");
+				EmuApp::postMessage("Load a game first");
 			}
 		}
 	},
@@ -282,16 +279,16 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!EmuApp::hasSavedSessionOptions())
 				return;
-			auto &ynAlertView = *new YesNoAlertView{attachParams(),
-				"Reset saved options for the currently running system to defaults? Some options only take effect next time the system loads."};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>(
+				"Reset saved options for the currently running system to defaults? Some options only take effect next time the system loads.");
+			ynAlertView->setOnYes(
 				[this](TextMenuItem &item, View &view, Input::Event)
 				{
 					resetSessionOptions.setActive(false);
 					view.dismiss();
 					EmuApp::deleteSessionOptions();
 				});
-			modalViewController.pushAndShow(ynAlertView, e, false);
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	},
 	close
@@ -299,14 +296,14 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		"Close Game",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{attachParams(), "Really close current game?"};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>("Really close current game?");
+			ynAlertView->setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event)
 				{
 					view.dismiss();
-					EmuSystem::closeGame(true); // pops any System Actions views in stack
+					emuViewController.closeSystem(true); // pops any System Actions views in stack
 				});
-			modalViewController.pushAndShow(ynAlertView, e, false);
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	}
 {

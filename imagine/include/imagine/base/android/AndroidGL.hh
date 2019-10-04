@@ -29,7 +29,6 @@ public:
 	using EGLContextBase::EGLContextBase;
 
 	constexpr AndroidGLContext() {}
-	static void swapPresentedBuffers(GLDrawable &win);
 	static bool swapBuffersIsAsync();
 };
 

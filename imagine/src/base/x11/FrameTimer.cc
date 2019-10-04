@@ -19,43 +19,54 @@
 #include "../linux/DRMFrameTimer.hh"
 #include "../linux/FBDevFrameTimer.hh"
 #include "../common/SimpleFrameTimer.hh"
+#include <memory>
 
 namespace Base
 {
 
-#if defined CONFIG_MACHINE_PANDORA
-using SysFrameTimer = FBDevFrameTimer;
-#else
-using SysFrameTimer = DRMFrameTimer;
-#endif
-
-static SysFrameTimer frameTimer{};
+std::unique_ptr<FrameTimer> frameTimer{};
 
 void initFrameTimer(EventLoop loop)
 {
-	if(frameTimer)
-		return;
-	if(!frameTimer.init(loop))
+	if(Config::MACHINE_IS_PANDORA)
 	{
-		exit(1);
+		auto timer = std::make_unique<FBDevFrameTimer>(loop);
+		if(*timer)
+		{
+			logMsg("using FBDev frame timer");
+			frameTimer = std::move(timer);
+			return;
+		}
 	}
+	else
+	{
+		auto timer = std::make_unique<DRMFrameTimer>(loop);
+		if(*timer)
+		{
+			logMsg("using DRM frame timer");
+			frameTimer = std::move(timer);
+			return;
+		}
+	}
+	logMsg("using simple frame timer");
+	frameTimer = std::make_unique<SimpleFrameTimer>(loop);
 }
 
 void deinitFrameTimer()
 {
-	frameTimer.deinit();
+	frameTimer.reset();
 }
 
 void frameTimerScheduleVSync()
 {
 	if(frameTimer)
-		frameTimer.scheduleVSync();
+		frameTimer->scheduleVSync();
 }
 
 void frameTimerCancel()
 {
 	if(frameTimer)
-		frameTimer.cancel();
+		frameTimer->cancel();
 }
 
 }

@@ -16,6 +16,7 @@
 #define LOGTAG "PosixIO"
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <fcntl.h>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>

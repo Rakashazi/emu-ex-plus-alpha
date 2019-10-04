@@ -140,8 +140,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &optionView = *new ConsoleOptionView{attachParams()};
-				pushAndShow(optionView, e);
+				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}
 		}
 	};
@@ -154,15 +153,15 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
-		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
-		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
+		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
 }

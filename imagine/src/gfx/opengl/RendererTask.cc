@@ -104,7 +104,8 @@ void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 		case Reply::DRAW_FINISHED:
 		{
 			//logDMsg("draw presented");
-			onDrawFinished.runAll([=](DrawFinishedDelegate del){ return del(msg.channel); });
+			onDrawFinished.runAll([=](DrawFinishedDelegate del){ return del(msg.params); });
+			drawTimestamp = msg.params.timestamp();
 			return;
 		}
 		default:
@@ -115,32 +116,17 @@ void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 	}
 }
 
-void GLRendererTask::waitForCommandFinished(Renderer &r)
+void GLRendererTask::waitForDrawFinished(Renderer &r, ChannelInt channel)
 {
-	ReplyMessage msg{};
-	while(replyPipe.read(&msg, sizeof(msg)))
-	{
-		if(msg.reply == Reply::COMMAND_FINISHED)
-			return;
-		else
-			replyHandler(r, msg);
-	}
-}
-
-void GLRendererTask::waitForDrawFinished(Renderer &r)
-{
-	ReplyMessage msg{};
-	while(replyPipe.read(&msg, sizeof(msg)))
-	{
-		replyHandler(r, msg);
-		if(msg.reply == Reply::DRAW_FINISHED)
+	replyPort.run(
+		[&](auto msg)
 		{
-			return;
-		}
-	}
+			replyHandler(r, msg);
+			return !(msg.params.channel() == channel && msg.reply == Reply::DRAW_FINISHED);
+		});
 }
 
-bool GLRendererTask::commandHandler(Base::Pipe &pipe, Base::GLDisplay glDpy, bool ownsThread)
+bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread)
 {
 	auto c = channels;
 	assumeExpr(c);
@@ -150,11 +136,12 @@ bool GLRendererTask::commandHandler(Base::Pipe &pipe, Base::GLDisplay glDpy, boo
 		drawArg[i].del = {};
 	}
 	bool haltDraw = false;
+	IG::Semaphore *haltDrawSemAddr{};
 	bool releaseContext = false;
-	while(pipe.hasData())
+	IG::Semaphore *releaseContextSemAddr{};
+	for(auto msg = messages.get(); msg; msg = messages.get())
 	{
 		//logMsg("command pipe data");
-		auto msg = pipe.readNoErr<CommandMessage>();
 		switch(msg.command)
 		{
 			bcase Command::DRAW:
@@ -165,15 +152,26 @@ bool GLRendererTask::commandHandler(Base::Pipe &pipe, Base::GLDisplay glDpy, boo
 			}
 			bcase Command::HALT_DRAWING:
 			{
+				if(haltDraw)
+				{
+					bug_unreachable("sent multiple HALT_DRAWING commands");
+				}
 				haltDraw = true;
+				assumeExpr(msg.semAddr);
+				haltDrawSemAddr = msg.semAddr;
 			}
 			bcase Command::EXIT:
 			{
+				if(releaseContext)
+				{
+					bug_unreachable("sent multiple EXIT commands");
+				}
 				releaseContext = true;
+				releaseContextSemAddr = msg.semAddr;
 			}
 			bdefault:
 			{
-				logWarn("unknown RenderThreadCommandMessage value:%d", (int)msg.command);
+				logWarn("unknown GLRendererTask::CommandMessage value:%d", (int)msg.command);
 			}
 		}
 	}
@@ -188,13 +186,14 @@ bool GLRendererTask::commandHandler(Base::Pipe &pipe, Base::GLDisplay glDpy, boo
 		{
 			// only unset the drawable
 			Base::GLContext::setCurrent(glDpy, glCtx, {});
-			replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
 		}
+		if(releaseContextSemAddr)
+			releaseContextSemAddr->notify();
 		return false;
 	}
 	if(haltDraw)
 	{
-		replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
+		haltDrawSemAddr->notify();
 		return true;
 	}
 	iterateTimes(c, i)
@@ -205,7 +204,9 @@ bool GLRendererTask::commandHandler(Base::Pipe &pipe, Base::GLDisplay glDpy, boo
 		arg.del(arg.drawable, *arg.winPtr, {*static_cast<RendererTask*>(this), glDpy});
 		if(onDrawFinished.size())
 		{
-			replyPipe.write(ReplyMessage{Reply::DRAW_FINISHED, (ChannelInt)i});
+			auto now = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
+			replyPort.send({Reply::DRAW_FINISHED,
+				DrawFinishedParams{static_cast<RendererTask*>(this), now, (ChannelInt)i}});
 		}
 	}
 	return true;
@@ -217,10 +218,10 @@ void RendererTask::start(uint channels_)
 {
 	if(!glCtx)
 	{
-		replyPipe.addToEventLoop({},
-			[this](Base::Pipe &pipe)
+		replyPort.addToEventLoop({},
+			[this](auto msgs)
 			{
-				auto msg = pipe.readNoErr<ReplyMessage>();
+				auto msg = msgs.get();
 				replyHandler(r, msg);
 				return true;
 			});
@@ -265,8 +266,8 @@ void RendererTask::start(uint channels_)
 		{
 			logErr("error creating context");
 		}
-		IG::makeDetachedThread(
-			[this]()
+		IG::makeDetachedThreadSync(
+			[this](auto &sem)
 			{
 				auto glDpy = Base::GLDisplay::getDefault();
 				#ifdef CONFIG_GFX_OPENGL_ES
@@ -276,19 +277,17 @@ void RendererTask::start(uint channels_)
 				}
 				#endif
 				auto eventLoop = Base::EventLoop::makeForThread();
-				commandPipe.addToEventLoop(eventLoop,
-					[this, glDpy](Base::Pipe &pipe)
+				commandPort.addToEventLoop(eventLoop,
+					[this, glDpy](auto msgs)
 					{
-						return commandHandler(pipe, glDpy, true);
+						return commandHandler(msgs, glDpy, true);
 					});
-				replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
+				sem.notify();
 				logMsg("starting render task event loop");
 				eventLoop.run();
 				logMsg("render task exit");
-				commandPipe.removeFromEventLoop();
-				replyPipe.write(ReplyMessage{Reply::COMMAND_FINISHED});
+				commandPort.removeFromEventLoop();
 			});
-		waitForCommandFinished(r);
 	}
 	else
 	{
@@ -299,10 +298,10 @@ void RendererTask::start(uint channels_)
 			{
 				logMsg("starting render task");
 				auto glDpy = Base::GLDisplay::getDefault();
-				commandPipe.addToEventLoop({},
-					[this, glDpy](Base::Pipe &pipe)
+				commandPort.addToEventLoop({},
+					[this, glDpy](auto msgs)
 					{
-						return commandHandler(pipe, glDpy, false);
+						return commandHandler(msgs, glDpy, false);
 					});
 			});
 	}
@@ -357,10 +356,9 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 	}
 	if(params.needsSync())
 	{
-		onDrawFinished.add([](uint){ return false; }, 0);
+		onDrawFinished.add([](DrawFinishedParams){ return false; }, 0);
 	}
-	commandPipe.write(
-		CommandMessage
+	commandPort.send(
 		{
 			Command::DRAW,
 			(ChannelInt)channel,
@@ -372,7 +370,7 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 	if(params.needsSync())
 	{
 		logMsg("waiting for draw to finish");
-		waitForDrawFinished(r);
+		waitForDrawFinished(r, channel);
 	}
 }
 
@@ -386,12 +384,13 @@ bool RendererTask::removeOnDrawFinished(DrawFinishedDelegate del)
 	return onDrawFinished.remove(del);
 }
 
-void RendererTask::haltDrawing()
+void RendererTask::pause()
 {
 	if(!glCtx)
 		return;
-	commandPipe.write(CommandMessage{Command::HALT_DRAWING});
-	waitForCommandFinished(r);
+	IG::Semaphore sem{0};
+	commandPort.send({Command::HALT_DRAWING, &sem});
+	sem.wait();
 }
 
 void RendererTask::stop()
@@ -400,23 +399,24 @@ void RendererTask::stop()
 	{
 		return;
 	}
-	commandPipe.write(CommandMessage{Command::EXIT});
-	waitForCommandFinished(r);
+	IG::Semaphore sem{0};
+	commandPort.send({Command::EXIT, &sem});
+	sem.wait();
 	if(!r.useSeparateDrawContext)
 	{
 		r.runGLTaskSync(
 			[this]()
 			{
-				commandPipe.removeFromEventLoop();
+				commandPort.removeFromEventLoop();
 			});
 	}
-	replyPipe.removeFromEventLoop();
+	replyPort.removeFromEventLoop();
 	destroyContext(r.useSeparateDrawContext, r.glDpy);
 }
 
 void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window::SurfaceChange change)
 {
-	haltDrawing();
+	pause();
 	if(change.destroyed())
 	{
 		drawableHolder.destroyDrawable(r);
@@ -425,6 +425,11 @@ void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder
 	{
 		resetDrawable = true;
 	}
+}
+
+Base::FrameTimeBase RendererTask::lastDrawTimestamp() const
+{
+	return drawTimestamp;
 }
 
 Renderer &RendererTask::renderer() const
@@ -536,22 +541,12 @@ void RendererDrawTask::waitSync(SyncFence fence)
 	if(!fence.sync)
 		return;
 	assert(renderer().useSeparateDrawContext);
-	if(renderer().support.hasSyncFences())
-	{
-		renderer().support.glWaitSync(fence.sync, 0, GL_TIMEOUT_IGNORED);
-		renderer().support.glDeleteSync(fence.sync);
-	}
-	else
-	{
-		renderer().runGLTaskSync(
-			[]()
-			{
-				glFinish();
-			}, task.syncSemaphoreAddr());
-	}
+	assert(renderer().support.hasSyncFences());
+	renderer().support.glWaitSync(fence.sync, 0, GL_TIMEOUT_IGNORED);
+	renderer().support.glDeleteSync(fence.sync);
 }
 
-void RendererDrawTask::verifyCurrentContext()
+void RendererDrawTask::verifyCurrentContext() const
 {
 	if(!Config::DEBUG_BUILD)
 		return;
@@ -565,6 +560,12 @@ void RendererDrawTask::verifyCurrentContext()
 Renderer &RendererDrawTask::renderer() const
 {
 	return task.renderer();
+}
+
+Base::FrameTimeBaseDiff DrawFinishedParams::timestampDiff() const
+{
+	auto lastTimestamp = drawTask_->lastDrawTimestamp();
+	return lastTimestamp ? timestamp_ - lastTimestamp : 0;
 }
 
 }

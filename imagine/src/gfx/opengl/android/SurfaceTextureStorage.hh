@@ -36,7 +36,6 @@ struct SurfaceTextureStorage: public DirectTextureStorage
 	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
 	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) final;
 	void unlock(Renderer &r, GLuint tex) final;
-	bool isSingleBuffered() const final;
 	static bool isRendererBlacklisted(const char *rendererStr);
 };
 

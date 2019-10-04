@@ -605,7 +605,7 @@ public:
 #endif
 	}
 
-	void ARM_PREFETCH() ATTRS(always_inline)
+	void ARM_PREFETCH() __attribute__((always_inline))
   {
 #ifdef VBAM_USE_CPU_PREFETCH
     cpuPrefetch[0] = CPUReadMemoryQuick(*this, armNextPC);
@@ -613,7 +613,7 @@ public:
 #endif
   }
 
-	void THUMB_PREFETCH() ATTRS(always_inline)
+	void THUMB_PREFETCH() __attribute__((always_inline))
   {
 #ifdef VBAM_USE_CPU_PREFETCH
     cpuPrefetch[0] = CPUReadHalfWordQuick(*this, armNextPC);
@@ -621,21 +621,21 @@ public:
 #endif
   }
 
-	void ARM_PREFETCH_NEXT() ATTRS(always_inline)
+	void ARM_PREFETCH_NEXT() __attribute__((always_inline))
 	{
 #ifdef VBAM_USE_CPU_PREFETCH
 		cpuPrefetch[1] = CPUReadMemoryQuick(*this, armNextPC+4);
 #endif
 	}
 
-	void THUMB_PREFETCH_NEXT() ATTRS(always_inline)
+	void THUMB_PREFETCH_NEXT() __attribute__((always_inline))
 	{
 #ifdef VBAM_USE_CPU_PREFETCH
 		cpuPrefetch[1] = CPUReadHalfWordQuick(*this, armNextPC+2);
 #endif
 	}
 
-	int prefetchArmOpcode() ATTRS(always_inline)
+	int prefetchArmOpcode() __attribute__((always_inline))
 	{
 #ifdef VBAM_USE_CPU_PREFETCH
 		int opcode = cpuPrefetch[0];
@@ -646,7 +646,7 @@ public:
 #endif
 	}
 
-	int prefetchThumbOpcode() ATTRS(always_inline)
+	int prefetchThumbOpcode() __attribute__((always_inline))
 	{
 #ifdef VBAM_USE_CPU_PREFETCH
 		int opcode = cpuPrefetch[0];

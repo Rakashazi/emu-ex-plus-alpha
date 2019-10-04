@@ -221,8 +221,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &vcsSwitchesView = *new VCSSwitchesView{attachParams()};
-				pushAndShow(vcsSwitchesView, e);
+				pushAndShow(makeView<VCSSwitchesView>(), e);
 			}
 		}
 	};
@@ -234,8 +233,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &optionView = *new ConsoleOptionView{attachParams()};
-				pushAndShow(optionView, e);
+				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}
 		}
 	};
@@ -249,12 +247,12 @@ public:
 	}
 };
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::VIDEO_OPTIONS: return new CustomVideoOptionView(attach);
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
+		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		default: return nullptr;
 	}
 }

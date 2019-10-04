@@ -42,11 +42,11 @@ void addRecentGame(const char *fullPath, const char *name)
 	}*/
 }
 
-void RecentGameInfo::handleMenuSelection(Gfx::Renderer &r, TextMenuItem &, Input::Event e)
+void RecentGameInfo::handleMenuSelection(TextMenuItem &, Input::Event e)
 {
 	EmuApp::createSystemWithMedia({}, path.data(), "", e,
-		[&r](Input::Event e)
+		[](Input::Event e)
 		{
-			EmuApp::launchSystemWithResumePrompt(r, e, false);
+			EmuApp::launchSystemWithResumePrompt(e, false);
 		});
 }

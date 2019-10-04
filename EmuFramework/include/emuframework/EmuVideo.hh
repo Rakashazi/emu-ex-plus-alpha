@@ -55,16 +55,19 @@ class EmuVideo
 public:
 	EmuVideo(Gfx::Renderer &r): r{r} {}
 	void setFormat(IG::PixmapDesc desc);
+	void setFormatLocked(IG::PixmapDesc desc);
 	void resetImage();
 	EmuVideoImage startFrame();
 	void startFrame(IG::Pixmap pix);
 	void finishFrame(Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(IG::Pixmap pix);
+	void clear();
 	void takeGameScreenshot();
 	bool isExternalTexture();
 	Gfx::PixmapTexture &image();
 	Gfx::Renderer &renderer() { return r; }
 	IG::WP size() const;
+	bool formatIsEqual(IG::PixmapDesc desc) const;
 
 protected:
 	Gfx::Renderer &r;

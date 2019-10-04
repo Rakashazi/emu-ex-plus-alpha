@@ -58,7 +58,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 		setOnPathReadError(
 			[](FSPicker &, std::error_code ec)
 			{
-				popup.printf(4, true, "Can't open last saved directory: %s", ec.message().c_str());
+				EmuApp::printfMessage(4, true, "Can't open last saved directory: %s", ec.message().c_str());
 			});
 		if(auto ec = setPath(startingPath, false, rootInfo, e);
 			!ec)
@@ -69,7 +69,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 	setOnPathReadError(
 		[](FSPicker &, std::error_code ec)
 		{
-			popup.printf(3, true, "Can't open directory: %s", ec.message().c_str());
+			EmuApp::printfMessage(3, true, "Can't open directory: %s", ec.message().c_str());
 		});
 	if(setDefaultPath)
 	{
@@ -102,10 +102,10 @@ static FS::RootPathInfo nearestRootLocation(const char *path)
 	return {nearestPtr->root.name, nearestPtr->root.length};
 }
 
-EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
 	auto rootInfo = nearestRootLocation(lastLoadPath.data());
-	auto picker = new EmuFilePicker{attach, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir};
+	auto picker = std::make_unique<EmuFilePicker>(attach, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
@@ -123,10 +123,10 @@ EmuFilePicker *EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input
 	return picker;
 }
 
-EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
 	auto rootInfo = nearestRootLocation(lastLoadPath.data());
-	auto picker = new EmuFilePicker{attach, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir};
+	auto picker = std::make_unique<EmuFilePicker>(attach, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
@@ -135,24 +135,24 @@ EmuFilePicker *EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Eve
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char *name, Input::Event e)
 		{
-			onSelectFileFromPicker(picker.renderer(), picker.makePathString(name).data(), e);
+			onSelectFileFromPicker(picker.makePathString(name).data(), e);
 		});
 	return picker;
 }
 
-EmuFilePicker *EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path,
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path,
 	EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
 {
-	auto picker = new EmuFilePicker{attach, path, false, filter,
-		{FS::makeFileString("Media Path"), strlen(path)}, e, true};
+	auto picker = std::make_unique<EmuFilePicker>(attach, path, false, filter,
+		FS::RootPathInfo{FS::makeFileString("Media Path"), strlen(path)}, e, true);
 	picker->setOnSelectFile(onSelect);
 	return picker;
 }
 
-EmuFilePicker *EmuFilePicker::makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
 	auto rootInfo = nearestRootLocation(EmuSystem::baseSavePath().data());
-	auto picker = new EmuFilePicker{attach, EmuSystem::baseSavePath().data(), true, {}, rootInfo, e, singleDir};
+	auto picker = std::make_unique<EmuFilePicker>(attach, EmuSystem::baseSavePath().data(), true, EmuSystem::NameFilterFunc{}, rootInfo, e, singleDir);
 	return picker;
 }
 
@@ -170,7 +170,7 @@ bool EmuFilePicker::inputEvent(Input::Event e)
 			if(EmuSystem::gameIsRunning())
 			{
 				dismiss();
-				startGameFromMenu();
+				emuViewController.showEmulation();
 				return true;
 			}
 		}

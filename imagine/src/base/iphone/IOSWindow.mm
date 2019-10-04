@@ -107,7 +107,7 @@ IG::PixelFormat Window::defaultPixelFormat()
 	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGBA8888;
 }
 
-bool Window::hasSurface()
+bool Window::hasSurface() const
 {
 	return true;
 }
@@ -251,7 +251,7 @@ void Window::setTitle(const char *name) {}
 
 void Window::setAcceptDnd(bool on) {}
 
-NativeWindow Window::nativeObject()
+NativeWindow Window::nativeObject() const
 {
 	return uiWin_;
 }

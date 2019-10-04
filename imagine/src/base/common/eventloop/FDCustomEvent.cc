@@ -38,7 +38,7 @@ void CustomEvent::setEventLoop(EventLoop loop)
 	fdSrc = {fd, loop,
 		[this](int fd, int events)
 		{
-			uint64_t notify;
+			eventfd_t notify;
 			auto ret = read(fd, &notify, sizeof(notify));
 			assert(ret == sizeof(notify));
 			if(cancelled)
@@ -56,7 +56,7 @@ void CustomEvent::setCallback(CustomEventDelegate c)
 void CustomEvent::notify()
 {
 	cancelled = false;
-	uint64_t notify = 1;
+	eventfd_t notify = 1;
 	auto ret = write(fd, &notify, sizeof(notify));
 	assert(ret == sizeof(notify));
 }

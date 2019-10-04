@@ -21,6 +21,10 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
+#include <mutex>
+#include <optional>
+#include <utility>
+#include <memory>
 
 class View;
 
@@ -28,13 +32,17 @@ class ViewController
 {
 public:
 	constexpr ViewController() {}
-	virtual void pushAndShow(View &v, Input::Event e, bool needsNavView) = 0;
+	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) = 0;
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e);
 	virtual void pop() = 0;
 	virtual void popAndShow();
 	virtual void dismissView(View &v) = 0;
 	virtual bool inputEvent(Input::Event e) = 0;
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
-	virtual Gfx::RendererTask *rendererTask();
+	std::mutex &mutex();
+
+protected:
+	std::mutex mutex_;
 };
 
 struct ViewAttachParams
@@ -67,22 +75,21 @@ public:
 	virtual bool inputEvent(Input::Event event) = 0;
 	virtual void clearSelection(); // de-select any items from previous input
 	virtual void onShow();
-	virtual void onAddedToController(Input::Event e) = 0;
+	virtual void onAddedToController(Input::Event e);
 	virtual void setFocus(bool focused);
 
 	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
 	void postDraw();
-	Base::Window &window();
-	Gfx::Renderer &renderer();
-	ViewAttachParams attachParams();
-	Base::Screen *screen();
-	Gfx::RendererTask *rendererTask();
-	const char *name() { return name_; }
+	Base::Window &window() const;
+	Gfx::Renderer &renderer() const;
+	ViewAttachParams attachParams() const;
+	Base::Screen *screen() const;
+	const char *name() const { return name_; }
 	void setName(const char *name) { name_ = name; }
 	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms(Gfx::Renderer &r);
 	void dismiss();
-	void pushAndShow(View &v, Input::Event e, bool needsNavView = true);
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView = true);
 	void pop();
 	void popAndShow();
 	void show();
@@ -91,6 +98,19 @@ public:
 	void setController(ViewController *c, Input::Event e);
 	Gfx::ProjectionPlane projection() { return projP; }
 	bool pointIsInView(IG::WP pos);
+	std::optional<std::scoped_lock<std::mutex>> makeControllerMutexLock();
+
+	template<class T, class... Args>
+	std::unique_ptr<T> makeView(Args&&... args)
+	{
+		return std::make_unique<T>(attachParams(), std::forward<Args>(args)...);
+	}
+
+	template<class T, class... Args>
+	std::unique_ptr<T> makeViewWithName(const char *name, Args&&... args)
+	{
+		return std::make_unique<T>(name, attachParams(), std::forward<Args>(args)...);
+	}
 
 protected:
 	Base::Window *win{};

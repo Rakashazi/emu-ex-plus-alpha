@@ -160,8 +160,7 @@ private:
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				auto &optionView = *new ConsoleOptionView{attachParams()};
-				pushAndShow(optionView, e);
+				pushAndShow(makeView<ConsoleOptionView>(), e);
 			}
 		}
 	};
@@ -203,17 +202,17 @@ class CustomSystemOptionView : public SystemOptionView
 		(bool)optionBigEndianSram,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{attachParams(),
+			auto ynAlertView = makeView<YesNoAlertView>(
 				"Warning, this changes the format of SRAM saves files. "
 				"Turn on to make them compatible with other emulators like Gens. "
-				"Any SRAM loaded with the incorrect setting will be corrupted."};
-			ynAlertView.setOnYes(
+				"Any SRAM loaded with the incorrect setting will be corrupted.");
+			ynAlertView->setOnYes(
 				[this, &item](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
 					optionBigEndianSram = item.flipBoolValue(*this);
 				});
-			EmuApp::pushAndShowModalView(ynAlertView, e);
+			EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 		}
 	};
 
@@ -269,7 +268,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	void cdBiosPathHandler(Input::Event e, int region)
 	{
-		auto &biosSelectMenu = *new BiosSelectMenu{biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region),
+		auto biosSelectMenu = makeViewWithName<BiosSelectMenu>(biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region),
 			[this, region]()
 			{
 				auto idx = regionCodeToIdx(region);
@@ -277,8 +276,8 @@ class CustomSystemOptionView : public SystemOptionView
 				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
 				cdBiosPath[idx].compile(renderer(), projP);
 			},
-			hasMDExtension, attachParams()};
-		pushAndShow(biosSelectMenu, e);
+			hasMDExtension);
+		pushAndShow(std::move(biosSelectMenu), e);
 	}
 
 	void cdBiosPathInit()
@@ -307,15 +306,15 @@ public:
 constexpr const char *CustomSystemOptionView::biosHeadingStr[3];
 #endif
 
-View *EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
+std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
-		case ViewID::AUDIO_OPTIONS: return new CustomAudioOptionView(attach);
-		case ViewID::SYSTEM_ACTIONS: return new CustomSystemActionsView(attach);
-		case ViewID::SYSTEM_OPTIONS: return new CustomSystemOptionView(attach);
-		case ViewID::EDIT_CHEATS: return new EmuEditCheatListView(attach);
-		case ViewID::LIST_CHEATS: return new EmuCheatsView(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
+		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
+		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
 		default: return nullptr;
 	}
 }

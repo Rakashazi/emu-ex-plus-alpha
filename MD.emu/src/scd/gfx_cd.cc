@@ -424,5 +424,5 @@ void gfx_cd_write16(Rot_Comp &rot_comp, unsigned int a, unsigned int d)
 
 void gfx_cd_reset(Rot_Comp &rot_comp)
 {
-	memset(&rot_comp, 0, sizeof(rot_comp));
+	rot_comp = {};
 }

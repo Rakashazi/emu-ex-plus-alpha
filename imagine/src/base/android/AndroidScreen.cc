@@ -15,7 +15,6 @@
 
 #include <unistd.h>
 #include <errno.h>
-#include <sys/eventfd.h>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
@@ -297,6 +296,11 @@ void Screen::setFrameInterval(uint interval)
 bool Screen::supportsFrameInterval()
 {
 	return false;
+}
+
+bool Screen::supportsTimestamps()
+{
+	return Base::androidSDK() >= 16;
 }
 
 void Screen::setFrameRate(double rate)

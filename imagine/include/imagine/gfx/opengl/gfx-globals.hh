@@ -3,8 +3,6 @@
 #include <imagine/config/defs.hh>
 #include "glIncludes.h"
 #include "defs.hh"
-#include <imagine/util/normalFloat.hh>
-#include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/base/GLContext.hh>
 
@@ -13,18 +11,16 @@ namespace Gfx
 class Renderer;
 class RendererCommands;
 
-using TransformCoordinate = float;
-using VertexPos = float;
-using Angle = float;
-using TextureCoordinate = float;
+using TransformCoordinate = GLfloat;
+using VertexPos = GLfloat;
+using Angle = GLfloat;
+using TextureCoordinate = GLfloat;
+using ColorComp = GLfloat;
 
 static constexpr Angle angleFromDegree(Angle deg) { return IG::radians(deg); }
 static constexpr Angle angleFromRadian(Angle rad) { return rad; }
 static constexpr Angle angleToDegree(Angle a) { return IG::degrees(a); }
 static constexpr Angle angleToRadian(Angle a) { return a; }
-
-static const uint gColor_steps = 255;
-using ColorComp = NormalFloat<gColor_steps>;
 
 using TextureRef = GLuint;
 using VertexIndex = GLushort;

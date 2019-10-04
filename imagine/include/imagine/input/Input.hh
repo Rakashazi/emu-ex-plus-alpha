@@ -53,7 +53,7 @@ struct PackedInputAccess
 
 };
 
-enum { UNUSED, RELEASED, PUSHED, MOVED, MOVED_RELATIVE, EXIT_VIEW, ENTER_VIEW };
+enum { UNUSED, RELEASED, PUSHED, MOVED, MOVED_RELATIVE, EXIT_VIEW, ENTER_VIEW, CANCELED };
 enum { POINTER_NORMAL, POINTER_INVERT };
 
 class Event
@@ -122,6 +122,8 @@ public:
 	bool released() const;
 	bool released(Key key) const;
 	bool releasedKey(Key sysKey) const;
+	bool canceled() const;
+	bool isOff() const;
 	bool moved() const;
 	bool isShiftPushed() const;
 	int repeated() const;
@@ -187,6 +189,7 @@ Event defaultEvent();
 bool keyInputIsPresent();
 
 bool dispatchInputEvent(Event event);
+void flushEvents();
 void startKeyRepeatTimer(Event event);
 void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();

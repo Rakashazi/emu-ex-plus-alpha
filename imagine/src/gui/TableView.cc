@@ -317,7 +317,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 			return false;
 		}
 		auto &it = item(*this, i);
-		if(e.state() == Input::PUSHED)
+		if(e.pushed())
 		{
 			logMsg("input pushed on cell %d", i);
 			hasFocus = true;
@@ -327,16 +327,19 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 				postDraw();
 			}
 		}
-		else if(e.state() == Input::RELEASED) // TODO, need to check that Input::PUSHED was sent on entry
+		else if(e.isOff()) // TODO, need to check that Input::PUSHED was sent on entry
 		{
 			//logMsg("input released on cell %d", i);
 			if(i >= 0 && i < cells_ && selected == i && elementIsSelectable(it))
 			{
-				logDMsg("entry %d pushed", i);
-				selectedIsActivated = true;
 				postDraw();
 				selected = -1;
-				onSelectElement(e, i, it);
+				if(!e.canceled())
+				{
+					logDMsg("entry %d pushed", i);
+					selectedIsActivated = true;
+					onSelectElement(e, i, it);
+				}
 			}
 		}
 		return true;

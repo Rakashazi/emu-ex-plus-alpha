@@ -109,6 +109,7 @@ protected:
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	Screen *screen_ = nullptr;
 	#endif
+	void *customDataPtr{};
 	bool drawNeeded = false;
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};

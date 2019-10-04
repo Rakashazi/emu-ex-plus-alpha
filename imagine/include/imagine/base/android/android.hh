@@ -19,6 +19,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/jni.hh>
+#include <array>
 
 namespace Base
 {

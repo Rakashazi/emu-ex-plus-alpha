@@ -1,6 +1,5 @@
 #include <imagine/gui/TextEntry.hh>
 #include <emuframework/Cheats.hh>
-#include <emuframework/MsgPopup.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <fceu/driver.h>
@@ -254,8 +253,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(gotCheat ? name : "Corrupt Cheat",
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				auto &editCheatView = *new EmuEditCheatView{attachParams(), c};
-				pushAndShow(editCheatView, e);
+				pushAndShow(makeView<EmuEditCheatView>(c), e);
 			});
 	}
 }
@@ -355,10 +353,10 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
-						auto &editCheatView = *new EmuEditCheatView{view.attachParams(), fceuCheats-1};
+						auto editCheatView = makeView<EmuEditCheatView>(fceuCheats-1);
 						view.dismiss();
 						EmuApp::refreshCheatViews();
-						pushAndShow(editCheatView, {});
+						pushAndShow(std::move(editCheatView), {});
 					}
 					else
 					{

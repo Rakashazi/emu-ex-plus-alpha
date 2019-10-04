@@ -1,6 +1,6 @@
 #pragma once
 
-/*  This file is part of EmuFramework.
+/*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -15,38 +15,41 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <cstdio>
-#include <system_error>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/gui/View.hh>
+#include <cstdio>
+#include <system_error>
+#include <array>
 
-
-
-class MsgPopup
+class ToastView : public View
 {
 private:
-	Gfx::Renderer &r;
 	Gfx::Text text{};
-	Gfx::ProjectionPlane projP{};
 	Base::Timer unpostTimer{};
-	bool error = false;
+	Gfx::GCRect msgFrame{};
+	IG::WindowRect rect{};
 	std::array<char, 1024> str{};
+	bool error = false;
 
-	void postContent(int secs, bool error);
+	void contentUpdated(bool error);
+	void postContent(int secs);
 
 public:
-	MsgPopup(Gfx::Renderer &r);
+	ToastView(ViewAttachParams attach);
 	void setFace(Gfx::GlyphTextureSet &face);
 	void clear();
-	void place(const Gfx::ProjectionPlane &projP);
+	void place() final;
 	void unpost();
 	void post(const char *msg, int secs = 3, bool error = false);
 	void postError(const char *msg, int secs = 3);
 	void post(const char *prefix, const std::system_error &err, int secs = 3);
 	void post(const char *prefix, std::error_code ec, int secs = 3);
-	void prepareDraw();
-	void draw(Gfx::RendererCommands &cmds);
+	void prepareDraw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
+	IG::WindowRect &viewRect() final { return rect; }
+	bool inputEvent(Input::Event event) final { return false; }
 
 	[[gnu::format(printf, 4, 5)]]
 	void printf(uint secs, bool error, const char *format, ...);

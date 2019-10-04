@@ -32,8 +32,10 @@ struct TurboInput
 	};
 
 	std::array<Action, 5> activeAction{};
+	uint clock = 0;
 
 	constexpr TurboInput() {}
 	void addEvent(uint action);
 	void removeEvent(uint action);
+	void update();
 };

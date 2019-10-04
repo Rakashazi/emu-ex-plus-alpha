@@ -182,8 +182,8 @@ class BiosSelectMenu : public TableView
 public:
 	using BiosChangeDelegate = DelegateFunc<void ()>;
 
-	BiosSelectMenu(const char *name, FS::PathString *biosPathStr, BiosChangeDelegate onBiosChange,
-		EmuSystem::NameFilterFunc fsFilter, ViewAttachParams attach);
+	BiosSelectMenu(const char *name, ViewAttachParams attach, FS::PathString *biosPathStr, BiosChangeDelegate onBiosChange,
+		EmuSystem::NameFilterFunc fsFilter);
 
 protected:
 	TextMenuItem selectFile{};

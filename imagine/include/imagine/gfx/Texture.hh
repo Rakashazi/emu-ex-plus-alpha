@@ -207,6 +207,7 @@ class Texture: public TextureImpl
 {
 public:
 	static constexpr uint MAX_ASSUME_ALIGN = 8;
+	static constexpr uint COMMIT_FLAG_ASYNC = IG::bit(0);
 
 	constexpr Texture() {}
 	Texture(Texture &&o);
@@ -219,13 +220,12 @@ public:
 	bool generateMipmaps();
 	uint levels() const;
 	Error setFormat(IG::PixmapDesc desc, uint levels);
-	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos);
-	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment);
+	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint commitFlags = 0);
+	void writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment, uint commitFlags = 0);
 	void clear(uint level);
 	LockedTextureBuffer lock(uint level);
 	LockedTextureBuffer lock(uint level, IG::WindowRect rect);
 	void unlock(LockedTextureBuffer lockBuff);
-	bool needsExclusiveLock() const;
 	IG::WP size(uint level) const;
 	IG::PixmapDesc pixmapDesc() const;
 	bool compileDefaultProgram(uint mode);

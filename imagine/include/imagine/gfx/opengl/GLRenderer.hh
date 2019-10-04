@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/base/Pipe.hh>
+#include <imagine/base/MessagePort.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSizeSupport.hh>
@@ -75,13 +75,14 @@ public:
 
 	enum class Reply: uint8_t
 	{
-		UNSET, DRAW_FINISHED, COMMAND_FINISHED
+		UNSET, DRAW_FINISHED
 	};
 
 	using ChannelInt = uint8_t;
 
 	struct CommandMessage
 	{
+		IG::Semaphore *semAddr{};
 		union Args
 		{
 			struct DrawArgs
@@ -95,20 +96,22 @@ public:
 		ChannelInt channel{};
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command):
-			command{command} {}
+		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, command{command} {}
 		constexpr CommandMessage(Command command, ChannelInt channel, DrawDelegate drawDel, Drawable drawable, const Base::Window &win):
 			args{drawDel, &win, drawable}, command{command}, channel{channel} {}
+		explicit operator bool() const { return command != Command::UNSET; }
 	};
 
 	struct ReplyMessage
 	{
 		Reply reply{Reply::UNSET};
-		ChannelInt channel{};
+		DrawFinishedParams params{};
 
 		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply, ChannelInt channel = 0):
-			reply{reply} {}
+		constexpr ReplyMessage(Reply reply, DrawFinishedParams params):
+			reply{reply}, params{params} {}
+		explicit operator bool() const { return reply != Reply::UNSET; }
 	};
 
 	Base::GLContext glContext() const { return glCtx; };
@@ -120,15 +123,15 @@ public:
 	GLuint bindFramebuffer(Texture &tex);
 	void destroyContext(bool useSeparateDrawContext, Base::GLDisplay dpy);
 	bool handleDrawableReset();
-	IG::Semaphore *syncSemaphoreAddr() { return &syncSem; }
 
 protected:
-	Base::Pipe commandPipe{};
-	Base::Pipe replyPipe{};
+	Base::MessagePort<CommandMessage> commandPort{};
+	Base::MessagePort<ReplyMessage> replyPort{};
 	Base::GLContext glCtx{};
 	DelegateFuncSet<DrawFinishedDelegate> onDrawFinished{};
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
+	Base::FrameTimeBase drawTimestamp{};
 	uint channels = 0;
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLuint streamVAO = 0;
@@ -141,13 +144,11 @@ protected:
 	static constexpr GLuint defaultFB = 0;
 	#endif
 	GLuint fbo = 0;
-	IG::Semaphore syncSem{0};
 	bool resetDrawable = false;
 
 	void replyHandler(Renderer &r, ReplyMessage msg);
-	void waitForCommandFinished(Renderer &r);
-	void waitForDrawFinished(Renderer &r);
-	bool commandHandler(Base::Pipe &pipe, Base::GLDisplay glDpy, bool ownsThread);
+	void waitForDrawFinished(Renderer &r, ChannelInt channel);
+	bool commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread);
 };
 
 using RendererTaskImpl = GLRendererTask;
@@ -263,57 +264,41 @@ class GLMainTask
 public:
 	struct TaskContext {};
 
-	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*4, void(TaskContext)>;
+	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(TaskContext)>;
 
 	enum class Command: uint8_t
 	{
 		UNSET, RUN_FUNC, EXIT
 	};
 
-	enum class Reply: uint8_t
-	{
-		UNSET, COMMAND_FINISHED
-	};
-
 	struct CommandMessage
 	{
+		IG::Semaphore *semAddr{};
 		union Args
 		{
 			struct RunArgs
 			{
 				FuncDelegate func;
-				IG::Semaphore *semAddr;
 			} run;
 		} args{};
 		Command command{Command::UNSET};
-		bool writeReply = false;
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command):
-			command{command} {}
-		constexpr CommandMessage(Command command, FuncDelegate funcDel, bool writeReply, IG::Semaphore *semAddr):
-			args{funcDel, semAddr}, command{command}, writeReply{writeReply} {}
-	};
-
-	struct ReplyMessage
-	{
-		Reply reply{Reply::UNSET};
-
-		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply):
-			reply{reply} {}
+		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, command{command} {}
+		constexpr CommandMessage(Command command, FuncDelegate funcDel, IG::Semaphore *semAddr):
+			semAddr{semAddr}, args{funcDel}, command{command} {}
+		explicit operator bool() const { return command != Command::UNSET; }
 	};
 
 	~GLMainTask();
 	void start(Base::GLContext context);
-	void runFunc(FuncDelegate del, bool writeReply = true, IG::Semaphore *semAddr = nullptr);
-	void runFuncSync(FuncDelegate del, bool writeReply = true, IG::Semaphore *semAddr = nullptr);
+	void runFunc(FuncDelegate del, IG::Semaphore *semAddr = nullptr);
+	void runFuncSync(FuncDelegate del);
 	void stop();
-	void waitForCommandFinished();
 
 private:
-	Base::Pipe commandPipe{};
-	Base::Pipe replyPipe{};
+	Base::MessagePort<CommandMessage> commandPort{};
 	bool started = false;
 };
 
@@ -385,9 +370,17 @@ public:
 	void runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr = nullptr);
 	template<class FUNC>
 	void runGLTask(FUNC &&del, IG::Semaphore *semAddr = nullptr) { runGLTask2(wrapGLMainTaskDelegate(del), semAddr); }
-	void runGLTaskSync2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr = nullptr);
+	void runGLTaskSync2(GLMainTask::FuncDelegate del);
 	template<class FUNC>
-	void runGLTaskSync(FUNC &&del, IG::Semaphore *semAddr = nullptr) { runGLTaskSync2(wrapGLMainTaskDelegate(del), semAddr); }
+	void runGLTaskSync(FUNC &&del) { runGLTaskSync2(wrapGLMainTaskDelegate(del)); }
+	template<class FUNC>
+	void runGLTaskSyncConditional(FUNC &&del, bool shouldRunSync, IG::Semaphore *semAddr = nullptr)
+	{
+		if(shouldRunSync)
+			runGLTaskSync2(wrapGLMainTaskDelegate(del));
+		else
+			runGLTask2(wrapGLMainTaskDelegate(del), semAddr);
+	}
 	void waitPendingGLTasks();
 
 	template<class FUNC = GLMainTask::FuncDelegate>
@@ -459,8 +452,8 @@ protected:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	GLSLProgram *currProgram{};
 	#endif
-	ColorComp vColor[4]{}; // color when using shader pipeline
-	ColorComp texEnvColor[4]{}; // color when using shader pipeline
+	std::array<ColorComp, 4> vColor{}; // color when using shader pipeline
+	std::array<ColorComp, 4> texEnvColor{}; // color when using shader pipeline
 	GLuint arrayBuffer = 0;
 	bool arrayBufferIsSet = false;
 };

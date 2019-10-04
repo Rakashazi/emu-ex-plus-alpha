@@ -21,12 +21,12 @@
 #include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/MsgPopup.hh>
 #include <emuframework/Recent.hh>
 
 enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
@@ -35,10 +35,12 @@ struct AppWindowData
 {
 	Base::Window win{};
 	Gfx::DrawableHolder drawableHolder{};
-	Gfx::Viewport viewport() { return projectionPlane.viewport; }
+	Gfx::Viewport viewport() const { return projectionPlane.viewport; }
 	Gfx::Mat4 projectionMat{};
 	Gfx::ProjectionPlane projectionPlane{};
 	Gfx::AnimatedViewport animatedViewport{};
+	bool hasEmuView = false;
+	bool hasPopup = false;
 	bool focused = true;
 
 	constexpr AppWindowData() {};
@@ -56,18 +58,124 @@ public:
 	bool inputEvent(Input::Event e) final;
 };
 
-extern AppWindowData mainWin, extraWin;
-extern AppWindowData *emuWin;
+class EmuViewController : public ViewController
+{
+public:
+	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask, VController &vCtrl, EmuVideoLayer &videoLayer);
+	void initViews(ViewAttachParams attach);
+	Base::WindowConfig addWindowConfig(Base::WindowConfig conf);
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
+	using ViewController::pushAndShow;
+	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
+	void pop() override;
+	void dismissView(View &v)override;
+	bool inputEvent(Input::Event e) override;
+	void showEmulation();
+	void showUI(bool updateTopView = true);
+	bool showAutoStateConfirm(Input::Event e, bool addToRecent);
+	void placeEmuViews();
+	void placeElements();
+	void setEmuViewOnExtraWindow(bool on, Base::Screen &screen);
+	void startMainViewportAnimation();
+	void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
+	void clearEmuAudioStats();
+	void closeSystem(bool allowAutosaveState = true);
+	void postDrawToEmuWindows();
+	Base::Screen *emuWindowScreen() const;
+	Gfx::RendererTask &rendererTask() const;
+	bool hasModalView();
+	void popModalViews();
+	void prepareDraw();
+	void popTo(View &v);
+	void popToRoot();
+	void showNavView(bool show);
+	void setShowNavViewBackButton(bool show);
+	void showSystemActionsView(ViewAttachParams attach, Input::Event e);
+	void onInputDevicesChanged();
+	void onSystemCreated();
+	EmuInputView &inputView();
+	ToastView &popupMessageView();
+	void onScreenChange(Base::Screen &screen, Base::Screen::Change change);
+	void handleOpenFileCommand(const char *path);
+	void setOnScreenControls(bool on);
+	void updateAutoOnScreenControlVisible();
+	void setPhysicalControlsPresent(bool present);
+
+protected:
+	EmuView emuView;
+	EmuInputView emuInputView;
+	ToastView popup;
+	EmuMenuViewStack viewStack{};
+	EmuModalViewStack modalViewController{};
+	Base::Screen::OnFrameDelegate onFrameUpdate{};
+	Gfx::RendererTask &rendererTask_;
+	Base::FrameTimeBase initialTotalFrameTime{};
+	bool showingEmulation = false;
+	bool physicalControlsPresent = false;
+
+	void onFocusChange(uint in);
+	void addInitialOnFrame(Base::Screen &screen, uint delay);
+	void startEmulation();
+	void pauseEmulation();
+	void configureAppForEmulation(bool running);
+	void configureWindowForEmulation(Base::Window &win, bool running);
+	void startViewportAnimation(AppWindowData &winData);
+	void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange change);
+	void drawMainWindow(Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
+	void movePopupToWindow(Base::Window &win);
+	void moveEmuViewToWindow(Base::Window &win);
+	void applyFrameRates();
+	bool allWindowsAreFocused() const;
+	AppWindowData &mainWindowData() const;
+};
+
+class EmuSystemTask
+{
+public:
+	enum class Command: uint8_t
+	{
+		UNSET, RUN_FRAME, PAUSE, NOTIFY_AFTER_FRAME, EXIT
+	};
+
+	struct CommandMessage
+	{
+		IG::Semaphore *semAddr{};
+		union Args
+		{
+			struct RunArgs
+			{
+				Base::FrameTimeBase timestamp;
+			} run;
+		} args{};
+		Command command{Command::UNSET};
+
+		constexpr CommandMessage() {}
+		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, command{command} {}
+		constexpr CommandMessage(Command command, Base::FrameTimeBase timestamp):
+			args{timestamp}, command{command} {}
+		explicit operator bool() const { return command != Command::UNSET; }
+	};
+
+	void start();
+	void pause();
+	void stop();
+	void runFrame(Base::FrameTimeBase timestamp);
+	void waitForFinishedFrame();
+	void setFastForwardActive(bool active);
+
+private:
+	Base::MessagePort<CommandMessage> commandPort{};
+	bool started = false;
+	bool fastForwardActive = false;
+};
+
 extern EmuVideoLayer emuVideoLayer;
-extern Gfx::RendererTask rendererTask;
-extern EmuMenuViewStack viewStack;
-extern EmuModalViewStack modalViewController;
-extern bool menuViewIsActive;
+extern EmuViewController emuViewController;
+extern EmuSystemTask emuSystemTask;
 extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
-extern MsgPopup popup;
 extern EmuVideo emuVideo;
-extern EmuInputView emuInputView;
 extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 static constexpr const char *strftimeFormat = "%x  %r";
 
@@ -81,24 +189,16 @@ const char *appName();
 const char *appID();
 bool hasGooglePlayStoreFeatures();
 void setCPUNeedsLowLatency(bool needed);
-void setEmuViewOnExtraWindow(bool on);
-void startViewportAnimation(AppWindowData &winData);
-bool showAutoStateConfirm(Gfx::Renderer &r, Input::Event e, bool addToRecent);
 void onMainMenuItemOptionChanged();
-void placeEmuViews();
-void placeElements();
 void runBenchmarkOneShot();
-void onSelectFileFromPicker(Gfx::Renderer &r, const char* name, Input::Event e);
-void startGameFromMenu();
-void closeGame(bool allowAutosaveState = true);
-bool handleInputEvent(Base::Window &win, Input::Event e);
+void onSelectFileFromPicker(const char* name, Input::Event e);
 void launchSystem(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 ViewAttachParams emuViewAttachParams();
-View *makeView(ViewAttachParams attach, EmuApp::ViewID id);
-void updateAndDrawEmuVideo(Gfx::RendererCommands &cmds);
-void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
-void clearEmuAudioStats();
+std::unique_ptr<View> makeEmuView(ViewAttachParams attach, EmuApp::ViewID id);
+Gfx::Viewport makeViewport(const Base::Window &win);
+void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport);
+AppWindowData &appWindowData(const Base::Window &win);
 
 static void addRecentGame()
 {

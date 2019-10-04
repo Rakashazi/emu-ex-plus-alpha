@@ -165,7 +165,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormat({{gbResX, gbResY}, pixFmt});
+	video.setFormatLocked({{gbResX, gbResY}, pixFmt});
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)

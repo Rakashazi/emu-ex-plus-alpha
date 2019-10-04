@@ -16,16 +16,23 @@
 #define LOGTAG "Pipe"
 #include <imagine/base/Pipe.hh>
 #include <imagine/util/fd-utils.h>
+#include <imagine/logger/logger.h>
 #include <cstring>
+#include <fcntl.h>
+#include <errno.h>
 
 namespace Base
 {
 
-Pipe::Pipe()
+Pipe::Pipe(uint preferredSize)
 {
 	int res = pipe(msgPipe.data());
 	assert(res == 0);
 	logMsg("opened pipe fds:%d %d", msgPipe[0], msgPipe[1]);
+	if(preferredSize)
+	{
+		setPreferredSize(preferredSize);
+	}
 }
 
 Pipe::~Pipe()
@@ -107,28 +114,31 @@ bool Pipe::read(void *data, uint size)
 {
 	if(::read(msgPipe[0], data, size) == -1)
 	{
-		logErr("error reading from pipe");
+		if(Config::DEBUG_BUILD && errno != EAGAIN)
+		{
+			logErr("error reading from pipe");
+		}
 		return false;
 	}
 	return true;
 }
 
-bool Pipe::tryRead(void *data, uint size)
-{
-	if(hasData())
-	{
-		return read(data, size);
-	}
-	else
-	{
-		logWarn("trying to read with no bytes in pipe");
-		return false;
-	}
-}
-
 bool Pipe::hasData()
 {
 	return fd_bytesReadable(msgPipe[0]);
+}
+
+void Pipe::setPreferredSize(int size)
+{
+	#ifdef __linux__
+	fcntl(msgPipe[1], F_SETPIPE_SZ, size);
+	logDMsg("set pipe fds:%d %d size to:%d", msgPipe[0], msgPipe[1], size);
+	#endif
+}
+
+void Pipe::setReadNonBlocking(bool on)
+{
+	fd_setNonblock(msgPipe[0], on);
 }
 
 Pipe::operator bool() const

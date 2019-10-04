@@ -64,6 +64,7 @@ public:
 	{
 		draw(cmds, p.x, p.y, o, projP);
 	}
+	GC fullHeight() const;
 };
 
 }

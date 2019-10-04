@@ -120,9 +120,9 @@ static const uint alphaMenuVal[6]
 	0, int(255 * .1), int(255 * .25), int(255 * .5), int(255 * .65), int(255 * .75)
 };
 
-static auto &layoutPosArr()
+static auto &layoutPosArr(Base::Window &win)
 {
-	return vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
+	return vController.layoutPosition()[win.isPortrait() ? 1 : 0];
 }
 
 class OnScreenInputPlaceView : public View
@@ -188,9 +188,8 @@ void OnScreenInputPlaceView::place()
 		d.elem = -1;
 	}
 
-	auto &win = Base::mainWindow();
-	auto exitBtnPos = mainWin.viewport().bounds().pos(C2DO);
-	int exitBtnSize = win.widthSMMInPixels(10.);
+	auto exitBtnPos = viewFrame.pos(C2DO);
+	int exitBtnSize = window().widthSMMInPixels(10.);
 	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
 	text.compile(renderer(), projP);
 }
@@ -240,14 +239,17 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 			if(d.elem >= 0)
 			{
 				auto newPos = d.startPos + state.downPosDiff();
-				vController.setPos(d.elem, newPos);
-				auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size());
-				//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-				auto &vCtrlLayoutPos = vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0];
-				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
-				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
-				vControllerLayoutPosChanged = true;
-				placeEmuViews();
+				{
+					auto lock = makeControllerMutexLock();
+					vController.setPos(d.elem, newPos);
+					auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size(), viewFrame);
+					//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
+					auto &vCtrlLayoutPos = vController.layoutPosition()[window().isPortrait() ? 1 : 0];
+					vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
+					vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
+					vController.setLayoutPositionChanged();
+					emuViewController.placeEmuViews();
+				}
 				postDraw();
 			}
 		},
@@ -329,13 +331,13 @@ static void setSize(uint val)
 static void setDeadzone(uint val)
 {
 	optionTouchDpadDeadzone = val;
-	vController.gamePad().dPad().setDeadzone(emuVideo.renderer(), vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.));
+	vController.gamePad().dPad().setDeadzone(emuVideo.renderer(), vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.), vController.windowData());
 }
 
 static void setDiagonalSensitivity(uint val)
 {
 	optionTouchDpadDiagonalSensitivity = val;
-	vController.gamePad().dPad().setDiagonalSensitivity(emuVideo.renderer(), optionTouchDpadDiagonalSensitivity / 1000.);
+	vController.gamePad().dPad().setDiagonalSensitivity(emuVideo.renderer(), optionTouchDpadDiagonalSensitivity / 1000., vController.windowData());
 }
 
 static void setButtonSpace(uint val)
@@ -374,10 +376,10 @@ static void setButtonStagger(uint val)
 }
 #endif
 
-static void setButtonState(uint state, uint btnIdx)
+static void setButtonState(uint state, uint btnIdx, Base::Window &win)
 {
-	vControllerLayoutPos[mainWin.viewport().isPortrait() ? 1 : 0][btnIdx].state = state;
-	vControllerLayoutPosChanged = true;
+	vController.layoutPosition()[win.isPortrait() ? 1 : 0][btnIdx].state = state;
+	vController.setLayoutPositionChanged();
 	EmuControls::setupVControllerVars();
 }
 
@@ -403,7 +405,7 @@ void TouchConfigView::place()
 
 void TouchConfigView::refreshTouchConfigMenu()
 {
-	auto &layoutPos = layoutPosArr();
+	auto &layoutPos = layoutPosArr(window());
 	alpha.setSelected(findIdxInArrayOrDefault(alphaMenuVal, optionTouchCtrlAlpha.val, 3), *this);
 	ffState.setSelected(layoutPos[4].state, *this);
 	menuState.setSelected(layoutPos[3].state - (CAN_TURN_OFF_MENU_BTN ? 0 : 1), *this);
@@ -445,14 +447,15 @@ void TouchConfigView::refreshTouchConfigMenu()
 	#endif
 }
 
-TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnName, const char *centerBtnName):
+TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName):
 	TableView{"On-screen Input Setup", attach, item},
+	vController{vController},
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	touchCtrlItem
 	{
-		{"Off", [this]() { optionTouchCtrl = 0; EmuControls::setOnScreenControls(0); }},
-		{"On", [this]() { optionTouchCtrl = 1; EmuControls::setOnScreenControls(1); }},
-		{"Auto", [this]() { optionTouchCtrl = 2; EmuControls::updateAutoOnScreenControlVisible(); }}
+		{"Off", [this]() { optionTouchCtrl = 0; emuViewController.setOnScreenControls(0); }},
+		{"On", [this]() { optionTouchCtrl = 1; emuViewController.setOnScreenControls(1); }},
+		{"Auto", [this]() { optionTouchCtrl = 2; emuViewController.updateAutoOnScreenControlVisible(); }}
 	},
 	touchCtrl
 	{
@@ -608,62 +611,62 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	},
 	dPadStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 0); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 0); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 0); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 0, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 0, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 0, window()); }},
 	},
 	dPadState
 	{
 		"D-Pad",
-		(int)layoutPosArr()[0].state,
+		(int)layoutPosArr(window())[0].state,
 		dPadStateItem
 	},
 	faceBtnStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 2); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 2); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 2); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 2, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 2, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 2, window()); }},
 	},
 	faceBtnState
 	{
 		faceBtnName,
-		(int)layoutPosArr()[2].state,
+		(int)layoutPosArr(window())[2].state,
 		faceBtnStateItem
 	},
 	centerBtnStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 1); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 1); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 1); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 1, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 1, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 1, window()); }},
 	},
 	centerBtnState
 	{
 		centerBtnName,
-		(int)layoutPosArr()[1].state,
+		(int)layoutPosArr(window())[1].state,
 		centerBtnStateItem
 	},
 	lTriggerStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 5); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 5); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 5); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 5, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 5, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 5, window()); }},
 	},
 	lTriggerState
 	{
 		"L",
-		(int)layoutPosArr()[5].state,
+		(int)layoutPosArr(window())[5].state,
 		lTriggerStateItem
 	},
 	rTriggerStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 6); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 6); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 6); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 6, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 6, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 6, window()); }},
 	},
 	rTriggerState
 	{
 		"R",
-		(int)layoutPosArr()[6].state,
+		(int)layoutPosArr(window())[6].state,
 		rTriggerStateItem
 	},
 	boundingBoxes
@@ -696,7 +699,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 			{
 				optionTouchCtrlScaledCoordinates = item.flipBoolValue(*this);
 				EmuControls::setupVControllerVars();
-				vController.place();
+				this->vController.place();
 			}
 		},
 		#endif
@@ -730,21 +733,21 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 		"Set Button Positions",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &onScreenInputPlace = *new OnScreenInputPlaceView{attachParams()};
-			onScreenInputPlace.init();
-			modalViewController.pushAndShow(onScreenInputPlace, e, false);
+			auto onScreenInputPlace = makeView<OnScreenInputPlaceView>();
+			onScreenInputPlace->init(); // TODO: rework view init
+			emuViewController.pushAndShowModal(std::move(onScreenInputPlace), e, false);
 		}
 	},
 	menuStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 3); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 3); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 3); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 3, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 3, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 3, window()); }},
 	},
 	menuState
 	{
 		"Open Menu Button",
-		(int)layoutPosArr()[3].state,
+		(int)layoutPosArr(window())[3].state,
 		[](const MultiChoiceMenuItem &) -> int
 		{
 			return CAN_TURN_OFF_MENU_BTN ? 3 : 2; // iOS port doesn't use "off" value
@@ -756,14 +759,14 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	},
 	ffStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(0, 4); }},
-		{ctrlStateStr[1], [this](){ setButtonState(1, 4); }},
-		{ctrlStateStr[2], [this](){ setButtonState(2, 4); }},
+		{ctrlStateStr[0], [this](){ setButtonState(0, 4, window()); }},
+		{ctrlStateStr[1], [this](){ setButtonState(1, 4, window()); }},
+		{ctrlStateStr[2], [this](){ setButtonState(2, 4, window()); }},
 	},
 	ffState
 	{
 		"Fast-forward Button",
-		(int)layoutPosArr()[4].state,
+		(int)layoutPosArr(window())[4].state,
 		ffStateItem
 	},
 	resetControls
@@ -771,8 +774,8 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 		"Reset Position & Spacing Options",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{attachParams(), "Reset buttons to default positions & spacing?"};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions & spacing?");
+			ynAlertView->setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
@@ -780,7 +783,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				});
-			modalViewController.pushAndShow(ynAlertView, e, false);
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	},
 	resetAllControls
@@ -788,8 +791,8 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 		"Reset All Options",
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			auto &ynAlertView = *new YesNoAlertView{attachParams(), "Reset all on-screen control options to default?"};
-			ynAlertView.setOnYes(
+			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen control options to default?");
+			ynAlertView->setOnYes(
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
@@ -797,7 +800,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				});
-			modalViewController.pushAndShow(ynAlertView, e, false);
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	},
 	btnTogglesHeading
@@ -827,7 +830,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, const char *faceBtnNam
 	#endif
 	item.emplace_back(&btnPlace);
 	item.emplace_back(&btnTogglesHeading);
-	auto &layoutPos = layoutPosArr();
+	auto &layoutPos = layoutPosArr(window());
 	{
 		if(!CAN_TURN_OFF_MENU_BTN) // prevent iOS port from disabling menu control
 		{

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
@@ -29,7 +30,20 @@
 namespace Gfx
 {
 
+class RendererTask;
 class RendererDrawTask;
+
+struct DrawFinishedParams
+{
+	RendererTask *drawTask_;
+	Base::FrameTimeBase timestamp_;
+	uint channel_;
+
+	RendererTask &rendererTask() const { return *drawTask_; }
+	Base::FrameTimeBase timestamp() const { return timestamp_; }
+	Base::FrameTimeBaseDiff timestampDiff() const;
+	uint channel() const { return channel_; }
+};
 
 using GC = TransformCoordinate;
 using Coordinate = TransformCoordinate;
@@ -38,8 +52,8 @@ using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
 using Error = std::optional<std::runtime_error>;
-using DrawDelegate = DelegateFunc<void(Drawable drawable, const Base::Window &win, RendererDrawTask task)>;
-using DrawFinishedDelegate = DelegateFunc<bool(uint channel)>;
+using DrawDelegate = DelegateFunc2<sizeof(uintptr_t)*3, void(Drawable drawable, const Base::Window &win, RendererDrawTask task)>;
+using DrawFinishedDelegate = DelegateFunc<bool(DrawFinishedParams params)>;
 
 static constexpr GC operator"" _gc (long double n)
 {

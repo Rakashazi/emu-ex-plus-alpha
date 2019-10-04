@@ -19,7 +19,6 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
 #include <utility>
-#include <memory>
 #include <array>
 #include <vector>
 
@@ -35,19 +34,19 @@ public:
 
 	constexpr BasicViewController() {}
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
-	void push(View &v, Input::Event e);
-	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
-	void pushAndShow(View &v, Input::Event e);
+	void push(std::unique_ptr<View> v, Input::Event e);
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
+	using ViewController::pushAndShow;
 	void pop() override;
 	void dismissView(View &v) override;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
-	bool hasView() { return view; }
+	bool hasView() { return (bool)view; }
 	bool inputEvent(Input::Event e) override;
 	void draw(Gfx::RendererCommands &cmds);
 
 protected:
-	View *view{};
+	std::unique_ptr<View> view{};
 	IG::WindowRect viewRect{};
 	Gfx::ProjectionPlane projP{};
 	RemoveViewDelegate removeViewDel{};
@@ -67,9 +66,9 @@ public:
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction) override;
 	void prepareDraw();
 	void draw(Gfx::RendererCommands &cmds);
-	void push(View &v, Input::Event e);
-	void pushAndShow(View &v, Input::Event e, bool needsNavView) override;
-	void pushAndShow(View &v, Input::Event e);
+	void push(std::unique_ptr<View> v, Input::Event e);
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
+	using ViewController::pushAndShow;
 	void pop() override;
 	void popAndShow() override;
 	void popToRoot();
@@ -88,8 +87,6 @@ public:
 	uint size() const;
 	void setOnRemoveView(RemoveViewDelegate del);
 	bool viewHasFocus() const;
-	void setRendererTask(Gfx::RendererTask *rTask);
-	Gfx::RendererTask *rendererTask() override;
 
 protected:
 	struct ViewEntry
@@ -106,7 +103,6 @@ protected:
 	IG::WindowRect viewRect{}, customViewRect{};
 	Gfx::ProjectionPlane projP{};
 	RemoveViewDelegate onRemoveView_{};
-	Gfx::RendererTask *rendererTask_{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;
@@ -116,5 +112,4 @@ protected:
 	bool topNeedsNavView() const;
 	bool navViewIsActive() const;
 	void popViews(int num);
-	void haltDrawing();
 };
