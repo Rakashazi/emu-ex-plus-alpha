@@ -30,6 +30,24 @@
   .global Op6601
   .global Op6701
 
+.macro LOAD_GLOBAL_VAR_ADDR reg prefix name
+	ldr \reg, .L\prefix\()_addr_\name
+.L\prefix\()_offset_\name :
+	ldr \reg, [pc, \reg]
+.endm
+
+.macro LOAD_GLOBAL_VAR reg prefix name
+	ldr \reg, .L\prefix\()_addr_\name
+.L\prefix\()_offset_\name :
+	ldr \reg, [pc, \reg]
+	ldr \reg, [\reg]
+.endm
+
+.macro GLOBAL_VAR_LOADER prefix name
+.L\prefix\()_addr_\name :
+.long \name(GOT_PREL)-((.L\prefix\()_offset_\name+8)-.L\prefix\()_addr_\name)
+.endm
+
 CycloneVer: .long 0x0099
 
 ;@ --------------------------- Framework --------------------------
@@ -38,7 +56,7 @@ CycloneRun:
   mov r7,r0          ;@ r7 = Pointer to Cpu Context
                      ;@ r0-3 = Temporary registers
   ldrb r10,[r7,#0x46]    ;@ r10 = Flags (NZCV)
-  ldr r6,=CycloneJumpTab ;@ r6 = Opcode Jump table
+  LOAD_GLOBAL_VAR_ADDR r6 CycloneRun CycloneJumpTab ;@ r6 = Opcode Jump table
   ldr r5,[r7,#0x5c]  ;@ r5 = Cycles
   ldr r4,[r7,#0x40]  ;@ r4 = Current PC + Memory Base
                      ;@ r8 = Current Opcode
@@ -86,12 +104,13 @@ CycloneEndNoBack:
   str r5,[r7,#0x5c]  ;@ Save Cycles
   strb r10,[r7,#0x46] ;@ Save Flags (NZCV)
   ldmia sp!,{r4-r8,r10,r11,pc}
+  GLOBAL_VAR_LOADER CycloneRun CycloneJumpTab
   .ltorg
 
 
 CycloneInit:
 ;@ decompress jump table
-  ldr r12,=CycloneJumpTab
+  LOAD_GLOBAL_VAR_ADDR r12 CycloneInit CycloneJumpTab
   add r0,r12,#0xe000*4 ;@ ctrl code pointer
   ldr r1,[r0,#-4]
   tst r1,r1
@@ -117,7 +136,7 @@ unc_loop_in:
   bgt unc_loop_in
   b unc_loop
 unc_finish:
-  ldr r12,=CycloneJumpTab
+  LOAD_GLOBAL_VAR_ADDR r12 CycloneInit2 CycloneJumpTab
   ;@ set a-line and f-line handlers
   add r0,r12,#0xa000*4
   ldr r1,[r0,#4] ;@ a-line handler
@@ -134,6 +153,8 @@ unc_fill4:
   str r3,[r0],#4
   bgt unc_fill4
   bx lr
+  GLOBAL_VAR_LOADER CycloneInit CycloneJumpTab
+  GLOBAL_VAR_LOADER CycloneInit2 CycloneJumpTab
   .ltorg
 
 CycloneReset:
@@ -283,90 +304,109 @@ CycloneFlushIrqEnd:
 
 
 CycloneSetRealTAS:
-  ldr r12,=CycloneJumpTab
+  LOAD_GLOBAL_VAR_ADDR r12 CycloneSetRealTAS CycloneJumpTab
   tst r0,r0
   add r12,r12,#0x4a00*4
   add r12,r12,#0x00d0*4
   beq setrtas_off
-  ldr r0,=Op4ad0_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ad0_Addr
   mov r1,#8
 setrtas_loop10: ;@ 4ad0-4ad7
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop10
-  ldr r0,=Op4ad8_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ad8_Addr
   mov r1,#7
 setrtas_loop11: ;@ 4ad8-4ade
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop11
-  ldr r0,=Op4adf_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4adf_Addr
   str r0,[r12],#4
-  ldr r0,=Op4ae0_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ae0_Addr
   mov r1,#7
 setrtas_loop12: ;@ 4ae0-4ae6
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop12
-  ldr r0,=Op4ae7_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ae7_Addr
   str r0,[r12],#4
-  ldr r0,=Op4ae8_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ae8_Addr
   mov r1,#8
 setrtas_loop13: ;@ 4ae8-4aef
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop13
-  ldr r0,=Op4af0_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4af0_Addr
   mov r1,#8
 setrtas_loop14: ;@ 4af0-4af7
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop14
-  ldr r0,=Op4af8_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4af8_Addr
   str r0,[r12],#4
-  ldr r0,=Op4af9_
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4af9_Addr
   str r0,[r12],#4
   bx lr
 setrtas_off:
-  ldr r0,=Op4ad0
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ad0Addr
   mov r1,#8
 setrtas_loop00: ;@ 4ad0-4ad7
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop00
-  ldr r0,=Op4ad8
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ad8Addr
   mov r1,#7
 setrtas_loop01: ;@ 4ad8-4ade
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop01
-  ldr r0,=Op4adf
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4adfAddr
   str r0,[r12],#4
-  ldr r0,=Op4ae0
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ae0Addr
   mov r1,#7
 setrtas_loop02: ;@ 4ae0-4ae6
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop02
-  ldr r0,=Op4ae7
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ae7Addr
   str r0,[r12],#4
-  ldr r0,=Op4ae8
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4ae8Addr
   mov r1,#8
 setrtas_loop03: ;@ 4ae8-4aef
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop03
-  ldr r0,=Op4af0
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4af0Addr
   mov r1,#8
 setrtas_loop04: ;@ 4af0-4af7
   subs r1,r1,#1
   str r0,[r12],#4
   bne setrtas_loop04
-  ldr r0,=Op4af8
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4af8Addr
   str r0,[r12],#4
-  ldr r0,=Op4af9
+  LOAD_GLOBAL_VAR r0 CycloneSetRealTAS Op4af9Addr
   str r0,[r12],#4
   bx lr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS CycloneJumpTab
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ad0_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ad8_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4adf_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ae0_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ae7_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ae8_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4af0_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4af8_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4af9_Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ad0Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ad8Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4adfAddr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ae0Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ae7Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4ae8Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4af0Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4af8Addr
+  GLOBAL_VAR_LOADER CycloneSetRealTAS Op4af9Addr
   .ltorg
 
 ;@ DoInterrupt - r0=IRQ level
@@ -59476,6 +59516,42 @@ WrongPrivilegeMode:
 ;@ -------------------------- Jump Table --------------------------
   .data
   .align 4
+
+Op4ad0_Addr: .long Op4ad0_
+
+Op4ad8_Addr: .long Op4ad8_
+
+Op4adf_Addr: .long Op4adf_
+
+Op4ae0_Addr: .long Op4ae0_
+
+Op4ae7_Addr: .long Op4ae7_
+
+Op4ae8_Addr: .long Op4ae8_
+
+Op4af0_Addr: .long Op4af0_
+
+Op4af8_Addr: .long Op4af8_
+
+Op4af9_Addr: .long Op4af9_
+
+Op4ad0Addr: .long Op4ad0
+
+Op4ad8Addr: .long Op4ad8
+
+Op4adfAddr: .long Op4adf
+
+Op4ae0Addr: .long Op4ae0
+
+Op4ae7Addr: .long Op4ae7
+
+Op4ae8Addr: .long Op4ae8
+
+Op4af0Addr: .long Op4af0
+
+Op4af8Addr: .long Op4af8
+
+Op4af9Addr: .long Op4af9
 
 CycloneJumpTab:
   .rept 0x1400

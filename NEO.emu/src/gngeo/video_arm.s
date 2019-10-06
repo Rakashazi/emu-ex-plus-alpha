@@ -9,17 +9,19 @@
 .global draw_tile_arm_xyflip_xzoom
 .global draw_tile_arm_xflip_xzoom
 .global draw_tile_arm_yflip_xzoom
-.extern current_pc_pal
-.extern current_fix
-.extern dda_y_skip_i
-.extern dda_x_skip_i
-	
-	.align 4
-	
-full_y_skip :
-	.byte 0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 
-	
+.macro LOAD_GLOBAL_VAR reg prefix name
+	ldr \reg, .L\prefix\()_addr_\name
+.L\prefix\()_offset_\name :
+	ldr \reg, [pc, \reg]
+	ldr \reg, [\reg]
+.endm
+
+.macro GLOBAL_VAR_LOADER prefix name
+.L\prefix\()_addr_\name :
+.long \name(GOT_PREL)-((.L\prefix\()_offset_\name+8)-.L\prefix\()_addr_\name)
+.endm
+
 .macro DRAW_LINE
 	ands r1,r5,r0
 	ldrne r6,[r3, r1, lsl #2]
@@ -54,12 +56,10 @@ full_y_skip :
 draw_one_char_arm:
 	stmdb sp!,{r4-r6}
 	
-	ldr r3, = current_pc_pal
-	ldr r3,[r3]
+	LOAD_GLOBAL_VAR r3 draw_one_char_arm current_pc_pal
 	add r3,r3,r1, lsl #6 	;@ r3=pal
 
-	ldr r4, = current_fix
-	ldr r4,[r4]
+	LOAD_GLOBAL_VAR r4 draw_one_char_arm current_fix
 	add r4,r4,r0, lsl #5       ;@ r4=gfx
 
 	mov r5,#0xF		
@@ -83,6 +83,8 @@ draw_one_char_arm:
 
 	ldmia sp!,{r4-r6}	
 	mov pc,lr 		;@ return
+GLOBAL_VAR_LOADER draw_one_char_arm current_pc_pal
+GLOBAL_VAR_LOADER draw_one_char_arm current_fix
 
 .macro DRAW_SPRITE_LINE_FULL
        mov r5,#0xF
@@ -388,17 +390,14 @@ draw_one_char_arm:
        movs r8,r3               ;@ r8=zy
        beq .end_\name
 
-       ldr r3, = current_pc_pal
-       ldr r3,[r3]
+       LOAD_GLOBAL_VAR r3 \name current_pc_pal
        add r3,r3,r1, lsl #6    ;@ r3=pal
 
-	ldr r4, = mem_gfx
-	ldr r4,[r4]
+	LOAD_GLOBAL_VAR r4 \name mem_gfx
 	add r4,r4,r0, lsl #7    ;@ r4=gfx
                                ;@ r2=bmp
 
-       ldr r7, = ldda_y_skip
-       ldr r7,[r7]
+       LOAD_GLOBAL_VAR r7 \name ldda_y_skip
 
 .lineloop_\name:
 
@@ -417,6 +416,9 @@ draw_one_char_arm:
 
        ldmia sp!,{r4-r8}
        mov pc,lr               ;@ return
+GLOBAL_VAR_LOADER \name current_pc_pal
+GLOBAL_VAR_LOADER \name mem_gfx
+GLOBAL_VAR_LOADER \name ldda_y_skip
 .endm
 
        .align 4
@@ -701,23 +703,19 @@ draw_tile_arm_norm:
        movs r8,r3               ;@ r8=zy
        beq .end_\name
 
-       ldr r3, = current_pc_pal
-       ldr r3,[r3]
+       LOAD_GLOBAL_VAR r3 \name current_pc_pal
        add r3,r3,r1, lsl #6    ;@ r3=pal
 
-       ldr r4, = mem_gfx
-       ldr r4,[r4]
+       LOAD_GLOBAL_VAR r4 \name mem_gfx
        add r4,r4,r0, lsl #7    ;@ r4=gfx
                                ;@ r2=bmp
 
-       ldr r7, = ldda_y_skip
-       ldr r7,[r7]
+       LOAD_GLOBAL_VAR r7 \name ldda_y_skip
 
 	
 .lineloop_\name:
 
-	ldr r9, = dda_x_skip_i
-	ldr r9,[r9]
+	LOAD_GLOBAL_VAR r9 \name dda_x_skip_i
 
        ldrb r5,[r7], #1
        add r4,r4,r5, lsl #3
@@ -732,6 +730,10 @@ draw_tile_arm_norm:
 
        ldmia sp!,{r4-r10}
        mov pc,lr               ;@ return
+GLOBAL_VAR_LOADER \name current_pc_pal
+GLOBAL_VAR_LOADER \name mem_gfx
+GLOBAL_VAR_LOADER \name ldda_y_skip
+GLOBAL_VAR_LOADER \name dda_x_skip_i
 .endm
 
        .align 4
