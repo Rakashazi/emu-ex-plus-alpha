@@ -17,7 +17,6 @@ GEO := gngeo
 
 SRC += $(GEO)/mamez80/z80.c \
 $(GEO)/mamez80_interf.c
-#SRC += $(GEO)/z80/z80.cc $(GEO)/z80_interf.cc
 
 SRC += $(GEO)/ym2610/2610intf.c \
 $(GEO)/ym2610/ym2610.c
@@ -50,27 +49,11 @@ ifeq ($(ARCH), arm)
   $(GEO)/cyclone/Cyclone.s
  endif
 else
- SRC += $(GEO)/generator68k_interf.c \
- $(GEO)/generator68k/cpu68k.c \
- $(GEO)/generator68k/reg68k.c \
- $(GEO)/generator68k/diss68k.c \
- $(GEO)/generator68k/tab68k.c \
- $(GEO)/generator68k/cpu68k-0.c \
- $(GEO)/generator68k/cpu68k-1.c \
- $(GEO)/generator68k/cpu68k-2.c \
- $(GEO)/generator68k/cpu68k-3.c \
- $(GEO)/generator68k/cpu68k-4.c \
- $(GEO)/generator68k/cpu68k-5.c \
- $(GEO)/generator68k/cpu68k-6.c \
- $(GEO)/generator68k/cpu68k-7.c \
- $(GEO)/generator68k/cpu68k-8.c \
- $(GEO)/generator68k/cpu68k-9.c \
- $(GEO)/generator68k/cpu68k-a.c \
- $(GEO)/generator68k/cpu68k-b.c \
- $(GEO)/generator68k/cpu68k-c.c \
- $(GEO)/generator68k/cpu68k-d.c \
- $(GEO)/generator68k/cpu68k-e.c \
- $(GEO)/generator68k/cpu68k-f.c
+ M68K_PATH = $(EMUFRAMEWORK_PATH)/../MD.emu/src/genplus-gx/m68k
+ CPPFLAGS += -I$(M68K_PATH)
+ VPATH +=  $(M68K_PATH)
+ SRC += musashi/m68kcpu.cc \
+ $(GEO)/musashi_interf.cc
 endif
 
 configInc += <gngeo-config.h>

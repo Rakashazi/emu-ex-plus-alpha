@@ -55,6 +55,9 @@
 /* ============================= CONFIGURATION ============================ */
 /* ======================================================================== */
 
+static constexpr int M68K_CYCLE_SCALER = 1;
+static constexpr bool M68K_DIRECT_IM_READS = false;
+
 /* Turn ON if you want to use the following M68K variants */
 #define M68K_EMULATE_008            OPT_OFF
 #define M68K_EMULATE_010            OPT_OFF
@@ -82,12 +85,10 @@
  * If off, all interrupts will be autovectored and all interrupt requests will
  * auto-clear when the interrupt is serviced.
  */
-#ifndef NO_SCD
-	#define M68K_EMULATE_INT_ACK        OPT_ON
-#else
-	#define M68K_EMULATE_INT_ACK        OPT_SPECIFY_HANDLER
-	#define M68K_INT_ACK_CALLBACK(CPU, A)    vdp_68k_irq_ack(CPU, A)
-#endif
+#define M68K_EMULATE_INT_ACK        OPT_SPECIFY_HANDLER
+#define M68K_INT_ACK_CALLBACK(CPU, A)    neogeo68KIrqAck(CPU, A)
+struct M68KCPU;
+extern int neogeo68KIrqAck(M68KCPU &m68ki_cpu, int int_level);
 
 
 /* If ON, CPU will call the breakpoint acknowledge callback when it encounters

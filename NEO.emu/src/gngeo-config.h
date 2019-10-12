@@ -177,15 +177,10 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */
 
-#if defined(__arm__) //&& !defined(__APPLE__)
-	/* Define to enable cyclone */
+#if defined(__arm__)
 	#define USE_CYCLONE 1
-	//#define USE_GENERATOR68K 1
-	/* Define to enable drz80 */
-	/* #undef USE_DRZ80 */
 #else
-	/* Define to enable generator68k */
-	#define USE_GENERATOR68K 1
+	#define USE_MUSASHI 1
 #endif
 
 /* Define to use alternative opengl blitter */

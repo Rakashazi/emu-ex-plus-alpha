@@ -5,7 +5,7 @@
 #include "LC89510.h"
 #include "cd_sys.h"
 #include "gfx_cd.h"
-#include <genplus-gx/m68k/musashi/InstructionCycleTableSCD.hh>
+#include "InstructionCycleTableSCD.hh"
 #include <mednafen/cdrom/CDAccess.h>
 #include <imagine/util/builtins.h>
 

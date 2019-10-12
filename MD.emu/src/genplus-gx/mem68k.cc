@@ -880,37 +880,37 @@ void m68k_read_pcrelative_8_hook(M68KCPU &cpu, uint addr)
 		logMsg("read rel 8: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, addr), addr, cpu.memory_map[mapIdx].base, addr & 0xffff);
 }
 
-void m68ki_read_8_hook(M68KCPU &cpu, uint address, _m68k_memory_map *map)
+void m68ki_read_8_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map)
 {
 	if(isVerboseCPURead(cpu, address))
 	  logMsg("read 8: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, map->base, address & 0xffff);
 }
 
-void m68ki_read_16_hook(M68KCPU &cpu, uint address, _m68k_memory_map *map)
+void m68ki_read_16_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map)
 {
 	if(isVerboseCPURead(cpu, address))
 		logMsg("read 16: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, map->base, address & 0xffff);
 }
 
-void m68ki_read_32_hook(M68KCPU &cpu, uint address, _m68k_memory_map *map)
+void m68ki_read_32_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map)
 {
 	if(isVerboseCPURead(cpu, address))
  		logMsg("read 32: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, map->base, address & 0xffff);
 }
 
-void m68ki_write_8_hook(M68KCPU &cpu, uint address, _m68k_memory_map *map, uint value)
+void m68ki_write_8_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map, uint value)
 {
 	if(isVerboseCPUWrite(cpu, address))
  		logMsg("write 8: %s:0x%X with 0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, value, map->base, address & 0xffff);
 }
 
-void m68ki_write_16_hook(M68KCPU &cpu, uint address, _m68k_memory_map *map, uint value)
+void m68ki_write_16_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map, uint value)
 {
 	if(isVerboseCPUWrite(cpu, address))
 		logMsg("write 16: %s:0x%X with 0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, value, map->base, address & 0xffff);
 }
 
-void m68ki_write_32_hook(M68KCPU &cpu, uint address, _m68k_memory_map *map, uint value)
+void m68ki_write_32_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map, uint value)
 {
 	if(isVerboseCPUWrite(cpu, address))
 	  logMsg("write 32: %s:0x%X with 0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, value, map->base, address & 0xffff);

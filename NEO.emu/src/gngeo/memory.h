@@ -63,7 +63,7 @@
 #  define READ_BYTE_ROM(a) READ_BYTE(SWAP_BYTE_ADDRESS(a))
 #endif
 
-#if defined(USE_CYCLONE)
+#if defined(USE_CYCLONE) || defined(USE_MUSASHI)
 #  undef WRITE_WORD_ROM
 #  undef READ_WORD_ROM
 #  undef WRITE_BYTE_ROM
@@ -156,7 +156,7 @@ int cpu_68k_run_step(void);
 Uint32 cpu_68k_getpc(void);
 void cpu_68k_fill_state(M68K_STATE *st);
 void cpu_68k_set_state(M68K_STATE *st);
-int cpu_68k_debuger(void (*execstep)(void),void (*dump)(void));
+int cpu_68k_debuger(void (*execstep)(int),void (*dump)(void));
 
 /* cpu z80 interface */
 void cpu_z80_run(int nbcycle);

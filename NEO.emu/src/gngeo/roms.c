@@ -873,14 +873,14 @@ static int allocate_region(ROM_REGION *r, Uint32 size, int region) {
 				r->p = gp2x_ram_malloc(size, 1);
 #ifdef ENABLE_940T
 				shared_data->sm1 = (Uint8*) ((r->p - gp2x_ram2) + 0x1000000);
-				printf("Z80 code: %08x\n", (Uint32) shared_data->sm1);
+				logMsg("Z80 code: %08x\n", (Uint32) shared_data->sm1);
 #endif
 				break;
 			case REGION_AUDIO_DATA_1:
 				r->p = gp2x_ram_malloc(size, 0);
 #ifdef ENABLE_940T
 				shared_data->pcmbufa = (Uint8*) (r->p - gp2x_ram);
-				printf("SOUND1 code: %08x\n", (Uint32) shared_data->pcmbufa);
+				logMsg("SOUND1 code: %08x\n", (Uint32) shared_data->pcmbufa);
 				shared_data->pcmbufa_size = size;
 #endif
 				break;
@@ -888,7 +888,7 @@ static int allocate_region(ROM_REGION *r, Uint32 size, int region) {
 				r->p = gp2x_ram_malloc(size, 0);
 #ifdef ENABLE_940T
 				shared_data->pcmbufb = (Uint8*) (r->p - gp2x_ram);
-				printf("SOUND2 code: %08x\n", (Uint32) shared_data->pcmbufa);
+				logMsg("SOUND2 code: %08x\n", (Uint32) shared_data->pcmbufa);
 				shared_data->pcmbufb_size = size;
 #endif
 				break;
@@ -1450,10 +1450,10 @@ int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name, char romerror[1024]) 
 	/* Now, load the roms */
 	read_counter = 0;
 	romsize = 0;
-	for (i = 0; i < drv->nb_romfile; i++)
+	for (i = 0; i < (int)drv->nb_romfile; i++)
 		romsize += drv->rom[i].size;
 	gn_init_pbar(PBAR_ACTION_LOADROM, romsize);
-	for (i = 0; i < drv->nb_romfile; i++) {
+	for (i = 0; i < (int)drv->nb_romfile; i++) {
 		//		gn_update_pbar(i, drv->nb_romfile);
 		if (load_region(gz, r, drv->rom[i].region, drv->rom[i].src,
 				drv->rom[i].dest, drv->rom[i].size, drv->rom[i].crc,
@@ -1494,7 +1494,7 @@ int dr_load_roms(GAME_ROMS *r, char *rom_path, char *name, char romerror[1024]) 
 		r->adpcmb.size = r->adpcma.size;
 #ifdef ENABLE_940T
 		shared_data->pcmbufb = (Uint8*) (r->adpcmb.p - gp2x_ram);
-		printf("SOUND2 code: %08x\n", (Uint32) shared_data->pcmbufb);
+		logMsg("SOUND2 code: %08x\n", (Uint32) shared_data->pcmbufb);
 		shared_data->pcmbufb_size = r->adpcmb.size;
 #endif
 	}

@@ -67,7 +67,7 @@ void setTimerIntOption()
 			auto gameStr = gameName.data();
 			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
 					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")
-					|| strstr(gameStr, "Spin Master")))
+					|| strstr(gameStr, "Spin Master") || strstr(gameStr, "Neo Turf Masters")))
 				needsTimer = 1;
 			if(needsTimer) logMsg("auto enabled timer interrupt");
 			conf.raster = needsTimer;

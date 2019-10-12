@@ -37,7 +37,6 @@ extern "C"
 	CONFIG conf{};
 	GN_Rect visible_area;
 
-	extern int skip_this_frame;
 	Uint16 play_buffer[16384]{};
 	GN_Surface *buffer{};
 	static CONF_ITEM rompathConfItem{};
@@ -93,7 +92,7 @@ static EmuVideo *emuVideo{};
 static IG::Pixmap srcPix{{{304, 224}, pixFmt}, (char*)screenBuff + (16*FBResX*2) + (24*2), {FBResX, IG::Pixmap::PIXEL_UNITS}};
 static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
 
-CLINK void main_frame();
+CLINK void main_frame(int skip_this_frame);
 
 const char *EmuSystem::shortSystemName()
 {
@@ -360,10 +359,9 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 {
 	//logMsg("run frame %d", (int)processGfx);
 	emuVideo = video;
-	skip_this_frame = !video;
 	if(video)
 		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
-	main_frame();
+	main_frame(!video);
 	YM2610Update_stream(audioFramesPerVideoFrame);
 	if(renderAudio)
 	{

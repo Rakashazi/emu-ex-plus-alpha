@@ -24,8 +24,6 @@
 #include <gngeo-config.h>
 #endif
 
-#ifdef USE_CYCLONE
-
 #include <stdlib.h>
 
 #include "cyclone/Cyclone.h"
@@ -568,11 +566,7 @@ void cpu_68k_fill_state(M68K_STATE *st) {
 void cpu_68k_set_state(M68K_STATE *st) {
 }
 
-int cpu_68k_debuger(void (*execstep)(void),void (*dump)(void)) {
+int cpu_68k_debuger(void (*execstep)(int),void (*dump)(void)) {
 	/* TODO */
 	return 0;
 }
-
-
-
-#endif

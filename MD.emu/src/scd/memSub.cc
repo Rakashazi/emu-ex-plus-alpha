@@ -22,6 +22,7 @@ extern bool doingSync;
 extern uchar comWriteTarget;
 extern uint comFlagsPoll[2];
 extern uint comPoll[0x20];
+extern M68KCPU mm68k;
 
 static void endSyncSubCpu(uint target)
 {

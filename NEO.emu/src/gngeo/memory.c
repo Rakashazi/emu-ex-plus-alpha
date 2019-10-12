@@ -66,22 +66,16 @@ static __inline__ Uint16 read_neo_control(void) {
 	unsigned int scan;
 
 	if (!conf.raster) {
-
-#if defined(__arm__)
-#ifdef USE_CYCLONE
-		scan = memory.vid.current_line;
-		/*
-		 printf("%d %d %d\n",current_line,
-		 (cpu_68k_getcycle()/3)>>7,
-		 (int)(cpu_68k_getcycle() / 766.28));
-		 */
-#else
-		scan = cpu_68k_getcycle()/3;
-		scan = scan>>7;
-#endif
-#else
-		scan = cpu_68k_getcycle() / 766.28; /* current scanline */
-#endif
+		#if defined USE_MUSASHI || defined USE_CYCLONE
+			scan = memory.vid.current_line;
+			/*
+			 printf("%d %d %d\n",current_line,
+			 (cpu_68k_getcycle()/3)>>7,
+			 (int)(cpu_68k_getcycle() / 766.28));
+			 */
+		#else
+			scan = cpu_68k_getcycle() / 766.28; /* current scanline */
+		#endif
 
 		//	scan+=0x100;
 		//	if (scan >=0x200) scan=scan-0x108;
@@ -266,11 +260,12 @@ LONG_FETCH(mem68k_fetch_bios)
 
 /**** SRAM ****/
 Uint8 mem68k_fetch_sram_byte(Uint32 addr) {
-	return memory.sram[addr - 0xd00000];
+	addr &= 0xFFFF;
+	return memory.sram[addr];
 }
 
 Uint16 mem68k_fetch_sram_word(Uint32 addr) {
-	addr -= 0xd00000;
+	addr &= 0xFFFF;
 	return (memory.sram[addr] << 8) | (memory.sram[addr + 1] & 0xff);
 }
 
@@ -500,7 +495,8 @@ void mem68k_store_sram_byte(Uint32 addr, Uint8 data) {
 	 if (addr == 0xd00000 + sram_protection_hack && ((data & 0xff) == 0x01))
 	 return;
 	 */
-	memory.sram[addr - 0xd00000] = data;
+	addr &= 0xFFFF;
+	memory.sram[addr] = data;
 }
 
 void mem68k_store_sram_word(Uint32 addr, Uint16 data) {
@@ -511,7 +507,7 @@ void mem68k_store_sram_word(Uint32 addr, Uint16 data) {
 	 && ((data & 0xffff) == 0x01))
 	 return;
 	 */
-	addr -= 0xd00000;
+	addr &= 0xFFFF;
 	memory.sram[addr] = data >> 8;
 	memory.sram[addr + 1] = data & 0xff;
 }
@@ -705,7 +701,7 @@ void mem68k_store_z80_long(Uint32 addr, Uint32 data) {
 
 /**** SETTINGS ****/
 void mem68k_store_setting_byte(Uint32 addr, Uint8 data) {
-	//printf("mem68k_store_setting_byte %08x\n",addr);
+	//logMsg("mem68k_store_setting_byte 0x%08X = 0x%X", addr, data);
 	addr &= 0xFFFF;
 	if (addr == 0x0003) {
 		logMsg("Selecting Bios Vector");

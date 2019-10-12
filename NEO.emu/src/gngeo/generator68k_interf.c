@@ -24,7 +24,6 @@
 #include <gngeo-config.h>
 #endif
 
-#ifdef USE_GENERATOR68K
 #include <stdlib.h>
 
 #include "generator68k/generator.h"
@@ -415,7 +414,7 @@ int cpu_68k_run_step(void)
     return reg68k_external_step();
 }
 
-int cpu_68k_debuger(void (*execstep)(void),void (*dump)(void)) {
+int cpu_68k_debuger(void (*execstep)(int),void (*dump)(void)) {
     char buf[200];
     char *res;
     char *args,*argsend;
@@ -554,7 +553,7 @@ int cpu_68k_debuger(void (*execstep)(void),void (*dump)(void)) {
 
 void cpu_68k_interrupt(int a)
 {
-    //  printf("Interrupt %d\n",a);
+    //logMsg("interrupt:%d", a);
     reg68k_external_autovector(a);
 }
 
@@ -562,5 +561,3 @@ int cpu_68k_getcycle(void)
 {
     return cpu68k_clocks;
 }
-
-#endif

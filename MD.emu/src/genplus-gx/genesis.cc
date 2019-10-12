@@ -22,7 +22,7 @@
  ****************************************************************************************/
 
 #include "shared.h"
-#include <genplus-gx/m68k/musashi/InstructionCycleTable.hh>
+#include "InstructionCycleTable.hh"
 
 uint8 tmss[4];            /* TMSS security register */
 uint8 bios_rom[0x800];    /* OS ROM   */

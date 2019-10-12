@@ -1787,7 +1787,7 @@ static void vdp_bus_w(unsigned int data)
         }
 
         /* CRAM modified during HBLANK (Striker, Zero the Kamikaze, etc) */
-        if ((v_counter < bitmap.viewport.h) && (reg[1]& 0x40) && (mm68k.cycleCount <= (mcycles_vdp + 860)))
+        if ((v_counter < bitmap.viewport.h) && (reg[1]& 0x40) && (mm68k.cycleCount <= int(mcycles_vdp + 860)))
         {
         	//logMsg("CRAM modified during HBLANK");
           /* Remap current line */
@@ -1808,7 +1808,7 @@ static void vdp_bus_w(unsigned int data)
       if (reg[11] & 0x04)
       {
         /* VSRAM writes during HBLANK (Adventures of Batman & Robin) */
-        if ((v_counter < bitmap.viewport.h) && (reg[1]& 0x40) && (mm68k.cycleCount <= (mcycles_vdp + 860)))
+        if ((v_counter < bitmap.viewport.h) && (reg[1]& 0x40) && (mm68k.cycleCount <= int(mcycles_vdp + 860)))
         {
         	//logMsg("VSRAM modified during HBLANK");
           /* Remap current line */

@@ -131,77 +131,77 @@ const uint m68ki_shift_32_table[65] =
 const uint16 m68ki_exception_cycle_table[256] =
 {
    /* 000 */
-     40 * 7, /*  0: Reset - Initial Stack Pointer                      */
-      4 * 7, /*  1: Reset - Initial Program Counter                    */
-     50 * 7, /*  2: Bus Error                             (unemulated) */
-     50 * 7, /*  3: Address Error                         (unemulated) */
-     34 * 7, /*  4: Illegal Instruction                                */
-     38 * 7, /*  5: Divide by Zero -- ASG: changed from 42             */
-     40 * 7, /*  6: CHK -- ASG: chanaged from 44                       */
-     34 * 7, /*  7: TRAPV                                              */
-     34 * 7, /*  8: Privilege Violation                                */
-     34 * 7, /*  9: Trace                                              */
-      4 * 7, /* 10: 1010                                               */
-      4 * 7, /* 11: 1111                                               */
-      4 * 7, /* 12: RESERVED                                           */
-      4 * 7, /* 13: Coprocessor Protocol Violation        (unemulated) */
-      4 * 7, /* 14: Format Error                                       */
-     44 * 7, /* 15: Uninitialized Interrupt                            */
-      4 * 7, /* 16: RESERVED                                           */
-      4 * 7, /* 17: RESERVED                                           */
-      4 * 7, /* 18: RESERVED                                           */
-      4 * 7, /* 19: RESERVED                                           */
-      4 * 7, /* 20: RESERVED                                           */
-      4 * 7, /* 21: RESERVED                                           */
-      4 * 7, /* 22: RESERVED                                           */
-      4 * 7, /* 23: RESERVED                                           */
-     44 * 7, /* 24: Spurious Interrupt                                 */
-     44 * 7, /* 25: Level 1 Interrupt Autovector                       */
-     44 * 7, /* 26: Level 2 Interrupt Autovector                       */
-     44 * 7, /* 27: Level 3 Interrupt Autovector                       */
-     44 * 7, /* 28: Level 4 Interrupt Autovector                       */
-     44 * 7, /* 29: Level 5 Interrupt Autovector                       */
-     44 * 7, /* 30: Level 6 Interrupt Autovector                       */
-     44 * 7, /* 31: Level 7 Interrupt Autovector                       */
-     34 * 7, /* 32: TRAP #0 -- ASG: chanaged from 38                   */
-     34 * 7, /* 33: TRAP #1                                            */
-     34 * 7, /* 34: TRAP #2                                            */
-     34 * 7, /* 35: TRAP #3                                            */
-     34 * 7, /* 36: TRAP #4                                            */
-     34 * 7, /* 37: TRAP #5                                            */
-     34 * 7, /* 38: TRAP #6                                            */
-     34 * 7, /* 39: TRAP #7                                            */
-     34 * 7, /* 40: TRAP #8                                            */
-     34 * 7, /* 41: TRAP #9                                            */
-     34 * 7, /* 42: TRAP #10                                           */
-     34 * 7, /* 43: TRAP #11                                           */
-     34 * 7, /* 44: TRAP #12                                           */
-     34 * 7, /* 45: TRAP #13                                           */
-     34 * 7, /* 46: TRAP #14                                           */
-     34 * 7, /* 47: TRAP #15                                           */
-      4 * 7, /* 48: FP Branch or Set on Unknown Condition (unemulated) */
-      4 * 7, /* 49: FP Inexact Result                     (unemulated) */
-      4 * 7, /* 50: FP Divide by Zero                     (unemulated) */
-      4 * 7, /* 51: FP Underflow                          (unemulated) */
-      4 * 7, /* 52: FP Operand Error                      (unemulated) */
-      4 * 7, /* 53: FP Overflow                           (unemulated) */
-      4 * 7, /* 54: FP Signaling NAN                      (unemulated) */
-      4 * 7, /* 55: FP Unimplemented Data Type            (unemulated) */
-      4 * 7, /* 56: MMU Configuration Error               (unemulated) */
-      4 * 7, /* 57: MMU Illegal Operation Error           (unemulated) */
-      4 * 7, /* 58: MMU Access Level Violation Error      (unemulated) */
-      4 * 7, /* 59: RESERVED                                           */
-      4 * 7, /* 60: RESERVED                                           */
-      4 * 7, /* 61: RESERVED                                           */
-      4 * 7, /* 62: RESERVED                                           */
-      4 * 7, /* 63: RESERVED                                           */
+     40 * M68K_CYCLE_SCALER, /*  0: Reset - Initial Stack Pointer                      */
+      4 * M68K_CYCLE_SCALER, /*  1: Reset - Initial Program Counter                    */
+     50 * M68K_CYCLE_SCALER, /*  2: Bus Error                             (unemulated) */
+     50 * M68K_CYCLE_SCALER, /*  3: Address Error                         (unemulated) */
+     34 * M68K_CYCLE_SCALER, /*  4: Illegal Instruction                                */
+     38 * M68K_CYCLE_SCALER, /*  5: Divide by Zero -- ASG: changed from 42             */
+     40 * M68K_CYCLE_SCALER, /*  6: CHK -- ASG: chanaged from 44                       */
+     34 * M68K_CYCLE_SCALER, /*  7: TRAPV                                              */
+     34 * M68K_CYCLE_SCALER, /*  8: Privilege Violation                                */
+     34 * M68K_CYCLE_SCALER, /*  9: Trace                                              */
+      4 * M68K_CYCLE_SCALER, /* 10: 1010                                               */
+      4 * M68K_CYCLE_SCALER, /* 11: 1111                                               */
+      4 * M68K_CYCLE_SCALER, /* 12: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 13: Coprocessor Protocol Violation        (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 14: Format Error                                       */
+     44 * M68K_CYCLE_SCALER, /* 15: Uninitialized Interrupt                            */
+      4 * M68K_CYCLE_SCALER, /* 16: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 17: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 18: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 19: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 20: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 21: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 22: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 23: RESERVED                                           */
+     44 * M68K_CYCLE_SCALER, /* 24: Spurious Interrupt                                 */
+     44 * M68K_CYCLE_SCALER, /* 25: Level 1 Interrupt Autovector                       */
+     44 * M68K_CYCLE_SCALER, /* 26: Level 2 Interrupt Autovector                       */
+     44 * M68K_CYCLE_SCALER, /* 27: Level 3 Interrupt Autovector                       */
+     44 * M68K_CYCLE_SCALER, /* 28: Level 4 Interrupt Autovector                       */
+     44 * M68K_CYCLE_SCALER, /* 29: Level 5 Interrupt Autovector                       */
+     44 * M68K_CYCLE_SCALER, /* 30: Level 6 Interrupt Autovector                       */
+     44 * M68K_CYCLE_SCALER, /* 31: Level 7 Interrupt Autovector                       */
+     34 * M68K_CYCLE_SCALER, /* 32: TRAP #0 -- ASG: chanaged from 38                   */
+     34 * M68K_CYCLE_SCALER, /* 33: TRAP #1                                            */
+     34 * M68K_CYCLE_SCALER, /* 34: TRAP #2                                            */
+     34 * M68K_CYCLE_SCALER, /* 35: TRAP #3                                            */
+     34 * M68K_CYCLE_SCALER, /* 36: TRAP #4                                            */
+     34 * M68K_CYCLE_SCALER, /* 37: TRAP #5                                            */
+     34 * M68K_CYCLE_SCALER, /* 38: TRAP #6                                            */
+     34 * M68K_CYCLE_SCALER, /* 39: TRAP #7                                            */
+     34 * M68K_CYCLE_SCALER, /* 40: TRAP #8                                            */
+     34 * M68K_CYCLE_SCALER, /* 41: TRAP #9                                            */
+     34 * M68K_CYCLE_SCALER, /* 42: TRAP #10                                           */
+     34 * M68K_CYCLE_SCALER, /* 43: TRAP #11                                           */
+     34 * M68K_CYCLE_SCALER, /* 44: TRAP #12                                           */
+     34 * M68K_CYCLE_SCALER, /* 45: TRAP #13                                           */
+     34 * M68K_CYCLE_SCALER, /* 46: TRAP #14                                           */
+     34 * M68K_CYCLE_SCALER, /* 47: TRAP #15                                           */
+      4 * M68K_CYCLE_SCALER, /* 48: FP Branch or Set on Unknown Condition (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 49: FP Inexact Result                     (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 50: FP Divide by Zero                     (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 51: FP Underflow                          (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 52: FP Operand Error                      (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 53: FP Overflow                           (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 54: FP Signaling NAN                      (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 55: FP Unimplemented Data Type            (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 56: MMU Configuration Error               (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 57: MMU Illegal Operation Error           (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 58: MMU Access Level Violation Error      (unemulated) */
+      4 * M68K_CYCLE_SCALER, /* 59: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 60: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 61: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 62: RESERVED                                           */
+      4 * M68K_CYCLE_SCALER, /* 63: RESERVED                                           */
          /* 64-255: User Defined                                   */
-      4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,
-      4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,
-      4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,
-      4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,
-      4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,
-      4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,4 * 7,
+      4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,
+      4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,
+      4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,
+      4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,
+      4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,
+      4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,4 * M68K_CYCLE_SCALER,
 
 
 #if M68K_EMULATE_010 || M68K_EMULATE_020 || M68K_EMULATE_EC020 || M68K_EMULATE_040
@@ -719,15 +719,15 @@ void m68k_set_cpu_type(M68KCPU &m68ki_cpu, unsigned int cpu_type)
       CPU_SR_MASK      = 0xa71f; /* T1 -- S  -- -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
       /*CYC_INSTRUCTION  = m68ki_cycles[0];
       CYC_EXCEPTION    = m68ki_exception_cycle_table[0];
-      CYC_BCC_NOTAKE_B = -2 * 7;
-      CYC_BCC_NOTAKE_W = 2 * 7;
-      CYC_DBCC_F_NOEXP = -2 * 7;
-      CYC_DBCC_F_EXP   = 2 * 7;
-      CYC_SCC_R_TRUE   = 2 * 7;
-      CYC_MOVEM_W      = 4 * 7;
-      CYC_MOVEM_L      = 8 * 7;
-      CYC_SHIFT        = 2 * 7;
-      CYC_RESET        = 132 * 7;*/
+      CYC_BCC_NOTAKE_B = -2 * M68K_CYCLE_SCALER;
+      CYC_BCC_NOTAKE_W = 2 * M68K_CYCLE_SCALER;
+      CYC_DBCC_F_NOEXP = -2 * M68K_CYCLE_SCALER;
+      CYC_DBCC_F_EXP   = 2 * M68K_CYCLE_SCALER;
+      CYC_SCC_R_TRUE   = 2 * M68K_CYCLE_SCALER;
+      CYC_MOVEM_W      = 4 * M68K_CYCLE_SCALER;
+      CYC_MOVEM_L      = 8 * M68K_CYCLE_SCALER;
+      CYC_SHIFT        = 2 * M68K_CYCLE_SCALER;
+      CYC_RESET        = 132 * M68K_CYCLE_SCALER;*/
       return;
 
 #if M68K_EMULATE_020 || M68K_EMULATE_EC020 || M68K_EMULATE_040
@@ -927,7 +927,7 @@ void M68KCPU::setIRQDelay(unsigned int mask)
   m68ki_check_interrupts(*this); /* Level triggered (IRQ) */
 }
 
-void m68k_run(M68KCPU &m68ki_cpu, unsigned int cycles)
+void m68k_run(M68KCPU &m68ki_cpu, int cycles)
 {
   /* Make sure we're not stopped */
   if (CPU_STOPPED)
@@ -942,7 +942,7 @@ void m68k_run(M68KCPU &m68ki_cpu, unsigned int cycles)
   /* Save end cycles count for when CPU is stopped */
   m68ki_cpu.endCycles = cycles;
 
-  while (m68ki_cpu.cycleCount < cycles)//m68ki_cpu.endCycles)
+  while (m68ki_cpu.cycleCount < cycles)
   {
     /* Set tracing accodring to T1. */
     m68ki_trace_t1() /* auto-disable (see m68kcpu.h) */

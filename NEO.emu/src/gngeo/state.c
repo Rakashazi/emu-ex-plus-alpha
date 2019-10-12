@@ -26,6 +26,8 @@ static int m68k_flag=0x1;
 static int m68k_flag=0x2;
 #elif USE_CYCLONE
 static int m68k_flag=0x3;
+#elif USE_MUSASHI
+static int m68k_flag=0x4;
 #endif
 
 #ifdef USE_RAZE

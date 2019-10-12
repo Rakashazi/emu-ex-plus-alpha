@@ -11,7 +11,7 @@ uchar comWriteTarget = 0;
 uint comFlagsPoll[2] = { 0 };
 uint comPoll[0x20] = { 0 };
 
-static void syncSubCpu(uint cycles, uint target)
+static void syncSubCpu(int cycles, uint target)
 {
 	assert(extraCpuSync);
 	doingSync = 1;

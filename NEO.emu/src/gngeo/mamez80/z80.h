@@ -6,7 +6,7 @@
 #endif
 
 #ifndef WORDS_BIGENDIAN
-#define LSB_FIRST
+#define Z80_LSB_FIRST
 #endif
 
 //#include "SDL_types.h"
@@ -26,7 +26,7 @@
 /* ----- Extracted from MAME cpuintrf --------- */
 
 typedef union {
-#ifdef LSB_FIRST
+#ifdef Z80_LSB_FIRST
         struct { UINT8 l,h,h2,h3; } b;
         struct { UINT16 l,h; } w;
 #else

@@ -55,10 +55,6 @@
 #include "menu.h"
 #include "event.h"
 
-int frame;
-//int current_line = 0;
-static int arcade;
-
 void setup_misc_patch(char *name) {
 
 
@@ -74,7 +70,7 @@ void setup_misc_patch(char *name) {
 		/* patch out protection checks */
 		int i;
 		Uint8 *RAM = memory.rom.cpu_m68k.p;
-		for (i = 0; i < memory.rom.cpu_m68k.size; i += 2) {
+		for (i = 0; i < (int)memory.rom.cpu_m68k.size; i += 2) {
 			if ((READ_WORD_ROM(&RAM[i + 0]) == 0x0243)
 					&& (READ_WORD_ROM(&RAM[i + 2]) == 0x0001) && /* andi.w  #$1, D3 */
 			(READ_WORD_ROM(&RAM[i + 4]) == 0x6600)) { /* bne xxxx */
@@ -126,14 +122,14 @@ void init_sound(void) {
 	if (conf.sound) init_sdl_audio();
 
 #ifdef ENABLE_940T
-		printf("Init all neo");
+		//logMsg("Init all neo");
 		shared_data->sample_rate = conf.sample_rate;
 		shared_data->z80_cycle = (z80_overclk == 0 ? 73333 : 73333
 				+ (z80_overclk * 73333 / 100.0));
 		//gp2x_add_job940(JOB940_INITALL);
 		gp2x_add_job940(JOB940_INITALL);
 		wait_busy_940(JOB940_INITALL);
-		printf("The YM2610 have been initialized\n");
+		logMsg("The YM2610 have been initialized\n");
 #else
 		cpu_z80_init();
 		//streams_sh_start();
@@ -197,11 +193,10 @@ void init_neo(void) {
 	SDL_SaveBMP(shoot, buf);
 }*/
 
-static int fc;
+static unsigned int fc;
 static int last_line;
-int skip_this_frame = 0;
 
-static inline int neo_interrupt(void) {
+static inline int neo_interrupt(int skip_this_frame) {
     static int frames;
 
 	pd4990a_addretrace();
@@ -213,9 +208,6 @@ static inline int neo_interrupt(void) {
 		}
 		fc++;
 	}
-
-	//skip_this_frame = skip_next_frame;
-	//skip_next_frame = frame_skip(0);
 
 	if (!skip_this_frame) {
 		PROFILER_START(PROF_VIDEO);
@@ -238,7 +230,7 @@ static inline int neo_interrupt(void) {
 	return 1;
 }
 
-static inline void update_screen(void) {
+static inline void update_screen(int skip_this_frame) {
 
 	if (memory.vid.irq2control & 0x40)
 		memory.vid.irq2start = (memory.vid.irq2pos + 3) / 0x180; /* ridhero gives 0x17d */
@@ -262,12 +254,9 @@ static inline void update_screen(void) {
 		neogeo_frame_counter++;
 	}
 	fc++;
-
-	//skip_this_frame = skip_next_frame;
-	//skip_next_frame = frame_skip(0);
 }
 
-static inline int update_scanline(void) {
+static inline int update_scanline(int skip_this_frame) {
 	memory.vid.irq2taken = 0;
 
 	if (memory.vid.irq2control & 0x10) {
@@ -293,9 +282,6 @@ static inline int update_scanline(void) {
 	return memory.vid.irq2taken;
 }
 
-static Uint16 pending_save_state = 0, pending_load_state = 0;
-static int slow_motion = 0;
-
 static inline void state_handling(int save,int load) {
 	if (save) {
 		//if (conf.sound) SDL_LockAudio();
@@ -309,20 +295,24 @@ static inline void state_handling(int save,int load) {
 		//if (conf.sound) SDL_UnlockAudio();
 		reset_frame_skip();
 	}
-	pending_load_state = pending_save_state = 0;
 }
 
-void main_frame(void) {
+void main_frame(int skip_this_frame) {
 	uint m68k_overclk = 0;
 	uint z80_overclk = 0;
-	Uint32 cpu_68k_timeslice = (m68k_overclk == 0 ? 200000 : 200000
-			+ (m68k_overclk * 200000 / 100.0));
-	Uint32 cpu_68k_timeslice_scanline = cpu_68k_timeslice / 264.0;
-	Uint32 cpu_z80_timeslice = (z80_overclk == 0 ? 73333 : 73333 + (z80_overclk
+	#ifdef USE_MUSASHI
+	const Uint32 baseTimeslice = 250000;
+	#else
+	const Uint32 baseTimeslice = 200000;
+	#endif
+	const Uint32 cpu_68k_timeslice = (m68k_overclk == 0 ? baseTimeslice : baseTimeslice
+			+ (m68k_overclk * baseTimeslice / 100.0));
+	const Uint32 cpu_68k_timeslice_scanline = cpu_68k_timeslice / 264.0;
+	const Uint32 cpu_z80_timeslice = (z80_overclk == 0 ? 73333 : 73333 + (z80_overclk
 			* 73333 / 100.0));
 	Uint32 tm_cycle = 0;
 
-	Uint32 cpu_z80_timeslice_interlace = cpu_z80_timeslice
+	const Uint32 cpu_z80_timeslice_interlace = cpu_z80_timeslice
 			/ (float) nb_interlace;
 
 	// run one frame
@@ -368,7 +358,7 @@ void main_frame(void) {
 				for (int i = 0; i < 264; i++) {
 					tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline
 							- tm_cycle);
-					if (update_scanline())
+					if (update_scanline(skip_this_frame))
 					{
 						//logMsg("irq 2");
 						cpu_68k_interrupt(2);
@@ -377,7 +367,7 @@ void main_frame(void) {
 				tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline - tm_cycle);
 				//state_handling(pending_save_state, pending_load_state);
 
-				update_screen();
+				update_screen(skip_this_frame);
 				memory.watchdog++;
 				if (memory.watchdog > 7) {
 					logMsg("WATCHDOG RESET\n");
@@ -388,7 +378,7 @@ void main_frame(void) {
 				PROFILER_START(PROF_68K);
 				tm_cycle = cpu_68k_run(cpu_68k_timeslice - tm_cycle);
 				PROFILER_STOP(PROF_68K);
-				int a = neo_interrupt();
+				int a = neo_interrupt(skip_this_frame);
 
 				/* state handling (we save/load before interrupt) */
 				//state_handling(pending_save_state, pending_load_state);
@@ -827,7 +817,7 @@ void main_loop(void) {
 #endif
 }
 
-void cpu_68k_dpg_step(void) {
+void cpu_68k_dpg_step(int skip_this_frame) {
 	static Uint32 nb_cycle;
 	static Uint32 line_cycle;
 	Uint32 cpu_68k_timeslice = 200000;
@@ -843,9 +833,9 @@ void cpu_68k_dpg_step(void) {
 	if (nb_cycle >= cpu_68k_timeslice) {
 		nb_cycle = line_cycle = 0;
 		if (conf.raster) {
-			update_screen();
+			update_screen(skip_this_frame);
 		} else {
-			neo_interrupt();
+			neo_interrupt(skip_this_frame);
 		}
 		//state_handling(pending_save_state, pending_load_state);
 		cpu_68k_interrupt(1);
@@ -853,7 +843,7 @@ void cpu_68k_dpg_step(void) {
 		if (line_cycle >= cpu_68k_timeslice_scanline) {
 			line_cycle = 0;
 			if (conf.raster) {
-				if (update_scanline())
+				if (update_scanline(skip_this_frame))
 					cpu_68k_interrupt(2);
 			}
 		}

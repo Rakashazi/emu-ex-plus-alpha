@@ -29,7 +29,6 @@
 /* ======================================================================== */
 
 /* Import the configuration for this build */
-#include <genplus-config.h>
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <stdlib.h>
@@ -199,16 +198,16 @@ typedef union
 struct M68KCPU
 {
 	constexpr M68KCPU(const unsigned char (&cycles)[0x10000], bool hasWorkingTas):
-		cycles(cycles), hasWorkingTas(hasWorkingTas) { }
+		cycles(cycles), hasWorkingTas(hasWorkingTas) {}
 
   static const uint cpu_type = 1;     /* CPU Type: 68000, 68008, 68010, 68EC020, or 68020 */
   const unsigned char (&cycles)[0x10000];
-  uint dar[16] = {0};      /* Data and Address Registers */
+  uint dar[16]{};      /* Data and Address Registers */
 #ifdef M68K_USE_PPC
   uint ppc = 0;       /* Previous program counter */
 #endif
   uint pc = 0;           /* Program Counter */
-  uint sp[7] = {0};        /* User, Interrupt, and Master Stack Pointers */
+  uint sp[7]{};        /* User, Interrupt, and Master Stack Pointers */
   uint ir = 0;           /* Instruction Register */
 #if M68K_EMULATE_010 || M68K_EMULATE_020 || M68K_EMULATE_EC020 || M68K_EMULATE_040
   uint vbr = 0;          /* Vector Base Register (m68010+) */
@@ -216,7 +215,7 @@ struct M68KCPU
   uint dfc = 0;          /* Destination Function Code Register (m68010+) */
   uint cacr = 0;         /* Cache Control Register (m68020, unemulated) */
   uint caar = 0;         /* Cache Address Register (m68020, unemulated) */
-  fp_reg fpr[8] = {0};     /* FPU Data Register (m68040) */
+  fp_reg fpr[8]{};     /* FPU Data Register (m68040) */
   uint fpiar = 0;        /* FPU Instruction Address Register (m68040) */
   uint fpsr = 0;         /* FPU Status Register (m68040) */
   uint fpcr = 0;         /* FPU Control Register (m68040) */
@@ -250,15 +249,15 @@ struct M68KCPU
   const bool hasWorkingTas;
 
   /* Clocks required for instructions / exceptions */
-  static const uint cyc_bcc_notake_b = -2 * 7;
-  static const uint cyc_bcc_notake_w = 2 * 7;
-  static const uint cyc_dbcc_f_noexp = -2 * 7;
-  static const uint cyc_dbcc_f_exp = 2 * 7;
-  static const uint cyc_scc_r_true = 2 * 7;
-  static const uint cyc_movem_w = 4 * 7;
-  static const uint cyc_movem_l = 8 * 7;
-  static const uint cyc_shift = 2 * 7;
-  static const uint cyc_reset = 132 * 7;
+  static const uint cyc_bcc_notake_b = -2 * M68K_CYCLE_SCALER;
+  static const uint cyc_bcc_notake_w = 2 * M68K_CYCLE_SCALER;
+  static const uint cyc_dbcc_f_noexp = -2 * M68K_CYCLE_SCALER;
+  static const uint cyc_dbcc_f_exp = 2 * M68K_CYCLE_SCALER;
+  static const uint cyc_scc_r_true = 2 * M68K_CYCLE_SCALER;
+  static const uint cyc_movem_w = 4 * M68K_CYCLE_SCALER;
+  static const uint cyc_movem_l = 8 * M68K_CYCLE_SCALER;
+  static const uint cyc_shift = 2 * M68K_CYCLE_SCALER;
+  static const uint cyc_reset = 132 * M68K_CYCLE_SCALER;
   /*static const uint8* cyc_instruction = m68ki_cycles;
   static const uint16* cyc_exception = m68ki_exception_cycle_table;*/
 
@@ -282,8 +281,8 @@ struct M68KCPU
 #endif
 
   int irqLatency = 0;
-  uint32 cycleCount = 0;
-  uint32 endCycles = 0;
+  int32 cycleCount = 0;
+  int32 endCycles = 0;
   _m68k_memory_map memory_map[256]{};
 
   /* Set the IPL0-IPL2 pins on the CPU (IRQ).
@@ -313,8 +312,6 @@ struct M68KCPU
 #endif
 };
 
-extern M68KCPU mm68k;
-
 void m68k_read_immediate_16_hook(M68KCPU &cpu, uint address);
 void m68k_read_immediate_32_hook(M68KCPU &cpu, uint address);
 void m68k_read_pcrelative_8_hook(M68KCPU &cpu, uint address);
@@ -325,12 +322,11 @@ static inline uint16 m68k_read_immediate_16(M68KCPU &cpu, uint address)
 	if(cpu.callMemHooks)
 		m68k_read_immediate_16_hook(cpu, address);
 	uint mapIdx = ((address)>>16)&0xff;
-/*#ifndef NDEBUG
-	_m68k_memory_map *temp = &cpu.memory_map[mapIdx];
-	  if (temp->read16) return (*temp->read16)(address & cpu.address_mask);
+	const _m68k_memory_map *temp = &cpu.memory_map[mapIdx];
+	if(!M68K_DIRECT_IM_READS && temp->read16)
+		return (*temp->read16)(address & cpu.address_mask);
 	else
-#endif*/
-	return *(uint16 *)(cpu.memory_map[mapIdx].base + ((address) & 0xffff));
+		return *(uint16 *)(cpu.memory_map[mapIdx].base + ((address) & 0xffff));
 }
 
 static inline uint32 m68k_read_immediate_32(M68KCPU &cpu, uint address)
@@ -346,11 +342,10 @@ static inline uint8 m68k_read_pcrelative_8(M68KCPU &cpu, uint address)
 	if(cpu.callMemHooks)
 		m68k_read_pcrelative_8_hook(cpu, address);
 	uint mapIdx = ((address)>>16)&0xff;
-/*#ifndef NDEBUG
-	_m68k_memory_map *temp = &cpu.memory_map[mapIdx];
-	  if (temp->read8) return (*temp->read8)(address & cpu.address_mask);
+	const _m68k_memory_map *temp = &cpu.memory_map[mapIdx];
+	if(!M68K_DIRECT_IM_READS && temp->read8)
+		return (*temp->read8)(address & cpu.address_mask);
 	else
-#endif*/
 		return READ_BYTE(cpu.memory_map[mapIdx].base, (address) & 0xffff);
 }
 
@@ -480,7 +475,7 @@ void m68k_pulse_reset(M68KCPU &m68ki_cpu);
 //int m68k_execute(int num_cycles);
 
 /* run until global cycle count is reached */
-void m68k_run(M68KCPU &m68ki_cpu, unsigned int cycles) __attribute__((hot));
+void m68k_run(M68KCPU &m68ki_cpu, int cycles) __attribute__((hot));
 
 /* These functions let you read/write/modify the number of cycles left to run
  * while m68k_execute() is running.
@@ -520,10 +515,6 @@ unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_
  * via the read/write interfaces.
  */
 unsigned int m68k_disassemble_raw(char* str_buff, unsigned int pc, const unsigned char* opdata, const unsigned char* argdata, unsigned int cpu_type);
-
-#ifdef NO_SCD
-	extern int vdp_68k_irq_ack(M68KCPU &m68ki_cpu, int int_level);
-#endif
 
 /* ======================================================================== */
 /* ============================== END OF FILE ============================= */
