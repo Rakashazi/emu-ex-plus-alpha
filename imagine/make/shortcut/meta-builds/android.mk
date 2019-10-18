@@ -3,12 +3,17 @@ include $(IMAGINE_PATH)/make/config.mk
 include $(IMAGINE_PATH)/make/android-metadata.mk
 
 .PHONY: all
-all : android-apk
+all : android-bundle
+
+BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-0.10.3.jar
+BUNDLETOOL := java -jar $(BUNDLETOOL_PATH)
+
+# Code signing parameters used when generating APKs from the app bundle
+keySignParams := --ks-key-alias=$(ANDROID_KEY_ALIAS) --key-pass=pass:$(ANDROID_KEY_PASSWORD) --ks=$(ANDROID_KEY_STORE) --ks-pass=pass:$(ANDROID_KEY_STORE_PASSWORD)
 
 # SDK level setup
 
 android_minSDK ?= 9
-android_baseModuleSDK := 9
 
 android_metadata_soName ?= main
 android_makefileOpts += android_metadata_soName=$(android_metadata_soName)
@@ -19,7 +24,7 @@ ifndef android_arch
  ifdef android_ouyaBuild
   android_arch := armv7
  else
-  android_arch := arm64 armv7 x86
+  android_arch := armv7 arm64 x86 x86_64
  endif
 endif
 
@@ -44,6 +49,9 @@ ifeq ($(filter arm64, $(android_arch)),)
 endif
 ifeq ($(filter x86, $(android_arch)),)
  android_noX86 := 1
+endif
+ifeq ($(filter x86_64, $(android_arch)),)
+ android_noX86_64 := 1
 endif
 
 android_targetPath := target/$(android_buildName)
@@ -268,7 +276,7 @@ ifndef android_noArmv7
 
 android_armv7Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-armv7.mk
 android_armv7SODir := $(android_targetPath)/src/main/jniLibs/armeabi-v7a
-android_armv7SO := $(android_armv7SODir)/lib$(android_soName).so
+android_armv7SO := $(android_armv7SODir)/lib$(android_metadata_soName).so
 android_armv7MakeArgs = -f $(android_armv7Makefile) $(android_makefileOpts) \
  targetDir=$(android_armv7SODir) buildName=$(android_buildName)-armv7 \
  projectPath=$(projectPath)
@@ -291,7 +299,7 @@ ifndef android_noArm64
 
 android_arm64Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-arm64.mk
 android_arm64SODir := $(android_targetPath)/src/main/jniLibs/arm64-v8a
-android_arm64SO := $(android_arm64SODir)/lib$(android_soName).so
+android_arm64SO := $(android_arm64SODir)/lib$(android_metadata_soName).so
 android_arm64MakeArgs = -f $(android_arm64Makefile) $(android_makefileOpts) \
  targetDir=$(android_arm64SODir) buildName=$(android_buildName)-arm64 \
  projectPath=$(projectPath)
@@ -314,7 +322,7 @@ ifndef android_noX86
 
 android_x86Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-x86.mk
 android_x86SODir := $(android_targetPath)/src/main/jniLibs/x86
-android_x86SO := $(android_x86SODir)/lib$(android_soName).so
+android_x86SO := $(android_x86SODir)/lib$(android_metadata_soName).so
 android_x86MakeArgs = -f $(android_x86Makefile) $(android_makefileOpts) \
  targetDir=$(android_x86SODir) buildName=$(android_buildName)-x86 \
  projectPath=$(projectPath)
@@ -333,6 +341,29 @@ android_soFiles += $(android_x86SO)
 
 endif
 
+ifndef android_noX86_64
+
+android_x86_64Makefile ?= $(IMAGINE_PATH)/make/shortcut/common-builds/$(android_buildPrefix)-x86_64.mk
+android_x86_64SODir := $(android_targetPath)/src/main/jniLibs/x86_64
+android_x86_64SO := $(android_x86_64SODir)/lib$(android_metadata_soName).so
+android_x86_64MakeArgs = -f $(android_x86_64Makefile) $(android_makefileOpts) \
+ targetDir=$(android_x86_64SODir) buildName=$(android_buildName)-x86_64 \
+ projectPath=$(projectPath)
+.PHONY: android-x86_64
+android-x86_64 :
+	@echo "Building X86_64 Shared Object"
+	$(PRINT_CMD)$(MAKE) $(android_x86_64MakeArgs)
+$(android_x86_64SO) : android-x86_64
+
+.PHONY: android-x86_64-clean
+android-x86_64-clean :
+	@echo "Cleaning X86_64 Build"
+	$(PRINT_CMD)$(MAKE) $(android_x86_64MakeArgs) clean
+android_cleanTargets += android-x86_64-clean
+android_soFiles += $(android_x86_64SO)
+
+endif
+
 .PHONY: android-build
 android-build : $(android_soFiles)
 
@@ -346,14 +377,36 @@ android_projectDeps := $(android_buildGradle) $(android_proguardConfPath)
 
 ifeq ($(android_buildTarget),debug)
  android_buildTask := assembleDebug
+ android_bundleTask := bundleDebug
  android_installTask := installDebug
 else
  android_buildTarget := release
  android_buildTask := assembleRelease
+ android_bundleTask := bundleRelease
  android_installTask := installRelease
 endif
 
-android_apkPath := $(android_targetPath)/build/outputs/apk/release/$(android_metadata_project)-$(android_buildTarget).apk
+android_bundlePath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project).aab
+.PHONY: android-bundle
+$(android_bundlePath) : $(android_projectDeps) $(android_soFiles)
+	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_bundleTask)
+android-bundle : $(android_bundlePath)
+
+android_bundleApksPath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project).apks
+.PHONY: android-bundle-apks
+$(android_bundleApksPath) : $(android_bundlePath)
+	$(BUNDLETOOL) build-apks --bundle="$(android_bundlePath)" --output=$(android_bundleApksPath) --overwrite $(keySignParams)
+android-bundle-apks : $(android_bundleApksPath)
+
+.PHONY: android-bundle-install
+android-bundle-install : $(android_bundleApksPath)
+	$(BUNDLETOOL) install-apks --apks=$(android_bundleApksPath) --allow-downgrade
+
+.PHONY: android-bundle-ready
+android-bundle-ready :
+	cp $(android_bundlePath) $(IMAGINE_PATH)/../releases-bin/$(android_releaseReadySubdir)/$(android_metadata_project)-$(android_metadata_version).aab
+
+android_apkPath := $(android_targetPath)/build/outputs/apk/$(android_buildTarget)/$(android_metadata_project).apk
 .PHONY: android-apk
 android-apk : $(android_projectDeps) $(android_soFiles)
 	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_buildTask)
@@ -393,4 +446,7 @@ ifndef android_noArm64
 endif
 ifndef android_noX86
 	$(PRINT_CMD)$(MAKE) $(android_x86MakeArgs) $@
+endif
+ifndef android_noX86_64
+	$(PRINT_CMD)$(MAKE) $(android_x86_64MakeArgs) $@
 endif

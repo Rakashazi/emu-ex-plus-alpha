@@ -6,7 +6,7 @@ CHOST := aarch64-linux-android
 android_abi := arm64-v8a
 android_ndkSDK ?= 21
 android_ndkArch := arm64
-clangTarget := aarch64-none-linux-android
+clangTarget := aarch64-none-linux-android21
 CFLAGS_CODEGEN += -fpic
 LDFLAGS_SYSTEM += -fuse-ld=gold
 

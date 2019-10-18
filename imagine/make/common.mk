@@ -28,17 +28,17 @@ $(objDir)/%.o : %.c
 $(objDir)/%.o : %.cc
 	@echo "Compiling $<"
 	@mkdir -p $(@D)
-	$(PRINT_CMD)$(CC) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) -o $@
+	$(PRINT_CMD)$(CXX) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) -o $@
 
 $(objDir)/%.o : %.cpp
 	@echo "Compiling $<"
 	@mkdir -p $(@D)
-	$(PRINT_CMD)$(CC) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) -o $@
+	$(PRINT_CMD)$(CXX) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) -o $@
 
 $(objDir)/%.o : %.cxx
 	@echo "Compiling $<"
 	@mkdir -p $(@D)
-	$(PRINT_CMD)$(CC) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) -o $@
+	$(PRINT_CMD)$(CXX) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) -o $@
 
 # Objective C
 $(objDir)/%.o : %.m
@@ -50,7 +50,7 @@ $(objDir)/%.o : %.m
 $(objDir)/%.o : %.mm
 	@echo "Compiling $<"
 	@mkdir -p $(@D)
-	$(PRINT_CMD)$(CC) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) $(OBJCFLAGS) -o $@
+	$(PRINT_CMD)$(CXX) $(compileAction) $< $(CPPFLAGS) $(CXXFLAGS) $(OBJCFLAGS) -o $@
 
 # Assembly
 $(objDir)/%.o : %.s

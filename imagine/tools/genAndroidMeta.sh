@@ -17,6 +17,9 @@ do
 		--version-code=*)
 			versionCode=$optarg
 		;;
+		--version-code-extra=*)
+			versionCodeExtra=$optarg
+		;;
 		--vendor=*)
 			vendor=$optarg
 		;;
@@ -146,17 +149,16 @@ fi
 
 if [ ! "$targetSDK" ]
 then
-	targetSDK=27
+	targetSDK=28
 fi
 
 if [ ! $versionCode ]
 then
-	minSdkPad=`printf "%02d" $minSDK`
 	set -- ${version//./ }
 	v1=`printf "%02d" $1`
 	v2=`printf "%02d" $2`
 	v3=`printf "%02d" $3`
-	versionCode=${minSdkPad}${v1}${v2}${v3}
+	versionCode=${versionCodeExtra}${v1}${v2}${v3}
 fi
 
 if [ ! "$activityName" ]

@@ -1,4 +1,4 @@
-LD = $(CXX)
+LD ?= $(CXX)
 
 #LINK_MAP=1
 ifdef LINK_MAP

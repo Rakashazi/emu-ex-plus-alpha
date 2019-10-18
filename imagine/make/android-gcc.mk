@@ -15,7 +15,7 @@ else
  android_ndkLinkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
 endif
 
-VPATH += $(android_ndkLinkSysroot)/usr/lib
+VPATH += $(android_ndkLinkSysroot)/usr/lib$(android_libDirExt)
 
 ANDROID_GCC_VERSION ?= 4.9
 ANDROID_GCC_TOOLCHAIN_ROOT_DIR ?= $(CHOST)
@@ -35,7 +35,8 @@ config_compiler ?= clang
 
 ifeq ($(origin CC), default)
  CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
- CXX := $(CC)
+ CXX := $(CC)++
+ LD := $(CC)
  AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
  RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar s
  STRIP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-strip
@@ -89,15 +90,13 @@ LDFLAGS_SYSTEM += --sysroot=$(android_ndkLinkSysroot) -no-canonical-prefixes \
 linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
-CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot) -isystem $(android_ndkSysroot)/usr/include/$(CHOST)
-LDFLAGS_SYSTEM += -s -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed
+CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
+LDFLAGS_SYSTEM += -s -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel \
+-Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a
 
 ifeq ($(android_ndkSDK), 9)
- # SDK 9 no longer supported since NDK r16, pass 14 so unified headers compile
- # and enable compatibilty work-arounds to maintain SDK 9 support
- CPPFLAGS += -D__ANDROID_API__=14 -DANDROID_COMPAT_API
-else
- CPPFLAGS += -D__ANDROID_API__=$(android_ndkSDK)
+ # SDK 9 no longer supported since NDK r16, enable compatibilty work-arounds
+ CPPFLAGS += -DANDROID_COMPAT_API
 endif
 
 ifndef RELEASE

@@ -216,6 +216,7 @@ bool hasHardwareNavButtons()
 uint androidSDK()
 {
 	#ifdef ANDROID_COMPAT_API
+	static_assert(__ANDROID_API__ == 14, "Compiling with ANDROID_COMPAT_API and API higher than 14");
 	return std::max(9u, aSDK);
 	#else
 	return std::max((uint)__ANDROID_API__, aSDK);

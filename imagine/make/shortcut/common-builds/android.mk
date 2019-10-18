@@ -4,7 +4,7 @@ ifndef android_arch
  ifdef android_ouyaBuild
   android_arch := armv7
  else
-  android_arch := arm64 armv7 x86
+  android_arch := arm64 armv7 x86 x86_64
  endif
 endif
 
@@ -25,6 +25,10 @@ endif
 ifneq ($(filter x86, $(android_arch)),)
  x86Target := $(android_buildPrefix)-x86$(targetExt)
  targets += $(x86Target)
+endif
+ifneq ($(filter x86_64, $(android_arch)),)
+ x86_64Target := $(android_buildPrefix)-x86_64$(targetExt)
+ targets += $(x86_64Target)
 endif
 
 makefileOpts += projectPath=$(projectPath)

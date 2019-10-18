@@ -63,6 +63,10 @@ ifdef android_metadata_versionCode
  android_gen_metadata_args += --version-code=$(android_metadata_versionCode)
 endif
 
+ifdef android_metadata_versionCodeExtra
+ android_gen_metadata_args += --version-code-extra=$(android_metadata_versionCodeExtra)
+endif
+
 ifdef android_metadata_writeExtStore
  android_gen_metadata_args += --permission-write-ext
 endif
