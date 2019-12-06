@@ -28,6 +28,10 @@
 #define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
 #endif
 
+#ifndef GL_TIMEOUT_IGNORED
+#define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
+#endif
+
 #ifndef GL_DEBUG_TYPE_ERROR
 #define GL_DEBUG_TYPE_ERROR 0x824C
 #endif
@@ -131,9 +135,14 @@ SyncFence Renderer::addResourceSyncFence()
 	if(!resourceUpdate)
 		return {};
 	resourceUpdate = false;
+	return addSyncFence();
+}
+
+SyncFence Renderer::addSyncFence()
+{
 	if(!useSeparateDrawContext)
 		return {}; // no-op
-	assert(support.hasSyncFences());
+	assumeExpr(support.hasSyncFences());
 	GLsync sync;
 	runGLTaskSync(
 		[this, &sync]()
@@ -142,6 +151,44 @@ SyncFence Renderer::addResourceSyncFence()
 			glFlush();
 		});
 	return sync;
+}
+
+void Renderer::deleteSyncFence(SyncFence fence)
+{
+	if(!fence.sync)
+		return;
+	assumeExpr(support.hasSyncFences());
+	runGLTask(
+		[this, sync = fence.sync]()
+		{
+			support.glDeleteSync(sync);
+		});
+}
+
+void Renderer::clientWaitSync(SyncFence fence, uint64_t timeout)
+{
+	if(!fence.sync)
+		return;
+	assumeExpr(support.hasSyncFences());
+	runGLTask(
+		[this, sync = fence.sync, timeout]()
+		{
+			support.glClientWaitSync(sync, 0, timeout);
+			support.glDeleteSync(sync);
+		});
+}
+
+void Renderer::waitSync(SyncFence fence)
+{
+	if(!fence.sync)
+		return;
+	assumeExpr(support.hasSyncFences());
+	runGLTask(
+		[this, sync = fence.sync]()
+		{
+			support.glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
+			support.glDeleteSync(sync);
+		});
 }
 
 void Renderer::flush()
@@ -371,9 +418,14 @@ void GLRenderer::runGLTaskSync2(GLMainTask::FuncDelegate del)
 	mainTask->runFuncSync(del);
 }
 
-void GLRenderer::waitPendingGLTasks()
+void Renderer::waitAsyncCommands()
 {
 	runGLTaskSync([](){});
+}
+
+SyncFence::operator bool() const
+{
+	return sync;
 }
 
 }

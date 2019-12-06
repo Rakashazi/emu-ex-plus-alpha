@@ -239,17 +239,15 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 			if(d.elem >= 0)
 			{
 				auto newPos = d.startPos + state.downPosDiff();
-				{
-					auto lock = makeControllerMutexLock();
-					vController.setPos(d.elem, newPos);
-					auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size(), viewFrame);
-					//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-					auto &vCtrlLayoutPos = vController.layoutPosition()[window().isPortrait() ? 1 : 0];
-					vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
-					vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
-					vController.setLayoutPositionChanged();
-					emuViewController.placeEmuViews();
-				}
+				waitForDrawFinished();
+				vController.setPos(d.elem, newPos);
+				auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size(), viewFrame);
+				//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
+				auto &vCtrlLayoutPos = vController.layoutPosition()[window().isPortrait() ? 1 : 0];
+				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
+				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
+				vController.setLayoutPositionChanged();
+				emuViewController.placeEmuViews();
 				postDraw();
 			}
 		},

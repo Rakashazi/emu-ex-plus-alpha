@@ -5,11 +5,17 @@ include $(IMAGINE_PATH)/make/android-metadata.mk
 .PHONY: all
 all : android-bundle
 
-BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-0.10.3.jar
+BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-0.11.0.jar
 BUNDLETOOL := java -jar $(BUNDLETOOL_PATH)
 
 # Code signing parameters used when generating APKs from the app bundle
-keySignParams := --ks-key-alias=$(ANDROID_KEY_ALIAS) --key-pass=pass:$(ANDROID_KEY_PASSWORD) --ks=$(ANDROID_KEY_STORE) --ks-pass=pass:$(ANDROID_KEY_STORE_PASSWORD)
+ifdef ANDROID_KEY_STORE
+ keySignParams := --ks-key-alias=$(ANDROID_KEY_ALIAS) --key-pass=pass:$(ANDROID_KEY_PASSWORD) --ks=$(ANDROID_KEY_STORE) --ks-pass=pass:$(ANDROID_KEY_STORE_PASSWORD)
+endif
+
+ifdef android_deviceSerial
+ bundletoolArgs += --device-id=$(android_deviceSerial)
+endif
 
 # SDK level setup
 
@@ -119,13 +125,16 @@ $(android_drawableXhdpiIconPath) :
 endif
 
 ifneq ($(wildcard $(resPath)/icons/icon-144.png),)
-android_drawableXxhdpiIconPath := $(android_targetPath)/res/drawable-xxhdpi/icon.xml
-# "iconbig" used by Xperia Play launcher, links to xxhdpi icon
+android_drawableXxhdpiIconPath := $(android_targetPath)/res/drawable-xxhdpi/icon.png
 $(android_drawableXxhdpiIconPath) :
-	@mkdir -p $(@D) $(android_targetPath)/res/drawable-mdpi/
-	ln -rs $(resPath)/icons/icon-144.png $(android_targetPath)/res/drawable-mdpi/icon144.png
-	printf '<?xml version="1.0" encoding="utf-8"?>\n<bitmap xmlns:android="http://schemas.android.com/apk/res/android" android:src="@drawable/icon144" />\n' > $@
-	cp $@ $(android_targetPath)/res/drawable-mdpi/iconbig.xml
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/icon-144.png $@
+
+# "iconbig" used by Xperia Play launcher, links to xxhdpi icon
+android_drawableMdpiBigIconPath := $(android_targetPath)/res/drawable-mdpi/iconbig.png
+$(android_drawableMdpiBigIconPath) :
+	@mkdir -p $(@D)
+	ln -rs $(resPath)/icons/icon-144.png $@
 endif
 
 ifneq ($(wildcard $(resPath)/icons/icon-192.png),)
@@ -165,7 +174,7 @@ endif
 android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableHdpiIconPath) \
  $(android_drawableXhdpiIconPath) $(android_drawableXxhdpiIconPath) $(android_drawableXxxhdpiIconPath) \
  $(android_drawableIconV26Path) $(android_drawableIconBgPath) $(android_mipmapXhdpiIconFgPath) \
- $(android_mipmapXxhdpiIconFgPath) $(android_mipmapXxxhdpiIconFgPath)
+ $(android_mipmapXxhdpiIconFgPath) $(android_mipmapXxxhdpiIconFgPath) $(android_drawableMdpiBigIconPath)
 
 ifdef android_ouyaBuild
  android_drawableXhdpiOuyaIconPath := $(android_targetPath)/res/drawable-xhdpi/ouya_icon.png
@@ -388,19 +397,19 @@ endif
 
 android_bundlePath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project).aab
 .PHONY: android-bundle
-$(android_bundlePath) : $(android_projectDeps) $(android_soFiles)
+$(android_bundlePath) : $(android_projectDeps) android-build
 	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_bundleTask)
 android-bundle : $(android_bundlePath)
 
 android_bundleApksPath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project).apks
 .PHONY: android-bundle-apks
-$(android_bundleApksPath) : $(android_bundlePath)
+$(android_bundleApksPath) : android-bundle
 	$(BUNDLETOOL) build-apks --bundle="$(android_bundlePath)" --output=$(android_bundleApksPath) --overwrite $(keySignParams)
 android-bundle-apks : $(android_bundleApksPath)
 
 .PHONY: android-bundle-install
-android-bundle-install : $(android_bundleApksPath)
-	$(BUNDLETOOL) install-apks --apks=$(android_bundleApksPath) --allow-downgrade
+android-bundle-install : android-bundle-apks
+	$(BUNDLETOOL) install-apks --apks=$(android_bundleApksPath) --allow-downgrade $(bundletoolArgs)
 
 .PHONY: android-bundle-ready
 android-bundle-ready :

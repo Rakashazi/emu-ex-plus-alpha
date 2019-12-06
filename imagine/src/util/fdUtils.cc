@@ -55,8 +55,7 @@ CLINK const char* fd_seekModeToStr(int mode)
 
 CLINK void fd_setNonblock(int fd, bool on)
 {
-	int flags;
-	flags = fcntl(fd,F_GETFL,0);
+	int flags = fcntl(fd, F_GETFL, 0);
 	assert(flags != -1);
 	if(on)
 	{
@@ -70,6 +69,13 @@ CLINK void fd_setNonblock(int fd, bool on)
 			logMsg("unset O_NONBLOCK on fd %d", fd);
 		fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
 	}
+}
+
+CLINK bool fd_getNonblock(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	assert(flags != -1);
+	return flags & O_NONBLOCK;
 }
 
 CLINK int fd_bytesReadable(int fd)

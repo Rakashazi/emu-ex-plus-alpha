@@ -22,6 +22,9 @@
 
 void EmuVideo::resetImage()
 {
+	rTask.waitForDrawFinished();
+	renderer().deleteSyncFence(fence);
+	fence = {};
 	auto desc = vidImg.usedPixmapDesc();
 	vidImg.deinit();
 	setFormat(desc);
@@ -33,26 +36,24 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	{
 		return; // no change to format
 	}
-	memPix = {};
+	if(memPix)
+	{
+		renderer().waitAsyncCommands();
+		memPix = {};
+	}
 	if(!vidImg)
 	{
 		Gfx::TextureConfig conf{desc};
 		conf.setWillWriteOften(true);
-		vidImg = r.makePixmapTexture(conf);
+		vidImg = renderer().makePixmapTexture(conf);
+		vidImg.clear(0);
 	}
 	else
 	{
 		vidImg.setFormat(desc, 1);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
-	// update all EmuVideoLayers
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	emuVideoLayer.setEffect(optionImgEffect);
-	#else
-	emuVideoLayer.resetImage();
-	#endif
-	if((uint)optionImageZoom > 100)
-		emuViewController.placeEmuViews();
+	onFormatChanged(*this);
 }
 
 void EmuVideo::setFormatLocked(IG::PixmapDesc desc)
@@ -61,8 +62,9 @@ void EmuVideo::setFormatLocked(IG::PixmapDesc desc)
 	{
 		return; // no change to format
 	}
-	auto lock = std::scoped_lock(emuViewController.mutex());
+	rTask.lockDraw();
 	setFormat(desc);
+	rTask.unlockDraw();
 }
 
 EmuVideoImage EmuVideo::startFrame()
@@ -85,10 +87,10 @@ void EmuVideo::startFrame(IG::Pixmap pix)
 	finishFrame(pix);
 }
 
-static void dispatchFinishFrame(Gfx::Renderer &r)
+void EmuVideo::dispatchFinishFrame()
 {
-	r.flush();
-	emuViewController.postDrawToEmuWindows();
+	renderer().flush();
+	onFrameFinished(*this);
 }
 
 void EmuVideo::finishFrame(Gfx::LockedTextureBuffer texBuff)
@@ -97,8 +99,9 @@ void EmuVideo::finishFrame(Gfx::LockedTextureBuffer texBuff)
 	{
 		doScreenshot(texBuff.pixmap());
 	}
+	rTask.acquireFenceAndWait(fence);
 	vidImg.unlock(texBuff);
-	dispatchFinishFrame(r);
+	dispatchFinishFrame();
 }
 
 void EmuVideo::finishFrame(IG::Pixmap pix)
@@ -107,8 +110,19 @@ void EmuVideo::finishFrame(IG::Pixmap pix)
 	{
 		doScreenshot(pix);
 	}
+	rTask.acquireFenceAndWait(fence);
 	vidImg.write(0, pix, {}, Gfx::Texture::COMMIT_FLAG_ASYNC);
-	dispatchFinishFrame(r);
+	dispatchFinishFrame();
+}
+
+void EmuVideo::waitAsyncFrame()
+{
+	renderer().waitAsyncCommands();
+}
+
+void EmuVideo::addFence(Gfx::RendererCommands &cmds)
+{
+	fence = cmds.replaceSyncFence(fence);
 }
 
 void EmuVideo::clear()
@@ -177,4 +191,14 @@ IG::WP EmuVideo::size() const
 bool EmuVideo::formatIsEqual(IG::PixmapDesc desc) const
 {
 	return vidImg && desc == vidImg.usedPixmapDesc();
+}
+
+void EmuVideo::setOnFrameFinished(FrameFinishedDelegate del)
+{
+	onFrameFinished = del;
+}
+
+void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
+{
+	onFormatChanged = del;
 }

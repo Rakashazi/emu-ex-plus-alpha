@@ -28,6 +28,9 @@ FrameTimer::~FrameTimer() {}
 SimpleFrameTimer::SimpleFrameTimer(EventLoop loop)
 {
 	eventLoop = loop;
+	constexpr double NSEC_PER_SEC = 1000000000.;
+	assumeExpr(Screen::screen(0)->frameTime());
+	intervalNS = std::round(Screen::screen(0)->frameTime() * NSEC_PER_SEC);
 }
 
 SimpleFrameTimer::~SimpleFrameTimer()
@@ -47,10 +50,14 @@ void SimpleFrameTimer::scheduleVSync()
 	{
 		return; // timer already armed
 	}
-	constexpr double NSEC_PER_SEC = 1000000000.;
+	uint64_t lastTimestampDiffNsecs = (IG::Time::now() - lastTimestamp).nSecs();
+	unsigned int startTime = lastTimestampDiffNsecs < intervalNS ? intervalNS - lastTimestampDiffNsecs : 1;
 	timer.callbackAfterNSec(
 		[this]()
 		{
+			auto timestamp = IG::Time::now();
+			auto timestampNS = timestamp.nSecs();
+			lastTimestamp = timestamp;
 			requested = false;
 			if(cancelled)
 			{
@@ -58,19 +65,18 @@ void SimpleFrameTimer::scheduleVSync()
 				timer.cancel();
 				return; // frame request was cancelled
 			}
-			uint64_t timestamp = IG::Time::now().nSecs();
 			Input::flushEvents();
 			auto s = Screen::screen(0);
 			if(s->isPosted())
 			{
-				s->frameUpdate(timestamp);
-				s->prevFrameTimestamp = timestamp;
+				s->frameUpdate(timestampNS);
+				s->prevFrameTimestamp = timestampNS;
 			}
 			if(!requested)
 			{
 				cancel();
 			}
-		}, 1, std::round(Screen::screen(0)->frameTime() * NSEC_PER_SEC), eventLoop, Timer::HINT_REUSE);
+		}, startTime, intervalNS, eventLoop, Timer::HINT_REUSE);
 }
 
 void SimpleFrameTimer::cancel()

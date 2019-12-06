@@ -16,6 +16,7 @@
 #define LOGTAG "EventLoop"
 #include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
+#include <unistd.h>
 
 namespace Base
 {
@@ -105,6 +106,15 @@ bool FDEventSource::hasEventLoop()
 int FDEventSource::fd() const
 {
 	return fd_;
+}
+
+void FDEventSource::closeFD()
+{
+	if(fd_ == -1)
+		return;
+	removeFromEventLoop();
+	close(fd_);
+	fd_ = -1;
 }
 
 EventLoop EventLoop::forThread()

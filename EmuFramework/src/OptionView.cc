@@ -119,12 +119,7 @@ static bool setAndroidTextureStorage(uint8 mode)
 			{
 				// texture may switch to external format so
 				// force effect shaders to re-compile
-				auto lock = std::scoped_lock(emuViewController.mutex());
-				emuVideoLayer.setEffect(0);
-				emuVideo.resetImage();
-				#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-				emuVideoLayer.setEffect(optionImgEffect);
-				#endif
+				emuVideoLayer.reset();
 			}
 		};
 	if(!Gfx::Texture::setAndroidStorageImpl(emuVideo.renderer(), makeAndroidStorageImpl(mode)))
@@ -203,7 +198,6 @@ static void setOverlayEffect(uint val)
 {
 	optionOverlayEffect = val;
 	emuVideoLayer.setOverlay(val);
-	emuVideoLayer.placeOverlay();
 	emuViewController.postDrawToEmuWindows();
 }
 
@@ -280,8 +274,8 @@ public:
 	DetectFrameRateView(ViewAttachParams attach, Gfx::RendererTask &rendererTask): View(attach),
 		fpsText{nullptr, &View::defaultFace}, rendererTask{rendererTask}
 	{
-		View::defaultFace.precacheAlphaNum(attach.renderer);
-		View::defaultFace.precache(attach.renderer, ".");
+		View::defaultFace.precacheAlphaNum(attach.renderer());
+		View::defaultFace.precache(attach.renderer(), ".");
 		fpsText.setString("Preparing to detect frame rate...");
 	}
 
@@ -348,7 +342,7 @@ public:
 			double frameTimeTotalSecs = Base::frameTimeBaseToSecsDec(frameTimeTotal);
 			double detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
 			{
-				auto lock = makeControllerMutexLock();
+				waitForDrawFinished();
 				if(detectedFrameTime)
 					string_printf(fpsStr, "%.2ffps", 1. / detectedFrameTime);
 				else

@@ -158,7 +158,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 		osystem->frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
 	}
-	auto frames = audioFramesPerVideoFrame;
+	auto frames = audioFramesForThisFrame();
 	Int16 buff[frames * soundChannels];
 	uint writtenFrames = osystem->soundGeneric().processAudio(buff, frames);
 	if(renderAudio)

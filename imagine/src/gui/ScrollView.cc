@@ -40,7 +40,7 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 	{
 		[this](Base::Screen::FrameParams params)
 		{
-			auto frames = std::max(params.elapsedFrames(), 1u);
+			auto frames = std::max(std::min(params.elapsedFrames(), 200u), 1u);
 			auto prevOffset = offset;
 			if(scrollVel) // scrolling deceleration
 			{
@@ -93,6 +93,14 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 ScrollView::~ScrollView()
 {
 	stopScrollAnimation();
+}
+
+void ScrollView::onShow() {}
+
+void ScrollView::onHide()
+{
+	logMsg("ON HIDE");
+	setScrollOffset(offset);
 }
 
 bool ScrollView::isDoingScrollGesture() const
@@ -245,8 +253,9 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 
 void ScrollView::setScrollOffset(int o)
 {
-	offset = IG::clamp(o, 0, offsetMax);
+	dragTracker.finish();
 	stopScrollAnimation();
+	offset = IG::clamp(o, 0, offsetMax);
 }
 
 int ScrollView::scrollOffset() const

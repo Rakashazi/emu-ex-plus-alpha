@@ -203,7 +203,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		}
 	}
 	std::sort(dir.begin(), dir.end(), FS::fileStringNoCaseLexCompare());
-	auto lock = makeControllerMutexLock();
+	waitForDrawFinished();
 	text.clear();
 	if(dir.size())
 	{

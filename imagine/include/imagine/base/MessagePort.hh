@@ -79,30 +79,37 @@ public:
 		pipe.removeFromEventLoop();
 	}
 
-	bool send(MSG_TYPE &&msg)
+	bool send(MSG_TYPE msg)
 	{
 		return pipe.write(msg);
 	}
 
 	template <class T>
-	bool sendExtraData(T &&obj)
+	bool sendWithExtraData(MSG_TYPE msg, T obj)
 	{
-		static_assert(sizeof(T) < PIPE_BUF, "size of data too big for atomic writes");
-		return pipe.write(obj);
+		static_assert(sizeof(MSG_TYPE) + sizeof(T) < PIPE_BUF, "size of data too big for atomic writes");
+		const auto bufferSize = sizeof(MSG_TYPE) + sizeof(T);
+		char buffer[bufferSize];
+		memcpy(buffer, &msg, sizeof(MSG_TYPE));
+		memcpy(buffer + sizeof(MSG_TYPE), &obj, sizeof(T));
+		return pipe.write(buffer, bufferSize);
 	}
 
 	template <class T>
-	bool sendExtraData(T *obj, uint size)
+	bool sendWithExtraData(MSG_TYPE msg, T *obj, uint size)
 	{
-		assumeExpr(size < PIPE_BUF);
-		return pipe.write(obj, size);
+		assumeExpr(sizeof(MSG_TYPE) + size < PIPE_BUF);
+		const auto bufferSize = sizeof(MSG_TYPE) + size;
+		char buffer[bufferSize];
+		memcpy(buffer, &msg, sizeof(MSG_TYPE));
+		memcpy(buffer + sizeof(MSG_TYPE), obj, size);
+		return pipe.write(buffer, bufferSize);
 	}
 
-	template<class FUNC>
-	void run(FUNC del)
+	void clear()
 	{
-		Messages msgs{pipe};
-		for(auto msg = msgs.get(); del(msg); msg = msgs.get()) {}
+		Messages msg{pipe};
+		while(msg.get()) {}
 	}
 
 	explicit operator bool() const { return (bool)pipe; }

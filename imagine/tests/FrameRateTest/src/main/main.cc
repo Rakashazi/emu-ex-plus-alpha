@@ -60,15 +60,14 @@ static void placeElements(Gfx::Renderer &r)
 	}
 }
 
-static void cleanupTest()
+static void cleanupTest(TestFramework *test)
 {
-	rendererTask.pause();
-	if(activeTest)
+	rendererTask.runSync([](Gfx::RendererTask &){ activeTest = nullptr; });
+	if(test)
 	{
-		activeTest->deinit();
+		test->deinit();
 	}
-	delete activeTest;
-	activeTest = nullptr;
+	delete test;
 	deinitCPUFreqStatus();
 	deinitCPULoadStatus();
 	Base::setIdleDisplayPowerSave(true);
@@ -86,7 +85,7 @@ static void finishTest(Base::Window &win, Gfx::Renderer &r, Base::FrameTimeBase 
 	{
 		activeTest->finish(frameTime);
 	}
-	cleanupTest();
+	cleanupTest(activeTest);
 	placeElements(r);
 	win.postDraw();
 }
@@ -122,9 +121,21 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 				return false;
 			auto atOnFrame = IG::Time::now();
 			auto timestamp = params.timestamp();
-			activeTest->frameUpdate(rendererTask, params.screen(), timestamp);
+			if(activeTest->started)
+			{
+				if(activeTest->lastFramePresentTime.atWinPresent < activeTest->lastFramePresentTime.atOnFrame)
+				{
+					/*logWarn("previous frame:%f not yet presented, last present time:%f",
+						double(activeTest->lastFramePresentTime.atWinPresent),
+						double(activeTest->lastFramePresentTime.atOnFrame));*/
+				}
+				activeTest->frameUpdate(rendererTask, win, timestamp);
+			}
+			else
+			{
+				activeTest->started = true;
+			}
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
-			activeTest->lastFramePresentTime.frameTime = Base::frameTimeBaseToTime(timestamp);
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{
 				finishTest(win, renderer, timestamp);
@@ -152,7 +163,7 @@ void onInit(int argc, char** argv)
 				auto time = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
 				activeTest->finish(time);
 			}
-			cleanupTest();
+			cleanupTest(activeTest);
 			View::defaultFace.freeCaches();
 			if(!backgrounded)
 			{
@@ -197,38 +208,35 @@ void onInit(int argc, char** argv)
 			{
 				picker->prepareDraw();
 			}
-			else
+			else if(activeTest->started)
 			{
 				activeTest->prepareDraw(renderer);
 			}
 			auto fence = renderer.addResourceSyncFence();
 			rendererTask.draw(drawableHolder, win, params,
-				[fence](Gfx::Drawable &drawable, const Base::Window &win, Gfx::RendererDrawTask task)
+				[fence](Gfx::Drawable &drawable, Base::Window &win, Gfx::RendererDrawTask task)
 				{
 					auto cmds = task.makeRendererCommands(drawable, projP.viewport, projMat);
 					cmds.setClipTest(false);
+					cmds.waitSync(fence);
 					if(!activeTest)
 					{
 						cmds.setClearColor(0, 0, 0);
 						cmds.clear();
-						task.waitSync(fence);
 						picker->draw(cmds);
 					}
-					else
+					else if(activeTest->started)
 					{
-						task.waitSync(fence);
 						activeTest->draw(cmds, renderer.makeClipRect(win, testRectWin));
-					}
-					if(activeTest)
-					{
 						activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
 					}
 					cmds.present();
-					if(activeTest)
+					if(activeTest && activeTest->started)
 					{
 						activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
 					}
 				});
+			return false;
 		});
 
 	winConf.setOnInputEvent(
@@ -258,7 +266,7 @@ void onInit(int argc, char** argv)
 	View::defaultFace.setFontSettings(renderer, faceSize);
 	View::defaultFace.precacheAlphaNum(renderer);
 	View::defaultFace.precache(renderer, ":.%()");
-	picker = std::make_unique<TestPicker>(ViewAttachParams{mainWin, renderer});
+	picker = std::make_unique<TestPicker>(ViewAttachParams{mainWin, rendererTask});
 	picker->setTests(testParam, IG::size(testParam));
 	mainWin.show();
 

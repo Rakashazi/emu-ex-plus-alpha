@@ -47,6 +47,8 @@ $(makeFile) : $(xzSrcDir)/configure
 	ac_cv_c_bigendian=$(cpuIsBigEndian) \
 	$(xzSrcDir)/configure \
 	--prefix='$$$${pcfiledir}/../..' \
+	--enable-encoders=lzma1,lzma2 \
+	--enable-decoders=lzma1,lzma2 \
 	--disable-xz \
 	--disable-xzdec \
 	--disable-lzmadec \

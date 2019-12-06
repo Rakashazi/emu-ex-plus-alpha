@@ -31,13 +31,13 @@ public:
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setOverlay(uint effect);
 	void setOverlayIntensity(Gfx::GC intensity);
-	void placeOverlay();
 	void setEffect(uint effect);
 	void setEffectBitDepth(uint bits);
-	void placeEffect();
 	void setLinearFilter(bool on);
 	void resetImage();
 	void setBrightness(float b);
+	void reset();
+	EmuVideo &emuVideo() const { return video; }
 
 	const IG::WindowRect &gameRect() const
 	{
@@ -57,4 +57,6 @@ private:
 	bool useLinearFilter = true;
 
 	void compileDefaultPrograms();
+	void placeEffect();
+	void placeOverlay();
 };

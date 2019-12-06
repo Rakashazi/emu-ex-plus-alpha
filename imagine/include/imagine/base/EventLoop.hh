@@ -65,6 +65,7 @@ public:
 	void setCallback(PollEventDelegate callback);
 	bool hasEventLoop();
 	int fd() const;
+	void closeFD();
 };
 
 }

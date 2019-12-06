@@ -29,7 +29,13 @@
 #include <sys/syscall.h>
 #include <linux/fcntl.h>
 
+#ifndef TFD_NONBLOCK
 #define TFD_NONBLOCK O_NONBLOCK
+#endif
+
+#ifndef TFD_CLOEXEC
+#define TFD_CLOEXEC O_CLOEXEC
+#endif
 
 static int timerfd_create(clockid_t clock_id, int flags)
 {
@@ -47,13 +53,18 @@ static int timerfd_settime(int ufd, int flags,
 namespace Base
 {
 
+int TimerFD::fd() const
+{
+	return fdSrc.fd();
+}
+
 bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool shouldReuseResources)
 {
 	reuseResources = shouldReuseResources;
 	bool rearm = false;
-	if(fd == -1)
+	if(fd() == -1)
 	{
-		fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
+		int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
 		if(fd == -1)
 		{
 			logErr("error creating timerfd");
@@ -76,14 +87,14 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 
 	logMsg("%s %sfd:%d to run in %lds & %ldns, repeat every %lds & %ldns",
 		rearm ? "re-arming" : "creating", reuseResources ? "reusable " : "",
-		fd, (long)time.tv_sec, (long)time.tv_nsec,
+		fd(), (long)time.tv_sec, (long)time.tv_nsec,
 		(long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec);
 	if(repeatInterval.tv_sec || repeatInterval.tv_nsec)
 	{
 		repeating = true;
 	}
 	struct itimerspec newTime{repeatInterval, time};
-	if(timerfd_settime(fd, 0, &newTime, nullptr) != 0)
+	if(timerfd_settime(fd(), 0, &newTime, nullptr) != 0)
 	{
 		logErr("error in timerfd_settime: %s", strerror(errno));
 		return false;
@@ -94,14 +105,11 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 
 void TimerFD::deinit()
 {
-	if(fd >= 0)
-	{
-		logMsg("closing fd:%d", fd);
-		fdSrc.removeFromEventLoop();
-		close(fd);
-		fd = -1;
-		armed = false;
-	}
+	if(fd() == -1)
+		return;
+	logMsg("closing fd:%d", fd());
+	fdSrc.closeFD();
+	armed = false;
 }
 
 void Timer::deinit()
@@ -118,7 +126,7 @@ void TimerFD::timerFired()
 		return;
 	}
 	uint64_t timesFired;
-	int bytes = ::read(fd, &timesFired, 8);
+	int bytes = ::read(fd(), &timesFired, 8);
 	armed = repeating; // disarm timer if non-repeating, can be re-armed in callback()
 	callback();
 	if(!armed && !reuseResources)
@@ -184,10 +192,10 @@ void Timer::cancel()
 		if(armed)
 		{
 			// disarm timer
-			assert(fd);
-			logMsg("disarming fd:%d", fd);
+			assert(fd());
+			logMsg("disarming fd:%d", fd());
 			struct itimerspec newTime{{0}};
-			timerfd_settime(fd, 0, &newTime, nullptr);
+			timerfd_settime(fd(), 0, &newTime, nullptr);
 			armed = false;
 		}
 	}

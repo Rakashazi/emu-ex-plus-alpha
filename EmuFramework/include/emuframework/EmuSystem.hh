@@ -112,6 +112,7 @@ public:
 	static uint emuFrameNow;
 	static Audio::PcmFormat pcmFormat;
 	static uint audioFramesPerVideoFrame;
+	static double audioFramesPerVideoFrameFloat;
 	static uint aspectRatioX, aspectRatioY;
 	static const uint maxPlayers;
 	static const AspectRatioInfo aspectRatioInfo[];
@@ -221,6 +222,7 @@ public:
 	static void closeSound();
 	static void flushSound();
 	static void writeSound(const void *samples, uint framesToWrite);
+	static uint audioFramesForThisFrame();
 	static uint advanceFramesWithTime(Base::FrameTimeBase time);
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);

@@ -244,17 +244,17 @@ SurfaceRotation AndroidScreen::rotation(JNIEnv *env)
 	return (SurfaceRotation)jGetRotation(env, aDisplay);
 }
 
-double Screen::frameRate()
+double Screen::frameRate() const
 {
 	return refreshRate_;
 }
 
-double Screen::frameTime()
+double Screen::frameTime() const
 {
 	return 1. / frameRate();
 }
 
-bool Screen::frameRateIsReliable()
+bool Screen::frameRateIsReliable() const
 {
 	return reliableRefreshRate;
 }

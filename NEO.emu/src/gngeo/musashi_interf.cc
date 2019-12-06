@@ -105,17 +105,17 @@ CLINK void cpu_68k_init(void)
 			{
 				return mem68k_fetch_bk_normal_word(addr);
 			};
-		mm68k.memory_map[i].write8 =
-			[](unsigned int addr, unsigned int data)
-			{
-				mem68k_store_bk_normal_byte(addr, data);
-			};
-		mm68k.memory_map[i].write16 =
-			[](unsigned int addr, unsigned int data)
-			{
-				mem68k_store_bk_normal_word(addr, data);
-			};
 	}
+	mm68k.memory_map[0x2f].write8 =
+		[](unsigned int addr, unsigned int data)
+		{
+			mem68k_store_bk_normal_byte(addr, data);
+		};
+	mm68k.memory_map[0x2f].write16 =
+		[](unsigned int addr, unsigned int data)
+		{
+			mem68k_store_bk_normal_word(addr, data);
+		};
 
 	// Controller #1
 	mm68k.memory_map[0x30].read8 =
@@ -333,10 +333,10 @@ CLINK int cpu_68k_run(Uint32 nb_cycle)
 	{
 		mm68k.cycleCount = 0;
 		m68k_run(mm68k, nb_cycle);
-		int overCycles = mm68k.cycleCount - nb_cycle;
-		/*logMsg("ran %u cycles (%d over) for line:%d",
-			nb_cycle, overCycles, memory.vid.current_line);*/
-		return overCycles;
+		int extraCycles = mm68k.cycleCount - nb_cycle;
+		/*logDMsg("ran %u/%u cycles (%d extra) for line:%d",
+			mm68k.cycleCount, nb_cycle, extraCycles, memory.vid.current_line);*/
+		return extraCycles;
 	}
 	else
 	{
@@ -359,7 +359,7 @@ CLINK int cpu_68k_run(Uint32 nb_cycle)
 CLINK void cpu_68k_interrupt(int a)
 {
 	//logMsg("interrupt:%d", a);
-	mm68k.updateIRQ(a);
+	mm68k.setIRQ(a);
 }
 
 CLINK Uint32 cpu_68k_getpc(void)
@@ -445,7 +445,6 @@ void m68k_read_immediate_16_hook(M68KCPU &cpu, uint addr)
 {
 	uint mapIdx = ((addr)>>16)&0xff;
 	if(isVerboseCPURead(cpu, addr))
-	//if(cpu.id() == 0 && mapIdx < 0xFF)
 		logMsg("read im 16: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, addr), addr, cpu.memory_map[mapIdx].base, addr & 0xffff);
 }
 

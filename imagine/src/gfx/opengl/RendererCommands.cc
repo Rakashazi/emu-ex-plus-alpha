@@ -18,6 +18,14 @@
 #include <imagine/logger/logger.h>
 #include "private.hh"
 
+#ifndef GL_SYNC_GPU_COMMANDS_COMPLETE
+#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
+#endif
+
+#ifndef GL_TIMEOUT_IGNORED
+#define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
+#endif
+
 namespace Gfx
 {
 
@@ -69,6 +77,50 @@ void RendererCommands::present()
 	rTask->verifyCurrentContext();
 	discardTemporaryData();
 	rTask->present(drawable);
+}
+
+SyncFence RendererCommands::addSyncFence()
+{
+	if(!renderer().useSeparateDrawContext)
+		return {}; // no-op
+	assumeExpr(renderer().support.hasSyncFences());
+	rTask->verifyCurrentContext();
+	return renderer().support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+}
+
+SyncFence RendererCommands::replaceSyncFence(SyncFence fence)
+{
+	deleteSyncFence(fence);
+	return addSyncFence();
+}
+
+void RendererCommands::deleteSyncFence(SyncFence fence)
+{
+	if(!fence.sync)
+		return;
+	rTask->verifyCurrentContext();
+	assert(renderer().support.hasSyncFences());
+	renderer().support.glDeleteSync(fence.sync);
+}
+
+void RendererCommands::clientWaitSync(SyncFence fence, uint64_t timeout)
+{
+	if(!fence.sync)
+		return;
+	rTask->verifyCurrentContext();
+	assert(renderer().support.hasSyncFences());
+	renderer().support.glClientWaitSync(fence.sync, 0, timeout);
+	renderer().support.glDeleteSync(fence.sync);
+}
+
+void RendererCommands::waitSync(SyncFence fence)
+{
+	if(!fence.sync)
+		return;
+	rTask->verifyCurrentContext();
+	assert(renderer().support.hasSyncFences());
+	renderer().support.glWaitSync(fence.sync, 0, GL_TIMEOUT_IGNORED);
+	renderer().support.glDeleteSync(fence.sync);
 }
 
 void RendererCommands::setDrawable(Drawable drawable)
@@ -472,11 +524,15 @@ void RendererCommands::uniformF(int uniformLocation, float v1, float v2)
 
 void RendererCommands::setDebugOutput(bool on)
 {
-	if(!renderer().support.hasDebugOutput)
+	#ifndef NDEBUG
+	if(!renderer().support.hasDebugOutput || renderer().drawContextDebug == on)
 	{
 		return;
 	}
+	logMsg("draw context debug output:%s", on ? "on" : "off");
 	setGLDebugOutput(renderer().support, on);
+	renderer().drawContextDebug = on;
+	#endif
 }
 
 }

@@ -136,8 +136,8 @@ static void LoadSaveMemory(const std::string& path, uint8* const data, const uin
  }
  catch(MDFN_Error &e)
  {
-  if(e.GetErrno() != ENOENT)
-   throw;
+  /*if(e.GetErrno() != ENOENT)
+   throw;*/
  }
 }
 

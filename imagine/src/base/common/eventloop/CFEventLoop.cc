@@ -58,13 +58,18 @@ FDEventSource &FDEventSource::operator=(FDEventSource o)
 	return *this;
 }
 
+static void releaseCFFileDescriptor(CFFileDescriptorRef fdRef)
+{
+	CFFileDescriptorInvalidate(fdRef);
+	CFRelease(fdRef);
+}
+
 FDEventSource::~FDEventSource()
 {
 	removeFromEventLoop();
-	if(info)
+	if(info && info->fdRef)
 	{
-		CFFileDescriptorInvalidate(info->fdRef);
-		CFRelease(info->fdRef);
+		releaseCFFileDescriptor(info->fdRef);
 	}
 }
 
@@ -130,6 +135,17 @@ bool FDEventSource::hasEventLoop()
 int FDEventSource::fd() const
 {
 	return info ? CFFileDescriptorGetNativeDescriptor(info->fdRef) : -1;
+}
+
+void FDEventSource::closeFD()
+{
+	int fd_ = fd();
+	if(fd_ == -1)
+		return;
+	removeFromEventLoop();
+	close(fd_);
+	releaseCFFileDescriptor(info->fdRef);
+	info->fdRef = nullptr;
 }
 
 EventLoop EventLoop::forThread()

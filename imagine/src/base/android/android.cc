@@ -640,7 +640,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			AInputQueue_attachLooper(queue, EventLoop::forThread().nativeObject(), ALOOPER_POLL_CALLBACK,
 				[](int, int, void* data)
 				{
-					Input::processInput((AInputQueue*)data);
+					Input::processInput((AInputQueue*)data, true);
 					return 1;
 				}, queue);
 		};

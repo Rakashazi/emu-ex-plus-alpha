@@ -71,21 +71,18 @@ std::unique_ptr<FrameTimer> frameTimer{};
 template <class T>
 static void doOnFrame(T *timerObjPtr, int64_t frameTimeNanos)
 {
-	Input::flushEvents();
 	mainScreen().startDebugFrameStats(frameTimeNanos);
 	timerObjPtr->unsetRequested(); // Choreographer callbacks are one-shot
-	bool screenWasReallyPosted = false;
+	Input::flushEvents();
 	iterateTimes(Screen::screens(), i)
 	{
 		auto s = Screen::screen(i);
 		if(s->isPosted())
 		{
-			screenWasReallyPosted = true;
 			s->frameUpdate(frameTimeNanos);
 			s->prevFrameTimestamp = frameTimeNanos;
 		}
 	}
-	assert(screenWasReallyPosted);
 	mainScreen().endDebugFrameStats();
 }
 

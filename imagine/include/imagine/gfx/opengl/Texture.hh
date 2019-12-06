@@ -105,7 +105,6 @@ protected:
 	IG::PixmapDesc pixDesc;
 	GLuint sampler = 0; // used when separate sampler objects not supported
 	uint levels_ = 0;
-	GLuint ownPBO = 0;
 	#ifdef __ANDROID__
 	static AndroidStorageImpl androidStorageImpl_;
 	#endif

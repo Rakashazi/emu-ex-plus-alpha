@@ -26,7 +26,7 @@ ToastView::ToastView(ViewAttachParams attach): View{attach}
 
 void ToastView::setFace(Gfx::GlyphTextureSet &face)
 {
-	auto lock = makeControllerMutexLock();
+	waitForDrawFinished();
 	text.setFace(&face);
 	text.setString(str.data());
 }
@@ -36,7 +36,7 @@ void ToastView::clear()
 	if(strlen(str.data()))
 	{
 		unpostTimer.deinit();
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		str = {};
 	}
 }
@@ -58,7 +58,7 @@ void ToastView::unpost()
 {
 	logMsg("unposting");
 	{
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		str = {};
 	}
 	postDraw();
@@ -81,7 +81,7 @@ void ToastView::postContent(int secs)
 void ToastView::post(const char *msg, int secs, bool error)
 {
 	{
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		string_copy(str, msg);
 		contentUpdated(error);
 	}
@@ -114,7 +114,7 @@ void ToastView::printf(uint secs, bool error, const char *format, ...)
 void ToastView::vprintf(uint secs, bool error, const char *format, va_list args)
 {
 	{
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		auto result = vsnprintf(str.data(), str.size(), format, args);
 		contentUpdated(error);
 	}

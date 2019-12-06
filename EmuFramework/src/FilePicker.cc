@@ -30,8 +30,8 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 	FSPicker
 	{
 		attach,
-		needsUpDirControl ? &getAsset(attach.renderer, ASSET_ARROW) : nullptr,
-		pickingDir ? &getAsset(attach.renderer, ASSET_ACCEPT) : View::needsBackControl ? &getAsset(attach.renderer, ASSET_CLOSE) : nullptr,
+		needsUpDirControl ? &getAsset(attach.renderer(), ASSET_ARROW) : nullptr,
+		pickingDir ? &getAsset(attach.renderer(), ASSET_ACCEPT) : View::needsBackControl ? &getAsset(attach.renderer(), ASSET_CLOSE) : nullptr,
 		pickingDir ?
 		FSPicker::FilterFunc{[](FS::directory_entry &entry)
 		{

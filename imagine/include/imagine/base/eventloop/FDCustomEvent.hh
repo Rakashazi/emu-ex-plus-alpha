@@ -26,7 +26,6 @@ class FDCustomEvent
 protected:
 	FDEventSource fdSrc{};
 	CustomEventDelegate callback{};
-	int fd = -1;
 	bool cancelled = false;
 
 public:
@@ -34,12 +33,12 @@ public:
 
 	bool operator ==(FDCustomEvent const& rhs) const
 	{
-		return fd == rhs.fd;
+		return fdSrc.fd() == rhs.fdSrc.fd();
 	}
 
 	explicit operator bool() const
 	{
-		return fd != -1;
+		return fdSrc.fd() != -1;
 	}
 };
 

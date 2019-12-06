@@ -35,7 +35,7 @@ void BaseWindow::setOnSurfaceChange(SurfaceChangeDelegate del)
 
 void BaseWindow::setOnDraw(DrawDelegate del)
 {
-	onDraw = del ? del : [](Window &, DrawParams){};
+	onDraw = del ? del : [](Window &, DrawParams){ return true; };
 }
 
 void BaseWindow::setOnFocusChange(FocusChangeDelegate del)
@@ -176,6 +176,8 @@ void Window::postDraw()
 	setNeedsDraw(true);
 	if(!drawNeeded)
 		return;
+	if(!notifyDrawAllowed)
+		return;
 	drawEvent.notify();
 }
 
@@ -183,6 +185,16 @@ void Window::unpostDraw()
 {
 	setNeedsDraw(false);
 	drawEvent.cancel();
+}
+
+void Window::deferredDrawComplete()
+{
+	notifyDrawAllowed = true;
+	if(drawNeeded)
+	{
+		//logDMsg("draw event after deferred draw complete");
+		drawEvent.notify();
+	}
 }
 
 void Window::drawNow(bool needsSync)
@@ -244,7 +256,11 @@ void Window::draw(bool needsSync)
 		dispatchSurfaceChange();
 		params.wasResized_ = true;
 	}
-	onDraw.callCopy(*this, params);
+	notifyDrawAllowed = false;
+	if(onDraw.callCopy(*this, params))
+	{
+		notifyDrawAllowed = true;
+	}
 }
 
 bool Window::updateSize(IG::Point2D<int> surfaceSize)

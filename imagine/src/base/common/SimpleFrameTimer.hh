@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/Timer.hh>
+#include <imagine/time/Time.hh>
 
 namespace Base
 {
@@ -44,6 +45,8 @@ public:
 protected:
 	Timer timer{};
 	EventLoop eventLoop{};
+	IG::Time lastTimestamp{};
+	unsigned int intervalNS = 0;
 	bool requested = false;
 	bool cancelled = false;
 };

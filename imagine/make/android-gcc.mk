@@ -60,7 +60,6 @@ endif
 
 include $(buildSysPath)/clang.mk
 CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
-CFLAGS_CODEGEN += -fno-integrated-as
 ASMFLAGS += -fno-integrated-as
 
 # libc++
@@ -91,7 +90,8 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-LDFLAGS_SYSTEM += -s -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel \
+LDFLAGS_SYSTEM += -s \
+-Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a
 
 ifeq ($(android_ndkSDK), 9)

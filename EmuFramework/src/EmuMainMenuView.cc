@@ -176,6 +176,7 @@ static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
 
 void EmuMainMenuView::onShow()
 {
+	TableView::onShow();
 	logMsg("refreshing main menu state");
 	recentGames.setActive(recentGameList.size());
 	systemActions.setActive(EmuSystem::gameIsRunning());
@@ -398,7 +399,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		EmuApp::setOnMainMenuItemOptionChanged(
 			[this]()
 			{
-				auto lock = makeControllerMutexLock();
+				waitForDrawFinished();
 				item.clear();
 				loadFileBrowserItems();
 				loadStandardItems();

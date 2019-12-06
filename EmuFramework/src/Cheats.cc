@@ -87,7 +87,7 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 						logMsg("setting cheat name %s", str);
 						renamed(str);
 						{
-							auto lock = makeControllerMutexLock();
+							waitForDrawFinished();
 							name.compile(renderer(), projP);
 						}
 						window().postDraw();

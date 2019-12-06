@@ -40,6 +40,7 @@ public:
 	bool hasData();
 	void setPreferredSize(int size);
 	void setReadNonBlocking(bool on);
+	bool isReadNonBlocking() const;
 	explicit operator bool() const;
 
 	template <class T>

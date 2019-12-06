@@ -44,6 +44,7 @@ public:
 	bool needsDraw();
 	void postDraw();
 	void unpostDraw();
+	void deferredDrawComplete();
 	void drawNow(bool needsSync = false);
 	void dispatchOnDraw(bool needsSync = false);
 	Screen *screen() const;

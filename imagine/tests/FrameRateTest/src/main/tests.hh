@@ -29,7 +29,6 @@ enum TestID
 
 struct FramePresentTime
 {
-	IG::Time frameTime;
 	IG::Time atOnFrame;
 	IG::Time atWinPresent;
 	IG::Time atWinPresentEnd;
@@ -56,6 +55,7 @@ class TestFramework
 {
 public:
 	using TestFinishedDelegate = DelegateFunc<void (TestFramework &test)>;
+	bool started = false;
 	bool shouldEndTest{};
 	uint frames{};
 	uint droppedFrames{};
@@ -74,7 +74,7 @@ public:
 	void init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize);
 	void deinit();
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
-	void frameUpdate(Gfx::RendererTask &rTask, Base::Screen &screen, Base::FrameTimeBase timestamp);
+	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameTimeBase timestamp);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds);
 	void finish(Base::FrameTimeBase frameTime);
@@ -133,11 +133,15 @@ public:
 
 class WriteTest : public DrawTest
 {
+protected:
+	Gfx::SyncFence fence{};
+
 public:
 	WriteTest() {}
 
 	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
+	void deinitTest() override;
 };
 
 TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t);

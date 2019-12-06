@@ -84,6 +84,7 @@ protected:
 
 void EmuSystemActionsView::onShow()
 {
+	TableView::onShow();
 	logMsg("refreshing action menu state");
 	cheats.setActive(EmuSystem::gameIsRunning());
 	reset.setActive(EmuSystem::gameIsRunning());

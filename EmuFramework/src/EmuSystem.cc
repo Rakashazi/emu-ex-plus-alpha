@@ -61,6 +61,7 @@ uint EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = {44100, Audio::SampleFormats::s16, 2};
 uint EmuSystem::audioFramesPerVideoFrame = 0;
+double EmuSystem::audioFramesPerVideoFrameFloat = 0;
 Base::Timer EmuSystem::autoSaveStateTimer;
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
@@ -75,6 +76,7 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
 bool EmuSystem::sessionOptionsSet = false;
+static double currentAudioFramesPerVideoFrame = 0;
 static std::unique_ptr<Audio::SysOutputStream> audioStream;
 static IG::SysRingBuffer rBuff{};
 enum class AudioWriteState
@@ -84,6 +86,8 @@ enum class AudioWriteState
 	UNDERRUN
 };
 static AudioWriteState audioWriteState = AudioWriteState::BUFFER;
+static IG::Time lastUnderrunTime{};
+static bool multipleUnderruns = false;
 #ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 static AudioStats audioStats{};
 static Base::Timer audioStatsTimer{};
@@ -127,8 +131,8 @@ static bool shouldStartAudioWrites()
 {
 	// audio starts when at least 90% of a video frame worth of data is written
 	// and there are <= 2 video frames worth of free space left in buffer
-	return audioFramesFree() <= EmuSystem::audioFramesPerVideoFrame * 2
-			&& audioFramesWritten() >= EmuSystem::audioFramesPerVideoFrame * 0.9;
+	return audioFramesFree() <= EmuSystem::audioFramesPerVideoFrameFloat * 2
+			&& audioFramesWritten() >= EmuSystem::audioFramesPerVideoFrameFloat * 0.9;
 }
 
 template<typename T>
@@ -174,6 +178,8 @@ void EmuSystem::startSound()
 	assert(audioFramesPerVideoFrame);
 	if(optionSound)
 	{
+		lastUnderrunTime = {};
+		multipleUnderruns = false;
 		if(!audioStream)
 		{
 			audioStream = std::make_unique<Audio::SysOutputStream>();
@@ -200,9 +206,16 @@ void EmuSystem::startSound()
 					if(audioWriteState == AudioWriteState::ACTIVE)
 					{
 						uint bytesReady = rBuff.size();
-						if(bytesReady < bytes)
+						if(unlikely(bytesReady < bytes))
 						{
 							//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
+							auto now = IG::Time::now();
+							if(now - lastUnderrunTime < IG::Time::makeWithSecs(1))
+							{
+								logWarn("multiple underruns within a short time");
+								multipleUnderruns = true;
+							}
+							lastUnderrunTime = now;
 							#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 							audioStats.underruns++;
 							#endif
@@ -279,8 +292,9 @@ void EmuSystem::writeSound(const void *samples, uint framesToWrite)
 {
 	if(unlikely(audioWriteState == AudioWriteState::UNDERRUN))
 	{
-		if(pcmFormat.bytesToSecs(rBuff.capacity()) <= 1.) // hard cap buffer increase to 1 sec
+		if(multipleUnderruns && optionAddSoundBuffersOnUnderrun && pcmFormat.bytesToSecs(rBuff.capacity()) <= 1.) // hard cap buffer increase to 1 sec
 		{
+			multipleUnderruns = false;
 			auto addedBuffTime = std::round(1000000. * frameTime());
 			uint newSize = rBuff.capacity() + pcmFormat.uSecsToBytes(addedBuffTime);
 			logMsg("increasing sound buffer size to %u bytes due to underrun", newSize);
@@ -325,6 +339,14 @@ bool EmuSystem::stateExists(int slot)
 bool EmuSystem::shouldOverwriteExistingState()
 {
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
+}
+
+uint EmuSystem::audioFramesForThisFrame()
+{
+	assumeExpr(currentAudioFramesPerVideoFrame < audioFramesPerVideoFrameFloat + 1.);
+	double wholeFrames;
+	currentAudioFramesPerVideoFrame = std::modf(currentAudioFramesPerVideoFrame, &wholeFrames) + audioFramesPerVideoFrameFloat;
+	return wholeFrames;
 }
 
 uint EmuSystem::advanceFramesWithTime(Base::FrameTimeBase time)
@@ -586,6 +608,8 @@ void EmuSystem::configFrameTime()
 	pcmFormat.rate = optionSoundRate;
 	configAudioRate(frameTime(), optionSoundRate);
 	audioFramesPerVideoFrame = std::ceil(pcmFormat.rate * frameTime());
+	audioFramesPerVideoFrameFloat = (double)pcmFormat.rate * frameTime();
+	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
 	timePerVideoFrame = Base::frameTimeBaseFromSecs(frameTime());
 	resetFrameTime();
 }

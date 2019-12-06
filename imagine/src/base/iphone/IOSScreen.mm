@@ -144,12 +144,12 @@ int Screen::height()
 	return uiScreen().bounds.size.height;
 }
 
-double Screen::frameRate()
+double Screen::frameRate() const
 {
-	return 1. / frameTime();;
+	return 1. / frameTime();
 }
 
-double Screen::frameTime()
+double Screen::frameTime() const
 {
 	if(hasAtLeastIOS5())
 	{
@@ -166,7 +166,7 @@ double Screen::frameTime()
 		return 1. / 60.;
 }
 
-bool Screen::frameRateIsReliable()
+bool Screen::frameRateIsReliable() const
 {
 	return true;
 }

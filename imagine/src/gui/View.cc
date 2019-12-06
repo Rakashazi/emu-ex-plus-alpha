@@ -35,11 +35,6 @@ bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 	return false;
 };
 
-std::mutex &ViewController::mutex()
-{
-	return mutex_;
-}
-
 View::~View() {}
 
 void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
@@ -86,6 +81,8 @@ void View::clearSelection() {}
 
 void View::onShow() {}
 
+void View::onHide() {}
+
 void View::onAddedToController(Input::Event e) {}
 
 void View::prepareDraw() {}
@@ -106,19 +103,25 @@ void View::postDraw()
 
 Base::Window &View::window() const
 {
-	assert(win);
+	assumeExpr(win);
 	return *win;
 }
 
 Gfx::Renderer &View::renderer() const
 {
-	assert(renderer_);
-	return *renderer_;
+	assumeExpr(rendererTask_);
+	return rendererTask_->renderer();
+}
+
+Gfx::RendererTask &View::rendererTask() const
+{
+	assumeExpr(rendererTask_);
+	return *rendererTask_;
 }
 
 ViewAttachParams View::attachParams() const
 {
-	return {*win, *renderer_};
+	return {*win, *rendererTask_};
 }
 
 Base::Screen *View::screen() const
@@ -162,12 +165,8 @@ bool View::pointIsInView(IG::WP pos)
 	return viewRect().overlaps(pos);
 }
 
-std::optional<std::scoped_lock<std::mutex>> View::makeControllerMutexLock()
+void View::waitForDrawFinished()
 {
-	if(controller)
-	{
-		return std::optional<std::scoped_lock<std::mutex>>{controller->mutex()};
-	}
-	else
-		return {};
+	assumeExpr(rendererTask_);
+	rendererTask_->waitForDrawFinished();
 }

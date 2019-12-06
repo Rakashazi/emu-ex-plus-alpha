@@ -73,7 +73,7 @@ Gfx::Renderer renderer;
 static Gfx::RendererTask rendererTask{renderer};
 static AppWindowData mainWin{};
 EmuViewController emuViewController{mainWin, renderer, rendererTask, vController, emuVideoLayer};
-EmuVideo emuVideo{renderer};
+EmuVideo emuVideo{rendererTask};
 EmuVideoLayer emuVideoLayer{emuVideo};
 EmuSystemTask emuSystemTask{};
 DelegateFunc<void ()> onUpdateInputDevices{};
@@ -86,6 +86,7 @@ FS::PathString lastLoadPath{};
 SysVController vController{renderer, mainWin, EmuSystem::inputFaceBtns};
 uint pointerInputPlayer = 0;
 #endif
+IG::thread::id mainThreadID{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
 
@@ -190,6 +191,7 @@ static const char *parseCmdLineArgs(int argc, char** argv)
 
 void mainInitCommon(int argc, char** argv)
 {
+	mainThreadID = IG::this_thread::get_id();
 	Base::registerInstance(appID(), argc, argv);
 	Base::setAcceptIPC(appID(), true);
 	Base::setOnInterProcessMessage(
@@ -229,7 +231,7 @@ void mainInitCommon(int argc, char** argv)
 		}
 		if(!renderer.supportsThreadMode())
 			optionGPUMultiThreading.reset();
-		rendererTask.start(2);
+		rendererTask.start();
 	}
 
 	auto compiled = renderer.texAlphaProgram.compile(renderer);
@@ -382,7 +384,7 @@ void mainInitCommon(int argc, char** argv)
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
 	{
-		auto ynAlertView = std::make_unique<YesNoAlertView>(ViewAttachParams{win, renderer}, "Warning: App has been modified by 3rd party, use at your own risk");
+		auto ynAlertView = std::make_unique<YesNoAlertView>(ViewAttachParams{win, rendererTask}, "Warning: App has been modified by 3rd party, use at your own risk");
 		ynAlertView->setOnNo(
 			[](TextMenuItem &, View &view, Input::Event e)
 			{
@@ -392,7 +394,7 @@ void mainInitCommon(int argc, char** argv)
 	}
 	#endif
 
-	ViewAttachParams viewAttach{mainWin.win, renderer};
+	ViewAttachParams viewAttach{mainWin.win, rendererTask};
 	emuViewController.initViews(viewAttach);
 	win.show();
 	win.postDraw();
@@ -494,7 +496,7 @@ void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::
 	const char *initialContent, CollectTextInputView::OnTextDelegate onText)
 {
 	pushAndShowModalView(std::make_unique<CollectTextInputView>(attach, msgText, initialContent,
-		getCollectTextCloseAsset(attach.renderer), onText), e);
+		getCollectTextCloseAsset(attach.renderer()), onText), e);
 }
 
 void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e, const char *label,
@@ -590,7 +592,7 @@ void EmuApp::unpostMessage()
 
 ViewAttachParams emuViewAttachParams()
 {
-	return {mainWin.win, emuVideo.renderer()};
+	return {mainWin.win, rendererTask};
 }
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
@@ -683,10 +685,14 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 				[loadProgressView](int pos, int max, const char *label)
 				{
 					int len = label ? strlen(label) : -1;
-					loadProgressView->msgPort.send({EmuSystem::LoadProgress::UPDATE, pos, max, len});
+					auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
 					if(len > 0)
 					{
-						loadProgressView->msgPort.sendExtraData(label, len);
+						loadProgressView->msgPort.sendWithExtraData(msg, label, len);
+					}
+					else
+					{
+						loadProgressView->msgPort.send(msg);
 					}
 					return true;
 				});
@@ -695,8 +701,12 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 				auto errStr = err->what();
 				int len = strlen(errStr);
 				assert(len);
-				loadProgressView->msgPort.send({EmuSystem::LoadProgress::FAILED, 0, 0, len});
-				loadProgressView->msgPort.sendExtraData(errStr, len);
+				if(len > 1024)
+				{
+					logWarn("truncating long error size:%d", len);
+					len = 1024;
+				}
+				loadProgressView->msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, len}, errStr, len);
 				logErr("loader thread failed");
 				return;
 			}

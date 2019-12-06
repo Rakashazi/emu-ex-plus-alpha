@@ -26,6 +26,8 @@
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/util/Interpolator.hh>
 #include <memory>
+#include <mutex>
+#include <condition_variable>
 
 namespace Gfx
 {
@@ -41,10 +43,10 @@ class SyncFence;
 class GLSyncFence
 {
 public:
+	static constexpr uint64_t IGNORE_TIMEOUT = 0xFFFFFFFFFFFFFFFFull;
 	GLsync sync{};
 
 	constexpr GLSyncFence() {}
-	GLSyncFence(bool hasFence): sync{(GLsync)hasFence} {}
 	constexpr GLSyncFence(GLsync sync): sync{sync} {}
 };
 
@@ -70,15 +72,13 @@ class GLRendererTask
 public:
 	enum class Command: uint8_t
 	{
-		UNSET, DRAW, HALT_DRAWING, EXIT
+		UNSET, DRAW, RUN_FUNC, EXIT
 	};
 
 	enum class Reply: uint8_t
 	{
 		UNSET, DRAW_FINISHED
 	};
-
-	using ChannelInt = uint8_t;
 
 	struct CommandMessage
 	{
@@ -88,18 +88,26 @@ public:
 			struct DrawArgs
 			{
 				DrawDelegate del;
-				const Base::Window *winPtr;
+				Base::Window *winPtr;
 				Drawable drawable;
 			} draw;
+			struct RunFuncArgs
+			{
+				RenderTaskFuncDelegate func;
+			} runFunc;
 		} args{};
 		Command command{Command::UNSET};
-		ChannelInt channel{};
 
 		constexpr CommandMessage() {}
 		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
 			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, ChannelInt channel, DrawDelegate drawDel, Drawable drawable, const Base::Window &win):
-			args{drawDel, &win, drawable}, command{command}, channel{channel} {}
+		constexpr CommandMessage(Command command, DrawDelegate drawDel, Drawable drawable, Base::Window &win, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, args{drawDel, &win, drawable}, command{command} {}
+		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, command{command}
+		{
+			args.runFunc.func = func;
+		}
 		explicit operator bool() const { return command != Command::UNSET; }
 	};
 
@@ -132,7 +140,8 @@ protected:
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
 	Base::FrameTimeBase drawTimestamp{};
-	uint channels = 0;
+	std::mutex drawMutex{};
+	std::condition_variable drawCondition{};
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLuint streamVAO = 0;
 	std::array<GLuint, 6> streamVBO{};
@@ -145,9 +154,9 @@ protected:
 	#endif
 	GLuint fbo = 0;
 	bool resetDrawable = false;
+	bool canDraw = true;
 
 	void replyHandler(Renderer &r, ReplyMessage msg);
-	void waitForDrawFinished(Renderer &r, ChannelInt channel);
 	bool commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread);
 };
 
@@ -221,7 +230,7 @@ public:
 	void (* GL_APIENTRY glReadBuffer) (GLenum src){};
 	GLsync (* GL_APIENTRY glFenceSync) (GLenum condition, GLbitfield flags){};
 	void (* GL_APIENTRY glDeleteSync) (GLsync sync){};
-	//GLenum (* GL_APIENTRY glClientWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
+	GLenum (* GL_APIENTRY glClientWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
 	void (* GL_APIENTRY glWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
 	#else
 	static void glGenSamplers(GLsizei count, GLuint* samplers) { ::glGenSamplers(count, samplers); };
@@ -235,7 +244,7 @@ public:
 	static void glReadBuffer(GLenum src) { ::glReadBuffer(src); };
 	static GLsync glFenceSync(GLenum condition, GLbitfield flags) { return ::glFenceSync(condition, flags); }
 	static void glDeleteSync(GLsync sync) { ::glDeleteSync(sync); }
-	//static GLenum glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { return ::glClientWaitSync(sync, flags, timeout); }
+	static GLenum glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { return ::glClientWaitSync(sync, flags, timeout); }
 	static void glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { ::glWaitSync(sync, flags, timeout); }
 	#endif
 	GLenum luminanceFormat = GL_LUMINANCE;
@@ -318,6 +327,7 @@ public:
 	#endif
 	#ifndef NDEBUG
 	bool contextDestroyed = false;
+	bool drawContextDebug = false;
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	GLuint defaultVShader = 0;
@@ -381,7 +391,6 @@ public:
 		else
 			runGLTask2(wrapGLMainTaskDelegate(del), semAddr);
 	}
-	void waitPendingGLTasks();
 
 	template<class FUNC = GLMainTask::FuncDelegate>
 	static GLMainTask::FuncDelegate wrapGLMainTaskDelegate(FUNC del)

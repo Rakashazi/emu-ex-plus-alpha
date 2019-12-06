@@ -457,17 +457,17 @@ Uint32 mem68k_fetch_memcrd_long(Uint32 addr) {
 /**** INVALID STORE ****/
 void mem68k_store_invalid_byte(Uint32 addr, Uint8 data) {
 	if (addr != 0x300001)
-		printf("Invalid write b %x %x \n", addr, data);
+		logWarn("Invalid write b %x %x", addr, data);
 	else {
 		memory.watchdog = 0;
 		//printf("restet_watchdog\n");
 	}
 }
 void mem68k_store_invalid_word(Uint32 addr, Uint16 data) {
-	logMsg("Invalid write w %x %x \n", addr, data);
+	logWarn("Invalid write w %x %x", addr, data);
 }
 void mem68k_store_invalid_long(Uint32 addr, Uint32 data) {
-	logMsg("Invalid write l %x %x \n", addr, data);
+	logWarn("Invalid write l %x %x", addr, data);
 }
 
 /**** RAM ****/

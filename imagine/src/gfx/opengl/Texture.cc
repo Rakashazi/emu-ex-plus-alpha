@@ -53,6 +53,10 @@ using namespace IG;
 #define GL_MAP_INVALIDATE_BUFFER_BIT 0x0008
 #endif
 
+#ifndef GL_MAP_UNSYNCHRONIZED_BIT
+#define GL_MAP_UNSYNCHRONIZED_BIT 0x0020
+#endif
+
 namespace Gfx
 {
 
@@ -534,7 +538,7 @@ Error Texture::init2(Renderer &r, TextureConfig config)
 			if(androidStorageImpl_ == ANDROID_SURFACE_TEXTURE)
 			{
 				Error err{};
-				auto *surfaceTex = new SurfaceTextureStorage(r, texName_, !r.useSeparateDrawContext, err);
+				auto *surfaceTex = new SurfaceTextureStorage(r, texName_, false, err);
 				if(err)
 				{
 					logWarn("SurfaceTexture error with texture:0x%X (%s)", texName_, err->what());
@@ -553,15 +557,6 @@ Error Texture::init2(Renderer &r, TextureConfig config)
 			}
 		}
 		#endif
-		if(!directTex && r.support.hasPBOFuncs)
-		{
-			r.runGLTaskSync(
-				[this]()
-				{
-					glGenBuffers(1, &ownPBO);
-				});
-			logMsg("made dedicated PBO:0x%X for texture", ownPBO);
-		}
 	}
 	if(config.willGenerateMipmaps() && !r.support.hasImmutableTexStorage)
 	{
@@ -588,12 +583,6 @@ void Texture::deinit()
 		{
 			glDeleteTextures(1, &texName_);
 			texName_ = 0;
-			if(ownPBO)
-			{
-				logMsg("deleting PBO:0x%X", ownPBO);
-				glDeleteBuffers(1, &ownPBO);
-				ownPBO = 0;
-			}
 		});
 	delete directTex;
 }
@@ -711,13 +700,6 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 						h = std::max(1u, (h / 2));
 					}
 				}
-				if(ownPBO)
-				{
-					uint buffSize = desc.pixelBytes();
-					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
-					glBufferData(GL_PIXEL_UNPACK_BUFFER, buffSize, nullptr, GL_STREAM_DRAW);
-					logMsg("allocated PBO buffer bytes:%u", buffSize);
-				}
 			});
 	}
 	assert(levels);
@@ -788,24 +770,15 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 		}
 		GLenum format = makeGLFormat(*r, pixmap.format());
 		GLenum dataType = makeGLDataType(pixmap.format());
-		if(r->support.hasPBOFuncs)
-		{
-			auto lockBuff = lock(level, {destPos.x, destPos.y, destPos.x + (int)pixmap.w(), destPos.y + (int)pixmap.h()});
-			if(!lockBuff)
-			{
-				return;
-			}
-			lockBuff.pixmap().write(pixmap, {});
-			unlock(lockBuff);
-		}
-		else if(r->support.hasUnpackRowLength || !pixmap.isPadded())
+		auto hasUnpackRowLength = r->support.hasUnpackRowLength;
+		if(hasUnpackRowLength || !pixmap.isPadded())
 		{
 			r->runGLTaskSyncConditional(
-				[r = this->r, texName_ = this->texName_, level, pixmap, destPos, assumeAlign, format, dataType]()
+				[texName_ = this->texName_, hasUnpackRowLength, level, pixmap, destPos, assumeAlign, format, dataType]()
 				{
 					glBindTexture(GL_TEXTURE_2D, texName_);
 					glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
-					if(r->support.hasUnpackRowLength)
+					if(hasUnpackRowLength)
 						glPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
 					runGLCheckedVerbose(
 						[&]()
@@ -825,11 +798,16 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 				prevPixmapY = pixmap.h();
 				logDMsg("non-optimal texture write operation with %ux%u pixmap", pixmap.w(), pixmap.h());
 			}
-			alignas(__BIGGEST_ALIGNMENT__) char tempPixData[pixmap.pixelBytes()];
+			void *tempPixData;
+			if(posix_memalign(&tempPixData, (size_t)__BIGGEST_ALIGNMENT__, pixmap.pixelBytes()))
+			{
+				logErr("posix_memalign failed allocating %u bytes", pixmap.pixelBytes());
+				return;
+			}
 			IG::Pixmap tempPix{pixmap, tempPixData};
 			tempPix.write(pixmap, {});
-			r->runGLTaskSync(
-				[texName_ = this->texName_, level, &tempPix, destPos, assumeAlign, format, dataType]()
+			r->runGLTask(
+				[texName_ = this->texName_, level, tempPix, destPos, assumeAlign, format, dataType]()
 				{
 					glBindTexture(GL_TEXTURE_2D, texName_);
 					glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
@@ -839,6 +817,7 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 							glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
 								tempPix.w(), tempPix.h(), format, dataType, tempPix.pixel({}));
 						}, "glTexSubImage2D()");
+					free(tempPix.pixel({}));
 				});
 		}
 	}
@@ -905,20 +884,12 @@ LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
 			[this, &data, &pbo, rect]()
 			{
 				uint rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
-				if(ownPBO)
-				{
-					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, ownPBO);
-					data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-					//logDMsg("mapped own PBO at addr:%p", data);
-				}
-				else
-				{
-					glGenBuffers(1, &pbo);
-					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-					glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
-					data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-					//logDMsg("mapped global PBO at addr:%p", data);
-				}
+				glGenBuffers(1, &pbo);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
+				data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes,
+					GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+				//logDMsg("mapped PBO at addr:%p", data);
 			});
 		if(!data)
 		{
@@ -1203,12 +1174,7 @@ bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
 		{
 			logMsg("auto-detecting Android storage implementation");
 			androidStorageImpl_ = ANDROID_NONE;
-			if(r.support.hasPBOFuncs)
-			{
-				logMsg("not using Android-specific texture storage due to PBO support");
-				return true;
-			}
-			else if(GraphicBufferStorage::isRendererWhitelisted(rendererGLStr(r)))
+			if(GraphicBufferStorage::isRendererWhitelisted(rendererGLStr(r)))
 			{
 				// use GraphicBuffer if whitelisted
 				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;

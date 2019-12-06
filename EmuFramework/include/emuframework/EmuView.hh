@@ -33,6 +33,7 @@ public:
 	void setLayoutInputView(EmuInputView *view);
 	void updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
 	void clearAudioStats();
+	EmuVideoLayer *videoLayer() const { return layer; }
 
 private:
 	EmuVideoLayer *layer{};

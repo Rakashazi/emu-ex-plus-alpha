@@ -96,11 +96,11 @@ public:
 	bool runningOnFrameDelegates();
 	FrameTimeBase lastFrameTimestamp() const { return prevFrameTimestamp; }
 	uint elapsedFrames(FrameTimeBase frameTime);
-	bool frameRateIsReliable();
-  double frameRate();
-  double frameTime();
-  void setFrameRate(double rate);
-  std::vector<double> supportedFrameRates();
+	bool frameRateIsReliable() const;
+	double frameRate() const;
+	double frameTime() const;
+	void setFrameRate(double rate);
+	std::vector<double> supportedFrameRates();
 	void setFrameInterval(uint interval);
 	static bool supportsFrameInterval();
 	static bool supportsTimestamps();

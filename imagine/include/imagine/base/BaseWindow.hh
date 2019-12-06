@@ -91,7 +91,7 @@ public:
 	};
 
 	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, SurfaceChange change)>;
-	using DrawDelegate = DelegateFunc<void (Window &win, DrawParams params)>;
+	using DrawDelegate = DelegateFunc<bool (Window &win, DrawParams params)>;
 	using InputEventDelegate = DelegateFunc<bool (Window &win, Input::Event event)>;
 	using FocusChangeDelegate = DelegateFunc<void (Window &win, bool in)>;
 	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
@@ -111,6 +111,7 @@ protected:
 	#endif
 	void *customDataPtr{};
 	bool drawNeeded = false;
+	bool notifyDrawAllowed = true;
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 

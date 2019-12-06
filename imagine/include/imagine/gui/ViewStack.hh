@@ -32,7 +32,7 @@ class BasicViewController : public ViewController
 public:
 	using RemoveViewDelegate = DelegateFunc<void ()>;
 
-	constexpr BasicViewController() {}
+	BasicViewController();
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
 	void push(std::unique_ptr<View> v, Input::Event e);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
@@ -57,7 +57,7 @@ class ViewStack : public ViewController
 public:
 	using RemoveViewDelegate = DelegateFunc<void (const ViewStack &controller, View &view)>;
 
-	ViewStack() {}
+	ViewStack();
 	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);

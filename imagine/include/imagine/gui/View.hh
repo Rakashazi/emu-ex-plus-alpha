@@ -21,8 +21,6 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
-#include <mutex>
-#include <optional>
 #include <utility>
 #include <memory>
 
@@ -39,16 +37,20 @@ public:
 	virtual void dismissView(View &v) = 0;
 	virtual bool inputEvent(Input::Event e) = 0;
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
-	std::mutex &mutex();
-
-protected:
-	std::mutex mutex_;
 };
 
-struct ViewAttachParams
+class ViewAttachParams
 {
+public:
+	constexpr ViewAttachParams(Base::Window &win, Gfx::RendererTask &rTask):
+		win{win}, rTask{rTask} {}
+	constexpr Base::Window &window() const { return win; }
+	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
+	constexpr Gfx::Renderer &renderer() const { return rTask.renderer(); }
+
+protected:
 	Base::Window &win;
-	Gfx::Renderer &renderer;
+	Gfx::RendererTask &rTask;
 };
 
 class View
@@ -64,9 +66,9 @@ public:
 	constexpr View() {}
 	virtual ~View();
 	constexpr View(ViewAttachParams attach):
-		win{&attach.win}, renderer_{&attach.renderer} {}
+		win{&attach.window()}, rendererTask_{&attach.rendererTask()} {}
 	constexpr View(const char *name, ViewAttachParams attach):
-		win(&attach.win), renderer_{&attach.renderer}, name_(name) {}
+		win(&attach.window()), rendererTask_{&attach.rendererTask()}, name_(name) {}
 
 	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
@@ -75,6 +77,7 @@ public:
 	virtual bool inputEvent(Input::Event event) = 0;
 	virtual void clearSelection(); // de-select any items from previous input
 	virtual void onShow();
+	virtual void onHide();
 	virtual void onAddedToController(Input::Event e);
 	virtual void setFocus(bool focused);
 
@@ -82,6 +85,7 @@ public:
 	void postDraw();
 	Base::Window &window() const;
 	Gfx::Renderer &renderer() const;
+	Gfx::RendererTask &rendererTask() const;
 	ViewAttachParams attachParams() const;
 	Base::Screen *screen() const;
 	const char *name() const { return name_; }
@@ -98,7 +102,7 @@ public:
 	void setController(ViewController *c, Input::Event e);
 	Gfx::ProjectionPlane projection() { return projP; }
 	bool pointIsInView(IG::WP pos);
-	std::optional<std::scoped_lock<std::mutex>> makeControllerMutexLock();
+	void waitForDrawFinished();
 
 	template<class T, class... Args>
 	std::unique_ptr<T> makeView(Args&&... args)
@@ -114,7 +118,7 @@ public:
 
 protected:
 	Base::Window *win{};
-	Gfx::Renderer *renderer_{};
+	Gfx::RendererTask *rendererTask_{};
 	ViewController *controller{};
 	Gfx::ProjectionPlane projP{};
 	const char *name_ = "";

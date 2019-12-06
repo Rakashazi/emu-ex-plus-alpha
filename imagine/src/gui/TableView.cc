@@ -173,6 +173,16 @@ void TableView::place()
 		visibleCells = 0;
 }
 
+void TableView::onShow()
+{
+	ScrollView::onShow();
+}
+
+void TableView::onHide()
+{
+	ScrollView::onHide();
+}
+
 void TableView::onAddedToController(Input::Event e)
 {
 	if((!Config::Input::POINTING_DEVICES || !e.isPointer()))

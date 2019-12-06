@@ -59,14 +59,14 @@ void deinitFrameTimer()
 
 void frameTimerScheduleVSync()
 {
-	if(frameTimer)
-		frameTimer->scheduleVSync();
+	assumeExpr(frameTimer);
+	frameTimer->scheduleVSync();
 }
 
 void frameTimerCancel()
 {
-	if(frameTimer)
-		frameTimer->cancel();
+	assumeExpr(frameTimer);
+	frameTimer->cancel();
 }
 
 }

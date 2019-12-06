@@ -72,10 +72,12 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 
 		if(updateText)
 		{
-			auto lock = parentView.makeControllerMutexLock();
-			t.setString(str);
-			t.compile(parentView.renderer(), projP);
-			Base::mainWindow().postDraw();
+			{
+				parentView.waitForDrawFinished();
+				t.setString(str);
+				t.compile(parentView.renderer(), projP);
+			}
+			parentView.postDraw();
 		}
 		return true;
 	}
@@ -117,7 +119,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textEntry{initialContent, attach.renderer, face, projP},
+	textEntry{initialContent, attach.renderer(), face, projP},
 	#endif
 	onTextD{onText}
 {

@@ -26,7 +26,7 @@
 namespace Input
 {
 
-void (*processInput)(AInputQueue *inputQueue) = processInputWithHasEvents;
+void (*processInput)(AInputQueue *inputQueue, bool signaledFromLooper) = processInputWithHasEvents;
 static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
 static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
 static int mostRecentKeyEventDevID = -1;
@@ -403,7 +403,7 @@ static void processInputCommon(AInputQueue *inputQueue, AInputEvent* event)
 // it returns an error instead of using AInputQueue_hasEvents
 // and no warnings are printed to logcat unlike earlier
 // Android versions
-void processInputWithGetEvent(AInputQueue *inputQueue)
+void processInputWithGetEvent(AInputQueue *inputQueue, bool signaledFromLooper)
 {
 	int events = 0;
 	AInputEvent* event = nullptr;
@@ -418,8 +418,13 @@ void processInputWithGetEvent(AInputQueue *inputQueue)
 	}
 }
 
-void processInputWithHasEvents(AInputQueue *inputQueue)
+void processInputWithHasEvents(AInputQueue *inputQueue, bool signaledFromLooper)
 {
+	if(!signaledFromLooper && !AInputQueue_hasEvents(Base::inputQueue))
+	{
+		// Don't process empty event queue to avoid logcat error spam from system
+		return;
+	}
 	int events = 0;
 	int32_t hasEventsRet = 0;
 	// Note: never call AInputQueue_hasEvents on first iteration since it may return 0 even if
@@ -464,7 +469,7 @@ static const char* aInputSourceToStr(uint source)
 
 void flushEvents()
 {
-	processInput(Base::inputQueue);
+	processInput(Base::inputQueue, false);
 }
 
 Time Time::makeWithNSecs(uint64_t nsecs)

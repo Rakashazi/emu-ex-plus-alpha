@@ -182,9 +182,10 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 
 	if(renderAudio)
 	{
-		uint16 destBuff[audioFramesPerVideoFrame];
-		sound_update(destBuff, audioFramesPerVideoFrame*2);
-		writeSound(destBuff, audioFramesPerVideoFrame);
+		auto audioFrames = audioFramesForThisFrame();
+		uint16 destBuff[audioFrames];
+		sound_update(destBuff, audioFrames*2);
+		writeSound(destBuff, audioFrames);
 	}
 }
 

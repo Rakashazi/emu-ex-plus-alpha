@@ -16,6 +16,7 @@
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/logger/logger.h>
 #include "tests.hh"
 #include "cpuUtils.hh"
 
@@ -93,9 +94,10 @@ void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, c
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Screen &screen, Base::FrameTimeBase timestamp)
+void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameTimeBase timestamp)
 {
 	// CPU stats
+	auto &screen = *win.screen();
 	bool updatedCPUStats = false;
 	if(frames % 8 == 0)
 	{
@@ -107,59 +109,59 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Screen &screen, 
 		updateCPULoad(*this);
 		updatedCPUStats = true;
 	}
-	if(updatedCPUStats)
 	{
-		string_printf(cpuStatsStr, "%s%s%s",
-			strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
-			strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
-			strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "");
-		placeCPUStatsText(rTask.renderer());
-	}
-
-	// frame stats
-	bool updatedFrameStats = false;
-	if(!frames)
-	{
-		startTime = timestamp;
-		//logMsg("start time: %llu", (unsigned long long)startTime);
-	}
-	else
-	{
-		auto elapsedScreenFrames = screen.elapsedFrames(timestamp);
-		//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
-		if(elapsedScreenFrames > 1)
+		rTask.waitForDrawFinished();
+		if(updatedCPUStats)
 		{
-			lostFrameDispatchTime = (lastFramePresentTime.atOnFrame - lastFramePresentTime.frameTime).mSecs();
-			lostFrameProcessTime = (lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs();
-			lostFramePresentTime = (lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs();
+			string_printf(cpuStatsStr, "%s%s%s",
+				strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
+				strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
+				strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "");
+			placeCPUStatsText(rTask.renderer());
+		}
 
-			droppedFrames++;
-			string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
-				elapsedScreenFrames - 1, Base::frameTimeBaseToSecsDec(timestamp - screen.lastFrameTimestamp()),
-				continuousFrames, Base::frameTimeBaseToSecsDec(timestamp));
+		// frame stats
+		bool updatedFrameStats = false;
+		if(!frames)
+		{
+			startTime = timestamp;
+			//logMsg("start time: %llu", (unsigned long long)startTime);
+		}
+		else
+		{
+			auto elapsedScreenFrames = screen.elapsedFrames(timestamp);
+			//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
+			if(elapsedScreenFrames > 1)
+			{
+				lostFrameProcessTime = (lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs();
+				lostFramePresentTime = (lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs();
+
+				droppedFrames++;
+				string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
+					elapsedScreenFrames - 1, Base::frameTimeBaseToSecsDec(timestamp - screen.lastFrameTimestamp()),
+					continuousFrames, Base::frameTimeBaseToSecsDec(timestamp));
+				updatedFrameStats = true;
+				continuousFrames = 0;
+			}
+		}
+		if(frames && frames % 4 == 0)
+		{
+			string_printf(statsStr, "Process: %02ums (%02ums)\nPresent: %02ums (%02ums)",
+				(uint)(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs(), lostFrameProcessTime,
+				(uint)(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs(), lostFramePresentTime);
 			updatedFrameStats = true;
-			continuousFrames = 0;
+		}
+		if(updatedFrameStats)
+		{
+			string_printf(frameStatsStr, "%s%s%s",
+				strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
+				strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
+				strlen(statsStr.data()) ? statsStr.data() : "");
+			placeFrameStatsText(rTask.renderer());
 		}
 	}
-	if(frames && frames % 4 == 0)
-	{
-		string_printf(statsStr, "Dispatch: %02ums (%02ums)\nProcess: %02ums (%02ums)\nPresent: %02ums (%02ums)",
-			(uint)(lastFramePresentTime.atOnFrame - lastFramePresentTime.frameTime).mSecs(), lostFrameDispatchTime,
-			(uint)(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs(), lostFrameProcessTime,
-			(uint)(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs(), lostFramePresentTime);
-		updatedFrameStats = true;
-	}
-	if(updatedFrameStats)
-	{
-		string_printf(frameStatsStr, "%s%s%s",
-			strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
-			strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
-			strlen(statsStr.data()) ? statsStr.data() : "");
-		placeFrameStatsText(rTask.renderer());
-	}
-
 	// run frame
-	frameUpdateTest(rTask, screen, timestamp);
+	frameUpdateTest(rTask, *win.screen(), timestamp);
 	frames++;
 	continuousFrames++;
 }
@@ -175,7 +177,6 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	using namespace Gfx;
 	cmds.loadTransform(projP.makeTranslate());
 	drawTest(cmds, bounds);
-	return;
 	cmds.setClipTest(false);
 	if(strlen(cpuStatsStr.data()))
 	{
@@ -291,6 +292,16 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
+	auto lockedBuff = texture.lock(0);
+	IG::Pixmap pix;
+	if(lockedBuff)
+	{
+		pix = lockedBuff.pixmap();
+	}
+	else
+	{
+		pix = pixmap;
+	}
 	if(flash)
 	{
 		uint writeColor;
@@ -300,16 +311,25 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .0, 1.);
 		else
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .0, .0, 1.);
-		iterateTimes(pixmap.w() * pixmap.h(), i)
+		iterateTimes(pix.w() * pix.h(), i)
 		{
-			((uint16*)pixmap.pixel({}))[i] = writeColor;
+			((uint16*)pix.pixel({}))[i] = writeColor;
 		}
 	}
 	else
 	{
-		memset(pixmap.pixel({}), 0, pixmap.pitchBytes() * pixmap.h());
+		memset(pix.pixel({}), 0, pix.pitchBytes() * pix.h());
 	}
-	texture.write(0, pixmap, {});
+	rendererTask.acquireFenceAndWait(fence);
+	if(lockedBuff)
+	{
+		texture.unlock(lockedBuff);
+	}
+	else
+	{
+		texture.write(0, pix, {});
+	}
+	texture.renderer().flush();
 }
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
@@ -321,4 +341,11 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_REPLACE);
 	sprite.draw(cmds);
+	fence = cmds.replaceSyncFence(fence);
+}
+
+void WriteTest::deinitTest()
+{
+	DrawTest::deinitTest();
+	texture.renderer().deleteSyncFence(fence);
 }

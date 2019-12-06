@@ -113,7 +113,9 @@ public:
 
 class SyncFence : public SyncFenceImpl
 {
+public:
 	using SyncFenceImpl::SyncFenceImpl;
+	explicit operator bool() const;
 };
 
 class DrawableHolder : public DrawableHolderImpl
@@ -126,15 +128,21 @@ class RendererTask : public RendererTaskImpl
 {
 public:
 	RendererTask(Renderer &r);
-	void start(uint channels = 0);
-	void pause();
+	void start();
 	void stop();
-	void draw(DrawableHolder &drawable, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del, uint channel = 0);
+	void draw(DrawableHolder &drawable, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del);
+	void lockDraw();
+	void unlockDraw();
+	void waitForDrawFinished();
+	void run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr);
+	void runSync(RenderTaskFuncDelegate func);
+	void acquireFenceAndWait(Gfx::SyncFence &fenceVar);
 	bool addOnDrawFinished(DrawFinishedDelegate del, int priority = 0);
 	bool removeOnDrawFinished(DrawFinishedDelegate del);
 	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
+	void destroyDrawable(DrawableHolder &drawable);
 	Base::FrameTimeBase lastDrawTimestamp() const;
-	Renderer &renderer() const;
+	constexpr Renderer &renderer() const { return r; }
 
 private:
 	Renderer &r;
@@ -146,7 +154,6 @@ public:
 	using RendererDrawTaskImpl::RendererDrawTaskImpl;
 
 	RendererCommands makeRendererCommands(Drawable drawable, Viewport viewport, Mat4 projMat);
-	void waitSync(SyncFence fence);
 	void verifyCurrentContext() const;
 	Renderer &renderer() const;
 };
@@ -216,6 +223,13 @@ public:
 	void setCommonProgram(CommonProgram program, Mat4 modelMat);
 	void uniformF(int uniformLocation, float v1, float v2);
 
+	// synchronization
+	SyncFence addSyncFence();
+	SyncFence replaceSyncFence(SyncFence fence);
+	void deleteSyncFence(SyncFence fence);
+	void clientWaitSync(SyncFence fence, uint64_t timeoutNS = SyncFence::IGNORE_TIMEOUT);
+	void waitSync(SyncFence fence);
+
 	// rendering
 
 	void clear();
@@ -268,7 +282,6 @@ public:
 	Base::WindowConfig addWindowConfig(Base::WindowConfig config);
 	ThreadMode threadMode() const;
 	bool supportsThreadMode() const;
-	SyncFence addResourceSyncFence();
 	void flush();
 	void initWindow(Base::Window &win, Base::WindowConfig config);
 	void setWindowValidOrientations(Base::Window &win, uint validO);
@@ -306,6 +319,14 @@ public:
 
 	void setCorrectnessChecks(bool on);
 	void setDebugOutput(bool on);
+
+	// synchronization
+	SyncFence addResourceSyncFence();
+	SyncFence addSyncFence();
+	void deleteSyncFence(SyncFence);
+	void clientWaitSync(SyncFence fence, uint64_t timeoutNS = SyncFence::IGNORE_TIMEOUT);
+	void waitSync(SyncFence fence);
+	void waitAsyncCommands();
 };
 
 }

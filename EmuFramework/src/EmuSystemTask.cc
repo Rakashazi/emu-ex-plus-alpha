@@ -154,6 +154,7 @@ void EmuSystemTask::pause()
 	IG::Semaphore sem{0};
 	commandPort.send({Command::PAUSE, &sem});
 	sem.wait();
+	emuVideo.waitAsyncFrame();
 }
 
 void EmuSystemTask::stop()
@@ -163,6 +164,7 @@ void EmuSystemTask::stop()
 	IG::Semaphore sem{0};
 	commandPort.send({Command::EXIT, &sem});
 	sem.wait();
+	emuVideo.waitAsyncFrame();
 	started = false;
 }
 

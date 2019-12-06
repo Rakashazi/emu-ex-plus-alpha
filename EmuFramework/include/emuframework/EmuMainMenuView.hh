@@ -27,7 +27,7 @@ class EmuMainMenuView : public TableView
 {
 public:
 	EmuMainMenuView(ViewAttachParams attach, bool customMenu = false);
-	void onShow() override;
+	void onShow() final;
 	void loadFileBrowserItems();
 	void loadStandardItems();
 

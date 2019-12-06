@@ -125,9 +125,10 @@ void GZFileStream::close(void)
 
   gzp = NULL;
 
-  if(gzclose(tmp) != Z_OK)
+  int result = gzclose(tmp);
+  if(result != Z_OK)
   {
-   throw MDFN_Error(0, _("Error closing opened file \"%s\"."), path_save.c_str());
+   throw MDFN_Error(0, _("Error %d closing opened gz file \"%s\"."), result, path_save.c_str());
   }
  }
 }

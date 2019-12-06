@@ -20,6 +20,8 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <utility>
 
+BasicViewController::BasicViewController() {}
+
 void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
 {
 	if(view)
@@ -44,11 +46,12 @@ void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, b
 void BasicViewController::pop()
 {
 	assert(view);
-	auto lock = std::scoped_lock(mutex_);
-	view->postDraw();
+	auto &win = view->window();
+	view->waitForDrawFinished();
 	view.reset();
 	if(removeViewDel)
 		removeViewDel();
+	win.postDraw();
 }
 
 void BasicViewController::dismissView(View &v)
@@ -68,7 +71,7 @@ void BasicViewController::place()
 	if(!view)
 		return;
 	assert(viewRect.xSize() && viewRect.ySize());
-	auto lock = std::scoped_lock(mutex_);
+	view->waitForDrawFinished();
 	view->setViewRect(viewRect, projP);
 	view->place();
 }
@@ -80,13 +83,17 @@ bool BasicViewController::inputEvent(Input::Event e)
 
 void BasicViewController::draw(Gfx::RendererCommands &cmds)
 {
-	auto lock = std::scoped_lock(mutex_);
+	if(!view)
+		return;
 	view->draw(cmds);
 }
 
+ViewStack::ViewStack() {}
+
 void ViewStack::setNavView(std::unique_ptr<NavView> navView)
 {
-	auto lock = std::scoped_lock(mutex_);
+	if(view.size())
+		top().waitForDrawFinished();
 	nav = std::move(navView);
 	if(nav)
 	{
@@ -111,7 +118,7 @@ void ViewStack::place()
 {
 	if(!view.size())
 		return;
-	auto lock = std::scoped_lock(mutex_);
+	top().waitForDrawFinished();
 	assert(viewRect.xSize() && viewRect.ySize());
 	customViewRect = viewRect;
 	if(navViewIsActive())
@@ -201,7 +208,6 @@ void ViewStack::prepareDraw()
 
 void ViewStack::draw(Gfx::RendererCommands &cmds)
 {
-	auto lock = std::scoped_lock(mutex_);
 	if(!view.size())
 		return;
 	top().draw(cmds);
@@ -212,8 +218,12 @@ void ViewStack::draw(Gfx::RendererCommands &cmds)
 void ViewStack::push(std::unique_ptr<View> v, Input::Event e)
 {
 	assumeExpr(v);
+	if(view.size())
+	{
+		top().waitForDrawFinished();
+		top().onHide();
+	}
 	v->setController(this, e);
-	auto lock = std::scoped_lock(mutex_);
 	view.emplace_back(std::move(v), true);
 	logMsg("push view, %d in stack", (int)view.size());
 	if(nav)
@@ -237,8 +247,8 @@ void ViewStack::pop()
 {
 	if(!view.size())
 		return;
-	auto lock = std::scoped_lock(mutex_);
 	onRemoveView_.callSafe(*this, top());
+	top().waitForDrawFinished();
 	view.pop_back();
 	logMsg("pop view, %d in stack", (int)view.size());
 	if(nav)

@@ -37,12 +37,12 @@ struct DrawFinishedParams
 {
 	RendererTask *drawTask_;
 	Base::FrameTimeBase timestamp_;
-	uint channel_;
+	Drawable drawable_;
 
 	RendererTask &rendererTask() const { return *drawTask_; }
 	Base::FrameTimeBase timestamp() const { return timestamp_; }
 	Base::FrameTimeBaseDiff timestampDiff() const;
-	uint channel() const { return channel_; }
+	Drawable drawable() const { return drawable_; }
 };
 
 using GC = TransformCoordinate;
@@ -52,8 +52,9 @@ using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
 using Error = std::optional<std::runtime_error>;
-using DrawDelegate = DelegateFunc2<sizeof(uintptr_t)*3, void(Drawable drawable, const Base::Window &win, RendererDrawTask task)>;
+using DrawDelegate = DelegateFunc2<sizeof(uintptr_t)*3, void(Drawable drawable, Base::Window &win, RendererDrawTask task)>;
 using DrawFinishedDelegate = DelegateFunc<bool(DrawFinishedParams params)>;
+using RenderTaskFuncDelegate = DelegateFunc<void(RendererTask &task)>;
 
 static constexpr GC operator"" _gc (long double n)
 {

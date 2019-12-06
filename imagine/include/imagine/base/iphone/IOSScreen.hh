@@ -49,8 +49,8 @@ public:
 
 	#ifdef __OBJC__
 	void init(UIScreen *screen);
-	UIScreen *uiScreen() { return (__bridge UIScreen*)uiScreen_; }
-	CADisplayLink *displayLink() { return (__bridge CADisplayLink*)displayLink_; }
+	UIScreen *uiScreen() const { return (__bridge UIScreen*)uiScreen_; }
+	CADisplayLink *displayLink() const { return (__bridge CADisplayLink*)displayLink_; }
 	#endif
 };
 

@@ -362,10 +362,11 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	if(video)
 		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
 	main_frame(!video);
-	YM2610Update_stream(audioFramesPerVideoFrame);
+	auto audioFrames = audioFramesForThisFrame();
+	YM2610Update_stream(audioFrames);
 	if(renderAudio)
 	{
-		writeSound(play_buffer, audioFramesPerVideoFrame);
+		writeSound(play_buffer, audioFrames);
 	}
 }
 

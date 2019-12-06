@@ -26,12 +26,12 @@
 #define GL_BACK_RIGHT				0x0403
 #endif
 
-#ifndef GL_TIMEOUT_EXPIRED
-#define GL_TIMEOUT_EXPIRED 0x911B
-#endif
-
 #ifndef GL_TIMEOUT_IGNORED
 #define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
+#endif
+
+#ifndef GL_SYNC_GPU_COMMANDS_COMPLETE
+#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
 #endif
 
 namespace Gfx
@@ -116,58 +116,59 @@ void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 	}
 }
 
-void GLRendererTask::waitForDrawFinished(Renderer &r, ChannelInt channel)
-{
-	replyPort.run(
-		[&](auto msg)
-		{
-			replyHandler(r, msg);
-			return !(msg.params.channel() == channel && msg.reply == Reply::DRAW_FINISHED);
-		});
-}
-
 bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread)
 {
-	auto c = channels;
-	assumeExpr(c);
-	CommandMessage::Args::DrawArgs drawArg[c];
-	iterateTimes(c, i)
-	{
-		drawArg[i].del = {};
-	}
-	bool haltDraw = false;
-	IG::Semaphore *haltDrawSemAddr{};
-	bool releaseContext = false;
-	IG::Semaphore *releaseContextSemAddr{};
+	int msgs = 0, draws = 0;
 	for(auto msg = messages.get(); msg; msg = messages.get())
 	{
+		msgs++;
 		//logMsg("command pipe data");
 		switch(msg.command)
 		{
 			bcase Command::DRAW:
 			{
 				//logMsg("got draw command");
-				assumeExpr(msg.channel < channels);
-				drawArg[msg.channel] = msg.args.draw;
-			}
-			bcase Command::HALT_DRAWING:
-			{
-				if(haltDraw)
+				draws++;
+				auto &drawArgs = msg.args.draw;
+				assumeExpr(drawArgs.del);
+				assumeExpr(drawArgs.winPtr);
+				drawArgs.del(drawArgs.drawable, *drawArgs.winPtr, {*static_cast<RendererTask*>(this), glDpy});
+				drawArgs.winPtr->deferredDrawComplete();
+				if(onDrawFinished.size())
 				{
-					bug_unreachable("sent multiple HALT_DRAWING commands");
+					auto now = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
+					replyPort.send({Reply::DRAW_FINISHED,
+						DrawFinishedParams{static_cast<RendererTask*>(this), now, drawArgs.drawable}});
 				}
-				haltDraw = true;
-				assumeExpr(msg.semAddr);
-				haltDrawSemAddr = msg.semAddr;
+				if(msg.semAddr)
+				{
+					logWarn("semaphore in draw command ignored");
+				}
+			}
+			bcase Command::RUN_FUNC:
+			{
+				assumeExpr(msg.args.runFunc.func);
+				msg.args.runFunc.func(*static_cast<RendererTask*>(this));
+				if(msg.semAddr)
+				{
+					msg.semAddr->notify();
+				}
 			}
 			bcase Command::EXIT:
 			{
-				if(releaseContext)
+				if(ownsThread)
 				{
-					bug_unreachable("sent multiple EXIT commands");
+					Base::GLContext::setCurrent(glDpy, {}, {});
+					Base::EventLoop::forThread().stop();
 				}
-				releaseContext = true;
-				releaseContextSemAddr = msg.semAddr;
+				else
+				{
+					// only unset the drawable
+					Base::GLContext::setCurrent(glDpy, glCtx, {});
+				}
+				assumeExpr(msg.semAddr);
+				msg.semAddr->notify();
+				return false;
 			}
 			bdefault:
 			{
@@ -175,46 +176,16 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 			}
 		}
 	}
-	if(releaseContext)
+	if(msgs > 1)
 	{
-		if(ownsThread)
-		{
-			Base::GLContext::setCurrent(glDpy, {}, {});
-			Base::EventLoop::forThread().stop();
-		}
-		else
-		{
-			// only unset the drawable
-			Base::GLContext::setCurrent(glDpy, glCtx, {});
-		}
-		if(releaseContextSemAddr)
-			releaseContextSemAddr->notify();
-		return false;
-	}
-	if(haltDraw)
-	{
-		haltDrawSemAddr->notify();
-		return true;
-	}
-	iterateTimes(c, i)
-	{
-		auto arg = drawArg[i];
-		if(!arg.del)
-			continue;
-		arg.del(arg.drawable, *arg.winPtr, {*static_cast<RendererTask*>(this), glDpy});
-		if(onDrawFinished.size())
-		{
-			auto now = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
-			replyPort.send({Reply::DRAW_FINISHED,
-				DrawFinishedParams{static_cast<RendererTask*>(this), now, (ChannelInt)i}});
-		}
+		//logDMsg("read %d messages, %d draws", msgs, draws);
 	}
 	return true;
 }
 
 RendererTask::RendererTask(Renderer &r): r{r} {}
 
-void RendererTask::start(uint channels_)
+void RendererTask::start()
 {
 	if(!glCtx)
 	{
@@ -251,12 +222,6 @@ void RendererTask::start(uint channels_)
 		logWarn("render thread already started");
 		return;
 	}
-	if(channels_)
-	{
-		channels = channels_;
-	}
-	if(!channels)
-		channels = 1;
 	if(r.useSeparateDrawContext)
 	{
 		//logMsg("setting up rendering separate GL thread");
@@ -266,6 +231,9 @@ void RendererTask::start(uint channels_)
 		{
 			logErr("error creating context");
 		}
+		#ifndef NDEBUG
+		r.drawContextDebug = false;
+		#endif
 		IG::makeDetachedThreadSync(
 			[this](auto &sem)
 			{
@@ -307,7 +275,7 @@ void RendererTask::start(uint channels_)
 	}
 }
 
-void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del, uint channel)
+void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del)
 {
 	if(unlikely(!glCtx))
 	{
@@ -354,24 +322,78 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 	{
 		drawableHolder.makeDrawable(r, win);
 	}
-	if(params.needsSync())
 	{
-		onDrawFinished.add([](DrawFinishedParams){ return false; }, 0);
+		auto lock = std::unique_lock<std::mutex>{drawMutex};
+		drawCondition.wait(lock, [this](){ return canDraw; });
+		commandPort.send(
+			{
+				Command::DRAW,
+				del,
+				drawableHolder.drawable(),
+				win
+			});
 	}
-	commandPort.send(
-		{
-			Command::DRAW,
-			(ChannelInt)channel,
-			del,
-			drawableHolder.drawable(),
-			win
-		});
 	//logMsg("wrote render thread draw command");
-	if(params.needsSync())
+	if(unlikely(params.needsSync()))
 	{
 		logMsg("waiting for draw to finish");
-		waitForDrawFinished(r, channel);
+		waitForDrawFinished();
 	}
+}
+
+void RendererTask::lockDraw()
+{
+	assumeExpr(canDraw);
+	{
+		auto lock = std::scoped_lock<std::mutex>{drawMutex};
+		canDraw = false;
+	}
+	waitForDrawFinished();
+}
+
+void RendererTask::unlockDraw()
+{
+	assumeExpr(!canDraw);
+	{
+		auto lock = std::scoped_lock<std::mutex>{drawMutex};
+		canDraw = true;
+	}
+	drawCondition.notify_one();
+}
+
+void RendererTask::waitForDrawFinished()
+{
+	runSync([](RendererTask &){});
+}
+
+void RendererTask::run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr)
+{
+	if(!glCtx)
+		return;
+	commandPort.send({Command::RUN_FUNC, func, semAddr});
+}
+
+void RendererTask::runSync(RenderTaskFuncDelegate func)
+{
+	if(!glCtx)
+		return;
+	IG::Semaphore sem{0};
+	run(func, &sem);
+	sem.wait();
+}
+
+void RendererTask::acquireFenceAndWait(Gfx::SyncFence &fenceVar)
+{
+	if(!r.useSeparateDrawContext)
+		return;
+	Gfx::SyncFence fence{};
+	runSync([&fence, &fenceVar](RendererTask &)
+	{
+		fence = fenceVar;
+		fenceVar = {};
+	});
+	//logDMsg("waiting on fence:%p", fence.sync);
+	renderer().waitSync(fence);
 }
 
 bool RendererTask::addOnDrawFinished(DrawFinishedDelegate del, int priority)
@@ -384,15 +406,6 @@ bool RendererTask::removeOnDrawFinished(DrawFinishedDelegate del)
 	return onDrawFinished.remove(del);
 }
 
-void RendererTask::pause()
-{
-	if(!glCtx)
-		return;
-	IG::Semaphore sem{0};
-	commandPort.send({Command::HALT_DRAWING, &sem});
-	sem.wait();
-}
-
 void RendererTask::stop()
 {
 	if(!glCtx)
@@ -402,6 +415,7 @@ void RendererTask::stop()
 	IG::Semaphore sem{0};
 	commandPort.send({Command::EXIT, &sem});
 	sem.wait();
+	commandPort.clear();
 	if(!r.useSeparateDrawContext)
 	{
 		r.runGLTaskSync(
@@ -410,16 +424,16 @@ void RendererTask::stop()
 				commandPort.removeFromEventLoop();
 			});
 	}
+	replyPort.clear();
 	replyPort.removeFromEventLoop();
 	destroyContext(r.useSeparateDrawContext, r.glDpy);
 }
 
 void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window::SurfaceChange change)
 {
-	pause();
 	if(change.destroyed())
 	{
-		drawableHolder.destroyDrawable(r);
+		destroyDrawable(drawableHolder);
 	}
 	else if(change.reset())
 	{
@@ -427,14 +441,15 @@ void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder
 	}
 }
 
+void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
+{
+	waitForDrawFinished();
+	drawableHolder.destroyDrawable(r);
+}
+
 Base::FrameTimeBase RendererTask::lastDrawTimestamp() const
 {
 	return drawTimestamp;
-}
-
-Renderer &RendererTask::renderer() const
-{
-	return r;
 }
 
 void GLRendererTask::destroyContext(bool useSeparateDrawContext, Base::GLDisplay dpy)
@@ -534,16 +549,6 @@ RendererCommands RendererDrawTask::makeRendererCommands(Drawable drawable, Viewp
 	cmds.setViewport(viewport);
 	cmds.setProjectionMatrix(projMat);
 	return cmds;
-}
-
-void RendererDrawTask::waitSync(SyncFence fence)
-{
-	if(!fence.sync)
-		return;
-	assert(renderer().useSeparateDrawContext);
-	assert(renderer().support.hasSyncFences());
-	renderer().support.glWaitSync(fence.sync, 0, GL_TIMEOUT_IGNORED);
-	renderer().support.glDeleteSync(fence.sync);
 }
 
 void RendererDrawTask::verifyCurrentContext() const

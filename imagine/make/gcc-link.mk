@@ -1,4 +1,6 @@
-LD ?= $(CXX)
+ifeq ($(origin LD), default)
+ LD = $(CXX)
+endif
 
 #LINK_MAP=1
 ifdef LINK_MAP

@@ -139,6 +139,15 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	if(emuKey & 0xFF) // joystick
 	{
 		auto &p = player ? memory.intern_p2 : memory.intern_p1;
+		// Don't permit simultaneous left + right input, locks up Metal Slug 3
+		if(state == Input::PUSHED && (emuKey & 0xFF) == NGKey::LEFT)
+		{
+			p = IG::setBits(p, (Uint8)NGKey::RIGHT);
+		}
+		else if(state == Input::PUSHED && (emuKey & 0xFF) == NGKey::RIGHT)
+		{
+			p = IG::setBits(p, (Uint8)NGKey::LEFT);
+		}
 		p = IG::setOrClearBits(p, (Uint8)(emuKey & 0xFF), state != Input::PUSHED);
 		return;
 	}

@@ -74,6 +74,10 @@
 #define GL_CONDITION_SATISFIED 0x911C
 #endif
 
+#ifndef GL_WAIT_FAILED
+#define GL_WAIT_FAILED 0x911D
+#endif
+
 namespace Gfx
 {
 
@@ -232,6 +236,7 @@ void GLRenderer::setupFenceSync()
 	#ifdef CONFIG_GFX_OPENGL_ES
 	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSync");
 	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSync");
+	support.glClientWaitSync = (typeof(support.glClientWaitSync))Base::GLContext::procAddress("glClientWaitSync");
 	support.glWaitSync = (typeof(support.glWaitSync))Base::GLContext::procAddress("glWaitSync");
 	#else
 	support.hasFenceSync = true;
@@ -246,6 +251,7 @@ void GLRenderer::setupAppleFenceSync()
 	logMsg("Using sync fences (Apple version)");
 	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSyncAPPLE");
 	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSyncAPPLE");
+	support.glClientWaitSync = (typeof(support.glClientWaitSync))Base::GLContext::procAddress("glClientWaitSyncAPPLE");
 	support.glWaitSync = (typeof(support.glWaitSync))Base::GLContext::procAddress("glWaitSyncAPPLE");
 }
 #endif
@@ -259,10 +265,9 @@ void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
 	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
 	eglCreateSyncFunc = (typeof(eglCreateSyncFunc))Base::GLContext::procAddress("eglCreateSyncKHR");
 	eglDestroySyncFunc = (typeof(eglDestroySyncFunc))Base::GLContext::procAddress("eglDestroySyncKHR");
+	eglClientWaitSyncFunc = (typeof(eglClientWaitSyncFunc))Base::GLContext::procAddress("eglClientWaitSyncKHR");
 	if(supportsServerSync)
 		eglWaitSyncFunc = (typeof(eglWaitSyncFunc))Base::GLContext::procAddress("eglWaitSyncKHR");
-	else
-		eglClientWaitSyncFunc = (typeof(eglClientWaitSyncFunc))Base::GLContext::procAddress("eglClientWaitSyncKHR");
 	#endif
 	// wrap EGL sync in terms of ARB sync
 	support.glFenceSync =
@@ -275,16 +280,28 @@ void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
 		{
 			eglDestroySyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync);
 		};
+	support.glClientWaitSync =
+		[](GLsync sync, GLbitfield flags, GLuint64 timeout) -> GLenum
+		{
+			switch(eglClientWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0, timeout))
+			{
+				case EGL_TIMEOUT_EXPIRED: return GL_TIMEOUT_EXPIRED;
+				case EGL_CONDITION_SATISFIED: return GL_CONDITION_SATISFIED;
+				default:
+					logErr("error waiting for sync object:%p", sync);
+					return GL_WAIT_FAILED;
+			}
+		};
 	if(supportsServerSync)
 	{
 		support.glWaitSync =
-		[](GLsync sync, GLbitfield flags, GLuint64 timeout)
-		{
-			if(eglWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0) == GL_FALSE)
+			[](GLsync sync, GLbitfield flags, GLuint64 timeout)
 			{
-				logErr("error waiting for sync object:%p", sync);
-			}
-		};
+				if(eglWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0) == GL_FALSE)
+				{
+					logErr("error waiting for sync object:%p", sync);
+				}
+			};
 	}
 	else
 	{

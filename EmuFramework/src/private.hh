@@ -23,6 +23,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
+#include <imagine/thread/Thread.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuApp.hh>
@@ -64,16 +65,17 @@ public:
 	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask, VController &vCtrl, EmuVideoLayer &videoLayer);
 	void initViews(ViewAttachParams attach);
 	Base::WindowConfig addWindowConfig(Base::WindowConfig conf);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
-	void pop() override;
-	void dismissView(View &v)override;
-	bool inputEvent(Input::Event e) override;
+	void pop() final;
+	void dismissView(View &v) final;
+	bool inputEvent(Input::Event e) final;
 	void showEmulation();
 	void showUI(bool updateTopView = true);
 	bool showAutoStateConfirm(Input::Event e, bool addToRecent);
 	void placeEmuViews();
+	void postPlaceEmuViews();
 	void placeElements();
 	void setEmuViewOnExtraWindow(bool on, Base::Screen &screen);
 	void startMainViewportAnimation();
@@ -82,6 +84,7 @@ public:
 	void closeSystem(bool allowAutosaveState = true);
 	void postDrawToEmuWindows();
 	Base::Screen *emuWindowScreen() const;
+	Base::Window &emuWindow() const;
 	Gfx::RendererTask &rendererTask() const;
 	bool hasModalView();
 	void popModalViews();
@@ -95,6 +98,7 @@ public:
 	void onSystemCreated();
 	EmuInputView &inputView();
 	ToastView &popupMessageView();
+	EmuVideoLayer &videoLayer() const;
 	void onScreenChange(Base::Screen &screen, Base::Screen::Change change);
 	void handleOpenFileCommand(const char *path);
 	void setOnScreenControls(bool on);
@@ -107,6 +111,7 @@ protected:
 	ToastView popup;
 	EmuMenuViewStack viewStack{};
 	EmuModalViewStack modalViewController{};
+	Base::CustomEvent placeEmuViewsEvent{};
 	Base::Screen::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask &rendererTask_;
 	Base::FrameTimeBase initialTotalFrameTime{};
@@ -121,7 +126,7 @@ protected:
 	void configureWindowForEmulation(Base::Window &win, bool running);
 	void startViewportAnimation(AppWindowData &winData);
 	void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange change);
-	void drawMainWindow(Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
+	void drawMainWindow(Base::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
 	void movePopupToWindow(Base::Window &win);
 	void moveEmuViewToWindow(Base::Window &win);
 	void applyFrameRates();
@@ -177,6 +182,7 @@ extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern EmuVideo emuVideo;
 extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
+extern IG::thread::id mainThreadID;
 static constexpr const char *strftimeFormat = "%x  %r";
 
 void loadConfigFile();

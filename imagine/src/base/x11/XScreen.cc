@@ -84,17 +84,17 @@ int Screen::height()
 	return HeightOfScreen(xScreen);
 }
 
-double Screen::frameRate()
+double Screen::frameRate() const
 {
 	return 1. / frameTime_;
 }
 
-double Screen::frameTime()
+double Screen::frameTime() const
 {
 	return frameTime_;
 }
 
-bool Screen::frameRateIsReliable()
+bool Screen::frameRateIsReliable() const
 {
 	return reliableFrameTime;
 }

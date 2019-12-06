@@ -52,7 +52,7 @@ void ButtonConfigSetView::initPointerUI()
 	if(!pointerUIIsInit())
 	{
 		logMsg("init pointer UI elements");
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		unbind = {"Unbind", &View::defaultFace};
 		cancel = {"Cancel", &View::defaultFace};
 		unbindB.x2 = 1;
@@ -253,7 +253,7 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 		return;
 	auto &b = btn[keyToSet];
 	{
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		b.str = makeKeyNameStr(mapKey, devConf->dev->keyName(mapKey));
 		b.item.t2.compile(renderer(), projP);
 	}
@@ -320,7 +320,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 						return;
 					conf->unbindCategory(*cat);
 					{
-						auto lock = makeControllerMutexLock();
+						waitForDrawFinished();
 						iterateTimes(cat->keys, i)
 						{
 							string_copy(btn[i].str, devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));

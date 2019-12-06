@@ -53,7 +53,10 @@ private:
 class EmuVideo
 {
 public:
-	EmuVideo(Gfx::Renderer &r): r{r} {}
+	using FrameFinishedDelegate = DelegateFunc<void (EmuVideo &)>;
+	using FormatChangedDelegate = DelegateFunc<void (EmuVideo &)>;
+
+	EmuVideo(Gfx::RendererTask &rTask): rTask{rTask} {}
 	void setFormat(IG::PixmapDesc desc);
 	void setFormatLocked(IG::PixmapDesc desc);
 	void resetImage();
@@ -61,19 +64,27 @@ public:
 	void startFrame(IG::Pixmap pix);
 	void finishFrame(Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(IG::Pixmap pix);
+	void waitAsyncFrame();
+	void addFence(Gfx::RendererCommands &cmds);
 	void clear();
 	void takeGameScreenshot();
 	bool isExternalTexture();
 	Gfx::PixmapTexture &image();
-	Gfx::Renderer &renderer() { return r; }
+	Gfx::Renderer &renderer() { return rTask.renderer(); }
 	IG::WP size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
+	void setOnFrameFinished(FrameFinishedDelegate del);
+	void setOnFormatChanged(FormatChangedDelegate del);
 
 protected:
-	Gfx::Renderer &r;
+	Gfx::RendererTask &rTask;
+	Gfx::SyncFence fence{};
 	Gfx::PixmapTexture vidImg{};
 	IG::MemPixmap memPix{};
+	FrameFinishedDelegate onFrameFinished{};
+	FormatChangedDelegate onFormatChanged{};
 	bool screenshotNextFrame = false;
 
 	void doScreenshot(IG::Pixmap pix);
+	void dispatchFinishFrame();
 };

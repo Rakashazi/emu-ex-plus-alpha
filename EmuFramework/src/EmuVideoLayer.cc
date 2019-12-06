@@ -226,49 +226,49 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 
 void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP)
 {
+	if(!EmuSystem::isStarted())
+		return;
 	using namespace Gfx;
-	if(EmuSystem::isStarted())
+	bool replaceMode = true;
+	if(unlikely(brightness != 1.f))
 	{
-		bool replaceMode = true;
-		if(unlikely(brightness != 1.f))
-		{
-			cmds.setColor(brightness, brightness, brightness);
-			replaceMode = false;
-		}
-
-		cmds.setBlendMode(0);
-		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		if(vidImgEffect.program())
-		{
-			auto prevViewport = cmds.viewport();
-			cmds.setClipTest(false);
-			cmds.setProgram(vidImgEffect.program());
-			cmds.setRenderTarget(vidImgEffect.renderTarget());
-			cmds.setDither(false);
-			cmds.clear();
-			vidImgEffect.drawRenderTarget(cmds, video.image());
-			cmds.setDefaultRenderTarget();
-			cmds.setDither(true);
-			cmds.setViewport(prevViewport);
-			disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
-		}
-		else
-		#endif
-		{
-			disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
-		}
-		if(useLinearFilter)
-			cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
-		else
-			cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
-		disp.draw(cmds);
-		vidImgOverlay.draw(cmds);
+		cmds.setColor(brightness, brightness, brightness);
+		replaceMode = false;
 	}
+	cmds.setBlendMode(0);
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(vidImgEffect.program())
+	{
+		auto prevViewport = cmds.viewport();
+		cmds.setClipTest(false);
+		cmds.setProgram(vidImgEffect.program());
+		cmds.setRenderTarget(vidImgEffect.renderTarget());
+		cmds.setDither(false);
+		cmds.clear();
+		vidImgEffect.drawRenderTarget(cmds, video.image());
+		cmds.setDefaultRenderTarget();
+		cmds.setDither(true);
+		cmds.setViewport(prevViewport);
+		disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+	}
+	else
+	#endif
+	{
+		disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
+	}
+	if(useLinearFilter)
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	else
+		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	disp.draw(cmds);
+	video.addFence(cmds);
+	vidImgOverlay.draw(cmds);
 }
 
 void EmuVideoLayer::setOverlay(uint effect)
 {
 	vidImgOverlay.setEffect(video.renderer(), effect);
+	placeOverlay();
 }
 
 void EmuVideoLayer::setOverlayIntensity(Gfx::GC intensity)
@@ -321,4 +321,13 @@ void EmuVideoLayer::setLinearFilter(bool on)
 void EmuVideoLayer::setBrightness(float b)
 {
 	brightness = b;
+}
+
+void EmuVideoLayer::reset()
+{
+	setEffect(0);
+	video.resetImage();
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	setEffect(optionImgEffect);
+	#endif
 }

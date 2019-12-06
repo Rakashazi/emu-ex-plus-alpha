@@ -141,6 +141,11 @@ void Pipe::setReadNonBlocking(bool on)
 	fd_setNonblock(msgPipe[0], on);
 }
 
+bool Pipe::isReadNonBlocking() const
+{
+	return fd_getNonblock(msgPipe[0]);
+}
+
 Pipe::operator bool() const
 {
 	return msgPipe[0] != -1;

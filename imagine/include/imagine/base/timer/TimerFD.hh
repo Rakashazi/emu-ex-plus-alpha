@@ -27,11 +27,11 @@ class TimerFD
 protected:
 	FDEventSource fdSrc{};
 	CallbackDelegate callback{};
-	int fd = -1;
 	bool reuseResources = false; // whether to keep the timerfd open after firing
 	bool repeating = false;
 	bool armed = false;
 
+	int fd() const;
 	bool arm(timespec ms, timespec repeatInterval, EventLoop loop, bool shouldReuseResources);
 
 public:
@@ -41,7 +41,7 @@ public:
 
 	bool operator ==(TimerFD const& rhs) const
 	{
-		return fd == rhs.fd;
+		return fdSrc.fd() == rhs.fdSrc.fd();
 	}
 
 	explicit operator bool() const

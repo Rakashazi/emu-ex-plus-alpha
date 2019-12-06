@@ -24,6 +24,7 @@ namespace Base
 
 void CustomEvent::setEventLoop(EventLoop loop)
 {
+	int fd = fdSrc.fd();
 	if(fd == -1)
 	{
 		fd = eventfd(0, 0);
@@ -57,7 +58,7 @@ void CustomEvent::notify()
 {
 	cancelled = false;
 	eventfd_t notify = 1;
-	auto ret = write(fd, &notify, sizeof(notify));
+	auto ret = write(fdSrc.fd(), &notify, sizeof(notify));
 	assert(ret == sizeof(notify));
 }
 
@@ -69,9 +70,7 @@ void CustomEvent::cancel()
 void CustomEvent::deinit()
 {
 	cancelled = true;
-	fdSrc.removeFromEventLoop();
-	close(fd);
-	fd = -1;
+	fdSrc.closeFD();
 }
 
 }

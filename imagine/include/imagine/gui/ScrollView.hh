@@ -29,6 +29,8 @@ public:
 	ScrollView(ViewAttachParams attach);
 	ScrollView(const char *name, ViewAttachParams attach);
 	~ScrollView();
+	void onShow() override;
+	void onHide() override;
 	bool isDoingScrollGesture() const;
 	bool isOverScrolled() const;
 	int overScroll() const;

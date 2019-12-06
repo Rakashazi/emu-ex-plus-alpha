@@ -53,6 +53,8 @@ public:
 	void resetScroll();
 	bool inputEvent(Input::Event event) override;
 	void clearSelection() override;
+	void onShow() override;
+	void onHide() override;
 	void onAddedToController(Input::Event e) override;
 	void setFocus(bool focused) override;
 	uint cells() { return items(*this); }

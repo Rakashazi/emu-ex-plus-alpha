@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/thread/Semaphore.hh>
+#include <imagine/logger/logger.h>
 
 namespace IG
 {
@@ -44,12 +45,18 @@ Semaphore::~Semaphore()
 
 void Semaphore::wait()
 {
-	sem_wait(&sem);
+	if(sem_wait(&sem))
+	{
+		logErr("error in sem_wait()");
+	}
 }
 
 void Semaphore::notify()
 {
-	sem_post(&sem);
+	if(sem_post(&sem))
+	{
+		logErr("error in sem_post()");
+	}
 }
 
 void PosixSemaphore::deinit()

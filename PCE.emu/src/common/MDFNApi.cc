@@ -45,9 +45,9 @@ void MDFN_Notify(MDFN_NoticeType t, const char* format, ...) noexcept
 
 void MDFND_OutputNotice(MDFN_NoticeType t, const char* s) noexcept
 {
-	if(!logger_isEnabled())
+	if(!Config::DEBUG_BUILD || !logger_isEnabled())
 		return;
-	MDFN_Notify(t, "%s", s);
+	logMsg("%s", s);
 }
 
 int MDFN_SavePNGSnapshot(const char *fname, const MDFN_Surface *src, const MDFN_Rect *rect, const MDFN_Rect *LineWidths)

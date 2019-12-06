@@ -57,9 +57,9 @@ static std::unique_ptr<AppWindowData> extraWin{};
 
 EmuViewController::EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
 	VController &vCtrl, EmuVideoLayer &videoLayer):
-	emuView{{winData.win, renderer}, &emuVideoLayer},
-	emuInputView{{winData.win, renderer}, vController},
-	popup{{winData.win, renderer}},
+	emuView{{winData.win, rTask}, &videoLayer},
+	emuInputView{{winData.win, rTask}, vController},
+	popup{{winData.win, rTask}},
 	rendererTask_{rTask}
 {}
 
@@ -115,12 +115,22 @@ bool EmuModalViewStack::inputEvent(Input::Event e)
 	return false;
 }
 
-
 void EmuViewController::initViews(ViewAttachParams viewAttach)
 {
-	auto &winData = appWindowData(viewAttach.win);
+	auto &winData = appWindowData(viewAttach.window());
 	winData.hasEmuView = true;
 	winData.hasPopup = true;
+	Base::addOnExit(
+		[this](bool backgrounded)
+		{
+			if(backgrounded)
+			{
+				if(modalViewController.size())
+					modalViewController.top().onHide();
+				viewStack.top().onHide();
+			}
+			return true;
+		}, 10);
 	Base::addOnResume(
 		[this](bool focused)
 		{
@@ -202,6 +212,33 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	placeElements();
 	pushAndShow(makeEmuView(viewAttach, EmuApp::ViewID::MAIN_MENU), Input::defaultEvent());
 	applyFrameRates();
+	placeEmuViewsEvent.setEventLoop({});
+	placeEmuViewsEvent.setCallback([this](){ placeEmuViews(); });
+	videoLayer().emuVideo().setOnFrameFinished(
+		[this](EmuVideo &)
+		{
+			postDrawToEmuWindows();
+		});
+	videoLayer().emuVideo().setOnFormatChanged(
+		[this, &videoLayer = videoLayer()](EmuVideo &)
+		{
+			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+			videoLayer.setEffect(optionImgEffect);
+			#else
+			videoLayer.resetImage();
+			#endif
+			if((uint)optionImageZoom > 100)
+			{
+				if(IG::this_thread::get_id() == mainThreadID)
+				{
+					placeEmuViews();
+				}
+				else
+				{
+					postPlaceEmuViews();
+				}
+			}
+		});
 }
 
 Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf)
@@ -252,13 +289,14 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 			}
 			auto fence = emuView.renderer().addResourceSyncFence();
 			rendererTask_.draw(winData.drawableHolder, win, params,
-				[this, &winData, fence](Gfx::Drawable &drawable, const Base::Window &win, Gfx::RendererDrawTask task)
+				[this, &winData, fence](Gfx::Drawable &drawable, Base::Window &win, Gfx::RendererDrawTask task)
 				{
 					auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
 					cmds.clear();
-					task.waitSync(fence);
-					drawMainWindow(cmds, winData.hasEmuView, winData.hasPopup);
-				}, 0);
+					cmds.waitSync(fence);
+					drawMainWindow(win, cmds, winData.hasEmuView, winData.hasPopup);
+				});
+			return false;
 		});
 
 	return winConf;
@@ -347,6 +385,7 @@ void EmuViewController::showEmulation()
 {
 	if(showingEmulation)
 		return;
+	viewStack.top().onHide();
 	showingEmulation = true;
 	configureAppForEmulation(true);
 	configureWindowForEmulation(emuView.window(), true);
@@ -398,6 +437,11 @@ void EmuViewController::placeEmuViews()
 	emuInputView.place();
 }
 
+void EmuViewController::postPlaceEmuViews()
+{
+	placeEmuViewsEvent.notify();
+}
+
 void EmuViewController::placeElements()
 {
 	logMsg("placing app elements");
@@ -446,22 +490,20 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				emuView.prepareDraw();
 				auto fence = emuView.renderer().addResourceSyncFence();
 				rendererTask_.draw(winData.drawableHolder, win, params,
-					[this, fence, hasPopup](Gfx::Drawable &drawable, const Base::Window &win, Gfx::RendererDrawTask task)
+					[this, fence, hasPopup](Gfx::Drawable &drawable, Base::Window &win, Gfx::RendererDrawTask task)
 					{
 						auto &winData = appWindowData(win);
 						auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
 						cmds.clear();
-						task.waitSync(fence);
+						cmds.waitSync(fence);
+						emuView.draw(cmds);
+						if(hasPopup)
 						{
-							auto lock = std::scoped_lock(mutex());
-							emuView.draw(cmds);
-							if(hasPopup)
-							{
-								popup.draw(cmds);
-							}
+							popup.draw(cmds);
 						}
 						cmds.present();
-					}, 1);
+					});
+				return false;
 			});
 
 		winConf.setOnInputEvent(
@@ -617,7 +659,7 @@ void EmuViewController::startEmulation()
 	setCPUNeedsLowLatency(true);
 	emuSystemTask.start();
 	EmuSystem::start();
-	emuVideoLayer.setBrightness(1.f);
+	videoLayer().setBrightness(1.f);
 	auto &screen = *emuView.window().screen();
 	initialTotalFrameTime = 0;
 	addInitialOnFrame(screen, initialDelayFrames(screen));
@@ -628,7 +670,7 @@ void EmuViewController::pauseEmulation()
 	setCPUNeedsLowLatency(false);
 	emuSystemTask.pause();
 	EmuSystem::pause();
-	emuVideoLayer.setBrightness(showingEmulation ? .75f : .25f);
+	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	emuView.window().screen()->removeOnFrame(onFrameUpdate);
 }
 
@@ -656,6 +698,11 @@ Base::Screen *EmuViewController::emuWindowScreen() const
 	return emuView.window().screen();
 }
 
+Base::Window &EmuViewController::emuWindow() const
+{
+	return emuView.window();
+}
+
 Gfx::RendererTask &EmuViewController::rendererTask() const
 {
 	return rendererTask_;
@@ -664,6 +711,7 @@ Gfx::RendererTask &EmuViewController::rendererTask() const
 void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
 	showUI();
+	viewStack.top().onHide();
 	modalViewController.pushAndShow(std::move(v), e, needsNavView);
 }
 
@@ -683,13 +731,14 @@ void EmuViewController::prepareDraw()
 	viewStack.prepareDraw();
 }
 
-void EmuViewController::drawMainWindow(Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup)
+void EmuViewController::drawMainWindow(Base::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup)
 {
 	if(showingEmulation)
 	{
-		auto lock = std::scoped_lock(mutex());
 		if(hasEmuView)
+		{
 			emuView.draw(cmds);
+		}
 		emuInputView.draw(cmds);
 		if(hasPopup)
 			popup.draw(cmds);
@@ -698,14 +747,12 @@ void EmuViewController::drawMainWindow(Gfx::RendererCommands &cmds, bool hasEmuV
 	{
 		if(hasEmuView)
 		{
-			auto lock = std::scoped_lock(mutex());
 			emuView.draw(cmds);
 		}
 		if(modalViewController.size())
 			modalViewController.draw(cmds);
 		else
 			viewStack.draw(cmds);
-		auto lock = std::scoped_lock(mutex());
 		popup.draw(cmds);
 	}
 	cmds.present();
@@ -763,6 +810,11 @@ EmuInputView &EmuViewController::inputView()
 ToastView &EmuViewController::popupMessageView()
 {
 	return popup;
+}
+
+EmuVideoLayer &EmuViewController::videoLayer() const
+{
+	return *emuView.videoLayer();
 }
 
 void EmuViewController::onScreenChange(Base::Screen &screen, Base::Screen::Change change)

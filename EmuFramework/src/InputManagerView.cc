@@ -255,7 +255,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		{
 			emuViewController.popTo(*this);
 			auto selectedCell = selected;
-			auto lock = makeControllerMutexLock();
+			waitForDrawFinished();
 			loadItems();
 			highlightCell(selectedCell);
 			place();
@@ -879,7 +879,7 @@ void InputManagerDeviceView::setPlayer(int playerVal)
 	devConf->player = playerVal;
 	devConf->save();
 	{
-		auto lock = makeControllerMutexLock();
+		waitForDrawFinished();
 		if(changingMultiplayer)
 		{
 			loadItems();

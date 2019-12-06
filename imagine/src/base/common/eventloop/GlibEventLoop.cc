@@ -146,6 +146,15 @@ int FDEventSource::fd() const
 	return fd_;
 }
 
+void FDEventSource::closeFD()
+{
+	if(fd_ == -1)
+		return;
+	removeFromEventLoop();
+	close(fd_);
+	fd_ = -1;
+}
+
 bool GlibFDEventSource::makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 	PollEventDelegate callback_, GIOCondition events, GMainContext *ctx)
 {

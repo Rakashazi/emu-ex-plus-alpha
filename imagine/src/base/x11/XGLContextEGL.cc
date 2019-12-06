@@ -18,6 +18,8 @@
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 namespace Base
 {
@@ -26,7 +28,11 @@ namespace Base
 
 GLDisplay GLDisplay::getDefault()
 {
-	return {eglGetDisplay(Config::MACHINE_IS_PANDORA ? EGL_DEFAULT_DISPLAY : (EGLNativeDisplayType)dpy)};
+	#if defined CONFIG_MACHINE_PANDORA
+	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
+	#else
+	return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, dpy, nullptr)};
+	#endif
 }
 
 // GLContext
