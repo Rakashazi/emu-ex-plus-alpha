@@ -165,7 +165,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormatLocked({{gbResX, gbResY}, pixFmt});
+	video.setFormat({{gbResX, gbResY}, pixFmt});
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
@@ -183,7 +183,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	alignas(std::max_align_t) uint8 snd[(35112+2064)*4];
 	size_t samples = 35112;
@@ -191,7 +191,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	DelegateFunc<void()> frameCallback{};
 	if(video)
 	{
-		auto img = video->startFrame();
+		auto img = video->startFrame(task);
 		frameCallback =
 			[&img]()
 			{

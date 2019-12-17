@@ -212,9 +212,8 @@ void onInit(int argc, char** argv)
 			{
 				activeTest->prepareDraw(renderer);
 			}
-			auto fence = renderer.addResourceSyncFence();
-			rendererTask.draw(drawableHolder, win, params,
-				[fence](Gfx::Drawable &drawable, Base::Window &win, Gfx::RendererDrawTask task)
+			rendererTask.draw(drawableHolder, win, params, {},
+				[](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 				{
 					auto cmds = task.makeRendererCommands(drawable, projP.viewport, projMat);
 					cmds.setClipTest(false);
@@ -233,6 +232,7 @@ void onInit(int argc, char** argv)
 					cmds.present();
 					if(activeTest && activeTest->started)
 					{
+						activeTest->presentedTest(cmds);
 						activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
 					}
 				});

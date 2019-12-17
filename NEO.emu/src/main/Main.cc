@@ -87,12 +87,11 @@ static uint16 screenBuff[352*256] __attribute__ ((aligned (8))){};
 static GN_Surface sdlSurf;
 static FS::PathString datafilePath{};
 static const int FBResX = 352;
-static EmuVideo *emuVideo{};
 // start image on y 16, x 24, size 304x224, 48 pixel padding on the right
 static IG::Pixmap srcPix{{{304, 224}, pixFmt}, (char*)screenBuff + (16*FBResX*2) + (24*2), {FBResX, IG::Pixmap::PIXEL_UNITS}};
 static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
 
-CLINK void main_frame(int skip_this_frame);
+CLINK void main_frame(void *emuTaskPtr, void *emuVideoPtr);
 
 const char *EmuSystem::shortSystemName()
 {
@@ -328,7 +327,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate onLoadProgress
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormatLocked(srcPix);
+	video.setFormat(srcPix);
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
@@ -341,13 +340,14 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	}
 }
 
-CLINK void screen_update()
+CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
 {
+	auto task = (EmuSystemTask*)emuTaskPtr;
+	auto emuVideo = (EmuVideo*)emuVideoPtr;
 	if(likely(emuVideo))
 	{
 		//logMsg("screen render");
-		emuVideo->startFrame(srcPix);
-		emuVideo = {};
+		emuVideo->startFrame(task, srcPix);
 	}
 	else
 	{
@@ -355,13 +355,12 @@ CLINK void screen_update()
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	//logMsg("run frame %d", (int)processGfx);
-	emuVideo = video;
 	if(video)
 		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
-	main_frame(!video);
+	main_frame(task, video);
 	auto audioFrames = audioFramesForThisFrame();
 	YM2610Update_stream(audioFrames);
 	if(renderAudio)

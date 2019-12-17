@@ -7,6 +7,7 @@
 
 class SoundDriver;
 class EmuVideo;
+class EmuSystemTask;
 
 struct EmulatedSystem {
   // main emulation function
@@ -44,7 +45,7 @@ extern void log(const char *,...);
 extern bool systemPauseOnFrame();
 extern void systemGbPrint(u8 *,int,int,int,int,int);
 extern void systemScreenCapture(int);
-extern void systemDrawScreen(EmuVideo &video);
+extern void systemDrawScreen(EmuSystemTask *task, EmuVideo &video);
 // updates the joystick data
 extern bool systemReadJoypads();
 // return information about the given joystick, -1 for default joystick

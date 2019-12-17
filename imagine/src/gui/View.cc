@@ -167,6 +167,7 @@ bool View::pointIsInView(IG::WP pos)
 
 void View::waitForDrawFinished()
 {
-	assumeExpr(rendererTask_);
-	rendererTask_->waitForDrawFinished();
+	// currently a no-op due to RendererTask only running present() async
+	/*assumeExpr(rendererTask_);
+	rendererTask_->waitForDrawFinished();*/
 }

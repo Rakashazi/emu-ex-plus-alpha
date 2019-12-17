@@ -99,7 +99,6 @@ void ScrollView::onShow() {}
 
 void ScrollView::onHide()
 {
-	logMsg("ON HIDE");
 	setScrollOffset(offset);
 }
 

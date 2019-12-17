@@ -31,6 +31,10 @@ ifneq ($(filter x86_64, $(android_arch)),)
  targets += $(x86_64Target)
 endif
 
+ifeq ($(wildcard $(projectPath)/android-java.mk),)
+ android_skipJavaBuild := 1
+endif
+
 makefileOpts += projectPath=$(projectPath)
 
 ifdef imagineLibExt
@@ -45,6 +49,12 @@ makeTargets = $(foreach target, $(1),$(MAKE) -f $(commonBuildPath)/$(target).mk 
 
 all :
 	$(PRINT_CMD)+$(call makeTargets,$(targets),)
+ifndef android_skipJavaBuild
+	$(PRINT_CMD)+$(MAKE) -f $(projectPath)/android-java.mk $(makefileOpts)
+endif
 
 .DEFAULT:
 	$(PRINT_CMD)+$(call makeTargets,$(targets),$@)
+ifndef android_skipJavaBuild
+	$(PRINT_CMD)+$(MAKE) -f $(projectPath)/android-java.mk $(makefileOpts) $@
+endif

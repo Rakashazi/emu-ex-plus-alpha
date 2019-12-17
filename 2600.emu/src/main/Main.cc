@@ -143,7 +143,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	osystem->soundGeneric().setFrameTime(*osystem, rate, frameTime);
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	auto &console = osystem->console();
 	console.leftController().update();
@@ -153,8 +153,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	tia.update();
 	if(video)
 	{
-		video->setFormatLocked({{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
-		auto img = video->startFrame();
+		auto img = video->startFrameWithFormat(task, {{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
 		osystem->frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
 	}

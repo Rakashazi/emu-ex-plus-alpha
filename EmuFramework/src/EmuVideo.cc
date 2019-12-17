@@ -56,59 +56,84 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	onFormatChanged(*this);
 }
 
-void EmuVideo::setFormatLocked(IG::PixmapDesc desc)
+void EmuVideo::postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc)
 {
 	if(formatIsEqual(desc))
 	{
 		return; // no change to format
 	}
-	rTask.lockDraw();
-	setFormat(desc);
-	rTask.unlockDraw();
+	IG::Semaphore sem{0};
+	task.sendVideoFormatChangedReply(desc, &sem);
+	sem.wait();
 }
 
-EmuVideoImage EmuVideo::startFrame()
+EmuVideoImage EmuVideo::startFrame(EmuSystemTask *task)
 {
 	auto lockedTex = vidImg.lock(0);
 	if(!lockedTex)
 	{
-		if(!memPix)
+		if(unlikely(!memPix))
 		{
 			logMsg("created backing memory pixmap");
 			memPix = {vidImg.usedPixmapDesc()};
 		}
-		return {*this, (IG::Pixmap)memPix};
+		return {task, *this, (IG::Pixmap)memPix};
 	}
-	return {*this, lockedTex};
+	return {task, *this, lockedTex};
 }
 
-void EmuVideo::startFrame(IG::Pixmap pix)
+void EmuVideo::startFrame(EmuSystemTask *task, IG::Pixmap pix)
 {
-	finishFrame(pix);
+	finishFrame(task, pix);
+}
+
+EmuVideoImage EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc)
+{
+	if(task)
+	{
+		postSetFormat(*task, desc);
+	}
+	else
+	{
+		setFormat(desc);
+	}
+	return startFrame(task);
+}
+
+void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
+{
+	if(task)
+	{
+		postSetFormat(*task, pix);
+	}
+	else
+	{
+		setFormat(pix);
+	}
+	startFrame(task, pix);
 }
 
 void EmuVideo::dispatchFinishFrame()
 {
-	renderer().flush();
 	onFrameFinished(*this);
 }
 
-void EmuVideo::finishFrame(Gfx::LockedTextureBuffer texBuff)
+void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff)
 {
 	if(unlikely(screenshotNextFrame))
 	{
-		doScreenshot(texBuff.pixmap());
+		doScreenshot(task, texBuff.pixmap());
 	}
 	rTask.acquireFenceAndWait(fence);
 	vidImg.unlock(texBuff);
 	dispatchFinishFrame();
 }
 
-void EmuVideo::finishFrame(IG::Pixmap pix)
+void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 {
 	if(unlikely(screenshotNextFrame))
 	{
-		doScreenshot(pix);
+		doScreenshot(task, pix);
 	}
 	rTask.acquireFenceAndWait(fence);
 	vidImg.write(0, pix, {}, Gfx::Texture::COMMIT_FLAG_ASYNC);
@@ -137,20 +162,33 @@ void EmuVideo::takeGameScreenshot()
 	screenshotNextFrame = true;
 }
 
-void EmuVideo::doScreenshot(IG::Pixmap pix)
+void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 {
 	screenshotNextFrame = false;
 	FS::PathString path;
 	int screenshotNum = sprintScreenshotFilename(path);
 	if(screenshotNum == -1)
 	{
-		EmuApp::postErrorMessage("Too many screenshots");
+		if(task)
+		{
+			task->sendScreenshotReply(-1, false);
+		}
+		else
+		{
+			EmuApp::printScreenshotResult(-1, false);
+		}
 	}
 	else
 	{
 		auto success = writeScreenshot(pix, path.data());
-		EmuApp::printfMessage(2, !success, "%s%d",
-			success ? "Wrote screenshot #" : "Error writing screenshot #", screenshotNum);
+		if(task)
+		{
+			task->sendScreenshotReply(screenshotNum, success);
+		}
+		else
+		{
+			EmuApp::printScreenshotResult(screenshotNum, success);
+		}
 	}
 }
 
@@ -168,15 +206,37 @@ Gfx::PixmapTexture &EmuVideo::image()
 	return vidImg;
 }
 
+EmuVideoImage::EmuVideoImage() {}
+
+EmuVideoImage::EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
+	task{task}, emuVideo{&vid}, texBuff{texBuff} {}
+
+EmuVideoImage::EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, IG::Pixmap pix):
+	task{task}, emuVideo{&vid}, pix{pix} {}
+
+IG::Pixmap EmuVideoImage::pixmap() const
+{
+	if(texBuff)
+		return texBuff.pixmap();
+	else
+		return pix;
+}
+
+EmuVideoImage::operator bool() const
+{
+	return texBuff || pix;
+}
+
+
 void EmuVideoImage::endFrame()
 {
 	if(texBuff)
 	{
-		emuVideo->finishFrame(texBuff);
+		emuVideo->finishFrame(task, texBuff);
 	}
 	else if(pix)
 	{
-		emuVideo->finishFrame(pix);
+		emuVideo->finishFrame(task, pix);
 	}
 }
 

@@ -212,8 +212,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	placeElements();
 	pushAndShow(makeEmuView(viewAttach, EmuApp::ViewID::MAIN_MENU), Input::defaultEvent());
 	applyFrameRates();
-	placeEmuViewsEvent.setEventLoop({});
-	placeEmuViewsEvent.setCallback([this](){ placeEmuViews(); });
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
@@ -229,19 +227,12 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			#endif
 			if((uint)optionImageZoom > 100)
 			{
-				if(IG::this_thread::get_id() == mainThreadID)
-				{
-					placeEmuViews();
-				}
-				else
-				{
-					postPlaceEmuViews();
-				}
+				placeEmuViews();
 			}
 		});
 }
 
-Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf)
+Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf, AppWindowData &winData)
 {
 	winConf.setOnInputEvent(
 		[this](Base::Window &win, Input::Event e)
@@ -250,9 +241,9 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 		});
 
 	winConf.setOnFocusChange(
-		[this](Base::Window &win, uint in)
+		[this, &winData](Base::Window &win, uint in)
 		{
-			mainWindowData().focused = in;
+			winData.focused = in;
 			onFocusChange(in);
 		});
 
@@ -264,9 +255,8 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 		});
 
 	winConf.setOnSurfaceChange(
-		[this](Base::Window &win, Base::Window::SurfaceChange change)
+		[this, &winData](Base::Window &win, Base::Window::SurfaceChange change)
 		{
-			auto &winData = mainWindowData();
 			rendererTask_.updateDrawableForSurfaceChange(winData.drawableHolder, change);
 			if(change.resized())
 			{
@@ -278,18 +268,16 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 		});
 
 	winConf.setOnDraw(
-		[this](Base::Window &win, Base::Window::DrawParams params)
+		[this, &winData](Base::Window &win, Base::Window::DrawParams params)
 		{
-			auto &winData = mainWindowData();
 			popup.prepareDraw();
 			emuView.prepareDraw();
 			if(!EmuSystem::isActive())
 			{
 				prepareDraw();
 			}
-			auto fence = emuView.renderer().addResourceSyncFence();
-			rendererTask_.draw(winData.drawableHolder, win, params,
-				[this, &winData, fence](Gfx::Drawable &drawable, Base::Window &win, Gfx::RendererDrawTask task)
+			rendererTask_.draw(winData.drawableHolder, win, params, {},
+				[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 				{
 					auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
 					cmds.clear();
@@ -437,11 +425,6 @@ void EmuViewController::placeEmuViews()
 	emuInputView.place();
 }
 
-void EmuViewController::postPlaceEmuViews()
-{
-	placeEmuViewsEvent.notify();
-}
-
 void EmuViewController::placeElements()
 {
 	logMsg("placing app elements");
@@ -482,22 +465,19 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		winConf.setOnDraw(
 			[this, &winData = *extraWin](Base::Window &win, Base::Window::DrawParams params)
 			{
-				bool hasPopup = winData.hasPopup;
-				if(hasPopup)
+				if(winData.hasPopup)
 				{
 					popup.prepareDraw();
 				}
 				emuView.prepareDraw();
-				auto fence = emuView.renderer().addResourceSyncFence();
-				rendererTask_.draw(winData.drawableHolder, win, params,
-					[this, fence, hasPopup](Gfx::Drawable &drawable, Base::Window &win, Gfx::RendererDrawTask task)
+				rendererTask_.draw(winData.drawableHolder, win, params, {},
+					[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 					{
-						auto &winData = appWindowData(win);
 						auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
 						cmds.clear();
 						cmds.waitSync(fence);
 						emuView.draw(cmds);
-						if(hasPopup)
+						if(winData.hasPopup)
 						{
 							popup.draw(cmds);
 						}

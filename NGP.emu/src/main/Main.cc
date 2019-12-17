@@ -27,6 +27,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2018\nRobe
 uint32 frameskip_active = 0;
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
 static IG::Pixmap srcPix{{{ngpResX, ngpResY}, pixFmt}, cfb};
 
@@ -145,7 +146,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormatLocked({{ngpResX, ngpResY}, pixFmt});
+	video.setFormat({{ngpResX, ngpResY}, pixFmt});
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
@@ -163,13 +164,15 @@ void system_VBL(void)
 {
 	if(likely(emuVideo))
 	{
-		emuVideo->startFrame(srcPix);
+		emuVideo->startFrame(emuSysTask, srcPix);
 		emuVideo = {};
+		emuSysTask = {};
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
+	emuSysTask = task;
 	emuVideo = video;
 	frameskip_active = video ? 0 : 1;
 

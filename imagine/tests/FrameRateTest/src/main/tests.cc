@@ -110,7 +110,6 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		updatedCPUStats = true;
 	}
 	{
-		rTask.waitForDrawFinished();
 		if(updatedCPUStats)
 		{
 			string_printf(cpuStatsStr, "%s%s%s",
@@ -269,6 +268,7 @@ void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameT
 
 void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
+	cmds.setClearColor(0, 0, 0);
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
@@ -329,11 +329,11 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 	{
 		texture.write(0, pix, {});
 	}
-	texture.renderer().flush();
 }
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
+	cmds.setClearColor(0, 0, 0);
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);

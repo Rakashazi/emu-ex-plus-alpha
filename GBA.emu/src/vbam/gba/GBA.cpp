@@ -3209,7 +3209,7 @@ void CPUInterrupt(GBASys &gba, ARM7TDMI &cpu)
 	gba.biosProtected[3] = 0xe5;
 }
 
-void CPULoop(GBASys &gba, EmuVideo *video, bool renderAudio)
+void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	auto cpu = gba.cpu;
 	auto &holdState = cpu.holdState;
@@ -3464,7 +3464,7 @@ void CPULoop(GBASys &gba, EmuVideo *video, bool renderAudio)
             }
             if(ioMem.VCOUNT == 159 && likely(video))
             {
-            	systemDrawScreen(*video);
+            	systemDrawScreen(task, *video);
             }
             // entering H-Blank
             ioMem.DISPSTAT |= 2;

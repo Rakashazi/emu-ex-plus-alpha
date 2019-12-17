@@ -282,8 +282,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	auto &video = *espec->video;
 	if(multiResOutputWidth)
 	{
-		video.setFormatLocked({{multiResOutputWidth, pixHeight}, pixFmt});
-		auto img = video.startFrame();
+		auto img = video.startFrameWithFormat(espec->task, {{multiResOutputWidth, pixHeight}, pixFmt});
 		auto destPixAddr = (Pixel*)img.pixmap().pixel({0,0});
 		auto lineWidth = spec.LineWidths + spec.DisplayRect.y;
 		if(multiResOutputWidth == 1024)
@@ -364,12 +363,11 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	}
 	else
 	{
-		video.setFormatLocked({{pixWidth, pixHeight}, pixFmt});
-		video.startFrame(srcPix);
+		video.startFrameWithFormat(espec->task, srcPix);
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	uint maxFrames = 48000/54;
 	int16 audioBuff[maxFrames*2];
@@ -384,6 +382,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 			configAudioPlayback();
 		}
 	}
+	espec.task = task;
 	espec.video = video;
 	espec.skip = !video;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);

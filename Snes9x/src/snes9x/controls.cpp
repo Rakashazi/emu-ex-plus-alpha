@@ -465,7 +465,7 @@ static const char	*command_names[LAST_COMMAND + 1] =
 #undef THE_COMMANDS
 
 static void DisplayStateChange (const char *, bool8);
-static void DoGunLatch (int, int);
+void DoGunLatch (int, int);
 static int maptype (int);
 static bool strless (const char *, const char *);
 static int findstr (const char *, const char **, int);
@@ -496,7 +496,7 @@ static void DisplayStateChange (const char *str, bool8 on)
 	S9xSetInfoString(buf);
 }
 
-static void DoGunLatch (int x, int y)
+void DoGunLatch (int x, int y)
 {
 	x += 40;
 

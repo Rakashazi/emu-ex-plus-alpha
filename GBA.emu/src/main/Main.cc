@@ -27,7 +27,7 @@
 #include <vbam/Util.h>
 
 void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &gba, EmuVideo *video, bool renderAudio);
+void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, bool renderAudio);
 void CPUCleanUp();
 bool CPUReadBatteryFile(GBASys &gba, const char *);
 bool CPUWriteBatteryFile(GBASys &gba, const char *);
@@ -188,12 +188,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormatLocked({{240, 160}, pixFmt});
+	video.setFormat({{240, 160}, pixFmt});
 }
 
-void systemDrawScreen(EmuVideo &video)
+void systemDrawScreen(EmuSystemTask *task, EmuVideo &video)
 {
-	auto img = video.startFrame();
+	auto img = video.startFrame(task);
 	IG::Pixmap framePix{{{240, 160}, IG::PIXEL_RGB565}, gGba.lcd.pix};
 	if(!directColorLookup)
 	{
@@ -212,9 +212,9 @@ void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
 	EmuSystem::writeSound(finalWave, EmuSystem::pcmFormat.bytesToFrames(length));
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
-	CPULoop(gGba, video, renderAudio);
+	CPULoop(gGba, task, video, renderAudio);
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)

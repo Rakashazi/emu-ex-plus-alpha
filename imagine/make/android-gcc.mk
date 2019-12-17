@@ -3,8 +3,8 @@
 ENV := android
 CROSS_COMPILE := 1
 
-ifeq ($(wildcard $(ANDROID_NDK_PATH)/platforms)),)
- $(error Invalid NDK path:$(ANDROID_NDK_PATH), add NDK directory to PATH, define ANDROID_NDK_PATH, or move NDK to the default path:$(defaultNDKPath)
+ifeq ($(ANDROID_NDK_PATH),)
+ $(error setAndroidNDKPath.mk was not included in base makefile)
 endif
 
 android_ndkSysroot := $(ANDROID_NDK_PATH)/sysroot
@@ -37,10 +37,10 @@ ifeq ($(origin CC), default)
  CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
  CXX := $(CC)++
  LD := $(CC)
- AR := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar
- RANLIB := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-ar s
- STRIP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-strip
- OBJDUMP := $(ANDROID_GCC_TOOLCHAIN_BIN_PATH)/$(CHOST)-objdump
+ AR := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar
+ RANLIB := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar s
+ STRIP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-strip
+ OBJDUMP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-objdump
  toolchainEnvParams += RANLIB="$(RANLIB)" STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
 else
  # TODO: user-defined compiler
@@ -73,6 +73,7 @@ ifneq ($(wildcard $(android_stdcxxLibArchPath)/libandroid_support.a),)
 endif
 ifneq ($(wildcard $(android_stdcxxLibArchPath)/libunwind.a),)
  android_stdcxxLib += $(android_stdcxxLibArchPath)/libunwind.a
+ LDFLAGS_SYSTEM += -Wl,--exclude-libs,libunwind.a
 endif
 
 pkg_stdcxxStaticLib := $(android_stdcxxLib)
@@ -81,6 +82,7 @@ ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
 
+android_linker ?= lld
 CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
 CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ASMFLAGS += $(CFLAGS_TARGET) -Wa,--noexecstack
@@ -90,9 +92,9 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID --sysroot=$(android_ndkSysroot)
-LDFLAGS_SYSTEM += -s \
+LDFLAGS_SYSTEM += -fuse-ld=$(android_linker) -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
--Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a
+-Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a
 
 ifeq ($(android_ndkSDK), 9)
  # SDK 9 no longer supported since NDK r16, enable compatibilty work-arounds

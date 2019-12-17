@@ -152,31 +152,6 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			getXCoordinateFromPixels = getYCoordinateFromPixels = 1;
 		}
 
-		// adjust position
-		Gfx::GC yOffset = 0;
-		int yOffsetPixels = 0;
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(inputView && viewportAspectRatio < 1. && inputView->touchControlsAreOn() && EmuSystem::touchControlsApplicable())
-		{
-			auto &layoutPos = vController.layoutPosition()[inputView->window().isPortrait() ? 1 : 0];
-			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
-			{
-				logMsg("moving game rect to bottom");
-				gameRectG.setYPos(projP.bounds().y, CB2DO);
-				gameRect_.setYPos(viewportRect.y2, CB2DO);
-			}
-			else if(!(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
-				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
-			{
-				// move controls to top if d-pad & face button aren't on opposite Y quadrants
-				logMsg("moving game rect to top");
-				gameRectG.setYPos(projP.bounds().y2, CT2DO);
-				gameRect_.setYPos(viewportRect.y, CT2DO);
-			}
-
-		}
-		#endif
-
 		// apply sub-pixel zoom
 		if(optionImageZoom.val < 100)
 		{
@@ -187,9 +162,29 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			gameRectG.y2 *= scaler;
 		}
 
-		// apply y offset after zoom
-		gameRectG += IG::Point2D<Gfx::GC>{0, yOffset};
-		gameRect_ += IG::Point2D<int>{0, yOffsetPixels};
+		// adjust position
+		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+		if(inputView && viewportAspectRatio < 1. && inputView->touchControlsAreOn() && EmuSystem::touchControlsApplicable())
+		{
+			auto padding = vController.bounds(3).ySize(); // adding menu button-sized padding
+			auto paddingG = projP.unProjectRect(vController.bounds(3)).ySize();
+			auto &layoutPos = vController.layoutPosition()[inputView->window().isPortrait() ? 1 : 0];
+			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
+			{
+				logMsg("moving game rect to bottom");
+				gameRectG.setYPos(projP.bounds().y + paddingG, CB2DO);
+				gameRect_.setYPos(viewportRect.y2 - padding, CB2DO);
+			}
+			else if(!(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onBottom() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
+				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
+			{
+				// move controls to top if d-pad & face button aren't on opposite Y quadrants
+				logMsg("moving game rect to top");
+				gameRectG.setYPos(projP.bounds().y2 - paddingG, CT2DO);
+				gameRect_.setYPos(viewportRect.y + padding, CT2DO);
+			}
+		}
+		#endif
 
 		// assign final coordinates
 		auto fromWorldSpaceRect = projP.projectRect(gameRectG);

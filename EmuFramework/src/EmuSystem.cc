@@ -583,13 +583,13 @@ IG::Time EmuSystem::benchmark()
 	auto now = IG::Time::now();
 	iterateTimes(180, i)
 	{
-		runFrame(&emuVideo, false);
+		runFrame(nullptr, &emuVideo, false);
 	}
 	auto after = IG::Time::now();
 	return after-now;
 }
 
-void EmuSystem::skipFrames(uint frames, bool renderAudio)
+void EmuSystem::skipFrames(EmuSystemTask *task, uint frames, bool renderAudio)
 {
 	if(!gameIsRunning())
 		return;
@@ -599,7 +599,7 @@ void EmuSystem::skipFrames(uint frames, bool renderAudio)
 	{
 		bool renderAudioThisFrame = renderAudio && audioFramesWritten() <= EmuSystem::audioFramesPerVideoFrame;
 		turboActions.update();
-		runFrame(nullptr, renderAudioThisFrame);
+		runFrame(task, nullptr, renderAudioThisFrame);
 	}
 }
 

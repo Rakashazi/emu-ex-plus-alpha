@@ -269,7 +269,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			if(EmuSystem::gameIsRunning())
 			{
 				emuVideo.takeGameScreenshot();
-				EmuSystem::runFrame(&emuVideo, false);
+				EmuSystem::runFrame(nullptr, &emuVideo, false);
 			}
 		}
 	},

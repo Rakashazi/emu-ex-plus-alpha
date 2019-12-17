@@ -123,7 +123,7 @@ fi
 
 if [ ! $noIcon ]
 then
-	applicationOutput="$applicationOutput android:icon=\"@drawable/icon\""
+	applicationOutput="$applicationOutput android:icon=\"@mipmap/icon\""
 fi
 
 if [ $isTV ]

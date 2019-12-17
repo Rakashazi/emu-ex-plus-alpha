@@ -136,7 +136,7 @@ extern Uint32 joy_numaxes[2];
 void debug_loop(void);
 void main_loop(void);
 void init_neo(void);
-void cpu_68k_dpg_step(int skip_this_frame);
+void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr);
 void setup_misc_patch(char *name);
 void neogeo_reset(void);
 

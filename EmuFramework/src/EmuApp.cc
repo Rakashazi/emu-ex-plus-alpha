@@ -86,7 +86,6 @@ FS::PathString lastLoadPath{};
 SysVController vController{renderer, mainWin, EmuSystem::inputFaceBtns};
 uint pointerInputPlayer = 0;
 #endif
-IG::thread::id mainThreadID{};
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
 
@@ -191,7 +190,6 @@ static const char *parseCmdLineArgs(int argc, char** argv)
 
 void mainInitCommon(int argc, char** argv)
 {
-	mainThreadID = IG::this_thread::get_id();
 	Base::registerInstance(appID(), argc, argv);
 	Base::setAcceptIPC(appID(), true);
 	Base::setOnInterProcessMessage(
@@ -364,7 +362,7 @@ void mainInitCommon(int argc, char** argv)
 	{
 		logMsg("requested external storage write permissions");
 	}
-	Base::WindowConfig winConf = emuViewController.addWindowConfig({});
+	Base::WindowConfig winConf = emuViewController.addWindowConfig({}, mainWin);
 	winConf.setCustomData(&mainWin);
 	renderer.initWindow(mainWin.win, winConf);
 	auto &win = mainWin.win;
@@ -590,6 +588,19 @@ void EmuApp::unpostMessage()
 	emuViewController.popupMessageView().clear();
 }
 
+void EmuApp::printScreenshotResult(int num, bool success)
+{
+	if(num == -1)
+	{
+		EmuApp::postErrorMessage("Too many screenshots");
+	}
+	else
+	{
+		EmuApp::printfMessage(2, !success, "%s%d",
+			success ? "Wrote screenshot #" : "Error writing screenshot #", num);
+	}
+}
+
 ViewAttachParams emuViewAttachParams()
 {
 	return {mainWin.win, rendererTask};
@@ -612,7 +623,7 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 			{
 				switch(msg.progress)
 				{
-					case EmuSystem::LoadProgress::FAILED:
+					bcase EmuSystem::LoadProgress::FAILED:
 					{
 						assumeExpr(msg.intArg3 > 0);
 						uint len = msg.intArg3;
@@ -622,9 +633,9 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 						loadProgressView->msgPort.removeFromEventLoop();
 						popModalViews();
 						EmuApp::postErrorMessage(4, errorStr);
-						return false;
+						return;
 					}
-					case EmuSystem::LoadProgress::OK:
+					bcase EmuSystem::LoadProgress::OK:
 					{
 						loadProgressView->msgPort.removeFromEventLoop();
 						auto onComplete = loadProgressView->onComplete;
@@ -633,9 +644,9 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 						EmuSystem::prepareAudioVideo();
 						emuViewController.onSystemCreated();
 						onComplete(originalEvent);
-						return false;
+						return;
 					}
-					case EmuSystem::LoadProgress::UPDATE:
+					bcase EmuSystem::LoadProgress::UPDATE:
 					{
 						loadProgressView->setPos(msg.intArg);
 						loadProgressView->setMax(msg.intArg2);
@@ -660,16 +671,13 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 						}
 						loadProgressView->place();
 						loadProgressView->postDraw();
-						return true;
 					}
-					default:
+					bdefault:
 					{
 						logWarn("Unknown LoadProgressMessage value:%d", (int)msg.progress);
-						return true;
 					}
 				}
 			}
-			return true;
 		});
 	pushAndShowModalView(std::move(loadProgressView), e);
 	auto pathStr = FS::makePathString(path);

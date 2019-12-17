@@ -39,6 +39,7 @@ namespace Gfx
 class RendererTask;
 class RenderTarget;
 class SyncFence;
+class RendererCommands;
 
 class GLSyncFence
 {
@@ -90,6 +91,7 @@ public:
 				DrawDelegate del;
 				Base::Window *winPtr;
 				Drawable drawable;
+				GLsync fence;
 			} draw;
 			struct RunFuncArgs
 			{
@@ -101,8 +103,8 @@ public:
 		constexpr CommandMessage() {}
 		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
 			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, DrawDelegate drawDel, Drawable drawable, Base::Window &win, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, args{drawDel, &win, drawable}, command{command} {}
+		constexpr CommandMessage(Command command, DrawDelegate drawDel, Drawable drawable, Base::Window &win, GLsync fence, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, args{drawDel, &win, drawable, fence}, command{command} {}
 		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr):
 			semAddr{semAddr}, command{command}
 		{
@@ -131,6 +133,7 @@ public:
 	GLuint bindFramebuffer(Texture &tex);
 	void destroyContext(bool useSeparateDrawContext, Base::GLDisplay dpy);
 	bool handleDrawableReset();
+	void initialCommands(RendererCommands &cmds);
 
 protected:
 	Base::MessagePort<CommandMessage> commandPort{};
@@ -140,8 +143,10 @@ protected:
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
 	Base::FrameTimeBase drawTimestamp{};
+	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	std::mutex drawMutex{};
 	std::condition_variable drawCondition{};
+	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLuint streamVAO = 0;
 	std::array<GLuint, 6> streamVBO{};
@@ -154,7 +159,10 @@ protected:
 	#endif
 	GLuint fbo = 0;
 	bool resetDrawable = false;
+	bool contextInitialStateSet = false;
+	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	bool canDraw = true;
+	#endif
 
 	void replyHandler(Renderer &r, ReplyMessage msg);
 	bool commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread);
@@ -165,17 +173,19 @@ using RendererTaskImpl = GLRendererTask;
 class GLRendererDrawTask
 {
 public:
-	GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy);
+	GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy, IG::Semaphore *semAddr);
 	void setCurrentDrawable(Drawable win);
 	void present(Drawable win);
 	GLuint bindFramebuffer(Texture &t);
 	GLuint getVBO();
 	GLuint defaultFramebuffer() const;
+	void notifySemaphore();
 	Base::GLDisplay glDisplay() const { return glDpy; };
 
 protected:
 	RendererTask &task;
 	Base::GLDisplay glDpy{};
+	IG::Semaphore *semAddr{};
 };
 
 using RendererDrawTaskImpl = GLRendererDrawTask;

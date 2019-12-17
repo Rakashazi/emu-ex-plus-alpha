@@ -22,6 +22,34 @@ void EmuSystemTask::start()
 {
 	if(started)
 		return;
+	replyPort.addToEventLoop({},
+		[this](auto msgs)
+		{
+			for(auto msg = msgs.get(); msg; msg = msgs.get())
+			{
+				switch(msg.reply)
+				{
+					bcase Reply::VIDEO_FORMAT_CHANGED:
+					{
+						emuVideo.setFormat(msg.args.videoFormat.desc);
+						auto semAddr = msg.args.videoFormat.semAddr;
+						if(semAddr)
+						{
+							semAddr->notify();
+						}
+					}
+					bcase Reply::TOOK_SCREENSHOT:
+					{
+						EmuApp::printScreenshotResult(msg.args.screenshot.num, msg.args.screenshot.success);
+					}
+					bdefault:
+					{
+						logErr("unknown reply message:%d", (int)msg.reply);
+					}
+				}
+			}
+			return true;
+		});
 	IG::makeDetachedThreadSync(
 		[this](auto &sem)
 		{
@@ -83,13 +111,13 @@ void EmuSystemTask::start()
 						doFrame = true;
 						if(fastForwardActive)
 						{
-							EmuSystem::skipFrames((uint)optionFastForwardSpeed, true);
+							EmuSystem::skipFrames(this, (uint)optionFastForwardSpeed, true);
 						}
 						else
 						{
 							iterateTimes((uint)optionFastForwardSpeed, i)
 							{
-								EmuSystem::skipFrames(1, true);
+								EmuSystem::skipFrames(this, 1, true);
 								if(!EmuSystem::shouldFastForward())
 								{
 									logMsg("fast-forward ended early after %d frame(s)", i);
@@ -121,7 +149,7 @@ void EmuSystemTask::start()
 								iterateTimes(framesToSkip, i)
 								{
 									turboActions.update();
-									EmuSystem::runFrame(nullptr, renderAudio);
+									EmuSystem::runFrame(this, nullptr, renderAudio);
 								}
 							}
 						}
@@ -130,7 +158,7 @@ void EmuSystemTask::start()
 					{
 						bool renderAudio = optionSound;
 						turboActions.update();
-						EmuSystem::runFrame(&emuVideo, renderAudio);
+						EmuSystem::runFrame(this, &emuVideo, renderAudio);
 					}
 					if(unlikely(notifySemAddr))
 					{
@@ -164,6 +192,8 @@ void EmuSystemTask::stop()
 	IG::Semaphore sem{0};
 	commandPort.send({Command::EXIT, &sem});
 	sem.wait();
+	replyPort.clear();
+	replyPort.removeFromEventLoop();
 	emuVideo.waitAsyncFrame();
 	started = false;
 }
@@ -187,4 +217,14 @@ void EmuSystemTask::waitForFinishedFrame()
 void EmuSystemTask::setFastForwardActive(bool active)
 {
 	fastForwardActive = active;
+}
+
+void EmuSystemTask::sendVideoFormatChangedReply(IG::PixmapDesc desc, IG::Semaphore *semAddr)
+{
+	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, desc, semAddr});
+}
+
+void EmuSystemTask::sendScreenshotReply(int num, bool success)
+{
+	replyPort.send({Reply::TOOK_SCREENSHOT, num, success});
 }

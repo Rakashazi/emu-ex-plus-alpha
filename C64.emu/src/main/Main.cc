@@ -374,7 +374,7 @@ EmuSystem::Error EmuSystem::saveState(const char *path)
 	SnapshotTrapData data;
 	data.pathStr = path;
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-	skipFrames(1, false); // execute cpu trap
+	skipFrames(nullptr, 1, false); // execute cpu trap
 	return data.hasError ? makeFileWriteError() : Error{};
 }
 
@@ -383,14 +383,14 @@ EmuSystem::Error EmuSystem::loadState(const char *path)
 	plugin.resources_set_int("WarpMode", 0);
 	SnapshotTrapData data;
 	data.pathStr = path;
-	skipFrames(1, false); // run extra frame in case C64 was just started
+	skipFrames(nullptr, 1, false); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	skipFrames(1, false); // execute cpu trap, snapshot load may cause reboot from a C64 model change
+	skipFrames(nullptr, 1, false); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
 		return makeFileReadError();
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	skipFrames(1, false); // execute cpu trap
+	skipFrames(nullptr, 1, false); // execute cpu trap
 	bool hasError = data.hasError;
 	isPal = sysIsPal();
 	return hasError ? makeFileReadError() : Error{};
@@ -509,7 +509,7 @@ static void execC64Frame()
 	execDoneSem.wait();
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	runningFrame = 1;
 	doAudio = renderAudio;
@@ -517,8 +517,7 @@ void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
 	execC64Frame();
 	if(video)
 	{
-		video->setFormatLocked(canvasSrcPix);
-		video->startFrame(canvasSrcPix);
+		video->startFrameWithFormat(task, canvasSrcPix);
 	}
 	runningFrame = 0;
 }

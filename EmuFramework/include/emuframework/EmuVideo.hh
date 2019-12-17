@@ -17,34 +17,23 @@
 
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/thread/Semaphore.hh>
 
 class EmuVideo;
+class EmuSystemTask;
 
 class EmuVideoImage
 {
 public:
-	EmuVideoImage() {}
-	EmuVideoImage(EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
-		emuVideo{&vid}, texBuff{texBuff} {}
-	EmuVideoImage(EmuVideo &vid, IG::Pixmap pix):
-		emuVideo{&vid}, pix{pix} {}
-
-	IG::Pixmap pixmap() const
-	{
-		if(texBuff)
-			return texBuff.pixmap();
-		else
-			return pix;
-	}
-
-	explicit operator bool() const
-	{
-		return texBuff || pix;
-	}
-
+	EmuVideoImage();
+	EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff);
+	EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, IG::Pixmap pix);
+	IG::Pixmap pixmap() const;
+	explicit operator bool() const;
 	void endFrame();
 
 private:
+	EmuSystemTask *task{};
 	EmuVideo *emuVideo{};
 	Gfx::LockedTextureBuffer texBuff{};
 	IG::Pixmap pix{};
@@ -58,12 +47,13 @@ public:
 
 	EmuVideo(Gfx::RendererTask &rTask): rTask{rTask} {}
 	void setFormat(IG::PixmapDesc desc);
-	void setFormatLocked(IG::PixmapDesc desc);
 	void resetImage();
-	EmuVideoImage startFrame();
-	void startFrame(IG::Pixmap pix);
-	void finishFrame(Gfx::LockedTextureBuffer texBuff);
-	void finishFrame(IG::Pixmap pix);
+	EmuVideoImage startFrame(EmuSystemTask *task);
+	void startFrame(EmuSystemTask *task, IG::Pixmap pix);
+	EmuVideoImage startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc);
+	void startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix);
+	void finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff);
+	void finishFrame(EmuSystemTask *task, IG::Pixmap pix);
 	void waitAsyncFrame();
 	void addFence(Gfx::RendererCommands &cmds);
 	void clear();
@@ -85,6 +75,7 @@ protected:
 	FormatChangedDelegate onFormatChanged{};
 	bool screenshotNextFrame = false;
 
-	void doScreenshot(IG::Pixmap pix);
+	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
 	void dispatchFinishFrame();
+	void postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc);
 };

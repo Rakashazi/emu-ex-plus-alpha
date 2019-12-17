@@ -74,6 +74,7 @@ void RendererCommands::bindTempVertexBuffer()
 
 void RendererCommands::present()
 {
+	rTask->notifySemaphore();
 	rTask->verifyCurrentContext();
 	discardTemporaryData();
 	rTask->present(drawable);

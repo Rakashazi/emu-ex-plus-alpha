@@ -196,7 +196,7 @@ void init_neo(void) {
 static unsigned int fc;
 static int last_line;
 
-static inline int neo_interrupt(int skip_this_frame) {
+static inline int neo_interrupt(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
     static int frames;
 
 	pd4990a_addretrace();
@@ -212,7 +212,7 @@ static inline int neo_interrupt(int skip_this_frame) {
 	if (!skip_this_frame) {
 		PROFILER_START(PROF_VIDEO);
 
-		draw_screen();
+		draw_screen(emuTaskPtr, emuVideoPtr);
 
 		PROFILER_STOP(PROF_VIDEO);
 	}
@@ -230,7 +230,7 @@ static inline int neo_interrupt(int skip_this_frame) {
 	return 1;
 }
 
-static inline void update_screen(int skip_this_frame) {
+static inline void update_screen(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
 
 	if (memory.vid.irq2control & 0x40)
 		memory.vid.irq2start = (memory.vid.irq2pos + 3) / 0x180; /* ridhero gives 0x17d */
@@ -240,9 +240,9 @@ static inline void update_screen(int skip_this_frame) {
 	if (!skip_this_frame) {
 		if (last_line < 21) { /* there was no IRQ2 while the beam was in the
 							 * visible area -> no need for scanline rendering */
-			draw_screen();
+			draw_screen(emuTaskPtr, emuVideoPtr);
 		} else {
-			draw_screen_scanline(last_line - 21, 262, 1);
+			draw_screen_scanline(last_line - 21, 262, 1, emuTaskPtr, emuVideoPtr);
 		}
 	}
 
@@ -256,7 +256,7 @@ static inline void update_screen(int skip_this_frame) {
 	fc++;
 }
 
-static inline int update_scanline(int skip_this_frame) {
+static inline int update_scanline(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
 	memory.vid.irq2taken = 0;
 
 	if (memory.vid.irq2control & 0x10) {
@@ -274,7 +274,7 @@ static inline int update_scanline(int skip_this_frame) {
 				last_line = 21;
 			if (memory.vid.current_line < 20)
 				memory.vid.current_line = 20;
-			draw_screen_scanline(last_line - 21, memory.vid.current_line - 20, 0);
+			draw_screen_scanline(last_line - 21, memory.vid.current_line - 20, 0, emuTaskPtr, emuVideoPtr);
 		}
 		last_line = memory.vid.current_line;
 	}
@@ -297,7 +297,8 @@ static inline void state_handling(int save,int load) {
 	}
 }
 
-void main_frame(int skip_this_frame) {
+void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
+	const int skip_this_frame = !emuVideoPtr;
 	uint m68k_overclk = 0;
 	uint z80_overclk = 0;
 	#ifdef USE_MUSASHI
@@ -358,7 +359,7 @@ void main_frame(int skip_this_frame) {
 				for (int i = 0; i < 264; i++) {
 					tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline
 							- tm_cycle);
-					if (update_scanline(skip_this_frame))
+					if (update_scanline(skip_this_frame, emuTaskPtr, emuVideoPtr))
 					{
 						//logMsg("irq 2");
 						cpu_68k_interrupt(2);
@@ -367,7 +368,7 @@ void main_frame(int skip_this_frame) {
 				tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline - tm_cycle);
 				//state_handling(pending_save_state, pending_load_state);
 
-				update_screen(skip_this_frame);
+				update_screen(skip_this_frame, emuTaskPtr, emuVideoPtr);
 				memory.watchdog++;
 				if (memory.watchdog > 7) {
 					logMsg("WATCHDOG RESET\n");
@@ -378,7 +379,7 @@ void main_frame(int skip_this_frame) {
 				PROFILER_START(PROF_68K);
 				tm_cycle = cpu_68k_run(cpu_68k_timeslice - tm_cycle);
 				PROFILER_STOP(PROF_68K);
-				int a = neo_interrupt(skip_this_frame);
+				int a = neo_interrupt(skip_this_frame, emuTaskPtr, emuVideoPtr);
 
 				/* state handling (we save/load before interrupt) */
 				//state_handling(pending_save_state, pending_load_state);
@@ -817,7 +818,7 @@ void main_loop(void) {
 #endif
 }
 
-void cpu_68k_dpg_step(int skip_this_frame) {
+void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
 	static Uint32 nb_cycle;
 	static Uint32 line_cycle;
 	Uint32 cpu_68k_timeslice = 200000;
@@ -833,9 +834,9 @@ void cpu_68k_dpg_step(int skip_this_frame) {
 	if (nb_cycle >= cpu_68k_timeslice) {
 		nb_cycle = line_cycle = 0;
 		if (conf.raster) {
-			update_screen(skip_this_frame);
+			update_screen(skip_this_frame, emuTaskPtr, emuVideoPtr);
 		} else {
-			neo_interrupt(skip_this_frame);
+			neo_interrupt(skip_this_frame, emuTaskPtr, emuVideoPtr);
 		}
 		//state_handling(pending_save_state, pending_load_state);
 		cpu_68k_interrupt(1);
@@ -843,7 +844,7 @@ void cpu_68k_dpg_step(int skip_this_frame) {
 		if (line_cycle >= cpu_68k_timeslice_scanline) {
 			line_cycle = 0;
 			if (conf.raster) {
-				if (update_scanline(skip_this_frame))
+				if (update_scanline(skip_this_frame, emuTaskPtr, emuVideoPtr))
 					cpu_68k_interrupt(2);
 			}
 		}

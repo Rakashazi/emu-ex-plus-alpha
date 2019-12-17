@@ -64,7 +64,7 @@ class EmuViewController : public ViewController
 public:
 	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask, VController &vCtrl, EmuVideoLayer &videoLayer);
 	void initViews(ViewAttachParams attach);
-	Base::WindowConfig addWindowConfig(Base::WindowConfig conf);
+	Base::WindowConfig addWindowConfig(Base::WindowConfig conf, AppWindowData &winData);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
@@ -75,7 +75,6 @@ public:
 	void showUI(bool updateTopView = true);
 	bool showAutoStateConfirm(Input::Event e, bool addToRecent);
 	void placeEmuViews();
-	void postPlaceEmuViews();
 	void placeElements();
 	void setEmuViewOnExtraWindow(bool on, Base::Screen &screen);
 	void startMainViewportAnimation();
@@ -111,7 +110,6 @@ protected:
 	ToastView popup;
 	EmuMenuViewStack viewStack{};
 	EmuModalViewStack modalViewController{};
-	Base::CustomEvent placeEmuViewsEvent{};
 	Base::Screen::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask &rendererTask_;
 	Base::FrameTimeBase initialTotalFrameTime{};
@@ -162,15 +160,51 @@ public:
 		explicit operator bool() const { return command != Command::UNSET; }
 	};
 
+	enum class Reply: uint8_t
+	{
+		UNSET, VIDEO_FORMAT_CHANGED, TOOK_SCREENSHOT
+	};
+
+	struct ReplyMessage
+	{
+		union Args
+		{
+			struct VideoFormatArgs
+			{
+				IG::PixmapDesc desc;
+				IG::Semaphore *semAddr;
+			} videoFormat;
+			struct ScreenshotArgs
+			{
+				int num;
+				bool success;
+			} screenshot;
+		} args{};
+		Reply reply{Reply::UNSET};
+
+		constexpr ReplyMessage() {}
+		constexpr ReplyMessage(Reply reply, IG::PixmapDesc desc, IG::Semaphore *semAddr):
+			args{desc, semAddr}, reply{reply} {}
+		constexpr ReplyMessage(Reply reply, int num, bool success):
+			reply{reply}
+		{
+			args.screenshot = {num, success};
+		}
+		explicit operator bool() const { return reply != Reply::UNSET; }
+	};
+
 	void start();
 	void pause();
 	void stop();
 	void runFrame(Base::FrameTimeBase timestamp);
 	void waitForFinishedFrame();
 	void setFastForwardActive(bool active);
+	void sendVideoFormatChangedReply(IG::PixmapDesc desc, IG::Semaphore *semAddr);
+	void sendScreenshotReply(int num, bool success);
 
 private:
 	Base::MessagePort<CommandMessage> commandPort{};
+	Base::MessagePort<ReplyMessage> replyPort{};
 	bool started = false;
 	bool fastForwardActive = false;
 };
@@ -182,7 +216,6 @@ extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern EmuVideo emuVideo;
 extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
-extern IG::thread::id mainThreadID;
 static constexpr const char *strftimeFormat = "%x  %r";
 
 void loadConfigFile();

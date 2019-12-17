@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/Pipe.hh>
+#include <imagine/util/typeTraits.hh>
 
 namespace Base
 {
@@ -70,7 +71,16 @@ public:
 			[=](Base::Pipe &pipe) -> int
 			{
 				Messages msg{pipe};
-				return del(msg);
+				constexpr auto returnsVoid = std::is_same<void, decltype(del(msg))>::value;
+				if constexpr(returnsVoid)
+				{
+					del(msg);
+					return 1;
+				}
+				else
+				{
+					return del(msg);
+				}
 			});
 	}
 

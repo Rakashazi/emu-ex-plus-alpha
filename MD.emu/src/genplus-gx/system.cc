@@ -40,12 +40,12 @@ uint32 mcycles_vdp;
 //uint32 Z80.cycleCount;
 //uint32 mcycles_68k;
 uint8 system_hw;
-void (*system_frame)(EmuVideo *emuVideo);
+void (*system_frame)(EmuSystemTask *task, EmuVideo *emuVideo);
 int (*audioUpdateFunc)(int16 *sb);
 
 template <bool hasSegaCD = 0>
-static void system_frame_md(EmuVideo *emuVideo);
-static void system_frame_sms(EmuVideo *emuVideo);
+static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo);
+static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo);
 static int pause_b;
 static EQSTATE eq;
 static int32 llp,rrp;
@@ -351,11 +351,11 @@ static void runM68k(uint cycles)
 	#endif
 }
 
-template void system_frame_md<0>(EmuVideo *emuVideo);
-template void system_frame_md<1>(EmuVideo *emuVideo);
+template void system_frame_md<0>(EmuSystemTask *task, EmuVideo *emuVideo);
+template void system_frame_md<1>(EmuSystemTask *task, EmuVideo *emuVideo);
 
 template <bool hasSegaCD>
-static void system_frame_md(EmuVideo *emuVideo)
+static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo)
 {
 	int do_skip = !emuVideo;
 
@@ -492,8 +492,7 @@ static void system_frame_md(EmuVideo *emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo->setFormatLocked({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
-  	img = emuVideo->startFrame();
+  	img = emuVideo->startFrameWithFormat(task, {{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
   	gPixmap = img.pixmap();
   }
 
@@ -758,7 +757,7 @@ static void system_frame_md(EmuVideo *emuVideo)
 }
 
 
-static void system_frame_sms(EmuVideo *emuVideo)
+static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo)
 {
 	int do_skip = !emuVideo;
 
@@ -890,8 +889,7 @@ static void system_frame_sms(EmuVideo *emuVideo)
   EmuVideoImage img{};
   if(!do_skip)
   {
-  	emuVideo->setFormatLocked({{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
-  	img = emuVideo->startFrame();
+  	img = emuVideo->startFrameWithFormat(task, {{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
   }
 
   /* Active Display */

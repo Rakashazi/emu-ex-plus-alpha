@@ -67,6 +67,7 @@ static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ 
 static char *srcPixData = (char*)&screenBuff[8 * msxResX];
 static IG::Pixmap srcPix{{{msxResX, msxResY}, pixFmt}, srcPixData};
 static bool doubleWidthFrame = false;
+static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
 
 #if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || defined CONFIG_BASE_IOS || defined CONFIG_MACHINE_IS_PANDORA
@@ -729,9 +730,9 @@ static void commitVideoFrame()
 {
 	if(likely(emuVideo))
 	{
-		emuVideo->setFormatLocked({{msxResX, msxResY}, pixFmt});
-		emuVideo->startFrame(srcPix);
+		emuVideo->startFrameWithFormat(emuSysTask, srcPix);
 		emuVideo = {};
+		emuSysTask = {};
 	}
 }
 
@@ -742,8 +743,9 @@ void RefreshScreen(int screenMode)
 	boardInfo.stop(boardInfo.cpuRef);
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
+	emuSysTask = task;
 	emuVideo = video;
 	boardInfo.run(boardInfo.cpuRef);
 	((R800*)boardInfo.cpuRef)->terminate = 0;

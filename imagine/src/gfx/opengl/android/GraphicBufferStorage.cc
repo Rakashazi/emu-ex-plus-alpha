@@ -125,9 +125,14 @@ void GraphicBufferStorage::unlock(Renderer &, GLuint tex)
 
 bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 {
-	if(Base::androidSDK() >= 24)
+	auto androidSDK = Base::androidSDK();
+	if(androidSDK >= 14)
+	{
+		// TODO: Currently prefer SurfaceTexture on all devices that support it
+		// until better synchronization is implemented with multi-threaded renderer
 		return false;
-	else if(Base::androidSDK() >= 11)
+	}
+	else if(androidSDK >= 11)
 	{
 		// whitelist known tested devices with Android 3.0+
 		auto buildDevice = Base::androidBuildDevice();
@@ -138,14 +143,14 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 				// works on Nexus 6 on Android 6.0
 				return true;
 			}
-			if(Base::androidSDK() >= 20 &&
+			if(androidSDK >= 20 &&
 				string_equal(buildDevice.data(), "mako"))
 			{
 				// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
 				// other devices like the HTC One M7 will crash using GraphicBuffers
 				return true;
 			}
-			if(Base::androidSDK() >= 19 &&
+			if(androidSDK >= 19 &&
 				string_equal(buildDevice.data(), "ha3g"))
 			{
 				// works on Galaxy Note 3 (SM-N900) with Mali-T628
@@ -155,7 +160,7 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 		}
 		else if(Config::MACHINE_IS_GENERIC_X86)
 		{
-			if(Base::androidSDK() >= 19 &&
+			if(androidSDK >= 19 &&
 				string_equal(buildDevice.data(), "ducati2fhd"))
 			{
 				// Works on Acer Iconia Tab 8 (A1-840FHD)

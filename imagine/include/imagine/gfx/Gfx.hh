@@ -127,12 +127,48 @@ public:
 class RendererTask : public RendererTaskImpl
 {
 public:
+	enum class AsyncMode
+	{
+		NONE, PRESENT, FULL
+	};
+
+	enum class FenceMode
+	{
+		NONE, RESOURCE
+	};
+
+	class DrawParams
+	{
+	public:
+		constexpr DrawParams() {}
+
+		void setAsyncMode(AsyncMode mode)
+		{
+			asyncMode_ = mode;
+		}
+
+		AsyncMode asyncMode() const { return asyncMode_; }
+
+		void setFenceMode(FenceMode mode)
+		{
+			fenceMode_ = mode;
+		}
+
+		FenceMode fenceMode() const { return fenceMode_; }
+
+	private:
+		AsyncMode asyncMode_ = AsyncMode::PRESENT;
+		FenceMode fenceMode_ = FenceMode::RESOURCE;
+	};
+
 	RendererTask(Renderer &r);
 	void start();
 	void stop();
-	void draw(DrawableHolder &drawable, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del);
+	void draw(DrawableHolder &drawable, Base::Window &win, Base::Window::DrawParams winParams, DrawParams params, DrawDelegate del);
+	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	void lockDraw();
 	void unlockDraw();
+	#endif
 	void waitForDrawFinished();
 	void run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr);
 	void runSync(RenderTaskFuncDelegate func);
@@ -155,6 +191,7 @@ public:
 
 	RendererCommands makeRendererCommands(Drawable drawable, Viewport viewport, Mat4 projMat);
 	void verifyCurrentContext() const;
+	void notifyCommandsFinished();
 	Renderer &renderer() const;
 };
 

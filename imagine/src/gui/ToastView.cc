@@ -49,6 +49,7 @@ void ToastView::place()
 
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.fullHeight()));
 	IG::WindowRect viewFrame;
+	logMsg("label y size:%d", labelYSize);
 	viewFrame.setPosRel(rect.pos(CB2DO),
 		{rect.xSize(), labelYSize}, CB2DO);
 	msgFrame = projP.unProjectRect(viewFrame);
@@ -140,5 +141,5 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 	GeomRect::draw(cmds, msgFrame);
 	cmds.setColor(1., 1., 1., 1.);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-	text.draw(cmds, 0, projP.alignYToPixel(msgFrame.y + (text.ySize * 1.5)/2.), C2DO, projP);
+	text.draw(cmds, 0, projP.alignYToPixel(msgFrame.pos(C2DO).y), C2DO, projP);
 }

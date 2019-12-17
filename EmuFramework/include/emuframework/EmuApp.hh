@@ -89,6 +89,7 @@ public:
 	static void postErrorMessage(const char *msg);
 	static void postErrorMessage(uint secs, const char *msg);
 	static void unpostMessage();
+	static void printScreenshotResult(int num, bool success);
 	static void saveAutoState();
 	static bool loadAutoState();
 	static EmuSystem::Error saveState(const char *path);

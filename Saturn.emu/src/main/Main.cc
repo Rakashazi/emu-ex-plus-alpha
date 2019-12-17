@@ -197,6 +197,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 
+static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
 
 CLINK void YuiSwapBuffers()
@@ -207,9 +208,9 @@ CLINK void YuiSwapBuffers()
 		int height, width;
 		VIDCore->GetGlSize(&width, &height);
 		IG::Pixmap srcPix = {{{width, height}, pixFmt}, dispbuffer};
-		emuVideo->setFormatLocked(srcPix);
-		emuVideo->startFrame(srcPix);
+		emuVideo->startFrameWithFormat(emuSysTask, srcPix);
 		emuVideo = {};
+		emuSysTask = {};
 	}
 	else
 	{
@@ -308,8 +309,9 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	// TODO: use frameTime
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
+	emuSysTask = task;
 	emuVideo = video;
 	SNDImagine.UpdateAudio = renderAudio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
 	YabauseEmulate();

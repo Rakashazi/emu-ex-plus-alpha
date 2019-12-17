@@ -47,7 +47,7 @@ namespace Input
 class AndroidInputDevice;
 extern const AndroidInputDevice *virtualDev;
 extern std::vector<std::unique_ptr<AndroidInputDevice>> sysInputDev;
-extern void (*processInput)(AInputQueue *inputQueue, bool signaledFromLooper);
+extern void (*processInput)(AInputQueue *inputQueue);
 
 void init(JNIEnv *env);
 void setEventsUseOSInputMethod(bool on);
@@ -57,8 +57,8 @@ void changeInputConfig(AConfiguration *config);
 bool hasHardKeyboard();
 int hardKeyboardState();
 int keyboardType();
-void processInputWithGetEvent(AInputQueue *inputQueue, bool signaledFromLooper);
-void processInputWithHasEvents(AInputQueue *inputQueue, bool signaledFromLooper);
+void processInputWithGetEvent(AInputQueue *inputQueue);
+void processInputWithHasEvents(AInputQueue *inputQueue);
 void onPauseMOGA(JNIEnv *env);
 void onResumeMOGA(JNIEnv *env, bool notify);
 bool hasGetAxisValue();

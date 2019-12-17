@@ -9,8 +9,7 @@ android_ndkArch := arm
 # Must declare min API 14 to compile with unified headers
 clangTarget := armv7-none-linux-androideabi14
 CFLAGS_CODEGEN += -fpic
-LDFLAGS_SYSTEM += -Wl,--fix-cortex-a8
-armv7CPUFlags ?= -march=armv7-a -mtune=generic
+armv7CPUFlags ?= -march=armv7-a -mtune=generic -mfpu=vfpv3-d16
 android_cpuFlags ?= $(armv7CPUFlags)
 android_armv7State ?= -mthumb
 android_armState := $(android_armv7State)

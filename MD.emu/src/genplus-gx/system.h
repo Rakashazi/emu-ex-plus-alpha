@@ -91,7 +91,7 @@ extern void audio_set_equalizer(void);
 extern void system_init(void);
 extern void system_reset(void);
 extern void system_shutdown(void);
-extern void (*system_frame)(EmuVideo *emuVideo);
+extern void (*system_frame)(EmuSystemTask *task, EmuVideo *emuVideo);
 
 static bool emuSystemIs16Bit()
 {

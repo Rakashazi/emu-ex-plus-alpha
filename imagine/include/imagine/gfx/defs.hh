@@ -32,6 +32,7 @@ namespace Gfx
 
 class RendererTask;
 class RendererDrawTask;
+class SyncFence;
 
 struct DrawFinishedParams
 {
@@ -52,7 +53,7 @@ using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
 using Error = std::optional<std::runtime_error>;
-using DrawDelegate = DelegateFunc2<sizeof(uintptr_t)*3, void(Drawable drawable, Base::Window &win, RendererDrawTask task)>;
+using DrawDelegate = DelegateFunc<void(Drawable drawable, Base::Window &win, SyncFence fence, RendererDrawTask task)>;
 using DrawFinishedDelegate = DelegateFunc<bool(DrawFinishedParams params)>;
 using RenderTaskFuncDelegate = DelegateFunc<void(RendererTask &task)>;
 

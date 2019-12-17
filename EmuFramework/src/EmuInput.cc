@@ -89,14 +89,15 @@ void resetVControllerPositions()
 	bool isLandscape = true;
 	for(auto &e : vController.layoutPosition())
 	{
+		auto defaultSidePadding = vController.xMMSizeToPixel(win, 4.);
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		int xOffset = isLandscape ? vController.xMMSizeToPixel(win, 2.) : vController.xMMSizeToPixel(win, .5);
 		e[VCTRL_LAYOUT_DPAD_IDX] = {LB2DO, {xOffset + vController.bounds(0).xSize()/2, (int)(-vControllerPixelSize(win)) - vController.bounds(0).ySize()/2}, initGamepadState};
 		e[VCTRL_LAYOUT_CENTER_BTN_IDX] = {CB2DO, {0, 0}, initGamepadState};
 		e[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX] = {RB2DO, {-xOffset - vController.bounds(2).xSize()/2, (int)(-vControllerPixelSize(win)) - vController.bounds(2).ySize()/2}, initGamepadState};
 		#endif
-		e[VCTRL_LAYOUT_MENU_IDX] = {RT2DO, {0, 0}, initMenuState};
-		e[VCTRL_LAYOUT_FF_IDX] = {LT2DO, {0, 0}, initFastForwardState};
+		e[VCTRL_LAYOUT_MENU_IDX] = {RT2DO, {-defaultSidePadding, 0}, initMenuState};
+		e[VCTRL_LAYOUT_FF_IDX] = {LT2DO, {defaultSidePadding, 0}, initFastForwardState};
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		if(EmuSystem::inputHasTriggerBtns)
 		{

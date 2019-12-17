@@ -4,6 +4,7 @@
 #include "video.h"
 
 class EmuVideo;
+class EmuSystemTask;
 
 typedef struct
 {
@@ -371,6 +372,7 @@ struct EmulateSpecStruct
 	int skip = 0;
 
 	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
+	EmuSystemTask *task{};
 	EmuVideo *video{};
 
 	//

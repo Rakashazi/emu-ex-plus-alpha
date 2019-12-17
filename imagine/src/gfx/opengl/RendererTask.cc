@@ -132,17 +132,13 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				auto &drawArgs = msg.args.draw;
 				assumeExpr(drawArgs.del);
 				assumeExpr(drawArgs.winPtr);
-				drawArgs.del(drawArgs.drawable, *drawArgs.winPtr, {*static_cast<RendererTask*>(this), glDpy});
+				drawArgs.del(drawArgs.drawable, *drawArgs.winPtr, drawArgs.fence, {*static_cast<RendererTask*>(this), glDpy, msg.semAddr});
 				drawArgs.winPtr->deferredDrawComplete();
 				if(onDrawFinished.size())
 				{
 					auto now = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
 					replyPort.send({Reply::DRAW_FINISHED,
 						DrawFinishedParams{static_cast<RendererTask*>(this), now, drawArgs.drawable}});
-				}
-				if(msg.semAddr)
-				{
-					logWarn("semaphore in draw command ignored");
 				}
 			}
 			bcase Command::RUN_FUNC:
@@ -275,14 +271,14 @@ void RendererTask::start()
 	}
 }
 
-void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams params, DrawDelegate del)
+void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams winParams, DrawParams params, DrawDelegate del)
 {
 	if(unlikely(!glCtx))
 	{
 		logWarn("drawing without starting render task");
 		return;
 	}
-	if(params.wasResized())
+	if(winParams.wasResized())
 	{
 		if(win == Base::mainWindow())
 		{
@@ -322,25 +318,41 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 	{
 		drawableHolder.makeDrawable(r, win);
 	}
+	if(unlikely(winParams.needsSync()))
 	{
+		params.setAsyncMode(AsyncMode::NONE);
+	}
+	SyncFence fence = params.fenceMode() == FenceMode::RESOURCE ? r.addResourceSyncFence() : SyncFence();
+	IG::Semaphore drawSem{0};
+	{
+		#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 		auto lock = std::unique_lock<std::mutex>{drawMutex};
 		drawCondition.wait(lock, [this](){ return canDraw; });
+		#endif
 		commandPort.send(
 			{
 				Command::DRAW,
 				del,
 				drawableHolder.drawable(),
-				win
+				win,
+				fence.sync,
+				params.asyncMode() == AsyncMode::PRESENT ? &drawSem : nullptr
 			});
 	}
 	//logMsg("wrote render thread draw command");
-	if(unlikely(params.needsSync()))
+	if(params.asyncMode() == AsyncMode::PRESENT)
 	{
-		logMsg("waiting for draw to finish");
+		//logMsg("waiting for draw to present");
+		drawSem.wait();
+	}
+	else if(unlikely(params.asyncMode() == AsyncMode::NONE))
+	{
+		//logMsg("waiting for draw to finish");
 		waitForDrawFinished();
 	}
 }
 
+#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 void RendererTask::lockDraw()
 {
 	assumeExpr(canDraw);
@@ -360,6 +372,7 @@ void RendererTask::unlockDraw()
 	}
 	drawCondition.notify_one();
 }
+#endif
 
 void RendererTask::waitForDrawFinished()
 {
@@ -471,6 +484,7 @@ void GLRendererTask::destroyContext(bool useSeparateDrawContext, Base::GLDisplay
 	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
 	defaultFB = 0;
 	#endif
+	contextInitialStateSet = false;
 }
 
 bool GLRendererTask::handleDrawableReset()
@@ -483,8 +497,26 @@ bool GLRendererTask::handleDrawableReset()
 	return false;
 }
 
-GLRendererDrawTask::GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy):
-	task{task}, glDpy{glDpy}
+void GLRendererTask::initialCommands(RendererCommands &cmds)
+{
+	if(likely(contextInitialStateSet))
+		return;
+	if(cmds.renderer().support.hasVBOFuncs)
+		initVBOs();
+	#ifndef CONFIG_GFX_OPENGL_ES
+	if(cmds.renderer().useStreamVAO)
+		initVAO();
+	#endif
+	runGLCheckedVerbose([&]()
+	{
+		glEnableVertexAttribArray(VATTR_POS);
+	}, "glEnableVertexAttribArray(VATTR_POS)");
+	cmds.setClearColor(0, 0, 0);
+	contextInitialStateSet = true;
+}
+
+GLRendererDrawTask::GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy, IG::Semaphore *semAddr):
+	task{task}, glDpy{glDpy}, semAddr{semAddr}
 {}
 
 void GLRendererDrawTask::setCurrentDrawable(Drawable drawable)
@@ -532,20 +564,19 @@ GLuint GLRendererDrawTask::defaultFramebuffer() const
 	return task.defaultFBO();
 }
 
+void GLRendererDrawTask::notifySemaphore()
+{
+	if(semAddr)
+	{
+		semAddr->notify();
+	}
+}
+
 RendererCommands RendererDrawTask::makeRendererCommands(Drawable drawable, Viewport viewport, Mat4 projMat)
 {
 	task.initDefaultFramebuffer();
 	RendererCommands cmds{*this, drawable};
-	if(renderer().support.hasVBOFuncs)
-		task.initVBOs();
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(renderer().useStreamVAO)
-		task.initVAO();
-	#endif
-	runGLCheckedVerbose([&]()
-	{
-		glEnableVertexAttribArray(VATTR_POS);
-	}, "glEnableVertexAttribArray(VATTR_POS)");
+	task.initialCommands(cmds);
 	cmds.setViewport(viewport);
 	cmds.setProjectionMatrix(projMat);
 	return cmds;
@@ -560,6 +591,11 @@ void RendererDrawTask::verifyCurrentContext() const
 	{
 		bug_unreachable("expected GL context:%p but current is:%p", task.glContext().nativeObject(), currentCtx.nativeObject());
 	}
+}
+
+void RendererDrawTask::notifyCommandsFinished()
+{
+	notifySemaphore();
 }
 
 Renderer &RendererDrawTask::renderer() const

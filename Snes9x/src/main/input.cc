@@ -31,6 +31,8 @@ enum
 	s9xKeyIdxYTurbo
 };
 
+void DoGunLatch (int, int);
+
 const char *EmuSystem::inputFaceBtnName = "A/B/X/Y";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const uint EmuSystem::inputFaceBtns = 6;
@@ -341,6 +343,7 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 				#ifndef SNES9X_VERSION_1_4
 				*S9xGetSuperscopeBits() = 0;
 				#endif
+				logMsg("up");
 			}
 			if(gameRect.overlaps(e.pos()))
 			{
@@ -354,6 +357,7 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 					#ifndef SNES9X_VERSION_1_4
 					*S9xGetSuperscopeBits() = 0x80;
 					#endif
+					logMsg("down");
 				}
 			}
 			else if(e.pushed())
@@ -367,6 +371,7 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 			#ifndef SNES9X_VERSION_1_4
 			S9xGetSuperscopePosBits()[0] = snesPointerX;
 			S9xGetSuperscopePosBits()[1] = snesPointerY;
+			DoGunLatch(snesPointerX, snesPointerY);
 			#endif
 
 			return true;

@@ -62,7 +62,7 @@ void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
 
 bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
 {
-	logMsg("adding fd %d to looper", fd_);
+	logMsg("adding fd:%d to looper:%p", fd_, loop.nativeObject());
 	if(!loop)
 		loop = EventLoop::forThread();
 	callback_ = std::make_unique<PollEventDelegate>(callback);

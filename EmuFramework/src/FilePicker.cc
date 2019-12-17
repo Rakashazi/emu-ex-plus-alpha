@@ -114,6 +114,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
+			EmuApp::postMessage("Running benchmark...");
 			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e,
 				[](Input::Event e)
 				{

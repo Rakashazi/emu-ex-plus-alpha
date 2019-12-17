@@ -8,6 +8,5 @@ android_ndkSDK ?= 21
 android_ndkArch := arm64
 clangTarget := aarch64-none-linux-android21
 CFLAGS_CODEGEN += -fpic
-LDFLAGS_SYSTEM += -fuse-ld=gold
 
 include $(buildSysPath)/android-gcc.mk

@@ -71,6 +71,7 @@ public:
 	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime) = 0;
 	virtual void deinitTest() {}
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
+	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
 	void init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize);
 	void deinit();
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);

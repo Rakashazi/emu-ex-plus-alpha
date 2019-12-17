@@ -307,7 +307,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormatLocked({{nesPixX, nesVisiblePixY}, pixFmt});
+	video.setFormat({{nesPixX, nesVisiblePixY}, pixFmt});
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
@@ -338,13 +338,13 @@ void FCEUD_emulateSound(bool renderAudio)
 	}
 }
 
-void EmuSystem::runFrame(EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	FCEUI_Emulate(
-		[&video](uint8 *buf)
+		[task, video](uint8 *buf)
 		{
 			assumeExpr(video);
-			auto img = video->startFrame();
+			auto img = video->startFrame(task);
 			auto pix = img.pixmap();
 			IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
 			auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});

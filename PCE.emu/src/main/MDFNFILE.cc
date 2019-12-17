@@ -56,7 +56,7 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 					throw MDFN_Error(0, "Error reading archive");
 				}
 				auto extStr = strrchr(path, '.');
-				f_ext = strdup(extStr ? extStr + 1 : "");
+				f_ext = extStr ? extStr + 1 : "";
 				return; // success
 			}
 		}
@@ -80,7 +80,7 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 			throw MDFN_Error(0, "Error reading file");
 		}
 		auto extStr = strrchr(path, '.');
-		f_ext = strdup(extStr ? extStr + 1 : "");
+		f_ext = extStr ? extStr + 1 : "";
 	}
 }
 
@@ -89,5 +89,5 @@ MDFNFILE::MDFNFILE(std::unique_ptr<Stream> str, const char *path, const char *pu
 	str{std::move(str)}
 {
 	auto extStr = strrchr(path, '.');
-	f_ext = strdup(extStr ? extStr + 1 : "");
+	f_ext = extStr ? extStr + 1 : "";
 }
