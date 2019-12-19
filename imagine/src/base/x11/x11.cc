@@ -231,6 +231,7 @@ void initXScreens(Display *dpy)
 
 CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc)
 {
+	XInitThreads();
 	dpy = XOpenDisplay(0);
 	if(!dpy)
 	{

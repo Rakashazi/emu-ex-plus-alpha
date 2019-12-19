@@ -261,6 +261,10 @@ void setGLDebugOutput(DrawContextSupport &support, bool on)
 				{
 					return;
 				}
+				if(Config::envIsLinux && type == GL_DEBUG_TYPE_OTHER)
+				{
+					return;
+				}
 				logger_modulePrintfn(severityToLogger(severity), "%s: %s", debugTypeToStr(type), message);
 			}, nullptr);
 		glEnable(support.DEBUG_OUTPUT);

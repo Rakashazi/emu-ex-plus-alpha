@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "FrameTimer"
+#define LOGTAG "FBDevFrameTimer"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/time/Time.hh>
@@ -31,16 +31,27 @@ namespace Base
 
 FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 {
-	int fbdev = open("/dev/fb0", O_RDONLY);
+	const char *fbDevPath = "/dev/fb0";
+	logMsg("opening device path:%s", fbDevPath);
+	int fbdev = open(fbDevPath, O_RDWR | O_CLOEXEC);
 	if(fbdev == -1)
 	{
-		logErr("error creating frame timer, fbdev access is required");
+		logErr("error opening device:%s", std::system_category().message(errno).c_str());
 		return;
 	}
-	fd = eventfd(0, 0);
+	// test ioctl FBIO_WAITFORVSYNC
+	if(int arg = 0, res = ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
+		res == -1)
+	{
+		logErr("error in ioctl FBIO_WAITFORVSYNC, cannot use frame timer");
+		close(fbdev);
+		return;
+	}
+	int fd = eventfd(0, 0);
 	if(fd == -1)
 	{
 		logErr("error creating eventfd");
+		close(fbdev);
 		return;
 	}
 	sem_init(&sem, 0, 0);
@@ -72,32 +83,41 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 			return true;
 		}};
 	IG::makeDetachedThread(
-		[this, fbdev]()
+		[this, fd, fbdev]()
 		{
 			//logMsg("ready to wait for vsync");
 			for(;;)
 			{
 				sem_wait(&sem);
+				if(quiting)
+					break;
 				//logMsg("waiting for vsync");
 				int arg = 0;
-				ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
+				if(int res = ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
+					res == -1)
+				{
+					logErr("error in ioctl FBIO_WAITFORVSYNC");
+				}
 				eventfd_t timestamp = IG::Time::now().nSecs();
 				//logMsg("got vsync at time %lu", (long unsigned int)timestamp);
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));
 			}
+			close(fbdev);
 		}
 	);
 }
 
 FBDevFrameTimer::~FBDevFrameTimer()
 {
-	// TODO
+	quiting = true;
+	sem_post(&sem);
+	fdSrc.closeFD();
 }
 
 void FBDevFrameTimer::scheduleVSync()
 {
-	assert(fd != -1);
+	assert(fdSrc.fd() != -1);
 	cancelled = false;
 	if(requested)
 	{

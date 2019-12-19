@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "FrameTimer"
+#define LOGTAG "DRMFrameTimer"
 #include <imagine/base/Screen.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
@@ -21,6 +21,7 @@
 #include <xf86drm.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <system_error>
 
 namespace Base
 {
@@ -30,12 +31,25 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 	const char *drmCardPath = getenv("KMSDEVICE");
 	if(!drmCardPath)
 		drmCardPath = "/dev/dri/card0";
-	logMsg("opening DRM device path:%s", drmCardPath);
-	fd = open(drmCardPath, O_RDWR, 0);
+	logMsg("opening device path:%s", drmCardPath);
+	int fd = open(drmCardPath, O_RDWR | O_CLOEXEC, 0);
 	if(fd == -1)
 	{
-		logErr("error creating frame timer, DRM/DRI access is required");
+		logErr("error opening device:%s", std::system_category().message(errno).c_str());
 		return;
+	}
+	// test drmWaitVBlank
+	{
+		drmVBlank vbl{};
+		vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE);
+		vbl.request.sequence = 1;
+		if(int err = drmWaitVBlank(fd, &vbl);
+			err)
+		{
+			logErr("error in drmWaitVBlank, cannot use frame timer");
+			close(fd);
+			return;
+		}
 	}
 	fdSrc = {fd, loop,
 		[this](int fd, int event)
@@ -77,15 +91,12 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 
 DRMFrameTimer::~DRMFrameTimer()
 {
-	if(fd < 0)
-		return;
-	fdSrc.removeFromEventLoop();
-	close(fd);
+	fdSrc.closeFD();
 }
 
 void DRMFrameTimer::scheduleVSync()
 {
-	assert(fd != -1);
+	assert(fdSrc.fd() != -1);
 	cancelled = false;
 	if(requested)
 		return;
@@ -94,8 +105,8 @@ void DRMFrameTimer::scheduleVSync()
 	vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE | DRM_VBLANK_EVENT);
 	vbl.request.sequence = 1;
 	vbl.request.signal = (unsigned long)this;
-	auto err = drmWaitVBlank(fd, &vbl);
-	if(err)
+	if(int err = drmWaitVBlank(fdSrc.fd(), &vbl);
+		err)
 	{
 		logErr("error in drmWaitVBlank");
 	}

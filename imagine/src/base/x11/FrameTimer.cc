@@ -28,22 +28,20 @@ std::unique_ptr<FrameTimer> frameTimer{};
 
 void initFrameTimer(EventLoop loop)
 {
-	if(Config::MACHINE_IS_PANDORA)
-	{
-		auto timer = std::make_unique<FBDevFrameTimer>(loop);
-		if(*timer)
-		{
-			logMsg("using FBDev frame timer");
-			frameTimer = std::move(timer);
-			return;
-		}
-	}
-	else
 	{
 		auto timer = std::make_unique<DRMFrameTimer>(loop);
 		if(*timer)
 		{
 			logMsg("using DRM frame timer");
+			frameTimer = std::move(timer);
+			return;
+		}
+	}
+	{
+		auto timer = std::make_unique<FBDevFrameTimer>(loop);
+		if(*timer)
+		{
+			logMsg("using FBDev frame timer");
 			frameTimer = std::move(timer);
 			return;
 		}

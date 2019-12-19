@@ -31,15 +31,15 @@ public:
 
 	explicit operator bool() const
 	{
-		return fd >= 0;
+		return fdSrc.fd() >= 0;
 	}
 
 private:
 	Base::FDEventSource fdSrc;
 	sem_t sem{};
-	int fd = -1;
 	bool requested = false;
 	bool cancelled = false;
+	bool quiting = false;
 };
 
 }

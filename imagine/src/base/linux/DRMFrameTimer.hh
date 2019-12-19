@@ -31,13 +31,12 @@ public:
 
 	explicit operator bool() const
 	{
-		return fd >= 0;
+		return fdSrc.fd() >= 0;
 	}
 
 protected:
 	Base::FDEventSource fdSrc;
 	IG::Time timestamp{};
-	int fd = -1;
 	bool requested = false;
 	bool cancelled = false;
 };
