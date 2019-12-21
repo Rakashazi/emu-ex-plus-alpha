@@ -40,7 +40,7 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 	{
 		[this](Base::Screen::FrameParams params)
 		{
-			auto frames = std::max(std::min(params.elapsedFrames(), 200u), 1u);
+			auto frames = params.elapsedFrames(200);
 			auto prevOffset = offset;
 			if(scrollVel) // scrolling deceleration
 			{

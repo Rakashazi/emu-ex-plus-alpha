@@ -28,7 +28,7 @@ Pipe::Pipe(uint preferredSize)
 {
 	int res = pipe(msgPipe.data());
 	assert(res == 0);
-	logMsg("opened pipe fds:%d %d", msgPipe[0], msgPipe[1]);
+	logMsg("opened fds:%d,%d", msgPipe[0], msgPipe[1]);
 	if(preferredSize)
 	{
 		setPreferredSize(preferredSize);
@@ -50,7 +50,7 @@ void Pipe::deinit()
 		}
 		close(msgPipe[0]);
 		close(msgPipe[1]);
-		logMsg("closed pipe fds:%d %d", msgPipe[0], msgPipe[1]);
+		logMsg("closed fds:%d,%d", msgPipe[0], msgPipe[1]);
 	}
 }
 
@@ -132,7 +132,7 @@ void Pipe::setPreferredSize(int size)
 {
 	#ifdef __linux__
 	fcntl(msgPipe[1], F_SETPIPE_SZ, size);
-	logDMsg("set pipe fds:%d %d size to:%d", msgPipe[0], msgPipe[1], size);
+	logDMsg("set fds:%d,%d size to:%d", msgPipe[0], msgPipe[1], size);
 	#endif
 }
 

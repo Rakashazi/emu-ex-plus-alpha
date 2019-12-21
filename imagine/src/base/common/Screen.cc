@@ -170,7 +170,7 @@ bool Screen::screensArePosted()
 uint Screen::elapsedFrames(FrameTimeBase timestamp)
 {
 	if(!prevFrameTimestamp)
-		return 0;
+		return 1;
 	assumeExpr(timestamp >= prevFrameTimestamp);
 	if(unlikely(!timePerFrame))
 	{

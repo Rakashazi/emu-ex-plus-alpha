@@ -429,7 +429,7 @@ void processInputWithHasEvents(AInputQueue *inputQueue)
 		AInputEvent* event = nullptr;
 		if(AInputQueue_getEvent(inputQueue, &event) < 0)
 		{
-			logWarn("error getting input event from queue");
+			//logWarn("error getting input event from queue");
 			break;
 		}
 		processInputCommon(inputQueue, event);

@@ -59,6 +59,7 @@ private:
 	BaseWindow::DragDropDelegate onDragDrop_;
 	BaseWindow::DismissRequestDelegate onDismissRequest_;
 	BaseWindow::DismissDelegate onDismiss_;
+	BaseWindow::FreeDelegate onFree_;
 	void *customData_{};
 
 public:
@@ -202,6 +203,16 @@ public:
 	BaseWindow::DismissDelegate onDismiss() const
 	{
 		return onDismiss_;
+	}
+
+	void setOnFree(BaseWindow::FreeDelegate del)
+	{
+		onFree_ = del;
+	}
+
+	BaseWindow::FreeDelegate onFree() const
+	{
+		return onFree_;
 	}
 
 	void setCustomData(void *data)

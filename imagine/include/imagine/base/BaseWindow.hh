@@ -97,6 +97,7 @@ public:
 	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
 	using DismissRequestDelegate = DelegateFunc<void (Window &win)>;
 	using DismissDelegate = DelegateFunc<void (Window &win)>;
+	using FreeDelegate = DelegateFunc<void ()>;
 
 protected:
 	int w = 0, h = 0; // size of full window surface
@@ -133,6 +134,7 @@ protected:
 	DragDropDelegate onDragDrop{};
 	DismissRequestDelegate onDismissRequest{};
 	DismissDelegate onDismiss{};
+	FreeDelegate onFree{};
 	Base::ExitDelegate onExit{};
 	Base::CustomEvent drawEvent{};
 
@@ -143,6 +145,7 @@ protected:
 	void setOnDragDrop(DragDropDelegate del);
 	void setOnDismissRequest(DismissRequestDelegate del);
 	void setOnDismiss(DismissDelegate del);
+	void setOnFree(FreeDelegate del);
 	void init(const WindowConfig &config);
 	void initDelegates(const WindowConfig &config);
 	void initDefaultValidSoftOrientations();

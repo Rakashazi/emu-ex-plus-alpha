@@ -528,6 +528,12 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				}
 			});
 
+		winConf.setOnFree(
+			[]()
+			{
+				extraWin.reset();
+			});
+
 		winConf.setCustomData(extraWin.get());
 		emuView.renderer().initWindow(extraWin->win, winConf);
 		extraWin->focused = true;
@@ -550,7 +556,6 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 	else if(!on && extraWin)
 	{
 		extraWin->win.dismiss();
-		extraWin.reset();
 	}
 }
 

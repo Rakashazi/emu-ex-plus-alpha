@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <vector>
+#include <algorithm>
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/rectangle2.h>
@@ -76,6 +77,10 @@ public:
 			return lastTimestamp ? timestamp_ - lastTimestamp : 0;
 		}
 		uint elapsedFrames() const { return screen_.elapsedFrames(timestamp_); }
+		uint elapsedFrames(uint frameCap) const
+		{
+			return std::min(screen_.elapsedFrames(timestamp_), frameCap);
+		}
 	};
 
   static constexpr double DISPLAY_RATE_DEFAULT = 0;

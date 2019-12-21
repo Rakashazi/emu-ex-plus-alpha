@@ -25,8 +25,6 @@ namespace Base
 
 static JavaInstMethod<void(jstring, jstring, jstring)> jAddNotification{};
 static JavaInstMethod<void()> jRemoveNotification{};
-static JavaInstMethod<void(jstring, jstring)> jAddViewShortcut{};
-static JavaInstMethod<jobject()> jIntentDataPath{};
 
 void addNotification(const char *onShow, const char *title, const char *message)
 {
@@ -57,10 +55,7 @@ void addLauncherIcon(const char *name, const char *path)
 {
 	logMsg("adding launcher icon: %s, for path: %s", name, path);
 	auto env = jEnvForThread();
-	if(unlikely(!jAddViewShortcut))
-	{
-		jAddViewShortcut.setup(env, jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V");
-	}
+	JavaInstMethod<void(jstring, jstring)> jAddViewShortcut{env, jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V"};
 	jAddViewShortcut(env, jBaseActivity, env->NewStringUTF(name), env->NewStringUTF(path));
 }
 
@@ -69,10 +64,7 @@ void handleIntent(JNIEnv *env, jobject activity)
 	if(!onInterProcessMessage())
 		return;
 	// check for view intents
-	if(!jIntentDataPath)
-	{
-		jIntentDataPath.setup(env, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;");
-	}
+	JavaInstMethod<jobject()> jIntentDataPath{env, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;"};
 	jstring intentDataPathJStr = (jstring)jIntentDataPath(env, activity);
 	if(intentDataPathJStr)
 	{

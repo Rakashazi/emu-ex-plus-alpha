@@ -35,18 +35,19 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 		begin.bounds().x, begin.bounds().y, begin.bounds().x2, begin.bounds().y2,
 		end.bounds().x, end.bounds().y, end.bounds().x2, end.bounds().y2);
 	auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
-	int time = 10;
+	int time = (10. * w.screen()->frameRate())/60.;
 	animator[0].set(begin.bounds().x, end.bounds().x, type, time);
 	animator[1].set(begin.bounds().y, end.bounds().y, type, time);
 	animator[2].set(begin.bounds().x2, end.bounds().x2, type, time);
 	animator[3].set(begin.bounds().y2, end.bounds().y2, type, time);
 	win->setNeedsCustomViewportResize(true);
 	animate =
-		[this](Base::Screen::FrameParams param)
+		[this](Base::Screen::FrameParams params)
 		{
+			auto frames = params.elapsedFrames(200);
 			for(auto &d : animator)
 			{
-				d.update(1);
+				d.update(frames);
 			}
 			win->setNeedsCustomViewportResize(true);
 			win->postDraw();

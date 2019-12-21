@@ -507,7 +507,6 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			appState = APP_RUNNING;
 			Screen::setActiveAll(true);
 			dispatchOnResume(aHasFocus);
-			handleIntent(activity->env, activity->clazz);
 		};
 	activity->callbacks->onResume =
 		[](ANativeActivity *activity)
@@ -518,6 +517,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			Input::onResumeMOGA(jEnvForThread(), true);
 			#endif
 			Input::registerDeviceChangeListener();
+			handleIntent(activity->env, activity->clazz);
 			if(userActivityFaker)
 				userActivityFaker->start();
 		};

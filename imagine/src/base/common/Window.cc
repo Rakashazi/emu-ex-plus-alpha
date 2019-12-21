@@ -63,6 +63,11 @@ void BaseWindow::setOnDismiss(DismissDelegate del)
 	onDismiss = del ? del : [](Window &win){};
 }
 
+void BaseWindow::setOnFree(FreeDelegate del)
+{
+	onFree = del ? del : [](){};
+}
+
 void BaseWindow::initDelegates(const WindowConfig &config)
 {
 	setOnSurfaceChange(config.onSurfaceChange());
@@ -72,6 +77,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	setOnInputEvent(config.onInputEvent());
 	setOnDismissRequest(config.onDismissRequest());
 	setOnDismiss(config.onDismiss());
+	setOnFree(config.onFree());
 	onExit =
 		[this](bool backgrounded)
 		{
@@ -413,6 +419,7 @@ void Window::dismiss()
 	onDismiss(*this);
 	Base::removeOnExit(onExit);
 	drawEvent.deinit();
+	auto onFree = this->onFree;
 	deinit();
 	*this = {};
 	#ifdef CONFIG_BASE_MULTI_WINDOW
@@ -420,6 +427,7 @@ void Window::dismiss()
 	#else
 	mainWin = nullptr;
 	#endif
+	onFree();
 }
 
 void Window::setCustomData(void *data)
