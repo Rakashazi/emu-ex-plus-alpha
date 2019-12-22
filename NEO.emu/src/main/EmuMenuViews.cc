@@ -95,12 +95,14 @@ private:
 		regionItem
 	};
 
-	TextMenuItem biosItem[4]
+	TextMenuItem biosItem[6]
 	{
-		{"Unibios 2.3", [](){ conf.system = SYS_UNIBIOS; optionMVSCountry = conf.system; }},
-		{"Unibios 3.0", [](){ conf.system = SYS_UNIBIOS_3_0; optionMVSCountry = conf.system; }},
-		{"Unibios 3.1", [](){ conf.system = SYS_UNIBIOS_3_1; optionMVSCountry = conf.system; }},
-		{"MVS", [](){ conf.system = SYS_ARCADE; optionMVSCountry = conf.system; }},
+		{"Unibios 2.3", [](){ conf.system = SYS_UNIBIOS; optionBIOSType = conf.system; }},
+		{"Unibios 3.0", [](){ conf.system = SYS_UNIBIOS_3_0; optionBIOSType = conf.system; }},
+		{"Unibios 3.1", [](){ conf.system = SYS_UNIBIOS_3_1; optionBIOSType = conf.system; }},
+		{"Unibios 3.2", [](){ conf.system = SYS_UNIBIOS_3_2; optionBIOSType = conf.system; }},
+		{"Unibios 3.3", [](){ conf.system = SYS_UNIBIOS_3_3; optionBIOSType = conf.system; }},
+		{"MVS", [](){ conf.system = SYS_ARCADE; optionBIOSType = conf.system; }},
 	};
 
 	MultiChoiceMenuItem bios
@@ -113,7 +115,9 @@ private:
 				default: return 0;
 				case SYS_UNIBIOS_3_0: return 1;
 				case SYS_UNIBIOS_3_1: return 2;
-				case SYS_ARCADE: return 3;
+				case SYS_UNIBIOS_3_2: return 3;
+				case SYS_UNIBIOS_3_3: return 4;
+				case SYS_ARCADE: return 5;
 			}
 		}(),
 		biosItem
@@ -589,15 +593,13 @@ class UnibiosSwitchesView : public TableView
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
-			memory.memcard[2] = IG::updateBits(memory.memcard[2], (Uint8)(on ? IG::bit(7) : 0), (Uint8)0x80);
-			memory.sram[2] = IG::updateBits(memory.sram[2], (Uint8)(on ? IG::bit(7) : 0), (Uint8)0x80);
+			memory.memcard[2] = on ? IG::bit(7) : 0;
 		}
 	};
 
 	static void setRegion(Uint8 val)
 	{
-		memory.memcard[3] = IG::updateBits(memory.memcard[3], (Uint8)val, (Uint8)0x3);
-		memory.sram[3] = IG::updateBits(memory.sram[3], (Uint8)val, (Uint8)0x3);
+		memory.memcard[3] = val;
 	}
 
 public:
@@ -674,7 +676,7 @@ public:
 	void onShow()
 	{
 		EmuSystemActionsView::onShow();
-		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_1;
+		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_3;
 		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
 	}
 };

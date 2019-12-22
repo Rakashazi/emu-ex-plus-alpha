@@ -1290,6 +1290,18 @@ bool dr_load_bios(GAME_ROMS *r, char romerror[1024]) {
 				free(fpath);
 				return false;
 			}
+		} else if (conf.system == SYS_UNIBIOS_3_2) {
+			if(!loadUnibios(r, "uni-bios_3_2.rom", 0xa4e8b9b3, pz, rpath, romerror))
+			{
+				free(fpath);
+				return false;
+			}
+		} else if (conf.system == SYS_UNIBIOS_3_3) {
+			if(!loadUnibios(r, "uni-bios_3_3.rom", 0x24858466, pz, rpath, romerror))
+			{
+				free(fpath);
+				return false;
+			}
 		} else {
 			uint32_t crc32 = 0;
 			if (conf.system == SYS_HOME) {

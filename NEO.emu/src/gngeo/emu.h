@@ -38,6 +38,8 @@ typedef enum SYSTEM {
     SYS_UNIBIOS, // selects 2.3 for backwards compatibility
     SYS_UNIBIOS_3_0,
     SYS_UNIBIOS_3_1,
+    SYS_UNIBIOS_3_2,
+    SYS_UNIBIOS_3_3,
     SYS_MAX
 } SYSTEM;
 
