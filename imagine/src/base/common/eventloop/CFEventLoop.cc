@@ -19,7 +19,11 @@
 namespace Base
 {
 
+#ifdef NDEBUG
 CFFDEventSource::CFFDEventSource(int fd)
+#else
+CFFDEventSource::CFFDEventSource(const char *debugLabel, int fd): debugLabel{debugLabel ? debugLabel : "unnamed"}
+#endif
 {
 	info = std::make_unique<CFFDEventSourceInfo>();
 	CFFileDescriptorContext ctx{0, info.get()};
@@ -35,16 +39,6 @@ CFFDEventSource::CFFDEventSource(int fd)
 					CFFileDescriptorEnableCallBacks(fdRef, callbackEventTypes);
 			}
 		}, &ctx);
-}
-
-FDEventSource::FDEventSource(int fd):
-	CFFDEventSource{fd}
-{}
-
-FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
-	FDEventSource{fd}
-{
-	addToEventLoop(loop, callback, events);
 }
 
 FDEventSource::FDEventSource(FDEventSource &&o)
@@ -78,6 +72,9 @@ void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
 	std::swap(a.info, b.info);
 	std::swap(a.src, b.src);
 	std::swap(a.loop, b.loop);
+	#ifndef NDEBUG
+	std::swap(a.debugLabel, b.debugLabel);
+	#endif
 }
 
 bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
@@ -85,7 +82,7 @@ bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, u
 	assert(info);
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("adding fd %d to run loop", fd());
+		logMsg("adding fd %d to run loop (%s)", fd(), label());
 	}
 	info->callback = callback;
 	CFFileDescriptorEnableCallBacks(info->fdRef, events);
@@ -113,7 +110,7 @@ void FDEventSource::removeFromEventLoop()
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logMsg("removing fd %d from run loop", fd());
+			logMsg("removing fd %d from run loop (%s)", fd(), label());
 		}
 		CFRunLoopRemoveSource(loop, src, kCFRunLoopDefaultMode);
 		CFRelease(src);
@@ -146,6 +143,15 @@ void FDEventSource::closeFD()
 	close(fd_);
 	releaseCFFileDescriptor(info->fdRef);
 	info->fdRef = nullptr;
+}
+
+const char *CFFDEventSource::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 EventLoop EventLoop::forThread()

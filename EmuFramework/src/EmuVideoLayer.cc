@@ -163,6 +163,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		}
 
 		// adjust position
+		int layoutDirection = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 		if(inputView && viewportAspectRatio < 1. && inputView->touchControlsAreOn() && EmuSystem::touchControlsApplicable())
 		{
@@ -171,7 +172,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			auto &layoutPos = vController.layoutPosition()[inputView->window().isPortrait() ? 1 : 0];
 			if(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onTop())
 			{
-				logMsg("moving game rect to bottom");
+				layoutDirection = -1;
 				gameRectG.setYPos(projP.bounds().y + paddingG, CB2DO);
 				gameRect_.setYPos(viewportRect.y2 - padding, CB2DO);
 			}
@@ -179,7 +180,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				&& !(layoutPos[VCTRL_LAYOUT_DPAD_IDX].origin.onTop() && layoutPos[VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX].origin.onBottom()))
 			{
 				// move controls to top if d-pad & face button aren't on opposite Y quadrants
-				logMsg("moving game rect to top");
+				layoutDirection = 1;
 				gameRectG.setYPos(projP.bounds().y2 - paddingG, CT2DO);
 				gameRect_.setYPos(viewportRect.y + padding, CT2DO);
 			}
@@ -211,8 +212,9 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		}
 
 		disp.setPos(gameRectG);
-		logMsg("placed game rect at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
-				gameRect_.x, gameRect_.y, gameRect_.x2, gameRect_.y2,
+		auto layoutStr = layoutDirection == 1 ? "top" : layoutDirection == -1 ? "bottom" : "center";
+		logMsg("placed game rect (%s), at pixels %d:%d:%d:%d, world %f:%f:%f:%f",
+				layoutStr, gameRect_.x, gameRect_.y, gameRect_.x2, gameRect_.y2,
 				(double)gameRectG.x, (double)gameRectG.y, (double)gameRectG.x2, (double)gameRectG.y2);
 	}
 	placeOverlay();

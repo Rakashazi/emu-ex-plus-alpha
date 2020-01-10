@@ -55,7 +55,7 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 		return;
 	}
 	sem_init(&sem, 0, 0);
-	fdSrc = {fd, loop,
+	fdSrc = {"FBDevFrameTimer", fd, loop,
 		[this](int fd, int event)
 		{
 			eventfd_t timestamp;

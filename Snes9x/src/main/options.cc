@@ -32,7 +32,6 @@ const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
 
 void EmuSystem::initOptions()
 {
-	EmuApp::setDefaultVControlsButtonSize(700);
 	EmuApp::setDefaultVControlsButtonSpacing(100);
 	EmuApp::setDefaultVControlsButtonStagger(5); // original SNES layout
 }

@@ -11,7 +11,7 @@ endif
 
 IOS_FLAGS += -arch armv7
 ASMFLAGS += -arch armv7
-CFLAGS_CODEGEN += -mdynamic-no-pic
+CFLAGS_CODEGEN += -mdynamic-no-pic -faligned-allocation
 CHOST := $(shell $(CC) -arch armv7 -dumpmachine)
 
 include $(buildSysPath)/iOS-armv7-common.mk

@@ -29,7 +29,13 @@ class Pipe
 public:
 	using Delegate = DelegateFunc<int (Pipe &pipe)>;
 
+	#ifdef NDEBUG
 	Pipe(uint preferredSize = 0);
+	Pipe(const char *debugLabel, uint preferredSize = 0): Pipe(preferredSize) {}
+	#else
+	Pipe(uint preferredSize = 0): Pipe(nullptr, preferredSize) {}
+	Pipe(const char *debugLabel, uint preferredSize = 0);
+	#endif
 	~Pipe();
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
@@ -72,9 +78,13 @@ protected:
 	std::array<int, 2> msgPipe{-1, -1};
 	FDEventSource fdSrc{};
 	Delegate del{};
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
 
 	void moveObject(Pipe &o);
 	void deinit();
+	const char *label();
 };
 
 }

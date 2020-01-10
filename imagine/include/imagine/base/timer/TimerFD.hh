@@ -30,12 +30,22 @@ protected:
 	bool reuseResources = false; // whether to keep the timerfd open after firing
 	bool repeating = false;
 	bool armed = false;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
 
 	int fd() const;
 	bool arm(timespec ms, timespec repeatInterval, EventLoop loop, bool shouldReuseResources);
+	const char *label();
 
 public:
-	TimerFD() {}
+	#ifdef NDEBUG
+	TimerFD();
+	TimerFD(const char *debugLabel): TimerFD() {}
+	#else
+	TimerFD() : TimerFD{nullptr} {}
+	TimerFD(const char *debugLabel);
+	#endif
 	void deinit();
 	void timerFired();
 

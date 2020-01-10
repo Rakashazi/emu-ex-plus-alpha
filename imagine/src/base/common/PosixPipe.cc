@@ -24,11 +24,15 @@
 namespace Base
 {
 
+#ifdef NDEBUG
 Pipe::Pipe(uint preferredSize)
+#else
+Pipe::Pipe(const char *debugLabel, uint preferredSize): debugLabel{debugLabel ? debugLabel : "unnamed"}
+#endif
 {
 	int res = pipe(msgPipe.data());
 	assert(res == 0);
-	logMsg("opened fds:%d,%d", msgPipe[0], msgPipe[1]);
+	logMsg("opened fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
 	if(preferredSize)
 	{
 		setPreferredSize(preferredSize);
@@ -50,7 +54,7 @@ void Pipe::deinit()
 		}
 		close(msgPipe[0]);
 		close(msgPipe[1]);
-		logMsg("closed fds:%d,%d", msgPipe[0], msgPipe[1]);
+		logMsg("closed fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
 	}
 }
 
@@ -72,6 +76,9 @@ void Pipe::moveObject(Pipe &o)
 	o.fdSrc.setCallback([this](int fd, int events){ return this->del(*this); });
 	fdSrc = std::move(o.fdSrc);
 	del = o.del;
+	#ifndef NDEBUG
+	debugLabel = o.debugLabel;
+	#endif
 	o.msgPipe[0] = -1;
 }
 
@@ -85,7 +92,7 @@ void Pipe::addToEventLoop(EventLoop loop, Delegate del)
 	this->del = del;
 	if(!loop)
 		loop = EventLoop::forThread();
-	fdSrc = {msgPipe[0], loop,
+	fdSrc = {label(), msgPipe[0], loop,
 		[this](int fd, int events)
 		{
 			return this->del(*this);
@@ -104,7 +111,7 @@ bool Pipe::write(const void *data, uint size)
 {
 	if(::write(msgPipe[1], data, size) != (int)size)
 	{
-		logErr("unable to write message to pipe: %s", strerror(errno));
+		logErr("unable to write message to pipe: %s (%s)", strerror(errno), label());
 		return false;
 	}
 	return true;
@@ -116,7 +123,7 @@ bool Pipe::read(void *data, uint size)
 	{
 		if(Config::DEBUG_BUILD && errno != EAGAIN)
 		{
-			logErr("error reading from pipe");
+			logErr("error reading from pipe (%s)", label());
 		}
 		return false;
 	}
@@ -144,6 +151,15 @@ void Pipe::setReadNonBlocking(bool on)
 bool Pipe::isReadNonBlocking() const
 {
 	return fd_getNonblock(msgPipe[0]);
+}
+
+const char *Pipe::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 Pipe::operator bool() const

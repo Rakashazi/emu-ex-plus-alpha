@@ -136,7 +136,8 @@ protected:
 	DismissDelegate onDismiss{};
 	FreeDelegate onFree{};
 	Base::ExitDelegate onExit{};
-	Base::CustomEvent drawEvent{};
+	Base::ResumeDelegate onResume{};
+	Base::CustomEvent drawEvent{"Window::drawEvent"};
 
 	void setOnSurfaceChange(SurfaceChangeDelegate del);
 	void setOnDraw(DrawDelegate del);

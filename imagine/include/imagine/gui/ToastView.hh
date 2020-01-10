@@ -27,7 +27,7 @@ class ToastView : public View
 {
 private:
 	Gfx::Text text{};
-	Base::Timer unpostTimer{};
+	Base::Timer unpostTimer{"ToastView::unpostTimer"};
 	Gfx::GCRect msgFrame{};
 	IG::WindowRect rect{};
 	std::array<char, 1024> str{};

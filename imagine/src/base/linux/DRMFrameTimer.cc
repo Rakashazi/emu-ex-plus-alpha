@@ -51,7 +51,7 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 			return;
 		}
 	}
-	fdSrc = {fd, loop,
+	fdSrc = {"DRMFrameTimer", fd, loop,
 		[this](int fd, int event)
 		{
 			requested = false;

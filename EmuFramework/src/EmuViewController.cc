@@ -270,6 +270,11 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnDraw(
 		[this, &winData](Base::Window &win, Base::Window::DrawParams params)
 		{
+			if(unlikely(emuSystemTask.videoFrameIsInProgress()))
+			{
+				//logMsg("skipped draw");
+				return true;
+			}
 			popup.prepareDraw();
 			emuView.prepareDraw();
 			if(!EmuSystem::isActive())
@@ -427,7 +432,7 @@ void EmuViewController::placeEmuViews()
 
 void EmuViewController::placeElements()
 {
-	logMsg("placing app elements");
+	//logMsg("placing app elements");
 	{
 		auto &winData = appWindowData(popup.window());
 		popup.setViewRect(winData.viewport().bounds(), winData.projectionPlane);
@@ -465,6 +470,8 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		winConf.setOnDraw(
 			[this, &winData = *extraWin](Base::Window &win, Base::Window::DrawParams params)
 			{
+				if(unlikely(emuSystemTask.videoFrameIsInProgress()))
+					return true;
 				if(winData.hasPopup)
 				{
 					popup.prepareDraw();

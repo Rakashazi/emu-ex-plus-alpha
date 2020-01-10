@@ -112,7 +112,9 @@ bool EmuInputView::inputEvent(Input::Event e)
 		if(vController.keyInput(e))
 			return true;
 		#endif
-		assert(e.device());
+		if(unlikely(!keyMapping))
+			return false;
+		assumeExpr(e.device());
 		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->idx][e.mapKey()];
 		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));
 		bool didAction = false;

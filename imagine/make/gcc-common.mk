@@ -14,6 +14,12 @@ ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain
  CXXFLAGS_LANG += $(if $(cxxExceptions),-fexceptions,)
 endif
 
+ifeq ($(ENV), ios)
+ ifeq ($(SUBARCH), armv7)
+  CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT := $(filter-out -fomit-frame-pointer, $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT))
+ endif
+endif
+
 # setup warnings
 
 CFLAGS_WARN ?= -Wall -Wextra -Werror=return-type -Wno-comment -Wno-missing-field-initializers -Wno-unused -Wno-unused-parameter

@@ -31,7 +31,7 @@ std::vector<BluetoothInputDevice*> btInputDevPendingList;
 static PS3Controller *pendingPS3Controller = nullptr;
 static BluetoothPendingSocket pendingSocket;
 static BluetoothAdapter::OnStatusDelegate onServerStatus;
-static Base::Timer unregisterHIDServiceCallback;
+static Base::Timer unregisterHIDServiceCallback{"unregisterHIDServiceCallback"};
 #endif
 static bool hidServiceActive = false;
 

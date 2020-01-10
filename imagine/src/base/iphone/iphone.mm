@@ -662,7 +662,7 @@ bool setUIDEffective()
 
 }
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 110000
 void *operator new(unsigned long size, std::align_val_t align)
 {
 	void *ptr{};

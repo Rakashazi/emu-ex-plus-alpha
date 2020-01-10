@@ -23,13 +23,25 @@ namespace Base
 
 class CFCustomEvent
 {
-public:
+protected:
 	CFRunLoopTimerRef timer{};
 	CFRunLoopRef loop{};
 	CustomEventDelegate callback;
 	bool cancelled = true;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
 
-	constexpr CFCustomEvent() {}
+	const char *label();
+
+public:
+	#ifdef NDEBUG
+	CFCustomEvent();
+	CFCustomEvent(const char *debugLabel): CFCustomEvent() {}
+	#else
+	CFCustomEvent() : CFCustomEvent{nullptr} {}
+	CFCustomEvent(const char *debugLabel);
+	#endif
 
 	explicit operator bool() const
 	{

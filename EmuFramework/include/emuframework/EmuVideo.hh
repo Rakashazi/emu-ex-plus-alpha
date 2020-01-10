@@ -76,6 +76,6 @@ protected:
 	bool screenshotNextFrame = false;
 
 	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
-	void dispatchFinishFrame();
+	void dispatchFinishFrame(EmuSystemTask *task);
 	void postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc);
 };

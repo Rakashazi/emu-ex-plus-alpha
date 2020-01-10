@@ -27,10 +27,11 @@
 namespace Base
 {
 
-struct CustomEvent : public CustomEventImpl
+class CustomEvent : public CustomEventImpl
 {
 public:
-	CustomEvent() {}
+	using CustomEventImpl::CustomEventImpl;
+
 	void setEventLoop(EventLoop loop);
 	void setCallback(CustomEventDelegate callback);
 	void notify();

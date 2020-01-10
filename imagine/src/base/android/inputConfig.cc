@@ -62,7 +62,7 @@ static constexpr int DEVICE_CHANGED = 1;
 static constexpr int DEVICE_REMOVED = 2;
 
 // inotify-based device changes
-static Base::Timer inputRescanCallback;
+static Base::Timer inputRescanCallback{"inputRescanCallback"};
 int inputDevNotifyFd = -1;
 int watch = -1;
 

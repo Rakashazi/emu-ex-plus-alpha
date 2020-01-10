@@ -27,9 +27,20 @@ protected:
 	FDEventSource fdSrc{};
 	CustomEventDelegate callback{};
 	bool cancelled = false;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 
 public:
-	FDCustomEvent() {}
+	#ifdef NDEBUG
+	FDCustomEvent();
+	FDCustomEvent(const char *debugLabel): FDCustomEvent() {}
+	#else
+	FDCustomEvent() : FDCustomEvent{nullptr} {}
+	FDCustomEvent(const char *debugLabel);
+	#endif
 
 	bool operator ==(FDCustomEvent const& rhs) const
 	{

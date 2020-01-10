@@ -96,7 +96,6 @@ public:
 	static EmuSystem::Error saveStateWithSlot(int slot);
 	static EmuSystem::Error loadState(const char *path);
 	static EmuSystem::Error loadStateWithSlot(int slot);
-	static void setDefaultVControlsButtonSize(int size);
 	static void setDefaultVControlsButtonSpacing(int spacing);
 	static void setDefaultVControlsButtonStagger(int stagger);
 	static FS::PathString mediaSearchPath();

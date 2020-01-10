@@ -5,9 +5,9 @@ Building the Imagine SDK and applications is currently supported on Linux and Ma
 
 You need the following basic tools to start building Imagine. For platform-specific info, see the INSTALL-* file for that port.
 
-Linux: GCC 7.1/Clang 4.9 or newer, GNU Make, pkgconfig (install from your distro's package manager)
+Linux: GCC 9.1/Clang 8.0 or newer, GNU Make, pkgconfig (install from your distro's package manager)
 
-MacOS X: Xcode 10 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
+MacOS X: Xcode 11 or newer, MacPorts versions of coreutils, libtool, pkgconfig and gnutar (http://www.macports.org)
 
 The following make variables are used by the build system:
 

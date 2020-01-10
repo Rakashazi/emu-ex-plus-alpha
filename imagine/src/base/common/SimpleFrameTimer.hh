@@ -43,7 +43,7 @@ public:
 	}
 
 protected:
-	Timer timer{};
+	Timer timer{"SimpleFrameTimer"};
 	EventLoop eventLoop{};
 	IG::Time lastTimestamp{};
 	unsigned int intervalNS = 0;

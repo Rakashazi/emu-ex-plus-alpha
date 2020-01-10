@@ -580,10 +580,7 @@ bool InputDeviceConfig::setKey(Input::Key mapKey, const KeyCategory &cat, int ke
 void KeyMapping::buildAll()
 {
 	assert(inputDevConf.size() == Input::deviceList().size());
-	if(inputDevActionTablePtr)
-	{
-		mem_free(inputDevActionTablePtr[0]);
-	}
+	free();
 	inputDevActionTablePtr = std::make_unique<ActionGroup*[]>(Input::deviceList().size());
 	// calculate & allocate complete map including all devices
 	{
@@ -637,6 +634,20 @@ void KeyMapping::buildAll()
 
 		i++;
 	}
+}
+
+void KeyMapping::free()
+{
+	if(inputDevActionTablePtr)
+	{
+		mem_free(inputDevActionTablePtr[0]);
+	}
+	inputDevActionTablePtr.reset();
+}
+
+KeyMapping::operator bool() const
+{
+	return (bool)inputDevActionTablePtr;
 }
 
 namespace EmuControls

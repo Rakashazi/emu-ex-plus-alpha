@@ -22,6 +22,9 @@
 namespace Base
 {
 
+static constexpr int ON_EXIT_PRIORITY = 200;
+static constexpr int ON_RESUME_PRIORITY = -200;
+
 #ifdef CONFIG_BASE_MULTI_WINDOW
 std::vector<Window*> window_;
 #else
@@ -81,10 +84,18 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	onExit =
 		[this](bool backgrounded)
 		{
+			notifyDrawAllowed = false;
 			drawEvent.cancel();
-			return false;
+			return true;
 		};
-	Base::addOnExit(onExit);
+	Base::addOnExit(onExit, ON_EXIT_PRIORITY);
+	onResume =
+		[this](bool)
+		{
+			notifyDrawAllowed = true;
+			return true;
+		};
+	Base::addOnResume(onResume, ON_RESUME_PRIORITY);
 	drawEvent.setEventLoop({});
 	drawEvent.setCallback(
 		[this]()
@@ -183,7 +194,10 @@ void Window::postDraw()
 	if(!drawNeeded)
 		return;
 	if(!notifyDrawAllowed)
+	{
+		//logDMsg("posted draw but event notification disabled");
 		return;
+	}
 	drawEvent.notify();
 }
 
@@ -418,6 +432,7 @@ void Window::dismiss()
 {
 	onDismiss(*this);
 	Base::removeOnExit(onExit);
+	Base::removeOnResume(onResume);
 	drawEvent.deinit();
 	auto onFree = this->onFree;
 	deinit();

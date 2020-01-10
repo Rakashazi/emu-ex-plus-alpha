@@ -76,7 +76,6 @@ void setTimerIntOption()
 
 void EmuSystem::initOptions()
 {
-	EmuApp::setDefaultVControlsButtonSize(700);
 	EmuApp::setDefaultVControlsButtonSpacing(100);
 	EmuApp::setDefaultVControlsButtonStagger(5);
 }

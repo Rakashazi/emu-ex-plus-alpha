@@ -62,7 +62,7 @@ int EmuSystem::saveStateSlot = 0;
 Audio::PcmFormat EmuSystem::pcmFormat = {44100, Audio::SampleFormats::s16, 2};
 uint EmuSystem::audioFramesPerVideoFrame = 0;
 double EmuSystem::audioFramesPerVideoFrameFloat = 0;
-Base::Timer EmuSystem::autoSaveStateTimer;
+Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
@@ -90,7 +90,7 @@ static IG::Time lastUnderrunTime{};
 static bool multipleUnderruns = false;
 #ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 static AudioStats audioStats{};
-static Base::Timer audioStatsTimer{};
+static Base::Timer audioStatsTimer{"audioStatsTimer"};
 #endif
 
 static void startAudioStats()
@@ -686,7 +686,7 @@ void EmuSystem::prepareAudioVideo()
 
 static void closeAndSetupNew(const char *path)
 {
-	emuViewController.closeSystem();
+	EmuSystem::closeRuntimeSystem(true);
 	EmuSystem::setupGamePaths(path);
 	EmuApp::loadSessionOptions();
 }

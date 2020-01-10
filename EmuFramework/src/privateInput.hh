@@ -96,6 +96,8 @@ struct KeyMapping
 
 	KeyMapping() {}
 	void buildAll();
+	void free();
+	explicit operator bool() const;
 };
 
 static const int guiKeyIdxLoadGame = 0;

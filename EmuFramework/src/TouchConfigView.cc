@@ -136,7 +136,7 @@ class OnScreenInputPlaceView : public View
 	};
 	Gfx::Text text;
 	TimedInterpolator<float> textFade;
-	Base::Timer animationStartTimer;
+	Base::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
 	Base::Screen::OnFrameDelegate animate;
 	IG::WindowRect exitBtnRect;
 	DragState drag[Config::Input::MAX_POINTERS];

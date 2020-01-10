@@ -53,6 +53,12 @@ static int timerfd_settime(int ufd, int flags,
 namespace Base
 {
 
+#ifdef NDEBUG
+TimerFD::TimerFD() {}
+#else
+TimerFD::TimerFD(const char *debugLabel): debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+#endif
+
 int TimerFD::fd() const
 {
 	return fdSrc.fd();
@@ -73,7 +79,7 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 		if(!loop)
 			loop = EventLoop::forThread();
 		//logMsg("made timerfd: %d", fd);
-		fdSrc = {fd, loop,
+		fdSrc = {label(), fd, loop,
 			[this](int fd, int events)
 			{
 				timerFired();
@@ -85,10 +91,10 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 		rearm = true;
 	}
 
-	logMsg("%s %sfd:%d to run in %lds & %ldns, repeat every %lds & %ldns",
+	logMsg("%s %sfd:%d to run in %lds & %ldns, repeat every %lds & %ldns (%s)",
 		rearm ? "re-arming" : "creating", reuseResources ? "reusable " : "",
 		fd(), (long)time.tv_sec, (long)time.tv_nsec,
-		(long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec);
+		(long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec, label());
 	if(repeatInterval.tv_sec || repeatInterval.tv_nsec)
 	{
 		repeating = true;
@@ -96,7 +102,7 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool s
 	struct itimerspec newTime{repeatInterval, time};
 	if(timerfd_settime(fd(), 0, &newTime, nullptr) != 0)
 	{
-		logErr("error in timerfd_settime: %s", strerror(errno));
+		logErr("error in timerfd_settime: %s (%s)", strerror(errno), label());
 		return false;
 	}
 	armed = true;
@@ -107,7 +113,7 @@ void TimerFD::deinit()
 {
 	if(fd() == -1)
 		return;
-	logMsg("closing fd:%d", fd());
+	logMsg("closing fd:%d (%s)", fd(), label());
 	fdSrc.closeFD();
 	armed = false;
 }
@@ -122,7 +128,7 @@ void TimerFD::timerFired()
 	//logMsg("callback ready for fd:%d", fd);
 	if(unlikely(!armed))
 	{
-		logMsg("disarmed after fd became ready");
+		logMsg("disarmed after fd became ready (%s)", label());
 		return;
 	}
 	uint64_t timesFired;
@@ -193,7 +199,7 @@ void Timer::cancel()
 		{
 			// disarm timer
 			assert(fd());
-			logMsg("disarming fd:%d", fd());
+			logMsg("disarming fd:%d (%s)", fd(), label());
 			struct itimerspec newTime{{0}};
 			timerfd_settime(fd(), 0, &newTime, nullptr);
 			armed = false;
@@ -201,6 +207,15 @@ void Timer::cancel()
 	}
 	else
 		deinit();
+}
+
+const char *TimerFD::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 }

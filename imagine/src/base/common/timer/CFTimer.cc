@@ -20,6 +20,12 @@
 namespace Base
 {
 
+#ifdef NDEBUG
+CFTimer::CFTimer() {}
+#else
+CFTimer::CFTimer(const char *debugLabel): debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+#endif
+
 void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime,
 	CFTimeInterval repeatInterval, CFRunLoopRef loop, bool shouldReuseResources)
 {
@@ -134,6 +140,15 @@ void CFTimer::deinit()
 void Timer::deinit()
 {
 	CFTimer::deinit();
+}
+
+const char *CFTimer::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 }

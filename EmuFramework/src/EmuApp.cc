@@ -24,7 +24,6 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/base/Pipe.hh>
 #include <imagine/thread/Thread.hh>
 #include <cmath>
 #include "private.hh"
@@ -274,6 +273,8 @@ void mainInitCommon(int argc, char** argv)
 		[](bool focused)
 		{
 			AudioManager::startSession();
+			if(!keyMapping)
+				keyMapping.buildAll();
 			return true;
 		});
 
@@ -314,6 +315,7 @@ void mainInitCommon(int argc, char** argv)
 
 			View::defaultFace.freeCaches();
 			View::defaultBoldFace.freeCaches();
+			keyMapping.free();
 
 			#ifdef CONFIG_BASE_IOS
 			//if(backgrounded)
@@ -614,6 +616,7 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 	{
 		return;
 	}
+	emuViewController.closeSystem();
 	auto loadProgressView = std::make_unique<EmuLoadProgressView>(emuViewAttachParams(), e, onComplete);
 	auto loadProgressViewPtr = loadProgressView.get();
 	loadProgressView->msgPort.addToEventLoop({},
@@ -785,13 +788,6 @@ EmuSystem::Error EmuApp::loadStateWithSlot(int slot)
 {
 	auto path = EmuSystem::sprintStateFilename(slot);
 	return loadState(path.data());
-}
-
-void EmuApp::setDefaultVControlsButtonSize(int size)
-{
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	optionTouchCtrlSize.initDefault(size);
-	#endif
 }
 
 void EmuApp::setDefaultVControlsButtonSpacing(int spacing)

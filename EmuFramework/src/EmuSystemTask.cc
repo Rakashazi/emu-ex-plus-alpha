@@ -108,6 +108,7 @@ void EmuSystemTask::start()
 					bool doFrame = false;
 					if(unlikely(fastForwardActive || EmuSystem::shouldFastForward()))
 					{
+						startVideoFrame();
 						doFrame = true;
 						if(fastForwardActive)
 						{
@@ -132,6 +133,7 @@ void EmuSystemTask::start()
 						//logDMsg("%d frames elapsed (%fs)", frames, Base::frameTimeBaseToSecsDec(params.timestampDiff()));
 						if(frames)
 						{
+							startVideoFrame();
 							doFrame = true;
 							constexpr uint maxLateFrameSkip = 6;
 							uint maxFrameSkip = optionSkipLateFrames ? maxLateFrameSkip : 0;
@@ -196,22 +198,38 @@ void EmuSystemTask::stop()
 	replyPort.removeFromEventLoop();
 	emuVideo.waitAsyncFrame();
 	started = false;
+	assert(!doingVideoFrame);
 }
 
 void EmuSystemTask::runFrame(Base::FrameTimeBase timestamp)
 {
-	if(!started)
+	if(unlikely(!started))
 		return;
 	commandPort.send({Command::RUN_FRAME, timestamp});
 }
 
 void EmuSystemTask::waitForFinishedFrame()
 {
-	if(!started)
+	if(unlikely(!started))
 		return;
 	IG::Semaphore sem{0};
 	commandPort.send({Command::NOTIFY_AFTER_FRAME, &sem});
 	sem.wait();
+}
+
+bool EmuSystemTask::videoFrameIsInProgress() const
+{
+	return doingVideoFrame;
+}
+
+void EmuSystemTask::startVideoFrame()
+{
+	doingVideoFrame = true;
+}
+
+void EmuSystemTask::finishVideoFrame()
+{
+	doingVideoFrame = false;
 }
 
 void EmuSystemTask::setFastForwardActive(bool active)

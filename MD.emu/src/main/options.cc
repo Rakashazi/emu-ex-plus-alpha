@@ -51,7 +51,6 @@ Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMa
 
 void EmuSystem::initOptions()
 {
-	EmuApp::setDefaultVControlsButtonSize(750);
 	EmuApp::setDefaultVControlsButtonSpacing(100);
 }
 

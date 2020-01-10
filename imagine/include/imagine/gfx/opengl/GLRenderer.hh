@@ -136,8 +136,8 @@ public:
 	void initialCommands(RendererCommands &cmds);
 
 protected:
-	Base::MessagePort<CommandMessage> commandPort{};
-	Base::MessagePort<ReplyMessage> replyPort{};
+	Base::MessagePort<CommandMessage> commandPort{"RenderTask Command"};
+	Base::MessagePort<ReplyMessage> replyPort{"RenderTask Reply"};
 	Base::GLContext glCtx{};
 	DelegateFuncSet<DrawFinishedDelegate> onDrawFinished{};
 	Base::ResumeDelegate onResume{};
@@ -317,7 +317,7 @@ public:
 	void stop();
 
 private:
-	Base::MessagePort<CommandMessage> commandPort{};
+	Base::MessagePort<CommandMessage> commandPort{"GLMainTask Command"};
 	bool started = false;
 };
 
@@ -350,7 +350,7 @@ public:
 	TextureSampler defaultNoLinearNoMipClampSampler{};
 	TextureSampler defaultRepeatSampler{};
 	TextureSampler defaultNearestMipRepeatSampler{};
-	Base::Timer releaseShaderCompilerTimer;
+	Base::Timer releaseShaderCompilerTimer{"GLRenderer::releaseShaderCompilerTimer"};
 	Base::ExitDelegate onExit{};
 	TimedInterpolator<Gfx::GC> projAngleM;
 	std::unique_ptr<GLMainTask> mainTask{};

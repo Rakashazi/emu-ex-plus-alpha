@@ -30,15 +30,11 @@ namespace Base
 
 static __thread bool loopRunning;
 
-FDEventSource::FDEventSource(int fd):
-	GlibFDEventSource{fd}
-{}
-
-FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
-	FDEventSource{fd}
-{
-	addToEventLoop(loop, callback, events);
-}
+#ifdef NDEBUG
+GlibFDEventSource::GlibFDEventSource(int fd): fd_{fd} {}
+#else
+GlibFDEventSource::GlibFDEventSource(const char *debugLabel, int fd): fd_{fd}, debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+#endif
 
 FDEventSource::FDEventSource(FDEventSource &&o)
 {
@@ -61,11 +57,14 @@ void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
 	std::swap(a.source, b.source);
 	std::swap(a.tag, b.tag);
 	std::swap(a.fd_, b.fd_);
+	#ifndef NDEBUG
+	std::swap(a.debugLabel, b.debugLabel);
+	#endif
 }
 
 FDEventSource FDEventSource::makeXServerAddedToEventLoop(int fd, EventLoop loop)
 {
-	FDEventSource src{fd};
+	FDEventSource src{"XServer", fd};
 	src.addXServerToEventLoop(loop);
 	return src;
 }
@@ -127,6 +126,7 @@ void FDEventSource::removeFromEventLoop()
 	if(source)
 	{
 		g_source_destroy(source);
+		g_source_unref(source);
 		source = {};
 	}
 }
@@ -160,18 +160,28 @@ bool GlibFDEventSource::makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 {
 	assert(!source);
 	auto source = (GSource2*)g_source_new(fdSourceFuncs, sizeof(GSource2));
-	source->callback = callback_;
 	auto unrefSource = IG::scopeGuard([&](){ g_source_unref(source); });
+	source->callback = callback_;
 	tag = g_source_add_unix_fd(source, fd_, events);
 	g_source_set_callback(source, nullptr, tag, nullptr);
 	if(!g_source_attach(source, ctx))
 	{
-		logErr("error attaching source with fd:%d", fd_);
+		logErr("error attaching source with fd:%d (%s)", fd_, label());
 		return false;
 	}
+	unrefSource.cancel();
 	this->source = source;
-	logMsg("added fd:%d to GMainContext:%p", fd_, ctx);
+	logMsg("added fd:%d to GMainContext:%p (%s)", fd_, ctx, label());
 	return true;
+}
+
+const char *GlibFDEventSource::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 EventLoop EventLoop::forThread()

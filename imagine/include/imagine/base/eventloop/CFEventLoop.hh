@@ -35,12 +35,23 @@ class CFFDEventSource
 {
 public:
 	constexpr CFFDEventSource() {}
+	#ifdef NDEBUG
 	CFFDEventSource(int fd);
+	CFFDEventSource(const char *debugLabel, int fd): CFFDEventSource(fd) {}
+	#else
+	CFFDEventSource(int fd) : CFFDEventSource{nullptr, fd} {}
+	CFFDEventSource(const char *debugLabel, int fd);
+	#endif
 
 protected:
 	std::unique_ptr<CFFDEventSourceInfo> info{};
   CFRunLoopSourceRef src{};
   CFRunLoopRef loop{};
+  #ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 };
 
 using FDEventSourceImpl = CFFDEventSource;

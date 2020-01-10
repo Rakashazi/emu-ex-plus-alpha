@@ -198,15 +198,20 @@ public:
 	void stop();
 	void runFrame(Base::FrameTimeBase timestamp);
 	void waitForFinishedFrame();
+	bool videoFrameIsInProgress() const;
+	void finishVideoFrame();
 	void setFastForwardActive(bool active);
 	void sendVideoFormatChangedReply(IG::PixmapDesc desc, IG::Semaphore *semAddr);
 	void sendScreenshotReply(int num, bool success);
 
 private:
-	Base::MessagePort<CommandMessage> commandPort{};
-	Base::MessagePort<ReplyMessage> replyPort{};
+	Base::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
+	Base::MessagePort<ReplyMessage> replyPort{"EmuSystemTask Reply"};
 	bool started = false;
 	bool fastForwardActive = false;
+	bool doingVideoFrame = false;
+
+	void startVideoFrame();
 };
 
 extern EmuVideoLayer emuVideoLayer;

@@ -32,13 +32,13 @@ namespace Base
 struct Timer : public TimerImpl
 {
 public:
+	using TimerImpl::TimerImpl;
 	enum Flags
 	{
 		HINT_NONE = 0,
 		HINT_REUSE = IG::bit(0) // timer resources should't be de-allocated automatically after firing or from cancel()
 	};
 
-	Timer() {}
 	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags);
 	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop, Flags flags);
 	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop, Flags flags);

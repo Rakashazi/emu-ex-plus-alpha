@@ -240,7 +240,7 @@ struct EvdevInputDevice : public Device
 	void addPollEvent()
 	{
 		assert(fd >= 0);
-		fdSrc = {fd, {},
+		fdSrc = {"EvdevInputDevice", fd, {},
 			[this](int fd, int pollEvents)
 			{
 				if(unlikely(pollEvents & Base::POLLEV_ERR))
@@ -418,7 +418,7 @@ void initEvdev(Base::EventLoop loop)
 			auto watch = inotify_add_watch(inputDevNotifyFd, DEV_NODE_PATH, IN_CREATE | IN_ATTRIB);
 			fd_setNonblock(inputDevNotifyFd, 1);
 			static Base::FDEventSource evdevSrc;
-			evdevSrc = {inputDevNotifyFd, loop,
+			evdevSrc = {"Evdev Inotify", inputDevNotifyFd, loop,
 				[](int fd, int)
 				{
 					char event[sizeof(struct inotify_event) + 2048];

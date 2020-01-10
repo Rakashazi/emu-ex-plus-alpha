@@ -22,6 +22,7 @@
 #endif
 #include "basePrivate.hh"
 #include <imagine/base/Base.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/DelegateFuncSet.hh>
@@ -161,6 +162,17 @@ void exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
 	va_start(args, format);
 	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
 	exitWithErrorMessageVPrintf(exitVal, format, args);
+}
+
+#ifdef NDEBUG
+FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
+	FDEventSource{fd}
+#else
+FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint events):
+	FDEventSource{debugLabel, fd}
+#endif
+{
+	addToEventLoop(loop, callback, events);
 }
 
 }

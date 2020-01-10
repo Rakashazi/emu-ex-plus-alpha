@@ -27,15 +27,11 @@ static int pollEventCallback(int fd, int events, void *data)
 	return callback(fd, events);
 }
 
-FDEventSource::FDEventSource(int fd):
-	ALooperFDEventSource{fd}
-{}
-
-FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
-	FDEventSource{fd}
-{
-	addToEventLoop(loop, callback, events);
-}
+#ifdef NDEBUG
+ALooperFDEventSource::ALooperFDEventSource(int fd): fd_{fd} {}
+#else
+ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, int fd): fd_{fd}, debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+#endif
 
 FDEventSource::FDEventSource(FDEventSource &&o)
 {
@@ -58,11 +54,14 @@ void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
 	std::swap(a.callback_, b.callback_);
 	std::swap(a.looper, b.looper);
 	std::swap(a.fd_, b.fd_);
+	#ifndef NDEBUG
+	std::swap(a.debugLabel, b.debugLabel);
+	#endif
 }
 
 bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
 {
-	logMsg("adding fd:%d to looper:%p", fd_, loop.nativeObject());
+	logMsg("adding fd:%d to looper:%p (%s)", fd_, loop.nativeObject(), label());
 	if(!loop)
 		loop = EventLoop::forThread();
 	callback_ = std::make_unique<PollEventDelegate>(callback);
@@ -86,7 +85,7 @@ void FDEventSource::removeFromEventLoop()
 {
 	if(looper)
 	{
-		logMsg("removing fd %d from looper", fd_);
+		logMsg("removing fd %d from looper (%s)", fd_, label());
 		ALooper_removeFd(looper, fd_);
 		looper = {};
 		callback_ = {};
@@ -115,6 +114,15 @@ void FDEventSource::closeFD()
 	removeFromEventLoop();
 	close(fd_);
 	fd_ = -1;
+}
+
+const char *ALooperFDEventSource::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 EventLoop EventLoop::forThread()

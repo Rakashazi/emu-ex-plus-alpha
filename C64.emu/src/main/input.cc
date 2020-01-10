@@ -466,6 +466,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 						optionSwapJoystickPorts = 0;
 					else
 						optionSwapJoystickPorts = 1;
+					IG::fillData(*plugin.joystick_value);
 					EmuApp::postMessage(1, false, "Swapped Joystick Ports");
 				}
 				return;

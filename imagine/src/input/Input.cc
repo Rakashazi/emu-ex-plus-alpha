@@ -22,7 +22,7 @@
 namespace Input
 {
 
-static Base::Timer keyRepeatTimer{};
+static Base::Timer keyRepeatTimer{"keyRepeatTimer"};
 static Event keyRepeatEvent{};
 static bool allowKeyRepeats_ = true;
 DeviceChangeDelegate onDeviceChange{};

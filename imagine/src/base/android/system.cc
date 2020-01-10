@@ -159,7 +159,7 @@ void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 	auto env = jEnvForThread();
 	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V"};
 	jMakeErrorPopup(env, jBaseActivity, env->NewStringUTF(msg.data()));
-	auto exitTimer = new Timer{};
+	auto exitTimer = new Timer{"exitTimer"};
 	exitTimer->callbackAfterSec([=]() { exit(exitVal); }, 3, EventLoop::forThread());
 }
 

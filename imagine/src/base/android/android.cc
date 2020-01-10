@@ -59,7 +59,7 @@ SurfaceRotation osRotation{};
 static SystemOrientationChangedDelegate onSystemOrientationChanged{};
 static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
-static Timer userActivityCallback{};
+static Timer userActivityCallback{"userActivityCallback"};
 static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 AInputQueue *inputQueue{};
 static void *mainLibHandle{};
@@ -506,7 +506,10 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			logMsg("app started");
 			appState = APP_RUNNING;
 			Screen::setActiveAll(true);
-			dispatchOnResume(aHasFocus);
+			if(Base::androidSDK() >= 11)
+			{
+				dispatchOnResume(aHasFocus);
+			}
 		};
 	activity->callbacks->onResume =
 		[](ANativeActivity *activity)
@@ -517,6 +520,10 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			Input::onResumeMOGA(jEnvForThread(), true);
 			#endif
 			Input::registerDeviceChangeListener();
+			if(Base::androidSDK() < 11)
+			{
+				dispatchOnResume(aHasFocus);
+			}
 			handleIntent(activity->env, activity->clazz);
 			if(userActivityFaker)
 				userActivityFaker->start();

@@ -29,12 +29,23 @@ class ALooperFDEventSource
 {
 public:
 	constexpr ALooperFDEventSource() {}
-	constexpr ALooperFDEventSource(int fd): fd_{fd} {}
+	#ifdef NDEBUG
+	ALooperFDEventSource(int fd);
+	ALooperFDEventSource(const char *debugLabel, int fd): ALooperFDEventSource(fd) {}
+	#else
+	ALooperFDEventSource(int fd) : ALooperFDEventSource{nullptr, fd} {}
+	ALooperFDEventSource(const char *debugLabel, int fd);
+	#endif
 
 protected:
 	std::unique_ptr<PollEventDelegate> callback_{};
 	ALooper *looper{};
 	int fd_ = -1;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 };
 
 using FDEventSourceImpl = ALooperFDEventSource;

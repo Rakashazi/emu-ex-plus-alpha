@@ -22,6 +22,12 @@
 namespace Base
 {
 
+#ifdef NDEBUG
+FDCustomEvent::FDCustomEvent() {}
+#else
+FDCustomEvent::FDCustomEvent(const char *debugLabel): debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+#endif
+
 void CustomEvent::setEventLoop(EventLoop loop)
 {
 	int fd = fdSrc.fd();
@@ -36,7 +42,7 @@ void CustomEvent::setEventLoop(EventLoop loop)
 	}
 	if(!loop)
 		loop = EventLoop::forThread();
-	fdSrc = {fd, loop,
+	fdSrc = {label(), fd, loop,
 		[this](int fd, int events)
 		{
 			eventfd_t notify;
@@ -71,6 +77,15 @@ void CustomEvent::deinit()
 {
 	cancelled = true;
 	fdSrc.closeFD();
+}
+
+const char *FDCustomEvent::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 }

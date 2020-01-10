@@ -48,11 +48,17 @@ public:
 	using FDEventSourceImpl::FDEventSourceImpl;
 
 	constexpr FDEventSource() {}
-	FDEventSource(int fd);
-	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events);
-	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback):
-		FDEventSource{fd, loop, callback, POLLEV_IN}
-	{}
+	#ifdef NDEBUG
+	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN);
+	FDEventSource(const char *debugLabel, int fd): FDEventSource(fd) {}
+	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN):
+		FDEventSource(fd, loop, callback, events) {}
+	#else
+	FDEventSource(int fd): FDEventSource(nullptr, fd) {}
+	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN):
+		FDEventSource(nullptr, fd, loop, callback, events) {}
+	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN);
+	#endif
 	FDEventSource(FDEventSource &&o);
 	FDEventSource &operator=(FDEventSource o);
 	~FDEventSource();

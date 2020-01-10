@@ -17,7 +17,13 @@ class GlibFDEventSource
 {
 public:
 	constexpr GlibFDEventSource() {}
-	constexpr GlibFDEventSource(int fd): fd_{fd} {}
+	#ifdef NDEBUG
+	GlibFDEventSource(int fd);
+	GlibFDEventSource(const char *debugLabel, int fd): GlibFDEventSource(fd) {}
+	#else
+	GlibFDEventSource(int fd) : GlibFDEventSource{nullptr, fd} {}
+	GlibFDEventSource(const char *debugLabel, int fd);
+	#endif
 	bool makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 		PollEventDelegate callback_, GIOCondition events, GMainContext *ctx);
 
@@ -25,6 +31,11 @@ protected:
 	GSource2 *source{};
 	gpointer tag{};
 	int fd_ = -1;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 };
 
 using FDEventSourceImpl = GlibFDEventSource;

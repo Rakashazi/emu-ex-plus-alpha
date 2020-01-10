@@ -37,7 +37,6 @@ extern "C"
 	CONFIG conf{};
 	GN_Rect visible_area;
 
-	Uint16 play_buffer[16384]{};
 	GN_Surface *buffer{};
 	static CONF_ITEM rompathConfItem{};
 
@@ -365,10 +364,11 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
 	main_frame(task, video);
 	auto audioFrames = audioFramesForThisFrame();
-	YM2610Update_stream(audioFrames);
+	Uint16 audioBuff[audioFrames * 2];
+	YM2610Update_stream(audioFrames, audioBuff);
 	if(renderAudio)
 	{
-		writeSound(play_buffer, audioFrames);
+		writeSound(audioBuff, audioFrames);
 	}
 }
 

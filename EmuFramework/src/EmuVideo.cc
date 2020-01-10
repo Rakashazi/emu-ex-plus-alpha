@@ -113,8 +113,10 @@ void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
 	startFrame(task, pix);
 }
 
-void EmuVideo::dispatchFinishFrame()
+void EmuVideo::dispatchFinishFrame(EmuSystemTask *task)
 {
+	if(task)
+		task->finishVideoFrame();
 	onFrameFinished(*this);
 }
 
@@ -126,7 +128,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff
 	}
 	rTask.acquireFenceAndWait(fence);
 	vidImg.unlock(texBuff);
-	dispatchFinishFrame();
+	dispatchFinishFrame(task);
 }
 
 void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
@@ -137,7 +139,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 	}
 	rTask.acquireFenceAndWait(fence);
 	vidImg.write(0, pix, {}, Gfx::Texture::COMMIT_FLAG_ASYNC);
-	dispatchFinishFrame();
+	dispatchFinishFrame(task);
 }
 
 void EmuVideo::waitAsyncFrame()

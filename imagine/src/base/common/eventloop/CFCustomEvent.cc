@@ -20,6 +20,12 @@
 namespace Base
 {
 
+#ifdef NDEBUG
+CFCustomEvent::CFCustomEvent() {}
+#else
+CFCustomEvent::CFCustomEvent(const char *debugLabel): debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+#endif
+
 void CustomEvent::setEventLoop(EventLoop loop_)
 {
 	if(!timer)
@@ -73,6 +79,15 @@ void CustomEvent::deinit()
 		CFRelease(timer);
 		timer = nullptr;
 	}
+}
+
+const char *CFCustomEvent::label()
+{
+	#ifdef NDEBUG
+	return nullptr;
+	#else
+	return debugLabel;
+	#endif
 }
 
 }

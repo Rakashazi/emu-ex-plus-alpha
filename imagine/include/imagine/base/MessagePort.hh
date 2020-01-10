@@ -58,8 +58,8 @@ public:
 		Pipe &pipe;
 	};
 
-	PipeMessagePort(uint capacity = 8):
-		pipe{(uint)sizeof(MSG_TYPE) * capacity}
+	PipeMessagePort(const char *debugLabel = nullptr, uint capacity = 8):
+		pipe{debugLabel, (uint)sizeof(MSG_TYPE) * capacity}
 	{
 		pipe.setReadNonBlocking(true);
 	}

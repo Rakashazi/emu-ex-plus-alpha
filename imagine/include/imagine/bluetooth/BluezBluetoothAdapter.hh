@@ -60,7 +60,7 @@ public:
 
 private:
 	int devId = -1, socket = -1;
-	Base::Pipe statusPipe;
+	Base::Pipe statusPipe{"BluezBluetoothAdapter::statusPipe"};
 	bool scanCancelled = false;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	struct L2CapServer

@@ -16,7 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <imagine/base/Pipe.hh>
+#include <imagine/base/MessagePort.hh>
 #include <array>
 
 class EmuLoadProgressView : public View
@@ -40,7 +40,7 @@ public:
 	void draw(Gfx::RendererCommands &cmds) final;
 
 	// load context vars
-	Base::MessagePort<EmuSystem::LoadProgressMessage> msgPort;
+	Base::MessagePort<EmuSystem::LoadProgressMessage> msgPort{"EmuLoadProgressView"};
 	Input::Event originalEvent{};
 	EmuApp::CreateSystemCompleteDelegate onComplete{};
 };
