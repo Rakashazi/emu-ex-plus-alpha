@@ -18,7 +18,7 @@ extern "C"
 	#include <yabause/cs2.h>
 }
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2018\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
 PerPad_struct *pad[2];
 // from sh2_dynarec.c

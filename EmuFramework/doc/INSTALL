@@ -16,5 +16,5 @@ make -f android-9.mk V=1 -j4
 
 --------------------------------
 
-Copyright 2014-2015 by Robert Broglia
+Copyright 2014-2020 by Robert Broglia
 

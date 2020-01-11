@@ -417,7 +417,7 @@ android-bundle-install : android-bundle-apks
 android-bundle-ready :
 	cp $(android_bundlePath) $(IMAGINE_PATH)/../releases-bin/$(android_releaseReadySubdir)/$(android_metadata_project)-$(android_metadata_version).aab
 
-android_apkPath := $(android_targetPath)/build/outputs/apk/$(android_buildTarget)/$(android_metadata_project).apk
+android_apkPath := $(android_targetPath)/build/outputs/apk/$(android_buildTarget)/$(android_metadata_project)-$(android_buildTarget).apk
 .PHONY: android-apk
 android-apk : $(android_projectDeps) $(android_soFiles)
 	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_buildTask)

@@ -23,13 +23,6 @@ CPPFLAGS += \
 
 CXXFLAGS_WARN += -Wno-register
 
-ifeq ($(ENV), android)
- ifeq ($(ARCH), x86)
-  # TODO: linker segfaults during x86 build as of NDK 15 with --icf=all
-  LDFLAGS += -Wl,--icf=safe
- endif
-endif
-
 snes9xSrc := \
 c4.cpp \
 c4emu.cpp \

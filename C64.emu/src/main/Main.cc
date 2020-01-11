@@ -62,7 +62,7 @@ extern "C"
 	#include "autostart-prg.h"
 }
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2018\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 IG::Semaphore execSem{0}, execDoneSem{0};
 bool runningFrame = false, doAudio = false;
 static bool c64IsInit = false, c64FailedInit = false;

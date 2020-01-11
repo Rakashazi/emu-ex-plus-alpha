@@ -36,7 +36,7 @@
 namespace Base
 {
 
-const char copyright[] = "Imagine is Copyright 2010-2018 Robert Broglia";
+const char copyright[] = "Imagine is Copyright 2010-2020 Robert Broglia";
 
 static InterProcessMessageDelegate onInterProcessMessage_;
 static DelegateFuncSet<ResumeDelegate> onResume_;

@@ -20,6 +20,10 @@ apply plugin: 'android'
 android {
     compileSdkVersion 26
 
+    defaultConfig {
+        targetSdkVersion 28
+    }
+
     buildTypes {
         release {
 	        shrinkResources true
