@@ -68,7 +68,7 @@ const char *EmuSystem::systemName()
 void applyGBPalette()
 {
 	uint idx = optionGBPal;
-	assert(idx < IG::size(gbPal));
+	assert(idx < std::size(gbPal));
 	bool useBuiltin = optionUseBuiltinGBPalette && gameBuiltinPalette;
 	if(useBuiltin)
 		logMsg("using built-in game palette");

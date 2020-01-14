@@ -29,8 +29,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"10:9 (Original)", 10, 9},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
-Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<IG::size(gbPal)-1>};
+const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<std::size(gbPal)-1>};
 Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
 Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
 Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};

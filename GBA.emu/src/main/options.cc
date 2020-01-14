@@ -29,7 +29,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		{"3:2 (Original)", 3, 2},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
 
 bool EmuSystem::resetSessionOptions()

@@ -103,7 +103,7 @@ static void printEGLConfs(EGLDisplay display)
 {
 	EGLConfig conf[96];
 	EGLint num = 0;
-	eglGetConfigs(display, conf, IG::size(conf), &num);
+	eglGetConfigs(display, conf, std::size(conf), &num);
 	logMsg("EGLDisplay has %d configs:", num);
 	iterateTimes(num, i)
 	{
@@ -115,7 +115,7 @@ static void printEGLConfsWithAttr(EGLDisplay display, const EGLint *attr)
 {
 	EGLConfig conf[96];
 	EGLint num = 0;
-	eglChooseConfig(display, attr, conf, IG::size(conf), &num);
+	eglChooseConfig(display, attr, conf, std::size(conf), &num);
 	logMsg("got %d configs", num);
 	iterateTimes(num, i)
 	{

@@ -83,8 +83,8 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	SLDataLocator_OutputMix outMixLoc{SL_DATALOCATOR_OUTPUTMIX, outMix};
 	SLDataSink sink{&outMixLoc, nullptr};
 	const SLInterfaceID ids[]{SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME};
-	const SLboolean req[IG::size(ids)]{SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE};
-	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, IG::size(ids), ids, req);
+	const SLboolean req[std::size(ids)]{SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE};
+	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, std::size(ids), ids, req);
 	if(result != SL_RESULT_SUCCESS)
 	{
 		logErr("CreateAudioPlayer returned 0x%X", (uint)result);

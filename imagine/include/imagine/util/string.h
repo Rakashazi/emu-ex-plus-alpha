@@ -6,7 +6,7 @@
 #include <cctype>
 #include <cstdarg>
 #include <system_error>
-#include <imagine/util/iterator.hh>
+#include <iterator>
 #else
 #include <string.h>
 #include <ctype.h>
@@ -35,7 +35,7 @@ END_C_DECLS
 template <typename T>
 size_t string_copy(T &dest, const char *src)
 {
-	return string_copy(IG::data(dest), src, IG::size(dest));
+	return string_copy(std::data(dest), src, std::size(dest));
 }
 
 #ifdef __clang__
@@ -54,7 +54,7 @@ static constexpr size_t string_len(const char *s)
 template <typename T>
 static size_t string_cat(T &dest, const char *src)
 {
-	return string_cat(IG::data(dest), src, IG::size(dest));
+	return string_cat(std::data(dest), src, std::size(dest));
 }
 
 template <typename T>
@@ -63,7 +63,7 @@ static int string_printf(T &dest, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
-	auto result = vsnprintf(IG::data(dest), IG::size(dest), format, args);
+	auto result = vsnprintf(std::data(dest), std::size(dest), format, args);
 	va_end(args);
 	return result;
 }

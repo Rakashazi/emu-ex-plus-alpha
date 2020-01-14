@@ -20,6 +20,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gui/ScrollView.hh>
+#include <iterator>
 
 class MenuItem;
 
@@ -41,8 +42,8 @@ public:
 		{
 			name,
 			attach,
-			[&item](const TableView &) { return IG::size(item); },
-			[&item](const TableView &, uint idx) -> MenuItem& { return derefMenuItem(IG::data(item)[idx]); }
+			[&item](const TableView &) { return std::size(item); },
+			[&item](const TableView &, uint idx) -> MenuItem& { return derefMenuItem(std::data(item)[idx]); }
 		} {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void prepareDraw() override;

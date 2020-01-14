@@ -32,13 +32,11 @@
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
 static char logLineBuffer[512]{};
 uint loggerVerbosity = loggerMaxVerbosity;
-static const bool useExternalLogFile = false;
 static FILE *logExternalFile{};
 static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release builds
 
-static FS::PathString externalLogPath()
+static FS::PathString externalLogDir()
 {
-	FS::PathString path{};
 	FS::PathString prefix{"."};
 	if(Config::envIsIOS)
 		prefix = FS::makePathString("/var/mobile");
@@ -46,8 +44,22 @@ static FS::PathString externalLogPath()
 		prefix = Base::sharedStoragePath();
 	else if(Config::envIsWebOS)
 		prefix = FS::makePathString("/media/internal");
-	string_printf(path, "%s/imagine.log", prefix.data());
-	return path;
+	return prefix;
+}
+
+static FS::PathString externalLogEnablePath()
+{
+	return FS::makePathStringPrintf("%s/imagine_enable_log_file", externalLogDir().data());
+}
+
+static FS::PathString externalLogPath()
+{
+	return FS::makePathStringPrintf("%s/imagine_log.txt", externalLogDir().data());
+}
+
+static bool shouldLogToExternalFile()
+{
+	return FS::exists(externalLogEnablePath());
 }
 
 void logger_init()
@@ -57,7 +69,7 @@ void logger_init()
 	#if defined __APPLE__ && (defined __i386__ || defined __x86_64__)
 	asl_add_log_file(nullptr, STDERR_FILENO); // output to stderr
 	#endif
-	if(useExternalLogFile && !logExternalFile)
+	if(shouldLogToExternalFile() && !logExternalFile)
 	{
 		auto path = externalLogPath();
 		logMsg("external log file: %s", path.data());

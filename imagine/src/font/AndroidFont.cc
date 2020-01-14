@@ -71,7 +71,7 @@ static void setupResourceFontAndroidJni(JNIEnv *env, jobject renderer)
 			})
 		},
 	};
-	env->RegisterNatives(jFontRendererCls, method, IG::size(method));
+	env->RegisterNatives(jFontRendererCls, method, std::size(method));
 }
 
 Font::Font() {}

@@ -15,14 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <initializer_list>
-#include <vector>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/typeTraits.hh>
+#include <initializer_list>
+#include <vector>
+#include <iterator>
 
 class MenuItem
 {
@@ -210,11 +211,11 @@ public:
 		MultiChoiceMenuItem{str, onDisplayStr, selected,
 		[&item](const MultiChoiceMenuItem &) -> int
 		{
-			return IG::size(item);
+			return std::size(item);
 		},
 		[&item](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
 		{
-			return IG::data(item)[idx];
+			return std::data(item)[idx];
 		},
 		selectDel}
 	{}

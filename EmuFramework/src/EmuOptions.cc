@@ -443,7 +443,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 
 uint OptionVControllerLayoutPosition::ioSize()
 {
-	uint positions = IG::size(vController.layoutPosition()[0]) * IG::size(vController.layoutPosition());
+	uint positions = std::size(vController.layoutPosition()[0]) * std::size(vController.layoutPosition());
 	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
 }
 

@@ -10,7 +10,6 @@ else
  targetExtension := .exe
 endif
 
-compiler_noSanitizeAddress := 1
 include $(buildSysPath)/gcc.mk
 
 ifndef PROFILE

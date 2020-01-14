@@ -1,7 +1,6 @@
 #pragma once
 
 #include <imagine/util/algorithm.h>
-#include <imagine/util/iterator.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/util/utility.h>
 #include <cstddef>

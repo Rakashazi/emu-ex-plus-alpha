@@ -89,11 +89,11 @@ static Device *vkbDevice{};
 
 static const Device *deviceForInputId(int osId)
 {
-	iterateTimes(xDevice.size(), i)
+	for(auto &dev : xDevice)
 	{
-		if(xDevice[i]->id == osId)
+		if(dev->id == osId)
 		{
-			return xDevice[i].get();
+			return dev.get();
 		}
 	}
 	if(!vkbDevice)

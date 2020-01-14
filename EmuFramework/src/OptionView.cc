@@ -1196,7 +1196,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		(int)optionSoundBuffers - 2,
 		[this](const MultiChoiceMenuItem &) -> int
 		{
-			return IG::size(soundBuffersItem);
+			return std::size(soundBuffersItem);
 		},
 		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
 		{

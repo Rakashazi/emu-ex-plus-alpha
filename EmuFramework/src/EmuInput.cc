@@ -628,7 +628,7 @@ void KeyMapping::buildAll()
 			assert(key[k] < Input::Event::mapNumKeys(e->map()));
 			auto &group = actionGroup[key[k]];
 			auto slot = IG::findData_if(group, [](Action a){ return a == 0; });
-			if(slot != group + IG::size(group))
+			if(slot != group + std::size(group))
 				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
 		}
 

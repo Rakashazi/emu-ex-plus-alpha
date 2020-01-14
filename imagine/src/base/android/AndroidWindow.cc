@@ -76,7 +76,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			})
 		},
 	};
-	env->RegisterNatives(cls, method, IG::size(method));
+	env->RegisterNatives(cls, method, std::size(method));
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
@@ -192,6 +192,8 @@ void Window::deinit()
 		env->DeleteGlobalRef(jDialog);
 	}
 	#endif
+	nWin = nullptr;
+	initialInit = false;
 }
 
 void Window::show()

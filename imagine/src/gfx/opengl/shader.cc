@@ -606,7 +606,7 @@ bool DefaultTexExternalReplaceProgram::compile(Renderer &r)
 		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 		const char *fragSrc[]{"#define texture2D texture\n", texExternalReplaceFragShaderSrc};
-		compileDefaultProgram(r, *this, fragSrc, IG::size(fragSrc));
+		compileDefaultProgram(r, *this, fragSrc, std::size(fragSrc));
 	}
 	return true;
 	#else
@@ -644,7 +644,7 @@ bool DefaultTexExternalProgram::compile(Renderer &r)
 		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 		const char *fragSrc[]{"#define texture2D texture\n", texExternalFragShaderSrc};
-		compileDefaultProgram(r, *this, fragSrc, IG::size(fragSrc));
+		compileDefaultProgram(r, *this, fragSrc, std::size(fragSrc));
 	}
 	return true;
 	#else

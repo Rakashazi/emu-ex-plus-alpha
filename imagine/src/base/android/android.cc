@@ -284,7 +284,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 					})
 				}
 			};
-			env->RegisterNatives(jBaseActivityCls, method, IG::size(method));
+			env->RegisterNatives(jBaseActivityCls, method, std::size(method));
 		}
 
 		if(Config::DEBUG_BUILD)

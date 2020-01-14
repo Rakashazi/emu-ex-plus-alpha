@@ -65,12 +65,12 @@ ENUM(xdndAtomStr, 11,
      ),
      static char xdndAtomStr[][sizeof("iSelectionProperty")]);
 
-static Atom xdndAtom[IG::size(xdndAtomStr)];
+static Atom xdndAtom[std::size(xdndAtomStr)];
 static constexpr Atom currentDNDVersion = 5;
 
 void registerXdndAtoms(Display *dpy)
 {
-	uint atoms = IG::size(xdndAtomStr);
+	uint atoms = std::size(xdndAtomStr);
 	char *strPtr[atoms];
 	iterateTimes(atoms, i)
 	{

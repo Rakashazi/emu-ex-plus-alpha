@@ -31,7 +31,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 FS::PathString fdsBiosPath{};
 PathOption optionFdsBiosPath{CFGKEY_FDS_BIOS_PATH, fdsBiosPath, ""};
 Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};

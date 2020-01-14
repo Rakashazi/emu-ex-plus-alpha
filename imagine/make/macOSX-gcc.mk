@@ -1,6 +1,5 @@
 ENV := macosx
 
-compiler_noSanitizeAddress := 1
 config_compiler := clang
 AR := ar
 ifeq ($(origin CC), default)

@@ -440,7 +440,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 	{
 		// C64
 		{
-			IG::size(c64ModelStr),
+			std::size(c64ModelStr),
 			c64ModelStr,
 			"c64model_get",
 			"c64model_set",
@@ -448,7 +448,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// C64 (accurate)
 		{
-			IG::size(c64ModelStr),
+			std::size(c64ModelStr),
 			c64ModelStr,
 			"c64model_get",
 			"c64model_set",
@@ -456,7 +456,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// DTV
 		{
-			IG::size(dtvModelStr),
+			std::size(dtvModelStr),
 			dtvModelStr,
 			"dtvmodel_get",
 			"dtvmodel_set",
@@ -464,7 +464,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// C128
 		{
-			IG::size(c128ModelStr),
+			std::size(c128ModelStr),
 			c128ModelStr,
 			"c128model_get",
 			"c128model_set",
@@ -472,7 +472,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// C64 Super CPU
 		{
-			IG::size(superCPUModelStr),
+			std::size(superCPUModelStr),
 			superCPUModelStr,
 			"c64model_get",
 			"c64model_set",
@@ -480,14 +480,14 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// CBM-II 6x0
 		{
-			IG::size(cbm2ModelStr),
+			std::size(cbm2ModelStr),
 			cbm2ModelStr,
 			"cbm2model_get",
 			"cbm2model_set"
 		},
 		// CBM-II 5x0
 		{
-			IG::size(cbm5x0ModelStr),
+			std::size(cbm5x0ModelStr),
 			cbm5x0ModelStr,
 			"cbm2model_get",
 			"cbm2model_set",
@@ -495,14 +495,14 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// PET
 		{
-			IG::size(petModelStr),
+			std::size(petModelStr),
 			petModelStr,
 			"petmodel_get",
 			"petmodel_set"
 		},
 		// PLUS4
 		{
-			IG::size(plus4ModelStr),
+			std::size(plus4ModelStr),
 			plus4ModelStr,
 			"plus4model_get",
 			"plus4model_set",
@@ -510,7 +510,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 		},
 		// VIC20
 		{
-			IG::size(vic20ModelStr),
+			std::size(vic20ModelStr),
 			vic20ModelStr,
 			"vic20model_get",
 			"vic20model_set",

@@ -21,6 +21,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
+#include <atomic>
 
 namespace Config
 {
@@ -111,8 +112,8 @@ protected:
 	Screen *screen_ = nullptr;
 	#endif
 	void *customDataPtr{};
-	bool drawNeeded = false;
-	bool notifyDrawAllowed = true;
+	std::atomic_bool drawNeeded = false;
+	std::atomic_bool notifyDrawAllowed = true;
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 

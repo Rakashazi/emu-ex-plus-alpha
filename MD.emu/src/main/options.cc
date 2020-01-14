@@ -33,7 +33,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
 Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
 Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};

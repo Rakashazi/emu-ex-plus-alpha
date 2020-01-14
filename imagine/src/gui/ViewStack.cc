@@ -323,20 +323,22 @@ View &ViewStack::viewAtIdx(uint idx) const
 
 int ViewStack::viewIdx(View &v) const
 {
-	iterateTimes(view.size(), i)
+	for(int i = 0; auto &viewEntry : view)
 	{
-		if(view[i].v.get() == &v)
+		if(viewEntry.v.get() == &v)
 			return i;
+		i++;
 	}
 	return -1;
 }
 
 int ViewStack::viewIdx(const char *name) const
 {
-	iterateTimes(view.size(), i)
+	for(int i = 0; auto &viewEntry : view)
 	{
-		if(string_equal(view[i].v->name(), name))
+		if(string_equal(viewEntry.v->name(), name))
 			return i;
+		i++;
 	}
 	return -1;
 }

@@ -156,7 +156,7 @@ struct EvdevInputDevice : public Device
 				}
 				bcase EV_ABS:
 				{
-					if(ev.code >= IG::size(axis) || !axis[ev.code].active)
+					if(ev.code >= std::size(axis) || !axis[ev.code].active)
 					{
 						continue; // out of range or inactive
 					}
@@ -226,7 +226,7 @@ struct EvdevInputDevice : public Device
 				logMsg("%d - %d", axis[axisId].keyEmu.lowLimit, axis[axisId].keyEmu.highLimit);
 				axes++;
 				keycodeIdx += 2; // move to the next +/- axis keycode pair
-				if(axes == IG::size(axisKeycode)/2)
+				if(axes == std::size(axisKeycode)/2)
 				{
 					logMsg("reached maximum joystick axes");
 					break;

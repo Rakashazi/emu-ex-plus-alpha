@@ -481,7 +481,7 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 
 FreetypeFontSize::~FreetypeFontSize()
 {
-	iterateTimes(IG::size(ftSize), i)
+	iterateTimes(std::size(ftSize), i)
 	{
 		if(ftSize[i])
 		{

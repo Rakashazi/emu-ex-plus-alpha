@@ -52,7 +52,6 @@ else
 endif
 
 CFLAGS_OPTIMIZE_DEBUG_DEFAULT ?= -O2
-compiler_noSanitizeAddress := 1
 
 ifneq ($(config_compiler),clang)
  $(error config_compiler must be set to clang)

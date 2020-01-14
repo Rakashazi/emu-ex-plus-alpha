@@ -162,7 +162,7 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem borderMode
 	{
 		"Borders",
-		optionBorderMode >= IG::size(borderModeItem) ? VICII_NORMAL_BORDERS : (int)optionBorderMode,
+		optionBorderMode >= std::size(borderModeItem) ? VICII_NORMAL_BORDERS : (int)optionBorderMode,
 		borderModeItem
 	};
 
@@ -191,7 +191,7 @@ class CustomAudioOptionView : public AudioOptionView
 		{
 			int engine = intResource("SidEngine");
 			logMsg("current SID engine: %d", engine);
-			if((uint)engine >= IG::size(sidEngineItem))
+			if((uint)engine >= std::size(sidEngineItem))
 			{
 				return SID_ENGINE_FASTSID;
 			}
@@ -503,7 +503,7 @@ private:
 			auto name = plugin.tape_get_file_name();
 			if(name && strlen(name))
 			{
-				auto multiChoiceView = makeViewWithName<TextTableView>("Tape Drive", IG::size(insertEjectMenuStr));
+				auto multiChoiceView = makeViewWithName<TextTableView>("Tape Drive", std::size(insertEjectMenuStr));
 				multiChoiceView->appendItem(insertEjectMenuStr[0],
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
@@ -581,7 +581,7 @@ private:
 			auto cartFilename = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
 			if(cartFilename && strlen(cartFilename))
 			{
-				auto multiChoiceView = makeViewWithName<TextTableView>("Cartridge Slot", IG::size(insertEjectMenuStr));
+				auto multiChoiceView = makeViewWithName<TextTableView>("Cartridge Slot", std::size(insertEjectMenuStr));
 				multiChoiceView->appendItem(insertEjectMenuStr[0],
 					[this](TextMenuItem &, View &, Input::Event e)
 					{
@@ -642,7 +642,7 @@ public:
 		auto name = plugin.file_system_get_disk_name(slot+8);
 		if(name && strlen(name))
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", IG::size(insertEjectMenuStr));
+			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", std::size(insertEjectMenuStr));
 			multiChoiceView->appendItem(insertEjectMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -800,7 +800,7 @@ private:
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 0;
-			iterateTimes(IG::size(driveTypeItem), i)
+			iterateTimes(std::size(driveTypeItem), i)
 			{
 				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
 			}
@@ -816,7 +816,7 @@ private:
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 1;
-			iterateTimes(IG::size(driveTypeItem), i)
+			iterateTimes(std::size(driveTypeItem), i)
 			{
 				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
 			}
@@ -832,7 +832,7 @@ private:
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 2;
-			iterateTimes(IG::size(driveTypeItem), i)
+			iterateTimes(std::size(driveTypeItem), i)
 			{
 				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
 			}
@@ -848,7 +848,7 @@ private:
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
 		{
 			currDriveTypeSlot = 3;
-			iterateTimes(IG::size(driveTypeItem), i)
+			iterateTimes(std::size(driveTypeItem), i)
 			{
 				driveTypeItem[i].setActive(plugin.drive_check_type(driveTypeVal[i], currDriveTypeSlot));
 			}
@@ -1129,7 +1129,7 @@ class CustomMainMenuView : public EmuMainMenuView
 		{
 			bool systemPresent[VicePlugin::SYSTEMS]{};
 			uint systems = 0;
-			iterateTimes(IG::size(systemPresent), i)
+			iterateTimes(std::size(systemPresent), i)
 			{
 				bool hasSystem = VicePlugin::hasSystemLib((ViceSystem)i);
 				systemPresent[i] = hasSystem;
@@ -1137,7 +1137,7 @@ class CustomMainMenuView : public EmuMainMenuView
 					systems++;
 			}
 			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, systems);
-			iterateTimes(IG::size(systemPresent), i)
+			iterateTimes(std::size(systemPresent), i)
 			{
 				if(!systemPresent[i])
 				{

@@ -178,7 +178,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(IG::size(m), i) // find a free touch element
+		iterateTimes(std::size(m), i) // find a free touch element
 		{
 			if(Input::m[i].touch == nil)
 			{
@@ -203,7 +203,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(IG::size(m), i) // find the touch element
+		iterateTimes(std::size(m), i) // find the touch element
 		{
 			if(Input::m[i].touch == touch)
 			{
@@ -227,7 +227,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	auto &win = *Base::deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(IG::size(m), i) // find the touch element
+		iterateTimes(std::size(m), i) // find the touch element
 		{
 			if(Input::m[i].touch == touch)
 			{

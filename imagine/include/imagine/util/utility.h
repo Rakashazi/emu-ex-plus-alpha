@@ -50,14 +50,6 @@ static T moveAndClear(T &v)
 	return temp;
 }
 
-template<class T>
-constexpr static void cswap(T& a, T& b)
-{
-	T tmp = std::move(a);
-	a = std::move(b);
-	b = std::move(tmp);
-}
-
 }
 
 #endif

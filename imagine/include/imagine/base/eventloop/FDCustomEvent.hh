@@ -17,6 +17,7 @@
 
 #include <imagine/base/EventLoop.hh>
 #include <time.h>
+#include <atomic>
 
 namespace Base
 {
@@ -26,7 +27,7 @@ class FDCustomEvent
 protected:
 	FDEventSource fdSrc{};
 	CustomEventDelegate callback{};
-	bool cancelled = false;
+	std::atomic_bool cancelled = false;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif

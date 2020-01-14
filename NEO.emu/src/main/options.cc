@@ -46,7 +46,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 bool EmuApp::autoSaveStateDefault = false;
 Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
 Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};

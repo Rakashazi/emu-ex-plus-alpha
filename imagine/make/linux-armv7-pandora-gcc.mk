@@ -22,7 +22,6 @@ endif
 
 targetDir ?= target/$(buildName)
 
-compiler_noSanitizeAddress := 1
 staticLibcxx := 1
 include $(buildSysPath)/linux-gcc.mk
 

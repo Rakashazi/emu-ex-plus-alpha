@@ -98,11 +98,11 @@ static const char *assetFilename[] =
 	"fastForward.png"
 };
 
-static Gfx::PixmapTexture assetBuffImg[IG::size(assetFilename)];
+static Gfx::PixmapTexture assetBuffImg[std::size(assetFilename)];
 
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 {
-	assumeExpr(assetID < IG::size(assetFilename));
+	assumeExpr(assetID < std::size(assetFilename));
 	auto &res = assetBuffImg[assetID];
 	if(!res)
 	{

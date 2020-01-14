@@ -26,18 +26,19 @@
 namespace Input
 {
 
-void (*processInput)(AInputQueue *inputQueue) = processInputWithHasEvents;
-static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
-static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
-static int mostRecentKeyEventDevID = -1;
-
-static struct TouchState
+struct TouchState
 {
 	constexpr TouchState() {}
 	int id = -1;
 	bool isTouching = false;
-} m[Config::Input::MAX_POINTERS];
-static uint numCursors = IG::size(m);
+};
+using TouchStateArray = std::array<TouchState, Config::Input::MAX_POINTERS>;
+
+void (*processInput)(AInputQueue *inputQueue) = processInputWithHasEvents;
+static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
+static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
+static int mostRecentKeyEventDevID = -1;
+static TouchStateArray m{};
 
 static AndroidInputDevice *deviceForInputId(int id)
 {
@@ -121,7 +122,7 @@ static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int>
 	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, device});
 }
 
-static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool isMouse, const Device *device)
+static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse, const Device *device)
 {
 	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
 	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
@@ -131,20 +132,20 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 		case AMOTION_EVENT_ACTION_DOWN:
 		case AMOTION_EVENT_ACTION_POINTER_DOWN:
 			//logMsg("touch down for %d", pid);
-			iterateTimes(IG::size(m), i) // find a free touch element
+			for(int i = 0; auto &p : m) // find a free touch element
 			{
-				if(m[i].id == -1)
+				if(p.id == -1)
 				{
-					auto &p = m[i];
 					p.id = pid;
 					p.isTouching = true;
 					dispatchTouch(i, PUSHED, p, pos, time, isMouse, device);
 					break;
 				}
+				i++;
 			}
 		bcase AMOTION_EVENT_ACTION_UP:
 		case AMOTION_EVENT_ACTION_CANCEL:
-			for(auto &p : m)
+			for(int i = 0; auto &p : m)
 			{
 				if(p.isTouching)
 				{
@@ -152,41 +153,42 @@ static bool processTouchEvent(int action, int x, int y, int pid, Time time, bool
 					p.id = -1;
 					p.isTouching = false;
 					auto touchAction = action == AMOTION_EVENT_ACTION_UP ? RELEASED : CANCELED;
-					dispatchTouch(&p - m, touchAction, p, {x, y}, time, isMouse, device);
+					dispatchTouch(i, touchAction, p, {x, y}, time, isMouse, device);
 				}
+				i++;
 			}
 		bcase AMOTION_EVENT_ACTION_POINTER_UP:
 			//logMsg("touch up for %d", pid);
-			iterateTimes(IG::size(m), i) // find the touch element
+			for(int i = 0; auto &p : m) // find the touch element
 			{
-				if(m[i].id == pid)
+				if(p.id == pid)
 				{
-					auto &p = m[i];
 					p.id = -1;
 					p.isTouching = false;
 					dispatchTouch(i, RELEASED, p, pos, time, isMouse, device);
 					break;
 				}
+				i++;
 			}
 		bdefault:
 			// move event
 			//logMsg("event id %d", action);
-			iterateTimes(IG::size(m), i) // find the touch element
+			for(int i = 0; auto &p : m) // find the touch element
 			{
-				if(m[i].id == pid)
+				if(p.id == pid)
 				{
-					auto &p = m[i];
 					dispatchTouch(i, MOVED, p, pos, time, isMouse, device);
 					break;
 				}
+				i++;
 			}
 	}
 
 	/*logMsg("pointer state:");
-	iterateTimes(IG::size(m), i)
+	for(auto &p : m)
 	{
-		if(m[i].id != -1)
-			logMsg("id: %d x: %d y: %d inWin: %d", m[i].id, m[i].dragState.x, m[i].dragState.y, m[i].s.inWin);
+		if(p.id != -1)
+			logMsg("id: %d x: %d y: %d", p.id, p.dragState.x, p.dragState.y);
 	}*/
 
 	return 1;
@@ -218,7 +220,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
 					{
 						// touch gesture ended
-						processTouchEvent(action,
+						processTouchEvent(m, action,
 								AMotionEvent_getX(event, 0),
 								AMotionEvent_getY(event, 0),
 								AMotionEvent_getPointerId(event, 0),
@@ -238,7 +240,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 							//logMsg("non-action pointer idx %d", i);
 							pAction = AMOTION_EVENT_ACTION_MOVE;
 						}
-						processTouchEvent(pAction,
+						processTouchEvent(m, pAction,
 							AMotionEvent_getX(event, i),
 							AMotionEvent_getY(event, i),
 							AMotionEvent_getPointerId(event, i),

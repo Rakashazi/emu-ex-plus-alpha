@@ -32,7 +32,7 @@ static const char pathSeparator[] = { '/'
 		, '\\'
 #endif
 };
-static const uint numPathSeparators = IG::size(pathSeparator);
+static const uint numPathSeparators = std::size(pathSeparator);
 
 template <class T>
 static T *dirNameCutoffPoint(T *path)

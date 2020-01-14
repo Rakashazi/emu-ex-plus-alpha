@@ -626,7 +626,7 @@ void init(JNIEnv *env)
 				})
 			},
 		};
-		env->RegisterNatives(inputDeviceHelperCls, method, IG::size(method));
+		env->RegisterNatives(inputDeviceHelperCls, method, std::size(method));
 
 		// device change notifications
 		if(usesInputDeviceListener())
@@ -662,7 +662,7 @@ void init(JNIEnv *env)
 					})
 				}
 			};
-			env->RegisterNatives(inputDeviceListenerHelperCls, method, IG::size(method));
+			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
 		}
 		else
 		{

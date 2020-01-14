@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <cmath>
-#include <imagine/util/algorithm.h>
 #include <imagine/util/bits.h>
 #include <imagine/util/typeTraits.hh>
 #include <imagine/util/utility.h>
+#include <cmath>
+#include <algorithm>
 
 namespace IG
 {
@@ -79,7 +79,7 @@ static constexpr T sign(T num)
 template <class T>
 static constexpr T clamp(T val, T low, T high)
 {
-	return IG::cmin(IG::cmax(val, low), high);
+	return std::min(std::max(val, low), high);
 }
 
 template<class RET, class T>

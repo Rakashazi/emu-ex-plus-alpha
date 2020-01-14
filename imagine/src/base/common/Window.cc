@@ -436,7 +436,6 @@ void Window::dismiss()
 	drawEvent.deinit();
 	auto onFree = this->onFree;
 	deinit();
-	*this = {};
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	IG::removeFirst(window_, this);
 	#else

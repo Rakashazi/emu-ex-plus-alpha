@@ -22,6 +22,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <vector>
+#include <iterator>
 
 class BaseAlertView : public View
 {
@@ -33,8 +34,8 @@ public:
 		{
 			attach,
 			label,
-			[&item](const TableView &) { return IG::size(item); },
-			[&item](const TableView &, uint idx) -> MenuItem& { return TableView::derefMenuItem(IG::data(item)[idx]); }
+			[&item](const TableView &) { return std::size(item); },
+			[&item](const TableView &, uint idx) -> MenuItem& { return TableView::derefMenuItem(std::data(item)[idx]); }
 		} {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;

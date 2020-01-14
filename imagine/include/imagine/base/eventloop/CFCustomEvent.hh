@@ -17,6 +17,7 @@
 
 #include <imagine/base/eventLoopDefs.hh>
 #include <CoreFoundation/CoreFoundation.h>
+#include <atomic>
 
 namespace Base
 {
@@ -27,7 +28,7 @@ protected:
 	CFRunLoopTimerRef timer{};
 	CFRunLoopRef loop{};
 	CustomEventDelegate callback;
-	bool cancelled = true;
+	std::atomic_bool cancelled = true;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif

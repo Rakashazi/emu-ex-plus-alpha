@@ -267,7 +267,7 @@ void onInit(int argc, char** argv)
 	View::defaultFace.precacheAlphaNum(renderer);
 	View::defaultFace.precache(renderer, ":.%()");
 	picker = std::make_unique<TestPicker>(ViewAttachParams{mainWin, rendererTask});
-	picker->setTests(testParam, IG::size(testParam));
+	picker->setTests(testParam, std::size(testParam));
 	mainWin.show();
 
 	#ifdef __ANDROID__

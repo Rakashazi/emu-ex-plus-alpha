@@ -237,7 +237,7 @@ static uint findFreeDevId()
 	uint id[5]{};
 	for(auto &e : gcList)
 	{
-		if(e->enumId() < IG::size(id))
+		if(e->enumId() < std::size(id))
 			id[e->enumId()] = 1;
 	}
 	for(const auto &e : id)

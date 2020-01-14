@@ -210,7 +210,7 @@ bool AndroidBluetoothAdapter::openDefault()
 			{"onBTOn", "(Z)V", (void *)&turnOnResult}
 		};
 
-		env->RegisterNatives(jBaseActivityCls, activityMethods, IG::size(activityMethods));
+		env->RegisterNatives(jBaseActivityCls, activityMethods, std::size(activityMethods));
 	}
 
 	logMsg("opening default BT adapter");

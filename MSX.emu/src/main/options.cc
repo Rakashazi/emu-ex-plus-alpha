@@ -28,7 +28,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = IG::size(EmuSystem::aspectRatioInfo);
+const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 int EmuSystem::forcedSoundRate = 44100;
 #define optionMachineNameDefault "MSX2"
 char optionMachineNameStr[128] = optionMachineNameDefault;

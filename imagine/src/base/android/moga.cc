@@ -145,7 +145,7 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			})
 		}
 	};
-	env->RegisterNatives(mogaHelperCls, method, IG::size(method));
+	env->RegisterNatives(mogaHelperCls, method, std::size(method));
 }
 
 void initMOGA(bool notify)

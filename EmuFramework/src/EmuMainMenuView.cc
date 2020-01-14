@@ -412,7 +412,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	{
 		"Options",
 		attach,
-		[this](const TableView &) { return hasGooglePlayStoreFeatures() ? IG::size(subConfig) : IG::size(subConfig)-1; },
+		[this](const TableView &) { return hasGooglePlayStoreFeatures() ? std::size(subConfig) : std::size(subConfig)-1; },
 		[this](const TableView &, uint idx) -> MenuItem& { return subConfig[idx]; }
 	},
 	subConfig
@@ -449,7 +449,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 {
 	if(hasGooglePlayStoreFeatures())
 	{
-		subConfig[IG::size(subConfig)-1] =
+		subConfig[std::size(subConfig)-1] =
 		{
 			"Beta Testing Opt-in/out",
 			[this]()

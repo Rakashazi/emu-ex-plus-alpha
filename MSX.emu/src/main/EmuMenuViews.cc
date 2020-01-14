@@ -297,7 +297,7 @@ public:
 			return;
 		if(strlen(hdName[slot].data()))
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Hard Drive", IG::size(insertEjectDiskMenuStr));
+			auto multiChoiceView = makeViewWithName<TextTableView>("Hard Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{
@@ -446,7 +446,7 @@ public:
 	{
 		if(strlen(diskName[slot].data()))
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", IG::size(insertEjectDiskMenuStr));
+			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
 				[this, slot](TextMenuItem &, View &, Input::Event e)
 				{

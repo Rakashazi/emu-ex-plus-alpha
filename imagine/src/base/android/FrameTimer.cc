@@ -108,7 +108,7 @@ ChoreographerFrameTimer::ChoreographerFrameTimer(JNIEnv *env, jobject activity)
 			})
 		}
 	};
-	env->RegisterNatives(choreographerHelperCls, method, IG::size(method));
+	env->RegisterNatives(choreographerHelperCls, method, std::size(method));
 }
 
 ChoreographerFrameTimer::~ChoreographerFrameTimer()

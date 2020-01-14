@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/ansiTypes.h>
-#include <imagine/util/iterator.hh>
 #include "containerUtils.hh"
 #include <assert.h>
 #include <iterator>

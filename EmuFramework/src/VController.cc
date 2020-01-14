@@ -660,13 +660,13 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos, const AppWindowData
 		uint btnMap6[] 		{2, 1, 0, 3, 4, 5};
 		uint rows = rowsForButtons(activeFaceBtns);
 		if(activeFaceBtns == 6)
-			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap6Rev : btnMap6, IG::size(btnMap6), rows, pos, winData);
+			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap6Rev : btnMap6, std::size(btnMap6), rows, pos, winData);
 		else if(activeFaceBtns == 4)
-			layoutBtnRows(btnMap4, IG::size(btnMap4), rows, pos, winData);
+			layoutBtnRows(btnMap4, std::size(btnMap4), rows, pos, winData);
 		else if(activeFaceBtns == 3)
-			layoutBtnRows(btnMap3, IG::size(btnMap3), rows, pos, winData);
+			layoutBtnRows(btnMap3, std::size(btnMap3), rows, pos, winData);
 		else
-			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap2Rev : btnMap, IG::size(btnMap), rows, pos, winData);
+			layoutBtnRows(EmuSystem::inputHasRevBtnLayout ? btnMap2Rev : btnMap, std::size(btnMap), rows, pos, winData);
 	}
 	else
 	{
@@ -676,11 +676,11 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos, const AppWindowData
 			uint btnMap6[] {1, 0, 5, 3, 2, 4};
 			uint btnMap4[] {1, 0, 2, 3};
 			if(EmuSystem::inputFaceBtns == 8)
-				layoutBtnRows(btnMap8, IG::size(btnMap8), 2, pos, winData);
+				layoutBtnRows(btnMap8, std::size(btnMap8), 2, pos, winData);
 			else if(EmuSystem::inputFaceBtns == 6)
-				layoutBtnRows(btnMap6, IG::size(btnMap6), 2, pos, winData);
+				layoutBtnRows(btnMap6, std::size(btnMap6), 2, pos, winData);
 			else
-				layoutBtnRows(btnMap4, IG::size(btnMap4), 2, pos, winData);
+				layoutBtnRows(btnMap4, std::size(btnMap4), 2, pos, winData);
 		}
 		else
 		{
@@ -688,11 +688,11 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos, const AppWindowData
 			uint btnMap6[] {1, 0, 3, 2};
 			uint btnMap4[] {1, 0};
 			if(EmuSystem::inputFaceBtns == 8)
-				layoutBtnRows(btnMap8, IG::size(btnMap8), 2, pos, winData);
+				layoutBtnRows(btnMap8, std::size(btnMap8), 2, pos, winData);
 			else if(EmuSystem::inputFaceBtns == 6)
-				layoutBtnRows(btnMap6, IG::size(btnMap6), 2, pos, winData);
+				layoutBtnRows(btnMap6, std::size(btnMap6), 2, pos, winData);
 			else
-				layoutBtnRows(btnMap4, IG::size(btnMap4), 1, pos, winData);
+				layoutBtnRows(btnMap4, std::size(btnMap4), 1, pos, winData);
 		}
 	}
 }
@@ -944,7 +944,7 @@ void VController::inputAction(uint action, uint vBtn)
 	}
 	else
 	{
-		assert(vBtn < IG::size(map));
+		assert(vBtn < std::size(map));
 		auto turbo = map[vBtn] & TURBO_BIT;
 		auto keyCode = map[vBtn] & ACTION_MASK;
 		if(turbo)

@@ -1,4 +1,6 @@
 include $(IMAGINE_PATH)/make/config.mk
+
+compiler_sanitizeMode ?= address
 include $(buildSysPath)/linux-gcc.mk
 
 ARCH := x86_64
