@@ -134,6 +134,8 @@ enum {
 extern Uint8 *joy_button[2];
 extern Sint32 *joy_axe[2];
 extern Uint32 joy_numaxes[2];
+extern unsigned int fc;
+extern int last_line;
 
 void debug_loop(void);
 void main_loop(void);

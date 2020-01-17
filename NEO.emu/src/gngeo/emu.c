@@ -193,8 +193,8 @@ void init_neo(void) {
 	SDL_SaveBMP(shoot, buf);
 }*/
 
-static unsigned int fc;
-static int last_line;
+unsigned int fc;
+int last_line;
 
 static inline int neo_interrupt(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
     static int frames;
@@ -311,7 +311,6 @@ void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 	const Uint32 cpu_68k_timeslice_scanline = cpu_68k_timeslice / 264.0;
 	const Uint32 cpu_z80_timeslice = (z80_overclk == 0 ? 73333 : 73333 + (z80_overclk
 			* 73333 / 100.0));
-	Uint32 tm_cycle = 0;
 
 	const Uint32 cpu_z80_timeslice_interlace = cpu_z80_timeslice
 			/ (float) nb_interlace;
@@ -355,6 +354,7 @@ void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 
 		if (!conf.debug) {
 			if (conf.raster) {
+				Uint32 tm_cycle = 0;
 				memory.vid.current_line = 0;
 				for (int i = 0; i < 264; i++) {
 					tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline
@@ -377,7 +377,7 @@ void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 				cpu_68k_interrupt(1);
 			} else {
 				PROFILER_START(PROF_68K);
-				tm_cycle = cpu_68k_run(cpu_68k_timeslice - tm_cycle);
+				cpu_68k_run(cpu_68k_timeslice);
 				PROFILER_STOP(PROF_68K);
 				int a = neo_interrupt(skip_this_frame, emuTaskPtr, emuVideoPtr);
 

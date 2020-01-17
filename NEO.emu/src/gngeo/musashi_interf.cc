@@ -33,12 +33,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_invalid_byte(addr);
+				return mem68k_fetch_invalid_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_invalid_word(addr);
+				return mem68k_fetch_invalid_word(addr)&0xFFFF;
 			};
 		mm68k.memory_map[i].write8 =
 			[](unsigned int addr, unsigned int data)
@@ -58,12 +58,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_cpu_byte(addr);
+				return mem68k_fetch_cpu_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_cpu_word(addr);
+				return mem68k_fetch_cpu_word(addr)&0xFFFF;
 			};
 	}
 
@@ -73,12 +73,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_ram_byte(addr);
+				return mem68k_fetch_ram_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_ram_word(addr);
+				return mem68k_fetch_ram_word(addr)&0xFFFF;
 			};
 		mm68k.memory_map[i].write8 =
 			[](unsigned int addr, unsigned int data)
@@ -98,12 +98,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_bk_normal_byte(addr);
+				return mem68k_fetch_bk_normal_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_bk_normal_word(addr);
+				return mem68k_fetch_bk_normal_word(addr)&0xFFFF;
 			};
 	}
 	mm68k.memory_map[0x2f].write8 =
@@ -121,36 +121,36 @@ CLINK void cpu_68k_init(void)
 	mm68k.memory_map[0x30].read8 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_ctl1_byte(addr);
+			return mem68k_fetch_ctl1_byte(addr)&0xFF;
 		};
 	mm68k.memory_map[0x30].read16 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_ctl1_word(addr);
+			return mem68k_fetch_ctl1_word(addr)&0xFFFF;
 		};
 
 	// Controller #2
 	mm68k.memory_map[0x34].read8 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_ctl2_byte(addr);
+			return mem68k_fetch_ctl2_byte(addr)&0xFF;
 		};
 	mm68k.memory_map[0x34].read16 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_ctl2_word(addr);
+			return mem68k_fetch_ctl2_word(addr)&0xFFFF;
 		};
 
 	// Controller #3 & PD4990
 	mm68k.memory_map[0x38].read8 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_ctl3_byte(addr);
+			return mem68k_fetch_ctl3_byte(addr)&0xFF;
 		};
 	mm68k.memory_map[0x38].read16 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_ctl3_word(addr);
+			return mem68k_fetch_ctl3_word(addr)&0xFFFF;
 		};
 	mm68k.memory_map[0x38].write8 =
 		[](unsigned int addr, unsigned int data)
@@ -167,12 +167,12 @@ CLINK void cpu_68k_init(void)
 	mm68k.memory_map[0x32].read8 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_coin_byte(addr);
+			return mem68k_fetch_coin_byte(addr)&0xFF;
 		};
 	mm68k.memory_map[0x32].read16 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_coin_word(addr);
+			return mem68k_fetch_coin_word(addr)&0xFFFF;
 		};
 	mm68k.memory_map[0x32].write8 =
 		[](unsigned int addr, unsigned int data)
@@ -189,12 +189,12 @@ CLINK void cpu_68k_init(void)
 	mm68k.memory_map[0x3c].read8 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_video_byte(addr);
+			return mem68k_fetch_video_byte(addr)&0xFF;
 		};
 	mm68k.memory_map[0x3c].read16 =
 		[](unsigned int addr) -> unsigned int
 		{
-			return mem68k_fetch_video_word(addr);
+			return mem68k_fetch_video_word(addr)&0xFFFF;
 		};
 	mm68k.memory_map[0x3c].write8 =
 		[](unsigned int addr, unsigned int data)
@@ -225,12 +225,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_pal_byte(addr);
+				return mem68k_fetch_pal_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_pal_word(addr);
+				return mem68k_fetch_pal_word(addr)&0xFFFF;
 			};
 		mm68k.memory_map[i].write8 =
 			[](unsigned int addr, unsigned int data)
@@ -250,12 +250,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_memcrd_byte(addr);
+				return mem68k_fetch_memcrd_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_memcrd_word(addr);
+				return mem68k_fetch_memcrd_word(addr)&0xFFFF;
 			};
 		mm68k.memory_map[i].write8 =
 			[](unsigned int addr, unsigned int data)
@@ -275,12 +275,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_bios_byte(addr);
+				return mem68k_fetch_bios_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_bios_word(addr);
+				return mem68k_fetch_bios_word(addr)&0xFFFF;
 			};
 	}
 
@@ -290,12 +290,12 @@ CLINK void cpu_68k_init(void)
 		mm68k.memory_map[i].read8 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_sram_byte(addr);
+				return mem68k_fetch_sram_byte(addr)&0xFF;
 			};
 		mm68k.memory_map[i].read16 =
 			[](unsigned int addr) -> unsigned int
 			{
-				return mem68k_fetch_sram_word(addr);
+				return mem68k_fetch_sram_word(addr)&0xFFFF;
 			};
 		mm68k.memory_map[i].write8 =
 			[](unsigned int addr, unsigned int data)
@@ -359,7 +359,7 @@ CLINK int cpu_68k_run(Uint32 nb_cycle)
 CLINK void cpu_68k_interrupt(int a)
 {
 	//logMsg("interrupt:%d", a);
-	mm68k.setIRQ(a);
+	mm68k.setIRQDelay(a);
 }
 
 CLINK Uint32 cpu_68k_getpc(void)

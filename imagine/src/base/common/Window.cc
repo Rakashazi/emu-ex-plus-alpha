@@ -256,7 +256,7 @@ void Window::dispatchDismissRequest()
 
 void Window::dispatchSurfaceChange()
 {
-	onSurfaceChange.callCopy(*this, IG::moveAndClear(surfaceChange));
+	onSurfaceChange.callCopy(*this, std::exchange(surfaceChange, {}));
 }
 
 void Window::dispatchOnDraw(bool needsSync)

@@ -245,6 +245,11 @@ int AndroidWindow::nativePixelFormat()
 
 void androidWindowNeedsRedraw(Window &win, bool sync)
 {
+	if(!appIsRunning())
+	{
+		logMsg("ignoring window surface redraw needed while app not running");
+		return;
+	}
 	logMsg("window surface redraw needed");
 	win.setNeedsDraw(true);
 	win.dispatchOnDraw(sync);

@@ -65,17 +65,14 @@ void neogeo_sound_irq(int irq) {
 static __inline__ Uint16 read_neo_control(void) {
 	unsigned int scan;
 
-	if (!conf.raster) {
-		#if defined USE_MUSASHI || defined USE_CYCLONE
-			scan = memory.vid.current_line;
-			/*
-			 printf("%d %d %d\n",current_line,
-			 (cpu_68k_getcycle()/3)>>7,
-			 (int)(cpu_68k_getcycle() / 766.28));
-			 */
-		#else
-			scan = cpu_68k_getcycle() / 766.28; /* current scanline */
-		#endif
+	#ifdef HAS_CURRENT_LINE_COUNT
+	const int useCurrentLineCount = 1;
+	#else
+	const int useCurrentLineCount = 0;
+	#endif
+
+	if (!useCurrentLineCount && !conf.raster) {
+		scan = cpu_68k_getcycle() / 766.28; /* current scanline */
 
 		//	scan+=0x100;
 		//	if (scan >=0x200) scan=scan-0x108;

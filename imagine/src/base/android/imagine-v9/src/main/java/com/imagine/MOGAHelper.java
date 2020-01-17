@@ -23,51 +23,54 @@ final class MOGAHelper implements ControllerListener
 {
 	private static final String logTag = "MOGAHelper";
 	Controller controller;
-	private native void keyEvent(int action, int keyCode, long time);
-	private native void motionEvent(float axisX, float axisY, float axisZ, float axisRZ,
+	private long mogaSystemAddr;
+	private native void keyEvent(long mogaSystemAddr, int action, int keyCode, long time);
+	private native void motionEvent(long mogaSystemAddr, float axisX, float axisY, float axisZ, float axisRZ,
 		float axisLTrigger, float axisRTrigger, long time);
-	private native void stateEvent(int state, int action);
+	private native void stateEvent(long mogaSystemAddr, int state, int action);
 
-	MOGAHelper(Context context)
+	MOGAHelper(Context context, long mogaSystemAddr)
 	{
+		this.mogaSystemAddr = mogaSystemAddr;
 		controller = Controller.getInstance(context);
 		controller.init();
 		controller.setListener(this, new Handler());
 	}
-	
+
 	@Override public void onKeyEvent(KeyEvent event)
 	{
-		keyEvent(event.getAction(), event.getKeyCode(), event.getEventTime());
+		keyEvent(mogaSystemAddr, event.getAction(), event.getKeyCode(), event.getEventTime());
 	}
-	
+
 	@Override public void onMotionEvent(MotionEvent event)
 	{
-		motionEvent(event.getAxisValue(Controller.AXIS_X), event.getAxisValue(Controller.AXIS_Y),
+		motionEvent(mogaSystemAddr,
+			event.getAxisValue(Controller.AXIS_X), event.getAxisValue(Controller.AXIS_Y),
 			event.getAxisValue(Controller.AXIS_Z), event.getAxisValue(Controller.AXIS_RZ),
 			event.getAxisValue(Controller.AXIS_LTRIGGER), event.getAxisValue(Controller.AXIS_RTRIGGER),
 			event.getEventTime());
 	}
-	
+
 	@Override public void onStateEvent(StateEvent event)
 	{
-		stateEvent(event.getState(), event.getAction());
+		stateEvent(mogaSystemAddr, event.getState(), event.getAction());
 	}
-	
+
 	int getState(int state)
 	{
 		return controller.getState(state);
 	}
-	
+
 	void onPause()
 	{
 		controller.onPause();
 	}
-	
+
 	void onResume()
 	{
 		controller.onResume();
 	}
-	
+
 	void exit()
 	{
 		controller.exit();

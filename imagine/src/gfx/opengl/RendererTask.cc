@@ -183,17 +183,7 @@ RendererTask::RendererTask(Renderer &r): r{r} {}
 
 void RendererTask::start()
 {
-	if(!glCtx)
-	{
-		replyPort.addToEventLoop({},
-			[this](auto msgs)
-			{
-				auto msg = msgs.get();
-				replyHandler(r, msg);
-				return true;
-			});
-	}
-	if(!onResume)
+	if(unlikely(!onResume))
 	{
 		onResume =
 			[this](bool focused)
@@ -215,7 +205,7 @@ void RendererTask::start()
 		r.setIOSDrawableDelegates();
 	if((bool)glCtx)
 	{
-		logWarn("render thread already started");
+		//logWarn("render thread already started");
 		return;
 	}
 	if(r.useSeparateDrawContext)
@@ -249,8 +239,8 @@ void RendererTask::start()
 				sem.notify();
 				logMsg("starting render task event loop");
 				eventLoop.run();
-				logMsg("render task exit");
 				commandPort.removeFromEventLoop();
+				logMsg("render task thread finished");
 			});
 	}
 	else
@@ -260,7 +250,7 @@ void RendererTask::start()
 		r.runGLTaskSync(
 			[this]()
 			{
-				logMsg("starting render task");
+				logMsg("starting render task in main GL thread");
 				auto glDpy = Base::GLDisplay::getDefault();
 				commandPort.addToEventLoop({},
 					[this, glDpy](auto msgs)
@@ -269,6 +259,13 @@ void RendererTask::start()
 					});
 			});
 	}
+	replyPort.addToEventLoop({},
+		[this](auto msgs)
+		{
+			auto msg = msgs.get();
+			replyHandler(r, msg);
+			return true;
+		});
 }
 
 void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams winParams, DrawParams params, DrawDelegate del)

@@ -606,7 +606,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					cmdActive = 0;
 					uint8 status = packet[2];
 					uint psm = READ_BT_16(packet, 3);
-					auto onResult = IG::moveAndClear(setL2capServiceOnResult);
+					auto onResult = std::exchange(setL2capServiceOnResult, {});
 					if(status && status != L2CAP_SERVICE_ALREADY_REGISTERED)
 					{
 						logErr("error %d registering psm %d", status, psm);
@@ -659,7 +659,7 @@ void BtstackBluetoothAdapter::setL2capService(uint psm, bool on, OnStatusDelegat
 				{
 					if(newState != STATE_ON)
 					{
-						auto onResult = IG::moveAndClear(setL2capServiceOnResult);
+						auto onResult = std::exchange(setL2capServiceOnResult, {});
 						onResult(*this, 0, 0);
 						return;
 					}

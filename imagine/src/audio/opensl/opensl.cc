@@ -16,7 +16,6 @@
 #define LOGTAG "OpenSL"
 #include <imagine/audio/opensl/OpenSLESOutputStream.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include "../../base/android/android.hh"
 

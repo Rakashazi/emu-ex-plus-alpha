@@ -321,6 +321,10 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate onLoadProgress
 	EmuSystem::setFullGameName(drv->longname);
 	logMsg("set long game name: %s", EmuSystem::fullGameName().data());
 	setTimerIntOption();
+	neogeo_frame_counter = 0;
+	neogeo_frame_counter_speed = 8;
+	fc = 0;
+	last_line = 0;
 	// clear excess bits from universe bios region/system settings
 	memory.memcard[2] = memory.memcard[2] & 0x80;
 	memory.memcard[3] = memory.memcard[3] & 0x3;

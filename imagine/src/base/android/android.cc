@@ -405,7 +405,7 @@ void endIdleByUserActivity()
 				{
 					jSetWinFlags(env, jBaseActivity, 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
 				}
-			}, 20, {});
+			}, 20, 0, {}, Timer::HINT_REUSE);
 	}
 }
 
@@ -516,10 +516,6 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		{
 			logMsg("app resumed");
 			appState = APP_RUNNING;
-			#ifdef CONFIG_INPUT_ANDROID_MOGA
-			Input::onResumeMOGA(jEnvForThread(), true);
-			#endif
-			Input::registerDeviceChangeListener();
 			if(Base::androidSDK() < 11)
 			{
 				dispatchOnResume(aHasFocus);
@@ -544,10 +540,6 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			}
 			else
 				logMsg("app paused");
-			#ifdef CONFIG_INPUT_ANDROID_MOGA
-			Input::onPauseMOGA(activity->env);
-			#endif
-			Input::unregisterDeviceChangeListener();
 			Input::deinitKeyRepeatTimer();
 		};
 	activity->callbacks->onStop =

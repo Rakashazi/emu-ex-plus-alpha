@@ -48,6 +48,7 @@ static const char *texFragShaderSrc =
 
 static const char *texReplaceFragShaderSrc =
 "FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
 "uniform sampler2D tex; "
 "void main() { "
@@ -99,6 +100,7 @@ static const char *texExternalReplaceFragShaderSrc =
 "#extension GL_OES_EGL_image_external : enable\n"
 "#extension GL_OES_EGL_image_external_essl3 : enable\n"
 "FRAGCOLOR_DEF "
+"in lowp vec4 colorOut; "
 "in lowp vec2 texUVOut; "
 "uniform lowp samplerExternalOES tex; "
 "void main() { "
@@ -110,6 +112,7 @@ static const char *texExternalReplaceFragShaderSrc =
 static const char *noTexFragShaderSrc =
 "FRAGCOLOR_DEF "
 "in lowp vec4 colorOut; "
+"in lowp vec2 texUVOut; "
 "void main() { "
 	"FRAGCOLOR = colorOut; "
 "}"
@@ -203,6 +206,11 @@ bool GLSLProgram::link(Renderer &r)
 		{
 			success = linkGLProgram(program_);
 		});
+	if(!success)
+	{
+		deinit(r);
+		return false;
+	}
 	initUniforms(r);
 	return true;
 }

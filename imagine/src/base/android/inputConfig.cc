@@ -50,6 +50,8 @@ static const AndroidInputDevice *builtinKeyboardDev{};
 const AndroidInputDevice *virtualDev{};
 static jclass inputDeviceHelperCls{};
 static JavaClassMethod<void()> jEnumDevices{};
+static constexpr int ON_RESUME_PRIORITY = -300;
+static constexpr int ON_EXIT_PRIORITY = 300;
 
 // InputDeviceListener-based device changes
 static jobject inputDeviceListenerHelper{};
@@ -534,52 +536,6 @@ void enumDevices()
 	enumDevices(Base::jEnvForThread(), true);
 }
 
-void registerDeviceChangeListener()
-{
-	if(Base::androidSDK() < 12)
-		return;
-	auto env = Base::jEnvForThread();
-	enumDevices(env, true);
-	if(usesInputDeviceListener())
-	{
-		logMsg("registering input device listener");
-		jRegister(env, inputDeviceListenerHelper);
-	}
-	else
-	{
-		if(inputDevNotifyFd != -1 && watch == -1)
-		{
-			logMsg("registering inotify input device listener");
-			watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE);
-			if(watch == -1)
-			{
-				logErr("error setting inotify watch");
-			}
-		}
-	}
-}
-
-void unregisterDeviceChangeListener()
-{
-	if(Base::androidSDK() < 12)
-		return;
-	if(usesInputDeviceListener())
-	{
-		logMsg("unregistering input device listener");
-		jUnregister(Base::jEnvForThread(), inputDeviceListenerHelper);
-	}
-	else
-	{
-		if(watch != -1)
-		{
-			logMsg("unregistering inotify input device listener");
-			inotify_rm_watch(inputDevNotifyFd, watch);
-			watch = -1;
-			inputRescanCallback.cancel();
-		}
-	}
-}
-
 void init(JNIEnv *env)
 {
 	if(Base::androidSDK() >= 12)
@@ -663,6 +619,19 @@ void init(JNIEnv *env)
 				}
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
+			Base::addOnResume([env](bool)
+				{
+					enumDevices(env, true);
+					logMsg("registering input device listener");
+					jRegister(env, inputDeviceListenerHelper);
+					return true;
+				}, ON_RESUME_PRIORITY);
+			Base::addOnExit([env](bool backgrounded)
+				{
+					logMsg("unregistering input device listener");
+					jUnregister(env, inputDeviceListenerHelper);
+					return true;
+				}, ON_EXIT_PRIORITY);
 		}
 		else
 		{
@@ -697,6 +666,31 @@ void init(JNIEnv *env)
 				{
 					logErr("couldn't add inotify fd to looper");
 				}
+				Base::addOnResume([env](bool)
+					{
+						enumDevices(env, true);
+						if(inputDevNotifyFd != -1 && watch == -1)
+						{
+							logMsg("registering inotify input device listener");
+							watch = inotify_add_watch(inputDevNotifyFd, "/dev/input", IN_CREATE | IN_DELETE);
+							if(watch == -1)
+							{
+								logErr("error setting inotify watch");
+							}
+						}
+						return true;
+					}, ON_RESUME_PRIORITY);
+				Base::addOnExit([env](bool backgrounded)
+					{
+						if(watch != -1)
+						{
+							logMsg("unregistering inotify input device listener");
+							inotify_rm_watch(inputDevNotifyFd, watch);
+							watch = -1;
+							inputRescanCallback.cancel();
+						}
+						return true;
+					}, ON_EXIT_PRIORITY);
 			}
 		}
 	}

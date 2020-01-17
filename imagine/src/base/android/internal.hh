@@ -59,11 +59,7 @@ int hardKeyboardState();
 int keyboardType();
 void processInputWithGetEvent(AInputQueue *inputQueue);
 void processInputWithHasEvents(AInputQueue *inputQueue);
-void onPauseMOGA(JNIEnv *env);
-void onResumeMOGA(JNIEnv *env, bool notify);
 bool hasGetAxisValue();
-void registerDeviceChangeListener();
-void unregisterDeviceChangeListener();
 bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify);
 bool removeInputDevice(int id, bool notify);
 

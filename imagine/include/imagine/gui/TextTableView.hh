@@ -19,7 +19,6 @@
 #include <vector>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/util/algorithm.h>
 
 class TextTableView : public TableView
 {

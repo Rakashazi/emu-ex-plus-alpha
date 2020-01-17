@@ -35,21 +35,3 @@ CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 
 
 // logical xor
 #define lxor(a, b) ( !(a) != !(b) )
-
-#ifdef __cplusplus
-
-namespace IG
-{
-
-// make and return a copy of the variable, clearing the original
-template <class T>
-static T moveAndClear(T &v)
-{
-	auto temp = std::move(v);
-	v = {};
-	return temp;
-}
-
-}
-
-#endif

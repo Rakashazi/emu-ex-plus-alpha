@@ -19,6 +19,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
+#include <imagine/fs/FS.hh>
 #include "private.hh"
 #include "utils.h"
 #ifdef __ANDROID__
@@ -814,13 +815,26 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 	if(threadMode == ThreadMode::AUTO)
 	{
 		useSeparateDrawContext = support.hasSyncFences();
+		#if defined __ANDROID__
+		if(Base::androidSDK() < 26)
+		{
+			useSeparateDrawContext = false; // disable by default due to various devices with driver bugs
+		}
+		#endif
 	}
 	else
 	{
 		useSeparateDrawContext = threadMode == ThreadMode::MULTI;
 	}
 	if(useSeparateDrawContext)
-		logMsg("using separate draw context");
+	{
+		auto overridePath = FS::makePathStringPrintf("%s/imagine_force_single_gl_context", Base::sharedStoragePath().data());
+		if(FS::exists(overridePath))
+		{
+			logMsg("disabling separate draw context due to file:%s", overridePath.data());
+			useSeparateDrawContext = false;
+		}
+	}
 	support.isConfigured = true;
 }
 

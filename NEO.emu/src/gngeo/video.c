@@ -416,7 +416,7 @@ static __inline__ void draw_fix_char(unsigned char *buf, int start, int end) {
 
 void draw_screen(void *emuTaskPtr, void *emuVideoPtr) {
 	int sx = 0, sy = 0, oy = 0, my = 0, zx = 1, rzy = 1;
-	unsigned int offs, i, count, y;
+	unsigned int offs, i, count;
 	unsigned int tileno, tileatr, t1, t2, t3;
 	char fullmode = 0;
 	int ddax = 0, dday = 0, rzx = 15, yskip = 0;
@@ -514,7 +514,7 @@ void draw_screen(void *emuTaskPtr, void *emuVideoPtr) {
 		offs = count << 6;
 
 		/* my holds the number of tiles in each vertical multisprite block */
-		for (y = 0; y < my; y++) {
+		for (int y = 0; y < my; y++) {
 			tileno = READ_WORD(&vidram[offs]);
 			offs += 2;
 			tileatr = READ_WORD(&vidram[offs]);

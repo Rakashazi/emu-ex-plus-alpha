@@ -446,9 +446,9 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new DisplayListenerHelper(this);
 	}
 	
-	MOGAHelper mogaHelper()
+	MOGAHelper mogaHelper(long mogaSystemAddr)
 	{
-		return new MOGAHelper(this);
+		return new MOGAHelper(this, mogaSystemAddr);
 	}
 	
 	PresentationHelper presentation(Display display, long windowAddr)

@@ -179,8 +179,10 @@
 
 #if defined(__arm__)
 	#define USE_CYCLONE 1
+	#define HAS_CURRENT_LINE_COUNT
 #else
 	#define USE_MUSASHI 1
+	#define HAS_CURRENT_LINE_COUNT
 #endif
 
 /* Define to use alternative opengl blitter */

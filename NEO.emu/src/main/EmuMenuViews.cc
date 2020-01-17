@@ -322,13 +322,7 @@ static const RomListEntry romlist[]
 	{ "nam1975", 0 },
 	{ "ncombat", 0 },
 	{ "ncombath", 0 },
-	{ "ncommand",
-	#ifdef USE_CYCLONE
-		0
-	#else
-		1
-	#endif
-	},
+	{ "ncommand", 0 },
 	{ "neobombe", 0 },
 	{ "neocup98", 0 },
 	{ "neodrift", 0 },
@@ -405,39 +399,15 @@ static const RomListEntry romlist[]
 	{ "svcplus", 1 },
 	{ "svcplusa", 1 },
 	{ "svcsplus", 1 },
-	{ "tophuntr",
-	#ifdef USE_CYCLONE
-		0
-	#else
-		1
-	#endif
-	},
-	{ "tophuntra",
-	#ifdef USE_CYCLONE
-		0
-	#else
-		1
-	#endif
-	},
+	{ "tophuntr", 0 },
+	{ "tophuntra", 0 },
 	{ "tpgolf", 0 },
 	{ "trally", 0 },
 	{ "totcarib", 0 },
 	{ "turfmast", 0 },
 	{ "twinspri", 0 },
-	{ "tws96",
-	#ifdef USE_CYCLONE
-		0
-	#else
-		1
-	#endif
-	},
-	{ "viewpoin",
-	#ifdef USE_CYCLONE
-		0
-	#else
-		1
-	#endif
-	},
+	{ "tws96", 0 },
+	{ "viewpoin", 0	},
 	{ "vliner", 1 },
 	{ "vlinero", 1 },
 	{ "wakuwak7", 0 },

@@ -15,12 +15,12 @@
 
 #define LOGTAG "MOGAInput"
 #include <imagine/base/Base.hh>
-#include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
 #include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
+#include <memory>
 
 namespace Input
 {
@@ -28,12 +28,87 @@ namespace Input
 static const int ACTION_VERSION_MOGAPRO = 1;
 static const int STATE_CONNECTION = 1;
 static const int STATE_SELECTED_VERSION = 4;
-static jobject mogaHelper{};
-static JavaInstMethod<jint(jint)> jMOGAGetState{};
-static JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
-static AndroidInputDevice *mogaDev{};
 
-static AndroidInputDevice makeMOGADevice(const char *name)
+class MogaSystem
+{
+public:
+	MogaSystem(JNIEnv *env, bool notify);
+	~MogaSystem();
+	void updateMOGAState(JNIEnv *env, bool connected, bool notify);
+	explicit operator bool() const { return mogaHelper; }
+	AndroidInputDevice *mogaDevice() const { return mogaDev; }
+
+private:
+	jobject mogaHelper{};
+	JavaInstMethod<jint(jint)> jMOGAGetState{};
+	JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
+	AndroidInputDevice *mogaDev{};
+	static constexpr int ON_RESUME_PRIORITY = -100;
+	static constexpr int ON_EXIT_PRIORITY = 100;
+	Base::ResumeDelegate onResume{};
+	Base::ExitDelegate onExit{};
+	bool exiting = false;
+
+	static AndroidInputDevice makeMOGADevice(const char *name);
+	void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper);
+	void onResumeMOGA(JNIEnv *env, bool notify);
+};
+
+static std::unique_ptr<MogaSystem> mogaSystem{};
+
+MogaSystem::MogaSystem(JNIEnv *env, bool notify)
+{
+	JavaInstMethod<jobject(jlong)> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
+	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity, (jlong)this);
+	if(env->ExceptionCheck())
+	{
+		env->ExceptionClear();
+		mogaHelper = nullptr;
+		logErr("error creating MOGA helper object");
+		return;
+	}
+	mogaHelper = env->NewGlobalRef(mogaHelper);
+	initMOGAJNIAndDevice(env, mogaHelper);
+	logMsg("init MOGA input system");
+	onResumeMOGA(env, notify);
+	onResume =
+		[this, env](bool)
+		{
+			onResumeMOGA(env, true);
+			return true;
+		};
+	Base::addOnResume(onResume, ON_RESUME_PRIORITY);
+	onExit =
+		[this, env](bool backgrounded)
+		{
+			if(backgrounded)
+			{
+				jMOGAOnPause(env, mogaHelper);
+			}
+			else
+			{
+				exiting = true;
+				mogaSystem.reset();
+			}
+			return true;
+		};
+	Base::addOnExit(onExit, ON_EXIT_PRIORITY);
+}
+
+MogaSystem::~MogaSystem()
+{
+	if(!mogaHelper)
+		return;
+	logMsg("deinit MOGA input system");
+	auto env = Base::jEnvForThread();
+	jMOGAExit(env, mogaHelper);
+	env->DeleteGlobalRef(mogaHelper);
+	removeInputDevice(0, !exiting);
+	Base::removeOnResume(onResume);
+	Base::removeOnExit(onExit);
+}
+
+AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 {
 	AndroidInputDevice dev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name};
 	dev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
@@ -65,7 +140,7 @@ static AndroidInputDevice makeMOGADevice(const char *name)
 	return dev;
 }
 
-static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
+void MogaSystem::updateMOGAState(JNIEnv *env, bool connected, bool notify)
 {
 	bool mogaConnected = mogaDev;
 	if(connected != mogaConnected)
@@ -87,10 +162,8 @@ static void updateMOGAState(JNIEnv *env, bool connected, bool notify)
 	}
 }
 
-static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
+void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 {
-	if(jMOGAGetState)
-		return;
 	logMsg("init MOGA JNI");
 	auto mogaHelperCls = env->GetObjectClass(mogaHelper);
 	jMOGAGetState.setup(env, mogaHelperCls, "getState", "(I)I");
@@ -100,11 +173,11 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 	JNINativeMethod method[]
 	{
 		{
-			"keyEvent", "(IIJ)V",
-			(void*)(void (*)(JNIEnv*, jobject, jint, jint, jlong))
-			([](JNIEnv* env, jobject thiz, jint action, jint keyCode, jlong timestamp)
+			"keyEvent", "(JIIJ)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jlong))
+			([](JNIEnv* env, jobject thiz, jlong mogaSystemPtr, jint action, jint keyCode, jlong timestamp)
 			{
-				assert(mogaDev);
+				auto mogaDev = ((MogaSystem*)mogaSystemPtr)->mogaDevice();
 				//logMsg("MOGA key event: %d %d %d", action, keyCode, (int)time);
 				assert((uint)keyCode < Keycode::COUNT);
 				Base::endIdleByUserActivity();
@@ -116,11 +189,11 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			})
 		},
 		{
-			"motionEvent", "(FFFFFFJ)V",
-			(void*)(void (*)(JNIEnv*, jobject, jfloat, jfloat, jfloat, jfloat, jfloat, jfloat, jlong))
-			([](JNIEnv* env, jobject thiz, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
+			"motionEvent", "(JFFFFFFJ)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jfloat, jfloat, jfloat, jfloat, jfloat, jfloat, jlong))
+			([](JNIEnv* env, jobject thiz, jlong mogaSystemPtr, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
 			{
-				assert(mogaDev);
+				auto mogaDev = ((MogaSystem*)mogaSystemPtr)->mogaDevice();
 				Base::endIdleByUserActivity();
 				auto time = Time::makeWithNSecs(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
@@ -133,14 +206,15 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			})
 		},
 		{
-			"stateEvent", "(II)V",
-			(void*)(void (*)(JNIEnv*, jobject, jint, jint))
-			([](JNIEnv* env, jobject thiz, jint state, jint action)
+			"stateEvent", "(JII)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint))
+			([](JNIEnv* env, jobject thiz, jlong mogaSystemPtr, jint state, jint action)
 			{
 				logMsg("MOGA state event: %d %d", state, action);
 				if(state == STATE_CONNECTION)
 				{
-					updateMOGAState(env, action, true); // "action" maps directly to boolean type
+					auto mogaSystem = (MogaSystem*)mogaSystemPtr;
+					mogaSystem->updateMOGAState(env, action, true); // "action" maps directly to boolean type
 				}
 			})
 		}
@@ -148,59 +222,34 @@ static void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 	env->RegisterNatives(mogaHelperCls, method, std::size(method));
 }
 
+void MogaSystem::onResumeMOGA(JNIEnv *env, bool notify)
+{
+	jMOGAOnResume(env, mogaHelper);
+	bool isConnected = jMOGAGetState(env, mogaHelper, STATE_CONNECTION);
+	logMsg("checked MOGA connection state: %s", isConnected ? "yes" : "no");
+	updateMOGAState(env, isConnected, notify);
+}
+
 void initMOGA(bool notify)
 {
 	auto env = Base::jEnvForThread();
-	if(mogaHelper)
+	if(mogaSystem)
 		return;
-	JavaInstMethod<jobject()> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "()Lcom/imagine/MOGAHelper;"};
-	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity);
-	if(env->ExceptionCheck())
+	mogaSystem = std::make_unique<MogaSystem>(env, notify);
+	if(!(*mogaSystem))
 	{
-		env->ExceptionClear();
-		mogaHelper = nullptr;
-		logErr("error creating MOGA helper object");
-		return;
+		mogaSystem.reset();
 	}
-	mogaHelper = env->NewGlobalRef(mogaHelper);
-	initMOGAJNIAndDevice(env, mogaHelper);
-	logMsg("init MOGA input system");
-	onResumeMOGA(env, notify);
 }
 
 void deinitMOGA()
 {
-	if(!mogaHelper)
-		return;
-	logMsg("deinit MOGA input system");
-	auto env = Base::jEnvForThread();
-	jMOGAExit(env, mogaHelper);
-	env->DeleteGlobalRef(mogaHelper);
-	mogaHelper = {};
-	removeInputDevice(0, true);
-	mogaDev = {};
+	mogaSystem.reset();
 }
 
 bool mogaSystemIsActive()
 {
-	return mogaHelper;
-}
-
-void onPauseMOGA(JNIEnv *env)
-{
-	if(mogaHelper)
-		jMOGAOnPause(env, mogaHelper);
-}
-
-void onResumeMOGA(JNIEnv *env, bool notify)
-{
-	if(mogaHelper)
-	{
-		jMOGAOnResume(env, mogaHelper);
-		bool isConnected = jMOGAGetState(env, mogaHelper, STATE_CONNECTION);
-		logMsg("checked MOGA connection state: %s", isConnected ? "yes" : "no");
-		updateMOGAState(env, isConnected, notify);
-	}
+	return (bool)mogaSystem;
 }
 
 }
