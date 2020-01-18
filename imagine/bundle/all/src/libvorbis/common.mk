@@ -4,7 +4,7 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libvorbisVer := 1.3.5
+libvorbisVer := 1.3.6
 libvorbisSrcDir := $(tempDir)/libvorbis-$(libvorbisVer)
 libvorbisSrcArchive := libvorbis-$(libvorbisVer).tar.xz
 

@@ -4,9 +4,9 @@ endif
 
 include $(buildSysPath)/imagineSDKPath.mk
 
-libarchiveVer := 3.3.2
+libarchiveVer := 3.4.1
 libarchiveSrcDir := $(tempDir)/libarchive-$(libarchiveVer)
-libarchiveSrcArchive := libarchive-$(libarchiveVer).tar.gz
+libarchiveSrcArchive := libarchive-$(libarchiveVer).tar.xz
 
 makeFile := $(buildDir)/Makefile
 outputLibFile := $(buildDir)/.libs/libarchive.a
@@ -32,7 +32,7 @@ endif
 $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	@echo "Extracting libarchive..."
 	@mkdir -p $(libarchiveSrcDir)
-	tar -mxzf $| -C $(libarchiveSrcDir)/..
+	tar -mxJf $| -C $(libarchiveSrcDir)/..
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.0-entry-crc32.patch # adds ability to read file CRCs per entry
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.1-force-utf8-charset.patch # don't rely on nl_langinfo due to possibly unset locale and Android issues
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.3.2-statfs-fix.patch # fix build on old Android API levels
