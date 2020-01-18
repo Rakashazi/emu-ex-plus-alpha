@@ -20,9 +20,25 @@
 class GLMVec3
 {
 public:
-	glm::vec3 v{};
+	constexpr GLMVec3(): v{} {}
+	constexpr GLMVec3(float x, float y, float z): v{x, y, z} {}
+	constexpr GLMVec3(glm::vec3 v): v{v} {}
+	constexpr glm::vec3 vec() const { return v; }
 
-	GLMVec3(): v{} {}
-	GLMVec3(float x, float y, float z): v{x, y, z} {}
-	GLMVec3(glm::vec3 v): v{v} {}
+	float &operator[](int i)
+	{
+		return v[i];
+	}
+
+	constexpr float const &operator[](int i) const
+	{
+		return v[i];
+	}
+
+	constexpr float x() { return v.x; }
+	constexpr float y() { return v.y; }
+	constexpr float z() { return v.z; }
+
+protected:
+	glm::vec3 v{};
 };

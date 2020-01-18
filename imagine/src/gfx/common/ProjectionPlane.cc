@@ -26,8 +26,8 @@ ProjectionPlane ProjectionPlane::makeWithMatrix(const Viewport &viewport, const 
 	//logMsg("Lower-left projection point %d,%d -> %f %f %f", viewport.bounds().x, viewport.bounds().y, (double)lowerLeft.v.x, (double)lowerLeft.v.y, (double)lowerLeft.v.z);
 	auto upperRight = mat.unproject(viewport.inGLFormat(), {(GC)viewport.bounds().x2, (GC)viewport.bounds().y2, .5}, matInv);
 	//logMsg("Upper-right projection point %d,%d -> %f %f %f", viewport.bounds().x2, viewport.bounds().y2, (double)upperRight.v.x, (double)upperRight.v.y, (double)upperRight.v.z);
-	p.w = upperRight.v.x - lowerLeft.v.x, p.h = upperRight.v.y - lowerLeft.v.y;
-	p.focal = upperRight.v.z;
+	p.w = upperRight.x() - lowerLeft.x(), p.h = upperRight.y() - lowerLeft.y();
+	p.focal = upperRight.z();
 	p.rect.x = -p.w/2._gc;
 	p.rect.y = -p.h/2._gc;
 	p.rect.x2 = p.w/2._gc;

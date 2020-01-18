@@ -21,9 +21,26 @@
 class GLKitVec4
 {
 public:
-	GLKVector4 v{};
-
 	constexpr GLKitVec4() {}
 	constexpr GLKitVec4(float x, float y, float z, float w): v{{x, y, z, w}} {}
 	constexpr GLKitVec4(const GLKVector4 &v): v{{v.x, v.y, v.z, v.w}} {}
+	constexpr GLKVector4 vec() const { return v; }
+
+	float &operator[](int i)
+	{
+		return v.v[i];
+	}
+
+	constexpr float const &operator[](int i) const
+	{
+		return v.v[i];
+	}
+
+	constexpr float x() { return v.x; }
+	constexpr float y() { return v.y; }
+	constexpr float z() { return v.z; }
+	constexpr float w() { return v.w; }
+
+protected:
+	GLKVector4 v{};
 };

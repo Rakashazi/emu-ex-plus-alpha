@@ -20,9 +20,26 @@
 class GLMVec4
 {
 public:
-	glm::vec4 v{};
-
 	constexpr GLMVec4() {}
-	GLM_CONSTEXPR_SIMD GLMVec4(float x, float y, float z, float w): v{x, y, z, w} {}
-	GLM_CONSTEXPR_SIMD GLMVec4(glm::vec4 v): v{v} {}
+	constexpr GLMVec4(float x, float y, float z, float w): v{x, y, z, w} {}
+	constexpr GLMVec4(glm::vec4 v): v{v} {}
+	constexpr glm::vec4 vec() const { return v; }
+
+	float &operator[](int i)
+	{
+		return v[i];
+	}
+
+	constexpr float const &operator[](int i) const
+	{
+		return v[i];
+	}
+
+	constexpr float x() { return v.x; }
+	constexpr float y() { return v.y; }
+	constexpr float z() { return v.z; }
+	constexpr float w() { return v.w; }
+
+protected:
+	glm::vec4 v{};
 };

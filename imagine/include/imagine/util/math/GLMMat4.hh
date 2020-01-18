@@ -24,67 +24,43 @@
 class GLMMat4 : NotEquals<GLMMat4>
 {
 public:
-	glm::mat4 m{};
-
 	constexpr GLMMat4() {}
 	constexpr GLMMat4(glm::mat4 m): m{m} {}
-
-	GLMMat4 translate(GLMVec3 translation) const;
-
 	static GLMMat4 makeTranslate(GLMVec3 translation);
-
 	static GLMMat4 makePerspectiveFovRH(float fovy, float aspect, float znear, float zfar);
-
+	GLMMat4 translate(GLMVec3 translation) const;
 	GLMMat4 scale(GLMVec3 factors) const;
-
-	GLMMat4 scale(float s) const { return scale({s, s, 1.}); }
-	GLMMat4 scale(IG::Point2D<float> p) const { return scale({p.x, p.y, 1.}); }
-
 	GLMMat4 rotate(float angle, GLMVec3 axis) const;
-
-	GLMMat4 pitchRotate(float t) const
-	{
-		return rotate(t, {1., 0., 0.});
-	}
-
-	GLMMat4 rollRotate(float t) const
-	{
-		return rotate(t, {0., 0., 1.});
-	}
-
-	GLMMat4 yawRotate(float t) const
-	{
-		return rotate(t, {0., 1., 0.});
-	}
-
 	GLMMat4 invert() const;
-
-	GLMMat4 mult(GLMMat4 mat) const
-	{
-		return m * mat.m;
-	}
-
-	GLMVec4 mult(GLMVec4 vec) const
-	{
-		return m * vec.v;
-	}
-
+	GLMMat4 mult(GLMMat4 mat) const;
+	GLMVec4 mult(GLMVec4 vec) const;
 	GLMVec3 project(IG::Rect2<int> viewport, GLMVec3 obj) const;
-
 	GLMVec3 unproject(IG::Rect2<int> viewport, GLMVec3 win, GLMMat4 inverse) const;
-
-	bool operator ==(GLMMat4 const &rhs) const
-	{
-		return m == rhs.m;
-	}
+	bool operator ==(GLMMat4 const &rhs) const;
 
 	glm::vec4 &operator[](int i)
 	{
 		return m[i];
 	}
 
-	glm::vec4 const &operator[](int i) const
+	constexpr glm::vec4 const &operator[](int i) const
 	{
 		return m[i];
 	}
+
+	// Convenience functions
+	GLMMat4 scale(float s) const { return scale({s, s, 1.}); }
+	GLMMat4 scale(IG::Point2D<float> p) const { return scale({p.x, p.y, 1.}); }
+	GLMMat4 pitchRotate(float t) const { return rotate(t, {1., 0., 0.}); }
+	GLMMat4 rollRotate(float t) const { return rotate(t, {0., 0., 1.}); }
+	GLMMat4 yawRotate(float t) const { return rotate(t, {0., 1., 0.}); }
+
+protected:
+	glm::mat4 m
+	{
+		{1, 0, 0, 0},
+		{0, 1, 0, 0},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1},
+	};
 };

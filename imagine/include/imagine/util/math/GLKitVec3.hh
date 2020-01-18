@@ -21,9 +21,25 @@
 class GLKitVec3
 {
 public:
-	GLKVector3 v{};
-
 	constexpr GLKitVec3() {}
 	constexpr GLKitVec3(float x, float y, float z): v{{x, y, z}} {}
 	constexpr GLKitVec3(const GLKVector3 &v): v{{v.x, v.y, v.z}} {}
+	constexpr GLKVector3 vec() const { return v; }
+
+	float &operator[](int i)
+	{
+		return v.v[i];
+	}
+
+	constexpr float const &operator[](int i) const
+	{
+		return v.v[i];
+	}
+
+	constexpr float x() { return v.x; }
+	constexpr float y() { return v.y; }
+	constexpr float z() { return v.z; }
+
+protected:
+	GLKVector3 v{};
 };
