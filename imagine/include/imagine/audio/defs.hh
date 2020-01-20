@@ -24,7 +24,7 @@
 namespace Audio
 {
 
-using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, uint bytes)>;
+using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t bytes)>;
 
 class OutputStreamConfig
 {
@@ -41,12 +41,12 @@ public:
 		return onSamplesNeeded_;
 	}
 
-	void setWantedLatencyHint(uint uSecs)
+	void setWantedLatencyHint(uint32_t uSecs)
 	{
 		wantedLatency = uSecs;
 	}
 
-	uint wantedLatencyHint() const
+	uint32_t wantedLatencyHint() const
 	{
 		return wantedLatency;
 	}
@@ -64,7 +64,7 @@ public:
 protected:
 	PcmFormat format_{};
 	OnSamplesNeededDelegate onSamplesNeeded_{};
-	uint wantedLatency = 20000;
+	uint32_t wantedLatency = 20000;
 	bool startPlaying_ = true;
 };
 

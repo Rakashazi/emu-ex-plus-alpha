@@ -18,12 +18,12 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/gui/TableView.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/typeTraits.hh>
-#include <initializer_list>
 #include <vector>
 #include <iterator>
+
+class TableView;
 
 class MenuItem
 {
@@ -197,9 +197,9 @@ class MultiChoiceMenuItem : public BaseDualTextMenuItem
 {
 public:
 	using SelectDelegate = DelegateFunc<void (MultiChoiceMenuItem &item, View &parent, Input::Event e)>;
-	using ItemsDelegate = DelegateFunc<uint (const MultiChoiceMenuItem &item)>;
-	using ItemDelegate = DelegateFunc<TextMenuItem& (const MultiChoiceMenuItem &item, uint idx)>;
-	using SetDisplayStringDelegate = DelegateFunc<const char *(uint idx)>;
+	using ItemsDelegate = DelegateFunc<uint32_t (const MultiChoiceMenuItem &item)>;
+	using ItemDelegate = DelegateFunc<TextMenuItem& (const MultiChoiceMenuItem &item, uint32_t idx)>;
+	using SetDisplayStringDelegate = DelegateFunc<const char *(uint32_t idx)>;
 
 	MultiChoiceMenuItem() {}
 	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
@@ -213,7 +213,7 @@ public:
 		{
 			return std::size(item);
 		},
-		[&item](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		[&item](const MultiChoiceMenuItem &, uint32_t idx) -> TextMenuItem&
 		{
 			return std::data(item)[idx];
 		},
@@ -234,7 +234,7 @@ public:
 	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	int selected() const;
-	uint items() const;
+	uint32_t items() const;
 	bool setSelected(int idx, View &view);
 	bool setSelected(int idx);
 	int cycleSelected(int offset, View &view);

@@ -8,7 +8,7 @@ namespace Input
 // TODO: remove dummy defs
 namespace Keycode
 {
-	static const uint ESCAPE = VK_ESCAPE,
+	static const uint32_t ESCAPE = VK_ESCAPE,
 	ENTER = VK_RETURN,
 	LALT = 2003, // TODO
 	RALT = 2004, // TODO
@@ -67,9 +67,9 @@ namespace Keycode
 	F12 = VK_F12
 	;
 
-	static const uint COUNT = 0xffff;
+	static const uint32_t COUNT = 0xffff;
 
-	/*static constexpr uint asciiKey(uint c)
+	/*static constexpr uint32_t asciiKey(uint32_t c)
 	{
 		return (c >= 'a' && c <= 'z') ? c-0x20 :
 			((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) ? c :
@@ -97,7 +97,7 @@ typedef uint16 Key;
 
 namespace Pointer
 {
-	static const uint LBUTTON = 1,
+	static const uint32_t LBUTTON = 1,
 	MBUTTON = 2,
 	RBUTTON = 3,
 	WHEEL_UP = 4,

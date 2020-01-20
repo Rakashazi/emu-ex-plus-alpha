@@ -16,18 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/Screen.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/util/DelegateFunc.hh>
-
-namespace Config
-{
-#if (defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
-#define CONFIG_BASE_MULTI_WINDOW
-static constexpr bool BASE_MULTI_WINDOW = true;
-#else
-static constexpr bool BASE_MULTI_WINDOW = false;
-#endif
-}
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XWindow.hh>
@@ -43,6 +33,8 @@ namespace Base
 {
 
 using namespace IG;
+
+class Screen;
 
 class WindowConfig
 {
@@ -130,10 +122,7 @@ public:
 		screen_ = &screen;
 	}
 
-	Screen &screen() const
-	{
-		return screen_ ? *screen_ : *Screen::screen(0);
-	}
+	Screen &screen() const;
 
 	void setOnSurfaceChange(BaseWindow::SurfaceChangeDelegate del)
 	{

@@ -23,6 +23,7 @@
 #include <dlfcn.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/thread/Thread.hh>
@@ -45,7 +46,7 @@ static JavaInstMethod<void()> jRecycle{};
 // activity
 jclass jBaseActivityCls{};
 jobject jBaseActivity{};
-uint appState = APP_PAUSED;
+uint32_t appState = APP_PAUSED;
 static bool aHasFocus = true;
 static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
@@ -53,14 +54,14 @@ static JavaInstMethod<jobject()> jNewFontRenderer{};
 JavaInstMethod<void(jint)> jSetRequestedOrientation{};
 JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{};
 static const char *filesDir{};
-static uint aSDK = __ANDROID_API__;
+static uint32_t aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
 SurfaceRotation osRotation{};
 static SystemOrientationChangedDelegate onSystemOrientationChanged{};
 static bool hasPermanentMenuKey = true;
 static bool keepScreenOn = false;
 static Timer userActivityCallback{"userActivityCallback"};
-static uint uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
+static uint32_t uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 AInputQueue *inputQueue{};
 static void *mainLibHandle{};
 static bool unloadNativeLibOnDestroy = false;
@@ -80,7 +81,7 @@ void recycleBitmap(JNIEnv *env, jobject bitmap)
 	jRecycle(env, bitmap);
 }
 
-uint appActivityState() { return appState; }
+uint32_t appActivityState() { return appState; }
 
 void exit(int returnVal)
 {
@@ -213,13 +214,13 @@ bool hasHardwareNavButtons()
 	return hasPermanentMenuKey;
 }
 
-uint androidSDK()
+uint32_t androidSDK()
 {
 	#ifdef ANDROID_COMPAT_API
 	static_assert(__ANDROID_API__ == 14, "Compiling with ANDROID_COMPAT_API and API higher than 14");
 	return std::max(9u, aSDK);
 	#else
-	return std::max((uint)__ANDROID_API__, aSDK);
+	return std::max((uint32_t)__ANDROID_API__, aSDK);
 	#endif
 }
 
@@ -233,7 +234,7 @@ bool Window::systemAnimatesRotation()
 	return osAnimatesRotation;
 }
 
-uint defaultSystemOrientations()
+uint32_t defaultSystemOrientations()
 {
 	return VIEW_ROTATE_ALL;
 }
@@ -419,7 +420,7 @@ static void setStatusBarHidden(JNIEnv *env, bool hidden)
 	}
 }
 
-void setSysUIStyle(uint flags)
+void setSysUIStyle(uint32_t flags)
 {
 	// Flags mapped directly to SYSTEM_UI_FLAG_*
 	// SYS_UI_STYLE_DIM_NAV -> SYSTEM_UI_FLAG_LOW_PROFILE (0)
@@ -437,7 +438,7 @@ void setSysUIStyle(uint flags)
 	setStatusBarHidden(env, flags & SYS_UI_STYLE_HIDE_STATUS);
 	if(androidSDK() >= 11)
 	{
-		constexpr uint SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
+		constexpr uint32_t SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
 		// Add SYSTEM_UI_FLAG_IMMERSIVE_STICKY for use with Android 4.4+ if flags contain OS_NAV_STYLE_HIDDEN
 		if(flags & SYS_UI_STYLE_HIDE_NAV)
 			flags |= SYSTEM_UI_FLAG_IMMERSIVE_STICKY;

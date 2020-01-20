@@ -23,8 +23,6 @@
 #import <QuartzCore/QuartzCore.h>
 #endif
 
-#define CONFIG_BASE_SCREEN_FRAME_INTERVAL
-
 namespace Base
 {
 

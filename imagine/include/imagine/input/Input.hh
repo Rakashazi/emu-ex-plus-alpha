@@ -35,12 +35,12 @@ namespace Input
 
 struct PackedInputAccess
 {
-	uint byteOffset;
-	uint mask;
+	uint32_t byteOffset;
+	uint32_t mask;
 	Key keyEvent;
 	Key sysKey;
 
-	int updateState(const uchar *prev, const uchar *curr) const
+	int updateState(const uint8_t *prev, const uint8_t *curr) const
 	{
 		bool oldState = prev[byteOffset] & mask,
 			newState = curr[byteOffset] & mask;
@@ -59,7 +59,7 @@ enum { POINTER_NORMAL, POINTER_INVERT };
 class Event
 {
 public:
-	static constexpr uint MAP_NULL = 0,
+	static constexpr uint32_t MAP_NULL = 0,
 		MAP_SYSTEM = 1,
 		MAP_X = 1,
 		MAP_EVDEV = 1,
@@ -81,27 +81,27 @@ public:
 
 	constexpr Event() {}
 
-	constexpr Event(uint devId, uint map, Key button, uint metaState, uint state, int x, int y, int pointerID, bool pointerIsTouch, Time time, const Device *device)
+	constexpr Event(uint32_t devId, uint32_t map, Key button, uint32_t metaState, uint32_t state, int x, int y, int pointerID, bool pointerIsTouch, Time time, const Device *device)
 		: devId{devId}, map_{map}, button{button}, state_{state}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, time_{time}, device_{device}, pointerIsTouch{pointerIsTouch} {}
 
-	constexpr Event(uint devId, uint map, Key button, Key sysKey, uint state, uint metaState, int repeatCount, Time time, const Device *device)
+	constexpr Event(uint32_t devId, uint32_t map, Key button, Key sysKey, uint32_t state, uint32_t metaState, int repeatCount, Time time, const Device *device)
 		: devId{devId}, map_{map}, button{button}, sysKey_{sysKey}, state_{state}, metaState{metaState}, repeatCount{repeatCount}, time_{time}, device_{device} {}
 
-	uint deviceID() const;
-	static const char *mapName(uint map);
+	uint32_t deviceID() const;
+	static const char *mapName(uint32_t map);
 	const char *mapName();
-	static uint mapNumKeys(uint map);
-	uint map() const;
-	void setMap(uint map);
+	static uint32_t mapNumKeys(uint32_t map);
+	uint32_t map() const;
+	void setMap(uint32_t map);
 	int pointerID() const;
-	uint state() const;
+	uint32_t state() const;
 	bool stateIsPointer() const;
 	bool isPointer() const;
 	bool isRelativePointer() const;
 	bool isTouch() const;
 	bool isKey() const;
-	bool isDefaultConfirmButton(uint swapped) const;
-	bool isDefaultCancelButton(uint swapped) const;
+	bool isDefaultConfirmButton(uint32_t swapped) const;
+	bool isDefaultCancelButton(uint32_t swapped) const;
 	bool isDefaultConfirmButton() const;
 	bool isDefaultCancelButton() const;
 	bool isDefaultLeftButton() const;
@@ -137,15 +137,15 @@ public:
 	const Device *device() const;
 
 protected:
-	uint devId = 0, map_ = MAP_NULL;
+	uint32_t devId = 0, map_ = MAP_NULL;
 	Key button = 0, sysKey_ = 0;
 	#ifdef CONFIG_BASE_X11
 	Key rawKey = 0;
 	#endif
-	uint state_ = 0;
+	uint32_t state_ = 0;
 	int x = 0, y = 0;
 	int pointerID_ = 0;
-	uint metaState = 0;
+	uint32_t metaState = 0;
 	int repeatCount = 0;
 	Time time_{};
 	const Device *device_{};
@@ -158,7 +158,7 @@ const std::vector<Device*> &deviceList();
 
 // OS text input support
 typedef DelegateFunc<void (const char *str)> InputTextDelegate;
-uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels);
+uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels);
 void cancelSysTextInput();
 void finishSysTextInput();
 void placeSysTextInput(IG::WindowRect rect);
@@ -177,9 +177,9 @@ void addDevice(Device &d);
 void removeDevice(Device &d);
 void indexDevices();
 
-void xPointerTransform(uint mode);
-void yPointerTransform(uint mode);
-void pointerAxis(uint mode);
+void xPointerTransform(uint32_t mode);
+void yPointerTransform(uint32_t mode);
+void pointerAxis(uint32_t mode);
 void configureInputForOrientation(const Base::Window &win);
 
 Event defaultEvent();

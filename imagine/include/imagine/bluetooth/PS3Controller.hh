@@ -35,16 +35,16 @@ public:
 	void close();
 	void removeFromSystem() final;
 	bool dataHandler(const char *data, size_t size);
-	uint statusHandler(BluetoothSocket &sock, uint status);
-	void setLEDs(uint player);
-	uint joystickAxisBits() final;
-	uint joystickAxisAsDpadBitsDefault() final;
-	void setJoystickAxisAsDpadBits(uint axisMask) final;
-	uint joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
+	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
+	void setLEDs(uint32_t player);
+	uint32_t joystickAxisBits() final;
+	uint32_t joystickAxisAsDpadBitsDefault() final;
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
+	uint32_t joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
 	const char *keyName(Input::Key k) const final;
 
 private:
-	uchar prevData[3]{};
+	uint8_t prevData[3]{};
 	bool didSetLEDs = false;
 	Input::AxisKeyEmu<int> axisKey[4]
 	{
@@ -70,11 +70,11 @@ private:
 		}   // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
-	uint player = 0;
-	uint joystickAxisAsDpadBits_;
+	uint32_t player = 0;
+	uint32_t joystickAxisAsDpadBits_;
 	BluetoothAddr addr;
 
-	static uint findFreeDevId();
-	static uchar playerLEDs(uint player);
+	static uint32_t findFreeDevId();
+	static uint8_t playerLEDs(uint32_t player);
 	void sendFeatureReport();
 };

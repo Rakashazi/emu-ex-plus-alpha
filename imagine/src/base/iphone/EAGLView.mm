@@ -42,7 +42,7 @@ static struct TouchState
 	constexpr TouchState() {}
 	UITouch *touch = nil;
 } m[Config::Input::MAX_POINTERS];
-static uint numCursors = Config::Input::MAX_POINTERS;
+static uint32_t numCursors = Config::Input::MAX_POINTERS;
 
 }
 

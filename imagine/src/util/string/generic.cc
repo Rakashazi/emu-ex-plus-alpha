@@ -16,12 +16,11 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/string/basename.h>
-#include <imagine/util/ansiTypes.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/utf.hh>
-#include <imagine/mem/mem.h>
 #include <assert.h>
 #include <system_error>
+#include <cstdint>
 
 #if defined __ANDROID__ || defined __APPLE__
 #define HAS_STRL_FUNCS
@@ -32,13 +31,13 @@ static const char pathSeparator[] = { '/'
 		, '\\'
 #endif
 };
-static const uint numPathSeparators = std::size(pathSeparator);
+static constexpr uint32_t numPathSeparators = std::size(pathSeparator);
 
 template <class T>
 static T *dirNameCutoffPoint(T *path)
 {
 	T *cutoffPoint = nullptr;
-	for(uint i = 0; i < numPathSeparators; i++)
+	for(uint32_t i = 0; i < numPathSeparators; i++)
 	{
 		T *possibleCutoff = strrchr(path, pathSeparator[i]);
 		if(possibleCutoff > cutoffPoint)
@@ -76,13 +75,13 @@ static char *dirNameCpy(char *path)
 	if(cutoffPoint != nullptr)
 	{
 		size_t cpySize = cutoffPoint - path;
-		pathOut = (char*)mem_alloc(cpySize + 1);
+		pathOut = (char*)malloc(cpySize + 1);
 		memcpy(pathOut, path, cpySize);
 		pathOut[cpySize] = 0;
 	}
 	else
 	{
-		pathOut = (char*)mem_alloc(2);
+		pathOut = (char*)malloc(2);
 		strcpy(pathOut, ".");
 	}
 	return pathOut;
@@ -92,7 +91,7 @@ template <class T>
 T baseNamePos(T path)
 {
 	T pos = path;
-	for(uint i = 0; i < numPathSeparators; i++)
+	for(uint32_t i = 0; i < numPathSeparators; i++)
 	{
 		T possiblePos = strrchr(path, pathSeparator[i]);
 		if(possiblePos > pos)
@@ -143,7 +142,7 @@ bool string_hasDotExtension(const char *s, const char *extension)
 	return string_equalNoCase(extPos, extension);
 }
 
-std::errc string_convertCharCode(const char** sourceStart, uint &c)
+std::errc string_convertCharCode(const char** sourceStart, uint32_t &c)
 {
 	if(Config::UNICODE_CHARS)
 	{

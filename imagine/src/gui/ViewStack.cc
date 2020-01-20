@@ -15,6 +15,7 @@
 
 #define LOGTAG "ViewStack"
 #include <imagine/gui/ViewStack.hh>
+#include <imagine/gui/NavView.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -315,7 +316,7 @@ View &ViewStack::top() const
 	return *view.back().v;
 }
 
-View &ViewStack::viewAtIdx(uint idx) const
+View &ViewStack::viewAtIdx(uint32_t idx) const
 {
 	assumeExpr(idx < view.size());
 	return *view[idx].v;
@@ -392,7 +393,7 @@ void ViewStack::showNavLeftBtn()
 	}
 }
 
-uint ViewStack::size() const
+uint32_t ViewStack::size() const
 {
 	return view.size();
 }

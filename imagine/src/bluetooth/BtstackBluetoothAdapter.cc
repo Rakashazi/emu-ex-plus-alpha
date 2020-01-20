@@ -15,6 +15,7 @@
 
 #define LOGTAG "BTstack"
 #include <imagine/bluetooth/BtstackBluetoothAdapter.hh>
+#include <imagine/logger/logger.h>
 #include <imagine/util/container/DLList.hh>
 #include <imagine/util/utility.h>
 
@@ -26,17 +27,17 @@ struct BtstackCmd
 {
 	enum { NOOP, CREATE_L2CAP, CREATE_RFCOMM, INQUIRY, REMOTE_NAME_REQ, WRITE_AUTH_ENABLE,
 		L2CAP_REGISTER_SERVICE, L2CAP_ACCEPT_CONNECTION };
-	uint cmd;
+	uint32_t cmd;
 	union
 	{
 		struct
 		{
 			BluetoothAddr address;
-			uint channel;
+			uint32_t channel;
 		} createChannelData;
 		struct
 		{
-			uint length;
+			uint32_t length;
 		} inquiryData;
 		struct
 		{
@@ -46,7 +47,7 @@ struct BtstackCmd
 		} remoteNameRequestData;
 		struct
 		{
-			uint on;
+			uint32_t on;
 		} writeAuthEnableData;
 		struct
 		{
@@ -111,7 +112,7 @@ struct BtstackCmd
 		return 1;
 	}
 
-	static BtstackCmd l2capCreateChannel(BluetoothAddr address, uint channel)
+	static BtstackCmd l2capCreateChannel(BluetoothAddr address, uint32_t channel)
 	{
 		BtstackCmd cmd = { CREATE_L2CAP };
 		cmd.createChannelData.address = address;
@@ -119,7 +120,7 @@ struct BtstackCmd
 		return cmd;
 	}
 
-	static BtstackCmd rfcommCreateChannel(BluetoothAddr address, uint channel)
+	static BtstackCmd rfcommCreateChannel(BluetoothAddr address, uint32_t channel)
 	{
 		BtstackCmd cmd = { CREATE_RFCOMM };
 		cmd.createChannelData.address = address;
@@ -127,7 +128,7 @@ struct BtstackCmd
 		return cmd;
 	}
 
-	static BtstackCmd inquiry(uint length)
+	static BtstackCmd inquiry(uint32_t length)
 	{
 		BtstackCmd cmd = { INQUIRY };
 		cmd.inquiryData.length = length;
@@ -143,7 +144,7 @@ struct BtstackCmd
 		return cmd;
 	}
 
-	static BtstackCmd writeAuthenticationEnable(uint on)
+	static BtstackCmd writeAuthenticationEnable(uint32_t on)
 	{
 		BtstackCmd cmd = { WRITE_AUTH_ENABLE };
 		cmd.writeAuthEnableData.on = on;
@@ -312,7 +313,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 					uint16_t handle = READ_BT_16(packet, 3);
 					bd_addr_t addr;
 					bt_flip_addr(addr, &packet[5]);
-					uint status = packet[2];
+					uint32_t status = packet[2];
 					logMsg("got HCI_EVENT_CONNECTION_COMPLETE: addr: %s, handle: %d, status: %d", bd_addr_to_str(addr), handle, status);
 					if(cmdActive && activeCmd.cmd == BtstackCmd::CREATE_L2CAP && BD_ADDR_CMP(activeCmd.createChannelData.address.data(), addr) == 0)
 					{
@@ -381,7 +382,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						logWarn("can't find socket");
 						return;
 					}
-					uint size;
+					uint32_t size;
 					const void *pin = sock->pin(size);
 					if(pin)
 					{
@@ -399,7 +400,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				bcase HCI_EVENT_INQUIRY_RESULT:
 				case HCI_EVENT_INQUIRY_RESULT_WITH_RSSI:
 				{
-					uint responses = scanResponses = packet[2];
+					uint32_t responses = scanResponses = packet[2];
 					logMsg("got HCI_EVENT_INQUIRY_RESULT, %d responses", responses);
 					iterateTimes(responses, i)
 					{
@@ -605,7 +606,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				{
 					cmdActive = 0;
 					uint8 status = packet[2];
-					uint psm = READ_BT_16(packet, 3);
+					uint32_t psm = READ_BT_16(packet, 3);
 					auto onResult = std::exchange(setL2capServiceOnResult, {});
 					if(status && status != L2CAP_SERVICE_ALREADY_REGISTERED)
 					{
@@ -644,7 +645,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 	//logMsg("end packet");
 }
 
-void BtstackBluetoothAdapter::setL2capService(uint psm, bool on, OnStatusDelegate onResult)
+void BtstackBluetoothAdapter::setL2capService(uint32_t psm, bool on, OnStatusDelegate onResult)
 {
 	if(on)
 	{
@@ -864,7 +865,7 @@ void BluetoothPendingSocket::close()
 	ch = 0;
 }
 
-CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint channel)
+CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t channel)
 {
 	type = 1;
 	if(!socketList.add(this))
@@ -881,7 +882,7 @@ CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint channel)
 	return OK;
 }
 
-CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint psm)
+CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
 {
 	type = 0;
 	if(!socketList.add(this))
@@ -964,13 +965,13 @@ BtstackBluetoothSocket *BtstackBluetoothSocket::findSocket(const bd_addr_t addr)
 	return nullptr;
 }
 
-const void *BtstackBluetoothSocket::pin(uint &size)
+const void *BtstackBluetoothSocket::pin(uint32_t &size)
 {
 	size = pinSize;
 	return pinCode;
 }
 
-void BtstackBluetoothSocket::setPin(const void *pin, uint size)
+void BtstackBluetoothSocket::setPin(const void *pin, uint32_t size)
 {
 	pinCode = pin;
 	pinSize = size;

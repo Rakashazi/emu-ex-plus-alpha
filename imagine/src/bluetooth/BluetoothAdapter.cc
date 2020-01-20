@@ -20,7 +20,7 @@
 bool BluetoothAdapter::useScanCache = 1;
 #endif
 #ifdef CONFIG_BLUETOOTH_SCAN_SECS
-uint BluetoothAdapter::scanSecs = 4;
+uint32_t BluetoothAdapter::scanSecs = 4;
 #endif
 
 BluetoothAdapter::BluetoothAdapter() {}

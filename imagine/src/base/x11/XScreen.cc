@@ -141,7 +141,7 @@ void Screen::unpostFrame()
 	frameTimerCancel();
 }
 
-void Screen::setFrameInterval(uint interval)
+void Screen::setFrameInterval(int interval)
 {
 	// TODO
 	//logMsg("setting frame interval %d", (int)interval);

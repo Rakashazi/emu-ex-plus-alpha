@@ -49,24 +49,24 @@ public:
 
 	constexpr FDEventSource() {}
 	#ifdef NDEBUG
-	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN);
+	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	FDEventSource(const char *debugLabel, int fd): FDEventSource(fd) {}
-	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN):
+	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
 		FDEventSource(fd, loop, callback, events) {}
 	#else
 	FDEventSource(int fd): FDEventSource(nullptr, fd) {}
-	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN):
+	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
 		FDEventSource(nullptr, fd, loop, callback, events) {}
-	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint events = POLLEV_IN);
+	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	#endif
 	FDEventSource(FDEventSource &&o);
 	FDEventSource &operator=(FDEventSource o);
 	~FDEventSource();
 	static void swap(FDEventSource &a, FDEventSource &b);
 	static FDEventSource makeXServerAddedToEventLoop(int fd, EventLoop loop);
-	bool addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events);
+	bool addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events);
 	void addXServerToEventLoop(EventLoop loop);
-	void modifyEvents(uint events);
+	void modifyEvents(uint32_t events);
 	void removeFromEventLoop();
 	void setCallback(PollEventDelegate callback);
 	bool hasEventLoop();

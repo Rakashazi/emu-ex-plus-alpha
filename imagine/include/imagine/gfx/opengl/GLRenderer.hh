@@ -25,9 +25,12 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/util/Interpolator.hh>
+#include <imagine/util/DelegateFuncSet.hh>
 #include <memory>
+#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 #include <mutex>
 #include <condition_variable>
+#endif
 
 namespace Gfx
 {
@@ -150,7 +153,7 @@ protected:
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLuint streamVAO = 0;
 	std::array<GLuint, 6> streamVBO{};
-	uint streamVBOIdx = 0;
+	uint32_t streamVBOIdx = 0;
 	#endif
 	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
 	GLuint defaultFB = 0;
@@ -435,7 +438,7 @@ class GLRendererCommands
 public:
 	TextureSampler currSampler{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	uint currentVtxArrayPointerID = 0;
+	uint32_t currentVtxArrayPointerID = 0;
 	Mat4 modelMat, projectionMat;
 	#endif
 	GLStateCache glState{};

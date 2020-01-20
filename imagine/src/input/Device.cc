@@ -374,12 +374,12 @@ const char *Device::keyName(Key k) const
 	return "";
 }
 
-uint Device::map() const
+uint32_t Device::map() const
 {
-	return iCadeMode() ? (uint)Input::Event::MAP_ICADE : map_;
+	return iCadeMode() ? (uint32_t)Input::Event::MAP_ICADE : map_;
 }
 
-uint Device::typeBits() const
+uint32_t Device::typeBits() const
 {
 	return iCadeMode() ? TYPE_BIT_GAMEPAD :	type_;
 }

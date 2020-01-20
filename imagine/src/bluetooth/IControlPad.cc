@@ -19,6 +19,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/container/containerUtils.hh>
 #include "../input/private.hh"
 #include "private.hh"
 #include <algorithm>
@@ -45,36 +46,36 @@ static const PackedInputAccess iCPDataAccess[] =
 	{ 1, bit(1), iControlPad::START, Keycode::GAME_START },
 };
 
-static const uchar CMD_SPP_GP_REPORTS = 0xAD;
-static const uchar turnOnReports[2] = { CMD_SPP_GP_REPORTS, 1 };
-static const uchar turnOffReports[2] = { CMD_SPP_GP_REPORTS, 0 };
+static const uint8_t CMD_SPP_GP_REPORTS = 0xAD;
+static const uint8_t turnOnReports[2] = { CMD_SPP_GP_REPORTS, 1 };
+static const uint8_t turnOffReports[2] = { CMD_SPP_GP_REPORTS, 0 };
 
-static const uchar CMD_SET_LED = 0xFF;
-static const uchar turnOnLED[2] = { CMD_SET_LED, 1 };
+static const uint8_t CMD_SET_LED = 0xFF;
+static const uint8_t turnOnLED[2] = { CMD_SET_LED, 1 };
 
-static const uchar CMD_FORCE_LED_CTRL = 0x6D;
-static const uchar turnOnLEDControl[2] = { CMD_FORCE_LED_CTRL, 1 };
+static const uint8_t CMD_FORCE_LED_CTRL = 0x6D;
+static const uint8_t turnOnLEDControl[2] = { CMD_FORCE_LED_CTRL, 1 };
 
-static const uchar CMD_SET_LED_MODE = 0xE4;
-static const uchar LED_PULSE_DOUBLE = 0;
-static const uchar setLEDPulseDouble[2] = { CMD_SET_LED_MODE, LED_PULSE_DOUBLE };
-static const uchar LED_PULSE_INVERSE = 2;
-static const uchar setLEDPulseInverse[2] = { CMD_SET_LED_MODE, LED_PULSE_INVERSE };
-/*const uchar LED_NO_PULSE = 3;
-const uchar setLEDNoPulse[2] = { CMD_SET_LED_MODE, LED_NO_PULSE };*/
-static const uchar LED_PULSE_DQUICK = 5;
-static const uchar setLEDPulseDQuick[2] = { CMD_SET_LED_MODE, LED_PULSE_DQUICK };
+static const uint8_t CMD_SET_LED_MODE = 0xE4;
+static const uint8_t LED_PULSE_DOUBLE = 0;
+static const uint8_t setLEDPulseDouble[2] = { CMD_SET_LED_MODE, LED_PULSE_DOUBLE };
+static const uint8_t LED_PULSE_INVERSE = 2;
+static const uint8_t setLEDPulseInverse[2] = { CMD_SET_LED_MODE, LED_PULSE_INVERSE };
+/*const uint8_t LED_NO_PULSE = 3;
+const uint8_t setLEDNoPulse[2] = { CMD_SET_LED_MODE, LED_NO_PULSE };*/
+static const uint8_t LED_PULSE_DQUICK = 5;
+static const uint8_t setLEDPulseDQuick[2] = { CMD_SET_LED_MODE, LED_PULSE_DQUICK };
 
 
-static const uchar CMD_POWER_OFF = 0x94;
-static const uchar PWR_OFF_CHK_BYTE1 = 0x27;
-static const uchar PWR_OFF_CHK_BYTE2 = 0x6A;
-static const uchar PWR_OFF_CHK_BYTE3 = 0xFE;
+static const uint8_t CMD_POWER_OFF = 0x94;
+static const uint8_t PWR_OFF_CHK_BYTE1 = 0x27;
+static const uint8_t PWR_OFF_CHK_BYTE2 = 0x6A;
+static const uint8_t PWR_OFF_CHK_BYTE3 = 0xFE;
 //static const char shutdown[] = { CMD_POWER_OFF, PWR_OFF_CHK_BYTE1, PWR_OFF_CHK_BYTE2, PWR_OFF_CHK_BYTE3 };
 
-static const uchar RESP_OKAY = 0x80;
+static const uint8_t RESP_OKAY = 0x80;
 
-const uchar IControlPad::btClass[3] = { 0x00, 0x1F, 0x00 };
+const uint8_t IControlPad::btClass[3] = { 0x00, 0x1F, 0x00 };
 
 static const char *icpButtonName(Key b)
 {
@@ -110,9 +111,9 @@ const char *IControlPad::keyName(Key k) const
 	return icpButtonName(k);
 }
 
-uint IControlPad::findFreeDevId()
+uint32_t IControlPad::findFreeDevId()
 {
-	uint id[5]{};
+	uint32_t id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
@@ -135,7 +136,7 @@ CallResult IControlPad::open(BluetoothAdapter &adapter)
 			return dataHandler(packet, size);
 		};
 	sock.onStatus() =
-		[this](BluetoothSocket &sock, uint status)
+		[this](BluetoothSocket &sock, uint32_t status)
 		{
 			return statusHandler(sock, status);
 		};
@@ -164,7 +165,7 @@ void IControlPad::removeFromSystem()
 	}
 }
 
-uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
+uint32_t IControlPad::statusHandler(BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
@@ -198,8 +199,8 @@ uint IControlPad::statusHandler(BluetoothSocket &sock, uint status)
 
 bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 {
-	auto packet = (const uchar*)packetPtr;
-	uint bytesLeft = size;
+	auto packet = (const uint8_t*)packetPtr;
+	uint32_t bytesLeft = size;
 	//logMsg("%d bytes ready", bytesToRead);
 	do
 	{
@@ -225,7 +226,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 		}
 		else // handle GP_REPORT
 		{
-			uint processBytes = std::min(bytesLeft, uint(sizeof inputBuffer - inputBufferPos));
+			uint32_t processBytes = std::min(bytesLeft, uint32_t(sizeof inputBuffer - inputBufferPos));
 			memcpy(&inputBuffer[inputBufferPos], &packet[size-bytesLeft], processBytes);
 			//logDMsg("read %d bytes from iCP", len);
 			inputBufferPos += processBytes;
@@ -251,7 +252,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint player)
+void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint32_t player)
 {
 	using namespace Input;
 	for(auto e : iCPDataAccess)
@@ -270,17 +271,17 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint p
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-uint IControlPad::joystickAxisBits()
+uint32_t IControlPad::joystickAxisBits()
 {
 	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
 }
 
-uint IControlPad::joystickAxisAsDpadBitsDefault()
+uint32_t IControlPad::joystickAxisAsDpadBitsDefault()
 {
 	return Device::AXIS_BITS_STICK_1;
 }
 
-void IControlPad::setJoystickAxisAsDpadBits(uint axisMask)
+void IControlPad::setJoystickAxisAsDpadBits(uint32_t axisMask)
 {
 	using namespace Input;
 	if(joystickAxisAsDpadBits_ == axisMask)
@@ -318,7 +319,7 @@ void IControlPad::setJoystickAxisAsDpadBits(uint axisMask)
 	}
 }
 
-bool IControlPad::isSupportedClass(const uchar devClass[3])
+bool IControlPad::isSupportedClass(const uint8_t devClass[3])
 {
 	return IG::equal_n(devClass, 3, btClass);
 }

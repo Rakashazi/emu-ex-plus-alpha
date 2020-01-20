@@ -29,18 +29,18 @@ class GraphicBuffer : public android_native_buffer_t
 public:
 	GraphicBuffer();
 	~GraphicBuffer();
-	bool reallocate(uint w, uint h, uint format, uint usage);
-	bool lock(uint usage, void **vaddr);
-	bool lock(uint usage, IG::WindowRect rect, void **vaddr);
+	bool reallocate(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
+	bool lock(uint32_t usage, void **vaddr);
+	bool lock(uint32_t usage, IG::WindowRect rect, void **vaddr);
 	void unlock();
-	uint getWidth();
-	uint getHeight();
-	uint getStride();
+	uint32_t getWidth();
+	uint32_t getHeight();
+	uint32_t getStride();
 	android_native_buffer_t *getNativeBuffer();
 	static bool hasBufferMapper();
 
 private:
-	bool initSize(uint w, uint h, uint format, uint usage);
+	bool initSize(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
 };
 
 }

@@ -26,7 +26,7 @@ namespace Base
 
 using AndroidPropString = std::array<char, 92>;
 
-uint androidSDK();
+uint32_t androidSDK();
 void setProcessPriority(int nice);
 int processPriority();
 bool apkSignatureIsConsistent();
@@ -41,7 +41,7 @@ void setSustainedPerformanceMode(bool on);
 namespace AudioManager
 {
 
-uint nativeOutputFramesPerBuffer();
+uint32_t nativeOutputFramesPerBuffer();
 bool hasLowLatency();
 
 }

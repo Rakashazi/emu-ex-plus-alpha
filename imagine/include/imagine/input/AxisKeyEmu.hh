@@ -64,7 +64,7 @@ struct AxisKeyEmu
 		return keys;
 	}
 
-	bool dispatch(Range pos, uint id, uint map, Time time, const Device &dev, Base::Window &win)
+	bool dispatch(Range pos, uint32_t id, uint32_t map, Time time, const Device &dev, Base::Window &win)
 	{
 		auto updateKeys = update(pos);
 		if(!updateKeys.updated)

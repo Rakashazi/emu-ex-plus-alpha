@@ -77,7 +77,7 @@ void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
 	#endif
 }
 
-bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
+bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
 	assert(info);
 	if(Config::DEBUG_BUILD)
@@ -94,10 +94,10 @@ bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, u
 	return true;
 }
 
-void FDEventSource::modifyEvents(uint events)
+void FDEventSource::modifyEvents(uint32_t events)
 {
 	assert(info);
-	uint disableEvents = ~events & 0x3;
+	uint32_t disableEvents = ~events & 0x3;
 	if(disableEvents)
 		CFFileDescriptorDisableCallBacks(info->fdRef, disableEvents);
 	if(events)

@@ -38,7 +38,7 @@ protected:
 	FT_Bitmap bitmap{};
 };
 
-static constexpr uint MAX_FREETYPE_SLOTS = Config::envIsLinux ? 4 : 2;
+static constexpr uint32_t MAX_FREETYPE_SLOTS = Config::envIsLinux ? 4 : 2;
 class FontSizeData
 {
 public:

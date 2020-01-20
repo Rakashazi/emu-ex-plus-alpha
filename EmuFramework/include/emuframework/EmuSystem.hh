@@ -18,10 +18,8 @@
 #include <imagine/io/IO.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/gui/View.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
 #include <optional>

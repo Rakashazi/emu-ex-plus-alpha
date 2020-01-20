@@ -10,8 +10,8 @@ bool scanForDevices(BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate on
 bool listenForDevices(BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus);
 void closeDevices(BluetoothAdapter *bta);
 void closeBT(BluetoothAdapter *&bta);
-uint devsConnected();
-uint pendingDevs();
+uint32_t devsConnected();
+uint32_t pendingDevs();
 void connectPendingDevs(BluetoothAdapter *bta);
 
 }

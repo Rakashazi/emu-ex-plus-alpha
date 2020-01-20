@@ -50,7 +50,7 @@ GenericIO PosixIO::makeGeneric()
 	return GenericIO{*this};
 }
 
-std::error_code PosixIO::open(const char *path, uint mode)
+std::error_code PosixIO::open(const char *path, uint32_t mode)
 {
 	close();
 

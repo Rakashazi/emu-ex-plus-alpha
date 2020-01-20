@@ -27,12 +27,12 @@ static jclass jBitmapFactory{};
 static JavaClassMethod<jobject(jstring)> jDecodeFile{};
 static JavaInstMethod<jobject(jstring)> jDecodeAsset{};
 
-uint BitmapFactoryImage::width()
+uint32_t BitmapFactoryImage::width()
 {
 	return info.width;
 }
 
-uint BitmapFactoryImage::height()
+uint32_t BitmapFactoryImage::height()
 {
 	return info.height;
 }

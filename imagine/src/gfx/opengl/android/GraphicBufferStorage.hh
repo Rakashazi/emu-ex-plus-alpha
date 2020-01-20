@@ -28,8 +28,8 @@ struct GraphicBufferStorage: public DirectTextureStorage
 {
 	Base::GraphicBuffer gBuff{};
 	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
-	uint bpp = 0;
-	uint pitch = 0;
+	uint32_t pitch = 0;
+	uint8_t bpp = 0;
 	static bool testPassed;
 
 	GraphicBufferStorage() {}

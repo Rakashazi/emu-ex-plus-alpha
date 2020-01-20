@@ -15,21 +15,21 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/ansiTypes.h>
 #include "containerUtils.hh"
 #include <assert.h>
+#include <cstddef>
 #include <iterator>
 #include <algorithm>
 #include <cstring>
 
-template <class T, uint SIZE>
+template <class T, size_t SIZE>
 struct StaticStorageBase
 {
 	constexpr StaticStorageBase() {}
 	T arr[SIZE]{};
 	T *storage() { return arr; }
 	const T *storage() const { return arr; }
-	constexpr uint maxSize() const { return SIZE; }
+	constexpr size_t maxSize() const { return SIZE; }
 };
 
 template <class T>
@@ -40,16 +40,16 @@ struct PointerStorageBase
 	T *storage() { return arr; }
 	const T *storage() const { return arr; }
 
-	uint size = 0;
-	void setStorage(T *s, uint size) { arr = s; this->size = size;}
-	uint maxSize() const { return size; }
+	size_t size = 0;
+	void setStorage(T *s, size_t size) { arr = s; this->size = size;}
+	size_t maxSize() const { return size; }
 };
 
 template<class T, class STORAGE_BASE>
 class ArrayListBase : public STORAGE_BASE
 {
 private:
-	uint size_ = 0;
+	size_t size_ = 0;
 
 public:
 	using STORAGE_BASE::storage;
@@ -81,12 +81,12 @@ public:
 	const_reverse_iterator crend() const { return rend(); }
 
 	// Capacity (STL API)
-	uint size() const { return size_; }
+	size_t size() const { return size_; }
 	bool empty() const { return !size(); };
-	uint capacity() const { return STORAGE_BASE::maxSize(); }
-	uint max_size() const { return STORAGE_BASE::maxSize(); }
+	size_t capacity() const { return STORAGE_BASE::maxSize(); }
+	size_t max_size() const { return STORAGE_BASE::maxSize(); }
 
-	void resize(uint size)
+	void resize(size_t size)
 	{
 		assert(size <= max_size());
 		size_= size;
@@ -98,7 +98,7 @@ public:
 		return !freeSpace();
 	}
 
-	uint freeSpace() const
+	size_t freeSpace() const
 	{
 		return capacity() - size();
 	}
@@ -107,7 +107,7 @@ public:
 	T &front() { return at(0);	}
 	T &back() { return at(size()-1);	}
 
-	T &at(uint idx)
+	T &at(size_t idx)
 	{
 		assert(idx < size());
 		return (*this)[idx];
@@ -183,5 +183,5 @@ public:
 };
 
 
-template<class T, uint SIZE>
+template<class T, size_t SIZE>
 using StaticArrayList = ArrayListBase<T, StaticStorageBase<T, SIZE> >;

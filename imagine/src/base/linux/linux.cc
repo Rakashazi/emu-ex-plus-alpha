@@ -34,7 +34,7 @@ static FS::PathString appPath{};
 
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 
-uint appActivityState() { return APP_RUNNING; }
+uint32_t appActivityState() { return APP_RUNNING; }
 
 static void cleanup()
 {
@@ -158,9 +158,9 @@ void setDeviceOrientationChangeSensor(bool on) {}
 
 void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del) {}
 
-void setSystemOrientation(uint o) {}
+void setSystemOrientation(Orientation o) {}
 
-uint defaultSystemOrientations()
+Orientation defaultSystemOrientations()
 {
 	return VIEW_ROTATE_ALL;
 }
@@ -193,7 +193,7 @@ void addLauncherIcon(const char *name, const char *path) {}
 
 bool hasVibrator() { return false; }
 
-void vibrate(uint ms) {}
+void vibrate(uint32_t ms) {}
 
 void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 {

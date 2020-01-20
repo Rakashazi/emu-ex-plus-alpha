@@ -16,6 +16,7 @@
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/gui/AlertView.hh>
 #include "internal.hh"

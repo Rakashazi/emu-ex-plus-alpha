@@ -18,6 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <dlfcn.h>
 #import <OpenGLES/ES2/gl.h> // for GL_RENDERBUFFER, same values in ES1/ES2
 #include <imagine/base/GLContext.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
 
@@ -125,7 +126,7 @@ bool GLContext::isCurrentDrawable(GLDisplay display, GLDrawable drawable)
 
 // GLContext
 
-static EAGLRenderingAPI majorVersionToAPI(uint version)
+static EAGLRenderingAPI majorVersionToAPI(uint32_t version)
 {
 	switch(version)
 	{

@@ -34,20 +34,20 @@ public:
 	operator IO*(){ return &io(); }
 	operator IO&(){ return io(); }
 	GenericIO makeGeneric();
-	std::error_code open(const char *path, IO::AccessHint access, uint mode = 0);
+	std::error_code open(const char *path, IO::AccessHint access, uint32_t mode = 0);
 
-	std::error_code open(FS::PathString path, IO::AccessHint access, uint mode = 0)
+	std::error_code open(FS::PathString path, IO::AccessHint access, uint32_t mode = 0)
 	{
 		return open(path.data(), access, mode);
 	}
 
-	std::error_code create(const char *path, uint mode = 0)
+	std::error_code create(const char *path, uint32_t mode = 0)
 	{
 		mode |= IO::OPEN_WRITE | IO::OPEN_CREATE;
 		return open(path, IO::AccessHint::NORMAL, mode);
 	}
 
-	std::error_code create(FS::PathString path, uint mode = 0)
+	std::error_code create(FS::PathString path, uint32_t mode = 0)
 	{
 		return create(path.data(), mode);
 	}

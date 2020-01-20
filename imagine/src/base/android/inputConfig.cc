@@ -44,7 +44,7 @@ static int aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS;
 static int aHasHardKeyboard = 0;
 static bool trackballNav = false;
 bool sendInputToIME = false;
-static constexpr uint maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
+static constexpr uint32_t maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
 std::vector<std::unique_ptr<AndroidInputDevice>> sysInputDev{};
 static const AndroidInputDevice *builtinKeyboardDev{};
 const AndroidInputDevice *virtualDev{};
@@ -189,7 +189,7 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	return "Unknown";
 }
 
-AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
+AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId,
 	int osId, int src, const char *name, int kbType, int jsAxisBits, bool isPowerButton):
 	Device{enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEY_MISC, name},
 	osId{osId}
@@ -286,11 +286,11 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
 		axisBits = jsAxisBits;
 		// check joystick axes
 		{
-			const uint8 stickAxes[]{AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
+			constexpr uint8 stickAxes[]{AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
 					AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL};
-			const uint stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
+			constexpr uint32_t stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
 					AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL};
-			uint axisIdx = 0;
+			uint32_t axisIdx = 0;
 			for(auto axisId : stickAxes)
 			{
 				bool hasAxis = jsAxisBits & stickAxesBits[axisIdx];
@@ -315,8 +315,8 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
 		if(!axis.isFull())
 		{
 			const uint8 triggerAxes[]{AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE};
-			const uint triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
-			uint axisIdx = 0;
+			const uint32_t triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
+			uint32_t axisIdx = 0;
 			for(auto axisId : triggerAxes)
 			{
 				bool hasAxis = jsAxisBits & triggerAxesBits[axisIdx];
@@ -341,7 +341,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId,
 	}
 }
 
-void AndroidInputDevice::setJoystickAxisAsDpadBits(uint axisMask)
+void AndroidInputDevice::setJoystickAxisAsDpadBits(uint32_t axisMask)
 {
 	if(Base::androidSDK() >= 12 && joystickAxisAsDpadBits_ != axisMask)
 	{
@@ -398,12 +398,12 @@ void AndroidInputDevice::setJoystickAxisAsDpadBits(uint axisMask)
 	}
 }
 
-uint AndroidInputDevice::joystickAxisAsDpadBits()
+uint32_t AndroidInputDevice::joystickAxisAsDpadBits()
 {
 	return joystickAxisAsDpadBits_;
 }
 
-bool Device::anyTypeBitsPresent(uint typeBits)
+bool Device::anyTypeBitsPresent(uint32_t typeBits)
 {
 	if(typeBits & TYPE_BIT_KEYBOARD)
 	{
@@ -442,9 +442,9 @@ bool Device::anyTypeBitsPresent(uint typeBits)
 	return false;
 }
 
-static uint nextEnumID(const char *name)
+static uint32_t nextEnumID(const char *name)
 {
-	uint enumID = 0;
+	uint32_t enumID = 0;
 	// find the next available ID number for devices with this name, starting from 0
 	for(auto &e : sysInputDev)
 	{

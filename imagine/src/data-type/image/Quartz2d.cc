@@ -24,12 +24,12 @@
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
 
-uint Quartz2dImage::width()
+uint32_t Quartz2dImage::width()
 {
 	return CGImageGetWidth(img);
 }
 
-uint Quartz2dImage::height()
+uint32_t Quartz2dImage::height()
 {
 	return CGImageGetHeight(img);
 }

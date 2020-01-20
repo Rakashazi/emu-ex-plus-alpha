@@ -23,7 +23,7 @@
 namespace Input
 {
 
-template <class T, uint D>
+template <class T, uint32_t D>
 class IntegratingVelocityTracker
 {
 public:
@@ -69,7 +69,7 @@ public:
 		}
 	}
 
-	T velocity(uint idx) const { return vel[idx]; }
+	T velocity(uint32_t idx) const { return vel[idx]; }
 
 protected:
 	IG::Time updateTime{};
@@ -78,7 +78,7 @@ protected:
 	uint8 degree{};
 };
 
-template <class T, uint D>
+template <class T, uint32_t D>
 using VelocityTracker = IntegratingVelocityTracker<T, D>;
 
 }

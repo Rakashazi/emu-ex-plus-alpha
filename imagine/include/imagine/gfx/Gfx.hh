@@ -23,7 +23,7 @@
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <array>
 
@@ -212,8 +212,8 @@ public:
 
 	void setBlend(bool on);
 	void setBlendFunc(BlendFunc s, BlendFunc d);
-	void setBlendMode(uint mode);
-	void setBlendEquation(uint mode);
+	void setBlendMode(uint32_t mode);
+	void setBlendEquation(uint32_t mode);
 	void setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a);
 	void setZTest(bool on);
 	void setZBlend(bool on);
@@ -230,10 +230,10 @@ public:
 		}
 	}
 	std::array<ColorComp, 4> color() const;
-	void setImgMode(uint mode);
+	void setImgMode(uint32_t mode);
 	void setDither(bool on);
 	bool dither();
-	void setVisibleGeomFace(uint sides);
+	void setVisibleGeomFace(uint32_t sides);
 	void setClipTest(bool on);
 	void setClipRect(ClipRect b);
 	void setTexture(Texture &t);
@@ -241,7 +241,7 @@ public:
 	void setCommonTextureSampler(CommonTextureSampler sampler);
 	void setViewport(Viewport v);
 	Viewport viewport();
-	void vertexBufferData(const void *v, uint size);
+	void vertexBufferData(const void *v, uint32_t size);
 	void bindTempVertexBuffer();
 
 	// transforms
@@ -270,8 +270,8 @@ public:
 	// rendering
 
 	void clear();
-	void drawPrimitives(Primitive mode, uint start, uint count);
-	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count);
+	void drawPrimitives(Primitive mode, uint32_t start, uint32_t count);
+	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint32_t count);
 
 private:
 	RendererDrawTask *rTask;
@@ -321,17 +321,17 @@ public:
 	bool supportsThreadMode() const;
 	void flush();
 	void initWindow(Base::Window &win, Base::WindowConfig config);
-	void setWindowValidOrientations(Base::Window &win, uint validO);
+	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
 	void setProjectionMatrixRotation(Angle angle);
 	void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
 	static ClipRect makeClipRect(const Base::Window &win, IG::WindowRect rect);
 
 	// shaders
 
-	Shader makeShader(const char **src, uint srcCount, uint type);
-	Shader makeShader(const char *src, uint type);
-	Shader makeCompatShader(const char **src, uint srcCount, uint type);
-	Shader makeCompatShader(const char *src, uint type);
+	Shader makeShader(const char **src, uint32_t srcCount, uint32_t type);
+	Shader makeShader(const char *src, uint32_t type);
+	Shader makeCompatShader(const char **src, uint32_t srcCount, uint32_t type);
+	Shader makeCompatShader(const char *src, uint32_t type);
 	Shader makeDefaultVShader();
 	void deleteShader(Shader shader);
 	void uniformF(Program &program, int uniformLocation, float v1, float v2);

@@ -16,13 +16,12 @@
 #define LOGTAG "OpenSL"
 #include <imagine/audio/opensl/OpenSLESOutputStream.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/math/int.hh>
 #include "../../base/android/android.hh"
 
 namespace Audio
 {
 
-static uint defaultFramesPerBuffer()
+static uint32_t defaultFramesPerBuffer()
 {
 	if(AudioManager::nativeOutputFramesPerBuffer())
 		return AudioManager::nativeOutputFramesPerBuffer();
@@ -65,7 +64,7 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	onSamplesNeeded = config.onSamplesNeeded();
 	// must create queue with 2 buffers on Android <= 4.2
 	// to get low-latency path, even though we only queue 1
-	uint outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
+	uint32_t outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
 	bufferBytes = format.framesToBytes(defaultFramesPerBuffer());
 	buffer = new char[bufferBytes];
 	logMsg("creating playback %dHz, %d channels, %u byte buffer", format.rate, format.channels, bufferBytes);
@@ -86,7 +85,7 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, std::size(ids), ids, req);
 	if(result != SL_RESULT_SUCCESS)
 	{
-		logErr("CreateAudioPlayer returned 0x%X", (uint)result);
+		logErr("CreateAudioPlayer returned 0x%X", (uint32_t)result);
 		player = nullptr;
 		return {EINVAL, std::system_category()};
 	}
@@ -126,7 +125,7 @@ void OpenSLESOutputStream::play()
 	}
 	else
 	{
-		logErr("SetPlayState(SL_PLAYSTATE_PLAYING) returned 0x%X", (uint)result);
+		logErr("SetPlayState(SL_PLAYSTATE_PLAYING) returned 0x%X", (uint32_t)result);
 	}
 }
 
@@ -138,7 +137,7 @@ void OpenSLESOutputStream::pause()
 	if(SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
 		result != SL_RESULT_SUCCESS)
 	{
-		logWarn("SetPlayState(SL_PLAYSTATE_PAUSED) returned 0x%X", (uint)result);
+		logWarn("SetPlayState(SL_PLAYSTATE_PAUSED) returned 0x%X", (uint32_t)result);
 	}
 	isPlaying_ = 0;
 }
@@ -169,7 +168,7 @@ void OpenSLESOutputStream::flush()
 	if(SLresult result = (*slBuffQI)->Clear(slBuffQI);
 		result != SL_RESULT_SUCCESS)
 	{
-		logWarn("Clear returned 0x%X", (uint)result);
+		logWarn("Clear returned 0x%X", (uint32_t)result);
 	}
 	bufferQueued = false;
 }
@@ -195,7 +194,7 @@ void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue)
 	if(SLresult result = (*queue)->Enqueue(queue, buffer, bufferBytes);
 			result != SL_RESULT_SUCCESS)
 		{
-			logWarn("Enqueue returned 0x%X", (uint)result);
+			logWarn("Enqueue returned 0x%X", (uint32_t)result);
 		}
 }
 

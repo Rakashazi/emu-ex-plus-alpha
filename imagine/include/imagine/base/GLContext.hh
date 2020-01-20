@@ -78,30 +78,30 @@ public:
 class GLContextAttributes
 {
 private:
-	uint majorVer = 1;
-	uint minorVer = 0;
+	uint32_t majorVer = 1;
+	uint32_t minorVer = 0;
 	bool glesAPI = false;
 	bool debug_ = false;
 
 public:
-	void setMajorVersion(uint majorVer)
+	void setMajorVersion(uint32_t majorVer)
 	{
 		if(!majorVer)
 			majorVer = 1;
 		this->majorVer = majorVer;
 	}
 
-	uint majorVersion() const
+	uint32_t majorVersion() const
 	{
 		return majorVer;
 	}
 
-	void setMinorVersion(uint minorVer)
+	void setMinorVersion(uint32_t minorVer)
 	{
 		this->minorVer = minorVer;
 	}
 
-	uint minorVersion() const
+	uint32_t minorVersion() const
 	{
 		return minorVer;
 	}

@@ -101,7 +101,7 @@ bool hasVibrator()
 	return vibrator;
 }
 
-void vibrate(uint ms)
+void vibrate(uint32_t ms)
 {
 	if(Config::MACHINE_IS_OUYA)
 		return;

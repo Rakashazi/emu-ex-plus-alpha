@@ -15,6 +15,9 @@
 
 #define LOGTAG "GLShader"
 #include <imagine/gfx/Gfx.hh>
+#if __ANDROID__
+#include <imagine/base/android/android.hh>
+#endif
 #include "private.hh"
 
 namespace Gfx
@@ -286,7 +289,7 @@ void GLRenderer::setProgram(GLSLProgram &program)
 	setGLProgram(p);
 }
 
-Shader Renderer::makeShader(const char **src, uint srcCount, uint type)
+Shader Renderer::makeShader(const char **src, uint32_t srcCount, uint32_t type)
 {
 	GLuint shader;
 	runGLTaskSync(
@@ -325,15 +328,15 @@ Shader Renderer::makeShader(const char **src, uint srcCount, uint type)
 	return shader;
 }
 
-Shader Renderer::makeShader(const char *src, uint type)
+Shader Renderer::makeShader(const char *src, uint32_t type)
 {
 	const char *singleSrc[]{src};
 	return makeShader(singleSrc, 1, type);
 }
 
-Shader Renderer::makeCompatShader(const char **mainSrc, uint mainSrcCount, uint type)
+Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, uint32_t type)
 {
-	const uint srcCount = mainSrcCount + 2;
+	const uint32_t srcCount = mainSrcCount + 2;
 	const char *src[srcCount];
 	const char *version = Config::Gfx::OPENGL_ES ? "#version 300 es\n" : "#version 330\n";
 	const char legacyVertDefs[] // for GL ES 2.0
@@ -362,7 +365,7 @@ Shader Renderer::makeCompatShader(const char **mainSrc, uint mainSrcCount, uint 
 	return makeShader(src, srcCount, type);
 }
 
-Shader Renderer::makeCompatShader(const char *src, uint type)
+Shader Renderer::makeCompatShader(const char *src, uint32_t type)
 {
 	const char *singleSrc[]{src};
 	return makeCompatShader(singleSrc, 1, type);
@@ -377,7 +380,7 @@ Shader Renderer::makeDefaultVShader()
 
 void Renderer::deleteShader(Shader shader)
 {
-	logMsg("deleting shader:%u", (uint)shader);
+	logMsg("deleting shader:%u", (uint32_t)shader);
 	assert(shader != defaultVShader);
 	runGLTask(
 		[shader]()
@@ -402,7 +405,7 @@ void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v
 }
 
 template <class T>
-static bool compileDefaultProgram(Renderer &r, T &prog, const char **fragSrc, uint fragSrcCount)
+static bool compileDefaultProgram(Renderer &r, T &prog, const char **fragSrc, uint32_t fragSrcCount)
 {
 	assert(fragSrc);
 	auto vShader = r.makeDefaultVShader();

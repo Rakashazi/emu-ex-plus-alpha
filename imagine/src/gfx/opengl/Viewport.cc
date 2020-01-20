@@ -70,6 +70,11 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect 
 	return v;
 }
 
+Viewport Viewport::makeFromWindow(const Base::Window &win)
+{
+	return makeFromWindow(win, win.contentBounds());
+}
+
 IG::Point2D<int> Viewport::sizesWithRatioBestFitFromViewport(float destAspectRatio) const
 {
 	return IG::sizesWithRatioBestFit(destAspectRatio, (int)width(), (int)height());

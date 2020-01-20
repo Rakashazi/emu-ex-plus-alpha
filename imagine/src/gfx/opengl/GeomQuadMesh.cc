@@ -14,14 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GeomQuadMesh.hh>
-#include <imagine/mem/mem.h>
 #include <imagine/util/math/space.hh>
 #include "private.hh"
 
 namespace Gfx
 {
 
-GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint xVals, const VertexPos *y, uint yVals, VertexColor color)
+GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *y, uint32_t yVals, VertexColor color)
 {
 	if(xVals < 2 || yVals < 2)
 		return;
@@ -76,7 +75,7 @@ void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 {
 	iterateTimes(verts, i)
 	{
-		v()[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v()[i].color));
+		v()[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(v()[i].color));
 	}
 }
 
@@ -84,24 +83,24 @@ void GeomQuadMesh::setColorTranslucent(ColorComp a)
 {
 	iterateTimes(verts, i)
 	{
-		v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint)a);
+		v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint32_t)a);
 	}
 }
 
-void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint i)
+void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint32_t i)
 {
-	v()[i].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, VertexColorPixelFormat.a(v()[i].color));
+	v()[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(v()[i].color));
 }
 
-void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint i)
+void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint32_t i)
 {
 	// swap for tri strip
-	v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint)a);
+	v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint32_t)a);
 }
 
 void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)
 {
-	uint yVals = verts/xVals;
+	uint32_t yVals = verts/xVals;
 	ColVertex *currV = v();
 	iterateTimes(yVals, yIdx)
 		iterateTimes(xVals, xIdx)

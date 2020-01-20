@@ -117,7 +117,7 @@ void Screen::deinit()
 	*this = {};
 }
 
-void Screen::setFrameInterval(uint interval)
+void Screen::setFrameInterval(int interval)
 {
 	logMsg("setting display interval %d", (int)interval);
 	assert(interval >= 1);

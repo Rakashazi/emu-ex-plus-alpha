@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/gfx/GeomRect.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/gui/View.hh>
 #include <cstdio>
@@ -52,6 +51,6 @@ public:
 	bool inputEvent(Input::Event event) final { return false; }
 
 	[[gnu::format(printf, 4, 5)]]
-	void printf(uint secs, bool error, const char *format, ...);
-	void vprintf(uint secs, bool error, const char *format, va_list args);
+	void printf(uint32_t secs, bool error, const char *format, ...);
+	void vprintf(uint32_t secs, bool error, const char *format, va_list args);
 };

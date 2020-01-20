@@ -131,7 +131,7 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r, IG::Windo
 		logErr("ANativeWindow_lock failed");
 		return {};
 	}
-	Buffer buff{winBuffer.bits, winBuffer.stride * bpp};
+	Buffer buff{winBuffer.bits, (uint32_t)winBuffer.stride * bpp};
 	//logMsg("locked buffer %p with pitch %d", buff.data, buff.pitch);
 	if(dirtyRect)
 	{

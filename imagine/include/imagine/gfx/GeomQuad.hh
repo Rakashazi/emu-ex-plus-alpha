@@ -85,9 +85,9 @@ class ColQuad : public QuadGeneric<ColVertex>
 {
 public:
 	constexpr ColQuad() { }
-	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges = EDGE_AI);
-	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges = EDGE_AI);
-	void setColorAlpha(ColorComp a, uint edges = EDGE_AI);
+	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges = EDGE_AI);
+	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges = EDGE_AI);
+	void setColorAlpha(ColorComp a, uint32_t edges = EDGE_AI);
 };
 
 class ColTexQuad : public QuadGeneric<ColTexVertex>
@@ -95,9 +95,9 @@ class ColTexQuad : public QuadGeneric<ColTexVertex>
 public:
 	constexpr ColTexQuad() { }
 	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
-	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges = EDGE_AI);
-	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges = EDGE_AI);
-	void setColorAlpha(ColorComp a, uint edges = EDGE_AI);
+	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges = EDGE_AI);
+	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges = EDGE_AI);
+	void setColorAlpha(ColorComp a, uint32_t edges = EDGE_AI);
 };
 
 std::array<Vertex, 4> makeVertArray(GCRect pos);
@@ -105,7 +105,7 @@ std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);
 std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx);
 
 template<class Vtx>
-static void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint quads, std::array<VertexIndex, 6> *quadIdx, uint quadIdxs)
+static void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs)
 {
 	cmds.bindTempVertexBuffer();
 	cmds.vertexBufferData(quad[0].data(), sizeof(quad[0]) * quads);

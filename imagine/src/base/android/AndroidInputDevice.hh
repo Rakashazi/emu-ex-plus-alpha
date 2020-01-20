@@ -41,11 +41,11 @@ class AndroidInputDevice : public Input::Device
 {
 public:
 	int osId = 0;
-	uint joystickAxisAsDpadBits_ = 0, joystickAxisAsDpadBitsDefault_ = 0;
-	uint axisBits = 0;
+	uint32_t joystickAxisAsDpadBits_ = 0, joystickAxisAsDpadBitsDefault_ = 0;
+	uint32_t axisBits = 0;
 	bool iCadeMode_ = false;
-	//static constexpr uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
-	static constexpr uint MAX_AXES = 10;
+	//static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
+	static constexpr uint32_t MAX_AXES = 10;
 	//static_assert(MAX_STICK_AXES <= MAX_AXES, "MAX_AXES must be large enough to hold MAX_STICK_AXES");
 
 	struct Axis
@@ -57,12 +57,12 @@ public:
 	};
 	StaticArrayList<Axis, MAX_AXES> axis;
 
-	AndroidInputDevice(int osId, uint typeBits, const char *name):
+	AndroidInputDevice(int osId, uint32_t typeBits, const char *name):
 		Device{0, Event::MAP_SYSTEM, typeBits, name},
 		osId{osId}
 	{}
 
-	AndroidInputDevice(JNIEnv* env, jobject aDev, uint enumId, int osId, int src,
+	AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId, int osId, int src,
 		const char *name, int kbType, int axisBits, bool isPowerButton);
 
 	bool operator ==(AndroidInputDevice const& rhs) const
@@ -72,10 +72,10 @@ public:
 
 	void setTypeBits(int bits) { type_ = bits; }
 
-	void setJoystickAxisAsDpadBits(uint axisMask) final;
-	uint joystickAxisAsDpadBits() final;
-	uint joystickAxisAsDpadBitsDefault() final { return joystickAxisAsDpadBitsDefault_; };
-	uint joystickAxisBits() final { return axisBits; };
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
+	uint32_t joystickAxisAsDpadBits() final;
+	uint32_t joystickAxisAsDpadBitsDefault() final { return joystickAxisAsDpadBitsDefault_; };
+	uint32_t joystickAxisBits() final { return axisBits; };
 
 	void setICadeMode(bool on) final
 	{

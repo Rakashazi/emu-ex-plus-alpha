@@ -22,6 +22,7 @@
 #include <imagine/util/bits.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
+#include <imagine/util/container/containerUtils.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
@@ -32,7 +33,7 @@
 #include <vector>
 
 #define DEV_NODE_PATH "/dev/input"
-static const uint MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
+static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
 
 static constexpr uint64_t NSEC_PER_USEC = 1000;
 static constexpr uint64_t USEC_PER_MSEC = 1000;
@@ -105,7 +106,7 @@ static Key toSysKey(Key key)
 	#undef EVDEV_TO_SYSKEY_CASE
 }
 
-/*static uint absAxisToKeycode(int axis)
+/*static uint32_t absAxisToKeycode(int axis)
 {
 	switch(axis)
 	{
@@ -122,7 +123,7 @@ static void removeFromSystem(int fd);
 struct EvdevInputDevice : public Device
 {
 	EvdevInputDevice() {}
-	EvdevInputDevice(int id, int fd, uint type, const char *name):
+	EvdevInputDevice(int id, int fd, uint32_t type, const char *name):
 		Device{0, Event::MAP_SYSTEM, type, name},
 		id{id}, fd{fd}
 	{}
@@ -137,7 +138,7 @@ struct EvdevInputDevice : public Device
 
 	void setEnumId(int id) { devId = id; }
 
-	void processInputEvents(input_event *event, uint events)
+	void processInputEvents(input_event *event, uint32_t events)
 	{
 		iterateTimes(events, i)
 		{
@@ -185,7 +186,7 @@ struct EvdevInputDevice : public Device
 
 		// check joystick axes
 		{
-			uint keycodeIdx = 0;
+			uint32_t keycodeIdx = 0;
 			Key axisKeycode[] =
 			{
 				Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS,
@@ -255,7 +256,7 @@ struct EvdevInputDevice : public Device
 					int len;
 					while((len = read(fd, event, sizeof event)) > 0)
 					{
-						uint events = len / sizeof(struct input_event);
+						uint32_t events = len / sizeof(struct input_event);
 						//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
 						processInputEvents(event, events);
 					}
@@ -278,7 +279,7 @@ struct EvdevInputDevice : public Device
 		onDeviceChange.callCopySafe(*this, { Device::Change::REMOVED });
 	}
 
-	void setJoystickAxisAsDpadBits(uint axisMask) final
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final
 	{
 		Key jsKey[4] {Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS};
 		Key dpadKey[4] {Keycode::LEFT, Keycode::RIGHT, Keycode::UP, Keycode::DOWN};
@@ -289,7 +290,7 @@ struct EvdevInputDevice : public Device
 		axis[ABS_Y].keyEmu.highKey = axis[ABS_Y].keyEmu.highSysKey = setKey[3];
 	}
 
-	uint joystickAxisAsDpadBits() final
+	uint32_t joystickAxisAsDpadBits() final
 	{
 		return axis[ABS_X].keyEmu.lowKey == Keycode::LEFT;
 	}
@@ -322,7 +323,7 @@ static bool devIsGamepad(int fd)
 	}
 
 	bool isGamepad = false;
-	for(uint i = BTN_JOYSTICK; i < BTN_DIGI; i++)
+	for(uint32_t i = BTN_JOYSTICK; i < BTN_DIGI; i++)
 	{
 		if(Bits::isSetInArray(keyBit, i))
 		{
@@ -379,7 +380,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	fd_setNonblock(fd, 1);
 	evDev->addPollEvent();
 
-	uint devId = 0;
+	uint32_t devId = 0;
 	for(auto &e : devList)
 	{
 		if(e->map() != Event::MAP_SYSTEM)
@@ -388,7 +389,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 			devId++;
 	}
 	evDev->setEnumId(devId);
-	uint type = Device::TYPE_BIT_GAMEPAD;// | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
+	uint32_t type = Device::TYPE_BIT_GAMEPAD;// | (isJoystick ? Device::TYPE_BIT_JOYSTICK : 0);
 	addDevice(*evDev);
 	if(notify)
 		onDeviceChange.callCopySafe(*evDev, { Device::Change::ADDED });
@@ -396,7 +397,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	return true;
 }
 
-static bool processDevNodeName(const char *name, FS::PathString &path, uint &id)
+static bool processDevNodeName(const char *name, FS::PathString &path, uint32_t &id)
 {
 	// extract id number from "event*" name and get the full path
 	if(sscanf(name, "event%u", &id) != 1)
@@ -427,13 +428,13 @@ void initEvdev(Base::EventLoop loop)
 					{
 						//logMsg("read %d bytes from inotify fd %d", len, inputDevNotifyFd);
 						auto inotifyEv = (struct inotify_event*)&event[0];
-						uint inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
+						uint32_t inotifyEvSize = sizeof(struct inotify_event) + inotifyEv->len;
 						logMsg("inotify event @%p with size %u, mask 0x%X", inotifyEv, inotifyEvSize, inotifyEv->mask);
 						do
 						{
 							if(inotifyEv->len > 1)
 							{
-								uint id;
+								uint32_t id;
 								FS::PathString path;
 								if(processDevNodeName(inotifyEv->name, path, id))
 								{
@@ -465,7 +466,7 @@ void initEvdev(Base::EventLoop loop)
 		auto filename = entry.name();
 		if(entry.type() != FS::file_type::character || !strstr(filename, "event"))
 			continue;
-		uint id;
+		uint32_t id;
 		FS::PathString path;
 		if(!processDevNodeName(filename, path, id))
 			continue;

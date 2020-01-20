@@ -18,6 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
+#include <imagine/util/container/containerUtils.hh>
 #include "../input/private.hh"
 #include "private.hh"
 
@@ -25,7 +26,7 @@ using namespace IG;
 
 std::vector<PS3Controller*> PS3Controller::devList;
 
-static const uint CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_DIGITAL2 = 1;
+static constexpr uint32_t CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_DIGITAL2 = 1;
 
 // CELL_PAD_BTN_OFFSET_DIGITAL1
 #define CELL_PAD_CTRL_LEFT      (1 << 7)
@@ -126,7 +127,7 @@ CallResult PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSo
 			return dataHandler(packet, size);
 		};
 	ctlSock.onStatus() = intSock.onStatus() =
-		[this](BluetoothSocket &sock, uint status)
+		[this](BluetoothSocket &sock, uint32_t status)
 		{
 			return statusHandler(sock, status);
 		};
@@ -150,7 +151,7 @@ CallResult PS3Controller::open2Int(BluetoothAdapter &adapter, BluetoothPendingSo
 	return OK;
 }
 
-uint PS3Controller::statusHandler(BluetoothSocket &sock, uint status)
+uint32_t PS3Controller::statusHandler(BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&ctlSock)
 	{
@@ -205,7 +206,7 @@ void PS3Controller::removeFromSystem()
 
 bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 {
-	auto packet = (const uchar*)packetPtr;
+	auto packet = (const uint8_t*)packetPtr;
 	/*logMsg("data with size %d", (int)size);
 	iterateTimes(size, i)
 	{
@@ -225,7 +226,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 		bcase 0xA1:
 		{
 			auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
-			const uchar *digitalBtnData = &packet[3];
+			const uint8_t *digitalBtnData = &packet[3];
 			for(auto &e : padDataAccess)
 			{
 				int newState = e.updateState(prevData, digitalBtnData);
@@ -240,7 +241,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 			}
 			memcpy(prevData, digitalBtnData, sizeof(prevData));
 
-			const uchar *stickData = &packet[7];
+			const uint8_t *stickData = &packet[7];
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
@@ -253,14 +254,14 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-static const uint HIDP_TRANSACTION_SET_REPORT = 0x50;
-static const uint HIDP_DATA_HEADER_RTYPE_OUTPUT = 0x02;
-static const uint HIDP_DATA_HEADER_RTYPE_FEATURE = 0x03;
+static constexpr uint32_t HIDP_TRANSACTION_SET_REPORT = 0x50;
+static constexpr uint32_t HIDP_DATA_HEADER_RTYPE_OUTPUT = 0x02;
+static constexpr uint32_t HIDP_DATA_HEADER_RTYPE_FEATURE = 0x03;
 
 void PS3Controller::sendFeatureReport()
 {
 	logMsg("sending feature report");
-	const uchar featureReport[]
+	const uint8_t featureReport[]
 	{
 		HIDP_TRANSACTION_SET_REPORT | HIDP_DATA_HEADER_RTYPE_FEATURE,
 		0xf4, 0x42, 0x03, 0x00, 0x00
@@ -268,10 +269,10 @@ void PS3Controller::sendFeatureReport()
 	ctlSock.write(featureReport, sizeof(featureReport));
 }
 
-void PS3Controller::setLEDs(uint player)
+void PS3Controller::setLEDs(uint32_t player)
 {
 	logMsg("setting LEDs for player %d", player);
-	uchar setLEDs[] =
+	uint8_t setLEDs[] =
 	{
 		HIDP_TRANSACTION_SET_REPORT | HIDP_DATA_HEADER_RTYPE_OUTPUT,
 		0x01,
@@ -287,7 +288,7 @@ void PS3Controller::setLEDs(uint player)
 	ctlSock.write(setLEDs, sizeof(setLEDs));
 }
 
-uchar PS3Controller::playerLEDs(uint player)
+uint8_t PS3Controller::playerLEDs(uint32_t player)
 {
 	switch(player)
 	{
@@ -300,9 +301,9 @@ uchar PS3Controller::playerLEDs(uint player)
 	}
 }
 
-uint PS3Controller::findFreeDevId()
+uint32_t PS3Controller::findFreeDevId()
 {
-	uint id[5]{};
+	uint32_t id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
@@ -316,17 +317,17 @@ uint PS3Controller::findFreeDevId()
 	return 0;
 }
 
-uint PS3Controller::joystickAxisBits()
+uint32_t PS3Controller::joystickAxisBits()
 {
 	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
 }
 
-uint PS3Controller::joystickAxisAsDpadBitsDefault()
+uint32_t PS3Controller::joystickAxisAsDpadBitsDefault()
 {
 	return Device::AXIS_BITS_STICK_1;
 }
 
-void PS3Controller::setJoystickAxisAsDpadBits(uint axisMask)
+void PS3Controller::setJoystickAxisAsDpadBits(uint32_t axisMask)
 {
 	using namespace Input;
 	if(joystickAxisAsDpadBits_ == axisMask)

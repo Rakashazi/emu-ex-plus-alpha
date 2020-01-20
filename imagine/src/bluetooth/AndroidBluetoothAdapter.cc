@@ -85,7 +85,7 @@ static jboolean JNICALL scanDeviceClass(JNIEnv* env, jobject thiz, jint classInt
 	return defaultAndroidAdapter.handleScanClass(classInt);
 }
 
-bool AndroidBluetoothAdapter::handleScanClass(uint classInt)
+bool AndroidBluetoothAdapter::handleScanClass(uint32_t classInt)
 {
 	if(scanCancelled)
 	{
@@ -93,7 +93,7 @@ bool AndroidBluetoothAdapter::handleScanClass(uint classInt)
 		return 0;
 	}
 	logMsg("got class %X", classInt);
-	uchar classByte[3];
+	uint8_t classByte[3];
 	classByte[2] = classInt >> 16;
 	classByte[1] = (classInt >> 8) & 0xff;
 	classByte[0] = classInt & 0xff;
@@ -546,7 +546,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 	return -1;
 }
 
-CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel, bool l2cap)
+CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t channel, bool l2cap)
 {
 	ba2str(bdaddr, addrStr);
 	this->channel = channel;
@@ -594,13 +594,13 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint channel
 	return OK;
 }
 
-CallResult AndroidBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
+CallResult AndroidBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
 {
 	logMsg("opening RFCOMM channel %d", channel);
 	return openSocket(bdaddr, channel, 0);
 }
 
-CallResult AndroidBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
+CallResult AndroidBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
 {
 	logMsg("opening L2CAP psm %d", psm);
 	return openSocket(bdaddr, psm, 1);

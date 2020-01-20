@@ -18,6 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/base/Base.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"

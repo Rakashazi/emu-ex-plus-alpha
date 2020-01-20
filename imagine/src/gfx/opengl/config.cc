@@ -86,7 +86,7 @@ static constexpr int ON_EXIT_PRIORITY = 200;
 
 static constexpr bool CAN_USE_OPENGL_ES_3 = !Config::MACHINE_IS_PANDORA;
 
-Gfx::GC orientationToGC(uint o)
+Gfx::GC orientationToGC(Base::Orientation o)
 {
 	using namespace Base;
 	switch(o)
@@ -529,7 +529,7 @@ static int glVersionFromStr(const char *versionStr)
 	return 10 * major + minor;
 }
 
-static Base::GLContextAttributes makeGLContextAttributes(uint majorVersion, uint minorVersion)
+static Base::GLContextAttributes makeGLContextAttributes(uint32_t majorVersion, uint32_t minorVersion)
 {
 	Base::GLContextAttributes glAttr;
 	if(Config::DEBUG_BUILD)
@@ -894,7 +894,7 @@ void Renderer::initWindow(Base::Window &win, Base::WindowConfig config)
 	updateSensorStateForWindowOrientations(win);
 }
 
-void Renderer::setWindowValidOrientations(Base::Window &win, uint validO)
+void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation validO)
 {
 	if(win != Base::mainWindow())
 		return;

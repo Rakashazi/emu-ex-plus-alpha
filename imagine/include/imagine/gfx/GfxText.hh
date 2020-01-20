@@ -36,7 +36,7 @@ public:
 	struct LineInfo
 	{
 		GC size;
-		uint chars;
+		uint32_t chars;
 	};
 
 	GlyphTextureSet *face{};
@@ -46,9 +46,9 @@ public:
 	GC xSize = 0, ySize = 0;
 	GC maxLineSize = NO_MAX_LINE_SIZE;
 	const char *str{};
-	uint chars = 0;
-	ushort lines = 0;
-	ushort maxLines = NO_MAX_LINES;
+	uint32_t chars = 0;
+	uint16_t lines = 0;
+	uint16_t maxLines = NO_MAX_LINES;
 	LineInfo *lineInfo{};
 
 	constexpr Text() {}

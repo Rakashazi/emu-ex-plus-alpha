@@ -14,7 +14,7 @@ extern bool checkGLErrorsVerbose;
 static constexpr bool defaultToFullErrorChecks = true;
 static constexpr GLuint VATTR_POS = 0, VATTR_TEX_UV = 1, VATTR_COLOR = 2;
 
-Gfx::GC orientationToGC(uint o);
+Gfx::GC orientationToGC(Base::Orientation o);
 void setGLDebugOutput(DrawContextSupport &support, bool on);
 
 }

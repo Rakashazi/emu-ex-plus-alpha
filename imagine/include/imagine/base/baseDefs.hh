@@ -20,6 +20,61 @@
 #include <imagine/util/bits.h>
 #include <imagine/time/Time.hh>
 
+namespace Config
+{
+#if defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA
+#define CONFIG_BASE_SUPPORTS_VIBRATOR
+static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
+#else
+static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
+#endif
+
+#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE) || defined CONFIG_ENV_WEBOS
+#define CONFIG_BASE_CAN_BACKGROUND_APP
+static constexpr bool BASE_CAN_BACKGROUND_APP = true;
+#else
+static constexpr bool BASE_CAN_BACKGROUND_APP = false;
+#endif
+
+#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
+#define CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
+static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = true;
+#else
+static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = false;
+#endif
+
+#if (defined __ANDROID__ && !(defined __arm__ && __ARM_ARCH < 7)) || defined CONFIG_BASE_IOS
+#define CONFIG_BASE_MULTI_SCREEN
+#define CONFIG_BASE_SCREEN_HOTPLUG
+static constexpr bool BASE_MULTI_SCREEN = true;
+#else
+static constexpr bool BASE_MULTI_SCREEN = false;
+#endif
+
+#if defined CONFIG_BASE_IOS
+#define CONFIG_BASE_SCREEN_FRAME_INTERVAL
+#endif
+
+#if (defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA) || defined CONFIG_BASE_MULTI_SCREEN
+#define CONFIG_BASE_MULTI_WINDOW
+static constexpr bool BASE_MULTI_WINDOW = true;
+#else
+static constexpr bool BASE_MULTI_WINDOW = false;
+#endif
+
+#if defined CONFIG_BASE_IOS && defined __ARM_ARCH_6K__
+#define CONFIG_GFX_SOFT_ORIENTATION 1
+#elif !defined __ANDROID__ && !defined CONFIG_BASE_IOS
+#define CONFIG_GFX_SOFT_ORIENTATION 1
+#endif
+
+#if defined CONFIG_GFX_SOFT_ORIENTATION
+static constexpr bool SYSTEM_ROTATES_WINDOWS = false;
+#else
+static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
+#endif
+}
+
 namespace Base
 {
 using namespace IG;
@@ -102,16 +157,26 @@ static IG::Time frameTimeBaseToTime(FrameTimeBase time)
 FrameTimeBase timeSinceFrameTime(FrameTimeBase time);
 
 // orientation
-static constexpr uint VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
-static constexpr uint VIEW_ROTATE_AUTO = bit(5);
-static constexpr uint VIEW_ROTATE_ALL = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;
-static constexpr uint VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270;
+using Orientation = uint32_t;
+static constexpr Orientation VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
+static constexpr Orientation VIEW_ROTATE_AUTO = bit(5);
+static constexpr Orientation VIEW_ROTATE_ALL = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;
+static constexpr Orientation VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_270;
 
-const char *orientationToStr(uint o);
-bool orientationIsSideways(uint o);
-uint validateOrientationMask(uint oMask);
+const char *orientationToStr(Orientation o);
+bool orientationIsSideways(Orientation o);
+Orientation validateOrientationMask(Orientation oMask);
 
 #if defined CONFIG_BASE_X11 || defined __ANDROID__
 #define CONFIG_BASE_GLAPI_EGL
 #endif
+
+// App callback types
+
+using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
+using ResumeDelegate = DelegateFunc<bool (bool focused)>;
+using FreeCachesDelegate = DelegateFunc<void ()>;
+using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
+using DeviceOrientationChangedDelegate = DelegateFunc<void (Orientation newOrientation)>;
+using SystemOrientationChangedDelegate = DelegateFunc<void (Orientation oldOrientation, Orientation newOrientation)>;
 }

@@ -59,11 +59,11 @@ public:
 	static bool useScanCache;
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SCAN_SECS
-	static uint scanSecs;
+	static uint32_t scanSecs;
 	#endif
 	using OnStateChangeDelegate = DelegateFunc<void (BluetoothAdapter &bta, State newState)>;
-	using OnStatusDelegate = DelegateFunc<void (BluetoothAdapter &bta, uint statusCode, int arg)>;
-	using OnScanDeviceClassDelegate = DelegateFunc<bool (BluetoothAdapter &bta, const uchar devClass[3])>;
+	using OnStatusDelegate = DelegateFunc<void (BluetoothAdapter &bta, uint32_t statusCode, int arg)>;
+	using OnScanDeviceClassDelegate = DelegateFunc<bool (BluetoothAdapter &bta, const uint8_t devClass[3])>;
 	using OnScanDeviceNameDelegate = DelegateFunc<void (BluetoothAdapter &bta, const char *name, BluetoothAddr addr)>;
 	using OnIncomingL2capConnectionDelegate = DelegateFunc<void (BluetoothAdapter &bta, BluetoothPendingSocket &pending)>;
 
@@ -82,8 +82,8 @@ public:
 
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	OnIncomingL2capConnectionDelegate &onIncomingL2capConnection() { return onIncomingL2capConnectionD; }
-	virtual void setL2capService(uint psm, bool active, OnStatusDelegate onResult) = 0;
-	//virtual bool l2capServiceRegistered(uint psm);
+	virtual void setL2capService(uint32_t psm, bool active, OnStatusDelegate onResult) = 0;
+	//virtual bool l2capServiceRegistered(uint32_t psm);
 	#endif
 
 protected:
@@ -99,8 +99,8 @@ class BluetoothSocket
 {
 public:
 	constexpr BluetoothSocket() {}
-	virtual CallResult openL2cap(BluetoothAddr addr, uint psm) = 0;
-	virtual CallResult openRfcomm(BluetoothAddr addr, uint channel) = 0;
+	virtual CallResult openL2cap(BluetoothAddr addr, uint32_t psm) = 0;
+	virtual CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) = 0;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	virtual CallResult open(BluetoothPendingSocket &socket) = 0;
 	#endif
@@ -108,7 +108,7 @@ public:
 	virtual CallResult write(const void *data, size_t size) = 0;
 	typedef DelegateFunc<bool (const char *data, size_t size)> OnDataDelegate;
 	OnDataDelegate &onData() { return onDataD; }
-	typedef DelegateFunc<uint (BluetoothSocket &sock, uint status)> OnStatusDelegate;
+	typedef DelegateFunc<uint32_t (BluetoothSocket &sock, uint32_t status)> OnStatusDelegate;
 	OnStatusDelegate &onStatus() { return onStatusD; }
 	enum { STATUS_CONNECTING, STATUS_CONNECT_ERROR, STATUS_OPENED, STATUS_READ_ERROR, STATUS_CLOSED };
 	enum { OPEN_USAGE_NONE = 0, OPEN_USAGE_READ_EVENTS };

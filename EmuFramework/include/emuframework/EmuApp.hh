@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>

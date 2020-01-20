@@ -1,3 +1,4 @@
+#include <imagine/base/Base.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>

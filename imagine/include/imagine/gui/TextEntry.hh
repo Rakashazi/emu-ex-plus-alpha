@@ -41,7 +41,7 @@ class CollectTextInputView : public View
 {
 public:
 	// returning non-zero keeps text entry active on Android
-	using OnTextDelegate = DelegateFunc<uint (CollectTextInputView &view, const char *str)>;
+	using OnTextDelegate = DelegateFunc<uint32_t (CollectTextInputView &view, const char *str)>;
 
 	CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
 		Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace);

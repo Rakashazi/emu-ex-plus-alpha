@@ -32,8 +32,8 @@ public:
 	PosixIO(PosixIO &&o);
 	PosixIO &operator=(PosixIO &&o);
 	GenericIO makeGeneric();
-	std::error_code open(const char *path, uint mode = 0);
-	std::error_code create(const char *path, uint mode = 0)
+	std::error_code open(const char *path, uint32_t mode = 0);
+	std::error_code create(const char *path, uint32_t mode = 0)
 	{
 		mode |= OPEN_WRITE | OPEN_CREATE;
 		return open(path, mode);

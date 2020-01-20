@@ -28,12 +28,12 @@ class PixmapDesc : public NotEquals<PixmapDesc>
 {
 public:
 	constexpr PixmapDesc() {}
-	constexpr PixmapDesc(WP size, PixelFormat format): w_{(uint)size.x}, h_{(uint)size.y}, format_(format) {}
-	constexpr uint w() const { return w_; }
-	constexpr uint h() const { return h_; }
+	constexpr PixmapDesc(WP size, PixelFormat format): w_{(uint32_t)size.x}, h_{(uint32_t)size.y}, format_(format) {}
+	constexpr uint32_t w() const { return w_; }
+	constexpr uint32_t h() const { return h_; }
 	constexpr WP size() const { return {(int)w(), (int)h()}; }
 	constexpr PixelFormat format() const { return format_; }
-	constexpr uint pixelBytes() const { return format().pixelBytes(w() * h()); }
+	constexpr size_t pixelBytes() const { return format().pixelBytes(w() * h()); }
 
 	constexpr bool operator ==(const PixmapDesc &rhs) const
 	{
@@ -41,7 +41,7 @@ public:
 	}
 
 protected:
-	uint w_ = 0, h_ = 0;
+	uint32_t w_ = 0, h_ = 0;
 	PixelFormat format_{};
 };
 
@@ -52,10 +52,10 @@ public:
 	class PitchInit
 	{
 	public:
-		uint val;
+		uint32_t val;
 		PitchUnits units;
 
-		constexpr PitchInit(uint pitchVal, PitchUnits units):
+		constexpr PitchInit(uint32_t pitchVal, PitchUnits units):
 			val{pitchVal}, units{units}
 			{}
 	};
@@ -128,16 +128,16 @@ public:
 	void clear();
 	Pixmap subPixmap(IG::WP pos, IG::WP size) const;
 	explicit operator bool() const;
-	uint pitchPixels() const;
-	uint pitchBytes() const;
-	uint bytes() const;
+	uint32_t pitchPixels() const;
+	uint32_t pitchBytes() const;
+	size_t bytes() const;
 	bool isPadded() const;
-	uint paddingPixels() const;
-	uint paddingBytes() const;
+	uint32_t paddingPixels() const;
+	uint32_t paddingBytes() const;
 
 protected:
 	void *data{};
-	uint pitch = 0; // in bytes
+	uint32_t pitch = 0; // in bytes
 
 	template <class SRC_T, class DEST_T, class FUNC>
 	void writeTransformed2(FUNC func, const IG::Pixmap &pixmap)

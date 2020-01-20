@@ -20,12 +20,12 @@
 namespace Gfx
 {
 
-const uint ColVertex::colorOffset = offsetof(ColVertex, color);
+const uint32_t ColVertex::colorOffset = offsetof(ColVertex, color);
 
-const uint TexVertex::textureOffset = offsetof(TexVertex, u);
+const uint32_t TexVertex::textureOffset = offsetof(TexVertex, u);
 
-const uint ColTexVertex::colorOffset = offsetof(ColTexVertex, color);
-const uint ColTexVertex::textureOffset = offsetof(ColTexVertex, u);
+const uint32_t ColTexVertex::colorOffset = offsetof(ColTexVertex, color);
+const uint32_t ColTexVertex::textureOffset = offsetof(ColTexVertex, u);
 
 static_assertIsPod(Vertex);
 static_assertIsPod(ColVertex);
@@ -146,7 +146,7 @@ static void mapImg(std::array<Vtx, 4> &v, GTexC leftTexU, GTexC topTexV, GTexC r
 }
 
 template<class Vtx>
-static void setColor(std::array<Vtx, 4> &v, VertexColor col, uint edges)
+static void setColor(std::array<Vtx, 4> &v, VertexColor col, uint32_t edges)
 {
 	if(edges & EDGE_BL) v[0].color = col;
 	if(edges & EDGE_TL) v[1].color = col;
@@ -155,16 +155,16 @@ static void setColor(std::array<Vtx, 4> &v, VertexColor col, uint edges)
 }
 
 template<class Vtx>
-static void setColor(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges)
+static void setColor(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges)
 {
-	if(edges & EDGE_BL) v[0].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
-	if(edges & EDGE_TL) v[1].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
-	if(edges & EDGE_TR) v[3].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
-	if(edges & EDGE_BR) v[2].color = VertexColorPixelFormat.build((uint)r, (uint)g, (uint)b, (uint)a);
+	if(edges & EDGE_BL) v[0].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
+	if(edges & EDGE_TL) v[1].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
+	if(edges & EDGE_TR) v[3].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
+	if(edges & EDGE_BR) v[2].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
 }
 
 template<class Vtx>
-static void setColorRGB(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, uint edges)
+static void setColorRGB(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, uint32_t edges)
 {
 	if(edges & EDGE_BL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[0].color), EDGE_BL);
 	if(edges & EDGE_TL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[1].color), EDGE_TL);
@@ -173,7 +173,7 @@ static void setColorRGB(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorCo
 }
 
 template<class Vtx>
-static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint edges)
+static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint32_t edges)
 {
 	if(edges & EDGE_BL) setColor(v, VertexColorPixelFormat.r(v[0].color), VertexColorPixelFormat.g(v[0].color), VertexColorPixelFormat.b(v[0].color), a, EDGE_BL);
 	if(edges & EDGE_TL) setColor(v, VertexColorPixelFormat.r(v[1].color), VertexColorPixelFormat.g(v[1].color), VertexColorPixelFormat.b(v[1].color), a, EDGE_TL);

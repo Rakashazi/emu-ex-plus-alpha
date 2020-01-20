@@ -15,17 +15,20 @@
 
 #pragma once
 
-#include <cstddef>
-#include <memory>
-#include <array>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GfxLGradient.hh>
-#include <imagine/gfx/Texture.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/View.hh>
+#include <cstddef>
+#include <memory>
+#include <array>
+
+namespace Gfx
+{
+class PixmapTexture;
+}
 
 class NavView : public View
 {
@@ -73,7 +76,7 @@ public:
 
 	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
 	void setBackImage(Gfx::PixmapTexture *img);
-	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops);
+	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint32_t gradStops);
 
 	template <size_t S>
 	void setBackgroundGradient(const Gfx::LGradientStopDesc (&gradStop)[S])

@@ -37,7 +37,7 @@ struct GlyphRenderData
 
 static CGColorRef textColor{};
 
-static void renderTextIntoBuffer(NSString *str, void *buff, uint xSize, uint ySize,
+static void renderTextIntoBuffer(NSString *str, void *buff, uint32_t xSize, uint32_t ySize,
 		CGColorSpaceRef colorSpace, CGColorRef textColor, UIFont *font)
 {
 	auto context = CGBitmapContextCreate(buff, xSize, ySize, 8, xSize, colorSpace, kCGImageAlphaOnly);
@@ -70,17 +70,17 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 	}
 	ec = (std::errc)0;
 	//logMsg("char %c size %f:%f", idx, size.width, size.height);
-	uint cXFullSize = size.width;
-	uint cYFullSize = size.height;
+	uint32_t cXFullSize = size.width;
+	uint32_t cYFullSize = size.height;
 
 	// render char into buffer
-	uint bufferSize = cXFullSize * cYFullSize;
+	uint32_t bufferSize = cXFullSize * cYFullSize;
 	auto pixBuffer = (char*)mem_calloc(bufferSize);
 	renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
 		Base::grayColorSpace, textColor, fontSize.font());
 
 	// measure real bounds
-	uint minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
+	uint32_t minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
 	iterateTimes(cYFullSize, y)
 		iterateTimes(cXFullSize, x)
 		{
@@ -94,9 +94,9 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 		}
 	//logMsg("min bounds %d:%d:%d:%d", minX, minY, maxX, maxY);
 	auto cXOffset = minX;
-	uint cXSize = (maxX - minX) + 1;
+	uint32_t cXSize = (maxX - minX) + 1;
 	auto cYOffset = minY;
-	uint cYSize = (maxY - minY) + 1;
+	uint32_t cYSize = (maxY - minY) + 1;
 	auto startOfCharInPixBuffer = pixBuffer + Mem2D<char>::arrOffsetRM(cXOffset, cYOffset, cXFullSize);
 
 	GlyphMetrics metrics;
@@ -173,7 +173,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 			IG::PIXEL_FMT_A8
 		},
 		glyphData.startOfCharInPixData,
-		{(uint)glyphData.metrics.xAdvance, IG::Pixmap::BYTE_UNITS}
+		{(uint32_t)glyphData.metrics.xAdvance, IG::Pixmap::BYTE_UNITS}
 	};
 	return {{pix, glyphData.pixData}, glyphData.metrics};
 }

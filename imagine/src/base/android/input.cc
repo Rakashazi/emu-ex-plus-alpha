@@ -96,7 +96,7 @@ static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, in
 	}
 }
 
-static const char *androidEventEnumToStr(uint e)
+static const char *androidEventEnumToStr(uint32_t e)
 {
 	switch(e)
 	{
@@ -115,10 +115,10 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static void dispatchTouch(uint idx, uint action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse, const Device *device)
+static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse, const Device *device)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
-	uint metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
+	uint32_t metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
 	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, device});
 }
 
@@ -216,7 +216,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 						return false;
 					}
 					bool isMouse = isFromSource(source, AINPUT_SOURCE_MOUSE);
-					uint action = eventAction & AMOTION_EVENT_ACTION_MASK;
+					uint32_t action = eventAction & AMOTION_EVENT_ACTION_MASK;
 					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
 					{
 						// touch gesture ended
@@ -227,7 +227,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 								makeTimeFromMotionEvent(event), isMouse, dev);
 						return true;
 					}
-					uint actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+					uint32_t actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
 					int pointers = AMotionEvent_getPointerCount(event);
 					//logMsg("motion event action:%d source:%d pointers:%d:%d",
 					//	eventAction, source, pointers, actionPIdx);
@@ -291,7 +291,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					else
 					{
 						// no getAxisValue, can only use 2 axis values (X and Y)
-						iterateTimes(std::min(dev->axis.size(), (uint)2), i)
+						iterateTimes(std::min((uint32_t)dev->axis.size(), 2u), i)
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
 							dev->axis[i].keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, time, *dev, win);
@@ -361,10 +361,10 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				return false;
 			}
-			uint shiftState = metaState & AMETA_SHIFT_ON;
+			uint32_t shiftState = metaState & AMETA_SHIFT_ON;
 			auto time = makeTimeFromKeyEvent(event);
-			assert((uint)keyCode < Keycode::COUNT);
-			uint action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
+			assert((uint32_t)keyCode < Keycode::COUNT);
+			uint32_t action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
 			if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, Base::mainWindow())))
 			{
 				cancelKeyRepeatTimer();
@@ -447,7 +447,7 @@ void processInputWithHasEvents(AInputQueue *inputQueue)
 	}
 }
 
-static const char* aInputSourceToStr(uint source)
+static const char* aInputSourceToStr(uint32_t source)
 {
 	switch(source)
 	{

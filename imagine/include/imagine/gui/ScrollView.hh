@@ -16,12 +16,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/gui/View.hh>
+
+namespace Gfx
+{
+class RendererCommands;
+}
 
 class ScrollView : public View
 {

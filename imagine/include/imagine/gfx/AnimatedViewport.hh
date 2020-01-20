@@ -16,10 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Viewport.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/util/Interpolator.hh>
 
 namespace Gfx
 {
+
+class Window;
 
 class AnimatedViewport
 {

@@ -14,6 +14,7 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/base/Base.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuMainMenuView.hh>

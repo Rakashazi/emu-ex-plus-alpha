@@ -50,7 +50,7 @@ CAOutputStream::CAOutputStream()
 		{
 			auto thisPtr = static_cast<CAOutputStream*>(inRefCon);
 			auto *buff = (char*)ioData->mBuffers[0].mData;
-			uint bytes = inNumberFrames * thisPtr->streamFormat.mBytesPerFrame;
+			UInt32 bytes = inNumberFrames * thisPtr->streamFormat.mBytesPerFrame;
 			if(!thisPtr->onSamplesNeeded(buff, bytes))
 			{
 				*ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;

@@ -415,7 +415,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		ec = std::errc::no_such_file_or_directory;
 		return {};
 	}
-	uint newSlot = f.size();
+	uint32_t newSlot = f.size();
 	ec = loadIntoNextSlot(fontPath.data());
 	if((bool)ec)
 		return {};
@@ -539,7 +539,7 @@ IG::Pixmap IG::GlyphImage::pixmap()
 		{
 			{{(int)bitmap.width, (int)bitmap.rows}, IG::PIXEL_FMT_A8},
 			bitmap.buffer,
-			{(uint)bitmap.pitch, IG::Pixmap::BYTE_UNITS}
+			{(uint32_t)bitmap.pitch, IG::Pixmap::BYTE_UNITS}
 		};
 }
 

@@ -22,13 +22,13 @@ namespace Audio
 
 struct SampleFormat
 {
-	uint bits = 0;
+	uint32_t bits = 0;
 	bool isSigned = false;
 
 	constexpr SampleFormat() {}
-	constexpr SampleFormat(uint bits, bool isSigned): bits(bits), isSigned(isSigned) {}
-	uint toBits() const { return bits; }
-	uint toBytes() const { return bits / 8; }
+	constexpr SampleFormat(uint32_t bits, bool isSigned): bits(bits), isSigned(isSigned) {}
+	uint32_t toBits() const { return bits; }
+	uint32_t toBytes() const { return bits / 8; }
 
 	bool operator ==(SampleFormat const& rhs) const
 	{
@@ -48,7 +48,7 @@ namespace SampleFormats
 	static constexpr SampleFormat s16 {16, true};
 	static constexpr SampleFormat none {};
 
-	static const SampleFormat &getFromBits(uint bits)
+	static const SampleFormat &getFromBits(uint32_t bits)
 	{
 		assert(bits == 8 || bits == 16);
 		switch(bits)

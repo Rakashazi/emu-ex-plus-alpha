@@ -120,7 +120,7 @@ const FreeCachesDelegate &onFreeCaches()
 	return onFreeCaches_;
 }
 
-const char *orientationToStr(uint o)
+const char *orientationToStr(Orientation o)
 {
 	switch(o)
 	{
@@ -136,12 +136,12 @@ const char *orientationToStr(uint o)
 	}
 }
 
-bool orientationIsSideways(uint o)
+bool orientationIsSideways(Orientation o)
 {
 	return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270;
 }
 
-uint validateOrientationMask(uint oMask)
+Orientation validateOrientationMask(Orientation oMask)
 {
 	if(IG::bitsSet(oMask & VIEW_ROTATE_ALL) == 0)
 	{
@@ -165,10 +165,10 @@ void exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
 }
 
 #ifdef NDEBUG
-FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint events):
+FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
 	FDEventSource{fd}
 #else
-FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint events):
+FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
 	FDEventSource{debugLabel, fd}
 #endif
 {

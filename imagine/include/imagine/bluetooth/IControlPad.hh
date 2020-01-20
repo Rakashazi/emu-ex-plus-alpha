@@ -23,7 +23,7 @@
 struct IControlPad : public BluetoothInputDevice, public Input::Device
 {
 public:
-	static const uchar btClass[3];
+	static const uint8_t btClass[3];
 	static std::vector<IControlPad*> devList;
 
 	IControlPad(BluetoothAddr addr):
@@ -34,14 +34,14 @@ public:
 	CallResult open(BluetoothAdapter &adapter) final;
 	void close();
 	void removeFromSystem() final;
-	uint joystickAxisBits() final;
-	uint joystickAxisAsDpadBitsDefault() final;
-	void setJoystickAxisAsDpadBits(uint axisMask) final;
-	uint joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
-	uint statusHandler(BluetoothSocket &sock, uint status);
+	uint32_t joystickAxisBits() final;
+	uint32_t joystickAxisAsDpadBitsDefault() final;
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
+	uint32_t joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
+	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	bool dataHandler(const char *packet, size_t size);
 	const char *keyName(Input::Key k) const final;
-	static bool isSupportedClass(const uchar devClass[3]);
+	static bool isSupportedClass(const uint8_t devClass[3]);
 
 private:
 	enum
@@ -52,10 +52,10 @@ private:
 	};
 	BluetoothSocketSys sock;
 	char inputBuffer[6]{};
-	uint inputBufferPos = 0;
-	uint player = 0;
+	uint32_t inputBufferPos = 0;
+	uint32_t player = 0;
 	int function = 0;
-	uint joystickAxisAsDpadBits_;
+	uint32_t joystickAxisAsDpadBits_;
 	char prevBtnData[2]{};
 	Input::AxisKeyEmu<int> axisKey[4]
 	{
@@ -83,6 +83,6 @@ private:
 	static constexpr int nubDeadzone = 64;
 	BluetoothAddr addr;
 
-	static uint findFreeDevId();
-	void processBtnReport(const char *btnData, Input::Time time, uint player);
+	static uint32_t findFreeDevId();
+	void processBtnReport(const char *btnData, Input::Time time, uint32_t player);
 };

@@ -70,7 +70,7 @@ static constexpr Atom currentDNDVersion = 5;
 
 void registerXdndAtoms(Display *dpy)
 {
-	uint atoms = std::size(xdndAtomStr);
+	uint32_t atoms = std::size(xdndAtomStr);
 	char *strPtr[atoms];
 	iterateTimes(atoms, i)
 	{

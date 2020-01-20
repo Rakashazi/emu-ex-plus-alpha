@@ -222,7 +222,7 @@ public:
 		}
 	}
 
-	void drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const override
+	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const override
 	{
 		if((int)i == activeItem)
 			cmds.setColor(0., .8, 1.);
@@ -231,7 +231,7 @@ public:
 		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
 	}
 
-	void onSelectElement(Input::Event e, uint i, MenuItem &item) override
+	void onSelectElement(Input::Event e, uint32_t i, MenuItem &item) override
 	{
 		if(item.select(*this, e))
 		{
@@ -296,7 +296,7 @@ int MultiChoiceMenuItem::selected() const
 	return selected_;
 }
 
-uint MultiChoiceMenuItem::items() const
+uint32_t MultiChoiceMenuItem::items() const
 {
 	return items_(*this);
 }
@@ -323,7 +323,7 @@ void MultiChoiceMenuItem::setDisplayString(int idx)
 	{
 		t2.setString(str);
 	}
-	else if((uint)idx < items_(*this))
+	else if((uint32_t)idx < items_(*this))
 	{
 		t2.setString(item_(*this, idx).t.str);
 	}
@@ -363,12 +363,12 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 	(
 		t.str,
 		attach,
-		(uint)selected_ < items_(*this) ? selected_ : -1,
+		(uint32_t)selected_ < items_(*this) ? selected_ : -1,
 		[this](const TableView &)
 		{
 			return items_(*this);
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, uint32_t idx) -> MenuItem&
 		{
 			return item_(*this, idx);
 		},

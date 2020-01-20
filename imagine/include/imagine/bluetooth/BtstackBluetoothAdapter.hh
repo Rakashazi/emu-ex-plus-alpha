@@ -27,7 +27,7 @@ public:
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
-	void setL2capService(uint psm, bool active, OnStatusDelegate onResult) final;
+	void setL2capService(uint32_t psm, bool active, OnStatusDelegate onResult) final;
 	State state() final;
 	void setActiveState(bool on, OnStateChangeDelegate onStateChange) final;
 	void requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName);
@@ -35,7 +35,7 @@ public:
 	static void processCommands();
 
 private:
-	uint state_ = HCI_STATE_OFF, scanResponses = 0;
+	uint32_t state_ = HCI_STATE_OFF, scanResponses = 0;
 	bool isOpen = false;
 	static bool cmdActive;
 	OnStatusDelegate setL2capServiceOnResult;
@@ -48,16 +48,16 @@ private:
 class BluetoothPendingSocket
 {
 public:
-	uint type = 0;
+	uint32_t type = 0;
 	BluetoothAddr addr;
 	uint16_t ch = 0;
 	uint16_t localCh = 0;
 
 	constexpr BluetoothPendingSocket() {}
-	constexpr BluetoothPendingSocket(uint type, BluetoothAddr addr, uint16_t ch, uint16_t localCh):
+	constexpr BluetoothPendingSocket(uint32_t type, BluetoothAddr addr, uint16_t ch, uint16_t localCh):
 		type(type), addr(addr), ch(ch), localCh(localCh) {}
 	void close();
-	uint channel() { return ch; }
+	uint32_t channel() { return ch; }
 	void requestName(BluetoothAdapter::OnScanDeviceNameDelegate onDeviceName);
 
 	explicit operator bool() const
@@ -70,15 +70,15 @@ class BtstackBluetoothSocket : public BluetoothSocket
 {
 public:
 	constexpr BtstackBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint psm) final;
-	CallResult openRfcomm(BluetoothAddr addr, uint channel) final;
+	CallResult openL2cap(BluetoothAddr addr, uint32_t psm) final;
+	CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	CallResult open(BluetoothPendingSocket &pending) final;
 	#endif
 	void close() final;
 	CallResult write(const void *data, size_t size) final;
-	const void *pin(uint &size);
-	void setPin(const void *pin, uint size);
+	const void *pin(uint32_t &size);
+	void setPin(const void *pin, uint32_t size);
 	static BtstackBluetoothSocket *findSocket(const bd_addr_t addr, uint16_t ch);
 	static BtstackBluetoothSocket *findSocket(const bd_addr_t addr);
 	static BtstackBluetoothSocket *findSocket(uint16_t localCh);
@@ -86,7 +86,7 @@ public:
 	static void handleRfcommChannelOpened(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
 
 private:
-	uint type = 0;
+	uint32_t type = 0;
 	BluetoothAddr addr;
 	uint16_t ch = 0;
 	uint16_t localCh = 0;
@@ -94,5 +94,5 @@ public:
 	uint16_t handle = 0;
 private:
 	const void *pinCode = nullptr;
-	uint pinSize = 0;
+	uint32_t pinSize = 0;
 };

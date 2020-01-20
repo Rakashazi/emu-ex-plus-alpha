@@ -59,7 +59,7 @@ void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
 	#endif
 }
 
-bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
+bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
 	logMsg("adding fd:%d to looper:%p (%s)", fd_, loop.nativeObject(), label());
 	if(!loop)
@@ -75,7 +75,7 @@ bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, u
 	return true;
 }
 
-void FDEventSource::modifyEvents(uint events)
+void FDEventSource::modifyEvents(uint32_t events)
 {
 	assert(looper);
 	ALooper_addFd(looper, fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, callback_.get());

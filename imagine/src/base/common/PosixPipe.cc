@@ -25,9 +25,9 @@ namespace Base
 {
 
 #ifdef NDEBUG
-Pipe::Pipe(uint preferredSize)
+Pipe::Pipe(uint32_t preferredSize)
 #else
-Pipe::Pipe(const char *debugLabel, uint preferredSize): debugLabel{debugLabel ? debugLabel : "unnamed"}
+Pipe::Pipe(const char *debugLabel, uint32_t preferredSize): debugLabel{debugLabel ? debugLabel : "unnamed"}
 #endif
 {
 	int res = pipe(msgPipe.data());
@@ -107,7 +107,7 @@ void Pipe::removeFromEventLoop()
 	}
 }
 
-bool Pipe::write(const void *data, uint size)
+bool Pipe::write(const void *data, size_t size)
 {
 	if(::write(msgPipe[1], data, size) != (int)size)
 	{
@@ -117,7 +117,7 @@ bool Pipe::write(const void *data, uint size)
 	return true;
 }
 
-bool Pipe::read(void *data, uint size)
+bool Pipe::read(void *data, size_t size)
 {
 	if(::read(msgPipe[0], data, size) == -1)
 	{

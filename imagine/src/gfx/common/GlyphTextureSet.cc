@@ -24,22 +24,22 @@
 namespace Gfx
 {
 
-static const char firstDrawableAsciiChar = '!';
-static const char lastDrawableAsciiChar = '~';
-static const uint numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
+static constexpr char firstDrawableAsciiChar = '!';
+static constexpr char lastDrawableAsciiChar = '~';
+static constexpr uint32_t numDrawableAsciiChars = (lastDrawableAsciiChar - firstDrawableAsciiChar) + 1;
 
 // definitions for the Unicode Basic Multilingual Plane (BMP)
-static const uint unicodeBmpChars = 0xFFFE;
+static constexpr uint32_t unicodeBmpChars = 0xFFFE;
 
 // location & size of the surrogate/private chars
-static const uint unicodeBmpPrivateStart = 0xD800, unicodeBmpPrivateEnd = 0xF8FF;
-static const uint unicodeBmpPrivateChars = 0x2100;
+static constexpr uint32_t unicodeBmpPrivateStart = 0xD800, unicodeBmpPrivateEnd = 0xF8FF;
+static constexpr uint32_t unicodeBmpPrivateChars = 0x2100;
 
-static const uint unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars;
+static constexpr uint32_t unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPrivateChars;
 
-static const uint glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
+static constexpr uint32_t glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
-static std::errc mapCharToTable(uint c, uint &tableIdx);
+static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx);
 
 class GfxGlyphImage : public GfxImageSource
 {
@@ -122,7 +122,7 @@ void GlyphTextureSet::freeCaches(uint32 purgeBits)
 			int firstChar = i << 11;
 			iterateTimesFromStart(2048, firstChar, c)
 			{
-				uint tableIdx;
+				uint32_t tableIdx;
 				if((bool)mapCharToTable(c, tableIdx))
 				{
 					//logMsg( "%c not a known drawable character, skipping", c);
@@ -214,7 +214,7 @@ void GlyphTextureSet::swap(GlyphTextureSet &a, GlyphTextureSet &b)
 	std::swap(a.usedGlyphTableBits, b.usedGlyphTableBits);
 }
 
-uint GlyphTextureSet::nominalHeight() const
+uint32_t GlyphTextureSet::nominalHeight() const
 {
 	return nominalHeight_;
 }
@@ -282,7 +282,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	return {};
 }
 
-static std::errc mapCharToTable(uint c, uint &tableIdx)
+static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx)
 {
 	if(GlyphTextureSet::supportsUnicode)
 	{
@@ -326,7 +326,7 @@ std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
 	iterateTimes(strlen(string), i)
 	{
 		auto c = string[i];
-		uint tableIdx;
+		uint32_t tableIdx;
 		if((bool)mapCharToTable(c, tableIdx))
 		{
 			//logMsg( "%c not a known drawable character, skipping", c);
@@ -346,7 +346,7 @@ std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
 GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 {
 	assert(settings);
-	uint tableIdx;
+	uint32_t tableIdx;
 	if((bool)mapCharToTable(c, tableIdx))
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);

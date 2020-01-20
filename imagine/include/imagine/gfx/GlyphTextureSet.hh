@@ -60,7 +60,7 @@ public:
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}
 	GlyphEntry *glyphEntry(Renderer &r, int c, bool allowCache = true);
-	uint nominalHeight() const;
+	uint32_t nominalHeight() const;
 	void freeCaches(uint32 rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
 
@@ -68,8 +68,8 @@ private:
 	std::unique_ptr<IG::Font> font{};
 	GlyphEntry *glyphTable{};
 	IG::FontSize faceSize{};
-	uint nominalHeight_ = 0;
-	uint32 usedGlyphTableBits = 0;
+	uint32_t nominalHeight_ = 0;
+	uint32_t usedGlyphTableBits = 0;
 
 	void calcNominalHeight(Renderer &r);
 	bool initGlyphTable();

@@ -21,6 +21,10 @@
 #include <imagine/base/iphone/config.h>
 #import <CoreGraphics/CGBase.h>
 
+#ifdef __OBJC__
+#import <UIKit/UIKit.h>
+#endif
+
 namespace Base
 {
 
@@ -28,9 +32,9 @@ struct NativeWindowFormat {};
 using NativeWindow = void*;
 
 #ifdef CONFIG_BASE_IOS_RETINA_SCALE
-extern uint screenPointScale;
+extern uint32_t screenPointScale;
 #else
-static constexpr uint screenPointScale = 1;
+static constexpr uint32_t screenPointScale = 1;
 #endif
 
 class IOSWindow : public BaseWindow, public NotEquals<IOSWindow>
@@ -46,7 +50,7 @@ public:
 
 	constexpr IOSWindow() {}
 	#ifdef __OBJC__
-	void updateContentRect(int width, int height, uint softOrientation, UIApplication *sharedApp);
+	void updateContentRect(int width, int height, uint32_t softOrientation, UIApplication *sharedApp);
 	UIWindow *uiWin() { return (__bridge UIWindow*)uiWin_; }
 	#endif
 

@@ -37,7 +37,7 @@ static bool hidServiceActive = false;
 
 namespace Bluetooth
 {
-static bool testSupportedBTDevClasses(const uchar devClass[3])
+static bool testSupportedBTDevClasses(const uint8_t devClass[3])
 {
 	return Wiimote::isSupportedClass(devClass) ||
 			IControlPad::isSupportedClass(devClass) ||
@@ -119,7 +119,7 @@ bool listenForDevices(BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDel
 	logMsg("registering HID PSMs");
 	hidServiceActive = true;
 	bta.setL2capService(0x13, true,
-		[](BluetoothAdapter &bta, uint success, int arg)
+		[](BluetoothAdapter &bta, uint32_t success, int arg)
 		{
 			if(!success)
 			{
@@ -130,7 +130,7 @@ bool listenForDevices(BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDel
 			logMsg("INT PSM registered");
 			// now register the 2nd PSM
 			bta.setL2capService(0x11, true,
-				[](BluetoothAdapter &bta, uint success, int arg)
+				[](BluetoothAdapter &bta, uint32_t success, int arg)
 				{
 					if(!success)
 					{
@@ -166,7 +166,7 @@ bool scanForDevices(BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate on
 	{
 		removePendingDevs();
 		return bta.startScan(onScanStatus,
-			[](BluetoothAdapter &, const uchar devClass[3]) // on device class
+			[](BluetoothAdapter &, const uint8_t devClass[3]) // on device class
 			{
 				logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
 				return testSupportedBTDevClasses(devClass);
@@ -225,7 +225,7 @@ void closeDevices(BluetoothAdapter *bta)
 	}
 }
 
-uint pendingDevs()
+uint32_t pendingDevs()
 {
 	return btInputDevPendingList.size();
 }
@@ -259,7 +259,7 @@ void closeBT(BluetoothAdapter *&bta)
 	bta = nullptr;
 }
 
-uint devsConnected()
+uint32_t devsConnected()
 {
 	return btInputDevList.size();
 }

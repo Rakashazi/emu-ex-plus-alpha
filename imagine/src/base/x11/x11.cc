@@ -39,7 +39,7 @@ static void fileURLToPath(char *url)
 {
 	char *pathStart = url;
 	//lookup the 3rd slash which will signify the root directory of the file system
-	for(uint i = 0; i < 3; i++)
+	for(int i = 0; i < 3; i++)
 	{
 		pathStart = strchr(pathStart + 1, '/');
 	}
@@ -245,7 +245,7 @@ CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc)
 	return OK;
 }
 
-void setSysUIStyle(uint flags) {}
+void setSysUIStyle(uint32_t flags) {}
 
 bool hasTranslucentSysUI() { return false; }
 

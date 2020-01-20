@@ -17,6 +17,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/container/containerUtils.hh>
 #include "private.hh"
 
 namespace Input
@@ -29,9 +30,9 @@ DeviceChangeDelegate onDeviceChange{};
 DevicesEnumeratedDelegate onDevicesEnumerated{};
 std::vector<Device*> devList{};
 bool swappedGamepadConfirm_ = SWAPPED_GAMEPAD_CONFIRM_DEFAULT;
-static uint xPointerTransform_ = POINTER_NORMAL;
-static uint yPointerTransform_ = POINTER_NORMAL;
-static uint pointerAxis_ = POINTER_NORMAL;
+static uint32_t xPointerTransform_ = POINTER_NORMAL;
+static uint32_t yPointerTransform_ = POINTER_NORMAL;
+static uint32_t pointerAxis_ = POINTER_NORMAL;
 
 static constexpr Key iCadeMap[12]
 {
@@ -115,7 +116,7 @@ void removeDevice(Device &d)
 void indexDevices()
 {
 	// re-number device indices
-	uint i = 0;
+	uint32_t i = 0;
 	for(auto &e : Input::devList)
 	{
 		e->idx = i;
@@ -123,17 +124,17 @@ void indexDevices()
 	}
 }
 
-void xPointerTransform(uint mode)
+void xPointerTransform(uint32_t mode)
 {
 	xPointerTransform_ = mode;
 }
 
-void yPointerTransform(uint mode)
+void yPointerTransform(uint32_t mode)
 {
 	yPointerTransform_ = mode;
 }
 
-void pointerAxis(uint mode)
+void pointerAxis(uint32_t mode)
 {
 	pointerAxis_ = mode;
 }
@@ -213,7 +214,7 @@ static Key keyToICadeOffKey(Key key)
 	return 0;
 }
 
-bool processICadeKey(Key key, uint action, Time time, const Device &dev, Base::Window &win)
+bool processICadeKey(Key key, uint32_t action, Time time, const Device &dev, Base::Window &win)
 {
 	if(Key onKey = keyToICadeOnKey(key))
 	{
@@ -248,7 +249,7 @@ void setOnDevicesEnumerated(DevicesEnumeratedDelegate del)
 	onDevicesEnumerated = del;
 }
 
-const char *Event::mapName(uint map)
+const char *Event::mapName(uint32_t map)
 {
 	switch(map)
 	{
@@ -273,7 +274,7 @@ const char *Event::mapName(uint map)
 	}
 }
 
-uint Event::mapNumKeys(uint map)
+uint32_t Event::mapNumKeys(uint32_t map)
 {
 	switch(map)
 	{
@@ -304,7 +305,7 @@ Event defaultEvent()
 }
 
 #ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
+uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
 {
 	return 0;
 }

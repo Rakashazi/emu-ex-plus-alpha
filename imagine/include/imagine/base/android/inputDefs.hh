@@ -209,7 +209,7 @@ using Key = uint16;
 	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23;
 
 	static constexpr Key LAST_KEY = JS_BRAKE_AXIS;
-	static constexpr uint COUNT = LAST_KEY + 1;
+	static constexpr uint32_t COUNT = LAST_KEY + 1;
 
 		namespace XperiaPlay
 		{

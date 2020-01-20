@@ -28,7 +28,7 @@ struct SurfaceTextureStorage: public DirectTextureStorage
 {
 	jobject surfaceTex{}, surface{};
 	ANativeWindow *nativeWin{};
-	uint bpp = 0;
+	uint8_t bpp = 0;
 	bool singleBuffered = false;
 
 	SurfaceTextureStorage(Renderer &r, GLuint tex, bool singleBuffered, Error &err);

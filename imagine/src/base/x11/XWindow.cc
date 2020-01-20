@@ -18,6 +18,7 @@
 #include "internal.hh"
 #include "xlibutils.h"
 #include "xdnd.hh"
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
@@ -92,12 +93,12 @@ static IG::WindowRect makeWindowRectWithConfig(const WindowConfig &config, ::Win
 		long *workArea;
 		int format;
 		unsigned long items, bytesAfter;
-		uchar *prop;
+		uint8_t *prop;
 		Atom type;
 		Atom _NET_WORKAREA = XInternAtom(dpy, "_NET_WORKAREA", 0);
 		if(XGetWindowProperty(dpy, rootWindow,
 			_NET_WORKAREA, 0, ~0, False,
-			XA_CARDINAL, &type, &format, &items, &bytesAfter, (uchar **)&workArea) || !workArea)
+			XA_CARDINAL, &type, &format, &items, &bytesAfter, (uint8_t **)&workArea) || !workArea)
 		{
 			logWarn("error getting desktop work area, using root window size");
 			XWindowAttributes attr;
@@ -175,7 +176,7 @@ std::error_code Window::init(const WindowConfig &config)
 	}
 	BaseWindow::init(config);
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_ = &mainScreen();
+	this->screen_ = &mainScreen();
 	#endif
 	auto rootWindow = RootWindowOfScreen(screen()->xScreen);
 	#ifdef CONFIG_MACHINE_PANDORA
@@ -212,7 +213,7 @@ std::error_code Window::init(const WindowConfig &config)
 	{
 		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
 		auto wmFullscreen = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-		XChangeProperty(dpy, xWin, wmState, XA_ATOM, 32, PropModeReplace, (uchar*)&wmFullscreen, 1);
+		XChangeProperty(dpy, xWin, wmState, XA_ATOM, 32, PropModeReplace, (uint8_t*)&wmFullscreen, 1);
 	}
 	else
 	{

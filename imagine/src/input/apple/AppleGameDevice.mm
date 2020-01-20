@@ -20,6 +20,7 @@
 #include "../private.hh"
 #include <imagine/util/coreFoundation.h>
 #include <imagine/util/string.h>
+#include <imagine/util/container/containerUtils.hh>
 #import <GameController/GameController.h>
 
 namespace Input
@@ -30,10 +31,10 @@ static const char *appleGCButtonName(Key k);
 struct AppleGameDevice : public Device
 {
 	GCController *gcController = nil;
-	uint joystickAxisAsDpadBits_ = 0;
+	uint32_t joystickAxisAsDpadBits_ = 0;
 	bool pushState[AppleGC::COUNT]{};
 	
-	AppleGameDevice(GCController *gcController, uint enumId):
+	AppleGameDevice(GCController *gcController, uint32_t enumId):
 		Device{enumId, Event::MAP_APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
 		gcController{gcController}
 	{
@@ -199,22 +200,22 @@ struct AppleGameDevice : public Device
 		dispatchInputEvent(event);
 	}
 
-	void setJoystickAxisAsDpadBits(uint axisMask) final
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final
 	{
 		joystickAxisAsDpadBits_ = axisMask;
 	}
 	
-	uint joystickAxisAsDpadBits() final
+	uint32_t joystickAxisAsDpadBits() final
 	{
 		return joystickAxisAsDpadBits_;
 	}
 
-	uint joystickAxisBits() final
+	uint32_t joystickAxisBits() final
 	{
 		return subtype_ == SUBTYPE_APPLE_EXTENDED_GAMEPAD ? (AXIS_BITS_STICK_1 | AXIS_BITS_STICK_2) : 0;
 	}
 
-	uint joystickAxisAsDpadBitsDefault() final
+	uint32_t joystickAxisAsDpadBitsDefault() final
 	{
 		return AXIS_BITS_STICK_1;
 	}
@@ -232,9 +233,9 @@ struct AppleGameDevice : public Device
 
 static std::vector<std::unique_ptr<AppleGameDevice>> gcList{};
 
-static uint findFreeDevId()
+static uint32_t findFreeDevId()
 {
-	uint id[5]{};
+	uint32_t id[5]{};
 	for(auto &e : gcList)
 	{
 		if(e->enumId() < std::size(id))

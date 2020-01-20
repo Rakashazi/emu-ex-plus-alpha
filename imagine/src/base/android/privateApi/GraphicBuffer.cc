@@ -71,9 +71,9 @@ GraphicBuffer::~GraphicBuffer()
 	}
 }
 
-bool GraphicBuffer::reallocate(uint w, uint h, uint f, uint reqUsage)
+bool GraphicBuffer::reallocate(uint32_t w, uint32_t h, uint32_t f, uint32_t reqUsage)
 {
-	if(handle && w == (uint)width && h == (uint)height && f == (uint)format && reqUsage == (uint)usage)
+	if(handle && w == (uint32_t)width && h == (uint32_t)height && f == (uint32_t)format && reqUsage == (uint32_t)usage)
 		return true;
 	if(handle)
 	{
@@ -83,7 +83,7 @@ bool GraphicBuffer::reallocate(uint w, uint h, uint f, uint reqUsage)
 	return initSize(w, h, f, reqUsage);
 }
 
-bool GraphicBuffer::initSize(uint w, uint h, uint f, uint reqUsage)
+bool GraphicBuffer::initSize(uint32_t w, uint32_t h, uint32_t f, uint32_t reqUsage)
 {
 	auto err = allocDev->alloc(allocDev, w, h, f, reqUsage, &handle, &stride);
 	if(!err)
@@ -98,12 +98,12 @@ bool GraphicBuffer::initSize(uint w, uint h, uint f, uint reqUsage)
 	return false;
 }
 
-bool GraphicBuffer::lock(uint usage, void **vaddr)
+bool GraphicBuffer::lock(uint32_t usage, void **vaddr)
 {
 	return lock(usage, {0, 0, width, height}, vaddr);
 }
 
-bool GraphicBuffer::lock(uint usage, IG::WindowRect rect, void **vaddr)
+bool GraphicBuffer::lock(uint32_t usage, IG::WindowRect rect, void **vaddr)
 {
 	if(rect.x < 0 || rect.x2 > width ||
 		rect.y < 0 || rect.y2 > height)
@@ -121,17 +121,17 @@ void GraphicBuffer::unlock()
 	grallocMod->unlock(grallocMod, handle);
 }
 
-uint GraphicBuffer::getWidth()
+uint32_t GraphicBuffer::getWidth()
 {
 	return width;
 }
 
-uint GraphicBuffer::getHeight()
+uint32_t GraphicBuffer::getHeight()
 {
 	return height;
 }
 
-uint GraphicBuffer::getStride()
+uint32_t GraphicBuffer::getStride()
 {
 	return stride;
 }

@@ -19,7 +19,6 @@
 #include <semaphore.h>
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
-#include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
 
 struct SocketStatusMessage;
@@ -33,11 +32,11 @@ public:
 	void cancelScan() final;
 	void close() final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	void setL2capService(uint psm, bool active) final;
+	void setL2capService(uint32_t psm, bool active) final;
 	#endif
 	State state() final;
 	void setActiveState(bool on, OnStateChangeDelegate onStateChange) final;
-	bool handleScanClass(uint classInt);
+	bool handleScanClass(uint32_t classInt);
 	void handleScanName(JNIEnv *env, jstring name, jstring addr);
 	void handleScanStatus(int status);
 	void handleTurnOnResult(bool success);
@@ -57,8 +56,8 @@ class AndroidBluetoothSocket : public BluetoothSocket
 {
 public:
 	AndroidBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint psm) final;
-	CallResult openRfcomm(BluetoothAddr addr, uint channel) final;
+	CallResult openL2cap(BluetoothAddr addr, uint32_t psm) final;
+	CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	CallResult open(BluetoothPendingSocket &socket) final;
 	#endif
@@ -71,12 +70,12 @@ private:
 	sem_t connectSem;
 	Base::FDEventSource fdSrc;
 	int nativeFd = -1;
-	uint channel = 0;
+	uint32_t channel = 0;
 	bool isClosing = false;
 	bool isL2cap = false;
 	bool isConnecting = false;
 	char addrStr[18]{};
 
-	CallResult openSocket(BluetoothAddr addr, uint channel, bool l2cap);
+	CallResult openSocket(BluetoothAddr addr, uint32_t channel, bool l2cap);
 	int readPendingData(int events);
 };

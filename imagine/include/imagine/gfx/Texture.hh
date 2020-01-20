@@ -118,14 +118,14 @@ class TextureConfig
 private:
 	bool writeOften = false;
 	bool genMipmaps = false;
-	uint levels_ = 1;
+	uint32_t levels_ = 1;
 	IG::PixmapDesc pixmapDesc_;
 
 public:
 	constexpr TextureConfig() {}
 	constexpr TextureConfig(IG::PixmapDesc pixDesc): pixmapDesc_{pixDesc} {}
 
-	void setLevels(uint levels)
+	void setLevels(uint32_t levels)
 	{
 		levels_ = levels;
 	}
@@ -135,7 +135,7 @@ public:
 		levels_ = 0;
 	}
 
-	uint levels()
+	uint32_t levels()
 	{
 		return levels_;
 	}
@@ -206,8 +206,8 @@ public:
 class Texture: public TextureImpl
 {
 public:
-	static constexpr uint MAX_ASSUME_ALIGN = 8;
-	static constexpr uint COMMIT_FLAG_ASYNC = IG::bit(0);
+	static constexpr uint32_t MAX_ASSUME_ALIGN = 8;
+	static constexpr uint32_t COMMIT_FLAG_ASYNC = IG::bit(0);
 
 	constexpr Texture() {}
 	Texture(Texture &&o);
@@ -215,24 +215,24 @@ public:
 	Error init2(Renderer &r, TextureConfig config);
 	Error init2(Renderer &r, GfxImageSource &img, bool makeMipmaps);
 	void deinit();
-	static uint bestAlignment(const IG::Pixmap &pixmap);
+	static uint32_t bestAlignment(const IG::Pixmap &pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
-	uint levels() const;
-	Error setFormat(IG::PixmapDesc desc, uint levels);
-	void write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint commitFlags = 0);
-	void writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumedDataAlignment, uint commitFlags = 0);
-	void clear(uint level);
-	LockedTextureBuffer lock(uint level);
-	LockedTextureBuffer lock(uint level, IG::WindowRect rect);
+	uint32_t levels() const;
+	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
+	void write(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t commitFlags = 0);
+	void writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t assumedDataAlignment, uint32_t commitFlags = 0);
+	void clear(uint32_t level);
+	LockedTextureBuffer lock(uint32_t level);
+	LockedTextureBuffer lock(uint32_t level, IG::WindowRect rect);
 	void unlock(LockedTextureBuffer lockBuff);
-	IG::WP size(uint level) const;
+	IG::WP size(uint32_t level) const;
 	IG::PixmapDesc pixmapDesc() const;
-	bool compileDefaultProgram(uint mode);
-	bool compileDefaultProgramOneShot(uint mode);
-	void useDefaultProgram(RendererCommands &cmds, uint mode, const Mat4 *modelMat) const;
-	void useDefaultProgram(RendererCommands &cmds, uint mode) const { useDefaultProgram(cmds, mode, nullptr); }
-	void useDefaultProgram(RendererCommands &cmds, uint mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
+	bool compileDefaultProgram(uint32_t mode);
+	bool compileDefaultProgramOneShot(uint32_t mode);
+	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const;
+	void useDefaultProgram(RendererCommands &cmds, uint32_t mode) const { useDefaultProgram(cmds, mode, nullptr); }
+	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
 	explicit operator bool() const;
 	Renderer &renderer();
 
@@ -250,7 +250,7 @@ public:
 	constexpr PixmapTexture() {}
 	Error init2(Renderer &r, TextureConfig config);
 	Error init2(Renderer &r, GfxImageSource &img, bool makeMipmaps);
-	Error setFormat(IG::PixmapDesc desc, uint levels);
+	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 

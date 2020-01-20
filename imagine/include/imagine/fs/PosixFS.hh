@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/bits.h>
 #include <algorithm>
 #include <ctime>
 #include <memory>
@@ -30,10 +29,10 @@
 namespace FS
 {
 
-static constexpr uint FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
+static constexpr uint32_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
 using FileStringImpl = std::array<char, FILE_STRING_SIZE>;
 
-static constexpr uint PATH_STRING_SIZE = std::max(1024, PATH_MAX);
+static constexpr uint32_t PATH_STRING_SIZE = std::max(1024, PATH_MAX);
 using PathStringImpl = std::array<char, PATH_STRING_SIZE>;
 
 using FileTimeTypeImpl = std::time_t;

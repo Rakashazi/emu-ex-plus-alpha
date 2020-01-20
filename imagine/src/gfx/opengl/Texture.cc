@@ -19,6 +19,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/math/int.hh>
 #include <imagine/mem/mem.h>
 #include "private.hh"
 #ifdef __ANDROID__
@@ -79,20 +80,20 @@ Texture &Texture::operator=(Texture &&o)
 GLTexture::AndroidStorageImpl GLTexture::androidStorageImpl_ = GLTexture::ANDROID_AUTO;
 #endif
 
-static uint makeUnpackAlignment(ptrsize addr)
+static uint32_t makeUnpackAlignment(ptrsize addr)
 {
 	// find best alignment with lower 3 bits
-	const uint map[]
+	constexpr uint32_t map[]
 	{
 		8, 1, 2, 1, 4, 1, 2, 1
 	};
 	return map[addr & 7];
 }
 
-static uint unpackAlignForAddrAndPitch(void *srcAddr, uint pitch)
+static uint32_t unpackAlignForAddrAndPitch(void *srcAddr, uint32_t pitch)
 {
-	uint alignmentForAddr = makeUnpackAlignment((ptrsize)srcAddr);
-	uint alignmentForPitch = makeUnpackAlignment(pitch);
+	uint32_t alignmentForAddr = makeUnpackAlignment((ptrsize)srcAddr);
+	uint32_t alignmentForPitch = makeUnpackAlignment(pitch);
 	if(alignmentForAddr < alignmentForPitch)
 	{
 		/*logMsg("using lowest alignment of address %p (%d) and pitch %d (%d)",
@@ -217,7 +218,7 @@ static int makeGLInternalFormat(Renderer &r, PixelFormatID format)
 		: makeGLSizedInternalFormat(r, format);
 }
 
-static uint typeForPixelFormat(PixelFormatID format)
+static uint32_t typeForPixelFormat(PixelFormatID format)
 {
 	return (format == PIXEL_A8) ? TEX_2D_1 :
 		(format == PIXEL_IA88) ? TEX_2D_2 :
@@ -274,7 +275,7 @@ static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeM
 	return config;
 }
 
-static LockedTextureBuffer makeLockedTextureBuffer(IG::Pixmap pix, IG::WindowRect srcDirtyBounds, uint lockedLevel, GLuint pbo = 0)
+static LockedTextureBuffer makeLockedTextureBuffer(IG::Pixmap pix, IG::WindowRect srcDirtyBounds, uint32_t lockedLevel, GLuint pbo = 0)
 {
 	LockedTextureBuffer lockBuff;
 	lockBuff.set(pix, srcDirtyBounds, lockedLevel, pbo);
@@ -509,7 +510,7 @@ LockedTextureBuffer::operator bool() const
 	return (bool)pix;
 }
 
-void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel, GLuint pbo)
+void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint32_t lockedLevel, GLuint pbo)
 {
 	this->pix = pix;
 	this->srcDirtyRect = srcDirtyRect;
@@ -587,7 +588,7 @@ void Texture::deinit()
 	delete directTex;
 }
 
-uint Texture::bestAlignment(const IG::Pixmap &p)
+uint32_t Texture::bestAlignment(const IG::Pixmap &p)
 {
 	return unpackAlignForAddrAndPitch(p.pixel({}), p.pitchBytes());
 }
@@ -624,12 +625,12 @@ bool Texture::generateMipmaps()
 	return true;
 }
 
-uint Texture::levels() const
+uint32_t Texture::levels() const
 {
 	return levels_;
 }
 
-Error Texture::setFormat(IG::PixmapDesc desc, uint levels)
+Error Texture::setFormat(IG::PixmapDesc desc, uint32_t levels)
 {
 	if(unlikely(!texName_))
 		return std::runtime_error("texture not initialized");
@@ -688,7 +689,7 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint levels)
 					auto internalFormat = makeGLInternalFormat(*r, desc.format());
 					logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
 						texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
-					uint w = desc.w(), h = desc.h();
+					uint32_t w = desc.w(), h = desc.h();
 					iterateTimes(levels, i)
 					{
 						runGLChecked(
@@ -731,7 +732,7 @@ void GLTexture::bindTex(RendererCommands &cmds, TextureSampler &bindSampler)
 	}
 }
 
-void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint assumeAlign, uint commitFlags)
+void Texture::writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t assumeAlign, uint32_t commitFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(unlikely(!texName_))
@@ -740,8 +741,8 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 		return;
 	}
 	assumeExpr(r);
-	assumeExpr(destPos.x + pixmap.w() <= (uint)size(level).x);
-	assumeExpr(destPos.y + pixmap.h() <= (uint)size(level).y);
+	assumeExpr(destPos.x + pixmap.w() <= (uint32_t)size(level).x);
+	assumeExpr(destPos.y + pixmap.h() <= (uint32_t)size(level).y);
 	assumeExpr(pixmap.format() == pixDesc.format());
 	r->resourceUpdate = true;
 	if(!assumeAlign)
@@ -749,7 +750,7 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 	if(directTex)
 	{
 		assert(level == 0);
-		if(destPos != IG::WP{0, 0} || pixmap.w() != (uint)size(0).x || pixmap.h() != (uint)size(0).y)
+		if(destPos != IG::WP{0, 0} || pixmap.w() != (uint32_t)size(0).x || pixmap.h() != (uint32_t)size(0).y)
 		{
 			logErr("partial write of direct texture unsupported, use lock()");
 			return;
@@ -791,7 +792,7 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 		else
 		{
 			// must copy to temp pixmap without extra pitch pixels
-			static uint prevPixmapX = 0, prevPixmapY = 0;
+			static uint32_t prevPixmapX = 0, prevPixmapY = 0;
 			if(pixmap.w() != prevPixmapX || pixmap.h() != prevPixmapY) // don't spam log with repeated calls of same size pixmap
 			{
 				prevPixmapX = pixmap.w();
@@ -801,7 +802,7 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 			void *tempPixData;
 			if(posix_memalign(&tempPixData, (size_t)__BIGGEST_ALIGNMENT__, pixmap.pixelBytes()))
 			{
-				logErr("posix_memalign failed allocating %u bytes", pixmap.pixelBytes());
+				logErr("posix_memalign failed allocating %zu bytes", pixmap.pixelBytes());
 				return;
 			}
 			IG::Pixmap tempPix{pixmap, tempPixData};
@@ -823,12 +824,12 @@ void Texture::writeAligned(uint level, const IG::Pixmap &pixmap, IG::WP destPos,
 	}
 }
 
-void Texture::write(uint level, const IG::Pixmap &pixmap, IG::WP destPos, uint commitFlags)
+void Texture::write(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t commitFlags)
 {
 	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
 }
 
-void Texture::clear(uint level)
+void Texture::clear(uint32_t level)
 {
 	auto lockBuff = lock(level);
 	if(lockBuff)
@@ -846,7 +847,7 @@ void Texture::clear(uint level)
 	}
 }
 
-LockedTextureBuffer Texture::lock(uint level)
+LockedTextureBuffer Texture::lock(uint32_t level)
 {
 	assumeExpr(r);
 	if(directTex)
@@ -864,7 +865,7 @@ LockedTextureBuffer Texture::lock(uint level)
 		return {}; // lock() not supported
 }
 
-LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
+LockedTextureBuffer Texture::lock(uint32_t level, IG::WindowRect rect)
 {
 	assumeExpr(r);
 	assert(rect.x2  <= size(level).x);
@@ -883,7 +884,7 @@ LockedTextureBuffer Texture::lock(uint level, IG::WindowRect rect)
 		r->runGLTaskSync(
 			[this, &data, &pbo, rect]()
 			{
-				uint rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
+				uint32_t rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
 				glGenBuffers(1, &pbo);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 				glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
@@ -935,9 +936,9 @@ void Texture::unlock(LockedTextureBuffer lockBuff)
 	}
 }
 
-IG::WP Texture::size(uint level) const
+IG::WP Texture::size(uint32_t level) const
 {
-	uint w = pixDesc.w(), h = pixDesc.h();
+	uint32_t w = pixDesc.w(), h = pixDesc.h();
 	iterateTimes(level, i)
 	{
 		w = std::max(1u, (w / 2));
@@ -951,7 +952,7 @@ IG::PixmapDesc Texture::pixmapDesc() const
 	return pixDesc;
 }
 
-bool Texture::compileDefaultProgram(uint mode)
+bool Texture::compileDefaultProgram(uint32_t mode)
 {
 	assumeExpr(r);
 	switch(mode)
@@ -982,7 +983,7 @@ bool Texture::compileDefaultProgram(uint mode)
 	}
 }
 
-bool Texture::compileDefaultProgramOneShot(uint mode)
+bool Texture::compileDefaultProgramOneShot(uint32_t mode)
 {
 	assumeExpr(r);
 	auto compiled = compileDefaultProgram(mode);
@@ -991,10 +992,10 @@ bool Texture::compileDefaultProgramOneShot(uint mode)
 	return compiled;
 }
 
-void Texture::useDefaultProgram(RendererCommands &cmds, uint mode, const Mat4 *modelMat) const
+void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const
 {
 	#ifndef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	const uint type_ = TEX_2D_4;
+	const uint32_t type_ = TEX_2D_4;
 	#endif
 	switch(mode)
 	{
@@ -1066,7 +1067,7 @@ Error PixmapTexture::init2(Renderer &r, GfxImageSource &img, bool makeMipmaps)
 		return init2(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
 }
 
-Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint levels)
+Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint32_t levels)
 {
 	assumeExpr(r);
 	if(directTex)
@@ -1102,10 +1103,10 @@ IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
 
 void PixmapTexture::updateUV(IG::WP pixPos, IG::WP pixSize)
 {
-	uv.x = pixelToTexC((uint)pixPos.x, pixDesc.w());
-	uv.y = pixelToTexC((uint)pixPos.y, pixDesc.h());
-	uv.x2 = pixelToTexC((uint)(pixPos.x + pixSize.x), pixDesc.w());
-	uv.y2 = pixelToTexC((uint)(pixPos.y + pixSize.y), pixDesc.h());
+	uv.x = pixelToTexC((uint32_t)pixPos.x, pixDesc.w());
+	uv.y = pixelToTexC((uint32_t)pixPos.y, pixDesc.h());
+	uv.x2 = pixelToTexC((uint32_t)(pixPos.x + pixSize.x), pixDesc.w());
+	uv.y2 = pixelToTexC((uint32_t)(pixPos.y + pixSize.y), pixDesc.h());
 }
 
 GLuint GLTexture::texName() const
@@ -1298,4 +1299,39 @@ const char *GLTexture::androidStorageImplStr(Renderer &r)
 }
 #endif
 
+}
+
+IG::PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const
+{
+	return {makeSupportedSize(desc.size()), desc.format()};
+}
+
+IG::WP TextureSizeSupport::makeSupportedSize(IG::WP size) const
+{
+	using namespace IG;
+	IG::WP supportedSize;
+	if(nonPow2 && !forcePow2)
+	{
+		supportedSize = size;
+	}
+	else if(nonSquare)
+	{
+		supportedSize = {(int)roundUpPowOf2((uint32_t)size.x), (int)roundUpPowOf2((uint32_t)size.y)};
+	}
+	else
+	{
+		supportedSize.x = supportedSize.y = roundUpPowOf2((uint32_t)std::max(size.x, size.y));
+	}
+	if(Config::MACHINE_IS_PANDORA && (supportedSize.x <= 16 || supportedSize.y <= 16))
+	{
+		// force small textures as square due to PowerVR driver bug
+		supportedSize.x = supportedSize.y = std::max(supportedSize.x, supportedSize.y);
+	}
+	return supportedSize;
+}
+
+bool TextureSizeSupport::supportsMipmaps(uint32_t imageX, uint32_t imageY) const
+{
+	return imageX && imageY &&
+		(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));
 }

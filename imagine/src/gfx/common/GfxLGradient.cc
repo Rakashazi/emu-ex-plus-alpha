@@ -35,19 +35,19 @@ void LGradient::setTranslucent(ColorComp a)
 	g.setColorTranslucent(a);
 }
 
-void LGradient::setColorStop(ColorComp r, ColorComp g, ColorComp b, uint i)
+void LGradient::setColorStop(ColorComp r, ColorComp g, ColorComp b, uint32_t i)
 {
 	this->g.setColorRGBV(r, g, b, i*2);
 	this->g.setColorRGBV(r, g, b, (i*2)+1);
 }
 
-void LGradient::setTranslucentStop(ColorComp a, uint i)
+void LGradient::setTranslucentStop(ColorComp a, uint32_t i)
 {
 	g.setColorTranslucentV(a, i*2);
 	g.setColorTranslucentV(a, (i*2)+1);
 }
 
-void LGradient::setPos(const LGradientStopDesc *stop, uint stops, GC x, GC y, GC x2, GC y2)
+void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y, GC x2, GC y2)
 {
 	if(stops != stops_)
 	{
@@ -74,12 +74,12 @@ void LGradient::setPos(const LGradientStopDesc *stop, uint stops, GC x, GC y, GC
 	}
 }
 
-void LGradient::setPos(const LGradientStopDesc *stop, uint stops, const GCRect &d)
+void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, const GCRect &d)
 {
 	 setPos(stop, stops, d.x, d.y2, d.x2, d.y);
 }
 
-uint LGradient::stops()
+uint32_t LGradient::stops()
 {
 	return stops_;
 }

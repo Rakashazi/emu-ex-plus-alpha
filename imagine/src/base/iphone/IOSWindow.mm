@@ -20,6 +20,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../common/windowPrivate.hh"
 #include "private.hh"
 #include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "ios.hh"
@@ -32,14 +33,14 @@ namespace Base
 {
 
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
-static uint validO = UIInterfaceOrientationMaskAllButUpsideDown;
+static Orientation validO = UIInterfaceOrientationMaskAllButUpsideDown;
 #endif
 
 #ifndef CONFIG_BASE_IOS_RETINA_SCALE
 constexpr CGFloat IOSWindow::pointScale;
 #endif
 
-UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation);
+UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(Orientation orientation);
 
 const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
 {
@@ -54,12 +55,12 @@ const char *uiInterfaceOrientationToStr(UIInterfaceOrientation o)
 }
 
 #ifndef CONFIG_GFX_SOFT_ORIENTATION
-static uint defaultValidOrientationMask()
+static Orientation defaultValidOrientationMask()
 {
 	return Base::isIPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskAllButUpsideDown;
 }
 
-bool Window::setValidOrientations(uint oMask)
+bool Window::setValidOrientations(Orientation oMask)
 {
 	oMask = validateOrientationMask(oMask);
 	validO = 0;
@@ -85,7 +86,7 @@ bool Window::setValidOrientations(uint oMask)
 	return true;
 }
 
-bool Window::requestOrientationChange(uint o)
+bool Window::requestOrientationChange(Orientation o)
 {
 	// no-op, OS manages orientation changes
 	return false;
@@ -117,7 +118,7 @@ IG::WindowRect Window::contentBounds() const
 	return contentRect;
 }
 
-void IOSWindow::updateContentRect(int width, int height, uint softOrientation, UIApplication *sharedApp_)
+void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientation, UIApplication *sharedApp_)
 {
 	contentRect.x = contentRect.y = 0;
 	contentRect.x2 = width;
@@ -156,7 +157,7 @@ void IOSWindow::updateContentRect(int width, int height, uint softOrientation, U
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	uint dpi = 163 * pointScale;
+	uint32_t dpi = 163 * pointScale;
 	#if !defined __ARM_ARCH_6K__
 	if(isIPad)
 	{
@@ -177,7 +178,7 @@ std::error_code Window::init(const WindowConfig &config)
 		bug_unreachable("no multi-window support");
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_ = &config.screen();
+	this->screen_ = &config.screen();
 	#endif
 
 	#ifdef CONFIG_BASE_MULTI_WINDOW

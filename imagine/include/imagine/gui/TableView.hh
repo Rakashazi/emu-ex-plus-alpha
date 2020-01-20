@@ -28,7 +28,7 @@ class TableView : public ScrollView
 {
 public:
 	using ItemsDelegate = DelegateFunc<int (const TableView &view)>;
-	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, uint idx)>;
+	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, uint32_t idx)>;
 	static Gfx::GC globalXIndent;
 
 	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
@@ -43,7 +43,7 @@ public:
 			name,
 			attach,
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, uint idx) -> MenuItem& { return derefMenuItem(std::data(item)[idx]); }
+			[&item](const TableView &, uint32_t idx) -> MenuItem& { return derefMenuItem(std::data(item)[idx]); }
 		} {}
 	IG::WindowRect &viewRect() override { return viewFrame; }
 	void prepareDraw() override;
@@ -58,7 +58,7 @@ public:
 	void onHide() override;
 	void onAddedToController(Input::Event e) override;
 	void setFocus(bool focused) override;
-	uint cells() { return items(*this); }
+	uint32_t cells() { return items(*this); }
 	IG::WP cellSize() const { return {viewFrame.x, yCellSize}; }
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
@@ -86,10 +86,10 @@ protected:
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();
-	virtual void onSelectElement(Input::Event e, uint i, MenuItem &item);
+	virtual void onSelectElement(Input::Event e, uint32_t i, MenuItem &item);
 	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(Input::Event e, bool &movedSelected);
-	virtual void drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const;
+	virtual void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const;
 };

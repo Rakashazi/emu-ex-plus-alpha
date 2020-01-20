@@ -22,7 +22,7 @@ extern JavaInstMethod<void(jint)> jSetWinFormat;
 extern JavaInstMethod<jint()> jWinFormat;
 extern JavaInstMethod<void(jint)> jSetRequestedOrientation;
 extern SurfaceRotation osRotation;
-extern uint appState;
+extern uint32_t appState;
 extern AInputQueue *inputQueue;
 extern std::unique_ptr<FrameTimer> frameTimer;
 

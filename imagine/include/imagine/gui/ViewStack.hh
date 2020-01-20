@@ -17,15 +17,9 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/gui/NavView.hh>
-#include <utility>
-#include <array>
 #include <vector>
 
-namespace Gfx
-{
-class RendererTask;
-}
+class NavView;
 
 class BasicViewController : public ViewController
 {
@@ -76,7 +70,7 @@ public:
 	void popTo(View &v);
 	void show();
 	View &top() const;
-	View &viewAtIdx(uint idx) const;
+	View &viewAtIdx(uint32_t idx) const;
 	int viewIdx(View &v) const;
 	int viewIdx(const char *name) const;
 	bool contains(View &v) const;
@@ -84,7 +78,7 @@ public:
 	void dismissView(View &v) override;
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);
-	uint size() const;
+	uint32_t size() const;
 	void setOnRemoveView(RemoveViewDelegate del);
 	bool viewHasFocus() const;
 

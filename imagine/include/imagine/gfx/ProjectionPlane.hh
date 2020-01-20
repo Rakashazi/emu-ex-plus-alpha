@@ -19,9 +19,9 @@
 #include "defs.hh"
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Vec3.hh>
-#include <imagine/base/Window.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/Gfx.hh>
+#include <imagine/util/rectangle2.h>
 
 namespace Gfx
 {

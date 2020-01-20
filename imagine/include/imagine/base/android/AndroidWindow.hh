@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
+#include <jni.h>
 
 struct ANativeWindow;
 

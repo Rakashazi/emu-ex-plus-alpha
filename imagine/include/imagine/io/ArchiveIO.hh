@@ -15,12 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <memory>
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
 #include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/FSDefs.hh>
-#include <array>
+#include <memory>
 
 struct archive;
 struct archive_entry;

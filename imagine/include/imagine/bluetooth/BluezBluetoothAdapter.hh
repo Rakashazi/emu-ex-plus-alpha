@@ -19,7 +19,6 @@
 #include "BluetoothAdapter.hh"
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/l2cap.h>
-#include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Pipe.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER
@@ -34,7 +33,7 @@ public:
 
 	constexpr BluetoothPendingSocket() {}
 	void close();
-	uint channel() { return addr.l2_psm; }
+	uint32_t channel() { return addr.l2_psm; }
 	void requestName(BluetoothAdapter::OnScanDeviceNameDelegate onDeviceName);
 
 	explicit operator bool() const
@@ -51,8 +50,8 @@ public:
 	void cancelScan() final;
 	void close() final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	void setL2capService(uint psm, bool active, OnStatusDelegate onResult) final;
-	//bool l2capServiceRegistered(uint psm) final;
+	void setL2capService(uint32_t psm, bool active, OnStatusDelegate onResult) final;
+	//bool l2capServiceRegistered(uint32_t psm) final;
 	#endif
 	void requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName);
 	State state() final;
@@ -66,8 +65,8 @@ private:
 	struct L2CapServer
 	{
 		constexpr L2CapServer() {}
-		constexpr L2CapServer(uint psm, int fd): psm(psm), fd(fd) {}
-		uint psm = 0;
+		constexpr L2CapServer(uint32_t psm, int fd): psm(psm), fd(fd) {}
+		uint32_t psm = 0;
 		int fd = -1;
 		Base::FDEventSource connectSrc;
 	};
@@ -83,8 +82,8 @@ class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
 	BluezBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint psm) final;
-	CallResult openRfcomm(BluetoothAddr addr, uint channel) final;
+	CallResult openL2cap(BluetoothAddr addr, uint32_t psm) final;
+	CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	CallResult open(BluetoothPendingSocket &socket) final;
 	#endif

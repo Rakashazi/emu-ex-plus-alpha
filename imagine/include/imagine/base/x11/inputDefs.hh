@@ -205,7 +205,7 @@ namespace Input
 	JS_LTRIGGER_AXIS = 0xfe34, JS_RTRIGGER_AXIS = 0xfe35,
 	JS_GAS_AXIS = 0xfe36, JS_BRAKE_AXIS = 0xfe37;
 
-	static constexpr uint COUNT = 0xffff + 1;
+	static constexpr uint32_t COUNT = 0xffff + 1;
 
 		namespace Pandora
 		{

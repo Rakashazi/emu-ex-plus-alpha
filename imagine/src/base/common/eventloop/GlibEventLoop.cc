@@ -69,7 +69,7 @@ FDEventSource FDEventSource::makeXServerAddedToEventLoop(int fd, EventLoop loop)
 	return src;
 }
 
-bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint events)
+bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
 	static GSourceFuncs fdSourceFuncs
 	{
@@ -115,7 +115,7 @@ void FDEventSource::addXServerToEventLoop(EventLoop loop)
 	makeAndAttachSource(&fdSourceFuncs, {}, G_IO_IN, loop.nativeObject());
 }
 
-void FDEventSource::modifyEvents(uint events)
+void FDEventSource::modifyEvents(uint32_t events)
 {
 	assert(source);
 	g_source_modify_unix_fd(source, tag, (GIOCondition)events);

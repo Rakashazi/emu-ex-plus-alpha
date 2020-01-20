@@ -43,8 +43,8 @@ struct DragTrackerState
 	IG::WP pos() const { return pos_; }
 	IG::WP downPos() const { return downPos_; }
 	IG::WP downPosDiff() const { return pos_ - downPos_; }
-	void setXDragStartDistance(uint dist) { xDragStart = dist; }
-	void setYDragStartDistance(uint dist) { yDragStart = dist; }
+	void setXDragStartDistance(uint32_t dist) { xDragStart = dist; }
+	void setYDragStartDistance(uint32_t dist) { yDragStart = dist; }
 	bool isDragging() const { return isDragging_; }
 	bool isTracking() const { return isTracking_; }
 	bool isTracking(int id) const { return isTracking_ && id_ == id; }
@@ -53,8 +53,8 @@ protected:
 	int id_{};
 	IG::WP pos_{};
 	IG::WP downPos_{};
-	uint xDragStart{};
-	uint yDragStart{};
+	uint32_t xDragStart{};
+	uint32_t yDragStart{};
 	bool isDragging_ = false;
 	bool isTracking_ = false;
 };
@@ -165,8 +165,8 @@ public:
 
 	DragTrackerState state() const { return state_; }
 	void finish() { state_.finish(); }
-	void setXDragStartDistance(uint dist) { state_.setXDragStartDistance(dist); }
-	void setYDragStartDistance(uint dist) { state_.setYDragStartDistance(dist); }
+	void setXDragStartDistance(uint32_t dist) { state_.setXDragStartDistance(dist); }
+	void setYDragStartDistance(uint32_t dist) { state_.setYDragStartDistance(dist); }
 	bool isDragging() const { return state_.isDragging(); }
 
 protected:

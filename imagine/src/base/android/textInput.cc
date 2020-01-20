@@ -49,7 +49,7 @@ static void setupTextInputJni(JNIEnv* env)
 	}
 }
 
-uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
+uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
 {
 	using namespace Base;
 	auto env = jEnvForThread();

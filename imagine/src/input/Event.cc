@@ -19,7 +19,7 @@
 namespace Input
 {
 
-uint Event::deviceID() const
+uint32_t Event::deviceID() const
 {
 	return devId;
 }
@@ -29,12 +29,12 @@ const char *Event::mapName()
 	return mapName(map());
 }
 
-uint Event::map() const
+uint32_t Event::map() const
 {
 	return map_;
 }
 
-void Event::setMap(uint map)
+void Event::setMap(uint32_t map)
 {
 	map_ = map;
 }
@@ -44,7 +44,7 @@ int Event::pointerID() const
 	return pointerID_;
 }
 
-uint Event::state() const
+uint32_t Event::state() const
 {
 	return state_;
 }
@@ -74,7 +74,7 @@ bool Event::isKey() const
 	return !isPointer() && !isRelativePointer();
 }
 
-bool Event::isDefaultConfirmButton(uint swapped) const
+bool Event::isDefaultConfirmButton(uint32_t swapped) const
 {
 	switch(map())
 	{
@@ -116,7 +116,7 @@ bool Event::isDefaultConfirmButton() const
 	return isDefaultConfirmButton(swappedGamepadConfirm_);
 }
 
-bool Event::isDefaultCancelButton(uint swapped) const
+bool Event::isDefaultCancelButton(uint32_t swapped) const
 {
 	switch(map())
 	{

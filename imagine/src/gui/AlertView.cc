@@ -102,12 +102,12 @@ void BaseAlertView::setLabel(const char *label)
 	text.setString(label);
 }
 
-AlertView::AlertView(ViewAttachParams attach, const char *label, uint menuItems):
+AlertView::AlertView(ViewAttachParams attach, const char *label, uint32_t menuItems):
 	BaseAlertView{attach, label, item},
 	item{menuItems}
 {}
 
-void AlertView::setItem(uint idx, const char *name, TextMenuItem::SelectDelegate del)
+void AlertView::setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del)
 {
 	assert(idx < item.size());
 	item[idx].t.setString(name);

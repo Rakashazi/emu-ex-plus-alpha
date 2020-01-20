@@ -19,9 +19,6 @@
 #include <system_error>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
-#include <imagine/gfx/GeomRect.hh>
-#include <imagine/gfx/GfxLGradient.hh>
-#include <imagine/gfx/Texture.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/gui/TableView.hh>
@@ -30,6 +27,11 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
+
+namespace Gfx
+{
+class PixmapTexture;
+}
 
 class FSPicker : public View
 {

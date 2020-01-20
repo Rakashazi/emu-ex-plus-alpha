@@ -30,19 +30,19 @@ public:
 	using Delegate = DelegateFunc<int (Pipe &pipe)>;
 
 	#ifdef NDEBUG
-	Pipe(uint preferredSize = 0);
-	Pipe(const char *debugLabel, uint preferredSize = 0): Pipe(preferredSize) {}
+	Pipe(uint32_t preferredSize = 0);
+	Pipe(const char *debugLabel, uint32_t preferredSize = 0): Pipe(preferredSize) {}
 	#else
-	Pipe(uint preferredSize = 0): Pipe(nullptr, preferredSize) {}
-	Pipe(const char *debugLabel, uint preferredSize = 0);
+	Pipe(uint32_t preferredSize = 0): Pipe(nullptr, preferredSize) {}
+	Pipe(const char *debugLabel, uint32_t preferredSize = 0);
 	#endif
 	~Pipe();
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
 	void addToEventLoop(EventLoop loop, Delegate del);
 	void removeFromEventLoop();
-	bool read(void *data, uint size);
-	bool write(const void *data, uint size);
+	bool read(void *data, size_t size);
+	bool write(const void *data, size_t size);
 	bool hasData();
 	void setPreferredSize(int size);
 	void setReadNonBlocking(bool on);

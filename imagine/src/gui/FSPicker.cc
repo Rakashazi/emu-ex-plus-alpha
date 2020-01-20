@@ -17,6 +17,7 @@
 
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/string.h>
@@ -246,7 +247,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		static_cast<TableView*>(&controller.top())->highlightCell(0);
 	else
 		static_cast<TableView*>(&controller.top())->resetScroll();
-	uint pathLen = strlen(path);
+	uint32_t pathLen = strlen(path);
 	// verify root info
 	if(rootInfo.length &&
 		(rootInfo.length > pathLen || !isValidRootEndChar(path[rootInfo.length]) || !strlen(rootInfo.name.data())))

@@ -50,47 +50,47 @@ public:
 		return rate != 0 && sample && channels != 0;
 	}
 
-	uint framesToBytes(uint frames) const
+	uint32_t framesToBytes(uint32_t frames) const
 	{
 		return frames * sample.toBytes() * channels;
 	}
 
-	double framesToMSecs(uint frames) const
+	double framesToMSecs(uint32_t frames) const
 	{
 		return ((double)frames / rate) * 1000.;
 	}
 
-	double framesToUSecs(uint frames) const
+	double framesToUSecs(uint32_t frames) const
 	{
 		return ((double)frames / rate) * 1000000.;
 	}
 
-	uint mSecsToFrames(double mSecs) const
+	uint32_t mSecsToFrames(double mSecs) const
 	{
 		return std::ceil((mSecs / 1000.) * rate);
 	}
 
-	uint uSecsToFrames(double uSecs) const
+	uint32_t uSecsToFrames(double uSecs) const
 	{
 		return std::ceil((uSecs / 1000000.) * rate);
 	}
 
-	uint uSecsToBytes(double uSecs) const
+	uint32_t uSecsToBytes(double uSecs) const
 	{
 		return framesToBytes(uSecsToFrames(uSecs));
 	}
 
-	uint bytesToFrames(uint bytes) const
+	uint32_t bytesToFrames(uint32_t bytes) const
 	{
 		return bytes / sample.toBytes() / channels;
 	}
 
-	uint secsToBytes(uint secs) const
+	uint32_t secsToBytes(uint32_t secs) const
 	{
 		return (rate * sample.toBytes() * channels) * secs;
 	}
 
-	double bytesToSecs(uint bytes) const
+	double bytesToSecs(uint32_t bytes) const
 	{
 		return (double)bytes / (rate * sample.toBytes() * channels);
 	}

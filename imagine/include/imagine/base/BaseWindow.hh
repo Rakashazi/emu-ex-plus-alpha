@@ -16,34 +16,20 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/Screen.hh>
 #include <imagine/base/CustomEvent.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <atomic>
 
-namespace Config
-{
-#if defined CONFIG_BASE_IOS && defined __ARM_ARCH_6K__
-#define CONFIG_GFX_SOFT_ORIENTATION 1
-#elif !defined __ANDROID__ && !defined CONFIG_BASE_IOS
-#define CONFIG_GFX_SOFT_ORIENTATION 1
-#endif
-
-#if defined CONFIG_GFX_SOFT_ORIENTATION
-static constexpr bool SYSTEM_ROTATES_WINDOWS = false;
-#else
-static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
-#endif
-}
-
 namespace Base
 {
+
 using namespace IG;
 
 class Window;
 class WindowConfig;
+class Screen;
 
 class BaseWindow
 {
@@ -118,13 +104,13 @@ protected:
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint softOrientation_ = VIEW_ROTATE_0;
-	uint setSoftOrientation = VIEW_ROTATE_0;
-	uint validSoftOrientations_ = VIEW_ROTATE_0;
+	Orientation softOrientation_ = VIEW_ROTATE_0;
+	Orientation setSoftOrientation = VIEW_ROTATE_0;
+	Orientation validSoftOrientations_ = VIEW_ROTATE_0;
 	#else
-	static constexpr uint softOrientation_ = VIEW_ROTATE_0;
-	static constexpr uint setSoftOrientation = VIEW_ROTATE_0;
-	static constexpr uint validSoftOrientations_ = VIEW_ROTATE_0;
+	static constexpr Orientation softOrientation_ = VIEW_ROTATE_0;
+	static constexpr Orientation setSoftOrientation = VIEW_ROTATE_0;
+	static constexpr Orientation validSoftOrientations_ = VIEW_ROTATE_0;
 	#endif
 
 protected:
@@ -152,4 +138,5 @@ protected:
 	void initDelegates(const WindowConfig &config);
 	void initDefaultValidSoftOrientations();
 };
+
 }

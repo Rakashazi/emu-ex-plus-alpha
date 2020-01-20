@@ -16,13 +16,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <utility>
 #include <memory>
+
+namespace Base
+{
+class Window;
+class Screen;
+}
 
 class View;
 

@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
-#include <imagine/base/Screen.hh>
 #include <imagine/base/WindowConfig.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
@@ -28,6 +27,8 @@
 
 namespace Base
 {
+
+class Screen;
 
 class Window : public WindowImpl
 {
@@ -48,8 +49,8 @@ public:
 	void drawNow(bool needsSync = false);
 	void dispatchOnDraw(bool needsSync = false);
 	Screen *screen() const;
-	static uint windows();
-	static Window *window(uint idx);
+	static uint32_t windows();
+	static Window *window(uint32_t idx);
 	static PixelFormat defaultPixelFormat();
 	NativeWindow nativeObject() const;
 	void setCustomData(void *data);
@@ -107,10 +108,10 @@ public:
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
 
-	uint softOrientation() const;
-	uint validSoftOrientations() const;
-	bool requestOrientationChange(uint o);
-	bool setValidOrientations(uint oMask);
+	Orientation softOrientation() const;
+	Orientation validSoftOrientations() const;
+	bool requestOrientationChange(Orientation o);
+	bool setValidOrientations(Orientation oMask);
 	static bool systemAnimatesRotation();
 
 	bool updateSize(IG::Point2D<int> surfaceSize);

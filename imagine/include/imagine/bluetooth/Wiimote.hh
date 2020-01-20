@@ -23,7 +23,7 @@
 class Wiimote : public BluetoothInputDevice, public Input::Device
 {
 public:
-	static const uchar btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
+	static const uint8_t btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
 	static std::vector<Wiimote*> devList;
 
 	Wiimote(BluetoothAddr addr):
@@ -33,36 +33,36 @@ public:
 	CallResult open(BluetoothAdapter &adapter) final;
 	void close();
 	void removeFromSystem() final;
-	uint joystickAxisBits() final;
-	uint joystickAxisAsDpadBitsDefault() final;
-	void setJoystickAxisAsDpadBits(uint axisMask) final;
-	uint joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
+	uint32_t joystickAxisBits() final;
+	uint32_t joystickAxisAsDpadBitsDefault() final;
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
+	uint32_t joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
 	bool dataHandler(const char *data, size_t size);
-	uint statusHandler(BluetoothSocket &sock, uint status);
+	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	void requestStatus();
-	void setLEDs(uint player);
-	void sendDataMode(uchar mode);
-	void writeReg(uchar offset, uchar val);
-	void readReg(uint offset, uchar size);
+	void setLEDs(uint32_t player);
+	void sendDataMode(uint8_t mode);
+	void writeReg(uint8_t offset, uint8_t val);
+	void readReg(uint32_t offset, uint8_t size);
 	const char *keyName(Input::Key k) const final;
-	static bool isSupportedClass(const uchar devClass[3]);
+	static bool isSupportedClass(const uint8_t devClass[3]);
 
 private:
 	BluetoothSocketSys ctlSock, intSock;
 	int extension = EXT_NONE;
-	uint player = 0;
-	uint function = FUNC_NONE;
-	uint joystickAxisAsDpadBits_;
+	uint32_t player = 0;
+	uint32_t function = FUNC_NONE;
+	uint32_t joystickAxisAsDpadBits_;
 	Input::AxisKeyEmu<int> axisKey[4];
-	uchar prevBtnData[2]{};
-	uchar prevExtData[11]{};
+	uint8_t prevBtnData[2]{};
+	uint8_t prevExtData[11]{};
 	BluetoothAddr addr;
 	bool identifiedType = false;
 
 	struct ExtDevice : public Device
 	{
 		ExtDevice() {}
-		ExtDevice(uint devId, uint map, uint type, const char *name):
+		ExtDevice(uint32_t devId, uint32_t map, uint32_t type, const char *name):
 			Device{devId, map, type, name} {}
 		const char *keyName(Input::Key k) const final;
 	};
@@ -81,15 +81,15 @@ private:
 		EXT_NONE, EXT_CC, EXT_NUNCHUK, EXT_WIIU_PRO, EXT_UNKNOWN
 	};
 
-	static uint findFreeDevId();
+	static uint32_t findFreeDevId();
 	void initExtension();
 	void initExtensionPart2();
-	static uchar playerLEDs(int player);
+	static uint8_t playerLEDs(int player);
 	void sendDataModeByExtension();
-	static void decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY);
-	static void decodeProSticks(const uchar *proSticks, int &lX, int &lY, int &rX, int &rY);
-	void processCoreButtons(const uchar *packet, Input::Time time, uint player);
-	void processClassicButtons(const uchar *packet, Input::Time time, uint player);
-	void processProButtons(const uchar *packet, Input::Time time, uint player);
-	void processNunchukButtons(const uchar *packet, Input::Time time, uint player);
+	static void decodeCCSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY);
+	static void decodeProSticks(const uint8_t *proSticks, int &lX, int &lY, int &rX, int &rY);
+	void processCoreButtons(const uint8_t *packet, Input::Time time, uint32_t player);
+	void processClassicButtons(const uint8_t *packet, Input::Time time, uint32_t player);
+	void processProButtons(const uint8_t *packet, Input::Time time, uint32_t player);
+	void processNunchukButtons(const uint8_t *packet, Input::Time time, uint32_t player);
 };

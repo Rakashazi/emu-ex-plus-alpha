@@ -234,7 +234,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						string_toUpper(c.code);
 						string_copy(c.name, "Unnamed Cheat");
 						cheatList.push_back(c);
-						logMsg("added new cheat, %d total", cheatList.size());
+						logMsg("added new cheat, %zu total", cheatList.size());
 						cheatsModified = 1;
 						applyCheats();
 						view.dismiss();

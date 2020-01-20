@@ -36,16 +36,16 @@ public:
 	void draw(RendererCommands &r);
 	void setColor(ColorComp r, ColorComp g, ColorComp b);
 	void setTranslucent(ColorComp a);
-	void setColorStop(ColorComp r, ColorComp g, ColorComp b, uint i);
-	void setTranslucentStop(ColorComp a, uint i);
-	void setPos(const LGradientStopDesc *stop, uint stops, GC x, GC y, GC x2, GC y2);
-	void setPos(const LGradientStopDesc *stop, uint stops, const GCRect &d);
-	uint stops();
+	void setColorStop(ColorComp r, ColorComp g, ColorComp b, uint32_t i);
+	void setTranslucentStop(ColorComp a, uint32_t i);
+	void setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y, GC x2, GC y2);
+	void setPos(const LGradientStopDesc *stop, uint32_t stops, const GCRect &d);
+	uint32_t stops();
 	explicit operator bool();
 
 protected:
 	GeomQuadMesh g{};
-	uint stops_ = 0;
+	uint32_t stops_ = 0;
 };
 
 }

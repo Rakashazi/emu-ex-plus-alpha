@@ -113,7 +113,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		JavaInstMethod<jobject()> jGetPresentationDisplays{env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};
 		jGetDisplay.setup(env, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
 		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
-		uint pDisplays = env->GetArrayLength(jPDisplay);
+		uint32_t pDisplays = env->GetArrayLength(jPDisplay);
 		if(pDisplays)
 		{
 			logMsg("checking %d presentation display(s)", pDisplays);
@@ -286,7 +286,7 @@ void Screen::unpostFrame()
 		frameTimer->cancel();
 }
 
-void Screen::setFrameInterval(uint interval)
+void Screen::setFrameInterval(int interval)
 {
 	// TODO
 	//logMsg("setting frame interval %d", (int)interval);

@@ -17,7 +17,6 @@
 
 #include <type_traits>
 #include <imagine/io/IO.hh>
-#include <imagine/base/Base.hh>
 
 #if defined CONFIG_IO_WIN32
 #include <imagine/io/Win32IO.hh>

@@ -23,7 +23,7 @@
 struct Zeemote : public BluetoothInputDevice, public Input::Device
 {
 public:
-	static const uchar btClass[3];
+	static const uint8_t btClass[3];
 	static std::vector<Zeemote*> devList;
 
 	Zeemote(BluetoothAddr addr):
@@ -33,17 +33,17 @@ public:
 	CallResult open(BluetoothAdapter &adapter) final;
 	void close();
 	void removeFromSystem() final;
-	uint statusHandler(BluetoothSocket &sock, uint status);
+	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	bool dataHandler(const char *packet, size_t size);
 	const char *keyName(Input::Key k) const final;
-	static bool isSupportedClass(const uchar devClass[3]);
+	static bool isSupportedClass(const uint8_t devClass[3]);
 
 private:
 	BluetoothSocketSys sock;
-	uchar inputBuffer[46]{};
+	uint8_t inputBuffer[46]{};
 	bool prevBtnPush[4]{};
-	uint inputBufferPos = 0;
-	uint packetSize = 0;
+	uint32_t inputBufferPos = 0;
+	uint32_t packetSize = 0;
 	Input::AxisKeyEmu<int> axisKey[2]
 	{
 		{
@@ -57,13 +57,13 @@ private:
 			Input::Keycode::UP, Input::Keycode::DOWN
 		},  // Y Axis
 	};
-	uint player;
+	uint32_t player;
 	BluetoothAddr addr;
 
-	static const uint RID_VERSION = 0x03, RID_BTN_METADATA = 0x04, RID_CONFIG_DATA = 0x05,
+	static const uint32_t RID_VERSION = 0x03, RID_BTN_METADATA = 0x04, RID_CONFIG_DATA = 0x05,
 		RID_BTN_REPORT = 0x07, RID_8BA_2A_JS_REPORT = 0x08, RID_BATTERY_REPORT = 0x11;
 
-	static uint findFreeDevId();
-	static const char *reportIDToStr(uint id);
-	void processBtnReport(const uchar *btnData, Input::Time time, uint player);
+	static uint32_t findFreeDevId();
+	static const char *reportIDToStr(uint32_t id);
+	void processBtnReport(const uint8_t *btnData, Input::Time time, uint32_t player);
 };

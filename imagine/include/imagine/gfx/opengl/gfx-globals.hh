@@ -24,8 +24,8 @@ static constexpr Angle angleToRadian(Angle a) { return a; }
 
 using TextureRef = GLuint;
 using VertexIndex = GLushort;
-using VertexColor = uint;
-using VertexArrayRef = uint;
+using VertexColor = uint32_t;
+using VertexArrayRef = uint32_t;
 
 static constexpr int TRIANGLE_IMPL = GL_TRIANGLES;
 static constexpr int TRIANGLE_STRIP_IMPL = GL_TRIANGLE_STRIP;
@@ -50,11 +50,11 @@ static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
 class VertexInfo
 {
 public:
-	static const uint posOffset = 0;
+	static const uint32_t posOffset = 0;
 	static constexpr bool hasColor = false;
-	static const uint colorOffset = 0;
+	static const uint32_t colorOffset = 0;
 	static constexpr bool hasTexture = false;
-	static const uint textureOffset = 0;
+	static const uint32_t textureOffset = 0;
 	template<class Vtx>
 	static void bindAttribs(RendererCommands &cmds, const Vtx *v);
 };
@@ -67,7 +67,7 @@ public:
 	Vertex() = default;
 	Vertex(VertexPos x, VertexPos y):
 		x{x}, y{y} {}
-	static constexpr uint ID = 1;
+	static constexpr uint32_t ID = 1;
 };
 
 class ColVertex : public VertexInfo
@@ -77,11 +77,11 @@ public:
 	VertexColor color;
 
 	ColVertex() = default;
-	constexpr ColVertex(VertexPos x, VertexPos y, uint color = 0):
+	constexpr ColVertex(VertexPos x, VertexPos y, uint32_t color = 0):
 		x{x}, y{y}, color(color) {}
 	static constexpr bool hasColor = true;
-	static const uint colorOffset;
-	static constexpr uint ID = 2;
+	static const uint32_t colorOffset;
+	static constexpr uint32_t ID = 2;
 };
 
 class TexVertex : public VertexInfo
@@ -94,8 +94,8 @@ public:
 	constexpr TexVertex(VertexPos x, VertexPos y, TextureCoordinate u = 0, TextureCoordinate v = 0):
 		x{x}, y{y}, u{u}, v{v} {}
 	static constexpr bool hasTexture = true;
-	static const uint textureOffset;
-	static constexpr uint ID = 3;
+	static const uint32_t textureOffset;
+	static constexpr uint32_t ID = 3;
 };
 
 class ColTexVertex : public VertexInfo
@@ -106,13 +106,13 @@ public:
 	VertexColor color;
 
 	ColTexVertex() = default;
-	constexpr ColTexVertex(VertexPos x, VertexPos y, uint color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0):
+	constexpr ColTexVertex(VertexPos x, VertexPos y, uint32_t color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0):
 		x{x}, y{y}, u{u}, v{v}, color(color) {}
 	static constexpr bool hasColor = true;
-	static const uint colorOffset;
+	static const uint32_t colorOffset;
 	static constexpr bool hasTexture = true;
-	static const uint textureOffset;
-	static constexpr uint ID = 4;
+	static const uint32_t textureOffset;
+	static constexpr uint32_t ID = 4;
 };
 
 class ClipRect

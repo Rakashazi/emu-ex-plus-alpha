@@ -16,10 +16,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/bits.h>
-#include <imagine/util/typeTraits.hh>
 #include <imagine/util/utility.h>
 #include <cmath>
 #include <algorithm>
+#include <type_traits>
 
 namespace IG
 {

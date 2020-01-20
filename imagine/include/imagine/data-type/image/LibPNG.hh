@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <system_error>
 
 #define PNG_SKIP_SETJMP_CHECK
@@ -35,8 +35,8 @@ public:
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
-	uint width();
-	uint height();
+	uint32_t width();
+	uint32_t height();
 	IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
 
@@ -58,10 +58,7 @@ public:
 	}
 	std::error_code load(GenericIO io);
 	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName)
-	{
-		return load(openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric());
-	}
+	std::error_code loadAsset(const char *name, const char *appName);
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;
 	IG::Pixmap lockPixmap() final;

@@ -57,7 +57,7 @@ GenericIO PosixFileIO::makeGeneric()
 		return GenericIO{posixIO()};
 }
 
-std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint mode)
+std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint32_t mode)
 {
 	close();
 	{

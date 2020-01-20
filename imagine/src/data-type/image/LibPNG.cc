@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/string.h>
 #include <imagine/mem/mem.h>
 
@@ -73,12 +74,12 @@ static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 	}
 }
 
-uint Png::width()
+uint32_t Png::width()
 {
 	return png_get_image_width(png, info);
 }
 
-uint Png::height()
+uint32_t Png::height()
 {
 	return png_get_image_height(png, info);
 }
@@ -116,7 +117,7 @@ std::error_code Png::readHeader(GenericIO io)
 	//logMsg("initial reading to start at offset 0x%X", (int)stream->ftell);
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
-	uchar header[INITIAL_HEADER_READ_BYTES];
+	uint8_t header[INITIAL_HEADER_READ_BYTES];
 	auto ec = io.readAll(&header, INITIAL_HEADER_READ_BYTES);
 	if(ec)
 		return ec;
@@ -304,9 +305,9 @@ std::errc Png::readImage(IG::Pixmap &dest)
 	}
 	setTransforms(dest.format(), transInfo);
 	
-	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint)png_get_rowbytes(data->png, data->info));
+	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint32_t)png_get_rowbytes(data->png, data->info));
 
-	assert( (uint)width*dest.format().bytesPerPixel() == png_get_rowbytes(png, info) );
+	assert( (uint32_t)width*dest.format().bytesPerPixel() == png_get_rowbytes(png, info) );
 	
 	if(png_get_interlace_type(png, info) == PNG_INTERLACE_NONE)
 	{
@@ -397,6 +398,11 @@ std::error_code PngFile::load(const char *name)
 		return ec;
 	}
 	return load(io.makeGeneric());
+}
+
+std::error_code PngFile::loadAsset(const char *name, const char *appName)
+{
+	return load(openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric());
 }
 
 void PngFile::deinit()

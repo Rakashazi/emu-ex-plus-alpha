@@ -19,7 +19,13 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/operators.hh>
-#include <imagine/base/Window.hh>
+
+namespace Base
+{
+
+class Window;
+
+}
 
 namespace Gfx
 {
@@ -35,9 +41,9 @@ private:
 	#endif
 	IG::Rect2<int> relYFlipViewport;
 	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	uint softOrientation_ = Base::VIEW_ROTATE_0;
+	Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
 	#else
-	static constexpr uint softOrientation_ = Base::VIEW_ROTATE_0;
+	static constexpr Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
 	#endif
 
 public:
@@ -101,11 +107,7 @@ public:
 	}
 
 	static Viewport makeFromWindow(const Base::Window &win, const IG::WindowRect &rect);
-	static Viewport makeFromWindow(const Base::Window &win)
-	{
-		return makeFromWindow(win, win.contentBounds());
-	}
-
+	static Viewport makeFromWindow(const Base::Window &win);
 	static Viewport makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &fullRealRect, const IG::WindowRect &subRect);
 
 	static Viewport makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &subRect)

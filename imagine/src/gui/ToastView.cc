@@ -17,6 +17,7 @@
 #include <imagine/gui/ToastView.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/math/int.hh>
 #include <string>
 
 ToastView::ToastView(ViewAttachParams attach): View{attach}
@@ -104,7 +105,7 @@ void ToastView::post(const char *prefix, std::error_code ec, int secs)
 	printf(secs, true, "%s%s", prefix, ec.message().c_str());
 }
 
-void ToastView::printf(uint secs, bool error, const char *format, ...)
+void ToastView::printf(uint32_t secs, bool error, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
@@ -112,7 +113,7 @@ void ToastView::printf(uint secs, bool error, const char *format, ...)
 	vprintf(secs, error, format, args);
 }
 
-void ToastView::vprintf(uint secs, bool error, const char *format, va_list args)
+void ToastView::vprintf(uint32_t secs, bool error, const char *format, va_list args)
 {
 	{
 		waitForDrawFinished();

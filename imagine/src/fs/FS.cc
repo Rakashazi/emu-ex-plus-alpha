@@ -135,7 +135,7 @@ FileStringCompareFunc fileStringNoCaseLexCompare()
 
 int directoryItems(const char *path)
 {
-		uint items = 0;
+		uint32_t items = 0;
 		for(auto &d : FS::directory_iterator(path))
 		{
 			items++;

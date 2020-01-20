@@ -49,7 +49,7 @@ public:
 		}
 
 		template <class T>
-		bool getExtraData(T *obj, uint size)
+		bool getExtraData(T *obj, size_t size)
 		{
 			return pipe.read(obj, size);
 		}
@@ -58,8 +58,8 @@ public:
 		Pipe &pipe;
 	};
 
-	PipeMessagePort(const char *debugLabel = nullptr, uint capacity = 8):
-		pipe{debugLabel, (uint)sizeof(MSG_TYPE) * capacity}
+	PipeMessagePort(const char *debugLabel = nullptr, uint32_t capacity = 8):
+		pipe{debugLabel, (uint32_t)sizeof(MSG_TYPE) * capacity}
 	{
 		pipe.setReadNonBlocking(true);
 	}
@@ -106,7 +106,7 @@ public:
 	}
 
 	template <class T>
-	bool sendWithExtraData(MSG_TYPE msg, T *obj, uint size)
+	bool sendWithExtraData(MSG_TYPE msg, T *obj, uint32_t size)
 	{
 		assumeExpr(sizeof(MSG_TYPE) + size < PIPE_BUF);
 		const auto bufferSize = sizeof(MSG_TYPE) + size;

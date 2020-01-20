@@ -20,6 +20,8 @@
 #include "internal.hh"
 #include <imagine/util/fd-utils.h>
 #include <imagine/logger/logger.h>
+#include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
 #include <android/looper.h>
@@ -95,7 +97,7 @@ IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
 	return {((float)size.x / s.densityDPI) * 25.4f, ((float)size.y / s.densityDPI) * 25.4f};
 }
 
-bool Window::setValidOrientations(uint oMask)
+bool Window::setValidOrientations(Orientation oMask)
 {
 	using namespace Base;
 	logMsg("requested orientation change to %s", Base::orientationToStr(oMask));
@@ -115,7 +117,7 @@ bool Window::setValidOrientations(uint oMask)
 	return true;
 }
 
-bool Window::requestOrientationChange(uint o)
+bool Window::requestOrientationChange(Orientation o)
 {
 	// no-op, OS manages orientation changes
 	return false;
@@ -136,7 +138,7 @@ std::error_code Window::init(const WindowConfig &config)
 		bug_unreachable("no multi-window support");
 	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_ = &config.screen();
+	this->screen_ = &config.screen();
 	#endif
 
 	initialInit = true;

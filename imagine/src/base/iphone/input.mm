@@ -66,7 +66,7 @@ static GSEventIsHardwareKeyboardAttachedProto GSEventIsHardwareKeyboardAttached{
 
 #if defined IPHONE_VKEYBOARD
 
-static CGAffineTransform makeTransformForOrientation(uint orientation)
+static CGAffineTransform makeTransformForOrientation(Base::Orientation orientation)
 {
 	using namespace Base;
 	switch(orientation)
@@ -133,7 +133,7 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	logMsg("init vkeyboard");
 }
 
-uint startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint fontSizePixels)
+uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
 {
 	using namespace Base;
 	logMsg("starting system text input");
@@ -188,7 +188,7 @@ void finishSysTextInput()
 
 #endif
 
-bool Device::anyTypeBitsPresent(uint typeBits)
+bool Device::anyTypeBitsPresent(uint32_t typeBits)
 {
 	if((typeBits & TYPE_BIT_KEYBOARD) && hardwareKBAttached)
 		return true;

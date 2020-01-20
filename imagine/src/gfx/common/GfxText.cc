@@ -63,7 +63,7 @@ void Text::makeGlyphs(Renderer &r)
 	if(unlikely(!face || !str))
 		return;
 	const char *s = str;
-	uint c = 0;
+	uint32_t c = 0;
 	while(!(bool)string_convertCharCode(&s, c))
 	{
 		face->glyphEntry(r, c);
@@ -91,7 +91,7 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 	
 	int spaceSizeI = mGly->metrics.xSize/2;
 	spaceSize = projP.unprojectXSize(spaceSizeI);
-	uint nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
+	uint32_t nominalHeightPixels = mGly->metrics.ySize + gGly->metrics.ySize/2;
 	nominalHeight = projP.alignYToPixel(projP.unprojectYSize(IG::makeEvenRoundedUp(nominalHeightPixels)));
 	//int maxLineSizeI = Gfx::toIXSize(maxLineSize);
 	//logMsg("max line size %f", maxLineSize);
@@ -99,10 +99,10 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 	lines = 1;
 	GC xLineSize = 0, maxXLineSize = 0;
 	const char *s = str;
-	uint c = 0, prevC = 0;
+	uint32_t c = 0, prevC = 0;
 	GC textBlockSize = 0;
-	uint textBlockIdx = 0, currLineIdx = 0;
-	uint charIdx = 0, charsInLine = 0;
+	uint32_t textBlockIdx = 0, currLineIdx = 0;
+	uint32_t charIdx = 0, charsInLine = 0;
 	while(!(bool)string_convertCharCode(&s, c))
 	{
 		auto cSize = xSizeOfChar(r, face, c, spaceSize, projP);
@@ -141,7 +141,7 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 				// Line has more than 1 block and is too big, needs text break
 				//logMsg("new line %d with text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
 				xLineSize -= textBlockSize;
-				uint charsInNextLine = (charIdx - textBlockIdx) + 1;
+				uint32_t charsInNextLine = (charIdx - textBlockIdx) + 1;
 				lineInfo[lines-1].size = xLineSize;
 				lineInfo[lines-1].chars = charsInLine - charsInNextLine;
 				maxXLineSize = std::max(xLineSize, maxXLineSize);
@@ -194,7 +194,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const Pro
 	//logMsg("drawing text @ %f,%f: str", xPos, yPos, str);
 	auto xViewLimit = projP.wHalf();
 	const char *s = str;
-	uint totalCharsDrawn = 0;
+	uint32_t totalCharsDrawn = 0;
 	if(lines > 1)
 	{
 		assert(lineInfo);
@@ -203,12 +203,12 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const Pro
 	{
 		// Get line info (1 line case doesn't use per-line info)
 		GC xLineSize = lines > 1 ? lineInfo[l].size : xSize;
-		uint charsToDraw = lines > 1 ? lineInfo[l].chars : chars;
+		uint32_t charsToDraw = lines > 1 ? lineInfo[l].chars : chars;
 		xPos = projP.alignXToPixel(LT2DO.adjustX(xOrig, xSize-xLineSize, align));
 		//logMsg("line %d, %d chars", l, charsToDraw);
 		iterateTimes(charsToDraw, i)
 		{
-			uint c;
+			uint32_t c;
 			if(auto err = string_convertCharCode(&s, c);
 				(bool)err)
 			{

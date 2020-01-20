@@ -47,10 +47,10 @@ public:
 	struct Buffer
 	{
 		void *data{};
-		uint pitch = 0;
+		uint32_t pitch = 0;
 
 		constexpr Buffer() {}
-		constexpr Buffer(void *data, uint pitch): data{data}, pitch{pitch} {}
+		constexpr Buffer(void *data, uint32_t pitch): data{data}, pitch{pitch} {}
 	};
 
 	virtual ~DirectTextureStorage() = 0;
@@ -64,13 +64,13 @@ class GLLockedTextureBuffer
 protected:
 	IG::Pixmap pix;
 	IG::WindowRect srcDirtyRect;
-	uint lockedLevel = 0;
+	uint32_t lockedLevel = 0;
 	GLuint pbo_ = 0;
 
 public:
 	constexpr GLLockedTextureBuffer() {}
-	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint lockedLevel, GLuint pbo);
-	uint level() const { return lockedLevel; }
+	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint32_t lockedLevel, GLuint pbo);
+	uint32_t level() const { return lockedLevel; }
 	GLuint pbo() const { return pbo_; };
 };
 
@@ -92,9 +92,9 @@ public:
 protected:
 	DirectTextureStorage *directTex{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	uint type_ = TEX_UNSET;
+	uint32_t type_ = TEX_UNSET;
 	#else
-	static constexpr uint type_ = TEX_2D_4;
+	static constexpr uint32_t type_ = TEX_2D_4;
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
 	GLenum target = GL_TEXTURE_2D;
@@ -104,7 +104,7 @@ protected:
 	TextureRef texName_ = 0;
 	IG::PixmapDesc pixDesc;
 	GLuint sampler = 0; // used when separate sampler objects not supported
-	uint levels_ = 0;
+	uint32_t levels_ = 0;
 	#ifdef __ANDROID__
 	static AndroidStorageImpl androidStorageImpl_;
 	#endif

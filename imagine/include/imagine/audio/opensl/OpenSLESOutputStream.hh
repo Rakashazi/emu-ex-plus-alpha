@@ -43,7 +43,7 @@ private:
 	SLAndroidSimpleBufferQueueItf slBuffQI{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
 	char *buffer{};
-	uint bufferBytes = 0;
+	uint32_t bufferBytes = 0;
 	PcmFormat pcmFormat{};
 	bool isPlaying_ = false;
 	bool bufferQueued = false;

@@ -44,14 +44,14 @@ template class QuadGeneric<ColTexVertex>;
 
 void TexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
 
-void ColQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
-void ColQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }
-void ColQuad::setColorAlpha(ColorComp a, uint edges) { Gfx::setColorAlpha(v, a, edges); }
+void ColQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges) { Gfx::setColor(v, r, g, b, a, edges); }
+void ColQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges) { Gfx::setColorRGB(v, r, g, b, edges); }
+void ColQuad::setColorAlpha(ColorComp a, uint32_t edges) { Gfx::setColorAlpha(v, a, edges); }
 
 void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
-void ColTexQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint edges) { Gfx::setColor(v, r, g, b, a, edges); }
-void ColTexQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint edges) { Gfx::setColorRGB(v, r, g, b, edges); }
-void ColTexQuad::setColorAlpha(ColorComp a, uint edges) { Gfx::setColorAlpha(v, a, edges); }
+void ColTexQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges) { Gfx::setColor(v, r, g, b, a, edges); }
+void ColTexQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges) { Gfx::setColorRGB(v, r, g, b, edges); }
+void ColTexQuad::setColorAlpha(ColorComp a, uint32_t edges) { Gfx::setColorAlpha(v, a, edges); }
 
 std::array<Vertex, 4> makeVertArray(GCRect pos)
 {

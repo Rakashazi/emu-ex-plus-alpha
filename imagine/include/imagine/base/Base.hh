@@ -45,8 +45,8 @@ void registerInstance(const char *appID, int argc, char** argv);
 void setAcceptIPC(const char *appID, bool on);
 
 // App run state
-static const uint APP_RUNNING = 0, APP_PAUSED = 1, APP_EXITING = 2;
-uint appActivityState();
+static const uint32_t APP_RUNNING = 0, APP_PAUSED = 1, APP_EXITING = 2;
+uint32_t appActivityState();
 static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
 
 // external services
@@ -63,24 +63,24 @@ std::vector<FS::PathLocation> rootFileLocations();
 
 // OS UI management (status & navigation bar)
 
-static constexpr uint
+static constexpr uint32_t
   SYS_UI_STYLE_NO_FLAGS = 0,
   SYS_UI_STYLE_DIM_NAV = bit(0),
   SYS_UI_STYLE_HIDE_NAV = bit(1),
   SYS_UI_STYLE_HIDE_STATUS = bit(2);
 
-void setSysUIStyle(uint flags);
+void setSysUIStyle(uint32_t flags);
 bool hasTranslucentSysUI();
 bool hasHardwareNavButtons();
-void setSystemOrientation(uint o);
-uint defaultSystemOrientations();
+void setSystemOrientation(Orientation o);
+Orientation defaultSystemOrientations();
 
 // Sensors
 void setDeviceOrientationChangeSensor(bool on);
 
 // vibration support
 bool hasVibrator();
-void vibrate(uint ms);
+void vibrate(uint32_t ms);
 
 // Notification/Launcher icons
 void addNotification(const char *onShow, const char *title, const char *message);
@@ -101,13 +101,6 @@ bool usesPermission(Permission p);
 bool requestPermission(Permission p);
 
 // App Callbacks
-
-using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
-using ResumeDelegate = DelegateFunc<bool (bool focused)>;
-using FreeCachesDelegate = DelegateFunc<void ()>;
-using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
-using DeviceOrientationChangedDelegate = DelegateFunc<void (uint newOrientation)>;
-using SystemOrientationChangedDelegate = DelegateFunc<void (uint oldOrientation, uint newOrientation)>;
 
 // Called when another process sends the app a message
 void setOnInterProcessMessage(InterProcessMessageDelegate del);
@@ -142,29 +135,3 @@ void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del);
 [[gnu::cold]] void onInit(int argc, char** argv);
 
 } // Base
-
-namespace Config
-{
-
-#if defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA
-#define CONFIG_BASE_SUPPORTS_VIBRATOR
-static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
-#else
-static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
-#endif
-
-#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE) || defined CONFIG_ENV_WEBOS
-#define CONFIG_BASE_CAN_BACKGROUND_APP
-static constexpr bool BASE_CAN_BACKGROUND_APP = true;
-#else
-static constexpr bool BASE_CAN_BACKGROUND_APP = false;
-#endif
-
-#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
-#define CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = true;
-#else
-static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = false;
-#endif
-
-}

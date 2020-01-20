@@ -19,14 +19,15 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/container/containerUtils.hh>
 #include "../input/private.hh"
 #include "private.hh"
 
 using namespace IG;
 
-const uchar Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
-const uchar Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
-const uchar Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
+const uint8_t Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
+const uint8_t Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
+const uint8_t Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
 static const char ccDataBytes = 6;
 static const char nunchuckDataBytes = 6;
 static const char proDataBytes = 10;
@@ -164,7 +165,7 @@ static const char *wiiCCButtonName(Input::Key k)
 	return "";
 }
 
-static const char *wiiKeyName(Input::Key k, uint map)
+static const char *wiiKeyName(Input::Key k, uint32_t map)
 {
 	switch(map)
 	{
@@ -183,9 +184,9 @@ const char *Wiimote::ExtDevice::keyName(Input::Key k) const
 	return wiiKeyName(k, map_);
 }
 
-uint Wiimote::findFreeDevId()
+uint32_t Wiimote::findFreeDevId()
 {
-	uint id[5]{};
+	uint32_t id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
@@ -208,7 +209,7 @@ CallResult Wiimote::open(BluetoothAdapter &adapter)
 			return dataHandler(packet, size);
 		};
 	ctlSock.onStatus() = intSock.onStatus() =
-		[this](BluetoothSocket &sock, uint status)
+		[this](BluetoothSocket &sock, uint32_t status)
 		{
 			return statusHandler(sock, status);
 		};
@@ -220,7 +221,7 @@ CallResult Wiimote::open(BluetoothAdapter &adapter)
 	return OK;
 }
 
-uint Wiimote::statusHandler(BluetoothSocket &sock, uint status)
+uint32_t Wiimote::statusHandler(BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&ctlSock)
 	{
@@ -280,38 +281,38 @@ void Wiimote::removeFromSystem()
 	}
 }
 
-void Wiimote::writeReg(uchar offset, uchar val)
+void Wiimote::writeReg(uint8_t offset, uint8_t val)
 {
-	uchar toWrite[23] = { 0xa2, 0x16, 0x04, 0xA4, 0x00, offset, 0x01, val }; // extra 15 bytes padding
+	uint8_t toWrite[23] = { 0xa2, 0x16, 0x04, 0xA4, 0x00, offset, 0x01, val }; // extra 15 bytes padding
 	intSock.write(toWrite, sizeof(toWrite));
 }
 
-void Wiimote::readReg(uint offset, uchar size)
+void Wiimote::readReg(uint32_t offset, uint8_t size)
 {
-	uchar toRead[8] = { 0xa2, 0x17, 0x04,
-			uchar((offset & 0xFF0000) >> 16), uchar((offset & 0xFF00) >> 8), uchar(offset & 0xFF), 0x00, size };
+	uint8_t toRead[8] = { 0xa2, 0x17, 0x04,
+			uint8_t((offset & 0xFF0000) >> 16), uint8_t((offset & 0xFF00) >> 8), uint8_t(offset & 0xFF), 0x00, size };
 	logMsg("read reg %X %X %X", toRead[3], toRead[4], toRead[5]);
 	intSock.write(toRead, sizeof(toRead));
 }
 
-void Wiimote::setLEDs(uint player)
+void Wiimote::setLEDs(uint32_t player)
 {
 	logMsg("setting LEDs for player %d", player);
-	const uchar setLEDs[] = { 0xa2, 0x11, playerLEDs(player) };
+	const uint8_t setLEDs[] = { 0xa2, 0x11, playerLEDs(player) };
 	intSock.write(setLEDs, sizeof(setLEDs));
 }
 
 void Wiimote::requestStatus()
 {
 	logMsg("requesting status");
-	const uchar reqStatus[] = { 0xa2, 0x15, 0x00 };
+	const uint8_t reqStatus[] = { 0xa2, 0x15, 0x00 };
 	intSock.write(reqStatus, sizeof(reqStatus));
 }
 
-void Wiimote::sendDataMode(uchar mode)
+void Wiimote::sendDataMode(uint8_t mode)
 {
 	logMsg("setting mode 0x%X", mode);
-	uchar setMode[] = { 0xa2, 0x12, 0x00, mode };
+	uint8_t setMode[] = { 0xa2, 0x12, 0x00, mode };
 	intSock.write(setMode, sizeof(setMode));
 }
 
@@ -344,7 +345,7 @@ void Wiimote::sendDataModeByExtension()
 bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 {
 	using namespace Input;
-	auto packet = (const uchar*)packetPtr;
+	auto packet = (const uint8_t*)packetPtr;
 	if(unlikely(packet[0] != 0xa1))
 	{
 		logWarn("Unknown report in Wiimote packet");
@@ -422,9 +423,9 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 				bcase FUNC_GET_EXT_TYPE:
 				{
 					// CCs can have 0 or 1 in first byte, check only last 5 bytes
-					const uchar ccType[5] {/*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x01};
-					const uchar wiiUProType[5] {/*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x20};
-					const uchar nunchukType[6] {0x00, 0x00, 0xA4, 0x20, 0x00, 0x00};
+					const uint8_t ccType[5] {/*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x01};
+					const uint8_t wiiUProType[5] {/*0x00,*/ 0x00, 0xA4, 0x20, 0x01, 0x20};
+					const uint8_t nunchukType[6] {0x00, 0x00, 0xA4, 0x20, 0x00, 0x00};
 					logMsg("ext type: %X %X %X %X %X %X",
 						packet[7], packet[8], packet[9], packet[10], packet[11], packet[12]);
 					if(memcmp(&packet[8], ccType, sizeof(ccType)) == 0)
@@ -516,7 +517,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-uchar Wiimote::playerLEDs(int player)
+uint8_t Wiimote::playerLEDs(int player)
 {
 	switch(player)
 	{
@@ -529,7 +530,7 @@ uchar Wiimote::playerLEDs(int player)
 	}
 }
 
-void Wiimote::decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY)
+void Wiimote::decodeCCSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY)
 {
 	lX = ccSticks[0] & 0x3F;
 	lY = ccSticks[1] & 0x3F;
@@ -537,7 +538,7 @@ void Wiimote::decodeCCSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, i
 	rY = ccSticks[2] & 0x1F;
 }
 
-void Wiimote::decodeProSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, int &rY)
+void Wiimote::decodeProSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY)
 {
 	lX = ccSticks[0] | (ccSticks[1] << 8);
 	lY = ccSticks[4] | (ccSticks[5] << 8);
@@ -545,7 +546,7 @@ void Wiimote::decodeProSticks(const uchar *ccSticks, int &lX, int &lY, int &rX, 
 	rY = ccSticks[6] | (ccSticks[7] << 8);
 }
 
-void Wiimote::processCoreButtons(const uchar *packet, Input::Time time, uint player)
+void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time, uint32_t player)
 {
 	using namespace Input;
 	auto btnData = &packet[2];
@@ -556,7 +557,7 @@ void Wiimote::processCoreButtons(const uchar *packet, Input::Time time, uint pla
 		{
 			//logMsg("%s %s @ wiimote %d", buttonName(Event::MAP_WIIMOTE, e.keyEvent), newState ? "pushed" : "released", player);
 			Base::endIdleByUserActivity();
-			Event event{(uint)player, Event::MAP_WIIMOTE, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
+			Event event{(uint32_t)player, Event::MAP_WIIMOTE, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}
@@ -564,7 +565,7 @@ void Wiimote::processCoreButtons(const uchar *packet, Input::Time time, uint pla
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-void Wiimote::processClassicButtons(const uchar *packet, Input::Time time, uint player)
+void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time, uint32_t player)
 {
 	using namespace Input;
 	auto ccData = &packet[4];
@@ -592,10 +593,10 @@ void Wiimote::processClassicButtons(const uchar *packet, Input::Time time, uint 
 	memcpy(prevExtData, ccData, ccDataBytes);
 }
 
-void Wiimote::processProButtons(const uchar *packet, Input::Time time, uint player)
+void Wiimote::processProButtons(const uint8_t *packet, Input::Time time, uint32_t player)
 {
 	using namespace Input;
-	const uchar *proData = &packet[4];
+	const uint8_t *proData = &packet[4];
 	//processProStickDataForButtonEmulation(player, proData);
 	int stickPos[4];
 	decodeProSticks(proData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
@@ -620,10 +621,10 @@ void Wiimote::processProButtons(const uchar *packet, Input::Time time, uint play
 	memcpy(prevExtData, proData, proDataBytes);
 }
 
-void Wiimote::processNunchukButtons(const uchar *packet, Input::Time time, uint player)
+void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time, uint32_t player)
 {
 	using namespace Input;
-	const uchar *nunData = &packet[4];
+	const uint8_t *nunData = &packet[4];
 	//processNunchukStickDataForButtonEmulation(player, nunData);
 	iterateTimes(2, i)
 	{
@@ -645,7 +646,7 @@ void Wiimote::processNunchukButtons(const uchar *packet, Input::Time time, uint 
 	memcpy(prevExtData, nunData, nunchuckDataBytes);
 }
 
-uint Wiimote::joystickAxisBits()
+uint32_t Wiimote::joystickAxisBits()
 {
 	switch(extension)
 	{
@@ -658,7 +659,7 @@ uint Wiimote::joystickAxisBits()
 	return 0;
 }
 
-uint Wiimote::joystickAxisAsDpadBitsDefault()
+uint32_t Wiimote::joystickAxisAsDpadBitsDefault()
 {
 	switch(extension)
 	{
@@ -670,7 +671,7 @@ uint Wiimote::joystickAxisAsDpadBitsDefault()
 	return 0;
 }
 
-void Wiimote::setJoystickAxisAsDpadBits(uint axisMask)
+void Wiimote::setJoystickAxisAsDpadBits(uint32_t axisMask)
 {
 	using namespace Input;
 	if(joystickAxisAsDpadBits_ == axisMask)
@@ -728,7 +729,7 @@ void Wiimote::setJoystickAxisAsDpadBits(uint axisMask)
 	}
 }
 
-bool Wiimote::isSupportedClass(const uchar devClass[3])
+bool Wiimote::isSupportedClass(const uint8_t devClass[3])
 {
 	return IG::equal_n(devClass, 3, btClass)
 		|| IG::equal_n(devClass, 3, btClassDevOnly)

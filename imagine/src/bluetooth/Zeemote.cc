@@ -19,13 +19,14 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/container/containerUtils.hh>
 #include <algorithm>
 #include "../input/private.hh"
 #include "private.hh"
 
 std::vector<Zeemote*> Zeemote::devList;
 
-const uchar Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
+const uint8_t Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
 
 static const Input::Key sysKeyMap[4]
 {
@@ -57,9 +58,9 @@ const char *Zeemote::keyName(Input::Key k) const
 	return zeemoteButtonName(k);
 }
 
-uint Zeemote::findFreeDevId()
+uint32_t Zeemote::findFreeDevId()
 {
-	uint id[5]{};
+	uint32_t id[5]{};
 	for(auto e : devList)
 	{
 		id[e->player] = 1;
@@ -82,7 +83,7 @@ CallResult Zeemote::open(BluetoothAdapter &adapter)
 			return dataHandler(packet, size);
 		};
 	sock.onStatus() =
-		[this](BluetoothSocket &sock, uint status)
+		[this](BluetoothSocket &sock, uint32_t status)
 		{
 			return statusHandler(sock, status);
 		};
@@ -114,7 +115,7 @@ void Zeemote::removeFromSystem()
 	}
 }
 
-uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
+uint32_t Zeemote::statusHandler(BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
@@ -146,10 +147,10 @@ uint Zeemote::statusHandler(BluetoothSocket &sock, uint status)
 bool Zeemote::dataHandler(const char *packet, size_t size)
 {
 	//logMsg("%d bytes ready", size);
-	uint bytesLeft = size;
+	uint32_t bytesLeft = size;
 	do
 	{
-		uint processBytes = std::min(bytesLeft, packetSize - inputBufferPos);
+		uint32_t processBytes = std::min(bytesLeft, packetSize - inputBufferPos);
 		memcpy(&inputBuffer[inputBufferPos], &packet[size-bytesLeft], processBytes);
 		if(inputBufferPos == 0) // get data size
 		{
@@ -173,13 +174,13 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		if(inputBufferPos == packetSize)
 		{
 			auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
-			uint rID = inputBuffer[2];
+			uint32_t rID = inputBuffer[2];
 			logMsg("report id 0x%X, %s", rID, reportIDToStr(rID));
 			switch(rID)
 			{
 				bcase RID_BTN_REPORT:
 				{
-					const uchar *key = &inputBuffer[3];
+					const uint8_t *key = &inputBuffer[3];
 					logMsg("got button report %X %X %X %X %X %X", key[0], key[1], key[2], key[3], key[4], key[5]);
 					processBtnReport(key, time, player);
 				}
@@ -200,7 +201,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 	return 1;
 }
 
-const char *Zeemote::reportIDToStr(uint id)
+const char *Zeemote::reportIDToStr(uint32_t id)
 {
 	switch(id)
 	{
@@ -214,10 +215,10 @@ const char *Zeemote::reportIDToStr(uint id)
 	return "Unknown";
 }
 
-void Zeemote::processBtnReport(const uchar *btnData, Input::Time time, uint player)
+void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time, uint32_t player)
 {
 	using namespace Input;
-	uchar btnPush[4] {0};
+	uint8_t btnPush[4] {0};
 	iterateTimes(4, i)
 	{
 		if(btnData[i] >= 4)
@@ -229,7 +230,7 @@ void Zeemote::processBtnReport(const uchar *btnData, Input::Time time, uint play
 		if(prevBtnPush[i] != btnPush[i])
 		{
 			bool newState = btnPush[i];
-			uint code = i + 1;
+			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
 			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, time, this};
@@ -240,7 +241,7 @@ void Zeemote::processBtnReport(const uchar *btnData, Input::Time time, uint play
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));
 }
 
-bool Zeemote::isSupportedClass(const uchar devClass[3])
+bool Zeemote::isSupportedClass(const uint8_t devClass[3])
 {
 	return IG::equal_n(devClass, 3, btClass);
 }

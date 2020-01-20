@@ -125,7 +125,7 @@ Audio::PcmFormat nativeFormat()
 	return nativeFmt;
 }
 
-uint nativeOutputFramesPerBuffer()
+uint32_t nativeOutputFramesPerBuffer()
 {
 	if(unlikely(outputBufferFrames == -1))
 	{

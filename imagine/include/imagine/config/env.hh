@@ -29,7 +29,7 @@ namespace Config
 
 // TODO: have to use ANDROID_ for now since ANDROID is needed as a macro in some system headers not yet using __ANDROID__
 enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, WIN32_, PS3 };
-static constexpr uint ENV =
+static constexpr uint32_t ENV =
 	#if defined __ANDROID__
 	ANDROID_;
 	#elif defined __APPLE__ && TARGET_OS_IPHONE
@@ -64,7 +64,7 @@ static constexpr bool envIsWebOS3 =
 	#endif
 static constexpr bool envIsWebOS1 = envIsWebOS && !envIsWebOS3;
 
-static constexpr uint ENV_ANDROID_MINSDK =
+static constexpr uint32_t ENV_ANDROID_MINSDK =
 	#ifdef __ANDROID_API__
 	__ANDROID_API__;
 	#else
@@ -160,9 +160,9 @@ static constexpr Machine MACHINE = GENERIC;
 #endif
 
 #ifdef __ARM_ARCH
-static constexpr uint ARM_ARCH = __ARM_ARCH;
+static constexpr uint32_t ARM_ARCH = __ARM_ARCH;
 #else
-static constexpr uint ARM_ARCH = 0;
+static constexpr uint32_t ARM_ARCH = 0;
 #endif
 
 static constexpr bool MACHINE_IS_GENERIC_X86 = MACHINE == GENERIC_X86;

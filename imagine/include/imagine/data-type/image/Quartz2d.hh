@@ -33,8 +33,8 @@ public:
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
-	uint width();
-	uint height();
+	uint32_t width();
+	uint32_t height();
 	const IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
 

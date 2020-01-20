@@ -167,7 +167,7 @@ void RendererCommands::setBlendFunc(BlendFunc s, BlendFunc d)
 	glcBlendFunc((GLenum)s, (GLenum)d);
 }
 
-void RendererCommands::setBlendMode(uint mode)
+void RendererCommands::setBlendMode(uint32_t mode)
 {
 	rTask->verifyCurrentContext();
 	switch(mode)
@@ -184,7 +184,7 @@ void RendererCommands::setBlendMode(uint mode)
 	}
 }
 
-void RendererCommands::setBlendEquation(uint mode)
+void RendererCommands::setBlendEquation(uint32_t mode)
 {
 	rTask->verifyCurrentContext();
 	#if !defined CONFIG_GFX_OPENGL_ES \
@@ -323,7 +323,7 @@ std::array<ColorComp, 4> RendererCommands::color() const
 	return vColor;
 }
 
-void RendererCommands::setImgMode(uint mode)
+void RendererCommands::setImgMode(uint32_t mode)
 {
 	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -360,7 +360,7 @@ bool RendererCommands::dither()
 	return glcIsEnabled(GL_DITHER);
 }
 
-void RendererCommands::setVisibleGeomFace(uint sides)
+void RendererCommands::setVisibleGeomFace(uint32_t sides)
 {
 	rTask->verifyCurrentContext();
 	if(sides == BOTH_FACES)
@@ -447,7 +447,7 @@ Viewport RendererCommands::viewport()
 	return currViewport;
 }
 
-void RendererCommands::vertexBufferData(const void *v, uint size)
+void RendererCommands::vertexBufferData(const void *v, uint32_t size)
 {
 	if(renderer().support.hasVBOFuncs)
 	{
@@ -455,7 +455,7 @@ void RendererCommands::vertexBufferData(const void *v, uint size)
 	}
 }
 
-void RendererCommands::drawPrimitives(Primitive mode, uint start, uint count)
+void RendererCommands::drawPrimitives(Primitive mode, uint32_t start, uint32_t count)
 {
 	runGLCheckedVerbose([&]()
 	{
@@ -463,7 +463,7 @@ void RendererCommands::drawPrimitives(Primitive mode, uint start, uint count)
 	}, "glDrawArrays()");
 }
 
-void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint count)
+void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint32_t count)
 {
 	runGLCheckedVerbose([&]()
 	{

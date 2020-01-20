@@ -15,6 +15,7 @@
 
 #define LOGTAG "Screen"
 #include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/utility.h>
@@ -78,7 +79,7 @@ void Screen::runOnFrameDelegates(FrameTimeBase timestamp)
 	}
 }
 
-uint Screen::onFrameDelegates()
+uint32_t Screen::onFrameDelegates()
 {
 	return onFrameDelegate.size();
 }
@@ -121,12 +122,12 @@ void Screen::setActive(bool active)
 	}
 }
 
-uint Screen::screens()
+uint32_t Screen::screens()
 {
 	return screenArr().size();
 }
 
-Screen *Screen::screen(uint idx)
+Screen *Screen::screen(uint32_t idx)
 {
 	if(idx >= screenArr().size())
 		return nullptr;
@@ -161,7 +162,7 @@ bool Screen::screensArePosted()
 	return false;
 }
 
-uint Screen::elapsedFrames(FrameTimeBase timestamp)
+uint32_t Screen::elapsedFrames(FrameTimeBase timestamp)
 {
 	if(!prevFrameTimestamp)
 		return 1;
@@ -173,7 +174,7 @@ uint Screen::elapsedFrames(FrameTimeBase timestamp)
 	}
 	assumeExpr(timePerFrame > 0);
 	FrameTimeBase diff = timestamp - prevFrameTimestamp;
-	uint elapsed = divRoundClosest(diff, timePerFrame);
+	uint32_t elapsed = divRoundClosest(diff, timePerFrame);
 	return std::max(elapsed, 1u);
 }
 

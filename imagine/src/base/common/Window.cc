@@ -15,6 +15,7 @@
 
 #define LOGTAG "Window"
 #include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include "windowPrivate.hh"
 #include <imagine/input/Input.hh>
@@ -353,7 +354,7 @@ bool Window::updatePhysicalSizeWithCurrentSize()
 }
 
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
-bool Window::setValidOrientations(uint oMask)
+bool Window::setValidOrientations(Orientation oMask)
 {
 	oMask = validateOrientationMask(oMask);
 	validSoftOrientations_ = oMask;
@@ -377,7 +378,7 @@ bool Window::setValidOrientations(uint oMask)
 	return false;
 }
 
-bool Window::requestOrientationChange(uint o)
+bool Window::requestOrientationChange(Orientation o)
 {
 	assert(o == VIEW_ROTATE_0 || o == VIEW_ROTATE_90 || o == VIEW_ROTATE_180 || o == VIEW_ROTATE_270);
 	setSoftOrientation = o;
@@ -398,17 +399,17 @@ bool Window::requestOrientationChange(uint o)
 }
 #endif
 
-uint Window::softOrientation() const
+Orientation Window::softOrientation() const
 {
 	return softOrientation_;
 }
 
-uint Window::validSoftOrientations() const
+Orientation Window::validSoftOrientations() const
 {
 	return validSoftOrientations_;
 }
 
-uint Window::windows()
+uint32_t Window::windows()
 {
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	return window_.size();
@@ -417,7 +418,7 @@ uint Window::windows()
 	#endif
 }
 
-Window *Window::window(uint idx)
+Window *Window::window(uint32_t idx)
 {
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	if(idx >= window_.size())
@@ -524,6 +525,11 @@ int Window::heightSMMInPixels(float mm) const { return heightMMInPixels(mm); }
 IG::WindowRect Window::bounds() const
 {
 	return {0, 0, width(), height()};
+}
+
+Screen &WindowConfig::screen() const
+{
+	return screen_ ? *screen_ : *Screen::screen(0);
 }
 
 }

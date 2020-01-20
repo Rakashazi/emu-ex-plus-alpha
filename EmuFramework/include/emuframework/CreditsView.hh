@@ -17,6 +17,7 @@
 
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/util/Interpolator.hh>
 
 class CreditsView : public View

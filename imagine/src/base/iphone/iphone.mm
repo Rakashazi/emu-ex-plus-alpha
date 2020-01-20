@@ -72,7 +72,7 @@ static UIImagePickerController* imagePickerController;
 static IPhoneImgPickerCallback imgPickCallback = NULL;
 static void *imgPickUserPtr = NULL;
 static NSData *imgPickData[2];
-static uchar imgPickDataElements = 0;
+static uint8_t imgPickDataElements = 0;
 #include "imagePicker.h"
 #endif
 
@@ -85,9 +85,9 @@ static MFMailComposeViewController *composeController;
 #include "gameKit.h"
 #endif
 
-uint appState = APP_RUNNING;
+uint32_t appState = APP_RUNNING;
 
-uint appActivityState() { return appState; }
+uint32_t appActivityState() { return appState; }
 
 static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
 {
@@ -176,7 +176,7 @@ static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
 }
 #endif
 
-static uint iOSOrientationToGfx(UIDeviceOrientation orientation)
+static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	switch(orientation)
 	{
@@ -398,7 +398,7 @@ static void setStatusBarHidden(bool hidden)
 	}
 }
 
-void setSysUIStyle(uint flags)
+void setSysUIStyle(uint32_t flags)
 {
 	setStatusBarHidden(flags & SYS_UI_STYLE_HIDE_STATUS);
 }
@@ -408,7 +408,7 @@ bool hasTranslucentSysUI()
 	return hasAtLeastIOS7();
 }
 
-UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint orientation)
+UIInterfaceOrientation gfxOrientationToUIInterfaceOrientation(uint32_t orientation)
 {
 	using namespace Base;
 	switch(orientation)
@@ -464,7 +464,7 @@ void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate onOrientatio
 
 }
 
-void setSystemOrientation(uint o)
+void setSystemOrientation(Orientation o)
 {
 	logMsg("setting system orientation %s", orientationToStr(o));
 	using namespace Input;
@@ -484,7 +484,7 @@ void setSystemOrientation(uint o)
 	}
 }
 
-uint defaultSystemOrientations()
+Orientation defaultSystemOrientations()
 {
 	return Base::isIPad ? VIEW_ROTATE_ALL : VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN;
 }
@@ -628,7 +628,7 @@ void addLauncherIcon(const char *name, const char *path) {}
 
 bool hasVibrator() { return false; }
 
-void vibrate(uint ms) {}
+void vibrate(uint32_t ms) {}
 
 void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 {

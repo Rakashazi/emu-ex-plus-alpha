@@ -23,8 +23,8 @@ void DragTrackerState::update(IG::WP pos)
 	assert(isTracking_);
 	pos_ = pos;
 	if(!isDragging_ &&
-		((uint)std::abs(downPos_.x - pos.x) > xDragStart ||
-		(uint)std::abs(downPos_.y - pos.y) > yDragStart))
+		((uint32_t)std::abs(downPos_.x - pos.x) > xDragStart ||
+		(uint32_t)std::abs(downPos_.y - pos.y) > yDragStart))
 	{
 		isDragging_ = true;
 	}

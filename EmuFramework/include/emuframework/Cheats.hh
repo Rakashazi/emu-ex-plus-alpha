@@ -17,7 +17,6 @@
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <emuframework/EmuSystem.hh>
 #include <vector>
 
 using RefreshCheatsDelegate = DelegateFunc<void ()>;

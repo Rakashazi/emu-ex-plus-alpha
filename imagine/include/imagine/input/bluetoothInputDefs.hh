@@ -25,7 +25,7 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 
 	namespace PS3
 	{
-	static const uint CROSS = 1,
+	static const uint32_t CROSS = 1,
 	CIRCLE = 2,
 	SQUARE = 3,
 	TRIANGLE = 4,
@@ -43,12 +43,12 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	RSTICK_RIGHT = 22, RSTICK_LEFT = 23, RSTICK_DOWN = 24, RSTICK_UP = 25
 	;
 
-	static const uint COUNT = 26;
+	static const uint32_t COUNT = 26;
 	}
 
 	namespace Wiimote
 	{
-	static const uint PLUS = 1,
+	static const uint32_t PLUS = 1,
 	MINUS = 2,
 	HOME = 3,
 	LEFT = 4, RIGHT = 5, UP = 6, DOWN = 7,
@@ -61,12 +61,12 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	NUN_STICK_LEFT = 14, NUN_STICK_RIGHT = 15, NUN_STICK_UP = 16, NUN_STICK_DOWN = 17
 	;
 
-	static const uint COUNT = 18;
+	static const uint32_t COUNT = 18;
 	}
 
 	namespace WiiCC
 	{
-	static const uint PLUS = 1,
+	static const uint32_t PLUS = 1,
 	MINUS = 2,
 	HOME = 3,
 	LEFT = 4, RIGHT = 5, UP = 6, DOWN = 7,
@@ -79,12 +79,12 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	LH = 24, RH = 25
 	;
 
-	static const uint COUNT = 26;
+	static const uint32_t COUNT = 26;
 	}
 
 	namespace iControlPad
 	{
-	static const uint A = 1,
+	static const uint32_t A = 1,
 	B = 2,
 	X = 3,
 	Y = 4,
@@ -97,12 +97,12 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	LEFT = 17, RIGHT = 18, UP = 19, DOWN = 20
 	;
 
-	static const uint COUNT = 21;
+	static const uint32_t COUNT = 21;
 	}
 
 	namespace Zeemote
 	{
-	static const uint A = 1,
+	static const uint32_t A = 1,
 	B = 2,
 	C = 3,
 	POWER = 4,
@@ -110,7 +110,7 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	LEFT = 5, RIGHT = 6, UP = 7, DOWN = 8
 	;
 
-	static const uint COUNT = 9;
+	static const uint32_t COUNT = 9;
 	}
 
 	namespace ICade
@@ -119,7 +119,7 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	// face buttons are labeled like a SEGA Saturn controller
 	// with E1 and E2 as SELECT and START respectively
 
-	static const uint UP = Keycode::UP,
+	static const uint32_t UP = Keycode::UP,
 	RIGHT = Keycode::RIGHT,
 	DOWN = Keycode::DOWN,
 	LEFT = Keycode::LEFT,
@@ -133,7 +133,7 @@ static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 	START = Keycode::GAME_START
 	;
 
-	static const uint COUNT = Keycode::COUNT;
+	static const uint32_t COUNT = Keycode::COUNT;
 	}
 
 }

@@ -15,6 +15,7 @@
 
 #define LOGTAG "RendererTask"
 #include <imagine/gfx/Gfx.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/thread/Thread.hh>
 #include "private.hh"
 
@@ -283,7 +284,7 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 			{
 				r.setProjectionMatrixRotation(orientationToGC(win.softOrientation()));
 				Base::setOnDeviceOrientationChanged(
-					[&renderer = r, &win](uint newO)
+					[&renderer = r, &win](Base::Orientation newO)
 					{
 						auto oldWinO = win.softOrientation();
 						if(win.requestOrientationChange(newO))
@@ -295,7 +296,7 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 			else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
 			{
 				Base::setOnSystemOrientationChanged(
-					[&renderer = r](uint oldO, uint newO) // TODO: parameters need proper type definitions in API
+					[&renderer = r](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
 					{
 						const Angle orientationDiffTable[4][4]
 						{

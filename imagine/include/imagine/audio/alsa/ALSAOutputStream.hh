@@ -42,7 +42,7 @@ private:
 	snd_pcm_uframes_t bufferSize, periodSize;
 	bool useMmap;
 
-	int setupPcm(PcmFormat format, snd_pcm_access_t access, uint wantedLatency);
+	int setupPcm(PcmFormat format, snd_pcm_access_t access, uint32_t wantedLatency);
 };
 
 #ifndef CONFIG_AUDIO_PULSEAUDIO

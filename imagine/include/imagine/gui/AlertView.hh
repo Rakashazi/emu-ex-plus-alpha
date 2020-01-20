@@ -35,7 +35,7 @@ public:
 			attach,
 			label,
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, uint idx) -> MenuItem& { return TableView::derefMenuItem(std::data(item)[idx]); }
+			[&item](const TableView &, uint32_t idx) -> MenuItem& { return TableView::derefMenuItem(std::data(item)[idx]); }
 		} {}
 	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
@@ -55,10 +55,10 @@ protected:
 class AlertView : public BaseAlertView
 {
 public:
-	AlertView(ViewAttachParams attach, const char *label, uint menuItems);
-	void setItem(uint idx, const char *name, TextMenuItem::SelectDelegate del);
+	AlertView(ViewAttachParams attach, const char *label, uint32_t menuItems);
+	void setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del);
 	template<class C>
-	void setItem(uint idx, const char *name, C &&del)
+	void setItem(uint32_t idx, const char *name, C &&del)
 	{
 		setItem(idx, name, TextMenuItem::wrapSelectDelegate(del));
 	}

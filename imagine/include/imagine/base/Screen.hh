@@ -15,23 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <vector>
-#include <algorithm>
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFuncSet.hh>
-
-namespace Config
-{
-#if (defined __ANDROID__ && !(defined __arm__ && __ARM_ARCH < 7)) || defined CONFIG_BASE_IOS
-#define CONFIG_BASE_MULTI_SCREEN
-#define CONFIG_BASE_SCREEN_HOTPLUG
-static constexpr bool BASE_MULTI_SCREEN = true;
-#else
-static constexpr bool BASE_MULTI_SCREEN = false;
-#endif
-}
+#include <vector>
+#include <algorithm>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XScreen.hh>
@@ -52,10 +41,10 @@ class Screen : public ScreenImpl
 public:
 	struct Change
 	{
-		uint state;
+		uint32_t state;
 		enum { ADDED, REMOVED };
 
-		constexpr Change(uint state): state(state) {}
+		constexpr Change(uint32_t state): state(state) {}
 		bool added() const { return state == ADDED; }
 		bool removed() const { return state == REMOVED; }
 	};
@@ -76,8 +65,8 @@ public:
 			auto lastTimestamp = screen_.lastFrameTimestamp();
 			return lastTimestamp ? timestamp_ - lastTimestamp : 0;
 		}
-		uint elapsedFrames() const { return screen_.elapsedFrames(timestamp_); }
-		uint elapsedFrames(uint frameCap) const
+		uint32_t elapsedFrames() const { return screen_.elapsedFrames(timestamp_); }
+		uint32_t elapsedFrames(uint32_t frameCap) const
 		{
 			return std::min(screen_.elapsedFrames(timestamp_), frameCap);
 		}
@@ -86,8 +75,8 @@ public:
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 
 	constexpr Screen() {}
-	static uint screens();
-	static Screen *screen(uint idx);
+	static uint32_t screens();
+	static Screen *screen(uint32_t idx);
 	// Called when a screen addition/removal/change occurs
 	static void setOnChange(ChangeDelegate del);
 	int width();
@@ -97,16 +86,16 @@ public:
 	bool addOnFrame(OnFrameDelegate del, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate del);
 	bool containsOnFrame(OnFrameDelegate del);
-	uint onFrameDelegates();
+	uint32_t onFrameDelegates();
 	bool runningOnFrameDelegates();
 	FrameTimeBase lastFrameTimestamp() const { return prevFrameTimestamp; }
-	uint elapsedFrames(FrameTimeBase frameTime);
+	uint32_t elapsedFrames(FrameTimeBase frameTime);
 	bool frameRateIsReliable() const;
 	double frameRate() const;
 	double frameTime() const;
 	void setFrameRate(double rate);
 	std::vector<double> supportedFrameRates();
-	void setFrameInterval(uint interval);
+	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	static bool supportsTimestamps();
 
@@ -129,7 +118,7 @@ private:
 	bool isActive = true;
 	#ifndef NDEBUG
 	// for debug frame stats
-	uint continuousFrames{};
+	uint32_t continuousFrames{};
 	#endif
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 

@@ -16,6 +16,7 @@
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include "tests.hh"
 #include "cpuUtils.hh"

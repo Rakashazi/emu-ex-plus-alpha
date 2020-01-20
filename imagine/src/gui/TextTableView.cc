@@ -15,13 +15,12 @@
 
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/mem/mem.h>
 #include <imagine/util/math/int.hh>
 #include <algorithm>
 
-TextTableView::TextTableView(ViewAttachParams attach, uint itemsHint): TextTableView{"", attach, itemsHint} {}
+TextTableView::TextTableView(ViewAttachParams attach, uint32_t itemsHint): TextTableView{"", attach, itemsHint} {}
 
-TextTableView::TextTableView(const char *name, ViewAttachParams attach, uint itemsHint):
+TextTableView::TextTableView(const char *name, ViewAttachParams attach, uint32_t itemsHint):
 	TableView{name, attach, textItem}
 {
 	textItem.reserve(itemsHint);
@@ -32,19 +31,19 @@ void TextTableView::appendItem(const char *name, TextMenuItem::SelectDelegate de
 	textItem.emplace_back(name, del);
 }
 
-void TextTableView::setItem(uint idx, const char *name, TextMenuItem::SelectDelegate del)
+void TextTableView::setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del)
 {
 	assert(idx < textItem.size());
 	textItem[idx] = {name, del};
 }
 
-TextMenuItem &TextTableView::item(uint idx)
+TextMenuItem &TextTableView::item(uint32_t idx)
 {
 	assert(idx < textItem.size());
 	return textItem[idx];
 }
 
-void TextTableView::setItems(uint items)
+void TextTableView::setItems(uint32_t items)
 {
 	textItem.resize(items);
 }
@@ -58,7 +57,7 @@ void TextTableView::onAddedToController(Input::Event e)
 	else TableView::onAddedToController(e);
 }
 
-void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const
+void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	if((int)i == activeItem)

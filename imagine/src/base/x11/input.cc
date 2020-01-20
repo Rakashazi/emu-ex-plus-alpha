@@ -34,7 +34,7 @@ namespace Input
 struct XIEventMaskData
 {
 	XIEventMask eventMask{};
-	uchar maskBits[XIMaskLen(XI_LASTEVENT)]{};
+	uint8_t maskBits[XIMaskLen(XI_LASTEVENT)]{};
 };
 
 struct XInputDevice : public Device
@@ -44,7 +44,7 @@ struct XInputDevice : public Device
 
 	XInputDevice() {}
 
-	XInputDevice(uint typeBits, const char *name):
+	XInputDevice(uint32_t typeBits, const char *name):
 		Device(0, Event::MAP_SYSTEM, typeBits, name)
 	{}
 
@@ -81,7 +81,7 @@ struct XInputDevice : public Device
 static std::vector<std::unique_ptr<XInputDevice>> xDevice;
 static Cursor blankCursor{};
 static Cursor normalCursor{};
-static uint numCursors = 0;
+static uint32_t numCursors = 0;
 static int xI2opcode = 0;
 static int xPointerMapping[Config::Input::MAX_POINTERS]{};
 static XkbDescPtr coreKeyboardDesc{};
@@ -166,7 +166,7 @@ void showCursor(::Window win)
 		XDefineCursor(dpy, win, Input::normalCursor);
 }
 
-bool Device::anyTypeBitsPresent(uint typeBits)
+bool Device::anyTypeBitsPresent(uint32_t typeBits)
 {
 	// TODO
 	if(typeBits & TYPE_BIT_KEYBOARD)
@@ -220,7 +220,7 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPo
 		}
 	}
 	logMsg("adding X key input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
-	uint devId = 0;
+	uint32_t devId = 0;
 	for(auto &e : devList)
 	{
 		if(e->map() != Event::MAP_SYSTEM)
@@ -285,7 +285,7 @@ void init(Display *dpy)
 	// request input device changes events
 	{
 		XIEventMask eventMask;
-		uchar mask[XIMaskLen(XI_LASTEVENT)] {0};
+		uint8_t mask[XIMaskLen(XI_LASTEVENT)] {0};
 		XISetMask(mask, XI_HierarchyChanged);
 		eventMask.deviceid = XIAllDevices;
 		eventMask.mask_len = sizeof(mask);
@@ -337,18 +337,18 @@ void deinit()
 		XkbFreeClientMap(coreKeyboardDesc, 0, true);
 }
 
-static uint makePointerButtonState(XIButtonState state)
+static uint32_t makePointerButtonState(XIButtonState state)
 {
-	uchar byte1 = state.mask_len > 0 ? state.mask[0] : 0;
-	uchar byte2 = state.mask_len > 1 ? state.mask[1] : 0;
+	uint8_t byte1 = state.mask_len > 0 ? state.mask[0] : 0;
+	uint8_t byte2 = state.mask_len > 1 ? state.mask[1] : 0;
 	return byte1 | (byte2 << 8);
 }
 
-static void updatePointer(Base::Window &win, uint key, uint btnState, int p, uint action, int x, int y, Input::Time time, int sourceID)
+static void updatePointer(Base::Window &win, uint32_t key, uint32_t btnState, int p, uint32_t action, int x, int y, Input::Time time, int sourceID)
 {
 	auto dev = deviceForInputId(sourceID);
 	auto pos = transformInputPos(win, {x, y});
-	win.dispatchInputEvent(Event{(uint)p, Event::MAP_POINTER, (Key)key, btnState, action, pos.x, pos.y, p, false, time, dev});
+	win.dispatchInputEvent(Event{(uint32_t)p, Event::MAP_POINTER, (Key)key, btnState, action, pos.x, pos.y, p, false, time, dev});
 }
 
 bool handleXI2GenericEvent(XEvent &event)
@@ -464,7 +464,7 @@ Event::KeyString Event::keyString() const
 {
 	KeyString str{};
 	KeySym k;
-	uint mods = metaState ? ShiftMask : 0;
+	uint32_t mods = metaState ? ShiftMask : 0;
 	XkbTranslateKeyCode(Input::coreKeyboardDesc, rawKey, mods, nullptr, &k);
 	XkbTranslateKeySym(dpy, &k, 0, str.data(), sizeof(KeyString), nullptr);
 	return str;

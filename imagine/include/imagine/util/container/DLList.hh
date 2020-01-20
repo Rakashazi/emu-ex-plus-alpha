@@ -5,7 +5,7 @@
 #include <imagine/util/utility.h>
 #include <cstddef>
 #include <assert.h>
-#include <imagine/logger/logger.h>
+//#include <imagine/logger/logger.h>
 //#include <imagine/util/preprocessor/repeat.h>
 #include "containerUtils.hh"
 #include <iterator>
@@ -43,9 +43,9 @@ public:
 	{
 		iterateTimes(size, i)
 		{
-			logMsg("idx %d prev: %p next: %p\n", i, free[i].prev, free[i].next);
+			//logMsg("idx %d prev: %p next: %p\n", i, free[i].prev, free[i].next);
 			assert(free[i].prev == (i == 0 ? nullptr : &free[i-1]));
-			assert(free[i].next == (i == (uint)size-1 ? nullptr : &free[i+1]));
+			assert(free[i].next == (i == (size_t)size-1 ? nullptr : &free[i+1]));
 		}
 	}
 
@@ -64,7 +64,7 @@ public:
 		iterateTimes(S, i)
 		{
 			n[i].prev = i == 0 ? nullptr : &n[i-1];
-			n[i].next = i == (uint)S-1 ? nullptr : &n[i+1];
+			n[i].next = i == (size_t)S-1 ? nullptr : &n[i+1];
 		}
 	}
 
@@ -73,7 +73,7 @@ public:
 		NODE *newN = free;
 		if(!newN)
 		{
-			logMsg("no more nodes in free list");
+			//logMsg("no more nodes in free list");
 			return 0;
 		}
 
@@ -260,9 +260,9 @@ public:
 		return false;
 	}
 
-	T *index(uint idx)
+	T *index(size_t idx)
 	{
-		assert(idx < (uint)size_);
+		assert(idx < (size_t)size_);
 		auto it = begin();
 		iterateTimes(idx, i)
 		{
@@ -321,9 +321,9 @@ public:
 	const_reverse_iterator crend() const { return const_reverse_iterator(nullptr); }
 
 	// Capacity (STL API)
-	uint size() const { return size_; }
+	size_t size() const { return size_; }
 	bool empty() const { return !size(); };
-	uint max_size() const { return size() + free.size; }
+	size_t max_size() const { return size() + free.size; }
 
 	// Element Access (STL API)
 	T &front() { assert(list); return list->d;	}
@@ -381,8 +381,8 @@ public:
 
 	void clear()
 	{
-		logMsg("removing all list items (%d)", size_);
-		uint counts = size_;
+		//logMsg("removing all list items (%d)", size_);
+		size_t counts = size_;
 		iterateTimes(counts, i)
 		{
 			removeNode(list);

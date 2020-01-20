@@ -200,7 +200,7 @@ void BasicNavView::setBackImage(Gfx::PixmapTexture *img)
 	control[0].isActive = leftSpr.image();
 }
 
-void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint gradStops)
+void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint32_t gradStops)
 {
 	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops);
 	memcpy(gradientStops.get(), gradStop, sizeof(Gfx::LGradientStopDesc) * gradStops);

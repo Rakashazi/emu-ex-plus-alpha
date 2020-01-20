@@ -325,7 +325,7 @@ void applyCheats()
   }
   if(romCheatList.size() || ramCheatList.size())
   {
-  	logMsg("%d RAM cheats, %d ROM cheats active", ramCheatList.size(), romCheatList.size());
+  	logMsg("%zu RAM cheats, %zu ROM cheats active", ramCheatList.size(), romCheatList.size());
   }
 }
 
@@ -648,7 +648,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						}
 						string_copy(c.name, "Unnamed Cheat");
 						cheatList.push_back(c);
-						logMsg("added new cheat, %d total", cheatList.size());
+						logMsg("added new cheat, %zu total", cheatList.size());
 						cheatsModified = 1;
 						updateCheats();
 						view.dismiss();

@@ -472,14 +472,14 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 	return false;
 }
 
-void TableView::drawElement(Gfx::RendererCommands &cmds, uint i, MenuItem &item, Gfx::GCRect rect) const
+void TableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const
 {
 	using namespace Gfx;
 	cmds.setColor(COLOR_WHITE);
 	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
 }
 
-void TableView::onSelectElement(Input::Event e, uint i, MenuItem &item)
+void TableView::onSelectElement(Input::Event e, uint32_t i, MenuItem &item)
 {
 	item.select(*this, e);
 }

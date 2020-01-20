@@ -42,7 +42,7 @@ void Pixmap::write(const IG::Pixmap &pixmap)
 		// line at a time
 		auto srcData = (char*)pixmap.data;
 		auto destData = (char*)data;
-		uint lineBytes = format().pixelBytes(pixmap.w());
+		uint32_t lineBytes = format().pixelBytes(pixmap.w());
 		iterateTimes(pixmap.h(), i)
 		{
 			memcpy(destData, srcData, lineBytes);
@@ -70,17 +70,17 @@ Pixmap::operator bool() const
 	return data;
 }
 
-uint Pixmap::pitchPixels() const
+uint32_t Pixmap::pitchPixels() const
 {
 	return pitch / format().bytesPerPixel();
 }
 
-uint Pixmap::pitchBytes() const
+uint32_t Pixmap::pitchBytes() const
 {
 	return pitch;
 }
 
-uint Pixmap::bytes() const
+size_t Pixmap::bytes() const
 {
 	return pitchBytes() * format().pixelBytes(h());
 }
@@ -90,12 +90,12 @@ bool Pixmap::isPadded() const
 	return w() != pitchPixels();
 }
 
-uint Pixmap::paddingPixels() const
+uint32_t Pixmap::paddingPixels() const
 {
 	return pitchPixels() - w();
 }
 
-uint Pixmap::paddingBytes() const
+uint32_t Pixmap::paddingBytes() const
 {
 	return pitchBytes() - format().pixelBytes(w());
 }
@@ -109,7 +109,7 @@ void Pixmap::clear(IG::WP pos, IG::WP size)
 	}
 	else
 	{
-		uint lineBytes = format().pixelBytes(size.x);
+		uint32_t lineBytes = format().pixelBytes(size.x);
 		iterateTimes(size.y, i)
 		{
 			std::fill_n(destData, lineBytes, 0);

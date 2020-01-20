@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include "utils.h"
 #include "private.hh"
 

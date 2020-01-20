@@ -55,11 +55,11 @@ static const char *xIEventTypeToStr(int type)
 static Status safeXGetGeometry(Display *display, Drawable d, ::Window *root_return, int *x_return, int *y_return,
 		unsigned int *width_return, unsigned int *height_return, unsigned int *border_width_return, unsigned int *depth_return)
 {
-	uint borderDummy;
+	uint32_t borderDummy;
 	::Window rootDummy;
 	int xDummy, yDummy;
-	uint widthDummy, heightDummy;
-	uint depthDummy;
+	uint32_t widthDummy, heightDummy;
+	uint32_t depthDummy;
 
 	return XGetGeometry(display, d, root_return ? root_return : &rootDummy,
 		x_return ? x_return : &xDummy, y_return ? y_return : &yDummy,
@@ -67,9 +67,9 @@ static Status safeXGetGeometry(Display *display, Drawable d, ::Window *root_retu
 		border_width_return ? border_width_return : &borderDummy, depth_return ? depth_return : &depthDummy);
 }
 
-static uint xDrawableDepth(Display *dpy, Drawable d)
+static uint32_t xDrawableDepth(Display *dpy, Drawable d)
 {
-	uint depth;
+	uint32_t depth;
 	safeXGetGeometry(dpy, d, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &depth);
 	return depth;
 }

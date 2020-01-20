@@ -187,7 +187,7 @@ using Key = uint16;
 	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23;
 
 	static constexpr Key LAST_KEY = JS_BRAKE_AXIS;
-	static constexpr uint COUNT = LAST_KEY + 1;
+	static constexpr uint32_t COUNT = LAST_KEY + 1;
 
 	}
 
@@ -222,7 +222,7 @@ namespace Keycode = IOS;
 	LSTICK_UP = 14, LSTICK_RIGHT = 15, LSTICK_DOWN = 16, LSTICK_LEFT = 17,
 	RSTICK_UP = 18, RSTICK_RIGHT = 19, RSTICK_DOWN = 20, RSTICK_LEFT = 21;
 
-	static const uint COUNT = 22;
+	static const uint32_t COUNT = 22;
 	}
 
 }

@@ -31,7 +31,7 @@
 
 static const bool bufferLogLineOutput = Config::envIsAndroid || Config::envIsIOS;
 static char logLineBuffer[512]{};
-uint loggerVerbosity = loggerMaxVerbosity;
+uint8_t loggerVerbosity = loggerMaxVerbosity;
 static FILE *logExternalFile{};
 static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release builds
 

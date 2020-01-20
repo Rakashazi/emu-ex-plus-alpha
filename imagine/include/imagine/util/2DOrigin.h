@@ -15,12 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <cmath>
-#include <cstdlib>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/math.hh>
-#include <imagine/util/ansiTypes.h>
 #include <assert.h>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
 
 // Origins are based on Cartesian coordinates,
 // min:negative x = left
@@ -32,12 +32,12 @@ enum { _2DORIGIN_NONE = 0, _2DORIGIN_MIN, _2DORIGIN_MIN_INVERSE_CARTESIAN, _2DOR
 class _2DOrigin
 {
 public:
-	uchar x = _2DORIGIN_NONE, y = _2DORIGIN_NONE;
+	uint8_t x = _2DORIGIN_NONE, y = _2DORIGIN_NONE;
 	constexpr _2DOrigin() { }
-	constexpr _2DOrigin(uchar x, uchar y): x(x & 7), y(y & 7) { }
-	explicit constexpr _2DOrigin(uchar val): x(val & 7), y(val >> 3) { }
+	constexpr _2DOrigin(uint8_t x, uint8_t y): x(x & 7), y(y & 7) { }
+	explicit constexpr _2DOrigin(uint8_t val): x(val & 7), y(val >> 3) { }
 
-	static const char *toString(uint value)
+	static const char *toString(uint32_t value)
 	{
 		switch(value)
 		{
@@ -51,7 +51,7 @@ public:
 		}
 	}
 
-	static int scaler(uint originValue)
+	static int scaler(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -85,7 +85,7 @@ public:
 		return type == _2DORIGIN_MIN || type ==_2DORIGIN_MAX || type ==_2DORIGIN_CENTER;
 	}
 
-	static bool valIsValid(uint originValue)
+	static bool valIsValid(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -135,7 +135,7 @@ public:
 		return inverted(y, outputType.y);
 	}
 
-	static int invert(uint originValue)
+	static int invert(uint32_t originValue)
 	{
 		switch(originValue)
 		{
@@ -174,7 +174,7 @@ public:
 		return o;
 	}
 
-	static int flip(uint originValue)
+	static int flip(uint32_t originValue)
 	{
 		switch(originValue)
 		{

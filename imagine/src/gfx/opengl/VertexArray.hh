@@ -5,7 +5,7 @@
 namespace Gfx
 {
 
-void VertexArray::init(const void *data, uint size)
+void VertexArray::init(const void *data, uint32_t size)
 {
 	glGenBuffers(1, &ref);
 	logMsg("new VBO id %d", ref);
@@ -13,7 +13,7 @@ void VertexArray::init(const void *data, uint size)
 	glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 }
 
-void VertexArray::write(const void *data, uint offset, uint size)
+void VertexArray::write(const void *data, uint32_t offset, uint32_t size)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, ref);
 	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);

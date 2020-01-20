@@ -99,7 +99,7 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
 	bool allowMmap = 1;
 	int err = -1;
-	uint wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
+	uint32_t wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
 	if(allowMmap)
 	{
 		err = setupPcm(format, SND_PCM_ACCESS_MMAP_INTERLEAVED, wantedLatency);
@@ -285,7 +285,7 @@ ALSAOutputStream::operator bool() const
 	return true;
 }
 
-int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, uint wantedLatency)
+int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, uint32_t wantedLatency)
 {
 	int alsalibResample = 1;
 	if(int err = snd_pcm_set_params(pcmHnd,
@@ -314,7 +314,7 @@ int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, uint w
 	}
 	else
 	{
-		logMsg("buffer size %u, period size %u, mmap %d", (uint)bufferSize, (uint)periodSize, useMmap);
+		logMsg("buffer size %u, period size %u, mmap %d", (uint32_t)bufferSize, (uint32_t)periodSize, useMmap);
 		return 0;
 	}
 }

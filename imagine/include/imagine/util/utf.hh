@@ -3,7 +3,7 @@
 // Based on code by Unicode Inc.
 // TODO: look into using ICU
 
-#include <imagine/util/ansiTypes.h>
+#include <cstdint>
 
 namespace UTF
 {
@@ -27,7 +27,7 @@ static const uint32 UNI_SUR_LOW_END = 0xDFFF;
  * left as-is for anyone who may want to do such conversion, which was
  * allowed in earlier algorithms.
  */
-static const uint trailingBytesForUTF8[256] = {
+static const uint32_t trailingBytesForUTF8[256] = {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -53,7 +53,7 @@ static const uint32 offsetsFromUTF8[6] = { 0x00000000UL, 0x00003080UL, 0x000E208
  * (I.e., one byte sequence, two byte... etc.). Remember that sequencs
  * for *legal* UTF-8 will be 4 or fewer bytes total.
  */
-static const uint firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
+static const uint32_t firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
 
 
 /*
@@ -108,7 +108,7 @@ typedef enum {
 
 static ConversionResult ConvertUTF8toUTF32 (
 	const uint8** sourceStart, const uint8* sourceEnd,
-	ConversionFlags flags, uint &c)
+	ConversionFlags flags, uint32_t &c)
 {
 	ConversionResult result = conversionOK;
 	const uint8* source = *sourceStart;
@@ -117,7 +117,7 @@ static ConversionResult ConvertUTF8toUTF32 (
 	{
 		if(*source == '\0')
 			return reachedNullChar;
-		uint ch = 0;
+		uint32_t ch = 0;
 		auto extraBytesToRead = trailingBytesForUTF8[*source];
 		if(sourceEnd && source + extraBytesToRead >= sourceEnd)
 		{
@@ -186,7 +186,7 @@ static ConversionResult ConvertUTF8toUTF32 (
 // convert from a source without an end bound
 static ConversionResult ConvertUTF8toUTF32 (
 	const uint8** sourceStart,
-	ConversionFlags flags, uint &c)
+	ConversionFlags flags, uint32_t &c)
 {
 	return ConvertUTF8toUTF32(sourceStart, nullptr, flags, c);
 }

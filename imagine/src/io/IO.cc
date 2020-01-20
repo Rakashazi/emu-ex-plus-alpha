@@ -17,6 +17,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include "IOUtils.hh"
 

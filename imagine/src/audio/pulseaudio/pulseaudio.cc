@@ -16,7 +16,6 @@
 #define LOGTAG "PulseAudio"
 #include <imagine/audio/pulseaudio/PAOutputStream.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <pulse/pulseaudio.h>
 #ifdef CONFIG_AUDIO_PULSEAUDIO_GLIB
@@ -168,7 +167,7 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 				logWarn("error writing %d bytes", (int)bytes);
 			}
 		}, this);
-	const uint wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
+	const uint32_t wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
 	pa_buffer_attr bufferAttr{};
 	bufferAttr.maxlength = -1;
 	bufferAttr.tlength = format.uSecsToBytes(wantedLatency);

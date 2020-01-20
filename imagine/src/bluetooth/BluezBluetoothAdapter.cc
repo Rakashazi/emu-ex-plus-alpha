@@ -16,6 +16,7 @@
 #define LOGTAG "Bluez"
 #include <imagine/bluetooth/BluezBluetoothAdapter.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/logger/logger.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
@@ -243,7 +244,7 @@ void BluezBluetoothAdapter::setActiveState(bool on, OnStateChangeDelegate onStat
 }
 
 #ifdef CONFIG_BLUETOOTH_SERVER
-void BluezBluetoothAdapter::setL2capService(uint psm, bool active, OnStatusDelegate onResult)
+void BluezBluetoothAdapter::setL2capService(uint32_t psm, bool active, OnStatusDelegate onResult)
 {
 	if(!active)
 	{
@@ -333,7 +334,7 @@ void BluezBluetoothAdapter::setL2capService(uint psm, bool active, OnStatusDeleg
 	return;
 }
 
-/*bool BluezBluetoothAdapter::l2capServiceRegistered(uint psm)
+/*bool BluezBluetoothAdapter::l2capServiceRegistered(uint32_t psm)
 {
 	forEachInDLList(&serverList, e)
 	{
@@ -433,7 +434,7 @@ void BluezBluetoothSocket::setupFDEvents(int events)
 		Base::POLLEV_OUT};
 }
 
-CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
+CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
 {
 	struct sockaddr_rc addr{};
 	addr.rc_family = AF_BLUETOOTH;
@@ -461,7 +462,7 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint channel)
 	return OK;
 }
 
-CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint psm)
+CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
 {
 	struct sockaddr_l2 addr{};
 	addr.l2_family = AF_BLUETOOTH;

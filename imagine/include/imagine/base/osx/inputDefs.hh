@@ -318,7 +318,7 @@ namespace OSX
 	JS_GAS_AXIS = axisKeyBase+22, JS_BRAKE_AXIS = axisKeyBase+23
 	;
 
-	static const uint COUNT = 0xffff;
+	static const uint32_t COUNT = 0xffff;
 };
 
 namespace Keycode = OSX;

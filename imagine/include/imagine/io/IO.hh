@@ -100,16 +100,16 @@ public:
 	using IOUtils::seek;
 
 	// allow reading file, default if OPEN_WRITE isn't present
-	static constexpr uint OPEN_READ = IG::bit(0);
+	static constexpr uint32_t OPEN_READ = IG::bit(0);
 	// allow modifying file
-	static constexpr uint OPEN_WRITE = IG::bit(1);
+	static constexpr uint32_t OPEN_WRITE = IG::bit(1);
 	// create a new file, clobbering any existing one,
 	// if OPEN_CREATE isn't present, only existing files are opened
 	// for reading/writing/appending
-	static constexpr uint OPEN_CREATE = IG::bit(2);
+	static constexpr uint32_t OPEN_CREATE = IG::bit(2);
 	// if using OPEN_CREATE, don't overwrite a file that already exists
-	static constexpr uint OPEN_KEEP_EXISTING = IG::bit(3);
-	static constexpr uint OPEN_FLAGS_BITS = 4;
+	static constexpr uint32_t OPEN_KEEP_EXISTING = IG::bit(3);
+	static constexpr uint32_t OPEN_FLAGS_BITS = 4;
 
 	constexpr IO() {}
 	virtual ~IO() = 0;

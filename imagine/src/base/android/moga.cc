@@ -179,7 +179,7 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			{
 				auto mogaDev = ((MogaSystem*)mogaSystemPtr)->mogaDevice();
 				//logMsg("MOGA key event: %d %d %d", action, keyCode, (int)time);
-				assert((uint)keyCode < Keycode::COUNT);
+				assert((uint32_t)keyCode < Keycode::COUNT);
 				Base::endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = Time::makeWithNSecs(timestamp);
