@@ -24,7 +24,6 @@ namespace Base
 {
 
 static JavaInstMethod<void(jstring, jstring, jstring)> jAddNotification{};
-static JavaInstMethod<void()> jRemoveNotification{};
 
 void addNotification(const char *onShow, const char *title, const char *message)
 {
@@ -44,10 +43,7 @@ void removePostedNotifications()
 	if(!jAddNotification)
 		return;
 	auto env = jEnvForThread();
-	if(unlikely(!jRemoveNotification))
-	{
-		jRemoveNotification.setup(env, jBaseActivityCls, "removeNotification", "()V");
-	}
+	JavaInstMethod<void()> jRemoveNotification{env, jBaseActivityCls, "removeNotification", "()V"};
 	jRemoveNotification(env, jBaseActivity);
 }
 

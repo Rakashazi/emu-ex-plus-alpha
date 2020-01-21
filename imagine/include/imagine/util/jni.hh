@@ -15,11 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <cstddef>
 #include <jni.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <assert.h>
+#include <cstddef>
+#include <iterator>
 
 jmethodID getJNIStaticMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
 jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
@@ -147,4 +148,18 @@ static void javaStringCopy(JNIEnv *env, std::array<char, S> &dest, jstring jstr)
 	}
 	string_copy(dest, utfChars);
 	env->ReleaseStringUTFChars(jstr, utfChars);
+}
+
+template <class CONTAINER>
+static CONTAINER javaStringCopy(JNIEnv *env, jstring jstr)
+{
+	auto utfChars = env->GetStringUTFChars(jstr, nullptr);
+	if(!utfChars)
+	{
+		return {}; // OutOfMemoryError thrown
+	}
+	CONTAINER c;
+	string_copy(c, utfChars);
+	env->ReleaseStringUTFChars(jstr, utfChars);
+	return c;
 }

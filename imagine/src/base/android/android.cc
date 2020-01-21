@@ -52,7 +52,6 @@ static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
 static JavaInstMethod<jobject()> jNewFontRenderer{};
 JavaInstMethod<void(jint)> jSetRequestedOrientation{};
-JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{};
 static const char *filesDir{};
 static uint32_t aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
@@ -97,13 +96,6 @@ void abort()
 	::abort();
 }
 
-static FS::PathString pathStringFromJString(JNIEnv *env, jstring jstr)
-{
-	FS::PathString path{};
-	javaStringCopy(env, path, jstr);
-	return path;
-}
-
 FS::PathString assetPath(const char *) { return {}; }
 
 FS::PathString supportPath(const char *)
@@ -113,7 +105,7 @@ FS::PathString supportPath(const char *)
 		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
 		auto env = jEnvForThread();
 		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
-		return pathStringFromJString(env, (jstring)filesDir(env, jBaseActivity));
+		return javaStringCopy<FS::PathString>(env, (jstring)filesDir(env, jBaseActivity));
 	}
 	else
 		return FS::makePathString(filesDir);
@@ -123,14 +115,14 @@ FS::PathString cachePath(const char *)
 {
 	auto env = jEnvForThread();
 	JavaClassMethod<jobject()> cacheDir{env, jBaseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return pathStringFromJString(env, (jstring)cacheDir(env, jBaseActivityCls));
+	return javaStringCopy<FS::PathString>(env, (jstring)cacheDir(env, jBaseActivityCls));
 }
 
 FS::PathString sharedStoragePath()
 {
 	auto env = jEnvForThread();
 	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
-	return pathStringFromJString(env, (jstring)extStorageDir(env, jBaseActivityCls));
+	return javaStringCopy<FS::PathString>(env, (jstring)extStorageDir(env, jBaseActivityCls));
 }
 
 FS::PathLocation sharedStoragePathLocation()
@@ -148,7 +140,7 @@ std::vector<FS::PathLocation> rootFileLocations()
 				sharedStoragePathLocation(),
 			};
 	}
-	else
+	else if(androidSDK() < 24)
 	{
 		FS::PathString storageDevicesPath{"/storage"};
 		return
@@ -157,13 +149,46 @@ std::vector<FS::PathLocation> rootFileLocations()
 				{storageDevicesPath, FS::makeFileString("Storage Devices"), {FS::makeFileString("Storage"), strlen(storageDevicesPath.data())}}
 			};
 	}
+	else
+	{
+		std::vector<FS::PathLocation> rootLocation{sharedStoragePathLocation()};
+		logMsg("enumerating storage volumes");
+		auto env = jEnvForThread();
+		JavaInstMethod<jobject()> jNewStorageManagerHelper{env, Base::jBaseActivityCls, "storageManagerHelper", "()Lcom/imagine/StorageManagerHelper;"};
+		auto storageManagerHelper = jNewStorageManagerHelper(env, Base::jBaseActivity);
+		auto storageManagerHelperCls = env->GetObjectClass(storageManagerHelper);
+		JNINativeMethod method[]
+		{
+			{
+				"volumeEnumerated", "(JLjava/lang/String;Ljava/lang/String;)V",
+				(void*)(void (*)(JNIEnv*, jobject, jlong, jstring, jstring))
+				([](JNIEnv* env, jobject thiz, jlong userData, jstring jName, jstring jPath)
+				{
+					auto rootLocation = (std::vector<FS::PathLocation>*)userData;
+					auto path = javaStringCopy<FS::PathString>(env, jPath);
+					auto name = javaStringCopy<FS::FileString>(env, jName);
+					logMsg("volume:%s with path:%s", name.data(), path.data());
+					if(string_equal(rootLocation->cbegin()->path.data(), path.data()))
+					{
+						// skip entry matching sharedStoragePathLocation()
+						return;
+					}
+					rootLocation->emplace_back(path, name, FS::RootPathInfo{name, strlen(path.data())});
+				})
+			},
+		};
+		env->RegisterNatives(storageManagerHelperCls, method, std::size(method));
+		JavaClassMethod<void(jobject, jlong)> jEnumVolumes{env, storageManagerHelperCls, "enumVolumes", "(Landroid/app/Activity;J)V"};
+		jEnumVolumes(env, storageManagerHelperCls, jBaseActivity, (jlong)&rootLocation);
+		return rootLocation;
+	}
 }
 
 FS::PathString libPath(const char *)
 {
 	auto env = jEnvForThread();
 	JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
-	return pathStringFromJString(env, (jstring)libDir(env, jBaseActivity));
+	return javaStringCopy<FS::PathString>(env, (jstring)libDir(env, jBaseActivity));
 }
 
 FS::PathString mainSOPath()
@@ -171,7 +196,7 @@ FS::PathString mainSOPath()
 	auto env = jEnvForThread();
 	JavaInstMethod<jobject()> soPath{env, jBaseActivityCls, "mainSOPath", "()Ljava/lang/String;"};
 	auto soPathStr = (jstring)soPath(env, jBaseActivity);
-	return pathStringFromJString(env, (jstring)soPath(env, jBaseActivity));
+	return javaStringCopy<FS::PathString>(env, (jstring)soPath(env, jBaseActivity));
 }
 
 static jstring permissionToJString(JNIEnv *env, Permission p)
@@ -475,10 +500,9 @@ void setSustainedPerformanceMode(bool on)
 	}
 	else
 	{
-		auto env = jEnvForThread();
-		if(unlikely(!jSetSustainedPerformanceMode))
-			jSetSustainedPerformanceMode.setup(env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V");
 		logMsg("set sustained performance mode:%s", on ? "on" : "off");
+		auto env = jEnvForThread();
+		JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V"};
 		jSetSustainedPerformanceMode(env, jBaseActivity, on);
 	}
 }

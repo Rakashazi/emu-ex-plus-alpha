@@ -32,9 +32,7 @@ AndroidPropString androidBuildDevice()
 {
 	auto env = jEnvForThread();
 	JavaClassMethod<jobject()> jDevName{env, jBaseActivityCls, "devName", "()Ljava/lang/String;"};
-	auto devName = (jstring)jDevName(env, jBaseActivityCls);
-	AndroidPropString str{};
-	javaStringCopy(env, str, devName);
+	auto str = javaStringCopy<AndroidPropString>(env, (jstring)jDevName(env, jBaseActivityCls));
 	//logMsg("device name: %s", str.data());
 	return str;
 }
@@ -60,9 +58,8 @@ bool apkSignatureIsConsistent()
 {
 	bool sigMatchesAPK = true;
 	#ifdef ANDROID_APK_SIGNATURE_HASH
-	JavaInstMethod<jint()> jSigHash;
 	auto env = jEnvForThread();
-	jSigHash.setup(env, jBaseActivityCls, "sigHash", "()I");
+	JavaInstMethod<jint()> jSigHash{env, jBaseActivityCls, "sigHash", "()I"};
 	sigMatchesAPK = jSigHash(env, jBaseActivity) == ANDROID_APK_SIGNATURE_HASH;
 	#endif
 	return sigMatchesAPK;
@@ -80,8 +77,7 @@ static void initVibration(JNIEnv* env)
 	if(likely(vibrationSystemIsInit) || Config::MACHINE_IS_OUYA)
 		return;
 	{
-		JavaInstMethod<jobject()> jSysVibrator;
-		jSysVibrator.setup(env, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;");
+		JavaInstMethod<jobject()> jSysVibrator{env, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;"};
 		vibrator = jSysVibrator(env, jBaseActivity);
 	}
 	vibrationSystemIsInit = true;

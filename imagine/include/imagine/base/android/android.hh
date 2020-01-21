@@ -15,10 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <android/api-level.h>
 #include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
-#include <imagine/util/jni.hh>
+#include <android/api-level.h>
 #include <array>
 
 namespace Base
@@ -33,7 +32,6 @@ bool apkSignatureIsConsistent();
 AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
 FS::PathString mainSOPath();
-void recycleBitmap(JNIEnv *env, jobject bitmap);
 void setSustainedPerformanceMode(bool on);
 
 }

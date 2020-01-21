@@ -461,7 +461,12 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		return new UserActivityFaker();
 	}
-	
+
+	StorageManagerHelper storageManagerHelper()
+	{
+		return new StorageManagerHelper();
+	}
+
 	void setSustainedPerformanceMode(boolean on)
 	{
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)

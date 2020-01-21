@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <jni.h>
+#include <imagine/util/jni.hh>
 #include <imagine/base/android/android.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <android/looper.h>
@@ -61,5 +61,7 @@ jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
 void releaseSurface(JNIEnv *env, jobject surface);
 
 int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format);
+
+void recycleBitmap(JNIEnv *env, jobject bitmap);
 
 }
