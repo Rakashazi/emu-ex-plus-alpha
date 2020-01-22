@@ -25,9 +25,6 @@ static uint heightChangeFrames = heightChangeFrameDelay;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-#ifdef SNES9X_VERSION_1_4
-static uint audioFramesPerUpdate = 0;
-#endif
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
@@ -150,10 +147,10 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			Memory.SaveSRAM(saveStr.data());
 		}
 		auto cheatsStr = sprintCheatsFilename();
-		if(!Cheat.num_cheats)
+		if(!numCheats())
 			logMsg("no cheats present, removing .cht file if present");
 		else
-			logMsg("saving %d cheat(s)", Cheat.num_cheats);
+			logMsg("saving %u cheat(s)", numCheats());
 		S9xSaveCheatFile(cheatsStr.data());
 	}
 }
@@ -204,42 +201,35 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	auto saveStr = sprintSRAMFilename();
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
+	checkAndEnableGlobalCheats();
 	return {};
 }
 
 void EmuSystem::configAudioRate(double frameTime, int rate)
 {
-	#ifndef SNES9X_VERSION_1_4
-	constexpr long double rateScaler = (32000./32040.5);
-	constexpr double ntscFrameRate = rateScaler * (21477272. / 357366.);
-	constexpr double palFrameRate = rateScaler * (21281370. / 425568.);
-	#else
-	constexpr double ntscFrameRate = (21477272. / 357366.);
-	constexpr double palFrameRate = (21281370. / 425568.);
-	#endif
-	double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
+	constexpr double ntscFrameRate = 21477272. / 357366.;
+	constexpr double palFrameRate = 21281370. / 425568.;
+	const double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
 	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime));
 	#ifndef SNES9X_VERSION_1_4
-	S9xUpdatePlaybackRate();
+	S9xUpdateDynamicRate(0, 10);
 	#else
-	audioFramesPerUpdate = std::round(pcmFormat.rate * frameTime);
 	S9xSetPlaybackRate(Settings.SoundPlaybackRate);
 	#endif
 	logMsg("sound rate:%d from system frame rate:%f", Settings.SoundPlaybackRate, systemFrameRate);
 }
 
-static void mixSamples(int frames, bool renderAudio)
+static void mixSamples(uint32_t samples, bool renderAudio)
 {
-	if(likely(frames))
+	if(unlikely(!samples))
+		return;
+	assumeExpr(samples % 2 == 0);
+	int16_t audioBuff[samples];
+	S9xMixSamples((uint8*)audioBuff, samples);
+	if(renderAudio)
 	{
-		uint samples = frames * 2;
-		int16 audioBuff[samples];
-		S9xMixSamples((uint8_t*)audioBuff, samples);
-		if(renderAudio)
-		{
-			//logMsg("%d frames", frames);
-			EmuSystem::writeSound(audioBuff, frames);
-		}
+		//logMsg("%d frames", frames);
+		EmuSystem::writeSound(audioBuff, samples / 2);
 	}
 }
 
@@ -277,15 +267,15 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	#ifndef SNES9X_VERSION_1_4
 	S9xSetSamplesAvailableCallback([](void *renderAudio)
 		{
-			S9xFinalizeSamples();
 			int samples = S9xGetSampleCount();
-			mixSamples(samples / 2, renderAudio);
+			mixSamples(samples, renderAudio);
 		}, (void*)renderAudio);
 	#endif
 	S9xMainLoop();
 	// video rendered in S9xDeinitUpdate
 	#ifdef SNES9X_VERSION_1_4
-	mixSamples(audioFramesPerUpdate, renderAudio);
+	auto samples = audioFramesForThisFrame() * 2;
+	mixSamples(samples, renderAudio);
 	#endif
 }
 
@@ -315,7 +305,7 @@ EmuSystem::Error EmuSystem::onInit()
 	S9xInitAPU();
 	assert(Settings.Stereo == TRUE);
 	#ifndef SNES9X_VERSION_1_4
-	S9xInitSound(16, 0);
+	S9xInitSound(0);
 	S9xUnmapAllControls();
 	#else
 	S9xInitSound(Settings.SoundPlaybackRate, Settings.Stereo, 0);

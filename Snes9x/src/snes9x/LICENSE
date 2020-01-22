@@ -21,7 +21,7 @@
 
   (c) Copyright 2006 - 2007  nitsuja
 
-  (c) Copyright 2009 - 2017  BearOso,
+  (c) Copyright 2009 - 2019  BearOso,
                              OV2
 
   (c) Copyright 2017         qwertymodo
@@ -139,7 +139,7 @@
   (c) Copyright 2006 - 2007  Shay Green
 
   GTK+ GUI code
-  (c) Copyright 2004 - 2017  BearOso
+  (c) Copyright 2004 - 2019  BearOso
 
   Win32 GUI code
   (c) Copyright 2003 - 2006  blip,
@@ -147,7 +147,7 @@
                              Matthew Kendora,
                              Nach,
                              nitsuja
-  (c) Copyright 2009 - 2017  OV2
+  (c) Copyright 2009 - 2019  OV2
 
   Mac OS GUI code
   (c) Copyright 1998 - 2001  John Stiles
@@ -164,6 +164,7 @@
 
 
   Snes9x homepage: http://www.snes9x.com/
+  Snes9x source code: https://github.com/snes9xgit/snes9x/
 
   Permission to use, copy, modify and/or distribute Snes9x in both binary
   and source form, for non-commercial purposes, is hereby granted without
@@ -186,3 +187,12 @@
 
   Super NES and Super Nintendo Entertainment System are trademarks of
   Nintendo Co., Limited and its subsidiary companies.
+
+-------------------------------------------------------------------------------
+
+Some parts included in Snes9x are usually available under a different license,
+their authors have granted exception for their use in Snes9x (and/or they are
+licensed as LGPL):
+ - JMA: GPL/LGPL, see jma/license.txt
+ - snes_ntsc: LGPL, see filter/snes_ntsc-license.txt
+ - xBRZ: GPLv3, see filter/xbrz-license.txt

@@ -22,6 +22,7 @@ extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;
 #ifndef SNES9X_VERSION_1_4
 extern Byte1Option optionBlockInvalidVRAMAccess;
+extern Byte1Option optionAudioDSPInterpolation;
 #endif
 extern int snesInputPort;
 extern uint doubleClickFrames, rightClickFrames;
@@ -47,3 +48,6 @@ int16 *S9xGetSuperscopePosBits();
 uint8 *S9xGetSuperscopeBits();
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons);
 #endif
+
+void checkAndEnableGlobalCheats();
+uint32_t numCheats();

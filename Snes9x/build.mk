@@ -20,6 +20,7 @@ CXXFLAGS_WARN += -Wno-register
 
 snes9xSrc := \
 bsx.cpp \
+bml.cpp \
 c4.cpp \
 c4emu.cpp \
 cheats.cpp \
@@ -54,13 +55,13 @@ seta.cpp \
 seta010.cpp \
 seta011.cpp \
 seta018.cpp \
+sha256.cpp \
 snapshot.cpp \
 spc7110.cpp \
 srtc.cpp \
 tile.cpp \
 apu/apu.cpp \
 apu/bapu/dsp/sdsp.cpp \
-apu/bapu/dsp/SPC_DSP.cpp \
 apu/bapu/smp/smp.cpp \
 apu/bapu/smp/smp_state.cpp
 # conffile.cpp crosshairs.cpp logger.cpp screenshot.cpp snes9x.cpp

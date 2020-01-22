@@ -343,7 +343,6 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 				#ifndef SNES9X_VERSION_1_4
 				*S9xGetSuperscopeBits() = 0;
 				#endif
-				logMsg("up");
 			}
 			if(gameRect.overlaps(e.pos()))
 			{
@@ -357,7 +356,6 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 					#ifndef SNES9X_VERSION_1_4
 					*S9xGetSuperscopeBits() = 0x80;
 					#endif
-					logMsg("down");
 				}
 			}
 			else if(e.pushed())

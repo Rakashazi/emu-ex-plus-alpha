@@ -3,12 +3,188 @@
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <cheats.h>
-extern CollectTextInputView textInputView;
+
+void checkAndEnableGlobalCheats()
+{
+	#ifndef SNES9X_VERSION_1_4
+	for(auto &c : Cheat.g)
+	{
+		if(c.enabled)
+		{
+			logMsg("cheat processing is enabled");
+			Cheat.enabled = true;
+			return;
+		}
+	}
+	logMsg("cheat processing is disabled");
+	Cheat.enabled = false;
+	#endif
+}
+
+uint32_t numCheats()
+{
+	#ifndef SNES9X_VERSION_1_4
+	return Cheat.g.size();
+	#else
+	return Cheat.num_cheats;
+	#endif
+}
+
+static void setCheatName(uint32_t idx, const char *name)
+{
+	#ifndef SNES9X_VERSION_1_4
+	if(idx >= numCheats())
+		return;
+	Cheat.g[idx].name = name;
+	#else
+	string_copy(Cheat.c[idx].name, name);
+	#endif
+}
+
+static const char *cheatName(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	return Cheat.g[idx].name.c_str();
+	#else
+	return Cheat.c[idx].name;
+	#endif
+}
+
+static void deleteCheat(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	S9xDeleteCheatGroup(idx);
+	checkAndEnableGlobalCheats();
+	#else
+	S9xDeleteCheat(idx);
+	#endif
+}
+
+static bool cheatIsEnabled(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	return Cheat.g[idx].enabled;
+	#else
+	return Cheat.c[idx].enabled;
+	#endif
+}
+
+static void enableCheat(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	S9xEnableCheatGroup(idx);
+	checkAndEnableGlobalCheats();
+	#else
+	S9xEnableCheat(idx);
+	#endif
+}
+
+static void disableCheat(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	S9xDisableCheatGroup(idx);
+	checkAndEnableGlobalCheats();
+	#else
+	S9xDisableCheat(idx);
+	#endif
+}
+
+static void setCheatAddress(uint32_t idx, uint32_t a)
+{
+	#ifndef SNES9X_VERSION_1_4
+	Cheat.g[idx].c[0].address = a;
+	#else
+	Cheat.c[idx].address = a;
+	#endif
+}
+
+static uint32_t cheatAddress(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	return Cheat.g[idx].c[0].address;
+	#else
+	return Cheat.c[idx].address;
+	#endif
+}
+
+static void setCheatValue(uint32_t idx, uint8 v)
+{
+	#ifndef SNES9X_VERSION_1_4
+	Cheat.g[idx].c[0].byte = v;
+	#else
+	Cheat.c[idx].byte = v;
+	#endif
+}
+
+static uint8 cheatValue(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	return Cheat.g[idx].c[0].byte;
+	#else
+	return Cheat.c[idx].byte;
+	#endif
+}
+
+static void setCheatConditionalValue(uint32_t idx, bool conditional, uint8 v)
+{
+	#ifndef SNES9X_VERSION_1_4
+	Cheat.g[idx].c[0].conditional = conditional;
+	Cheat.g[idx].c[0].cond_byte = v;
+	#else
+	Cheat.c[idx].saved = conditional;
+	Cheat.c[idx].saved_byte = v;
+	#endif
+}
+
+static std::pair<bool, uint8> cheatConditionalValue(uint32_t idx)
+{
+	#ifndef SNES9X_VERSION_1_4
+	return {Cheat.g[idx].c[0].conditional, Cheat.g[idx].c[0].cond_byte};
+	#else
+	return {Cheat.c[idx].saved, Cheat.c[idx].saved_byte};
+	#endif
+}
+
+static bool addCheat(const char *cheatStr)
+{
+	#ifndef SNES9X_VERSION_1_4
+	if(S9xAddCheatGroup("", cheatStr) == -1)
+	{
+		return false;
+	}
+	checkAndEnableGlobalCheats();
+	return true;
+	#else
+	uint8 byte;
+	uint32 address;
+	uint8 bytes[3];
+	bool8 sram;
+	uint8 numBytes;
+	if(!S9xGameGenieToRaw(cheatStr, address, byte))
+	{
+		S9xAddCheat(false, true, address, byte);
+		return true;
+	}
+	else if(!S9xProActionReplayToRaw (cheatStr, address, byte))
+	{
+		S9xAddCheat(false, true, address, byte);
+		return true;
+	}
+	else if(!S9xGoldFingerToRaw(cheatStr, address, sram, numBytes, bytes))
+	{
+		iterateTimes(numBytes, i)
+			S9xAddCheat(false, true, address + i, bytes[i]);
+		// TODO: handle cheat names for multiple codes added at once
+		return true;
+	}
+	return false;
+	#endif
+}
 
 void EmuEditCheatView::renamed(const char *str)
 {
-	string_copy(Cheat.c[idx].name, str);
-	name.t.setString(Cheat.c[idx].name);
+	setCheatName(idx, str);
+	name.t.setString(cheatName(idx));
 	name.compile(renderer(), projP);
 }
 
@@ -17,7 +193,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	{
 		"Edit Address/Values",
 		attach,
-		Cheat.c[cheatIdx].name,
+		cheatName(cheatIdx),
 		[this](const TableView &)
 		{
 			return 5;
@@ -35,7 +211,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		},
 		[this](TextMenuItem &, View &, Input::Event)
 		{
-			S9xDeleteCheat(idx);
+			deleteCheat(idx);
 			EmuApp::refreshCheatViews();
 			dismiss();
 			return true;
@@ -61,15 +237,15 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 							return 1;
 						}
 						string_copy(addrStr, a ? str : "0");
-						auto wasEnabled = Cheat.c[idx].enabled;
+						auto wasEnabled = cheatIsEnabled(idx);
 						if(wasEnabled)
 						{
-							S9xDisableCheat(idx);
+							disableCheat(idx);
 						}
-						Cheat.c[idx].address = a;
+						setCheatAddress(idx, a);
 						if(wasEnabled)
 						{
-							S9xEnableCheat(idx);
+							enableCheat(idx);
 						}
 						addr.compile(renderer(), projP);
 						window().postDraw();
@@ -98,15 +274,15 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 							return 1;
 						}
 						string_copy(valueStr, a ? str : "0");
-						auto wasEnabled = Cheat.c[idx].enabled;
+						auto wasEnabled = cheatIsEnabled(idx);
 						if(wasEnabled)
 						{
-							S9xDisableCheat(idx);
+							disableCheat(idx);
 						}
-						Cheat.c[idx].byte = a;
+						setCheatValue(idx, a);
 						if(wasEnabled)
 						{
-							S9xEnableCheat(idx);
+							enableCheat(idx);
 						}
 						value.compile(renderer(), projP);
 						window().postDraw();
@@ -118,7 +294,11 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	},
 	saved
 	{
+		#ifndef SNES9X_VERSION_1_4
+		"Conditional Value",
+		#else
 		"Saved Value",
+		#endif
 		savedStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -143,24 +323,22 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 						{
 							savedStr[0] = 0;
 						}
-						auto wasEnabled = Cheat.c[idx].enabled;
+						auto wasEnabled = cheatIsEnabled(idx);
 						if(wasEnabled)
 						{
-							S9xDisableCheat(idx);
+							disableCheat(idx);
 						}
 						if(a <= 0xFF)
 						{
-							Cheat.c[idx].saved = 1;
-							Cheat.c[idx].saved_byte = a;
+							setCheatConditionalValue(idx, true, a);
 						}
 						else
 						{
-							Cheat.c[idx].saved = 0;
-							Cheat.c[idx].saved_byte = 0;
+							setCheatConditionalValue(idx, false, 0);
 						}
 						if(wasEnabled)
 						{
-							S9xEnableCheat(idx);
+							enableCheat(idx);
 						}
 						saved.compile(renderer(), projP);
 						window().postDraw();
@@ -172,24 +350,26 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	},
 	idx{cheatIdx}
 {
-	auto &cheat = Cheat.c[idx];
-	logMsg("got cheat with addr 0x%.6x val 0x%.2x saved val 0x%.2x", cheat.address, cheat.byte, cheat.saved_byte);
-	string_printf(addrStr, "%x", cheat.address);
-	string_printf(valueStr, "%x", cheat.byte);
-	if(!cheat.saved)
+	auto address = cheatAddress(idx);
+	auto value = cheatValue(idx);
+	auto [saved, savedVal] = cheatConditionalValue(idx);
+	logMsg("got cheat with addr 0x%.6x val 0x%.2x saved val 0x%.2x", address, value, savedVal);
+	string_printf(addrStr, "%x", address);
+	string_printf(valueStr, "%x", value);
+	if(!saved)
 		savedStr[0] = 0;
 	else
-		string_printf(savedStr, "%x", cheat.saved_byte);
+		string_printf(savedStr, "%x", savedVal);
 }
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	uint cheats = Cheat.num_cheats;
+	uint cheats = numCheats();
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back(Cheat.c[c].name,
+		cheat.emplace_back(cheatName(c),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(c), e);
@@ -219,7 +399,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		"Add Game Genie/Action Replay/Gold Finger Code",
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			if(Cheat.num_cheats == EmuCheats::MAX)
+			if(numCheats() == EmuCheats::MAX)
 			{
 				EmuApp::postMessage(true, "Too many cheats, delete some first");
 				return;
@@ -230,36 +410,22 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 				{
 					if(str)
 					{
-						uint8 byte;
-						uint32 address;
-						uint8 bytes[3];
-						bool8 sram;
-						uint8 numBytes;
-						if(!S9xGameGenieToRaw(str, address, byte))
-							S9xAddCheat(false, true, address, byte);
-						else if(!S9xProActionReplayToRaw (str, address, byte))
-							S9xAddCheat(false, true, address, byte);
-						else if(!S9xGoldFingerToRaw(str, address, sram, numBytes, bytes))
-						{
-							iterateTimes(numBytes, i)
-								S9xAddCheat(false, true, address + i, bytes[i]);
-							// TODO: handle cheat names for multiple codes added at once
-						}
-						else
+						if(!addCheat(str))
 						{
 							EmuApp::postMessage(true, "Invalid format");
 							return 1;
 						}
-						string_copy(Cheat.c[Cheat.num_cheats - 1].name, "Unnamed Cheat");
-						logMsg("added new cheat, %d total", Cheat.num_cheats);
+						auto idx = numCheats() - 1;
+						setCheatName(idx, "Unnamed Cheat");
+						logMsg("added new cheat, %d total", numCheats());
 						view.dismiss();
 						EmuApp::refreshCheatViews();
 						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
-							[](CollectTextInputView &view, const char *str)
+							[idx](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
-									string_copy(Cheat.c[Cheat.num_cheats - 1].name, str);
+									setCheatName(idx, str);
 									view.dismiss();
 									EmuApp::refreshCheatViews();
 								}
@@ -289,19 +455,19 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void EmuCheatsView::loadCheatItems()
 {
-	uint cheats = Cheat.num_cheats;
+	uint cheats = numCheats();
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back(Cheat.c[c].name, Cheat.c[c].enabled,
+		cheat.emplace_back(cheatName(c), cheatIsEnabled(c),
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				bool on = item.flipBoolValue(*this);
 				if(on)
-					S9xEnableCheat(c);
+					enableCheat(c);
 				else
-					S9xDisableCheat(c);
+					disableCheat(c);
 			});
 	}
 }

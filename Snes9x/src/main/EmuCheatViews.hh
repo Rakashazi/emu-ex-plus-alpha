@@ -4,9 +4,11 @@
 
 namespace EmuCheats
 {
-
+#ifdef MAX_CHEATS
 static const uint MAX = MAX_CHEATS;
-
+#else
+static const uint MAX = 150;
+#endif
 }
 
 class EmuCheatsView : public BaseCheatsView

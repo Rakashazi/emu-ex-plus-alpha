@@ -16,11 +16,11 @@
 
 #ifndef SNES9X_VERSION_1_4
 uint16 SSettings::DisplayColor = 0;
-bool8 SSettings::DisplayMovieFrame = 0;
-uint32 SSettings::SoundInputRate = 32000;
-const char	*SGFX::InfoString = nullptr;
-uint32	SGFX::InfoStringTimeout = 0;
-char	SGFX::FrameDisplayString[256]{};
+uint32 SSettings::SkipFrames = 0;
+uint32 SSettings::TurboSkipFrames = 0;
+const char *SGFX::InfoString{};
+uint32 SGFX::InfoStringTimeout = 0;
+char SGFX::FrameDisplayString[256]{};
 #endif
 
 void S9xMessage(int, int, const char *msg)
@@ -69,8 +69,6 @@ const char *S9xGetCrosshair(int idx)
 {
 	return nullptr;
 }
-
-void S9xDrawCrosshair(const char *crosshair, uint8 fgcolor, uint8 bgcolor, int16 x, int16 y) {}
 
 const char * S9xGetDirectory(enum s9x_getdirtype dirtype)
 {

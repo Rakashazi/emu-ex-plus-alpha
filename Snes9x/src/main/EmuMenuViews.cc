@@ -1,3 +1,7 @@
+#ifndef SNES9X_VERSION_1_4
+#include <apu/apu.h>
+#include <apu/bapu/snes/snes.hpp>
+#endif
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"
@@ -5,6 +9,41 @@
 #include <snes9x.h>
 
 static constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
+
+#ifndef SNES9X_VERSION_1_4
+class CustomAudioOptionView : public AudioOptionView
+{
+	void setDSPInterpolation(uint8_t val)
+	{
+		logMsg("set DSP interpolation:%u", val);
+		optionAudioDSPInterpolation = val;
+		SNES::dsp.spc_dsp.interpolation = val;
+	}
+
+	TextMenuItem dspInterpolationItem[5]
+	{
+		{"None", [this](){ setDSPInterpolation(0); }},
+		{"Linear", [this](){ setDSPInterpolation(1); }},
+		{"Gaussian", [this](){ setDSPInterpolation(2); }},
+		{"Cubic", [this](){ setDSPInterpolation(3); }},
+		{"Sinc", [this](){ setDSPInterpolation(4); }},
+	};
+
+	MultiChoiceMenuItem dspInterpolation
+	{
+		"DSP Interpolation",
+		optionAudioDSPInterpolation,
+		dspInterpolationItem
+	};
+
+public:
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&dspInterpolation);
+	}
+};
+#endif
 
 class ConsoleOptionView : public TableView
 {
@@ -141,6 +180,9 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
+		#ifndef SNES9X_VERSION_1_4
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
+		#endif
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::EDIT_CHEATS: return std::make_unique<EmuEditCheatListView>(attach);
 		case ViewID::LIST_CHEATS: return std::make_unique<EmuCheatsView>(attach);
