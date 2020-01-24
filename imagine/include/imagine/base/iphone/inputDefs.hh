@@ -37,7 +37,7 @@ public:
 
 using TimeImpl = TimeIOS;
 
-using Key = uint16;
+using Key = uint16_t;
 
 	namespace IOS
 	{

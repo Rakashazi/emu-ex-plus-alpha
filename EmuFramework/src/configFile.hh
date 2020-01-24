@@ -20,7 +20,7 @@
 template<class ON_KEY>
 static bool readConfigKeys(IO &io, ON_KEY onKey)
 {
-	auto blockSize = io.readVal<uint8>();
+	auto blockSize = io.readVal<uint8_t>();
 	auto fileBytesLeft = io.size() - 1;
 
 	if(blockSize != 2)
@@ -31,7 +31,7 @@ static bool readConfigKeys(IO &io, ON_KEY onKey)
 
 	while(!io.eof() && fileBytesLeft >= 2)
 	{
-		auto size = io.readVal<uint16>();
+		auto size = io.readVal<uint16_t>();
 		auto nextBlockPos = io.tell() + size;
 
 		if(!size)
@@ -58,7 +58,7 @@ static bool readConfigKeys(IO &io, ON_KEY onKey)
 			continue;
 		}
 
-		auto key = io.readVal<uint16>();
+		auto key = io.readVal<uint16_t>();
 		size -= 2;
 
 		logMsg("got config key %u, size %u", key, size);
@@ -75,7 +75,7 @@ static bool readConfigKeys(IO &io, ON_KEY onKey)
 
 static void writeConfigHeader(IO &io)
 {
-	uint8 blockHeaderSize = 2;
+	uint8_t blockHeaderSize = 2;
 	std::error_code ec{};
 	io.writeVal(blockHeaderSize, &ec);
 }

@@ -75,7 +75,7 @@ private:
 
 	bool openDefault();
 	CallResult doScan(const OnScanDeviceClassDelegate &onDeviceClass, const OnScanDeviceNameDelegate &onDeviceName);
-	void sendBTScanStatusDelegate(uint8 type, uint8 arg);
+	void sendBTScanStatusDelegate(uint8_t type, uint8_t arg);
 };
 
 class BluezBluetoothSocket : public BluetoothSocket

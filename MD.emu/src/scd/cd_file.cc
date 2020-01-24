@@ -12,6 +12,7 @@
 #include "cd_sys.h"
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/mayAliasInt.h>
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>

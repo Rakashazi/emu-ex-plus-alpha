@@ -14,13 +14,13 @@ struct SegaCD
 	constexpr SegaCD(): cpu(m68kCyclesSCD, 1) {}
 	M68KCPU cpu;
 	bool isActive = 0;
-	uchar busreq = 0;
+	uint8_t busreq = 0;
 	uint stopwatchTimer = 0;
 	uint counter75hz = 0;
 	int timer_int3 = 0;
 	uint volume = 1024;
 
-	uchar gate[0x200]{};
+	uint8_t gate[0x200]{};
 
 	_scd_toc TOC;
 	int32 cddaLBA = 0;
@@ -37,16 +37,16 @@ struct SegaCD
 	union PrgRam
 	{
 		constexpr PrgRam() {}
-		uchar b[512 * 1024]{};
-		uchar bank[4][128 * 1024];
+		uint8_t b[512 * 1024]{};
+		uint8_t bank[4][128 * 1024];
 	};
 	PrgRam prg;
 
 	union WordRam
 	{
 		constexpr WordRam() { }
-		uchar ram2M[0x40000]{};
-		uchar ram1M[2][0x20000];
+		uint8_t ram2M[0x40000]{};
+		uint8_t ram1M[2][0x20000];
 	};
 	WordRam word;
 
@@ -55,30 +55,30 @@ struct SegaCD
 	union PCMRam
 	{
 		constexpr PCMRam() {}
-		uchar b[0x10000]{};
-		uchar bank[0x10][0x1000];
+		uint8_t b[0x10000]{};
+		uint8_t bank[0x10][0x1000];
 	};
 	PCMRam pcmMem;
 
 	struct PCM
 	{
 		constexpr PCM() {}
-		uchar control = 0; // reg7
-		uchar enabled = 0; // reg8
-		uchar cur_ch = 0;
-		uchar bank = 0;
+		uint8_t control = 0; // reg7
+		uint8_t enabled = 0; // reg8
+		uint8_t cur_ch = 0;
+		uint8_t bank = 0;
 
 		struct Channel // 08, size 0x10
 		{
 			constexpr Channel() {}
-			uchar regs[8]{};
+			uint8_t regs[8]{};
 			uint  addr = 0;	// .08: played sample address
 		} ch[8];
 	};
 	PCM pcm;
 
-	uchar bcramReg = 0;
-	uchar audioTrack = 0;
+	uint8_t bcramReg = 0;
+	uint8_t audioTrack = 0;
 	bool subResetPending = 0;
 	bool delayedDMNA = 0;
 };
@@ -86,7 +86,7 @@ struct SegaCD
 extern SegaCD sCD;
 
 // Pre-formatted internal BRAM
-static const uchar fmtBram[4*0x10] =
+static const uint8_t fmtBram[4*0x10] =
 {
 	0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x00, 0x00, 0x00, 0x00, 0x40,
 	0x00, 0x7d, 0x00, 0x7d, 0x00, 0x7d, 0x00, 0x7d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -96,7 +96,7 @@ static const uchar fmtBram[4*0x10] =
 };
 
 // Pre-formatted 64K SRAM cart
-static const uchar fmt64kSram[4*0x10] =
+static const uint8_t fmt64kSram[4*0x10] =
 {
 	0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x00, 0x00, 0x00, 0x00, 0x40,
 	0x03, 0xfd, 0x03, 0xfd, 0x03, 0xfd, 0x03, 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -105,7 +105,7 @@ static const uchar fmt64kSram[4*0x10] =
 	// SEGA_CD_ROM.....RAM_CARTRIDGE___
 };
 
-extern uchar bram[0x2000];
+extern uint8_t bram[0x2000];
 
 void scd_interruptSubCpu(uint irq);
 void scd_resetSubCpu();

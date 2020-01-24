@@ -35,7 +35,7 @@ public:
 
 	void update(IG::Time time, std::array<T, D> pos_)
 	{
-		const uint64 MIN_TIME_DELTA = 2000000; // in nanosecs
+		const uint64_t MIN_TIME_DELTA = 2000000; // in nanosecs
 		const T FILTER_TIME_CONSTANT = .010; // in secs
 
 		if(time.nSecs() <= updateTime.nSecs() + MIN_TIME_DELTA)
@@ -75,7 +75,7 @@ protected:
 	IG::Time updateTime{};
 	ValArray pos{};
 	ValArray vel{};
-	uint8 degree{};
+	uint8_t degree{};
 };
 
 template <class T, uint32_t D>

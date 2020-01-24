@@ -17,8 +17,8 @@
 #include <emuframework/EmuSystem.hh>
 
 #define CONV_COL(x) 0, x
-alignas(2) static uint8 scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
-alignas(8) static uint8 diagonalPixmapBuff[] =
+alignas(2) static uint8_t scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
+alignas(8) static uint8_t diagonalPixmapBuff[] =
 {
 		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
 		CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00),
@@ -32,7 +32,7 @@ alignas(8) static uint8 diagonalPixmapBuff[] =
 #undef CONV_COL
 
 #define CONV_COL(x) 31, x
-alignas(8) static uint8 crtPixmapBuff[] =
+alignas(8) static uint8_t crtPixmapBuff[] =
 {
 		CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0xff), CONV_COL(0x00), CONV_COL(0x00), CONV_COL(0x00),
 		CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff), CONV_COL(0xff),
@@ -47,7 +47,7 @@ alignas(8) static uint8 crtPixmapBuff[] =
 
 //#define CONV_COL(r,g,b) ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 #define CONV_COL(r,g,b) uint((r << 24) | (g << 16) | (b << 8) | 127)
-alignas(8) static uint32 crtRgbPixmapBuff[] =
+alignas(8) static uint32_t crtRgbPixmapBuff[] =
 {
 		CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33), CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33),
 		CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33), CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33),

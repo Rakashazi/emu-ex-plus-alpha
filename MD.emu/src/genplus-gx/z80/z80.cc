@@ -378,12 +378,12 @@ INLINE void WM16( UINT32 addr, PAIR *r )
   WM((addr+1)&0xffff,r->b.h);
 }
 
-INLINE uchar cpu_readop(uint addr)
+INLINE uint8_t cpu_readop(uint addr)
 {
 	return z80_readmap[(addr) >> 10][(addr) & 0x03FF];
 }
 
-INLINE uchar cpu_readop_arg(uint addr)
+INLINE uint8_t cpu_readop_arg(uint addr)
 {
 	return cpu_readop(addr);
 }

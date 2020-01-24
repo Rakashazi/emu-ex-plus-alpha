@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/ansiTypes.h>
+#include <stdint.h>
 
 enum { OK, NO_FREE_ENTRIES, OUT_OF_MEMORY, IO_ERROR, ALREADY_EXISTS,
 	INIT_ERROR, INVALID_PARAMETER, OUT_OF_BOUNDS, NOT_FOUND,
 	NO_PRECOMP, PERMISSION_DENIED, UNSUPPORTED_OPERATION,
 	READ_ERROR, WRITE_ERROR, BAD_STATE };
 
-typedef uint CallResult;
+typedef uint32_t CallResult;

@@ -30,7 +30,7 @@ namespace Gfx
 class Text
 {
 public:
-	static constexpr ushort NO_MAX_LINES = 0-1;
+	static constexpr uint16_t NO_MAX_LINES = 0-1;
 	static constexpr GC NO_MAX_LINE_SIZE = FLT_MAX;
 
 	struct LineInfo

@@ -21,7 +21,7 @@
 namespace Input
 {
 
-static constexpr uint8 MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
+static constexpr uint8_t MAX_BLUETOOTH_DEVS_PER_TYPE = 5;
 
 	namespace PS3
 	{

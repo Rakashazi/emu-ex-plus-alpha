@@ -9,16 +9,16 @@ namespace UTF
 {
 
 /* Some fundamental constants */
-static const uint32 UNI_REPLACEMENT_CHAR = 0x0000FFFD;
-static const uint32 UNI_MAX_BMP = 0x0000FFFF;
-static const uint32 UNI_MAX_UTF16 = 0x0010FFFF;
-static const uint32 UNI_MAX_UTF32 = 0x7FFFFFFF;
-static const uint32 UNI_MAX_LEGAL_UTF32 = 0x0010FFFF;
+static const uint32_t UNI_REPLACEMENT_CHAR = 0x0000FFFD;
+static const uint32_t UNI_MAX_BMP = 0x0000FFFF;
+static const uint32_t UNI_MAX_UTF16 = 0x0010FFFF;
+static const uint32_t UNI_MAX_UTF32 = 0x7FFFFFFF;
+static const uint32_t UNI_MAX_LEGAL_UTF32 = 0x0010FFFF;
 
-static const uint32 UNI_SUR_HIGH_START = 0xD800;
-static const uint32 UNI_SUR_HIGH_END = 0xDBFF;
-static const uint32 UNI_SUR_LOW_START = 0xDC00;
-static const uint32 UNI_SUR_LOW_END = 0xDFFF;
+static const uint32_t UNI_SUR_HIGH_START = 0xD800;
+static const uint32_t UNI_SUR_HIGH_END = 0xDBFF;
+static const uint32_t UNI_SUR_LOW_START = 0xDC00;
+static const uint32_t UNI_SUR_LOW_END = 0xDFFF;
 
 /*
  * Index into the table below with the first byte of a UTF-8 sequence to
@@ -43,7 +43,7 @@ static const uint32_t trailingBytesForUTF8[256] = {
  * This table contains as many values as there might be trailing bytes
  * in a UTF-8 sequence.
  */
-static const uint32 offsetsFromUTF8[6] = { 0x00000000UL, 0x00003080UL, 0x000E2080UL,
+static const uint32_t offsetsFromUTF8[6] = { 0x00000000UL, 0x00003080UL, 0x000E2080UL,
 		     0x03C82080UL, 0xFA082080UL, 0x82082080UL };
 
 /*
@@ -67,9 +67,9 @@ static const uint32_t firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0
  * definition of UTF-8 goes up to 4-byte sequences.
  */
 
-static bool isLegalUTF8(const uint8 *source, int length) {
-		uint8 a;
-    const uint8 *srcptr = source+length;
+static bool isLegalUTF8(const uint8_t *source, int length) {
+		uint8_t a;
+    const uint8_t *srcptr = source+length;
     switch (length) {
     default: return false;
 	/* Everything else falls through when "true"... */
@@ -107,11 +107,11 @@ typedef enum {
 } ConversionFlags;
 
 static ConversionResult ConvertUTF8toUTF32 (
-	const uint8** sourceStart, const uint8* sourceEnd,
+	const uint8_t** sourceStart, const uint8_t* sourceEnd,
 	ConversionFlags flags, uint32_t &c)
 {
 	ConversionResult result = conversionOK;
-	const uint8* source = *sourceStart;
+	const uint8_t* source = *sourceStart;
 	// sourceEnd of nullptr is ignored
 	if((sourceEnd && source < sourceEnd) || !sourceEnd)
 	{
@@ -185,7 +185,7 @@ static ConversionResult ConvertUTF8toUTF32 (
 
 // convert from a source without an end bound
 static ConversionResult ConvertUTF8toUTF32 (
-	const uint8** sourceStart,
+	const uint8_t** sourceStart,
 	ConversionFlags flags, uint32_t &c)
 {
 	return ConvertUTF8toUTF32(sourceStart, nullptr, flags, c);

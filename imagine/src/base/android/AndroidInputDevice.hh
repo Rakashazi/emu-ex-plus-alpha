@@ -51,8 +51,8 @@ public:
 	struct Axis
 	{
 		constexpr Axis() {}
-		constexpr Axis(uint8 id, AxisKeyEmu<float> keyEmu): id{id}, keyEmu{keyEmu} {}
-		uint8 id = 0;
+		constexpr Axis(uint8_t id, AxisKeyEmu<float> keyEmu): id{id}, keyEmu{keyEmu} {}
+		uint8_t id = 0;
 		AxisKeyEmu<float> keyEmu;
 	};
 	StaticArrayList<Axis, MAX_AXES> axis;

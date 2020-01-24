@@ -146,7 +146,7 @@ std::errc string_convertCharCode(const char** sourceStart, uint32_t &c)
 {
 	if(Config::UNICODE_CHARS)
 	{
-		switch(UTF::ConvertUTF8toUTF32((const uint8**)sourceStart, UTF::strictConversion, c))
+		switch(UTF::ConvertUTF8toUTF32((const uint8_t**)sourceStart, UTF::strictConversion, c))
 		{
 			case UTF::conversionOK: return {};
 			case UTF::reachedNullChar: return std::errc::result_out_of_range;

@@ -77,7 +77,7 @@ public:
 		ACTIVE
 	};
 
-	enum class LoadProgress : uint8
+	enum class LoadProgress : uint8_t
 	{
 		UNSET,
 		FAILED,

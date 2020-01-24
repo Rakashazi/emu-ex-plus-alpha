@@ -61,7 +61,7 @@ public:
 	}
 	GlyphEntry *glyphEntry(Renderer &r, int c, bool allowCache = true);
 	uint32_t nominalHeight() const;
-	void freeCaches(uint32 rangeToFreeBits);
+	void freeCaches(uint32_t rangeToFreeBits);
 	void freeCaches() { freeCaches(~0); }
 
 private:

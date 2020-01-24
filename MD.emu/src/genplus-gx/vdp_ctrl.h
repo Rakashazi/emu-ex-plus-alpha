@@ -26,6 +26,7 @@
 
 #include <m68k/m68k.h>
 #include <assert.h>
+#include <imagine/util/mayAliasInt.h>
 
 template <uint S>
 union RamU

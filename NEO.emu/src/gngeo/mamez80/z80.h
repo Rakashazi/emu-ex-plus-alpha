@@ -10,13 +10,13 @@
 #endif
 
 //#include "SDL_types.h"
-#include <imagine/util/ansiTypes.h>
-#define UINT8     uint8
-#define UINT16    uint16
-#define UINT32    uint32
-#define INT8      sint8
-#define INT16     sint16
-#define INT32     sint32
+#include <stdint.h>
+#define UINT8     uint8_t
+#define UINT16    uint16_t
+#define UINT32    uint32_t
+#define INT8      int8_t
+#define INT16     int16_t
+#define INT32     int32_t
 #ifndef INLINE
 #define INLINE static __inline__
 #endif

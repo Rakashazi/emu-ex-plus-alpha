@@ -21,7 +21,7 @@ SH2Interface_struct *SH2CoreList[]
 	nullptr
 };
 
-static bool OptionSH2CoreIsValid(uint8 val)
+static bool OptionSH2CoreIsValid(uint8_t val)
 {
 	for(const auto &coreI : SH2CoreList)
 	{
@@ -37,7 +37,7 @@ static bool OptionSH2CoreIsValid(uint8 val)
 
 const char *EmuSystem::configFilename = "SaturnEmu.config";
 static PathOption optionBiosPath{CFGKEY_BIOS_PATH, biosPath, ""};
-Byte1Option optionSH2Core{CFGKEY_SH2_CORE, (uchar)defaultSH2CoreID, false, OptionSH2CoreIsValid};
+Byte1Option optionSH2Core{CFGKEY_SH2_CORE, (uint8_t)defaultSH2CoreID, false, OptionSH2CoreIsValid};
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
 		{"4:3 (Original)", 4, 3},

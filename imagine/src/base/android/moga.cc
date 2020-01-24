@@ -115,7 +115,7 @@ AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 	dev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
 	// set joystick axes
 	{
-		const uint8 stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
+		const uint8_t stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
 		for(auto axisId : stickAxes)
 		{
 			//logMsg("joystick axis: %d", axisId);
@@ -126,7 +126,7 @@ AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 	}
 	// set trigger axes
 	{
-		const uint8 triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER };
+		const uint8_t triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER };
 		for(auto axisId : triggerAxes)
 		{
 			//logMsg("trigger axis: %d", axisId);

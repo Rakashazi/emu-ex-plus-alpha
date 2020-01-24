@@ -102,7 +102,7 @@ public:
 
 using TimeImpl = TimeOSX;
 
-using Key = uint16;
+using Key = uint16_t;
 
 // TODO: remove dummy defs
 namespace OSX

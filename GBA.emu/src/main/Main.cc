@@ -197,7 +197,7 @@ void systemDrawScreen(EmuSystemTask *task, EmuVideo &video)
 	IG::Pixmap framePix{{{240, 160}, IG::PIXEL_RGB565}, gGba.lcd.pix};
 	if(!directColorLookup)
 	{
-		img.pixmap().writeTransformed([](uint16 p){ return systemColorMap.map16[p]; }, framePix);
+		img.pixmap().writeTransformed([](uint16_t p){ return systemColorMap.map16[p]; }, framePix);
 	}
 	else
 	{

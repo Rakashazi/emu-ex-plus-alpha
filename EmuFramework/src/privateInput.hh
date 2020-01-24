@@ -33,9 +33,9 @@ struct InputDeviceSavedConfig
 {
 	const KeyConfig *keyConf{};
 	uint enumId = 0;
-	uint8 player = 0;
+	uint8_t player = 0;
 	bool enabled = true;
-	uint8 joystickAxisAsDpadBits = 0;
+	uint8_t joystickAxisAsDpadBits = 0;
 	#ifdef CONFIG_INPUT_ICADE
 	bool iCadeMode = 0;
 	#endif
@@ -59,7 +59,7 @@ struct InputDeviceSavedConfig
 struct InputDeviceConfig
 {
 	static constexpr uint PLAYER_MULTI = 0xFF;
-	uint8 player = 0;
+	uint8_t player = 0;
 	bool enabled = true;
 	Input::Device *dev{};
 	InputDeviceSavedConfig *savedConf{};
@@ -90,7 +90,7 @@ struct InputDeviceConfig
 struct KeyMapping
 {
 	static constexpr uint maxKeyActions = 4;
-	using Action = uint8;
+	using Action = uint8_t;
 	using ActionGroup = Action[maxKeyActions];
 	std::unique_ptr<ActionGroup*[]> inputDevActionTablePtr{};
 

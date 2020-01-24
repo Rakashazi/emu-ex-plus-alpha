@@ -196,7 +196,7 @@ struct EvdevInputDevice : public Device
 				Keycode::JS_POV_XAXIS_NEG, Keycode::JS_POV_XAXIS_POS,
 				Keycode::JS_POV_YAXIS_NEG, Keycode::JS_POV_YAXIS_POS,
 			};
-			const uint8 stickAxes[] { ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ,
+			const uint8_t stickAxes[] { ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ,
 				ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_HAT2X, ABS_HAT2Y, ABS_HAT3X, ABS_HAT3Y,
 				ABS_RUDDER, ABS_WHEEL };
 			int axes = 0;

@@ -110,7 +110,7 @@ static void setAutoSaveState(uint val)
 }
 
 #ifdef __ANDROID__
-static bool setAndroidTextureStorage(uint8 mode)
+static bool setAndroidTextureStorage(uint8_t mode)
 {
 	static auto resetVideo =
 		[]()

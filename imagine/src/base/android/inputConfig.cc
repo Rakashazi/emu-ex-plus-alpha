@@ -286,7 +286,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumI
 		axisBits = jsAxisBits;
 		// check joystick axes
 		{
-			constexpr uint8 stickAxes[]{AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
+			constexpr uint8_t stickAxes[]{AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
 					AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL};
 			constexpr uint32_t stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
 					AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL};
@@ -314,7 +314,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumI
 		// check trigger axes
 		if(!axis.isFull())
 		{
-			const uint8 triggerAxes[]{AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE};
+			const uint8_t triggerAxes[]{AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE};
 			const uint32_t triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
 			uint32_t axisIdx = 0;
 			for(auto axisId : triggerAxes)

@@ -44,7 +44,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const AppWindowDat
 			{
 				int input = getInput({padArea.xPos(LT2DO) + (int)x, padArea.yPos(LT2DO) + (int)y});
 				//logMsg("got input %d", input);
-				*((uint16*)mapPix.pixel({(int)x, (int)y})) = input == -1 ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
+				*((uint16_t*)mapPix.pixel({(int)x, (int)y})) = input == -1 ? IG::PIXEL_DESC_RGB565.build(1., 0., 0., 1.)
 										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
 										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
 			}

@@ -20,8 +20,8 @@ struct CDC
 //	unsigned int Host_Data;		// unused
 //	unsigned int DMA_Adr;		// 0A
 //	unsigned int Stop_Watch;	// 0C
-	int32 COMIN = 0;
-	uint32 IFSTAT = 0;
+	int32_t COMIN = 0;
+	uint32_t IFSTAT = 0;
 	union DBC_T
 	{
 		constexpr DBC_T(): N(0) {}
@@ -31,7 +31,7 @@ struct CDC
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int32 N;
+		int32_t N;
 	} DBC;
 	union DAC_T
 	{
@@ -42,7 +42,7 @@ struct CDC
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int32 N;
+		int32_t N;
 	} DAC;
 	union HEAD_T
 	{
@@ -54,7 +54,7 @@ struct CDC
 			unsigned char B2;
 			unsigned char B3;
 		} B;
-		uint32 N;
+		uint32_t N;
 	} HEAD;
 	union PT_T
 	{
@@ -65,7 +65,7 @@ struct CDC
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int32 N;
+		int32_t N;
 	} PT;
 	union WA_T
 	{
@@ -76,7 +76,7 @@ struct CDC
 			unsigned char H;
 			unsigned short unused;
 		} B;
-		int32 N;
+		int32_t N;
 	} WA;
 	union STAT_T
 	{
@@ -88,10 +88,10 @@ struct CDC
 			unsigned char B2;
 			unsigned char B3;
 		} B;
-		uint32 N;
+		uint32_t N;
 	} STAT;
-	uint32 SBOUT = 0;
-	uint32 IFCTRL = 0;
+	uint32_t SBOUT = 0;
+	uint32_t IFCTRL = 0;
 	union CTRL_T
 	{
 		constexpr CTRL_T(): N(0) {}
@@ -102,9 +102,9 @@ struct CDC
 			unsigned char B2;
 			unsigned char B3;
 		} B;
-		uint32 N;
+		uint32_t N;
 	} CTRL;
-	uint32 Decode_Reg_Read = 0;
+	uint32_t Decode_Reg_Read = 0;
 };
 
 struct CDD

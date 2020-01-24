@@ -48,8 +48,16 @@
 #define snes9x_types_defined
 typedef unsigned char		bool8;
 #ifdef HAVE_STDINT_H
-#include <imagine/util/ansiTypes.h>
+#include <stdint.h>
 typedef intptr_t			pint;
+typedef int8_t				int8;
+typedef uint8_t				uint8;
+typedef int16_t				int16;
+typedef uint16_t			uint16;
+typedef int32_t				int32;
+typedef uint32_t			uint32;
+typedef int64_t				int64;
+typedef uint64_t			uint64;
 #else	// HAVE_STDINT_H
 #ifdef __WIN32__
 typedef intptr_t			pint;

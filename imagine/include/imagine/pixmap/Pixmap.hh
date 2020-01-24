@@ -97,23 +97,23 @@ public:
 			bcase 1:
 				switch(srcBytesPerPixel)
 				{
-					bcase 1: writeTransformed2<uint8, uint8>(func, pixmap);
-					bcase 2: writeTransformed2<uint16, uint8>(func, pixmap);
-					bcase 4: writeTransformed2<uint32, uint8>(func, pixmap);
+					bcase 1: writeTransformed2<uint8_t, uint8_t>(func, pixmap);
+					bcase 2: writeTransformed2<uint16_t, uint8_t>(func, pixmap);
+					bcase 4: writeTransformed2<uint32_t, uint8_t>(func, pixmap);
 				}
 			bcase 2:
 				switch(srcBytesPerPixel)
 				{
-					bcase 1: writeTransformed2<uint8, uint16>(func, pixmap);
-					bcase 2: writeTransformed2<uint16, uint16>(func, pixmap);
-					bcase 4: writeTransformed2<uint32, uint16>(func, pixmap);
+					bcase 1: writeTransformed2<uint8_t, uint16_t>(func, pixmap);
+					bcase 2: writeTransformed2<uint16_t, uint16_t>(func, pixmap);
+					bcase 4: writeTransformed2<uint32_t, uint16_t>(func, pixmap);
 				}
 			bcase 4:
 				switch(srcBytesPerPixel)
 				{
-					bcase 1: writeTransformed2<uint8, uint32>(func, pixmap);
-					bcase 2: writeTransformed2<uint16, uint32>(func, pixmap);
-					bcase 4: writeTransformed2<uint32, uint32>(func, pixmap);
+					bcase 1: writeTransformed2<uint8_t, uint32_t>(func, pixmap);
+					bcase 2: writeTransformed2<uint16_t, uint32_t>(func, pixmap);
+					bcase 4: writeTransformed2<uint32_t, uint32_t>(func, pixmap);
 				}
 		}
 	}

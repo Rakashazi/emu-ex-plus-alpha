@@ -11,7 +11,7 @@
 
 SegaCD sCD;
 
-uchar bram[0x2000];
+uint8_t bram[0x2000];
 
 static int intAckS68k(M68KCPU &m68ki_cpu, int level)
 {
@@ -420,7 +420,7 @@ int scd_loadState(uint8 *state, uint exVersion)
   load_param(&sCD.cddaLBA, 4);
   load_param(&sCD.cddaDataLeftover, 2);
 
-  uchar reserved[24];
+  uint8_t reserved[24];
   load_param(reserved, 24);
 
   updateSegaCdMemMap(sCD);
@@ -491,7 +491,7 @@ int scd_saveState(uint8 *state)
   save_param(&sCD.cddaLBA, 4);
   save_param(&sCD.cddaDataLeftover, 2);
 
-  uchar reserved[24]{};
+  uint8_t reserved[24]{};
   save_param(reserved, 24);
 
   return bufferptr;

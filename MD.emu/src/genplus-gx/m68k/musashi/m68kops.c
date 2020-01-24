@@ -4,11 +4,13 @@
 extern void m68040_fpu_op0(void);
 extern void m68040_fpu_op1(void);
 
+using sint = int;
+
 /* ======================================================================== */
 /* ============== CYCLE-ACCURATE DIV/MUL EXECUTION ======================== */
 /* ======================================================================== */
 #if 0
-INLINE void UseDivuCycles(uint32 dst, uint32 src)
+INLINE void UseDivuCycles(uint32_t dst, uint32_t src)
 {
   int i;
 
@@ -57,7 +59,7 @@ INLINE void UseDivsCycles(sint32 dst, sint16 src)
   if ((abs(dst) >> 16) < abs(src))
   {
     /* absolute quotient */
-    uint32 quotient = abs(dst) / abs(src);
+    uint32_t quotient = abs(dst) / abs(src);
 
     /* add default cycle time */
     mcycles += (55 * 7);
@@ -87,7 +89,7 @@ INLINE void UseDivsCycles(sint32 dst, sint16 src)
   USE_CYCLES(mcycles << 1);
 }
 
-INLINE void UseMuluCycles(uint16 src)
+INLINE void UseMuluCycles(uint16_t src)
 {
   /* minimum cycle time */
   uint mcycles = 38 * 7;
@@ -5384,7 +5386,7 @@ static void m68k_op_bfchg_32_d(M68KCPU &m68ki_cpu)
     uint offset = (word2>>6)&31;
     uint width = word2;
     uint* data = &DY;
-    uint64 mask;
+    uint64_t mask;
 
 
     if(BIT_B(word2))
@@ -5689,7 +5691,7 @@ static void m68k_op_bfclr_32_d(M68KCPU &m68ki_cpu)
     uint offset = (word2>>6)&31;
     uint width = word2;
     uint* data = &DY;
-    uint64 mask;
+    uint64_t mask;
 
 
     if(BIT_B(word2))
@@ -5995,7 +5997,7 @@ static void m68k_op_bfexts_32_d(M68KCPU &m68ki_cpu)
     uint word2 = OPER_I_16();
     uint offset = (word2>>6)&31;
     uint width = word2;
-    uint64 data = DY;
+    uint64_t data = DY;
 
 
     if(BIT_B(word2))
@@ -6365,7 +6367,7 @@ static void m68k_op_bfextu_32_d(M68KCPU &m68ki_cpu)
     uint word2 = OPER_I_16();
     uint offset = (word2>>6)&31;
     uint width = word2;
-    uint64 data = DY;
+    uint64_t data = DY;
 
 
     if(BIT_B(word2))
@@ -6728,7 +6730,7 @@ static void m68k_op_bfffo_32_d(M68KCPU &m68ki_cpu)
     uint word2 = OPER_I_16();
     uint offset = (word2>>6)&31;
     uint width = word2;
-    uint64 data = DY;
+    uint64_t data = DY;
     uint bit;
 
 
@@ -7131,8 +7133,8 @@ static void m68k_op_bfins_32_d(M68KCPU &m68ki_cpu)
     uint offset = (word2>>6)&31;
     uint width = word2;
     uint* data = &DY;
-    uint64 mask;
-    uint64 insert = REG_D[(word2>>12)&7];
+    uint64_t mask;
+    uint64_t insert = REG_D[(word2>>12)&7];
 
 
     if(BIT_B(word2))
@@ -7478,7 +7480,7 @@ static void m68k_op_bfset_32_d(M68KCPU &m68ki_cpu)
     uint offset = (word2>>6)&31;
     uint width = word2;
     uint* data = &DY;
-    uint64 mask;
+    uint64_t mask;
 
 
     if(BIT_B(word2))
@@ -7790,7 +7792,7 @@ static void m68k_op_bftst_32_d(M68KCPU &m68ki_cpu)
     uint offset = (word2>>6)&31;
     uint width = word2;
     uint* data = &DY;
-    uint64 mask;
+    uint64_t mask;
 
 
     if(BIT_B(word2))
@@ -12748,7 +12750,7 @@ static void m68k_op_divs_16_d(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -12792,7 +12794,7 @@ static void m68k_op_divs_16_ai(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -12836,7 +12838,7 @@ static void m68k_op_divs_16_pi(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -12880,7 +12882,7 @@ static void m68k_op_divs_16_pd(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -12924,7 +12926,7 @@ static void m68k_op_divs_16_di(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -12968,7 +12970,7 @@ static void m68k_op_divs_16_ix(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -13012,7 +13014,7 @@ static void m68k_op_divs_16_aw(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -13056,7 +13058,7 @@ static void m68k_op_divs_16_al(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -13100,7 +13102,7 @@ static void m68k_op_divs_16_pcdi(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -13144,7 +13146,7 @@ static void m68k_op_divs_16_pcix(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -13188,7 +13190,7 @@ static void m68k_op_divs_16_i(M68KCPU &m68ki_cpu)
     int cyc = getDivs68kCycles(*r_dst,src);
     USE_CYCLES(cyc);
 
-    if((uint32)*r_dst == 0x80000000 && src == -1)
+    if((uint32_t)*r_dst == 0x80000000 && src == -1)
     {
       FLAG_Z = 0;
       FLAG_N = NFLAG_CLEAR;
@@ -13591,10 +13593,10 @@ static void m68k_op_divl_32_d(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor   = DY;
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor   = DY;
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -13606,8 +13608,8 @@ static void m68k_op_divl_32_d(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -13630,8 +13632,8 @@ static void m68k_op_divl_32_d(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -13802,10 +13804,10 @@ static void m68k_op_divl_32_ai(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AY_AI_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AY_AI_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -13817,8 +13819,8 @@ static void m68k_op_divl_32_ai(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -13841,8 +13843,8 @@ static void m68k_op_divl_32_ai(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -14013,10 +14015,10 @@ static void m68k_op_divl_32_pi(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AY_PI_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AY_PI_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -14028,8 +14030,8 @@ static void m68k_op_divl_32_pi(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -14052,8 +14054,8 @@ static void m68k_op_divl_32_pi(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -14224,10 +14226,10 @@ static void m68k_op_divl_32_pd(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AY_PD_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AY_PD_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -14239,8 +14241,8 @@ static void m68k_op_divl_32_pd(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -14263,8 +14265,8 @@ static void m68k_op_divl_32_pd(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -14435,10 +14437,10 @@ static void m68k_op_divl_32_di(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AY_DI_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AY_DI_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -14450,8 +14452,8 @@ static void m68k_op_divl_32_di(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -14474,8 +14476,8 @@ static void m68k_op_divl_32_di(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -14646,10 +14648,10 @@ static void m68k_op_divl_32_ix(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AY_IX_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AY_IX_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -14661,8 +14663,8 @@ static void m68k_op_divl_32_ix(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -14685,8 +14687,8 @@ static void m68k_op_divl_32_ix(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -14857,10 +14859,10 @@ static void m68k_op_divl_32_aw(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AW_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AW_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -14872,8 +14874,8 @@ static void m68k_op_divl_32_aw(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -14896,8 +14898,8 @@ static void m68k_op_divl_32_aw(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -15068,10 +15070,10 @@ static void m68k_op_divl_32_al(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_AL_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_AL_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -15083,8 +15085,8 @@ static void m68k_op_divl_32_al(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -15107,8 +15109,8 @@ static void m68k_op_divl_32_al(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -15279,10 +15281,10 @@ static void m68k_op_divl_32_pcdi(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_PCDI_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_PCDI_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -15294,8 +15296,8 @@ static void m68k_op_divl_32_pcdi(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -15318,8 +15320,8 @@ static void m68k_op_divl_32_pcdi(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -15490,10 +15492,10 @@ static void m68k_op_divl_32_pcix(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_PCIX_32(m68ki_cpu);
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_PCIX_32(m68ki_cpu);
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -15505,8 +15507,8 @@ static void m68k_op_divl_32_pcix(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -15529,8 +15531,8 @@ static void m68k_op_divl_32_pcix(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -15701,10 +15703,10 @@ static void m68k_op_divl_32_i(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 divisor = OPER_I_32();
-    uint64 dividend  = 0;
-    uint64 quotient  = 0;
-    uint64 remainder = 0;
+    uint64_t divisor = OPER_I_32();
+    uint64_t dividend  = 0;
+    uint64_t quotient  = 0;
+    uint64_t remainder = 0;
 
     if(divisor != 0)
     {
@@ -15716,8 +15718,8 @@ static void m68k_op_divl_32_i(M68KCPU &m68ki_cpu)
 
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)dividend / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)dividend % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)dividend / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)dividend % (sint64)((sint32)divisor));
           if((sint64)quotient != (sint64)((sint32)quotient))
           {
             FLAG_V = VFLAG_SET;
@@ -15740,8 +15742,8 @@ static void m68k_op_divl_32_i(M68KCPU &m68ki_cpu)
         dividend = REG_D[(word2 >> 12) & 7];
         if(BIT_B(word2))     /* signed */
         {
-          quotient  = (uint64)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
-          remainder = (uint64)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
+          quotient  = (uint64_t)((sint64)((sint32)dividend) / (sint64)((sint32)divisor));
+          remainder = (uint64_t)((sint64)((sint32)dividend) % (sint64)((sint32)divisor));
         }
         else          /* unsigned */
         {
@@ -24216,7 +24218,7 @@ static void m68k_op_moveq_32(M68KCPU &m68ki_cpu)
 
 static void m68k_op_move16_32(M68KCPU &m68ki_cpu)
 {
-  uint16 w2 = OPER_I_16();
+  uint16_t w2 = OPER_I_16();
   int ax = REG_IR & 7;
   int ay = (w2 >> 12) & 7;
 
@@ -24634,9 +24636,9 @@ static void m68k_op_mull_32_d(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = DY;
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = DY;
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -24758,9 +24760,9 @@ static void m68k_op_mull_32_ai(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AY_AI_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AY_AI_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -24882,9 +24884,9 @@ static void m68k_op_mull_32_pi(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AY_PI_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AY_PI_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25006,9 +25008,9 @@ static void m68k_op_mull_32_pd(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AY_PD_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AY_PD_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25130,9 +25132,9 @@ static void m68k_op_mull_32_di(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AY_DI_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AY_DI_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25254,9 +25256,9 @@ static void m68k_op_mull_32_ix(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AY_IX_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AY_IX_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25378,9 +25380,9 @@ static void m68k_op_mull_32_aw(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AW_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AW_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25502,9 +25504,9 @@ static void m68k_op_mull_32_al(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_AL_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_AL_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25626,9 +25628,9 @@ static void m68k_op_mull_32_pcdi(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_PCDI_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_PCDI_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25750,9 +25752,9 @@ static void m68k_op_mull_32_pcix(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_PCIX_32(m68ki_cpu);
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_PCIX_32(m68ki_cpu);
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -25874,9 +25876,9 @@ static void m68k_op_mull_32_i(M68KCPU &m68ki_cpu)
   if(CPU_TYPE_IS_EC020_PLUS(CPU_TYPE))
   {
     uint word2 = OPER_I_16();
-    uint64 src = OPER_I_32();
-    uint64 dst = REG_D[(word2 >> 12) & 7];
-    uint64 res;
+    uint64_t src = OPER_I_32();
+    uint64_t dst = REG_D[(word2 >> 12) & 7];
+    uint64_t res;
 
     FLAG_C = CFLAG_CLEAR;
 
@@ -28828,7 +28830,7 @@ static void m68k_op_ror_32_s(M68KCPU &m68ki_cpu)
 {
   uint* r_dst = &DY;
   uint shift = (((REG_IR >> 9) - 1) & 7) + 1;
-  uint64 src = *r_dst;
+  uint64_t src = *r_dst;
   uint res = ROR_32(src, shift);
 
   if(shift != 0)
@@ -28902,7 +28904,7 @@ static void m68k_op_ror_32_r(M68KCPU &m68ki_cpu)
   uint* r_dst = &DY;
   uint orig_shift = DX & 0x3f;
   uint shift = orig_shift & 31;
-  uint64 src = *r_dst;
+  uint64_t src = *r_dst;
   uint res = ROR_32(src, shift);
 
   if(orig_shift != 0)
@@ -29072,7 +29074,7 @@ static void m68k_op_rol_32_s(M68KCPU &m68ki_cpu)
 {
   uint* r_dst = &DY;
   uint shift = (((REG_IR >> 9) - 1) & 7) + 1;
-  uint64 src = *r_dst;
+  uint64_t src = *r_dst;
   uint res = ROL_32(src, shift);
 
   if(shift != 0)
@@ -29162,7 +29164,7 @@ static void m68k_op_rol_32_r(M68KCPU &m68ki_cpu)
   uint* r_dst = &DY;
   uint orig_shift = DX & 0x3f;
   uint shift = orig_shift & 31;
-  uint64 src = *r_dst;
+  uint64_t src = *r_dst;
   uint res = ROL_32(src, shift);
 
   if(orig_shift != 0)
@@ -29338,8 +29340,8 @@ static void m68k_op_roxr_32_s(M68KCPU &m68ki_cpu)
 
   uint*  r_dst = &DY;
   uint   shift = (((REG_IR >> 9) - 1) & 7) + 1;
-  uint64 src   = *r_dst;
-  uint64 res   = src | (((uint64)XFLAG_AS_1()) << 32);
+  uint64_t src   = *r_dst;
+  uint64_t res   = src | (((uint64_t)XFLAG_AS_1()) << 32);
 
   if(shift != 0)
     USE_CYCLES(shift * CYC_SHIFT);
@@ -29447,8 +29449,8 @@ static void m68k_op_roxr_32_r(M68KCPU &m68ki_cpu)
   if(orig_shift != 0)
   {
     uint   shift = orig_shift % 33;
-    uint64 src   = *r_dst;
-    uint64 res   = src | (((uint64)XFLAG_AS_1()) << 32);
+    uint64_t src   = *r_dst;
+    uint64_t res   = src | (((uint64_t)XFLAG_AS_1()) << 32);
 
     res = ROR_33_64(res, shift);
 
@@ -29664,8 +29666,8 @@ static void m68k_op_roxl_32_s(M68KCPU &m68ki_cpu)
 
   uint*  r_dst = &DY;
   uint   shift = (((REG_IR >> 9) - 1) & 7) + 1;
-  uint64 src   = *r_dst;
-  uint64 res   = src | (((uint64)XFLAG_AS_1()) << 32);
+  uint64_t src   = *r_dst;
+  uint64_t res   = src | (((uint64_t)XFLAG_AS_1()) << 32);
 
   if(shift != 0)
     USE_CYCLES(shift * CYC_SHIFT);
@@ -29774,8 +29776,8 @@ static void m68k_op_roxl_32_r(M68KCPU &m68ki_cpu)
   if(orig_shift != 0)
   {
     uint   shift = orig_shift % 33;
-    uint64 src   = *r_dst;
-    uint64 res   = src | (((uint64)XFLAG_AS_1()) << 32);
+    uint64_t src   = *r_dst;
+    uint64_t res   = src | (((uint64_t)XFLAG_AS_1()) << 32);
 
     res = ROL_33_64(res, shift);
 

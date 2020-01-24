@@ -3,6 +3,7 @@
 #include "mem.hh"
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
+#include <imagine/util/mayAliasInt.h>
 
 #define READ_FONT_DATA(basemask) \
 { \
@@ -16,10 +17,10 @@
 
 // Gate Array / PCM
 
-extern uchar comFlagsSync[2];
-extern uchar comSync[0x20];
+extern uint8_t comFlagsSync[2];
+extern uint8_t comSync[0x20];
 extern bool doingSync;
-extern uchar comWriteTarget;
+extern uint8_t comWriteTarget;
 extern uint comFlagsPoll[2];
 extern uint comPoll[0x20];
 extern M68KCPU mm68k;
@@ -63,8 +64,8 @@ static uint subGateRegRead16(uint a)
 		}
 		case 4:
 		{
-			uchar cdcMode = sCD.gate[a];
-			uchar cdcRSO = sCD.gate[a+1];
+			uint8_t cdcMode = sCD.gate[a];
+			uint8_t cdcRSO = sCD.gate[a+1];
 			uint16 data = (cdcMode << 8) | cdcRSO;
 			//logMsg("%X (DSR: %d EDT: %d DD: %X | CA: %X)", data, (cdcMode>>6)&1, cdcMode>>7, cdcMode & 0x7, cdcRSO);
 			return data;
@@ -513,11 +514,11 @@ void subPrgWriteProtectCheck16(uint address, uint data)
 
 // WORD
 
-static void decode_write8(uint a, uchar d, int r3)
+static void decode_write8(uint a, uint8_t d, int r3)
 {
 	//logMsg("decode write 8");
-	uchar *pd = sCD.word.ram1M[(r3 & 1)^1] + (((a>>1)^1)&0x1ffff);
-	uchar oldmask = (a&1) ? 0xf0 : 0x0f;
+	uint8_t *pd = sCD.word.ram1M[(r3 & 1)^1] + (((a>>1)^1)&0x1ffff);
+	uint8_t oldmask = (a&1) ? 0xf0 : 0x0f;
 
 	r3 &= 0x18;
 	d  &= 0x0f;
@@ -540,7 +541,7 @@ static void decode_write8(uint a, uchar d, int r3)
 static void decode_write16(uint a, uint16 d, int r3)
 {
 	//logMsg("decode write 16");
-	uchar *pd = sCD.word.ram1M[(r3 & 1)^1] + (((a>>1)^1)&0x1ffff);
+	uint8_t *pd = sCD.word.ram1M[(r3 & 1)^1] + (((a>>1)^1)&0x1ffff);
 
 	//if ((a & 0x3ffff) < 0x28000) return;
 
@@ -549,12 +550,12 @@ static void decode_write16(uint a, uint16 d, int r3)
 	d  |= d >> 4;
 
 	if (r3 == 8) {
-	uchar dold = *pd;
+	uint8_t dold = *pd;
 	if (!(dold & 0xf0)) dold |= d & 0xf0;
 	if (!(dold & 0x0f)) dold |= d & 0x0f;
 	*pd = dold;
 	} else if (r3 > 8) {
-	uchar dold = *pd;
+	uint8_t dold = *pd;
 	if (!(d & 0xf0)) d |= dold & 0xf0;
 	if (!(d & 0x0f)) d |= dold & 0x0f;
 	*pd = d;

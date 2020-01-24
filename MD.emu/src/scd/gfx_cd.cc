@@ -7,6 +7,7 @@
 
 #include "scd.h"
 #include <imagine/logger/logger.h>
+#include <imagine/util/mayAliasInt.h>
 #include <string.h>
 
 static const int Table_Rot_Time[] =

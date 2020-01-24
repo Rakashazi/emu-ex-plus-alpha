@@ -39,7 +39,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobe
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 t_config config{};
-uint config_ym2413_enabled = 1;
+bool config_ym2413_enabled = true;
 int8 mdInputPortDev[2]{-1, -1};
 t_bitmap bitmap{};
 static uint autoDetectedVidSysPAL = 0;
@@ -124,7 +124,7 @@ static const uint maxSaveStateSize = STATE_SIZE+4;
 
 static EmuSystem::Error saveMDState(const char *path)
 {
-	auto stateData = std::make_unique<uchar[]>(maxSaveStateSize);
+	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
 	if(!stateData)
 		return EmuSystem::makeError("Out of memory");
 	logMsg("saving state data");
@@ -147,7 +147,7 @@ static EmuSystem::Error loadMDState(const char *path)
 	{
 		EmuSystem::makeError(std::error_code{ec});
 	}
-	auto stateData = (const uchar *)f.mmapConst();
+	auto stateData = (const uint8_t *)f.mmapConst();
 	if(!stateData)
 	{
 		return EmuSystem::makeFileReadError();
@@ -205,8 +205,8 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 
 		logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
 
-		uchar sramTemp[0x10000];
-		uchar *sramPtr = sram.sram;
+		uint8_t sramTemp[0x10000];
+		uint8_t *sramPtr = sram.sram;
 		if(optionBigEndianSram)
 		{
 			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap

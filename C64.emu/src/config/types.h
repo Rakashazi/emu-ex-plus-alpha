@@ -1,17 +1,17 @@
 #pragma once
 
 #include "vice.h"
-#include <imagine/util/ansiTypes.h>
+#include <stdint.h>
 
-#define BYTE uint8
+#define BYTE uint8_t
 
 typedef signed char SIGNED_CHAR;
 
-typedef uint16 WORD;
-typedef int16 SWORD;
+typedef uint16_t WORD;
+typedef int16_t SWORD;
 
-typedef uint32 DWORD;
-typedef int32 SDWORD;
+typedef uint32_t DWORD;
+typedef int32_t SDWORD;
 
 typedef DWORD CLOCK;
 /* Maximum value of a CLOCK.  */

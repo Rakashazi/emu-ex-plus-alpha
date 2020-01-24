@@ -87,8 +87,8 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	uchar &ctrlBits = ram[0x6F82];
-	ctrlBits = IG::setOrClearBits(ctrlBits, (uchar)emuKey, state == Input::PUSHED);
+	uint8_t &ctrlBits = ram[0x6F82];
+	ctrlBits = IG::setOrClearBits(ctrlBits, (uint8_t)emuKey, state == Input::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)

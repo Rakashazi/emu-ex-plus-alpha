@@ -71,7 +71,7 @@ namespace Config
 	static constexpr bool TOUCH_DEVICES = false;
 	#endif
 
-	static constexpr uint8 MAX_POINTERS =
+	static constexpr uint8_t MAX_POINTERS =
 	#if defined CONFIG_BASE_X11
 	4; // arbitrary max
 	#elif defined CONFIG_BASE_IOS || defined __ANDROID__

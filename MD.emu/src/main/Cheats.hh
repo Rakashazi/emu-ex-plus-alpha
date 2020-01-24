@@ -17,15 +17,15 @@ static const uint MAX = 100;
 struct MdCheat
 {
 	constexpr MdCheat() { }
-	uchar flags = 0;
+	uint8_t flags = 0;
 	char name[MAX_CHEAT_NAME_CHARS+1]{};
 	char code[12]{};
-	uint32 address = 0;
-	uint16 data = 0;
-	uint16 origData = 0;
-	uint8 *prev{};
+	uint32_t address = 0;
+	uint16_t data = 0;
+	uint16_t origData = 0;
+	uint8_t *prev{};
 
-	static const uchar ON = IG::bit(0), APPLIED = IG::bit(1);
+	static const uint8_t ON = IG::bit(0), APPLIED = IG::bit(1);
 
 	bool isOn()
 	{

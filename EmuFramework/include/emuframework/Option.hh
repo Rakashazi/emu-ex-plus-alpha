@@ -83,12 +83,12 @@ template <class V, class SERIALIZED_T = typeof(V().get())>
 struct Option : public OptionBase, public V
 {
 private:
-	const uint16 KEY;
+	const uint16_t KEY;
 public:
 	typedef typeof(V().get()) T;
 	T defaultVal;
 
-	constexpr Option(uint16 key, T defaultVal = 0, bool isConst = 0, bool (&validator)(T v) = OptionMethodIsAlwaysValid):
+	constexpr Option(uint16_t key, T defaultVal = 0, bool isConst = 0, bool (&validator)(T v) = OptionMethodIsAlwaysValid):
 		OptionBase(isConst), V(defaultVal, validator), KEY(key), defaultVal(defaultVal)
 	{}
 
@@ -125,7 +125,7 @@ public:
 		if(!isDefault())
 		{
 			std::error_code ec{};
-			io.writeVal((uint16)ioSize(), &ec);
+			io.writeVal((uint16_t)ioSize(), &ec);
 			writeToIO(io);
 		}
 		return true;
@@ -167,13 +167,13 @@ struct PathOption : public OptionBase
 	char *val;
 	uint strSize;
 	const char *defaultVal;
-	const uint16 KEY;
+	const uint16_t KEY;
 
-	constexpr PathOption(uint16 key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
+	constexpr PathOption(uint16_t key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
 	template <size_t S>
-	constexpr PathOption(uint16 key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) {}
+	constexpr PathOption(uint16_t key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) {}
 	template <size_t S>
-	constexpr PathOption(uint16 key, std::array<char, S> &val, const char *defaultVal): PathOption(key, val.data(), S, defaultVal) {}
+	constexpr PathOption(uint16_t key, std::array<char, S> &val, const char *defaultVal): PathOption(key, val.data(), S, defaultVal) {}
 
 	bool isDefault() const { return string_equal(val, defaultVal); }
 
@@ -187,12 +187,12 @@ struct PathOption : public OptionBase
 	uint ioSize();
 };
 
-using SByte1Option = Option<OptionMethodVar<sint8>, sint8>;
-using Byte1Option = Option<OptionMethodVar<uint8>, uint8>;
-using Byte2Option = Option<OptionMethodVar<uint16>, uint16>;
-using Byte4s2Option = Option<OptionMethodVar<uint32>, uint16>;
-using Byte4Option = Option<OptionMethodVar<uint32>, uint32>;
-using Byte4s1Option = Option<OptionMethodVar<uint32>, uint8>;
+using SByte1Option = Option<OptionMethodVar<int8_t>, int8_t>;
+using Byte1Option = Option<OptionMethodVar<uint8_t>, uint8_t>;
+using Byte2Option = Option<OptionMethodVar<uint16_t>, uint16_t>;
+using Byte4s2Option = Option<OptionMethodVar<uint32_t>, uint16_t>;
+using Byte4Option = Option<OptionMethodVar<uint32_t>, uint32_t>;
+using Byte4s1Option = Option<OptionMethodVar<uint32_t>, uint8_t>;
 using DoubleOption = Option<OptionMethodVar<double>, double>;
 
 template<int MAX, class T>

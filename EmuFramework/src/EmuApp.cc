@@ -238,7 +238,7 @@ void mainInitCommon(int argc, char** argv)
 		renderer.autoReleaseShaderCompiler();
 
 	#ifdef __ANDROID__
-	if((int8)optionProcessPriority != 0)
+	if((int8_t)optionProcessPriority != 0)
 		Base::setProcessPriority(optionProcessPriority);
 
 	if(Base::androidSDK() < 14 && optionAndroidTextureStorage == OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE)
@@ -919,7 +919,7 @@ void EmuApp::loadSessionOptions()
 		return;
 	}
 	readConfigKeys(configFile,
-		[](uint16 key, uint16 size, IO &io)
+		[](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
 			{

@@ -4,10 +4,10 @@
 #include "shared.h"
 #include "mem.hh"
 
-uchar comFlagsSync[2] = { 0 };
-uchar comSync[0x20] = { 0 };
+uint8_t comFlagsSync[2] = { 0 };
+uint8_t comSync[0x20] = { 0 };
 bool doingSync = 0;
-uchar comWriteTarget = 0;
+uint8_t comWriteTarget = 0;
 uint comFlagsPoll[2] = { 0 };
 uint comPoll[0x20] = { 0 };
 

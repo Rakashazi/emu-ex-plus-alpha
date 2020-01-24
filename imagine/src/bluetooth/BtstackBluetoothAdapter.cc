@@ -605,7 +605,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 				bcase L2CAP_EVENT_SERVICE_REGISTERED:
 				{
 					cmdActive = 0;
-					uint8 status = packet[2];
+					uint8_t status = packet[2];
 					uint32_t psm = READ_BT_16(packet, 3);
 					auto onResult = std::exchange(setL2capServiceOnResult, {});
 					if(status && status != L2CAP_SERVICE_ALREADY_REGISTERED)
@@ -1052,9 +1052,9 @@ void BtstackBluetoothSocket::close()
 		logMsg("closing BT handle %d", handle);
 		bt_send_cmd(&hci_disconnect, handle, 0x13);
 		/*if(type)
-			bt_send_cmd(&rfcomm_disconnect, localCh, (uint8)0);
+			bt_send_cmd(&rfcomm_disconnect, localCh, (uint8_t)0);
 		else
-			bt_send_cmd(&l2cap_disconnect, localCh, (uint8)0);*/
+			bt_send_cmd(&l2cap_disconnect, localCh, (uint8_t)0);*/
 		handle = 0;
 		localCh = 0;
 	}

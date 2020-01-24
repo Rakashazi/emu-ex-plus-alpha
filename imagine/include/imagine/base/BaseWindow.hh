@@ -36,18 +36,18 @@ class BaseWindow
 public:
 	struct SurfaceChange
 	{
-		uint8 flags = 0;
-		static constexpr uint8 SURFACE_RESIZED = IG::bit(0),
+		uint8_t flags = 0;
+		static constexpr uint8_t SURFACE_RESIZED = IG::bit(0),
 			CONTENT_RECT_RESIZED = IG::bit(1),
 			CUSTOM_VIEWPORT_RESIZED = IG::bit(2),
 			SURFACE_CREATED = IG::bit(3),
 			SURFACE_DESTORYED = IG::bit(4),
 			SURFACE_RESET = IG::bit(5);
-		static constexpr uint8 RESIZE_BITS =
+		static constexpr uint8_t RESIZE_BITS =
 			SURFACE_RESIZED | CONTENT_RECT_RESIZED | CUSTOM_VIEWPORT_RESIZED;
 
 		constexpr SurfaceChange() {}
-		constexpr SurfaceChange(uint8 flags): flags{flags} {}
+		constexpr SurfaceChange(uint8_t flags): flags{flags} {}
 		bool resized() const
 		{
 			return flags & RESIZE_BITS;

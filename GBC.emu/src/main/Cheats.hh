@@ -13,11 +13,11 @@ static const uint MAX = 255;
 struct GbcCheat
 {
 	constexpr GbcCheat() {}
-	uchar flags = 0;
+	uint8_t flags = 0;
 	char name[64]{};
 	char code[12]{};
 
-	static const uchar ON = IG::bit(0);
+	static const uint8_t ON = IG::bit(0);
 
 	bool isOn()
 	{

@@ -29,9 +29,9 @@ using namespace Base;
 struct SocketStatusMessage
 {
 	constexpr SocketStatusMessage() {}
-	constexpr SocketStatusMessage(AndroidBluetoothSocket &socket, uint8 type): socket(&socket), type(type) {}
+	constexpr SocketStatusMessage(AndroidBluetoothSocket &socket, uint8_t type): socket(&socket), type(type) {}
 	AndroidBluetoothSocket *socket = nullptr;
-	uint8 type = 0;
+	uint8_t type = 0;
 };
 
 // From Android source header abort_socket.h
@@ -437,7 +437,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 								auto &socket = *((AndroidBluetoothSocket*)data);
 								while(fd_bytesReadable(fd))
 								{
-									uint16 size;
+									uint16_t size;
 									int ret = read(fd, &size, sizeof(size));
 									if(ret != sizeof(size))
 									{
@@ -469,7 +469,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 					jobject jInput = jBtSocketInputStream(env, socket);
 					for(;;)
 					{
-						int16 len = jInRead(env, jInput, jData, 0, 48);
+						int16_t len = jInRead(env, jInput, jData, 0, 48);
 						//logMsg("read %d bytes", (int)len);
 						if(unlikely(len <= 0 || env->ExceptionCheck()))
 						{

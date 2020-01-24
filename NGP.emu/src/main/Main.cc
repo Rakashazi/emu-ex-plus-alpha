@@ -77,7 +77,7 @@ EmuSystem::Error EmuSystem::loadState(const char *path)
 		return {};
 }
 
-bool system_io_state_read(const char* filename, uchar* buffer, uint32 bufferLength)
+bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength)
 {
 	return readFromFile(filename, buffer, bufferLength) > 0;
 }
@@ -87,13 +87,13 @@ static FS::PathString sprintSaveFilename()
 	return FS::makePathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
-bool system_io_flash_read(uchar* buffer, uint32 len)
+bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
 	auto saveStr = sprintSaveFilename();
 	return readFromFile(saveStr.data(), buffer, len) > 0;
 }
 
-bool system_io_flash_write(uchar* buffer, uint32 len)
+bool system_io_flash_write(uint8_t* buffer, uint32 len)
 {
 	if(!len)
 		return 0;
@@ -118,7 +118,7 @@ void EmuSystem::closeSystem()
 static bool romLoad(IO &io)
 {
 	const uint maxRomSize = 0x400000;
-	auto data = (uchar*)calloc(maxRomSize, 1);
+	auto data = (uint8_t*)calloc(maxRomSize, 1);
 	uint readSize = io.read(data, maxRomSize);
 	if(readSize > 0)
 	{
@@ -192,17 +192,17 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	}
 }
 
-bool system_comms_read(uchar* buffer)
+bool system_comms_read(uint8_t* buffer)
 {
 	return 0;
 }
 
-bool system_comms_poll(uchar* buffer)
+bool system_comms_poll(uint8_t* buffer)
 {
 	return 0;
 }
 
-void system_comms_write(uchar data)
+void system_comms_write(uint8_t data)
 {
 
 }

@@ -27,14 +27,14 @@ class BluetoothPendingSocket;
 struct BluetoothAddr : public NotEquals<BluetoothAddr>
 {
 	constexpr BluetoothAddr() {}
-	constexpr BluetoothAddr(const uint8 b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
+	constexpr BluetoothAddr(const uint8_t b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
 
-	const uint8 *data() const
+	const uint8_t *data() const
 	{
 		return b.data();
 	}
 
-	uint8 *data()
+	uint8_t *data()
 	{
 		return b.data();
 	}
@@ -45,7 +45,7 @@ struct BluetoothAddr : public NotEquals<BluetoothAddr>
 	}
 
 private:
-	std::array<uint8, 6>b{};
+	std::array<uint8_t, 6>b{};
 } __attribute__((packed));
 
 class BluetoothAdapter

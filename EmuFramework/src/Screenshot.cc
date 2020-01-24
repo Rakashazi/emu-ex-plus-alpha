@@ -33,8 +33,8 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		for(uint x = 0; x < vidPix.w(); x++)
 		{
 			// assumes RGB565
-			uint16 pixVal = *(uint16 *)(screen+2*x);
-			uint32 r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
+			uint16_t pixVal = *(uint16_t *)(screen+2*x);
+			uint32_t r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
 			r *= 8; g *= 4; b *= 8;
 			*(rowpix++) = r;
 			*(rowpix++) = g;
@@ -168,8 +168,8 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		for(uint x=0; x < vidPix.w(); x++)
 		{
 			// assumes RGB565
-			uint16 pixVal = *(uint16 *)(screen+2*x);
-			uint32 r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
+			uint16_t pixVal = *(uint16_t *)(screen+2*x);
+			uint32_t r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
 			r *= 8; g *= 4; b *= 8;
 			*(rowpix++) = r;
 			*(rowpix++) = g;

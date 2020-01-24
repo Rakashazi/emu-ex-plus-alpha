@@ -12,6 +12,7 @@
 #include "cd_sys.h"
 #include "misc.h"
 #include <imagine/logger/logger.h>
+#include <imagine/util/mayAliasInt.h>
 
 #define cdprintf(x...)
 

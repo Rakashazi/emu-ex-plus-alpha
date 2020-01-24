@@ -64,7 +64,7 @@ static const uint msxMaxResX = (256) * 2, msxResY = 224,
 	msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
 static int msxResX = msxMaxResX/2;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static uint16 screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
+static uint16_t screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
 static char *srcPixData = (char*)&screenBuff[8 * msxResX];
 static IG::Pixmap srcPix{{{msxResX, msxResY}, pixFmt}, srcPixData};
 static bool doubleWidthFrame = false;
@@ -752,7 +752,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	((R800*)boardInfo.cpuRef)->terminate = 0;
 	mixerSync(mixer);
 	UInt32 samples;
-	uchar *audio = (uchar*)mixerGetBuffer(mixer, &samples);
+	uint8_t *audio = (uint8_t*)mixerGetBuffer(mixer, &samples);
 	//logMsg("%d samples", samples/2);
 	if(renderAudio && samples)
 	{

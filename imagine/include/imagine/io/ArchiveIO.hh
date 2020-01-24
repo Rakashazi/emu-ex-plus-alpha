@@ -36,7 +36,7 @@ public:
 	const char *name() const;
 	FS::file_type type() const;
 	size_t size() const;
-	uint32 crc32() const;
+	uint32_t crc32() const;
 	ArchiveIO moveIO();
 	void moveIO(ArchiveIO io);
 };

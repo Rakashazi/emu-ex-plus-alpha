@@ -185,8 +185,8 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 					processBtnReport(key, time, player);
 				}
 				bcase RID_8BA_2A_JS_REPORT:
-					logMsg("got analog report %d %d", (schar)inputBuffer[4], (schar)inputBuffer[5]);
-					//processStickDataForButtonEmulation((schar*)&inputBuffer[4], player);
+					logMsg("got analog report %d %d", (int8_t)inputBuffer[4], (int8_t)inputBuffer[5]);
+					//processStickDataForButtonEmulation((int8_t*)&inputBuffer[4], player);
 					iterateTimes(2, i)
 					{
 						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Event::MAP_ZEEMOTE, time, *this, Base::mainWindow()))

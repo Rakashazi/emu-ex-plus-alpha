@@ -80,7 +80,7 @@ Texture &Texture::operator=(Texture &&o)
 GLTexture::AndroidStorageImpl GLTexture::androidStorageImpl_ = GLTexture::ANDROID_AUTO;
 #endif
 
-static uint32_t makeUnpackAlignment(ptrsize addr)
+static uint32_t makeUnpackAlignment(uintptr_t addr)
 {
 	// find best alignment with lower 3 bits
 	constexpr uint32_t map[]
@@ -92,7 +92,7 @@ static uint32_t makeUnpackAlignment(ptrsize addr)
 
 static uint32_t unpackAlignForAddrAndPitch(void *srcAddr, uint32_t pitch)
 {
-	uint32_t alignmentForAddr = makeUnpackAlignment((ptrsize)srcAddr);
+	uint32_t alignmentForAddr = makeUnpackAlignment((uintptr_t)srcAddr);
 	uint32_t alignmentForPitch = makeUnpackAlignment(pitch);
 	if(alignmentForAddr < alignmentForPitch)
 	{
@@ -765,7 +765,7 @@ void Texture::writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP dest
 	}
 	else
 	{
-		if((ptrsize)pixmap.pixel({}) % (ptrsize)assumeAlign != 0)
+		if((uintptr_t)pixmap.pixel({}) % (uintptr_t)assumeAlign != 0)
 		{
 			bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
 		}

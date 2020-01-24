@@ -275,7 +275,7 @@ public:
 		hdSlot[slot].compile(renderer(), projP);
 	}
 
-	void addHDFilePickerView(Input::Event e, uint8 slot)
+	void addHDFilePickerView(Input::Event e, uint8_t slot)
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
@@ -292,7 +292,7 @@ public:
 		EmuApp::pushAndShowModalView(std::move(fPicker), e);
 	}
 
-	void onSelectHD(TextMenuItem &item, Input::Event e, uint8 slot)
+	void onSelectHD(TextMenuItem &item, Input::Event e, uint8_t slot)
 	{
 		if(!item.active())
 			return;
@@ -346,7 +346,7 @@ public:
 		updateHDStatusFromCartSlot(slot);
 	}
 
-	void addROMFilePickerView(Input::Event e, uint8 slot)
+	void addROMFilePickerView(Input::Event e, uint8_t slot)
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
@@ -361,7 +361,7 @@ public:
 		EmuApp::pushAndShowModalView(std::move(fPicker), e);
 	}
 
-	void onSelectROM(Input::Event e, uint8 slot)
+	void onSelectROM(Input::Event e, uint8_t slot)
 	{
 		auto multiChoiceView = makeViewWithName<TextTableView>("ROM Cartridge Slot", 5);
 		multiChoiceView->appendItem("Insert File",
@@ -427,7 +427,7 @@ public:
 		diskSlot[slot].compile(renderer(), projP);
 	}
 
-	void addDiskFilePickerView(Input::Event e, uint8 slot)
+	void addDiskFilePickerView(Input::Event e, uint8_t slot)
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
@@ -443,7 +443,7 @@ public:
 		EmuApp::pushAndShowModalView(std::move(fPicker), e);
 	}
 
-	void onSelectDisk(Input::Event e, uint8 slot)
+	void onSelectDisk(Input::Event e, uint8_t slot)
 	{
 		if(strlen(diskName[slot].data()))
 		{

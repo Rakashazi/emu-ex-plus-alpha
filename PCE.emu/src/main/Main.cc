@@ -393,7 +393,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	if(renderAudio)
 	{
 		assert((uint)espec.SoundBufSize <= EmuSystem::pcmFormat.bytesToFrames(sizeof(audioBuff)));
-		writeSound((uchar*)audioBuff, espec.SoundBufSize);
+		writeSound((uint8_t*)audioBuff, espec.SoundBufSize);
 	}
 }
 

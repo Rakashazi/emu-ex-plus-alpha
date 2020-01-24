@@ -20,15 +20,15 @@
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/AudioManager.hh>
 
-using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8>;
-using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8>;
+using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
+using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8_t>;
 
 bool vControllerUseScaledCoordinates();
 void setVControllerUseScaledCoordinates(bool on);
-using OptionTouchCtrlScaledCoordinates = Option<OptionMethodFunc<bool, vControllerUseScaledCoordinates, setVControllerUseScaledCoordinates>, uint8>;
+using OptionTouchCtrlScaledCoordinates = Option<OptionMethodFunc<bool, vControllerUseScaledCoordinates, setVControllerUseScaledCoordinates>, uint8_t>;
 
 #ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
-using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8>;
+using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8_t>;
 #endif
 
 // TODO: recycle obsolete enums
@@ -88,10 +88,10 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 	bool writeToIO(IO &io)
 	{
 		std::error_code ec{};
-		io.writeVal((uint16)CFGKEY_GAME_ASPECT_RATIO, &ec);
+		io.writeVal((uint16_t)CFGKEY_GAME_ASPECT_RATIO, &ec);
 		logMsg("writing aspect ratio config %u:%u", val.x, val.y);
-		io.writeVal((uint8)val.x, &ec);
-		io.writeVal((uint8)val.y, &ec);
+		io.writeVal((uint8_t)val.x, &ec);
+		io.writeVal((uint8_t)val.y, &ec);
 		return true;
 	}
 
@@ -103,8 +103,8 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 			return false;
 		}
 
-		auto x = io.readVal<uint8>();
-		auto y = io.readVal<uint8>();
+		auto x = io.readVal<uint8_t>();
+		auto y = io.readVal<uint8_t>();
 		logMsg("read aspect ratio config %u,%u", x, y);
 		if(y == 0)
 			y = 1;
@@ -115,7 +115,7 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 
 struct OptionRecentGames : public OptionBase
 {
-	const uint16 key = CFGKEY_RECENT_GAMES;
+	const uint16_t key = CFGKEY_RECENT_GAMES;
 
 	bool isDefault() const;
 	bool writeToIO(IO &io);
@@ -125,7 +125,7 @@ struct OptionRecentGames : public OptionBase
 
 struct OptionVControllerLayoutPosition : public OptionBase
 {
-	const uint16 key = CFGKEY_VCONTROLLER_LAYOUT_POS;
+	const uint16_t key = CFGKEY_VCONTROLLER_LAYOUT_POS;
 
 	bool isDefault() const final;
 	bool writeToIO(IO &io) final;
@@ -139,7 +139,7 @@ extern Byte1Option optionSound;
 extern Byte1Option optionSoundBuffers;
 extern Byte1Option optionAddSoundBuffersOnUnderrun;
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-using OptionAudioSoloMix = Option<OptionMethodFunc<bool, AudioManager::soloMix, AudioManager::setSoloMix>, uint8>;
+using OptionAudioSoloMix = Option<OptionMethodFunc<bool, AudioManager::soloMix, AudioManager::setSoloMix>, uint8_t>;
 extern OptionAudioSoloMix optionAudioSoloMix;
 #endif
 extern Byte4Option optionSoundRate;
@@ -225,13 +225,13 @@ extern Byte1Option optionShowOnSecondScreen;
 extern OptionRecentGames optionRecentGames;
 
 #ifdef __ANDROID__
-static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_AUTO = 0;
-static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_NONE = 1;
-static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER = 2;
-static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE = 3;
-static constexpr uint8 OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE = OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
+static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_AUTO = 0;
+static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_NONE = 1;
+static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER = 2;
+static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE = 3;
+static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE = OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
 extern Byte1Option optionAndroidTextureStorage;
-Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val);
+Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8_t val);
 extern SByte1Option optionProcessPriority;
 extern Byte1Option optionSustainedPerformanceMode;
 #endif

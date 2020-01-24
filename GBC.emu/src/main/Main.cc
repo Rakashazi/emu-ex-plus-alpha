@@ -26,7 +26,7 @@
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
 gambatte::GB gbEmu;
 static Resampler *resampler{};
-static uint8 activeResampler = 1;
+static uint8_t activeResampler = 1;
 static const GBPalette *gameBuiltinPalette{};
 static const int gbResX = 160, gbResY = 144;
 
@@ -185,7 +185,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
-	alignas(std::max_align_t) uint8 snd[(35112+2064)*4];
+	alignas(std::max_align_t) uint8_t snd[(35112+2064)*4];
 	size_t samples = 35112;
 	int frameSample;
 	DelegateFunc<void()> frameCallback{};
@@ -214,7 +214,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 		if(unlikely(samples < 34000))
 		{
 			uint repeatPos = std::max((int)samples-1, 0);
-			uint32 *sndFrame = (uint32*)snd;
+			uint32_t *sndFrame = (uint32_t*)snd;
 			logMsg("only %d, repeat %d", (int)samples, (int)sndFrame[repeatPos]);
 			for(uint i = samples; i < 35112; i++)
 			{

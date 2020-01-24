@@ -109,9 +109,9 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	{
 		bytes = dataSize - offset;
 	}
-	void *srcAddr = (void*)((ptrsize)data + offset);
-	void *pageSrcAddr = (void*)roundDownToPageSize((ptrsize)srcAddr);
-	bytes += (ptrsize)srcAddr - (ptrsize)pageSrcAddr; // add extra bytes from rounding down to page size
+	void *srcAddr = (void*)((uintptr_t)data + offset);
+	void *pageSrcAddr = (void*)roundDownToPageSize((uintptr_t)srcAddr);
+	bytes += (uintptr_t)srcAddr - (uintptr_t)pageSrcAddr; // add extra bytes from rounding down to page size
 
 	int mAdv = adviceToMAdv(advice);
 	if(madvise(pageSrcAddr, bytes, mAdv) != 0)

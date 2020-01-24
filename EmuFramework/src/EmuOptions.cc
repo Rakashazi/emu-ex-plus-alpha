@@ -36,7 +36,7 @@ bool optionFrameTimePALIsValid(T val)
 	return 0 || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, val);
 }
 
-bool optionOrientationIsValid(uint32 val)
+bool optionOrientationIsValid(uint32_t val)
 {
 	return val == Base::VIEW_ROTATE_AUTO ||
 			val == Base::VIEW_ROTATE_0 ||
@@ -50,7 +50,7 @@ Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
 Byte1Option optionSound(CFGKEY_SOUND, 1);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	5, 0, optionIsValidWithMinMax<2, 8, uint8>);
+	5, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
 Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
@@ -67,7 +67,7 @@ Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
 	Config::envIsWebOS3 ? 5000 :
 	(Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS) ? 3000 :
 	8000,
-	0, optionIsValidWithMinMax<2000, 10500, uint16>);
+	0, optionIsValidWithMinMax<2000, 10500, uint16_t>);
 
 Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
 
@@ -112,7 +112,7 @@ Byte1Option optionImgEffect(CFGKEY_IMAGE_EFFECT, 0, 0, optionIsValidWithMax<Vide
 Byte1Option optionOverlayEffect(CFGKEY_OVERLAY_EFFECT, 0, 0, optionIsValidWithMax<VideoImageOverlay::MAX_EFFECT_VAL>);
 Byte1Option optionOverlayEffectLevel(CFGKEY_OVERLAY_EFFECT_LEVEL, 25, 0, optionIsValidWithMax<100>);
 
-bool imageEffectPixelFormatIsValid(uint8 val)
+bool imageEffectPixelFormatIsValid(uint8_t val)
 {
 	switch(val)
 	{
@@ -208,7 +208,7 @@ Byte1Option optionSkipLateFrames{CFGKEY_SKIP_LATE_FRAMES, 1, 0};
 DoubleOption optionFrameRate{CFGKEY_FRAME_RATE, 0, 0, optionFrameTimeIsValid};
 DoubleOption optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 1./50., !EmuSystem::hasPALVideoSystem, optionFrameTimePALIsValid};
 
-bool optionImageZoomIsValid(uint8 val)
+bool optionImageZoomIsValid(uint8_t val)
 {
 	return val == optionImageZoomIntegerOnly || optionImageZoomIntegerOnlyY
 		|| (val >= 10 && val <= 100);
@@ -228,7 +228,7 @@ Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 1,
 #endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-bool windowPixelFormatIsValid(uint8 val)
+bool windowPixelFormatIsValid(uint8_t val)
 {
 	switch(val)
 	{
@@ -384,10 +384,10 @@ bool OptionVControllerLayoutPosition::writeToIO(IO &io)
 	{
 		for(auto &e : posArr)
 		{
-			io.writeVal((uint8)e.origin, &ec);
-			io.writeVal((uint8)e.state, &ec);
-			io.writeVal((int32)e.pos.x, &ec);
-			io.writeVal((int32)e.pos.y, &ec);
+			io.writeVal((uint8_t)e.origin, &ec);
+			io.writeVal((uint8_t)e.state, &ec);
+			io.writeVal((int32_t)e.pos.x, &ec);
+			io.writeVal((int32_t)e.pos.y, &ec);
 		}
 	}
 	return 1;
@@ -412,22 +412,22 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 				break;
 			}
 
-			_2DOrigin origin = _2DOrigin{(uchar)io.readVal<int8>()};
+			_2DOrigin origin = _2DOrigin{(uint8_t)io.readVal<int8_t>()};
 			if(!origin.isValid())
 			{
 				logWarn("invalid v-controller origin from config file");
 			}
 			else
 				e.origin = origin;
-			uint state = io.readVal<int8>();
+			uint state = io.readVal<int8_t>();
 			if(state > 2)
 			{
 				logWarn("invalid v-controller state from config file");
 			}
 			else
 				e.state = state;
-			e.pos.x = io.readVal<int32>();
-			e.pos.y = io.readVal<int32>();
+			e.pos.x = io.readVal<int32_t>();
+			e.pos.y = io.readVal<int32_t>();
 			vController.setLayoutPositionChanged();
 			readSize -= sizeofVControllerLayoutPositionEntry();
 		}
@@ -472,7 +472,7 @@ void setupFont(Gfx::Renderer &r, Base::Window &win)
 }
 
 #ifdef __ANDROID__
-Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8 val)
+Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8_t val)
 {
 	using namespace Gfx;
 	switch(val)
@@ -498,7 +498,7 @@ bool OptionRecentGames::writeToIO(IO &io)
 	for(auto &e : recentGameList)
 	{
 		uint len = strlen(e.path.data());
-		io.writeVal((uint16)len, &ec);
+		io.writeVal((uint16_t)len, &ec);
 		io.write(e.path.data(), len, &ec);
 	}
 	return true;
@@ -515,7 +515,7 @@ bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 			break;
 		}
 
-		auto len = io.readVal<uint16>();
+		auto len = io.readVal<uint16_t>();
 		readSize -= 2;
 
 		if(len > readSize)
@@ -573,8 +573,8 @@ bool PathOption::writeToIO(IO &io)
 		return 0;
 	}
 	std::error_code ec{};
-	io.writeVal((uint16)(2 + len), &ec);
-	io.writeVal((uint16)KEY, &ec);
+	io.writeVal((uint16_t)(2 + len), &ec);
+	io.writeVal((uint16_t)KEY, &ec);
 	io.write(val, len, &ec);
 	return true;
 }

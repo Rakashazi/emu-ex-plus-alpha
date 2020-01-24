@@ -120,7 +120,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <endian.h>
-#include <imagine/util/ansiTypes.h>
+#include <stdint.h>
 
 //=============================================================================
 
@@ -141,6 +141,15 @@
 // Global Definitions
 //-----------------------------------------------------------------------------
 
+using int8 = int8_t;
+using int16 = int16_t;
+using int32 = int32_t;
+using int64 = int64_t;
+using uint8 = uint8_t;
+using uint16 = uint16_t;
+using uint32 = uint32_t;
+using uint64 = uint64_t;
+
 #define TRUE				1
 #define FALSE				0
 
@@ -156,28 +165,28 @@ COLOURMODE;
 //RomInfo
 typedef struct 
 {
-	uint8* data;		//Pointer to the rom data
+	uint8_t* data;		//Pointer to the rom data
 	uint32 length;	//Length of the rom
 
 	uint32 realEnd; // end address of rom with length taken in account
 	uint32 realHEnd; // end address of high rom with length taken in account
 
-	uint8 name[16];	//Null terminated string, holding the Game name
+	uint8_t name[16];	//Null terminated string, holding the Game name
 
 	//For use as flash file and default state name
-	uint8 filename[256];
+	uint8_t filename[256];
 }
 RomInfo;
 
 //RomHeader
 typedef struct
 {
-	uint8		licence[28];		// 0x00 - 0x1B
+	uint8_t		licence[28];		// 0x00 - 0x1B
 	uint32	startPC;			// 0x1C - 0x1F
 	uint16	catalog;			// 0x20 - 0x21
-	uint8		subCatalog;			// 0x22
-	uint8		mode;				// 0x23
-	uint8		name[12];			// 0x24 - 0x2F
+	uint8_t		subCatalog;			// 0x22
+	uint8_t		mode;				// 0x23
+	uint8_t		name[12];			// 0x24 - 0x2F
 
 	uint32	reserved1;			// 0x30 - 0x33
 	uint32	reserved2;			// 0x34 - 0x37
@@ -200,7 +209,7 @@ RomHeader;
 #define RAM_START	0x000000
 #define RAM_END		0x00BFFF
 
-	extern uint8 ram[1 + RAM_END - RAM_START];
+	extern uint8_t ram[1 + RAM_END - RAM_START];
 
 	extern RomInfo rom;
 
@@ -301,13 +310,13 @@ RomHeader;
 
 /*! Increased in 'interrupt.c', never more than system_frameskip_key */
 
-	//extern uint8 frameskip_count;
+	//extern uint8_t frameskip_count;
 
 		//=========================================
 
 /*! The system sets this value to the number of the frameskip keyframe */
 
-	//extern uint8 system_frameskip_key;
+	//extern uint8_t system_frameskip_key;
 
 	
 //-----------------------------------------------------------------------------
@@ -322,7 +331,7 @@ RomHeader;
 /*!	Fills the given buffer with sound data */
 
 	void sound_update(uint16* chip_buffer, int length_bytes);
-	void dac_update(uint8* dac_buffer, int length_bytes);
+	void dac_update(uint8_t* dac_buffer, int length_bytes);
 
 /*! Initialises the sound chips using the given SampleRate */
 	
@@ -352,50 +361,50 @@ RomHeader;
 	high-level communications have been established, then return FALSE.
 	If buffer is NULL, then no data is read, only status is returned */
 
-	bool system_comms_read(uint8* buffer);
+	bool system_comms_read(uint8_t* buffer);
 
 
 /*! Peeks at any data from the other system. If no data is available or
 	no high-level communications have been established, then return FALSE.
 	If buffer is NULL, then no data is read, only status is returned */
 
-	bool system_comms_poll(uint8* buffer);
+	bool system_comms_poll(uint8_t* buffer);
 
 
 /*! Writes a byte from the other system. This function should block until
 	the data is written. USE RELIABLE COMMS! Data cannot be re-requested. */
 
-	void system_comms_write(uint8 data);
+	void system_comms_write(uint8_t data);
 
 
 /*! Reads as much of the file specified by 'filename' into the given, 
 	preallocated buffer. This is rom data */
 
-	bool system_io_rom_read(char* filename, uint8* buffer, uint32 bufferLength);
+	bool system_io_rom_read(char* filename, uint8_t* buffer, uint32 bufferLength);
 
 
 /*! Reads the "appropriate" (system specific) flash data into the given
 	preallocated buffer. The emulation core doesn't care where from. */
 
-	bool system_io_flash_read(uint8* buffer, uint32 bufferLength);
+	bool system_io_flash_read(uint8_t* buffer, uint32 bufferLength);
 
 
 /*! Writes the given flash data into an "appropriate" (system specific)
 	place. The emulation core doesn't care where to. */
 
-	bool system_io_flash_write(uint8* buffer, uint32 bufferLength);
+	bool system_io_flash_write(uint8_t* buffer, uint32 bufferLength);
 
 
 /*! Reads from the file specified by 'filename' into the given preallocated
 	buffer. This is state data. */
 
-	bool system_io_state_read(const char* filename, uint8* buffer, uint32 bufferLength);
+	bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength);
 	
 
 /*! Writes to the file specified by 'filename' from the given buffer.
 	This is state data. */
 
-	bool system_io_state_write(const char* filename, uint8* buffer, uint32 bufferLength);
+	bool system_io_state_write(const char* filename, uint8_t* buffer, uint32 bufferLength);
 
 
 //-----------------------------------------------------------------------------

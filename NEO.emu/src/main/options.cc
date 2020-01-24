@@ -30,12 +30,12 @@ enum
 	CFGKEY_NEOGEOKEY_TEST_SWITCH = 280, CFGKEY_STRICT_ROM_CHECKING = 281
 };
 
-static bool systemEnumIsValid(uint8 val)
+static bool systemEnumIsValid(uint8_t val)
 {
 	return val < SYS_MAX;
 }
 
-static bool countryEnumIsValid(uint8 val)
+static bool countryEnumIsValid(uint8_t val)
 {
 	return val < CTY_MAX;
 }

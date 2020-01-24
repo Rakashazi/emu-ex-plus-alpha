@@ -317,8 +317,8 @@ void EmuSystem::writeSound(const void *samples, uint framesToWrite)
 		auto freeFrames = pcmFormat.bytesToFrames(freeBytes);
 		switch(pcmFormat.channels)
 		{
-			bcase 1: simpleResample<int16>((int16*)rBuff.writeAddr(), freeFrames, (int16*)samples, framesToWrite);
-			bcase 2: simpleResample<int32>((int32*)rBuff.writeAddr(), freeFrames, (int32*)samples, framesToWrite);
+			bcase 1: simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), freeFrames, (int16_t*)samples, framesToWrite);
+			bcase 2: simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), freeFrames, (int32_t*)samples, framesToWrite);
 			bdefault: bug_unreachable("channels == %d", pcmFormat.channels);
 		}
 		rBuff.commitWrite(freeBytes);

@@ -16,10 +16,10 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/IOStream.hh>
 #include <imagine/gui/TextEntry.hh>
-#include <emuframework/EmuApp.hh>
+#include <imagine/util/mayAliasInt.h>
 #include <imagine/logger/logger.h>
+#include <emuframework/EmuApp.hh>
 #include <main/Cheats.hh>
-#include <emuframework/EmuSystem.hh>
 #include "EmuCheatViews.hh"
 #include "system.h"
 #include "z80.h"

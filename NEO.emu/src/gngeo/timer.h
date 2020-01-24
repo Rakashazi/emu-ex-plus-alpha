@@ -25,7 +25,7 @@
 static const int nb_interlace = 256;
 
 //typedef double AudioTime;
-typedef uint AudioTime;
+typedef uint32_t AudioTime;
 
 typedef struct timer_struct {
 	AudioTime time;		// when

@@ -82,7 +82,7 @@ extern "C"
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static uint16 screenBuff[352*256] __attribute__ ((aligned (8))){};
+static uint16_t screenBuff[352*256] __attribute__ ((aligned (8))){};
 static GN_Surface sdlSurf;
 static FS::PathString datafilePath{};
 static const int FBResX = 352;
@@ -246,18 +246,18 @@ CLINK ROM_DEF *res_load_drv(const char *name)
 	io.read(drv->name, 32);
 	io.read(drv->parent, 32);
 	io.read(drv->longname, 128);
-	drv->year = io.readVal<uint32>(); // TODO: LE byte-swap on uint32 reads
+	drv->year = io.readVal<uint32_t>(); // TODO: LE byte-swap on uint32_t reads
 	iterateTimes(10, i)
-		drv->romsize[i] = io.readVal<uint32>();
-	drv->nb_romfile = io.readVal<uint32>();
+		drv->romsize[i] = io.readVal<uint32_t>();
+	drv->nb_romfile = io.readVal<uint32_t>();
 	iterateTimes(drv->nb_romfile, i)
 	{
 		io.read(drv->rom[i].filename, 32);
-		drv->rom[i].region = io.readVal<uint8>();
-		drv->rom[i].src = io.readVal<uint32>();
-		drv->rom[i].dest = io.readVal<uint32>();
-		drv->rom[i].size = io.readVal<uint32>();
-		drv->rom[i].crc = io.readVal<uint32>();
+		drv->rom[i].region = io.readVal<uint8_t>();
+		drv->rom[i].src = io.readVal<uint32_t>();
+		drv->rom[i].dest = io.readVal<uint32_t>();
+		drv->rom[i].size = io.readVal<uint32_t>();
+		drv->rom[i].crc = io.readVal<uint32_t>();
 	}
 	return drv;
 }
@@ -365,7 +365,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 {
 	//logMsg("run frame %d", (int)processGfx);
 	if(video)
-		IG::fillData(screenBuff, (uint16)current_pc_pal[4095]);
+		IG::fillData(screenBuff, (uint16_t)current_pc_pal[4095]);
 	main_frame(task, video);
 	auto audioFrames = audioFramesForThisFrame();
 	Uint16 audioBuff[audioFrames * 2];

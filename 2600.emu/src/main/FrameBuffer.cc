@@ -47,7 +47,7 @@ void FrameBuffer::enablePhosphor(bool enable, int blend)
 	prevFramebuffer = {};
 }
 
-uint8 FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
+uint8_t FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
 {
 	// Use maximum of current and decayed previous values
 	c2 = uInt8(c2 * myPhosphorPercent);
@@ -60,9 +60,9 @@ void FrameBuffer::setPalette(const uInt32* palette)
 	logMsg("setTIAPalette");
 	iterateTimes(256, i)
 	{
-		uint8 r = (palette[i] >> 16) & 0xff;
-		uint8 g = (palette[i] >> 8) & 0xff;
-		uint8 b = palette[i] & 0xff;
+		uint8_t r = (palette[i] >> 16) & 0xff;
+		uint8_t g = (palette[i] >> 8) & 0xff;
+		uint8_t b = palette[i] & 0xff;
 		tiaColorMap16[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
 		tiaColorMap32[i] = IG::PIXEL_DESC_ARGB8888.build((int)r, (int)g, (int)b, 0);
 	}
@@ -91,8 +91,8 @@ void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
 	if(myUsePhosphor)
 	{
-		uint8* prevFrame = prevFramebuffer.data();
-		pix.writeTransformed([this, &prevFrame](uint8 p)
+		uint8_t* prevFrame = prevFramebuffer.data();
+		pix.writeTransformed([this, &prevFrame](uint8_t p)
 			{
 				return getRGBPhosphor(tiaColorMap32[p], tiaColorMap32[*prevFrame++]);
 			}, framePix);
@@ -100,6 +100,6 @@ void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 	}
 	else
 	{
-		pix.writeTransformed([this](uint8 p){ return tiaColorMap16[p]; }, framePix);
+		pix.writeTransformed([this](uint8_t p){ return tiaColorMap16[p]; }, framePix);
 	}
 }

@@ -53,7 +53,7 @@ using uint32u [[gnu::aligned(2)]] = uint32;
 
 static __inline__ uint32 READ_LONG(void *address)
 {
-  if ((ptrsize)address & 3)
+  if ((uintptr_t)address & 3)
   {
 #ifdef LSB_FIRST  /* little endian version */
     return ( *((uint8 *)address) +
@@ -72,7 +72,7 @@ static __inline__ uint32 READ_LONG(void *address)
 
 static __inline__ void WRITE_LONG(void *address, uint32 data)
 {
-  if ((ptrsize)address & 3)
+  if ((uintptr_t)address & 3)
   {
 #ifdef LSB_FIRST
       *((uint8 *)address) =  data;

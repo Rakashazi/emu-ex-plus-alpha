@@ -56,7 +56,7 @@ size_t ArchiveEntry::size() const
 	return archive_entry_size(ptr);
 }
 
-uint32 ArchiveEntry::crc32() const
+uint32_t ArchiveEntry::crc32() const
 {
 	assumeExpr(ptr);
 	return archive_entry_crc32(ptr);

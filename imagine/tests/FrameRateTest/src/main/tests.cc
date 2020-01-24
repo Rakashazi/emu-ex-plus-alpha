@@ -314,7 +314,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .0, .0, 1.);
 		iterateTimes(pix.w() * pix.h(), i)
 		{
-			((uint16*)pix.pixel({}))[i] = writeColor;
+			((uint16_t*)pix.pixel({}))[i] = writeColor;
 		}
 	}
 	else

@@ -136,7 +136,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	P1 = IG::setOrClearBits(P1, (uint16)emuKey, state != Input::PUSHED);
+	P1 = IG::setOrClearBits(P1, (uint16_t)emuKey, state != Input::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)

@@ -363,14 +363,14 @@ uint8 loadB(uint32 address)
 uint16 loadW(uint32 address)
 {
 	uint16* ptr = (uint16*)translate_address_read(address);
-	if((ptrsize)ptr % 2 != 0)
+	if((uintptr_t)ptr % 2 != 0)
 	{
 		//bug_exit("address %X", address);
 	}
 	/*if (ptr == NULL)
 		return 0;
 	else*/
-	if(ALIGN_ACCESS && ((ptrsize)ptr & IG::bit(0)))
+	if(ALIGN_ACCESS && ((uintptr_t)ptr & IG::bit(0)))
 	{
 		uint16 v;
 		memcpy(&v, ptr, 2); // LE
@@ -383,7 +383,7 @@ uint16 loadW(uint32 address)
 uint32 loadL(uint32 address)
 {
 	uint32* ptr = (uint32*)translate_address_read(address);
-	if((ptrsize)ptr % 4 != 0)
+	if((uintptr_t)ptr % 4 != 0)
 	{
 		//bug_exit("address %X", address);
 	}
@@ -391,7 +391,7 @@ uint32 loadL(uint32 address)
 		return 0;
 	else*/
 
-	if(ALIGN_ACCESS && ((ptrsize)ptr & (IG::bit(0) | IG::bit(1))))
+	if(ALIGN_ACCESS && ((uintptr_t)ptr & (IG::bit(0) | IG::bit(1))))
 	{
 		uint32 v;
 		memcpy(&v, ptr, 4); // LE
@@ -418,7 +418,7 @@ void storeB(uint32 address, uint8 data)
 void storeW(uint32 address, uint16 data)
 {
 	uint16* ptr = (uint16*)translate_address_write(address);
-	if((ptrsize)ptr % 2 != 0)
+	if((uintptr_t)ptr % 2 != 0)
 	{
 		//bug_exit("address %X", address);
 	}
@@ -426,7 +426,7 @@ void storeW(uint32 address, uint16 data)
 	//Write
 	//if (ptr)
 
-	if(ALIGN_ACCESS && ((ptrsize)ptr & IG::bit(0)))
+	if(ALIGN_ACCESS && ((uintptr_t)ptr & IG::bit(0)))
 		memcpy(ptr, &data, 2); // LE
 	else
 		*ptr = htole16(data);
@@ -439,14 +439,14 @@ void storeW(uint32 address, uint16 data)
 void storeL(uint32 address, uint32 data)
 {
 	uint32* ptr = (uint32*)translate_address_write(address);
-	if((ptrsize)ptr % 4 != 0)
+	if((uintptr_t)ptr % 4 != 0)
 	{
 		//bug_exit("address %X", address);
 	}
 
 	//Write
 	//if (ptr)
-	if(ALIGN_ACCESS && ((ptrsize)ptr & (IG::bit(0) | IG::bit(1))))
+	if(ALIGN_ACCESS && ((uintptr_t)ptr & (IG::bit(0) | IG::bit(1))))
 		memcpy(ptr, &data, 4); // LE
 	else
 		*ptr = htole32(data);

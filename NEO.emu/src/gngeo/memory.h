@@ -29,6 +29,7 @@
 #include "ym2610/2610intf.h"
 #include "state.h"
 #include "roms.h"
+#include <imagine/util/mayAliasInt.h>
 
 #ifdef GP2X
 #include "gp2x.h"

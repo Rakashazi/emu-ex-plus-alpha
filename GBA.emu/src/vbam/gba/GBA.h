@@ -7,7 +7,7 @@
 #include "Flash.h"
 #include <imagine/util/preprocessor/repeat.h>
 #include <imagine/util/builtins.h>
-#include <imagine/util/ansiTypes.h>
+#include <imagine/util/mayAliasInt.h>
 #include <imagine/logger/logger.h>
 #include <imagine/io/IO.hh>
 
@@ -32,99 +32,99 @@ struct GBAMem
 	union IoMem
 	{
 		constexpr IoMem(): b{0} { }
-		uint8 b[0x400] __attribute__ ((aligned(4)));
+		uint8_t b[0x400] __attribute__ ((aligned(4)));
 		struct
 		{
-			uint16 DISPCNT;
-			uint16 greenSwap;
-			uint16 DISPSTAT;
-			uint16 VCOUNT;
-			uint16 BG0CNT;
-			uint16 BG1CNT;
-			uint16 BG2CNT;
-			uint16 BG3CNT;
-			uint16 BG0HOFS;
-			uint16 BG0VOFS;
-			uint16 BG1HOFS;
-			uint16 BG1VOFS;
-			uint16 BG2HOFS;
-			uint16 BG2VOFS;
-			uint16 BG3HOFS;
-			uint16 BG3VOFS;
-			uint16 BG2PA;
-			uint16 BG2PB;
-			uint16 BG2PC;
-			uint16 BG2PD;
-			uint16 BG2X_L;
-			uint16 BG2X_H;
-			uint16 BG2Y_L;
-			uint16 BG2Y_H;
-			uint16 BG3PA;
-			uint16 BG3PB;
-			uint16 BG3PC;
-			uint16 BG3PD;
-			uint16 BG3X_L;
-			uint16 BG3X_H;
-			uint16 BG3Y_L;
-			uint16 BG3Y_H;
-			uint16 WIN0H;
-			uint16 WIN1H;
-			uint16 WIN0V;
-			uint16 WIN1V;
-			uint16 WININ;
-			uint16 WINOUT;
-			uint16 MOSAIC;
-			uint16 unused4e;
-			uint16 BLDMOD; // BLDCNT
-			uint16 COLEV; // BLDALPHA
-			uint16 COLY;
+			uint16_t DISPCNT;
+			uint16_t greenSwap;
+			uint16_t DISPSTAT;
+			uint16_t VCOUNT;
+			uint16_t BG0CNT;
+			uint16_t BG1CNT;
+			uint16_t BG2CNT;
+			uint16_t BG3CNT;
+			uint16_t BG0HOFS;
+			uint16_t BG0VOFS;
+			uint16_t BG1HOFS;
+			uint16_t BG1VOFS;
+			uint16_t BG2HOFS;
+			uint16_t BG2VOFS;
+			uint16_t BG3HOFS;
+			uint16_t BG3VOFS;
+			uint16_t BG2PA;
+			uint16_t BG2PB;
+			uint16_t BG2PC;
+			uint16_t BG2PD;
+			uint16_t BG2X_L;
+			uint16_t BG2X_H;
+			uint16_t BG2Y_L;
+			uint16_t BG2Y_H;
+			uint16_t BG3PA;
+			uint16_t BG3PB;
+			uint16_t BG3PC;
+			uint16_t BG3PD;
+			uint16_t BG3X_L;
+			uint16_t BG3X_H;
+			uint16_t BG3Y_L;
+			uint16_t BG3Y_H;
+			uint16_t WIN0H;
+			uint16_t WIN1H;
+			uint16_t WIN0V;
+			uint16_t WIN1V;
+			uint16_t WININ;
+			uint16_t WINOUT;
+			uint16_t MOSAIC;
+			uint16_t unused4e;
+			uint16_t BLDMOD; // BLDCNT
+			uint16_t COLEV; // BLDALPHA
+			uint16_t COLY;
 			// 0x56
-			uint8 unused56[0xA];
+			uint8_t unused56[0xA];
 			// 0x60
-			uint8 soundRegs[0x50];
+			uint8_t soundRegs[0x50];
 			// 0xB0
-			uint16 DM0SAD_L;
-			uint16 DM0SAD_H;
-			uint16 DM0DAD_L;
-			uint16 DM0DAD_H;
-			uint16 DM0CNT_L;
-			uint16 DM0CNT_H;
-			uint16 DM1SAD_L;
-			uint16 DM1SAD_H;
-			uint16 DM1DAD_L;
-			uint16 DM1DAD_H;
-			uint16 DM1CNT_L;
-			uint16 DM1CNT_H;
-			uint16 DM2SAD_L;
-			uint16 DM2SAD_H;
-			uint16 DM2DAD_L;
-			uint16 DM2DAD_H;
-			uint16 DM2CNT_L;
-			uint16 DM2CNT_H;
-			uint16 DM3SAD_L;
-			uint16 DM3SAD_H;
-			uint16 DM3DAD_L;
-			uint16 DM3DAD_H;
-			uint16 DM3CNT_L;
-			uint16 DM3CNT_H;
+			uint16_t DM0SAD_L;
+			uint16_t DM0SAD_H;
+			uint16_t DM0DAD_L;
+			uint16_t DM0DAD_H;
+			uint16_t DM0CNT_L;
+			uint16_t DM0CNT_H;
+			uint16_t DM1SAD_L;
+			uint16_t DM1SAD_H;
+			uint16_t DM1DAD_L;
+			uint16_t DM1DAD_H;
+			uint16_t DM1CNT_L;
+			uint16_t DM1CNT_H;
+			uint16_t DM2SAD_L;
+			uint16_t DM2SAD_H;
+			uint16_t DM2DAD_L;
+			uint16_t DM2DAD_H;
+			uint16_t DM2CNT_L;
+			uint16_t DM2CNT_H;
+			uint16_t DM3SAD_L;
+			uint16_t DM3SAD_H;
+			uint16_t DM3DAD_L;
+			uint16_t DM3DAD_H;
+			uint16_t DM3CNT_L;
+			uint16_t DM3CNT_H;
 			// 0xE0
-			uint8 unusedE0[0x20];
+			uint8_t unusedE0[0x20];
 			// 0x100
-			uint16 TM0D; // TM0CNT_L
-			uint16 TM0CNT; // TM0CNT_H
-			uint16 TM1D; // TM1CNT_L
-			uint16 TM1CNT; // TM1CNT_H
-			uint16 TM2D; // TM2CNT_L
-			uint16 TM2CNT; // TM2CNT_H
-			uint16 TM3D; // TM3CNT_L
-			uint16 TM3CNT; // TM3CNT_H
+			uint16_t TM0D; // TM0CNT_L
+			uint16_t TM0CNT; // TM0CNT_H
+			uint16_t TM1D; // TM1CNT_L
+			uint16_t TM1CNT; // TM1CNT_H
+			uint16_t TM2D; // TM2CNT_L
+			uint16_t TM2CNT; // TM2CNT_H
+			uint16_t TM3D; // TM3CNT_L
+			uint16_t TM3CNT; // TM3CNT_H
 			// 0x110
-			uint8 unused110[0xF0];
-			uint16 IE;
-			uint16 IF;
-			uint16 WAITCNT;
-			uint16 unused206;
-			uint16 IME;
+			uint8_t unused110[0xF0];
+			uint16_t IE;
+			uint16_t IF;
+			uint16_t WAITCNT;
+			uint16_t unused206;
+			uint16_t IME;
 		};
 
 		void resetDmaRegs()

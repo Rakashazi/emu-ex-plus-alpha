@@ -33,12 +33,12 @@ CLINK CallResult bluez_dl();
 
 struct ScanStatusMessage
 {
-	uint8 type, arg;
+	uint8_t type, arg;
 };
 
 static BluezBluetoothAdapter defaultBluezAdapter;
 
-void BluezBluetoothAdapter::sendBTScanStatusDelegate(uint8 type, uint8 arg = 0)
+void BluezBluetoothAdapter::sendBTScanStatusDelegate(uint8_t type, uint8_t arg = 0)
 {
 	ScanStatusMessage msg {type, arg};
 	statusPipe.write(&msg, sizeof(msg));

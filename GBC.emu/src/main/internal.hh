@@ -34,7 +34,7 @@ static GBPalette gbPal[]
 	{ { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc } }, // Reverse
 };
 
-extern Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8> optionFullGbcSaturation;
+extern Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8_t> optionFullGbcSaturation;
 extern Byte1Option optionGBPal;
 extern Byte1Option optionUseBuiltinGBPalette;
 extern Byte1Option optionReportAsGba;

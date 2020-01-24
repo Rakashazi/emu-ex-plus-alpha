@@ -34,7 +34,7 @@ Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<std::size(
 Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
 Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
 Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
-Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8>
+Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8_t>
 optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
 
 bool EmuSystem::resetSessionOptions()

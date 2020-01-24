@@ -1,16 +1,16 @@
 #pragma once
-#include <imagine/util/ansiTypes.h>
+#include <stdint.h>
 #include <imagine/util/builtins.h>
 #include <imagine/logger/logger.h>
 
 // SDL wrapper, renamed with GN prefix to avoid conflicts on WebOS, which includes some parts of SDL
 
-#define Uint32 uint32
-#define Uint16 uint16
-#define Uint8 uint8
-#define Sint32 sint32
-#define Sint16 sint16
-#define Sint8 sint8
+#define Uint32 uint32_t
+#define Uint16 uint16_t
+#define Uint8 uint8_t
+#define Sint32 int32_t
+#define Sint16 int16_t
+#define Sint8 int8_t
 
 typedef struct
 {
@@ -19,7 +19,7 @@ typedef struct
 } GN_Rect;
 
 typedef struct GN_Surface {
-	uint pitch;
+	uint32_t pitch;
 	int w;
 	void *pixels;
 } GN_Surface;

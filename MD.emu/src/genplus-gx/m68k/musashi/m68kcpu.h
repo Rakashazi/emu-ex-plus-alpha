@@ -53,12 +53,12 @@
 
 /* Allow for architectures that don't have 8-bit sizes */
 #if UCHAR_MAX == 0xff
-  #define MAKE_INT_8(A) (sint8)(A)
+  #define MAKE_INT_8(A) (int8_t)(A)
 #else
   #undef  sint8
   #define sint8  signed   int
-  #undef  uint8
-  #define uint8  unsigned int
+  #undef  uint8_t
+  #define uint8_t  unsigned int
   SINLINE sint MAKE_INT_8(uint value)
   {
     return (value & 0x80) ? value | ~0xff : value & 0xff;
@@ -68,12 +68,12 @@
 
 /* Allow for architectures that don't have 16-bit sizes */
 #if USHRT_MAX == 0xffff
-  #define MAKE_INT_16(A) (sint16)(A)
+  #define MAKE_INT_16(A) (int16_t)(A)
 #else
-  #undef  sint16
-  #define sint16 signed   int
-  #undef  uint16
-  #define uint16 unsigned int
+  #undef  int16_t
+  #define int16_t signed   int
+  #undef  uint16_t
+  #define uint16_t unsigned int
   SINLINE sint MAKE_INT_16(uint value)
   {
     return (value & 0x8000) ? value | ~0xffff : value & 0xffff;
@@ -83,7 +83,7 @@
 
 /* Allow for architectures that don't have 32-bit sizes */
 #if UINT_MAX == 0xffffffff
-  #define MAKE_INT_32(A) (sint32)(A)
+  #define MAKE_INT_32(A) (int32_t)(A)
 #else
   #undef  sint32
   #define sint32  signed   int
@@ -840,14 +840,14 @@ extern sint           m68ki_remaining_cycles;
 #if M68K_EMULATE_TRACE
 extern uint           m68ki_tracing;
 #endif
-extern const uint8    m68ki_shift_8_table[];
-extern const uint16   m68ki_shift_16_table[];
+extern const uint8_t    m68ki_shift_8_table[];
+extern const uint16_t   m68ki_shift_16_table[];
 extern const uint     m68ki_shift_32_table[];
-extern const uint16         m68ki_exception_cycle_table[256];
+extern const uint16_t         m68ki_exception_cycle_table[256];
 #if M68K_EMULATE_FC
 extern uint           m68ki_address_space;
 #endif
-extern const uint8    m68ki_ea_idx_cycle_table[];
+extern const uint8_t    m68ki_ea_idx_cycle_table[];
 
 extern uint           m68ki_aerr_address;
 extern uint           m68ki_aerr_write_mode;
@@ -1075,7 +1075,7 @@ SINLINE uint m68ki_read_16_fc(M68KCPU &m68ki_cpu, uint address, uint fc)
   {
   	if(m68ki_cpu.callMemHooks)
   		m68ki_read_16_hook(m68ki_cpu, address, temp);
-  	return *(uint16 *)(temp->base + ((address) & 0xffff));
+  	return *(uint16_t *)(temp->base + ((address) & 0xffff));
   }
 }
 
@@ -1119,7 +1119,7 @@ SINLINE void m68ki_write_16_fc(M68KCPU &m68ki_cpu, uint address, uint fc, uint v
   {
   	if(m68ki_cpu.callMemHooks)
   	  m68ki_write_16_hook(m68ki_cpu, address, temp, value);
-  	*(uint16 *)(temp->base + ((address) & 0xffff)) = value;
+  	*(uint16_t *)(temp->base + ((address) & 0xffff)) = value;
   }
 }
 
@@ -1130,7 +1130,7 @@ SINLINE void m68ki_write_32_fc(M68KCPU &m68ki_cpu, uint address, uint fc, uint v
 
   const _m68k_memory_map *temp = &m68ki_cpu.memory_map[((address)>>16)&0xff];
   if (temp->write16) (*temp->write16)(ADDRESS_68K(address),value>>16);
-  else *(uint16 *)(temp->base + ((address) & 0xffff)) = value >> 16;
+  else *(uint16_t *)(temp->base + ((address) & 0xffff)) = value >> 16;
 
   temp = &m68ki_cpu.memory_map[((address + 2)>>16)&0xff];
   if (temp->write16) (*temp->write16)(ADDRESS_68K(address+2),value&0xffff);
@@ -1138,7 +1138,7 @@ SINLINE void m68ki_write_32_fc(M68KCPU &m68ki_cpu, uint address, uint fc, uint v
   {
   	if(m68ki_cpu.callMemHooks)
   	  m68ki_write_32_hook(m68ki_cpu, address, temp, value);
-  	*(uint16 *)(temp->base + ((address + 2) & 0xffff)) = value;
+  	*(uint16_t *)(temp->base + ((address + 2) & 0xffff)) = value;
   }
 }
 

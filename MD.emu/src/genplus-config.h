@@ -1,7 +1,13 @@
 #pragma once
 
-#include <imagine/util/ansiTypes.h>
+#include <cstdint>
 #include <imagine/util/builtins.h>
+using int8 = int8_t;
+using int16 = int16_t;
+using int32 = int32_t;
+using uint8 = uint8_t;
+using uint16 = uint16_t;
+using uint32 = uint32_t;
 typedef int16 FMSampleType;
 typedef int16 PCMSampleType;
 static const uint8 config_dac_bits = 14;
@@ -20,7 +26,7 @@ static const int16 config_lg = 1;
 static const int16 config_mg = 1;
 static const int16 config_hg = 1;
 static const double config_rolloff = 0.990;
-extern uint config_ym2413_enabled;
+extern bool config_ym2413_enabled;
 static const int16 config_ym2612_clip = 1;
 static const uint8 config_force_dtack = 0;
 static const uint8 config_addr_error = 1;

@@ -58,32 +58,32 @@ Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
 Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
 Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
 Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
-	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8>);
+	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8_t>);
 SByte1Option optionModel(CFGKEY_MODEL, -1, false,
-	optionIsValidWithMinMax<-1, 50, int8>);
+	optionIsValidWithMinMax<-1, 50, int8_t>);
 Byte1Option optionC64Model(CFGKEY_C64_MODEL, C64MODEL_C64_NTSC, false,
-	optionIsValidWithMax<C64MODEL_NUM-1, uint8>);
+	optionIsValidWithMax<C64MODEL_NUM-1, uint8_t>);
 Byte1Option optionDTVModel(CFGKEY_DTV_MODEL, DTVMODEL_V3_NTSC, false,
-	optionIsValidWithMax<DTVMODEL_NUM-1, uint8>);
+	optionIsValidWithMax<DTVMODEL_NUM-1, uint8_t>);
 Byte1Option optionC128Model(CFGKEY_C128_MODEL, C128MODEL_C128_NTSC, false,
-	optionIsValidWithMax<C128MODEL_NUM-1, uint8>);
+	optionIsValidWithMax<C128MODEL_NUM-1, uint8_t>);
 Byte1Option optionSuperCPUModel(CFGKEY_SUPER_CPU_MODEL, C64MODEL_C64_NTSC, false,
-	optionIsValidWithMax<std::size(superCPUModelStr)-1, uint8>);
+	optionIsValidWithMax<std::size(superCPUModelStr)-1, uint8_t>);
 Byte1Option optionCBM2Model(CFGKEY_CBM2_MODEL, CBM2MODEL_610_NTSC, false,
-	optionIsValidWithMinMax<CBM2MODEL_610_PAL, CBM2MODEL_720PLUS_NTSC, uint8>);
+	optionIsValidWithMinMax<CBM2MODEL_610_PAL, CBM2MODEL_720PLUS_NTSC, uint8_t>);
 Byte1Option optionCBM5x0Model(CFGKEY_CBM5x0_MODEL, CBM2MODEL_510_NTSC, false,
-	optionIsValidWithMinMax<CBM2MODEL_510_PAL, CBM2MODEL_510_NTSC, uint8>);
+	optionIsValidWithMinMax<CBM2MODEL_510_PAL, CBM2MODEL_510_NTSC, uint8_t>);
 Byte1Option optionPETModel(CFGKEY_PET_MODEL, PETMODEL_8032, false,
-	optionIsValidWithMax<PETMODEL_NUM-1, uint8>);
+	optionIsValidWithMax<PETMODEL_NUM-1, uint8_t>);
 Byte1Option optionPlus4Model(CFGKEY_PLUS4_MODEL, PLUS4MODEL_PLUS4_NTSC, false,
-	optionIsValidWithMax<PLUS4MODEL_NUM-1, uint8>);
+	optionIsValidWithMax<PLUS4MODEL_NUM-1, uint8_t>);
 Byte1Option optionVIC20Model(CFGKEY_VIC20_MODEL, VIC20MODEL_VIC20_NTSC, false,
-	optionIsValidWithMax<VIC20MODEL_NUM-1, uint8>);
+	optionIsValidWithMax<VIC20MODEL_NUM-1, uint8_t>);
 Byte1Option optionBorderMode(CFGKEY_BORDER_MODE, VICII_NORMAL_BORDERS);
 Byte1Option optionSidEngine(CFGKEY_SID_ENGINE, SID_ENGINE_RESID, false,
-	optionIsValidWithMax<1, uint8>);
+	optionIsValidWithMax<1, uint8_t>);
 Byte1Option optionReSidSampling(CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERPOLATION, false,
-	optionIsValidWithMax<3, uint8>);
+	optionIsValidWithMax<3, uint8_t>);
 Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
 PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 

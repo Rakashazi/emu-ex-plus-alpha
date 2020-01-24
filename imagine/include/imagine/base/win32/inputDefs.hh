@@ -93,7 +93,7 @@ namespace Keycode
 	}*/
 };
 
-typedef uint16 Key;
+typedef uint16_t Key;
 
 namespace Pointer
 {

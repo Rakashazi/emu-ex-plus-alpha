@@ -621,7 +621,7 @@ private:
 		diskSlot[slot].compile(renderer(), projP);
 	}
 
-	void addDiskFilePickerView(Input::Event e, uint8 slot)
+	void addDiskFilePickerView(Input::Event e, uint8_t slot)
 	{
 		EmuApp::pushAndShowModalView(
 			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64DiskExtension,
@@ -638,7 +638,7 @@ private:
 	}
 
 public:
-	void onSelectDisk(Input::Event e, uint8 slot)
+	void onSelectDisk(Input::Event e, uint8_t slot)
 	{
 		auto name = plugin.file_system_get_disk_name(slot+8);
 		if(name && strlen(name))

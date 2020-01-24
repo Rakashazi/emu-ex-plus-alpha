@@ -150,9 +150,9 @@ public:
 	iterator insert(const_iterator position, const T& val)
 	{
 		// TODO: re-write using std::move
-		ptrsize idx = position - data();
+		uintptr_t idx = position - data();
 		assert(idx <= size());
-		ptrsize elemsAfterInsertIdx = size()-idx;
+		uintptr_t elemsAfterInsertIdx = size()-idx;
 		if(elemsAfterInsertIdx)
 		{
 			std::memmove(&data()[idx+1], &data()[idx], sizeof(T)*elemsAfterInsertIdx);

@@ -111,7 +111,7 @@ bool GlyphTextureSet::initGlyphTable()
 	return true;
 }
 
-void GlyphTextureSet::freeCaches(uint32 purgeBits)
+void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 {
 	auto tableBits = usedGlyphTableBits;
 	iterateTimes(32, i)

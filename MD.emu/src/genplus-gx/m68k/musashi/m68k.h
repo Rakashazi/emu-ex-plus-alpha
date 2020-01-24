@@ -191,7 +191,7 @@ void m68k_write_memory_32_pd(unsigned int address, unsigned int value);
 
 typedef union
 {
-  uint64 i;
+  uint64_t i;
   double f;
 } fp_reg;
 
@@ -281,8 +281,8 @@ struct M68KCPU
 #endif
 
   int irqLatency = 0;
-  int32 cycleCount = 0;
-  int32 endCycles = 0;
+  int32_t cycleCount = 0;
+  int32_t endCycles = 0;
   _m68k_memory_map memory_map[256]{};
 
   /* Set the IPL0-IPL2 pins on the CPU (IRQ).
@@ -317,19 +317,19 @@ void m68k_read_immediate_32_hook(M68KCPU &cpu, uint address);
 void m68k_read_pcrelative_8_hook(M68KCPU &cpu, uint address);
 
 /* Read data immediately following the PC */
-static inline uint16 m68k_read_immediate_16(M68KCPU &cpu, uint address)
+static inline uint16_t m68k_read_immediate_16(M68KCPU &cpu, uint address)
 {
 	if(cpu.callMemHooks)
 		m68k_read_immediate_16_hook(cpu, address);
-	uint mapIdx = ((address)>>16)&0xff;
+	uint32_t mapIdx = ((address)>>16)&0xff;
 	const _m68k_memory_map *temp = &cpu.memory_map[mapIdx];
 	if(!M68K_DIRECT_IM_READS && temp->read16)
 		return (*temp->read16)(address & cpu.address_mask);
 	else
-		return *(uint16 *)(cpu.memory_map[mapIdx].base + ((address) & 0xffff));
+		return *(uint16_t *)(cpu.memory_map[mapIdx].base + ((address) & 0xffff));
 }
 
-static inline uint32 m68k_read_immediate_32(M68KCPU &cpu, uint address)
+static inline uint32_t m68k_read_immediate_32(M68KCPU &cpu, uint address)
 {
 	if(cpu.callMemHooks)
 		m68k_read_immediate_32_hook(cpu, address);
@@ -337,11 +337,11 @@ static inline uint32 m68k_read_immediate_32(M68KCPU &cpu, uint address)
 }
 
 /* Read data relative to the PC */
-static inline uint8 m68k_read_pcrelative_8(M68KCPU &cpu, uint address)
+static inline uint8_t m68k_read_pcrelative_8(M68KCPU &cpu, uint address)
 {
 	if(cpu.callMemHooks)
 		m68k_read_pcrelative_8_hook(cpu, address);
-	uint mapIdx = ((address)>>16)&0xff;
+	uint32_t mapIdx = ((address)>>16)&0xff;
 	const _m68k_memory_map *temp = &cpu.memory_map[mapIdx];
 	if(!M68K_DIRECT_IM_READS && temp->read8)
 		return (*temp->read8)(address & cpu.address_mask);

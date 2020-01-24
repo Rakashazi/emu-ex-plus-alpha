@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/util/ansiTypes.h>
+#include <stdint.h>
 
 typedef struct
 {
@@ -28,7 +28,7 @@ static void memcpy32(int *dest, int *src, uint count)
 
 static void memcpy16(unsigned short *dest, unsigned short *src, uint count)
 {
-	if ((((ptrsize)dest | (ptrsize)src) & 3) == 0)
+	if ((((uintptr_t)dest | (uintptr_t)src) & 3) == 0)
 	{
 		if (count >= 32) {
 			memcpy32((int *)dest, (int *)src, count/2);
@@ -45,7 +45,7 @@ static void memcpy16(unsigned short *dest, unsigned short *src, uint count)
 
 static void memcpy16bswap(unsigned short *dest, void *src, uint count)
 {
-	uchar *src_ = (uchar*)src;
+	uint8_t *src_ = (uint8_t*)src;
 
 	for (; count; count--, src_ += 2)
 		*dest++ = (src_[0] << 8) | src_[1];

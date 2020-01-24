@@ -27,7 +27,7 @@ struct AxisKeyEmu
 	Range lowLimit = 0, highLimit = 0;
 	Key lowKey = 0, highKey = 0;
 	Key lowSysKey = 0, highSysKey = 0;
-	int8 state = 0;
+	int8_t state = 0;
 
 	struct UpdateKeys
 	{
@@ -45,7 +45,7 @@ struct AxisKeyEmu
 	UpdateKeys update(Range pos)
 	{
 		UpdateKeys keys;
-		int8 newState = (pos <= lowLimit) ? -1 :
+		int8_t newState = (pos <= lowLimit) ? -1 :
 			(pos >= highLimit) ? 1 :
 			0;
 		if(newState != state)
