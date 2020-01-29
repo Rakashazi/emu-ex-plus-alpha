@@ -33,30 +33,31 @@ ALooperFDEventSource::ALooperFDEventSource(int fd): fd_{fd} {}
 ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, int fd): fd_{fd}, debugLabel{debugLabel ? debugLabel : "unnamed"} {}
 #endif
 
-FDEventSource::FDEventSource(FDEventSource &&o)
+ALooperFDEventSource::ALooperFDEventSource(ALooperFDEventSource &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-FDEventSource &FDEventSource::operator=(FDEventSource o)
+ALooperFDEventSource &ALooperFDEventSource::operator=(ALooperFDEventSource &&o)
 {
-	swap(*this, o);
+	deinit();
+	callback_ = std::move(o.callback_);
+	looper = std::exchange(o.looper, {});
+	fd_ = std::exchange(o.fd_, -1);
+	#ifndef NDEBUG
+	debugLabel = o.debugLabel;
+	#endif
 	return *this;
 }
 
-FDEventSource::~FDEventSource()
+ALooperFDEventSource::~ALooperFDEventSource()
 {
-	removeFromEventLoop();
+	deinit();
 }
 
-void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
+void ALooperFDEventSource::deinit()
 {
-	std::swap(a.callback_, b.callback_);
-	std::swap(a.looper, b.looper);
-	std::swap(a.fd_, b.fd_);
-	#ifndef NDEBUG
-	std::swap(a.debugLabel, b.debugLabel);
-	#endif
+	static_cast<FDEventSource*>(this)->removeFromEventLoop();
 }
 
 bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)

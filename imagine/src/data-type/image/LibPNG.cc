@@ -16,12 +16,11 @@
 #define LOGTAG "LibPNG"
 
 #include <imagine/data-type/image/LibPNG.hh>
-#include <assert.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/string.h>
-#include <imagine/mem/mem.h>
+#include <assert.h>
 
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
@@ -102,12 +101,12 @@ PixelFormat Png::pixelFormat()
 static png_voidp png_memAlloc(png_structp png_ptr, png_size_t size)
 {
 	//log_mPrintf(LOG_MSG, "about to allocate %d bytes", size);
-	return mem_alloc(size);
+	return new uint8_t[size];
 }
 
 static void png_memFree(png_structp png_ptr, png_voidp ptr)
 {
-	mem_free(ptr);
+	delete[] (uint8_t*)ptr;
 }
 
 std::error_code Png::readHeader(GenericIO io)

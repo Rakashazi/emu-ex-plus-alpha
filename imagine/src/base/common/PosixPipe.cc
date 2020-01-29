@@ -60,26 +60,20 @@ void Pipe::deinit()
 
 Pipe::Pipe(Pipe &&o)
 {
-	moveObject(o);
+	*this = std::move(o);
 }
 
 Pipe &Pipe::operator=(Pipe &&o)
 {
 	deinit();
-	moveObject(o);
-	return *this;
-}
-
-void Pipe::moveObject(Pipe &o)
-{
-	msgPipe = o.msgPipe;
-	o.fdSrc.setCallback([this](int fd, int events){ return this->del(*this); });
-	fdSrc = std::move(o.fdSrc);
+	msgPipe = std::exchange(o.msgPipe, {-1, -1});
 	del = o.del;
+	fdSrc = std::move(o.fdSrc);
+	fdSrc.setCallback([this](int fd, int events){ return this->del(*this); });
 	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
 	#endif
-	o.msgPipe[0] = -1;
+	return *this;
 }
 
 void Pipe::addToEventLoop(EventLoop loop, Delegate del)
@@ -153,7 +147,7 @@ bool Pipe::isReadNonBlocking() const
 	return fd_getNonblock(msgPipe[0]);
 }
 
-const char *Pipe::label()
+const char *Pipe::label() const
 {
 	#ifdef NDEBUG
 	return nullptr;

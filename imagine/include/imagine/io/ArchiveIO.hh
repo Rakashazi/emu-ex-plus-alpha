@@ -48,13 +48,11 @@ public:
 	using IOUtils::write;
 	using IOUtils::seek;
 
-	ArchiveIO() {}
-	ArchiveIO(ArchiveEntry entry):
-		entry{entry}
-	{}
-	~ArchiveIO() final;
+	constexpr ArchiveIO() {}
+	ArchiveIO(ArchiveEntry entry);
 	ArchiveIO(ArchiveIO &&o);
 	ArchiveIO &operator=(ArchiveIO &&o);
+	~ArchiveIO() final;
 	GenericIO makeGeneric();
 	ArchiveEntry releaseArchive();
 	const char *name();
@@ -66,12 +64,8 @@ public:
 	void close() final;
 	size_t size() final;
 	bool eof() final;
-	explicit operator bool() final;
+	explicit operator bool() const final;
 
 private:
 	ArchiveEntry entry{};
-
-	// no copying outside of class
-	ArchiveIO(const ArchiveIO &) = default;
-	ArchiveIO &operator=(const ArchiveIO &) = default;
 };

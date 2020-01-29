@@ -16,13 +16,13 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/data-type/image/sys.hh>
-#include <imagine/mem/mem.h>
 #include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/InputManagerView.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include <cstdlib>
 
 struct RelPtr  // for Android trackball
 {
@@ -596,7 +596,7 @@ void KeyMapping::buildAll()
 			return;
 		}
 		logMsg("allocating key mapping with %d keys", totalKeys);
-		inputDevActionTablePtr[0] = (ActionGroup*)mem_calloc(totalKeys * sizeof(ActionGroup));
+		inputDevActionTablePtr[0] = (ActionGroup*)std::calloc(totalKeys, sizeof(ActionGroup));
 	}
 	uint totalKeys = 0;
 	int i = 0;
@@ -640,7 +640,7 @@ void KeyMapping::free()
 {
 	if(inputDevActionTablePtr)
 	{
-		mem_free(inputDevActionTablePtr[0]);
+		std::free(inputDevActionTablePtr[0]);
 	}
 	inputDevActionTablePtr.reset();
 }

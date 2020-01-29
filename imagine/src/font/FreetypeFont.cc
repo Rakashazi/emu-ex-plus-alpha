@@ -260,8 +260,6 @@ std::errc FreetypeFaceData::openFont(GenericIO file)
 	return {};
 }
 
-Font::Font() {}
-
 Font::Font(GenericIO io)
 {
 	loadIntoNextSlot(std::move(io));
@@ -306,18 +304,30 @@ Font Font::makeFromAsset(const char *name, const char *appName)
 	return {openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric()};
 }
 
-Font::Font(Font &&o)
+FreetypeFont::FreetypeFont(FreetypeFont &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-Font &Font::operator=(Font o)
+FreetypeFont &FreetypeFont::operator=(FreetypeFont &&o)
 {
-	swap(*this, o);
+	deinit();
+	f = std::exchange(o.f, {});
+	isBold = o.isBold;
 	return *this;
 }
 
-Font::~Font()
+FreetypeFont::~FreetypeFont()
+{
+	deinit();
+}
+
+Font::operator bool() const
+{
+	return f.size();
+}
+
+void FreetypeFont::deinit()
 {
 	for(auto &e : f)
 	{
@@ -330,17 +340,6 @@ Font::~Font()
 			delete (IO*)e.streamRec.descriptor.pointer;
 		}
 	}
-}
-
-void Font::swap(Font &a, Font &b)
-{
-	std::swap(a.f, b.f);
-	std::swap(a.isBold, b.isBold);
-}
-
-Font::operator bool() const
-{
-	return f.size();
 }
 
 std::errc FreetypeFont::loadIntoNextSlot(GenericIO io)
@@ -384,7 +383,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		auto &font = f[i];
 		if(!font.face)
 			continue;
-		auto ftError = FT_Activate_Size(fontSize.ftSize[i]);
+		auto ftError = FT_Activate_Size(fontSize.sizeArray()[i]);
 		if(ftError)
 		{
 			logErr("error activating size object");
@@ -420,7 +419,8 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 	if((bool)ec)
 		return {};
 	auto &font = f[newSlot];
-	fontSize.ftSize[newSlot] = makeFTSize(font.face, fontSize.settings.pixelWidth(), fontSize.settings.pixelHeight(), ec);
+	auto settings = fontSize.fontSettings();
+	fontSize.sizeArray()[newSlot] = makeFTSize(font.face, settings.pixelWidth(), settings.pixelHeight(), ec);
 	if((bool)ec)
 	{
 		logErr("couldn't allocate font size");
@@ -469,7 +469,7 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 		{
 			continue;
 		}
-		size.ftSize[i] = makeFTSize(f[i].face, settings.pixelWidth(), settings.pixelHeight(), ec);
+		size.sizeArray()[i] = makeFTSize(f[i].face, settings.pixelWidth(), settings.pixelHeight(), ec);
 		if((bool)ec)
 		{
 			return {};
@@ -479,7 +479,37 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 	return size;
 }
 
+FreetypeFontSize::FreetypeFontSize(FontSettings settings): settings{settings} {}
+
 FreetypeFontSize::~FreetypeFontSize()
+{
+	deinit();
+}
+
+FreetypeFontSize::FreetypeFontSize(FreetypeFontSize &&o)
+{
+	*this = std::move(o);
+}
+
+FreetypeFontSize &FreetypeFontSize::operator=(FreetypeFontSize &&o)
+{
+	deinit();
+	settings = o.settings;
+	ftSize = std::exchange(o.ftSize, {});
+	return *this;
+}
+
+FreetypeFontSize::FTSizeArray &FreetypeFontSize::sizeArray()
+{
+	return ftSize;
+}
+
+FontSettings FreetypeFontSize::fontSettings() const
+{
+	return settings;
+}
+
+void FreetypeFontSize::deinit()
 {
 	iterateTimes(std::size(ftSize), i)
 	{
@@ -492,37 +522,23 @@ FreetypeFontSize::~FreetypeFontSize()
 	}
 }
 
-FreetypeFontSize::FreetypeFontSize(FreetypeFontSize &&o)
+FreetypeGlyphImage::FreetypeGlyphImage(FT_Bitmap bitmap): bitmap{bitmap} {}
+
+FreetypeGlyphImage::FreetypeGlyphImage(FreetypeGlyphImage &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-FreetypeFontSize &FreetypeFontSize::operator=(FreetypeFontSize o)
+FreetypeGlyphImage &FreetypeGlyphImage::operator=(FreetypeGlyphImage &&o)
 {
-	swap(*this, o);
+	static_cast<GlyphImage*>(this)->unlock();
+	bitmap = std::exchange(o.bitmap, {});
 	return *this;
 }
 
-void FreetypeFontSize::swap(FreetypeFontSize &a, FreetypeFontSize &b)
+FreetypeGlyphImage::~FreetypeGlyphImage()
 {
-	std::swap(a.settings, b.settings);
-	std::swap(a.ftSize, b.ftSize);
-}
-
-GlyphImage::GlyphImage(GlyphImage &&o)
-{
-	swap(*this, o);
-}
-
-GlyphImage &GlyphImage::operator=(GlyphImage o)
-{
-	swap(*this, o);
-	return *this;
-}
-
-void GlyphImage::swap(GlyphImage &a, GlyphImage &b)
-{
-	std::swap(a.bitmap, b.bitmap);
+	static_cast<GlyphImage*>(this)->unlock();
 }
 
 void GlyphImage::unlock()
@@ -530,6 +546,7 @@ void GlyphImage::unlock()
 	if(bitmap.buffer)
 	{
 		FT_Bitmap_Done(library, &bitmap);
+		bitmap = {};
 	}
 }
 

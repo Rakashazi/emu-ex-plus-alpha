@@ -98,37 +98,28 @@ public:
 
 	~IOStream()
 	{
-		if(f)
-		{
-			fclose(f);
-		}
+		deinit();
 	}
 
 	IOStream(IOStream &&o)
 	{
-		io = std::move(o.io);
-		f = o.f;
-		o.f = nullptr;
+		*this = std::move(o);
 	}
 
 	IOStream &operator=(IOStream &&o)
 	{
-		if(f)
-		{
-			fclose(f);
-		}
+		deinit();
 		io = std::move(o.io);
-		f = o.f;
-		o.f = nullptr;
+		f = std::exchange(o.f, {});
 		return *this;
 	}
 
-	operator FILE*()
+	explicit operator FILE*()
 	{
 		return f;
 	}
 
-	explicit operator bool()
+	explicit operator bool() const
 	{
 		return f;
 	}
@@ -136,4 +127,12 @@ public:
 protected:
 	IO io{};
 	FILE *f{};
+
+	void deinit()
+	{
+		if(f)
+		{
+			fclose(f);
+		}
+	}
 };

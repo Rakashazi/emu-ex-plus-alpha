@@ -46,8 +46,6 @@ struct FDEventSource : public FDEventSourceImpl
 {
 public:
 	using FDEventSourceImpl::FDEventSourceImpl;
-
-	constexpr FDEventSource() {}
 	#ifdef NDEBUG
 	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	FDEventSource(const char *debugLabel, int fd): FDEventSource(fd) {}
@@ -59,10 +57,6 @@ public:
 		FDEventSource(nullptr, fd, loop, callback, events) {}
 	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	#endif
-	FDEventSource(FDEventSource &&o);
-	FDEventSource &operator=(FDEventSource o);
-	~FDEventSource();
-	static void swap(FDEventSource &a, FDEventSource &b);
 	static FDEventSource makeXServerAddedToEventLoop(int fd, EventLoop loop);
 	bool addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events);
 	void addXServerToEventLoop(EventLoop loop);

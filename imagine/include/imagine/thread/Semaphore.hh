@@ -30,9 +30,6 @@ class Semaphore : public SemaphoreImpl
 {
 public:
 	Semaphore(unsigned int startValue);
-	Semaphore(Semaphore &&o);
-	Semaphore &operator=(Semaphore &&o);
-	~Semaphore();
 	void wait();
 	void notify();
 };

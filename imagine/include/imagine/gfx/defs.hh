@@ -98,4 +98,44 @@ enum MipFilterMode
 	MIP_FILTER_LINEAR,
 };
 
+enum { BLEND_MODE_OFF = 0, BLEND_MODE_ALPHA, BLEND_MODE_INTENSITY };
+
+enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE, IMG_MODE_ADD };
+
+enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };
+
+enum { BOTH_FACES, FRONT_FACES, BACK_FACES };
+
+enum GfxColorEnum { COLOR_WHITE, COLOR_BLACK };
+
+enum TransformTargetEnum { TARGET_WORLD, TARGET_TEXTURE };
+
+enum class CommonProgram
+{
+	// color replacement shaders
+	TEX_REPLACE,
+	TEX_ALPHA_REPLACE,
+	#ifdef __ANDROID__
+	TEX_EXTERNAL_REPLACE,
+	#endif
+
+	// color modulation shaders
+	TEX,
+	TEX_ALPHA,
+	#ifdef __ANDROID__
+	TEX_EXTERNAL,
+	#endif
+	NO_TEX
+};
+
+enum class CommonTextureSampler
+{
+	CLAMP,
+	NEAREST_MIP_CLAMP,
+	NO_MIP_CLAMP,
+	NO_LINEAR_NO_MIP_CLAMP,
+	REPEAT,
+	NEAREST_MIP_REPEAT
+};
+
 }

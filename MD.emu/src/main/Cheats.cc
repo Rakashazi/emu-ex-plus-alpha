@@ -437,7 +437,7 @@ void readCheatFile()
 
 	char line[256];
 	IOStream<FileIO> fileStream{std::move(file), "r"};
-	while(fgets(line, sizeof(line), fileStream))
+	while(fgets(line, sizeof(line), static_cast<FILE*>(fileStream)))
 	{
 		logMsg("got line: %s", line);
 		MdCheat cheat;

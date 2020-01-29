@@ -20,6 +20,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/typeTraits.hh>
+#include <memory>
 
 namespace IG
 {
@@ -171,16 +172,13 @@ protected:
 class MemPixmap : public Pixmap
 {
 public:
-	MemPixmap() {}
+	constexpr MemPixmap() {}
 	MemPixmap(PixmapDesc format);
 	MemPixmap(MemPixmap &&o);
 	MemPixmap &operator=(MemPixmap &&o);
-	~MemPixmap();
 
 protected:
-	// no copying outside of class
-	MemPixmap(const MemPixmap &) = default;
-	MemPixmap &operator=(const MemPixmap &) = default;
+	std::unique_ptr<uint8_t[]> buffer{};
 };
 
 }

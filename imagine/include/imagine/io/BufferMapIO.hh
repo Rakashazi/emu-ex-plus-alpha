@@ -26,9 +26,9 @@ public:
 	using OnCloseDelegate = DelegateFunc<void (BufferMapIO &io)>;
 
 	constexpr BufferMapIO() {}
-	~BufferMapIO() final;
 	BufferMapIO(BufferMapIO &&o);
 	BufferMapIO &operator=(BufferMapIO &&o);
+	~BufferMapIO() final;
 	GenericIO makeGeneric();
 	std::error_code open(const void *buff, size_t size, OnCloseDelegate onClose);
 	std::error_code open(const void *buff, size_t size)
@@ -40,8 +40,4 @@ public:
 
 protected:
 	OnCloseDelegate onClose{};
-
-	// no copying outside of class
-	BufferMapIO(const BufferMapIO &) = default;
-	BufferMapIO &operator=(const BufferMapIO &) = default;
 };

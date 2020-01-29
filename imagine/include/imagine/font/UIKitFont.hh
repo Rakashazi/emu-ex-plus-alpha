@@ -28,10 +28,10 @@ class UIKitGlyphImage
 {
 public:
 	constexpr UIKitGlyphImage() {}
-	constexpr UIKitGlyphImage(IG::Pixmap pixmap, void *pixData):
-		pixmap_{pixmap},
-		pixData_{pixData}
-	{}
+	UIKitGlyphImage(IG::Pixmap pixmap, void *pixData);
+	UIKitGlyphImage(UIKitGlyphImage &&o);
+	UIKitGlyphImage &operator=(UIKitGlyphImage &&o);
+	~UIKitGlyphImage();
 
 protected:
 	IG::Pixmap pixmap_{};
@@ -40,6 +40,11 @@ protected:
 
 class UIKitFont
 {
+public:
+	constexpr UIKitFont() {}
+	UIKitFont(UIKitFont &&o);
+	UIKitFont &operator=(UIKitFont &&o);
+
 protected:
 	bool isBold{};
 };
@@ -47,18 +52,19 @@ protected:
 class UIKitFontSize
 {
 public:
-	UIKitFontSize() {}
-	UIKitFontSize(void *font): font_{font} {}
-	~UIKitFontSize();
+	constexpr UIKitFontSize() {}
+	UIKitFontSize(void *font);
 	UIKitFontSize(UIKitFontSize &&o);
-	UIKitFontSize &operator=(UIKitFontSize o);
-	static void swap(UIKitFontSize &a, UIKitFontSize &b);
+	UIKitFontSize &operator=(UIKitFontSize &&o);
+	~UIKitFontSize();
 	#ifdef __OBJC__
 	UIFont *font() { assert(font_); return (__bridge UIFont*)font_; }
 	#endif
 
 protected:
 	void *font_{}; // UIFont in ObjC
+
+	void deinit();
 };
 
 using GlyphImageImpl = UIKitGlyphImage;

@@ -19,7 +19,6 @@
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/io/FileIO.hh>
-#include <imagine/mem/mem.h>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
 
@@ -160,11 +159,12 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 
 	//png_set_packing(pngPtr);
 
-	png_byte *rowPtr= (png_byte*)mem_alloc(png_get_rowbytes(pngPtr, infoPtr));
 	auto screen = vidPix.pixel({});
+	uint32_t rowBytes = png_get_rowbytes(pngPtr, infoPtr);
 	for(uint y=0; y < vidPix.h(); y++, screen+=vidPix.pitchBytes())
 	{
-		png_byte *rowpix = rowPtr;
+		png_byte rowArr[rowBytes];
+		png_byte *rowpix = rowArr;
 		for(uint x=0; x < vidPix.w(); x++)
 		{
 			// assumes RGB565
@@ -181,12 +181,10 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 				*(rowpix++) = b;
 			}
 		}
-		png_write_row(pngPtr, rowPtr);
+		png_write_row(pngPtr, rowArr);
 		if(imgheight != vidPix.h())
-			png_write_row(pngPtr, rowPtr);
+			png_write_row(pngPtr, rowArr);
 	}
-
-	mem_free(rowPtr);
 
 	png_write_end(pngPtr, infoPtr);
 	png_destroy_write_struct(&pngPtr, &infoPtr);

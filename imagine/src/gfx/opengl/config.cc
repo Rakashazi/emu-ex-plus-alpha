@@ -583,12 +583,10 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		}
 		glDpy = dpy;
 		dpy.logInfo();
-		#ifdef CONFIG_GFX_OPENGL_ES
-		if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
+		if(!Base::GLContext::bindAPI(glAPI))
 		{
-			logErr("unable to bind GLES API");
+			logErr("unable to bind API");
 		}
-		#endif
 	}
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
@@ -620,10 +618,6 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		glMajorVer = glAttr.majorVersion();
 	}
 	#else
-	if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_API))
-	{
-		logErr("unable to bind GL API");
-	}
 	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -913,11 +907,19 @@ void GLRenderer::addOnExitHandler()
 	onExit =
 		[this](bool backgrounded)
 		{
+			bool releaseShaderCompiler = (bool)releaseShaderCompilerTimer;
+			releaseShaderCompilerTimer.cancel();
 			if(backgrounded)
 			{
 				runGLTaskSync(
-					[]()
+					[=]()
 					{
+						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+						if(releaseShaderCompiler)
+						{
+							glReleaseShaderCompiler();
+						}
+						#endif
 						glFinish();
 					});
 			}

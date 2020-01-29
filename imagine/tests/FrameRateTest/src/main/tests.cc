@@ -248,7 +248,7 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	sprite.init({}, texture);
-	Gfx::TextureSampler::initDefaultNoMipClampSampler(r);
+	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 }
 
 void DrawTest::placeTest(const Gfx::GCRect &rect)
@@ -259,7 +259,7 @@ void DrawTest::placeTest(const Gfx::GCRect &rect)
 void DrawTest::deinitTest()
 {
 	sprite.deinit();
-	texture.deinit();
+	texture = {};
 }
 
 void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTimeBase)
@@ -347,6 +347,6 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 
 void WriteTest::deinitTest()
 {
-	DrawTest::deinitTest();
 	texture.renderer().deleteSyncFence(fence);
+	DrawTest::deinitTest();
 }

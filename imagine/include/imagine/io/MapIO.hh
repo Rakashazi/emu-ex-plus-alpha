@@ -34,7 +34,7 @@ public:
 	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) override;
 	size_t size() override;
 	bool eof() override;
-	explicit operator bool() override;
+	explicit operator bool() const override;
 	#if defined __linux__ || defined __APPLE__
 	void advise(off_t offset, size_t bytes, Advice advice) override;
 	#endif

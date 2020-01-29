@@ -18,6 +18,8 @@
 #include <utility>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureConfig.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 
@@ -31,167 +33,13 @@ namespace Gfx
 class Renderer;
 class RendererCommands;
 
-class TextureSamplerConfig
-{
-private:
-	bool minLinearFiltering = true;
-	bool magLinearFiltering = true;
-	MipFilterMode mipFiltering = MIP_FILTER_LINEAR;
-	WrapMode xWrapMode_ = WRAP_CLAMP;
-	WrapMode yWrapMode_ = WRAP_CLAMP;
-
-public:
-	constexpr TextureSamplerConfig() {}
-
-	void setLinearFilter(bool on)
-	{
-		minLinearFiltering = magLinearFiltering = on;
-	}
-
-	void setMinLinearFilter(bool on)
-	{
-		minLinearFiltering = on;
-	}
-
-	void setMagLinearFilter(bool on)
-	{
-		magLinearFiltering = on;
-	}
-
-	bool minLinearFilter() const
-	{
-		return minLinearFiltering;
-	}
-
-	bool magLinearFilter() const
-	{
-		return magLinearFiltering;
-	}
-
-	void setMipFilter(MipFilterMode filter)
-	{
-		mipFiltering = filter;
-	}
-
-	MipFilterMode mipFilter() const
-	{
-		return mipFiltering;
-	}
-
-	void setWrapMode(WrapMode mode)
-	{
-		xWrapMode_ = yWrapMode_ = mode;
-	}
-
-	void setXWrapMode(WrapMode mode)
-	{
-		xWrapMode_ = mode;
-	}
-
-	void setYWrapMode(WrapMode mode)
-	{
-		yWrapMode_ = mode;
-	}
-
-	WrapMode xWrapMode() const
-	{
-		return xWrapMode_;
-	}
-
-	WrapMode yWrapMode() const
-	{
-		return yWrapMode_;
-	}
-
-	static TextureSamplerConfig makeWithVideoUseConfig()
-	{
-		TextureSamplerConfig config;
-		config.setLinearFilter(true);
-		config.setMipFilter(MIP_FILTER_NONE);
-		config.setWrapMode(WRAP_CLAMP);
-		return config;
-	}
-};
-
-class TextureConfig
-{
-private:
-	bool writeOften = false;
-	bool genMipmaps = false;
-	uint32_t levels_ = 1;
-	IG::PixmapDesc pixmapDesc_;
-
-public:
-	constexpr TextureConfig() {}
-	constexpr TextureConfig(IG::PixmapDesc pixDesc): pixmapDesc_{pixDesc} {}
-
-	void setLevels(uint32_t levels)
-	{
-		levels_ = levels;
-	}
-
-	void setAllLevels()
-	{
-		levels_ = 0;
-	}
-
-	uint32_t levels()
-	{
-		return levels_;
-	}
-
-	void setWillWriteOften(bool on)
-	{
-		writeOften = on;
-	}
-
-	bool willWriteOften() const
-	{
-		return writeOften;
-	}
-
-	void setWillGenerateMipmaps(bool on)
-	{
-		genMipmaps = on;
-		if(on)
-			setAllLevels();
-	}
-
-	bool willGenerateMipmaps() const
-	{
-		return genMipmaps;
-	}
-
-	void setPixmapDesc(IG::PixmapDesc pixDesc)
-	{
-		pixmapDesc_ = pixDesc;
-	}
-
-	IG::PixmapDesc pixmapDesc()
-	{
-		return pixmapDesc_;
-	}
-};
-
 class TextureSampler: public TextureSamplerImpl
 {
 public:
-	constexpr TextureSampler() {}
-	void init2(Renderer &r, TextureSamplerConfig config);
-	void deinit(Renderer &r);
+	using TextureSamplerImpl::TextureSamplerImpl;
+	TextureSampler(TextureSampler &&o);
+	TextureSampler &operator=(TextureSampler &&o);
 	explicit operator bool() const;
-	static void initDefaultClampSampler(Renderer &r);
-	static void initDefaultNearestMipClampSampler(Renderer &r);
-	static void initDefaultNoMipClampSampler(Renderer &r);
-	static void initDefaultNoLinearNoMipClampSampler(Renderer &r);
-	static void initDefaultRepeatSampler(Renderer &r);
-	static void initDefaultNearestMipRepeatSampler(Renderer &r);
-	static void bindDefaultClampSampler(RendererCommands &cmds);
-	static void bindDefaultNearestMipClampSampler(RendererCommands &cmds);
-	static void bindDefaultNoMipClampSampler(RendererCommands &cmds);
-	static void bindDefaultNoLinearNoMipClampSampler(RendererCommands &cmds);
-	static void bindDefaultRepeatSampler(RendererCommands &cmds);
-	static void bindDefaultNearestMipRepeatSampler(RendererCommands &cmds);
 };
 
 class LockedTextureBuffer: public LockedTextureBufferImpl
@@ -209,12 +57,9 @@ public:
 	static constexpr uint32_t MAX_ASSUME_ALIGN = 8;
 	static constexpr uint32_t COMMIT_FLAG_ASYNC = IG::bit(0);
 
-	constexpr Texture() {}
+	using TextureImpl::TextureImpl;
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
-	Error init2(Renderer &r, TextureConfig config);
-	Error init2(Renderer &r, GfxImageSource &img, bool makeMipmaps);
-	void deinit();
 	static uint32_t bestAlignment(const IG::Pixmap &pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
@@ -235,26 +80,20 @@ public:
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
 	explicit operator bool() const;
 	Renderer &renderer();
-
-protected:
-	Renderer *r{};
-
-	// no copying outside of class
-	Texture(const Texture &) = default;
-	Texture &operator=(const Texture &) = default;
 };
 
 class PixmapTexture: public Texture
 {
 public:
 	constexpr PixmapTexture() {}
-	Error init2(Renderer &r, TextureConfig config);
-	Error init2(Renderer &r, GfxImageSource &img, bool makeMipmaps);
+	PixmapTexture(Renderer &r, TextureConfig config, Error *errorPtr = nullptr);
+	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr = nullptr);
+	Error init(Renderer &r, TextureConfig config);
 	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 
-private:
+protected:
 	IG::Rect2<GTexC> uv{};
 	IG::WP usedSize{};
 

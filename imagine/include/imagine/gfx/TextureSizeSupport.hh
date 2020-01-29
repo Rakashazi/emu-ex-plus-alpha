@@ -4,6 +4,9 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 
+namespace Gfx
+{
+
 class TextureSizeSupport
 {
 public:
@@ -19,3 +22,5 @@ public:
 	IG::WP makeSupportedSize(IG::WP size) const;
 	bool supportsMipmaps(uint32_t imageX, uint32_t imageY) const;
 };
+
+}

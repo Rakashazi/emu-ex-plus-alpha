@@ -36,9 +36,9 @@ public:
 	Pipe(uint32_t preferredSize = 0): Pipe(nullptr, preferredSize) {}
 	Pipe(const char *debugLabel, uint32_t preferredSize = 0);
 	#endif
-	~Pipe();
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
+	~Pipe();
 	void addToEventLoop(EventLoop loop, Delegate del);
 	void removeFromEventLoop();
 	bool read(void *data, size_t size);
@@ -82,9 +82,8 @@ protected:
 	const char *debugLabel{};
 	#endif
 
-	void moveObject(Pipe &o);
 	void deinit();
-	const char *label();
+	const char *label() const;
 };
 
 }

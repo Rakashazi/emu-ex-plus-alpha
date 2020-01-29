@@ -29,10 +29,11 @@ namespace Gfx
 
 struct GlyphEntry
 {
-	Gfx::PixmapTexture glyph{};
+	std::unique_ptr<Gfx::PixmapTexture> glyphPtr{};
 	IG::GlyphMetrics metrics{};
 
 	constexpr GlyphEntry() {}
+	Gfx::PixmapTexture &glyph() { return *glyphPtr; }
 };
 
 class GlyphTextureSet
@@ -41,18 +42,17 @@ public:
 	IG::FontSettings settings{};
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
-	GlyphTextureSet() {}
+	constexpr GlyphTextureSet() {}
 	GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set);
 	GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set);
 	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
+	GlyphTextureSet(GlyphTextureSet &&o);
+	GlyphTextureSet &operator=(GlyphTextureSet &&o);
+	~GlyphTextureSet();
 	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set);
-	GlyphTextureSet(GlyphTextureSet &&o);
-	GlyphTextureSet &operator=(GlyphTextureSet o);
-	~GlyphTextureSet();
 	operator bool() const;
-	static void swap(GlyphTextureSet &a, GlyphTextureSet &b);
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
 	std::errc precache(Renderer &r, const char *string);
 	std::errc precacheAlphaNum(Renderer &r)
@@ -74,6 +74,7 @@ private:
 	void calcNominalHeight(Renderer &r);
 	bool initGlyphTable();
 	std::errc cacheChar(Renderer &r, int c, int tableIdx);
+	void deinit();
 };
 
 }

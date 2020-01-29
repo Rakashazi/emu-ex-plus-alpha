@@ -25,6 +25,12 @@ namespace IG
 
 class MachSemaphore
 {
+public:
+	constexpr MachSemaphore() {}
+	MachSemaphore(MachSemaphore &&o);
+	MachSemaphore &operator=(MachSemaphore &&o);
+	~MachSemaphore();
+
 protected:
 	semaphore_t sem{};
 

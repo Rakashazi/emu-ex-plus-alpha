@@ -31,32 +31,37 @@ namespace IG
 class FreetypeGlyphImage
 {
 public:
-	constexpr FreetypeGlyphImage(){}
-	constexpr FreetypeGlyphImage(FT_Bitmap bitmap): bitmap{bitmap} {}
+	constexpr FreetypeGlyphImage() {}
+	FreetypeGlyphImage(FT_Bitmap bitmap);
+	FreetypeGlyphImage(FreetypeGlyphImage &&o);
+	FreetypeGlyphImage &operator=(FreetypeGlyphImage &&o);
+	~FreetypeGlyphImage();
 
 protected:
 	FT_Bitmap bitmap{};
 };
 
 static constexpr uint32_t MAX_FREETYPE_SLOTS = Config::envIsLinux ? 4 : 2;
-class FontSizeData
-{
-public:
-	constexpr FontSizeData() {}
-	constexpr FontSizeData(FontSettings settings): settings{settings} {}
-	FontSettings settings{};
-	std::array<FT_Size, MAX_FREETYPE_SLOTS> ftSize{};
-};
 
-class FreetypeFontSize : public FontSizeData
+class FreetypeFontSize
 {
 public:
-	FreetypeFontSize() {}
-	FreetypeFontSize(FontSettings settings): FontSizeData{settings} {}
-	~FreetypeFontSize();
+	using FTSizeArray = std::array<FT_Size, MAX_FREETYPE_SLOTS>;
+
+	constexpr FreetypeFontSize() {}
+	FreetypeFontSize(FontSettings settings);
 	FreetypeFontSize(FreetypeFontSize &&o);
-	FreetypeFontSize &operator=(FreetypeFontSize o);
-	static void swap(FreetypeFontSize &a, FreetypeFontSize &b);
+	FreetypeFontSize &operator=(FreetypeFontSize &&o);
+	~FreetypeFontSize();
+
+	FTSizeArray &sizeArray();
+	FontSettings fontSettings() const;
+
+protected:
+	FontSettings settings{};
+	FTSizeArray ftSize{};
+
+	void deinit();
 };
 
 struct FreetypeFaceData
@@ -76,6 +81,9 @@ public:
 	};
 
 	constexpr FreetypeFont() {}
+	FreetypeFont(FreetypeFont &&o);
+	FreetypeFont &operator=(FreetypeFont &&o);
+	~FreetypeFont();
 
 protected:
 	StaticArrayList<FreetypeFaceData, MAX_FREETYPE_SLOTS> f{};
@@ -84,6 +92,7 @@ protected:
 	std::errc loadIntoNextSlot(GenericIO io);
 	std::errc loadIntoNextSlot(const char *name);
 	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
+	void deinit();
 };
 
 using GlyphImageImpl = FreetypeGlyphImage;

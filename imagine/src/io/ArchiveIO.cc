@@ -72,20 +72,24 @@ void ArchiveEntry::moveIO(ArchiveIO io)
 	*this = io.releaseArchive();
 }
 
+ArchiveIO::ArchiveIO(ArchiveEntry entry):
+	entry{entry}
+{}
+
 ArchiveIO::~ArchiveIO()
 {
 	close();
 }
 
-ArchiveIO::ArchiveIO(ArchiveIO &&o)
+ArchiveIO::ArchiveIO(ArchiveIO &&o): IO{o}
 {
-	entry = std::move(o.entry);
+	*this = std::move(o);
 }
 
 ArchiveIO &ArchiveIO::operator=(ArchiveIO &&o)
 {
 	close();
-	entry = std::move(o.entry);
+	entry = std::exchange(o.entry, {});
 	return *this;
 }
 
@@ -188,7 +192,7 @@ bool ArchiveIO::eof()
 	return tell() == (off_t)entry.size();
 }
 
-ArchiveIO::operator bool()
+ArchiveIO::operator bool() const
 {
 	return (bool)entry.arch;
 }

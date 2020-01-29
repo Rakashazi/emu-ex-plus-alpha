@@ -31,7 +31,7 @@ struct CPUTime
 };
 
 static CPUTime cpuTime;
-static FileIO cpuFreqFile;
+static FileIO cpuFreqFile{};
 static FILE *procStatFile{};
 
 void updateCPUFreq(TestFramework &test)

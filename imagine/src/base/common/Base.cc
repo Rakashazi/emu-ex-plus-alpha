@@ -31,7 +31,7 @@
 #endif
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
-#include <imagine/mem/mem.h>
+#include <cstdlib>
 
 namespace Base
 {
@@ -47,7 +47,6 @@ void engineInit()
 {
 	logDMsg("%s", copyright);
 	logDMsg("compiled on %s %s", __DATE__, __TIME__);
-	mem_init();
 }
 
 void setOnInterProcessMessage(InterProcessMessageDelegate del)
@@ -190,13 +189,13 @@ void* operator new (std::size_t size)
 #ifdef __EXCEPTIONS
 	throw (std::bad_alloc)
 #endif
-{ return mem_alloc(size); }
+{ return std::malloc(size); }
 
 void* operator new[] (std::size_t size)
 #ifdef __EXCEPTIONS
 	throw (std::bad_alloc)
 #endif
-{ return mem_alloc(size); }
+{ return std::malloc(size); }
 
 #ifdef CONFIG_BASE_PS3
 void *operator new(_CSTD size_t size, _CSTD size_t align)
@@ -207,8 +206,8 @@ void *operator new(_CSTD size_t size, _CSTD size_t align)
 }
 #endif
 
-void operator delete (void *o) noexcept { mem_free(o); }
-void operator delete[] (void *o) noexcept { mem_free(o); }
+void operator delete (void *o) noexcept { std::free(o); }
+void operator delete[] (void *o) noexcept { std::free(o); }
 
 #endif
 

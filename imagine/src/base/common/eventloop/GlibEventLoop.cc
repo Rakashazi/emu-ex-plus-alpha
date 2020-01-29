@@ -36,30 +36,31 @@ GlibFDEventSource::GlibFDEventSource(int fd): fd_{fd} {}
 GlibFDEventSource::GlibFDEventSource(const char *debugLabel, int fd): fd_{fd}, debugLabel{debugLabel ? debugLabel : "unnamed"} {}
 #endif
 
-FDEventSource::FDEventSource(FDEventSource &&o)
+GlibFDEventSource::GlibFDEventSource(GlibFDEventSource &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-FDEventSource &FDEventSource::operator=(FDEventSource o)
+GlibFDEventSource &GlibFDEventSource::operator=(GlibFDEventSource &&o)
 {
-	swap(*this, o);
+	deinit();
+	source = std::exchange(o.source, {});
+	tag = std::exchange(o.tag, {});
+	fd_ = std::exchange(o.fd_, -1);
+	#ifndef NDEBUG
+	debugLabel = o.debugLabel;
+	#endif
 	return *this;
 }
 
-FDEventSource::~FDEventSource()
+GlibFDEventSource::~GlibFDEventSource()
 {
-	removeFromEventLoop();
+	deinit();
 }
 
-void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
+void GlibFDEventSource::deinit()
 {
-	std::swap(a.source, b.source);
-	std::swap(a.tag, b.tag);
-	std::swap(a.fd_, b.fd_);
-	#ifndef NDEBUG
-	std::swap(a.debugLabel, b.debugLabel);
-	#endif
+	static_cast<FDEventSource*>(this)->removeFromEventLoop();
 }
 
 FDEventSource FDEventSource::makeXServerAddedToEventLoop(int fd, EventLoop loop)

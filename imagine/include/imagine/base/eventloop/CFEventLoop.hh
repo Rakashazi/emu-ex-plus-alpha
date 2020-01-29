@@ -42,6 +42,9 @@ public:
 	CFFDEventSource(int fd) : CFFDEventSource{nullptr, fd} {}
 	CFFDEventSource(const char *debugLabel, int fd);
 	#endif
+	CFFDEventSource(CFFDEventSource &&o);
+	CFFDEventSource &operator=(CFFDEventSource &&o);
+	~CFFDEventSource();
 
 protected:
 	std::unique_ptr<CFFDEventSourceInfo> info{};
@@ -52,6 +55,7 @@ protected:
 	#endif
 
 	const char *label();
+	void deinit();
 };
 
 using FDEventSourceImpl = CFFDEventSource;

@@ -215,7 +215,7 @@ void CDAccess_Image::ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int t
 
  if(filename.length() >= 4 && !MDFN_strazicmp(filename.c_str() + filename.length() - 4, ".wav"))
  {
-  track->AReader = CDAFR_Open(*track->fp);
+  track->AReader = CDAFR_Open(static_cast<IO*>(*track->fp));
 
   if(!track->AReader)
    throw MDFN_Error(0, "TODO ERROR");
@@ -645,7 +645,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
      else if(!MDFN_strazicmp(args[1].c_str(), "OGG") || !MDFN_strazicmp(args[1].c_str(), "VORBIS") || !MDFN_strazicmp(args[1].c_str(), "WAVE") || !MDFN_strazicmp(args[1].c_str(), "WAV") || !MDFN_strazicmp(args[1].c_str(), "PCM")
 	|| !MDFN_strazicmp(args[1].c_str(), "MPC") || !MDFN_strazicmp(args[1].c_str(), "MP+"))
      {
-      TmpTrack.AReader = CDAFR_Open(*TmpTrack.fp);
+      TmpTrack.AReader = CDAFR_Open(static_cast<IO*>(*TmpTrack.fp));
       if(!TmpTrack.AReader)
       {
        throw(MDFN_Error(0, _("Unsupported audio track file format: %s\n"), args[0].c_str()));

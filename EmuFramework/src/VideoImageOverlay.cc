@@ -70,10 +70,10 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, uint effect)
 			pix = {{{16, 2}, IG::PIXEL_RGBA8888}, crtRgbPixmapBuff};
 		bdefault: // turn off effect
 			spr.deinit();
-			img.deinit();
+			img = {};
 			return;
 	}
-	Gfx::TextureSampler::initDefaultNearestMipRepeatSampler(r);
+	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_REPEAT);
 	Gfx::TextureConfig texConf{pix};
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);

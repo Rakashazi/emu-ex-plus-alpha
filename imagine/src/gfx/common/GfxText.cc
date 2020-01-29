@@ -13,12 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <algorithm>
-#include <cctype>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/util/math/int.hh>
-#include <imagine/mem/mem.h>
+#include <cstdlib>
+#include <algorithm>
+#include <cctype>
 
 namespace Gfx
 {
@@ -27,7 +27,7 @@ Text::~Text()
 {
 	if(lineInfo)
 	{
-		mem_free(lineInfo);
+		std::free(lineInfo);
 	}
 }
 
@@ -74,7 +74,7 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 {
 	assert(face);
 	assert(str);
-	TextureSampler::initDefaultNoMipClampSampler(r);
+	r.makeCommonTextureSampler(CommonTextureSampler::NO_MIP_CLAMP);
 	//logMsg("compiling text %s", str);
 	
 	// TODO: move calc into Face class
@@ -123,7 +123,7 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 			if(c == '\n')
 			{
 				wentToNextLine = 1;
-				lineInfo = (LineInfo*)mem_realloc(lineInfo, sizeof(LineInfo)*(lines+1));
+				lineInfo = (LineInfo*)std::realloc(lineInfo, sizeof(LineInfo)*(lines+1));
 				assert(lineInfo);
 				// Don't break text
 				//logMsg("new line %d without text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
@@ -136,7 +136,7 @@ void Text::compile(Renderer &r, const ProjectionPlane &projP)
 			else if(xLineSize > maxLineSize && textBlockIdx != currLineIdx)
 			{
 				wentToNextLine = 1;
-				lineInfo = (LineInfo*)mem_realloc(lineInfo, sizeof(LineInfo)*(lines+1));
+				lineInfo = (LineInfo*)std::realloc(lineInfo, sizeof(LineInfo)*(lines+1));
 				assert(lineInfo);
 				// Line has more than 1 block and is too big, needs text break
 				//logMsg("new line %d with text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
@@ -237,9 +237,10 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const Pro
 
 			auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 			auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
-			vArr = makeTexVertArray({x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}, gly->glyph);
+			auto &glyph = gly->glyph();
+			vArr = makeTexVertArray({x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}, glyph);
 			cmds.vertexBufferData(vArr.data(), sizeof(vArr));
-			cmds.setTexture(gly->glyph);
+			cmds.setTexture(glyph);
 			//logMsg("drawing");
 			cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 			xPos += projP.unprojectXSize(gly->metrics.xAdvance);

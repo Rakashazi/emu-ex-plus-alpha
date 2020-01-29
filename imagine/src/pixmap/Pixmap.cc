@@ -124,36 +124,23 @@ void Pixmap::clear()
 }
 
 MemPixmap::MemPixmap(PixmapDesc desc):
-	Pixmap{desc, malloc(desc.format().pixelBytes(desc.w() * desc.h()))}
-	{
-		//logDMsg("allocated memory pixmap data:%p", data);
-	}
+	Pixmap{desc, nullptr},
+	buffer{new uint8_t[desc.format().pixelBytes(desc.w() * desc.h())]}
+{
+	data = buffer.get();
+	//logDMsg("allocated memory pixmap data:%p", data);
+}
 
 MemPixmap::MemPixmap(MemPixmap &&o)
 {
-	*this = o;
-	o.data = nullptr;
+	*this = std::move(o);
 }
 
 MemPixmap &MemPixmap::operator=(MemPixmap &&o)
 {
-	if(data)
-	{
-		//logDMsg("freed memory pixmap data:%p via move ctor", data);
-		free(data);
-	}
-	*this = o;
-	o.data = nullptr;
+	Pixmap::operator=(o);
+	buffer = std::move(o.buffer);
 	return *this;
-}
-
-MemPixmap::~MemPixmap()
-{
-	if(data)
-	{
-		//logDMsg("freed memory pixmap data:%p", data);
-		free(data);
-	}
 }
 
 }

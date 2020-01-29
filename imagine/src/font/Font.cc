@@ -50,9 +50,4 @@ int Font::minUsablePixels() const
 	return 16;
 }
 
-GlyphImage::~GlyphImage()
-{
-	unlock();
-}
-
 }

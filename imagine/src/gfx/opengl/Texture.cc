@@ -14,19 +14,19 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLTexture"
-#include <algorithm>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
-#include <imagine/mem/mem.h>
 #include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
 #include "android/GraphicBufferStorage.hh"
 #include "android/SurfaceTextureStorage.hh"
 #endif
+#include <cstdlib>
+#include <algorithm>
 
 using namespace IG;
 
@@ -60,20 +60,6 @@ using namespace IG;
 
 namespace Gfx
 {
-
-Texture::Texture(Texture &&o)
-{
-	*this = o;
-	o.texName_ = 0;
-}
-
-Texture &Texture::operator=(Texture &&o)
-{
-	deinit();
-	*this = o;
-	o.texName_ = 0;
-	return *this;
-}
 
 #ifdef __ANDROID__
 // set to actual implementation when androidStorageImpl() or setAndroidStorageImpl() is called
@@ -225,49 +211,6 @@ static uint32_t typeForPixelFormat(PixelFormatID format)
 		TEX_2D_4;
 }
 
-static void setTexParameteriImpl(GLenum target, GLenum pname, GLint param, const char *pnameStr)
-{
-	runGLCheckedVerbose(
-		[&]()
-		{
-			glTexParameteri(target, pname, param);
-		}, "glTexParameteri()");
-}
-
-#define setTexParameteri(target, pname, param) setTexParameteriImpl(target, pname, param, #pname);
-
-static void setSamplerParameteriImpl(Renderer &r, GLuint sampler, GLenum pname, GLint param, const char *pnameStr)
-{
-	runGLCheckedVerbose(
-		[&]()
-		{
-			r.support.glSamplerParameteri(sampler, pname, param);
-		}, "glSamplerParameteri()");
-}
-
-#define setSamplerParameteri(r, sampler, pname, param) setSamplerParameteriImpl(r, sampler, pname, param, #pname);
-
-static GLint makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
-{
-	switch(mipFiltering)
-	{
-		case MIP_FILTER_NONE: return linearFiltering ? GL_LINEAR : GL_NEAREST;
-		case MIP_FILTER_NEAREST: return linearFiltering ? GL_LINEAR_MIPMAP_NEAREST : GL_NEAREST_MIPMAP_NEAREST;
-		case MIP_FILTER_LINEAR: return linearFiltering ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_LINEAR;
-		default: bug_unreachable("mipFiltering == %d", (int)mipFiltering); return 0;
-	}
-}
-
-static GLint makeMagFilter(bool linearFiltering)
-{
-	return linearFiltering ? GL_LINEAR : GL_NEAREST;
-}
-
-static GLint makeWrapMode(WrapMode mode)
-{
-	return mode == WRAP_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-}
-
 static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeMipmaps)
 {
 	TextureConfig config{desc};
@@ -296,32 +239,24 @@ static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, boo
 {
 	auto imgPix = img.lockPixmap();
 	auto unlockImgPixmap = IG::scopeGuard([&](){ img.unlockPixmap(); });
-	if(auto err = texture.init2(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
+	if(auto err = texture.init(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
 		err)
 	{
 		return err;
 	}
-	auto lockBuff = texture.lock(0);
-	if(lockBuff)
+	if(imgPix)
 	{
-		if(imgPix)
-		{
-			//logDMsg("copying locked image pixmap to locked texture");
-			lockBuff.pixmap().write(imgPix, {});
-		}
-		else
-		{
-			//logDMsg("writing image to locked texture");
-			img.write(lockBuff.pixmap());
-		}
-		texture.unlock(lockBuff);
+		//logDMsg("writing locked image pixmap to texture");
+		texture.write(0, imgPix, {});
 	}
 	else
 	{
-		if(imgPix)
+		auto lockBuff = texture.lock(0);
+		if(lockBuff)
 		{
-			//logDMsg("writing locked image pixmap to texture");
-			texture.write(0, imgPix, {});
+			//logDMsg("writing image to locked texture");
+			img.write(lockBuff.pixmap());
+			texture.unlock(lockBuff);
 		}
 		else
 		{
@@ -337,160 +272,6 @@ static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, boo
 	if(makeMipmaps)
 		texture.generateMipmaps();
 	return {};
-}
-
-void TextureSampler::init2(Renderer &r, TextureSamplerConfig config)
-{
-	deinit(r);
-	magFilter = makeMagFilter(config.minLinearFilter());
-	minFilter = makeMinFilter(config.magLinearFilter(), config.mipFilter());
-	xWrapMode_ = makeWrapMode(config.xWrapMode());
-	yWrapMode_ = makeWrapMode(config.yWrapMode());
-	if(r.support.hasSamplerObjects)
-	{
-		r.runGLTaskSync(
-			[this, &r]()
-			{
-				r.support.glGenSamplers(1, &name_);
-				if(magFilter != GL_LINEAR) // GL_LINEAR is the default
-					setSamplerParameteri(r, name_, GL_TEXTURE_MAG_FILTER, magFilter);
-				if(minFilter != GL_NEAREST_MIPMAP_LINEAR) // GL_NEAREST_MIPMAP_LINEAR is the default
-					setSamplerParameteri(r, name_, GL_TEXTURE_MIN_FILTER, minFilter);
-				if(xWrapMode_ != GL_REPEAT) // GL_REPEAT is the default
-					setSamplerParameteri(r, name_, GL_TEXTURE_WRAP_S, xWrapMode_);
-				if(yWrapMode_ != GL_REPEAT) // GL_REPEAT​​ is the default
-					setSamplerParameteri(r, name_, GL_TEXTURE_WRAP_T, yWrapMode_);
-			});
-	}
-	else
-	{
-		r.samplerNames++;
-		name_ = r.samplerNames;
-	}
-	logMsg("created sampler:0x%X", name_);
-}
-
-void TextureSampler::deinit(Renderer &r)
-{
-	if(r.support.hasSamplerObjects && name_)
-	{
-		r.runGLTaskSync(
-			[this, &r]()
-			{
-				r.support.glDeleteSamplers(1, &name_);
-			});
-	}
-	*this = {};
-}
-
-TextureSampler::operator bool() const
-{
-	return name_;
-}
-
-void TextureSampler::initDefaultClampSampler(Renderer &r)
-{
-	if(!r.defaultClampSampler)
-	{
-		r.defaultClampSampler = r.makeTextureSampler({});
-	}
-}
-
-void TextureSampler::initDefaultNearestMipClampSampler(Renderer &r)
-{
-	if(!r.defaultNearestMipClampSampler)
-	{
-		TextureSamplerConfig conf;
-		conf.setMipFilter(MIP_FILTER_NEAREST);
-		r.defaultNearestMipClampSampler = r.makeTextureSampler(conf);
-	}
-}
-
-void TextureSampler::initDefaultNoMipClampSampler(Renderer &r)
-{
-	if(!r.defaultNoMipClampSampler)
-	{
-		TextureSamplerConfig conf;
-		conf.setMipFilter(MIP_FILTER_NONE);
-		r.defaultNoMipClampSampler = r.makeTextureSampler(conf);
-	}
-}
-
-void TextureSampler::initDefaultNoLinearNoMipClampSampler(Renderer &r)
-{
-	if(!r.defaultNoLinearNoMipClampSampler)
-	{
-		TextureSamplerConfig conf;
-		conf.setLinearFilter(false);
-		conf.setMipFilter(MIP_FILTER_NONE);
-		r.defaultNoLinearNoMipClampSampler = r.makeTextureSampler(conf);
-	}
-}
-
-void TextureSampler::initDefaultRepeatSampler(Renderer &r)
-{
-	if(!r.defaultRepeatSampler)
-	{
-		TextureSamplerConfig conf;
-		conf.setWrapMode(WRAP_REPEAT);
-		r.defaultRepeatSampler = r.makeTextureSampler(conf);
-	}
-}
-
-void TextureSampler::initDefaultNearestMipRepeatSampler(Renderer &r)
-{
-	if(!r.defaultNearestMipRepeatSampler)
-	{
-		TextureSamplerConfig conf;
-		conf.setMipFilter(MIP_FILTER_NEAREST);
-		conf.setWrapMode(WRAP_REPEAT);
-		r.defaultNearestMipRepeatSampler = r.makeTextureSampler(conf);
-	}
-}
-
-void TextureSampler::bindDefaultClampSampler(RendererCommands &cmds)
-{
-	assert(cmds.renderer().defaultClampSampler);
-	cmds.setTextureSampler(cmds.renderer().defaultClampSampler);
-}
-
-void TextureSampler::bindDefaultNearestMipClampSampler(RendererCommands &cmds)
-{
-	assert(cmds.renderer().defaultNearestMipClampSampler);
-	cmds.setTextureSampler(cmds.renderer().defaultNearestMipClampSampler);
-}
-
-void TextureSampler::bindDefaultNoMipClampSampler(RendererCommands &cmds)
-{
-	assert(cmds.renderer().defaultNoMipClampSampler);
-	cmds.setTextureSampler(cmds.renderer().defaultNoMipClampSampler);
-}
-
-void TextureSampler::bindDefaultNoLinearNoMipClampSampler(RendererCommands &cmds)
-{
-	assert(cmds.renderer().defaultNoLinearNoMipClampSampler);
-	cmds.setTextureSampler(cmds.renderer().defaultNoLinearNoMipClampSampler);
-}
-
-void TextureSampler::bindDefaultRepeatSampler(RendererCommands &cmds)
-{
-	assert(cmds.renderer().defaultRepeatSampler);
-	cmds.setTextureSampler(cmds.renderer().defaultRepeatSampler);
-}
-
-void TextureSampler::bindDefaultNearestMipRepeatSampler(RendererCommands &cmds)
-{
-	assert(cmds.renderer().defaultNearestMipRepeatSampler);
-	cmds.setTextureSampler(cmds.renderer().defaultNearestMipRepeatSampler);
-}
-
-void GLTextureSampler::setTexParams(Renderer &r, GLenum target)
-{
-	assert(!r.support.hasSamplerObjects);
-	setTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
-	setTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
-	setTexParameteri(target, GL_TEXTURE_WRAP_S, xWrapMode_);
-	setTexParameteri(target, GL_TEXTURE_WRAP_T, yWrapMode_);
 }
 
 DirectTextureStorage::~DirectTextureStorage() {}
@@ -518,10 +299,48 @@ void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uin
 	this->pbo_ = pbo;
 }
 
-Error Texture::init2(Renderer &r, TextureConfig config)
+GLTexture::GLTexture(Renderer &r, TextureConfig config, Error *errorPtr):
+	r{&r}
+{
+	Error err = init(r, config);
+	if(err && errorPtr)
+	{
+		*errorPtr = err;
+	}
+}
+
+GLTexture::GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr):
+	r{&r}
+{
+	Error err = initTextureCommon(r, *static_cast<Texture*>(this), img, makeMipmaps);
+	if(err && errorPtr)
+	{
+		*errorPtr = err;
+	}
+}
+
+Texture::Texture(Texture &&o)
+{
+	*this = std::move(o);
+}
+
+Texture &Texture::operator=(Texture &&o)
 {
 	deinit();
-	this->r = &r;
+	GLTexture::operator=(o);
+	o.r = nullptr;
+	o.texName_ = 0;
+	return *this;
+}
+
+GLTexture::~GLTexture()
+{
+	deinit();
+}
+
+Error GLTexture::init(Renderer &r, TextureConfig config)
+{
+	assert(!texName_);
 	r.runGLTaskSync(
 		[this]()
 		{
@@ -565,17 +384,12 @@ Error Texture::init2(Renderer &r, TextureConfig config)
 		// all texture levels with glTexImage2D beforehand
 		config.setLevels(1);
 	}
-	return setFormat(config.pixmapDesc(), config.levels());
+	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels());
 }
 
-Error Texture::init2(Renderer &r, GfxImageSource &img, bool makeMipmaps)
+void GLTexture::deinit()
 {
-	return initTextureCommon(r, *this, img, makeMipmaps);
-}
-
-void Texture::deinit()
-{
-	if(!texName_)
+	if(!texName_ || !r->hasGLTask())
 		return;
 	logMsg("deinit texture:0x%X", texName_);
 	assumeExpr(r);
@@ -716,7 +530,7 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint32_t levels)
 	return err;
 }
 
-void GLTexture::bindTex(RendererCommands &cmds, TextureSampler &bindSampler)
+void GLTexture::bindTex(RendererCommands &cmds, const TextureSampler &bindSampler)
 {
 	if(!texName_)
 	{
@@ -728,7 +542,7 @@ void GLTexture::bindTex(RendererCommands &cmds, TextureSampler &bindSampler)
 	{
 		logMsg("setting sampler:0x%X for texture:0x%X", (int)bindSampler.name(), texName_);
 		sampler = bindSampler.name();
-		bindSampler.setTexParams(cmds.renderer(), target);
+		bindSampler.setTexParams(target);
 	}
 }
 
@@ -840,10 +654,10 @@ void Texture::clear(uint32_t level)
 	else
 	{
 		IG::PixmapDesc levelPixDesc{size(level), pixDesc.format()};
-		void *tempPixData = mem_calloc(levelPixDesc.pixelBytes());
+		void *tempPixData = std::calloc(1, levelPixDesc.pixelBytes());
 		IG::Pixmap blankPix{levelPixDesc, tempPixData};
 		writeAligned(level, blankPix, {}, unpackAlignForAddrAndPitch(nullptr, blankPix.pitchBytes()));
-		mem_free(tempPixData);
+		std::free(tempPixData);
 	}
 }
 
@@ -890,7 +704,15 @@ LockedTextureBuffer Texture::lock(uint32_t level, IG::WindowRect rect)
 				glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
 				data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes,
 					GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				//logDMsg("mapped PBO at addr:%p", data);
+				if(likely(data))
+				{
+					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+					//logDMsg("mapped PBO at addr:%p", data);
+				}
+				else
+				{
+					glDeleteBuffers(1, &pbo);
+				}
 			});
 		if(!data)
 		{
@@ -906,6 +728,8 @@ LockedTextureBuffer Texture::lock(uint32_t level, IG::WindowRect rect)
 
 void Texture::unlock(LockedTextureBuffer lockBuff)
 {
+	if(unlikely(!lockBuff))
+		return;
 	assumeExpr(r);
 	r->resourceUpdate = true;
 	if(directTex)
@@ -918,6 +742,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff)
 			 level = lockBuff.level(), pbo = lockBuff.pbo()]()
 			{
 				//logDMsg("unmapped PBO");
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
 				r->support.glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 				glBindTexture(GL_TEXTURE_2D, texName_);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
@@ -1031,82 +856,6 @@ Renderer &Texture::renderer()
 {
 	assumeExpr(r);
 	return *r;
-}
-
-Error PixmapTexture::init2(Renderer &r, TextureConfig config)
-{
-	if(config.willWriteOften() && config.levels() == 1 && supportsDirectStorage(r))
-	{
-		// try without changing size when using direct pixel storage
-		if(auto err = Texture::init2(r, config);
-			!err)
-		{
-			usedSize = config.pixmapDesc().size();
-			return {};
-		}
-	}
-	auto origPixDesc = config.pixmapDesc();
-	config.setPixmapDesc(r.support.textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
-	if(auto err = Texture::init2(r, config);
-		err)
-	{
-		return err;
-	}
-	if(origPixDesc != config.pixmapDesc())
-		clear(0);
-	usedSize = origPixDesc.size();
-	updateUV({}, origPixDesc.size());
-	return {};
-}
-
-Error PixmapTexture::init2(Renderer &r, GfxImageSource &img, bool makeMipmaps)
-{
-	if(img)
-		return initTextureCommon(r, *this, img, makeMipmaps);
-	else
-		return init2(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
-}
-
-Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint32_t levels)
-{
-	assumeExpr(r);
-	if(directTex)
-	{
-		usedSize = desc.size();
-		return Texture::setFormat(desc, levels);
-	}
-	else
-	{
-		IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
-		auto result = Texture::setFormat(fullPixDesc, levels);
-		if(result)
-		{
-			return result;
-		}
-		if(desc != fullPixDesc)
-			clear(0);
-		usedSize = desc.size();
-		updateUV({}, desc.size());
-		return {};
-	}
-}
-
-IG::Rect2<GTexC> PixmapTexture::uvBounds() const
-{
-	return uv;
-}
-
-IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
-{
-	return {usedSize, pixmapDesc().format()};
-}
-
-void PixmapTexture::updateUV(IG::WP pixPos, IG::WP pixSize)
-{
-	uv.x = pixelToTexC((uint32_t)pixPos.x, pixDesc.w());
-	uv.y = pixelToTexC((uint32_t)pixPos.y, pixDesc.h());
-	uv.x2 = pixelToTexC((uint32_t)(pixPos.x + pixSize.x), pixDesc.w());
-	uv.y2 = pixelToTexC((uint32_t)(pixPos.y + pixSize.y), pixDesc.h());
 }
 
 GLuint GLTexture::texName() const
@@ -1299,6 +1048,97 @@ const char *GLTexture::androidStorageImplStr(Renderer &r)
 }
 #endif
 
+PixmapTexture::PixmapTexture(Renderer &r, TextureConfig config, Error *errorPtr)
+{
+	this->r = &r;
+	Error err = init(r, config);
+	if(err && errorPtr)
+	{
+		*errorPtr = err;
+	}
+}
+
+PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr)
+{
+	this->r = &r;
+	Error err;
+	if(img)
+		err = initTextureCommon(r, *this, img, makeMipmaps);
+	else
+		err = init(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
+	if(err && errorPtr)
+	{
+		*errorPtr = err;
+	}
+}
+
+Error PixmapTexture::init(Renderer &r, TextureConfig config)
+{
+	assert(!texName_);
+	if(config.willWriteOften() && config.levels() == 1 && supportsDirectStorage(r))
+	{
+		// try without changing size when using direct pixel storage
+		if(auto err = Texture::init(r, config);
+			!err)
+		{
+			usedSize = config.pixmapDesc().size();
+			return {};
+		}
+	}
+	auto origPixDesc = config.pixmapDesc();
+	config.setPixmapDesc(r.support.textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
+	if(auto err = Texture::init(r, config);
+		err)
+	{
+		return err;
+	}
+	if(origPixDesc != config.pixmapDesc())
+		clear(0);
+	usedSize = origPixDesc.size();
+	updateUV({}, origPixDesc.size());
+	return {};
+}
+
+Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint32_t levels)
+{
+	assumeExpr(r);
+	if(directTex)
+	{
+		usedSize = desc.size();
+		return Texture::setFormat(desc, levels);
+	}
+	else
+	{
+		IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
+		auto result = Texture::setFormat(fullPixDesc, levels);
+		if(result)
+		{
+			return result;
+		}
+		if(desc != fullPixDesc)
+			clear(0);
+		usedSize = desc.size();
+		updateUV({}, desc.size());
+		return {};
+	}
+}
+
+IG::Rect2<GTexC> PixmapTexture::uvBounds() const
+{
+	return uv;
+}
+
+IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
+{
+	return {usedSize, pixmapDesc().format()};
+}
+
+void PixmapTexture::updateUV(IG::WP pixPos, IG::WP pixSize)
+{
+	uv.x = pixelToTexC((uint32_t)pixPos.x, pixDesc.w());
+	uv.y = pixelToTexC((uint32_t)pixPos.y, pixDesc.h());
+	uv.x2 = pixelToTexC((uint32_t)(pixPos.x + pixSize.x), pixDesc.w());
+	uv.y2 = pixelToTexC((uint32_t)(pixPos.y + pixSize.y), pixDesc.h());
 }
 
 IG::PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const
@@ -1334,4 +1174,6 @@ bool TextureSizeSupport::supportsMipmaps(uint32_t imageX, uint32_t imageY) const
 {
 	return imageX && imageY &&
 		(nonPow2CanMipmap || (IG::isPowerOf2(imageX) && IG::isPowerOf2(imageY)));
+}
+
 }

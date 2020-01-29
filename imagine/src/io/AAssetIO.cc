@@ -26,18 +26,15 @@ AAssetIO::~AAssetIO()
 	close();
 }
 
-AAssetIO::AAssetIO(AAssetIO &&o)
+AAssetIO::AAssetIO(AAssetIO &&o): IO{o}
 {
-	asset = o.asset;
-	o.asset = {};
-	mapIO = std::move(o.mapIO);
+	*this = std::move(o);
 }
 
 AAssetIO &AAssetIO::operator=(AAssetIO &&o)
 {
 	close();
-	asset = o.asset;
-	o.asset = {};
+	asset = std::exchange(o.asset, {});
 	mapIO = std::move(o.mapIO);
 	return *this;
 }
@@ -146,7 +143,7 @@ bool AAssetIO::eof()
 	return !AAsset_getRemainingLength(asset);
 }
 
-AAssetIO::operator bool()
+AAssetIO::operator bool() const
 {
 	return asset;
 }

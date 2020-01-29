@@ -90,7 +90,7 @@ void VideoImageEffect::setEffect(Gfx::Renderer &r, uint effect, bool isExternalT
 
 void VideoImageEffect::deinit(Gfx::Renderer &r)
 {
-	renderTarget_.deinit();
+	renderTarget_ = {};
 	renderTargetScale = {0, 0};
 	renderTargetImgSize = {0, 0};
 	deinitProgram(r);
@@ -127,7 +127,7 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r)
 		renderTarget_ = r.makeTexture({renderPix});
 	else
 		renderTarget_.setFormat(renderPix, 1);
-	Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler(r);
+	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 }
 
 void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)

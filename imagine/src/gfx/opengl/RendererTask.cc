@@ -38,7 +38,8 @@
 namespace Gfx
 {
 
-static constexpr int ON_EXIT_PRIORITY = -100;
+static constexpr int ON_RESUME_PRIORITY = -110;
+static constexpr int ON_EXIT_PRIORITY = 110;
 
 void GLRendererTask::initVBOs()
 {
@@ -192,7 +193,7 @@ void RendererTask::start()
 				start();
 				return true;
 			};
-		Base::addOnResume(onResume);
+		Base::addOnResume(onResume, ON_RESUME_PRIORITY);
 		onExit =
 			[this](bool backgrounded)
 			{
@@ -224,13 +225,16 @@ void RendererTask::start()
 		IG::makeDetachedThreadSync(
 			[this](auto &sem)
 			{
-				auto glDpy = Base::GLDisplay::getDefault();
-				#ifdef CONFIG_GFX_OPENGL_ES
-				if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
+				std::error_code ec{};
+				auto glDpy = Base::GLDisplay::makeDefault(ec);
+				if(ec)
 				{
-					bug_unreachable("unable to bind GLES API");
+					logErr("error getting GL display");
 				}
-				#endif
+				if(!Base::GLContext::bindAPI(glAPI))
+				{
+					logErr("unable to bind API");
+				}
 				auto eventLoop = Base::EventLoop::makeForThread();
 				commandPort.addToEventLoop(eventLoop,
 					[this, glDpy](auto msgs)
@@ -241,6 +245,7 @@ void RendererTask::start()
 				logMsg("starting render task event loop");
 				eventLoop.run();
 				commandPort.removeFromEventLoop();
+				glDpy.deinit();
 				logMsg("render task thread finished");
 			});
 	}

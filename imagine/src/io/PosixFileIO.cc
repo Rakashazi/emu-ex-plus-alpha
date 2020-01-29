@@ -19,42 +19,33 @@
 
 template class IOUtils<PosixFileIO>;
 
-PosixFileIO::PosixFileIO()
-{
-	new(&posixIO()) PosixIO{};
-}
-
-PosixFileIO::~PosixFileIO()
-{
-	io().close();
-}
-
 PosixFileIO::PosixFileIO(PosixFileIO &&o)
 {
-	usingMapIO = o.usingMapIO;
-	if(o.usingMapIO)
-		new(&bufferMapIO()) BufferMapIO{std::move(o.bufferMapIO())};
-	else
-		new(&posixIO()) PosixIO{std::move(o.posixIO())};
+	*this = std::move(o);
 }
 
 PosixFileIO &PosixFileIO::operator=(PosixFileIO &&o)
 {
 	close();
-	usingMapIO = o.usingMapIO;
-	if(o.usingMapIO)
-		new(&bufferMapIO()) BufferMapIO{std::move(o.bufferMapIO())};
-	else
-		new(&posixIO()) PosixIO{std::move(o.posixIO())};
+	ioImpl = std::exchange(o.ioImpl, {});
 	return *this;
 }
 
+PosixFileIO::~PosixFileIO()
+{
+	close();
+}
+
+PosixFileIO::operator IO*() { return &io(); }
+
+PosixFileIO::operator IO&() { return io(); }
+
 GenericIO PosixFileIO::makeGeneric()
 {
-	if(usingMapIO)
-		return GenericIO{bufferMapIO()};
+	if(std::holds_alternative<BufferMapIO>(ioImpl))
+		return GenericIO{std::get<BufferMapIO>(ioImpl)};
 	else
-		return GenericIO{posixIO()};
+		return GenericIO{std::get<PosixIO>(ioImpl)};
 }
 
 std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint32_t mode)
@@ -67,21 +58,18 @@ std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint3
 		{
 			return ec;
 		}
-		new(&posixIO()) PosixIO{std::move(file)};
-		usingMapIO = false;
+		ioImpl = std::move(file);
 	}
 
 	// try to open as memory map if read-only
 	if(!(mode & IO::OPEN_WRITE))
 	{
 		BufferMapIO mappedFile;
-		auto ec = openPosixMapIO(mappedFile, access, posixIO().fd());
+		auto ec = openPosixMapIO(mappedFile, access, std::get<PosixIO>(ioImpl).fd());
 		if(!ec)
 		{
 			//logMsg("switched to mmap mode");
-			posixIO().close();
-			new(&bufferMapIO()) BufferMapIO{std::move(mappedFile)};
-			usingMapIO = true;
+			ioImpl = std::move(mappedFile);
 		}
 	}
 
@@ -155,12 +143,17 @@ void PosixFileIO::advise(off_t offset, size_t bytes, IO::Advice advice)
 	io().advise(offset, bytes, advice);
 }
 
-PosixFileIO::operator bool()
+PosixFileIO::operator bool() const
 {
 	return (bool)io();
 }
 
 IO &PosixFileIO::io()
 {
-	return usingMapIO ? (IO&)bufferMapIO() : (IO&)posixIO();
+	return std::visit([](auto &&obj) -> IO& { return obj; }, ioImpl);
+}
+
+const IO &PosixFileIO::io() const
+{
+	return std::visit([](auto &&obj) -> const IO& { return obj; }, ioImpl);
 }

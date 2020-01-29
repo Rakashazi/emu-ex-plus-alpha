@@ -26,6 +26,14 @@ template class IOUtils<GenericIO>;
 
 IO::~IO() {}
 
+const char *IO::mmapConst() { return nullptr; };
+
+std::error_code IO::truncate(off_t offset) { return {ENOSYS, std::system_category()}; };
+
+void IO::sync() {}
+
+void IO::advise(off_t offset, size_t bytes, Advice advice) {}
+
 ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
 {
 	auto savedOffset = tell();
@@ -37,7 +45,7 @@ ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *e
 
 GenericIO::GenericIO(GenericIO &&o)
 {
-	io = std::move(o.io);
+	*this = std::move(o);
 }
 
 GenericIO &GenericIO::operator=(GenericIO &&o)
@@ -195,7 +203,7 @@ void GenericIO::advise(off_t offset, size_t bytes, IO::Advice advice)
 		io->advise(offset, bytes, advice);
 }
 
-GenericIO::operator bool()
+GenericIO::operator bool() const
 {
 	return io && *io;
 }

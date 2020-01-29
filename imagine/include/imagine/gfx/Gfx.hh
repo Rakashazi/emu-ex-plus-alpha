@@ -61,46 +61,6 @@ enum class BlendFunc
 	ONE_MINUS_CONSTANT_ALPHA = ONE_MINUS_CONSTANT_ALPHA_IMPL,
 };
 
-enum { BLEND_MODE_OFF = 0, BLEND_MODE_ALPHA, BLEND_MODE_INTENSITY };
-
-enum { IMG_MODE_MODULATE = 0, IMG_MODE_BLEND, IMG_MODE_REPLACE, IMG_MODE_ADD };
-
-enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };
-
-enum { BOTH_FACES, FRONT_FACES, BACK_FACES };
-
-enum GfxColorEnum { COLOR_WHITE, COLOR_BLACK };
-
-enum TransformTargetEnum { TARGET_WORLD, TARGET_TEXTURE };
-
-enum class CommonProgram
-{
-	// color replacement shaders
-	TEX_REPLACE,
-	TEX_ALPHA_REPLACE,
-	#ifdef __ANDROID__
-	TEX_EXTERNAL_REPLACE,
-	#endif
-
-	// color modulation shaders
-	TEX,
-	TEX_ALPHA,
-	#ifdef __ANDROID__
-	TEX_EXTERNAL,
-	#endif
-	NO_TEX
-};
-
-enum class CommonTextureSampler
-{
-	CLAMP,
-	NEAREST_MIP_CLAMP,
-	NO_MIP_CLAMP,
-	NO_LINEAR_NO_MIP_CLAMP,
-	REPEAT,
-	NEAREST_MIP_REPEAT
-};
-
 class Program : public ProgramImpl
 {
 public:
@@ -237,7 +197,7 @@ public:
 	void setClipTest(bool on);
 	void setClipRect(ClipRect b);
 	void setTexture(Texture &t);
-	void setTextureSampler(TextureSampler sampler);
+	void setTextureSampler(const TextureSampler &sampler);
 	void setCommonTextureSampler(CommonTextureSampler sampler);
 	void setViewport(Viewport v);
 	Viewport viewport();
@@ -274,15 +234,11 @@ public:
 	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint32_t count);
 
 private:
-	RendererDrawTask *rTask;
-	Renderer *r;
-	Drawable drawable;
+	RendererDrawTask *rTask{};
+	Renderer *r{};
+	Drawable drawable{};
 
 	void setCommonProgram(CommonProgram program, const Mat4 *modelMat);
-
-	// no copying outside of class
-	RendererCommands(const RendererCommands &) = default;
-	RendererCommands &operator=(const RendererCommands &) = default;
 };
 
 class Renderer : public RendererImpl
@@ -353,6 +309,7 @@ public:
 		return makePixmapTexture(img, true);
 	}
 	TextureSampler makeTextureSampler(TextureSamplerConfig config);
+	void makeCommonTextureSampler(CommonTextureSampler sampler);
 
 	void setCorrectnessChecks(bool on);
 	void setDebugOutput(bool on);

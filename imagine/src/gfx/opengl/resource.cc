@@ -20,37 +20,82 @@ namespace Gfx
 
 Texture Renderer::makeTexture(TextureConfig config)
 {
-	Texture t;
-	t.init2(*this, config);
-	return t;
+	return {*this, config};
 }
 
 Texture Renderer::makeTexture(GfxImageSource &img, bool makeMipmaps)
 {
-	Texture t;
-	t.init2(*this, img, makeMipmaps);
-	return t;
+	return {*this, img, makeMipmaps};
 }
 
 PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
 {
-	PixmapTexture t;
-	t.init2(*this, config);
-	return t;
+	return {*this, config};
 }
 
 PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, bool makeMipmaps)
 {
-	PixmapTexture t;
-	t.init2(*this, img, makeMipmaps);
-	return t;
+	return {*this, img, makeMipmaps};
 }
 
 TextureSampler Renderer::makeTextureSampler(TextureSamplerConfig config)
 {
-	TextureSampler s;
-	s.init2(*this, config);
-	return s;
+	return {*this, config};
+}
+
+TextureSampler &GLRenderer::commonTextureSampler(CommonTextureSampler sampler)
+{
+	switch(sampler)
+	{
+		default: bug_unreachable("sampler:%d", (int)sampler); [[fallthrough]];
+		case CommonTextureSampler::CLAMP: return defaultClampSampler;
+		case CommonTextureSampler::NEAREST_MIP_CLAMP: return defaultNearestMipClampSampler;
+		case CommonTextureSampler::NO_MIP_CLAMP: return defaultNoMipClampSampler;
+		case CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP: return defaultNoLinearNoMipClampSampler;
+		case CommonTextureSampler::REPEAT: return defaultRepeatSampler;
+		case CommonTextureSampler::NEAREST_MIP_REPEAT: return defaultNearestMipRepeatSampler;
+	}
+}
+
+static TextureSamplerConfig commonTextureSamplerConfig(CommonTextureSampler sampler)
+{
+	TextureSamplerConfig conf;
+	switch(sampler)
+	{
+		default: bug_unreachable("sampler:%d", (int)sampler); [[fallthrough]];
+		case CommonTextureSampler::CLAMP:
+			conf.setDebugLabel("CommonClamp");
+			return conf;
+		case CommonTextureSampler::NEAREST_MIP_CLAMP:
+			conf.setDebugLabel("CommonNearestMipClamp");
+			conf.setMipFilter(MIP_FILTER_NEAREST);
+			return conf;
+		case CommonTextureSampler::NO_MIP_CLAMP:
+			conf.setDebugLabel("CommonNoMipClamp");
+			conf.setMipFilter(MIP_FILTER_NONE);
+			return conf;
+		case CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP:
+			conf.setDebugLabel("CommonNoLinearNoMipClamp");
+			conf.setLinearFilter(false);
+			conf.setMipFilter(MIP_FILTER_NONE);
+			return conf;
+		case CommonTextureSampler::REPEAT:
+			conf.setDebugLabel("CommonRepeat");
+			conf.setWrapMode(WRAP_REPEAT);
+			return conf;
+		case CommonTextureSampler::NEAREST_MIP_REPEAT:
+			conf.setDebugLabel("CommonNearestMipRepeat");
+			conf.setMipFilter(MIP_FILTER_NEAREST);
+			conf.setWrapMode(WRAP_REPEAT);
+			return conf;
+	}
+}
+
+void Renderer::makeCommonTextureSampler(CommonTextureSampler sampler)
+{
+	auto &commonSampler = commonTextureSampler(sampler);
+	if(!commonSampler)
+		commonSampler = makeTextureSampler(commonTextureSamplerConfig(sampler));
 }
 
 }

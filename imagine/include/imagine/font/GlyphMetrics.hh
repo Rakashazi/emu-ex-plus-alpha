@@ -1,15 +1,17 @@
 #pragma once
 
+#include <cstdint>
+
 namespace IG
 {
 
 struct GlyphMetrics
 {
-	int xSize = 0;
-	int ySize = 0;
-	int xOffset = 0;
-	int yOffset = 0;
-	int xAdvance = 0;
+	int16_t xSize = 0;
+	int16_t ySize = 0;
+	int16_t xOffset = 0;
+	int16_t yOffset = 0;
+	int16_t xAdvance = 0;
 
 	constexpr GlyphMetrics() {}
 };

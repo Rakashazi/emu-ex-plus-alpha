@@ -19,7 +19,7 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/mem/mem.h>
+#include <cstdlib>
 
 namespace Gfx
 {
@@ -98,10 +98,13 @@ static int charIsDrawableUnicode(int c)
 
 bool GlyphTextureSet::initGlyphTable()
 {
-	logMsg("allocating glyph table, %d entries", glyphTableEntries);
 	if(glyphTable)
-		mem_free(glyphTable);
-	glyphTable = (GlyphEntry*)mem_calloc(1, sizeof(GlyphEntry) * glyphTableEntries);
+	{
+		logMsg("flushing glyph cache");
+		deinit();
+	}
+	logMsg("allocating glyph table, %d entries", glyphTableEntries);
+	glyphTable = (GlyphEntry*)std::calloc(glyphTableEntries, sizeof(GlyphEntry));
 	if(!glyphTable)
 	{
 		logErr("out of memory");
@@ -128,7 +131,9 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 					//logMsg( "%c not a known drawable character, skipping", c);
 					continue;
 				}
-				glyphTable[tableIdx].glyph.deinit();
+				auto &glyphPtr = glyphTable[tableIdx].glyphPtr;
+				if(glyphPtr)
+					glyphPtr.reset();
 			}
 			usedGlyphTableBits = IG::clearBits(usedGlyphTableBits, IG::bit(i));
 		}
@@ -152,13 +157,6 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG
 	{
 		setFontSettings(r, set);
 	}
-	else
-	{
-		if(!initGlyphTable())
-		{
-			logErr("couldn't allocate glyph table");
-		}
-	}
 }
 
 GlyphTextureSet GlyphTextureSet::makeSystem(Renderer &r, IG::FontSettings set)
@@ -178,40 +176,43 @@ GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r, const char *name, co
 
 GlyphTextureSet::GlyphTextureSet(GlyphTextureSet &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-GlyphTextureSet &GlyphTextureSet::operator=(GlyphTextureSet o)
+GlyphTextureSet &GlyphTextureSet::operator=(GlyphTextureSet &&o)
 {
-	swap(*this, o);
+	deinit();
+	settings = std::exchange(o.settings, {});
+	font = std::move(o.font);
+	glyphTable = std::exchange(o.glyphTable, {});
+	faceSize = std::move(o.faceSize);
+	nominalHeight_ = o.nominalHeight_;
+	usedGlyphTableBits = o.usedGlyphTableBits;
 	return *this;
 }
 
 GlyphTextureSet::~GlyphTextureSet()
 {
-	if(glyphTable)
+	deinit();
+}
+
+void GlyphTextureSet::deinit()
+{
+	if(!glyphTable)
+		return;
+	iterateTimes(glyphTableEntries, i)
 	{
-		iterateTimes(glyphTableEntries, i)
-		{
-			glyphTable[i].glyph.deinit();
-		}
-		mem_free(glyphTable);
+		auto &glyphPtr = glyphTable[i].glyphPtr;
+		if(glyphPtr)
+			glyphPtr.reset();
 	}
+	std::free(glyphTable);
+	glyphTable = {};
 }
 
 GlyphTextureSet::operator bool() const
 {
 	return settings;
-}
-
-void GlyphTextureSet::swap(GlyphTextureSet &a, GlyphTextureSet &b)
-{
-	std::swap(a.settings, b.settings);
-	std::swap(a.font, b.font);
-	std::swap(a.glyphTable, b.glyphTable);
-	std::swap(a.faceSize, b.faceSize);
-	std::swap(a.nominalHeight_, b.nominalHeight_);
-	std::swap(a.usedGlyphTableBits, b.usedGlyphTableBits);
 }
 
 uint32_t GlyphTextureSet::nominalHeight() const
@@ -238,14 +239,6 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 		set.setPixelHeight(font->minUsablePixels());
 	if(set == settings)
 		return false;
-	if(settings && glyphTable)
-	{
-		logMsg("flushing glyph cache");
-		iterateTimes(glyphTableEntries, i)
-		{
-			glyphTable[i].glyph.deinit();
-		}
-	}
 	if(!initGlyphTable())
 	{
 		logErr("couldn't allocate glyph table");
@@ -259,6 +252,7 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 
 std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 {
+	assert(settings);
 	if(glyphTable[tableIdx].metrics.ySize == -1)
 	{
 		// failed to previously cache char
@@ -276,7 +270,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = res.metrics;
 	auto img = GfxGlyphImage(std::move(res.image));
-	glyphTable[tableIdx].glyph = r.makePixmapTexture(img, false);
+	glyphTable[tableIdx].glyphPtr = std::make_unique<Gfx::PixmapTexture>(r.makePixmapTexture(img, false));
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};
@@ -332,7 +326,7 @@ std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
 		}
-		if(glyphTable[tableIdx].glyph)
+		if(glyphTable[tableIdx].glyphPtr)
 		{
 			//logMsg( "%c already cached", c);
 			continue;
@@ -350,7 +344,7 @@ GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 	if((bool)mapCharToTable(c, tableIdx))
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);
-	if(!glyphTable[tableIdx].glyph)
+	if(!glyphTable[tableIdx].glyphPtr)
 	{
 		if(!allowCache)
 		{

@@ -120,7 +120,7 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const Ap
 		{
 			logMsg("deallocating bounding box display resources");
 			mapSpr.deinit();
-			mapImg.deinit();
+			mapImg = {};
 		}
 	}
 	else

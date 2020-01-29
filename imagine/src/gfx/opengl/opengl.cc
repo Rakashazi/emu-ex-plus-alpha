@@ -412,6 +412,11 @@ void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GL
 }
 #endif
 
+bool GLRenderer::hasGLTask() const
+{
+	return mainTask && mainTask->isStarted();
+}
+
 void GLRenderer::runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr)
 {
 	mainTask->runFunc(del, semAddr);

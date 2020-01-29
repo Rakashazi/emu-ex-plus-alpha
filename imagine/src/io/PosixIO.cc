@@ -33,15 +33,13 @@ PosixIO::~PosixIO()
 
 PosixIO::PosixIO(PosixIO &&o)
 {
-	*this = o;
-	o.fd_ = -1;
+	*this = std::move(o);
 }
 
 PosixIO &PosixIO::operator=(PosixIO &&o)
 {
 	close();
-	*this = o;
-	o.fd_ = -1;
+	fd_ = std::exchange(o.fd_, -1);
 	return *this;
 }
 
@@ -221,7 +219,7 @@ void PosixIO::advise(off_t offset, size_t bytes, Advice advice)
 	#endif
 }
 
-PosixIO::operator bool()
+PosixIO::operator bool() const
 {
 	return fd_ != -1;
 }

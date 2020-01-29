@@ -69,7 +69,7 @@ void View::dismiss()
 
 bool View::compileGfxPrograms(Gfx::Renderer &r)
 {
-	Gfx::TextureSampler::initDefaultNearestMipClampSampler(r);
+	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
 	auto compiled = r.noTexProgram.compile(r);
 	// for text
 	compiled |= r.texAlphaProgram.compile(r);

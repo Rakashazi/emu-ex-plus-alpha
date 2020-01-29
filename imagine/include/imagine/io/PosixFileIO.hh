@@ -17,7 +17,7 @@
 
 #include <imagine/io/PosixIO.hh>
 #include <imagine/fs/FSDefs.hh>
-#include <type_traits>
+#include <variant>
 
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
@@ -27,12 +27,12 @@ public:
 	using IOUtils::write;
 	using IOUtils::seek;
 
-	PosixFileIO();
-	~PosixFileIO();
+	constexpr PosixFileIO() {}
 	PosixFileIO(PosixFileIO &&o);
 	PosixFileIO &operator=(PosixFileIO &&o);
-	operator IO*(){ return &io(); }
-	operator IO&(){ return io(); }
+	~PosixFileIO();
+	explicit operator IO*();
+	operator IO&();
 	GenericIO makeGeneric();
 	std::error_code open(const char *path, IO::AccessHint access, uint32_t mode = 0);
 
@@ -63,19 +63,11 @@ public:
 	size_t size();
 	bool eof();
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
-	explicit operator bool();
+	explicit operator bool() const;
 
 protected:
-	std::aligned_union_t<0, PosixIO, BufferMapIO> ioStorage;
-	bool usingMapIO = false;
+	std::variant<PosixIO, BufferMapIO> ioImpl{};
 
 	IO &io();
-	PosixIO &posixIO()
-	{
-		return *(PosixIO*)&ioStorage;
-	}
-	BufferMapIO &bufferMapIO()
-	{
-		return *(BufferMapIO*)&ioStorage;
-	}
+	const IO &io() const;
 };

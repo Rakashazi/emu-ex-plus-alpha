@@ -28,9 +28,9 @@ public:
 	using IOUtils::seek;
 
 	constexpr PosixIO() {}
-	~PosixIO() final;
 	PosixIO(PosixIO &&o);
 	PosixIO &operator=(PosixIO &&o);
+	~PosixIO() final;
 	GenericIO makeGeneric();
 	std::error_code open(const char *path, uint32_t mode = 0);
 	std::error_code create(const char *path, uint32_t mode = 0)
@@ -50,14 +50,10 @@ public:
 	size_t size() final;
 	bool eof() final;
 	void advise(off_t offset, size_t bytes, Advice advice) final;
-	explicit operator bool() final;
+	explicit operator bool() const final;
 
 protected:
 	int fd_ = -1;
-
-	// no copying outside of class
-	PosixIO(const PosixIO &) = default;
-	PosixIO &operator=(const PosixIO &) = default;
 };
 
 std::error_code openPosixMapIO(BufferMapIO &io, IO::AccessHint access, int fd);

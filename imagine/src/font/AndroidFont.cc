@@ -74,8 +74,6 @@ static void setupResourceFontAndroidJni(JNIEnv *env, jobject renderer)
 	env->RegisterNatives(jFontRendererCls, method, std::size(method));
 }
 
-Font::Font() {}
-
 Font Font::makeSystem()
 {
 	auto env = Base::jEnvForThread();
@@ -103,23 +101,16 @@ Font Font::makeBoldSystem()
 	return font;
 }
 
-Font::Font(Font &&o)
+AndroidFont::AndroidFont(AndroidFont &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-Font &Font::operator=(Font o)
+AndroidFont &AndroidFont::operator=(AndroidFont &&o)
 {
-	swap(*this, o);
+	isBold = o.isBold;
 	return *this;
 }
-
-void Font::swap(Font &a, Font &b)
-{
-	std::swap(a.isBold, b.isBold);
-}
-
-Font::~Font() {}
 
 Font::operator bool() const
 {
@@ -179,44 +170,53 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 	return {env->NewGlobalRef(paint)};
 }
 
+AndroidFontSize::AndroidFontSize(jobject paint): paint_{paint} {}
+
 AndroidFontSize::AndroidFontSize(AndroidFontSize &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-AndroidFontSize &AndroidFontSize::operator=(AndroidFontSize o)
+AndroidFontSize &AndroidFontSize::operator=(AndroidFontSize &&o)
 {
-	swap(*this, o);
+	deinit();
+	paint_ = std::exchange(o.paint_, {});
 	return *this;
 }
 
 AndroidFontSize::~AndroidFontSize()
+{
+	deinit();
+}
+
+void AndroidFontSize::deinit()
 {
 	if(!paint_)
 		return;
 	Base::jEnvForThread()->DeleteGlobalRef(paint_);
 }
 
-void AndroidFontSize::swap(AndroidFontSize &a, AndroidFontSize &b)
+AndroidGlyphImage::AndroidGlyphImage(IG::Pixmap pixmap, jobject bitmap):
+	pixmap_{pixmap},
+	aBitmap{bitmap}
+{}
+
+AndroidGlyphImage::AndroidGlyphImage(AndroidGlyphImage &&o)
 {
-	std::swap(a.paint_, b.paint_);
+	*this = std::move(o);
 }
 
-GlyphImage::GlyphImage(GlyphImage &&o)
+AndroidGlyphImage &AndroidGlyphImage::operator=(AndroidGlyphImage &&o)
 {
-	swap(*this, o);
-}
-
-GlyphImage &GlyphImage::operator=(GlyphImage o)
-{
-	swap(*this, o);
+	static_cast<GlyphImage*>(this)->unlock();
+	pixmap_ = o.pixmap_;
+	aBitmap = std::exchange(o.aBitmap, {});
 	return *this;
 }
 
-void GlyphImage::swap(GlyphImage &a, GlyphImage &b)
+AndroidGlyphImage::~AndroidGlyphImage()
 {
-	std::swap(a.pixmap_, b.pixmap_);
-	std::swap(a.aBitmap, b.aBitmap);
+	static_cast<GlyphImage*>(this)->unlock();
 }
 
 void GlyphImage::unlock()

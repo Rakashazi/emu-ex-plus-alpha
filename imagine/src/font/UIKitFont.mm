@@ -19,11 +19,11 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/util/Mem2D.hh>
-#include <imagine/mem/mem.h>
 #include "../base/iphone/private.hh"
 #import <CoreGraphics/CGBitmapContext.h>
 #import <CoreGraphics/CGContext.h>
 #import <UIKit/UIKit.h>
+#include <cstdlib>
 
 namespace IG
 {
@@ -75,7 +75,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 
 	// render char into buffer
 	uint32_t bufferSize = cXFullSize * cYFullSize;
-	auto pixBuffer = (char*)mem_calloc(bufferSize);
+	auto pixBuffer = (char*)std::calloc(1, bufferSize);
 	renderTextIntoBuffer(str, pixBuffer, size.width, size.height,
 		Base::grayColorSpace, textColor, fontSize.font());
 
@@ -112,12 +112,10 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 	}
 	else
 	{
-		mem_free(pixBuffer);
+		std::free(pixBuffer);
 		return {metrics, nullptr, nullptr};
 	}
 }
-
-Font::Font() {}
 
 Font Font::makeSystem()
 {
@@ -136,23 +134,16 @@ Font Font::makeBoldSystem()
 	return font;
 }
 
-Font::Font(Font &&o)
+UIKitFont::UIKitFont(UIKitFont &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-Font &Font::operator=(Font o)
+UIKitFont &UIKitFont::operator=(UIKitFont &&o)
 {
-	swap(*this, o);
+	isBold = o.isBold;
 	return *this;
 }
-
-void Font::swap(Font &a, Font &b)
-{
-	std::swap(a.isBold, b.isBold);
-}
-
-Font::~Font() {}
 
 Font::operator bool() const
 {
@@ -202,51 +193,60 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 		return {(void*)CFBridgingRetain([UIFont systemFontOfSize:(CGFloat)settings.pixelHeight()])};
 }
 
+UIKitFontSize::UIKitFontSize(void *font): font_{font} {}
+
 UIKitFontSize::UIKitFontSize(UIKitFontSize &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-UIKitFontSize &UIKitFontSize::operator=(UIKitFontSize o)
+UIKitFontSize &UIKitFontSize::operator=(UIKitFontSize &&o)
 {
-	swap(*this, o);
+	deinit();
+	font_ = std::exchange(o.font_, {});
 	return *this;
 }
 
 UIKitFontSize::~UIKitFontSize()
+{
+	deinit();
+}
+
+void UIKitFontSize::deinit()
 {
 	if(!font_)
 		return;
 	CFRelease(font_);
 }
 
-void UIKitFontSize::swap(UIKitFontSize &a, UIKitFontSize &b)
+UIKitGlyphImage::UIKitGlyphImage(IG::Pixmap pixmap, void *pixData):
+	pixmap_{pixmap},
+	pixData_{pixData}
+{}
+
+UIKitGlyphImage::UIKitGlyphImage(UIKitGlyphImage &&o)
 {
-	std::swap(a.font_, b.font_);
+	*this = std::move(o);
 }
 
-GlyphImage::GlyphImage(GlyphImage &&o)
+UIKitGlyphImage &UIKitGlyphImage::operator=(UIKitGlyphImage &&o)
 {
-	swap(*this, o);
-}
-
-GlyphImage &GlyphImage::operator=(GlyphImage o)
-{
-	swap(*this, o);
+	static_cast<GlyphImage*>(this)->unlock();
+	pixmap_ = o.pixmap_;
+	pixData_ = std::exchange(o.pixData_, {});
 	return *this;
 }
 
-void GlyphImage::swap(GlyphImage &a, GlyphImage &b)
+UIKitGlyphImage::~UIKitGlyphImage()
 {
-	std::swap(a.pixmap_, b.pixmap_);
-	std::swap(a.pixData_, b.pixData_);
+	static_cast<GlyphImage*>(this)->unlock();
 }
 
 void GlyphImage::unlock()
 {
 	if(pixData_)
 	{
-		mem_free(pixData_);
+		std::free(pixData_);
 		pixData_ = {};
 	}
 	pixmap_ = {};

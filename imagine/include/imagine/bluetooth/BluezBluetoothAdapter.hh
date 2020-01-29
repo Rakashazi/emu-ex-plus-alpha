@@ -64,8 +64,8 @@ private:
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	struct L2CapServer
 	{
-		constexpr L2CapServer() {}
-		constexpr L2CapServer(uint32_t psm, int fd): psm(psm), fd(fd) {}
+		L2CapServer() {}
+		L2CapServer(uint32_t psm, int fd): psm(psm), fd(fd) {}
 		uint32_t psm = 0;
 		int fd = -1;
 		Base::FDEventSource connectSrc;

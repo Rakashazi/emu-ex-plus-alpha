@@ -32,6 +32,11 @@
 namespace Base
 {
 
+// Android reference counts the EGL display internally,
+// use refCount on other platforms to simulate this
+static constexpr bool HAS_DISPLAY_REF_COUNT = Config::envIsAndroid;
+static uint32_t refCount = 0;
+
 static constexpr bool CAN_USE_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
 static bool hasDummyPbuffConfig = false;
 static EGLConfig dummyPbuffConfig{};
@@ -345,6 +350,11 @@ std::error_code EGLDisplayConnection::initDisplay(EGLDisplay display)
 		logErr("error initializing EGL");
 		return {EINVAL, std::system_category()};
 	}
+	if(!HAS_DISPLAY_REF_COUNT)
+	{
+		refCount++;
+		logDMsg("referenced EGL display, count:%u", refCount);
+	}
 	//logMsg("initialized EGL with display %ld", (long)display);
 	return {};
 }
@@ -368,6 +378,21 @@ bool GLDisplay::deinit()
 {
 	if(display == EGL_NO_DISPLAY)
 		return true;
+	if(!HAS_DISPLAY_REF_COUNT)
+	{
+		if(!refCount)
+		{
+			logErr("EGL display already has no references");
+			return false;
+		}
+		refCount--;
+		if(refCount)
+		{
+			logDMsg("unreferenced EGL display, count:%u", refCount);
+			return true;
+		}
+	}
+	logMsg("destroying EGL display");
 	auto success = eglTerminate(display);
 	display = EGL_NO_DISPLAY;
 	return success;

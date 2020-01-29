@@ -26,7 +26,7 @@ void EmuVideo::resetImage()
 	renderer().deleteSyncFence(fence);
 	fence = {};
 	auto desc = vidImg.usedPixmapDesc();
-	vidImg.deinit();
+	vidImg = {};
 	setFormat(desc);
 }
 

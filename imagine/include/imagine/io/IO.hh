@@ -117,22 +117,22 @@ public:
 	// reading
 	virtual ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) = 0;
 	virtual ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
-	virtual const char *mmapConst() { return nullptr; };
+	virtual const char *mmapConst();
 
 	// writing
 	virtual ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) = 0;
-	virtual std::error_code truncate(off_t offset) { return {ENOSYS, std::system_category()}; };
+	virtual std::error_code truncate(off_t offset);
 
 	// seeking
 	virtual off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) = 0;
 
 	// other functions
 	virtual void close() = 0;
-	virtual void sync() {}
+	virtual void sync();
 	virtual size_t size() = 0;
 	virtual bool eof() = 0;
-	virtual void advise(off_t offset, size_t bytes, Advice advice) {}
-	virtual explicit operator bool() = 0;
+	virtual void advise(off_t offset, size_t bytes, Advice advice);
+	virtual explicit operator bool() const = 0;
 };
 
 class GenericIO : public IOUtils<GenericIO>
@@ -149,7 +149,7 @@ public:
 	GenericIO(std::unique_ptr<IO> io): io{std::move(io)} {}
 	GenericIO(GenericIO &&o);
 	GenericIO &operator=(GenericIO &&o);
-	operator IO*(){ return io.get(); }
+	explicit operator IO*(){ return io.get(); }
 	operator IO&(){ return *io; }
 	IO *release() { return io.release(); }
 	FILE *moveToFileStream(const char *opentype);
@@ -165,7 +165,7 @@ public:
 	size_t size();
 	bool eof();
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
-	explicit operator bool();
+	explicit operator bool() const;
 
 protected:
 	std::unique_ptr<IO> io{};

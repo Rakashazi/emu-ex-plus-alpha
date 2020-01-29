@@ -15,6 +15,7 @@
 
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/logger/logger.h>
+#include <utility>
 
 namespace IG
 {
@@ -24,21 +25,19 @@ Semaphore::Semaphore(unsigned int startValue)
 	sem_init(&sem, 0, startValue);
 }
 
-Semaphore::Semaphore(Semaphore &&o)
+PosixSemaphore::PosixSemaphore(PosixSemaphore &&o)
 {
-	sem = o.sem;
-	o.sem = {};
+	*this = std::move(o);
 }
 
-Semaphore &Semaphore::operator=(Semaphore &&o)
+PosixSemaphore &PosixSemaphore::operator=(PosixSemaphore &&o)
 {
 	deinit();
-	sem = o.sem;
-	o.sem = {};
+	sem = std::exchange(o.sem, {});
 	return *this;
 }
 
-Semaphore::~Semaphore()
+PosixSemaphore::~PosixSemaphore()
 {
 	deinit();
 }

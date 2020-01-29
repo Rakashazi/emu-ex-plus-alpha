@@ -26,10 +26,10 @@ public:
 	using IOUtils::write;
 	using IOUtils::seek;
 
-	AAssetIO() {}
-	~AAssetIO() final;
+	constexpr AAssetIO() {}
 	AAssetIO(AAssetIO &&o);
 	AAssetIO &operator=(AAssetIO &&o);
+	~AAssetIO() final;
 	GenericIO makeGeneric();
 	std::error_code open(const char *name, AccessHint access);
 
@@ -40,7 +40,7 @@ public:
 	void close() final;
 	size_t size() final;
 	bool eof() final;
-	explicit operator bool() final;
+	explicit operator bool() const final;
 	void advise(off_t offset, size_t bytes, Advice advice) final;
 
 protected:

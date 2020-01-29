@@ -310,9 +310,9 @@ void EmuVideoLayer::setLinearFilter(bool on)
 {
 	useLinearFilter = on;
 	if(useLinearFilter)
-		Gfx::TextureSampler::initDefaultNoMipClampSampler(video.renderer());
+		video.renderer().makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	else
-		Gfx::TextureSampler::initDefaultNoLinearNoMipClampSampler(video.renderer());
+		video.renderer().makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 }
 
 void EmuVideoLayer::setBrightness(float b)

@@ -17,6 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureConfig.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 
 namespace Gfx
 {
@@ -27,16 +29,24 @@ class TextureSampler;
 class GLTextureSampler
 {
 protected:
+	Renderer *r{};
 	GLuint name_ = 0;
 	GLenum minFilter = 0;
 	GLenum magFilter = 0;
 	GLenum xWrapMode_ = 0;
 	GLenum yWrapMode_ = 0;
+	#ifndef NDEBUG
+	const char *debugLabel = "unnamed";
+	#endif
 
 public:
 	constexpr GLTextureSampler() {}
-	void setTexParams(Renderer &r, GLenum target);
-	GLuint name() const { return name_; }
+	GLTextureSampler(Renderer &r, TextureSamplerConfig config);
+	~GLTextureSampler();
+	void setTexParams(GLenum target) const;
+	void deinit();
+	GLuint name() const;
+	const char *label() const;
 };
 
 using TextureSamplerImpl = GLTextureSampler;
@@ -89,7 +99,25 @@ public:
 	};
 	#endif
 
+	constexpr GLTexture() {}
+	GLTexture(Renderer &r, TextureConfig config, Error *errorPtr = nullptr);
+	GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr = nullptr);
+	~GLTexture();
+	Error init(Renderer &r, TextureConfig config);
+	GLuint texName() const;
+	#ifdef __ANDROID__
+	static bool setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl);
+	static AndroidStorageImpl androidStorageImpl(Renderer &r);
+	static bool isAndroidGraphicBufferStorageWhitelisted(Renderer &r);
+	bool isExternal();
+	static const char *androidStorageImplStr(AndroidStorageImpl);
+	static const char *androidStorageImplStr(Renderer &r);
+	#endif
+	void bindTex(RendererCommands &cmds, const TextureSampler &sampler);
+	bool canUseMipmaps(Renderer &r) const;
+
 protected:
+	Renderer *r{};
 	DirectTextureStorage *directTex{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	uint32_t type_ = TEX_UNSET;
@@ -109,21 +137,8 @@ protected:
 	static AndroidStorageImpl androidStorageImpl_;
 	#endif
 
+	void deinit();
 	static void setSwizzleForFormat(Renderer &r, IG::PixelFormatID format, GLuint tex, GLenum target);
-
-public:
-	constexpr GLTexture() {}
-	GLuint texName() const;
-	#ifdef __ANDROID__
-	static bool setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl);
-	static AndroidStorageImpl androidStorageImpl(Renderer &r);
-	static bool isAndroidGraphicBufferStorageWhitelisted(Renderer &r);
-	bool isExternal();
-	static const char *androidStorageImplStr(AndroidStorageImpl);
-	static const char *androidStorageImplStr(Renderer &r);
-	#endif
-	void bindTex(RendererCommands &cmds, TextureSampler &sampler);
-	bool canUseMipmaps(Renderer &r) const;
 };
 
 using TextureImpl = GLTexture;

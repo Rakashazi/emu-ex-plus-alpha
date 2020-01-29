@@ -18,6 +18,7 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
+#include "private.hh"
 
 namespace Gfx
 {
@@ -34,13 +35,16 @@ void GLMainTask::start(Base::GLContext context)
 	IG::makeDetachedThreadSync(
 		[this, context](auto &sem)
 		{
-			auto glDpy = Base::GLDisplay::getDefault();
-			#ifdef CONFIG_GFX_OPENGL_ES
-			if(!Base::GLContext::bindAPI(Base::GLContext::OPENGL_ES_API))
+			std::error_code ec{};
+			auto glDpy = Base::GLDisplay::makeDefault(ec);
+			if(ec)
 			{
-				bug_unreachable("unable to bind GLES API");
+				logErr("error getting GL display");
 			}
-			#endif
+			if(!Base::GLContext::bindAPI(glAPI))
+			{
+				logErr("unable to bind API");
+			}
 			context.setCurrent(glDpy, context, {});
 			auto eventLoop = Base::EventLoop::makeForThread();
 			commandPort.addToEventLoop(eventLoop,
@@ -79,8 +83,9 @@ void GLMainTask::start(Base::GLContext context)
 			sem.notify();
 			logMsg("starting main GL thread event loop");
 			eventLoop.run();
-			logMsg("main GL thread exit");
 			commandPort.removeFromEventLoop();
+			glDpy.deinit();
+			logMsg("main GL thread exit");
 		});
 	started = true;
 }
@@ -107,6 +112,11 @@ void GLMainTask::stop()
 	commandPort.send({Command::EXIT, &sem});
 	sem.wait();
 	started = false;
+}
+
+bool GLMainTask::isStarted() const
+{
+	return started;
 }
 
 }

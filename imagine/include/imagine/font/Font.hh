@@ -37,12 +37,6 @@ class GlyphImage: public GlyphImageImpl
 {
 public:
 	using GlyphImageImpl::GlyphImageImpl;
-
-	GlyphImage() {}
-	GlyphImage(GlyphImage &&o);
-	GlyphImage &operator=(GlyphImage o);
-	~GlyphImage();
-	static void swap(GlyphImage &a, GlyphImage &b);
 	IG::Pixmap pixmap();
 	void unlock();
 	explicit operator bool() const;
@@ -57,17 +51,13 @@ public:
 		GlyphMetrics metrics;
 	};
 
-	Font();
+	using FontImpl::FontImpl;
 	Font(GenericIO io);
 	Font(const char *name);
 	static Font makeSystem();
 	static Font makeBoldSystem();
 	static Font makeFromAsset(const char *name, const char *appName);
-	Font(Font &&o);
-	Font &operator=(Font o);
-	~Font();
 	operator bool() const;
-	static void swap(Font &a, Font &b);
 	int minUsablePixels() const;
 	Glyph glyph(int idx, FontSize &size, std::errc &ec);
 	GlyphMetrics metrics(int idx, FontSize &size, std::errc &ec);

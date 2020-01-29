@@ -23,6 +23,12 @@ namespace IG
 
 class PosixSemaphore
 {
+public:
+	constexpr PosixSemaphore() {}
+	PosixSemaphore(PosixSemaphore &&o);
+	PosixSemaphore &operator=(PosixSemaphore &&o);
+	~PosixSemaphore();
+
 protected:
 	sem_t sem{};
 

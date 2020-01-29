@@ -25,10 +25,10 @@ class AndroidGlyphImage
 {
 public:
 	constexpr AndroidGlyphImage() {}
-	constexpr AndroidGlyphImage(IG::Pixmap pixmap, jobject bitmap):
-		pixmap_{pixmap},
-		aBitmap{bitmap}
-	{}
+	AndroidGlyphImage(IG::Pixmap pixmap, jobject bitmap);
+	AndroidGlyphImage(AndroidGlyphImage &&o);
+	AndroidGlyphImage &operator=(AndroidGlyphImage &&o);
+	~AndroidGlyphImage();
 
 protected:
 	IG::Pixmap pixmap_{};
@@ -37,6 +37,11 @@ protected:
 
 class AndroidFont
 {
+public:
+	constexpr AndroidFont() {}
+	AndroidFont(AndroidFont &&o);
+	AndroidFont &operator=(AndroidFont &&o);
+
 protected:
 	bool isBold{};
 };
@@ -44,16 +49,17 @@ protected:
 class AndroidFontSize
 {
 public:
-	AndroidFontSize() {}
-	AndroidFontSize(jobject paint): paint_{paint} {}
-	~AndroidFontSize();
+	constexpr AndroidFontSize() {}
+	AndroidFontSize(jobject paint);
 	AndroidFontSize(AndroidFontSize &&o);
-	AndroidFontSize &operator=(AndroidFontSize o);
-	static void swap(AndroidFontSize &a, AndroidFontSize &b);
+	AndroidFontSize &operator=(AndroidFontSize &&o);
+	~AndroidFontSize();
 	jobject paint() const { return paint_; }
 
 protected:
 	jobject paint_{};
+
+	void deinit();
 };
 
 using GlyphImageImpl = AndroidGlyphImage;

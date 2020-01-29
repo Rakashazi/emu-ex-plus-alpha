@@ -39,6 +39,9 @@ public:
 	GlibFDEventSource(int fd) : GlibFDEventSource{nullptr, fd} {}
 	GlibFDEventSource(const char *debugLabel, int fd);
 	#endif
+	GlibFDEventSource(GlibFDEventSource &&o);
+	GlibFDEventSource &operator=(GlibFDEventSource &&o);
+	~GlibFDEventSource();
 	bool makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 		PollEventDelegate callback_, GIOCondition events, GMainContext *ctx);
 
@@ -51,6 +54,7 @@ protected:
 	#endif
 
 	const char *label();
+	void deinit();
 };
 
 using FDEventSourceImpl = GlibFDEventSource;
@@ -60,7 +64,7 @@ class GlibEventLoop
 public:
 	constexpr GlibEventLoop() {}
 	constexpr GlibEventLoop(GMainContext *ctx): mainContext{ctx} {}
-	GMainContext *nativeObject() { return mainContext; }
+	GMainContext *nativeObject() const { return mainContext; }
 
 protected:
 	GMainContext *mainContext{};

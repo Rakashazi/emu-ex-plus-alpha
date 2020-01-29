@@ -15,6 +15,7 @@
 
 #include <imagine/thread/Semaphore.hh>
 #include <assert.h>
+#include <utility>
 
 namespace IG
 {
@@ -25,21 +26,19 @@ Semaphore::Semaphore(unsigned int startValue)
 	assert(ret == KERN_SUCCESS);
 }
 
-Semaphore::Semaphore(Semaphore &&o)
+MachSemaphore::MachSemaphore(MachSemaphore &&o)
 {
-	sem = o.sem;
-	o.sem = {};
+	*this = std::move(o);
 }
 
-Semaphore &Semaphore::operator=(Semaphore &&o)
+MachSemaphore &MachSemaphore::operator=(MachSemaphore &&o)
 {
 	deinit();
-	sem = o.sem;
-	o.sem = {};
+	sem = std::exchange(o.sem, {});
 	return *this;
 }
 
-Semaphore::~Semaphore()
+MachSemaphore::~MachSemaphore()
 {
 	deinit();
 }

@@ -43,6 +43,7 @@ class RendererTask;
 class RenderTarget;
 class SyncFence;
 class RendererCommands;
+class TextureSampler;
 
 class GLSyncFence
 {
@@ -318,6 +319,7 @@ public:
 	void runFunc(FuncDelegate del, IG::Semaphore *semAddr = nullptr);
 	void runFuncSync(FuncDelegate del);
 	void stop();
+	bool isStarted() const;
 
 private:
 	Base::MessagePort<CommandMessage> commandPort{"GLMainTask Command"};
@@ -390,6 +392,8 @@ public:
 	void setProgram(GLSLProgram &program);
 	GLuint makeProgram(GLuint vShader, GLuint fShader);
 	bool linkProgram(GLuint program);
+	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
+	bool hasGLTask() const;
 	void runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr = nullptr);
 	template<class FUNC>
 	void runGLTask(FUNC &&del, IG::Semaphore *semAddr = nullptr) { runGLTask2(wrapGLMainTaskDelegate(del), semAddr); }
@@ -436,7 +440,7 @@ using RendererImpl = GLRenderer;
 class GLRendererCommands
 {
 public:
-	TextureSampler currSampler{};
+	const TextureSampler *currSampler{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	uint32_t currentVtxArrayPointerID = 0;
 	Mat4 modelMat, projectionMat;

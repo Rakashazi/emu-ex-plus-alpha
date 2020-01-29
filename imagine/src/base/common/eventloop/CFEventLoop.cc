@@ -41,14 +41,20 @@ CFFDEventSource::CFFDEventSource(const char *debugLabel, int fd): debugLabel{deb
 		}, &ctx);
 }
 
-FDEventSource::FDEventSource(FDEventSource &&o)
+CFFDEventSource::CFFDEventSource(CFFDEventSource &&o)
 {
-	swap(*this, o);
+	*this = std::move(o);
 }
 
-FDEventSource &FDEventSource::operator=(FDEventSource o)
+CFFDEventSource &CFFDEventSource::operator=(CFFDEventSource &&o)
 {
-	swap(*this, o);
+	deinit();
+	info = std::exchange(o.info, {});
+	src = std::exchange(o.src, {});
+	loop = std::exchange(o.loop, {});
+	#ifndef NDEBUG
+	debugLabel = o.debugLabel;
+	#endif
 	return *this;
 }
 
@@ -58,23 +64,18 @@ static void releaseCFFileDescriptor(CFFileDescriptorRef fdRef)
 	CFRelease(fdRef);
 }
 
-FDEventSource::~FDEventSource()
+CFFDEventSource::~CFFDEventSource()
 {
-	removeFromEventLoop();
+	deinit();
+}
+
+void CFFDEventSource::deinit()
+{
+	static_cast<FDEventSource*>(this)->removeFromEventLoop();
 	if(info && info->fdRef)
 	{
 		releaseCFFileDescriptor(info->fdRef);
 	}
-}
-
-void FDEventSource::swap(FDEventSource &a, FDEventSource &b)
-{
-	std::swap(a.info, b.info);
-	std::swap(a.src, b.src);
-	std::swap(a.loop, b.loop);
-	#ifndef NDEBUG
-	std::swap(a.debugLabel, b.debugLabel);
-	#endif
 }
 
 bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)

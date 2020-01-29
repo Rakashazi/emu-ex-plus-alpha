@@ -36,6 +36,9 @@ public:
 	ALooperFDEventSource(int fd) : ALooperFDEventSource{nullptr, fd} {}
 	ALooperFDEventSource(const char *debugLabel, int fd);
 	#endif
+	ALooperFDEventSource(ALooperFDEventSource &&o);
+	ALooperFDEventSource &operator=(ALooperFDEventSource &&o);
+	~ALooperFDEventSource();
 
 protected:
 	std::unique_ptr<PollEventDelegate> callback_{};
@@ -46,6 +49,7 @@ protected:
 	#endif
 
 	const char *label();
+	void deinit();
 };
 
 using FDEventSourceImpl = ALooperFDEventSource;
@@ -55,7 +59,7 @@ class ALooperEventLoop
 public:
 	constexpr ALooperEventLoop() {}
 	constexpr ALooperEventLoop(ALooper *looper): looper{looper} {}
-	ALooper *nativeObject() { return looper; }
+	ALooper *nativeObject() const { return looper; }
 
 protected:
 	ALooper *looper{};

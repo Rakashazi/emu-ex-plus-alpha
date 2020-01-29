@@ -83,7 +83,7 @@ bool MapIO::eof()
 	return currPos >= dataEnd();
 }
 
-MapIO::operator bool()
+MapIO::operator bool() const
 {
 	return data;
 }

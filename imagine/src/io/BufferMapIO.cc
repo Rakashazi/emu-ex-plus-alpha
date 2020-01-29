@@ -24,14 +24,14 @@ BufferMapIO::~BufferMapIO()
 
 BufferMapIO::BufferMapIO(BufferMapIO &&o)
 {
-	*this = o;
-	o.resetData();
+	*this = std::move(o);
 }
 
 BufferMapIO &BufferMapIO::operator=(BufferMapIO &&o)
 {
 	close();
-	*this = o;
+	MapIO::operator=(o);
+	onClose = std::exchange(o.onClose, {});
 	o.resetData();
 	return *this;
 }

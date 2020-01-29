@@ -42,14 +42,15 @@ RendererCommands::RendererCommands(RendererDrawTask &rTask, Drawable drawable):
 
 RendererCommands::RendererCommands(RendererCommands &&o)
 {
-	*this = o;
-	o.rTask = nullptr;
+	*this = std::move(o);
 }
 
 RendererCommands &RendererCommands::operator=(RendererCommands &&o)
 {
-	*this = o;
-	o.rTask =  nullptr;
+	RendererCommandsImpl::operator=(o);
+	rTask = std::exchange(o.rTask, {});
+	r = std::exchange(o.r, {});
+	drawable = std::exchange(o.drawable, {});
 	return *this;
 }
 
@@ -76,6 +77,12 @@ void RendererCommands::present()
 {
 	rTask->notifySemaphore();
 	rTask->verifyCurrentContext();
+	if(Config::envIsAndroid && renderer().support.hasSamplerObjects)
+	{
+		// reset sampler object at the end of frame, fixes blank screen
+		// on Android SDK emulator when using mipmaps
+		renderer().support.glBindSampler(0, 0);
+	}
 	discardTemporaryData();
 	rTask->present(drawable);
 }
@@ -404,32 +411,25 @@ void RendererCommands::setTexture(Texture &t)
 		logErr("set texture without setting a sampler first");
 		return;
 	}
-	t.bindTex(*this, currSampler);
+	t.bindTex(*this, *currSampler);
 }
 
-void RendererCommands::setTextureSampler(TextureSampler sampler)
+void RendererCommands::setTextureSampler(const TextureSampler &sampler)
 {
 	rTask->verifyCurrentContext();
-	if(renderer().support.hasSamplerObjects && currSampler.name() != sampler.name())
+	if(renderer().support.hasSamplerObjects && (!currSampler || currSampler->name() != sampler.name()))
 	{
-		//logMsg("bind sampler:0x%X", (int)name_);
+		//logMsg("binding sampler object:0x%X (%s)", (int)sampler.name(), sampler.label());
 		renderer().support.glBindSampler(0, sampler.name());
 	}
-	currSampler = sampler;
+	currSampler = &sampler;
 }
 
 void RendererCommands::setCommonTextureSampler(CommonTextureSampler sampler)
 {
-	switch(sampler)
-	{
-		bcase CommonTextureSampler::CLAMP: Gfx::TextureSampler::bindDefaultClampSampler(*this);
-		bcase CommonTextureSampler::NEAREST_MIP_CLAMP: Gfx::TextureSampler::bindDefaultNearestMipClampSampler(*this);
-		bcase CommonTextureSampler::NO_MIP_CLAMP: Gfx::TextureSampler::bindDefaultNoMipClampSampler(*this);
-		bcase CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP: Gfx::TextureSampler::bindDefaultNoLinearNoMipClampSampler(*this);
-		bcase CommonTextureSampler::REPEAT: Gfx::TextureSampler::bindDefaultRepeatSampler(*this);
-		bcase CommonTextureSampler::NEAREST_MIP_REPEAT: Gfx::TextureSampler::bindDefaultNearestMipRepeatSampler(*this);
-		bdefault: bug_unreachable("sampler:%d", (int)sampler);
-	}
+	auto &samplerObj = renderer().commonTextureSampler(sampler);
+	assert(samplerObj);
+	setTextureSampler(samplerObj);
 }
 
 void RendererCommands::setViewport(Viewport v)
