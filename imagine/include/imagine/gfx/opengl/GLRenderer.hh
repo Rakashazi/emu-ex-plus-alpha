@@ -364,6 +364,7 @@ public:
 	GLRenderer() {}
 	void addOnExitHandler();
 	Base::GLContextAttributes makeKnownGLContextAttributes();
+	void finishContextCreation(Base::GLContext ctx);
 	void setCurrentDrawable(Base::GLDisplay dpy, Base::GLContext ctx, Drawable win);
 	void setupAnisotropicFiltering();
 	void setupMultisample();

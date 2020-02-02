@@ -36,14 +36,10 @@ void GLMainTask::start(Base::GLContext context)
 		[this, context](auto &sem)
 		{
 			std::error_code ec{};
-			auto glDpy = Base::GLDisplay::makeDefault(ec);
+			auto glDpy = Base::GLDisplay::makeDefault(glAPI, ec);
 			if(ec)
 			{
 				logErr("error getting GL display");
-			}
-			if(!Base::GLContext::bindAPI(glAPI))
-			{
-				logErr("unable to bind API");
 			}
 			context.setCurrent(glDpy, context, {});
 			auto eventLoop = Base::EventLoop::makeForThread();

@@ -30,6 +30,11 @@ GLDisplay GLDisplay::getDefault()
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 }
 
+bool GLDisplay::bindAPI(API api)
+{
+	return api == API::OPENGL_ES;
+}
+
 // GLContext
 
 GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
@@ -39,12 +44,12 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 		// need at least Android 4.3 to use ES 3 attributes
 		return GLBufferConfig{};
 	}
-	auto configResult = chooseConfig(display.eglDisplay(), ctxAttr, attr);
-	if(!std::get<bool>(configResult))
+	auto [success, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	if(!success)
 	{
 		return GLBufferConfig{};
 	}
-	return GLBufferConfig{std::get<EGLConfig>(configResult)};
+	return GLBufferConfig{eglConfig};
 }
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
@@ -83,11 +88,6 @@ void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurre
 bool AndroidGLContext::swapBuffersIsAsync()
 {
 	return Base::androidSDK() >= 16;
-}
-
-bool GLContext::bindAPI(API api)
-{
-	return api == OPENGL_ES_API;
 }
 
 Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display_)

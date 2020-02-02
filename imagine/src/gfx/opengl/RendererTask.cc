@@ -219,6 +219,7 @@ void RendererTask::start()
 		{
 			logErr("error creating context");
 		}
+		r.finishContextCreation(glCtx);
 		#ifndef NDEBUG
 		r.drawContextDebug = false;
 		#endif
@@ -226,14 +227,10 @@ void RendererTask::start()
 			[this](auto &sem)
 			{
 				std::error_code ec{};
-				auto glDpy = Base::GLDisplay::makeDefault(ec);
+				auto glDpy = Base::GLDisplay::makeDefault(glAPI, ec);
 				if(ec)
 				{
 					logErr("error getting GL display");
-				}
-				if(!Base::GLContext::bindAPI(glAPI))
-				{
-					logErr("unable to bind API");
 				}
 				auto eventLoop = Base::EventLoop::makeForThread();
 				commandPort.addToEventLoop(eventLoop,

@@ -33,6 +33,16 @@ GLDisplay GLDisplay::makeDefault(std::error_code &ec)
 	return {};
 }
 
+GLDisplay GLDisplay::makeDefault(GLDisplay::API api, std::error_code &ec)
+{
+	if(!bindAPI(api))
+	{
+		logErr("error binding requested API");
+		ec = {EINVAL, std::system_category()};
+	}
+	return {};
+}
+
 GLDisplay GLDisplay::getDefault()
 {
 	return {};
@@ -49,6 +59,11 @@ bool GLDisplay::operator ==(GLDisplay const &rhs) const
 }
 
 void GLDisplay::logInfo() {}
+
+bool GLDisplay::bindAPI(API api)
+{
+	return api == API::OPENGL_ES;
+}
 
 bool GLDisplay::deinit()
 {
@@ -243,11 +258,6 @@ void GLContext::deinit(GLDisplay)
 		CFRelease(context_);
 		context_ = nil;
 	}
-}
-
-bool GLContext::bindAPI(API api)
-{
-	return api == OPENGL_ES_API;
 }
 
 void *GLContext::procAddress(const char *funcName)

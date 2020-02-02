@@ -142,24 +142,27 @@ public:
 class GLDisplay : public GLDisplayImpl, public NotEquals<GLDisplay>
 {
 public:
+	enum class API {OPENGL, OPENGL_ES};
+
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
 	static GLDisplay getDefault();
 	static GLDisplay makeDefault(std::error_code &ec);
+	static GLDisplay makeDefault(API api, std::error_code &ec);
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
 	GLDrawable makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec);
 	bool deleteDrawable(GLDrawable &drawable);
 	void logInfo();
+	static bool bindAPI(API api);
 };
 
 class GLContext : public GLContextImpl, public NotEquals<GLContext>
 {
 public:
 	using GLContextImpl::GLContextImpl;
-	enum API {OPENGL_API, OPENGL_ES_API};
 
 	constexpr GLContext() {}
 	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec);
@@ -176,7 +179,6 @@ public:
 	static void setDrawable(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
 	static void present(GLDisplay display, GLDrawable drawable);
 	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
-	static bool bindAPI(API api);
 	NativeGLContext nativeObject();
 };
 

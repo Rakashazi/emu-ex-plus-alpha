@@ -141,8 +141,15 @@ const char *S9xGetFilename(const char *ex, enum s9x_getdirtype dirtype)
 const char *S9xGetFilename(const char *ex)
 #endif
 {
-	static char	s[PATH_MAX + 1];
-	snprintf(s, PATH_MAX + 1, "%s/%s%s", EmuSystem::savePath(), EmuSystem::gameName().data(), ex);
+	static char	s[PATH_MAX + 512];
+	const char *prefix = EmuSystem::savePath();
+	#ifndef SNES9X_VERSION_1_4
+	if(dirtype == ROMFILENAME_DIR)
+	{
+		prefix = EmuSystem::gamePath();
+	}
+	#endif
+	snprintf(s, sizeof(s), "%s/%s%s", prefix, EmuSystem::gameName().data(), ex);
 	//logMsg("built s9x path: %s", s);
 	return s;
 }

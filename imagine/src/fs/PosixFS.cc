@@ -347,14 +347,18 @@ bool access(const char *path, acc type)
 
 bool access(const char *path, acc type, std::error_code &result)
 {
+	result.clear();
 	if(::access(path, (int)type) == -1)
 	{
-		if(Config::DEBUG_BUILD)
-			logErr("access(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
+		if(errno != ENOENT)
+		{
+			if(Config::DEBUG_BUILD)
+				logErr("access(%s) error: %s", path, strerror(errno));
+			result = {errno, std::system_category()};
+		}
 		return false;
 	}
-	result.clear();
+	logMsg("file exists:%s", path);
 	return true;
 }
 

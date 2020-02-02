@@ -626,27 +626,22 @@ void md_cart_init(void)
 #endif
 
   /* detect special cartridges */
-  if (cart.romsize > 0x800000)
+  if(strstr(rominfo.domestic, "SUPER STREET FIGHTER2"))
   {
-    /* Ultimate MK3 (hack) */
-    for (i=0x40; i<0xA0; i++)
-    {
-      mm68k.memory_map[i].base     = cart.rom + (i<<16);
-      mm68k.memory_map[i].read8    = NULL;
-      mm68k.memory_map[i].read16   = NULL;
-      zbank_memory_map[i].read    = NULL;
-    }
-
-#if M68K_EMULATE_ADDRESS_ERROR == OPT_ON
-    /* this game does not work properly on real hardware */
-    emulate_address_error = 0;  
-#endif
-  }
-  else if (cart.romsize > 0x400000)
-  {
-    /* assume SSF2 mapper */
+  	// SSF2 mapper
     cart.hw.bankshift = 1;
     cart.hw.time_w = mapper_ssf2_w;
+  }
+  else if(cart.romsize > 0x400000)
+  {
+  	// Map 10MB cart region directly
+    for (i=0x40; i<0xa0; i++)
+    {
+      mm68k.memory_map[i].base = cart.rom + (i<<16);
+      mm68k.memory_map[i].read8 = nullptr;
+      mm68k.memory_map[i].read16 = nullptr;
+      zbank_memory_map[i].read = nullptr;
+    }
   }
 
   /* Sega Channel mapped hardware (?) */

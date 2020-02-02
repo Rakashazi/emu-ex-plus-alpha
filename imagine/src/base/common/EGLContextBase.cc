@@ -171,7 +171,7 @@ std::pair<bool, EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, GLCo
 	}
 	if(Config::DEBUG_BUILD)
 		printEGLConf(display, config);
-	return std::make_pair(true, config);
+	return {true, config};
 }
 
 void *GLContext::procAddress(const char *funcName)
@@ -216,12 +216,17 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 			assert(dummyPbuffConfig == config.glConfig);
 		}
 	}
+	//logDMsg("created context:%p", context);
 	ec = {};
 }
 
 void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable win)
 {
 	assert(display != EGL_NO_DISPLAY);
+	if(Config::DEBUG_BUILD)
+	{
+		//logDMsg("called setCurrentContext() with current context:%p surface:%p", eglGetCurrentContext(), eglGetCurrentSurface(EGL_DRAW));
+	}
 	if(context == EGL_NO_CONTEXT)
 	{
 		if(Config::DEBUG_BUILD)
@@ -229,7 +234,11 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 			logDMsg("setting no context current on thread:0x%llx", (long long)IG::this_thread::get_id());
 		}
 		assert(!win);
-		eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+		if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE)
+		{
+			if(Config::DEBUG_BUILD)
+				logErr("error:0x%X setting no context current", eglGetError());
+		}
 	}
 	else if(win)
 	{
@@ -237,11 +246,12 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		auto surface = win.eglSurface();
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting surface 0x%lX current on thread:0x%llx", (long)surface, (long long)IG::this_thread::get_id());
+			logDMsg("setting surface %p current on context:%p thread:0x%llx", context, surface, (long long)IG::this_thread::get_id());
 		}
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
-			logErr("error:0x%X setting surface current", eglGetError());
+			if(Config::DEBUG_BUILD)
+				logErr("error:0x%X setting surface current", eglGetError());
 		}
 	}
 	else
@@ -251,13 +261,18 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		{
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("setting dummy pbuffer surface current on thread:0x%llx", (long long)IG::this_thread::get_id());
+				logDMsg("setting dummy pbuffer surface current on context:%p thread:0x%llx", context, (long long)IG::this_thread::get_id());
 			}
 			auto dummyPbuff = makeDummyPbuffer(display, dummyPbuffConfig);
-			assert(dummyPbuff != EGL_NO_SURFACE);
+			if(dummyPbuff == EGL_NO_SURFACE)
+			{
+				if(Config::DEBUG_BUILD)
+					logErr("error:0x%X making dummy pbuffer", eglGetError());
+			}
 			if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
 			{
-				logErr("error:0x%X setting dummy pbuffer current", eglGetError());
+				if(Config::DEBUG_BUILD)
+					logErr("error:0x%X setting dummy pbuffer current", eglGetError());
 			}
 			eglDestroySurface(display, dummyPbuff);
 		}
@@ -265,7 +280,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		{
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("setting no surface current on thread:0x%llx", (long long)IG::this_thread::get_id());
+				logDMsg("setting no surface current on context:%p thread:0x%llx", context, (long long)IG::this_thread::get_id());
 			}
 			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
 			{
@@ -305,7 +320,8 @@ void EGLContextBase::swapBuffers(EGLDisplay display, GLDrawable &win)
 	assert(surface != EGL_NO_SURFACE);
 	if(eglSwapBuffers(display, surface) == EGL_FALSE)
 	{
-		logErr("error 0x%X swapping buffers for window: %p", eglGetError(), &win);
+		if(Config::DEBUG_BUILD)
+			logErr("error 0x%X swapping buffers for window: %p", eglGetError(), &win);
 	}
 }
 
@@ -323,7 +339,7 @@ void EGLContextBase::deinit(EGLDisplay display)
 {
 	if(context != EGL_NO_CONTEXT)
 	{
-		logMsg("destroying EGL context");
+		logMsg("destroying context:%p", context);
 		eglDestroyContext(display, context);
 		context = EGL_NO_CONTEXT;
 	}
@@ -343,19 +359,30 @@ GLDisplay GLDisplay::makeDefault(std::error_code &ec)
 	return display;
 }
 
+GLDisplay GLDisplay::makeDefault(GLDisplay::API api, std::error_code &ec)
+{
+	auto display = makeDefault(ec);
+	if(!bindAPI(api))
+	{
+		logErr("error binding requested API");
+		ec = {EINVAL, std::system_category()};
+	}
+	return display;
+}
+
 std::error_code EGLDisplayConnection::initDisplay(EGLDisplay display)
 {
+	logMsg("initializing EGL with display:%p", display);
 	if(!eglInitialize(display, nullptr, nullptr))
 	{
-		logErr("error initializing EGL");
+		logErr("error initializing EGL for display:%p", display);
 		return {EINVAL, std::system_category()};
 	}
 	if(!HAS_DISPLAY_REF_COUNT)
 	{
 		refCount++;
-		logDMsg("referenced EGL display, count:%u", refCount);
+		logDMsg("referenced EGL display:%p, count:%u", display, refCount);
 	}
-	//logMsg("initialized EGL with display %ld", (long)display);
 	return {};
 }
 
@@ -378,24 +405,24 @@ bool GLDisplay::deinit()
 {
 	if(display == EGL_NO_DISPLAY)
 		return true;
+	auto dpy = display;
+	display = EGL_NO_DISPLAY;
 	if(!HAS_DISPLAY_REF_COUNT)
 	{
 		if(!refCount)
 		{
-			logErr("EGL display already has no references");
+			logErr("EGL display:%p already has no references", dpy);
 			return false;
 		}
 		refCount--;
 		if(refCount)
 		{
-			logDMsg("unreferenced EGL display, count:%u", refCount);
+			logDMsg("unreferenced EGL display:%p, count:%u", dpy, refCount);
 			return true;
 		}
 	}
-	logMsg("destroying EGL display");
-	auto success = eglTerminate(display);
-	display = EGL_NO_DISPLAY;
-	return success;
+	logMsg("terminating EGL display:%p", dpy);
+	return eglTerminate(dpy);
 }
 
 GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec)

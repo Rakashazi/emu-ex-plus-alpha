@@ -35,6 +35,14 @@ GLDisplay GLDisplay::getDefault()
 	#endif
 }
 
+bool GLDisplay::bindAPI(API api)
+{
+	if(api == API::OPENGL_ES)
+		return eglBindAPI(EGL_OPENGL_ES_API);
+	else
+		return eglBindAPI(EGL_OPENGL_API);
+}
+
 // GLContext
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
@@ -57,18 +65,18 @@ void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 
 GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
-	auto configResult = chooseConfig(display.eglDisplay(), ctxAttr, attr);
-	if(!std::get<bool>(configResult))
+	auto [success, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	if(!success)
 	{
 		return GLBufferConfig{};
 	}
-	GLBufferConfig conf{configResult.second};
+	GLBufferConfig conf{eglConfig};
 	#if !defined CONFIG_MACHINE_PANDORA
 	{
 		// get matching x visual
 		EGLint nativeID;
 		eglGetConfigAttrib(display.eglDisplay(), conf.glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
-		XVisualInfo viTemplate;
+		XVisualInfo viTemplate{};
 		viTemplate.visualid = nativeID;
 		int visuals;
 		auto viPtr = XGetVisualInfo(dpy, VisualIDMask, &viTemplate, &visuals);
@@ -102,14 +110,6 @@ void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurre
 bool XGLContext::swapBuffersIsAsync()
 {
 	return !Config::MACHINE_IS_PANDORA;
-}
-
-bool GLContext::bindAPI(API api)
-{
-	if(api == OPENGL_ES_API)
-		return eglBindAPI(EGL_OPENGL_ES_API);
-	else
-		return eglBindAPI(EGL_OPENGL_API);
 }
 
 Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display)

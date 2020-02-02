@@ -69,7 +69,7 @@ static BOOST::uint8_t const initial_regs [SPC_DSP::register_count] =
 #define SPC_DSP_OUT_HOOK(l, r)  \
     {                           \
         resampler->push_sample(l, r);  \
-        if (Settings.MSU1)      \
+        if (msu1)      \
             S9xMSU1Generate(2); \
     }
 

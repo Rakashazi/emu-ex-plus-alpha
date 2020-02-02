@@ -102,8 +102,6 @@ bool8 S9xMixSamples(uint8 *dest, int sample_count)
                         out[i] = ((int16)mixed != mixed) ? (mixed >> 31) ^ 0x7fff : mixed;
                     }
                 }
-                else // should never occur
-                    assert(0);
             }
         }
         else

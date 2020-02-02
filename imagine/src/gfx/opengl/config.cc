@@ -567,6 +567,21 @@ Base::GLContextAttributes GLRenderer::makeKnownGLContextAttributes()
 	#endif
 }
 
+void GLRenderer::finishContextCreation(Base::GLContext ctx)
+{
+	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+	if(Config::envIsAndroid && Config::MACHINE == Config::Machine::GENERIC_ARMV7 && glMajorVer == 2)
+	{
+		// Vivante "GC1000 core" GPU (Samsung Galaxy S3 Mini, Galaxy Tab 3), possibly others, will fail
+		// setting context in render thread with EGL_BAD_ACCESS unless it's first set in the creation thread,
+		// exact cause unknown and is most likely a driver bug
+		logDMsg("toggling newly created context current on this thread to avoid driver issues");
+		ctx.setCurrent(glDpy, ctx, {});
+		ctx.setCurrent(glDpy, {}, {});
+	}
+	#endif
+}
+
 Renderer::Renderer() {}
 
 Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
@@ -574,7 +589,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 	Base::GLDisplay dpy{};
 	{
 		std::error_code ec{};
-		dpy = Base::GLDisplay::makeDefault(ec);
+		dpy = Base::GLDisplay::makeDefault(glAPI, ec);
 		if(ec)
 		{
 			logErr("error getting GL display");
@@ -583,10 +598,6 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		}
 		glDpy = dpy;
 		dpy.logInfo();
-		if(!Base::GLContext::bindAPI(glAPI))
-		{
-			logErr("unable to bind API");
-		}
 	}
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
@@ -653,6 +664,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		return;
 	}
 	err = {};
+	finishContextCreation(gfxResourceContext);
 	mainTask = std::make_unique<GLMainTask>();
 	mainTask->start(gfxResourceContext);
 }

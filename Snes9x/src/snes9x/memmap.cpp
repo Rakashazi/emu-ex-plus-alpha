@@ -34,6 +34,7 @@
 #include "movie.h"
 #include "display.h"
 #include "sha256.h"
+#include "apu/bapu/snes/snes.hpp"
 
 #ifndef SET_UI_COLOR
 #define SET_UI_COLOR(r, g, b) ;
@@ -1374,14 +1375,20 @@ bool8 CMemory::LoadROMMem (const uint8 *source, uint32 sourceSize)
     if(!source || sourceSize > MAX_ROM_SIZE)
         return FALSE;
 
-    memset(ROM,0, MAX_ROM_SIZE);
-    memset(&Multi, 0,sizeof(Multi));
-    memcpy(ROM,source,sourceSize);
+    int32 romSize = 0;
+    do
+    {
+        memset(ROM,0, MAX_ROM_SIZE);
+        memset(&Multi, 0,sizeof(Multi));
+        memcpy(ROM,source,sourceSize);
+        romSize = HeaderRemove(sourceSize, ROM);
 
-    int32 romSize = HeaderRemove(sourceSize, ROM);
-    if (!Settings.NoPatch)
+        if(!romSize)
+    	    return FALSE;
+
         CheckForAnyPatch(ROMFilename, HeaderCount != 0, romSize);
-    LoadROMInt(romSize);
+    }
+    while(!LoadROMInt(romSize));
 
     return TRUE;
 }
@@ -2237,6 +2244,7 @@ void CMemory::InitROM (void)
 	Settings.SRTC = FALSE;
 	Settings.BS = FALSE;
 	Settings.MSU1 = FALSE;
+	SNES::dsp.spc_dsp.msu1 = false;
 
 	SuperFX.nRomBanks = CalculatedSize >> 15;
 
@@ -2415,6 +2423,7 @@ void CMemory::InitROM (void)
 
 	// MSU1
 	Settings.MSU1 = S9xMSU1ROMExists();
+	SNES::dsp.spc_dsp.msu1 = Settings.MSU1;
 
 	//// Map memory and calculate checksum
 

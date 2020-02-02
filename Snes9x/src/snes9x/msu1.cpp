@@ -10,6 +10,7 @@
 #include "msu1.h"
 #include "apu/resampler.h"
 #include "apu/bapu/dsp/blargg_endian.h"
+#include "apu/bapu/snes/snes.hpp"
 #include <fstream>
 #include <sys/stat.h>
 
@@ -185,6 +186,7 @@ void S9xResetMSU(void)
 	AudioClose();
 
 	Settings.MSU1 = S9xMSU1ROMExists();
+	SNES::dsp.spc_dsp.msu1 = Settings.MSU1;
 }
 
 void S9xMSU1Init(void)
