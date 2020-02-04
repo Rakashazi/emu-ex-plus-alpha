@@ -178,7 +178,7 @@ std::error_code Window::init(const WindowConfig &config)
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	this->screen_ = &mainScreen();
 	#endif
-	auto rootWindow = RootWindowOfScreen(screen()->xScreen);
+	auto rootWindow = RootWindowOfScreen((::Screen*)screen()->xScreen);
 	#ifdef CONFIG_MACHINE_PANDORA
 	IG::WindowRect winRect{0, 0, 800, 480};
 	#else
@@ -194,10 +194,10 @@ std::error_code Window::init(const WindowConfig &config)
 	#else
 	pos = {winRect.x, winRect.y};
 	{
-		colormap = XCreateColormap(dpy, rootWindow, config.format().visual, AllocNone);
+		colormap = XCreateColormap(dpy, rootWindow, (Visual*)config.format().visual, AllocNone);
 		attr.colormap = colormap;
 		xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
-			config.format().depth, InputOutput, config.format().visual,
+			config.format().depth, InputOutput, (Visual*)config.format().visual,
 			CWColormap | CWEventMask, &attr);
 	}
 	#endif
@@ -285,6 +285,16 @@ bool Window::systemAnimatesRotation()
 NativeWindow Window::nativeObject() const
 {
 	return xWin;
+}
+
+bool XWindow::operator ==(XWindow const &rhs) const
+{
+	return xWin == rhs.xWin;
+}
+
+XWindow::operator bool() const
+{
+	return xWin != 0L;
 }
 
 }

@@ -1,13 +1,15 @@
 #pragma once
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/Gfx.hh>
-#include <imagine/util/rectangle2.h>
+#include <imagine/gfx/defs.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
+#include <imagine/util/rectangle2.h>
 #include <imagine/util/edge.h>
 
 namespace Gfx
 {
+
+class RendererCommands;
 
 template<class Vtx>
 class QuadGeneric
@@ -105,12 +107,6 @@ std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);
 std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx);
 
 template<class Vtx>
-static void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs)
-{
-	cmds.bindTempVertexBuffer();
-	cmds.vertexBufferData(quad[0].data(), sizeof(quad[0]) * quads);
-	Vtx::bindAttribs(cmds, quad[0].data());
-	cmds.drawPrimitiveElements(Primitive::TRIANGLE, quadIdx[0].data(), quadIdxs * 6);
-}
+void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
 
 }

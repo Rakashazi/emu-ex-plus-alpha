@@ -82,4 +82,18 @@ std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx)
 	}};
 }
 
+template<class Vtx>
+void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs)
+{
+	cmds.bindTempVertexBuffer();
+	cmds.vertexBufferData(quad[0].data(), sizeof(quad[0]) * quads);
+	Vtx::bindAttribs(cmds, quad[0].data());
+	cmds.drawPrimitiveElements(Primitive::TRIANGLE, quadIdx[0].data(), quadIdxs * 6);
+}
+
+template void drawQuads<Vertex>(RendererCommands &cmds, std::array<Vertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
+template void drawQuads<ColVertex>(RendererCommands &cmds, std::array<ColVertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
+template void drawQuads<TexVertex>(RendererCommands &cmds, std::array<TexVertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
+template void drawQuads<ColTexVertex>(RendererCommands &cmds, std::array<ColTexVertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
+
 }

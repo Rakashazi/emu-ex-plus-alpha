@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxLGradient.hh>
+#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/View.hh>

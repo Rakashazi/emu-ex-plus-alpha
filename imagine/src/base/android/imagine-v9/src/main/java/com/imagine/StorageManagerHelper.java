@@ -27,28 +27,53 @@ final class StorageManagerHelper
 {
 	private static final String logTag = "StorageManagerHelper";
 	private static native void volumeEnumerated(long userData, String path, String name);
+	private static int pathPosition = -1;
 	
 	StorageManagerHelper() {}
 
 	public static void enumVolumes(Activity act, long userData)
 	{
+		if(pathPosition == -2)
+		{
+			// failed to find path postion in previous attempt
+			return;
+		}
 		final StorageManager sm = (StorageManager)act.getSystemService(Context.STORAGE_SERVICE);
 		final List<StorageVolume> volumes = sm.getStorageVolumes();
 		for(final StorageVolume vol: volumes)
 		{
+			if(vol.isPrimary())
+				continue;
 			Parcel p = Parcel.obtain();
 			vol.writeToParcel(p, 0);
-			p.setDataPosition(0);
-			String path;
-			if(android.os.Build.VERSION.SDK_INT <= 27)
+			String path = null;
+			if(pathPosition < 0)
 			{
-				String id = p.readString();
-				int storageID = p.readInt();
-				path = p.readString();
+				// search for the mount path string in the parcel
+				p.setDataPosition(0);
+				while(p.dataPosition() < p.dataSize())
+				{
+					int pos = p.dataPosition();
+					final String s = p.readString();
+					if(s != null && s.startsWith("/storage"))
+					{
+						//Log.v(logTag, "found path string:" + s + " @ position:" + pos + ")");
+						pathPosition = pos;
+						path = s;
+						break;
+					}
+				}
+				if(pathPosition < 0)
+				{
+					//Log.v(logTag, "unable to find path string in parcel, volume enumeration not possible");
+					pathPosition = -2;
+					p.recycle();
+					return;
+				}
 			}
 			else
 			{
-				String id = p.readString();
+				p.setDataPosition(pathPosition);
 				path = p.readString();
 			}
 			p.recycle();

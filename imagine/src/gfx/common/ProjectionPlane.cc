@@ -52,6 +52,21 @@ Mat4 ProjectionPlane::makeTranslate() const
 	return Mat4::makeTranslate({0_gc, 0_gc, focal});
 }
 
+void ProjectionPlane::loadTranslate(Gfx::RendererCommands &cmds, GC x, GC y) const
+{
+	cmds.loadTranslate(x, y, focal);
+}
+
+void ProjectionPlane::loadTranslate(Gfx::RendererCommands &cmds, GP p) const
+{
+	loadTranslate(cmds, p.x, p.y);
+}
+
+void ProjectionPlane::resetTransforms(Gfx::RendererCommands &cmds) const
+{
+	loadTranslate(cmds, 0., 0.);
+}
+
 GC ProjectionPlane::unprojectXSize(int x) const
 {
 	GC s = (GC)(x) * pixToXScale;

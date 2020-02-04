@@ -23,6 +23,8 @@
 #include "basePrivate.hh"
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/Window.hh>
+#include <imagine/base/GLContext.hh>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/DelegateFuncSet.hh>
@@ -172,6 +174,13 @@ FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, Pol
 #endif
 {
 	addToEventLoop(loop, callback, events);
+}
+
+IG::PixelFormat GLBufferConfigAttributes::pixelFormat() const
+{
+	if(!pixelFormat_)
+		return Window::defaultPixelFormat();
+	return pixelFormat_;
 }
 
 }

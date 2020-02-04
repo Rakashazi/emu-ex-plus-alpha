@@ -18,46 +18,32 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
-#define pointer X11pointer
-#define BOOL X11BOOL
-#include <X11/X.h>
-#include <X11/Xutil.h>
-#undef BOOL
-#undef pointer
 
 namespace Base
 {
 
 struct NativeWindowFormat
 {
-	Visual *visual{};
+	void *visual{};
 	int depth{};
 };
 
-using NativeWindow = ::Window;
+using NativeWindow = unsigned long;
 
 class XWindow : public BaseWindow, public NotEquals<XWindow>
 {
 public:
-	::Window xWin = None;
-	::Window draggerXWin = None;
-	Atom dragAction = None;
+	unsigned long xWin{};
+	unsigned long draggerXWin{};
+	unsigned long dragAction{};
 	#ifndef CONFIG_MACHINE_PANDORA
 	IG::Point2D<int> pos;
-	Colormap colormap{};
+	unsigned long colormap{};
 	#endif
 
 	constexpr XWindow() {}
-
-	bool operator ==(XWindow const &rhs) const
-	{
-		return xWin == rhs.xWin;
-	}
-
-	explicit operator bool() const
-	{
-		return xWin != None;
-	}
+	bool operator ==(XWindow const &rhs) const;
+	explicit operator bool() const;
 };
 
 void shutdownWindowSystem();

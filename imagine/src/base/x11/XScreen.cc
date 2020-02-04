@@ -23,10 +23,11 @@
 namespace Base
 {
 
-void XScreen::init(::Screen *xScreen)
+void XScreen::init(void *xScreen_)
 {
+	::Screen *xScreen = (::Screen*)xScreen_;
 	assert(xScreen);
-	this->xScreen = xScreen;
+	this->xScreen = xScreen_;
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
 	if(Config::MACHINE_IS_PANDORA)
@@ -76,12 +77,12 @@ void Screen::deinit() {}
 
 int Screen::width()
 {
-	return WidthOfScreen(xScreen);
+	return WidthOfScreen((::Screen*)xScreen);
 }
 
 int Screen::height()
 {
-	return HeightOfScreen(xScreen);
+	return HeightOfScreen((::Screen*)xScreen);
 }
 
 double Screen::frameRate() const

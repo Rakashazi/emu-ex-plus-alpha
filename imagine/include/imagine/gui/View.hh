@@ -28,6 +28,12 @@ class Window;
 class Screen;
 }
 
+namespace Gfx
+{
+class Renderer;
+class RendererTask;
+}
+
 class View;
 
 class ViewController
@@ -50,7 +56,7 @@ public:
 		win{win}, rTask{rTask} {}
 	constexpr Base::Window &window() const { return win; }
 	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
-	constexpr Gfx::Renderer &renderer() const { return rTask.renderer(); }
+	Gfx::Renderer &renderer() const;
 
 protected:
 	Base::Window &win;

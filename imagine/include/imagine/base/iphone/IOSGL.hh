@@ -74,8 +74,8 @@ struct GLBufferConfig
 using GLDrawableImpl = EAGLViewDrawable;
 using GLContextImpl = IOSGLContext;
 using NativeGLContext = void *; // EAGLContext in ObjC
-using EAGLViewMakeRenderbufferDelegate = DelegateFunc<IG::Point2D<int>(void *, GLuint &, GLuint &)>;
-using EAGLViewDeleteRenderbufferDelegate = DelegateFunc<void(GLuint colorRenderbuffer, GLuint depthRenderbuffer)>;
+using EAGLViewMakeRenderbufferDelegate = DelegateFunc<IG::Point2D<int>(void *, unsigned int &, unsigned int &)>;
+using EAGLViewDeleteRenderbufferDelegate = DelegateFunc<void(unsigned int colorRenderbuffer, unsigned int depthRenderbuffer)>;
 
 extern EAGLViewMakeRenderbufferDelegate makeRenderbuffer;
 extern EAGLViewDeleteRenderbufferDelegate deleteRenderbuffer;

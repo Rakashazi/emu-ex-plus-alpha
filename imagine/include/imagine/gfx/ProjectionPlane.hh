@@ -16,17 +16,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include "defs.hh"
+#include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Vec3.hh>
 #include <imagine/gfx/Viewport.hh>
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/util/rectangle2.h>
 
 namespace Gfx
 {
 
-struct ProjectionPlane
+class ProjectionPlane
 {
 private:
 	GCRect rect;
@@ -82,15 +81,11 @@ public:
 	GC yMMSize(GC mm) const;
 	GC xSMMSize(GC mm) const;
 	GC ySMMSize(GC mm) const;
-
 	Mat4 makeTranslate(IG::Point2D<float> p) const;
 	Mat4 makeTranslate() const;
-	void loadTranslate(Gfx::RendererCommands &cmds, GC x, GC y) const { cmds.loadTranslate(x, y, focal); }
-	void loadTranslate(Gfx::RendererCommands &cmds, GP p) const { loadTranslate(cmds, p.x, p.y); }
-	void resetTransforms(Gfx::RendererCommands &cmds) const
-	{
-		loadTranslate(cmds, 0., 0.);
-	}
+	void loadTranslate(Gfx::RendererCommands &cmds, GC x, GC y) const;
+	void loadTranslate(Gfx::RendererCommands &cmds, GP p) const;
+	void resetTransforms(Gfx::RendererCommands &cmds) const;
 };
 
 }

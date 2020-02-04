@@ -17,11 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
-#define pointer X11pointer
-#define BOOL X11BOOL
-#include <X11/Xlib.h>
-#undef BOOL
-#undef pointer
 
 namespace Base
 {
@@ -29,14 +24,14 @@ namespace Base
 class XScreen : public NotEquals<XScreen>
 {
 public:
-	::Screen *xScreen{};
+	void *xScreen{};
 	float xMM = 0, yMM = 0;
 	double frameTime_ = 0;
 	bool reliableFrameTime = true;
 
 	constexpr XScreen() {}
 
-	void init(::Screen *xScreen);
+	void init(void *xScreen);
 
 	bool operator ==(XScreen const &rhs) const
 	{

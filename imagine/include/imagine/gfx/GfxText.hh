@@ -16,16 +16,18 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/Gfx.hh>
-
+#include <imagine/gfx/defs.hh>
 #include <float.h>
-#include "GfxSprite.hh"
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string.h>
-#include <imagine/gfx/GlyphTextureSet.hh>
 
 namespace Gfx
 {
+
+class Renderer;
+class RendererCommands;
+class GlyphTextureSet;
+class ProjectionPlane;
 
 class Text
 {

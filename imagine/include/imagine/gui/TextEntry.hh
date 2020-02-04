@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gui/View.hh>
 
 class TextEntry

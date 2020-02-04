@@ -16,6 +16,7 @@
 #define LOGTAG "BaseAlertView"
 
 #include <imagine/gui/AlertView.hh>
+#include <imagine/gfx/GeomRect.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 

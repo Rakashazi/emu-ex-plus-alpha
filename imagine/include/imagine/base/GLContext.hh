@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/Window.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <system_error>
@@ -34,6 +33,8 @@
 namespace Base
 {
 
+class Window;
+
 class GLBufferConfigAttributes
 {
 private:
@@ -47,12 +48,7 @@ public:
 		this->pixelFormat_ = pixelFormat_;
 	}
 
-	IG::PixelFormat pixelFormat() const
-	{
-		if(!pixelFormat_)
-			return Window::defaultPixelFormat();
-		return pixelFormat_;
-	}
+	IG::PixelFormat pixelFormat() const;
 
 	void setUseDepth(bool useDepth_)
 	{

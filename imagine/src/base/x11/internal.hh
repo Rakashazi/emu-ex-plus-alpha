@@ -18,7 +18,6 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/EventLoop.hh>
 
-#define BOOL X11BOOL
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
@@ -28,10 +27,10 @@
 #include <X11/XKBlib.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/Xrandr.h>
-#undef BOOL
 
 namespace Base
 {
+	class Window;
 	extern Display *dpy;
 	Window *windowForXWindow(::Window xWin);
 	int indexOfScreen(Screen &screen);

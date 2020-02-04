@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/defs.hh>
 #include <imagine/gfx/GeomQuadMesh.hh>
 
 namespace Gfx

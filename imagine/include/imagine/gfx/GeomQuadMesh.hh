@@ -3,11 +3,13 @@
 #include <cstddef>
 #include <memory>
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/defs.hh>
 #include <imagine/util/Mem2D.hh>
 
 namespace Gfx
 {
+
+class RendererCommands;
 
 class GeomQuadMesh
 {

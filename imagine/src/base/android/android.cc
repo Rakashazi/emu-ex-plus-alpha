@@ -168,11 +168,6 @@ std::vector<FS::PathLocation> rootFileLocations()
 					auto path = javaStringCopy<FS::PathString>(env, jPath);
 					auto name = javaStringCopy<FS::FileString>(env, jName);
 					logMsg("volume:%s with path:%s", name.data(), path.data());
-					if(string_equal(rootLocation->cbegin()->path.data(), path.data()))
-					{
-						// skip entry matching sharedStoragePathLocation()
-						return;
-					}
 					rootLocation->emplace_back(path, name, FS::RootPathInfo{name, strlen(path.data())});
 				})
 			},

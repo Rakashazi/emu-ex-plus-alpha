@@ -14,11 +14,18 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/logger/logger.h>
 
 Gfx::GlyphTextureSet View::defaultFace{};
 Gfx::GlyphTextureSet View::defaultBoldFace{};
 bool View::needsBackControl = needsBackControlDefault;
+
+Gfx::Renderer &ViewAttachParams::renderer() const
+{
+	return rTask.renderer();
+}
 
 void ViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e)
 {

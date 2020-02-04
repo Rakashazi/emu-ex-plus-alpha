@@ -16,13 +16,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GeomQuad.hh>
 
 namespace Gfx
 {
+
+class RendererCommands;
 
 template<class BaseRect>
 class SpriteBase : public BaseRect

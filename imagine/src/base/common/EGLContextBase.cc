@@ -16,6 +16,7 @@
 #define LOGTAG "EGL"
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/EGLContextBase.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/thread/Thread.hh>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>

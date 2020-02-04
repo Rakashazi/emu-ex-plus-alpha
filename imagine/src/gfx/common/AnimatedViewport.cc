@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/AnimatedViewport.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/logger/logger.h>
 
 namespace Gfx

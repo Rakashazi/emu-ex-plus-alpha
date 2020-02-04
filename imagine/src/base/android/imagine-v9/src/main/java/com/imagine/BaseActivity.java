@@ -428,21 +428,29 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	ChoreographerHelper newChoreographerHelper(long timerAddr)
 	{
+		if(android.os.Build.VERSION.SDK_INT < 16)
+			return null;
 		return new ChoreographerHelper(timerAddr);
 	}
 	
 	InputDeviceHelper inputDeviceHelper()
 	{
+		if(android.os.Build.VERSION.SDK_INT < 12)
+			return null;
 		return new InputDeviceHelper();
 	}
 	
 	InputDeviceListenerHelper inputDeviceListenerHelper()
 	{
+		if(android.os.Build.VERSION.SDK_INT < 16)
+			return null;
 		return new InputDeviceListenerHelper(this);
 	}
 	
 	DisplayListenerHelper displayListenerHelper()
 	{
+		if(android.os.Build.VERSION.SDK_INT < 17)
+			return null;
 		return new DisplayListenerHelper(this);
 	}
 	
@@ -453,8 +461,9 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	PresentationHelper presentation(Display display, long windowAddr)
 	{
-		PresentationHelper p = new PresentationHelper(this, display, windowAddr);
-		return p;
+		if(android.os.Build.VERSION.SDK_INT < 17)
+			return null;
+		return new PresentationHelper(this, display, windowAddr);
 	}
 	
 	UserActivityFaker userActivityFaker()
@@ -464,6 +473,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 
 	StorageManagerHelper storageManagerHelper()
 	{
+		if(android.os.Build.VERSION.SDK_INT < 24)
+			return null;
 		return new StorageManagerHelper();
 	}
 

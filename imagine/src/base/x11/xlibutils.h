@@ -1,9 +1,7 @@
 #pragma once
 
-#define BOOL X11BOOL
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput2.h>
-#undef BOOL
 
 // EWMH (Extended Window Manager Hints) support
 // http://freedesktop.org/wiki/Specifications/wm-spec
