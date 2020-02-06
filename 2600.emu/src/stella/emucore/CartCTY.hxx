@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,8 +27,6 @@ class System;
 #endif
 
 /**
-  FIXME: This scheme is not yet fully implemented.
-
   The 'Chetiry' bankswitch scheme was developed by Chris D. Walton for a
   Tetris clone game by the same name.  It makes use of a Harmony cart,
   whereby ARM code in bank 0 is executed to implement the bankswitch scheme.
@@ -83,8 +81,6 @@ class System;
       The tune table functionality is also based on Harmony EEPROM, where
       7 4K tunes are stored (28K total).  The 'index' for operation 1 can
       therefore be in the range 0 - 6, indicating which tune to load.
-      For this implementation, the 28K tune data is in the 'CartCTYTunes'
-      header file.
 
   DPC+:
     The music functionality is quite similar to the DPC+ scheme.
@@ -119,9 +115,11 @@ class CartridgeCTY : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
-      @param osystem   A reference to the OSystem currently in use
+      @param md5       The md5sum of the ROM image
+      @param settings  A reference to the settings object
     */
-    CartridgeCTY(const BytePtr& image, uInt32 size, const OSystem& osystem);
+    CartridgeCTY(const ByteBuffer& image, size_t size, const string& md5,
+                 const Settings& settings);
     virtual ~CartridgeCTY() = default;
 
   public:
@@ -147,8 +145,10 @@ class CartridgeCTY : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -170,7 +170,7 @@ class CartridgeCTY : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -196,12 +196,12 @@ class CartridgeCTY : public Cartridge
     string name() const override { return "CartridgeCTY"; }
 
     /**
-      Informs the cartridge about the name of the ROM file used when
-      creating this cart.
+      Informs the cartridge about the name of the nvram file it will use.
 
-      @param name  The properties file name of the ROM
+      @param nvramdir  The full path of the nvram directory
+      @param romfile   The name of the cart from ROM properties
     */
-    void setRomName(const string& name) override;
+    void setNVRamFile(const string& nvramdir, const string& romfile) override;
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -256,50 +256,60 @@ class CartridgeCTY : public Cartridge
     */
     void updateMusicModeDataFetchers();
 
-  private:
-    // OSsytem currently in use
-    const OSystem& myOSystem;
+    void updateTune();
 
+  private:
     // The 32K ROM image of the cartridge
-    uInt8 myImage[32768];
+    std::array<uInt8, 32_KB> myImage;
+
+    // The 28K ROM image of the music
+    std::array<uInt8, 28_KB> myTuneData;
 
     // The 64 bytes of RAM accessible at $1000 - $1080
-    uInt8 myRAM[64];
+    std::array<uInt8, 64> myRAM;
 
     // Operation type (written to $1000, used by hotspot $1FF4)
-    uInt8 myOperationType;
+    uInt8 myOperationType{0};
 
     // Pointer to the 28K frequency table (points to the start of one
-    // of seven 4K tunes in CartCTYTunes)
-    const uInt8* myFrequencyImage;
+    // of seven 4K tunes in myTuneData)
+    const uInt8* myFrequencyImage{nullptr};
 
     // The counter register for the data fetcher
-    uInt16 myCounter;
+    uInt16 myTunePosition{0};
+
+    // The music mode counters
+    std::array<uInt32, 3> myMusicCounters{0};
+
+    // The music frequency
+    std::array<uInt32, 3> myMusicFrequencies{0};
 
     // Flags that last byte peeked was A9 (LDA #)
-    bool myLDAimmediate;
+    bool myLDAimmediate{false};
 
     // The random number generator register
-    uInt32 myRandomNumber;
+    uInt32 myRandomNumber{0x2B435044};
 
     // The time after which the first request of a load/save operation
     // will actually be completed
     // Due to Harmony EEPROM constraints, a read/write isn't instantaneous,
     // so we need to emulate the delay as well
-    uInt64 myRamAccessTimeout;
+    uInt64 myRamAccessTimeout{0};
 
     // Full pathname of the file to use when emulating load/save
     // of internal RAM to Harmony cart EEPROM
     string myEEPROMFile;
 
     // System cycle count from when the last update to music data fetchers occurred
-    uInt64 myAudioCycles;
+    uInt64 myAudioCycles{0};
 
     // Fractional DPC music OSC clocks unused during the last update
-    double myFractionalClocks;
+    double myFractionalClocks{0.0};
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
+
+    static const std::array<uInt32, 63> ourFrequencyTable;
 
   private:
     // Following constructors and assignment operators not supported

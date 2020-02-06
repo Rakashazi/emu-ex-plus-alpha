@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -16,23 +16,25 @@
 //============================================================================
 
 #include "MT24LC256.hxx"
+#include "OSystem.hxx"
 #include "System.hxx"
 #include "SaveKey.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
-                 const string& eepromfile, Type type)
-  : Controller(jack, event, system, type)
+                 const string& eepromfile, const onMessageCallback& callback,
+                 Type type)
+  : Controller(jack, event, system, type),
+    myEEPROM(make_unique<MT24LC256>(eepromfile, system, callback))
 {
-  myEEPROM = make_unique<MT24LC256>(eepromfile, system);
-
-  myDigitalPinState[One] = myDigitalPinState[Two] = true;
+  setPin(DigitalPin::One, true);
+  setPin(DigitalPin::Two, true);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SaveKey::SaveKey(Jack jack, const Event& event, const System& system,
-                 const string& eepromfile)
-  : SaveKey(jack, event, system, eepromfile, Controller::SaveKey)
+                 const string& eepromfile, const onMessageCallback& callback)
+  : SaveKey(jack, event, system, eepromfile, callback, Controller::Type::SaveKey)
 {
 }
 
@@ -51,8 +53,8 @@ bool SaveKey::read(DigitalPin pin)
   {
     // Pin 3: EEPROM SDA
     //        input data from the 24LC256 EEPROM using the I2C protocol
-    case Three:
-      return myDigitalPinState[Three] = myEEPROM->readSDA();
+    case DigitalPin::Three:
+      return setPin(pin, myEEPROM->readSDA());
 
     default:
       return Controller::read(pin);
@@ -67,15 +69,15 @@ void SaveKey::write(DigitalPin pin, bool value)
   {
     // Pin 3: EEPROM SDA
     //        output data to the 24LC256 EEPROM using the I2C protocol
-    case Three:
-      myDigitalPinState[Three] = value;
+    case DigitalPin::Three:
+      setPin(pin, value);
       myEEPROM->writeSDA(value);
       break;
 
     // Pin 4: EEPROM SCL
     //        output clock data to the 24LC256 EEPROM using the I2C protocol
-    case Four:
-      myDigitalPinState[Four] = value;
+    case DigitalPin::Four:
+      setPin(pin, value);
       myEEPROM->writeSCL(value);
       break;
 

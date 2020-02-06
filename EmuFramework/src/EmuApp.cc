@@ -189,6 +189,7 @@ static const char *parseCmdLineArgs(int argc, char** argv)
 
 void mainInitCommon(int argc, char** argv)
 {
+	using namespace IG;
 	Base::registerInstance(appID(), argc, argv);
 	Base::setAcceptIPC(appID(), true);
 	Base::setOnInterProcessMessage(

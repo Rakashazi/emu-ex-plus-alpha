@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,24 +21,21 @@
 #include "CartX07.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeX07::CartridgeX07(const BytePtr& image, uInt32 size,
-                           const Settings& settings)
-  : Cartridge(settings),
-    myCurrentBank(0)
+CartridgeX07::CartridgeX07(const ByteBuffer& image, size_t size,
+                           const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(65536u, size));
-  createCodeAccessBase(65536);
-
-  // Remember startup bank
-  myStartBank = 0;
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeX07::reset()
 {
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  initializeStartBank(0);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -49,12 +46,12 @@ void CartridgeX07::install(System& system)
   // Set the page accessing methods for the hot spots
   // The hotspots use almost all addresses below 0x1000, so we simply grab them
   // all and forward the TIA/RIOT calls from the peek and poke methods.
-  System::PageAccess access(this, System::PA_READWRITE);
+  System::PageAccess access(this, System::PageAccessType::READWRITE);
   for(uInt16 addr = 0x00; addr < 0x1000; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Install pages for the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -112,7 +109,7 @@ bool CartridgeX07::bank(uInt16 bank)
   uInt32 offset = myCurrentBank << 12;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -125,7 +122,7 @@ bool CartridgeX07::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeX07::getBank() const
+uInt16 CartridgeX07::getBank(uInt16) const
 {
   return myCurrentBank;
 }
@@ -144,10 +141,10 @@ bool CartridgeX07::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeX07::getImage(uInt32& size) const
+const uInt8* CartridgeX07::getImage(size_t& size) const
 {
-  size = 65536;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -155,7 +152,6 @@ bool CartridgeX07::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myCurrentBank);
   }
   catch(...)
@@ -172,9 +168,6 @@ bool CartridgeX07::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myCurrentBank = in.getShort();
   }
   catch(...)

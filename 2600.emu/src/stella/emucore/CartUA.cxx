@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,27 +19,23 @@
 #include "CartUA.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeUA::CartridgeUA(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    myBankOffset(0)
+CartridgeUA::CartridgeUA(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings,
+                         bool swapHotspots)
+  : Cartridge(settings, md5),
+    mySwappedHotspots(swapHotspots)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(8192u, size));
-  createCodeAccessBase(8192);
-
-  // Remember startup bank
-  myStartBank = 0;
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeUA::reset()
 {
-  // define startup bank
-  randomizeStartBank();
-
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  initializeStartBank(0);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -49,15 +45,18 @@ void CartridgeUA::install(System& system)
 
   // Get the page accessing methods for the hot spots since they overlap
   // areas within the TIA we'll need to forward requests to the TIA
-  myHotSpotPageAccess = mySystem->getPageAccess(0x0220);
+  myHotSpotPageAccess[0] = mySystem->getPageAccess(0x0220);
+  myHotSpotPageAccess[1] = mySystem->getPageAccess(0x0220 | 0x80);
 
   // Set the page accessing methods for the hot spots
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
   mySystem->setPageAccess(0x0220, access);
   mySystem->setPageAccess(0x0240, access);
+  mySystem->setPageAccess(0x0220 | 0x80, access);
+  mySystem->setPageAccess(0x0240 | 0x80, access);
 
   // Install pages for the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -66,16 +65,16 @@ uInt8 CartridgeUA::peek(uInt16 address)
   address &= 0x1FFF;
 
   // Switch banks if necessary
-  switch(address)
+  switch(address & 0x1260)
   {
     case 0x0220:
       // Set the current bank to the lower 4k bank
-      bank(0);
+      bank(mySwappedHotspots ? 1 : 0);
       break;
 
     case 0x0240:
       // Set the current bank to the upper 4k bank
-      bank(1);
+      bank(mySwappedHotspots ? 0 : 1);
       break;
 
     default:
@@ -84,7 +83,8 @@ uInt8 CartridgeUA::peek(uInt16 address)
 
   // Because of the way accessing is set up, we will only get here
   // when doing a TIA read
-  return myHotSpotPageAccess.device->peek(address);
+  int hotspot = ((address & 0x80) >> 7);
+  return myHotSpotPageAccess[hotspot].device->peek(address);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,16 +93,16 @@ bool CartridgeUA::poke(uInt16 address, uInt8 value)
   address &= 0x1FFF;
 
   // Switch banks if necessary
-  switch(address)
+  switch(address & 0x1260)
   {
     case 0x0220:
       // Set the current bank to the lower 4k bank
-      bank(0);
+      bank(mySwappedHotspots ? 1 : 0);
       break;
 
     case 0x0240:
       // Set the current bank to the upper 4k bank
-      bank(1);
+      bank(mySwappedHotspots ? 0 : 1);
       break;
 
     default:
@@ -111,8 +111,11 @@ bool CartridgeUA::poke(uInt16 address, uInt8 value)
 
   // Because of the way accessing is set up, we will may get here by
   // doing a write to TIA or cart; we ignore the cart write
-  if(!(address & 0x1000))
-    myHotSpotPageAccess.device->poke(address, value);
+  if (!(address & 0x1000))
+  {
+    int hotspot = ((address & 0x80) >> 7);
+    myHotSpotPageAccess[hotspot].device->poke(address, value);
+  }
 
   return false;
 }
@@ -126,7 +129,7 @@ bool CartridgeUA::bank(uInt16 bank)
   myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -139,7 +142,7 @@ bool CartridgeUA::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeUA::getBank() const
+uInt16 CartridgeUA::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -158,10 +161,10 @@ bool CartridgeUA::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeUA::getImage(uInt32& size) const
+const uInt8* CartridgeUA::getImage(size_t& size) const
 {
-  size = 8192;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -169,12 +172,11 @@ bool CartridgeUA::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myBankOffset);
   }
   catch(...)
   {
-    cerr << "ERROR: CartridgeUA::save" << endl;
+    cerr << "ERROR: " << name() << "::save" << endl;
     return false;
   }
 
@@ -186,14 +188,11 @@ bool CartridgeUA::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getShort();
   }
   catch(...)
   {
-    cerr << "ERROR: CartridgeUA::load" << endl;
+    cerr << "ERROR: " << name() << "::load" << endl;
     return false;
   }
 

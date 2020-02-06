@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,7 +27,7 @@ template<unsigned length, unsigned capacity>
 class DelayQueueIteratorImpl : public DelayQueueIterator
 {
   public:
-    DelayQueueIteratorImpl(const DelayQueue<length, capacity>& delayQueue);
+    explicit DelayQueueIteratorImpl(const DelayQueue<length, capacity>& delayQueue);
 
   public:
 
@@ -46,8 +46,8 @@ class DelayQueueIteratorImpl : public DelayQueueIterator
 
   private:
     const DelayQueue<length, capacity>& myDelayQueue;
-    uInt8 myDelayCycle;
-    uInt8 myIndex;
+    uInt8 myDelayCycle{0};
+    uInt8 myIndex{0};
 };
 
 // ############################################################################
@@ -59,9 +59,7 @@ template<unsigned length, unsigned capacity>
 DelayQueueIteratorImpl<length, capacity>::DelayQueueIteratorImpl(
   const DelayQueue<length, capacity>& delayQueue
 )
-  : myDelayQueue(delayQueue),
-    myDelayCycle(0),
-    myIndex(0)
+  : myDelayQueue(delayQueue)
 {
   while (myDelayQueue.myMembers[currentIndex()].mySize == 0 && isValid())
     myDelayCycle++;
@@ -119,7 +117,7 @@ bool DelayQueueIteratorImpl<length, capacity>::next()
   myIndex = 0;
 
   do {
-    myDelayCycle++;
+    ++myDelayCycle;
   } while (myDelayQueue.myMembers[currentIndex()].mySize == 0 && isValid());
 
   return isValid();

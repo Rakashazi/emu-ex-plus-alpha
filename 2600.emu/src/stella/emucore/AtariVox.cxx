@@ -8,33 +8,32 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //============================================================================
 
-#include "SerialPort.hxx"
+#include "MediaFactory.hxx"
 #include "System.hxx"
+#include "OSystem.hxx"
 #include "AtariVox.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AtariVox::AtariVox(Jack jack, const Event& event, const System& system,
-                   const SerialPort& port, const string& portname,
-                   const string& eepromfile)
-  : SaveKey(jack, event, system, eepromfile, Controller::AtariVox),
-    mySerialPort(const_cast<SerialPort&>(port)),
-    myShiftCount(0),
-    myShiftRegister(0),
-    myLastDataWriteCycle(0)
+                   const string& portname, const string& eepromfile,
+                   const onMessageCallback& callback)
+  : SaveKey(jack, event, system, eepromfile, callback, Controller::Type::AtariVox)
 {
-  if(mySerialPort.openPort(portname))
+  mySerialPort = MediaFactory::createSerialPort();
+  if(mySerialPort->openPort(portname))
     myAboutString = " (using serial port \'" + portname + "\')";
   else
     myAboutString = " (invalid serial port \'" + portname + "\')";
 
-  myDigitalPinState[Three] = myDigitalPinState[Four] = true;
+  setPin(DigitalPin::Three, true);
+  setPin(DigitalPin::Four, true);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -46,9 +45,9 @@ bool AtariVox::read(DigitalPin pin)
   switch(pin)
   {
     // Pin 2: SpeakJet READY
-    case Two:
+    case DigitalPin::Two:
       // For now, we just assume the device is always ready
-      return myDigitalPinState[Two] = true;
+      return setPin(pin, true);
 
     default:
       return SaveKey::read(pin);
@@ -63,8 +62,8 @@ void AtariVox::write(DigitalPin pin, bool value)
   {
     // Pin 1: SpeakJet DATA
     //        output serial data to the speakjet
-    case One:
-      myDigitalPinState[One] = value;
+    case DigitalPin::One:
+      setPin(pin, value);
       clockDataIn(value);
       break;
 
@@ -105,7 +104,7 @@ void AtariVox::clockDataIn(bool value)
       else
       {
         uInt8 data = ((myShiftRegister >> 1) & 0xff);
-        mySerialPort.writeByte(&data);
+        mySerialPort->writeByte(data);
       }
       myShiftRegister = 0;
     }

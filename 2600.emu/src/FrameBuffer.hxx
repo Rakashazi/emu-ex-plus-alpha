@@ -1,8 +1,8 @@
-// Customized minimal FrameBuffer class needed for 2600.emu
-
 #pragma once
 
-#include <stella/gui/Rect.hxx>
+// Customized minimal FrameBuffer class needed for 2600.emu
+
+#include <stella/common/Rect.hxx>
 #include <stella/emucore/tia/TIAConstants.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
@@ -16,24 +16,50 @@ class TIA;
 class FrameBuffer
 {
 public:
+	struct VideoMode
+	{
+		enum class Stretch { Preserve, Fill, None };
+
+		Common::Rect image;
+		Common::Size screen;
+		Stretch stretch{VideoMode::Stretch::None};
+		string description;
+		float zoom{1.F};
+		Int32 fsIndex{-1};
+
+		VideoMode(uInt32 iw, uInt32 ih, uInt32 sw, uInt32 sh,
+							Stretch smode, float overscan = 1.F,
+							const string& desc = "", float zoomLevel = 1, Int32 fsindex = -1);
+
+		friend ostream& operator<<(ostream& os, const VideoMode& vm)
+		{
+			os << "image=" << vm.image << "  screen=" << vm.screen
+				 << "  stretch=" << (vm.stretch == Stretch::Preserve ? "preserve" :
+														 vm.stretch == Stretch::Fill ? "fill" : "none")
+				 << "  desc=" << vm.description << "  zoom=" << vm.zoom
+				 << "  fsIndex= " << vm.fsIndex;
+			return os;
+		}
+	};
 	uInt16 tiaColorMap16[256]{};
 	uInt32 tiaColorMap32[256]{};
 	uInt8 myPhosphorPalette[256][256]{};
-	std::array<uInt8, 160 * TIAConstants::frameBufferHeight> prevFramebuffer;
+	std::array<uInt8, 160 * TIAConstants::frameBufferHeight> prevFramebuffer{};
+	Common::Rect myImageRect{};
 	float myPhosphorPercent = 0.80f;
 	bool myUsePhosphor = false;
 
-	FrameBuffer() {}
+	constexpr FrameBuffer() {}
 
 	void render(IG::Pixmap pix, TIA &tia);
 
 	FrameBuffer &tiaSurface() { return *this; }
 
 	// dummy value, not actually needed
-	GUI::Size desktopSize() const { return GUI::Size{1024, 1024}; }
+	Common::Size desktopSize() const { return Common::Size{1024, 1024}; }
 
 	// no-op, EmuFramework manages window
-	FBInitStatus createDisplay(const string& title, uInt32 width, uInt32 height)
+	FBInitStatus createDisplay(const string& title, uInt32 width, uInt32 height, bool honourHiDPI = true)
 	{
 		return FBInitStatus::Success;
 	}
@@ -41,43 +67,24 @@ public:
 	// no-op
 	void showFrameStats(bool enable) {}
 
-	/**
-		Set up the TIA/emulation palette for a screen of any depth > 8.
+	void setTIAPalette(const PaletteArray& rgb_palette);
 
-		@param palette  The array of colors
-	*/
-	void setPalette(const uInt32* palette);
-
-	/**
-		Shows a message onscreen.
-
-		@param message  The message to be shown
-		@param position Onscreen position for the message
-		@param force    Force showing this message, even if messages are disabled
-		@param color    Color of text in the message
-	*/
 	void showMessage(const string& message,
 										int position = 0,
 										bool force = false,
 										uInt32 color = 0);
 
-	/**
-		Enable/disable/query phosphor effect.
-	*/
 	void enablePhosphor(bool enable, int blend = -1);
+
 	bool phosphorEnabled() const { return myUsePhosphor; }
 
-	/**
-		Used to calculate an averaged color for the 'phosphor' effect.
-
-		@param c1  Color 1
-		@param c2  Color 2
-
-		@return  Averaged value of the two colors
-	*/
 	uInt8 getPhosphor(const uInt8 c1, uInt8 c2) const;
 
 	uInt32 getRGBPhosphor(const uInt32 c, const uInt32 p) const;
 
 	void clear() {}
+
+	void updateSurfaceSettings() {}
+
+	const Common::Rect& imageRect() const { return myImageRect; }
 };

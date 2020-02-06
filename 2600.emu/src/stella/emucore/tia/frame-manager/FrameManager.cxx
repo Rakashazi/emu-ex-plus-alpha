@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,28 +18,15 @@
 // #define TIA_FRAMEMANAGER_DEBUG_LOG
 
 #include <algorithm>
+#include <cmath>
 
 #include "FrameManager.hxx"
 
-enum Metrics: uInt32 {
-  vblankNTSC                    = 37,
-  vblankPAL                     = 45,
-  kernelNTSC                    = 192,
-  kernelPAL                     = 228,
-  overscanNTSC                  = 30,
-  overscanPAL                   = 36,
-  vsync                         = 3,
-  maxLinesVsync                 = 50,
-  visibleOverscan               = 20,
-  initialGarbageFrames          = TIAConstants::initialGarbageFrames
-};
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FrameManager::FrameManager() :
-  myHeight(0),
-  myYStart(0)
+FrameManager::FrameManager()
 {
-  onLayoutChange();
+  reset();
+  recalculateMetrics();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,9 +38,6 @@ void FrameManager::onReset()
   myVsyncLines = 0;
   myY = 0;
 
-  myStableFrameLines = -1;
-  myStableFrameHeightCountdown = 0;
-
   myJitterEmulation.reset();
 }
 
@@ -63,13 +47,13 @@ void FrameManager::onNextLine()
   Int32 jitter;
 
   State previousState = myState;
-  myLineInState++;
+  ++myLineInState;
 
   switch (myState)
   {
     case State::waitForVsyncStart:
       if ((myCurrentFrameTotalLines > myFrameLines - 3) || myTotalFrames == 0)
-        myVsyncLines++;
+        ++myVsyncLines;
 
       if (myVsyncLines > Metrics::maxLinesVsync) setState(State::waitForFrameStart);
 
@@ -91,7 +75,7 @@ void FrameManager::onNextLine()
     case State::frame:
       if (myLineInState >= myHeight)
       {
-        myLastY = ystart() + myY;  // Last line drawn in this frame
+        myLastY = myYStart + myY;  // Last line drawn in this frame
         setState(State::waitForVsyncStart);
       }
       break;
@@ -100,7 +84,7 @@ void FrameManager::onNextLine()
       throw runtime_error("frame manager: invalid state");
   }
 
-  if (myState == State::frame && previousState == State::frame) myY++;
+  if (myState == State::frame && previousState == State::frame) ++myY;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -114,10 +98,19 @@ Int32 FrameManager::missingScanlines() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FrameManager::setYstart(uInt32 ystart)
+void FrameManager::setVcenter(Int32 vcenter)
 {
-  myYStart = ystart;
-  myJitterEmulation.setYStart(ystart);
+  if (vcenter < TIAConstants::minVcenter || vcenter > TIAConstants::maxVcenter) return;
+
+  myVcenter = vcenter;
+  recalculateMetrics();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void FrameManager::setAdjustVSize(Int32 adjustVSize)
+{
+  myVSizeAdjust = adjustVSize;
+  recalculateMetrics();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -162,34 +155,7 @@ void FrameManager::setState(FrameManager::State state)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FrameManager::onLayoutChange()
 {
-  switch (layout())
-  {
-    case FrameLayout::ntsc:
-      myVblankLines   = Metrics::vblankNTSC;
-      myKernelLines   = Metrics::kernelNTSC;
-      myOverscanLines = Metrics::overscanNTSC;
-      break;
-
-    case FrameLayout::pal:
-      myVblankLines   = Metrics::vblankPAL;
-      myKernelLines   = Metrics::kernelPAL;
-      myOverscanLines = Metrics::overscanPAL;
-      break;
-
-    default:
-      throw runtime_error("frame manager: invalid TV mode");
-  }
-
-  myFrameLines = Metrics::vsync + myVblankLines + myKernelLines + myOverscanLines;
-  if (myFixedHeight == 0)
-    myHeight = myKernelLines + Metrics::visibleOverscan;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FrameManager::setFixedHeight(uInt32 height)
-{
-  myFixedHeight = height;
-  myHeight = myFixedHeight > 0 ? myFixedHeight : (myKernelLines + Metrics::visibleOverscan);
+  recalculateMetrics();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -209,17 +175,14 @@ bool FrameManager::onSave(Serializer& out) const
   out.putInt(myLastY);
 
   out.putInt(myVblankLines);
-  out.putInt(myKernelLines);
-  out.putInt(myOverscanLines);
   out.putInt(myFrameLines);
   out.putInt(myHeight);
-  out.putInt(myFixedHeight);
   out.putInt(myYStart);
+  out.putInt(myVcenter);
+  out.putInt(myMaxVcenter);
+  out.putInt(myVSizeAdjust);
 
   out.putBool(myJitterEnabled);
-
-  out.putInt(myStableFrameLines);
-  out.putInt(myStableFrameHeightCountdown);
 
   return true;
 }
@@ -236,17 +199,49 @@ bool FrameManager::onLoad(Serializer& in)
   myLastY = in.getInt();
 
   myVblankLines = in.getInt();
-  myKernelLines = in.getInt();
-  myOverscanLines = in.getInt();
   myFrameLines = in.getInt();
   myHeight = in.getInt();
-  myFixedHeight = in.getInt();
   myYStart = in.getInt();
+  myVcenter = in.getInt();
+  myMaxVcenter = in.getInt();
+  myVSizeAdjust = in.getInt();
 
   myJitterEnabled = in.getBool();
 
-  myStableFrameLines = in.getInt();
-  myStableFrameHeightCountdown = in.getInt();
-
   return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void FrameManager::recalculateMetrics() {
+  Int32 ystartBase;
+  Int32 baseHeight;
+
+  switch (layout())
+  {
+    case FrameLayout::ntsc:
+      myVblankLines   = Metrics::vblankNTSC;
+      myFrameLines    = Metrics::frameSizeNTSC;
+      ystartBase      = Metrics::ystartNTSC;
+      baseHeight      = Metrics::baseHeightNTSC;
+      break;
+
+    case FrameLayout::pal:
+      myVblankLines   = Metrics::vblankPAL;
+      myFrameLines    = Metrics::frameSizePAL;
+      ystartBase      = Metrics::ystartPAL;
+      baseHeight      = Metrics::baseHeightPAL;
+      break;
+
+    default:
+      throw runtime_error("frame manager: invalid TV mode");
+  }
+
+  myHeight = BSPF::clamp<uInt32>(roundf(static_cast<float>(baseHeight) * (1.f - myVSizeAdjust / 100.f)), 0, myFrameLines);
+  myYStart = BSPF::clamp<uInt32>(ystartBase + (baseHeight - static_cast<Int32>(myHeight)) / 2 - myVcenter, 0, myFrameLines);
+  // TODO: why "- 1" here: ???
+  myMaxVcenter = BSPF::clamp<Int32>(ystartBase + (baseHeight - static_cast<Int32>(myHeight)) / 2 - 1, 0, TIAConstants::maxVcenter);
+
+  //cout << "myVSizeAdjust " << myVSizeAdjust << " " << myHeight << endl << std::flush;
+
+  myJitterEmulation.setYStart(myYStart);
 }

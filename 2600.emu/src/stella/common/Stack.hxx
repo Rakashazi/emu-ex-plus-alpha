@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,6 @@
 #ifndef STACK_HXX
 #define STACK_HXX
 
-#include <array>
 #include <functional>
 
 #include "bspf.hxx"
@@ -32,29 +31,29 @@ template <class T, uInt32 CAPACITY = 50>
 class FixedStack
 {
   private:
-    array<T, CAPACITY> _stack;
-    uInt32 _size;
+    std::array<T, CAPACITY> _stack;
+    uInt32 _size{0};
 
   public:
     using StackFunction = std::function<void(T&)>;
 
-    FixedStack<T, CAPACITY>() : _size(0) { }
+    FixedStack<T, CAPACITY>() { }
 
     bool empty() const { return _size <= 0; }
     bool full() const  { return _size >= CAPACITY; }
 
     T top() const { return _stack[_size - 1];    }
+    T get(uInt32 pos) { return _stack[pos]; }
     void push(const T& x) { _stack[_size++] = x; }
     T pop() { return std::move(_stack[--_size]); }
     uInt32 size() const { return _size; }
 
-    void replace(const T& oldItem, const T& newItem) {
-      for(uInt32 i = 0; i < _size; ++i) {
-        if(_stack[i] == oldItem) {
-          _stack[i] = newItem;
-          return;
-        }
-      }
+    // Reverse the contents of the stack
+    // This operation isn't needed very often, but it's handy to have
+    void reverse() {
+      if(_size > 1)
+        for(uInt32 i = 0, j = _size - 1; i < j; ++i, --j)
+          std::swap(_stack[i], _stack[j]);
     }
 
     // Apply the given function to every item in the stack
@@ -64,6 +63,12 @@ class FixedStack
     void applyAll(const StackFunction& func) {
       for(uInt32 i = 0; i < _size; ++i)
         func(_stack[i]);
+    }
+
+    friend ostream& operator<<(ostream& os, const FixedStack<T>& s) {
+      for(uInt32 pos = 0; pos < s._size; ++pos)
+        os << s._stack[pos] << " ";
+      return os;
     }
 
   private:

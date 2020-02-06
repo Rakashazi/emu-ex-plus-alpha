@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -36,15 +36,23 @@ RewindManager::RewindManager(OSystem& system, StateManager& statemgr)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void RewindManager::setup()
 {
+  myStateSize = 0;
   myLastTimeMachineAdd = false;
 
-  string prefix = myOSystem.settings().getBool("dev.settings") ? "dev." : "plr.";
+  const string& prefix = myOSystem.settings().getBool("dev.settings") ? "dev." : "plr.";
 
-  mySize = myOSystem.settings().getInt(prefix + "tm.size");
+  // Work around a bug in XCode 11.2 with -O0 and -O1
+  const uInt32 maxBufSize = MAX_BUF_SIZE;
+
+  // TODO - Add proper bounds checking (define constexpr variables for this)
+  //        Use those bounds in DeveloperDialog too
+  mySize = std::min<uInt32>(
+      myOSystem.settings().getInt(prefix + "tm.size"), maxBufSize);
   if(mySize != myStateList.capacity())
     resize(mySize);
 
-  myUncompressed = myOSystem.settings().getInt(prefix + "tm.uncompressed");
+  myUncompressed = std::min<uInt32>(
+      myOSystem.settings().getInt(prefix + "tm.uncompressed"), maxBufSize);
 
   myInterval = INTERVAL_CYCLES[0];
   for(int i = 0; i < NUM_INTERVALS; ++i)
@@ -103,7 +111,8 @@ bool RewindManager::addState(const string& message, bool timeMachine)
     // adjust frame timed intervals to actual scanlines (vs 262)
     if(interval >= 76 * 262 && interval <= 76 * 262 * 30)
     {
-      const uInt32 scanlines = std::max(myOSystem.console().tia().scanlinesLastFrame(), 240u);
+      const uInt32 scanlines = std::max<uInt32>
+        (myOSystem.console().tia().scanlinesLastFrame(), 240);
 
       interval = interval * scanlines / 262;
     }
@@ -128,6 +137,7 @@ bool RewindManager::addState(const string& message, bool timeMachine)
   s.rewind();  // rewind Serializer internal buffers
   if(myStateManager.saveState(s) && myOSystem.console().tia().saveDisplay(s))
   {
+    myStateSize = std::max(myStateSize, uInt32(s.size()));
     state.message = message;
     state.cycles = myOSystem.console().tia().cycles();
     myLastTimeMachineAdd = timeMachine;
@@ -218,6 +228,120 @@ uInt32 RewindManager::windStates(uInt32 numStates, bool unwind)
     return rewindStates(numStates);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string RewindManager::saveAllStates()
+{
+  if (getLastIdx() == 0)
+    return "Nothing to save";
+
+  try
+  {
+    ostringstream buf;
+    buf << myOSystem.stateDir()
+      << myOSystem.console().properties().get(PropType::Cart_Name)
+      << ".sta";
+
+    Serializer out(buf.str(), Serializer::Mode::ReadWriteTrunc);
+    if (!out)
+      return "Can't save to all states file";
+
+    uInt32 curIdx = getCurrentIdx();
+    rewindStates(MAX_BUF_SIZE);
+    uInt32 numStates = uInt32(cyclesList().size());
+
+    // Save header
+    buf.str("");
+    out.putString(STATE_HEADER);
+    out.putShort(numStates);
+    out.putInt(myStateSize);
+
+    unique_ptr<uInt8[]> buffer = make_unique<uInt8[]>(myStateSize);
+    for (uInt32 i = 0; i < numStates; ++i)
+    {
+      RewindState& state = myStateList.current();
+      Serializer& s = state.data;
+      // Rewind Serializer internal buffers
+      s.rewind();
+      // Save state
+      s.getByteArray(buffer.get(), myStateSize);
+      out.putByteArray(buffer.get(), myStateSize);
+      out.putString(state.message);
+      out.putLong(state.cycles);
+
+      unwindStates(1);
+    }
+    // restore old state position
+    rewindStates(numStates - curIdx);
+
+    buf.str("");
+    buf << "Saved " << numStates << " states";
+    return buf.str();
+  }
+  catch (...)
+  {
+    return "Error saving all states";
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string RewindManager::loadAllStates()
+{
+  try
+  {
+    ostringstream buf;
+    buf << myOSystem.stateDir()
+      << myOSystem.console().properties().get(PropType::Cart_Name)
+      << ".sta";
+
+    // Make sure the file can be opened for reading
+    Serializer in(buf.str(), Serializer::Mode::ReadOnly);
+    if (!in)
+      return "Can't load from all states file";
+
+    clear();
+    uInt32 numStates;
+
+    // Load header
+    buf.str("");
+    // Check compatibility
+    if (in.getString() != STATE_HEADER)
+      return "Incompatible all states file";
+    numStates = in.getShort();
+    myStateSize = in.getInt();
+
+    unique_ptr<uInt8[]> buffer = make_unique<uInt8[]>(myStateSize);
+    for (uInt32 i = 0; i < numStates; ++i)
+    {
+      if (myStateList.full())
+        compressStates();
+
+      // Add new state at the end of the list (queue adds at end)
+      // This updates the 'current' iterator inside the list
+      myStateList.addLast();
+      RewindState& state = myStateList.current();
+      Serializer& s = state.data;
+      // Rewind Serializer internal buffers
+      s.rewind();
+
+      // Fill new state with saved values
+      in.getByteArray(buffer.get(), myStateSize);
+      s.putByteArray(buffer.get(), myStateSize);
+      state.message = in.getString();
+      state.cycles = in.getLong();
+    }
+
+    // initialize current state (parameters ignored)
+    loadState(0, 0);
+
+    buf.str("");
+    buf << "Loaded " << numStates << " states";
+    return buf.str();
+  }
+  catch (...)
+  {
+    return "Error loading all states";
+  }
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void RewindManager::compressStates()
@@ -278,15 +402,20 @@ string RewindManager::loadState(Int64 startCycles, uInt32 numStates)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string RewindManager::getUnitString(Int64 cycles)
 {
-  const Int32 scanlines = std::max(myOSystem.console().tia().scanlinesLastFrame(), 240u);
+  constexpr Int32 NTSC_FREQ = 1193182; // ~76*262*60
+  constexpr Int32 PAL_FREQ  = 1182298; // ~76*312*50
+  const Int32 scanlines = std::max<Int32>(
+      myOSystem.console().tia().scanlinesLastFrame(), 240);
   const bool isNTSC = scanlines <= 287;
-  const Int32 NTSC_FREQ = 1193182; // ~76*262*60
-  const Int32 PAL_FREQ = 1182298; // ~76*312*50
   const Int32 freq = isNTSC ? NTSC_FREQ : PAL_FREQ; // = cycles/second
 
-  const Int32 NUM_UNITS = 5;
-  const string UNIT_NAMES[NUM_UNITS] = { "cycle", "scanline", "frame", "second", "minute" };
-  const Int64 UNIT_CYCLES[NUM_UNITS + 1] = { 1, 76, 76 * scanlines, freq, freq * 60, Int64(1) << 62 };
+  constexpr Int32 NUM_UNITS = 5;
+  const std::array<string, NUM_UNITS> UNIT_NAMES = {
+    "cycle", "scanline", "frame", "second", "minute"
+  };
+  const std::array<Int64, NUM_UNITS+1> UNIT_CYCLES = {
+    1, 76, 76 * scanlines, freq, freq * 60, Int64(1) << 62
+  };
 
   stringstream result;
   Int32 i;

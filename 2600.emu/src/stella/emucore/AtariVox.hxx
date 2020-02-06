@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,10 +18,11 @@
 #ifndef ATARIVOX_HXX
 #define ATARIVOX_HXX
 
-class SerialPort;
+class OSystem;
 
 #include "Control.hxx"
 #include "SaveKey.hxx"
+#include "SerialPort.hxx"
 
 /**
   Richard Hutchinson's AtariVox "controller": A speech synthesizer and
@@ -41,13 +42,13 @@ class AtariVox : public SaveKey
       @param jack       The jack the controller is plugged into
       @param event      The event object to use for events
       @param system     The system using this controller
-      @param port       The serial port object
-      @param portname   Name of the port used for reading and writing
+      @param portname   Name of the serial port used for reading and writing
       @param eepromfile The file containing the EEPROM data
+      @param callback   Called to pass messages back to the parent controller
     */
     AtariVox(Jack jack, const Event& event, const System& system,
-             const SerialPort& port, const string& portname,
-             const string& eepromfile);
+             const string& portname, const string& eepromfile,
+             const onMessageCallback& callback);
     virtual ~AtariVox() = default;
 
   public:
@@ -93,22 +94,22 @@ class AtariVox : public SaveKey
     // Instance of an real serial port on the system
     // Assuming there's a real AtariVox attached, we can send SpeakJet
     // bytes directly to it
-    SerialPort& mySerialPort;
+    unique_ptr<SerialPort> mySerialPort;
 
     // How many bits have been shifted into the shift register?
-    uInt8 myShiftCount;
+    uInt8 myShiftCount{0};
 
     // Shift register. Data comes in serially:
     // 1 start bit, always 0
     // 8 data bits, LSB first
     // 1 stop bit, always 1
-    uInt16 myShiftRegister;
+    uInt16 myShiftRegister{0};
 
     // When did the last data write start, in CPU cycles?
     // The real SpeakJet chip reads data at 19200 bits/sec. Alex's
     // driver code sends data at 62 CPU cycles per bit, which is
     // "close enough".
-    uInt64 myLastDataWriteCycle;
+    uInt64 myLastDataWriteCycle{0};
 
     // Holds information concerning serial port usage
     string myAboutString;

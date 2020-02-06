@@ -1,23 +1,6 @@
-//============================================================================
-//
-//   SSSS    tt          lll  lll       
-//  SS  SS   tt           ll   ll        
-//  SS     tttttt  eeee   ll   ll   aaaa 
-//   SSSS    tt   ee  ee  ll   ll      aa
-//      SS   tt   eeeeee  ll   ll   aaaaa  --  "An Atari 2600 VCS Emulator"
-//  SS  SS   tt   ee      ll   ll  aa  aa
-//   SSSS     ttt  eeeee llll llll  aaaaa
-//
-// Copyright (c) 1995-2012 by Bradford W. Mott, Stephen Anthony
-// and the Stella Team
-//
-// See the file "License.txt" for information on usage and redistribution of
-// this file, and for a DISCLAIMER OF ALL WARRANTIES.
-//
-// $Id: OSystem.hxx 2471 2012-05-13 18:06:56Z stephena $
-//============================================================================
-
 #pragma once
+
+// Customized minimal OSystem class needed for 2600.emu
 
 class Cartridge;
 class CheatManager;
@@ -28,186 +11,75 @@ class EventHandler;
 class FrameBuffer;
 class Launcher;
 class Menu;
-class SoundGeneric;
+class SoundEmuEx;
 class Properties;
-class PropertiesSet;
 class Random;
-class SerialPort;
 class Settings;
 class Sound;
-class StateManager;
 class VideoDialog;
 
 #include <stella/common/bspf.hxx>
-#undef HAVE_UNISTD_H
-#include "Console.hxx"
+#include <stella/common/StateManager.hxx>
+#include <stella/common/AudioSettings.hxx>
+#include <stella/common/audio/Resampler.hxx>
+#include <stella/emucore/PropsSet.hxx>
+#include <stella/emucore/Console.hxx>
+#include <stella/emucore/FSNode.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
 
 class OSystem
 {
-  friend class EventHandler;
+	friend class EventHandler;
 
-  public:
-    OSystem();
+public:
+	OSystem();
+	EventHandler& eventHandler() const;
+	FrameBuffer& frameBuffer() const;
+	Sound& sound() const;
+	Settings& settings() const;
+	Random& random() const;
+	PropertiesSet& propSet() const;
+	StateManager& state() const;
+	void makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath);
+	void deleteConsole();
+	void setFrameTime(double frameTime, int rate);
+	void setResampleQuality(AudioSettings::ResamplingQuality quality);
+	void processAudio(bool renderAudio);
 
-    /**
-      Get the event handler of the system
+	Console& console() const { return *myConsole; }
 
-      @return The event handler
-    */
-    EventHandler& eventHandler() const;
+	bool hasConsole() const { return myConsole != nullptr; }
 
-    /**
-      Get the frame buffer of the system
+	#ifdef DEBUGGER_SUPPORT
+	void createDebugger(Console& console);
+	Debugger& debugger() const { return *myDebugger; }
+	#endif
 
-      @return The frame buffer
-    */
-    FrameBuffer& frameBuffer() const;
+	#ifdef CHEATCODE_SUPPORT
+	CheatManager& cheat() const { return *myCheatManager; }
+	#endif
 
-    /**
-      Get the sound object of the system
+	string stateDir() const;
+	string nvramDir() const;
 
-      @return The sound object
-    */
-    Sound& sound() const;
+	string configFile() const { return ""; }
 
-    SoundGeneric& soundGeneric() const;
+	string paletteFile() const { return ""; }
 
-    /**
-      Get the settings object of the system
+	const FilesystemNode& romFile() const { return myRomFile; };
 
-      @return The settings object
-    */
-    Settings& settings() const;
+	void resetFps() {}
 
-    /**
-      Get the random object of the system.
-
-      @return The random object
-    */
-    Random& random() const;
-
-    /**
-      Get the set of game properties for the system
-
-      @return The properties set object
-    */
-    PropertiesSet& propSet() const;
-
-    /**
-      Get the console of the system.
-
-      @return The console object
-    */
-    Console& console() const { return *myConsole; }
-    bool hasConsole() const { return myConsole != nullptr; }
-
-    void makeConsole(unique_ptr<Cartridge>& cart, const Properties& props);
-    void deleteConsole();
-
-    /**
-      Get the serial port of the system.
-
-      @return The serial port object
-    */
-    SerialPort& serialPort() const;
-
-    /**
-      Get the state manager of the system.
-
-      @return The statemanager object
-    */
-    StateManager& state() const;
-
-#ifdef DEBUGGER_SUPPORT
-    /**
-      Create all child objects which belong to this OSystem
-    */
-    void createDebugger(Console& console);
-
-    /**
-      Get the ROM debugger of the system.
-
-      @return The debugger object
-    */
-    Debugger& debugger() const { return *myDebugger; }
-#endif
-
-#ifdef CHEATCODE_SUPPORT
-    /**
-      Get the cheat manager of the system.
-
-      @return The cheatmanager object
-    */
-    CheatManager& cheat() const { return *myCheatManager; }
-#endif
-
-    // no-op
-    void setFramerate(float framerate) {}
-
-    /**
-      Return the full/complete directory name for storing state files.
-    */
-    string stateDir() const;
-
-    /**
-      Return the full/complete directory name for storing nvram
-      (flash/EEPROM) files.
-    */
-    string nvramDir() const;
-
-    /**
-      This method should be called to get the full path of the config file.
-
-      @return String representing the full path of the config filename.
-    */
-    string configFile() const { return ""; }
-
-    /**
-      This method should be called to get the full path of the
-      (optional) palette file.
-
-      @return String representing the full path of the properties filename.
-    */
-    string paletteFile() const { return ""; }
-
-    /**
-      Append a message to the internal log.
-
-      @param message  The message to be appended
-      @param level    If 0, always output the message, only append when
-                      level is less than or equal to that in 'loglevel'
-    */
-	void logMessage(const string& message, uInt8 level);
-
-  public:
-    //////////////////////////////////////////////////////////////////////
-    // The following methods are system-specific and can be overrided in
-    // derived classes.  Otherwise, the base methods will be used.
-    //////////////////////////////////////////////////////////////////////
-    /**
-      This method returns number of ticks in microseconds since some
-      pre-defined time in the past.  *NOTE*: it is necessary that this
-      pre-defined time exists between runs of the application, and must
-      be (relatively) unique.  For example, the time since the system
-      started running is not a good choice, since it can be duplicated.
-      The current implementation uses time since the UNIX epoch.
-
-      @return Current time in microseconds.
-    */
-    uInt64 getTicks() const;
-
-  protected:
-    // Pointer to the (currently defined) Console object
-    std::unique_ptr<Console> myConsole{};
-
-    std::unique_ptr<StateManager> myStateManager;
-    std::unique_ptr<Random> myRandom;
-		std::unique_ptr<EventHandler> myEventHandler;
-		std::unique_ptr<SerialPort> mySerialPort;
-		std::unique_ptr<FrameBuffer> myFrameBuffer;
-		std::unique_ptr<PropertiesSet> myPropSet;
-		std::unique_ptr<Settings> mySettings;
-		std::unique_ptr<SoundGeneric> mySound;
+protected:
+	std::unique_ptr<Console> myConsole{};
+	std::unique_ptr<StateManager> myStateManager{};
+	std::unique_ptr<Random> myRandom{};
+	std::unique_ptr<EventHandler> myEventHandler{};
+	std::unique_ptr<FrameBuffer> myFrameBuffer{};
+	std::unique_ptr<PropertiesSet> myPropSet{};
+	std::unique_ptr<Settings> mySettings{};
+	std::unique_ptr<SoundEmuEx> mySound{};
+	std::unique_ptr<AudioSettings> myAudioSettings{};
+	FilesystemNode myRomFile{};
 };

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,14 +27,11 @@
 
 #include "StateManager.hxx"
 
-#define STATE_HEADER "05010000state"
 // #define MOVIE_HEADER "03030000movie"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 StateManager::StateManager(OSystem& osystem)
-  : myOSystem(osystem),
-    myCurrentSlot(0),
-    myActiveMode(Mode::Off)
+  : myOSystem(osystem)
 {
   myRewindManager = make_unique<RewindManager>(myOSystem, *this);
   reset();
@@ -70,9 +67,9 @@ void StateManager::toggleRecordMode()
     // normal, and those states files wouldn't be compatible with normal
     // controllers.
     myMovieWriter.putString(
-      myOSystem.console().controller(Controller::Left).name());
+      myOSystem.console().controller(Controller::Jack::Left).name());
     myMovieWriter.putString(
-      myOSystem.console().controller(Controller::Right).name());
+      myOSystem.console().controller(Controller::Jack::Right).name());
 
     // If we get this far, we're really in movie record mode
     myActiveMode = kMovieRecordMode;
@@ -112,8 +109,8 @@ void StateManager::toggleRecordMode()
     const string& left  = myMovieReader.getString();
     const string& right = myMovieReader.getString();
 
-    if(left != myOSystem.console().controller(Controller::Left).name() ||
-       right != myOSystem.console().controller(Controller::Right).name())
+    if(left != myOSystem.console().controller(Controller::Jack::Left).name() ||
+       right != myOSystem.console().controller(Controller::Jack::Right).name())
       return false;
 
     // If we get this far, we're really in movie record mode
@@ -184,14 +181,14 @@ void StateManager::update()
 
 #if 0
     case Mode::MovieRecord:
-      myOSystem.console().controller(Controller::Left).save(myMovieWriter);
-      myOSystem.console().controller(Controller::Right).save(myMovieWriter);
+      myOSystem.console().controller(Controller::Jack::Left).save(myMovieWriter);
+      myOSystem.console().controller(Controller::Jack::Right).save(myMovieWriter);
       myOSystem.console().switches().save(myMovieWriter);
       break;
 
     case Mode::MoviePlayback:
-      myOSystem.console().controller(Controller::Left).load(myMovieReader);
-      myOSystem.console().controller(Controller::Right).load(myMovieReader);
+      myOSystem.console().controller(Controller::Jack::Left).load(myMovieReader);
+      myOSystem.console().controller(Controller::Jack::Right).load(myMovieReader);
       myOSystem.console().switches().load(myMovieReader);
       break;
 #endif
@@ -209,11 +206,11 @@ void StateManager::loadState(int slot)
 
     ostringstream buf;
     buf << myOSystem.stateDir()
-        << myOSystem.console().properties().get(Cartridge_Name)
+        << myOSystem.console().properties().get(PropType::Cart_Name)
         << ".st" << slot;
 
     // Make sure the file can be opened in read-only mode
-    Serializer in(buf.str(), true);
+    Serializer in(buf.str(), Serializer::Mode::ReadOnly);
     if(!in)
     {
       buf.str("");
@@ -229,8 +226,6 @@ void StateManager::loadState(int slot)
     {
       if(in.getString() != STATE_HEADER)
         buf << "Incompatible state " << slot << " file";
-      else if(in.getString() != myOSystem.console().cartridge().name())
-        buf << "State " << slot << " file doesn't match current ROM";
       else
       {
         if(myOSystem.console().load(in))
@@ -257,7 +252,7 @@ void StateManager::saveState(int slot)
 
     ostringstream buf;
     buf << myOSystem.stateDir()
-        << myOSystem.console().properties().get(Cartridge_Name)
+        << myOSystem.console().properties().get(PropType::Cart_Name)
         << ".st" << slot;
 
     // Make sure the file can be opened for writing
@@ -275,9 +270,6 @@ void StateManager::saveState(int slot)
       // Add header so that if the state format changes in the future,
       // we'll know right away, without having to parse the rest of the file
       out.putString(STATE_HEADER);
-
-      // Sanity check; prepend the cart type/name
-      out.putString(myOSystem.console().cartridge().name());
     }
     catch(...)
     {
@@ -294,7 +286,7 @@ void StateManager::saveState(int slot)
       if(myOSystem.settings().getBool("autoslot"))
       {
         myCurrentSlot = (slot + 1) % 10;
-        buf << ", switching to slot " << slot;
+        buf << ", switching to slot " << myCurrentSlot;
       }
     }
     else
@@ -305,14 +297,31 @@ void StateManager::saveState(int slot)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void StateManager::changeState()
+void StateManager::changeState(int direction)
 {
-  myCurrentSlot = (myCurrentSlot + 1) % 10;
+  myCurrentSlot += direction;
+  if (myCurrentSlot < 0)
+    myCurrentSlot = 9;
+  else
+    myCurrentSlot %= 10;
 
   // Print appropriate message
   ostringstream buf;
   buf << "Changed to slot " << myCurrentSlot;
   myOSystem.frameBuffer().showMessage(buf.str());
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void StateManager::toggleAutoSlot()
+{
+  bool autoSlot = !myOSystem.settings().getBool("autoslot");
+
+  // Print appropriate message
+  ostringstream buf;
+  buf << "Automatic slot change " << (autoSlot ? "enabled" : "disabled");
+  myOSystem.frameBuffer().showMessage(buf.str());
+
+  myOSystem.settings().setValue("autoslot", autoSlot);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -325,10 +334,9 @@ bool StateManager::loadState(Serializer& in)
       // Make sure the file can be opened for reading
       if(in)
       {
-        // First test if we have a valid header and cart type
+        // First test if we have a valid header
         // If so, do a complete state load using the Console
         return in.getString() == STATE_HEADER &&
-               in.getString() == myOSystem.console().cartridge().name() &&
                myOSystem.console().load(in);
       }
     }
@@ -353,9 +361,6 @@ bool StateManager::saveState(Serializer& out)
         // Add header so that if the state format changes in the future,
         // we'll know right away, without having to parse the rest of the file
         out.putString(STATE_HEADER);
-
-        // Sanity check; prepend the cart type/name
-        out.putString(myOSystem.console().cartridge().name());
 
         // Do a complete state save using the Console
         if(myOSystem.console().save(out))

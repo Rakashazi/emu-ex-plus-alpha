@@ -20,7 +20,7 @@
 #include <imagine/util/algorithm.h>
 #include <TargetConditionals.h>
 
-namespace Audio
+namespace IG::Audio
 {
 
 CAOutputStream::CAOutputStream()

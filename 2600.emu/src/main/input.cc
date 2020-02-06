@@ -13,18 +13,14 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <EventHandler.hxx>
+#include <OSystem.hxx>
 // TODO: Some Stella types collide with MacTypes.h
-#define BytePtr BytePtrMac
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
-#undef BytePtr
 #undef Debugger
-#ifdef Success
-#undef Success // conflict with macro in X11 headers
-#endif
 #include "internal.hh"
-#include <EventHandler.hxx>
 
 enum
 {

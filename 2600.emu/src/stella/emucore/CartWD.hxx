@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,32 +28,24 @@ class System;
 
 /**
   This is the cartridge class for a "Wickstead Design" prototype cart.
-  The ROM is normally 8K, but sometimes has an extra 3 bytes appended,
-  to be mapped as described below.  There is also 64 bytes of RAM.
+  The ROM has 64 bytes of RAM.
   In this bankswitching scheme the 2600's 4K cartridge address space
   is broken into four 1K segments.  The desired arrangement of 1K slices
   is selected by accessing $30 - $3F of TIA address space.  The slices
   are mapped into all 4 segments at once as follows:
 
-    $0030: 0,0,1,2
-    $0031: 0,1,3,2
-    $0032: 4,5,6,7
-    $0033: 7,4,3,2
-    $0034: 0,0,6,7
-    $0035: 0,1,7,6
-    $0036: 3,2,4,5
-    $0037: 6,0,5,1
-    $0038: 0,0,1,2
-    $0039: 0,1,3,2
-    $003A: 4,5,6,7
-    $003B: 7,4,3,2
-    $003C: 0,0,6,7*
-    $003D: 0,1,7,6*
-    $003E: 3,2,4,5*
-    $003F: 6,0,5,1*
+    $0030, $0038: 0,0,1,3
+    $0031, $0039: 0,1,2,3
+    $0032, $003A: 4,5,6,7
+    $0033, $003B: 7,4,2,3
 
-  In the last 4 cases, the extra 3 bytes of ROM past the 8K boundary are
-  mapped into $3FC - $3FE of the uppermost (third) segment.
+    $0034, $003C: 0,0,6,7
+    $0035, $003D: 0,1,7,6
+    $0036, $003E: 2,3,4,5
+    $0037, $003F: 6,0,5,1
+
+
+  In the uppermost (third) segment, the byte at $3FC is overwritten by 0.
 
   The 64 bytes of RAM are accessible at $1000 - $103F (read port) and
   $1040 - $107F (write port).  Because the RAM takes 128 bytes of address
@@ -71,9 +63,11 @@ class CartridgeWD : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeWD(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeWD(const ByteBuffer& image, size_t size, const string& md5,
+                const Settings& settings);
     virtual ~CartridgeWD() = default;
 
   public:
@@ -99,8 +93,10 @@ class CartridgeWD : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -122,7 +118,7 @@ class CartridgeWD : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -200,44 +196,42 @@ class CartridgeWD : public Cartridge
 
     /**
       Install the specified slice for segment three.
-      Note that this method also takes care of mapping extra 3 bytes.
+      Note that this method also takes care of setting one byte to 0.
 
       @param slice      The slice to map into the segment
-      @param map3bytes  Whether to map in an extra 3 bytes
     */
-    void segmentThree(uInt8 slice, bool map3bytes);
+    void segmentThree(uInt8 slice);
 
   private:
     // The 8K ROM image of the cartridge
-    uInt8 myImage[8195];
+    std::array<uInt8, 8_KB> myImage;
 
     // Indicates the actual size of the ROM image (either 8K or 8K + 3)
-    uInt32 mySize;
+    size_t mySize{0};
 
     // The 64 bytes RAM of the cartridge
-    uInt8 myRAM[64];
+    std::array<uInt8, 64> myRAM;
 
     // The 1K ROM mirror of segment 3 (sometimes contains extra 3 bytes)
-    uInt8 mySegment3[1024];
+    std::array<uInt8, 1_KB> mySegment3;
 
     // Indicates the offset for each of the four segments
-    uInt16 myOffset[4];
+    std::array<uInt16, 4> myOffset;
 
     // Indicates the cycle at which a bankswitch was initiated
-    uInt64 myCyclesAtBankswitchInit;
+    uInt64 myCyclesAtBankswitchInit{0};
 
     // Indicates the bank we wish to switch to in the future
-    uInt16 myPendingBank;
+    uInt16 myPendingBank{0};
 
     // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    uInt16 myCurrentBank{0};
 
     // The arrangement of banks to use on each hotspot read
     struct BankOrg {
       uInt8 zero, one, two, three;
-      bool map3bytes;
     };
-    static BankOrg ourBankOrg[16];
+    static const std::array<BankOrg, 8> ourBankOrg;
 
   private:
     // Following constructors and assignment operators not supported

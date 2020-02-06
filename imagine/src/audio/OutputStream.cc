@@ -15,7 +15,7 @@
 
 #include <imagine/audio/defs.hh>
 
-namespace Audio
+namespace IG::Audio
 {
 
 PcmFormat OutputStreamConfig::format() const

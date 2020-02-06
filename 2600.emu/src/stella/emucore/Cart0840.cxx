@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,24 +19,21 @@
 #include "Cart0840.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge0840::Cartridge0840(const BytePtr& image, uInt32 size,
-                             const Settings& settings)
-  : Cartridge(settings),
-    myBankOffset(0)
+Cartridge0840::Cartridge0840(const ByteBuffer& image, size_t size,
+                             const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(8192u, size));
-  createCodeAccessBase(8192);
-
-  // Remember startup bank
-  myStartBank = 0;
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge0840::reset()
 {
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  initializeStartBank(0);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -56,12 +53,12 @@ void Cartridge0840::install(System& system)
   myHotSpotPageAccess[7] = mySystem->getPageAccess(0x0F00);
 
   // Set the page accessing methods for the hot spots
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x0800; addr < 0x0FFF; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Install pages for bank 0
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -134,7 +131,7 @@ bool Cartridge0840::bank(uInt16 bank)
   myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -147,7 +144,7 @@ bool Cartridge0840::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge0840::getBank() const
+uInt16 Cartridge0840::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -166,10 +163,10 @@ bool Cartridge0840::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* Cartridge0840::getImage(uInt32& size) const
+const uInt8* Cartridge0840::getImage(size_t& size) const
 {
-  size = 8192;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -177,7 +174,6 @@ bool Cartridge0840::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myBankOffset);
   }
   catch(...)
@@ -194,9 +190,6 @@ bool Cartridge0840::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getShort();
   }
   catch(...)

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -57,7 +57,8 @@ class CartridgeCVPlus : public Cartridge
       @param size      The size of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeCVPlus(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeCVPlus(const ByteBuffer& image, size_t size, const string& md5,
+                    const Settings& settings);
     virtual ~CartridgeCVPlus() = default;
 
   public:
@@ -83,8 +84,10 @@ class CartridgeCVPlus : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -106,7 +109,7 @@ class CartridgeCVPlus : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -162,16 +165,16 @@ class CartridgeCVPlus : public Cartridge
 
   private:
     // Pointer to a dynamically allocated ROM image of the cartridge
-    BytePtr myImage;
+    ByteBuffer myImage;
 
     // The 1024 bytes of RAM
-    uInt8 myRAM[1024];
+    std::array<uInt8, 1_KB> myRAM;
 
     // Size of the ROM image
-    uInt32 mySize;
+    size_t mySize{0};
 
     // Indicates which bank is currently active for the first segment
-    uInt16 myCurrentBank;
+    uInt16 myCurrentBank{0};
 
   private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -26,108 +26,31 @@ Controller::Controller(Jack jack, const Event& event, const System& system,
   : myJack(jack),
     myEvent(event),
     mySystem(system),
-    myType(type),
-    myOnAnalogPinUpdateCallback(nullptr)
+    myType(type)
 {
-  myDigitalPinState[One]   =
-  myDigitalPinState[Two]   =
-  myDigitalPinState[Three] =
-  myDigitalPinState[Four]  =
-  myDigitalPinState[Six]   = true;
-
-  myAnalogPinValue[Five] =
-  myAnalogPinValue[Nine] = maximumResistance;
-
-  switch(myType)
-  {
-    case Joystick:
-      myName = "Joystick";
-      break;
-    case Paddles:
-      myName = "Paddles";
-      break;
-    case BoosterGrip:
-      myName = "BoosterGrip";
-      break;
-    case Driving:
-      myName = "Driving";
-      break;
-    case Keyboard:
-      myName = "Keyboard";
-      break;
-    case AmigaMouse:
-      myName = "AmigaMouse";
-      break;
-    case AtariMouse:
-      myName = "AtariMouse";
-      break;
-    case TrakBall:
-      myName = "TrakBall";
-      break;
-    case AtariVox:
-      myName = "AtariVox";
-      break;
-    case SaveKey:
-      myName = "SaveKey";
-      break;
-    case KidVid:
-      myName = "KidVid";
-      break;
-    case Genesis:
-      myName = "Genesis";
-      break;
-    case MindLink:
-      myName = "MindLink";
-      break;
-    case CompuMate:
-      myName = "CompuMate";
-      break;
-  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Controller::read()
 {
-  uInt8 ioport = 0x00;
-  if(read(One))   ioport |= 0x01;
-  if(read(Two))   ioport |= 0x02;
-  if(read(Three)) ioport |= 0x04;
-  if(read(Four))  ioport |= 0x08;
+  uInt8 ioport = 0b0000;
+  if(read(DigitalPin::One))   ioport |= 0b0001;
+  if(read(DigitalPin::Two))   ioport |= 0b0010;
+  if(read(DigitalPin::Three)) ioport |= 0b0100;
+  if(read(DigitalPin::Four))  ioport |= 0b1000;
   return ioport;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Controller::read(DigitalPin pin)
 {
-  return myDigitalPinState[pin];
+  return getPin(pin);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Int32 Controller::read(AnalogPin pin)
 {
-  return myAnalogPinValue[pin];
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Controller::set(DigitalPin pin, bool value)
-{
-  myDigitalPinState[pin] = value;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Controller::set(AnalogPin pin, Int32 value)
-{
-  updateAnalogPin(pin, value);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Controller::updateAnalogPin(AnalogPin pin, Int32 value)
-{
-  myAnalogPinValue[pin] = value;
-
-  if (myOnAnalogPinUpdateCallback) {
-    myOnAnalogPinUpdateCallback(pin);
-  }
+  return getPin(pin);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -136,15 +59,15 @@ bool Controller::save(Serializer& out) const
   try
   {
     // Output the digital pins
-    out.putBool(myDigitalPinState[One]);
-    out.putBool(myDigitalPinState[Two]);
-    out.putBool(myDigitalPinState[Three]);
-    out.putBool(myDigitalPinState[Four]);
-    out.putBool(myDigitalPinState[Six]);
+    out.putBool(getPin(DigitalPin::One));
+    out.putBool(getPin(DigitalPin::Two));
+    out.putBool(getPin(DigitalPin::Three));
+    out.putBool(getPin(DigitalPin::Four));
+    out.putBool(getPin(DigitalPin::Six));
 
     // Output the analog pins
-    out.putInt(myAnalogPinValue[Five]);
-    out.putInt(myAnalogPinValue[Nine]);
+    out.putInt(getPin(AnalogPin::Five));
+    out.putInt(getPin(AnalogPin::Nine));
   }
   catch(...)
   {
@@ -160,15 +83,15 @@ bool Controller::load(Serializer& in)
   try
   {
     // Input the digital pins
-    myDigitalPinState[One]   = in.getBool();
-    myDigitalPinState[Two]   = in.getBool();
-    myDigitalPinState[Three] = in.getBool();
-    myDigitalPinState[Four]  = in.getBool();
-    myDigitalPinState[Six]   = in.getBool();
+    setPin(DigitalPin::One,   in.getBool());
+    setPin(DigitalPin::Two,   in.getBool());
+    setPin(DigitalPin::Three, in.getBool());
+    setPin(DigitalPin::Four,  in.getBool());
+    setPin(DigitalPin::Six,   in.getBool());
 
     // Input the analog pins
-    myAnalogPinValue[Five] = in.getInt();
-    myAnalogPinValue[Nine] = in.getInt();
+    setPin(AnalogPin::Five, in.getInt());
+    setPin(AnalogPin::Nine, in.getInt());
   }
   catch(...)
   {
@@ -176,4 +99,51 @@ bool Controller::load(Serializer& in)
     return false;
   }
   return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string Controller::getName(const Type type)
+{
+  static const std::array<string, int(Controller::Type::LastType)> NAMES =
+  {
+    "Unknown",
+    "AmigaMouse", "AtariMouse", "AtariVox", "BoosterGrip", "CompuMate",
+    "Driving", "Sega Genesis", "Joystick", "Keyboard", "KidVid", "MindLink",
+    "Paddles", "Paddles_IAxis", "Paddles_IAxDr", "SaveKey", "TrakBall",
+    "Lightgun"
+  };
+
+  return NAMES[int(type)];
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string Controller::getPropName(const Type type)
+{
+  static const std::array<string, int(Controller::Type::LastType)> PROP_NAMES =
+  {
+    "AUTO",
+    "AMIGAMOUSE", "ATARIMOUSE", "ATARIVOX", "BOOSTERGRIP", "COMPUMATE",
+    "DRIVING", "GENESIS", "JOYSTICK", "KEYBOARD", "KIDVID", "MINDLINK",
+    "PADDLES", "PADDLES_IAXIS", "PADDLES_IAXDR", "SAVEKEY", "TRAKBALL",
+    "LIGHTGUN"
+  };
+
+  return PROP_NAMES[int(type)];
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Controller::Type Controller::getType(const string& propName)
+{
+  for(int i = 0; i < static_cast<int>(Type::LastType); ++i)
+  {
+    if(BSPF::equalsIgnoreCase(propName, getPropName(Type(i))))
+    {
+      return Type(i);
+    }
+  }
+  // special case
+  if(BSPF::equalsIgnoreCase(propName, "KEYPAD"))
+    return Type::Keyboard;
+
+  return Type::Unknown;
 }

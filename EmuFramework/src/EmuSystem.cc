@@ -59,7 +59,7 @@ Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 Base::FrameTimeBase EmuSystem::timePerVideoFrame = 0;
 uint EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
-Audio::PcmFormat EmuSystem::pcmFormat = {44100, Audio::SampleFormats::s16, 2};
+IG::Audio::PcmFormat EmuSystem::pcmFormat = {44100, IG::Audio::SampleFormats::s16, 2};
 uint EmuSystem::audioFramesPerVideoFrame = 0;
 double EmuSystem::audioFramesPerVideoFrameFloat = 0;
 Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
@@ -77,7 +77,7 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
 bool EmuSystem::sessionOptionsSet = false;
 static double currentAudioFramesPerVideoFrame = 0;
-static std::unique_ptr<Audio::SysOutputStream> audioStream;
+static std::unique_ptr<IG::Audio::SysOutputStream> audioStream;
 static IG::SysRingBuffer rBuff{};
 enum class AudioWriteState
 {
@@ -182,7 +182,7 @@ void EmuSystem::startSound()
 		multipleUnderruns = false;
 		if(!audioStream)
 		{
-			audioStream = std::make_unique<Audio::SysOutputStream>();
+			audioStream = std::make_unique<IG::Audio::SysOutputStream>();
 		}
 		if(!audioStream->isOpen())
 		{
@@ -194,7 +194,7 @@ void EmuSystem::startSound()
 				logMsg("created audio buffer with %d frames (%uus)", pcmFormat.bytesToFrames(rBuff.freeSpace()), wantedLatency);
 			}
 			audioWriteState = AudioWriteState::BUFFER;
-			Audio::OutputStreamConfig outputConf
+			IG::Audio::OutputStreamConfig outputConf
 			{
 				pcmFormat,
 				[](void *samples, uint bytes)

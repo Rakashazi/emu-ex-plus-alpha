@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -48,11 +48,26 @@ class Paddles : public Controller
     virtual ~Paddles() = default;
 
   public:
+    static constexpr int MAX_DIGITAL_SENSE = 20;
+    static constexpr int MAX_MOUSE_SENSE = 20;
+    static constexpr int MIN_DEJITTER = 0;
+    static constexpr int MAX_DEJITTER = 10;
+
     /**
       Update the entire digital and analog pin state according to the
       events currently set.
     */
     void update() override;
+
+    /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "Paddles"; }
+
+    /**
+      Answers whether the controller is intrinsically an analog controller.
+    */
+    bool isAnalog() const override { return true; }
 
     /**
       Determines how this controller will treat values received from the
@@ -72,6 +87,16 @@ class Paddles : public Controller
     */
     bool setMouseControl(Controller::Type xtype, int xid,
                          Controller::Type ytype, int yid) override;
+
+    /**
+      @param strength  Value from 0 to 10
+    */
+    static void setDejitterBase(int strength);
+
+    /**
+      @param strength  Value from 0 to 10
+    */
+    static void setDejitterDiff(int strength);
 
     /**
       Sets the sensitivity for digital emulation of paddle movement.
@@ -107,38 +132,37 @@ class Paddles : public Controller
     static constexpr double MAX_RESISTANCE = 1400000.0;
 
   private:
-    // Pre-compute the events we care about based on given port
-    // This will eliminate test for left or right port in update()
-    Event::Type myP0AxisValue, myP1AxisValue,
-                myP0DecEvent1, myP0DecEvent2, myP0IncEvent1, myP0IncEvent2,
-                myP1DecEvent1, myP1DecEvent2, myP1IncEvent1, myP1IncEvent2,
-                myP0FireEvent1, myP0FireEvent2, myP1FireEvent1, myP1FireEvent2,
-                myAxisMouseMotion;
-
-    // The following are used for the various mouse-axis modes
-    int myMPaddleID;                // paddle to emulate in 'automatic' mode
-    int myMPaddleIDX, myMPaddleIDY; // paddles to emulate in 'specific axis' mode
-
-    bool myKeyRepeat0, myKeyRepeat1;
-    int myPaddleRepeat0, myPaddleRepeat1;
-    int myCharge[2], myLastCharge[2];
-    int myLastAxisX, myLastAxisY;
-    int myAxisDigitalZero, myAxisDigitalOne;
-
     // Range of values over which digital and mouse movement is scaled
     // to paddle resistance
     static constexpr int TRIGMIN = 1;
     static constexpr int TRIGMAX = 4096;
     static int TRIGRANGE;  // This one is variable for the upper range
 
-    static constexpr int MAX_DIGITAL_SENSE = 20;
-    static constexpr int MAX_MOUSE_SENSE = 20;
+    // Pre-compute the events we care about based on given port
+    // This will eliminate test for left or right port in update()
+    Event::Type myP0AxisValue, myP1AxisValue,
+                myP0DecEvent, myP0IncEvent,
+                myP1DecEvent, myP1IncEvent,
+                myP0FireEvent, myP1FireEvent,
+                myAxisMouseMotion;
+
+    // The following are used for the various mouse-axis modes
+    int myMPaddleID{-1};                    // paddle to emulate in 'automatic' mode
+    int myMPaddleIDX{-1}, myMPaddleIDY{-1}; // paddles to emulate in 'specific axis' mode
+
+    bool myKeyRepeat0{false}, myKeyRepeat1{false};
+    int myPaddleRepeat0{0}, myPaddleRepeat1{0};
+    std::array<int, 2> myCharge{TRIGRANGE/2, TRIGRANGE/2}, myLastCharge{0};
+    int myLastAxisX{0}, myLastAxisY{0};
+    int myAxisDigitalZero{0}, myAxisDigitalOne{0};
+
     static int DIGITAL_SENSITIVITY, DIGITAL_DISTANCE;
+    static int DEJITTER_BASE, DEJITTER_DIFF;
     static int MOUSE_SENSITIVITY;
 
     // Lookup table for associating paddle buttons with controller pins
     // Yes, this is hideously complex
-    static const Controller::DigitalPin ourButtonPin[2];
+    static const std::array<Controller::DigitalPin, 2> ourButtonPin;
 
   private:
     // Following constructors and assignment operators not supported

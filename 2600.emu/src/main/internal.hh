@@ -14,14 +14,15 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 
-#include <OSystem.hxx>
-#include <stella/emucore/Console.hxx>
+class OSystem;
+#include <stella/emucore/Props.hxx>
 #include <emuframework/OptionView.hh>
 
 static constexpr uint TV_PHOSPHOR_AUTO = 2;
 extern Byte1Option optionTVPhosphor;
 extern Byte1Option optionTVPhosphorBlend;
 extern Byte1Option optionVideoSystem;
+extern Byte1Option optionAudioResampleQuality;
 extern Properties defaultGameProps;
 extern bool p1DiffB, p2DiffB, vcsColor;
 extern std::unique_ptr<OSystem> osystem;

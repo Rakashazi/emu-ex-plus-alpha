@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -49,9 +49,11 @@ class CartridgeAR : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeAR(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeAR(const ByteBuffer& image, size_t size, const string& md5,
+                const Settings& settings);
     virtual ~CartridgeAR() = default;
 
   public:
@@ -77,8 +79,10 @@ class CartridgeAR : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -100,7 +104,7 @@ class CartridgeAR : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -183,47 +187,47 @@ class CartridgeAR : public Cartridge
 
   private:
     // Indicates the offset within the image for the corresponding bank
-    uInt32 myImageOffset[2];
+    std::array<uInt32, 2> myImageOffset;
 
     // The 6K of RAM and 2K of ROM contained in the Supercharger
-    uInt8 myImage[8192];
+    std::array<uInt8, 8_KB> myImage;
 
     // The 256 byte header for the current 8448 byte load
-    uInt8 myHeader[256];
+    std::array<uInt8, 256> myHeader;
 
     // Size of the ROM image
-    uInt32 mySize;
+    size_t mySize{0};
 
     // All of the 8448 byte loads associated with the game
-    BytePtr myLoadImages;
+    ByteBuffer myLoadImages;
 
     // Indicates how many 8448 loads there are
-    uInt8 myNumberOfLoadImages;
+    uInt8 myNumberOfLoadImages{0};
 
     // Indicates if the RAM is write enabled
-    bool myWriteEnabled;
+    bool myWriteEnabled{false};
 
     // Indicates if the ROM's power is on or off
-    bool myPower;
+    bool myPower{true};
 
     // Data hold register used for writing
-    uInt8 myDataHoldRegister;
+    uInt8 myDataHoldRegister{0};
 
     // Indicates number of distinct accesses when data hold register was set
-    uInt32 myNumberOfDistinctAccesses;
+    uInt32 myNumberOfDistinctAccesses{0};
 
     // Indicates if a write is pending or not
-    bool myWritePending;
+    bool myWritePending{false};
 
     // Indicates which bank is currently active
-    uInt16 myCurrentBank;
+    uInt16 myCurrentBank{0};
 
     // Fake SC-BIOS code to simulate the Supercharger load bars
-    static uInt8 ourDummyROMCode[294];
+    static std::array<uInt8, 294> ourDummyROMCode;
 
     // Default 256-byte header to use if one isn't included in the ROM
     // This data comes from z26
-    static const uInt8 ourDefaultHeader[256];
+    static const std::array<uInt8, 256> ourDefaultHeader;
 
   private:
     // Following constructors and assignment operators not supported

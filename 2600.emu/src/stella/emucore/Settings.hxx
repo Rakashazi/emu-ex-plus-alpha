@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,51 +18,70 @@
 #ifndef SETTINGS_HXX
 #define SETTINGS_HXX
 
-class OSystem;
+#include <map>
 
 #include "Variant.hxx"
 #include "bspf.hxx"
+#include "repository/KeyValueRepository.hxx"
 
 /**
-  This class provides an interface for accessing frontend specific settings.
+  This class provides an interface for accessing all configurable options,
+  both from the settings file and from the commandline.
+
+  Note that options can be configured as 'permanent' or 'temporary'.
+  Permanent options are ones that the app registers with the system, and
+  always saves when the app exits.  Temporary options are those that are
+  used when appropriate, but never saved to the settings file.
+
+  Each c'tor (both in the base class and in any derived classes) are
+  responsible for registering all options as either permanent or temporary.
+  If an option isn't registered as permanent, it will be considered
+  temporary and will not be saved.
 
   @author  Stephen Anthony
 */
 class Settings
 {
-  friend class OSystem;
-
   public:
     /**
       Create a new settings abstract class
     */
-    Settings(OSystem& osystem);
+    explicit Settings();
     virtual ~Settings() = default;
 
+    using Options = std::map<string, Variant>;
+
+    static constexpr int SETTINGS_VERSION = 1;
+    static constexpr const char* SETTINGS_VERSION_KEY = "settings.version";
+
   public:
-    /**
-      This method should be called to load the arguments from the commandline.
-
-      @return Name of the ROM to load, otherwise empty string
-    */
-    string loadCommandLine(int argc, char** argv);
-
-    /**
-      This method should be called *after* settings have been read,
-      to validate (and change, if necessary) any improper settings.
-    */
-    void validate();
-
     /**
       This method should be called to display usage information.
     */
     void usage() const;
 
+    void setRepository(shared_ptr<KeyValueRepository> repository);
+
+    /**
+      This method is called to load settings from the settings file,
+      and apply commandline options specified by the given parameter.
+
+      @param options  A list of options that overrides ones in the
+                      settings file
+    */
+    void load(const Options& options);
+
+    /**
+      This method is called to save the current settings to the
+      settings file.
+    */
+    void save();
+
     /**
       Get the value assigned to the specified key.
 
-      @param key The key of the setting to lookup
-      @return The (variant) value of the setting
+      @param key  The key of the setting to lookup
+      @return  The value of the setting; EmptyVariant if none exists
     */
     const Variant& value(const string& key) const;
 
@@ -70,84 +89,77 @@ class Settings
       Set the value associated with the specified key.
 
       @param key   The key of the setting
-      @param value The (variant) value to assign to the setting
+      @param value The value to assign to the key
     */
-    void setValue(const string& key, const Variant& value);
+    void setValue(const string& key, const Variant& value, bool persist = true);
 
     /**
       Convenience methods to return specific types.
 
-      @param key The key of the setting to lookup
-      @return The specific type value of the setting
+      @param key  The key of the setting to lookup
+      @return  The specific type value of the variant
     */
     int getInt(const string& key) const     { return value(key).toInt();   }
     float getFloat(const string& key) const { return value(key).toFloat(); }
     bool getBool(const string& key) const   { return value(key).toBool();  }
     const string& getString(const string& key) const { return value(key).toString(); }
-    const GUI::Size getSize(const string& key) const { return value(key).toSize();   }
+    const Common::Size getSize(const string& key) const { return value(key).toSize(); }
+    const Common::Point getPoint(const string& key) const { return value(key).toPoint(); }
 
   protected:
     /**
-      This method will be called to load the current settings from an rc file.
+      Add key/value pair to specified map.  Note that these should only be called
+      directly within the c'tor, to register the 'key' and set it to the
+      appropriate 'value'.  Elsewhere, any derived classes should call 'setValue',
+      and let it decide where the key/value pair will be saved.
     */
-    virtual void loadConfig();
-
-    /**
-      This method will be called to save the current settings to an rc file.
-    */
-    virtual void saveConfig();
+    void setPermanent(const string& key, const Variant& value);
+    void setTemporary(const string& key, const Variant& value);
 
     // Trim leading and following whitespace from a string
-    static string trim(string& str)
+    static string trim(const string& str)
     {
       string::size_type first = str.find_first_not_of(' ');
       return (first == string::npos) ? EmptyString :
               str.substr(first, str.find_last_not_of(' ')-first+1);
     }
 
-  protected:
-    // The parent OSystem object
-    OSystem& myOSystem;
-
-    // Structure used for storing settings
-    struct Setting
-    {
-      string key;
-      Variant value;
-      Variant initialValue;
-
-      Setting(const string& k, const Variant& v, const Variant& i = EmptyVariant)
-        : key(k), value(v), initialValue(i) { }
-    };
-    using SettingsArray = vector<Setting>;
-
-    const SettingsArray& getInternalSettings() const
-      { return myInternalSettings; }
-    const SettingsArray& getExternalSettings() const
-      { return myExternalSettings; }
-
-    /** Get position in specified array of 'key' */
-    int getInternalPos(const string& key) const;
-    int getExternalPos(const string& key) const;
-
-    /** Add key,value pair to specified array at specified position */
-    int setInternal(const string& key, const Variant& value,
-                    int pos = -1, bool useAsInitial = false);
-    int setExternal(const string& key, const Variant& value,
-                    int pos = -1, bool useAsInitial = false);
+    // FIXME - Rework so that these aren't needed; hence no commenting added
+    const Options& getPermanentSettings() const
+      { return myPermanentSettings; }
+    const Options& getTemporarySettings() const
+      { return myTemporarySettings; }
 
   private:
-    // Holds key,value pairs that are necessary for Stella to
-    // function and must be saved on each program exit.
-    SettingsArray myInternalSettings;
+    /**
+      This method must be called *after* settings have been fully loaded
+      to validate (and change, if necessary) any improper settings.
+    */
+    void validate();
 
-    // Holds auxiliary key,value pairs that shouldn't be saved on
+    /**
+      Migrate settings over one version.
+     */
+    void migrateOne();
+
+    /**
+     Migrate settings.
+     */
+    void migrate();
+
+  private:
+    // Holds key/value pairs that are necessary for Stella to
+    // function and must be saved on each program exit.
+    Options myPermanentSettings;
+
+    // Holds auxiliary key/value pairs that shouldn't be saved on
     // program exit.
-    SettingsArray myExternalSettings;
+    Options myTemporarySettings;
+
+    shared_ptr<KeyValueRepository> myRespository;
 
   private:
     // Following constructors and assignment operators not supported
-    Settings() = delete;
     Settings(const Settings&) = delete;
     Settings(Settings&&) = delete;
     Settings& operator=(const Settings&) = delete;

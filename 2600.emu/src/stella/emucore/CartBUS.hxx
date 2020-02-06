@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -51,9 +51,11 @@ class CartridgeBUS : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeBUS(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeBUS(const ByteBuffer& image, size_t size, const string& md5,
+                 const Settings& settings);
     virtual ~CartridgeBUS() = default;
 
   public:
@@ -88,8 +90,10 @@ class CartridgeBUS : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -111,7 +115,7 @@ class CartridgeBUS : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -207,65 +211,65 @@ class CartridgeBUS : public Cartridge
 
   private:
     // The 32K ROM image of the cartridge
-    uInt8 myImage[32768];
+    std::array<uInt8, 32_KB> myImage;
 
     // Pointer to the 28K program ROM image of the cartridge
-    uInt8* myProgramImage;
+    uInt8* myProgramImage{nullptr};
 
     // Pointer to the 4K display ROM image of the cartridge
-    uInt8* myDisplayImage;
+    uInt8* myDisplayImage{nullptr};
 
     // Pointer to the 2K BUS driver image in RAM
-    uInt8* myBusDriverImage;
+    uInt8* myBusDriverImage{nullptr};
 
     // The BUS 8k RAM image, used as:
     //   $0000 - 2K BUS driver
     //   $0800 - 4K Display Data
     //   $1800 - 2K C Variable & Stack
-    uInt8 myBUSRAM[8192];
+    std::array<uInt8, 8_KB> myBUSRAM;
 
     // Pointer to the Thumb ARM emulator object
     unique_ptr<Thumbulator> myThumbEmulator;
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
 
     // Address to override the bus for
-    uInt16 myBusOverdriveAddress;
+    uInt16 myBusOverdriveAddress{0};
 
     // set to address of ZP if last byte peeked was $84 (STY ZP)
-    uInt16 mySTYZeroPageAddress;
+    uInt16 mySTYZeroPageAddress{0};
 
     // set to address of the JMP operand if last byte peeked was 4C
     // *and* the next two bytes in ROM are 00 00
-    uInt16 myJMPoperandAddress;
+    uInt16 myJMPoperandAddress{0};
 
     // System cycle count from when the last update to music data fetchers occurred
-    uInt64 myAudioCycles;
+    uInt64 myAudioCycles{0};
 
     // ARM cycle count from when the last callFunction() occurred
-    uInt64 myARMCycles;
+    uInt64 myARMCycles{0};
 
     // The music mode counters
-    uInt32 myMusicCounters[3];
+    std::array<uInt32, 3> myMusicCounters{0};
 
     // The music frequency
-    uInt32 myMusicFrequencies[3];
+    std::array<uInt32, 3> myMusicFrequencies{0};
 
     // The music waveform sizes
-    uInt8 myMusicWaveformSize[3];
+    std::array<uInt8, 3> myMusicWaveformSize{0};
 
     // Fractional DPC music OSC clocks unused during the last update
-    double myFractionalClocks;
+    double myFractionalClocks{0.0};
 
     // Controls mode, lower nybble sets Fast Fetch, upper nybble sets audio
     // -0 = Bus Stuffing ON
     // -F = Bus Stuffing OFF
     // 0- = Packed Digital Sample
     // F- = 3 Voice Music
-    uInt8 myMode;
+    uInt8 myMode{0};
 
-    uInt8 myFastJumpActive;
+    uInt8 myFastJumpActive{false};
 
   private:
     // Following constructors and assignment operators not supported

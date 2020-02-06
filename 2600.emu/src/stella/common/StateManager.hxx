@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -17,6 +17,8 @@
 
 #ifndef STATE_MANAGER_HXX
 #define STATE_MANAGER_HXX
+
+#define STATE_HEADER "06000007state"
 
 class OSystem;
 class RewindManager;
@@ -43,7 +45,7 @@ class StateManager
     /**
       Create a new statemananger class.
     */
-    StateManager(OSystem& osystem);
+    explicit StateManager(OSystem& osystem);
     ~StateManager();
 
   public:
@@ -112,9 +114,14 @@ class StateManager
     void saveState(int slot = -1);
 
     /**
-      Switches to the next higher state slot (circular queue style).
+      Switches to the next higher or lower state slot (circular queue style).
     */
-    void changeState();
+    void changeState(int direction);
+
+    /**
+      Toggles auto slot mode.
+    */
+    void toggleAutoSlot();
 
     /**
       Load a state into the current system from the given Serializer.
@@ -142,23 +149,24 @@ class StateManager
     void reset();
 
     /**
+      Returns the current slot number
+    */
+    int currentSlot() const { return myCurrentSlot; }
+
+    /**
       The rewind facility for the state manager
     */
     RewindManager& rewindManager() const { return *myRewindManager; }
 
   private:
-    enum {
-      kVersion = 001
-    };
-
     // The parent OSystem object
     OSystem& myOSystem;
 
     // The current slot for load/save states
-    int myCurrentSlot;
+    int myCurrentSlot{0};
 
     // Whether the manager is in record or playback mode
-    Mode myActiveMode;
+    Mode myActiveMode{Mode::Off};
 
     // MD5 of the currently active ROM (either in movie or rewind mode)
     string myMD5;

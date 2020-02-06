@@ -13,18 +13,53 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <OSystem.hxx>
 // TODO: Some Stella types collide with MacTypes.h
-#define BytePtr BytePtrMac
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
-#undef BytePtr
 #undef Debugger
-#undef HAVE_UNISTD_H
-#ifdef Success
-#undef Success // conflict with macro in X11 headers
-#endif
 #include "internal.hh"
+
+class CustomAudioOptionView : public AudioOptionView
+{
+	void setResampleQuality(AudioSettings::ResamplingQuality val)
+	{
+		auto os = osystem.get();
+		logMsg("set resampling quality:%d", (int)val);
+		optionAudioResampleQuality = (uint8_t)val;
+		os->setResampleQuality(val);
+	}
+
+	TextMenuItem resampleQualityItem[3]
+	{
+		{"Low", [this](){ setResampleQuality(AudioSettings::ResamplingQuality::nearestNeightbour); }},
+		{"High", [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_2); }},
+		{"Ultra", [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_3); }},
+	};
+
+	MultiChoiceMenuItem resampleQuality
+	{
+		"Resampling Quality",
+		[]()
+		{
+			switch((AudioSettings::ResamplingQuality)optionAudioResampleQuality.val)
+			{
+				default: return 0;
+				case AudioSettings::ResamplingQuality::lanczos_2: return 1;
+				case AudioSettings::ResamplingQuality::lanczos_3: return 2;
+			}
+		}(),
+		resampleQualityItem
+	};
+
+public:
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&resampleQuality);
+	}
+};
 
 class CustomVideoOptionView : public VideoOptionView
 {
@@ -83,7 +118,7 @@ class ConsoleOptionView : public TableView
 		{
 			if(idx == 2)
 			{
-				bool phospherInUse = osystem->console().properties().get(Display_Phosphor) == "YES";
+				bool phospherInUse = osystem->console().properties().get(PropType::Display_Phosphor) == "YES";
 				return phospherInUse ? "On" : "Off";
 			}
 			else
@@ -104,6 +139,8 @@ class ConsoleOptionView : public TableView
 		{"SECAM 60", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(6, e); }},
 	};
 
+	std::array<char, 12> autoVideoSystemStr{};
+
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
@@ -111,7 +148,7 @@ class ConsoleOptionView : public TableView
 		{
 			if(idx == 0)
 			{
-				return osystem->console().about().DisplayFormat.c_str();
+				return autoVideoSystemStr.data();
 			}
 			else
 				return nullptr;
@@ -148,7 +185,16 @@ public:
 			attach,
 			menuItem
 		}
-	{}
+	{
+		if(osystem->hasConsole())
+			string_copy(autoVideoSystemStr, osystem->console().about().DisplayFormat.c_str());
+	}
+
+	void onShow() final
+	{
+		if(osystem->hasConsole())
+			string_copy(autoVideoSystemStr, osystem->console().about().DisplayFormat.c_str());
+	}
 };
 
 class VCSSwitchesView : public TableView
@@ -251,6 +297,7 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		case ViewID::VIDEO_OPTIONS: return std::make_unique<CustomVideoOptionView>(attach);
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		default: return nullptr;

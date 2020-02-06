@@ -39,7 +39,7 @@ static void handleEndInterruption()
 @end
 #endif
 
-namespace AudioManager
+namespace IG::AudioManager
 {
 
 static bool soloMix_ = true;

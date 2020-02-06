@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,7 @@
 #ifndef M6532_HXX
 #define M6532_HXX
 
-class Console;
+class ConsoleIO;
 class RiotDebug;
 class System;
 class Settings;
@@ -51,7 +51,7 @@ class M6532 : public Device
       @param console  The console the 6532 is associated with
       @param settings The settings used by the system
     */
-    M6532(const Console& console, const Settings& settings);
+    M6532(const ConsoleIO& console, const Settings& settings);
     virtual ~M6532() = default;
 
    public:
@@ -100,13 +100,6 @@ class M6532 : public Device
     */
     bool load(Serializer& in) override;
 
-    /**
-      Get a descriptor for the device name (used in error checking).
-
-      @return The name of the object
-    */
-    string name() const override { return "M6532"; }
-
    public:
     /**
       Get the byte at the specified address
@@ -130,11 +123,19 @@ class M6532 : public Device
      */
     void updateEmulation();
 
+    /**
+      Get a pointer to the RAM contents.
+
+      @return  Pointer to RAM array.
+    */
+    const uInt8* getRAM() const { return myRAM.data(); }
+
   private:
 
     void setTimerRegister(uInt8 data, uInt8 interval);
     void setPinState(bool shcha);
 
+#ifdef DEBUGGER_SUPPORT
     // The following are used by the debugger to read INTIM/TIMINT
     // We need separate methods to do this, so the state of the system
     // isn't changed
@@ -143,7 +144,6 @@ class M6532 : public Device
     Int32 intimClocks();
     uInt32 timerClocks() const;
 
-  #ifdef DEBUGGER_SUPPORT
     void createAccessBases();
 
     /**
@@ -159,80 +159,77 @@ class M6532 : public Device
       @param flags    A bitfield of DisasmType directives for the given address
     */
     void setAccessFlags(uInt16 address, uInt8 flags) override;
-  #endif // DEBUGGER_SUPPORT
+#endif // DEBUGGER_SUPPORT
 
   private:
-    // Accessible bits in the interrupt flag register
-    // All other bits are always zeroed
-    enum {
-      TimerBit = 0x80,
-      PA7Bit = 0x40
-    };
-
     // Reference to the console
-    const Console& myConsole;
+    const ConsoleIO& myConsole;
 
     // Reference to the settings
     const Settings& mySettings;
 
     // An amazing 128 bytes of RAM
-    uInt8 myRAM[128];
+    std::array<uInt8, 128> myRAM;
 
     // Current value of the timer
-    uInt8 myTimer;
+    uInt8 myTimer{0};
 
     // Current number of clocks "queued" for the divider
-    uInt32 mySubTimer;
+    uInt32 mySubTimer{0};
 
     // The divider
-    uInt32 myDivider;
+    uInt32 myDivider{1};
 
     // Has the timer wrapped?
-    bool myTimerWrapped;
-    bool myWrappedThisCycle;
+    bool myTimerWrapped{false};
+    bool myWrappedThisCycle{false};
 
     // Cycle when the timer set. Debugging only.
-    uInt64 mySetTimerCycle;
+    uInt64 mySetTimerCycle{0};
 
     // Last cycle considered in emu updates
-    uInt64 myLastCycle;
+    uInt64 myLastCycle{0};
 
     // Data Direction Register for Port A
-    uInt8 myDDRA;
+    uInt8 myDDRA{0};
 
     // Data Direction Register for Port B
-    uInt8 myDDRB;
+    uInt8 myDDRB{0};
 
     // Last value written to Port A
-    uInt8 myOutA;
+    uInt8 myOutA{0};
 
     // Last value written to Port B
-    uInt8 myOutB;
+    uInt8 myOutB{0};
 
     // Interrupt Flag Register
-    uInt8 myInterruptFlag;
+    uInt8 myInterruptFlag{0};
 
     // Used to determine whether an active transition on PA7 has occurred
     // True is positive edge-detect, false is negative edge-detect
-    bool myEdgeDetectPositive;
+    bool myEdgeDetectPositive{false};
 
     // Last value written to the timer registers
-    uInt8 myOutTimer[4];
+    std::array<uInt8, 4> myOutTimer{0};
+
+    // Accessible bits in the interrupt flag register
+    // All other bits are always zeroed
+    static constexpr uInt8 TimerBit = 0x80, PA7Bit = 0x40;
 
 #ifdef DEBUGGER_SUPPORT
-    // The arrays containing information about every byte of RIOT
-    // indicating whether and how (RW) it is used.
-    BytePtr myRAMAccessBase;
-    BytePtr myStackAccessBase;
-    BytePtr myIOAccessBase;
-    // The array used to skip the first ZP access tracking
-    BytePtr myZPAccessDelay;
-
     static constexpr uInt16
       RAM_SIZE = 0x80, RAM_MASK = RAM_SIZE - 1,
       STACK_SIZE = RAM_SIZE, STACK_MASK = RAM_MASK, STACK_BIT = 0x100,
       IO_SIZE = 0x20, IO_MASK = IO_SIZE - 1, IO_BIT = 0x200,
       ZP_DELAY = 1;
+
+    // The arrays containing information about every byte of RIOT
+    // indicating whether and how (RW) it is used.
+    std::array<uInt8, RAM_SIZE>   myRAMAccessBase;
+    std::array<uInt8, STACK_SIZE> myStackAccessBase;
+    std::array<uInt8, IO_SIZE>    myIOAccessBase;
+    // The array used to skip the first ZP access tracking
+    std::array<uInt8, RAM_SIZE>   myZPAccessDelay;
 #endif // DEBUGGER_SUPPORT
 
   private:

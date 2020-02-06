@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -36,13 +36,13 @@ class Variant
     string data;
 
     // Use singleton so we use only one ostringstream object
-    inline ostringstream& buf() {
+    static ostringstream& buf() {
       static ostringstream buf;
       return buf;
     }
 
   public:
-    Variant() { }
+    Variant() { }  // NOLINT
 
     Variant(const string& s) : data(s) { }
     Variant(const char* s) : data(s) { }
@@ -52,15 +52,29 @@ class Variant
     Variant(float f)  { buf().str(""); buf() << f; data = buf().str(); }
     Variant(double d) { buf().str(""); buf() << d; data = buf().str(); }
     Variant(bool b)   { buf().str(""); buf() << b; data = buf().str(); }
-    Variant(const GUI::Size& s) { buf().str(""); buf() << s; data = buf().str(); }
+    Variant(const Common::Size& s) { buf().str(""); buf() << s; data = buf().str(); }
+    Variant(const Common::Point& s) { buf().str(""); buf() << s; data = buf().str(); }
 
     // Conversion methods
-    const string& toString() const { return data;                          }
-    const char* toCString() const { return data.c_str();             }
-    Int32 toInt() const      { return atoi(data.c_str());            }
-    float toFloat() const    { return float(atof(data.c_str()));     }
-    bool toBool() const      { return data == "1" || data == "true"; }
-    GUI::Size toSize() const { return GUI::Size(data);               }
+    const string& toString() const { return data; }
+    const char* toCString() const { return data.c_str(); }
+    Int32 toInt() const {
+      istringstream ss(data);
+      Int32 parsed;
+      ss >> parsed;
+
+      return parsed;
+    }
+    float toFloat() const {
+      istringstream ss(data);
+      float parsed;
+      ss >> parsed;
+
+      return parsed;
+    }
+    bool toBool() const         { return data == "1" || data == "true"; }
+    Common::Size toSize() const { return Common::Size(data); }
+    Common::Point toPoint() const { return Common::Point(data); }
 
     // Comparison
     bool operator==(const Variant& v) const { return data == v.data; }

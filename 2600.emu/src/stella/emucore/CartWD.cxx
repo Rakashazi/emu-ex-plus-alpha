@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,32 +21,36 @@
 #include "CartWD.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeWD::CartridgeWD(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    mySize(std::min(8195u, size)),
-    myCyclesAtBankswitchInit(0),
-    myPendingBank(0),
-    myCurrentBank(0)
+CartridgeWD::CartridgeWD(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(std::min<size_t>(8_KB + 3, size))
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), mySize);
-  createCodeAccessBase(8192);
-
-  // Remember startup bank
-  myStartBank = 0;
+  if (mySize == 8_KB + 3)
+  {
+    // swap slices 2 & 3
+    std::copy_n(image.get(),            1_KB * 2, myImage.begin());
+    std::copy_n(image.get() + 1_KB * 3, 1_KB * 1, myImage.begin() + 1_KB * 2);
+    std::copy_n(image.get() + 1_KB * 2, 1_KB * 1, myImage.begin() + 1_KB * 3);
+    std::copy_n(image.get() + 1_KB * 4, 1_KB * 4, myImage.begin() + 1_KB * 4);
+  }
+  else
+    std::copy_n(image.get(), mySize, myImage.begin());
+  createCodeAccessBase(8_KB);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeWD::reset()
 {
-  initializeRAM(myRAM, 64);
+  initializeRAM(myRAM.data(), myRAM.size());
+  initializeStartBank(0);
 
   myCyclesAtBankswitchInit = 0;
   myPendingBank = 0xF0;  // one more than the allowable bank #
 
   // Setup segments to some default slices
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -55,7 +59,7 @@ void CartridgeWD::install(System& system)
   mySystem = &system;
 
   // Set the page accessing method for the RAM reading pages
-  System::PageAccess read(this, System::PA_READ);
+  System::PageAccess read(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x1040; addr += System::PAGE_SIZE)
   {
     read.directPeekBase = &myRAM[addr & 0x003F];
@@ -64,10 +68,11 @@ void CartridgeWD::install(System& system)
   }
 
   // Set the page accessing method for the RAM writing pages
-  System::PageAccess write(this, System::PA_WRITE);
+  // Map access to this class, since we need to inspect all accesses to
+  // check if RWP happens
+  System::PageAccess write(this, System::PageAccessType::WRITE);
   for(uInt16 addr = 0x1040; addr < 0x1080; addr += System::PAGE_SIZE)
   {
-    write.directPokeBase = &myRAM[addr & 0x003F];
     write.codeAccessBase = &myCodeAccessBase[addr & 0x003F];
     mySystem->setPageAccess(addr, write);
   }
@@ -77,7 +82,7 @@ void CartridgeWD::install(System& system)
   mySystem->tia().installDelegate(system, *this);
 
   // Setup segments to some default slices
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -111,18 +116,8 @@ uInt8 CartridgeWD::peek(uInt16 address)
     if(address < 0x0040)        // RAM read port
       return myRAM[address];
     else if(address < 0x0080)   // RAM write port
-    {
       // Reading from the write port @ $1040 - $107F triggers an unwanted write
-      uInt8 value = mySystem->getDataBusState(0xFF);
-
-      if(bankLocked())
-        return value;
-      else
-      {
-        triggerReadFromWritePort(peekAddress);
-        return myRAM[address & 0x003F] = value;
-      }
-    }
+      return peekRAM(myRAM[address & 0x003F], peekAddress);
     else if(address < 0x0400)
       return myImage[myOffset[0] + (address & 0x03FF)];
     else if(address < 0x0800)
@@ -137,11 +132,25 @@ uInt8 CartridgeWD::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeWD::poke(uInt16 address, uInt8 value)
 {
-  // Only TIA writes will reach here
-  if(!(address & 0x1000))
+  if(!(address & 0x1000))  // TIA addresses
     return mySystem->tia().poke(address, value);
   else
-    return false;
+  {
+    if(address & 0x040)
+    {
+      pokeRAM(myRAM[address & 0x003F], address, value);
+      return true;
+    }
+    else
+    {
+      // Writing to the read port should be ignored, but trigger a break if option enabled
+      uInt8 dummy;
+
+      pokeRAM(dummy, address, value);
+      myRamWriteAccess = address;
+      return false;
+    }
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -151,10 +160,10 @@ bool CartridgeWD::bank(uInt16 bank)
 
   myCurrentBank = bank;
 
-  segmentZero(ourBankOrg[bank].zero);
-  segmentOne(ourBankOrg[bank].one);
-  segmentTwo(ourBankOrg[bank].two);
-  segmentThree(ourBankOrg[bank].three, ourBankOrg[bank].map3bytes);
+  segmentZero(ourBankOrg[bank & 0x7].zero);
+  segmentOne(ourBankOrg[bank & 0x7].one);
+  segmentTwo(ourBankOrg[bank & 0x7].two);
+  segmentThree(ourBankOrg[bank & 0x7].three);
 
   return myBankChanged = true;
 }
@@ -163,7 +172,7 @@ bool CartridgeWD::bank(uInt16 bank)
 void CartridgeWD::segmentZero(uInt8 slice)
 {
   uInt16 offset = slice << 10;
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Skip first 128 bytes; it is always RAM
   for(uInt16 addr = 0x1080; addr < 0x1400; addr += System::PAGE_SIZE)
@@ -178,7 +187,7 @@ void CartridgeWD::segmentZero(uInt8 slice)
 void CartridgeWD::segmentOne(uInt8 slice)
 {
   uInt16 offset = slice << 10;
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
   {
@@ -192,7 +201,7 @@ void CartridgeWD::segmentOne(uInt8 slice)
 void CartridgeWD::segmentTwo(uInt8 slice)
 {
   uInt16 offset = slice << 10;
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   for(uInt16 addr = 0x1800; addr < 0x1C00; addr += System::PAGE_SIZE)
   {
@@ -203,21 +212,16 @@ void CartridgeWD::segmentTwo(uInt8 slice)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeWD::segmentThree(uInt8 slice, bool map3bytes)
+void CartridgeWD::segmentThree(uInt8 slice)
 {
   uInt16 offset = slice << 10;
 
   // Make a copy of the address space pointed to by the slice
-  // Then map in the extra 3 bytes, if required
-  memcpy(mySegment3, myImage+offset, 1024);
-  if(mySize == 8195 && map3bytes)
-  {
-    mySegment3[0x3FC] = myImage[0x2000+0];
-    mySegment3[0x3FD] = myImage[0x2000+1];
-    mySegment3[0x3FE] = myImage[0x2000+2];
-  }
+  // Then overwrite one byte with 0
+  std::copy_n(myImage.begin()+offset, mySegment3.size(), mySegment3.begin());
+  mySegment3[0x3FC] = 0;
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   for(uInt16 addr = 0x1C00; addr < 0x2000; addr += System::PAGE_SIZE)
   {
@@ -228,7 +232,7 @@ void CartridgeWD::segmentThree(uInt8 slice, bool map3bytes)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeWD::getBank() const
+uInt16 CartridgeWD::getBank(uInt16) const
 {
   return myCurrentBank;
 }
@@ -255,10 +259,10 @@ bool CartridgeWD::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeWD::getImage(uInt32& size) const
+const uInt8* CartridgeWD::getImage(size_t& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -266,9 +270,8 @@ bool CartridgeWD::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myCurrentBank);
-    out.putByteArray(myRAM, 64);
+    out.putByteArray(myRAM.data(), myRAM.size());
     out.putLong(myCyclesAtBankswitchInit);
     out.putShort(myPendingBank);
   }
@@ -286,11 +289,8 @@ bool CartridgeWD::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myCurrentBank = in.getShort();
-    in.getByteArray(myRAM, 64);
+    in.getByteArray(myRAM.data(), myRAM.size());
     myCyclesAtBankswitchInit = in.getLong();
     myPendingBank = in.getShort();
 
@@ -306,21 +306,15 @@ bool CartridgeWD::load(Serializer& in)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeWD::BankOrg CartridgeWD::ourBankOrg[16] = {
-  { 0, 0, 1, 2, false },  // Bank 0
-  { 0, 1, 3, 2, false },  // Bank 1
-  { 4, 5, 6, 7, false },  // Bank 2
-  { 7, 4, 3, 2, false },  // Bank 3
-  { 0, 0, 6, 7, false },  // Bank 4
-  { 0, 1, 7, 6, false },  // Bank 5
-  { 3, 2, 4, 5, false },  // Bank 6
-  { 6, 0, 5, 1, false },  // Bank 7
-  { 0, 0, 1, 2, false },  // Bank 8
-  { 0, 1, 3, 2, false },  // Bank 9
-  { 4, 5, 6, 7, false },  // Bank 10
-  { 7, 4, 3, 2, false },  // Bank 11
-  { 0, 0, 6, 7, true  },  // Bank 12
-  { 0, 1, 7, 6, true  },  // Bank 13
-  { 3, 2, 4, 5, true  },  // Bank 14
-  { 6, 0, 5, 1, true  }   // Bank 15
-};
+const std::array<CartridgeWD::BankOrg, 8> CartridgeWD::ourBankOrg = {{
+                   //            0 1 2 3 4 5 6 7
+  { 0, 0, 1, 3 },  // Bank 0, 8  2 1 - 1 - - - -
+  { 0, 1, 2, 3 },  // Bank 1, 9  1 1 1 1 - - - -
+  { 4, 5, 6, 7 },  // Bank 2, 10  - - - - 1 1 1 1
+  { 7, 4, 2, 3 },  // Bank 3, 11  - - 1 1 1 - - 1
+  { 0, 0, 6, 7 },  // Bank 4, 12  2 - - - - - 1 1
+  { 0, 1, 7, 6 },  // Bank 5, 13  1 1 - - - - 1 1
+  { 2, 3, 4, 5 },  // Bank 6, 14  - - 1 1 1 1 - -
+  { 6, 0, 5, 1 }   // Bank 7, 15  1 1 - - - 1 1 -
+                   // count       7 4 3 4 3 3 4 4
+}};

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,28 +22,14 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 KidVid::KidVid(Jack jack, const Event& event, const System& system,
-               const string& rommd5)
-  : Controller(jack, event, system, Controller::KidVid),
-    myEnabled(myJack == Right),
-    mySampleFile(nullptr),
-    mySharedSampleFile(nullptr),
-    myFileOpened(false),
-    myTapeBusy(false),
-    myFilePointer(0),
-    mySongCounter(0),
-    myBeep(false),
-    mySharedData(false),
-    mySampleByte(0),
-    myGame(0),
-    myTape(0),
-    myIdx(0),
-    myBlock(0),
-    myBlockIdx(0)
+               const string& romMd5)
+  : Controller(jack, event, system, Controller::Type::KidVid),
+    myEnabled(myJack == Jack::Right)
 {
   // Right now, there are only two games that use the KidVid
-  if(rommd5 == "ee6665683ebdb539e89ba620981cb0f6")
+  if(romMd5 == "ee6665683ebdb539e89ba620981cb0f6")
     myGame = KVBBEARS;    // Berenstain Bears
-  else if(rommd5 == "a204cd4fb1944c86e800120706512a64")
+  else if(romMd5 == "a204cd4fb1944c86e800120706512a64")
     myGame = KVSMURFS;    // Smurfs Save the Day
   else
     myEnabled = false;
@@ -66,37 +52,37 @@ void KidVid::update()
     myTape = 0; // rewind Kid Vid tape
     closeSampleFile();
   }
-  if(myEvent.get(Event::KeyboardZero1))
+  if(myEvent.get(Event::KeyboardOne1))
   {
     myTape = 2;
     myIdx = myGame == KVBBEARS ? KVBLOCKBITS : 0;
     myBlockIdx = KVBLOCKBITS;
     myBlock = 0;
     openSampleFile();
-cerr << "myTape = " << myTape << endl;
+//cerr << "myTape = " << myTape << endl;
   }
-  else if(myEvent.get(Event::KeyboardZero2))
+  else if(myEvent.get(Event::KeyboardOne2))
   {
     myTape = 3;
     myIdx = myGame == KVBBEARS ? KVBLOCKBITS : 0;
     myBlockIdx = KVBLOCKBITS;
     myBlock = 0;
     openSampleFile();
-cerr << "myTape = " << myTape << endl;
+//cerr << "myTape = " << myTape << endl;
   }
-  else if(myEvent.get(Event::KeyboardZero3))
+  else if(myEvent.get(Event::KeyboardOne3))
   {
     if(myGame == KVBBEARS)  /* Berenstain Bears ? */
     {
       myTape = 4;
       myIdx = KVBLOCKBITS;
-cerr << "myTape = " << myTape << endl;
+//cerr << "myTape = " << myTape << endl;
     }
     else                    /* no, Smurf Save The Day */
     {
       myTape = 1;
       myIdx = 0;
-cerr << "myTape = " << myTape << endl;
+//cerr << "myTape = " << myTape << endl;
     }
     myBlockIdx = KVBLOCKBITS;
     myBlock = 0;
@@ -104,20 +90,20 @@ cerr << "myTape = " << myTape << endl;
   }
 
   // Convert separate pin states into a 'register'
-  uInt8 IOPortA = 0xf0;
-  if(myDigitalPinState[One])   IOPortA |= 0x01;
-  if(myDigitalPinState[Two])   IOPortA |= 0x02;
-  if(myDigitalPinState[Three]) IOPortA |= 0x04;
-  if(myDigitalPinState[Four])  IOPortA |= 0x08;
+  uInt8 IOPortA = 0b11110000;
+  if(getPin(DigitalPin::One))   IOPortA |= 0b0001;
+  if(getPin(DigitalPin::Two))   IOPortA |= 0b0010;
+  if(getPin(DigitalPin::Three)) IOPortA |= 0b0100;
+  if(getPin(DigitalPin::Four))  IOPortA |= 0b1000;
 
   // Is the tape running?
-  if((myTape != 0) && ((IOPortA & 0x01) == 0x01) && !myTapeBusy)
+  if((myTape != 0) && ((IOPortA & 0b0001) == 0b0001) && !myTapeBusy)
   {
-    IOPortA = (IOPortA & 0xf7) | (((ourKVData[myIdx >> 3] << (myIdx & 0x07)) & 0x80) >> 4);
+    IOPortA = (IOPortA & 0b11110111) | (((ourKVData[myIdx >> 3] << (myIdx & 0x07)) & 0x80) >> 4);
 
     // increase to next bit
-    myIdx++;
-    myBlockIdx--;
+    ++myIdx;
+    --myBlockIdx;
 
     // increase to next block (byte)
     if(myBlockIdx == 0)
@@ -147,21 +133,22 @@ cerr << "myTape = " << myTape << endl;
           }
         }
       }
-      myBlock++;
+      ++myBlock;
       myBlockIdx = KVBLOCKBITS;
     }
   }
 
   // Now convert the register back into separate boolean values
-  myDigitalPinState[One]   = IOPortA & 0x01;
-  myDigitalPinState[Two]   = IOPortA & 0x02;
-  myDigitalPinState[Three] = IOPortA & 0x04;
-  myDigitalPinState[Four]  = IOPortA & 0x08;
+  setPin(DigitalPin::One,   IOPortA & 0b0001);
+  setPin(DigitalPin::Two,   IOPortA & 0b0010);
+  setPin(DigitalPin::Three, IOPortA & 0b0100);
+  setPin(DigitalPin::Four,  IOPortA & 0b1000);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void KidVid::openSampleFile()
 {
+#if 0
   static const char* const kvNameTable[6] = {
     "kvs3.wav", "kvs1.wav", "kvs2.wav", "kvb3.wav", "kvb1.wav", "kvb2.wav"
   };
@@ -202,17 +189,20 @@ cerr << "opened file: " << "kvshared.wav" << endl;
     myTapeBusy = false;
     myFilePointer = StartSong[i];
   }
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void KidVid::closeSampleFile()
 {
+#if 0
   if(myFileOpened)
   {
     fclose(mySampleFile);
     fclose(mySharedSampleFile);
     myFileOpened = false;
   }
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -233,7 +223,7 @@ void KidVid::setNextSong()
       ; // fseek(mySampleFile, ourSongStart[temp], SEEK_SET);
 #endif
 
-    myFilePointer++;
+    ++myFilePointer;
     myTapeBusy = true;
   }
   else
@@ -277,13 +267,13 @@ void KidVid::getNextSampleByte()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8 KidVid::ourKVBlocks[6] = {
+const std::array<uInt8, KidVid::KVBLOCKS> KidVid::ourKVBlocks = {
   2+40, 2+21, 2+35,     /* Smurfs tapes 3, 1, 2 */
   42+60, 42+78, 42+60   /* BBears tapes 1, 2, 3 (40 extra blocks for intro) */
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8 KidVid::ourKVData[6*8] = {
+const std::array<uInt8, KidVid::KVBLOCKBITS> KidVid::ourKVData = {
 /* KVData44 */
   0x7b,  // 0111 1011b  ; (1)0
   0x1e,  // 0001 1110b  ; 1
@@ -350,7 +340,7 @@ const uInt8 KidVid::ourKVData[6*8] = {
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8 KidVid::ourSongPositions[44+38+42+62+80+62] = {
+const std::array<uInt8, KidVid::SONG_POS_SIZE> KidVid::ourSongPositions = {
 /* kvs1 44 */
   11, 12+0x80, 13+0x80, 14, 15+0x80, 16, 8+0x80, 17, 18+0x80, 19, 20+0x80,
   21, 8+0x80, 22, 15+0x80, 23, 18+0x80, 14, 20+0x80, 16, 18+0x80,
@@ -386,7 +376,7 @@ const uInt8 KidVid::ourSongPositions[44+38+42+62+80+62] = {
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt32 KidVid::ourSongStart[104] = {
+const std::array<uInt32, KidVid::SONG_START_SIZE> KidVid::ourSongStart = {
 /* kvshared */
   44,          /* Welcome + intro Berenstain Bears */
   980829,      /* boulders in the road */

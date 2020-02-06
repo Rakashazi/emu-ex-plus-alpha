@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,6 +43,12 @@ FrameLayout FrameLayoutDetector::detectedLayout() const{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FrameLayoutDetector::FrameLayoutDetector()
+{
+  reset();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FrameLayoutDetector::onReset()
 {
   myState = State::waitForVsyncStart;
@@ -69,7 +75,7 @@ void FrameLayoutDetector::onNextLine()
       // We start counting the number of "lines spent while waiting for vsync start" from
       // the "ideal" frame size (corrected by the three scanlines spent in vsync).
       if (myCurrentFrameTotalLines > frameLines - 3 || myTotalFrames == 0)
-        myLinesWaitingForVsyncToStart++;
+        ++myLinesWaitingForVsyncToStart;
 
       if (myLinesWaitingForVsyncToStart > Metrics::waitForVsync) setState(State::waitForVsyncEnd);
 
@@ -103,7 +109,7 @@ void FrameLayoutDetector::setState(State state)
       break;
 
     default:
-      throw new runtime_error("cannot happen");
+      throw runtime_error("cannot happen");
   }
 }
 
@@ -137,11 +143,11 @@ void FrameLayoutDetector::finalizeFrame()
 
   switch (layout()) {
     case FrameLayout::ntsc:
-      myNtscFrames++;
+      ++myNtscFrames;
       break;
 
     case FrameLayout::pal:
-      myPalFrames++;
+      ++myPalFrames;
       break;
 
     default:

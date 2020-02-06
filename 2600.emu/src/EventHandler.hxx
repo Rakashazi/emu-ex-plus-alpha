@@ -1,11 +1,11 @@
-// Customized minimal EvenHandler class needed for 2600.emu
-
 #pragma once
+
+// Customized minimal EventHandler class needed for 2600.emu
 
 #include <stella/emucore/Event.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
+#include <stella/emucore/Control.hxx>
 
-class Console;
 class OSystem;
 
 class EventHandler
@@ -22,12 +22,16 @@ public:
 		S_DEBUGGER
 	};
 
-	Event myEvent{};
-	EventHandlerState myState{EventHandlerState::NONE};
-	bool myAllowAllDirectionsFlag = false;
-
 	EventHandler(OSystem& osystem) {}
 	Event& event() { return myEvent; }
-	void allowAllDirections(bool allow) { myAllowAllDirectionsFlag = allow; }
-	EventHandlerState state() const { return myState; }
+	void allowAllDirections(bool allow) {}
+	EventHandlerState state() const { return EventHandlerState::NONE; }
+	void defineKeyControllerMappings(const Controller::Type type, Controller::Jack port) {}
+	void enableEmulationKeyMappings() {}
+	void defineJoyControllerMappings(const Controller::Type type, Controller::Jack port) {}
+	void enableEmulationJoyMappings() {}
+	void setMouseControllerMode(const string& enable) {}
+
+private:
+	Event myEvent{};
 };

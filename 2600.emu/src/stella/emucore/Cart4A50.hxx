@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -62,9 +62,11 @@ class Cartridge4A50 : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    Cartridge4A50(const BytePtr& image, uInt32 size, const Settings& settings);
+    Cartridge4A50(const ByteBuffer& image, size_t size, const string& md5,
+                  const Settings& settings);
     virtual ~Cartridge4A50() = default;
 
   public:
@@ -96,7 +98,7 @@ class Cartridge4A50 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -217,27 +219,27 @@ class Cartridge4A50 : public Cartridge
 
   private:
     // The 128K ROM image of the cartridge
-    uInt8 myImage[131072];
+    std::array<uInt8, 128_KB> myImage;
 
     // The 32K of RAM on the cartridge
-    uInt8 myRAM[32768];
+    std::array<uInt8, 32_KB> myRAM;
 
     // (Actual) Size of the ROM image
-    uInt32 mySize;
+    size_t mySize{0};
 
     // Indicates the slice mapped into each of the three segments
-    uInt16 mySliceLow;     /* index pointer for $1000-$17ff slice */
-    uInt16 mySliceMiddle;  /* index pointer for $1800-$1dff slice */
-    uInt16 mySliceHigh;    /* index pointer for $1e00-$1eff slice */
+    uInt16 mySliceLow{0};     // index pointer for $1000-$17ff slice
+    uInt16 mySliceMiddle{0};  // index pointer for $1800-$1dff slice
+    uInt16 mySliceHigh{0};    // index pointer for $1e00-$1eff slice
 
     // Indicates whether the given slice is mapped to ROM or RAM
-    bool myIsRomLow;       /* true = ROM -- false = RAM at $1000-$17ff */
-    bool myIsRomMiddle;    /* true = ROM -- false = RAM at $1800-$1dff */
-    bool myIsRomHigh;      /* true = ROM -- false = RAM at $1e00-$1eFF */
+    bool myIsRomLow{true};    // true = ROM -- false = RAM at $1000-$17ff
+    bool myIsRomMiddle{true}; // true = ROM -- false = RAM at $1800-$1dff
+    bool myIsRomHigh{true};   // true = ROM -- false = RAM at $1e00-$1eFF
 
     // The previous address and data values (from peek and poke)
-    uInt16 myLastAddress;
-    uInt8 myLastData;
+    uInt16 myLastAddress{0};
+    uInt8 myLastData{0};
 
   private:
     // Following constructors and assignment operators not supported

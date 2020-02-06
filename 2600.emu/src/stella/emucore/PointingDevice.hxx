@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -58,6 +58,11 @@ class PointingDevice : public Controller
     void update() override;
 
     /**
+      Answers whether the controller is intrinsically an analog controller.
+    */
+    bool isAnalog() const override { return true; }
+
+    /**
       Determines how this controller will treat values received from the
       X/Y axis and left/right buttons of the mouse.  Since not all controllers
       use the mouse the same way (or at all), it's up to the specific class to
@@ -97,28 +102,28 @@ class PointingDevice : public Controller
 
   private:
     // Mouse input to sensitivity emulation
-    float mySensitivity, myHCounterRemainder, myVCounterRemainder;
+    float mySensitivity{0.F}, myHCounterRemainder{0.F}, myVCounterRemainder{0.F};
 
     // How many lines to wait between sending new horz and vert values
-    int myTrackBallLinesH, myTrackBallLinesV;
+    int myTrackBallLinesH{1}, myTrackBallLinesV{1};
 
     // Was TrackBall moved left or moved right instead
-    bool myTrackBallLeft;
+    bool myTrackBallLeft{false};
 
     // Was TrackBall moved down or moved up instead
-    bool myTrackBallDown;
+    bool myTrackBallDown{false};
 
     // Counter to iterate through the gray codes
-    uInt8 myCountH, myCountV;
+    uInt8 myCountH{0}, myCountV{0};
 
     // Next scanline for change
-    int myScanCountH, myScanCountV;
+    int myScanCountH{0}, myScanCountV{0};
 
     // Offset factor for first scanline, 0..(1 << 12 - 1)
-    int myFirstScanOffsetH, myFirstScanOffsetV;
+    int myFirstScanOffsetH{0}, myFirstScanOffsetV{0};
 
     // Whether to use the mouse to emulate this controller
-    bool myMouseEnabled;
+    bool myMouseEnabled{false};
 
     // User-defined sensitivity; adjustable since end-users may have different
     // mouse speeds

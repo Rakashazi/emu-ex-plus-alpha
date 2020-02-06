@@ -20,7 +20,7 @@
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 
-namespace Audio
+namespace IG::Audio
 {
 
 class OpenSLESOutputStream : public OutputStream

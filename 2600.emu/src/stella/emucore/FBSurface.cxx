@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -17,42 +17,31 @@
 
 #include <cmath>
 
-#include "Font.hxx"
 #include "Rect.hxx"
 #include "FrameBuffer.hxx"
 #include "FBSurface.hxx"
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-FBSurface::FBSurface()
-  : myPixels(nullptr),
-    myPitch(0)
-{
-  // NOTE: myPixels and myPitch MUST be set in child classes that inherit
-  // from this class
-
-  // Set default attributes
-  myAttributes.smoothing = false;
-  myAttributes.blending = false;
-  myAttributes.blendalpha = 100;
-}
+#ifdef GUI_SUPPORT
+  #include "Font.hxx"
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::readPixels(uInt8* buffer, uInt32 pitch, const GUI::Rect& rect) const
+void FBSurface::readPixels(uInt8* buffer, uInt32 pitch, const Common::Rect& rect) const
 {
   uInt8* src = reinterpret_cast<uInt8*>(myPixels + rect.y() * myPitch + rect.x());
 
   if(rect.empty())
-    memcpy(buffer, src, width() * height() * 4);
+    std::copy_n(src, width() * height() * 4, buffer);
   else
   {
-    uInt32 w = std::min(rect.width(), width());
-    uInt32 h = std::min(rect.height(), height());
+    uInt32 w = std::min(rect.w(), width());
+    uInt32 h = std::min(rect.h(), height());
 
     // Copy 'height' lines of width 'pitch' (in bytes for both)
     uInt8* dst = buffer;
     while(h--)
     {
-      memcpy(dst, src, w * 4);
+      std::copy_n(src, w * 4, dst);
       src += myPitch * 4;
       dst += pitch * 4;
     }
@@ -60,16 +49,20 @@ void FBSurface::readPixels(uInt8* buffer, uInt32 pitch, const GUI::Rect& rect) c
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::pixel(uInt32 x, uInt32 y, uInt32 color)
+void FBSurface::pixel(uInt32 x, uInt32 y, ColorId color)
 {
+  // Note: checkbounds() must be done in calling method
   uInt32* buffer = myPixels + y * myPitch + x;
 
-  *buffer = uInt32(myPalette[color]);
+  *buffer = myPalette[color];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color)
+void FBSurface::line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, ColorId color)
 {
+  if(!checkBounds(x, y) || !checkBounds(x2, y2))
+    return;
+
   // draw line using Bresenham algorithm
   Int32 dx = (x2 - x);
   Int32 dy = (y2 - y);
@@ -79,8 +72,8 @@ void FBSurface::line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color)
     // x is major axis
     if(dx < 0)
     {
-      uInt32 tx = x; x = x2; x2 = tx;
-      uInt32 ty = y; y = y2; y2 = ty;
+      std::swap(x, x2);
+      y = y2;
       dx = -dx;
       dy = -dy;
     }
@@ -104,8 +97,8 @@ void FBSurface::line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color)
     // y is major axis
     if(dy < 0)
     {
-      uInt32 tx = x; x = x2; x2 = tx;
-      uInt32 ty = y; y = y2; y2 = ty;
+      x = x2;
+      std::swap(y, y2);
       dx = -dx;
       dy = -dy;
     }
@@ -127,26 +120,32 @@ void FBSurface::line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::hLine(uInt32 x, uInt32 y, uInt32 x2, uInt32 color)
+void FBSurface::hLine(uInt32 x, uInt32 y, uInt32 x2, ColorId color)
 {
+  if(!checkBounds(x, y) || !checkBounds(x2, 2))
+    return;
+
   uInt32* buffer = myPixels + y * myPitch + x;
   while(x++ <= x2)
-    *buffer++ = uInt32(myPalette[color]);
+    *buffer++ = myPalette[color];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::vLine(uInt32 x, uInt32 y, uInt32 y2, uInt32 color)
+void FBSurface::vLine(uInt32 x, uInt32 y, uInt32 y2, ColorId color)
 {
+  if(!checkBounds(x, y) || !checkBounds(x, y2))
+    return;
+
   uInt32* buffer = static_cast<uInt32*>(myPixels + y * myPitch + x);
   while(y++ <= y2)
   {
-    *buffer = uInt32(myPalette[color]);
+    *buffer = myPalette[color];
     buffer += myPitch;
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::fillRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h, uInt32 color)
+void FBSurface::fillRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h, ColorId color)
 {
   while(h--)
     hLine(x, y+h, x+w-1, color);
@@ -154,9 +153,10 @@ void FBSurface::fillRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h, uInt32 color)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
-                         uInt32 tx, uInt32 ty, uInt32 color, uInt32 shadowColor)
+                         uInt32 tx, uInt32 ty, ColorId color, ColorId shadowColor)
 {
-  if(shadowColor != 0)
+#ifdef GUI_SUPPORT
+  if(shadowColor != kNone)
   {
     drawChar(font, chr, tx + 1, ty + 0, shadowColor);
     drawChar(font, chr, tx + 0, ty + 1, shadowColor);
@@ -190,8 +190,14 @@ void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
     bby = desc.bbx[chr].y;
   }
 
+  uInt32 cx = tx + bbx;
+  uInt32 cy = ty + desc.ascent - bby - bbh;
+
+  if(!checkBounds(cx , cy) || !checkBounds(cx + bbw - 1, cy + bbh - 1))
+    return;
+
   const uInt16* tmp = desc.bits + (desc.offset ? desc.offset[chr] : (chr * desc.fbbh));
-  uInt32* buffer = myPixels + (ty + desc.ascent - bby - bbh) * myPitch + tx + bbx;
+  uInt32* buffer = myPixels + cy * myPitch + cx;
 
   for(int y = 0; y < bbh; y++)
   {
@@ -200,23 +206,27 @@ void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
 
     for(int x = 0; x < bbw; x++, mask >>= 1)
       if(ptr & mask)
-        buffer[x] = uInt32(myPalette[color]);
+        buffer[x] = myPalette[color];
 
     buffer += myPitch;
   }
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::drawBitmap(uInt32* bitmap, uInt32 tx, uInt32 ty,
-                           uInt32 color, uInt32 h)
+void FBSurface::drawBitmap(const uInt32* bitmap, uInt32 tx, uInt32 ty,
+                           ColorId color, uInt32 h)
 {
   drawBitmap(bitmap, tx, ty, color, h, h);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::drawBitmap(uInt32* bitmap, uInt32 tx, uInt32 ty,
-                           uInt32 color, uInt32 w, uInt32 h)
+void FBSurface::drawBitmap(const uInt32* bitmap, uInt32 tx, uInt32 ty,
+                           ColorId color, uInt32 w, uInt32 h)
 {
+  if(!checkBounds(tx, ty) || !checkBounds(tx + w - 1, ty + h - 1))
+    return;
+
   uInt32* buffer = myPixels + ty * myPitch + tx;
 
   for(uInt32 y = 0; y < h; ++y)
@@ -224,15 +234,18 @@ void FBSurface::drawBitmap(uInt32* bitmap, uInt32 tx, uInt32 ty,
     uInt32 mask = 1 << (w - 1);
     for(uInt32 x = 0; x < w; ++x, mask >>= 1)
       if(bitmap[y] & mask)
-        buffer[x] = uInt32(myPalette[color]);
+        buffer[x] = myPalette[color];
 
     buffer += myPitch;
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::drawPixels(uInt32* data, uInt32 tx, uInt32 ty, uInt32 numpixels)
+void FBSurface::drawPixels(const uInt32* data, uInt32 tx, uInt32 ty, uInt32 numpixels)
 {
+  if(!checkBounds(tx, ty) || !checkBounds(tx + numpixels - 1, ty))
+    return;
+
   uInt32* buffer = myPixels + ty * myPitch + tx;
 
   for(uInt32 i = 0; i < numpixels; ++i)
@@ -241,7 +254,7 @@ void FBSurface::drawPixels(uInt32* data, uInt32 tx, uInt32 ty, uInt32 numpixels)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::box(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
-                    uInt32 colorA, uInt32 colorB)
+                    ColorId colorA, ColorId colorB)
 {
   hLine(x + 1, y,     x + w - 2, colorA);
   hLine(x,     y + 1, x + w - 1, colorA);
@@ -256,7 +269,7 @@ void FBSurface::box(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
-                          uInt32 color, FrameStyle style)
+                          ColorId color, FrameStyle style)
 {
   switch(style)
   {
@@ -268,47 +281,98 @@ void FBSurface::frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
       break;
 
     case FrameStyle::Dashed:
-      uInt32 i, skip, lwidth = 1;
-
-#ifndef FLAT_UI
-      for(i = x, skip = 1; i < x+w-1; i=i+lwidth+1, ++skip)
-      {
-        if(skip % 2)
-        {
-          hLine(i, y,         i + lwidth, color);
-          hLine(i, y + h - 1, i + lwidth, color);
-        }
-      }
-      for(i = y, skip = 1; i < y+h-1; i=i+lwidth+1, ++skip)
-      {
-        if(skip % 2)
-        {
-          vLine(x,         i, i + lwidth, color);
-          vLine(x + w - 1, i, i + lwidth, color);
-        }
-      }
-#else
-      for(i = x; i < x + w; i += 2)
+      for(uInt32 i = x; i < x + w; i += 2)
       {
         hLine(i, y, i, color);
         hLine(i, y + h - 1, i, color);
       }
-      for(i = y; i < y + h; i += 2)
+      for(uInt32 i = y; i < y + h; i += 2)
       {
         vLine(x, i, i, color);
         vLine(x + w - 1, i, i, color);
       }
-#endif
       break;
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void FBSurface::wrapString(const string& inStr, int pos, string& leftStr, string& rightStr) const
+{
+  for(int i = pos; i > 0; --i)
+  {
+    if(isWhiteSpace(inStr[i]))
+    {
+      leftStr = inStr.substr(0, i);
+      if(inStr[i] == ' ') // skip leading space after line break
+        i++;
+      rightStr = inStr.substr(i);
+      return;
+    }
+  }
+  leftStr = inStr.substr(0, pos);
+  rightStr = inStr.substr(pos);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool FBSurface::isWhiteSpace(const char s) const
+{
+  const string WHITESPACES = " ,.;:+-";
+
+  for(size_t i = 0; i < WHITESPACES.length(); ++i)
+    if(s == WHITESPACES[i])
+      return true;
+
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int FBSurface::drawString(const GUI::Font& font, const string& s,
+  int x, int y, int w, int h,
+  ColorId color, TextAlign align,
+  int deltax, bool useEllipsis, ColorId shadowColor)
+{
+  int lines = 1;
+
+#ifdef GUI_SUPPORT
+  string inStr = s;
+
+  // draw multiline string
+  while (font.getStringWidth(inStr) > w && h >= font.getFontHeight() * 2)
+  {
+    // String is too wide.
+    uInt32 i;
+    string leftStr, rightStr;
+    int w2 = 0;
+
+    // SLOW algorithm to find the acceptable length. But it is good enough for now.
+    for(i = 0; i < inStr.size(); ++i)
+    {
+      int charWidth = font.getCharWidth(inStr[i]);
+      if(w2 + charWidth > w)
+        break;
+
+      w2 += charWidth;
+      //str += inStr[i];
+    }
+    wrapString(inStr, i, leftStr, rightStr);
+    drawString(font, leftStr, x, y, w, color, align, deltax, false, shadowColor);
+    h -= font.getFontHeight();
+    y += font.getFontHeight();
+    inStr = rightStr;
+    lines++;
+  }
+  drawString(font, inStr, x, y, w, color, align, deltax, useEllipsis, shadowColor);
+#endif
+  return lines;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void FBSurface::drawString(const GUI::Font& font, const string& s,
                            int x, int y, int w,
-                           uInt32 color, TextAlign align,
-                           int deltax, bool useEllipsis, uInt32 shadowColor)
+                           ColorId color, TextAlign align,
+                           int deltax, bool useEllipsis, ColorId shadowColor)
 {
+#ifdef GUI_SUPPORT
   const string ELLIPSIS = "\x1d"; // "..."
   const int leftX = x, rightX = x + w;
   uInt32 i;
@@ -357,7 +421,19 @@ void FBSurface::drawString(const GUI::Font& font, const string& s,
 
     x += w;
   }
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt32* FBSurface::myPalette = nullptr;
+bool FBSurface::checkBounds(const uInt32 x, const uInt32 y) const
+{
+  if (x <= width() && y <= height())
+    return true;
+
+  cerr << "FBSurface::checkBounds() failed: "
+    << x << ", " << y << " vs " << width() << ", " << height() << endl;
+  return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+FullPaletteArray FBSurface::myPalette = { 0 };

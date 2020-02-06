@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -48,29 +48,27 @@ class JitterEmulation: public Serializable {
      */
     bool load(Serializer& in) override;
 
-    string name() const override { return "JitterEmulation"; }
-
   private:
 
     void updateJitter(Int32 scanlineDifference);
 
   private:
 
-    uInt32 myLastFrameScanlines;
+    uInt32 myLastFrameScanlines{0};
 
-    Int32 myStableFrameFinalLines;
+    Int32 myStableFrameFinalLines{-1};
 
-    uInt32 myStableFrames;
+    uInt32 myStableFrames{0};
 
-    uInt32 myStabilizationCounter;
+    uInt32 myStabilizationCounter{0};
 
-    uInt32 myDestabilizationCounter;
+    uInt32 myDestabilizationCounter{0};
 
-    Int32 myJitter;
+    Int32 myJitter{0};
 
-    Int32 myJitterFactor;
+    Int32 myJitterFactor{0};
 
-    uInt32 myYStart;
+    uInt32 myYStart{0};
 
   private:
 

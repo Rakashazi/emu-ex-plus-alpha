@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -40,9 +40,11 @@ class CartridgeE7 : public CartridgeMNetwork
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeE7(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeE7(const ByteBuffer& image, size_t size, const string& md5,
+                const Settings& settings);
     virtual ~CartridgeE7() = default;
 
   public:

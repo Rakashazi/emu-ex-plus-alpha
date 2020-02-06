@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -31,20 +31,29 @@ class AmigaMouse : public PointingDevice
       @param system The system using this controller
     */
     AmigaMouse(Jack jack, const Event& event, const System& system)
-      : PointingDevice(jack, event, system, Controller::AmigaMouse,
+      : PointingDevice(jack, event, system, Controller::Type::AmigaMouse,
         trackballSensitivity) { }
     virtual ~AmigaMouse() = default;
+
+    /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "AmigaMouse"; }
 
   protected:
     uInt8 ioPortA(uInt8 countH, uInt8 countV, uInt8, uInt8) override
     {
-      static constexpr uInt32 ourTableH[4] = { 0b0000, 0b1000, 0b1010, 0b0010 };
-      static constexpr uInt32 ourTableV[4] = { 0b0000, 0b0100, 0b0101, 0b0001 };
+      static constexpr std::array<uInt32, 4> ourTableH = {
+        0b0000, 0b1000, 0b1010, 0b0010
+      };
+      static constexpr std::array<uInt32, 4> ourTableV = {
+        0b0000, 0b0100, 0b0101, 0b0001
+      };
 
       return ourTableH[countH] | ourTableV[countV];
     }
 
-    static constexpr float trackballSensitivity = 0.8f;
+    static constexpr float trackballSensitivity = 0.8F;
 };
 
 #endif // AMIGAMOUSE_HXX

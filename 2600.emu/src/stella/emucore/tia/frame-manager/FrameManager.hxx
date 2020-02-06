@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -26,6 +26,24 @@
 class FrameManager: public AbstractFrameManager {
   public:
 
+    enum Metrics : uInt32 {
+      vblankNTSC = 37,
+      vblankPAL = 45,
+      vsync = 3,
+      frameSizeNTSC = 262,
+      frameSizePAL = 312,
+      baseHeightNTSC = 228, // 217..239
+      baseHeightPAL = 274, // 260..288
+      maxHeight = uInt32(baseHeightPAL * 1.05 + 0.5), // 288
+      maxLinesVsync = 50,
+      initialGarbageFrames = TIAConstants::initialGarbageFrames,
+      ystartNTSC = 23,
+      ystartPAL = 32
+    };
+
+
+  public:
+
     FrameManager();
 
   public:
@@ -38,17 +56,25 @@ class FrameManager: public AbstractFrameManager {
 
     uInt32 height() const override { return myHeight; }
 
-    void setFixedHeight(uInt32 height) override;
-
     uInt32 getY() const override { return myY; }
 
     uInt32 scanlines() const override { return myCurrentFrameTotalLines; }
 
     Int32 missingScanlines() const override;
 
-    void setYstart(uInt32 ystart) override;
+    void setVcenter(Int32 vcenter) override;
 
-    uInt32 ystart() const override { return myYStart; }
+    Int32 vcenter() const override { return myVcenter; }
+
+    Int32 minVcenter() const override { return TIAConstants::minVcenter; }
+
+    Int32 maxVcenter() const override { return myMaxVcenter; }
+
+    void setAdjustVSize(Int32 adjustVSize) override;
+
+    Int32 adjustVSize() const override { return myVSizeAdjust; }
+
+    uInt32 startLine() const override { return myYStart; }
 
     void setLayout(FrameLayout mode) override { layout(mode); }
 
@@ -64,11 +90,9 @@ class FrameManager: public AbstractFrameManager {
 
     bool onLoad(Serializer& in) override;
 
-    string name() const override { return "TIA_FrameManager"; }
-
   private:
 
-    enum State {
+    enum class State {
       waitForVsyncStart,
       waitForVsyncEnd,
       waitForFrameStart,
@@ -77,31 +101,28 @@ class FrameManager: public AbstractFrameManager {
 
   private:
 
-    void updateAutodetectedLayout();
-
     void setState(State state);
 
     void updateIsRendering();
 
+    void recalculateMetrics();
+
   private:
 
-    State myState;
-    uInt32 myLineInState;
-    uInt32 myVsyncLines;
-    uInt32 myY, myLastY;
+    State myState{State::waitForVsyncStart};
+    uInt32 myLineInState{0};
+    uInt32 myVsyncLines{0};
+    uInt32 myY{0}, myLastY{0};
 
-    uInt32 myVblankLines;
-    uInt32 myKernelLines;
-    uInt32 myOverscanLines;
-    uInt32 myFrameLines;
-    uInt32 myHeight;
-    uInt32 myFixedHeight;
-    uInt32 myYStart;
+    uInt32 myVblankLines{0};
+    uInt32 myFrameLines{0};
+    uInt32 myHeight{0};
+    uInt32 myYStart{0};
+    Int32 myVcenter{0};
+    Int32 myMaxVcenter{0};
+    Int32 myVSizeAdjust{0};
 
-    bool myJitterEnabled;
-
-    Int32 myStableFrameLines;
-    uInt8 myStableFrameHeightCountdown;
+    bool myJitterEnabled{false};
 
     JitterEmulation myJitterEmulation;
 

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,10 +22,18 @@
 
 namespace TIAConstants {
 
-  constexpr uInt32 frameBufferHeight = 320;
-  constexpr uInt32 minYStart = 1, maxYStart = 64;
-  constexpr uInt32 minViewableHeight = 210, maxViewableHeight = 256;
-  constexpr uInt32 initialGarbageFrames = 10;
+  static constexpr uInt32 frameBufferWidth = 160;
+  static constexpr uInt32 frameBufferHeight = 320;
+  static constexpr Int32 minVcenter = -20; // limit to reasonable values
+  static constexpr Int32 maxVcenter = 20; // limit to reasonable values
+  static constexpr uInt32 viewableWidth = 320;
+  static constexpr uInt32 viewableHeight = 240;
+  static constexpr uInt32 initialGarbageFrames = 10;
+
+  static constexpr uInt16
+    H_PIXEL = 160, H_CYCLES = 76, CYCLE_CLOCKS = 3,
+    H_CLOCKS = H_CYCLES * CYCLE_CLOCKS,   // = 228
+    H_BLANK_CLOCKS = H_CLOCKS - H_PIXEL;  // = 68
 }
 
 enum TIABit {

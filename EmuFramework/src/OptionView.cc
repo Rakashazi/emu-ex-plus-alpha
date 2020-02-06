@@ -142,7 +142,7 @@ static void setFrameInterval(int interval)
 
 static void setAudioRate(int rate)
 {
-	if(rate > AudioManager::nativeFormat().rate)
+	if(rate > IG::AudioManager::nativeFormat().rate)
 		return;
 	optionSoundRate = rate;
 	EmuSystem::configAudioPlayback();
@@ -514,7 +514,7 @@ void AudioOptionView::loadStockItems()
 		audioRateItem.emplace_back("Device Native",
 			[this](TextMenuItem &, View &parent, Input::Event)
 			{
-				setAudioRate(AudioManager::nativeFormat().rate);
+				setAudioRate(IG::AudioManager::nativeFormat().rate);
 				updateAudioRateItem();
 				parent.dismiss();
 				return false;
@@ -522,7 +522,7 @@ void AudioOptionView::loadStockItems()
 		audioRateItem.emplace_back("22KHz", [this]() { setAudioRate(22050); });
 		audioRateItem.emplace_back("32KHz", [this]() { setAudioRate(32000); });
 		audioRateItem.emplace_back("44KHz", [this]() { setAudioRate(44100); });
-		if(AudioManager::nativeFormat().rate >= 48000)
+		if(IG::AudioManager::nativeFormat().rate >= 48000)
 			audioRateItem.emplace_back("48KHz", [this]() { setAudioRate(48000); });
 		item.emplace_back(&audioRate);
 		updateAudioRateItem();

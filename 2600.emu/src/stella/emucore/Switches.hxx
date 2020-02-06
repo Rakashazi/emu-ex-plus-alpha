@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -79,18 +79,16 @@ class Switches : public Serializable
     bool load(Serializer& in) override;
 
     /**
-      Get a descriptor for the device name (used in error checking).
-
-      @return The name of the object
-    */
-    string name() const override { return "Switches"; }
-
-    /**
       Query the 'Console_TelevisionType' switches bit.
 
       @return  True if 'Color', false if 'BlackWhite'
     */
     bool tvColor() const { return mySwitches & 0x08; }
+
+    /**
+      Sets 'Console_TelevisionType' switches bit.
+    */
+    void setTvColor(bool setColor);
 
     /**
       Query the 'Console_LeftDifficulty' switches bit.
@@ -100,6 +98,11 @@ class Switches : public Serializable
     bool leftDifficultyA() const { return mySwitches & 0x40; }
 
     /**
+      Sets 'Console_LeftDifficulty' switches bit.
+    */
+    void setLeftDifficultyA(bool setA);
+
+    /**
       Query the 'Console_RightDifficulty' switches bit.
 
       @return  True if 'A', false if 'B'
@@ -107,21 +110,27 @@ class Switches : public Serializable
     bool rightDifficultyA() const { return mySwitches & 0x80; }
 
     /**
+      Sets 'Console_LeftDifficulty' switches bit.
+    */
+    void setRightDifficultyA(bool setA);
+
+
+    /**
       Toggle between 2600 and 7800 mode depending on settings.
 
       @return  True if 7800 mode enabled, else false
     */
-    bool toggle7800Mode(const Settings& settings);
+    bool check7800Mode(const Settings& settings);
 
   private:
     // Reference to the event object to use
     const Event& myEvent;
 
     // State of the console switches
-    uInt8 mySwitches;
+    uInt8 mySwitches{0xFF};
 
     // Are we in 7800 or 2600 mode?
-    bool myIs7800;
+    bool myIs7800{false};
 
   private:
     // Following constructors and assignment operators not supported

@@ -36,7 +36,7 @@ void setSustainedPerformanceMode(bool on);
 
 }
 
-namespace AudioManager
+namespace IG::AudioManager
 {
 
 uint32_t nativeOutputFramesPerBuffer();

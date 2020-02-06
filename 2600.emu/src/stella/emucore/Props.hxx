@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,29 +20,29 @@
 
 #include "bspf.hxx"
 
-enum PropertyType {
-  Cartridge_MD5,
-  Cartridge_Manufacturer,
-  Cartridge_ModelNo,
-  Cartridge_Name,
-  Cartridge_Note,
-  Cartridge_Rarity,
-  Cartridge_Sound,
-  Cartridge_Type,
-  Console_LeftDifficulty,
-  Console_RightDifficulty,
-  Console_TelevisionType,
+enum class PropType : uInt8 {
+  Cart_MD5,
+  Cart_Manufacturer,
+  Cart_ModelNo,
+  Cart_Name,
+  Cart_Note,
+  Cart_Rarity,
+  Cart_Sound,
+  Cart_StartBank,
+  Cart_Type,
+  Console_LeftDiff,
+  Console_RightDiff,
+  Console_TVType,
   Console_SwapPorts,
   Controller_Left,
   Controller_Right,
   Controller_SwapPaddles,
   Controller_MouseAxis,
   Display_Format,
-  Display_YStart,
-  Display_Height,
+  Display_VCenter,
   Display_Phosphor,
   Display_PPBlend,
-  LastPropType
+  NumTypes
 };
 
 /**
@@ -81,8 +81,9 @@ class Properties
       @param key  The key of the property to lookup
       @return     The value of the property
     */
-    const string& get(PropertyType key) const {
-      return key != LastPropType ? myProperties[key] : EmptyString;
+    const string& get(PropType key) const {
+      uInt8 pos = static_cast<uInt8>(key);
+      return pos < static_cast<uInt8>(PropType::NumTypes) ? myProperties[pos] : EmptyString;
     }
 
     /**
@@ -91,7 +92,7 @@ class Properties
       @param key      The key of the property to set
       @param value    The value to assign to the property
     */
-    void set(PropertyType key, const string& value);
+    void set(PropType key, const string& value);
 
     /**
       Load properties from the specified input stream
@@ -142,7 +143,7 @@ class Properties
       @param key      The key of the property to set
       @param value    The value to assign to the property
     */
-    static void setDefault(PropertyType key, const string& value);
+    static void setDefault(PropType key, const string& value);
 
   private:
     /**
@@ -175,9 +176,9 @@ class Properties
     /**
       Get the property type associated with the named property
 
-      @param name  The PropertyType key associated with the given string
+      @param name  The PropType key associated with the given string
     */
-    static PropertyType getPropertyType(const string& name);
+    static PropType getPropType(const string& name);
 
     /**
       When printing each collection of ROM properties, it is useful to
@@ -187,14 +188,16 @@ class Properties
     static void printHeader();
 
   private:
+    static constexpr size_t NUM_PROPS = static_cast<size_t>(PropType::NumTypes);
+
     // The array of properties
-    string myProperties[LastPropType];
+    std::array<string, NUM_PROPS> myProperties;
 
     // List of default properties to use when none have been provided
-    static string ourDefaultProperties[LastPropType];
+    static std::array<string, NUM_PROPS> ourDefaultProperties;
 
     // The text strings associated with each property type
-    static const char* const ourPropertyNames[LastPropType];
+    static std::array<string, NUM_PROPS> ourPropertyNames;
 };
 
 #endif

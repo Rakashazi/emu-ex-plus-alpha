@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,8 +19,9 @@
 #define SOUND_HXX
 
 class OSystem;
+class AudioQueue;
+class EmulationTiming;
 
-#include "Serializable.hxx"
 #include "bspf.hxx"
 
 /**
@@ -29,11 +30,11 @@ class OSystem;
 
   @author Stephen Anthony
 */
-class Sound : public Serializable
+class Sound
 {
   public:
     /**
-      Create a new sound object.  The init method must be invoked before
+      Create a new sound object.  The open method must be invoked before
       using the object.
     */
     Sound(OSystem& osystem) : myOSystem(osystem) { }
@@ -48,25 +49,10 @@ class Sound : public Serializable
     virtual void setEnabled(bool enable) = 0;
 
     /**
-      Sets the number of channels (mono or stereo sound).
-
-      @param channels The number of channels
-    */
-    virtual void setChannels(uInt32 channels) = 0;
-
-    /**
-      Sets the display framerate.  Sound generation for NTSC and PAL games
-      depends on the framerate, so we need to set it here.
-
-      @param framerate The base framerate depending on NTSC or PAL ROM
-    */
-    virtual void setFrameRate(float framerate) = 0;
-
-    /**
       Start the sound system, initializing it if necessary.  This must be
       called before any calls are made to derived methods.
     */
-    virtual void open() = 0;
+    virtual void open(shared_ptr<AudioQueue>, EmulationTiming*) = 0;
 
     /**
       Should be called to stop the sound system.  Once called the sound
@@ -78,22 +64,17 @@ class Sound : public Serializable
       Set the mute state of the sound object.  While muted no sound is played.
 
       @param state Mutes sound if true, unmute if false
+
+      @return  The previous (old) mute state
     */
-    virtual void mute(bool state) = 0;
+    virtual bool mute(bool state) = 0;
 
     /**
-      Reset the sound device.
-    */
-    virtual void reset() = 0;
+      Toggles the sound mute state.  While muted no sound is played.
 
-    /**
-      Sets the sound register to a given value.
-
-      @param addr  The register address
-      @param value The value to save into the register
-      @param cycle The system cycle at which the register is being updated
+      @return  The previous (old) mute state
     */
-    virtual void set(uInt16 addr, uInt8 value, uInt64 cycle) = 0;
+    virtual bool toggleMute() = 0;
 
     /**
       Sets the volume of the sound device to the specified level.  The
@@ -102,7 +83,7 @@ class Sound : public Serializable
 
       @param percent The new volume percentage level for the sound device
     */
-    virtual void setVolume(Int32 percent) = 0;
+    virtual void setVolume(uInt32 percent) = 0;
 
     /**
       Adjusts the volume of the sound device based on the given direction.
@@ -111,6 +92,11 @@ class Sound : public Serializable
                         amount based on the direction (1 = increase, -1 =decrease)
     */
     virtual void adjustVolume(Int8 direction) = 0;
+
+    /**
+      This method is called to provide information about the sound device.
+    */
+    virtual string about() const = 0;
 
   protected:
     // The OSystem for this sound object

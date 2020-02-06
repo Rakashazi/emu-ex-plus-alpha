@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -42,10 +42,10 @@ class CartridgeF8 : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
-      @param md5       MD5sum of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeF8(const BytePtr& image, uInt32 size, const string& md5,
+    CartridgeF8(const ByteBuffer& image, size_t size, const string& md5,
                 const Settings& settings);
     virtual ~CartridgeF8() = default;
 
@@ -72,8 +72,10 @@ class CartridgeF8 : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -95,7 +97,7 @@ class CartridgeF8 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -151,10 +153,10 @@ class CartridgeF8 : public Cartridge
 
   private:
     // The 8K ROM image of the cartridge
-    uInt8 myImage[8192];
+    std::array<uInt8, 8_KB> myImage;
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
 
   private:
     // Following constructors and assignment operators not supported

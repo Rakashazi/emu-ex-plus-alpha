@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -53,13 +53,6 @@ class Serializable
       @return  False on any errors, else true
     */
     virtual bool load(Serializer& in) = 0;
-
-    /**
-      Get a descriptor for the object name (used in error checking).
-
-      @return The name of the object
-    */
-    virtual string name() const = 0;
 };
 
 #endif

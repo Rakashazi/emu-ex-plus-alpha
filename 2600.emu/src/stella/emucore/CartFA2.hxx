@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -55,9 +55,11 @@ class CartridgeFA2 : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
-      @param osystem   A reference to the OSystem currently in use
+      @param md5       The md5sum of the ROM image
+      @param settings  A reference to the settings object
     */
-    CartridgeFA2(const BytePtr& image, uInt32 size, const OSystem& osystem);
+    CartridgeFA2(const ByteBuffer& image, size_t size, const string& md5,
+                 const Settings& settings);
     virtual ~CartridgeFA2() = default;
 
   public:
@@ -83,8 +85,10 @@ class CartridgeFA2 : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -106,7 +110,7 @@ class CartridgeFA2 : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -132,12 +136,12 @@ class CartridgeFA2 : public Cartridge
     string name() const override { return "CartridgeFA2"; }
 
     /**
-      Informs the cartridge about the name of the ROM file used when
-      creating this cart.
+      Informs the cartridge about the name of the nvram file it will use.
 
-      @param name  The properties file name of the ROM
+      @param nvramdir  The full path of the nvram directory
+      @param romfile   The name of the cart from ROM properties
     */
-    void setRomName(const string& name) override;
+    void setNVRamFile(const string& nvramdir, const string& romfile) override;
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -188,30 +192,27 @@ class CartridgeFA2 : public Cartridge
     void flash(uInt8 operation);
 
   private:
-    // OSsytem currently in use
-    const OSystem& myOSystem;
-
     // The 24K/28K ROM image of the cartridge
-    uInt8 myImage[28 * 1024];
+    std::array<uInt8, 28_KB> myImage;
 
     // Actual usable size of the ROM image
-    uInt32 mySize;
+    size_t mySize{28_KB};
 
     // The 256 bytes of RAM on the cartridge
-    uInt8 myRAM[256];
+    std::array<uInt8, 256> myRAM;
 
     // The time after which the first request of a load/save operation
     // will actually be completed
     // Due to flash RAM constraints, a read/write isn't instantaneous,
     // so we need to emulate the delay as well
-    uInt64 myRamAccessTimeout;
+    uInt64 myRamAccessTimeout{0};
 
     // Full pathname of the file to use when emulating load/save
     // of internal RAM to Harmony cart flash
     string myFlashFile;
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
 
   private:
     // Following constructors and assignment operators not supported

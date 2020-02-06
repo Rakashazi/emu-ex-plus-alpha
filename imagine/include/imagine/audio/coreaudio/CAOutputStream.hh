@@ -19,7 +19,7 @@
 #include <imagine/audio/defs.hh>
 #include <AudioUnit/AudioUnit.h>
 
-namespace Audio
+namespace IG::Audio
 {
 
 class CAOutputStream : public OutputStream

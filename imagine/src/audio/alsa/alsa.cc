@@ -24,7 +24,7 @@
 #include <imagine/thread/Thread.hh>
 #include "alsautils.h"
 
-namespace Audio
+namespace IG::Audio
 {
 
 static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)

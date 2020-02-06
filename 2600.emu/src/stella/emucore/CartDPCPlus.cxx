@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,85 +18,91 @@
 #ifdef DEBUGGER_SUPPORT
   #include "Debugger.hxx"
 #endif
+#include "MD5.hxx"
 #include "System.hxx"
 #include "Thumbulator.hxx"
 #include "CartDPCPlus.hxx"
 #include "TIA.hxx"
+#include "exception/FatalEmulationError.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeDPCPlus::CartridgeDPCPlus(const BytePtr& image, uInt32 size,
-                                   const Settings& settings)
-  : Cartridge(settings),
-    myFastFetch(false),
-    myLDAimmediate(false),
-    myParameterPointer(0),
-    myAudioCycles(0),
-    myARMCycles(0),
-    myFractionalClocks(0.0),
-    myBankOffset(0)
+CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
+                                   const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(std::min(size, myImage.size()))
 {
   // Image is always 32K, but in the case of ROM > 29K, the image is
   // copied to the end of the buffer
-  mySize = std::min(size, 32768u);
-  if(mySize < 32768u)
-    memset(myImage, 0, 32768);
-  memcpy(myImage + (32768u - mySize), image.get(), size);
-  createCodeAccessBase(4096 * 6);
+  if(mySize < myImage.size())
+    myImage.fill(0);
+  std::copy_n(image.get(), size, myImage.begin() + (myImage.size() - mySize));
+  createCodeAccessBase(24_KB);
 
-  // Pointer to the program ROM (24K @ 3072 byte offset; ignore first 3K)
-  myProgramImage = myImage + 0xC00;
+  // Pointer to the program ROM (24K @ 3K offset; ignore first 3K)
+  myProgramImage = myImage.data() + 3_KB;
 
   // Pointer to the display RAM
-  myDisplayImage = myDPCRAM + 0xC00;
+  myDisplayImage = myDPCRAM.data() + 3_KB;
 
   // Pointer to the Frequency RAM
-  myFrequencyImage = myDisplayImage + 0x1000;
+  myFrequencyImage = myDisplayImage + 4_KB;
 
   // Create Thumbulator ARM emulator
+  bool devSettings = settings.getBool("dev.settings");
   myThumbEmulator = make_unique<Thumbulator>
-      (reinterpret_cast<uInt16*>(myImage),
-       reinterpret_cast<uInt16*>(myDPCRAM),
-       settings.getBool("thumb.trapfatal"),
+      (reinterpret_cast<uInt16*>(myImage.data()),
+       reinterpret_cast<uInt16*>(myDPCRAM.data()),
+       static_cast<uInt32>(myImage.size()),
+       devSettings ? settings.getBool("dev.thumb.trapfatal") : false,
        Thumbulator::ConfigureFor::DPCplus,
        this);
 
-  setInitialState();
+  // Currently only one known DPC+ ARM driver exhibits a problem
+  // with the default mask to use for DFxFRACLOW
+  if(MD5::hash(image, 3_KB) == "8dd73b44fd11c488326ce507cbeb19d1")
+    myFractionalLowMask = 0x0F0000;
 
-  // DPC+ always starts in bank 5
-  myStartBank = 5;
+  setInitialState();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeDPCPlus::reset()
 {
-  myAudioCycles = myARMCycles = 0;
-  myFractionalClocks = 0.0;
-
   setInitialState();
 
+  // DPC+ always starts in bank 5
+  initializeStartBank(5);
+
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeDPCPlus::setInitialState()
 {
   // Reset various ROM and RAM locations
-  memset(myDPCRAM, 0, 8192);
+  myDPCRAM.fill(0);
 
   // Copy initial DPC display data and Frequency table state to Harmony RAM
-  memcpy(myDisplayImage, myProgramImage + 0x6000, 0x1400);
+  std::copy_n(myProgramImage + 24_KB, 5_KB, myDisplayImage);
 
   // Initialize the DPC data fetcher registers
-  for(int i = 0; i < 8; ++i)
-    myTops[i] = myBottoms[i] = myCounters[i] = myFractionalIncrements[i] =
-    myFractionalCounters[i] = 0;
+  myTops.fill(0);
+  myBottoms.fill(0);
+  myFractionalIncrements.fill(0);
+  myFractionalCounters.fill(0);
+  myCounters.fill(0);
 
   // Set waveforms to first waveform entry
-  myMusicWaveforms[0] = myMusicWaveforms[1] = myMusicWaveforms[2] = 0;
+  myMusicWaveforms.fill(0);
 
   // Initialize the DPC's random number generator register (must be non-zero)
   myRandomNumber = 0x2B435044; // "DPC+"
+
+  // Initialize various other parameters
+  myFastFetch = myLDAimmediate = false;
+  myAudioCycles = myARMCycles = 0;
+  myFractionalClocks = 0.0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -111,12 +117,12 @@ void CartridgeDPCPlus::install(System& system)
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x1080; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Install pages for the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -131,7 +137,7 @@ inline void CartridgeDPCPlus::clockRandomNumberGenerator()
 inline void CartridgeDPCPlus::priorClockRandomNumberGenerator()
 {
   // Update random number generator (32-bit LFSR, reversed)
-  myRandomNumber = ((myRandomNumber & (1u<<31)) ?
+  myRandomNumber = ((myRandomNumber & (1U<<31)) ?
     ((0x10adab1e^myRandomNumber) << 11) | ((0x10adab1e^myRandomNumber) >> 21) :
     (myRandomNumber << 11) | (myRandomNumber >> 21));
 }
@@ -187,15 +193,12 @@ inline void CartridgeDPCPlus::callFunction(uInt8 value)
       catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
         {
-      #ifdef DEBUGGER_SUPPORT
-          Debugger::debugger().startWithFatalError(e.what());
-      #else
-          cout << e.what() << endl;
-      #endif
+          FatalEmulationError::raise(e.what());
         }
       }
       break;
-    // reserved
+    default:  // reserved
+      break;
   }
 }
 
@@ -278,6 +281,9 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
           case 0x06:  // reserved
           case 0x07:  // reserved
             break;
+
+          default:
+            break;
         }
         break;
       }
@@ -322,6 +328,8 @@ uInt8 CartridgeDPCPlus::peek(uInt16 address)
           case 0x05:  // reserved
           case 0x06:  // reserved
           case 0x07:  // reserved
+            break;
+          default:
             break;
         }
         break;
@@ -394,9 +402,10 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
 
     switch(function)
     {
-      //DFxFRACLOW - fractional data pointer low byte
+      // DFxFRACLOW - fractional data pointer low byte
       case 0x00:
-        myFractionalCounters[index] = (myFractionalCounters[index] & 0x0F00FF) | (uInt16(value) << 8);
+        myFractionalCounters[index] =
+          (myFractionalCounters[index] & myFractionalLowMask) | (uInt16(value) << 8);
         break;
 
       // DFxFRACHI - fractional data pointer high byte
@@ -450,6 +459,8 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
           case 0x06:  // WAVEFORM1
           case 0x07:  // WAVEFORM2
             myMusicWaveforms[index - 5] =  value & 0x7f;
+            break;
+          default:
             break;
         }
         break;
@@ -523,9 +534,7 @@ bool CartridgeDPCPlus::poke(uInt16 address, uInt8 value)
       }
 
       default:
-      {
         break;
-      }
     }
   }
   else
@@ -579,7 +588,7 @@ bool CartridgeDPCPlus::bank(uInt16 bank)
   myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map Program ROM image into the system
   for(uInt16 addr = 0x1080; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -591,7 +600,7 @@ bool CartridgeDPCPlus::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeDPCPlus::getBank() const
+uInt16 CartridgeDPCPlus::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -618,10 +627,10 @@ bool CartridgeDPCPlus::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeDPCPlus::getImage(uInt32& size) const
+const uInt8* CartridgeDPCPlus::getImage(size_t& size) const
 {
   size = mySize;
-  return myImage + (32768u - mySize);
+  return myImage.data() + (myImage.size() - mySize);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -629,44 +638,42 @@ bool CartridgeDPCPlus::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     // Indicates which bank is currently active
     out.putShort(myBankOffset);
 
     // Harmony RAM
-    out.putByteArray(myDPCRAM, 8192);
+    out.putByteArray(myDPCRAM.data(), myDPCRAM.size());
 
     // The top registers for the data fetchers
-    out.putByteArray(myTops, 8);
+    out.putByteArray(myTops.data(), myTops.size());
 
     // The bottom registers for the data fetchers
-    out.putByteArray(myBottoms, 8);
+    out.putByteArray(myBottoms.data(), myBottoms.size());
 
     // The counter registers for the data fetchers
-    out.putShortArray(myCounters, 8);
+    out.putShortArray(myCounters.data(), myCounters.size());
 
     // The counter registers for the fractional data fetchers
-    out.putIntArray(myFractionalCounters, 8);
+    out.putIntArray(myFractionalCounters.data(), myFractionalCounters.size());
 
     // The fractional registers for the data fetchers
-    out.putByteArray(myFractionalIncrements, 8);
+    out.putByteArray(myFractionalIncrements.data(), myFractionalIncrements.size());
 
     // The Fast Fetcher Enabled flag
     out.putBool(myFastFetch);
     out.putBool(myLDAimmediate);
 
     // Control Byte to update
-    out.putByteArray(myParameter, 8);
+    out.putByteArray(myParameter.data(), myParameter.size());
 
     // The music counters
-    out.putIntArray(myMusicCounters, 3);
+    out.putIntArray(myMusicCounters.data(), myMusicCounters.size());
 
     // The music frequencies
-    out.putIntArray(myMusicFrequencies, 3);
+    out.putIntArray(myMusicFrequencies.data(), myMusicFrequencies.size());
 
     // The music waveforms
-    out.putShortArray(myMusicWaveforms, 3);
+    out.putShortArray(myMusicWaveforms.data(), myMusicWaveforms.size());
 
     // The random number generator register
     out.putInt(myRandomNumber);
@@ -692,45 +699,42 @@ bool CartridgeDPCPlus::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     // Indicates which bank is currently active
     myBankOffset = in.getShort();
 
     // Harmony RAM
-    in.getByteArray(myDPCRAM, 8192);
+    in.getByteArray(myDPCRAM.data(), myDPCRAM.size());
 
     // The top registers for the data fetchers
-    in.getByteArray(myTops, 8);
+    in.getByteArray(myTops.data(), myTops.size());
 
     // The bottom registers for the data fetchers
-    in.getByteArray(myBottoms, 8);
+    in.getByteArray(myBottoms.data(), myBottoms.size());
 
     // The counter registers for the data fetchers
-    in.getShortArray(myCounters, 8);
+    in.getShortArray(myCounters.data(), myCounters.size());
 
     // The counter registers for the fractional data fetchers
-    in.getIntArray(myFractionalCounters, 8);
+    in.getIntArray(myFractionalCounters.data(), myFractionalCounters.size());
 
     // The fractional registers for the data fetchers
-    in.getByteArray(myFractionalIncrements, 8);
+    in.getByteArray(myFractionalIncrements.data(), myFractionalIncrements.size());
 
     // The Fast Fetcher Enabled flag
     myFastFetch = in.getBool();
     myLDAimmediate = in.getBool();
 
     // Control Byte to update
-    in.getByteArray(myParameter, 8);
+    in.getByteArray(myParameter.data(), myParameter.size());
 
     // The music mode counters for the data fetchers
-    in.getIntArray(myMusicCounters, 3);
+    in.getIntArray(myMusicCounters.data(), myMusicCounters.size());
 
     // The music mode frequency addends for the data fetchers
-    in.getIntArray(myMusicFrequencies, 3);
+    in.getIntArray(myMusicFrequencies.data(), myMusicFrequencies.size());
 
     // The music waveforms
-    in.getShortArray(myMusicWaveforms, 3);
+    in.getShortArray(myMusicWaveforms.data(), myMusicWaveforms.size());
 
     // The random number generator register
     myRandomNumber = in.getInt();

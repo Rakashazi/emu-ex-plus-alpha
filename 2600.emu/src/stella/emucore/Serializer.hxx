@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -35,6 +35,9 @@
 class Serializer
 {
   public:
+    enum class Mode { ReadOnly, ReadWrite, ReadWriteTrunc };
+
+  public:
     /**
       Creates a new Serializer device for streaming binary data.
 
@@ -46,7 +49,7 @@ class Serializer
       The valid() method must immediately be called to verify the stream
       was correctly initialized.
     */
-    Serializer(const string& filename, bool readonly = false);
+    Serializer(const string& filename, Mode m = Mode::ReadWrite);
     Serializer();
 
   public:
@@ -62,6 +65,11 @@ class Serializer
     void rewind();
 
     /**
+      Returns the current write pointer location.
+    */
+    size_t size() const;
+
+    /**
       Reads a byte value (unsigned 8-bit) from the current input stream.
 
       @result The byte value which has been read from the stream.
@@ -74,7 +82,7 @@ class Serializer
       @param array  The location to store the bytes read
       @param size   The size of the array (number of bytes to read)
     */
-    void getByteArray(uInt8* array, uInt32 size) const;
+    void getByteArray(uInt8* array, size_t size) const;
 
     /**
       Reads a short value (unsigned 16-bit) from the current input stream.
@@ -89,7 +97,7 @@ class Serializer
       @param array  The location to store the shorts read
       @param size   The size of the array (number of shorts to read)
     */
-    void getShortArray(uInt16* array, uInt32 size) const;
+    void getShortArray(uInt16* array, size_t size) const;
 
     /**
       Reads an int value (unsigned 32-bit) from the current input stream.
@@ -104,7 +112,7 @@ class Serializer
       @param array  The location to store the integers read
       @param size   The size of the array (number of integers to read)
     */
-    void getIntArray(uInt32* array, uInt32 size) const;
+    void getIntArray(uInt32* array, size_t size) const;
 
     /**
       Reads a long int value (unsigned 64-bit) from the current input stream.
@@ -147,7 +155,7 @@ class Serializer
       @param array  The bytes to write
       @param size   The size of the array (number of bytes to write)
     */
-    void putByteArray(const uInt8* array, uInt32 size);
+    void putByteArray(const uInt8* array, size_t size);
 
     /**
       Writes a short value (unsigned 16-bit) to the current output stream.
@@ -162,7 +170,7 @@ class Serializer
       @param array  The short to write
       @param size   The size of the array (number of shorts to write)
     */
-    void putShortArray(const uInt16* array, uInt32 size);
+    void putShortArray(const uInt16* array, size_t size);
 
     /**
       Writes an int value (unsigned 32-bit) to the current output stream.
@@ -177,7 +185,7 @@ class Serializer
       @param array  The integers to write
       @param size   The size of the array (number of integers to write)
     */
-    void putIntArray(const uInt32* array, uInt32 size);
+    void putIntArray(const uInt32* array, size_t size);
 
     /**
       Writes a long int value (unsigned 64-bit) to the current output stream.
@@ -211,10 +219,7 @@ class Serializer
     // The stream to send the serialized data to.
     unique_ptr<iostream> myStream;
 
-    enum {
-      TruePattern  = 0xfe,
-      FalsePattern = 0x01
-    };
+    static constexpr uInt8 TruePattern = 0xfe, FalsePattern = 0x01;
 
   private:
     // Following constructors and assignment operators not supported

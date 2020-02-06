@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,18 +19,10 @@
 #include "DrawCounterDecodes.hxx"
 #include "TIA.hxx"
 
-enum Count: Int8 {
-  renderCounterOffset = -5,
-};
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Player::Player(uInt32 collisionMask)
-  : myCollisionMaskDisabled(collisionMask),
-    myCollisionMaskEnabled(0xFFFF),
-    myIsSuppressed(false),
-    myDecodesOffset(0)
+  : myCollisionMaskDisabled(collisionMask)
 {
-  reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -39,7 +31,7 @@ void Player::reset()
   myDecodes = DrawCounterDecodes::get().playerDecodes()[myDecodesOffset];
   myHmmClocks = 0;
   myCounter = 0;
-  myIsMoving = false;
+  isMoving = false;
   myIsRendering = false;
   myRenderCounter = 0;
   myPatternOld = 0;
@@ -52,9 +44,11 @@ void Player::reset()
   mySampleCounter = 0;
   myDividerPending = 0;
   myDividerChangeCounter = -1;
+  myInvertedPhaseClock = false;
+  myUseInvertedPhaseClock = false;
+  myPattern = 0;
 
   setDivider(1);
-  updatePattern();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -103,7 +97,7 @@ void Player::nusiz(uInt8 value, bool hblank)
     myDecodes != oldDecodes &&
     myIsRendering &&
     (myRenderCounter - Count::renderCounterOffset) < 2 &&
-    !myDecodes[(myCounter - myRenderCounter + Count::renderCounterOffset + 159) % 160]
+    !myDecodes[(myCounter - myRenderCounter + Count::renderCounterOffset + TIAConstants::H_PIXEL - 1) % TIAConstants::H_PIXEL]
   ) {
     myIsRendering = false;
   }
@@ -139,7 +133,7 @@ void Player::nusiz(uInt8 value, bool hblank)
           setDivider(myDividerPending);
         } else if (delta < (hblank ? 6 : 5)) {
           setDivider(myDividerPending);
-          myRenderCounter--;
+          --myRenderCounter;
         } else {
           myDividerChangeCounter = (hblank ? 0 : 1);
         }
@@ -172,8 +166,8 @@ void Player::resp(uInt8 counter)
 
   // This tries to account for the effects of RESP during draw counter decode as
   // described in Andrew Towers' notes. Still room for tuning.'
-  if (myIsRendering && (myRenderCounter - renderCounterOffset) < 4)
-    myRenderCounter = renderCounterOffset + (counter - 157);
+  if (myIsRendering && (myRenderCounter - Count::renderCounterOffset) < 4)
+    myRenderCounter = Count::renderCounterOffset + (counter - 157);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -251,62 +245,24 @@ void Player::applyColorLoss()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Player::setInvertedPhaseClock(bool enable)
+{
+  myUseInvertedPhaseClock = enable;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Player::startMovement()
 {
-  myIsMoving = true;
+  isMoving = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Player::movementTick(uInt32 clock, bool apply)
-{
-  if (clock == myHmmClocks) {
-    myIsMoving = false;
-  }
-
-  if (myIsMoving && apply) tick();
-
-  return myIsMoving;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Player::tick()
+void Player::nextLine()
 {
   if (!myIsRendering || myRenderCounter < myRenderCounterTripPoint)
     collision = myCollisionMaskDisabled;
   else
     collision = (myPattern & (1 << mySampleCounter)) ? myCollisionMaskEnabled : myCollisionMaskDisabled;
-
-  if (myDecodes[myCounter]) {
-    myIsRendering = true;
-    mySampleCounter = 0;
-    myRenderCounter = Count::renderCounterOffset;
-  } else if (myIsRendering) {
-    myRenderCounter++;
-
-    switch (myDivider) {
-      case 1:
-        if (myRenderCounter > 0)
-          mySampleCounter++;
-
-        if (myRenderCounter >= 0 && myDividerChangeCounter >= 0 && myDividerChangeCounter-- == 0)
-          setDivider(myDividerPending);
-
-        break;
-
-      default:
-        if (myRenderCounter > 1 && (((myRenderCounter - 1) % myDivider) == 0))
-          mySampleCounter++;
-
-        if (myRenderCounter > 0 && myDividerChangeCounter >= 0 && myDividerChangeCounter-- == 0)
-          setDivider(myDividerPending);
-
-        break;
-    }
-
-    if (mySampleCounter > 7) myIsRendering = false;
-  }
-
-  if (++myCounter >= 160) myCounter = 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -328,13 +284,13 @@ uInt8 Player::getRespClock() const
   switch (myDivider)
   {
     case 1:
-      return (myCounter + 160 - 5) % 160;
+      return (myCounter + TIAConstants::H_PIXEL - 5) % TIAConstants::H_PIXEL;
 
     case 2:
-      return (myCounter + 160 - 9) % 160;
+      return (myCounter + TIAConstants::H_PIXEL - 9) % TIAConstants::H_PIXEL;
 
     case 4:
-      return (myCounter + 160 - 12) % 160;
+      return (myCounter + TIAConstants::H_PIXEL - 12) % TIAConstants::H_PIXEL;
 
     default:
       throw runtime_error("invalid width");
@@ -372,6 +328,11 @@ void Player::updatePattern()
       ((myPattern & 0x80) >> 7)
     );
   }
+
+  if (myIsRendering && myRenderCounter >= myRenderCounterTripPoint) {
+    collision = (myPattern & (1 << mySampleCounter)) ? myCollisionMaskEnabled : myCollisionMaskDisabled;
+    myTIA->scheduleCollisionUpdate();
+  }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -405,12 +366,12 @@ uInt8 Player::getPosition() const
   //    (current counter - 156 (the decode clock of copy 0)) +
   //    clock count after decode until first pixel +
   //    shift (accounts for wide player shift) +
-  //    1 (it'll take another cycle after the decode for the rendter counter to start ticking)
+  //    1 (it'll take another cycle after the decode for the render counter to start ticking)
   //
-  // The result may be negative, so we add 160 and do the modulus -> 317 = 156 + 160 + 1
+  // The result may be negative, so we add TIA::H_PIXEL and do the modulus -> 317 = 156 + TIA::H_PIXEL + 1
   //
   // Mind the sign of renderCounterOffset: it's defined negative above
-  return (317 - myCounter - Count::renderCounterOffset + shift + myTIA->getPosition()) % 160;
+  return (317 - myCounter - Count::renderCounterOffset + shift + myTIA->getPosition()) % TIAConstants::H_PIXEL;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -421,7 +382,7 @@ void Player::setPosition(uInt8 newPosition)
   const uInt8 shift = myDivider == 1 ? 0 : 1;
 
   // See getPosition for an explanation
-  myCounter = (317 - newPosition - Count::renderCounterOffset + shift + myTIA->getPosition()) % 160;
+  myCounter = (317 - newPosition - Count::renderCounterOffset + shift + myTIA->getPosition()) % TIAConstants::H_PIXEL;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -429,8 +390,6 @@ bool Player::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     out.putInt(collision);
     out.putInt(myCollisionMaskDisabled);
     out.putInt(myCollisionMaskEnabled);
@@ -443,7 +402,7 @@ bool Player::save(Serializer& out) const
 
     out.putByte(myHmmClocks);
     out.putByte(myCounter);
-    out.putBool(myIsMoving);
+    out.putBool(isMoving);
 
     out.putBool(myIsRendering);
     out.putByte(myRenderCounter);
@@ -461,6 +420,7 @@ bool Player::save(Serializer& out) const
 
     out.putBool(myIsReflected);
     out.putBool(myIsDelaying);
+    out.putBool(myInvertedPhaseClock);
   }
   catch(...)
   {
@@ -476,9 +436,6 @@ bool Player::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     collision = in.getInt();
     myCollisionMaskDisabled = in.getInt();
     myCollisionMaskEnabled = in.getInt();
@@ -491,7 +448,7 @@ bool Player::load(Serializer& in)
 
     myHmmClocks = in.getByte();
     myCounter = in.getByte();
-    myIsMoving = in.getBool();
+    isMoving = in.getBool();
 
     myIsRendering = in.getBool();
     myRenderCounter = in.getByte();
@@ -510,6 +467,7 @@ bool Player::load(Serializer& in)
 
     myIsReflected = in.getBool();
     myIsDelaying = in.getBool();
+    myInvertedPhaseClock = in.getBool();
 
     applyColors();
   }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,42 +19,38 @@
 #include "CartMNetwork.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeMNetwork::CartridgeMNetwork(const BytePtr& image, uInt32 size,
-                                     const Settings& settings)
-  : Cartridge(settings),
-    mySize(size),
-    myCurrentRAM(0)
+CartridgeMNetwork::CartridgeMNetwork(const ByteBuffer& image, size_t size,
+                                     const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(size)
 {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeMNetwork::initialize(const BytePtr& image, uInt32 size)
+void CartridgeMNetwork::initialize(const ByteBuffer& image, size_t size)
 {
   // Allocate array for the ROM image
   myImage = make_unique<uInt8[]>(size);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image.get(), std::min(romSize(), size));
-  createCodeAccessBase(romSize() + RAM_SIZE);
+  std::copy_n(image.get(), std::min<size_t>(romSize(), size), myImage.get());
+  createCodeAccessBase(romSize() + myRAM.size());
 
-  // Remember startup bank
-  myStartBank = 0;
   myRAMSlice = bankCount() - 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeMNetwork::reset()
 {
-  initializeRAM(myRAM, RAM_SIZE);
+  initializeRAM(myRAM.data(), myRAM.size());
 
-  // define random startup banks
-  randomizeStartBank();
+  initializeStartBank(0);
   uInt32 ramBank = randomStartBank() ?
     mySystem->randGenerator().next() % 4 : 0;
 
   // Install some default banks for the RAM and first segment
   bankRAM(ramBank);
-  bank(myStartBank);
+  bank(startBank());
 
   myBankChanged = true;
 }
@@ -70,10 +66,10 @@ void CartridgeMNetwork::setAccess(uInt16 addrFrom, uInt16 size,
 
   for(uInt16 addr = addrFrom; addr < addrFrom + size; addr += System::PAGE_SIZE)
   {
-    if (type == System::PA_READ)
+    if(type == System::PageAccessType::READ)
       access.directPeekBase = &directData[directOffset + (addr & addrMask)];
-    if(type == System::PA_WRITE)
-      access.directPokeBase = &directData[directOffset + (addr & addrMask)];
+    else if(type == System::PageAccessType::WRITE)  // all RAM writes mapped to ::poke()
+      access.directPokeBase = nullptr;
     access.codeAccessBase = &myCodeAccessBase[codeOffset + (addr & addrMask)];
     mySystem->setPageAccess(addr, access);
   }
@@ -84,7 +80,7 @@ void CartridgeMNetwork::install(System& system)
 {
   mySystem = &system;
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Set the page accessing methods for the hot spots
   for(uInt16 addr = (0x1FE0 & ~System::PAGE_MASK); addr < 0x2000;
@@ -98,12 +94,12 @@ void CartridgeMNetwork::install(System& system)
 
   // Setup the second segment to always point to the last ROM slice
   setAccess(0x1A00, 0x1FE0U & (~System::PAGE_MASK - 0x1A00),
-            myRAMSlice * BANK_SIZE, myImage.get(), myRAMSlice * BANK_SIZE, System::PA_READ, BANK_SIZE - 1);
+            myRAMSlice * BANK_SIZE, myImage.get(), myRAMSlice * BANK_SIZE, System::PageAccessType::READ, BANK_SIZE - 1);
   myCurrentSlice[1] = myRAMSlice;
 
   // Install some default banks for the RAM and first segment
   bankRAM(0);
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,44 +114,38 @@ uInt8 CartridgeMNetwork::peek(uInt16 address)
   if((myCurrentSlice[0] == myRAMSlice) && (address < BANK_SIZE / 2))
   {
     // Reading from the 1K write port @ $1000 triggers an unwanted write
-    uInt8 value = mySystem->getDataBusState(0xFF);
-
-    if(bankLocked())
-      return value;
-    else
-    {
-      triggerReadFromWritePort(peekAddress);
-      return myRAM[address & (BANK_SIZE / 2 - 1)] = value;
-    }
+    return peekRAM(myRAM[address & (BANK_SIZE / 2 - 1)], peekAddress);
   }
   else if((address >= 0x0800) && (address <= 0x08FF))
   {
     // Reading from the 256B write port @ $1800 triggers an unwanted write
-    uInt8 value = mySystem->getDataBusState(0xFF);
-
-    if(bankLocked())
-      return value;
-    else
-    {
-      triggerReadFromWritePort(peekAddress);
-      return myRAM[1024 + (myCurrentRAM << 8) + (address & 0x00FF)] = value;
-    }
+    return peekRAM(myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)], peekAddress);
   }
   else
     return myImage[(myCurrentSlice[address >> 11] << 11) + (address & (BANK_SIZE - 1))];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeMNetwork::poke(uInt16 address, uInt8)
+bool CartridgeMNetwork::poke(uInt16 address, uInt8 value)
 {
+  uInt16 pokeAddress = address;
   address &= 0x0FFF;
 
   // Switch banks if necessary
   checkSwitchBank(address);
 
-  // NOTE: This does not handle writing to RAM, however, this
-  // method should never be called for RAM because of the
-  // way page accessing has been setup
+  // All RAM writes are mapped here
+  if((myCurrentSlice[0] == myRAMSlice) && (address < BANK_SIZE / 2))
+  {
+    pokeRAM(myRAM[address & (BANK_SIZE / 2 - 1)], pokeAddress, value);
+    return true;
+  }
+  else if((address >= 0x0800) && (address <= 0x08FF))
+  {
+    pokeRAM(myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)], pokeAddress, value);
+    return true;
+  }
+
   return false;
 }
 
@@ -170,9 +160,9 @@ void CartridgeMNetwork::bankRAM(uInt16 bank)
 
   // Setup the page access methods for the current bank
   // Set the page accessing method for the 256 bytes of RAM reading pages
-  setAccess(0x1800, 0x100, 1024 + offset, myRAM, romSize() + BANK_SIZE / 2, System::PA_WRITE);
+  setAccess(0x1800, 0x100, 0x0400 + offset, myRAM.data(), romSize() + BANK_SIZE / 2, System::PageAccessType::WRITE);
   // Set the page accessing method for the 256 bytes of RAM reading pages
-  setAccess(0x1900, 0x100, 1024 + offset, myRAM, romSize() + BANK_SIZE / 2, System::PA_READ);
+  setAccess(0x1900, 0x100, 0x0400 + offset, myRAM.data(), romSize() + BANK_SIZE / 2, System::PageAccessType::READ);
 
   myBankChanged = true;
 }
@@ -191,22 +181,22 @@ bool CartridgeMNetwork::bank(uInt16 slice)
     uInt16 offset = slice << 11; // * BANK_SIZE (2048)
 
     // Map ROM image into first segment
-    setAccess(0x1000, BANK_SIZE, offset, myImage.get(), offset, System::PA_READ);
+    setAccess(0x1000, BANK_SIZE, offset, myImage.get(), offset, System::PageAccessType::READ);
   }
   else
   {
     // Set the page accessing method for the 1K slice of RAM writing pages
-    setAccess(0x1000,                 BANK_SIZE / 2, 0, myRAM, romSize(), System::PA_WRITE);
+    setAccess(0x1000,                 BANK_SIZE / 2, 0, myRAM.data(), romSize(), System::PageAccessType::WRITE);
     // Set the page accessing method for the 1K slice of RAM reading pages
-    setAccess(0x1000 + BANK_SIZE / 2, BANK_SIZE / 2, 0, myRAM, romSize(), System::PA_READ);
+    setAccess(0x1000 + BANK_SIZE / 2, BANK_SIZE / 2, 0, myRAM.data(), romSize(), System::PageAccessType::READ);
   }
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeMNetwork::getBank() const
+uInt16 CartridgeMNetwork::getBank(uInt16 address) const
 {
-  return myCurrentSlice[0];
+  return myCurrentSlice[(address & 0xFFF) >> 11]; // 2K slices
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -231,7 +221,7 @@ bool CartridgeMNetwork::patch(uInt16 address, uInt8 value)
     // Normally, a write to the read port won't do anything
     // However, the patch command is special in that ignores such
     // cart restrictions
-    myRAM[1024 + (myCurrentRAM << 8) + (address & 0x00FF)] = value;
+    myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)] = value;
   }
   else
     myImage[(myCurrentSlice[address >> 11] << 11) + (address & (BANK_SIZE-1))] = value;
@@ -240,7 +230,7 @@ bool CartridgeMNetwork::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeMNetwork::getImage(uInt32& size) const
+const uInt8* CartridgeMNetwork::getImage(size_t& size) const
 {
   size = bankCount() * BANK_SIZE;
   return myImage.get();
@@ -251,11 +241,11 @@ bool CartridgeMNetwork::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-    out.putShortArray(myCurrentSlice, NUM_SEGMENTS);
+    out.putShortArray(myCurrentSlice.data(), myCurrentSlice.size());
     out.putShort(myCurrentRAM);
-    out.putByteArray(myRAM, RAM_SIZE);
-  } catch(...)
+    out.putByteArray(myRAM.data(), myRAM.size());
+  }
+  catch(...)
   {
     cerr << "ERROR: " << name() << "::save" << endl;
     return false;
@@ -269,13 +259,11 @@ bool CartridgeMNetwork::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
-    in.getShortArray(myCurrentSlice, NUM_SEGMENTS);
+    in.getShortArray(myCurrentSlice.data(), myCurrentSlice.size());
     myCurrentRAM = in.getShort();
-    in.getByteArray(myRAM, RAM_SIZE);
-  } catch(...)
+    in.getByteArray(myRAM.data(), myRAM.size());
+  }
+  catch(...)
   {
     cerr << "ERROR: " << name() << "::load" << endl;
     return false;
@@ -291,12 +279,11 @@ bool CartridgeMNetwork::load(Serializer& in)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeMNetwork::bankCount() const
 {
-  return mySize >> 11;
+  return uInt16(mySize >> 11);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 CartridgeMNetwork::romSize() const
+uInt16 CartridgeMNetwork::romSize() const
 {
   return bankCount() * BANK_SIZE;
 }
-

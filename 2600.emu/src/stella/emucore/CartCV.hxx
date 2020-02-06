@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -45,9 +45,11 @@ class CartridgeCV : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeCV(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeCV(const ByteBuffer& image, size_t size, const string& md5,
+                const Settings& settings);
     virtual ~CartridgeCV() = default;
 
   public:
@@ -79,7 +81,7 @@ class CartridgeCV : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -124,19 +126,27 @@ class CartridgeCV : public Cartridge
     */
     uInt8 peek(uInt16 address) override;
 
+    /**
+      Change the byte at the specified address to the given value
+
+      @param address The address where the value should be stored
+      @param value The value to be stored at the address
+      @return  True if the poke changed the device address space, else false
+    */
+    bool poke(uInt16 address, uInt8 value) override;
+
   private:
-    // Pointer to the initial RAM data from the cart
-    // This doesn't always exist, so we don't pre-allocate it
-    BytePtr myInitialRAM;
+    // The 2k ROM image for the cartridge
+    std::array<uInt8, 2_KB> myImage;
 
     // Initial size of the cart data
-    uInt32 mySize;
-
-    // The 2k ROM image for the cartridge
-    uInt8 myImage[2048];
+    size_t mySize{0};
 
     // The 1024 bytes of RAM
-    uInt8 myRAM[1024];
+    std::array<uInt8, 1_KB> myRAM;
+
+    // Initial RAM data from the cart (doesn't always exist)
+    std::array<uInt8, 1_KB> myInitialRAM;
 
   private:
     // Following constructors and assignment operators not supported

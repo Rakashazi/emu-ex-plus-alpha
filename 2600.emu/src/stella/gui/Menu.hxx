@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,6 +19,8 @@
 #define MENU_HXX
 
 class OSystem;
+class StellaSettingsDialog;
+class OptionsDialog;
 
 #include "DialogContainer.hxx"
 
@@ -30,11 +32,19 @@ class OSystem;
 class Menu : public DialogContainer
 {
   public:
+    // Current Stella mode
+    enum class AppMode { launcher, emulator, debugger };
+
     /**
       Create a new menu stack
     */
-    Menu(OSystem& osystem);
-    virtual ~Menu() = default;
+    explicit Menu(OSystem& osystem);
+    virtual ~Menu();
+
+  private:
+    Dialog* baseDialog() override;
+    StellaSettingsDialog* stellaSettingDialog{nullptr};
+    OptionsDialog* optionsDialog{nullptr};
 
   private:
     // Following constructors and assignment operators not supported

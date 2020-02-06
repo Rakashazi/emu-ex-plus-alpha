@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -47,9 +47,11 @@ class CartridgeDPC : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeDPC(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeDPC(const ByteBuffer& image, size_t size, const string& md5,
+                 const Settings& settings);
     virtual ~CartridgeDPC() = default;
 
   public:
@@ -75,8 +77,10 @@ class CartridgeDPC : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -98,7 +102,7 @@ class CartridgeDPC : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -122,6 +126,8 @@ class CartridgeDPC : public Cartridge
       @return The name of the object
     */
     string name() const override { return "CartridgeDPC"; }
+
+    void setDpcPitch(double pitch) { myDpcPitch = pitch; }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -166,43 +172,46 @@ class CartridgeDPC : public Cartridge
 
   private:
     // The ROM image
-    uInt8 myImage[8192 + 2048 + 256];
+    std::array<uInt8, 8_KB + 2_KB + 256> myImage;
 
     // (Actual) Size of the ROM image
-    uInt32 mySize;
+    size_t mySize{0};
 
     // Pointer to the 8K program ROM image of the cartridge
-    uInt8* myProgramImage;
+    uInt8* myProgramImage{nullptr};
 
     // Pointer to the 2K display ROM image of the cartridge
-    uInt8* myDisplayImage;
+    uInt8* myDisplayImage{nullptr};
 
     // The top registers for the data fetchers
-    uInt8 myTops[8];
+    std::array<uInt8, 8> myTops{0};
 
     // The bottom registers for the data fetchers
-    uInt8 myBottoms[8];
+    std::array<uInt8, 8> myBottoms{0};
 
     // The counter registers for the data fetchers
-    uInt16 myCounters[8];
+    std::array<uInt16, 8> myCounters{0};
 
     // The flag registers for the data fetchers
-    uInt8 myFlags[8];
+    std::array<uInt8, 8> myFlags{0};
 
     // The music mode DF5, DF6, & DF7 enabled flags
-    bool myMusicMode[3];
+    std::array<bool, 3> myMusicMode{false};
 
     // The random number generator register
-    uInt8 myRandomNumber;
+    uInt8 myRandomNumber{1};  // DPC's RNG register (must be non-zero)
 
     // System cycle count from when the last update to music data fetchers occurred
-    uInt64 myAudioCycles;
+    uInt64 myAudioCycles{0};
 
     // Fractional DPC music OSC clocks unused during the last update
-    double myFractionalClocks;
+    double myFractionalClocks{0.0};
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
+
+    // DPC pitch
+    double myDpcPitch{0.0};
 
   private:
     // Following constructors and assignment operators not supported

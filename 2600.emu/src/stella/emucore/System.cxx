@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,31 +23,22 @@
 #include "M6532.hxx"
 #include "TIA.hxx"
 #include "Cart.hxx"
+#include "TimerManager.hxx"
 #include "System.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-System::System(const OSystem& osystem, M6502& m6502, M6532& m6532,
+System::System(Random& random, M6502& m6502, M6532& m6532,
                TIA& mTIA, Cartridge& mCart)
-  : myOSystem(osystem),
+  : myRandom(random),
     myM6502(m6502),
     myM6532(m6532),
     myTIA(mTIA),
-    myCart(mCart),
-    myCycles(0),
-    myDataBusState(0),
-    myDataBusLocked(false),
-    mySystemInAutodetect(false)
+    myCart(mCart)
 {
-  // Re-initialize random generator
-  randGenerator().initSeed();
-
   // Initialize page access table
-  PageAccess access(&myNullDevice, System::PA_READ);
-  for(int page = 0; page < NUM_PAGES; ++page)
-  {
-    myPageAccessTable[page] = access;
-    myPageIsDirtyTable[page] = false;
-  }
+  PageAccess access(&myNullDevice, System::PageAccessType::READ);
+  myPageAccessTable.fill(access);
+  myPageIsDirtyTable.fill(false);
 
   // Bus starts out unlocked (in other words, peek() changes myDataBusState)
   myDataBusLocked = false;
@@ -104,8 +95,7 @@ bool System::isPageDirty(uInt16 start_addr, uInt16 end_addr) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void System::clearDirtyPages()
 {
-  for(uInt32 i = 0; i < NUM_PAGES; ++i)
-    myPageIsDirtyTable[i] = false;
+  myPageIsDirtyTable.fill(false);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -202,7 +192,6 @@ bool System::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putLong(myCycles);
     out.putByte(myDataBusState);
 
@@ -232,9 +221,6 @@ bool System::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myCycles = in.getLong();
     myDataBusState = in.getByte();
 

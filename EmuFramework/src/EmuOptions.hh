@@ -139,7 +139,7 @@ extern Byte1Option optionSound;
 extern Byte1Option optionSoundBuffers;
 extern Byte1Option optionAddSoundBuffersOnUnderrun;
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-using OptionAudioSoloMix = Option<OptionMethodFunc<bool, AudioManager::soloMix, AudioManager::setSoloMix>, uint8_t>;
+using OptionAudioSoloMix = Option<OptionMethodFunc<bool, IG::AudioManager::soloMix, IG::AudioManager::setSoloMix>, uint8_t>;
 extern OptionAudioSoloMix optionAudioSoloMix;
 #endif
 extern Byte4Option optionSoundRate;

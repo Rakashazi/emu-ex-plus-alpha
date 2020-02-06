@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,13 +22,13 @@ using std::ios;
 using std::ios_base;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Serializer::Serializer(const string& filename, bool readonly)
+Serializer::Serializer(const string& filename, Mode m)
   : myStream(nullptr)
 {
-  if(readonly)
+  if(m == Mode::ReadOnly)
   {
-    //FilesystemNode node(filename);
-    //if(node.isFile() && node.isReadable())
+    FilesystemNode node(filename);
+    if(node.isFile() && node.isReadable())
     {
       unique_ptr<fstream> str = make_unique<fstream>(filename, ios::in | ios::binary);
       if(str && str->is_open())
@@ -51,7 +51,10 @@ Serializer::Serializer(const string& filename, bool readonly)
     fstream temp(filename, ios::out | ios::app);
     temp.close();
 
-    unique_ptr<fstream> str = make_unique<fstream>(filename, ios::in | ios::out | ios::binary);
+    ios_base::openmode stream_mode = ios::in | ios::out | ios::binary;
+    if(m == Mode::ReadWriteTrunc)
+      stream_mode |= ios::trunc;
+    unique_ptr<fstream> str = make_unique<fstream>(filename, stream_mode);
     if(str && str->is_open())
     {
       myStream = std::move(str);
@@ -67,7 +70,7 @@ Serializer::Serializer()
 {
   myStream = make_unique<stringstream>(ios::in | ios::out | ios::binary);
 
-  // For some reason, Windows and possibly OSX needs to store something in
+  // For some reason, Windows and possibly macOS needs to store something in
   // the stream before it is used for the first time
   if(myStream)
   {
@@ -86,6 +89,12 @@ void Serializer::rewind()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+size_t Serializer::size() const
+{
+  return myStream->tellp();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 Serializer::getByte() const
 {
   char buf;
@@ -95,7 +104,7 @@ uInt8 Serializer::getByte() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::getByteArray(uInt8* array, uInt32 size) const
+void Serializer::getByteArray(uInt8* array, size_t size) const
 {
   myStream->read(reinterpret_cast<char*>(array), size);
 }
@@ -110,7 +119,7 @@ uInt16 Serializer::getShort() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::getShortArray(uInt16* array, uInt32 size) const
+void Serializer::getShortArray(uInt16* array, size_t size) const
 {
   myStream->read(reinterpret_cast<char*>(array), sizeof(uInt16)*size);
 }
@@ -125,7 +134,7 @@ uInt32 Serializer::getInt() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::getIntArray(uInt32* array, uInt32 size) const
+void Serializer::getIntArray(uInt32* array, size_t size) const
 {
   myStream->read(reinterpret_cast<char*>(array), sizeof(uInt32)*size);
 }
@@ -172,7 +181,7 @@ void Serializer::putByte(uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::putByteArray(const uInt8* array, uInt32 size)
+void Serializer::putByteArray(const uInt8* array, size_t size)
 {
   myStream->write(reinterpret_cast<const char*>(array), size);
 }
@@ -184,7 +193,7 @@ void Serializer::putShort(uInt16 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::putShortArray(const uInt16* array, uInt32 size)
+void Serializer::putShortArray(const uInt16* array, size_t size)
 {
   myStream->write(reinterpret_cast<const char*>(array), sizeof(uInt16)*size);
 }
@@ -196,7 +205,7 @@ void Serializer::putInt(uInt32 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Serializer::putIntArray(const uInt32* array, uInt32 size)
+void Serializer::putIntArray(const uInt32* array, size_t size)
 {
   myStream->write(reinterpret_cast<const char*>(array), sizeof(uInt32)*size);
 }
@@ -216,7 +225,7 @@ void Serializer::putDouble(double value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Serializer::putString(const string& str)
 {
-  int len = int(str.length());
+  uInt32 len = uInt32(str.length());
   putInt(len);
   myStream->write(str.data(), len);
 }

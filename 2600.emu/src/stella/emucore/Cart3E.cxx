@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,30 +20,27 @@
 #include "Cart3E.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge3E::Cartridge3E(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    mySize(size),
-    myCurrentBank(0)
+Cartridge3E::Cartridge3E(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(size)
 {
   // Allocate array for the ROM image
   myImage = make_unique<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image.get(), mySize);
-  createCodeAccessBase(mySize + 32768);
-
-  // Remember startup bank
-  myStartBank = 0;
+  std::copy_n(image.get(), mySize, myImage.get());
+  createCodeAccessBase(mySize + myRAM.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge3E::reset()
 {
-  initializeRAM(myRAM, 32768);
+  initializeRAM(myRAM.data(), myRAM.size());
+  initializeStartBank(0);
 
   // We'll map the startup bank into the first segment upon reset
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,14 +48,14 @@ void Cartridge3E::install(System& system)
 {
   mySystem = &system;
 
-  System::PageAccess access(this, System::PA_READWRITE);
+  System::PageAccess access(this, System::PageAccessType::READWRITE);
 
   // The hotspots ($3E and $3F) are in TIA address space, so we claim it here
   for(uInt16 addr = 0x00; addr < 0x40; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Setup the second segment to always point to the last ROM slice
-  access.type = System::PA_READ;
+  access.type = System::PageAccessType::READ;
   for(uInt16 addr = 0x1800; addr < 0x2000; addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myImage[(mySize - 2048) + (addr & 0x07FF)];
@@ -67,7 +64,7 @@ void Cartridge3E::install(System& system)
   }
 
   // Install pages for the startup bank into the first segment
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -87,15 +84,7 @@ uInt8 Cartridge3E::peek(uInt16 address)
       else
       {
         // Reading from the write port triggers an unwanted write
-        uInt8 value = mySystem->getDataBusState(0xFF);
-
-        if(bankLocked())
-          return value;
-        else
-        {
-          triggerReadFromWritePort(peekAddress);
-          return myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)] = value;
-        }
+        return peekRAM(myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)], peekAddress);
       }
     }
   }
@@ -108,23 +97,37 @@ uInt8 Cartridge3E::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Cartridge3E::poke(uInt16 address, uInt8 value)
 {
+  uInt16 pokeAddress = address;
   address &= 0x0FFF;
 
   // Switch banks if necessary. Armin (Kroko) says there are no mirrored
   // hotspots.
-  if(address == 0x003F)
+  if(address < 0x0040)
   {
-    bank(value);
+    if(address == 0x003F)
+      bank(value);
+    else if(address == 0x003E)
+      bank(value + 256);
+
+    return mySystem->tia().poke(address, value);
   }
-  else if(address == 0x003E)
+  else
   {
-    bank(value + 256);
+    if(address & 0x0400)
+    {
+      pokeRAM(myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)], pokeAddress, value);
+      return true;
+    }
+    else
+    {
+      // Writing to the read port should be ignored, but trigger a break if option enabled
+      uInt8 dummy;
+
+      pokeRAM(dummy, pokeAddress, value);
+      myRamWriteAccess = pokeAddress;
+      return false;
+    }
   }
-
-  // Handle TIA space that we claimed above
-  mySystem->tia().poke(address, value);
-
-  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -149,7 +152,7 @@ bool Cartridge3E::bank(uInt16 bank)
     uInt32 offset = myCurrentBank << 11;
 
     // Setup the page access methods for the current bank
-    System::PageAccess access(this, System::PA_READ);
+    System::PageAccess access(this, System::PageAccessType::READ);
 
     // Map ROM image into the system
     for(uInt16 addr = 0x1000; addr < 0x1800; addr += System::PAGE_SIZE)
@@ -168,7 +171,7 @@ bool Cartridge3E::bank(uInt16 bank)
     uInt32 offset = bank << 10;
 
     // Setup the page access methods for the current bank
-    System::PageAccess access(this, System::PA_READ);
+    System::PageAccess access(this, System::PageAccessType::READ);
 
     // Map read-port RAM image into the system
     for(uInt16 addr = 0x1000; addr < 0x1400; addr += System::PAGE_SIZE)
@@ -179,12 +182,13 @@ bool Cartridge3E::bank(uInt16 bank)
     }
 
     access.directPeekBase = nullptr;
-    access.type = System::PA_WRITE;
+    access.type = System::PageAccessType::WRITE;
 
     // Map write-port RAM image into the system
+    // Map access to this class, since we need to inspect all accesses to
+    // check if RWP happens
     for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
     {
-      access.directPokeBase = &myRAM[offset + (addr & 0x03FF)];
       access.codeAccessBase = &myCodeAccessBase[mySize + offset + (addr & 0x03FF)];
       mySystem->setPageAccess(addr, access);
     }
@@ -193,9 +197,12 @@ bool Cartridge3E::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge3E::getBank() const
+uInt16 Cartridge3E::getBank(uInt16 address) const
 {
-  return myCurrentBank;
+  if (address & 0x800)
+    return 255; // 256 - 1 // 2K slices, fixed bank
+  else
+    return myCurrentBank;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -228,7 +235,7 @@ bool Cartridge3E::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* Cartridge3E::getImage(uInt32& size) const
+const uInt8* Cartridge3E::getImage(size_t& size) const
 {
   size = mySize;
   return myImage.get();
@@ -239,9 +246,8 @@ bool Cartridge3E::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myCurrentBank);
-    out.putByteArray(myRAM, 32768);
+    out.putByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {
@@ -257,11 +263,8 @@ bool Cartridge3E::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myCurrentBank = in.getShort();
-    in.getByteArray(myRAM, 32768);
+    in.getByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -48,6 +48,11 @@ class Joystick : public Controller
     void update() override;
 
     /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "Joystick"; }
+
+    /**
       Determines how this controller will treat values received from the
       X/Y axis and left/right buttons of the mouse.  Since not all controllers
       use the mouse the same way (or at all), it's up to the specific class to
@@ -81,7 +86,7 @@ class Joystick : public Controller
                 myXAxisValue, myYAxisValue, myFireEvent;
 
     // Controller to emulate in normal mouse axis mode
-    int myControlID;
+    int myControlID{-1};
 
     static int _DEAD_ZONE;
 

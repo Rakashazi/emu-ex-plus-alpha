@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -59,7 +59,7 @@ class MindLink : public Controller
       @param pin The pin of the controller jack to write to
       @param value The value to write to the pin
     */
-    void write(DigitalPin pin, bool value) override { myDigitalPinState[pin] = value; }
+    void write(DigitalPin pin, bool value) override { setPin(pin, value); }
 
     /**
       Called after *all* digital pins have been written on Port A.
@@ -71,6 +71,16 @@ class MindLink : public Controller
       events currently set.
     */
     void update() override;
+
+    /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "MindLink"; }
+
+    /**
+      Answers whether the controller is intrinsically an analog controller.
+    */
+    bool isAnalog() const override { return true; }
 
     /**
       Determines how this controller will treat values received from the
@@ -97,13 +107,13 @@ class MindLink : public Controller
   private:
     // Position value in Mindlink controller
     // Gets transferred bitwise (16 bits)
-    int myMindlinkPos;
+    int myMindlinkPos{0x2800};
 
     // Which bit to transfer next
-    int myMindlinkShift;
+    int myMindlinkShift{1};
 
     // Whether to use the mouse to emulate this controller
-    int myMouseEnabled;
+    int myMouseEnabled{false};
 
   private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,12 +22,13 @@
 
 #include "Serializable.hxx"
 #include "FrameLayout.hxx"
+#include "bspf.hxx"
 
 class AbstractFrameManager : public Serializable
 {
   public:
 
-      using callback = std::function<void()>;
+    using callback = std::function<void()>;
 
   public:
 
@@ -39,8 +40,8 @@ class AbstractFrameManager : public Serializable
      * Configure the various handler callbacks.
      */
     void setHandlers(
-      callback frameStartCallback,
-      callback frameCompletionCallback
+      const callback& frameStartCallback,
+      const callback& frameCompletionCallback
     );
 
     /**
@@ -108,13 +109,6 @@ class AbstractFrameManager : public Serializable
     FrameLayout layout() const { return myLayout; }
 
     /**
-     * The current frame rate. This is calculated dynamically from the number of
-     * scanlines in the last frames and used to control sleep time in the
-     * dispatch loop.
-     */
-    float frameRate() const { return myFrameRate; }
-
-    /**
      * Save state.
      */
     bool save(Serializer& out) const override;
@@ -156,12 +150,6 @@ class AbstractFrameManager : public Serializable
     virtual uInt32 height() const { return 0; }
 
     /**
-     * Configure a fixed frame height (the default is determined by the frame
-     * layout).
-     */
-    virtual void setFixedHeight(uInt32 height) {}
-
-    /**
      * The current y coordinate (valid only during rendering).
      */
     virtual uInt32 getY() const { return 0; }
@@ -173,14 +161,34 @@ class AbstractFrameManager : public Serializable
     virtual uInt32 scanlines() const { return 0; }
 
     /**
-     * Configure the ystart value.
+     * Configure the vcenter value.
      */
-    virtual void setYstart(uInt32 ystart) {}
+    virtual void setVcenter(Int32 vcenter) {}
 
     /**
-     * The configured ystart value.
+     * The configured vcenter value.
      */
-    virtual uInt32 ystart() const { return 0; }
+    virtual Int32 vcenter() const { return 0; }
+
+    /**
+     * The calculated minimal vcenter value.
+     */
+    virtual Int32 minVcenter() const { return 0; }
+
+    /**
+     * The calculated maximal vcenter value.
+     */
+    virtual Int32 maxVcenter() const { return 0; }
+
+
+    virtual void setAdjustVSize(Int32 adjustVSize) {}
+
+    virtual Int32 adjustVSize() const { return 0; }
+
+    /**
+     * The corresponding start line.
+     */
+    virtual uInt32 startLine() const { return 0; }
 
     /**
      * Set the frame layout. This may be a noop (on the autodetection manager).
@@ -227,12 +235,6 @@ class AbstractFrameManager : public Serializable
      */
     virtual bool onLoad(Serializer& in) { throw runtime_error("cannot be serialized"); }
 
-    /**
-     * This needs to be overriden if state serialization is implemented
-     * (unnecesary in autodetect managers).
-     */
-    string name() const override { throw runtime_error("state serialization is not implemented!"); }
-
   protected:
     // These need to be called in order to drive the frame lifecycle of the
     // emulation.
@@ -257,62 +259,57 @@ class AbstractFrameManager : public Serializable
     /**
      * Rendering flag.
      */
-    bool myIsRendering;
+    bool myIsRendering{false};
 
     /**
      * Vsync flag.
      */
-    bool myVsync;
+    bool myVsync{false};
 
     /**
      * Vblank flag.
      */
-    bool myVblank;
+    bool myVblank{false};
 
     /**
      * Current scanline count in the current frame.
      */
-    uInt32 myCurrentFrameTotalLines;
+    uInt32 myCurrentFrameTotalLines{0};
 
     /**
      * Total number of scanlines in the last complete frame.
      */
-    uInt32 myCurrentFrameFinalLines;
+    uInt32 myCurrentFrameFinalLines{0};
 
     /**
      * Total number of scanlines in the second last complete frame.
      */
-    uInt32 myPreviousFrameFinalLines;
+    uInt32 myPreviousFrameFinalLines{0};
 
     /**
      * Total frame count.
      */
-    uInt32 myTotalFrames;
-
-    /**
-     * Frame rate (see above.)
-     */
-    float myFrameRate;
+    uInt32 myTotalFrames{0};
 
   private:
 
     /**
      * Current frame layout.
      */
-    FrameLayout myLayout;
+    FrameLayout myLayout{FrameLayout::pal};
 
     /**
      * The various lifecycle callbacks.
      */
-    callback myOnFrameStart;
-    callback myOnFrameComplete;
+    callback myOnFrameStart{nullptr};
+    callback myOnFrameComplete{nullptr};
 
   private:
 
     AbstractFrameManager(const AbstractFrameManager&) = delete;
     AbstractFrameManager(AbstractFrameManager&&) = delete;
-    AbstractFrameManager& operator=(const AbstractFrameManager&);
-    AbstractFrameManager& operator=(AbstractFrameManager&&);
+    AbstractFrameManager& operator=(const AbstractFrameManager&) = delete;
+    AbstractFrameManager& operator=(AbstractFrameManager&&) = delete;
 
 };
 

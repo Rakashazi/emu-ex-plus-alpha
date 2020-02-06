@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -121,7 +121,7 @@ class CartridgeDASHWidget;
   consecutive RAM (don't forget to copy your reset vectors!)
 
   @author  Andrew Davie
- */
+*/
 
 class CartridgeDASH: public Cartridge
 {
@@ -133,9 +133,11 @@ class CartridgeDASH: public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeDASH(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeDASH(const ByteBuffer& image, size_t size, const string& md5,
+                  const Settings& settings);
     virtual ~CartridgeDASH() = default;
 
   public:
@@ -165,7 +167,7 @@ class CartridgeDASH: public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -234,8 +236,8 @@ class CartridgeDASH: public Cartridge
     // are consecutive. This allows us to determine on a read/write exactly where the data is.
 
     static constexpr uInt16 BANK_UNDEFINED = 0x8000;   // bank is undefined and inaccessible
-    uInt16 bankInUse[8];     // bank being used for ROM/RAM (eight 512 byte areas)
-    uInt16 segmentInUse[4];  // set by bank methods, to know which hotspot was accessed
+    std::array<uInt16, 8> bankInUse;    // bank being used for ROM/RAM (eight 512 byte areas)
+    std::array<uInt16, 4> segmentInUse; // set by bank methods, to know which hotspot was accessed
 
     static constexpr uInt16 BANK_SWITCH_HOTSPOT_RAM = 0x3E;   // writes to this address cause bankswitching
     static constexpr uInt16 BANK_SWITCH_HOTSPOT_ROM = 0x3F;   // writes to this address cause bankswitching
@@ -259,9 +261,9 @@ class CartridgeDASH: public Cartridge
 
     static constexpr uInt16 RAM_WRITE_OFFSET = 0x800;
 
-    BytePtr myImage;  // Pointer to a dynamically allocated ROM image of the cartridge
-    uInt32  mySize;   // Size of the ROM image
-    uInt8 myRAM[RAM_TOTAL_SIZE];
+    ByteBuffer myImage;  // Pointer to a dynamically allocated ROM image of the cartridge
+    size_t mySize{0};    // Size of the ROM image
+    std::array<uInt8, RAM_TOTAL_SIZE> myRAM;
 
   private:
     // Following constructors and assignment operators not supported

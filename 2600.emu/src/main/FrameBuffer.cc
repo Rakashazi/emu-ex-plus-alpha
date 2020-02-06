@@ -13,17 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-// TODO: Some Stella types collide with MacTypes.h
-#define BytePtr BytePtrMac
-#define Debugger DebuggerMac
-#include <emuframework/EmuApp.hh>
-#undef BytePtr
-#undef Debugger
-#ifdef Success
-#undef Success // conflict with macro in X11 headers
-#endif
 #include <FrameBuffer.hxx>
 #include <stella/emucore/tia/TIA.hxx>
+// TODO: Some Stella types collide with MacTypes.h
+#define Debugger DebuggerMac
+#include <emuframework/EmuApp.hh>
+#undef Debugger
 
 void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
 {
@@ -55,7 +50,7 @@ uint8_t FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
 	else         return c2; // decay
 }
 
-void FrameBuffer::setPalette(const uInt32* palette)
+void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 {
 	logMsg("setTIAPalette");
 	iterateTimes(256, i)

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -49,9 +49,10 @@ class RewindManager
     RewindManager(OSystem& system, StateManager& statemgr);
 
   public:
+    static constexpr uInt32 MAX_BUF_SIZE = 1000;
     static constexpr int NUM_INTERVALS = 7;
     // cycle values for the intervals
-    const uInt32 INTERVAL_CYCLES[NUM_INTERVALS] = {
+    const std::array<uInt32, NUM_INTERVALS> INTERVAL_CYCLES = {
       76 * 262,
       76 * 262 * 3,
       76 * 262 * 10,
@@ -61,7 +62,7 @@ class RewindManager
       76 * 262 * 60 * 10
     };
     // settings values for the intervals
-    const string INT_SETTINGS[NUM_INTERVALS] = {
+    const std::array<string, NUM_INTERVALS> INT_SETTINGS = {
       "1f",
       "3f",
       "10f",
@@ -73,7 +74,7 @@ class RewindManager
 
     static constexpr int NUM_HORIZONS = 8;
     // cycle values for the horzions
-    const uInt64 HORIZON_CYCLES[NUM_HORIZONS] = {
+    const std::array<uInt64, NUM_HORIZONS> HORIZON_CYCLES = {
       76 * 262 * 60 * 3,
       76 * 262 * 60 * 10,
       76 * 262 * 60 * 30,
@@ -84,7 +85,7 @@ class RewindManager
       uInt64(76) * 262 * 60 * 60 * 60
     };
     // settings values for the horzions
-    const string HOR_SETTINGS[NUM_HORIZONS] = {
+    const std::array<string, NUM_HORIZONS> HOR_SETTINGS = {
       "3s",
       "10s",
       "30s",
@@ -136,10 +137,16 @@ class RewindManager
     */
     uInt32 windStates(uInt32 numStates, bool unwind);
 
+    string saveAllStates();
+    string loadAllStates();
+
     bool atFirst() const { return myStateList.atFirst(); }
     bool atLast() const  { return myStateList.atLast();  }
     void resize(uInt32 size) { myStateList.resize(size); }
-    void clear() { myStateList.clear(); }
+    void clear() {
+      myStateSize = 0;
+      myStateList.clear();
+    }
 
     /**
       Convert the cycles into a unit string.
@@ -163,22 +170,24 @@ class RewindManager
     OSystem& myOSystem;
     StateManager& myStateManager;
 
-    uInt32 mySize;
-    uInt32 myUncompressed;
-    uInt32 myInterval;
-    uInt64 myHorizon;
-    double myFactor;
-    bool   myLastTimeMachineAdd;
+    uInt32 mySize{0};
+    uInt32 myUncompressed{0};
+    uInt32 myInterval{0};
+    uInt64 myHorizon{0};
+    double myFactor{0.0};
+    bool   myLastTimeMachineAdd{false};
+    uInt32 myStateSize{0};
 
     struct RewindState {
       Serializer data;  // actual save state
       string message;   // describes save state origin
-      uInt64 cycles;    // cycles since emulation started
+      uInt64 cycles{0}; // cycles since emulation started
 
       // We do nothing on object instantiation or copy
       // The goal of LinkedObjectPool is to not do any allocations at all
-      RewindState() { }
-      RewindState(const RewindState&) { }
+      RewindState() = default;
+      RewindState(const RewindState& rs) : cycles(rs.cycles) { }
+      RewindState& operator= (const RewindState& rs) { cycles = rs.cycles; return *this; }
 
       // Output object info; used for debugging only
       friend ostream& operator<<(ostream& os, const RewindState& s) {

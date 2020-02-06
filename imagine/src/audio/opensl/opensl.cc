@@ -18,7 +18,7 @@
 #include <imagine/logger/logger.h>
 #include "../../base/android/android.hh"
 
-namespace Audio
+namespace IG::Audio
 {
 
 static uint32_t defaultFramesPerBuffer()

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,11 +43,12 @@ class SerialPort
 
     /**
       Read a byte from the serial port.
+      NOTE: This is for potential future use; no class currently uses this.
 
       @param data  Destination for the byte read from the port
       @return  True if a byte was read, else false
     */
-    virtual bool readByte(uInt8* data) { return false; }
+    virtual bool readByte(uInt8& data) { return false; }
 
     /**
       Write a byte to the serial port.
@@ -55,13 +56,7 @@ class SerialPort
       @param data  The byte to write to the port
       @return  True if a byte was written, else false
     */
-    virtual bool writeByte(const uInt8* data) { return false; }
-
-  private:
-    /**
-      Close a previously opened serial port.
-    */
-    virtual void closePort() { }
+    virtual bool writeByte(uInt8 data) { return false; }
 
   private:
     // Following constructors and assignment operators not supported

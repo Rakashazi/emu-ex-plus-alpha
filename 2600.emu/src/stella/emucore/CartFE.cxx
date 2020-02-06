@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,23 +20,22 @@
 #include "CartFE.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeFE::CartridgeFE(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    myBankOffset(0),
-    myLastAccessWasFE(false)
+CartridgeFE::CartridgeFE(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(8192u, size));
-  createCodeAccessBase(8192);
-
-  myStartBank = 0;  // Decathlon requires this, since there is no startup vector in bank 1
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeFE::reset()
 {
-  bank(myStartBank);
+  // Decathlon requires this, since there is no startup vector in bank 1
+  initializeStartBank(0);
+
+  bank(startBank());
   myLastAccessWasFE = false;
 }
 
@@ -47,12 +46,12 @@ void CartridgeFE::install(System& system)
 
   // The hotspot $01FE is in a mirror of zero-page RAM
   // We need to claim access to it here, and deal with it in peek/poke below
-  System::PageAccess access(this, System::PA_READWRITE);
+  System::PageAccess access(this, System::PageAccessType::READWRITE);
   for(uInt16 addr = 0x180; addr < 0x200; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Map all of the cart accesses to call peek and poke
-  access.type = System::PA_READ;
+  access.type = System::PageAccessType::READ;
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 }
@@ -109,7 +108,7 @@ bool CartridgeFE::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeFE::getBank() const
+uInt16 CartridgeFE::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -128,10 +127,10 @@ bool CartridgeFE::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeFE::getImage(uInt32& size) const
+const uInt8* CartridgeFE::getImage(size_t& size) const
 {
-  size = 8192;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -139,7 +138,6 @@ bool CartridgeFE::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myBankOffset);
     out.putBool(myLastAccessWasFE);
   }
@@ -157,9 +155,6 @@ bool CartridgeFE::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getShort();
     myLastAccessWasFE = in.getBool();
   }

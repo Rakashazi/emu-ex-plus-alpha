@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,10 +20,9 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Genesis::Genesis(Jack jack, const Event& event, const System& system)
-  : Controller(jack, event, system, Controller::Genesis),
-    myControlID(-1)
+  : Controller(jack, event, system, Controller::Type::Genesis)
 {
-  if(myJack == Left)
+  if(myJack == Jack::Left)
   {
     myUpEvent      = Event::JoystickZeroUp;
     myDownEvent    = Event::JoystickZeroDown;
@@ -42,25 +41,25 @@ Genesis::Genesis(Jack jack, const Event& event, const System& system)
     myFire2Event   = Event::JoystickOneFire5;
   }
 
-  updateAnalogPin(Five, minimumResistance);
+  setPin(AnalogPin::Five, MIN_RESISTANCE);
+  setPin(AnalogPin::Nine, MIN_RESISTANCE);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Genesis::update()
 {
   // Digital events (from keyboard or joystick hats & buttons)
-  myDigitalPinState[One]   = (myEvent.get(myUpEvent) == 0);
-  myDigitalPinState[Two]   = (myEvent.get(myDownEvent) == 0);
-  myDigitalPinState[Three] = (myEvent.get(myLeftEvent) == 0);
-  myDigitalPinState[Four]  = (myEvent.get(myRightEvent) == 0);
-  myDigitalPinState[Six]   = (myEvent.get(myFire1Event) == 0);
+  setPin(DigitalPin::One, myEvent.get(myUpEvent) == 0);
+  setPin(DigitalPin::Two, myEvent.get(myDownEvent) == 0);
+  setPin(DigitalPin::Three, myEvent.get(myLeftEvent) == 0);
+  setPin(DigitalPin::Four, myEvent.get(myRightEvent) == 0);
+  setPin(DigitalPin::Six, myEvent.get(myFire1Event) == 0);
 
   // The Genesis has one more button (C) that can be read by the 2600
   // However, it seems to work opposite to the BoosterGrip controller,
   // in that the logic is inverted
-  updateAnalogPin(
-    Five,
-    (myEvent.get(myFire2Event) == 0) ? minimumResistance : maximumResistance
+  setPin(AnalogPin::Five,
+    (myEvent.get(myFire2Event) == 0) ? MIN_RESISTANCE : MAX_RESISTANCE
   );
 
   // Mouse motion and button events
@@ -68,31 +67,31 @@ void Genesis::update()
   {
     // The following code was taken from z26
     #define MJ_Threshold 2
-    int mousex = myEvent.get(Event::MouseAxisXValue),
-        mousey = myEvent.get(Event::MouseAxisYValue);
+    int mousex = myEvent.get(Event::MouseAxisXMove),
+        mousey = myEvent.get(Event::MouseAxisYMove);
     if(mousex || mousey)
     {
       if((!(abs(mousey) > abs(mousex) << 1)) && (abs(mousex) >= MJ_Threshold))
       {
         if(mousex < 0)
-          myDigitalPinState[Three] = false;
-        else if (mousex > 0)
-          myDigitalPinState[Four] = false;
+          setPin(DigitalPin::Three, false);
+        else if(mousex > 0)
+          setPin(DigitalPin::Four, false);
       }
 
       if((!(abs(mousex) > abs(mousey) << 1)) && (abs(mousey) >= MJ_Threshold))
       {
         if(mousey < 0)
-          myDigitalPinState[One] = false;
+          setPin(DigitalPin::One, false);
         else if(mousey > 0)
-          myDigitalPinState[Two] = false;
+          setPin(DigitalPin::Two, false);
       }
     }
     // Get mouse button state
     if(myEvent.get(Event::MouseButtonLeftValue))
-      myDigitalPinState[Six] = false;
+      setPin(DigitalPin::Six, false);
     if(myEvent.get(Event::MouseButtonRightValue))
-      updateAnalogPin(Five, maximumResistance);
+      setPin(AnalogPin::Five, MAX_RESISTANCE);
   }
 }
 
@@ -103,10 +102,10 @@ bool Genesis::setMouseControl(
   // Currently, the Genesis controller takes full control of the mouse, using
   // both axes for its two degrees of movement, and the left/right buttons for
   // 'B' and 'C', respectively
-  if(xtype == Controller::Genesis && ytype == Controller::Genesis && xid == yid)
+  if(xtype == Controller::Type::Genesis && ytype == Controller::Type::Genesis && xid == yid)
   {
-    myControlID = ((myJack == Left && xid == 0) ||
-                   (myJack == Right && xid == 1)
+    myControlID = ((myJack == Jack::Left && xid == 0) ||
+                   (myJack == Jack::Right && xid == 1)
                   ) ? xid : -1;
   }
   else

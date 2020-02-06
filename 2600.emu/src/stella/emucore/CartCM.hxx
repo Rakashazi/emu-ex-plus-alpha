@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -117,9 +117,11 @@ class CartridgeCM : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeCM(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeCM(const ByteBuffer& image, size_t size, const string& md5,
+                const Settings& settings);
     virtual ~CartridgeCM() = default;
 
   public:
@@ -145,8 +147,10 @@ class CartridgeCM : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -168,7 +172,7 @@ class CartridgeCM : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -239,16 +243,16 @@ class CartridgeCM : public Cartridge
     shared_ptr<CompuMate> myCompuMate;
 
     // The 16K ROM image of the cartridge
-    uInt8 myImage[16384];
+    std::array<uInt8, 16_KB> myImage;
 
     // The 2K of RAM
-    uInt8 myRAM[2048];
+    std::array<uInt8, 2_KB> myRAM;
 
     // Current copy of SWCHA (controls ROM/RAM accesses)
-    uInt8 mySWCHA;
+    uInt8 mySWCHA{0xFF};  // Port A all 1's
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
 
 private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -53,9 +53,11 @@ class CartridgeDPCPlus : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeDPCPlus(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeDPCPlus(const ByteBuffer& image, size_t size, const string& md5,
+                     const Settings& settings);
     virtual ~CartridgeDPCPlus() = default;
 
   public:
@@ -90,8 +92,10 @@ class CartridgeDPCPlus : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -113,7 +117,7 @@ class CartridgeDPCPlus : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -196,77 +200,84 @@ class CartridgeDPCPlus : public Cartridge
 
   private:
     // The ROM image and size
-    uInt8 myImage[32768];
-    uInt32 mySize;
+    std::array<uInt8, 32_KB> myImage;
+    size_t mySize{0};
 
     // Pointer to the 24K program ROM image of the cartridge
-    uInt8* myProgramImage;
+    uInt8* myProgramImage{nullptr};
 
     // Pointer to the 4K display ROM image of the cartridge
-    uInt8* myDisplayImage;
+    uInt8* myDisplayImage{nullptr};
 
     // The DPC 8k RAM image, used as:
     //   3K DPC+ driver
     //   4K Display Data
     //   1K Frequency Data
-    uInt8 myDPCRAM[8192];
+    std::array<uInt8, 8_KB> myDPCRAM;
 
     // Pointer to the Thumb ARM emulator object
     unique_ptr<Thumbulator> myThumbEmulator;
 
     // Pointer to the 1K frequency table
-    uInt8* myFrequencyImage;
+    uInt8* myFrequencyImage{nullptr};
 
     // The top registers for the data fetchers
-    uInt8 myTops[8];
+    std::array<uInt8, 8> myTops;
 
     // The bottom registers for the data fetchers
-    uInt8 myBottoms[8];
+    std::array<uInt8, 8> myBottoms;
 
     // The counter registers for the data fetchers
-    uInt16 myCounters[8];
+    std::array<uInt16, 8> myCounters;
 
     // The counter registers for the fractional data fetchers
-    uInt32 myFractionalCounters[8];
+    std::array<uInt32, 8> myFractionalCounters;
 
     // The fractional increments for the data fetchers
-    uInt8 myFractionalIncrements[8];
+    std::array<uInt8, 8> myFractionalIncrements;
 
     // The Fast Fetcher Enabled flag
-    bool myFastFetch;
+    bool myFastFetch{false};
 
     // Flags that last byte peeked was A9 (LDA #)
-    bool myLDAimmediate;
+    bool myLDAimmediate{false};
 
     // Parameter for special functions
-    uInt8 myParameter[8];
+    std::array<uInt8, 8> myParameter;
 
     // Parameter pointer for special functions
-    uInt8 myParameterPointer;
+    uInt8 myParameterPointer{0};
 
     // The music mode counters
-    uInt32 myMusicCounters[3];
+    std::array<uInt32, 3> myMusicCounters;
 
     // The music frequency
-    uInt32 myMusicFrequencies[3];
+    std::array<uInt32, 3> myMusicFrequencies;
 
     // The music waveforms
-    uInt16 myMusicWaveforms[3];
+    std::array<uInt16, 3> myMusicWaveforms;
 
     // The random number generator register
-    uInt32 myRandomNumber;
+    uInt32 myRandomNumber{1};
 
     // System cycle count from when the last update to music data fetchers occurred
-    uInt64 myAudioCycles;
+    uInt64 myAudioCycles{0};
 
     // System cycle count when the last Thumbulator::run() occurred
-    uInt64 myARMCycles;
+    uInt64 myARMCycles{0};
 
     // Fractional DPC music OSC clocks unused during the last update
-    double myFractionalClocks;
+    double myFractionalClocks{0.0};
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
+
+    // Older DPC+ driver code had different behaviour wrt the mask used
+    // to retrieve 'DFxFRACLOW' (fractional data pointer low byte)
+    // ROMs built with an old DPC+ driver and using the newer mask can
+    // result in 'jittering' in the playfield display
+    // For current versions, this is 0x0F00FF; older versions need 0x0F0000
+    uInt32 myFractionalLowMask{0x0F00FF};
 
   private:
     // Following constructors and assignment operators not supported

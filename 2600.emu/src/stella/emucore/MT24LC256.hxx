@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,14 +18,10 @@
 #ifndef MT24LC256_HXX
 #define MT24LC256_HXX
 
-class Controller;
 class System;
 
+#include "Control.hxx"
 #include "bspf.hxx"
-
-#ifdef PAGE_SIZE
-#undef PAGE_SIZE
-#endif
 
 /**
   Emulates a Microchip Technology Inc. 24LC256, a 32KB Serial Electrically
@@ -40,19 +36,22 @@ class MT24LC256
     /**
       Create a new 24LC256 with its data stored in the given file
 
-      @param filename Data file containing the EEPROM data
-      @param system   The system using the controller of this device
+      @param filename  Data file containing the EEPROM data
+      @param system    The system using the controller of this device
+      @param callback  Called to pass messages back to the parent controller
     */
-    MT24LC256(const string& filename, const System& system);
+    MT24LC256(const string& filename, const System& system,
+              const Controller::onMessageCallback& callback);
     ~MT24LC256();
 
-  private:
-    // Sizes of the EEPROM
-    static constexpr uInt32 FLASH_SIZE = 32 * 1024;
-
   public:
+    // Sizes of the EEPROM
+    static constexpr uInt32 FLASH_SIZE = 32_KB;
     static constexpr uInt32 PAGE_SIZE = 64;
     static constexpr uInt32 PAGE_NUM = FLASH_SIZE / PAGE_SIZE;
+
+    // Initial state value of flash EEPROM
+    static constexpr uInt8 INITIAL_VALUE = 0xff;
 
     /** Read boolean data from the SDA line */
     bool readSDA() const { return jpee_mdat && jpee_sdat; }
@@ -79,51 +78,52 @@ class MT24LC256
     void jpee_data_start();
     void jpee_data_stop();
     void jpee_clock_fall();
-    int  jpee_logproc(char const *st);
     bool jpee_timercheck(int mode);
+    void jpee_logproc(const char* const st) { cerr << "    " << st << endl; }
 
     void update();
 
   private:
-    // Inital state value of flash EEPROM
-    static constexpr uInt8 INIT_VALUE = 0xff;
-
     // The system of the parent controller
     const System& mySystem;
 
+    // Sends messages back to the parent class
+    // Currently used for indicating read/write access
+    Controller::onMessageCallback myCallback;
+
     // The EEPROM data
-    uInt8 myData[FLASH_SIZE];
+    std::array<uInt8, FLASH_SIZE> myData;
 
     // Track which pages are used
-    bool myPageHit[PAGE_NUM];
+    std::array<bool, PAGE_NUM> myPageHit;
 
     // Cached state of the SDA and SCL pins on the last write
-    bool mySDA, mySCL;
+    bool mySDA{false}, mySCL{false};
 
     // Indicates that a timer has been set and hasn't expired yet
-    bool myTimerActive;
+    bool myTimerActive{false};
 
     // Indicates when the timer was set
-    uInt64 myCyclesWhenTimerSet;
+    uInt64 myCyclesWhenTimerSet{0};
 
     // Indicates when the SDA and SCL pins were set/written
-    uInt64 myCyclesWhenSDASet, myCyclesWhenSCLSet;
+    uInt64 myCyclesWhenSDASet{0}, myCyclesWhenSCLSet{0};
 
     // The file containing the EEPROM data
     string myDataFile;
 
     // Indicates if a valid EEPROM data file exists/was successfully loaded
-    bool myDataFileExists;
+    bool myDataFileExists{false};
 
     // Indicates if the EEPROM has changed since class invocation
-    bool myDataChanged;
+    bool myDataChanged{false};
 
     // Required for I2C functionality
-    Int32 jpee_mdat, jpee_sdat, jpee_mclk;
-    Int32 jpee_sizemask, jpee_pagemask, jpee_smallmode, jpee_logmode;
-    Int32 jpee_pptr, jpee_state, jpee_nb;
-    uInt32 jpee_address, jpee_ad_known;
-    uInt8 jpee_packet[70];
+    Int32 jpee_mdat{0}, jpee_sdat{0}, jpee_mclk{0};
+    Int32 jpee_sizemask{0}, jpee_pagemask{0}, jpee_smallmode{0}, jpee_logmode{0};
+    Int32 jpee_pptr{0}, jpee_state{0}, jpee_nb{0};
+    uInt32 jpee_address{0}, jpee_ad_known{0};
+    std::array<uInt8, 70> jpee_packet;
 
   private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 //  BB  BB  SS  SS  PP      FF
 //  BBBBB    SSSS   PP      FF
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,6 +25,7 @@
   @author Bradford W. Mott and Stephen Anthony
 */
 
+#include <climits>
 #include <cstdint>
 // Types for 8/16/32/64-bit signed and unsigned integers
 using Int8   = int8_t;
@@ -38,6 +39,7 @@ using uInt64 = uint64_t;
 
 // The following code should provide access to the standard C++ objects and
 // types: cout, cerr, string, ostream, istream, etc.
+#include <array>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -48,6 +50,7 @@ using uInt64 = uint64_t;
 #include <cstring>
 #include <cctype>
 #include <cstdio>
+#include <ctime>
 #include <utility>
 #include <vector>
 
@@ -72,7 +75,6 @@ using std::make_shared;
 using std::array;
 using std::vector;
 using std::runtime_error;
-using std::memcpy;
 
 // Common array types
 using IntArray = std::vector<Int32>;
@@ -81,26 +83,24 @@ using BoolArray = std::vector<bool>;
 using ByteArray = std::vector<uInt8>;
 using ShortArray = std::vector<uInt16>;
 using StringList = std::vector<std::string>;
-using BytePtr = std::unique_ptr<uInt8[]>;
+using ByteBuffer = std::unique_ptr<uInt8[]>;  // NOLINT
+
+// We use KB a lot; let's make a literal for it
+constexpr uInt32 operator "" _KB(unsigned long long size)
+{
+   return static_cast<uInt32>(size * 1024);
+}
 
 static const string EmptyString("");
 
+// This is defined by some systems, but Stella has other uses for it
+#undef PAGE_SIZE
+#undef PAGE_MASK
+
 namespace BSPF
 {
-  // Defines to help with path handling
-  #if defined(BSPF_UNIX) || defined(BSPF_MAC_OSX)
-    static const string PATH_SEPARATOR = "/";
-    #define ATTRIBUTE_FMT_PRINTF __attribute__((__format__ (__printf__, 2, 0)))
-  #elif defined(BSPF_WINDOWS)
-    static const string PATH_SEPARATOR = "\\";
-    #pragma warning (disable : 4146)  // unary minus operator applied to unsigned type
-    #pragma warning(2:4264)  // no override available for virtual member function from base 'class'; function is hidden
-    #pragma warning(2:4265)  // class has virtual functions, but destructor is not virtual
-    #pragma warning(2:4266)  // no override available for virtual member function from base 'type'; function is hidden
-    #define ATTRIBUTE_FMT_PRINTF
-  #else
-    #error Update src/common/bspf.hxx for path separator
-  #endif
+  static constexpr float PI_f = 3.141592653589793238462643383279502884F;
+  static constexpr double PI_d = 3.141592653589793238462643383279502884;
 
   // CPU architecture type
   // This isn't complete yet, but takes care of all the major platforms
@@ -110,9 +110,17 @@ namespace BSPF
     static const string ARCH = "x86_64";
   #elif defined(__powerpc__) || defined(__ppc__)
     static const string ARCH = "ppc";
+  #elif defined(__arm__) || defined(__thumb__)
+    static const string ARCH = "arm32";
+  #elif defined(__aarch64__)
+    static const string ARCH = "arm64";
   #else
     static const string ARCH = "NOARCH";
   #endif
+
+  // Make 2D-arrays using std::array less verbose
+  template<class T, size_t ROW, size_t COL>
+  using array2D = std::array<std::array<T, COL>, ROW>;
 
   // Combines 'max' and 'min', and clamps value to the upper/lower value
   // if it is outside the specified range
@@ -125,10 +133,22 @@ namespace BSPF
     if(val < lower || val > upper)  val = setVal;
   }
 
+  // Convert string to given case
+  inline const string& toUpperCase(string& s)
+  {
+    transform(s.begin(), s.end(), s.begin(), ::toupper);
+    return s;
+  }
+  inline const string& toLowerCase(string& s)
+  {
+    transform(s.begin(), s.end(), s.begin(), ::tolower);
+    return s;
+  }
+
   // Compare two strings, ignoring case
   inline int compareIgnoreCase(const string& s1, const string& s2)
   {
-  #if defined BSPF_WINDOWS && !defined __GNUG__
+  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
     return _stricmp(s1.c_str(), s2.c_str());
   #else
     return strcasecmp(s1.c_str(), s2.c_str());
@@ -136,7 +156,7 @@ namespace BSPF
   }
   inline int compareIgnoreCase(const char* s1, const char* s2)
   {
-  #if defined BSPF_WINDOWS && !defined __GNUG__
+  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
     return _stricmp(s1, s2);
   #else
     return strcasecmp(s1, s2);
@@ -146,7 +166,7 @@ namespace BSPF
   // Test whether the first string starts with the second one (case insensitive)
   inline bool startsWithIgnoreCase(const string& s1, const string& s2)
   {
-  #if defined BSPF_WINDOWS && !defined __GNUG__
+  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
     return _strnicmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
   #else
     return strncasecmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
@@ -154,7 +174,7 @@ namespace BSPF
   }
   inline bool startsWithIgnoreCase(const char* s1, const char* s2)
   {
-  #if defined BSPF_WINDOWS && !defined __GNUG__
+  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
     return _strnicmp(s1, s2, strlen(s2)) == 0;
   #else
     return strncasecmp(s1, s2, strlen(s2)) == 0;
@@ -203,7 +223,7 @@ namespace BSPF
     if(BSPF::startsWithIgnoreCase(s1, s2.substr(0, 1)))
     {
       size_t pos = 1;
-      for(uInt32 j = 1; j < s2.size(); j++)
+      for(uInt32 j = 1; j < s2.size(); ++j)
       {
         size_t found = BSPF::findIgnoreCase(s1, s2.substr(j, 1), pos);
         if(found == string::npos)
@@ -213,6 +233,45 @@ namespace BSPF
       return true;
     }
     return false;
+  }
+
+  // C++11 way to get local time
+  // Equivalent to the C-style localtime() function, but is thread-safe
+  inline std::tm localTime()
+  {
+    std::time_t currtime;
+    std::time(&currtime);
+    std::tm tm_snapshot;
+  #if (defined BSPF_WINDOWS || defined __WIN32__) && (!defined __GNUG__ || defined __MINGW32__)
+    localtime_s(&tm_snapshot, &currtime);
+  #else
+    localtime_r(&currtime, &tm_snapshot);
+  #endif
+    return tm_snapshot;
+  }
+
+  // Coverity complains if 'getenv' is used unrestricted
+  inline string getenv(const string& env_var)
+  {
+  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
+    char* buf = nullptr;
+    size_t sz = 0;
+    if(_dupenv_s(&buf, &sz, env_var.c_str()) == 0 && buf != nullptr)
+    {
+      string val(buf);
+      free(buf);
+      return val;
+    }
+    return EmptyString;
+  #else
+    try {
+      const char* val = std::getenv(env_var.c_str());
+      return val ? string(val) : EmptyString;
+    }
+    catch(...) {
+      return EmptyString;
+    }
+  #endif
   }
 } // namespace BSPF
 

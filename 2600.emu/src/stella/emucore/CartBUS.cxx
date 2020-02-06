@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,6 +25,7 @@
 #include "TIA.hxx"
 #include "Thumbulator.hxx"
 #include "CartBUS.hxx"
+#include "exception/FatalEmulationError.hxx"
 
 // Location of data within the RAM copy of the BUS Driver.
 #define DSxPTR        0x06D8
@@ -40,33 +41,33 @@
 #define DIGITAL_AUDIO_ON ((myMode & 0xF0) == 0)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeBUS::CartridgeBUS(const BytePtr& image, uInt32 size,
-                           const Settings& settings)
-  : Cartridge(settings),
-    myAudioCycles(0),
-    myARMCycles(0),
-    myFractionalClocks(0.0)
+CartridgeBUS::CartridgeBUS(const ByteBuffer& image, size_t size,
+                           const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(32768u, size));
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
 
-  // even though the ROM is 32K, only 28K is accessible to the 6507
-  createCodeAccessBase(4096 * 7);
+  // Even though the ROM is 32K, only 28K is accessible to the 6507
+  createCodeAccessBase(28_KB);
 
   // Pointer to the program ROM (28K @ 0 byte offset)
   // which starts after the 2K BUS Driver and 2K C Code
-  myProgramImage = myImage + 4096;
+  myProgramImage = myImage.data() + 4_KB;
 
   // Pointer to BUS driver in RAM
-  myBusDriverImage = myBUSRAM;
+  myBusDriverImage = myBUSRAM.data();
 
   // Pointer to the display RAM
-  myDisplayImage = myBUSRAM + DSRAM;
+  myDisplayImage = myBUSRAM.data() + DSRAM;
 
   // Create Thumbulator ARM emulator
+  bool devSettings = settings.getBool("dev.settings");
   myThumbEmulator = make_unique<Thumbulator>(
-    reinterpret_cast<uInt16*>(myImage), reinterpret_cast<uInt16*>(myBUSRAM),
-    settings.getBool("thumb.trapfatal"), Thumbulator::ConfigureFor::BUS, this
+    reinterpret_cast<uInt16*>(myImage.data()),
+    reinterpret_cast<uInt16*>(myBUSRAM.data()),
+    static_cast<uInt32>(myImage.size()),
+    devSettings ? settings.getBool("dev.thumb.trapfatal") : false, Thumbulator::ConfigureFor::BUS, this
   );
 
   setInitialState();
@@ -75,7 +76,10 @@ CartridgeBUS::CartridgeBUS(const BytePtr& image, uInt32 size,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeBUS::reset()
 {
-  initializeRAM(myBUSRAM+2048, 8192-2048);
+  initializeRAM(myBUSRAM.data() + 2_KB, 6_KB);
+
+  // BUS always starts in bank 6
+  initializeStartBank(6);
 
   // Update cycles to the current system cycles
   myAudioCycles = myARMCycles = 0;
@@ -84,24 +88,25 @@ void CartridgeBUS::reset()
   setInitialState();
 
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeBUS::setInitialState()
 {
   // Copy initial BUS driver to Harmony RAM
-  memcpy(myBusDriverImage, myImage, 0x0800);
+  std::copy_n(myImage.begin(), 2_KB, myBusDriverImage);
 
-  for (int i=0; i < 3; ++i)
-    myMusicWaveformSize[i] = 27;
-
-  // BUS always starts in bank 6
-  myStartBank = 6;
+  myMusicWaveformSize.fill(27);
 
   // Assuming mode starts out with Fast Fetch off and 3-Voice music,
   // need to confirm with Chris
   myMode = 0xFF;
+
+  myBankOffset = myBusOverdriveAddress =
+    mySTYZeroPageAddress = myJMPoperandAddress = 0;
+
+  myFastJumpActive = 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -116,7 +121,7 @@ void CartridgeBUS::install(System& system)
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x1040; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
@@ -126,7 +131,7 @@ void CartridgeBUS::install(System& system)
   mySystem->m6532().installDelegate(system, *this);
 
   // Install pages for the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -165,13 +170,11 @@ inline void CartridgeBUS::callFunction(uInt8 value)
       catch(const runtime_error& e) {
         if(!mySystem->autodetectMode())
         {
-      #ifdef DEBUGGER_SUPPORT
-          Debugger::debugger().startWithFatalError(e.what());
-      #else
-          cout << e.what() << endl;
-      #endif
+          FatalEmulationError::raise(e.what());
         }
       }
+      break;
+    default:
       break;
   }
 }
@@ -206,8 +209,8 @@ uInt8 CartridgeBUS::peek(uInt16 address)
       uInt32 pointer;
       uInt8 value;
 
-      myFastJumpActive--;
-      myJMPoperandAddress++;
+      --myFastJumpActive;
+      ++myJMPoperandAddress;
 
       pointer = getDatastreamPointer(JUMPSTREAM);
       value = myDisplayImage[ pointer >> 20 ];
@@ -434,7 +437,7 @@ bool CartridgeBUS::bank(uInt16 bank)
   myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map Program ROM image into the system
   for(uInt16 addr = 0x1040; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -446,7 +449,7 @@ bool CartridgeBUS::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeBUS::getBank() const
+uInt16 CartridgeBUS::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -473,10 +476,10 @@ bool CartridgeBUS::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeBUS::getImage(uInt32& size) const
+const uInt8* CartridgeBUS::getImage(size_t& size) const
 {
-  size = 32768;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -530,6 +533,9 @@ uInt32 CartridgeBUS::thumbCallback(uInt8 function, uInt32 value1, uInt32 value2)
     case 3:
       myMusicWaveformSize[value1] = value2;
       break;
+
+    default:
+      break;
   }
 
   return 0;
@@ -540,13 +546,11 @@ bool CartridgeBUS::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     // Indicates which bank is currently active
     out.putShort(myBankOffset);
 
     // Harmony RAM
-    out.putByteArray(myBUSRAM, 8192);
+    out.putByteArray(myBUSRAM.data(), myBUSRAM.size());
 
     // Addresses for bus override logic
     out.putShort(myBusOverdriveAddress);
@@ -559,9 +563,9 @@ bool CartridgeBUS::save(Serializer& out) const
     out.putLong(myARMCycles);
 
     // Audio info
-    out.putIntArray(myMusicCounters, 3);
-    out.putIntArray(myMusicFrequencies, 3);
-    out.putByteArray(myMusicWaveformSize, 3);
+    out.putIntArray(myMusicCounters.data(), myMusicCounters.size());
+    out.putIntArray(myMusicFrequencies.data(), myMusicFrequencies.size());
+    out.putByteArray(myMusicWaveformSize.data(), myMusicWaveformSize.size());
 
     // Indicates current mode
     out.putByte(myMode);
@@ -583,14 +587,11 @@ bool CartridgeBUS::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     // Indicates which bank is currently active
     myBankOffset = in.getShort();
 
     // Harmony RAM
-    in.getByteArray(myBUSRAM, 8192);
+    in.getByteArray(myBUSRAM.data(), myBUSRAM.size());
 
     // Addresses for bus override logic
     myBusOverdriveAddress = in.getShort();
@@ -603,9 +604,9 @@ bool CartridgeBUS::load(Serializer& in)
     myARMCycles = in.getLong();
 
     // Audio info
-    in.getIntArray(myMusicCounters, 3);
-    in.getIntArray(myMusicFrequencies, 3);
-    in.getByteArray(myMusicWaveformSize, 3);
+    in.getIntArray(myMusicCounters.data(), myMusicCounters.size());
+    in.getIntArray(myMusicFrequencies.data(), myMusicFrequencies.size());
+    in.getByteArray(myMusicWaveformSize.data(), myMusicWaveformSize.size());
 
     // Indicates current mode
     myMode = in.getByte();

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -16,12 +16,6 @@
 //============================================================================
 
 #include "LatchedInput.hxx"
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-LatchedInput::LatchedInput()
-{
-  reset();
-}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void LatchedInput::reset()
@@ -59,8 +53,6 @@ bool LatchedInput::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     out.putBool(myModeLatched);
     out.putByte(myLatchedValue);
   }
@@ -78,9 +70,6 @@ bool LatchedInput::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myModeLatched = in.getBool();
     myLatchedValue = in.getByte();
   }

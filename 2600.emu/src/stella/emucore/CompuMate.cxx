@@ -8,50 +8,30 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //============================================================================
 
-#include "Control.hxx"
-#include "StellaKeys.hxx"
 #include "CompuMate.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CompuMate::CompuMate(const Console& console, const Event& event,
                      const System& system)
   : myConsole(console),
-    myEvent(event),
-    myColumn(0),
-    myKeyTable(nullptr)
+    myEvent(event)
 {
   // These controller pointers will be retrieved by the Console, which will
   // also take ownership of them
-  myLeftController  = make_unique<CMControl>(*this, Controller::Left, event, system);
-  myRightController = make_unique<CMControl>(*this, Controller::Right, event, system);
+  myLeftController  = make_unique<CMControl>(*this, Controller::Jack::Left, event, system);
+  myRightController = make_unique<CMControl>(*this, Controller::Jack::Right, event, system);
 
-  myLeftController->updateAnalogPin(Controller::Nine, Controller::maximumResistance);
-  myLeftController->updateAnalogPin(Controller::Five, Controller::minimumResistance);
-  myRightController->updateAnalogPin(Controller::Nine, Controller::minimumResistance);
-  myRightController->updateAnalogPin(Controller::Five, Controller::maximumResistance);
-
-  enableKeyHandling(false);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CompuMate::enableKeyHandling(bool enable)
-{
-  if(enable)
-    myKeyTable = myEvent.getKeys();
-  else
-  {
-    for(uInt32 i = 0; i < KBDK_LAST; ++i)
-      myInternalKeyTable[i] = false;
-
-    myKeyTable = myInternalKeyTable;
-  }
+  myLeftController->setPin(Controller::AnalogPin::Nine, Controller::MAX_RESISTANCE);
+  myLeftController->setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+  myRightController->setPin(Controller::AnalogPin::Nine, Controller::MIN_RESISTANCE);
+  myRightController->setPin(Controller::AnalogPin::Five, Controller::MAX_RESISTANCE);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -61,149 +41,138 @@ void CompuMate::update()
   Controller& lp = myConsole.leftController();
   Controller& rp = myConsole.rightController();
 
-  lp.myAnalogPinValue[Controller::Nine] = Controller::maximumResistance;
-  lp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-  lp.myDigitalPinState[Controller::Six] = true;
-  rp.myAnalogPinValue[Controller::Nine] = Controller::minimumResistance;
-  rp.myAnalogPinValue[Controller::Five] = Controller::maximumResistance;
-  rp.myDigitalPinState[Controller::Six] = true;
+  lp.setPin(Controller::AnalogPin::Nine, Controller::MAX_RESISTANCE);
+  lp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+  lp.setPin(Controller::DigitalPin::Six, true);
+  rp.setPin(Controller::AnalogPin::Nine, Controller::MIN_RESISTANCE);
+  rp.setPin(Controller::AnalogPin::Five, Controller::MAX_RESISTANCE);
+  rp.setPin(Controller::DigitalPin::Six, true);
 
-  if (myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT])
-    rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-  if (myKeyTable[KBDK_LCTRL] || myKeyTable[KBDK_RCTRL])
-    lp.myAnalogPinValue[Controller::Nine] = Controller::minimumResistance;
+  if (myEvent.get(Event::CompuMateShift))
+    rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+  if (myEvent.get(Event::CompuMateFunc))
+    lp.setPin(Controller::AnalogPin::Nine, Controller::MIN_RESISTANCE);
 
-  rp.myDigitalPinState[Controller::Three] = true;
-  rp.myDigitalPinState[Controller::Four] = true;
+  rp.setPin(Controller::DigitalPin::Three, true);
+  rp.setPin(Controller::DigitalPin::Four, true);
 
   switch(myColumn)  // This is updated inside CartCM class
   {
     case 0:
-      if (myKeyTable[KBDK_7]) lp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_U]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_J]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_M]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMate7)) lp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateU)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateJ)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateM)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 1:
-      if (myKeyTable[KBDK_6]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate6)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the '?' character (Shift-6) with the actual question key
-      if (myKeyTable[KBDK_SLASH] && (myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateQuestion))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_Y]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_H]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_N]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateY)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateH)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateN)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 2:
-      if (myKeyTable[KBDK_8]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate8)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the '[' character (Shift-8) with the actual key
-      if (myKeyTable[KBDK_LEFTBRACKET] && !(myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateLeftBracket))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_I]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_K]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_COMMA]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateI)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateK)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateComma)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 3:
-      if (myKeyTable[KBDK_2]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate2)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the '-' character (Shift-2) with the actual minus key
-      if (myKeyTable[KBDK_MINUS] && !(myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateMinus))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_W]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_S]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_X]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateW)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateS)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateX)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 4:
-      if (myKeyTable[KBDK_3]) lp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_E]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_D]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_C]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMate3)) lp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateE)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateD)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateC)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 5:
-      if (myKeyTable[KBDK_0]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate0)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the quote character (Shift-0) with the actual quote key
-      if (myKeyTable[KBDK_APOSTROPHE] && (myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateQuote))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_P]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_RETURN] || myKeyTable[KBDK_KP_ENTER])
-        rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_SPACE]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateP)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateEnter)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateSpace)) rp.setPin(Controller::DigitalPin::Four, false);
       // Emulate Ctrl-space (aka backspace) with the actual Backspace key
-      if (myKeyTable[KBDK_BACKSPACE])
+      if (myEvent.get(Event::CompuMateBackspace))
       {
-        lp.myAnalogPinValue[Controller::Nine] = Controller::minimumResistance;
-        rp.myDigitalPinState[Controller::Four] = false;
+        lp.setPin(Controller::AnalogPin::Nine, Controller::MIN_RESISTANCE);
+        rp.setPin(Controller::DigitalPin::Four, false);
       }
       break;
     case 6:
-      if (myKeyTable[KBDK_9]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate9)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the ']' character (Shift-9) with the actual key
-      if (myKeyTable[KBDK_RIGHTBRACKET] && !(myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateRightBracket))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_O]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_L]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_PERIOD]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateO)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateL)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMatePeriod)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 7:
-      if (myKeyTable[KBDK_5]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate5)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the '=' character (Shift-5) with the actual equals key
-      if (myKeyTable[KBDK_EQUALS] && !(myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateEquals))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_T]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_G]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_B]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateT)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateG)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateB)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 8:
-      if (myKeyTable[KBDK_1]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate1)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the '+' character (Shift-1) with the actual plus key (Shift-=)
-      if (myKeyTable[KBDK_EQUALS] && (myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMatePlus))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_Q]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_A]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_Z]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateQ)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateA)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateZ)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     case 9:
-      if (myKeyTable[KBDK_4]) lp.myDigitalPinState[Controller::Six] = false;
+      if (myEvent.get(Event::CompuMate4)) lp.setPin(Controller::DigitalPin::Six, false);
       // Emulate the '/' character (Shift-4) with the actual slash key
-      if (myKeyTable[KBDK_SLASH] && !(myKeyTable[KBDK_LSHIFT] || myKeyTable[KBDK_RSHIFT]))
+      if (myEvent.get(Event::CompuMateSlash))
       {
-        rp.myAnalogPinValue[Controller::Five] = Controller::minimumResistance;
-        lp.myDigitalPinState[Controller::Six] = false;
+        rp.setPin(Controller::AnalogPin::Five, Controller::MIN_RESISTANCE);
+        lp.setPin(Controller::DigitalPin::Six, false);
       }
-      if (myKeyTable[KBDK_R]) rp.myDigitalPinState[Controller::Three] = false;
-      if (myKeyTable[KBDK_F]) rp.myDigitalPinState[Controller::Six] = false;
-      if (myKeyTable[KBDK_V]) rp.myDigitalPinState[Controller::Four] = false;
+      if (myEvent.get(Event::CompuMateR)) rp.setPin(Controller::DigitalPin::Three, false);
+      if (myEvent.get(Event::CompuMateF)) rp.setPin(Controller::DigitalPin::Six, false);
+      if (myEvent.get(Event::CompuMateV)) rp.setPin(Controller::DigitalPin::Four, false);
       break;
     default:
       break;
-  }
-
-  if (lp.myOnAnalogPinUpdateCallback) {
-    lp.myOnAnalogPinUpdateCallback(Controller::Five);
-    lp.myOnAnalogPinUpdateCallback(Controller::Nine);
-  }
-
-  if (rp.myOnAnalogPinUpdateCallback) {
-    rp.myOnAnalogPinUpdateCallback(Controller::Five);
-    rp.myOnAnalogPinUpdateCallback(Controller::Nine);
   }
 }

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,11 +20,8 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Playfield::Playfield(uInt32 collisionMask)
-  : myCollisionMaskDisabled(collisionMask),
-    myCollisionMaskEnabled(0xFFFF),
-    myIsSuppressed(false)
+  : myCollisionMaskDisabled(collisionMask)
 {
-  reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -38,9 +35,11 @@ void Playfield::reset()
   myPf1 = 0;
   myPf2 = 0;
 
+  myX = 0;
+
   myObjectColor = myDebugColor = 0;
-  myColorP0 = 0;
-  myColorP1 = 0;
+  myColorLeft = myColorRight = 0;
+  myColorP0 = myColorP1 = 0;
   myColorMode = ColorMode::normal;
   myDebugEnabled = false;
 
@@ -122,6 +121,7 @@ void Playfield::toggleEnabled(bool enabled)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Playfield::toggleCollisions(bool enabled)
 {
+  // Only keep bit 15 active if collisions are disabled.
   myCollisionMaskEnabled = enabled ? 0xFFFF : (0x8000 | myCollisionMaskDisabled);
 }
 
@@ -181,27 +181,9 @@ void Playfield::applyColorLoss()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Playfield::tick(uInt32 x)
+void Playfield::nextLine()
 {
-  myX = x;
-
-  if (myX == 80 || myX == 0) myRefp = myReflected;
-
-  if (x & 0x03) return;
-
-  uInt32 currentPixel;
-
-  if (myEffectivePattern == 0) {
-      currentPixel = 0;
-  } else if (x < 80) {
-      currentPixel = myEffectivePattern & (1 << (x >> 2));
-  } else if (myRefp) {
-      currentPixel = myEffectivePattern & (1 << (39 - (x >> 2)));
-  } else {
-      currentPixel = myEffectivePattern & (1 << ((x >> 2) - 20));
-  }
-
-  collision = currentPixel ? myCollisionMaskEnabled : myCollisionMaskDisabled;
+  collision = myCollisionMaskDisabled;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -240,10 +222,10 @@ void Playfield::applyColors()
 uInt8 Playfield::getColor() const
 {
   if (!myDebugEnabled)
-    return myX < 80 ? myColorLeft : myColorRight;
+    return myX < TIAConstants::H_PIXEL / 2 ? myColorLeft : myColorRight;
   else
   {
-    if (myX < 80)
+    if (myX < TIAConstants::H_PIXEL / 2)
     {
       // left side:
       if(myX < 16)
@@ -256,16 +238,16 @@ uInt8 Playfield::getColor() const
       // right side:
       if(!myReflected)
       {
-        if(myX < 80 + 16)
+        if(myX < TIAConstants::H_PIXEL / 2 + 16)
           return myDebugColor - 2;  // PF0
-        if(myX < 80 + 48)
+        if(myX < TIAConstants::H_PIXEL / 2 + 48)
           return myDebugColor;      // PF1
       }
       else
       {
-        if(myX >= 160 - 16)
+        if(myX >= TIAConstants::H_PIXEL - 16)
           return myDebugColor - 2;  // PF0
-        if(myX >= 160 - 48)
+        if(myX >= TIAConstants::H_PIXEL - 48)
           return myDebugColor;      // PF1
       }
     }
@@ -284,8 +266,6 @@ bool Playfield::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     out.putInt(collision);
     out.putInt(myCollisionMaskDisabled);
     out.putInt(myCollisionMaskEnabled);
@@ -300,7 +280,7 @@ bool Playfield::save(Serializer& out) const
     out.putByte(myDebugColor);
     out.putBool(myDebugEnabled);
 
-    out.putByte(myColorMode);
+    out.putByte(uInt8(myColorMode));
 
     out.putInt(myPattern);
     out.putInt(myEffectivePattern);
@@ -327,9 +307,6 @@ bool Playfield::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     collision = in.getInt();
     myCollisionMaskDisabled = in.getInt();
     myCollisionMaskEnabled = in.getInt();

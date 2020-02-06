@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -34,8 +34,16 @@ class CommandMenu : public DialogContainer
     /**
       Create a new menu stack
     */
-    CommandMenu(OSystem& osystem);
-    virtual ~CommandMenu() = default;
+    explicit CommandMenu(OSystem& osystem);
+    virtual ~CommandMenu();
+
+    /**
+      Return (and possibly create) the bottom-most dialog of this container.
+    */
+    Dialog* baseDialog() override;
+
+  private:
+    Dialog* myBaseDialog{nullptr};
 
   private:
     // Following constructors and assignment operators not supported

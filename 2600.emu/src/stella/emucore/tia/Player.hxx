@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,13 +20,14 @@
 
 #include "bspf.hxx"
 #include "Serializable.hxx"
+#include "TIAConstants.hxx"
 
 class TIA;
 
 class Player : public Serializable
 {
   public:
-    Player(uInt32 collisionMask);
+    explicit Player(uInt32 collisionMask);
 
   public:
 
@@ -57,11 +58,12 @@ class Player : public Serializable
 
     void applyColorLoss();
 
+    void setInvertedPhaseClock(bool enable);
+
     void startMovement();
 
-    bool movementTick(uInt32 clock, bool apply);
+    void nextLine();
 
-    void tick();
     uInt8 getClock() const { return myCounter; }
 
     bool isOn() const { return (collision & 0x8000); }
@@ -84,11 +86,15 @@ class Player : public Serializable
     */
     bool save(Serializer& out) const override;
     bool load(Serializer& in) override;
-    string name() const override { return "TIA_Player"; }
+
+    inline void movementTick(uInt32 clock, bool hblank);
+
+    inline void tick();
 
   public:
 
-    uInt32 collision;
+    uInt32 collision{0};
+    bool isMoving{false};
 
   private:
 
@@ -98,38 +104,45 @@ class Player : public Serializable
 
   private:
 
-    uInt32 myCollisionMaskDisabled;
-    uInt32 myCollisionMaskEnabled;
+    enum Count: Int8 {
+      renderCounterOffset = -5,
+    };
 
-    uInt8 myColor;
-    uInt8 myObjectColor, myDebugColor;
-    bool myDebugEnabled;
+  private:
 
-    bool myIsSuppressed;
+    uInt32 myCollisionMaskDisabled{0};
+    uInt32 myCollisionMaskEnabled{0xFFFF};
 
-    uInt8 myHmmClocks;
-    uInt8 myCounter;
-    bool myIsMoving;
+    uInt8 myColor{0};
+    uInt8 myObjectColor{0}, myDebugColor{0};
+    bool myDebugEnabled{0};
 
-    bool myIsRendering;
-    Int8 myRenderCounter;
-    Int8 myRenderCounterTripPoint;
-    uInt8 myDivider;
-    uInt8 myDividerPending;
-    uInt8 mySampleCounter;
-    Int8 myDividerChangeCounter;
+    bool myIsSuppressed{false};
 
-    const uInt8* myDecodes;
-    uInt8 myDecodesOffset;  // needed for state saving
+    uInt8 myHmmClocks{0};
+    uInt8 myCounter{0};
 
-    uInt8 myPatternOld;
-    uInt8 myPatternNew;
-    uInt8 myPattern;
+    bool myIsRendering{false};
+    Int8 myRenderCounter{0};
+    Int8 myRenderCounterTripPoint{0};
+    uInt8 myDivider{0};
+    uInt8 myDividerPending{0};
+    uInt8 mySampleCounter{0};
+    Int8 myDividerChangeCounter{-1};
 
-    bool myIsReflected;
-    bool myIsDelaying;
+    const uInt8* myDecodes{nullptr};
+    uInt8 myDecodesOffset{0};  // needed for state saving
 
-    TIA* myTIA;
+    uInt8 myPatternOld{0};
+    uInt8 myPatternNew{0};
+    uInt8 myPattern{0};
+
+    bool myIsReflected{false};
+    bool myIsDelaying{false};
+    bool myInvertedPhaseClock{false};
+    bool myUseInvertedPhaseClock{false};
+
+    TIA* myTIA{nullptr};
 
   private:
     Player(const Player&) = delete;
@@ -137,5 +150,69 @@ class Player : public Serializable
     Player& operator=(const Player&) = delete;
     Player& operator=(Player&&) = delete;
 };
+
+// ############################################################################
+// Implementation
+// ############################################################################
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Player::movementTick(uInt32 clock, bool hblank)
+{
+  if (clock == myHmmClocks)
+    isMoving = false;
+
+  if(isMoving)
+  {
+    if (hblank) tick();
+    myInvertedPhaseClock = !hblank;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Player::tick()
+{
+  if(myUseInvertedPhaseClock && myInvertedPhaseClock)
+  {
+    myInvertedPhaseClock = false;
+    return;
+  }
+
+  if (!myIsRendering || myRenderCounter < myRenderCounterTripPoint)
+    collision = myCollisionMaskDisabled;
+  else
+    collision = (myPattern & (1 << mySampleCounter)) ? myCollisionMaskEnabled : myCollisionMaskDisabled;
+
+  if (myDecodes[myCounter]) {
+    myIsRendering = true;
+    mySampleCounter = 0;
+    myRenderCounter = renderCounterOffset;
+  } else if (myIsRendering) {
+    ++myRenderCounter;
+
+    switch (myDivider) {
+      case 1:
+        if (myRenderCounter > 0)
+          ++mySampleCounter;
+
+        if (myRenderCounter >= 0 && myDividerChangeCounter >= 0 && myDividerChangeCounter-- == 0)
+          setDivider(myDividerPending);
+
+        break;
+
+      default:
+        if (myRenderCounter > 1 && (((myRenderCounter - 1) % myDivider) == 0))
+          ++mySampleCounter;
+
+        if (myRenderCounter > 0 && myDividerChangeCounter >= 0 && myDividerChangeCounter-- == 0)
+          setDivider(myDividerPending);
+
+        break;
+    }
+
+    if (mySampleCounter > 7) myIsRendering = false;
+  }
+
+  if (++myCounter >= TIAConstants::H_PIXEL) myCounter = 0;
+}
 
 #endif // TIA_PLAYER

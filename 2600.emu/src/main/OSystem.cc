@@ -16,32 +16,37 @@
 #include <OSystem.hxx>
 #include <FrameBuffer.hxx>
 #include <EventHandler.hxx>
+#include <FSNodeEmuEx.hh>
+#include <SoundEmuEx.hh>
 #include <stella/emucore/Console.hxx>
 #include <stella/emucore/PropsSet.hxx>
-#include <stella/common/StateManager.hxx>
 #include <stella/emucore/Random.hxx>
-#include <stella/emucore/SerialPort.hxx>
 #include <stella/emucore/Settings.hxx>
-#include "SoundGeneric.hh"
+#include <stella/common/StateManager.hxx>
+#include <stella/common/AudioSettings.hxx>
+#include <stella/common/TimerManager.hxx>
+#include <stella/emucore/M6532.hxx>
 // TODO: Some Stella types collide with MacTypes.h
-#define BytePtr BytePtrMac
 #define Debugger DebuggerMac
-#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuSystem.hh>
-#undef BytePtr
 #undef Debugger
 
 OSystem::OSystem()
 {
-	mySettings = std::make_unique<Settings>(*this);
-	myRandom = std::make_unique<Random>(*this);
+	mySettings = std::make_unique<Settings>();
+	mySettings->setValue(AudioSettings::SETTING_PRESET, static_cast<int>(AudioSettings::Preset::custom));
+	mySettings->setValue(AudioSettings::SETTING_FRAGMENT_SIZE, 128);
+	mySettings->setValue(AudioSettings::SETTING_BUFFER_SIZE, 0);
+	mySettings->setValue(AudioSettings::SETTING_HEADROOM, 0);
+	mySettings->setValue(AudioSettings::SETTING_VOLUME, 100);
+	myAudioSettings = std::make_unique<AudioSettings>(*mySettings);
+	myRandom = std::make_unique<Random>(uInt32(TimerManager::getTicks()));
 	myFrameBuffer = std::make_unique<FrameBuffer>();
 	myEventHandler = std::make_unique<EventHandler>(*this);
-	myPropSet = std::make_unique<PropertiesSet>("");
+	myPropSet = std::make_unique<PropertiesSet>();
 	myStateManager = std::make_unique<StateManager>(*this);
-	mySerialPort = std::make_unique<SerialPort>();
-	mySound = std::make_unique<SoundGeneric>(*this);
+	mySound = std::make_unique<SoundEmuEx>(*this);
 }
 
 EventHandler& OSystem::eventHandler() const
@@ -64,11 +69,6 @@ Sound& OSystem::sound() const
 	return *mySound;
 }
 
-SoundGeneric& OSystem::soundGeneric() const
-{
-	return *mySound;
-}
-
 Settings& OSystem::settings() const
 {
 	return *mySettings;
@@ -79,24 +79,36 @@ PropertiesSet& OSystem::propSet() const
 	return *myPropSet;
 }
 
-SerialPort& OSystem::serialPort() const
-{
-	return *mySerialPort;
-}
-
 StateManager& OSystem::state() const
 {
 	return *myStateManager;
 }
 
-void OSystem::makeConsole(unique_ptr<Cartridge>& cart, const Properties& props)
+void OSystem::makeConsole(unique_ptr<Cartridge>& cart, const Properties& props, const char *gamePath)
 {
-	myConsole = std::make_unique<Console>(*this, cart, props);
+	myConsole = std::make_unique<Console>(*this, cart, props, *myAudioSettings);
+	myRomFile = FilesystemNode{gamePath};
+	myConsole->riot().update();
 }
 
 void OSystem::deleteConsole()
 {
 	myConsole = {};
+}
+
+void OSystem::setFrameTime(double frameTime, int rate)
+{
+	mySound->setFrameTime(*this, frameTime, rate);
+}
+
+void OSystem::setResampleQuality(AudioSettings::ResamplingQuality quality)
+{
+	mySound->setResampleQuality(quality);
+}
+
+void OSystem::processAudio(bool renderAudio)
+{
+	mySound->processAudio(*this, renderAudio);
 }
 
 std::string OSystem::stateDir() const
@@ -107,15 +119,4 @@ std::string OSystem::stateDir() const
 std::string OSystem::nvramDir() const
 {
 	return EmuSystem::savePath();
-}
-
-void OSystem::logMessage(const string& message, uInt8 level)
-{
-	if(Config::DEBUG_BUILD)
-		logMsg("%s", message.c_str());
-}
-
-uInt64 OSystem::getTicks() const
-{
-	return IG::Time::now().uSecs();
 }

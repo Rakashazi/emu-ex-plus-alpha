@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,12 +24,6 @@
 #include "PropsSet.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PropertiesSet::PropertiesSet(const string& propsfile)
-{
-  load(propsfile);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void PropertiesSet::load(const string& filename)
 {
   ifstream in(filename);
@@ -42,6 +36,11 @@ void PropertiesSet::load(const string& filename)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool PropertiesSet::save(const string& filename) const
 {
+  // Only save properties when it won't create an empty file
+  FilesystemNode props(filename);
+  if(!props.exists() && myExternalProps.size() == 0)
+    return false;
+
   ofstream out(filename);
   if(!out)
     return false;
@@ -96,13 +95,14 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
     while(low <= high)
     {
       int i = (low + high) / 2;
-      int cmp = BSPF::compareIgnoreCase(md5, DefProps[i][Cartridge_MD5]);
+      int cmp = BSPF::compareIgnoreCase(md5,
+          DefProps[i][static_cast<uInt8>(PropType::Cart_MD5)]);
 
       if(cmp == 0)  // found it
       {
-        for(int p = 0; p < LastPropType; ++p)
+        for(uInt8 p = 0; p < static_cast<uInt8>(PropType::NumTypes); ++p)
           if(DefProps[i][p][0] != 0)
-            properties.set(PropertyType(p), DefProps[i][p]);
+            properties.set(PropType(p), DefProps[i][p]);
 
         found = true;
         break;
@@ -121,14 +121,20 @@ bool PropertiesSet::getMD5(const string& md5, Properties& properties,
 void PropertiesSet::getMD5WithInsert(const FilesystemNode& rom,
                                      const string& md5, Properties& properties)
 {
+  bool toInsert = false;
+
   if(!getMD5(md5, properties))
   {
-    properties.set(Cartridge_MD5, md5);
-    // Create a name suitable for using in properties
-    properties.set(Cartridge_Name, rom.getNameWithExt(""));
-
-    insert(properties, false);
+    properties.set(PropType::Cart_MD5, md5);
+    toInsert = true;
   }
+  if(toInsert || properties.get(PropType::Cart_Name) == EmptyString)
+  {
+    properties.set(PropType::Cart_Name, rom.getNameWithExt(""));
+    toInsert = true;
+  }
+  if(toInsert)
+    insert(properties, false);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -144,7 +150,7 @@ void PropertiesSet::insert(const Properties& properties, bool save)
   // most people tend not to do
 
   // Since the PropSet is keyed by md5, we can't insert without a valid one
-  const string& md5 = properties.get(Cartridge_MD5);
+  const string& md5 = properties.get(PropType::Cart_MD5);
   if(md5 == "")
     return;
 
@@ -171,13 +177,6 @@ void PropertiesSet::insert(const Properties& properties, bool save)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PropertiesSet::removeMD5(const string& md5)
-{
-  // We only remove from the external list
-  myExternalProps.erase(md5);
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void PropertiesSet::print() const
 {
   // We only look at the external properties and the built-in ones;
@@ -195,14 +194,14 @@ void PropertiesSet::print() const
   // This is fine, since a duplicate in the built-in list means it should
   // be overrided anyway (and insertion shouldn't be done)
   Properties properties;
-  for(int i = 0; i < DEF_PROPS_SIZE; ++i)
+  for(uInt32 i = 0; i < DEF_PROPS_SIZE; ++i)
   {
     properties.setDefaults();
-    for(int p = 0; p < LastPropType; ++p)
+    for(uInt8 p = 0; p < static_cast<uInt8>(PropType::NumTypes); ++p)
       if(DefProps[i][p][0] != 0)
-        properties.set(PropertyType(p), DefProps[i][p]);
+        properties.set(PropType(p), DefProps[i][p]);
 
-    list.emplace(DefProps[i][Cartridge_MD5], properties);
+    list.emplace(DefProps[i][static_cast<uInt8>(PropType::Cart_MD5)], properties);
   }
 
   // Now, print the resulting list

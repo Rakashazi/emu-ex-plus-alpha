@@ -109,7 +109,7 @@ public:
 	static Base::FrameTimeBase startFrameTime;
 	static Base::FrameTimeBase timePerVideoFrame;
 	static uint emuFrameNow;
-	static Audio::PcmFormat pcmFormat;
+	static IG::Audio::PcmFormat pcmFormat;
 	static uint audioFramesPerVideoFrame;
 	static double audioFramesPerVideoFrameFloat;
 	static uint aspectRatioX, aspectRatioY;

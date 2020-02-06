@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -46,8 +46,8 @@ class DialogContainer
     /**
       Create a new DialogContainer stack
     */
-    DialogContainer(OSystem& osystem);
-    virtual ~DialogContainer();
+    explicit DialogContainer(OSystem& osystem);
+    virtual ~DialogContainer() = default;
 
   public:
     /**
@@ -68,11 +68,11 @@ class DialogContainer
     /**
       Handle a keyboard single-key event.
 
-      @param key    Actual key symbol
-      @param mod    Modifiers
-      @param state  Pressed (true) or released (false)
+      @param key      Actual key symbol
+      @param mod      Modifiers
+      @param pressed  Pressed (true) or released (false)
     */
-    void handleKeyEvent(StellaKey key, StellaMod mod, bool state);
+    void handleKeyEvent(StellaKey key, StellaMod mod, bool pressed, bool repeat);
 
     /**
       Handle a mouse motion event.
@@ -97,42 +97,50 @@ class DialogContainer
 
       @param stick   The joystick number
       @param button  The joystick button
-      @param state   The state (pressed or released)
+      @param pressed Pressed (true) or released (false)
     */
-    void handleJoyEvent(int stick, int button, uInt8 state);
+    void handleJoyBtnEvent(int stick, int button, bool pressed);
 
     /**
       Handle a joystick axis event.
 
       @param stick  The joystick number
       @param axis   The joystick axis
-      @param value  Value associated with given axis
+      @param adir   Value associated with given axis
     */
-    void handleJoyAxisEvent(int stick, int axis, int value);
+    void handleJoyAxisEvent(int stick, JoyAxis axis, JoyDir adir, int button);
 
     /**
       Handle a joystick hat event.
 
       @param stick  The joystick number
       @param hat    The joystick hat
-      @param value  Value associated with given hat
+      @param hdir   Direction of the given hat
     */
-    void handleJoyHatEvent(int stick, int hat, JoyHat value);
+    void handleJoyHatEvent(int stick, int hat, JoyHatDir hdir, int button);
 
     /**
       Draw the stack of menus (full indicates to redraw all items).
+
+      @return  Answers whether any drawing actually occurred.
     */
-    void draw(bool full = false);
+    bool draw(bool full = false);
+
+    /**
+      Answers whether a full redraw is required.
+    */
+    bool needsRedraw() const;
+
+    /**
+      Answers whether the base dialog is currently active
+      (ie, there are no overlaid dialogs other than the bottom one)
+    */
+    bool baseDialogIsActive() const;
 
     /**
       Reset dialog stack to the main configuration menu.
     */
     void reStack();
-
-    /**
-      Return the bottom-most dialog of this container.
-    */
-    const Dialog* baseDialog() const { return myBaseDialog; }
 
     /**
       Inform the container that it should resize according to the current
@@ -142,13 +150,27 @@ class DialogContainer
     */
     virtual void requestResize() { }
 
+    /**
+      Return (and possibly create) the bottom-most dialog of this container.
+    */
+    virtual Dialog* baseDialog() = 0;
+
+    /**
+      Set input speeds.
+    */
+    static void setDoubleClickDelay(int delay) { _DOUBLE_CLICK_DELAY = delay; }
+    static void setControllerDelay(int delay) { _REPEAT_INITIAL_DELAY = delay; }
+    static void setControllerRate(int rate) {
+      _REPEAT_SUSTAIN_DELAY = (rate > 0 ? (1000 / rate) : 50);
+    }
+
   private:
     void reset();
 
     /**
       Add a dialog box to the stack.
     */
-    void addDialog(Dialog* d);
+    int addDialog(Dialog* d);
 
     /**
       Remove the topmost dialog box from the stack.
@@ -157,62 +179,56 @@ class DialogContainer
 
   protected:
     OSystem& myOSystem;
-    Dialog*  myBaseDialog;
     Common::FixedStack<Dialog*> myDialogStack;
 
   private:
-    enum {
-      kDoubleClickDelay   = 500,
-      kRepeatInitialDelay = 400,
-      kRepeatSustainDelay = 50
-    };
-
     // Indicates the most current time (in milliseconds) as set by updateTime()
-    uInt64 myTime;
+    uInt64 myTime{0};
 
-    // For continuous 'key down' events
-    struct {
-      StellaKey keycode;
-      StellaMod flags;
-    } myCurrentKeyDown;
-    uInt64 myKeyRepeatTime;
+    static uInt64 _DOUBLE_CLICK_DELAY;
+    static uInt64 _REPEAT_INITIAL_DELAY;
+    static uInt64 _REPEAT_SUSTAIN_DELAY;
+    static constexpr uInt64 _REPEAT_NONE = 1 << 24; // loooong
+    static constexpr uInt64 _LONG_PRESS_DELAY = 1000; // 1 second
 
     // For continuous 'mouse down' events
     struct {
-      int x;
-      int y;
-      MouseButton b;
+      int x{0};
+      int y{0};
+      MouseButton b{MouseButton::NONE};
     } myCurrentMouseDown;
-    uInt64 myClickRepeatTime;
+    uInt64 myClickRepeatTime{0};
 
     // For continuous 'joy button down' events
     struct {
-      int stick;
-      int button;
+      int stick{-1};
+      int button{-1};
     } myCurrentButtonDown;
-    uInt64 myButtonRepeatTime;
+    uInt64 myButtonRepeatTime{0};
+    uInt64 myButtonLongPressTime{0};
+    bool myButtonLongPress{false};
 
     // For continuous 'joy axis down' events
     struct {
-      int stick;
-      int axis;
-      int value;
+      int stick{-1};
+      JoyAxis axis{JoyAxis::NONE};
+      JoyDir adir{JoyDir::NONE};
     } myCurrentAxisDown;
-    uInt64 myAxisRepeatTime;
+    uInt64 myAxisRepeatTime{0};
 
     // For continuous 'joy hat' events
     struct {
-      int stick;
-      int hat;
-      JoyHat value;
+      int stick{-1};
+      int hat{-1};
+      JoyHatDir hdir{JoyHatDir::CENTER};
     } myCurrentHatDown;
-    uInt64 myHatRepeatTime;
+    uInt64 myHatRepeatTime{0};
 
     // Position and time of last mouse click (used to detect double clicks)
     struct {
-      int x, y;    // Position of mouse when the click occurred
-      int count;   // How often was it already pressed?
-      uInt64 time; // Time
+      int x{0}, y{0}; // Position of mouse when the click occurred
+      int count{0};   // How often was it already pressed?
+      uInt64 time{0}; // Time
     } myLastClick;
 
   private:

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,15 +27,13 @@
 
 class Cartridge;
 
-// FIXME - This code has many instances of shifting into signed integers
-//         Perhaps the int's should be changed to uInt32
-#ifdef __clang__
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wshift-sign-overflow"
-#endif
-
 #include "bspf.hxx"
 #include "Console.hxx"
+
+#ifdef RETRON77
+  #define UNSAFE_OPTIMIZATIONS
+  #define NO_THUMB_STATS
+#endif
 
 #define ROMADDMASK 0x7FFF
 #define RAMADDMASK 0x1FFF
@@ -43,25 +41,27 @@ class Cartridge;
 #define ROMSIZE (ROMADDMASK+1)
 #define RAMSIZE (RAMADDMASK+1)
 
-#define CPSR_N (1<<31)
-#define CPSR_Z (1<<30)
-#define CPSR_C (1<<29)
-#define CPSR_V (1<<28)
+#define CPSR_N (1u<<31)
+#define CPSR_Z (1u<<30)
+#define CPSR_C (1u<<29)
+#define CPSR_V (1u<<28)
 
 class Thumbulator
 {
   public:
     // control cartridge specific features of the Thumbulator class,
     // such as the start location for calling custom code
-    enum ConfigureFor {
+    enum class ConfigureFor {
       BUS,      // cartridges of type BUS
       CDF,      // cartridges of type CDF
       CDF1,     // cartridges of type CDF version 1
+      CDFJ,     // cartrdiges of type CDFJ
       DPCplus   // cartridges of type DPC+
     };
 
-    Thumbulator(const uInt16* rom, uInt16* ram, bool traponfatal,
-                Thumbulator::ConfigureFor configurefor, Cartridge* cartridge);
+    Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, uInt16 rom_size,
+                bool traponfatal, Thumbulator::ConfigureFor configurefor,
+                Cartridge* cartridge);
 
     /**
       Run the ARM code, and return when finished.  A runtime_error exception is
@@ -74,6 +74,7 @@ class Thumbulator
     string run();
     string run(uInt32 cycles);
 
+#ifndef UNSAFE_OPTIMIZATIONS
     /**
       Normally when a fatal error is encountered, the ARM emulation
       immediately throws an exception and exits.  This method allows execution
@@ -87,6 +88,7 @@ class Thumbulator
       @param enable  Enable (the default) or disable exceptions on fatal errors
     */
     static void trapFatalErrors(bool enable) { trapOnFatal = enable; }
+#endif
 
     /**
       Inform the Thumbulator class about the console currently in use,
@@ -96,16 +98,71 @@ class Thumbulator
     void setConsoleTiming(ConsoleTiming timing);
 
   private:
+
+    enum class Op : uInt8 {
+      invalid,
+      adc,
+      add1, add2, add3, add4, add5, add6, add7,
+      and_,
+      asr1, asr2,
+      b1, b2,
+      bic,
+      bkpt,
+      blx1, blx2,
+      bx,
+      cmn,
+      cmp1, cmp2, cmp3,
+      cps,
+      cpy,
+      eor,
+      ldmia,
+      ldr1, ldr2, ldr3, ldr4,
+      ldrb1, ldrb2,
+      ldrh1, ldrh2,
+      ldrsb,
+      ldrsh,
+      lsl1, lsl2,
+      lsr1, lsr2,
+      mov1, mov2, mov3,
+      mul,
+      mvn,
+      neg,
+      orr,
+      pop,
+      push,
+      rev,
+      rev16,
+      revsh,
+      ror,
+      sbc,
+      setend,
+      stmia,
+      str1, str2, str3,
+      strb1, strb2,
+      strh1, strh2,
+      sub1, sub2, sub3, sub4,
+      swi,
+      sxtb,
+      sxth,
+      tst,
+      uxtb,
+      uxth
+    };
+
+  private:
     uInt32 read_register(uInt32 reg);
     void write_register(uInt32 reg, uInt32 data);
     uInt32 fetch16(uInt32 addr);
-    uInt32 fetch32(uInt32 addr);
     uInt32 read16(uInt32 addr);
     uInt32 read32(uInt32 addr);
+#ifndef UNSAFE_OPTIMIZATIONS
     bool isProtected(uInt32 addr);
+#endif
     void write16(uInt32 addr, uInt32 data);
     void write32(uInt32 addr, uInt32 data);
     void updateTimer(uInt32 cycles);
+
+    static Op decodeInstructionWord(uint16_t inst);
 
     void do_zflag(uInt32 x);
     void do_nflag(uInt32 x);
@@ -114,6 +171,7 @@ class Thumbulator
     void do_cflag_bit(uInt32 x);
     void do_vflag_bit(uInt32 x);
 
+#ifndef UNSAFE_OPTIMIZATIONS
     // Throw a runtime_error exception containing an error referencing the
     // given message and variables
     // Note that the return value is never used in these methods
@@ -122,29 +180,39 @@ class Thumbulator
 
     void dump_counters();
     void dump_regs();
+#endif
     int execute();
     int reset();
 
   private:
-    const uInt16* rom;
-    uInt16* ram;
+    const uInt16* rom{nullptr};
+    uInt16 romSize{0};
+    const unique_ptr<Op[]> decodedRom;  // NOLINT
+    uInt16* ram{nullptr};
 
-    uInt32 reg_norm[16]; // normal execution mode, do not have a thread mode
-    uInt32 cpsr, mamcr;
-    bool handler_mode;
-    uInt32 systick_ctrl, systick_reload, systick_count, systick_calibrate;
-    uInt64 instructions, fetches, reads, writes, systick_ints;
+    std::array<uInt32, 16> reg_norm; // normal execution mode, do not have a thread mode
+    uInt32 cpsr{0}, mamcr{0};
+    bool handler_mode{false};
+    uInt32 systick_ctrl{0}, systick_reload{0}, systick_count{0}, systick_calibrate{0};
+#ifndef UNSAFE_OPTIMIZATIONS
+    uInt64 instructions{0};
+#endif
+#ifndef NO_THUMB_STATS
+    uInt64 fetches{0}, reads{0}, writes{0};
+#endif
 
     // For emulation of LPC2103's timer 1, used for NTSC/PAL/SECAM detection.
     // Register names from documentation:
     // http://www.nxp.com/documents/user_manual/UM10161.pdf
-    uInt32 T1TCR;  // Timer 1 Timer Control Register
-    uInt32 T1TC;   // Timer 1 Timer Counter
-    double timing_factor;
+    uInt32 T1TCR{0};  // Timer 1 Timer Control Register
+    uInt32 T1TC{0};   // Timer 1 Timer Counter
+    double timing_factor{0.0};
 
+#ifndef UNSAFE_OPTIMIZATIONS
     ostringstream statusMsg;
 
     static bool trapOnFatal;
+#endif
 
     ConfigureFor configuration;
 

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,7 +27,9 @@ class GuiObject;
 #include "bspf.hxx"
 #include "Device.hxx"
 #include "Settings.hxx"
-#include "Font.hxx"
+#ifdef DEBUGGER_SUPPORT
+  #include "Font.hxx"
+#endif
 
 /**
   A cartridge is a device which contains the machine code for a
@@ -40,12 +42,16 @@ class GuiObject;
 class Cartridge : public Device
 {
   public:
+    using StartBankFromPropsFunc = std::function<int()>;
+
+  public:
     /**
       Create a new cartridge
 
       @param settings  A reference to the various settings (read-only)
+      @param md5       The md5sum of the cart image
     */
-    Cartridge(const Settings& settings);
+    Cartridge(const Settings& settings, const string& md5);
     virtual ~Cartridge() = default;
 
     /**
@@ -82,6 +88,14 @@ class Cartridge : public Device
     uInt16 startBank() const { return myStartBank; }
 
     /**
+      Set the function to use when we want to query the 'Cartridge.StartBank'
+      ROM property.
+    */
+    void setStartBankFromPropsFunc(const StartBankFromPropsFunc& func) {
+      myStartBankFromPropsFunc = func;
+    }
+
+    /**
       Answer whether the bank has changed since the last time this
       method was called.  Each cart class is able to override this
       method to deal with its specific functionality.  In those cases,
@@ -91,6 +105,37 @@ class Cartridge : public Device
       @return  Whether the bank was changed
     */
     virtual bool bankChanged();
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      To be called at the start of each instruction.
+      Clears information about all accesses to cart RAM.
+    */
+    void clearAllRAMAccesses() {
+      myRAMAccesses.clear();
+      myRamWriteAccess = 0;
+    }
+
+    /**
+      To be called at the end of each instruction.
+      Answers whether an access in the last instruction cycle generated
+      an illegal read RAM access.
+
+      @return  Address of illegal access if one occurred, else 0
+    */
+    uInt16 getIllegalRAMReadAccess() const {
+      return myRAMAccesses.size() > 0 ? myRAMAccesses[0] : 0;
+    }
+
+    /**
+      To be called at the end of each instruction.
+      Answers whether an access in the last instruction cycle generated
+      an illegal RAM write access.
+
+      @return  Address of illegal access if one occurred, else 0
+    */
+    uInt16 getIllegalRAMWriteAccess() const { return myRamWriteAccess; }
+  #endif
 
   public:
     //////////////////////////////////////////////////////////////////////
@@ -108,10 +153,14 @@ class Cartridge : public Device
     virtual bool bank(uInt16) { return false; }
 
     /**
-      Get the current bank.  Carts which have only one bank (either real
-      or virtual) always report that bank as zero.
+      Get the current bank for the provided address. Carts which have only
+      one bank (either real or virtual) always report that bank as zero.
+
+      @param address  Query the bank used for this specific address
+                      Derived classes are free to ignore this; it only
+                      makes sense in some situations.
     */
-    virtual uInt16 getBank() const { return 0; }
+    virtual uInt16 getBank(uInt16 address = 0) const { return 0; }
 
     /**
       Query the number of 'banks' supported by the cartridge.  Note that
@@ -143,15 +192,23 @@ class Cartridge : public Device
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    virtual const uInt8* getImage(uInt32& size) const = 0;
+    virtual const uInt8* getImage(size_t& size) const = 0;
 
     /**
-      Informs the cartridge about the name of the ROM file used when
-      creating this cart.
+      Get a descriptor for the cart name.
 
-      @param name  The properties file name of the ROM
+      @return The name of the cart
     */
-    virtual void setRomName(const string& name) { }
+    virtual string name() const = 0;
+
+    /**
+      Informs the cartridge about the name of the nvram file it will
+      use; not all carts support this.
+
+      @param nvramdir  The full path of the nvram directory
+      @param romfile   The name of the cart from ROM properties
+    */
+    virtual void setNVRamFile(const string& nvramdir, const string& romfile) { }
 
     /**
       Thumbulator only supports 16-bit ARM code.  Some Harmony/Melody drivers,
@@ -160,6 +217,17 @@ class Cartridge : public Device
     */
     virtual uInt32 thumbCallback(uInt8 function, uInt32 value1, uInt32 value2) { return 0; }
 
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Get optional debugger widget responsible for displaying info about the cart.
+      This can be used when the debugWidget runs out of space.
+    */
+    virtual CartDebugWidget* infoWidget(GuiObject* boss, const GUI::Font& lfont,
+                                        const GUI::Font& nfont, int x, int y, int w, int h)
+    {
+      return nullptr;
+    }
+
     /**
       Get debugger widget responsible for accessing the inner workings
       of the cart.  This will need to be overridden and implemented by
@@ -167,15 +235,36 @@ class Cartridge : public Device
       of each cart type can be very different from each other.
     */
     virtual CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
-        const GUI::Font& nfont, int x, int y, int w, int h) { return nullptr; }
+                                         const GUI::Font& nfont, int x, int y, int w, int h)
+    {
+      return nullptr;
+    }
+  #endif
 
   protected:
     /**
-      Indicate that an illegal read from a write port has occurred.
+      Get a random value to use when a read from the write port happens.
+      Sometimes a RWP means that RAM should be overwritten, sometimes not.
 
+      Internally, this method also keeps track of illegal accesses.
+
+      @param dest     The location to place the value, when an overwrite should happen
       @param address  The address of the illegal read
+      @return  The value read, whether it is overwritten or not
     */
-    void triggerReadFromWritePort(uInt16 address);
+    uInt8 peekRAM(uInt8& dest, uInt16 address);
+
+    /**
+      Use the given value when writing to RAM.
+
+      Internally, this method also keeps track of legal accesses, and removes
+      them from the illegal list.
+
+      @param dest     The final location (including address) to place the value
+      @param address  The address of the legal write
+      @param value    The value to write to the given address
+    */
+    void pokeRAM(uInt8& dest, uInt16 address, uInt8 value);
 
     /**
       Create an array that holds code-access information for every byte
@@ -184,7 +273,7 @@ class Cartridge : public Device
 
       @param size  The size of the code-access array to create
     */
-    void createCodeAccessBase(uInt32 size);
+    void createCodeAccessBase(size_t size);
 
     /**
       Fill the given RAM array with (possibly random) data.
@@ -193,25 +282,34 @@ class Cartridge : public Device
       @param size The size of the RAM array
       @param val  If provided, the value to store in the RAM array
     */
-    void initializeRAM(uInt8* arr, uInt32 size, uInt8 val = 0) const;
+    void initializeRAM(uInt8* arr, size_t size, uInt8 val = 0) const;
 
     /**
-      Checks if initial RAM randomization is enabled
+      Set the start bank to be used when the cart is reset.  This method
+      will take both randomization and properties settings into account.
+      See the actual method for more information on the logic used.
 
-      @return Whether the initial RAM should be randomized
+      NOTE: If this method is used, it *must* be called from the cart reset()
+            method, *not* from the c'tor.
+
+      @param defaultBank  The default bank to use during reset, if
+                          randomization or properties aren't being used
+
+      @return  The bank number that was determined
+    */
+    uInt16 initializeStartBank(uInt16 defaultBank);
+
+    /**
+      Checks if initial RAM randomization is enabled.
+
+      @return  Whether the initial RAM should be randomized
     */
     bool randomInitialRAM() const;
 
     /**
-      Defines the startup bank. if 'bank' is negative, a random bank will
-      be selected.
-    */
-    void randomizeStartBank();
+      Checks if startup bank randomization is enabled.
 
-    /**
-      Checks if startup bank randomization is enabled
-
-      @return Whether the startup bank(s) should be randomized
+      @return  Whether the startup bank(s) should be randomized
     */
     bool randomStartBank() const;
 
@@ -219,26 +317,38 @@ class Cartridge : public Device
     // Settings class for the application
     const Settings& mySettings;
 
-    // The startup bank to use (where to look for the reset vector address)
-    uInt16 myStartBank;
-
     // Indicates if the bank has changed somehow (a bankswitch has occurred)
-    bool myBankChanged;
+    bool myBankChanged{true};
 
     // The array containing information about every byte of ROM indicating
     // whether it is used as code.
-    BytePtr myCodeAccessBase;
+    ByteBuffer myCodeAccessBase;
+
+    // Contains address of illegal RAM write access or 0
+    uInt16 myRamWriteAccess{0};
 
   private:
+    // The startup bank to use (where to look for the reset vector address)
+    uInt16 myStartBank{0};
+
     // If myBankLocked is true, ignore attempts at bankswitching. This is used
     // by the debugger, when disassembling/dumping ROM.
-    bool myBankLocked;
+    bool myBankLocked{false};
+
+    // Semi-random values to use when a read from write port occurs
+    std::array<uInt8, 256> myRWPRandomValues;
 
     // Contains various info about this cartridge
     // This needs to be stored separately from child classes, since
     // sometimes the information in both do not match
     // (ie, detected type could be '2in1' while name of cart is '4K')
     string myAbout, myDetectedType, myMultiCartID;
+
+    // Used when we want the 'Cartridge.StartBank' ROM property
+    StartBankFromPropsFunc myStartBankFromPropsFunc;
+
+    // Contains
+    ShortArray myRAMAccesses;
 
     // Following constructors and assignment operators not supported
     Cartridge() = delete;

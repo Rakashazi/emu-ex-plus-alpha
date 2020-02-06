@@ -8,14 +8,12 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //============================================================================
-
-#include <climits>
 
 #include "Control.hxx"
 #include "Event.hxx"
@@ -29,14 +27,7 @@ PointingDevice::PointingDevice(Jack jack, const Event& event,
                                const System& system, Controller::Type type,
                                float sensitivity)
   : Controller(jack, event, system, type),
-    mySensitivity(sensitivity),
-    myHCounterRemainder(0.0), myVCounterRemainder(0.0),
-    myTrackBallLinesH(1), myTrackBallLinesV(1),
-    myTrackBallLeft(false), myTrackBallDown(false),
-    myCountH(0), myCountV(0),
-    myScanCountH(0), myScanCountV(0),
-    myFirstScanOffsetH(0), myFirstScanOffsetV(0),
-    myMouseEnabled(false)
+    mySensitivity(sensitivity)
 {
   // The code in ::read() is set up to always return IOPortA values in
   // the lower 4 bits data value
@@ -51,8 +42,8 @@ uInt8 PointingDevice::read()
   // Loop over all missed changes
   while(myScanCountH < scanline)
   {
-    if(myTrackBallLeft) myCountH--;
-    else                myCountH++;
+    if(myTrackBallLeft) --myCountH;
+    else                ++myCountH;
 
     // Define scanline of next change
     myScanCountH += myTrackBallLinesH;
@@ -61,8 +52,8 @@ uInt8 PointingDevice::read()
   // Loop over all missed changes
   while(myScanCountV < scanline)
   {
-    if(myTrackBallDown) myCountV++;
-    else                myCountV--;
+    if(myTrackBallDown) ++myCountV;
+    else                --myCountV;
 
     // Define scanline of next change
     myScanCountV += myTrackBallLinesV;
@@ -73,10 +64,10 @@ uInt8 PointingDevice::read()
 
   uInt8 portA = ioPortA(myCountH, myCountV, myTrackBallLeft, myTrackBallDown);
 
-  myDigitalPinState[One]   = portA & 0b0001;
-  myDigitalPinState[Two]   = portA & 0b0010;
-  myDigitalPinState[Three] = portA & 0b0100;
-  myDigitalPinState[Four]  = portA & 0b1000;
+  setPin(DigitalPin::One,   portA & 0b0001);
+  setPin(DigitalPin::Two,   portA & 0b0010);
+  setPin(DigitalPin::Three, portA & 0b0100);
+  setPin(DigitalPin::Four,  portA & 0b1000);
 
   return portA;
 }
@@ -88,16 +79,16 @@ void PointingDevice::update()
     return;
 
   // Update horizontal direction
-  updateDirection( myEvent.get(Event::MouseAxisXValue), myHCounterRemainder,
+  updateDirection( myEvent.get(Event::MouseAxisXMove), myHCounterRemainder,
       myTrackBallLeft, myTrackBallLinesH, myScanCountH, myFirstScanOffsetH);
 
   // Update vertical direction
-  updateDirection(-myEvent.get(Event::MouseAxisYValue), myVCounterRemainder,
+  updateDirection(-myEvent.get(Event::MouseAxisYMove), myVCounterRemainder,
       myTrackBallDown, myTrackBallLinesV, myScanCountV, myFirstScanOffsetV);
 
   // Get mouse button state
-  myDigitalPinState[Six] = (myEvent.get(Event::MouseButtonLeftValue)  == 0) &&
-                           (myEvent.get(Event::MouseButtonRightValue) == 0);
+  setPin(DigitalPin::Six, (myEvent.get(Event::MouseButtonLeftValue)  == 0) &&
+                          (myEvent.get(Event::MouseButtonRightValue) == 0));
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -117,7 +108,7 @@ bool PointingDevice::setMouseControl(
 void PointingDevice::setSensitivity(int sensitivity)
 {
   BSPF::clamp(sensitivity, 1, 20, 10);
-  TB_SENSITIVITY = sensitivity / 10.0;
+  TB_SENSITIVITY = sensitivity / 10.0F;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -149,7 +140,7 @@ void PointingDevice::updateDirection(int counter, float& counterRemainder,
     scanCount = INT_MAX;
 
     // Define offset factor for first change, move randomly forward by up to 1/8th
-    firstScanOffset = (((firstScanOffset << 3) + rand() %
+    firstScanOffset = (((firstScanOffset << 3) + mySystem.randGenerator().next() %
                       (1 << 12)) >> 3) & ((1 << 12) - 1);
   }
 }

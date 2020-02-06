@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -31,21 +31,30 @@ class TrakBall : public PointingDevice
       @param system The system using this controller
     */
     TrakBall(Jack jack, const Event& event, const System& system)
-      : PointingDevice(jack, event, system, Controller::TrakBall,
+      : PointingDevice(jack, event, system, Controller::Type::TrakBall,
         trackballSensitivity) { }
     virtual ~TrakBall() = default;
+
+    /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "TrakBall"; }
 
   protected:
     uInt8 ioPortA(uInt8 countH, uInt8 countV, uInt8 left, uInt8 down) override
     {
-      static constexpr uInt32 ourTableH[2][2] = {{ 0b00, 0b01 }, { 0b10, 0b11 }};
-      static constexpr uInt32 ourTableV[2][2] = {{ 0b0100, 0b0000 }, { 0b1100, 0b1000 }};
+      static constexpr BSPF::array2D<uInt32, 2, 2> ourTableH = {{
+        { 0b00, 0b01 }, { 0b10, 0b11 }
+      }};
+      static constexpr BSPF::array2D<uInt32, 2, 2> ourTableV = {{
+        { 0b0100, 0b0000 }, { 0b1100, 0b1000 }
+      }};
 
       return ourTableH[countH & 0b1][left] | ourTableV[countV & 0b1][down];
     }
 
     // 50% of Atari and Amiga mouse
-    static constexpr float trackballSensitivity = 0.4f;
+    static constexpr float trackballSensitivity = 0.4F;
 };
 
 #endif // TRAKBALL_HXX

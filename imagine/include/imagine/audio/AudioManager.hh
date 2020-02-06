@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 
-namespace AudioManager
+namespace IG::AudioManager
 {
 	namespace Config
 	{

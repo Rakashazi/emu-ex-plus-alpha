@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -48,6 +48,16 @@ class Driving : public Controller
     void update() override;
 
     /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "Driving"; }
+
+    /**
+      Answers whether the controller is intrinsically an analog controller.
+    */
+    bool isAnalog() const override { return true; }
+
+    /**
       Determines how this controller will treat values received from the
       X/Y axis and left/right buttons of the mouse.  Since not all controllers
       use the mouse the same way (or at all), it's up to the specific class to
@@ -68,14 +78,14 @@ class Driving : public Controller
 
   private:
     // Counter to iterate through the gray codes
-    uInt32 myCounter;
+    uInt32 myCounter{0};
 
     // Index into the gray code table
-    uInt32 myGrayIndex;
+    uInt32 myGrayIndex{0};
 
     // Y axis value from last yaxis event that was used to generate a new
     // gray code
-    int myLastYaxis;
+    int myLastYaxis{0};
 
     // Pre-compute the events we care about based on given port
     // This will eliminate test for left or right port in update()
@@ -83,10 +93,10 @@ class Driving : public Controller
                 myXAxisValue, myYAxisValue;
 
     // Controller to emulate in normal mouse axis mode
-    int myControlID;
+    int myControlID{-1};
 
     // Controllers to emulate in 'specific' mouse axis mode
-    int myControlIDX, myControlIDY;
+    int myControlIDX{-1}, myControlIDY{-1};
 
   private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,7 +24,7 @@
 class LatchedInput : public Serializable
 {
   public:
-    LatchedInput();
+    LatchedInput() = default;
 
   public:
 
@@ -40,11 +40,10 @@ class LatchedInput : public Serializable
     */
     bool save(Serializer& out) const override;
     bool load(Serializer& in) override;
-    string name() const override { return "TIA_LatchedInput"; }
 
   private:
-    bool myModeLatched;
-    uInt8 myLatchedValue;
+    bool myModeLatched{false};
+    uInt8 myLatchedValue{0};
 
   private:
     LatchedInput(const LatchedInput&) = delete;

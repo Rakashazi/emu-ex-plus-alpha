@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,35 +19,22 @@
 #include "CartF8.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeF8::CartridgeF8(const BytePtr& image, uInt32 size, const string& md5,
-                         const Settings& settings)
-  : Cartridge(settings),
-    myBankOffset(0)
+CartridgeF8::CartridgeF8(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(8192u, size));
-  createCodeAccessBase(8192);
-
-  // Normally bank 1 is the reset bank, unless we're dealing with ROMs
-  // that have been incorrectly created with banks in the opposite order
-  myStartBank =
-    (md5 == "bc24440b59092559a1ec26055fd1270e" ||  // Private Eye [a]
-     md5 == "75ea60884c05ba496473c23a58edf12f" ||  // 8-in-1 Yars Revenge
-     md5 == "75ee371ccfc4f43e7d9b8f24e1266b55" ||  // Snow White
-     md5 == "74c8a6f20f8adaa7e05183f796eda796" ||  // Tricade Demo
-     md5 == "9905f9f4706223dadee84f6867ede8e3" ||  // Challenge
-     md5 == "3c7a7b3a0a7e6319b2fa0f923ef6c9af")    // Racer Prototype
-    ? 0 : 1;
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeF8::reset()
 {
-  // define random startup bank
-  randomizeStartBank();
+  initializeStartBank(1);
 
   // Upon reset we switch to the reset bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -56,7 +43,7 @@ void CartridgeF8::install(System& system)
   mySystem = &system;
 
   // Install pages for the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -116,7 +103,7 @@ bool CartridgeF8::bank(uInt16 bank)
   // Remember what bank we're in
   myBankOffset = bank << 12;
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Set the page accessing methods for the hot spots
   for(uInt16 addr = (0x1FF8 & ~System::PAGE_MASK); addr < 0x2000;
@@ -127,7 +114,7 @@ bool CartridgeF8::bank(uInt16 bank)
   }
 
   // Setup the page access methods for the current bank
-  for(uInt16 addr = 0x1000; addr < (0x1FF8U & ~System::PAGE_MASK);
+  for(uInt16 addr = 0x1000; addr < static_cast<uInt16>(0x1FF8U & ~System::PAGE_MASK);
       addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
@@ -138,7 +125,7 @@ bool CartridgeF8::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeF8::getBank() const
+uInt16 CartridgeF8::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -157,10 +144,10 @@ bool CartridgeF8::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeF8::getImage(uInt32& size) const
+const uInt8* CartridgeF8::getImage(size_t& size) const
 {
-  size = 8192;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -168,7 +155,6 @@ bool CartridgeF8::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myBankOffset);
   }
   catch(...)
@@ -185,9 +171,6 @@ bool CartridgeF8::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getShort();
   }
   catch(...)

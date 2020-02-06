@@ -24,7 +24,7 @@
 #include <pulse/thread-mainloop.h>
 #endif
 
-namespace Audio
+namespace IG::Audio
 {
 
 static pa_sample_format_t pcmFormatToPA(const SampleFormat &format)

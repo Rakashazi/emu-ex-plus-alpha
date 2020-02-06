@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -59,9 +59,7 @@ class LinkedObjectPool
     /*
       Create a pool of size CAPACITY; the active list starts out empty.
     */
-    LinkedObjectPool<T, CAPACITY>() : myCurrent(myList.end()), myCapacity(0) {
-      resize(CAPACITY);
-    }
+    LinkedObjectPool<T, CAPACITY>() { resize(CAPACITY); }
 
     /**
       Return node data that the 'current' iterator points to.
@@ -84,7 +82,7 @@ class LinkedObjectPool
       iter it = myCurrent;
       uInt32 idx = 1;
 
-      while(it-- != myList.begin()) idx++;
+      while(it-- != myList.begin()) ++idx;
       return idx;
     }
 
@@ -110,6 +108,22 @@ class LinkedObjectPool
     void moveToNext() {
       if(currentIsValid())
         myCurrent = std::next(myCurrent, 1);
+    }
+
+    /**
+      Advance 'current' iterator to first position in the active list.
+    */
+    void moveToFirst() {
+      if(currentIsValid())
+        myCurrent = myList.begin();
+    }
+
+    /**
+      Advance 'current' iterator to last position in the active list.
+    */
+    void moveToLast() {
+      if(currentIsValid())
+        myCurrent = std::prev(myList.end(), 1);
     }
 
     /**
@@ -246,14 +260,20 @@ class LinkedObjectPool
     bool empty() const  { return size() == 0;           }
     bool full() const   { return size() >= capacity();  }
 
+    friend ostream& operator<<(ostream& os, const LinkedObjectPool<T>& p) {
+      for(const auto& i: p.myList)
+        os << i << (p.current() == i ? "* " : "  ");
+      return os;
+    }
+
   private:
     std::list<T> myList, myPool;
 
     // Current position in the active list (end() indicates an invalid position)
-    iter myCurrent;
+    iter myCurrent{myList.end()};
 
     // Total capacity of the pool
-    uInt32 myCapacity;
+    uInt32 myCapacity{0};
 
   private:
     // Following constructors and assignment operators not supported

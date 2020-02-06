@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,63 +19,42 @@
   #include "Debugger.hxx"
   #include "Expression.hxx"
   #include "CartDebug.hxx"
-  #include "PackedBitArray.hxx"
-  #include "TIA.hxx"
   #include "Base.hxx"
-  #include "M6532.hxx"
 
   // Flags for disassembly types
   #define DISASM_CODE  CartDebug::CODE
-//   #define DISASM_GFX   CartDebug::GFX  // TODO - uncomment when needed
-//   #define DISASM_PGFX  CartDebug::PGFX // TODO - uncomment when needed
+//   #define DISASM_GFX   CartDebug::GFX
+//   #define DISASM_PGFX  CartDebug::PGFX
   #define DISASM_DATA  CartDebug::DATA
-//   #define DISASM_ROW   CartDebug::ROW  // TODO - uncomment when needed
+//   #define DISASM_ROW   CartDebug::ROW
   #define DISASM_WRITE CartDebug::WRITE
   #define DISASM_NONE  0
 #else
   // Flags for disassembly types
   #define DISASM_CODE  0
-//   #define DISASM_GFX   0   // TODO - uncomment when needed
-//   #define DISASM_PGFX  0   // TODO - uncomment when needed
+//   #define DISASM_GFX   0
+//   #define DISASM_PGFX  0
   #define DISASM_DATA  0
-//   #define DISASM_ROW   0   // TODO - uncomment when needed
+//   #define DISASM_ROW   0
   #define DISASM_NONE  0
   #define DISASM_WRITE 0
 #endif
 #include "Settings.hxx"
 #include "Vec.hxx"
 
+#include "Cart.hxx"
+#include "TIA.hxx"
+#include "M6532.hxx"
 #include "System.hxx"
 #include "M6502.hxx"
+#include "DispatchResult.hxx"
+#include "exception/EmulationWarning.hxx"
+#include "exception/FatalEmulationError.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 M6502::M6502(const Settings& settings)
-  : myExecutionStatus(0),
-    mySystem(nullptr),
-    mySettings(settings),
-    A(0), X(0), Y(0), SP(0), IR(0), PC(0),
-    N(false), V(false), B(false), D(false), I(false), notZ(false), C(false),
-    icycles(0),
-    myNumberOfDistinctAccesses(0),
-    myLastAddress(0),
-    myLastPeekAddress(0),
-    myLastPokeAddress(0),
-    myLastPeekBaseAddress(0),
-    myLastPokeBaseAddress(0),
-    myLastSrcAddressS(-1),
-    myLastSrcAddressA(-1),
-    myLastSrcAddressX(-1),
-    myLastSrcAddressY(-1),
-    myDataAddressForPoke(0),
-    myOnHaltCallback(nullptr),
-    myHaltRequested(false),
-    myGhostReadsTrap(true),
-    myStepStateByInstruction(false)
+  : mySettings(settings)
 {
-#ifdef DEBUGGER_SUPPORT
-  myDebugger = nullptr;
-  myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
-#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -114,9 +93,14 @@ void M6502::reset()
   myLastSrcAddressS = myLastSrcAddressA =
     myLastSrcAddressX = myLastSrcAddressY = -1;
   myDataAddressForPoke = 0;
+  myFlags = DISASM_NONE;
 
   myHaltRequested = false;
   myGhostReadsTrap = mySettings.getBool("dbg.ghostreadstrap");
+  myReadFromWritePortBreak = devSettings ? mySettings.getBool("dev.rwportbreak") : false;
+  myWriteToReadPortBreak = devSettings ? mySettings.getBool("dev.wrportbreak") : false;
+
+  myLastBreakCycle = ULLONG_MAX;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -128,12 +112,13 @@ inline uInt8 M6502::peek(uInt16 address, uInt8 flags)
   // TODO - move this logic directly into CartAR
   if(address != myLastAddress)
   {
-    myNumberOfDistinctAccesses++;
+    ++myNumberOfDistinctAccesses;
     myLastAddress = address;
   }
   ////////////////////////////////////////////////
   mySystem->incrementCycles(SYSTEM_CYCLES_PER_CPU);
   icycles += SYSTEM_CYCLES_PER_CPU;
+  myFlags = flags;
   uInt8 result = mySystem->peek(address, flags);
   myLastPeekAddress = address;
 
@@ -165,7 +150,7 @@ inline void M6502::poke(uInt16 address, uInt8 value, uInt8 flags)
   // TODO - move this logic directly into CartAR
   if(address != myLastAddress)
   {
-    myNumberOfDistinctAccesses++;
+    ++myNumberOfDistinctAccesses;
     myLastAddress = address;
   }
   ////////////////////////////////////////////////
@@ -208,18 +193,9 @@ inline void M6502::handleHalt()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6502::updateStepStateByInstruction()
+void M6502::execute(uInt64 number, DispatchResult& result)
 {
-  // Currently only used in debugger mode
-#ifdef DEBUGGER_SUPPORT
-  myStepStateByInstruction = myCondBreaks.size() || myCondSaveStates.size() || myTrapConds.size();
-#endif
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool M6502::execute(uInt32 number)
-{
-  const bool status = _execute(number);
+  _execute(number, result);
 
 #ifdef DEBUGGER_SUPPORT
   // Debugger hack: this ensures that stepping a "STA WSYNC" will actually end at the
@@ -227,85 +203,162 @@ bool M6502::execute(uInt32 number)
   // the halt to take effect). This is safe because as we know that the next cycle will be a read
   // cycle anyway.
   handleHalt();
-
-  // Make sure that the hardware state matches the current system clock. This is necessary
-  // to maintain a consistent state for the debugger after stepping.
-  mySystem->tia().updateEmulation();
-  mySystem->m6532().updateEmulation();
 #endif
 
-  return status;
+  // Make sure that the hardware state matches the current system clock. This is necessary
+  // to maintain a consistent state for the debugger after stepping and to make sure
+  // that audio samples are generated for the whole timeslice.
+  mySystem->tia().updateEmulation();
+  mySystem->m6532().updateEmulation();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-inline bool M6502::_execute(uInt32 number)
+bool M6502::execute(uInt64 number)
 {
-  // Clear all of the execution status bits except for the fatal error bit
-  myExecutionStatus &= FatalErrorBit;
+  DispatchResult result;
+
+  execute(number, result);
+
+  return result.isSuccess();
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+inline void M6502::_execute(uInt64 cycles, DispatchResult& result)
+{
+  myExecutionStatus = 0;
 
 #ifdef DEBUGGER_SUPPORT
   TIA& tia = mySystem->tia();
   M6532& riot = mySystem->m6532();
 #endif
 
+  uInt64 previousCycles = mySystem->cycles();
+  uInt64 currentCycles = 0;
+
   // Loop until execution is stopped or a fatal error occurs
   for(;;)
   {
-    for(; !myExecutionStatus && (number != 0); --number)
+    while (!myExecutionStatus && currentCycles < cycles * SYSTEM_CYCLES_PER_CPU)
     {
   #ifdef DEBUGGER_SUPPORT
-      if(myJustHitReadTrapFlag || myJustHitWriteTrapFlag)
-      {
-        bool read = myJustHitReadTrapFlag;
-        myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
-        if(myDebugger && myDebugger->start(myHitTrapInfo.message, myHitTrapInfo.address, read))
+      // Don't break if we haven't actually executed anything yet
+      if (myLastBreakCycle != mySystem->cycles()) {
+        if(myJustHitReadTrapFlag || myJustHitWriteTrapFlag)
         {
-          return true;
+          bool read = myJustHitReadTrapFlag;
+          myJustHitReadTrapFlag = myJustHitWriteTrapFlag = false;
+
+          myLastBreakCycle = mySystem->cycles();
+          result.setDebugger(currentCycles, myHitTrapInfo.message, myHitTrapInfo.address, read);
+          return;
+        }
+
+        if(myBreakPoints.isInitialized())
+        {
+          uInt8 bank = mySystem->cart().getBank(PC);
+
+          if(myBreakPoints.check(PC, bank))
+          {
+            myLastBreakCycle = mySystem->cycles();
+            // disable a one-shot breakpoint
+            if(myBreakPoints.get(PC, bank) & BreakpointMap::ONE_SHOT)
+            {
+              myBreakPoints.erase(PC, bank);
+            }
+            else
+            {
+              ostringstream msg;
+
+              msg << "BP: $" << Common::Base::HEX4 << PC << ", bank #" << std::dec << int(bank);
+              result.setDebugger(currentCycles, msg.str());
+            }
+            return;
+          }
+        }
+
+        int cond = evalCondBreaks();
+        if(cond > -1)
+        {
+          ostringstream msg;
+
+          msg << "CBP[" << Common::Base::HEX2 << cond << "]: " << myCondBreakNames[cond];
+
+          myLastBreakCycle = mySystem->cycles();
+          result.setDebugger(currentCycles, msg.str());
+          return;
         }
       }
 
-      if(myBreakPoints.isInitialized() && myBreakPoints.isSet(PC))
-        if(myDebugger && myDebugger->start("BP: ", PC))
-          return true;
-
-      int cond = evalCondBreaks();
+      int cond = evalCondSaveStates();
       if(cond > -1)
       {
-        stringstream msg;
-        msg << "CBP[" << Common::Base::HEX2 << cond << "]: " << myCondBreakNames[cond];
-        if(myDebugger && myDebugger->start(msg.str()))
-          return true;
-      }
-
-      cond = evalCondSaveStates();
-      if(cond > -1)
-      {
-        stringstream msg;
+        ostringstream msg;
         msg << "conditional savestate [" << Common::Base::HEX2 << cond << "]";
         myDebugger->addState(msg.str());
       }
-  #endif  // DEBUGGER_SUPPORT
 
-      uInt16 operandAddress = 0, intermediateAddress = 0;
-      uInt8 operand = 0;
+      mySystem->cart().clearAllRAMAccesses();
+  #endif  // DEBUGGER_SUPPORT
 
       // Reset the peek/poke address pointers
       myLastPeekAddress = myLastPokeAddress = myDataAddressForPoke = 0;
 
-      icycles = 0;
-      // Fetch instruction at the program counter
-      IR = peek(PC++, DISASM_CODE);  // This address represents a code section
+      try {
+        uInt16 operandAddress = 0, intermediateAddress = 0;
+        uInt8 operand = 0;
 
-      // Call code to execute the instruction
-      switch(IR)
-      {
-        // 6502 instruction emulation is generated by an M4 macro file
-        #include "M6502.ins"
+        icycles = 0;
+    #ifdef DEBUGGER_SUPPORT
+        uInt16 oldPC = PC;
+    #endif
 
-        default:
-          // Oops, illegal instruction executed so set fatal error flag
-          myExecutionStatus |= FatalErrorBit;
+        // Fetch instruction at the program counter
+        IR = peek(PC++, DISASM_CODE);  // This address represents a code section
+
+        // Call code to execute the instruction
+        switch(IR)
+        {
+          // 6502 instruction emulation is generated by an M4 macro file
+          #include "M6502.ins"
+
+          default:
+            FatalEmulationError::raise("invalid instruction");
+        }
+
+    #ifdef DEBUGGER_SUPPORT
+        if(myReadFromWritePortBreak)
+        {
+          uInt16 rwpAddr = mySystem->cart().getIllegalRAMReadAccess();
+          if(rwpAddr)
+          {
+            ostringstream msg;
+            msg << "RWP[@ $" << Common::Base::HEX4 << rwpAddr << "]: ";
+            result.setDebugger(currentCycles, msg.str(), oldPC);
+            return;
+          }
+        }
+
+        if (myWriteToReadPortBreak)
+        {
+          uInt16 wrpAddr = mySystem->cart().getIllegalRAMWriteAccess();
+          if (wrpAddr)
+          {
+            ostringstream msg;
+            msg << "WRP[@ $" << Common::Base::HEX4 << wrpAddr << "]: ";
+            result.setDebugger(currentCycles, msg.str(), oldPC);
+            return;
+          }
+        }
+    #endif  // DEBUGGER_SUPPORT
+      } catch (const FatalEmulationError& e) {
+        myExecutionStatus |= FatalErrorBit;
+        result.setMessage(e.what());
+      } catch (const EmulationWarning& e) {
+        result.setDebugger(currentCycles, e.what(), PC);
+        return;
       }
+
+      currentCycles = (mySystem->cycles() - previousCycles);
 
   #ifdef DEBUGGER_SUPPORT
       if(myStepStateByInstruction)
@@ -327,25 +380,26 @@ inline bool M6502::_execute(uInt32 number)
       interruptHandler();
     }
 
+    // See if a fatal error has occurred
+    if(myExecutionStatus & FatalErrorBit)
+    {
+      // Yes, so answer that something when wrong. The message has already been set when
+      // the exception was handled.
+      result.setFatal(currentCycles);
+      return;
+    }
+
     // See if execution has been stopped
     if(myExecutionStatus & StopExecutionBit)
     {
       // Yes, so answer that everything finished fine
-      return true;
+      result.setOk(currentCycles);
+      return;
     }
 
-    // See if a fatal error has occured
-    if(myExecutionStatus & FatalErrorBit)
-    {
-      // Yes, so answer that something when wrong
-      return false;
-    }
-
-    // See if we've executed the specified number of instructions
-    if(number == 0)
-    {
-      // Yes, so answer that everything finished fine
-      return true;
+    if (currentCycles >= cycles * SYSTEM_CYCLES_PER_CPU) {
+      result.setOk(currentCycles);
+      return;
     }
   }
 }
@@ -381,12 +435,8 @@ void M6502::interruptHandler()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool M6502::save(Serializer& out) const
 {
-  const string& CPU = name();
-
   try
   {
-    out.putString(CPU);
-
     out.putByte(A);    // Accumulator
     out.putByte(X);    // X index register
     out.putByte(Y);    // Y index register
@@ -415,10 +465,10 @@ bool M6502::save(Serializer& out) const
     out.putInt(myLastSrcAddressA);
     out.putInt(myLastSrcAddressX);
     out.putInt(myLastSrcAddressY);
+    out.putByte(myFlags);
 
     out.putBool(myHaltRequested);
-    out.putBool(myStepStateByInstruction);
-    out.putBool(myGhostReadsTrap);
+    out.putLong(myLastBreakCycle);
   }
   catch(...)
   {
@@ -432,13 +482,8 @@ bool M6502::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool M6502::load(Serializer& in)
 {
-  const string& CPU = name();
-
   try
   {
-    if(in.getString() != CPU)
-      return false;
-
     A = in.getByte();    // Accumulator
     X = in.getByte();    // X index register
     Y = in.getByte();    // Y index register
@@ -467,10 +512,14 @@ bool M6502::load(Serializer& in)
     myLastSrcAddressA = in.getInt();
     myLastSrcAddressX = in.getInt();
     myLastSrcAddressY = in.getInt();
+    myFlags = in.getByte();
 
     myHaltRequested = in.getBool();
-    myStepStateByInstruction = in.getBool();
-    myGhostReadsTrap = in.getBool();
+    myLastBreakCycle = in.getLong();
+
+  #ifdef DEBUGGER_SUPPORT
+    updateStepStateByInstruction();
+  #endif
   }
   catch(...)
   {
@@ -490,7 +539,7 @@ void M6502::attach(Debugger& debugger)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 M6502::addCondBreak(Expression* e, const string& name)
+uInt32 M6502::addCondBreak(Expression* e, const string& name, bool oneShot)
 {
   myCondBreaks.emplace_back(e);
   myCondBreakNames.push_back(name);
@@ -610,5 +659,12 @@ void M6502::clearCondTraps()
 const StringList& M6502::getCondTrapNames() const
 {
   return myTrapCondNames;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6502::updateStepStateByInstruction()
+{
+  myStepStateByInstruction = myCondBreaks.size() || myCondSaveStates.size() ||
+                             myTrapConds.size();
 }
 #endif  // DEBUGGER_SUPPORT

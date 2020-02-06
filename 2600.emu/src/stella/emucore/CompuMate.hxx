@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -59,21 +59,6 @@ class CompuMate
     unique_ptr<Controller>& leftController()  { return myLeftController;  }
     unique_ptr<Controller>& rightController() { return myRightController; }
 
-    /**
-      In normal key-handling mode, the update handler receives key events
-      from the keyboard.  This is meant to be used during emulation.
-
-      Otherwise, the update handler ignores keys from the keyboard and uses
-      its own internal buffer, which essentially can only be set directly
-      within the class itself (by the debugger).
-
-      This is necessary since Stella is otherwise event-based, whereas
-      reading from the keyboard (in the current code) bypasses the event
-      system.  This leads to issues where typing commands in the debugger
-      would then be processed by the update handler as if they were
-      entered on the CompuMate keyboard.
-    */
-    void enableKeyHandling(bool enable);
 
     /** Needed for communication with CartCM class */
     uInt8& column() { return myColumn; }
@@ -100,7 +85,7 @@ class CompuMate
         */
         CMControl(class CompuMate& handler, Controller::Jack jack, const Event& event,
                   const System& system)
-          : Controller(jack, event, system, Controller::CompuMate),
+          : Controller(jack, event, system, Controller::Type::CompuMate),
             myHandler(handler) { }
         virtual ~CMControl() = default;
 
@@ -111,7 +96,7 @@ class CompuMate
           happen at the same cycle and is redundant.
         */
         void controlWrite(uInt8) override {
-          if(myJack == Controller::Left) myHandler.update();
+          if(myJack == Controller::Jack::Left) myHandler.update();
         }
 
         /**
@@ -119,6 +104,11 @@ class CompuMate
           events currently set.
         */
         void update() override { }
+
+        /**
+          Returns the name of this controller.
+        */
+        string name() const override { return "CompuMate"; }
 
       private:
         class CompuMate& myHandler;
@@ -140,14 +130,7 @@ class CompuMate
     unique_ptr<Controller> myLeftController, myRightController;
 
     // Column currently active
-    uInt8 myColumn;
-
-    // The keyboard state array (tells us the current state of the keyboard)
-    const bool* myKeyTable;
-
-    // Array of keyboard key states when in the debugger (the normal keyboard
-    // keys are ignored in such a case)
-    bool myInternalKeyTable[KBDK_LAST];
+    uInt8 myColumn{0};
 
   private:
     // Following constructors and assignment operators not supported

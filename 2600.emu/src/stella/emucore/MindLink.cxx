@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,30 +20,27 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 MindLink::MindLink(Jack jack, const Event& event, const System& system)
-  : Controller(jack, event, system, Controller::MindLink),
-    myMindlinkPos(0x2800),
-    myMindlinkShift(1),
-    myMouseEnabled(false)
+  : Controller(jack, event, system, Controller::Type::MindLink)
 {
-  myDigitalPinState[One]   = true;
-  myDigitalPinState[Two]   = true;
-  myDigitalPinState[Three] = true;
-  myDigitalPinState[Four]  = true;
+  setPin(DigitalPin::One, true);
+  setPin(DigitalPin::Two, true);
+  setPin(DigitalPin::Three, true);
+  setPin(DigitalPin::Four, true);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MindLink::update()
 {
-  myDigitalPinState[One]   =
-  myDigitalPinState[Two]   =
-  myDigitalPinState[Three] =
-  myDigitalPinState[Four]  = true;
+  setPin(DigitalPin::One, true);
+  setPin(DigitalPin::Two, true);
+  setPin(DigitalPin::Three, true);
+  setPin(DigitalPin::Four, true);
 
   if(!myMouseEnabled)
     return;
 
   myMindlinkPos = (myMindlinkPos & 0x3fffffff) +
-                  (myEvent.get(Event::MouseAxisXValue) << 3);
+                  (myEvent.get(Event::MouseAxisXMove) << 3);
   if(myMindlinkPos < 0x2800)
     myMindlinkPos = 0x2800;
   if(myMindlinkPos >= 0x3800)
@@ -60,12 +57,12 @@ void MindLink::update()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MindLink::nextMindlinkBit()
 {
-  if(myDigitalPinState[One])
+  if(getPin(DigitalPin::One))
   {
-    myDigitalPinState[Three] = false;
-    myDigitalPinState[Four]  = false;
+    setPin(DigitalPin::Three, false);
+    setPin(DigitalPin::Four, false);
     if(myMindlinkPos & myMindlinkShift)
-      myDigitalPinState[Four] = true;
+      setPin(DigitalPin::Four, true);
     myMindlinkShift <<= 1;
 	}
 }

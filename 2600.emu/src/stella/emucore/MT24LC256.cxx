@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,22 +18,19 @@
 #include <cstdio>
 
 #include "System.hxx"
-
-#include "Settings.hxx"
-
 #include "MT24LC256.hxx"
 
-#define DEBUG_EEPROM 0
+//#define DEBUG_EEPROM
 
-#if DEBUG_EEPROM
-  char jpee_msg[256];
-  #define JPEE_LOG0(msg) jpee_logproc(msg)
-  #define JPEE_LOG1(msg,arg1) sprintf(jpee_msg,(msg),(arg1)), jpee_logproc(jpee_msg)
-  #define JPEE_LOG2(msg,arg1,arg2) sprintf(jpee_msg,(msg),(arg1),(arg2)), jpee_logproc(jpee_msg)
+#ifdef DEBUG_EEPROM
+  static char jpee_msg[256];
+  #define JPEE_LOG0(msg) jpee_logproc(msg);
+  #define JPEE_LOG1(msg,arg1) sprintf(jpee_msg,(msg),(arg1)), jpee_logproc(jpee_msg);
+  #define JPEE_LOG2(msg,arg1,arg2) sprintf(jpee_msg,(msg),(arg1),(arg2)), jpee_logproc(jpee_msg);
 #else
-  #define JPEE_LOG0(msg) { }
-  #define JPEE_LOG1(msg,arg1) { }
-  #define JPEE_LOG2(msg,arg1,arg2) { }
+  #define JPEE_LOG0(msg)
+  #define JPEE_LOG1(msg,arg1)
+  #define JPEE_LOG2(msg,arg1,arg2)
 #endif
 
 /*
@@ -46,29 +43,11 @@
 */
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-MT24LC256::MT24LC256(const string& filename, const System& system)
+MT24LC256::MT24LC256(const string& filename, const System& system,
+                     const Controller::onMessageCallback& callback)
   : mySystem(system),
-    mySDA(false),
-    mySCL(false),
-    myTimerActive(false),
-    myCyclesWhenTimerSet(0),
-    myCyclesWhenSDASet(0),
-    myCyclesWhenSCLSet(0),
-    myDataFile(filename),
-    myDataFileExists(false),
-    myDataChanged(false),
-    jpee_mdat(0),
-    jpee_sdat(0),
-    jpee_mclk(0),
-    jpee_sizemask(0),
-    jpee_pagemask(0),
-    jpee_smallmode(0),
-    jpee_logmode(0),
-    jpee_pptr(0),
-    jpee_state(0),
-    jpee_nb(0),
-    jpee_address(0),
-    jpee_ad_known(0)
+    myCallback(callback),
+    myDataFile(filename)
 {
   // Load the data from an external file (if it exists)
   ifstream in(myDataFile, std::ios_base::binary);
@@ -79,7 +58,7 @@ MT24LC256::MT24LC256(const string& filename, const System& system)
     if(uInt32(in.tellg()) == FLASH_SIZE)
     {
       in.seekg(0, std::ios::beg);
-      in.read(reinterpret_cast<char*>(myData), FLASH_SIZE);
+      in.read(reinterpret_cast<char*>(myData.data()), myData.size());
       myDataFileExists = true;
     }
   }
@@ -88,6 +67,8 @@ MT24LC256::MT24LC256(const string& filename, const System& system)
 
   // Then initialize the I2C state
   jpee_init();
+
+  systemReset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,7 +79,7 @@ MT24LC256::~MT24LC256()
   {
     ofstream out(myDataFile, std::ios_base::binary);
     if(out.is_open())
-      out.write(reinterpret_cast<char*>(myData), FLASH_SIZE);
+      out.write(reinterpret_cast<char*>(myData.data()), myData.size());
   }
 }
 
@@ -137,7 +118,7 @@ void MT24LC256::update()
   // we only do the write when they have the same 'timestamp'
   if(myCyclesWhenSDASet == myCyclesWhenSCLSet)
   {
-#if DEBUG_EEPROM
+#ifdef DEBUG_EEPROM
     cerr << endl << "  I2C_PIN_WRITE(SCL = " << mySCL
          << ", SDA = " << mySDA << ")" << " @ " << mySystem.cycles() << endl;
 #endif
@@ -149,27 +130,30 @@ void MT24LC256::update()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::systemReset()
 {
-  myCyclesWhenSDASet = myCyclesWhenSCLSet = myCyclesWhenTimerSet =
-    mySystem.cycles();
-
-  memset(myPageHit, false, sizeof(myPageHit));
+  myPageHit.fill(false);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::eraseAll()
 {
-  memset(myData, INIT_VALUE, FLASH_SIZE);
+  // Work around a bug in XCode 11.2 with -O0 and -O1
+  const uInt8 initialValue = INITIAL_VALUE;
+
+  myData.fill(initialValue);
   myDataChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::eraseCurrent()
 {
-  for(uInt32 page = 0; page < PAGE_NUM; page++)
+  // Work around a bug in XCode 11.2 with -O0 and -O1
+  const uInt8 initialValue = INITIAL_VALUE;
+
+  for(uInt32 page = 0; page < PAGE_NUM; ++page)
   {
     if(myPageHit[page])
     {
-      memset(myData + page * PAGE_SIZE, INIT_VALUE, PAGE_SIZE);
+      std::fill_n(myData.begin() + page * PAGE_SIZE, PAGE_SIZE, initialValue);
       myDataChanged = true;
     }
   }
@@ -187,6 +171,9 @@ bool MT24LC256::isPageUsed(uInt32 page) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::jpee_init()
 {
+  // Work around a bug in XCode 11.2 with -O0 and -O1
+  const uInt8 initialValue = INITIAL_VALUE;
+
   jpee_sdat = 1;
   jpee_address = 0;
   jpee_state=0;
@@ -195,7 +182,7 @@ void MT24LC256::jpee_init()
   jpee_smallmode = 0;
   jpee_logmode = -1;
   if(!myDataFileExists)
-    memset(myData, INIT_VALUE, FLASH_SIZE);
+    myData.fill(initialValue);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -204,21 +191,21 @@ void MT24LC256::jpee_data_start()
   /* We have a start condition */
   if (jpee_state == 1 && (jpee_nb != 1 || jpee_pptr != 3))
   {
-    JPEE_LOG0("I2C_WARNING ABANDON WRITE");
+    JPEE_LOG0("I2C_WARNING ABANDON WRITE")
     jpee_ad_known = 0;
   }
   if (jpee_state == 3)
   {
-    JPEE_LOG0("I2C_WARNING ABANDON READ");
+    JPEE_LOG0("I2C_WARNING ABANDON READ")
   }
   if (!jpee_timercheck(0))
   {
-    JPEE_LOG0("I2C_START");
+    JPEE_LOG0("I2C_START")
     jpee_state = 2;
   }
   else
   {
-    JPEE_LOG0("I2C_BUSY");
+    JPEE_LOG0("I2C_BUSY")
     jpee_state = 0;
   }
   jpee_pptr = 0;
@@ -231,39 +218,41 @@ void MT24LC256::jpee_data_stop()
 {
   if (jpee_state == 1 && jpee_nb != 1)
   {
-    JPEE_LOG0("I2C_WARNING ABANDON_WRITE");
+    JPEE_LOG0("I2C_WARNING ABANDON_WRITE")
     jpee_ad_known = 0;
   }
   if (jpee_state == 3)
   {
-    JPEE_LOG0("I2C_WARNING ABANDON_READ");
+    JPEE_LOG0("I2C_WARNING ABANDON_READ")
     jpee_ad_known = 0;
   }
   /* We have a stop condition. */
   if (jpee_state == 1 && jpee_nb == 1 && jpee_pptr > 3)
   {
     jpee_timercheck(1);
-    JPEE_LOG2("I2C_STOP(Write %d bytes at %04X)",jpee_pptr-3,jpee_address);
+    JPEE_LOG2("I2C_STOP(Write %d bytes at %04X)",jpee_pptr-3,jpee_address)
     if (((jpee_address + jpee_pptr-4) ^ jpee_address) & ~jpee_pagemask)
     {
       jpee_pptr = 4+jpee_pagemask-(jpee_address & jpee_pagemask);
-      JPEE_LOG1("I2C_WARNING PAGECROSSING!(Truncate to %d bytes)",jpee_pptr-3);
+      JPEE_LOG1("I2C_WARNING PAGECROSSING!(Truncate to %d bytes)",jpee_pptr-3)
     }
     for (int i=3; i<jpee_pptr; i++)
     {
       myDataChanged = true;
       myPageHit[jpee_address / PAGE_SIZE] = true;
-      bool devSettings = mySystem.oSystem().settings().getBool("dev.settings");
-      if(mySystem.oSystem().settings().getBool(devSettings ? "dev.eepromaccess" : "plr.eepromaccess"))
-        mySystem.oSystem().frameBuffer().showMessage("AtariVox/SaveKey EEPROM write");
+
+      myCallback("AtariVox/SaveKey EEPROM write");
+
       myData[(jpee_address++) & jpee_sizemask] = jpee_packet[i];
       if (!(jpee_address & jpee_pagemask))
         break;  /* Writes can't cross page boundary! */
     }
     jpee_ad_known = 0;
   }
+#ifdef DEBUG_EEPROM
   else
-    JPEE_LOG0("I2C_STOP");
+    jpee_logproc("I2C_STOP");
+#endif
 
   jpee_state = 0;
 }
@@ -284,28 +273,31 @@ void MT24LC256::jpee_clock_fall()
           if (jpee_smallmode && ((jpee_nb & 0xF0) == 0xA0))
           {
             jpee_packet[1] = (jpee_nb >> 1) & 7;
+          #ifdef DEBUG_EEPROM
             if (jpee_packet[1] != (jpee_address >> 8) && (jpee_packet[0] & 1))
-              JPEE_LOG0("I2C_WARNING ADDRESS MSB CHANGED");
+              jpee_logproc("I2C_WARNING ADDRESS MSB CHANGED");
+          #endif
             jpee_nb &= 0x1A1;
           }
           if (jpee_nb == 0x1A0)
           {
-            JPEE_LOG1("I2C_SENT(%02X--start write)",jpee_packet[0]);
+            JPEE_LOG1("I2C_SENT(%02X--start write)",jpee_packet[0])
             jpee_state = 2;
             jpee_sdat = 0;
           }
           else if (jpee_nb == 0x1A1)
           {
             jpee_state = 4;
-            JPEE_LOG2("I2C_SENT(%02X--start read @%04X)",
-            jpee_packet[0],jpee_address);
+            JPEE_LOG2("I2C_SENT(%02X--start read @%04X)", jpee_packet[0],jpee_address)
+          #ifdef DEBUG_EEPROM
             if (!jpee_ad_known)
-              JPEE_LOG0("I2C_WARNING ADDRESS IS UNKNOWN");
+              jpee_logproc("I2C_WARNING ADDRESS IS UNKNOWN");
+          #endif
             jpee_sdat = 0;
           }
           else
           {
-            JPEE_LOG1("I2C_WARNING ODDBALL FIRST BYTE!(%02X)",jpee_nb & 0xFF);
+            JPEE_LOG1("I2C_WARNING ODDBALL FIRST BYTE!(%02X)",jpee_nb & 0xFF)
             jpee_state = 0;
           }
         }
@@ -330,14 +322,16 @@ void MT24LC256::jpee_clock_fall()
         }
         else if (jpee_pptr < 70)
         {
-          JPEE_LOG1("I2C_SENT(%02X)",jpee_nb & 0xFF);
+          JPEE_LOG1("I2C_SENT(%02X)",jpee_nb & 0xFF)
           jpee_packet[jpee_pptr++] = uInt8(jpee_nb);
           jpee_address = (jpee_packet[1] << 8) | jpee_packet[2];
           if (jpee_pptr > 2)
             jpee_ad_known = 1;
         }
+      #ifdef DEBUG_EEPROM
         else
-          JPEE_LOG0("I2C_WARNING OUTPUT_OVERFLOW!");
+          jpee_logproc("I2C_WARNING OUTPUT_OVERFLOW!");
+      #endif
       }
       jpee_sdat = 1;
       jpee_nb = 1;
@@ -347,20 +341,17 @@ void MT24LC256::jpee_clock_fall()
     case 4:
       if (jpee_mdat && jpee_sdat)
       {
-        JPEE_LOG0("I2C_READ_NAK");
+        JPEE_LOG0("I2C_READ_NAK")
         jpee_state=0;
         break;
       }
       jpee_state=3;
       myPageHit[jpee_address / PAGE_SIZE] = true;
 
-      {
-        bool devSettings = mySystem.oSystem().settings().getBool("dev.settings");
-        if(mySystem.oSystem().settings().getBool(devSettings ? "dev.eepromaccess" : "plr.eepromaccess"))
-          mySystem.oSystem().frameBuffer().showMessage("AtariVox/SaveKey EEPROM read");
-      }
+      myCallback("AtariVox/SaveKey EEPROM read");
+
       jpee_nb = (myData[jpee_address & jpee_sizemask] << 1) | 1;  /* Fall through */
-      JPEE_LOG2("I2C_READ(%04X=%02X)",jpee_address,jpee_nb/2);
+      JPEE_LOG2("I2C_READ(%04X=%02X)",jpee_address,jpee_nb/2)
       [[fallthrough]];
 
     case 3:
@@ -370,7 +361,7 @@ void MT24LC256::jpee_clock_fall()
       {
         jpee_state = 4;
         jpee_sdat = 1;
-        jpee_address++;
+        ++jpee_address;
       }
       break;
 
@@ -378,7 +369,7 @@ void MT24LC256::jpee_clock_fall()
       /* Do nothing */
       break;
   }
-  JPEE_LOG2("I2C_CLOCK (dat=%d/%d)",jpee_mdat,jpee_sdat);
+  JPEE_LOG2("I2C_CLOCK (dat=%d/%d)",jpee_mdat,jpee_sdat)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -399,16 +390,9 @@ bool MT24LC256::jpee_timercheck(int mode)
   {
     if(myTimerActive)
     {
-      uInt32 elapsed = uInt32(mySystem.cycles() - myCyclesWhenTimerSet);
-      myTimerActive = elapsed < uInt32(5000000.0 / 838.0);
+      uInt64 elapsed = mySystem.cycles() - myCyclesWhenTimerSet;
+      myTimerActive = elapsed < uInt64(5000000.0 / 838.0);
     }
     return myTimerActive;
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int MT24LC256::jpee_logproc(char const *st)
-{
-  cerr << "    " << st << endl;
-  return 0;
 }

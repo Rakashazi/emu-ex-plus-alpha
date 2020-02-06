@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -26,7 +26,7 @@ class TIA;
 class Background : public Serializable
 {
   public:
-    Background();
+    Background() = default;
 
   public:
     void setTIA(TIA* tia) { myTIA = tia; }
@@ -46,23 +46,22 @@ class Background : public Serializable
     */
     bool save(Serializer& out) const override;
     bool load(Serializer& in) override;
-    string name() const override { return "TIA_BK"; }
 
   private:
     void applyColors();
 
   private:
-    uInt8 myColor;
-    uInt8 myObjectColor, myDebugColor;
-    bool myDebugEnabled;
+    uInt8 myColor{0};
+    uInt8 myObjectColor{0}, myDebugColor{0};
+    bool myDebugEnabled{false};
 
-    TIA* myTIA;
+    TIA* myTIA{nullptr};
 
   private:
     Background(const Background&) = delete;
     Background(Background&&) = delete;
     Background& operator=(const Background&) = delete;
-    Background& operator=(Background&&);
+    Background& operator=(Background&&) = delete;
 };
 
 #endif // TIA_BACKGROUND

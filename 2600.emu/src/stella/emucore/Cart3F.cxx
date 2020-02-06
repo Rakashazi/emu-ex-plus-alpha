@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,36 +20,25 @@
 #include "Cart3F.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge3F::Cartridge3F(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    mySize(size),
-    myCurrentBank(0)
+Cartridge3F::Cartridge3F(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(size)
 {
   // Allocate array for the ROM image
   myImage = make_unique<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image.get(), mySize);
+  std::copy_n(image.get(), mySize, myImage.get());
   createCodeAccessBase(mySize);
-
-  // Remember startup bank
-  myStartBank = bankCount() - 1; // last bank
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge3F::reset()
 {
-  // define random startup banks
-  // Note: This works for all Tigervision ROMs except for one version of Polaris
-  //   (md5: 203049f4d8290bb4521cc4402415e737) which requires 3 as startup bank
-  //   (or non-randomized RAM). All other ROMs take care of other startup banks.
-  //   The problematic version is most likely an incorrect dump with wrong
-  //   startup vectors.
-  randomizeStartBank();
+  initializeStartBank(bankCount() - 1);
 
-  // We'll map the startup bank into the first segment upon reset
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,14 +46,14 @@ void Cartridge3F::install(System& system)
 {
   mySystem = &system;
 
-  System::PageAccess access(this, System::PA_READWRITE);
+  System::PageAccess access(this, System::PageAccessType::READWRITE);
 
   // The hotspot ($3F) is in TIA address space, so we claim it here
   for(uInt16 addr = 0x00; addr < 0x40; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Setup the second segment to always point to the last ROM slice
-  access.type = System::PA_READ;
+  access.type = System::PageAccessType::READ;
   for(uInt16 addr = 0x1800; addr < 0x2000; addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myImage[(mySize - 2048) + (addr & 0x07FF)];
@@ -72,8 +61,7 @@ void Cartridge3F::install(System& system)
     mySystem->setPageAccess(addr, access);
   }
 
-  // Install pages for startup bank into the first segment
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -123,7 +111,7 @@ bool Cartridge3F::bank(uInt16 bank)
   uInt32 offset = myCurrentBank << 11;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1000; addr < 0x1800; addr += System::PAGE_SIZE)
@@ -136,15 +124,18 @@ bool Cartridge3F::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 Cartridge3F::getBank() const
+uInt16 Cartridge3F::getBank(uInt16 address) const
 {
-  return myCurrentBank;
+  if (address & 0x800)
+    return uInt16((mySize >> 11) - 1); // 2K slices, fixed bank
+  else
+    return myCurrentBank;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 Cartridge3F::bankCount() const
 {
-  return mySize >> 11;
+  return uInt16(mySize >> 11); // 2K slices
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -161,7 +152,7 @@ bool Cartridge3F::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* Cartridge3F::getImage(uInt32& size) const
+const uInt8* Cartridge3F::getImage(size_t& size) const
 {
   size = mySize;
   return myImage.get();
@@ -172,7 +163,6 @@ bool Cartridge3F::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myCurrentBank);
   }
   catch(...)
@@ -189,9 +179,6 @@ bool Cartridge3F::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myCurrentBank = in.getShort();
   }
   catch(...)

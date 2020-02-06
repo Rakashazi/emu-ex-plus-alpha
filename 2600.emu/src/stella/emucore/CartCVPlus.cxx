@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,30 +20,27 @@
 #include "CartCVPlus.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeCVPlus::CartridgeCVPlus(const BytePtr& image, uInt32 size,
-                                 const Settings& settings)
-  : Cartridge(settings),
-    mySize(size),
-    myCurrentBank(0)
+CartridgeCVPlus::CartridgeCVPlus(const ByteBuffer& image, size_t size,
+                                 const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(size)
 {
   // Allocate array for the ROM image
   myImage = make_unique<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image.get(), mySize);
-  createCodeAccessBase(mySize + 1024);
-
-  // Remember startup bank
-  myStartBank = 0;
+  std::copy_n(image.get(), mySize, myImage.get());
+  createCodeAccessBase(mySize + myRAM.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCVPlus::reset()
 {
-  initializeRAM(myRAM, 1024);
+  initializeRAM(myRAM.data(), myRAM.size());
+  initializeStartBank(0);
 
   // We'll map the startup bank into the first segment upon reset
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,26 +48,26 @@ void CartridgeCVPlus::install(System& system)
 {
   mySystem = &system;
 
-  System::PageAccess access(this, System::PA_READWRITE);
+  System::PageAccess access(this, System::PageAccessType::READWRITE);
 
   // The hotspot ($3D) is in TIA address space, so we claim it here
   for(uInt16 addr = 0x00; addr < 0x40; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Set the page accessing method for the RAM writing pages
-  access.directPeekBase = nullptr;
+  // Map access to this class, since we need to inspect all accesses to
+  // check if RWP happens
+  access.directPeekBase = access.directPokeBase = nullptr;
   access.codeAccessBase = nullptr;
-  access.type = System::PA_WRITE;
+  access.type = System::PageAccessType::WRITE;
   for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
   {
-    access.directPokeBase = &myRAM[addr & 0x03FF];
     access.codeAccessBase = &myCodeAccessBase[mySize + (addr & 0x03FF)];
     mySystem->setPageAccess(addr, access);
   }
 
   // Set the page accessing method for the RAM reading pages
-  access.directPokeBase = nullptr;
-  access.type = System::PA_READ;
+  access.type = System::PageAccessType::READ;
   for(uInt16 addr = 0x1000; addr < 0x1400; addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myRAM[addr & 0x03FF];
@@ -79,25 +76,14 @@ void CartridgeCVPlus::install(System& system)
   }
 
   // Install pages for the startup bank into the first segment
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeCVPlus::peek(uInt16 address)
 {
-  if((address & 0x0FFF) < 0x0800)  // Write port is at 0xF400 - 0xF800 (1024 bytes)
-  {                                // Read port is handled in ::install()
-    // Reading from the write port triggers an unwanted write
-    uInt8 value = mySystem->getDataBusState(0xFF);
-
-    if(bankLocked())
-      return value;
-    else
-    {
-      triggerReadFromWritePort(address);
-      return myRAM[address & 0x03FF] = value;
-    }
-  }
+  if((address & 0x0FFF) < 0x0800)  // Write port is at 0xF400 - 0xF7FF (1024 bytes)
+    return peekRAM(myRAM[address & 0x03FF], address);
   else
     return myImage[(address & 0x07FF) + (myCurrentBank << 11)];
 }
@@ -105,16 +91,22 @@ uInt8 CartridgeCVPlus::peek(uInt16 address)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeCVPlus::poke(uInt16 address, uInt8 value)
 {
+  uInt16 pokeAddress = address;
   address &= 0x0FFF;
 
-  // Switch banks if necessary
-  if(address == 0x003D)
-    bank(value);
+  if(address < 0x0040)
+  {
+    // Switch banks if necessary
+    if(address == 0x003D)
+      bank(value);
 
-  // Handle TIA space that we claimed above
-  mySystem->tia().poke(address, value);
+    // Handle TIA space that we claimed above
+    return mySystem->tia().poke(address, value);
+  }
+  else
+    pokeRAM(myRAM[address & 0x03FF], pokeAddress, value);
 
-  return false;
+  return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -137,7 +129,7 @@ bool CartridgeCVPlus::bank(uInt16 bank)
   uInt32 offset = myCurrentBank << 11;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1800; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -151,7 +143,7 @@ bool CartridgeCVPlus::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCVPlus::getBank() const
+uInt16 CartridgeCVPlus::getBank(uInt16) const
 {
   return myCurrentBank;
 }
@@ -159,7 +151,7 @@ uInt16 CartridgeCVPlus::getBank() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeCVPlus::bankCount() const
 {
-  return mySize >> 11;
+  return uInt16(mySize >> 11);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -182,7 +174,7 @@ bool CartridgeCVPlus::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeCVPlus::getImage(uInt32& size) const
+const uInt8* CartridgeCVPlus::getImage(size_t& size) const
 {
   size = mySize;
   return myImage.get();
@@ -193,9 +185,8 @@ bool CartridgeCVPlus::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myCurrentBank);
-    out.putByteArray(myRAM, 1024);
+    out.putByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {
@@ -211,11 +202,8 @@ bool CartridgeCVPlus::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myCurrentBank = in.getShort();
-    in.getByteArray(myRAM, 1024);
+    in.getByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {

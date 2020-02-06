@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,27 +21,26 @@
 #include "CartCM.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeCM::CartridgeCM(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    mySWCHA(0xFF),   // portA is all 1's
-    myBankOffset(0)
+CartridgeCM::CartridgeCM(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(16384u, size));
-  createCodeAccessBase(16384);
-
-  // On powerup, the last bank of ROM is enabled and RAM is disabled
-  myStartBank = mySWCHA & 0x3;
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCM::reset()
 {
-  initializeRAM(myRAM, 2048);
+  initializeRAM(myRAM.data(), myRAM.size());
+
+  // On powerup, the last bank of ROM is enabled and RAM is disabled
+  mySWCHA = 0xFF;
+  initializeStartBank(mySWCHA & 0x3);
 
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -54,7 +53,7 @@ void CartridgeCM::install(System& system)
   mySystem->m6532().installDelegate(system, *this);
 
   // Install pages for the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -114,7 +113,7 @@ bool CartridgeCM::bank(uInt16 bank)
   // The upper 2K of cart address space can point to either the 2K of RAM or
   // the upper 2K of the current ROM bank
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Lower 2K (always ROM)
   for(uInt16 addr = 0x1000; addr < 0x1800; addr += System::PAGE_SIZE)
@@ -127,7 +126,7 @@ bool CartridgeCM::bank(uInt16 bank)
   // Upper 2K (RAM or ROM)
   for(uInt16 addr = 0x1800; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.type = System::PA_READWRITE;
+    access.type = System::PageAccessType::READWRITE;
 
     if(mySWCHA & 0x10)
     {
@@ -152,7 +151,7 @@ bool CartridgeCM::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCM::getBank() const
+uInt16 CartridgeCM::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -179,10 +178,10 @@ bool CartridgeCM::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeCM::getImage(uInt32& size) const
+const uInt8* CartridgeCM::getImage(size_t& size) const
 {
-  size = 16384;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -190,11 +189,10 @@ bool CartridgeCM::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myBankOffset);
     out.putByte(mySWCHA);
     out.putByte(myCompuMate->column());
-    out.putByteArray(myRAM, 2048);
+    out.putByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {
@@ -210,13 +208,10 @@ bool CartridgeCM::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getShort();
     mySWCHA = in.getByte();
     myCompuMate->column() = in.getByte();
-    in.getByteArray(myRAM, 2048);
+    in.getByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {

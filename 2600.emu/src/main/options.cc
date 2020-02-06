@@ -13,21 +13,17 @@
 	You should have received a copy of the GNU General Public License
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <OSystem.hxx>
 // TODO: Some Stella types collide with MacTypes.h
-#define BytePtr BytePtrMac
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
-#undef BytePtr
 #undef Debugger
-#ifdef Success
-#undef Success // conflict with macro in X11 headers
-#endif
 #include "internal.hh"
 
 enum
 {
 	CFGKEY_2600_TV_PHOSPHOR = 270, CFGKEY_VIDEO_SYSTEM = 271,
-	CFGKEY_2600_TV_PHOSPHOR_BLEND = 272
+	CFGKEY_2600_TV_PHOSPHOR_BLEND = 272, CFGKEY_AUDIO_RESAMPLE_QUALITY = 273
 };
 
 const char *EmuSystem::configFilename = "2600emu.config";
@@ -40,6 +36,9 @@ const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionTVPhosphor{CFGKEY_2600_TV_PHOSPHOR, TV_PHOSPHOR_AUTO, false, optionIsValidWithMax<2>};
 Byte1Option optionTVPhosphorBlend{CFGKEY_2600_TV_PHOSPHOR_BLEND, 80, false, optionIsValidWithMax<100>};
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<6>};
+Byte1Option optionAudioResampleQuality{CFGKEY_AUDIO_RESAMPLE_QUALITY,
+	(uint8_t)AudioSettings::DEFAULT_RESAMPLING_QUALITY, false,
+	optionIsValidWithMinMax<(uint8_t)AudioSettings::ResamplingQuality::nearestNeightbour, (uint8_t)AudioSettings::ResamplingQuality::lanczos_3>};
 
 bool EmuSystem::resetSessionOptions()
 {
@@ -73,6 +72,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 	{
 		default: return 0;
 		bcase CFGKEY_2600_TV_PHOSPHOR_BLEND: optionTVPhosphorBlend.readFromIO(io, readSize);
+		bcase CFGKEY_AUDIO_RESAMPLE_QUALITY: optionAudioResampleQuality.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -80,6 +80,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 void EmuSystem::writeConfig(IO &io)
 {
 	optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
+	optionAudioResampleQuality.writeWithKeyIfNotDefault(io);
 }
 
 const char *optionVideoSystemToStr()
@@ -106,7 +107,7 @@ void setRuntimeTVPhosphor(int val, int blend)
 	bool usePhosphor = false;
 	if(val == TV_PHOSPHOR_AUTO)
 	{
-		usePhosphor = defaultGameProps.get(Display_Phosphor) == "YES";
+		usePhosphor = defaultGameProps.get(PropType::Display_Phosphor) == "YES";
 	}
 	else
 	{
@@ -116,11 +117,11 @@ void setRuntimeTVPhosphor(int val, int blend)
 	auto props = osystem->console().properties();
 	if(usePhosphor)
 	{
-		props.set(Display_Phosphor, "Yes");
+		props.set(PropType::Display_Phosphor, "Yes");
 	}
 	else
 	{
-		props.set(Display_Phosphor, "No");
+		props.set(PropType::Display_Phosphor, "No");
 	}
 	osystem->console().setProperties(props);
 	osystem->frameBuffer().tiaSurface().enablePhosphor(usePhosphor, blend);

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,6 +19,7 @@
 #define SAVEKEY_HXX
 
 class MT24LC256;
+class OSystem;
 
 #include "Control.hxx"
 
@@ -41,9 +42,10 @@ class SaveKey : public Controller
       @param event      The event object to use for events
       @param system     The system using this controller
       @param eepromfile The file containing the EEPROM data
+      @param callback   Called to pass messages back to the parent controller
     */
     SaveKey(Jack jack, const Event& event, const System& system,
-            const string& eepromfile);
+            const string& eepromfile, const onMessageCallback& callback);
     virtual ~SaveKey();
 
   protected:
@@ -52,7 +54,7 @@ class SaveKey : public Controller
       that inherit from SaveKey (currently, AtariVox)
     */
     SaveKey(Jack jack, const Event& event, const System& system,
-            const string& eepromfile, Type type);
+            const string& eepromfile, const onMessageCallback& callback, Type type);
 
   public:
     using Controller::read;
@@ -80,6 +82,11 @@ class SaveKey : public Controller
       events currently set.
     */
     void update() override { }
+
+    /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "SaveKey"; }
 
     /**
       Notification method invoked by the system after its reset method has

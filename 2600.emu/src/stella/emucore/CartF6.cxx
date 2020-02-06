@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,27 +19,21 @@
 #include "CartF6.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeF6::CartridgeF6(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    myBankOffset(0)
+CartridgeF6::CartridgeF6(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5)
 {
   // Copy the ROM image into my buffer
-  memcpy(myImage, image.get(), std::min(16384u, size));
-  createCodeAccessBase(16384);
-
-  // Remember startup bank
-  myStartBank = 0;
+  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  createCodeAccessBase(myImage.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeF6::reset()
 {
-  // define random startup bank
-  randomizeStartBank();
-
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  initializeStartBank(0);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,7 +42,7 @@ void CartridgeF6::install(System& system)
   mySystem = &system;
 
   // Upon install we'll setup the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -128,7 +122,7 @@ bool CartridgeF6::bank(uInt16 bank)
   // Remember what bank we're in
   myBankOffset = bank << 12;
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Set the page accessing methods for the hot spots
   for(uInt16 addr = (0x1FF6 & ~System::PAGE_MASK); addr < 0x2000;
@@ -139,7 +133,7 @@ bool CartridgeF6::bank(uInt16 bank)
   }
 
   // Setup the page access methods for the current bank
-  for(uInt16 addr = 0x1000; addr < (0x1FF6U & ~System::PAGE_MASK);
+  for(uInt16 addr = 0x1000; addr < static_cast<uInt16>(0x1FF6U & ~System::PAGE_MASK);
       addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
@@ -150,7 +144,7 @@ bool CartridgeF6::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeF6::getBank() const
+uInt16 CartridgeF6::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -169,10 +163,10 @@ bool CartridgeF6::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeF6::getImage(uInt32& size) const
+const uInt8* CartridgeF6::getImage(size_t& size) const
 {
-  size = 16384;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -180,7 +174,6 @@ bool CartridgeF6::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putShort(myBankOffset);
   }
   catch(...)
@@ -197,9 +190,6 @@ bool CartridgeF6::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getShort();
   }
   catch(...)

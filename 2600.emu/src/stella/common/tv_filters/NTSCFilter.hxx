@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,6 +23,7 @@ class Settings;
 
 #include "bspf.hxx"
 #include "AtariNTSC.hxx"
+#include "FrameBufferConstants.hxx"
 
 /**
   This class is based on the Blargg NTSC filter code from Atari800,
@@ -34,17 +35,17 @@ class Settings;
 class NTSCFilter
 {
   public:
-    NTSCFilter();
+    NTSCFilter() = default;
 
   public:
     // Set one of the available preset adjustments (Composite, S-Video, RGB, etc)
-    enum Preset {
-      PRESET_OFF,
-      PRESET_COMPOSITE,
-      PRESET_SVIDEO,
-      PRESET_RGB,
-      PRESET_BAD,
-      PRESET_CUSTOM
+    enum class Preset {
+      OFF,
+      RGB,
+      SVIDEO,
+      COMPOSITE,
+      BAD,
+      CUSTOM
     };
 
     /* Normally used in conjunction with custom mode, contains all
@@ -59,21 +60,8 @@ class NTSCFilter
        uses this as a baseline for calculating its own internal palette
        in YIQ format.
     */
-    inline void setTIAPalette(const uInt32* palette) {
-      uInt8* ptr = myTIAPalette;
-
-      // Set palette for normal fill
-      for(uInt32 i = 0; i < AtariNTSC::palette_size; ++i)
-      {
-        *ptr++ = (palette[i] >> 16) & 0xff;
-        *ptr++ = (palette[i] >> 8) & 0xff;
-        *ptr++ = palette[i] & 0xff;
-      }
-      myNTSC.initializePalette(myTIAPalette);
-    }
-
-    inline void setPhosphorPalette(uInt8 palette[256][256]) {
-      myNTSC.setPhosphorPalette(palette);
+    void setPalette(const PaletteArray& palette) {
+      myNTSC.setPalette(palette);
     }
 
     // The following are meant to be used strictly for toggling from the GUI
@@ -109,12 +97,12 @@ class NTSCFilter
 
     // Perform Blargg filtering on input buffer, place results in
     // output buffer
-    inline void render(uInt8* src_buf, uInt32 src_width, uInt32 src_height,
+    inline void render(const uInt8* src_buf, uInt32 src_width, uInt32 src_height,
                        uInt32* dest_buf, uInt32 dest_pitch)
     {
       myNTSC.render(src_buf, src_width, src_height, dest_buf, dest_pitch);
     }
-    inline void render(uInt8* src_buf, uInt32 src_width, uInt32 src_height,
+    inline void render(const uInt8* src_buf, uInt32 src_width, uInt32 src_height,
                        uInt32* dest_buf, uInt32 dest_pitch, uInt32* prev_buf)
     {
       myNTSC.render(src_buf, src_width, src_height, dest_buf, dest_pitch, prev_buf);
@@ -137,26 +125,21 @@ class NTSCFilter
 
     // Contains controls used to adjust the palette in the NTSC filter
     // This is the main setup object used by the underlying ntsc code
-    AtariNTSC::Setup mySetup;
+    AtariNTSC::Setup mySetup{AtariNTSC::TV_Composite};
 
     // This setup is used only in custom mode (after it is modified,
     // it is copied to mySetup)
     static AtariNTSC::Setup myCustomSetup;
 
     // Current preset in use
-    Preset myPreset;
-
-    // The base 2600 palette contains 128 normal colours
-    // and 128 black&white colours (PAL colour loss)
-    // Each colour is represented by 3 bytes, in R,G,B order
-    uInt8 myTIAPalette[AtariNTSC::palette_size * 3];
+    Preset myPreset{Preset::OFF};
 
     struct AdjustableTag {
-      const char* const type;
-      double* value;
+      const char* const type{nullptr};
+      float* value{nullptr};
     };
-    uInt32 myCurrentAdjustable;
-    static const AdjustableTag ourCustomAdjustables[10];
+    uInt32 myCurrentAdjustable{0};
+    static const std::array<AdjustableTag, 10> ourCustomAdjustables;
 
   private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -27,15 +27,21 @@ class M6532;
 class Cartridge;
 class CompuMate;
 class Debugger;
+class AudioQueue;
+class AudioSettings;
 
 #include "bspf.hxx"
+#include "ConsoleIO.hxx"
 #include "Control.hxx"
 #include "Props.hxx"
 #include "TIAConstants.hxx"
 #include "FrameBuffer.hxx"
+#include "FrameBufferConstants.hxx"
 #include "Serializable.hxx"
 #include "EventHandlerConstants.hxx"
 #include "NTSCFilter.hxx"
+#include "EmulationTiming.hxx"
+#include "ConsoleTiming.hxx"
 #include "frame-manager/AbstractFrameManager.hxx"
 
 /**
@@ -49,17 +55,6 @@ struct ConsoleInfo
   string Control0;
   string Control1;
   string DisplayFormat;
-  string InitialFrameRate;
-};
-
-/**
-  Contains timing information about the specified console.
-*/
-enum class ConsoleTiming
-{
-  ntsc,  // console with CPU running at 1.193182 MHz, NTSC colours
-  pal,   // console with CPU running at 1.182298 MHz, PAL colours
-  secam  // console with CPU running at 1.187500 MHz, SECAM colours
 };
 
 /**
@@ -67,7 +62,7 @@ enum class ConsoleTiming
 
   @author  Bradford W. Mott
 */
-class Console : public Serializable
+class Console : public Serializable, public ConsoleIO
 {
   public:
     /**
@@ -79,7 +74,7 @@ class Console : public Serializable
       @param props    The properties for the cartridge
     */
     Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
-            const Properties& props);
+            const Properties& props, AudioSettings& audioSettings);
 
     /**
       Destructor
@@ -87,13 +82,19 @@ class Console : public Serializable
     virtual ~Console();
 
   public:
+
+    /**
+      Sets the left and right controllers for the console.
+    */
+    void setControllers(const string& roMd5);
+
     /**
       Get the controller plugged into the specified jack
 
       @return The specified controller
     */
-    Controller& leftController() const  { return *myLeftControl;  }
-    Controller& rightController() const { return *myRightControl; }
+    Controller& leftController() const override { return *myLeftControl;  }
+    Controller& rightController() const override { return *myRightControl; }
 
     /**
       Get the TIA for this console
@@ -114,7 +115,7 @@ class Console : public Serializable
 
       @return The console switches
     */
-    Switches& switches() const { return *mySwitches; }
+    Switches& switches() const override { return *mySwitches; }
 
     /**
       Get the 6502 based system used by the console to emulate the game
@@ -154,13 +155,6 @@ class Console : public Serializable
     bool load(Serializer& in) override;
 
     /**
-      Get a descriptor for this console class (used in error checking).
-
-      @return The name of the object
-    */
-    string name() const override { return "Console"; }
-
-    /**
       Set the properties to those given
 
       @param props The properties to use for the current game
@@ -187,6 +181,11 @@ class Console : public Serializable
     */
     void stateChanged(EventHandlerState state);
 
+    /**
+      Retrieve emulation timing provider.
+     */
+    EmulationTiming& emulationTiming() { return myEmulationTiming; }
+
   public:
     /**
       Toggle between NTSC/PAL/SECAM (and variants) display format.
@@ -194,6 +193,16 @@ class Console : public Serializable
       @param direction +1 indicates increase, -1 indicates decrease.
     */
     void toggleFormat(int direction = 1);
+
+    /**
+      Set NTSC/PAL/SECAM (and variants) display format.
+    */
+    void setFormat(uInt32 format);
+
+    /**
+      Get NTSC/PAL/SECAM (and variants) display format name
+    */
+    string getFormatString() const { return myDisplayFormat; }
 
     /**
       Toggle between the available palettes.
@@ -206,6 +215,12 @@ class Console : public Serializable
       @param palette  The palette to switch to.
     */
     void setPalette(const string& palette);
+
+    /**
+      Toggle interpolation on/off
+    */
+    void toggleInter();
+
 
     /**
       Toggles phosphor effect.
@@ -248,30 +263,25 @@ class Console : public Serializable
     void fry() const;
 
     /**
-      Change the "Display.YStart" variable.
+      Change the "Display.VCenter" variable.
 
       @param direction +1 indicates increase, -1 indicates decrease.
     */
-    void changeYStart(int direction);
+    void changeVerticalCenter(int direction);
 
     /**
-      Change the "Display.Height" variable.
+      Change the "TIA scanline adjust" variable.
+      Note that there are currently two of these (NTSC and PAL).  The currently
+      active mode will determine which one is used.
 
       @param direction +1 indicates increase, -1 indicates decrease.
     */
-    void changeHeight(int direction);
+    void changeScanlineAdjust(int direction);
 
     /**
-      Sets the framerate of the console, which in turn communicates
-      this to all applicable subsystems.
+      Returns the current framerate.
     */
-    void setFramerate(float framerate);
-
-    /**
-      Returns the framerate based on a number of factors
-      (whether 'framerate' is set, what display format is in use, etc)
-    */
-    float getFramerate() const { return myFramerate; }
+    float getFramerate() const;
 
     /**
       Toggles the TIA bit specified in the method name.
@@ -305,33 +315,49 @@ class Console : public Serializable
     */
     void toggleJitter() const;
 
-  private:
     /**
-     * Dry-run the emulation and detect the frame layout (PAL / NTSC).
+     * Update vcenter
      */
-    void autodetectFrameLayout();
+    void updateVcenter(Int32 vcenter);
 
     /**
-     * Dryrun the emulation and detect ystart (the first visible scanline).
-     */
-    void autodetectYStart();
-
-    /**
-      Sets various properties of the TIA (YStart, Height, etc) based on
+      Set up various properties of the TIA (vcenter, Height, etc) based on
       the current display format.
     */
     void setTIAProperties();
 
+  private:
     /**
-      Adds the left and right controllers to the console.
-    */
-    void setControllers(const string& rommd5);
+     * Define console timing based on current display format
+     */
+    void setConsoleTiming();
+
+    /**
+     * Dry-run the emulation and detect the frame layout (PAL / NTSC).
+     */
+    void autodetectFrameLayout(bool reset = true);
+
+    /**
+     * Rerun frame layout autodetection
+     */
+    void redetectFrameLayout();
+
+    /**
+     * Determine display format by filename
+     * Returns "AUTO" if nothing is found
+     */
+    string formatFromFilename() const;
+
+    /**
+      Create the audio queue
+     */
+    void createAudioQueue();
 
     /**
       Selects the left or right controller depending on ROM properties
     */
-    unique_ptr<Controller> getControllerPort(const string& rommd5,
-        const string& controllerName, Controller::Jack port);
+    unique_ptr<Controller> getControllerPort(const Controller::Type type,
+                                             const Controller::Jack port, const string& romMd5);
 
     /**
       Loads a user-defined palette file (from OSystem::paletteFile), filling the
@@ -345,12 +371,6 @@ class Console : public Serializable
       'greying out' the frame in the debugger.
     */
     void generateColorLossPalette();
-
-    /**
-      Returns a pointer to the palette data for the palette currently defined
-      by the ROM properties.
-    */
-    const uInt32* getPalette(int direction) const;
 
     void toggleTIABit(TIABit bit, const string& bitname, bool show = true) const;
     void toggleTIACollision(TIABit bit, const string& bitname, bool show = true) const;
@@ -378,8 +398,11 @@ class Console : public Serializable
     // Pointer to the TIA object
     unique_ptr<TIA> myTIA;
 
-    // The frame manager instance that is used during emulation.
+    // The frame manager instance that is used during emulation
     unique_ptr<AbstractFrameManager> myFrameManager;
+
+    // The audio fragment queue that connects TIA and audio driver
+    shared_ptr<AudioQueue> myAudioQueue;
 
     // Pointer to the Cartridge (the debugger needs it)
     unique_ptr<Cartridge> myCart;
@@ -396,39 +419,43 @@ class Console : public Serializable
     // The currently defined display format (NTSC/PAL/SECAM)
     string myDisplayFormat;
 
-    // The currently defined display framerate
-    float myFramerate;
-
     // Display format currently in use
-    uInt32 myCurrentFormat;
+    uInt32 myCurrentFormat{0};
 
-    // Autodetected ystart.
-    uInt32 myAutodetectedYstart;
+    // Is the TV format autodetected?
+    bool myFormatAutodetected{false};
 
     // Indicates whether an external palette was found and
     // successfully loaded
-    bool myUserPaletteDefined;
+    bool myUserPaletteDefined{false};
 
     // Contains detailed info about this console
     ConsoleInfo myConsoleInfo;
 
     // Contains timing information for this console
-    ConsoleTiming myConsoleTiming;
+    ConsoleTiming myConsoleTiming{ConsoleTiming::ntsc};
+
+    // Emulation timing provider. This ties together the timing of the core emulation loop
+    // and the parameters that govern audio synthesis
+    EmulationTiming myEmulationTiming;
+
+    // The audio settings
+    AudioSettings& myAudioSettings;
 
     // Table of RGB values for NTSC, PAL and SECAM
-    static uInt32 ourNTSCPalette[256];
-    static uInt32 ourPALPalette[256];
-    static uInt32 ourSECAMPalette[256];
+    static PaletteArray ourNTSCPalette;
+    static PaletteArray ourPALPalette;
+    static PaletteArray ourSECAMPalette;
 
     // Table of RGB values for NTSC, PAL and SECAM - Z26 version
-    static uInt32 ourNTSCPaletteZ26[256];
-    static uInt32 ourPALPaletteZ26[256];
-    static uInt32 ourSECAMPaletteZ26[256];
+    static PaletteArray ourNTSCPaletteZ26;
+    static PaletteArray ourPALPaletteZ26;
+    static PaletteArray ourSECAMPaletteZ26;
 
     // Table of RGB values for NTSC, PAL and SECAM - user-defined
-    static uInt32 ourUserNTSCPalette[256];
-    static uInt32 ourUserPALPalette[256];
-    static uInt32 ourUserSECAMPalette[256];
+    static PaletteArray ourUserNTSCPalette;
+    static PaletteArray ourUserPALPalette;
+    static PaletteArray ourUserSECAMPalette;
 
   private:
     // Following constructors and assignment operators not supported

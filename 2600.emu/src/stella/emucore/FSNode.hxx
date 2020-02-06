@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 #ifndef FS_NODE_HXX
 #define FS_NODE_HXX
 
-#include <algorithm>
+#include "bspf.hxx"
 
 /*
  * The API described in this header is meant to allow for file system browsing in a
@@ -45,10 +45,13 @@
  * we can build upon this.
  */
 
+#include <functional>
+
 #include "bspf.hxx"
 
 class FilesystemNode;
 class AbstractFSNode;
+using AbstractFSNodePtr = shared_ptr<AbstractFSNode>;
 
 /**
  * List of multiple file system nodes. E.g. the contents of a given directory.
@@ -67,18 +70,18 @@ class FilesystemNode
     /**
      * Flag to tell listDir() which kind of files to list.
      */
-    enum ListMode {
-      kListFilesOnly = 1,
-      kListDirectoriesOnly = 2,
-      kListAll = 3
-    };
+    enum class ListMode { FilesOnly, DirectoriesOnly, All };
+
+    /** Function used to filter the file listing.  Returns true if the filename
+        should be included, else false.*/
+    using NameFilter = std::function<bool(const FilesystemNode& node)>;
 
     /**
      * Create a new pathless FilesystemNode. Since there's no path associated
      * with this node, path-related operations (i.e. exists(), isDirectory(),
      * getPath()) will always return false or raise an assertion.
      */
-    FilesystemNode();
+    FilesystemNode() = default;
 
     /**
      * Create a new FilesystemNode referring to the specified path. This is
@@ -91,25 +94,11 @@ class FilesystemNode
      */
     explicit FilesystemNode(const string& path);
 
-    virtual ~FilesystemNode() = default;
-
     /**
      * Assignment operators.
      */
     FilesystemNode(const FilesystemNode&) = default;
     FilesystemNode& operator=(const FilesystemNode&) = default;
-
-    /**
-     * Compare the name of this node to the name of another. Directories
-     * go before normal files.
-     */
-    inline bool operator<(const FilesystemNode& node) const
-    {
-      if (isDirectory() != node.isDirectory())
-        return isDirectory();
-
-      return BSPF::compareIgnoreCase(getName(), node.getName()) < 0;
-    }
 
     /**
      * Compare the name of this node to the name of another, testing for
@@ -135,7 +124,7 @@ class FilesystemNode
      *
      * @return bool true if the path exists, false otherwise.
      */
-    virtual bool exists() const;
+    bool exists() const;
 
     /**
      * Return a list of child nodes of this directory node. If called on a node
@@ -144,18 +133,19 @@ class FilesystemNode
      * @return true if successful, false otherwise (e.g. when the directory
      *         does not exist).
      */
-    virtual bool getChildren(FSList &fslist, ListMode mode = kListDirectoriesOnly,
-                             bool hidden = false) const;
+    bool getChildren(FSList& fslist, ListMode mode = ListMode::DirectoriesOnly,
+                     const NameFilter& filter = [](const FilesystemNode&){ return true; }) const;
 
     /**
-     * Return a string representation of the name of the file. This is can be
+     * Set/get a string representation of the name of the file. This is can be
      * used e.g. by detection code that relies on matching the name of a given
      * file. But it is *not* suitable for use with fopen / File::open, nor
      * should it be archived.
      *
      * @return the file name
      */
-    virtual const string& getName() const;
+    const string& getName() const;
+    void setName(const string& name);
 
     /**
      * Return a string representation of the file which can be passed to fopen().
@@ -164,7 +154,7 @@ class FilesystemNode
      *
      * @return the 'path' represented by this filesystem node
      */
-    virtual const string& getPath() const;
+    const string& getPath() const;
 
     /**
      * Return a string representation of the file which contains the '~'
@@ -173,7 +163,7 @@ class FilesystemNode
      *
      * @return the 'path' represented by this filesystem node
      */
-    virtual string getShortPath() const;
+    string getShortPath() const;
 
     /**
      * Determine whether this node has a parent.
@@ -189,14 +179,14 @@ class FilesystemNode
     /**
      * Indicates whether the path refers to a directory or not.
      */
-    virtual bool isDirectory() const;
+    bool isDirectory() const;
 
     /**
      * Indicates whether the path refers to a real file or not.
      *
      * Currently, a symlink or pipe is not considered a file.
      */
-    virtual bool isFile() const;
+    bool isFile() const;
 
     /**
      * Indicates whether the object referred by this path can be read from or not.
@@ -209,7 +199,7 @@ class FilesystemNode
      *
      * @return bool true if the object can be read, false otherwise.
      */
-    virtual bool isReadable() const;
+    bool isReadable() const;
 
     /**
      * Indicates whether the object referred by this path can be written to or not.
@@ -223,21 +213,21 @@ class FilesystemNode
      *
      * @return bool true if the object can be written to, false otherwise.
      */
-    virtual bool isWritable() const;
+    bool isWritable() const;
 
     /**
      * Create a directory from the current node path.
      *
      * @return bool true if the directory was created, false otherwise.
      */
-    virtual bool makeDir();
+    bool makeDir();
 
     /**
      * Rename the current node path with the new given name.
      *
      * @return bool true if the node was renamed, false otherwise.
      */
-    virtual bool rename(const string& newfile);
+    bool rename(const string& newfile);
 
     /**
      * Read data (binary format) into the given buffer.
@@ -248,7 +238,7 @@ class FilesystemNode
      *          This method can throw exceptions, and should be used inside
      *          a try-catch block.
      */
-    virtual uInt32 read(BytePtr& buffer) const;
+    size_t read(ByteBuffer& buffer) const;
 
     /**
      * The following methods are almost exactly the same as the various
@@ -258,11 +248,10 @@ class FilesystemNode
      */
     string getNameWithExt(const string& ext) const;
     string getPathWithExt(const string& ext) const;
-    string getShortPathWithExt(const string& ext) const; // FIXME - dead code
 
   private:
-    shared_ptr<AbstractFSNode> _realNode;
-    FilesystemNode(AbstractFSNode* realNode);
+    AbstractFSNodePtr _realNode;
+    explicit FilesystemNode(const AbstractFSNodePtr& realNode);
 };
 
 
@@ -275,13 +264,14 @@ class FilesystemNode
  * the semantics.
  */
 
-using AbstractFSList = vector<AbstractFSNode*>;
+using AbstractFSList = vector<AbstractFSNodePtr>;
 
 class AbstractFSNode
 {
   protected:
     friend class FilesystemNode;
     using ListMode = FilesystemNode::ListMode;
+    using NameFilter = FilesystemNode::NameFilter;
 
   public:
     /**
@@ -306,12 +296,11 @@ class AbstractFSNode
      *
      * @param list List to put the contents of the directory in.
      * @param mode Mode to use while listing the directory.
-     * @param hidden Whether to include hidden files or not in the results.
      *
      * @return true if successful, false otherwise (e.g. when the directory
      *         does not exist).
      */
-    virtual bool getChildren(AbstractFSList& list, ListMode mode, bool hidden) const = 0;
+    virtual bool getChildren(AbstractFSList& list, ListMode mode) const = 0;
 
     /**
      * Returns the last component of the path pointed by this FilesystemNode.
@@ -324,6 +313,7 @@ class AbstractFSNode
      *       implementation for more information.
      */
     virtual const string& getName() const = 0;
+    virtual void setName(const string& name) = 0;
 
     /**
      * Returns the 'path' of the current node, usable in fopen().
@@ -335,6 +325,17 @@ class AbstractFSNode
      */
 
     virtual string getShortPath() const = 0;
+
+    /**
+     * Determine whether this node has a parent.
+     */
+    virtual bool hasParent() const = 0;
+
+    /**
+     * The parent node of this directory.
+     * The parent of the root is 'nullptr'.
+     */
+    virtual AbstractFSNodePtr getParent() const = 0;
 
     /**
      * Indicates whether this path refers to a directory or not.
@@ -397,13 +398,7 @@ class AbstractFSNode
      *          This method can throw exceptions, and should be used inside
      *          a try-catch block.
      */
-    virtual uInt32 read(BytePtr& buffer) const { return 0; }
-
-    /**
-     * The parent node of this directory.
-     * The parent of the root is the root itself.
-     */
-    virtual AbstractFSNode* getParent() const = 0;
+    virtual size_t read(ByteBuffer& buffer) const { return 0; }
 };
 
 #endif

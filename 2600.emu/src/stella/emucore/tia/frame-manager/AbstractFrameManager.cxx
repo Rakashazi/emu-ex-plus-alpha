@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,13 +18,9 @@
 #include "AbstractFrameManager.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-AbstractFrameManager::AbstractFrameManager() :
-  myLayout(FrameLayout::pal),
-  myOnFrameStart(nullptr),
-  myOnFrameComplete(nullptr)
+AbstractFrameManager::AbstractFrameManager()
 {
   layout(FrameLayout::ntsc);
-  reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -37,8 +33,6 @@ void AbstractFrameManager::reset()
   myCurrentFrameFinalLines = 0;
   myPreviousFrameFinalLines = 0;
   myTotalFrames = 0;
-  myFrameRate = 0;
-  myFrameRate = 60.0;
 
   onReset();
 }
@@ -46,16 +40,17 @@ void AbstractFrameManager::reset()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AbstractFrameManager::nextLine()
 {
-  myCurrentFrameTotalLines++;
+  ++myCurrentFrameTotalLines;
 
   onNextLine();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AbstractFrameManager::setHandlers(
-  callback frameStartCallback,
-  callback frameCompletionCallback
-) {
+  const callback& frameStartCallback,
+  const callback& frameCompletionCallback
+)
+{
   myOnFrameStart = frameStartCallback;
   myOnFrameComplete = frameCompletionCallback;
 }
@@ -98,12 +93,9 @@ void AbstractFrameManager::notifyFrameComplete()
   myPreviousFrameFinalLines = myCurrentFrameFinalLines;
   myCurrentFrameFinalLines = myCurrentFrameTotalLines;
   myCurrentFrameTotalLines = 0;
-  myTotalFrames++;
+  ++myTotalFrames;
 
   if (myOnFrameComplete) myOnFrameComplete();
-
-  myFrameRate = (layout() == FrameLayout::pal ? 15600.0 : 15720.0) /
-    myCurrentFrameFinalLines;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -119,9 +111,8 @@ void AbstractFrameManager::layout(FrameLayout layout)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool AbstractFrameManager::save(Serializer& out) const
 {
-  try {
-    out.putString(name());
-
+  try
+  {
     out.putBool(myIsRendering);
     out.putBool(myVsync);
     out.putBool(myVblank);
@@ -130,7 +121,6 @@ bool AbstractFrameManager::save(Serializer& out) const
     out.putInt(myPreviousFrameFinalLines);
     out.putInt(myTotalFrames);
     out.putInt(uInt32(myLayout));
-    out.putDouble(myFrameRate);
 
     return onSave(out);
   }
@@ -144,9 +134,8 @@ bool AbstractFrameManager::save(Serializer& out) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool AbstractFrameManager::load(Serializer& in)
 {
-  try {
-    if (in.getString() != name()) return false;
-
+  try
+  {
     myIsRendering = in.getBool();
     myVsync = in.getBool();
     myVblank = in.getBool();
@@ -155,7 +144,6 @@ bool AbstractFrameManager::load(Serializer& in)
     myPreviousFrameFinalLines = in.getInt();
     myTotalFrames = in.getInt();
     myLayout = FrameLayout(in.getInt());
-    myFrameRate = float(in.getDouble());
 
     return onLoad(in);
   }

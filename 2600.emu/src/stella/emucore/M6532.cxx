@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,22 +28,16 @@
 #include "M6532.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-M6532::M6532(const Console& console, const Settings& settings)
+M6532::M6532(const ConsoleIO& console, const Settings& settings)
   : myConsole(console),
-    mySettings(settings),
-    myTimer(0), mySubTimer(0), myDivider(1),
-    myTimerWrapped(false), myWrappedThisCycle(false),
-    mySetTimerCycle(0), myLastCycle(0),
-    myDDRA(0), myDDRB(0), myOutA(0), myOutB(0),
-    myInterruptFlag(false),
-    myEdgeDetectPositive(false)
+    mySettings(settings)
 {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::reset()
 {
-  static constexpr uInt8 RAM_7800[128] = {
+  static constexpr std::array<uInt8, 128> RAM_7800 = {
     0xA9, 0x00, 0xAA, 0x85, 0x01, 0x95, 0x03, 0xE8, 0xE0, 0x2A, 0xD0, 0xF9, 0x85, 0x02, 0xA9, 0x04,
     0xEA, 0x30, 0x23, 0xA2, 0x04, 0xCA, 0x10, 0xFD, 0x9A, 0x8D, 0x10, 0x01, 0x20, 0xCB, 0x04, 0x20,
     0xCB, 0x04, 0x85, 0x11, 0x85, 0x1B, 0x85, 0x1C, 0x85, 0x0F, 0xEA, 0x85, 0x02, 0xA9, 0x00, 0xEA,
@@ -57,13 +51,12 @@ void M6532::reset()
   // Initialize the 128 bytes of memory
   bool devSettings = mySettings.getBool("dev.settings");
   if(mySettings.getString(devSettings ? "dev.console" : "plr.console") == "7800")
-    for(uInt32 t = 0; t < 128; ++t)
-      myRAM[t] = RAM_7800[t];
+    std::copy_n(RAM_7800.begin(), RAM_7800.size(), myRAM.begin());
   else if(mySettings.getBool(devSettings ? "dev.ramrandom" : "plr.ramrandom"))
-    for(uInt32 t = 0; t < 128; ++t)
+    for(size_t t = 0; t < myRAM.size(); ++t)
       myRAM[t] = mySystem->randGenerator().next();
   else
-    memset(myRAM, 0, 128);
+    myRAM.fill(0);
 
   myTimer = mySystem->randGenerator().next() & 0xff;
   myDivider = 1024;
@@ -77,7 +70,7 @@ void M6532::reset()
   myDDRA = myDDRB = myOutA = myOutB = 0x00;
 
   // Zero the timer registers
-  myOutTimer[0] = myOutTimer[1] = myOutTimer[2] = myOutTimer[3] = 0x00;
+  myOutTimer.fill(0x00);
 
   // Zero the interrupt flag register and mark D7 as invalid
   myInterruptFlag = 0x00;
@@ -97,19 +90,19 @@ void M6532::reset()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::update()
 {
-  Controller& port0 = myConsole.leftController();
-  Controller& port1 = myConsole.rightController();
+  Controller& lport = myConsole.leftController();
+  Controller& rport = myConsole.rightController();
 
   // Get current PA7 state
-  bool prevPA7 = port0.myDigitalPinState[Controller::Four];
+  bool prevPA7 = lport.getPin(Controller::DigitalPin::Four);
 
   // Update entire port state
-  port0.update();
-  port1.update();
+  lport.update();
+  rport.update();
   myConsole.switches().update();
 
   // Get new PA7 state
-  bool currPA7 = port0.myDigitalPinState[Controller::Four];
+  bool currPA7 = lport.getPin(Controller::DigitalPin::Four);
 
   // PA7 Flag is set on active transition in appropriate direction
   if((!myEdgeDetectPositive && prevPA7 && !currPA7) ||
@@ -168,7 +161,7 @@ void M6532::installDelegate(System& system, Device& device)
   mySystem = &system;
 
   // All accesses are to the given device
-  System::PageAccess access(&device, System::PA_READWRITE);
+  System::PageAccess access(&device, System::PageAccessType::READWRITE);
 
   // Map all peek/poke to mirrors of RIOT address space to this class
   // That is, all mirrors of ZP RAM ($80 - $FF) and IO ($280 - $29F) in the
@@ -314,7 +307,7 @@ bool M6532::poke(uInt16 addr, uInt8 value)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::setTimerRegister(uInt8 value, uInt8 interval)
 {
-  static constexpr uInt32 divider[] = { 1, 8, 64, 1024 };
+  static constexpr std::array<uInt32, 4> divider = { 1, 8, 64, 1024 };
 
   myDivider = divider[interval];
   myOutTimer[interval] = value;
@@ -342,24 +335,24 @@ void M6532::setPinState(bool swcha)
       if(DDR bit is input)       set output as 1
       else if(DDR bit is output) set output as bit in ORA
   */
-  Controller& port0 = myConsole.leftController();
-  Controller& port1 = myConsole.rightController();
+  Controller& lport = myConsole.leftController();
+  Controller& rport = myConsole.rightController();
 
   uInt8 ioport = myOutA | ~myDDRA;
 
-  port0.write(Controller::One,   ioport & 0x10);
-  port0.write(Controller::Two,   ioport & 0x20);
-  port0.write(Controller::Three, ioport & 0x40);
-  port0.write(Controller::Four,  ioport & 0x80);
-  port1.write(Controller::One,   ioport & 0x01);
-  port1.write(Controller::Two,   ioport & 0x02);
-  port1.write(Controller::Three, ioport & 0x04);
-  port1.write(Controller::Four,  ioport & 0x08);
+  lport.write(Controller::DigitalPin::One,   ioport & 0b00010000);
+  lport.write(Controller::DigitalPin::Two,   ioport & 0b00100000);
+  lport.write(Controller::DigitalPin::Three, ioport & 0b01000000);
+  lport.write(Controller::DigitalPin::Four,  ioport & 0b10000000);
+  rport.write(Controller::DigitalPin::One,   ioport & 0b00000001);
+  rport.write(Controller::DigitalPin::Two,   ioport & 0b00000010);
+  rport.write(Controller::DigitalPin::Three, ioport & 0b00000100);
+  rport.write(Controller::DigitalPin::Four,  ioport & 0b00001000);
 
   if(swcha)
   {
-    port0.controlWrite(ioport);
-    port1.controlWrite(ioport);
+    lport.controlWrite(ioport);
+    rport.controlWrite(ioport);
   }
 }
 
@@ -368,9 +361,7 @@ bool M6532::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
-    out.putByteArray(myRAM, 128);
+    out.putByteArray(myRAM.data(), myRAM.size());
 
     out.putInt(myTimer);
     out.putInt(mySubTimer);
@@ -387,7 +378,7 @@ bool M6532::save(Serializer& out) const
 
     out.putByte(myInterruptFlag);
     out.putBool(myEdgeDetectPositive);
-    out.putByteArray(myOutTimer, 4);
+    out.putByteArray(myOutTimer.data(), myOutTimer.size());
   }
   catch(...)
   {
@@ -403,10 +394,7 @@ bool M6532::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
-    in.getByteArray(myRAM, 128);
+    in.getByteArray(myRAM.data(), myRAM.size());
 
     myTimer = in.getInt();
     mySubTimer = in.getInt();
@@ -423,7 +411,7 @@ bool M6532::load(Serializer& in)
 
     myInterruptFlag = in.getByte();
     myEdgeDetectPositive = in.getBool();
-    in.getByteArray(myOutTimer, 4);
+    in.getByteArray(myOutTimer.data(), myOutTimer.size());
   }
   catch(...)
   {
@@ -434,6 +422,7 @@ bool M6532::load(Serializer& in)
   return true;
 }
 
+#ifdef DEBUGGER_SUPPORT
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 M6532::intim()
 {
@@ -468,19 +457,13 @@ uInt32 M6532::timerClocks() const
   return uInt32(mySystem->cycles() - mySetTimerCycle);
 }
 
-#ifdef DEBUGGER_SUPPORT
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::createAccessBases()
 {
-  myRAMAccessBase = make_unique<uInt8[]>(RAM_SIZE);
-  memset(myRAMAccessBase.get(), CartDebug::NONE, RAM_SIZE);
-  myStackAccessBase = make_unique<uInt8[]>(STACK_SIZE);
-  memset(myStackAccessBase.get(), CartDebug::NONE, STACK_SIZE);
-  myIOAccessBase = make_unique<uInt8[]>(IO_SIZE);
-  memset(myIOAccessBase.get(), CartDebug::NONE, IO_SIZE);
-
-  myZPAccessDelay = make_unique<uInt8[]>(RAM_SIZE);
-  memset(myZPAccessDelay.get(), ZP_DELAY, RAM_SIZE);
+  myRAMAccessBase.fill(CartDebug::NONE);
+  myStackAccessBase.fill(CartDebug::NONE);
+  myIOAccessBase.fill(CartDebug::NONE);
+  myZPAccessDelay.fill(ZP_DELAY);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,7 +19,6 @@
 #define RANDOM_HXX
 
 #include "bspf.hxx"
-#include "OSystem.hxx"
 #include "Serializable.hxx"
 
 /**
@@ -35,15 +34,15 @@ class Random : public Serializable
     /**
       Create a new random number generator
     */
-    Random(const OSystem& osystem) : myOSystem(osystem) { initSeed(); }
+    explicit Random(uInt32 seed) { initSeed(seed); }
 
     /**
       Re-initialize the random number generator with a new seed,
       to generate a different set of random numbers.
     */
-    void initSeed()
+    void initSeed(uInt32 seed)
     {
-      myValue = uInt32(myOSystem.getTicks());
+      myValue = seed;
     }
 
     /**
@@ -66,7 +65,6 @@ class Random : public Serializable
     {
       try
       {
-        out.putString(name());
         out.putInt(myValue);
       }
       catch(...)
@@ -88,9 +86,6 @@ class Random : public Serializable
     {
       try
       {
-        if(in.getString() != name())
-          return false;
-
         myValue = in.getInt();
       }
       catch(...)
@@ -102,23 +97,13 @@ class Random : public Serializable
       return true;
     }
 
-    /**
-      Get a descriptor for the device name (used in error checking).
-
-      @return The name of the object
-    */
-    string name() const override { return "Random"; }
-
   private:
-    // Set the OSystem we're using
-    const OSystem& myOSystem;
-
     // Indicates the next random number
     // We make this mutable, since it's not immediately obvious that
     // calling next() should change internal state (ie, the *logical*
     // state of the object shouldn't change just by asking for another
     // random number)
-    mutable uInt32 myValue;
+    mutable uInt32 myValue{0};
 
   private:
     // Following constructors and assignment operators not supported

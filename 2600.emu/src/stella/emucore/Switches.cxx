@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,11 +23,9 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Switches::Switches(const Event& event, const Properties& properties,
                    const Settings& settings)
-  : myEvent(event),
-    mySwitches(0xFF),
-    myIs7800(false)
+  : myEvent(event)
 {
-  if(properties.get(Console_RightDifficulty) == "B")
+  if(properties.get(PropType::Console_RightDiff) == "B")
   {
     mySwitches &= ~0x80;
   }
@@ -36,7 +34,7 @@ Switches::Switches(const Event& event, const Properties& properties,
     mySwitches |= 0x80;
   }
 
-  if(properties.get(Console_LeftDifficulty) == "B")
+  if(properties.get(PropType::Console_LeftDiff) == "B")
   {
     mySwitches &= ~0x40;
   }
@@ -45,7 +43,7 @@ Switches::Switches(const Event& event, const Properties& properties,
     mySwitches |= 0x40;
   }
 
-  if(properties.get(Console_TelevisionType) == "COLOR")
+  if(properties.get(PropType::Console_TVType) == "COLOR")
   {
     mySwitches |= 0x08;
   }
@@ -54,7 +52,7 @@ Switches::Switches(const Event& event, const Properties& properties,
     mySwitches &= ~0x08;
   }
 
-  toggle7800Mode(settings);
+  check7800Mode(settings);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -71,16 +69,14 @@ void Switches::update()
       mySwitches |= 0x08;
     }
   }
-  else
+
+  if(myEvent.get(Event::ConsoleColor) != 0)
   {
-    if(myEvent.get(Event::ConsoleColor) != 0)
-    {
-      mySwitches |= 0x08;
-    }
-    else if(myEvent.get(Event::ConsoleBlackWhite) != 0)
-    {
-      mySwitches &= ~0x08;
-    }
+    mySwitches |= 0x08;
+  }
+  else if(myEvent.get(Event::ConsoleBlackWhite) != 0)
+  {
+    mySwitches &= ~0x08;
   }
 
   if(myEvent.get(Event::ConsoleRightDiffA) != 0)
@@ -121,6 +117,45 @@ void Switches::update()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Switches::setTvColor(bool setColor)
+{
+  if(setColor)
+  {
+    mySwitches |= 0x08;
+  }
+  else
+  {
+    mySwitches &= ~0x08;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Switches::setLeftDifficultyA(bool setToA)
+{
+  if(setToA)
+  {
+    mySwitches |= 0x40;
+  }
+  else
+  {
+    mySwitches &= ~0x40;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Switches::setRightDifficultyA(bool setToA)
+{
+  if(setToA)
+  {
+    mySwitches |= 0x80;
+  }
+  else
+  {
+    mySwitches &= ~0x80;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool Switches::save(Serializer& out) const
 {
   try
@@ -151,10 +186,10 @@ bool Switches::load(Serializer& in)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Switches::toggle7800Mode(const Settings& settings)
+bool Switches::check7800Mode(const Settings& settings)
 {
   bool devSettings = settings.getBool("dev.settings");
-  myIs7800 = devSettings && (settings.getString("dev.console") == "7800");
+  myIs7800 = (settings.getString(devSettings ? "dev.console" : "plr.console") == "7800");
 
   return myIs7800;
 }

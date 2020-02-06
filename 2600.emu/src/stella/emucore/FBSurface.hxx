@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,10 +23,13 @@ class TIASurface;
 
 namespace GUI {
   class Font;
+}
+namespace Common {
   struct Rect;
 }
 
 #include "FrameBufferConstants.hxx"
+#include "FrameBuffer.hxx"
 #include "bspf.hxx"
 
 /**
@@ -37,12 +40,15 @@ namespace GUI {
   is responsible for extending an FBSurface object suitable to the
   FrameBuffer type.
 
+  NOTE: myPixels and myPitch MUST be set in child classes that inherit
+        from this class
+
   @author  Stephen Anthony
 */
 class FBSurface
 {
   public:
-    FBSurface();
+    FBSurface() = default;
     virtual ~FBSurface() = default;
 
     /**
@@ -63,7 +69,7 @@ class FBSurface
       @param pitch   The pitch (in bytes) for the pixel data
       @param rect    The bounding rectangle for the buffer
     */
-    void readPixels(uInt8* buffer, uInt32 pitch, const GUI::Rect& rect) const;
+    void readPixels(uInt8* buffer, uInt32 pitch, const Common::Rect& rect) const;
 
     //////////////////////////////////////////////////////////////////////////
     // Note:  The drawing primitives below will work, but do not take
@@ -79,7 +85,7 @@ class FBSurface
       @param y      The y coordinate
       @param color  The color of the line
     */
-    virtual void pixel(uInt32 x, uInt32 y, uInt32 color);
+    virtual void pixel(uInt32 x, uInt32 y, ColorId color);
 
     /**
       This method should be called to draw a line.
@@ -90,7 +96,7 @@ class FBSurface
       @param y2     The second y coordinate
       @param color  The color of the line
     */
-    virtual void line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, uInt32 color);
+    virtual void line(uInt32 x, uInt32 y, uInt32 x2, uInt32 y2, ColorId color);
 
     /**
       This method should be called to draw a horizontal line.
@@ -100,7 +106,7 @@ class FBSurface
       @param x2     The second x coordinate
       @param color  The color of the line
     */
-    virtual void hLine(uInt32 x, uInt32 y, uInt32 x2, uInt32 color);
+    virtual void hLine(uInt32 x, uInt32 y, uInt32 x2, ColorId color);
 
     /**
       This method should be called to draw a vertical line.
@@ -110,7 +116,7 @@ class FBSurface
       @param y2     The second y coordinate
       @param color  The color of the line
     */
-    virtual void vLine(uInt32 x, uInt32 y, uInt32 y2, uInt32 color);
+    virtual void vLine(uInt32 x, uInt32 y, uInt32 y2, ColorId color);
 
     /**
       This method should be called to draw a filled rectangle.
@@ -122,7 +128,7 @@ class FBSurface
       @param color  The fill color of the rectangle
     */
     virtual void fillRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
-                          uInt32 color);
+                          ColorId color);
 
     /**
       This method should be called to draw the specified character.
@@ -134,7 +140,7 @@ class FBSurface
       @param color  The color of the character
     */
     virtual void drawChar(const GUI::Font& font, uInt8 c, uInt32 x, uInt32 y,
-                          uInt32 color, uInt32 shadowColor = 0);
+                          ColorId color, ColorId shadowColor = kNone);
 
     /**
       This method should be called to draw the bitmap image.
@@ -145,7 +151,7 @@ class FBSurface
       @param color  The color of the bitmap
       @param h      The height of the data image
     */
-    virtual void drawBitmap(uInt32* bitmap, uInt32 x, uInt32 y, uInt32 color,
+    virtual void drawBitmap(const uInt32* bitmap, uInt32 x, uInt32 y, ColorId color,
                             uInt32 h = 8);
 
     /**
@@ -158,7 +164,7 @@ class FBSurface
       @param w      The width of the data image
       @param h      The height of the data image
     */
-    virtual void drawBitmap(uInt32* bitmap, uInt32 x, uInt32 y, uInt32 color,
+    virtual void drawBitmap(const uInt32* bitmap, uInt32 x, uInt32 y, ColorId color,
                             uInt32 w, uInt32 h);
 
     /**
@@ -171,7 +177,7 @@ class FBSurface
       @param y         The destination y-location to start drawing pixels
       @param numpixels The number of pixels to draw
     */
-    virtual void drawPixels(uInt32* data, uInt32 x, uInt32 y, uInt32 numpixels);
+    virtual void drawPixels(const uInt32* data, uInt32 x, uInt32 y, uInt32 numpixels);
 
     /**
       This method should be called to draw a rectangular box with sides
@@ -185,7 +191,7 @@ class FBSurface
       @param colorB Darker color for inside line.
     */
     virtual void box(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
-                     uInt32 colorA, uInt32 colorB);
+                     ColorId colorA, ColorId colorB);
 
     /**
       This method should be called to draw a framed rectangle with
@@ -199,7 +205,28 @@ class FBSurface
       @param style  The 'FrameStyle' to use for the surrounding frame
     */
     virtual void frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
-                           uInt32 color, FrameStyle style = FrameStyle::Solid);
+                           ColorId color, FrameStyle style = FrameStyle::Solid);
+
+    /**
+      This method should be called to draw the specified string.
+
+      @param font   The font to draw the string with
+      @param s      The string to draw
+      @param x      The x coordinate
+      @param y      The y coordinate
+      @param w      The width of the string area
+      @param h      The height of the string area (for multi line strings)
+      @param color  The color of the text
+      @param align  The alignment of the text in the string width area
+      @param deltax FIXME
+      @param useEllipsis  Whether to use '...' when the string is too long
+      @return       Number of lines drawn
+    */
+
+    virtual int drawString(
+      const GUI::Font& font, const string& s, int x, int y, int w, int h,
+      ColorId color, TextAlign align = TextAlign::Left,
+      int deltax = 0, bool useEllipsis = true, ColorId shadowColor = kNone);
 
     /**
       This method should be called to draw the specified string.
@@ -216,14 +243,8 @@ class FBSurface
     */
     virtual void drawString(
         const GUI::Font& font, const string& s, int x, int y, int w,
-        uInt32 color, TextAlign align = TextAlign::Left,
-        int deltax = 0, bool useEllipsis = true, uInt32 shadowColor = 0);
-
-    /**
-      This method should be called to indicate that the surface has been
-      modified, and should be redrawn at the next interval.
-    */
-    virtual void setDirty() { }
+        ColorId color, TextAlign align = TextAlign::Left,
+        int deltax = 0, bool useEllipsis = true, ColorId shadowColor = kNone);
 
     //////////////////////////////////////////////////////////////////////////
     // Note:  The following methods are FBSurface-specific, and must be
@@ -244,8 +265,8 @@ class FBSurface
       These methods answer the current *rendering* dimensions of the
       specified surface.
     */
-    virtual const GUI::Rect& srcRect() const = 0;
-    virtual const GUI::Rect& dstRect() const = 0;
+    virtual const Common::Rect& srcRect() const = 0;
+    virtual const Common::Rect& dstRect() const = 0;
 
     /**
       These methods set the origin point and width/height for the
@@ -309,9 +330,12 @@ class FBSurface
       the specific functionality actually exists.
     */
     struct Attributes {
-      bool smoothing;    // Scaling is smoothed or blocky
-      bool blending;     // Blending is enabled
-      uInt32 blendalpha; // Alpha to use in blending mode (0-100%)
+      bool blending{false};    // Blending is enabled
+      uInt32 blendalpha{100};  // Alpha to use in blending mode (0-100%)
+
+      bool operator==(const Attributes& other) const {
+        return blendalpha == other.blendalpha && blending == other.blending;
+      }
     };
 
     /**
@@ -320,23 +344,45 @@ class FBSurface
     Attributes& attributes() { return myAttributes; }
 
     /**
+      Configure scaling interpolation.
+     */
+    virtual void setScalingInterpolation(FrameBuffer::ScalingInterpolation) = 0;
+
+    /**
       The child class chooses which (if any) of the actual attributes
       can be applied.
-
-      @param immediate  Whether to re-initialize the surface immediately
-                        with the new attributes, or wait until manually
-                        reloaded
     */
-    virtual void applyAttributes(bool immediate = true) = 0;
+    virtual void applyAttributes() = 0;
 
-    static void setPalette(const uInt32* palette) { myPalette = palette; }
+    static void setPalette(const FullPaletteArray& palette) { myPalette = palette; }
 
   protected:
-    static const uInt32* myPalette;
-    uInt32* myPixels;
-    uInt32 myPitch;
+    /**
+      This method should be called to check if the given coordinates
+      are in bounds of the surface.
+
+      @param x      The x coordinate to check
+      @param y      The y coordinate to check
+      @return       True if coordinates are in bounds
+    */
+    bool checkBounds(const uInt32 x, const uInt32 y) const;
+
+    void wrapString(const string& inStr, int pos, string& leftStr, string& rightStr) const;
+
+    /**
+      Check if the given character is a whitespace.
+      @param s      Character to check
+      @return       True if whitespace character
+    */
+    bool isWhiteSpace(const char s) const;
+
+  protected:
+    uInt32* myPixels{nullptr};  // NOTE: MUST be set in child classes
+    uInt32 myPitch{0};          // NOTE: MUST be set in child classes
 
     Attributes myAttributes;
+
+    static FullPaletteArray myPalette;
 
   private:
     // Following constructors and assignment operators not supported

@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -33,7 +33,7 @@ class System;
 class Device : public Serializable
 {
   public:
-    Device() : mySystem(nullptr) { }
+    Device() = default;
     virtual ~Device() = default;
 
   public:
@@ -79,20 +79,13 @@ class Device : public Serializable
     */
     virtual bool load(Serializer& in) override = 0;
 
-    /**
-      Get a descriptor for the device name (used in error checking).
-
-      @return The name of the object
-    */
-    virtual string name() const override = 0;
-
   public:
     /**
       Get the byte at the specified address
 
       @return The byte at the specified address
     */
-    virtual uInt8 peek(uInt16 address) { return 0; }
+    virtual uInt8 peek(uInt16 address) = 0;
 
     /**
       Change the byte at the specified address to the given value
@@ -121,7 +114,7 @@ class Device : public Serializable
 
   protected:
     /// Pointer to the system the device is installed in or the null pointer
-    System* mySystem;
+    System* mySystem{nullptr};
 
   private:
     // Following constructors and assignment operators not supported

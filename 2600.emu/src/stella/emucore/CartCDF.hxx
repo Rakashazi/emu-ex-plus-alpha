@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,9 +20,6 @@
 
 class System;
 class Thumbulator;
-#ifdef DEBUGGER_SUPPORT
-  #include "CartCDFWidget.hxx"
-#endif
 
 #include "bspf.hxx"
 #include "Cart.hxx"
@@ -43,7 +40,16 @@ class Thumbulator;
 class CartridgeCDF : public Cartridge
 {
   friend class CartridgeCDFWidget;
+  friend class CartridgeCDFInfoWidget;
   friend class CartridgeRamCDFWidget;
+
+  public:
+
+    enum class CDFSubtype {
+      CDF0,
+      CDF1,
+      CDFJ
+    };
 
   public:
     /**
@@ -51,9 +57,11 @@ class CartridgeCDF : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeCDF(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeCDF(const ByteBuffer& image, size_t size, const string& md5,
+                 const Settings& settings);
     virtual ~CartridgeCDF() = default;
 
   public:
@@ -88,8 +96,10 @@ class CartridgeCDF : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -111,7 +121,7 @@ class CartridgeCDF : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -134,7 +144,7 @@ class CartridgeCDF : public Cartridge
 
       @return The name of the object
     */
-    string name() const override { return "CartridgeCDF"; }
+    string name() const override;
 
     /**
       Used for Thumbulator to pass values back to the cartridge
@@ -147,10 +157,9 @@ class CartridgeCDF : public Cartridge
       of the cart.
     */
     CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
-                                 const GUI::Font& nfont, int x, int y, int w, int h) override
-    {
-      return new CartridgeCDFWidget(boss, lfont, nfont, x, y, w, h, *this);
-    }
+                                 const GUI::Font& nfont, int x, int y, int w, int h) override;
+    CartDebugWidget* infoWidget(GuiObject* boss, const GUI::Font& lfont,
+                                const GUI::Font& nfont, int x, int y, int w, int h) override;
 #endif
 
   public:
@@ -198,38 +207,38 @@ class CartridgeCDF : public Cartridge
     uInt32 getWaveform(uInt8 index) const;
     uInt32 getWaveformSize(uInt8 index) const;
     uInt32 getSample();
-    void setVersion();
+    void setupVersion();
 
   private:
     // The 32K ROM image of the cartridge
-    uInt8 myImage[32768];
+    std::array<uInt8, 32_KB> myImage;
 
     // Pointer to the 28K program ROM image of the cartridge
-    uInt8* myProgramImage;
+    uInt8* myProgramImage{nullptr};
 
     // Pointer to the 4K display ROM image of the cartridge
-    uInt8* myDisplayImage;
+    uInt8* myDisplayImage{nullptr};
 
     // Pointer to the 2K CDF driver image in RAM
-    uInt8* myBusDriverImage;
+    uInt8* myBusDriverImage{nullptr};
 
     // The CDF 8k RAM image, used as:
     //   $0000 - 2K CDF driver
     //   $0800 - 4K Display Data
     //   $1800 - 2K C Variable & Stack
-    uInt8 myCDFRAM[8192];
+    std::array<uInt8, 8_KB> myCDFRAM;
 
     // Pointer to the Thumb ARM emulator object
     unique_ptr<Thumbulator> myThumbEmulator;
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
 
     // System cycle count from when the last update to music data fetchers occurred
-    uInt64 myAudioCycles;
+    uInt64 myAudioCycles{0};
 
     // ARM cycle count from when the last callFunction() occurred
-    uInt64 myARMCycles;
+    uInt64 myARMCycles{0};
 
     // The audio routines in the driver run in 32-bit mode and take advantage
     // of the FIQ Shadow Registers which are not accessible to 16-bit thumb
@@ -248,37 +257,53 @@ class CartridgeCDF : public Cartridge
       r14 = timer base  */
 
     // The music counters, ARM FIQ shadow registers r8, r9, r10
-    uInt32 myMusicCounters[3];
+    std::array<uInt32, 3> myMusicCounters{0};
 
     // The music frequency, ARM FIQ shadow registers r11, r12, r13
-    uInt32 myMusicFrequencies[3];
+    std::array<uInt32, 3> myMusicFrequencies{0};
 
     // The music waveform sizes
-    uInt8 myMusicWaveformSize[3];
+    std::array<uInt8, 3> myMusicWaveformSize{0};
 
     // Fractional CDF music, OSC clocks unused during the last update
-    double myFractionalClocks;
+    double myFractionalClocks{0.0};
 
     // Controls mode, lower nybble sets Fast Fetch, upper nybble sets audio
     // -0 = Fast Fetch ON
     // -F = Fast Fetch OFF
     // 0- = Packed Digital Sample
     // F- = 3 Voice Music
-    uInt8 myMode;
+    uInt8 myMode{0xFF};
 
     // set to address of #value if last byte peeked was A9 (LDA #)
-    uInt16 myLDAimmediateOperandAddress;
+    uInt16 myLDAimmediateOperandAddress{0};
 
     // set to address of the JMP operand if last byte peeked was 4C
     // *and* the next two bytes in ROM are 00 00
-    uInt16 myJMPoperandAddress;
+    uInt16 myJMPoperandAddress{0};
 
-    TIA* myTIA;
+    uInt8 myFastJumpActive{0};
 
-    uInt8 myFastJumpActive;
+    // Pointer to the array of datastream pointers
+    uInt16 myDatastreamBase{0};
 
-    // version of CDF
-    uInt16 myVersion;
+    // Pointer to the array of datastream increments
+    uInt16 myDatastreamIncrementBase{0};
+
+    // Pointer to the beginning of the waveform data block
+    uInt16 myWaveformBase{0};
+
+    // Amplitude stream index
+    uInt8 myAmplitudeStream{0};
+
+    // Mask for determining the index of the datastream during fastjump
+    uInt8 myFastjumpStreamIndexMask{0};
+
+    // The currently selected fastjump stream
+    uInt8 myFastJumpStream{0};
+
+    // CDF subtype
+    CDFSubtype myCDFSubtype{CDFSubtype::CDF0};
 
   private:
     // Following constructors and assignment operators not supported

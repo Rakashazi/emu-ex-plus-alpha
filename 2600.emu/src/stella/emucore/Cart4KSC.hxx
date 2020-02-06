@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -41,9 +41,11 @@ class Cartridge4KSC : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    Cartridge4KSC(const BytePtr& image, uInt32 size, const Settings& settings);
+    Cartridge4KSC(const ByteBuffer& image, size_t size, const string& md5,
+                  const Settings& settings);
     virtual ~Cartridge4KSC() = default;
 
   public:
@@ -75,7 +77,7 @@ class Cartridge4KSC : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -120,12 +122,21 @@ class Cartridge4KSC : public Cartridge
     */
     uInt8 peek(uInt16 address) override;
 
+    /**
+      Change the byte at the specified address to the given value
+
+      @param address The address where the value should be stored
+      @param value The value to be stored at the address
+      @return  True if the poke changed the device address space, else false
+    */
+    bool poke(uInt16 address, uInt8 value) override;
+
   private:
     // The 4K ROM image of the cartridge
-    uInt8 myImage[4096];
+    std::array<uInt8, 4_KB> myImage;
 
     // The 128 bytes of RAM
-    uInt8 myRAM[128];
+    std::array<uInt8, 128> myRAM;
 
   private:
     // Following constructors and assignment operators not supported

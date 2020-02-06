@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -40,11 +40,14 @@ class CartridgeUA : public Cartridge
     /**
       Create a new cartridge using the specified image
 
-      @param image     Pointer to the ROM image
-      @param size      The size of the ROM image
-      @param settings  A reference to the various settings (read-only)
+      @param image         Pointer to the ROM image
+      @param size          The size of the ROM image
+      @param md5           The md5sum of the ROM image
+      @param settings      A reference to the various settings (read-only)
+      @param swapHotspots  Swap hotspots
     */
-    CartridgeUA(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeUA(const ByteBuffer& image, size_t size, const string& md5,
+                const Settings& settings, bool swapHotspots = false);
     virtual ~CartridgeUA() = default;
 
   public:
@@ -70,8 +73,10 @@ class CartridgeUA : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
       Query the number of banks supported by the cartridge.
@@ -93,7 +98,7 @@ class CartridgeUA : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -116,7 +121,7 @@ class CartridgeUA : public Cartridge
 
       @return The name of the object
     */
-    string name() const override { return "CartridgeUA"; }
+    string name() const override { return mySwappedHotspots ? "CartridgeUASW" : "CartridgeUA"; }
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -126,7 +131,7 @@ class CartridgeUA : public Cartridge
     CartDebugWidget* debugWidget(GuiObject* boss, const GUI::Font& lfont,
         const GUI::Font& nfont, int x, int y, int w, int h) override
     {
-      return new CartridgeUAWidget(boss, lfont, nfont, x, y, w, h, *this);
+      return new CartridgeUAWidget(boss, lfont, nfont, x, y, w, h, *this, mySwappedHotspots);
     }
   #endif
 
@@ -149,13 +154,16 @@ class CartridgeUA : public Cartridge
 
   private:
     // The 8K ROM image of the cartridge
-    uInt8 myImage[8192];
+    std::array<uInt8, 8_KB> myImage;
 
     // Previous Device's page access
-    System::PageAccess myHotSpotPageAccess;
+    std::array<System::PageAccess, 2> myHotSpotPageAccess;
 
     // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset;
+    uInt16 myBankOffset{0};
+
+    // Indicates if banks are swapped ("Mickey" cart)
+    bool mySwappedHotspots{false};
 
   private:
     // Following constructors and assignment operators not supported

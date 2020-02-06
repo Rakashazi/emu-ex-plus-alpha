@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include "../base/android/android.hh"
 
-namespace AudioManager
+namespace IG::AudioManager
 {
 
 static jobject audioManager{};

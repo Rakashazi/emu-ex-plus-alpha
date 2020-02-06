@@ -21,7 +21,7 @@
 #include <imagine/audio/AudioManager.hh>
 #include <system_error>
 
-namespace Audio
+namespace IG::Audio
 {
 
 using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t bytes)>;

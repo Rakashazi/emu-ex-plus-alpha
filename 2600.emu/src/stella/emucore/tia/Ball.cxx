@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,17 +18,10 @@
 #include "Ball.hxx"
 #include "TIA.hxx"
 
-enum Count: Int8 {
-  renderCounterOffset = -4
-};
-
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Ball::Ball(uInt32 collisionMask)
-  : myCollisionMaskDisabled(collisionMask),
-    myCollisionMaskEnabled(0xFFFF),
-    myIsSuppressed(false)
+  : myCollisionMaskDisabled(collisionMask)
 {
-  reset();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -40,17 +33,18 @@ void Ball::reset()
   myIsEnabledNew = false;
   myIsEnabled = false;
   myIsDelaying = false;
+  mySignalActive = false;
   myHmmClocks = 0;
   myCounter = 0;
-  myIsMoving = false;
+  isMoving = false;
   myEffectiveWidth = 1;
   myLastMovementTick = 0;
   myWidth = 1;
   myIsRendering = false;
   myDebugEnabled = false;
   myRenderCounter = 0;
-
-  updateEnabled();
+  myInvertedPhaseClock = false;
+  myUseInvertedPhaseClock = false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -62,6 +56,7 @@ void Ball::enabl(uInt8 value)
 
   if (myIsEnabledNew != enabledNewOldValue && !myIsDelaying) {
     myTIA->flushLineCache();
+
     updateEnabled();
   }
 }
@@ -84,7 +79,7 @@ void Ball::resbl(uInt8 counter)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Ball::ctrlpf(uInt8 value)
 {
-  static constexpr uInt8 ourWidths[] = {1, 2, 4, 8};
+  static constexpr std::array<uInt8, 4> ourWidths = { 1, 2, 4, 8 };
 
   const uInt8 newWidth = ourWidths[(value & 0x30) >> 4];
 
@@ -153,58 +148,26 @@ void Ball::applyColorLoss()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Ball::setInvertedPhaseClock(bool enable)
+{
+  myUseInvertedPhaseClock = enable;
+}
+
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Ball::startMovement()
 {
-  myIsMoving = true;
+  isMoving = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool Ball::movementTick(uInt32 clock, bool apply)
+void Ball::nextLine()
 {
-  myLastMovementTick = myCounter;
-
-  if (clock == myHmmClocks) myIsMoving = false;
-
-  if (myIsMoving && apply) tick(false);
-
-  return myIsMoving;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Ball::tick(bool isReceivingMclock)
-{
-  collision = (myIsRendering && myRenderCounter >= 0 && myIsEnabled) ?
-    myCollisionMaskEnabled :
-    myCollisionMaskDisabled;
-
-  bool starfieldEffect = myIsMoving && isReceivingMclock;
-
-  if (myCounter == 156) {
-    myIsRendering = true;
-    myRenderCounter = Count::renderCounterOffset;
-
-    uInt8 starfieldDelta = (myCounter + 160 - myLastMovementTick) % 4;
-    if (starfieldEffect && starfieldDelta == 3 && myWidth < 4) myRenderCounter++;
-
-    switch (starfieldDelta) {
-      case 3:
-        myEffectiveWidth = myWidth == 1 ? 2 : myWidth;
-        break;
-
-      case 2:
-        myEffectiveWidth = 0;
-        break;
-
-      default:
-        myEffectiveWidth = myWidth;
-        break;
-    }
-
-  } else if (myIsRendering && ++myRenderCounter >= (starfieldEffect ? myEffectiveWidth : myWidth))
-    myIsRendering = false;
-
-  if (++myCounter >= 160)
-      myCounter = 0;
+  // Reevalute the collision mask in order to properly account for collisions during
+  // hblank. Usually, this will be taken care off in the next tick, but there is no
+  // next tick before hblank ends.
+  mySignalActive = myIsRendering && myRenderCounter >= 0;
+  collision = (mySignalActive && myIsEnabled) ? myCollisionMaskEnabled : myCollisionMaskDisabled;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -233,6 +196,9 @@ void Ball::shuffleStatus()
 void Ball::updateEnabled()
 {
   myIsEnabled = !myIsSuppressed && (myIsDelaying ? myIsEnabledOld : myIsEnabledNew);
+
+  collision = (mySignalActive && myIsEnabled) ? myCollisionMaskEnabled : myCollisionMaskDisabled;
+  myTIA->scheduleCollisionUpdate();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -257,10 +223,10 @@ uInt8 Ball::getPosition() const
   //    clock count after decode until first pixel +
   //    1 (it'll take another cycle after the decode for the rendter counter to start ticking)
   //
-  // The result may be negative, so we add 160 and do the modulus -> 317 = 156 + 160 + 1
+  // The result may be negative, so we add 160 and do the modulus -> 317 = 156 + TIA::H_PIXEL + 1
   //
   // Mind the sign of renderCounterOffset: it's defined negative above
-  return (317 - myCounter - Count::renderCounterOffset + myTIA->getPosition()) % 160;
+  return (317 - myCounter - Count::renderCounterOffset + myTIA->getPosition()) % TIAConstants::H_PIXEL;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -269,7 +235,7 @@ void Ball::setPosition(uInt8 newPosition)
   myTIA->flushLineCache();
 
   // See getPosition for an explanation
-  myCounter = (317 - newPosition - Count::renderCounterOffset + myTIA->getPosition()) % 160;
+  myCounter = (317 - newPosition - Count::renderCounterOffset + myTIA->getPosition()) % TIAConstants::H_PIXEL;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -277,8 +243,6 @@ bool Ball::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     out.putInt(collision);
     out.putInt(myCollisionMaskDisabled);
     out.putInt(myCollisionMaskEnabled);
@@ -293,16 +257,18 @@ bool Ball::save(Serializer& out) const
     out.putBool(myIsEnabled);
     out.putBool(myIsSuppressed);
     out.putBool(myIsDelaying);
+    out.putBool(mySignalActive);
 
     out.putByte(myHmmClocks);
     out.putByte(myCounter);
-    out.putBool(myIsMoving);
+    out.putBool(isMoving);
     out.putByte(myWidth);
     out.putByte(myEffectiveWidth);
     out.putByte(myLastMovementTick);
 
     out.putBool(myIsRendering);
     out.putByte(myRenderCounter);
+    out.putBool(myInvertedPhaseClock);
   }
   catch(...)
   {
@@ -318,9 +284,6 @@ bool Ball::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     collision = in.getInt();
     myCollisionMaskDisabled = in.getInt();
     myCollisionMaskEnabled = in.getInt();
@@ -335,16 +298,18 @@ bool Ball::load(Serializer& in)
     myIsEnabled = in.getBool();
     myIsSuppressed = in.getBool();
     myIsDelaying = in.getBool();
+    mySignalActive = in.getBool();
 
     myHmmClocks = in.getByte();
     myCounter = in.getByte();
-    myIsMoving = in.getBool();
+    isMoving = in.getBool();
     myWidth = in.getByte();
     myEffectiveWidth = in.getByte();
     myLastMovementTick = in.getByte();
 
     myIsRendering = in.getBool();
     myRenderCounter = in.getByte();
+    myInvertedPhaseClock = in.getBool();
 
     applyColors();
   }

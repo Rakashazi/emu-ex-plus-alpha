@@ -17,7 +17,7 @@
 
 #include <assert.h>
 
-namespace Audio
+namespace IG::Audio
 {
 
 struct SampleFormat

@@ -15,7 +15,7 @@
 
 #include <imagine/audio/AudioManager.hh>
 
-namespace AudioManager
+namespace IG::AudioManager
 {
 
 Audio::PcmFormat nativeFormat()

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,28 +19,26 @@
 #include "CartSB.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeSB::CartridgeSB(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
-    mySize(size),
-    myBankOffset(0)
+CartridgeSB::CartridgeSB(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(size)
 {
   // Allocate array for the ROM image
   myImage = make_unique<uInt8[]>(mySize);
 
   // Copy the ROM image into my buffer
-  memcpy(myImage.get(), image.get(), mySize);
+  std::copy_n(image.get(), mySize, myImage.get());
   createCodeAccessBase(mySize);
-
-  // Remember startup bank
-  myStartBank = bankCount() - 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeSB::reset()
 {
+  initializeStartBank(bankCount() - 1);
+
   // Upon reset we switch to the startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -59,14 +57,14 @@ void CartridgeSB::install(System& system)
   myHotSpotPageAccess[6] = mySystem->getPageAccess(0x0E00);
   myHotSpotPageAccess[7] = mySystem->getPageAccess(0x0F00);
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Set the page accessing methods for the hot spots
   for(uInt16 addr = 0x0800; addr < 0x0FFF; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
   // Install pages for startup bank
-  bank(myStartBank);
+  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,7 +74,7 @@ uInt8 CartridgeSB::peek(uInt16 address)
 
   // Switch banks if necessary
   if ((address & 0x1800) == 0x0800)
-    bank(address & myStartBank);
+    bank(address & startBank());
 
   if(!(address & 0x1000))
   {
@@ -96,7 +94,7 @@ bool CartridgeSB::poke(uInt16 address, uInt8 value)
 
   // Switch banks if necessary
   if((address & 0x1800) == 0x0800)
-    bank(address & myStartBank);
+    bank(address & startBank());
 
   if(!(address & 0x1000))
   {
@@ -117,7 +115,7 @@ bool CartridgeSB::bank(uInt16 bank)
   myBankOffset = bank << 12;
 
   // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -130,7 +128,7 @@ bool CartridgeSB::bank(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeSB::getBank() const
+uInt16 CartridgeSB::getBank(uInt16) const
 {
   return myBankOffset >> 12;
 }
@@ -138,7 +136,7 @@ uInt16 CartridgeSB::getBank() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeSB::bankCount() const
 {
-  return mySize >> 12;
+  return uInt16(mySize >> 12);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -149,7 +147,7 @@ bool CartridgeSB::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeSB::getImage(uInt32& size) const
+const uInt8* CartridgeSB::getImage(size_t& size) const
 {
   size = mySize;
   return myImage.get();
@@ -160,7 +158,6 @@ bool CartridgeSB::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
     out.putInt(myBankOffset);
   }
   catch(...)
@@ -177,9 +174,6 @@ bool CartridgeSB::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myBankOffset = in.getInt();
   }
   catch(...)

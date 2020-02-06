@@ -19,7 +19,7 @@
 #include <imagine/util/operators.hh>
 #include "SampleFormat.hh"
 
-namespace Audio
+namespace IG::Audio
 {
 
 class PcmFormat : public NotEquals<PcmFormat>

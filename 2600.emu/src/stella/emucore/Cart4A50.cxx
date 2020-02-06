@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,26 +21,18 @@
 #include "Cart4A50.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cartridge4A50::Cartridge4A50(const BytePtr& image, uInt32 size,
-                             const Settings& settings)
-  : Cartridge(settings),
-    mySize(size),
-    mySliceLow(0),
-    mySliceMiddle(0),
-    mySliceHigh(0),
-    myIsRomLow(true),
-    myIsRomMiddle(true),
-    myIsRomHigh(true),
-    myLastAddress(0),
-    myLastData(0)
+Cartridge4A50::Cartridge4A50(const ByteBuffer& image, size_t size,
+                             const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
+    mySize(size)
 {
   // Copy the ROM image into my buffer
   // Supported file sizes are 32/64/128K, which are duplicated if necessary
-  if(size < 65536)        size = 32768;
-  else if(size < 131072)  size = 65536;
-  else                    size = 131072;
-  for(uInt32 slice = 0; slice < 131072 / size; ++slice)
-    memcpy(myImage + (slice*size), image.get(), size);
+  if(size < 64_KB)        size = 32_KB;
+  else if(size < 128_KB)  size = 64_KB;
+  else                    size = 128_KB;
+  for(uInt32 slice = 0; slice < 128_KB / size; ++slice)
+    std::copy_n(image.get(), size, myImage.begin() + (slice*size));
 
   // We use System::PageAccess.codeAccessBase, but don't allow its use
   // through a pointer, since the address space of 4A50 carts can change
@@ -49,13 +41,13 @@ Cartridge4A50::Cartridge4A50(const BytePtr& image, uInt32 size,
   //
   // Instead, access will be through the getAccessFlags and setAccessFlags
   // methods below
-  createCodeAccessBase(131072 + 32768);
+  createCodeAccessBase(myImage.size() + myRAM.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Cartridge4A50::reset()
 {
-  initializeRAM(myRAM, 32768);
+  initializeRAM(myRAM.data(), myRAM.size());
 
   mySliceLow = mySliceMiddle = mySliceHigh = 0;
   myIsRomLow = myIsRomMiddle = myIsRomHigh = true;
@@ -72,7 +64,7 @@ void Cartridge4A50::install(System& system)
   mySystem = &system;
 
   // Map all of the accesses to call peek and poke (We don't yet indicate RAM areas)
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
 
@@ -356,10 +348,10 @@ bool Cartridge4A50::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* Cartridge4A50::getImage(uInt32& size) const
+const uInt8* Cartridge4A50::getImage(size_t& size) const
 {
   size = mySize;
-  return myImage;
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -367,10 +359,8 @@ bool Cartridge4A50::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     // The 32K bytes of RAM
-    out.putByteArray(myRAM, 32768);
+    out.putByteArray(myRAM.data(), myRAM.size());
 
     // Index pointers
     out.putShort(mySliceLow);
@@ -400,10 +390,7 @@ bool Cartridge4A50::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
-    in.getByteArray(myRAM, 32768);
+    in.getByteArray(myRAM.data(), myRAM.size());
 
     // Index pointers
     mySliceLow = in.getShort();

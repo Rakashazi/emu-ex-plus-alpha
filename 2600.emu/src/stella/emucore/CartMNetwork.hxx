@@ -9,7 +9,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -70,9 +70,11 @@ class CartridgeMNetwork : public Cartridge
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
+      @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
     */
-    CartridgeMNetwork(const BytePtr& image, uInt32 size, const Settings& settings);
+    CartridgeMNetwork(const ByteBuffer& image, size_t size, const string& md5,
+                      const Settings& settings);
     virtual ~CartridgeMNetwork() = default;
 
   public:
@@ -98,8 +100,10 @@ class CartridgeMNetwork : public Cartridge
 
     /**
       Get the current bank.
+
+      @param address The address to use when querying the bank
     */
-    uInt16 getBank() const override;
+    uInt16 getBank(uInt16 address = 0) const override;
 
     /**
     Query the number of banks supported by the cartridge.
@@ -121,7 +125,7 @@ class CartridgeMNetwork : public Cartridge
       @param size  Set to the size of the internal ROM image data
       @return  A pointer to the internal ROM image data
     */
-    const uInt8* getImage(uInt32& size) const override;
+    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -160,7 +164,7 @@ class CartridgeMNetwork : public Cartridge
     /**
       Class initialization
     */
-    void initialize(const BytePtr& image, uInt32 size);
+    void initialize(const ByteBuffer& image, size_t size);
 
     /**
       Install pages for the specified 256 byte bank of RAM
@@ -181,7 +185,7 @@ class CartridgeMNetwork : public Cartridge
     /**
       Query the size of the BS type.
     */
-    uInt32 romSize() const;
+    uInt16 romSize() const;
 
     /**
       Check hotspots and switch bank if triggered.
@@ -193,24 +197,24 @@ class CartridgeMNetwork : public Cartridge
 
   private:
     // Pointer to a dynamically allocated ROM image of the cartridge
-    BytePtr myImage;
+    ByteBuffer myImage;
     // The 16K ROM image of the cartridge (works for E78K too)
     //uInt8 myImage[BANK_SIZE * 8];
 
     // Size of the ROM image
-    uInt32 mySize;
+    size_t mySize{0};
 
     // The 2K of RAM
-    uInt8 myRAM[RAM_SIZE];
+    std::array<uInt8, RAM_SIZE> myRAM;
 
     // Indicates which slice is in the segment
-    uInt16 myCurrentSlice[NUM_SEGMENTS];
+    std::array<uInt16, NUM_SEGMENTS> myCurrentSlice;
 
     // Indicates which 256 byte bank of RAM is being used
-    uInt16 myCurrentRAM;
+    uInt16 myCurrentRAM{0};
 
     // The number of the RAM slice (== bankCount() - 1)
-    uInt32 myRAMSlice;
+    uInt32 myRAMSlice{0};
 
   private:
     // Following constructors and assignment operators not supported

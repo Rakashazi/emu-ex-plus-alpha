@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,11 +22,11 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PaddleReader::PaddleReader()
 {
-  reset(0);
+  setConsoleTiming(ConsoleTiming::ntsc);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PaddleReader::reset(double timestamp)
+void PaddleReader::reset(uInt64 timestamp)
 {
   myU = 0;
   myIsDumped = false;
@@ -38,7 +38,7 @@ void PaddleReader::reset(double timestamp)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PaddleReader::vblank(uInt8 value, double timestamp)
+void PaddleReader::vblank(uInt8 value, uInt64 timestamp)
 {
   bool oldIsDumped = myIsDumped;
 
@@ -53,7 +53,7 @@ void PaddleReader::vblank(uInt8 value, double timestamp)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 PaddleReader::inpt(double timestamp)
+uInt8 PaddleReader::inpt(uInt64 timestamp)
 {
   updateCharge(timestamp);
 
@@ -63,7 +63,7 @@ uInt8 PaddleReader::inpt(double timestamp)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PaddleReader::update(double value, double timestamp, ConsoleTiming consoleTiming)
+void PaddleReader::update(double value, uInt64 timestamp, ConsoleTiming consoleTiming)
 {
   if (consoleTiming != myConsoleTiming) {
     setConsoleTiming(consoleTiming);
@@ -94,13 +94,13 @@ void PaddleReader::setConsoleTiming(ConsoleTiming consoleTiming)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void PaddleReader::updateCharge(double timestamp)
+void PaddleReader::updateCharge(uInt64 timestamp)
 {
   if (myIsDumped) return;
 
   if (myValue >= 0)
     myU = USUPP * (1 - (1 - myU / USUPP) *
-      exp(-(timestamp - myTimestamp) / (myValue * RPOT + R0) / C / myClockFreq));
+      exp(-static_cast<double>(timestamp - myTimestamp) / (myValue * RPOT + R0) / C / myClockFreq));
 
   myTimestamp = timestamp;
 }
@@ -110,13 +110,11 @@ bool PaddleReader::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-
     out.putDouble(myUThresh);
     out.putDouble(myU);
 
     out.putDouble(myValue);
-    out.putDouble(myTimestamp);
+    out.putLong(myTimestamp);
 
     out.putInt(int(myConsoleTiming));
     out.putDouble(myClockFreq);
@@ -137,14 +135,11 @@ bool PaddleReader::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
     myUThresh = in.getDouble();
     myU = in.getDouble();
 
     myValue = in.getDouble();
-    myTimestamp = in.getDouble();
+    myTimestamp = in.getLong();
 
     myConsoleTiming = ConsoleTiming(in.getInt());
     myClockFreq = in.getDouble();

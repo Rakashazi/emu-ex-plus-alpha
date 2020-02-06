@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,41 +19,40 @@
 #include "CartCV.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-CartridgeCV::CartridgeCV(const BytePtr& image, uInt32 size,
-                         const Settings& settings)
-  : Cartridge(settings),
+CartridgeCV::CartridgeCV(const ByteBuffer& image, size_t size,
+                         const string& md5, const Settings& settings)
+  : Cartridge(settings, md5),
     mySize(size)
 {
-  if(mySize == 2048)
+  if(mySize == myImage.size())
   {
     // Copy the ROM data into my buffer
-    memcpy(myImage, image.get(), 2048);
+    std::copy_n(image.get(), myImage.size(), myImage.begin());
   }
-  else if(mySize == 4096)
+  else if(mySize == 4_KB)
   {
     // The game has something saved in the RAM
     // Useful for MagiCard program listings
 
     // Copy the ROM data into my buffer
-    memcpy(myImage, image.get() + 2048, 2048);
+    std::copy_n(image.get() + myImage.size(), myImage.size(), myImage.begin());
 
     // Copy the RAM image into a buffer for use in reset()
-    myInitialRAM = make_unique<uInt8[]>(1024);
-    memcpy(myInitialRAM.get(), image.get(), 1024);
+    std::copy_n(image.get(), myInitialRAM.size(), myInitialRAM.begin());
   }
-  createCodeAccessBase(2048+1024);
+  createCodeAccessBase(myImage.size() + myRAM.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeCV::reset()
 {
-  if(myInitialRAM)
+  if(mySize == 4_KB)
   {
     // Copy the RAM image into my buffer
-    memcpy(myRAM, myInitialRAM.get(), 1024);
+    myRAM = myInitialRAM;
   }
   else
-    initializeRAM(myRAM, 1024);
+    initializeRAM(myRAM.data(), myRAM.size());
 
   myBankChanged = true;
 }
@@ -63,7 +62,7 @@ void CartridgeCV::install(System& system)
 {
   mySystem = &system;
 
-  System::PageAccess access(this, System::PA_READ);
+  System::PageAccess access(this, System::PageAccessType::READ);
 
   // Map ROM image into the system
   for(uInt16 addr = 0x1800; addr < 0x2000; addr += System::PAGE_SIZE)
@@ -74,18 +73,17 @@ void CartridgeCV::install(System& system)
   }
 
   // Set the page accessing method for the RAM writing pages
+  // Map access to this class, since we need to inspect all accesses to
+  // check if RWP happens
   access.directPeekBase = nullptr;
   access.codeAccessBase = nullptr;
-  access.type = System::PA_WRITE;
+  access.type = System::PageAccessType::WRITE;
   for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
-  {
-    access.directPokeBase = &myRAM[addr & 0x03FF];
     mySystem->setPageAccess(addr, access);
-  }
 
   // Set the page accessing method for the RAM reading pages
   access.directPokeBase = nullptr;
-  access.type = System::PA_READ;
+  access.type = System::PageAccessType::READ;
   for(uInt16 addr = 0x1000; addr < 0x1400; addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myRAM[addr & 0x03FF];
@@ -98,17 +96,16 @@ void CartridgeCV::install(System& system)
 uInt8 CartridgeCV::peek(uInt16 address)
 {
   // The only way we can get to this method is if we attempt to read from
-  // the write port (0xF400 - 0xF800, 1024 bytes), in which case an
-  // unwanted write is triggered
-  uInt8 value = mySystem->getDataBusState(0xFF);
+  // the write port (0xF400 - 0xF7FF, 1024 bytes), in which case an
+  // unwanted write is potentially triggered
+  return peekRAM(myRAM[address & 0x03FF], address);
+}
 
-  if(bankLocked())
-    return value;
-  else
-  {
-    triggerReadFromWritePort(address);
-    return myRAM[address & 0x03FF] = value;
-  }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool CartridgeCV::poke(uInt16 address, uInt8 value)
+{
+  pokeRAM(myRAM[address & 0x03FF], address, value);
+  return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -131,10 +128,10 @@ bool CartridgeCV::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeCV::getImage(uInt32& size) const
+const uInt8* CartridgeCV::getImage(size_t& size) const
 {
-  size = 2048;
-  return myImage;
+  size = myImage.size();
+  return myImage.data();
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -142,8 +139,7 @@ bool CartridgeCV::save(Serializer& out) const
 {
   try
   {
-    out.putString(name());
-    out.putByteArray(myRAM, 1024);
+    out.putByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {
@@ -159,10 +155,7 @@ bool CartridgeCV::load(Serializer& in)
 {
   try
   {
-    if(in.getString() != name())
-      return false;
-
-    in.getByteArray(myRAM, 1024);
+    in.getByteArray(myRAM.data(), myRAM.size());
   }
   catch(...)
   {

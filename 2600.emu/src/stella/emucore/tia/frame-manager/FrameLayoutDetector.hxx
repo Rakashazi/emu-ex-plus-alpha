@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -28,7 +28,7 @@
 class FrameLayoutDetector: public AbstractFrameManager {
   public:
 
-    FrameLayoutDetector() = default;
+    FrameLayoutDetector();
 
   public:
 
@@ -59,7 +59,7 @@ class FrameLayoutDetector: public AbstractFrameManager {
     /**
      * This frame manager only tracks frame boundaries, so we have only two states.
      */
-    enum State {
+    enum class State {
       // Wait for VSYNC to be enabled.
       waitForVsyncStart,
 
@@ -85,18 +85,18 @@ class FrameLayoutDetector: public AbstractFrameManager {
     /**
      * The current state.
      */
-    State myState;
+    State myState{State::waitForVsyncStart};
 
     /**
      * The total number of frames detected as the respective frame layout.
      */
-    uInt32 myNtscFrames, myPalFrames;
+    uInt32 myNtscFrames{0}, myPalFrames{0};
 
     /**
      * We count the number of scanlines we spend waiting for vsync to be
      * toggled. If a threshold is exceeded, we force the transition.
      */
-    uInt32 myLinesWaitingForVsyncToStart;
+    uInt32 myLinesWaitingForVsyncToStart{0};
 
   private:
 

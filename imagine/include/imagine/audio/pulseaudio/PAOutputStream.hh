@@ -26,7 +26,7 @@ struct pa_glib_mainloop;
 struct pa_threaded_mainloop;
 #endif
 
-namespace Audio
+namespace IG::Audio
 {
 
 class PAOutputStream : public OutputStream

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -40,11 +40,10 @@ class PropertiesSet
 {
   public:
     /**
-      Create a properties set object from the specified properties file.
+      Trivial constructor.
     */
-    PropertiesSet(const string& propsfile);
+   PropertiesSet() = default;
 
-  public:
     /**
       Load properties from the specified file, and create an internal
       searchable list.
@@ -58,8 +57,10 @@ class PropertiesSet
 
       @param filename  Full pathname of output file to use
 
-      @return  True on success, false on failure
-               Failure occurs if file couldn't be opened for writing
+      @return  True on success, false on failure or save not needed
+               Failure occurs if file couldn't be opened for writing,
+               or if the file doesn't exist and a zero-byte file
+               would be created
     */
     bool save(const string& filename) const;
 
@@ -101,13 +102,6 @@ class PropertiesSet
     void insert(const Properties& properties, bool save = true);
 
     /**
-      Marks the property with the given MD5 as being removed.
-
-      @param md5  The md5 of the property to remove
-    */
-    void removeMD5(const string& md5);
-
-    /**
       Prints the contents of the PropertiesSet as a flat file.
     */
     void print() const;
@@ -124,7 +118,6 @@ class PropertiesSet
 
   private:
     // Following constructors and assignment operators not supported
-    PropertiesSet() = delete;
     PropertiesSet(const PropertiesSet&) = delete;
     PropertiesSet(PropertiesSet&&) = delete;
     PropertiesSet& operator=(const PropertiesSet&) = delete;

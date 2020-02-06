@@ -19,7 +19,7 @@
 #include <imagine/audio/defs.hh>
 #include <alsa/asoundlib.h>
 
-namespace Audio
+namespace IG::Audio
 {
 
 class ALSAOutputStream : public OutputStream

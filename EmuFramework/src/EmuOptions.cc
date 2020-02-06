@@ -260,7 +260,7 @@ void initOptions()
 		lastLoadPath = Base::sharedStoragePath();
 	}
 
-	optionSoundRate.initDefault(AudioManager::nativeFormat().rate);
+	optionSoundRate.initDefault(IG::AudioManager::nativeFormat().rate);
 
 	#ifdef CONFIG_BASE_IOS
 	if(Base::deviceIsIPad())

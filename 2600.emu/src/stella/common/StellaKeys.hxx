@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2018 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,9 @@
 #ifndef STELLA_KEYS_HXX
 #define STELLA_KEYS_HXX
 
-#include "SDL_lib.hxx"
+#ifdef SDL_SUPPORT
+  #include "SDL_lib.hxx"
+#endif
 
 /**
   This class implements a thin wrapper around the SDL keysym enumerations,
@@ -328,10 +330,10 @@ enum StellaKey
     KBDK_RALT = 230, /**< alt gr, option */
     KBDK_RGUI = 231, /**< windows, command (apple), meta */
 
-    KBDK_MODE = 257,    /**< I'm not sure if this is really not covered
-                                 *   by any of the above, but since there's a
-                                 *   special KMOD_MODE for it I'm adding it here
-                                 */
+    KBDK_MODE = 257,    /**< ALT-GR(aph) key on non-American keyboards
+                         *   This is like pressing KBDK_RALT + KBDK_RCTRL
+                         *   on some keyboards
+                         */
 
     /* @} *//* Usage page 0x07 */
 
@@ -417,7 +419,7 @@ namespace StellaModTest
 {
   inline bool isAlt(int mod)
   {
-#if defined(BSPF_MAC_OSX) || defined(OSX_KEYS)
+#if defined(BSPF_MACOS) || defined(MACOS_KEYS)
     return (mod & KBDM_GUI);
 #else
     return (mod & KBDM_ALT);
@@ -433,6 +435,18 @@ namespace StellaModTest
   {
     return (mod & KBDM_SHIFT);
   }
-};
+}
+
+namespace StellaKeyName
+{
+  inline const char* forKey(StellaKey key)
+  {
+  #ifdef SDL_SUPPORT
+    return SDL_GetScancodeName(SDL_Scancode(key));
+  #else
+    return "";
+  #endif
+  }
+}
 
 #endif /* StellaKeys */
