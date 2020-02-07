@@ -265,8 +265,8 @@ struct SSettings
 	char	CartBName[PATH_MAX + 1]{};
 
 	static const bool8	DisableGameSpecificHacks = 0;
-	bool8	BlockInvalidVRAMAccessMaster = 1;
-	bool8	BlockInvalidVRAMAccess = 0;
+	static const bool8	BlockInvalidVRAMAccessMaster = 1;
+	static const bool8	BlockInvalidVRAMAccess = 0;
 	int32	HDMATimingHack = 100;
 
 	static const bool8	ForcedPause = 0;

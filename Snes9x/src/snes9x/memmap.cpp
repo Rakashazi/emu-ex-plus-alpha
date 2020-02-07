@@ -3613,8 +3613,6 @@ bool8 CMemory::match_id (const char *str)
 
 void CMemory::ApplyROMFixes (void)
 {
-	Settings.BlockInvalidVRAMAccess = Settings.BlockInvalidVRAMAccessMaster;
-
 	//// Warnings
 
 	// Reject strange hacked games

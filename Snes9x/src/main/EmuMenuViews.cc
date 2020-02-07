@@ -1,6 +1,7 @@
 #ifndef SNES9X_VERSION_1_4
 #include <apu/apu.h>
 #include <apu/bapu/snes/snes.hpp>
+#include <ppu.h>
 #endif
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
@@ -119,26 +120,42 @@ class ConsoleOptionView : public TableView
 	}
 
 	#ifndef SNES9X_VERSION_1_4
+	TextHeadingMenuItem emulationHacks{"Emulation Hacks"};
+
 	BoolMenuItem blockInvalidVRAMAccess
 	{
-		"Block Invalid VRAM Access",
-		(bool)optionBlockInvalidVRAMAccess,
+		"Allow Invalid VRAM Access",
+		(bool)!optionBlockInvalidVRAMAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			EmuSystem::sessionOptionSet();
-			optionBlockInvalidVRAMAccess = item.flipBoolValue(*this);
-			Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
+			optionBlockInvalidVRAMAccess = !item.flipBoolValue(*this);
+			PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess;
+		}
+	};
+
+	BoolMenuItem separateEchoBuffer
+	{
+		"Separate Echo Buffer From Ram",
+		(bool)optionSeparateEchoBuffer,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionSeparateEchoBuffer = item.flipBoolValue(*this);
+			SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
 		}
 	};
 	#endif
 
-	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 3 : 4> menuItem
+	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 3 : 6> menuItem
 	{
 		&inputPorts,
 		&multitap,
 		&videoSystem,
 		#ifndef SNES9X_VERSION_1_4
-		&blockInvalidVRAMAccess
+		&emulationHacks,
+		&blockInvalidVRAMAccess,
+		&separateEchoBuffer
 		#endif
 	};
 

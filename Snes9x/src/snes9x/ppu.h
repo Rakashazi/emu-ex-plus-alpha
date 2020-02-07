@@ -192,6 +192,8 @@ struct SPPU
 	uint8	OpenBus1;
 	uint8	OpenBus2;
 
+	bool BlockInvalidVRAMAccess = true;
+
 	uint16	VRAMReadBuffer;
 };
 
@@ -337,28 +339,35 @@ static inline void REGISTER_2104 (uint8 Byte)
 
 // This code is correct, however due to Snes9x's inaccurate timings, some games might be broken by this chage. :(
 #ifdef DEBUGGER
-#define CHECK_INBLANK() \
-	if (!PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE) \
-	{ \
-		printf("Invalid VRAM acess at (%04d, %04d) blank:%d\n", CPU.Cycles, CPU.V_Counter, PPU.ForcedBlanking); \
-		if (Settings.BlockInvalidVRAMAccess) \
-		{ \
-			PPU.VMA.Address += !PPU.VMA.High ? PPU.VMA.Increment : 0; \
-			return; \
-		} \
+static bool CHECK_INBLANK1(SPPU &PPU, const SCPUState &CPU)
+{
+	if (!PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE)
+	{
+		printf("Invalid VRAM acess at (%04d, %04d) blank:%d\n", CPU.Cycles, CPU.V_Counter, PPU.ForcedBlanking);
+		if (PPU.BlockInvalidVRAMAccess)
+		{
+			PPU.VMA.Address += !PPU.VMA.High ? PPU.VMA.Increment : 0;
+			return true;
+		}
 	}
+	return false;
+}
 #else
-#define CHECK_INBLANK() \
-	if (Settings.BlockInvalidVRAMAccess && !PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE) \
-	{ \
-		PPU.VMA.Address += !PPU.VMA.High ? PPU.VMA.Increment : 0; \
-		return; \
+static bool CHECK_INBLANK1(SPPU &PPU, const SCPUState &CPU)
+{
+	if (PPU.BlockInvalidVRAMAccess && !PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE)
+	{
+		PPU.VMA.Address += !PPU.VMA.High ? PPU.VMA.Increment : 0;
+		return true;
 	}
+	return false;
+}
 #endif
 
 static inline void REGISTER_2118 (uint8 Byte)
 {
-	CHECK_INBLANK();
+	if(CHECK_INBLANK1(PPU, CPU))
+		return;
 
 	uint32	address;
 
@@ -395,7 +404,8 @@ static inline void REGISTER_2118 (uint8 Byte)
 
 static inline void REGISTER_2118_tile (uint8 Byte)
 {
-	CHECK_INBLANK();
+	if(CHECK_INBLANK1(PPU, CPU))
+		return;
 
 	uint32 rem = PPU.VMA.Address & PPU.VMA.Mask1;
 	uint32 address = (((PPU.VMA.Address & ~PPU.VMA.Mask1) + (rem >> PPU.VMA.Shift) + ((rem & (PPU.VMA.FullGraphicCount - 1)) << 3)) << 1) & 0xffff;
@@ -420,7 +430,8 @@ static inline void REGISTER_2118_tile (uint8 Byte)
 
 static inline void REGISTER_2118_linear (uint8 Byte)
 {
-	CHECK_INBLANK();
+	if(CHECK_INBLANK1(PPU, CPU))
+		return;
 
 	uint32	address;
 
@@ -442,31 +453,37 @@ static inline void REGISTER_2118_linear (uint8 Byte)
 		PPU.VMA.Address += PPU.VMA.Increment;
 }
 
-#undef CHECK_INBLANK
 #ifdef DEBUGGER
-#define CHECK_INBLANK() \
-    if (!PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE) \
-    { \
-        printf("Invalid VRAM acess at (%04d, %04d) blank:%d\n", CPU.Cycles, CPU.V_Counter, PPU.ForcedBlanking); \
-        if (Settings.BlockInvalidVRAMAccess) \
-        { \
-            PPU.VMA.Address += PPU.VMA.High ? PPU.VMA.Increment : 0; \
-            return; \
-        } \
-    }
-#else
-#define CHECK_INBLANK() \
-        if (Settings.BlockInvalidVRAMAccess && !PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE) \
-        { \
-            PPU.VMA.Address += PPU.VMA.High ? PPU.VMA.Increment : 0; \
-            return; \
+static bool CHECK_INBLANK2(SPPU &PPU, const SCPUState &CPU)
+{
+    if (!PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE)
+    {
+        printf("Invalid VRAM acess at (%04d, %04d) blank:%d\n", CPU.Cycles, CPU.V_Counter, PPU.ForcedBlanking);
+        if (PPU.BlockInvalidVRAMAccess)
+        {
+            PPU.VMA.Address += PPU.VMA.High ? PPU.VMA.Increment : 0;
+            return true;
         }
+    }
+    return false;
+}
+#else
+static bool CHECK_INBLANK2(SPPU &PPU, const SCPUState &CPU)
+{
+        if (PPU.BlockInvalidVRAMAccess && !PPU.ForcedBlanking && CPU.V_Counter < PPU.ScreenHeight + FIRST_VISIBLE_LINE)
+        {
+            PPU.VMA.Address += PPU.VMA.High ? PPU.VMA.Increment : 0;
+            return true;
+        }
+        return false;
+}
 #endif
 
 
 static inline void REGISTER_2119 (uint8 Byte)
 {
-	CHECK_INBLANK();
+	if(CHECK_INBLANK2(PPU, CPU))
+		return;
 	uint32	address;
 
 	if (PPU.VMA.FullGraphicCount)
@@ -502,7 +519,8 @@ static inline void REGISTER_2119 (uint8 Byte)
 
 static inline void REGISTER_2119_tile (uint8 Byte)
 {
-	CHECK_INBLANK();
+	if(CHECK_INBLANK2(PPU, CPU))
+		return;
 
 	uint32 rem = PPU.VMA.Address & PPU.VMA.Mask1;
 	uint32 address = ((((PPU.VMA.Address & ~PPU.VMA.Mask1) + (rem >> PPU.VMA.Shift) + ((rem & (PPU.VMA.FullGraphicCount - 1)) << 3)) << 1) + 1) & 0xffff;
@@ -527,7 +545,8 @@ static inline void REGISTER_2119_tile (uint8 Byte)
 
 static inline void REGISTER_2119_linear (uint8 Byte)
 {
-	CHECK_INBLANK();
+	if(CHECK_INBLANK2(PPU, CPU))
+		return;
 
 	uint32	address;
 

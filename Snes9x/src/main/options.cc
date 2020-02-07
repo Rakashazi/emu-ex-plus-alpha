@@ -1,6 +1,7 @@
 #ifndef SNES9X_VERSION_1_4
 #include <apu/apu.h>
 #include <apu/bapu/snes/snes.hpp>
+#include <ppu.h>
 #endif
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
@@ -10,7 +11,7 @@ enum
 {
 	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277,
 	CFGKEY_VIDEO_SYSTEM = 278, CFGKEY_INPUT_PORT = 279,
-	CFGKEY_AUDIO_DSP_INTERPOLATON = 280
+	CFGKEY_AUDIO_DSP_INTERPOLATON = 280, CFGKEY_SEPARATE_ECHO_BUFFER = 281
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -26,6 +27,7 @@ SByte1Option optionInputPort{CFGKEY_INPUT_PORT, inputPortMinVal, false, optionIs
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
 #ifndef SNES9X_VERSION_1_4
 Byte1Option optionBlockInvalidVRAMAccess{CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1};
+Byte1Option optionSeparateEchoBuffer{CFGKEY_SEPARATE_ECHO_BUFFER, 0};
 Byte1Option optionAudioDSPInterpolation{CFGKEY_AUDIO_DSP_INTERPOLATON, DSP_INTERPOLATION_GAUSSIAN, false, optionIsValidWithMax<4>};
 #endif
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -72,7 +74,8 @@ void EmuSystem::writeConfig(IO &io)
 void EmuSystem::onSessionOptionsLoaded()
 {
 	#ifndef SNES9X_VERSION_1_4
-	Settings.BlockInvalidVRAMAccessMaster = optionBlockInvalidVRAMAccess;
+	PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess;
+	SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
 	#endif
 	snesInputPort = optionInputPort;
 	if(gameIsRunning())
@@ -88,6 +91,7 @@ bool EmuSystem::resetSessionOptions()
 	optionVideoSystem.reset();
 	#ifndef SNES9X_VERSION_1_4
 	optionBlockInvalidVRAMAccess.reset();
+	optionSeparateEchoBuffer.reset();
 	#endif
 	onSessionOptionsLoaded();
 	return true;
@@ -103,6 +107,7 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		#ifndef SNES9X_VERSION_1_4
 		bcase CFGKEY_BLOCK_INVALID_VRAM_ACCESS: optionBlockInvalidVRAMAccess.readFromIO(io, readSize);
+		bcase CFGKEY_SEPARATE_ECHO_BUFFER: optionSeparateEchoBuffer.readFromIO(io, readSize);
 		#endif
 	}
 	return 1;
@@ -115,5 +120,6 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	#ifndef SNES9X_VERSION_1_4
 	optionBlockInvalidVRAMAccess.writeWithKeyIfNotDefault(io);
+	optionSeparateEchoBuffer.writeWithKeyIfNotDefault(io);
 	#endif
 }

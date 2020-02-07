@@ -74,6 +74,7 @@ public:
 	void    (*spc_snapshot_callback) (void);
 	int     interpolation = 2;
 	bool    msu1 = false;
+	bool    separateEchoBuffer = false;
 
 	void    set_spc_snapshot_callback( void (*callback) (void) );
 	void    dump_spc_snapshot( void );

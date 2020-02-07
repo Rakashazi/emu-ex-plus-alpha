@@ -22,6 +22,7 @@ extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;
 #ifndef SNES9X_VERSION_1_4
 extern Byte1Option optionBlockInvalidVRAMAccess;
+extern Byte1Option optionSeparateEchoBuffer;
 extern Byte1Option optionAudioDSPInterpolation;
 #endif
 extern int snesInputPort;

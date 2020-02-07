@@ -10,6 +10,7 @@
 #include <cheats.h>
 #ifndef SNES9X_VERSION_1_4
 #include <apu/apu.h>
+#include <apu/bapu/snes/snes.hpp>
 #include <controls.h>
 #else
 #include <apu.h>
@@ -178,6 +179,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	}
 	#ifndef SNES9X_VERSION_1_4
 	IG::fillData(Memory.NSRTHeader);
+	// reset emulations hacks
+	PPU.BlockInvalidVRAMAccess = true;
+	SNES::dsp.spc_dsp.separateEchoBuffer = false;
 	#endif
 	Memory.HeaderCount = 0;
 	string_copy(Memory.ROMFilename, fullGamePath());
