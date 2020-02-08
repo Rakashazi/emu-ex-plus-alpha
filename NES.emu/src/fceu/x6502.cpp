@@ -92,18 +92,18 @@ void X6502_DMW(uint32 A, uint8 V)
 #define PUSH(V) \
 {       \
  uint8 VTMP=V;  \
- WrRAM(0x100+X.S,VTMP);  \
- X.S--;  \
+ WrRAM(0x100+_S,VTMP);  \
+ _S--;  \
 }
 
-#define POP() RdRAM(0x100+(++X.S))
+#define POP() RdRAM(0x100+(++_S))
 
 static uint8 ZNTable[256];
 /* Some of these operations will only make sense if you know what the flag
    constants are. */
 
-#define X_ZN(zort)      X.P&=~(Z_FLAG|N_FLAG);X.P|=ZNTable[zort]
-#define X_ZNT(zort)  X.P|=ZNTable[zort]
+#define X_ZN(zort)      _P&=~(Z_FLAG|N_FLAG);_P|=ZNTable[zort]
+#define X_ZNT(zort)  _P|=ZNTable[zort]
 
 #define JR(cond);  \
 {    \
@@ -124,29 +124,29 @@ static uint8 ZNTable[256];
 
 
 #define LDA     _A=x;X_ZN(_A)
-#define LDX     X.X=x;X_ZN(X.X)
+#define LDX     _X=x;X_ZN(_X)
 #define LDY  _Y=x;X_ZN(_Y)
 
 /*  All of the freaky arithmetic operations. */
 #define AND  _A&=x;X_ZN(_A)
-#define BIT  X.P&=~(Z_FLAG|V_FLAG|N_FLAG);X.P|=ZNTable[x&_A]&Z_FLAG;X.P|=x&(V_FLAG|N_FLAG)
+#define BIT  _P&=~(Z_FLAG|V_FLAG|N_FLAG);_P|=ZNTable[x&_A]&Z_FLAG;_P|=x&(V_FLAG|N_FLAG)
 #define EOR  _A^=x;X_ZN(_A)
 #define ORA  _A|=x;X_ZN(_A)
 
 #define ADC  {  \
-        uint32 l=_A+x+(X.P&1);  \
-        X.P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);  \
-        X.P|=((((_A^x)&0x80)^0x80) & ((_A^l)&0x80))>>1;  \
-        X.P|=(l>>8)&C_FLAG;  \
+        uint32 l=_A+x+(_P&1);  \
+        _P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);  \
+        _P|=((((_A^x)&0x80)^0x80) & ((_A^l)&0x80))>>1;  \
+        _P|=(l>>8)&C_FLAG;  \
         _A=l;  \
         X_ZNT(_A);  \
        }
 
 #define SBC  {  \
-        uint32 l=_A-x-((X.P&1)^1);  \
-        X.P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);  \
-        X.P|=((_A^l)&(_A^x)&0x80)>>1;  \
-        X.P|=((l>>8)&C_FLAG)^C_FLAG;  \
+        uint32 l=_A-x-((_P&1)^1);  \
+        _P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);  \
+        _P|=((_A^l)&(_A^x)&0x80)>>1;  \
+        _P|=((l>>8)&C_FLAG)^C_FLAG;  \
         _A=l;  \
         X_ZNT(_A);  \
        }
@@ -154,47 +154,47 @@ static uint8 ZNTable[256];
 #define CMPL(a1,a2) {  \
          uint32 t=a1-a2;  \
          X_ZN(t&0xFF);  \
-         X.P&=~C_FLAG;  \
-         X.P|=((t>>8)&C_FLAG)^C_FLAG;  \
+         _P&=~C_FLAG;  \
+         _P|=((t>>8)&C_FLAG)^C_FLAG;  \
 		    }
 
 /* Special undocumented operation.  Very similar to CMP. */
 #define AXS      {  \
-                     uint32 t=(_A&X.X)-x;    \
+                     uint32 t=(_A&_X)-x;    \
                      X_ZN(t&0xFF);      \
-                     X.P&=~C_FLAG;       \
-         X.P|=((t>>8)&C_FLAG)^C_FLAG;  \
-         X.X=t;  \
+                     _P&=~C_FLAG;       \
+         _P|=((t>>8)&C_FLAG)^C_FLAG;  \
+         _X=t;  \
         }
 
 #define CMP    CMPL(_A,x)
-#define CPX    CMPL(X.X,x)
+#define CPX    CMPL(_X,x)
 #define CPY          CMPL(_Y,x)
 
 /* The following operations modify the byte being worked on. */
 #define DEC         x--;X_ZN(x)
 #define INC    x++;X_ZN(x)
 
-#define ASL  X.P&=~C_FLAG;X.P|=x>>7;x<<=1;X_ZN(x)
-#define LSR  X.P&=~(C_FLAG|N_FLAG|Z_FLAG);X.P|=x&1;x>>=1;X_ZNT(x)
+#define ASL  _P&=~C_FLAG;_P|=x>>7;x<<=1;X_ZN(x)
+#define LSR  _P&=~(C_FLAG|N_FLAG|Z_FLAG);_P|=x&1;x>>=1;X_ZNT(x)
 
 /* For undocumented instructions, maybe for other things later... */
-#define LSRA  X.P&=~(C_FLAG|N_FLAG|Z_FLAG);X.P|=_A&1;_A>>=1;X_ZNT(_A)
+#define LSRA  _P&=~(C_FLAG|N_FLAG|Z_FLAG);_P|=_A&1;_A>>=1;X_ZNT(_A)
 
 #define ROL  {  \
      uint8 l=x>>7;  \
      x<<=1;  \
-     x|=X.P&C_FLAG;  \
-     X.P&=~(Z_FLAG|N_FLAG|C_FLAG);  \
-     X.P|=l;  \
+     x|=_P&C_FLAG;  \
+     _P&=~(Z_FLAG|N_FLAG|C_FLAG);  \
+     _P|=l;  \
      X_ZNT(x);  \
     }
 #define ROR  {  \
      uint8 l=x&1;  \
      x>>=1;  \
-     x|=(X.P&C_FLAG)<<7;  \
-     X.P&=~(Z_FLAG|N_FLAG|C_FLAG);  \
-     X.P|=l;  \
+     x|=(_P&C_FLAG)<<7;  \
+     _P&=~(Z_FLAG|N_FLAG|C_FLAG);  \
+     _P|=l;  \
      X_ZNT(x);  \
 		}
 
@@ -257,7 +257,7 @@ static uint8 ZNTable[256];
  uint8 tmp;  \
  tmp=RdMem(_PC);  \
  _PC++;  \
- tmp+=X.X;  \
+ tmp+=_X;  \
  target=RdRAM(tmp);  \
  tmp++;    \
  target|=RdRAM(tmp)<<8;  \
@@ -307,30 +307,30 @@ static uint8 ZNTable[256];
 #define RMW_A(op) {uint8 x=_A; op; _A=x; break; } /* Meh... */
 #define RMW_AB(op) {unsigned int A; uint8 x; GetAB(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
 #define RMW_ABI(reg,op) {unsigned int A; uint8 x; GetABIWR(A,reg); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
-#define RMW_ABX(op)  RMW_ABI(X.X,op)
+#define RMW_ABX(op)  RMW_ABI(_X,op)
 #define RMW_ABY(op)  RMW_ABI(_Y,op)
 #define RMW_IX(op)  {unsigned int A; uint8 x; GetIX(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
 #define RMW_IY(op)  {unsigned int A; uint8 x; GetIYWR(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
 #define RMW_ZP(op)  {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; WrRAM(A,x); break; }
-#define RMW_ZPX(op) {uint8 A; uint8 x; GetZPI(A,X.X); x=RdRAM(A); op; WrRAM(A,x); break;}
+#define RMW_ZPX(op) {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; WrRAM(A,x); break;}
 
 #define LD_IM(op)  {uint8 x; x=RdMem(_PC); _PC++; op; break;}
 #define LD_ZP(op)  {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; break;}
-#define LD_ZPX(op)  {uint8 A; uint8 x; GetZPI(A,X.X); x=RdRAM(A); op; break;}
+#define LD_ZPX(op)  {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; break;}
 #define LD_ZPY(op)  {uint8 A; uint8 x; GetZPI(A,_Y); x=RdRAM(A); op; break;}
 #define LD_AB(op)  {unsigned int A; uint8 x; GetAB(A); x=RdMem(A); op; break; }
 #define LD_ABI(reg,op)  {unsigned int A; uint8 x; GetABIRD(A,reg); x=RdMem(A); op; break;}
-#define LD_ABX(op)  LD_ABI(X.X,op)
+#define LD_ABX(op)  LD_ABI(_X,op)
 #define LD_ABY(op)  LD_ABI(_Y,op)
 #define LD_IX(op)  {unsigned int A; uint8 x; GetIX(A); x=RdMem(A); op; break;}
 #define LD_IY(op)  {unsigned int A; uint8 x; GetIYRD(A); x=RdMem(A); op; break;}
 
 #define ST_ZP(r)  {uint8 A; GetZP(A); WrRAM(A,r); break;}
-#define ST_ZPX(r)  {uint8 A; GetZPI(A,X.X); WrRAM(A,r); break;}
+#define ST_ZPX(r)  {uint8 A; GetZPI(A,_X); WrRAM(A,r); break;}
 #define ST_ZPY(r)  {uint8 A; GetZPI(A,_Y); WrRAM(A,r); break;}
 #define ST_AB(r)  {unsigned int A; GetAB(A); WrMem(A,r); break;}
 #define ST_ABI(reg,r)  {unsigned int A; GetABIWR(A,reg); WrMem(A,r); break; }
-#define ST_ABX(r)  ST_ABI(X.X,r)
+#define ST_ABX(r)  ST_ABI(_X,r)
 #define ST_ABY(r)  ST_ABI(_Y,r)
 #define ST_IX(r)  {unsigned int A; GetIX(A); WrMem(A,r); break; }
 #define ST_IY(r)  {unsigned int A; GetIYWR(A); WrMem(A,r); break; }
@@ -409,10 +409,11 @@ void X6502_Init(void)
 extern int StackAddrBackup;
 void X6502_Power(void)
 {
- _count=_tcount=_IRQlow=_PC=_A=X.X=_Y=X.P=_PI=_DB=_jammed=0;
- X.S=0xFD;
+ _count=_tcount=_IRQlow=_PC=_A=_X=_Y=_P=_PI=_DB=_jammed=0;
+ _S=0xFD;
  timestamp=soundtimestamp=0;
  X6502_Reset();
+ StackAddrBackup = -1;
 }
 
 void X6502_Run(int32 cycles)
@@ -437,7 +438,7 @@ extern int test; test++;
      _PC=RdMem(0xFFFC);
      _PC|=RdMem(0xFFFD)<<8;
      _jammed=0;
-     _PI=X.P=I_FLAG;
+     _PI=_P=I_FLAG;
      _IRQlow&=~FCEU_IQRESET;
     }
     else if(_IRQlow&FCEU_IQNMI2)
@@ -452,8 +453,8 @@ extern int test; test++;
       ADDCYC(7);
       PUSH(_PC>>8);
       PUSH(_PC);
-      PUSH((X.P&~B_FLAG)|(U_FLAG));
-      X.P|=I_FLAG;
+      PUSH((_P&~B_FLAG)|(U_FLAG));
+      _P|=I_FLAG;
 	  DEBUG( if(debug_loggingCD) LogCDVectors(0xFFFA) );
       _PC=RdMem(0xFFFA);
       _PC|=RdMem(0xFFFB)<<8;
@@ -467,8 +468,8 @@ extern int test; test++;
       ADDCYC(7);
       PUSH(_PC>>8);
       PUSH(_PC);
-      PUSH((X.P&~B_FLAG)|(U_FLAG));
-      X.P|=I_FLAG;
+      PUSH((_P&~B_FLAG)|(U_FLAG));
+      _P|=I_FLAG;
 	  DEBUG( if(debug_loggingCD) LogCDVectors(0xFFFE) );
       _PC=RdMem(0xFFFE);
       _PC|=RdMem(0xFFFF)<<8;
@@ -477,7 +478,7 @@ extern int test; test++;
     _IRQlow&=~(FCEU_IQTEMP);
     if(_count<=0)
     {
-     _PI=X.P;
+     _PI=_P;
      return;
      } //Should increase accuracy without a
               //major speed hit.
@@ -486,9 +487,9 @@ extern int test; test++;
 	//will probably cause a major speed decrease on low-end systems
    DEBUG( DebugCycle() );
 
-   //IncrementInstructionsCounters();
+   IncrementInstructionsCounters();
 
-   _PI=X.P;
+   _PI=_P;
    b1=RdMem(_PC);
 
    ADDCYC(CycTable[b1]);

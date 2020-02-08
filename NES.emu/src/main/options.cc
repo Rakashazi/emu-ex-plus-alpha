@@ -21,7 +21,8 @@ enum
 	CFGKEY_FDS_BIOS_PATH = 270, CFGKEY_FOUR_SCORE = 271,
 	CFGKEY_VIDEO_SYSTEM = 272, CFGKEY_SPRITE_LIMIT = 273,
 	CFGKEY_SOUND_QUALITY = 274, CFGKEY_INPUT_PORT_1 = 275,
-	CFGKEY_INPUT_PORT_2 = 276
+	CFGKEY_INPUT_PORT_2 = 276, CFGKEY_DEFAULT_PALETTE_PATH = 277,
+	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278
 };
 
 const char *EmuSystem::configFilename = "NesEmu.config";
@@ -38,13 +39,17 @@ Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
 SByte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, -1, false, optionIsValidWithMinMax<-1, 2>};
 SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithMinMax<-1, 2>};
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
+Byte1Option optionDefaultVideoSystem{CFGKEY_DEFAULT_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<3>};
 Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
+FS::PathString defaultPalettePath{};
+PathOption optionDefaultPalettePath{CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath, ""};
 
 EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
+	setDefaultPalette(defaultPalettePath.data());
 	return {};
 }
 
@@ -96,6 +101,8 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
 		bcase CFGKEY_SPRITE_LIMIT: optionSpriteLimit.readFromIO(io, readSize);
 		bcase CFGKEY_SOUND_QUALITY: optionSoundQuality.readFromIO(io, readSize);
+		bcase CFGKEY_DEFAULT_VIDEO_SYSTEM: optionDefaultVideoSystem.readFromIO(io, readSize);
+		bcase CFGKEY_DEFAULT_PALETTE_PATH: optionDefaultPalettePath.readFromIO(io, readSize);
 		logMsg("fds bios path %s", fdsBiosPath.data());
 	}
 	return 1;
@@ -106,4 +113,6 @@ void EmuSystem::writeConfig(IO &io)
 	optionSpriteLimit.writeWithKeyIfNotDefault(io);
 	optionSoundQuality.writeWithKeyIfNotDefault(io);
 	optionFdsBiosPath.writeToIO(io);
+	optionDefaultVideoSystem.writeWithKeyIfNotDefault(io);
+	optionDefaultPalettePath.writeToIO(io);
 }

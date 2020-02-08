@@ -26,6 +26,11 @@
 #include <fceu/cheat.h>
 #include <fceu/video.h>
 #include <fceu/sound.h>
+#include <fceu/palette.h>
+
+using PalArray = std::array<pal, 512>;
+void ApplyDeemphasisComplete(pal* pal512);
+void FCEU_setDefaultPalettePtr(pal *ptr);
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 bool EmuSystem::hasCheats = true;
@@ -36,6 +41,7 @@ ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 uint autoDetectedRegion = 0;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 const char *fceuReturnedError = {};
+static PalArray defaultPal{};
 static uint16 nativeCol[256]{};
 static const uint nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
 static uint8 XBufData[256 * 256 + 16]{};
@@ -148,7 +154,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			FCEU_FDSWriteModifiedDisk();
 		else
 			GameInterface(GI_WRITESAVE);
-		FCEU_FlushGameCheats(0, 0, false);
+		FCEU_FlushGameCheats(nullptr, 0, false);
 	}
 }
 
@@ -168,9 +174,47 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
 {
 	bug_unreachable("called FCEUD_GetPalette()");
-	/**r = palData[index][0];
-	*g = palData[index][1];
-	*b = palData[index][2];*/
+}
+
+static void setDefaultPalette(IO &io)
+{
+	auto bytesRead = io.read(defaultPal.data(), 512);
+	if(bytesRead < 192)
+	{
+		logErr("skipped palette with only %d bytes", (int)bytesRead);
+		return;
+	}
+	if(bytesRead != 512)
+	{
+		ApplyDeemphasisComplete(defaultPal.data());
+	}
+	FCEU_setDefaultPalettePtr(defaultPal.data());
+}
+
+void setDefaultPalette(const char *palPath)
+{
+	if(!palPath || !strlen(palPath))
+	{
+		FCEU_setDefaultPalettePtr(nullptr);
+		return;
+	}
+	logMsg("setting default palette with path:%s", palPath);
+	if(palPath[0] != '/')
+	{
+		// load as asset
+		auto io = EmuApp::openAppAssetIO(FS::makePathStringPrintf("palette/%s", palPath), IO::AccessHint::ALL);
+		if(!io)
+			return;
+		setDefaultPalette(io);
+	}
+	else
+	{
+		FileIO io{};
+		io.open(palPath, IO::AccessHint::ALL);
+		if(!io)
+			return;
+		setDefaultPalette(io);
+	}
 }
 
 static void cacheUsingZapper()
@@ -269,6 +313,25 @@ static int regionFromName(const char *name)
 	return 0; // NTSC
 }
 
+void setRegion(int region, int defaultRegion, int detectedRegion)
+{
+	if(region)
+	{
+		logMsg("Forced region:%s", regionToStr(region - 1));
+		FCEUI_SetRegion(region - 1, false);
+	}
+	else if(defaultRegion)
+	{
+		logMsg("Forced region (Default):%s", regionToStr(defaultRegion - 1));
+		FCEUI_SetRegion(defaultRegion - 1, false);
+	}
+	else
+	{
+		logMsg("Detected region:%s", regionToStr(detectedRegion));
+		FCEUI_SetRegion(detectedRegion, false);
+	}
+}
+
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
 	setDirOverrides();
@@ -285,17 +348,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		return EmuSystem::makeError("Error loading game");
 	}
 	autoDetectedRegion = regionFromName(gameFileName().data());
-	if((int)optionVideoSystem)
-	{
-		logMsg("Forced region:%s", regionToStr(optionVideoSystem - 1));
-		FCEUI_SetRegion(optionVideoSystem - 1, false);
-	}
-	else
-	{
-		logMsg("Detected region:%s", regionToStr(autoDetectedRegion));
-		FCEUI_SetRegion(autoDetectedRegion, false);
-	}
-
+	setRegion(optionVideoSystem.val, optionDefaultVideoSystem.val, autoDetectedRegion);
 	FCEUI_ListCheats(cheatCallback, 0);
 	if(fceuCheats)
 		logMsg("%d total cheats", fceuCheats);
@@ -320,7 +373,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }
 
-void FCEUD_emulateSound(bool renderAudio)
+void emulateSound(bool renderAudio)
 {
 	const uint maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+32;
 	int32 sound[maxAudioFrames];

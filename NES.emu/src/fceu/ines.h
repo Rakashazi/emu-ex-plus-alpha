@@ -51,18 +51,18 @@ extern TMasterRomInfoParams MasterRomInfoParams;
 
 //mbg merge 7/19/06 changed to c++ decl format
 struct iNES_HEADER {
-	char ID[4]; /*NES^Z*/
-	uint8 ROM_size;
-	uint8 VROM_size;
-	uint8 ROM_type;
-	uint8 ROM_type2;
-	uint8 ROM_type3;
-	uint8 Upper_ROM_VROM_size;
-	uint8 RAM_size;
-	uint8 VRAM_size;
-	uint8 TV_system;
-	uint8 VS_hardware;
-	uint8 reserved[2];
+	char ID[4]; /*NES^Z*/        // 0-3
+	uint8 ROM_size;              // 4
+	uint8 VROM_size;             // 5
+	uint8 ROM_type;              // 6
+	uint8 ROM_type2;             // 7
+	uint8 ROM_type3;             // 8
+	uint8 Upper_ROM_VROM_size;   // 9
+	uint8 RAM_size;              // 10
+	uint8 VRAM_size;             // 11
+	uint8 TV_system;             // 12
+	uint8 VS_hardware;           // 13
+	uint8 reserved[2];           // 14, 15
 
 	void clearFromByte7()
 	{
@@ -84,19 +84,14 @@ struct iNES_HEADER {
 
 	void cleanup()
 	{
-		if(!memcmp((char *)(this)+0x7,"DiskDude",8))
+		if(!memcmp((char*)(this) + 0x7, "DiskDude", 8) || !memcmp((char*)(this) + 0x7, "demiforce", 9))
 		{
 			clearFromByte7();
 		}
 
-		if(!memcmp((char *)(this)+0x7,"demiforce",9))
+		if(!memcmp((char*)(this) + 0xA, "Ni03", 4))
 		{
-			clearFromByte7();
-		}
-
-		if(!memcmp((char *)(this)+0xA,"Ni03",4))
-		{
-			if(!memcmp((char *)(this)+0x7,"Dis",3))
+			if(!memcmp((char*)(this) + 0x7, "Dis", 3))
 			{
 				clearFromByte7();
 			}
@@ -107,6 +102,7 @@ struct iNES_HEADER {
 		}
 	}
 };
+
 extern struct iNES_HEADER head; //for mappers usage
 
 void NSFVRC6_Init(void);
@@ -242,6 +238,7 @@ void Mapper186_Init(CartInfo *);
 void Mapper187_Init(CartInfo *);
 void Mapper188_Init(CartInfo *);
 void Mapper189_Init(CartInfo *);
+void Mapper190_Init(CartInfo *);
 void Mapper191_Init(CartInfo *);
 void Mapper192_Init(CartInfo *);
 void Mapper193_Init(CartInfo *);
@@ -294,5 +291,11 @@ void Mapper250_Init(CartInfo *);
 void Mapper252_Init(CartInfo *);
 void Mapper253_Init(CartInfo *);
 void Mapper254_Init(CartInfo *);
+
+typedef struct {
+	const char *name;
+	int32 number;
+	void (*init)(CartInfo *);
+} BMAPPINGLocal;
 
 #endif

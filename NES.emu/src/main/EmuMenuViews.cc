@@ -85,15 +85,7 @@ class ConsoleOptionView : public TableView
 	{
 		EmuSystem::sessionOptionSet();
 		optionVideoSystem = val;
-		if(!val)
-		{
-			logMsg("Detected Region:%s", regionToStr(autoDetectedRegion));
-			FCEUI_SetRegion(autoDetectedRegion, false);
-		}
-		else
-		{
-			FCEUI_SetRegion(val - 1, false);
-		}
+		setRegion(val, optionDefaultVideoSystem.val, autoDetectedRegion);
 		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
@@ -128,11 +120,107 @@ class CustomVideoOptionView : public VideoOptionView
 		}
 	};
 
+	TextMenuItem videoSystemItem[4]
+	{
+		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 0; }},
+		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 1; }},
+		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 2; }},
+		{"Dendy", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 3; }},
+	};
+
+	MultiChoiceMenuItem videoSystem
+	{
+		"Default Video System",
+		optionDefaultVideoSystem,
+		videoSystemItem
+	};
+
+	static constexpr const char *firebrandXPalPath = "Smooth (FBX).pal";
+	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
+	static constexpr const char *classicPalPath = "Classic (FBX).pal";
+
+	std::array<char, 32> paletteFileName{};
+
+	static void setPalette(const char *palPath)
+	{
+		if(palPath)
+			string_copy(defaultPalettePath, palPath);
+		else
+			defaultPalettePath = {};
+		setDefaultPalette(palPath);
+	}
+
+	constexpr int defaultPaletteCustomFileIdx()
+	{
+		return (int)std::size(defaultPalItem) - 1;
+	}
+
+	TextMenuItem defaultPalItem[5]
+	{
+		{"FCEUX", [](){ setPalette({}); }},
+		{"FirebrandX", []() { setPalette(firebrandXPalPath); }},
+		{"Wavebeam", []() { setPalette(wavebeamPalPath); }},
+		{"Classic", []() { setPalette(classicPalPath); }},
+		{"Custom File", [this](TextMenuItem &, View &, Input::Event e)
+			{
+				auto startPath = EmuApp::mediaSearchPath();
+				auto fsFilter = [](const char *name)
+					{
+						return string_hasDotExtension(name, "pal");
+					};
+				auto fPicker = makeView<EmuFilePicker>(startPath.data(), false, fsFilter, FS::RootPathInfo{}, e, false, false);
+				fPicker->setOnSelectFile(
+					[this](FSPicker &picker, const char *name, Input::Event)
+					{
+						setPalette(picker.makePathString(name).data());
+						string_copy(paletteFileName,
+							FS::makeFileStringWithoutDotExtension(name).data());
+						picker.dismiss();
+						defaultPal.setSelected(defaultPaletteCustomFileIdx());
+						popAndShow();
+					});
+				EmuApp::pushAndShowModalView(std::move(fPicker), e);
+				return false;
+			}},
+	};
+
+	MultiChoiceMenuItem defaultPal
+	{
+		"Default Palette",
+		[this](int idx) -> const char*
+		{
+			if(idx == defaultPaletteCustomFileIdx())
+			{
+				return paletteFileName.data();
+			}
+			else
+				return nullptr;
+		},
+		[this]()
+		{
+			if(string_equal(defaultPalettePath.data(), ""))
+				return 0;
+			if(string_equal(defaultPalettePath.data(), firebrandXPalPath))
+				return 1;
+			else if(string_equal(defaultPalettePath.data(), wavebeamPalPath))
+				return 2;
+			else if(string_equal(defaultPalettePath.data(), classicPalPath))
+				return 3;
+			else
+				return defaultPaletteCustomFileIdx();
+		}(),
+		defaultPalItem
+	};
+
 public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
+		auto paletteName = FS::basename(defaultPalettePath);
+		string_copy(paletteFileName, FS::makeFileStringWithoutDotExtension(paletteName).data());
 		loadStockItems();
 		item.emplace_back(&systemSpecificHeading);
+		item.emplace_back(&defaultPal);
+		item.emplace_back(&videoSystem);
 		item.emplace_back(&spriteLimit);
 	}
 };

@@ -5,10 +5,10 @@
 
 #define _PC        X.PC
 #define _A         X.A
-//#define _X         X.X
+#define _X         X.X
 #define _Y         X.Y
-//#define _S         X.S
-//#define _P         X.P
+#define _S         X.S
+#define _P         X.P
 #define _PI        X.mooPI
 #define _DB        X.DB
 #define _count     X.count

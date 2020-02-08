@@ -45,6 +45,7 @@
 //TODO - we really need some kind of global platform-specific options api
 #ifdef WIN32
 #include "drivers/win/main.h"
+#include "drivers/win/cheat.h"
 #include "drivers/win/ram_search.h"
 #include "drivers/win/ramwatch.h"
 #endif
@@ -1101,7 +1102,7 @@ string GetBackupFileName()
 	string filename;
 	int x;
 
-	filename = strdup(FCEU_MakeFName(FCEUMKF_STATE,CurrentState,0).c_str());	//Generate normal savestate filename
+	filename = FCEU_MakeFName(FCEUMKF_STATE,CurrentState,0);	//Generate normal savestate filename
 	x = filename.find_last_of(".");		//Find last dot
 	filename = filename.substr(0,x);	//Chop off file extension
 	filename.append(".bak.fc0");		//add .bak

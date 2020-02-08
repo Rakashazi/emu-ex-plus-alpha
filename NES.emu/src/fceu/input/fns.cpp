@@ -1,7 +1,7 @@
 /* FCE Ultra - NES/Famicom Emulator
  *
  * Copyright notice for this file:
- *  Copyright (C) 2002 Xodnizel
+ *  Copyright (C) 2019 CaH4e3
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,21 +16,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * Family Network System controller
+ *
  */
 
-/*        Various macros for faster memory stuff
-		(at least that's the idea) 
-*/
+#include <string.h>
+#include "share.h"
 
-static void FCEU_dwmemset(uint8 *d, uint32 c, uint32 n) {for(int x=n-4;x>=0;x-=4) *(uint32 *)&(d)[x]=c;}
+static int readbit;
+static int32 readdata;
 
-void *FCEU_malloc(uint32 size); // initialized to 0
-void *FCEU_gmalloc(uint32 size); // used by boards for WRAM etc, initialized to 0 (default) or other via RAMInitOption
-void FCEU_gfree(void *ptr);
-void FCEU_free(void *ptr);
-void FCEU_memmove(void *d, void *s, uint32 l);
+static uint8 Read(int w, uint8 ret)
+{
+	if (!w)
+	{
+		if (readbit < 24) {
+			ret |= ((readdata >> readbit) & 1) << 1;
+			readbit++;
+		} else
+			ret |= 2;	// sense!
+	}
+	return ret;
+}
 
-// wrapper for debugging when its needed, otherwise act like
-// normal malloc/free
-void *FCEU_dmalloc(uint32 size);
-void FCEU_dfree(void *ptr);
+static void Strobe(void)
+{
+	readbit = 0;
+}
+
+static void Update(void *data, int arg)
+{
+	readdata = *(uint32*)data;
+}
+
+static INPUTCFC FamiNetSys = { Read, 0, Strobe, Update, 0, 0 };
+
+INPUTCFC *FCEU_InitFamiNetSys(void)
+{
+	return(&FamiNetSys);
+}
+

@@ -397,9 +397,7 @@ void EmuSystem::setupGamePaths(const char *filePath)
 	}
 
 	// If gameName has an extension, truncate it
-	auto dotPos = strrchr(gameName_.data(), '.');
-	if(dotPos)
-		*dotPos = 0;
+	gameName_ = FS::makeFileStringWithoutDotExtension(gameName_);
 	logMsg("set game name: %s", gameName_.data());
 
 	setupGameSavePath();

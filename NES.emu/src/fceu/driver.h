@@ -14,7 +14,9 @@ inline FILE *FCEUD_UTF8fopen(const std::string &n, const char *mode) { return FC
 EMUFILE_FILE* FCEUD_UTF8_fstream(const char *n, const char *m);
 inline EMUFILE_FILE* FCEUD_UTF8_fstream(const std::string &n, const char *m) { return FCEUD_UTF8_fstream(n.c_str(),m); }
 FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string& fname, int innerIndex);
+FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string& fname, int innerIndex, int* userCancel);
 FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename);
+FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename, int* userCancel);
 ArchiveScanRecord FCEUD_ScanArchive(std::string fname);
 
 //mbg 7/23/06
@@ -189,6 +191,7 @@ int FCEUI_DecodeGG(const char *str, int *a, int *v, int *c);
 int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int type);
 int FCEUI_DelCheat(uint32 which);
 int FCEUI_ToggleCheat(uint32 which);
+int FCEUI_GlobalToggleCheat(int global_enable);
 
 int32 FCEUI_CheatSearchGetCount(void);
 void FCEUI_CheatSearchGetRange(uint32 first, uint32 last, int (*callb)(uint32 a, uint8 last, uint8 current));
@@ -339,7 +342,8 @@ enum EFCEUI
 	FCEUI_STOPMOVIE, FCEUI_RECORDMOVIE, FCEUI_PLAYMOVIE,
 	FCEUI_OPENGAME, FCEUI_CLOSEGAME,
 	FCEUI_TASEDITOR,
-	FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK, FCEUI_INSERT_COIN
+	FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK, FCEUI_INSERT_COIN,
+	FCEUI_TOGGLERECORDINGMOVIE, FCEUI_TRUNCATEMOVIE, FCEUI_INSERT1FRAME, FCEUI_DELETE1FRAME
 };
 
 //checks whether an EFCEUI is valid right now

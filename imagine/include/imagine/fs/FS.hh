@@ -191,9 +191,16 @@ FileString makeFileStringPrintf(const char *format, ...);
 [[gnu::format(printf, 1, 2)]]
 PathString makePathStringPrintf(const char *format, ...);
 FileString makeFileString(const char *str);
+FileString makeFileStringWithoutDotExtension(const char *str);
+
+template <size_t S>
+FileString makeFileStringWithoutDotExtension(std::array<char, S> &str)
+{
+	return makeFileStringWithoutDotExtension(str.data());
+}
+
 PathString makePathString(const char *str);
 PathString makePathString(const char *dir, const char *base);
-
 PathString makeAppPathFromLaunchCommand(const char *launchPath);
 
 FileString basename(const char *path);

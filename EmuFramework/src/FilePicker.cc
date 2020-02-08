@@ -26,7 +26,7 @@
 
 EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir,
 	EmuSystem::NameFilterFunc filter, FS::RootPathInfo rootInfo,
-	Input::Event e, bool singleDir):
+	Input::Event e, bool singleDir, bool includeArchives):
 	FSPicker
 	{
 		attach,
@@ -37,12 +37,12 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 		{
 			return entry.type() == FS::file_type::directory;
 		}}:
-		FSPicker::FilterFunc{[filter, singleDir](FS::directory_entry &entry)
+		FSPicker::FilterFunc{[filter, singleDir, includeArchives](FS::directory_entry &entry)
 		{
 			logMsg("%s %d", entry.name(), (int)entry.type());
 			if(!singleDir && entry.type() == FS::file_type::directory)
 				return true;
-			else if(!EmuSystem::handlesArchiveFiles && EmuApp::hasArchiveExtension(entry.name()))
+			else if(!EmuSystem::handlesArchiveFiles && includeArchives && EmuApp::hasArchiveExtension(entry.name()))
 				return true;
 			else if(filter)
 				return filter(entry.name());

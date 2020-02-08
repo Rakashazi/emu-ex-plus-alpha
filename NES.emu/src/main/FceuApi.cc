@@ -5,14 +5,48 @@
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <emuframework/FilePicker.hh>
-#include <stdio.h>
 #include "internal.hh"
 #include <fceu/driver.h>
 #include <fceu/video.h>
 #include <fceu/fceu.h>
+#include <fceu/input.h>
+#include <fceu/ppu.h>
+#include <fceu/cheat.h>
+#include <fceu/cart.h>
+#include <fceu/nsf.h>
+#include <fceu/x6502.h>
 
 bool turbo = 0;
 int closeFinishedMovie = 0;
+int StackAddrBackup = -1;
+int KillFCEUXonFrame = 0;
+
+void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, bool renderAudio)
+{
+	#ifdef _S9XLUA_H
+	FCEU_LuaFrameBoundary();
+	#endif
+
+	FCEU_UpdateInput();
+	lagFlag = 1;
+
+	#ifdef _S9XLUA_H
+	CallRegisteredLuaFunctions(LUACALL_BEFOREEMULATION);
+	#endif
+
+	if (geniestage != 1) FCEU_ApplyPeriodicCheats();
+	FCEUPPU_Loop(onFrameReady, skip);
+
+	emulateSound(renderAudio);
+
+	#ifdef _S9XLUA_H
+	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);
+	#endif
+
+	timestampbase += timestamp;
+	timestamp = 0;
+	soundtimestamp = 0;
+}
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
@@ -53,16 +87,18 @@ void FCEUD_DebugBreakpoint() { return; }
 
 int FCEUD_ShowStatusIcon(void) { return 0; }
 
-void FCEUD_NetworkClose(void) { }
+void FCEUD_NetworkClose(void) {}
 
-void FCEUD_VideoChanged() { }
+void FCEUD_VideoChanged() {}
 
 bool FCEUI_AviIsRecording(void) { return 0; }
 
 bool FCEUI_AviDisableMovieMessages() { return 1; }
 
 FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string &fname, int innerIndex) { return 0; }
+FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string& fname, int innerIndex, int* userCancel) { return 0; }
 FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename) { return 0; }
+FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename, int* userCancel) { return 0; }
 ArchiveScanRecord FCEUD_ScanArchive(std::string fname) { return ArchiveScanRecord(); }
 
 EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m)
@@ -81,40 +117,40 @@ bool FCEUD_PauseAfterPlayback() { return false; }
 
 bool FCEUD_ShouldDrawInputAids() { return 0; }
 
-void FCEUI_UseInputPreset(int preset) { }
+void FCEUI_UseInputPreset(int preset) {}
 
 int FCEUD_SendData(void *data, uint32 len) { return 1; }
 
 int FCEUD_RecvData(void *data, uint32 len) { return 1; }
 
-void FCEUD_NetplayText(uint8 *text) { }
+void FCEUD_NetplayText(uint8 *text) {}
 
-void FCEUD_SetEmulationSpeed(int cmd) { }
+void FCEUD_SetEmulationSpeed(int cmd) {}
 
-void FCEUD_SoundVolumeAdjust(int n) { }
+void FCEUD_SoundVolumeAdjust(int n) {}
 
-void FCEUI_AviVideoUpdate(const unsigned char* buffer) { }
+void FCEUI_AviVideoUpdate(const unsigned char* buffer) {}
 
-void FCEUD_HideMenuToggle(void) { }
+void FCEUD_HideMenuToggle(void) {}
 
-void FCEUD_AviRecordTo() { }
-void FCEUD_AviStop() { }
+void FCEUD_AviRecordTo() {}
+void FCEUD_AviStop() {}
 
-void FCEUD_MovieReplayFrom() { }
+void FCEUD_MovieReplayFrom() {}
 
-void FCEUD_TurboOn(void) {  }
-void FCEUD_TurboOff(void) {  }
-void FCEUD_TurboToggle(void) {  }
+void FCEUD_TurboOn(void) {}
+void FCEUD_TurboOff(void) {}
+void FCEUD_TurboToggle(void) {}
 
-void FCEUD_SoundToggle(void) { }
+void FCEUD_SoundToggle(void) {}
 
-void FCEUD_ToggleStatusIcon() { }
+void FCEUD_ToggleStatusIcon() {}
 
-void FCEUD_MovieRecordTo() { }
+void FCEUD_MovieRecordTo() {}
 
-void FCEUD_SaveStateAs() { }
+void FCEUD_SaveStateAs() {}
 
-void FCEUD_LoadStateFrom() { }
+void FCEUD_LoadStateFrom() {}
 
 void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp)
 {
@@ -181,35 +217,35 @@ unsigned int *GetKeyboard(void)
 }
 
 // from video.cpp
-void FCEUI_ToggleShowFPS() { }
+void FCEUI_ToggleShowFPS() {}
 int FCEU_InitVirtualVideo(void) { return 1; }
-void FCEU_KillVirtualVideo(void) { }
-void FCEU_ResetMessages() { }
-void FCEU_PutImageDummy(void) { }
-void FCEU_PutImage(void) { }
-void FCEUI_SaveSnapshot(void) { }
-void ResetScreenshotsCounter() { }
+void FCEU_KillVirtualVideo(void) {}
+void FCEU_ResetMessages() {}
+void FCEU_PutImageDummy(void) {}
+void FCEU_PutImage(void) {}
+void FCEUI_SaveSnapshot(void) {}
+void ResetScreenshotsCounter() {}
 int ClipSidesOffset = 0;
 GUIMESSAGE subtitleMessage;
 
 // from drawing.cpp
-void DrawTextLineBG(uint8 *dest) { }
-void DrawMessage(bool beforeMovie) { }
-void FCEU_DrawRecordingStatus(uint8* XBuf) { }
-void FCEU_DrawNumberRow(uint8 *XBuf, int *nstatus, int cur) { }
-void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor) { }
-void DrawTextTransWH(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor, int max_w, int max_h, int border) { }
+void DrawTextLineBG(uint8 *dest) {}
+void DrawMessage(bool beforeMovie) {}
+void FCEU_DrawRecordingStatus(uint8* XBuf) {}
+void FCEU_DrawNumberRow(uint8 *XBuf, int *nstatus, int cur) {}
+void DrawTextTrans(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor) {}
+void DrawTextTransWH(uint8 *dest, uint32 width, uint8 *textmsg, uint8 fgcolor, int max_w, int max_h, int border) {}
 
 // from nsf.cpp
-#include <fceu/nsf.h>
 NSF_HEADER NSFHeader;
-void DoNSFFrame(void) { }
+void DoNSFFrame(void) {}
 int NSFLoad(const char *name, FCEUFILE *fp) { return 0; }
 
 // from debug.cpp
 volatile int datacount, undefinedcount;
 unsigned char *cdloggerdata;
 int GetPRGAddress(int A) { return 0; }
+void IncrementInstructionsCounters() {}
 int debug_loggingCD = 0;
 
 // from netplay.cpp

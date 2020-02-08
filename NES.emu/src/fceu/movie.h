@@ -23,13 +23,15 @@ enum EMOVIE_FLAG
 
 	MOVIE_FLAG_PAL = (1<<2),
 
-	//movie was recorded from poweron. the alternative is from a savestate (or from reset)
+	//movie was recorded from poweron. the alternative is from a savestate (or from reset). OR from saveram.
 	MOVIE_FLAG_FROM_POWERON = (1<<3),
 
 	// set in newer version, used for old movie compatibility
 	//TODO - only use this flag to print a warning that the sync might be bad
 	//so that we can get rid of the sync hack code
-	MOVIE_FLAG_NOSYNCHACK = (1<<4)
+	MOVIE_FLAG_NOSYNCHACK = (1<<4),
+
+	MOVIE_FLAG_FROM_SAVERAM = (1<<5)
 };
 
 typedef struct
@@ -61,6 +63,16 @@ enum EMOVIEMODE
 	MOVIEMODE_PLAY = 4,
 	MOVIEMODE_TASEDITOR = 8,
 	MOVIEMODE_FINISHED = 16
+};
+
+enum EMOVIERECORDMODE
+{
+	MOVIE_RECORD_MODE_TRUNCATE = 0,
+	MOVIE_RECORD_MODE_OVERWRITE = 1,
+	MOVIE_RECORD_MODE_INSERT = 2,
+	//MOVIE_RECORD_MODE_XOR = 3,
+
+	MOVIE_RECORD_MODE_MAX
 };
 
 enum EMOVIECMD
@@ -178,6 +190,7 @@ public:
 	MD5DATA romChecksum;
 	std::string romFilename;
 	std::vector<uint8> savestate;
+	std::vector<uint8> saveram;
 	std::vector<MovieRecord> records;
 	std::vector<std::wstring> comments;
 	std::vector<std::string> subtitles;
@@ -197,7 +210,7 @@ public:
 	//whether microphone is enabled
 	bool microphone;
 
-	int getNumRecords() { return records.size(); }
+	int getNumRecords() { return (int)records.size(); }
 
 	int RAMInitOption, RAMInitSeed;
 
@@ -231,7 +244,7 @@ public:
 
 	void truncateAt(int frame);
 	void installValue(std::string& key, std::string& val);
-	int dump(EMUFILE* os, bool binary);
+	int dump(EMUFILE* os, bool binary, bool seekToCurrFramePos = false);
 
 	void clearRecordRange(int start, int len);
 	void eraseRecords(int at, int frames = 1);
@@ -240,6 +253,9 @@ public:
 
 	static bool loadSavestateFrom(std::vector<uint8>* buf);
 	static void dumpSavestateTo(std::vector<uint8>* buf, int compressionLevel);
+
+	static bool loadSaveramFrom(std::vector<uint8>* buf);
+	static void dumpSaveramTo(std::vector<uint8>* buf, int compressionLevel);
 
 private:
 	void installInt(std::string& val, int& var)
@@ -261,6 +277,8 @@ extern bool freshMovie;
 extern bool movie_readonly;
 extern bool autoMovieBackup;
 extern bool fullSaveStateLoads;
+extern int movieRecordMode;
+
 //--------------------------------------------------
 void FCEUI_MakeBackupMovie(bool dispMessage);
 void FCEUI_CreateMovieFile(std::string fn);
@@ -271,6 +289,15 @@ void FCEUI_StopMovie(void);
 bool FCEUI_MovieGetInfo(FCEUFILE* fp, MOVIE_INFO& info, bool skipFrameCount = false);
 //char* FCEUI_MovieGetCurrentName(int addSlotNumber);
 void FCEUI_MovieToggleReadOnly(void);
+void FCEUI_MovieToggleRecording();
+void FCEUI_MovieInsertFrame();
+void FCEUI_MovieDeleteFrame();
+void FCEUI_MovieTruncate();
+void FCEUI_MovieNextRecordMode();
+void FCEUI_MoviePrevRecordMode();
+void FCEUI_MovieRecordModeTruncate();
+void FCEUI_MovieRecordModeOverwrite();
+void FCEUI_MovieRecordModeInsert();
 bool FCEUI_GetMovieToggleReadOnly();
 void FCEUI_SetMovieToggleReadOnly(bool which);
 int FCEUI_GetMovieLength();

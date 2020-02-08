@@ -22,7 +22,7 @@ extern char romNameWhenClosingEmulator[];
 #define DECLFR(x) uint8 x (uint32 A)
 #define DECLFW(x) void x (uint32 A, uint8 V)
 
-void FCEU_MemoryRand(uint8 *ptr, uint32 size);
+void FCEU_MemoryRand(uint8 *ptr, uint32 size, bool default_zero=false);
 void SetReadHandler(int32 start, int32 end, readfunc func);
 void SetWriteHandler(int32 start, int32 end, writefunc func);
 writefunc GetWriteHandler(int32 a);
@@ -46,9 +46,11 @@ void FCEUI_RewindToLastAutosave(void);
 char *FCEUI_GetAboutString();
 
 extern uint64 timestampbase;
+
+// MMC5 external shared buffers/vars
+extern int MMC5Hack;
 extern uint32 MMC5HackVROMMask;
 extern uint8 *MMC5HackExNTARAMPtr;
-extern int MMC5Hack, PEC586Hack;
 extern uint8 *MMC5HackVROMPTR;
 extern uint8 MMC5HackCHRMode;
 extern uint8 MMC5HackSPMode;
@@ -56,6 +58,12 @@ extern uint8 MMC50x5130;
 extern uint8 MMC5HackSPScroll;
 extern uint8 MMC5HackSPPage;
 
+extern int PEC586Hack;
+
+// VRCV extarnal shared buffers/vars
+extern int QTAIHack;
+extern uint8 QTAINTRAM[2048];
+extern uint8 qtaintramreg;
 
 #define GAME_MEM_BLOCK_SIZE 131072
 
@@ -89,7 +97,7 @@ extern int dendy;
 
 //#include "driver.h"
 
-struct FCEUS {
+typedef struct {
 	int PAL;
 	int NetworkPlay;
 	int SoundVolume;		//Master volume
@@ -117,7 +125,7 @@ struct FCEUS {
 	uint32 SndRate;
 	int soundq;
 	int lowpass;
-};
+} FCEUS;
 
 int FCEU_TextScanlineOffset(int y);
 int FCEU_TextScanlineOffsetFromBottom(int y);

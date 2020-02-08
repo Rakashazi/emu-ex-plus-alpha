@@ -76,6 +76,8 @@ uint8 geniech[3];
 
 uint32 genieaddr[3];
 
+CartInfo *currCartInfo;
+
 static INLINE void setpageptr(int s, uint32 A, uint8 *p, int ram) {
 	uint32 AB = A >> 11;
 	int x;
@@ -301,12 +303,8 @@ void setmirrorw(int a, int b, int c, int d) {
 	vnapage[3] = NTARAM + d * 0x400;
 }
 
-#ifdef __aarch64__
-// TODO: Bad code generated when compiling with -02 or higher
-[[clang::optnone]]
-#endif
-static void doMirror(int t, int mirrorhard)
-{
+void setmirror(int t) {
+	FCEUPPU_LineUpdate();
 	if (!mirrorhard) {
 		switch (t) {
 		case MI_H:
@@ -324,11 +322,6 @@ static void doMirror(int t, int mirrorhard)
 		}
 		PPUNTARAM = 0xF;
 	}
-}
-
-void setmirror(int t) {
-	FCEUPPU_LineUpdate();
-	doMirror(t, mirrorhard);
 }
 
 void SetupCartMirroring(int m, int hard, uint8 *extra) {

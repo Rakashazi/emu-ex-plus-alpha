@@ -58,7 +58,7 @@ static int ntschue = 72;
 int default_palette_selection = 0;
 
 //library of default palettes
-static pal *default_palette[8]=
+static pal *default_palette[]
 {
 	palette,
 	rp2c04001,
@@ -275,7 +275,7 @@ static void ApplyDeemphasisClassic(int entry, u8& r, u8& g, u8& b)
 	b = (u8)nb;
 }
 
-static void ApplyDeemphasisComplete(pal* pal512)
+void ApplyDeemphasisComplete(pal* pal512)
 {
 	//for each deemph level beyond 0
 	for(int i=0,idx=0;i<8;i++)
@@ -645,4 +645,13 @@ void FCEU_DrawNTSCControlBars(uint8 *XBuf)
 		for(x2=2;x2>=-2;x2--)
 			XBaf[x-256*x2]=0x85;
 	}
+}
+
+void FCEU_setDefaultPalettePtr(pal *ptr)
+{
+	if(ptr)
+		default_palette[0] = ptr;
+	else
+		default_palette[0] = palette;
+	FCEU_ResetPalette();
 }

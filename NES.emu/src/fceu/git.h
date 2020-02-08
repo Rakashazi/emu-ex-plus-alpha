@@ -2,6 +2,7 @@
 #define __FCEU_GIT
 
 #include <imagine/util/DelegateFunc.hh>
+#include <string>
 
 enum EGIT
 {
@@ -84,8 +85,9 @@ enum ESIFC
 	SIFC_OEKAKIDS	= 12,
 	SIFC_BWORLD		= 13,
 	SIFC_TOPRIDER	= 14,
+	SIFC_FAMINETSYS = 15,
 
-	SIFC_COUNT = SIFC_TOPRIDER
+	SIFC_COUNT = SIFC_FAMINETSYS
 };
 
 
@@ -107,7 +109,8 @@ inline const char* ESIFC_Name(ESIFC esifc)
 		"Family Trainer B",
 		"Oeka Kids Tablet",
 		"Barcode World",
-		"Top Rider"
+		"Top Rider",
+		"Famicom Network Controller"
 	};
 
 	if(esifc >= SIFC_NONE && esifc <= SIFC_COUNT)
@@ -121,9 +124,8 @@ inline const char* ESIFC_Name(ESIFC esifc)
 struct FCEUGI
 {
 	FCEUGI();
-	~FCEUGI();
 
-	uint8 *name;	//Game name, UTF8 encoding
+	std::string name;	//Game name, UTF8 encoding
 	int mappernum;
 
 	EGIT type;
@@ -138,8 +140,8 @@ struct FCEUGI
 	int soundrate;  //For Ogg Vorbis expansion sound wacky support.  0 for default.
 	int soundchan;  //Number of sound channels.
 
-	char* filename;
-	char* archiveFilename;
+	std::string filename;
+	std::string archiveFilename;
 	int archiveCount;
 };
 

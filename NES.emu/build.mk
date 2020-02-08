@@ -61,6 +61,7 @@ fceu/input/ftrainer.cpp \
 fceu/input/hypershot.cpp \
 fceu/input/cursor.cpp \
 fceu/input/snesmouse.cpp \
+fceu/input/fns.cpp \
 fceu/input/pec586kb.cpp
 
 BOARDS_SRC := $(subst $(projectPath)/src/,,$(filter %.cpp %.c, $(wildcard $(projectPath)/src/fceu/boards/*)))

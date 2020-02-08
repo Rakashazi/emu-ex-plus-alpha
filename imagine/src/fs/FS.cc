@@ -57,6 +57,17 @@ FileString makeFileString(const char *str)
 	return path;
 }
 
+FileString makeFileStringWithoutDotExtension(const char *str)
+{
+	auto fileStr = makeFileString(str);
+	if(auto dotPos = string_dotExtension(str);
+		dotPos)
+	{
+		fileStr[(uintptr_t)(dotPos - str)] = 0;
+	}
+	return fileStr;
+}
+
 PathString makePathString(const char *str)
 {
 	PathString path{};

@@ -114,6 +114,7 @@ static void MooMirroring(void) {
 	if (mirrortodo < 0x4)
 		SetupCartMirroring(mirrortodo, 1, 0);
 	else if (mirrortodo == 0x4) {
+		FCEU_MemoryRand(exntar, sizeof(exntar), true);
 		SetupCartMirroring(4, 1, exntar);
 		AddExState(exntar, 2048, 0, "EXNR");
 	} else
@@ -160,10 +161,7 @@ static int NAME(FCEUFILE *fp) {
 	namebuf[index] = 0;
 	FCEU_printf("%s\n", namebuf);
 
-	if (!GameInfo->name) {
-		GameInfo->name = (uint8*)malloc(strlen(namebuf) + 1); //mbg merge 7/17/06 added cast
-		strcpy((char*)GameInfo->name, namebuf); //mbg merge 7/17/06 added cast
-	}
+	GameInfo->name = namebuf;
 	return(1);
 }
 
@@ -367,7 +365,7 @@ static BMAPPING bmap[] = {
 	{ "H2288", UNLH2288_Init, 0 },
 	{ "HKROM", HKROM_Init, 0 },
 	{ "KOF97", UNLKOF97_Init, 0 },
-	{ "KONAMI-QTAI", Mapper190_Init, 0 },
+	{ "KONAMI-QTAI", QTAi_Init, 0 },
 	{ "KS7010", UNLKS7010_Init, 0 },
 	{ "KS7012", UNLKS7012_Init, 0 },
 	{ "KS7013B", UNLKS7013B_Init, 0 },
@@ -470,6 +468,8 @@ static BMAPPING bmap[] = {
 	{ "8-IN-1", BMC8IN1_Init, 0 },
 	{ "80013-B", BMC80013B_Init, 0 },
 	{ "HPxx", BMCHPxx_Init, 0 },
+	{ "MINDKIDS", MINDKIDS_Init, BMCFLAG_256KCHRR },
+	{ "FNS", FNS_Init, BMCFLAG_16KCHRR },
 
 	{ 0, 0, 0 }
 };
@@ -623,6 +623,7 @@ int UNIFLoad(const char *name, FCEUFILE *fp) {
 
 	strcpy(LoadedRomFName, name); //For the debugger list
 	GameInterface = UNIFGI;
+	currCartInfo = &UNIFCart;
 	return 1;
 
  aborto:

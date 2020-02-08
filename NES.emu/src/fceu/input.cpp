@@ -77,6 +77,7 @@ extern INPUTCFC *FCEU_InitFamilyTrainerA(void);
 extern INPUTCFC *FCEU_InitFamilyTrainerB(void);
 extern INPUTCFC *FCEU_InitOekaKids(void);
 extern INPUTCFC *FCEU_InitTopRider(void);
+extern INPUTCFC *FCEU_InitFamiNetSys(void);
 extern INPUTCFC *FCEU_InitBarcodeWorld(void);
 //---------------
 
@@ -534,6 +535,9 @@ static void SetInputStuffFC()
 	case SIFC_TOPRIDER:
 		portFC.driver=FCEU_InitTopRider();
 		break;
+	case SIFC_FAMINETSYS:
+		portFC.driver = FCEU_InitFamiNetSys();
+		break;
 	}
 }
 
@@ -813,9 +817,18 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_MOVIE_RECORD_TO,				EMUCMDTYPE_MOVIE,	FCEUD_MovieRecordTo,			0, 0, "Record Movie To...", 0 },
 	{ EMUCMD_MOVIE_REPLAY_FROM,				EMUCMDTYPE_MOVIE,	FCEUD_MovieReplayFrom,			0, 0, "Play Movie From...", 0 },
 	{ EMUCMD_MOVIE_PLAY_FROM_BEGINNING,		EMUCMDTYPE_MOVIE,	FCEUI_MoviePlayFromBeginning,	0, 0, "Play Movie From Beginning", EMUCMDFLAG_TASEDITOR },
+	{ EMUCMD_MOVIE_TOGGLE_RECORDING,		EMUCMDTYPE_MOVIE,	FCEUI_MovieToggleRecording,		0, 0, "Toggle Movie Recording/Playing", 0 },
+	{ EMUCMD_MOVIE_INSERT_1_FRAME,			EMUCMDTYPE_MOVIE,	FCEUI_MovieInsertFrame,			0, 0, "Insert 1 Frame To Movie", 0 },
+	{ EMUCMD_MOVIE_DELETE_1_FRAME,			EMUCMDTYPE_MOVIE,	FCEUI_MovieDeleteFrame,			0, 0, "Delete 1 Frame From Movie", 0 },
+	{ EMUCMD_MOVIE_TRUNCATE,				EMUCMDTYPE_MOVIE,	FCEUI_MovieTruncate,			0, 0, "Truncate Movie At Current Frame", 0 },
 	{ EMUCMD_MOVIE_STOP,					EMUCMDTYPE_MOVIE,	FCEUI_StopMovie,				0, 0, "Stop Movie", 0 },
 	{ EMUCMD_MOVIE_READONLY_TOGGLE,			EMUCMDTYPE_MOVIE,	FCEUI_MovieToggleReadOnly,		0, 0, "Toggle Read-Only", EMUCMDFLAG_TASEDITOR },
-	{ EMUCMD_MOVIE_FRAME_DISPLAY_TOGGLE,	EMUCMDTYPE_MOVIE,	FCEUI_MovieToggleFrameDisplay,	0, 0, "Toggle Frame Display", EMUCMDFLAG_TASEDITOR },										 
+	{ EMUCMD_MOVIE_NEXT_RECORD_MODE,		EMUCMDTYPE_MOVIE,	FCEUI_MovieNextRecordMode,		0, 0, "Next Record Mode", 0 },
+	{ EMUCMD_MOVIE_PREV_RECORD_MODE,		EMUCMDTYPE_MOVIE,	FCEUI_MoviePrevRecordMode,		0, 0, "Prev Record Mode", 0 },
+	{ EMUCMD_MOVIE_RECORD_MODE_TRUNCATE,	EMUCMDTYPE_MOVIE,	FCEUI_MovieRecordModeTruncate,	0, 0, "Record Mode Truncate", 0 },
+	{ EMUCMD_MOVIE_RECORD_MODE_OVERWRITE,	EMUCMDTYPE_MOVIE,	FCEUI_MovieRecordModeOverwrite,	0, 0, "Record Mode Overwrite", 0 },
+	{ EMUCMD_MOVIE_RECORD_MODE_INSERT,		EMUCMDTYPE_MOVIE,	FCEUI_MovieRecordModeInsert,	0, 0, "Record Mode Insert", 0 },
+	{ EMUCMD_MOVIE_FRAME_DISPLAY_TOGGLE,	EMUCMDTYPE_MOVIE,	FCEUI_MovieToggleFrameDisplay,	0, 0, "Toggle Frame Display", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_MOVIE_INPUT_DISPLAY_TOGGLE,	EMUCMDTYPE_MISC,	FCEUI_ToggleInputDisplay,		0, 0, "Toggle Input Display", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_MOVIE_ICON_DISPLAY_TOGGLE,		EMUCMDTYPE_MISC,	FCEUD_ToggleStatusIcon,			0, 0, "Toggle Status Icon", EMUCMDFLAG_TASEDITOR },
 
@@ -1108,8 +1121,8 @@ static void LaunchCodeDataLogger(void)
 static void LaunchCheats(void)
 {
 #ifdef WIN32
-	extern HWND pwindow;
-	ConfigCheats(pwindow);
+	extern HWND hCheat;
+	ConfigCheats(hCheat);
 #endif
 }
 

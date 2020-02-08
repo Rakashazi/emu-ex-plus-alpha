@@ -92,6 +92,9 @@ bool EmuSystem::resetSessionOptions()
 	#ifndef SNES9X_VERSION_1_4
 	optionBlockInvalidVRAMAccess.reset();
 	optionSeparateEchoBuffer.reset();
+	// reset emulations hacks
+	PPU.BlockInvalidVRAMAccess = true;
+	SNES::dsp.spc_dsp.separateEchoBuffer = false;
 	#endif
 	onSessionOptionsLoaded();
 	return true;

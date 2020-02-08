@@ -332,7 +332,7 @@ int fceuindbg = 0;
 //0xFF shall indicate to use palette[0]
 uint8 gNoBGFillColor = 0xFF;
 
-int MMC5Hack = 0, PEC586Hack = 0;;
+int MMC5Hack = 0;
 uint32 MMC5HackVROMMask = 0;
 uint8 *MMC5HackExNTARAMPtr = 0;
 uint8 *MMC5HackVROMPTR = 0;
@@ -341,6 +341,12 @@ uint8 MMC5HackSPMode = 0;
 uint8 MMC50x5130 = 0;
 uint8 MMC5HackSPScroll = 0;
 uint8 MMC5HackSPPage = 0;
+
+int PEC586Hack = 0;
+
+int QTAIHack = 0;
+uint8 QTAINTRAM[2048];
+uint8 qtaintramreg;
 
 uint8 VRAMBuffer = 0, PPUGenLatch = 0;
 uint8 *vnapage[4];
@@ -376,7 +382,19 @@ uint8 UPALRAM[0x03];//for 0x4/0x8/0xC addresses in palette, the ones in
 #define MMC5SPRVRAMADR(V)   &MMC5SPRVPage[(V) >> 10][(V)]
 #define VRAMADR(V)          &VPage[(V) >> 10][(V)]
 
-extern uint8* MMC5BGVRAMADR(uint32 A);
+uint8* MMC5BGVRAMADR(uint32 A);
+
+uint8 READPAL_MOTHEROFALL(uint32 A)
+{
+	if(!(A & 3)) {
+		if(!(A & 0xC))
+			return READPAL(0x00);
+		else
+			return READUPAL(((A & 0xC) >> 2) - 1);
+	}
+	else
+		return READPAL(A & 0x1F);
+}
 
 //this duplicates logic which is embedded in the ppu rendering code
 //which figures out where to get CHR data from depending on various hack modes
@@ -416,12 +434,18 @@ inline void FFCEUX_PPUWrite_Default(uint32 A, uint8 V) {
 		if (PPUCHRRAM & (1 << (tmp >> 10)))
 			VPage[tmp >> 10][tmp] = V;
 	} else if (tmp < 0x3F00) {
-		if (PPUNTARAM & (1 << ((tmp & 0xF00) >> 10)))
-			vnapage[((tmp & 0xF00) >> 10)][tmp & 0x3FF] = V;
+		if (QTAIHack && (qtaintramreg & 1)) {
+			QTAINTRAM[((((tmp & 0xF00) >> 10) >> ((qtaintramreg >> 1)) & 1) << 10) | (tmp & 0x3FF)] = V;
+		} else {
+			if (PPUNTARAM & (1 << ((tmp & 0xF00) >> 10)))
+				vnapage[((tmp & 0xF00) >> 10)][tmp & 0x3FF] = V;
+		}
 	} else {
 		if (!(tmp & 3)) {
-			if (!(tmp & 0xC))
+			if (!(tmp & 0xC)) {
 				PALRAM[0x00] = PALRAM[0x04] = PALRAM[0x08] = PALRAM[0x0C] = V & 0x3F;
+				PALRAM[0x10] = PALRAM[0x14] = PALRAM[0x18] = PALRAM[0x1C] = V & 0x3F;
+			}
 			else
 				UPALRAM[((tmp & 0xC) >> 2) - 1] = V & 0x3F;
 		} else
@@ -772,7 +796,7 @@ static DECLFR(A2007) {
 
 					if (debug_loggingCD)
 						LogAddress = GetCHRAddress(tmp);
-					if(MMC5Hack)
+					if(MMC5Hack && newppu)
 						VRAMBuffer = *MMC5BGVRAMADR(tmp);
 					else
 						VRAMBuffer = VPage[tmp >> 10][tmp];
@@ -943,8 +967,12 @@ static DECLFW(B2007) {
 			if (PPUCHRRAM & (1 << (tmp >> 10)))
 				VPage[tmp >> 10][tmp] = V;
 		} else if (tmp < 0x3F00) {
-			if (PPUNTARAM & (1 << ((tmp & 0xF00) >> 10)))
-				vnapage[((tmp & 0xF00) >> 10)][tmp & 0x3FF] = V;
+			if (QTAIHack && (qtaintramreg & 1)) {
+				QTAINTRAM[((((tmp & 0xF00) >> 10) >> ((qtaintramreg >> 1)) & 1) << 10) | (tmp & 0x3FF)] = V;
+			} else {
+				if (PPUNTARAM & (1 << ((tmp & 0xF00) >> 10)))
+					vnapage[((tmp & 0xF00) >> 10)][tmp & 0x3FF] = V;
+			}
 		} else {
 			if (!(tmp & 3)) {
 				if (!(tmp & 0xC))
@@ -1184,6 +1212,12 @@ static void RefreshLine(int lastpixel) {
 				#include "pputile.inc"
 			}
 			#undef PPU_BGFETCH
+		} if (QTAIHack) {
+			#define PPU_VRC5FETCH
+			for (X1 = firsttile; X1 < lasttile; X1++) {
+				#include "pputile.inc"
+			}
+			#undef PPU_VRC5FETCH
 		} else {
 			for (X1 = firsttile; X1 < lasttile; X1++) {
 				#include "pputile.inc"
@@ -1629,7 +1663,6 @@ static void RefreshSprites(void) {
 }
 
 static void CopySprites(uint8 *target) {
-	uint8 n = ((PPU[1] & 4) ^ 4) << 1;
 	uint8 *P = target;
 
 	if (!spork) return;
@@ -1637,65 +1670,14 @@ static void CopySprites(uint8 *target) {
 
 	if (!rendersprites) return;	//User asked to not display sprites.
 
- loopskie:
+	if(!SpriteON) return;
+	for(int i=0;i<256;i++)
 	{
-		uint32 t = *(uint32*)(sprlinebuf + n);
-
-		if (t != 0x80808080) {
-			#ifdef LSB_FIRST
-			if (!(t & 0x80)) {
-				if (!(t & 0x40) || (P[n] & 0x40))		// Normal sprite || behind bg sprite
-					P[n] = sprlinebuf[n];
-			}
-
-			if (!(t & 0x8000)) {
-				if (!(t & 0x4000) || (P[n + 1] & 0x40))		// Normal sprite || behind bg sprite
-					P[n + 1] = (sprlinebuf + 1)[n];
-			}
-
-			if (!(t & 0x800000)) {
-				if (!(t & 0x400000) || (P[n + 2] & 0x40))	// Normal sprite || behind bg sprite
-					P[n + 2] = (sprlinebuf + 2)[n];
-			}
-
-			if (!(t & 0x80000000)) {
-				if (!(t & 0x40000000) || (P[n + 3] & 0x40))	// Normal sprite || behind bg sprite
-					P[n + 3] = (sprlinebuf + 3)[n];
-			}
-			#else
-			/* TODO:  Simplify */
-			if (!(t & 0x80000000)) {
-				if (!(t & 0x40000000))	// Normal sprite
-					P[n] = sprlinebuf[n];
-				else if (P[n] & 64)		// behind bg sprite
-					P[n] = sprlinebuf[n];
-			}
-
-			if (!(t & 0x800000)) {
-				if (!(t & 0x400000))	// Normal sprite
-					P[n + 1] = (sprlinebuf + 1)[n];
-				else if (P[n + 1] & 64)	// behind bg sprite
-					P[n + 1] = (sprlinebuf + 1)[n];
-			}
-
-			if (!(t & 0x8000)) {
-				if (!(t & 0x4000))		// Normal sprite
-					P[n + 2] = (sprlinebuf + 2)[n];
-				else if (P[n + 2] & 64)	// behind bg sprite
-					P[n + 2] = (sprlinebuf + 2)[n];
-			}
-
-			if (!(t & 0x80)) {
-				if (!(t & 0x40))		// Normal sprite
-					P[n + 3] = (sprlinebuf + 3)[n];
-				else if (P[n + 3] & 64)	// behind bg sprite
-					P[n + 3] = (sprlinebuf + 3)[n];
-			}
-			#endif
-		}
+		uint8 t = sprlinebuf[i];
+		if(!(t&0x80))
+			if (!(t & 0x40) || (P[i] & 0x40))		// Normal sprite || behind bg sprite
+				P[i] = t;
 	}
-	n += 4;
-	if (n) goto loopskie;
 }
 
 void FCEUPPU_SetVideoSystem(int w) {
@@ -1880,9 +1862,7 @@ int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 					overclocking = 1;
 				}
 			}
-
 			onFrameReady(XBuf);
-
 			DMC_7bit = 0;
 
 			if (MMC5Hack) MMC5_hb(scanline);
@@ -1907,7 +1887,6 @@ int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 	} else
 	#endif
 	{
-		FCEU_PutImage();
 		return(1);
 	}
 }
@@ -2005,12 +1984,16 @@ void runppu(int x) {
 //todo - consider making this a 3 or 4 slot fifo to keep from touching so much memory
 struct BGData {
 	struct Record {
-		uint8 nt, pecnt, at, pt[2];
+		uint8 nt, pecnt, at, pt[2], qtnt;
 
 		INLINE void Read() {
 			NTRefreshAddr = RefreshAddr = ppur.get_ntread();
 			if (PEC586Hack)
 				ppur.s = (RefreshAddr & 0x200) >> 9;
+			else if (QTAIHack) {
+				qtnt = QTAINTRAM[((((RefreshAddr >> 10) & 3) >> ((qtaintramreg >> 1)) & 1) << 10) | (RefreshAddr & 0x3FF)];
+				ppur.s = qtnt & 0x3F;
+			}
 			pecnt = (RefreshAddr & 1) << 3;
 			nt = CALL_PPUREAD(RefreshAddr);
 			runppu(kFetchTime);
@@ -2036,11 +2019,15 @@ struct BGData {
 			ppur.par = nt;
 			RefreshAddr = ppur.get_ptread();
 			if (PEC586Hack) {
-				if (ScreenON)
-					RENDER_LOG(RefreshAddr | pecnt);
 				pt[0] = CALL_PPUREAD(RefreshAddr | pecnt);
 				runppu(kFetchTime);
 				pt[1] = CALL_PPUREAD(RefreshAddr | pecnt);
+				runppu(kFetchTime);
+			} else if (QTAIHack && (qtnt & 0x40)) {
+				pt[0] = *(CHRptr[0] + RefreshAddr);
+				runppu(kFetchTime);
+				RefreshAddr |= 8;
+				pt[1] = *(CHRptr[0] + RefreshAddr);
 				runppu(kFetchTime);
 			} else {
 				if (ScreenON)
@@ -2216,7 +2203,7 @@ int FCEUX_PPU_Loop(int skip) {
 							{
 								pixel = addr & 0x1F;
 							}
-							pixelcolor = PALRAM[pixel];
+							pixelcolor = READPAL_MOTHEROFALL(pixel);
 						}
 
 						//generate the BG data
@@ -2474,7 +2461,5 @@ int FCEUX_PPU_Loop(int skip) {
 	}
 
 finish:
-	FCEU_PutImage();
-
 	return 0;
 }
