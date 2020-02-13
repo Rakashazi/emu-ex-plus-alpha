@@ -19,6 +19,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/gui/View.hh>
 
 using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8_t>;

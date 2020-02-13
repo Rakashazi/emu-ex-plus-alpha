@@ -17,7 +17,6 @@
 
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/thread/Semaphore.hh>
 
 class EmuVideo;
 class EmuSystemTask;

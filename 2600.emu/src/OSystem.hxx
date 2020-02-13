@@ -17,6 +17,7 @@ class Random;
 class Settings;
 class Sound;
 class VideoDialog;
+class EmuAudio;
 
 #include <stella/common/bspf.hxx>
 #include <stella/common/StateManager.hxx>
@@ -45,7 +46,7 @@ public:
 	void deleteConsole();
 	void setFrameTime(double frameTime, int rate);
 	void setResampleQuality(AudioSettings::ResamplingQuality quality);
-	void processAudio(bool renderAudio);
+	void processAudio(EmuAudio *audio);
 
 	Console& console() const { return *myConsole; }
 

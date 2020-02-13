@@ -51,11 +51,8 @@ private:
 class PngFile : public GfxImageSource
 {
 public:
-	PngFile() {}
-	~PngFile()
-	{
-		deinit();
-	}
+	PngFile();
+	~PngFile();
 	std::error_code load(GenericIO io);
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name, const char *appName);

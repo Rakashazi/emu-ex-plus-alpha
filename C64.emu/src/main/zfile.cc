@@ -16,6 +16,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 
 extern "C"

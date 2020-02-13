@@ -52,7 +52,7 @@ static void placeElements(Gfx::Renderer &r)
 	TableView::setDefaultXIndent(projP);
 	if(!activeTest)
 	{
-		picker->setViewRect(projP.viewport.bounds(), projP);
+		picker->setViewRect(projP.viewport().bounds(), projP);
 		picker->place();
 	}
 	else
@@ -216,7 +216,7 @@ void onInit(int argc, char** argv)
 			rendererTask.draw(drawableHolder, win, params, {},
 				[](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 				{
-					auto cmds = task.makeRendererCommands(drawable, projP.viewport, projMat);
+					auto cmds = task.makeRendererCommands(drawable, projP.viewport(), projMat);
 					cmds.setClipTest(false);
 					cmds.waitSync(fence);
 					if(!activeTest)

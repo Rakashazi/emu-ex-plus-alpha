@@ -16,6 +16,8 @@
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/gui/AlertView.hh>
@@ -712,7 +714,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	assumeExpr(rate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
 	uint mixRate = std::round(rate * (59.924 * frameTime));
@@ -744,7 +746,7 @@ void RefreshScreen(int screenMode)
 	boardInfo.stop(boardInfo.cpuRef);
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = task;
 	emuVideo = video;
@@ -752,11 +754,11 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	((R800*)boardInfo.cpuRef)->terminate = 0;
 	mixerSync(mixer);
 	UInt32 samples;
-	uint8_t *audio = (uint8_t*)mixerGetBuffer(mixer, &samples);
+	uint8_t *aBuff = (uint8_t*)mixerGetBuffer(mixer, &samples);
 	//logMsg("%d samples", samples/2);
-	if(renderAudio && samples)
+	if(audio && samples)
 	{
-		writeSound(audio, samples/2);
+		audio->writeFrames(aBuff, samples/2);
 	}
 }
 

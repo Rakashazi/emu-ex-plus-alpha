@@ -1,9 +1,25 @@
+/*  This file is part of NES.emu.
+
+	NES.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	NES.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
+
 #define LOGTAG "main"
 
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include "internal.hh"
 #include <fceu/driver.h>
@@ -21,7 +37,7 @@ int closeFinishedMovie = 0;
 int StackAddrBackup = -1;
 int KillFCEUXonFrame = 0;
 
-void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, bool renderAudio)
+void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, EmuAudio *audio)
 {
 	#ifdef _S9XLUA_H
 	FCEU_LuaFrameBoundary();
@@ -37,7 +53,7 @@ void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, bool renderAudio)
 	if (geniestage != 1) FCEU_ApplyPeriodicCheats();
 	FCEUPPU_Loop(onFrameReady, skip);
 
-	emulateSound(renderAudio);
+	emulateSound(audio);
 
 	#ifdef _S9XLUA_H
 	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);

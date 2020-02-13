@@ -16,6 +16,8 @@
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include "internal.hh"
 #include <fceu/driver.h>
 #include <fceu/state.h>
@@ -358,12 +360,17 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
+void EmuSystem::onPrepareAudio(EmuAudio &audio)
+{
+	audio.setDefaultMonoFormat();
+}
+
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
 	video.setFormat({{nesPixX, nesVisiblePixY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	constexpr double ntscFrameRate = 21477272.0 / 357366.0;
 	constexpr double palFrameRate = 21281370.0 / 425568.0;
@@ -373,25 +380,25 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }
 
-void emulateSound(bool renderAudio)
+void emulateSound(EmuAudio *audio)
 {
 	const uint maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+32;
 	int32 sound[maxAudioFrames];
 	uint frames = FlushEmulateSound(sound);
 	//logMsg("%d frames", frames);
 	assert(frames <= maxAudioFrames);
-	if(renderAudio)
+	if(audio)
 	{
 		int16 sound16[maxAudioFrames];
 		iterateTimes(maxAudioFrames, i)
 		{
 			sound16[i] = sound[i];
 		}
-		EmuSystem::writeSound(sound16, frames);
+		audio->writeFrames(sound16, frames);
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	FCEUI_Emulate(
 		[task, video](uint8 *buf)
@@ -403,7 +410,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 			auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});
 			pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
 			img.endFrame();
-		}, video ? 0 : 1, renderAudio);
+		}, video ? 0 : 1, audio);
 	// FCEUI_Emulate calls FCEUD_emulateSound depending on parameters
 }
 
@@ -428,7 +435,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 EmuSystem::Error EmuSystem::onInit()
 {
-	EmuSystem::pcmFormat.channels = 1;
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{

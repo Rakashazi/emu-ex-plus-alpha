@@ -17,30 +17,19 @@
 
 #include <imagine/io/IO.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/util/string.h>
+#include <emuframework/config.hh>
 #include <optional>
 #include <stdexcept>
-#include <emuframework/EmuVideo.hh>
-
-#ifdef ENV_NOTE
-#define PLATFORM_INFO_STR ENV_NOTE " (" CONFIG_ARCH_STR ")"
-#else
-#define PLATFORM_INFO_STR "(" CONFIG_ARCH_STR ")"
-#endif
-#define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
-
-#if (defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA) || \
-	defined CONFIG_BASE_IOS || \
-	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
-#define CONFIG_VCONTROLS_GAMEPAD
-#endif
 
 class EmuInputView;
 class EmuSystemTask;
+class EmuAudio;
+class EmuVideo;
 
 struct AspectRatioInfo
 {
@@ -109,9 +98,6 @@ public:
 	static Base::FrameTimeBase startFrameTime;
 	static Base::FrameTimeBase timePerVideoFrame;
 	static uint emuFrameNow;
-	static IG::Audio::PcmFormat pcmFormat;
-	static uint audioFramesPerVideoFrame;
-	static double audioFramesPerVideoFrameFloat;
 	static uint aspectRatioX, aspectRatioY;
 	static const uint maxPlayers;
 	static const AspectRatioInfo aspectRatioInfo[];
@@ -129,6 +115,9 @@ public:
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };
 	static double frameTimeNative;
 	static double frameTimePAL;
+	static double audioFramesPerVideoFrameFloat;
+	static double currentAudioFramesPerVideoFrame;
+	static uint32_t audioFramesPerVideoFrame;
 	static bool hasResetModes;
 	enum ResetMode { RESET_HARD, RESET_SOFT };
 	static bool handlesArchiveFiles;
@@ -191,11 +180,13 @@ public:
 	static FS::PathString willLoadGameFromPath(FS::PathString path);
 	static Error loadGameFromPath(const char *path, OnLoadProgressDelegate onLoadProgress);
 	static Error loadGameFromFile(GenericIO io, const char *name, OnLoadProgressDelegate onLoadProgress);
-	[[gnu::hot]] static void runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio);
-	static void skipFrames(EmuSystemTask *task, uint frames, bool renderAudio);
+	[[gnu::hot]] static void runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio);
+	static void skipFrames(EmuSystemTask *task, uint frames, EmuAudio *audio);
 	static bool shouldFastForward();
+	static void onPrepareAudio(EmuAudio &audio);
 	static void onPrepareVideo(EmuVideo &video);
 	static bool vidSysIsPAL();
+	static uint32_t updateAudioFramesPerVideoFrame();
 	static double frameTime();
 	static double frameTime(VideoSystem system);
 	static double defaultFrameTime(VideoSystem system);
@@ -203,8 +194,9 @@ public:
 	static bool setFrameTime(VideoSystem system, double time);
 	static uint multiresVideoBaseX();
 	static uint multiresVideoBaseY();
-	static void configAudioRate(double frameTime, int rate);
-	static void configAudioPlayback();
+	static void configAudioRate(double frameTime, uint32_t rate);
+	static void configAudioPlayback(uint32_t rate);
+	static void configFrameTime(uint32_t rate);
 	static void configFrameTime();
 	static void clearInputBuffers(EmuInputView &view);
 	static void handleInputAction(uint state, uint emuKey);
@@ -216,12 +208,6 @@ public:
 	}
 	static bool touchControlsApplicable();
 	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
-	static void stopSound();
-	static void startSound();
-	static void closeSound();
-	static void flushSound();
-	static void writeSound(const void *samples, uint framesToWrite);
-	static uint audioFramesForThisFrame();
 	static uint advanceFramesWithTime(Base::FrameTimeBase time);
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);
@@ -253,15 +239,3 @@ static const char *stateNameStr(int slot)
 	static const char *str[] = { "Auto", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 	return str[slot+1];
 }
-
-#if defined CONFIG_INPUT_POINTING_DEVICES
-#define CONFIG_EMUFRAMEWORK_VCONTROLS
-#endif
-
-#if defined CONFIG_INPUT_KEYBOARD_DEVICES
-#define CONFIG_INPUT_ICADE
-#endif
-
-#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || defined CONFIG_BASE_IOS
-#define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-#endif

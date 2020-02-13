@@ -14,9 +14,80 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuLoadProgressView.hh>
+#include <imagine/gfx/Gfx.hh>
 #include <imagine/util/math/space.hh>
+#include <imagine/logger/logger.h>
+#include "private.hh"
 
-void EmuLoadProgressView::setMax(uint val)
+EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
+	View{attach}, onComplete{onComplete}, originalEvent{e}
+{
+	msgPort.addToEventLoop({},
+		[this](auto msgs)
+		{
+			for(auto msg = msgs.get(); msg; msg = msgs.get())
+			{
+				switch(msg.progress)
+				{
+					bcase EmuSystem::LoadProgress::FAILED:
+					{
+						assumeExpr(msg.intArg3 > 0);
+						uint len = msg.intArg3;
+						char errorStr[len + 1];
+						msgs.getExtraData(errorStr, len);
+						errorStr[len] = 0;
+						msgPort.removeFromEventLoop();
+						EmuApp::popModalViews();
+						EmuApp::postErrorMessage(4, errorStr);
+						return;
+					}
+					bcase EmuSystem::LoadProgress::OK:
+					{
+						msgPort.removeFromEventLoop();
+						auto onComplete = this->onComplete;
+						auto originalEvent = this->originalEvent;
+						EmuApp::popModalViews();
+						EmuSystem::prepareAudioVideo();
+						emuViewController.onSystemCreated();
+						onComplete(originalEvent);
+						return;
+					}
+					bcase EmuSystem::LoadProgress::UPDATE:
+					{
+						setPos(msg.intArg);
+						setMax(msg.intArg2);
+						assumeExpr(msg.intArg3 >= -1);
+						switch(msg.intArg3)
+						{
+							bcase -1: // no string
+							{}
+							bcase 0: // default string
+							{
+								setLabel("Loading...");
+							}
+							bdefault: // custom string
+							{
+								uint len = msg.intArg3;
+								char labelStr[len + 1];
+								msgs.getExtraData(labelStr, len);
+								labelStr[len] = 0;
+								setLabel(labelStr);
+								logMsg("set custom string:%s", labelStr);
+							}
+						}
+						place();
+						postDraw();
+					}
+					bdefault:
+					{
+						logWarn("Unknown LoadProgressMessage value:%d", (int)msg.progress);
+					}
+				}
+			}
+		});
+}
+
+void EmuLoadProgressView::setMax(int val)
 {
 	if(val)
 	{
@@ -24,7 +95,7 @@ void EmuLoadProgressView::setMax(uint val)
 	}
 }
 
-void EmuLoadProgressView::setPos(uint val)
+void EmuLoadProgressView::setPos(int val)
 {
 	pos = val;
 }
@@ -58,10 +129,15 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 		cmds.setColor(.0, .0, .75);
 		Gfx::GC barHeight = text.ySize*1.5;
 		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
-			{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.w), barHeight});
+			{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.width()), barHeight});
 		GeomRect::draw(cmds, bar);
 	}
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	cmds.setColor(COLOR_WHITE);
 	text.draw(cmds, 0, 0, C2DO, projP);
+}
+
+EmuLoadProgressView::MessagePortType &EmuLoadProgressView::messagePort()
+{
+	return msgPort;
 }

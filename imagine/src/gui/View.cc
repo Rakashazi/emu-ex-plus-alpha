@@ -98,7 +98,7 @@ void View::setFocus(bool) {}
 
 void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
 {
-	this->viewRect() = rect;
+	this->viewRect_ = rect;
 	this->projP = projP;
 }
 
@@ -165,6 +165,16 @@ void View::setController(ViewController *c, Input::Event e)
 	{
 		onAddedToController(e);
 	}
+}
+
+IG::WindowRect View::viewRect() const
+{
+	return viewRect_;
+}
+
+Gfx::ProjectionPlane View::projection() const
+{
+	return projP;
 }
 
 bool View::pointIsInView(IG::WP pos)

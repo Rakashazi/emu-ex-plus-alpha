@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuView.hh>
-#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuVideoLayer.hh>
 #include <algorithm>
 
 EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer):

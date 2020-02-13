@@ -17,7 +17,9 @@
 #include <emuframework/inGameActionKeys.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
+#include <imagine/logger/logger.h>
 #include "private.hh"
 #include "privateInput.hh"
 
@@ -89,13 +91,13 @@ void ButtonConfigSetView::place()
 		cancel.compile(renderer(), projP);
 
 		IG::WindowRect btnFrame;
-		btnFrame.setPosRel(viewFrame.pos(LB2DO), IG::makeEvenRoundedUp(projP.projectYSize(unbind.nominalHeight*2)), LB2DO);
+		btnFrame.setPosRel(viewRect().pos(LB2DO), IG::makeEvenRoundedUp(projP.projectYSize(unbind.nominalHeight*2)), LB2DO);
 		unbindB = btnFrame;
-		unbindB.x = (viewFrame.xSize()/2)*0;
-		unbindB.x2 = (viewFrame.xSize()/2)*1;
+		unbindB.x = (viewRect().xSize()/2)*0;
+		unbindB.x2 = (viewRect().xSize()/2)*1;
 		cancelB = btnFrame;
-		cancelB.x = (viewFrame.xSize()/2)*1;
-		cancelB.x2 = (viewFrame.xSize()/2)*2;
+		cancelB.x = (viewRect().xSize()/2)*1;
+		cancelB.x2 = (viewRect().xSize()/2)*2;
 	}
 	#endif
 }
@@ -167,7 +169,7 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 	cmds.setBlendMode(0);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(cmds, viewFrame, projP);
+	GeomRect::draw(cmds, viewRect(), projP);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
 	{

@@ -16,7 +16,6 @@
 #define LOGTAG "video"
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
 #include "internal.hh"
 
 extern "C"
@@ -60,7 +59,7 @@ void vsyncarch_refresh_frequency_changed(double rate)
 {
 	logMsg("system frame rate:%.4f", rate);
 	systemFrameRate = rate;
-	EmuSystem::configAudioPlayback();
+	EmuSystem::configFrameTime();
 }
 
 void video_arch_canvas_init(struct video_canvas_s *c)

@@ -1,7 +1,23 @@
+/*  This file is part of Saturn.emu.
+
+	Saturn.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Saturn.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Saturn.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include "internal.hh"
 
 extern "C"
@@ -20,6 +36,9 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
+static EmuSystemTask *emuSysTask{};
+static EmuAudio *emuAudio{};
+static EmuVideo *emuVideo{};
 PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
@@ -79,7 +98,10 @@ static void SNDImagineUpdateAudio(u32 *leftchanbuffer, u32 *rightchanbuffer, u32
 	{
 		mergeSamplesToStereo(leftchanbuffer[i], rightchanbuffer[i], &sample[i*2]);
 	}
-	EmuSystem::writeSound(sample, frames);
+	if(emuAudio)
+	{
+		emuAudio->writeFrames(sample, frames);
+	}
 }
 
 static u32 SNDImagineGetAudioSpace()
@@ -197,9 +219,6 @@ EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasCDExtension;
 
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
 
-static EmuSystemTask *emuSysTask{};
-static EmuVideo *emuVideo{};
-
 CLINK void YuiSwapBuffers()
 {
 	//logMsg("YuiSwapBuffers");
@@ -304,17 +323,19 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	// TODO: use frameTime
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = task;
 	emuVideo = video;
-	SNDImagine.UpdateAudio = renderAudio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
+	emuAudio = audio;
+	SNDImagine.UpdateAudio = audio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;
 	YabauseEmulate();
+	emuAudio = {};
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

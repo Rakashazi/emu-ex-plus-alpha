@@ -6,7 +6,32 @@
 namespace Gfx
 {
 
-void ProjectionPlane::updateMMSize(const Viewport &v)
+GC ProjectionPlane::width() const
+{
+	return w;
+}
+
+GC ProjectionPlane::height() const
+{
+	return h;
+}
+
+GP ProjectionPlane::size() const
+{
+	return {w, h};
+}
+
+GC ProjectionPlane::focalZ() const
+{
+	return focal;
+}
+
+Viewport ProjectionPlane::viewport() const
+{
+	return viewport_;
+}
+
+void ProjectionPlane::updateMMSize(Viewport v)
 {
 	mmToXScale = w/(GC)v.widthMM();
 	mmToYScale = h/(GC)v.heightMM();
@@ -17,11 +42,11 @@ void ProjectionPlane::updateMMSize(const Viewport &v)
 	//logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
 }
 
-ProjectionPlane ProjectionPlane::makeWithMatrix(const Viewport &viewport, const Mat4 &mat)
+ProjectionPlane ProjectionPlane::makeWithMatrix(Viewport viewport, Mat4 mat)
 {
 	ProjectionPlane p;
 	auto matInv = mat.invert();
-	p.viewport = viewport;
+	p.viewport_ = viewport;
 	auto lowerLeft = mat.unproject(viewport.inGLFormat(), {(GC)viewport.bounds().x, (GC)viewport.bounds().y, .5}, matInv);
 	//logMsg("Lower-left projection point %d,%d -> %f %f %f", viewport.bounds().x, viewport.bounds().y, (double)lowerLeft.v.x, (double)lowerLeft.v.y, (double)lowerLeft.v.z);
 	auto upperRight = mat.unproject(viewport.inGLFormat(), {(GC)viewport.bounds().x2, (GC)viewport.bounds().y2, .5}, matInv);
@@ -83,12 +108,12 @@ GC ProjectionPlane::unprojectYSize(int y) const
 
 GC ProjectionPlane::unprojectX(int x) const
 {
-	return unprojectXSize(x - viewport.bounds().x) - wHalf();
+	return unprojectXSize(x - viewport().bounds().x) - wHalf();
 }
 
 GC ProjectionPlane::unprojectY(int y) const
 {
-	return -unprojectYSize(y - viewport.bounds().y) + hHalf();
+	return -unprojectYSize(y - viewport().bounds().y) + hHalf();
 }
 
 int ProjectionPlane::projectXSize(GC x) const
@@ -108,13 +133,13 @@ int ProjectionPlane::projectYSize(GC y) const
 int ProjectionPlane::projectX(GC x) const
 {
 	//logMsg("unproject x %f", x);
-	return projectXSize(x + wHalf()) + viewport.bounds().x;
+	return projectXSize(x + wHalf()) + viewport().bounds().x;
 }
 
 int ProjectionPlane::projectY(GC y) const
 {
 	//logMsg("unproject y %f", y);
-	return projectYSize(-(y - hHalf())) + viewport.bounds().y;
+	return projectYSize(-(y - hHalf())) + viewport().bounds().y;
 }
 
 GCRect ProjectionPlane::unProjectRect(int x, int y, int x2, int y2) const
@@ -127,12 +152,12 @@ GCRect ProjectionPlane::unProjectRect(int x, int y, int x2, int y2) const
 	return objRect;
 }
 
-GCRect ProjectionPlane::unProjectRect(const IG::WindowRect &r) const
+GCRect ProjectionPlane::unProjectRect(IG::WindowRect r) const
 {
 	return unProjectRect(r.x, r.y, r.x2, r.y2);
 }
 
-IG::WindowRect ProjectionPlane::projectRect(const GCRect &r) const
+IG::WindowRect ProjectionPlane::projectRect(GCRect r) const
 {
 	IG::WindowRect winRect;
 	winRect.x = projectX(r.x);

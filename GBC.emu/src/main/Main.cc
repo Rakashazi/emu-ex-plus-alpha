@@ -1,21 +1,23 @@
-/*  This file is part of GBA.emu.
+/*  This file is part of GBC.emu.
 
-	PCE.emu is free software: you can redistribute it and/or modify
+	GBC.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	PCE.emu is distributed in the hope that it will be useful,
+	GBC.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include <gambatte.h>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
@@ -168,7 +170,7 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{gbResX, gbResY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	long outputRate = std::round(rate * (59.7275 * frameTime));
 	long inputRate = 2097152;
@@ -183,7 +185,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	alignas(std::max_align_t) uint8_t snd[(35112+2064)*4];
 	size_t samples = 35112;
@@ -204,7 +206,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	{
 		frameSample = gbEmu.runFor(nullptr, 160, (uint_least32_t*)snd, samples, frameCallback);
 	}
-	if(renderAudio)
+	if(audio)
 	{
 		if(frameSample == -1)
 		{
@@ -226,7 +228,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 		short destBuff[(48000/54)*2];
 		uint destFrames = resampler->resample(destBuff, (const short*)snd, samples);
 		assert(destFrames * 4 <= sizeof(destBuff));
-		EmuSystem::writeSound(destBuff, destFrames);
+		audio->writeFrames(destBuff, destFrames);
 	}
 }
 

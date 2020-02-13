@@ -17,6 +17,7 @@
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #undef Debugger
 #include "internal.hh"

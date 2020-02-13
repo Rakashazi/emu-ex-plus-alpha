@@ -414,7 +414,7 @@ bool handleXI2GenericEvent(XEvent &event)
 			//logMsg("KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
 			if(pushed && k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
 			{
-				toggleFullScreen(win.xWin);
+				toggleFullScreen(win.nativeObject());
 			}
 			else if(!pushed || (pushed && (allowKeyRepeats() || !repeated)))
 			{

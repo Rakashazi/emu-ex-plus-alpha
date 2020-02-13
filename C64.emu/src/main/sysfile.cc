@@ -15,9 +15,8 @@
 
 #define LOGTAG "sysfile"
 #include <array>
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include "internal.hh"

@@ -17,8 +17,6 @@
 
 #include <array>
 #include <imagine/io/IO.hh>
-#include <imagine/bluetooth/sys.hh>
-#include <imagine/gui/View.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>

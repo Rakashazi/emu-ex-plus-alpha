@@ -143,7 +143,8 @@ static int eventHandler(XEvent &event)
 			}
 			else if(Config::Base::XDND && dndInit)
 			{
-				handleXDNDEvent(dpy, event.xclient, win.xWin, win.draggerXWin, win.dragAction);
+				auto [draggerXWin, dragAction] = win.xdndData();
+				handleXDNDEvent(dpy, event.xclient, win.nativeObject(), draggerXWin, dragAction);
 			}
 			XFree(clientMsgName);
 		}
@@ -162,10 +163,11 @@ static int eventHandler(XEvent &event)
 				unsigned long bytesAfter;
 				unsigned char *prop;
 				Atom type;
-				XGetWindowProperty(dpy, win.xWin, event.xselection.property, 0, 256, False, AnyPropertyType, &type, &format, &numItems, &bytesAfter, &prop);
+				XGetWindowProperty(dpy, win.nativeObject(), event.xselection.property, 0, 256, False, AnyPropertyType, &type, &format, &numItems, &bytesAfter, &prop);
 				logMsg("property read %lu items, in %d format, %lu bytes left", numItems, format, bytesAfter);
 				logMsg("property is %s", prop);
-				sendDNDFinished(dpy, win.xWin, win.draggerXWin, win.dragAction);
+				auto [draggerXWin, dragAction] = win.xdndData();
+				sendDNDFinished(dpy, win.nativeObject(), draggerXWin, dragAction);
 				auto filename = (char*)prop;
 				fileURLToPath(filename);
 				win.dispatchDragDrop(filename);

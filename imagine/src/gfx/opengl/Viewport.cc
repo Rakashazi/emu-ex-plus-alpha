@@ -20,7 +20,34 @@
 namespace Gfx
 {
 
-Viewport Viewport::makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &fullRealRect, const IG::WindowRect &rect)
+IG::WindowRect Viewport::relRectFromViewport(int newX, int newY, int xSize, int ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+{
+	// adjust to the requested origin on the screen
+	//logMsg("relRectFromViewport %d,%d %d,%d", newX, newY, xSize, ySize);
+	newX = LT2DO.adjustX(newX, (int)width(), screenOrigin.invertYIfCartesian());
+	newY = LT2DO.adjustY(newY, (int)height(), screenOrigin.invertYIfCartesian());
+	//logMsg("translated to %d,%d", newX, newY);
+	IG::WindowRect rect;
+	rect.setPosRel({newX, newY}, {xSize, ySize}, posOrigin);
+	return rect;
+}
+
+IG::WindowRect Viewport::relRectFromViewport(int newX, int newY, int size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+{
+	return relRectFromViewport(newX, newY, size, size, posOrigin, screenOrigin);
+}
+
+IG::WindowRect Viewport::relRectFromViewport(int newX, int newY, IG::Point2D<int> size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+{
+	return relRectFromViewport(newX, newY, size.x, size.y, posOrigin, screenOrigin);
+}
+
+IG::WindowRect Viewport::rectWithRatioBestFitFromViewport(int newX, int newY, float aR, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
+{
+	return relRectFromViewport(newX, newY, sizesWithRatioBestFitFromViewport(aR), posOrigin, screenOrigin);
+}
+
+Viewport Viewport::makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullRealRect, IG::WindowRect rect)
 {
 	Viewport v;
 	v.rect = rect;
@@ -43,7 +70,7 @@ Viewport Viewport::makeFromRect(const IG::WindowRect &fullRect, const IG::Window
 	return v;
 }
 
-Viewport Viewport::makeFromWindow(const Base::Window &win, const IG::WindowRect &rect)
+Viewport Viewport::makeFromWindow(const Base::Window &win, IG::WindowRect rect)
 {
 	Viewport v;
 	v.rect = rect;

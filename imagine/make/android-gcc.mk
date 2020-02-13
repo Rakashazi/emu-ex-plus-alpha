@@ -1,6 +1,7 @@
 # Included by arch-specific Android makefiles
 
 ENV := android
+ENV_KERNEL := linux
 CROSS_COMPILE := 1
 
 ifeq ($(ANDROID_NDK_PATH),)

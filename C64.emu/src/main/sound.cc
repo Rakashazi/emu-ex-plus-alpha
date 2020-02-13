@@ -14,8 +14,7 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "sound"
-#include <emuframework/EmuSystem.hh>
-#include <emuframework/CommonFrameworkIncludes.hh>
+#include <emuframework/EmuAudio.hh>
 #include "internal.hh"
 
 extern "C"
@@ -34,8 +33,8 @@ static int soundInit(const char *param, int *speed,
 static int soundWrite(SWORD *pbuf, size_t nr)
 {
 	//logMsg("sound write %zd", nr);
-	if(likely(doAudio))
-		EmuSystem::writeSound(pbuf, nr);
+	if(likely(audioPtr))
+		audioPtr->writeFrames(pbuf, nr);
 	return 0;
 }
 

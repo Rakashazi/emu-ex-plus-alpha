@@ -17,9 +17,9 @@
 
 #include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>
-#include <imagine/util/container/ArrayList.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/gui/MenuItem.hh>
+
+class TextMenuItem;
 
 struct RecentGameInfo
 {

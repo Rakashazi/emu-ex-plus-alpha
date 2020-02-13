@@ -21,10 +21,10 @@
 
 class RecentGameView : public TableView
 {
+public:
+	RecentGameView(ViewAttachParams attach);
+
 private:
 	std::vector<TextMenuItem> recentGame{};
 	TextMenuItem clear{};
-
-public:
-	RecentGameView(ViewAttachParams attach);
 };

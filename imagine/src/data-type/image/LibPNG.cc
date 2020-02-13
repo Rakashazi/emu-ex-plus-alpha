@@ -355,6 +355,13 @@ Png::operator bool() const
 	return info;
 }
 
+PngFile::PngFile() {}
+
+PngFile::~PngFile()
+{
+	deinit();
+}
+
 std::errc PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));

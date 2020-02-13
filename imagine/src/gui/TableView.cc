@@ -34,6 +34,16 @@ TableView::TableView(const char *name, ViewAttachParams attach, ItemsDelegate it
 	ScrollView{name, attach}, items{items}, item{item}
 {}
 
+uint32_t TableView::cells() const
+{
+	return items(*this);
+}
+
+IG::WP TableView::cellSize() const
+{
+	return {viewRect().x, yCellSize};
+}
+
 void TableView::highlightCell(int idx)
 {
 	auto cells_ = items(*this);

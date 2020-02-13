@@ -1,4 +1,5 @@
 ENV := ios
+ENV_KERNEL := mach
 CROSS_COMPILE := 1
 
 ifndef target

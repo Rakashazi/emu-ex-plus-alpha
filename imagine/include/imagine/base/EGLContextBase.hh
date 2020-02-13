@@ -15,6 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#ifndef EGL_NO_X11
+#define EGL_NO_X11
+#endif
+
 #include <imagine/config/defs.hh>
 #include <imagine/base/WindowConfig.hh>
 #include <EGL/egl.h>

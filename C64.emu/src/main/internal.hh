@@ -2,14 +2,16 @@
 
 #include "VicePlugin.hh"
 #include <imagine/thread/Semaphore.hh>
-#include <imagine/pixmap/PixelFormat.hh>
-#include <emuframework/OptionView.hh>
+#include <imagine/pixmap/Pixmap.hh>
+#include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
+
+class EmuAudio;
 
 extern VicePlugin plugin;
 extern ViceSystem currSystem;
 extern FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3];
-extern bool doAudio;
+extern EmuAudio *audioPtr;
 extern bool runningFrame;
 extern bool autostartOnLoad;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;

@@ -16,6 +16,7 @@
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuVideoLayer.hh>
 #include "EmuOptions.hh"
 #include <imagine/gui/AlertView.hh>
 #include <emuframework/FilePicker.hh>

@@ -22,10 +22,6 @@
 #include <imagine/io/IO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuView.hh>
-#include <emuframework/EmuVideo.hh>
-#include <emuframework/Option.hh>
-#include <emuframework/FileUtils.hh>
 
 class EmuApp
 {

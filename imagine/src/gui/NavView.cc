@@ -153,11 +153,6 @@ void NavView::clearSelection()
 
 void NavView::onAddedToController(Input::Event e) {}
 
-IG::WindowRect &NavView::viewRect()
-{
-	return viewRect_;
-}
-
 Gfx::GlyphTextureSet *NavView::titleFace()
 {
 	return text.face;

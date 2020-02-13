@@ -28,8 +28,6 @@ class ArchiveIterator :
 	public NotEquals<ArchiveIterator>
 {
 public:
-	ArchiveEntry archEntry{};
-
 	ArchiveIterator() {}
 	ArchiveIterator(PathString path): ArchiveIterator{path.data()} {}
 	ArchiveIterator(const char *path);
@@ -37,7 +35,7 @@ public:
 	ArchiveIterator(const char *path, std::error_code &result);
 	ArchiveIterator(GenericIO io);
 	ArchiveIterator(GenericIO io, std::error_code &result);
-	ArchiveIterator(ArchiveEntry &&entry): archEntry{std::move(entry)} {}
+	ArchiveIterator(ArchiveEntry &&entry);
 	~ArchiveIterator();
 	ArchiveEntry& operator*();
 	ArchiveEntry* operator->();
@@ -48,6 +46,8 @@ public:
 private:
 	void init(const char *path, std::error_code &result);
 	void init(GenericIO io, std::error_code &result);
+
+	ArchiveEntry archEntry{};
 };
 
 static const ArchiveIterator &begin(const ArchiveIterator &iter)

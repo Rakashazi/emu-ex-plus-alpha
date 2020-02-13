@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/glm/vec3.hpp>
+#include <imagine/glm/ext/vector_float3.hpp>
 
 class GLMVec3
 {

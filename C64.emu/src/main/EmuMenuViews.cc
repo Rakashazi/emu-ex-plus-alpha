@@ -14,10 +14,14 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/TextTableView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/base/Base.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuMainMenuView.hh>
+#include <emuframework/FilePicker.hh>
 #include "internal.hh"
 #include "VicePlugin.hh"
 

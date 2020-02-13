@@ -16,6 +16,7 @@
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/logger/logger.h>
 #include "private.hh"
 
 static const VideoImageEffect::EffectDesc
@@ -165,13 +166,13 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
 	renderTargetScale = desc->scale;
 	initRenderTargetTexture(r);
 	auto err = compileEffect(r, *desc, isExternalTex, false);
-	if(err.code())
+	if(err)
 	{
 		auto fallbackErr = compileEffect(r, *desc, isExternalTex, true);
-		if(fallbackErr.code())
+		if(fallbackErr)
 		{
 			// print error from original compile if fallback effect not found
-			EmuApp::printfMessage(3, true, "%s", err.code().value() == ENOENT ? err.what() : fallbackErr.what());
+			EmuApp::printfMessage(3, true, "%s", err->code().value() == ENOENT ? err->what() : fallbackErr->what());
 			deinit(r);
 			return;
 		}
@@ -179,7 +180,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
 	}
 }
 
-std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
+std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
 {
 	{
 		auto file = EmuApp::openAppAssetIO(
@@ -188,7 +189,7 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 		if(!file)
 		{
 			deinitProgram(r);
-			return {{ENOENT, std::system_category()}, string_makePrintf<128>("Can't open file: %s", desc.vShaderFilename).data()};
+			return std::system_error{{ENOENT, std::system_category()}, string_makePrintf<128>("Can't open file: %s", desc.vShaderFilename).data()};
 		}
 		auto fileSize = file.size();
 		char text[fileSize + 1];
@@ -202,7 +203,7 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 		{
 			deinitProgram(r);
 			r.autoReleaseShaderCompiler();
-			return {{EINVAL, std::system_category()}, "GPU rejected shader (vertex compile error)"};
+			return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (vertex compile error)"};
 		}
 	}
 	{
@@ -213,7 +214,7 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 		{
 			deinitProgram(r);
 			r.autoReleaseShaderCompiler();
-			return {{ENOENT, std::system_category()}, string_makePrintf<128>("Can't open file: %s", desc.fShaderFilename).data()};
+			return std::system_error{{ENOENT, std::system_category()}, string_makePrintf<128>("Can't open file: %s", desc.fShaderFilename).data()};
 		}
 		auto fileSize = file.size();
 		char text[fileSize + 1];
@@ -227,7 +228,7 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 		{
 			deinitProgram(r);
 			r.autoReleaseShaderCompiler();
-			return {{EINVAL, std::system_category()}, "GPU rejected shader (fragment compile error)"};
+			return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (fragment compile error)"};
 		}
 	}
 	logMsg("linking program");
@@ -236,14 +237,14 @@ std::system_error VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc d
 	{
 		deinitProgram(r);
 		r.autoReleaseShaderCompiler();
-		return {{EINVAL, std::system_category()}, "GPU rejected shader (link error)"};
+		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (link error)"};
 	}
 	srcTexelDeltaU = prog.uniformLocation(r, "srcTexelDelta");
 	srcTexelHalfDeltaU = prog.uniformLocation(r, "srcTexelHalfDelta");
 	srcPixelsU = prog.uniformLocation(r, "srcPixels");
 	updateProgramUniforms(r);
 	r.autoReleaseShaderCompiler();
-	return {{}};
+	return {};
 }
 
 void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)

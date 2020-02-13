@@ -5,19 +5,15 @@
 #include <mednafen/movie.h>
 #include <mednafen/cputest/cputest.h>
 #include <mednafen/MemoryStream.h>
-#include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/thread/Thread.hh>
-#include <imagine/fs/FS.hh>
-#include <imagine/io/FileIO.hh>
-#include <imagine/util/string.h>
+#include <thread>
+#include <mutex>
 #include <condition_variable>
 
-struct MDFN_Thread : public IG::thread
+struct MDFN_Thread : public std::thread
 {
-	using IG::thread::thread;
+	using thread::thread;
 };
-
 struct MDFN_Mutex : public std::mutex {};
 struct MDFN_Cond : public std::condition_variable {};
 
@@ -59,13 +55,7 @@ void MDFN_ResetMessages(void) { }
 
 MDFN_Thread *MDFND_CreateThread(void* (*fn)(void *), void *data)
 {
-	return new MDFN_Thread
-	{
-		[fn, data]()
-		{
-			fn(data);
-		}
-	};
+	return new MDFN_Thread{fn, data};
 }
 
 void MDFND_WaitThread(MDFN_Thread *thread, int *status)

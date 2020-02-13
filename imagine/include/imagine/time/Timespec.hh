@@ -22,12 +22,13 @@ namespace IG
 
 class Timespec
 {
-protected:
-	uint64_t t = 0;
 public:
 	constexpr Timespec() {}
 	uint64_t &primitiveVal() { return t; }
 	const uint64_t &primitiveVal() const { return t; }
+
+protected:
+	uint64_t t = 0;
 };
 
 using TimeImpl = Timespec;

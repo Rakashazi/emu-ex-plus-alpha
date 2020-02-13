@@ -15,11 +15,14 @@
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/gui/AlertView.hh>
+#include <imagine/base/Base.hh>
 #include "internal.hh"
 #include <sys/time.h>
 
@@ -64,7 +67,8 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 IG::Semaphore execSem{0}, execDoneSem{0};
-bool runningFrame = false, doAudio = false;
+bool runningFrame = false;
+EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
 bool autostartOnLoad = true;
 FS::PathString firmwareBasePath{};
@@ -374,7 +378,7 @@ EmuSystem::Error EmuSystem::saveState(const char *path)
 	SnapshotTrapData data;
 	data.pathStr = path;
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-	skipFrames(nullptr, 1, false); // execute cpu trap
+	skipFrames(nullptr, 1, nullptr); // execute cpu trap
 	return data.hasError ? makeFileWriteError() : Error{};
 }
 
@@ -383,14 +387,14 @@ EmuSystem::Error EmuSystem::loadState(const char *path)
 	plugin.resources_set_int("WarpMode", 0);
 	SnapshotTrapData data;
 	data.pathStr = path;
-	skipFrames(nullptr, 1, false); // run extra frame in case C64 was just started
+	skipFrames(nullptr, 1, nullptr); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	skipFrames(nullptr, 1, false); // execute cpu trap, snapshot load may cause reboot from a C64 model change
+	skipFrames(nullptr, 1, nullptr); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
 		return makeFileReadError();
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	skipFrames(nullptr, 1, false); // execute cpu trap
+	skipFrames(nullptr, 1, nullptr); // execute cpu trap
 	bool hasError = data.hasError;
 	isPal = sysIsPal();
 	return hasError ? makeFileReadError() : Error{};
@@ -509,23 +513,23 @@ static void execC64Frame()
 	execDoneSem.wait();
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	runningFrame = 1;
-	doAudio = renderAudio;
+	audioPtr = audio;
 	setCanvasSkipFrame(!video);
 	execC64Frame();
 	if(video)
 	{
 		video->startFrameWithFormat(task, canvasSrcPix);
 	}
+	audioPtr = {};
 	runningFrame = 0;
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	logMsg("set audio rate %d", rate);
-	pcmFormat.rate = rate;
 	int mixRate = std::round(rate * (systemFrameRate * frameTime));
 	int currRate = 0;
 	plugin.resources_get_int("SoundSampleRate", &currRate);
@@ -562,6 +566,11 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 		FS::makePathStringPrintf("%s/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath().data()).data());
 }
 
+void EmuSystem::onPrepareAudio(EmuAudio &audio)
+{
+	audio.setDefaultMonoFormat();
+}
+
 EmuSystem::Error EmuSystem::onInit()
 {
 	IG::makeDetachedThread(
@@ -594,6 +603,5 @@ EmuSystem::Error EmuSystem::onInit()
 	optionReSidSampling.initDefault(SID_RESID_SAMPLING_FAST);
 	#endif
 
-	EmuSystem::pcmFormat.channels = 1;
 	return {};
 }

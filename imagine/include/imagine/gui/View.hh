@@ -80,7 +80,6 @@ public:
 	constexpr View(const char *name, ViewAttachParams attach):
 		win(&attach.window()), rendererTask_{&attach.rendererTask()}, name_(name) {}
 
-	virtual IG::WindowRect &viewRect() = 0;
 	virtual void place() = 0;
 	virtual void prepareDraw();
 	virtual void draw(Gfx::RendererCommands &cmds) = 0;
@@ -110,7 +109,8 @@ public:
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 	void setWindow(Base::Window *w) { win = w; }
 	void setController(ViewController *c, Input::Event e);
-	Gfx::ProjectionPlane projection() { return projP; }
+	IG::WindowRect viewRect() const;
+	Gfx::ProjectionPlane projection() const;
 	bool pointIsInView(IG::WP pos);
 	void waitForDrawFinished();
 
@@ -130,6 +130,7 @@ protected:
 	Base::Window *win{};
 	Gfx::RendererTask *rendererTask_{};
 	ViewController *controller{};
+	IG::WindowRect viewRect_{};
 	Gfx::ProjectionPlane projP{};
 	const char *name_ = "";
 };

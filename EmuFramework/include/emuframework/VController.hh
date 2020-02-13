@@ -15,13 +15,15 @@
 
 #pragma once
 #include <imagine/gfx/GfxSprite.hh>
-#include <imagine/base/Base.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/TurboInput.hh>
-#include <cmath>
 
 class VController;
 struct AppWindowData;
+
+namespace Base
+{
+class Window;
+}
 
 struct VControllerLayoutPosition
 {

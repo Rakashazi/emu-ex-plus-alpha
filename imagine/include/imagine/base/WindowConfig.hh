@@ -38,22 +38,6 @@ class Screen;
 
 class WindowConfig
 {
-private:
-	Point2D<int> pos{-1, -1};
-	Point2D<int> size_{0, 0};
-	Point2D<int> minSize{320, 240};
-	NativeWindowFormat fmt{};
-	Screen *screen_{};
-	BaseWindow::SurfaceChangeDelegate onSurfaceChange_;
-	BaseWindow::DrawDelegate onDraw_;
-	BaseWindow::InputEventDelegate onInputEvent_;
-	BaseWindow::FocusChangeDelegate onFocusChange_;
-	BaseWindow::DragDropDelegate onDragDrop_;
-	BaseWindow::DismissRequestDelegate onDismissRequest_;
-	BaseWindow::DismissDelegate onDismiss_;
-	BaseWindow::FreeDelegate onFree_;
-	void *customData_{};
-
 public:
 	constexpr WindowConfig() {}
 
@@ -213,6 +197,22 @@ public:
 	{
 		return customData_;
 	}
+
+private:
+	Point2D<int> pos{-1, -1};
+	Point2D<int> size_{0, 0};
+	Point2D<int> minSize{320, 240};
+	NativeWindowFormat fmt{};
+	Screen *screen_{};
+	BaseWindow::SurfaceChangeDelegate onSurfaceChange_;
+	BaseWindow::DrawDelegate onDraw_;
+	BaseWindow::InputEventDelegate onInputEvent_;
+	BaseWindow::FocusChangeDelegate onFocusChange_;
+	BaseWindow::DragDropDelegate onDragDrop_;
+	BaseWindow::DismissRequestDelegate onDismissRequest_;
+	BaseWindow::DismissDelegate onDismiss_;
+	BaseWindow::FreeDelegate onFree_;
+	void *customData_{};
 };
 
 }

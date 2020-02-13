@@ -2,6 +2,7 @@
 #include "shared.h"
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 
 uint hasROMExtension(const char *name)

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef EGL_NO_X11
+#define EGL_NO_X11
+#endif
+
 #include <EGL/egl.h>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>

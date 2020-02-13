@@ -16,18 +16,22 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <memory>
-#include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
+#include <imagine/base/Screen.hh>
+#include <imagine/base/MessagePort.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
-#include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
-#include <imagine/thread/Thread.hh>
+#include <imagine/gfx/Gfx.hh>
+#include <imagine/thread/Semaphore.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuInputView.hh>
-#include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuView.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include <emuframework/Recent.hh>
 
 enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
@@ -36,7 +40,7 @@ struct AppWindowData
 {
 	Base::Window win{};
 	Gfx::DrawableHolder drawableHolder{};
-	Gfx::Viewport viewport() const { return projectionPlane.viewport; }
+	Gfx::Viewport viewport() const { return projectionPlane.viewport(); }
 	Gfx::Mat4 projectionMat{};
 	Gfx::ProjectionPlane projectionPlane{};
 	Gfx::AnimatedViewport animatedViewport{};
@@ -220,6 +224,7 @@ extern EmuSystemTask emuSystemTask;
 extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern EmuVideo emuVideo;
+extern EmuAudio emuAudio;
 extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
 static constexpr const char *strftimeFormat = "%x  %r";
 

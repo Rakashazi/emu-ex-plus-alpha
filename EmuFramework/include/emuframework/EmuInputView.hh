@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
-#include <emuframework/EmuVideo.hh>
 
 class VController;
 
@@ -24,7 +23,6 @@ class EmuInputView : public View
 {
 public:
 	EmuInputView(ViewAttachParams attach, VController &vCtrl);
-	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
@@ -34,7 +32,6 @@ public:
 
 private:
 	VController &vController;
-	IG::WindowRect rect{};
 	bool touchControlsOn = false;
 	bool ffKeyPushed = false, ffToggleActive = false;
 

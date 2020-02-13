@@ -16,6 +16,7 @@
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/logger/logger.h>
 #include "private.hh"
 
 static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;

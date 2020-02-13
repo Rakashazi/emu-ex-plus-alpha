@@ -9,6 +9,8 @@
 #include <cstring>
 #include <iosfwd>
 
+class EmuAudio;
+
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
 inline FILE *FCEUD_UTF8fopen(const std::string &n, const char *mode) { return FCEUD_UTF8fopen(n.c_str(),mode); }
 EMUFILE_FILE* FCEUD_UTF8_fstream(const char *n, const char *m);
@@ -109,7 +111,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 bool FCEUI_Initialize();
 
 //Emulates a frame.
-void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, bool renderAudio);
+void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, EmuAudio *audio);
 
 //Closes currently loaded game
 void FCEUI_CloseGame(void);

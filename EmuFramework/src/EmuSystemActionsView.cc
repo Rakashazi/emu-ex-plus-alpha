@@ -15,6 +15,8 @@
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/logger/logger.h>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
@@ -23,7 +25,6 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/OptionView.hh>
-#include "EmuOptions.hh"
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
@@ -269,7 +270,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			if(EmuSystem::gameIsRunning())
 			{
 				emuVideo.takeGameScreenshot();
-				EmuSystem::runFrame(nullptr, &emuVideo, false);
+				EmuSystem::runFrame(nullptr, &emuVideo, nullptr);
 			}
 		}
 	},

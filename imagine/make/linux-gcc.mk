@@ -1,4 +1,5 @@
 ENV := linux
+ENV_KERNEL := linux
 
 ifndef target
  target = $(metadata_exec)

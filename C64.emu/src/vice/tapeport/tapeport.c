@@ -730,6 +730,7 @@ int tapeport_snapshot_read_module(snapshot_t *s)
                 c = c->next;
             }
         }
+        lib_free(devices);
         return 0;
     }
 

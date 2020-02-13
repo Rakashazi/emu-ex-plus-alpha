@@ -21,26 +21,23 @@
 
 class EmuLoadProgressView : public View
 {
-private:
-	Gfx::Text text{"Loading...", &View::defaultFace};
-	IG::WindowRect rect;
-	IG::WindowRect &viewRect() final { return rect; }
-	uint pos = 0, max = 0;
-	std::array<char, 128> str{};
-
 public:
-	EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
-		View{attach}, originalEvent{e}, onComplete{onComplete} {}
+	using MessagePortType = Base::MessagePort<EmuSystem::LoadProgressMessage>;
 
-	void setMax(uint val);
-	void setPos(uint val);
+	EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete);
+	void setMax(int val);
+	void setPos(int val);
 	void setLabel(const char *str);
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;
+	MessagePortType &messagePort();
 
-	// load context vars
-	Base::MessagePort<EmuSystem::LoadProgressMessage> msgPort{"EmuLoadProgressView"};
-	Input::Event originalEvent{};
+private:
+	MessagePortType msgPort{"EmuLoadProgressView"};
 	EmuApp::CreateSystemCompleteDelegate onComplete{};
+	Gfx::Text text{"Loading...", &View::defaultFace};
+	Input::Event originalEvent{};
+	int pos = 0, max = 0;
+	std::array<char, 128> str{};
 };

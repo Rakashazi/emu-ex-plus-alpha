@@ -1,21 +1,23 @@
 /*  This file is part of NEO.emu.
 
-	MD.emu is free software: you can redistribute it and/or modify
+	NEO.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	MD.emu is distributed in the hope that it will be useful,
+	NEO.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with MD.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with NEO.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include <imagine/base/Pipe.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/fs/ArchiveFS.hh>
@@ -336,7 +338,7 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat(srcPix);
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime));
 	if(gameIsRunning())
@@ -361,18 +363,18 @@ CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("run frame %d", (int)processGfx);
 	if(video)
 		IG::fillData(screenBuff, (uint16_t)current_pc_pal[4095]);
 	main_frame(task, video);
-	auto audioFrames = audioFramesForThisFrame();
+	auto audioFrames = updateAudioFramesPerVideoFrame();
 	Uint16 audioBuff[audioFrames * 2];
 	YM2610Update_stream(audioFrames, audioBuff);
-	if(renderAudio)
+	if(audio)
 	{
-		writeSound(audioBuff, audioFrames);
+		audio->writeFrames(audioBuff, audioFrames);
 	}
 }
 

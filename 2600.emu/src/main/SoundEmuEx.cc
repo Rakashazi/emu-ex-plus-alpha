@@ -23,6 +23,7 @@
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuAudio.hh>
 #include <imagine/logger/logger.h>
 #undef Debugger
 
@@ -109,7 +110,7 @@ void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
 	configForVideoFrameRate(configuredVideoFrameRate);
 }
 
-void SoundEmuEx::processAudio(OSystem &osystem, bool renderAudio)
+void SoundEmuEx::processAudio(OSystem &osystem, EmuAudio *audio)
 {
 	auto videoFrameRate = osystem.console().getFramerate();
 	if(configuredVideoFrameRate != videoFrameRate &&
@@ -128,14 +129,14 @@ void SoundEmuEx::processAudio(OSystem &osystem, bool renderAudio)
 	{
 		float buffF[fragSamples];
 		myResampler->fillFragment(buffF, fragFrames);
-		if(renderAudio)
+		if(audio)
 		{
 			Int16 buff[fragSamples];
 			iterateTimes(fragSamples, i)
 			{
 				buff[i] = buffF[i] * static_cast<float>(0x7fff);
 			}
-			EmuSystem::writeSound(buff, fragFrames);
+			audio->writeFrames(buff, fragFrames);
 			wroteFrames += fragFrames;
 		}
 	}

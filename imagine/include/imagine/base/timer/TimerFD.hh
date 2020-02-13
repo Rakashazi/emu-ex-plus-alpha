@@ -24,20 +24,6 @@ namespace Base
 
 class TimerFD
 {
-protected:
-	FDEventSource fdSrc{};
-	CallbackDelegate callback{};
-	bool reuseResources = false; // whether to keep the timerfd open after firing
-	bool repeating = false;
-	bool armed = false;
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
-
-	int fd() const;
-	bool arm(timespec ms, timespec repeatInterval, EventLoop loop, bool shouldReuseResources);
-	const char *label();
-
 public:
 	#ifdef NDEBUG
 	TimerFD();
@@ -58,6 +44,20 @@ public:
 	{
 		return armed;
 	}
+
+protected:
+	FDEventSource fdSrc{};
+	CallbackDelegate callback{};
+	bool reuseResources = false; // whether to keep the timerfd open after firing
+	bool repeating = false;
+	bool armed = false;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	int fd() const;
+	bool arm(timespec ms, timespec repeatInterval, EventLoop loop, bool shouldReuseResources);
+	const char *label();
 };
 
 using TimerImpl = TimerFD;

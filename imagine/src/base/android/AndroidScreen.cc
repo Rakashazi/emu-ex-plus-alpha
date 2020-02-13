@@ -70,7 +70,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 						{
 							for(auto s : screen_)
 							{
-								if(s->id == id)
+								if(s->id() == id)
 								{
 									logMsg("screen %d already in device list", id);
 									break;
@@ -93,7 +93,7 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 							forEachInContainer(screen_, it)
 							{
 								Screen *removedScreen = *it;
-								if(removedScreen->id == id)
+								if(removedScreen->id() == id)
 								{
 									it.erase();
 									if(Screen::onChange)
@@ -155,12 +155,12 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	if(isMain)
 	{
-		id = 0;
+		id_ = 0;
 	}
 	else
 	{
-		id = jGetDisplayId(env, aDisplay);
-		logMsg("init display with id: %d", id);
+		id_ = jGetDisplayId(env, aDisplay);
+		logMsg("init display with id: %d", id_);
 	}
 	#endif
 
@@ -201,10 +201,10 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	auto metricsYDPI = env->GetFloatField(metrics, jYDPI);
 	auto widthPixels = env->GetIntField(metrics, jWidthPixels);
 	auto heightPixels = env->GetIntField(metrics, jHeightPixels);
-	densityDPI = 160.*env->GetFloatField(metrics, jScaledDensity);
-	assert(densityDPI);
+	densityDPI_ = 160.*env->GetFloatField(metrics, jScaledDensity);
+	assert(densityDPI_);
 	logMsg("screen with size %dx%d, DPI size %fx%f, scaled density DPI %f",
-		widthPixels, heightPixels, (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI);
+		widthPixels, heightPixels, (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI_);
 	#ifndef NDEBUG
 	{
 		auto jDensity = env->GetFieldID(jDisplayMetricsCls, "density", "F");
@@ -222,6 +222,41 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	height_ = isStraightRotation ? heightPixels : widthPixels;
 }
 
+SurfaceRotation AndroidScreen::rotation(JNIEnv *env) const
+{
+	return (SurfaceRotation)jGetRotation(env, aDisplay);
+}
+
+std::pair<float, float> AndroidScreen::dpi() const
+{
+	return {xDPI, yDPI};
+}
+
+float AndroidScreen::densityDPI() const
+{
+	return densityDPI_;
+}
+
+jobject AndroidScreen::displayObject() const
+{
+	return aDisplay;
+}
+
+int AndroidScreen::id() const
+{
+	return id_;
+}
+
+bool AndroidScreen::operator ==(AndroidScreen const &rhs) const
+{
+	return id_ == rhs.id_;
+}
+
+AndroidScreen::operator bool() const
+{
+	return aDisplay;
+}
+
 void Screen::deinit()
 {
 	unpostFrame();
@@ -237,11 +272,6 @@ int Screen::width()
 int Screen::height()
 {
 	return height_;
-}
-
-SurfaceRotation AndroidScreen::rotation(JNIEnv *env)
-{
-	return (SurfaceRotation)jGetRotation(env, aDisplay);
 }
 
 double Screen::frameRate() const
@@ -326,7 +356,7 @@ std::vector<double> Screen::supportedFrameRates()
 	auto rate = env->GetFloatArrayElements(jRates, 0);
 	auto rates = env->GetArrayLength(jRates);
 	rateVec.reserve(rates);
-	logMsg("screen %d supports %d rate(s):", id, rates);
+	logMsg("screen %d supports %d rate(s):", id_, rates);
 	iterateTimes(rates, i)
 	{
 		double r = rate[i];

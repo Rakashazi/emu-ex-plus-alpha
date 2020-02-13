@@ -22,16 +22,6 @@ namespace Base
 
 class RootCpufreqParamSetter
 {
-protected:
-	FILE *rootShell{};
-
-	// for interactive governor
-	int origTimerRate = -1;
-
-	// for ondemand governor
-	int origUpThreshold = -1;
-	int origSamplingRate = -1;
-
 public:
 	RootCpufreqParamSetter();
 	~RootCpufreqParamSetter();
@@ -42,6 +32,16 @@ public:
 	{
 		return rootShell;
 	}
+
+protected:
+	FILE *rootShell{};
+
+	// for interactive governor
+	int origTimerRate = -1;
+
+	// for ondemand governor
+	int origUpThreshold = -1;
+	int origSamplingRate = -1;
 };
 
 }

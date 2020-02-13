@@ -3209,7 +3209,7 @@ void CPUInterrupt(GBASys &gba, ARM7TDMI &cpu)
 	gba.biosProtected[3] = 0xe5;
 }
 
-void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	auto cpu = gba.cpu;
 	auto &holdState = cpu.holdState;
@@ -3486,7 +3486,7 @@ void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, bool renderAudio
       // mute sound
       soundTicks -= clockTicks;
       if(soundTicks <= 0) {
-        psoundTickfn(renderAudio);
+        psoundTickfn(audio);
         soundTicks += SOUND_CLOCK_TICKS;
       }
 

@@ -1,7 +1,9 @@
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuInput.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/util/math/space.hh>
+#include <imagine/base/Window.hh>
 #include "internal.hh"
 #include <snes9x.h>
 #include <memmap.h>

@@ -187,6 +187,10 @@ ArchiveIterator::ArchiveIterator(GenericIO io, std::error_code &result)
 
 ArchiveIterator::~ArchiveIterator() {}
 
+ArchiveIterator::ArchiveIterator(ArchiveEntry &&entry):
+	archEntry{std::move(entry)}
+{}
+
 ArchiveEntry& ArchiveIterator::operator*()
 {
 	return archEntry;

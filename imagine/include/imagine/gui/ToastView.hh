@@ -24,17 +24,6 @@
 
 class ToastView : public View
 {
-private:
-	Gfx::Text text{};
-	Base::Timer unpostTimer{"ToastView::unpostTimer"};
-	Gfx::GCRect msgFrame{};
-	IG::WindowRect rect{};
-	std::array<char, 1024> str{};
-	bool error = false;
-
-	void contentUpdated(bool error);
-	void postContent(int secs);
-
 public:
 	ToastView(ViewAttachParams attach);
 	void setFace(Gfx::GlyphTextureSet &face);
@@ -47,10 +36,19 @@ public:
 	void post(const char *prefix, std::error_code ec, int secs = 3);
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	IG::WindowRect &viewRect() final { return rect; }
 	bool inputEvent(Input::Event event) final { return false; }
 
 	[[gnu::format(printf, 4, 5)]]
 	void printf(uint32_t secs, bool error, const char *format, ...);
 	void vprintf(uint32_t secs, bool error, const char *format, va_list args);
+
+private:
+	Gfx::Text text{};
+	Base::Timer unpostTimer{"ToastView::unpostTimer"};
+	Gfx::GCRect msgFrame{};
+	std::array<char, 1024> str{};
+	bool error = false;
+
+	void contentUpdated(bool error);
+	void postContent(int secs);
 };

@@ -81,7 +81,7 @@ ArchiveIO::~ArchiveIO()
 	close();
 }
 
-ArchiveIO::ArchiveIO(ArchiveIO &&o): IO{o}
+ArchiveIO::ArchiveIO(ArchiveIO &&o)
 {
 	*this = std::move(o);
 }

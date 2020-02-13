@@ -15,17 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuSystem.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 
 class StateSlotView : public TableView
 {
+public:
+	StateSlotView(ViewAttachParams attach);
+
 private:
 	static constexpr uint stateSlots = 11;
 	char stateStr[stateSlots][40]{};
 	TextMenuItem stateSlot[stateSlots]{};
-
-public:
-	StateSlotView(ViewAttachParams attach);
 };

@@ -15,7 +15,6 @@
 
 #define LOGTAG "CreditsView"
 #include <emuframework/CreditsView.hh>
-#include <emuframework/EmuApp.hh>
 #include <imagine/util/math/int.hh>
 #include "private.hh"
 
@@ -44,7 +43,7 @@ void CreditsView::draw(Gfx::RendererCommands &cmds)
 	using namespace Gfx;
 	cmds.setColor(1., 1., 1., fade.now());
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
-	auto textRect = rect;
+	auto textRect = viewRect();
 	if(IG::isOdd(textRect.ySize()))
 		textRect.y2--;
 	text.draw(cmds, projP.unProjectRect(textRect).pos(C2DO), C2DO, projP);
@@ -57,7 +56,7 @@ void CreditsView::place()
 
 bool CreditsView::inputEvent(Input::Event e)
 {
-	if((e.isPointer() && rect.overlaps(e.pos()) && e.released())
+	if((e.isPointer() && viewRect().overlaps(e.pos()) && e.released())
 			|| (!e.isPointer() && !e.isSystemFunction() && e.pushed()))
 	{
 		dismiss();

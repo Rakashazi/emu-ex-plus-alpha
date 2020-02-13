@@ -15,26 +15,27 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/View.hh>
-#include <imagine/gui/AlertView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/util/container/ArrayList.hh>
-#include <emuframework/EmuApp.hh>
-#include <emuframework/FilePicker.hh>
-#include <imagine/gui/TextTableView.hh>
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <emuframework/EmuSystem.hh>
 
 class OptionCategoryView : public TableView
 {
-	TextMenuItem subConfig[5];
-
 public:
 	OptionCategoryView(ViewAttachParams attach);
+
+protected:
+	TextMenuItem subConfig[5];
 };
 
 class VideoOptionView : public TableView
 {
+public:
+	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
+	void loadStockItems();
+
 protected:
 	static constexpr uint MAX_ASPECT_RATIOS = 4;
 
@@ -90,14 +91,14 @@ protected:
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);
-
-public:
-	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
-	void loadStockItems();
 };
 
 class AudioOptionView : public TableView
 {
+public:
+	AudioOptionView(ViewAttachParams attach, bool customMenu = false);
+	void loadStockItems();
+
 protected:
 	BoolMenuItem snd;
 	TextMenuItem soundBuffersItem[7];
@@ -111,14 +112,14 @@ protected:
 	StaticArrayList<MenuItem*, 12> item{};
 
 	void updateAudioRateItem();
-
-public:
-	AudioOptionView(ViewAttachParams attach, bool customMenu = false);
-	void loadStockItems();
 };
 
 class SystemOptionView : public TableView
 {
+public:
+	SystemOptionView(ViewAttachParams attach, bool customMenu = false);
+	void loadStockItems();
+
 protected:
 	TextMenuItem autoSaveStateItem[4];
 	MultiChoiceMenuItem autoSaveState;
@@ -140,14 +141,14 @@ protected:
 	void onSavePathChange(const char *path);
 	virtual void onFirmwarePathChange(const char *path, Input::Event e);
 	void pushAndShowFirmwarePathMenu(const char *name, Input::Event e);
-
-public:
-	SystemOptionView(ViewAttachParams attach, bool customMenu = false);
-	void loadStockItems();
 };
 
 class GUIOptionView : public TableView
 {
+public:
+	GUIOptionView(ViewAttachParams attach, bool customMenu = false);
+	void loadStockItems();
+
 protected:
 	BoolMenuItem pauseUnfocused;
 	TextMenuItem fontSizeItem[18];
@@ -171,10 +172,6 @@ protected:
 	TextMenuItem gameOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem gameOrientation;
 	StaticArrayList<MenuItem*, 20> item{};
-
-public:
-	GUIOptionView(ViewAttachParams attach, bool customMenu = false);
-	void loadStockItems();
 };
 
 class BiosSelectMenu : public TableView

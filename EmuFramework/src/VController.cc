@@ -15,11 +15,11 @@
 
 #define LOGTAG "VController"
 #include <emuframework/VController.hh>
-#include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>
+#include <imagine/base/Base.hh>
 #include "private.hh"
 #include "privateInput.hh"
 
@@ -192,8 +192,8 @@ void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img)
 void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset, const AppWindowData &winData)
 {
 	Gfx::GC xSize, ySize;
-	IG::setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, winData.projectionPlane.w));
-	Gfx::GC vArea = winData.projectionPlane.h - yOffset*2;
+	IG::setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, winData.projectionPlane.width()));
+	Gfx::GC vArea = winData.projectionPlane.height() - yOffset*2;
 	if(ySize > vArea)
 	{
 		IG::setSizesWithRatioY(xSize, ySize, 3./2., vArea);

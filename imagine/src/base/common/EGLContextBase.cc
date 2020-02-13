@@ -232,7 +232,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting no context current on thread:0x%llx", (long long)IG::this_thread::get_id());
+			logDMsg("setting no context current on thread:0x%lx", IG::thisThreadID<long>());
 		}
 		assert(!win);
 		if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE)
@@ -247,7 +247,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		auto surface = win.eglSurface();
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting surface %p current on context:%p thread:0x%llx", context, surface, (long long)IG::this_thread::get_id());
+			logDMsg("setting surface %p current on context:%p thread:0x%lx", context, surface, IG::thisThreadID<long>());
 		}
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
@@ -262,7 +262,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		{
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("setting dummy pbuffer surface current on context:%p thread:0x%llx", context, (long long)IG::this_thread::get_id());
+				logDMsg("setting dummy pbuffer surface current on context:%p thread:0x%lx", context, IG::thisThreadID<long>());
 			}
 			auto dummyPbuff = makeDummyPbuffer(display, dummyPbuffConfig);
 			if(dummyPbuff == EGL_NO_SURFACE)
@@ -281,7 +281,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		{
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("setting no surface current on context:%p thread:0x%llx", context, (long long)IG::this_thread::get_id());
+				logDMsg("setting no surface current on context:%p thread:0x%lx", context, IG::thisThreadID<long>());
 			}
 			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
 			{

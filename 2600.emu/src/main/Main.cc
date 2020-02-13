@@ -34,6 +34,8 @@
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #undef Debugger
 #include "internal.hh"
 
@@ -136,12 +138,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	osystem->setFrameTime(frameTime, rate);
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	auto os = osystem.get();
 	auto &console = os->console();
@@ -158,7 +160,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 		os->frameBuffer().render(img.pixmap(), tia);
 		img.endFrame();
 	}
-	os->processAudio(renderAudio);
+	os->processAudio(audio);
 }
 
 void EmuSystem::reset(ResetMode mode)
@@ -216,11 +218,15 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
+void EmuSystem::onPrepareAudio(EmuAudio &audio)
+{
+	audio.setDefaultMonoFormat(); // TODO: stereo mode
+}
+
 EmuSystem::Error EmuSystem::onInit()
 {
 	osystem = make_unique<OSystem>();
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
-	EmuSystem::pcmFormat.channels = 1; // TODO: stereo mode
 	return {};
 }

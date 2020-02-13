@@ -20,9 +20,9 @@
 
 class BundledGamesView : public TableView
 {
-private:
-	TextMenuItem game[1]{};
-
 public:
 	BundledGamesView(ViewAttachParams attach);
+
+private:
+	TextMenuItem game[1]{};
 };

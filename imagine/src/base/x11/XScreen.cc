@@ -73,6 +73,26 @@ void XScreen::init(void *xScreen_)
 		1./ frameTime_);
 }
 
+void *XScreen::nativeObject() const
+{
+	return xScreen;
+}
+
+std::pair<float, float> XScreen::mmSize() const
+{
+	return {xMM, yMM};
+}
+
+bool XScreen::operator ==(XScreen const &rhs) const
+{
+	return xScreen == rhs.xScreen;
+}
+
+XScreen::operator bool() const
+{
+	return xScreen;
+}
+
 void Screen::deinit() {}
 
 int Screen::width()

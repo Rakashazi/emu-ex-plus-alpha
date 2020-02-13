@@ -83,18 +83,18 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	auto &s = *screen();
-	assert(s.xDPI && s.yDPI);
-	float xdpi = surfaceRotationIsStraight(osRotation) ? s.xDPI : s.yDPI;
-	float ydpi = surfaceRotationIsStraight(osRotation) ? s.yDPI : s.xDPI;
+	auto [xDPI, yDPI] = screen()->dpi();
+	assert(xDPI && yDPI);
+	float xdpi = surfaceRotationIsStraight(osRotation) ? xDPI : yDPI;
+	float ydpi = surfaceRotationIsStraight(osRotation) ? yDPI : xDPI;
 	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / ydpi) * 25.4f};
 }
 
 IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
 {
-	auto &s = *screen();
-	assert(s.densityDPI);
-	return {((float)size.x / s.densityDPI) * 25.4f, ((float)size.y / s.densityDPI) * 25.4f};
+	auto densityDPI = screen()->densityDPI();
+	assert(densityDPI);
+	return {((float)size.x / densityDPI) * 25.4f, ((float)size.y / densityDPI) * 25.4f};
 }
 
 bool Window::setValidOrientations(Orientation oMask)
@@ -149,7 +149,7 @@ std::error_code Window::init(const WindowConfig &config)
 		logMsg("making presentation window");
 		assert(screen() != Screen::screen(0));
 		auto env = jEnvForThread();
-		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->aDisplay, (jlong)this));
+		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->displayObject(), (jlong)this));
 		initPresentationJNI(env, jDialog);
 		jPresentationShow(env, jDialog);
 	}

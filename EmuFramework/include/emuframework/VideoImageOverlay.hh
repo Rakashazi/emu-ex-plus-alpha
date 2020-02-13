@@ -19,13 +19,7 @@
 
 class VideoImageOverlay
 {
-	Gfx::Texture img{};
-	Gfx::Sprite spr{};
-	uint effect = NO_EFFECT;
-
 public:
-	Gfx::GC intensity = 0.25;
-
 	enum
 	{
 		NO_EFFECT = 0,
@@ -38,6 +32,13 @@ public:
 
 	constexpr	VideoImageOverlay() {}
 	void setEffect(Gfx::Renderer &r, uint effect);
+	void setIntensity(Gfx::GC intensity);
 	void place(const Gfx::Sprite &disp, uint lines);
 	void draw(Gfx::RendererCommands &cmds);
+
+private:
+	Gfx::Texture img{};
+	Gfx::Sprite spr{};
+	Gfx::GC intensity = 0.25;
+	uint effect = NO_EFFECT;
 };

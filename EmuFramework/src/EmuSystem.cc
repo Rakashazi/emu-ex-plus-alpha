@@ -16,35 +16,18 @@
 #include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAudio.hh>
 #include <emuframework/FileUtils.hh>
 #include <emuframework/FilePicker.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/audio/OutputStream.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/ringbuffer/sys.hh>
 #include <algorithm>
 #include <string>
-#include <atomic>
 #include "private.hh"
 #include "privateInput.hh"
-
-struct AudioStats
-{
-	constexpr AudioStats() {}
-	uint underruns = 0;
-	uint overruns = 0;
-	std::atomic_uint callbacks{};
-	std::atomic_uint callbackBytes{};
-
-	void reset()
-	{
-		underruns = overruns = 0;
-		callbacks = 0;
-		callbackBytes = 0;
-	}
-};
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FS::PathString EmuSystem::gamePath_{};
@@ -59,9 +42,6 @@ Base::FrameTimeBase EmuSystem::startFrameTime = 0;
 Base::FrameTimeBase EmuSystem::timePerVideoFrame = 0;
 uint EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
-IG::Audio::PcmFormat EmuSystem::pcmFormat = {44100, IG::Audio::SampleFormats::s16, 2};
-uint EmuSystem::audioFramesPerVideoFrame = 0;
-double EmuSystem::audioFramesPerVideoFrameFloat = 0;
 Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
@@ -76,82 +56,9 @@ double EmuSystem::frameTimePAL = 1./50.;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
 bool EmuSystem::sessionOptionsSet = false;
-static double currentAudioFramesPerVideoFrame = 0;
-static std::unique_ptr<IG::Audio::SysOutputStream> audioStream;
-static IG::SysRingBuffer rBuff{};
-enum class AudioWriteState
-{
-	BUFFER,
-	ACTIVE,
-	UNDERRUN
-};
-static AudioWriteState audioWriteState = AudioWriteState::BUFFER;
-static IG::Time lastUnderrunTime{};
-static bool multipleUnderruns = false;
-#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-static AudioStats audioStats{};
-static Base::Timer audioStatsTimer{"audioStatsTimer"};
-#endif
-
-static void startAudioStats()
-{
-	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	audioStats.reset();
-	audioStatsTimer.callbackAfterSec(
-		[]()
-		{
-			auto frames = EmuSystem::pcmFormat.bytesToFrames(audioStats.callbackBytes);
-			updateEmuAudioStats(audioStats.underruns, audioStats.overruns,
-				audioStats.callbacks, frames / (double)audioStats.callbacks, frames);
-			audioStats.callbacks = 0;
-			audioStats.callbackBytes = 0;
-		}, 1, 1, {});
-	#endif
-}
-
-static void stopAudioStats()
-{
-	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	audioStatsTimer.deinit();
-	clearEmuAudioStats();
-	#endif
-}
-
-static uint audioFramesFree()
-{
-	return EmuSystem::pcmFormat.bytesToFrames(rBuff.freeSpace());
-}
-
-static uint audioFramesWritten()
-{
-	return EmuSystem::pcmFormat.bytesToFrames(rBuff.size());
-}
-
-static bool shouldStartAudioWrites()
-{
-	// audio starts when at least 90% of a video frame worth of data is written
-	// and there are <= 2 video frames worth of free space left in buffer
-	return audioFramesFree() <= EmuSystem::audioFramesPerVideoFrameFloat * 2
-			&& audioFramesWritten() >= EmuSystem::audioFramesPerVideoFrameFloat * 0.9;
-}
-
-template<typename T>
-static void simpleResample(T *dest, uint destFrames, const T *src, uint srcFrames)
-{
-	if(!destFrames)
-		return;
-	float ratio = (float)srcFrames/(float)destFrames;
-	iterateTimes(destFrames, i)
-	{
-		uint srcPos = round(i * ratio);
-		if(unlikely(srcPos > srcFrames))
-		{
-			logMsg("resample pos %u too high", srcPos);
-			srcPos = srcFrames-1;
-		}
-		dest[i] = src[srcPos];
-	}
-}
+double EmuSystem::audioFramesPerVideoFrameFloat = 0;
+double EmuSystem::currentAudioFramesPerVideoFrame = 0;
+uint32_t EmuSystem::audioFramesPerVideoFrame = 0;
 
 void EmuSystem::cancelAutoSaveStateTimer()
 {
@@ -173,163 +80,6 @@ void EmuSystem::startAutoSaveStateTimer()
 	}
 }
 
-void EmuSystem::startSound()
-{
-	assert(audioFramesPerVideoFrame);
-	if(optionSound)
-	{
-		lastUnderrunTime = {};
-		multipleUnderruns = false;
-		if(!audioStream)
-		{
-			audioStream = std::make_unique<IG::Audio::SysOutputStream>();
-		}
-		if(!audioStream->isOpen())
-		{
-			uint wantedLatency = std::round(optionSoundBuffers * (1000000. * frameTime()));
-			auto buffSize = pcmFormat.uSecsToBytes(wantedLatency);
-			if(buffSize != rBuff.capacity())
-			{
-				rBuff.init(buffSize);
-				logMsg("created audio buffer with %d frames (%uus)", pcmFormat.bytesToFrames(rBuff.freeSpace()), wantedLatency);
-			}
-			audioWriteState = AudioWriteState::BUFFER;
-			IG::Audio::OutputStreamConfig outputConf
-			{
-				pcmFormat,
-				[](void *samples, uint bytes)
-				{
-					#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-					audioStats.callbacks++;
-					audioStats.callbackBytes += bytes;
-					#endif
-					if(audioWriteState == AudioWriteState::ACTIVE)
-					{
-						uint bytesReady = rBuff.size();
-						if(unlikely(bytesReady < bytes))
-						{
-							//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
-							auto now = IG::Time::now();
-							if(now - lastUnderrunTime < IG::Time::makeWithSecs(1))
-							{
-								logWarn("multiple underruns within a short time");
-								multipleUnderruns = true;
-							}
-							lastUnderrunTime = now;
-							#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-							audioStats.underruns++;
-							#endif
-							rBuff.read(samples, bytesReady);
-							audioWriteState = AudioWriteState::UNDERRUN;
-							uint padBytes = bytes - bytesReady;
-							std::fill_n(&((char*)samples)[bytesReady], padBytes, 0);
-						}
-						else
-						{
-							rBuff.read(samples, bytes);
-						}
-						return true;
-					}
-					else
-					{
-						std::fill_n((char*)samples, bytes, 0);
-						return false;
-					}
-				}
-			};
-			outputConf.setWantedLatencyHint(0);
-			startAudioStats();
-			audioStream->open(outputConf);
-		}
-		else
-		{
-			startAudioStats();
-			if(shouldStartAudioWrites())
-			{
-				logMsg("resuming audio writes with buffer fill %u/%u bytes", rBuff.size(), rBuff.capacity());
-				audioWriteState = AudioWriteState::ACTIVE;
-			}
-			else
-			{
-				audioWriteState = AudioWriteState::BUFFER;
-			}
-			audioStream->play();
-		}
-	}
-}
-
-void EmuSystem::stopSound()
-{
-	if(optionSound)
-	{
-		stopAudioStats();
-		audioWriteState = AudioWriteState::BUFFER;
-		if(audioStream)
-			audioStream->close();
-		rBuff.reset();
-	}
-}
-
-void EmuSystem::closeSound()
-{
-	stopSound();
-	rBuff.deinit();
-}
-
-void EmuSystem::flushSound()
-{
-	if(optionSound)
-	{
-		stopAudioStats();
-		audioWriteState = AudioWriteState::BUFFER;
-		if(audioStream)
-			audioStream->flush();
-		rBuff.reset();
-	}
-}
-
-void EmuSystem::writeSound(const void *samples, uint framesToWrite)
-{
-	if(unlikely(audioWriteState == AudioWriteState::UNDERRUN))
-	{
-		if(multipleUnderruns && optionAddSoundBuffersOnUnderrun && pcmFormat.bytesToSecs(rBuff.capacity()) <= 1.) // hard cap buffer increase to 1 sec
-		{
-			multipleUnderruns = false;
-			auto addedBuffTime = std::round(1000000. * frameTime());
-			uint newSize = rBuff.capacity() + pcmFormat.uSecsToBytes(addedBuffTime);
-			logMsg("increasing sound buffer size to %u bytes due to underrun", newSize);
-			rBuff.init(rBuff.capacity() + pcmFormat.uSecsToBytes(addedBuffTime));
-		}
-		audioWriteState = AudioWriteState::BUFFER;
-	}
-	uint bytes = pcmFormat.framesToBytes(framesToWrite);
-	uint freeBytes = rBuff.freeSpace();
-	if(bytes <= freeBytes)
-	{
-		rBuff.write(samples, bytes);
-	}
-	else
-	{
-		logMsg("overrun, only %d out of %d bytes free", freeBytes, bytes);
-		#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-		audioStats.overruns++;
-		#endif
-		auto freeFrames = pcmFormat.bytesToFrames(freeBytes);
-		switch(pcmFormat.channels)
-		{
-			bcase 1: simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), freeFrames, (int16_t*)samples, framesToWrite);
-			bcase 2: simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), freeFrames, (int32_t*)samples, framesToWrite);
-			bdefault: bug_unreachable("channels == %d", pcmFormat.channels);
-		}
-		rBuff.commitWrite(freeBytes);
-	}
-	if(audioWriteState == AudioWriteState::BUFFER && shouldStartAudioWrites())
-	{
-		logMsg("starting audio writes with buffer fill %u/%u bytes", rBuff.size(), rBuff.capacity());
-		audioWriteState = AudioWriteState::ACTIVE;
-	}
-}
-
 bool EmuSystem::stateExists(int slot)
 {
 	auto saveStr = sprintStateFilename(slot);
@@ -339,14 +89,6 @@ bool EmuSystem::stateExists(int slot)
 bool EmuSystem::shouldOverwriteExistingState()
 {
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
-}
-
-uint EmuSystem::audioFramesForThisFrame()
-{
-	assumeExpr(currentAudioFramesPerVideoFrame < audioFramesPerVideoFrameFloat + 1.);
-	double wholeFrames;
-	currentAudioFramesPerVideoFrame = std::modf(currentAudioFramesPerVideoFrame, &wholeFrames) + audioFramesPerVideoFrameFloat;
-	return wholeFrames;
 }
 
 uint EmuSystem::advanceFramesWithTime(Base::FrameTimeBase time)
@@ -542,7 +284,7 @@ void EmuSystem::closeRuntimeSystem(bool allowAutosaveState)
 {
 	if(gameIsRunning())
 	{
-		flushSound();
+		emuAudio.flush();
 		if(allowAutosaveState)
 			EmuApp::saveAutoState();
 		EmuApp::saveSessionOptions();
@@ -563,7 +305,7 @@ void EmuSystem::pause()
 {
 	if(isActive())
 		state = State::PAUSED;
-	stopSound();
+	emuAudio.stop();
 	cancelAutoSaveStateTimer();
 }
 
@@ -572,7 +314,7 @@ void EmuSystem::start()
 	state = State::ACTIVE;
 	clearInputBuffers(emuViewController.inputView());
 	resetFrameTime();
-	startSound();
+	emuAudio.start();
 	startAutoSaveStateTimer();
 }
 
@@ -581,46 +323,52 @@ IG::Time EmuSystem::benchmark()
 	auto now = IG::Time::now();
 	iterateTimes(180, i)
 	{
-		runFrame(nullptr, &emuVideo, false);
+		runFrame(nullptr, &emuVideo, nullptr);
 	}
 	auto after = IG::Time::now();
 	return after-now;
 }
 
-void EmuSystem::skipFrames(EmuSystemTask *task, uint frames, bool renderAudio)
+void EmuSystem::skipFrames(EmuSystemTask *task, uint frames, EmuAudio *audio)
 {
 	if(!gameIsRunning())
 		return;
-	if(!renderAudio)
-		audioWriteState = AudioWriteState::BUFFER;
 	iterateTimes(frames, i)
 	{
-		bool renderAudioThisFrame = renderAudio && audioFramesWritten() <= EmuSystem::audioFramesPerVideoFrame;
+		bool renderAudioThisFrame = audio && audio->shouldRenderAudioForSkippedFrame();
 		turboActions.update();
-		runFrame(task, nullptr, renderAudioThisFrame);
+		runFrame(task, nullptr, renderAudioThisFrame ? audio : nullptr);
 	}
+}
+
+void EmuSystem::configFrameTime(uint32_t rate)
+{
+	auto fTime = frameTime();
+	configAudioRate(fTime, rate);
+	audioFramesPerVideoFrame = std::ceil(rate * fTime);
+	audioFramesPerVideoFrameFloat = (double)rate * fTime;
+	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
+	timePerVideoFrame = Base::frameTimeBaseFromSecs(fTime);
+	resetFrameTime();
 }
 
 void EmuSystem::configFrameTime()
 {
-	pcmFormat.rate = optionSoundRate;
-	configAudioRate(frameTime(), optionSoundRate);
-	audioFramesPerVideoFrame = std::ceil(pcmFormat.rate * frameTime());
-	audioFramesPerVideoFrameFloat = (double)pcmFormat.rate * frameTime();
-	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
-	timePerVideoFrame = Base::frameTimeBaseFromSecs(frameTime());
-	resetFrameTime();
+	configFrameTime(emuAudio.pcmFormat().rate);
 }
 
-void EmuSystem::configAudioPlayback()
+void EmuSystem::configAudioPlayback(uint32_t rate)
 {
-	auto prevFormat = pcmFormat;
-	configFrameTime();
-	if(prevFormat != pcmFormat)
-	{
-		logMsg("audio format changed");
-		closeSound();
-	}
+	configFrameTime(rate);
+	emuAudio.setRate(rate);
+}
+
+uint32_t EmuSystem::updateAudioFramesPerVideoFrame()
+{
+	assumeExpr(currentAudioFramesPerVideoFrame < audioFramesPerVideoFrameFloat + 1.);
+	double wholeFrames;
+	currentAudioFramesPerVideoFrame = std::modf(currentAudioFramesPerVideoFrame, &wholeFrames) + audioFramesPerVideoFrameFloat;
+	return wholeFrames;
 }
 
 double EmuSystem::frameTime()
@@ -678,7 +426,8 @@ bool EmuSystem::setFrameTime(VideoSystem system, double time)
 
 void EmuSystem::prepareAudioVideo()
 {
-	EmuSystem::configAudioPlayback();
+	EmuSystem::onPrepareAudio(emuAudio);
+	EmuSystem::configAudioPlayback(optionSoundRate);
 	EmuSystem::onPrepareVideo(emuVideo);
 }
 
@@ -855,6 +604,8 @@ void EmuSystem::sessionOptionSet()
 [[gnu::weak]] bool EmuSystem::touchControlsApplicable() { return true; }
 
 [[gnu::weak]] bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect) { return false; }
+
+[[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &audio) {}
 
 [[gnu::weak]] void EmuSystem::onPrepareVideo(EmuVideo &video) {}
 

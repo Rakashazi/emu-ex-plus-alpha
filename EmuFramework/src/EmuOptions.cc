@@ -17,7 +17,9 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/VideoImageEffect.hh>
+#include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VController.hh>
+#include <imagine/base/Base.hh>
 #include "private.hh"
 #include "privateInput.hh"
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -289,7 +291,9 @@ void initOptions()
 	}
 	if(Base::androidSDK() >= 11)
 	{
-		optionNotificationIcon.initDefault(0);
+		optionNotificationIcon.initDefault(false);
+		if(Base::androidSDK() >= 17)
+			optionNotificationIcon.isConst = true;
 	}
 	if(Base::androidSDK() < 12)
 	{

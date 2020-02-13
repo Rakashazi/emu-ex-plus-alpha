@@ -106,9 +106,9 @@ void OSystem::setResampleQuality(AudioSettings::ResamplingQuality quality)
 	mySound->setResampleQuality(quality);
 }
 
-void OSystem::processAudio(bool renderAudio)
+void OSystem::processAudio(EmuAudio *audio)
 {
-	mySound->processAudio(*this, renderAudio);
+	mySound->processAudio(*this, audio);
 }
 
 std::string OSystem::stateDir() const

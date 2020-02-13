@@ -167,20 +167,20 @@ void CollectTextInputView::place()
 	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.image())
 	{
-		cancelBtn.setPosRel(rect.pos(RT2DO), View::defaultFace.nominalHeight() * 1.75, RT2DO);
+		cancelBtn.setPosRel(viewRect().pos(RT2DO), View::defaultFace.nominalHeight() * 1.75, RT2DO);
 		cancelSpr.setPos(-projP.unprojectXSize(cancelBtn)/3., -projP.unprojectYSize(cancelBtn)/3., projP.unprojectXSize(cancelBtn)/3., projP.unprojectYSize(cancelBtn)/3.);
 	}
 	#endif
-	message.maxLineSize = projP.w * 0.95;
+	message.maxLineSize = projP.width() * 0.95;
 	message.compile(renderer(), projP);
 	IG::WindowRect textRect;
-	int xSize = rect.xSize() * 0.95;
+	int xSize = viewRect().xSize() * 0.95;
 	int ySize = View::defaultFace.nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textRect.setPosRel({rect.xPos(C2DO), rect.yPos(C2DO)}, {xSize, ySize}, C2DO);
+	textRect.setPosRel(viewRect().pos(C2DO), {xSize, ySize}, C2DO);
 	textEntry.place(renderer(), textRect, projP);
 	#else
-	textRect.setPosRel(rect.pos(C2DO) - IG::WP{0, (int)rect.ySize()/4}, {xSize, ySize}, C2DO);
+	textRect.setPosRel(viewRect().pos(C2DO) - IG::WP{0, (int)viewRect().ySize()/4}, {xSize, ySize}, C2DO);
 	Input::placeSysTextInput(textRect);
 	#endif
 }

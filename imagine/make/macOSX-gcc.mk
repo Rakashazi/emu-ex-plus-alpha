@@ -1,4 +1,5 @@
 ENV := macosx
+ENV_KERNEL := mach
 
 config_compiler := clang
 AR := ar

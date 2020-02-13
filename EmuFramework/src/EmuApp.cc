@@ -19,7 +19,9 @@
 #include "EmuOptions.hh"
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuLoadProgressView.hh>
+#include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FileUtils.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/utility.h>
@@ -74,6 +76,7 @@ static AppWindowData mainWin{};
 EmuViewController emuViewController{mainWin, renderer, rendererTask, vController, emuVideoLayer};
 EmuVideo emuVideo{rendererTask};
 EmuVideoLayer emuVideoLayer{emuVideo};
+EmuAudio emuAudio{};
 EmuSystemTask emuSystemTask{};
 DelegateFunc<void ()> onUpdateInputDevices{};
 #ifdef CONFIG_BLUETOOTH
@@ -187,6 +190,15 @@ static const char *parseCmdLineArgs(int argc, char** argv)
 	return launchGame;
 }
 
+static IG::PixelFormat windowPixelFormat()
+{
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	return (IG::PixelFormatID)optionWindowPixelFormat.val;
+	#else
+	return Base::Window::defaultPixelFormat();
+	#endif
+}
+
 void mainInitCommon(int argc, char** argv)
 {
 	using namespace IG;
@@ -217,11 +229,7 @@ void mainInitCommon(int argc, char** argv)
 	{
 		Gfx::Error err{};
 		auto threadMode = (Gfx::Renderer::ThreadMode)optionGPUMultiThreading.val;
-		#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-		renderer = Gfx::Renderer::makeConfiguredRenderer(threadMode, (IG::PixelFormatID)optionWindowPixelFormat.val, err);
-		#else
-		renderer = Gfx::Renderer::makeConfiguredRenderer(threadMode, err);
-		#endif
+		renderer = Gfx::Renderer::makeConfiguredRenderer(threadMode, windowPixelFormat(), err);
 		if(err)
 		{
 			Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
@@ -289,13 +297,12 @@ void mainInitCommon(int argc, char** argv)
 	Base::addOnExit(
 		[](bool backgrounded)
 		{
-			EmuSystem::closeSound();
+			emuAudio.close();
 			AudioManager::endSession();
 			if(backgrounded)
 			{
 				emuViewController.showUI();
 				suspendEmulation();
-				Base::dispatchOnFreeCaches();
 				if(optionNotificationIcon)
 				{
 					auto title = string_makePrintf<64>("%s was suspended", appName());
@@ -314,8 +321,7 @@ void mainInitCommon(int argc, char** argv)
 				Bluetooth::closeBT(bta);
 			#endif
 
-			View::defaultFace.freeCaches();
-			View::defaultBoldFace.freeCaches();
+			Base::dispatchOnFreeCaches();
 			keyMapping.free();
 
 			#ifdef CONFIG_BASE_IOS
@@ -619,92 +625,25 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 	}
 	emuViewController.closeSystem();
 	auto loadProgressView = std::make_unique<EmuLoadProgressView>(emuViewAttachParams(), e, onComplete);
-	auto loadProgressViewPtr = loadProgressView.get();
-	loadProgressView->msgPort.addToEventLoop({},
-		[loadProgressView = loadProgressViewPtr](auto msgs)
-		{
-			for(auto msg = msgs.get(); msg; msg = msgs.get())
-			{
-				switch(msg.progress)
-				{
-					bcase EmuSystem::LoadProgress::FAILED:
-					{
-						assumeExpr(msg.intArg3 > 0);
-						uint len = msg.intArg3;
-						char errorStr[len + 1];
-						msgs.getExtraData(errorStr, len);
-						errorStr[len] = 0;
-						loadProgressView->msgPort.removeFromEventLoop();
-						popModalViews();
-						EmuApp::postErrorMessage(4, errorStr);
-						return;
-					}
-					bcase EmuSystem::LoadProgress::OK:
-					{
-						loadProgressView->msgPort.removeFromEventLoop();
-						auto onComplete = loadProgressView->onComplete;
-						auto originalEvent = loadProgressView->originalEvent;
-						popModalViews();
-						EmuSystem::prepareAudioVideo();
-						emuViewController.onSystemCreated();
-						onComplete(originalEvent);
-						return;
-					}
-					bcase EmuSystem::LoadProgress::UPDATE:
-					{
-						loadProgressView->setPos(msg.intArg);
-						loadProgressView->setMax(msg.intArg2);
-						assumeExpr(msg.intArg3 >= -1);
-						switch(msg.intArg3)
-						{
-							bcase -1: // no string
-							{}
-							bcase 0: // default string
-							{
-								loadProgressView->setLabel("Loading...");
-							}
-							bdefault: // custom string
-							{
-								uint len = msg.intArg3;
-								char labelStr[len + 1];
-								msgs.getExtraData(labelStr, len);
-								labelStr[len] = 0;
-								loadProgressView->setLabel(labelStr);
-								logMsg("set custom string:%s", labelStr);
-							}
-						}
-						loadProgressView->place();
-						loadProgressView->postDraw();
-					}
-					bdefault:
-					{
-						logWarn("Unknown LoadProgressMessage value:%d", (int)msg.progress);
-					}
-				}
-			}
-		});
+	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
-	auto pathStr = FS::makePathString(path);
-	auto fileStr = FS::makeFileString(name);
-	auto ioPtr = io.release();
 	IG::makeDetachedThread(
-		[ioPtr, pathStr, fileStr, loadProgressView = loadProgressViewPtr]()
+		[io{std::move(io)}, pathStr{FS::makePathString(path)}, fileStr{FS::makeFileString(name)}, &msgPort]() mutable
 		{
 			logMsg("starting loader thread");
-			GenericIO io{std::unique_ptr<IO>(ioPtr)};
 			EmuSystem::Error err;
 			EmuSystem::createWithMedia(std::move(io), pathStr.data(), fileStr.data(), err,
-				[loadProgressView](int pos, int max, const char *label)
+				[&msgPort](int pos, int max, const char *label)
 				{
 					int len = label ? strlen(label) : -1;
 					auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
 					if(len > 0)
 					{
-						loadProgressView->msgPort.sendWithExtraData(msg, label, len);
+						msgPort.sendWithExtraData(msg, label, len);
 					}
 					else
 					{
-						loadProgressView->msgPort.send(msg);
+						msgPort.send(msg);
 					}
 					return true;
 				});
@@ -718,11 +657,11 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 					logWarn("truncating long error size:%d", len);
 					len = 1024;
 				}
-				loadProgressView->msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, len}, errStr, len);
+				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, len}, errStr, len);
 				logErr("loader thread failed");
 				return;
 			}
-			loadProgressView->msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
+			msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
 			logMsg("loader thread finished");
 		});
 }

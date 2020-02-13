@@ -22,12 +22,13 @@ namespace IG
 
 class TimeMach
 {
-protected:
-	uint64_t t = 0;
 public:
 	constexpr TimeMach() {}
 	uint64_t &primitiveVal() { return t; }
 	const uint64_t &primitiveVal() const { return t; }
+
+protected:
+	uint64_t t = 0;
 };
 
 using TimeImpl = TimeMach;

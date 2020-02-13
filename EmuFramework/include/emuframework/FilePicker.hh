@@ -17,7 +17,6 @@
 
 #include <imagine/gui/FSPicker.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/EmuApp.hh>
 
 class EmuFilePicker : public FSPicker
 {

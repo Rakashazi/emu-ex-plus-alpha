@@ -17,33 +17,28 @@
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/input/Input.hh>
-#include <imagine/util/container/ArrayList.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuInput.hh>
 #include <vector>
 #include <array>
-#ifdef CONFIG_BLUETOOTH
-#include <imagine/bluetooth/sys.hh>
-#endif
 
 struct InputDeviceConfig;
 
 class IdentInputDeviceView : public View
 {
-	IG::WindowRect viewFrame{};
-	Gfx::Text text{};
-
 public:
 	using OnIdentInputDelegate = DelegateFunc<void (Input::Event e)>;
 	OnIdentInputDelegate onIdentInput{};
 
 	IdentInputDeviceView(ViewAttachParams attach);
 	~IdentInputDeviceView() final;
-	IG::WindowRect &viewRect() final { return viewFrame; }
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;
+
+private:
+	Gfx::Text text{};
 };
 
 class InputManagerView : public TableView
@@ -52,7 +47,7 @@ public:
 	using DeviceNameString = std::array<char, MAX_INPUT_DEVICE_NAME_SIZE>;
 
 	InputManagerView(ViewAttachParams attach);
-	~InputManagerView();
+	~InputManagerView() final;
 	void onShow() final;
 	const char *deviceName(uint idx) const;
 

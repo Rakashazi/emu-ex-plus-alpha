@@ -320,7 +320,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case c64KeyIdxRightDown2: return (JOYPAD_SE | p2Bit) << JS_SHIFT;
 		case c64KeyIdxLeftDown2: return (JOYPAD_SW | p2Bit) << JS_SHIFT;
 		case c64KeyIdxBtn2: return (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
-		case c64KeyIdxBtnTurbo2: turbo = 1; return JOYPAD_FIRE << JS_SHIFT;
+		case c64KeyIdxBtnTurbo2: turbo = 1; return (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
 		case c64KeyIdxSwapPorts2: return KBEX_SWAP_JS_PORTS;
 
 		case c64KeyToggleKB : return KBEX_TOGGLE_VKEYBOARD;

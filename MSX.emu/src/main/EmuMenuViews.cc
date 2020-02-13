@@ -1,7 +1,25 @@
-#include <imagine/base/Base.hh>
+/*  This file is part of MSX.emu.
+
+	MSX.emu is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	MSX.emu is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/TextTableView.hh>
 #include "internal.hh"
 
 extern "C"

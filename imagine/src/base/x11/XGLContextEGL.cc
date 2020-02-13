@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EGL"
-#define NO_XLIB_SYMBOL_CLEAN_UP
 #include <imagine/base/GLContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>

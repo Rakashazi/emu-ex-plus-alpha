@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/gfx/Vec3.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/util/rectangle2.h>
 
@@ -27,39 +26,18 @@ namespace Gfx
 
 class ProjectionPlane
 {
-private:
-	GCRect rect;
-
 public:
-	Viewport viewport;
-	GC w = 0, h = 0,
-		focal = 0,
-		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z
-		pixToXScale = 0, pixToYScale = 0, // projection -> screen space at focal z
-		mmToXScale = 0, mmToYScale = 0;   // MM of screen -> projection space at focal z
-	#ifdef __ANDROID__
-	GC smmToXScale = 0, smmToYScale = 0;
-	#endif
-
 	constexpr ProjectionPlane() {}
-
-	GC wHalf() const
-	{
-		return rect.x2;
-	}
-
-	GC hHalf() const
-	{
-		return rect.y2;
-	}
-
-	GCRect bounds() const
-	{
-		return rect;
-	}
-
-	void updateMMSize(const Viewport &v);
-	static ProjectionPlane makeWithMatrix(const Viewport &viewport, const Mat4 &mat);
+	static ProjectionPlane makeWithMatrix(Viewport viewport, Mat4 mat);
+	GC wHalf() const { return rect.x2; }
+	GC hHalf() const { return rect.y2; }
+	GCRect bounds() const { return rect; }
+	void updateMMSize(Viewport v);
+	GC width() const;
+	GC height() const;
+	GP size() const;
+	GC focalZ() const;
+	Viewport viewport() const;
 	GC unprojectXSize(int x) const;
 	GC unprojectYSize(int y) const;
 	GC unprojectX(int x) const;
@@ -68,12 +46,12 @@ public:
 	int projectYSize(GC y) const;
 	int projectX(GC x) const;
 	int projectY(GC y) const;
-	GC unprojectXSize(const IG::WindowRect &r) const { return unprojectXSize(r.xSize()); }
-	GC unprojectYSize(const IG::WindowRect &r) const { return unprojectYSize(r.ySize()); }
-	GP unprojectSize(const IG::WindowRect &r) const { return {unprojectXSize(r), unprojectYSize(r)}; }
+	GC unprojectXSize(IG::WindowRect r) const { return unprojectXSize(r.xSize()); }
+	GC unprojectYSize(IG::WindowRect r) const { return unprojectYSize(r.ySize()); }
+	GP unprojectSize(IG::WindowRect r) const { return {unprojectXSize(r), unprojectYSize(r)}; }
 	GCRect unProjectRect(int x, int y, int x2, int y2) const;
-	GCRect unProjectRect(const IG::WindowRect &src) const;
-	IG::WindowRect projectRect(const GCRect &src) const;
+	GCRect unProjectRect(IG::WindowRect src) const;
+	IG::WindowRect projectRect(GCRect src) const;
 	GC alignXToPixel(GC x) const;
 	GC alignYToPixel(GC y) const;
 	IG::Point2D<GC> alignToPixel(IG::Point2D<GC> p) const;
@@ -86,6 +64,18 @@ public:
 	void loadTranslate(Gfx::RendererCommands &cmds, GC x, GC y) const;
 	void loadTranslate(Gfx::RendererCommands &cmds, GP p) const;
 	void resetTransforms(Gfx::RendererCommands &cmds) const;
+
+private:
+	Viewport viewport_;
+	GCRect rect;
+	GC w = 0, h = 0;
+		GC  focal = 0,
+		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z
+		pixToXScale = 0, pixToYScale = 0, // projection -> screen space at focal z
+		mmToXScale = 0, mmToYScale = 0;   // MM of screen -> projection space at focal z
+	#ifdef __ANDROID__
+	GC smmToXScale = 0, smmToYScale = 0;
+	#endif
 };
 
 }

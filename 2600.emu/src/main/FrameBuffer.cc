@@ -19,6 +19,7 @@
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
 #undef Debugger
+#include <imagine/logger/logger.h>
 
 void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
 {

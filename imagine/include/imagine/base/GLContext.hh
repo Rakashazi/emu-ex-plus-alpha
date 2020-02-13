@@ -37,11 +37,6 @@ class Window;
 
 class GLBufferConfigAttributes
 {
-private:
-	IG::PixelFormat pixelFormat_;
-	bool useDepth_ = false;
-	bool useStencil_ = false;
-
 public:
 	void setPixelFormat(IG::PixelFormat pixelFormat_)
 	{
@@ -69,16 +64,15 @@ public:
 	{
 		return useStencil_;
 	}
+
+private:
+	IG::PixelFormat pixelFormat_;
+	bool useDepth_ = false;
+	bool useStencil_ = false;
 };
 
 class GLContextAttributes
 {
-private:
-	uint32_t majorVer = 1;
-	uint32_t minorVer = 0;
-	bool glesAPI = false;
-	bool debug_ = false;
-
 public:
 	void setMajorVersion(uint32_t majorVer)
 	{
@@ -121,6 +115,12 @@ public:
 	{
 		return debug_;
 	}
+
+private:
+	uint32_t majorVer = 1;
+	uint32_t minorVer = 0;
+	bool glesAPI = false;
+	bool debug_ = false;
 };
 
 class GLDrawable : public GLDrawableImpl, public NotEquals<GLDrawable>

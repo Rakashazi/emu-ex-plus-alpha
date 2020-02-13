@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/operators.hh>
+#include <utility>
 
 namespace Base
 {
@@ -33,6 +34,12 @@ using NativeWindow = unsigned long;
 class XWindow : public BaseWindow, public NotEquals<XWindow>
 {
 public:
+	constexpr XWindow() {}
+	std::pair<unsigned long, unsigned long> xdndData() const;
+	bool operator ==(XWindow const &rhs) const;
+	explicit operator bool() const;
+
+protected:
 	unsigned long xWin{};
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};
@@ -40,10 +47,6 @@ public:
 	IG::Point2D<int> pos;
 	unsigned long colormap{};
 	#endif
-
-	constexpr XWindow() {}
-	bool operator ==(XWindow const &rhs) const;
-	explicit operator bool() const;
 };
 
 void shutdownWindowSystem();

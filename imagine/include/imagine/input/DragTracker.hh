@@ -22,8 +22,9 @@
 namespace Input
 {
 
-struct DragTrackerState
+class DragTrackerState
 {
+public:
 	constexpr DragTrackerState() {}
 	constexpr DragTrackerState(int id, IG::WP pos)
 	{

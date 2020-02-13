@@ -75,7 +75,6 @@ public:
 		return setPath(location.path, forcePathChange, location.root, e);
 	}
 	FS::PathString path() const;
-	IG::WindowRect &viewRect() override { return viewFrame; }
 	void clearSelection() override;
 	FS::PathString makePathString(const char *base) const;
 	bool isSingleDirectoryMode() const;
@@ -100,7 +99,6 @@ protected:
 	FS::RootPathInfo root{};
 	FS::PathString currPath{};
 	FS::PathString rootedPath{};
-	IG::WindowRect viewFrame{};
 	std::array<char, 48> msgStr{};
 	Gfx::Text msgText{};
 	bool singleDir = false;

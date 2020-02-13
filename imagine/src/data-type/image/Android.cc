@@ -140,6 +140,13 @@ BitmapFactoryImage::operator bool() const
 	return (bool)bitmap;
 }
 
+PngFile::PngFile() {}
+
+PngFile::~PngFile()
+{
+	deinit();
+}
+
 std::errc PngFile::write(IG::Pixmap dest)
 {
 	return(png.readImage(dest));

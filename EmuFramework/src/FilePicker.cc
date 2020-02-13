@@ -16,11 +16,12 @@
 #define LOGTAG "FilePicker"
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuSystem.hh>
-#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Recent.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
+#include <imagine/logger/logger.h>
 #include <string>
 #include "private.hh"
 

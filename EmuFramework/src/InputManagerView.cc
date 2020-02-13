@@ -19,6 +19,7 @@
 #include "EmuOptions.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/gui/AlertView.hh>
 #include <imagine/base/Base.hh>
 #include "private.hh"
 #include "privateInput.hh"
@@ -40,7 +41,7 @@ IdentInputDeviceView::~IdentInputDeviceView()
 
 void IdentInputDeviceView::place()
 {
-	text.maxLineSize = projP.w * 0.95;
+	text.maxLineSize = projP.width() * 0.95;
 	text.compile(renderer(), projP);
 }
 
@@ -67,7 +68,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 	cmds.setBlendMode(0);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
-	GeomRect::draw(cmds, viewFrame, projP);
+	GeomRect::draw(cmds, viewRect(), projP);
 	cmds.setColor(COLOR_WHITE);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	text.draw(cmds, 0, 0, C2DO, projP);

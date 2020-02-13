@@ -22,6 +22,9 @@
 #include "interrupt.h"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
+#include <imagine/logger/logger.h>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
@@ -144,12 +147,17 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
+void EmuSystem::onPrepareAudio(EmuAudio &audio)
+{
+	audio.setDefaultMonoFormat();
+}
+
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
 	video.setFormat({{ngpResX, ngpResY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	double mixRate = std::round(rate * (60. * frameTime));
 	sound_init(mixRate);
@@ -157,7 +165,7 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 
 void system_sound_chipreset(void)
 {
-	EmuSystem::configAudioPlayback();
+	EmuSystem::configFrameTime();
 }
 
 void system_VBL(void)
@@ -170,7 +178,7 @@ void system_VBL(void)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = task;
 	emuVideo = video;
@@ -183,12 +191,12 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	#endif
 	// video rendered in emulate()
 
-	if(renderAudio)
+	if(audio)
 	{
-		auto audioFrames = audioFramesForThisFrame();
+		auto audioFrames = updateAudioFramesPerVideoFrame();
 		uint16 destBuff[audioFrames];
 		sound_update(destBuff, audioFrames*2);
-		writeSound(destBuff, audioFrames);
+		audio->writeFrames(destBuff, audioFrames);
 	}
 }
 
@@ -273,7 +281,6 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 EmuSystem::Error EmuSystem::onInit()
 {
-	EmuSystem::pcmFormat.channels = 1;
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;

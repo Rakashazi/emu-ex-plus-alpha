@@ -26,7 +26,7 @@ AAssetIO::~AAssetIO()
 	close();
 }
 
-AAssetIO::AAssetIO(AAssetIO &&o): IO{o}
+AAssetIO::AAssetIO(AAssetIO &&o)
 {
 	*this = std::move(o);
 }

@@ -15,14 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/build.h>
+#include <cstdint>
 
-#ifdef __linux__
-#include <imagine/util/ringbuffer/LinuxRingBuffer.hh>
-namespace IG { using SysRingBuffer = LinuxRingBuffer<>; }
-#elif defined __APPLE__
-#include <imagine/util/ringbuffer/MachRingBuffer.hh>
-namespace IG { using SysRingBuffer = MachRingBuffer<>; }
-#else
-#error no system ring buffer type
-#endif
+namespace IG
+{
+
+uint32_t adjustMirroredBufferAllocSize(uint32_t size);
+void *allocMirroredBuffer(uint32_t size);
+void freeMirroredBuffer(void *buff, uint32_t size);
+
+}

@@ -383,7 +383,7 @@ JNIEnv* jEnvForThread()
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("attaching JNI thread:0x%llx", (long long)IG::this_thread::get_id());
+			logDMsg("attaching JNI thread:0x%lx", IG::thisThreadID<long>());
 		}
 		assumeExpr(jVM);
 		if(jVM->AttachCurrentThread(&env, nullptr) != 0)
@@ -693,7 +693,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 				return;
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("detaching JNI thread:0x%llx", (long long)IG::this_thread::get_id());
+				logDMsg("detaching JNI thread:0x%lx", IG::thisThreadID<long>());
 			}
 			jVM->DetachCurrentThread();
 		});

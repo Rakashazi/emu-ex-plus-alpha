@@ -106,19 +106,21 @@ void EmuSystemTask::start()
 					if(!timestamp)
 						return true;
 					bool doFrame = false;
+					emuAudio.setDoingFrameSkip(false);
 					if(unlikely(fastForwardActive || EmuSystem::shouldFastForward()))
 					{
 						startVideoFrame();
 						doFrame = true;
+						emuAudio.setDoingFrameSkip(true);
 						if(fastForwardActive)
 						{
-							EmuSystem::skipFrames(this, (uint)optionFastForwardSpeed, true);
+							EmuSystem::skipFrames(this, (uint)optionFastForwardSpeed, &emuAudio);
 						}
 						else
 						{
 							iterateTimes((uint)optionFastForwardSpeed, i)
 							{
-								EmuSystem::skipFrames(this, 1, true);
+								EmuSystem::skipFrames(this, 1, &emuAudio);
 								if(!EmuSystem::shouldFastForward())
 								{
 									logMsg("fast-forward ended early after %d frame(s)", i);
@@ -147,20 +149,18 @@ void EmuSystemTask::start()
 								//logDMsg("running %d frames", frames);
 								uint framesToSkip = frames - 1;
 								framesToSkip = std::min(framesToSkip, maxFrameSkip);
-								bool renderAudio = optionSound;
 								iterateTimes(framesToSkip, i)
 								{
 									turboActions.update();
-									EmuSystem::runFrame(this, nullptr, renderAudio);
+									EmuSystem::runFrame(this, nullptr, optionSound ? &emuAudio : nullptr);
 								}
 							}
 						}
 					}
 					if(doFrame)
 					{
-						bool renderAudio = optionSound;
 						turboActions.update();
-						EmuSystem::runFrame(this, &emuVideo, renderAudio);
+						EmuSystem::runFrame(this, &emuVideo, optionSound ? &emuAudio : nullptr);
 					}
 					if(unlikely(notifySemAddr))
 					{

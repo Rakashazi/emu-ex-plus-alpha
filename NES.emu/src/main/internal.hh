@@ -3,6 +3,8 @@
 #include <emuframework/Option.hh>
 #include <fceu/driver.h>
 
+class EmuAudio;
+
 namespace EmuControls
 {
 extern const uint gamepadKeys;
@@ -27,6 +29,6 @@ void setupNESInputPorts();
 void setupNESFourScore();
 void connectNESInput(int port, ESI type);
 const char *regionToStr(int region);
-void emulateSound(bool renderAudio);
+void emulateSound(EmuAudio *audio);
 void setDefaultPalette(const char *palPath);
 void setRegion(int region, int defaultRegion, int detectedRegion);

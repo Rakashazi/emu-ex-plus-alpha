@@ -24,7 +24,7 @@ final class NotificationHelper
 	static void addNotification(Context ctx, String onShow, String title, String message)
 	{
 		NotificationManager notificationManager = (NotificationManager)ctx.getSystemService(Context.NOTIFICATION_SERVICE);
-		int icon = ctx.getResources().getIdentifier("icon", "drawable", ctx.getPackageName());
+		int icon = ctx.getResources().getIdentifier("icon", "mipmap", ctx.getPackageName());
 		long when = System.currentTimeMillis();
 		NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx);
 		Intent notificationIntent = new Intent(ctx, BaseActivity.class);

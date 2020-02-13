@@ -15,156 +15,45 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/algorithm.h>
+#include <cstdint>
 #include <atomic>
-#include <cstdlib>
 
-template <class SIZE = unsigned int>
-class StaticRingBuffer
+namespace IG
+{
+
+class RingBuffer
 {
 public:
-	using COUNT = std::atomic<SIZE>;
+	using SizeType = uint32_t;
 
-	constexpr StaticRingBuffer() {}
+	constexpr RingBuffer() {}
+	RingBuffer(SizeType size);
+	RingBuffer(RingBuffer &&o);
+	RingBuffer &operator=(RingBuffer &&o);
+	~RingBuffer();
+	void clear();
+	SizeType freeSpace() const;
+	SizeType size() const;
+	SizeType capacity() const;
+	void setMinCapacity(SizeType capacity);
+	SizeType write(const void *buff, SizeType size);
+	char *writeAddr() const;
+	void commitWrite(SizeType size);
+	SizeType read(void *buff, SizeType size);
+	char *readAddr() const;
+	void commitRead(SizeType size);
+	explicit operator bool() const;
 
-	bool init(SIZE size)
-	{
-		deinit();
-		buff = (char*)malloc(size);
-		if(!buff)
-			return false;
-		buffSize = size;
-		reset();
-		return true;
-	}
-
-	void deinit()
-	{
-		if(buff)
-		{
-			free(buff);
-			buff = nullptr;
-		}
-		buffSize = 0;
-		reset();
-	}
-
-	void reset()
-	{
-		start = end = buff;
-		written = 0;
-	}
-
-	SIZE freeSpace() const
-	{
-		return buffSize - written;
-	}
-
-	SIZE freeContiguousSpace() const
-	{
-		return ((uintptr_t)buff + buffSize) - (uintptr_t)end;
-	}
-
-	SIZE size() const
-	{
-		return written;
-	}
-
-	SIZE capacity() const
-	{
-		return buffSize;
-	}
-
-	SIZE write(const void *buff, SIZE size)
-	{
-		if(size > freeSpace())
-			size = freeSpace();
-
-		char *writePos = end;
-		iterateTimes(size, i)
-		{
-			//logMsg("addr %p", writePos);
-			*writePos = ((char*)buff)[i];
-			writePos = advanceAddr(writePos, 1);
-		}
-		end = writePos;
-		written += size;
-
-		assert((SIZE)written <= buffSize);
-
-		//logMsg("wrote %d bytes", (int)size);
-		return size;
-	}
-
-	char *writeAddr() const
-	{
-		return end;
-	}
-
-	void commitWrite(SIZE size)
-	{
-		assert(size <= freeSpace());
-		end = advanceAddr(end, size);
-		written += size;
-	}
-
-	SIZE read(void *buff, SIZE size)
-	{
-		if(size > (SIZE)written)
-			size = written;
-
-		char *readPos = start;
-		iterateTimes(size, i)
-		{
-			//logMsg("addr %p", readPos);
-			((char*)buff)[i] = *readPos;
-			readPos = advanceAddr(readPos, 1);
-		}
-		start = readPos;
-		written -= size;
-
-		//logMsg("read %d bytes", (int)size);
-		return size;
-	}
-
-	char *readAddr() const
-	{
-		return start;
-	}
-
-	void commitRead(SIZE size)
-	{
-		assert(size <= (SIZE)written);
-		start = advanceAddr(start, size);
-		written -= size;
-	}
-
-	// given an address inside the ring buffer, return the address
-	// after moving the pointer forward, wrapping as needed
-	char *advanceAddr(char *ptr, SIZE size) const
-	{
-		assert(ptr >= buff && ptr < buff+buffSize*2);
-		ptr += size;
-		if(ptr >= buff+buffSize)
-			ptr -= buffSize;
-		return ptr;
-	}
-
-private:
+protected:
 	char *buff{};
 	char *start{}, *end{};
-	COUNT written{};
-	SIZE buffSize{};
+	std::atomic<SizeType> written{};
+	SizeType buffSize{};
+
+	void init(SizeType size);
+	void deinit();
+	char *advanceAddr(char *ptr, SizeType size) const;
+	char *wrapPtr(char *ptr) const;
 };
 
-template <class SIZE = unsigned int>
-class RingBuffer : public StaticRingBuffer<SIZE>
-{
-public:
-	using StaticRingBuffer<SIZE>::StaticRingBuffer;
-
-	~RingBuffer()
-	{
-		StaticRingBuffer<SIZE>::deinit();
-	}
-};
+}

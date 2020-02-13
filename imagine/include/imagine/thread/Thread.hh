@@ -17,53 +17,53 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/thread/Semaphore.hh>
-
-#ifdef _WIN32
-#include <imagine/thread/Win32Thread.hh>
-#else
-#include <imagine/thread/PThread.hh>
-#endif
+#include <thread>
+#include <type_traits>
+#include <utility>
+#include <pthread.h>
 
 namespace IG
 {
 
-class thread : public ThreadImpl
+template<class T>
+T thisThreadID()
 {
-public:
-	using id = ThreadIDImpl;
-
-	thread();
-	~thread();
-	thread(thread&& other);
-	template<class Function>
-	explicit thread(Function&& f) : ThreadImpl{f} {}
-	template<class Function>
-	explicit thread(Function&& f, bool detached) : ThreadImpl{f, detached} {}
-	thread(const thread&) = delete;
-	bool joinable() const;
-	id get_id() const;
-	void join();
-	void detach();
-};
-
-namespace this_thread
-{
-
-thread::id get_id();
-
+	return static_cast<T>(pthread_self());
 }
 
 template<class Func>
-static void makeDetachedThread(Func&& f)
+static void makeDetachedThread(Func &&f)
 {
-	thread t{f, true};
+	std::thread t{std::forward<Func>(f)};
+	t.detach();
 }
 
 template<class Func>
-static void makeDetachedThreadSync(Func&& f)
+static void makeDetachedThreadSync(Func &&f)
 {
 	Semaphore sem{0};
-	thread t{[=, &sem](){f(sem);}, true};
+	if constexpr(std::is_copy_constructible<Func>::value)
+	{
+		std::thread t
+		{
+			[f{f}, &sem]()
+			{
+				f(sem);
+			}
+		};
+		t.detach();
+	}
+	else
+	{
+		std::thread t
+		{
+			[f{std::move(f)}, &sem]() mutable
+			{
+				f(sem);
+			}
+		};
+		t.detach();
+	}
 	sem.wait();
 }
 

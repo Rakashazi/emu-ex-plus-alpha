@@ -31,6 +31,7 @@ include $(imagineSrcDir)/bluetooth/system.mk
 include $(imagineSrcDir)/gui/gui.mk
 include $(imagineSrcDir)/font/system.mk
 include $(imagineSrcDir)/data-type/image/system.mk
+include $(imagineSrcDir)/util/ringbuffer/system.mk
 include $(imagineSrcDir)/util/system/pagesize.mk
 include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk

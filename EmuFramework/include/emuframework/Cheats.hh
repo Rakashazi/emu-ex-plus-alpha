@@ -23,39 +23,39 @@ using RefreshCheatsDelegate = DelegateFunc<void ()>;
 
 class BaseCheatsView : public TableView
 {
+public:
+	BaseCheatsView(ViewAttachParams attach);
+	~BaseCheatsView() override;
+
 protected:
 	TextMenuItem edit{};
 	std::vector<BoolMenuItem> cheat{};
 	RefreshCheatsDelegate onRefreshCheats{};
 
 	virtual void loadCheatItems() = 0;
-
-public:
-	BaseCheatsView(ViewAttachParams attach);
-	~BaseCheatsView() override;
 };
 
 class BaseEditCheatListView : public TableView
 {
+public:
+	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item);
+	~BaseEditCheatListView() override;
+
 protected:
 	std::vector<TextMenuItem> cheat{};
 	RefreshCheatsDelegate onRefreshCheats{};
 
 	virtual void loadCheatItems() = 0;
-
-public:
-	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item);
-	~BaseEditCheatListView() override;
 };
 
 class BaseEditCheatView : public TableView
 {
+public:
+	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,
+		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed);
+
 protected:
 	TextMenuItem name{}, remove{};
 
 	virtual void renamed(const char *str) = 0;
-
-public:
-	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,
-		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed);
 };

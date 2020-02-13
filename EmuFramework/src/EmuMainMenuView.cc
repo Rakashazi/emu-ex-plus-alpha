@@ -15,6 +15,7 @@
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/base/Base.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuApp.hh>

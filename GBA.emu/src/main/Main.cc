@@ -1,23 +1,24 @@
 /*  This file is part of GBA.emu.
 
-	PCE.emu is free software: you can redistribute it and/or modify
+	GBA.emu is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	PCE.emu is distributed in the hope that it will be useful,
+	GBA.emu is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
+	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include "internal.hh"
-#include "Cheats.hh"
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/GBAGfx.h>
 #include <vbam/gba/Sound.h>
@@ -27,7 +28,7 @@
 #include <vbam/Util.h>
 
 void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, bool renderAudio);
+void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio);
 void CPUCleanUp();
 bool CPUReadBatteryFile(GBASys &gba, const char *);
 bool CPUWriteBatteryFile(GBASys &gba, const char *);
@@ -114,7 +115,6 @@ void EmuSystem::saveBackupMem()
 	{
 		logMsg("saving backup memory");
 		auto saveStr = FS::makePathStringPrintf("%s/%s.sav", savePath(), gameName().data());
-		fixFilePermissions(saveStr);
 		CPUWriteBatteryFile(gGba, saveStr.data());
 		writeCheatFile();
 	}
@@ -206,18 +206,21 @@ void systemDrawScreen(EmuSystemTask *task, EmuVideo &video)
 	img.endFrame();
 }
 
-void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length)
+void systemOnWriteDataToSoundBuffer(EmuAudio *audio, const u16 * finalWave, int length)
 {
 	//logMsg("%d audio frames", Audio::pPCM.bytesToFrames(length));
-	EmuSystem::writeSound(finalWave, EmuSystem::pcmFormat.bytesToFrames(length));
+	if(audio)
+	{
+		audio->writeFrames(finalWave, audio->pcmFormat().bytesToFrames(length));
+	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
-	CPULoop(gGba, task, video, renderAudio);
+	CPULoop(gGba, task, video, audio);
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	double mixRate = std::round(rate * (59.7275 * frameTime));
 	logMsg("set audio rate:%d, mix rate:%d", rate, (int)mixRate);

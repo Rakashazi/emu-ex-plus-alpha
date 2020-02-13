@@ -15,9 +15,14 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/VideoImageEffect.hh>
 #include "EmuOptions.hh"
 #include <emuframework/FilePicker.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/TextTableView.hh>
 #include <algorithm>
 #include "private.hh"
 
@@ -140,12 +145,12 @@ static void setFrameInterval(int interval)
 }
 #endif
 
-static void setAudioRate(int rate)
+static void setAudioRate(uint32_t rate)
 {
-	if(rate > IG::AudioManager::nativeFormat().rate)
+	if(rate > (uint32_t)IG::AudioManager::nativeFormat().rate)
 		return;
 	optionSoundRate = rate;
-	EmuSystem::configAudioPlayback();
+	EmuSystem::configAudioPlayback(rate);
 }
 
 static void setMenuOrientation(uint val, Base::Window &win)
@@ -163,7 +168,7 @@ static void setGameOrientation(uint val)
 
 static void setSoundBuffers(int val)
 {
-	EmuSystem::closeSound();
+	emuAudio.close();
 	optionSoundBuffers = val;
 }
 
@@ -256,8 +261,6 @@ static void printPathMenuEntryStr(PathOption optionSavePath, char (&str)[S])
 
 class DetectFrameRateView : public View
 {
-	IG::WindowRect viewFrame;
-
 public:
 	using DetectFrameRateDelegate = DelegateFunc<void (double frameRate)>;
 	DetectFrameRateDelegate onDetectFrameTime;
@@ -284,8 +287,6 @@ public:
 		setCPUNeedsLowLatency(false);
 		emuViewController.emuWindowScreen()->removeOnFrame(detectFrameRate);
 	}
-
-	IG::WindowRect &viewRect() final { return viewFrame; }
 
 	void place() final
 	{
@@ -1066,7 +1067,7 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double ti
 		EmuApp::printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime);
 		return false;
 	}
-	EmuSystem::configFrameTime();
+	EmuSystem::configFrameTime(optionSoundRate);
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
 		optionFrameRate = time;
@@ -1177,7 +1178,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionSound = item.flipBoolValue(*this);
 			if(!optionSound)
-				EmuSystem::closeSound();
+				emuAudio.close();
 		}
 	},
 	soundBuffersItem

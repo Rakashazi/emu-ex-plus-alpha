@@ -15,9 +15,9 @@
 
 #define LOGTAG "EmuVideo"
 #include <emuframework/EmuVideo.hh>
-#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
+#include <imagine/logger/logger.h>
 #include "private.hh"
 
 void EmuVideo::resetImage()

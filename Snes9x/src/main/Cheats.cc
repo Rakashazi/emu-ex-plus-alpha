@@ -1,4 +1,5 @@
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"

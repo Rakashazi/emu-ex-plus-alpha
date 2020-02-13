@@ -14,7 +14,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/TouchConfigView.hh>
-#include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
@@ -127,7 +126,6 @@ static auto &layoutPosArr(Base::Window &win)
 
 class OnScreenInputPlaceView : public View
 {
-	IG::WindowRect viewFrame;
 	struct DragState
 	{
 		constexpr DragState() {};
@@ -145,7 +143,6 @@ class OnScreenInputPlaceView : public View
 public:
 	OnScreenInputPlaceView(ViewAttachParams attach): View(attach) {}
 	~OnScreenInputPlaceView();
-	IG::WindowRect &viewRect() final { return viewFrame; }
 	void init();
 	void place() final;
 	bool inputEvent(Input::Event e) final;
@@ -188,7 +185,7 @@ void OnScreenInputPlaceView::place()
 		d.elem = -1;
 	}
 
-	auto exitBtnPos = viewFrame.pos(C2DO);
+	auto exitBtnPos = viewRect().pos(C2DO);
 	int exitBtnSize = window().widthSMMInPixels(10.);
 	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
 	text.compile(renderer(), projP);
@@ -241,7 +238,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 				auto newPos = d.startPos + state.downPosDiff();
 				waitForDrawFinished();
 				vController.setPos(d.elem, newPos);
-				auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size(), viewFrame);
+				auto layoutPos = vControllerPixelToLayoutPos(vController.bounds(d.elem).pos(C2DO), vController.bounds(d.elem).size(), viewRect());
 				//logMsg("set pos %d,%d from %d,%d", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
 				auto &vCtrlLayoutPos = vController.layoutPosition()[window().isPortrait() ? 1 : 0];
 				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
@@ -286,7 +283,7 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 			{text.xSize + text.spaceSize*(Gfx::GC)2., text.ySize + text.spaceSize*(Gfx::GC)2.}));
 		cmds.setColor(1., 1., 1., textFade.now());
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-		text.draw(cmds, projP.unProjectRect(viewFrame).pos(C2DO), C2DO, projP);
+		text.draw(cmds, projP.unProjectRect(viewRect()).pos(C2DO), C2DO, projP);
 	}
 }
 

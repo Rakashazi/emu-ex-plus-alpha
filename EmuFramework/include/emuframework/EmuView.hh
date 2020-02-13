@@ -16,15 +16,17 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
+#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 #include <imagine/gfx/GfxText.hh>
-#include <emuframework/EmuVideoLayer.hh>
-#include <emuframework/EmuInputView.hh>
+#endif
+
+class EmuInputView;
+class EmuVideoLayer;
 
 class EmuView : public View
 {
 public:
 	EmuView(ViewAttachParams attach, EmuVideoLayer *layer);
-	IG::WindowRect &viewRect() final { return rect; }
 	void place() final;
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
@@ -38,7 +40,6 @@ public:
 private:
 	EmuVideoLayer *layer{};
 	EmuInputView *inputView{};
-	IG::WindowRect rect{};
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	Gfx::Text audioStatsText{};
 	Gfx::GCRect audioStatsRect{};

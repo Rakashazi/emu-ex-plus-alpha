@@ -7,6 +7,7 @@
 
 class SoundDriver;
 class EmuVideo;
+class EmuAudio;
 class EmuSystemTask;
 
 struct EmulatedSystem {
@@ -58,7 +59,7 @@ extern void systemMessage(int, const char *, ...);
 #endif
 extern void systemSetTitle(const char *);
 extern SoundDriver * systemSoundInit();
-extern void systemOnWriteDataToSoundBuffer(const u16 * finalWave, int length);
+extern void systemOnWriteDataToSoundBuffer(EmuAudio *audio, const u16 * finalWave, int length);
 extern void systemOnSoundShutdown();
 extern void systemScreenMessage(const char *);
 extern void systemUpdateMotionSensor();

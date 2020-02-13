@@ -3,6 +3,7 @@
 #include <apu/bapu/snes/snes.hpp>
 #include <ppu.h>
 #endif
+#include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include "EmuCheatViews.hh"

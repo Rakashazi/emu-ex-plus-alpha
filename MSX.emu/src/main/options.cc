@@ -62,6 +62,5 @@ void EmuSystem::writeConfig(IO &io)
 EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	machineBasePath = makeMachineBasePath(machineCustomPath);
-	fixFilePermissions(machineBasePath);
 	return {};
 }

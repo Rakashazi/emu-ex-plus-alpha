@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/StateSlotView.hh>
-#include <emuframework/EmuApp.hh>
+#include <imagine/logger/logger.h>
 #include "private.hh"
 
 StateSlotView::StateSlotView(ViewAttachParams attach):

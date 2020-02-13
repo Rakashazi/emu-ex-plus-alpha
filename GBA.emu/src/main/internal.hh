@@ -8,3 +8,5 @@ extern Byte1Option optionRtcEmulation;
 extern bool detectedRtcGame;
 
 void setRTC(uint mode);
+void readCheatFile();
+void writeCheatFile();

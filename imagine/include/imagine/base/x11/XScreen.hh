@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
+#include <utility>
 
 namespace Base
 {
@@ -24,24 +25,18 @@ namespace Base
 class XScreen : public NotEquals<XScreen>
 {
 public:
+	constexpr XScreen() {}
+	void init(void *xScreen);
+	std::pair<float, float> mmSize() const;
+	void *nativeObject() const;
+	bool operator ==(XScreen const &rhs) const;
+	explicit operator bool() const;
+
+protected:
 	void *xScreen{};
 	float xMM = 0, yMM = 0;
 	double frameTime_ = 0;
 	bool reliableFrameTime = true;
-
-	constexpr XScreen() {}
-
-	void init(void *xScreen);
-
-	bool operator ==(XScreen const &rhs) const
-	{
-		return xScreen == rhs.xScreen;
-	}
-
-	explicit operator bool() const
-	{
-		return xScreen;
-	}
 };
 
 using ScreenImpl = XScreen;

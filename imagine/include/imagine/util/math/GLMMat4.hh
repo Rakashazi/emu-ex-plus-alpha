@@ -19,7 +19,7 @@
 #include <imagine/util/math/GLMVec4.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/operators.hh>
-#include <imagine/glm/mat4x4.hpp>
+#include <imagine/glm/ext/matrix_float4x4.hpp>
 
 class GLMMat4 : NotEquals<GLMMat4>
 {

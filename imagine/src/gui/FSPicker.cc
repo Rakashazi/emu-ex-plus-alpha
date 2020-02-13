@@ -75,7 +75,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 
 void FSPicker::place()
 {
-	controller.place(viewFrame, projP);
+	controller.place(viewRect(), projP);
 	msgText.compile(renderer(), projP);
 }
 

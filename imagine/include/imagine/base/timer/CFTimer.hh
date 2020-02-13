@@ -23,18 +23,6 @@ namespace Base
 
 class CFTimer
 {
-protected:
-	CFRunLoopTimerRef timer{};
-	CallbackDelegate callback{};
-	CFTimeInterval repeat = 0;
-	bool reuseResources = false; // whether to keep the CFRunLoopTimer in run-loop after firing
-	bool armed = false;
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
-
-	const char *label();
-
 public:
 	#ifdef NDEBUG
 	CFTimer();
@@ -51,6 +39,18 @@ public:
 	{
 		return armed;
 	}
+
+protected:
+	CFRunLoopTimerRef timer{};
+	CallbackDelegate callback{};
+	CFTimeInterval repeat = 0;
+	bool reuseResources = false; // whether to keep the CFRunLoopTimer in run-loop after firing
+	bool armed = false;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 };
 
 using TimerImpl = CFTimer;

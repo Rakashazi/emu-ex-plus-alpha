@@ -48,7 +48,6 @@ public:
 	void onAddedToController(Input::Event e) override;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;
-	IG::WindowRect &viewRect() override;
 	Gfx::GlyphTextureSet *titleFace();
 	bool hasButtons() const;
 
@@ -62,7 +61,6 @@ protected:
 	static constexpr int controls = 3;
 	std::array<Control, controls> control{};
 	Gfx::Text text{};
-	IG::WindowRect viewRect_{};
 	int selected = -1;
 
 	bool selectNextLeftButton();

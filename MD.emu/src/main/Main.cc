@@ -16,6 +16,7 @@
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuInput.hh>
+#include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
 #include "system.h"
@@ -76,7 +77,7 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("frame start");
 	RAMCheatUpdate();
@@ -84,10 +85,10 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 
 	int16 audioBuff[snd.buffer_size * 2];
 	int frames = audio_update(audioBuff);
-	if(renderAudio)
+	if(audio)
 	{
 		//logMsg("%d frames", frames);
-		writeSound(audioBuff, frames);
+		audio->writeFrames(audioBuff, frames);
 	}
 	//logMsg("frame end");
 }
@@ -201,7 +202,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	if(sram.on)
 	{
 		auto saveStr = sprintSaveFilename();
-		fixFilePermissions(saveStr);
 
 		logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
 
@@ -508,7 +508,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	audio_init(rate, 1. / frameTime);
 	if(gameIsRunning())

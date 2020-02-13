@@ -15,7 +15,6 @@
 
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
-#include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
 #include <algorithm>
@@ -122,14 +121,14 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				Gfx::GC width = projP.unprojectYSize(gameRect_.ySize()) * aR.ratio<Gfx::GC>();
 				if(!aR.x)
 				{
-					width = projP.w;
+					width = projP.width();
 				}
 				gameRectG.x = -width/2.;
 				gameRectG.x2 = width/2.;
 			}
 			else
 			{
-				Gfx::GP size { projP.w, projP.h };
+				Gfx::GP size = projP.size();
 				if(aR.x)
 				{
 					size = IG::sizesWithRatioBestFit(aR.ratio<Gfx::GC>(), size.x, size.y);
@@ -270,7 +269,7 @@ void EmuVideoLayer::setOverlay(uint effect)
 
 void EmuVideoLayer::setOverlayIntensity(Gfx::GC intensity)
 {
-	vidImgOverlay.intensity = intensity;
+	vidImgOverlay.setIntensity(intensity);
 }
 
 void EmuVideoLayer::placeOverlay()

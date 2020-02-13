@@ -16,15 +16,20 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/gui/TextTableView.hh>
-#include <emuframework/EmuSystem.hh>
+#include <emuframework/config.hh>
 
 class VController;
 
 class TouchConfigView : public TableView
 {
 public:
+	TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName);
+	void place() final;
+	void draw(Gfx::RendererCommands &cmds) final;
+
+protected:
 	VController &vController;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	TextMenuItem touchCtrlItem[3];
@@ -84,9 +89,4 @@ public:
 	StaticArrayList<MenuItem*, 32> item{};
 
 	void refreshTouchConfigMenu();
-
-public:
-	TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName);
-	void place() final;
-	void draw(Gfx::RendererCommands &cmds) final;
 };

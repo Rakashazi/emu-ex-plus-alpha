@@ -15,8 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/fs/FS.hh>
+
+namespace IG
+{
+class Pixmap;
+}
 
 bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);
 int sprintScreenshotFilename(FS::PathString &str);

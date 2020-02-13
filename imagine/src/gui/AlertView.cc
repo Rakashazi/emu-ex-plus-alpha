@@ -37,14 +37,14 @@ BaseAlertView::BaseAlertView(ViewAttachParams attach, const char *label, TableVi
 void BaseAlertView::place()
 {
 	using namespace Gfx;
-	int xSize = rect.xSize() * .8;
+	int xSize = viewRect().xSize() * .8;
 	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95_gc;
 	text.compile(renderer(), projP);
 
 	int menuYSize = menu.cells() * text.face->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.fullHeight()));
 	IG::WindowRect viewFrame;
-	viewFrame.setPosRel(rect.pos(C2DO),
+	viewFrame.setPosRel(viewRect().pos(C2DO),
 			{xSize, labelYSize + menuYSize}, C2DO);
 
 	labelFrame = projP.unProjectRect(viewFrame.x, viewFrame.y, viewFrame.x2, viewFrame.y + labelYSize);

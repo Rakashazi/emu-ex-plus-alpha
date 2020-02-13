@@ -21,7 +21,6 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/gfx/Vec3.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/pixmap/PixelFormat.hh>

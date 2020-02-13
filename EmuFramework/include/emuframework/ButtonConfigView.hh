@@ -15,8 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/MenuItem.hh>
 
 class InputManagerView;
 struct InputDeviceConfig;
@@ -24,10 +25,18 @@ struct KeyCategory;
 
 class ButtonConfigSetView : public View
 {
-private:
-	typedef DelegateFunc<void (Input::Event e)> SetDelegate;
+public:
+	using SetDelegate = DelegateFunc<void (Input::Event e)>;
 
-	IG::WindowRect viewFrame{};
+	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView,
+		Input::Device &dev, const char *actionName, SetDelegate onSet);
+	~ButtonConfigSetView() final;
+	void place() final;
+	bool inputEvent(Input::Event e) final;
+	void draw(Gfx::RendererCommands &cmds) final;
+	void onAddedToController(Input::Event e) final;
+
+private:
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	IG::WindowRect unbindB{}, cancelB{};
 	#endif
@@ -44,16 +53,6 @@ private:
 
 	void initPointerUI();
 	bool pointerUIIsInit();
-
-public:
-	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView,
-		Input::Device &dev, const char *actionName, SetDelegate onSet);
-	~ButtonConfigSetView();
-	IG::WindowRect &viewRect() final { return viewFrame; }
-	void place() final;
-	bool inputEvent(Input::Event e) final;
-	void draw(Gfx::RendererCommands &cmds) final;
-	void onAddedToController(Input::Event e) final;
 };
 
 class ButtonConfigView : public TableView

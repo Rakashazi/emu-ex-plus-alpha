@@ -113,7 +113,6 @@ protected:
 	static constexpr Orientation validSoftOrientations_ = VIEW_ROTATE_0;
 	#endif
 
-protected:
 	SurfaceChangeDelegate onSurfaceChange{};
 	DrawDelegate onDraw{};
 	InputEventDelegate onInputEvent{};

@@ -71,8 +71,9 @@ IG::WindowRect Window::contentBounds() const
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
 	auto &s = *screen();
-	assert(s.xMM);
-	return {s.xMM * ((float)size.x/(float)s.width()), s.yMM * ((float)size.y/(float)s.height())};
+	auto [xMM, yMM] = s.mmSize();
+	assert(xMM);
+	return {xMM * ((float)size.x/(float)s.width()), yMM * ((float)size.y/(float)s.height())};
 }
 
 Window *windowForXWindow(::Window xWin)
@@ -80,7 +81,7 @@ Window *windowForXWindow(::Window xWin)
 	iterateTimes(Window::windows(), i)
 	{
 		auto w = Window::window(i);
-		if(w->xWin == xWin)
+		if(w->nativeObject() == xWin)
 			return w;
 	}
 	return nullptr;
@@ -178,7 +179,7 @@ std::error_code Window::init(const WindowConfig &config)
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	this->screen_ = &mainScreen();
 	#endif
-	auto rootWindow = RootWindowOfScreen((::Screen*)screen()->xScreen);
+	auto rootWindow = RootWindowOfScreen((::Screen*)screen()->nativeObject());
 	#ifdef CONFIG_MACHINE_PANDORA
 	IG::WindowRect winRect{0, 0, 800, 480};
 	#else
@@ -285,6 +286,11 @@ bool Window::systemAnimatesRotation()
 NativeWindow Window::nativeObject() const
 {
 	return xWin;
+}
+
+std::pair<unsigned long, unsigned long> XWindow::xdndData() const
+{
+	return {draggerXWin, dragAction};
 }
 
 bool XWindow::operator ==(XWindow const &rhs) const

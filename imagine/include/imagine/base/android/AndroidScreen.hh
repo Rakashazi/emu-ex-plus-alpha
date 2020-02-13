@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
 #include <jni.h>
+#include <utility>
 
 namespace Base
 {
@@ -27,32 +28,29 @@ enum SurfaceRotation : int;
 class AndroidScreen : public NotEquals<AndroidScreen>
 {
 public:
-	jobject aDisplay{};
-	float xDPI{}, yDPI{};
-	float densityDPI{};
-	float refreshRate_{};
-	int width_{}, height_{};
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	int id{};
-	#else
-	static constexpr int id = 0;
-	#endif
-	bool reliableRefreshRate = true;
-
 	constexpr AndroidScreen() {}
 
 	void init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain);
-	SurfaceRotation rotation(JNIEnv *env);
+	SurfaceRotation rotation(JNIEnv *env) const;
+	std::pair<float, float> dpi() const;
+	float densityDPI() const;
+	jobject displayObject() const;
+	int id() const;
+	bool operator ==(AndroidScreen const &rhs) const;
+	explicit operator bool() const;
 
-	bool operator ==(AndroidScreen const &rhs) const
-	{
-		return id == rhs.id;
-	}
-
-	explicit operator bool() const
-	{
-		return aDisplay;
-	}
+protected:
+	jobject aDisplay{};
+	float xDPI{}, yDPI{};
+	float densityDPI_{};
+	float refreshRate_{};
+	int width_{}, height_{};
+	#ifdef CONFIG_BASE_MULTI_SCREEN
+	int id_{};
+	#else
+	static constexpr int id_ = 0;
+	#endif
+	bool reliableRefreshRate = true;
 };
 
 using ScreenImpl = AndroidScreen;

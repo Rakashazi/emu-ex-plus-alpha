@@ -369,15 +369,15 @@ static void end_frame( blip_time_t time )
 	stereo_buffer.end_frame( time );
 }
 
-void flush_samples(Multi_Buffer * buffer, bool renderAudio)
+void flush_samples(Multi_Buffer * buffer, EmuAudio *audio)
 {
 	// Write one video frame worth of audio
 	uint samples = buffer->samples_avail();
 	u16 soundFinalWave[1800];
 	samples = std::min(samples, uint(sizeof soundFinalWave / 2));
 	buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
-	if(likely(renderAudio))
-		systemOnWriteDataToSoundBuffer(soundFinalWave, samples*2);
+	if(likely(audio))
+		systemOnWriteDataToSoundBuffer(audio, soundFinalWave, samples*2);
 	//if(soundPaused)
 	//	soundResume();
 }
@@ -398,14 +398,14 @@ static void apply_filtering()
 	}
 }
 
-void psoundTickfn(bool renderAudio)
+void psoundTickfn(EmuAudio *audio)
 {
 	// Run sound hardware to present
 	end_frame( SOUND_CLOCK_TICKS );
 
  	//if (gb_apu && stereo_buffer)
 	{
-		flush_samples(&stereo_buffer, renderAudio);
+		flush_samples(&stereo_buffer, audio);
 
 		/*if ( soundFiltering_ != soundFiltering )
 			apply_filtering();

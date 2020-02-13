@@ -45,7 +45,6 @@ public:
 			[&item](const TableView &) { return std::size(item); },
 			[&item](const TableView &, uint32_t idx) -> MenuItem& { return derefMenuItem(std::data(item)[idx]); }
 		} {}
-	IG::WindowRect &viewRect() override { return viewFrame; }
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
 	void place() override;
@@ -58,8 +57,8 @@ public:
 	void onHide() override;
 	void onAddedToController(Input::Event e) override;
 	void setFocus(bool focused) override;
-	uint32_t cells() { return items(*this); }
-	IG::WP cellSize() const { return {viewFrame.x, yCellSize}; }
+	uint32_t cells() const;
+	IG::WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
 	static void setDefaultXIndent(const Gfx::ProjectionPlane &projP);
@@ -79,7 +78,6 @@ protected:
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;
-	IG::WindowRect viewFrame{};
 	_2DOrigin align{LC2DO};
 	ItemsDelegate items{};
 	ItemDelegate item{};

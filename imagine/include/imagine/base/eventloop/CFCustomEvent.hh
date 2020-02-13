@@ -24,17 +24,6 @@ namespace Base
 
 class CFCustomEvent
 {
-protected:
-	CFRunLoopTimerRef timer{};
-	CFRunLoopRef loop{};
-	CustomEventDelegate callback;
-	std::atomic_bool cancelled = true;
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
-
-	const char *label();
-
 public:
 	#ifdef NDEBUG
 	CFCustomEvent();
@@ -48,6 +37,17 @@ public:
 	{
 		return timer;
 	}
+
+protected:
+	CFRunLoopTimerRef timer{};
+	CFRunLoopRef loop{};
+	CustomEventDelegate callback;
+	std::atomic_bool cancelled = true;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 };
 
 using CustomEventImpl = CFCustomEvent;

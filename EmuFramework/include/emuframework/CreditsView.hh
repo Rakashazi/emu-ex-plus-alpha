@@ -22,19 +22,17 @@
 
 class CreditsView : public View
 {
+public:
+	CreditsView(const char *str, ViewAttachParams attach);
+	~CreditsView();
+	void prepareDraw() final;
+	void draw(Gfx::RendererCommands &cmds) final;
+	void place() final;
+	bool inputEvent(Input::Event e) final;
+
 private:
 	Gfx::Text text{};
 	TimedInterpolator<float> fade{};
 	Base::Screen::OnFrameDelegate animate{};
 	const char *str{};
-	IG::WindowRect rect{};
-
-public:
-	CreditsView(const char *str, ViewAttachParams attach);
-	~CreditsView();
-	IG::WindowRect &viewRect() final { return rect; }
-	void prepareDraw() final;
-	void draw(Gfx::RendererCommands &cmds) final;
-	void place() final;
-	bool inputEvent(Input::Event e) final;
 };

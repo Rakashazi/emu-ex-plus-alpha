@@ -190,7 +190,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const Pro
 	xPos = o.adjustX(xPos, xSize, LT2DO);
 	//logMsg("aligned to %f, converted to %d", Gfx::alignYToPixel(yPos), toIYPos(Gfx::alignYToPixel(yPos)));
 	yPos = o.adjustY(yPos, projP.alignYToPixel(ySize/2_gc), ySize, LT2DO);
-	if(IG::isOdd(projP.viewport.height()))
+	if(IG::isOdd(projP.viewport().height()))
 		yPos = projP.alignYToPixel(yPos);
 	yPos -= nominalHeight - yLineStart;
 	GC xOrig = xPos;

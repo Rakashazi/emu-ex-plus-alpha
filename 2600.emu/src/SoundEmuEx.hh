@@ -21,6 +21,7 @@
 class AudioQueue;
 class Resampler;
 class EmulationTiming;
+class EmuAudio;
 
 class SoundEmuEx : public Sound
 {
@@ -35,7 +36,7 @@ public:
 	void close() final;
 	void setFrameTime(OSystem &osystem, double frameTime, unsigned int soundRate);
 	void setResampleQuality(AudioSettings::ResamplingQuality quality);
-	void processAudio(OSystem &osystem, bool renderAudio);
+	void processAudio(OSystem &osystem, EmuAudio *audio);
 	void setEnabled(bool enable) final;
 	bool mute(bool state) final;
 	bool toggleMute() final;

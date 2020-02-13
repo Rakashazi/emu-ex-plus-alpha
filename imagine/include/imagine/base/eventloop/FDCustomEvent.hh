@@ -23,16 +23,6 @@ namespace Base
 
 class FDCustomEvent
 {
-protected:
-	FDEventSource fdSrc{};
-	CustomEventDelegate callback{};
-	std::atomic_bool cancelled = false;
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
-
-	const char *label();
-
 public:
 	#ifdef NDEBUG
 	FDCustomEvent();
@@ -51,6 +41,16 @@ public:
 	{
 		return fdSrc.fd() != -1;
 	}
+
+protected:
+	FDEventSource fdSrc{};
+	CustomEventDelegate callback{};
+	std::atomic_bool cancelled = false;
+	#ifndef NDEBUG
+	const char *debugLabel{};
+	#endif
+
+	const char *label();
 };
 
 using CustomEventImpl = FDCustomEvent;

@@ -32,22 +32,7 @@ namespace Gfx
 
 class Viewport : public NotEquals<Viewport>
 {
-private:
-	IG::WindowRect rect;
-	int w = 0, h = 0;
-	float wMM = 0, hMM = 0;
-	#ifdef __ANDROID__
-	float wSMM = 0, hSMM = 0;
-	#endif
-	IG::Rect2<int> relYFlipViewport;
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
-	#else
-	static constexpr Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
-	#endif
-
 public:
-
 	constexpr Viewport() {}
 	IG::WindowRect realBounds() const { return Base::orientationIsSideways(softOrientation_) ? IG::WindowRect{rect.y, rect.x, rect.y2, rect.x2} : rect; }
 	IG::WindowRect bounds() const { return rect; }
@@ -72,50 +57,26 @@ public:
 		return width() < height();
 	}
 
-	IG::WindowRect relRectFromViewport(int newX, int newY, int xSize, int ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
-	{
-		// adjust to the requested origin on the screen
-		//logMsg("relRectFromViewport %d,%d %d,%d", newX, newY, xSize, ySize);
-		newX = LT2DO.adjustX(newX, (int)width(), screenOrigin.invertYIfCartesian());
-		newY = LT2DO.adjustY(newY, (int)height(), screenOrigin.invertYIfCartesian());
-		//logMsg("translated to %d,%d", newX, newY);
-		IG::WindowRect rect;
-		rect.setPosRel({newX, newY}, {xSize, ySize}, posOrigin);
-		return rect;
-	}
-
-	IG::WindowRect relRectFromViewport(int newX, int newY, int size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
-	{
-		return relRectFromViewport(newX, newY, size, size, posOrigin, screenOrigin);
-	}
-
-	IG::WindowRect relRectFromViewport(int newX, int newY, IG::Point2D<int> size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
-	{
-		return relRectFromViewport(newX, newY, size.x, size.y, posOrigin, screenOrigin);
-	}
-
-	IG::Point2D<int> sizesWithRatioBestFitFromViewport(float destAspectRatio) const;
-
-	IG::WindowRect rectWithRatioBestFitFromViewport(int newX, int newY, float aR, _2DOrigin posOrigin, _2DOrigin screenOrigin) const
-	{
-		return relRectFromViewport(newX, newY, sizesWithRatioBestFitFromViewport(aR), posOrigin, screenOrigin);
-	}
-
 	IG::Rect2<int> inGLFormat() const
 	{
 		return relYFlipViewport;
 	}
 
-	static Viewport makeFromWindow(const Base::Window &win, const IG::WindowRect &rect);
+	IG::WindowRect relRectFromViewport(int newX, int newY, int xSize, int ySize, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
+	IG::WindowRect relRectFromViewport(int newX, int newY, int size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
+	IG::WindowRect relRectFromViewport(int newX, int newY, IG::Point2D<int> size, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
+	IG::WindowRect rectWithRatioBestFitFromViewport(int newX, int newY, float aR, _2DOrigin posOrigin, _2DOrigin screenOrigin) const;
+	static Viewport makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullRealRect, IG::WindowRect subRect);
+	static Viewport makeFromWindow(const Base::Window &win, IG::WindowRect rect);
 	static Viewport makeFromWindow(const Base::Window &win);
-	static Viewport makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &fullRealRect, const IG::WindowRect &subRect);
+	IG::Point2D<int> sizesWithRatioBestFitFromViewport(float destAspectRatio) const;
 
-	static Viewport makeFromRect(const IG::WindowRect &fullRect, const IG::WindowRect &subRect)
+	static Viewport makeFromRect(IG::WindowRect fullRect, IG::WindowRect subRect)
 	{
 		return makeFromRect(fullRect, fullRect, subRect);
 	}
 
-	static Viewport makeFromRect(const IG::WindowRect &fullRect)
+	static Viewport makeFromRect(IG::WindowRect fullRect)
 	{
 		return makeFromRect(fullRect, fullRect, fullRect);
 	}
@@ -124,6 +85,20 @@ public:
 	{
 		return rect == rhs.rect;
 	}
+
+private:
+	IG::WindowRect rect;
+	int w = 0, h = 0;
+	float wMM = 0, hMM = 0;
+	#ifdef __ANDROID__
+	float wSMM = 0, hSMM = 0;
+	#endif
+	IG::Rect2<int> relYFlipViewport;
+	#ifdef CONFIG_GFX_SOFT_ORIENTATION
+	Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
+	#else
+	static constexpr Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
+	#endif
 };
 
 }

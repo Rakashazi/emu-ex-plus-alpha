@@ -198,7 +198,7 @@ EventLoop EventLoop::makeForThread()
 	defaultCtx = g_main_context_new();
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("made GMainContext:%p for thread:0x%llx", defaultCtx, (long long)IG::this_thread::get_id());
+		logMsg("made GMainContext:%p for thread:0x%lx", defaultCtx, IG::thisThreadID<long>());
 	}
 	g_main_context_push_thread_default(defaultCtx);
 	g_main_context_unref(defaultCtx);

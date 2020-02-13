@@ -16,6 +16,8 @@
 #define LOGTAG "main"
 #include "MDFN.hh"
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
@@ -223,7 +225,7 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	}
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	EmulateSpecStruct espec{};
 	const bool using263Lines = vce.CR & 0x04;
@@ -367,19 +369,19 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	uint maxFrames = 48000/54;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec{};
-	if(renderAudio)
+	if(audio)
 	{
 		espec.SoundBuf = audioBuff;
 		espec.SoundBufMaxSize = maxFrames;
 		const bool using263Lines = vce.CR & 0x04;
 		if(unlikely(prevUsing263Lines != using263Lines))
 		{
-			configAudioPlayback();
+			configFrameTime(audio->pcmFormat().rate);
 		}
 	}
 	espec.task = task;
@@ -390,10 +392,10 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	int32 lineWidth[242];
 	espec.LineWidths = lineWidth;
 	emuSys->Emulate(&espec);
-	if(renderAudio)
+	if(audio)
 	{
-		assert((uint)espec.SoundBufSize <= EmuSystem::pcmFormat.bytesToFrames(sizeof(audioBuff)));
-		writeSound((uint8_t*)audioBuff, espec.SoundBufSize);
+		assert((uint)espec.SoundBufSize <= audio->pcmFormat().bytesToFrames(sizeof(audioBuff)));
+		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
 	}
 }
 

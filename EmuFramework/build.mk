@@ -25,6 +25,7 @@ FileUtils.cc \
 EmuApp.cc \
 BundledGamesView.cc \
 VideoImageEffect.cc \
+EmuAudio.cc \
 EmuVideo.cc \
 EmuInputView.cc \
 EmuVideoLayer.cc \

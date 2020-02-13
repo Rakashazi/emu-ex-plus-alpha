@@ -18,10 +18,10 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
-#include <emuframework/EmuVideo.hh>
 
 struct AppWindowData;
 class EmuInputView;
+class EmuVideo;
 
 class EmuVideoLayer
 {

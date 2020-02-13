@@ -50,14 +50,12 @@ public:
 		Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
 	~CollectTextInputView() override;
-	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
 
 protected:
-	IG::WindowRect rect{};
 	IG::WindowRect cancelBtn{};
 	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	Gfx::Sprite cancelSpr{};

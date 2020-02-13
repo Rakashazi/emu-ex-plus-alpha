@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/glm/vec4.hpp>
+#include <imagine/glm/ext/vector_float4.hpp>
 
 class GLMVec4
 {

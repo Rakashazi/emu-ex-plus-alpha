@@ -15,6 +15,7 @@
 
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/EmuSystem.hh>
+#include <imagine/gfx/Gfx.hh>
 
 #define CONV_COL(x) 0, x
 alignas(2) static uint8_t scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
@@ -81,6 +82,11 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, uint effect)
 	img.generateMipmaps();
 	spr.init({}, &img, {});
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
+}
+
+void VideoImageOverlay::setIntensity(Gfx::GC i)
+{
+	intensity = i;
 }
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)

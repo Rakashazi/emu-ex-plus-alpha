@@ -1,6 +1,8 @@
 #define LOGTAG "main"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
 #include "internal.hh"
 
 #include <snes9x.h>
@@ -144,7 +146,6 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		{
 			logMsg("saving backup memory");
 			auto saveStr = sprintSRAMFilename();
-			fixFilePermissions(saveStr);
 			Memory.SaveSRAM(saveStr.data());
 		}
 		auto cheatsStr = sprintCheatsFilename();
@@ -206,7 +207,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, int rate)
+void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 {
 	constexpr double ntscFrameRate = 21477272. / 357366.;
 	constexpr double palFrameRate = 21281370. / 425568.;
@@ -220,21 +221,21 @@ void EmuSystem::configAudioRate(double frameTime, int rate)
 	logMsg("sound rate:%d from system frame rate:%f", Settings.SoundPlaybackRate, systemFrameRate);
 }
 
-static void mixSamples(uint32_t samples, bool renderAudio)
+static void mixSamples(uint32_t samples, EmuAudio *audio)
 {
 	if(unlikely(!samples))
 		return;
 	assumeExpr(samples % 2 == 0);
 	int16_t audioBuff[samples];
 	S9xMixSamples((uint8*)audioBuff, samples);
-	if(renderAudio)
+	if(audio)
 	{
 		//logMsg("%d frames", frames);
-		EmuSystem::writeSound(audioBuff, samples / 2);
+		audio->writeFrames(audioBuff, samples / 2);
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
+void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	if(unlikely(snesActiveInputPort != SNES_JOYPAD))
 	{
@@ -266,17 +267,17 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, bool renderAudio)
 	emuVideo = video;
 	IPPU.RenderThisFrame = video ? TRUE : FALSE;
 	#ifndef SNES9X_VERSION_1_4
-	S9xSetSamplesAvailableCallback([](void *renderAudio)
+	S9xSetSamplesAvailableCallback([](void *audio)
 		{
 			int samples = S9xGetSampleCount();
-			mixSamples(samples, renderAudio);
-		}, (void*)renderAudio);
+			mixSamples(samples, (EmuAudio*)audio);
+		}, (void*)audio);
 	#endif
 	S9xMainLoop();
 	// video rendered in S9xDeinitUpdate
 	#ifdef SNES9X_VERSION_1_4
-	auto samples = audioFramesForThisFrame() * 2;
-	mixSamples(samples, renderAudio);
+	auto samples = updateAudioFramesPerVideoFrame() * 2;
+	mixSamples(samples, audio);
 	#endif
 }
 

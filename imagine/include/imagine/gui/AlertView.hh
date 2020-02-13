@@ -37,7 +37,6 @@ public:
 			[&item](const TableView &) { return std::size(item); },
 			[&item](const TableView &, uint32_t idx) -> MenuItem& { return TableView::derefMenuItem(std::data(item)[idx]); }
 		} {}
-	IG::WindowRect &viewRect() override { return rect; }
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
@@ -49,7 +48,6 @@ protected:
 	Gfx::GCRect labelFrame{};
 	Gfx::Text text{};
 	TableView menu;
-	IG::WindowRect rect{};
 };
 
 class AlertView : public BaseAlertView

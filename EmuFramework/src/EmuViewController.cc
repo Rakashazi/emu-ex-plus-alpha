@@ -16,7 +16,9 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
+#include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FilePicker.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
 #include "EmuOptions.hh"
@@ -617,7 +619,7 @@ void EmuViewController::applyFrameRates()
 		optionFrameRate.val ? optionFrameRate.val : emuView.window().screen()->frameTime());
 	EmuSystem::setFrameTime(EmuSystem::VIDSYS_PAL,
 		optionFrameRatePAL.val ? optionFrameRatePAL.val : emuView.window().screen()->frameTime());
-	EmuSystem::configFrameTime();
+	EmuSystem::configFrameTime(optionSoundRate);
 }
 
 static uint initialDelayFrames(Base::Screen &screen)
