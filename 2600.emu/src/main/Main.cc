@@ -36,6 +36,7 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuInput.hh>
 #undef Debugger
 #include "internal.hh"
 
@@ -43,6 +44,7 @@ static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 std::unique_ptr<OSystem> osystem{};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
+Controller::Type autoDetectedInput1{};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -132,6 +134,8 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	}
 	os->makeConsole(cartridge, props, gamePath());
 	auto &console = os->console();
+	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
+	setControllerType(console, (Controller::Type)optionInputPort1.val);
 	console.initializeVideo();
 	console.initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
@@ -228,5 +232,6 @@ EmuSystem::Error EmuSystem::onInit()
 	osystem = make_unique<OSystem>();
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
+	EmuControls::setActiveFaceButtons(2);
 	return {};
 }

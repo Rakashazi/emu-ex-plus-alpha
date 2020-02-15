@@ -172,10 +172,52 @@ class ConsoleOptionView : public TableView
 		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
-	std::array<MenuItem*, 2> menuItem
+	TextMenuItem inputPortsItem[3]
+	{
+		{"Auto", [](){ setInputPorts(Controller::Type::Unknown); }},
+		{"Joystick", [](){ setInputPorts(Controller::Type::Joystick); }},
+		{"Genesis Gamepad", [](){ setInputPorts(Controller::Type::Genesis); }},
+	};
+
+	MultiChoiceMenuItem inputPorts
+	{
+		"Input Ports",
+		[](int idx) -> const char*
+		{
+			if(idx == 0 && osystem->hasConsole())
+			{
+				return controllerTypeStr(osystem->console().leftController().type());
+			}
+			else
+				return nullptr;
+		},
+		[]()
+		{
+			if((Controller::Type)optionInputPort1.val == Controller::Type::Joystick)
+				return 1;
+			else if((Controller::Type)optionInputPort1.val == Controller::Type::Genesis)
+				return 2;
+			else
+				return 0;
+		}(),
+		inputPortsItem
+	};
+
+	static void setInputPorts(Controller::Type type)
+	{
+		EmuSystem::sessionOptionSet();
+		optionInputPort1 = (uint8_t)type;
+		if(osystem->hasConsole())
+		{
+			setControllerType(osystem->console(), type);
+		}
+	}
+
+	std::array<MenuItem*, 3> menuItem
 	{
 		&tvPhosphor,
-		&videoSystem
+		&videoSystem,
+		&inputPorts,
 	};
 
 public:

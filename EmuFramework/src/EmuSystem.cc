@@ -44,6 +44,7 @@ uint EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
 Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
+[[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 double EmuSystem::frameTimeNative = 1./60.;

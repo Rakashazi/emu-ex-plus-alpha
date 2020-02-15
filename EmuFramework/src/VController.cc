@@ -482,7 +482,7 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics)
 {
 	using namespace Gfx;
 	pics.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
-	Gfx::GTexC h = EmuSystem::inputFaceBtns == 2 ? 128. : 256.;
+	Gfx::GTexC h = EmuSystem::inputFaceBtns == 2 || EmuSystem::inputHasShortBtnTexture ? 128. : 256.;
 	dp.setImg(r, pics, h);
 	iterateTimes(EmuSystem::inputCenterBtns, i)
 	{
@@ -502,6 +502,13 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics)
 	{
 		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
 		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
+	}
+	else if(EmuSystem::inputFaceBtns == 4 && EmuSystem::inputHasShortBtnTexture)
+	{
+		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
+		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
+		circleBtnSpr[2].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
+		circleBtnSpr[3].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
 	}
 	else // for tall overlay image
 	{

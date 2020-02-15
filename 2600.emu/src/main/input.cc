@@ -34,6 +34,8 @@ enum
 	vcsKeyIdxLeftDown,
 	vcsKeyIdxJSBtn,
 	vcsKeyIdxJSBtnTurbo,
+	vcsKeyIdxJSBtnAlt,
+	vcsKeyIdxJSBtnAltTurbo,
 
 	vcsKeyIdxUp2,
 	vcsKeyIdxRight2,
@@ -45,6 +47,8 @@ enum
 	vcsKeyIdxLeftDown2,
 	vcsKeyIdxJSBtn2,
 	vcsKeyIdxJSBtnTurbo2,
+	vcsKeyIdxJSBtnAlt2,
+	vcsKeyIdxJSBtnAltTurbo2,
 
 	vcsKeyIdxSelect,
 	vcsKeyIdxReset,
@@ -57,10 +61,11 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "Select/Reset";
-const uint EmuSystem::inputFaceBtns = 2;
+const uint EmuSystem::inputFaceBtns = 4;
 const uint EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
+bool EmuSystem::inputHasShortBtnTexture = true;
 const uint EmuSystem::maxPlayers = 2;
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
@@ -81,6 +86,8 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	uint playerShift = player ? 7 : 0;
 	map[SysVController::F_ELEM] = Event::JoystickZeroFire + playerShift;
 	map[SysVController::F_ELEM+1] = (Event::JoystickZeroFire + playerShift) | SysVController::TURBO_BIT;
+	map[SysVController::F_ELEM+2] = Event::JoystickZeroFire5 + playerShift;
+	map[SysVController::F_ELEM+3] = (Event::JoystickZeroFire5 + playerShift) | SysVController::TURBO_BIT;
 
 	map[SysVController::C_ELEM] = Event::ConsoleSelect;
 	map[SysVController::C_ELEM+1] = Event::ConsoleReset;
@@ -114,6 +121,8 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxLeftDown: return Event::JoystickZeroLeft | (Event::JoystickZeroDown << 8);
 		case vcsKeyIdxJSBtnTurbo: turbo = 1; [[fallthrough]];
 		case vcsKeyIdxJSBtn: return Event::JoystickZeroFire;
+		case vcsKeyIdxJSBtnAltTurbo: turbo = 1; [[fallthrough]];
+		case vcsKeyIdxJSBtnAlt: return Event::JoystickZeroFire5;
 
 		case vcsKeyIdxUp2: return Event::JoystickOneUp;
 		case vcsKeyIdxRight2: return Event::JoystickOneRight;
@@ -125,6 +134,8 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		case vcsKeyIdxLeftDown2: return Event::JoystickOneLeft | (Event::JoystickOneDown << 8);
 		case vcsKeyIdxJSBtnTurbo2: turbo = 1; [[fallthrough]];
 		case vcsKeyIdxJSBtn2: return Event::JoystickOneFire;
+		case vcsKeyIdxJSBtnAltTurbo2: turbo = 1; [[fallthrough]];
+		case vcsKeyIdxJSBtnAlt2: return Event::JoystickOneFire5;
 
 		case vcsKeyIdxSelect: return Event::ConsoleSelect;
 		case vcsKeyIdxP1Diff: return Event::Combo1; // toggle P1 diff
@@ -170,18 +181,6 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			EmuApp::postMessage(1, false, vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W");
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
-		bcase Event::JoystickZeroFire5: // TODO: add turbo support for on-screen controls to framework
-			ev.set(Event::Type(Event::JoystickZeroFire), state == Input::PUSHED);
-			if(state == Input::PUSHED)
-				EmuApp::addTurboInputEvent(Event::JoystickZeroFire);
-			else
-				EmuApp::removeTurboInputEvent(Event::JoystickZeroFire);
-		bcase Event::JoystickOneFire5: // TODO: add turbo support for on-screen controls to framework
-			ev.set(Event::Type(Event::JoystickOneFire), state == Input::PUSHED);
-			if(state == Input::PUSHED)
-				EmuApp::addTurboInputEvent(Event::JoystickOneFire);
-			else
-				EmuApp::removeTurboInputEvent(Event::JoystickOneFire);
 		bcase Event::KeyboardZero1 ... Event::KeyboardOnePound:
 			ev.set(Event::Type(event1), state == Input::PUSHED);
 		bdefault:
@@ -191,5 +190,54 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			{
 				ev.set(Event::Type(event2), state == Input::PUSHED);
 			}
+	}
+}
+
+void setControllerType(Console &console, Controller::Type type)
+{
+	if(type == Controller::Type::Unknown)
+		type = autoDetectedInput1;
+	const bool extraButtons = type == Controller::Type::Genesis;
+	EmuControls::setActiveFaceButtons(extraButtons ? 4 : 2);
+	Controller &currentController = console.leftController();
+	if(currentController.type() == type)
+	{
+		logMsg("using controller type:%s", controllerTypeStr(type));
+		return;
+	}
+	auto props = console.properties();
+	props.set(PropType::Controller_Left, Controller::getPropName(type));
+	props.set(PropType::Controller_Right, Controller::getPropName(type));
+	const string& md5 = props.get(PropType::Cart_MD5);
+	console.setProperties(props);
+	console.setControllers(md5);
+	if(Config::DEBUG_BUILD)
+	{
+		logMsg("current controller name in console object:%s", console.leftController().name().c_str());
+	}
+	logMsg("set controller to type:%s", controllerTypeStr(type));
+}
+
+Controller::Type limitToSupportedControllerTypes(Controller::Type type)
+{
+	switch(type)
+	{
+		case Controller::Type::Joystick:
+		case Controller::Type::Genesis:
+		case Controller::Type::Keyboard:
+			return type;
+		default:
+			return Controller::Type::Joystick;
+	}
+}
+
+const char *controllerTypeStr(Controller::Type type)
+{
+	switch(type)
+	{
+		case Controller::Type::Joystick: return "Joystick";
+		case Controller::Type::Genesis: return "Genesis Gamepad";
+		case Controller::Type::Keyboard: return "Keyboard";
+		default: return "Auto";
 	}
 }

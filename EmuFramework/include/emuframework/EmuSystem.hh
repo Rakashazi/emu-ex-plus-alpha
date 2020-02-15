@@ -110,6 +110,7 @@ public:
 	static const bool inputHasTriggerBtns;
 	static const bool inputHasRevBtnLayout;
 	static bool inputHasKeyboard;
+	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
 	static bool hasPALVideoSystem;
 	enum VideoSystem { VIDSYS_NATIVE_NTSC, VIDSYS_PAL };

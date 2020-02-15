@@ -20,7 +20,7 @@ namespace EmuControls
 {
 
 const uint categories = 6;
-static constexpr uint joystickKeys = 10;
+static constexpr uint joystickKeys = 12;
 static constexpr uint switchKeys = 5;
 static constexpr uint keyboardKeys = 12;
 const uint systemTotalKeys = gameActionKeys + joystickKeys*2 + switchKeys + keyboardKeys*2;
@@ -42,6 +42,8 @@ static const char *gamepadName[joystickKeys] =
 	"Left+Down",
 	"Trigger",
 	"Trigger Turbo",
+	"Trigger 2",
+	"Trigger 2 Turbo",
 };
 
 static const char *switchName[switchKeys] =
@@ -105,9 +107,11 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Keycode::Z,
 			Keycode::X,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Keycode::SPACE,
@@ -161,9 +165,11 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Keycode::GAME_A,
 			Keycode::GAME_X,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Keycode::GAME_R1,
@@ -171,30 +177,6 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_Y,
 			Keycode::GAME_B,
 			Keycode::GAME_L1,
-		}
-	},
-	#endif
-	#ifdef CONFIG_ENV_WEBOS
-	{
-		Event::MAP_SYSTEM,
-		0,
-		"WebOS Keyboard",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
-
-			// JS 1
-			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			Keycode::COMMA,
-			Keycode::M,
-
-			// JS 2
-			PP_ZERO_LIST(10)
-
-			// Switches
-			Keycode::SPACE,
-			Keycode::ENTER,
-			Keycode::K,
-			Keycode::L,
 		}
 	},
 	#endif
@@ -214,9 +196,11 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Keycode::PS3::CROSS,
 			Keycode::PS3::SQUARE,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Keycode::PS3::SELECT,
@@ -241,9 +225,11 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Keycode::Ouya::O,
 			Keycode::Ouya::U,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Keycode::Ouya::L3,
@@ -268,9 +254,11 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Keycode::GAME_A,
 			Keycode::GAME_X,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Keycode::GAME_R1,
@@ -296,9 +284,11 @@ const KeyConfig defaultKeyProfile[] =
 				0, 0, 0, 0,
 				Keycode::XperiaPlay::CROSS,
 				Keycode::XperiaPlay::SQUARE,
+				0,
+				0,
 
 				// JS 2
-				PP_ZERO_LIST(10)
+				PP_ZERO_LIST(12)
 
 				// Switches
 				Keycode::XperiaPlay::SELECT,
@@ -323,9 +313,11 @@ const KeyConfig defaultKeyProfile[] =
 				0, 0, 0, 0,
 				Keycode::X,
 				Keycode::C,
+				0,
+				0,
 
 				// JS 2
-				PP_ZERO_LIST(10)
+				PP_ZERO_LIST(12)
 
 				// Switches
 				Keycode::SPACE,
@@ -352,9 +344,11 @@ const KeyConfig defaultKeyProfile[] =
 			0, 0, 0, 0,
 			Keycode::Pandora::X,
 			Keycode::Pandora::A,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Keycode::Pandora::SELECT,
@@ -388,9 +382,11 @@ const KeyConfig defaultAppleGCProfile[] =
 			0, 0, 0, 0,
 			AppleGC::A,
 			AppleGC::X,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			AppleGC::RSTICK_LEFT,
@@ -425,9 +421,11 @@ const KeyConfig defaultWiimoteProfile[] =
 			0, 0, 0, 0,
 			Wiimote::_1,
 			Wiimote::_2,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Wiimote::MINUS,
@@ -456,9 +454,11 @@ const KeyConfig defaultWiiCCProfile[] =
 			0, 0, 0, 0,
 			WiiCC::B,
 			WiiCC::Y,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			WiiCC::MINUS,
@@ -491,9 +491,11 @@ const KeyConfig defaultIControlPadProfile[] =
 			0, 0, 0, 0,
 			iControlPad::X,
 			iControlPad::A,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			iControlPad::SELECT,
@@ -526,9 +528,11 @@ const KeyConfig defaultICadeProfile[] =
 			0, 0, 0, 0,
 			ICade::A,
 			ICade::X,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			ICade::SELECT,
@@ -561,9 +565,11 @@ const KeyConfig defaultZeemoteProfile[] =
 			0, 0, 0, 0,
 			Zeemote::A,
 			Zeemote::B,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			Zeemote::C,
@@ -593,9 +599,11 @@ const KeyConfig defaultPS3Profile[] =
 			0, 0, 0, 0,
 			PS3::CROSS,
 			PS3::SQUARE,
+			0,
+			0,
 
 			// JS 2
-			PP_ZERO_LIST(10)
+			PP_ZERO_LIST(12)
 
 			// Switches
 			PS3::SELECT,
