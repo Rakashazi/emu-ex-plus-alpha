@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #ifdef __cplusplus
-#include <imagine/util/typeTraits.hh>
+#include <type_traits>
 #include <algorithm>
 #include <iterator>
 #endif

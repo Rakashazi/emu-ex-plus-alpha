@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/typeTraits.hh>
+#include <type_traits>
 #include <array>
 
 namespace Input
@@ -27,7 +27,7 @@ template <class T, uint32_t D>
 class IntegratingVelocityTracker
 {
 public:
-	static_assert(std::is_floating_point<T>::value, "IntegratingVelocityTracker needs floating point type");
+	static_assert(std::is_floating_point_v<T>, "IntegratingVelocityTracker needs floating point type");
 	using ValArray = std::array<T, D>;
 
 	constexpr IntegratingVelocityTracker() {}

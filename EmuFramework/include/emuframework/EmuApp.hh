@@ -22,6 +22,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <emuframework/EmuSystem.hh>
+#include <imagine/util/typeTraits.hh>
 
 class EmuApp
 {
@@ -58,14 +59,6 @@ public:
 	static void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
 		const char *label, const char *choice1, const char *choice2,
 		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
-	template<class C = TextMenuItem::SelectDelegate, class C2 = TextMenuItem::SelectDelegate>
-	static void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
-		const char *label, const char *yesStr, const char *noStr,
-		C &&onYes, C2 &&onNo)
-	{
-		pushAndShowNewYesNoAlertView(attach, e, label, yesStr, noStr,
-			TextMenuItem::wrapSelectDelegate(onYes), TextMenuItem::wrapSelectDelegate(onNo));
-	}
 	static void pushAndShowModalView(std::unique_ptr<View> v, Input::Event e);
 	static void popModalViews();
 	static void popMenuToRoot();
@@ -103,14 +96,91 @@ public:
 	static FS::PathString libPath();
 	static FS::PathString supportPath();
 	static AssetIO openAppAssetIO(const char *name, IO::AccessHint access);
-	template <size_t S>
-	static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access)
-	{
-		return openAppAssetIO(name.data(), access);
-	}
 	static void saveSessionOptions();
 	static void loadSessionOptions();
 	static bool hasSavedSessionOptions();
 	static void deleteSessionOptions();
 	static void syncEmulationThread();
+
+	template<class T, class Func>
+	static void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,
+	const char *msgText, const char *initialContent, Func &&collectedValueFunc)
+	{
+		EmuApp::pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
+			[=](CollectTextInputView &view, const char *str)
+			{
+				auto controller = view.controller();
+				assumeExpr(controller);
+				if(!str)
+				{
+					controller->popAndShow();
+					return false;
+				}
+				T val;
+				int items = 0;
+				if constexpr(std::is_same_v<T, const char*>)
+				{
+					val = str;
+					if(strlen(str))
+						items = 1;
+				}
+				else if constexpr(std::is_integral_v<T>)
+				{
+					items = sscanf(str, "%d", &val);
+				}
+				else if constexpr(std::is_floating_point_v<T>)
+				{
+					double denom;
+					items = sscanf(str, "%lf /%lf", &val, &denom);
+					if(items > 1 && denom > 0)
+					{
+						val /= denom;
+					}
+				}
+				else if constexpr(std::is_same_v<T, std::pair<double, double>>)
+				{
+					// special case for getting a fraction
+					val = {};
+					items = sscanf(str, "%lf /%lf", &val.first, &val.second);
+					if(!val.second)
+					{
+						val.second = 1.;
+					}
+				}
+				else
+				{
+					static_assert(IG::dependentFalseValue<T>, "can't collect value of this type");
+				}
+				if(items <= 0)
+				{
+					postErrorMessage("Enter a value");
+					return true;
+				}
+				else if(!collectedValueFunc(val))
+				{
+					return true;
+				}
+				else
+				{
+					controller->popAndShow();
+					return false;
+				}
+			});
+	}
+
+	template<class Func1, class Func2>
+	static void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
+		const char *label, const char *yesStr, const char *noStr,
+		Func1 &&onYes, Func2 &&onNo)
+	{
+		pushAndShowNewYesNoAlertView(attach, e, label, yesStr, noStr,
+			TextMenuItem::makeSelectDelegate(std::forward<Func1>(onYes)),
+			TextMenuItem::makeSelectDelegate(std::forward<Func2>(onNo)));
+	}
+
+	template <size_t S>
+	static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access)
+	{
+		return openAppAssetIO(name.data(), access);
+	}
 };

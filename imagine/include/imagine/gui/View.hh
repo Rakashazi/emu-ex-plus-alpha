@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/gui/ViewAttachParams.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
@@ -47,20 +48,6 @@ public:
 	virtual void dismissView(View &v) = 0;
 	virtual bool inputEvent(Input::Event e) = 0;
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
-};
-
-class ViewAttachParams
-{
-public:
-	constexpr ViewAttachParams(Base::Window &win, Gfx::RendererTask &rTask):
-		win{win}, rTask{rTask} {}
-	constexpr Base::Window &window() const { return win; }
-	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
-	Gfx::Renderer &renderer() const;
-
-protected:
-	Base::Window &win;
-	Gfx::RendererTask &rTask;
 };
 
 class View
@@ -109,6 +96,7 @@ public:
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 	void setWindow(Base::Window *w) { win = w; }
 	void setController(ViewController *c, Input::Event e);
+	ViewController *controller() const;
 	IG::WindowRect viewRect() const;
 	Gfx::ProjectionPlane projection() const;
 	bool pointIsInView(IG::WP pos);
@@ -129,7 +117,7 @@ public:
 protected:
 	Base::Window *win{};
 	Gfx::RendererTask *rendererTask_{};
-	ViewController *controller{};
+	ViewController *controller_{};
 	IG::WindowRect viewRect_{};
 	Gfx::ProjectionPlane projP{};
 	const char *name_ = "";

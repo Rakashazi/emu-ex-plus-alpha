@@ -74,7 +74,7 @@ private:
 
 		BtnConfigEntry()
 		{
-			item.t2.setString(str.data());
+			item.set2ndName(str.data());
 		}
 	} *btn{};
 	const KeyCategory *cat{};

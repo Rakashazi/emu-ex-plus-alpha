@@ -28,7 +28,7 @@ struct OptionBase
 	constexpr OptionBase() {}
 	constexpr OptionBase(bool isConst): isConst(isConst) {}
 	virtual bool isDefault() const = 0;
-	virtual uint ioSize() = 0;
+	virtual uint ioSize() const = 0;
 	virtual bool writeToIO(IO &io) = 0;
 };
 
@@ -43,7 +43,7 @@ struct OptionMethodBase
 {
 	constexpr OptionMethodBase(bool (&validator)(T v)): validator(validator) {}
 	bool (&validator)(T v);
-	bool isValidVal(T v)
+	bool isValidVal(T v) const
 	{
 		return validator(v);
 	}
@@ -100,7 +100,7 @@ public:
 	bool operator ==(T const& rhs) const { return V::get() == rhs; }
 	bool operator !=(T const& rhs) const { return V::get() != rhs; }
 
-	bool isDefault() const { return V::get() == defaultVal; }
+	bool isDefault() const override { return V::get() == defaultVal; }
 	void initDefault(T val) { defaultVal = val; V::set(val); }
 	void reset() { V::set(defaultVal); }
 
@@ -109,7 +109,7 @@ public:
 		return V::get();
 	}
 
-	bool writeToIO(IO &io)
+	bool writeToIO(IO &io) override
 	{
 		logMsg("writing option key %u after size %u", KEY, ioSize());
 		std::error_code ec{};
@@ -154,7 +154,7 @@ public:
 		return true;
 	}
 
-	uint ioSize()
+	uint ioSize() const override
 	{
 		return sizeof(typeof(KEY)) + sizeof(SERIALIZED_T);
 	}
@@ -173,16 +173,16 @@ struct PathOption : public OptionBase
 	template <size_t S>
 	constexpr PathOption(uint16_t key, std::array<char, S> &val, const char *defaultVal): PathOption(key, val.data(), S, defaultVal) {}
 
-	bool isDefault() const { return string_equal(val, defaultVal); }
+	bool isDefault() const override { return string_equal(val, defaultVal); }
 
 	operator char *() const
 	{
 		return val;
 	}
 
-	bool writeToIO(IO &io);
+	bool writeToIO(IO &io) override;
 	bool readFromIO(IO &io, uint readSize);
-	uint ioSize();
+	uint ioSize() const override;
 };
 
 using SByte1Option = Option<OptionMethodVar<int8_t>, int8_t>;

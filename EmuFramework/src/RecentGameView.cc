@@ -34,7 +34,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach):
 	clear
 	{
 		"Clear List",
-		[this](TextMenuItem &t, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			dismiss();
 			recentGameList.clear();
@@ -45,9 +45,9 @@ RecentGameView::RecentGameView(ViewAttachParams attach):
 	for(auto &e : recentGameList)
 	{
 		recentGame.emplace_back(e.name.data(),
-			[&e](TextMenuItem &t, View &view, Input::Event ev)
+			[&e](TextMenuItem &item, View &view, Input::Event ev)
 			{
-				e.handleMenuSelection(t, ev);
+				e.handleMenuSelection(item, ev);
 			});
 		recentGame.back().setActive(FS::exists(e.path.data()));
 	}

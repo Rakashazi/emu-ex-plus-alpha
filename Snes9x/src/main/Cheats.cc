@@ -185,8 +185,7 @@ static bool addCheat(const char *cheatStr)
 void EmuEditCheatView::renamed(const char *str)
 {
 	setCheatName(idx, str);
-	name.t.setString(cheatName(idx));
-	name.compile(renderer(), projP);
+	name.compile(cheatName(idx), renderer(), projP);
 }
 
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
@@ -224,35 +223,31 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 6-digit hex", addrStr,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr,
+				[this](auto str)
 				{
-					if(str)
+					uint a = strtoul(str, nullptr, 16);
+					if(a > 0xFFFFFF)
 					{
-						uint a = strtoul(str, nullptr, 16);
-						if(a > 0xFFFFFF)
-						{
-							logMsg("addr 0x%X too large", a);
-							EmuApp::postMessage(true, "Invalid input");
-							window().postDraw();
-							return 1;
-						}
-						string_copy(addrStr, a ? str : "0");
-						auto wasEnabled = cheatIsEnabled(idx);
-						if(wasEnabled)
-						{
-							disableCheat(idx);
-						}
-						setCheatAddress(idx, a);
-						if(wasEnabled)
-						{
-							enableCheat(idx);
-						}
-						addr.compile(renderer(), projP);
-						window().postDraw();
+						logMsg("addr 0x%X too large", a);
+						EmuApp::postMessage(true, "Invalid input");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					string_copy(addrStr, a ? str : "0");
+					auto wasEnabled = cheatIsEnabled(idx);
+					if(wasEnabled)
+					{
+						disableCheat(idx);
+					}
+					setCheatAddress(idx, a);
+					if(wasEnabled)
+					{
+						enableCheat(idx);
+					}
+					addr.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},
@@ -262,34 +257,30 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex", valueStr,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
+				[this](const char *str)
 				{
-					if(str)
+					uint a = strtoul(str, nullptr, 16);
+					if(a > 0xFF)
 					{
-						uint a = strtoul(str, nullptr, 16);
-						if(a > 0xFF)
-						{
-							EmuApp::postMessage(true, "value must be <= FF");
-							window().postDraw();
-							return 1;
-						}
-						string_copy(valueStr, a ? str : "0");
-						auto wasEnabled = cheatIsEnabled(idx);
-						if(wasEnabled)
-						{
-							disableCheat(idx);
-						}
-						setCheatValue(idx, a);
-						if(wasEnabled)
-						{
-							enableCheat(idx);
-						}
-						value.compile(renderer(), projP);
-						window().postDraw();
+						EmuApp::postMessage(true, "value must be <= FF");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					string_copy(valueStr, a ? str : "0");
+					auto wasEnabled = cheatIsEnabled(idx);
+					if(wasEnabled)
+					{
+						disableCheat(idx);
+					}
+					setCheatValue(idx, a);
+					if(wasEnabled)
+					{
+						enableCheat(idx);
+					}
+					value.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},

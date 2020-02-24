@@ -19,7 +19,7 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/FunctionTraits.hh>
 #include <memory>
 
 namespace IG
@@ -76,19 +76,19 @@ public:
 	void write(const IG::Pixmap &pixmap);
 	void write(const IG::Pixmap &pixmap, IG::WP destPos);
 
-	template <class FUNC>
+	template <class Func>
 	static constexpr bool checkTransformFunc()
 	{
-		constexpr bool isValid = std::is_arithmetic<IG::functionTraitsRType<FUNC>>::value
-			&& IG::functionTraitsArity<FUNC> == 1;
+		constexpr bool isValid = std::is_arithmetic_v<IG::FunctionTraitsR<Func>>
+			&& IG::functionTraitsArity<Func> == 1;
 		static_assert(isValid, "Transform function must take 1 argument and return an arithmetic value");
 		return isValid;
 	}
 
-	template <class FUNC>
-	void writeTransformed(FUNC func, const IG::Pixmap &pixmap)
+	template <class Func>
+	void writeTransformed(Func func, const IG::Pixmap &pixmap)
 	{
-		if constexpr(!checkTransformFunc<FUNC>())
+		if constexpr(!checkTransformFunc<Func>())
 		{
 			return;
 		}
@@ -119,8 +119,8 @@ public:
 		}
 	}
 
-	template <class FUNC>
-	void writeTransformed(FUNC func, const IG::Pixmap &pixmap, IG::WP destPos)
+	template <class Func>
+	void writeTransformed(Func func, const IG::Pixmap &pixmap, IG::WP destPos)
 	{
 		subPixmap(destPos, size() - destPos).writeTransformed(func, pixmap);
 	}
@@ -140,11 +140,11 @@ protected:
 	void *data{};
 	uint32_t pitch = 0; // in bytes
 
-	template <class SRC_T, class DEST_T, class FUNC>
-	void writeTransformed2(FUNC func, const IG::Pixmap &pixmap)
+	template <class Src, class Dest, class Func>
+	void writeTransformed2(Func func, const IG::Pixmap &pixmap)
 	{
-		auto srcData = (SRC_T*)pixmap.data;
-		auto destData = (DEST_T*)data;
+		auto srcData = (Src*)pixmap.data;
+		auto destData = (Dest*)data;
 		if(w() == pixmap.w() && !isPadded() && !pixmap.isPadded())
 		{
 			iterateTimes(pixmap.w() * pixmap.h(), i)

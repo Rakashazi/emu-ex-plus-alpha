@@ -27,14 +27,14 @@ namespace IG
 template<class T>
 static constexpr T radians(T degrees)
 {
-	static_assert(std::is_floating_point<T>::value, "expected floating point parameter");
+	static_assert(std::is_floating_point_v<T>, "expected floating point parameter");
 	return degrees * (T)(M_PI / 180.0);
 }
 
 template<class T>
 static constexpr T degrees(T radians)
 {
-	static_assert(std::is_floating_point<T>::value, "expected floating point parameter");
+	static_assert(std::is_floating_point_v<T>, "expected floating point parameter");
 	return radians * (T)(180.0 / M_PI);
 }
 
@@ -91,7 +91,7 @@ constexpr static RET scaleDecToBits(T val, unsigned int bits)
 template <class T>
 static constexpr T wrapMax(T x, T max)
 {
-	if constexpr(std::is_floating_point<T>::value)
+	if constexpr(std::is_floating_point_v<T>)
 	{
 		return std::fmod(max + std::fmod(x, max), max);
 	}

@@ -217,7 +217,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 			if(isDir)
 			{
 				text.emplace_back(dir[i].data(),
-					[this, i](TextMenuItem &, View &, Input::Event e)
+					[this, i](Input::Event e)
 					{
 						assert(!singleDir);
 						auto filePath = makePathString(dir[i].data());
@@ -228,7 +228,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 			else
 			{
 				text.emplace_back(dir[i].data(),
-					[this, i](TextMenuItem &, View &, Input::Event e)
+					[this, i](Input::Event e)
 					{
 						onSelectFile_.callCopy(*this, dir[i].data(), e);
 					});

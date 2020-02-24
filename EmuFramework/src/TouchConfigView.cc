@@ -29,7 +29,7 @@ static const char *ctrlStateStr[]
 	"Off", "On", "Hidden"
 };
 
-static const char *touchCtrlSizeMenuName[11]
+static const char *touchCtrlSizeMenuName[10]
 {
 	"6.5",
 	"7",
@@ -41,10 +41,9 @@ static const char *touchCtrlSizeMenuName[11]
 	"12",
 	"14",
 	"15",
-	"16"
 };
 
-static const uint touchCtrlSizeMenuVal[11]
+static const uint touchCtrlSizeMenuVal[10]
 {
 	650,
 	700,
@@ -56,7 +55,6 @@ static const uint touchCtrlSizeMenuVal[11]
 	1200,
 	1400,
 	1500,
-	1600
 };
 
 static const char *touchDpadDeadzoneMenuName[3]
@@ -316,8 +314,9 @@ static void setPointerInputPlayer(uint val)
 	vController.updateMapping(pointerInputPlayer);
 }
 
-static void setSize(uint val)
+void TouchConfigView::setSize(uint16_t val)
 {
+	string_printf(sizeStr, "%.2f", val / 100.);
 	optionTouchCtrlSize = val;
 	EmuControls::setupVControllerVars();
 	vController.place();
@@ -408,7 +407,7 @@ void TouchConfigView::refreshTouchConfigMenu()
 	touchCtrl.setSelected((int)optionTouchCtrl, *this);
 	if(EmuSystem::maxPlayers > 1)
 		pointerInput.setSelected((int)pointerInputPlayer, *this);
-	size.setSelected(findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, 0), *this);
+	size.setSelected(findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, std::size(sizeItem) - 1), *this);
 	dPadState.setSelected(layoutPos[0].state, *this);
 	faceBtnState.setSelected(layoutPos[2].state, *this);
 	centerBtnState.setSelected(layoutPos[1].state, *this);
@@ -491,12 +490,38 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 		{touchCtrlSizeMenuName[7], [this](){ setSize(touchCtrlSizeMenuVal[7]); }},
 		{touchCtrlSizeMenuName[8], [this](){ setSize(touchCtrlSizeMenuVal[8]); }},
 		{touchCtrlSizeMenuName[9], [this](){ setSize(touchCtrlSizeMenuVal[9]); }},
-		{touchCtrlSizeMenuName[10], [this](){ setSize(touchCtrlSizeMenuVal[10]); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 15.0", "",
+					[this](auto val)
+					{
+						int scaledIntVal = val * 100.0;
+						if(optionTouchCtrlSize.isValidVal(scaledIntVal))
+						{
+							setSize(scaledIntVal);
+							size.setSelected(std::size(sizeItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
 	},
 	size
 	{
 		"Button Size",
-		findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, 0),
+		[this](uint32_t idx)
+		{
+			return sizeStr;
+		},
+		findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, std::size(sizeItem) - 1),
 		sizeItem
 	},
 	deadzoneItem
@@ -583,7 +608,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	{
 		"Inline L/R",
 		(bool)optionTouchCtrlTriggerBtnPos,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionTouchCtrlTriggerBtnPos = item.flipBoolValue(*this);
 			EmuControls::setupVControllerVars();
@@ -668,7 +693,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	{
 		"Show Bounding Boxes",
 		(bool)optionTouchCtrlBoundingBoxes,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionTouchCtrlBoundingBoxes = item.flipBoolValue(*this);
 			EmuControls::setupVControllerVars();
@@ -679,7 +704,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	{
 		"Vibration",
 		(bool)optionVibrateOnPush,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionVibrateOnPush = item.flipBoolValue(*this);
 		}
@@ -690,7 +715,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 			"Size Units",
 			(bool)optionTouchCtrlScaledCoordinates,
 			"Physical (Millimeters)", "Scaled Points",
-			[this](BoolMenuItem &item, View &, Input::Event e)
+			[this](BoolMenuItem &item, Input::Event e)
 			{
 				optionTouchCtrlScaledCoordinates = item.flipBoolValue(*this);
 				EmuControls::setupVControllerVars();
@@ -702,7 +727,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	{
 		"Show Gamepad If Screen Touched",
 		(bool)optionTouchCtrlShowOnTouch,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionTouchCtrlShowOnTouch = item.flipBoolValue(*this);
 		}
@@ -726,7 +751,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	btnPlace
 	{
 		"Set Button Positions",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto onScreenInputPlace = makeView<OnScreenInputPlaceView>();
 			onScreenInputPlace->init(); // TODO: rework view init
@@ -767,7 +792,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	resetControls
 	{
 		"Reset Position & Spacing Options",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions & spacing?");
 			ynAlertView->setOnYes(
@@ -784,7 +809,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	resetAllControls
 	{
 		"Reset All Options",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen control options to default?");
 			ynAlertView->setOnYes(
@@ -821,6 +846,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	{
 		item.emplace_back(&pointerInput);
 	}
+	string_printf(sizeStr, "%.2f", optionTouchCtrlSize / 100.);
 	item.emplace_back(&size);
 	#endif
 	item.emplace_back(&btnPlace);

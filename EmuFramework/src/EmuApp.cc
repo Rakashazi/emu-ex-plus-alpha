@@ -393,7 +393,7 @@ void mainInitCommon(int argc, char** argv)
 	{
 		auto ynAlertView = std::make_unique<YesNoAlertView>(ViewAttachParams{win, rendererTask}, "Warning: App has been modified by 3rd party, use at your own risk");
 		ynAlertView->setOnNo(
-			[](TextMenuItem &, View &view, Input::Event e)
+			[]()
 			{
 				Base::exit();
 			});

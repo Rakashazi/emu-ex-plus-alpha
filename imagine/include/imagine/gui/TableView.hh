@@ -33,11 +33,11 @@ public:
 
 	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
 	TableView(const char *name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
-	template <class CONTAINER>
-	TableView(ViewAttachParams attach, CONTAINER &item):
+	template <class Container>
+	TableView(ViewAttachParams attach, Container &item):
 		TableView{"", attach, item} {}
-	template <class CONTAINER>
-	TableView(const char *name, ViewAttachParams attach, CONTAINER &item):
+	template <class Container>
+	TableView(const char *name, ViewAttachParams attach, Container &item):
 		TableView
 		{
 			name,

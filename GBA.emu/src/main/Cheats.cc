@@ -25,8 +25,7 @@ void EmuEditCheatView::renamed(const char *str)
 	cheatsModified = true;
 	auto &cheat = cheatsList[idx];
 	string_copy(cheat.desc, str);
-	name.t.setString(cheat.desc);
-	name.compile(renderer(), projP);
+	name.compile(cheat.desc, renderer(), projP);
 }
 
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):

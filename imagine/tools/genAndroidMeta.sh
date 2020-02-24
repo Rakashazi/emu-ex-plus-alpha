@@ -23,12 +23,6 @@ do
 		--vendor=*)
 			vendor=$optarg
 		;;
-		--min-sdk=*)
-			minSDK=$optarg
-		;;
-		--target-sdk=*)
-			targetSDK=$optarg
-		;;
 		--activity-name=*)
 			activityName=$optarg
 		;;
@@ -136,22 +130,6 @@ then
 	applicationOutput="$applicationOutput android:isGame=\"true\""
 fi
 
-if [ ! "$minSDK" ]
-then
-	minSDK=9
-fi
-
-if [ $minSDK -lt 9 ]
-then
-	echo "error: --min-sdk must be at least 9"
-	exit 1
-fi
-
-if [ ! "$targetSDK" ]
-then
-	targetSDK=28
-fi
-
 if [ ! $versionCode ]
 then
 	set -- ${version//./ }
@@ -214,7 +192,6 @@ fi
 
 echo '	<supports-screens android:largeScreens="true" android:xlargeScreens="true" />' >> $outPath
 echo '	<uses-feature android:name="android.hardware.touchscreen" android:required="false" />' >> $outPath
-targetSDKOutput="android:targetSdkVersion=\"$targetSDK\""
 
 intentFilters="<action android:name=\"android.intent.action.MAIN\" />
 				<category android:name=\"android.intent.category.LAUNCHER\" />
@@ -264,8 +241,7 @@ then
 '
 fi
 
-echo "	<uses-sdk android:minSdkVersion=\"$minSDK\" ${targetSDKOutput} />
-	<application android:label=\"@string/app_name\" $applicationOutput>
+echo "<application android:label=\"@string/app_name\" $applicationOutput>
 		<activity android:name=\"$activityName\"
 				android:label=\"@string/app_name\"
 				android:theme=\"@style/AppTheme\"

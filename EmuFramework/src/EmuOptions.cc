@@ -69,7 +69,7 @@ Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
 	Config::envIsWebOS3 ? 5000 :
 	(Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS) ? 3000 :
 	8000,
-	0, optionIsValidWithMinMax<2000, 10500, uint16_t>);
+	0, optionIsValidWithMinMax<2000, 10000, uint16_t>);
 
 Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
 
@@ -157,7 +157,7 @@ Byte1Option optionTouchCtrlAlpha(CFGKEY_TOUCH_CONTROL_ALPHA,
 Byte4s2Option optionTouchCtrlSize
 		(CFGKEY_TOUCH_CONTROL_SIZE,
 		(Config::envIsWebOS && !Config::envIsWebOS3) ? 800 : Config::envIsWebOS3 ? 1400 : 850,
-		Config::envIsPS3, optionIsValidWithMax<1600>);
+		Config::envIsPS3, optionIsValidWithMinMax<300, 1500>);
 Byte4s2Option optionTouchDpadDeadzone
 		(CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE,
 		135,
@@ -212,12 +212,12 @@ DoubleOption optionFrameRatePAL{CFGKEY_FRAME_RATE_PAL, 1./50., !EmuSystem::hasPA
 
 bool optionImageZoomIsValid(uint8_t val)
 {
-	return val == optionImageZoomIntegerOnly || optionImageZoomIntegerOnlyY
+	return val == optionImageZoomIntegerOnly || val == optionImageZoomIntegerOnlyY
 		|| (val >= 10 && val <= 100);
 }
 Byte1Option optionImageZoom
 		(CFGKEY_IMAGE_ZOOM, 100, 0, optionImageZoomIsValid);
-Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<10, 100>);
+Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>);
 Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 
 OptionRecentGames optionRecentGames;
@@ -445,7 +445,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 	return 1;
 }
 
-uint OptionVControllerLayoutPosition::ioSize()
+uint OptionVControllerLayoutPosition::ioSize() const
 {
 	uint positions = std::size(vController.layoutPosition()[0]) * std::size(vController.layoutPosition());
 	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
@@ -552,7 +552,7 @@ bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 	return true;
 }
 
-uint OptionRecentGames::ioSize()
+uint OptionRecentGames::ioSize() const
 {
 	uint strSizes = 0;
 	for(auto &e : recentGameList)
@@ -602,7 +602,7 @@ bool PathOption::readFromIO(IO &io, uint readSize)
 	return 1;
 }
 
-uint PathOption::ioSize()
+uint PathOption::ioSize() const
 {
 	return sizeof(KEY) + strlen(val);
 }

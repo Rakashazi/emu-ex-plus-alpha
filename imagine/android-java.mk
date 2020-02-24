@@ -3,7 +3,8 @@ include $(IMAGINE_PATH)/make/config.mk
 prefix ?= $(IMAGINE_SDK_PATH)/android-java
 
 imagineV9SrcPath := $(projectPath)/src/base/android/imagine-v9
-imagineV9BuildLibPath := $(imagineV9SrcPath)/build/outputs/aar/imagine-v9.aar
+imagineV9BuildLibBasePath := $(imagineV9SrcPath)/build/outputs/aar
+imagineV9BuildLibPath = $(firstword $(wildcard $(imagineV9BuildLibBasePath)/imagine-v9*.aar))
 imagineV9InstallLibPath := $(prefix)/imagine-v9.aar
 
 .PHONY: all build clean install install-links

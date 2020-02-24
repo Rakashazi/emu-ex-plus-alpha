@@ -61,7 +61,7 @@ public:
 		soft
 		{
 			"Soft Reset",
-			[this](TextMenuItem &, View &view, Input::Event e)
+			[this](Input::Event e)
 			{
 				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_SOFT);
@@ -71,7 +71,7 @@ public:
 		hard
 		{
 			"Hard Reset",
-			[this](TextMenuItem &, View &view, Input::Event e)
+			[this](Input::Event e)
 			{
 				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_HARD);
@@ -81,7 +81,7 @@ public:
 		cancel
 		{
 			"Cancel",
-			[this](TextMenuItem &, View &view, Input::Event e)
+			[this](Input::Event e)
 			{
 				dismiss();
 			}
@@ -225,7 +225,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	loadGame
 	{
 		"Load Game",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
 		}
@@ -233,7 +233,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	systemActions
 	{
 		"System Actions",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
@@ -243,7 +243,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	recentGames
 	{
 		"Recent Games",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(recentGameList.size())
 			{
@@ -254,7 +254,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	bundledGames
 	{
 		"Bundled Games",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeView<BundledGamesView>(), e);
 		}
@@ -262,7 +262,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	options
 	{
 		"Options",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeView<OptionCategoryView>(), e);
 		}
@@ -270,7 +270,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	onScreenInputManager
 	{
 		"On-screen Input Setup",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeView<TouchConfigView>(vController, EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName), e);
 		}
@@ -278,7 +278,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	inputManager
 	{
 		"Key/Gamepad Input Setup",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeView<InputManagerView>(), e);
 		}
@@ -286,7 +286,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	benchmark
 	{
 		"Benchmark Game",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);
 		}
@@ -295,7 +295,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	scanWiimotes
 	{
 		"Scan for Wiimotes/iCP/JS1",
-		[this](TextMenuItem &t, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(initBTAdapter())
 			{
@@ -318,7 +318,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	bluetoothDisconnect
 	{
 		"Disconnect Bluetooth",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(Bluetooth::devsConnected())
 			{
@@ -339,7 +339,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	acceptPS3ControllerConnection
 	{
 		"Scan for PS3 Controller",
-		[this](TextMenuItem &t, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(initBTAdapter())
 			{
@@ -379,7 +379,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	about
 	{
 		"About",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeViewWithName<CreditsView>(EmuSystem::creditsViewStr), e);
 		}
@@ -387,7 +387,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	exitApp
 	{
 		"Exit",
-		[](TextMenuItem &, View &, Input::Event e)
+		[](Input::Event e)
 		{
 			Base::exit();
 		}
@@ -420,28 +420,28 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	{
 		{
 			"Video",
-			[this](TextMenuItem &, View &, Input::Event e)
+			[this](Input::Event e)
 			{
 				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS), e);
 			}
 		},
 		{
 			"Audio",
-			[this](TextMenuItem &, View &, Input::Event e)
+			[this](Input::Event e)
 			{
 				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
 			}
 		},
 		{
 			"System",
-			[this](TextMenuItem &, View &, Input::Event e)
+			[this](Input::Event e)
 			{
 				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::SYSTEM_OPTIONS), e);
 			}
 		},
 		{
 			"GUI",
-			[this](TextMenuItem &, View &, Input::Event e)
+			[this](Input::Event e)
 			{
 				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::GUI_OPTIONS), e);
 			}

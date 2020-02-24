@@ -38,7 +38,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 {
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0] = {info.displayName,
-		[&info](TextMenuItem &t, View &view, Input::Event e)
+		[&info](Input::Event e)
 		{
 			auto file = EmuApp::openAppAssetIO(info.assetName, IO::AccessHint::ALL);
 			if(!file)

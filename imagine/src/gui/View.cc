@@ -46,27 +46,27 @@ View::~View() {}
 
 void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
-	assumeExpr(controller);
-	controller->pushAndShow(std::move(v), e, needsNavView);
+	assumeExpr(controller_);
+	controller_->pushAndShow(std::move(v), e, needsNavView);
 }
 
 void View::pop()
 {
-	assumeExpr(controller);
-	controller->pop();
+	assumeExpr(controller_);
+	controller_->pop();
 }
 
 void View::popAndShow()
 {
-	assumeExpr(controller);
-	controller->popAndShow();
+	assumeExpr(controller_);
+	controller_->popAndShow();
 }
 
 void View::dismiss()
 {
-	if(controller)
+	if(controller_)
 	{
-		controller->dismissView(*this);
+		controller_->dismissView(*this);
 	}
 	else
 	{
@@ -153,18 +153,23 @@ void View::show()
 
 bool View::moveFocusToNextView(Input::Event e, _2DOrigin direction)
 {
-	if(!controller)
+	if(!controller_)
 		return false;
-	return controller->moveFocusToNextView(e, direction);
+	return controller_->moveFocusToNextView(e, direction);
 }
 
 void View::setController(ViewController *c, Input::Event e)
 {
-	controller = c;
+	controller_ = c;
 	if(c)
 	{
 		onAddedToController(e);
 	}
+}
+
+ViewController *View::controller() const
+{
+	return controller_;
 }
 
 IG::WindowRect View::viewRect() const

@@ -461,7 +461,7 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 		return true;
 	pushAndShowNewYesNoAlertView(attach, e,
 		"A previous system file load failed, you must restart the app to run any C64 software",
-		"Exit Now", "Cancel", []() { Base::exit(); }, {});
+		"Exit Now", "Cancel", []() { Base::exit(); }, nullptr);
 	return false;
 }
 

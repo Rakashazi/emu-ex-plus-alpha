@@ -257,7 +257,7 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 	{
 		waitForDrawFinished();
 		b.str = makeKeyNameStr(mapKey, devConf->dev->keyName(mapKey));
-		b.item.t2.compile(renderer(), projP);
+		b.item.compile2nd(renderer(), projP);
 	}
 	keyMapping.buildAll();
 }
@@ -310,7 +310,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	reset
 	{
 		"Unbind All",
-		[this](TextMenuItem &t, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really unbind all keys in this category?");
 			ynAlertView->setOnYes(
@@ -326,7 +326,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 						iterateTimes(cat->keys, i)
 						{
 							string_copy(btn[i].str, devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
-							btn[i].item.t2.compile(renderer(), projP);
+							btn[i].item.compile2nd(renderer(), projP);
 						}
 					}
 					keyMapping.buildAll();
@@ -344,13 +344,13 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	{
 		auto key = keyConfig.key(*cat)[i];
 		btn[i].str = makeKeyNameStr(key, devConf_.dev->keyName(key));
-		btn[i].item.t.setString(cat->keyName[i]);
+		btn[i].item.setName(cat->keyName[i]);
 		btn[i].item.setOnSelect(
-			[this, i](DualTextMenuItem &item, View &, Input::Event e)
+			[this, i](Input::Event e)
 			{
 				auto keyToSet = i;
 				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
-					*devConf->dev, btn[keyToSet].item.t.str,
+					*devConf->dev, btn[keyToSet].item.name(),
 					[this, keyToSet](Input::Event e)
 					{
 						auto mapKey = e.mapKey();

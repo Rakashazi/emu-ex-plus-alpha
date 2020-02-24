@@ -111,7 +111,7 @@ using FrameTimeBaseDiff = int64_t;
 template<class T>
 constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
 {
-	if constexpr(std::is_floating_point<T>::value)
+	if constexpr(std::is_floating_point_v<T>)
 			return (double)s * (double)1000000000.;
 	else
 		return (FrameTimeBase)s * (FrameTimeBase)1000000000;

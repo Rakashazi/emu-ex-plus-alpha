@@ -983,7 +983,7 @@ class MachineOptionView : public TableView
 		{
 			if(!item.active())
 				return;
-			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, 4);
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.name(), 4);
 			multiChoiceView->appendItem("NTSC w/ True Drive Emu",
 				[this]()
 				{
@@ -1141,7 +1141,7 @@ class CustomMainMenuView : public EmuMainMenuView
 				if(hasSystem)
 					systems++;
 			}
-			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, systems);
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.name(), systems);
 			iterateTimes(std::size(systemPresent), i)
 			{
 				if(!systemPresent[i])

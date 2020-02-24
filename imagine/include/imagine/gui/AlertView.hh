@@ -28,8 +28,8 @@ class BaseAlertView : public View
 {
 public:
 	BaseAlertView(ViewAttachParams attach, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item);
-	template <class CONTAINER>
-	BaseAlertView(ViewAttachParams attach, const char *label, CONTAINER &item):
+	template <class Container>
+	BaseAlertView(ViewAttachParams attach, const char *label, Container &item):
 		BaseAlertView
 		{
 			attach,
@@ -55,10 +55,10 @@ class AlertView : public BaseAlertView
 public:
 	AlertView(ViewAttachParams attach, const char *label, uint32_t menuItems);
 	void setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del);
-	template<class C>
-	void setItem(uint32_t idx, const char *name, C &&del)
+	template<class Func>
+	void setItem(uint32_t idx, const char *name, Func &&func)
 	{
-		setItem(idx, name, TextMenuItem::wrapSelectDelegate(del));
+		setItem(idx, name, TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
 	}
 
 protected:
@@ -70,31 +70,31 @@ class YesNoAlertView : public BaseAlertView
 public:
 	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
 		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
-	template<class C = TextMenuItem::SelectDelegate, class C2 = TextMenuItem::SelectDelegate>
+	template<class Func1, class Func2>
 	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
-		C &&onYes, C2 &&onNo):
+		Func1 &&onYes, Func2 &&onNo):
 			YesNoAlertView
 			{
 				attach,
 				label,
 				yesStr,
 				noStr,
-				TextMenuItem::wrapSelectDelegate(onYes),
-				TextMenuItem::wrapSelectDelegate(onNo)
+				TextMenuItem::makeSelectDelegate(std::forward<Func1>(onYes)),
+				TextMenuItem::makeSelectDelegate(std::forward<Func2>(onNo))
 			} {}
 	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr = {}, const char *noStr = {}):
 		YesNoAlertView{attach, label, yesStr, noStr, {}, {}} {}
 	void setOnYes(TextMenuItem::SelectDelegate del);
-	template<class C>
-	void setOnYes(C &&del)
+	template<class Func>
+	void setOnYes(Func &&func)
 	{
-		setOnYes(TextMenuItem::wrapSelectDelegate(del));
+		setOnYes(TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
 	}
 	void setOnNo(TextMenuItem::SelectDelegate del);
-	template<class C>
-	void setOnNo(C &&del)
+	template<class Func>
+	void setOnNo(Func &&func)
 	{
-		setOnNo(TextMenuItem::wrapSelectDelegate(del));
+		setOnNo(TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
 	}
 
 protected:

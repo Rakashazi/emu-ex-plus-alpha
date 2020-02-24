@@ -28,13 +28,17 @@ public:
 	TextTableView(ViewAttachParams attach, uint32_t itemsHint);
 	TextTableView(const char *name, ViewAttachParams attach, uint32_t itemsHint);
 	void appendItem(const char *name, TextMenuItem::SelectDelegate del);
-	template<class C>
-	void appendItem(const char *name, C &&del) { appendItem(name, TextMenuItem::wrapSelectDelegate(del)); }
 	void setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del);
 	TextMenuItem &item(uint32_t idx);
 	void setItems(uint32_t items);
 	void onAddedToController(Input::Event e) override;
 	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const override;
+
+	template<class Func>
+	void appendItem(const char *name, Func &&func)
+	{
+		appendItem(name, TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
+	}
 
 protected:
 	std::vector<TextMenuItem> textItem{};

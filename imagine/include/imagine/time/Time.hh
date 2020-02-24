@@ -45,8 +45,8 @@ public:
 	operator double() const;
 };
 
-template <class FUNC>
-static Time timeFunc(FUNC func)
+template <class Func>
+static Time timeFunc(Func func)
 {
 	auto before = Time::now();
 	func();
@@ -54,8 +54,8 @@ static Time timeFunc(FUNC func)
 	return after - before;
 }
 
-template <class FUNC>
-static Time timeFuncDebug(FUNC func)
+template <class Func>
+static Time timeFuncDebug(Func func)
 {
 	#ifdef NDEBUG
 	// execute directly without timing

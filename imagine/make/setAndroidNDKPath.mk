@@ -9,8 +9,6 @@ ifneq ($(studioNDKBasePath),)
  ifneq ($(wildcard $(studioNDKBasePath)/ndk)),)
   # choose the newest NDK version
   studioNDKPath := $(lastword $(sort $(wildcard $(studioNDKBasePath)/ndk/*)))
- else
-  studioNDKPath := $(studioNDKBasePath)/ndk-bundle
  endif
 endif
 

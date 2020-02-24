@@ -114,11 +114,11 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			{
 				deviceConfigStr.emplace_back(makePrintfDeviceNameWithNumber(e.name, e.enumId));
 			}
-			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, devs);
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.name(), devs);
 			iterateTimes(devs, i)
 			{
 				multiChoiceView->appendItem(deviceConfigStr[i].data(),
-					[this, i](TextMenuItem &, View &, Input::Event e)
+					[this, i](Input::Event e)
 					{
 						pop();
 						int deleteDeviceConfigIdx = i;
@@ -169,11 +169,11 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			{
 				profileStr.emplace_back(e.name);
 			}
-			auto multiChoiceView = makeViewWithName<TextTableView>(item.t.str, profiles);
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.name(), profiles);
 			iterateTimes(profiles, i)
 			{
 				multiChoiceView->appendItem(profileStr[i],
-					[this, i](TextMenuItem &, View &, Input::Event e)
+					[this, i](Input::Event e)
 					{
 						pop();
 						int deleteProfileIdx = i;
@@ -203,7 +203,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 	rescanOSDevices
 	{
 		"Re-scan OS Input Devices",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			using namespace Input;
 			Input::enumDevices();
@@ -220,7 +220,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 	identDevice
 	{
 		"Auto-detect Device To Setup",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto identView = makeView<IdentInputDeviceView>();
 			identView->onIdentInput =
@@ -230,7 +230,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 					if(dev)
 					{
 						auto imdMenu = makeView<InputManagerDeviceView>(*this, inputDevConf[dev->idx]);
-						imdMenu->setName(inputDevName[dev->idx].t.str);
+						imdMenu->setName(inputDevName[dev->idx].name());
 						pushAndShow(std::move(imdMenu), e);
 					}
 				};
@@ -240,7 +240,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 	generalOptions
 	{
 		"General Options",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeView<InputManagerOptionsView>(), e);
 		}
@@ -295,10 +295,10 @@ void InputManagerView::loadItems()
 	{
 		inputDevNameStr.emplace_back(makePrintfDeviceNameWithNumber(e->name(), e->enumId()));
 		inputDevName.emplace_back(inputDevNameStr.back().data(),
-			[this, idx = inputDevName.size()](TextMenuItem &, View &, Input::Event e)
+			[this, idx = inputDevName.size()](Input::Event e)
 			{
 				auto imdMenu = makeView<InputManagerDeviceView>(*this, inputDevConf[idx]);
-				imdMenu->setName(inputDevName[idx].t.str);
+				imdMenu->setName(inputDevName[idx].name());
 				pushAndShow(std::move(imdMenu), e);
 			});
 		if(e->hasKeys() && !e->isPowerButton())
@@ -321,7 +321,7 @@ void InputManagerView::onShow()
 
 const char *InputManagerView::deviceName(uint idx) const
 {
-	return inputDevName[idx].t.str;
+	return inputDevName[idx].name();
 }
 
 #ifdef CONFIG_BLUETOOTH_SCAN_SECS
@@ -380,7 +380,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	{
 		"MOGA Controller Support",
 		(bool)optionMOGAInputSystem,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
 			{
@@ -401,7 +401,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	{
 		"Notify If Devices Change",
 		(bool)optionNotifyInputDeviceChange,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionNotifyInputDeviceChange = item.flipBoolValue(*this);
 		}
@@ -416,7 +416,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	{
 		"Keep Connections In Background",
 		(bool)optionKeepBluetoothActive,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionKeepBluetoothActive = item.flipBoolValue(*this);
 		}
@@ -484,7 +484,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	{
 		"Cache Scan Results",
 		(bool)optionBlueToothScanCache,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionBlueToothScanCache = item.flipBoolValue(*this);
 		}
@@ -494,7 +494,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	{
 		"Swap Confirm/Cancel Keys",
 		Input::swappedGamepadConfirm(),
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			Input::setSwappedGamepadConfirm(item.flipBoolValue(*this));
 		}
@@ -555,7 +555,7 @@ public:
 					activeItem = textItem.size();
 				}
 				textItem.emplace_back(conf.name,
-					[this, &conf](TextMenuItem &, View &, Input::Event e)
+					[this, &conf](Input::Event e)
 					{
 						auto del = onProfileChange;
 						dismiss();
@@ -571,7 +571,7 @@ public:
 			if(string_equal(selectedName, defaultConf[c].name))
 				activeItem = textItem.size();
 			textItem.emplace_back(defaultConf[c].name,
-				[this, &conf](TextMenuItem &, View &, Input::Event e)
+				[this, &conf](Input::Event e)
 				{
 					auto del = onProfileChange;
 					dismiss();
@@ -620,7 +620,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	loadProfile
 	{
 		profileStr,
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto profileSelectMenu = makeView<ProfileSelectMenu>(*devConf->dev, devConf->keyConf().name);
 			profileSelectMenu->onProfileChange =
@@ -637,38 +637,34 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	renameProfile
 	{
 		"Rename Profile",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(!devConf->mutableKeyConf())
 			{
 				EmuApp::postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input name", devConf->keyConf().name,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf().name,
+				[this](auto str)
 				{
-					if(str && strlen(str))
+					if(customKeyConfigsContainName(str))
 					{
-						if(customKeyConfigsContainName(str))
-						{
-							EmuApp::postErrorMessage("Another profile is already using this name");
-							postDraw();
-							return 1;
-						}
-						assert(devConf->mutableKeyConf());
-						string_copy(devConf->mutableKeyConf()->name, str);
-						onShow();
+						EmuApp::postErrorMessage("Another profile is already using this name");
 						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					assert(devConf->mutableKeyConf());
+					string_copy(devConf->mutableKeyConf()->name, str);
+					onShow();
+					postDraw();
+					return true;
 				});
 		}
 	},
 	newProfile
 	{
 		"New Profile",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>(
 				"Create a new profile? All keys from the current profile will be copied over.");
@@ -676,23 +672,19 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 				[this](TextMenuItem &, View &view, Input::Event e)
 				{
 					view.dismiss();
-					EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input name", "",
-						[this](CollectTextInputView &view, const char *str)
+					EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", "",
+						[this](auto str)
 						{
-							if(str && strlen(str))
+							if(customKeyConfigsContainName(str))
 							{
-								if(customKeyConfigsContainName(str))
-								{
-									EmuApp::postErrorMessage("Another profile is already using this name");
-									return 1;
-								}
-								devConf->setKeyConfCopiedFromExisting(str);
-								logMsg("created new profile %s", devConf->keyConf().name);
-								onShow();
-								postDraw();
+								EmuApp::postErrorMessage("Another profile is already using this name");
+								return false;
 							}
-							view.dismiss();
-							return 0;
+							devConf->setKeyConfCopiedFromExisting(str);
+							logMsg("created new profile %s", devConf->keyConf().name);
+							onShow();
+							postDraw();
+							return true;
 						});
 				});
 			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
@@ -701,7 +693,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	deleteProfile
 	{
 		"Delete Profile",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(!devConf->mutableKeyConf())
 			{
@@ -733,7 +725,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	{
 		"iCade Mode",
 		devConfRef.iCadeMode(),
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			#ifdef CONFIG_BASE_IOS
 			confirmICadeMode(e);
@@ -760,7 +752,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	{
 		"Joystick X/Y Axis 1 as D-Pad",
 		bool(devConfRef.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_X),
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
 			auto bits = devConf->joystickAxisAsDpadBits();
@@ -773,7 +765,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	{
 		"Joystick X/Y Axis 2 as D-Pad",
 		bool(devConfRef.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_Z),
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
 			auto bits = devConf->joystickAxisAsDpadBits();
@@ -786,7 +778,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 	{
 		"Joystick POV Hat as D-Pad",
 		bool(devConfRef.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_HAT_X),
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
 			auto bits = devConf->joystickAxisAsDpadBits();
@@ -821,7 +813,7 @@ void InputManagerDeviceView::loadItems()
 			continue;
 		}
 		inputCategory[c] = {cat.name,
-			[this, c](TextMenuItem &item, View &, Input::Event e)
+			[this, c](Input::Event e)
 			{
 				pushAndShow(makeView<ButtonConfigView>(rootIMView, &EmuControls::category[c], *this->devConf), e);
 			}};

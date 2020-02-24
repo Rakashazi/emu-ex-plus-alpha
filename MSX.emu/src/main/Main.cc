@@ -793,7 +793,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 			{
 				view.dismiss();
 				installFirmwareFiles();
-			}, {});
+			}, nullptr);
 	}
 };
 

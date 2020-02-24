@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.2.0'
+        classpath 'com.android.tools.build:gradle:3.6.0'
     }
 }
 
@@ -21,7 +21,8 @@ android {
     compileSdkVersion 26
 
     defaultConfig {
-        targetSdkVersion 28
+        minSdkVersion METADATA_MIN_SDK
+        targetSdkVersion METADATA_TARGET_SDK
     }
 
     buildTypes {
@@ -31,11 +32,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
         }
     }
-    
+
     lintOptions {
     	abortOnError false
 	}
-	
+
 	sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -45,7 +46,7 @@ android {
             assets.srcDirs = ['assets']
         }
     }
-    
+
     // set code signing variables in ~/.gradle/gradle.properties
     signingConfigs {
         release {
@@ -61,10 +62,12 @@ android {
             signingConfig signingConfigs.release
         }
     }
-    
+
     defaultConfig {
 		project.ext.set("archivesBaseName", METADATA_PROJECT)
 	}
+
+    ndkVersion NDK_VERSION
 }
 
 dependencies {

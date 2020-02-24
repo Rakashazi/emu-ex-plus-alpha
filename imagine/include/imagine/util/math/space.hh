@@ -73,7 +73,7 @@ static void setSizesWithRatioY(T &xSize, T &ySize, T2 aspectRatio, T y)
 	if(aspectRatio) // treat 0 AR as a no-op, xSize doesn't get modified
 	{
 		T2 res = (T2)y * aspectRatio;
-		xSize = std::is_integral<T>::value ? std::round(res) : res;
+		xSize = std::is_integral_v<T> ? std::round(res) : res;
 	}
 }
 
@@ -84,7 +84,7 @@ static void setSizesWithRatioX(T &xSize, T &ySize, T2 aspectRatio, T x)
 	if(aspectRatio) // treat 0 AR as a no-op, ySize doesn't get modified
 	{
 		T2 res = (T2)x / aspectRatio;
-		ySize = std::is_integral<T>::value ? std::round(res) : res;
+		ySize = std::is_integral_v<T> ? std::round(res) : res;
 	}
 }
 

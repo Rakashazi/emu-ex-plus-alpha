@@ -1,6 +1,7 @@
 include $(IMAGINE_PATH)/make/config.mk
 -include $(projectPath)/config.mk
-include $(IMAGINE_PATH)/make/android-metadata.mk
+include $(buildSysPath)/android-metadata.mk
+include $(buildSysPath)/setAndroidNDKPath.mk
 
 .PHONY: all
 all : android-bundle
@@ -73,7 +74,7 @@ endif
 android_manifestXml := $(android_targetPath)/AndroidManifest.xml
 $(android_manifestXml) : $(projectPath)/metadata/conf.mk $(metadata_confDeps)
 	@mkdir -p $(@D)
-	bash $(IMAGINE_PATH)/tools/genAndroidMeta.sh $(android_gen_metadata_args) --min-sdk=$(android_minSDK) $@
+	bash $(IMAGINE_PATH)/tools/genAndroidMeta.sh $(android_gen_metadata_args) $@
 .PHONY: android-metadata
 android-metadata : $(android_manifestXml)
 
@@ -269,6 +270,9 @@ $(android_drawableIconPaths) $(android_assetsPath) $(android_stylesXmlFiles)
 	cp $(gradleSrcPath)/gradlew $(gradleSrcPath)/app/build.gradle $(gradleSrcPath)/app/gradle.properties $(@D)
 	cp -r $(gradleSrcPath)/gradle $(@D)
 	echo METADATA_PROJECT=$(android_metadata_project) >> $(@D)/gradle.properties
+	echo METADATA_MIN_SDK=$(android_minSDK) >> $(@D)/gradle.properties
+	echo METADATA_TARGET_SDK=$(android_metadata_target_sdk) >> $(@D)/gradle.properties
+	echo NDK_VERSION=`basename $(ANDROID_NDK_PATH)` >> $(@D)/gradle.properties
 
 ifneq ($(wildcard $(android_resSrcPath)/proguard.cfg),)
 android_proguardConfSrcPath = $(android_resSrcPath)/proguard.cfg
@@ -397,7 +401,7 @@ else
  android_installTask := installRelease
 endif
 
-android_bundlePath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project).aab
+android_bundlePath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project)-$(android_buildTarget).aab
 .PHONY: android-bundle
 $(android_bundlePath) : $(android_projectDeps) android-build
 	cd $(android_targetPath) && ./gradlew -Dimagine.path=$(IMAGINE_PATH) $(android_bundleTask)

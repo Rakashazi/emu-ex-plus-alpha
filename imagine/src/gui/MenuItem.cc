@@ -17,6 +17,23 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/logger/logger.h>
 
+MenuItem::~MenuItem() {}
+
+BaseTextMenuItem::BaseTextMenuItem() {}
+
+BaseTextMenuItem::BaseTextMenuItem(const char *str): t{str, &View::defaultFace} {}
+
+BaseTextMenuItem::BaseTextMenuItem(const char *str, Gfx::GlyphTextureSet *face): t{str, face} {}
+
+BaseTextMenuItem::BaseTextMenuItem(const char *str, bool isSelectable):
+	MenuItem(isSelectable),
+	t{str, &View::defaultFace}
+{}
+BaseTextMenuItem::BaseTextMenuItem(const char *str, bool isSelectable, Gfx::GlyphTextureSet *face):
+	MenuItem(isSelectable),
+	t{str, face}
+{}
+
 void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
 {
 	t.makeGlyphs(r);
@@ -52,6 +69,12 @@ void BaseTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &pro
 	t.compile(r, projP);
 }
 
+void BaseTextMenuItem::compile(const char *str, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+{
+	t.setString(str);
+	compile(r, projP);
+}
+
 int BaseTextMenuItem::ySize()
 {
 	return t.face->nominalHeight();
@@ -60,6 +83,20 @@ int BaseTextMenuItem::ySize()
 Gfx::GC BaseTextMenuItem::xSize()
 {
 	return t.xSize;
+}
+
+void BaseTextMenuItem::setName(const char *name, Gfx::GlyphTextureSet *face)
+{
+	t.setString(name);
+	if(face)
+	{
+		t.setFace(face);
+	}
+}
+
+const char *BaseTextMenuItem::name() const
+{
+	return t.str;
 }
 
 void BaseTextMenuItem::setActive(bool on)
@@ -72,6 +109,13 @@ bool BaseTextMenuItem::active()
 	return active_;
 }
 
+TextMenuItem::TextMenuItem() {}
+
+TextMenuItem::TextMenuItem(const char *str, SelectDelegate selectDel):
+	BaseTextMenuItem{str},
+	selectD{selectDel}
+{}
+
 bool TextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");
@@ -83,21 +127,32 @@ void TextMenuItem::setOnSelect(SelectDelegate onSelect)
 	selectD = onSelect;
 }
 
-bool DualTextMenuItem::select(View &parent, Input::Event e)
+TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
 {
-	//logMsg("calling delegate");
-	selectD.callCopySafe(*this, parent, e);
-	return true;
+	return selectD;
 }
 
-void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
-{
-	selectD = onSelect;
-}
+TextHeadingMenuItem::TextHeadingMenuItem() {}
+
+TextHeadingMenuItem::TextHeadingMenuItem(const char *str): BaseTextMenuItem{str, false, &View::defaultBoldFace} {}
+
+bool TextHeadingMenuItem::select(View &parent, Input::Event e) { return true; };
+
+BaseDualTextMenuItem::BaseDualTextMenuItem() {}
+
+BaseDualTextMenuItem::BaseDualTextMenuItem(const char *str, const char *str2):
+	BaseTextMenuItem{str},
+	t2{str2, &View::defaultFace}
+{}
 
 void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
 	BaseTextMenuItem::compile(r, projP);
+	compile2nd(r, projP);
+}
+
+void BaseDualTextMenuItem::compile2nd(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+{
 	if(t2.str)
 	{
 		t2.compile(r, projP);
@@ -122,6 +177,34 @@ void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::
 	if(t2.str)
 		BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 }
+
+void BaseDualTextMenuItem::set2ndName(const char *name)
+{
+	t2.setString(name);
+}
+
+DualTextMenuItem::DualTextMenuItem() {}
+
+DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2): BaseDualTextMenuItem{str, str2} {}
+
+DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2, SelectDelegate selectDel):
+	BaseDualTextMenuItem{str, str2},
+	selectD{selectDel}
+{}
+
+bool DualTextMenuItem::select(View &parent, Input::Event e)
+{
+	//logMsg("calling delegate");
+	selectD.callCopySafe(*this, parent, e);
+	return true;
+}
+
+void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
+{
+	selectD = onSelect;
+}
+
+BoolMenuItem::BoolMenuItem() {}
 
 BoolMenuItem::BoolMenuItem(const char *str, bool val, SelectDelegate selectDel):
 	BaseDualTextMenuItem{str, val ? "On" : "Off"},
@@ -241,6 +324,8 @@ public:
 	}
 };
 
+MultiChoiceMenuItem::MultiChoiceMenuItem() {}
+
 MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr,
 	int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
 	BaseDualTextMenuItem
@@ -325,7 +410,7 @@ void MultiChoiceMenuItem::setDisplayString(int idx)
 	}
 	else if((uint32_t)idx < items_(*this))
 	{
-		t2.setString(item_(*this, idx).t.str);
+		t2.setString(item_(*this, idx).name());
 	}
 	else
 	{

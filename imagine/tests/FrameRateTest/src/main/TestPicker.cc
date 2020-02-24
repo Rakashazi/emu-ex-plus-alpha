@@ -74,7 +74,7 @@ void TestPicker::setTests(const TestParams *testParams, uint tests)
 						auto &entry = testEntry[i];
 						double fps = (double)Base::frameTimeBaseFromSecs(test.frames-1)/(double)diff;
 						string_printf(entry.fpsStr, "%.2f", fps);
-						entry.t2.setString(entry.fpsStr.data());
+						entry.set2ndName(entry.fpsStr.data());
 						entry.redText = test.droppedFrames;
 					};
 			});

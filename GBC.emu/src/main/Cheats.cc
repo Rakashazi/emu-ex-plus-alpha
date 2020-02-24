@@ -179,27 +179,23 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_):
 		cheat_.code,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e,
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e,
 				"Input xxxxxxxx (GS) or xxx-xxx-xxx (GG) code", cheat->code,
-				[this](CollectTextInputView &view, const char *str)
+				[this](auto str)
 				{
-					if(str)
+					if(!strIsGGCode(str) && !strIsGSCode(str))
 					{
-						if(!strIsGGCode(str) && !strIsGSCode(str))
-						{
-							EmuApp::postMessage(true, "Invalid format");
-							window().postDraw();
-							return 1;
-						}
-						string_copy(cheat->code, str);
-						string_toUpper(cheat->code);
-						cheatsModified = 1;
-						applyCheats();
-						ggCode.compile(renderer(), projP);
-						window().postDraw();
+						EmuApp::postMessage(true, "Invalid format");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					string_copy(cheat->code, str);
+					string_toUpper(cheat->code);
+					cheatsModified = 1;
+					applyCheats();
+					ggCode.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},

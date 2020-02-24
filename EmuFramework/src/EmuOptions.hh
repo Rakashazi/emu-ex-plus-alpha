@@ -81,12 +81,12 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 {
 	constexpr OptionAspectRatio(T defaultVal, bool isConst = 0): Option<OptionMethodVar<IG::Point2D<uint> > >(CFGKEY_GAME_ASPECT_RATIO, defaultVal, isConst) {}
 
-	uint ioSize()
+	uint ioSize() const override
 	{
 		return 2 + 2;
 	}
 
-	bool writeToIO(IO &io)
+	bool writeToIO(IO &io) override
 	{
 		std::error_code ec{};
 		io.writeVal((uint16_t)CFGKEY_GAME_ASPECT_RATIO, &ec);
@@ -118,10 +118,10 @@ struct OptionRecentGames : public OptionBase
 {
 	const uint16_t key = CFGKEY_RECENT_GAMES;
 
-	bool isDefault() const;
-	bool writeToIO(IO &io);
+	bool isDefault() const override;
+	bool writeToIO(IO &io) override;
 	bool readFromIO(IO &io, uint readSize_);
-	uint ioSize();
+	uint ioSize() const override;
 };
 
 struct OptionVControllerLayoutPosition : public OptionBase
@@ -131,7 +131,7 @@ struct OptionVControllerLayoutPosition : public OptionBase
 	bool isDefault() const final;
 	bool writeToIO(IO &io) final;
 	bool readFromIO(IO &io, uint readSize_);
-	uint ioSize() final;
+	uint ioSize() const final;
 };
 
 extern Byte1Option optionAutoSaveState;

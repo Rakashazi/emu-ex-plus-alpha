@@ -17,6 +17,7 @@
 
 #include <new>
 #include <cstdint>
+#include <cstddef>
 #include <cstring>
 #include <type_traits>
 #include <imagine/util/utility.h>
@@ -27,6 +28,8 @@ template <size_t STORAGE_SIZE, typename R, typename ...ARGS> class DelegateFunc2
 {
 public:
 	constexpr DelegateFunc2() {}
+
+	constexpr DelegateFunc2(std::nullptr_t) {}
 
 	template<class T>
 	constexpr DelegateFunc2(T const &funcObj) :
@@ -95,7 +98,7 @@ public:
 	template<class T>
 	static constexpr bool isCompatibleFreeFunc()
 	{
-		return std::is_convertible<T, R (*)(ARGS...)>::value;
+		return std::is_convertible_v<T, R (*)(ARGS...)>;
 	}
 
 private:

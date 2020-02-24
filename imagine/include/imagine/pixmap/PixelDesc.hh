@@ -28,7 +28,7 @@ public:
 	constexpr uint32_t build(T r_, T g_, T b_, T a_) const
 	{
 		uint32_t r = 0, g = 0, b = 0, a = 0;
-		if constexpr(std::is_floating_point<T>::value)
+		if constexpr(std::is_floating_point_v<T>)
 		{
 			r = IG::scaleDecToBits<uint32_t>(r_, rBits);
 			g = IG::scaleDecToBits<uint32_t>(g_, gBits);

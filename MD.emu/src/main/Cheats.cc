@@ -559,28 +559,23 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_):
 		cheat_.code,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
+				[this](auto str)
 				{
-					if(str)
+					string_copy(cheat->code, str);
+					string_toUpper(cheat->code);
+					if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
 					{
-						string_copy(cheat->code, str);
-						string_toUpper(cheat->code);
-						if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
-						{
-							cheat->code[0]= 0;
-							EmuApp::postMessage(true, "Invalid code");
-							window().postDraw();
-							return 1;
-						}
-
-						cheatsModified = 1;
-						updateCheats();
-						code.compile(renderer(), projP);
-						window().postDraw();
+						cheat->code[0]= 0;
+						EmuApp::postMessage(true, "Invalid code");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					cheatsModified = 1;
+					updateCheats();
+					code.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},

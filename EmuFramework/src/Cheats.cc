@@ -41,7 +41,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	edit
 	{
 		"Add/Edit",
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::EDIT_CHEATS), e);
 		}
@@ -78,23 +78,16 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 	name
 	{
 		cheatName,
-		[this](TextMenuItem &item, View &, Input::Event e)
+		[this](Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input description", name.t.str,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", name.name(),
+				[this](auto str)
 				{
-					if(str)
-					{
-						logMsg("setting cheat name %s", str);
-						renamed(str);
-						{
-							waitForDrawFinished();
-							name.compile(renderer(), projP);
-						}
-						window().postDraw();
-					}
-					view.dismiss();
-					return 0;
+					logMsg("setting cheat name %s", str);
+					renamed(str);
+					name.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},

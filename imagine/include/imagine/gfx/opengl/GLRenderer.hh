@@ -26,6 +26,7 @@
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/DelegateFuncSet.hh>
+#include <imagine/util/FunctionTraits.hh>
 #include <memory>
 #ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 #include <mutex>
@@ -396,13 +397,13 @@ public:
 	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
 	bool hasGLTask() const;
 	void runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr = nullptr);
-	template<class FUNC>
-	void runGLTask(FUNC &&del, IG::Semaphore *semAddr = nullptr) { runGLTask2(wrapGLMainTaskDelegate(del), semAddr); }
+	template<class Func>
+	void runGLTask(Func &&del, IG::Semaphore *semAddr = nullptr) { runGLTask2(wrapGLMainTaskDelegate(del), semAddr); }
 	void runGLTaskSync2(GLMainTask::FuncDelegate del);
-	template<class FUNC>
-	void runGLTaskSync(FUNC &&del) { runGLTaskSync2(wrapGLMainTaskDelegate(del)); }
-	template<class FUNC>
-	void runGLTaskSyncConditional(FUNC &&del, bool shouldRunSync, IG::Semaphore *semAddr = nullptr)
+	template<class Func>
+	void runGLTaskSync(Func &&del) { runGLTaskSync2(wrapGLMainTaskDelegate(del)); }
+	template<class Func>
+	void runGLTaskSyncConditional(Func &&del, bool shouldRunSync, IG::Semaphore *semAddr = nullptr)
 	{
 		if(shouldRunSync)
 			runGLTaskSync2(wrapGLMainTaskDelegate(del));
@@ -410,10 +411,10 @@ public:
 			runGLTask2(wrapGLMainTaskDelegate(del), semAddr);
 	}
 
-	template<class FUNC = GLMainTask::FuncDelegate>
-	static GLMainTask::FuncDelegate wrapGLMainTaskDelegate(FUNC del)
+	template<class Func = GLMainTask::FuncDelegate>
+	static GLMainTask::FuncDelegate wrapGLMainTaskDelegate(Func del)
 	{
-		constexpr auto args = IG::functionTraitsArity<FUNC>;
+		constexpr auto args = IG::functionTraitsArity<Func>;
 		if constexpr(args == 0)
 		{
 			// for void ()

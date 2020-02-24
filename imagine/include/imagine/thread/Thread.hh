@@ -42,7 +42,7 @@ template<class Func>
 static void makeDetachedThreadSync(Func &&f)
 {
 	Semaphore sem{0};
-	if constexpr(std::is_copy_constructible<Func>::value)
+	if constexpr(std::is_copy_constructible_v<Func>)
 	{
 		std::thread t
 		{

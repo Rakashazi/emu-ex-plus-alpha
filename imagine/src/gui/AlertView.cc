@@ -95,7 +95,7 @@ void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 
 void BaseAlertView::onAddedToController(Input::Event e)
 {
-	menu.setController(controller, e);
+	menu.setController(controller(), e);
 }
 
 void BaseAlertView::setLabel(const char *label)
@@ -111,8 +111,7 @@ AlertView::AlertView(ViewAttachParams attach, const char *label, uint32_t menuIt
 void AlertView::setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del)
 {
 	assert(idx < item.size());
-	item[idx].t.setString(name);
-	item[idx].t.setFace(&View::defaultFace);
+	item[idx].setName(name, &View::defaultFace);
 	item[idx].setOnSelect(del);
 }
 
@@ -143,5 +142,5 @@ void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 
 TextMenuItem::SelectDelegate YesNoAlertView::makeDefaultSelectDelegate()
 {
-	return TextMenuItem::wrapSelectDelegate([this]() { dismiss(); });
+	return TextMenuItem::makeSelectDelegate([this]() { dismiss(); });
 }

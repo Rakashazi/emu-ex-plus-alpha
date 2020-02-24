@@ -75,7 +75,7 @@ BiosSelectMenu::BiosSelectMenu(const char *name, ViewAttachParams attach, FS::Pa
 	selectFile
 	{
 		"Select File",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto startPath = strlen(biosPathStr->data()) ? FS::dirname(*biosPathStr) : lastLoadPath;
 			auto fPicker = makeView<EmuFilePicker>(startPath.data(), false, fsFilter, FS::RootPathInfo{}, e);
@@ -172,16 +172,18 @@ static void setSoundBuffers(int val)
 	optionSoundBuffers = val;
 }
 
-static void setZoom(int val)
+void VideoOptionView::setZoom(uint8_t val)
 {
+	string_printf(zoomStr, "%u%%", val);
 	optionImageZoom = val;
 	logMsg("set image zoom: %d", int(optionImageZoom));
 	emuViewController.placeEmuViews();
 	emuViewController.postDrawToEmuWindows();
 }
 
-static void setViewportZoom(int val)
+void VideoOptionView::setViewportZoom(uint8_t val)
 {
+	string_printf(viewportZoomStr, "%u%%", val);
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
 	emuViewController.startMainViewportAnimation();
@@ -206,8 +208,9 @@ static void setOverlayEffect(uint val)
 	emuViewController.postDrawToEmuWindows();
 }
 
-static void setOverlayEffectLevel(uint val)
+void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 {
+	string_printf(overlayEffectLevelStr, "%u%%", val);
 	optionOverlayEffectLevel = val;
 	emuVideoLayer.setOverlayIntensity(val/100.);
 	emuViewController.postDrawToEmuWindows();
@@ -246,10 +249,11 @@ static void setGPUMultiThreading(Gfx::Renderer::ThreadMode mode)
 	optionGPUMultiThreading = (int)mode;
 }
 
-static void setFontSize(uint val, Base::Window &win)
+void GUIOptionView::setFontSize(uint16_t val)
 {
+	string_printf(fontSizeStr, "%.2f", val / 1000.);
 	optionFontSize = val;
-	setupFont(emuVideo.renderer(), win);
+	setupFont(renderer(), window());
 	emuViewController.placeElements();
 }
 
@@ -475,9 +479,12 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&imgEffect);
 	#endif
 	item.emplace_back(&overlayEffect);
+	string_printf(overlayEffectLevelStr, "%u%%", optionOverlayEffectLevel.val);
 	item.emplace_back(&overlayEffectLevel);
 	item.emplace_back(&screenShapeHeading);
+	string_printf(zoomStr, "%u%%", optionImageZoom.val);
 	item.emplace_back(&zoom);
+	string_printf(viewportZoomStr, "%u%%", optionViewportZoom.val);
 	item.emplace_back(&viewportZoom);
 	item.emplace_back(&aspectRatio);
 	item.emplace_back(&advancedHeading);
@@ -583,6 +590,7 @@ void GUIOptionView::loadStockItems()
 	item.emplace_back(&systemActionsIsDefaultMenu);
 	if(!optionFontSize.isConst)
 	{
+		string_printf(fontSizeStr, "%.2f", optionFontSize / 1000.);
 		item.emplace_back(&fontSize);
 	}
 	if(!optionIdleDisplayPowerSave.isConst)
@@ -637,7 +645,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		},
 		{
 			"Graphic Buffer",
-			[this](TextMenuItem &, View &, Input::Event e)
+			[this](Input::Event e)
 			{
 				static auto setAndroidTextureStorageGraphicBuffer =
 					[]()
@@ -733,7 +741,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Skip Late Frames",
 		(bool)optionSkipLateFrames,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionSkipLateFrames.val = item.flipBoolValue(*this);
 		}
@@ -741,7 +749,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameRate
 	{
 		frameRateStr,
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_NATIVE_NTSC, e);
 			postDraw();
@@ -750,7 +758,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	frameRatePAL
 	{
 		frameRatePALStr,
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_PAL, e);
 			postDraw();
@@ -774,24 +782,51 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"100%", [this]() { setZoom(100); }},
 		{"90%", [this]() { setZoom(90); }},
 		{"80%", [this]() { setZoom(80); }},
-		{"70%", [this]() { setZoom(70); }},
 		{"Integer-only", [this]() { setZoom(optionImageZoomIntegerOnly); }},
 		{"Integer-only (Height)", [this]() { setZoom(optionImageZoomIntegerOnlyY); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
+					[this](auto val)
+					{
+						if(optionImageZoom.isValidVal(val))
+						{
+							setZoom(val);
+							zoom.setSelected(std::size(zoomItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
 	},
 	zoom
 	{
 		"Content Zoom",
+		[this](uint32_t idx) -> const char*
+		{
+			if(optionImageZoom <= 100)
+				return zoomStr;
+			else
+				return nullptr;
+		},
 		[]()
 		{
 			switch(optionImageZoom.val)
 			{
-				default:
 				case 100: return 0;
 				case 90: return 1;
 				case 80: return 2;
-				case 70: return 3;
-				case optionImageZoomIntegerOnly: return 4;
-				case optionImageZoomIntegerOnlyY: return 5;
+				case optionImageZoomIntegerOnly: return 3;
+				case optionImageZoomIntegerOnlyY: return 4;
+				default: return 5;
 			}
 		}(),
 		zoomItem
@@ -801,20 +836,44 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"100%", [this]() { setViewportZoom(100); }},
 		{"95%", [this]() { setViewportZoom(95); }},
 		{"90%", [this]() { setViewportZoom(90); }},
-		{"85%", [this]() { setViewportZoom(85); }}
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 50 to 100", "",
+					[this](auto val)
+					{
+						if(optionViewportZoom.isValidVal(val))
+						{
+							setViewportZoom(val);
+							viewportZoom.setSelected(std::size(viewportZoomItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
 	},
 	viewportZoom
 	{
 		"App Zoom",
+		[this](uint32_t idx)
+		{
+			return viewportZoomStr;
+		},
 		[]()
 		{
 			switch(optionViewportZoom.val)
 			{
-				default:
 				case 100: return 0;
 				case 95: return 1;
 				case 90: return 2;
-				case 85: return 3;
+				default: return 3;
 			}
 		}(),
 		viewportZoomItem
@@ -824,7 +883,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Image Interpolation",
 		(bool)optionImgFilter,
 		"None", "Linear",
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionImgFilter.val = item.flipBoolValue(*this);
 			emuVideoLayer.setLinearFilter(optionImgFilter);
@@ -883,28 +942,49 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	overlayEffectLevelItem
 	{
-		{"10%", [this]() { setOverlayEffectLevel(10); }},
-		{"25%", [this]() { setOverlayEffectLevel(25); }},
-		{"33%", [this]() { setOverlayEffectLevel(33); }},
-		{"50%", [this]() { setOverlayEffectLevel(50); }},
-		{"66%", [this]() { setOverlayEffectLevel(66); }},
+		{"100%", [this]() { setOverlayEffectLevel(100); }},
 		{"75%", [this]() { setOverlayEffectLevel(75); }},
-		{"100%", [this]() { setOverlayEffectLevel(100); }}
+		{"50%", [this]() { setOverlayEffectLevel(50); }},
+		{"25%", [this]() { setOverlayEffectLevel(25); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
+					[this](auto val)
+					{
+						if(optionOverlayEffectLevel.isValidVal(val))
+						{
+							setOverlayEffectLevel(val);
+							overlayEffectLevel.setSelected(std::size(overlayEffectLevelItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
 	},
 	overlayEffectLevel
 	{
 		"Overlay Effect Level",
+		[this](uint32_t idx)
+		{
+			return overlayEffectLevelStr;
+		},
 		[]()
 		{
 			switch(optionOverlayEffectLevel)
 			{
-				default: return 0;
-				case 25: return 1;
-				case 33: return 2;
-				case 50: return 3;
-				case 66: return 4;
-				case 75: return 5;
-				case 100: return 6;
+				case 100: return 0;
+				case 75: return 1;
+				case 50: return 2;
+				case 25: return 3;
+				default: return 4;
 			}
 		}(),
 		overlayEffectLevelItem
@@ -980,7 +1060,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"2nd Window (for testing only)",
 		false,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			emuViewController.setEmuViewOnExtraWindow(item.flipBoolValue(*this), *Base::Screen::screen(0));
 		}
@@ -992,7 +1072,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"External Screen",
 		(bool)optionShowOnSecondScreen,
 		"OS Managed", "Game Content",
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(Base::Screen::screens() > 1)
@@ -1088,7 +1168,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	const bool includeFrameRateDetection = !Config::envIsIOS;
 	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
 	multiChoiceView->appendItem("Set with screen's reported rate",
-		[this, vidSys](TextMenuItem &, View &, Input::Event e)
+		[this, vidSys](Input::Event e)
 		{
 			if(!emuViewController.emuWindowScreen()->frameRateIsReliable())
 			{
@@ -1109,44 +1189,31 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 				popAndShow();
 		});
 	multiChoiceView->appendItem("Set default rate",
-		[this, vidSys](TextMenuItem &, View &, Input::Event e)
+		[this, vidSys](Input::Event e)
 		{
 			onFrameTimeChange(vidSys, EmuSystem::defaultFrameTime(vidSys));
 			popAndShow();
 		});
 	multiChoiceView->appendItem("Set custom rate",
-		[this, vidSys](TextMenuItem &, View &, Input::Event e)
+		[this, vidSys](Input::Event e)
 		{
-			popAndShow();
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input decimal or fraction", "",
-				[this, vidSys](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
+				"Input decimal or fraction", "",
+				[this, vidSys](auto val)
 				{
-					if(str)
+					if(onFrameTimeChange(vidSys, val.second / val.first))
 					{
-						double numer, denom;
-						int items = sscanf(str, "%lf /%lf", &numer, &denom);
-						if(items == 1 && numer > 0)
-						{
-							onFrameTimeChange(vidSys, 1. / numer);
-						}
-						else if(items > 1 && (numer > 0 && denom > 0))
-						{
-							onFrameTimeChange(vidSys, denom / numer);
-						}
-						else
-						{
-							EmuApp::postErrorMessage("Invalid input");
-							return 1;
-						}
+						popAndShow();
+						return true;
 					}
-					view.dismiss();
-					return 0;
+					else
+						return false;
 				});
 		});
 	if(includeFrameRateDetection)
 	{
 		multiChoiceView->appendItem("Detect screen's rate and set",
-			[this, vidSys](TextMenuItem &, View &, Input::Event e)
+			[this, vidSys](Input::Event e)
 			{
 				auto frView = makeView<DetectFrameRateView>(emuViewController.rendererTask());
 				frView->onDetectFrameTime =
@@ -1174,7 +1241,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Sound",
 		(bool)optionSound,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionSound = item.flipBoolValue(*this);
 			if(!optionSound)
@@ -1208,7 +1275,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Auto-increase Buffer Size",
 		(bool)optionAddSoundBuffersOnUnderrun,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionAddSoundBuffersOnUnderrun = item.flipBoolValue(*this);
 		}
@@ -1224,7 +1291,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Mix With Other Apps",
 		!optionAudioSoloMix,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionAudioSoloMix = !item.flipBoolValue(*this);
 		}
@@ -1265,7 +1332,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Confirm Auto-load State",
 		(bool)optionConfirmAutoLoadState,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionConfirmAutoLoadState = item.flipBoolValue(*this);
 		}
@@ -1274,7 +1341,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Confirm Overwrite State",
 		(bool)optionConfirmOverwriteState,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionConfirmOverwriteState = item.flipBoolValue(*this);
 		}
@@ -1286,7 +1353,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
 			multiChoiceView->appendItem("Set Custom Path",
-				[this](TextMenuItem &, View &, Input::Event e)
+				[this](Input::Event e)
 				{
 					auto startPath = strlen(optionSavePath) ? optionSavePath : optionLastLoadPath;
 					auto fPicker = makeView<EmuFilePicker>(startPath, true,
@@ -1324,7 +1391,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Check Save Path Write Access",
 		(bool)optionCheckSavePathWriteAccess,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionCheckSavePathWriteAccess = item.flipBoolValue(*this);
 		}
@@ -1398,7 +1465,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		"Performance Mode",
 		(bool)optionSustainedPerformanceMode,
 		"Normal", "Sustained",
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionSustainedPerformanceMode = item.flipBoolValue(*this);
 		}
@@ -1430,7 +1497,7 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 {
 	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), 2);
 	multiChoiceView->appendItem("Set Custom Path",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto startPath =  EmuApp::firmwareSearchPath();
 			auto fPicker = makeView<EmuFilePicker>(startPath.data(), true,
@@ -1448,7 +1515,7 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 			EmuApp::pushAndShowModalView(std::move(fPicker), e);
 		});
 	multiChoiceView->appendItem("Default",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			popAndShow();
 			EmuApp::setFirmwareSearchPath("");
@@ -1463,57 +1530,67 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		Config::envIsPS3 ? "Pause in XMB" : "Pause if unfocused",
 		(bool)optionPauseUnfocused,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionPauseUnfocused = item.flipBoolValue(*this);
 		}
 	},
 	fontSizeItem
 	{
-		{"2", [this](){ setFontSize(2000, window()); }},
-		{"2.5", [this]() { setFontSize(2500, window()); }},
-		{"3", [this]() { setFontSize(3000, window()); }},
-		{"3.5", [this]() { setFontSize(3500, window()); }},
-		{"4", [this]() { setFontSize(4000, window()); }},
-		{"4.5", [this]() { setFontSize(4500, window()); }},
-		{"5", [this]() { setFontSize(5000, window()); }},
-		{"5.5", [this]() { setFontSize(5500, window()); }},
-		{"6", [this]() { setFontSize(6000, window()); }},
-		{"6.5", [this]() { setFontSize(6500, window()); }},
-		{"7", [this]() { setFontSize(7000, window()); }},
-		{"7.5", [this]() { setFontSize(7500, window()); }},
-		{"8", [this]() { setFontSize(8000, window()); }},
-		{"8.5", [this]() { setFontSize(8500, window()); }},
-		{"9", [this]() { setFontSize(9000, window()); }},
-		{"9.5", [this]() { setFontSize(9500, window()); }},
-		{"10", [this]() { setFontSize(10000, window()); }},
-		{"10.5", [this]() { setFontSize(10500, window()); }},
+		{"2", [this](){ setFontSize(2000); }},
+		{"3", [this]() { setFontSize(3000); }},
+		{"4", [this]() { setFontSize(4000); }},
+		{"5", [this]() { setFontSize(5000); }},
+		{"6", [this]() { setFontSize(6000); }},
+		{"7", [this]() { setFontSize(7000); }},
+		{"8", [this]() { setFontSize(8000); }},
+		{"9", [this]() { setFontSize(9000); }},
+		{"10", [this]() { setFontSize(10000); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 2.0 to 10.0", "",
+					[this](auto val)
+					{
+						int scaledIntVal = val * 1000.0;
+						if(optionFontSize.isValidVal(scaledIntVal))
+						{
+							setFontSize(scaledIntVal);
+							fontSize.setSelected(std::size(fontSizeItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
 	},
 	fontSize
 	{
 		"Font Size",
+		[this](uint32_t idx)
+		{
+			return fontSizeStr;
+		},
 		[]()
 		{
 			switch(optionFontSize)
 			{
-				default: return 0;
-				case 2500: return 1;
-				case 3000: return 2;
-				case 3500: return 3;
-				case 4000: return 4;
-				case 4500: return 5;
-				case 5000: return 6;
-				case 5500: return 7;
-				case 6000: return 8;
-				case 6500: return 9;
-				case 7000: return 10;
-				case 7500: return 11;
-				case 8000: return 12;
-				case 8500: return 13;
-				case 9000: return 14;
-				case 9500: return 15;
-				case 10000: return 16;
-				case 10500: return 17;
+				case 2000: return 0;
+				case 3000: return 1;
+				case 4000: return 2;
+				case 5000: return 3;
+				case 6000: return 4;
+				case 7000: return 5;
+				case 8000: return 6;
+				case 9000: return 7;
+				case 10000: return 8;
+				default: return 9;
 			}
 		}(),
 		fontSizeItem
@@ -1522,7 +1599,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Suspended App Icon",
 		(bool)optionNotificationIcon,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionNotificationIcon = item.flipBoolValue(*this);
 		}
@@ -1630,7 +1707,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Dim Screen If Idle",
 		(bool)optionIdleDisplayPowerSave,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionIdleDisplayPowerSave = item.flipBoolValue(*this);
 			Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
@@ -1640,7 +1717,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Title Bar",
 		(bool)optionTitleBar,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionTitleBar = item.flipBoolValue(*this);
 			emuViewController.showNavView(optionTitleBar);
@@ -1651,7 +1728,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Title Back Navigation",
 		View::needsBackControl,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			View::setNeedsBackControl(item.flipBoolValue(*this));
 			emuViewController.setShowNavViewBackButton(View::needsBackControl);
@@ -1663,7 +1740,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Default Menu",
 		(bool)optionSystemActionsIsDefaultMenu,
 		"Last Used", "System Actions",
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionSystemActionsIsDefaultMenu = item.flipBoolValue(*this);
 		}
@@ -1672,7 +1749,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Show Bundled Games",
 		(bool)optionShowBundledGames,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowBundledGames = item.flipBoolValue(*this);
 			onMainMenuItemOptionChanged();
@@ -1682,7 +1759,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Show Bluetooth Menu Items",
 		(bool)optionShowBluetoothScan,
-		[this](BoolMenuItem &item, View &, Input::Event e)
+		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowBluetoothScan = item.flipBoolValue(*this);
 			onMainMenuItemOptionChanged();

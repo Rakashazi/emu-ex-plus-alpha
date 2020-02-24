@@ -154,7 +154,7 @@ private:
 			msxMachineItem.emplace_back(name.data(),
 			[](TextMenuItem &item, View &, Input::Event)
 			{
-				string_copy(optionMachineNameStr, item.t.str);
+				string_copy(optionMachineNameStr, item.name());
 				logMsg("set machine type: %s", (char*)optionMachineName);
 			});
 		}

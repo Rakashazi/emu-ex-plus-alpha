@@ -3,7 +3,7 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 1. Tools and Environment Setup
 ==============================
 
-Download & install Android Studio 3.5. Define environment variables ANDROID_SDK_ROOT and/or ANDROID_HOME according to the Android Studio docs @ https://developer.android.com/studio/command-line/variables.html 
+Download & install Android Studio 3.6. Define environment variables ANDROID_SDK_ROOT and/or ANDROID_HOME according to the Android Studio docs @ https://developer.android.com/studio/command-line/variables.html 
 
 If using MacOS X, install the gmake package from MacPorts and use it instead of the regular make command when building.
 

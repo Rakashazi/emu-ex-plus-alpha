@@ -420,8 +420,7 @@ private:
 			strcpy(diskLabel, "FDS Control (No Disk)");
 		else
 			sprintf(diskLabel, "FDS Control (Disk %d:%c)", (FCEU_FDSCurrentSide()>>1)+1, (FCEU_FDSCurrentSide() & 1)? 'B' : 'A');
-		fdsControl.t.setString(diskLabel);
-		fdsControl.compile(renderer(), projP);
+		fdsControl.compile(diskLabel, renderer(), projP);
 	}
 
 	TextMenuItem options

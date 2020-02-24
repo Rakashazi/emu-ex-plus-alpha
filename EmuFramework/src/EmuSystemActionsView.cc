@@ -125,7 +125,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	cheats
 	{
 		"Cheats",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -136,7 +136,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	reset
 	{
 		"Reset",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -186,7 +186,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	saveState
 	{
 		"Save State",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -223,7 +223,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	stateSlot
 	{
 		stateSlotText,
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
 		}
@@ -234,7 +234,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	addLauncherIcon
 	{
 		"Add Game Shortcut to Launcher",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
 			{
@@ -243,16 +243,12 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					// shortcuts to bundled games not yet supported
 					return;
 				}
-				EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Shortcut Name", EmuSystem::fullGameName().data(),
-					[this](CollectTextInputView &view, const char *str)
+				EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", EmuSystem::fullGameName().data(),
+					[this](auto str)
 					{
-						if(str && strlen(str))
-						{
-							Base::addLauncherIcon(str, EmuSystem::fullGamePath());
-							EmuApp::printfMessage(2, false, "Added shortcut:\n%s", str);
-						}
-						view.dismiss();
-						return 0;
+						Base::addLauncherIcon(str, EmuSystem::fullGamePath());
+						EmuApp::printfMessage(2, false, "Added shortcut:\n%s", str);
+						return true;
 					});
 			}
 			else
@@ -277,7 +273,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	resetSessionOptions
 	{
 		"Reset Saved Options",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			if(!EmuApp::hasSavedSessionOptions())
 				return;
@@ -296,7 +292,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	close
 	{
 		"Close Game",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really close current game?");
 			ynAlertView->setOnYes(

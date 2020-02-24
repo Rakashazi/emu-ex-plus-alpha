@@ -55,8 +55,10 @@ protected:
 	TextMenuItem aspectRatioItem[MAX_ASPECT_RATIOS]{};
 	MultiChoiceMenuItem aspectRatio;
 	TextMenuItem zoomItem[6];
+	char zoomStr[5]{};
 	MultiChoiceMenuItem zoom;
 	TextMenuItem viewportZoomItem[4];
+	char viewportZoomStr[5]{};
 	MultiChoiceMenuItem viewportZoom;
 	BoolMenuItem imgFilter;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -64,8 +66,9 @@ protected:
 	MultiChoiceMenuItem imgEffect;
 	#endif
 	TextMenuItem overlayEffectItem[6];
+	char overlayEffectLevelStr[5]{};
 	MultiChoiceMenuItem overlayEffect;
-	TextMenuItem overlayEffectLevelItem[7];
+	TextMenuItem overlayEffectLevelItem[5];
 	MultiChoiceMenuItem overlayEffectLevel;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	TextMenuItem imgEffectPixelFormatItem[3];
@@ -91,6 +94,9 @@ protected:
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);
+	void setOverlayEffectLevel(uint8_t val);
+	void setZoom(uint8_t val);
+	void setViewportZoom(uint8_t val);
 };
 
 class AudioOptionView : public TableView
@@ -151,7 +157,8 @@ public:
 
 protected:
 	BoolMenuItem pauseUnfocused;
-	TextMenuItem fontSizeItem[18];
+	TextMenuItem fontSizeItem[10];
+	char fontSizeStr[6]{};
 	MultiChoiceMenuItem fontSize;
 	BoolMenuItem notificationIcon;
 	TextMenuItem statusBarItem[3];
@@ -172,6 +179,8 @@ protected:
 	TextMenuItem gameOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem gameOrientation;
 	StaticArrayList<MenuItem*, 20> item{};
+
+	void setFontSize(uint16_t val);
 };
 
 class BiosSelectMenu : public TableView

@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/typeTraits.hh>
+#include <type_traits>
 
 namespace IG
 {
@@ -23,7 +23,7 @@ namespace IG
 template <typename T>
 static T sqrtFast(T remainder)
 {
-	if constexpr(std::is_same<float, T>::value)
+	if constexpr(std::is_same_v<float, T>)
 	{
 		// Method using Log Base 2 Approximation With One Extra Babylonian Steps
 		// http://ilab.usc.edu/wiki/index.php/Fast_Square_Root
@@ -41,7 +41,7 @@ static T sqrtFast(T remainder)
 
 		return u.x;
 	}
-	else if constexpr(std::is_unsigned<T>::value)
+	else if constexpr(std::is_unsigned_v<T>)
 	{
 		T place = (T)1 << (sizeof(T) * 8 - 2); // calculated by precompiler = same runtime as: place = 0x40000000
 		while (place > remainder)

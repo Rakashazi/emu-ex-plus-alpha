@@ -54,8 +54,7 @@ void EmuEditCheatView::renamed(const char *str)
 {
 	syncCheat(str);
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
-	name.t.setString(nameStr);
-	name.compile(renderer(), projP);
+	name.compile(nameStr, renderer(), projP);
 	EmuApp::refreshCheatViews();
 }
 
@@ -113,26 +112,22 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		addrStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 4-digit hex", addrStr,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 4-digit hex", addrStr,
+				[this](auto str)
 				{
-					if(str)
+					uint a = strtoul(str, nullptr, 16);
+					if(a > 0xFFFF)
 					{
-						uint a = strtoul(str, nullptr, 16);
-						if(a > 0xFFFF)
-						{
-							logMsg("addr 0x%X too large", a);
-							EmuApp::postMessage(true, "Invalid input");
-							window().postDraw();
-							return 1;
-						}
-						string_copy(addrStr, a ? str : "0");
-						syncCheat();
-						addr.compile(renderer(), projP);
-						window().postDraw();
+						logMsg("addr 0x%X too large", a);
+						EmuApp::postMessage(true, "Invalid input");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					string_copy(addrStr, a ? str : "0");
+					syncCheat();
+					addr.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},
@@ -142,26 +137,22 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		valueStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex", valueStr,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
+				[this](auto str)
 				{
-					if(str)
+					uint a = strtoul(str, nullptr, 16);
+					if(a > 0xFF)
 					{
-						uint a = strtoul(str, nullptr, 16);
-						if(a > 0xFF)
-						{
-							logMsg("val 0x%X too large", a);
-							EmuApp::postMessage(true, "Invalid input");
-							window().postDraw();
-							return 1;
-						}
-						string_copy(valueStr, a ? str : "0");
-						syncCheat();
-						value.compile(renderer(), projP);
-						window().postDraw();
+						logMsg("val 0x%X too large", a);
+						EmuApp::postMessage(true, "Invalid input");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					string_copy(valueStr, a ? str : "0");
+					syncCheat();
+					value.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},
@@ -207,24 +198,20 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		ggCodeStr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input Game Genie code", ggCodeStr,
-				[this](CollectTextInputView &view, const char *str)
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input Game Genie code", ggCodeStr,
+				[this](auto str)
 				{
-					if(str)
+					if(!isValidGGCodeLen(str))
 					{
-						if(!isValidGGCodeLen(str))
-						{
-							EmuApp::postMessage(true, "Invalid, must be 6 or 8 digits");
-							window().postDraw();
-							return 1;
-						}
-						string_copy(ggCodeStr, str);
-						syncCheat();
-						ggCode.compile(renderer(), projP);
-						window().postDraw();
+						EmuApp::postMessage(true, "Invalid, must be 6 or 8 digits");
+						postDraw();
+						return false;
 					}
-					view.dismiss();
-					return 0;
+					string_copy(ggCodeStr, str);
+					syncCheat();
+					ggCode.compile(renderer(), projP);
+					postDraw();
+					return true;
 				});
 		}
 	},
@@ -235,7 +222,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 	int compare;
 	int gotCheat = FCEUI_GetCheat(cheatIdx, &nameStr, &a, &v, &compare, 0, &type);
 	logMsg("got cheat with addr 0x%.4x val 0x%.2x comp %d", a, v, compare);
-	name.t.setString(nameStr);
+	name.setName(nameStr);
 	if(type)
 	{
 		name_ = "Edit Code";
