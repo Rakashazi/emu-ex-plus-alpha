@@ -45,7 +45,6 @@ public:
 protected:
 	Timer timer{"SimpleFrameTimer"};
 	EventLoop eventLoop{};
-	IG::Time lastTimestamp{};
 	unsigned int intervalNS = 0;
 	bool requested = false;
 	bool cancelled = false;

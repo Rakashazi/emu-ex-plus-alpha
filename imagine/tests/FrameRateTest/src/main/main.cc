@@ -80,7 +80,7 @@ static void cleanupTest(TestFramework *test)
 	#endif
 }
 
-static void finishTest(Base::Window &win, Gfx::Renderer &r, Base::FrameTimeBase frameTime)
+static void finishTest(Base::Window &win, Gfx::Renderer &r, Base::FrameTime frameTime)
 {
 	if(activeTest)
 	{
@@ -120,7 +120,7 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 		{
 			if(unlikely(!activeTest))
 				return false;
-			auto atOnFrame = IG::Time::now();
+			auto atOnFrame = IG::steadyClockTimestamp();
 			auto timestamp = params.timestamp();
 			if(activeTest->started)
 			{
@@ -161,7 +161,7 @@ void onInit(int argc, char** argv)
 		{
 			if(activeTest)
 			{
-				auto time = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
+				auto time = IG::steadyClockTimestamp();
 				activeTest->finish(time);
 			}
 			cleanupTest(activeTest);
@@ -228,13 +228,13 @@ void onInit(int argc, char** argv)
 					else if(activeTest->started)
 					{
 						activeTest->draw(cmds, renderer.makeClipRect(win, testRectWin));
-						activeTest->lastFramePresentTime.atWinPresent = IG::Time::now();
+						activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
 					}
 					cmds.present();
 					if(activeTest && activeTest->started)
 					{
 						activeTest->presentedTest(cmds);
-						activeTest->lastFramePresentTime.atWinPresentEnd = IG::Time::now();
+						activeTest->lastFramePresentTime.atWinPresentEnd = IG::steadyClockTimestamp();
 					}
 				});
 			return false;

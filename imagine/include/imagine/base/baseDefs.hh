@@ -80,81 +80,10 @@ namespace Base
 using namespace IG;
 
 #if defined __APPLE__ && TARGET_OS_IPHONE
-using FrameTimeBase = double;
-using FrameTimeBaseDiff = FrameTimeBase;
-
-template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
-{
-	return s;
-}
-
-constexpr static double frameTimeBaseToSecsDec(FrameTimeBase time)
-{
-	return time;
-}
-
-template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromNSecs(T ns)
-{
-	return (double)ns / 1000000000.;
-}
-
-constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
-{
-	return time * 1000000000.;
-}
+using FrameTime = FloatSeconds;
 #else
-using FrameTimeBase = uint64_t;
-using FrameTimeBaseDiff = int64_t;
-
-template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromSecs(T s)
-{
-	if constexpr(std::is_floating_point_v<T>)
-			return (double)s * (double)1000000000.;
-	else
-		return (FrameTimeBase)s * (FrameTimeBase)1000000000;
-}
-
-constexpr static double frameTimeBaseToSecsDec(FrameTimeBase time)
-{
-	return (double)time / (double)1000000000.;
-}
-
-constexpr static double frameTimeBaseToSecsDec(FrameTimeBaseDiff time)
-{
-	return (double)time / (double)1000000000.;
-}
-
-template<class T>
-constexpr static FrameTimeBase frameTimeBaseFromNSecs(T ns)
-{
-	return ns;
-}
-
-constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBase time)
-{
-	return time;
-}
-
-constexpr static int64_t frameTimeBaseToNSecs(FrameTimeBaseDiff time)
-{
-	return time;
-}
+using FrameTime = Nanoseconds;
 #endif
-
-static FrameTimeBase frameTimeBaseFromTime(IG::Time time)
-{
-	return frameTimeBaseFromNSecs(time.nSecs());
-}
-
-static IG::Time frameTimeBaseToTime(FrameTimeBase time)
-{
-	return IG::Time::makeWithNSecs(frameTimeBaseToNSecs(time));
-}
-
-FrameTimeBase timeSinceFrameTime(FrameTimeBase time);
 
 // orientation
 using Orientation = uint32_t;
@@ -166,10 +95,6 @@ static constexpr Orientation VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | V
 const char *orientationToStr(Orientation o);
 bool orientationIsSideways(Orientation o);
 Orientation validateOrientationMask(Orientation oMask);
-
-#if defined CONFIG_BASE_X11 || defined __ANDROID__
-#define CONFIG_BASE_GLAPI_EGL
-#endif
 
 // App callback types
 

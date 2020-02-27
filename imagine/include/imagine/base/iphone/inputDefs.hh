@@ -15,6 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <chrono>
+
 #if !defined __ARM_ARCH_6K__
 #define CONFIG_INPUT_APPLE_GAME_CONTROLLER
 #endif
@@ -22,20 +24,7 @@
 namespace Input
 {
 
-class Time;
-
-class TimeIOS
-{
-protected:
-	double t = 0; // time in seconds
-public:
-	constexpr TimeIOS() {}
-	double &primitiveVal() { return t; }
-	const double &primitiveVal() const { return t; }
-	static Time makeWithSecsD(double secs);
-};
-
-using TimeImpl = TimeIOS;
+using Time = std::chrono::duration<double>;
 
 using Key = uint16_t;
 

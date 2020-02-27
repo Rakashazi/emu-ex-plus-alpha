@@ -1,7 +1,5 @@
 #pragma once
 
-#include <imagine/time/Time.hh>
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -17,20 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <chrono>
+
 namespace Input
 {
 
-class TimeAndroid
-{
-protected:
-	IG::Time t;
-public:
-	constexpr TimeAndroid() {}
-	uint64_t &primitiveVal() { return t.primitiveVal(); }
-	const uint64_t &primitiveVal() const { return t.primitiveVal(); }
-};
-
-using TimeImpl = TimeAndroid;
+using Time = std::chrono::nanoseconds;
 
 using Key = uint16_t;
 

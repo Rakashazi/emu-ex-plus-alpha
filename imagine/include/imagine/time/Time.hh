@@ -15,47 +15,36 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-// TODO: look into std::chrono in C++14 to replace this class
-
-#include <imagine/util/operators.hh>
-
-#if defined __APPLE__
-#include <imagine/time/TimeMach.hh>
-#else
-#include <imagine/time/Timespec.hh>
-#endif
+#include <chrono>
 
 namespace IG
 {
 
-class Time : public TimeImpl, public PrimitiveOperators<Time>
+using Nanoseconds = std::chrono::nanoseconds;
+using Microseconds = std::chrono::microseconds;
+using Milliseconds = std::chrono::milliseconds;
+using Seconds = std::chrono::seconds;
+using FloatSeconds = std::chrono::duration<double>;
+
+using Time = Nanoseconds; // default time resolution
+
+static Time steadyClockTimestamp()
 {
-public:
-	constexpr Time() {}
-	static Time makeWithNSecs(uint64_t nsecs);
-	static Time makeWithUSecs(uint64_t usecs);
-	static Time makeWithMSecs(uint64_t msecs);
-	static Time makeWithSecs(uint64_t secs);
-	static Time now();
-	uint64_t nSecs() const;
-	uint64_t uSecs() const;
-	uint64_t mSecs() const;
-	uint64_t secs() const;
-	operator float() const;
-	operator double() const;
-};
+	auto timePoint = std::chrono::steady_clock::now();
+	return Time{timePoint.time_since_epoch()};
+}
 
 template <class Func>
-static Time timeFunc(Func func)
+static Time timeFunc(Func &&func)
 {
-	auto before = Time::now();
+	auto before = steadyClockTimestamp();
 	func();
-	auto after = Time::now();
+	auto after = steadyClockTimestamp();
 	return after - before;
 }
 
 template <class Func>
-static Time timeFuncDebug(Func func)
+static Time timeFuncDebug(Func &&func)
 {
 	#ifdef NDEBUG
 	// execute directly without timing

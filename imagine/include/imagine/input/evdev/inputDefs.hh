@@ -16,21 +16,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <linux/input.h>
+#include <chrono>
 
 namespace Input
 {
 
-class TimeLinux
-{
-protected:
-	uint64_t t = 0; // time in micro-seconds
-public:
-	constexpr TimeLinux() {}
-	uint64_t &primitiveVal() { return t; }
-	const uint64_t &primitiveVal() const { return t; }
-};
-
-using TimeImpl = TimeLinux;
+using Time = std::chrono::nanoseconds;
 
 using Key = uint16_t;
 

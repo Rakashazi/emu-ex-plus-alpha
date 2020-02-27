@@ -138,7 +138,7 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				drawArgs.winPtr->deferredDrawComplete();
 				if(onDrawFinished.size())
 				{
-					auto now = Base::frameTimeBaseFromNSecs(IG::Time::now().nSecs());
+					auto now = IG::steadyClockTimestamp();
 					replyPort.send({Reply::DRAW_FINISHED,
 						DrawFinishedParams{static_cast<RendererTask*>(this), now, drawArgs.drawable}});
 				}
@@ -460,7 +460,7 @@ void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
 	drawableHolder.destroyDrawable(r);
 }
 
-Base::FrameTimeBase RendererTask::lastDrawTimestamp() const
+Base::FrameTime RendererTask::lastDrawTimestamp() const
 {
 	return drawTimestamp;
 }
@@ -603,10 +603,11 @@ Renderer &RendererDrawTask::renderer() const
 	return task.renderer();
 }
 
-Base::FrameTimeBaseDiff DrawFinishedParams::timestampDiff() const
+Base::FrameTime DrawFinishedParams::timestampDiff() const
 {
 	auto lastTimestamp = drawTask_->lastDrawTimestamp();
-	return lastTimestamp ? timestamp_ - lastTimestamp : 0;
+	assumeExpr(timestamp_ >= lastTimestamp);
+	return lastTimestamp.count() ? timestamp_ - lastTimestamp : Base::FrameTime{};
 }
 
 }

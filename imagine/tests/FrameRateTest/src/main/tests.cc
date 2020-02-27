@@ -95,7 +95,7 @@ void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, c
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameTimeBase timestamp)
+void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameTime timestamp)
 {
 	// CPU stats
 	auto &screen = *win.screen();
@@ -133,22 +133,24 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 			//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 			if(elapsedScreenFrames > 1)
 			{
-				lostFrameProcessTime = (lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs();
-				lostFramePresentTime = (lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs();
+				lostFrameProcessTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count();
+				lostFramePresentTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).count();
 
 				droppedFrames++;
 				string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
-					elapsedScreenFrames - 1, Base::frameTimeBaseToSecsDec(timestamp - screen.lastFrameTimestamp()),
-					continuousFrames, Base::frameTimeBaseToSecsDec(timestamp));
+					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - screen.lastFrameTimestamp()).count(),
+					continuousFrames, IG::FloatSeconds(timestamp).count());
 				updatedFrameStats = true;
 				continuousFrames = 0;
 			}
 		}
 		if(frames && frames % 4 == 0)
 		{
-			string_printf(statsStr, "Process: %02ums (%02ums)\nPresent: %02ums (%02ums)",
-				(uint)(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).mSecs(), lostFrameProcessTime,
-				(uint)(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).mSecs(), lostFramePresentTime);
+			string_printf(statsStr, "Process: %02lums (%02ums)\nPresent: %02lums (%02ums)",
+				std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
+				lostFrameProcessTime,
+				std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).count(),
+				lostFramePresentTime);
 			updatedFrameStats = true;
 		}
 		if(updatedFrameStats)
@@ -202,14 +204,14 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	}
 }
 
-void TestFramework::finish(Base::FrameTimeBase frameTime)
+void TestFramework::finish(Base::FrameTime frameTime)
 {
 	endTime = frameTime;
 	if(onTestFinished)
 		onTestFinished(*this);
 }
 
-void ClearTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTimeBase)
+void ClearTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTime)
 {
 	flash ^= true;
 }
@@ -262,7 +264,7 @@ void DrawTest::deinitTest()
 	texture = {};
 }
 
-void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTimeBase)
+void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTime)
 {
 	flash ^= true;
 }
@@ -290,7 +292,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	sprite.draw(cmds);
 }
 
-void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTimeBase frameTime)
+void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTime frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
 	auto lockedBuff = texture.lock(0);

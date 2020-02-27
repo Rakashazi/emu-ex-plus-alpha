@@ -69,7 +69,7 @@ bool Screen::containsOnFrame(OnFrameDelegate del)
 	return onFrameDelegate.contains(del);
 }
 
-void Screen::runOnFrameDelegates(FrameTimeBase timestamp)
+void Screen::runOnFrameDelegates(FrameTime timestamp)
 {
 	onFrameDelegate.runAll([&](OnFrameDelegate del){ return del({*this, timestamp}); });
 	if(onFrameDelegate.size())
@@ -94,9 +94,9 @@ bool Screen::isPosted()
 	return framePosted;
 }
 
-void Screen::frameUpdate(FrameTimeBase timestamp)
+void Screen::frameUpdate(FrameTime timestamp)
 {
-	assert(timestamp);
+	assert(timestamp.count());
 	assert(isActive);
 	framePosted = false;
 	inFrameHandler = true;
@@ -162,27 +162,27 @@ bool Screen::screensArePosted()
 	return false;
 }
 
-uint32_t Screen::elapsedFrames(FrameTimeBase timestamp)
+uint32_t Screen::elapsedFrames(FrameTime timestamp)
 {
-	if(!prevFrameTimestamp)
+	if(!prevFrameTimestamp.count())
 		return 1;
 	assumeExpr(timestamp >= prevFrameTimestamp);
-	if(unlikely(!timePerFrame))
+	if(unlikely(!timePerFrame.count()))
 	{
-		timePerFrame = frameTimeBaseFromSecs(1./frameRate());
-		assert(timePerFrame);
+		timePerFrame = FloatSeconds(1. / frameRate());
+		assert(timePerFrame.count());
 	}
-	assumeExpr(timePerFrame > 0);
-	FrameTimeBase diff = timestamp - prevFrameTimestamp;
-	uint32_t elapsed = divRoundClosest(diff, timePerFrame);
+	assumeExpr(timePerFrame.count() > 0);
+	FrameTime diff = timestamp - prevFrameTimestamp;
+	uint32_t elapsed = std::round(FloatSeconds(diff) / timePerFrame);
 	return std::max(elapsed, 1u);
 }
 
-void Screen::startDebugFrameStats(FrameTimeBase timestamp)
+void Screen::startDebugFrameStats(FrameTime timestamp)
 {
 	#ifndef NDEBUG
-	FrameTimeBase timeSinceCurrentFrame = frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - timestamp;
-	FrameTimeBase diffFromLastFrame = timestamp - prevFrameTimestamp;
+	FrameTime timeSinceCurrentFrame = IG::steadyClockTimestamp() - timestamp;
+	FrameTime diffFromLastFrame = timestamp - prevFrameTimestamp;
 	/*logMsg("frame at %f, %f since then, %f since last frame",
 		frameTimeBaseToSDec(frameTime),
 		frameTimeBaseToSDec(timeSinceCurrentFrame),
@@ -193,7 +193,8 @@ void Screen::startDebugFrameStats(FrameTimeBase timestamp)
 		if(logDroppedFrames)
 			logDMsg("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
 				elapsed - 1, continuousFrames,
-				frameTimeBaseToSecsDec(timestamp), frameTimeBaseToSecsDec(diffFromLastFrame));
+				IG::FloatSeconds(timestamp).count(),
+				IG::FloatSeconds(diffFromLastFrame).count());
 		continuousFrames = 0;
 	}
 	#endif

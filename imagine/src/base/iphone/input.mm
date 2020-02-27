@@ -216,7 +216,7 @@ void handleKeyEvent(UIEvent *event)
 		return;
 	auto action = eventType == GSEVENT_TYPE_KEYDOWN ? Input::PUSHED : Input::RELEASED;
 	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
-	auto time = Time::makeWithSecsD((double)[event timestamp]);
+	auto time = IG::FloatSeconds((double)[event timestamp]);
 	if(!keyDev.iCadeMode()
 		|| (keyDev.iCadeMode() && !processICadeKey(key, action, time, keyDev, *Base::deviceWindow())))
 	{
@@ -227,60 +227,6 @@ void handleKeyEvent(UIEvent *event)
 Event::KeyString Event::keyString() const
 {
 	return {}; // TODO
-}
-
-Time TimeIOS::makeWithSecsD(double secs)
-{
-	Time time;
-	time.t = secs;
-	return time;
-}
-
-Time Time::makeWithNSecs(uint64_t nsecs)
-{
-	Time time;
-	time.t = nsecs / (double)NSEC_PER_SEC;
-	return time;
-}
-
-Time Time::makeWithUSecs(uint64_t usecs)
-{
-	return makeWithNSecs(usecs * NSEC_PER_USEC);
-}
-
-Time Time::makeWithMSecs(uint64_t msecs)
-{
-	return makeWithNSecs(msecs * NSEC_PER_MSEC);
-}
-
-Time Time::makeWithSecs(uint64_t secs)
-{
-	return makeWithNSecs(secs * NSEC_PER_SEC);
-}
-
-uint64_t Time::nSecs() const
-{
-	return t * (double)NSEC_PER_SEC;
-}
-
-uint64_t Time::uSecs() const
-{
-	return t * (double)USEC_PER_SEC;
-}
-
-uint64_t Time::mSecs() const
-{
-	return t * (double)MSEC_PER_SEC;
-}
-
-uint64_t Time::secs() const
-{
-	return t;
-}
-
-Time::operator IG::Time() const
-{
-	return IG::Time::makeWithNSecs(nSecs());
 }
 
 void showSoftInput() {}

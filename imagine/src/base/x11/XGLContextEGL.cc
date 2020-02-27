@@ -95,10 +95,10 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); }).nSecs();
-	if(swapBuffersIsAsync() && swapTime > 16000000)
+	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); });
+	if(swapBuffersIsAsync() && swapTime > IG::Milliseconds(16))
 	{
-		logWarn("buffer swap took %lldns", (long long)swapTime);
+		logWarn("buffer swap took %lldns", (long long)swapTime.count());
 	}
 }
 

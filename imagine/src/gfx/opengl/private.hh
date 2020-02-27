@@ -4,6 +4,10 @@
 #include <imagine/base/GLContext.hh>
 #include "utils.h"
 
+#if defined CONFIG_BASE_X11 || defined __ANDROID__
+#define CONFIG_BASE_GLAPI_EGL
+#endif
+
 namespace Gfx
 {
 

@@ -191,7 +191,7 @@ struct AppleGameDevice : public Device
 		assert(key < AppleGC::COUNT);
 		if(pushState[key] == pressed)
 			return;
-		auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
+		auto time = IG::steadyClockTimestamp();
 		pushState[key] = pressed;
 		Base::endIdleByUserActivity();
 		Event event{enumId(), Event::MAP_APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, 0, time, this};

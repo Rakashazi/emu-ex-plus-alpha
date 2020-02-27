@@ -65,14 +65,13 @@ void TestPicker::setTests(const TestParams *testParams, uint tests)
 				test->onTestFinished =
 					[this, i](TestFramework &test)
 					{
-						using namespace Base;
-						auto diff = test.endTime - test.startTime;
+						IG::FloatSeconds diff = test.endTime - test.startTime;
 						logMsg("ran from %f to %f, took %f",
-							frameTimeBaseToSecsDec(test.startTime),
-							frameTimeBaseToSecsDec(test.endTime),
-							frameTimeBaseToSecsDec(diff));
+							IG::FloatSeconds(test.startTime).count(),
+							IG::FloatSeconds(test.endTime).count(),
+							diff.count());
 						auto &entry = testEntry[i];
-						double fps = (double)Base::frameTimeBaseFromSecs(test.frames-1)/(double)diff;
+						auto fps = double(test.frames-1) / diff.count();
 						string_printf(entry.fpsStr, "%.2f", fps);
 						entry.set2ndName(entry.fpsStr.data());
 						entry.redText = test.droppedFrames;

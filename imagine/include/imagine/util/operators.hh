@@ -91,32 +91,32 @@ template <class T>
 class PrimitiveOperators : public Arithmetics<T>, public NotEquals<T>, public Compares<T>
 {
 public:
-	T &operator +=(T rhs)
+	friend T &operator +=(T &lhs, const T &rhs)
 	{
-		auto &val = static_cast<T*>(this)->primitiveVal();
+		auto &val = lhs.primitiveVal();
 		val = val + rhs.primitiveVal();
-		return *static_cast<T*>(this);
+		return lhs;
 	}
 
-	T &operator -=(T rhs)
+	friend T &operator -=(T &lhs, const T &rhs)
 	{
-		auto &val = static_cast<T*>(this)->primitiveVal();
+		auto &val = lhs.primitiveVal();
 		val = val - rhs.primitiveVal();
-		return *static_cast<T*>(this);
+		return lhs;
 	}
 
-	T &operator *=(T rhs)
+	friend T &operator *=(T &lhs, const T &rhs)
 	{
-		auto &val = static_cast<T*>(this)->primitiveVal();
+		auto &val = lhs.primitiveVal();
 		val = val * rhs.primitiveVal();
-		return *static_cast<T*>(this);
+		return lhs;
 	}
 
-	T &operator /=(T rhs)
+	friend T &operator /=(T &lhs, const T &rhs)
 	{
-		auto &val = static_cast<T*>(this)->primitiveVal();
+		auto &val = lhs.primitiveVal();
 		val = val / rhs.primitiveVal();
-		return *static_cast<T*>(this);
+		return lhs;
 	}
 
 	explicit operator bool() const
@@ -124,18 +124,18 @@ public:
 		return static_cast<const T*>(this)->primitiveVal();
 	}
 
-	bool operator <(T rhs) const
+	friend bool operator <(const T &lhs, const T &rhs)
 	{
-		return static_cast<const T*>(this)->primitiveVal() < rhs.primitiveVal();
+		return lhs.primitiveVal() < rhs.primitiveVal();
 	}
 
-	bool operator >(T rhs) const
+	friend bool operator >(const T &lhs, const T &rhs)
 	{
-		return static_cast<const T*>(this)->primitiveVal() > rhs.primitiveVal();
+		return lhs.primitiveVal() > rhs.primitiveVal();
 	}
 
-	bool operator ==(T rhs) const
+	friend bool operator ==(const T &lhs, const T &rhs)
 	{
-		return static_cast<const T*>(this)->primitiveVal() == rhs.primitiveVal();
+		return lhs.primitiveVal() == rhs.primitiveVal();
 	}
 };

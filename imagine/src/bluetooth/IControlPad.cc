@@ -235,7 +235,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			// check if inputBuffer is complete
 			if(inputBufferPos == 6)
 			{
-				auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
+				auto time = IG::steadyClockTimestamp();
 				iterateTimes(4, i)
 				{
 					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Event::MAP_ICONTROLPAD, time, *this, Base::mainWindow()))

@@ -70,16 +70,16 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 			}
 			auto &screen = mainScreen();
 			assert(screen.isPosted());
-			assumeExpr(timestamp >= screen.prevFrameTimestamp);
-			if(screen.prevFrameTimestamp)
+			assumeExpr(timestamp >= (eventfd_t)screen.prevFrameTimestamp.count());
+			if(screen.prevFrameTimestamp.count())
 			{
 				/*logDMsg("%lunsecs since last frame (%lu - %lu)",
 					(long unsigned int)(timestamp - screen.prevFrameTimestamp),
 					(long unsigned int)(timestamp),
 					(long unsigned int)(screen.prevFrameTimestamp));*/
 			}
-			screen.frameUpdate(timestamp);
-			screen.prevFrameTimestamp = timestamp;
+			screen.frameUpdate(IG::Nanoseconds(timestamp));
+			screen.prevFrameTimestamp = IG::Nanoseconds(timestamp);
 			return true;
 		}};
 	IG::makeDetachedThread(
@@ -98,7 +98,7 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 				{
 					logErr("error in ioctl FBIO_WAITFORVSYNC");
 				}
-				eventfd_t timestamp = IG::Time::now().nSecs();
+				eventfd_t timestamp = IG::steadyClockTimestamp().count();
 				//logMsg("got vsync at time %lu", (long unsigned int)timestamp);
 				auto ret = write(fd, &timestamp, sizeof(timestamp));
 				assert(ret == sizeof(timestamp));

@@ -52,6 +52,7 @@ protected:
 	IG::Audio::PcmFormat format{44100, IG::Audio::SampleFormats::s16, 2};
 	IG::Time lastUnderrunTime{};
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
+	uint32_t targetBufferFillBytes = 0;
 	uint8_t extraSoundBuffers = 0;
 	#ifndef NDEBUG
 	bool doingFrameSkip = false;
@@ -60,6 +61,6 @@ protected:
 	uint32_t framesFree() const;
 	uint32_t framesWritten() const;
 	uint32_t framesCapacity() const;
-	bool shouldStartAudioWrites() const;
+	bool shouldStartAudioWrites(uint32_t bytesToWrite = 0) const;
 	void resizeAudioBuffer(uint32_t wantedLatency);
 };

@@ -187,7 +187,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				CGPoint pos = [touch locationInView:self];
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
-				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
+				auto time = IG::FloatSeconds((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 1, PUSHED, transPos.x, transPos.y, (int)i, true, time, nullptr});
 				break;
@@ -211,7 +211,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				CGPoint pos = [touch locationInView:self];
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
-				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
+				auto time = IG::FloatSeconds((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 1, MOVED, transPos.x, transPos.y, (int)i, true, time, nullptr});
 				break;
@@ -236,7 +236,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				CGPoint pos = [touch locationInView:self];
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
-				auto time = Input::Time::makeWithSecsD((double)[touch timestamp]);
+				auto time = IG::FloatSeconds((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
 				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 0, RELEASED, transPos.x, transPos.y, (int)i, true, time, nullptr});
 				break;

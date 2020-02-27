@@ -56,14 +56,15 @@ public:
 	struct FrameParams
 	{
 		Screen &screen_;
-		FrameTimeBase timestamp_;
+		FrameTime timestamp_;
 
 		Screen &screen() const { return screen_; }
-		FrameTimeBase timestamp() const { return timestamp_; }
-		FrameTimeBaseDiff timestampDiff() const
+		FrameTime timestamp() const { return timestamp_; }
+		FrameTime timestampDiff() const
 		{
 			auto lastTimestamp = screen_.lastFrameTimestamp();
-			return lastTimestamp ? timestamp_ - lastTimestamp : 0;
+			assumeExpr(timestamp_ >= lastTimestamp);
+			return lastTimestamp.count() ? timestamp_ - lastTimestamp : FrameTime{};
 		}
 		uint32_t elapsedFrames() const { return screen_.elapsedFrames(timestamp_); }
 		uint32_t elapsedFrames(uint32_t frameCap) const
@@ -88,8 +89,8 @@ public:
 	bool containsOnFrame(OnFrameDelegate del);
 	uint32_t onFrameDelegates();
 	bool runningOnFrameDelegates();
-	FrameTimeBase lastFrameTimestamp() const { return prevFrameTimestamp; }
-	uint32_t elapsedFrames(FrameTimeBase frameTime);
+	FrameTime lastFrameTimestamp() const { return prevFrameTimestamp; }
+	uint32_t elapsedFrames(FrameTime frameTime);
 	bool frameRateIsReliable() const;
 	double frameRate() const;
 	double frameTime() const;
@@ -100,19 +101,19 @@ public:
 	static bool supportsTimestamps();
 
 	// for internal use
-	FrameTimeBase prevFrameTimestamp{};
+	FrameTime prevFrameTimestamp{};
 	static ChangeDelegate onChange;
 
 	static void addScreen(Screen *s);
-	void frameUpdate(FrameTimeBase timestamp);
-	void startDebugFrameStats(FrameTimeBase timestamp);
+	void frameUpdate(FrameTime timestamp);
+	void startDebugFrameStats(FrameTime timestamp);
 	void endDebugFrameStats();
 	void setActive(bool active);
 	static void setActiveAll(bool active);
 	void deinit();
 
 private:
-  FrameTimeBase timePerFrame{};
+  FloatSeconds timePerFrame{};
 	bool framePosted = false;
 	bool inFrameHandler = false;
 	bool isActive = true;
@@ -122,7 +123,7 @@ private:
 	#endif
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 
-	void runOnFrameDelegates(FrameTimeBase timestamp);
+	void runOnFrameDelegates(FrameTime timestamp);
 	void postFrame();
 	void unpostFrame();
 };

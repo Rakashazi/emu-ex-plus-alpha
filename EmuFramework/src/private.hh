@@ -116,7 +116,7 @@ protected:
 	EmuModalViewStack modalViewController{};
 	Base::Screen::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask &rendererTask_;
-	Base::FrameTimeBase initialTotalFrameTime{};
+	Base::FrameTime initialTotalFrameTime{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
 
@@ -151,7 +151,7 @@ public:
 		{
 			struct RunArgs
 			{
-				Base::FrameTimeBase timestamp;
+				Base::FrameTime timestamp;
 			} run;
 		} args{};
 		Command command{Command::UNSET};
@@ -159,7 +159,7 @@ public:
 		constexpr CommandMessage() {}
 		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
 			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, Base::FrameTimeBase timestamp):
+		constexpr CommandMessage(Command command, Base::FrameTime timestamp):
 			args{timestamp}, command{command} {}
 		explicit operator bool() const { return command != Command::UNSET; }
 	};
@@ -200,7 +200,7 @@ public:
 	void start();
 	void pause();
 	void stop();
-	void runFrame(Base::FrameTimeBase timestamp);
+	void runFrame(Base::FrameTime timestamp);
 	void waitForFinishedFrame();
 	bool videoFrameIsInProgress() const;
 	void finishVideoFrame();

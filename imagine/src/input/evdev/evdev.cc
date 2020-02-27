@@ -144,7 +144,7 @@ struct EvdevInputDevice : public Device
 		{
 			auto &ev = event[i];
 			//logMsg("got event type %d, code %d, value %d", ev.type, ev.code, ev.value);
-			auto time = Time::makeWithUSecs(((uint64_t)ev.time.tv_sec * USEC_PER_SEC) + (uint64_t)ev.time.tv_usec);
+			auto time = IG::Microseconds(((uint64_t)ev.time.tv_sec * USEC_PER_SEC) + (uint64_t)ev.time.tv_usec);
 			switch(ev.type)
 			{
 				bcase EV_KEY:
@@ -477,53 +477,6 @@ void initEvdev(Base::EventLoop loop)
 		logErr("can't open " DEV_NODE_PATH);
 		return;
 	}
-}
-
-Time Time::makeWithNSecs(uint64_t nsecs)
-{
-	return makeWithUSecs(nsecs / NSEC_PER_USEC);
-}
-
-Time Time::makeWithUSecs(uint64_t usecs)
-{
-	Time time;
-	time.t = usecs;
-	return time;
-}
-
-Time Time::makeWithMSecs(uint64_t msecs)
-{
-	return makeWithUSecs(msecs * USEC_PER_MSEC);
-}
-
-Time Time::makeWithSecs(uint64_t secs)
-{
-	return makeWithUSecs(secs * USEC_PER_SEC);
-}
-
-uint64_t Time::nSecs() const
-{
-	return uSecs() * NSEC_PER_USEC;
-}
-
-uint64_t Time::uSecs() const
-{
-	return t;
-}
-
-uint64_t Time::mSecs() const
-{
-	return uSecs() / USEC_PER_MSEC;
-}
-
-uint64_t Time::secs() const
-{
-	return uSecs() / USEC_PER_SEC;
-}
-
-Time::operator IG::Time() const
-{
-	return IG::Time::makeWithUSecs(uSecs());
 }
 
 }

@@ -270,12 +270,12 @@ public:
 	DetectFrameRateDelegate onDetectFrameTime;
 	Base::Screen::OnFrameDelegate detectFrameRate;
 	Gfx::DrawFinishedDelegate detectFrameDrawRate;
-	Base::FrameTimeBase totalFrameTime{};
+	Base::FrameTime totalFrameTime{};
 	Gfx::Text fpsText;
 	uint allTotalFrames = 0;
 	uint callbacks = 0;
 	std::array<char, 32> fpsStr{};
-	std::vector<Base::FrameTimeBaseDiff> frameTimeSample{};
+	std::vector<Base::FrameTime> frameTimeSample{};
 	Gfx::RendererTask &rendererTask;
 
 	DetectFrameRateView(ViewAttachParams attach, Gfx::RendererTask &rendererTask): View(attach),
@@ -317,7 +317,7 @@ public:
 			projP.alignYToPixel(projP.bounds().yCenter()), C2DO, projP);
 	}
 
-	bool runFrameTimeDetection(Base::FrameTimeBaseDiff timestampDiff, double slack)
+	bool runFrameTimeDetection(Base::FrameTime timestampDiff, double slack)
 	{
 		postDraw();
 		const uint framesToTime = frameTimeSample.capacity() * 10;
@@ -326,17 +326,17 @@ public:
 		if(frameTimeSample.size() == frameTimeSample.capacity())
 		{
 			bool stableFrameTime = true;
-			Base::FrameTimeBaseDiff frameTimeTotal{};
+			Base::FrameTime frameTimeTotal{};
 			{
-				Base::FrameTimeBaseDiff lastFrameTime{};
+				Base::FrameTime lastFrameTime{};
 				for(auto frameTime : frameTimeSample)
 				{
 					frameTimeTotal += frameTime;
 					if(!stableFrameTime)
 						continue;
 					double frameTimeDiffSecs =
-						std::abs(Base::frameTimeBaseToSecsDec(lastFrameTime - frameTime));
-					if(frameTime < 0.001 || (lastFrameTime && frameTimeDiffSecs > slack))
+						std::abs(IG::FloatSeconds(lastFrameTime - frameTime).count());
+					if(lastFrameTime.count() && frameTimeDiffSecs > slack)
 					{
 						logMsg("frame times differed by:%f", frameTimeDiffSecs);
 						stableFrameTime = false;
@@ -344,7 +344,7 @@ public:
 					lastFrameTime = frameTime;
 				}
 			}
-			double frameTimeTotalSecs = Base::frameTimeBaseToSecsDec(frameTimeTotal);
+			double frameTimeTotalSecs = IG::FloatSeconds(frameTimeTotal).count();
 			double detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
 			{
 				waitForDrawFinished();

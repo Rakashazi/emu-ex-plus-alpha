@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <Carbon/Carbon.h>
 #ifdef __OBJC__
 #import <AppKit/NSEvent.h>
@@ -87,20 +88,7 @@ enum {
 namespace Input
 {
 
-class Time;
-
-class TimeOSX
-{
-protected:
-	double t = 0; // time in seconds
-public:
-	constexpr TimeOSX() {}
-	double &primitiveVal() { return t; }
-	const double &primitiveVal() const { return t; }
-	static Time makeWithSecsD(double secs);
-};
-
-using TimeImpl = TimeOSX;
+using Time = std::chrono::duration<double>;
 
 using Key = uint16_t;
 

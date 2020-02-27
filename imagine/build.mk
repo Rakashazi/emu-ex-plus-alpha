@@ -19,7 +19,6 @@ else
 endif
 
 include $(imagineSrcDir)/thread/system.mk
-include $(imagineSrcDir)/time/system.mk
 include $(imagineSrcDir)/audio/system.mk
 include $(imagineSrcDir)/input/system.mk
 include $(imagineSrcDir)/gfx/system.mk

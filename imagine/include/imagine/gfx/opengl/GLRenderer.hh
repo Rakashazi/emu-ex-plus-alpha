@@ -147,7 +147,7 @@ protected:
 	DelegateFuncSet<DrawFinishedDelegate> onDrawFinished{};
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
-	Base::FrameTimeBase drawTimestamp{};
+	Base::FrameTime drawTimestamp{};
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	std::mutex drawMutex{};
 	std::condition_variable drawCondition{};

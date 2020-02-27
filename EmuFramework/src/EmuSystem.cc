@@ -38,9 +38,9 @@ FS::PathString EmuSystem::gameSavePath_{};
 FS::FileString EmuSystem::gameName_{};
 FS::FileString EmuSystem::fullGameName_{};
 FS::FileString EmuSystem::originalGameName_{};
-Base::FrameTimeBase EmuSystem::startFrameTime = 0;
-Base::FrameTimeBase EmuSystem::timePerVideoFrame = 0;
-uint EmuSystem::emuFrameNow = 0;
+Base::FrameTime EmuSystem::startFrameTime{};
+IG::FloatSeconds EmuSystem::timePerVideoFrame{};
+uint32_t EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
 Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
@@ -92,20 +92,20 @@ bool EmuSystem::shouldOverwriteExistingState()
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
 }
 
-uint EmuSystem::advanceFramesWithTime(Base::FrameTimeBase time)
+uint32_t EmuSystem::advanceFramesWithTime(Base::FrameTime time)
 {
-	if(unlikely(!startFrameTime))
+	if(unlikely(!startFrameTime.count()))
 	{
 		// first frame
 		startFrameTime = time;
 		emuFrameNow = 0;
 		return 1;
 	}
-	assumeExpr(timePerVideoFrame > 0);
-	assumeExpr(startFrameTime > 0);
+	assumeExpr(timePerVideoFrame.count() > 0);
+	assumeExpr(startFrameTime.count() > 0);
 	assumeExpr(time > startFrameTime);
 	auto timeTotal = time - startFrameTime;
-	auto frameNow = IG::divRoundClosest(timeTotal, timePerVideoFrame);
+	uint32_t frameNow = std::round(IG::FloatSeconds(timeTotal) / timePerVideoFrame);
 	auto elapsedEmuFrames = frameNow - emuFrameNow;
 	emuFrameNow = frameNow;
 	return elapsedEmuFrames;
@@ -299,7 +299,7 @@ void EmuSystem::closeRuntimeSystem(bool allowAutosaveState)
 
 void EmuSystem::resetFrameTime()
 {
-	startFrameTime = 0;
+	startFrameTime = {};
 }
 
 void EmuSystem::pause()
@@ -321,12 +321,12 @@ void EmuSystem::start()
 
 IG::Time EmuSystem::benchmark()
 {
-	auto now = IG::Time::now();
+	auto now = IG::steadyClockTimestamp();
 	iterateTimes(180, i)
 	{
 		runFrame(nullptr, &emuVideo, nullptr);
 	}
-	auto after = IG::Time::now();
+	auto after = IG::steadyClockTimestamp();
 	return after-now;
 }
 
@@ -349,7 +349,7 @@ void EmuSystem::configFrameTime(uint32_t rate)
 	audioFramesPerVideoFrame = std::ceil(rate * fTime);
 	audioFramesPerVideoFrameFloat = (double)rate * fTime;
 	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
-	timePerVideoFrame = Base::frameTimeBaseFromSecs(fTime);
+	timePerVideoFrame = IG::FloatSeconds(fTime);
 	resetFrameTime();
 }
 

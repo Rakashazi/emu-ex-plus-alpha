@@ -52,7 +52,7 @@ Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
 Byte1Option optionSound(CFGKEY_SOUND, 1);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
-	5, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
+	4, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
 Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX

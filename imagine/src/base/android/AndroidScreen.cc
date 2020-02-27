@@ -303,7 +303,7 @@ void Screen::postFrame()
 	frameTimer->scheduleVSync();
 	if(!inFrameHandler)
 	{
-		prevFrameTimestamp = 0;
+		prevFrameTimestamp = {};
 	}
 }
 

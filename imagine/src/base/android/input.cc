@@ -59,12 +59,12 @@ static AndroidInputDevice *deviceForInputId(int id)
 
 static Time makeTimeFromMotionEvent(AInputEvent *event)
 {
-	return Time::makeWithNSecs(AMotionEvent_getEventTime(event));
+	return IG::Nanoseconds(AMotionEvent_getEventTime(event));
 }
 
 static Time makeTimeFromKeyEvent(AInputEvent *event)
 {
-	return Time::makeWithNSecs(AKeyEvent_getEventTime(event));
+	return IG::Nanoseconds(AKeyEvent_getEventTime(event));
 }
 
 static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, int32_t &metaState, AInputEvent *event)
@@ -470,59 +470,6 @@ void flushEvents()
 	{
 		processInput(Base::inputQueue);
 	}
-}
-
-Time Time::makeWithNSecs(uint64_t nsecs)
-{
-	Time time;
-	time.t = IG::Time::makeWithNSecs(nsecs);
-	return time;
-}
-
-Time Time::makeWithUSecs(uint64_t usecs)
-{
-	Time time;
-	time.t = IG::Time::makeWithUSecs(usecs);
-	return time;
-}
-
-Time Time::makeWithMSecs(uint64_t msecs)
-{
-	Time time;
-	time.t = IG::Time::makeWithMSecs(msecs);
-	return time;
-}
-
-Time Time::makeWithSecs(uint64_t secs)
-{
-	Time time;
-	time.t = IG::Time::makeWithSecs(secs);
-	return time;
-}
-
-uint64_t Time::nSecs() const
-{
-	return t.nSecs();
-}
-
-uint64_t Time::uSecs() const
-{
-	return t.uSecs();
-}
-
-uint64_t Time::mSecs() const
-{
-	return t.mSecs();
-}
-
-uint64_t Time::secs() const
-{
-	return t.secs();
-}
-
-Time::operator IG::Time() const
-{
-	return t;
 }
 
 }

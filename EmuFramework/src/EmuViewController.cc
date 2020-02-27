@@ -655,7 +655,7 @@ void EmuViewController::startEmulation()
 	EmuSystem::start();
 	videoLayer().setBrightness(1.f);
 	auto &screen = *emuView.window().screen();
-	initialTotalFrameTime = 0;
+	initialTotalFrameTime = {};
 	addInitialOnFrame(screen, initialDelayFrames(screen));
 }
 

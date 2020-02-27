@@ -149,7 +149,7 @@ void Screen::postFrame()
 	frameTimerScheduleVSync();
 	if(!inFrameHandler)
 	{
-		prevFrameTimestamp = 0;
+		prevFrameTimestamp = {};
 	}
 }
 

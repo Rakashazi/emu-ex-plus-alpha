@@ -136,7 +136,7 @@ public:
 	bool removeOnDrawFinished(DrawFinishedDelegate del);
 	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
 	void destroyDrawable(DrawableHolder &drawable);
-	Base::FrameTimeBase lastDrawTimestamp() const;
+	Base::FrameTime lastDrawTimestamp() const;
 	constexpr Renderer &renderer() const { return r; }
 
 private:

@@ -68,7 +68,7 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 					auto &frameTimer = *((DRMFrameTimer*)data);
 					constexpr uint64_t USEC_PER_SEC = 1000000;
 					auto uSecs = ((uint64_t)sec * USEC_PER_SEC) + (uint64_t)usec;
-					frameTimer.timestamp = IG::Time::makeWithUSecs(uSecs);
+					frameTimer.timestamp = IG::Microseconds(uSecs);
 				};
 			auto err = drmHandleEvent(fd, &ctx);
 			if(err)
@@ -81,8 +81,8 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 				auto s = Screen::screen(i);
 				if(s->isPosted())
 				{
-					s->frameUpdate(timestamp.nSecs());
-					s->prevFrameTimestamp = timestamp.nSecs();
+					s->frameUpdate(timestamp);
+					s->prevFrameTimestamp = timestamp;
 				}
 			}
 			return 1;

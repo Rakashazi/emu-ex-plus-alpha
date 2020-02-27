@@ -57,7 +57,7 @@ void EmuSystemTask::start()
 			commandPort.addToEventLoop(eventLoop,
 				[this](auto messages)
 				{
-					Base::FrameTimeBase timestamp{};
+					Base::FrameTime timestamp{};
 					IG::Semaphore *notifySemAddr{};
 					bool notifyAfterFrame = false;
 					for(auto msg = messages.get(); msg; msg = messages.get())
@@ -98,12 +98,12 @@ void EmuSystemTask::start()
 							}
 						}
 					}
-					if(unlikely(notifySemAddr && (!notifyAfterFrame || !timestamp)))
+					if(unlikely(notifySemAddr && (!notifyAfterFrame || !timestamp.count())))
 					{
 						notifySemAddr->notify();
 						return true;
 					}
-					if(!timestamp)
+					if(!timestamp.count())
 						return true;
 					bool doFrame = false;
 					emuAudio.setDoingFrameSkip(false);
@@ -201,7 +201,7 @@ void EmuSystemTask::stop()
 	assert(!doingVideoFrame);
 }
 
-void EmuSystemTask::runFrame(Base::FrameTimeBase timestamp)
+void EmuSystemTask::runFrame(Base::FrameTime timestamp)
 {
 	if(unlikely(!started))
 		return;

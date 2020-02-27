@@ -37,12 +37,12 @@ class SyncFence;
 struct DrawFinishedParams
 {
 	RendererTask *drawTask_;
-	Base::FrameTimeBase timestamp_;
+	Base::FrameTime timestamp_;
 	Drawable drawable_;
 
 	RendererTask &rendererTask() const { return *drawTask_; }
-	Base::FrameTimeBase timestamp() const { return timestamp_; }
-	Base::FrameTimeBaseDiff timestampDiff() const;
+	Base::FrameTime timestamp() const { return timestamp_; }
+	Base::FrameTime timestampDiff() const;
 	Drawable drawable() const { return drawable_; }
 };
 

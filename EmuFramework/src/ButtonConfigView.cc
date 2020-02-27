@@ -266,9 +266,9 @@ bool ButtonConfigView::inputEvent(Input::Event e)
 {
 	if(e.pushed() && e.isDefaultLeftButton() && selected > 0)
 	{
-		auto durationSinceLastKeySet = leftKeyPushTime ? e.time() - leftKeyPushTime : Input::Time{};
+		auto durationSinceLastKeySet = leftKeyPushTime.count() ? e.time() - leftKeyPushTime : Input::Time{};
 		leftKeyPushTime = e.time();
-		if(durationSinceLastKeySet && durationSinceLastKeySet <= Input::Time::makeWithMSecs(500))
+		if(durationSinceLastKeySet.count() && durationSinceLastKeySet <= IG::Milliseconds(500))
 		{
 			// unset key
 			leftKeyPushTime = {};

@@ -351,7 +351,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 		logWarn("Unknown report in Wiimote packet");
 		return 1;
 	}
-	auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
+	auto time = IG::steadyClockTimestamp();
 	switch(packet[1])
 	{
 		bcase 0x30:

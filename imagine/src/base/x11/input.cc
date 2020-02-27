@@ -401,7 +401,7 @@ bool handleXI2GenericEvent(XEvent &event)
 		return true;
 	}
 	auto &win = *destWin;
-	auto time = Time::makeWithMSecs(ievent.time); // X11 timestamps are in ms
+	auto time = IG::Milliseconds(ievent.time); // X11 timestamps are in ms
 	auto handleKeyEvent =
 		[](Base::Window &win, XIDeviceEvent &ievent, Time time, bool pushed)
 		{

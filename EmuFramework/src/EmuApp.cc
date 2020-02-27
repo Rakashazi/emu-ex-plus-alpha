@@ -478,10 +478,10 @@ void onSelectFileFromPicker(const char* name, Input::Event e)
 void runBenchmarkOneShot()
 {
 	logMsg("starting benchmark");
-	IG::Time time = EmuSystem::benchmark();
+	IG::FloatSeconds time = EmuSystem::benchmark();
 	emuViewController.closeSystem(false);
-	logMsg("done in: %f", double(time));
-	EmuApp::printfMessage(2, 0, "%.2f fps", double(180.)/double(time));
+	logMsg("done in: %f", time.count());
+	EmuApp::printfMessage(2, 0, "%.2f fps", double(180.)/time.count());
 }
 
 void EmuApp::launchSystemWithResumePrompt(Input::Event e, bool addToRecent)

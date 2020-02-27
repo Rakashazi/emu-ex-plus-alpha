@@ -79,10 +79,10 @@ uint EmuAudio::framesCapacity() const
 	return format.bytesToFrames(rBuff.capacity());
 }
 
-bool EmuAudio::shouldStartAudioWrites() const
+bool EmuAudio::shouldStartAudioWrites(uint32_t bytesToWrite) const
 {
-	// audio starts when at the buffer is at least 1/2 full
-	return framesWritten() >= framesCapacity() / 2;
+	// audio starts when the buffer reaches target size
+	return rBuff.size() + bytesToWrite >= targetBufferFillBytes;
 }
 
 template<typename T>
@@ -103,19 +103,23 @@ static void simpleResample(T *dest, uint destFrames, const T *src, uint srcFrame
 	}
 }
 
-uint32_t makeWantedLatency(uint8_t extraBuffers = 0)
+static uint32_t makeWantedLatencyUSecs(uint8_t buffers)
 {
-	return std::round((optionSoundBuffers + extraBuffers) * (1000000. * EmuSystem::frameTime()));
+	return std::round(buffers * (1000000. * EmuSystem::frameTime()));
 }
 
-void EmuAudio::resizeAudioBuffer(uint32_t wantedLatency)
+void EmuAudio::resizeAudioBuffer(uint32_t buffers)
 {
-	auto buffSize = format.uSecsToBytes(wantedLatency);
+	auto targetBufferFillUSecs = makeWantedLatencyUSecs(buffers);
+	targetBufferFillBytes = format.uSecsToBytes(targetBufferFillUSecs);
 	auto oldCapacity = rBuff.capacity();
-	rBuff.setMinCapacity(buffSize);
-	if(rBuff.capacity() != oldCapacity)
+	auto bufferSizeUSecs = makeWantedLatencyUSecs(buffers + 1);
+	rBuff.setMinCapacity(format.uSecsToBytes(bufferSizeUSecs));
+	if(Config::DEBUG_BUILD && rBuff.capacity() != oldCapacity)
 	{
-		logMsg("created audio buffer with %d frames (%uus)", format.bytesToFrames(rBuff.freeSpace()), wantedLatency);
+		logMsg("created audio buffer:%d frames (%uus), fill target:%d frames (%uus)",
+			format.bytesToFrames(rBuff.freeSpace()), bufferSizeUSecs,
+			format.bytesToFrames(targetBufferFillBytes), targetBufferFillUSecs);
 	}
 }
 
@@ -132,8 +136,7 @@ void EmuAudio::start()
 	}
 	if(!audioStream->isOpen())
 	{
-		auto wantedLatency = makeWantedLatency();
-		resizeAudioBuffer(wantedLatency);
+		resizeAudioBuffer(optionSoundBuffers);
 		audioWriteState = AudioWriteState::BUFFER;
 		IG::Audio::OutputStreamConfig outputConf
 		{
@@ -152,8 +155,8 @@ void EmuAudio::start()
 						uint padBytes = bytes - bytesRead;
 						std::fill_n(&((char*)samples)[bytesRead], padBytes, 0);
 						//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
-						auto now = IG::Time::now();
-						if(now - lastUnderrunTime < IG::Time::makeWithSecs(1))
+						auto now = IG::steadyClockTimestamp();
+						if(now - lastUnderrunTime < IG::Seconds(1))
 						{
 							//logWarn("multiple underruns within a short time");
 							audioWriteState = AudioWriteState::MULTI_UNDERRUN;
@@ -230,8 +233,7 @@ void EmuAudio::writeFrames(const void *samples, uint framesToWrite)
 			if(optionAddSoundBuffersOnUnderrun && format.bytesToSecs(rBuff.capacity()) <= 1.) // hard cap buffer increase to 1 sec
 			{
 				extraSoundBuffers++;
-				auto wantedLatency = makeWantedLatency(extraSoundBuffers);
-				resizeAudioBuffer(wantedLatency);
+				resizeAudioBuffer(optionSoundBuffers + extraSoundBuffers);
 			}
 			[[fallthrough]];
 		case AudioWriteState::UNDERRUN:
@@ -268,12 +270,15 @@ void EmuAudio::writeFrames(const void *samples, uint framesToWrite)
 		}
 		rBuff.commitWrite(freeBytes);
 	}
-	if(audioWriteState == AudioWriteState::BUFFER && shouldStartAudioWrites())
+	if(audioWriteState == AudioWriteState::BUFFER && shouldStartAudioWrites(bytes))
 	{
-		auto bytes = rBuff.size();
-		auto capacity = rBuff.capacity();
-		logMsg("starting audio writes with buffer fill %u/%u bytes %.2f/%.2f secs",
-			bytes, capacity, format.bytesToSecs(bytes), format.bytesToSecs(capacity));
+		if(Config::DEBUG_BUILD)
+		{
+			auto bytes = rBuff.size();
+			auto capacity = rBuff.capacity();
+			logMsg("starting audio writes with buffer fill %u/%u bytes %.2f/%.2f secs",
+				bytes, capacity, format.bytesToSecs(bytes), format.bytesToSecs(capacity));
+		}
 		audioWriteState = AudioWriteState::ACTIVE;
 	}
 }

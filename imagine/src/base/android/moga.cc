@@ -182,7 +182,7 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				assert((uint32_t)keyCode < Keycode::COUNT);
 				Base::endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
-				auto time = Time::makeWithNSecs(timestamp);
+				auto time = IG::Nanoseconds(timestamp);
 				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, time, mogaDev};
 				startKeyRepeatTimer(event);
 				Base::mainWindow().dispatchInputEvent(event);
@@ -195,7 +195,7 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			{
 				auto mogaDev = ((MogaSystem*)mogaSystemPtr)->mogaDevice();
 				Base::endIdleByUserActivity();
-				auto time = Time::makeWithNSecs(timestamp);
+				auto time = IG::Nanoseconds(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				mogaDev->axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());
 				mogaDev->axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, time, *mogaDev, Base::mainWindow());

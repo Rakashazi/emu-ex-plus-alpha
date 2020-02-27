@@ -50,14 +50,10 @@ void SimpleFrameTimer::scheduleVSync()
 	{
 		return; // timer already armed
 	}
-	uint64_t lastTimestampDiffNsecs = (IG::Time::now() - lastTimestamp).nSecs();
-	unsigned int startTime = lastTimestampDiffNsecs < intervalNS ? intervalNS - lastTimestampDiffNsecs : 1;
 	timer.callbackAfterNSec(
 		[this]()
 		{
-			auto timestamp = IG::Time::now();
-			auto timestampNS = timestamp.nSecs();
-			lastTimestamp = timestamp;
+			auto timestamp = IG::steadyClockTimestamp();
 			requested = false;
 			if(cancelled)
 			{
@@ -69,14 +65,14 @@ void SimpleFrameTimer::scheduleVSync()
 			auto s = Screen::screen(0);
 			if(s->isPosted())
 			{
-				s->frameUpdate(timestampNS);
-				s->prevFrameTimestamp = timestampNS;
+				s->frameUpdate(timestamp);
+				s->prevFrameTimestamp = timestamp;
 			}
 			if(!requested)
 			{
 				cancel();
 			}
-		}, startTime, intervalNS, eventLoop, Timer::HINT_REUSE);
+		}, 1, intervalNS, eventLoop, Timer::HINT_REUSE);
 }
 
 void SimpleFrameTimer::cancel()

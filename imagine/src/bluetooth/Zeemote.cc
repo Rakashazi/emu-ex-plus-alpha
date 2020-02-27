@@ -173,7 +173,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		// check if inputBuffer is complete
 		if(inputBufferPos == packetSize)
 		{
-			auto time = Input::Time::makeWithNSecs(IG::Time::now().nSecs());
+			auto time = IG::steadyClockTimestamp();
 			uint32_t rID = inputBuffer[2];
 			logMsg("report id 0x%X, %s", rID, reportIDToStr(rID));
 			switch(rID)

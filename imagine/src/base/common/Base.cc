@@ -152,11 +152,6 @@ Orientation validateOrientationMask(Orientation oMask)
 	return oMask;
 }
 
-FrameTimeBase timeSinceFrameTime(FrameTimeBase time)
-{
-	return frameTimeBaseFromNSecs(IG::Time::now().nSecs()) - time;
-}
-
 void exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
 {
 	va_list args;
