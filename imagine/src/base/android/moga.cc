@@ -15,6 +15,7 @@
 
 #define LOGTAG "MOGAInput"
 #include <imagine/base/Base.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"

@@ -80,7 +80,7 @@ static void cleanupTest(TestFramework *test)
 	#endif
 }
 
-static void finishTest(Base::Window &win, Gfx::Renderer &r, Base::FrameTime frameTime)
+static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameTime)
 {
 	if(activeTest)
 	{

@@ -73,7 +73,7 @@ UInt32 archGetSystemUpTime(UInt32 frequency)
 
 UInt32 archGetHiresTimer()
 {
-	return IG::Time::now().mSecs();
+	return std::chrono::duration_cast<IG::Milliseconds>(IG::steadyClockTimestamp()).count();
 }
 
 Properties* propGetGlobalProperties() { assert(0); return 0; }; // TODO: needed in Casette.c

@@ -33,7 +33,7 @@ public:
 private:
 	VController &vController;
 	bool touchControlsOn = false;
-	bool ffKeyPushed = false, ffToggleActive = false;
+	bool ffToggleActive = false;
 
 	void updateFastforward();
 };

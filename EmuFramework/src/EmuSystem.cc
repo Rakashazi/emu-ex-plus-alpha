@@ -47,8 +47,8 @@ Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
 [[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
-double EmuSystem::frameTimeNative = 1./60.;
-double EmuSystem::frameTimePAL = 1./50.;
+IG::FloatSeconds EmuSystem::frameTimeNative{1./60.};
+IG::FloatSeconds EmuSystem::frameTimePAL{1./50.};
 [[gnu::weak]] bool EmuSystem::hasResetModes = false;
 [[gnu::weak]] bool EmuSystem::handlesArchiveFiles = false;
 [[gnu::weak]] bool EmuSystem::handlesGenericIO = true;
@@ -330,26 +330,38 @@ IG::Time EmuSystem::benchmark()
 	return after-now;
 }
 
-void EmuSystem::skipFrames(EmuSystemTask *task, uint frames, EmuAudio *audio)
+void EmuSystem::skipFrames(EmuSystemTask *task, uint32_t frames, EmuAudio *audio)
 {
-	if(!gameIsRunning())
-		return;
+	assumeExpr(gameIsRunning());
 	iterateTimes(frames, i)
 	{
-		bool renderAudioThisFrame = audio && audio->shouldRenderAudioForSkippedFrame();
 		turboActions.update();
-		runFrame(task, nullptr, renderAudioThisFrame ? audio : nullptr);
+		runFrame(task, nullptr, audio);
 	}
+}
+
+bool EmuSystem::skipForwardFrames(EmuSystemTask *task, uint32_t frames)
+{
+	iterateTimes(frames, i)
+	{
+		EmuSystem::skipFrames(task, 1, nullptr);
+		if(!EmuSystem::shouldFastForward())
+		{
+			logMsg("skip-forward ended early after %u frame(s)", i);
+			return false;
+		}
+	}
+	return true;
 }
 
 void EmuSystem::configFrameTime(uint32_t rate)
 {
 	auto fTime = frameTime();
 	configAudioRate(fTime, rate);
-	audioFramesPerVideoFrame = std::ceil(rate * fTime);
-	audioFramesPerVideoFrameFloat = (double)rate * fTime;
+	audioFramesPerVideoFrame = std::ceil(rate * fTime.count());
+	audioFramesPerVideoFrameFloat = (double)rate * fTime.count();
 	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
-	timePerVideoFrame = IG::FloatSeconds(fTime);
+	timePerVideoFrame = fTime;
 	resetFrameTime();
 }
 
@@ -372,34 +384,45 @@ uint32_t EmuSystem::updateAudioFramesPerVideoFrame()
 	return wholeFrames;
 }
 
-double EmuSystem::frameTime()
+double EmuSystem::frameRate()
+{
+	double time = frameTime().count();
+	return time ? 1. / time : 0.;
+}
+
+double EmuSystem::frameRate(VideoSystem system)
+{
+	return 1. / frameTime(system).count();
+}
+
+IG::FloatSeconds EmuSystem::frameTime()
 {
 	return frameTime(vidSysIsPAL() ? VIDSYS_PAL : VIDSYS_NATIVE_NTSC);
 }
 
-double EmuSystem::frameTime(VideoSystem system)
+IG::FloatSeconds EmuSystem::frameTime(VideoSystem system)
 {
 	switch(system)
 	{
 		case VIDSYS_NATIVE_NTSC: return frameTimeNative;
 		case VIDSYS_PAL: return frameTimePAL;
 	}
-	return 0;
+	return {};
 }
 
-double EmuSystem::defaultFrameTime(VideoSystem system)
+IG::FloatSeconds EmuSystem::defaultFrameTime(VideoSystem system)
 {
 	switch(system)
 	{
-		case VIDSYS_NATIVE_NTSC: return 1./60.;
-		case VIDSYS_PAL: return 1./50.;
+		case VIDSYS_NATIVE_NTSC: return IG::FloatSeconds{1./60.};
+		case VIDSYS_PAL: return IG::FloatSeconds{1./50.};
 	}
-	return 0;
+	return {};
 }
 
-bool EmuSystem::frameTimeIsValid(VideoSystem system, double time)
+bool EmuSystem::frameTimeIsValid(VideoSystem system, IG::FloatSeconds time)
 {
-	auto rate = 1. / time; // convert to frames per second
+	auto rate = 1. / time.count(); // convert to frames per second
 	switch(system)
 	{
 		case VIDSYS_NATIVE_NTSC: return rate >= 55 && rate <= 65;
@@ -408,7 +431,7 @@ bool EmuSystem::frameTimeIsValid(VideoSystem system, double time)
 	return false;
 }
 
-bool EmuSystem::setFrameTime(VideoSystem system, double time)
+bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 {
 	if(!frameTimeIsValid(system, time))
 		return false;

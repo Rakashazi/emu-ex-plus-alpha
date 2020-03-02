@@ -80,7 +80,7 @@ void RingBuffer::clear()
 
 SizeType RingBuffer::freeSpace() const
 {
-	return buffSize - written;
+	return capacity() - size();
 }
 
 SizeType RingBuffer::size() const
@@ -119,11 +119,17 @@ void RingBuffer::setMinCapacity(SizeType capacity)
 
 SizeType RingBuffer::write(const void *buff, SizeType size)
 {
-	if(size > freeSpace())
-		size = freeSpace();
+	auto space = freeSpace();
+	if(size > space)
+		size = space;
+	return writeUnchecked(buff, size);
+}
+
+SizeType RingBuffer::writeUnchecked(const void *buff, SizeType size)
+{
+	assert(size <= freeSpace());
 	memcpy(end, buff, size);
-	end = advanceAddr(end, size);
-	written += size;
+	commitWrite(size);
 	//logMsg("wrote %d bytes", (int)size);
 	return size;
 }
@@ -135,20 +141,20 @@ char *RingBuffer::writeAddr() const
 
 void RingBuffer::commitWrite(SizeType size)
 {
-	assumeExpr(size <= freeSpace());
+	assert(size <= freeSpace());
 	end = advanceAddr(end, size);
 	written += size;
 }
 
-SizeType RingBuffer::read(void *buff, SizeType size)
+SizeType RingBuffer::read(void *buff, SizeType size_)
 {
-	if(size > written)
-		size = written;
-	memcpy(buff, start, size);
-	start = advanceAddr(start, size);
-	written -= size;
+	auto writtenSize = size();
+	if(size_ > writtenSize)
+		size_ = writtenSize;
+	memcpy(buff, start, size_);
+	commitRead(size_);
 	//logMsg("read %d bytes", (int)size);
-	return size;
+	return size_;
 }
 
 char *RingBuffer::readAddr() const
@@ -156,11 +162,11 @@ char *RingBuffer::readAddr() const
 	return start;
 }
 
-void RingBuffer::commitRead(SizeType size)
+void RingBuffer::commitRead(SizeType size_)
 {
-	assumeExpr(size <= (SizeType)written);
-	start = advanceAddr(start, size);
-	written -= size;
+	assert(size_ <= size());
+	start = advanceAddr(start, size_);
+	written -= size_;
 }
 
 char *RingBuffer::advanceAddr(char *ptr, SizeType size) const

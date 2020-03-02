@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/operators.hh>
 #include <utility>
 
@@ -35,7 +36,7 @@ public:
 protected:
 	void *xScreen{};
 	float xMM = 0, yMM = 0;
-	double frameTime_ = 0;
+	IG::FloatSeconds frameTime_{};
 	bool reliableFrameTime = true;
 };
 

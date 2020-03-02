@@ -167,10 +167,10 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 				logWarn("error writing %d bytes", (int)bytes);
 			}
 		}, this);
-	const uint32_t wantedLatency = config.wantedLatencyHint() ? config.wantedLatencyHint() : 10000;
+	const auto wantedLatency = config.wantedLatencyHint().count() ? config.wantedLatencyHint() : IG::Microseconds{10000};
 	pa_buffer_attr bufferAttr{};
 	bufferAttr.maxlength = -1;
-	bufferAttr.tlength = format.uSecsToBytes(wantedLatency);
+	bufferAttr.tlength = format.timeToBytes(wantedLatency);
 	bufferAttr.prebuf = -1;
 	bufferAttr.minreq = -1;
 	if(pa_stream_connect_playback(stream, nullptr, &bufferAttr,

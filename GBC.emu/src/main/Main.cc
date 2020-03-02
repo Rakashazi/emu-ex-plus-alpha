@@ -170,9 +170,9 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{gbResX, gbResY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	long outputRate = std::round(rate * (59.7275 * frameTime));
+	long outputRate = std::round(rate * (59.7275 * frameTime.count()));
 	long inputRate = 2097152;
 	if(optionAudioResampler >= ResamplerInfo::num())
 		optionAudioResampler = std::min((int)ResamplerInfo::num(), 1);

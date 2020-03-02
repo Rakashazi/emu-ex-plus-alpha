@@ -223,6 +223,7 @@ void mainInitCommon(int argc, char** argv)
 	AudioManager::startSession();
 	if((int)optionSoundRate > AudioManager::nativeFormat().rate)
 		optionSoundRate = AudioManager::nativeFormat().rate;
+	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 
@@ -877,7 +878,7 @@ void EmuApp::loadSessionOptions()
 
 void EmuApp::syncEmulationThread()
 {
-	emuSystemTask.waitForFinishedFrame();
+	emuSystemTask.pause();
 }
 
 AppWindowData &appWindowData(const Base::Window &win)

@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.6.0'
+        classpath 'com.android.tools.build:gradle:3.6.1'
     }
 }
 
@@ -66,8 +66,6 @@ android {
     defaultConfig {
 		project.ext.set("archivesBaseName", METADATA_PROJECT)
 	}
-
-    ndkVersion NDK_VERSION
 }
 
 dependencies {

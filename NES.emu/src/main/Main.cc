@@ -370,12 +370,12 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{nesPixX, nesVisiblePixY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	constexpr double ntscFrameRate = 21477272.0 / 357366.0;
 	constexpr double palFrameRate = 21281370.0 / 425568.0;
 	double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
-	double mixRate = std::round(rate * (systemFrameRate * frameTime));
+	double mixRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	FCEUI_Sound(mixRate);
 	logMsg("set NES audio rate %d", FSettings.SndRate);
 }

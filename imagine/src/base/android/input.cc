@@ -15,7 +15,7 @@
 
 #define LOGTAG "Input"
 #include <android/api-level.h>
-#include <imagine/base/Base.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "internal.hh"

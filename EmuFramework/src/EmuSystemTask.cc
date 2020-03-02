@@ -14,8 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/thread/Thread.hh>
-#include "EmuOptions.hh"
-#include "private.hh"
+#include <imagine/logger/logger.h>
+#include <emuframework/EmuApp.hh>
+#include <emuframework/EmuVideo.hh>
+#include "EmuSystemTask.hh"
 #include "privateInput.hh"
 
 void EmuSystemTask::start()
@@ -31,7 +33,7 @@ void EmuSystemTask::start()
 				{
 					bcase Reply::VIDEO_FORMAT_CHANGED:
 					{
-						emuVideo.setFormat(msg.args.videoFormat.desc);
+						msg.args.videoFormat.videoAddr->setFormat(msg.args.videoFormat.desc);
 						auto semAddr = msg.args.videoFormat.semAddr;
 						if(semAddr)
 						{
@@ -57,9 +59,6 @@ void EmuSystemTask::start()
 			commandPort.addToEventLoop(eventLoop,
 				[this](auto messages)
 				{
-					Base::FrameTime timestamp{};
-					IG::Semaphore *notifySemAddr{};
-					bool notifyAfterFrame = false;
 					for(auto msg = messages.get(); msg; msg = messages.get())
 					{
 						switch(msg.command)
@@ -67,22 +66,30 @@ void EmuSystemTask::start()
 							bcase Command::RUN_FRAME:
 							{
 								//logMsg("got draw command");
-								timestamp = msg.args.run.timestamp;
+								auto frames = msg.args.run.frames;
+								assumeExpr(frames);
+								auto *video = msg.args.run.video;
+								auto *audio = msg.args.run.audio;
+								if(unlikely(msg.args.run.skipForward))
+								{
+									if(EmuSystem::skipForwardFrames(this, frames - 1))
+									{
+										// don't write any audio while skip is in progress
+										audio = nullptr;
+									}
+								}
+								else
+								{
+									EmuSystem::skipFrames(this, frames - 1, audio);
+								}
+								turboActions.update();
+								EmuSystem::runFrame(this, video, audio);
 							}
 							bcase Command::PAUSE:
 							{
 								//logMsg("got pause command");
-								assumeExpr(!notifySemAddr);
-								notifySemAddr = msg.semAddr;
-								assumeExpr(notifySemAddr);
-							}
-							bcase Command::NOTIFY_AFTER_FRAME:
-							{
-								//logMsg("got notify after frame command");
-								assumeExpr(!notifySemAddr);
-								notifySemAddr = msg.semAddr;
-								notifyAfterFrame = true;
-								assumeExpr(notifySemAddr);
+								assumeExpr(msg.semAddr);
+								msg.semAddr->notify();
 							}
 							bcase Command::EXIT:
 							{
@@ -97,74 +104,6 @@ void EmuSystemTask::start()
 								logWarn("unknown CommandMessage value:%d", (int)msg.command);
 							}
 						}
-					}
-					if(unlikely(notifySemAddr && (!notifyAfterFrame || !timestamp.count())))
-					{
-						notifySemAddr->notify();
-						return true;
-					}
-					if(!timestamp.count())
-						return true;
-					bool doFrame = false;
-					emuAudio.setDoingFrameSkip(false);
-					if(unlikely(fastForwardActive || EmuSystem::shouldFastForward()))
-					{
-						startVideoFrame();
-						doFrame = true;
-						emuAudio.setDoingFrameSkip(true);
-						if(fastForwardActive)
-						{
-							EmuSystem::skipFrames(this, (uint)optionFastForwardSpeed, &emuAudio);
-						}
-						else
-						{
-							iterateTimes((uint)optionFastForwardSpeed, i)
-							{
-								EmuSystem::skipFrames(this, 1, &emuAudio);
-								if(!EmuSystem::shouldFastForward())
-								{
-									logMsg("fast-forward ended early after %d frame(s)", i);
-									break;
-								}
-							}
-						}
-					}
-					else
-					{
-						uint frames = EmuSystem::advanceFramesWithTime(timestamp);
-						//logDMsg("%d frames elapsed (%fs)", frames, Base::frameTimeBaseToSecsDec(params.timestampDiff()));
-						if(frames)
-						{
-							startVideoFrame();
-							doFrame = true;
-							constexpr uint maxLateFrameSkip = 6;
-							uint maxFrameSkip = optionSkipLateFrames ? maxLateFrameSkip : 0;
-							#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
-							if(!optionSkipLateFrames)
-								maxFrameSkip = optionFrameInterval - 1;
-							#endif
-							assumeExpr(maxFrameSkip <= maxLateFrameSkip);
-							if(frames > 1 && maxFrameSkip)
-							{
-								//logDMsg("running %d frames", frames);
-								uint framesToSkip = frames - 1;
-								framesToSkip = std::min(framesToSkip, maxFrameSkip);
-								iterateTimes(framesToSkip, i)
-								{
-									turboActions.update();
-									EmuSystem::runFrame(this, nullptr, optionSound ? &emuAudio : nullptr);
-								}
-							}
-						}
-					}
-					if(doFrame)
-					{
-						turboActions.update();
-						EmuSystem::runFrame(this, &emuVideo, optionSound ? &emuAudio : nullptr);
-					}
-					if(unlikely(notifySemAddr))
-					{
-						notifySemAddr->notify();
 					}
 					return true;
 				});
@@ -184,7 +123,6 @@ void EmuSystemTask::pause()
 	IG::Semaphore sem{0};
 	commandPort.send({Command::PAUSE, &sem});
 	sem.wait();
-	emuVideo.waitAsyncFrame();
 }
 
 void EmuSystemTask::stop()
@@ -196,50 +134,20 @@ void EmuSystemTask::stop()
 	sem.wait();
 	replyPort.clear();
 	replyPort.removeFromEventLoop();
-	emuVideo.waitAsyncFrame();
 	started = false;
-	assert(!doingVideoFrame);
 }
 
-void EmuSystemTask::runFrame(Base::FrameTime timestamp)
+void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward)
 {
+	assumeExpr(frames);
 	if(unlikely(!started))
 		return;
-	commandPort.send({Command::RUN_FRAME, timestamp});
+	commandPort.send({Command::RUN_FRAME, video, audio, frames, skipForward});
 }
 
-void EmuSystemTask::waitForFinishedFrame()
+void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc, IG::Semaphore *semAddr)
 {
-	if(unlikely(!started))
-		return;
-	IG::Semaphore sem{0};
-	commandPort.send({Command::NOTIFY_AFTER_FRAME, &sem});
-	sem.wait();
-}
-
-bool EmuSystemTask::videoFrameIsInProgress() const
-{
-	return doingVideoFrame;
-}
-
-void EmuSystemTask::startVideoFrame()
-{
-	doingVideoFrame = true;
-}
-
-void EmuSystemTask::finishVideoFrame()
-{
-	doingVideoFrame = false;
-}
-
-void EmuSystemTask::setFastForwardActive(bool active)
-{
-	fastForwardActive = active;
-}
-
-void EmuSystemTask::sendVideoFormatChangedReply(IG::PixmapDesc desc, IG::Semaphore *semAddr)
-{
-	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, desc, semAddr});
+	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, video, desc, semAddr});
 }
 
 void EmuSystemTask::sendScreenshotReply(int num, bool success)

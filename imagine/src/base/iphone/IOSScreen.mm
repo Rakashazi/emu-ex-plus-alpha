@@ -47,7 +47,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 {
 	Input::flushEvents();
 	auto &screen = *screen_;
-	auto timestamp = screen.displayLink().timestamp;
+	auto timestamp = IG::FloatSeconds(screen.displayLink().timestamp);
 	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
 	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration);*/
 	if(&screen == screen.screen(0))
@@ -57,7 +57,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 	{
 		//logMsg("stopping screen updates");
 		screen.displayLink().paused = YES;
-		screen.prevFrameTimestamp = 0;
+		screen.prevFrameTimestamp = {};
 	}
 	else
 		screen.prevFrameTimestamp = timestamp;
@@ -146,10 +146,10 @@ int Screen::height()
 
 double Screen::frameRate() const
 {
-	return 1. / frameTime();
+	return 1. / frameTime().count();
 }
 
-double Screen::frameTime() const
+IG::FloatSeconds Screen::frameTime() const
 {
 	if(hasAtLeastIOS5())
 	{
@@ -158,12 +158,12 @@ double Screen::frameTime() const
 		if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
 		{
 			logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
-			return 1. / 60.;
+			return IG::FloatSeconds(1. / 60.);
 		}
-		return frameTime;
+		return IG::FloatSeconds(frameTime);
 	}
 	else
-		return 1. / 60.;
+		return IG::FloatSeconds(1. / 60.);
 }
 
 bool Screen::frameRateIsReliable() const

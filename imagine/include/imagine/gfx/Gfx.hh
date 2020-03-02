@@ -24,6 +24,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/time/Time.hh>
 #include <array>
 
 #ifdef CONFIG_GFX_OPENGL
@@ -136,7 +137,7 @@ public:
 	bool removeOnDrawFinished(DrawFinishedDelegate del);
 	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
 	void destroyDrawable(DrawableHolder &drawable);
-	Base::FrameTime lastDrawTimestamp() const;
+	IG::FrameTime lastDrawTimestamp() const;
 	constexpr Renderer &renderer() const { return r; }
 
 private:

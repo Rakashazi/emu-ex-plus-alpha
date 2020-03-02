@@ -508,9 +508,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	audio_init(rate, 1. / frameTime);
+	audio_init(rate, 1. / frameTime.count());
 	if(gameIsRunning())
 		sound_restore();
 	logMsg("md sound buffer size %d", snd.buffer_size);

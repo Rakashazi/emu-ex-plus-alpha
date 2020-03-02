@@ -157,9 +157,9 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat({{ngpResX, ngpResY}, pixFmt});
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	double mixRate = std::round(rate * (60. * frameTime));
+	double mixRate = std::round(rate * (60. * frameTime.count()));
 	sound_init(mixRate);
 }
 

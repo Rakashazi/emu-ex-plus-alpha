@@ -147,10 +147,42 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			return true;
 		}, 10);
 
-	onFrameUpdate = [](Base::Screen::FrameParams params)
+	onFrameUpdate = [this](Base::Screen::FrameParams params)
 		{
-			commonUpdateInput();
-			emuSystemTask.runFrame(params.timestamp());
+			if(emuVideoInProgress)
+			{
+				// frame not ready yet, retry on next vblank
+				return true;
+			}
+			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
+			if(!framesAdvanced)
+				return true;
+			if(!optionSkipLateFrames)
+			{
+				framesAdvanced = currentFrameInterval();
+			}
+			uint32_t framesToEmulate;
+			bool skipForward = false;
+			if(unlikely(EmuSystem::shouldFastForward()))
+			{
+				// for skipping loading on disk-based computers
+				framesToEmulate = 8;
+				skipForward = true;
+				emuAudio.setSpeedMultiplier(0);
+			}
+			else if(unlikely(fastForwardActive))
+			{
+				framesToEmulate = framesAdvanced * optionFastForwardSpeed;
+				emuAudio.setSpeedMultiplier(framesToEmulate);
+			}
+			else
+			{
+				constexpr uint maxLateFrameSkip = 6;
+				framesToEmulate = std::min(framesAdvanced, maxLateFrameSkip);
+				emuAudio.setSpeedMultiplier(1);
+			}
+			emuVideoInProgress = true;
+			emuSystemTask.runFrame(&emuVideo, &emuAudio, framesToEmulate, skipForward);
 			return true;
 		};
 
@@ -217,6 +249,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
+			emuVideoInProgress = false;
 			postDrawToEmuWindows();
 		});
 	videoLayer().emuVideo().setOnFormatChanged(
@@ -272,9 +305,9 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnDraw(
 		[this, &winData](Base::Window &win, Base::Window::DrawParams params)
 		{
-			if(unlikely(emuSystemTask.videoFrameIsInProgress()))
+			if(unlikely(emuVideoInProgress))
 			{
-				//logMsg("skipped draw");
+				//logMsg("waiting for EmuVideo to signal draw");
 				return true;
 			}
 			popup.prepareDraw();
@@ -372,7 +405,7 @@ void EmuViewController::configureWindowForEmulation(Base::Window &win, bool runn
 	win.screen()->setFrameInterval(optionFrameInterval);
 	#endif
 	emuView.renderer().setWindowValidOrientations(win, running ? optionGameOrientation : optionMenuOrientation);
-	win.screen()->setFrameRate(running ? 1. / EmuSystem::frameTime() : Base::Screen::DISPLAY_RATE_DEFAULT);
+	win.screen()->setFrameRate(running ? EmuSystem::frameRate() : Base::Screen::DISPLAY_RATE_DEFAULT);
 	movePopupToWindow(running ? emuView.window() : emuInputView.window());
 }
 
@@ -472,8 +505,11 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		winConf.setOnDraw(
 			[this, &winData = *extraWin](Base::Window &win, Base::Window::DrawParams params)
 			{
-				if(unlikely(emuSystemTask.videoFrameIsInProgress()))
+				if(unlikely(emuVideoInProgress))
+				{
+					//logMsg("waiting for EmuVideo to signal draw");
 					return true;
+				}
 				if(winData.hasPopup)
 				{
 					popup.prepareDraw();
@@ -616,9 +652,9 @@ bool EmuViewController::allWindowsAreFocused() const
 void EmuViewController::applyFrameRates()
 {
 	EmuSystem::setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC,
-		optionFrameRate.val ? optionFrameRate.val : emuView.window().screen()->frameTime());
+		optionFrameRate.val ? IG::FloatSeconds(optionFrameRate.val) : emuView.window().screen()->frameTime());
 	EmuSystem::setFrameTime(EmuSystem::VIDSYS_PAL,
-		optionFrameRatePAL.val ? optionFrameRatePAL.val : emuView.window().screen()->frameTime());
+		optionFrameRatePAL.val ? IG::FloatSeconds(optionFrameRatePAL.val) : emuView.window().screen()->frameTime());
 	EmuSystem::configFrameTime(optionSoundRate);
 }
 
@@ -665,6 +701,7 @@ void EmuViewController::pauseEmulation()
 	emuSystemTask.pause();
 	EmuSystem::pause();
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
+	setFastForwardActive(false);
 	emuView.window().screen()->removeOnFrame(onFrameUpdate);
 }
 
@@ -909,4 +946,10 @@ void EmuViewController::setPhysicalControlsPresent(bool present)
 AppWindowData &EmuViewController::mainWindowData() const
 {
 	return appWindowData(emuInputView.window());
+}
+
+void EmuViewController::setFastForwardActive(bool active)
+{
+	fastForwardActive = active;
+	emuAudio.setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
 }

@@ -169,7 +169,7 @@ uint32_t Screen::elapsedFrames(FrameTime timestamp)
 	assumeExpr(timestamp >= prevFrameTimestamp);
 	if(unlikely(!timePerFrame.count()))
 	{
-		timePerFrame = FloatSeconds(1. / frameRate());
+		timePerFrame = frameTime();
 		assert(timePerFrame.count());
 	}
 	assumeExpr(timePerFrame.count() > 0);

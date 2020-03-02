@@ -266,7 +266,7 @@ static void printPathMenuEntryStr(PathOption optionSavePath, char (&str)[S])
 class DetectFrameRateView : public View
 {
 public:
-	using DetectFrameRateDelegate = DelegateFunc<void (double frameRate)>;
+	using DetectFrameRateDelegate = DelegateFunc<void (IG::FloatSeconds frameTime)>;
 	DetectFrameRateDelegate onDetectFrameTime;
 	Base::Screen::OnFrameDelegate detectFrameRate;
 	Gfx::DrawFinishedDelegate detectFrameDrawRate;
@@ -344,12 +344,12 @@ public:
 					lastFrameTime = frameTime;
 				}
 			}
-			double frameTimeTotalSecs = IG::FloatSeconds(frameTimeTotal).count();
-			double detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
+			IG::FloatSeconds frameTimeTotalSecs = IG::FloatSeconds(frameTimeTotal);
+			IG::FloatSeconds detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
 			{
 				waitForDrawFinished();
-				if(detectedFrameTime)
-					string_printf(fpsStr, "%.2ffps", 1. / detectedFrameTime);
+				if(detectedFrameTime.count())
+					string_printf(fpsStr, "%.2ffps", 1. / detectedFrameTime.count());
 				else
 					string_printf(fpsStr, "0fps");
 				fpsText.setString(fpsStr.data());
@@ -357,7 +357,7 @@ public:
 			}
 			if(stableFrameTime)
 			{
-				logMsg("found frame time:%f", detectedFrameTime);
+				logMsg("found frame time:%f", detectedFrameTime.count());
 				onDetectFrameTime(detectedFrameTime);
 				popAndShow();
 				return false;
@@ -370,7 +370,7 @@ public:
 		}
 		if(allTotalFrames >= framesToTime)
 		{
-			onDetectFrameTime(0);
+			onDetectFrameTime({});
 			popAndShow();
 			return false;
 		}
@@ -447,14 +447,14 @@ template <size_t S>
 static void printFrameRateStr(char (&str)[S])
 {
 	string_printf(str, "Frame Rate: %.2fHz",
-		1. / EmuSystem::frameTime(EmuSystem::VIDSYS_NATIVE_NTSC));
+		EmuSystem::frameRate(EmuSystem::VIDSYS_NATIVE_NTSC));
 }
 
 template <size_t S>
 static void printFrameRatePALStr(char (&str)[S])
 {
 	string_printf(str, "Frame Rate (PAL): %.2fHz",
-		1. / EmuSystem::frameTime(EmuSystem::VIDSYS_PAL));
+		EmuSystem::frameRate(EmuSystem::VIDSYS_PAL));
 }
 
 void VideoOptionView::loadStockItems()
@@ -1135,28 +1135,28 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	}
 }
 
-bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time)
+bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time)
 {
-	double wantedTime = time;
-	if(!time)
+	auto wantedTime = time;
+	if(!time.count())
 	{
 		wantedTime = emuViewController.emuWindowScreen()->frameTime();
 	}
 	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
 	{
-		EmuApp::printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime);
+		EmuApp::printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime.count());
 		return false;
 	}
 	EmuSystem::configFrameTime(optionSoundRate);
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
-		optionFrameRate = time;
+		optionFrameRate = time.count();
 		printFrameRateStr(frameRateStr);
 		frameRate.compile(renderer(), projP);
 	}
 	else
 	{
-		optionFrameRatePAL = time;
+		optionFrameRatePAL = time.count();
 		printFrameRatePALStr(frameRatePALStr);
 		frameRatePAL.compile(renderer(), projP);
 	}
@@ -1185,7 +1185,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						"using the detected or default rate may give better results");
 				}
 			}
-			if(onFrameTimeChange(vidSys, 0))
+			if(onFrameTimeChange(vidSys, {}))
 				popAndShow();
 		});
 	multiChoiceView->appendItem("Set default rate",
@@ -1201,7 +1201,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 				"Input decimal or fraction", "",
 				[this, vidSys](auto val)
 				{
-					if(onFrameTimeChange(vidSys, val.second / val.first))
+					if(onFrameTimeChange(vidSys, IG::FloatSeconds{val.second / val.first}))
 					{
 						popAndShow();
 						return true;
@@ -1217,9 +1217,9 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 			{
 				auto frView = makeView<DetectFrameRateView>(emuViewController.rendererTask());
 				frView->onDetectFrameTime =
-					[this, vidSys](double frameTime)
+					[this, vidSys](IG::FloatSeconds frameTime)
 					{
-						if(frameTime)
+						if(frameTime.count())
 						{
 							onFrameTimeChange(vidSys, frameTime);
 						}
@@ -1278,6 +1278,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionAddSoundBuffersOnUnderrun = item.flipBoolValue(*this);
+			emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 		}
 	},
 	audioRate
@@ -1398,12 +1399,12 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fastForwardSpeedItem
 	{
-		{"3x", [this]() { optionFastForwardSpeed = 2; }},
-		{"4x", [this]() { optionFastForwardSpeed = 3; }},
-		{"5x", [this]() { optionFastForwardSpeed = 4; }},
-		{"6x", [this]() { optionFastForwardSpeed = 5; }},
-		{"7x", [this]() { optionFastForwardSpeed = 6; }},
-		{"8x", [this]() { optionFastForwardSpeed = 7; }},
+		{"2x", [this]() { optionFastForwardSpeed = 2; }},
+		{"3x", [this]() { optionFastForwardSpeed = 3; }},
+		{"4x", [this]() { optionFastForwardSpeed = 4; }},
+		{"5x", [this]() { optionFastForwardSpeed = 5; }},
+		{"6x", [this]() { optionFastForwardSpeed = 6; }},
+		{"7x", [this]() { optionFastForwardSpeed = 7; }},
 	},
 	fastForwardSpeed
 	{

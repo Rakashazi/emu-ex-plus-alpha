@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/baseDefs.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
@@ -30,6 +30,8 @@
 namespace Gfx
 {
 
+using namespace IG;
+
 class RendererTask;
 class RendererDrawTask;
 class SyncFence;
@@ -37,12 +39,12 @@ class SyncFence;
 struct DrawFinishedParams
 {
 	RendererTask *drawTask_;
-	Base::FrameTime timestamp_;
+	FrameTime timestamp_;
 	Drawable drawable_;
 
 	RendererTask &rendererTask() const { return *drawTask_; }
-	Base::FrameTime timestamp() const { return timestamp_; }
-	Base::FrameTime timestampDiff() const;
+	FrameTime timestamp() const { return timestamp_; }
+	FrameTime timestampDiff() const;
 	Drawable drawable() const { return drawable_; }
 };
 

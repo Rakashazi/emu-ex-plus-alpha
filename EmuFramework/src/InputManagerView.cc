@@ -334,7 +334,7 @@ static void setBTScanSecs(int secs)
 
 InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	TableView{"General Input Options", attach, item},
-	#ifdef CONFIG_BASE_ANDROID
+	#if 0
 	relativePointerDecelItem
 	{
 		{
@@ -504,7 +504,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 	item.emplace_back(&mogaInputSystem);
 	#endif
 	item.emplace_back(&altGamepadConfirm);
-	#ifdef CONFIG_BASE_ANDROID
+	#if 0
 	if(Input::hasTrackball())
 	{
 		item.emplace_back(&relativePointerDecel);

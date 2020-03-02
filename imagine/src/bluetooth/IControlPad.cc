@@ -17,6 +17,7 @@
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/container/containerUtils.hh>

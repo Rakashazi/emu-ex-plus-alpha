@@ -24,9 +24,9 @@
 #include <imagine/util/string.h>
 #include <imagine/util/container/containerUtils.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "evdev.hh"
 #include "../private.hh"
@@ -34,10 +34,6 @@
 
 #define DEV_NODE_PATH "/dev/input"
 static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
-
-static constexpr uint64_t NSEC_PER_USEC = 1000;
-static constexpr uint64_t USEC_PER_MSEC = 1000;
-static constexpr uint64_t USEC_PER_SEC = 1000000;
 
 namespace Input
 {
@@ -144,7 +140,7 @@ struct EvdevInputDevice : public Device
 		{
 			auto &ev = event[i];
 			//logMsg("got event type %d, code %d, value %d", ev.type, ev.code, ev.value);
-			auto time = IG::Microseconds(((uint64_t)ev.time.tv_sec * USEC_PER_SEC) + (uint64_t)ev.time.tv_usec);
+			Time time = IG::Seconds{ev.time.tv_sec} + IG::Microseconds{ev.time.tv_usec};
 			switch(ev.type)
 			{
 				bcase EV_KEY:

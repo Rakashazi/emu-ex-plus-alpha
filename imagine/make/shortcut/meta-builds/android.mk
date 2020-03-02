@@ -272,7 +272,7 @@ $(android_drawableIconPaths) $(android_assetsPath) $(android_stylesXmlFiles)
 	echo METADATA_PROJECT=$(android_metadata_project) >> $(@D)/gradle.properties
 	echo METADATA_MIN_SDK=$(android_minSDK) >> $(@D)/gradle.properties
 	echo METADATA_TARGET_SDK=$(android_metadata_target_sdk) >> $(@D)/gradle.properties
-	echo NDK_VERSION=`basename $(ANDROID_NDK_PATH)` >> $(@D)/gradle.properties
+	echo ndk.dir=$(ANDROID_NDK_PATH) > $(@D)/local.properties
 
 ifneq ($(wildcard $(android_resSrcPath)/proguard.cfg),)
 android_proguardConfSrcPath = $(android_resSrcPath)/proguard.cfg

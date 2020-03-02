@@ -20,6 +20,7 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/MessagePort.hh>
 #include <imagine/thread/Semaphore.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSizeSupport.hh>
 #include <imagine/gfx/Texture.hh>
@@ -147,7 +148,7 @@ protected:
 	DelegateFuncSet<DrawFinishedDelegate> onDrawFinished{};
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
-	Base::FrameTime drawTimestamp{};
+	IG::FrameTime drawTimestamp{};
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	std::mutex drawMutex{};
 	std::condition_variable drawCondition{};

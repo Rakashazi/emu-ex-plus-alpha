@@ -225,7 +225,7 @@ void commonInitInput()
 {
 	relPtr = {};
 	turboActions = {};
-	emuSystemTask.setFastForwardActive(false);
+	emuViewController.setFastForwardActive(false);
 }
 
 void TurboInput::update()
@@ -254,7 +254,7 @@ void TurboInput::update()
 
 void commonUpdateInput()
 {
-#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
+#if 0
 	auto applyRelPointerDecel =
 		[](int val)
 		{

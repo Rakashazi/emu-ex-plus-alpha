@@ -28,9 +28,8 @@ FrameTimer::~FrameTimer() {}
 SimpleFrameTimer::SimpleFrameTimer(EventLoop loop)
 {
 	eventLoop = loop;
-	constexpr double NSEC_PER_SEC = 1000000000.;
-	assumeExpr(Screen::screen(0)->frameTime());
-	intervalNS = std::round(Screen::screen(0)->frameTime() * NSEC_PER_SEC);
+	assumeExpr(Screen::screen(0)->frameTime().count());
+	interval = std::chrono::duration_cast<IG::Nanoseconds>(Screen::screen(0)->frameTime());
 }
 
 SimpleFrameTimer::~SimpleFrameTimer()
@@ -72,7 +71,7 @@ void SimpleFrameTimer::scheduleVSync()
 			{
 				cancel();
 			}
-		}, 1, intervalNS, eventLoop, Timer::HINT_REUSE);
+		}, 1, interval.count(), eventLoop, Timer::HINT_REUSE);
 }
 
 void SimpleFrameTimer::cancel()

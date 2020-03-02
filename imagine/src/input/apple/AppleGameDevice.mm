@@ -15,6 +15,7 @@
 
 #define LOGTAG "GameController"
 #include <imagine/base/Base.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "../private.hh"

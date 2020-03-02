@@ -182,7 +182,7 @@ extern Byte1Option optionImageEffectPixelFormat;
 extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 
-#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
+#if 0
 static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
 extern Byte4Option optionRelPointerDecel;
 #endif

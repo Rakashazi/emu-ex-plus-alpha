@@ -338,9 +338,9 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	video.setFormat(srcPix);
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime));
+	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime.count()));
 	if(gameIsRunning())
 	{
 		logMsg("setting YM2610 rate to %d", conf.sample_rate);

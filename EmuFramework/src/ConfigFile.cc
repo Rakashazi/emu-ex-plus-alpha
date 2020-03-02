@@ -136,7 +136,7 @@ static OptionBase *cfgFileOption[] =
 	&optionGPUMultiThreading,
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
-	#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
+	#if 0
 	&optionRelPointerDecel,
 	#endif
 	&optionFontSize,
@@ -490,7 +490,7 @@ void loadConfigFile()
 				#if defined __ANDROID__
 				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 				bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
-				bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
+				//bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
 				bcase CFGKEY_ANDROID_TEXTURE_STORAGE: optionAndroidTextureStorage.readFromIO(io, size);
 				bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
 				bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);

@@ -40,9 +40,9 @@ public:
 	void dismiss();
 	void setAcceptDnd(bool on);
 	void setTitle(const char *name);
-	void setNeedsDraw(bool needsDraw);
+	bool setNeedsDraw(bool needsDraw);
 	void setNeedsCustomViewportResize(bool needsResize);
-	bool needsDraw();
+	bool needsDraw() const;
 	void postDraw();
 	void unpostDraw();
 	void deferredDrawComplete();

@@ -96,7 +96,7 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
 	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); });
-	if(swapBuffersIsAsync() && swapTime > IG::Milliseconds(16))
+	if(swapBuffersIsAsync() && swapTime >= IG::Milliseconds(16))
 	{
 		logWarn("buffer swap took %lldns", (long long)swapTime.count());
 	}

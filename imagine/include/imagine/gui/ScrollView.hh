@@ -41,9 +41,11 @@ public:
 	int overScroll() const;
 
 protected:
+	using VelocityTrackerType = Input::VelocityTracker<float, 1>;
+
 	Base::Screen::OnFrameDelegate animate;
 	Input::SingleDragTracker dragTracker{};
-	Input::VelocityTracker<float, 1> velTracker{}; // tracks y velocity as pixels/sec
+	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
 	IG::WindowRect scrollBarRect{};
 	float scrollVel = 0;
 	float scrollAccel = 0;

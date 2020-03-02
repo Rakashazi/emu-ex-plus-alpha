@@ -527,10 +527,10 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	runningFrame = 0;
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	logMsg("set audio rate %d", rate);
-	int mixRate = std::round(rate * (systemFrameRate * frameTime));
+	int mixRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	int currRate = 0;
 	plugin.resources_get_int("SoundSampleRate", &currRate);
 	if(currRate != mixRate)

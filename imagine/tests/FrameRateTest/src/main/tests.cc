@@ -95,7 +95,7 @@ void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, c
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameTime timestamp)
+void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, IG::FrameTime timestamp)
 {
 	// CPU stats
 	auto &screen = *win.screen();
@@ -204,14 +204,14 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	}
 }
 
-void TestFramework::finish(Base::FrameTime frameTime)
+void TestFramework::finish(IG::FrameTime frameTime)
 {
 	endTime = frameTime;
 	if(onTestFinished)
 		onTestFinished(*this);
 }
 
-void ClearTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTime)
+void ClearTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, IG::FrameTime)
 {
 	flash ^= true;
 }
@@ -264,7 +264,7 @@ void DrawTest::deinitTest()
 	texture = {};
 }
 
-void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, Base::FrameTime)
+void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, IG::FrameTime)
 {
 	flash ^= true;
 }
@@ -292,7 +292,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	sprite.draw(cmds);
 }
 
-void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, Base::FrameTime frameTime)
+void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
 	auto lockedBuff = texture.lock(0);

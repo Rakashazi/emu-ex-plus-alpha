@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <cmath>
+#include <imagine/time/Time.hh>
 #include <imagine/util/operators.hh>
 #include "SampleFormat.hh"
 
@@ -50,49 +51,43 @@ public:
 		return rate != 0 && sample && channels != 0;
 	}
 
+	uint32_t bytesPerFrame() const
+	{
+		return sample.toBytes() * channels;
+	}
+
 	uint32_t framesToBytes(uint32_t frames) const
 	{
-		return frames * sample.toBytes() * channels;
-	}
-
-	double framesToMSecs(uint32_t frames) const
-	{
-		return ((double)frames / rate) * 1000.;
-	}
-
-	double framesToUSecs(uint32_t frames) const
-	{
-		return ((double)frames / rate) * 1000000.;
-	}
-
-	uint32_t mSecsToFrames(double mSecs) const
-	{
-		return std::ceil((mSecs / 1000.) * rate);
-	}
-
-	uint32_t uSecsToFrames(double uSecs) const
-	{
-		return std::ceil((uSecs / 1000000.) * rate);
-	}
-
-	uint32_t uSecsToBytes(double uSecs) const
-	{
-		return framesToBytes(uSecsToFrames(uSecs));
+		return frames * bytesPerFrame();
 	}
 
 	uint32_t bytesToFrames(uint32_t bytes) const
 	{
-		return bytes / sample.toBytes() / channels;
+		return bytes / bytesPerFrame();
 	}
 
-	uint32_t secsToBytes(uint32_t secs) const
+	template<class T = IG::FloatSeconds>
+	T framesToTime(uint32_t frames) const
 	{
-		return (rate * sample.toBytes() * channels) * secs;
+		return T{IG::FloatSeconds{(double)frames / rate}};
 	}
 
-	double bytesToSecs(uint32_t bytes) const
+	template<class T = IG::FloatSeconds>
+	T bytesToTime(uint32_t bytes) const
 	{
-		return (double)bytes / (rate * sample.toBytes() * channels);
+		return framesToTime(bytesToFrames(bytes));
+	}
+
+	template<class T>
+	uint32_t timeToFrames(T time) const
+	{
+		return std::ceil(std::chrono::duration_cast<IG::FloatSeconds>(time).count() * rate);
+	}
+
+	template<class T>
+	uint32_t timeToBytes(T time) const
+	{
+		return framesToBytes(timeToFrames(time));
 	}
 };
 

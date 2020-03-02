@@ -714,10 +714,10 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	assumeExpr(rate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
-	uint mixRate = std::round(rate * (59.924 * frameTime));
+	uint mixRate = std::round(rate * (59.924 * frameTime.count()));
 	mixerSetSampleRate(mixer, mixRate);
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }
@@ -752,6 +752,10 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	emuVideo = video;
 	boardInfo.run(boardInfo.cpuRef);
 	((R800*)boardInfo.cpuRef)->terminate = 0;
+	if(emuVideo)
+	{
+		commitVideoFrame();
+	}
 	mixerSync(mixer);
 	UInt32 samples;
 	uint8_t *aBuff = (uint8_t*)mixerGetBuffer(mixer, &samples);

@@ -103,23 +103,23 @@ static void simpleResample(T *dest, uint destFrames, const T *src, uint srcFrame
 	}
 }
 
-static uint32_t makeWantedLatencyUSecs(uint8_t buffers)
+static IG::Microseconds makeWantedLatencyUSecs(uint8_t buffers)
 {
-	return std::round(buffers * (1000000. * EmuSystem::frameTime()));
+	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
 }
 
 void EmuAudio::resizeAudioBuffer(uint32_t buffers)
 {
 	auto targetBufferFillUSecs = makeWantedLatencyUSecs(buffers);
-	targetBufferFillBytes = format.uSecsToBytes(targetBufferFillUSecs);
+	targetBufferFillBytes = format.timeToBytes(targetBufferFillUSecs);
 	auto oldCapacity = rBuff.capacity();
 	auto bufferSizeUSecs = makeWantedLatencyUSecs(buffers + 1);
-	rBuff.setMinCapacity(format.uSecsToBytes(bufferSizeUSecs));
+	rBuff.setMinCapacity(format.timeToBytes(bufferSizeUSecs));
 	if(Config::DEBUG_BUILD && rBuff.capacity() != oldCapacity)
 	{
 		logMsg("created audio buffer:%d frames (%uus), fill target:%d frames (%uus)",
-			format.bytesToFrames(rBuff.freeSpace()), bufferSizeUSecs,
-			format.bytesToFrames(targetBufferFillBytes), targetBufferFillUSecs);
+			format.bytesToFrames(rBuff.freeSpace()), (unsigned)bufferSizeUSecs.count(),
+			format.bytesToFrames(targetBufferFillBytes), (unsigned)targetBufferFillUSecs.count());
 	}
 }
 
@@ -179,7 +179,7 @@ void EmuAudio::start()
 				}
 			}
 		};
-		outputConf.setWantedLatencyHint(0);
+		outputConf.setWantedLatencyHint({});
 		startAudioStats();
 		audioStream->open(outputConf);
 	}
@@ -188,7 +188,8 @@ void EmuAudio::start()
 		startAudioStats();
 		if(shouldStartAudioWrites())
 		{
-			logMsg("resuming audio writes with buffer fill %u/%u bytes", rBuff.size(), rBuff.capacity());
+			if(Config::DEBUG_BUILD)
+				logMsg("resuming audio writes with buffer fill %u/%u bytes", rBuff.size(), rBuff.capacity());
 			audioWriteState = AudioWriteState::ACTIVE;
 		}
 		else
@@ -223,14 +224,14 @@ void EmuAudio::flush()
 	rBuff.clear();
 }
 
-void EmuAudio::writeFrames(const void *samples, uint framesToWrite)
+void EmuAudio::writeFrames(const void *samples, uint32_t framesToWrite)
 {
 	assert(optionSound.val);
 	switch(audioWriteState)
 	{
 		case AudioWriteState::MULTI_UNDERRUN:
 			logWarn("multiple underruns within a short time");
-			if(optionAddSoundBuffersOnUnderrun && format.bytesToSecs(rBuff.capacity()) <= 1.) // hard cap buffer increase to 1 sec
+			if(addSoundBuffersOnUnderrun && format.bytesToTime(rBuff.capacity()).count() <= 1.) // hard cap buffer increase to 1 sec
 			{
 				extraSoundBuffers++;
 				resizeAudioBuffer(optionSoundBuffers + extraSoundBuffers);
@@ -242,30 +243,40 @@ void EmuAudio::writeFrames(const void *samples, uint framesToWrite)
 		default:
 		break;
 	}
+	const uint32_t sampleFrames = framesToWrite;
+	if(unlikely(speedMultiplier > 1))
+	{
+		framesToWrite = std::ceil((double)framesToWrite / speedMultiplier);
+		framesToWrite = std::max(framesToWrite, 1u);
+	}
 	uint bytes = format.framesToBytes(framesToWrite);
 	uint freeBytes = rBuff.freeSpace();
 	if(bytes <= freeBytes)
 	{
-		rBuff.write(samples, bytes);
+		if(sampleFrames > framesToWrite)
+		{
+			switch(format.channels)
+			{
+				bcase 1: simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), framesToWrite, (int16_t*)samples, sampleFrames);
+				bcase 2: simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), framesToWrite, (int32_t*)samples, sampleFrames);
+				bdefault: bug_unreachable("channels == %d", format.channels);
+			}
+			rBuff.commitWrite(bytes);
+		}
+		else
+			rBuff.writeUnchecked(samples, bytes);
 	}
 	else
 	{
-		bool logOverrun = true;
-		#ifndef NDEBUG
-		logOverrun = !doingFrameSkip;
-		#endif
-		if(logOverrun)
-		{
-			logMsg("overrun, only %d out of %d bytes free", freeBytes, bytes);
-		}
+		logMsg("overrun, only %d out of %d bytes free", freeBytes, bytes);
 		#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 		audioStats.overruns++;
 		#endif
 		auto freeFrames = format.bytesToFrames(freeBytes);
 		switch(format.channels)
 		{
-			bcase 1: simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), freeFrames, (int16_t*)samples, framesToWrite);
-			bcase 2: simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), freeFrames, (int32_t*)samples, framesToWrite);
+			bcase 1: simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), freeFrames, (int16_t*)samples, sampleFrames);
+			bcase 2: simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), freeFrames, (int32_t*)samples, sampleFrames);
 			bdefault: bug_unreachable("channels == %d", format.channels);
 		}
 		rBuff.commitWrite(freeBytes);
@@ -277,7 +288,7 @@ void EmuAudio::writeFrames(const void *samples, uint framesToWrite)
 			auto bytes = rBuff.size();
 			auto capacity = rBuff.capacity();
 			logMsg("starting audio writes with buffer fill %u/%u bytes %.2f/%.2f secs",
-				bytes, capacity, format.bytesToSecs(bytes), format.bytesToSecs(capacity));
+				bytes, capacity, format.bytesToTime(bytes).count(), format.bytesToTime(capacity).count());
 		}
 		audioWriteState = AudioWriteState::ACTIVE;
 	}
@@ -310,16 +321,23 @@ void EmuAudio::setDefaultMonoFormat()
 	setFormat(IG::Audio::SampleFormats::s16, 1);
 }
 
-void EmuAudio::setDoingFrameSkip(bool on)
+void EmuAudio::setSpeedMultiplier(uint8_t speed)
 {
-	#ifndef NDEBUG
-	doingFrameSkip = on;
-	#endif
+	if(!speed)
+	{
+		// prepare for skip-forward without audio
+		audioWriteState = AudioWriteState::BUFFER;
+		speedMultiplier = 1;
+	}
+	else
+	{
+		speedMultiplier = speed;
+	}
 }
 
-bool EmuAudio::shouldRenderAudioForSkippedFrame() const
+void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)
 {
-	return framesFree() > EmuSystem::audioFramesPerVideoFrame;
+	addSoundBuffersOnUnderrun = on;
 }
 
 IG::Audio::PcmFormat EmuAudio::pcmFormat() const

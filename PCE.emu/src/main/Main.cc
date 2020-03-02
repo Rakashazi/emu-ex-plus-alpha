@@ -225,7 +225,7 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	}
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	EmulateSpecStruct espec{};
 	const bool using263Lines = vce.CR & 0x04;
@@ -233,7 +233,7 @@ void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
 	const double rateWith263Lines = 7159090.90909090 / 455 / 263;
 	const double rateWith262Lines = 7159090.90909090 / 455 / 262;
 	double systemFrameRate = using263Lines ? rateWith263Lines : rateWith262Lines;
-	espec.SoundRate = std::round(rate * (systemFrameRate * frameTime));
+	espec.SoundRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, using263Lines);
 	PCE_Fast::applySoundFormat(&espec);
 }

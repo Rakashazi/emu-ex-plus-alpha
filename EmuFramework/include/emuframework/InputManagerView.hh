@@ -72,7 +72,7 @@ private:
 class InputManagerOptionsView : public TableView
 {
 private:
-	#ifdef CONFIG_BASE_ANDROID
+	#if 0
 	TextMenuItem relativePointerDecelItem[3];
 	MultiChoiceMenuItem relativePointerDecel{};
 	#endif

@@ -26,6 +26,12 @@ using Milliseconds = std::chrono::milliseconds;
 using Seconds = std::chrono::seconds;
 using FloatSeconds = std::chrono::duration<double>;
 
+#if defined __APPLE__ && TARGET_OS_IPHONE
+using FrameTime = FloatSeconds;
+#else
+using FrameTime = Nanoseconds;
+#endif
+
 using Time = Nanoseconds; // default time resolution
 
 static Time steadyClockTimestamp()

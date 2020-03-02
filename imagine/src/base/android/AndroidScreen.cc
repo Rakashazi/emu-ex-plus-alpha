@@ -279,9 +279,9 @@ double Screen::frameRate() const
 	return refreshRate_;
 }
 
-double Screen::frameTime() const
+IG::FloatSeconds Screen::frameTime() const
 {
-	return 1. / frameRate();
+	return IG::FloatSeconds(1. / frameRate());
 }
 
 bool Screen::frameRateIsReliable() const

@@ -30,7 +30,7 @@ EmuInputView::EmuInputView(ViewAttachParams attach, SysVController &vCtrl)
 void EmuInputView::draw(Gfx::RendererCommands &cmds)
 {
 	cmds.loadTransform(projP.makeTranslate());
-	vController.draw(cmds, touchControlsOn && EmuSystem::touchControlsApplicable(), ffKeyPushed || ffToggleActive);
+	vController.draw(cmds, touchControlsOn && EmuSystem::touchControlsApplicable(), ffToggleActive);
 }
 
 void EmuInputView::place()
@@ -46,12 +46,12 @@ void EmuInputView::resetInput()
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	vController.resetInput();
 	#endif
-	ffKeyPushed = ffToggleActive = false;
+	ffToggleActive = false;
 }
 
 void EmuInputView::updateFastforward()
 {
-	emuSystemTask.setFastForwardActive(ffKeyPushed || ffToggleActive);
+	emuViewController.setFastForwardActive(ffToggleActive);
 }
 
 bool EmuInputView::inputEvent(Input::Event e)
@@ -132,9 +132,9 @@ bool EmuInputView::inputEvent(Input::Event e)
 				{
 					bcase guiKeyIdxFastForward:
 					{
-						ffKeyPushed = e.pushed();
+						ffToggleActive = e.pushed();
 						updateFastforward();
-						logMsg("fast-forward key state: %d", ffKeyPushed);
+						logMsg("fast-forward state:%d", ffToggleActive);
 					}
 
 					bcase guiKeyIdxLoadGame:

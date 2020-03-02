@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/audio/defs.hh>
 #include <alsa/asoundlib.h>
+#include <chrono>
 
 namespace IG::Audio
 {
@@ -42,7 +43,7 @@ private:
 	snd_pcm_uframes_t bufferSize, periodSize;
 	bool useMmap;
 
-	int setupPcm(PcmFormat format, snd_pcm_access_t access, uint32_t wantedLatency);
+	int setupPcm(PcmFormat format, snd_pcm_access_t access, std::chrono::microseconds wantedLatency);
 };
 
 #ifndef CONFIG_AUDIO_PULSEAUDIO

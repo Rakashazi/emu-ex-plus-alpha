@@ -189,7 +189,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 		[&](Input::DragTrackerState)
 		{
 			stopScrollAnimation();
-			velTracker = {e.time(), {(float)e.pos().y}};
+			velTracker = {std::chrono::duration_cast<VelocityTrackerType::TimeType>(e.time()), {(float)e.pos().y}};
 			scrollVel = 0;
 			onDragOffset = offset;
 			const auto viewFrame = viewRect();
@@ -205,7 +205,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 		},
 		[&](Input::DragTrackerState state, Input::DragTrackerState)
 		{
-			velTracker.update(e.time(), {(float)e.pos().y});
+			velTracker.update(std::chrono::duration_cast<VelocityTrackerType::TimeType>(e.time()), {(float)e.pos().y});
 			if(state.isDragging())
 			{
 				auto prevOffset = offset;

@@ -207,12 +207,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	constexpr double ntscFrameRate = 21477272. / 357366.;
 	constexpr double palFrameRate = 21281370. / 425568.;
 	const double systemFrameRate = vidSysIsPAL() ? palFrameRate : ntscFrameRate;
-	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime));
+	Settings.SoundPlaybackRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	#ifndef SNES9X_VERSION_1_4
 	S9xUpdateDynamicRate(0, 10);
 	#else

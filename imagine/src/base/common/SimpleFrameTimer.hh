@@ -45,7 +45,7 @@ public:
 protected:
 	Timer timer{"SimpleFrameTimer"};
 	EventLoop eventLoop{};
-	unsigned int intervalNS = 0;
+	IG::Nanoseconds interval{};
 	bool requested = false;
 	bool cancelled = false;
 };

@@ -220,9 +220,9 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	CPULoop(gGba, task, video, audio);
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	double mixRate = std::round(rate * (59.7275 * frameTime));
+	double mixRate = std::round(rate * (59.7275 * frameTime.count()));
 	logMsg("set audio rate:%d, mix rate:%d", rate, (int)mixRate);
 	soundSetSampleRate(gGba, mixRate);
 }

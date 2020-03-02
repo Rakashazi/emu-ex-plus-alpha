@@ -38,12 +38,12 @@ public:
 	void stop();
 	void close();
 	void flush();
-	void writeFrames(const void *samples, uint framesToWrite);
+	void writeFrames(const void *samples, uint32_t framesToWrite);
 	void setRate(uint32_t rate);
 	void setFormat(IG::Audio::SampleFormat sample, uint8_t channels);
 	void setDefaultMonoFormat();
-	void setDoingFrameSkip(bool);
-	bool shouldRenderAudioForSkippedFrame() const;
+	void setSpeedMultiplier(uint8_t speed);
+	void setAddSoundBuffersOnUnderrun(bool on);
 	IG::Audio::PcmFormat pcmFormat() const;
 
 protected:
@@ -53,10 +53,9 @@ protected:
 	IG::Time lastUnderrunTime{};
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	uint32_t targetBufferFillBytes = 0;
+	bool addSoundBuffersOnUnderrun = false;
 	uint8_t extraSoundBuffers = 0;
-	#ifndef NDEBUG
-	bool doingFrameSkip = false;
-	#endif
+	uint8_t speedMultiplier = 1;
 
 	uint32_t framesFree() const;
 	uint32_t framesWritten() const;

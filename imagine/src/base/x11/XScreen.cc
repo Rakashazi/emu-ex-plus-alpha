@@ -33,7 +33,7 @@ void XScreen::init(void *xScreen_)
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		// TODO: read actual frame rate value
-		frameTime_ = 1. / 60.;
+		frameTime_ = IG::FloatSeconds(1. / 60.);
 	}
 	else
 	{
@@ -52,12 +52,12 @@ void XScreen::init(void *xScreen_)
 			{
 				if(modeInfo.hTotal && modeInfo.vTotal)
 				{
-					frameTime_ = ((double)modeInfo.hTotal * (double)modeInfo.vTotal) / (double)modeInfo.dotClock;
+					frameTime_ = IG::FloatSeconds(((double)modeInfo.hTotal * (double)modeInfo.vTotal) / (double)modeInfo.dotClock);
 				}
 				else
 				{
 					logWarn("unknown display time");
-					frameTime_ = 1. / 60.;
+					frameTime_ = IG::FloatSeconds(1. / 60.);
 					reliableFrameTime = false;
 				}
 				break;
@@ -66,11 +66,11 @@ void XScreen::init(void *xScreen_)
 		XRRFreeCrtcInfo(crtcInfo);
 		XRRFreeOutputInfo(outputInfo);
 		XRRFreeScreenResources(screenRes);
-		assert(frameTime_);
+		assert(frameTime_.count());
 	}
 	logMsg("screen: %p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM,
-		1./ frameTime_);
+		1./ frameTime_.count());
 }
 
 void *XScreen::nativeObject() const
@@ -107,10 +107,10 @@ int Screen::height()
 
 double Screen::frameRate() const
 {
-	return 1. / frameTime_;
+	return 1. / frameTime_.count();
 }
 
-double Screen::frameTime() const
+IG::FloatSeconds Screen::frameTime() const
 {
 	return frameTime_;
 }

@@ -170,29 +170,33 @@ Screen *Window::screen() const
 	#endif
 }
 
-void Window::setNeedsDraw(bool needsDraw)
+bool Window::setNeedsDraw(bool needsDraw)
 {
-	if(needsDraw && !drawNeeded && hasSurface())
+	if(needsDraw)
 	{
-		//logDMsg("window:%p needs draw", this);
+		if(unlikely(!hasSurface()))
+		{
+			drawNeeded = false;
+			return false;
+		}
 		drawNeeded = true;
+		return true;
 	}
-	else if(!needsDraw && drawNeeded)
+	else
 	{
-		//logDMsg("window:%p cancelled draw", this);
 		drawNeeded = false;
+		return false;
 	}
 }
 
-bool Window::needsDraw()
+bool Window::needsDraw() const
 {
 	return drawNeeded;
 }
 
 void Window::postDraw()
 {
-	setNeedsDraw(true);
-	if(!drawNeeded)
+	if(!setNeedsDraw(true))
 		return;
 	if(!notifyDrawAllowed)
 	{
@@ -200,12 +204,14 @@ void Window::postDraw()
 		return;
 	}
 	drawEvent.notify();
+	//logDMsg("window:%p needs draw", this);
 }
 
 void Window::unpostDraw()
 {
 	setNeedsDraw(false);
 	drawEvent.cancel();
+	//logDMsg("window:%p cancelled draw", this);
 }
 
 void Window::deferredDrawComplete()
@@ -280,7 +286,7 @@ void Window::draw(bool needsSync)
 	notifyDrawAllowed = false;
 	if(onDraw.callCopy(*this, params))
 	{
-		notifyDrawAllowed = true;
+		deferredDrawComplete();
 	}
 }
 

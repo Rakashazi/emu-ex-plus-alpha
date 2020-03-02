@@ -142,9 +142,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	return {};
 }
 
-void EmuSystem::configAudioRate(double frameTime, uint32_t rate)
+void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
-	osystem->setFrameTime(frameTime, rate);
+	osystem->setFrameTime(frameTime.count(), rate);
 }
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)

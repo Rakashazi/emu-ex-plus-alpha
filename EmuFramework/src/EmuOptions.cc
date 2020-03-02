@@ -29,13 +29,13 @@ extern SysVController vController;
 template<class T>
 bool optionFrameTimeIsValid(T val)
 {
-	return 0 || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_NATIVE_NTSC, val);
+	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_NATIVE_NTSC, IG::FloatSeconds(val));
 }
 
 template<class T>
 bool optionFrameTimePALIsValid(T val)
 {
-	return 0 || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, val);
+	return !val || EmuSystem::frameTimeIsValid(EmuSystem::VIDSYS_PAL, IG::FloatSeconds(val));
 }
 
 bool optionOrientationIsValid(uint32_t val)
@@ -133,7 +133,7 @@ Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::P
 Byte1Option optionGPUMultiThreading{CFGKEY_GPU_MULTITHREADING, 0, 0,
 	optionIsValidWithMax<(int)Gfx::Renderer::ThreadMode::MULTI>};
 
-#ifdef CONFIG_INPUT_RELATIVE_MOTION_DEVICES
+#if 0
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,
 		!Config::envIsAndroid, optionIsValidWithMax<optionRelPointerDecelHigh>);
 #endif
@@ -605,4 +605,13 @@ bool PathOption::readFromIO(IO &io, uint readSize)
 uint PathOption::ioSize() const
 {
 	return sizeof(KEY) + strlen(val);
+}
+
+uint8_t currentFrameInterval()
+{
+	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
+	return optionFrameInterval;
+	#else
+	return 1;
+	#endif
 }

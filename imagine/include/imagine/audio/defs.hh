@@ -19,6 +19,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/audio/PcmFormat.hh>
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/time/Time.hh>
 #include <system_error>
 
 namespace IG::Audio
@@ -41,12 +42,12 @@ public:
 		return onSamplesNeeded_;
 	}
 
-	void setWantedLatencyHint(uint32_t uSecs)
+	void setWantedLatencyHint(IG::Microseconds uSecs)
 	{
 		wantedLatency = uSecs;
 	}
 
-	uint32_t wantedLatencyHint() const
+	IG::Microseconds wantedLatencyHint() const
 	{
 		return wantedLatency;
 	}
@@ -64,7 +65,7 @@ public:
 protected:
 	PcmFormat format_{};
 	OnSamplesNeededDelegate onSamplesNeeded_{};
-	uint32_t wantedLatency = 20000;
+	IG::Microseconds wantedLatency{20000};
 	bool startPlaying_ = true;
 };
 

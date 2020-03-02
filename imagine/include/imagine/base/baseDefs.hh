@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
-#include <imagine/time/Time.hh>
 
 namespace Config
 {
@@ -78,12 +77,6 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 namespace Base
 {
 using namespace IG;
-
-#if defined __APPLE__ && TARGET_OS_IPHONE
-using FrameTime = FloatSeconds;
-#else
-using FrameTime = Nanoseconds;
-#endif
 
 // orientation
 using Orientation = uint32_t;

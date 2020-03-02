@@ -37,6 +37,7 @@ public:
 	SizeType capacity() const;
 	void setMinCapacity(SizeType capacity);
 	SizeType write(const void *buff, SizeType size);
+	SizeType writeUnchecked(const void *buff, SizeType size);
 	char *writeAddr() const;
 	void commitWrite(SizeType size);
 	SizeType read(void *buff, SizeType size);

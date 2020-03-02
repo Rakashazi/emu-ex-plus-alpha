@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <vector>
@@ -93,7 +94,7 @@ public:
 	uint32_t elapsedFrames(FrameTime frameTime);
 	bool frameRateIsReliable() const;
 	double frameRate() const;
-	double frameTime() const;
+	FloatSeconds frameTime() const;
 	void setFrameRate(double rate);
 	std::vector<double> supportedFrameRates();
 	void setFrameInterval(int interval);

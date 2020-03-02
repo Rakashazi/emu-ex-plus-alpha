@@ -93,7 +93,7 @@ protected:
 	StaticArrayList<MenuItem*, 28> item{};
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
-	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, double time);
+	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
 	void setOverlayEffectLevel(uint8_t val);
 	void setZoom(uint8_t val);
 	void setViewportZoom(uint8_t val);
