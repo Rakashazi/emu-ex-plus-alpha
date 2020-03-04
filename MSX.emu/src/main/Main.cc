@@ -739,6 +739,16 @@ static void commitVideoFrame()
 	}
 }
 
+static void commitUnchangedVideoFrame()
+{
+	if(emuVideo)
+	{
+		emuVideo->startUnchangedFrame(emuSysTask);
+		emuVideo = {};
+		emuSysTask = {};
+	}
+}
+
 void RefreshScreen(int screenMode)
 {
 	//logMsg("called RefreshScreen");
@@ -752,10 +762,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	emuVideo = video;
 	boardInfo.run(boardInfo.cpuRef);
 	((R800*)boardInfo.cpuRef)->terminate = 0;
-	if(emuVideo)
-	{
-		commitVideoFrame();
-	}
+	commitUnchangedVideoFrame(); // runs if emuVideo wasn't unset in emulation of this frame
 	mixerSync(mixer);
 	UInt32 samples;
 	uint8_t *aBuff = (uint8_t*)mixerGetBuffer(mixer, &samples);

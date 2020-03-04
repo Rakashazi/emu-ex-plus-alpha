@@ -51,6 +51,7 @@ public:
 	void startFrame(EmuSystemTask *task, IG::Pixmap pix);
 	EmuVideoImage startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc);
 	void startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix);
+	void startUnchangedFrame(EmuSystemTask *task);
 	void finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(EmuSystemTask *task, IG::Pixmap pix);
 	void waitAsyncFrame();

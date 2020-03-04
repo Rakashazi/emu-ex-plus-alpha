@@ -120,7 +120,7 @@ protected:
 	Base::FrameTime initialTotalFrameTime{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
-	bool fastForwardActive = false;
+	uint8_t targetFastForwardSpeed = 0;
 	std::atomic_bool emuVideoInProgress{};
 
 	void onFocusChange(uint in);

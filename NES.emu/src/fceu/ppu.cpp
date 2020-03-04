@@ -1757,6 +1757,8 @@ int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 		memset(XBuf, 0x80, 256 * 240);
 		X6502_Run(scanlines_per_frame * (256 + 85));
 		ppudead--;
+		if(!skip)
+			onFrameReady(nullptr);
 	} else {
 		X6502_Run(256 + 85);
 		PPU_status |= 0x80;

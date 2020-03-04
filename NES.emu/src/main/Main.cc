@@ -404,6 +404,11 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		[task, video](uint8 *buf)
 		{
 			assumeExpr(video);
+			if(unlikely(!buf))
+			{
+				video->startUnchangedFrame(task);
+				return;
+			}
 			auto img = video->startFrame(task);
 			auto pix = img.pixmap();
 			IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};

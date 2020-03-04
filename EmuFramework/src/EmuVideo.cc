@@ -113,6 +113,11 @@ void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
 	startFrame(task, pix);
 }
 
+void EmuVideo::startUnchangedFrame(EmuSystemTask *task)
+{
+	dispatchFinishFrame(task);
+}
+
 void EmuVideo::dispatchFinishFrame(EmuSystemTask *task)
 {
 	onFrameFinished(*this);

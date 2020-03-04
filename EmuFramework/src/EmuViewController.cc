@@ -170,9 +170,9 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 				skipForward = true;
 				emuAudio.setSpeedMultiplier(0);
 			}
-			else if(unlikely(fastForwardActive))
+			else if(unlikely(targetFastForwardSpeed > 1))
 			{
-				framesToEmulate = framesAdvanced * optionFastForwardSpeed;
+				framesToEmulate = targetFastForwardSpeed;
 				emuAudio.setSpeedMultiplier(framesToEmulate);
 			}
 			else
@@ -702,6 +702,7 @@ void EmuViewController::pauseEmulation()
 	EmuSystem::pause();
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
+	emuVideoInProgress = false;
 	emuView.window().screen()->removeOnFrame(onFrameUpdate);
 }
 
@@ -950,6 +951,6 @@ AppWindowData &EmuViewController::mainWindowData() const
 
 void EmuViewController::setFastForwardActive(bool active)
 {
-	fastForwardActive = active;
+	targetFastForwardSpeed = active ? optionFastForwardSpeed.val : 0;
 	emuAudio.setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
 }

@@ -230,9 +230,10 @@ void EmuAudio::writeFrames(const void *samples, uint32_t framesToWrite)
 	switch(audioWriteState)
 	{
 		case AudioWriteState::MULTI_UNDERRUN:
-			logWarn("multiple underruns within a short time");
-			if(addSoundBuffersOnUnderrun && format.bytesToTime(rBuff.capacity()).count() <= 1.) // hard cap buffer increase to 1 sec
+			if(speedMultiplier == 1 && addSoundBuffersOnUnderrun &&
+				format.bytesToTime(rBuff.capacity()).count() <= 1.) // hard cap buffer increase to 1 sec
 			{
+				logWarn("increasing buffer size due to multiple underruns within a short time");
 				extraSoundBuffers++;
 				resizeAudioBuffer(optionSoundBuffers + extraSoundBuffers);
 			}
